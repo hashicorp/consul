@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	serfLocalSnapshot  = "serf/local.snapshot"
-	serfRemoteSnapshot = "serf/remote.snapshot"
-	raftState          = "raft/"
+	serfLANSnapshot = "serf/local.snapshot"
+	serfWANSnapshot = "serf/remote.snapshot"
+	raftState       = "raft/"
 )
 
 // Server is Consul server which manages the service discovery,
@@ -22,13 +22,13 @@ const (
 type Server struct {
 	config *Config
 
-	// eventChLocal is used to receive events from the
-	// serfLocal cluster
-	eventChLocal chan serf.Event
+	// eventChLAN is used to receive events from the
+	// serf cluster in the datacenter
+	eventChLAN chan serf.Event
 
-	// eventChRemote is used to receive events from the
-	// serfRemote cluster
-	eventChRemote chan serf.Event
+	// eventChWAN is used to receive events from the
+	// serf cluster that spans datacenters
+	eventChWAN chan serf.Event
 
 	// fsm is the state machine used with Raft to provide
 	// strong consistency.
@@ -43,13 +43,13 @@ type Server struct {
 	raftStore     *raft.SQLiteStore
 	raftTransport *raft.NetworkTransport
 
-	// serfLocal is the Serf cluster maintained inside the DC
+	// serfLAN is the Serf cluster maintained inside the DC
 	// which contains all the DC nodes
-	serfLocal *serf.Serf
+	serfLAN *serf.Serf
 
-	// serfRemote is the Serf cluster maintained between DC's
+	// serfWAN is the Serf cluster maintained between DC's
 	// which SHOULD only consist of Consul servers
-	serfRemote *serf.Serf
+	serfWAN *serf.Serf
 
 	shutdown     bool
 	shutdownCh   chan struct{}
@@ -74,30 +74,32 @@ func NewServer(config *Config) (*Server, error) {
 
 	// Create server
 	s := &Server{
-		config:        config,
-		eventChLocal:  make(chan serf.Event, 256),
-		eventChRemote: make(chan serf.Event, 256),
-		logger:        logger,
-		shutdownCh:    make(chan struct{}),
+		config:     config,
+		eventChLAN: make(chan serf.Event, 256),
+		eventChWAN: make(chan serf.Event, 256),
+		logger:     logger,
+		shutdownCh: make(chan struct{}),
 	}
 
 	// Start the Serf listeners to prevent a deadlock
-	go s.localEventHandler()
-	go s.remoteEventHandler()
+	go s.lanEventHandler()
+	go s.wanEventHandler()
 
-	// Initialize the local Serf
+	// Initialize the lan Serf
 	var err error
-	s.serfLocal, err = s.setupSerf(config.SerfLocalConfig, s.eventChLocal, serfLocalSnapshot)
+	s.serfLAN, err = s.setupSerf(config.SerfLocalConfig,
+		s.eventChLAN, serfLANSnapshot)
 	if err != nil {
 		s.Shutdown()
-		return nil, fmt.Errorf("Failed to start local serf: %v", err)
+		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
 
-	// Initialize the remote Serf
-	s.serfRemote, err = s.setupSerf(config.SerfRemoteConfig, s.eventChRemote, serfRemoteSnapshot)
+	// Initialize the wan Serf
+	s.serfWAN, err = s.setupSerf(config.SerfRemoteConfig,
+		s.eventChWAN, serfWANSnapshot)
 	if err != nil {
 		s.Shutdown()
-		return nil, fmt.Errorf("Failed to start remote serf: %v", err)
+		return nil, fmt.Errorf("Failed to start wan serf: %v", err)
 	}
 
 	// Initialize the Raft server
@@ -193,14 +195,14 @@ func (s *Server) Shutdown() error {
 	s.shutdown = true
 	close(s.shutdownCh)
 
-	if s.serfLocal != nil {
-		s.serfLocal.Shutdown()
-		s.serfLocal = nil
+	if s.serfLAN != nil {
+		s.serfLAN.Shutdown()
+		s.serfLAN = nil
 	}
 
-	if s.serfRemote != nil {
-		s.serfRemote.Shutdown()
-		s.serfRemote = nil
+	if s.serfWAN != nil {
+		s.serfWAN.Shutdown()
+		s.serfWAN = nil
 	}
 
 	if s.raft != nil {
@@ -214,10 +216,26 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
-// localEventHandler is used to handle events from the local Serf cluster
-func (s *Server) localEventHandler() {
+// lanEventHandler is used to handle events from the lan Serf cluster
+func (s *Server) lanEventHandler() {
+	for {
+		select {
+		case e := <-s.eventChLAN:
+			s.logger.Printf("[INFO] LAN Event: %v", e)
+		case <-s.shutdownCh:
+			return
+		}
+	}
 }
 
-// remoteEventHandler is used to handle events from the remote Serf cluster
-func (s *Server) remoteEventHandler() {
+// wanEventHandler is used to handle events from the wan Serf cluster
+func (s *Server) wanEventHandler() {
+	for {
+		select {
+		case e := <-s.eventChWAN:
+			s.logger.Printf("[INFO] WAN Event: %v", e)
+		case <-s.shutdownCh:
+			return
+		}
+	}
 }
