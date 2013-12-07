@@ -9,9 +9,10 @@ import (
 )
 
 const (
-	DefaultRaftAddr    = "0.0.0.0:8300"
-	DefaultLANSerfPort = 8301
-	DefaultWANSerfPort = 8302
+	DefaultRPCAddr     = "0.0.0.0:8300"
+	DefaultRaftAddr    = "0.0.0.0:8301"
+	DefaultLANSerfPort = 8302
+	DefaultWANSerfPort = 8303
 )
 
 // Config is used to configure the server
@@ -30,6 +31,10 @@ type Config struct {
 
 	// RaftConfig is the configuration used for Raft in the local DC
 	RaftConfig *raft.Config
+
+	// RPCAddr is the RPC address used by Consul. This should be reachable
+	// by the WAN and LAN
+	RPCAddr string
 
 	// SerfLocalConfig is the configuration for the local serf
 	SerfLocalConfig *serf.Config
@@ -53,6 +58,7 @@ func DefaultConfig() *Config {
 		Datacenter:       "dc1",
 		NodeName:         hostname,
 		RaftBindAddr:     DefaultRaftAddr,
+		RPCAddr:          DefaultRPCAddr,
 		RaftConfig:       raft.DefaultConfig(),
 		SerfLocalConfig:  serf.DefaultConfig(),
 		SerfRemoteConfig: serf.DefaultConfig(),
