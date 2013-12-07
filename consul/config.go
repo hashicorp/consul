@@ -36,11 +36,11 @@ type Config struct {
 	// by the WAN and LAN
 	RPCAddr string
 
-	// SerfLocalConfig is the configuration for the local serf
-	SerfLocalConfig *serf.Config
+	// SerfLANConfig is the configuration for the intra-dc serf
+	SerfLANConfig *serf.Config
 
-	// SerfRemoteConfig is the configuration for the remtoe serf
-	SerfRemoteConfig *serf.Config
+	// SerfWANConfig is the configuration for the cross-dc serf
+	SerfWANConfig *serf.Config
 
 	// LogOutput is the location to write logs to. If this is not set,
 	// logs will go to stderr.
@@ -55,22 +55,22 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Datacenter:       "dc1",
-		NodeName:         hostname,
-		RaftBindAddr:     DefaultRaftAddr,
-		RPCAddr:          DefaultRPCAddr,
-		RaftConfig:       raft.DefaultConfig(),
-		SerfLocalConfig:  serf.DefaultConfig(),
-		SerfRemoteConfig: serf.DefaultConfig(),
+		Datacenter:    "dc1",
+		NodeName:      hostname,
+		RaftBindAddr:  DefaultRaftAddr,
+		RPCAddr:       DefaultRPCAddr,
+		RaftConfig:    raft.DefaultConfig(),
+		SerfLANConfig: serf.DefaultConfig(),
+		SerfWANConfig: serf.DefaultConfig(),
 	}
 
-	// Remote Serf should use the WAN timing, since we are using it
+	// WAN Serf should use the WAN timing, since we are using it
 	// to communicate between DC's
-	conf.SerfRemoteConfig.MemberlistConfig = memberlist.DefaultWANConfig()
+	conf.SerfWANConfig.MemberlistConfig = memberlist.DefaultWANConfig()
 
 	// Ensure we don't have port conflicts
-	conf.SerfLocalConfig.MemberlistConfig.Port = DefaultLANSerfPort
-	conf.SerfRemoteConfig.MemberlistConfig.Port = DefaultWANSerfPort
+	conf.SerfLANConfig.MemberlistConfig.Port = DefaultLANSerfPort
+	conf.SerfWANConfig.MemberlistConfig.Port = DefaultWANSerfPort
 
 	return conf
 }

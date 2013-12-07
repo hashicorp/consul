@@ -1,4 +1,4 @@
-package connsul
+package consul
 
 // lanEventHandler is used to handle events from the lan Serf cluster
 func (s *Server) lanEventHandler() {

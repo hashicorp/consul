@@ -99,7 +99,7 @@ func NewServer(config *Config) (*Server, error) {
 
 	// Initialize the lan Serf
 	var err error
-	s.serfLAN, err = s.setupSerf(config.SerfLocalConfig,
+	s.serfLAN, err = s.setupSerf(config.SerfLANConfig,
 		s.eventChLAN, serfLANSnapshot)
 	if err != nil {
 		s.Shutdown()
@@ -107,7 +107,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Initialize the wan Serf
-	s.serfWAN, err = s.setupSerf(config.SerfRemoteConfig,
+	s.serfWAN, err = s.setupSerf(config.SerfWANConfig,
 		s.eventChWAN, serfWANSnapshot)
 	if err != nil {
 		s.Shutdown()
@@ -250,4 +250,20 @@ func (s *Server) Shutdown() error {
 	s.rpcClientLock.Unlock()
 
 	return nil
+}
+
+// JoinLAN is used to have Consul join the inner-DC pool
+// The target address should be another node inside the DC
+// listening on the Serf LAN address
+func (s *Server) JoinLAN(addr string) error {
+	_, err := s.serfLAN.Join([]string{addr}, false)
+	return err
+}
+
+// JoinWAN is used to have Consul join the cross-WAN Consul ring
+// The target address should be another node listening on the
+// Serf WAN address
+func (s *Server) JoinWAN(addr string) error {
+	_, err := s.serfWAN.Join([]string{addr}, false)
+	return err
 }
