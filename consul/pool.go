@@ -1,15 +1,18 @@
 package consul
 
 import (
+	"github.com/ugorji/go/codec"
 	"net"
+	"net/rpc"
 	"sync"
 	"time"
 )
 
 // Conn is a pooled connection to a Consul server
 type Conn struct {
-	addr net.Addr
-	conn *net.TCPConn
+	addr   net.Addr
+	conn   *net.TCPConn
+	client *rpc.Client
 }
 
 // ConnPool is used to maintain a connection pool to other
@@ -104,10 +107,15 @@ func (p *ConnPool) getNewConn(addr net.Addr) (*Conn, error) {
 	// Write the Consul RPC byte to set the mode
 	conn.Write([]byte{byte(rpcConsul)})
 
+	// Create the RPC client
+	cc := codec.GoRpc.ClientCodec(conn, &codec.MsgpackHandle{})
+	client := rpc.NewClientWithCodec(cc)
+
 	// Wrap the connection
 	c := &Conn{
-		addr: addr,
-		conn: conn,
+		addr:   addr,
+		conn:   conn,
+		client: client,
 	}
 	return c, nil
 }
