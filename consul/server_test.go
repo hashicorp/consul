@@ -31,8 +31,7 @@ func testServer(t *testing.T) (string, *Server) {
 	// Adjust the ports
 	p := getPort()
 	config.NodeName = fmt.Sprintf("Node %d", p)
-	config.RaftBindAddr = fmt.Sprintf("127.0.0.1:%d", p)
-	config.RPCAddr = fmt.Sprintf("127.0.0.1:%d", getPort())
+	config.RPCAddr = fmt.Sprintf("127.0.0.1:%d", p)
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	config.SerfLANConfig.MemberlistConfig.Port = getPort()
 	config.SerfWANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
