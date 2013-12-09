@@ -206,7 +206,7 @@ func (s *Server) setupRPC() error {
 		return err
 	}
 	s.rpcListener = list
-	s.raftLayer = NewRaftLayer(s.rpcListener.Addr(), s.connPool)
+	s.raftLayer = NewRaftLayer(s.rpcListener.Addr())
 	go s.listen()
 	return nil
 }

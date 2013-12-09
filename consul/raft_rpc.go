@@ -16,9 +16,6 @@ type RaftLayer struct {
 	// connCh is used to accept connections
 	connCh chan net.Conn
 
-	// ConnPool is used to make outbound connections
-	connPool *ConnPool
-
 	// Tracks if we are closed
 	closed    bool
 	closeCh   chan struct{}
@@ -27,12 +24,11 @@ type RaftLayer struct {
 
 // NewRaftLayer is used to initialize a new RaftLayer which can
 // be used as a StreamLayer for Raft
-func NewRaftLayer(addr net.Addr, pool *ConnPool) *RaftLayer {
+func NewRaftLayer(addr net.Addr) *RaftLayer {
 	layer := &RaftLayer{
-		addr:     addr,
-		connCh:   make(chan net.Conn),
-		connPool: pool,
-		closeCh:  make(chan struct{}),
+		addr:    addr,
+		connCh:  make(chan net.Conn),
+		closeCh: make(chan struct{}),
 	}
 	return layer
 }
@@ -78,18 +74,5 @@ func (l *RaftLayer) Addr() net.Addr {
 
 // Dial is used to create a new outgoing connection
 func (l *RaftLayer) Dial(address string, timeout time.Duration) (net.Conn, error) {
-	// Get a net.Addr
-	addr, err := net.ResolveTCPAddr("tcp", address)
-	if err != nil {
-		return nil, err
-	}
-
-	// Use the conn pool
-	conn, err := l.connPool.Acquire(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	// Discard the Conn wrapper
-	return conn.conn, nil
+	return net.DialTimeout("tcp", address, timeout)
 }
