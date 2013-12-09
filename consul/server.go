@@ -201,6 +201,9 @@ func (s *Server) setupRaft() error {
 
 // setupRPC is used to setup the RPC listener
 func (s *Server) setupRPC() error {
+	// Register the handlers
+	s.rpcServer.Register(&Raft{server: s})
+
 	list, err := net.Listen("tcp", s.config.RPCAddr)
 	if err != nil {
 		return err
