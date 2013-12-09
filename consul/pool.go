@@ -15,6 +15,10 @@ type Conn struct {
 	client *rpc.Client
 }
 
+func (c *Conn) Close() error {
+	return c.conn.Close()
+}
+
 // ConnPool is used to maintain a connection pool to other
 // Consul servers. This is used to reduce the latency of
 // RPC requests between servers. It is only used to pool
@@ -50,7 +54,7 @@ func (p *ConnPool) Shutdown() error {
 
 	for _, conns := range p.pool {
 		for _, c := range conns {
-			c.conn.Close()
+			c.Close()
 		}
 	}
 	p.pool = make(map[string][]*Conn)
@@ -131,11 +135,37 @@ func (p *ConnPool) Return(conn *Conn) {
 
 	// Check for limit on connections or shutdown
 	if p.shutdown || len(conns) >= p.maxConns {
-		conn.conn.Close()
+		conn.Close()
 		return
 	}
 
 	// Retain the connection
 	conns = append(conns, conn)
 	p.pool[conn.addr.String()] = conns
+}
+
+// RPC is used to make an RPC call to a remote host
+func (p *ConnPool) RPC(addr net.Addr, method string, args interface{}, reply interface{}) error {
+	// Try to get a conn first
+	conn, err := p.Acquire(addr)
+	if err != nil {
+		return err
+	}
+
+	// Make the RPC call
+	err = conn.client.Call(method, args, reply)
+
+	// Fast path the non-error case
+	if err == nil {
+		p.Return(conn)
+		return nil
+	}
+
+	// If not a network error, save the connection
+	if _, ok := err.(net.Error); !ok {
+		p.Return(conn)
+	} else {
+		conn.Close()
+	}
+	return err
 }
