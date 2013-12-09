@@ -99,5 +99,4 @@ func TestServer_JoinWAN(t *testing.T) {
 	if err := s2.JoinWAN(addr); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	t.Fatalf("fail")
 }

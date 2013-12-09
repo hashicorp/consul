@@ -44,9 +44,10 @@ type Server struct {
 
 	// The raft instance is used among Consul nodes within the
 	// DC to protect operations that require strong consistency
-	raft      *raft.Raft
-	raftLayer *RaftLayer
-	raftStore *raft.SQLiteStore
+	raft          *raft.Raft
+	raftLayer     *RaftLayer
+	raftStore     *raft.SQLiteStore
+	raftTransport *raft.NetworkTransport
 
 	// rpcClients is used to track active clients
 	rpcClients    map[net.Conn]struct{}
@@ -179,6 +180,7 @@ func (s *Server) setupRaft() error {
 
 	// Create a transport layer
 	trans := raft.NewNetworkTransport(s.raftLayer, 3, 10*time.Second)
+	s.raftTransport = trans
 
 	// Setup the peer store
 	peers := raft.NewJSONPeers(path, trans)
@@ -233,8 +235,9 @@ func (s *Server) Shutdown() error {
 	}
 
 	if s.raft != nil {
-		s.raft.Shutdown()
+		s.raftTransport.Close()
 		s.raftLayer.Close()
+		s.raft.Shutdown()
 		s.raftStore.Close()
 		s.raft = nil
 		s.raftLayer = nil
