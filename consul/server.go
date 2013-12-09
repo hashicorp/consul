@@ -259,6 +259,57 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
+// Leave is used to prepare for a graceful shutdown of the server
+func (s *Server) Leave() error {
+	s.logger.Printf("[INFO] Consul server starting leave")
+
+	// Leave the WAN pool
+	if s.serfWAN != nil {
+		if err := s.serfWAN.Leave(); err != nil {
+			s.logger.Printf("[ERR] Failed to leave WAN Serf cluster: %v", err)
+		}
+	}
+
+	// Leave the LAN pool
+	if s.serfLAN != nil {
+		if err := s.serfLAN.Leave(); err != nil {
+			s.logger.Printf("[ERR] Failed to leave LAN Serf cluster: %v", err)
+		}
+	}
+
+	// Leave the Raft cluster
+	if s.raft != nil {
+		// Get the leader
+		leader := s.raft.Leader()
+		if leader == nil {
+			s.logger.Printf("[ERR] Failed to leave Raft cluster: no leader")
+			goto AFTER_LEAVE
+		}
+
+		// Request that we are removed
+		// TODO: Properly forward to leader
+		future := s.raft.RemovePeer(s.raftTransport.LocalAddr())
+
+		// Wait for the future
+		ch := make(chan error, 1)
+		go func() {
+			ch <- future.Error()
+		}()
+
+		// Wait for the commit
+		select {
+		case err := <-ch:
+			if err != nil {
+				s.logger.Printf("[ERR] Failed to leave Raft cluster: %v", err)
+			}
+		case <-time.After(3 * time.Second):
+			s.logger.Printf("[ERR] Timedout leaving Raft cluster")
+		}
+	}
+AFTER_LEAVE:
+	return nil
+}
+
 // JoinLAN is used to have Consul join the inner-DC pool
 // The target address should be another node inside the DC
 // listening on the Serf LAN address
