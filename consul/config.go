@@ -10,9 +10,8 @@ import (
 
 const (
 	DefaultRPCAddr     = "0.0.0.0:8300"
-	DefaultRaftAddr    = "0.0.0.0:8301"
-	DefaultLANSerfPort = 8302
-	DefaultWANSerfPort = 8303
+	DefaultLANSerfPort = 8301
+	DefaultWANSerfPort = 8302
 )
 
 // Config is used to configure the server
@@ -25,9 +24,6 @@ type Config struct {
 
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string
-
-	// Bind address for Raft (TCP)
-	RaftBindAddr string
 
 	// RaftConfig is the configuration used for Raft in the local DC
 	RaftConfig *raft.Config
@@ -57,7 +53,6 @@ func DefaultConfig() *Config {
 	conf := &Config{
 		Datacenter:    "dc1",
 		NodeName:      hostname,
-		RaftBindAddr:  DefaultRaftAddr,
 		RPCAddr:       DefaultRPCAddr,
 		RaftConfig:    raft.DefaultConfig(),
 		SerfLANConfig: serf.DefaultConfig(),
