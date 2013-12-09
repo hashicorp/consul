@@ -293,13 +293,12 @@ func (s *Server) Leave() error {
 		}
 
 		// Request that we are removed
-		// TODO: Properly forward to leader
-		future := s.raft.RemovePeer(s.rpcListener.Addr())
-
-		// Wait for the future
 		ch := make(chan error, 1)
 		go func() {
-			ch <- future.Error()
+			var out struct{}
+			peer := s.rpcListener.Addr().String()
+			err := s.connPool.RPC(leader, "Raft.RemovePeer", peer, &out)
+			ch <- err
 		}()
 
 		// Wait for the commit
