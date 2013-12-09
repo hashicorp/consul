@@ -24,6 +24,9 @@ const (
 type Server struct {
 	config *Config
 
+	// Connection pool to other consul servers
+	connPool *ConnPool
+
 	// eventChLAN is used to receive events from the
 	// serf cluster in the datacenter
 	eventChLAN chan serf.Event
@@ -85,6 +88,7 @@ func NewServer(config *Config) (*Server, error) {
 	// Create server
 	s := &Server{
 		config:     config,
+		connPool:   NewPool(3),
 		eventChLAN: make(chan serf.Event, 256),
 		eventChWAN: make(chan serf.Event, 256),
 		logger:     logger,
@@ -248,6 +252,9 @@ func (s *Server) Shutdown() error {
 		conn.Close()
 	}
 	s.rpcClientLock.Unlock()
+
+	// Close the connection pool
+	s.connPool.Shutdown()
 
 	return nil
 }
