@@ -74,5 +74,12 @@ func (l *RaftLayer) Addr() net.Addr {
 
 // Dial is used to create a new outgoing connection
 func (l *RaftLayer) Dial(address string, timeout time.Duration) (net.Conn, error) {
-	return net.DialTimeout("tcp", address, timeout)
+	conn, err := net.DialTimeout("tcp", address, timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	// Write the Raft byte to set the mode
+	conn.Write([]byte{byte(rpcRaft)})
+	return conn, err
 }

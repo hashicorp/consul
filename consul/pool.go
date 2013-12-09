@@ -14,7 +14,9 @@ type Conn struct {
 
 // ConnPool is used to maintain a connection pool to other
 // Consul servers. This is used to reduce the latency of
-// RPC requests between servers
+// RPC requests between servers. It is only used to pool
+// connections in the rpcConsul mode. Raft connections
+// are pooled seperately.
 type ConnPool struct {
 	sync.Mutex
 
@@ -98,6 +100,9 @@ func (p *ConnPool) getNewConn(addr net.Addr) (*Conn, error) {
 	// Enable keep alives
 	conn.SetKeepAlive(true)
 	conn.SetNoDelay(true)
+
+	// Write the Consul RPC byte to set the mode
+	conn.Write([]byte{byte(rpcConsul)})
 
 	// Wrap the connection
 	c := &Conn{
