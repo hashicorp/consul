@@ -46,6 +46,7 @@ type Server struct {
 	// DC to protect operations that require strong consistency
 	raft          *raft.Raft
 	raftLayer     *RaftLayer
+	raftPeers     raft.PeerStore
 	raftStore     *raft.SQLiteStore
 	raftTransport *raft.NetworkTransport
 
@@ -104,6 +105,12 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}
 
+	// Initialize the Raft server
+	if err := s.setupRaft(); err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to start Raft: %v", err)
+	}
+
 	// Start the Serf listeners to prevent a deadlock
 	go s.lanEventHandler()
 	go s.wanEventHandler()
@@ -123,12 +130,6 @@ func NewServer(config *Config) (*Server, error) {
 	if err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start wan serf: %v", err)
-	}
-
-	// Initialize the Raft server
-	if err := s.setupRaft(); err != nil {
-		s.Shutdown()
-		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
 	return s, nil
@@ -183,14 +184,14 @@ func (s *Server) setupRaft() error {
 	s.raftTransport = trans
 
 	// Setup the peer store
-	peers := raft.NewJSONPeers(path, trans)
+	s.raftPeers = raft.NewJSONPeers(path, trans)
 
 	// Create the FSM
 	s.fsm = &consulFSM{server: s}
 
 	// Setup the Raft store
-	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, store, store, snapshots,
-		peers, trans)
+	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, store, store,
+		snapshots, s.raftPeers, trans)
 	if err != nil {
 		store.Close()
 		trans.Close()
@@ -202,6 +203,7 @@ func (s *Server) setupRaft() error {
 // setupRPC is used to setup the RPC listener
 func (s *Server) setupRPC() error {
 	// Register the handlers
+	s.rpcServer.Register(&Status{server: s})
 	s.rpcServer.Register(&Raft{server: s})
 
 	list, err := net.Listen("tcp", s.config.RPCAddr)
