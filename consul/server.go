@@ -145,7 +145,7 @@ func (s *Server) ensurePath(path string, dir bool) error {
 // setupSerf is used to setup and initialize a Serf
 func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (*serf.Serf, error) {
 	conf.NodeName = s.config.NodeName
-	conf.Role = fmt.Sprintf("consul:%s", s.config.Datacenter)
+	conf.Role = fmt.Sprintf("consul:%s:%s", s.config.Datacenter, s.rpcListener.Addr().String())
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput
 	conf.EventCh = ch
