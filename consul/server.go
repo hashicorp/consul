@@ -44,9 +44,9 @@ type Server struct {
 
 	// The raft instance is used among Consul nodes within the
 	// DC to protect operations that require strong consistency
-	raft          *raft.Raft
-	raftStore     *raft.SQLiteStore
-	raftTransport *raft.NetworkTransport
+	raft      *raft.Raft
+	raftLayer *RaftLayer
+	raftStore *raft.SQLiteStore
 
 	// rpcClients is used to track active clients
 	rpcClients    map[net.Conn]struct{}
@@ -88,13 +88,19 @@ func NewServer(config *Config) (*Server, error) {
 	// Create server
 	s := &Server{
 		config:     config,
-		connPool:   NewPool(3),
+		connPool:   NewPool(5),
 		eventChLAN: make(chan serf.Event, 256),
 		eventChWAN: make(chan serf.Event, 256),
 		logger:     logger,
 		rpcClients: make(map[net.Conn]struct{}),
 		rpcServer:  rpc.NewServer(),
 		shutdownCh: make(chan struct{}),
+	}
+
+	// Initialize the RPC layer
+	if err := s.setupRPC(); err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}
 
 	// Start the Serf listeners to prevent a deadlock
@@ -162,6 +168,7 @@ func (s *Server) setupRaft() error {
 	if err != nil {
 		return err
 	}
+	s.raftStore = store
 
 	// Create the snapshot store
 	snapshots, err := raft.NewFileSnapshotStore(path, 3)
@@ -171,11 +178,7 @@ func (s *Server) setupRaft() error {
 	}
 
 	// Create a transport layer
-	trans, err := raft.NewTCPTransport(s.config.RaftBindAddr, 3, 10*time.Second)
-	if err != nil {
-		store.Close()
-		return err
-	}
+	trans := raft.NewNetworkTransport(s.raftLayer, 3, 10*time.Second)
 
 	// Setup the peer store
 	peers := raft.NewJSONPeers(path, trans)
@@ -184,17 +187,13 @@ func (s *Server) setupRaft() error {
 	s.fsm = &consulFSM{server: s}
 
 	// Setup the Raft store
-	raft, err := raft.NewRaft(s.config.RaftConfig, s.fsm, store, store, snapshots,
+	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, store, store, snapshots,
 		peers, trans)
 	if err != nil {
 		store.Close()
 		trans.Close()
 		return err
 	}
-
-	s.raft = raft
-	s.raftStore = store
-	s.raftTransport = trans
 	return nil
 }
 
@@ -205,6 +204,7 @@ func (s *Server) setupRPC() error {
 		return err
 	}
 	s.rpcListener = list
+	s.raftLayer = NewRaftLayer(s.rpcListener.Addr(), s.connPool)
 	go s.listen()
 	return nil
 }
@@ -234,11 +234,11 @@ func (s *Server) Shutdown() error {
 
 	if s.raft != nil {
 		s.raft.Shutdown()
+		s.raftLayer.Close()
 		s.raftStore.Close()
-		s.raftTransport.Close()
 		s.raft = nil
+		s.raftLayer = nil
 		s.raftStore = nil
-		s.raftTransport = nil
 	}
 
 	if s.rpcListener != nil {
@@ -288,7 +288,7 @@ func (s *Server) Leave() error {
 
 		// Request that we are removed
 		// TODO: Properly forward to leader
-		future := s.raft.RemovePeer(s.raftTransport.LocalAddr())
+		future := s.raft.RemovePeer(s.rpcListener.Addr())
 
 		// Wait for the future
 		ch := make(chan error, 1)
