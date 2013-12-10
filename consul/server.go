@@ -327,3 +327,13 @@ func (s *Server) JoinWAN(addr string) error {
 	_, err := s.serfWAN.Join([]string{addr}, false)
 	return err
 }
+
+// LANMembers is used to return the members of the LAN cluster
+func (s *Server) LANMembers() []serf.Member {
+	return s.serfLAN.Members()
+}
+
+// WANMembers is used to return the members of the LAN cluster
+func (s *Server) WANMembers() []serf.Member {
+	return s.serfWAN.Members()
+}

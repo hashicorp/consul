@@ -82,6 +82,15 @@ func TestServer_JoinLAN(t *testing.T) {
 	if err := s2.JoinLAN(addr); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
+	// Check the members
+	if len(s1.LANMembers()) != 2 {
+		t.Fatalf("bad len")
+	}
+
+	if len(s2.LANMembers()) != 2 {
+		t.Fatalf("bad len")
+	}
 }
 
 func TestServer_JoinWAN(t *testing.T) {
@@ -98,6 +107,15 @@ func TestServer_JoinWAN(t *testing.T) {
 		s1.config.SerfWANConfig.MemberlistConfig.Port)
 	if err := s2.JoinWAN(addr); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	// Check the members
+	if len(s1.WANMembers()) != 2 {
+		t.Fatalf("bad len")
+	}
+
+	if len(s2.WANMembers()) != 2 {
+		t.Fatalf("bad len")
 	}
 }
 
