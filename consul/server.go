@@ -337,3 +337,14 @@ func (s *Server) LANMembers() []serf.Member {
 func (s *Server) WANMembers() []serf.Member {
 	return s.serfWAN.Members()
 }
+
+// RemoveFailedNode is used to remove a failed node from the cluster
+func (s *Server) RemoveFailedNode(node string) error {
+	if err := s.serfLAN.RemoveFailedNode(node); err != nil {
+		return err
+	}
+	if err := s.serfWAN.RemoveFailedNode(node); err != nil {
+		return err
+	}
+	return nil
+}
