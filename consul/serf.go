@@ -144,6 +144,11 @@ CHECK:
 		}
 	}
 
+	// Bail if the node is not alive
+	if memberStatus(s.serfLAN.Members(), m.Name) != serf.StatusAlive {
+		return
+	}
+
 	// Attempt to add as a peer
 	future = s.raft.AddPeer(addr)
 	if err := future.Error(); err != nil {
@@ -154,5 +159,21 @@ CHECK:
 
 WAIT:
 	time.Sleep(500 * time.Millisecond)
-	goto CHECK
+	select {
+	case <-s.shutdownCh:
+		return
+	default:
+		goto CHECK
+	}
+}
+
+// memberStatus scans a list of members for a matching one,
+// returning the status or StatusNone
+func memberStatus(members []serf.Member, name string) serf.MemberStatus {
+	for _, m := range members {
+		if m.Name == name {
+			return m.Status
+		}
+	}
+	return serf.StatusNone
 }
