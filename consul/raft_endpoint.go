@@ -30,6 +30,6 @@ func (r *Raft) RemovePeer(args string, reply *struct{}) error {
 		r.server.logger.Printf("[ERR] Failed to parse peer: %v", err)
 		return err
 	}
-	future := r.server.raft.AddPeer(peer)
+	future := r.server.raft.RemovePeer(peer)
 	return future.Error()
 }

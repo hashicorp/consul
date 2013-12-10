@@ -145,8 +145,9 @@ func (s *Server) ensurePath(path string, dir bool) error {
 
 // setupSerf is used to setup and initialize a Serf
 func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (*serf.Serf, error) {
+	addr := s.rpcListener.Addr().(*net.TCPAddr)
 	conf.NodeName = s.config.NodeName
-	conf.Role = fmt.Sprintf("consul:%s:%s", s.config.Datacenter, s.rpcListener.Addr().String())
+	conf.Role = fmt.Sprintf("consul:%s:%d", s.config.Datacenter, addr.Port)
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput
 	conf.EventCh = ch
@@ -231,12 +232,10 @@ func (s *Server) Shutdown() error {
 
 	if s.serfLAN != nil {
 		s.serfLAN.Shutdown()
-		s.serfLAN = nil
 	}
 
 	if s.serfWAN != nil {
 		s.serfWAN.Shutdown()
-		s.serfWAN = nil
 	}
 
 	if s.raft != nil {
@@ -244,14 +243,10 @@ func (s *Server) Shutdown() error {
 		s.raftLayer.Close()
 		s.raft.Shutdown()
 		s.raftStore.Close()
-		s.raft = nil
-		s.raftLayer = nil
-		s.raftStore = nil
 	}
 
 	if s.rpcListener != nil {
 		s.rpcListener.Close()
-		s.rpcListener = nil
 	}
 
 	// Close all the RPC connections
