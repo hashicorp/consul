@@ -38,6 +38,8 @@ func (c *consulFSM) Apply(buf []byte) interface{} {
 	switch rpc.MessageType(buf[0]) {
 	case rpc.RegisterRequestType:
 		return c.applyRegister(buf[1:])
+	case rpc.DeregisterRequestType:
+		return c.applyDeregister(buf[1:])
 	default:
 		panic(fmt.Errorf("failed to apply request: %#v", buf))
 	}
@@ -55,6 +57,21 @@ func (c *consulFSM) applyRegister(buf []byte) interface{} {
 	// Ensure the service if provided
 	if req.ServiceName != "" {
 		c.state.EnsureService(req.Node, req.ServiceName, req.ServiceTag, req.ServicePort)
+	}
+	return nil
+}
+
+func (c *consulFSM) applyDeregister(buf []byte) interface{} {
+	var req rpc.DeregisterRequest
+	if err := rpc.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	// Either remove the service entry or the whole node
+	if req.ServiceName != "" {
+		c.state.DeleteNodeService(req.Node, req.ServiceName)
+	} else {
+		c.state.DeleteNode(req.Node)
 	}
 	return nil
 }

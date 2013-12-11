@@ -27,7 +27,6 @@ func (c *Catalog) Register(args *rpc.RegisterRequest, reply *struct{}) error {
 		return err
 	}
 
-	// Run it through raft
 	_, err := c.srv.raftApply(rpc.RegisterRequestType, args)
 	if err != nil {
 		c.srv.logger.Printf("[ERR] Register failed: %v", err)
@@ -38,5 +37,14 @@ func (c *Catalog) Register(args *rpc.RegisterRequest, reply *struct{}) error {
 
 // Deregister is used to remove a service registration for a given node.
 func (c *Catalog) Deregister(args *rpc.DeregisterRequest, reply *struct{}) error {
+	if done, err := c.srv.forward("Catalog.Deregister", args.Datacenter, args, reply); done {
+		return err
+	}
+
+	_, err := c.srv.raftApply(rpc.DeregisterRequestType, args)
+	if err != nil {
+		c.srv.logger.Printf("[ERR] Deregister failed: %v", err)
+		return err
+	}
 	return nil
 }

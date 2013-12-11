@@ -14,6 +14,8 @@ const (
 	queryNodes
 	queryEnsureService
 	queryNodeServices
+	queryDeleteNodeService
+	queryDeleteNode
 )
 
 // NoodeServices maps the Service name to a tag and port
@@ -67,6 +69,7 @@ func (s *StateStore) initialize() error {
 	// Set the pragma first
 	pragmas := []string{
 		"pragma journal_mode=memory;",
+		"pragma foreign_keys=ON;",
 	}
 	for _, p := range pragmas {
 		if _, err := s.db.Exec(p); err != nil {
@@ -77,8 +80,8 @@ func (s *StateStore) initialize() error {
 	// Create the tables
 	tables := []string{
 		`CREATE TABLE nodes (name text unique, address text);`,
-		`CREATE TABLE services (node text references nodes, service text, tag text, port integer);`,
-		`CREATE INDEX servName on services(service);`,
+		`CREATE TABLE services (node text REFERENCES nodes(name) ON DELETE CASCADE, service text, tag text, port integer);`,
+		`CREATE INDEX servName ON services(service);`,
 	}
 	for _, t := range tables {
 		if _, err := s.db.Exec(t); err != nil {
@@ -88,11 +91,13 @@ func (s *StateStore) initialize() error {
 
 	// Prepare the queries
 	queries := map[namedQuery]string{
-		queryEnsureNode:    "INSERT OR REPLACE INTO nodes (name, address) VALUES (?, ?)",
-		queryNode:          "SELECT address FROM nodes where name=?",
-		queryNodes:         "SELECT * FROM nodes",
-		queryEnsureService: "INSERT OR REPLACE INTO services (node, service, tag, port) VALUES (?, ?, ?, ?)",
-		queryNodeServices:  "SELECT service, tag, port from services where node=?",
+		queryEnsureNode:        "INSERT OR REPLACE INTO nodes (name, address) VALUES (?, ?)",
+		queryNode:              "SELECT address FROM nodes where name=?",
+		queryNodes:             "SELECT * FROM nodes",
+		queryEnsureService:     "INSERT OR REPLACE INTO services (node, service, tag, port) VALUES (?, ?, ?, ?)",
+		queryNodeServices:      "SELECT service, tag, port from services where node=?",
+		queryDeleteNodeService: "DELETE FROM services WHERE node=? AND service=?",
+		queryDeleteNode:        "DELETE FROM nodes WHERE name=?",
 	}
 	for name, query := range queries {
 		stmt, err := s.db.Prepare(query)
@@ -114,6 +119,17 @@ func (s *StateStore) checkSet(res sql.Result, err error) error {
 	}
 	if n != 1 {
 		return fmt.Errorf("Failed to set row")
+	}
+	return nil
+}
+
+func (s *StateStore) checkDelete(res sql.Result, err error) error {
+	if err != nil {
+		return err
+	}
+	_, err = res.RowsAffected()
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -185,4 +201,16 @@ func (s *StateStore) NodeServices(name string) NodeServices {
 	}
 
 	return services
+}
+
+// DeleteNodeService is used to delete a node service
+func (s *StateStore) DeleteNodeService(node, service string) error {
+	stmt := s.prepared[queryDeleteNodeService]
+	return s.checkDelete(stmt.Exec(node, service))
+}
+
+// DeleteNode is used to delete a node and all it's services
+func (s *StateStore) DeleteNode(node string) error {
+	stmt := s.prepared[queryDeleteNode]
+	return s.checkDelete(stmt.Exec(node))
 }
