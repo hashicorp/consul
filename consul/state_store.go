@@ -10,8 +10,18 @@ type namedQuery uint8
 
 const (
 	queryEnsureNode namedQuery = iota
-	queryGetNodes
+	queryNode
+	queryNodes
+	queryEnsureService
+	queryNodeServices
 )
+
+// NoodeServices maps the Service name to a tag and port
+type ServiceEntry struct {
+	Tag  string
+	Port int
+}
+type NodeServices map[string]ServiceEntry
 
 // The StateStore is responsible for maintaining all the Consul
 // state. It is manipulated by the FSM which maintains consistency
@@ -78,8 +88,11 @@ func (s *StateStore) initialize() error {
 
 	// Prepare the queries
 	queries := map[namedQuery]string{
-		queryEnsureNode: "INSERT OR REPLACE INTO nodes (name, address) VALUES (?, ?)",
-		queryGetNodes:   "SELECT * FROM nodes",
+		queryEnsureNode:    "INSERT OR REPLACE INTO nodes (name, address) VALUES (?, ?)",
+		queryNode:          "SELECT address FROM nodes where name=?",
+		queryNodes:         "SELECT * FROM nodes",
+		queryEnsureService: "INSERT OR REPLACE INTO services (node, service, tag, port) VALUES (?, ?, ?, ?)",
+		queryNodeServices:  "SELECT service, tag, port from services where node=?",
 	}
 	for name, query := range queries {
 		stmt, err := s.db.Prepare(query)
@@ -111,10 +124,26 @@ func (s *StateStore) EnsureNode(name string, address string) error {
 	return s.checkSet(stmt.Exec(name, address))
 }
 
+// GetNode returns all the address of the known and if it was found
+func (s *StateStore) GetNode(name string) (bool, string) {
+	stmt := s.prepared[queryNode]
+	row := stmt.QueryRow(name)
+
+	var addr string
+	if err := row.Scan(&addr); err != nil {
+		if err == sql.ErrNoRows {
+			return false, addr
+		} else {
+			panic(fmt.Errorf("Failed to get node: %v", err))
+		}
+	}
+	return true, addr
+}
+
 // GetNodes returns all the known nodes, the slice alternates between
 // the node name and address
-func (s *StateStore) GetNodes() []string {
-	stmt := s.prepared[queryGetNodes]
+func (s *StateStore) Nodes() []string {
+	stmt := s.prepared[queryNodes]
 	rows, err := stmt.Query()
 	if err != nil {
 		panic(fmt.Errorf("Failed to get nodes: %v", err))
@@ -129,4 +158,31 @@ func (s *StateStore) GetNodes() []string {
 		data = append(data, name, address)
 	}
 	return data
+}
+
+// EnsureService is used to ensure a given node exposes a service
+func (s *StateStore) EnsureService(name, service, tag string, port int) error {
+	stmt := s.prepared[queryEnsureService]
+	return s.checkSet(stmt.Exec(name, service, tag, port))
+}
+
+// NodeServices is used to return all the services of a given node
+func (s *StateStore) NodeServices(name string) NodeServices {
+	stmt := s.prepared[queryNodeServices]
+	rows, err := stmt.Query(name)
+	if err != nil {
+		panic(fmt.Errorf("Failed to get node services: %v", err))
+	}
+
+	services := NodeServices(make(map[string]ServiceEntry))
+	var service string
+	var entry ServiceEntry
+	for rows.Next() {
+		if err := rows.Scan(&service, &entry.Tag, &entry.Port); err != nil {
+			panic(fmt.Errorf("Failed to get node services: %v", err))
+		}
+		services[service] = entry
+	}
+
+	return services
 }
