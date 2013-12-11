@@ -33,6 +33,9 @@ func NewFSM() (*consulFSM, error) {
 }
 
 func (c *consulFSM) Apply([]byte) interface{} {
+	// TODO: Decode
+
+	// TODO: Execute
 	return nil
 }
 
@@ -41,7 +44,19 @@ func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
 	return snap, nil
 }
 
-func (c *consulFSM) Restore(io.ReadCloser) error {
+func (c *consulFSM) Restore(old io.ReadCloser) error {
+	defer old.Close()
+
+	// Create a new state store
+	state, err := NewStateStore()
+	if err != nil {
+		return err
+	}
+
+	// TODO: Populate the new state
+
+	// Do an atomic flip, safe since Apply is not called concurrently
+	c.state = state
 	return nil
 }
 
