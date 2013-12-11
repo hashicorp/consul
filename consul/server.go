@@ -166,6 +166,13 @@ func (s *Server) setupRaft() error {
 		return err
 	}
 
+	// Create the FSM
+	var err error
+	s.fsm, err = NewFSM()
+	if err != nil {
+		return err
+	}
+
 	// Create the SQLite store for logs and stable storage
 	store, err := raft.NewSQLiteStore(path)
 	if err != nil {
@@ -186,9 +193,6 @@ func (s *Server) setupRaft() error {
 
 	// Setup the peer store
 	s.raftPeers = raft.NewJSONPeers(path, trans)
-
-	// Create the FSM
-	s.fsm = &consulFSM{server: s}
 
 	// Setup the Raft store
 	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, store, store,
