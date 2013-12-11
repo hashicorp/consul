@@ -31,10 +31,8 @@ The catalog service is used to manage service discovery and registration.
 Nodes can register the services they provide, and deregister them later.
 The service exposes the following methods:
 
-* Register : Registers that a node provides a given service
-* Deregister : Deregisters that a node provides a given service
-
-* RemoveFailedNode: Used to force remove a failed node
+* Register : Registers a node, and potentially a node service
+* Deregister : Deregisters a node, and potentially a node service
 
 * ListDatacenters: List the known datacenters
 * ListServices : Lists the available services

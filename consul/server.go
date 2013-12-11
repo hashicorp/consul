@@ -210,6 +210,7 @@ func (s *Server) setupRPC() error {
 	// Register the handlers
 	s.rpcServer.Register(&Status{server: s})
 	s.rpcServer.Register(&Raft{server: s})
+	s.rpcServer.Register(&Catalog{s})
 
 	list, err := net.Listen("tcp", s.config.RPCAddr)
 	if err != nil {
@@ -351,4 +352,9 @@ func (s *Server) RemoveFailedNode(node string) error {
 		return err
 	}
 	return nil
+}
+
+// IsLeader checks if this server is the cluster leader
+func (s *Server) IsLeader() bool {
+	return s.raft.State() == raft.Leader
 }

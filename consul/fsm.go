@@ -1,6 +1,8 @@
 package consul
 
 import (
+	"fmt"
+	"github.com/hashicorp/consul/rpc"
 	"github.com/hashicorp/raft"
 	"io"
 )
@@ -32,11 +34,22 @@ func NewFSM() (*consulFSM, error) {
 	return fsm, nil
 }
 
-func (c *consulFSM) Apply([]byte) interface{} {
-	// TODO: Decode
+func (c *consulFSM) Apply(buf []byte) interface{} {
+	switch rpc.MessageType(buf[0]) {
+	case rpc.RegisterRequestType:
+		return c.applyRegister(buf[1:])
+	default:
+		panic(fmt.Errorf("failed to apply request: %#v", buf))
+	}
+}
 
-	// TODO: Execute
-	return nil
+func (c *consulFSM) applyRegister(buf []byte) interface{} {
+	var req rpc.RegisterRequest
+	if err := rpc.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+
+	return true
 }
 
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
