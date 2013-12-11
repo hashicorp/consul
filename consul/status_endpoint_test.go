@@ -38,7 +38,7 @@ func TestStatusLeader(t *testing.T) {
 		t.Fatalf("unexpected leader: %v", leader)
 	}
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
 	if err := client.Call("Status.Leader", arg, &leader); err != nil {
 		t.Fatalf("err: %v", err)

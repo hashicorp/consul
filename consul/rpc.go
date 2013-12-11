@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/consul/rpc"
 	"github.com/ugorji/go/codec"
+	"io"
 	"net"
 )
 
@@ -74,7 +75,9 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 	rpcCodec := codec.GoRpc.ServerCodec(conn, &codec.MsgpackHandle{})
 	for !s.shutdown {
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
-			s.logger.Printf("[ERR] RPC error: %v (%v)", err, conn)
+			if err != io.EOF {
+				s.logger.Printf("[ERR] RPC error: %v (%v)", err, conn)
+			}
 			return
 		}
 	}

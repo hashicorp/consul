@@ -35,8 +35,18 @@ func testServer(t *testing.T) (string, *Server) {
 	config.RPCAddr = fmt.Sprintf("127.0.0.1:%d", p)
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	config.SerfLANConfig.MemberlistConfig.Port = getPort()
+	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
+	config.SerfLANConfig.MemberlistConfig.ProbeInterval = time.Second
+	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
+
 	config.SerfWANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	config.SerfWANConfig.MemberlistConfig.Port = getPort()
+	config.SerfWANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
+	config.SerfWANConfig.MemberlistConfig.ProbeInterval = time.Second
+	config.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
+
+	config.RaftConfig.HeartbeatTimeout = 50 * time.Millisecond
+	config.RaftConfig.ElectionTimeout = 50 * time.Millisecond
 
 	server, err := NewServer(config)
 	if err != nil {
