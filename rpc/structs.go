@@ -25,8 +25,8 @@ type RegisterRequest struct {
 	Node        string
 	Address     string
 	ServiceName string
-	ServicePort int
 	ServiceTag  string
+	ServicePort int
 }
 
 // DeregisterRequest is used for the Catalog.Deregister endpoint

@@ -49,7 +49,14 @@ func (c *consulFSM) applyRegister(buf []byte) interface{} {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
-	return true
+	// Ensure the node
+	c.state.EnsureNode(req.Node, req.Address)
+
+	// Ensure the service if provided
+	if req.ServiceName != "" {
+		c.state.EnsureService(req.Node, req.ServiceName, req.ServiceTag, req.ServicePort)
+	}
+	return nil
 }
 
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {

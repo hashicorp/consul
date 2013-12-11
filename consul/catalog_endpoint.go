@@ -22,28 +22,21 @@ type Catalog struct {
  */
 
 // Register is used register that a node is providing a given service.
-// Returns true if the entry was added, false if it already exists, or
-// an error is returned.
-func (c *Catalog) Register(args *rpc.RegisterRequest, reply *bool) error {
+func (c *Catalog) Register(args *rpc.RegisterRequest, reply *struct{}) error {
 	if done, err := c.forward("Catalog.Register", args.Datacenter, args, reply); done {
 		return err
 	}
 
 	// Run it through raft
-	resp, err := c.raftApply(rpc.RegisterRequestType, args)
+	_, err := c.raftApply(rpc.RegisterRequestType, args)
 	if err != nil {
 		c.logger.Printf("[ERR] Register failed: %v", err)
 		return err
 	}
-
-	// Set the response
-	*reply = resp.(bool)
 	return nil
 }
 
 // Deregister is used to remove a service registration for a given node.
-// Returns true if the entry was removed, false if it doesn't exist or
-// an error is returned.
-func (c *Catalog) Deregister(args *rpc.DeregisterRequest, reply *bool) error {
+func (c *Catalog) Deregister(args *rpc.DeregisterRequest, reply *struct{}) error {
 	return nil
 }
