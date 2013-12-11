@@ -9,7 +9,8 @@ import (
 type namedQuery uint8
 
 const (
-	queryInit namedQuery = iota
+	queryEnsureNode namedQuery = iota
+	queryGetNodes
 )
 
 // The StateStore is responsible for maintaining all the Consul
@@ -65,7 +66,9 @@ func (s *StateStore) initialize() error {
 
 	// Create the tables
 	tables := []string{
-		`CREATE TABLE foo (idx integer primary key);`,
+		`CREATE TABLE nodes (name text unique, address text);`,
+		`CREATE TABLE services (node text references nodes, service text, tag text, port integer);`,
+		`CREATE INDEX servName on services(service);`,
 	}
 	for _, t := range tables {
 		if _, err := s.db.Exec(t); err != nil {
@@ -75,7 +78,8 @@ func (s *StateStore) initialize() error {
 
 	// Prepare the queries
 	queries := map[namedQuery]string{
-		queryInit: "SELECT 1",
+		queryEnsureNode: "INSERT OR REPLACE INTO nodes (name, address) VALUES (?, ?)",
+		queryGetNodes:   "SELECT * FROM nodes",
 	}
 	for name, query := range queries {
 		stmt, err := s.db.Prepare(query)
@@ -85,4 +89,44 @@ func (s *StateStore) initialize() error {
 		s.prepared[name] = stmt
 	}
 	return nil
+}
+
+func (s *StateStore) checkSet(res sql.Result, err error) error {
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return fmt.Errorf("Failed to set row")
+	}
+	return nil
+}
+
+// EnsureNode is used to ensure a given node exists, with the provided address
+func (s *StateStore) EnsureNode(name string, address string) error {
+	stmt := s.prepared[queryEnsureNode]
+	return s.checkSet(stmt.Exec(name, address))
+}
+
+// GetNodes returns all the known nodes, the slice alternates between
+// the node name and address
+func (s *StateStore) GetNodes() []string {
+	stmt := s.prepared[queryGetNodes]
+	rows, err := stmt.Query()
+	if err != nil {
+		panic(fmt.Errorf("Failed to get nodes: %v", err))
+	}
+
+	data := make([]string, 0, 32)
+	var name, address string
+	for rows.Next() {
+		if err := rows.Scan(&name, &address); err != nil {
+			panic(fmt.Errorf("Failed to get nodes: %v", err))
+		}
+		data = append(data, name, address)
+	}
+	return data
 }
