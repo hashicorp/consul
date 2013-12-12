@@ -67,6 +67,19 @@ type ServiceNode struct {
 }
 type ServiceNodes []ServiceNode
 
+// NodeServiceRequest is used to request the services of a node
+type NodeServicesRequest struct {
+	Datacenter string
+	Node       string
+}
+
+// NodeService is a service provided by a node
+type NodeService struct {
+	Tag  string
+	Port int
+}
+type NodeServices map[string]NodeService
+
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {
 	var handle codec.MsgpackHandle

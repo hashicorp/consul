@@ -116,3 +116,17 @@ func (c *Catalog) ServiceNodes(args *rpc.ServiceNodesRequest, reply *rpc.Service
 	*reply = nodes
 	return nil
 }
+
+// NodeServices returns all the services registered as part of a node
+func (c *Catalog) NodeServices(args *rpc.NodeServicesRequest, reply *rpc.NodeServices) error {
+	if done, err := c.srv.forward("Catalog.NodeServices", args.Datacenter, args, reply); done {
+		return err
+	}
+
+	// Get the node services
+	state := c.srv.fsm.State()
+	services := state.NodeServices(args.Node)
+
+	*reply = services
+	return nil
+}

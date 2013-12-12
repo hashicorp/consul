@@ -22,13 +22,6 @@ const (
 	queryServiceTagNodes
 )
 
-// NoodeServices maps the Service name to a tag and port
-type ServiceEntry struct {
-	Tag  string
-	Port int
-}
-type NodeServices map[string]ServiceEntry
-
 // The StateStore is responsible for maintaining all the Consul
 // state. It is manipulated by the FSM which maintains consistency
 // through the use of Raft. The goals of the StateStore are to provide
@@ -191,16 +184,16 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 }
 
 // NodeServices is used to return all the services of a given node
-func (s *StateStore) NodeServices(name string) NodeServices {
+func (s *StateStore) NodeServices(name string) rpc.NodeServices {
 	stmt := s.prepared[queryNodeServices]
 	rows, err := stmt.Query(name)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node services: %v", err))
 	}
 
-	services := NodeServices(make(map[string]ServiceEntry))
+	services := rpc.NodeServices(make(map[string]rpc.NodeService))
 	var service string
-	var entry ServiceEntry
+	var entry rpc.NodeService
 	for rows.Next() {
 		if err := rows.Scan(&service, &entry.Tag, &entry.Port); err != nil {
 			panic(fmt.Errorf("Failed to get node services: %v", err))
