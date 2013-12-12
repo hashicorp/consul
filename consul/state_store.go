@@ -234,9 +234,7 @@ func (s *StateStore) Services() map[string][]string {
 		}
 
 		tags := services[service]
-		if !strContains(tags, tag) {
-			tags = append(tags, tag)
-		}
+		tags = append(tags, tag)
 		services[service] = tags
 	}
 
