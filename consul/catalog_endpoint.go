@@ -63,3 +63,23 @@ func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
 	*reply = dcs
 	return nil
 }
+
+// ListNodes is used to query the nodes in a DC
+func (c *Catalog) ListNodes(dc string, reply *rpc.Nodes) error {
+	if done, err := c.srv.forward("Catalog.ListNodes", dc, dc, reply); done {
+		return err
+	}
+
+	// Get the current nodes
+	state := c.srv.fsm.State()
+	rawNodes := state.Nodes()
+
+	// Format the response
+	nodes := rpc.Nodes(make([]rpc.Node, len(rawNodes)/2))
+	for i := 0; i < len(rawNodes); i += 2 {
+		nodes[i] = rpc.Node{rawNodes[i], rawNodes[i+1]}
+	}
+
+	*reply = nodes
+	return nil
+}

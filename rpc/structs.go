@@ -39,6 +39,13 @@ type DeregisterRequest struct {
 	ServiceName string
 }
 
+// Used to return information about a node
+type Node struct {
+	Node    string
+	Address string
+}
+type Nodes []Node
+
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {
 	var handle codec.MsgpackHandle

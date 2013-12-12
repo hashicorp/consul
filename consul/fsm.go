@@ -34,6 +34,11 @@ func NewFSM() (*consulFSM, error) {
 	return fsm, nil
 }
 
+// State is used to return a handle to the current state
+func (c *consulFSM) State() *StateStore {
+	return c.state
+}
+
 func (c *consulFSM) Apply(buf []byte) interface{} {
 	switch rpc.MessageType(buf[0]) {
 	case rpc.RegisterRequestType:
