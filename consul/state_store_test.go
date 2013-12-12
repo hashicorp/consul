@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"sort"
 	"testing"
 )
 
@@ -150,5 +151,52 @@ func TestDeleteNode(t *testing.T) {
 	found, _ := store.GetNode("foo")
 	if found {
 		t.Fatalf("found node")
+	}
+}
+
+func TestGetServices(t *testing.T) {
+	store, err := NewStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode("foo", "127.0.0.1"); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureNode("bar", "127.0.0.2"); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService("foo", "api", "", 5000); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService("foo", "db", "master", 8000); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService("bar", "db", "slave", 8000); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	services := store.Services()
+
+	tags, ok := services["api"]
+	if !ok {
+		t.Fatalf("missing api: %#v", services)
+	}
+	if len(tags) != 1 || tags[0] != "" {
+		t.Fatalf("Bad entry: %#v", tags)
+	}
+
+	tags, ok = services["db"]
+	sort.Strings(tags)
+	if !ok {
+		t.Fatalf("missing db: %#v", services)
+	}
+	if len(tags) != 2 || tags[0] != "master" || tags[1] != "slave" {
+		t.Fatalf("Bad entry: %#v", tags)
 	}
 }

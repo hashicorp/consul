@@ -217,3 +217,38 @@ func TestCatalogListNodes(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 }
+
+func TestCatalogListServices(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	var out rpc.Services
+	err := client.Call("Catalog.ListServices", "dc1", &out)
+	if err == nil || err.Error() != "No cluster leader" {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Just add a node
+	s1.fsm.State().EnsureNode("foo", "127.0.0.1")
+	s1.fsm.State().EnsureService("foo", "db", "primary", 5000)
+
+	if err := client.Call("Catalog.ListServices", "dc1", &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(out) != 1 {
+		t.Fatalf("bad: %v", out)
+	}
+	if len(out["db"]) != 1 {
+		t.Fatalf("bad: %v", out)
+	}
+	if out["db"][0] != "primary" {
+		t.Fatalf("bad: %v", out)
+	}
+}

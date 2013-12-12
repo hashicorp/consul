@@ -16,6 +16,7 @@ const (
 	queryNodeServices
 	queryDeleteNodeService
 	queryDeleteNode
+	queryServices
 )
 
 // NoodeServices maps the Service name to a tag and port
@@ -99,6 +100,7 @@ func (s *StateStore) initialize() error {
 		queryNodeServices:      "SELECT service, tag, port from services where node=?",
 		queryDeleteNodeService: "DELETE FROM services WHERE node=? AND service=?",
 		queryDeleteNode:        "DELETE FROM nodes WHERE name=?",
+		queryServices:          "SELECT DISTINCT service, tag FROM services",
 	}
 	for name, query := range queries {
 		stmt, err := s.db.Prepare(query)
@@ -214,4 +216,29 @@ func (s *StateStore) DeleteNodeService(node, service string) error {
 func (s *StateStore) DeleteNode(node string) error {
 	stmt := s.prepared[queryDeleteNode]
 	return s.checkDelete(stmt.Exec(node))
+}
+
+// Services is used to return all the services with a list of associated tags
+func (s *StateStore) Services() map[string][]string {
+	stmt := s.prepared[queryServices]
+	rows, err := stmt.Query()
+	if err != nil {
+		panic(fmt.Errorf("Failed to get services: %v", err))
+	}
+
+	services := make(map[string][]string)
+	var service, tag string
+	for rows.Next() {
+		if err := rows.Scan(&service, &tag); err != nil {
+			panic(fmt.Errorf("Failed to get services: %v", err))
+		}
+
+		tags := services[service]
+		if !strContains(tags, tag) {
+			tags = append(tags, tag)
+		}
+		services[service] = tags
+	}
+
+	return services
 }

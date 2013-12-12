@@ -46,6 +46,10 @@ type Node struct {
 }
 type Nodes []Node
 
+// Used to return information about a provided services.
+// Maps service name to available tags
+type Services map[string][]string
+
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {
 	var handle codec.MsgpackHandle

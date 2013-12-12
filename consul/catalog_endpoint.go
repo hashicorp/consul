@@ -83,3 +83,17 @@ func (c *Catalog) ListNodes(dc string, reply *rpc.Nodes) error {
 	*reply = nodes
 	return nil
 }
+
+// ListServices is used to query the services in a DC
+func (c *Catalog) ListServices(dc string, reply *rpc.Services) error {
+	if done, err := c.srv.forward("Catalog.ListServices", dc, dc, reply); done {
+		return err
+	}
+
+	// Get the current nodes
+	state := c.srv.fsm.State()
+	services := state.Services()
+
+	*reply = services
+	return nil
+}
