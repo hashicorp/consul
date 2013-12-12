@@ -18,11 +18,8 @@ func (s *Server) lanEventHandler() {
 			case serf.EventMemberJoin:
 				s.localJoin(e.(serf.MemberEvent))
 			case serf.EventMemberLeave:
-				s.localLeave(e.(serf.MemberEvent))
 			case serf.EventMemberFailed:
-				s.localFailed(e.(serf.MemberEvent))
 			case serf.EventUser:
-				s.localEvent(e.(serf.UserEvent))
 			default:
 				s.logger.Printf("[WARN] Unhandled LAN Serf Event: %#v", e)
 			}
@@ -71,18 +68,6 @@ func (s *Server) localJoin(me serf.MemberEvent) {
 		}
 		go s.joinConsulServer(m, port)
 	}
-}
-
-// localLeave is used to handle leave events on the lan serf cluster
-func (s *Server) localLeave(me serf.MemberEvent) {
-}
-
-// localFailed is used to handle fail events on the lan serf cluster
-func (s *Server) localFailed(me serf.MemberEvent) {
-}
-
-// localEvent is used to handle events on the lan serf cluster
-func (s *Server) localEvent(ue serf.UserEvent) {
 }
 
 // remoteJoin is used to handle join events on the wan serf cluster
