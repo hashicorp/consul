@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/consul/rpc"
 	"github.com/ugorji/go/codec"
 	"io"
+	"math/rand"
 	"net"
 )
 
@@ -111,8 +112,21 @@ func (s *Server) forwardLeader(method string, args interface{}, reply interface{
 
 // forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
 func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{}) error {
-	// TODO: Fix
-	return fmt.Errorf("DC forwarding not supported")
+	// Bail if we can't find any servers
+	s.remoteLock.RLock()
+	servers := s.remoteConsuls[dc]
+	if len(servers) == 0 {
+		s.remoteLock.RUnlock()
+		return rpc.ErrNoDCPath
+	}
+
+	// Select a random addr
+	offset := rand.Int31() % int32(len(servers))
+	server := servers[offset]
+	s.remoteLock.RUnlock()
+
+	// Forward to remote Consul
+	return s.connPool.RPC(server, method, args, reply)
 }
 
 // raftApply is used to encode a message, run it through raft, and return

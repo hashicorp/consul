@@ -8,6 +8,7 @@ import (
 
 var (
 	ErrNoLeader = fmt.Errorf("No cluster leader")
+	ErrNoDCPath = fmt.Errorf("No path to datacenter")
 )
 
 type MessageType uint8
