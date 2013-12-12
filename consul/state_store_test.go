@@ -295,3 +295,79 @@ func TestServiceTagNodes(t *testing.T) {
 		t.Fatalf("bad: %v", nodes)
 	}
 }
+
+func TestStoreSnapshot(t *testing.T) {
+	store, err := NewStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode("foo", "127.0.0.1"); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureNode("bar", "127.0.0.2"); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService("foo", "db", "master", 8000); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService("bar", "db", "slave", 8000); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	// Take a snapshot
+	snap, err := store.Snapshot()
+	if err != nil {
+		t.Fatalf("err: %v")
+	}
+	defer snap.Close()
+
+	// Check snapshot has old values
+	nodes := snap.Nodes()
+	if len(nodes) != 4 {
+		t.Fatalf("bad: %v", nodes)
+	}
+
+	// Ensure we get the service entries
+	services := snap.NodeServices("foo")
+	if services["db"].Tag != "master" {
+		t.Fatalf("bad: %v", services)
+	}
+
+	services = snap.NodeServices("bar")
+	if services["db"].Tag != "slave" {
+		t.Fatalf("bad: %v", services)
+	}
+
+	// Make some changes!
+	if err := store.EnsureService("foo", "db", "slave", 8000); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureService("bar", "db", "master", 8000); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureNode("baz", "127.0.0.3"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check snapshot has old values
+	nodes = snap.Nodes()
+	if len(nodes) != 4 {
+		t.Fatalf("bad: %v", nodes)
+	}
+
+	// Ensure old service entries
+	services = snap.NodeServices("foo")
+	if services["db"].Tag != "master" {
+		t.Fatalf("bad: %v", services)
+	}
+
+	services = snap.NodeServices("bar")
+	if services["db"].Tag != "slave" {
+		t.Fatalf("bad: %v", services)
+	}
+}
