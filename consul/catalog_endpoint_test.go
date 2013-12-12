@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/consul/rpc"
 	nrpc "net/rpc"
 	"os"
+	"sort"
 	"testing"
 	"time"
 )
@@ -142,5 +143,43 @@ func TestCatalogDeregister(t *testing.T) {
 
 	if err := client.Call("Catalog.Deregister", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestCatalogListDatacenters(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	dir2, s2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfWANConfig.MemberlistConfig.Port)
+	if err := s2.JoinWAN(addr); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	time.Sleep(10 * time.Millisecond)
+
+	var out []string
+	if err := client.Call("Catalog.ListDatacenters", struct{}{}, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Sort the dcs
+	sort.Strings(out)
+
+	if len(out) != 2 {
+		t.Fatalf("bad: %v", out)
+	}
+	if out[0] != "dc1" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out[1] != "dc2" {
+		t.Fatalf("bad: %v", out)
 	}
 }

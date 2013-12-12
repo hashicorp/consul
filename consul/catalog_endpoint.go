@@ -47,3 +47,19 @@ func (c *Catalog) Deregister(args *rpc.DeregisterRequest, reply *struct{}) error
 	}
 	return nil
 }
+
+// ListDatacenters is used to query for the list of known datacenters
+func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
+	c.srv.remoteLock.RLock()
+	defer c.srv.remoteLock.RUnlock()
+
+	// Read the known DCs
+	var dcs []string
+	for dc := range c.srv.remoteConsuls {
+		dcs = append(dcs, dc)
+	}
+
+	// Return
+	*reply = dcs
+	return nil
+}

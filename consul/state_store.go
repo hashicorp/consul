@@ -82,6 +82,7 @@ func (s *StateStore) initialize() error {
 		`CREATE TABLE nodes (name text unique, address text);`,
 		`CREATE TABLE services (node text REFERENCES nodes(name) ON DELETE CASCADE, service text, tag text, port integer);`,
 		`CREATE INDEX servName ON services(service);`,
+		`CREATE INDEX nodeName ON services(node);`,
 	}
 	for _, t := range tables {
 		if _, err := s.db.Exec(t); err != nil {
