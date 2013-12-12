@@ -25,8 +25,13 @@ func tmpDir(t *testing.T) string {
 }
 
 func testServer(t *testing.T) (string, *Server) {
+	return testServerDC(t, "dc1")
+}
+
+func testServerDC(t *testing.T, dc string) (string, *Server) {
 	dir := tmpDir(t)
 	config := DefaultConfig()
+	config.Datacenter = dc
 	config.DataDir = dir
 
 	// Adjust the ports
@@ -108,7 +113,7 @@ func TestServer_JoinWAN(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, s2 := testServer(t)
+	dir2, s2 := testServerDC(t, "dc2")
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
@@ -126,6 +131,17 @@ func TestServer_JoinWAN(t *testing.T) {
 
 	if len(s2.WANMembers()) != 2 {
 		t.Fatalf("bad len")
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	// Check the remoteConsuls has both
+	if len(s1.remoteConsuls) != 2 {
+		t.Fatalf("remote consul missing")
+	}
+
+	if len(s2.remoteConsuls) != 2 {
+		t.Fatalf("remote consul missing")
 	}
 }
 

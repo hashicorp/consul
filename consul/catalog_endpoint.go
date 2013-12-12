@@ -12,7 +12,6 @@ type Catalog struct {
 /*
 * Register : Registers that a node provides a given service
 * Deregister : Deregisters that a node provides a given service
-* RemoveNode: Used to force remove a node
 
 * ListDatacenters: List the known datacenters
 * ListServices : Lists the available services

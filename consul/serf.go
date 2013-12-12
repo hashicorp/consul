@@ -42,11 +42,10 @@ func (s *Server) wanEventHandler() {
 			case serf.EventMemberJoin:
 				s.remoteJoin(e.(serf.MemberEvent))
 			case serf.EventMemberLeave:
-				s.remoteLeave(e.(serf.MemberEvent))
+				fallthrough
 			case serf.EventMemberFailed:
 				s.remoteFailed(e.(serf.MemberEvent))
 			case serf.EventUser:
-				s.remoteEvent(e.(serf.UserEvent))
 			default:
 				s.logger.Printf("[WARN] Unhandled LAN Serf Event: %#v", e)
 			}
@@ -62,14 +61,15 @@ func (s *Server) localJoin(me serf.MemberEvent) {
 	// Check for consul members
 	for _, m := range me.Members {
 		ok, dc, port := s.isConsulServer(m)
-		if ok {
-			if dc != s.config.Datacenter {
-				s.logger.Printf("[WARN] Consul server %s for datacenter %s has joined wrong cluster",
-					m.Name, dc)
-				return
-			}
-			go s.joinConsulServer(m, port)
+		if !ok {
+			continue
 		}
+		if dc != s.config.Datacenter {
+			s.logger.Printf("[WARN] Consul server %s for datacenter %s has joined wrong cluster",
+				m.Name, dc)
+			continue
+		}
+		go s.joinConsulServer(m, port)
 	}
 }
 
@@ -87,18 +87,65 @@ func (s *Server) localEvent(ue serf.UserEvent) {
 
 // remoteJoin is used to handle join events on the wan serf cluster
 func (s *Server) remoteJoin(me serf.MemberEvent) {
-}
+	for _, m := range me.Members {
+		ok, dc, port := s.isConsulServer(m)
+		if !ok {
+			s.logger.Printf("[WARN] Non-Consul server in WAN pool: %s %s", m.Name)
+			continue
+		}
+		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
+		s.logger.Printf("[INFO] Adding Consul server (Datacenter: %s) (Addr: %s)", dc, addr)
 
-// remoteLeave is used to handle leave events on the wan serf cluster
-func (s *Server) remoteLeave(me serf.MemberEvent) {
+		// Check if this server is known
+		found := false
+		s.remoteLock.Lock()
+		existing := s.remoteConsuls[dc]
+		for _, e := range existing {
+			if e.String() == addr.String() {
+				found = true
+				break
+			}
+		}
+
+		// Add ot the list if not known
+		if !found {
+			s.remoteConsuls[dc] = append(existing, addr)
+		}
+		s.remoteLock.Unlock()
+	}
 }
 
 // remoteFailed is used to handle fail events on the wan serf cluster
 func (s *Server) remoteFailed(me serf.MemberEvent) {
-}
+	for _, m := range me.Members {
+		ok, dc, port := s.isConsulServer(m)
+		if !ok {
+			continue
+		}
+		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
+		s.logger.Printf("[INFO] Removing Consul server (Datacenter: %s) (Addr: %s)", dc, addr)
 
-// remoteEvent is used to handle events on the wan serf cluster
-func (s *Server) remoteEvent(ue serf.UserEvent) {
+		// Remove the server if known
+		s.remoteLock.Lock()
+		existing := s.remoteConsuls[dc]
+		n := len(existing)
+		for i := 0; i < n; i++ {
+			if existing[i].String() == addr.String() {
+				existing[i], existing[n-1] = existing[n-1], nil
+				existing = existing[:n-1]
+				n--
+				break
+			}
+		}
+
+		// Trim the list if all known consuls are dead
+		if n == 0 {
+			delete(s.remoteConsuls, dc)
+		} else {
+			s.remoteConsuls[dc] = existing
+		}
+		s.remoteLock.Unlock()
+	}
 }
 
 // Returns if a member is a consul server. Returns a bool,

@@ -50,6 +50,11 @@ type Server struct {
 	raftStore     *raft.SQLiteStore
 	raftTransport *raft.NetworkTransport
 
+	// remoteConsuls is used to track the known consuls in
+	// remote data centers. Used to do DC forwarding.
+	remoteConsuls map[string][]net.Addr
+	remoteLock    sync.RWMutex
+
 	// rpcClients is used to track active clients
 	rpcClients    map[net.Conn]struct{}
 	rpcClientLock sync.Mutex
@@ -89,14 +94,15 @@ func NewServer(config *Config) (*Server, error) {
 
 	// Create server
 	s := &Server{
-		config:     config,
-		connPool:   NewPool(5),
-		eventChLAN: make(chan serf.Event, 256),
-		eventChWAN: make(chan serf.Event, 256),
-		logger:     logger,
-		rpcClients: make(map[net.Conn]struct{}),
-		rpcServer:  rpc.NewServer(),
-		shutdownCh: make(chan struct{}),
+		config:        config,
+		connPool:      NewPool(5),
+		eventChLAN:    make(chan serf.Event, 256),
+		eventChWAN:    make(chan serf.Event, 256),
+		logger:        logger,
+		remoteConsuls: make(map[string][]net.Addr),
+		rpcClients:    make(map[net.Conn]struct{}),
+		rpcServer:     rpc.NewServer(),
+		shutdownCh:    make(chan struct{}),
 	}
 
 	// Initialize the RPC layer
