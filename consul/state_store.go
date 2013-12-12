@@ -5,7 +5,12 @@ import (
 	"fmt"
 	"github.com/hashicorp/consul/rpc"
 	_ "github.com/mattn/go-sqlite3"
+	"sync/atomic"
 )
+
+// nextDBIndex is used to generate a new ID
+// using sync/atomic to ensure it is safe
+var nextDBIndex uint32 = 0
 
 type namedQuery uint8
 
@@ -37,8 +42,12 @@ type StateStore struct {
 
 // NewStateStore is used to create a new state store
 func NewStateStore() (*StateStore, error) {
+	// Get the DB ID
+	id := atomic.AddUint32(&nextDBIndex, 1)
+	path := fmt.Sprintf("file:StateStore-%d?mode=memory&cache=shared", id)
+
 	// Open the db
-	db, err := sql.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db: %v", err)
 	}
@@ -161,11 +170,14 @@ func (s *StateStore) GetNode(name string) (bool, string) {
 // the node name and address
 func (s *StateStore) Nodes() []string {
 	stmt := s.prepared[queryNodes]
-	rows, err := stmt.Query()
+	return parseNodes(stmt.Query())
+}
+
+// parseNodes parses the result of a queryNodes statement
+func parseNodes(rows *sql.Rows, err error) []string {
 	if err != nil {
 		panic(fmt.Errorf("Failed to get nodes: %v", err))
 	}
-
 	data := make([]string, 0, 32)
 	var name, address string
 	for rows.Next() {
@@ -186,7 +198,11 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 // NodeServices is used to return all the services of a given node
 func (s *StateStore) NodeServices(name string) rpc.NodeServices {
 	stmt := s.prepared[queryNodeServices]
-	rows, err := stmt.Query(name)
+	return parseNodeServices(stmt.Query(name))
+}
+
+// parseNodeServices is used to parse the results of a queryNodeServices
+func parseNodeServices(rows *sql.Rows, err error) rpc.NodeServices {
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node services: %v", err))
 	}
@@ -200,7 +216,6 @@ func (s *StateStore) NodeServices(name string) rpc.NodeServices {
 		}
 		services[service] = entry
 	}
-
 	return services
 }
 
