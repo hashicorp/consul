@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"github.com/hashicorp/consul/rpc"
+	nrpc "net/rpc"
 	"os"
 	"testing"
 	"time"
@@ -33,6 +34,51 @@ func TestCatalogRegister(t *testing.T) {
 	// Wait for leader
 	time.Sleep(100 * time.Millisecond)
 
+	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestCatalogRegister_ForwardLeader(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client1 := rpcClient(t, s1)
+	defer client1.Close()
+
+	dir2, s2 := testServer(t)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	client2 := rpcClient(t, s2)
+	defer client2.Close()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.Port)
+	if err := s2.JoinLAN(addr); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for a leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Use the follower as the client
+	var client *nrpc.Client
+	if !s1.IsLeader() {
+		client = client1
+	} else {
+		client = client2
+	}
+
+	arg := rpc.RegisterRequest{
+		Datacenter:  "dc1",
+		Node:        "foo",
+		Address:     "127.0.0.1",
+		ServiceName: "db",
+		ServiceTag:  "master",
+		ServicePort: 8000,
+	}
+	var out struct{}
 	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
