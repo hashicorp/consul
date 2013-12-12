@@ -3,6 +3,7 @@ package consul
 import (
 	"database/sql"
 	"fmt"
+	"github.com/hashicorp/consul/rpc"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -17,6 +18,8 @@ const (
 	queryDeleteNodeService
 	queryDeleteNode
 	queryServices
+	queryServiceNodes
+	queryServiceTagNodes
 )
 
 // NoodeServices maps the Service name to a tag and port
@@ -82,7 +85,7 @@ func (s *StateStore) initialize() error {
 	tables := []string{
 		`CREATE TABLE nodes (name text unique, address text);`,
 		`CREATE TABLE services (node text REFERENCES nodes(name) ON DELETE CASCADE, service text, tag text, port integer);`,
-		`CREATE INDEX servName ON services(service);`,
+		`CREATE INDEX servName ON services(service, tag);`,
 		`CREATE INDEX nodeName ON services(node);`,
 	}
 	for _, t := range tables {
@@ -101,6 +104,8 @@ func (s *StateStore) initialize() error {
 		queryDeleteNodeService: "DELETE FROM services WHERE node=? AND service=?",
 		queryDeleteNode:        "DELETE FROM nodes WHERE name=?",
 		queryServices:          "SELECT DISTINCT service, tag FROM services",
+		queryServiceNodes:      "SELECT n.name, n.address, s.tag, s.port from nodes n, services s WHERE s.service=? AND s.node=n.name",
+		queryServiceTagNodes:   "SELECT n.name, n.address, s.tag, s.port from nodes n, services s WHERE s.service=? AND s.tag=? AND s.node=n.name",
 	}
 	for name, query := range queries {
 		stmt, err := s.db.Prepare(query)
@@ -239,4 +244,32 @@ func (s *StateStore) Services() map[string][]string {
 	}
 
 	return services
+}
+
+// ServiceNodes returns the nodes associated with a given service
+func (s *StateStore) ServiceNodes(service string) rpc.ServiceNodes {
+	stmt := s.prepared[queryServiceNodes]
+	return parseServiceNodes(stmt.Query(service))
+}
+
+// ServiceTagNodes returns the nodes associated with a given service matching a tag
+func (s *StateStore) ServiceTagNodes(service, tag string) rpc.ServiceNodes {
+	stmt := s.prepared[queryServiceTagNodes]
+	return parseServiceNodes(stmt.Query(service, tag))
+}
+
+// parseServiceNodes parses results from the queryServiceNodes / queryServiceTagNodes query
+func parseServiceNodes(rows *sql.Rows, err error) rpc.ServiceNodes {
+	if err != nil {
+		panic(fmt.Errorf("Failed to get service nodes: %v", err))
+	}
+	var nodes rpc.ServiceNodes
+	var node rpc.ServiceNode
+	for rows.Next() {
+		if err := rows.Scan(&node.Node, &node.Address, &node.ServiceTag, &node.ServicePort); err != nil {
+			panic(fmt.Errorf("Failed to get services: %v", err))
+		}
+		nodes = append(nodes, node)
+	}
+	return nodes
 }

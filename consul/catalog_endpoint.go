@@ -97,3 +97,22 @@ func (c *Catalog) ListServices(dc string, reply *rpc.Services) error {
 	*reply = services
 	return nil
 }
+
+// ServiceNodes returns all the nodes registered as part of a service
+func (c *Catalog) ServiceNodes(args *rpc.ServiceNodesRequest, reply *rpc.ServiceNodes) error {
+	if done, err := c.srv.forward("Catalog.ServiceNodes", args.Datacenter, args, reply); done {
+		return err
+	}
+
+	// Get the nodes
+	state := c.srv.fsm.State()
+	var nodes rpc.ServiceNodes
+	if args.TagFilter {
+		nodes = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
+	} else {
+		nodes = state.ServiceNodes(args.ServiceName)
+	}
+
+	*reply = nodes
+	return nil
+}

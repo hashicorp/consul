@@ -50,6 +50,23 @@ type Nodes []Node
 // Maps service name to available tags
 type Services map[string][]string
 
+// ServiceNodesRequest is used to query the nodes of a service
+type ServiceNodesRequest struct {
+	Datacenter  string
+	ServiceName string
+	ServiceTag  string
+	TagFilter   bool // Controls tag filtering
+}
+
+// ServiceNode represents a node that is part of a service
+type ServiceNode struct {
+	Node        string
+	Address     string
+	ServiceTag  string
+	ServicePort int
+}
+type ServiceNodes []ServiceNode
+
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {
 	var handle codec.MsgpackHandle

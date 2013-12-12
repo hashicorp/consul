@@ -200,3 +200,98 @@ func TestGetServices(t *testing.T) {
 		t.Fatalf("Bad entry: %#v", tags)
 	}
 }
+
+func TestServiceNodes(t *testing.T) {
+	store, err := NewStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode("foo", "127.0.0.1"); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureNode("bar", "127.0.0.2"); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService("foo", "db", "master", 8000); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService("bar", "db", "slave", 8000); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	nodes := store.ServiceNodes("db")
+	if len(nodes) != 2 {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Node != "foo" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].ServiceTag != "master" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].ServicePort != 8000 {
+		t.Fatalf("bad: %v", nodes)
+	}
+
+	if nodes[1].Node != "bar" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[1].Address != "127.0.0.2" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[1].ServiceTag != "slave" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[1].ServicePort != 8000 {
+		t.Fatalf("bad: %v", nodes)
+	}
+}
+
+func TestServiceTagNodes(t *testing.T) {
+	store, err := NewStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode("foo", "127.0.0.1"); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureNode("bar", "127.0.0.2"); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService("foo", "db", "master", 8000); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService("bar", "db", "slave", 8000); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	nodes := store.ServiceTagNodes("db", "master")
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Node != "foo" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].ServiceTag != "master" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].ServicePort != 8000 {
+		t.Fatalf("bad: %v", nodes)
+	}
+}
