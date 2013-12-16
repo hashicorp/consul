@@ -1,9 +1,28 @@
 package consul
 
 import (
+	"bytes"
 	"github.com/hashicorp/consul/rpc"
 	"testing"
 )
+
+type MockSink struct {
+	*bytes.Buffer
+	cancel bool
+}
+
+func (m *MockSink) ID() string {
+	return "Mock"
+}
+
+func (m *MockSink) Cancel() error {
+	m.cancel = true
+	return nil
+}
+
+func (m *MockSink) Close() error {
+	return nil
+}
 
 func TestFSM_RegisterNode(t *testing.T) {
 	fsm, err := NewFSM()
@@ -172,5 +191,62 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	services := fsm.state.NodeServices("foo")
 	if len(services) != 0 {
 		t.Fatalf("Services: %v", services)
+	}
+}
+
+func TestFSM_SnapshotRestore(t *testing.T) {
+	fsm, err := NewFSM()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Add some state
+	fsm.state.EnsureNode("foo", "127.0.0.1")
+	fsm.state.EnsureNode("baz", "127.0.0.2")
+	fsm.state.EnsureService("foo", "web", "", 80)
+	fsm.state.EnsureService("foo", "db", "primary", 5000)
+	fsm.state.EnsureService("baz", "web", "", 80)
+	fsm.state.EnsureService("baz", "db", "secondary", 5000)
+
+	// Snapshot
+	snap, err := fsm.Snapshot()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer snap.Release()
+
+	// Persist
+	buf := bytes.NewBuffer(nil)
+	sink := &MockSink{buf, false}
+	if err := snap.Persist(sink); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try to restore on a new FSM
+	fsm2, err := NewFSM()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Do a restore
+	if err := fsm2.Restore(sink); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Verify the contents
+	nodes := fsm2.state.Nodes()
+	if len(nodes) != 4 {
+		t.Fatalf("Bad: %v", nodes)
+	}
+
+	fooSrv := fsm2.state.NodeServices("foo")
+	if len(fooSrv) != 2 {
+		t.Fatalf("Bad: %v", fooSrv)
+	}
+	if fooSrv["db"].Tag != "primary" {
+		t.Fatalf("Bad: %v", fooSrv)
+	}
+	if fooSrv["db"].Port != 5000 {
+		t.Fatalf("Bad: %v", fooSrv)
 	}
 }
