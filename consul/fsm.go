@@ -6,6 +6,8 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/ugorji/go/codec"
 	"io"
+	"log"
+	"time"
 )
 
 // consulFSM implements a finite state machine that is used
@@ -83,6 +85,10 @@ func (c *consulFSM) applyDeregister(buf []byte) interface{} {
 }
 
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
+	defer func(start time.Time) {
+		log.Printf("[INFO] FSM Snapshot created in %v", time.Now().Sub(start))
+	}(time.Now())
+
 	// Create a new snapshot
 	snap, err := c.state.Snapshot()
 	if err != nil {
