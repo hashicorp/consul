@@ -21,7 +21,7 @@ type consulFSM struct {
 // state in a way that can be accessed concurrently with operations
 // that may modify the live state.
 type consulSnapshot struct {
-	state *StateStore
+	state *StateSnapshot
 }
 
 // NewFSM is used to construct a new FSM with a blank state

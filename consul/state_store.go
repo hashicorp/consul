@@ -27,6 +27,19 @@ type StateStore struct {
 	env  *mdb.Env
 }
 
+// StateSnapshot is used to provide a point-in-time snapshot
+// It works by starting a readonly transaction against all tables.
+type StateSnapshot struct {
+	tx   *mdb.Txn
+	dbis []mdb.DBI
+}
+
+// Close is used to abort the transaction and allow for cleanup
+func (s *StateSnapshot) Close() error {
+	s.tx.Abort()
+	return nil
+}
+
 // NewStateStore is used to create a new state store
 func NewStateStore() (*StateStore, error) {
 	// Create a new temp dir
@@ -475,6 +488,44 @@ func parseServiceNodes(tx *mdb.Txn, index mdb.DBI, prefix []byte) rpc.ServiceNod
 }
 
 // Snapshot is used to create a point in time snapshot
-func (s *StateStore) Snapshot() (*StateStore, error) {
-	return s, nil
+func (s *StateStore) Snapshot() (*StateSnapshot, error) {
+	// Begin a new txn
+	tx, dbis, err := s.startTxn(true, dbNodes, dbServices, dbServiceIndex)
+	if err != nil {
+		tx.Abort()
+		return nil, err
+	}
+
+	// Return the snapshot
+	snap := &StateSnapshot{
+		tx:   tx,
+		dbis: dbis,
+	}
+	return snap, nil
+}
+
+// Nodes returns all the known nodes, the slice alternates between
+// the node name and address
+func (s *StateSnapshot) Nodes() []string {
+	cursor, err := s.tx.CursorOpen(s.dbis[0])
+	if err != nil {
+		panic(fmt.Errorf("Failed to get nodes: %v", err))
+	}
+
+	var nodes []string
+	for {
+		key, val, err := cursor.Get(nil, mdb.NEXT)
+		if err == mdb.NotFound {
+			break
+		} else if err != nil {
+			panic(fmt.Errorf("Failed to get nodes: %v", err))
+		}
+		nodes = append(nodes, string(key), string(val))
+	}
+	return nodes
+}
+
+// NodeServices is used to return all the services of a given node
+func (s *StateSnapshot) NodeServices(name string) rpc.NodeServices {
+	return filterNodeServices(s.tx, s.dbis[1], name)
 }
