@@ -50,7 +50,7 @@ func TestGetNodes(t *testing.T) {
 	if len(nodes) != 4 {
 		t.Fatalf("Bad: %v", nodes)
 	}
-	if nodes[0] != "foo" && nodes[2] != "bar" {
+	if nodes[2] != "foo" && nodes[0] != "bar" {
 		t.Fatalf("Bad: %v", nodes)
 	}
 }
@@ -63,19 +63,19 @@ func TestEnsureService(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode("foo", "127.0.0.1"); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService("foo", "api", "", 5000); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService("foo", "api", "", 5001); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService("foo", "db", "master", 8000); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	services := store.NodeServices("foo")
@@ -105,15 +105,15 @@ func TestDeleteNodeService(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode("foo", "127.0.0.1"); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService("foo", "api", "", 5000); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.DeleteNodeService("foo", "api"); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	services := store.NodeServices("foo")
