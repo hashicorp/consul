@@ -359,3 +359,9 @@ func (s *Server) RemoveFailedNode(node string) error {
 func (s *Server) IsLeader() bool {
 	return s.raft.State() == raft.Leader
 }
+
+// RPC is used to make a local RPC call
+func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
+	addr := s.rpcListener.Addr()
+	return s.connPool.RPC(addr, method, args, reply)
+}

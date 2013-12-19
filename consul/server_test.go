@@ -184,3 +184,14 @@ func TestServer_Leave(t *testing.T) {
 		t.Fatalf("should have 1 peer: %v", p1)
 	}
 }
+
+func TestServer_RPC(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	var out struct{}
+	if err := s1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}

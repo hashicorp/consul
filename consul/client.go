@@ -12,6 +12,12 @@ import (
 	"sync"
 )
 
+// ConsulRPC is used to provide either a Client or Server,
+// both of which can be used to perform an RPC call
+type ConsulRPC interface {
+	RPC(method string, args interface{}, reply interface{}) error
+}
+
 // Client is Consul client which uses RPC to communicate with the
 // services for service discovery, health checking, and DC forwarding.
 type Client struct {
