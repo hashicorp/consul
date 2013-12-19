@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 // Interface is used to provide either a Client or Server,
@@ -66,7 +67,7 @@ func NewClient(config *Config) (*Client, error) {
 	// Create server
 	c := &Client{
 		config:     config,
-		connPool:   NewPool(1),
+		connPool:   NewPool(3, 30*time.Second),
 		eventCh:    make(chan serf.Event, 256),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),

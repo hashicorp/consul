@@ -95,7 +95,7 @@ func NewServer(config *Config) (*Server, error) {
 	// Create server
 	s := &Server{
 		config:        config,
-		connPool:      NewPool(5),
+		connPool:      NewPool(5, 0),
 		eventChLAN:    make(chan serf.Event, 256),
 		eventChWAN:    make(chan serf.Event, 256),
 		logger:        logger,
