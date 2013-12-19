@@ -9,17 +9,6 @@ type Catalog struct {
 	srv *Server
 }
 
-/*
-* Register : Registers that a node provides a given service
-* Deregister : Deregisters that a node provides a given service
-
-* ListDatacenters: List the known datacenters
-* ListServices : Lists the available services
-* ListNodes : Lists the available nodes
-* ServiceNodes: Returns the nodes that are part of a service
-* NodeServices: Returns the services that a node is registered for
- */
-
 // Register is used register that a node is providing a given service.
 func (c *Catalog) Register(args *rpc.RegisterRequest, reply *struct{}) error {
 	if done, err := c.srv.forward("Catalog.Register", args.Datacenter, args, reply); done {
