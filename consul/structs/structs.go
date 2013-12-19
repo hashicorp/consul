@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	ErrNoLeader = fmt.Errorf("No cluster leader")
-	ErrNoDCPath = fmt.Errorf("No path to datacenter")
+	ErrNoLeader  = fmt.Errorf("No cluster leader")
+	ErrNoDCPath  = fmt.Errorf("No path to datacenter")
+	ErrNoServers = fmt.Errorf("No known Consul servers")
 )
 
 type MessageType uint8

@@ -2,8 +2,10 @@ package consul
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"path/filepath"
@@ -217,4 +219,22 @@ func (c *Client) nodeFail(me serf.MemberEvent) {
 		}
 		c.consulLock.Unlock()
 	}
+}
+
+// RPC is used to forward an RPC call to a consul server, or fail if no servers
+func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
+	// Bail if we can't find any servers
+	c.consulLock.RLock()
+	if len(c.consuls) == 0 {
+		c.consulLock.RUnlock()
+		return structs.ErrNoServers
+	}
+
+	// Select a random addr
+	offset := rand.Int31() % int32(len(c.consuls))
+	server := c.consuls[offset]
+	c.consulLock.RUnlock()
+
+	// Forward to remote Consul
+	return c.connPool.RPC(server, method, args, reply)
 }
