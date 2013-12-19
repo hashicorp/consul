@@ -4,8 +4,6 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"net"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -57,7 +55,7 @@ func (s *Server) wanEventHandler() {
 func (s *Server) localJoin(me serf.MemberEvent) {
 	// Check for consul members
 	for _, m := range me.Members {
-		ok, dc, port := s.isConsulServer(m)
+		ok, dc, port := isConsulServer(m)
 		if !ok {
 			continue
 		}
@@ -73,7 +71,7 @@ func (s *Server) localJoin(me serf.MemberEvent) {
 // remoteJoin is used to handle join events on the wan serf cluster
 func (s *Server) remoteJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, dc, port := s.isConsulServer(m)
+		ok, dc, port := isConsulServer(m)
 		if !ok {
 			s.logger.Printf("[WARN] Non-Consul server in WAN pool: %s %s", m.Name)
 			continue
@@ -103,7 +101,7 @@ func (s *Server) remoteJoin(me serf.MemberEvent) {
 // remoteFailed is used to handle fail events on the wan serf cluster
 func (s *Server) remoteFailed(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, dc, port := s.isConsulServer(m)
+		ok, dc, port := isConsulServer(m)
 		if !ok {
 			continue
 		}
@@ -131,26 +129,6 @@ func (s *Server) remoteFailed(me serf.MemberEvent) {
 		}
 		s.remoteLock.Unlock()
 	}
-}
-
-// Returns if a member is a consul server. Returns a bool,
-// the data center, and the rpc port
-func (s *Server) isConsulServer(m serf.Member) (bool, string, int) {
-	role := m.Role
-	if !strings.HasPrefix(role, "consul:") {
-		return false, "", 0
-	}
-
-	parts := strings.SplitN(role, ":", 3)
-	datacenter := parts[1]
-	port_str := parts[2]
-	port, err := strconv.Atoi(port_str)
-	if err != nil {
-		s.logger.Printf("[ERR] Failed to parse role: %s", role)
-		return false, "", 0
-	}
-
-	return true, datacenter, port
 }
 
 // joinConsulServer is used to try to join another consul server
