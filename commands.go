@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/hashicorp/consul/command"
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/mitchellh/cli"
 	"os"
 	"os/signal"
@@ -14,6 +15,13 @@ func init() {
 	ui := &cli.BasicUi{Writer: os.Stdout}
 
 	Commands = map[string]cli.CommandFactory{
+		"agent": func() (cli.Command, error) {
+			return &agent.Command{
+				Ui:         ui,
+				ShutdownCh: make(chan struct{}),
+			}, nil
+		},
+
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				Revision:          GitCommit,
