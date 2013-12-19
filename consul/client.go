@@ -12,9 +12,10 @@ import (
 	"sync"
 )
 
-// ConsulRPC is used to provide either a Client or Server,
-// both of which can be used to perform an RPC call
-type ConsulRPC interface {
+// Interface is used to provide either a Client or Server,
+// both of which can be used to perform certain common
+// Consul methods
+type Interface interface {
 	RPC(method string, args interface{}, reply interface{}) error
 }
 
