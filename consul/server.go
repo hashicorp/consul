@@ -141,14 +141,6 @@ func NewServer(config *Config) (*Server, error) {
 	return s, nil
 }
 
-// ensurePath is used to make sure a path exists
-func (s *Server) ensurePath(path string, dir bool) error {
-	if !dir {
-		path = filepath.Dir(path)
-	}
-	return os.MkdirAll(path, 0755)
-}
-
 // setupSerf is used to setup and initialize a Serf
 func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (*serf.Serf, error) {
 	addr := s.rpcListener.Addr().(*net.TCPAddr)
@@ -158,7 +150,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.LogOutput = s.config.LogOutput
 	conf.EventCh = ch
 	conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
-	if err := s.ensurePath(conf.SnapshotPath, false); err != nil {
+	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
 	return serf.Create(conf)
@@ -168,7 +160,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 func (s *Server) setupRaft() error {
 	// Create the base path
 	path := filepath.Join(s.config.DataDir, raftState)
-	if err := s.ensurePath(path, true); err != nil {
+	if err := ensurePath(path, true); err != nil {
 		return err
 	}
 
