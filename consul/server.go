@@ -252,7 +252,10 @@ func (s *Server) Shutdown() error {
 	if s.raft != nil {
 		s.raftTransport.Close()
 		s.raftLayer.Close()
-		s.raft.Shutdown()
+		future := s.raft.Shutdown()
+		if err := future.Error(); err != nil {
+			s.logger.Printf("[WARN] Error shutting down raft: %s", err)
+		}
 		s.raftStore.Close()
 	}
 

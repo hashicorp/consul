@@ -154,8 +154,7 @@ func (s *StateStore) GetNode(name string) (bool, string) {
 	} else if err != nil {
 		panic(fmt.Errorf("Failed to get node: %v", err))
 	}
-
-	return true, string(val)
+	return true, string(sliceCopy(val))
 }
 
 // GetNodes returns all the known nodes, the slice alternates between
@@ -180,7 +179,7 @@ func (s *StateStore) Nodes() []string {
 		} else if err != nil {
 			panic(fmt.Errorf("Failed to get nodes: %v", err))
 		}
-		nodes = append(nodes, string(key), string(val))
+		nodes = append(nodes, string(sliceCopy(key)), string(sliceCopy(val)))
 	}
 	return nodes
 }
@@ -301,7 +300,7 @@ func parseNodeServices(tx *mdb.Txn, dbi mdb.DBI, prefix []byte) rpc.NodeServices
 		}
 
 		// Split to get service name
-		parts := bytes.SplitN(key, []byte("||"), 2)
+		parts := bytes.SplitN(sliceCopy(key), []byte("||"), 2)
 		service = string(parts[1])
 
 		// Setup the entry
@@ -417,7 +416,7 @@ func (s *StateStore) Services() map[string][]string {
 		} else if err != nil {
 			panic(fmt.Errorf("Failed to get services: %v", err))
 		}
-		parts := bytes.SplitN(key, []byte("||"), 3)
+		parts := bytes.SplitN(sliceCopy(key), []byte("||"), 3)
 		service := string(parts[0])
 		tag := string(parts[1])
 
@@ -520,7 +519,7 @@ func (s *StateSnapshot) Nodes() []string {
 		} else if err != nil {
 			panic(fmt.Errorf("Failed to get nodes: %v", err))
 		}
-		nodes = append(nodes, string(key), string(val))
+		nodes = append(nodes, string(sliceCopy(key)), string(sliceCopy(val)))
 	}
 	return nodes
 }
@@ -528,4 +527,10 @@ func (s *StateSnapshot) Nodes() []string {
 // NodeServices is used to return all the services of a given node
 func (s *StateSnapshot) NodeServices(name string) rpc.NodeServices {
 	return filterNodeServices(s.tx, s.dbis[1], name)
+}
+
+func sliceCopy(in []byte) []byte {
+	c := make([]byte, len(in))
+	copy(c, in)
+	return c
 }
