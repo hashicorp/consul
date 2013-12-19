@@ -47,7 +47,7 @@ type Server struct {
 	raft          *raft.Raft
 	raftLayer     *RaftLayer
 	raftPeers     raft.PeerStore
-	raftStore     *raft.SQLiteStore
+	raftStore     *raft.MDBStore
 	raftTransport *raft.NetworkTransport
 
 	// remoteConsuls is used to track the known consuls in
@@ -179,8 +179,8 @@ func (s *Server) setupRaft() error {
 		return err
 	}
 
-	// Create the SQLite store for logs and stable storage
-	store, err := raft.NewSQLiteStore(path)
+	// Create the MDB store for logs and stable storage
+	store, err := raft.NewMDBStore(path)
 	if err != nil {
 		return err
 	}
