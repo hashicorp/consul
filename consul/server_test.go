@@ -50,8 +50,8 @@ func testServerDC(t *testing.T, dc string) (string, *Server) {
 	config.SerfWANConfig.MemberlistConfig.ProbeInterval = time.Second
 	config.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
 
-	config.RaftConfig.HeartbeatTimeout = 50 * time.Millisecond
-	config.RaftConfig.ElectionTimeout = 50 * time.Millisecond
+	config.RaftConfig.HeartbeatTimeout = 40 * time.Millisecond
+	config.RaftConfig.ElectionTimeout = 40 * time.Millisecond
 
 	server, err := NewServer(config)
 	if err != nil {
