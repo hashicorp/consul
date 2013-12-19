@@ -2,7 +2,7 @@ package consul
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/rpc"
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/ugorji/go/codec"
 	"io"
 	"math/rand"
@@ -105,7 +105,7 @@ func (s *Server) forward(method, dc string, args interface{}, reply interface{})
 func (s *Server) forwardLeader(method string, args interface{}, reply interface{}) error {
 	leader := s.raft.Leader()
 	if leader == nil {
-		return rpc.ErrNoLeader
+		return structs.ErrNoLeader
 	}
 	return s.connPool.RPC(leader, method, args, reply)
 }
@@ -117,7 +117,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	servers := s.remoteConsuls[dc]
 	if len(servers) == 0 {
 		s.remoteLock.RUnlock()
-		return rpc.ErrNoDCPath
+		return structs.ErrNoDCPath
 	}
 
 	// Select a random addr
@@ -131,8 +131,8 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 
 // raftApply is used to encode a message, run it through raft, and return
 // the FSM response along with any errors
-func (s *Server) raftApply(t rpc.MessageType, msg interface{}) (interface{}, error) {
-	buf, err := rpc.Encode(t, msg)
+func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {
+	buf, err := structs.Encode(t, msg)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to encode request: %v", err)
 	}

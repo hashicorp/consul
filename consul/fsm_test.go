@@ -2,7 +2,7 @@ package consul
 
 import (
 	"bytes"
-	"github.com/hashicorp/consul/rpc"
+	"github.com/hashicorp/consul/consul/structs"
 	"testing"
 )
 
@@ -30,12 +30,12 @@ func TestFSM_RegisterNode(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req := rpc.RegisterRequest{
+	req := structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
 		Address:    "127.0.0.1",
 	}
-	buf, err := rpc.Encode(rpc.RegisterRequestType, req)
+	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req := rpc.RegisterRequest{
+	req := structs.RegisterRequest{
 		Datacenter:  "dc1",
 		Node:        "foo",
 		Address:     "127.0.0.1",
@@ -71,7 +71,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 		ServiceTag:  "master",
 		ServicePort: 8000,
 	}
-	buf, err := rpc.Encode(rpc.RegisterRequestType, req)
+	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -99,7 +99,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req := rpc.RegisterRequest{
+	req := structs.RegisterRequest{
 		Datacenter:  "dc1",
 		Node:        "foo",
 		Address:     "127.0.0.1",
@@ -107,7 +107,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 		ServiceTag:  "master",
 		ServicePort: 8000,
 	}
-	buf, err := rpc.Encode(rpc.RegisterRequestType, req)
+	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -117,12 +117,12 @@ func TestFSM_DeregisterService(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	dereg := rpc.DeregisterRequest{
+	dereg := structs.DeregisterRequest{
 		Datacenter:  "dc1",
 		Node:        "foo",
 		ServiceName: "db",
 	}
-	buf, err = rpc.Encode(rpc.DeregisterRequestType, dereg)
+	buf, err = structs.Encode(structs.DeregisterRequestType, dereg)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req := rpc.RegisterRequest{
+	req := structs.RegisterRequest{
 		Datacenter:  "dc1",
 		Node:        "foo",
 		Address:     "127.0.0.1",
@@ -158,7 +158,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 		ServiceTag:  "master",
 		ServicePort: 8000,
 	}
-	buf, err := rpc.Encode(rpc.RegisterRequestType, req)
+	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -168,11 +168,11 @@ func TestFSM_DeregisterNode(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	dereg := rpc.DeregisterRequest{
+	dereg := structs.DeregisterRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
 	}
-	buf, err = rpc.Encode(rpc.DeregisterRequestType, dereg)
+	buf, err = structs.Encode(structs.DeregisterRequestType, dereg)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

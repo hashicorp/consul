@@ -4,15 +4,15 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/armon/gomdb"
-	"github.com/hashicorp/consul/rpc"
+	"github.com/hashicorp/consul/consul/structs"
 	"io/ioutil"
 	"os"
 )
 
 const (
 	dbNodes        = "nodes"        // Maps node -> addr
-	dbServices     = "services"     // Maps node||serv -> rpc.NodeService
-	dbServiceIndex = "serviceIndex" // Maps serv||tag||node -> rpc.ServiceNode
+	dbServices     = "services"     // Maps node||serv -> structs.NodeService
+	dbServiceIndex = "serviceIndex" // Maps serv||tag||node -> structs.ServiceNode
 )
 
 // The StateStore is responsible for maintaining all the Consul
@@ -207,11 +207,11 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 
 	// Update the service entry
 	key := []byte(fmt.Sprintf("%s||%s", name, service))
-	nService := rpc.NodeService{
+	nService := structs.NodeService{
 		Tag:  tag,
 		Port: port,
 	}
-	val, err := rpc.Encode(255, &nService)
+	val, err := structs.Encode(255, &nService)
 	if err != nil {
 		tx.Abort()
 		return err
@@ -232,13 +232,13 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 
 	// Update the index entry
 	key = []byte(fmt.Sprintf("%s||%s||%s", service, tag, name))
-	node := rpc.ServiceNode{
+	node := structs.ServiceNode{
 		Node:        name,
 		Address:     string(addr),
 		ServiceTag:  tag,
 		ServicePort: port,
 	}
-	val, err = rpc.Encode(255, &node)
+	val, err = structs.Encode(255, &node)
 	if err != nil {
 		tx.Abort()
 		return err
@@ -252,7 +252,7 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 }
 
 // NodeServices is used to return all the services of a given node
-func (s *StateStore) NodeServices(name string) rpc.NodeServices {
+func (s *StateStore) NodeServices(name string) structs.NodeServices {
 	tx, dbis, err := s.startTxn(true, dbServices)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node servicess: %v", err))
@@ -262,22 +262,22 @@ func (s *StateStore) NodeServices(name string) rpc.NodeServices {
 }
 
 // filterNodeServices is used to filter the services to a specific node
-func filterNodeServices(tx *mdb.Txn, services mdb.DBI, name string) rpc.NodeServices {
+func filterNodeServices(tx *mdb.Txn, services mdb.DBI, name string) structs.NodeServices {
 	keyPrefix := []byte(fmt.Sprintf("%s||", name))
 	return parseNodeServices(tx, services, keyPrefix)
 }
 
 // parseNodeServices is used to parse the results of a queryNodeServices
-func parseNodeServices(tx *mdb.Txn, dbi mdb.DBI, prefix []byte) rpc.NodeServices {
+func parseNodeServices(tx *mdb.Txn, dbi mdb.DBI, prefix []byte) structs.NodeServices {
 	// Create the cursor
 	cursor, err := tx.CursorOpen(dbi)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get nodes: %v", err))
 	}
 
-	services := rpc.NodeServices(make(map[string]rpc.NodeService))
+	services := structs.NodeServices(make(map[string]structs.NodeService))
 	var service string
-	var entry rpc.NodeService
+	var entry structs.NodeService
 	var key, val []byte
 	first := true
 
@@ -307,7 +307,7 @@ func parseNodeServices(tx *mdb.Txn, dbi mdb.DBI, prefix []byte) rpc.NodeServices
 		if val[0] != 255 {
 			panic(fmt.Errorf("Bad service value: %v", val))
 		}
-		if err := rpc.Decode(val[1:], &entry); err != nil {
+		if err := structs.Decode(val[1:], &entry); err != nil {
 			panic(fmt.Errorf("Failed to get node services: %v", err))
 		}
 
@@ -430,7 +430,7 @@ func (s *StateStore) Services() map[string][]string {
 }
 
 // ServiceNodes returns the nodes associated with a given service
-func (s *StateStore) ServiceNodes(service string) rpc.ServiceNodes {
+func (s *StateStore) ServiceNodes(service string) structs.ServiceNodes {
 	tx, dbis, err := s.startTxn(false, dbServiceIndex)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node servicess: %v", err))
@@ -441,7 +441,7 @@ func (s *StateStore) ServiceNodes(service string) rpc.ServiceNodes {
 }
 
 // ServiceTagNodes returns the nodes associated with a given service matching a tag
-func (s *StateStore) ServiceTagNodes(service, tag string) rpc.ServiceNodes {
+func (s *StateStore) ServiceTagNodes(service, tag string) structs.ServiceNodes {
 	tx, dbis, err := s.startTxn(false, dbServiceIndex)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node servicess: %v", err))
@@ -452,14 +452,14 @@ func (s *StateStore) ServiceTagNodes(service, tag string) rpc.ServiceNodes {
 }
 
 // parseServiceNodes parses results ServiceNodes and ServiceTagNodes
-func parseServiceNodes(tx *mdb.Txn, index mdb.DBI, prefix []byte) rpc.ServiceNodes {
+func parseServiceNodes(tx *mdb.Txn, index mdb.DBI, prefix []byte) structs.ServiceNodes {
 	cursor, err := tx.CursorOpen(index)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node services: %v", err))
 	}
 
-	var nodes rpc.ServiceNodes
-	var node rpc.ServiceNode
+	var nodes structs.ServiceNodes
+	var node structs.ServiceNode
 	for {
 		key, val, err := cursor.Get(nil, mdb.NEXT)
 		if err == mdb.NotFound {
@@ -477,7 +477,7 @@ func parseServiceNodes(tx *mdb.Txn, index mdb.DBI, prefix []byte) rpc.ServiceNod
 		if val[0] != 255 {
 			panic(fmt.Errorf("Bad service value: %v", val))
 		}
-		if err := rpc.Decode(val[1:], &node); err != nil {
+		if err := structs.Decode(val[1:], &node); err != nil {
 			panic(fmt.Errorf("Failed to get node services: %v", err))
 		}
 
@@ -525,7 +525,7 @@ func (s *StateSnapshot) Nodes() []string {
 }
 
 // NodeServices is used to return all the services of a given node
-func (s *StateSnapshot) NodeServices(name string) rpc.NodeServices {
+func (s *StateSnapshot) NodeServices(name string) structs.NodeServices {
 	return filterNodeServices(s.tx, s.dbis[1], name)
 }
 

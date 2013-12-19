@@ -1,4 +1,4 @@
-package rpc
+package structs
 
 import (
 	"bytes"

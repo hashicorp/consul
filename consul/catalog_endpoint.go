@@ -1,7 +1,7 @@
 package consul
 
 import (
-	"github.com/hashicorp/consul/rpc"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 // Catalog endpoint is used to manipulate the service catalog
@@ -10,12 +10,12 @@ type Catalog struct {
 }
 
 // Register is used register that a node is providing a given service.
-func (c *Catalog) Register(args *rpc.RegisterRequest, reply *struct{}) error {
+func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
 	if done, err := c.srv.forward("Catalog.Register", args.Datacenter, args, reply); done {
 		return err
 	}
 
-	_, err := c.srv.raftApply(rpc.RegisterRequestType, args)
+	_, err := c.srv.raftApply(structs.RegisterRequestType, args)
 	if err != nil {
 		c.srv.logger.Printf("[ERR] Register failed: %v", err)
 		return err
@@ -24,12 +24,12 @@ func (c *Catalog) Register(args *rpc.RegisterRequest, reply *struct{}) error {
 }
 
 // Deregister is used to remove a service registration for a given node.
-func (c *Catalog) Deregister(args *rpc.DeregisterRequest, reply *struct{}) error {
+func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) error {
 	if done, err := c.srv.forward("Catalog.Deregister", args.Datacenter, args, reply); done {
 		return err
 	}
 
-	_, err := c.srv.raftApply(rpc.DeregisterRequestType, args)
+	_, err := c.srv.raftApply(structs.DeregisterRequestType, args)
 	if err != nil {
 		c.srv.logger.Printf("[ERR] Deregister failed: %v", err)
 		return err
@@ -54,7 +54,7 @@ func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
 }
 
 // ListNodes is used to query the nodes in a DC
-func (c *Catalog) ListNodes(dc string, reply *rpc.Nodes) error {
+func (c *Catalog) ListNodes(dc string, reply *structs.Nodes) error {
 	if done, err := c.srv.forward("Catalog.ListNodes", dc, dc, reply); done {
 		return err
 	}
@@ -64,9 +64,9 @@ func (c *Catalog) ListNodes(dc string, reply *rpc.Nodes) error {
 	rawNodes := state.Nodes()
 
 	// Format the response
-	nodes := rpc.Nodes(make([]rpc.Node, len(rawNodes)/2))
+	nodes := structs.Nodes(make([]structs.Node, len(rawNodes)/2))
 	for i := 0; i < len(rawNodes); i += 2 {
-		nodes[i] = rpc.Node{rawNodes[i], rawNodes[i+1]}
+		nodes[i] = structs.Node{rawNodes[i], rawNodes[i+1]}
 	}
 
 	*reply = nodes
@@ -74,7 +74,7 @@ func (c *Catalog) ListNodes(dc string, reply *rpc.Nodes) error {
 }
 
 // ListServices is used to query the services in a DC
-func (c *Catalog) ListServices(dc string, reply *rpc.Services) error {
+func (c *Catalog) ListServices(dc string, reply *structs.Services) error {
 	if done, err := c.srv.forward("Catalog.ListServices", dc, dc, reply); done {
 		return err
 	}
@@ -88,14 +88,14 @@ func (c *Catalog) ListServices(dc string, reply *rpc.Services) error {
 }
 
 // ServiceNodes returns all the nodes registered as part of a service
-func (c *Catalog) ServiceNodes(args *rpc.ServiceNodesRequest, reply *rpc.ServiceNodes) error {
+func (c *Catalog) ServiceNodes(args *structs.ServiceNodesRequest, reply *structs.ServiceNodes) error {
 	if done, err := c.srv.forward("Catalog.ServiceNodes", args.Datacenter, args, reply); done {
 		return err
 	}
 
 	// Get the nodes
 	state := c.srv.fsm.State()
-	var nodes rpc.ServiceNodes
+	var nodes structs.ServiceNodes
 	if args.TagFilter {
 		nodes = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
 	} else {
@@ -107,7 +107,7 @@ func (c *Catalog) ServiceNodes(args *rpc.ServiceNodesRequest, reply *rpc.Service
 }
 
 // NodeServices returns all the services registered as part of a node
-func (c *Catalog) NodeServices(args *rpc.NodeServicesRequest, reply *rpc.NodeServices) error {
+func (c *Catalog) NodeServices(args *structs.NodeServicesRequest, reply *structs.NodeServices) error {
 	if done, err := c.srv.forward("Catalog.NodeServices", args.Datacenter, args, reply); done {
 		return err
 	}

@@ -2,7 +2,7 @@ package consul
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/rpc"
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/raft"
 	"github.com/ugorji/go/codec"
 	"io"
@@ -43,10 +43,10 @@ func (c *consulFSM) State() *StateStore {
 }
 
 func (c *consulFSM) Apply(buf []byte) interface{} {
-	switch rpc.MessageType(buf[0]) {
-	case rpc.RegisterRequestType:
+	switch structs.MessageType(buf[0]) {
+	case structs.RegisterRequestType:
 		return c.applyRegister(buf[1:])
-	case rpc.DeregisterRequestType:
+	case structs.DeregisterRequestType:
 		return c.applyDeregister(buf[1:])
 	default:
 		panic(fmt.Errorf("failed to apply request: %#v", buf))
@@ -54,8 +54,8 @@ func (c *consulFSM) Apply(buf []byte) interface{} {
 }
 
 func (c *consulFSM) applyRegister(buf []byte) interface{} {
-	var req rpc.RegisterRequest
-	if err := rpc.Decode(buf, &req); err != nil {
+	var req structs.RegisterRequest
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
@@ -70,8 +70,8 @@ func (c *consulFSM) applyRegister(buf []byte) interface{} {
 }
 
 func (c *consulFSM) applyDeregister(buf []byte) interface{} {
-	var req rpc.DeregisterRequest
-	if err := rpc.Decode(buf, &req); err != nil {
+	var req structs.DeregisterRequest
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
@@ -122,9 +122,9 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 		}
 
 		// Decode
-		switch rpc.MessageType(msgType[0]) {
-		case rpc.RegisterRequestType:
-			var req rpc.RegisterRequest
+		switch structs.MessageType(msgType[0]) {
+		case structs.RegisterRequestType:
+			var req structs.RegisterRequest
 			if err := dec.Decode(&req); err != nil {
 				return err
 			}
@@ -156,15 +156,15 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 	encoder := codec.NewEncoder(sink, &handle)
 
 	// Register each node
-	var req rpc.RegisterRequest
+	var req structs.RegisterRequest
 	for i := 0; i < len(nodes); i += 2 {
-		req = rpc.RegisterRequest{
+		req = structs.RegisterRequest{
 			Node:    nodes[i],
 			Address: nodes[i+1],
 		}
 
 		// Register the node itself
-		sink.Write([]byte{byte(rpc.RegisterRequestType)})
+		sink.Write([]byte{byte(structs.RegisterRequestType)})
 		if err := encoder.Encode(&req); err != nil {
 			sink.Cancel()
 			return err
@@ -177,7 +177,7 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 			req.ServiceTag = props.Tag
 			req.ServicePort = props.Port
 
-			sink.Write([]byte{byte(rpc.RegisterRequestType)})
+			sink.Write([]byte{byte(structs.RegisterRequestType)})
 			if err := encoder.Encode(&req); err != nil {
 				sink.Cancel()
 				return err

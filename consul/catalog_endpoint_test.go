@@ -2,8 +2,8 @@ package consul
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/rpc"
-	nrpc "net/rpc"
+	"github.com/hashicorp/consul/consul/structs"
+	"net/rpc"
 	"os"
 	"sort"
 	"testing"
@@ -17,7 +17,7 @@ func TestCatalogRegister(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	arg := rpc.RegisterRequest{
+	arg := structs.RegisterRequest{
 		Datacenter:  "dc1",
 		Node:        "foo",
 		Address:     "127.0.0.1",
@@ -64,14 +64,14 @@ func TestCatalogRegister_ForwardLeader(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Use the follower as the client
-	var client *nrpc.Client
+	var client *rpc.Client
 	if !s1.IsLeader() {
 		client = client1
 	} else {
 		client = client2
 	}
 
-	arg := rpc.RegisterRequest{
+	arg := structs.RegisterRequest{
 		Datacenter:  "dc1",
 		Node:        "foo",
 		Address:     "127.0.0.1",
@@ -106,7 +106,7 @@ func TestCatalogRegister_ForwardDC(t *testing.T) {
 	// Wait for the leaders
 	time.Sleep(100 * time.Millisecond)
 
-	arg := rpc.RegisterRequest{
+	arg := structs.RegisterRequest{
 		Datacenter:  "dc2", // SHould forward through s1
 		Node:        "foo",
 		Address:     "127.0.0.1",
@@ -127,7 +127,7 @@ func TestCatalogDeregister(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	arg := rpc.DeregisterRequest{
+	arg := structs.DeregisterRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
 	}
@@ -191,7 +191,7 @@ func TestCatalogListNodes(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	var out rpc.Nodes
+	var out structs.Nodes
 	err := client.Call("Catalog.ListNodes", "dc1", &out)
 	if err == nil || err.Error() != "No cluster leader" {
 		t.Fatalf("err: %v", err)
@@ -225,7 +225,7 @@ func TestCatalogListServices(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	var out rpc.Services
+	var out structs.Services
 	err := client.Call("Catalog.ListServices", "dc1", &out)
 	if err == nil || err.Error() != "No cluster leader" {
 		t.Fatalf("err: %v", err)
@@ -260,13 +260,13 @@ func TestCatalogListServiceNodes(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	args := rpc.ServiceNodesRequest{
+	args := structs.ServiceNodesRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
 		ServiceTag:  "slave",
 		TagFilter:   false,
 	}
-	var out rpc.ServiceNodes
+	var out structs.ServiceNodes
 	err := client.Call("Catalog.ServiceNodes", &args, &out)
 	if err == nil || err.Error() != "No cluster leader" {
 		t.Fatalf("err: %v", err)
@@ -305,11 +305,11 @@ func TestCatalogNodeServices(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	args := rpc.NodeServicesRequest{
+	args := structs.NodeServicesRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
 	}
-	var out rpc.NodeServices
+	var out structs.NodeServices
 	err := client.Call("Catalog.NodeServices", &args, &out)
 	if err == nil || err.Error() != "No cluster leader" {
 		t.Fatalf("err: %v", err)
