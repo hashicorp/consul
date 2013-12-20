@@ -9,7 +9,9 @@ import (
 )
 
 const (
+	DefaultDC          = "dc1"
 	DefaultRPCAddr     = "0.0.0.0:8300"
+	DefaultRPCPort     = 8000
 	DefaultLANSerfPort = 8301
 	DefaultWANSerfPort = 8302
 )
@@ -51,7 +53,7 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Datacenter:    "dc1",
+		Datacenter:    DefaultDC,
 		NodeName:      hostname,
 		RPCAddr:       DefaultRPCAddr,
 		RaftConfig:    raft.DefaultConfig(),
