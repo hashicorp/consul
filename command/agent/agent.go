@@ -3,6 +3,10 @@ package agent
 import (
 	"fmt"
 	"github.com/hashicorp/consul/consul"
+	"io"
+	"log"
+	"os"
+	"sync"
 )
 
 /*
@@ -16,17 +20,35 @@ import (
 type Agent struct {
 	config *Config
 
+	// Used for writing our logs
+	logger *log.Logger
+
+	// Output sink for logs
+	logOutput io.Writer
+
 	// We have one of a client or a server, depending
 	// on our configuration
 	server *consul.Server
 	client *consul.Client
+
+	shutdown     bool
+	shutdownCh   chan struct{}
+	shutdownLock sync.Mutex
 }
 
 // Create is used to create a new Agent. Returns
 // the agent or potentially an error.
-func Create(config *Config) (*Agent, error) {
+func Create(config *Config, logOutput io.Writer) (*Agent, error) {
+	// Ensure we have a log sink
+	if logOutput == nil {
+		logOutput = os.Stderr
+	}
+
 	agent := &Agent{
-		config: config,
+		config:     config,
+		logger:     log.New(logOutput, "", log.LstdFlags),
+		logOutput:  logOutput,
+		shutdownCh: make(chan struct{}),
 	}
 
 	// Setup either the client or the server
@@ -60,6 +82,11 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.DataDir != "" {
 		base.DataDir = a.config.DataDir
 	}
+	if a.config.EncryptKey != "" {
+		key, _ := a.config.EncryptBytes()
+		base.SerfLANConfig.MemberlistConfig.SecretKey = key
+		base.SerfWANConfig.MemberlistConfig.SecretKey = key
+	}
 	if a.config.NodeName != "" {
 		base.NodeName = a.config.NodeName
 	}
@@ -73,10 +100,12 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.SerfWanPort != 0 {
 		base.SerfWANConfig.MemberlistConfig.Port = a.config.SerfWanPort
 	}
-	if a.config.ServerRPCAddr != "" {
-		base.RPCAddr = a.config.ServerRPCAddr
+	if a.config.ServerAddr != "" {
+		base.RPCAddr = a.config.ServerAddr
 	}
 
+	// Setup the loggers
+	base.LogOutput = a.logOutput
 	return base
 }
 
@@ -121,9 +150,29 @@ func (a *Agent) Leave() error {
 // Shutdown is used to hard stop the agent. Should be preceeded
 // by a call to Leave to do it gracefully.
 func (a *Agent) Shutdown() error {
-	if a.server != nil {
-		return a.server.Shutdown()
-	} else {
-		return a.client.Shutdown()
+	a.shutdownLock.Lock()
+	defer a.shutdownLock.Unlock()
+
+	if a.shutdown {
+		return nil
 	}
+
+	a.logger.Println("[INFO] agent: requesting shutdown")
+	var err error
+	if a.server != nil {
+		err = a.server.Shutdown()
+	} else {
+		err = a.client.Shutdown()
+	}
+
+	a.logger.Println("[INFO] agent: shutdown complete")
+	a.shutdown = true
+	close(a.shutdownCh)
+	return err
+}
+
+// ShutdownCh returns a channel that can be selected to wait
+// for the agent to perform a shutdown.
+func (a *Agent) ShutdownCh() <-chan struct{} {
+	return a.shutdownCh
 }
