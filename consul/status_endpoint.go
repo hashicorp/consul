@@ -20,3 +20,18 @@ func (s *Status) Leader(args struct{}, reply *string) error {
 	}
 	return nil
 }
+
+// Peers is used to get all the Raft peers
+func (s *Status) Peers(args struct{}, reply *[]string) error {
+	peers, err := s.server.raftPeers.Peers()
+	if err != nil {
+		return err
+	}
+
+	var peerStrings []string
+	for _, p := range peers {
+		peerStrings = append(peerStrings, p.String())
+	}
+	*reply = peerStrings
+	return nil
+}

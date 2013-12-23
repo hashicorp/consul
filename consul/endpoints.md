@@ -24,6 +24,7 @@ from the Consul service. It exposes the following methods:
 
 * Ping : Used to test connectivity
 * Leader : Used to get the address of the leader
+* Peers: Used to get the Raft peerset
 
 ## Catalog Service
 
