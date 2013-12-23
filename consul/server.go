@@ -179,14 +179,14 @@ func (s *Server) setupRaft() error {
 	s.raftStore = store
 
 	// Create the snapshot store
-	snapshots, err := raft.NewFileSnapshotStore(path, 3)
+	snapshots, err := raft.NewFileSnapshotStore(path, 3, s.config.LogOutput)
 	if err != nil {
 		store.Close()
 		return err
 	}
 
 	// Create a transport layer
-	trans := raft.NewNetworkTransport(s.raftLayer, 3, 10*time.Second)
+	trans := raft.NewNetworkTransport(s.raftLayer, 3, 10*time.Second, s.config.LogOutput)
 	s.raftTransport = trans
 
 	// Setup the peer store
@@ -201,6 +201,9 @@ func (s *Server) setupRaft() error {
 	if !raft.PeerContained(peers, trans.LocalAddr()) {
 		s.raftPeers.SetPeers(raft.AddUniquePeer(peers, trans.LocalAddr()))
 	}
+
+	// Make sure we set the LogOutput
+	s.config.RaftConfig.LogOutput = s.config.LogOutput
 
 	// Setup the Raft store
 	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, store, store,
