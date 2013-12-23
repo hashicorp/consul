@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 )
 
 // HTTPServer is used to wrap an Agent and expose various API's
@@ -53,13 +54,18 @@ func (s *HTTPServer) Shutdown() {
 func (s *HTTPServer) registerHandlers() {
 	s.mux.HandleFunc("/v1/status/leader", s.wrap(s.StatusLeader))
 	s.mux.HandleFunc("/v1/status/peers", s.wrap(s.StatusPeers))
+
+	s.mux.HandleFunc("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
 }
 
 // wrap is used to wrap functions to make them more convenient
 func (s *HTTPServer) wrap(handler func(req *http.Request) (interface{}, error)) func(resp http.ResponseWriter, req *http.Request) {
 	f := func(resp http.ResponseWriter, req *http.Request) {
 		// Invoke the handler
-		s.logger.Printf("[DEBUG] Request %v", req)
+		start := time.Now()
+		defer func() {
+			s.logger.Printf("[DEBUG] HTTP Request %v (%v)", req.URL, time.Now().Sub(start))
+		}()
 		obj, err := handler(req)
 
 		// Check for an error
