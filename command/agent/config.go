@@ -28,6 +28,9 @@ type Config struct {
 	// Encryption key to use for the Serf communication
 	EncryptKey string
 
+	// HTTP interface address
+	HTTPAddr string
+
 	// LogLevel is the level of the logs to putout
 	LogLevel string
 
@@ -74,6 +77,7 @@ type Config struct {
 // DefaultConfig is used to return a sane default configuration
 func DefaultConfig() *Config {
 	return &Config{
+		HTTPAddr: "127.0.0.1:8500",
 		LogLevel: "INFO",
 		RPCAddr:  "127.0.0.1:8400",
 		Server:   false,
@@ -126,6 +130,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.EncryptKey != "" {
 		result.EncryptKey = b.EncryptKey
+	}
+	if b.HTTPAddr != "" {
+		result.HTTPAddr = b.HTTPAddr
 	}
 	if b.LogLevel != "" {
 		result.LogLevel = b.LogLevel

@@ -25,6 +25,8 @@ type Command struct {
 	ShutdownCh <-chan struct{}
 	args       []string
 	logFilter  *logutils.LevelFilter
+	agent      *Agent
+	httpServer *HTTPServer
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -109,6 +111,28 @@ func (c *Command) setupLoggers(config *Config) (*GatedWriter, *logWriter, io.Wri
 	return logGate, logWriter, logOutput
 }
 
+// setupAgent is used to start the agent and various interfaces
+func (c *Command) setupAgent(config *Config, logOutput io.Writer) error {
+	c.Ui.Output("Starting Consul agent...")
+	agent, err := Create(config, logOutput)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error starting agent: %s", err))
+		return err
+	}
+	c.agent = agent
+
+	if config.HTTPAddr != "" {
+		server, err := NewServer(agent, logOutput, config.HTTPAddr)
+		if err != nil {
+			agent.Shutdown()
+			c.Ui.Error(fmt.Sprintf("Error starting http server: %s", err))
+			return err
+		}
+		c.httpServer = server
+	}
+	return nil
+}
+
 func (c *Command) Run(args []string) int {
 	c.Ui = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
@@ -132,17 +156,18 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Create the agent
-	c.Ui.Output("Starting Consul agent...")
-	agent, err := Create(config, logOutput)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error starting agent: %s", err))
+	if err := c.setupAgent(config, logOutput); err != nil {
 		return 1
 	}
-	defer agent.Shutdown()
+	defer c.agent.Shutdown()
+	if c.httpServer != nil {
+		defer c.httpServer.Shutdown()
+	}
 
 	c.Ui.Output("Consul agent running!")
 	c.Ui.Info(fmt.Sprintf("Node name: '%s'", config.NodeName))
 	c.Ui.Info(fmt.Sprintf(" RPC addr: '%s'", config.RPCAddr))
+	c.Ui.Info(fmt.Sprintf("HTTP addr: '%s'", config.HTTPAddr))
 	c.Ui.Info(fmt.Sprintf("Encrypted: %#v", config.EncryptKey != ""))
 	c.Ui.Info(fmt.Sprintf("   Server: %v", config.Server))
 
@@ -152,11 +177,11 @@ func (c *Command) Run(args []string) int {
 	logGate.Flush()
 
 	// Wait for exit
-	return c.handleSignals(config, agent)
+	return c.handleSignals(config)
 }
 
 // handleSignals blocks until we get an exit-causing signal
-func (c *Command) handleSignals(config *Config, agent *Agent) int {
+func (c *Command) handleSignals(config *Config) int {
 	signalCh := make(chan os.Signal, 4)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 
@@ -168,7 +193,7 @@ WAIT:
 		sig = s
 	case <-c.ShutdownCh:
 		sig = os.Interrupt
-	case <-agent.ShutdownCh():
+	case <-c.agent.ShutdownCh():
 		// Agent is already shutdown!
 		return 0
 	}
@@ -176,7 +201,7 @@ WAIT:
 
 	// Check if this is a SIGHUP
 	if sig == syscall.SIGHUP {
-		config = c.handleReload(config, agent)
+		config = c.handleReload(config)
 		goto WAIT
 	}
 
@@ -197,7 +222,7 @@ WAIT:
 	gracefulCh := make(chan struct{})
 	c.Ui.Output("Gracefully shutting down agent...")
 	go func() {
-		if err := agent.Leave(); err != nil {
+		if err := c.agent.Leave(); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error: %s", err))
 			return
 		}
@@ -216,7 +241,7 @@ WAIT:
 }
 
 // handleReload is invoked when we should reload our configs, e.g. SIGHUP
-func (c *Command) handleReload(config *Config, agent *Agent) *Config {
+func (c *Command) handleReload(config *Config) *Config {
 	c.Ui.Output("Reloading configuration...")
 	// TODO
 	return config
