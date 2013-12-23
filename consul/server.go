@@ -192,6 +192,16 @@ func (s *Server) setupRaft() error {
 	// Setup the peer store
 	s.raftPeers = raft.NewJSONPeers(path, trans)
 
+	// Ensure local host is always included
+	peers, err := s.raftPeers.Peers()
+	if err != nil {
+		store.Close()
+		return err
+	}
+	if !raft.PeerContained(peers, trans.LocalAddr()) {
+		s.raftPeers.SetPeers(raft.AddUniquePeer(peers, trans.LocalAddr()))
+	}
+
 	// Setup the Raft store
 	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, store, store,
 		snapshots, s.raftPeers, trans)

@@ -47,3 +47,20 @@ func TestStatusLeader(t *testing.T) {
 		t.Fatalf("no leader")
 	}
 }
+
+func TestStatusPeers(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	arg := struct{}{}
+	var peers []string
+	if err := client.Call("Status.Peers", arg, &peers); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(peers) != 1 {
+		t.Fatalf("no peers: %v", peers)
+	}
+}
