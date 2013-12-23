@@ -12,9 +12,6 @@ import (
 	"strings"
 )
 
-// This is the default port we use for co
-const DefaultBindPort int = 8300
-
 // Config is the configuration that can be set for an Agent.
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
