@@ -133,8 +133,9 @@ func (s *StateStore) EnsureNode(name string, address string) error {
 	if err != nil {
 		return err
 	}
+	defer tx.Abort()
+
 	if err := tx.Put(dbis[0], []byte(name), []byte(address), 0); err != nil {
-		tx.Abort()
 		return err
 	}
 	return tx.Commit()
@@ -191,6 +192,7 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 	if err != nil {
 		return err
 	}
+	defer tx.Abort()
 	nodes := dbis[0]
 	services := dbis[1]
 	index := dbis[2]
@@ -201,7 +203,6 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 	// Get the node
 	addr, err := tx.Get(nodes, []byte(name))
 	if err != nil {
-		tx.Abort()
 		return err
 	}
 
@@ -213,11 +214,9 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 	}
 	val, err := structs.Encode(255, &nService)
 	if err != nil {
-		tx.Abort()
 		return err
 	}
 	if err := tx.Put(services, key, val, 0); err != nil {
-		tx.Abort()
 		return err
 	}
 
@@ -225,7 +224,6 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 	if exist, ok := existing[service]; ok {
 		key := []byte(fmt.Sprintf("%s||%s||%s", service, exist.Tag, name))
 		if err := tx.Del(index, key, nil); err != nil {
-			tx.Abort()
 			return err
 		}
 	}
@@ -240,11 +238,9 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 	}
 	val, err = structs.Encode(255, &node)
 	if err != nil {
-		tx.Abort()
 		return err
 	}
 	if err := tx.Put(index, key, val, 0); err != nil {
-		tx.Abort()
 		return err
 	}
 
@@ -323,6 +319,7 @@ func (s *StateStore) DeleteNodeService(node, service string) error {
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node servicess: %v", err))
 	}
+	defer tx.Abort()
 	services := dbis[0]
 	index := dbis[1]
 
@@ -332,21 +329,18 @@ func (s *StateStore) DeleteNodeService(node, service string) error {
 
 	// Bail if no existing entry
 	if !ok {
-		tx.Abort()
 		return nil
 	}
 
 	// Delete the node service entry
 	key := []byte(fmt.Sprintf("%s||%s", node, service))
 	if err = tx.Del(services, key, nil); err != nil {
-		tx.Abort()
 		return err
 	}
 
 	// Delete the sevice index entry
 	key = []byte(fmt.Sprintf("%s||%s||%s", service, exist.Tag, node))
 	if err := tx.Del(index, key, nil); err != nil {
-		tx.Abort()
 		return err
 	}
 
@@ -359,6 +353,7 @@ func (s *StateStore) DeleteNode(node string) error {
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node servicess: %v", err))
 	}
+	defer tx.Abort()
 	nodes := dbis[0]
 	services := dbis[1]
 	index := dbis[2]
@@ -368,7 +363,6 @@ func (s *StateStore) DeleteNode(node string) error {
 	if err == mdb.NotFound {
 		err = nil
 	} else if err != nil {
-		tx.Abort()
 		return err
 	}
 
@@ -380,14 +374,12 @@ func (s *StateStore) DeleteNode(node string) error {
 		// Delete the node service entry
 		key := []byte(fmt.Sprintf("%s||%s", node, service))
 		if err = tx.Del(services, key, nil); err != nil {
-			tx.Abort()
 			return err
 		}
 
 		// Delete the sevice index entry
 		key = []byte(fmt.Sprintf("%s||%s||%s", service, entry.Tag, node))
 		if err := tx.Del(index, key, nil); err != nil {
-			tx.Abort()
 			return err
 		}
 	}
@@ -401,6 +393,7 @@ func (s *StateStore) Services() map[string][]string {
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node servicess: %v", err))
 	}
+	defer tx.Abort()
 	index := dbis[0]
 
 	cursor, err := tx.CursorOpen(index)
