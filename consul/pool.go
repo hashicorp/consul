@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"github.com/ugorji/go/codec"
 	"net"
 	"net/rpc"
@@ -161,7 +162,7 @@ func (p *ConnPool) RPC(addr net.Addr, method string, args interface{}, reply int
 	// Try to get a conn first
 	conn, err := p.Acquire(addr)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get conn: %v", err)
 	}
 
 	// Make the RPC call
@@ -179,7 +180,7 @@ func (p *ConnPool) RPC(addr net.Addr, method string, args interface{}, reply int
 	} else {
 		conn.Close()
 	}
-	return err
+	return fmt.Errorf("rpc error: %v", err)
 }
 
 // Reap is used to close conns open over maxTime

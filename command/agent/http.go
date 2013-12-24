@@ -77,7 +77,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		// Check for an error
 	HAS_ERR:
 		if err != nil {
-			s.logger.Printf("[ERR] Request %v, error: %v", req, err)
+			s.logger.Printf("[ERR] Request %v, error: %v", req.URL, err)
 			resp.WriteHeader(500)
 			resp.Write([]byte(err.Error()))
 			return
