@@ -389,7 +389,7 @@ func (s *StateStore) DeleteNode(node string) error {
 
 // Services is used to return all the services with a list of associated tags
 func (s *StateStore) Services() map[string][]string {
-	tx, dbis, err := s.startTxn(false, dbServiceIndex)
+	tx, dbis, err := s.startTxn(true, dbServiceIndex)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node servicess: %v", err))
 	}
@@ -424,7 +424,7 @@ func (s *StateStore) Services() map[string][]string {
 
 // ServiceNodes returns the nodes associated with a given service
 func (s *StateStore) ServiceNodes(service string) structs.ServiceNodes {
-	tx, dbis, err := s.startTxn(false, dbServiceIndex)
+	tx, dbis, err := s.startTxn(true, dbServiceIndex)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node servicess: %v", err))
 	}
@@ -435,7 +435,7 @@ func (s *StateStore) ServiceNodes(service string) structs.ServiceNodes {
 
 // ServiceTagNodes returns the nodes associated with a given service matching a tag
 func (s *StateStore) ServiceTagNodes(service, tag string) structs.ServiceNodes {
-	tx, dbis, err := s.startTxn(false, dbServiceIndex)
+	tx, dbis, err := s.startTxn(true, dbServiceIndex)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node servicess: %v", err))
 	}
