@@ -74,10 +74,11 @@ type Config struct {
 // DefaultConfig is used to return a sane default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		HTTPAddr: "127.0.0.1:8500",
-		LogLevel: "INFO",
-		RPCAddr:  "127.0.0.1:8400",
-		Server:   false,
+		Datacenter: consul.DefaultDC,
+		HTTPAddr:   "127.0.0.1:8500",
+		LogLevel:   "INFO",
+		RPCAddr:    "127.0.0.1:8400",
+		Server:     false,
 	}
 }
 
