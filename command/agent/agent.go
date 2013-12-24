@@ -44,6 +44,14 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		logOutput = os.Stderr
 	}
 
+	// Validate the config
+	if config.Datacenter == "" {
+		return nil, fmt.Errorf("Must configure a Datacenter")
+	}
+	if config.DataDir == "" {
+		return nil, fmt.Errorf("Must configure a DataDir")
+	}
+
 	agent := &Agent{
 		config:     config,
 		logger:     log.New(logOutput, "", log.LstdFlags),

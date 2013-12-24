@@ -117,6 +117,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	servers := s.remoteConsuls[dc]
 	if len(servers) == 0 {
 		s.remoteLock.RUnlock()
+		s.logger.Printf("[WARN] consul: RPC request for DC '%s', no path found", dc)
 		return structs.ErrNoDCPath
 	}
 

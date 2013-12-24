@@ -56,17 +56,18 @@ func (s *HTTPServer) registerHandlers() {
 	s.mux.HandleFunc("/v1/status/peers", s.wrap(s.StatusPeers))
 
 	s.mux.HandleFunc("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
+	s.mux.HandleFunc("/v1/catalog/nodes", s.wrap(s.CatalogNodes))
 }
 
 // wrap is used to wrap functions to make them more convenient
-func (s *HTTPServer) wrap(handler func(req *http.Request) (interface{}, error)) func(resp http.ResponseWriter, req *http.Request) {
+func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) func(resp http.ResponseWriter, req *http.Request) {
 	f := func(resp http.ResponseWriter, req *http.Request) {
 		// Invoke the handler
 		start := time.Now()
 		defer func() {
 			s.logger.Printf("[DEBUG] HTTP Request %v (%v)", req.URL, time.Now().Sub(start))
 		}()
-		obj, err := handler(req)
+		obj, err := handler(resp, req)
 
 		// Check for an error
 	HAS_ERR:
@@ -78,12 +79,20 @@ func (s *HTTPServer) wrap(handler func(req *http.Request) (interface{}, error)) 
 		}
 
 		// Write out the JSON object
-		var buf bytes.Buffer
-		enc := json.NewEncoder(&buf)
-		if err = enc.Encode(obj); err != nil {
-			goto HAS_ERR
+		if obj != nil {
+			var buf bytes.Buffer
+			enc := json.NewEncoder(&buf)
+			if err = enc.Encode(obj); err != nil {
+				goto HAS_ERR
+			}
+			resp.Write(buf.Bytes())
 		}
-		resp.Write(buf.Bytes())
 	}
 	return f
+}
+
+// decodeBody is used to decode a JSON request body
+func decodeBody(req *http.Request, out interface{}) error {
+	dec := json.NewDecoder(req.Body)
+	return dec.Decode(out)
 }

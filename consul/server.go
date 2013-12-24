@@ -259,7 +259,7 @@ func (s *Server) Shutdown() error {
 		s.raftLayer.Close()
 		future := s.raft.Shutdown()
 		if err := future.Error(); err != nil {
-			s.logger.Printf("[WARN] Error shutting down raft: %s", err)
+			s.logger.Printf("[WARN] consul: Error shutting down raft: %s", err)
 		}
 		s.raftStore.Close()
 	}
@@ -324,7 +324,7 @@ func (s *Server) Leave() error {
 				s.logger.Printf("[ERR] Failed to leave Raft cluster: %v", err)
 			}
 		case <-time.After(3 * time.Second):
-			s.logger.Printf("[ERR] Timedout leaving Raft cluster")
+			s.logger.Printf("[ERR] Timed out leaving Raft cluster")
 		}
 	}
 AFTER_LEAVE:

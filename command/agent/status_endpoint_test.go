@@ -15,7 +15,7 @@ func TestStatusLeader(t *testing.T) {
 	// Wait for a leader
 	time.Sleep(100 * time.Millisecond)
 
-	obj, err := srv.StatusLeader(nil)
+	obj, err := srv.StatusLeader(nil, nil)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
@@ -31,7 +31,7 @@ func TestStatusPeers(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	obj, err := srv.StatusPeers(nil)
+	obj, err := srv.StatusPeers(nil, nil)
 	if err != nil {
 		t.Fatalf("Err: %v", err)
 	}
