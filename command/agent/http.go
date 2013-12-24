@@ -55,8 +55,13 @@ func (s *HTTPServer) registerHandlers() {
 	s.mux.HandleFunc("/v1/status/leader", s.wrap(s.StatusLeader))
 	s.mux.HandleFunc("/v1/status/peers", s.wrap(s.StatusPeers))
 
+	s.mux.HandleFunc("/v1/catalog/register", s.wrap(s.CatalogRegister))
+	s.mux.HandleFunc("/v1/catalog/deregister", s.wrap(s.CatalogDeregister))
 	s.mux.HandleFunc("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
 	s.mux.HandleFunc("/v1/catalog/nodes", s.wrap(s.CatalogNodes))
+	s.mux.HandleFunc("/v1/catalog/services", s.wrap(s.CatalogServices))
+	s.mux.HandleFunc("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
+	s.mux.HandleFunc("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
 }
 
 // wrap is used to wrap functions to make them more convenient
