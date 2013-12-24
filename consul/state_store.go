@@ -15,6 +15,10 @@ const (
 	dbServiceIndex = "serviceIndex" // Maps serv||tag||node -> structs.ServiceNode
 )
 
+var (
+	nullSentinel = []byte{0, 0, 0, 0} // used to encode a null value
+)
+
 // The StateStore is responsible for maintaining all the Consul
 // state. It is manipulated by the FSM which maintains consistency
 // through the use of Raft. The goals of the StateStore are to provide
@@ -135,7 +139,7 @@ func (s *StateStore) EnsureNode(name string, address string) error {
 	}
 	defer tx.Abort()
 
-	if err := tx.Put(dbis[0], []byte(name), []byte(address), 0); err != nil {
+	if err := tx.Put(dbis[0], encNull(name), encNull(address), 0); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -155,7 +159,7 @@ func (s *StateStore) GetNode(name string) (bool, string) {
 	} else if err != nil {
 		panic(fmt.Errorf("Failed to get node: %v", err))
 	}
-	return true, string(sliceCopy(val))
+	return true, decNull(sliceCopy(val))
 }
 
 // GetNodes returns all the known nodes, the slice alternates between
@@ -180,7 +184,7 @@ func (s *StateStore) Nodes() []string {
 		} else if err != nil {
 			panic(fmt.Errorf("Failed to get nodes: %v", err))
 		}
-		nodes = append(nodes, string(sliceCopy(key)), string(sliceCopy(val)))
+		nodes = append(nodes, decNull(sliceCopy(key)), decNull(sliceCopy(val)))
 	}
 	return nodes
 }
@@ -512,7 +516,7 @@ func (s *StateSnapshot) Nodes() []string {
 		} else if err != nil {
 			panic(fmt.Errorf("Failed to get nodes: %v", err))
 		}
-		nodes = append(nodes, string(sliceCopy(key)), string(sliceCopy(val)))
+		nodes = append(nodes, decNull(sliceCopy(key)), decNull(sliceCopy(val)))
 	}
 	return nodes
 }
@@ -522,8 +526,25 @@ func (s *StateSnapshot) NodeServices(name string) structs.NodeServices {
 	return filterNodeServices(s.tx, s.dbis[1], name)
 }
 
+// copies a slice to prevent access to lmdb private data
 func sliceCopy(in []byte) []byte {
 	c := make([]byte, len(in))
 	copy(c, in)
 	return c
+}
+
+// encodes a potentially empty string using a sentinel
+func encNull(s string) []byte {
+	if s == "" {
+		return nullSentinel
+	}
+	return []byte(s)
+}
+
+// decodes the potential sentinel to an empty string
+func decNull(s []byte) string {
+	if bytes.Compare(s, nullSentinel) == 0 {
+		return ""
+	}
+	return string(s)
 }
