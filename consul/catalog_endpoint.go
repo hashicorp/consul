@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
@@ -15,6 +16,11 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		return err
 	}
 
+	// Verify the args
+	if args.Node == "" || args.Address == "" {
+		return fmt.Errorf("Must provide node and address")
+	}
+
 	_, err := c.srv.raftApply(structs.RegisterRequestType, args)
 	if err != nil {
 		c.srv.logger.Printf("[ERR] Register failed: %v", err)
@@ -27,6 +33,11 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) error {
 	if done, err := c.srv.forward("Catalog.Deregister", args.Datacenter, args, reply); done {
 		return err
+	}
+
+	// Verify the args
+	if args.Node == "" {
+		return fmt.Errorf("Must provide node")
 	}
 
 	_, err := c.srv.raftApply(structs.DeregisterRequestType, args)
@@ -93,6 +104,11 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceNodesRequest, reply *structs
 		return err
 	}
 
+	// Verify the arguments
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide service name")
+	}
+
 	// Get the nodes
 	state := c.srv.fsm.State()
 	var nodes structs.ServiceNodes
@@ -110,6 +126,11 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceNodesRequest, reply *structs
 func (c *Catalog) NodeServices(args *structs.NodeServicesRequest, reply *structs.NodeServices) error {
 	if done, err := c.srv.forward("Catalog.NodeServices", args.Datacenter, args, reply); done {
 		return err
+	}
+
+	// Verify the arguments
+	if args.Node == "" {
+		return fmt.Errorf("Must provide node")
 	}
 
 	// Get the node services
