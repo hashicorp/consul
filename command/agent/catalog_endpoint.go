@@ -28,7 +28,6 @@ func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request
 	if args.Datacenter == "" {
 		args.Datacenter = s.agent.config.Datacenter
 	}
-	s.logger.Printf("[DEBUG] ARGS: %#v %v %#v", args, args.Datacenter == "", s.agent.config)
 
 	// Forward to the servers
 	var out struct{}
