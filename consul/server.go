@@ -301,6 +301,13 @@ func (s *Server) Leave() error {
 
 	// Leave the Raft cluster
 	if s.raft != nil {
+		// Check if we have other raft nodes
+		peers, _ := s.raftPeers.Peers()
+		if len(peers) <= 1 {
+			s.logger.Printf("[WARN] Not leaving Raft cluster, no peers")
+			goto AFTER_LEAVE
+		}
+
 		// Get the leader
 		leader := s.raft.Leader()
 		if leader == nil {
