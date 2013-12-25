@@ -31,6 +31,7 @@ func testServer(t *testing.T) (string, *Server) {
 func testServerDC(t *testing.T, dc string) (string, *Server) {
 	dir := tmpDir(t)
 	config := DefaultConfig()
+	config.Bootstrap = true
 	config.Datacenter = dc
 	config.DataDir = dir
 

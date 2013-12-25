@@ -16,6 +16,7 @@ func nextConfig() *Config {
 	idx := atomic.AddUint64(&offset, 1)
 	conf := DefaultConfig()
 
+	conf.Bootstrap = true
 	conf.Datacenter = "dc1"
 	conf.HTTPAddr = fmt.Sprintf("127.0.0.1:%d", 8500+10*idx)
 	conf.RPCAddr = fmt.Sprintf("127.0.0.1:%d", 8400+10*idx)
