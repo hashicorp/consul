@@ -52,6 +52,8 @@ func (s *HTTPServer) Shutdown() {
 
 // registerHandlers is used to attach our handlers to the mux
 func (s *HTTPServer) registerHandlers() {
+	s.mux.HandleFunc("/", s.Index)
+
 	s.mux.HandleFunc("/v1/status/leader", s.wrap(s.StatusLeader))
 	s.mux.HandleFunc("/v1/status/peers", s.wrap(s.StatusPeers))
 
@@ -94,6 +96,15 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		}
 	}
 	return f
+}
+
+// Renders a simple index page
+func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
+	if req.URL.Path == "/" {
+		resp.Write([]byte("Consul Agent"))
+	} else {
+		resp.WriteHeader(404)
+	}
 }
 
 // decodeBody is used to decode a JSON request body
