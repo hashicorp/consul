@@ -158,6 +158,11 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 
 // setupRaft is used to setup and initialize Raft
 func (s *Server) setupRaft() error {
+	// If we are in bootstrap mode, enable a single node cluster
+	if s.config.Bootstrap {
+		s.config.RaftConfig.EnableSingleNode = true
+	}
+
 	// Create the base path
 	path := filepath.Join(s.config.DataDir, raftState)
 	if err := ensurePath(path, true); err != nil {

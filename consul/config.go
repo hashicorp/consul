@@ -18,6 +18,11 @@ const (
 
 // Config is used to configure the server
 type Config struct {
+	// Bootstrap mode is used to bring up the first Consul server.
+	// It is required so that it can elect a leader without any
+	// other nodes being present
+	Bootstrap bool
+
 	// Datacenter is the datacenter this Consul server represents
 	Datacenter string
 
@@ -68,6 +73,9 @@ func DefaultConfig() *Config {
 	// Ensure we don't have port conflicts
 	conf.SerfLANConfig.MemberlistConfig.Port = DefaultLANSerfPort
 	conf.SerfWANConfig.MemberlistConfig.Port = DefaultWANSerfPort
+
+	// Disable shutdown on removal
+	conf.RaftConfig.ShutdownOnRemove = false
 
 	return conf
 }

@@ -16,6 +16,10 @@ import (
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
 type Config struct {
+	// Bootstrap is used to bring up the first Consul server, and
+	// permits that node to elect itself leader
+	Bootstrap bool
+
 	// Datacenter is the datacenter this node is in. Defaults to dc1
 	Datacenter string
 
@@ -120,6 +124,9 @@ func MergeConfig(a, b *Config) *Config {
 	var result Config = *a
 
 	// Copy the strings if they're set
+	if b.Bootstrap {
+		result.Bootstrap = true
+	}
 	if b.Datacenter != "" {
 		result.Datacenter = b.Datacenter
 	}

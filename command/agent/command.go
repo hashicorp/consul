@@ -49,7 +49,8 @@ func (c *Command) readConfig() *Config {
 		"address to bind RPC listener to")
 	cmdFlags.StringVar(&cmdConfig.DataDir, "data", "", "path to the data directory")
 	cmdFlags.StringVar(&cmdConfig.Datacenter, "dc", "", "node datacenter")
-	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "enable server mode")
+	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
+	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
 	if err := cmdFlags.Parse(c.args); err != nil {
 		return nil
 	}

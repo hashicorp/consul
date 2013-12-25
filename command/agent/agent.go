@@ -111,6 +111,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.ServerAddr != "" {
 		base.RPCAddr = a.config.ServerAddr
 	}
+	if a.config.Bootstrap {
+		base.Bootstrap = true
+	}
 
 	// Setup the loggers
 	base.LogOutput = a.logOutput
