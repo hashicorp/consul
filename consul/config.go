@@ -71,8 +71,8 @@ func DefaultConfig() *Config {
 	conf.SerfWANConfig.MemberlistConfig = memberlist.DefaultWANConfig()
 
 	// Ensure we don't have port conflicts
-	conf.SerfLANConfig.MemberlistConfig.Port = DefaultLANSerfPort
-	conf.SerfWANConfig.MemberlistConfig.Port = DefaultWANSerfPort
+	conf.SerfLANConfig.MemberlistConfig.BindPort = DefaultLANSerfPort
+	conf.SerfWANConfig.MemberlistConfig.BindPort = DefaultWANSerfPort
 
 	// Disable shutdown on removal
 	conf.RaftConfig.ShutdownOnRemove = false
