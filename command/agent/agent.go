@@ -103,10 +103,10 @@ func (a *Agent) consulConfig() *consul.Config {
 		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddr
 	}
 	if a.config.SerfLanPort != 0 {
-		base.SerfLANConfig.MemberlistConfig.Port = a.config.SerfLanPort
+		base.SerfLANConfig.MemberlistConfig.BindPort = a.config.SerfLanPort
 	}
 	if a.config.SerfWanPort != 0 {
-		base.SerfWANConfig.MemberlistConfig.Port = a.config.SerfWanPort
+		base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfWanPort
 	}
 	if a.config.ServerAddr != "" {
 		base.RPCAddr = a.config.ServerAddr
