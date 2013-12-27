@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -74,6 +75,8 @@ type Config struct {
 	// ConsulConfig can either be provided or a default one created
 	ConsulConfig *consul.Config
 }
+
+type dirEnts []os.FileInfo
 
 // DefaultConfig is used to return a sane default configuration
 func DefaultConfig() *Config {
@@ -205,6 +208,9 @@ func ReadConfigPaths(paths []string) (*Config, error) {
 			return nil, fmt.Errorf("Error reading '%s': %s", path, err)
 		}
 
+		// Sort the contents, ensures lexical order
+		sort.Sort(dirEnts(contents))
+
 		for _, fi := range contents {
 			// Don't recursively read contents
 			if fi.IsDir() {
@@ -234,4 +240,17 @@ func ReadConfigPaths(paths []string) (*Config, error) {
 	}
 
 	return result, nil
+}
+
+// Implement the sort interface for dirEnts
+func (d dirEnts) Len() int {
+	return len(d)
+}
+
+func (d dirEnts) Less(i, j int) bool {
+	return d[i].Name() < d[j].Name()
+}
+
+func (d dirEnts) Swap(i, j int) {
+	d[i], d[j] = d[j], d[i]
 }
