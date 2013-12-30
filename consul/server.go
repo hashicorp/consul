@@ -346,17 +346,15 @@ AFTER_LEAVE:
 // JoinLAN is used to have Consul join the inner-DC pool
 // The target address should be another node inside the DC
 // listening on the Serf LAN address
-func (s *Server) JoinLAN(addr string) error {
-	_, err := s.serfLAN.Join([]string{addr}, false)
-	return err
+func (s *Server) JoinLAN(addrs []string) (int, error) {
+	return s.serfLAN.Join(addrs, false)
 }
 
 // JoinWAN is used to have Consul join the cross-WAN Consul ring
 // The target address should be another node listening on the
 // Serf WAN address
-func (s *Server) JoinWAN(addr string) error {
-	_, err := s.serfWAN.Join([]string{addr}, false)
-	return err
+func (s *Server) JoinWAN(addrs []string) (int, error) {
+	return s.serfWAN.Join(addrs, false)
 }
 
 // LANMembers is used to return the members of the LAN cluster

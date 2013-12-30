@@ -40,13 +40,13 @@ func testServerDC(t *testing.T, dc string) (string, *Server) {
 	config.NodeName = fmt.Sprintf("Node %d", p)
 	config.RPCAddr = fmt.Sprintf("127.0.0.1:%d", p)
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
-	config.SerfLANConfig.MemberlistConfig.Port = getPort()
+	config.SerfLANConfig.MemberlistConfig.BindPort = getPort()
 	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.ProbeInterval = time.Second
 	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
 
 	config.SerfWANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
-	config.SerfWANConfig.MemberlistConfig.Port = getPort()
+	config.SerfWANConfig.MemberlistConfig.BindPort = getPort()
 	config.SerfWANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
 	config.SerfWANConfig.MemberlistConfig.ProbeInterval = time.Second
 	config.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
@@ -94,8 +94,8 @@ func TestServer_JoinLAN(t *testing.T) {
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.Port)
-	if err := s2.JoinLAN(addr); err != nil {
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -120,8 +120,8 @@ func TestServer_JoinWAN(t *testing.T) {
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.Port)
-	if err := s2.JoinWAN(addr); err != nil {
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -157,8 +157,8 @@ func TestServer_Leave(t *testing.T) {
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.Port)
-	if err := s2.JoinLAN(addr); err != nil {
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

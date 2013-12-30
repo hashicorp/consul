@@ -23,7 +23,7 @@ func testClientDC(t *testing.T, dc string) (string, *Client) {
 	config.NodeName = fmt.Sprintf("Node %d", p)
 	config.RPCAddr = fmt.Sprintf("127.0.0.1:%d", p)
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
-	config.SerfLANConfig.MemberlistConfig.Port = getPort()
+	config.SerfLANConfig.MemberlistConfig.BindPort = getPort()
 	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.ProbeInterval = time.Second
 	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
@@ -55,8 +55,8 @@ func TestClient_JoinLAN(t *testing.T) {
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.Port)
-	if err := c1.JoinLAN(addr); err != nil {
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := c1.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -94,8 +94,8 @@ func TestClient_RPC(t *testing.T) {
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.Port)
-	if err := c1.JoinLAN(addr); err != nil {
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := c1.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

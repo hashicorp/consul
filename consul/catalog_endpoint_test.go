@@ -55,8 +55,8 @@ func TestCatalogRegister_ForwardLeader(t *testing.T) {
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.Port)
-	if err := s2.JoinLAN(addr); err != nil {
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -98,8 +98,8 @@ func TestCatalogRegister_ForwardDC(t *testing.T) {
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.Port)
-	if err := s2.JoinWAN(addr); err != nil {
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -159,8 +159,8 @@ func TestCatalogListDatacenters(t *testing.T) {
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.Port)
-	if err := s2.JoinWAN(addr); err != nil {
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	time.Sleep(10 * time.Millisecond)
