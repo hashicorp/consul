@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
 	"io"
+	"net"
 	"os"
 	"os/signal"
 	"strings"
@@ -26,6 +27,7 @@ type Command struct {
 	args       []string
 	logFilter  *logutils.LevelFilter
 	agent      *Agent
+	rpcServer  *AgentRPC
 	httpServer *HTTPServer
 }
 
@@ -113,7 +115,7 @@ func (c *Command) setupLoggers(config *Config) (*GatedWriter, *logWriter, io.Wri
 }
 
 // setupAgent is used to start the agent and various interfaces
-func (c *Command) setupAgent(config *Config, logOutput io.Writer) error {
+func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *logWriter) error {
 	c.Ui.Output("Starting Consul agent...")
 	agent, err := Create(config, logOutput)
 	if err != nil {
@@ -121,6 +123,18 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer) error {
 		return err
 	}
 	c.agent = agent
+
+	// Setup the RPC listener
+	rpcListener, err := net.Listen("tcp", config.RPCAddr)
+	if err != nil {
+		agent.Shutdown()
+		c.Ui.Error(fmt.Sprintf("Error starting RPC listener: %s", err))
+		return err
+	}
+
+	// Start the IPC layer
+	c.Ui.Output("Starting Serf agent RPC...")
+	c.rpcServer = NewAgentRPC(agent, rpcListener, logOutput, logWriter)
 
 	if config.HTTPAddr != "" {
 		server, err := NewServer(agent, logOutput, config.HTTPAddr)
@@ -157,10 +171,13 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Create the agent
-	if err := c.setupAgent(config, logOutput); err != nil {
+	if err := c.setupAgent(config, logOutput, logWriter); err != nil {
 		return 1
 	}
 	defer c.agent.Shutdown()
+	if c.rpcServer != nil {
+		defer c.rpcServer.Shutdown()
+	}
 	if c.httpServer != nil {
 		defer c.httpServer.Shutdown()
 	}
