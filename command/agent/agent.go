@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/serf/serf"
 	"io"
 	"log"
 	"os"
@@ -186,4 +187,60 @@ func (a *Agent) Shutdown() error {
 // for the agent to perform a shutdown.
 func (a *Agent) ShutdownCh() <-chan struct{} {
 	return a.shutdownCh
+}
+
+// JoinLAN is used to have the agent join a LAN cluster
+func (a *Agent) JoinLAN(addrs []string) (n int, err error) {
+	a.logger.Printf("[INFO] agent: (LAN) joining: %v", addrs)
+	if a.server != nil {
+		n, err = a.server.JoinLAN(addrs)
+	} else {
+		n, err = a.client.JoinLAN(addrs)
+	}
+	a.logger.Printf("[INFO] agent: (LAN) joined: %d Err: %v", n, err)
+	return
+}
+
+// JoinWAN is used to have the agent join a WAN cluster
+func (a *Agent) JoinWAN(addrs []string) (n int, err error) {
+	a.logger.Printf("[INFO] agent: (WAN) joining: %v", addrs)
+	if a.server != nil {
+		n, err = a.server.JoinWAN(addrs)
+	} else {
+		err = fmt.Errorf("Must be a server to join WAN cluster")
+	}
+	a.logger.Printf("[INFO] agent: (WAN) joined: %d Err: %v", n, err)
+	return
+}
+
+// ForceLeave is used to remove a failed node from the cluster
+func (a *Agent) ForceLeave(node string) (err error) {
+	a.logger.Printf("[INFO] Force leaving node: %v", node)
+	if a.server != nil {
+		err = a.server.RemoveFailedNode(node)
+	} else {
+		err = a.client.RemoveFailedNode(node)
+	}
+	if err != nil {
+		a.logger.Printf("[WARN] Failed to remove node: %v", err)
+	}
+	return err
+}
+
+// Used to retrieve the LAN members
+func (a *Agent) LANMembers() []serf.Member {
+	if a.server != nil {
+		return a.server.LANMembers()
+	} else {
+		return a.client.LANMembers()
+	}
+}
+
+// Used to retrieve the WAN members
+func (a *Agent) WANMembers() []serf.Member {
+	if a.server != nil {
+		return a.server.WANMembers()
+	} else {
+		return nil
+	}
 }
