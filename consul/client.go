@@ -148,6 +148,11 @@ func (c *Client) LANMembers() []serf.Member {
 	return c.serf.Members()
 }
 
+// RemoveFailedNode is used to remove a failed node from the cluster
+func (c *Client) RemoveFailedNode(node string) error {
+	return c.serf.RemoveFailedNode(node)
+}
+
 // lanEventHandler is used to handle events from the lan Serf cluster
 func (c *Client) lanEventHandler() {
 	for {
