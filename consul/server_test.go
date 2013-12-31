@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -67,6 +68,16 @@ func TestServer_StartStop(t *testing.T) {
 
 	config := DefaultConfig()
 	config.DataDir = dir
+
+	private, err := GetPrivateIP()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	config.RPCAdvertise = &net.TCPAddr{
+		IP:   private.IP,
+		Port: 8300,
+	}
 
 	server, err := NewServer(config)
 	if err != nil {

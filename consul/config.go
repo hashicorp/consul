@@ -12,7 +12,6 @@ import (
 const (
 	DefaultDC          = "dc1"
 	DefaultRPCAddr     = "0.0.0.0:8300"
-	DefaultRPCPort     = 8000
 	DefaultLANSerfPort = 8301
 	DefaultWANSerfPort = 8302
 )
@@ -44,7 +43,7 @@ type Config struct {
 	// the RPC endpoint. This can differ from the RPC address, if for example
 	// the RPCAddr is unspecified "0.0.0.0:8300", but this address must be
 	// reachable
-	RPCAdvertise net.Addr
+	RPCAdvertise *net.TCPAddr
 
 	// SerfLANConfig is the configuration for the intra-dc serf
 	SerfLANConfig *serf.Config
