@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"io"
+	"net"
 	"os"
 )
 
@@ -38,6 +39,12 @@ type Config struct {
 	// RPCAddr is the RPC address used by Consul. This should be reachable
 	// by the WAN and LAN
 	RPCAddr string
+
+	// RPCAdvertise is the address that is advertised to other nodes for
+	// the RPC endpoint. This can differ from the RPC address, if for example
+	// the RPCAddr is unspecified "0.0.0.0:8300", but this address must be
+	// reachable
+	RPCAdvertise net.Addr
 
 	// SerfLANConfig is the configuration for the intra-dc serf
 	SerfLANConfig *serf.Config

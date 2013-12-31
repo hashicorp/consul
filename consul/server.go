@@ -233,7 +233,26 @@ func (s *Server) setupRPC() error {
 		return err
 	}
 	s.rpcListener = list
-	s.raftLayer = NewRaftLayer(s.rpcListener.Addr())
+
+	var advertise net.Addr
+	if s.config.RPCAdvertise != nil {
+		advertise = s.config.RPCAdvertise
+	} else {
+		advertise = s.rpcListener.Addr()
+	}
+
+	// Verify that we have a usable advertise address
+	addr, ok := advertise.(*net.TCPAddr)
+	if !ok {
+		list.Close()
+		return fmt.Errorf("RPC advertise address is not a TCP Address: %v", addr)
+	}
+	if addr.IP.IsUnspecified() {
+		list.Close()
+		return fmt.Errorf("RPC advertise address is not advertisable: %v", addr)
+	}
+
+	s.raftLayer = NewRaftLayer(advertise)
 	go s.listen()
 	return nil
 }
