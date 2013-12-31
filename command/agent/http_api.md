@@ -33,6 +33,5 @@ The current URLs supported are:
 * /v1/agent/health: Returns the health info from the local agent (future)
 * /v1/agent/members : Returns the members as seen by the local serf agent
 * /v1/agent/join : Instructs the local agent to join a node
-* /v1/agent/members-wan: Returns the consul servers as seen by the wan serf (must be a server)
-* /v1/agent/join-wan : Instructs the local agent to join a remote consul server (must be a server)
+* /v1/agent/force-leave: Instructs the agent to force a node into the left state
 
