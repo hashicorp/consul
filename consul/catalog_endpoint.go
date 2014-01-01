@@ -76,8 +76,8 @@ func (c *Catalog) ListNodes(dc string, reply *structs.Nodes) error {
 
 	// Format the response
 	nodes := structs.Nodes(make([]structs.Node, len(rawNodes)/2))
-	for i := 0; i < len(rawNodes); i += 2 {
-		nodes[i] = structs.Node{rawNodes[i], rawNodes[i+1]}
+	for i := 0; i < len(nodes); i++ {
+		nodes[i] = structs.Node{rawNodes[i*2], rawNodes[i*2+1]}
 	}
 
 	*reply = nodes
