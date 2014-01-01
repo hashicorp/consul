@@ -11,7 +11,7 @@ import (
 
 func rpcClient(t *testing.T, s *Server) *rpc.Client {
 	addr := s.config.RPCAddr
-	conn, err := net.DialTimeout("tcp", addr, time.Second)
+	conn, err := net.DialTimeout("tcp", addr.String(), time.Second)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

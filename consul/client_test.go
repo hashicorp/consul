@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -21,7 +22,10 @@ func testClientDC(t *testing.T, dc string) (string, *Client) {
 	// Adjust the ports
 	p := getPort()
 	config.NodeName = fmt.Sprintf("Node %d", p)
-	config.RPCAddr = fmt.Sprintf("127.0.0.1:%d", p)
+	config.RPCAddr = &net.TCPAddr{
+		IP:   []byte{127, 0, 0, 1},
+		Port: p,
+	}
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	config.SerfLANConfig.MemberlistConfig.BindPort = getPort()
 	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond

@@ -39,7 +39,10 @@ func testServerDC(t *testing.T, dc string) (string, *Server) {
 	// Adjust the ports
 	p := getPort()
 	config.NodeName = fmt.Sprintf("Node %d", p)
-	config.RPCAddr = fmt.Sprintf("127.0.0.1:%d", p)
+	config.RPCAddr = &net.TCPAddr{
+		IP:   []byte{127, 0, 0, 1},
+		Port: p,
+	}
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	config.SerfLANConfig.MemberlistConfig.BindPort = getPort()
 	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
