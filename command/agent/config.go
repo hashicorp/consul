@@ -59,6 +59,11 @@ type Config struct {
 	// Defaults to 0.0.0.0:8300
 	ServerAddr string
 
+	// AdvertiseAddr is the address we use for advertising our Serf,
+	// and Consul RPC IP. If not specified, the first private IP we
+	// find is used.
+	AdvertiseAddr string
+
 	// Server controls if this agent acts like a Consul server,
 	// or merely as a client. Servers have more state, take part
 	// in leader election, etc.
@@ -81,11 +86,13 @@ type dirEnts []os.FileInfo
 // DefaultConfig is used to return a sane default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		Datacenter: consul.DefaultDC,
-		HTTPAddr:   "127.0.0.1:8500",
-		LogLevel:   "INFO",
-		RPCAddr:    "127.0.0.1:8400",
-		Server:     false,
+		Datacenter:  consul.DefaultDC,
+		HTTPAddr:    "127.0.0.1:8500",
+		LogLevel:    "INFO",
+		RPCAddr:     "127.0.0.1:8400",
+		SerfLanPort: consul.DefaultLANSerfPort,
+		SerfWanPort: consul.DefaultWANSerfPort,
+		Server:      false,
 	}
 }
 

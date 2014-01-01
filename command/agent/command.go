@@ -183,12 +183,13 @@ func (c *Command) Run(args []string) int {
 	}
 
 	c.Ui.Output("Consul agent running!")
-	c.Ui.Info(fmt.Sprintf(" Node name: '%s'", config.NodeName))
-	c.Ui.Info(fmt.Sprintf("Datacenter: '%s'", config.Datacenter))
-	c.Ui.Info(fmt.Sprintf("  RPC addr: '%s'", config.RPCAddr))
-	c.Ui.Info(fmt.Sprintf(" HTTP addr: '%s'", config.HTTPAddr))
-	c.Ui.Info(fmt.Sprintf(" Encrypted: %#v", config.EncryptKey != ""))
-	c.Ui.Info(fmt.Sprintf("    Server: %v", config.Server))
+	c.Ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
+	c.Ui.Info(fmt.Sprintf("    Datacenter: '%s'", config.Datacenter))
+	c.Ui.Info(fmt.Sprintf("Advertise addr: '%s'", config.AdvertiseAddr))
+	c.Ui.Info(fmt.Sprintf("      RPC addr: '%s'", config.RPCAddr))
+	c.Ui.Info(fmt.Sprintf("     HTTP addr: '%s'", config.HTTPAddr))
+	c.Ui.Info(fmt.Sprintf("     Encrypted: %#v", config.EncryptKey != ""))
+	c.Ui.Info(fmt.Sprintf("        Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))
 
 	// Enable log streaming
 	c.Ui.Info("")

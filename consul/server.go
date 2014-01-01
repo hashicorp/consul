@@ -228,7 +228,7 @@ func (s *Server) setupRPC() error {
 	s.rpcServer.Register(&Raft{server: s})
 	s.rpcServer.Register(&Catalog{s})
 
-	list, err := net.Listen("tcp", s.config.RPCAddr)
+	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
 		return err
 	}

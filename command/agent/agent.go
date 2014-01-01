@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"io"
 	"log"
+	"net"
 	"os"
 	"sync"
 )
@@ -51,6 +52,24 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	}
 	if config.DataDir == "" {
 		return nil, fmt.Errorf("Must configure a DataDir")
+	}
+
+	// Ensure the RPC Addr is sane
+	if _, err := net.ResolveTCPAddr("tcp", config.ServerAddr); err != nil {
+		return nil, fmt.Errorf("Bad server address: %v", err)
+	}
+
+	// Try to get an advertise address
+	if config.AdvertiseAddr != "" {
+		if ip := net.ParseIP(config.AdvertiseAddr); ip == nil {
+			return nil, fmt.Errorf("Failed to parse advertise address: %v", config.AdvertiseAddr)
+		}
+	} else {
+		ip, err := consul.GetPrivateIP()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get advertise address: %v", err)
+		}
+		config.AdvertiseAddr = ip.IP.String()
 	}
 
 	agent := &Agent{
@@ -105,12 +124,23 @@ func (a *Agent) consulConfig() *consul.Config {
 	}
 	if a.config.SerfLanPort != 0 {
 		base.SerfLANConfig.MemberlistConfig.BindPort = a.config.SerfLanPort
+		base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.SerfLanPort
 	}
 	if a.config.SerfWanPort != 0 {
 		base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfWanPort
+		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.SerfWanPort
 	}
 	if a.config.ServerAddr != "" {
-		base.RPCAddr = a.config.ServerAddr
+		addr, _ := net.ResolveTCPAddr("tcp", a.config.ServerAddr)
+		base.RPCAddr = addr
+	}
+	if a.config.AdvertiseAddr != "" {
+		base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
+		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
+		base.RPCAdvertise = &net.TCPAddr{
+			IP:   net.ParseIP(a.config.AdvertiseAddr),
+			Port: base.RPCAddr.Port,
+		}
 	}
 	if a.config.Bootstrap {
 		base.Bootstrap = true

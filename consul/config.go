@@ -11,9 +11,12 @@ import (
 
 const (
 	DefaultDC          = "dc1"
-	DefaultRPCAddr     = "0.0.0.0:8300"
 	DefaultLANSerfPort = 8301
 	DefaultWANSerfPort = 8302
+)
+
+var (
+	DefaultRPCAddr = &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: 8300}
 )
 
 // Config is used to configure the server
@@ -37,7 +40,7 @@ type Config struct {
 
 	// RPCAddr is the RPC address used by Consul. This should be reachable
 	// by the WAN and LAN
-	RPCAddr string
+	RPCAddr *net.TCPAddr
 
 	// RPCAdvertise is the address that is advertised to other nodes for
 	// the RPC endpoint. This can differ from the RPC address, if for example
