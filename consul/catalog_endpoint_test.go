@@ -337,3 +337,49 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 }
+
+// Used to check for a regression against a known bug
+func TestCatalogRegister_FailedCase1(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	arg := structs.RegisterRequest{
+		Datacenter:  "dc1",
+		Node:        "bar",
+		Address:     "127.0.0.2",
+		ServiceName: "web",
+		ServiceTag:  "",
+		ServicePort: 8000,
+	}
+	var out struct{}
+
+	err := client.Call("Catalog.Register", &arg, &out)
+	if err == nil || err.Error() != "No cluster leader" {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check we can get this back
+	query := &structs.ServiceNodesRequest{
+		Datacenter:  "dc1",
+		ServiceName: "web",
+	}
+	var nodes structs.ServiceNodes
+	if err := client.Call("Catalog.ServiceNodes", query, &nodes); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the output
+	if len(nodes) != 1 {
+		t.Fatalf("Bad: %v", nodes)
+	}
+}

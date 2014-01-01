@@ -216,6 +216,14 @@ func TestServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v")
 	}
 
+	if err := store.EnsureService("foo", "api", "", 5000); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService("bar", "api", "", 5000); err != nil {
+		t.Fatalf("err: %v")
+	}
+
 	if err := store.EnsureService("foo", "db", "master", 8000); err != nil {
 		t.Fatalf("err: %v")
 	}

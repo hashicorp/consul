@@ -463,8 +463,16 @@ func parseServiceNodes(tx *mdb.Txn, index mdb.DBI, prefix []byte) structs.Servic
 
 	var nodes structs.ServiceNodes
 	var node structs.ServiceNode
+	var key, val []byte
+	first := true
+
 	for {
-		key, val, err := cursor.Get(nil, mdb.NEXT)
+		if first {
+			first = false
+			key, val, err = cursor.Get(prefix, mdb.SET_RANGE)
+		} else {
+			key, val, err = cursor.Get(nil, mdb.NEXT)
+		}
 		if err == mdb.NotFound {
 			break
 		} else if err != nil {
