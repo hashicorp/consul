@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	dbNodes        = "nodes"        // Maps node -> addr
-	dbServices     = "services"     // Maps node||serv -> structs.NodeService
-	dbServiceIndex = "serviceIndex" // Maps serv||tag||node -> structs.ServiceNode
+	dbNodes        = "nodes"            // Maps node -> addr
+	dbServices     = "services"         // Maps node||serv -> structs.NodeService
+	dbServiceIndex = "serviceIndex"     // Maps serv||tag||node -> structs.ServiceNode
+	dbMaxMapSize   = 1024 * 1024 * 1024 // 1GB maximum size
 )
 
 var (
@@ -83,6 +84,11 @@ func (s *StateStore) Close() error {
 func (s *StateStore) initialize() error {
 	// Setup the Env first
 	if err := s.env.SetMaxDBs(mdb.DBI(16)); err != nil {
+		return err
+	}
+
+	// Increase the maximum map size
+	if err := s.env.SetMapSize(dbMaxMapSize); err != nil {
 		return err
 	}
 
