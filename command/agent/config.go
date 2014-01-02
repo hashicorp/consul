@@ -30,6 +30,9 @@ type Config struct {
 	// DNSAddr is the address of the DNS server for the agent
 	DNSAddr string
 
+	// Domain is the DNS domain for the records. Defaults to "consul."
+	Domain string
+
 	// Encryption key to use for the Serf communication
 	EncryptKey string
 
@@ -91,6 +94,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Datacenter:  consul.DefaultDC,
 		DNSAddr:     "127.0.0.1:8600",
+		Domain:      "consul.",
 		HTTPAddr:    "127.0.0.1:8500",
 		LogLevel:    "INFO",
 		RPCAddr:     "127.0.0.1:8400",
@@ -147,6 +151,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.DataDir != "" {
 		result.DataDir = b.DataDir
 	}
+	if b.DNSAddr != "" {
+		result.DNSAddr = b.DNSAddr
+	}
+	if b.Domain != "" {
+		result.Domain = b.Domain
+	}
 	if b.EncryptKey != "" {
 		result.EncryptKey = b.EncryptKey
 	}
@@ -155,6 +165,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.LogLevel != "" {
 		result.LogLevel = b.LogLevel
+	}
+	if b.NodeName != "" {
+		result.NodeName = b.NodeName
 	}
 	if b.RPCAddr != "" {
 		result.RPCAddr = b.RPCAddr
@@ -170,6 +183,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ServerAddr != "" {
 		result.ServerAddr = b.ServerAddr
+	}
+	if b.AdvertiseAddr != "" {
+		result.AdvertiseAddr = b.AdvertiseAddr
 	}
 	if b.Server == true {
 		result.Server = b.Server

@@ -9,7 +9,7 @@ import (
 func makeDNSServer(t *testing.T) (string, *DNSServer) {
 	conf := nextConfig()
 	dir, agent := makeAgent(t, conf)
-	server, err := NewDNSServer(agent, agent.logOutput, conf.DNSAddr)
+	server, err := NewDNSServer(agent, agent.logOutput, conf.Domain, conf.DNSAddr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

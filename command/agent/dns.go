@@ -18,7 +18,7 @@ type DNSServer struct {
 }
 
 // NewDNSServer starts a new DNS server to provide an agent interface
-func NewDNSServer(agent *Agent, logOutput io.Writer, bind string) (*DNSServer, error) {
+func NewDNSServer(agent *Agent, logOutput io.Writer, domain, bind string) (*DNSServer, error) {
 	// Construct the DNS components
 	mux := dns.NewServeMux()
 
