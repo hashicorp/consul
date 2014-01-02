@@ -11,7 +11,7 @@ import (
 func makeHTTPServer(t *testing.T) (string, *HTTPServer) {
 	conf := nextConfig()
 	dir, agent := makeAgent(t, conf)
-	server, err := NewServer(agent, agent.logOutput, conf.HTTPAddr)
+	server, err := NewHTTPServer(agent, agent.logOutput, conf.HTTPAddr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

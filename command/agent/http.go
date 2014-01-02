@@ -19,9 +19,9 @@ type HTTPServer struct {
 	logger   *log.Logger
 }
 
-// NewServer starts a new HTTP server to provide an interface to
+// NewHTTPServer starts a new HTTP server to provide an interface to
 // the agent.
-func NewServer(agent *Agent, logOutput io.Writer, bind string) (*HTTPServer, error) {
+func NewHTTPServer(agent *Agent, logOutput io.Writer, bind string) (*HTTPServer, error) {
 	// Create the mux
 	mux := http.NewServeMux()
 
