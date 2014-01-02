@@ -27,6 +27,9 @@ type Config struct {
 	// DataDir is the directory to store our state in
 	DataDir string
 
+	// DNSAddr is the address of the DNS server for the agent
+	DNSAddr string
+
 	// Encryption key to use for the Serf communication
 	EncryptKey string
 
@@ -87,6 +90,7 @@ type dirEnts []os.FileInfo
 func DefaultConfig() *Config {
 	return &Config{
 		Datacenter:  consul.DefaultDC,
+		DNSAddr:     "127.0.0.1:8600",
 		HTTPAddr:    "127.0.0.1:8500",
 		LogLevel:    "INFO",
 		RPCAddr:     "127.0.0.1:8400",

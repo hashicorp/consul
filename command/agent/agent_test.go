@@ -20,13 +20,14 @@ func nextConfig() *Config {
 	conf.Bootstrap = true
 	conf.Datacenter = "dc1"
 	conf.NodeName = fmt.Sprintf("Node %d", idx)
-	conf.HTTPAddr = fmt.Sprintf("127.0.0.1:%d", 8500+10*idx)
-	conf.RPCAddr = fmt.Sprintf("127.0.0.1:%d", 8400+10*idx)
+	conf.DNSAddr = fmt.Sprintf("127.0.0.1:%d", 18600+idx)
+	conf.HTTPAddr = fmt.Sprintf("127.0.0.1:%d", 18500+idx)
+	conf.RPCAddr = fmt.Sprintf("127.0.0.1:%d", 18400+idx)
 	conf.SerfBindAddr = "127.0.0.1"
-	conf.SerfLanPort = int(8301 + 10*idx)
-	conf.SerfWanPort = int(8302 + 10*idx)
+	conf.SerfLanPort = int(18200 + idx)
+	conf.SerfWanPort = int(18300 + idx)
 	conf.Server = true
-	conf.ServerAddr = fmt.Sprintf("127.0.0.1:%d", 8100+10*idx)
+	conf.ServerAddr = fmt.Sprintf("127.0.0.1:%d", 18100+idx)
 
 	cons := consul.DefaultConfig()
 	conf.ConsulConfig = cons
