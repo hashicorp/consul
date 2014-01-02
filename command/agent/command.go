@@ -148,7 +148,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	}
 
 	if config.DNSAddr != "" {
-		server, err := NewDNSServer(agent, logOutput, config.DNSAddr)
+		server, err := NewDNSServer(agent, logOutput, config.Domain, config.DNSAddr)
 		if err != nil {
 			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Error starting dns server: %s", err))
