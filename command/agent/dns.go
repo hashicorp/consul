@@ -44,7 +44,6 @@ func NewDNSServer(agent *Agent, logOutput io.Writer, bind string) (*DNSServer, e
 	// Async start the DNS Server, handle a potential error
 	errCh := make(chan error, 1)
 	go func() {
-		srv.logger.Printf("[INFO] dns: starting server at %v", bind)
 		err := server.ListenAndServe()
 		srv.logger.Printf("[ERR] dns: error starting server: %v", err)
 		errCh <- err
@@ -67,7 +66,6 @@ func NewDNSServer(agent *Agent, logOutput io.Writer, bind string) (*DNSServer, e
 			return
 		}
 
-		srv.logger.Printf("resp %#v", in)
 		if len(in.Answer) == 0 {
 			checkCh <- fmt.Errorf("no response to test message")
 			return
@@ -99,8 +97,30 @@ func (d *DNSServer) handleConsul(resp dns.ResponseWriter, req *dns.Msg) {
 	// Always respond with TXT "ok"
 	m := new(dns.Msg)
 	m.SetReply(req)
+	m.Authoritative = true
 	header := dns.RR_Header{Name: q.Name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0}
 	txt := &dns.TXT{header, []string{"ok"}}
 	m.Answer = append(m.Answer, txt)
+	d.addSOA("consul.", m)
 	resp.WriteMsg(m)
+}
+
+// addSOA is used to add an SOA record to a message for the given domain
+func (d *DNSServer) addSOA(domain string, msg *dns.Msg) {
+	soa := &dns.SOA{
+		Hdr: dns.RR_Header{
+			Name:   domain,
+			Rrtype: dns.TypeSOA,
+			Class:  dns.ClassINET,
+			Ttl:    0,
+		},
+		Ns:      "ns." + domain,
+		Mbox:    "postmaster." + domain,
+		Serial:  uint32(time.Now().Unix()),
+		Refresh: 3600,
+		Retry:   600,
+		Expire:  86400,
+		Minttl:  0,
+	}
+	msg.Ns = append(msg.Ns, soa)
 }

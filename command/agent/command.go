@@ -17,7 +17,7 @@ import (
 // gracefulTimeout controls how long we wait before forcefully terminating
 var gracefulTimeout = 5 * time.Second
 
-// Command is a Command implementation that runs a Serf agent.
+// Command is a Command implementation that runs a Consul agent.
 // The command will not end unless a shutdown message is sent on the
 // ShutdownCh. If two messages are sent on the ShutdownCh it will forcibly
 // exit.
@@ -29,6 +29,7 @@ type Command struct {
 	agent      *Agent
 	rpcServer  *AgentRPC
 	httpServer *HTTPServer
+	dnsServer  *DNSServer
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -133,7 +134,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	}
 
 	// Start the IPC layer
-	c.Ui.Output("Starting Serf agent RPC...")
+	c.Ui.Output("Starting Consul agent RPC...")
 	c.rpcServer = NewAgentRPC(agent, rpcListener, logOutput, logWriter)
 
 	if config.HTTPAddr != "" {
@@ -145,6 +146,17 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		}
 		c.httpServer = server
 	}
+
+	if config.DNSAddr != "" {
+		server, err := NewDNSServer(agent, logOutput, config.DNSAddr)
+		if err != nil {
+			agent.Shutdown()
+			c.Ui.Error(fmt.Sprintf("Error starting dns server: %s", err))
+			return err
+		}
+		c.dnsServer = server
+	}
+
 	return nil
 }
 
@@ -188,6 +200,7 @@ func (c *Command) Run(args []string) int {
 	c.Ui.Info(fmt.Sprintf("Advertise addr: '%s'", config.AdvertiseAddr))
 	c.Ui.Info(fmt.Sprintf("      RPC addr: '%s'", config.RPCAddr))
 	c.Ui.Info(fmt.Sprintf("     HTTP addr: '%s'", config.HTTPAddr))
+	c.Ui.Info(fmt.Sprintf("      DNS addr: '%s'", config.DNSAddr))
 	c.Ui.Info(fmt.Sprintf("     Encrypted: %#v", config.EncryptKey != ""))
 	c.Ui.Info(fmt.Sprintf("        Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))
 
