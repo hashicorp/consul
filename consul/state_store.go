@@ -231,7 +231,7 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 	}
 
 	// Remove previous entry if any
-	if exist, ok := existing[service]; ok {
+	if exist, ok := existing.Services[service]; ok {
 		key := []byte(fmt.Sprintf("%s||%s||%s", service, exist.Tag, name))
 		if err := tx.Del(index, key, nil); err != nil {
 			return err
@@ -258,30 +258,43 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 }
 
 // NodeServices is used to return all the services of a given node
-func (s *StateStore) NodeServices(name string) structs.NodeServices {
-	tx, dbis, err := s.startTxn(true, dbServices)
+func (s *StateStore) NodeServices(name string) *structs.NodeServices {
+	tx, dbis, err := s.startTxn(true, dbNodes, dbServices)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node servicess: %v", err))
 	}
 	defer tx.Abort()
-	return filterNodeServices(tx, dbis[0], name)
+	ns := filterNodeServices(tx, dbis[1], name)
+
+	// Get the address of the ndoe
+	val, err := tx.Get(dbis[0], []byte(name))
+	if err == mdb.NotFound {
+		return ns
+	} else if err != nil {
+		panic(fmt.Errorf("Failed to get node: %v", err))
+	}
+	ns.Address = decNull(sliceCopy(val))
+
+	return ns
 }
 
 // filterNodeServices is used to filter the services to a specific node
-func filterNodeServices(tx *mdb.Txn, services mdb.DBI, name string) structs.NodeServices {
+func filterNodeServices(tx *mdb.Txn, services mdb.DBI, name string) *structs.NodeServices {
 	keyPrefix := []byte(fmt.Sprintf("%s||", name))
 	return parseNodeServices(tx, services, keyPrefix)
 }
 
 // parseNodeServices is used to parse the results of a queryNodeServices
-func parseNodeServices(tx *mdb.Txn, dbi mdb.DBI, prefix []byte) structs.NodeServices {
+func parseNodeServices(tx *mdb.Txn, dbi mdb.DBI, prefix []byte) *structs.NodeServices {
 	// Create the cursor
 	cursor, err := tx.CursorOpen(dbi)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get nodes: %v", err))
 	}
 
-	services := structs.NodeServices(make(map[string]structs.NodeService))
+	ns := &structs.NodeServices{
+		Services: make(map[string]structs.NodeService),
+	}
 	var service string
 	var entry structs.NodeService
 	var key, val []byte
@@ -318,9 +331,9 @@ func parseNodeServices(tx *mdb.Txn, dbi mdb.DBI, prefix []byte) structs.NodeServ
 		}
 
 		// Add to the map
-		services[service] = entry
+		ns.Services[service] = entry
 	}
-	return services
+	return ns
 }
 
 // DeleteNodeService is used to delete a node service
@@ -335,7 +348,7 @@ func (s *StateStore) DeleteNodeService(node, service string) error {
 
 	// Get the existing services
 	existing := filterNodeServices(tx, services, node)
-	exist, ok := existing[service]
+	exist, ok := existing.Services[service]
 
 	// Bail if no existing entry
 	if !ok {
@@ -380,7 +393,7 @@ func (s *StateStore) DeleteNode(node string) error {
 	existing := filterNodeServices(tx, services, node)
 
 	// Nuke all the services
-	for service, entry := range existing {
+	for service, entry := range existing.Services {
 		// Delete the node service entry
 		key := []byte(fmt.Sprintf("%s||%s", node, service))
 		if err = tx.Del(services, key, nil); err != nil {
@@ -536,8 +549,19 @@ func (s *StateSnapshot) Nodes() []string {
 }
 
 // NodeServices is used to return all the services of a given node
-func (s *StateSnapshot) NodeServices(name string) structs.NodeServices {
-	return filterNodeServices(s.tx, s.dbis[1], name)
+func (s *StateSnapshot) NodeServices(name string) *structs.NodeServices {
+	// Get the node services
+	ns := filterNodeServices(s.tx, s.dbis[1], name)
+
+	// Get the address of the node
+	val, err := s.tx.Get(s.dbis[0], []byte(name))
+	if err == mdb.NotFound {
+		return ns
+	} else if err != nil {
+		panic(fmt.Errorf("Failed to get node: %v", err))
+	}
+	ns.Address = decNull(sliceCopy(val))
+	return ns
 }
 
 // copies a slice to prevent access to lmdb private data

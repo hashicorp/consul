@@ -172,7 +172,7 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 
 		// Register each service this node has
 		services := s.state.NodeServices(nodes[i])
-		for serv, props := range services {
+		for serv, props := range services.Services {
 			req.ServiceName = serv
 			req.ServiceTag = props.Tag
 			req.ServicePort = props.Port

@@ -327,13 +327,16 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(out) != 2 {
+	if out.Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", out)
 	}
-	if out["db"].Tag != "primary" || out["db"].Port != 5000 {
+	if len(out.Services) != 2 {
 		t.Fatalf("bad: %v", out)
 	}
-	if out["web"].Tag != "" || out["web"].Port != 80 {
+	if out.Services["db"].Tag != "primary" || out.Services["db"].Port != 5000 {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Services["web"].Tag != "" || out.Services["web"].Port != 80 {
 		t.Fatalf("bad: %v", out)
 	}
 }

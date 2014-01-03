@@ -137,6 +137,6 @@ func (c *Catalog) NodeServices(args *structs.NodeServicesRequest, reply *structs
 	state := c.srv.fsm.State()
 	services := state.NodeServices(args.Node)
 
-	*reply = services
+	*reply = *services
 	return nil
 }

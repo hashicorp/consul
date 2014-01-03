@@ -80,7 +80,7 @@ func TestEnsureService(t *testing.T) {
 
 	services := store.NodeServices("foo")
 
-	entry, ok := services["api"]
+	entry, ok := services.Services["api"]
 	if !ok {
 		t.Fatalf("missing api: %#v", services)
 	}
@@ -88,7 +88,7 @@ func TestEnsureService(t *testing.T) {
 		t.Fatalf("Bad entry: %#v", entry)
 	}
 
-	entry, ok = services["db"]
+	entry, ok = services.Services["db"]
 	if !ok {
 		t.Fatalf("missing db: %#v", services)
 	}
@@ -117,7 +117,7 @@ func TestDeleteNodeService(t *testing.T) {
 	}
 
 	services := store.NodeServices("foo")
-	_, ok := services["api"]
+	_, ok := services.Services["api"]
 	if ok {
 		t.Fatalf("has api: %#v", services)
 	}
@@ -143,7 +143,7 @@ func TestDeleteNode(t *testing.T) {
 	}
 
 	services := store.NodeServices("foo")
-	_, ok := services["api"]
+	_, ok := services.Services["api"]
 	if ok {
 		t.Fatalf("has api: %#v", services)
 	}
@@ -342,12 +342,12 @@ func TestStoreSnapshot(t *testing.T) {
 
 	// Ensure we get the service entries
 	services := snap.NodeServices("foo")
-	if services["db"].Tag != "master" {
+	if services.Services["db"].Tag != "master" {
 		t.Fatalf("bad: %v", services)
 	}
 
 	services = snap.NodeServices("bar")
-	if services["db"].Tag != "slave" {
+	if services.Services["db"].Tag != "slave" {
 		t.Fatalf("bad: %v", services)
 	}
 
@@ -370,12 +370,12 @@ func TestStoreSnapshot(t *testing.T) {
 
 	// Ensure old service entries
 	services = snap.NodeServices("foo")
-	if services["db"].Tag != "master" {
+	if services.Services["db"].Tag != "master" {
 		t.Fatalf("bad: %v", services)
 	}
 
 	services = snap.NodeServices("bar")
-	if services["db"].Tag != "slave" {
+	if services.Services["db"].Tag != "slave" {
 		t.Fatalf("bad: %v", services)
 	}
 }

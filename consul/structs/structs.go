@@ -79,7 +79,10 @@ type NodeService struct {
 	Tag  string
 	Port int
 }
-type NodeServices map[string]NodeService
+type NodeServices struct {
+	Address  string
+	Services map[string]NodeService
+}
 
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {

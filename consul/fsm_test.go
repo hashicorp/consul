@@ -52,7 +52,7 @@ func TestFSM_RegisterNode(t *testing.T) {
 
 	// Verify service registered
 	services := fsm.state.NodeServices("foo")
-	if len(services) != 0 {
+	if len(services.Services) != 0 {
 		t.Fatalf("Services: %v", services)
 	}
 }
@@ -88,7 +88,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 
 	// Verify service registered
 	services := fsm.state.NodeServices("foo")
-	if _, ok := services["db"]; !ok {
+	if _, ok := services.Services["db"]; !ok {
 		t.Fatalf("not registered!")
 	}
 }
@@ -139,7 +139,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 
 	// Verify service not registered
 	services := fsm.state.NodeServices("foo")
-	if _, ok := services["db"]; ok {
+	if _, ok := services.Services["db"]; ok {
 		t.Fatalf("db registered!")
 	}
 }
@@ -189,7 +189,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 
 	// Verify service not registered
 	services := fsm.state.NodeServices("foo")
-	if len(services) != 0 {
+	if len(services.Services) != 0 {
 		t.Fatalf("Services: %v", services)
 	}
 }
@@ -240,13 +240,13 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	fooSrv := fsm2.state.NodeServices("foo")
-	if len(fooSrv) != 2 {
+	if len(fooSrv.Services) != 2 {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
-	if fooSrv["db"].Tag != "primary" {
+	if fooSrv.Services["db"].Tag != "primary" {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
-	if fooSrv["db"].Port != 5000 {
+	if fooSrv.Services["db"].Port != 5000 {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
 }
