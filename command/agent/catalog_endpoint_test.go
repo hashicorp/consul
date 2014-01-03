@@ -232,8 +232,8 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	services := obj.(structs.NodeServices)
-	if len(services) != 1 {
+	services := obj.(*structs.NodeServices)
+	if len(services.Services) != 1 {
 		t.Fatalf("bad: %v", obj)
 	}
 }

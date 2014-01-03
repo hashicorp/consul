@@ -144,8 +144,8 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 	}
 
 	// Make the RPC request
-	var out structs.NodeServices
-	if err := s.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
+	out := new(structs.NodeServices)
+	if err := s.agent.RPC("Catalog.NodeServices", &args, out); err != nil {
 		return nil, err
 	}
 	return out, nil
