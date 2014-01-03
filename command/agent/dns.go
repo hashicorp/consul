@@ -268,4 +268,88 @@ func (d *DNSServer) nodeLookup(datacenter, node string, req, resp *dns.Msg) {
 
 // serviceLookup is used to handle a service query
 func (d *DNSServer) serviceLookup(datacenter, service, tag string, req, resp *dns.Msg) {
+	// Make an RPC request
+	args := structs.ServiceNodesRequest{
+		Datacenter:  datacenter,
+		ServiceName: service,
+		ServiceTag:  tag,
+		TagFilter:   tag != "",
+	}
+	var out structs.ServiceNodes
+	if err := d.agent.RPC("Catalog.ServiceNodes", &args, &out); err != nil {
+		d.logger.Printf("[ERR] dns: rpc error: %v", err)
+		resp.SetRcode(req, dns.RcodeServerFailure)
+		return
+	}
+
+	// If we have no nodes, return not found!
+	if len(out) == 0 {
+		resp.SetRcode(req, dns.RcodeNameError)
+		return
+	}
+
+	// Add various responses depending on the request
+	qType := req.Question[0].Qtype
+	if qType == dns.TypeANY || qType == dns.TypeA {
+		d.serviceARecords(out, req, resp)
+	}
+	if qType == dns.TypeANY || qType == dns.TypeSRV {
+		d.serviceSRVRecords(datacenter, out, req, resp)
+	}
+}
+
+// serviceARecords is used to add the A records for a service lookup
+func (d *DNSServer) serviceARecords(nodes structs.ServiceNodes, req, resp *dns.Msg) {
+	for _, node := range nodes {
+		ip := net.ParseIP(node.Address)
+		if ip == nil {
+			d.logger.Printf("[ERR] dns: failed to parse IP %v for %v", node.Address, node.Node)
+			continue
+		}
+		aRec := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   req.Question[0].Name,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    0,
+			},
+			A: ip,
+		}
+		resp.Answer = append(resp.Answer, aRec)
+	}
+}
+
+// serviceARecords is used to add the SRV records for a service lookup
+func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.ServiceNodes, req, resp *dns.Msg) {
+	for _, node := range nodes {
+		srvRec := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   req.Question[0].Name,
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+				Ttl:    0,
+			},
+			Priority: 1,
+			Weight:   1,
+			Port:     uint16(node.ServicePort),
+			Target:   fmt.Sprintf("%s.node.%s.%s", node.Node, dc, d.domain),
+		}
+		resp.Answer = append(resp.Answer, srvRec)
+
+		ip := net.ParseIP(node.Address)
+		if ip == nil {
+			d.logger.Printf("[ERR] dns: failed to parse IP %v for %v", node.Address, node.Node)
+			continue
+		}
+		aRec := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   srvRec.Target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    0,
+			},
+			A: ip,
+		}
+		resp.Extra = append(resp.Extra, aRec)
+	}
 }
