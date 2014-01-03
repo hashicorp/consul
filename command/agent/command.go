@@ -52,6 +52,7 @@ func (c *Command) readConfig() *Config {
 		"address to bind RPC listener to")
 	cmdFlags.StringVar(&cmdConfig.DataDir, "data", "", "path to the data directory")
 	cmdFlags.StringVar(&cmdConfig.Datacenter, "dc", "", "node datacenter")
+	cmdFlags.StringVar(&cmdConfig.DNSRecursor, "recursor", "", "address of dns recursor")
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
 	if err := cmdFlags.Parse(c.args); err != nil {
@@ -148,7 +149,8 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	}
 
 	if config.DNSAddr != "" {
-		server, err := NewDNSServer(agent, logOutput, config.Domain, config.DNSAddr)
+		server, err := NewDNSServer(agent, logOutput, config.Domain,
+			config.DNSAddr, config.DNSRecursor)
 		if err != nil {
 			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Error starting dns server: %s", err))

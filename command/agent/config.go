@@ -30,6 +30,10 @@ type Config struct {
 	// DNSAddr is the address of the DNS server for the agent
 	DNSAddr string
 
+	// DNSRecursor can be set to allow the DNS server to recursively
+	// resolve non-consul domains
+	DNSRecursor string
+
 	// Domain is the DNS domain for the records. Defaults to "consul."
 	Domain string
 
@@ -153,6 +157,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.DNSAddr != "" {
 		result.DNSAddr = b.DNSAddr
+	}
+	if b.DNSRecursor != "" {
+		result.DNSRecursor = b.DNSRecursor
 	}
 	if b.Domain != "" {
 		result.Domain = b.Domain

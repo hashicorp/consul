@@ -11,7 +11,8 @@ import (
 func makeDNSServer(t *testing.T) (string, *DNSServer) {
 	conf := nextConfig()
 	dir, agent := makeAgent(t, conf)
-	server, err := NewDNSServer(agent, agent.logOutput, conf.Domain, conf.DNSAddr)
+	server, err := NewDNSServer(agent, agent.logOutput, conf.Domain,
+		conf.DNSAddr, "8.8.8.8:53")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -171,5 +172,28 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	}
 	if aRec.A.String() != "127.0.0.1" {
 		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+}
+
+func TestDNS_Recurse(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	m := new(dns.Msg)
+	m.SetQuestion("apple.com.", dns.TypeANY)
+
+	c := new(dns.Client)
+	c.Net = "tcp"
+	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) == 0 {
+		t.Fatalf("Bad: %#v", in)
+	}
+	if in.Rcode != dns.RcodeSuccess {
+		t.Fatalf("Bad: %#v", in)
 	}
 }
