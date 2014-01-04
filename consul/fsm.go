@@ -42,7 +42,8 @@ func (c *consulFSM) State() *StateStore {
 	return c.state
 }
 
-func (c *consulFSM) Apply(buf []byte) interface{} {
+func (c *consulFSM) Apply(log *raft.Log) interface{} {
+	buf := log.Data
 	switch structs.MessageType(buf[0]) {
 	case structs.RegisterRequestType:
 		return c.applyRegister(buf[1:])
