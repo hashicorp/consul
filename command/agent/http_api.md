@@ -29,9 +29,9 @@ The current URLs supported are:
 * /v1/status/leader : Returns the current Raft leader
 * /v1/status/peers : Returns the current Raft peer set
 
-* /v1/agent/services : Returns the services local agent is attempting to register
 * /v1/agent/health: Returns the health info from the local agent (future)
+* /v1/agent/services : Returns the services local agent is attempting to register
 * /v1/agent/members : Returns the members as seen by the local serf agent
-* /v1/agent/join : Instructs the local agent to join a node
-* /v1/agent/force-leave: Instructs the agent to force a node into the left state
+* /v1/agent/join/<node> : Instructs the local agent to join a node
+* /v1/agent/force-leave/<node>: Instructs the agent to force a node into the left state
 
