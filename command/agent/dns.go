@@ -327,7 +327,15 @@ func (d *DNSServer) serviceLookup(datacenter, service, tag string, req, resp *dn
 
 // serviceARecords is used to add the A records for a service lookup
 func (d *DNSServer) serviceARecords(nodes structs.ServiceNodes, req, resp *dns.Msg) {
+	handled := make(map[string]struct{})
 	for _, node := range nodes {
+		// Avoid duplicate entries, possible if a node has
+		// the same service on multiple ports, etc.
+		if _, ok := handled[node.Address]; ok {
+			continue
+		}
+		handled[node.Address] = struct{}{}
+
 		ip := net.ParseIP(node.Address)
 		if ip == nil {
 			d.logger.Printf("[ERR] dns: failed to parse IP %v for %v", node.Address, node.Node)
@@ -348,7 +356,17 @@ func (d *DNSServer) serviceARecords(nodes structs.ServiceNodes, req, resp *dns.M
 
 // serviceARecords is used to add the SRV records for a service lookup
 func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.ServiceNodes, req, resp *dns.Msg) {
+	handled := make(map[string]struct{})
 	for _, node := range nodes {
+		// Avoid duplicate entries, possible if a node has
+		// the same service the same port, etc.
+		tuple := fmt.Sprintf("%s:%d", node.Node, node.ServicePort)
+		if _, ok := handled[tuple]; ok {
+			continue
+		}
+		handled[tuple] = struct{}{}
+
+		// Add the SRV record
 		srvRec := &dns.SRV{
 			Hdr: dns.RR_Header{
 				Name:   req.Question[0].Name,
@@ -362,6 +380,13 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.ServiceNodes, req
 			Target:   fmt.Sprintf("%s.node.%s.%s", node.Node, dc, d.domain),
 		}
 		resp.Answer = append(resp.Answer, srvRec)
+
+		// Avoid duplicate A records, possible if a node has
+		// the same service on multiple ports, etc.
+		if _, ok := handled[node.Address]; ok {
+			continue
+		}
+		handled[node.Address] = struct{}{}
 
 		ip := net.ParseIP(node.Address)
 		if ip == nil {
