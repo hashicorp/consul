@@ -409,9 +409,6 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	}
 	d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v)", q, rtt)
 
-	// Seems to be a bug that forcing compression fixes...
-	r.Compress = true
-
 	// Forward the response
 	if err := resp.WriteMsg(r); err != nil {
 		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
