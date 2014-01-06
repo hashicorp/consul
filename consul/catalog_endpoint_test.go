@@ -236,7 +236,7 @@ func TestCatalogListServices(t *testing.T) {
 
 	// Just add a node
 	s1.fsm.State().EnsureNode("foo", "127.0.0.1")
-	s1.fsm.State().EnsureService("foo", "db", "primary", 5000)
+	s1.fsm.State().EnsureService("foo", "db", "db", "primary", 5000)
 
 	if err := client.Call("Catalog.ListServices", "dc1", &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -277,7 +277,7 @@ func TestCatalogListServiceNodes(t *testing.T) {
 
 	// Just add a node
 	s1.fsm.State().EnsureNode("foo", "127.0.0.1")
-	s1.fsm.State().EnsureService("foo", "db", "primary", 5000)
+	s1.fsm.State().EnsureService("foo", "db", "db", "primary", 5000)
 
 	if err := client.Call("Catalog.ServiceNodes", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -320,8 +320,8 @@ func TestCatalogNodeServices(t *testing.T) {
 
 	// Just add a node
 	s1.fsm.State().EnsureNode("foo", "127.0.0.1")
-	s1.fsm.State().EnsureService("foo", "db", "primary", 5000)
-	s1.fsm.State().EnsureService("foo", "web", "", 80)
+	s1.fsm.State().EnsureService("foo", "db", "db", "primary", 5000)
+	s1.fsm.State().EnsureService("foo", "web", "web", "", 80)
 
 	if err := client.Call("Catalog.NodeServices", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)

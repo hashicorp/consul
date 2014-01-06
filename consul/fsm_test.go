@@ -3,6 +3,7 @@ package consul
 import (
 	"bytes"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/raft"
 	"testing"
 )
 
@@ -24,6 +25,15 @@ func (m *MockSink) Close() error {
 	return nil
 }
 
+func makeLog(buf []byte) *raft.Log {
+	return &raft.Log{
+		Index: 1,
+		Term:  1,
+		Type:  raft.LogCommand,
+		Data:  buf,
+	}
+}
+
 func TestFSM_RegisterNode(t *testing.T) {
 	fsm, err := NewFSM()
 	if err != nil {
@@ -40,7 +50,7 @@ func TestFSM_RegisterNode(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	resp := fsm.Apply(buf)
+	resp := fsm.Apply(makeLog(buf))
 	if resp != nil {
 		t.Fatalf("resp: %v", resp)
 	}
@@ -67,6 +77,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 		Datacenter:  "dc1",
 		Node:        "foo",
 		Address:     "127.0.0.1",
+		ServiceID:   "db",
 		ServiceName: "db",
 		ServiceTag:  "master",
 		ServicePort: 8000,
@@ -76,7 +87,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	resp := fsm.Apply(buf)
+	resp := fsm.Apply(makeLog(buf))
 	if resp != nil {
 		t.Fatalf("resp: %v", resp)
 	}
@@ -103,6 +114,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 		Datacenter:  "dc1",
 		Node:        "foo",
 		Address:     "127.0.0.1",
+		ServiceID:   "db",
 		ServiceName: "db",
 		ServiceTag:  "master",
 		ServicePort: 8000,
@@ -112,22 +124,22 @@ func TestFSM_DeregisterService(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	resp := fsm.Apply(buf)
+	resp := fsm.Apply(makeLog(buf))
 	if resp != nil {
 		t.Fatalf("resp: %v", resp)
 	}
 
 	dereg := structs.DeregisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		ServiceName: "db",
+		Datacenter: "dc1",
+		Node:       "foo",
+		ServiceID:  "db",
 	}
 	buf, err = structs.Encode(structs.DeregisterRequestType, dereg)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	resp = fsm.Apply(buf)
+	resp = fsm.Apply(makeLog(buf))
 	if resp != nil {
 		t.Fatalf("resp: %v", resp)
 	}
@@ -154,6 +166,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 		Datacenter:  "dc1",
 		Node:        "foo",
 		Address:     "127.0.0.1",
+		ServiceID:   "db",
 		ServiceName: "db",
 		ServiceTag:  "master",
 		ServicePort: 8000,
@@ -163,7 +176,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	resp := fsm.Apply(buf)
+	resp := fsm.Apply(makeLog(buf))
 	if resp != nil {
 		t.Fatalf("resp: %v", resp)
 	}
@@ -177,7 +190,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	resp = fsm.Apply(buf)
+	resp = fsm.Apply(makeLog(buf))
 	if resp != nil {
 		t.Fatalf("resp: %v", resp)
 	}
@@ -203,10 +216,10 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	// Add some state
 	fsm.state.EnsureNode("foo", "127.0.0.1")
 	fsm.state.EnsureNode("baz", "127.0.0.2")
-	fsm.state.EnsureService("foo", "web", "", 80)
-	fsm.state.EnsureService("foo", "db", "primary", 5000)
-	fsm.state.EnsureService("baz", "web", "", 80)
-	fsm.state.EnsureService("baz", "db", "secondary", 5000)
+	fsm.state.EnsureService("foo", "web", "web", "", 80)
+	fsm.state.EnsureService("foo", "db", "db", "primary", 5000)
+	fsm.state.EnsureService("baz", "web", "web", "", 80)
+	fsm.state.EnsureService("baz", "db", "db", "secondary", 5000)
 
 	// Snapshot
 	snap, err := fsm.Snapshot()

@@ -64,8 +64,9 @@ func (c *consulFSM) applyRegister(buf []byte) interface{} {
 	c.state.EnsureNode(req.Node, req.Address)
 
 	// Ensure the service if provided
-	if req.ServiceName != "" {
-		c.state.EnsureService(req.Node, req.ServiceName, req.ServiceTag, req.ServicePort)
+	if req.ServiceID != "" && req.ServiceName != "" {
+		c.state.EnsureService(req.Node, req.ServiceID, req.ServiceName,
+			req.ServiceTag, req.ServicePort)
 	}
 	return nil
 }
@@ -77,8 +78,8 @@ func (c *consulFSM) applyDeregister(buf []byte) interface{} {
 	}
 
 	// Either remove the service entry or the whole node
-	if req.ServiceName != "" {
-		c.state.DeleteNodeService(req.Node, req.ServiceName)
+	if req.ServiceID != "" {
+		c.state.DeleteNodeService(req.Node, req.ServiceID)
 	} else {
 		c.state.DeleteNode(req.Node)
 	}
@@ -132,7 +133,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 
 			// Register the service or the node
 			if req.ServiceName != "" {
-				state.EnsureService(req.Node, req.ServiceName,
+				state.EnsureService(req.Node, req.ServiceID, req.ServiceName,
 					req.ServiceTag, req.ServicePort)
 			} else {
 				state.EnsureNode(req.Node, req.Address)
@@ -173,8 +174,9 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 
 		// Register each service this node has
 		services := s.state.NodeServices(nodes[i])
-		for serv, props := range services.Services {
-			req.ServiceName = serv
+		for id, props := range services.Services {
+			req.ServiceID = id
+			req.ServiceName = props.Service
 			req.ServiceTag = props.Tag
 			req.ServicePort = props.Port
 

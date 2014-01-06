@@ -26,6 +26,7 @@ type RegisterRequest struct {
 	Datacenter  string
 	Node        string
 	Address     string
+	ServiceID   string
 	ServiceName string
 	ServiceTag  string
 	ServicePort int
@@ -35,9 +36,9 @@ type RegisterRequest struct {
 // to deregister a node as providing a service. If no service is
 // provided the entire node is deregistered.
 type DeregisterRequest struct {
-	Datacenter  string
-	Node        string
-	ServiceName string
+	Datacenter string
+	Node       string
+	ServiceID  string
 }
 
 // Used to return information about a node
@@ -63,6 +64,7 @@ type ServiceNodesRequest struct {
 type ServiceNode struct {
 	Node        string
 	Address     string
+	ServiceID   string
 	ServiceTag  string
 	ServicePort int
 }
@@ -76,8 +78,10 @@ type NodeServicesRequest struct {
 
 // NodeService is a service provided by a node
 type NodeService struct {
-	Tag  string
-	Port int
+	ID      string
+	Service string
+	Tag     string
+	Port    int
 }
 type NodeServices struct {
 	Address  string

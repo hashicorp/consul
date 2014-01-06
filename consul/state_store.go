@@ -11,8 +11,8 @@ import (
 
 const (
 	dbNodes        = "nodes"            // Maps node -> addr
-	dbServices     = "services"         // Maps node||serv -> structs.NodeService
-	dbServiceIndex = "serviceIndex"     // Maps serv||tag||node -> structs.ServiceNode
+	dbServices     = "services"         // Maps node||servId -> structs.NodeService
+	dbServiceIndex = "serviceIndex"     // Maps serv||tag||node||servId -> structs.ServiceNode
 	dbMaxMapSize   = 1024 * 1024 * 1024 // 1GB maximum size
 )
 
@@ -196,7 +196,7 @@ func (s *StateStore) Nodes() []string {
 }
 
 // EnsureService is used to ensure a given node exposes a service
-func (s *StateStore) EnsureService(name, service, tag string, port int) error {
+func (s *StateStore) EnsureService(name, id, service, tag string, port int) error {
 	// Start a txn
 	tx, dbis, err := s.startTxn(false, dbNodes, dbServices, dbServiceIndex)
 	if err != nil {
@@ -217,10 +217,12 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 	}
 
 	// Update the service entry
-	key := []byte(fmt.Sprintf("%s||%s", name, service))
+	key := []byte(fmt.Sprintf("%s||%s", name, id))
 	nService := structs.NodeService{
-		Tag:  tag,
-		Port: port,
+		ID:      id,
+		Service: service,
+		Tag:     tag,
+		Port:    port,
 	}
 	val, err := structs.Encode(255, &nService)
 	if err != nil {
@@ -231,18 +233,19 @@ func (s *StateStore) EnsureService(name, service, tag string, port int) error {
 	}
 
 	// Remove previous entry if any
-	if exist, ok := existing.Services[service]; ok {
-		key := []byte(fmt.Sprintf("%s||%s||%s", service, exist.Tag, name))
+	if exist, ok := existing.Services[id]; ok {
+		key := []byte(fmt.Sprintf("%s||%s||%s||%s", service, exist.Tag, name, id))
 		if err := tx.Del(index, key, nil); err != nil {
 			return err
 		}
 	}
 
 	// Update the index entry
-	key = []byte(fmt.Sprintf("%s||%s||%s", service, tag, name))
+	key = []byte(fmt.Sprintf("%s||%s||%s||%s", service, tag, name, id))
 	node := structs.ServiceNode{
 		Node:        name,
 		Address:     string(addr),
+		ServiceID:   id,
 		ServiceTag:  tag,
 		ServicePort: port,
 	}
@@ -295,7 +298,7 @@ func parseNodeServices(tx *mdb.Txn, dbi mdb.DBI, prefix []byte) *structs.NodeSer
 	ns := &structs.NodeServices{
 		Services: make(map[string]structs.NodeService),
 	}
-	var service string
+	var id string
 	var entry structs.NodeService
 	var key, val []byte
 	first := true
@@ -320,7 +323,7 @@ func parseNodeServices(tx *mdb.Txn, dbi mdb.DBI, prefix []byte) *structs.NodeSer
 
 		// Split to get service name
 		parts := bytes.SplitN(sliceCopy(key), []byte("||"), 2)
-		service = string(parts[1])
+		id = string(parts[1])
 
 		// Setup the entry
 		if val[0] != 255 {
@@ -331,13 +334,13 @@ func parseNodeServices(tx *mdb.Txn, dbi mdb.DBI, prefix []byte) *structs.NodeSer
 		}
 
 		// Add to the map
-		ns.Services[service] = entry
+		ns.Services[id] = entry
 	}
 	return ns
 }
 
 // DeleteNodeService is used to delete a node service
-func (s *StateStore) DeleteNodeService(node, service string) error {
+func (s *StateStore) DeleteNodeService(node, id string) error {
 	tx, dbis, err := s.startTxn(false, dbServices, dbServiceIndex)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node servicess: %v", err))
@@ -348,7 +351,7 @@ func (s *StateStore) DeleteNodeService(node, service string) error {
 
 	// Get the existing services
 	existing := filterNodeServices(tx, services, node)
-	exist, ok := existing.Services[service]
+	exist, ok := existing.Services[id]
 
 	// Bail if no existing entry
 	if !ok {
@@ -356,13 +359,13 @@ func (s *StateStore) DeleteNodeService(node, service string) error {
 	}
 
 	// Delete the node service entry
-	key := []byte(fmt.Sprintf("%s||%s", node, service))
+	key := []byte(fmt.Sprintf("%s||%s", node, id))
 	if err = tx.Del(services, key, nil); err != nil {
 		return err
 	}
 
 	// Delete the sevice index entry
-	key = []byte(fmt.Sprintf("%s||%s||%s", service, exist.Tag, node))
+	key = []byte(fmt.Sprintf("%s||%s||%s||%s", exist.Service, exist.Tag, node, id))
 	if err := tx.Del(index, key, nil); err != nil {
 		return err
 	}
@@ -393,15 +396,15 @@ func (s *StateStore) DeleteNode(node string) error {
 	existing := filterNodeServices(tx, services, node)
 
 	// Nuke all the services
-	for service, entry := range existing.Services {
+	for id, entry := range existing.Services {
 		// Delete the node service entry
-		key := []byte(fmt.Sprintf("%s||%s", node, service))
+		key := []byte(fmt.Sprintf("%s||%s", node, id))
 		if err = tx.Del(services, key, nil); err != nil {
 			return err
 		}
 
 		// Delete the sevice index entry
-		key = []byte(fmt.Sprintf("%s||%s||%s", service, entry.Tag, node))
+		key = []byte(fmt.Sprintf("%s||%s||%s||%s", entry.Service, entry.Tag, node, id))
 		if err := tx.Del(index, key, nil); err != nil {
 			return err
 		}

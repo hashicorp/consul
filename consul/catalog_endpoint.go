@@ -21,6 +21,16 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		return fmt.Errorf("Must provide node and address")
 	}
 
+	// If no service id, but service name, use default
+	if args.ServiceID == "" && args.ServiceName != "" {
+		args.ServiceID = args.ServiceName
+	}
+
+	// Verify ServiceName provided if ID
+	if args.ServiceID != "" && args.ServiceName == "" {
+		return fmt.Errorf("Must provide service name with ID")
+	}
+
 	_, err := c.srv.raftApply(structs.RegisterRequestType, args)
 	if err != nil {
 		c.srv.logger.Printf("[ERR] Register failed: %v", err)
