@@ -32,10 +32,12 @@ func nextConfig() *Config {
 	cons := consul.DefaultConfig()
 	conf.ConsulConfig = cons
 
+	cons.SerfLANConfig.MemberlistConfig.SuspicionMult = 3
 	cons.SerfLANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
 	cons.SerfLANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
 	cons.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
 
+	cons.SerfWANConfig.MemberlistConfig.SuspicionMult = 3
 	cons.SerfWANConfig.MemberlistConfig.ProbeTimeout = 100 * time.Millisecond
 	cons.SerfWANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
 	cons.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
