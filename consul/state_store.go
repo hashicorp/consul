@@ -14,10 +14,6 @@ const (
 	dbMaxMapSize = 1024 * 1024 * 1024 // 1GB maximum size
 )
 
-var (
-	nullSentinel = []byte{0, 0, 0, 0} // used to encode a null value
-)
-
 // The StateStore is responsible for maintaining all the Consul
 // state. It is manipulated by the FSM which maintains consistency
 // through the use of Raft. The goals of the StateStore are to provide
