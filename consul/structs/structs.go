@@ -113,13 +113,14 @@ type HealthCheck struct {
 }
 type HealthChecks []*HealthCheck
 
-// NodeServiceStatus is used to provide the node, it's service
+// CheckServiceNode is used to provide the node, it's service
 // definition, as well as a HealthCheck that is associated
-type NodeServiceStatus struct {
+type CheckServiceNode struct {
 	Node    Node
 	Service NodeService
-	Check   HealthCheck
+	Checks  HealthChecks
 }
+type CheckServiceNodes []CheckServiceNode
 
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {

@@ -484,6 +484,65 @@ func parseHealthChecks(res []interface{}, err error) structs.HealthChecks {
 	return results
 }
 
+// CheckServiceNodes returns the nodes associated with a given service, along
+// with any associated check
+func (s *StateStore) CheckServiceNodes(service string) structs.CheckServiceNodes {
+	tx, err := s.tables.StartTxn(true)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	res, err := s.serviceTable.Get("service", service)
+	return s.parseCheckServiceNodes(tx, res, err)
+}
+
+// CheckServiceNodes returns the nodes associated with a given service, along
+// with any associated checks
+func (s *StateStore) CheckServiceTagNodes(service, tag string) structs.CheckServiceNodes {
+	tx, err := s.tables.StartTxn(true)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	res, err := s.serviceTable.Get("service", service, tag)
+	return s.parseCheckServiceNodes(tx, res, err)
+}
+
+// parseCheckServiceNodes parses results CheckServiceNodes and CheckServiceTagNodes
+func (s *StateStore) parseCheckServiceNodes(tx *MDBTxn, res []interface{}, err error) structs.CheckServiceNodes {
+	if err != nil {
+		panic(fmt.Errorf("Failed to get node services: %v", err))
+	}
+
+	nodes := make(structs.CheckServiceNodes, len(res))
+	for i, r := range res {
+		srv := r.(*structs.ServiceNode)
+
+		// Get the node
+		nodeRes, err := s.nodeTable.GetTxn(tx, "id", srv.Node)
+		if err != nil || len(nodeRes) != 1 {
+			panic(fmt.Errorf("Failed to join node: %v", err))
+		}
+
+		// Get any associated checks
+		checks := parseHealthChecks(s.checkTable.GetTxn(tx, "node", srv.Node, srv.ServiceID))
+
+		// Setup the node
+		nodes[i].Node = *nodeRes[0].(*structs.Node)
+		nodes[i].Service = structs.NodeService{
+			ID:      srv.ServiceID,
+			Service: srv.ServiceName,
+			Tag:     srv.ServiceTag,
+			Port:    srv.ServicePort,
+		}
+		nodes[i].Checks = checks
+	}
+
+	return nodes
+}
+
 // Snapshot is used to create a point in time snapshot
 func (s *StateStore) Snapshot() (*StateSnapshot, error) {
 	// Begin a new txn on all tables

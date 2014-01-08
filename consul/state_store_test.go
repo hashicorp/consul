@@ -692,3 +692,64 @@ func TestDeleteNodeCheck(t *testing.T) {
 		t.Fatalf("bad: %v", checks[0])
 	}
 }
+
+func TestCheckServiceNodes(t *testing.T) {
+	store, err := NewStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureService("foo", "db1", "db", "master", 8000); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "db",
+		Name:      "Can connect",
+		Status:    structs.HealthPassing,
+		ServiceID: "db1",
+	}
+	if err := store.EnsureCheck(check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	nodes := store.CheckServiceNodes("db")
+	if len(nodes) != 1 {
+		t.Fatalf("Bad: %v", nodes)
+	}
+
+	if nodes[0].Node.Node != "foo" {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if nodes[0].Service.ID != "db1" {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if len(nodes[0].Checks) != 1 {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if nodes[0].Checks[0].Status != structs.HealthPassing {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+
+	nodes = store.CheckServiceTagNodes("db", "master")
+	if len(nodes) != 1 {
+		t.Fatalf("Bad: %v", nodes)
+	}
+
+	if nodes[0].Node.Node != "foo" {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if nodes[0].Service.ID != "db1" {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if len(nodes[0].Checks) != 1 {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if nodes[0].Checks[0].Status != structs.HealthPassing {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+}
