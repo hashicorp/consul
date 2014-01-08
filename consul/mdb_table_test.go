@@ -507,3 +507,94 @@ func TestMDBTableUpdate(t *testing.T) {
 		t.Fatalf("bad: %#v", res[2])
 	}
 }
+
+func TestMDBTableLastRowID(t *testing.T) {
+	dir, env := testMDBEnv(t)
+	defer os.RemoveAll(dir)
+	defer env.Close()
+
+	table := &MDBTable{
+		Env:  env,
+		Name: "test",
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Key"},
+			},
+			"name": &MDBIndex{
+				Fields: []string{"First", "Last"},
+			},
+			"country": &MDBIndex{
+				Fields: []string{"Country"},
+			},
+		},
+		Encoder: MockEncoder,
+		Decoder: MockDecoder,
+	}
+	if err := table.Init(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if table.lastRowID != 0 {
+		t.Fatalf("bad last row id: %d", table.lastRowID)
+	}
+
+	objs := []*MockData{
+		&MockData{
+			Key:     "1",
+			First:   "Kevin",
+			Last:    "Smith",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "2",
+			First:   "Kevin",
+			Last:    "Wang",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "3",
+			First:   "Bernardo",
+			Last:    "Torres",
+			Country: "Mexico",
+		},
+	}
+
+	// Insert some mock objects
+	for _, obj := range objs {
+		if err := table.Insert(obj); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	if table.lastRowID != 3 {
+		t.Fatalf("bad last row id: %d", table.lastRowID)
+	}
+
+	// Remount the table
+	table2 := &MDBTable{
+		Env:  env,
+		Name: "test",
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Key"},
+			},
+			"name": &MDBIndex{
+				Fields: []string{"First", "Last"},
+			},
+			"country": &MDBIndex{
+				Fields: []string{"Country"},
+			},
+		},
+		Encoder: MockEncoder,
+		Decoder: MockDecoder,
+	}
+	if err := table2.Init(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if table2.lastRowID != 3 {
+		t.Fatalf("bad last row id: %d", table2.lastRowID)
+	}
+}
