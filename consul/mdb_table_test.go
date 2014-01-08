@@ -162,3 +162,106 @@ func TestMDBTableInsert(t *testing.T) {
 		t.Fatalf("bad: %#v", res[2])
 	}
 }
+
+func TestMDBTableInsert_MissingFields(t *testing.T) {
+	dir, env := testMDBEnv(t)
+	defer os.RemoveAll(dir)
+	defer env.Close()
+
+	table := &MDBTable{
+		Env:  env,
+		Name: "test",
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Key"},
+			},
+			"name": &MDBIndex{
+				Fields: []string{"First", "Last"},
+			},
+			"country": &MDBIndex{
+				Fields: []string{"Country"},
+			},
+		},
+		Encoder: MockEncoder,
+		Decoder: MockDecoder,
+	}
+	if err := table.Init(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	objs := []*MockData{
+		&MockData{
+			First:   "Kevin",
+			Last:    "Smith",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "2",
+			Last:    "Wang",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "2",
+			First:   "Kevin",
+			Country: "USA",
+		},
+		&MockData{
+			Key:   "3",
+			First: "Bernardo",
+			Last:  "Torres",
+		},
+	}
+
+	// Insert some mock objects
+	for _, obj := range objs {
+		if err := table.Insert(obj); err == nil {
+			t.Fatalf("expected err")
+		}
+	}
+}
+
+func TestMDBTableInsert_AllowBlank(t *testing.T) {
+	dir, env := testMDBEnv(t)
+	defer os.RemoveAll(dir)
+	defer env.Close()
+
+	table := &MDBTable{
+		Env:  env,
+		Name: "test",
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Key"},
+			},
+			"name": &MDBIndex{
+				Fields: []string{"First", "Last"},
+			},
+			"country": &MDBIndex{
+				Fields:     []string{"Country"},
+				AllowBlank: true,
+			},
+		},
+		Encoder: MockEncoder,
+		Decoder: MockDecoder,
+	}
+	if err := table.Init(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	objs := []*MockData{
+		&MockData{
+			Key:     "1",
+			First:   "Kevin",
+			Last:    "Smith",
+			Country: "",
+		},
+	}
+
+	// Insert some mock objects
+	for _, obj := range objs {
+		if err := table.Insert(obj); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+}

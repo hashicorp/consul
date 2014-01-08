@@ -32,9 +32,10 @@ type MDBTable struct {
 // An Index is named, and uses a series of column values to
 // map to the row-id containing the table
 type MDBIndex struct {
-	Unique  bool      // Controls if values are unique
-	Fields  []string  // Fields are used to build the index
-	IdxFunc IndexFunc // Can be used to provide custom indexing
+	AllowBlank bool      // Can fields be blank
+	Unique     bool      // Controls if values are unique
+	Fields     []string  // Fields are used to build the index
+	IdxFunc    IndexFunc // Can be used to provide custom indexing
 
 	table   *MDBTable
 	name    string
@@ -62,9 +63,11 @@ type RowID uint64
 type IndexFunc func(...string) string
 
 // DefaultIndexFunc is used if no IdxFunc is provided. It joins
-// the columns using '||' which is reasonably unlikely to occur
+// the columns using '||' which is reasonably unlikely to occur.
+// We also prefix with a byte to ensure we never have a zero length
+// key
 func DefaultIndexFunc(parts ...string) string {
-	return strings.Join(parts, "||")
+	return "_" + strings.Join(parts, "||")
 }
 
 // Init is used to initialize the MDBTable and ensure it's ready
@@ -86,6 +89,9 @@ func (t *MDBTable) Init() error {
 	}
 	if !id.Unique {
 		return fmt.Errorf("id index must be unique")
+	}
+	if id.AllowBlank {
+		return fmt.Errorf("id index must not allow blanks")
 	}
 
 	// Create the table
@@ -332,7 +338,11 @@ func (i *MDBIndex) keyFromObject(obj interface{}) ([]byte, error) {
 		if !fv.IsValid() {
 			return nil, fmt.Errorf("Field '%s' for %#v is invalid", field, obj)
 		}
-		parts = append(parts, fv.String())
+		val := fv.String()
+		if !i.AllowBlank && val == "" {
+			return nil, fmt.Errorf("Field '%s' must be set: %#v", field, obj)
+		}
+		parts = append(parts, val)
 	}
 	key := i.IdxFunc(parts...)
 	return []byte(key), nil
