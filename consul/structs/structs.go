@@ -106,6 +106,7 @@ type HealthCheck struct {
 	ServiceID   string // optional associated service
 	ServiceName string // optional service name
 }
+type HealthChecks []*HealthCheck
 
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {

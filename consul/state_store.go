@@ -220,8 +220,14 @@ func (s *StateStore) Nodes() structs.Nodes {
 
 // EnsureService is used to ensure a given node exposes a service
 func (s *StateStore) EnsureService(name, id, service, tag string, port int) error {
+	tx, err := s.tables.StartTxn(false)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
 	// Ensure the node exists
-	res, err := s.nodeTable.Get("id", name)
+	res, err := s.nodeTable.GetTxn(tx, "id", name)
 	if err != nil {
 		return err
 	}
@@ -239,7 +245,10 @@ func (s *StateStore) EnsureService(name, id, service, tag string, port int) erro
 	}
 
 	// Ensure the service entry is set
-	return s.serviceTable.Insert(&entry)
+	if err := s.serviceTable.InsertTxn(tx, &entry); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // NodeServices is used to return all the services of a given node
@@ -294,8 +303,19 @@ func (s *StateStore) parseNodeServices(tx *MDBTxn, name string) *structs.NodeSer
 
 // DeleteNodeService is used to delete a node service
 func (s *StateStore) DeleteNodeService(node, id string) error {
-	_, err := s.serviceTable.Delete("id", node, id)
-	return err
+	tx, err := s.tables.StartTxn(false)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	if _, err := s.serviceTable.DeleteTxn(tx, "id", node, id); err != nil {
+		return err
+	}
+	if _, err := s.checkTable.DeleteTxn(tx, "node", node, id); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // DeleteNode is used to delete a node and all it's services
@@ -307,6 +327,9 @@ func (s *StateStore) DeleteNode(node string) error {
 	defer tx.Abort()
 
 	if _, err := s.serviceTable.DeleteTxn(tx, "id", node); err != nil {
+		return err
+	}
+	if _, err := s.checkTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
 	}
 	if _, err := s.nodeTable.DeleteTxn(tx, "id", node); err != nil {
@@ -382,6 +405,32 @@ func parseServiceNodes(tx *MDBTxn, table *MDBTable, res []interface{}, err error
 	}
 
 	return nodes
+}
+
+// EnsureCheck is used to create a check or updates it's state
+func (s *StateStore) EnsureCheck() error {
+	return nil
+}
+
+// DeleteNodeCheck is used to delete a node health check
+func (s *StateStore) DeleteNodeCheck(node, id string) error {
+	_, err := s.checkTable.Delete("id", node, id)
+	return err
+}
+
+// NodeChecks is used to get all the checks for a node
+func (s *StateStore) NodeChecks(name string) structs.HealthChecks {
+	return nil
+}
+
+// ServiceChecks is used to get all the checks for a service
+func (s *StateStore) ServiceChecks(name string) structs.HealthChecks {
+	return nil
+}
+
+// CheckInState is used to get all the checks for a service in a given state
+func (s *StateStore) ChecksInState(name string) structs.HealthChecks {
+	return nil
 }
 
 // Snapshot is used to create a point in time snapshot
