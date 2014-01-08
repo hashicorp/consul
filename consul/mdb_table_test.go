@@ -282,3 +282,95 @@ func TestMDBTableInsert_AllowBlank(t *testing.T) {
 		}
 	}
 }
+
+func TestMDBTableDelete(t *testing.T) {
+	dir, env := testMDBEnv(t)
+	defer os.RemoveAll(dir)
+	defer env.Close()
+
+	table := &MDBTable{
+		Env:  env,
+		Name: "test",
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Key"},
+			},
+			"name": &MDBIndex{
+				Fields: []string{"First", "Last"},
+			},
+			"country": &MDBIndex{
+				Fields: []string{"Country"},
+			},
+		},
+		Encoder: MockEncoder,
+		Decoder: MockDecoder,
+	}
+	if err := table.Init(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	objs := []*MockData{
+		&MockData{
+			Key:     "1",
+			First:   "Kevin",
+			Last:    "Smith",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "2",
+			First:   "Kevin",
+			Last:    "Wang",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "3",
+			First:   "Bernardo",
+			Last:    "Torres",
+			Country: "Mexico",
+		},
+	}
+
+	// Insert some mock objects
+	for _, obj := range objs {
+		if err := table.Insert(obj); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	_, err := table.Get("id", "3")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Verify with some gets
+	num, err := table.Delete("id", "3")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if num != 1 {
+		t.Fatalf("expect 1 delete: %#v", num)
+	}
+	res, err := table.Get("id", "3")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 0 {
+		t.Fatalf("expect 0 result: %#v", res)
+	}
+
+	num, err = table.Delete("name", "Kevin")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if num != 2 {
+		t.Fatalf("expect 2 deletes: %#v", num)
+	}
+	res, err = table.Get("name", "Kevin")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 0 {
+		t.Fatalf("expect 0 results: %#v", res)
+	}
+}
