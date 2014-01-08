@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
@@ -16,7 +17,10 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 		return err
 	}
 
-	// TODO
+	// Get the state specific checks
+	state := h.srv.fsm.State()
+	checks := state.ChecksInState(args.State)
+	*reply = checks
 	return nil
 }
 
@@ -27,17 +31,29 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 		return err
 	}
 
-	// TODO
+	// Get the node checks
+	state := h.srv.fsm.State()
+	checks := state.NodeChecks(args.Node)
+	*reply = checks
 	return nil
 }
 
 // ServiceChecks is used to get all the checks for a service
 func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 	reply *structs.HealthChecks) error {
+	// Reject if tag filtering is on
+	if args.TagFilter {
+		return fmt.Errorf("Tag filtering is not supported")
+	}
+
+	// Potentially forward
 	if done, err := h.srv.forward("Health.ServiceChecks", args.Datacenter, args, reply); done {
 		return err
 	}
 
-	// TODO
+	// Get the service checks
+	state := h.srv.fsm.State()
+	checks := state.ServiceChecks(args.ServiceName)
+	*reply = checks
 	return nil
 }
