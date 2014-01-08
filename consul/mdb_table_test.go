@@ -374,3 +374,136 @@ func TestMDBTableDelete(t *testing.T) {
 		t.Fatalf("expect 0 results: %#v", res)
 	}
 }
+
+func TestMDBTableUpdate(t *testing.T) {
+	dir, env := testMDBEnv(t)
+	defer os.RemoveAll(dir)
+	defer env.Close()
+
+	table := &MDBTable{
+		Env:  env,
+		Name: "test",
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Key"},
+			},
+			"name": &MDBIndex{
+				Fields: []string{"First", "Last"},
+			},
+			"country": &MDBIndex{
+				Fields: []string{"Country"},
+			},
+		},
+		Encoder: MockEncoder,
+		Decoder: MockDecoder,
+	}
+	if err := table.Init(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	objs := []*MockData{
+		&MockData{
+			Key:     "1",
+			First:   "Kevin",
+			Last:    "Smith",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "2",
+			First:   "Kevin",
+			Last:    "Wang",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "3",
+			First:   "Bernardo",
+			Last:    "Torres",
+			Country: "Mexico",
+		},
+		&MockData{
+			Key:     "1",
+			First:   "Roger",
+			Last:    "Rodrigez",
+			Country: "Mexico",
+		},
+		&MockData{
+			Key:     "2",
+			First:   "Anna",
+			Last:    "Smith",
+			Country: "UK",
+		},
+		&MockData{
+			Key:     "3",
+			First:   "Ahmad",
+			Last:    "Badari",
+			Country: "Iran",
+		},
+	}
+
+	// Insert and update some mock objects
+	for _, obj := range objs {
+		if err := table.Insert(obj); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Verify with some gets
+	res, err := table.Get("id", "1")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 1 {
+		t.Fatalf("expect 1 result: %#v", res)
+	}
+	if !reflect.DeepEqual(res[0], objs[3]) {
+		t.Fatalf("bad: %#v", res[0])
+	}
+
+	res, err = table.Get("name", "Kevin")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 0 {
+		t.Fatalf("expect 0 result: %#v", res)
+	}
+
+	res, err = table.Get("name", "Ahmad")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 1 {
+		t.Fatalf("expect 1 result: %#v", res)
+	}
+	if !reflect.DeepEqual(res[0], objs[5]) {
+		t.Fatalf("bad: %#v", res[0])
+	}
+
+	res, err = table.Get("country", "Mexico")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 1 {
+		t.Fatalf("expect 1 result: %#v", res)
+	}
+	if !reflect.DeepEqual(res[0], objs[3]) {
+		t.Fatalf("bad: %#v", res[0])
+	}
+
+	res, err = table.Get("id")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 3 {
+		t.Fatalf("expect 3 result: %#v", res)
+	}
+	if !reflect.DeepEqual(res[0], objs[3]) {
+		t.Fatalf("bad: %#v", res[0])
+	}
+	if !reflect.DeepEqual(res[1], objs[4]) {
+		t.Fatalf("bad: %#v", res[1])
+	}
+	if !reflect.DeepEqual(res[2], objs[5]) {
+		t.Fatalf("bad: %#v", res[2])
+	}
+}

@@ -211,6 +211,7 @@ func (t *MDBTable) objIndexKeys(obj interface{}) (map[string][]byte, error) {
 
 // Insert is used to insert or update an object
 func (t *MDBTable) Insert(obj interface{}) error {
+	var n int
 	// Construct the indexes keys
 	indexes, err := t.objIndexKeys(obj)
 	if err != nil {
@@ -227,8 +228,23 @@ func (t *MDBTable) Insert(obj interface{}) error {
 	}
 	defer tx.Abort()
 
-	// TODO: Handle updates
+	// Scan and check if this primary key already exists
+	primaryDbi := tx.dbis[t.Indexes["id"].dbiName]
+	_, err = tx.tx.Get(primaryDbi, indexes["id"])
+	if err == mdb.NotFound {
+		goto AFTER_DELETE
+	}
 
+	// Delete the existing row{
+	n, err = t.deleteWithIndex(tx, t.Indexes["id"], indexes["id"])
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return fmt.Errorf("unexpected number of updates: %d", n)
+	}
+
+AFTER_DELETE:
 	// Insert with a new row ID
 	rowId := t.nextRowID()
 	encRowId := uint64ToBytes(rowId)
@@ -311,6 +327,19 @@ func (t *MDBTable) Delete(index string, parts ...string) (num int, err error) {
 	}
 	defer tx.Abort()
 
+	// Delete with the index
+	num, err = t.deleteWithIndex(tx, idx, key)
+	if err != nil {
+		return 0, err
+	}
+
+	// Attempt a commit
+	return num, tx.Commit()
+}
+
+// deleteWithIndex deletes all associated rows while scanning
+// a given index for a key prefix.
+func (t *MDBTable) deleteWithIndex(tx *MDBTxn, idx *MDBIndex, key []byte) (num int, err error) {
 	// Handle an error while deleting
 	defer func() {
 		if r := recover(); r != nil {
@@ -332,7 +361,7 @@ func (t *MDBTable) Delete(index string, parts ...string) (num int, err error) {
 
 		// Delete the indexes we are not iterating
 		for name, otherIdx := range t.Indexes {
-			if name == index {
+			if name == idx.name {
 				continue
 			}
 			dbi := tx.dbis[otherIdx.dbiName]
@@ -355,7 +384,7 @@ func (t *MDBTable) Delete(index string, parts ...string) (num int, err error) {
 	}
 
 	// Return the deleted count
-	return num, tx.Commit()
+	return num, nil
 }
 
 // Initializes an index and returns a potential error
