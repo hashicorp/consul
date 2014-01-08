@@ -47,6 +47,26 @@ type DeregisterRequest struct {
 	CheckID    string
 }
 
+// ServiceSpecificRequest is used to query about a specific node
+type ServiceSpecificRequest struct {
+	Datacenter  string
+	ServiceName string
+	ServiceTag  string
+	TagFilter   bool // Controls tag filtering
+}
+
+// NodeSpecificRequest is used to request the information about a single node
+type NodeSpecificRequest struct {
+	Datacenter string
+	Node       string
+}
+
+// ChecksInStateRequest is used to query for nodes in a state
+type ChecksInStateRequest struct {
+	Datacenter string
+	State      string
+}
+
 // Used to return information about a node
 type Node struct {
 	Node    string
@@ -57,14 +77,6 @@ type Nodes []Node
 // Used to return information about a provided services.
 // Maps service name to available tags
 type Services map[string][]string
-
-// ServiceSpecificRequest is used to query about a specific node
-type ServiceSpecificRequest struct {
-	Datacenter  string
-	ServiceName string
-	ServiceTag  string
-	TagFilter   bool // Controls tag filtering
-}
 
 // ServiceNode represents a node that is part of a service
 type ServiceNode struct {
@@ -77,12 +89,6 @@ type ServiceNode struct {
 }
 type ServiceNodes []ServiceNode
 
-// NodeSpecificRequest is used to request the information about a single node
-type NodeSpecificRequest struct {
-	Datacenter string
-	Node       string
-}
-
 // NodeService is a service provided by a node
 type NodeService struct {
 	ID      string
@@ -91,7 +97,7 @@ type NodeService struct {
 	Port    int
 }
 type NodeServices struct {
-	Address  string
+	Node     Node
 	Services map[string]*NodeService
 }
 
@@ -107,10 +113,12 @@ type HealthCheck struct {
 }
 type HealthChecks []*HealthCheck
 
-// ChecksInStateRequest is used to query for nodes in a state
-type ChecksInStateRequest struct {
-	Datacenter string
-	State      string
+// NodeServiceStatus is used to provide the node, it's service
+// definition, as well as a HealthCheck that is associated
+type NodeServiceStatus struct {
+	Node    Node
+	Service NodeService
+	Check   HealthCheck
 }
 
 // Decode is used to decode a MsgPack encoded object

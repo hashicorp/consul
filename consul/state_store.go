@@ -279,7 +279,7 @@ func (s *StateStore) parseNodeServices(tx *MDBTxn, name string) *structs.NodeSer
 
 	// Set the address
 	node := res[0].(*structs.Node)
-	ns.Address = node.Address
+	ns.Node = *node
 
 	// Get the services
 	res, err = s.serviceTable.GetTxn(tx, "id", name)

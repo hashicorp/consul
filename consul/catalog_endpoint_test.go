@@ -334,7 +334,7 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if out.Address != "127.0.0.1" {
+	if out.Node.Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", out)
 	}
 	if len(out.Services) != 2 {
