@@ -518,3 +518,8 @@ func (s *StateSnapshot) Nodes() structs.Nodes {
 func (s *StateSnapshot) NodeServices(name string) *structs.NodeServices {
 	return s.store.parseNodeServices(s.tx, name)
 }
+
+// NodeChecks is used to return all the checks of a given node
+func (s *StateSnapshot) NodeChecks(node string) structs.HealthChecks {
+	return parseHealthChecks(s.store.checkTable.GetTxn(s.tx, "id", node))
+}

@@ -479,6 +479,17 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("err: %v")
 	}
 
+	check := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "db",
+		Name:      "Can connect",
+		Status:    structs.HealthPassing,
+		ServiceID: "db",
+	}
+	if err := store.EnsureCheck(check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
 	// Take a snapshot
 	snap, err := store.Snapshot()
 	if err != nil {
@@ -506,6 +517,15 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("bad: %v", services)
 	}
 
+	// Ensure we get the checks
+	checks := snap.NodeChecks("foo")
+	if len(checks) != 1 {
+		t.Fatalf("bad: %v", checks)
+	}
+	if !reflect.DeepEqual(checks[0], check) {
+		t.Fatalf("bad: %v", checks[0])
+	}
+
 	// Make some changes!
 	if err := store.EnsureService("foo", "db", "db", "slave", 8000); err != nil {
 		t.Fatalf("err: %v", err)
@@ -515,6 +535,16 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 	if err := store.EnsureNode(structs.Node{"baz", "127.0.0.3"}); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+	checkAfter := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "db",
+		Name:      "Can connect",
+		Status:    structs.HealthCritical,
+		ServiceID: "db",
+	}
+	if err := store.EnsureCheck(checkAfter); err != nil {
+		t.Fatalf("err: %v")
 	}
 
 	// Check snapshot has old values
@@ -535,6 +565,14 @@ func TestStoreSnapshot(t *testing.T) {
 	services = snap.NodeServices("bar")
 	if services.Services["db"].Tag != "slave" {
 		t.Fatalf("bad: %v", services)
+	}
+
+	checks = snap.NodeChecks("foo")
+	if len(checks) != 1 {
+		t.Fatalf("bad: %v", checks)
+	}
+	if !reflect.DeepEqual(checks[0], check) {
+		t.Fatalf("bad: %v", checks[0])
 	}
 }
 
