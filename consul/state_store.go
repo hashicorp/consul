@@ -83,7 +83,7 @@ func (s *StateStore) Close() error {
 // initialize is used to setup the store for use
 func (s *StateStore) initialize() error {
 	// Setup the Env first
-	if err := s.env.SetMaxDBs(mdb.DBI(16)); err != nil {
+	if err := s.env.SetMaxDBs(mdb.DBI(32)); err != nil {
 		return err
 	}
 
