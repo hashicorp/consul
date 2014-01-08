@@ -19,6 +19,13 @@ const (
 	DeregisterRequestType
 )
 
+const (
+	HealthUnknown  = "unknown"
+	HealthPassing  = "passing"
+	HealthWarning  = "warning"
+	HealthCritical = "critical"
+)
+
 // RegisterRequest is used for the Catalog.Register endpoint
 // to register a node as providing a service. If no service
 // is provided, the node is registered.
@@ -87,6 +94,17 @@ type NodeService struct {
 type NodeServices struct {
 	Address  string
 	Services map[string]*NodeService
+}
+
+// HealthCheck represents a single check on a given node
+type HealthCheck struct {
+	Node        string
+	CheckID     string // Unique per-node ID
+	Name        string // Check name
+	Status      string // The current check status
+	Notes       string // Additional notes with the status
+	ServiceID   string // optional associated service
+	ServiceName string // optional service name
 }
 
 // Decode is used to decode a MsgPack encoded object

@@ -11,6 +11,7 @@ import (
 const (
 	dbNodes      = "nodes"
 	dbServices   = "services"
+	dbChecks     = "checks"
 	dbMaxMapSize = 1024 * 1024 * 1024 // 1GB maximum size
 )
 
@@ -26,6 +27,7 @@ type StateStore struct {
 	env          *mdb.Env
 	nodeTable    *MDBTable
 	serviceTable *MDBTable
+	checkTable   *MDBTable
 	tables       MDBTables
 }
 
@@ -97,22 +99,23 @@ func (s *StateStore) initialize() error {
 		return err
 	}
 
+	// Tables use a generic struct encoder
+	encoder := func(obj interface{}) []byte {
+		buf, err := structs.Encode(255, obj)
+		if err != nil {
+			panic(err)
+		}
+		return buf[1:]
+	}
+
 	// Setup our tables
 	s.nodeTable = &MDBTable{
-		Env:  s.env,
 		Name: dbNodes,
 		Indexes: map[string]*MDBIndex{
 			"id": &MDBIndex{
 				Unique: true,
 				Fields: []string{"Node"},
 			},
-		},
-		Encoder: func(obj interface{}) []byte {
-			buf, err := structs.Encode(255, obj)
-			if err != nil {
-				panic(err)
-			}
-			return buf[1:]
 		},
 		Decoder: func(buf []byte) interface{} {
 			out := new(structs.Node)
@@ -122,12 +125,8 @@ func (s *StateStore) initialize() error {
 			return out
 		},
 	}
-	if err := s.nodeTable.Init(); err != nil {
-		return err
-	}
 
 	s.serviceTable = &MDBTable{
-		Env:  s.env,
 		Name: dbServices,
 		Indexes: map[string]*MDBIndex{
 			"id": &MDBIndex{
@@ -139,13 +138,6 @@ func (s *StateStore) initialize() error {
 				Fields:     []string{"ServiceName", "ServiceTag"},
 			},
 		},
-		Encoder: func(obj interface{}) []byte {
-			buf, err := structs.Encode(255, obj)
-			if err != nil {
-				panic(err)
-			}
-			return buf[1:]
-		},
 		Decoder: func(buf []byte) interface{} {
 			out := new(structs.ServiceNode)
 			if err := structs.Decode(buf, out); err != nil {
@@ -154,12 +146,44 @@ func (s *StateStore) initialize() error {
 			return out
 		},
 	}
-	if err := s.serviceTable.Init(); err != nil {
-		return err
+
+	s.checkTable = &MDBTable{
+		Name: dbChecks,
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Node", "CheckID"},
+			},
+			"status": &MDBIndex{
+				Fields: []string{"Status"},
+			},
+			"service": &MDBIndex{
+				AllowBlank: true,
+				Fields:     []string{"ServiceName"},
+			},
+			"node": &MDBIndex{
+				AllowBlank: true,
+				Fields:     []string{"Node", "ServiceID"},
+			},
+		},
+		Decoder: func(buf []byte) interface{} {
+			out := new(structs.HealthCheck)
+			if err := structs.Decode(buf, out); err != nil {
+				panic(err)
+			}
+			return out
+		},
 	}
 
 	// Store the set of tables
-	s.tables = []*MDBTable{s.nodeTable, s.serviceTable}
+	s.tables = []*MDBTable{s.nodeTable, s.serviceTable, s.checkTable}
+	for _, table := range s.tables {
+		table.Env = s.env
+		table.Encoder = encoder
+		if err := table.Init(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
