@@ -2,6 +2,7 @@ package consul
 
 import (
 	"github.com/hashicorp/consul/consul/structs"
+	"reflect"
 	"sort"
 	"testing"
 )
@@ -163,6 +164,17 @@ func TestDeleteNodeService(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	check := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "api",
+		Name:      "Can connect",
+		Status:    structs.HealthPassing,
+		ServiceID: "api",
+	}
+	if err := store.EnsureCheck(check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
 	if err := store.DeleteNodeService("foo", "api"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -171,6 +183,11 @@ func TestDeleteNodeService(t *testing.T) {
 	_, ok := services.Services["api"]
 	if ok {
 		t.Fatalf("has api: %#v", services)
+	}
+
+	checks := store.NodeChecks("foo")
+	if len(checks) != 0 {
+		t.Fatalf("has check: %#v", checks)
 	}
 }
 
@@ -223,14 +240,30 @@ func TestDeleteNode(t *testing.T) {
 		t.Fatalf("err: %v")
 	}
 
+	check := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "db",
+		Name:      "Can connect",
+		Status:    structs.HealthPassing,
+		ServiceID: "api",
+	}
+	if err := store.EnsureCheck(check); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	if err := store.DeleteNode("foo"); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	services := store.NodeServices("foo")
 	_, ok := services.Services["api"]
 	if ok {
 		t.Fatalf("has api: %#v", services)
+	}
+
+	checks := store.NodeChecks("foo")
+	if len(checks) > 0 {
+		t.Fatalf("has checks: %v", checks)
 	}
 
 	found, _ := store.GetNode("foo")
@@ -502,5 +535,122 @@ func TestStoreSnapshot(t *testing.T) {
 	services = snap.NodeServices("bar")
 	if services.Services["db"].Tag != "slave" {
 		t.Fatalf("bad: %v", services)
+	}
+}
+
+func TestEnsureCheck(t *testing.T) {
+	store, err := NewStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureService("foo", "db1", "db", "master", 8000); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "db",
+		Name:      "Can connect",
+		Status:    structs.HealthPassing,
+		ServiceID: "db1",
+	}
+	if err := store.EnsureCheck(check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	check2 := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "memory",
+		Name:    "memory utilization",
+		Status:  structs.HealthWarning,
+	}
+	if err := store.EnsureCheck(check2); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	checks := store.NodeChecks("foo")
+	if len(checks) != 2 {
+		t.Fatalf("bad: %v", checks)
+	}
+	if !reflect.DeepEqual(checks[0], check) {
+		t.Fatalf("bad: %v", checks[0])
+	}
+	if !reflect.DeepEqual(checks[1], check2) {
+		t.Fatalf("bad: %v", checks[1])
+	}
+
+	checks = store.ServiceChecks("db")
+	if len(checks) != 1 {
+		t.Fatalf("bad: %v", checks)
+	}
+	if !reflect.DeepEqual(checks[0], check) {
+		t.Fatalf("bad: %v", checks[0])
+	}
+
+	checks = store.ChecksInState(structs.HealthPassing)
+	if len(checks) != 1 {
+		t.Fatalf("bad: %v", checks)
+	}
+	if !reflect.DeepEqual(checks[0], check) {
+		t.Fatalf("bad: %v", checks[0])
+	}
+
+	checks = store.ChecksInState(structs.HealthWarning)
+	if len(checks) != 1 {
+		t.Fatalf("bad: %v", checks)
+	}
+	if !reflect.DeepEqual(checks[0], check2) {
+		t.Fatalf("bad: %v", checks[0])
+	}
+}
+
+func TestDeleteNodeCheck(t *testing.T) {
+	store, err := NewStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureService("foo", "db1", "db", "master", 8000); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "db",
+		Name:      "Can connect",
+		Status:    structs.HealthPassing,
+		ServiceID: "db1",
+	}
+	if err := store.EnsureCheck(check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	check2 := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "memory",
+		Name:    "memory utilization",
+		Status:  structs.HealthWarning,
+	}
+	if err := store.EnsureCheck(check2); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.DeleteNodeCheck("foo", "db"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	checks := store.NodeChecks("foo")
+	if len(checks) != 1 {
+		t.Fatalf("bad: %v", checks)
+	}
+	if !reflect.DeepEqual(checks[0], check2) {
+		t.Fatalf("bad: %v", checks[0])
 	}
 }

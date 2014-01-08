@@ -388,7 +388,6 @@ func parseServiceNodes(tx *MDBTxn, table *MDBTable, res []interface{}, err error
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node services: %v", err))
 	}
-	println(fmt.Sprintf("res: %#v", res))
 
 	nodes := make(structs.ServiceNodes, len(res))
 	for i, r := range res {
@@ -408,8 +407,47 @@ func parseServiceNodes(tx *MDBTxn, table *MDBTable, res []interface{}, err error
 }
 
 // EnsureCheck is used to create a check or updates it's state
-func (s *StateStore) EnsureCheck() error {
-	return nil
+func (s *StateStore) EnsureCheck(check *structs.HealthCheck) error {
+	// Ensure we have a status
+	if check.Status == "" {
+		check.Status = structs.HealthUnknown
+	}
+
+	// Start the txn
+	tx, err := s.tables.StartTxn(false)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	// Ensure the node exists
+	res, err := s.nodeTable.GetTxn(tx, "id", check.Node)
+	if err != nil {
+		return err
+	}
+	if len(res) == 0 {
+		return fmt.Errorf("Missing node registration")
+	}
+
+	// Ensure the service exists if specified
+	if check.ServiceID != "" {
+		res, err = s.serviceTable.GetTxn(tx, "id", check.Node, check.ServiceID)
+		if err != nil {
+			return err
+		}
+		if len(res) == 0 {
+			return fmt.Errorf("Missing service registration")
+		}
+		// Ensure we set the correct service
+		srv := res[0].(*structs.ServiceNode)
+		check.ServiceName = srv.ServiceName
+	}
+
+	// Ensure the check is set
+	if err := s.checkTable.InsertTxn(tx, check); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // DeleteNodeCheck is used to delete a node health check
@@ -419,18 +457,31 @@ func (s *StateStore) DeleteNodeCheck(node, id string) error {
 }
 
 // NodeChecks is used to get all the checks for a node
-func (s *StateStore) NodeChecks(name string) structs.HealthChecks {
-	return nil
+func (s *StateStore) NodeChecks(node string) structs.HealthChecks {
+	return parseHealthChecks(s.checkTable.Get("id", node))
 }
 
 // ServiceChecks is used to get all the checks for a service
-func (s *StateStore) ServiceChecks(name string) structs.HealthChecks {
-	return nil
+func (s *StateStore) ServiceChecks(service string) structs.HealthChecks {
+	return parseHealthChecks(s.checkTable.Get("service", service))
 }
 
 // CheckInState is used to get all the checks for a service in a given state
-func (s *StateStore) ChecksInState(name string) structs.HealthChecks {
-	return nil
+func (s *StateStore) ChecksInState(state string) structs.HealthChecks {
+	return parseHealthChecks(s.checkTable.Get("status", state))
+}
+
+// parseHealthChecks is used to handle the resutls of a Get against
+// the checkTable
+func parseHealthChecks(res []interface{}, err error) structs.HealthChecks {
+	if err != nil {
+		panic(fmt.Errorf("Failed to get checks: %v", err))
+	}
+	results := make([]*structs.HealthCheck, len(res))
+	for i, r := range res {
+		results[i] = r.(*structs.HealthCheck)
+	}
+	return results
 }
 
 // Snapshot is used to create a point in time snapshot
