@@ -18,12 +18,14 @@ func TestCatalogRegister(t *testing.T) {
 	defer client.Close()
 
 	arg := structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceName: "db",
-		ServiceTag:  "master",
-		ServicePort: 8000,
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tag:     "master",
+			Port:    8000,
+		},
 	}
 	var out struct{}
 
@@ -72,12 +74,14 @@ func TestCatalogRegister_ForwardLeader(t *testing.T) {
 	}
 
 	arg := structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceName: "db",
-		ServiceTag:  "master",
-		ServicePort: 8000,
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tag:     "master",
+			Port:    8000,
+		},
 	}
 	var out struct{}
 	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
@@ -107,12 +111,14 @@ func TestCatalogRegister_ForwardDC(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	arg := structs.RegisterRequest{
-		Datacenter:  "dc2", // SHould forward through s1
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceName: "db",
-		ServiceTag:  "master",
-		ServicePort: 8000,
+		Datacenter: "dc2", // SHould forward through s1
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tag:     "master",
+			Port:    8000,
+		},
 	}
 	var out struct{}
 	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
@@ -351,12 +357,14 @@ func TestCatalogRegister_FailedCase1(t *testing.T) {
 	defer client.Close()
 
 	arg := structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "bar",
-		Address:     "127.0.0.2",
-		ServiceName: "web",
-		ServiceTag:  "",
-		ServicePort: 8000,
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.2",
+		Service: &structs.NodeService{
+			Service: "web",
+			Tag:     "",
+			Port:    8000,
+		},
 	}
 	var out struct{}
 

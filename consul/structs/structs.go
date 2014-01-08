@@ -30,13 +30,11 @@ const (
 // to register a node as providing a service. If no service
 // is provided, the node is registered.
 type RegisterRequest struct {
-	Datacenter  string
-	Node        string
-	Address     string
-	ServiceID   string
-	ServiceName string
-	ServiceTag  string
-	ServicePort int
+	Datacenter string
+	Node       string
+	Address    string
+	Service    *NodeService
+	Check      *HealthCheck
 }
 
 // DeregisterRequest is used for the Catalog.Deregister endpoint
@@ -46,6 +44,7 @@ type DeregisterRequest struct {
 	Datacenter string
 	Node       string
 	ServiceID  string
+	CheckID    string
 }
 
 // Used to return information about a node

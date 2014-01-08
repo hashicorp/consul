@@ -74,13 +74,22 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	}
 
 	req := structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceID:   "db",
-		ServiceName: "db",
-		ServiceTag:  "master",
-		ServicePort: 8000,
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db",
+			Service: "db",
+			Tag:     "master",
+			Port:    8000,
+		},
+		Check: &structs.HealthCheck{
+			Node:      "foo",
+			CheckID:   "db",
+			Name:      "db connectivity",
+			Status:    structs.HealthPassing,
+			ServiceID: "db",
+		},
 	}
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
@@ -102,6 +111,12 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	if _, ok := services.Services["db"]; !ok {
 		t.Fatalf("not registered!")
 	}
+
+	// Verify check
+	checks := fsm.state.NodeChecks("foo")
+	if checks[0].CheckID != "db" {
+		t.Fatalf("not registered!")
+	}
 }
 
 func TestFSM_DeregisterService(t *testing.T) {
@@ -111,13 +126,15 @@ func TestFSM_DeregisterService(t *testing.T) {
 	}
 
 	req := structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceID:   "db",
-		ServiceName: "db",
-		ServiceTag:  "master",
-		ServicePort: 8000,
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db",
+			Service: "db",
+			Tag:     "master",
+			Port:    8000,
+		},
 	}
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
@@ -156,6 +173,60 @@ func TestFSM_DeregisterService(t *testing.T) {
 	}
 }
 
+func TestFSM_DeregisterCheck(t *testing.T) {
+	fsm, err := NewFSM()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Check: &structs.HealthCheck{
+			Node:    "foo",
+			CheckID: "mem",
+			Name:    "memory util",
+			Status:  structs.HealthPassing,
+		},
+	}
+	buf, err := structs.Encode(structs.RegisterRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	dereg := structs.DeregisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		CheckID:    "mem",
+	}
+	buf, err = structs.Encode(structs.DeregisterRequestType, dereg)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp = fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify we are registered
+	if found, _ := fsm.state.GetNode("foo"); !found {
+		t.Fatalf("not found!")
+	}
+
+	// Verify check not registered
+	checks := fsm.state.NodeChecks("foo")
+	if len(checks) != 0 {
+		t.Fatalf("check registered!")
+	}
+}
+
 func TestFSM_DeregisterNode(t *testing.T) {
 	fsm, err := NewFSM()
 	if err != nil {
@@ -163,13 +234,22 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	}
 
 	req := structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceID:   "db",
-		ServiceName: "db",
-		ServiceTag:  "master",
-		ServicePort: 8000,
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db",
+			Service: "db",
+			Tag:     "master",
+			Port:    8000,
+		},
+		Check: &structs.HealthCheck{
+			Node:      "foo",
+			CheckID:   "db",
+			Name:      "db connectivity",
+			Status:    structs.HealthPassing,
+			ServiceID: "db",
+		},
 	}
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
@@ -205,6 +285,12 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	if len(services.Services) != 0 {
 		t.Fatalf("Services: %v", services)
 	}
+
+	// Verify checks not registered
+	checks := fsm.state.NodeChecks("foo")
+	if len(checks) != 0 {
+		t.Fatalf("Services: %v", services)
+	}
 }
 
 func TestFSM_SnapshotRestore(t *testing.T) {
@@ -220,6 +306,13 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	fsm.state.EnsureService("foo", "db", "db", "primary", 5000)
 	fsm.state.EnsureService("baz", "web", "web", "", 80)
 	fsm.state.EnsureService("baz", "db", "db", "secondary", 5000)
+	fsm.state.EnsureCheck(&structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "web",
+		Name:      "web connectivity",
+		Status:    structs.HealthPassing,
+		ServiceID: "web",
+	})
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -261,5 +354,10 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 	if fooSrv.Services["db"].Port != 5000 {
 		t.Fatalf("Bad: %v", fooSrv)
+	}
+
+	checks := fsm2.state.NodeChecks("foo")
+	if len(checks) != 1 {
+		t.Fatalf("Bad: %v", checks)
 	}
 }

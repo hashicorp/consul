@@ -46,7 +46,7 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 	buf := log.Data
 	switch structs.MessageType(buf[0]) {
 	case structs.RegisterRequestType:
-		return c.applyRegister(buf[1:])
+		return c.decodeRegister(buf[1:])
 	case structs.DeregisterRequestType:
 		return c.applyDeregister(buf[1:])
 	default:
@@ -54,21 +54,30 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 	}
 }
 
-func (c *consulFSM) applyRegister(buf []byte) interface{} {
+func (c *consulFSM) decodeRegister(buf []byte) interface{} {
 	var req structs.RegisterRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	return c.applyRegister(&req)
+}
 
+func (c *consulFSM) applyRegister(req *structs.RegisterRequest) interface{} {
 	// Ensure the node
 	node := structs.Node{req.Node, req.Address}
 	c.state.EnsureNode(node)
 
 	// Ensure the service if provided
-	if req.ServiceID != "" && req.ServiceName != "" {
-		c.state.EnsureService(req.Node, req.ServiceID, req.ServiceName,
-			req.ServiceTag, req.ServicePort)
+	if req.Service != nil {
+		c.state.EnsureService(req.Node, req.Service.ID, req.Service.Service,
+			req.Service.Tag, req.Service.Port)
 	}
+
+	// Ensure the check if provided
+	if req.Check != nil {
+		c.state.EnsureCheck(req.Check)
+	}
+
 	return nil
 }
 
@@ -81,6 +90,8 @@ func (c *consulFSM) applyDeregister(buf []byte) interface{} {
 	// Either remove the service entry or the whole node
 	if req.ServiceID != "" {
 		c.state.DeleteNodeService(req.Node, req.ServiceID)
+	} else if req.CheckID != "" {
+		c.state.DeleteNodeCheck(req.Node, req.CheckID)
 	} else {
 		c.state.DeleteNode(req.Node)
 	}
@@ -108,6 +119,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	if err != nil {
 		return err
 	}
+	c.state = state
 
 	// Create a decoder
 	var handle codec.MsgpackHandle
@@ -131,23 +143,13 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 			if err := dec.Decode(&req); err != nil {
 				return err
 			}
-
-			// Register the service or the node
-			if req.ServiceName != "" {
-				state.EnsureService(req.Node, req.ServiceID, req.ServiceName,
-					req.ServiceTag, req.ServicePort)
-			} else {
-				node := structs.Node{req.Node, req.Address}
-				state.EnsureNode(node)
-			}
+			c.applyRegister(&req)
 
 		default:
 			return fmt.Errorf("Unrecognized msg type: %v", msgType)
 		}
 	}
 
-	// Do an atomic flip, safe since Apply is not called concurrently
-	c.state = state
 	return nil
 }
 
@@ -176,12 +178,20 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 
 		// Register each service this node has
 		services := s.state.NodeServices(nodes[i].Node)
-		for id, props := range services.Services {
-			req.ServiceID = id
-			req.ServiceName = props.Service
-			req.ServiceTag = props.Tag
-			req.ServicePort = props.Port
+		for _, srv := range services.Services {
+			req.Service = srv
+			sink.Write([]byte{byte(structs.RegisterRequestType)})
+			if err := encoder.Encode(&req); err != nil {
+				sink.Cancel()
+				return err
+			}
+		}
 
+		// Register each check this node has
+		req.Service = nil
+		checks := s.state.NodeChecks(nodes[i].Node)
+		for _, check := range checks {
+			req.Check = check
 			sink.Write([]byte{byte(structs.RegisterRequestType)})
 			if err := encoder.Encode(&req); err != nil {
 				sink.Cancel()

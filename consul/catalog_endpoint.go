@@ -21,14 +21,25 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		return fmt.Errorf("Must provide node and address")
 	}
 
-	// If no service id, but service name, use default
-	if args.ServiceID == "" && args.ServiceName != "" {
-		args.ServiceID = args.ServiceName
+	if args.Service != nil {
+		// If no service id, but service name, use default
+		if args.Service.ID == "" && args.Service.Service != "" {
+			args.Service.ID = args.Service.Service
+		}
+
+		// Verify ServiceName provided if ID
+		if args.Service.ID != "" && args.Service.Service == "" {
+			return fmt.Errorf("Must provide service name with ID")
+		}
 	}
 
-	// Verify ServiceName provided if ID
-	if args.ServiceID != "" && args.ServiceName == "" {
-		return fmt.Errorf("Must provide service name with ID")
+	if args.Check != nil {
+		if args.Check.CheckID == "" && args.Check.Name != "" {
+			args.Check.CheckID = args.Check.Name
+		}
+		if args.Check.Node == "" {
+			args.Check.Node = args.Node
+		}
 	}
 
 	_, err := c.srv.raftApply(structs.RegisterRequestType, args)
