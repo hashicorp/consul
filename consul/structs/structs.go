@@ -65,6 +65,7 @@ type ServiceNode struct {
 	Node        string
 	Address     string
 	ServiceID   string
+	ServiceName string
 	ServiceTag  string
 	ServicePort int
 }
@@ -85,7 +86,7 @@ type NodeService struct {
 }
 type NodeServices struct {
 	Address  string
-	Services map[string]NodeService
+	Services map[string]*NodeService
 }
 
 // Decode is used to decode a MsgPack encoded object
