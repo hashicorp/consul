@@ -48,4 +48,5 @@ query health information, as well as for nodes to publish changes.
 * ChecksInState : Gets the checks that in a given state
 * NodeChecks: Gets the checks a given node has
 * ServiceChecks: Gets the checks a given service has
+* ServiceNodes: Returns the nodes that are part of a service, including health info
 

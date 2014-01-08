@@ -57,3 +57,27 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 	*reply = checks
 	return nil
 }
+
+// ServiceNodes returns all the nodes registered as part of a service including health info
+func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.CheckServiceNodes) error {
+	if done, err := h.srv.forward("Health.ServiceNodes", args.Datacenter, args, reply); done {
+		return err
+	}
+
+	// Verify the arguments
+	if args.ServiceName == "" {
+		return fmt.Errorf("Must provide service name")
+	}
+
+	// Get the nodes
+	state := h.srv.fsm.State()
+	var nodes structs.CheckServiceNodes
+	if args.TagFilter {
+		nodes = state.CheckServiceTagNodes(args.ServiceName, args.ServiceTag)
+	} else {
+		nodes = state.CheckServiceNodes(args.ServiceName)
+	}
+
+	*reply = nodes
+	return nil
+}
