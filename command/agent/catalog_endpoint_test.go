@@ -136,10 +136,12 @@ func TestCatalogServices(t *testing.T) {
 
 	// Register node
 	args := &structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceName: "api",
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+		},
 	}
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -173,11 +175,13 @@ func TestCatalogServiceNodes(t *testing.T) {
 
 	// Register node
 	args := &structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceName: "api",
-		ServiceTag:  "a",
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Tag:     "a",
+		},
 	}
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -211,11 +215,13 @@ func TestCatalogNodeServices(t *testing.T) {
 
 	// Register node
 	args := &structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceName: "api",
-		ServiceTag:  "a",
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Tag:     "a",
+		},
 	}
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {

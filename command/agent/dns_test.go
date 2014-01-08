@@ -119,12 +119,14 @@ func TestDNS_ServiceLookup(t *testing.T) {
 
 	// Register node
 	args := &structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceName: "db",
-		ServiceTag:  "master",
-		ServicePort: 12345,
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tag:     "master",
+			Port:    12345,
+		},
 	}
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -185,12 +187,14 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 
 	// Register node
 	args := &structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceName: "db",
-		ServiceTag:  "master",
-		ServicePort: 12345,
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tag:     "master",
+			Port:    12345,
+		},
 	}
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -198,26 +202,30 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 	}
 
 	args = &structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceID:   "db2",
-		ServiceName: "db",
-		ServiceTag:  "slave",
-		ServicePort: 12345,
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db2",
+			Service: "db",
+			Tag:     "slave",
+			Port:    12345,
+		},
 	}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	args = &structs.RegisterRequest{
-		Datacenter:  "dc1",
-		Node:        "foo",
-		Address:     "127.0.0.1",
-		ServiceID:   "db3",
-		ServiceName: "db",
-		ServiceTag:  "slave",
-		ServicePort: 12346,
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db3",
+			Service: "db",
+			Tag:     "slave",
+			Port:    12346,
+		},
 	}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)

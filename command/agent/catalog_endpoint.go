@@ -91,7 +91,7 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 
 func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
-	args := structs.ServiceNodesRequest{
+	args := structs.ServiceSpecificRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
 
@@ -125,7 +125,7 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 
 func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default Datacenter
-	args := structs.NodeServicesRequest{
+	args := structs.NodeSpecificRequest{
 		Datacenter: s.agent.config.Datacenter,
 	}
 

@@ -253,7 +253,7 @@ func (d *DNSServer) nodeLookup(datacenter, node string, req, resp *dns.Msg) {
 	}
 
 	// Make an RPC request
-	args := structs.NodeServicesRequest{
+	args := structs.NodeSpecificRequest{
 		Datacenter: datacenter,
 		Node:       node,
 	}
@@ -265,15 +265,15 @@ func (d *DNSServer) nodeLookup(datacenter, node string, req, resp *dns.Msg) {
 	}
 
 	// If we have no address, return not found!
-	if out.Address == "" {
+	if out.Node.Address == "" {
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
 
 	// Parse the IP
-	ip := net.ParseIP(out.Address)
+	ip := net.ParseIP(out.Node.Address)
 	if ip == nil {
-		d.logger.Printf("[ERR] dns: failed to parse IP %v for %v", out.Address, node)
+		d.logger.Printf("[ERR] dns: failed to parse IP %v", out.Node)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
 	}
@@ -296,7 +296,7 @@ func (d *DNSServer) nodeLookup(datacenter, node string, req, resp *dns.Msg) {
 // serviceLookup is used to handle a service query
 func (d *DNSServer) serviceLookup(datacenter, service, tag string, req, resp *dns.Msg) {
 	// Make an RPC request
-	args := structs.ServiceNodesRequest{
+	args := structs.ServiceSpecificRequest{
 		Datacenter:  datacenter,
 		ServiceName: service,
 		ServiceTag:  tag,
