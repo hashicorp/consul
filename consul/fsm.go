@@ -61,7 +61,8 @@ func (c *consulFSM) applyRegister(buf []byte) interface{} {
 	}
 
 	// Ensure the node
-	c.state.EnsureNode(req.Node, req.Address)
+	node := structs.Node{req.Node, req.Address}
+	c.state.EnsureNode(node)
 
 	// Ensure the service if provided
 	if req.ServiceID != "" && req.ServiceName != "" {
@@ -136,7 +137,8 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 				state.EnsureService(req.Node, req.ServiceID, req.ServiceName,
 					req.ServiceTag, req.ServicePort)
 			} else {
-				state.EnsureNode(req.Node, req.Address)
+				node := structs.Node{req.Node, req.Address}
+				state.EnsureNode(node)
 			}
 
 		default:
@@ -159,10 +161,10 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 
 	// Register each node
 	var req structs.RegisterRequest
-	for i := 0; i < len(nodes); i += 2 {
+	for i := 0; i < len(nodes); i++ {
 		req = structs.RegisterRequest{
-			Node:    nodes[i],
-			Address: nodes[i+1],
+			Node:    nodes[i].Node,
+			Address: nodes[i].Address,
 		}
 
 		// Register the node itself
@@ -173,7 +175,7 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 		}
 
 		// Register each service this node has
-		services := s.state.NodeServices(nodes[i])
+		services := s.state.NodeServices(nodes[i].Node)
 		for id, props := range services.Services {
 			req.ServiceID = id
 			req.ServiceName = props.Service

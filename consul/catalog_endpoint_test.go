@@ -201,7 +201,7 @@ func TestCatalogListNodes(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Just add a node
-	s1.fsm.State().EnsureNode("foo", "127.0.0.1")
+	s1.fsm.State().EnsureNode(structs.Node{"foo", "127.0.0.1"})
 
 	if err := client.Call("Catalog.ListNodes", "dc1", &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -235,7 +235,7 @@ func TestCatalogListServices(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Just add a node
-	s1.fsm.State().EnsureNode("foo", "127.0.0.1")
+	s1.fsm.State().EnsureNode(structs.Node{"foo", "127.0.0.1"})
 	s1.fsm.State().EnsureService("foo", "db", "db", "primary", 5000)
 
 	if err := client.Call("Catalog.ListServices", "dc1", &out); err != nil {
@@ -276,7 +276,7 @@ func TestCatalogListServiceNodes(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Just add a node
-	s1.fsm.State().EnsureNode("foo", "127.0.0.1")
+	s1.fsm.State().EnsureNode(structs.Node{"foo", "127.0.0.1"})
 	s1.fsm.State().EnsureService("foo", "db", "db", "primary", 5000)
 
 	if err := client.Call("Catalog.ServiceNodes", &args, &out); err != nil {
@@ -289,6 +289,7 @@ func TestCatalogListServiceNodes(t *testing.T) {
 
 	// Try with a filter
 	args.TagFilter = true
+	out = nil
 
 	if err := client.Call("Catalog.ServiceNodes", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -319,7 +320,7 @@ func TestCatalogNodeServices(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Just add a node
-	s1.fsm.State().EnsureNode("foo", "127.0.0.1")
+	s1.fsm.State().EnsureNode(structs.Node{"foo", "127.0.0.1"})
 	s1.fsm.State().EnsureService("foo", "db", "db", "primary", 5000)
 	s1.fsm.State().EnsureService("foo", "web", "web", "", 80)
 

@@ -82,13 +82,7 @@ func (c *Catalog) ListNodes(dc string, reply *structs.Nodes) error {
 
 	// Get the current nodes
 	state := c.srv.fsm.State()
-	rawNodes := state.Nodes()
-
-	// Format the response
-	nodes := structs.Nodes(make([]structs.Node, len(rawNodes)/2))
-	for i := 0; i < len(nodes); i++ {
-		nodes[i] = structs.Node{rawNodes[i*2], rawNodes[i*2+1]}
-	}
+	nodes := state.Nodes()
 
 	*reply = nodes
 	return nil

@@ -214,8 +214,8 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Add some state
-	fsm.state.EnsureNode("foo", "127.0.0.1")
-	fsm.state.EnsureNode("baz", "127.0.0.2")
+	fsm.state.EnsureNode(structs.Node{"foo", "127.0.0.1"})
+	fsm.state.EnsureNode(structs.Node{"baz", "127.0.0.2"})
 	fsm.state.EnsureService("foo", "web", "web", "", 80)
 	fsm.state.EnsureService("foo", "db", "db", "primary", 5000)
 	fsm.state.EnsureService("baz", "web", "web", "", 80)
@@ -248,7 +248,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 
 	// Verify the contents
 	nodes := fsm2.state.Nodes()
-	if len(nodes) != 4 {
+	if len(nodes) != 2 {
 		t.Fatalf("Bad: %v", nodes)
 	}
 
