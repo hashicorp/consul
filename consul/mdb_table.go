@@ -60,13 +60,13 @@ func (t *MDBTxn) Commit() error {
 }
 
 type RowID uint64
-type IndexFunc func(...string) string
+type IndexFunc func([]string) string
 
 // DefaultIndexFunc is used if no IdxFunc is provided. It joins
 // the columns using '||' which is reasonably unlikely to occur.
 // We also prefix with a byte to ensure we never have a zero length
 // key
-func DefaultIndexFunc(parts ...string) string {
+func DefaultIndexFunc(parts []string) string {
 	return "_" + strings.Join(parts, "||")
 }
 
@@ -241,20 +241,11 @@ func (t *MDBTable) Insert(obj interface{}) error {
 // Get is used to lookup one or more rows. An index an appropriate
 // fields are specified. The fields can be a prefix of the index.
 func (t *MDBTable) Get(index string, parts ...string) ([]interface{}, error) {
-	// Get the index
-	idx, ok := t.Indexes[index]
-	if !ok {
-		return nil, noIndex
+	// Get the associated index
+	idx, key, err := t.getIndex(index, parts)
+	if err != nil {
+		return nil, err
 	}
-
-	// Check the arity
-	arity := idx.arity()
-	if len(parts) > arity {
-		return nil, tooManyFields
-	}
-
-	// Construct the key
-	key := []byte(idx.IdxFunc(parts...))
 
 	// Start a readonly txn
 	tx, err := t.StartTxn(true)
@@ -273,11 +264,50 @@ func (t *MDBTable) Get(index string, parts ...string) ([]interface{}, error) {
 	return results, err
 }
 
+// getIndex is used to get the proper index, and also check the arity
+func (t *MDBTable) getIndex(index string, parts []string) (*MDBIndex, []byte, error) {
+	// Get the index
+	idx, ok := t.Indexes[index]
+	if !ok {
+		return nil, nil, noIndex
+	}
+
+	// Check the arity
+	arity := idx.arity()
+	if len(parts) > arity {
+		return nil, nil, tooManyFields
+	}
+
+	// Construct the key
+	key := []byte(idx.IdxFunc(parts))
+	return idx, key, nil
+}
+
 // Delete is used to delete one or more rows. An index an appropriate
 // fields are specified. The fields can be a prefix of the index.
 // Returns the rows deleted or an error.
 func (t *MDBTable) Delete(index string, parts ...string) (int, error) {
-	return 0, nil
+	// Get the associated index
+	idx, key, err := t.getIndex(index, parts)
+	if err != nil {
+		return 0, err
+	}
+
+	// Start a write txn
+	tx, err := t.StartTxn(false)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Abort()
+
+	// Accumulate the results
+	num := 0
+	err = idx.iterate(tx, key, func(res []byte) {
+		num++
+	})
+
+	// Return the deleted count
+	return num, tx.Commit()
 }
 
 // Initializes an index and returns a potential error
@@ -344,7 +374,7 @@ func (i *MDBIndex) keyFromObject(obj interface{}) ([]byte, error) {
 		}
 		parts = append(parts, val)
 	}
-	key := i.IdxFunc(parts...)
+	key := i.IdxFunc(parts)
 	return []byte(key), nil
 }
 

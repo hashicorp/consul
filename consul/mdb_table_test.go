@@ -161,6 +161,23 @@ func TestMDBTableInsert(t *testing.T) {
 	if !reflect.DeepEqual(res[0], objs[2]) {
 		t.Fatalf("bad: %#v", res[2])
 	}
+
+	res, err = table.Get("id")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 3 {
+		t.Fatalf("expect 2 result: %#v", res)
+	}
+	if !reflect.DeepEqual(res[0], objs[0]) {
+		t.Fatalf("bad: %#v", res[0])
+	}
+	if !reflect.DeepEqual(res[1], objs[1]) {
+		t.Fatalf("bad: %#v", res[1])
+	}
+	if !reflect.DeepEqual(res[2], objs[2]) {
+		t.Fatalf("bad: %#v", res[2])
+	}
 }
 
 func TestMDBTableInsert_MissingFields(t *testing.T) {
