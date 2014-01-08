@@ -13,8 +13,6 @@ methods. The services exposed are:
 The Raft service is used to manipulate the Raft controls on the Leader
 node. It is only for internal use. It exposes the following methods:
 
-* Apply : Used to execute a command against the FSM
-* AddPeer: Used to add a peer to the group
 * RemovePeer: Used to remove a peer from the group
 
 ## Status Service
@@ -32,8 +30,8 @@ The catalog service is used to manage service discovery and registration.
 Nodes can register the services they provide, and deregister them later.
 The service exposes the following methods:
 
-* Register : Registers a node, and potentially a node service
-* Deregister : Deregisters a node, and potentially a node service
+* Register : Registers a node, and potentially a node service and check
+* Deregister : Deregisters a node, and potentially a node service or check
 
 * ListDatacenters: List the known datacenters
 * ListServices : Lists the available services
@@ -47,11 +45,7 @@ The health service is used to manage health checking. Nodes have system
 health checks, as well as application health checks. This service is used to
 query health information, as well as for nodes to publish changes.
 
-* CheckPass : Used to inform that a check has passed
-* CheckWarn : Used to inform that a check is warning
-* CheckFail : Used to inform that a check has failed
-* RemoveCheck : Used to remove a health check
-
-* CheckInState : Gets the checks that in a given state
+* ChecksInState : Gets the checks that in a given state
 * NodeChecks: Gets the checks a given node has
+* ServiceChecks: Gets the checks a given service has
 

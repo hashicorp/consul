@@ -266,7 +266,7 @@ func TestCatalogListServiceNodes(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	args := structs.ServiceNodesRequest{
+	args := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
 		ServiceTag:  "slave",
@@ -312,7 +312,7 @@ func TestCatalogNodeServices(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	args := structs.NodeServicesRequest{
+	args := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
 	}
@@ -381,7 +381,7 @@ func TestCatalogRegister_FailedCase1(t *testing.T) {
 	}
 
 	// Check we can get this back
-	query := &structs.ServiceNodesRequest{
+	query := &structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "web",
 	}

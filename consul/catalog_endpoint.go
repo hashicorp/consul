@@ -114,7 +114,7 @@ func (c *Catalog) ListServices(dc string, reply *structs.Services) error {
 }
 
 // ServiceNodes returns all the nodes registered as part of a service
-func (c *Catalog) ServiceNodes(args *structs.ServiceNodesRequest, reply *structs.ServiceNodes) error {
+func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.ServiceNodes) error {
 	if done, err := c.srv.forward("Catalog.ServiceNodes", args.Datacenter, args, reply); done {
 		return err
 	}
@@ -138,7 +138,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceNodesRequest, reply *structs
 }
 
 // NodeServices returns all the services registered as part of a node
-func (c *Catalog) NodeServices(args *structs.NodeServicesRequest, reply *structs.NodeServices) error {
+func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs.NodeServices) error {
 	if done, err := c.srv.forward("Catalog.NodeServices", args.Datacenter, args, reply); done {
 		return err
 	}

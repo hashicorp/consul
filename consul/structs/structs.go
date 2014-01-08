@@ -58,8 +58,8 @@ type Nodes []Node
 // Maps service name to available tags
 type Services map[string][]string
 
-// ServiceNodesRequest is used to query the nodes of a service
-type ServiceNodesRequest struct {
+// ServiceSpecificRequest is used to query about a specific node
+type ServiceSpecificRequest struct {
 	Datacenter  string
 	ServiceName string
 	ServiceTag  string
@@ -77,8 +77,8 @@ type ServiceNode struct {
 }
 type ServiceNodes []ServiceNode
 
-// NodeServiceRequest is used to request the services of a node
-type NodeServicesRequest struct {
+// NodeSpecificRequest is used to request the information about a single node
+type NodeSpecificRequest struct {
 	Datacenter string
 	Node       string
 }
@@ -106,6 +106,12 @@ type HealthCheck struct {
 	ServiceName string // optional service name
 }
 type HealthChecks []*HealthCheck
+
+// ChecksInStateRequest is used to query for nodes in a state
+type ChecksInStateRequest struct {
+	Datacenter string
+	State      string
+}
 
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {
