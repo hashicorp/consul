@@ -280,13 +280,19 @@ func (s *StateStore) DeleteNodeService(node, id string) error {
 
 // DeleteNode is used to delete a node and all it's services
 func (s *StateStore) DeleteNode(node string) error {
-	if _, err := s.serviceTable.Delete("id", node); err != nil {
+	tx, err := s.tables.StartTxn(false)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	if _, err := s.serviceTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
 	}
-	if _, err := s.nodeTable.Delete("id", node); err != nil {
+	if _, err := s.nodeTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
 	}
-	return nil
+	return tx.Commit()
 }
 
 // Services is used to return all the services with a list of associated tags
