@@ -27,6 +27,9 @@ type Server struct {
 	// Connection pool to other consul servers
 	connPool *ConnPool
 
+	// Endpoints holds our RPC endpoints
+	endpoints endpoints
+
 	// eventChLAN is used to receive events from the
 	// serf cluster in the datacenter
 	eventChLAN chan serf.Event
@@ -74,6 +77,14 @@ type Server struct {
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
+}
+
+// Holds the RPC endpoints
+type endpoints struct {
+	Catalog *Catalog
+	Health  *Health
+	Raft    *Raft
+	Status  *Status
 }
 
 // NewServer is used to construct a new Consul server from the
@@ -223,11 +234,17 @@ func (s *Server) setupRaft() error {
 
 // setupRPC is used to setup the RPC listener
 func (s *Server) setupRPC() error {
+	// Create endpoints
+	s.endpoints.Status = &Status{s}
+	s.endpoints.Raft = &Raft{s}
+	s.endpoints.Catalog = &Catalog{s}
+	s.endpoints.Health = &Health{s}
+
 	// Register the handlers
-	s.rpcServer.Register(&Status{s})
-	s.rpcServer.Register(&Raft{s})
-	s.rpcServer.Register(&Catalog{s})
-	s.rpcServer.Register(&Health{s})
+	s.rpcServer.Register(s.endpoints.Status)
+	s.rpcServer.Register(s.endpoints.Raft)
+	s.rpcServer.Register(s.endpoints.Catalog)
+	s.rpcServer.Register(s.endpoints.Health)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
