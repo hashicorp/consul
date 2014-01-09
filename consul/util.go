@@ -78,6 +78,19 @@ func isConsulServer(m serf.Member) (bool, string, int) {
 	return true, datacenter, port
 }
 
+// Returns if a member is a consul node. Returns a boo,
+// and the data center.
+func isConsulNode(m serf.Member) (bool, string) {
+	role := m.Role
+	if !strings.HasPrefix(role, "node:") {
+		return false, ""
+	}
+
+	parts := strings.SplitN(role, ":", 2)
+	datacenter := parts[1]
+	return true, datacenter
+}
+
 // Returns if the given IP is in a private block
 func isPrivateIP(ip_str string) bool {
 	ip := net.ParseIP(ip_str)
