@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"time"
 )
 
 const (
@@ -54,6 +55,12 @@ type Config struct {
 	// SerfWANConfig is the configuration for the cross-dc serf
 	SerfWANConfig *serf.Config
 
+	// ReconcileInterval controls how often we reconcile the strongly
+	// consistent store with the Serf info. This is used to handle nodes
+	// that are force removed, as well as intermittent unavailability during
+	// leader election.
+	ReconcileInterval time.Duration
+
 	// LogOutput is the location to write logs to. If this is not set,
 	// logs will go to stderr.
 	LogOutput io.Writer
@@ -67,12 +74,13 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Datacenter:    DefaultDC,
-		NodeName:      hostname,
-		RPCAddr:       DefaultRPCAddr,
-		RaftConfig:    raft.DefaultConfig(),
-		SerfLANConfig: serf.DefaultConfig(),
-		SerfWANConfig: serf.DefaultConfig(),
+		Datacenter:        DefaultDC,
+		NodeName:          hostname,
+		RPCAddr:           DefaultRPCAddr,
+		RaftConfig:        raft.DefaultConfig(),
+		SerfLANConfig:     serf.DefaultConfig(),
+		SerfWANConfig:     serf.DefaultConfig(),
+		ReconcileInterval: 60 * time.Second,
 	}
 
 	// WAN Serf should use the WAN timing, since we are using it
