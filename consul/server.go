@@ -229,6 +229,9 @@ func (s *Server) setupRaft() error {
 		trans.Close()
 		return err
 	}
+
+	// Start monitoring leadership
+	go s.monitorLeadership()
 	return nil
 }
 

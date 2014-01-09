@@ -15,8 +15,11 @@ func (s *Server) lanEventHandler() {
 			switch e.EventType() {
 			case serf.EventMemberJoin:
 				s.localJoin(e.(serf.MemberEvent))
+				fallthrough
 			case serf.EventMemberLeave:
+				fallthrough
 			case serf.EventMemberFailed:
+				s.localMemberEvent(e.(serf.MemberEvent))
 			case serf.EventUser:
 			default:
 				s.logger.Printf("[WARN] Unhandled LAN Serf Event: %#v", e)
@@ -48,6 +51,20 @@ func (s *Server) wanEventHandler() {
 		case <-s.shutdownCh:
 			return
 		}
+	}
+}
+
+// localMemberEvent is used to reconcile Serf events with the strongly
+// consistent store if we are the current leader
+func (s *Server) localMemberEvent(me serf.MemberEvent) {
+	// Do nothing if we are not the leader
+	if !s.IsLeader() {
+		return
+	}
+
+	// Dispatch an async handler for each member
+	for _, m := range me.Members {
+		go s.reconcileMember(m)
 	}
 }
 
