@@ -224,8 +224,8 @@ func (s *Server) setupRaft() error {
 // setupRPC is used to setup the RPC listener
 func (s *Server) setupRPC() error {
 	// Register the handlers
-	s.rpcServer.Register(&Status{server: s})
-	s.rpcServer.Register(&Raft{server: s})
+	s.rpcServer.Register(&Status{s})
+	s.rpcServer.Register(&Raft{s})
 	s.rpcServer.Register(&Catalog{s})
 	s.rpcServer.Register(&Health{s})
 
