@@ -65,6 +65,11 @@ func (s *HTTPServer) registerHandlers() {
 	s.mux.HandleFunc("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
 	s.mux.HandleFunc("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
 
+	s.mux.HandleFunc("/v1/health/node/", s.wrap(s.HealthNodeChecks))
+	s.mux.HandleFunc("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
+	s.mux.HandleFunc("/v1/health/state/", s.wrap(s.HealthChecksInState))
+	s.mux.HandleFunc("/v1/health/service/", s.wrap(s.HealthServiceNodes))
+
 	s.mux.HandleFunc("/v1/agent/services", s.wrap(s.AgentServices))
 	s.mux.HandleFunc("/v1/agent/members", s.wrap(s.AgentMembers))
 	s.mux.HandleFunc("/v1/agent/join/", s.wrap(s.AgentJoin))

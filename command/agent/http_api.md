@@ -16,15 +16,11 @@ The current URLs supported are:
 * /v1/catalog/service/<service>/ : Lists the nodes in a given service
 * /v1/catalog/node/<node>/ : Lists the services provided by a node
 
-* Health system (future):
-* /v1/health/register : Registers a new health check
-* /v1/health/deregister : Deregisters a health check
-* /v1/health/pass: Pass a health check
-* /v1/health/warn: Warn on a health check
-* /v1/health/fail: Fail a health check
+* Health system:
 * /v1/health/node/<node>: Returns the health info of a node
-* /v1/health/service/<service>: Returns the health info of a service
-* /v1/health/query/<state>: Returns the checks in a given state
+* /v1/health/checks/<service>: Returns the checks of a service
+* /v1/health/service/<service>: Returns the nodes and health info of a service
+* /v1/health/state/<state>: Returns the checks in a given state
 
 * /v1/status/leader : Returns the current Raft leader
 * /v1/status/peers : Returns the current Raft peer set
@@ -34,4 +30,11 @@ The current URLs supported are:
 * /v1/agent/members : Returns the members as seen by the local serf agent
 * /v1/agent/join/<node> : Instructs the local agent to join a node
 * /v1/agent/force-leave/<node>: Instructs the agent to force a node into the left state
+
+## Future (interacts with local state?)
+* /v1/health/register : Registers a new health check
+* /v1/health/deregister : Deregisters a health check
+* /v1/health/pass: Pass a health check
+* /v1/health/warn: Warn on a health check
+* /v1/health/fail: Fail a health check
 
