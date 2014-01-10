@@ -30,9 +30,13 @@ func testServer(t *testing.T) (string, *Server) {
 }
 
 func testServerDC(t *testing.T, dc string) (string, *Server) {
+	return testServerDCBootstrap(t, "dc1", true)
+}
+
+func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
 	dir := tmpDir(t)
 	config := DefaultConfig()
-	config.Bootstrap = true
+	config.Bootstrap = bootstrap
 	config.Datacenter = dc
 	config.DataDir = dir
 
@@ -59,6 +63,8 @@ func testServerDC(t *testing.T, dc string) (string, *Server) {
 
 	config.RaftConfig.HeartbeatTimeout = 40 * time.Millisecond
 	config.RaftConfig.ElectionTimeout = 40 * time.Millisecond
+
+	config.ReconcileInterval = 50 * time.Millisecond
 
 	server, err := NewServer(config)
 	if err != nil {
