@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"github.com/hashicorp/serf/serf"
 	"testing"
 )
 
@@ -29,5 +30,33 @@ func TestIsPrivateIP(t *testing.T) {
 	}
 	if isPrivateIP("127.0.0.1") {
 		t.Fatalf("bad")
+	}
+}
+
+func TestIsConsulServer(t *testing.T) {
+	m := serf.Member{
+		Role: "consul:east-aws:10000",
+	}
+	valid, dc, port := isConsulServer(m)
+	if !valid || dc != "east-aws" || port != 10000 {
+		t.Fatalf("bad: %v %v %v", valid, dc, port)
+	}
+}
+
+func TestIsConsulNode(t *testing.T) {
+	m := serf.Member{
+		Role: "node:east-aws",
+	}
+	valid, dc := isConsulNode(m)
+	if !valid || dc != "east-aws" {
+		t.Fatalf("bad: %v %v %v", valid, dc)
+	}
+}
+
+func TestByteConversion(t *testing.T) {
+	var val uint64 = 2 << 50
+	raw := uint64ToBytes(val)
+	if bytesToUint64(raw) != val {
+		t.Fatalf("no match")
 	}
 }

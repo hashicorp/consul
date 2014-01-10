@@ -40,11 +40,16 @@ func TestHealth_ChecksInState(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(checks) != 1 {
+	if len(checks) != 2 {
 		t.Fatalf("Bad: %v", checks)
 	}
-	if checks[0].Name != "memory utilization" {
-		t.Fatalf("Bad: %v", checks)
+
+	// First check is automatically added for the server node
+	if checks[0].CheckID != serfCheckID {
+		t.Fatalf("Bad: %v", checks[0])
+	}
+	if checks[1].Name != "memory utilization" {
+		t.Fatalf("Bad: %v", checks[1])
 	}
 }
 
