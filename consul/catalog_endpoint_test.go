@@ -253,7 +253,11 @@ func TestCatalogListServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(out) != 1 {
+	if len(out) != 2 {
+		t.Fatalf("bad: %v", out)
+	}
+	// Consul service should auto-register
+	if len(out["consul"]) != 1 {
 		t.Fatalf("bad: %v", out)
 	}
 	if len(out["db"]) != 1 {

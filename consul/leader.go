@@ -132,11 +132,21 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 	}
 	s.logger.Printf("[INFO] consul: member '%s' joined, marking health alive", member.Name)
 
+	// Register consul service if a server
+	var service *structs.NodeService
+	if valid, _, port := isConsulServer(member); valid {
+		service = &structs.NodeService{
+			Service: "consul",
+			Port:    port,
+		}
+	}
+
 	// Register with the catalog
 	req := structs.RegisterRequest{
 		Datacenter: s.config.Datacenter,
 		Node:       member.Name,
 		Address:    member.Addr.String(),
+		Service:    service,
 		Check: &structs.HealthCheck{
 			Node:    member.Name,
 			CheckID: serfCheckID,
