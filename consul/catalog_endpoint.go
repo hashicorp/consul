@@ -44,7 +44,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 	_, err := c.srv.raftApply(structs.RegisterRequestType, args)
 	if err != nil {
-		c.srv.logger.Printf("[ERR] Register failed: %v", err)
+		c.srv.logger.Printf("[ERR] consul.catalog: Register failed: %v", err)
 		return err
 	}
 	return nil
@@ -63,7 +63,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 
 	_, err := c.srv.raftApply(structs.DeregisterRequestType, args)
 	if err != nil {
-		c.srv.logger.Printf("[ERR] Deregister failed: %v", err)
+		c.srv.logger.Printf("[ERR] consul.catalog: Deregister failed: %v", err)
 		return err
 	}
 	return nil
