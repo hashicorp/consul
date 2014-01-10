@@ -30,7 +30,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	// Wait for registration
 	time.Sleep(10 * time.Millisecond)
 
-	// Should be registered
+	// Client should be registered
 	state := s1.fsm.State()
 	found, _ := state.GetNode(c1.config.NodeName)
 	if !found {
@@ -50,6 +50,18 @@ func TestLeader_RegisterMember(t *testing.T) {
 	}
 	if checks[0].Status != structs.HealthPassing {
 		t.Fatalf("bad check: %v", checks[0])
+	}
+
+	// Server should be registered
+	found, _ = state.GetNode(s1.config.NodeName)
+	if !found {
+		t.Fatalf("server not registered")
+	}
+
+	// Service should be registered
+	services := state.NodeServices(s1.config.NodeName)
+	if _, ok := services.Services["consul"]; !ok {
+		t.Fatalf("consul service not registered: %v", services)
 	}
 }
 
