@@ -80,6 +80,10 @@ func (l *RaftLayer) Dial(address string, timeout time.Duration) (net.Conn, error
 	}
 
 	// Write the Raft byte to set the mode
-	conn.Write([]byte{byte(rpcRaft)})
+	_, err = conn.Write([]byte{byte(rpcRaft)})
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
 	return conn, err
 }
