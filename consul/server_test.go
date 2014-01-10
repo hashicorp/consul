@@ -30,7 +30,7 @@ func testServer(t *testing.T) (string, *Server) {
 }
 
 func testServerDC(t *testing.T, dc string) (string, *Server) {
-	return testServerDCBootstrap(t, "dc1", true)
+	return testServerDCBootstrap(t, dc, true)
 }
 
 func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
