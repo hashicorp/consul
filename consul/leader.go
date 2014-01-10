@@ -119,9 +119,18 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 func (s *Server) handleAliveMember(member serf.Member) error {
 	state := s.fsm.State()
 
+	// Register consul service if a server
+	var service *structs.NodeService
+	if valid, _, port := isConsulServer(member); valid {
+		service = &structs.NodeService{
+			Service: "consul",
+			Port:    port,
+		}
+	}
+
 	// Check if the node exists
 	found, addr := state.GetNode(member.Name)
-	if found && addr == member.Addr.String() {
+	if found && addr == member.Addr.String() && service == nil {
 		// Check if the serfCheck is in the passing state
 		checks := state.NodeChecks(member.Name)
 		for _, check := range checks {
@@ -131,15 +140,6 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 	}
 	s.logger.Printf("[INFO] consul: member '%s' joined, marking health alive", member.Name)
-
-	// Register consul service if a server
-	var service *structs.NodeService
-	if valid, _, port := isConsulServer(member); valid {
-		service = &structs.NodeService{
-			Service: "consul",
-			Port:    port,
-		}
-	}
 
 	// Register with the catalog
 	req := structs.RegisterRequest{
