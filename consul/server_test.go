@@ -64,7 +64,7 @@ func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Se
 	config.RaftConfig.HeartbeatTimeout = 40 * time.Millisecond
 	config.RaftConfig.ElectionTimeout = 40 * time.Millisecond
 
-	config.ReconcileInterval = 50 * time.Millisecond
+	config.ReconcileInterval = 100 * time.Millisecond
 
 	server, err := NewServer(config)
 	if err != nil {

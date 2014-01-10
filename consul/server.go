@@ -53,6 +53,11 @@ type Server struct {
 	raftStore     *raft.MDBStore
 	raftTransport *raft.NetworkTransport
 
+	// reconcileCh is used to pass events from the serf handler
+	// into the leader manager, so that the strong state can be
+	// updated
+	reconcileCh chan serf.Member
+
 	// remoteConsuls is used to track the known consuls in
 	// remote data centers. Used to do DC forwarding.
 	remoteConsuls map[string][]net.Addr
@@ -110,6 +115,7 @@ func NewServer(config *Config) (*Server, error) {
 		eventChLAN:    make(chan serf.Event, 256),
 		eventChWAN:    make(chan serf.Event, 256),
 		logger:        logger,
+		reconcileCh:   make(chan serf.Member, 32),
 		remoteConsuls: make(map[string][]net.Addr),
 		rpcClients:    make(map[net.Conn]struct{}),
 		rpcServer:     rpc.NewServer(),
@@ -202,7 +208,7 @@ func (s *Server) setupRaft() error {
 	}
 
 	// Create a transport layer
-	trans := raft.NewNetworkTransport(s.raftLayer, 3, 10*time.Second, s.config.LogOutput)
+	trans := raft.NewNetworkTransport(s.raftLayer, 3, 500*time.Millisecond, s.config.LogOutput)
 	s.raftTransport = trans
 
 	// Setup the peer store

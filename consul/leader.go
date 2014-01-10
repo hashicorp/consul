@@ -2,7 +2,9 @@ package consul
 
 import (
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
+	"net"
 	"time"
 )
 
@@ -38,7 +40,15 @@ func (s *Server) monitorLeadership() {
 // leaderLoop runs as long as we are the leader to run various
 // maintence activities
 func (s *Server) leaderLoop(stopCh chan struct{}) {
+	// Reconcile channel is only used once initial reconcile
+	// has succeeded
+	var reconcileCh chan serf.Member
+
 RECONCILE:
+	// Setup a reconciliation timer
+	reconcileCh = nil
+	interval := time.After(s.config.ReconcileInterval)
+
 	// Apply a raft barrier to ensure our FSM is caught up
 	barrier := s.raft.Barrier(0)
 	if err := barrier.Error(); err != nil {
@@ -52,15 +62,24 @@ RECONCILE:
 		goto WAIT
 	}
 
+	// Initial reconcile worked, now we can process the channel
+	// updates
+	reconcileCh = s.reconcileCh
+
 WAIT:
-	// Periodically reconcile as long as we are the leader
-	select {
-	case <-time.After(s.config.ReconcileInterval):
-		goto RECONCILE
-	case <-stopCh:
-		return
-	case <-s.shutdownCh:
-		return
+	// Periodically reconcile as long as we are the leader,
+	// or when Serf events arrive
+	for {
+		select {
+		case <-stopCh:
+			return
+		case <-s.shutdownCh:
+			return
+		case <-interval:
+			goto RECONCILE
+		case member := <-reconcileCh:
+			s.reconcileMember(member)
+		}
 	}
 }
 
@@ -126,6 +145,11 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 			ID:      "consul",
 			Service: "consul",
 			Port:    port,
+		}
+
+		// Attempt to join the consul server
+		if err := s.joinConsulServer(member, port); err != nil {
+			return err
 		}
 	}
 
@@ -220,6 +244,17 @@ func (s *Server) handleLeftMember(member serf.Member) error {
 	}
 	s.logger.Printf("[INFO] consul: member '%s' left, deregistering", member.Name)
 
+	// Remove from Raft peers if this was a server
+	if valid, _, port := isConsulServer(member); valid {
+		peer := &net.TCPAddr{IP: member.Addr, Port: port}
+		future := s.raft.RemovePeer(peer)
+		if err := future.Error(); err != nil && err != raft.UnknownPeer {
+			s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
+				peer, err)
+			return err
+		}
+	}
+
 	// Deregister the node
 	req := structs.DeregisterRequest{
 		Datacenter: s.config.Datacenter,
@@ -227,4 +262,21 @@ func (s *Server) handleLeftMember(member serf.Member) error {
 	}
 	var out struct{}
 	return s.endpoints.Catalog.Deregister(&req, &out)
+}
+
+// joinConsulServer is used to try to join another consul server
+func (s *Server) joinConsulServer(m serf.Member, port int) error {
+	// Do not join ourself
+	if m.Name == s.config.NodeName {
+		return nil
+	}
+
+	// Attempt to add as a peer
+	var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
+	future := s.raft.AddPeer(addr)
+	if err := future.Error(); err != nil && err != raft.KnownPeer {
+		s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
+		return err
+	}
+	return nil
 }

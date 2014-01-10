@@ -188,3 +188,72 @@ func TestLeader_Reconcile(t *testing.T) {
 		t.Fatalf("client not registered")
 	}
 }
+
+func TestLeader_LeftServer(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+	servers := []*Server{s1, s2, s3}
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait until we have 3 peers
+	start := time.Now()
+CHECK1:
+	for _, s := range servers {
+		peers, _ := s.raftPeers.Peers()
+		if len(peers) != 3 {
+			if time.Now().Sub(start) >= 2*time.Second {
+				t.Fatalf("should have 3 peers")
+			} else {
+				time.Sleep(100 * time.Millisecond)
+				goto CHECK1
+			}
+		}
+	}
+
+	// Kill any server
+	servers[0].Shutdown()
+
+	// Wait for failure detection
+	time.Sleep(500 * time.Millisecond)
+
+	// Force remove the non-leader (transition to left state)
+	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for intent propagation
+	time.Sleep(500 * time.Millisecond)
+
+	// Wait until we have 2 peers
+	start = time.Now()
+CHECK2:
+	for _, s := range servers[1:] {
+		peers, _ := s.raftPeers.Peers()
+		if len(peers) != 2 {
+			if time.Now().Sub(start) >= 2*time.Second {
+				t.Fatalf("should have 2 peers")
+			} else {
+				time.Sleep(100 * time.Millisecond)
+				goto CHECK2
+			}
+		}
+	}
+}

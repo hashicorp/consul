@@ -1,10 +1,8 @@
 package consul
 
 import (
-	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"net"
-	"time"
 )
 
 // lanEventHandler is used to handle events from the lan Serf cluster
@@ -14,7 +12,6 @@ func (s *Server) lanEventHandler() {
 		case e := <-s.eventChLAN:
 			switch e.EventType() {
 			case serf.EventMemberJoin:
-				s.localJoin(e.(serf.MemberEvent))
 				fallthrough
 			case serf.EventMemberLeave:
 				fallthrough
@@ -62,26 +59,12 @@ func (s *Server) localMemberEvent(me serf.MemberEvent) {
 		return
 	}
 
-	// Dispatch an async handler for each member
+	// Queue the members for reconciliation
 	for _, m := range me.Members {
-		go s.reconcileMember(m)
-	}
-}
-
-// localJoin is used to handle join events on the lan serf cluster
-func (s *Server) localJoin(me serf.MemberEvent) {
-	// Check for consul members
-	for _, m := range me.Members {
-		ok, dc, port := isConsulServer(m)
-		if !ok {
-			continue
+		select {
+		case s.reconcileCh <- m:
+		default:
 		}
-		if dc != s.config.Datacenter {
-			s.logger.Printf("[WARN] consul: server %s for datacenter %s has joined wrong cluster",
-				m.Name, dc)
-			continue
-		}
-		go s.joinConsulServer(m, port)
 	}
 }
 
@@ -146,61 +129,4 @@ func (s *Server) remoteFailed(me serf.MemberEvent) {
 		}
 		s.remoteLock.Unlock()
 	}
-}
-
-// joinConsulServer is used to try to join another consul server
-func (s *Server) joinConsulServer(m serf.Member, port int) {
-	if m.Name == s.config.NodeName {
-		return
-	}
-	var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
-	var future raft.Future
-
-CHECK:
-	// Get the Raft peers
-	peers, err := s.raftPeers.Peers()
-	if err != nil {
-		s.logger.Printf("[ERR] consul: failed to get raft peers: %v", err)
-		goto WAIT
-	}
-
-	// Bail if this node is already a peer
-	for _, p := range peers {
-		if p.String() == addr.String() {
-			return
-		}
-	}
-
-	// Bail if the node is not alive
-	if memberStatus(s.serfLAN.Members(), m.Name) != serf.StatusAlive {
-		return
-	}
-
-	// Attempt to add as a peer
-	future = s.raft.AddPeer(addr)
-	if err := future.Error(); err != nil {
-		s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
-	} else {
-		return
-	}
-
-WAIT:
-	time.Sleep(500 * time.Millisecond)
-	select {
-	case <-s.shutdownCh:
-		return
-	default:
-		goto CHECK
-	}
-}
-
-// memberStatus scans a list of members for a matching one,
-// returning the status or StatusNone
-func memberStatus(members []serf.Member, name string) serf.MemberStatus {
-	for _, m := range members {
-		if m.Name == name {
-			return m.Status
-		}
-	}
-	return serf.StatusNone
 }
