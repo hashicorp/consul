@@ -246,11 +246,7 @@ func (s *Server) handleLeftMember(member serf.Member) error {
 
 	// Remove from Raft peers if this was a server
 	if valid, _, port := isConsulServer(member); valid {
-		peer := &net.TCPAddr{IP: member.Addr, Port: port}
-		future := s.raft.RemovePeer(peer)
-		if err := future.Error(); err != nil && err != raft.UnknownPeer {
-			s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
-				peer, err)
+		if err := s.removeConsulServer(member, port); err != nil {
 			return err
 		}
 	}
@@ -276,6 +272,24 @@ func (s *Server) joinConsulServer(m serf.Member, port int) error {
 	future := s.raft.AddPeer(addr)
 	if err := future.Error(); err != nil && err != raft.KnownPeer {
 		s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
+		return err
+	}
+	return nil
+}
+
+// joinConsulServer is used to try to join another consul server
+func (s *Server) removeConsulServer(m serf.Member, port int) error {
+	// Do not remove ourself
+	if m.Name == s.config.NodeName {
+		return nil
+	}
+
+	// Attempt to remove as peer
+	peer := &net.TCPAddr{IP: m.Addr, Port: port}
+	future := s.raft.RemovePeer(peer)
+	if err := future.Error(); err != nil && err != raft.UnknownPeer {
+		s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
+			peer, err)
 		return err
 	}
 	return nil
