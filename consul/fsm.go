@@ -100,7 +100,7 @@ func (c *consulFSM) applyDeregister(buf []byte) interface{} {
 
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
 	defer func(start time.Time) {
-		log.Printf("[INFO] FSM Snapshot created in %v", time.Now().Sub(start))
+		log.Printf("[INFO] consul: FSM snapshot created in %v", time.Now().Sub(start))
 	}(time.Now())
 
 	// Create a new snapshot

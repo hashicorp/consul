@@ -103,7 +103,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 
 // Shutdown is used to shutdown the client
 func (c *Client) Shutdown() error {
-	c.logger.Printf("[INFO] Shutting down Consul client")
+	c.logger.Printf("[INFO] consul: shutting down client")
 	c.shutdownLock.Lock()
 	defer c.shutdownLock.Unlock()
 
@@ -125,12 +125,12 @@ func (c *Client) Shutdown() error {
 
 // Leave is used to prepare for a graceful shutdown
 func (c *Client) Leave() error {
-	c.logger.Printf("[INFO] Consul client starting leave")
+	c.logger.Printf("[INFO] consul: client starting leave")
 
 	// Leave the LAN pool
 	if c.serf != nil {
 		if err := c.serf.Leave(); err != nil {
-			c.logger.Printf("[ERR] Failed to leave LAN Serf cluster: %v", err)
+			c.logger.Printf("[ERR] consul: Failed to leave LAN Serf cluster: %v", err)
 		}
 	}
 	return nil
@@ -167,7 +167,7 @@ func (c *Client) lanEventHandler() {
 				c.nodeFail(e.(serf.MemberEvent))
 			case serf.EventUser:
 			default:
-				c.logger.Printf("[WARN] Unhandled LAN Serf Event: %#v", e)
+				c.logger.Printf("[WARN] consul: unhandled LAN Serf Event: %#v", e)
 			}
 		case <-c.shutdownCh:
 			return
@@ -183,13 +183,13 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 			continue
 		}
 		if dc != c.config.Datacenter {
-			c.logger.Printf("[WARN] Consul server %s for datacenter %s has joined wrong cluster",
+			c.logger.Printf("[WARN] consul: server %s for datacenter %s has joined wrong cluster",
 				m.Name, dc)
 			continue
 		}
 
 		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
-		c.logger.Printf("[INFO] Adding Consul server (Datacenter: %s) (Addr: %s)", dc, addr)
+		c.logger.Printf("[INFO] consul: adding server for datacenter: %s, addr: %s", dc, addr)
 
 		// Check if this server is known
 		found := false
@@ -217,7 +217,7 @@ func (c *Client) nodeFail(me serf.MemberEvent) {
 			continue
 		}
 		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
-		c.logger.Printf("[INFO] Removing Consul server (Datacenter: %s) (Addr: %s)", dc, addr)
+		c.logger.Printf("[INFO] consul: removing server for datacenter: %s, addr: %s", dc, addr)
 
 		// Remove the server if known
 		c.consulLock.Lock()

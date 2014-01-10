@@ -83,7 +83,7 @@ func (s *Server) reconcile() (err error) {
 func (s *Server) reconcileMember(member serf.Member) error {
 	// Check if this is a member we should handle
 	if !s.shouldHandleMember(member) {
-		s.logger.Printf("[WARN] Skipping reconcile of node %v", member)
+		s.logger.Printf("[WARN] consul: skipping reconcile of node %v", member)
 		return nil
 	}
 	var err error
@@ -96,7 +96,7 @@ func (s *Server) reconcileMember(member serf.Member) error {
 		err = s.handleLeftMember(member)
 	}
 	if err != nil {
-		s.logger.Printf("[ERR] Failed to reconcile member: %v: %v",
+		s.logger.Printf("[ERR] consul: failed to reconcile member: %v: %v",
 			member, err)
 		return err
 	}

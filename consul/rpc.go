@@ -25,7 +25,7 @@ func (s *Server) listen() {
 			if s.shutdown {
 				return
 			}
-			s.logger.Printf("[ERR] Failed to accept RPC conn: %v", err)
+			s.logger.Printf("[ERR] consul.rpc: failed to accept RPC conn: %v", err)
 			continue
 		}
 
@@ -44,7 +44,7 @@ func (s *Server) handleConn(conn net.Conn) {
 	// Read a single byte
 	buf := make([]byte, 1)
 	if _, err := conn.Read(buf); err != nil {
-		s.logger.Printf("[ERR] Failed to read byte: %v", err)
+		s.logger.Printf("[ERR] consul.rpc: failed to read byte: %v", err)
 		conn.Close()
 		return
 	}
@@ -58,7 +58,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		s.raftLayer.Handoff(conn)
 
 	default:
-		s.logger.Printf("[ERR] Unrecognized RPC byte: %v", buf[0])
+		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v", buf[0])
 		conn.Close()
 		return
 	}
@@ -77,7 +77,7 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 	for !s.shutdown {
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF {
-				s.logger.Printf("[ERR] RPC error: %v (%v)", err, conn)
+				s.logger.Printf("[ERR] consul.rpc: RPC error: %v (%v)", err, conn)
 			}
 			return
 		}
@@ -117,7 +117,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	servers := s.remoteConsuls[dc]
 	if len(servers) == 0 {
 		s.remoteLock.RUnlock()
-		s.logger.Printf("[WARN] consul: RPC request for DC '%s', no path found", dc)
+		s.logger.Printf("[WARN] consul.rpc: RPC request for DC '%s', no path found", dc)
 		return structs.ErrNoDCPath
 	}
 

@@ -280,7 +280,7 @@ func (s *Server) setupRPC() error {
 
 // Shutdown is used to shutdown the server
 func (s *Server) Shutdown() error {
-	s.logger.Printf("[INFO] Shutting down Consul server")
+	s.logger.Printf("[INFO] consul: shutting down server")
 	s.shutdownLock.Lock()
 	defer s.shutdownLock.Unlock()
 
@@ -328,19 +328,19 @@ func (s *Server) Shutdown() error {
 
 // Leave is used to prepare for a graceful shutdown of the server
 func (s *Server) Leave() error {
-	s.logger.Printf("[INFO] Consul server starting leave")
+	s.logger.Printf("[INFO] consul: server starting leave")
 
 	// Leave the WAN pool
 	if s.serfWAN != nil {
 		if err := s.serfWAN.Leave(); err != nil {
-			s.logger.Printf("[ERR] Failed to leave WAN Serf cluster: %v", err)
+			s.logger.Printf("[ERR] consul: failed to leave WAN Serf cluster: %v", err)
 		}
 	}
 
 	// Leave the LAN pool
 	if s.serfLAN != nil {
 		if err := s.serfLAN.Leave(); err != nil {
-			s.logger.Printf("[ERR] Failed to leave LAN Serf cluster: %v", err)
+			s.logger.Printf("[ERR] consul: failed to leave LAN Serf cluster: %v", err)
 		}
 	}
 
@@ -349,14 +349,14 @@ func (s *Server) Leave() error {
 		// Check if we have other raft nodes
 		peers, _ := s.raftPeers.Peers()
 		if len(peers) <= 1 {
-			s.logger.Printf("[WARN] Not leaving Raft cluster, no peers")
+			s.logger.Printf("[WARN] consul: not leaving Raft cluster, no peers")
 			goto AFTER_LEAVE
 		}
 
 		// Get the leader
 		leader := s.raft.Leader()
 		if leader == nil {
-			s.logger.Printf("[ERR] Failed to leave Raft cluster: no leader")
+			s.logger.Printf("[ERR] consul: failed to leave Raft cluster: no leader")
 			goto AFTER_LEAVE
 		}
 
@@ -373,10 +373,10 @@ func (s *Server) Leave() error {
 		select {
 		case err := <-ch:
 			if err != nil {
-				s.logger.Printf("[ERR] Failed to leave Raft cluster: %v", err)
+				s.logger.Printf("[ERR] consul: failed to leave Raft cluster: %v", err)
 			}
 		case <-time.After(3 * time.Second):
-			s.logger.Printf("[ERR] Timed out leaving Raft cluster")
+			s.logger.Printf("[ERR] consul: timed out leaving Raft cluster")
 		}
 	}
 AFTER_LEAVE:

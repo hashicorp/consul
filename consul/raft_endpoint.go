@@ -12,7 +12,7 @@ type Raft struct {
 func (r *Raft) RemovePeer(args string, reply *struct{}) error {
 	peer, err := net.ResolveTCPAddr("tcp", args)
 	if err != nil {
-		r.server.logger.Printf("[ERR] Failed to parse peer: %v", err)
+		r.server.logger.Printf("[ERR] consul.raft: failed to parse peer: %v", err)
 		return err
 	}
 	future := r.server.raft.RemovePeer(peer)

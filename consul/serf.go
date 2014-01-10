@@ -22,7 +22,7 @@ func (s *Server) lanEventHandler() {
 				s.localMemberEvent(e.(serf.MemberEvent))
 			case serf.EventUser:
 			default:
-				s.logger.Printf("[WARN] Unhandled LAN Serf Event: %#v", e)
+				s.logger.Printf("[WARN] consul: unhandled LAN Serf Event: %#v", e)
 			}
 
 		case <-s.shutdownCh:
@@ -45,7 +45,7 @@ func (s *Server) wanEventHandler() {
 				s.remoteFailed(e.(serf.MemberEvent))
 			case serf.EventUser:
 			default:
-				s.logger.Printf("[WARN] Unhandled LAN Serf Event: %#v", e)
+				s.logger.Printf("[WARN] consul: unhandled WAN Serf Event: %#v", e)
 			}
 
 		case <-s.shutdownCh:
@@ -77,7 +77,7 @@ func (s *Server) localJoin(me serf.MemberEvent) {
 			continue
 		}
 		if dc != s.config.Datacenter {
-			s.logger.Printf("[WARN] Consul server %s for datacenter %s has joined wrong cluster",
+			s.logger.Printf("[WARN] consul: server %s for datacenter %s has joined wrong cluster",
 				m.Name, dc)
 			continue
 		}
@@ -90,11 +90,11 @@ func (s *Server) remoteJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
 		ok, dc, port := isConsulServer(m)
 		if !ok {
-			s.logger.Printf("[WARN] Non-Consul server in WAN pool: %s %s", m.Name)
+			s.logger.Printf("[WARN] consul: non-server in WAN pool: %s %s", m.Name)
 			continue
 		}
 		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
-		s.logger.Printf("[INFO] Adding Consul server (Datacenter: %s) (Addr: %s)", dc, addr)
+		s.logger.Printf("[INFO] consul: adding server for datacenter: %s, addr: %s", dc, addr)
 
 		// Check if this server is known
 		found := false
@@ -123,7 +123,7 @@ func (s *Server) remoteFailed(me serf.MemberEvent) {
 			continue
 		}
 		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
-		s.logger.Printf("[INFO] Removing Consul server (Datacenter: %s) (Addr: %s)", dc, addr)
+		s.logger.Printf("[INFO] consul: removing server for datacenter: %s, addr: %s", dc, addr)
 
 		// Remove the server if known
 		s.remoteLock.Lock()
@@ -160,7 +160,7 @@ CHECK:
 	// Get the Raft peers
 	peers, err := s.raftPeers.Peers()
 	if err != nil {
-		s.logger.Printf("[ERR] Failed to get raft peers: %v", err)
+		s.logger.Printf("[ERR] consul: failed to get raft peers: %v", err)
 		goto WAIT
 	}
 
@@ -179,7 +179,7 @@ CHECK:
 	// Attempt to add as a peer
 	future = s.raft.AddPeer(addr)
 	if err := future.Error(); err != nil {
-		s.logger.Printf("[ERR] Failed to add raft peer: %v", err)
+		s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
 	} else {
 		return
 	}
