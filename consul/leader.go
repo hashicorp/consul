@@ -130,6 +130,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 			}
 		}
 	}
+	s.logger.Printf("[INFO] consul: member '%s' joined, marking health alive", member.Name)
 
 	// Register with the catalog
 	req := structs.RegisterRequest{
@@ -163,6 +164,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 			}
 		}
 	}
+	s.logger.Printf("[INFO] consul: member '%s' failed, marking health critical", member.Name)
 
 	// Register with the catalog
 	req := structs.RegisterRequest{
@@ -190,6 +192,7 @@ func (s *Server) handleLeftMember(member serf.Member) error {
 	if !found {
 		return nil
 	}
+	s.logger.Printf("[INFO] consul: member '%s' left, deregistering", member.Name)
 
 	// Deregister the node
 	req := structs.DeregisterRequest{

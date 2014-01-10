@@ -45,14 +45,16 @@ func testServerDC(t *testing.T, dc string) (string, *Server) {
 	}
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	config.SerfLANConfig.MemberlistConfig.BindPort = getPort()
-	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
-	config.SerfLANConfig.MemberlistConfig.ProbeInterval = time.Second
+	config.SerfLANConfig.MemberlistConfig.SuspicionMult = 2
+	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 50 * time.Millisecond
+	config.SerfLANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
 
 	config.SerfWANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	config.SerfWANConfig.MemberlistConfig.BindPort = getPort()
-	config.SerfWANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
-	config.SerfWANConfig.MemberlistConfig.ProbeInterval = time.Second
+	config.SerfWANConfig.MemberlistConfig.SuspicionMult = 2
+	config.SerfWANConfig.MemberlistConfig.ProbeTimeout = 50 * time.Millisecond
+	config.SerfWANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
 	config.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
 
 	config.RaftConfig.HeartbeatTimeout = 40 * time.Millisecond
