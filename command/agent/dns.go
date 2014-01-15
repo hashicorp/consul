@@ -315,6 +315,9 @@ func (d *DNSServer) serviceLookup(datacenter, service, tag string, req, resp *dn
 		return
 	}
 
+	// Filter out any service nodes due to health checks
+	out = d.filterServiceNodes(out)
+
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
 	if qType == dns.TypeANY || qType == dns.TypeA {
@@ -323,6 +326,24 @@ func (d *DNSServer) serviceLookup(datacenter, service, tag string, req, resp *dn
 	if qType == dns.TypeANY || qType == dns.TypeSRV {
 		d.serviceSRVRecords(datacenter, out, req, resp)
 	}
+}
+
+// filterServiceNodes is used to filter out nodes that are failing
+// health checks to prevent routing to unhealthy nodes
+func (d *DNSServer) filterServiceNodes(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+	n := len(nodes)
+	for i := 0; i < n; i++ {
+		node := nodes[i]
+		for _, check := range node.Checks {
+			if check.Status == structs.HealthCritical {
+				d.logger.Printf("[WARN] dns: node '%s' failing health check '%s: %s', dropping from service '%s'",
+					node.Node.Node, check.CheckID, check.Name, node.Service.Service)
+				nodes[i], nodes[n-1] = nodes[n-1], structs.CheckServiceNode{}
+				n--
+			}
+		}
+	}
+	return nodes[:n]
 }
 
 // serviceARecords is used to add the A records for a service lookup

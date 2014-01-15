@@ -308,3 +308,47 @@ func TestDNS_Recurse(t *testing.T) {
 		t.Fatalf("Bad: %#v", in)
 	}
 }
+
+func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tag:     "master",
+			Port:    12345,
+		},
+		Check: &structs.HealthCheck{
+			CheckID: "serf",
+			Name:    "serf",
+			Status:  structs.HealthCritical,
+		},
+	}
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should get no answer since we are failing!
+	if len(in.Answer) != 0 {
+		t.Fatalf("Bad: %#v", in)
+	}
+}
