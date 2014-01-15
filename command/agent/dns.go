@@ -302,8 +302,8 @@ func (d *DNSServer) serviceLookup(datacenter, service, tag string, req, resp *dn
 		ServiceTag:  tag,
 		TagFilter:   tag != "",
 	}
-	var out structs.ServiceNodes
-	if err := d.agent.RPC("Catalog.ServiceNodes", &args, &out); err != nil {
+	var out structs.CheckServiceNodes
+	if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
@@ -326,19 +326,20 @@ func (d *DNSServer) serviceLookup(datacenter, service, tag string, req, resp *dn
 }
 
 // serviceARecords is used to add the A records for a service lookup
-func (d *DNSServer) serviceARecords(nodes structs.ServiceNodes, req, resp *dns.Msg) {
+func (d *DNSServer) serviceARecords(nodes structs.CheckServiceNodes, req, resp *dns.Msg) {
 	handled := make(map[string]struct{})
 	for _, node := range nodes {
 		// Avoid duplicate entries, possible if a node has
 		// the same service on multiple ports, etc.
-		if _, ok := handled[node.Address]; ok {
+		addr := node.Node.Address
+		if _, ok := handled[addr]; ok {
 			continue
 		}
-		handled[node.Address] = struct{}{}
+		handled[addr] = struct{}{}
 
-		ip := net.ParseIP(node.Address)
+		ip := net.ParseIP(addr)
 		if ip == nil {
-			d.logger.Printf("[ERR] dns: failed to parse IP %v for %v", node.Address, node.Node)
+			d.logger.Printf("[ERR] dns: failed to parse IP %v for %v", addr, node.Node)
 			continue
 		}
 		aRec := &dns.A{
@@ -355,12 +356,12 @@ func (d *DNSServer) serviceARecords(nodes structs.ServiceNodes, req, resp *dns.M
 }
 
 // serviceARecords is used to add the SRV records for a service lookup
-func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.ServiceNodes, req, resp *dns.Msg) {
+func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg) {
 	handled := make(map[string]struct{})
 	for _, node := range nodes {
 		// Avoid duplicate entries, possible if a node has
 		// the same service the same port, etc.
-		tuple := fmt.Sprintf("%s:%d", node.Node, node.ServicePort)
+		tuple := fmt.Sprintf("%s:%d", node.Node.Node, node.Service.Port)
 		if _, ok := handled[tuple]; ok {
 			continue
 		}
@@ -376,21 +377,22 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.ServiceNodes, req
 			},
 			Priority: 1,
 			Weight:   1,
-			Port:     uint16(node.ServicePort),
-			Target:   fmt.Sprintf("%s.node.%s.%s", node.Node, dc, d.domain),
+			Port:     uint16(node.Service.Port),
+			Target:   fmt.Sprintf("%s.node.%s.%s", node.Node.Node, dc, d.domain),
 		}
 		resp.Answer = append(resp.Answer, srvRec)
 
 		// Avoid duplicate A records, possible if a node has
 		// the same service on multiple ports, etc.
-		if _, ok := handled[node.Address]; ok {
+		addr := node.Node.Address
+		if _, ok := handled[addr]; ok {
 			continue
 		}
-		handled[node.Address] = struct{}{}
+		handled[addr] = struct{}{}
 
-		ip := net.ParseIP(node.Address)
+		ip := net.ParseIP(addr)
 		if ip == nil {
-			d.logger.Printf("[ERR] dns: failed to parse IP %v for %v", node.Address, node.Node)
+			d.logger.Printf("[ERR] dns: failed to parse IP %v for %v", addr, node.Node)
 			continue
 		}
 		aRec := &dns.A{
