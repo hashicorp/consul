@@ -716,6 +716,15 @@ func TestCheckServiceNodes(t *testing.T) {
 	if err := store.EnsureCheck(check); err != nil {
 		t.Fatalf("err: %v")
 	}
+	check = &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: serfCheckID,
+		Name:    serfCheckName,
+		Status:  structs.HealthPassing,
+	}
+	if err := store.EnsureCheck(check); err != nil {
+		t.Fatalf("err: %v")
+	}
 
 	nodes := store.CheckServiceNodes("db")
 	if len(nodes) != 1 {
@@ -728,10 +737,13 @@ func TestCheckServiceNodes(t *testing.T) {
 	if nodes[0].Service.ID != "db1" {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if len(nodes[0].Checks) != 1 {
+	if len(nodes[0].Checks) != 2 {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if nodes[0].Checks[0].Status != structs.HealthPassing {
+	if nodes[0].Checks[0].CheckID != "db" {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if nodes[0].Checks[1].CheckID != serfCheckID {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
 
@@ -746,10 +758,13 @@ func TestCheckServiceNodes(t *testing.T) {
 	if nodes[0].Service.ID != "db1" {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if len(nodes[0].Checks) != 1 {
+	if len(nodes[0].Checks) != 2 {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if nodes[0].Checks[0].Status != structs.HealthPassing {
+	if nodes[0].Checks[0].CheckID != "db" {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if nodes[0].Checks[1].CheckID != serfCheckID {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
 }

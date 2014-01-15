@@ -526,8 +526,12 @@ func (s *StateStore) parseCheckServiceNodes(tx *MDBTxn, res []interface{}, err e
 			panic(fmt.Errorf("Failed to join node: %v", err))
 		}
 
-		// Get any associated checks
+		// Get any associated checks of the service
 		checks := parseHealthChecks(s.checkTable.GetTxn(tx, "node", srv.Node, srv.ServiceID))
+
+		// Get any checks of the node, not assciated with any service
+		nodeChecks := parseHealthChecks(s.checkTable.GetTxn(tx, "node", srv.Node, ""))
+		checks = append(checks, nodeChecks...)
 
 		// Setup the node
 		nodes[i].Node = *nodeRes[0].(*structs.Node)
