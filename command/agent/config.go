@@ -11,12 +11,18 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 // Config is the configuration that can be set for an Agent.
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
 type Config struct {
+	// AEInterval controls the anti-entropy interval. This is how often
+	// the agent attempts to reconcile it's local state with the server'
+	// representation of our state. Defaults to every 60s.
+	AEInterval time.Duration
+
 	// Bootstrap is used to bring up the first Consul server, and
 	// permits that node to elect itself leader
 	Bootstrap bool
@@ -96,6 +102,7 @@ type dirEnts []os.FileInfo
 // DefaultConfig is used to return a sane default configuration
 func DefaultConfig() *Config {
 	return &Config{
+		AEInterval:  time.Minute,
 		Datacenter:  consul.DefaultDC,
 		DNSAddr:     "127.0.0.1:8600",
 		Domain:      "consul.",
