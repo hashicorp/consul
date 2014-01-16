@@ -42,10 +42,10 @@ func TestLeader_RegisterMember(t *testing.T) {
 	if len(checks) != 1 {
 		t.Fatalf("client missing check")
 	}
-	if checks[0].CheckID != serfCheckID {
+	if checks[0].CheckID != SerfCheckID {
 		t.Fatalf("bad check: %v", checks[0])
 	}
-	if checks[0].Name != serfCheckName {
+	if checks[0].Name != SerfCheckName {
 		t.Fatalf("bad check: %v", checks[0])
 	}
 	if checks[0].Status != structs.HealthPassing {
@@ -102,10 +102,10 @@ func TestLeader_FailedMember(t *testing.T) {
 	if len(checks) != 1 {
 		t.Fatalf("client missing check")
 	}
-	if checks[0].CheckID != serfCheckID {
+	if checks[0].CheckID != SerfCheckID {
 		t.Fatalf("bad check: %v", checks[0])
 	}
-	if checks[0].Name != serfCheckName {
+	if checks[0].Name != SerfCheckName {
 		t.Fatalf("bad check: %v", checks[0])
 	}
 	if checks[0].Status != structs.HealthCritical {

@@ -718,8 +718,8 @@ func TestCheckServiceNodes(t *testing.T) {
 	}
 	check = &structs.HealthCheck{
 		Node:    "foo",
-		CheckID: serfCheckID,
-		Name:    serfCheckName,
+		CheckID: SerfCheckID,
+		Name:    SerfCheckName,
 		Status:  structs.HealthPassing,
 	}
 	if err := store.EnsureCheck(check); err != nil {
@@ -743,7 +743,7 @@ func TestCheckServiceNodes(t *testing.T) {
 	if nodes[0].Checks[0].CheckID != "db" {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if nodes[0].Checks[1].CheckID != serfCheckID {
+	if nodes[0].Checks[1].CheckID != SerfCheckID {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
 
@@ -764,7 +764,7 @@ func TestCheckServiceNodes(t *testing.T) {
 	if nodes[0].Checks[0].CheckID != "db" {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if nodes[0].Checks[1].CheckID != serfCheckID {
+	if nodes[0].Checks[1].CheckID != SerfCheckID {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
 }

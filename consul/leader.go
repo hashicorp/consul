@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	serfCheckID   = "serfHealth"
-	serfCheckName = "Serf Health Status"
+	SerfCheckID   = "serfHealth"
+	SerfCheckName = "Serf Health Status"
 )
 
 // monitorLeadership is used to monitor if we acquire or lose our role
@@ -173,7 +173,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		// Check if the serfCheck is in the passing state
 		checks := state.NodeChecks(member.Name)
 		for _, check := range checks {
-			if check.CheckID == serfCheckID && check.Status == structs.HealthPassing {
+			if check.CheckID == SerfCheckID && check.Status == structs.HealthPassing {
 				return nil
 			}
 		}
@@ -189,8 +189,8 @@ AFTER_CHECK:
 		Service:    service,
 		Check: &structs.HealthCheck{
 			Node:    member.Name,
-			CheckID: serfCheckID,
-			Name:    serfCheckName,
+			CheckID: SerfCheckID,
+			Name:    SerfCheckName,
 			Status:  structs.HealthPassing,
 		},
 	}
@@ -209,7 +209,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 		// Check if the serfCheck is in the critical state
 		checks := state.NodeChecks(member.Name)
 		for _, check := range checks {
-			if check.CheckID == serfCheckID && check.Status == structs.HealthCritical {
+			if check.CheckID == SerfCheckID && check.Status == structs.HealthCritical {
 				return nil
 			}
 		}
@@ -223,8 +223,8 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 		Address:    member.Addr.String(),
 		Check: &structs.HealthCheck{
 			Node:    member.Name,
-			CheckID: serfCheckID,
-			Name:    serfCheckName,
+			CheckID: SerfCheckID,
+			Name:    SerfCheckName,
 			Status:  structs.HealthCritical,
 		},
 	}
