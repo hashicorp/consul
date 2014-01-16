@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"reflect"
 	"sync"
@@ -196,6 +197,11 @@ func (a *Agent) setSyncState() error {
 		// If we don't have the service locally, deregister it
 		existing, ok := a.state.services[id]
 		if !ok {
+			// The Consul service is created automatically, and
+			// does not need to be registered
+			if id == consul.ConsulServiceID && a.config.Server {
+				continue
+			}
 			a.state.serviceStatus[id] = syncStatus{remoteDelete: true}
 			continue
 		}
@@ -210,6 +216,11 @@ func (a *Agent) setSyncState() error {
 		id := check.CheckID
 		existing, ok := a.state.checks[id]
 		if !ok {
+			// The Serf check is created automatically, and does not
+			// need to be registered
+			if id == consul.SerfCheckID {
+				continue
+			}
 			a.state.checkStatus[id] = syncStatus{remoteDelete: true}
 			continue
 		}
