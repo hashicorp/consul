@@ -196,6 +196,11 @@ func (c *Command) Run(args []string) int {
 		defer c.httpServer.Shutdown()
 	}
 
+	// TODO: Register services/checks
+
+	// Let the agent know we've finished registration
+	c.agent.RegistrationDone()
+
 	c.Ui.Output("Consul agent running!")
 	c.Ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
 	c.Ui.Info(fmt.Sprintf("    Datacenter: '%s'", config.Datacenter))

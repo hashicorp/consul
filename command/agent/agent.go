@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
 	"io"
 	"log"
@@ -36,6 +37,10 @@ type Agent struct {
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
+
+	// state stores a local representation of the node,
+	// services and checks. Used for anti-entropy.
+	state localState
 }
 
 // Create is used to create a new Agent. Returns
@@ -77,6 +82,14 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		logger:     log.New(logOutput, "", log.LstdFlags),
 		logOutput:  logOutput,
 		shutdownCh: make(chan struct{}),
+		state: localState{
+			delaySync:     make(chan struct{}, 1),
+			services:      make(map[string]*structs.NodeService),
+			serviceStatus: make(map[string]syncStatus),
+			checks:        make(map[string]*structs.HealthCheck),
+			checkStatus:   make(map[string]syncStatus),
+			triggerCh:     make(chan struct{}, 1),
+		},
 	}
 
 	// Setup either the client or the server
@@ -90,6 +103,8 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		return nil, err
 	}
 
+	// Start the anti entropy routine
+	go agent.antiEntropy()
 	return agent, nil
 }
 
