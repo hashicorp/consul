@@ -9,8 +9,10 @@ import (
 )
 
 const (
-	SerfCheckID   = "serfHealth"
-	SerfCheckName = "Serf Health Status"
+	SerfCheckID       = "serfHealth"
+	SerfCheckName     = "Serf Health Status"
+	ConsulServiceID   = "consul"
+	ConsulServiceName = "consul"
 )
 
 // monitorLeadership is used to monitor if we acquire or lose our role
@@ -142,8 +144,8 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 	var service *structs.NodeService
 	if valid, _, port := isConsulServer(member); valid {
 		service = &structs.NodeService{
-			ID:      "consul",
-			Service: "consul",
+			ID:      ConsulServiceID,
+			Service: ConsulServiceName,
 			Port:    port,
 		}
 
