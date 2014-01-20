@@ -17,6 +17,7 @@ const (
 	serfLANSnapshot = "serf/local.snapshot"
 	serfWANSnapshot = "serf/remote.snapshot"
 	raftState       = "raft/"
+	bootstrapFlag   = "b"
 )
 
 // Server is Consul server which manages the service discovery,
@@ -163,7 +164,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	addr := s.rpcListener.Addr().(*net.TCPAddr)
 	flags := ""
 	if s.config.Bootstrap {
-		flags = "b"
+		flags = bootstrapFlag
 	}
 	conf.NodeName = s.config.NodeName
 	conf.Role = fmt.Sprintf("consul:%s:%d:%s", s.config.Datacenter, addr.Port, flags)

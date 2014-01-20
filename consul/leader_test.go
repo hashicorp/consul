@@ -257,3 +257,48 @@ CHECK2:
 		}
 	}
 }
+
+func TestLeader_MultiBootstrap(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServer(t)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	servers := []*Server{s1, s2}
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait until we have 2 peers
+	start := time.Now()
+CHECK1:
+	for _, s := range servers {
+		peers := s.serfLAN.Members()
+		if len(peers) != 2 {
+			if time.Now().Sub(start) >= 2*time.Second {
+				t.Fatalf("should have 2 peers")
+			} else {
+				time.Sleep(100 * time.Millisecond)
+				goto CHECK1
+			}
+		}
+	}
+
+	// Wait to ensure no peer is added
+	time.Sleep(200 * time.Millisecond)
+
+	// Ensure we don't have multiple raft peers
+	for _, s := range servers {
+		peers, _ := s.raftPeers.Peers()
+		if len(peers) != 1 {
+			t.Fatalf("should only have 1 raft peer!")
+		}
+	}
+}

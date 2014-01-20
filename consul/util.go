@@ -26,6 +26,11 @@ type serverParts struct {
 	Flags      string
 }
 
+// HasFlag is used to check if a flag is present
+func (s *serverParts) HasFlag(flag string) bool {
+	return strings.Contains(s.Flags, flag)
+}
+
 func init() {
 	// Add each private block
 	privateBlocks = make([]*net.IPNet, 3)

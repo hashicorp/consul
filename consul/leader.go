@@ -150,7 +150,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 
 		// Attempt to join the consul server
-		if err := s.joinConsulServer(member, parts.Port); err != nil {
+		if err := s.joinConsulServer(member, parts); err != nil {
 			return err
 		}
 	}
@@ -263,14 +263,26 @@ func (s *Server) handleLeftMember(member serf.Member) error {
 }
 
 // joinConsulServer is used to try to join another consul server
-func (s *Server) joinConsulServer(m serf.Member, port int) error {
+func (s *Server) joinConsulServer(m serf.Member, parts *serverParts) error {
 	// Do not join ourself
 	if m.Name == s.config.NodeName {
 		return nil
 	}
 
+	// Check for possibility of multiple bootstrap nodes
+	if parts.HasFlag(bootstrapFlag) {
+		members := s.serfLAN.Members()
+		for _, member := range members {
+			valid, p := isConsulServer(member)
+			if valid && member.Name != m.Name && p.HasFlag(bootstrapFlag) {
+				s.logger.Printf("[ERR] consul: '%v' and '%v' are both in bootstrap mode. Only one node should be in bootstrap mode, not adding Raft peer.", m.Name, member.Name)
+				return nil
+			}
+		}
+	}
+
 	// Attempt to add as a peer
-	var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
+	var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: parts.Port}
 	future := s.raft.AddPeer(addr)
 	if err := future.Error(); err != nil && err != raft.KnownPeer {
 		s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
