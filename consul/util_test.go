@@ -37,9 +37,9 @@ func TestIsConsulServer(t *testing.T) {
 	m := serf.Member{
 		Role: "consul:east-aws:10000",
 	}
-	valid, dc, port := isConsulServer(m)
-	if !valid || dc != "east-aws" || port != 10000 {
-		t.Fatalf("bad: %v %v %v", valid, dc, port)
+	valid, parts := isConsulServer(m)
+	if !valid || parts.Datacenter != "east-aws" || parts.Port != 10000 {
+		t.Fatalf("bad: %v %v", valid, parts)
 	}
 }
 

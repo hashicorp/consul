@@ -71,18 +71,18 @@ func (s *Server) localMemberEvent(me serf.MemberEvent) {
 // remoteJoin is used to handle join events on the wan serf cluster
 func (s *Server) remoteJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, dc, port := isConsulServer(m)
+		ok, parts := isConsulServer(m)
 		if !ok {
 			s.logger.Printf("[WARN] consul: non-server in WAN pool: %s %s", m.Name)
 			continue
 		}
-		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
-		s.logger.Printf("[INFO] consul: adding server for datacenter: %s, addr: %s", dc, addr)
+		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: parts.Port}
+		s.logger.Printf("[INFO] consul: adding server for datacenter: %s, addr: %s", parts.Datacenter, addr)
 
 		// Check if this server is known
 		found := false
 		s.remoteLock.Lock()
-		existing := s.remoteConsuls[dc]
+		existing := s.remoteConsuls[parts.Datacenter]
 		for _, e := range existing {
 			if e.String() == addr.String() {
 				found = true
@@ -92,7 +92,7 @@ func (s *Server) remoteJoin(me serf.MemberEvent) {
 
 		// Add ot the list if not known
 		if !found {
-			s.remoteConsuls[dc] = append(existing, addr)
+			s.remoteConsuls[parts.Datacenter] = append(existing, addr)
 		}
 		s.remoteLock.Unlock()
 	}
@@ -101,16 +101,16 @@ func (s *Server) remoteJoin(me serf.MemberEvent) {
 // remoteFailed is used to handle fail events on the wan serf cluster
 func (s *Server) remoteFailed(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, dc, port := isConsulServer(m)
+		ok, parts := isConsulServer(m)
 		if !ok {
 			continue
 		}
-		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
-		s.logger.Printf("[INFO] consul: removing server for datacenter: %s, addr: %s", dc, addr)
+		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: parts.Port}
+		s.logger.Printf("[INFO] consul: removing server for datacenter: %s, addr: %s", parts.Datacenter, addr)
 
 		// Remove the server if known
 		s.remoteLock.Lock()
-		existing := s.remoteConsuls[dc]
+		existing := s.remoteConsuls[parts.Datacenter]
 		n := len(existing)
 		for i := 0; i < n; i++ {
 			if existing[i].String() == addr.String() {
@@ -123,9 +123,9 @@ func (s *Server) remoteFailed(me serf.MemberEvent) {
 
 		// Trim the list if all known consuls are dead
 		if n == 0 {
-			delete(s.remoteConsuls, dc)
+			delete(s.remoteConsuls, parts.Datacenter)
 		} else {
-			s.remoteConsuls[dc] = existing
+			s.remoteConsuls[parts.Datacenter] = existing
 		}
 		s.remoteLock.Unlock()
 	}

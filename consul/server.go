@@ -161,8 +161,12 @@ func NewServer(config *Config) (*Server, error) {
 // setupSerf is used to setup and initialize a Serf
 func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (*serf.Serf, error) {
 	addr := s.rpcListener.Addr().(*net.TCPAddr)
+	flags := ""
+	if s.config.Bootstrap {
+		flags = "b"
+	}
 	conf.NodeName = s.config.NodeName
-	conf.Role = fmt.Sprintf("consul:%s:%d", s.config.Datacenter, addr.Port)
+	conf.Role = fmt.Sprintf("consul:%s:%d:%s", s.config.Datacenter, addr.Port, flags)
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput
 	conf.EventCh = ch

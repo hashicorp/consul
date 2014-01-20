@@ -19,6 +19,13 @@ import (
  */
 var privateBlocks []*net.IPNet
 
+// serverparts is used to return the parts of a server role
+type serverParts struct {
+	Datacenter string
+	Port       int
+	Flags      string
+}
+
 func init() {
 	// Add each private block
 	privateBlocks = make([]*net.IPNet, 3)
@@ -61,21 +68,22 @@ func ensurePath(path string, dir bool) error {
 
 // Returns if a member is a consul server. Returns a bool,
 // the data center, and the rpc port
-func isConsulServer(m serf.Member) (bool, string, int) {
+func isConsulServer(m serf.Member) (bool, *serverParts) {
 	role := m.Role
 	if !strings.HasPrefix(role, "consul:") {
-		return false, "", 0
+		return false, nil
 	}
 
-	parts := strings.SplitN(role, ":", 3)
+	parts := strings.SplitN(role, ":", 4)
 	datacenter := parts[1]
 	port_str := parts[2]
+	flags := parts[3]
 	port, err := strconv.Atoi(port_str)
 	if err != nil {
-		return false, "", 0
+		return false, nil
 	}
 
-	return true, datacenter, port
+	return true, &serverParts{datacenter, port, flags}
 }
 
 // Returns if a member is a consul node. Returns a boo,

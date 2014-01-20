@@ -129,7 +129,7 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 	if valid, dc := isConsulNode(member); valid && dc == s.config.Datacenter {
 		return true
 	}
-	if valid, dc, _ := isConsulServer(member); valid && dc == s.config.Datacenter {
+	if valid, parts := isConsulServer(member); valid && parts.Datacenter == s.config.Datacenter {
 		return true
 	}
 	return false
@@ -142,15 +142,15 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 
 	// Register consul service if a server
 	var service *structs.NodeService
-	if valid, _, port := isConsulServer(member); valid {
+	if valid, parts := isConsulServer(member); valid {
 		service = &structs.NodeService{
 			ID:      ConsulServiceID,
 			Service: ConsulServiceName,
-			Port:    port,
+			Port:    parts.Port,
 		}
 
 		// Attempt to join the consul server
-		if err := s.joinConsulServer(member, port); err != nil {
+		if err := s.joinConsulServer(member, parts.Port); err != nil {
 			return err
 		}
 	}
@@ -247,8 +247,8 @@ func (s *Server) handleLeftMember(member serf.Member) error {
 	s.logger.Printf("[INFO] consul: member '%s' left, deregistering", member.Name)
 
 	// Remove from Raft peers if this was a server
-	if valid, _, port := isConsulServer(member); valid {
-		if err := s.removeConsulServer(member, port); err != nil {
+	if valid, parts := isConsulServer(member); valid {
+		if err := s.removeConsulServer(member, parts.Port); err != nil {
 			return err
 		}
 	}
@@ -279,7 +279,7 @@ func (s *Server) joinConsulServer(m serf.Member, port int) error {
 	return nil
 }
 
-// joinConsulServer is used to try to join another consul server
+// removeConsulServer is used to try to remove a consul server that has left
 func (s *Server) removeConsulServer(m serf.Member, port int) error {
 	// Do not remove ourself
 	if m.Name == s.config.NodeName {

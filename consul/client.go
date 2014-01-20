@@ -178,18 +178,18 @@ func (c *Client) lanEventHandler() {
 // nodeJoin is used to handle join events on the serf cluster
 func (c *Client) nodeJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, dc, port := isConsulServer(m)
+		ok, parts := isConsulServer(m)
 		if !ok {
 			continue
 		}
-		if dc != c.config.Datacenter {
+		if parts.Datacenter != c.config.Datacenter {
 			c.logger.Printf("[WARN] consul: server %s for datacenter %s has joined wrong cluster",
-				m.Name, dc)
+				m.Name, parts.Datacenter)
 			continue
 		}
 
-		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
-		c.logger.Printf("[INFO] consul: adding server for datacenter: %s, addr: %s", dc, addr)
+		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: parts.Port}
+		c.logger.Printf("[INFO] consul: adding server for datacenter: %s, addr: %s", parts.Datacenter, addr)
 
 		// Check if this server is known
 		found := false
@@ -212,12 +212,12 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 // nodeFail is used to handle fail events on the serf cluster
 func (c *Client) nodeFail(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, dc, port := isConsulServer(m)
+		ok, parts := isConsulServer(m)
 		if !ok {
 			continue
 		}
-		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: port}
-		c.logger.Printf("[INFO] consul: removing server for datacenter: %s, addr: %s", dc, addr)
+		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: parts.Port}
+		c.logger.Printf("[INFO] consul: removing server for datacenter: %s, addr: %s", parts.Datacenter, addr)
 
 		// Remove the server if known
 		c.consulLock.Lock()
