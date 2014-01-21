@@ -89,6 +89,19 @@ func (a *Agent) RemoveService(serviceID string) {
 	a.state.changeMade()
 }
 
+// Services returns the locally registered services that the
+// agent is aware of and are being kept in sync with the server
+func (a *Agent) Services() map[string]*structs.NodeService {
+	services := make(map[string]*structs.NodeService)
+	a.state.Lock()
+	defer a.state.Unlock()
+
+	for name, serv := range a.state.services {
+		services[name] = serv
+	}
+	return services
+}
+
 // AddCheck is used to add a health check to the local state.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
@@ -131,6 +144,19 @@ func (a *Agent) UpdateCheck(checkID, status string) {
 	check.Status = status
 	a.state.checkStatus[checkID] = syncStatus{inSync: false}
 	a.state.changeMade()
+}
+
+// Checks returns the locally registered checks that the
+// agent is aware of and are being kept in sync with the server
+func (a *Agent) Checks() map[string]*structs.HealthCheck {
+	checks := make(map[string]*structs.HealthCheck)
+	a.state.Lock()
+	defer a.state.Unlock()
+
+	for name, check := range a.state.checks {
+		checks[name] = check
+	}
+	return checks
 }
 
 // antiEntropy is a long running method used to perform anti-entropy
