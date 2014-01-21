@@ -123,3 +123,65 @@ func (c *CheckMonitor) check() {
 	c.Logger.Printf("[WARN] Check '%v' is now critical", c.CheckID)
 	c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical)
 }
+
+// CheckTTL is used to apply a TTL to check status,
+// and enables clients to set the status of a check
+// but upon the TTL expiring, the check status is
+// automatically set to critical.
+type CheckTTL struct {
+	Notify  CheckNotifier
+	CheckID string
+	TTL     time.Duration
+	Logger  *log.Logger
+
+	timer *time.Timer
+
+	stop     bool
+	stopCh   chan struct{}
+	stopLock sync.Mutex
+}
+
+// Start is used to start a check ttl, runs until Stop()
+func (c *CheckTTL) Start() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	c.stop = false
+	c.stopCh = make(chan struct{})
+	c.timer = time.NewTimer(c.TTL)
+	go c.run()
+}
+
+// Stop is used to stop a check ttl.
+func (c *CheckTTL) Stop() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	if !c.stop {
+		c.timer.Stop()
+		c.stop = true
+		close(c.stopCh)
+	}
+}
+
+// run is used to handle TTL expiration and to update the check status
+func (c *CheckTTL) run() {
+	for {
+		select {
+		case <-c.timer.C:
+			c.Logger.Printf("[WARN] Check '%v' missed TTL, is now critical",
+				c.CheckID)
+			c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical)
+
+		case <-c.stopCh:
+			return
+		}
+	}
+}
+
+// SetStatus is used to update the status of the check,
+// and to renew the TTL. If expired, TTL is restarted.
+func (c *CheckTTL) SetStatus(status string) {
+	c.Logger.Printf("[DEBUG] Check '%v' status is now %v",
+		c.CheckID, status)
+	c.Notify.UpdateCheck(c.CheckID, status)
+	c.timer.Reset(c.TTL)
+}

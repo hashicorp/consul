@@ -61,3 +61,46 @@ func TestCheckMonitor_Critical(t *testing.T) {
 func TestCheckMonitor_BadCmd(t *testing.T) {
 	expectStatus(t, "foobarbaz", structs.HealthCritical)
 }
+
+func TestCheckTTL(t *testing.T) {
+	mock := &MockNotify{
+		state:   make(map[string]string),
+		updates: make(map[string]int),
+	}
+	check := &CheckTTL{
+		Notify:  mock,
+		CheckID: "foo",
+		TTL:     20 * time.Millisecond,
+		Logger:  log.New(os.Stderr, "", log.LstdFlags),
+	}
+	check.Start()
+	defer check.Stop()
+
+	time.Sleep(10 * time.Millisecond)
+	check.SetStatus(structs.HealthPassing)
+
+	if mock.updates["foo"] != 1 {
+		t.Fatalf("should have 1 updates %v", mock.updates)
+	}
+
+	if mock.state["foo"] != structs.HealthPassing {
+		t.Fatalf("should be passing %v", mock.state)
+	}
+
+	// Ensure we don't fail early
+	time.Sleep(15 * time.Millisecond)
+	if mock.updates["foo"] != 1 {
+		t.Fatalf("should have 1 updates %v", mock.updates)
+	}
+
+	// Wait for the TTL to expire
+	time.Sleep(15 * time.Millisecond)
+
+	if mock.updates["foo"] != 2 {
+		t.Fatalf("should have 2 updates %v", mock.updates)
+	}
+
+	if mock.state["foo"] != structs.HealthCritical {
+		t.Fatalf("should be critical %v", mock.state)
+	}
+}
