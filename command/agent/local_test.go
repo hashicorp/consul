@@ -130,3 +130,126 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		}
 	}
 }
+
+func TestAgentAntiEntropy_Checks(t *testing.T) {
+	conf := nextConfig()
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// Wait for a leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Register info
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+		Address:    "127.0.0.1",
+	}
+	var out struct{}
+
+	// Exists both, same (noop)
+	chk1 := &structs.HealthCheck{
+		Node:    agent.config.NodeName,
+		CheckID: "mysql",
+		Name:    "mysql",
+		Status:  structs.HealthPassing,
+	}
+	agent.AddCheck(chk1)
+	args.Check = chk1
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Exists both, different (update)
+	chk2 := &structs.HealthCheck{
+		Node:    agent.config.NodeName,
+		CheckID: "redis",
+		Name:    "redis",
+		Status:  structs.HealthPassing,
+	}
+	agent.AddCheck(chk2)
+
+	chk2_mod := new(structs.HealthCheck)
+	*chk2_mod = *chk2
+	chk2_mod.Status = structs.HealthUnknown
+	args.Check = chk2_mod
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Exists local (create)
+	chk3 := &structs.HealthCheck{
+		Node:    agent.config.NodeName,
+		CheckID: "web",
+		Name:    "web",
+		Status:  structs.HealthPassing,
+	}
+	agent.AddCheck(chk3)
+
+	// Exists remote (delete)
+	chk4 := &structs.HealthCheck{
+		Node:    agent.config.NodeName,
+		CheckID: "lb",
+		Name:    "lb",
+		Status:  structs.HealthPassing,
+	}
+	args.Check = chk4
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Trigger anti-entropy run and wait
+	agent.RegistrationDone()
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify that we are in sync
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+	}
+	var checks structs.HealthChecks
+	if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// We should have 4 services (serf included)
+	if len(checks) != 4 {
+		t.Fatalf("bad: %v", checks)
+	}
+
+	// All the checks should match
+	for _, chk := range checks {
+		switch chk.CheckID {
+		case "mysql":
+			if !reflect.DeepEqual(chk, chk1) {
+				t.Fatalf("bad: %v %v", chk, chk1)
+			}
+		case "redis":
+			if !reflect.DeepEqual(chk, chk2) {
+				t.Fatalf("bad: %v %v", chk, chk2)
+			}
+		case "web":
+			if !reflect.DeepEqual(chk, chk3) {
+				t.Fatalf("bad: %v %v", chk, chk3)
+			}
+		case "serfHealth":
+			// ignore
+		default:
+			t.Fatalf("unexpected check: %v", chk)
+		}
+	}
+
+	// Check the local state
+	if len(agent.state.checks) != 3 {
+		t.Fatalf("bad: %v", agent.state.checks)
+	}
+	if len(agent.state.checkStatus) != 3 {
+		t.Fatalf("bad: %v", agent.state.checkStatus)
+	}
+	for name, status := range agent.state.checkStatus {
+		if !status.inSync {
+			t.Fatalf("should be in sync: %v %v", name, status)
+		}
+	}
+}
