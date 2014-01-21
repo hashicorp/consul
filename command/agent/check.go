@@ -55,11 +55,15 @@ func (c *CheckMonitor) Stop() {
 
 // run is invoked by a goroutine to run until Stop() is called
 func (c *CheckMonitor) run() {
-	select {
-	case <-time.After(c.Interval):
-		c.check()
-	case <-c.stopCh:
-		return
+	next := time.After(0)
+	for {
+		select {
+		case <-next:
+			c.check()
+			next = time.After(c.Interval)
+		case <-c.stopCh:
+			return
+		}
 	}
 }
 
