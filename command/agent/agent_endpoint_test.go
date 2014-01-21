@@ -2,12 +2,67 @@ package agent
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 )
+
+func TestHTTPAgentServices(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	srv1 := &structs.NodeService{
+		ID:      "mysql",
+		Service: "mysql",
+		Tag:     "master",
+		Port:    5000,
+	}
+	srv.agent.AddService(srv1)
+
+	obj, err := srv.AgentServices(nil, nil)
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	val := obj.(map[string]*structs.NodeService)
+	if len(val) != 1 {
+		t.Fatalf("bad services: %v", obj)
+	}
+	if val["mysql"].Port != 5000 {
+		t.Fatalf("bad service: %v", obj)
+	}
+}
+
+func TestHTTPAgentChecks(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	chk1 := &structs.HealthCheck{
+		Node:    srv.agent.config.NodeName,
+		CheckID: "mysql",
+		Name:    "mysql",
+		Status:  structs.HealthPassing,
+	}
+	srv.agent.AddCheck(chk1)
+
+	obj, err := srv.AgentChecks(nil, nil)
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	val := obj.(map[string]*structs.HealthCheck)
+	if len(val) != 1 {
+		t.Fatalf("bad checks: %v", obj)
+	}
+	if val["mysql"].Status != structs.HealthPassing {
+		t.Fatalf("bad check: %v", obj)
+	}
+}
 
 func TestHTTPAgentMembers(t *testing.T) {
 	dir, srv := makeHTTPServer(t)

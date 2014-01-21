@@ -106,6 +106,9 @@ func (a *Agent) Services() map[string]*structs.NodeService {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
 func (a *Agent) AddCheck(check *structs.HealthCheck) {
+	// Set the node name
+	check.Node = a.config.NodeName
+
 	a.state.Lock()
 	defer a.state.Unlock()
 
