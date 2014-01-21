@@ -32,7 +32,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Tag:     "master",
 		Port:    5000,
 	}
-	agent.AddService(srv1)
+	agent.state.AddService(srv1)
 	args.Service = srv1
 	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -45,7 +45,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Tag:     "",
 		Port:    8000,
 	}
-	agent.AddService(srv2)
+	agent.state.AddService(srv2)
 
 	srv2_mod := new(structs.NodeService)
 	*srv2_mod = *srv2
@@ -62,7 +62,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Tag:     "",
 		Port:    80,
 	}
-	agent.AddService(srv3)
+	agent.state.AddService(srv3)
 
 	// Exists remote (delete)
 	srv4 := &structs.NodeService{
@@ -77,7 +77,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	}
 
 	// Trigger anti-entropy run and wait
-	agent.RegistrationDone()
+	agent.StartSync()
 	time.Sleep(100 * time.Millisecond)
 
 	// Verify that we are in sync
@@ -155,7 +155,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Name:    "mysql",
 		Status:  structs.HealthPassing,
 	}
-	agent.AddCheck(chk1)
+	agent.state.AddCheck(chk1)
 	args.Check = chk1
 	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -168,7 +168,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Name:    "redis",
 		Status:  structs.HealthPassing,
 	}
-	agent.AddCheck(chk2)
+	agent.state.AddCheck(chk2)
 
 	chk2_mod := new(structs.HealthCheck)
 	*chk2_mod = *chk2
@@ -185,7 +185,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Name:    "web",
 		Status:  structs.HealthPassing,
 	}
-	agent.AddCheck(chk3)
+	agent.state.AddCheck(chk3)
 
 	// Exists remote (delete)
 	chk4 := &structs.HealthCheck{
@@ -200,7 +200,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	}
 
 	// Trigger anti-entropy run and wait
-	agent.RegistrationDone()
+	agent.StartSync()
 	time.Sleep(100 * time.Millisecond)
 
 	// Verify that we are in sync

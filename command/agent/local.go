@@ -3,6 +3,7 @@ package agent
 import (
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
+	"log"
 	"reflect"
 	"sync"
 	"time"
@@ -10,7 +11,6 @@ import (
 
 const (
 	syncRetryIntv = 30 * time.Second
-	maxDelaySync  = 30 * time.Second
 )
 
 // syncStatus is used to represent the difference between
@@ -25,10 +25,13 @@ type syncStatus struct {
 // catalog representation
 type localState struct {
 	sync.Mutex
+	logger *log.Logger
 
-	// delaySync is used to delay the initial sync until
-	// the client has registered its services and checks.
-	delaySync chan struct{}
+	// Config is the agent config
+	config *Config
+
+	// iface is the consul interface to use for keeping in sync
+	iface consul.Interface
 
 	// Services tracks the local services
 	services      map[string]*structs.NodeService
@@ -43,6 +46,18 @@ type localState struct {
 	triggerCh chan struct{}
 }
 
+// Init is used to initialize the local state
+func (l *localState) Init(config *Config, iface consul.Interface, logger *log.Logger) {
+	l.config = config
+	l.iface = iface
+	l.logger = logger
+	l.services = make(map[string]*structs.NodeService)
+	l.serviceStatus = make(map[string]syncStatus)
+	l.checks = make(map[string]*structs.HealthCheck)
+	l.checkStatus = make(map[string]syncStatus)
+	l.triggerCh = make(chan struct{}, 1)
+}
+
 // changeMade is used to trigger an anti-entropy run
 func (l *localState) changeMade() {
 	select {
@@ -51,52 +66,42 @@ func (l *localState) changeMade() {
 	}
 }
 
-// RegistrationDone is called by the Agent client once base Services
-// and Checks are registered. This is called to prevent a race
-// between clients and the anti-entropy routines
-func (a *Agent) RegistrationDone() {
-	select {
-	case a.state.delaySync <- struct{}{}:
-	default:
-	}
-}
-
 // AddService is used to add a service entry to the local state.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (a *Agent) AddService(service *structs.NodeService) {
+func (l *localState) AddService(service *structs.NodeService) {
 	// Assign the ID if none given
 	if service.ID == "" && service.Service != "" {
 		service.ID = service.Service
 	}
 
-	a.state.Lock()
-	defer a.state.Unlock()
+	l.Lock()
+	defer l.Unlock()
 
-	a.state.services[service.ID] = service
-	a.state.serviceStatus[service.ID] = syncStatus{}
-	a.state.changeMade()
+	l.services[service.ID] = service
+	l.serviceStatus[service.ID] = syncStatus{}
+	l.changeMade()
 }
 
 // RemoveService is used to remove a service entry from the local state.
 // The agent will make a best effort to ensure it is deregistered
-func (a *Agent) RemoveService(serviceID string) {
-	a.state.Lock()
-	defer a.state.Unlock()
+func (l *localState) RemoveService(serviceID string) {
+	l.Lock()
+	defer l.Unlock()
 
-	delete(a.state.services, serviceID)
-	a.state.serviceStatus[serviceID] = syncStatus{remoteDelete: true}
-	a.state.changeMade()
+	delete(l.services, serviceID)
+	l.serviceStatus[serviceID] = syncStatus{remoteDelete: true}
+	l.changeMade()
 }
 
 // Services returns the locally registered services that the
 // agent is aware of and are being kept in sync with the server
-func (a *Agent) Services() map[string]*structs.NodeService {
+func (l *localState) Services() map[string]*structs.NodeService {
 	services := make(map[string]*structs.NodeService)
-	a.state.Lock()
-	defer a.state.Unlock()
+	l.Lock()
+	defer l.Unlock()
 
-	for name, serv := range a.state.services {
+	for name, serv := range l.services {
 		services[name] = serv
 	}
 	return services
@@ -105,35 +110,35 @@ func (a *Agent) Services() map[string]*structs.NodeService {
 // AddCheck is used to add a health check to the local state.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (a *Agent) AddCheck(check *structs.HealthCheck) {
+func (l *localState) AddCheck(check *structs.HealthCheck) {
 	// Set the node name
-	check.Node = a.config.NodeName
+	check.Node = l.config.NodeName
 
-	a.state.Lock()
-	defer a.state.Unlock()
+	l.Lock()
+	defer l.Unlock()
 
-	a.state.checks[check.CheckID] = check
-	a.state.checkStatus[check.CheckID] = syncStatus{}
-	a.state.changeMade()
+	l.checks[check.CheckID] = check
+	l.checkStatus[check.CheckID] = syncStatus{}
+	l.changeMade()
 }
 
 // RemoveCheck is used to remove a health check from the local state.
 // The agent will make a best effort to ensure it is deregistered
-func (a *Agent) RemoveCheck(checkID string) {
-	a.state.Lock()
-	defer a.state.Unlock()
+func (l *localState) RemoveCheck(checkID string) {
+	l.Lock()
+	defer l.Unlock()
 
-	delete(a.state.checks, checkID)
-	a.state.checkStatus[checkID] = syncStatus{remoteDelete: true}
-	a.state.changeMade()
+	delete(l.checks, checkID)
+	l.checkStatus[checkID] = syncStatus{remoteDelete: true}
+	l.changeMade()
 }
 
 // UpdateCheck is used to update the status of a check
-func (a *Agent) UpdateCheck(checkID, status, output string) {
-	a.state.Lock()
-	defer a.state.Unlock()
+func (l *localState) UpdateCheck(checkID, status, output string) {
+	l.Lock()
+	defer l.Unlock()
 
-	check, ok := a.state.checks[checkID]
+	check, ok := l.checks[checkID]
 	if !ok {
 		return
 	}
@@ -146,18 +151,18 @@ func (a *Agent) UpdateCheck(checkID, status, output string) {
 	// Update status and mark out of sync
 	check.Status = status
 	check.Notes = output
-	a.state.checkStatus[checkID] = syncStatus{inSync: false}
-	a.state.changeMade()
+	l.checkStatus[checkID] = syncStatus{inSync: false}
+	l.changeMade()
 }
 
 // Checks returns the locally registered checks that the
 // agent is aware of and are being kept in sync with the server
-func (a *Agent) Checks() map[string]*structs.HealthCheck {
+func (l *localState) Checks() map[string]*structs.HealthCheck {
 	checks := make(map[string]*structs.HealthCheck)
-	a.state.Lock()
-	defer a.state.Unlock()
+	l.Lock()
+	defer l.Unlock()
 
-	for name, check := range a.state.checks {
+	for name, check := range l.checks {
 		checks[name] = check
 	}
 	return checks
@@ -165,32 +170,27 @@ func (a *Agent) Checks() map[string]*structs.HealthCheck {
 
 // antiEntropy is a long running method used to perform anti-entropy
 // between local and remote state.
-func (a *Agent) antiEntropy() {
-	// Delay the initial sync until client has a chance to register
-	select {
-	case <-a.state.delaySync:
-	case <-time.After(maxDelaySync):
-		a.logger.Printf("[WARN] Client failed to call RegisterDone within %v", maxDelaySync)
-	case <-a.shutdownCh:
-		return
-	}
-
+func (l *localState) antiEntropy(shutdownCh chan struct{}) {
 SYNC:
 	// Sync our state with the servers
-	for !a.shutdown {
-		if err := a.setSyncState(); err != nil {
-			a.logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
-			time.Sleep(aeScale(syncRetryIntv, len(a.LANMembers())))
-			continue
+	for {
+		if err := l.setSyncState(); err != nil {
+			l.logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
+			select {
+			case <-time.After(aeScale(syncRetryIntv, len(l.iface.LANMembers()))):
+				continue
+			case <-shutdownCh:
+				return
+			}
 		}
 		break
 	}
 
 	// Force-trigger AE to pickup any changes
-	a.state.changeMade()
+	l.changeMade()
 
 	// Schedule the next full sync, with a random stagger
-	aeIntv := aeScale(a.config.AEInterval, len(a.LANMembers()))
+	aeIntv := aeScale(l.config.AEInterval, len(l.iface.LANMembers()))
 	aeIntv = aeIntv + randomStagger(aeIntv)
 	aeTimer := time.After(aeIntv)
 
@@ -199,11 +199,11 @@ SYNC:
 		select {
 		case <-aeTimer:
 			goto SYNC
-		case <-a.state.triggerCh:
-			if err := a.syncChanges(); err != nil {
-				a.logger.Printf("[ERR] agent: failed to sync changes: %v", err)
+		case <-l.triggerCh:
+			if err := l.syncChanges(); err != nil {
+				l.logger.Printf("[ERR] agent: failed to sync changes: %v", err)
 			}
-		case <-a.shutdownCh:
+		case <-shutdownCh:
 			return
 		}
 	}
@@ -211,89 +211,89 @@ SYNC:
 
 // setSyncState does a read of the server state, and updates
 // the local syncStatus as appropriate
-func (a *Agent) setSyncState() error {
+func (l *localState) setSyncState() error {
 	req := structs.NodeSpecificRequest{
-		Datacenter: a.config.Datacenter,
-		Node:       a.config.NodeName,
+		Datacenter: l.config.Datacenter,
+		Node:       l.config.NodeName,
 	}
 	var services structs.NodeServices
 	var checks structs.HealthChecks
-	if e := a.RPC("Catalog.NodeServices", &req, &services); e != nil {
+	if e := l.iface.RPC("Catalog.NodeServices", &req, &services); e != nil {
 		return e
 	}
-	if err := a.RPC("Health.NodeChecks", &req, &checks); err != nil {
+	if err := l.iface.RPC("Health.NodeChecks", &req, &checks); err != nil {
 		return err
 	}
 
-	a.state.Lock()
-	defer a.state.Unlock()
+	l.Lock()
+	defer l.Unlock()
 
 	for id, service := range services.Services {
 		// If we don't have the service locally, deregister it
-		existing, ok := a.state.services[id]
+		existing, ok := l.services[id]
 		if !ok {
 			// The Consul service is created automatically, and
 			// does not need to be registered
-			if id == consul.ConsulServiceID && a.config.Server {
+			if id == consul.ConsulServiceID && l.config.Server {
 				continue
 			}
-			a.state.serviceStatus[id] = syncStatus{remoteDelete: true}
+			l.serviceStatus[id] = syncStatus{remoteDelete: true}
 			continue
 		}
 
 		// If our definition is different, we need to update it
 		equal := reflect.DeepEqual(existing, service)
-		a.state.serviceStatus[id] = syncStatus{inSync: equal}
+		l.serviceStatus[id] = syncStatus{inSync: equal}
 	}
 
 	for _, check := range checks {
 		// If we don't have the check locally, deregister it
 		id := check.CheckID
-		existing, ok := a.state.checks[id]
+		existing, ok := l.checks[id]
 		if !ok {
 			// The Serf check is created automatically, and does not
 			// need to be registered
 			if id == consul.SerfCheckID {
 				continue
 			}
-			a.state.checkStatus[id] = syncStatus{remoteDelete: true}
+			l.checkStatus[id] = syncStatus{remoteDelete: true}
 			continue
 		}
 
 		// If our definition is different, we need to update it
 		equal := reflect.DeepEqual(existing, check)
-		a.state.checkStatus[id] = syncStatus{inSync: equal}
+		l.checkStatus[id] = syncStatus{inSync: equal}
 	}
 	return nil
 }
 
 // syncChanges is used to scan the status our local services and checks
 // and update any that are out of sync with the server
-func (a *Agent) syncChanges() error {
-	a.state.Lock()
-	defer a.state.Unlock()
+func (l *localState) syncChanges() error {
+	l.Lock()
+	defer l.Unlock()
 
 	// Sync the services
-	for id, status := range a.state.serviceStatus {
+	for id, status := range l.serviceStatus {
 		if status.remoteDelete {
-			if err := a.deleteService(id); err != nil {
+			if err := l.deleteService(id); err != nil {
 				return err
 			}
 		} else if !status.inSync {
-			if err := a.syncService(id); err != nil {
+			if err := l.syncService(id); err != nil {
 				return err
 			}
 		}
 	}
 
 	// Sync the checks
-	for id, status := range a.state.checkStatus {
+	for id, status := range l.checkStatus {
 		if status.remoteDelete {
-			if err := a.deleteCheck(id); err != nil {
+			if err := l.deleteCheck(id); err != nil {
 				return err
 			}
 		} else if !status.inSync {
-			if err := a.syncCheck(id); err != nil {
+			if err := l.syncCheck(id); err != nil {
 				return err
 			}
 		}
@@ -302,67 +302,67 @@ func (a *Agent) syncChanges() error {
 }
 
 // deleteService is used to delete a service from the server
-func (a *Agent) deleteService(id string) error {
+func (l *localState) deleteService(id string) error {
 	req := structs.DeregisterRequest{
-		Datacenter: a.config.Datacenter,
-		Node:       a.config.NodeName,
+		Datacenter: l.config.Datacenter,
+		Node:       l.config.NodeName,
 		ServiceID:  id,
 	}
 	var out struct{}
-	err := a.RPC("Catalog.Deregister", &req, &out)
+	err := l.iface.RPC("Catalog.Deregister", &req, &out)
 	if err == nil {
-		delete(a.state.serviceStatus, id)
-		a.logger.Printf("[INFO] Deregistered service '%s'", id)
+		delete(l.serviceStatus, id)
+		l.logger.Printf("[INFO] agent: Deregistered service '%s'", id)
 	}
 	return err
 }
 
 // deleteCheck is used to delete a service from the server
-func (a *Agent) deleteCheck(id string) error {
+func (l *localState) deleteCheck(id string) error {
 	req := structs.DeregisterRequest{
-		Datacenter: a.config.Datacenter,
-		Node:       a.config.NodeName,
+		Datacenter: l.config.Datacenter,
+		Node:       l.config.NodeName,
 		CheckID:    id,
 	}
 	var out struct{}
-	err := a.RPC("Catalog.Deregister", &req, &out)
+	err := l.iface.RPC("Catalog.Deregister", &req, &out)
 	if err == nil {
-		delete(a.state.checkStatus, id)
-		a.logger.Printf("[INFO] Deregistered check '%s'", id)
+		delete(l.checkStatus, id)
+		l.logger.Printf("[INFO] agent: Deregistered check '%s'", id)
 	}
 	return err
 }
 
 // syncService is used to sync a service to the server
-func (a *Agent) syncService(id string) error {
+func (l *localState) syncService(id string) error {
 	req := structs.RegisterRequest{
-		Datacenter: a.config.Datacenter,
-		Node:       a.config.NodeName,
-		Address:    a.config.AdvertiseAddr,
-		Service:    a.state.services[id],
+		Datacenter: l.config.Datacenter,
+		Node:       l.config.NodeName,
+		Address:    l.config.AdvertiseAddr,
+		Service:    l.services[id],
 	}
 	var out struct{}
-	err := a.RPC("Catalog.Register", &req, &out)
+	err := l.iface.RPC("Catalog.Register", &req, &out)
 	if err == nil {
-		a.state.serviceStatus[id] = syncStatus{inSync: true}
-		a.logger.Printf("[INFO] Synced service '%s'", id)
+		l.serviceStatus[id] = syncStatus{inSync: true}
+		l.logger.Printf("[INFO] agent: Synced service '%s'", id)
 	}
 	return err
 }
 
 // syncCheck is used to sync a service to the server
-func (a *Agent) syncCheck(id string) error {
+func (l *localState) syncCheck(id string) error {
 	req := structs.RegisterRequest{
-		Datacenter: a.config.Datacenter,
-		Node:       a.config.NodeName,
-		Address:    a.config.AdvertiseAddr,
-		Check:      a.state.checks[id],
+		Datacenter: l.config.Datacenter,
+		Node:       l.config.NodeName,
+		Address:    l.config.AdvertiseAddr,
+		Check:      l.checks[id],
 	}
 	var out struct{}
-	err := a.RPC("Catalog.Register", &req, &out)
+	err := l.iface.RPC("Catalog.Register", &req, &out)
 	if err == nil {
-		a.state.checkStatus[id] = syncStatus{inSync: true}
-		a.logger.Printf("[INFO] Synced check '%s'", id)
+		l.checkStatus[id] = syncStatus{inSync: true}
+		l.logger.Printf("[INFO] agent: Synced check '%s'", id)
 	}
 	return err
 }

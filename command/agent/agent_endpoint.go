@@ -6,12 +6,12 @@ import (
 )
 
 func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	services := s.agent.Services()
+	services := s.agent.state.Services()
 	return services, nil
 }
 
 func (s *HTTPServer) AgentChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	checks := s.agent.Checks()
+	checks := s.agent.state.Checks()
 	return checks, nil
 }
 

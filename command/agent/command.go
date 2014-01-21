@@ -200,7 +200,7 @@ func (c *Command) Run(args []string) int {
 	// TODO: Register services/checks
 
 	// Let the agent know we've finished registration
-	c.agent.RegistrationDone()
+	c.agent.StartSync()
 
 	c.Ui.Output("Consul agent running!")
 	c.Ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))

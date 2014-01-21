@@ -22,7 +22,7 @@ func TestHTTPAgentServices(t *testing.T) {
 		Tag:     "master",
 		Port:    5000,
 	}
-	srv.agent.AddService(srv1)
+	srv.agent.state.AddService(srv1)
 
 	obj, err := srv.AgentServices(nil, nil)
 	if err != nil {
@@ -49,7 +49,7 @@ func TestHTTPAgentChecks(t *testing.T) {
 		Name:    "mysql",
 		Status:  structs.HealthPassing,
 	}
-	srv.agent.AddCheck(chk1)
+	srv.agent.state.AddCheck(chk1)
 
 	obj, err := srv.AgentChecks(nil, nil)
 	if err != nil {

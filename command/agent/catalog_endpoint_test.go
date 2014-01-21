@@ -120,7 +120,7 @@ func TestCatalogNodes(t *testing.T) {
 	}
 
 	nodes := obj.(structs.Nodes)
-	if len(nodes) != 1 {
+	if len(nodes) != 2 {
 		t.Fatalf("bad: %v", obj)
 	}
 }
@@ -159,7 +159,7 @@ func TestCatalogServices(t *testing.T) {
 	}
 
 	services := obj.(structs.Services)
-	if len(services) != 1 {
+	if len(services) != 2 {
 		t.Fatalf("bad: %v", obj)
 	}
 }

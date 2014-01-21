@@ -77,7 +77,7 @@ func TestCheckTTL(t *testing.T) {
 	defer check.Stop()
 
 	time.Sleep(10 * time.Millisecond)
-	check.SetStatus(structs.HealthPassing)
+	check.SetStatus(structs.HealthPassing, "")
 
 	if mock.updates["foo"] != 1 {
 		t.Fatalf("should have 1 updates %v", mock.updates)

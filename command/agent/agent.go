@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"github.com/hashicorp/consul/consul"
-	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
 	"io"
 	"log"
@@ -82,29 +81,21 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		logger:     log.New(logOutput, "", log.LstdFlags),
 		logOutput:  logOutput,
 		shutdownCh: make(chan struct{}),
-		state: localState{
-			delaySync:     make(chan struct{}, 1),
-			services:      make(map[string]*structs.NodeService),
-			serviceStatus: make(map[string]syncStatus),
-			checks:        make(map[string]*structs.HealthCheck),
-			checkStatus:   make(map[string]syncStatus),
-			triggerCh:     make(chan struct{}, 1),
-		},
 	}
 
 	// Setup either the client or the server
 	var err error
 	if config.Server {
 		err = agent.setupServer()
+		agent.state.Init(config, agent.server, agent.logger)
 	} else {
 		err = agent.setupClient()
+		agent.state.Init(config, agent.client, agent.logger)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	// Start the anti entropy routine
-	go agent.antiEntropy()
 	return agent, nil
 }
 
@@ -288,4 +279,11 @@ func (a *Agent) WANMembers() []serf.Member {
 	} else {
 		return nil
 	}
+}
+
+// StartSync is called once Services and Checks are registered.
+// This is called to prevent a race between clients and the anti-entropy routines
+func (a *Agent) StartSync() {
+	// Start the anti entropy routine
+	go a.state.antiEntropy(a.shutdownCh)
 }
