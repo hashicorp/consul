@@ -33,13 +33,20 @@ type Agent struct {
 	server *consul.Server
 	client *consul.Client
 
-	shutdown     bool
-	shutdownCh   chan struct{}
-	shutdownLock sync.Mutex
-
 	// state stores a local representation of the node,
 	// services and checks. Used for anti-entropy.
 	state localState
+
+	// checkMonitors maps the check ID to an associated monitor
+	// checkTTLs maps the check ID to an associated check TTL
+	// checkLock protects updates to either
+	checkMonitors map[string]*CheckMonitor
+	checkTTLs     map[string]*CheckTTL
+	checkLock     sync.Mutex
+
+	shutdown     bool
+	shutdownCh   chan struct{}
+	shutdownLock sync.Mutex
 }
 
 // Create is used to create a new Agent. Returns
@@ -77,10 +84,12 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	}
 
 	agent := &Agent{
-		config:     config,
-		logger:     log.New(logOutput, "", log.LstdFlags),
-		logOutput:  logOutput,
-		shutdownCh: make(chan struct{}),
+		config:        config,
+		logger:        log.New(logOutput, "", log.LstdFlags),
+		logOutput:     logOutput,
+		checkMonitors: make(map[string]*CheckMonitor),
+		checkTTLs:     make(map[string]*CheckTTL),
+		shutdownCh:    make(chan struct{}),
 	}
 
 	// Setup either the client or the server
@@ -203,6 +212,16 @@ func (a *Agent) Shutdown() error {
 
 	if a.shutdown {
 		return nil
+	}
+
+	// Stop all the checks
+	a.checkLock.Lock()
+	defer a.checkLock.Unlock()
+	for _, chk := range a.checkMonitors {
+		chk.Stop()
+	}
+	for _, chk := range a.checkTTLs {
+		chk.Stop()
 	}
 
 	a.logger.Println("[INFO] agent: requesting shutdown")
