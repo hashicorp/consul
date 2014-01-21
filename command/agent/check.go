@@ -15,7 +15,7 @@ import (
 // to notify when a check has a status update. The update
 // should take care to be idempotent.
 type CheckNotifier interface {
-	UpdateCheck(checkID, status string)
+	UpdateCheck(checkID, status, note string)
 }
 
 // CheckMonitor is used to periodically invoke a script to
@@ -90,19 +90,20 @@ func (c *CheckMonitor) check() {
 	// Start the check
 	if err := cmd.Start(); err != nil {
 		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", c.Script, err)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthUnknown)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthUnknown, err.Error())
 		return
 	}
 
 	// Wait for the check to complete
 	err := cmd.Wait()
+	notes := string(output.Bytes())
 	c.Logger.Printf("[DEBUG] agent: check '%s' script '%s' output: %s",
-		c.CheckID, c.Script, output.Bytes())
+		c.CheckID, c.Script, notes)
 
 	// Check if the check passed
 	if err == nil {
 		c.Logger.Printf("[DEBUG] Check '%v' is passing", c.CheckID)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, notes)
 		return
 	}
 
@@ -113,7 +114,7 @@ func (c *CheckMonitor) check() {
 			code := status.ExitStatus()
 			if code == 1 {
 				c.Logger.Printf("[WARN] Check '%v' is now warning", c.CheckID)
-				c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning)
+				c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, notes)
 				return
 			}
 		}
@@ -121,7 +122,7 @@ func (c *CheckMonitor) check() {
 
 	// Set the health as critical
 	c.Logger.Printf("[WARN] Check '%v' is now critical", c.CheckID)
-	c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical)
+	c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, notes)
 }
 
 // CheckTTL is used to apply a TTL to check status,
@@ -169,7 +170,7 @@ func (c *CheckTTL) run() {
 		case <-c.timer.C:
 			c.Logger.Printf("[WARN] Check '%v' missed TTL, is now critical",
 				c.CheckID)
-			c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical)
+			c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, "TTL expired")
 
 		case <-c.stopCh:
 			return
@@ -179,9 +180,9 @@ func (c *CheckTTL) run() {
 
 // SetStatus is used to update the status of the check,
 // and to renew the TTL. If expired, TTL is restarted.
-func (c *CheckTTL) SetStatus(status string) {
+func (c *CheckTTL) SetStatus(status, note string) {
 	c.Logger.Printf("[DEBUG] Check '%v' status is now %v",
 		c.CheckID, status)
-	c.Notify.UpdateCheck(c.CheckID, status)
+	c.Notify.UpdateCheck(c.CheckID, status, note)
 	c.timer.Reset(c.TTL)
 }

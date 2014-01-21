@@ -13,7 +13,7 @@ type MockNotify struct {
 	updates map[string]int
 }
 
-func (m *MockNotify) UpdateCheck(id, status string) {
+func (m *MockNotify) UpdateCheck(id, status, note string) {
 	m.state[id] = status
 	old := m.updates[id]
 	m.updates[id] = old + 1

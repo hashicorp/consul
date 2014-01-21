@@ -129,7 +129,7 @@ func (a *Agent) RemoveCheck(checkID string) {
 }
 
 // UpdateCheck is used to update the status of a check
-func (a *Agent) UpdateCheck(checkID, status string) {
+func (a *Agent) UpdateCheck(checkID, status, output string) {
 	a.state.Lock()
 	defer a.state.Unlock()
 
@@ -139,12 +139,13 @@ func (a *Agent) UpdateCheck(checkID, status string) {
 	}
 
 	// Do nothing if update is idempotent
-	if check.Status == status {
+	if check.Status == status && check.Notes == output {
 		return
 	}
 
 	// Update status and mark out of sync
 	check.Status = status
+	check.Notes = output
 	a.state.checkStatus[checkID] = syncStatus{inSync: false}
 	a.state.changeMade()
 }
