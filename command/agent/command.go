@@ -53,6 +53,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.DataDir, "data", "", "path to the data directory")
 	cmdFlags.StringVar(&cmdConfig.Datacenter, "dc", "", "node datacenter")
 	cmdFlags.StringVar(&cmdConfig.DNSRecursor, "recursor", "", "address of dns recursor")
+	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "advertise address to use")
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
 	if err := cmdFlags.Parse(c.args); err != nil {
