@@ -17,6 +17,7 @@ func nextConfig() *Config {
 	idx := atomic.AddUint64(&offset, 1)
 	conf := DefaultConfig()
 
+	conf.AdvertiseAddr = "127.0.0.1"
 	conf.Bootstrap = true
 	conf.Datacenter = "dc1"
 	conf.NodeName = fmt.Sprintf("Node %d", idx)

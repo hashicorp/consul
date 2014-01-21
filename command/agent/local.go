@@ -65,6 +65,11 @@ func (a *Agent) RegistrationDone() {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
 func (a *Agent) AddService(service *structs.NodeService) {
+	// Assign the ID if none given
+	if service.ID == "" && service.Service != "" {
+		service.ID = service.Service
+	}
+
 	a.state.Lock()
 	defer a.state.Unlock()
 
@@ -207,7 +212,7 @@ func (a *Agent) setSyncState() error {
 		}
 
 		// If our definition is different, we need to update it
-		equal := !reflect.DeepEqual(existing, service)
+		equal := reflect.DeepEqual(existing, service)
 		a.state.serviceStatus[id] = syncStatus{inSync: equal}
 	}
 
@@ -226,7 +231,7 @@ func (a *Agent) setSyncState() error {
 		}
 
 		// If our definition is different, we need to update it
-		equal := !reflect.DeepEqual(existing, check)
+		equal := reflect.DeepEqual(existing, check)
 		a.state.checkStatus[id] = syncStatus{inSync: equal}
 	}
 	return nil
