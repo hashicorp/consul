@@ -18,6 +18,7 @@ import (
 // Consul methods
 type Interface interface {
 	RPC(method string, args interface{}, reply interface{}) error
+	LANMembers() []serf.Member
 }
 
 // Client is Consul client which uses RPC to communicate with the
