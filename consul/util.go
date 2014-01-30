@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 )
 
 /*
@@ -23,12 +22,7 @@ var privateBlocks []*net.IPNet
 type serverParts struct {
 	Datacenter string
 	Port       int
-	Flags      string
-}
-
-// HasFlag is used to check if a flag is present
-func (s *serverParts) HasFlag(flag string) bool {
-	return strings.Contains(s.Flags, flag)
+	Bootstrap  bool
 }
 
 func init() {
@@ -74,34 +68,28 @@ func ensurePath(path string, dir bool) error {
 // Returns if a member is a consul server. Returns a bool,
 // the data center, and the rpc port
 func isConsulServer(m serf.Member) (bool, *serverParts) {
-	role := m.Role
-	if !strings.HasPrefix(role, "consul:") {
+	if m.Tags["role"] != "consul" {
 		return false, nil
 	}
 
-	parts := strings.SplitN(role, ":", 4)
-	datacenter := parts[1]
-	port_str := parts[2]
-	flags := parts[3]
+	datacenter := m.Tags["dc"]
+	port_str := m.Tags["port"]
+	_, bootstrap := m.Tags["bootstrap"]
 	port, err := strconv.Atoi(port_str)
 	if err != nil {
 		return false, nil
 	}
 
-	return true, &serverParts{datacenter, port, flags}
+	return true, &serverParts{datacenter, port, bootstrap}
 }
 
 // Returns if a member is a consul node. Returns a boo,
 // and the data center.
 func isConsulNode(m serf.Member) (bool, string) {
-	role := m.Role
-	if !strings.HasPrefix(role, "node:") {
+	if m.Tags["role"] != "node" {
 		return false, ""
 	}
-
-	parts := strings.SplitN(role, ":", 2)
-	datacenter := parts[1]
-	return true, datacenter
+	return true, m.Tags["dc"]
 }
 
 // Returns if the given IP is in a private block

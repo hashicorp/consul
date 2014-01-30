@@ -35,17 +35,32 @@ func TestIsPrivateIP(t *testing.T) {
 
 func TestIsConsulServer(t *testing.T) {
 	m := serf.Member{
-		Role: "consul:east-aws:10000",
+		Tags: map[string]string{
+			"role": "consul",
+			"dc":   "east-aws",
+			"port": "10000",
+		},
 	}
 	valid, parts := isConsulServer(m)
 	if !valid || parts.Datacenter != "east-aws" || parts.Port != 10000 {
 		t.Fatalf("bad: %v %v", valid, parts)
 	}
+	if parts.Bootstrap {
+		t.Fatalf("unexpected bootstrap")
+	}
+	m.Tags["bootstrap"] = "1"
+	valid, parts = isConsulServer(m)
+	if !valid || !parts.Bootstrap {
+		t.Fatalf("expected bootstrap")
+	}
 }
 
 func TestIsConsulNode(t *testing.T) {
 	m := serf.Member{
-		Role: "node:east-aws",
+		Tags: map[string]string{
+			"role": "node",
+			"dc":   "east-aws",
+		},
 	}
 	valid, dc := isConsulNode(m)
 	if !valid || dc != "east-aws" {

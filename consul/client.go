@@ -90,8 +90,10 @@ func NewClient(config *Config) (*Client, error) {
 
 // setupSerf is used to setup and initialize a Serf
 func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (*serf.Serf, error) {
+	conf.Init()
 	conf.NodeName = c.config.NodeName
-	conf.Role = fmt.Sprintf("node:%s", c.config.Datacenter)
+	conf.Tags["role"] = "node"
+	conf.Tags["dc"] = c.config.Datacenter
 	conf.MemberlistConfig.LogOutput = c.config.LogOutput
 	conf.LogOutput = c.config.LogOutput
 	conf.EventCh = ch

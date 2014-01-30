@@ -270,11 +270,11 @@ func (s *Server) joinConsulServer(m serf.Member, parts *serverParts) error {
 	}
 
 	// Check for possibility of multiple bootstrap nodes
-	if parts.HasFlag(bootstrapFlag) {
+	if parts.Bootstrap {
 		members := s.serfLAN.Members()
 		for _, member := range members {
 			valid, p := isConsulServer(member)
-			if valid && member.Name != m.Name && p.HasFlag(bootstrapFlag) {
+			if valid && member.Name != m.Name && p.Bootstrap {
 				s.logger.Printf("[ERR] consul: '%v' and '%v' are both in bootstrap mode. Only one node should be in bootstrap mode, not adding Raft peer.", m.Name, member.Name)
 				return nil
 			}
