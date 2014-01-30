@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"strings"
 )
@@ -56,19 +57,26 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 }
 
 func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return nil, nil
+	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/deregister/")
+	return s.agent.RemoveCheck(checkID), nil
 }
 
 func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return nil, nil
+	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/pass/")
+	note := req.URL.Query().Get("note")
+	return s.agent.UpdateCheck(checkID, structs.HealthPassing, note), nil
 }
 
 func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return nil, nil
+	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/warn/")
+	note := req.URL.Query().Get("note")
+	return s.agent.UpdateCheck(checkID, structs.HealthWarning, note), nil
 }
 
 func (s *HTTPServer) AgentCheckFail(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return nil, nil
+	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/fail/")
+	note := req.URL.Query().Get("note")
+	return s.agent.UpdateCheck(checkID, structs.HealthCritical, note), nil
 }
 
 func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -76,5 +84,6 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 }
 
 func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return nil, nil
+	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/")
+	return s.agent.RemoveService(serviceID), nil
 }
