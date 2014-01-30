@@ -11,6 +11,31 @@ import (
 	"time"
 )
 
+// CheckType is used to create either the CheckMonitor
+// or the CheckTTL. Only one of TTL or Script/Interval
+// needs to be provided
+type CheckType struct {
+	Script   string
+	Interval time.Duration
+
+	TTL time.Duration
+}
+
+// Valid checks if the CheckType is valid
+func (c *CheckType) Valid() bool {
+	return c.IsTTL() || c.IsMonitor()
+}
+
+// IsTTL checks if this is a TTL type
+func (c *CheckType) IsTTL() bool {
+	return c.TTL != 0
+}
+
+// IsMonitor checks if this is a Monitor type
+func (c *CheckType) IsMonitor() bool {
+	return c.Script != "" && c.Interval != 0
+}
+
 // CheckNotifier interface is used by the CheckMonitor
 // to notify when a check has a status update. The update
 // should take care to be idempotent.
