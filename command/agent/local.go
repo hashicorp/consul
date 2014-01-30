@@ -352,10 +352,19 @@ func (l *localState) syncService(id string) error {
 
 // syncCheck is used to sync a service to the server
 func (l *localState) syncCheck(id string) error {
+	// Pull in the associated service if any
+	check := l.checks[id]
+	var service *structs.NodeService
+	if check.ServiceID != "" {
+		if serv, ok := l.services[check.ServiceID]; ok {
+			service = serv
+		}
+	}
 	req := structs.RegisterRequest{
 		Datacenter: l.config.Datacenter,
 		Node:       l.config.NodeName,
 		Address:    l.config.AdvertiseAddr,
+		Service:    service,
 		Check:      l.checks[id],
 	}
 	var out struct{}
