@@ -213,3 +213,170 @@ func TestHTTPAgentForceLeave(t *testing.T) {
 		t.Fatalf("should have left: %v", mem)
 	}
 }
+
+func TestHTTPAgentRegisterCheck(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Register node
+	req, err := http.NewRequest("GET", "/v1/agent/check/register", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	args := &CheckDefinition{
+		Name: "test",
+		CheckType: CheckType{
+			TTL: 15 * time.Second,
+		},
+	}
+	req.Body = encodeReq(args)
+
+	obj, err := srv.AgentRegisterCheck(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	// Ensure we have a check mapping
+	if _, ok := srv.agent.state.Checks()["test"]; !ok {
+		t.Fatalf("missing test check")
+	}
+
+	if _, ok := srv.agent.checkTTLs["test"]; !ok {
+		t.Fatalf("missing test check ttl")
+	}
+}
+
+func TestHTTPAgentDeregisterCheck(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
+	if err := srv.agent.AddCheck(chk, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register node
+	req, err := http.NewRequest("GET", "/v1/agent/check/deregister/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	obj, err := srv.AgentDeregisterCheck(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	// Ensure we have a check mapping
+	if _, ok := srv.agent.state.Checks()["test"]; ok {
+		t.Fatalf("have test check")
+	}
+}
+
+func TestHTTPAgentPassCheck(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
+	chkType := &CheckType{TTL: 15 * time.Second}
+	if err := srv.agent.AddCheck(chk, chkType); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register node
+	req, err := http.NewRequest("GET", "/v1/agent/check/pass/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	obj, err := srv.AgentCheckPass(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	// Ensure we have a check mapping
+	state := srv.agent.state.Checks()["test"]
+	if state.Status != structs.HealthPassing {
+		t.Fatalf("bad: %v", state)
+	}
+}
+
+func TestHTTPAgentWarnCheck(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
+	chkType := &CheckType{TTL: 15 * time.Second}
+	if err := srv.agent.AddCheck(chk, chkType); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register node
+	req, err := http.NewRequest("GET", "/v1/agent/check/warn/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	obj, err := srv.AgentCheckWarn(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	// Ensure we have a check mapping
+	state := srv.agent.state.Checks()["test"]
+	if state.Status != structs.HealthWarning {
+		t.Fatalf("bad: %v", state)
+	}
+}
+
+func TestHTTPAgentFailCheck(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
+	chkType := &CheckType{TTL: 15 * time.Second}
+	if err := srv.agent.AddCheck(chk, chkType); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register node
+	req, err := http.NewRequest("GET", "/v1/agent/check/fail/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	obj, err := srv.AgentCheckFail(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	// Ensure we have a check mapping
+	state := srv.agent.state.Checks()["test"]
+	if state.Status != structs.HealthCritical {
+		t.Fatalf("bad: %v", state)
+	}
+}
