@@ -380,3 +380,85 @@ func TestHTTPAgentFailCheck(t *testing.T) {
 		t.Fatalf("bad: %v", state)
 	}
 }
+
+func TestHTTPAgentRegisterService(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Register node
+	req, err := http.NewRequest("GET", "/v1/agent/service/register", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	args := &ServiceDefinition{
+		Name: "test",
+		Tag:  "master",
+		Port: 8000,
+		Check: &CheckType{
+			TTL: 15 * time.Second,
+		},
+	}
+	req.Body = encodeReq(args)
+
+	obj, err := srv.AgentRegisterService(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	// Ensure the servie
+	if _, ok := srv.agent.state.Services()["test"]; !ok {
+		t.Fatalf("missing test service")
+	}
+
+	// Ensure we have a check mapping
+	if _, ok := srv.agent.state.Checks()["service:test"]; !ok {
+		t.Fatalf("missing test check")
+	}
+
+	if _, ok := srv.agent.checkTTLs["service:test"]; !ok {
+		t.Fatalf("missing test check ttl")
+	}
+}
+
+func TestHTTPAgentDeregisterService(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	service := &structs.NodeService{
+		ID:      "test",
+		Service: "test",
+	}
+	if err := srv.agent.AddService(service, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register node
+	req, err := http.NewRequest("GET", "/v1/agent/service/deregister/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	obj, err := srv.AgentDeregisterService(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	// Ensure we have a check mapping
+	if _, ok := srv.agent.state.Services()["test"]; ok {
+		t.Fatalf("have test service")
+	}
+
+	if _, ok := srv.agent.state.Checks()["test"]; ok {
+		t.Fatalf("have test check")
+	}
+}
