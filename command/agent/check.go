@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
 	"log"
 	"os/exec"
@@ -120,7 +121,16 @@ func (c *CheckMonitor) check() {
 	}
 
 	// Wait for the check to complete
-	err := cmd.Wait()
+	errCh := make(chan error, 2)
+	go func() {
+		errCh <- cmd.Wait()
+	}()
+	go func() {
+		time.Sleep(30 * time.Second)
+		errCh <- fmt.Errorf("Timed out running check '%s'", c.Script)
+	}()
+	err := <-errCh
+
 	notes := string(output.Bytes())
 	c.Logger.Printf("[DEBUG] agent: check '%s' script '%s' output: %s",
 		c.CheckID, c.Script, notes)

@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
 	"io"
 	"log"
@@ -305,4 +306,141 @@ func (a *Agent) WANMembers() []serf.Member {
 func (a *Agent) StartSync() {
 	// Start the anti entropy routine
 	go a.state.antiEntropy(a.shutdownCh)
+}
+
+// AddService is used to add a service entry.
+// This entry is persistent and the agent will make a best effort to
+// ensure it is registered
+func (a *Agent) AddService(service *structs.NodeService, chkType *CheckType) error {
+	if service.Service == "" {
+		return fmt.Errorf("Service name missing")
+	}
+	if service.ID == "" && service.Service != "" {
+		service.ID = service.Service
+	}
+	if chkType != nil && !chkType.Valid() {
+		return fmt.Errorf("Check type is not valid")
+	}
+
+	// Add the service
+	a.state.AddService(service)
+
+	// Create an associated health check
+	if chkType != nil {
+		check := &structs.HealthCheck{
+			Node:        a.config.NodeName,
+			CheckID:     fmt.Sprintf("service:%s", service.ID),
+			Name:        fmt.Sprintf("Service '%s' check", service.Service),
+			Status:      structs.HealthUnknown,
+			Notes:       "Initializing",
+			ServiceID:   service.ID,
+			ServiceName: service.Service,
+		}
+		if err := a.AddCheck(check, chkType); err != nil {
+			a.state.RemoveService(service.ID)
+			return err
+		}
+	}
+	return nil
+}
+
+// RemoveService is used to remove a service entry.
+// The agent will make a best effort to ensure it is deregistered
+func (a *Agent) RemoveService(serviceID string) error {
+	// Remove service immeidately
+	a.state.RemoveService(serviceID)
+
+	// Deregister any associated health checks
+	checkID := fmt.Sprintf("service:%s", serviceID)
+	return a.RemoveCheck(checkID)
+}
+
+// AddCheck is used to add a health check to the agent.
+// This entry is persistent and the agent will make a best effort to
+// ensure it is registered. The Check may include a CheckType which
+// is used to automatically update the check status
+func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType) error {
+	if check.CheckID == "" {
+		return fmt.Errorf("CheckID missing")
+	}
+	if chkType != nil && !chkType.Valid() {
+		return fmt.Errorf("Check type is not valid")
+	}
+
+	a.checkLock.Lock()
+	defer a.checkLock.Unlock()
+
+	// Check if already registered
+	if chkType != nil {
+		if chkType.IsTTL() {
+			if _, ok := a.checkTTLs[check.CheckID]; ok {
+				return fmt.Errorf("CheckID is already registered")
+			}
+
+			ttl := &CheckTTL{
+				Notify:  &a.state,
+				CheckID: check.CheckID,
+				TTL:     chkType.TTL,
+				Logger:  a.logger,
+			}
+			ttl.Start()
+			a.checkTTLs[check.CheckID] = ttl
+
+		} else {
+			if _, ok := a.checkMonitors[check.CheckID]; ok {
+				return fmt.Errorf("CheckID is already registered")
+			}
+
+			monitor := &CheckMonitor{
+				Notify:   &a.state,
+				CheckID:  check.CheckID,
+				Script:   chkType.Script,
+				Interval: chkType.Interval,
+				Logger:   a.logger,
+			}
+			monitor.Start()
+			a.checkMonitors[check.CheckID] = monitor
+		}
+	}
+
+	// Add to the local state for anti-entropy
+	a.state.AddCheck(check)
+	return nil
+}
+
+// RemoveCheck is used to remove a health check.
+// The agent will make a best effort to ensure it is deregistered
+func (a *Agent) RemoveCheck(checkID string) error {
+	// Add to the local state for anti-entropy
+	a.state.RemoveCheck(checkID)
+
+	a.checkLock.Lock()
+	defer a.checkLock.Unlock()
+
+	// Stop any monitors
+	if check, ok := a.checkMonitors[checkID]; ok {
+		check.Stop()
+		delete(a.checkMonitors, checkID)
+	}
+	if check, ok := a.checkTTLs[checkID]; ok {
+		check.Stop()
+		delete(a.checkTTLs, checkID)
+	}
+	return nil
+}
+
+// UpdateCheck is used to update the status of a check.
+// This can only be used with checks of the TTL type.
+func (a *Agent) UpdateCheck(checkID, status, output string) error {
+	a.checkLock.Lock()
+	defer a.checkLock.Unlock()
+
+	check, ok := a.checkTTLs[checkID]
+	if !ok {
+		return fmt.Errorf("CheckID does not have associated TTL")
+	}
+
+	// Set the status through CheckTTL to reset the TTL
+	check.SetStatus(status, output)
+	return nil
 }
