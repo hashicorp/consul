@@ -75,6 +75,15 @@ func (s *HTTPServer) registerHandlers() {
 	s.mux.HandleFunc("/v1/agent/members", s.wrap(s.AgentMembers))
 	s.mux.HandleFunc("/v1/agent/join/", s.wrap(s.AgentJoin))
 	s.mux.HandleFunc("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
+
+	s.mux.HandleFunc("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
+	s.mux.HandleFunc("/v1/agent/check/deregister", s.wrap(s.AgentDeregisterCheck))
+	s.mux.HandleFunc("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
+	s.mux.HandleFunc("/v1/agent/check/warn/", s.wrap(s.AgentCheckWarn))
+	s.mux.HandleFunc("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
+
+	s.mux.HandleFunc("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
+	s.mux.HandleFunc("/v1/agent/service/deregister", s.wrap(s.AgentDeregisterService))
 }
 
 // wrap is used to wrap functions to make them more convenient

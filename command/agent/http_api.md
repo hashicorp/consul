@@ -30,11 +30,10 @@ The current URLs supported are:
 * /v1/agent/members : Returns the members as seen by the local serf agent
 * /v1/agent/join/<node> : Instructs the local agent to join a node
 * /v1/agent/force-leave/<node>: Instructs the agent to force a node into the left state
-
-## Future (interacts with local state?)
-* /v1/health/register : Registers a new health check
-* /v1/health/deregister : Deregisters a health check
-* /v1/health/pass: Pass a health check
-* /v1/health/warn: Warn on a health check
-* /v1/health/fail: Fail a health check
-
+* /v1/agent/check/register
+* /v1/agent/check/deregister/<name>
+* /v1/agent/check/pass/<name>
+* /v1/agent/check/warn/<name>
+* /v1/agent/check/fail/<name>
+* /v1/agent/service/register
+* /v1/agent/service/deregister/<name>

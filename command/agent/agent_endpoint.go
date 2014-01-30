@@ -50,3 +50,31 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
 	return s.agent.ForceLeave(addr), nil
 }
+
+func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return nil, nil
+}
+
+func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return nil, nil
+}
+
+func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return nil, nil
+}
+
+func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return nil, nil
+}
+
+func (s *HTTPServer) AgentCheckFail(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return nil, nil
+}
+
+func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return nil, nil
+}
+
+func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return nil, nil
+}
