@@ -87,13 +87,20 @@ func (c *MembersCommand) Run(args []string) int {
 
 	for _, member := range members {
 		// Skip the non-matching members
-		if !roleRe.MatchString(member.Role) || !statusRe.MatchString(member.Status) {
+		if !roleRe.MatchString(member.Tags["role"]) || !statusRe.MatchString(member.Status) {
 			continue
 		}
 
+		// Format the tags as tag1=v1,tag2=v2,...
+		var tagPairs []string
+		for name, value := range member.Tags {
+			tagPairs = append(tagPairs, fmt.Sprintf("%s=%s", name, value))
+		}
+		tags := strings.Join(tagPairs, ",")
+
 		addr := net.TCPAddr{IP: member.Addr, Port: int(member.Port)}
 		c.Ui.Output(fmt.Sprintf("%s    %s    %s    %s",
-			member.Name, addr.String(), member.Status, member.Role))
+			member.Name, addr.String(), member.Status, tags))
 
 		if detailed {
 			c.Ui.Output(fmt.Sprintf("    Protocol Version: %d",
