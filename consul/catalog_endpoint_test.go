@@ -229,6 +229,27 @@ func TestCatalogListNodes(t *testing.T) {
 	}
 }
 
+func BenchmarkCatalogListNodes(t *testing.B) {
+	dir1, s1 := testServer(nil)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(nil, s1)
+	defer client.Close()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Just add a node
+	s1.fsm.State().EnsureNode(structs.Node{"foo", "127.0.0.1"})
+
+	for i := 0; i < t.N; i++ {
+		var out structs.Nodes
+		if err := client.Call("Catalog.ListNodes", "dc1", &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+}
+
 func TestCatalogListServices(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
