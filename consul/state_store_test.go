@@ -57,6 +57,26 @@ func TestGetNodes(t *testing.T) {
 	}
 }
 
+func BenchmarkGetNodes(b *testing.B) {
+	store, err := NewStateStore()
+	if err != nil {
+		b.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(structs.Node{"foo", "127.0.0.1"}); err != nil {
+		b.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureNode(structs.Node{"bar", "127.0.0.2"}); err != nil {
+		b.Fatalf("err: %v")
+	}
+
+	for i := 0; i < b.N; i++ {
+		store.Nodes()
+	}
+}
+
 func TestEnsureService(t *testing.T) {
 	store, err := NewStateStore()
 	if err != nil {
@@ -766,5 +786,42 @@ func TestCheckServiceNodes(t *testing.T) {
 	}
 	if nodes[0].Checks[1].CheckID != SerfCheckID {
 		t.Fatalf("Bad: %v", nodes[0])
+	}
+}
+func BenchmarkCheckServiceNodes(t *testing.B) {
+	store, err := NewStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureService("foo", "db1", "db", "master", 8000); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "db",
+		Name:      "Can connect",
+		Status:    structs.HealthPassing,
+		ServiceID: "db1",
+	}
+	if err := store.EnsureCheck(check); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check = &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: SerfCheckID,
+		Name:    SerfCheckName,
+		Status:  structs.HealthPassing,
+	}
+	if err := store.EnsureCheck(check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	for i := 0; i < t.N; i++ {
+		store.CheckServiceNodes("db")
 	}
 }
