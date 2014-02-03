@@ -69,18 +69,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Construct the health check
-	health := structs.HealthCheck{
-		Node:    s.agent.config.NodeName,
-		CheckID: args.ID,
-		Name:    args.Name,
-		Status:  structs.HealthUnknown,
-		Notes:   args.Notes,
-	}
-
-	// Fixup the ID if not given
-	if health.CheckID == "" && health.Name != "" {
-		health.CheckID = health.Name
-	}
+	health := args.HealthCheck(s.agent.config.NodeName)
 
 	// Verify the check type
 	chkType := &args.CheckType
@@ -91,7 +80,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Add the check
-	return s.agent.AddCheck(&health, chkType), nil
+	return s.agent.AddCheck(health, chkType), nil
 }
 
 func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -132,21 +121,11 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
-	// Construct the health check
-	ns := structs.NodeService{
-		ID:      args.ID,
-		Service: args.Name,
-		Tag:     args.Tag,
-		Port:    args.Port,
-	}
-
-	// Fixup the ID if not given
-	if ns.ID == "" && ns.Service != "" {
-		ns.ID = ns.Service
-	}
+	// Get the node service
+	ns := args.NodeService()
 
 	// Verify the check type
-	chkType := args.Check
+	chkType := args.CheckType()
 	if chkType != nil && !chkType.Valid() {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Must provide TTL or Script and Interval!"))
@@ -154,7 +133,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Add the check
-	return s.agent.AddService(&ns, chkType), nil
+	return s.agent.AddService(ns, chkType), nil
 }
 
 func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

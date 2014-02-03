@@ -197,7 +197,25 @@ func (c *Command) Run(args []string) int {
 		defer c.httpServer.Shutdown()
 	}
 
-	// TODO: Register services/checks
+	// Register the services
+	for _, service := range config.Services {
+		ns := service.NodeService()
+		chkType := service.CheckType()
+		if err := c.agent.AddService(ns, chkType); err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to register service '%s': %v", service.Name, err))
+			return 1
+		}
+	}
+
+	// Register the checks
+	for _, check := range config.Checks {
+		health := check.HealthCheck(config.NodeName)
+		chkType := &check.CheckType
+		if err := c.agent.AddCheck(health, chkType); err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to register check '%s': %v %v", check.Name, err, check))
+			return 1
+		}
+	}
 
 	// Let the agent know we've finished registration
 	c.agent.StartSync()

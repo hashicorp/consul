@@ -93,6 +93,12 @@ type Config struct {
 	// the INT signal. Defaults false. This can be changed on reload.
 	SkipLeaveOnInt bool `mapstructure:"skip_leave_on_interrupt"`
 
+	// Checks holds the provided check definitions
+	Checks []*CheckDefinition
+
+	// Services holds the provided service definitions
+	Services []*ServiceDefinition
+
 	// ConsulConfig can either be provided or a default one created
 	ConsulConfig *consul.Config
 }
@@ -124,14 +130,29 @@ func (c *Config) EncryptBytes() ([]byte, error) {
 // format and decodes it into a proper Config structure.
 func DecodeConfig(r io.Reader) (*Config, error) {
 	var raw interface{}
+	var result Config
 	dec := json.NewDecoder(r)
 	if err := dec.Decode(&raw); err != nil {
 		return nil, err
 	}
 
+	// Check the result type
+	if obj, ok := raw.(map[string]interface{}); ok {
+		// Check for a "service" or "check" key, meaning
+		// this is actually a definition entry
+		if sub, ok := obj["service"]; ok {
+			service, err := DecodeServiceDefinition(sub)
+			result.Services = append(result.Services, service)
+			return &result, err
+		} else if sub, ok := obj["check"]; ok {
+			check, err := DecodeCheckDefinition(sub)
+			result.Checks = append(result.Checks, check)
+			return &result, err
+		}
+	}
+
 	// Decode
 	var md mapstructure.Metadata
-	var result Config
 	msdec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Metadata: &md,
 		Result:   &result,
@@ -144,6 +165,85 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		return nil, err
 	}
 
+	return &result, nil
+}
+
+// DecodeServiceDefinition is used to decode a service definition
+func DecodeServiceDefinition(raw interface{}) (*ServiceDefinition, error) {
+	var sub interface{}
+	rawMap, ok := raw.(map[string]interface{})
+	if !ok {
+		goto AFTER_FIX
+	}
+	sub, ok = rawMap["check"]
+	if !ok {
+		goto AFTER_FIX
+	}
+	if err := FixupCheckType(sub); err != nil {
+		return nil, err
+	}
+AFTER_FIX:
+	var md mapstructure.Metadata
+	var result ServiceDefinition
+	msdec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Metadata: &md,
+		Result:   &result,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := msdec.Decode(raw); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func FixupCheckType(raw interface{}) error {
+	// Handle decoding of time durations
+	rawMap, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	if ttl, ok := rawMap["ttl"]; ok {
+		ttlS, ok := ttl.(string)
+		if ok {
+			if dur, err := time.ParseDuration(ttlS); err != nil {
+				return err
+			} else {
+				rawMap["ttl"] = dur
+			}
+		}
+	}
+	if interval, ok := rawMap["interval"]; ok {
+		intervalS, ok := interval.(string)
+		if ok {
+			if dur, err := time.ParseDuration(intervalS); err != nil {
+				return err
+			} else {
+				rawMap["interval"] = dur
+			}
+		}
+	}
+	return nil
+}
+
+// DecodeCheckDefinition is used to decode a check definition
+func DecodeCheckDefinition(raw interface{}) (*CheckDefinition, error) {
+	if err := FixupCheckType(raw); err != nil {
+		return nil, err
+	}
+	var md mapstructure.Metadata
+	var result CheckDefinition
+	msdec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Metadata: &md,
+		Result:   &result,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := msdec.Decode(raw); err != nil {
+		return nil, err
+	}
 	return &result, nil
 }
 
@@ -209,6 +309,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.SkipLeaveOnInt == true {
 		result.SkipLeaveOnInt = true
+	}
+	if b.Checks != nil {
+		result.Checks = append(result.Checks, b.Checks...)
+	}
+	if b.Services != nil {
+		result.Services = append(result.Services, b.Services...)
 	}
 	return &result
 }
