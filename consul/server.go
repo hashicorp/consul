@@ -195,7 +195,7 @@ func (s *Server) setupRaft() error {
 
 	// Create the FSM
 	var err error
-	s.fsm, err = NewFSM()
+	s.fsm, err = NewFSM(s.config.LogOutput)
 	if err != nil {
 		return err
 	}
