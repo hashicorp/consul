@@ -14,6 +14,14 @@ var (
 	tooManyFields = fmt.Errorf("number of fields exceeds index arity")
 )
 
+const (
+	// lastIndexRowID is a special RowID used to represent the
+	// last Raft index that affected the table. The index value
+	// is not used by MDBTable, but is stored so that the client can map
+	// back to the Raft index number
+	lastIndexRowID = 0
+)
+
 /*
   An MDB table is a logical representation of a table, which is a
   generic row store. It provides a simple mechanism to store rows
@@ -63,7 +71,6 @@ func (t *MDBTxn) Commit() error {
 	return t.tx.Commit()
 }
 
-type RowID uint64
 type IndexFunc func(*MDBIndex, []string) string
 
 // DefaultIndexFunc is used if no IdxFunc is provided. It joins
@@ -567,4 +574,50 @@ func (t MDBTables) StartTxn(readonly bool) (*MDBTxn, error) {
 		tx = newTx
 	}
 	return tx, nil
+}
+
+// LastIndex is get the last index that updated the table
+func (t *MDBTable) LastIndex() (uint64, error) {
+	// Start a readonly txn
+	tx, err := t.StartTxn(true, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Abort()
+	return t.LastIndexTxn(tx)
+}
+
+// LastIndexTxn is like LastIndex but it operates within a specific transaction.
+func (t *MDBTable) LastIndexTxn(tx *MDBTxn) (uint64, error) {
+	encRowId := uint64ToBytes(lastIndexRowID)
+	val, err := tx.tx.Get(tx.dbis[t.Name], encRowId)
+	if err == mdb.NotFound {
+		return 0, nil
+	} else if err != nil {
+		return 0, err
+	}
+
+	// Return the last index
+	return bytesToUint64(val), nil
+}
+
+// SetLastIndex is used to set the last index that updated the table
+func (t *MDBTable) SetLastIndex(index uint64) error {
+	tx, err := t.StartTxn(false, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Abort()
+
+	if err := t.SetLastIndexTxn(tx, index); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// SetLastIndexTxn is used to set the last index within a transaction
+func (t *MDBTable) SetLastIndexTxn(tx *MDBTxn, index uint64) error {
+	encRowId := uint64ToBytes(lastIndexRowID)
+	encIndex := uint64ToBytes(index)
+	return tx.tx.Put(tx.dbis[t.Name], encRowId, encIndex, 0)
 }
