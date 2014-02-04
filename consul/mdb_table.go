@@ -28,12 +28,19 @@ const (
   using a row id, while maintaining any number of secondary indexes.
 */
 type MDBTable struct {
-	lastRowID uint64 // Last used rowID
-	Env       *mdb.Env
-	Name      string // This is the name of the table, must be unique
-	Indexes   map[string]*MDBIndex
-	Encoder   func(interface{}) []byte
-	Decoder   func([]byte) interface{}
+	Env     *mdb.Env
+	Name    string // This is the name of the table, must be unique
+	Indexes map[string]*MDBIndex
+	Encoder func(interface{}) []byte
+	Decoder func([]byte) interface{}
+
+	// NotifyGroup is created in init, it can be used to
+	// watch a table for changes. It is not invoked internally,
+	// but can be used by clients of the table.
+	NotifyGroup *NotifyGroup
+
+	// Last used rowID
+	lastRowID uint64
 }
 
 // MDBTables is used for when we have a collection of tables
@@ -96,6 +103,9 @@ func (t *MDBTable) Init() error {
 	if t.Indexes == nil {
 		return fmt.Errorf("Missing table indexes")
 	}
+
+	// Create the notify group
+	t.NotifyGroup = &NotifyGroup{}
 
 	// Ensure we have a unique id index
 	id, ok := t.Indexes["id"]
