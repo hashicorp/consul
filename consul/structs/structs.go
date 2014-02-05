@@ -167,6 +167,11 @@ type IndexedHealthChecks struct {
 	HealthChecks HealthChecks
 }
 
+type IndexedCheckServiceNodes struct {
+	Index uint64
+	Nodes CheckServiceNodes
+}
+
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {
 	var handle codec.MsgpackHandle

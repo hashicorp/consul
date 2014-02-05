@@ -195,10 +195,14 @@ func (s *StateStore) initialize() error {
 	// Setup the query tables
 	// TODO: Other queries...
 	s.queryTables = map[string]MDBTables{
-		"Nodes":        MDBTables{s.nodeTable},
-		"Services":     MDBTables{s.serviceTable},
-		"ServiceNodes": MDBTables{s.nodeTable, s.serviceTable},
-		"NodeServices": MDBTables{s.nodeTable, s.serviceTable},
+		"Nodes":             MDBTables{s.nodeTable},
+		"Services":          MDBTables{s.serviceTable},
+		"ServiceNodes":      MDBTables{s.nodeTable, s.serviceTable},
+		"NodeServices":      MDBTables{s.nodeTable, s.serviceTable},
+		"ChecksInState":     MDBTables{s.checkTable},
+		"NodeChecks":        MDBTables{s.checkTable},
+		"ServiceChecks":     MDBTables{s.checkTable},
+		"CheckServiceNodes": MDBTables{s.nodeTable, s.serviceTable, s.checkTable},
 	}
 	return nil
 }
@@ -598,7 +602,7 @@ func parseHealthChecks(idx uint64, res []interface{}, err error) (uint64, struct
 // CheckServiceNodes returns the nodes associated with a given service, along
 // with any associated check
 func (s *StateStore) CheckServiceNodes(service string) (uint64, structs.CheckServiceNodes) {
-	tables := MDBTables{s.nodeTable, s.serviceTable, s.checkTable}
+	tables := s.queryTables["CheckServiceNodes"]
 	tx, err := tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
@@ -617,7 +621,7 @@ func (s *StateStore) CheckServiceNodes(service string) (uint64, structs.CheckSer
 // CheckServiceNodes returns the nodes associated with a given service, along
 // with any associated checks
 func (s *StateStore) CheckServiceTagNodes(service, tag string) (uint64, structs.CheckServiceNodes) {
-	tables := MDBTables{s.nodeTable, s.serviceTable, s.checkTable}
+	tables := s.queryTables["CheckServiceNodes"]
 	tx, err := tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))

@@ -31,15 +31,16 @@ func TestHealth_ChecksInState(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var checks structs.HealthChecks
+	var out2 structs.IndexedHealthChecks
 	inState := structs.ChecksInStateRequest{
 		Datacenter: "dc1",
 		State:      structs.HealthPassing,
 	}
-	if err := client.Call("Health.ChecksInState", &inState, &checks); err != nil {
+	if err := client.Call("Health.ChecksInState", &inState, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
+	checks := out2.HealthChecks
 	if len(checks) != 2 {
 		t.Fatalf("Bad: %v", checks)
 	}
@@ -77,15 +78,16 @@ func TestHealth_NodeChecks(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var checks structs.HealthChecks
+	var out2 structs.IndexedHealthChecks
 	node := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
 	}
-	if err := client.Call("Health.NodeChecks", &node, &checks); err != nil {
+	if err := client.Call("Health.NodeChecks", &node, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
+	checks := out2.HealthChecks
 	if len(checks) != 1 {
 		t.Fatalf("Bad: %v", checks)
 	}
@@ -123,15 +125,16 @@ func TestHealth_ServiceChecks(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var checks structs.HealthChecks
+	var out2 structs.IndexedHealthChecks
 	node := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
 	}
-	if err := client.Call("Health.ServiceChecks", &node, &checks); err != nil {
+	if err := client.Call("Health.ServiceChecks", &node, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
+	checks := out2.HealthChecks
 	if len(checks) != 1 {
 		t.Fatalf("Bad: %v", checks)
 	}
@@ -189,17 +192,18 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var nodes structs.CheckServiceNodes
+	var out2 structs.IndexedCheckServiceNodes
 	req := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
 		ServiceTag:  "master",
 		TagFilter:   false,
 	}
-	if err := client.Call("Health.ServiceNodes", &req, &nodes); err != nil {
+	if err := client.Call("Health.ServiceNodes", &req, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
+	nodes := out2.Nodes
 	if len(nodes) != 2 {
 		t.Fatalf("Bad: %v", nodes)
 	}
