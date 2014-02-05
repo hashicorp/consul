@@ -240,7 +240,8 @@ func (s *StateStore) Nodes() (uint64, structs.Nodes) {
 
 // EnsureService is used to ensure a given node exposes a service
 func (s *StateStore) EnsureService(index uint64, node string, ns *structs.NodeService) error {
-	tx, err := s.tables.StartTxn(false)
+	tables := MDBTables{s.nodeTable, s.serviceTable}
+	tx, err := tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
@@ -277,23 +278,24 @@ func (s *StateStore) EnsureService(index uint64, node string, ns *structs.NodeSe
 
 // NodeServices is used to return all the services of a given node
 func (s *StateStore) NodeServices(name string) (uint64, *structs.NodeServices) {
-	tx, err := s.tables.StartTxn(true)
+	tables := MDBTables{s.nodeTable, s.serviceTable}
+	tx, err := tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
-	return s.parseNodeServices(tx, name)
+	return s.parseNodeServices(tables, tx, name)
 }
 
 // parseNodeServices is used to get the services belonging to a
 // node, using a given txn
-func (s *StateStore) parseNodeServices(tx *MDBTxn, name string) (uint64, *structs.NodeServices) {
+func (s *StateStore) parseNodeServices(tables MDBTables, tx *MDBTxn, name string) (uint64, *structs.NodeServices) {
 	ns := &structs.NodeServices{
 		Services: make(map[string]*structs.NodeService),
 	}
 
 	// Get the maximum index
-	index, err := s.tables.LastIndexTxn(tx)
+	index, err := tables.LastIndexTxn(tx)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get last index: %v", err))
 	}
@@ -333,7 +335,8 @@ func (s *StateStore) parseNodeServices(tx *MDBTxn, name string) (uint64, *struct
 
 // DeleteNodeService is used to delete a node service
 func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
-	tx, err := s.tables.StartTxn(false)
+	tables := MDBTables{s.serviceTable, s.checkTable}
+	tx, err := tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
@@ -360,7 +363,8 @@ func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
 
 // DeleteNode is used to delete a node and all it's services
 func (s *StateStore) DeleteNode(index uint64, node string) error {
-	tx, err := s.tables.StartTxn(false)
+	tables := MDBTables{s.nodeTable, s.serviceTable, s.checkTable}
+	tx, err := tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
@@ -416,13 +420,14 @@ func (s *StateStore) Services() (uint64, map[string][]string) {
 
 // ServiceNodes returns the nodes associated with a given service
 func (s *StateStore) ServiceNodes(service string) (uint64, structs.ServiceNodes) {
-	tx, err := s.tables.StartTxn(true)
+	tables := MDBTables{s.nodeTable, s.serviceTable}
+	tx, err := tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
 
-	idx, err := s.tables.LastIndexTxn(tx)
+	idx, err := tables.LastIndexTxn(tx)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get last index: %v", err))
 	}
@@ -433,13 +438,14 @@ func (s *StateStore) ServiceNodes(service string) (uint64, structs.ServiceNodes)
 
 // ServiceTagNodes returns the nodes associated with a given service matching a tag
 func (s *StateStore) ServiceTagNodes(service, tag string) (uint64, structs.ServiceNodes) {
-	tx, err := s.tables.StartTxn(true)
+	tables := MDBTables{s.nodeTable, s.serviceTable}
+	tx, err := tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
 
-	idx, err := s.tables.LastIndexTxn(tx)
+	idx, err := tables.LastIndexTxn(tx)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get last index: %v", err))
 	}
@@ -479,7 +485,8 @@ func (s *StateStore) EnsureCheck(index uint64, check *structs.HealthCheck) error
 	}
 
 	// Start the txn
-	tx, err := s.tables.StartTxn(false)
+	tables := MDBTables{s.nodeTable, s.serviceTable, s.checkTable}
+	tx, err := tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
@@ -569,13 +576,14 @@ func parseHealthChecks(idx uint64, res []interface{}, err error) (uint64, struct
 // CheckServiceNodes returns the nodes associated with a given service, along
 // with any associated check
 func (s *StateStore) CheckServiceNodes(service string) (uint64, structs.CheckServiceNodes) {
-	tx, err := s.tables.StartTxn(true)
+	tables := MDBTables{s.nodeTable, s.serviceTable, s.checkTable}
+	tx, err := tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
 
-	idx, err := s.tables.LastIndexTxn(tx)
+	idx, err := tables.LastIndexTxn(tx)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get last index: %v", err))
 	}
@@ -587,13 +595,14 @@ func (s *StateStore) CheckServiceNodes(service string) (uint64, structs.CheckSer
 // CheckServiceNodes returns the nodes associated with a given service, along
 // with any associated checks
 func (s *StateStore) CheckServiceTagNodes(service, tag string) (uint64, structs.CheckServiceNodes) {
-	tx, err := s.tables.StartTxn(true)
+	tables := MDBTables{s.nodeTable, s.serviceTable, s.checkTable}
+	tx, err := tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
 
-	idx, err := s.tables.LastIndexTxn(tx)
+	idx, err := tables.LastIndexTxn(tx)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get last index: %v", err))
 	}
@@ -686,7 +695,7 @@ func (s *StateSnapshot) Nodes() structs.Nodes {
 
 // NodeServices is used to return all the services of a given node
 func (s *StateSnapshot) NodeServices(name string) *structs.NodeServices {
-	_, res := s.store.parseNodeServices(s.tx, name)
+	_, res := s.store.parseNodeServices(s.store.tables, s.tx, name)
 	return res
 }
 
