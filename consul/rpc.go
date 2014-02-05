@@ -3,10 +3,12 @@ package consul
 import (
 	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/inconshreveable/muxado"
 	"github.com/ugorji/go/codec"
 	"io"
 	"math/rand"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -15,6 +17,7 @@ type RPCType byte
 const (
 	rpcConsul RPCType = iota
 	rpcRaft
+	rpcMultiplex
 )
 
 const (
@@ -62,10 +65,29 @@ func (s *Server) handleConn(conn net.Conn) {
 	case rpcRaft:
 		s.raftLayer.Handoff(conn)
 
+	case rpcMultiplex:
+		s.handleMultiplex(conn)
+
 	default:
 		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v", buf[0])
 		conn.Close()
 		return
+	}
+}
+
+// handleMultiplex is used to multiplex a single incoming connection
+func (s *Server) handleMultiplex(conn net.Conn) {
+	defer conn.Close()
+	server := muxado.Server(conn)
+	for {
+		sub, err := server.Accept()
+		if err != nil {
+			if !strings.Contains(err.Error(), "closed") {
+				s.logger.Printf("[ERR] consul.rpc: multiplex conn accept failed: %v", err)
+			}
+			return
+		}
+		go s.handleConsulConn(sub)
 	}
 }
 
