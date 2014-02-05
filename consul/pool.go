@@ -81,7 +81,7 @@ func (p *ConnPool) Shutdown() error {
 
 // Acquire is used to get a connection that is
 // pooled or to return a new connection
-func (p *ConnPool) Acquire(addr net.Addr) (*Conn, error) {
+func (p *ConnPool) acquire(addr net.Addr) (*Conn, error) {
 	// Check for a pooled ocnn
 	if conn := p.getPooled(addr); conn != nil {
 		return conn, nil
@@ -142,7 +142,7 @@ func (p *ConnPool) getNewConn(addr net.Addr) (*Conn, error) {
 
 // Return is used to return a connection once done. Connections
 // that are in an error state should not be returned
-func (p *ConnPool) Return(conn *Conn) {
+func (p *ConnPool) returnConn(conn *Conn) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -166,7 +166,7 @@ func (p *ConnPool) Return(conn *Conn) {
 // RPC is used to make an RPC call to a remote host
 func (p *ConnPool) RPC(addr net.Addr, method string, args interface{}, reply interface{}) error {
 	// Try to get a conn first
-	conn, err := p.Acquire(addr)
+	conn, err := p.acquire(addr)
 	if err != nil {
 		return fmt.Errorf("failed to get conn: %v", err)
 	}
@@ -176,13 +176,13 @@ func (p *ConnPool) RPC(addr net.Addr, method string, args interface{}, reply int
 
 	// Fast path the non-error case
 	if err == nil {
-		p.Return(conn)
+		p.returnConn(conn)
 		return nil
 	}
 
 	// If not a network error, save the connection
 	if _, ok := err.(net.Error); !ok {
-		p.Return(conn)
+		p.returnConn(conn)
 	} else {
 		conn.Close()
 	}
