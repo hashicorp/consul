@@ -162,6 +162,11 @@ func (s *Server) blockingRPC(b *structs.BlockingQuery, tables MDBTables, run fun
 		goto RUN_QUERY
 	}
 
+	// Sanity check that we have tables to block on
+	if len(tables) == 0 {
+		panic("no tables to block on")
+	}
+
 	// Restrict the max query time
 	if b.MaxQueryTime > maxQueryTime {
 		b.MaxQueryTime = maxQueryTime
