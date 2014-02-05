@@ -30,6 +30,7 @@ type StateStore struct {
 	checkTable   *MDBTable
 	tables       MDBTables
 	watch        map[*MDBTable]*NotifyGroup
+	queryTables  map[string]MDBTables
 }
 
 // StateSnapshot is used to provide a point-in-time snapshot
@@ -190,7 +191,25 @@ func (s *StateStore) initialize() error {
 		// Setup a notification group per table
 		s.watch[table] = &NotifyGroup{}
 	}
+
+	// Setup the query tables
+	// TODO: Other queries...
+	s.queryTables = map[string]MDBTables{
+		"Nodes": MDBTables{s.nodeTable},
+	}
 	return nil
+}
+
+// Watch is used to subscribe a channel to a set of MDBTables
+func (s *StateStore) Watch(tables MDBTables, notify chan struct{}) {
+	for _, t := range tables {
+		s.watch[t].Wait(notify)
+	}
+}
+
+// QueryTables returns the Tables that are queried for a given query
+func (s *StateStore) QueryTables(q string) MDBTables {
+	return s.queryTables[q]
 }
 
 // EnsureNode is used to ensure a given node exists, with the provided address
