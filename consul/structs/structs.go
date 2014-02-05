@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ugorji/go/codec"
+	"time"
 )
 
 var (
@@ -26,6 +27,16 @@ const (
 	HealthCritical = "critical"
 )
 
+// BlockingQuery is used to block on a query and wait for a change.
+// Either both fields, or neither must be provided.
+type BlockingQuery struct {
+	// If set, wait until query exceeds given index
+	MinQueryIndex uint64
+
+	// Provided with MinQueryIndex to wait for change
+	MaxQueryTime time.Duration
+}
+
 // RegisterRequest is used for the Catalog.Register endpoint
 // to register a node as providing a service. If no service
 // is provided, the node is registered.
@@ -47,24 +58,33 @@ type DeregisterRequest struct {
 	CheckID    string
 }
 
+// DCSpecificRequest is used to query about a specific DC
+type DCSpecificRequest struct {
+	Datacenter string
+	BlockingQuery
+}
+
 // ServiceSpecificRequest is used to query about a specific node
 type ServiceSpecificRequest struct {
 	Datacenter  string
 	ServiceName string
 	ServiceTag  string
 	TagFilter   bool // Controls tag filtering
+	BlockingQuery
 }
 
 // NodeSpecificRequest is used to request the information about a single node
 type NodeSpecificRequest struct {
 	Datacenter string
 	Node       string
+	BlockingQuery
 }
 
 // ChecksInStateRequest is used to query for nodes in a state
 type ChecksInStateRequest struct {
 	Datacenter string
 	State      string
+	BlockingQuery
 }
 
 // Used to return information about a node
