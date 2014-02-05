@@ -407,7 +407,7 @@ func TestCatalogListServiceNodes(t *testing.T) {
 		ServiceTag:  "slave",
 		TagFilter:   false,
 	}
-	var out structs.ServiceNodes
+	var out structs.IndexedServiceNodes
 	err := client.Call("Catalog.ServiceNodes", &args, &out)
 	if err == nil || err.Error() != "No cluster leader" {
 		t.Fatalf("err: %v", err)
@@ -424,18 +424,18 @@ func TestCatalogListServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(out) != 1 {
+	if len(out.ServiceNodes) != 1 {
 		t.Fatalf("bad: %v", out)
 	}
 
 	// Try with a filter
 	args.TagFilter = true
-	out = nil
+	out = structs.IndexedServiceNodes{}
 
 	if err := client.Call("Catalog.ServiceNodes", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(out) != 0 {
+	if len(out.ServiceNodes) != 0 {
 		t.Fatalf("bad: %v", out)
 	}
 }
@@ -451,7 +451,7 @@ func TestCatalogNodeServices(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       "foo",
 	}
-	var out structs.NodeServices
+	var out structs.IndexedNodeServices
 	err := client.Call("Catalog.NodeServices", &args, &out)
 	if err == nil || err.Error() != "No cluster leader" {
 		t.Fatalf("err: %v", err)
@@ -469,16 +469,17 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if out.Node.Address != "127.0.0.1" {
+	if out.NodeServices.Node.Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", out)
 	}
-	if len(out.Services) != 2 {
+	if len(out.NodeServices.Services) != 2 {
 		t.Fatalf("bad: %v", out)
 	}
-	if out.Services["db"].Tag != "primary" || out.Services["db"].Port != 5000 {
+	services := out.NodeServices.Services
+	if services["db"].Tag != "primary" || services["db"].Port != 5000 {
 		t.Fatalf("bad: %v", out)
 	}
-	if out.Services["web"].Tag != "" || out.Services["web"].Port != 80 {
+	if services["web"].Tag != "" || services["web"].Port != 80 {
 		t.Fatalf("bad: %v", out)
 	}
 }
@@ -520,13 +521,13 @@ func TestCatalogRegister_FailedCase1(t *testing.T) {
 		Datacenter:  "dc1",
 		ServiceName: "web",
 	}
-	var nodes structs.ServiceNodes
-	if err := client.Call("Catalog.ServiceNodes", query, &nodes); err != nil {
+	var out2 structs.IndexedServiceNodes
+	if err := client.Call("Catalog.ServiceNodes", query, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Check the output
-	if len(nodes) != 1 {
-		t.Fatalf("Bad: %v", nodes)
+	if len(out2.ServiceNodes) != 1 {
+		t.Fatalf("Bad: %v", out2)
 	}
 }

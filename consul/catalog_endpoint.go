@@ -118,7 +118,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 }
 
 // ServiceNodes returns all the nodes registered as part of a service
-func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.ServiceNodes) error {
+func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceNodes) error {
 	if done, err := c.srv.forward("Catalog.ServiceNodes", args.Datacenter, args, reply); done {
 		return err
 	}
@@ -130,19 +130,20 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 	// Get the nodes
 	state := c.srv.fsm.State()
-	var nodes structs.ServiceNodes
-	if args.TagFilter {
-		_, nodes = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
-	} else {
-		_, nodes = state.ServiceNodes(args.ServiceName)
-	}
-
-	*reply = nodes
-	return nil
+	return c.srv.blockingRPC(&args.BlockingQuery,
+		state.QueryTables("ServiceNodes"),
+		func() (uint64, error) {
+			if args.TagFilter {
+				reply.Index, reply.ServiceNodes = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
+			} else {
+				reply.Index, reply.ServiceNodes = state.ServiceNodes(args.ServiceName)
+			}
+			return reply.Index, nil
+		})
 }
 
 // NodeServices returns all the services registered as part of a node
-func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs.NodeServices) error {
+func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs.IndexedNodeServices) error {
 	if done, err := c.srv.forward("Catalog.NodeServices", args.Datacenter, args, reply); done {
 		return err
 	}
@@ -154,8 +155,10 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 
 	// Get the node services
 	state := c.srv.fsm.State()
-	_, services := state.NodeServices(args.Node)
-
-	*reply = *services
-	return nil
+	return c.srv.blockingRPC(&args.BlockingQuery,
+		state.QueryTables("NodeServices"),
+		func() (uint64, error) {
+			reply.Index, reply.NodeServices = state.NodeServices(args.Node)
+			return reply.Index, nil
+		})
 }

@@ -195,8 +195,10 @@ func (s *StateStore) initialize() error {
 	// Setup the query tables
 	// TODO: Other queries...
 	s.queryTables = map[string]MDBTables{
-		"Nodes":    MDBTables{s.nodeTable},
-		"Services": MDBTables{s.serviceTable},
+		"Nodes":        MDBTables{s.nodeTable},
+		"Services":     MDBTables{s.serviceTable},
+		"ServiceNodes": MDBTables{s.nodeTable, s.serviceTable},
+		"NodeServices": MDBTables{s.nodeTable, s.serviceTable},
 	}
 	return nil
 }
@@ -298,7 +300,7 @@ func (s *StateStore) EnsureService(index uint64, node string, ns *structs.NodeSe
 
 // NodeServices is used to return all the services of a given node
 func (s *StateStore) NodeServices(name string) (uint64, *structs.NodeServices) {
-	tables := MDBTables{s.nodeTable, s.serviceTable}
+	tables := s.queryTables["NodeServices"]
 	tx, err := tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
@@ -440,7 +442,7 @@ func (s *StateStore) Services() (uint64, map[string][]string) {
 
 // ServiceNodes returns the nodes associated with a given service
 func (s *StateStore) ServiceNodes(service string) (uint64, structs.ServiceNodes) {
-	tables := MDBTables{s.nodeTable, s.serviceTable}
+	tables := s.queryTables["ServiceNodes"]
 	tx, err := tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
@@ -458,7 +460,7 @@ func (s *StateStore) ServiceNodes(service string) (uint64, structs.ServiceNodes)
 
 // ServiceTagNodes returns the nodes associated with a given service matching a tag
 func (s *StateStore) ServiceTagNodes(service, tag string) (uint64, structs.ServiceNodes) {
-	tables := MDBTables{s.nodeTable, s.serviceTable}
+	tables := s.queryTables["ServiceNodes"]
 	tx, err := tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
