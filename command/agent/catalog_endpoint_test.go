@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"os"
@@ -120,6 +121,66 @@ func TestCatalogNodes(t *testing.T) {
 	}
 
 	if idx == 0 {
+		t.Fatalf("bad: %v", idx)
+	}
+
+	nodes := obj.(structs.Nodes)
+	if len(nodes) != 2 {
+		t.Fatalf("bad: %v", obj)
+	}
+}
+
+func TestCatalogNodes_Blocking(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Wait for a leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Register node
+	args := &structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var out structs.IndexedNodes
+	if err := srv.agent.RPC("Catalog.ListNodes", *args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Do an update in a little while
+	start := time.Now()
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+		}
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	// Do a blocking read
+	req, err := http.NewRequest("GET",
+		fmt.Sprintf("/v1/catalog/nodes?wait=60s&index=%d", out.Index), nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, obj, err := srv.CatalogNodes(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should block for a while
+	if time.Now().Sub(start) < 100*time.Millisecond {
+		t.Fatalf("too fast")
+	}
+
+	if idx <= out.Index {
 		t.Fatalf("bad: %v", idx)
 	}
 
