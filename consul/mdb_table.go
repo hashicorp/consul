@@ -311,14 +311,23 @@ AFTER_DELETE:
 
 // Get is used to lookup one or more rows. An index an appropriate
 // fields are specified. The fields can be a prefix of the index.
-func (t *MDBTable) Get(index string, parts ...string) ([]interface{}, error) {
+func (t *MDBTable) Get(index string, parts ...string) (uint64, []interface{}, error) {
 	// Start a readonly txn
 	tx, err := t.StartTxn(true, nil)
 	if err != nil {
-		return nil, err
+		return 0, nil, err
 	}
 	defer tx.Abort()
-	return t.GetTxn(tx, index, parts...)
+
+	// Get the last associated index
+	idx, err := t.LastIndexTxn(tx)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// Get the actual results
+	res, err := t.GetTxn(tx, index, parts...)
+	return idx, res, err
 }
 
 // GetTxn is like Get but it operates within a specific transaction.
@@ -572,20 +581,6 @@ func (i *MDBIndex) iterate(tx *MDBTxn, prefix []byte,
 	return nil
 }
 
-// StartTxn is used to create a transaction that spans a list of tables
-func (t MDBTables) StartTxn(readonly bool) (*MDBTxn, error) {
-	var tx *MDBTxn
-	for _, table := range t {
-		newTx, err := table.StartTxn(readonly, tx)
-		if err != nil {
-			tx.Abort()
-			return nil, err
-		}
-		tx = newTx
-	}
-	return tx, nil
-}
-
 // LastIndex is get the last index that updated the table
 func (t *MDBTable) LastIndex() (uint64, error) {
 	// Start a readonly txn
@@ -630,4 +625,33 @@ func (t *MDBTable) SetLastIndexTxn(tx *MDBTxn, index uint64) error {
 	encRowId := uint64ToBytes(lastIndexRowID)
 	encIndex := uint64ToBytes(index)
 	return tx.tx.Put(tx.dbis[t.Name], encRowId, encIndex, 0)
+}
+
+// StartTxn is used to create a transaction that spans a list of tables
+func (t MDBTables) StartTxn(readonly bool) (*MDBTxn, error) {
+	var tx *MDBTxn
+	for _, table := range t {
+		newTx, err := table.StartTxn(readonly, tx)
+		if err != nil {
+			tx.Abort()
+			return nil, err
+		}
+		tx = newTx
+	}
+	return tx, nil
+}
+
+// LastIndexTxn is used to get the last transaction from all of the tables
+func (t MDBTables) LastIndexTxn(tx *MDBTxn) (uint64, error) {
+	var index uint64
+	for _, table := range t {
+		idx, err := table.LastIndexTxn(tx)
+		if err != nil {
+			return index, err
+		}
+		if idx > index {
+			index = idx
+		}
+	}
+	return index, nil
 }

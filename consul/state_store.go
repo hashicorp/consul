@@ -34,8 +34,9 @@ type StateStore struct {
 // StateSnapshot is used to provide a point-in-time snapshot
 // It works by starting a readonly transaction against all tables.
 type StateSnapshot struct {
-	store *StateStore
-	tx    *MDBTxn
+	store     *StateStore
+	tx        *MDBTxn
+	lastIndex uint64
 }
 
 // Close is used to abort the transaction and allow for cleanup
@@ -188,26 +189,39 @@ func (s *StateStore) initialize() error {
 }
 
 // EnsureNode is used to ensure a given node exists, with the provided address
-func (s *StateStore) EnsureNode(node structs.Node) error {
-	return s.nodeTable.Insert(node)
+func (s *StateStore) EnsureNode(index uint64, node structs.Node) error {
+	// Start a new txn
+	tx, err := s.nodeTable.StartTxn(false, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Abort()
+
+	if err := s.nodeTable.InsertTxn(tx, node); err != nil {
+		return err
+	}
+	if err := s.nodeTable.SetLastIndexTxn(tx, index); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // GetNode returns all the address of the known and if it was found
-func (s *StateStore) GetNode(name string) (bool, string) {
-	res, err := s.nodeTable.Get("id", name)
+func (s *StateStore) GetNode(name string) (uint64, bool, string) {
+	idx, res, err := s.nodeTable.Get("id", name)
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node: %v", err))
 	}
 	if len(res) == 0 {
-		return false, ""
+		return idx, false, ""
 	}
-	return true, res[0].(*structs.Node).Address
+	return idx, true, res[0].(*structs.Node).Address
 }
 
 // GetNodes returns all the known nodes, the slice alternates between
 // the node name and address
-func (s *StateStore) Nodes() structs.Nodes {
-	res, err := s.nodeTable.Get("id")
+func (s *StateStore) Nodes() (uint64, structs.Nodes) {
+	idx, res, err := s.nodeTable.Get("id")
 	if err != nil {
 		panic(fmt.Errorf("Failed to get nodes: %v", err))
 	}
@@ -215,11 +229,11 @@ func (s *StateStore) Nodes() structs.Nodes {
 	for i, r := range res {
 		results[i] = *r.(*structs.Node)
 	}
-	return results
+	return idx, results
 }
 
 // EnsureService is used to ensure a given node exposes a service
-func (s *StateStore) EnsureService(name, id, service, tag string, port int) error {
+func (s *StateStore) EnsureService(index uint64, node string, ns *structs.NodeService) error {
 	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
@@ -227,7 +241,7 @@ func (s *StateStore) EnsureService(name, id, service, tag string, port int) erro
 	defer tx.Abort()
 
 	// Ensure the node exists
-	res, err := s.nodeTable.GetTxn(tx, "id", name)
+	res, err := s.nodeTable.GetTxn(tx, "id", node)
 	if err != nil {
 		return err
 	}
@@ -237,22 +251,25 @@ func (s *StateStore) EnsureService(name, id, service, tag string, port int) erro
 
 	// Create the entry
 	entry := structs.ServiceNode{
-		Node:        name,
-		ServiceID:   id,
-		ServiceName: service,
-		ServiceTag:  tag,
-		ServicePort: port,
+		Node:        node,
+		ServiceID:   ns.ID,
+		ServiceName: ns.Service,
+		ServiceTag:  ns.Tag,
+		ServicePort: ns.Port,
 	}
 
 	// Ensure the service entry is set
 	if err := s.serviceTable.InsertTxn(tx, &entry); err != nil {
 		return err
 	}
+	if err := s.serviceTable.SetLastIndexTxn(tx, index); err != nil {
+		return err
+	}
 	return tx.Commit()
 }
 
 // NodeServices is used to return all the services of a given node
-func (s *StateStore) NodeServices(name string) *structs.NodeServices {
+func (s *StateStore) NodeServices(name string) (uint64, *structs.NodeServices) {
 	tx, err := s.tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
@@ -263,9 +280,15 @@ func (s *StateStore) NodeServices(name string) *structs.NodeServices {
 
 // parseNodeServices is used to get the services belonging to a
 // node, using a given txn
-func (s *StateStore) parseNodeServices(tx *MDBTxn, name string) *structs.NodeServices {
+func (s *StateStore) parseNodeServices(tx *MDBTxn, name string) (uint64, *structs.NodeServices) {
 	ns := &structs.NodeServices{
 		Services: make(map[string]*structs.NodeService),
+	}
+
+	// Get the maximum index
+	index, err := s.tables.LastIndexTxn(tx)
+	if err != nil {
+		panic(fmt.Errorf("Failed to get last index: %v", err))
 	}
 
 	// Get the node first
@@ -274,7 +297,7 @@ func (s *StateStore) parseNodeServices(tx *MDBTxn, name string) *structs.NodeSer
 		panic(fmt.Errorf("Failed to get node: %v", err))
 	}
 	if len(res) == 0 {
-		return ns
+		return index, ns
 	}
 
 	// Set the address
@@ -298,51 +321,71 @@ func (s *StateStore) parseNodeServices(tx *MDBTxn, name string) *structs.NodeSer
 		}
 		ns.Services[srv.ID] = srv
 	}
-	return ns
+	return index, ns
 }
 
 // DeleteNodeService is used to delete a node service
-func (s *StateStore) DeleteNodeService(node, id string) error {
+func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
 	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
 
-	if _, err := s.serviceTable.DeleteTxn(tx, "id", node, id); err != nil {
+	if n, err := s.serviceTable.DeleteTxn(tx, "id", node, id); err != nil {
 		return err
+	} else if n > 0 {
+		if err := s.serviceTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
 	}
-	if _, err := s.checkTable.DeleteTxn(tx, "node", node, id); err != nil {
+	if n, err := s.checkTable.DeleteTxn(tx, "node", node, id); err != nil {
 		return err
+	} else if n > 0 {
+		if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }
 
 // DeleteNode is used to delete a node and all it's services
-func (s *StateStore) DeleteNode(node string) error {
+func (s *StateStore) DeleteNode(index uint64, node string) error {
 	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
 
-	if _, err := s.serviceTable.DeleteTxn(tx, "id", node); err != nil {
+	if n, err := s.serviceTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
+	} else if n > 0 {
+		if err := s.serviceTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
 	}
-	if _, err := s.checkTable.DeleteTxn(tx, "id", node); err != nil {
+	if n, err := s.checkTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
+	} else if n > 0 {
+		if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
 	}
-	if _, err := s.nodeTable.DeleteTxn(tx, "id", node); err != nil {
+	if n, err := s.nodeTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
+	} else if n > 0 {
+		if err := s.nodeTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }
 
 // Services is used to return all the services with a list of associated tags
-func (s *StateStore) Services() map[string][]string {
+func (s *StateStore) Services() (uint64, map[string][]string) {
 	// TODO: Optimize to not table scan.. We can do a distinct
 	// type of query to avoid this
-	res, err := s.serviceTable.Get("id")
+	idx, res, err := s.serviceTable.Get("id")
 	if err != nil {
 		panic(fmt.Errorf("Failed to get node servicess: %v", err))
 	}
@@ -356,31 +399,41 @@ func (s *StateStore) Services() map[string][]string {
 			services[srv.ServiceName] = tags
 		}
 	}
-	return services
+	return idx, services
 }
 
 // ServiceNodes returns the nodes associated with a given service
-func (s *StateStore) ServiceNodes(service string) structs.ServiceNodes {
+func (s *StateStore) ServiceNodes(service string) (uint64, structs.ServiceNodes) {
 	tx, err := s.tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
 
-	res, err := s.serviceTable.Get("service", service)
-	return parseServiceNodes(tx, s.nodeTable, res, err)
+	idx, err := s.tables.LastIndexTxn(tx)
+	if err != nil {
+		panic(fmt.Errorf("Failed to get last index: %v", err))
+	}
+
+	res, err := s.serviceTable.GetTxn(tx, "service", service)
+	return idx, parseServiceNodes(tx, s.nodeTable, res, err)
 }
 
 // ServiceTagNodes returns the nodes associated with a given service matching a tag
-func (s *StateStore) ServiceTagNodes(service, tag string) structs.ServiceNodes {
+func (s *StateStore) ServiceTagNodes(service, tag string) (uint64, structs.ServiceNodes) {
 	tx, err := s.tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
 
-	res, err := s.serviceTable.Get("service", service, tag)
-	return parseServiceNodes(tx, s.nodeTable, res, err)
+	idx, err := s.tables.LastIndexTxn(tx)
+	if err != nil {
+		panic(fmt.Errorf("Failed to get last index: %v", err))
+	}
+
+	res, err := s.serviceTable.GetTxn(tx, "service", service, tag)
+	return idx, parseServiceNodes(tx, s.nodeTable, res, err)
 }
 
 // parseServiceNodes parses results ServiceNodes and ServiceTagNodes
@@ -407,7 +460,7 @@ func parseServiceNodes(tx *MDBTxn, table *MDBTable, res []interface{}, err error
 }
 
 // EnsureCheck is used to create a check or updates it's state
-func (s *StateStore) EnsureCheck(check *structs.HealthCheck) error {
+func (s *StateStore) EnsureCheck(index uint64, check *structs.HealthCheck) error {
 	// Ensure we have a status
 	if check.Status == "" {
 		check.Status = structs.HealthUnknown
@@ -447,33 +500,48 @@ func (s *StateStore) EnsureCheck(check *structs.HealthCheck) error {
 	if err := s.checkTable.InsertTxn(tx, check); err != nil {
 		return err
 	}
+	if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
+		return err
+	}
 	return tx.Commit()
 }
 
 // DeleteNodeCheck is used to delete a node health check
-func (s *StateStore) DeleteNodeCheck(node, id string) error {
-	_, err := s.checkTable.Delete("id", node, id)
-	return err
+func (s *StateStore) DeleteNodeCheck(index uint64, node, id string) error {
+	tx, err := s.checkTable.StartTxn(false, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Abort()
+
+	if n, err := s.checkTable.DeleteTxn(tx, "id", node, id); err != nil {
+		return err
+	} else if n > 0 {
+		if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 // NodeChecks is used to get all the checks for a node
-func (s *StateStore) NodeChecks(node string) structs.HealthChecks {
+func (s *StateStore) NodeChecks(node string) (uint64, structs.HealthChecks) {
 	return parseHealthChecks(s.checkTable.Get("id", node))
 }
 
 // ServiceChecks is used to get all the checks for a service
-func (s *StateStore) ServiceChecks(service string) structs.HealthChecks {
+func (s *StateStore) ServiceChecks(service string) (uint64, structs.HealthChecks) {
 	return parseHealthChecks(s.checkTable.Get("service", service))
 }
 
 // CheckInState is used to get all the checks for a service in a given state
-func (s *StateStore) ChecksInState(state string) structs.HealthChecks {
+func (s *StateStore) ChecksInState(state string) (uint64, structs.HealthChecks) {
 	return parseHealthChecks(s.checkTable.Get("status", state))
 }
 
 // parseHealthChecks is used to handle the resutls of a Get against
 // the checkTable
-func parseHealthChecks(res []interface{}, err error) structs.HealthChecks {
+func parseHealthChecks(idx uint64, res []interface{}, err error) (uint64, structs.HealthChecks) {
 	if err != nil {
 		panic(fmt.Errorf("Failed to get checks: %v", err))
 	}
@@ -481,33 +549,43 @@ func parseHealthChecks(res []interface{}, err error) structs.HealthChecks {
 	for i, r := range res {
 		results[i] = r.(*structs.HealthCheck)
 	}
-	return results
+	return idx, results
 }
 
 // CheckServiceNodes returns the nodes associated with a given service, along
 // with any associated check
-func (s *StateStore) CheckServiceNodes(service string) structs.CheckServiceNodes {
+func (s *StateStore) CheckServiceNodes(service string) (uint64, structs.CheckServiceNodes) {
 	tx, err := s.tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
 
-	res, err := s.serviceTable.Get("service", service)
-	return s.parseCheckServiceNodes(tx, res, err)
+	idx, err := s.tables.LastIndexTxn(tx)
+	if err != nil {
+		panic(fmt.Errorf("Failed to get last index: %v", err))
+	}
+
+	res, err := s.serviceTable.GetTxn(tx, "service", service)
+	return idx, s.parseCheckServiceNodes(tx, res, err)
 }
 
 // CheckServiceNodes returns the nodes associated with a given service, along
 // with any associated checks
-func (s *StateStore) CheckServiceTagNodes(service, tag string) structs.CheckServiceNodes {
+func (s *StateStore) CheckServiceTagNodes(service, tag string) (uint64, structs.CheckServiceNodes) {
 	tx, err := s.tables.StartTxn(true)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
 
-	res, err := s.serviceTable.Get("service", service, tag)
-	return s.parseCheckServiceNodes(tx, res, err)
+	idx, err := s.tables.LastIndexTxn(tx)
+	if err != nil {
+		panic(fmt.Errorf("Failed to get last index: %v", err))
+	}
+
+	res, err := s.serviceTable.GetTxn(tx, "service", service, tag)
+	return idx, s.parseCheckServiceNodes(tx, res, err)
 }
 
 // parseCheckServiceNodes parses results CheckServiceNodes and CheckServiceTagNodes
@@ -527,10 +605,12 @@ func (s *StateStore) parseCheckServiceNodes(tx *MDBTxn, res []interface{}, err e
 		}
 
 		// Get any associated checks of the service
-		checks := parseHealthChecks(s.checkTable.GetTxn(tx, "node", srv.Node, srv.ServiceID))
+		res, err := s.checkTable.GetTxn(tx, "node", srv.Node, srv.ServiceID)
+		_, checks := parseHealthChecks(0, res, err)
 
 		// Get any checks of the node, not assciated with any service
-		nodeChecks := parseHealthChecks(s.checkTable.GetTxn(tx, "node", srv.Node, ""))
+		res, err = s.checkTable.GetTxn(tx, "node", srv.Node, "")
+		_, nodeChecks := parseHealthChecks(0, res, err)
 		checks = append(checks, nodeChecks...)
 
 		// Setup the node
@@ -555,12 +635,25 @@ func (s *StateStore) Snapshot() (*StateSnapshot, error) {
 		return nil, err
 	}
 
+	// Determine the max index
+	index, err := s.tables.LastIndexTxn(tx)
+	if err != nil {
+		tx.Abort()
+		return nil, err
+	}
+
 	// Return the snapshot
 	snap := &StateSnapshot{
-		store: s,
-		tx:    tx,
+		store:     s,
+		tx:        tx,
+		lastIndex: index,
 	}
 	return snap, nil
+}
+
+// LastIndex returns the last index that affects the snapshotted data
+func (s *StateSnapshot) LastIndex() uint64 {
+	return s.lastIndex
 }
 
 // Nodes returns all the known nodes, the slice alternates between
@@ -579,10 +672,13 @@ func (s *StateSnapshot) Nodes() structs.Nodes {
 
 // NodeServices is used to return all the services of a given node
 func (s *StateSnapshot) NodeServices(name string) *structs.NodeServices {
-	return s.store.parseNodeServices(s.tx, name)
+	_, res := s.store.parseNodeServices(s.tx, name)
+	return res
 }
 
 // NodeChecks is used to return all the checks of a given node
 func (s *StateSnapshot) NodeChecks(node string) structs.HealthChecks {
-	return parseHealthChecks(s.store.checkTable.GetTxn(s.tx, "id", node))
+	res, err := s.store.checkTable.GetTxn(s.tx, "id", node)
+	_, checks := parseHealthChecks(s.lastIndex, res, err)
+	return checks
 }

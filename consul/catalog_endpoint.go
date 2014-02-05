@@ -93,7 +93,7 @@ func (c *Catalog) ListNodes(dc string, reply *structs.Nodes) error {
 
 	// Get the current nodes
 	state := c.srv.fsm.State()
-	nodes := state.Nodes()
+	_, nodes := state.Nodes()
 
 	*reply = nodes
 	return nil
@@ -107,7 +107,7 @@ func (c *Catalog) ListServices(dc string, reply *structs.Services) error {
 
 	// Get the current nodes
 	state := c.srv.fsm.State()
-	services := state.Services()
+	_, services := state.Services()
 
 	*reply = services
 	return nil
@@ -128,9 +128,9 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	state := c.srv.fsm.State()
 	var nodes structs.ServiceNodes
 	if args.TagFilter {
-		nodes = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
+		_, nodes = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
 	} else {
-		nodes = state.ServiceNodes(args.ServiceName)
+		_, nodes = state.ServiceNodes(args.ServiceName)
 	}
 
 	*reply = nodes
@@ -150,7 +150,7 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 
 	// Get the node services
 	state := c.srv.fsm.State()
-	services := state.NodeServices(args.Node)
+	_, services := state.NodeServices(args.Node)
 
 	*reply = *services
 	return nil

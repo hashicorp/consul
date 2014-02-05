@@ -19,7 +19,7 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 
 	// Get the state specific checks
 	state := h.srv.fsm.State()
-	checks := state.ChecksInState(args.State)
+	_, checks := state.ChecksInState(args.State)
 	*reply = checks
 	return nil
 }
@@ -33,7 +33,7 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 
 	// Get the node checks
 	state := h.srv.fsm.State()
-	checks := state.NodeChecks(args.Node)
+	_, checks := state.NodeChecks(args.Node)
 	*reply = checks
 	return nil
 }
@@ -53,7 +53,7 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 
 	// Get the service checks
 	state := h.srv.fsm.State()
-	checks := state.ServiceChecks(args.ServiceName)
+	_, checks := state.ServiceChecks(args.ServiceName)
 	*reply = checks
 	return nil
 }
@@ -73,9 +73,9 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 	state := h.srv.fsm.State()
 	var nodes structs.CheckServiceNodes
 	if args.TagFilter {
-		nodes = state.CheckServiceTagNodes(args.ServiceName, args.ServiceTag)
+		_, nodes = state.CheckServiceTagNodes(args.ServiceName, args.ServiceTag)
 	} else {
-		nodes = state.CheckServiceNodes(args.ServiceName)
+		_, nodes = state.CheckServiceNodes(args.ServiceName)
 	}
 
 	*reply = nodes

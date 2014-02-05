@@ -57,12 +57,14 @@ func TestFSM_RegisterNode(t *testing.T) {
 	}
 
 	// Verify we are registered
-	if found, _ := fsm.state.GetNode("foo"); !found {
+	if idx, found, _ := fsm.state.GetNode("foo"); !found {
 		t.Fatalf("not found!")
+	} else if idx != 1 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Verify service registered
-	services := fsm.state.NodeServices("foo")
+	_, services := fsm.state.NodeServices("foo")
 	if len(services.Services) != 0 {
 		t.Fatalf("Services: %v", services)
 	}
@@ -103,18 +105,18 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	}
 
 	// Verify we are registered
-	if found, _ := fsm.state.GetNode("foo"); !found {
+	if _, found, _ := fsm.state.GetNode("foo"); !found {
 		t.Fatalf("not found!")
 	}
 
 	// Verify service registered
-	services := fsm.state.NodeServices("foo")
+	_, services := fsm.state.NodeServices("foo")
 	if _, ok := services.Services["db"]; !ok {
 		t.Fatalf("not registered!")
 	}
 
 	// Verify check
-	checks := fsm.state.NodeChecks("foo")
+	_, checks := fsm.state.NodeChecks("foo")
 	if checks[0].CheckID != "db" {
 		t.Fatalf("not registered!")
 	}
@@ -163,12 +165,12 @@ func TestFSM_DeregisterService(t *testing.T) {
 	}
 
 	// Verify we are registered
-	if found, _ := fsm.state.GetNode("foo"); !found {
+	if _, found, _ := fsm.state.GetNode("foo"); !found {
 		t.Fatalf("not found!")
 	}
 
 	// Verify service not registered
-	services := fsm.state.NodeServices("foo")
+	_, services := fsm.state.NodeServices("foo")
 	if _, ok := services.Services["db"]; ok {
 		t.Fatalf("db registered!")
 	}
@@ -217,12 +219,12 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 	}
 
 	// Verify we are registered
-	if found, _ := fsm.state.GetNode("foo"); !found {
+	if _, found, _ := fsm.state.GetNode("foo"); !found {
 		t.Fatalf("not found!")
 	}
 
 	// Verify check not registered
-	checks := fsm.state.NodeChecks("foo")
+	_, checks := fsm.state.NodeChecks("foo")
 	if len(checks) != 0 {
 		t.Fatalf("check registered!")
 	}
@@ -277,18 +279,18 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	}
 
 	// Verify we are registered
-	if found, _ := fsm.state.GetNode("foo"); found {
+	if _, found, _ := fsm.state.GetNode("foo"); found {
 		t.Fatalf("found!")
 	}
 
 	// Verify service not registered
-	services := fsm.state.NodeServices("foo")
+	_, services := fsm.state.NodeServices("foo")
 	if len(services.Services) != 0 {
 		t.Fatalf("Services: %v", services)
 	}
 
 	// Verify checks not registered
-	checks := fsm.state.NodeChecks("foo")
+	_, checks := fsm.state.NodeChecks("foo")
 	if len(checks) != 0 {
 		t.Fatalf("Services: %v", services)
 	}
@@ -301,13 +303,13 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Add some state
-	fsm.state.EnsureNode(structs.Node{"foo", "127.0.0.1"})
-	fsm.state.EnsureNode(structs.Node{"baz", "127.0.0.2"})
-	fsm.state.EnsureService("foo", "web", "web", "", 80)
-	fsm.state.EnsureService("foo", "db", "db", "primary", 5000)
-	fsm.state.EnsureService("baz", "web", "web", "", 80)
-	fsm.state.EnsureService("baz", "db", "db", "secondary", 5000)
-	fsm.state.EnsureCheck(&structs.HealthCheck{
+	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	fsm.state.EnsureNode(2, structs.Node{"baz", "127.0.0.2"})
+	fsm.state.EnsureService(3, "foo", &structs.NodeService{"web", "web", "", 80})
+	fsm.state.EnsureService(4, "foo", &structs.NodeService{"db", "db", "primary", 5000})
+	fsm.state.EnsureService(5, "baz", &structs.NodeService{"web", "web", "", 80})
+	fsm.state.EnsureService(6, "baz", &structs.NodeService{"db", "db", "secondary", 5000})
+	fsm.state.EnsureCheck(7, &structs.HealthCheck{
 		Node:      "foo",
 		CheckID:   "web",
 		Name:      "web connectivity",
@@ -341,12 +343,12 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify the contents
-	nodes := fsm2.state.Nodes()
+	_, nodes := fsm2.state.Nodes()
 	if len(nodes) != 2 {
 		t.Fatalf("Bad: %v", nodes)
 	}
 
-	fooSrv := fsm2.state.NodeServices("foo")
+	_, fooSrv := fsm2.state.NodeServices("foo")
 	if len(fooSrv.Services) != 2 {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
@@ -357,7 +359,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
 
-	checks := fsm2.state.NodeChecks("foo")
+	_, checks := fsm2.state.NodeChecks("foo")
 	if len(checks) != 1 {
 		t.Fatalf("Bad: %v", checks)
 	}

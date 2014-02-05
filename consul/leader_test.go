@@ -32,13 +32,13 @@ func TestLeader_RegisterMember(t *testing.T) {
 
 	// Client should be registered
 	state := s1.fsm.State()
-	found, _ := state.GetNode(c1.config.NodeName)
+	_, found, _ := state.GetNode(c1.config.NodeName)
 	if !found {
 		t.Fatalf("client not registered")
 	}
 
 	// Should have a check
-	checks := state.NodeChecks(c1.config.NodeName)
+	_, checks := state.NodeChecks(c1.config.NodeName)
 	if len(checks) != 1 {
 		t.Fatalf("client missing check")
 	}
@@ -53,13 +53,13 @@ func TestLeader_RegisterMember(t *testing.T) {
 	}
 
 	// Server should be registered
-	found, _ = state.GetNode(s1.config.NodeName)
+	_, found, _ = state.GetNode(s1.config.NodeName)
 	if !found {
 		t.Fatalf("server not registered")
 	}
 
 	// Service should be registered
-	services := state.NodeServices(s1.config.NodeName)
+	_, services := state.NodeServices(s1.config.NodeName)
 	if _, ok := services.Services["consul"]; !ok {
 		t.Fatalf("consul service not registered: %v", services)
 	}
@@ -92,13 +92,13 @@ func TestLeader_FailedMember(t *testing.T) {
 
 	// Should be registered
 	state := s1.fsm.State()
-	found, _ := state.GetNode(c1.config.NodeName)
+	_, found, _ := state.GetNode(c1.config.NodeName)
 	if !found {
 		t.Fatalf("client not registered")
 	}
 
 	// Should have a check
-	checks := state.NodeChecks(c1.config.NodeName)
+	_, checks := state.NodeChecks(c1.config.NodeName)
 	if len(checks) != 1 {
 		t.Fatalf("client missing check")
 	}
@@ -137,7 +137,7 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be registered
 	state := s1.fsm.State()
-	found, _ := state.GetNode(c1.config.NodeName)
+	_, found, _ := state.GetNode(c1.config.NodeName)
 	if !found {
 		t.Fatalf("client not registered")
 	}
@@ -150,7 +150,7 @@ func TestLeader_LeftMember(t *testing.T) {
 	time.Sleep(500 * time.Millisecond)
 
 	// Should be deregistered
-	found, _ = state.GetNode(c1.config.NodeName)
+	_, found, _ = state.GetNode(c1.config.NodeName)
 	if found {
 		t.Fatalf("client registered")
 	}
@@ -174,7 +174,7 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should not be registered
 	state := s1.fsm.State()
-	found, _ := state.GetNode(c1.config.NodeName)
+	_, found, _ := state.GetNode(c1.config.NodeName)
 	if found {
 		t.Fatalf("client registered")
 	}
@@ -183,7 +183,7 @@ func TestLeader_Reconcile(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Should be registered
-	found, _ = state.GetNode(c1.config.NodeName)
+	_, found, _ = state.GetNode(c1.config.NodeName)
 	if !found {
 		t.Fatalf("client not registered")
 	}

@@ -119,14 +119,17 @@ func TestMDBTableInsert(t *testing.T) {
 	}
 
 	// Insert some mock objects
-	for _, obj := range objs {
+	for idx, obj := range objs {
 		if err := table.Insert(obj); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if err := table.SetLastIndex(uint64(idx + 1)); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
 
 	// Verify with some gets
-	res, err := table.Get("id", "1")
+	idx, res, err := table.Get("id", "1")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -136,8 +139,11 @@ func TestMDBTableInsert(t *testing.T) {
 	if !reflect.DeepEqual(res[0], objs[0]) {
 		t.Fatalf("bad: %#v", res[0])
 	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
 
-	res, err = table.Get("name", "Kevin")
+	idx, res, err = table.Get("name", "Kevin")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -150,8 +156,11 @@ func TestMDBTableInsert(t *testing.T) {
 	if !reflect.DeepEqual(res[1], objs[1]) {
 		t.Fatalf("bad: %#v", res[1])
 	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
 
-	res, err = table.Get("country", "Mexico")
+	idx, res, err = table.Get("country", "Mexico")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -161,8 +170,11 @@ func TestMDBTableInsert(t *testing.T) {
 	if !reflect.DeepEqual(res[0], objs[2]) {
 		t.Fatalf("bad: %#v", res[2])
 	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
 
-	res, err = table.Get("id")
+	idx, res, err = table.Get("id")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -177,6 +189,9 @@ func TestMDBTableInsert(t *testing.T) {
 	}
 	if !reflect.DeepEqual(res[2], objs[2]) {
 		t.Fatalf("bad: %#v", res[2])
+	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -338,7 +353,7 @@ func TestMDBTableDelete(t *testing.T) {
 		}
 	}
 
-	_, err := table.Get("id", "3")
+	_, _, err := table.Get("id", "3")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -351,7 +366,7 @@ func TestMDBTableDelete(t *testing.T) {
 	if num != 1 {
 		t.Fatalf("expect 1 delete: %#v", num)
 	}
-	res, err := table.Get("id", "3")
+	_, res, err := table.Get("id", "3")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -366,7 +381,7 @@ func TestMDBTableDelete(t *testing.T) {
 	if num != 2 {
 		t.Fatalf("expect 2 deletes: %#v", num)
 	}
-	res, err = table.Get("name", "Kevin")
+	_, res, err = table.Get("name", "Kevin")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -449,7 +464,7 @@ func TestMDBTableUpdate(t *testing.T) {
 	}
 
 	// Verify with some gets
-	res, err := table.Get("id", "1")
+	_, res, err := table.Get("id", "1")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -460,7 +475,7 @@ func TestMDBTableUpdate(t *testing.T) {
 		t.Fatalf("bad: %#v", res[0])
 	}
 
-	res, err = table.Get("name", "Kevin")
+	_, res, err = table.Get("name", "Kevin")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -468,7 +483,7 @@ func TestMDBTableUpdate(t *testing.T) {
 		t.Fatalf("expect 0 result: %#v", res)
 	}
 
-	res, err = table.Get("name", "Ahmad")
+	_, res, err = table.Get("name", "Ahmad")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -479,7 +494,7 @@ func TestMDBTableUpdate(t *testing.T) {
 		t.Fatalf("bad: %#v", res[0])
 	}
 
-	res, err = table.Get("country", "Mexico")
+	_, res, err = table.Get("country", "Mexico")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -490,7 +505,7 @@ func TestMDBTableUpdate(t *testing.T) {
 		t.Fatalf("bad: %#v", res[0])
 	}
 
-	res, err = table.Get("id")
+	_, res, err = table.Get("id")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

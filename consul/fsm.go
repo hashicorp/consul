@@ -25,6 +25,13 @@ type consulSnapshot struct {
 	state *StateSnapshot
 }
 
+// snapshotHeader is the first entry in our snapshot
+type snapshotHeader struct {
+	// LastIndex is the last index that affects the data.
+	// This is used when we do the restore for watchers.
+	LastIndex uint64
+}
+
 // NewFSM is used to construct a new FSM with a blank state
 func NewFSM(logOutput io.Writer) (*consulFSM, error) {
 	state, err := NewStateStore()
@@ -48,34 +55,33 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 	buf := log.Data
 	switch structs.MessageType(buf[0]) {
 	case structs.RegisterRequestType:
-		return c.decodeRegister(buf[1:])
+		return c.decodeRegister(buf[1:], log.Index)
 	case structs.DeregisterRequestType:
-		return c.applyDeregister(buf[1:])
+		return c.applyDeregister(buf[1:], log.Index)
 	default:
 		panic(fmt.Errorf("failed to apply request: %#v", buf))
 	}
 }
 
-func (c *consulFSM) decodeRegister(buf []byte) interface{} {
+func (c *consulFSM) decodeRegister(buf []byte, index uint64) interface{} {
 	var req structs.RegisterRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	return c.applyRegister(&req)
+	return c.applyRegister(&req, index)
 }
 
-func (c *consulFSM) applyRegister(req *structs.RegisterRequest) interface{} {
+func (c *consulFSM) applyRegister(req *structs.RegisterRequest, index uint64) interface{} {
 	// Ensure the node
 	node := structs.Node{req.Node, req.Address}
-	if err := c.state.EnsureNode(node); err != nil {
+	if err := c.state.EnsureNode(index, node); err != nil {
 		c.logger.Printf("[INFO] consul.fsm: EnsureNode failed: %v", err)
 		return err
 	}
 
 	// Ensure the service if provided
 	if req.Service != nil {
-		if err := c.state.EnsureService(req.Node, req.Service.ID, req.Service.Service,
-			req.Service.Tag, req.Service.Port); err != nil {
+		if err := c.state.EnsureService(index, req.Node, req.Service); err != nil {
 			c.logger.Printf("[INFO] consul.fsm: EnsureService failed: %v", err)
 			return err
 		}
@@ -83,7 +89,7 @@ func (c *consulFSM) applyRegister(req *structs.RegisterRequest) interface{} {
 
 	// Ensure the check if provided
 	if req.Check != nil {
-		if err := c.state.EnsureCheck(req.Check); err != nil {
+		if err := c.state.EnsureCheck(index, req.Check); err != nil {
 			c.logger.Printf("[INFO] consul.fsm: EnsureCheck failed: %v", err)
 			return err
 		}
@@ -92,7 +98,7 @@ func (c *consulFSM) applyRegister(req *structs.RegisterRequest) interface{} {
 	return nil
 }
 
-func (c *consulFSM) applyDeregister(buf []byte) interface{} {
+func (c *consulFSM) applyDeregister(buf []byte, index uint64) interface{} {
 	var req structs.DeregisterRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
@@ -100,17 +106,17 @@ func (c *consulFSM) applyDeregister(buf []byte) interface{} {
 
 	// Either remove the service entry or the whole node
 	if req.ServiceID != "" {
-		if err := c.state.DeleteNodeService(req.Node, req.ServiceID); err != nil {
+		if err := c.state.DeleteNodeService(index, req.Node, req.ServiceID); err != nil {
 			c.logger.Printf("[INFO] consul.fsm: DeleteNodeService failed: %v", err)
 			return err
 		}
 	} else if req.CheckID != "" {
-		if err := c.state.DeleteNodeCheck(req.Node, req.CheckID); err != nil {
+		if err := c.state.DeleteNodeCheck(index, req.Node, req.CheckID); err != nil {
 			c.logger.Printf("[INFO] consul.fsm: DeleteNodeCheck failed: %v", err)
 			return err
 		}
 	} else {
-		if err := c.state.DeleteNode(req.Node); err != nil {
+		if err := c.state.DeleteNode(index, req.Node); err != nil {
 			c.logger.Printf("[INFO] consul.fsm: DeleteNode failed: %v", err)
 			return err
 		}
@@ -145,6 +151,12 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	var handle codec.MsgpackHandle
 	dec := codec.NewDecoder(old, &handle)
 
+	// Read in the header
+	var header snapshotHeader
+	if err := dec.Decode(&header); err != nil {
+		return err
+	}
+
 	// Populate the new state
 	msgType := make([]byte, 1)
 	for {
@@ -163,7 +175,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 			if err := dec.Decode(&req); err != nil {
 				return err
 			}
-			c.applyRegister(&req)
+			c.applyRegister(&req, header.LastIndex)
 
 		default:
 			return fmt.Errorf("Unrecognized msg type: %v", msgType)
@@ -174,12 +186,21 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 }
 
 func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
-	// Get all the nodes
-	nodes := s.state.Nodes()
-
 	// Register the nodes
 	handle := codec.MsgpackHandle{}
 	encoder := codec.NewEncoder(sink, &handle)
+
+	// Write the header
+	header := snapshotHeader{
+		LastIndex: s.state.LastIndex(),
+	}
+	if err := encoder.Encode(&header); err != nil {
+		sink.Cancel()
+		return err
+	}
+
+	// Get all the nodes
+	nodes := s.state.Nodes()
 
 	// Register each node
 	var req structs.RegisterRequest

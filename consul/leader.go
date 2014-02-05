@@ -156,12 +156,12 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 	}
 
 	// Check if the node exists
-	found, addr := state.GetNode(member.Name)
+	_, found, addr := state.GetNode(member.Name)
 	if found && addr == member.Addr.String() {
 		// Check if the associated service is available
 		if service != nil {
 			match := false
-			services := state.NodeServices(member.Name)
+			_, services := state.NodeServices(member.Name)
 			for id, _ := range services.Services {
 				if id == service.ID {
 					match = true
@@ -173,7 +173,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 
 		// Check if the serfCheck is in the passing state
-		checks := state.NodeChecks(member.Name)
+		_, checks := state.NodeChecks(member.Name)
 		for _, check := range checks {
 			if check.CheckID == SerfCheckID && check.Status == structs.HealthPassing {
 				return nil
@@ -206,10 +206,10 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 	state := s.fsm.State()
 
 	// Check if the node exists
-	found, addr := state.GetNode(member.Name)
+	_, found, addr := state.GetNode(member.Name)
 	if found && addr == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
-		checks := state.NodeChecks(member.Name)
+		_, checks := state.NodeChecks(member.Name)
 		for _, check := range checks {
 			if check.CheckID == SerfCheckID && check.Status == structs.HealthCritical {
 				return nil
@@ -240,7 +240,7 @@ func (s *Server) handleLeftMember(member serf.Member) error {
 	state := s.fsm.State()
 
 	// Check if the node does not exists
-	found, _ := state.GetNode(member.Name)
+	_, found, _ := state.GetNode(member.Name)
 	if !found {
 		return nil
 	}
