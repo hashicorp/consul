@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"sync/atomic"
+	"time"
 )
 
 var (
@@ -180,6 +181,12 @@ func (t *MDBTable) StartTxn(readonly bool, mdbTxn *MDBTxn) (*MDBTxn, error) {
 	var txFlags uint = 0
 	var tx *mdb.Txn
 	var err error
+
+	// Panic if we deadlock acquiring a transaction
+	timeout := time.AfterFunc(5*time.Second, func() {
+		panic("Timeout starting MDB transaction, potential deadlock")
+	})
+	defer timeout.Stop()
 
 	// Ensure the modes agree
 	if mdbTxn != nil {
