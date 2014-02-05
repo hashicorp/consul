@@ -208,6 +208,7 @@ func (s *StateStore) EnsureNode(index uint64, node structs.Node) error {
 	if err := s.nodeTable.SetLastIndexTxn(tx, index); err != nil {
 		return err
 	}
+	defer s.watch[s.nodeTable].Notify()
 	return tx.Commit()
 }
 
@@ -270,6 +271,7 @@ func (s *StateStore) EnsureService(index uint64, node string, ns *structs.NodeSe
 	if err := s.serviceTable.SetLastIndexTxn(tx, index); err != nil {
 		return err
 	}
+	defer s.watch[s.serviceTable].Notify()
 	return tx.Commit()
 }
 
@@ -343,6 +345,7 @@ func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
 		if err := s.serviceTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
+		defer s.watch[s.serviceTable].Notify()
 	}
 	if n, err := s.checkTable.DeleteTxn(tx, "node", node, id); err != nil {
 		return err
@@ -350,6 +353,7 @@ func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
 		if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
+		defer s.watch[s.checkTable].Notify()
 	}
 	return tx.Commit()
 }
@@ -368,6 +372,7 @@ func (s *StateStore) DeleteNode(index uint64, node string) error {
 		if err := s.serviceTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
+		defer s.watch[s.serviceTable].Notify()
 	}
 	if n, err := s.checkTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
@@ -375,6 +380,7 @@ func (s *StateStore) DeleteNode(index uint64, node string) error {
 		if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
+		defer s.watch[s.checkTable].Notify()
 	}
 	if n, err := s.nodeTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
@@ -382,6 +388,7 @@ func (s *StateStore) DeleteNode(index uint64, node string) error {
 		if err := s.nodeTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
+		defer s.watch[s.nodeTable].Notify()
 	}
 	return tx.Commit()
 }
@@ -508,6 +515,7 @@ func (s *StateStore) EnsureCheck(index uint64, check *structs.HealthCheck) error
 	if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
 		return err
 	}
+	defer s.watch[s.checkTable].Notify()
 	return tx.Commit()
 }
 
@@ -525,6 +533,7 @@ func (s *StateStore) DeleteNodeCheck(index uint64, node, id string) error {
 		if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
+		defer s.watch[s.checkTable].Notify()
 	}
 	return tx.Commit()
 }
