@@ -39,7 +39,8 @@ type ConnPool struct {
 	pool map[string][]*Conn
 
 	// Used to indicate the pool is shutdown
-	shutdown bool
+	shutdown   bool
+	shutdownCh chan struct{}
 }
 
 // NewPool is used to make a new connection pool
@@ -47,9 +48,10 @@ type ConnPool struct {
 // Set maxTime to 0 to disable reaping.
 func NewPool(maxConns int, maxTime time.Duration) *ConnPool {
 	pool := &ConnPool{
-		maxConns: maxConns,
-		maxTime:  maxTime,
-		pool:     make(map[string][]*Conn),
+		maxConns:   maxConns,
+		maxTime:    maxTime,
+		pool:       make(map[string][]*Conn),
+		shutdownCh: make(chan struct{}),
 	}
 	if maxTime > 0 {
 		go pool.reap()
@@ -68,8 +70,12 @@ func (p *ConnPool) Shutdown() error {
 		}
 	}
 	p.pool = make(map[string][]*Conn)
-	p.shutdown = true
 
+	if p.shutdown {
+		return nil
+	}
+	p.shutdown = true
+	close(p.shutdownCh)
 	return nil
 }
 
@@ -187,7 +193,11 @@ func (p *ConnPool) RPC(addr net.Addr, method string, args interface{}, reply int
 func (p *ConnPool) reap() {
 	for !p.shutdown {
 		// Sleep for a while
-		time.Sleep(time.Second)
+		select {
+		case <-time.After(time.Second):
+		case <-p.shutdownCh:
+			return
+		}
 
 		// Reap all old conns
 		p.Lock()
