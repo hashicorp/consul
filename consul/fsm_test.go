@@ -40,6 +40,7 @@ func TestFSM_RegisterNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer fsm.Close()
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -75,6 +76,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer fsm.Close()
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -127,6 +129,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer fsm.Close()
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -181,6 +184,7 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer fsm.Close()
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -235,6 +239,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer fsm.Close()
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -301,6 +306,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer fsm.Close()
 
 	// Add some state
 	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
@@ -336,6 +342,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer fsm2.Close()
 
 	// Do a restore
 	if err := fsm2.Restore(sink); err != nil {

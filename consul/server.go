@@ -336,6 +336,9 @@ func (s *Server) Shutdown() error {
 	// Close the connection pool
 	s.connPool.Shutdown()
 
+	// Close the fsm
+	s.fsm.Close()
+
 	return nil
 }
 

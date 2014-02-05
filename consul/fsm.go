@@ -46,6 +46,11 @@ func NewFSM(logOutput io.Writer) (*consulFSM, error) {
 	return fsm, nil
 }
 
+// Close is used to cleanup resources associated with the FSM
+func (c *consulFSM) Close() error {
+	return c.state.Close()
+}
+
 // State is used to return a handle to the current state
 func (c *consulFSM) State() *StateStore {
 	return c.state
