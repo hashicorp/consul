@@ -86,31 +86,35 @@ func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
 }
 
 // ListNodes is used to query the nodes in a DC
-func (c *Catalog) ListNodes(dc string, reply *structs.Nodes) error {
-	if done, err := c.srv.forward("Catalog.ListNodes", dc, dc, reply); done {
+func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.IndexedNodes) error {
+	if done, err := c.srv.forward("Catalog.ListNodes", args.Datacenter, args, reply); done {
 		return err
 	}
 
-	// Get the current nodes
+	// Get the local state
 	state := c.srv.fsm.State()
-	_, nodes := state.Nodes()
-
-	*reply = nodes
-	return nil
+	return c.srv.blockingRPC(&args.BlockingQuery,
+		state.QueryTables("Nodes"),
+		func() (uint64, error) {
+			reply.Index, reply.Nodes = state.Nodes()
+			return reply.Index, nil
+		})
 }
 
 // ListServices is used to query the services in a DC
-func (c *Catalog) ListServices(dc string, reply *structs.Services) error {
-	if done, err := c.srv.forward("Catalog.ListServices", dc, dc, reply); done {
+func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.IndexedServices) error {
+	if done, err := c.srv.forward("Catalog.ListServices", args.Datacenter, args, reply); done {
 		return err
 	}
 
 	// Get the current nodes
 	state := c.srv.fsm.State()
-	_, services := state.Services()
-
-	*reply = services
-	return nil
+	return c.srv.blockingRPC(&args.BlockingQuery,
+		state.QueryTables("Services"),
+		func() (uint64, error) {
+			reply.Index, reply.Services = state.Services()
+			return reply.Index, nil
+		})
 }
 
 // ServiceNodes returns all the nodes registered as part of a service
