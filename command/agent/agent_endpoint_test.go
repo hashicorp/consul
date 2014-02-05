@@ -396,7 +396,7 @@ func TestHTTPAgentRegisterService(t *testing.T) {
 		Name: "test",
 		Tag:  "master",
 		Port: 8000,
-		Check: &CheckType{
+		Check: CheckType{
 			TTL: 15 * time.Second,
 		},
 	}
