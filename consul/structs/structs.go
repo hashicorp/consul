@@ -142,6 +142,31 @@ type CheckServiceNode struct {
 }
 type CheckServiceNodes []CheckServiceNode
 
+type IndexedNodes struct {
+	Index uint64
+	Nodes Nodes
+}
+
+type IndexedServices struct {
+	Index    uint64
+	Services map[string][]string
+}
+
+type IndexedServiceNodes struct {
+	Index        uint64
+	ServiceNodes ServiceNodes
+}
+
+type IndexedNodeServices struct {
+	Index        uint64
+	NodeServices *NodeServices
+}
+
+type IndexedHealthChecks struct {
+	Index        uint64
+	HealthChecks HealthChecks
+}
+
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {
 	var handle codec.MsgpackHandle
