@@ -54,6 +54,8 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.Datacenter, "dc", "", "node datacenter")
 	cmdFlags.StringVar(&cmdConfig.DNSRecursor, "recursor", "", "address of dns recursor")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "advertise address to use")
+	cmdFlags.StringVar(&cmdConfig.HTTPAddr, "http-addr", "", "address to bind http server to")
+	cmdFlags.StringVar(&cmdConfig.DNSAddr, "dns-addr", "", "address to bind dns server to")
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
 	if err := cmdFlags.Parse(c.args); err != nil {
