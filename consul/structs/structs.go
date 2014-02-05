@@ -149,7 +149,7 @@ type IndexedNodes struct {
 
 type IndexedServices struct {
 	Index    uint64
-	Services map[string][]string
+	Services Services
 }
 
 type IndexedServiceNodes struct {
