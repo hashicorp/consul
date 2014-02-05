@@ -257,7 +257,7 @@ func (d *DNSServer) nodeLookup(datacenter, node string, req, resp *dns.Msg) {
 		Datacenter: datacenter,
 		Node:       node,
 	}
-	var out structs.NodeServices
+	var out structs.IndexedNodeServices
 	if err := d.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
@@ -265,15 +265,15 @@ func (d *DNSServer) nodeLookup(datacenter, node string, req, resp *dns.Msg) {
 	}
 
 	// If we have no address, return not found!
-	if out.Node.Address == "" {
+	if out.NodeServices.Node.Address == "" {
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
 
 	// Parse the IP
-	ip := net.ParseIP(out.Node.Address)
+	ip := net.ParseIP(out.NodeServices.Node.Address)
 	if ip == nil {
-		d.logger.Printf("[ERR] dns: failed to parse IP %v", out.Node)
+		d.logger.Printf("[ERR] dns: failed to parse IP %v", out.NodeServices.Node)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
 	}
@@ -302,7 +302,7 @@ func (d *DNSServer) serviceLookup(datacenter, service, tag string, req, resp *dn
 		ServiceTag:  tag,
 		TagFilter:   tag != "",
 	}
-	var out structs.CheckServiceNodes
+	var out structs.IndexedCheckServiceNodes
 	if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
@@ -310,21 +310,21 @@ func (d *DNSServer) serviceLookup(datacenter, service, tag string, req, resp *dn
 	}
 
 	// If we have no nodes, return not found!
-	if len(out) == 0 {
+	if len(out.Nodes) == 0 {
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
 
 	// Filter out any service nodes due to health checks
-	out = d.filterServiceNodes(out)
+	out.Nodes = d.filterServiceNodes(out.Nodes)
 
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
 	if qType == dns.TypeANY || qType == dns.TypeA {
-		d.serviceARecords(out, req, resp)
+		d.serviceARecords(out.Nodes, req, resp)
 	}
 	if qType == dns.TypeANY || qType == dns.TypeSRV {
-		d.serviceSRVRecords(datacenter, out, req, resp)
+		d.serviceSRVRecords(datacenter, out.Nodes, req, resp)
 	}
 }
 

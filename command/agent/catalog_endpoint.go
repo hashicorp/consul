@@ -57,51 +57,43 @@ func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Requ
 	return out, nil
 }
 
-func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Set default DC
-	dc := s.agent.config.Datacenter
-
-	// Check for other DC
-	if other := req.URL.Query().Get("dc"); other != "" {
-		dc = other
+func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
+	// Setup the request
+	args := structs.DCSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+		return 0, nil, nil
 	}
 
-	var out structs.Nodes
-	if err := s.agent.RPC("Catalog.ListNodes", dc, &out); err != nil {
-		return nil, err
+	var out structs.IndexedNodes
+	if err := s.agent.RPC("Catalog.ListNodes", &args, &out); err != nil {
+		return 0, nil, err
 	}
-	return out, nil
+	return out.Index, out.Nodes, nil
 }
 
-func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default DC
-	dc := s.agent.config.Datacenter
-
-	// Check for other DC
-	if other := req.URL.Query().Get("dc"); other != "" {
-		dc = other
+	args := structs.DCSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+		return 0, nil, nil
 	}
 
-	var out structs.Services
-	if err := s.agent.RPC("Catalog.ListServices", dc, &out); err != nil {
-		return nil, err
+	var out structs.IndexedServices
+	if err := s.agent.RPC("Catalog.ListServices", &args, &out); err != nil {
+		return 0, nil, err
 	}
-	return out, nil
+	return out.Index, out.Services, nil
 }
 
-func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default DC
-	args := structs.ServiceSpecificRequest{
-		Datacenter: s.agent.config.Datacenter,
-	}
-
-	// Check for other DC
-	params := req.URL.Query()
-	if other := params.Get("dc"); other != "" {
-		args.Datacenter = other
+	args := structs.ServiceSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+		return 0, nil, nil
 	}
 
 	// Check for a tag
+	params := req.URL.Query()
 	if _, ok := params["tag"]; ok {
 		args.ServiceTag = params.Get("tag")
 		args.TagFilter = true
@@ -112,27 +104,22 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	if args.ServiceName == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Missing service name"))
-		return nil, nil
+		return 0, nil, nil
 	}
 
 	// Make the RPC request
-	var out structs.ServiceNodes
+	var out structs.IndexedServiceNodes
 	if err := s.agent.RPC("Catalog.ServiceNodes", &args, &out); err != nil {
-		return nil, err
+		return 0, nil, err
 	}
-	return out, nil
+	return out.Index, out.ServiceNodes, nil
 }
 
-func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default Datacenter
-	args := structs.NodeSpecificRequest{
-		Datacenter: s.agent.config.Datacenter,
-	}
-
-	// Check for other DC
-	params := req.URL.Query()
-	if other := params.Get("dc"); other != "" {
-		args.Datacenter = other
+	args := structs.NodeSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+		return 0, nil, nil
 	}
 
 	// Pull out the node name
@@ -140,13 +127,13 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 	if args.Node == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Missing node name"))
-		return nil, nil
+		return 0, nil, nil
 	}
 
 	// Make the RPC request
-	out := new(structs.NodeServices)
-	if err := s.agent.RPC("Catalog.NodeServices", &args, out); err != nil {
-		return nil, err
+	var out structs.IndexedNodeServices
+	if err := s.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
+		return 0, nil, err
 	}
-	return out, nil
+	return out.Index, out.NodeServices, nil
 }

@@ -85,18 +85,18 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       agent.config.NodeName,
 	}
-	var services structs.NodeServices
+	var services structs.IndexedNodeServices
 	if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// We should have 4 services (consul included)
-	if len(services.Services) != 4 {
-		t.Fatalf("bad: %v", services.Services)
+	if len(services.NodeServices.Services) != 4 {
+		t.Fatalf("bad: %v", services.NodeServices.Services)
 	}
 
 	// All the services should match
-	for id, serv := range services.Services {
+	for id, serv := range services.NodeServices.Services {
 		switch id {
 		case "mysql":
 			if !reflect.DeepEqual(serv, srv1) {
@@ -208,18 +208,18 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       agent.config.NodeName,
 	}
-	var checks structs.HealthChecks
+	var checks structs.IndexedHealthChecks
 	if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// We should have 4 services (serf included)
-	if len(checks) != 4 {
+	if len(checks.HealthChecks) != 4 {
 		t.Fatalf("bad: %v", checks)
 	}
 
 	// All the checks should match
-	for _, chk := range checks {
+	for _, chk := range checks.HealthChecks {
 		switch chk.CheckID {
 		case "mysql":
 			if !reflect.DeepEqual(chk, chk1) {

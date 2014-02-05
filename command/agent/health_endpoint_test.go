@@ -23,9 +23,13 @@ func TestHealthChecksInState(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	obj, err := srv.HealthChecksInState(nil, req)
+	idx, obj, err := srv.HealthChecksInState(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	if idx == 0 {
+		t.Fatalf("bad: %v", idx)
 	}
 
 	// Should be 1 health check for the server
@@ -50,9 +54,13 @@ func TestHealthNodeChecks(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	obj, err := srv.HealthNodeChecks(nil, req)
+	idx, obj, err := srv.HealthNodeChecks(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	if idx == 0 {
+		t.Fatalf("bad: %v", idx)
 	}
 
 	// Should be 1 health check for the server
@@ -92,9 +100,13 @@ func TestHealthServiceChecks(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	obj, err := srv.HealthServiceChecks(nil, req)
+	idx, obj, err := srv.HealthServiceChecks(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	if idx == 0 {
+		t.Fatalf("bad: %v", idx)
 	}
 
 	// Should be 1 health check for consul
@@ -118,9 +130,13 @@ func TestHealthServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	obj, err := srv.HealthServiceNodes(nil, req)
+	idx, obj, err := srv.HealthServiceNodes(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	if idx == 0 {
+		t.Fatalf("bad: %v", idx)
 	}
 
 	// Should be 1 health check for consul

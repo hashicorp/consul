@@ -6,16 +6,11 @@ import (
 	"strings"
 )
 
-func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default DC
-	args := structs.ChecksInStateRequest{
-		Datacenter: s.agent.config.Datacenter,
-	}
-
-	// Check for other DC
-	params := req.URL.Query()
-	if other := params.Get("dc"); other != "" {
-		args.Datacenter = other
+	args := structs.ChecksInStateRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+		return 0, nil, nil
 	}
 
 	// Pull out the service name
@@ -23,27 +18,22 @@ func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Req
 	if args.State == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Missing check state"))
-		return nil, nil
+		return 0, nil, nil
 	}
 
 	// Make the RPC request
-	var out structs.HealthChecks
+	var out structs.IndexedHealthChecks
 	if err := s.agent.RPC("Health.ChecksInState", &args, &out); err != nil {
-		return nil, err
+		return 0, nil, err
 	}
-	return out, nil
+	return out.Index, out.HealthChecks, nil
 }
 
-func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default DC
-	args := structs.NodeSpecificRequest{
-		Datacenter: s.agent.config.Datacenter,
-	}
-
-	// Check for other DC
-	params := req.URL.Query()
-	if other := params.Get("dc"); other != "" {
-		args.Datacenter = other
+	args := structs.NodeSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+		return 0, nil, nil
 	}
 
 	// Pull out the service name
@@ -51,27 +41,22 @@ func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Reques
 	if args.Node == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Missing node name"))
-		return nil, nil
+		return 0, nil, nil
 	}
 
 	// Make the RPC request
-	var out structs.HealthChecks
+	var out structs.IndexedHealthChecks
 	if err := s.agent.RPC("Health.NodeChecks", &args, &out); err != nil {
-		return nil, err
+		return 0, nil, err
 	}
-	return out, nil
+	return out.Index, out.HealthChecks, nil
 }
 
-func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default DC
-	args := structs.ServiceSpecificRequest{
-		Datacenter: s.agent.config.Datacenter,
-	}
-
-	// Check for other DC
-	params := req.URL.Query()
-	if other := params.Get("dc"); other != "" {
-		args.Datacenter = other
+	args := structs.ServiceSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+		return 0, nil, nil
 	}
 
 	// Pull out the service name
@@ -79,30 +64,26 @@ func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Req
 	if args.ServiceName == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Missing service name"))
-		return nil, nil
+		return 0, nil, nil
 	}
 
 	// Make the RPC request
-	var out structs.HealthChecks
+	var out structs.IndexedHealthChecks
 	if err := s.agent.RPC("Health.ServiceChecks", &args, &out); err != nil {
-		return nil, err
+		return 0, nil, err
 	}
-	return out, nil
+	return out.Index, out.HealthChecks, nil
 }
 
-func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default DC
-	args := structs.ServiceSpecificRequest{
-		Datacenter: s.agent.config.Datacenter,
-	}
-
-	// Check for other DC
-	params := req.URL.Query()
-	if other := params.Get("dc"); other != "" {
-		args.Datacenter = other
+	args := structs.ServiceSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+		return 0, nil, nil
 	}
 
 	// Check for a tag
+	params := req.URL.Query()
 	if _, ok := params["tag"]; ok {
 		args.ServiceTag = params.Get("tag")
 		args.TagFilter = true
@@ -113,13 +94,13 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	if args.ServiceName == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Missing service name"))
-		return nil, nil
+		return 0, nil, nil
 	}
 
 	// Make the RPC request
-	var out structs.CheckServiceNodes
+	var out structs.IndexedCheckServiceNodes
 	if err := s.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-		return nil, err
+		return 0, nil, err
 	}
-	return out, nil
+	return out.Index, out.Nodes, nil
 }

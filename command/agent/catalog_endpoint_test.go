@@ -114,9 +114,13 @@ func TestCatalogNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	obj, err := srv.CatalogNodes(nil, req)
+	idx, obj, err := srv.CatalogNodes(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	if idx == 0 {
+		t.Fatalf("bad: %v", idx)
 	}
 
 	nodes := obj.(structs.Nodes)
@@ -153,9 +157,13 @@ func TestCatalogServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	obj, err := srv.CatalogServices(nil, req)
+	idx, obj, err := srv.CatalogServices(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	if idx == 0 {
+		t.Fatalf("bad: %v", idx)
 	}
 
 	services := obj.(structs.Services)
@@ -193,9 +201,13 @@ func TestCatalogServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	obj, err := srv.CatalogServiceNodes(nil, req)
+	idx, obj, err := srv.CatalogServiceNodes(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	if idx == 0 {
+		t.Fatalf("bad: %v", idx)
 	}
 
 	nodes := obj.(structs.ServiceNodes)
@@ -233,9 +245,13 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	obj, err := srv.CatalogNodeServices(nil, req)
+	idx, obj, err := srv.CatalogNodeServices(nil, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	if idx == 0 {
+		t.Fatalf("bad: %v", idx)
 	}
 
 	services := obj.(*structs.NodeServices)

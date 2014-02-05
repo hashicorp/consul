@@ -216,14 +216,16 @@ func (l *localState) setSyncState() error {
 		Datacenter: l.config.Datacenter,
 		Node:       l.config.NodeName,
 	}
-	var services structs.NodeServices
-	var checks structs.HealthChecks
-	if e := l.iface.RPC("Catalog.NodeServices", &req, &services); e != nil {
+	var out1 structs.IndexedNodeServices
+	var out2 structs.IndexedHealthChecks
+	if e := l.iface.RPC("Catalog.NodeServices", &req, &out1); e != nil {
 		return e
 	}
-	if err := l.iface.RPC("Health.NodeChecks", &req, &checks); err != nil {
+	if err := l.iface.RPC("Health.NodeChecks", &req, &out2); err != nil {
 		return err
 	}
+	services := out1.NodeServices
+	checks := out2.HealthChecks
 
 	l.Lock()
 	defer l.Unlock()
