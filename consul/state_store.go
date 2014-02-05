@@ -29,6 +29,7 @@ type StateStore struct {
 	serviceTable *MDBTable
 	checkTable   *MDBTable
 	tables       MDBTables
+	watch        map[*MDBTable]*NotifyGroup
 }
 
 // StateSnapshot is used to provide a point-in-time snapshot
@@ -60,8 +61,9 @@ func NewStateStore() (*StateStore, error) {
 	}
 
 	s := &StateStore{
-		path: path,
-		env:  env,
+		path:  path,
+		env:   env,
+		watch: make(map[*MDBTable]*NotifyGroup),
 	}
 
 	// Ensure we can initialize
@@ -184,6 +186,9 @@ func (s *StateStore) initialize() error {
 		if err := table.Init(); err != nil {
 			return err
 		}
+
+		// Setup a notification group per table
+		s.watch[table] = &NotifyGroup{}
 	}
 	return nil
 }

@@ -34,11 +34,6 @@ type MDBTable struct {
 	Encoder func(interface{}) []byte
 	Decoder func([]byte) interface{}
 
-	// NotifyGroup is created in init, it can be used to
-	// watch a table for changes. It is not invoked internally,
-	// but can be used by clients of the table.
-	NotifyGroup *NotifyGroup
-
 	// Last used rowID
 	lastRowID uint64
 }
@@ -103,9 +98,6 @@ func (t *MDBTable) Init() error {
 	if t.Indexes == nil {
 		return fmt.Errorf("Missing table indexes")
 	}
-
-	// Create the notify group
-	t.NotifyGroup = &NotifyGroup{}
 
 	// Ensure we have a unique id index
 	id, ok := t.Indexes["id"]
