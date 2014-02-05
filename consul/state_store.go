@@ -193,7 +193,6 @@ func (s *StateStore) initialize() error {
 	}
 
 	// Setup the query tables
-	// TODO: Other queries...
 	s.queryTables = map[string]MDBTables{
 		"Nodes":             MDBTables{s.nodeTable},
 		"Services":          MDBTables{s.serviceTable},

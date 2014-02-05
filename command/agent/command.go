@@ -304,7 +304,7 @@ WAIT:
 // handleReload is invoked when we should reload our configs, e.g. SIGHUP
 func (c *Command) handleReload(config *Config) *Config {
 	c.Ui.Output("Reloading configuration...")
-	// TODO
+	// TODO : handle reload
 	return config
 }
 
