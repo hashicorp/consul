@@ -112,7 +112,7 @@ func NewServer(config *Config) (*Server, error) {
 	// Create server
 	s := &Server{
 		config:        config,
-		connPool:      NewPool(16, time.Minute),
+		connPool:      NewPool(time.Minute),
 		eventChLAN:    make(chan serf.Event, 256),
 		eventChWAN:    make(chan serf.Event, 256),
 		logger:        logger,
@@ -337,7 +337,9 @@ func (s *Server) Shutdown() error {
 	s.connPool.Shutdown()
 
 	// Close the fsm
-	s.fsm.Close()
+	if s.fsm != nil {
+		s.fsm.Close()
+	}
 
 	return nil
 }
