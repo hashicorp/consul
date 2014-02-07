@@ -21,69 +21,69 @@ type Config struct {
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
-	AEInterval time.Duration
+	AEInterval time.Duration `mapstructure:"-"`
 
 	// Bootstrap is used to bring up the first Consul server, and
 	// permits that node to elect itself leader
-	Bootstrap bool
+	Bootstrap bool `mapstructure:"bootstrap"`
 
 	// Datacenter is the datacenter this node is in. Defaults to dc1
-	Datacenter string
+	Datacenter string `mapstructure:"datacenter"`
 
 	// DataDir is the directory to store our state in
-	DataDir string
+	DataDir string `mapstructure:"data_dir"`
 
 	// DNSAddr is the address of the DNS server for the agent
-	DNSAddr string
+	DNSAddr string `mapstructure:"dns_addr"`
 
 	// DNSRecursor can be set to allow the DNS server to recursively
 	// resolve non-consul domains
-	DNSRecursor string
+	DNSRecursor string `mapstructure:"recursor"`
 
 	// Domain is the DNS domain for the records. Defaults to "consul."
-	Domain string
+	Domain string `mapstructure:"domain"`
 
 	// Encryption key to use for the Serf communication
-	EncryptKey string
+	EncryptKey string `mapstructure:"encrypt"`
 
 	// HTTP interface address
-	HTTPAddr string
+	HTTPAddr string `mapstructure:"http_addr"`
 
 	// LogLevel is the level of the logs to putout
-	LogLevel string
+	LogLevel string `mapstructure:"log_level"`
 
 	// Node name is the name we use to advertise. Defaults to hostname.
-	NodeName string
+	NodeName string `mapstructure:"node_name"`
 
 	// RPCAddr is the address and port to listen on for the
 	// agent's RPC interface.
-	RPCAddr string
+	RPCAddr string `mapstructure:"rpc_addr"`
 
 	// BindAddr is the address that Consul's RPC and Serf's will
 	// bind to. This address should be routable by all other hosts.
-	SerfBindAddr string
+	SerfBindAddr string `mapstructure:"serf_bind_addr"`
 
 	// SerfLanPort is the port we use for the lan-local serf cluster
 	// This is used for all nodes.
-	SerfLanPort int
+	SerfLanPort int `mapstructure:"serf_lan_port"`
 
 	// SerfWanPort is the port we use for the wan serf cluster.
 	// This is only for the Consul servers
-	SerfWanPort int
+	SerfWanPort int `mapstructure:"serf_wan_port"`
 
 	// ServerAddr is the address we use for Consul server communication.
 	// Defaults to 0.0.0.0:8300
-	ServerAddr string
+	ServerAddr string `mapstructure:"server_addr"`
 
 	// AdvertiseAddr is the address we use for advertising our Serf,
 	// and Consul RPC IP. If not specified, the first private IP we
 	// find is used.
-	AdvertiseAddr string
+	AdvertiseAddr string `mapstructure:"advertise_addr"`
 
 	// Server controls if this agent acts like a Consul server,
 	// or merely as a client. Servers have more state, take part
 	// in leader election, etc.
-	Server bool
+	Server bool `mapstructure:"server"`
 
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving
 	// the TERM signal. Defaults false. This can be changed on reload.
@@ -94,13 +94,13 @@ type Config struct {
 	SkipLeaveOnInt bool `mapstructure:"skip_leave_on_interrupt"`
 
 	// Checks holds the provided check definitions
-	Checks []*CheckDefinition
+	Checks []*CheckDefinition `mapstructure:"-"`
 
 	// Services holds the provided service definitions
-	Services []*ServiceDefinition
+	Services []*ServiceDefinition `mapstructure:"-"`
 
 	// ConsulConfig can either be provided or a default one created
-	ConsulConfig *consul.Config
+	ConsulConfig *consul.Config `mapstructure:"-"`
 }
 
 type dirEnts []os.FileInfo
