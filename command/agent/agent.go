@@ -314,6 +314,16 @@ func (a *Agent) StartSync() {
 	go a.state.antiEntropy(a.shutdownCh)
 }
 
+// PauseSync is called to pause anti-entropy while bulk changes are make
+func (a *Agent) PauseSync() {
+	a.state.Pause()
+}
+
+// ResumeSync is called to to unpause anti-entropy after bulk changes are make
+func (a *Agent) ResumeSync() {
+	a.state.Resume()
+}
+
 // AddService is used to add a service entry.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered

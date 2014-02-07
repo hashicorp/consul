@@ -97,8 +97,8 @@ func (l *localState) Pause() {
 	atomic.StoreInt32(&l.paused, 1)
 }
 
-// Unpause is used to resume state syncronization
-func (l *localState) Unpause() {
+// Resume is used to resume state syncronization
+func (l *localState) Resume() {
 	atomic.StoreInt32(&l.paused, 0)
 	l.changeMade()
 }
