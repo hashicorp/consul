@@ -218,6 +218,11 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 			c.consuls = append(c.consuls, addr)
 		}
 		c.consulLock.Unlock()
+
+		// Trigger the callback
+		if c.config.ServerUp != nil {
+			c.config.ServerUp()
+		}
 	}
 }
 

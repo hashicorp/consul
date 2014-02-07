@@ -93,14 +93,17 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		shutdownCh:    make(chan struct{}),
 	}
 
+	// Initialize the local state
+	agent.state.Init(config, agent.logger)
+
 	// Setup either the client or the server
 	var err error
 	if config.Server {
 		err = agent.setupServer()
-		agent.state.Init(config, agent.server, agent.logger)
+		agent.state.SetIface(agent.server)
 	} else {
 		err = agent.setupClient()
-		agent.state.Init(config, agent.client, agent.logger)
+		agent.state.SetIface(agent.client)
 	}
 	if err != nil {
 		return nil, err
@@ -161,6 +164,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.Bootstrap {
 		base.Bootstrap = true
 	}
+
+	// Setup the ServerUp callback
+	base.ServerUp = a.state.ConsulServerUp
 
 	// Setup the loggers
 	base.LogOutput = a.logOutput

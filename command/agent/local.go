@@ -56,9 +56,8 @@ type localState struct {
 }
 
 // Init is used to initialize the local state
-func (l *localState) Init(config *Config, iface consul.Interface, logger *log.Logger) {
+func (l *localState) Init(config *Config, logger *log.Logger) {
 	l.config = config
-	l.iface = iface
 	l.logger = logger
 	l.services = make(map[string]*structs.NodeService)
 	l.serviceStatus = make(map[string]syncStatus)
@@ -66,6 +65,12 @@ func (l *localState) Init(config *Config, iface consul.Interface, logger *log.Lo
 	l.checkStatus = make(map[string]syncStatus)
 	l.consulCh = make(chan struct{}, 1)
 	l.triggerCh = make(chan struct{}, 1)
+}
+
+// SetIface is used to set the Consul interface. Must be set prior to
+// starting anti-entropy
+func (l *localState) SetIface(iface consul.Interface) {
+	l.iface = iface
 }
 
 // changeMade is used to trigger an anti-entropy run

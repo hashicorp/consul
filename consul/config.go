@@ -64,6 +64,10 @@ type Config struct {
 	// LogOutput is the location to write logs to. If this is not set,
 	// logs will go to stderr.
 	LogOutput io.Writer
+
+	// ServerUp callback can be used to trigger a notification that
+	// a Consul server is now up and known about.
+	ServerUp func()
 }
 
 // DefaultConfig is used to return a sane default configuration

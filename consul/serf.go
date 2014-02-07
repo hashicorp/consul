@@ -95,6 +95,11 @@ func (s *Server) remoteJoin(me serf.MemberEvent) {
 			s.remoteConsuls[parts.Datacenter] = append(existing, addr)
 		}
 		s.remoteLock.Unlock()
+
+		// Trigger the callback
+		if s.config.ServerUp != nil {
+			s.config.ServerUp()
+		}
 	}
 }
 
