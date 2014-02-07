@@ -304,8 +304,28 @@ WAIT:
 // handleReload is invoked when we should reload our configs, e.g. SIGHUP
 func (c *Command) handleReload(config *Config) *Config {
 	c.Ui.Output("Reloading configuration...")
-	// TODO : handle reload
-	return config
+	newConf := c.readConfig()
+	if newConf == nil {
+		c.Ui.Error(fmt.Sprintf("Failed to reload configs"))
+		return config
+	}
+
+	// Change the log level
+	minLevel := logutils.LogLevel(strings.ToUpper(newConf.LogLevel))
+	if ValidateLevelFilter(minLevel, c.logFilter) {
+		c.logFilter.SetMinLevel(minLevel)
+	} else {
+		c.Ui.Error(fmt.Sprintf(
+			"Invalid log level: %s. Valid log levels are: %v",
+			minLevel, c.logFilter.Levels))
+
+		// Keep the current log level
+		newConf.LogLevel = config.LogLevel
+	}
+
+	// TODO: Update the services and checks
+
+	return newConf
 }
 
 func (c *Command) Synopsis() string {
