@@ -46,6 +46,10 @@ type localState struct {
 	checks      map[string]*structs.HealthCheck
 	checkStatus map[string]syncStatus
 
+	// consulCh is used to inform of a change to the known
+	// consul nodes. This may be used to retry a sync run
+	consulCh chan struct{}
+
 	// triggerCh is used to inform of a change to local state
 	// that requires anti-entropy with the server
 	triggerCh chan struct{}
@@ -60,6 +64,7 @@ func (l *localState) Init(config *Config, iface consul.Interface, logger *log.Lo
 	l.serviceStatus = make(map[string]syncStatus)
 	l.checks = make(map[string]*structs.HealthCheck)
 	l.checkStatus = make(map[string]syncStatus)
+	l.consulCh = make(chan struct{}, 1)
 	l.triggerCh = make(chan struct{}, 1)
 }
 
@@ -67,6 +72,16 @@ func (l *localState) Init(config *Config, iface consul.Interface, logger *log.Lo
 func (l *localState) changeMade() {
 	select {
 	case l.triggerCh <- struct{}{}:
+	default:
+	}
+}
+
+// ConsulServerUp is used to inform that a new consul server is now
+// up. This can be used to speed up the sync process if we are blocking
+// waiting to discover a consul server
+func (l *localState) ConsulServerUp() {
+	select {
+	case l.consulCh <- struct{}{}:
 	default:
 	}
 }
@@ -199,6 +214,8 @@ SYNC:
 		if err := l.setSyncState(); err != nil {
 			l.logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
 			select {
+			case <-l.consulCh:
+				continue
 			case <-time.After(aeScale(syncRetryIntv, len(l.iface.LANMembers()))):
 				continue
 			case <-shutdownCh:
