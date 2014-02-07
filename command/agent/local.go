@@ -6,6 +6,7 @@ import (
 	"log"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -24,6 +25,10 @@ type syncStatus struct {
 // and checks. We used it to perform anti-entropy with the
 // catalog representation
 type localState struct {
+	// paused is used to check if we are paused. Must be the first
+	// element due to a go bug.
+	paused int32
+
 	sync.Mutex
 	logger *log.Logger
 
@@ -64,6 +69,23 @@ func (l *localState) changeMade() {
 	case l.triggerCh <- struct{}{}:
 	default:
 	}
+}
+
+// Pause is used to pause state syncronization, this can be
+// used to make batch changes
+func (l *localState) Pause() {
+	atomic.StoreInt32(&l.paused, 1)
+}
+
+// Unpause is used to resume state syncronization
+func (l *localState) Unpause() {
+	atomic.StoreInt32(&l.paused, 0)
+	l.changeMade()
+}
+
+// isPaused is used to check if we are paused
+func (l *localState) isPaused() bool {
+	return atomic.LoadInt32(&l.paused) == 1
 }
 
 // AddService is used to add a service entry to the local state.
@@ -200,6 +222,10 @@ SYNC:
 		case <-aeTimer:
 			goto SYNC
 		case <-l.triggerCh:
+			// Skip the sync if we are paused
+			if l.isPaused() {
+				continue
+			}
 			if err := l.syncChanges(); err != nil {
 				l.logger.Printf("[ERR] agent: failed to sync changes: %v", err)
 			}
