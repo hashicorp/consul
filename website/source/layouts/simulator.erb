@@ -1,0 +1,11 @@
+<% wrap_layout :docs do %>
+	<% content_for :head do %>
+		<%= javascript_include_tag "jquery-2.0.3.min" %>
+		<%= javascript_include_tag "bootstrap.min" %>
+		<%= javascript_include_tag "highcharts" %>
+		<%= javascript_include_tag "classy" %>
+		<%= javascript_include_tag "simulator" %>
+	<% end %>
+
+	<%= yield %>
+	<% end %>

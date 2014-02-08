@@ -1,0 +1,95 @@
+//
+// Header
+// --------------------------------------------------
+
+#footer,
+#header {
+  color: @white;
+  background-color: @black;
+  text-rendering: optimizeLegibility;
+
+  a{
+    color: @white;
+  }
+
+  .navbar-brand {
+    &.logo{
+      padding: 13px 15px;
+      line-height: 0;
+
+      span{
+        display: inline-block;
+        width: 52px;
+        height: 62px;
+        background: url(../images/logo-type-medium.png) 0 0 no-repeat;
+        .img-retina("../images/logo-type-medium.png", "../images/logo-type-medium@2x.png", 52px, 64px);
+      }
+    }
+
+    &.text{
+      font-size: 36px;
+      line-height: 62px;
+      letter-spacing: 14px;
+      text-shadow: @text-shadow;
+    }
+  }
+
+  .navbar-nav{
+    -webkit-font-smoothing: antialiased;
+    li > a {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+  }
+
+  .nav > li > a:hover, .nav > li > a:focus {
+    background-color: transparent;
+  }
+
+  .main-links.navbar-nav{
+    li + li a::before {
+      content: " | ";
+      padding-right: 15px;
+    }
+
+    li > a {
+      line-height: 62px;
+      text-shadow: @text-shadow;
+    }
+
+  }
+
+  .buttons.navbar-nav{
+    margin-top: 30px;
+    margin-left: 30px;
+    background-color: @red-dark;
+    border-radius: @btn-border-radius;
+    .box-shadow( @shadow );
+
+    li.first{
+      border-right: 2px solid @red-darker;
+    }
+
+    li > a {
+      padding-top: 6px;
+      padding-bottom: 6px;
+    }
+  }
+}
+
+#footer{
+  text-align: center;
+  .main-links.navbar-nav{
+    float: none;
+    display: inline-block;
+  }
+
+
+  .buttons.navbar-nav{
+   float: none;
+   display: inline-block;
+   margin-bottom: 30px;
+   margin-top: 0px;
+  }
+}

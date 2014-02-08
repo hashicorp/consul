@@ -1,0 +1,7 @@
+/**
+ * Classy - classy classes for JavaScript
+ *
+ * :copyright: (c) 2011 by Armin Ronacher. 
+ * :license: BSD.
+ */
+!function(t){function e(t){return!h||/\B\$super\b/.test(t.toString())}function i(e,i,n){n===t?delete e[i]:e[i]=n}function n(e,i){return Object.prototype.hasOwnProperty.call(e,i)?e[i]:t}function r(t){l=!0;var e=new t;return l=!1,e}var s="1.4",o=this,a=o.Class,l=!1,h=function(){$super()}.toString().indexOf("$super")>0,c=function(){};c.$noConflict=function(){try{i(o,"Class",a)}catch(t){o.Class=a}return c},c.$classyVersion=s,c.$extend=function(s){var a=this.prototype,h=r(this);if(s.__include__)for(var u=0,d=s.__include__.length;u!=d;++u){var p=s.__include__[u];for(var f in p){var g=n(p,f);g!==t&&(h[f]=p[f])}}if(s.__classvars__=s.__classvars__||{},h.__classvars__)for(var m in h.__classvars__)if(!s.__classvars__[m]){var g=n(h.__classvars__,m);s.__classvars__[m]=g}for(var f in s){var g=n(s,f);"__include__"!==f&&g!==t&&(h[f]="function"==typeof g&&e(g)?function(t,e){return function(){var r=n(this,"$super");this.$super=a[e];try{return t.apply(this,arguments)}finally{i(this,"$super",r)}}}(g,f):g)}var v=function(){if(!l){var t=o===this?r(arguments.callee):this;return t.__init__&&t.__init__.apply(t,arguments),t.$class=v,t}};for(var m in s.__classvars__){var g=n(s.__classvars__,m);g!==t&&(v[m]=g)}return v.prototype=h,v.constructor=v,v.$extend=c.$extend,v.$withData=c.$withData,v},c.$withData=function(e){var i=r(this);for(var s in e){var o=n(e,s);o!==t&&(i[s]=o)}return i},o.Class=c}();

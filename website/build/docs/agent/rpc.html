@@ -1,0 +1,69 @@
+<!DOCTYPE html> <html lang=en> <head> <meta charset=utf-8> <meta name=viewport content="width=device-width, initial-scale=1.0"> <meta name=description content=""> <meta name=author content=""> <title>RPC - Serf</title> <link href="/stylesheets/bootstrap.min-82fe1490.css" media=screen rel=stylesheet /><link href="/stylesheets/main-e5014f86.css" media=screen rel=stylesheet /> <!--[if lt IE 9]><script src="/javascripts/html5shiv-310dd184.js"></script> <script src="/javascripts/respond.min-88c91176.js"></script><![endif]--> <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-45101516-1', 'serfdom.io');
+  ga('send', 'pageview');
+
+</script> </head> <body class=page-RPC> <div id=header> <div class=container> <a class="navbar-brand logo" href="/"> <span></span> </a> <a class="navbar-brand text rls-l" href="/">SERF</a> <ul class="buttons nav navbar-nav navbar-right rls-sb"> <li class=first><a href="/downloads.html">Download</a></li> <li><a href="https://github.com/hashicorp/serf">Github</a></li> </ul> <ul class="main-links nav navbar-nav navbar-right rls-sb"> <li><a href="/intro/index.html">Intro</a></li> <li><a href="/docs/index.html">Docs</a></li> <li><a href="/community.html">Community</a></li> </ul> </div> </div> <div class=container> <div class=col-md-4> <div class="docs-sidebar hidden-print affix-top" role=complementary> <ul class="nav docs-sidenav"> <li> <a href="/docs/index.html">Documentation Home</a> </li> <li> <a href="/docs/upgrading.html">Upgrading and Compatibility</a> <ul class=nav> <li> <a href="/docs/upgrading.html">Upgrading Serf</a> </li> <li> <a href="/docs/compatibility.html">Compatibility Promise</a> </li> </ul> </li> <li> <a href="/docs/internals/index.html">Serf Internals</a> <ul class=nav> <li> <a href="/docs/internals/gossip.html">Gossip Protocol</a> </li> <li> <a href="/docs/internals/security.html">Security Model</a> </li> <li> <a href="/docs/internals/simulator.html">Convergence Simulator</a> </li> </ul> </li> <li> <a href="/docs/commands/index.html">Serf Commands (CLI)</a> <ul class=nav> <li> <a href="/docs/commands/agent.html">agent</a> </li> <li> <a href="/docs/commands/event.html">event</a> </li> <li> <a href="/docs/commands/force-leave.html">force-leave</a> </li> <li> <a href="/docs/commands/join.html">join</a> </li> <li> <a href="/docs/commands/keygen.html">keygen</a> </li> <li> <a href="/docs/commands/leave.html">leave</a> </li> <li> <a href="/docs/commands/members.html">members</a> </li> <li> <a href="/docs/commands/monitor.html">monitor</a> </li> </ul> </li> <li class=active> <a href="/docs/agent/basics.html">Serf Agent</a> <ul class=nav> <li> <a href="/docs/agent/basics.html">Running and Stopping</a> </li> <li> <a href="/docs/agent/options.html">Configuration</a> </li> <li> <a href="/docs/agent/event-handlers.html">Event Handlers</a> </li> <li> <a href="/docs/agent/encryption.html">Encryption</a> </li> <li class=active> <a href="/docs/agent/rpc.html">RPC Protocol</a> </li> </ul> <li> <a href="/docs/roadmap.html">Roadmap</a> </li> </ul> </div> </div> <div class=col-md-8 role=main> <div class=bs-docs-section> <h1 id=toc_0>RPC Protocol</h1> <p>The Serf agent provides a complete RPC mechanism that can be used to control the agent programmatically. This RPC mechanism is the same one used by the CLI, but can be used by other applications to easily leverage the power of Serf without directly embedding. Additionally, it can be used as a fast IPC mechanism to allow applications to receive events immediately instead of using the fork/exec model of event handlers.</p> <h2 id=toc_1>Implementation Details</h2> <p>The RPC protocol is implemented using <a href="//msgpack.org/">MsgPack</a> over TCP. This choice is driven by the fact that all operating systems support TCP, and MsgPack provides a fast serialization format that is broadly available across languages.</p> <p>All RPC requests have a request header, and some requests have a request body. The request header looks like:</p> <pre><code>    {&quot;Command&quot;: &quot;Handshake&quot;, &quot;Seq&quot;: 0}
+</code></pre> <p>All responses have a response header, and some may contain a response body. The response header looks like:</p> <pre><code>    {&quot;Seq&quot;: 0, &quot;Error&quot;: &quot;&quot;}
+</code></pre> <p>The <code>Command</code> is used to specify what command the server should run, and the <code>Seq</code> is used to track the request. Responses are tagged with the same <code>Seq</code> as the request. This allows for some concurrency on the server side, as requests are not purely FIFO. Thus, the <code>Seq</code> value should not be re-used between commands. All responses may be accompanied by an error.</p> <p>Possible commands include:</p> <ul> <li>handshake - Used to initialize the connection, set the version</li> <li>event - Fires a new user event</li> <li>force-leave - Removes a failed node from the cluster</li> <li>join - Requests Serf join another node</li> <li>members - Returns the list of members</li> <li>stream - Starts streaming events over the connection</li> <li>monitor - Starts streaming logs over the connection</li> <li>stop - Stops streaming logs or events</li> <li>leave - Serf agent performs a graceful leave and shutdown</li> </ul> <p>Below each command is documented along with any request or response body that is applicable.</p> <h3 id=toc_2>handshake</h3> <p>The handshake MUST be the first command that is sent, as it informs the server which version the client is using.</p> <p>The request header must be followed with a handshake body, like:</p> <pre><code>    {&quot;Version&quot;: 1}
+</code></pre> <p>The body specifies the IPC version being used, however only version 1 is currently supported. This is to ensure backwards compatibility in the future.</p> <p>There is no special response body, but the client should wait for the response and check for an error.</p> <h3 id=toc_3>event</h3> <p>The event command is used to fire a new user event. It takes the following request body:</p> <pre><code>    {&quot;Name&quot;: &quot;foo&quot;, &quot;Payload&quot;: &quot;test payload&quot;, &quot;Coalesce&quot;: true}
+</code></pre> <p>The <code>Name</code> is a string, but <code>Payload</code> is just opaque bytes. Coalesce is used to control if Serf should enable <a href="/docs/commands/event.html">event coalescing</a>.</p> <p>There is no special response body.</p> <h3 id=toc_4>force-leave</h3> <p>This command is used to remove failed nodes from a cluster. It takes the following body:</p> <pre><code>    {&quot;Node&quot;: &quot;failed-node-name&quot;}
+</code></pre> <p>There is no special response body.</p> <h3 id=toc_5>join</h3> <p>This command is used to join an existing cluster using a known node. It takes the following body:</p> <pre><code>    {&quot;Existing&quot;: [&quot;192.168.0.1:6000&quot;, &quot;192.168.0.2:6000&quot;], &quot;Replay&quot;: false}
+</code></pre> <p>The <code>Existing</code> nodes are each contacted, and <code>Replay</code> controls if we will replay old user events or if they will simply be ignored. The response body in addition to the header is returned. The body looks like:</p> <pre><code>    {&quot;Num&quot;: 2}
+</code></pre> <p>The body returns the number of nodes successfully joined.</p> <h3 id=toc_6>members</h3> <p>The members command is used to return all the known members and associated information. There is no request body, but the response looks like:</p> <pre><code>    {&quot;Members&quot;: [
+        {
+        &quot;Name&quot;: &quot;TestNode&quot;
+        &quot;Addr&quot;: [127, 0, 0, 1],
+        &quot;Port&quot;: 5000,
+        &quot;Role&quot;: &quot;test&quot;,
+        &quot;Status&quot;: &quot;alive&quot;,
+        &quot;ProtocolMin&quot;: 0,
+        &quot;ProtocolMax&quot;: 3,
+        &quot;ProtocolCur&quot;: 2,
+        &quot;DelegateMin&quot;: 0,
+        &quot;DelegateMax&quot;: 1,
+        &quot;DelegateCur&quot;: 1,
+        },
+        ...]
+    }
+</code></pre> <h3 id=toc_7>stream</h3> <p>The stream command is used to subscribe to a stream of all events matching a given type filter. Events will continue to be sent until the stream is stopped. The request body looks like:</p> <pre><code>    {&quot;Type&quot;: &quot;member-join,user:deploy&quot;}`
+</code></pre> <p>The format of type is the same as the <a href="/docs/agent/event-handlers.html">event handler</a>, except no script is specified. The one exception is that <code>&quot;*&quot;</code> can be specified to subscribe to all events.</p> <p>The server will respond with a standard response header indicating if the stream was successful. However, now as events occur they will be sent and tagged with the same <code>Seq</code> as the stream command that matches.</p> <p>Assume we issued the previous stream command with Seq <code>50</code>, we may start getting messages like:</p> <pre><code>    {&quot;Seq&quot;: 50, &quot;Error&quot;: &quot;&quot;}
+    {
+        &quot;Event&quot;: &quot;user&quot;,
+        &quot;LTime&quot;: 123,
+        &quot;Name&quot;: &quot;deploy&quot;,
+        &quot;Payload&quot;: &quot;9c45b87&quot;,
+        &quot;Coalesce&quot;: true,
+    }
+
+    {&quot;Seq&quot;: 50, &quot;Error&quot;: &quot;&quot;}
+    {
+        &quot;Event&quot;: &quot;member-join&quot;,
+        &quot;Members&quot;: [
+            {
+                &quot;Name&quot;: &quot;TestNode&quot;
+                &quot;Addr&quot;: [127, 0, 0, 1],
+                &quot;Port&quot;: 5000,
+                &quot;Role&quot;: &quot;test&quot;,
+                &quot;Status&quot;: &quot;alive&quot;,
+                &quot;ProtocolMin&quot;: 0,
+                &quot;ProtocolMax&quot;: 3,
+                &quot;ProtocolCur&quot;: 2,
+                &quot;DelegateMin&quot;: 0,
+                &quot;DelegateMax&quot;: 1,
+                &quot;DelegateCur&quot;: 1,
+            },
+            ...
+        ]
+    }
+</code></pre> <p>It is important to realize that these messages are sent asyncronously, and not in response to any command. That means if a client is streaming commands, there may be events streamed while a client is waiting for a response to a command. This is why the <code>Seq</code> must be used to pair requests with their corresponding responses.</p> <p>There is no limit to the number of concurrent streams a client can request, however a message is not deduplicated, so if multiple streams match a given event, it will be sent multiple times with the corresponding <code>Seq</code> number.</p> <p>To stop streaming, the <code>stop</code> command is used.</p> <h3 id=toc_8>monitor</h3> <p>The monitor command is similar to the stream command, but instead of events it subscribes the channel to log messages from the Agent.</p> <p>The request is like:</p> <pre><code>    {&quot;LogLevel&quot;: &quot;DEBUG&quot;}
+</code></pre> <p>This subscribes the client to all messages of at least DEBUG level.</p> <p>The server will respond with a standard response header indicating if the monitor was successful. However, now as logs occur they will be sent and tagged with the same <code>Seq</code> as the monitor command that matches.</p> <p>Assume we issued the previous monitor command with Seq <code>50</code>, we may start getting messages like:</p> <pre><code>    {&quot;Seq&quot;: 50, &quot;Error&quot;: &quot;&quot;}
+    {&quot;Log&quot;: &quot;2013/12/03 13:06:53 [INFO] agent: Received event: member-join&quot;}
+</code></pre> <p>It is important to realize that these messages are sent asyncronously, and not in response to any command. That means if a client is streaming commands, there may be logs streamed while a client is waiting for a response to a command. This is why the <code>Seq</code> must be used to pair requests with their corresponding responses.</p> <p>The client can only be subscribed to at most a single monitor instance. To stop streaming, the <code>stop</code> command is used.</p> <h3 id=toc_9>stop</h3> <p>The stop command is used to stop either a stream or monitor. The request looks like:</p> <pre><code>    {&quot;Stop&quot;: 50}
+</code></pre> <p>This unsubscribes the client from the monitor and/or stream registered with <code>Seq</code> value of 50.</p> <p>There is no special response body.</p> <h3 id=toc_10>leave</h3> <p>The leave command is used trigger a graceful leave and shutdown. There is no request body, or special response body.</p> </div> </div> </div> <div id=footer> <div class=container> <div class=footer-links> <ul class="main-links nav navbar-nav rls-sb"> <li><a href="/intro/index.html">Intro</a></li> <li class=active><a href="/docs/index.html">Docs</a></li> <li><a href="/community.html">Community</a></li> </ul> <ul class="buttons nav navbar-nav rls-sb"> <li class=first><a href="/downloads.html">Download</a></li> <li><a href="https://github.com/hashicorp/serf">Github</a></li> </ul> </div> <div class=footer-logo> <span></span> </div> <div class="footer-hashi os"> <span>© 2013. A <a href="//www.hashicorp.com">HashiCorp</a> Project.</span> <a href="//www.hashicorp.com"><img src="/images/hashi-logo-s-3644fe63.png"></a> </div> </div> </div> <script src="javascripts/lib/d3.v3.min.js"></script> <script src="javascripts/app/deploy/site.js"></script> <script>
+	Serf.initialize();
+</script> </body> </html>
