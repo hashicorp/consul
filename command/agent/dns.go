@@ -6,14 +6,16 @@ import (
 	"github.com/miekg/dns"
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"strings"
 	"time"
 )
 
 const (
-	testQuery    = "_test.consul."
-	consulDomain = "consul."
+	testQuery           = "_test.consul."
+	consulDomain        = "consul."
+	maxServiceResponses = 3 // TODO: Increase, currently a bug upstream in dns package
 )
 
 // DNSServer is used to wrap an Agent and expose various
@@ -318,6 +320,14 @@ func (d *DNSServer) serviceLookup(datacenter, service, tag string, req, resp *dn
 	// Filter out any service nodes due to health checks
 	out.Nodes = d.filterServiceNodes(out.Nodes)
 
+	// Perform a random shuffle
+	shuffleServiceNodes(out.Nodes)
+
+	// Restrict the number of responses
+	if len(out.Nodes) > maxServiceResponses {
+		out.Nodes = out.Nodes[:maxServiceResponses]
+	}
+
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
 	if qType == dns.TypeANY || qType == dns.TypeA {
@@ -344,6 +354,14 @@ func (d *DNSServer) filterServiceNodes(nodes structs.CheckServiceNodes) structs.
 		}
 	}
 	return nodes[:n]
+}
+
+// shuffleServiceNodes does an in-place random shuffle using the Fisher-Yates algorithm
+func shuffleServiceNodes(nodes structs.CheckServiceNodes) {
+	for i := len(nodes) - 1; i > 0; i-- {
+		j := rand.Int31() % int32(i+1)
+		nodes[i], nodes[j] = nodes[j], nodes[i]
+	}
 }
 
 // serviceARecords is used to add the A records for a service lookup
