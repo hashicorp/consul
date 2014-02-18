@@ -4,75 +4,87 @@ page_title: "Agent"
 sidebar_current: "docs-agent-running"
 ---
 
-# Serf Agent
+# Consul Agent
 
-The Serf agent is the core process of Serf. The agent maintains membership
-information, propagates events, invokes event handlers, detects failures,
-and more. The agent must run on every node that is part of a Serf cluster.
+The Consul agent is the core process of Consul. The agent maintains membership
+information, registers services, runs checks, responds to queries
+and more. The agent must run on every node that is part of a Consul cluster.
+
+Any Agent may run in one of two modes: client or server. A server
+node takes on the additional responsibility of being part of the [consensus quorum](#).
+These nodes take part in Raft, and provide strong consistency and availability in
+the case of failure. The higher burden on the server nodes means that usually they
+should be run on dedicated instances, as they are more resource intensive than a client
+node. Client nodes make up the majority of the cluster, and they are very lightweight
+as they maintain very little state and interface with the server nodes for most operations.
 
 ## Running an Agent
 
-The agent is started with the `serf agent` command. This command blocks,
+The agent is started with the `consul agent` command. This command blocks,
 running forever or until told to quit. The agent command takes a variety
 of configuration options but the defaults are usually good enough. When
-running `serf agent`, you should see output similar to that below:
+running `consul agent`, you should see output similar to that below:
 
 ```
-$ serf agent
-==> Starting Serf agent...
-==> Serf agent running!
-    Node name: 'mitchellh.local'
-    Bind addr: '0.0.0.0:7946'
-     RPC addr: '127.0.0.1:7373'
-    Encrypted: false
-     Snapshot: false
-      Profile: lan
+$ consul agent -data=/tmp/consul
+==> Starting Consul agent...
+==> Starting Consul agent RPC...
+==> Consul agent running!
+         Node name: 'Armons-MacBook-Air.local'
+        Datacenter: 'dc1'
+    Advertise addr: '10.1.10.12'
+          RPC addr: '127.0.0.1:8400'
+         HTTP addr: '127.0.0.1:8500'
+          DNS addr: '127.0.0.1:8600'
+         Encrypted: false
+            Server: false (bootstrap: false)
 
 ==> Log data will now stream in as it occurs:
 
-2013/10/22 10:35:33 [INFO] Serf agent starting
-2013/10/22 10:35:33 [INFO] serf: EventMemberJoin: mitchellh.local 127.0.0.1
-2013/10/22 10:35:33 [INFO] Serf agent started
-2013/10/22 10:35:33 [INFO] agent: Received event: member-join
+    2014/02/18 14:25:02 [INFO] serf: EventMemberJoin: Armons-MacBook-Air.local 10.1.10.12
+    2014/02/18 14:25:02 [ERR] agent: failed to sync remote state: No known Consul servers
 ...
 ```
 
-There are six important components that `serf agent` outputs:
+There are several important components that `consul agent` outputs:
 
 * **Node name**: This is a unique name for the agent. By default this
   is the hostname of the machine, but you may customize it to whatever
   you'd like using the `-node` flag.
 
-* **Bind addr**: This is the address and port used for communication between
-  Serf agents in a cluster. Every Serf agent in a cluster does not have to
-  use the same port.
+* **Datacenter**: This is the datacenter the agent is configured to run
+ in. Consul has first-class support for multiple datacenters, but to work efficiently
+ each node must be configured to correctly report it's datacenter. The `-dc` flag
+ can be used to set the datacenter. For single-DC configurations, the agent
+ will default to "dc1".
+
+* **Advertise addr**: This is the address and port used for communication between
+  Consul agents in a cluster. Every Consul agent in a cluster does not have to
+  use the same port, but this address **MUST** be reachable by all other nodes.
 
 * **RPC addr**: This is the address and port used for RPC communications
-  for other `serf` commands. Other Serf commands such as `serf members`
+  for other `consul` commands. Other Consul commands such as `consul members`
   connect to a running agent and use RPC to query and control the agent.
   By default, this binds only to localhost on the default port. If you
   change this address, you'll have to specify an `-rpc-addr` to commands
-  such as `serf members` so they know how to talk to the agent. This is also
-  the address other applications can use over [RPC to control Serf](/docs/agent/rpc.html).
+  such as `consul members` so they know how to talk to the agent. This is also
+  the address other applications can use over [RPC to control Consul](/docs/agent/rpc.html).
 
-* **Encrypted**: This shows if Serf is encrypting all traffic that it
+* **HTTP/DNS addr**: This is the addresses the agent is listening on for the
+  HTTP and DNS interfaces respectively. These are bound to localhost for security,
+  but can be configured to listen on other addresses or ports.
+
+* **Encrypted**: This shows if Consul is encrypting all traffic that it
   sends and expects to receive. It is a good sanity check to avoid sending
   non-encrypted traffic over any public networks. You can read more about
   [encryption here](/docs/agent/encryption.html).
 
-* **Snapshot**: This shows if Serf snapshotting is enabled. The snapshot
-  file enables Serf to automatically re-join a cluster after failure and
-  prevents replay of events that have already been seen. It requires storing
-  state on disk, and [must be configured](/docs/agent/options.html)
-  using a CLI flag or in the configuration directory. If it is not provided,
-  other nodes will still attempt to reconnect on recovery, however the node
-  will take longer to join the cluster and will replay old events.
-
-* **Profile**: The profile controls various timing values which should
-  be appropriate to the environment Serf is running in. It defaults to
-  optimizing for a LAN environment, but can also be set for WAN or
-  local-only communication. The profile can be set in
-  the [configuration](/docs/agent/options.html).
+* **Server**: This shows if the agent is running in the server or client mode.
+  Server nodes have the extra burden of participating in the consensus quorum,
+  storing cluster state, and handling queries. Additionally, a server may be
+  in "bootstrap" mode. The first server must be in this mode to allow additional
+  servers to join the cluster. Multiple servers cannot be in bootstrap mode,
+  otherwise the cluster state will be inconsistent.
 
 ## Stopping an Agent
 
@@ -87,8 +99,13 @@ When force killed, the agent ends immediately. The rest of the cluster will
 eventually (usually within seconds) detect that the node has died and will
 notify the cluster that the node has _failed_.
 
-The difference between a node _failing_ and a node _leaving_ may not be
-important for your use case. For example, for a web server and load
+It is especially important that a server node be allowed to gracefully leave,
+so that there will be a minimal impact on availablity as the server leaves
+the consensus quorum.
+
+For client agents, the difference between a node _failing_ and a node _leaving_
+may not be important for your use case. For example, for a web server and load
 balancer setup, both result in the same action: remove the web node
 from the load balancer pool. But for other situations, you may handle
 each scenario differently.
+

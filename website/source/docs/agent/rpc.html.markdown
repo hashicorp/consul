@@ -6,11 +6,11 @@ sidebar_current: "docs-agent-rpc"
 
 # RPC Protocol
 
-The Serf agent provides a complete RPC mechanism that can
+The Consul agent provides a complete RPC mechanism that can
 be used to control the agent programmatically. This RPC
 mechanism is the same one used by the CLI, but can be
 used by other applications to easily leverage the power
-of Serf without directly embedding. Additionally, it can
+of Consul without directly embedding. Additionally, it can
 be used as a fast IPC mechanism to allow applications to
 receive events immediately instead of using the fork/exec
 model of event handlers.
@@ -46,14 +46,13 @@ All responses may be accompanied by an error.
 Possible commands include:
 
 * handshake - Used to initialize the connection, set the version
-* event - Fires a new user event
 * force-leave - Removes a failed node from the cluster
-* join - Requests Serf join another node
-* members - Returns the list of members
-* stream - Starts streaming events over the connection
+* join - Requests Consul join another node
+* members-lan - Returns the list of lan members
+* members-wan - Returns the list of wan members
 * monitor - Starts streaming logs over the connection
-* stop - Stops streaming logs or events
-* leave - Serf agent performs a graceful leave and shutdown
+* stop - Stops streaming logs
+* leave - Consul agent performs a graceful leave and shutdown
 
 Below each command is documented along with any request or
 response body that is applicable.
@@ -76,20 +75,6 @@ in the future.
 There is no special response body, but the client should wait for the
 response and check for an error.
 
-### event
-
-The event command is used to fire a new user event. It takes the
-following request body:
-
-```
-	{"Name": "foo", "Payload": "test payload", "Coalesce": true}
-```
-
-The `Name` is a string, but `Payload` is just opaque bytes. Coalesce
-is used to control if Serf should enable [event coalescing](/docs/commands/event.html).
-
-There is no special response body.
-
 ### force-leave
 
 This command is used to remove failed nodes from a cluster. It takes
@@ -107,12 +92,17 @@ This command is used to join an existing cluster using a known node.
 It takes the following body:
 
 ```
-    {"Existing": ["192.168.0.1:6000", "192.168.0.2:6000"], "Replay": false}
+    {"Existing": ["192.168.0.1:6000", "192.168.0.2:6000"], "WAN": false}
 ```
 
-The `Existing` nodes are each contacted, and `Replay` controls if we will replay
-old user events or if they will simply be ignored. The response body in addition
-to the header is returned. The body looks like:
+The `Existing` nodes are each contacted, and `WAN` controls if we are adding a
+WAN member or LAN member. LAN members are expected to be in the same datacenter,
+and should be accessible at relatively low latencies. WAN members are expected to
+be operating in different datacenters, with relatively high access latencies. It is
+important that only agents running in "server" mode are able to join nodes over the
+WAN.
+
+The response body in addition to the header is returned. The body looks like:
 
 ```
     {"Num": 2}
@@ -120,10 +110,12 @@ to the header is returned. The body looks like:
 
 The body returns the number of nodes successfully joined.
 
-### members
+### members-lan
 
-The members command is used to return all the known members and associated
-information. There is no request body, but the response looks like:
+The members-lan command is used to return all the known lan members and associated
+information. All agents will respond to this command.
+
+There is no request body, but the response looks like:
 
 ```
     {"Members": [
@@ -146,77 +138,16 @@ information. There is no request body, but the response looks like:
     }
 ```
 
-### stream
+### members-wan
 
-The stream command is used to subscribe to a stream of all events
-matching a given type filter. Events will continue to be sent until
-the stream is stopped. The request body looks like:
+The members-wan command is used to return all the known wan members and associated
+information. Only agents in server mode will respond to this command.
 
-```
-    {"Type": "member-join,user:deploy"}`
-```
-
-The format of type is the same as the [event handler](/docs/agent/event-handlers.html),
-except no script is specified. The one exception is that `"*"` can be specified to
-subscribe to all events.
-
-The server will respond with a standard response header indicating if the stream
-was successful. However, now as events occur they will be sent and tagged with
-the same `Seq` as the stream command that matches.
-
-Assume we issued the previous stream command with Seq `50`,
-we may start getting messages like:
-
-```
-    {"Seq": 50, "Error": ""}
-    {
-        "Event": "user",
-        "LTime": 123,
-        "Name": "deploy",
-        "Payload": "9c45b87",
-        "Coalesce": true,
-    }
-
-    {"Seq": 50, "Error": ""}
-    {
-        "Event": "member-join",
-        "Members": [
-            {
-                "Name": "TestNode"
-                "Addr": [127, 0, 0, 1],
-                "Port": 5000,
-                "Tags": {
-                    "role": "test"
-                },
-                "Status": "alive",
-                "ProtocolMin": 0,
-                "ProtocolMax": 3,
-                "ProtocolCur": 2,
-                "DelegateMin": 0,
-                "DelegateMax": 1,
-                "DelegateCur": 1,
-            },
-            ...
-        ]
-    }
-```
-
-It is important to realize that these messages are sent asyncronously,
-and not in response to any command. That means if a client is streaming
-commands, there may be events streamed while a client is waiting for a
-response to a command. This is why the `Seq` must be used to pair requests
-with their corresponding responses.
-
-There is no limit to the number of concurrent streams a client can request,
-however a message is not deduplicated, so if multiple streams match a given
-event, it will be sent multiple times with the corresponding `Seq` number.
-
-To stop streaming, the `stop` command is used.
+There is no request body, and the response is the same as `members-lan`
 
 ### monitor
 
-The monitor command is similar to the stream command, but instead of
-events it subscribes the channel to log messages from the Agent.
+The monitor command subscribes the channel to log messages from the Agent.
 
 The request is like:
 
@@ -249,15 +180,14 @@ To stop streaming, the `stop` command is used.
 
 ### stop
 
-The stop command is used to stop either a stream or monitor.
+The stop command is used to stop a monitor.
 The request looks like:
 
 ```
     {"Stop": 50}
 ```
 
-This unsubscribes the client from the monitor and/or stream registered
-with `Seq` value of 50.
+This unsubscribes the client from the monitor with `Seq` value of 50.
 
 There is no special response body.
 
