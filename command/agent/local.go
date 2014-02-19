@@ -220,9 +220,7 @@ SYNC:
 			l.logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
 			select {
 			case <-l.consulCh:
-				continue
 			case <-time.After(aeScale(syncRetryIntv, len(l.iface.LANMembers()))):
-				continue
 			case <-shutdownCh:
 				return
 			}
