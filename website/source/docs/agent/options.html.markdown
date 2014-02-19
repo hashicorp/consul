@@ -32,7 +32,7 @@ The options below are all specified on the command-line.
   IP address. Consul uses both TCP and UDP and use the same port for both, so if you
   have any firewalls be sure to allow both protocols.
 
- * `-server-addr` - The address that the agent will bind to for handling RPC calls
+* `-server-addr` - The address that the agent will bind to for handling RPC calls
  if running in server mode. This does not affect clients running in client mode.
  By default this is "0.0.0.0:8300". This port is used for TCP communications so any
  firewalls must be configured to allow this.
@@ -127,8 +127,8 @@ at a single JSON object with configuration within it.
 Configuration files are used for more than just setting up the agent,
 they are also used to provide check and service definitions. These are used
 to announce the availability of system servers to the rest of the cluster.
-They are documented seperately under [check configuration](#) and
-[service configuration](#) respectively.
+They are documented seperately under [check configuration](/docs/agent/checks.html) and
+[service configuration](/docs/agent/services.html) respectively.
 
 #### Example Configuration File
 

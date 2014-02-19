@@ -1,0 +1,62 @@
+---
+layout: "docs"
+page_title: "Check Definition"
+sidebar_current: "docs-agent-checks"
+---
+
+# Checks
+
+One of the primary roles of the agent is the management of system and
+application level health checks. A health check is considered to be application
+level if it associated with a service. A check is defined in a configuration file,
+or added at runtime over the HTTP interface.
+
+There are two different kinds of checks:
+
+ * Script + Interval - These checks depend on invoking an external application
+ which does the health check and exits with an appropriate exit code, potentially
+ generating some output. A script is paired with an invocation interval (e.g.
+ every 30 seconds). This is similar to the Nagios plugin system.
+
+ * TTL - These checks retain their last known state for a given TTL. The state
+ of the check must be updated periodicadically over the HTTP interface. If an
+ external system fails to update the status within a given TTL, the check is
+ set to the failed state. This mechanism is used to allow an application to
+ directly report it's health. For example, a web app can periodically curl the
+ endpoint, and if the app fails, then the TTL will expire and the health check
+ enters a critical state.
+
+## Check Definition
+
+A check definition that is a script looks like:
+
+    {
+        "check": {
+            "id": "mem-util",
+            "name": "Memory utilization",
+            "script": "/usr/local/bin/check_mem.py",
+            "interval": "10s"
+        }
+    }
+
+A TTL based check is very similar:
+
+    {
+        "check": {
+            "id": "web-app",
+            "name": "Web App Status",
+            "notes": "Web app does a curl internally every 10 seconds",
+            "ttl": "30s"
+        }
+    }
+
+Both types of definitions must include a `name`, and may optionally
+provide an `id` and `notes` field. The `id` is set to the `name` if not
+provided. It is required that all checks have a unique ID, so if names
+might conflict, then unique ID's should be provided.
+
+The `notes` field is opaque to Consul, but may be used for human
+readable descriptions. The field is set to any output that a script
+generates, and similarly the TTL update hooks can update the `notes`
+as well.
+
