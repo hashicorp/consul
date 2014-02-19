@@ -62,7 +62,7 @@ Usage: consul force-leave [options] name
 
 Options:
 
-  -rpc-addr=127.0.0.1:7373  RPC address of the Consul agent.
+  -rpc-addr=127.0.0.1:8400 RPC address of the Consul agent.
 
 `
 	return strings.TrimSpace(helpText)

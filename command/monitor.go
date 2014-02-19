@@ -32,7 +32,7 @@ Usage: consul monitor [options]
 Options:
 
   -log-level=info          Log level of the agent.
-  -rpc-addr=127.0.0.1:7373  RPC address of the Consul agent.
+  -rpc-addr=127.0.0.1:8400 RPC address of the Consul agent.
 `
 	return strings.TrimSpace(helpText)
 }

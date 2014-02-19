@@ -22,8 +22,8 @@ Usage: consul join [options] address ...
 
 Options:
 
-  -rpc-addr=127.0.0.1:7373  RPC address of the Consul agent.
-  -wan						Joins a server to another server in the WAN pool
+  -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
+  -wan                      Joins a server to another server in the WAN pool
 `
 	return strings.TrimSpace(helpText)
 }

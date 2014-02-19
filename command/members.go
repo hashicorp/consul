@@ -30,12 +30,12 @@ Options:
   -role=<regexp>            If provided, output is filtered to only nodes matching
                             the regular expression for role
 
-  -rpc-addr=127.0.0.1:7373  RPC address of the Consul agent.
+  -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
 
-  -status=<regexp>			If provided, output is filtered to only nodes matching
+  -status=<regexp>          If provided, output is filtered to only nodes matching
                             the regular expression for status
 
-  -wan						If the agent is in server mode, this can be used to return
+  -wan                      If the agent is in server mode, this can be used to return
                             the other peers in the WAN pool
 `
 	return strings.TrimSpace(helpText)

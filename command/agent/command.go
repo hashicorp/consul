@@ -374,7 +374,7 @@ Usage: consul agent [options]
 
 Options:
 
-  -rpc-addr=127.0.0.1:7373 Address to bind the RPC listener.
+  -rpc-addr=127.0.0.1:8400 Address to bind the RPC listener.
 `
 	return strings.TrimSpace(helpText)
 }
