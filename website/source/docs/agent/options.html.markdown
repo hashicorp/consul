@@ -52,20 +52,20 @@ The options below are all specified on the command-line.
   will merge with configuration files loaded earlier, with the later values
   overriding the earlier values.
 
-* `-config-dir` - A directory of configuration files to load. Serf will
+* `-config-dir` - A directory of configuration files to load. Consul will
   load all files in this directory ending in ".json" as configuration files
   in alphabetical order. For more information on the format of the configuration
   files, see the "Configuration Files" section below.
 
-* `-encrypt` - Specifies the secret key to use for encryption of Serf
+* `-encrypt` - Specifies the secret key to use for encryption of Consul
   network traffic. This key must be 16-bytes that are base64 encoded. The
   easiest way to create an encryption key is to use `consul keygen`. All
   nodes within a cluster must share the same encryption key to communicate.
 
-* `-log-level` - The level of logging to show after the Serf agent has
+* `-log-level` - The level of logging to show after the Consul agent has
   started. This defaults to "info". The available log levels are "trace",
   "debug", "info", "warn", "err". This is the log level that will be shown
-  for the agent output, but note you can always connect via `serf monitor`
+  for the agent output, but note you can always connect via `consul monitor`
   to an agent at any log level. The log level can be changed during a
   config reload.
 
@@ -74,7 +74,7 @@ The options below are all specified on the command-line.
 
 * `-rpc-addr` - The address that Consul will bind to for the agent's  RPC server.
   By default this is "127.0.0.1:8400", allowing only loopback connections.
-  The RPC address is used by other Serf commands, such as  `consul members`,
+  The RPC address is used by other Consul commands, such as  `consul members`,
   in order to query a running Consul agent. It is also used by other applications
   to control Consul using it's [RPC protocol](/docs/agent/rpc.html).
 
@@ -117,7 +117,7 @@ The options below are all specified on the command-line.
 ## Configuration Files
 
 In addition to the command-line options, configuration can be put into
-files. This may be easier in certain situations, for example when Serf is
+files. This may be easier in certain situations, for example when Consul is
 being configured using a configuration management system.
 
 The configuration files are JSON formatted, making them easily readable
