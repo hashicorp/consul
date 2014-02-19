@@ -41,16 +41,16 @@ func (s *HTTPServer) AgentJoin(resp http.ResponseWriter, req *http.Request) (int
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/join/")
 	if wan {
 		_, err := s.agent.JoinWAN([]string{addr})
-		return err, nil
+		return nil, err
 	} else {
 		_, err := s.agent.JoinLAN([]string{addr})
-		return err, nil
+		return nil, err
 	}
 }
 
 func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	addr := strings.TrimPrefix(req.URL.Path, "/v1/agent/force-leave/")
-	return s.agent.ForceLeave(addr), nil
+	return nil, s.agent.ForceLeave(addr)
 }
 
 func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -80,30 +80,30 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Add the check
-	return s.agent.AddCheck(health, chkType), nil
+	return nil, s.agent.AddCheck(health, chkType)
 }
 
 func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/deregister/")
-	return s.agent.RemoveCheck(checkID), nil
+	return nil, s.agent.RemoveCheck(checkID)
 }
 
 func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/pass/")
 	note := req.URL.Query().Get("note")
-	return s.agent.UpdateCheck(checkID, structs.HealthPassing, note), nil
+	return nil, s.agent.UpdateCheck(checkID, structs.HealthPassing, note)
 }
 
 func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/warn/")
 	note := req.URL.Query().Get("note")
-	return s.agent.UpdateCheck(checkID, structs.HealthWarning, note), nil
+	return nil, s.agent.UpdateCheck(checkID, structs.HealthWarning, note)
 }
 
 func (s *HTTPServer) AgentCheckFail(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/fail/")
 	note := req.URL.Query().Get("note")
-	return s.agent.UpdateCheck(checkID, structs.HealthCritical, note), nil
+	return nil, s.agent.UpdateCheck(checkID, structs.HealthCritical, note)
 }
 
 func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -133,10 +133,10 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Add the check
-	return s.agent.AddService(ns, chkType), nil
+	return nil, s.agent.AddService(ns, chkType)
 }
 
 func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/")
-	return s.agent.RemoveService(serviceID), nil
+	return nil, s.agent.RemoveService(serviceID)
 }

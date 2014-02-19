@@ -12,18 +12,257 @@ versioned to enable changes without breaking backwards compatibility.
 
 All endpoints fall into one of 4 categories:
 
+* agent - Agent control
 * catalog - Manages nodes and services
 * health - Manages health checks
-* agent - Manages agent local state
 * status - Consul system status
 
 Each of the categories and their respective endpoints are documented below.
 
+## Blocking Queries
+
+Certain endpoints support a feature called a "blocking query". A blocking query
+is used to wait for a change to potentially take place using long polling.
+
+Queries that support this will mention it specifically, however the use of this
+feature is the same for all. If supported, the query will set an HTTP header
+"X-Consul-Index". This is an opaque handle that the client will use.
+
+To cause a query to block, the query parameters "?wait=60s&index=<idx>" are added
+to a request. The "?wait=" query parameter limits how long the query will potentially
+block for. It not set, it will default to 10 minutes. The "?index=" parameter is
+what was returned in a "X-Consul-Index" header.
+
+When provided, Consul blocks sending a response until there is an update that
+could have cause the output to change, and thus advancing the index. A critical
+note is that when the query returns there is **no guarantee** of a change. It is
+possible that the timeout was reached, or that there was an idempotent write that
+does not affect the result.
+
+## Agent
+
+The Agent endpoints are used to interact with a local Consul agent. Usually,
+services and checks are registered with an agent, which then takes on the
+burden of registering with the Catalog and performing anti-entropy to recover from
+outages. There are also various control APIs that can be used instead of the
+msgpack RPC protocol.
+
+The following endpoints are supported:
+
+* /v1/agent/checks: Returns the checks the local agent is managing
+* /v1/agent/services : Returns the services local agent is managing
+* /v1/agent/members : Returns the members as seen by the local serf agent
+* /v1/agent/join/\<address\> : Trigger local agent to join a node
+* /v1/agent/force-leave/\<node\>: Force remove node
+* /v1/agent/check/register : Registers a new local check
+* /v1/agent/check/deregister/\<checkID\> : Deregister a local check
+* /v1/agent/check/pass/\<checkID\> : Mark a local test as passing
+* /v1/agent/check/warn/\<checkID\> : Mark a local test as warning
+* /v1/agent/check/fail/\<checkID\> : Mark a local test as critical
+* /v1/agent/service/register : Registers a new local service
+* /v1/agent/service/deregister/\<serviceID\> : Deregister a local service
+
+### /v1/agent/checks
+
+This endpoint is used to return the all the checks that are registered with
+the local agent. These checks were either provided through configuration files,
+or added dynamically using the HTTP API. It is important to note that the checks
+known by the agent may be different than those reported by the Catalog. This is usually
+due to changes being made while there is no leader elected. The agent performs active
+anti-entropy, so in most situations everything will be in sync within a few seconds.
+
+This endpoint is hit with a GET and returns a JSON body like this:
+
+    {
+        "service:redis":{
+            "Node":"foobar",
+            "CheckID":"service:redis",
+            "Name":"Service 'redis' check",
+            "Status":"passing",
+            "Notes":"",
+            "ServiceID":"redis",
+            "ServiceName":"redis"
+        }
+    }
+
+### /v1/agent/services
+
+This endpoint is used to return the all the services that are registered with
+the local agent. These services were either provided through configuration files,
+or added dynamically using the HTTP API. It is important to note that the services
+known by the agent may be different than those reported by the Catalog. This is usually
+due to changes being made while there is no leader elected. The agent performs active
+anti-entropy, so in most situations everything will be in sync within a few seconds.
+
+This endpoint is hit with a GET and returns a JSON body like this:
+
+    {
+        "redis":{
+            "ID":"redis",
+            "Service":"redis",
+            "Tag":"",
+            "Port":8000
+        }
+    }
+
+### /v1/agent/members
+
+This endpoint is hit with a GET and returns the members the agent sees in the
+cluster gossip pool. Due to the nature of gossip, this is eventually consistent
+and the results may differ by agent. The strongly consistent view of nodes is
+instead provided by "/v1/catalog/nodes".
+
+For agents running in server mode, providing a "?wan=1" query parameter returns
+the list of WAN members instead of the LAN members which is default.
+
+This endpoint returns a JSON body like:
+
+    [
+        {
+            "Name":"foobar",
+            "Addr":"10.1.10.12",
+            "Port":8301,
+            "Tags":{
+                "bootstrap":"1",
+                "dc":"dc1",
+                "port":"8300",
+                "role":"consul"
+            },
+            "Status":1,
+            "ProtocolMin":1,
+            "ProtocolMax":2,
+            "ProtocolCur":2,
+            "DelegateMin":1,
+            "DelegateMax":3,
+            "DelegateCur":3
+        }
+    ]
+
+### /v1/agent/join/\<address\>
+
+This endpoint is hit with a GET and is used to instruct the agent to attempt to
+connect to a given address.  For agents running in server mode, providing a "?wan=1"
+query parameter causes the agent to attempt to join using the WAN pool.
+
+The endpoint returns 200 on successful join.
+
+### /v1/agent/force-leave/\<node\>
+
+This endpoint is hit with a GET and is used to instructs the agent to force a node into the left state.
+If a node fails unexpectedly, then it will be in a "failed" state. Once in this state, Consul will
+attempt to reconnect, and additionally the services and checks belonging to that node will not be
+cleaned up. Forcing a node into the left state allows its old entries to be removed.
+
+The endpoint always returns 200.
+
+### /v1/agent/check/register
+
+The register endpoint is used to add a new check to the local agent.
+There is more documentation on checks [here](/docs/agent/checks.html).
+Checks are either a script or TTL type. The agent is reponsible for managing
+the status of the check and keeping the Catalog in sync.
+
+The register endpoint expects a JSON request body to be PUT. The request
+body must look like:
+
+    {
+        "ID": "mem",
+	    "Name": "Memory utilization",
+	    "Notes": "Ensure we don't oversubscribe memory",
+        "Script": "/usr/local/bin/check_mem.py",
+        "Interval": "10s",
+        "TTL": "15s"
+    }
+
+The `Name` field is mandatory, as is either `Script` and `Interval`
+or `TTL`. Only one of `Script` and `Interval` or `TTL` should be provided.
+If an `ID` is not provided, it is set to `Name`. You cannot have duplicate
+`ID` entries per agent, so it may be necessary to provide an ID. The `Notes`
+field is not used by Consul, and is meant to be human readable.
+
+If a `Script` is provided, the check type is a script, and Consul will
+evaluate the script every `Interval` to update the status. If a `TTL` type
+is used, then the TTL update APIs must be used to periodically update
+the state of the check.
+
+The return code is 200 on success.
+
+### /v1/agent/check/deregister/\<checkId\>
+
+The deregister endpoint is used to remove a check from the local agent.
+The CheckID must be passed after the slash. The agent will take care
+of deregistering the check with the Catalog.
+
+The return code is 200 on success.
+
+### /v1/agent/check/pass/\<checkId\>
+
+This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
+When this endpoint is accessed, the status of the check is set to "passing", and
+the TTL clock is reset.
+
+The return code is 200 on success.
+
+### /v1/agent/check/warn/\<checkId\>
+
+This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
+When this endpoint is accessed, the status of the check is set to "warning", and
+the TTL clock is reset.
+
+The return code is 200 on success.
+
+### /v1/agent/check/fail/\<checkId\>
+
+This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
+When this endpoint is accessed, the status of the check is set to "critical", and
+the TTL clock is reset.
+
+The return code is 200 on success.
+
+### /v1/agent/service/register
+
+The register endpoint is used to add a new service to the local agent.
+There is more documentation on services [here](/docs/agent/services.html).
+Services may also provide a health check. The agent is reponsible for managing
+the status of the check and keeping the Catalog in sync.
+
+The register endpoint expects a JSON request body to be PUT. The request
+body must look like:
+
+    {
+        "ID": "redis1",
+	    "Name": "redis",
+	    "Tag": "master",
+	    "Port": 8000,
+        "Check": {
+            "Script": "/usr/local/bin/check_redis.py",
+            "Interval": "10s",
+            "TTL": "15s"
+        }
+    }
+
+The `Name` field is mandatory,  If an `ID` is not provided, it is set to `Name`.
+You cannot have duplicate `ID` entries per agent, so it may be necessary to provide an ID.
+`Tag`, `Port` and `Check` are optional. If `Check` is provided, only one of `Script` and `Interval`
+or `TTL` should be provided. There is more information about checks [here](/docs/agent/checks.html).
+
+The created check will be named "service:\<ServiceId\>".
+
+The return code is 200 on success.
+
+### /v1/agent/service/deregister/\<serviceId\>
+
+The deregister endpoint is used to remove a service from the local agent.
+The ServiceID must be passed after the slash. The agent will take care
+of deregistering the service with the Catalog. If there is an associated
+check, that is also deregistered.
+
+The return code is 200 on success.
+
 ## Catalog
 
-The Catalog is the major endpoint, as it is used to register and
-deregister nodes, services, and checks. It also provides a number of
-query endpoints.
+The Catalog is the endpoint used to register and deregister nodes,
+services, and checks. It also provides a number of query endpoints.
 
 The following endpoints are supported:
 
@@ -32,8 +271,10 @@ The following endpoints are supported:
 * /v1/catalog/datacenters : Lists known datacenters
 * /v1/catalog/nodes : Lists nodes in a given DC
 * /v1/catalog/services : Lists services in a given DC
-* /v1/catalog/service/<service>/ : Lists the nodes in a given service
-* /v1/catalog/node/<node>/ : Lists the services provided by a node
+* /v1/catalog/service/\<service\> : Lists the nodes in a given service
+* /v1/catalog/node/\<node\> : Lists the services provided by a node
+
+The last 4 endpoints of the catalog support blocking queries.
 
 ### /v1/catalog/register
 
@@ -159,6 +400,7 @@ It returns a JSON body like this:
         }
     ]
 
+This endpoint supports blocking queries.
 
 ### /v1/catalog/services
 
@@ -177,7 +419,9 @@ It returns a JSON body like this:
 The main object keys are the service names, while the array
 provides all the known tags for a given service.
 
-### /v1/catalog/service/<service>
+This endpoint supports blocking queries.
+
+### /v1/catalog/service/\<service\>
 
 This endpoint is hit with a GET and returns the nodes providing a service
 in a given DC. By default the datacenter of the agent is queried,
@@ -200,7 +444,9 @@ It returns a JSON body like this:
         }
     ]
 
-### /v1/catalog/node/<node>
+This endpoint supports blocking queries.
+
+### /v1/catalog/node/\<node\>
 
 This endpoint is hit with a GET and returns the node provided services.
 By default the datacenter of the agent is queried,
@@ -230,6 +476,8 @@ It returns a JSON body like this:
         }
     }
 
+This endpoint supports blocking queries.
+
 ## Health
 
 The Health used to query health related information. It is provided seperately
@@ -238,12 +486,14 @@ as they are totally optional. Additionally, some of the query results from the H
 
 The following endpoints are supported:
 
-* /v1/health/node/<node>: Returns the health info of a node
-* /v1/health/checks/<service>: Returns the checks of a service
-* /v1/health/service/<service>: Returns the nodes and health info of a service
-* /v1/health/state/<state>: Returns the checks in a given state
+* /v1/health/node/\<node\>: Returns the health info of a node
+* /v1/health/checks/\<service\>: Returns the checks of a service
+* /v1/health/service/\<service\>: Returns the nodes and health info of a service
+* /v1/health/state/\<state\>: Returns the checks in a given state
 
-### /v1/health/node/<node>
+All of the health endpoints supports blocking queries.
+
+### /v1/health/node/\<node\>
 
 This endpoint is hit with a GET and returns the node specific checks known.
 By default the datacenter of the agent is queried,
@@ -280,7 +530,9 @@ joins the Consul cluster, it is part of a distributed failure detection
 provided by Serf. If a node fails, it is detected and the status is automatically
 changed to "critical".
 
-### /v1/health/checks/<service>
+This endpoint supports blocking queries.
+
+### /v1/health/checks/\<service\>
 
 This endpoint is hit with a GET and returns the checks associated with
 a service in a given datacenter.
@@ -302,7 +554,9 @@ It returns a JSON body like this:
         }
     ]
 
-### /v1/health/service/<service>
+This endpoint supports blocking queries.
+
+### /v1/health/service/\<service\>
 
 This endpoint is hit with a GET and returns the service nodes providing
 a given service in a given datacenter.
@@ -357,7 +611,9 @@ It returns a JSON body like this:
         }
     ]
 
-### /v1/health/state/<state>
+This endpoint supports blocking queries.
+
+### /v1/health/state/\<state\>
 
 This endpoint is hit with a GET and returns the checks in a specific
 state for a given datacenter. By default the datacenter of the agent is queried,
@@ -388,4 +644,32 @@ It returns a JSON body like this:
             "ServiceName":"redis"
         }
     ]
+
+This endpoint supports blocking queries.
+
+## Status
+
+The Status endpoints are used to get information about the status
+of the Consul cluster. This are generally very low level, and not really
+useful for clients.
+
+The following endpoints are supported:
+
+* /v1/status/leader : Returns the current Raft leader
+* /v1/status/peers : Returns the current Raft peer set
+
+### /v1/status/leader
+
+This endpoint is used to get the Raft leader for the datacenter
+the agent is running in. It returns only an address like:
+
+    "10.1.10.12:8300"
+
+### /v1/status/peers
+
+This endpoint is used to get the Raft peers for the datacenter
+the agent is running in. It returns a list of addresses like:
+
+    ["10.1.10.12:8300", "10.1.10.11:8300", "10.1.10.10:8300"]
+
 
