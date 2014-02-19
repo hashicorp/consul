@@ -60,3 +60,17 @@ readable descriptions. The field is set to any output that a script
 generates, and similarly the TTL update hooks can update the `notes`
 as well.
 
+## Check Scripts
+
+A check script is generally free to do anything to determine the status
+of the check. The only limitations placed are the exit codes must convey
+a specific meaning. Specifically:
+
+ * Exit code 0 - Check is passing
+ * Exit code 1 - Check is warning
+ * Any other code - Check is failing
+
+This is the only convention that Consul depends on. Any output of the script
+will be captured and stored in the `notes` field so that it can be viewed
+by human operators.
+
