@@ -3,6 +3,7 @@ package consul
 import (
 	"github.com/hashicorp/serf/serf"
 	"net"
+	"strings"
 )
 
 // lanEventHandler is used to handle events from the lan Serf cluster
@@ -18,6 +19,7 @@ func (s *Server) lanEventHandler() {
 			case serf.EventMemberFailed:
 				s.localMemberEvent(e.(serf.MemberEvent))
 			case serf.EventUser:
+				s.localEvent(e.(serf.UserEvent))
 			default:
 				s.logger.Printf("[WARN] consul: unhandled LAN Serf Event: %#v", e)
 			}
@@ -65,6 +67,26 @@ func (s *Server) localMemberEvent(me serf.MemberEvent) {
 		case s.reconcileCh <- m:
 		default:
 		}
+	}
+}
+
+// localEvent is called when we receive an event on the local Serf
+func (s *Server) localEvent(event serf.UserEvent) {
+	// Handle only consul events
+	if !strings.HasPrefix(event.Name, "consul:") {
+		return
+	}
+
+	switch event.Name {
+	case newLeaderEvent:
+		s.logger.Printf("[INFO] consul: New leader elected: %s", event.Payload)
+
+		// Trigger the callback
+		if s.config.ServerUp != nil {
+			s.config.ServerUp()
+		}
+	default:
+		s.logger.Printf("[WARN] consul: Unhandled local event: %v", event)
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -178,6 +179,7 @@ func (c *Client) lanEventHandler() {
 			case serf.EventMemberFailed:
 				c.nodeFail(e.(serf.MemberEvent))
 			case serf.EventUser:
+				c.localEvent(e.(serf.UserEvent))
 			default:
 				c.logger.Printf("[WARN] consul: unhandled LAN Serf Event: %#v", e)
 			}
@@ -247,6 +249,26 @@ func (c *Client) nodeFail(me serf.MemberEvent) {
 			}
 		}
 		c.consulLock.Unlock()
+	}
+}
+
+// localEvent is called when we receive an event on the local Serf
+func (c *Client) localEvent(event serf.UserEvent) {
+	// Handle only consul events
+	if !strings.HasPrefix(event.Name, "consul:") {
+		return
+	}
+
+	switch event.Name {
+	case newLeaderEvent:
+		c.logger.Printf("[INFO] consul: New leader elected: %s", event.Payload)
+
+		// Trigger the callback
+		if c.config.ServerUp != nil {
+			c.config.ServerUp()
+		}
+	default:
+		c.logger.Printf("[WARN] consul: Unhandled local event: %v", event)
 	}
 }
 

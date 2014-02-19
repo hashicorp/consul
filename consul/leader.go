@@ -13,6 +13,7 @@ const (
 	SerfCheckName     = "Serf Health Status"
 	ConsulServiceID   = "consul"
 	ConsulServiceName = "consul"
+	newLeaderEvent    = "consul:new-leader"
 )
 
 // monitorLeadership is used to monitor if we acquire or lose our role
@@ -42,6 +43,12 @@ func (s *Server) monitorLeadership() {
 // leaderLoop runs as long as we are the leader to run various
 // maintence activities
 func (s *Server) leaderLoop(stopCh chan struct{}) {
+	// Fire a user event indicating a new leader
+	payload := []byte(s.config.NodeName)
+	if err := s.serfLAN.UserEvent(newLeaderEvent, payload, false); err != nil {
+		s.logger.Printf("[WARN] consul: failed to broadcast new leader event: %v", err)
+	}
+
 	// Reconcile channel is only used once initial reconcile
 	// has succeeded
 	var reconcileCh chan serf.Member
