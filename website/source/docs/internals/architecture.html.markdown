@@ -103,7 +103,7 @@ WAN gossip. Because the servers are all operating in this pool, it also enables 
 When a server receives a request for a different datacenter, it forwards it to a random server
 in the correct datacenter. That server may then forward to the local leader.
 
-This results in a very low coupling between datacenters, but because of a Serf failure detection,
+This results in a very low coupling between datacenters, but because of failure detection,
 connection caching and multiplexing, cross-dc requests are relatively fast and reliable.
 
 ## Getting in depth
