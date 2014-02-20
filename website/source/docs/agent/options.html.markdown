@@ -114,6 +114,10 @@ The options below are all specified on the command-line.
   nodes are able to self-elect. Once there are multiple servers in a datacenter, it is generally a good idea
   to disable bootstrap mode on all of them.
 
+* `-statsite` - This flag provides the address of a statsite instance. If provided Consul will stream
+  various telemetry information to that instance for aggregation. This can be used to capture various
+  runtime information.
+
 ## Configuration Files
 
 In addition to the command-line options, configuration can be put into
@@ -193,4 +197,6 @@ They are documented seperately under [check configuration](/docs/agent/checks.ht
   only affects interrupt handling. By default, an interrupt causes Consul to
   gracefully leave, but setting this to true disables that. Defaults to false.
   Interrupts are usually from a Control-C from a shell.
+
+* `statsite_addr` - Equivalent to the `-statsite` command-line flag.
 

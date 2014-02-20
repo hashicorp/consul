@@ -93,6 +93,10 @@ type Config struct {
 	// the INT signal. Defaults false. This can be changed on reload.
 	SkipLeaveOnInt bool `mapstructure:"skip_leave_on_interrupt"`
 
+	// StatsiteAddr is the address of a statsite instance. If provided,
+	// metrics will be streamed to that instance.
+	StatsiteAddr string `mapstructure:"statsite_addr"`
+
 	// Checks holds the provided check definitions
 	Checks []*CheckDefinition `mapstructure:"-"`
 

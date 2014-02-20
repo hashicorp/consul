@@ -59,6 +59,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.DNSAddr, "dns-addr", "", "address to bind dns server to")
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
+	cmdFlags.StringVar(&cmdConfig.StatsiteAddr, "statsite", "", "address of statsite instance")
 	if err := cmdFlags.Parse(c.args); err != nil {
 		return nil
 	}
@@ -195,8 +196,21 @@ func (c *Command) Run(args []string) int {
 	inm := metrics.NewInmemSink(10*time.Second, time.Minute)
 	metrics.DefaultInmemSignal(inm)
 	metricsConf := metrics.DefaultConfig("consul")
-	metricsConf.EnableHostname = false
-	metrics.NewGlobal(metricsConf, inm)
+
+	// Optionally configure a statsite sink if provided
+	if config.StatsiteAddr != "" {
+		sink, err := metrics.NewStatsiteSink(config.StatsiteAddr)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to start statsite sink. Got: %s", err))
+			return 1
+		}
+		fanout := metrics.FanoutSink{inm, sink}
+		metrics.NewGlobal(metricsConf, fanout)
+
+	} else {
+		metricsConf.EnableHostname = false
+		metrics.NewGlobal(metricsConf, inm)
+	}
 
 	// Create the agent
 	if err := c.setupAgent(config, logOutput, logWriter); err != nil {
