@@ -6,98 +6,177 @@ sidebar_current: "docs-internals-consensus"
 
 # Consensus Protocol
 
-Serf uses a [gossip protocol](http://en.wikipedia.org/wiki/Gossip_protocol)
-to broadcast messages to the cluster. This page documents the details of
-this internal protocol. The gossip protocol is based on
-["SWIM: Scalable Weakly-consistent Infection-style Process Group Membership Protocol"](http://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf),
-with a few minor adaptations, mostly to increase propagation speed
-and convergence rate.
+Consul uses a [consensus protocol](http://en.wikipedia.org/wiki/Consensus_(computer_science))
+to provide [Consistency and Availability](http://en.wikipedia.org/wiki/CAP_theorem) as defined by CAP.
+This page documents the details of this internal protocol. The consensus protocol is based on
+["Raft: In search of an Understandable Consensus Algorithm"](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf).
 
 <div class="alert alert-block alert-warning">
-<strong>Advanced Topic!</strong> This page covers the technical details of
-the internals of Serf. You don't need to know these details to effectively
-operate and use Serf. These details are documented here for those who wish
+<strong>Advanced Topic!</strong> This page covers technical details of
+the internals of Consul. You don't need to know these details to effectively
+operate and use Consul. These details are documented here for those who wish
 to learn about them without having to go spelunking through the source code.
 </div>
 
-## SWIM Protocol Overview
+## Raft Protocol Overview
 
-Serf begins by joining an existing cluster or starting a new
-cluster. If starting a new cluster, additional nodes are expected to join
-it. New nodes in an existing cluster must be given the address of at
-least one existing member in order to join the cluster. The new member
-does a full state sync with the existing member over TCP and begins gossiping its
-existence to the cluster.
+Raft is a relatively new consensus algorithm that is based on Paxos,
+but is designed to have fewer states and a simpler more understandable
+algorithm. There are a few key terms to know when discussing Raft:
 
-Gossip is done over UDP with a configurable but fixed fanout and interval.
-This ensures that network usage is constant with regards to number of nodes.
-Complete state exchanges with a random node are done periodically over
-TCP, but much less often than gossip messages. This increases the likelihood
-that the membership list converges properly since the full state is exchanged
-and merged. The interval between full state exchanges is configurable or can
-be disabled entirely.
+* Log - The primary unit of work in a Raft system is a log entry. The problem
+of consistency can be decomposed into a *replicated log*. A log is a an ordered
+seequence of entries. We consider the log consistent if all members agree on
+the entries and their order.
 
-Failure detection is done by periodic random probing using a configurable interval.
-If the node fails to ack within a reasonable time (typically some multiple
-of RTT), then an indirect probe is attempted. An indirect probe asks a
-configurable number of random nodes to probe the same node, in case there
-are network issues causing our own node to fail the probe. If both our
-probe and the indirect probes fail within a reasonable time, then the
-node is marked "suspicious" and this knowledge is gossiped to the cluster.
-A suspicious node is still considered a member of cluster. If the suspect member
-of the cluster does not dispute the suspicion within a configurable period of
-time, the node is finally considered dead, and this state is then gossiped
-to the cluster.
+* FSM - [Finite State Machine](http://en.wikipedia.org/wiki/Finite-state_machine).
+An FSM is a collection of finite states with transitions between them. As new logs
+are applied, the FSM is allowed to transition between states. Application of the
+same sequence of logs must result in the same state, meaning non-deterministic
+behavior is not permitted.
 
-This is a brief and incomplete description of the protocol. For a better idea,
-please read the
-[SWIM paper](http://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf)
-in its entirety, along with the Serf source code.
+* Peer set - The peer set is the set of all members participating in log replication.
+For Consul's purposes, all server nodes are in the peer set of the local datacenter.
 
-## SWIM Modifications
+* Quorum - A quorum is a majority of members from a peer set, or (n/2)+1.
+For example, if there are 5 members in the peer set, we would need 3 nodes
+to form a quorum. If a quorum of nodes is unavailable for any reason, then the
+cluster becomes *unavailable*, and no new logs can be committed.
 
-As mentioned earlier, the gossip protocol is based on SWIM but includes
-minor changes, mostly to increase propogation speed and convergence rates.
+* Committed Entry - An entry is considered *committed* when it is durably stored
+on a quorum of nodes. Once an entry is committed it can be applied.
 
-The changes from SWIM are noted here:
+* Leader - At any given time, the peer set elects a single node to be the leader.
+The leader is responsible for ingesting new log entries, replicating to followers,
+and managing when an entry is considered committed.
 
-* Serf does a full state sync over TCP periodically. SWIM only propagates
-  changes over gossip. While both are eventually consistent, Serf is able to
-  more quickly reach convergence, as well as gracefully recover from network
-  partitions.
+Raft is a complex protocol, and will not be covered here in detail. For the full
+specification, we recommend reading the paper. We will attempt to provide a high
+level description, which may be useful for building a mental picture.
 
-* Serf has a dedicated gossip layer separate from the failure detection
-  protocol. SWIM only piggybacks gossip messages on top of probe/ack messages.
-  Serf uses piggybacking along with dedicated gossip messages. This
-  feature lets you have a higher gossip rate (for example once per 200ms)
-  and a slower failure detection rate (such as once per second), resulting
-  in overall faster convergence rates and data propagation speeds.
+Raft nodes are always in one of three states: follower, candidate or leader. All
+nodes initially start out as a follower. In this state, nodes can accept log entries
+from a leader and cast votes. If no entries are received for some time, nodes
+self-promote to the candidate state. In the candidate state nodes request votes from
+their peers. If a candidate receives a quorum of votes, then it is promoted to a leader.
+The leader must accept new log entries and replicate to all the other followers.
+In addition, if stale reads are not acceptable, all queries must also be performed on
+the leader.
 
-* Serf keeps the state of dead nodes around for a set amount of time,
-  so that when full syncs are requested, the requester also receives information
-  about dead nodes. Because SWIM doesn't do full syncs, SWIM deletes dead node
-  state immediately upon learning that the node is dead. This change again helps
-  the cluster converge more quickly.
+Once a cluster has a leader, it is able to accept new log entries. A client can
+request that a leader append a new log entry, which is an opaque binary blob to
+Raft. The leader then writes the entry to durable storage and attempts to replicate
+to a quorum of followers. Once the log entry is considered *committed*, it can be
+*applied* to a finite state machine. The finite state machine is application specific,
+and in Consul's case, we use [LMDB](http://symas.com/mdb/) to maintain cluster state.
 
-## Serf-Specific Messages
+An obvious question relates to the unbounded nature of a replicated log. Raft provides
+a mechanism by which the current state is snapshotted, and the log is compacted. Because
+of the FSM abstraction, restoring the state of the FSM must result in the same state
+as a reply of old logs. This allows Raft to capture the FSM state at a point in time,
+and then remove all the logs that were used to reach that state. This is performed automatically
+without user intervention, and prevents unbounded disk usage as well as minimizing
+time spent replaying logs. One of the advantages of using LMDB is that it allows Consul
+to continue accepting new transactions even while old state is being snapshotted,
+preventing any availability issues.
 
-On top of the SWIM-based gossip layer, Serf sends some custom message types.
+Lastly, there is the issue of updating the peer set when new servers are joining
+or existing servers are leaving. As long as a quorum of nodes are available, this
+is not an issue as Raft provides mechanisms to dynamically update the peer set.
+If a quorum of nodes is unavailable, then this becomes a very challenging issue.
+For example, suppose there are only 2 peers, A and B. The quorum size is also
+2, meaning both nodes must agree to commit a log entry. If either A or B fails,
+it is now impossible to reach quorum. This means the cluster is unable to add,
+or remove a node, or commit any additional log entries. This results in *unavailability*.
+At this point, manual intervention would be required to remove either A or B,
+and to restart the remaining node in bootstrap mode.
 
-Serf makes heavy use of [lamport clocks](http://en.wikipedia.org/wiki/Lamport_timestamps)
-to maintain some notion of message ordering despite being eventually
-consistent. Every message sent by Serf contains a lamport clock time.
+A Raft cluster of 3 nodes can tolerate a single node failure, while a cluster
+of 5 can tolerate 2 node failures. The recommended configuration is to either
+run 3 or 5 Consul servers per datacenter. This maximizes availability without
+greatly sacrificing performance. See below for a deployment table.
 
-When a node gracefully leaves the cluster, Serf sends a _leave intent_ through
-the gossip layer. Because the underlying gossip layer makes no differentiation
-between a node leaving the cluster and a node being detected as failed, this
-allows the higher level Serf layer to detect a failure versus a graceful
-leave.
+In terms of performance, Raft is comprable to Paxos. Assuming stable leadership,
+a committing a log entry requires a single round trip to half of the cluster.
+Thus performance is bound by disk I/O and network latency. Although Consul is
+not designed to be a high-throughput write system, it should handle on the order
+of hundreds to thousands of transactions per second depending on network and
+hardware configuration.
 
-When a node joins the cluster, Serf sends a _join intent_. The purpose
-of this intent is solely to attach a lamport clock time to a join so that
-it can be ordered properly in case a leave comes out of order.
+## Raft in Consul
 
-For custom events, Serf sends a _user event_ message. This message contains
-a lamport time, event name, and event payload. Because user events are sent
-along the gossip layer, which uses UDP, the payload and entire message framing
-must fit within a single UDP packet.
+Only Consul server nodes participate in Raft, and are part of the peer set. All
+client nodes forward requests to servers. Part of the reason for this design is
+that as more members are added to the peer set, the size of the quorum also increases.
+This introduces performance problems as you may be waiting for hundreds of machines
+to agree on an entry instead of a handful.
+
+When getting started, a single Consul server is put into "bootstrap" mode. This mode
+allows it to self-elect as a leader. Once a leader is elected, other servers can be
+added to the peer set in a way that preserves consistency and safety. Eventually,
+bootstrap mode can be disabled, once the first few servers are added.
+
+Since all servers participate as part of the peer set, they all know the current
+leader. When an RPC request arrives at a non-leader server, the request is
+forwarded to the leader. If the RPC is a *query* type, meaning it is read-only,
+then the leader generates the result based on the current state of the FSM. If
+the RPC is a *transaction* type, meaning it modifies state, then the leader
+generates a new log entry and applies it using Raft. Once the log entry is committed
+and applied to the FSM, the transaction is complete.
+
+Because of the nature of Raft's replication, performance is sensitive to network
+latency. For this reason, each datacenter elects an independent leader, and maintains
+a disjoint peer set. Data is partitioned by datacenter, so each leader is responsible
+only for data in their datacenter. When a request is received for a remote datacenter,
+the request is forwarded to the correct leader. This design allows for lower latency
+transactions and higher availability without sacrificing consistency.
+
+## Deployment Table
+
+Below is a table that shows for the number of servers how large the
+quorum is, as well as how many node failures can be tolerated. The
+recommended deployment is either 3 or 5 servers.
+
+<table class="table table-bordered table-striped">
+<tr>
+<th>Servers</th>
+<th>Quorum Size</th>
+<th>Failure Tolerance</th>
+</tr>
+<tr>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr>
+<td>2</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr>
+<td><b>3</b></td>
+<td>2</td>
+<td>1</td>
+</tr>
+<tr>
+<td>4</td>
+<td>3</td>
+<td>1</td>
+</tr>
+<tr>
+<td><b>5</b></td>
+<td>3</td>
+<td>2</td>
+</tr>
+<tr>
+<td>6</td>
+<td>4</td>
+<td>2</td>
+</tr>
+<tr>
+<td>7</td>
+<td>4</td>
+<td>3</td>
+</tr>
+</table>
+

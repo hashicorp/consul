@@ -82,9 +82,9 @@ slower as more machines are added. However, there is no limit to the number of c
 and they can easily scale into the thousands or tens of thousands.
 
 All the nodes that are in a datacenter participate in a [gossip protocol](/docs/internals/gossip.html).
-This means is there is a Serf cluster that contains all the nodes for a given datacenter. This serves
+This means is there is a gossip pool that contains all the nodes for a given datacenter. This serves
 a few purposes: first, there is no need to configure clients with the addresses of servers,
-that discovery is done automatically using Serf. Second, the work of detecting node failures
+discovery is done automatically. Second, the work of detecting node failures
 is not placed on the servers but is distributed. This makes the failure detection much more
 scalable than naive heartbeating schemes. Thirdly, it is used as a messaging layer to notify
 when important events such as leader election take place.
