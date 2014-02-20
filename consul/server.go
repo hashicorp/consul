@@ -17,7 +17,6 @@ const (
 	serfLANSnapshot = "serf/local.snapshot"
 	serfWANSnapshot = "serf/remote.snapshot"
 	raftState       = "raft/"
-	bootstrapFlag   = "b"
 )
 
 // Server is Consul server which manages the service discovery,

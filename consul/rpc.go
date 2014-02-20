@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/inconshreveable/muxado"
 	"github.com/ugorji/go/codec"
@@ -43,6 +44,7 @@ func (s *Server) listen() {
 		s.rpcClientLock.Unlock()
 
 		go s.handleConn(conn)
+		metrics.IncrCounter([]string{"consul", "rpc", "accept_conn"}, 1)
 	}
 }
 
@@ -63,6 +65,7 @@ func (s *Server) handleConn(conn net.Conn) {
 		s.handleConsulConn(conn)
 
 	case rpcRaft:
+		metrics.IncrCounter([]string{"consul", "rpc", "raft_handoff"}, 1)
 		s.raftLayer.Handoff(conn)
 
 	case rpcMultiplex:
@@ -154,6 +157,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	s.remoteLock.RUnlock()
 
 	// Forward to remote Consul
+	metrics.IncrCounter([]string{"consul", "rpc", "cross-dc", dc}, 1)
 	return s.connPool.RPC(server, method, args, reply)
 }
 

@@ -2,7 +2,9 @@ package consul
 
 import (
 	"fmt"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
+	"time"
 )
 
 // Catalog endpoint is used to manipulate the service catalog
@@ -15,6 +17,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	if done, err := c.srv.forward("Catalog.Register", args.Datacenter, args, reply); done {
 		return err
 	}
+	defer metrics.MeasureSince([]string{"consul", "catalog", "register"}, time.Now())
 
 	// Verify the args
 	if args.Node == "" || args.Address == "" {
@@ -55,6 +58,7 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 	if done, err := c.srv.forward("Catalog.Deregister", args.Datacenter, args, reply); done {
 		return err
 	}
+	defer metrics.MeasureSince([]string{"consul", "catalog", "deregister"}, time.Now())
 
 	// Verify the args
 	if args.Node == "" {

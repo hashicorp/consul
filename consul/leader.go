@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -59,11 +60,13 @@ RECONCILE:
 	interval := time.After(s.config.ReconcileInterval)
 
 	// Apply a raft barrier to ensure our FSM is caught up
+	start := time.Now()
 	barrier := s.raft.Barrier(0)
 	if err := barrier.Error(); err != nil {
 		s.logger.Printf("[ERR] consul: failed to wait for barrier: %v", err)
 		goto WAIT
 	}
+	metrics.MeasureSince([]string{"consul", "leader", "barrier"}, start)
 
 	// Reconcile any missing data
 	if err := s.reconcile(); err != nil {
@@ -97,6 +100,7 @@ WAIT:
 // Mainly we need to ensure all live nodes are registered, all failed
 // nodes are marked as such, and all left nodes are de-registered.
 func (s *Server) reconcile() (err error) {
+	defer metrics.MeasureSince([]string{"consul", "leader", "reconcile"}, time.Now())
 	members := s.serfLAN.Members()
 	for _, member := range members {
 		if err := s.reconcileMember(member); err != nil {
@@ -114,6 +118,7 @@ func (s *Server) reconcileMember(member serf.Member) error {
 		s.logger.Printf("[WARN] consul: skipping reconcile of node %v", member)
 		return nil
 	}
+	defer metrics.MeasureSince([]string{"consul", "leader", "reconcileMember"}, time.Now())
 	var err error
 	switch member.Status {
 	case serf.StatusAlive:
