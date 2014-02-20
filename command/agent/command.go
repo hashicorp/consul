@@ -3,6 +3,7 @@ package agent
 import (
 	"flag"
 	"fmt"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
 	"io"
@@ -186,6 +187,16 @@ func (c *Command) Run(args []string) int {
 	if logWriter == nil {
 		return 1
 	}
+
+	/* Setup telemetry
+	Aggregate on 10 second intervals for 1 minute. Expose the
+	metrics over stderr when there is a SIGUSR1 received.
+	*/
+	inm := metrics.NewInmemSink(10*time.Second, time.Minute)
+	metrics.DefaultInmemSignal(inm)
+	metricsConf := metrics.DefaultConfig("consul")
+	metricsConf.EnableHostname = false
+	metrics.NewGlobal(metricsConf, inm)
 
 	// Create the agent
 	if err := c.setupAgent(config, logOutput, logWriter); err != nil {
