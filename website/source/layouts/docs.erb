@@ -21,17 +21,21 @@
 
 				<li<%= sidebar_current("docs-internals") %>>
 				<a href="/docs/internals/index.html">Consul Internals</a>
-				<ul class="nav">
+                <ul class="nav">
+					<li<%= sidebar_current("docs-internals-architecture") %>>
+					<a href="/docs/internals/architecture.html">Architecture</a>
+                    </li>
+
+					<li<%= sidebar_current("docs-internals-consensus") %>>
+					<a href="/docs/internals/consensus.html">Consensus Protocol</a>
+                    </li>
+
 					<li<%= sidebar_current("docs-internals-gossip") %>>
 					<a href="/docs/internals/gossip.html">Gossip Protocol</a>
                     </li>
 
 					<li<%= sidebar_current("docs-internals-security") %>>
 					<a href="/docs/internals/security.html">Security Model</a>
-					</li>
-
-					<li<%= sidebar_current("docs-internals-simulator") %>>
-					<a href="/docs/internals/simulator.html">Convergence Simulator</a>
 					</li>
 				</ul>
 				</li>
