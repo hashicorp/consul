@@ -400,6 +400,98 @@ Usage: consul agent [options]
 Options:
 
   -rpc-addr=127.0.0.1:8400 Address to bind the RPC listener.
+
+  -serf-bind - The address that the underlying Serf library will bind to.
+  This is an IP address that should be reachable by all other nodes in the cluster.
+  By default this is "0.0.0.0", meaning Consul will use the first available private
+  IP address. Consul uses both TCP and UDP and use the same port for both, so if you
+  have any firewalls be sure to allow both protocols.
+
+ -server-addr - The address that the agent will bind to for handling RPC calls
+ if running in server mode. This does not affect clients running in client mode.
+ By default this is "0.0.0.0:8300". This port is used for TCP communications so any
+ firewalls must be configured to allow this.
+
+ -advertise - The advertise flag is used to change the address that we
+  advertise to other nodes in the cluster. By default, the "-serf-bind" address is
+  advertised. However, in some cases (specifically NAT traversal), there may
+  be a routable address that cannot be bound to. This flag enables gossiping
+  a different address to support this. If this address is not routable, the node
+  will be in a constant flapping state, as other nodes will treat the non-routability
+  as a failure.
+
+ -config-file - A configuration file to load. For more information on
+  the format of this file, read the "Configuration Files" section below.
+  This option can be specified multiple times to load multiple configuration
+  files. If it is specified multiple times, configuration files loaded later
+  will merge with configuration files loaded earlier, with the later values
+  overriding the earlier values.
+
+ - config-dir - A directory of configuration files to load. Consul will
+  load all files in this directory ending in ".json" as configuration files
+  in alphabetical order. For more information on the format of the configuration
+  files, see the "Configuration Files" section below.
+
+ -encrypt - Specifies the secret key to use for encryption of Consul
+  network traffic. This key must be 16-bytes that are base64 encoded. The
+  easiest way to create an encryption key is to use "consul keygen". All
+  nodes within a cluster must share the same encryption key to communicate.
+
+ -log-level - The level of logging to show after the Consul agent has
+  started. This defaults to "info". The available log levels are "trace",
+  "debug", "info", "warn", "err". This is the log level that will be shown
+  for the agent output, but note you can always connect via "consul monitor"
+  to an agent at any log level. The log level can be changed during a
+  config reload.
+
+ -node - The name of this node in the cluster. This must be unique within
+  the cluster. By default this is the hostname of the machine.
+
+ -rpc-addr - The address that Consul will bind to for the agent's  RPC server.
+  By default this is "127.0.0.1:8400", allowing only loopback connections.
+  The RPC address is used by other Consul commands, such as  "consul members",
+  in order to query a running Consul agent. It is also used by other applications
+  to control Consul using it's [RPC protocol](/docs/agent/rpc.html).
+
+ -data - This flag provides a data directory for the agent to store state.
+  This is required for all agents. The directory should be durable across reboots.
+  This is especially critical for agents that are running in server mode, as they
+  must be able to persist the cluster state.
+
+ -dc - This flag controls the datacenter the agent is running in. If not provided
+  it defaults to "dc1". Consul has first class support for multiple data centers but
+  it relies on proper configuration. Nodes in the same datacenter should be on a single
+  LAN.
+
+ -recursor - This flag provides an address of an upstream DNS server that is used to
+  recursively resolve queries if they are not inside the service domain for consul. For example,
+  a node can use Consul directly as a DNS server, and if the record is outside of the "consul." domain,
+  the query will be resolved upstream using this server.
+
+ -http-addr - This flag controls the address the agent listens on for HTTP requests.
+  By default it is bound to "127.0.0.1:8500". This port must allow for TCP traffic.
+
+ -dns-addr - This flag controls the address the agent listens on for DNS requests.
+  By default it is bound to "127.0.0.1:8600". This port must allow for UDP and TCP traffic.
+
+ -server - This flag is used to control if an agent is in server or client mode. When provided,
+  an agent will act as a Consul server. Each Consul cluster must have at least one server, and ideally
+  no more than 5 *per* datacenter. All servers participate in the Raft consensus algorithm, to ensure that
+  transactions occur in a consistent, linearlizable manner. Transactions modify cluster state, which
+  is maintained on all server nodes to ensure availability in the case of node failure. Server nodes also
+  participate in a WAN gossip pool with server nodes in other datacenters. Servers act as gateways
+  to other datacenters and forward traffic as appropriate.
+
+ -bootstrap - This flag is used to control if a server is in "bootstrap" mode. It is important that
+  no more than one server *per* datacenter be running in this mode. The initial server **must** be in bootstrap
+  mode. Technically, a server in boostrap mode is allowed to self-elect as the Raft leader. It is important
+  that only a single node is in this mode, because otherwise consistency cannot be guarenteed if multiple
+  nodes are able to self-elect. Once there are multiple servers in a datacenter, it is generally a good idea
+  to disable bootstrap mode on all of them.
+
+ -statsite - This flag provides the address of a statsite instance. If provided Consul will stream
+  various telemetry information to that instance for aggregation. This can be used to capture various
+  runtime information.
 `
 	return strings.TrimSpace(helpText)
 }
