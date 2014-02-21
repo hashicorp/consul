@@ -381,7 +381,7 @@ func (s *Server) Leave() error {
 		ch := make(chan error, 1)
 		go func() {
 			var out struct{}
-			peer := s.rpcListener.Addr().String()
+			peer := s.raftTransport.LocalAddr().String()
 			err := s.connPool.RPC(leader, "Raft.RemovePeer", peer, &out)
 			ch <- err
 		}()
@@ -404,14 +404,14 @@ AFTER_LEAVE:
 // The target address should be another node inside the DC
 // listening on the Serf LAN address
 func (s *Server) JoinLAN(addrs []string) (int, error) {
-	return s.serfLAN.Join(addrs, false)
+	return s.serfLAN.Join(addrs, true)
 }
 
 // JoinWAN is used to have Consul join the cross-WAN Consul ring
 // The target address should be another node listening on the
 // Serf WAN address
 func (s *Server) JoinWAN(addrs []string) (int, error) {
-	return s.serfWAN.Join(addrs, false)
+	return s.serfWAN.Join(addrs, true)
 }
 
 // LANMembers is used to return the members of the LAN cluster

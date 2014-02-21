@@ -153,7 +153,7 @@ func (c *Client) Leave() error {
 // The target address should be another node inside the DC
 // listening on the Serf LAN address
 func (c *Client) JoinLAN(addrs []string) (int, error) {
-	return c.serf.Join(addrs, false)
+	return c.serf.Join(addrs, true)
 }
 
 // LANMembers is used to return the members of the LAN cluster
