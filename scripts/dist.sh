@@ -32,15 +32,11 @@ echo "OS: ${XC_OS}"
 trap "kill 0" SIGINT SIGTERM EXIT
 
 # This function builds whatever directory we're in...
-goxc \
+gox \
     -arch="$XC_ARCH" \
     -os="$XC_OS" \
-    -d="${DIR}/pkg" \
-    -pv="${VERSION}" \
-    -pr="${PREVERSION}" \
-    $XC_OPTS \
-    go-install \
-    xc
+    -output "pkg/${VERSIONDIR}/{{.OS}}_{{.Arch}}/consul" \
+    .
 
 # Zip all the packages
 mkdir -p ./pkg/${VERSIONDIR}/dist
