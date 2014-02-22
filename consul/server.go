@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	serfLANSnapshot = "serf/local.snapshot"
-	serfWANSnapshot = "serf/remote.snapshot"
-	raftState       = "raft/"
+	serfLANSnapshot   = "serf/local.snapshot"
+	serfWANSnapshot   = "serf/remote.snapshot"
+	raftState         = "raft/"
+	snapshotsRetained = 2
 )
 
 // Server is Consul server which manages the service discovery,
@@ -207,7 +208,7 @@ func (s *Server) setupRaft() error {
 	s.raftStore = store
 
 	// Create the snapshot store
-	snapshots, err := raft.NewFileSnapshotStore(path, 3, s.config.LogOutput)
+	snapshots, err := raft.NewFileSnapshotStore(path, snapshotsRetained, s.config.LogOutput)
 	if err != nil {
 		store.Close()
 		return err
