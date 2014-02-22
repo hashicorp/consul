@@ -215,7 +215,7 @@ func (s *Server) setupRaft() error {
 	}
 
 	// Create a transport layer
-	trans := raft.NewNetworkTransport(s.raftLayer, 3, 500*time.Millisecond, s.config.LogOutput)
+	trans := raft.NewNetworkTransport(s.raftLayer, 3, 10*time.Second, s.config.LogOutput)
 	s.raftTransport = trans
 
 	// Setup the peer store
