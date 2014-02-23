@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -188,6 +189,11 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 	c.args = args
+
+	// Check GOMAXPROCS
+	if runtime.GOMAXPROCS(0) == 1 {
+		c.Ui.Error("WARNING: It is highly recommended to set GOMAXPROCS higher than 1")
+	}
 
 	// Setup the log outputs
 	logGate, logWriter, logOutput := c.setupLoggers(config)
