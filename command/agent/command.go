@@ -100,6 +100,17 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
+	// Only allow bootstrap mode when acting as a server
+	if config.Bootstrap && !config.Server {
+		c.Ui.Error("Bootstrap mode cannot be enabled when server mode is not enabled")
+		return nil
+	}
+
+	// Warn if we are in bootstrap mode
+	if config.Bootstrap {
+		c.Ui.Error("WARNING: Bootstrap mode enabled! Do not enable unless necessary")
+	}
+
 	return config
 }
 
