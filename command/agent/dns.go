@@ -68,6 +68,11 @@ func NewDNSServer(agent *Agent, logOutput io.Writer, domain, bind, recursor stri
 		mux.HandleFunc(consulDomain, srv.handleTest)
 	}
 	if recursor != "" {
+		recursor, err := recursorAddr(recursor)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid recursor address: %v", err)
+		}
+		srv.recursor = recursor
 		mux.HandleFunc(".", srv.handleRecurse)
 	}
 
@@ -122,6 +127,29 @@ func NewDNSServer(agent *Agent, logOutput io.Writer, domain, bind, recursor stri
 		return srv, fmt.Errorf("timeout setting up DNS server")
 	}
 	return srv, nil
+}
+
+// recursorAddr is used to add a port to the recursor if omitted.
+func recursorAddr(recursor string) (string, error) {
+	// Add the port if none
+START:
+	_, _, err := net.SplitHostPort(recursor)
+	if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
+		recursor = fmt.Sprintf("%s:%d", recursor, 53)
+		goto START
+	}
+	if err != nil {
+		return "", err
+	}
+
+	// Get the address
+	addr, err := net.ResolveTCPAddr("tcp", recursor)
+	if err != nil {
+		return "", err
+	}
+
+	// Return string
+	return addr.String(), nil
 }
 
 // handleQUery is used to handle DNS queries in the configured domain

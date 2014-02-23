@@ -21,6 +21,16 @@ func makeDNSServer(t *testing.T) (string, *DNSServer) {
 	return dir, server
 }
 
+func TestRecursorAddr(t *testing.T) {
+	addr, err := recursorAddr("8.8.8.8")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if addr != "8.8.8.8:53" {
+		t.Fatalf("bad: %v", addr)
+	}
+}
+
 func TestDNS_IsAlive(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
