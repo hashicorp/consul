@@ -78,7 +78,7 @@ The options below are all specified on the command-line.
   in order to query a running Consul agent. It is also used by other applications
   to control Consul using it's [RPC protocol](/docs/agent/rpc.html).
 
-* `-data` - This flag provides a data directory for the agent to store state.
+* `-data-dir` - This flag provides a data directory for the agent to store state.
   This is required for all agents. The directory should be durable across reboots.
   This is especially critical for agents that are running in server mode, as they
   must be able to persist the cluster state.
@@ -152,7 +152,7 @@ They are documented seperately under [check configuration](/docs/agent/checks.ht
 
 * `datacenter` - Equivalent to the `-dc` command-line flag.
 
-* `data_dir` - Equivalent to the `-data` command-line flag.
+* `data_dir` - Equivalent to the `-data-dir` command-line flag.
 
 * `dns_addr` - Equivalent to the `-dns-addr` command-line flag.
 

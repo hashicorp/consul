@@ -51,7 +51,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.NodeName, "node", "", "node name")
 	cmdFlags.StringVar(&cmdConfig.RPCAddr, "rpc-addr", "",
 		"address to bind RPC listener to")
-	cmdFlags.StringVar(&cmdConfig.DataDir, "data", "", "path to the data directory")
+	cmdFlags.StringVar(&cmdConfig.DataDir, "data-dir", "", "path to the data directory")
 	cmdFlags.StringVar(&cmdConfig.Datacenter, "dc", "", "node datacenter")
 	cmdFlags.StringVar(&cmdConfig.DNSRecursor, "recursor", "", "address of dns recursor")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "advertise address to use")
@@ -91,6 +91,12 @@ func (c *Command) readConfig() *Config {
 			c.Ui.Error(fmt.Sprintf("Invalid encryption key: %s", err))
 			return nil
 		}
+	}
+
+	// Ensure we have a data directory
+	if config.DataDir == "" {
+		c.Ui.Error("Must specify data directory using -data-dir")
+		return nil
 	}
 
 	return config
