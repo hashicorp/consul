@@ -28,10 +28,12 @@ Queries that support this will mention it specifically, however the use of this
 feature is the same for all. If supported, the query will set an HTTP header
 "X-Consul-Index". This is an opaque handle that the client will use.
 
-To cause a query to block, the query parameters "?wait=60s&index=<idx>" are added
+To cause a query to block, the query parameters "?wait=<interval>&index=<idx>" are added
 to a request. The "?wait=" query parameter limits how long the query will potentially
-block for. It not set, it will default to 10 minutes. The "?index=" parameter is
-what was returned in a "X-Consul-Index" header.
+block for. It not set, it will default to 10 minutes. It can be specified in the form of
+"10s" or "5m", which is 10 seconds or 5 minutes respectively. The "?index=" parameter is an
+opaque handle, which is used by Consul to detect changes. The  "X-Consul-Index" header for a
+query provides this value, and can be used to wait for changes since the query was run.
 
 When provided, Consul blocks sending a response until there is an update that
 could have cause the output to change, and thus advancing the index. A critical
