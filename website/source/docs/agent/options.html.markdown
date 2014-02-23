@@ -132,7 +132,8 @@ Configuration files are used for more than just setting up the agent,
 they are also used to provide check and service definitions. These are used
 to announce the availability of system servers to the rest of the cluster.
 They are documented seperately under [check configuration](/docs/agent/checks.html) and
-[service configuration](/docs/agent/services.html) respectively.
+[service configuration](/docs/agent/services.html) respectively. The service and check
+definitions support being updated during a reload.
 
 #### Example Configuration File
 

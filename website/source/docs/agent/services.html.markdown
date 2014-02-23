@@ -52,3 +52,9 @@ check must be of the script or TTL type. If it is a script type, `script` and
 `interval` must be provided. If it is a TTL type, then only `ttl` must be
 provided. The check name is automatically generated as "service:<service-id>".
 
+To configure a service, either provide it as a `-config-file` option to the
+agent, or place it inside the `-config-dir` of the agent. The file must
+end in the ".json" extension to be loaded by Consul. Check definitions can
+also be updated by sending a `SIGHUP` to the agent. Alternatively, the
+service can be registered dynamically using the [HTTP API](/docs/agent/http.html).
+
