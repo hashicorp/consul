@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"sync"
 )
 
@@ -459,4 +460,24 @@ func (a *Agent) UpdateCheck(checkID, status, output string) error {
 	// Set the status through CheckTTL to reset the TTL
 	check.SetStatus(status, output)
 	return nil
+}
+
+// Stats is used to get various debugging state from the sub-systems
+func (a *Agent) Stats() map[string]map[string]string {
+	toString := func(v uint64) string {
+		return strconv.FormatUint(v, 10)
+	}
+	var stats map[string]map[string]string
+	if a.server != nil {
+		stats = a.server.Stats()
+	} else {
+		stats = a.client.Stats()
+	}
+	stats["agent"] = map[string]string{
+		"check_monitors": toString(uint64(len(a.checkMonitors))),
+		"check_ttls":     toString(uint64(len(a.checkTTLs))),
+		"checks":         toString(uint64(len(a.state.checks))),
+		"services":       toString(uint64(len(a.state.services))),
+	}
+	return stats
 }
