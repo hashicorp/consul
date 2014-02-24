@@ -46,6 +46,12 @@ Once the join is successful, `Node A` should output something like:
     ....
     [INFO] raft: Added peer 127.0.0.3:8300, starting replication
 
+Another good check is to run the `consul info` command. When run on `Node A`, you can
+verify `raft.num_peers` is now 2, and you can view the latest log index under `raft.last_log_index`.
+When running `consul info` on `Node B` and `Node C` you should see `raft.last_log_index`
+converge to the same value as the leader begins replication. That value represents the last
+log entry that has been stored on disk.
+
 This indicates that `Node B` and `Node C` have been added as peers. At this point,
 all three nodes see each other as peers, `Node A` is the leader, and replication
 should be working.
