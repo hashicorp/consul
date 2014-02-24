@@ -332,7 +332,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	// Wait for leader
 	time.Sleep(100 * time.Millisecond)
 
-	// Register node
+	// Register nodes
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
@@ -350,6 +350,25 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	}
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	args2 := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.2",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tag:     "master",
+			Port:    12345,
+		},
+		Check: &structs.HealthCheck{
+			CheckID: "serf",
+			Name:    "serf",
+			Status:  structs.HealthCritical,
+		},
+	}
+	if err := srv.agent.RPC("Catalog.Register", args2, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

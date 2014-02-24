@@ -384,6 +384,7 @@ func (d *DNSServer) filterServiceNodes(nodes structs.CheckServiceNodes) structs.
 					node.Node.Node, check.CheckID, check.Name, node.Service.Service)
 				nodes[i], nodes[n-1] = nodes[n-1], structs.CheckServiceNode{}
 				n--
+				i--
 			}
 		}
 	}
