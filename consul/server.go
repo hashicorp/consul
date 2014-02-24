@@ -9,6 +9,7 @@ import (
 	"net/rpc"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -451,4 +452,28 @@ func (s *Server) IsLeader() bool {
 func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 	addr := s.rpcListener.Addr()
 	return s.connPool.RPC(addr, method, args, reply)
+}
+
+// Stats is used to return statistics for debugging and insight
+// for various sub-systems
+func (s *Server) Stats() map[string]map[string]string {
+	toString := func(v uint64) string {
+		return strconv.FormatUint(v, 10)
+	}
+	stats := map[string]map[string]string{
+		"consul": map[string]string{
+			"server":    "true",
+			"leader":    fmt.Sprintf("%v", s.IsLeader()),
+			"bootstrap": fmt.Sprintf("%v", s.config.Bootstrap),
+		},
+		"raft": s.raft.Stats(),
+		"serf-lan": map[string]string{
+			"members": toString(uint64(len(s.serfLAN.Members()))),
+		},
+		"serf-wan": map[string]string{
+			"members":     toString(uint64(len(s.serfWAN.Members()))),
+			"datacenters": toString(uint64(len(s.remoteConsuls))),
+		},
+	}
+	return stats
 }

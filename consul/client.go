@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -306,4 +307,22 @@ TRY_RPC:
 	c.lastServer = server
 	c.lastRPCTime = time.Now()
 	return nil
+}
+
+// Stats is used to return statistics for debugging and insight
+// for various sub-systems
+func (c *Client) Stats() map[string]map[string]string {
+	toString := func(v uint64) string {
+		return strconv.FormatUint(v, 10)
+	}
+	stats := map[string]map[string]string{
+		"consul": map[string]string{
+			"server": "false",
+		},
+		"serf-lan": map[string]string{
+			"members": toString(uint64(len(c.serf.Members()))),
+			"servers": toString(uint64(len(c.consuls))),
+		},
+	}
+	return stats
 }
