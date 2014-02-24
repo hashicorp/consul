@@ -25,24 +25,24 @@ Here is an example output:
         leader = true
         server = true
     raft:
-        applied_index = 45824
-        commit_index = 45824
+        applied_index = 45832
+        commit_index = 45832
         fsm_pending = 0
-        last_log_index = 45824
+        last_log_index = 45832
         last_log_term = 4
         last_snapshot_index = 45713
         last_snapshot_term = 1
-        num_peers = 0
+        num_peers = 2
         state = Leader
         term = 4
     serf-lan:
-        event-queue = 1
+        event-queue = 0
         event-time = 2
         failed = 0
         intent-queue = 0
         left = 0
-        member-time = 1
-        members = 1
+        member-time = 7
+        members = 3
     serf-wan:
         event-queue = 0
         event-time = 1
