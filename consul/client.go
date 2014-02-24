@@ -317,12 +317,10 @@ func (c *Client) Stats() map[string]map[string]string {
 	}
 	stats := map[string]map[string]string{
 		"consul": map[string]string{
-			"server": "false",
+			"server":        "false",
+			"known_servers": toString(uint64(len(c.consuls))),
 		},
-		"serf-lan": map[string]string{
-			"members": toString(uint64(len(c.serf.Members()))),
-			"servers": toString(uint64(len(c.consuls))),
-		},
+		"serf-lan": c.serf.Stats(),
 	}
 	return stats
 }

@@ -462,18 +462,14 @@ func (s *Server) Stats() map[string]map[string]string {
 	}
 	stats := map[string]map[string]string{
 		"consul": map[string]string{
-			"server":    "true",
-			"leader":    fmt.Sprintf("%v", s.IsLeader()),
-			"bootstrap": fmt.Sprintf("%v", s.config.Bootstrap),
+			"server":            "true",
+			"leader":            fmt.Sprintf("%v", s.IsLeader()),
+			"bootstrap":         fmt.Sprintf("%v", s.config.Bootstrap),
+			"known_datacenters": toString(uint64(len(s.remoteConsuls))),
 		},
-		"raft": s.raft.Stats(),
-		"serf-lan": map[string]string{
-			"members": toString(uint64(len(s.serfLAN.Members()))),
-		},
-		"serf-wan": map[string]string{
-			"members":     toString(uint64(len(s.serfWAN.Members()))),
-			"datacenters": toString(uint64(len(s.remoteConsuls))),
-		},
+		"raft":     s.raft.Stats(),
+		"serf-lan": s.serfLAN.Stats(),
+		"serf-wan": s.serfWAN.Stats(),
 	}
 	return stats
 }
