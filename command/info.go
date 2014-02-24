@@ -57,7 +57,7 @@ func (i *InfoCommand) Run(args []string) int {
 
 	// Iterate over each top-level key
 	for _, key := range keys {
-		i.Ui.Output(key)
+		i.Ui.Output(key + ":")
 
 		// Sort the sub-keys
 		subvals := stats[key]

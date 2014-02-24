@@ -53,6 +53,7 @@ Possible commands include:
 * monitor - Starts streaming logs over the connection
 * stop - Stops streaming logs
 * leave - Consul agent performs a graceful leave and shutdown
+* stats - Provides various debugging statistics
 
 Below each command is documented along with any request or
 response body that is applicable.
@@ -195,4 +196,23 @@ There is no special response body.
 
 The leave command is used trigger a graceful leave and shutdown.
 There is no request body, or special response body.
+
+### stats
+
+The stats command is used to provide operator information for debugginer.
+There is no request body, the response body looks like:
+
+```
+    {
+        "agent": {
+            "check_monitors": 0,
+            ...
+        },
+        "consul: {
+            "server": "true",
+            ...
+        },
+        ...
+    }
+```
 

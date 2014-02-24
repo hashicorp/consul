@@ -26,6 +26,7 @@ usage: consul [--version] [--help] <command> [<args>]
 Available commands are:
     agent          Runs a Consul agent
     force-leave    Forces a member of the cluster to enter the "left" state
+    info           Provides debugging information for operators
     join           Tell Consul agent to join cluster
     keygen         Generates a new encryption key
     leave          Gracefully leaves the Consul cluster and shuts down
