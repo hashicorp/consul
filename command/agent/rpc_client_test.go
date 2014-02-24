@@ -262,3 +262,22 @@ OUTER2:
 		t.Fatalf("should log joining")
 	}
 }
+
+func TestRPCClientStats(t *testing.T) {
+	p1 := testRPCClient(t)
+	defer p1.Close()
+	testutil.Yield()
+
+	stats, err := p1.client.Stats()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, ok := stats["agent"]; !ok {
+		t.Fatalf("bad: %#v", stats)
+	}
+
+	if _, ok := stats["consul"]; !ok {
+		t.Fatalf("bad: %#v", stats)
+	}
+}

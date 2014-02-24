@@ -49,6 +49,7 @@ const (
 	stopCommand       = "stop"
 	monitorCommand    = "monitor"
 	leaveCommand      = "leave"
+	statsCommand      = "stats"
 )
 
 const (
@@ -347,6 +348,9 @@ func (i *AgentRPC) handleRequest(client *rpcClient, reqHeader *requestHeader) er
 	case leaveCommand:
 		return i.handleLeave(client, seq)
 
+	case statsCommand:
+		return i.handleStats(client, seq)
+
 	default:
 		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
 		client.Send(&respHeader, nil)
@@ -533,6 +537,16 @@ func (i *AgentRPC) handleLeave(client *rpcClient, seq uint64) error {
 		i.logger.Printf("[ERR] agent.rpc: shutdown failed: %v", err)
 	}
 	return err
+}
+
+// handleStats is used to get various statistics
+func (i *AgentRPC) handleStats(client *rpcClient, seq uint64) error {
+	header := responseHeader{
+		Seq:   seq,
+		Error: "",
+	}
+	resp := i.agent.Stats()
+	return client.Send(&header, resp)
 }
 
 // Used to convert an error to a string representation

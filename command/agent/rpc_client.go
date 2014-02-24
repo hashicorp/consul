@@ -187,6 +187,18 @@ func (c *RPCClient) Leave() error {
 	return c.genericRPC(&header, nil, nil)
 }
 
+// Stats is used to get debugging state information
+func (c *RPCClient) Stats() (map[string]map[string]string, error) {
+	header := requestHeader{
+		Command: statsCommand,
+		Seq:     c.getSeq(),
+	}
+	var resp map[string]map[string]string
+
+	err := c.genericRPC(&header, nil, &resp)
+	return resp, err
+}
+
 type monitorHandler struct {
 	client *RPCClient
 	closed bool
