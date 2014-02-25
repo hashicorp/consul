@@ -587,14 +587,22 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 		t.Fatalf("Bad: %#v", srvRec)
 	}
 
-	cnRec, ok = in.Extra[0].(*dns.CNAME)
+	aRec, ok := in.Extra[0].(*dns.A)
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
-	if cnRec.Hdr.Name != "google.node.dc1.consul." {
+	if aRec.Hdr.Name != "www.google.com." {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
+
+	cnRec, ok = in.Extra[1].(*dns.CNAME)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Extra[1])
+	}
+	if cnRec.Hdr.Name != "google.node.dc1.consul." {
+		t.Fatalf("Bad: %#v", in.Extra[1])
+	}
 	if cnRec.Target != "www.google.com." {
-		t.Fatalf("Bad: %#v", in.Extra[0])
+		t.Fatalf("Bad: %#v", in.Extra[1])
 	}
 }
