@@ -306,27 +306,57 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 		return
 	}
 
+	// Add the node record
+	record := formatNodeRecord(&out.NodeServices.Node, req.Question[0].Name, qType)
+	if record != nil {
+		resp.Answer = append(resp.Answer, record)
+	}
+}
+
+// formatNodeRecord takes a Node and returns an A, AAAA, or CNAME record
+func formatNodeRecord(node *structs.Node, qName string, qType uint16) dns.RR {
 	// Parse the IP
-	ip := net.ParseIP(out.NodeServices.Node.Address)
-	if ip == nil {
-		d.logger.Printf("[ERR] dns: failed to parse IP %v", out.NodeServices.Node)
-		resp.SetRcode(req, dns.RcodeServerFailure)
-		return
+	ip := net.ParseIP(node.Address)
+	var ipv4 net.IP
+	if ip != nil {
+		ipv4 = ip.To4()
 	}
+	switch {
+	case ipv4 != nil && (qType == dns.TypeANY || qType == dns.TypeA):
+		return &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   qName,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    0,
+			},
+			A: ip,
+		}
 
-	// Format A record
-	aRec := &dns.A{
-		Hdr: dns.RR_Header{
-			Name:   req.Question[0].Name,
-			Rrtype: dns.TypeA,
-			Class:  dns.ClassINET,
-			Ttl:    0,
-		},
-		A: ip,
+	case ip != nil && ipv4 == nil && (qType == dns.TypeANY || qType == dns.TypeAAAA):
+		return &dns.AAAA{
+			Hdr: dns.RR_Header{
+				Name:   qName,
+				Rrtype: dns.TypeAAAA,
+				Class:  dns.ClassINET,
+				Ttl:    0,
+			},
+			AAAA: ip,
+		}
+
+	case ip == nil && (qType == dns.TypeANY || qType == dns.TypeCNAME):
+		return &dns.CNAME{
+			Hdr: dns.RR_Header{
+				Name:   qName,
+				Rrtype: dns.TypeCNAME,
+				Class:  dns.ClassINET,
+				Ttl:    0,
+			},
+			Target: dns.Fqdn(node.Address),
+		}
+	default:
+		return nil
 	}
-
-	// Add the response
-	resp.Answer = append(resp.Answer, aRec)
 }
 
 // serviceLookup is used to handle a service query
@@ -364,9 +394,8 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
-	if qType == dns.TypeANY || qType == dns.TypeA {
-		d.serviceARecords(out.Nodes, req, resp)
-	}
+	d.serviceNodeRecords(out.Nodes, req, resp)
+
 	if qType == dns.TypeANY || qType == dns.TypeSRV {
 		d.serviceSRVRecords(datacenter, out.Nodes, req, resp)
 	}
@@ -399,8 +428,10 @@ func shuffleServiceNodes(nodes structs.CheckServiceNodes) {
 	}
 }
 
-// serviceARecords is used to add the A records for a service lookup
-func (d *DNSServer) serviceARecords(nodes structs.CheckServiceNodes, req, resp *dns.Msg) {
+// serviceNodeRecords is used to add the node records for a service lookup
+func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, resp *dns.Msg) {
+	qName := req.Question[0].Name
+	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
 	for _, node := range nodes {
 		// Avoid duplicate entries, possible if a node has
@@ -411,21 +442,11 @@ func (d *DNSServer) serviceARecords(nodes structs.CheckServiceNodes, req, resp *
 		}
 		handled[addr] = struct{}{}
 
-		ip := net.ParseIP(addr)
-		if ip == nil {
-			d.logger.Printf("[ERR] dns: failed to parse IP %v for %v", addr, node.Node)
-			continue
+		// Add the node record
+		record := formatNodeRecord(&node.Node, qName, qType)
+		if record != nil {
+			resp.Answer = append(resp.Answer, record)
 		}
-		aRec := &dns.A{
-			Hdr: dns.RR_Header{
-				Name:   req.Question[0].Name,
-				Rrtype: dns.TypeA,
-				Class:  dns.ClassINET,
-				Ttl:    0,
-			},
-			A: ip,
-		}
-		resp.Answer = append(resp.Answer, aRec)
 	}
 }
 
@@ -456,7 +477,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 		resp.Answer = append(resp.Answer, srvRec)
 
-		// Avoid duplicate A records, possible if a node has
+		// Avoid duplicate extra records, possible if a node has
 		// the same service on multiple ports, etc.
 		addr := node.Node.Address
 		if _, ok := handled[addr]; ok {
@@ -464,21 +485,11 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 		handled[addr] = struct{}{}
 
-		ip := net.ParseIP(addr)
-		if ip == nil {
-			d.logger.Printf("[ERR] dns: failed to parse IP %v for %v", addr, node.Node)
-			continue
+		// Add the extra record
+		record := formatNodeRecord(&node.Node, srvRec.Target, dns.TypeANY)
+		if record != nil {
+			resp.Extra = append(resp.Extra, record)
 		}
-		aRec := &dns.A{
-			Hdr: dns.RR_Header{
-				Name:   srvRec.Target,
-				Rrtype: dns.TypeA,
-				Class:  dns.ClassINET,
-				Ttl:    0,
-			},
-			A: ip,
-		}
-		resp.Extra = append(resp.Extra, aRec)
 	}
 }
 

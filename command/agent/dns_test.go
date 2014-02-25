@@ -121,6 +121,88 @@ func TestDNS_NodeLookup(t *testing.T) {
 	}
 }
 
+func TestDNS_NodeLookup_AAAA(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "::4242:4242",
+	}
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("bar.node.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	aRec, ok := in.Answer[0].(*dns.AAAA)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aRec.AAAA.String() != "::4242:4242" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+}
+
+func TestDNS_NodeLookup_CNAME(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "google",
+		Address:    "www.google.com",
+	}
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("google.node.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	cnRec, ok := in.Answer[0].(*dns.CNAME)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if cnRec.Target != "www.google.com." {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+}
+
 func TestDNS_ServiceLookup(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
@@ -447,5 +529,72 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 			t.Fatalf("non-unique response: %v", nameS)
 		}
 		uniques[nameS] = struct{}{}
+	}
+}
+
+func TestDNS_ServiceLookup_CNAME(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "google",
+		Address:    "www.google.com",
+		Service: &structs.NodeService{
+			Service: "search",
+			Port:    80,
+		},
+	}
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("search.service.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 2 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	cnRec, ok := in.Answer[0].(*dns.CNAME)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if cnRec.Target != "www.google.com." {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+
+	srvRec, ok := in.Answer[1].(*dns.SRV)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[1])
+	}
+	if srvRec.Port != 80 {
+		t.Fatalf("Bad: %#v", srvRec)
+	}
+	if srvRec.Target != "google.node.dc1.consul." {
+		t.Fatalf("Bad: %#v", srvRec)
+	}
+
+	cnRec, ok = in.Extra[0].(*dns.CNAME)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if cnRec.Hdr.Name != "google.node.dc1.consul." {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if cnRec.Target != "www.google.com." {
+		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
 }
