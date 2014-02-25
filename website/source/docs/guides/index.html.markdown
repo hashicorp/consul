@@ -19,4 +19,6 @@ The following guides are available:
 
  * TODO: Joining datacenters
 
+ * [External Services](/docs/guides/external.html) - This guide covers registering
+ an external service. This allows using 3rd party services within the Consul framework.
 
