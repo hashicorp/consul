@@ -175,6 +175,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(req)
 	m.Authoritative = true
+	m.RecursionAvailable = true
 
 	// Only add the SOA if requested
 	if req.Question[0].Qtype == dns.TypeSOA {
@@ -208,6 +209,7 @@ func (d *DNSServer) handleTest(resp dns.ResponseWriter, req *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(req)
 	m.Authoritative = true
+	m.RecursionAvailable = true
 	header := dns.RR_Header{Name: q.Name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0}
 	txt := &dns.TXT{header, []string{"ok"}}
 	m.Answer = append(m.Answer, txt)
@@ -546,6 +548,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 		d.logger.Printf("[ERR] dns: recurse failed: %v", err)
 		m := &dns.Msg{}
 		m.SetReply(req)
+		m.RecursionAvailable = true
 		m.SetRcode(req, dns.RcodeServerFailure)
 		resp.WriteMsg(m)
 		return
