@@ -190,7 +190,8 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(in.Answer) != 1 {
+	// Should have the CNAME record + a few A records
+	if len(in.Answer) < 2 {
 		t.Fatalf("Bad: %#v", in)
 	}
 
@@ -228,7 +229,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	}
 
 	m := new(dns.Msg)
-	m.SetQuestion("db.service.consul.", dns.TypeANY)
+	m.SetQuestion("db.service.consul.", dns.TypeSRV)
 
 	c := new(dns.Client)
 	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
@@ -236,21 +237,13 @@ func TestDNS_ServiceLookup(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(in.Answer) != 2 {
+	if len(in.Answer) != 1 {
 		t.Fatalf("Bad: %#v", in)
 	}
 
-	aRec, ok := in.Answer[0].(*dns.A)
+	srvRec, ok := in.Answer[0].(*dns.SRV)
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if aRec.A.String() != "127.0.0.1" {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-
-	srvRec, ok := in.Answer[1].(*dns.SRV)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[1])
 	}
 	if srvRec.Port != 12345 {
 		t.Fatalf("Bad: %#v", srvRec)
@@ -259,7 +252,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 		t.Fatalf("Bad: %#v", srvRec)
 	}
 
-	aRec, ok = in.Extra[0].(*dns.A)
+	aRec, ok := in.Extra[0].(*dns.A)
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
@@ -334,7 +327,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(in.Answer) != 3 {
+	if len(in.Answer) != 1 {
 		t.Fatalf("Bad: %#v", in)
 	}
 
@@ -345,10 +338,78 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 	if aRec.A.String() != "127.0.0.1" {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
+}
 
-	srvRec, ok := in.Answer[1].(*dns.SRV)
+func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tag:     "master",
+			Port:    12345,
+		},
+	}
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db2",
+			Service: "db",
+			Tag:     "slave",
+			Port:    12345,
+		},
+	}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db3",
+			Service: "db",
+			Tag:     "slave",
+			Port:    12346,
+		},
+	}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeSRV)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 2 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	srvRec, ok := in.Answer[0].(*dns.SRV)
 	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[1])
+		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
 	if srvRec.Port != 12345 && srvRec.Port != 12346 {
 		t.Fatalf("Bad: %#v", srvRec)
@@ -357,21 +418,21 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 		t.Fatalf("Bad: %#v", srvRec)
 	}
 
-	srvRec, ok = in.Answer[2].(*dns.SRV)
+	srvRec, ok = in.Answer[1].(*dns.SRV)
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[1])
 	}
 	if srvRec.Port != 12346 && srvRec.Port != 12345 {
 		t.Fatalf("Bad: %#v", srvRec)
 	}
-	if srvRec.Port == in.Answer[1].(*dns.SRV).Port {
+	if srvRec.Port == in.Answer[0].(*dns.SRV).Port {
 		t.Fatalf("should be a different port")
 	}
 	if srvRec.Target != "foo.node.dc1.consul." {
 		t.Fatalf("Bad: %#v", srvRec)
 	}
 
-	aRec, ok = in.Extra[0].(*dns.A)
+	aRec, ok := in.Extra[0].(*dns.A)
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
@@ -507,8 +568,8 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 		}
 
 		// Response length should be truncated
-		// We should get an SRV + A record for each response (hence 2x)
-		if len(in.Answer) != 2*maxServiceResponses {
+		// We should get an A record for each response
+		if len(in.Answer) != maxServiceResponses {
 			t.Fatalf("Bad: %#v", len(in.Answer))
 		}
 
@@ -564,10 +625,11 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(in.Answer) != 2 {
+	if len(in.Answer) != 4 {
 		t.Fatalf("Bad: %#v", in)
 	}
 
+	// Should have google CNAME
 	cnRec, ok := in.Answer[0].(*dns.CNAME)
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
@@ -576,33 +638,10 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
 
-	srvRec, ok := in.Answer[1].(*dns.SRV)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[1])
-	}
-	if srvRec.Port != 80 {
-		t.Fatalf("Bad: %#v", srvRec)
-	}
-	if srvRec.Target != "google.node.dc1.consul." {
-		t.Fatalf("Bad: %#v", srvRec)
-	}
-
-	aRec, ok := in.Extra[0].(*dns.A)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
-	if aRec.Hdr.Name != "www.google.com." {
-		t.Fatalf("Bad: %#v", in.Extra[0])
-	}
-
-	cnRec, ok = in.Extra[1].(*dns.CNAME)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Extra[1])
-	}
-	if cnRec.Hdr.Name != "google.node.dc1.consul." {
-		t.Fatalf("Bad: %#v", in.Extra[1])
-	}
-	if cnRec.Target != "www.google.com." {
-		t.Fatalf("Bad: %#v", in.Extra[1])
+	// Check we recursively resolve
+	for i := 1; i < 4; i++ {
+		if _, ok := in.Answer[i].(*dns.A); !ok {
+			t.Fatalf("Bad: %#v", in.Answer[i])
+		}
 	}
 }
