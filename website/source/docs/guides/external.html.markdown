@@ -26,28 +26,26 @@ Let us suppose we want to register a "search" service that is provided by
 
 If we do a DNS lookup now, we can see the new search service:
 
-    $ dig @127.0.0.1 -p 8600 search.service.consul. ANY
-
-    ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 search.service.consul. ANY
+    ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 search.service.consul.
     ; (1 server found)
     ;; global options: +cmd
     ;; Got answer:
-    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 46641
-    ;; flags: qr aa rd; QUERY: 1, ANSWER: 2, AUTHORITY: 1, ADDITIONAL: 1
-    ;; WARNING: recursion requested but not available
+    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 13313
+    ;; flags: qr aa rd ra; QUERY: 1, ANSWER: 4, AUTHORITY: 0, ADDITIONAL: 0
 
     ;; QUESTION SECTION:
-    ;search.service.consul.		IN	ANY
+    ;search.service.consul.		IN	A
 
     ;; ANSWER SECTION:
     search.service.consul.	0	IN	CNAME	www.google.com.
-    search.service.consul.	0	IN	SRV	1 1 80 google.node.dc1.consul.
+    www.google.com.		264	IN	A	74.125.239.114
+    www.google.com.		264	IN	A	74.125.239.115
+    www.google.com.		264	IN	A	74.125.239.116
 
-    ;; AUTHORITY SECTION:
-    consul.			0	IN	SOA	ns.consul. postmaster.consul. 1393359541 3600 600 86400 0
-
-    ;; ADDITIONAL SECTION:
-    google.node.dc1.consul.	0	IN	CNAME	www.google.com.
+    ;; Query time: 41 msec
+    ;; SERVER: 127.0.0.1#8600(127.0.0.1)
+    ;; WHEN: Tue Feb 25 17:45:12 2014
+    ;; MSG SIZE  rcvd: 178
 
 If at any time we want to deregister the service, we can simply do:
 
