@@ -245,7 +245,8 @@ func (s *StateStore) EnsureNode(index uint64, node structs.Node) error {
 func (s *StateStore) GetNode(name string) (uint64, bool, string) {
 	idx, res, err := s.nodeTable.Get("id", name)
 	if err != nil {
-		panic(fmt.Errorf("Failed to get node: %v", err))
+		s.logger.Printf("[ERR] consul.state: Error during node lookup: %v", err)
+		return 0, false, ""
 	}
 	if len(res) == 0 {
 		return idx, false, ""
@@ -258,7 +259,7 @@ func (s *StateStore) GetNode(name string) (uint64, bool, string) {
 func (s *StateStore) Nodes() (uint64, structs.Nodes) {
 	idx, res, err := s.nodeTable.Get("id")
 	if err != nil {
-		panic(fmt.Errorf("Failed to get nodes: %v", err))
+		s.logger.Printf("[ERR] consul.state: Error getting nodes: %v", err)
 	}
 	results := make([]structs.Node, len(res))
 	for i, r := range res {
@@ -332,10 +333,10 @@ func (s *StateStore) parseNodeServices(tables MDBTables, tx *MDBTxn, name string
 	// Get the node first
 	res, err := s.nodeTable.GetTxn(tx, "id", name)
 	if err != nil {
-		panic(fmt.Errorf("Failed to get node: %v", err))
+		s.logger.Printf("[ERR] consul.state: Failed to get node: %v", err)
 	}
 	if len(res) == 0 {
-		return index, ns
+		return index, nil
 	}
 
 	// Set the address
@@ -345,7 +346,7 @@ func (s *StateStore) parseNodeServices(tables MDBTables, tx *MDBTxn, name string
 	// Get the services
 	res, err = s.serviceTable.GetTxn(tx, "id", name)
 	if err != nil {
-		panic(fmt.Errorf("Failed to get node: %v", err))
+		s.logger.Printf("[ERR] consul.state: Failed to get node '%s' services: %v", name, err)
 	}
 
 	// Add each service
@@ -430,11 +431,12 @@ func (s *StateStore) DeleteNode(index uint64, node string) error {
 func (s *StateStore) Services() (uint64, map[string][]string) {
 	// TODO: Optimize to not table scan.. We can do a distinct
 	// type of query to avoid this
+	services := make(map[string][]string)
 	idx, res, err := s.serviceTable.Get("id")
 	if err != nil {
-		panic(fmt.Errorf("Failed to get node servicess: %v", err))
+		s.logger.Printf("[ERR] consul.state: Failed to get services: %v", err)
+		return idx, services
 	}
-	services := make(map[string][]string)
 	for _, r := range res {
 		srv := r.(*structs.ServiceNode)
 
@@ -462,7 +464,7 @@ func (s *StateStore) ServiceNodes(service string) (uint64, structs.ServiceNodes)
 	}
 
 	res, err := s.serviceTable.GetTxn(tx, "service", service)
-	return idx, parseServiceNodes(tx, s.nodeTable, res, err)
+	return idx, s.parseServiceNodes(tx, s.nodeTable, res, err)
 }
 
 // ServiceTagNodes returns the nodes associated with a given service matching a tag
@@ -480,23 +482,25 @@ func (s *StateStore) ServiceTagNodes(service, tag string) (uint64, structs.Servi
 	}
 
 	res, err := s.serviceTable.GetTxn(tx, "service", service, tag)
-	return idx, parseServiceNodes(tx, s.nodeTable, res, err)
+	return idx, s.parseServiceNodes(tx, s.nodeTable, res, err)
 }
 
 // parseServiceNodes parses results ServiceNodes and ServiceTagNodes
-func parseServiceNodes(tx *MDBTxn, table *MDBTable, res []interface{}, err error) structs.ServiceNodes {
+func (s *StateStore) parseServiceNodes(tx *MDBTxn, table *MDBTable, res []interface{}, err error) structs.ServiceNodes {
+	nodes := make(structs.ServiceNodes, len(res))
 	if err != nil {
-		panic(fmt.Errorf("Failed to get node services: %v", err))
+		s.logger.Printf("[ERR] consul.state: Failed to get service nodes: %v", err)
+		return nodes
 	}
 
-	nodes := make(structs.ServiceNodes, len(res))
 	for i, r := range res {
 		srv := r.(*structs.ServiceNode)
 
 		// Get the address of the node
 		nodeRes, err := table.GetTxn(tx, "id", srv.Node)
 		if err != nil || len(nodeRes) != 1 {
-			panic(fmt.Errorf("Failed to join node: %v", err))
+			s.logger.Printf("[ERR] consul.state: Failed to join service node %#v with node: %v", *srv, err)
+			continue
 		}
 		srv.Address = nodeRes[0].(*structs.Node).Address
 
@@ -576,26 +580,27 @@ func (s *StateStore) DeleteNodeCheck(index uint64, node, id string) error {
 
 // NodeChecks is used to get all the checks for a node
 func (s *StateStore) NodeChecks(node string) (uint64, structs.HealthChecks) {
-	return parseHealthChecks(s.checkTable.Get("id", node))
+	return s.parseHealthChecks(s.checkTable.Get("id", node))
 }
 
 // ServiceChecks is used to get all the checks for a service
 func (s *StateStore) ServiceChecks(service string) (uint64, structs.HealthChecks) {
-	return parseHealthChecks(s.checkTable.Get("service", service))
+	return s.parseHealthChecks(s.checkTable.Get("service", service))
 }
 
 // CheckInState is used to get all the checks for a service in a given state
 func (s *StateStore) ChecksInState(state string) (uint64, structs.HealthChecks) {
-	return parseHealthChecks(s.checkTable.Get("status", state))
+	return s.parseHealthChecks(s.checkTable.Get("status", state))
 }
 
 // parseHealthChecks is used to handle the resutls of a Get against
 // the checkTable
-func parseHealthChecks(idx uint64, res []interface{}, err error) (uint64, structs.HealthChecks) {
-	if err != nil {
-		panic(fmt.Errorf("Failed to get checks: %v", err))
-	}
+func (s *StateStore) parseHealthChecks(idx uint64, res []interface{}, err error) (uint64, structs.HealthChecks) {
 	results := make([]*structs.HealthCheck, len(res))
+	if err != nil {
+		s.logger.Printf("[ERR] consul.state: Failed to get health checks: %v", err)
+		return idx, results
+	}
 	for i, r := range res {
 		results[i] = r.(*structs.HealthCheck)
 	}
@@ -642,27 +647,29 @@ func (s *StateStore) CheckServiceTagNodes(service, tag string) (uint64, structs.
 
 // parseCheckServiceNodes parses results CheckServiceNodes and CheckServiceTagNodes
 func (s *StateStore) parseCheckServiceNodes(tx *MDBTxn, res []interface{}, err error) structs.CheckServiceNodes {
+	nodes := make(structs.CheckServiceNodes, len(res))
 	if err != nil {
-		panic(fmt.Errorf("Failed to get node services: %v", err))
+		s.logger.Printf("[ERR] consul.state: Failed to get service nodes: %v", err)
+		return nodes
 	}
 
-	nodes := make(structs.CheckServiceNodes, len(res))
 	for i, r := range res {
 		srv := r.(*structs.ServiceNode)
 
 		// Get the node
 		nodeRes, err := s.nodeTable.GetTxn(tx, "id", srv.Node)
 		if err != nil || len(nodeRes) != 1 {
-			panic(fmt.Errorf("Failed to join node: %v", err))
+			s.logger.Printf("[ERR] consul.state: Failed to join service node %#v with node: %v", *srv, err)
+			continue
 		}
 
 		// Get any associated checks of the service
 		res, err := s.checkTable.GetTxn(tx, "node", srv.Node, srv.ServiceID)
-		_, checks := parseHealthChecks(0, res, err)
+		_, checks := s.parseHealthChecks(0, res, err)
 
 		// Get any checks of the node, not assciated with any service
 		res, err = s.checkTable.GetTxn(tx, "node", srv.Node, "")
-		_, nodeChecks := parseHealthChecks(0, res, err)
+		_, nodeChecks := s.parseHealthChecks(0, res, err)
 		checks = append(checks, nodeChecks...)
 
 		// Setup the node
@@ -713,7 +720,8 @@ func (s *StateSnapshot) LastIndex() uint64 {
 func (s *StateSnapshot) Nodes() structs.Nodes {
 	res, err := s.store.nodeTable.GetTxn(s.tx, "id")
 	if err != nil {
-		panic(fmt.Errorf("Failed to get nodes: %v", err))
+		s.store.logger.Printf("[ERR] consul.state: Failed to get nodes: %v", err)
+		return nil
 	}
 	results := make([]structs.Node, len(res))
 	for i, r := range res {
@@ -731,6 +739,6 @@ func (s *StateSnapshot) NodeServices(name string) *structs.NodeServices {
 // NodeChecks is used to return all the checks of a given node
 func (s *StateSnapshot) NodeChecks(node string) structs.HealthChecks {
 	res, err := s.store.checkTable.GetTxn(s.tx, "id", node)
-	_, checks := parseHealthChecks(s.lastIndex, res, err)
+	_, checks := s.store.parseHealthChecks(s.lastIndex, res, err)
 	return checks
 }
