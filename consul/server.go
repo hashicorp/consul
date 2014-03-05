@@ -175,6 +175,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.LogOutput = s.config.LogOutput
 	conf.EventCh = ch
 	conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
+	conf.ProtocolVersion = 3 // TODO: Support version 4
 	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
