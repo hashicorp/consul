@@ -276,22 +276,24 @@ func (l *localState) setSyncState() error {
 	l.Lock()
 	defer l.Unlock()
 
-	for id, service := range services.Services {
-		// If we don't have the service locally, deregister it
-		existing, ok := l.services[id]
-		if !ok {
-			// The Consul service is created automatically, and
-			// does not need to be registered
-			if id == consul.ConsulServiceID && l.config.Server {
+	if services != nil {
+		for id, service := range services.Services {
+			// If we don't have the service locally, deregister it
+			existing, ok := l.services[id]
+			if !ok {
+				// The Consul service is created automatically, and
+				// does not need to be registered
+				if id == consul.ConsulServiceID && l.config.Server {
+					continue
+				}
+				l.serviceStatus[id] = syncStatus{remoteDelete: true}
 				continue
 			}
-			l.serviceStatus[id] = syncStatus{remoteDelete: true}
-			continue
-		}
 
-		// If our definition is different, we need to update it
-		equal := reflect.DeepEqual(existing, service)
-		l.serviceStatus[id] = syncStatus{inSync: equal}
+			// If our definition is different, we need to update it
+			equal := reflect.DeepEqual(existing, service)
+			l.serviceStatus[id] = syncStatus{inSync: equal}
+		}
 	}
 
 	for _, check := range checks {

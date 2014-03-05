@@ -308,7 +308,7 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 	}
 
 	// If we have no address, return not found!
-	if out.NodeServices.Node.Address == "" {
+	if out.NodeServices == nil {
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
