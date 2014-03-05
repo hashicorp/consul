@@ -2,13 +2,18 @@ package consul
 
 import (
 	"github.com/hashicorp/consul/consul/structs"
+	"os"
 	"reflect"
 	"sort"
 	"testing"
 )
 
+func testStateStore() (*StateStore, error) {
+	return NewStateStore(os.Stderr)
+}
+
 func TestEnsureNode(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -34,7 +39,7 @@ func TestEnsureNode(t *testing.T) {
 }
 
 func TestGetNodes(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -61,7 +66,7 @@ func TestGetNodes(t *testing.T) {
 }
 
 func BenchmarkGetNodes(b *testing.B) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		b.Fatalf("err: %v", err)
 	}
@@ -81,7 +86,7 @@ func BenchmarkGetNodes(b *testing.B) {
 }
 
 func TestEnsureService(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -126,7 +131,7 @@ func TestEnsureService(t *testing.T) {
 }
 
 func TestEnsureService_DuplicateNode(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -179,7 +184,7 @@ func TestEnsureService_DuplicateNode(t *testing.T) {
 }
 
 func TestDeleteNodeService(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -227,7 +232,7 @@ func TestDeleteNodeService(t *testing.T) {
 }
 
 func TestDeleteNodeService_One(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -264,7 +269,7 @@ func TestDeleteNodeService_One(t *testing.T) {
 }
 
 func TestDeleteNode(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -320,7 +325,7 @@ func TestDeleteNode(t *testing.T) {
 }
 
 func TestGetServices(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -370,7 +375,7 @@ func TestGetServices(t *testing.T) {
 }
 
 func TestServiceNodes(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -461,7 +466,7 @@ func TestServiceNodes(t *testing.T) {
 }
 
 func TestServiceTagNodes(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -509,7 +514,7 @@ func TestServiceTagNodes(t *testing.T) {
 }
 
 func TestStoreSnapshot(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -638,7 +643,7 @@ func TestStoreSnapshot(t *testing.T) {
 }
 
 func TestEnsureCheck(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -720,7 +725,7 @@ func TestEnsureCheck(t *testing.T) {
 }
 
 func TestDeleteNodeCheck(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -770,7 +775,7 @@ func TestDeleteNodeCheck(t *testing.T) {
 }
 
 func TestCheckServiceNodes(t *testing.T) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -851,7 +856,7 @@ func TestCheckServiceNodes(t *testing.T) {
 	}
 }
 func BenchmarkCheckServiceNodes(t *testing.B) {
-	store, err := NewStateStore()
+	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -885,5 +890,47 @@ func BenchmarkCheckServiceNodes(t *testing.B) {
 
 	for i := 0; i < t.N; i++ {
 		store.CheckServiceNodes("db")
+	}
+}
+
+func TestSS_Register_Deregister_Query(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	srv := &structs.NodeService{
+		"statsite-box-stats",
+		"statsite-box-stats",
+		"",
+		0}
+	if err := store.EnsureService(2, "foo", srv); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	srv = &structs.NodeService{
+		"statsite-share-stats",
+		"statsite-share-stats",
+		"",
+		0}
+	if err := store.EnsureService(3, "foo", srv); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.DeleteNode(4, "foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, nodes := store.CheckServiceNodes("statsite-share-stats")
+	if idx != 4 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(nodes) != 0 {
+		t.Fatalf("Bad: %v", nodes)
 	}
 }

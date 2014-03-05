@@ -14,8 +14,9 @@ import (
 // along with Raft to provide strong consistency. We implement
 // this outside the Server to avoid exposing this outside the package.
 type consulFSM struct {
-	logger *log.Logger
-	state  *StateStore
+	logOutput io.Writer
+	logger    *log.Logger
+	state     *StateStore
 }
 
 // consulSnapshot is used to provide a snapshot of the current
@@ -34,14 +35,15 @@ type snapshotHeader struct {
 
 // NewFSM is used to construct a new FSM with a blank state
 func NewFSM(logOutput io.Writer) (*consulFSM, error) {
-	state, err := NewStateStore()
+	state, err := NewStateStore(logOutput)
 	if err != nil {
 		return nil, err
 	}
 
 	fsm := &consulFSM{
-		logger: log.New(logOutput, "", log.LstdFlags),
-		state:  state,
+		logOutput: logOutput,
+		logger:    log.New(logOutput, "", log.LstdFlags),
+		state:     state,
 	}
 	return fsm, nil
 }
@@ -146,7 +148,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
 	// Create a new state store
-	state, err := NewStateStore()
+	state, err := NewStateStore(c.logOutput)
 	if err != nil {
 		return err
 	}

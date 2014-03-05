@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/armon/gomdb"
 	"github.com/hashicorp/consul/consul/structs"
+	"io"
 	"io/ioutil"
+	"log"
 	"os"
 )
 
@@ -23,6 +25,7 @@ const (
 // implementation uses the Lightning Memory-Mapped Database (MDB).
 // This gives us Multi-Version Concurrency Control for "free"
 type StateStore struct {
+	logger       *log.Logger
 	path         string
 	env          *mdb.Env
 	nodeTable    *MDBTable
@@ -48,7 +51,7 @@ func (s *StateSnapshot) Close() error {
 }
 
 // NewStateStore is used to create a new state store
-func NewStateStore() (*StateStore, error) {
+func NewStateStore(logOutput io.Writer) (*StateStore, error) {
 	// Create a new temp dir
 	path, err := ioutil.TempDir("", "consul")
 	if err != nil {
@@ -62,9 +65,10 @@ func NewStateStore() (*StateStore, error) {
 	}
 
 	s := &StateStore{
-		path:  path,
-		env:   env,
-		watch: make(map[*MDBTable]*NotifyGroup),
+		logger: log.New(logOutput, "", log.LstdFlags),
+		path:   path,
+		env:    env,
+		watch:  make(map[*MDBTable]*NotifyGroup),
 	}
 
 	// Ensure we can initialize
