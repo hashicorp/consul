@@ -174,9 +174,11 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		if service != nil {
 			match := false
 			_, services := state.NodeServices(member.Name)
-			for id, _ := range services.Services {
-				if id == service.ID {
-					match = true
+			if services != nil {
+				for id, _ := range services.Services {
+					if id == service.ID {
+						match = true
+					}
 				}
 			}
 			if !match {

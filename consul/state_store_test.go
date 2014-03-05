@@ -302,9 +302,8 @@ func TestDeleteNode(t *testing.T) {
 	if idx != 23 {
 		t.Fatalf("bad: %v", idx)
 	}
-	_, ok := services.Services["api"]
-	if ok {
-		t.Fatalf("has api: %#v", services)
+	if services != nil {
+		t.Fatalf("has services: %#v", services)
 	}
 
 	idx, checks := store.NodeChecks("foo")

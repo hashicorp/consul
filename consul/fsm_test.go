@@ -290,7 +290,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 
 	// Verify service not registered
 	_, services := fsm.state.NodeServices("foo")
-	if len(services.Services) != 0 {
+	if services != nil {
 		t.Fatalf("Services: %v", services)
 	}
 
