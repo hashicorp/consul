@@ -1,7 +1,6 @@
 package command
 
 import (
-	"fmt"
 	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
