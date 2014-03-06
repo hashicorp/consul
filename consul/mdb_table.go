@@ -406,7 +406,7 @@ func (t *MDBTable) deleteWithIndex(tx *MDBTxn, idx *MDBIndex, key []byte) (num i
 	defer func() {
 		if r := recover(); r != nil {
 			num = 0
-			err = err
+			err = fmt.Errorf("Panic while deleting: %v", r)
 		}
 	}()
 
@@ -543,8 +543,15 @@ func (i *MDBIndex) iterate(tx *MDBTxn, prefix []byte,
 			first = false
 			key, encRowId, err = cursor.Get(prefix, mdb.SET_RANGE)
 		} else if shouldDelete {
-			key, encRowId, err = cursor.Get(nil, 0)
+			key, encRowId, err = cursor.Get(nil, mdb.GET_CURRENT)
 			shouldDelete = false
+
+			// LMDB will return EINVAL(22) for the GET_CURRENT op if
+			// there is no further keys. We treat this as no more
+			// keys being found.
+			if num, ok := err.(mdb.Errno); ok && num == 22 {
+				err = mdb.NotFound
+			}
 		} else if i.Unique {
 			key, encRowId, err = cursor.Get(nil, mdb.NEXT)
 		} else {

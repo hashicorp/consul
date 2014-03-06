@@ -703,3 +703,81 @@ func TestMDBTableIndex(t *testing.T) {
 		t.Fatalf("bad last idx: %d", idx)
 	}
 }
+
+func TestMDBTableDelete_Prefix(t *testing.T) {
+	dir, env := testMDBEnv(t)
+	defer os.RemoveAll(dir)
+	defer env.Close()
+
+	table := &MDBTable{
+		Env:  env,
+		Name: "test",
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"First", "Last"},
+			},
+		},
+		Encoder: MockEncoder,
+		Decoder: MockDecoder,
+	}
+	if err := table.Init(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	objs := []*MockData{
+		&MockData{
+			Key:     "1",
+			First:   "James",
+			Last:    "Smith",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "1",
+			First:   "Kevin",
+			Last:    "Smith",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "2",
+			First:   "Kevin",
+			Last:    "Wang",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "3",
+			First:   "Kevin",
+			Last:    "Torres",
+			Country: "Mexico",
+		},
+		&MockData{
+			Key:     "1",
+			First:   "Lana",
+			Last:    "Smith",
+			Country: "USA",
+		},
+	}
+
+	// Insert some mock objects
+	for _, obj := range objs {
+		if err := table.Insert(obj); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// This should nuke all kevins
+	num, err := table.Delete("id", "Kevin")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if num != 3 {
+		t.Fatalf("expect 3 delete: %#v", num)
+	}
+	_, res, err := table.Get("id")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 2 {
+		t.Fatalf("expect 2 result: %#v", res)
+	}
+}
