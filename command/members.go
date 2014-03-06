@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/mitchellh/cli"
+	"github.com/ryanuber/columnize"
 	"net"
 	"regexp"
 	"strings"
@@ -85,6 +86,7 @@ func (c *MembersCommand) Run(args []string) int {
 		return 1
 	}
 
+	result := make([]string, 0, len(members))
 	for _, member := range members {
 		// Skip the non-matching members
 		if !roleRe.MatchString(member.Tags["role"]) || !statusRe.MatchString(member.Status) {
@@ -99,16 +101,20 @@ func (c *MembersCommand) Run(args []string) int {
 		tags := strings.Join(tagPairs, ",")
 
 		addr := net.TCPAddr{IP: member.Addr, Port: int(member.Port)}
-		c.Ui.Output(fmt.Sprintf("%s    %s    %s    %s",
-			member.Name, addr.String(), member.Status, tags))
+		line := fmt.Sprintf("%s|%s|%s|%s",
+			member.Name, addr.String(), member.Status, tags)
 
 		if detailed {
-			c.Ui.Output(fmt.Sprintf("    Protocol Version: %d",
-				member.DelegateCur))
-			c.Ui.Output(fmt.Sprintf("    Available Protocol Range: [%d, %d]",
-				member.DelegateMin, member.DelegateMax))
+			line += fmt.Sprintf(
+				"|Protocol Version: %d|Available Protocol Range: [%d, %d]",
+				member.DelegateCur, member.DelegateMin, member.DelegateMax)
 		}
+		result = append(result, line)
 	}
+
+	// Generate the columnized version
+	output, _ := columnize.SimpleFormat(result)
+	c.Ui.Output(string(output))
 
 	return 0
 }
