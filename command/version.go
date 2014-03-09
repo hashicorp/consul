@@ -3,6 +3,7 @@ package command
 import (
 	"bytes"
 	"fmt"
+	"github.com/hashicorp/consul/consul"
 	"github.com/mitchellh/cli"
 )
 
@@ -30,6 +31,8 @@ func (c *VersionCommand) Run(_ []string) int {
 	}
 
 	c.Ui.Output(versionString.String())
+	c.Ui.Output(fmt.Sprintf("Consul Protocol: %d (Understands back to: %d)",
+		consul.ProtocolVersionMax, consul.ProtocolVersionMin))
 	return 0
 }
 
