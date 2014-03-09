@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -19,6 +20,17 @@ const (
 var (
 	DefaultRPCAddr = &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: 8300}
 )
+
+// ProtocolVersionMap is the mapping of Consul protocol versions
+// to Serf protocol versions. We mask the Serf protocols using
+// our own protocol version.
+var protocolVersionMap map[uint8]uint8
+
+func init() {
+	protocolVersionMap = map[uint8]uint8{
+		1: 4,
+	}
+}
 
 // Config is used to configure the server
 type Config struct {
@@ -65,9 +77,25 @@ type Config struct {
 	// logs will go to stderr.
 	LogOutput io.Writer
 
+	// ProtocolVersion is the protocol version to speak. This must be between
+	// ProtocolVersionMin and ProtocolVersionMax.
+	ProtocolVersion uint8
+
 	// ServerUp callback can be used to trigger a notification that
 	// a Consul server is now up and known about.
 	ServerUp func()
+}
+
+// CheckVersion is used to check if the ProtocolVersion is valid
+func (c *Config) CheckVersion() error {
+	if c.ProtocolVersion < ProtocolVersionMin {
+		return fmt.Errorf("Protocol version '%d' too low. Must be in range: [%d, %d]",
+			c.ProtocolVersion, ProtocolVersionMin, ProtocolVersionMax)
+	} else if c.ProtocolVersion > ProtocolVersionMax {
+		return fmt.Errorf("Protocol version '%d' too high. Must be in range: [%d, %d]",
+			c.ProtocolVersion, ProtocolVersionMin, ProtocolVersionMax)
+	}
+	return nil
 }
 
 // DefaultConfig is used to return a sane default configuration
@@ -85,6 +113,7 @@ func DefaultConfig() *Config {
 		SerfLANConfig:     serf.DefaultConfig(),
 		SerfWANConfig:     serf.DefaultConfig(),
 		ReconcileInterval: 60 * time.Second,
+		ProtocolVersion:   ProtocolVersionMax,
 	}
 
 	// WAN Serf should use the WAN timing, since we are using it

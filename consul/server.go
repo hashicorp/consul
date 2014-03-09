@@ -14,6 +14,14 @@ import (
 	"time"
 )
 
+// These are the protocol versions that Consul can _understand_. These are
+// Consul-level protocol versions, that are used to configure the Serf
+// protocol versions.
+const (
+	ProtocolVersionMin uint8 = 1
+	ProtocolVersionMax       = 1
+)
+
 const (
 	serfLANSnapshot   = "serf/local.snapshot"
 	serfWANSnapshot   = "serf/remote.snapshot"
@@ -97,6 +105,11 @@ type endpoints struct {
 // NewServer is used to construct a new Consul server from the
 // configuration, potentially returning an error
 func NewServer(config *Config) (*Server, error) {
+	// Check the protocol version
+	if err := config.CheckVersion(); err != nil {
+		return nil, err
+	}
+
 	// Check for a data directory!
 	if config.DataDir == "" {
 		return nil, fmt.Errorf("Config must provide a DataDir")
@@ -175,7 +188,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.LogOutput = s.config.LogOutput
 	conf.EventCh = ch
 	conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
-	conf.ProtocolVersion = 3 // TODO: Support version 4
+	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]
 	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}

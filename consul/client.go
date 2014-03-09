@@ -63,6 +63,11 @@ type Client struct {
 // NewClient is used to construct a new Consul client from the
 // configuration, potentially returning an error
 func NewClient(config *Config) (*Client, error) {
+	// Check the protocol version
+	if err := config.CheckVersion(); err != nil {
+		return nil, err
+	}
+
 	// Check for a data directory!
 	if config.DataDir == "" {
 		return nil, fmt.Errorf("Config must provide a DataDir")
@@ -109,7 +114,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.LogOutput = c.config.LogOutput
 	conf.EventCh = ch
 	conf.SnapshotPath = filepath.Join(c.config.DataDir, path)
-	conf.ProtocolVersion = 3 // TODO: Support version 4
+	conf.ProtocolVersion = protocolVersionMap[c.config.ProtocolVersion]
 	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
