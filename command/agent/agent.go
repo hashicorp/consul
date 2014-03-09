@@ -165,6 +165,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.Bootstrap {
 		base.Bootstrap = true
 	}
+	if a.config.Protocol > 0 {
+		base.ProtocolVersion = uint8(a.config.Protocol)
+	}
 
 	// Setup the ServerUp callback
 	base.ServerUp = a.state.ConsulServerUp

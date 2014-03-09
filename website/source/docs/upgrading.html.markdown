@@ -22,13 +22,13 @@ below, assume you're running version A of Consul, and then version B comes out.
 
 2. Shut down version A, and start version B with the `-protocol=PREVIOUS`
    flag, where "PREVIOUS" is the protocol version of version A (which can
-   be discovered by running `consul -v` or `consul members -detailed`).
+   be discovered by running `consul -v` or `consul members`).
 
 3. Once all nodes are running version B, go through every node and restart
    the version B agent _without_ the `-protocol` flag.
 
 4. Done! You're now running the latest Consul agent speaking the latest protocol.
-   You can verify this is the case by running `consul members -detailed` to
+   You can verify this is the case by running `consul members` to
    make sure all members are speaking the same, latest protocol version.
 
 The key to making this work is the [protocol compatibility](/docs/compatibility.html)
@@ -46,7 +46,7 @@ running `consul -v`. You'll see output similar to that below:
 ```
 $ consul -v
 Consul v0.1.0
-Agent Protocol: 1 (Understands back to: 0)
+Consul Protocol: 1 (Understands back to: 1)
 ```
 
 This says the version of Consul as well as the latest protocol version (1,

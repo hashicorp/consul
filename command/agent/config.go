@@ -97,6 +97,9 @@ type Config struct {
 	// metrics will be streamed to that instance.
 	StatsiteAddr string `mapstructure:"statsite_addr"`
 
+	// Protocol is the Consul protocol version to use.
+	Protocol int `mapstructure:"protocol"`
+
 	// Checks holds the provided check definitions
 	Checks []*CheckDefinition `mapstructure:"-"`
 
@@ -122,6 +125,7 @@ func DefaultConfig() *Config {
 		SerfLanPort: consul.DefaultLANSerfPort,
 		SerfWanPort: consul.DefaultWANSerfPort,
 		Server:      false,
+		Protocol:    consul.ProtocolVersionMax,
 	}
 }
 
@@ -283,6 +287,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.LogLevel != "" {
 		result.LogLevel = b.LogLevel
+	}
+	if b.Protocol > 0 {
+		result.Protocol = b.Protocol
 	}
 	if b.NodeName != "" {
 		result.NodeName = b.NodeName

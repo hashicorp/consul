@@ -118,6 +118,10 @@ The options below are all specified on the command-line.
   various telemetry information to that instance for aggregation. This can be used to capture various
   runtime information.
 
+* `-protocol` - The Consul protocol version to use. This defaults to the latest
+  version. This should be set only when [upgrading](/docs/upgrading.html).
+  You can view the protocol versions supported by Consul by running `serf -v`.
+
 ## Configuration Files
 
 In addition to the command-line options, configuration can be put into

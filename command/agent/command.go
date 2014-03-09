@@ -61,6 +61,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
 	cmdFlags.StringVar(&cmdConfig.StatsiteAddr, "statsite", "", "address of statsite instance")
+	cmdFlags.IntVar(&cmdConfig.Protocol, "protocol", -1, "protocol version")
 	if err := cmdFlags.Parse(c.args); err != nil {
 		return nil
 	}
