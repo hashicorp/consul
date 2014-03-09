@@ -180,6 +180,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.NodeName = s.config.NodeName
 	conf.Tags["role"] = "consul"
 	conf.Tags["dc"] = s.config.Datacenter
+	conf.Tags["vsn"] = fmt.Sprintf("%d", s.config.ProtocolVersion)
+	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)
+	conf.Tags["vsn_max"] = fmt.Sprintf("%d", ProtocolVersionMax)
 	conf.Tags["port"] = fmt.Sprintf("%d", addr.Port)
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"
@@ -482,8 +485,8 @@ func (s *Server) Stats() map[string]map[string]string {
 			"known_datacenters": toString(uint64(len(s.remoteConsuls))),
 		},
 		"raft":     s.raft.Stats(),
-		"serf-lan": s.serfLAN.Stats(),
-		"serf-wan": s.serfWAN.Stats(),
+		"serf_lan": s.serfLAN.Stats(),
+		"serf_wan": s.serfWAN.Stats(),
 	}
 	return stats
 }

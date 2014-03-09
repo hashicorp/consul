@@ -110,6 +110,9 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.NodeName = c.config.NodeName
 	conf.Tags["role"] = "node"
 	conf.Tags["dc"] = c.config.Datacenter
+	conf.Tags["vsn"] = fmt.Sprintf("%d", c.config.ProtocolVersion)
+	conf.Tags["vsn_min"] = fmt.Sprintf("%d", ProtocolVersionMin)
+	conf.Tags["vsn_max"] = fmt.Sprintf("%d", ProtocolVersionMax)
 	conf.MemberlistConfig.LogOutput = c.config.LogOutput
 	conf.LogOutput = c.config.LogOutput
 	conf.EventCh = ch
@@ -326,7 +329,7 @@ func (c *Client) Stats() map[string]map[string]string {
 			"server":        "false",
 			"known_servers": toString(uint64(len(c.consuls))),
 		},
-		"serf-lan": c.serf.Stats(),
+		"serf_lan": c.serf.Stats(),
 	}
 	return stats
 }
