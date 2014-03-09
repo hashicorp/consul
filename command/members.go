@@ -25,9 +25,6 @@ Usage: consul members [options]
 
 Options:
 
-  -detailed                 Additional information such as protocol verions
-                            will be shown.
-
   -role=<regexp>            If provided, output is filtered to only nodes matching
                             the regular expression for role
 
@@ -43,11 +40,10 @@ Options:
 }
 
 func (c *MembersCommand) Run(args []string) int {
-	var detailed, wan bool
+	var wan bool
 	var roleFilter, statusFilter string
 	cmdFlags := flag.NewFlagSet("members", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
-	cmdFlags.BoolVar(&detailed, "detailed", false, "detailed output")
 	cmdFlags.BoolVar(&wan, "wan", false, "wan members")
 	cmdFlags.StringVar(&roleFilter, "role", ".*", "role filter")
 	cmdFlags.StringVar(&statusFilter, "status", ".*", "status filter")
@@ -103,12 +99,6 @@ func (c *MembersCommand) Run(args []string) int {
 		addr := net.TCPAddr{IP: member.Addr, Port: int(member.Port)}
 		line := fmt.Sprintf("%s|%s|%s|%s",
 			member.Name, addr.String(), member.Status, tags)
-
-		if detailed {
-			line += fmt.Sprintf(
-				"|Protocol Version: %d|Available Protocol Range: [%d, %d]",
-				member.DelegateCur, member.DelegateMin, member.DelegateMax)
-		}
 		result = append(result, line)
 	}
 

@@ -22,9 +22,6 @@ Usage: `consul members [options]`
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-detailed` - Will show additional information per member, such as the
-  protocol version that each can understand and that each is speaking.
-
 * `-role` - If provided, output is filtered to only nodes matching
   the regular expression for role
 
