@@ -190,6 +190,9 @@ func (c *Client) lanEventHandler() {
 				c.nodeFail(e.(serf.MemberEvent))
 			case serf.EventUser:
 				c.localEvent(e.(serf.UserEvent))
+			case serf.EventMemberUpdate: // Ignore
+			case serf.EventMemberReap: // Ignore
+			case serf.EventQuery: // Ignore
 			default:
 				c.logger.Printf("[WARN] consul: unhandled LAN Serf Event: %#v", e)
 			}

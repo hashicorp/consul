@@ -18,8 +18,11 @@ func (s *Server) lanEventHandler() {
 				fallthrough
 			case serf.EventMemberFailed:
 				s.localMemberEvent(e.(serf.MemberEvent))
+			case serf.EventMemberUpdate: // Ignore
+			case serf.EventMemberReap: // Ignore
 			case serf.EventUser:
 				s.localEvent(e.(serf.UserEvent))
+			case serf.EventQuery: // Ignore
 			default:
 				s.logger.Printf("[WARN] consul: unhandled LAN Serf Event: %#v", e)
 			}
@@ -42,7 +45,10 @@ func (s *Server) wanEventHandler() {
 				fallthrough
 			case serf.EventMemberFailed:
 				s.remoteFailed(e.(serf.MemberEvent))
+			case serf.EventMemberUpdate: // Ignore
+			case serf.EventMemberReap: // Ignore
 			case serf.EventUser:
+			case serf.EventQuery: // Ignore
 			default:
 				s.logger.Printf("[WARN] consul: unhandled WAN Serf Event: %#v", e)
 			}
