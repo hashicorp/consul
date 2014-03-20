@@ -100,6 +100,9 @@ type Config struct {
 	// Protocol is the Consul protocol version to use.
 	Protocol int `mapstructure:"protocol"`
 
+	// EnableDebug is used to enable various debugging features
+	EnableDebug bool `mapstructure:"enable_debug"`
+
 	// Checks holds the provided check definitions
 	Checks []*CheckDefinition `mapstructure:"-"`
 
@@ -320,6 +323,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.SkipLeaveOnInt == true {
 		result.SkipLeaveOnInt = true
+	}
+	if b.EnableDebug {
+		result.EnableDebug = true
 	}
 	if b.Checks != nil {
 		result.Checks = append(result.Checks, b.Checks...)

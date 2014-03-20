@@ -182,6 +182,17 @@ func TestDecodeConfig(t *testing.T) {
 	if config.SkipLeaveOnInt != true {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// enable_debug
+	input = `{"enable_debug": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.EnableDebug != true {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -284,6 +295,7 @@ func TestMergeConfig(t *testing.T) {
 		Server:         false,
 		LeaveOnTerm:    false,
 		SkipLeaveOnInt: false,
+		EnableDebug:    false,
 	}
 
 	b := &Config{
@@ -305,6 +317,7 @@ func TestMergeConfig(t *testing.T) {
 		Server:         true,
 		LeaveOnTerm:    true,
 		SkipLeaveOnInt: true,
+		EnableDebug:    true,
 		Checks:         []*CheckDefinition{nil},
 		Services:       []*ServiceDefinition{nil},
 	}
