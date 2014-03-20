@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+const (
+	// StatusReap is used to update the status of a node if we
+	// are handling a EventMemberReap
+	StatusReap = serf.MemberStatus(-1)
+)
+
 // lanEventHandler is used to handle events from the lan Serf cluster
 func (s *Server) lanEventHandler() {
 	for {
@@ -17,11 +23,12 @@ func (s *Server) lanEventHandler() {
 			case serf.EventMemberLeave:
 				fallthrough
 			case serf.EventMemberFailed:
+				fallthrough
+			case serf.EventMemberReap:
 				s.localMemberEvent(e.(serf.MemberEvent))
-			case serf.EventMemberUpdate: // Ignore
-			case serf.EventMemberReap: // Ignore
 			case serf.EventUser:
 				s.localEvent(e.(serf.UserEvent))
+			case serf.EventMemberUpdate: // Ignore
 			case serf.EventQuery: // Ignore
 			default:
 				s.logger.Printf("[WARN] consul: unhandled LAN Serf Event: %#v", e)
@@ -67,8 +74,15 @@ func (s *Server) localMemberEvent(me serf.MemberEvent) {
 		return
 	}
 
+	// Check if this is a reap event
+	isReap := me.EventType() == serf.EventMemberReap
+
 	// Queue the members for reconciliation
 	for _, m := range me.Members {
+		// Change the status if this is a reap event
+		if isReap {
+			m.Status = StatusReap
+		}
 		select {
 		case s.reconcileCh <- m:
 		default:

@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/serf"
 	"os"
 	"testing"
 	"time"
@@ -148,6 +149,57 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Wait for failure detection
 	time.Sleep(500 * time.Millisecond)
+
+	// Should be deregistered
+	_, found, _ = state.GetNode(c1.config.NodeName)
+	if found {
+		t.Fatalf("client registered")
+	}
+}
+
+func TestLeader_ReapMember(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, c1 := testClient(t)
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	// Wait until we have a leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := c1.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for registration
+	time.Sleep(10 * time.Millisecond)
+
+	// Should be registered
+	state := s1.fsm.State()
+	_, found, _ := state.GetNode(c1.config.NodeName)
+	if !found {
+		t.Fatalf("client not registered")
+	}
+
+	// Simulate a node reaping
+	mems := s1.LANMembers()
+	var c1mem serf.Member
+	for _, m := range mems {
+		if m.Name == c1.config.NodeName {
+			c1mem = m
+			c1mem.Status = StatusReap
+			break
+		}
+	}
+	s1.reconcileCh <- c1mem
+
+	// Wait to reconcile
+	time.Sleep(10 * time.Millisecond)
 
 	// Should be deregistered
 	_, found, _ = state.GetNode(c1.config.NodeName)

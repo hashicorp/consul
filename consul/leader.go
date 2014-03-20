@@ -127,6 +127,8 @@ func (s *Server) reconcileMember(member serf.Member) error {
 		err = s.handleFailedMember(member)
 	case serf.StatusLeft:
 		err = s.handleLeftMember(member)
+	case StatusReap:
+		err = s.handleReapMember(member)
 	}
 	if err != nil {
 		s.logger.Printf("[ERR] consul: failed to reconcile member: %v: %v",
@@ -251,6 +253,17 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 // handleLeftMember is used to handle members that gracefully
 // left. They are deregistered if necessary.
 func (s *Server) handleLeftMember(member serf.Member) error {
+	return s.handleDeregisterMember("left", member)
+}
+
+// handleReapMember is used to handle members that have been
+// reaped after a prolonged failure. They are deregistered.
+func (s *Server) handleReapMember(member serf.Member) error {
+	return s.handleDeregisterMember("reaped", member)
+}
+
+// handleDeregisterMember is used to deregister a member of a given reason
+func (s *Server) handleDeregisterMember(reason string, member serf.Member) error {
 	state := s.fsm.State()
 
 	// Check if the node does not exists
@@ -258,7 +271,7 @@ func (s *Server) handleLeftMember(member serf.Member) error {
 	if !found {
 		return nil
 	}
-	s.logger.Printf("[INFO] consul: member '%s' left, deregistering", member.Name)
+	s.logger.Printf("[INFO] consul: member '%s' %s, deregistering", member.Name, reason)
 
 	// Remove from Raft peers if this was a server
 	if valid, parts := isConsulServer(member); valid {
