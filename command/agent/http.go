@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"strconv"
 	"time"
 )
@@ -23,7 +24,7 @@ type HTTPServer struct {
 
 // NewHTTPServer starts a new HTTP server to provide an interface to
 // the agent.
-func NewHTTPServer(agent *Agent, logOutput io.Writer, bind string) (*HTTPServer, error) {
+func NewHTTPServer(agent *Agent, enableDebug bool, logOutput io.Writer, bind string) (*HTTPServer, error) {
 	// Create the mux
 	mux := http.NewServeMux()
 
@@ -40,7 +41,7 @@ func NewHTTPServer(agent *Agent, logOutput io.Writer, bind string) (*HTTPServer,
 		listener: list,
 		logger:   log.New(logOutput, "", log.LstdFlags),
 	}
-	srv.registerHandlers()
+	srv.registerHandlers(enableDebug)
 
 	// Start the server
 	go http.Serve(list, mux)
@@ -53,7 +54,7 @@ func (s *HTTPServer) Shutdown() {
 }
 
 // registerHandlers is used to attach our handlers to the mux
-func (s *HTTPServer) registerHandlers() {
+func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/", s.Index)
 
 	s.mux.HandleFunc("/v1/status/leader", s.wrap(s.StatusLeader))
@@ -86,6 +87,13 @@ func (s *HTTPServer) registerHandlers() {
 
 	s.mux.HandleFunc("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
 	s.mux.HandleFunc("/v1/agent/service/deregister", s.wrap(s.AgentDeregisterService))
+
+	if enableDebug {
+		s.mux.HandleFunc("/debug/pprof/", pprof.Index)
+		s.mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		s.mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		s.mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	}
 }
 
 // wrap is used to wrap functions to make them more convenient

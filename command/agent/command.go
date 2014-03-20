@@ -62,6 +62,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
 	cmdFlags.StringVar(&cmdConfig.StatsiteAddr, "statsite", "", "address of statsite instance")
 	cmdFlags.IntVar(&cmdConfig.Protocol, "protocol", -1, "protocol version")
+	cmdFlags.BoolVar(&cmdConfig.EnableDebug, "debug", false, "enable debug features")
 	if err := cmdFlags.Parse(c.args); err != nil {
 		return nil
 	}
@@ -163,7 +164,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	c.rpcServer = NewAgentRPC(agent, rpcListener, logOutput, logWriter)
 
 	if config.HTTPAddr != "" {
-		server, err := NewHTTPServer(agent, logOutput, config.HTTPAddr)
+		server, err := NewHTTPServer(agent, config.EnableDebug, logOutput, config.HTTPAddr)
 		if err != nil {
 			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Error starting http server: %s", err))
