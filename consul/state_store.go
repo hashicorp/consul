@@ -14,7 +14,7 @@ const (
 	dbNodes      = "nodes"
 	dbServices   = "services"
 	dbChecks     = "checks"
-	dbMaxMapSize = 1024 * 1024 * 1024 // 1GB maximum size
+	dbMaxMapSize = 128 * 1024 * 1024 // 128MB maximum size
 )
 
 // The StateStore is responsible for maintaining all the Consul
