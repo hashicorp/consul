@@ -27,6 +27,7 @@ const (
 	serfWANSnapshot   = "serf/remote.snapshot"
 	raftState         = "raft/"
 	snapshotsRetained = 2
+	raftDBSize        = 128 * 1024 * 1024 // Limit Raft log to 128MB
 )
 
 // Server is Consul server which manages the service discovery,
@@ -219,7 +220,7 @@ func (s *Server) setupRaft() error {
 	}
 
 	// Create the MDB store for logs and stable storage
-	store, err := raft.NewMDBStore(path)
+	store, err := raft.NewMDBStoreWithSize(path, raftDBSize)
 	if err != nil {
 		return err
 	}
