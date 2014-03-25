@@ -157,6 +157,7 @@ func (t *MDBTable) restoreLastRowID() error {
 	if err != nil {
 		return err
 	}
+	defer cursor.Close()
 
 	key, _, err := cursor.Get(nil, mdb.LAST)
 	if err == mdb.NotFound {
@@ -534,6 +535,7 @@ func (i *MDBIndex) iterate(tx *MDBTxn, prefix []byte,
 	if err != nil {
 		return err
 	}
+	defer cursor.Close()
 
 	var key, encRowId, objBytes []byte
 	first := true
