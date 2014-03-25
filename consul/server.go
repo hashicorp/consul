@@ -250,10 +250,6 @@ func (s *Server) setupRaft() error {
 		if !raft.PeerContained(peers, trans.LocalAddr()) {
 			s.raftPeers.SetPeers(raft.AddUniquePeer(peers, trans.LocalAddr()))
 		}
-	} else {
-		// If we are not in bootstrap mode, start with no peers, wait for the
-		// existing leader to replicate to us and set the peer set
-		s.raftPeers.SetPeers([]net.Addr{})
 	}
 
 	// Make sure we set the LogOutput
