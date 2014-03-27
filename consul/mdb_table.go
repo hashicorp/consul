@@ -535,7 +535,11 @@ func (i *MDBIndex) iterate(tx *MDBTxn, prefix []byte,
 	if err != nil {
 		return err
 	}
-	defer cursor.Close()
+	// Read-only cursors are NOT closed by MDB when a transaction
+	// either commits or aborts, so must be closed explicitly
+	if tx.readonly {
+		defer cursor.Close()
+	}
 
 	var key, encRowId, objBytes []byte
 	first := true
