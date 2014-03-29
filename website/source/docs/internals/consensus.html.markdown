@@ -21,12 +21,12 @@ to learn about them without having to go spelunking through the source code.
 ## Raft Protocol Overview
 
 Raft is a relatively new consensus algorithm that is based on Paxos,
-but is designed to have fewer states and a simpler more understandable
+but is designed to have fewer states and a simpler, more understandable
 algorithm. There are a few key terms to know when discussing Raft:
 
 * Log - The primary unit of work in a Raft system is a log entry. The problem
-of consistency can be decomposed into a *replicated log*. A log is a an ordered
-seequence of entries. We consider the log consistent if all members agree on
+of consistency can be decomposed into a *replicated log*. A log is an ordered
+sequence of entries. We consider the log consistent if all members agree on
 the entries and their order.
 
 * FSM - [Finite State Machine](http://en.wikipedia.org/wiki/Finite-state_machine).
@@ -51,7 +51,7 @@ The leader is responsible for ingesting new log entries, replicating to follower
 and managing when an entry is considered committed.
 
 Raft is a complex protocol, and will not be covered here in detail. For the full
-specification, we recommend reading the paper. We will attempt to provide a high
+specification, we recommend reading the [paper](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf). We will attempt to provide a high
 level description, which may be useful for building a mental picture.
 
 Raft nodes are always in one of three states: follower, candidate or leader. All
@@ -73,7 +73,7 @@ and in Consul's case, we use [LMDB](http://symas.com/mdb/) to maintain cluster s
 An obvious question relates to the unbounded nature of a replicated log. Raft provides
 a mechanism by which the current state is snapshotted, and the log is compacted. Because
 of the FSM abstraction, restoring the state of the FSM must result in the same state
-as a reply of old logs. This allows Raft to capture the FSM state at a point in time,
+as a replay of old logs. This allows Raft to capture the FSM state at a point in time,
 and then remove all the logs that were used to reach that state. This is performed automatically
 without user intervention, and prevents unbounded disk usage as well as minimizing
 time spent replaying logs. One of the advantages of using LMDB is that it allows Consul
@@ -81,7 +81,7 @@ to continue accepting new transactions even while old state is being snapshotted
 preventing any availability issues.
 
 Lastly, there is the issue of updating the peer set when new servers are joining
-or existing servers are leaving. As long as a quorum of nodes are available, this
+or existing servers are leaving. As long as a quorum of nodes is available, this
 is not an issue as Raft provides mechanisms to dynamically update the peer set.
 If a quorum of nodes is unavailable, then this becomes a very challenging issue.
 For example, suppose there are only 2 peers, A and B. The quorum size is also
@@ -153,8 +153,8 @@ recommended deployment is either 3 or 5 servers.
 <td>2</td>
 <td>0</td>
 </tr>
-<tr>
-<td><b>3</b></td>
+<tr class="warning">
+<td>3</td>
 <td>2</td>
 <td>1</td>
 </tr>
@@ -163,8 +163,8 @@ recommended deployment is either 3 or 5 servers.
 <td>3</td>
 <td>1</td>
 </tr>
-<tr>
-<td><b>5</b></td>
+<tr class="warning">
+<td>5</td>
 <td>3</td>
 <td>2</td>
 </tr>
