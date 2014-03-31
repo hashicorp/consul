@@ -197,8 +197,9 @@ const (
 
 // KVSRequest is used to operate on the Key-Value store
 type KVSRequest struct {
-	Op     KVSOp    // Which operation are we performing
-	DirEnt DirEntry // Which directory entry
+	Datacenter string
+	Op         KVSOp    // Which operation are we performing
+	DirEnt     DirEntry // Which directory entry
 }
 
 // Decode is used to decode a MsgPack encoded object
