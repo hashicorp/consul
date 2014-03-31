@@ -63,3 +63,111 @@ func TestKVS_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 }
+
+func TestKVS_Get(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	arg := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "test",
+			Flags: 42,
+			Value: []byte("test"),
+		},
+	}
+	var out bool
+	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	getR := structs.KeyRequest{
+		Datacenter: "dc1",
+		Key:        "test",
+	}
+	var dirent structs.IndexedDirEntries
+	if err := client.Call("KVS.Get", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Entries) != 1 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	d := dirent.Entries[0]
+	if d.Flags != 42 {
+		t.Fatalf("bad: %v", d)
+	}
+	if string(d.Value) != "test" {
+		t.Fatalf("bad: %v", d)
+	}
+}
+
+func TestKVSEndpoint_List(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	keys := []string{
+		"/test/key1",
+		"/test/key2",
+		"/test/sub/key3",
+	}
+
+	for _, key := range keys {
+		arg := structs.KVSRequest{
+			Datacenter: "dc1",
+			Op:         structs.KVSSet,
+			DirEnt: structs.DirEntry{
+				Key:   key,
+				Flags: 1,
+			},
+		}
+		var out bool
+		if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	getR := structs.KeyRequest{
+		Datacenter: "dc1",
+		Key:        "/test",
+	}
+	var dirent structs.IndexedDirEntries
+	if err := client.Call("KVS.List", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Entries) != 3 {
+		t.Fatalf("Bad: %v", dirent.Entries)
+	}
+	for i := 0; i < len(dirent.Entries); i++ {
+		d := dirent.Entries[i]
+		if d.Key != keys[i] {
+			t.Fatalf("bad: %v", d)
+		}
+		if d.Flags != 1 {
+			t.Fatalf("bad: %v", d)
+		}
+		if d.Value != nil {
+			t.Fatalf("bad: %v", d)
+		}
+	}
+}
