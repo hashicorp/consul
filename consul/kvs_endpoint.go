@@ -14,8 +14,8 @@ type KVS struct {
 
 // Apply is used to apply a KVS request to the data store. This should
 // only be used for operations that modify the data
-func (c *Catalog) Apply(args *structs.KVSRequest, reply *bool) error {
-	if done, err := c.srv.forward("KVS.Apply", args.Datacenter, args, reply); done {
+func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
+	if done, err := k.srv.forward("KVS.Apply", args.Datacenter, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "kvs", "apply"}, time.Now())
@@ -26,9 +26,9 @@ func (c *Catalog) Apply(args *structs.KVSRequest, reply *bool) error {
 	}
 
 	// Apply the update
-	resp, err := c.srv.raftApply(structs.KVSRequestType, args)
+	resp, err := k.srv.raftApply(structs.KVSRequestType, args)
 	if err != nil {
-		c.srv.logger.Printf("[ERR] consul.kvs: Apply failed: %v", err)
+		k.srv.logger.Printf("[ERR] consul.kvs: Apply failed: %v", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {
