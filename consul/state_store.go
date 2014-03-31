@@ -14,7 +14,8 @@ const (
 	dbNodes      = "nodes"
 	dbServices   = "services"
 	dbChecks     = "checks"
-	dbMaxMapSize = 128 * 1024 * 1024 // 128MB maximum size
+	dbKVS        = "kvs"
+	dbMaxMapSize = 512 * 1024 * 1024 // 512MB maximum size
 )
 
 // The StateStore is responsible for maintaining all the Consul
@@ -31,6 +32,7 @@ type StateStore struct {
 	nodeTable    *MDBTable
 	serviceTable *MDBTable
 	checkTable   *MDBTable
+	kvsTable     *MDBTable
 	tables       MDBTables
 	watch        map[*MDBTable]*NotifyGroup
 	queryTables  map[string]MDBTables
@@ -183,8 +185,25 @@ func (s *StateStore) initialize() error {
 		},
 	}
 
+	s.kvsTable = &MDBTable{
+		Name: dbKVS,
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Key"},
+			},
+		},
+		Decoder: func(buf []byte) interface{} {
+			out := new(structs.DirEntry)
+			if err := structs.Decode(buf, out); err != nil {
+				panic(err)
+			}
+			return out
+		},
+	}
+
 	// Store the set of tables
-	s.tables = []*MDBTable{s.nodeTable, s.serviceTable, s.checkTable}
+	s.tables = []*MDBTable{s.nodeTable, s.serviceTable, s.checkTable, s.kvsTable}
 	for _, table := range s.tables {
 		table.Env = s.env
 		table.Encoder = encoder
