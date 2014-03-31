@@ -1044,3 +1044,66 @@ func TestKVSDelete(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 }
+
+func TestKVSCheckAndSet(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// CAS should fail, no entry
+	d := &structs.DirEntry{
+		ModifyIndex: 100,
+		Key:         "/foo",
+		Flags:       42,
+		Value:       []byte("test"),
+	}
+	ok, err := store.KVSCheckAndSet(1000, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("unexpected commit")
+	}
+
+	// Constrain on not-exist, should work
+	d.ModifyIndex = 0
+	ok, err = store.KVSCheckAndSet(1001, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("expected commit")
+	}
+
+	// Constrain on not-exist, should fail
+	d.ModifyIndex = 0
+	ok, err = store.KVSCheckAndSet(1002, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("unexpected commit")
+	}
+
+	// Constrain on a wrong modify time
+	d.ModifyIndex = 1000
+	ok, err = store.KVSCheckAndSet(1003, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("unexpected commit")
+	}
+
+	// Constrain on a correct modify time
+	d.ModifyIndex = 1001
+	ok, err = store.KVSCheckAndSet(1004, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("expected commit")
+	}
+}
