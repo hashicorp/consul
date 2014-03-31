@@ -933,3 +933,83 @@ func TestSS_Register_Deregister_Query(t *testing.T) {
 		t.Fatalf("Bad: %v", nodes)
 	}
 }
+
+func TestKVSSet_Get(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Should not exist
+	idx, d, err := store.KVSGet("/foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if d != nil {
+		t.Fatalf("bad: %v", d)
+	}
+
+	// Create the entry
+	d = &structs.DirEntry{Key: "/foo", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should exist exist
+	idx, d, err = store.KVSGet("/foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1000 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if d.CreateIndex != 1000 {
+		t.Fatalf("bad: %v", d)
+	}
+	if d.ModifyIndex != 1000 {
+		t.Fatalf("bad: %v", d)
+	}
+	if d.Key != "/foo" {
+		t.Fatalf("bad: %v", d)
+	}
+	if d.Flags != 42 {
+		t.Fatalf("bad: %v", d)
+	}
+	if string(d.Value) != "test" {
+		t.Fatalf("bad: %v", d)
+	}
+
+	// Update the entry
+	d = &structs.DirEntry{Key: "/foo", Flags: 43, Value: []byte("zip")}
+	if err := store.KVSSet(1010, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should update
+	idx, d, err = store.KVSGet("/foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1010 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if d.CreateIndex != 1000 {
+		t.Fatalf("bad: %v", d)
+	}
+	if d.ModifyIndex != 1010 {
+		t.Fatalf("bad: %v", d)
+	}
+	if d.Key != "/foo" {
+		t.Fatalf("bad: %v", d)
+	}
+	if d.Flags != 43 {
+		t.Fatalf("bad: %v", d)
+	}
+	if string(d.Value) != "zip" {
+		t.Fatalf("bad: %v", d)
+	}
+}
