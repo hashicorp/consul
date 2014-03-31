@@ -192,6 +192,12 @@ func (s *StateStore) initialize() error {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
+			"id_prefix": &MDBIndex{
+				Virtual:   true,
+				RealIndex: "id",
+				Fields:    []string{"Key"},
+				IdxFunc:   DefaultIndexPrefixFunc,
+			},
 		},
 		Decoder: func(buf []byte) interface{} {
 			out := new(structs.DirEntry)
@@ -749,8 +755,13 @@ func (s *StateStore) KVSGet(key string) (uint64, *structs.DirEntry, error) {
 }
 
 // KVSList is used to list all KV entries with a prefix
-func (s *StateStore) KVSList() (uint64, structs.DirEntries, error) {
-	return 0, nil, nil
+func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) {
+	idx, res, err := s.kvsTable.Get("id_prefix", prefix)
+	ents := make(structs.DirEntries, len(res))
+	for idx, r := range res {
+		ents[idx] = r.(*structs.DirEntry)
+	}
+	return idx, ents, err
 }
 
 // KVSDelete is used to delete a KVS entry
@@ -778,6 +789,7 @@ func (s *StateStore) KVSDelete(index uint64, key string) error {
 
 // KVSDeleteTree is used to delete all keys with a given prefix
 func (s *StateStore) KVSDeleteTree() error {
+	// TODO:
 	return nil
 }
 

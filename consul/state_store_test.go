@@ -1107,3 +1107,59 @@ func TestKVSCheckAndSet(t *testing.T) {
 		t.Fatalf("expected commit")
 	}
 }
+
+func TestKVS_List(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Should not exist
+	idx, ents, err := store.KVSList("/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(ents) != 0 {
+		t.Fatalf("bad: %v", ents)
+	}
+
+	// Create the entries
+	d := &structs.DirEntry{Key: "/web/a", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/b", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1001, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/sub/c", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1002, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should list
+	idx, ents, err = store.KVSList("/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1002 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(ents) != 3 {
+		t.Fatalf("bad: %v", ents)
+	}
+
+	if ents[0].Key != "/web/a" {
+		t.Fatalf("bad: %v", ents[0])
+	}
+	if ents[1].Key != "/web/b" {
+		t.Fatalf("bad: %v", ents[1])
+	}
+	if ents[2].Key != "/web/sub/c" {
+		t.Fatalf("bad: %v", ents[2])
+	}
+}
