@@ -186,11 +186,12 @@ type DirEntries []*DirEntry
 type KVSOp string
 
 const (
-	KVSSet    KVSOp = "set"
-	KVSGet          = "get"  // Key must match
-	KVSList         = "list" // Key is only a prefix
-	KVSDelete       = "delete"
-	KVSCAS          = "cas" // Check-and-set
+	KVSSet        KVSOp = "set"
+	KVSGet              = "get"  // Key must match
+	KVSList             = "list" // Key is only a prefix
+	KVSDelete           = "delete"
+	KVSDeleteTree       = "delete-tree"
+	KVSCAS              = "cas" // Check-and-set
 )
 
 // KVSRequest is used to operate on the Key-Value store
