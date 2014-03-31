@@ -550,6 +550,16 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("err: %v")
 	}
 
+	// Add some KVS entries
+	d := &structs.DirEntry{Key: "/web/a", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(14, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/b", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(15, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	// Take a snapshot
 	snap, err := store.Snapshot()
 	if err != nil {
@@ -558,7 +568,7 @@ func TestStoreSnapshot(t *testing.T) {
 	defer snap.Close()
 
 	// Check the last nodes
-	if idx := snap.LastIndex(); idx != 13 {
+	if idx := snap.LastIndex(); idx != 15 {
 		t.Fatalf("bad: %v", idx)
 	}
 
@@ -591,6 +601,12 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("bad: %v", checks[0])
 	}
 
+	// Check we have the entries
+	ents := snap.KVSDump()
+	if len(ents) != 2 {
+		t.Fatalf("missing KVS entries!")
+	}
+
 	// Make some changes!
 	if err := store.EnsureService(14, "foo", &structs.NodeService{"db", "db", "slave", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
@@ -609,6 +625,10 @@ func TestStoreSnapshot(t *testing.T) {
 		ServiceID: "db",
 	}
 	if err := store.EnsureCheck(17, checkAfter); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.KVSDelete(18, "/web/a"); err != nil {
 		t.Fatalf("err: %v")
 	}
 
@@ -638,6 +658,12 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 	if !reflect.DeepEqual(checks[0], check) {
 		t.Fatalf("bad: %v", checks[0])
+	}
+
+	// Check we have the entries
+	ents = snap.KVSDump()
+	if len(ents) != 2 {
+		t.Fatalf("missing KVS entries!")
 	}
 }
 

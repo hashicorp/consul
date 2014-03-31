@@ -901,3 +901,17 @@ func (s *StateSnapshot) NodeChecks(node string) structs.HealthChecks {
 	_, checks := s.store.parseHealthChecks(s.lastIndex, res, err)
 	return checks
 }
+
+// KVSDump is used to list all KV entries
+func (s *StateSnapshot) KVSDump() structs.DirEntries {
+	res, err := s.store.kvsTable.GetTxn(s.tx, "id")
+	if err != nil {
+		s.store.logger.Printf("[ERR] consul.state: Failed to get KVS entries: %v", err)
+		return nil
+	}
+	ents := make(structs.DirEntries, len(res))
+	for idx, r := range res {
+		ents[idx] = r.(*structs.DirEntry)
+	}
+	return ents
+}
