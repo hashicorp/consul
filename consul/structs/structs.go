@@ -18,6 +18,7 @@ type MessageType uint8
 const (
 	RegisterRequestType MessageType = iota
 	DeregisterRequestType
+	KVSRequestType
 )
 
 const (
