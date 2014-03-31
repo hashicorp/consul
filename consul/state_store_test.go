@@ -1013,3 +1013,34 @@ func TestKVSSet_Get(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 }
+
+func TestKVSDelete(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Create the entry
+	d := &structs.DirEntry{Key: "/foo", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Delete the entry
+	if err := store.KVSDelete(1020, "/foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should not exist
+	idx, d, err := store.KVSGet("/foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1020 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if d != nil {
+		t.Fatalf("bad: %v", d)
+	}
+}

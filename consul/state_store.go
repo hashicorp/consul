@@ -754,8 +754,26 @@ func (s *StateStore) KVSList() (uint64, structs.DirEntries, error) {
 }
 
 // KVSDelete is used to delete a KVS entry
-func (s *StateStore) KVSDelete() error {
-	return nil
+func (s *StateStore) KVSDelete(index uint64, key string) error {
+	// Start a new txn
+	tx, err := s.kvsTable.StartTxn(false, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Abort()
+
+	num, err := s.kvsTable.DeleteTxn(tx, "id", key)
+	if err != nil {
+		return err
+	}
+
+	if num > 0 {
+		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
+		defer s.watch[s.kvsTable].Notify()
+	}
+	return tx.Commit()
 }
 
 // KVSDeleteTree is used to delete all keys with a given prefix
