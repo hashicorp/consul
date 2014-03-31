@@ -188,8 +188,6 @@ type KVSOp string
 
 const (
 	KVSSet        KVSOp = "set"
-	KVSGet              = "get"  // Key must match
-	KVSList             = "list" // Key is only a prefix
 	KVSDelete           = "delete"
 	KVSDeleteTree       = "delete-tree"
 	KVSCAS              = "cas" // Check-and-set
@@ -200,6 +198,18 @@ type KVSRequest struct {
 	Datacenter string
 	Op         KVSOp    // Which operation are we performing
 	DirEnt     DirEntry // Which directory entry
+}
+
+// KeyRequest is used to request a key, or key prefix
+type KeyRequest struct {
+	Datacenter string
+	Key        string
+	BlockingQuery
+}
+
+type IndexedDirEntries struct {
+	Index   uint64
+	Entries DirEntries
 }
 
 // Decode is used to decode a MsgPack encoded object

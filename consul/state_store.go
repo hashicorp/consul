@@ -231,6 +231,8 @@ func (s *StateStore) initialize() error {
 		"NodeChecks":        MDBTables{s.checkTable},
 		"ServiceChecks":     MDBTables{s.checkTable},
 		"CheckServiceNodes": MDBTables{s.nodeTable, s.serviceTable, s.checkTable},
+		"KVSGet":            MDBTables{s.kvsTable},
+		"KVSList":           MDBTables{s.kvsTable},
 	}
 	return nil
 }
