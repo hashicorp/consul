@@ -172,6 +172,33 @@ type IndexedCheckServiceNodes struct {
 	Nodes CheckServiceNodes
 }
 
+// DirEntry is used to represent a directory entry. This is
+// used for values in our Key-Value store.
+type DirEntry struct {
+	CreateIndex uint64
+	ModifyIndex uint64
+	Key         string
+	Flags       uint64
+	Value       []byte
+}
+type DirEntries []*DirEntry
+
+type KVSOp string
+
+const (
+	KVSSet    KVSOp = "set"
+	KVSGet          = "get"  // Key must match
+	KVSList         = "list" // Key is only a prefix
+	KVSDelete       = "delete"
+	KVSCAS          = "cas" // Check-and-set
+)
+
+// KVSRequest is used to operate on the Key-Value store
+type KVSRequest struct {
+	Op     KVSOp    // Which operation are we performing
+	DirEnt DirEntry // Which directory entry
+}
+
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {
 	var handle codec.MsgpackHandle
