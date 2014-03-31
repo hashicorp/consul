@@ -1163,3 +1163,49 @@ func TestKVS_List(t *testing.T) {
 		t.Fatalf("bad: %v", ents[2])
 	}
 }
+
+func TestKVSDeleteTree(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Should not exist
+	err = store.KVSDeleteTree(1000, "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create the entries
+	d := &structs.DirEntry{Key: "/web/a", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/b", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1001, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/sub/c", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1002, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nuke the web tree
+	err = store.KVSDeleteTree(1010, "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nothing should list
+	idx, ents, err := store.KVSList("/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1010 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(ents) != 0 {
+		t.Fatalf("bad: %v", ents)
+	}
+}

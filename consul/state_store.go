@@ -766,6 +766,16 @@ func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) 
 
 // KVSDelete is used to delete a KVS entry
 func (s *StateStore) KVSDelete(index uint64, key string) error {
+	return s.kvsDeleteWithIndex(index, "id", key)
+}
+
+// KVSDeleteTree is used to delete all keys with a given prefix
+func (s *StateStore) KVSDeleteTree(index uint64, prefix string) error {
+	return s.kvsDeleteWithIndex(index, "id_prefix", prefix)
+}
+
+// kvsDeleteWithIndex does a delete with either the id or id_prefix
+func (s *StateStore) kvsDeleteWithIndex(index uint64, tableIndex, val string) error {
 	// Start a new txn
 	tx, err := s.kvsTable.StartTxn(false, nil)
 	if err != nil {
@@ -773,7 +783,7 @@ func (s *StateStore) KVSDelete(index uint64, key string) error {
 	}
 	defer tx.Abort()
 
-	num, err := s.kvsTable.DeleteTxn(tx, "id", key)
+	num, err := s.kvsTable.DeleteTxn(tx, tableIndex, val)
 	if err != nil {
 		return err
 	}
@@ -785,12 +795,6 @@ func (s *StateStore) KVSDelete(index uint64, key string) error {
 		defer s.watch[s.kvsTable].Notify()
 	}
 	return tx.Commit()
-}
-
-// KVSDeleteTree is used to delete all keys with a given prefix
-func (s *StateStore) KVSDeleteTree() error {
-	// TODO:
-	return nil
 }
 
 // KVSCheckAndSet is used to perform an atomic check-and-set
