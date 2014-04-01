@@ -376,6 +376,29 @@ func (t *MDBTable) GetTxn(tx *MDBTxn, index string, parts ...string) ([]interfac
 	return results, err
 }
 
+// StreamTxn is like GetTxn but it streams the results over a channel.
+// This can be used if the expected data set is very large. The stream
+// is always closed on return.
+func (t *MDBTable) StreamTxn(stream chan<- interface{}, tx *MDBTxn, index string, parts ...string) error {
+	// Always close the stream on return
+	defer close(stream)
+
+	// Get the associated index
+	idx, key, err := t.getIndex(index, parts)
+	if err != nil {
+		return err
+	}
+
+	// Stream the results
+	err = idx.iterate(tx, key, func(encRowId, res []byte) bool {
+		obj := t.Decoder(res)
+		stream <- obj
+		return false
+	})
+
+	return err
+}
+
 // getIndex is used to get the proper index, and also check the arity
 func (t *MDBTable) getIndex(index string, parts []string) (*MDBIndex, []byte, error) {
 	// Get the index
