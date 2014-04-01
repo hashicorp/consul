@@ -87,7 +87,7 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 
 	// Check for cas value
 	if _, ok := params["cas"]; ok {
-		casVal, err := strconv.ParseUint(params.Get("flags"), 10, 64)
+		casVal, err := strconv.ParseUint(params.Get("cas"), 10, 64)
 		if err != nil {
 			return nil, err
 		}
