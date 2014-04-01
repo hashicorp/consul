@@ -218,7 +218,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 			if err := dec.Decode(&req); err != nil {
 				return err
 			}
-			if err := c.state.KVSSet(req.CreateIndex, &req); err != nil {
+			if err := c.state.KVSRestore(&req); err != nil {
 				return err
 			}
 

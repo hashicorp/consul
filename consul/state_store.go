@@ -746,6 +746,22 @@ func (s *StateStore) KVSSet(index uint64, d *structs.DirEntry) error {
 	return tx.Commit()
 }
 
+// KVSRestore is used to restore a DirEntry. It should only be used when
+// doing a restore, otherwise KVSSet should be used.
+func (s *StateStore) KVSRestore(d *structs.DirEntry) error {
+	// Start a new txn
+	tx, err := s.kvsTable.StartTxn(false, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Abort()
+
+	if err := s.kvsTable.InsertTxn(tx, d); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 // KVSGet is used to get a KV entry
 func (s *StateStore) KVSGet(key string) (uint64, *structs.DirEntry, error) {
 	idx, res, err := s.kvsTable.Get("id", key)
