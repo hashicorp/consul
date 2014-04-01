@@ -21,7 +21,7 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 	defer metrics.MeasureSince([]string{"consul", "kvs", "apply"}, time.Now())
 
 	// Verify the args
-	if args.DirEnt.Key == "" {
+	if args.DirEnt.Key == "" && args.Op != structs.KVSDeleteTree {
 		return fmt.Errorf("Must provide key")
 	}
 

@@ -112,9 +112,6 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 
 // KVSPut handles a DELETE request
 func (s *HTTPServer) KVSDelete(resp http.ResponseWriter, req *http.Request, args *structs.KeyRequest) (interface{}, error) {
-	if missingKey(resp, args) {
-		return nil, nil
-	}
 	applyReq := structs.KVSRequest{
 		Datacenter: args.Datacenter,
 		Op:         structs.KVSDelete,
@@ -127,6 +124,8 @@ func (s *HTTPServer) KVSDelete(resp http.ResponseWriter, req *http.Request, args
 	params := req.URL.Query()
 	if _, ok := params["recurse"]; ok {
 		applyReq.Op = structs.KVSDeleteTree
+	} else if missingKey(resp, args) {
+		return nil, nil
 	}
 
 	// Make the RPC

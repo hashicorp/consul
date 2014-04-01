@@ -773,11 +773,14 @@ func (s *StateStore) KVSDelete(index uint64, key string) error {
 
 // KVSDeleteTree is used to delete all keys with a given prefix
 func (s *StateStore) KVSDeleteTree(index uint64, prefix string) error {
+	if prefix == "" {
+		return s.kvsDeleteWithIndex(index, "id")
+	}
 	return s.kvsDeleteWithIndex(index, "id_prefix", prefix)
 }
 
 // kvsDeleteWithIndex does a delete with either the id or id_prefix
-func (s *StateStore) kvsDeleteWithIndex(index uint64, tableIndex, val string) error {
+func (s *StateStore) kvsDeleteWithIndex(index uint64, tableIndex string, parts ...string) error {
 	// Start a new txn
 	tx, err := s.kvsTable.StartTxn(false, nil)
 	if err != nil {
@@ -785,7 +788,7 @@ func (s *StateStore) kvsDeleteWithIndex(index uint64, tableIndex, val string) er
 	}
 	defer tx.Abort()
 
-	num, err := s.kvsTable.DeleteTxn(tx, tableIndex, val)
+	num, err := s.kvsTable.DeleteTxn(tx, tableIndex, parts...)
 	if err != nil {
 		return err
 	}
