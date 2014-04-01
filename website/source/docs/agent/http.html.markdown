@@ -7,11 +7,12 @@ sidebar_current: "docs-agent-http"
 # HTTP API
 
 The main interface to Consul is a RESTful HTTP API. The API can be
-used for CRUD for nodes, services, and checks. The endpoints are
+used for CRUD for nodes, services, checks, and configuration. The endpoints are
 versioned to enable changes without breaking backwards compatibility.
 
-All endpoints fall into one of 4 categories:
+All endpoints fall into one of 5 categories:
 
+* kv - Key/Value store
 * agent - Agent control
 * catalog - Manages nodes and services
 * health - Manages health checks
@@ -28,7 +29,7 @@ Queries that support this will mention it specifically, however the use of this
 feature is the same for all. If supported, the query will set an HTTP header
 "X-Consul-Index". This is an opaque handle that the client will use.
 
-To cause a query to block, the query parameters "?wait=<interval>&index=<idx>" are added
+To cause a query to block, the query parameters "?wait=\<interval\>&index=\<idx\>" are added
 to a request. The "?wait=" query parameter limits how long the query will potentially
 block for. It not set, it will default to 10 minutes. It can be specified in the form of
 "10s" or "5m", which is 10 seconds or 5 minutes respectively. The "?index=" parameter is an
@@ -40,6 +41,72 @@ could have cause the output to change, and thus advancing the index. A critical
 note is that when the query returns there is **no guarantee** of a change. It is
 possible that the timeout was reached, or that there was an idempotent write that
 does not affect the result.
+
+
+## KV
+
+The KV endpoint is used to expose a simple key/value store. This can be used
+to store service configurations or other meta data in a simple way. It has only
+a single endpoint:
+
+    /v1/kv/<key>
+
+This is the only endpoint that is used with the Key/Value store.
+It's use depends on the HTTP method. The `GET`, `PUT` and `DELETE` methods
+are all supported.
+
+When using the `GET` method, Consul will return the specified key,
+or if the "?recurse" query parameter is provided, it will return
+all keys with the given prefix.
+
+Each object will look like:
+
+    [
+        {
+            "CreateIndex":100,
+            "ModifyIndex":200,
+            "Key":"zip",
+            "Flags":0,
+            "Value":"dGVzdA=="
+        }
+    ]
+
+The `CreateIndex` is the internal index value that represents
+when the entry was created. The `ModifyIndex` is the last index
+that modified this key. This index corresponds to the `X-Consul-Index`
+header value that is returned. A blocking query can be used to wait for
+a value to change. If "?recurse" is used, the `X-Consul-Index` corresponds
+to the latest `ModifyIndex` and so a blocking query waits until any of the
+listed keys are updated.
+
+The `Key` is simply the full path of the entry. `Flags` are an opaque
+unsigned integer that can be attached to each entry. The use of this is
+left totally to the user. Lastly, the `Value` is a base64 key value.
+
+If no entries are found, a 404 code is returned.
+
+When using the `PUT` method, Consul expects the request body to be the
+value corresponding to the key. There are a number of parameters that can
+be used with a PUT request:
+
+* ?flags=\<num\> : This can be used to specify an unsigned value between
+  0 and 2^64-1. It is opaque to the user, but a client application may
+  use it.
+
+* ?cas=\<index\> : This flag is used to turn the `PUT` into a **Check-And-Set**
+  operation. This is very useful as it allows clients to build more complex
+  syncronization primitives on top. If the index is 0, then Consul will only
+  put the key if it does not already exist. If the index is non-zero, then
+  the key is only set if the index matches the `ModifyIndex` of that key.
+
+The return value is simply either `true` or `false`. If the CAS check fails,
+then `false` will be returned.
+
+Lastly, the `DELETE` method can be used to delete a single key or all
+keys sharing a prefix. If the "?recurse" query parameter is provided,
+then all keys with the prefix are deleted, otherwise only the specified
+key.
+
 
 ## Agent
 
