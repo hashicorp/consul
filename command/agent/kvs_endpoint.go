@@ -51,6 +51,12 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 		return nil, err
 	}
 	setIndex(resp, out.Index)
+
+	// Check if we get a not found
+	if len(out.Entries) == 0 {
+		resp.WriteHeader(404)
+		return nil, nil
+	}
 	return out.Entries, nil
 }
 
