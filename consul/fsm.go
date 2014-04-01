@@ -305,10 +305,8 @@ OUTER:
 			if raw == nil {
 				break OUTER
 			}
-			ent := raw.(*structs.DirEntry)
-
 			sink.Write([]byte{byte(structs.KVSRequestType)})
-			if err := encoder.Encode(ent); err != nil {
+			if err := encoder.Encode(raw); err != nil {
 				sink.Cancel()
 				return err
 			}
