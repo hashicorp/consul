@@ -88,6 +88,8 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
 	s.mux.HandleFunc("/v1/agent/service/deregister", s.wrap(s.AgentDeregisterService))
 
+	s.mux.HandleFunc("/v1/kv/", s.wrap(s.KVSEndpoint))
+
 	if enableDebug {
 		s.mux.HandleFunc("/debug/pprof/", pprof.Index)
 		s.mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)

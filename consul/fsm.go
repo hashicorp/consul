@@ -65,6 +65,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		return c.decodeRegister(buf[1:], log.Index)
 	case structs.DeregisterRequestType:
 		return c.applyDeregister(buf[1:], log.Index)
+	case structs.KVSRequestType:
+		return c.applyKVSOperation(buf[1:], log.Index)
 	default:
 		panic(fmt.Errorf("failed to apply request: %#v", buf))
 	}
@@ -131,6 +133,32 @@ func (c *consulFSM) applyDeregister(buf []byte, index uint64) interface{} {
 	return nil
 }
 
+func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
+	var req structs.KVSRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	switch req.Op {
+	case structs.KVSSet:
+		return c.state.KVSSet(index, &req.DirEnt)
+	case structs.KVSDelete:
+		return c.state.KVSDelete(index, req.DirEnt.Key)
+	case structs.KVSDeleteTree:
+		return c.state.KVSDeleteTree(index, req.DirEnt.Key)
+	case structs.KVSCAS:
+		act, err := c.state.KVSCheckAndSet(index, &req.DirEnt)
+		if err != nil {
+			return err
+		} else {
+			return act
+		}
+	default:
+		c.logger.Printf("[WARN] consul.fsm: Invalid KVS operation '%s'", req.Op)
+		return fmt.Errorf("Invalid KVS operation '%s'", req.Op)
+	}
+	return nil
+}
+
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
 	defer func(start time.Time) {
 		c.logger.Printf("[INFO] consul.fsm: snapshot created in %v", time.Now().Sub(start))
@@ -152,6 +180,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	if err != nil {
 		return err
 	}
+	c.state.Close()
 	c.state = state
 
 	// Create a decoder
@@ -183,6 +212,15 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 			c.applyRegister(&req, header.LastIndex)
+
+		case structs.KVSRequestType:
+			var req structs.DirEntry
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := c.state.KVSRestore(&req); err != nil {
+				return err
+			}
 
 		default:
 			return fmt.Errorf("Unrecognized msg type: %v", msgType)
@@ -247,6 +285,38 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 			}
 		}
 	}
+
+	// Enable GC of the ndoes
+	nodes = nil
+
+	// Dump the KVS entries
+	streamCh := make(chan interface{}, 256)
+	errorCh := make(chan error)
+	go func() {
+		if err := s.state.KVSDump(streamCh); err != nil {
+			errorCh <- err
+		}
+	}()
+
+OUTER:
+	for {
+		select {
+		case raw := <-streamCh:
+			if raw == nil {
+				break OUTER
+			}
+			sink.Write([]byte{byte(structs.KVSRequestType)})
+			if err := encoder.Encode(raw); err != nil {
+				sink.Cancel()
+				return err
+			}
+
+		case err := <-errorCh:
+			sink.Cancel()
+			return err
+		}
+	}
+
 	return nil
 }
 

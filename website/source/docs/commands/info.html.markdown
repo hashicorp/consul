@@ -35,30 +35,34 @@ Here is an example output:
         num_peers = 2
         state = Leader
         term = 4
-    serf-lan:
-        event-queue = 0
-        event-time = 2
+    serf_lan:
+        event_queue = 0
+        event_time = 2
         failed = 0
-        intent-queue = 0
+        intent_queue = 0
         left = 0
-        member-time = 7
+        member_time = 7
         members = 3
-    serf-wan:
-        event-queue = 0
-        event-time = 1
+        query_queue = 0
+        query_time = 1
+    serf_wan:
+        event_queue = 0
+        event_time = 1
         failed = 0
-        intent-queue = 0
+        intent_queue = 0
         left = 0
-        member-time = 1
+        member_time = 1
         members = 1
+        query_queue = 0
+        query_time = 1
 
 There are currently the top-level keys for:
 
 * agent: Provides information about the agent
 * consul: Information about the consul library (client or server)
 * raft: Provides info about the Raft [consensus library](/docs/internals/consensus.html)
-* serf-lan: Provides info about the LAN [gossip pool](/docs/internals/gossip.html)
-* serf-wan: Provides info about the WAN [gossip pool](/docs/internals/gossip.html)
+* serf_lan: Provides info about the LAN [gossip pool](/docs/internals/gossip.html)
+* serf_wan: Provides info about the WAN [gossip pool](/docs/internals/gossip.html)
 
 ## Usage
 

@@ -18,3 +18,8 @@ func (r *Raft) RemovePeer(args string, reply *struct{}) error {
 	future := r.server.raft.RemovePeer(peer)
 	return future.Error()
 }
+
+func (r *Raft) Snapshot(args struct{}, reply *struct{}) error {
+	future := r.server.raft.Snapshot()
+	return future.Error()
+}
