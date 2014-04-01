@@ -58,7 +58,13 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 				return 0, err
 			}
 			if ent == nil {
-				reply.Index = index
+				// Must provide non-zero index to prevent blocking
+				// Index 1 is impossible anyways (due to Raft internals)
+				if index == 0 {
+					reply.Index = 1
+				} else {
+					reply.Index = index
+				}
 				reply.Entries = nil
 			} else {
 				reply.Index = ent.ModifyIndex
@@ -84,7 +90,13 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 				return 0, err
 			}
 			if len(ent) == 0 {
-				reply.Index = index
+				// Must provide non-zero index to prevent blocking
+				// Index 1 is impossible anyways (due to Raft internals)
+				if index == 0 {
+					reply.Index = 1
+				} else {
+					reply.Index = index
+				}
 				reply.Entries = nil
 			} else {
 				// Determine the maximum affected index
