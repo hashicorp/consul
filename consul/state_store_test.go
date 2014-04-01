@@ -602,7 +602,23 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 
 	// Check we have the entries
-	ents := snap.KVSDump()
+	streamCh := make(chan interface{}, 64)
+	doneCh := make(chan struct{})
+	var ents []*structs.DirEntry
+	go func() {
+		for {
+			obj := <-streamCh
+			if obj == nil {
+				close(doneCh)
+				return
+			}
+			ents = append(ents, obj.(*structs.DirEntry))
+		}
+	}()
+	if err := snap.KVSDump(streamCh); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	<-doneCh
 	if len(ents) != 2 {
 		t.Fatalf("missing KVS entries!")
 	}
@@ -661,7 +677,23 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 
 	// Check we have the entries
-	ents = snap.KVSDump()
+	streamCh = make(chan interface{}, 64)
+	doneCh = make(chan struct{})
+	ents = nil
+	go func() {
+		for {
+			obj := <-streamCh
+			if obj == nil {
+				close(doneCh)
+				return
+			}
+			ents = append(ents, obj.(*structs.DirEntry))
+		}
+	}()
+	if err := snap.KVSDump(streamCh); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	<-doneCh
 	if len(ents) != 2 {
 		t.Fatalf("missing KVS entries!")
 	}

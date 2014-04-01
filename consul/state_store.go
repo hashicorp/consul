@@ -923,16 +923,9 @@ func (s *StateSnapshot) NodeChecks(node string) structs.HealthChecks {
 	return checks
 }
 
-// KVSDump is used to list all KV entries
-func (s *StateSnapshot) KVSDump() structs.DirEntries {
-	res, err := s.store.kvsTable.GetTxn(s.tx, "id")
-	if err != nil {
-		s.store.logger.Printf("[ERR] consul.state: Failed to get KVS entries: %v", err)
-		return nil
-	}
-	ents := make(structs.DirEntries, len(res))
-	for idx, r := range res {
-		ents[idx] = r.(*structs.DirEntry)
-	}
-	return ents
+// KVSDump is used to list all KV entries. It takes a channel and streams
+// back *struct.DirEntry objects. This will block and should be invoked
+// in a goroutine.
+func (s *StateSnapshot) KVSDump(stream chan<- interface{}) error {
+	return s.store.kvsTable.StreamTxn(stream, s.tx, "id")
 }

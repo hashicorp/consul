@@ -290,11 +290,30 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 	nodes = nil
 
 	// Dump the KVS entries
-	dirents := s.state.KVSDump()
-	for _, ent := range dirents {
-		// Register the node itself
-		sink.Write([]byte{byte(structs.KVSRequestType)})
-		if err := encoder.Encode(ent); err != nil {
+	streamCh := make(chan interface{}, 256)
+	errorCh := make(chan error)
+	go func() {
+		if err := s.state.KVSDump(streamCh); err != nil {
+			errorCh <- err
+		}
+	}()
+
+OUTER:
+	for {
+		select {
+		case raw := <-streamCh:
+			if raw == nil {
+				break OUTER
+			}
+			ent := raw.(*structs.DirEntry)
+
+			sink.Write([]byte{byte(structs.KVSRequestType)})
+			if err := encoder.Encode(ent); err != nil {
+				sink.Cancel()
+				return err
+			}
+
+		case err := <-errorCh:
 			sink.Cancel()
 			return err
 		}
