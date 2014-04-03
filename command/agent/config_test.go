@@ -197,7 +197,7 @@ func TestDecodeConfig(t *testing.T) {
 
 func TestDecodeConfig_Service(t *testing.T) {
 	// Basics
-	input := `{"service": {"id": "red1", "name": "redis", "tag": "master", "port":8000, "check": {"script": "/bin/check_redis", "interval": "10s", "ttl": "15s" }}}`
+	input := `{"service": {"id": "red1", "name": "redis", "tags": ["master"], "port":8000, "check": {"script": "/bin/check_redis", "interval": "10s", "ttl": "15s" }}}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -216,7 +216,7 @@ func TestDecodeConfig_Service(t *testing.T) {
 		t.Fatalf("bad: %v", serv)
 	}
 
-	if serv.Tag != "master" {
+	if !strContains(serv.Tags, "master") {
 		t.Fatalf("bad: %v", serv)
 	}
 

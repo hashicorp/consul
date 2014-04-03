@@ -219,7 +219,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tag:     "master",
+			Tags:    []string{"master"},
 			Port:    12345,
 		},
 	}
@@ -279,7 +279,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tag:     "master",
+			Tags:    []string{"master"},
 			Port:    12345,
 		},
 	}
@@ -295,7 +295,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db2",
 			Service: "db",
-			Tag:     "slave",
+			Tags:    []string{"slave"},
 			Port:    12345,
 		},
 	}
@@ -310,7 +310,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db3",
 			Service: "db",
-			Tag:     "slave",
+			Tags:    []string{"slave"},
 			Port:    12346,
 		},
 	}
@@ -355,7 +355,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tag:     "master",
+			Tags:    []string{"master"},
 			Port:    12345,
 		},
 	}
@@ -371,7 +371,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db2",
 			Service: "db",
-			Tag:     "slave",
+			Tags:    []string{"slave"},
 			Port:    12345,
 		},
 	}
@@ -386,7 +386,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db3",
 			Service: "db",
-			Tag:     "slave",
+			Tags:    []string{"slave"},
 			Port:    12346,
 		},
 	}
@@ -482,7 +482,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tag:     "master",
+			Tags:    []string{"master"},
 			Port:    12345,
 		},
 		Check: &structs.HealthCheck{
@@ -502,7 +502,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 		Address:    "127.0.0.2",
 		Service: &structs.NodeService{
 			Service: "db",
-			Tag:     "master",
+			Tags:    []string{"master"},
 			Port:    12345,
 		},
 		Check: &structs.HealthCheck{

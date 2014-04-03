@@ -249,7 +249,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "api",
-			Tag:     "a",
+			Tags:    []string{"a"},
 		},
 	}
 	var out struct{}
@@ -293,7 +293,7 @@ func TestCatalogNodeServices(t *testing.T) {
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
 			Service: "api",
-			Tag:     "a",
+			Tags:    []string{"a"},
 		},
 	}
 	var out struct{}
