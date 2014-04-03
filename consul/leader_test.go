@@ -208,6 +208,44 @@ func TestLeader_ReapMember(t *testing.T) {
 	}
 }
 
+func TestLeader_Reconcile_ReapMember(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	// Wait until we have a leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Register a non-existing member
+	dead := structs.RegisterRequest{
+		Datacenter: s1.config.Datacenter,
+		Node:       "no-longer-around",
+		Address:    "127.1.1.1",
+		Check: &structs.HealthCheck{
+			Node:    "no-longer-around",
+			CheckID: SerfCheckID,
+			Name:    SerfCheckName,
+			Status:  structs.HealthCritical,
+		},
+	}
+	var out struct{}
+	if err := s1.RPC("Catalog.Register", &dead, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Force a reconciliation
+	if err := s1.reconcile(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Node should be gone
+	state := s1.fsm.State()
+	_, found, _ := state.GetNode("no-longer-around")
+	if found {
+		t.Fatalf("client registered")
+	}
+}
+
 func TestLeader_Reconcile(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)

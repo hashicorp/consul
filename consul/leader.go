@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"net"
+	"strconv"
 	"time"
 )
 
@@ -102,8 +103,63 @@ WAIT:
 func (s *Server) reconcile() (err error) {
 	defer metrics.MeasureSince([]string{"consul", "leader", "reconcile"}, time.Now())
 	members := s.serfLAN.Members()
+	knownMembers := make(map[string]struct{})
 	for _, member := range members {
 		if err := s.reconcileMember(member); err != nil {
+			return err
+		}
+		knownMembers[member.Name] = struct{}{}
+	}
+
+	// Reconcile any members that have been reaped while we were not the leader
+	return s.reconcileReaped(knownMembers)
+}
+
+// reconcileReaped is used to reconcile nodes that have failed and been reaped
+// from Serf but remain in the catalog. This is done by looking for SerfCheckID
+// in a crticial state that does not correspond to a known Serf member. We generate
+// a "reap" event to cause the node to be cleaned up.
+func (s *Server) reconcileReaped(known map[string]struct{}) error {
+	state := s.fsm.State()
+	_, critical := state.ChecksInState(structs.HealthCritical)
+	for _, check := range critical {
+		// Ignore any non serf checks
+		if check.CheckID != SerfCheckID {
+			continue
+		}
+
+		// Check if this node is "known" by serf
+		if _, ok := known[check.Node]; ok {
+			continue
+		}
+
+		// Create a fake member
+		member := serf.Member{
+			Name: check.Node,
+			Tags: map[string]string{
+				"dc":   s.config.Datacenter,
+				"role": "node",
+			},
+		}
+
+		// Get the node services, look for ConsulServiceID
+		_, services := state.NodeServices(check.Node)
+		serverPort := 0
+		for _, service := range services.Services {
+			if service.ID == ConsulServiceID {
+				serverPort = service.Port
+				break
+			}
+		}
+
+		// Create the appropriate tags if this was a server node
+		if serverPort > 0 {
+			member.Tags["role"] = "consul"
+			member.Tags["port"] = strconv.FormatUint(uint64(serverPort), 10)
+		}
+
+		// Attempt to reap this member
+		if err := s.handleReapMember(member); err != nil {
 			return err
 		}
 	}
