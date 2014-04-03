@@ -105,7 +105,7 @@ type ServiceNode struct {
 	Address     string
 	ServiceID   string
 	ServiceName string
-	ServiceTag  string
+	ServiceTags []string
 	ServicePort int
 }
 type ServiceNodes []ServiceNode
@@ -114,7 +114,7 @@ type ServiceNodes []ServiceNode
 type NodeService struct {
 	ID      string
 	Service string
-	Tag     string
+	Tags    []string
 	Port    int
 }
 type NodeServices struct {
