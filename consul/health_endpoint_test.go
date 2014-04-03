@@ -160,7 +160,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tag:     "master",
+			Tags:    []string{"master"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -180,7 +180,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tag:     "slave",
+			Tags:    []string{"slave"},
 		},
 		Check: &structs.HealthCheck{
 			Name:      "db connect",
@@ -213,10 +213,10 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	if nodes[1].Node.Node != "bar" {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
-	if nodes[0].Service.Tag != "master" {
+	if !strContains(nodes[0].Service.Tags, "master") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if nodes[1].Service.Tag != "slave" {
+	if !strContains(nodes[1].Service.Tags, "slave") {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
 	if nodes[0].Checks[0].Status != structs.HealthPassing {

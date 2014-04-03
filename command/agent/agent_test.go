@@ -108,7 +108,7 @@ func TestAgent_AddService(t *testing.T) {
 	srv := &structs.NodeService{
 		ID:      "redis",
 		Service: "redis",
-		Tag:     "foo",
+		Tags:    []string{"foo"},
 		Port:    8000,
 	}
 	chk := &CheckType{TTL: time.Minute}

@@ -8,7 +8,7 @@ import (
 type ServiceDefinition struct {
 	ID    string
 	Name  string
-	Tag   string
+	Tags  []string
 	Port  int
 	Check CheckType
 }
@@ -17,7 +17,7 @@ func (s *ServiceDefinition) NodeService() *structs.NodeService {
 	ns := &structs.NodeService{
 		ID:      s.ID,
 		Service: s.Name,
-		Tag:     s.Tag,
+		Tags:    s.Tags,
 		Port:    s.Port,
 	}
 	if ns.ID == "" && ns.Service != "" {

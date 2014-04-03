@@ -29,7 +29,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
-		Tag:     "master",
+		Tags:    []string{"master"},
 		Port:    5000,
 	}
 	agent.state.AddService(srv1)
@@ -42,7 +42,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	srv2 := &structs.NodeService{
 		ID:      "redis",
 		Service: "redis",
-		Tag:     "",
+		Tags:    nil,
 		Port:    8000,
 	}
 	agent.state.AddService(srv2)
@@ -59,7 +59,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	srv3 := &structs.NodeService{
 		ID:      "web",
 		Service: "web",
-		Tag:     "",
+		Tags:    nil,
 		Port:    80,
 	}
 	agent.state.AddService(srv3)
@@ -68,7 +68,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	srv4 := &structs.NodeService{
 		ID:      "lb",
 		Service: "lb",
-		Tag:     "",
+		Tags:    nil,
 		Port:    443,
 	}
 	args.Service = srv4

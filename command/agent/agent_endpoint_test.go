@@ -19,7 +19,7 @@ func TestHTTPAgentServices(t *testing.T) {
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
-		Tag:     "master",
+		Tags:    []string{"master"},
 		Port:    5000,
 	}
 	srv.agent.state.AddService(srv1)
@@ -394,7 +394,7 @@ func TestHTTPAgentRegisterService(t *testing.T) {
 	}
 	args := &ServiceDefinition{
 		Name: "test",
-		Tag:  "master",
+		Tags: []string{"master"},
 		Port: 8000,
 		Check: CheckType{
 			TTL: 15 * time.Second,

@@ -186,6 +186,14 @@ func DecodeServiceDefinition(raw interface{}) (*ServiceDefinition, error) {
 	if !ok {
 		goto AFTER_FIX
 	}
+
+	// If no 'tags', handle the deprecated 'tag' value.
+	if _, ok := rawMap["tags"]; !ok {
+		if tag, ok := rawMap["tag"]; ok {
+			rawMap["tags"] = []interface{}{tag}
+		}
+	}
+
 	sub, ok = rawMap["check"]
 	if !ok {
 		goto AFTER_FIX

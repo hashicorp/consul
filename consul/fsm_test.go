@@ -85,7 +85,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tag:     "master",
+			Tags:    []string{"master"},
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
@@ -138,7 +138,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tag:     "master",
+			Tags:    []string{"master"},
 			Port:    8000,
 		},
 	}
@@ -248,7 +248,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 		Service: &structs.NodeService{
 			ID:      "db",
 			Service: "db",
-			Tag:     "master",
+			Tags:    []string{"master"},
 			Port:    8000,
 		},
 		Check: &structs.HealthCheck{
@@ -311,10 +311,10 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	// Add some state
 	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
 	fsm.state.EnsureNode(2, structs.Node{"baz", "127.0.0.2"})
-	fsm.state.EnsureService(3, "foo", &structs.NodeService{"web", "web", "", 80})
-	fsm.state.EnsureService(4, "foo", &structs.NodeService{"db", "db", "primary", 5000})
-	fsm.state.EnsureService(5, "baz", &structs.NodeService{"web", "web", "", 80})
-	fsm.state.EnsureService(6, "baz", &structs.NodeService{"db", "db", "secondary", 5000})
+	fsm.state.EnsureService(3, "foo", &structs.NodeService{"web", "web", nil, 80})
+	fsm.state.EnsureService(4, "foo", &structs.NodeService{"db", "db", []string{"primary"}, 5000})
+	fsm.state.EnsureService(5, "baz", &structs.NodeService{"web", "web", nil, 80})
+	fsm.state.EnsureService(6, "baz", &structs.NodeService{"db", "db", []string{"secondary"}, 5000})
 	fsm.state.EnsureCheck(7, &structs.HealthCheck{
 		Node:      "foo",
 		CheckID:   "web",
@@ -363,7 +363,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	if len(fooSrv.Services) != 2 {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
-	if fooSrv.Services["db"].Tag != "primary" {
+	if !strContains(fooSrv.Services["db"].Tags, "primary") {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
 	if fooSrv.Services["db"].Port != 5000 {

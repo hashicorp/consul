@@ -29,3 +29,13 @@ func aeScale(interval time.Duration, n int) time.Duration {
 func randomStagger(intv time.Duration) time.Duration {
 	return time.Duration(uint64(rand.Int63()) % uint64(intv))
 }
+
+// strContains checks if a list contains a string
+func strContains(l []string, s string) bool {
+	for _, v := range l {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
