@@ -18,6 +18,7 @@ type MessageType uint8
 const (
 	RegisterRequestType MessageType = iota
 	DeregisterRequestType
+	KVSRequestType
 )
 
 const (
@@ -170,6 +171,45 @@ type IndexedHealthChecks struct {
 type IndexedCheckServiceNodes struct {
 	Index uint64
 	Nodes CheckServiceNodes
+}
+
+// DirEntry is used to represent a directory entry. This is
+// used for values in our Key-Value store.
+type DirEntry struct {
+	CreateIndex uint64
+	ModifyIndex uint64
+	Key         string
+	Flags       uint64
+	Value       []byte
+}
+type DirEntries []*DirEntry
+
+type KVSOp string
+
+const (
+	KVSSet        KVSOp = "set"
+	KVSDelete           = "delete"
+	KVSDeleteTree       = "delete-tree"
+	KVSCAS              = "cas" // Check-and-set
+)
+
+// KVSRequest is used to operate on the Key-Value store
+type KVSRequest struct {
+	Datacenter string
+	Op         KVSOp    // Which operation are we performing
+	DirEnt     DirEntry // Which directory entry
+}
+
+// KeyRequest is used to request a key, or key prefix
+type KeyRequest struct {
+	Datacenter string
+	Key        string
+	BlockingQuery
+}
+
+type IndexedDirEntries struct {
+	Index   uint64
+	Entries DirEntries
 }
 
 // Decode is used to decode a MsgPack encoded object

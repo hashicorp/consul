@@ -322,6 +322,10 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		Status:    structs.HealthPassing,
 		ServiceID: "web",
 	})
+	fsm.state.KVSSet(8, &structs.DirEntry{
+		Key:   "/test",
+		Value: []byte("foo"),
+	})
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -369,5 +373,199 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	_, checks := fsm2.state.NodeChecks("foo")
 	if len(checks) != 1 {
 		t.Fatalf("Bad: %v", checks)
+	}
+
+	// Verify key is set
+	_, d, err := fsm.state.KVSGet("/test")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if string(d.Value) != "foo" {
+		t.Fatalf("bad: %v", d)
+	}
+}
+
+func TestFSM_KVSSet(t *testing.T) {
+	fsm, err := NewFSM(os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	req := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "/test/path",
+			Flags: 0,
+			Value: []byte("test"),
+		},
+	}
+	buf, err := structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify key is set
+	_, d, err := fsm.state.KVSGet("/test/path")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if d == nil {
+		t.Fatalf("missing")
+	}
+}
+
+func TestFSM_KVSDelete(t *testing.T) {
+	fsm, err := NewFSM(os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	req := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "/test/path",
+			Flags: 0,
+			Value: []byte("test"),
+		},
+	}
+	buf, err := structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Run the delete
+	req.Op = structs.KVSDelete
+	buf, err = structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify key is not set
+	_, d, err := fsm.state.KVSGet("/test/path")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if d != nil {
+		t.Fatalf("key present")
+	}
+}
+
+func TestFSM_KVSDeleteTree(t *testing.T) {
+	fsm, err := NewFSM(os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	req := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "/test/path",
+			Flags: 0,
+			Value: []byte("test"),
+		},
+	}
+	buf, err := structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Run the delete tree
+	req.Op = structs.KVSDeleteTree
+	req.DirEnt.Key = "/test"
+	buf, err = structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify key is not set
+	_, d, err := fsm.state.KVSGet("/test/path")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if d != nil {
+		t.Fatalf("key present")
+	}
+}
+
+func TestFSM_KVSCheckAndSet(t *testing.T) {
+	fsm, err := NewFSM(os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	req := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "/test/path",
+			Flags: 0,
+			Value: []byte("test"),
+		},
+	}
+	buf, err := structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify key is set
+	_, d, err := fsm.state.KVSGet("/test/path")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if d == nil {
+		t.Fatalf("key missing")
+	}
+
+	// Run the check-and-set
+	req.Op = structs.KVSCAS
+	req.DirEnt.ModifyIndex = d.ModifyIndex
+	req.DirEnt.Value = []byte("zip")
+	buf, err = structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	if resp.(bool) != true {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify key is updated
+	_, d, err = fsm.state.KVSGet("/test/path")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if string(d.Value) != "zip" {
+		t.Fatalf("bad: %v", d)
 	}
 }

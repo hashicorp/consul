@@ -550,6 +550,16 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("err: %v")
 	}
 
+	// Add some KVS entries
+	d := &structs.DirEntry{Key: "/web/a", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(14, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/b", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(15, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	// Take a snapshot
 	snap, err := store.Snapshot()
 	if err != nil {
@@ -558,7 +568,7 @@ func TestStoreSnapshot(t *testing.T) {
 	defer snap.Close()
 
 	// Check the last nodes
-	if idx := snap.LastIndex(); idx != 13 {
+	if idx := snap.LastIndex(); idx != 15 {
 		t.Fatalf("bad: %v", idx)
 	}
 
@@ -591,6 +601,28 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("bad: %v", checks[0])
 	}
 
+	// Check we have the entries
+	streamCh := make(chan interface{}, 64)
+	doneCh := make(chan struct{})
+	var ents []*structs.DirEntry
+	go func() {
+		for {
+			obj := <-streamCh
+			if obj == nil {
+				close(doneCh)
+				return
+			}
+			ents = append(ents, obj.(*structs.DirEntry))
+		}
+	}()
+	if err := snap.KVSDump(streamCh); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	<-doneCh
+	if len(ents) != 2 {
+		t.Fatalf("missing KVS entries!")
+	}
+
 	// Make some changes!
 	if err := store.EnsureService(14, "foo", &structs.NodeService{"db", "db", "slave", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
@@ -609,6 +641,10 @@ func TestStoreSnapshot(t *testing.T) {
 		ServiceID: "db",
 	}
 	if err := store.EnsureCheck(17, checkAfter); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.KVSDelete(18, "/web/a"); err != nil {
 		t.Fatalf("err: %v")
 	}
 
@@ -638,6 +674,28 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 	if !reflect.DeepEqual(checks[0], check) {
 		t.Fatalf("bad: %v", checks[0])
+	}
+
+	// Check we have the entries
+	streamCh = make(chan interface{}, 64)
+	doneCh = make(chan struct{})
+	ents = nil
+	go func() {
+		for {
+			obj := <-streamCh
+			if obj == nil {
+				close(doneCh)
+				return
+			}
+			ents = append(ents, obj.(*structs.DirEntry))
+		}
+	}()
+	if err := snap.KVSDump(streamCh); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	<-doneCh
+	if len(ents) != 2 {
+		t.Fatalf("missing KVS entries!")
 	}
 }
 
@@ -931,5 +989,281 @@ func TestSS_Register_Deregister_Query(t *testing.T) {
 	}
 	if len(nodes) != 0 {
 		t.Fatalf("Bad: %v", nodes)
+	}
+}
+
+func TestKVSSet_Get(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Should not exist
+	idx, d, err := store.KVSGet("/foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if d != nil {
+		t.Fatalf("bad: %v", d)
+	}
+
+	// Create the entry
+	d = &structs.DirEntry{Key: "/foo", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should exist exist
+	idx, d, err = store.KVSGet("/foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1000 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if d.CreateIndex != 1000 {
+		t.Fatalf("bad: %v", d)
+	}
+	if d.ModifyIndex != 1000 {
+		t.Fatalf("bad: %v", d)
+	}
+	if d.Key != "/foo" {
+		t.Fatalf("bad: %v", d)
+	}
+	if d.Flags != 42 {
+		t.Fatalf("bad: %v", d)
+	}
+	if string(d.Value) != "test" {
+		t.Fatalf("bad: %v", d)
+	}
+
+	// Update the entry
+	d = &structs.DirEntry{Key: "/foo", Flags: 43, Value: []byte("zip")}
+	if err := store.KVSSet(1010, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should update
+	idx, d, err = store.KVSGet("/foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1010 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if d.CreateIndex != 1000 {
+		t.Fatalf("bad: %v", d)
+	}
+	if d.ModifyIndex != 1010 {
+		t.Fatalf("bad: %v", d)
+	}
+	if d.Key != "/foo" {
+		t.Fatalf("bad: %v", d)
+	}
+	if d.Flags != 43 {
+		t.Fatalf("bad: %v", d)
+	}
+	if string(d.Value) != "zip" {
+		t.Fatalf("bad: %v", d)
+	}
+}
+
+func TestKVSDelete(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Create the entry
+	d := &structs.DirEntry{Key: "/foo", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Delete the entry
+	if err := store.KVSDelete(1020, "/foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should not exist
+	idx, d, err := store.KVSGet("/foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1020 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if d != nil {
+		t.Fatalf("bad: %v", d)
+	}
+}
+
+func TestKVSCheckAndSet(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// CAS should fail, no entry
+	d := &structs.DirEntry{
+		ModifyIndex: 100,
+		Key:         "/foo",
+		Flags:       42,
+		Value:       []byte("test"),
+	}
+	ok, err := store.KVSCheckAndSet(1000, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("unexpected commit")
+	}
+
+	// Constrain on not-exist, should work
+	d.ModifyIndex = 0
+	ok, err = store.KVSCheckAndSet(1001, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("expected commit")
+	}
+
+	// Constrain on not-exist, should fail
+	d.ModifyIndex = 0
+	ok, err = store.KVSCheckAndSet(1002, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("unexpected commit")
+	}
+
+	// Constrain on a wrong modify time
+	d.ModifyIndex = 1000
+	ok, err = store.KVSCheckAndSet(1003, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("unexpected commit")
+	}
+
+	// Constrain on a correct modify time
+	d.ModifyIndex = 1001
+	ok, err = store.KVSCheckAndSet(1004, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("expected commit")
+	}
+}
+
+func TestKVS_List(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Should not exist
+	idx, ents, err := store.KVSList("/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(ents) != 0 {
+		t.Fatalf("bad: %v", ents)
+	}
+
+	// Create the entries
+	d := &structs.DirEntry{Key: "/web/a", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/b", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1001, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/sub/c", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1002, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should list
+	idx, ents, err = store.KVSList("/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1002 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(ents) != 3 {
+		t.Fatalf("bad: %v", ents)
+	}
+
+	if ents[0].Key != "/web/a" {
+		t.Fatalf("bad: %v", ents[0])
+	}
+	if ents[1].Key != "/web/b" {
+		t.Fatalf("bad: %v", ents[1])
+	}
+	if ents[2].Key != "/web/sub/c" {
+		t.Fatalf("bad: %v", ents[2])
+	}
+}
+
+func TestKVSDeleteTree(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Should not exist
+	err = store.KVSDeleteTree(1000, "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create the entries
+	d := &structs.DirEntry{Key: "/web/a", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/b", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1001, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/sub/c", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1002, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nuke the web tree
+	err = store.KVSDeleteTree(1010, "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nothing should list
+	idx, ents, err := store.KVSList("/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1010 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(ents) != 0 {
+		t.Fatalf("bad: %v", ents)
 	}
 }

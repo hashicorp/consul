@@ -101,6 +101,7 @@ type endpoints struct {
 	Health  *Health
 	Raft    *Raft
 	Status  *Status
+	KVS     *KVS
 }
 
 // NewServer is used to construct a new Consul server from the
@@ -276,12 +277,14 @@ func (s *Server) setupRPC() error {
 	s.endpoints.Raft = &Raft{s}
 	s.endpoints.Catalog = &Catalog{s}
 	s.endpoints.Health = &Health{s}
+	s.endpoints.KVS = &KVS{s}
 
 	// Register the handlers
 	s.rpcServer.Register(s.endpoints.Status)
 	s.rpcServer.Register(s.endpoints.Raft)
 	s.rpcServer.Register(s.endpoints.Catalog)
 	s.rpcServer.Register(s.endpoints.Health)
+	s.rpcServer.Register(s.endpoints.KVS)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {

@@ -781,3 +781,194 @@ func TestMDBTableDelete_Prefix(t *testing.T) {
 		t.Fatalf("expect 2 result: %#v", res)
 	}
 }
+
+func TestMDBTableVirtualIndex(t *testing.T) {
+	dir, env := testMDBEnv(t)
+	defer os.RemoveAll(dir)
+	defer env.Close()
+
+	table := &MDBTable{
+		Env:  env,
+		Name: "test",
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"First"},
+			},
+			"id_prefix": &MDBIndex{
+				Virtual:   true,
+				RealIndex: "id",
+				Fields:    []string{"First"},
+				IdxFunc:   DefaultIndexPrefixFunc,
+			},
+		},
+		Encoder: MockEncoder,
+		Decoder: MockDecoder,
+	}
+	if err := table.Init(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if table.lastRowID != 0 {
+		t.Fatalf("bad last row id: %d", table.lastRowID)
+	}
+
+	objs := []*MockData{
+		&MockData{
+			Key:     "1",
+			First:   "Jack",
+			Last:    "Smith",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "2",
+			First:   "John",
+			Last:    "Wang",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "3",
+			First:   "James",
+			Last:    "Torres",
+			Country: "Mexico",
+		},
+	}
+
+	// Insert some mock objects
+	for idx, obj := range objs {
+		if err := table.Insert(obj); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if err := table.SetLastIndex(uint64(4 * idx)); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	if table.lastRowID != 3 {
+		t.Fatalf("bad last row id: %d", table.lastRowID)
+	}
+
+	if idx, _ := table.LastIndex(); idx != 8 {
+		t.Fatalf("bad last idx: %d", idx)
+	}
+
+	_, res, err := table.Get("id_prefix", "J")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 3 {
+		t.Fatalf("expect 3 result: %#v", res)
+	}
+
+	_, res, err = table.Get("id_prefix", "Ja")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 2 {
+		t.Fatalf("expect 2 result: %#v", res)
+	}
+
+	num, err := table.Delete("id_prefix", "Ja")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if num != 2 {
+		t.Fatalf("expect 2 result: %#v", num)
+	}
+
+	_, res, err = table.Get("id_prefix", "J")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 1 {
+		t.Fatalf("expect 1 result: %#v", res)
+	}
+}
+
+func TestMDBTableStream(t *testing.T) {
+	dir, env := testMDBEnv(t)
+	defer os.RemoveAll(dir)
+	defer env.Close()
+
+	table := &MDBTable{
+		Env:  env,
+		Name: "test",
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Key"},
+			},
+			"name": &MDBIndex{
+				Fields: []string{"First", "Last"},
+			},
+			"country": &MDBIndex{
+				Fields: []string{"Country"},
+			},
+		},
+		Encoder: MockEncoder,
+		Decoder: MockDecoder,
+	}
+	if err := table.Init(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	objs := []*MockData{
+		&MockData{
+			Key:     "1",
+			First:   "Kevin",
+			Last:    "Smith",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "2",
+			First:   "Kevin",
+			Last:    "Wang",
+			Country: "USA",
+		},
+		&MockData{
+			Key:     "3",
+			First:   "Bernardo",
+			Last:    "Torres",
+			Country: "Mexico",
+		},
+	}
+
+	// Insert some mock objects
+	for idx, obj := range objs {
+		if err := table.Insert(obj); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if err := table.SetLastIndex(uint64(idx + 1)); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Start a readonly txn
+	tx, err := table.StartTxn(true, nil)
+	if err != nil {
+		panic(err)
+	}
+	defer tx.Abort()
+
+	// Stream the records
+	streamCh := make(chan interface{})
+	go func() {
+		if err := table.StreamTxn(streamCh, tx, "id"); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	// Verify we get them all
+	idx := 0
+	for obj := range streamCh {
+		p := obj.(*MockData)
+		if !reflect.DeepEqual(p, objs[idx]) {
+			t.Fatalf("bad: %#v %#v", p, objs[idx])
+		}
+		idx++
+	}
+
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+}

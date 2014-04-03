@@ -14,7 +14,8 @@ const (
 	dbNodes      = "nodes"
 	dbServices   = "services"
 	dbChecks     = "checks"
-	dbMaxMapSize = 128 * 1024 * 1024 // 128MB maximum size
+	dbKVS        = "kvs"
+	dbMaxMapSize = 512 * 1024 * 1024 // 512MB maximum size
 )
 
 // The StateStore is responsible for maintaining all the Consul
@@ -31,6 +32,7 @@ type StateStore struct {
 	nodeTable    *MDBTable
 	serviceTable *MDBTable
 	checkTable   *MDBTable
+	kvsTable     *MDBTable
 	tables       MDBTables
 	watch        map[*MDBTable]*NotifyGroup
 	queryTables  map[string]MDBTables
@@ -183,8 +185,31 @@ func (s *StateStore) initialize() error {
 		},
 	}
 
+	s.kvsTable = &MDBTable{
+		Name: dbKVS,
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Key"},
+			},
+			"id_prefix": &MDBIndex{
+				Virtual:   true,
+				RealIndex: "id",
+				Fields:    []string{"Key"},
+				IdxFunc:   DefaultIndexPrefixFunc,
+			},
+		},
+		Decoder: func(buf []byte) interface{} {
+			out := new(structs.DirEntry)
+			if err := structs.Decode(buf, out); err != nil {
+				panic(err)
+			}
+			return out
+		},
+	}
+
 	// Store the set of tables
-	s.tables = []*MDBTable{s.nodeTable, s.serviceTable, s.checkTable}
+	s.tables = []*MDBTable{s.nodeTable, s.serviceTable, s.checkTable, s.kvsTable}
 	for _, table := range s.tables {
 		table.Env = s.env
 		table.Encoder = encoder
@@ -206,6 +231,8 @@ func (s *StateStore) initialize() error {
 		"NodeChecks":        MDBTables{s.checkTable},
 		"ServiceChecks":     MDBTables{s.checkTable},
 		"CheckServiceNodes": MDBTables{s.nodeTable, s.serviceTable, s.checkTable},
+		"KVSGet":            MDBTables{s.kvsTable},
+		"KVSList":           MDBTables{s.kvsTable},
 	}
 	return nil
 }
@@ -686,6 +713,159 @@ func (s *StateStore) parseCheckServiceNodes(tx *MDBTxn, res []interface{}, err e
 	return nodes
 }
 
+// KVSSet is used to create or update a KV entry
+func (s *StateStore) KVSSet(index uint64, d *structs.DirEntry) error {
+	// Start a new txn
+	tx, err := s.kvsTable.StartTxn(false, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Abort()
+
+	// Get the existing node
+	res, err := s.kvsTable.GetTxn(tx, "id", d.Key)
+	if err != nil {
+		return err
+	}
+
+	// Set the create and modify times
+	if len(res) == 0 {
+		d.CreateIndex = index
+	} else {
+		d.CreateIndex = res[0].(*structs.DirEntry).CreateIndex
+	}
+	d.ModifyIndex = index
+
+	if err := s.kvsTable.InsertTxn(tx, d); err != nil {
+		return err
+	}
+	if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
+		return err
+	}
+	defer s.watch[s.kvsTable].Notify()
+	return tx.Commit()
+}
+
+// KVSRestore is used to restore a DirEntry. It should only be used when
+// doing a restore, otherwise KVSSet should be used.
+func (s *StateStore) KVSRestore(d *structs.DirEntry) error {
+	// Start a new txn
+	tx, err := s.kvsTable.StartTxn(false, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Abort()
+
+	if err := s.kvsTable.InsertTxn(tx, d); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// KVSGet is used to get a KV entry
+func (s *StateStore) KVSGet(key string) (uint64, *structs.DirEntry, error) {
+	idx, res, err := s.kvsTable.Get("id", key)
+	var d *structs.DirEntry
+	if len(res) > 0 {
+		d = res[0].(*structs.DirEntry)
+	}
+	return idx, d, err
+}
+
+// KVSList is used to list all KV entries with a prefix
+func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) {
+	idx, res, err := s.kvsTable.Get("id_prefix", prefix)
+	ents := make(structs.DirEntries, len(res))
+	for idx, r := range res {
+		ents[idx] = r.(*structs.DirEntry)
+	}
+	return idx, ents, err
+}
+
+// KVSDelete is used to delete a KVS entry
+func (s *StateStore) KVSDelete(index uint64, key string) error {
+	return s.kvsDeleteWithIndex(index, "id", key)
+}
+
+// KVSDeleteTree is used to delete all keys with a given prefix
+func (s *StateStore) KVSDeleteTree(index uint64, prefix string) error {
+	if prefix == "" {
+		return s.kvsDeleteWithIndex(index, "id")
+	}
+	return s.kvsDeleteWithIndex(index, "id_prefix", prefix)
+}
+
+// kvsDeleteWithIndex does a delete with either the id or id_prefix
+func (s *StateStore) kvsDeleteWithIndex(index uint64, tableIndex string, parts ...string) error {
+	// Start a new txn
+	tx, err := s.kvsTable.StartTxn(false, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Abort()
+
+	num, err := s.kvsTable.DeleteTxn(tx, tableIndex, parts...)
+	if err != nil {
+		return err
+	}
+
+	if num > 0 {
+		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
+		defer s.watch[s.kvsTable].Notify()
+	}
+	return tx.Commit()
+}
+
+// KVSCheckAndSet is used to perform an atomic check-and-set
+func (s *StateStore) KVSCheckAndSet(index uint64, d *structs.DirEntry) (bool, error) {
+	// Start a new txn
+	tx, err := s.kvsTable.StartTxn(false, nil)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Abort()
+
+	// Get the existing node
+	res, err := s.kvsTable.GetTxn(tx, "id", d.Key)
+	if err != nil {
+		return false, err
+	}
+
+	// Get the existing node if any
+	var exist *structs.DirEntry
+	if len(res) > 0 {
+		exist = res[0].(*structs.DirEntry)
+	}
+
+	// Use the ModifyIndex as the constraint. A modify of time of 0
+	// means we are doing a set-if-not-exists, while any other value
+	// means we expect that modify time.
+	if d.ModifyIndex == 0 && exist != nil {
+		return false, nil
+	} else if d.ModifyIndex > 0 && (exist == nil || exist.ModifyIndex != d.ModifyIndex) {
+		return false, nil
+	}
+
+	// Set the create and modify times
+	if exist == nil {
+		d.CreateIndex = index
+	} else {
+		d.CreateIndex = exist.CreateIndex
+	}
+	d.ModifyIndex = index
+
+	if err := s.kvsTable.InsertTxn(tx, d); err != nil {
+		return false, err
+	}
+	if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
+		return false, err
+	}
+	defer s.watch[s.kvsTable].Notify()
+	return true, tx.Commit()
+}
+
 // Snapshot is used to create a point in time snapshot
 func (s *StateStore) Snapshot() (*StateSnapshot, error) {
 	// Begin a new txn on all tables
@@ -741,4 +921,11 @@ func (s *StateSnapshot) NodeChecks(node string) structs.HealthChecks {
 	res, err := s.store.checkTable.GetTxn(s.tx, "id", node)
 	_, checks := s.store.parseHealthChecks(s.lastIndex, res, err)
 	return checks
+}
+
+// KVSDump is used to list all KV entries. It takes a channel and streams
+// back *struct.DirEntry objects. This will block and should be invoked
+// in a goroutine.
+func (s *StateSnapshot) KVSDump(stream chan<- interface{}) error {
+	return s.store.kvsTable.StreamTxn(stream, s.tx, "id")
 }
