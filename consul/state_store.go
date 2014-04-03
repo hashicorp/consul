@@ -145,7 +145,7 @@ func (s *StateStore) initialize() error {
 			},
 			"service": &MDBIndex{
 				AllowBlank: true,
-				Fields:     []string{"ServiceName", "ServiceTag"},
+				Fields:     []string{"ServiceName"},
 			},
 		},
 		Decoder: func(buf []byte) interface{} {
@@ -318,7 +318,7 @@ func (s *StateStore) EnsureService(index uint64, node string, ns *structs.NodeSe
 		Node:        node,
 		ServiceID:   ns.ID,
 		ServiceName: ns.Service,
-		ServiceTag:  ns.Tag,
+		ServiceTags: ns.Tags,
 		ServicePort: ns.Port,
 	}
 
@@ -382,7 +382,7 @@ func (s *StateStore) parseNodeServices(tables MDBTables, tx *MDBTxn, name string
 		srv := &structs.NodeService{
 			ID:      service.ServiceID,
 			Service: service.ServiceName,
-			Tag:     service.ServiceTag,
+			Tags:    service.ServiceTags,
 			Port:    service.ServicePort,
 		}
 		ns.Services[srv.ID] = srv
@@ -456,8 +456,6 @@ func (s *StateStore) DeleteNode(index uint64, node string) error {
 
 // Services is used to return all the services with a list of associated tags
 func (s *StateStore) Services() (uint64, map[string][]string) {
-	// TODO: Optimize to not table scan.. We can do a distinct
-	// type of query to avoid this
 	services := make(map[string][]string)
 	idx, res, err := s.serviceTable.Get("id")
 	if err != nil {
@@ -466,11 +464,16 @@ func (s *StateStore) Services() (uint64, map[string][]string) {
 	}
 	for _, r := range res {
 		srv := r.(*structs.ServiceNode)
-
-		tags := services[srv.ServiceName]
-		if !strContains(tags, srv.ServiceTag) {
-			tags = append(tags, srv.ServiceTag)
+		tags, ok := services[srv.ServiceName]
+		if !ok {
 			services[srv.ServiceName] = tags
+		}
+
+		for _, tag := range srv.ServiceTags {
+			if !strContains(tags, tag) {
+				tags = append(tags, tag)
+				services[srv.ServiceName] = tags
+			}
 		}
 	}
 	return idx, services
@@ -508,8 +511,24 @@ func (s *StateStore) ServiceTagNodes(service, tag string) (uint64, structs.Servi
 		panic(fmt.Errorf("Failed to get last index: %v", err))
 	}
 
-	res, err := s.serviceTable.GetTxn(tx, "service", service, tag)
+	res, err := s.serviceTable.GetTxn(tx, "service", service)
+	res = serviceTagFilter(res, tag)
 	return idx, s.parseServiceNodes(tx, s.nodeTable, res, err)
+}
+
+// serviceTagFilter is used to filter a list of *structs.ServiceNode which do
+// not have the specified tag
+func serviceTagFilter(l []interface{}, tag string) []interface{} {
+	n := len(l)
+	for i := 0; i < n; i++ {
+		srv := l[i].(*structs.ServiceNode)
+		if !strContains(srv.ServiceTags, tag) {
+			l[i], l[n-1] = l[n-1], nil
+			i--
+			n--
+		}
+	}
+	return l[:n]
 }
 
 // parseServiceNodes parses results ServiceNodes and ServiceTagNodes
@@ -668,7 +687,8 @@ func (s *StateStore) CheckServiceTagNodes(service, tag string) (uint64, structs.
 		panic(fmt.Errorf("Failed to get last index: %v", err))
 	}
 
-	res, err := s.serviceTable.GetTxn(tx, "service", service, tag)
+	res, err := s.serviceTable.GetTxn(tx, "service", service)
+	res = serviceTagFilter(res, tag)
 	return idx, s.parseCheckServiceNodes(tx, res, err)
 }
 
@@ -704,7 +724,7 @@ func (s *StateStore) parseCheckServiceNodes(tx *MDBTxn, res []interface{}, err e
 		nodes[i].Service = structs.NodeService{
 			ID:      srv.ServiceID,
 			Service: srv.ServiceName,
-			Tag:     srv.ServiceTag,
+			Tags:    srv.ServiceTags,
 			Port:    srv.ServicePort,
 		}
 		nodes[i].Checks = checks
