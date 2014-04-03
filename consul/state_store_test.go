@@ -512,6 +512,82 @@ func TestServiceTagNodes(t *testing.T) {
 	}
 }
 
+func TestServiceTagNodes_MultipleTags(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(15, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureNode(16, structs.Node{"bar", "127.0.0.2"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService(17, "foo", &structs.NodeService{"db", "db", []string{"master", "v2"}, 8000}); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService(18, "foo", &structs.NodeService{"db2", "db", []string{"slave", "v2", "dev"}, 8001}); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	if err := store.EnsureService(19, "bar", &structs.NodeService{"db", "db", []string{"slave", "v2"}, 8000}); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	idx, nodes := store.ServiceTagNodes("db", "master")
+	if idx != 19 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Node != "foo" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if !strContains(nodes[0].ServiceTags, "master") {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].ServicePort != 8000 {
+		t.Fatalf("bad: %v", nodes)
+	}
+
+	idx, nodes = store.ServiceTagNodes("db", "v2")
+	if idx != 19 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(nodes) != 3 {
+		t.Fatalf("bad: %v", nodes)
+	}
+
+	idx, nodes = store.ServiceTagNodes("db", "dev")
+	if idx != 19 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Node != "foo" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if !strContains(nodes[0].ServiceTags, "dev") {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].ServicePort != 8001 {
+		t.Fatalf("bad: %v", nodes)
+	}
+}
+
 func TestStoreSnapshot(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
