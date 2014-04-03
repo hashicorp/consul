@@ -20,7 +20,7 @@ A service definition that is a script looks like:
     {
         "service": {
             "name": "redis",
-            "tag": "master",
+            "tags": ["master"],
             "port": 8000,
             "check": {
                 "script": "/usr/local/bin/check_redis.py",
@@ -30,12 +30,12 @@ A service definition that is a script looks like:
     }
 
 A service definition must include a `name`, and may optionally provide
-an `id`, `tag`, `port`, and `check`.  The `id` is set to the `name` if not
+an `id`, `tags`, `port`, and `check`.  The `id` is set to the `name` if not
 provided. It is required that all services have a unique ID, so if names
 might conflict, then unique ID's should be provided.
 
-The `tag` is an opaque value to Consul, but can be used to distinguish
-between "master" or "slave" nodes, or any other service level labels.
+The `tags` is a list of opaque value to Consul, but can be used to distinguish
+between "master" or "slave" nodes, different versions, or any other service level labels.
 The `port` can be used as well to make a service oriented architecture
 simpler to configure. This way the address and port of a service can
 be discovered.

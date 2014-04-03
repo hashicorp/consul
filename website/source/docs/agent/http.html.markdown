@@ -169,7 +169,7 @@ This endpoint is hit with a GET and returns a JSON body like this:
         "redis":{
             "ID":"redis",
             "Service":"redis",
-            "Tag":"",
+            "Tags":[],
             "Port":8000
         }
     }
@@ -301,7 +301,7 @@ body must look like:
     {
         "ID": "redis1",
 	    "Name": "redis",
-	    "Tag": "master",
+	    "Tags": ["master", "v1"],
 	    "Port": 8000,
         "Check": {
             "Script": "/usr/local/bin/check_redis.py",
@@ -312,7 +312,7 @@ body must look like:
 
 The `Name` field is mandatory,  If an `ID` is not provided, it is set to `Name`.
 You cannot have duplicate `ID` entries per agent, so it may be necessary to provide an ID.
-`Tag`, `Port` and `Check` are optional. If `Check` is provided, only one of `Script` and `Interval`
+`Tags`, `Port` and `Check` are optional. If `Check` is provided, only one of `Script` and `Interval`
 or `TTL` should be provided. There is more information about checks [here](/docs/agent/checks.html).
 
 The created check will be named "service:\<ServiceId\>".
@@ -361,7 +361,7 @@ body must look like:
         "Service": {
             "ID": "redis1",
             "Service": "redis",
-            "Tag": "master",
+            "Tags": ["master", "v1"],
             "Port": 8000,
         },
         "Check": {
@@ -381,7 +381,7 @@ the node with the catalog.
 
 If the `Service` key is provided, then the service will also be registered. If
 `ID` is not provided, it will be defaulted to `Service`. It is mandated that the
-ID be node-unique. Both `Tag` and `Port` can be omitted.
+ID be node-unique. Both `Tags` and `Port` can be omitted.
 
 If the `Check` key is provided, then a health check will also be registered. It
 is important to remember that this register API is very low level. This manipulates
@@ -480,8 +480,8 @@ however the dc can be provided using the "?dc=" query parameter.
 It returns a JSON body like this:
 
     {
-        "consul":[""],
-        "redis":[""],
+        "consul":[],
+        "redis":[],
         "postgresql":["master","slave"]
     }
 
@@ -508,7 +508,7 @@ It returns a JSON body like this:
             "Address":"10.1.10.12",
             "ServiceID":"redis",
             "ServiceName":"redis",
-            "ServiceTag":"",
+            "ServiceTags":[],
             "ServicePort":8000
         }
     ]
@@ -533,13 +533,13 @@ It returns a JSON body like this:
             "consul":{
                 "ID":"consul",
                 "Service":"consul",
-                "Tag":"",
+                "Tags":[],
                 "Port":8300
             },
             "redis":{
                 "ID":"redis",
                 "Service":"redis",
-                "Tag":"",
+                "Tags":["v1"],
                 "Port":8000
             }
         }
@@ -655,7 +655,7 @@ It returns a JSON body like this:
             "Service":{
                 "ID":"redis",
                 "Service":"redis",
-                "Tag":"",
+                "Tags":[],
                 "Port":8000
             },
             "Checks":[
