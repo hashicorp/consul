@@ -169,7 +169,7 @@ This endpoint is hit with a GET and returns a JSON body like this:
         "redis":{
             "ID":"redis",
             "Service":"redis",
-            "Tags":[],
+            "Tags":null,
             "Port":8000
         }
     }
@@ -508,7 +508,7 @@ It returns a JSON body like this:
             "Address":"10.1.10.12",
             "ServiceID":"redis",
             "ServiceName":"redis",
-            "ServiceTags":[],
+            "ServiceTags":null,
             "ServicePort":8000
         }
     ]
@@ -533,7 +533,7 @@ It returns a JSON body like this:
             "consul":{
                 "ID":"consul",
                 "Service":"consul",
-                "Tags":[],
+                "Tags":null,
                 "Port":8300
             },
             "redis":{
@@ -655,7 +655,7 @@ It returns a JSON body like this:
             "Service":{
                 "ID":"redis",
                 "Service":"redis",
-                "Tags":[],
+                "Tags":null,
                 "Port":8000
             },
             "Checks":[
