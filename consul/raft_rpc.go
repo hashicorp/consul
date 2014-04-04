@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"sync"
@@ -16,6 +17,9 @@ type RaftLayer struct {
 	// connCh is used to accept connections
 	connCh chan net.Conn
 
+	// TLS configuration
+	tlsConfig *tls.Config
+
 	// Tracks if we are closed
 	closed    bool
 	closeCh   chan struct{}
@@ -23,12 +27,14 @@ type RaftLayer struct {
 }
 
 // NewRaftLayer is used to initialize a new RaftLayer which can
-// be used as a StreamLayer for Raft
-func NewRaftLayer(addr net.Addr) *RaftLayer {
+// be used as a StreamLayer for Raft. If a tlsConfig is provided,
+// then the connection will use TLS.
+func NewRaftLayer(addr net.Addr, tlsConfig *tls.Config) *RaftLayer {
 	layer := &RaftLayer{
-		addr:    addr,
-		connCh:  make(chan net.Conn),
-		closeCh: make(chan struct{}),
+		addr:      addr,
+		connCh:    make(chan net.Conn),
+		tlsConfig: tlsConfig,
+		closeCh:   make(chan struct{}),
 	}
 	return layer
 }
@@ -77,6 +83,18 @@ func (l *RaftLayer) Dial(address string, timeout time.Duration) (net.Conn, error
 	conn, err := net.DialTimeout("tcp", address, timeout)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check for tls mode
+	if l.tlsConfig != nil {
+		// Switch the connection into TLS mode
+		if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
+			conn.Close()
+			return nil, err
+		}
+
+		// Wrap the connection in a TLS client
+		conn = tls.Client(conn, l.tlsConfig)
 	}
 
 	// Write the Raft byte to set the mode

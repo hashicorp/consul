@@ -160,7 +160,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Initialize the RPC layer
-	if err := s.setupRPC(); err != nil {
+	if err := s.setupRPC(tlsConfig); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}
@@ -290,7 +290,7 @@ func (s *Server) setupRaft() error {
 }
 
 // setupRPC is used to setup the RPC listener
-func (s *Server) setupRPC() error {
+func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 	// Create endpoints
 	s.endpoints.Status = &Status{s}
 	s.endpoints.Raft = &Raft{s}
@@ -329,7 +329,7 @@ func (s *Server) setupRPC() error {
 		return fmt.Errorf("RPC advertise address is not advertisable: %v", addr)
 	}
 
-	s.raftLayer = NewRaftLayer(advertise)
+	s.raftLayer = NewRaftLayer(advertise, tlsConfig)
 	go s.listen()
 	return nil
 }
