@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
@@ -80,7 +81,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 
 	// Get the nodes
 	state := h.srv.fsm.State()
-	return h.srv.blockingRPC(&args.BlockingQuery,
+	err := h.srv.blockingRPC(&args.BlockingQuery,
 		state.QueryTables("CheckServiceNodes"),
 		func() (uint64, error) {
 			if args.TagFilter {
@@ -90,4 +91,16 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			}
 			return reply.Index, nil
 		})
+
+	// Provide some metrics
+	if err == nil {
+		metrics.IncrCounter([]string{"consul", "health", "service", "query", args.ServiceName}, 1)
+		if args.ServiceTag != "" {
+			metrics.IncrCounter([]string{"consul", "health", "service", "query-tag", args.ServiceName, args.ServiceTag}, 1)
+		}
+		if len(reply.Nodes) == 0 {
+			metrics.IncrCounter([]string{"consul", "health", "service", "not-found", args.ServiceName}, 1)
+		}
+	}
+	return err
 }
