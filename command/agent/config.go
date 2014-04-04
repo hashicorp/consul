@@ -103,6 +103,28 @@ type Config struct {
 	// EnableDebug is used to enable various debugging features
 	EnableDebug bool `mapstructure:"enable_debug"`
 
+	// VerifyIncoming is used to verify the authenticity of incoming connections.
+	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
+	// must match a provided certificate authority. This can be used to force client auth.
+	VerifyIncoming bool `mapstructure:"verify_incoming"`
+
+	// VerifyOutgoing is used to verify the authenticity of outgoing connections.
+	// This means that TLS requests are used. TLS connections must match a provided
+	// certificate authority. This is used to verify authenticity of server nodes.
+	VerifyOutgoing bool `mapstructure:"verify_outgoing"`
+
+	// CAFile is a path to a certificate authority file. This is used with VerifyIncoming
+	// or VerifyOutgoing to verify the TLS connection.
+	CAFile string `mapstructure:"ca_file"`
+
+	// CertFile is used to provide a TLS certificate that is used for serving TLS connections.
+	// Must be provided to serve TLS connections.
+	CertFile string `mapstructure:"cert_file"`
+
+	// KeyFile is used to provide a TLS key that is used for serving TLS connections.
+	// Must be provided to serve TLS connections.
+	KeyFile string `mapstructure:"key_file"`
+
 	// Checks holds the provided check definitions
 	Checks []*CheckDefinition `mapstructure:"-"`
 
@@ -334,6 +356,21 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.EnableDebug {
 		result.EnableDebug = true
+	}
+	if b.VerifyIncoming {
+		result.VerifyIncoming = true
+	}
+	if b.VerifyOutgoing {
+		result.VerifyOutgoing = true
+	}
+	if b.CAFile != "" {
+		result.CAFile = b.CAFile
+	}
+	if b.CertFile != "" {
+		result.CertFile = b.CertFile
+	}
+	if b.KeyFile != "" {
+		result.KeyFile = b.KeyFile
 	}
 	if b.Checks != nil {
 		result.Checks = append(result.Checks, b.Checks...)

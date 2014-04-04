@@ -169,6 +169,13 @@ func (a *Agent) consulConfig() *consul.Config {
 		base.ProtocolVersion = uint8(a.config.Protocol)
 	}
 
+	// Copy the TLS configuration
+	base.VerifyIncoming = a.config.VerifyIncoming
+	base.VerifyOutgoing = a.config.VerifyOutgoing
+	base.CAFile = a.config.CAFile
+	base.CertFile = a.config.CertFile
+	base.KeyFile = a.config.KeyFile
+
 	// Setup the ServerUp callback
 	base.ServerUp = a.state.ConsulServerUp
 
