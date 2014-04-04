@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/inconshreveable/muxado"
 	"github.com/ugorji/go/codec"
@@ -37,6 +38,9 @@ type ConnPool struct {
 	// Pool maps an address to a open connection
 	pool map[string]*Conn
 
+	// TLS settings
+	tlsConfig *tls.Config
+
 	// Used to indicate the pool is shutdown
 	shutdown   bool
 	shutdownCh chan struct{}
@@ -44,11 +48,13 @@ type ConnPool struct {
 
 // NewPool is used to make a new connection pool
 // Maintain at most one connection per host, for up to maxTime.
-// Set maxTime to 0 to disable reaping.
-func NewPool(maxTime time.Duration) *ConnPool {
+// Set maxTime to 0 to disable reaping. If TLS settings are provided
+// outgoing connections use TLS.
+func NewPool(maxTime time.Duration, tlsConfig *tls.Config) *ConnPool {
 	pool := &ConnPool{
 		maxTime:    maxTime,
 		pool:       make(map[string]*Conn),
+		tlsConfig:  tlsConfig,
 		shutdownCh: make(chan struct{}),
 	}
 	if maxTime > 0 {
@@ -104,20 +110,34 @@ func (p *ConnPool) getPooled(addr net.Addr) *Conn {
 // getNewConn is used to return a new connection
 func (p *ConnPool) getNewConn(addr net.Addr) (*Conn, error) {
 	// Try to dial the conn
-	rawConn, err := net.DialTimeout("tcp", addr.String(), 10*time.Second)
+	conn, err := net.DialTimeout("tcp", addr.String(), 10*time.Second)
 	if err != nil {
 		return nil, err
 	}
 
 	// Cast to TCPConn
-	conn := rawConn.(*net.TCPConn)
+	if tcp, ok := conn.(*net.TCPConn); ok {
+		tcp.SetKeepAlive(true)
+		tcp.SetNoDelay(true)
+	}
 
-	// Enable keep alives
-	conn.SetKeepAlive(true)
-	conn.SetNoDelay(true)
+	// Check if TLS is enabled
+	if p.tlsConfig != nil {
+		// Switch the connection into TLS mode
+		if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
+			conn.Close()
+			return nil, err
+		}
+
+		// Wrap the connection in a TLS client
+		conn = tls.Client(conn, p.tlsConfig)
+	}
 
 	// Write the Consul multiplex byte to set the mode
-	conn.Write([]byte{byte(rpcMultiplex)})
+	if _, err := conn.Write([]byte{byte(rpcMultiplex)}); err != nil {
+		conn.Close()
+		return nil, err
+	}
 
 	// Create a multiplexed session
 	session := muxado.Client(conn)
