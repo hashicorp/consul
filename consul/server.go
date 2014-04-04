@@ -83,6 +83,9 @@ type Server struct {
 	rpcListener net.Listener
 	rpcServer   *rpc.Server
 
+	// rpcTLS is the TLS config for incoming TLS requests
+	rpcTLS *tls.Config
+
 	// serfLAN is the Serf cluster maintained inside the DC
 	// which contains all the DC nodes
 	serfLAN *serf.Serf
@@ -123,13 +126,19 @@ func NewServer(config *Config) (*Server, error) {
 		config.LogOutput = os.Stderr
 	}
 
-	// Create the tlsConfig
+	// Create the tlsConfig for outgoing connections
 	var tlsConfig *tls.Config
 	var err error
 	if config.VerifyOutgoing {
 		if tlsConfig, err = config.OutgoingTLSConfig(); err != nil {
 			return nil, err
 		}
+	}
+
+	// Get the incoming tls config
+	incomingTLS, err := config.IncomingTLSConfig()
+	if err != nil {
+		return nil, err
 	}
 
 	// Create a logger
@@ -146,6 +155,7 @@ func NewServer(config *Config) (*Server, error) {
 		remoteConsuls: make(map[string][]net.Addr),
 		rpcClients:    make(map[net.Conn]struct{}),
 		rpcServer:     rpc.NewServer(),
+		rpcTLS:        incomingTLS,
 		shutdownCh:    make(chan struct{}),
 	}
 

@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
@@ -19,6 +20,7 @@ const (
 	rpcConsul RPCType = iota
 	rpcRaft
 	rpcMultiplex
+	rpcTLS
 )
 
 const (
@@ -70,6 +72,15 @@ func (s *Server) handleConn(conn net.Conn) {
 
 	case rpcMultiplex:
 		s.handleMultiplex(conn)
+
+	case rpcTLS:
+		if s.rpcTLS == nil {
+			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS")
+			conn.Close()
+			return
+		}
+		conn = tls.Server(conn, s.rpcTLS)
+		s.handleConn(conn)
 
 	default:
 		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v", buf[0])
