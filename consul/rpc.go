@@ -61,6 +61,25 @@ func (s *Server) handleConn(conn net.Conn) {
 		return
 	}
 
+	// Check if entering TLS mode
+	isTLS := false
+	if RPCType(buf[0]) == rpcTLS {
+		if s.rpcTLS == nil {
+			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS")
+			conn.Close()
+			return
+		}
+		conn = tls.Server(conn, s.rpcTLS)
+		isTLS = true
+	}
+
+	// Enforce TLS if VerifyIncoming is set
+	if s.config.VerifyIncoming && !isTLS {
+		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set")
+		conn.Close()
+		return
+	}
+
 	// Switch on the byte
 	switch RPCType(buf[0]) {
 	case rpcConsul:
@@ -72,15 +91,6 @@ func (s *Server) handleConn(conn net.Conn) {
 
 	case rpcMultiplex:
 		s.handleMultiplex(conn)
-
-	case rpcTLS:
-		if s.rpcTLS == nil {
-			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS")
-			conn.Close()
-			return
-		}
-		conn = tls.Server(conn, s.rpcTLS)
-		s.handleConn(conn)
 
 	default:
 		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v", buf[0])
