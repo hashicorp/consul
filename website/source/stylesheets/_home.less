@@ -4,48 +4,55 @@
 
 #features{
 	.anti-alias();
-	padding: 90px 0 0 0;
+	padding: 130px 0 0 0;
+	background: #f8f8f8 url(../images/hero-dots-below@2x.png) center top no-repeat;
+	background-size: 1280px 49px;
 
-	.row{
-		padding: 0 0 90px 0;
+	.double-row{
+		padding: 0 0 60px 0;
 	}
 
 	h2{
-		font-size: 32px;
+		font-size: 24px;
 		letter-spacing: 2px;
-		color: @gray;
-		text-transform: uppercase;
-		font-family: @font-family-rales;
-		font-weight: @font-weight-rales-sb;
+		color: @purple;
+		font-family: @font-family-museo;
+		font-weight: @font-weight-museo-xb;
 	}
 	p{
-		font-size: 18px;
+		font-size: 16px;
 		letter-spacing: 1px;
         line-height: 1.5em;
-		color: @gray-darker;
-		font-family: @font-family-open-sans;
-		font-weight: @font-weight-open;
+		color: @consul-gray;
+		font-family: @font-family-museo;
+		font-weight: @font-weight-museo-sb;
 	}
 
 	.icn{
 		display: block;
-		width: 286px;
-		height: 286px;
+		width: 186px;
+		height: 272px;
 		margin: 0 auto;
-		background-size: 286px 286px;
-		background-position: 0 0;
+		background-position: center 0;
 		background-repeat: no-repeat;
 	}
 
-	.icn1{
-		background-image: url( ../images/gossip-proto-icon@2x.png);
+	.discovery{
+		background-image: url( ../images/feature-discovery@2x.png);
+		background-size: 181px 181px;
 	}
-	.icn2{
-		background-image: url( ../images/failure-detect-icon@2x.png);
+	.health{
+		background-image: url( ../images/feature-health@2x.png);
+		background-size: 125px 179px;
 	}
-	.icn3{
-		background-image: url( ../images/custom-event-icon@2x.png);
+	.multi{
+		background-image: url( ../images/feature-multi@2x.png);
+		background-size: 182px 184px;
 	}
+	.config{
+		background-image: url( ../images/feature-config@2x.png);
+		background-size: 157px 179px;
+	}	
 }
 
 #trusted{
@@ -119,37 +126,49 @@
 
 #footer{
 	padding: 50px 0;
-	background: @black url(../images/footer-pattern.jpg);
+	background-color: @consul-footer-gray;
+    background: @consul-footer-gray url(../images/consul-footer-logo.png) center center no-repeat;
+    .img-retina("../images/consul-footer-logo.png", "../images/consul-footer-logo@2x.png", 446px, 443px);	
 
 	.footer-links{
 		margin-bottom: 20px;
 	}
 
-	.footer-logo{
-		span{
-			  display: inline-block;
-        width: 206px;
-        height: 206px;
-        margin-bottom: 30px;
-        border-radius: 103px;
-        background: @black url(../images/logo-type-medium.png) center center no-repeat;
-        .img-retina("../images/logo-type-medium.png", "../images/logo-type-medium@2x.png", 72px, 94px);
-        .box-shadow( 0px 0px 5px rgba(0, 0, 0, 0.04) );
-		}
-	}
-
 	.footer-hashi{
 		letter-spacing: 2px;
-    margin-bottom: 30px;
-    span{
-    	margin-right: 20px;
-    }
+    	margin-bottom: 30px;
+
+    	a{
+    		font-weight: @font-weight-museo-xb;
+    	}
+
+	    span{
+	    	margin-right: 20px;
+	    }
 		img{
-			  display: inline-block;
-        width: 37px;
-        height: 40px;
+			display: inline-block;
+       		width: 37px;
+       		height: 40px;
 		}
 	}
 }
 
 
+@media (max-width: 992px) {
+	#features{
+		.double-row{
+			padding: 0 0 0 0;
+			.row{
+				padding-bottom: 90px;
+			}
+		}
+
+		.icn{
+			height: 200px;
+		}
+	}
+}
+
+@media (max-width: 768px) {
+
+}

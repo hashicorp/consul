@@ -1,22 +1,17 @@
 //
-// home.js
+// app.js
 //
 
-var Serf = (function() {
+var APP = (function() {
 
 	function initialize (){
-		Serf.Util.runIfClassNamePresent('page-home', initHome);
+		APP.Utils.runIfClassNamePresent('page-home', initHome);
 	}
 
 	function initHome() {
-		if(!Serf.Util.isMobile){
-			Serf.Nodes.init(); 	
-		}else{
-			Serf.Home.mobileHero();
-		}
-		
+		APP.Homepage.init();
 	}
-  
+
   	//api
 	return {
 		initialize: initialize

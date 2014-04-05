@@ -1,43 +1,71 @@
 <!-- Main jumbotron for a primary marketing message or call to action -->
-<div id="jumbotron">
-	<div class="container">
-		<div class="jumbo-logo hidden-xs hidden-sm"></div>
-		<div class="col-lg-5 col-md-5">
-			<h2 class="rls-l">Consul is a decentralized solution for service discovery and orchestration that is lightweight, highly available, and fault tolerant.</h2>
-		</div>
-		<!-- <p><a class="btn btn-primary btn-lg">Learn more &raquo;</a></p> -->
+<div id="jumbotron-mask">
+	<div id="jumbotron">
+			<div class="container">
+				<div class="col-lg-6 col-md-6">
+					<h2 class="rls-l">Create and configure lightweight, reproducible, and portable development environments.</h2>
+				</div>
+				<div class="jumbo-logo-wrap col-lg-offset-1 col-lg-5 col-md-6 hidden-xs hidden-sm">
+					<div class="jumbo-logo"></div>
+				</div>			
+				<!-- <p><a class="btn btn-primary btn-lg">Learn more &raquo;</a></p> -->
+			</div>
+			<div class="jumbotron-dots"></div>
 	</div>
 </div>
 
 <div id="features">
 	<div class="container">
-		<!-- Example row of columns -->
-		<div class="row">
-			<div class="col-lg-5 col-md-5">
-				<span class="icn icn1"></span>
+		
+		<div class="row double-row">
+			<div class="col-lg-6 col-md-6">
+				<div class="row">
+					<div class="col-lg-5 col-md-5">
+						<span class="icn discovery"></span>
+					</div>
+					<div class="col-lg-7 col-md-7">
+						<h2>Service Discovery</h2>
+						<p>Consul makes it simple for services to register themselves, and to discover other service</p>
+					</div>
+				</div>
 			</div>
-			<div class="col-lg-7 col-md-7">
-				<h2>Gossip-based Membership</h2>
-				<p>Consul relies on an efficient and lightweight gossip protocol to communicate with nodes. The Serf agents periodically exchange messages with each other in much the same way that a zombie apocalypse would occur: it starts with one zombie but soon infects everyone. In practice, the gossip is <a href="/docs/internals/simulator.html">very fast and extremely efficient.</a></p>
-			</div>
-		</div>
-		<div class="row">
-			<div class="col-lg-7 col-md-7">
-				<h2>Failure Detection</h2>
-				<p>Consul is able to quickly detect failed members and notify the rest of the cluster. This failure detection is built into the heart of the gossip protocol used by Serf. Like humans in a zombie apocalypse, everybody checks their peers for infection and quickly alerts the other living humans. Serf relies on a random probing technique which is proven to efficiently scale to clusters of any size.</p>
-			</div>
-			<div class="col-lg-5 col-md-5">
-				<span class="icn icn2"></span>
-			</div>
-		</div>
-		<div class="row">
-			<div class="col-lg-5 col-md-5">
-				<span class="icn icn3"></span>
-			</div>
-			<div class="col-lg-7 col-md-5">
-				<h2>Custom Events</h2>
-				<p>In addition to managing membership, Consul can broadcast custom events.  These can be used to trigger deploys, restart processes, spread tales of human heroism, and anything else you may want. The event system is flexible and lightweight, making it easy for application developers and sysadmins alike to leverage.</p>
+			<div class="col-lg-6 col-md-6">
+				<div class="row">
+					<div class="col-lg-5 col-md-5">
+						<span class="icn health"></span>
+					</div>
+					<div class="col-lg-7 col-md-7">
+						<h2>Failure Detection</h2>
+						<p>Pairing service discovery with health checking prevents routing requests to unhealthy hosts, and enables services to easily provide circuit breakers.</p>
+					</div>
+				</div>
 			</div>
 		</div>
+
+		<div class="row double-row">
+			<div class="col-lg-6 col-md-6">
+				<div class="row">
+					<div class="col-lg-5 col-md-5">
+						<span class="icn multi"></span>
+					</div>
+					<div class="col-lg-7 col-md-7">
+						<h2>Multi Datacenter</h2>
+						<p>Consul scales to multiple datacenters out of the box, with no complicated configuration.</p>
+					</div>
+				</div>
+			</div>
+			<div class="col-lg-6 col-md-6">
+				<div class="row">
+					<div class="col-lg-5 col-md-5">
+						<span class="icn config"></span>
+					</div>
+					<div class="col-lg-7 col-md-7">
+						<h2>Shared Configuration</h2>
+						<p>Store hierarchical key/value configuration data for services.</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
 	</div> <!-- /container -->
 </div> <!-- /features -->
