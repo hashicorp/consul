@@ -1,11 +1,15 @@
 package consul
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"time"
@@ -81,6 +85,29 @@ type Config struct {
 	// ProtocolVersionMin and ProtocolVersionMax.
 	ProtocolVersion uint8
 
+	// VerifyIncoming is used to verify the authenticity of incoming connections.
+	// This means that TCP requests are forbidden, only allowing for TLS. TLS connections
+	// must match a provided certificate authority. This can be used to force client auth.
+	VerifyIncoming bool
+
+	// VerifyOutgoing is used to verify the authenticity of outgoing connections.
+	// This means that TLS requests are used, and TCP requests are not made. TLS connections
+	// must match a provided certificate authority. This is used to verify authenticity of
+	// server nodes.
+	VerifyOutgoing bool
+
+	// CAFile is a path to a certificate authority file. This is used with VerifyIncoming
+	// or VerifyOutgoing to verify the TLS connection.
+	CAFile string
+
+	// CertFile is used to provide a TLS certificate that is used for serving TLS connections.
+	// Must be provided to serve TLS connections.
+	CertFile string
+
+	// KeyFile is used to provide a TLS key that is used for serving TLS connections.
+	// Must be provided to serve TLS connections.
+	KeyFile string
+
 	// ServerUp callback can be used to trigger a notification that
 	// a Consul server is now up and known about.
 	ServerUp func()
@@ -96,6 +123,113 @@ func (c *Config) CheckVersion() error {
 			c.ProtocolVersion, ProtocolVersionMin, ProtocolVersionMax)
 	}
 	return nil
+}
+
+// CACertificate is used to open and parse a CA file
+func (c *Config) CACertificate() (*x509.Certificate, error) {
+	if c.CAFile == "" {
+		return nil, nil
+	}
+
+	// Read the file
+	data, err := ioutil.ReadFile(c.CAFile)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read CA file: %v", err)
+	}
+
+	// Decode from the PEM format
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, fmt.Errorf("Failed to decode CA PEM!")
+	}
+
+	// Parse the certificate
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to parse CA file: %v", err)
+	}
+	return cert, nil
+}
+
+// KeyPair is used to open and parse a certificate and key file
+func (c *Config) KeyPair() (*tls.Certificate, error) {
+	if c.CertFile == "" || c.KeyFile == "" {
+		return nil, nil
+	}
+	cert, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load cert/key pair: %v", err)
+	}
+	return &cert, err
+}
+
+// OutgoingTLSConfig generates a TLS configuration for outgoing requests
+func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
+	// Create the tlsConfig
+	tlsConfig := &tls.Config{
+		RootCAs:            x509.NewCertPool(),
+		InsecureSkipVerify: !c.VerifyOutgoing,
+	}
+
+	// Parse the CA cert if any
+	ca, err := c.CACertificate()
+	if err != nil {
+		return nil, err
+	} else if ca != nil {
+		tlsConfig.RootCAs.AddCert(ca)
+	}
+
+	// Ensure we have a CA if VerifyOutgoing is set
+	if c.VerifyOutgoing && ca == nil {
+		return nil, fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
+	}
+
+	// Add cert/key
+	cert, err := c.KeyPair()
+	if err != nil {
+		return nil, err
+	} else if cert != nil {
+		tlsConfig.Certificates = []tls.Certificate{*cert}
+	}
+
+	return tlsConfig, nil
+}
+
+// IncomingTLSConfig generates a TLS configuration for incoming requests
+func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
+	// Create the tlsConfig
+	tlsConfig := &tls.Config{
+		ClientCAs:  x509.NewCertPool(),
+		ClientAuth: tls.NoClientCert,
+	}
+
+	// Parse the CA cert if any
+	ca, err := c.CACertificate()
+	if err != nil {
+		return nil, err
+	} else if ca != nil {
+		tlsConfig.ClientCAs.AddCert(ca)
+	}
+
+	// Add cert/key
+	cert, err := c.KeyPair()
+	if err != nil {
+		return nil, err
+	} else if cert != nil {
+		tlsConfig.Certificates = []tls.Certificate{*cert}
+	}
+
+	// Check if we require verification
+	if c.VerifyIncoming {
+		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+		if ca == nil {
+			return nil, fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
+		}
+		if cert == nil {
+			return nil, fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
+		}
+	}
+	return tlsConfig, nil
 }
 
 // DefaultConfig is used to return a sane default configuration

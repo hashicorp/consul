@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -82,6 +83,9 @@ type Server struct {
 	rpcListener net.Listener
 	rpcServer   *rpc.Server
 
+	// rpcTLS is the TLS config for incoming TLS requests
+	rpcTLS *tls.Config
+
 	// serfLAN is the Serf cluster maintained inside the DC
 	// which contains all the DC nodes
 	serfLAN *serf.Serf
@@ -122,13 +126,28 @@ func NewServer(config *Config) (*Server, error) {
 		config.LogOutput = os.Stderr
 	}
 
+	// Create the tlsConfig for outgoing connections
+	var tlsConfig *tls.Config
+	var err error
+	if config.VerifyOutgoing {
+		if tlsConfig, err = config.OutgoingTLSConfig(); err != nil {
+			return nil, err
+		}
+	}
+
+	// Get the incoming tls config
+	incomingTLS, err := config.IncomingTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	// Create a logger
 	logger := log.New(config.LogOutput, "", log.LstdFlags)
 
 	// Create server
 	s := &Server{
 		config:        config,
-		connPool:      NewPool(time.Minute),
+		connPool:      NewPool(time.Minute, tlsConfig),
 		eventChLAN:    make(chan serf.Event, 256),
 		eventChWAN:    make(chan serf.Event, 256),
 		logger:        logger,
@@ -136,11 +155,12 @@ func NewServer(config *Config) (*Server, error) {
 		remoteConsuls: make(map[string][]net.Addr),
 		rpcClients:    make(map[net.Conn]struct{}),
 		rpcServer:     rpc.NewServer(),
+		rpcTLS:        incomingTLS,
 		shutdownCh:    make(chan struct{}),
 	}
 
 	// Initialize the RPC layer
-	if err := s.setupRPC(); err != nil {
+	if err := s.setupRPC(tlsConfig); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}
@@ -156,7 +176,6 @@ func NewServer(config *Config) (*Server, error) {
 	go s.wanEventHandler()
 
 	// Initialize the lan Serf
-	var err error
 	s.serfLAN, err = s.setupSerf(config.SerfLANConfig,
 		s.eventChLAN, serfLANSnapshot)
 	if err != nil {
@@ -271,7 +290,7 @@ func (s *Server) setupRaft() error {
 }
 
 // setupRPC is used to setup the RPC listener
-func (s *Server) setupRPC() error {
+func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 	// Create endpoints
 	s.endpoints.Status = &Status{s}
 	s.endpoints.Raft = &Raft{s}
@@ -310,7 +329,7 @@ func (s *Server) setupRPC() error {
 		return fmt.Errorf("RPC advertise address is not advertisable: %v", addr)
 	}
 
-	s.raftLayer = NewRaftLayer(advertise)
+	s.raftLayer = NewRaftLayer(advertise, tlsConfig)
 	go s.listen()
 	return nil
 }

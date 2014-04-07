@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
@@ -78,13 +79,22 @@ func NewClient(config *Config) (*Client, error) {
 		config.LogOutput = os.Stderr
 	}
 
+	// Create the tlsConfig
+	var tlsConfig *tls.Config
+	var err error
+	if config.VerifyOutgoing {
+		if tlsConfig, err = config.OutgoingTLSConfig(); err != nil {
+			return nil, err
+		}
+	}
+
 	// Create a logger
 	logger := log.New(config.LogOutput, "", log.LstdFlags)
 
 	// Create server
 	c := &Client{
 		config:     config,
-		connPool:   NewPool(clientRPCCache),
+		connPool:   NewPool(clientRPCCache, tlsConfig),
 		eventCh:    make(chan serf.Event, 256),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
@@ -94,7 +104,6 @@ func NewClient(config *Config) (*Client, error) {
 	go c.lanEventHandler()
 
 	// Initialize the lan Serf
-	var err error
 	c.serf, err = c.setupSerf(config.SerfLANConfig,
 		c.eventCh, serfLANSnapshot)
 	if err != nil {

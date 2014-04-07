@@ -25,19 +25,17 @@ func tmpDir(t *testing.T) string {
 	return dir
 }
 
-func testServer(t *testing.T) (string, *Server) {
-	return testServerDC(t, "dc1")
+func configureTLS(config *Config) {
+	config.CAFile = "../test/ca/root.cer"
+	config.CertFile = "../test/key/ourdomain.cer"
+	config.KeyFile = "../test/key/ourdomain.key"
 }
 
-func testServerDC(t *testing.T, dc string) (string, *Server) {
-	return testServerDCBootstrap(t, dc, true)
-}
-
-func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
+func testServerConfig(t *testing.T) (string, *Config) {
 	dir := tmpDir(t)
 	config := DefaultConfig()
-	config.Bootstrap = bootstrap
-	config.Datacenter = dc
+	config.Bootstrap = true
+	config.Datacenter = "dc1"
 	config.DataDir = dir
 
 	// Adjust the ports
@@ -65,7 +63,21 @@ func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Se
 	config.RaftConfig.ElectionTimeout = 40 * time.Millisecond
 
 	config.ReconcileInterval = 100 * time.Millisecond
+	return dir, config
+}
 
+func testServer(t *testing.T) (string, *Server) {
+	return testServerDC(t, "dc1")
+}
+
+func testServerDC(t *testing.T, dc string) (string, *Server) {
+	return testServerDCBootstrap(t, dc, true)
+}
+
+func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
+	dir, config := testServerConfig(t)
+	config.Datacenter = dc
+	config.Bootstrap = bootstrap
 	server, err := NewServer(config)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -217,5 +229,57 @@ func TestServer_RPC(t *testing.T) {
 	var out struct{}
 	if err := s1.RPC("Status.Ping", struct{}{}, &out); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestServer_JoinLAN_TLS(t *testing.T) {
+	dir1, conf1 := testServerConfig(t)
+	conf1.VerifyIncoming = true
+	conf1.VerifyOutgoing = true
+	configureTLS(conf1)
+	s1, err := NewServer(conf1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, conf2 := testServerConfig(t)
+	conf2.Bootstrap = false
+	conf2.VerifyIncoming = true
+	conf2.VerifyOutgoing = true
+	configureTLS(conf2)
+	s2, err := NewServer(conf2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the members
+	if len(s1.LANMembers()) != 2 {
+		t.Fatalf("bad len")
+	}
+
+	if len(s2.LANMembers()) != 2 {
+		t.Fatalf("bad len")
+	}
+
+	// Wait a while
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify Raft has established a peer
+	if s1.Stats()["raft"]["num_peers"] != "1" {
+		t.Fatalf("bad: %v", s1.Stats()["raft"])
+	}
+	if s2.Stats()["raft"]["num_peers"] != "1" {
+		t.Fatalf("bad: %v", s2.Stats()["raft"])
 	}
 }

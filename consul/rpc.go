@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
@@ -19,6 +20,7 @@ const (
 	rpcConsul RPCType = iota
 	rpcRaft
 	rpcMultiplex
+	rpcTLS
 )
 
 const (
@@ -43,18 +45,25 @@ func (s *Server) listen() {
 		s.rpcClients[conn] = struct{}{}
 		s.rpcClientLock.Unlock()
 
-		go s.handleConn(conn)
+		go s.handleConn(conn, false)
 		metrics.IncrCounter([]string{"consul", "rpc", "accept_conn"}, 1)
 	}
 }
 
 // handleConn is used to determine if this is a Raft or
 // Consul type RPC connection and invoke the correct handler
-func (s *Server) handleConn(conn net.Conn) {
+func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	// Read a single byte
 	buf := make([]byte, 1)
 	if _, err := conn.Read(buf); err != nil {
 		s.logger.Printf("[ERR] consul.rpc: failed to read byte: %v", err)
+		conn.Close()
+		return
+	}
+
+	// Enforce TLS if VerifyIncoming is set
+	if s.config.VerifyIncoming && !isTLS && RPCType(buf[0]) != rpcTLS {
+		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set")
 		conn.Close()
 		return
 	}
@@ -70,6 +79,15 @@ func (s *Server) handleConn(conn net.Conn) {
 
 	case rpcMultiplex:
 		s.handleMultiplex(conn)
+
+	case rpcTLS:
+		if s.rpcTLS == nil {
+			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS")
+			conn.Close()
+			return
+		}
+		conn = tls.Server(conn, s.rpcTLS)
+		s.handleConn(conn, true)
 
 	default:
 		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v", buf[0])

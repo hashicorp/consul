@@ -9,14 +9,10 @@ import (
 	"time"
 )
 
-func testClient(t *testing.T) (string, *Client) {
-	return testClientDC(t, "dc1")
-}
-
-func testClientDC(t *testing.T, dc string) (string, *Client) {
+func testClientConfig(t *testing.T) (string, *Config) {
 	dir := tmpDir(t)
 	config := DefaultConfig()
-	config.Datacenter = dc
+	config.Datacenter = "dc1"
 	config.DataDir = dir
 
 	// Adjust the ports
@@ -31,6 +27,17 @@ func testClientDC(t *testing.T, dc string) (string, *Client) {
 	config.SerfLANConfig.MemberlistConfig.ProbeTimeout = 200 * time.Millisecond
 	config.SerfLANConfig.MemberlistConfig.ProbeInterval = time.Second
 	config.SerfLANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
+
+	return dir, config
+}
+
+func testClient(t *testing.T) (string, *Client) {
+	return testClientDC(t, "dc1")
+}
+
+func testClientDC(t *testing.T, dc string) (string, *Client) {
+	dir, config := testClientConfig(t)
+	config.Datacenter = dc
 
 	client, err := NewClient(config)
 	if err != nil {
@@ -87,6 +94,58 @@ func TestClient_RPC(t *testing.T) {
 	defer s1.Shutdown()
 
 	dir2, c1 := testClient(t)
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	// Try an RPC
+	var out struct{}
+	if err := c1.RPC("Status.Ping", struct{}{}, &out); err != structs.ErrNoServers {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := c1.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the members
+	if len(s1.LANMembers()) != 2 {
+		t.Fatalf("bad len")
+	}
+
+	if len(c1.LANMembers()) != 2 {
+		t.Fatalf("bad len")
+	}
+
+	time.Sleep(10 * time.Millisecond)
+
+	// RPC shoudl succeed
+	if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestClient_RPC_TLS(t *testing.T) {
+	dir1, conf1 := testServerConfig(t)
+	conf1.VerifyIncoming = true
+	conf1.VerifyOutgoing = true
+	configureTLS(conf1)
+	s1, err := NewServer(conf1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, conf2 := testClientConfig(t)
+	conf2.VerifyOutgoing = true
+	configureTLS(conf2)
+	c1, err := NewClient(conf2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	defer os.RemoveAll(dir2)
 	defer c1.Shutdown()
 
