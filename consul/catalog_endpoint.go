@@ -134,7 +134,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 	// Get the nodes
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.BlockingQuery,
+	err := c.srv.blockingRPC(&args.BlockingQuery,
 		state.QueryTables("ServiceNodes"),
 		func() (uint64, error) {
 			if args.TagFilter {
@@ -144,6 +144,18 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 			}
 			return reply.Index, nil
 		})
+
+	// Provide some metrics
+	if err == nil {
+		metrics.IncrCounter([]string{"consul", "catalog", "service", "query", args.ServiceName}, 1)
+		if args.ServiceTag != "" {
+			metrics.IncrCounter([]string{"consul", "catalog", "service", "query-tag", args.ServiceName, args.ServiceTag}, 1)
+		}
+		if len(reply.ServiceNodes) == 0 {
+			metrics.IncrCounter([]string{"consul", "catalog", "service", "not-found", args.ServiceName}, 1)
+		}
+	}
+	return err
 }
 
 // NodeServices returns all the services registered as part of a node
