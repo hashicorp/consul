@@ -7,15 +7,20 @@
 <meta name="author" content="">
 <!-- <link rel="shortcut icon" href="../../assets/ico/favicon.png"> -->
 
-<title><%= current_page.data.page_title ? "#{current_page.data.page_title} - " : "" %>Serf</title>
+<title><%= current_page.data.page_title ? "#{current_page.data.page_title} - " : "" %>Consul</title>
 
 <!-- Bootstrap core CSS -->
 <%= stylesheet_link_tag "bootstrap.min" %>
 <%= stylesheet_link_tag "main" %>
 
 <!-- google fonts -->
-<!-- <link href='http://fonts.googleapis.com/css?family=Raleway:200,400,600,800|Source+Sans+Pro:400,700' rel='stylesheet' type='text/css'>
+<!-- <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700' rel='stylesheet' type='text/css'>
  -->
+
+ <!-- typekit -->
+ <script type="text/javascript" src="//use.typekit.net/kgv0shi.js"></script>
+ <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+
 <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
 <!--[if lt IE 9]>
 	<%= javascript_include_tag "html5shiv", "respond.min" %>
@@ -35,23 +40,32 @@
 </script>
 </head>
 <body class="page-<%= current_page.data.page_title ? "#{current_page.data.page_title}" : "home" %>">
-<div id="header">
+<div id="header" class="<%= current_page.data.page_title == "home" ? "" : "navbar-static-top" %>">
 	<div class="container">
-		<a class="navbar-brand logo" href="/">
-			<span></span>
-		</a>
-		<a class="navbar-brand text rls-l" href="/">SERF</a>
+		<div class="navbar-header">
+		    <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
+	          <span class="sr-only">Toggle navigation</span>
+	          <span class="icon-bar"></span>
+	          <span class="icon-bar"></span>
+	          <span class="icon-bar"></span>
+	        </button>
+			<a class="navbar-brand logo" href="/">
+				<span></span>
+			</a>
+		</div>
 
-		<ul class="buttons nav navbar-nav navbar-right rls-sb">
-			<li class="first"><a href="/downloads.html">Download</a></li>
-			<li><a href="https://github.com/hashicorp/serf">Github</a></li>
-		</ul>
+		<nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
+			<ul class="buttons nav navbar-nav navbar-right rls-sb">
+				<li class="first download outline-btn"><a href="/downloads.html">Download</a></li>
+				<li class="github outline-btn"><a href="https://github.com/hashicorp/consul">Github</a></li>
+			</ul>
 
-		<ul class="main-links nav navbar-nav navbar-right rls-sb">
-			<li><a href="/intro/index.html">Intro</a></li>
-			<li><a href="/docs/index.html">Docs</a></li>
-			<li><a href="/community.html">Community</a></li>
-		</ul>
+			<ul class="main-links nav navbar-nav navbar-right rls-sb">
+				<li class="first"><a href="/intro/index.html">Intro</a></li>
+				<li><a href="/docs/index.html">Docs</a></li>
+				<li><a href="/community.html">Community</a></li>
+			</ul>
+		</nav>
 
 	</div>
 </div>

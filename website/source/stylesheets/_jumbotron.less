@@ -2,15 +2,27 @@
 // Jumbotron
 // --------------------------------------------------
 
+#jumbotron-mask{
+  overflow: hidden;
+  height: @jumbotron-total-height;
+  margin-top: -92px;
+}
 
 #jumbotron {
   position: relative;
-  height: @jumbotron-height;
-  color: @jumbotron-color;
-  background-color:  @gray-light;
+  height: @jumbotron-total-height;
   padding-top: 0;
   padding-bottom: 0;
-  overflow: hidden;
+  margin-top: -92px;
+  color: @jumbotron-color;
+  background: #694a9c; /* Old browsers */
+  background: -moz-linear-gradient(left, #694a9c 0%, #cd2028 100%); /* FF3.6+ */
+  background: -webkit-gradient(linear, left top, right top, color-stop(0%,#694a9c), color-stop(100%,#cd2028)); /* Chrome,Safari4+ */
+  background: -webkit-linear-gradient(left, #694a9c 0%,#cd2028 100%); /* Chrome10+,Safari5.1+ */
+  background: -o-linear-gradient(left, #694a9c 0%,#cd2028 100%); /* Opera 11.10+ */
+  background: -ms-linear-gradient(left, #694a9c 0%,#cd2028 100%); /* IE10+ */
+  background: linear-gradient(to right, #694a9c 0%,#cd2028 100%); /* W3C */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#694a9c', endColorstr='#cd2028',GradientType=1 ); /* IE6-9 */  
 
   &.mobile-hero{
     background:  transparent url( ../images/node-hero-pattern.jpg ) center center;
@@ -18,32 +30,41 @@
     background: -webkit-image-set( url('../images/node-hero-pattern.jpg') 1x, url('../images/node-hero-pattern@2x.jpg') 2x );
   }
 
+
+  .jumbotron-dots{
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 632px;
+      width: 100%;
+      margin-top: -92px;
+      background: transparent url('../images/hero-dots.png') center @header-height no-repeat;
+  }
+  
+
   .container{
       position: relative;
       height: 100%;
+      margin-top: @header-height;
 
-      .jumbo-logo{
-          position: absolute;
-          bottom: 0;
-          right: -150px;
-          width: 726px;
-          height: 454px;
-          background:  transparent url( ../images/logo-circle-logo@2x.png ) 0 0 no-repeat;
-          background-size: 726px 454px;
-          z-index: 20;
-          pointer-events: none;
-      }
+      .jumbo-logo-wrap{
+        margin-top: 135px;
 
-      .col-lg-5{
-          z-index: 20;
-          pointer-events: none;   
+        .jumbo-logo{
+            width: 318px;
+            height: 316px;
+            background:  transparent url( ../images/consul-hero-logo@2x.png ) 0 0 no-repeat;
+            background-size: 318px 316px;
+            z-index: 20;
+        }        
       }
 
       h2{
-          margin-top: 140px;
-          font-size: 28px;
-          line-height: 38px;
-          letter-spacing: 2px;
+          margin-top: 190px;
+          font-size: 40px;
+          line-height: 48px;
+          letter-spacing: 1px;
+          margin-left: 40px;
       }
   }
 }
