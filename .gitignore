@@ -23,7 +23,6 @@ _testmain.go
 *.test
 bin/
 .vagrant/
-
-
 website/npm-debug.log
-
+*.old
+*.attr
