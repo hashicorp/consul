@@ -3,6 +3,7 @@ package consul
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
@@ -136,8 +137,14 @@ func (c *Config) CACertificate() (*x509.Certificate, error) {
 		return nil, fmt.Errorf("Failed to read CA file: %v", err)
 	}
 
+	// Decode from the PEM format
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, fmt.Errorf("Failed to decode CA PEM!")
+	}
+
 	// Parse the certificate
-	cert, err := x509.ParseCertificate(data)
+	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse CA file: %v", err)
 	}
@@ -222,7 +229,7 @@ func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 			return nil, fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
 		}
 	}
-	return nil, nil
+	return tlsConfig, nil
 }
 
 // DefaultConfig is used to return a sane default configuration
