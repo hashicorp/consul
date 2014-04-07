@@ -205,3 +205,27 @@ definitions support being updated during a reload.
 
 * `statsite_addr` - Equivalent to the `-statsite` command-line flag.
 
+* `verify_incoming` - If set to True, Consul requires that all incoming
+  connections make use of TLS, and that the client provides a certificate signed
+  by the Certificate Authority from the `ca_file`. By default, this is false, and
+  Consul will not enforce the use of TLS or verify a client's authenticity. This
+  only applies to Consul servers, since a client never has an incoming connection.
+
+* `verify_outgoing` - If set to True, Consul requires that all outgoing connections
+  make use of TLS, and that the server provide a certificate that is signed by
+  the Certificate Authority from the `ca_file`. By default, this is false, and Consul
+  will not make use of TLS for outgoing connections. This applies to clients and servers,
+  as both will make outgoing connections.
+
+* `ca_file` - This provides a the file path to a PEM encoded certificate authority.
+  The certificate authority is used to check the authenticity of client and server
+  connections with the appropriate `verify_incoming` or `verify_outgoing` flags.
+
+* `cert_file` - This provides a the file path to a PEM encoded certificate.
+  The certificate is provided to clients or servers to verify the agents authenticity.
+  Must be provided along with the `key_file`.
+
+* `key_file` - This provides a the file path to a PEM encoded private key.
+  The key is used with the certificate to verify the agents authenticity.
+  Must be provided along with the `cert_file`.
+
