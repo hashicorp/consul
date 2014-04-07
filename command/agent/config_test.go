@@ -193,6 +193,38 @@ func TestDecodeConfig(t *testing.T) {
 	if config.EnableDebug != true {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// TLS
+	input = `{"verify_incoming": true, "verify_outgoing": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.VerifyIncoming != true {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.VerifyOutgoing != true {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// TLS keys
+	input = `{"ca_file": "my/ca/file", "cert_file": "my.cert", "key_file": "key.pem"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.CAFile != "my/ca/file" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.CertFile != "my.cert" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.KeyFile != "key.pem" {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -318,6 +350,11 @@ func TestMergeConfig(t *testing.T) {
 		LeaveOnTerm:    true,
 		SkipLeaveOnInt: true,
 		EnableDebug:    true,
+		VerifyIncoming: true,
+		VerifyOutgoing: true,
+		CAFile:         "test/ca.pem",
+		CertFile:       "test/cert.pem",
+		KeyFile:        "test/key.pem",
 		Checks:         []*CheckDefinition{nil},
 		Services:       []*ServiceDefinition{nil},
 	}
