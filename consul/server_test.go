@@ -25,19 +25,11 @@ func tmpDir(t *testing.T) string {
 	return dir
 }
 
-func testServer(t *testing.T) (string, *Server) {
-	return testServerDC(t, "dc1")
-}
-
-func testServerDC(t *testing.T, dc string) (string, *Server) {
-	return testServerDCBootstrap(t, dc, true)
-}
-
-func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
+func testServerConfig(t *testing.T) (string, *Config) {
 	dir := tmpDir(t)
 	config := DefaultConfig()
-	config.Bootstrap = bootstrap
-	config.Datacenter = dc
+	config.Bootstrap = true
+	config.Datacenter = "dc1"
 	config.DataDir = dir
 
 	// Adjust the ports
@@ -65,7 +57,21 @@ func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Se
 	config.RaftConfig.ElectionTimeout = 40 * time.Millisecond
 
 	config.ReconcileInterval = 100 * time.Millisecond
+	return dir, config
+}
 
+func testServer(t *testing.T) (string, *Server) {
+	return testServerDC(t, "dc1")
+}
+
+func testServerDC(t *testing.T, dc string) (string, *Server) {
+	return testServerDCBootstrap(t, dc, true)
+}
+
+func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
+	dir, config := testServerConfig(t)
+	config.Datacenter = dc
+	config.Bootstrap = bootstrap
 	server, err := NewServer(config)
 	if err != nil {
 		t.Fatalf("err: %v", err)
