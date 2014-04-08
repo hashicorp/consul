@@ -2,6 +2,12 @@
 // Header
 // --------------------------------------------------
 
+body.page-sub{
+    #header{
+        .consul-gradient-bg();
+    }
+}
+
 #footer,
 #header {
     .anti-alias();
@@ -24,6 +30,7 @@
 
     .navbar-toggle{
         margin-top: 14px;
+        margin-bottom: 14px;
         border: 2px solid @white;
         .icon-bar{
             border: 1px solid @white;
@@ -200,14 +207,7 @@
 
 @media (max-width: 768px) {
     #header{
-        background: #694a9c; /* Old browsers */
-        background: -moz-linear-gradient(left, #694a9c 0%, #cd2028 100%); /* FF3.6+ */
-        background: -webkit-gradient(linear, left top, right top, color-stop(0%,#694a9c), color-stop(100%,#cd2028)); /* Chrome,Safari4+ */
-        background: -webkit-linear-gradient(left, #694a9c 0%,#cd2028 100%); /* Chrome10+,Safari5.1+ */
-        background: -o-linear-gradient(left, #694a9c 0%,#cd2028 100%); /* Opera 11.10+ */
-        background: -ms-linear-gradient(left, #694a9c 0%,#cd2028 100%); /* IE10+ */
-        background: linear-gradient(to right, #694a9c 0%,#cd2028 100%); /* W3C */
-        filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#694a9c', endColorstr='#cd2028',GradientType=1 ); /* IE6-9 */  
+        .consul-gradient-bg();
 
         .navbar-right{
             float: none !important;

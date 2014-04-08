@@ -2,11 +2,23 @@
 // Docs
 // --------------------------------------------------
 
+body.layout-docs,
+body.layout-intro{
+	background: #f7f3f9;
+
+	>.container{
+		.col-md-8[role=main]{
+			min-height: 600px;
+			background-color: white;
+		}
+	}
+}
+
 .docs-sidebar{
     margin-bottom: 30px;
 	margin-top: 50px;
 	margin-right: 4%;
-	background-color: @tan;
+	// background-color: @tan;
 	border-radius: @el-border-radius;
 
 	a{
