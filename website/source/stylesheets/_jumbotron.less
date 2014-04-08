@@ -4,8 +4,9 @@
 
 #jumbotron-mask{
   overflow: hidden;
+  width: 100%;
   height: @jumbotron-total-height;
-  margin-top: -92px;
+  margin-top: @negative-hero-margin;
 }
 
 #jumbotron {
@@ -13,7 +14,7 @@
   height: @jumbotron-total-height;
   padding-top: 0;
   padding-bottom: 0;
-  margin-top: -92px;
+  margin-top: @negative-hero-margin;
   color: @jumbotron-color;
   .consul-gradient-bg();
 
@@ -30,7 +31,7 @@
       left: 0;
       height: 632px;
       width: 100%;
-      margin-top: -92px;
+      margin-top: @negative-hero-margin;
       background: transparent url('../images/hero-dots.png') center @header-height no-repeat;
   }
   

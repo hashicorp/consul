@@ -8,8 +8,23 @@ body.layout-intro{
 
 	>.container{
 		.col-md-8[role=main]{
-			min-height: 600px;
+			min-height: 800px;
 			background-color: white;
+
+			&::before {
+				content: "";
+				position: absolute;
+				top: 0;
+				bottom: 0;
+				left: -9999px;
+				right: 0;
+				box-shadow: 9999px 0 0 white;
+			}
+
+			>div{
+				position: relative;
+				z-index: 10;
+			}
 		}
 	}
 }

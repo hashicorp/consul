@@ -66,8 +66,7 @@ var APP = APP || {};
         //cache elements
         this.ui = {
           $doc: $(window),
-          $hero: $('#jumbotron'),
-          $pagination: null
+          $hero: $('#jumbotron')
         }
         
         this.addEventListeners();
@@ -87,7 +86,6 @@ var APP = APP || {};
 
           _this.ui.$hero.css('webkitTransform', 'translate(0, '+ speedAdj +'px)');
           _this.ui.$hero.find('.container').css('webkitTransform', 'translate(0, '+  speedAdjOffset +'px)');
-          //_this.ui.$pagination.css('webkitTransform', 'translate(0, '+  speedAdjOffset +'px)');
         })
       }
     }
