@@ -28,7 +28,7 @@ module.exports = function(grunt) {
 		},
 
 		uglify: {
-      app: {
+      		app: {
 				files: {
 					'javascripts/app/deploy/site.min.js': ['javascripts/app/deploy/site.js']
 				}
@@ -58,11 +58,11 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-recess');
 
-  // JS distribution task.
-  grunt.registerTask('dist-js', ['concat', 'uglify']);
+  	// JS distribution task.
+  	grunt.registerTask('dist-js', ['concat', 'uglify']);
 
-  // Full distribution task.
-  grunt.registerTask('dist', ['dist-js']);
+  	// Full distribution task.
+  	grunt.registerTask('dist', ['dist-js']);
 
 	grunt.registerTask('default', ['watch']);
 
