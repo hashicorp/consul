@@ -91,9 +91,10 @@ as a simple foundation for an auto-healing service oriented architecture.
 
 For these lookups, both A and SRV records may be served. The SRV records will also
 provide the port that a service is registered on, enabling services to avoid relying
-on well-known ports.
+on well-known ports. SRV records are only served if the client specifically requests
+SRV records.
 
-    $ dig @127.0.0.1 -p 8600 consul.service.consul ANY
+    $ dig @127.0.0.1 -p 8600 consul.service.consul SRV
 
     ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 consul.service.consul ANY
     ; (1 server found)
@@ -104,14 +105,10 @@ on well-known ports.
     ;; WARNING: recursion requested but not available
 
     ;; QUESTION SECTION:
-    ;consul.service.consul.		IN	ANY
+    ;consul.service.consul.		IN	SRV
 
     ;; ANSWER SECTION:
-    consul.service.consul.	0	IN	A	10.1.10.12
     consul.service.consul.	0	IN	SRV	1 1 8300 foobar.node.dc1.consul.
-
-    ;; AUTHORITY SECTION:
-    consul.			0	IN	SOA	ns.consul. postmaster.consul. 1392836489 3600 600 86400 0
 
     ;; ADDITIONAL SECTION:
     foobar.node.dc1.consul.	0	IN	A	10.1.10.12
