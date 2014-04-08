@@ -18,6 +18,7 @@ body.layout-intro{
 				bottom: 0;
 				left: -9999px;
 				right: 0;
+				border-left: none;
 				box-shadow: 9999px 0 0 white;
 			}
 
@@ -173,4 +174,19 @@ body.layout-intro{
     #graph {
         margin-top: 30px;
     }
+}
+
+
+@media (max-width: 992px) {
+	body.layout-docs,
+	body.layout-intro{
+		>.container{
+			.col-md-8[role=main]{
+				min-height: 0;
+				&::before {
+					border-left: 9999px solid white;
+				}
+			}
+		}
+	}
 }
