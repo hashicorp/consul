@@ -9,7 +9,7 @@ sidebar_current: "docs-guides-forwarding"
 In order to not have to run Consul as root and bind to port 53 it's best if 
 it's paired with Bind. 
 
-In this example, Bind and Consul are running on the same machine
+In this example, Bind and Consul are running on the same machine for simplicity but you should be able to separate them.
 
 ### DNSSEC
 
