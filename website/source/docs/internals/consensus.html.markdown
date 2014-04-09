@@ -7,7 +7,7 @@ sidebar_current: "docs-internals-consensus"
 # Consensus Protocol
 
 Consul uses a [consensus protocol](http://en.wikipedia.org/wiki/Consensus_(computer_science))
-to provide [Consistency and Availability](http://en.wikipedia.org/wiki/CAP_theorem) as defined by CAP.
+to provide [Consistency](http://en.wikipedia.org/wiki/CAP_theorem) as defined by CAP.
 This page documents the details of this internal protocol. The consensus protocol is based on
 ["Raft: In search of an Understandable Consensus Algorithm"](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf).
 
@@ -114,7 +114,8 @@ to agree on an entry instead of a handful.
 When getting started, a single Consul server is put into "bootstrap" mode. This mode
 allows it to self-elect as a leader. Once a leader is elected, other servers can be
 added to the peer set in a way that preserves consistency and safety. Eventually,
-bootstrap mode can be disabled, once the first few servers are added.
+bootstrap mode can be disabled, once the first few servers are added. See [this
+guide](/docs/guides/bootstrapping.html) for more details.
 
 Since all servers participate as part of the peer set, they all know the current
 leader. When an RPC request arrives at a non-leader server, the request is

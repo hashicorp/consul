@@ -99,12 +99,12 @@ The server nodes also operate as part of a WAN gossip. This pool is different fr
 as it is optimized for the higher latency of the internet, and is expected to only contain
 other Consul server nodes. The purpose of this pool is to allow datacenters to discover each
 other in a low touch manner. Bringing a new datacenter online is as easy as joining the existing
-WAN gossip. Because the servers are all operating in this pool, it also enables cross-dc requests.
+WAN gossip. Because the servers are all operating in this pool, it also enables cross-datacenter requests.
 When a server receives a request for a different datacenter, it forwards it to a random server
 in the correct datacenter. That server may then forward to the local leader.
 
 This results in a very low coupling between datacenters, but because of failure detection,
-connection caching and multiplexing, cross-dc requests are relatively fast and reliable.
+connection caching and multiplexing, cross-datacenter requests are relatively fast and reliable.
 
 ## Getting in depth
 

@@ -72,7 +72,7 @@ the node.
 ## Service Lookups
 
 A service lookup is the alternate type of query. It is used to query for service
-providers. The format of a service lookup is more complex and is like the following:
+providers. The format of a service lookup is like the following:
 
     <tag>.<service>.service.<datacenter>.<domain>
 

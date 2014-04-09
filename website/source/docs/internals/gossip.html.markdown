@@ -33,7 +33,7 @@ event broadcasts for events like leader election.
 
 The WAN pool is globally unique, as all servers should participate in the WAN pool
 regardless of datacenter. Membership information provided by the WAN pool allows
-servers to perform cross datacenter requests. THe integrated failure detection
+servers to perform cross datacenter requests. The integrated failure detection
 allows Consul to gracefully handle an entire datacenter losing connectivity, or just
 a single server in a remote datacenter.
 

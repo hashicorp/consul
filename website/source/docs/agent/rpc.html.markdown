@@ -10,10 +10,9 @@ The Consul agent provides a complete RPC mechanism that can
 be used to control the agent programmatically. This RPC
 mechanism is the same one used by the CLI, but can be
 used by other applications to easily leverage the power
-of Consul without directly embedding. Additionally, it can
-be used as a fast IPC mechanism to allow applications to
-receive events immediately instead of using the fork/exec
-model of event handlers.
+of Consul without directly embedding. It is important to note
+that the RPC protocol does not support all the same operations
+as the [HTTP API](/docs/agent/http.html).
 
 ## Implementation Details
 

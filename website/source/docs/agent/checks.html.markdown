@@ -24,7 +24,7 @@ There are two different kinds of checks:
  set to the failed state. This mechanism is used to allow an application to
  directly report it's health. For example, a web app can periodically curl the
  endpoint, and if the app fails, then the TTL will expire and the health check
- enters a critical state.
+ enters a critical state. This is conceptually similar to a dead man's switch.
 
 ## Check Definition
 

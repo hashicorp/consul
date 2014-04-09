@@ -14,7 +14,7 @@ eventually rejoin the cluster. The true purpose of this method is to force
 remove "failed" nodes.
 
 Consul periodically tries to reconnect to "failed" nodes in case it is a
-network partition. After some configured amount of time (by default 24 hours),
+network partition. After some configured amount of time (by default 72 hours),
 Consul will reap "failed" nodes and stop trying to reconnect. The `force-leave`
 command can be used to transition the "failed" nodes to "left" nodes more
 quickly.

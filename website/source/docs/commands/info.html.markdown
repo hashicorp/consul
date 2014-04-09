@@ -12,6 +12,14 @@ The info command provides various debugging information that can be
 useful to operators. Depending on if the agent is a client or server,
 information about different sub-systems will be returned.
 
+There are currently the top-level keys for:
+
+* agent: Provides information about the agent
+* consul: Information about the consul library (client or server)
+* raft: Provides info about the Raft [consensus library](/docs/internals/consensus.html)
+* serf_lan: Provides info about the LAN [gossip pool](/docs/internals/gossip.html)
+* serf_wan: Provides info about the WAN [gossip pool](/docs/internals/gossip.html)
+
 Here is an example output:
 
     agent:
@@ -55,14 +63,6 @@ Here is an example output:
         members = 1
         query_queue = 0
         query_time = 1
-
-There are currently the top-level keys for:
-
-* agent: Provides information about the agent
-* consul: Information about the consul library (client or server)
-* raft: Provides info about the Raft [consensus library](/docs/internals/consensus.html)
-* serf_lan: Provides info about the LAN [gossip pool](/docs/internals/gossip.html)
-* serf_wan: Provides info about the WAN [gossip pool](/docs/internals/gossip.html)
 
 ## Usage
 

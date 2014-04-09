@@ -8,10 +8,10 @@ sidebar_current: "docs-internals-security"
 
 Consul relies on both a lightweight gossip mechanism and an RPC system
 to provide various features. Both of the systems have different security
-mechanisms that stem from their independent designs. However, the goals
+mechanisms that stem from their designs. However, the goals
 of Consuls security are to provide [confidentiality, integrity and authentication](http://en.wikipedia.org/wiki/Information_security).
 
-The [gossip protocol](/docs/internals/gossip.html) is powered by Serf,
+The [gossip protocol](/docs/internals/gossip.html) is powered by [Serf](http://www.serfdom.io/),
 which uses a symmetric key, or shared secret, cryptosystem. There are more
 details on the security of [Serf here](http://www.serfdom.io/docs/internals/security.html).
 

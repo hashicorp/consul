@@ -53,7 +53,11 @@ a single endpoint:
 
 This is the only endpoint that is used with the Key/Value store.
 It's use depends on the HTTP method. The `GET`, `PUT` and `DELETE` methods
-are all supported.
+are all supported. It is important to note that each datacenter has its
+own K/V store, and that there is no replication between datacenters.
+By default the datacenter of the agent is queried, however the dc can
+be provided using the "?dc=" query parameter. If a client wants to write
+to all Datacenters, one request per datacenter must be made.
 
 When using the `GET` method, Consul will return the specified key,
 or if the "?recurse" query parameter is provided, it will return

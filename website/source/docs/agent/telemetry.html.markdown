@@ -19,7 +19,7 @@ In general, the telemetry information is used for debugging or otherwise
 getting a better view into what Consul is doing.
 
 Additionally, if the `-statsite` [option](/docs/agent/options.html) is provided,
-then the telemetry information will be streamed to a [statsite](github.com/armon/statsite)
+then the telemetry information will be streamed to a [statsite](http://github.com/armon/statsite)
 server where it can be aggregate and flushed to Graphite or any other metrics store.
 
 Below is an example output:
