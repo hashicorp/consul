@@ -307,6 +307,40 @@ body.page-sub #header {
   }
 }
 @media (max-width: 768px) {
+  #footer .buttons.navbar-nav,
+  #header .buttons.navbar-nav,
+  #footer .main-links.navbar-nav,
+  #header .main-links.navbar-nav {
+    display: block;
+    padding-bottom: 15px;
+  }
+  #footer .buttons.navbar-nav li,
+  #header .buttons.navbar-nav li,
+  #footer .main-links.navbar-nav li,
+  #header .main-links.navbar-nav li {
+    display: block;
+    float: none;
+    margin-top: 15px;
+  }
+  #footer .buttons.navbar-nav .li-under a::after,
+  #header .buttons.navbar-nav .li-under a::after,
+  #footer .main-links.navbar-nav .li-under a::after,
+  #header .main-links.navbar-nav .li-under a::after,
+  #footer .buttons.navbar-nav li + li::before,
+  #header .buttons.navbar-nav li + li::before,
+  #footer .main-links.navbar-nav li + li::before,
+  #header .main-links.navbar-nav li + li::before {
+    display: none;
+  }
+  #header .main-links.navbar-nav li > a,
+  #footer .main-links.navbar-nav li > a {
+    padding: 0;
+    padding-left: 0;
+    line-height: 22px;
+  }
+  #footer .buttons.navbar-nav li.first {
+    margin-right: 0;
+  }
   #header {
     background: #694a9c;
     /* Old browsers */
@@ -327,21 +361,6 @@ body.page-sub #header {
   }
   #header .navbar-right {
     float: none !important;
-  }
-  #header .main-links.navbar-nav {
-    padding-bottom: 15px;
-  }
-  #header .main-links.navbar-nav li {
-    margin-top: 15px;
-  }
-  #header .main-links.navbar-nav .li-under a::after,
-  #header .main-links.navbar-nav li + li::before {
-    display: none;
-  }
-  #header .main-links.navbar-nav li > a {
-    padding: 0;
-    padding-left: 0;
-    line-height: 22px;
   }
   #header .navbar-brand.logo span {
     margin-top: 0;

@@ -220,16 +220,16 @@ body.page-sub{
 }
 
 @media (max-width: 768px) {
+
+    #footer,
     #header{
-        .consul-gradient-bg();
-
-        .navbar-right{
-            float: none !important;
-        }
-
+        .buttons.navbar-nav,
         .main-links.navbar-nav{
+            display: block;
             padding-bottom: 15px;
             li{
+                display: block;
+                float: none;
                 margin-top: 15px;
             }
             
@@ -237,12 +237,31 @@ body.page-sub{
             li + li::before {
                 display: none;
             }
+        }
+    }
 
+    #header,
+    #footer{
+        .main-links.navbar-nav{
             li > a {
                 padding: 0;
                 padding-left: 0;
                 line-height: 22px;
             }
+        }
+    }
+
+    #footer{
+        .buttons.navbar-nav li.first {
+            margin-right: 0;
+        }
+    }
+
+    #header{
+        .consul-gradient-bg();
+
+        .navbar-right{
+            float: none !important;
         }
 
         .navbar-brand {
