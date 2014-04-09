@@ -2,6 +2,12 @@
 // Header
 // --------------------------------------------------
 
+body.page-sub{
+    #header{
+        .consul-gradient-bg();
+    }
+}
+
 #footer,
 #header {
     .anti-alias();
@@ -24,6 +30,7 @@
 
     .navbar-toggle{
         margin-top: 14px;
+        margin-bottom: 14px;
         border: 2px solid @white;
         .icon-bar{
             border: 1px solid @white;
@@ -65,12 +72,18 @@
         }
     }
 
+    .nav.li-under a::after {
+
+    }
+
     .nav > li > a:hover, .nav > li > a:focus {
         background-color: transparent;
+        /*color: @p;
+        .transition( color 0.3s ease );*/
     }
 
     .main-links.navbar-nav{
-        li + li a::before {
+        li + li::before {
             content: "";
             position: absolute;
             left: 0;
@@ -81,6 +94,10 @@
             .img-retina("../images/nav-dotpipes.png", "../images/nav-dotpipes@2x.png", 4px, 23px);
             padding-right: 15px;
         }
+
+        /*li + li.li-under a::after{
+            left: 15px;
+        }*/
 
         li > a {
             line-height: 62px;
@@ -129,6 +146,10 @@
         float: none;
         display: inline-block;
         padding-top: 155px;
+  
+        .li-under a::after {
+            background-color: @purple;    
+        }           
     }
 
     .footer-hashi{
@@ -169,7 +190,7 @@
             padding-top: 6px;
             padding-bottom: 6px;
             padding-left: 40px;
-        }        
+        }             
     }  
 }
 
@@ -199,35 +220,64 @@
 }
 
 @media (max-width: 768px) {
+
+    #footer,
     #header{
-        background: #694a9c; /* Old browsers */
-        background: -moz-linear-gradient(left, #694a9c 0%, #cd2028 100%); /* FF3.6+ */
-        background: -webkit-gradient(linear, left top, right top, color-stop(0%,#694a9c), color-stop(100%,#cd2028)); /* Chrome,Safari4+ */
-        background: -webkit-linear-gradient(left, #694a9c 0%,#cd2028 100%); /* Chrome10+,Safari5.1+ */
-        background: -o-linear-gradient(left, #694a9c 0%,#cd2028 100%); /* Opera 11.10+ */
-        background: -ms-linear-gradient(left, #694a9c 0%,#cd2028 100%); /* IE10+ */
-        background: linear-gradient(to right, #694a9c 0%,#cd2028 100%); /* W3C */
-        filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#694a9c', endColorstr='#cd2028',GradientType=1 ); /* IE6-9 */  
-
-        .navbar-right{
-            float: none !important;
-        }
-
+        .buttons.navbar-nav,
         .main-links.navbar-nav{
+            display: block;
             padding-bottom: 15px;
             li{
+                display: block;
+                float: none;
                 margin-top: 15px;
             }
-
-            li + li a::before {
+            
+            .li-under a::after,
+            li + li::before {
                 display: none;
             }
+        }
+    }
 
+    #header,
+    #footer{
+        .main-links.navbar-nav{
             li > a {
                 padding: 0;
                 padding-left: 0;
                 line-height: 22px;
             }
+        }
+    }
+
+    #footer{
+        .footer-hashi {
+            span{
+                margin-right: 0;
+            }
+
+            .hashi-logo{
+                display: block;
+                margin-top: 15px;
+                margin-bottom: 20px;
+            }
+        }
+
+        .buttons.navbar-nav{
+            margin-left: 0;
+
+            li.first {
+                margin-right: 0 !important;
+            }
+        }
+    }
+
+    #header{
+        .consul-gradient-bg();
+
+        .navbar-right{
+            float: none !important;
         }
 
         .navbar-brand {

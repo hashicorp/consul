@@ -4,8 +4,9 @@
 
 #jumbotron-mask{
   overflow: hidden;
+  width: 100%;
   height: @jumbotron-total-height;
-  margin-top: -92px;
+  margin-top: @negative-hero-margin;
 }
 
 #jumbotron {
@@ -13,16 +14,9 @@
   height: @jumbotron-total-height;
   padding-top: 0;
   padding-bottom: 0;
-  margin-top: -92px;
+  margin-top: @negative-hero-margin;
   color: @jumbotron-color;
-  background: #694a9c; /* Old browsers */
-  background: -moz-linear-gradient(left, #694a9c 0%, #cd2028 100%); /* FF3.6+ */
-  background: -webkit-gradient(linear, left top, right top, color-stop(0%,#694a9c), color-stop(100%,#cd2028)); /* Chrome,Safari4+ */
-  background: -webkit-linear-gradient(left, #694a9c 0%,#cd2028 100%); /* Chrome10+,Safari5.1+ */
-  background: -o-linear-gradient(left, #694a9c 0%,#cd2028 100%); /* Opera 11.10+ */
-  background: -ms-linear-gradient(left, #694a9c 0%,#cd2028 100%); /* IE10+ */
-  background: linear-gradient(to right, #694a9c 0%,#cd2028 100%); /* W3C */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#694a9c', endColorstr='#cd2028',GradientType=1 ); /* IE6-9 */  
+  .consul-gradient-bg();
 
   &.mobile-hero{
     background:  transparent url( ../images/node-hero-pattern.jpg ) center center;
@@ -37,7 +31,7 @@
       left: 0;
       height: 632px;
       width: 100%;
-      margin-top: -92px;
+      margin-top: @negative-hero-margin;
       background: transparent url('../images/hero-dots.png') center @header-height no-repeat;
   }
   
@@ -69,14 +63,20 @@
   }
 }
 
-@media (min-width: 992px) {
-    .jumbotron .container .jumbo-logo{
-        right: -150px;
+@media (max-width: 992px) {
+  #jumbotron .container { 
+    h2{
+      text-align: center;
+      margin-left: 0;
     }
+  }
 }
 
-@media (min-width: 1200px) {
-    .jumbotron .container .jumbo-logo{
-        right: -120px;
+@media (max-width: 480px) {
+  #jumbotron .container { 
+    h2{
+      margin-top: 130px;
+      font-size: 32px;
     }
+  }
 }
