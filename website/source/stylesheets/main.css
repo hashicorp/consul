@@ -338,6 +338,9 @@ body.page-sub #header {
     padding-left: 0;
     line-height: 22px;
   }
+  #footer .footer-hashi span {
+    margin-right: 0;
+  }
   #footer .footer-hashi .hashi-logo {
     display: block;
     margin-top: 15px;
@@ -347,7 +350,7 @@ body.page-sub #header {
     margin-left: 0;
   }
   #footer .buttons.navbar-nav li.first {
-    margin-right: 0;
+    margin-right: 0 !important;
   }
   #header {
     background: #694a9c;
@@ -711,7 +714,7 @@ body.page-home {
 }
 body.layout-docs,
 body.layout-intro {
-  background: #f7f3f9;
+  background: #f7f3f9 url('../images/sidebar-dots.jpg') left 62px no-repeat;
 }
 body.layout-docs > .container .col-md-8[role=main],
 body.layout-intro > .container .col-md-8[role=main] {
@@ -740,6 +743,7 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   margin-bottom: 30px;
   margin-top: 50px;
   margin-right: 4%;
+  background-color: #f7f3f9;
   border-radius: 6px;
 }
 .docs-sidebar a {
