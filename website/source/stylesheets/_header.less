@@ -72,12 +72,18 @@ body.page-sub{
         }
     }
 
+    .nav.li-under a::after {
+
+    }
+
     .nav > li > a:hover, .nav > li > a:focus {
         background-color: transparent;
+        /*color: @p;
+        .transition( color 0.3s ease );*/
     }
 
     .main-links.navbar-nav{
-        li + li a::before {
+        li + li::before {
             content: "";
             position: absolute;
             left: 0;
@@ -88,6 +94,10 @@ body.page-sub{
             .img-retina("../images/nav-dotpipes.png", "../images/nav-dotpipes@2x.png", 4px, 23px);
             padding-right: 15px;
         }
+
+        /*li + li.li-under a::after{
+            left: 15px;
+        }*/
 
         li > a {
             line-height: 62px;
@@ -136,6 +146,10 @@ body.page-sub{
         float: none;
         display: inline-block;
         padding-top: 155px;
+  
+        .li-under a::after {
+            background-color: @purple;    
+        }           
     }
 
     .footer-hashi{
@@ -176,7 +190,7 @@ body.page-sub{
             padding-top: 6px;
             padding-bottom: 6px;
             padding-left: 40px;
-        }        
+        }             
     }  
 }
 
@@ -218,8 +232,9 @@ body.page-sub{
             li{
                 margin-top: 15px;
             }
-
-            li + li a::before {
+            
+            .li-under a::after,
+            li + li::before {
                 display: none;
             }
 

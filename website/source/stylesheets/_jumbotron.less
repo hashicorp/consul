@@ -63,14 +63,20 @@
   }
 }
 
-@media (min-width: 992px) {
-    .jumbotron .container .jumbo-logo{
-        right: -150px;
+@media (max-width: 992px) {
+  #jumbotron .container { 
+    h2{
+      text-align: center;
+      margin-left: 0;
     }
+  }
 }
 
-@media (min-width: 1200px) {
-    .jumbotron .container .jumbo-logo{
-        right: -120px;
+@media (max-width: 480px) {
+  #jumbotron .container { 
+    h2{
+      margin-top: 130px;
+      font-size: 32px;
     }
+  }
 }
