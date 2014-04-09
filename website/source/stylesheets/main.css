@@ -338,6 +338,14 @@ body.page-sub #header {
     padding-left: 0;
     line-height: 22px;
   }
+  #footer .footer-hashi .hashi-logo {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 20px;
+  }
+  #footer .buttons.navbar-nav {
+    margin-left: 0;
+  }
   #footer .buttons.navbar-nav li.first {
     margin-right: 0;
   }
