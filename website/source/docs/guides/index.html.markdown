@@ -15,10 +15,10 @@ The following guides are available:
  * [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new
  datacenter. This covers safely adding the initial Consul servers.
 
+ * [DNS Forwarding](/docs/guides/forwarding.html) - Forward DNS queries from Bind to Consul
+
  * [External Services](/docs/guides/external.html) - This guide covers registering
  an external service. This allows using 3rd party services within the Consul framework.
-
- * [Forwarding](/docs/guides/forwarding.html) DNS queries from Bind to Consul
 
  * TODO: Adding and removing servers
 
