@@ -36,6 +36,8 @@ First, you have to disable DNSSEC so that Consul and Bind can communicate
 
     include "/etc/named/consul.conf";
 
+### Zone File
+
 Then we set up a zone for our Consul managed records in consul.conf:
 
     zone "consul" IN {
@@ -44,18 +46,69 @@ Then we set up a zone for our Consul managed records in consul.conf:
         forwarders { 127.0.0.1 port 8600; };
     };
 
-We can extend this even further to make separate zones for different data centers / Consul clusters.
+## Complete the Setup
 
-    zone "n-california.consul" IN {
-        type forward;
-        forward only;
-        forwarders { 172.16.0.15 port 8600; 172.16.0.16 port 8600; };
-    }
+Once those files are changed, restarted named (on RHEL this is just 'system named restart') and you should be done.
 
-    zone "oregon.consul" IN {
-        type forward;
-        forward only;
-        forwarders { 172.24.0.1 port 8600; 172.24.0.1 port 8600; };
-    }
+### Testing
 
+First, perform a DNS query against Consul directly to be sure that the record exists:
+
+    [root@localhost ~]# dig @localhost -p 8600  master.redis.service.dc-1.consul. A 
+
+    ; <<>> DiG 9.8.2rc1-RedHat-9.8.2-0.23.rc1.32.amzn1 <<>> @localhost master.redis.service.dc-1.consul. A
+    ; (1 server found)
+    ;; global options: +cmd
+    ;; Got answer:
+    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 11536
+    ;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+
+    ;; QUESTION SECTION:
+    ;master.redis.service.dc-1.consul. IN A
+
+    ;; ANSWER SECTION:
+    master.redis.service.dc-1.consul. 0 IN A 172.31.3.234
+
+    ;; Query time: 4 msec
+    ;; SERVER: 127.0.0.1#53(127.0.0.1)
+    ;; WHEN: Wed Apr  9 17:36:12 2014
+    ;; MSG SIZE  rcvd: 76
+
+Then run the same query against your Bind instance and make sure you get a result:
+
+    [root@localhost ~]# dig @localhost -p 53 master.redis.service.dc-1.consul. A 
+
+    ; <<>> DiG 9.8.2rc1-RedHat-9.8.2-0.23.rc1.32.amzn1 <<>> @localhost master.redis.service.dc-1.consul. A
+    ; (1 server found)
+    ;; global options: +cmd
+    ;; Got answer:
+    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 11536
+    ;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+
+    ;; QUESTION SECTION:
+    ;master.redis.service.dc-1.consul. IN A
+
+    ;; ANSWER SECTION:
+    master.redis.service.dc-1.consul. 0 IN A 172.31.3.234
+
+    ;; Query time: 4 msec
+    ;; SERVER: 127.0.0.1#53(127.0.0.1)
+    ;; WHEN: Wed Apr  9 17:36:12 2014
+    ;; MSG SIZE  rcvd: 76
+
+### Troubleshooting
+
+If you don't get an answer from Bind but you do get an answer from Consul then your best bet is to turn on the query log
+to see what's going on
+
+    [root@localhost ~]# rndc querylog
+    [root@localhost ~]# tail -f /var/log/messages
+
+In there if you see errors like this:
+
+    error (no valid RRSIG) resolving
+    error (no valid DS) resolving
+
+Then DNSSEC is not disabled properly.  If you see errors about network connections then verify that there are no firewall or 
+routing problems between the servers running Bind and Consul
 
