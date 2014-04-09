@@ -48,7 +48,7 @@ serves several functions including distributed health checking. The gossip proto
 an efficient failure detector that can scale to clusters of any size without concentrating
 the work on any select group of servers. The clients also enable a much richer set of health checks to be run locally,
 where ZooKeeper ephemeral nodes are a very primitve check of liveness. Clients can check that
-a web server is return 200, that memory utilization is not critical, there is sufficient
+a web server is returning 200 status codes, that memory utilization is not critical, there is sufficient
 disk space, etc. The Consul clients expose a simple HTTP interface and avoid exposing the complexity
 of the system is to clients in the same way as ZooKeeper.
 
