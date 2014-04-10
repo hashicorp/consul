@@ -1,25 +1,25 @@
 ---
 layout: "intro"
-page_title: "Serf vs. Custom Solutions"
+page_title: "Consul vs. Custom Solutions"
 sidebar_current: "vs-other-custom"
 ---
 
-# Serf vs. Custom Solutions
+# Consul vs. Custom Solutions
 
-Many organizations find themselves building home grown solutions
-for service discovery and administration. It is an undisputed fact that
-distributed systems are hard; building one is error prone and time consuming.
+As a code base grows, a monolithic app usually evolves into a Service Oriented Architecture (SOA).
+A universal pain point for SOA is service discovery and configuration. In many
+cases, this leads to organizations building home grown solutions.
+It is an undisputed fact that distributed systems are hard; building one is error prone and time consuming.
 Most systems cut corners by introducing single points of failure such
 as a single Redis or RDBMS to maintain cluster state. These solutions may work in the short term,
 but they are rarely fault tolerant or scalable. Besides these limitations,
 they require time and resources to build and maintain.
 
-Serf provides many features that are effortless to use out of the box.
-However, Serf still may not provide the exact feature set needed by an organization.
-Instead it can be used as building block, composed with other systems it provides generally
-useful features for building distributed systems.
+Consul provides the core set of features needed by a SOA out of the box. By using Consul,
+organizations can leverage open source work to reduce their time and resource commitment to
+re-inventing the wheel and focus on their business applications.
 
-Serf is built on top of well-cited academic research where the pros, cons,
-failure scenarios, scalability, etc. are all well defined enabling you to
-build on the shoulder of giants.
+Consul is built on well-cited research, and is designed with the constraints of
+distributed systems in mind. At every step, Consul takes efforts to provide a robust
+and scalable solution for organizations of any size.
 
