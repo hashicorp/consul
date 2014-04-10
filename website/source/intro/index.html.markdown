@@ -4,42 +4,41 @@ page_title: "Introduction"
 sidebar_current: "what"
 ---
 
-# Introduction to Serf
+# Introduction to Consul
 
-Welcome to the intro guide to Serf! This guide will show you what Serf is,
-explain the problems Serf solves, compare Serf versus other similar
-software, and show how easy it is to actually use Serf. If you're already familiar
-with the basics of Serf, the [documentation](/docs/index.html) provides more
+Welcome to the intro guide to Consul! This guide is a the best place to start
+with Consul. We cover what Consul is, what problems it can solve, how it compares
+to existing software, and a quick start for using Consul. If you are already familiar
+with the basics of Consul, the [documentation](/docs/index.html) provides more
 of a reference for all available features.
 
-## What is Serf?
+## What is Consul?
 
-Serf is a service discovery and orchestration tool that is decentralized,
-highly available, and fault tolerant.
-Serf runs on every major platform: Linux, Mac OS X, and Windows. It is
-extremely lightweight: it uses 5 to 10 MB of resident memory and primarily
-communicates using infrequent UDP messages.
+Consul has multiple components, but as a whole, it is tool for managing
+and coordinating infrastructure. It provides several key features:
 
-Serf uses an efficient [gossip protocol](/docs/internals/gossip.html)
-to solve three major problems:
+* **Service Discovery**: Clients of Consul can _provide_ a service, such as
+  `api` or `mysql`, and other clients can use Consul to _discover_ providers
+  of a given service. Using either DNS or HTTP, applications can easily find
+  the services they depend upon.
 
-* **Membership**: Serf maintains cluster membership lists and is able to
-  execute custom handler scripts when that membership changes. For example,
-  Serf can maintain the list of web servers for a load balancer and notify
-  that load balancer whenever a node comes online or goes offline.
+* **Health Checking**: Consul clients can provide any number of health checks,
+  either associated with a given service ("is the webserver returning 200 OK"), or
+  with the local node ("is memory utilization below 90%"). This information can be
+  used by an operator to monitor cluster health, and it is used by the service
+  discovery components to route traffic away from unhealthy hosts.
 
-* **Failure detection and recovery**: Serf automatically detects failed nodes within
-  seconds, notifies the rest of the cluster,
-  and executes handler scripts allowing you to handle these events.
-  Serf will attempt to recover failed nodes by reconnecting to them
-  periodically.
+* **Key/Value Store**: Applications can make use of Consul's hierarchical key/value
+  store for any number of purposes including dynamic configuration, feature flagging,
+  coordination, leader election, etc. The simple HTTP API makes dead easy to use.
 
-* **Custom event propagation**: Serf can broadcast custom events to the cluster.
-  These can be used to trigger deploys, propagate configuration, etc.
+* **Multi Datacenter**: Consul supports multiple datacenters out of the box. This
+  means users of Consul do not have to worry about building additional layers of
+  abstraction to grow to multiple regions.
 
 See the [use cases page](/intro/use-cases.html) for a list of concrete use
-cases built on top of the features Serf provides. See the page on
-[how Serf compares to other software](/intro/vs-other-sw.html) to see just
+cases built on top of the features Consul provides. See the page on
+[how Consul compares to other software](/intro/vs/index.html) to see just
 how it fits into your existing infrastructure. Or continue onwards with
 the [getting started guide](/intro/getting-started/install.html) to get
-Serf up and running and see how it works.
+Consul up and running and see how it works.
