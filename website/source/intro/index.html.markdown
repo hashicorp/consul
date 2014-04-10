@@ -36,9 +36,7 @@ and coordinating infrastructure. It provides several key features:
   means users of Consul do not have to worry about building additional layers of
   abstraction to grow to multiple regions.
 
-See the [use cases page](/intro/use-cases.html) for a list of concrete use
-cases built on top of the features Consul provides. See the page on
-[how Consul compares to other software](/intro/vs/index.html) to see just
-how it fits into your existing infrastructure. Or continue onwards with
+See the page on [how Consul compares to other software](/intro/vs/index.html)
+to see just how it fits into your existing infrastructure. Or continue onwards with
 the [getting started guide](/intro/getting-started/install.html) to get
 Consul up and running and see how it works.
