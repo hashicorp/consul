@@ -27,4 +27,6 @@ The following guides are available:
  * [Multiple Datacenters](/docs/guides/datacenters.html) - Configuring Consul to support multiple
  datacenters.
 
+ * [Outage Recovery](/docs/guides/outage.html) - This guide covers recovering a cluster
+ that has become unavailable due to server failures.
 
