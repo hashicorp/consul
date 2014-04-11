@@ -12,9 +12,10 @@ import (
 
 func makeDNSServer(t *testing.T) (string, *DNSServer) {
 	conf := nextConfig()
+	addr, _ := conf.ClientListener(conf.Ports.DNS)
 	dir, agent := makeAgent(t, conf)
 	server, err := NewDNSServer(agent, agent.logOutput, conf.Domain,
-		conf.DNSAddr, "8.8.8.8:53")
+		addr.String(), "8.8.8.8:53")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -40,7 +41,8 @@ func TestDNS_IsAlive(t *testing.T) {
 	m.SetQuestion("_test.consul.", dns.TypeANY)
 
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -81,7 +83,8 @@ func TestDNS_NodeLookup(t *testing.T) {
 	m.SetQuestion("foo.node.consul.", dns.TypeANY)
 
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -103,7 +106,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 	m.SetQuestion("foo.node.dc1.consul.", dns.TypeANY)
 
 	c = new(dns.Client)
-	in, _, err = c.Exchange(m, srv.agent.config.DNSAddr)
+	in, _, err = c.Exchange(m, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -144,7 +147,8 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	m.SetQuestion("bar.node.consul.", dns.TypeANY)
 
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -185,7 +189,8 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	m.SetQuestion("google.node.consul.", dns.TypeANY)
 
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -232,7 +237,8 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	m.SetQuestion("db.service.consul.", dns.TypeSRV)
 
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -322,7 +328,8 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 	m.SetQuestion("db.service.consul.", dns.TypeANY)
 
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -398,7 +405,8 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 	m.SetQuestion("db.service.consul.", dns.TypeSRV)
 
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -454,7 +462,8 @@ func TestDNS_Recurse(t *testing.T) {
 
 	c := new(dns.Client)
 	c.Net = "tcp"
-	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -519,7 +528,8 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	m.SetQuestion("db.service.consul.", dns.TypeANY)
 
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -557,12 +567,13 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 
 	// Ensure the response is randomized each time
 	uniques := map[string]struct{}{}
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
 	for i := 0; i < 5; i++ {
 		m := new(dns.Msg)
 		m.SetQuestion("web.service.consul.", dns.TypeANY)
 
 		c := new(dns.Client)
-		in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+		in, _, err := c.Exchange(m, addr.String())
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -620,7 +631,8 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	m.SetQuestion("search.service.consul.", dns.TypeANY)
 
 	c := new(dns.Client)
-	in, _, err := c.Exchange(m, srv.agent.config.DNSAddr)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

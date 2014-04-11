@@ -67,16 +67,13 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		return nil, fmt.Errorf("Must configure a DataDir")
 	}
 
-	// Ensure the Bind Addr is sane
-	if _, err := net.ResolveTCPAddr("tcp", config.BindAddr); err != nil {
-		return nil, fmt.Errorf("Bad server address: %v", err)
-	}
-
 	// Try to get an advertise address
 	if config.AdvertiseAddr != "" {
 		if ip := net.ParseIP(config.AdvertiseAddr); ip == nil {
 			return nil, fmt.Errorf("Failed to parse advertise address: %v", config.AdvertiseAddr)
 		}
+	} else if config.BindAddr != "0.0.0.0" && config.BindAddr != "" {
+		config.AdvertiseAddr = config.BindAddr
 	} else {
 		ip, err := consul.GetPrivateIP()
 		if err != nil {
@@ -159,7 +156,7 @@ func (a *Agent) consulConfig() *consul.Config {
 		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
 		base.RPCAdvertise = &net.TCPAddr{
 			IP:   net.ParseIP(a.config.AdvertiseAddr),
-			Port: base.RPCAddr.Port,
+			Port: a.config.Ports.RPC,
 		}
 	}
 	if a.config.Bootstrap {

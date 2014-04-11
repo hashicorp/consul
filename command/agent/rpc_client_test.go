@@ -61,7 +61,7 @@ func TestRPCClientForceLeave(t *testing.T) {
 	defer p2.Close()
 	testutil.Yield()
 
-	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.SerfLanPort)
+	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.Ports.SerfLan)
 	if _, err := p1.agent.JoinLAN([]string{s2Addr}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -97,7 +97,7 @@ func TestRPCClientJoinLAN(t *testing.T) {
 	defer p2.Close()
 	testutil.Yield()
 
-	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.SerfLanPort)
+	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.Ports.SerfLan)
 	n, err := p1.client.Join([]string{s2Addr}, false)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -115,7 +115,7 @@ func TestRPCClientJoinWAN(t *testing.T) {
 	defer p2.Close()
 	testutil.Yield()
 
-	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.SerfWanPort)
+	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.Ports.SerfWan)
 	n, err := p1.client.Join([]string{s2Addr}, true)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -142,7 +142,7 @@ func TestRPCClientLANMembers(t *testing.T) {
 		t.Fatalf("bad: %#v", mem)
 	}
 
-	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.SerfLanPort)
+	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.Ports.SerfLan)
 	_, err = p1.client.Join([]string{s2Addr}, false)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -176,7 +176,7 @@ func TestRPCClientWANMembers(t *testing.T) {
 		t.Fatalf("bad: %#v", mem)
 	}
 
-	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.SerfWanPort)
+	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.Ports.SerfWan)
 	_, err = p1.client.Join([]string{s2Addr}, true)
 	if err != nil {
 		t.Fatalf("err: %s", err)

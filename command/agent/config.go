@@ -23,7 +23,7 @@ type PortConfig struct {
 	HTTP    int // HTTP API
 	RPC     int // CLI RPC
 	SerfLan int `mapstructure:"serf_lan"` // LAN gossip (Client + Server)
-	SerfWan int `mapstructure:"serv_wan"` // WAN gossip (Server onlyg)
+	SerfWan int `mapstructure:"serf_wan"` // WAN gossip (Server onlyg)
 	Server  int // Server internal RPC
 }
 
@@ -145,6 +145,7 @@ func DefaultConfig() *Config {
 		Domain:     "consul.",
 		LogLevel:   "INFO",
 		ClientAddr: "127.0.0.1",
+		BindAddr:   "0.0.0.0",
 		Ports: PortConfig{
 			DNS:     8600,
 			HTTP:    8500,

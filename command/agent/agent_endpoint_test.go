@@ -84,7 +84,7 @@ func TestHTTPAgentMembers(t *testing.T) {
 		t.Fatalf("bad members: %v", obj)
 	}
 
-	if int(val[0].Port) != srv.agent.config.SerfLanPort {
+	if int(val[0].Port) != srv.agent.config.Ports.SerfLan {
 		t.Fatalf("not lan: %v", obj)
 	}
 }
@@ -109,7 +109,7 @@ func TestHTTPAgentMembers_WAN(t *testing.T) {
 		t.Fatalf("bad members: %v", obj)
 	}
 
-	if int(val[0].Port) != srv.agent.config.SerfWanPort {
+	if int(val[0].Port) != srv.agent.config.Ports.SerfWan {
 		t.Fatalf("not wan: %v", obj)
 	}
 }
@@ -124,7 +124,7 @@ func TestHTTPAgentJoin(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer a2.Shutdown()
 
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.config.SerfLanPort)
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.config.Ports.SerfLan)
 	req, err := http.NewRequest("GET", fmt.Sprintf("/v1/agent/join/%s", addr), nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -153,7 +153,7 @@ func TestHTTPAgentJoin_WAN(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer a2.Shutdown()
 
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.config.SerfWanPort)
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.config.Ports.SerfWan)
 	req, err := http.NewRequest("GET", fmt.Sprintf("/v1/agent/join/%s?wan=true", addr), nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -183,7 +183,7 @@ func TestHTTPAgentForceLeave(t *testing.T) {
 	defer a2.Shutdown()
 
 	// Join first
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.config.SerfLanPort)
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.config.Ports.SerfLan)
 	_, err := srv.agent.JoinLAN([]string{addr})
 	if err != nil {
 		t.Fatalf("err: %v", err)

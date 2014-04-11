@@ -15,21 +15,21 @@ import (
 var offset uint64
 
 func nextConfig() *Config {
-	idx := atomic.AddUint64(&offset, 1)
+	idx := int(atomic.AddUint64(&offset, 1))
 	conf := DefaultConfig()
 
 	conf.AdvertiseAddr = "127.0.0.1"
 	conf.Bootstrap = true
 	conf.Datacenter = "dc1"
 	conf.NodeName = fmt.Sprintf("Node %d", idx)
-	conf.DNSAddr = fmt.Sprintf("127.0.0.1:%d", 18600+idx)
-	conf.HTTPAddr = fmt.Sprintf("127.0.0.1:%d", 18500+idx)
-	conf.RPCAddr = fmt.Sprintf("127.0.0.1:%d", 18400+idx)
-	conf.SerfBindAddr = "127.0.0.1"
-	conf.SerfLanPort = int(18200 + idx)
-	conf.SerfWanPort = int(18300 + idx)
+	conf.BindAddr = "127.0.0.1"
+	conf.Ports.DNS = 18600 + idx
+	conf.Ports.HTTP = 18500 + idx
+	conf.Ports.RPC = 18400 + idx
+	conf.Ports.SerfLan = 18200 + idx
+	conf.Ports.SerfWan = 18300 + idx
+	conf.Ports.Server = 18100 + idx
 	conf.Server = true
-	conf.ServerAddr = fmt.Sprintf("127.0.0.1:%d", 18100+idx)
 
 	cons := consul.DefaultConfig()
 	conf.ConsulConfig = cons

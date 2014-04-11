@@ -94,13 +94,13 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// DNS setup
-	input = `{"dns_addr": "127.0.0.1:8500", "recursor": "8.8.8.8", "domain": "foobar"}`
+	input = `{"ports": {"dns": 8500}, "recursor": "8.8.8.8", "domain": "foobar"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.DNSAddr != "127.0.0.1:8500" {
+	if config.Ports.DNS != 8500 {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -113,51 +113,55 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// RPC configs
-	input = `{"http_addr": "127.0.0.1:1234", "rpc_addr": "127.0.0.1:8100"}`
+	input = `{"ports": {"http": 1234, "rpc": 8100}, "client_addr": "0.0.0.0"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.HTTPAddr != "127.0.0.1:1234" {
+	if config.ClientAddr != "0.0.0.0" {
 		t.Fatalf("bad: %#v", config)
 	}
 
-	if config.RPCAddr != "127.0.0.1:8100" {
+	if config.Ports.HTTP != 1234 {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.Ports.RPC != 8100 {
 		t.Fatalf("bad: %#v", config)
 	}
 
 	// Serf configs
-	input = `{"serf_bind_addr": "127.0.0.2", "serf_lan_port": 1000, "serf_wan_port": 2000}`
+	input = `{"ports": {"serf_lan": 1000, "serf_wan": 2000}}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.SerfBindAddr != "127.0.0.2" {
+	if config.Ports.SerfLan != 1000 {
 		t.Fatalf("bad: %#v", config)
 	}
 
-	if config.SerfLanPort != 1000 {
-		t.Fatalf("bad: %#v", config)
-	}
-
-	if config.SerfWanPort != 2000 {
+	if config.Ports.SerfWan != 2000 {
 		t.Fatalf("bad: %#v", config)
 	}
 
 	// Server addrs
-	input = `{"server_addr": "127.0.0.1:8000", "advertise_addr": "127.0.0.1:8000"}`
+	input = `{"ports": {"server": 8000}, "bind_addr": "127.0.0.2", "advertise_addr": "127.0.0.3"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.ServerAddr != "127.0.0.1:8000" {
+	if config.BindAddr != "127.0.0.2" {
 		t.Fatalf("bad: %#v", config)
 	}
 
-	if config.AdvertiseAddr != "127.0.0.1:8000" {
+	if config.AdvertiseAddr != "127.0.0.3" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.Ports.Server != 8000 {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -312,18 +316,13 @@ func TestMergeConfig(t *testing.T) {
 		Bootstrap:      false,
 		Datacenter:     "dc1",
 		DataDir:        "/tmp/foo",
-		DNSAddr:        "127.0.0.1:1000",
 		DNSRecursor:    "127.0.0.1:1001",
 		Domain:         "basic",
-		HTTPAddr:       "",
 		LogLevel:       "debug",
 		NodeName:       "foo",
-		RPCAddr:        "",
-		SerfBindAddr:   "127.0.0.1",
-		SerfLanPort:    1000,
-		SerfWanPort:    2000,
-		ServerAddr:     "127.0.0.1:8000",
-		AdvertiseAddr:  "127.0.0.1:8000",
+		ClientAddr:     "127.0.0.1",
+		BindAddr:       "127.0.0.1",
+		AdvertiseAddr:  "127.0.0.1",
 		Server:         false,
 		LeaveOnTerm:    false,
 		SkipLeaveOnInt: false,
@@ -331,21 +330,24 @@ func TestMergeConfig(t *testing.T) {
 	}
 
 	b := &Config{
-		Bootstrap:      true,
-		Datacenter:     "dc2",
-		DataDir:        "/tmp/bar",
-		DNSAddr:        "127.0.0.2:1000",
-		DNSRecursor:    "127.0.0.2:1001",
-		Domain:         "other",
-		HTTPAddr:       "127.0.0.1:12345",
-		LogLevel:       "info",
-		NodeName:       "baz",
-		RPCAddr:        "127.0.0.1:9999",
-		SerfBindAddr:   "127.0.0.2",
-		SerfLanPort:    3000,
-		SerfWanPort:    4000,
-		ServerAddr:     "127.0.0.2:8000",
-		AdvertiseAddr:  "127.0.0.2:8000",
+		Bootstrap:     true,
+		Datacenter:    "dc2",
+		DataDir:       "/tmp/bar",
+		DNSRecursor:   "127.0.0.2:1001",
+		Domain:        "other",
+		LogLevel:      "info",
+		NodeName:      "baz",
+		ClientAddr:    "127.0.0.1",
+		BindAddr:      "127.0.0.1",
+		AdvertiseAddr: "127.0.0.1",
+		Ports: PortConfig{
+			DNS:     1,
+			HTTP:    2,
+			RPC:     3,
+			SerfLan: 4,
+			SerfWan: 5,
+			Server:  6,
+		},
 		Server:         true,
 		LeaveOnTerm:    true,
 		SkipLeaveOnInt: true,
