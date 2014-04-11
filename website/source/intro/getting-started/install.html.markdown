@@ -1,23 +1,23 @@
 ---
 layout: "intro"
-page_title: "Installing Serf"
+page_title: "Installing Consul"
 sidebar_current: "gettingstarted-install"
 ---
 
-# Install Serf
+# Install Consul
 
-Serf must first be installed on every node that will be a member of a
-Serf cluster. To make installation easy, Serf is distributed as a
+Consul must first be installed on every node that will be a member of a
+Consul cluster. To make installation easy, Consul is distributed as a
 [binary package](/downloads.html) for all supported platforms and
-architectures. This page will not cover how to compile Serf from
+architectures. This page will not cover how to compile Consul from
 source.
 
-## Installing Serf
+## Installing Consul
 
-To install Serf, find the [appropriate package](/downloads.html) for
-your system and download it. Serf is packaged as a "zip" archive.
+To install Consul, find the [appropriate package](/downloads.html) for
+your system and download it. Consul is packaged as a "zip" archive.
 
-After downloading Serf, unzip the package. Copy the `serf` binary to
+After downloading Consul, unzip the package. Copy the `consul` binary to
 somewhere on the PATH so that it can be executed. On Unix systems,
 `~/bin` and `/usr/local/bin` are common installation directories,
 depending on if you want to restrict the install to a single user or
@@ -26,28 +26,28 @@ you would like.
 
 ## Verifying the Installation
 
-After installing Serf, verify the installation worked by opening a new
-terminal session and checking that `serf` is available. By executing
-`serf` you should see help output similar to that below:
+After installing Consul, verify the installation worked by opening a new
+terminal session and checking that `consul` is available. By executing
+`consul` you should see help output similar to that below:
 
 ```
-$ serf
-usage: serf [--version] [--help] <command> [<args>]
+$ consul
+usage: consul [--version] [--help] <command> [<args>]
 
 Available commands are:
-    agent          Runs a Serf agent
-    event          Send a custom event through the Serf cluster
+    agent          Runs a Consul agent
     force-leave    Forces a member of the cluster to enter the "left" state
-    join           Tell Serf agent to join cluster
+    info           Provides debugging information for operators
+    join           Tell Consul agent to join cluster
     keygen         Generates a new encryption key
-    leave          Gracefully leaves the Serf cluster and shuts down
-    members        Lists the members of a Serf cluster
-    monitor        Stream logs from a Serf agent
-    version        Prints the Serf version
+    leave          Gracefully leaves the Consul cluster and shuts down
+    members        Lists the members of a Consul cluster
+    monitor        Stream logs from a Consul agent
+    version        Prints the Consul version
 ```
 
-If you get an error that `serf` could not be found, then your PATH
+If you get an error that `consul` could not be found, then your PATH
 environmental variable was not setup properly. Please go back and ensure
-that your PATH variable contains the directory where Serf was installed.
+that your PATH variable contains the directory where Consul was installed.
 
-Otherwise, Serf is installed and ready to go!
+Otherwise, Consul is installed and ready to go!

@@ -4,68 +4,109 @@ page_title: "Run the Agent"
 sidebar_current: "gettingstarted-agent"
 ---
 
-# Run the Serf Agent
+# Run the Consul Agent
 
-After Serf is installed, the agent must be run. The agent is a lightweight
-process that runs until told to quit and maintains cluster membership
-and communication. The agent must be run for every node that will be part of
-the cluster.
-
-It is possible to run multiple agents, and thus participate in multiple Serf
-clusters. For example, you may want to run a separate Serf cluster to
-maintain web server membership info for a load balancer from another Serf
-cluster that manages membership of Memcached nodes, but perhaps the web
-servers need to be part of the Memcached cluster too so they can be notified
-when Memcached nodes come online or go offline. Other examples include a Serf
-cluster within a datacenter, and a seperate cluster used for cross WAN gossip
-which has more relaxed timing.
+After Consul is installed, the agent must be run. The agent can either run
+in a server or client mode. Each datacenter must at least one server, and
+a recommended 3 or 5. [This guide](/docs/guides/bootstrapping.html) covers
+bootstrapping a new datacenter. All other agents run in client mode, which
+is a very lightweight process that registers services, runs health checks,
+and forwards queries to servers. The agent must be run for every node that
+will be part of the cluster.
 
 ## Starting the Agent
 
-For simplicity, we'll run a single Serf agent right now:
+For simplicity, we'll run a single Consul agent in server mode right now:
 
 ```
-$ serf agent
-==> Starting Serf agent...
-==> Serf agent running!
-    Node name: 'foobar'
-    Bind addr: '0.0.0.0:7946'
-     RPC addr: '127.0.0.1:7373'
+$ ./bin/consul agent -server -bootstrap -data-dir /tmp/consul
+==> WARNING: Bootstrap mode enabled! Do not enable unless necessary
+==> WARNING: It is highly recommended to set GOMAXPROCS higher than 1
+==> Starting Consul agent...
+==> Starting Consul agent RPC...
+==> Consul agent running!
+         Node name: 'Armons-MacBook-Air'
+        Datacenter: 'dc1'
+    Advertise addr: '10.1.10.38'
+          RPC addr: '127.0.0.1:8400'
+         HTTP addr: '127.0.0.1:8500'
+          DNS addr: '127.0.0.1:8600'
+         Encrypted: false
+            Server: true (bootstrap: true)
 
 ==> Log data will now stream in as it occurs:
 
-2013/10/21 18:57:15 [INFO] Serf agent starting
-2013/10/21 18:57:15 [INFO] serf: EventMemberJoin: mitchellh.local 10.0.1.60
-2013/10/21 18:57:15 [INFO] Serf agent started
-2013/10/21 18:57:15 [INFO] agent: Received event: member-join
+[INFO] serf: EventMemberJoin: Armons-MacBook-Air 10.1.10.38
+[INFO] serf: EventMemberJoin: Armons-MacBook-Air 10.1.10.38
+[INFO] raft: Node at 10.1.10.38:8300 [Follower] entering Follower state
+[INFO] consul: adding server for datacenter: dc1, addr: 10.1.10.38:8300
+[ERR] agent: failed to sync remote state: rpc error: No cluster leader
+[WARN] raft: Heartbeat timeout reached, starting election
+[INFO] raft: Node at 10.1.10.38:8300 [Candidate] entering Candidate state
+[INFO] raft: Election won. Tally: 1
+[INFO] raft: Node at 10.1.10.38:8300 [Leader] entering Leader state
+[INFO] consul: cluster leadership acquired
+[INFO] consul: New leader elected: Armons-MacBook-Air
+[INFO] consul: member 'Armons-MacBook-Air' joined, marking health alive
 ```
 
-As you can see, the Serf agent has started and has output some log
-data. From the log data, you can see that a member has joined the cluster.
-This member is yourself.
+As you can see, the Consul agent has started and has output some log
+data. From the log data, you can see that our agent is running in server mode,
+and has claimed leadership of the cluster. Additionally, the local member has
+been marked as a healthy member of the cluster.
 
 ## Cluster Members
 
-If you run `serf members` in another terminal, you can see the members of
-the Serf cluster. You should only see one member (yourself). We'll cover
+If you run `consul members` in another terminal, you can see the members of
+the Consul cluster. You should only see one member (yourself). We'll cover
 joining clusters in the next section.
 
 ```
-$ serf members
-mitchellh.local    10.0.1.60    alive
+$ consul members
+Armons-MacBook-Air  10.1.10.38:8301  alive  role=consul,dc=dc1,vsn=1,vsn_min=1,vsn_max=1,port=8300,bootstrap=1
 ```
 
-This command, along with many others, communicates with a running Serf
-agent via an internal RPC protocol. When starting the Serf agent, you
+This command, along with many others, communicates with a running Consul
+agent via an internal RPC protocol. When starting the Consul agent, you
 may have noticed that it tells you the "RPC addr". This is the address
-that commands such as `serf members` use to communicate with the agent.
+that commands such as `consul members` use to communicate with the agent.
 
 By default, RPC listens only on loopback, so it is inaccessible outside
 of your machine for security reasons.
 
-If you're running multiple Serf agents, you'll have to specify
+If you're changed the default RPC address, you'll have to specify
 an `-rpc-addr` to both the agent and any commands so that it doesn't
 collide with other agents.
+
+It is important to note that the output of the `members` command is
+generated by from the [gossip protocol](/docs/internals/gossip.html),
+and is eventually consistent. Consul uses this to maintain a strongly
+consistent catalog of nodes that can be queried using the [HTTP API](/docs/agent/http.html):
+
+```
+$ curl localhost:8500/v1/catalog/nodes
+[{"Node":"Armons-MacBook-Air","Address":"10.1.10.38"}]
+```
+
+Alternatively, the [DNS interface](/docs/agent/dns.html) could be used:
+
+```
+$ dig @127.0.0.1 -p 8600 Armons-MacBook-Air.node.consul
+
+; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 Armons-MacBook-Air.node.consul
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 63911
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 0
+;; WARNING: recursion requested but not available
+
+;; QUESTION SECTION:
+;Armons-MacBook-Air.node.consul.	IN	A
+
+;; ANSWER SECTION:
+Armons-MacBook-Air.node.consul.	0 IN	A	10.1.10.38
+```
 
 ## Stopping the Agent
 
@@ -73,10 +114,15 @@ You can use `Ctrl-C` (the interrupt signal) to gracefully halt the agent.
 After interrupting the agent, you should see it leave the cluster gracefully
 and shut down.
 
-By gracefully leaving, Serf notifies other cluster members that the
+By gracefully leaving, Consul notifies other cluster members that the
 node _left_. If you had forcibly killed the agent process, other members
-of the cluster would have detected that the node _failed_. This can be a
-crucial difference depending on what your use case of Serf is. Serf will
-automatically try to reconnect to _failed_ nodes, which allows it to recover
-from certain network conditions, while _left_ nodes are no longer contacted.
+of the cluster would have detected that the node _failed_. When a member leaves,
+it's services and checks are removed from the catalog. When a member fails,
+it's health is simply marked as critical, but is not removed from the catalog.
+Consul will automatically try to reconnect to _failed_ nodes, which allows it
+to recover from certain network conditions, while _left_ nodes are no longer contacted.
+
+Additionally, if an agent is operating as a server, a graceful leave is important
+to avoid causing a potential availability outage affecting the [consensus protocol](/docs/internals/consensus.html).
+See the [guides section](/docs/guides/index.html) to safely add and remove servers.
 

@@ -7,46 +7,46 @@ sidebar_current: "gettingstarted-join"
 # Join a Cluster
 
 In the previous page, we started our first agent. While it showed how easy
-it is to run Serf, it wasn't very exciting since we simply made a cluster of
+it is to run Consul, it wasn't very exciting since we simply made a cluster of
 one member. In this page, we'll create a real cluster with multiple members.
 
-When starting a Serf agent, it begins without knowledge of any other node, and is
+When starting a Consul agent, it begins without knowledge of any other node, and is
 an isolated cluster of one.  To learn about other cluster members, the agent must
-_join_ an existing cluster.  To join an existing cluster, Serf only needs to know
+_join_ an existing cluster.  To join an existing cluster, only needs to know
 about a _single_ existing member. After it joins, the agent will gossip with this
 member and quickly discover the other members in the cluster.
 
 ## Starting the Agents
 
-First, let's start two agents. Serf agents must all listen on a unique
-IP and port pair, so we must bind each agent to a different ports.
+To simulate a more realistic cluster, we are using a two node cluster in
+Vagrant. The Vagrantfile can be found in the demo section of the repo
+[here](https://github.com/hashicorp/consul/tree/master/demo/vagrant-cluster).
 
-The first agent we'll start will listen on `127.0.0.1:7946`. We also will
-specify a node name. The node name must be unique and is how a machine
-is uniquely identified. By default it is the hostname of the machine, but
-since we'll be running multiple agents on a single machine, we'll manually
-override it.
+We start the first agent on our first node and also specify a node name.
+The node name must be unique and is how a machine is uniquely identified.
+By default it is the hostname of the machine, but we'll manually override it.
+We are also providing a bind address. This is the address that Consul listens on,
+and it *must* be accessible by all other nodes in the cluster. The first node
+will act as our server in this cluster.
 
 ```
-$ serf agent -node=agent-one -bind=127.0.0.1:7946
+$ consul agent -node=agent-one -bind=172.20.20.10
 ...
 ```
 
-Then, in another terminal, start a second agent. We'll bind this agent
-to `127.0.0.1:7947`. In addition to overriding the node name, we're also going
-to override the RPC address. The RPC address is the address that Serf binds
-to for RPC operations. The other `serf` commands communicate with a running
-Serf agent over RPC. We left the first agent with the default RPC address
-so lets select another for this agent.
+Then, in another terminal, start the second agent on the new node.
+This time, we set the bind address to match the IP of the second node
+as specified in the Vagrantfile. In production, you will generally want
+to provide a bind address or interface as well.
 
 ```
-$ serf agent -node=agent-two -bind=127.0.0.1:7947 -rpc-addr=127.0.0.1:7374
+$ consul agent -node=agent-two -bind=172.20.20.11
 ...
 ```
 
-At this point, you have two Serf agents running. The two Serf agents
-still don't know anything about each other, and are each part of their own
-clusters (of one member). You can verify this by running `serf members`
+At this point, you have two Consul agents running, one server and one client.
+The two Consul agents still don't know anything about each other, and are each part of their own
+clusters (of one member). You can verify this by running `consul members`
 against each agent and noting that only one member is a part of each.
 
 ## Joining a Cluster
@@ -55,34 +55,34 @@ Now, let's tell the first agent to join the second agent by running
 the following command in a new terminal:
 
 ```
-$ serf join 127.0.0.1:7947
+$ consul join 127.0.0.1:7947
 Successfully joined cluster by contacting 1 nodes.
 ```
 
 You should see some log output in each of the agent logs. If you read
 carefully, you'll see that they received join information. If you
-run `serf members` against each agent, you'll see that both agents now
+run `consul members` against each agent, you'll see that both agents now
 know about each other:
 
 ```
-$ serf members
+$ consul members
 agent-one    127.0.0.1:7946    alive
 agent-two    127.0.0.1:7947    alive
 
-$ serf members -rpc-addr=127.0.0.1:7374
+$ consul members -rpc-addr=127.0.0.1:7374
 agent-two    127.0.0.1:7947    alive
 agent-one    127.0.0.1:4946    alive
 ```
 
 <div class="alert alert-block alert-info">
-<p><strong>Remember:</strong> To join a cluster, a Serf agent needs to only
+<p><strong>Remember:</strong> To join a cluster, a Consul agent needs to only
 learn about <em>one existing member</em>. After joining the cluster, the
 agents gossip with each other to propagate full membership information.
 </p>
 </div>
 
-In addition to using `serf join` you can use the `-join` flag on
-`serf agent` to join a cluster as part of starting up the agent.
+In addition to using `consul join` you can use the `-join` flag on
+`consul agent` to join a cluster as part of starting up the agent.
 
 ## Leaving a Cluster
 
@@ -91,3 +91,4 @@ To leave the cluster, you can either gracefully quit an agent (using
 the node to transition into the _left_ state, otherwise other nodes
 will detect it as having _failed_. The difference is covered
 in more detail [here](/intro/getting-started/agent.html#toc_3).
+
