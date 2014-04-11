@@ -8,8 +8,9 @@ sidebar_current: "gettingstarted-agent"
 
 After Consul is installed, the agent must be run. The agent can either run
 in a server or client mode. Each datacenter must at least one server, and
-a recommended 3 or 5. [This guide](/docs/guides/bootstrapping.html) covers
-bootstrapping a new datacenter. All other agents run in client mode, which
+a recommended 3 or 5. A single server deployment is _**highly**_ discouraged
+as data loss is inevitable in a failure scenario. [This guide](/docs/guides/bootstrapping.html)
+covers bootstrapping a new datacenter. All other agents run in client mode, which
 is a very lightweight process that registers services, runs health checks,
 and forwards queries to servers. The agent must be run for every node that
 will be part of the cluster.

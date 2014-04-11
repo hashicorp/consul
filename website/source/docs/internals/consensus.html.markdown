@@ -136,7 +136,8 @@ transactions and higher availability without sacrificing consistency.
 
 Below is a table that shows for the number of servers how large the
 quorum is, as well as how many node failures can be tolerated. The
-recommended deployment is either 3 or 5 servers.
+recommended deployment is either 3 or 5 servers. A single server deployment
+is _**highly**_ discouraged as data loss is inevitable in a failure scenario.
 
 <table class="table table-bordered table-striped">
 <tr>
