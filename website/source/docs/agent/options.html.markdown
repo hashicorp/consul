@@ -66,6 +66,11 @@ The options below are all specified on the command-line.
   it relies on proper configuration. Nodes in the same datacenter should be on a single
   LAN.
 
+* `-join` - Address of another agent to join upon starting up. This can be
+  specified multiple times to specify multiple agents to join. If Consul is
+  unable to join with any of the specified addresses, agent startup will
+  fail. By default, the agent won't join any nodes when it starts up.
+
 * `-log-level` - The level of logging to show after the Consul agent has
   started. This defaults to "info". The available log levels are "trace",
   "debug", "info", "warn", "err". This is the log level that will be shown
@@ -189,6 +194,9 @@ definitions support being updated during a reload.
   only affects interrupt handling. By default, an interrupt causes Consul to
   gracefully leave, but setting this to true disables that. Defaults to false.
   Interrupts are usually from a Control-C from a shell.
+
+* `start_join` - An array of strings specifying addresses of nodes to
+  join upon startup.
 
 * `statsite_addr` - This provides the address of a statsite instance. If provided
   Consul will stream various telemetry information to that instance for aggregation.

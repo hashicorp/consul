@@ -58,6 +58,9 @@ func (c *Command) readConfig() *Config {
 
 	cmdFlags.IntVar(&cmdConfig.Protocol, "protocol", -1, "protocol version")
 
+	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.StartJoin), "join",
+		"address of agent to join on startup")
+
 	if err := cmdFlags.Parse(c.args); err != nil {
 		return nil
 	}
@@ -200,6 +203,22 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	return nil
 }
 
+// startupJoin is invoked to handle any joins specified to take place at start time
+func (c *Command) startupJoin(config *Config) error {
+	if len(config.StartJoin) == 0 {
+		return nil
+	}
+
+	c.Ui.Output("Joining cluster...")
+	n, err := c.agent.JoinLAN(config.StartJoin)
+	if err != nil {
+		return err
+	}
+
+	c.Ui.Info(fmt.Sprintf("Join completed. Synced with %d initial agents", n))
+	return nil
+}
+
 func (c *Command) Run(args []string) int {
 	c.Ui = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
@@ -260,6 +279,12 @@ func (c *Command) Run(args []string) int {
 	}
 	if c.httpServer != nil {
 		defer c.httpServer.Shutdown()
+	}
+
+	// Join startup nodes if specified
+	if err := c.startupJoin(config); err != nil {
+		c.Ui.Error(err.Error())
+		return 1
 	}
 
 	// Register the services
@@ -447,6 +472,8 @@ Options:
                            order.
   -data-dir=path           Path to a data directory to store agent state
   -dc=east-aws             Datacenter of the agent
+  -join=1.2.3.4            Address of an agent to join at start time.
+                           Can be specified multiple times.
   -log-level=info          Log level of the agent.
   -node=hostname           Name of this node. Must be unique in the cluster
   -protocol=N              Sets the protocol version. Defaults to latest.

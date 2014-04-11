@@ -119,6 +119,11 @@ type Config struct {
 	// Must be provided to serve TLS connections.
 	KeyFile string `mapstructure:"key_file"`
 
+	// StartJoin is a list of addresses to attempt to join when the
+	// agent starts. If Serf is unable to communicate with any of these
+	// addresses, then the agent will error and exit.
+	StartJoin []string `mapstructure:"start_join"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -396,6 +401,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Ports.Server != 0 {
 		result.Ports.Server = b.Ports.Server
 	}
+
+	// Copy the start join addresses
+	result.StartJoin = make([]string, 0, len(a.StartJoin)+len(b.StartJoin))
+	result.StartJoin = append(result.StartJoin, a.StartJoin...)
+	result.StartJoin = append(result.StartJoin, b.StartJoin...)
+
 	return &result
 }
 
