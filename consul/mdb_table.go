@@ -29,14 +29,14 @@ const (
   using a row id, while maintaining any number of secondary indexes.
 */
 type MDBTable struct {
+	// Last used rowID. Must be first to avoid 64bit alignment issues.
+	lastRowID uint64
+
 	Env     *mdb.Env
 	Name    string // This is the name of the table, must be unique
 	Indexes map[string]*MDBIndex
 	Encoder func(interface{}) []byte
 	Decoder func([]byte) interface{}
-
-	// Last used rowID
-	lastRowID uint64
 }
 
 // MDBTables is used for when we have a collection of tables
