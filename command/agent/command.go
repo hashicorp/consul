@@ -286,13 +286,13 @@ func (c *Command) Run(args []string) int {
 	c.agent.StartSync()
 
 	c.Ui.Output("Consul agent running!")
-	c.Ui.Info(fmt.Sprintf(" Node name: '%s'", config.NodeName))
-	c.Ui.Info(fmt.Sprintf("Datacenter: '%s'", config.Datacenter))
-	if config.Server {
-		c.Ui.Info(fmt.Sprintf("    Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))
-	} else {
-		c.Ui.Info(fmt.Sprintf("    Server: %v", config.Server))
-	}
+	c.Ui.Info(fmt.Sprintf("   Node name: '%s'", config.NodeName))
+	c.Ui.Info(fmt.Sprintf("  Datacenter: '%s'", config.Datacenter))
+	c.Ui.Info(fmt.Sprintf("      Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))
+	c.Ui.Info(fmt.Sprintf(" Client Addr: %v (HTTP: %d, DNS: %d, RPC: %d)", config.ClientAddr,
+		config.Ports.HTTP, config.Ports.DNS, config.Ports.RPC))
+	c.Ui.Info(fmt.Sprintf("Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
+		config.Ports.SerfLan, config.Ports.SerfWan))
 
 	// Enable log streaming
 	c.Ui.Info("")
