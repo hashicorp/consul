@@ -20,7 +20,7 @@ the following will be logged:
 
     2014/02/22 19:23:32 [INFO] consul: cluster leadership acquired
 
-Once `Node A` is running, we can start the next set of servers. There is a [deployment table](/docs/internals/consensus.html)
+Once `Node A` is running, we can start the next set of servers. There is a [deployment table](/docs/internals/consensus.html#toc_3)
 that covers various options, but it is recommended to have 3 or 5 total servers per data center.
 We start the next servers **without** specifying `-bootstrap`. This is critical, since only one server
 should ever be running in bootstrap mode*. Once `Node B` and `Node C` are started, you should see a
