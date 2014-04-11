@@ -12,6 +12,10 @@ guidance do doing them safely.
 
 The following guides are available:
 
+ * [Adding/Removing Servers](/docs/guides/servers.html) - This guide covers how to safely add
+ and remove Consul servers from the cluster. This should be done carefully to avoid availability
+ outages.
+
  * [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new
  datacenter. This covers safely adding the initial Consul servers.
 
@@ -22,7 +26,5 @@ The following guides are available:
 
  * [Multiple Datacenters](/docs/guides/datacenters.html) - Configuring Consul to support multiple
  datacenters.
-
- * TODO: Adding and removing servers
 
 
