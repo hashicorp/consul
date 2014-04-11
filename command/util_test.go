@@ -69,19 +69,20 @@ func testAgent(t *testing.T) *agentWrapper {
 }
 
 func nextConfig() *agent.Config {
-	idx := atomic.AddUint64(&offset, 1)
+	idx := int(atomic.AddUint64(&offset, 1))
 	conf := agent.DefaultConfig()
 
 	conf.Bootstrap = true
 	conf.Datacenter = "dc1"
 	conf.NodeName = fmt.Sprintf("Node %d", idx)
-	conf.HTTPAddr = fmt.Sprintf("127.0.0.1:%d", 10000+10*idx)
-	conf.RPCAddr = fmt.Sprintf("127.0.0.1:%d", 10100+10*idx)
-	conf.SerfBindAddr = "127.0.0.1"
-	conf.SerfLanPort = int(10201 + 10*idx)
-	conf.SerfWanPort = int(10202 + 10*idx)
+	conf.BindAddr = "127.0.0.1"
 	conf.Server = true
-	conf.ServerAddr = fmt.Sprintf("127.0.0.1:%d", 10300+10*idx)
+
+	conf.Ports.HTTP = 10000 + 10*idx
+	conf.Ports.RPC = 10100 + 10*idx
+	conf.Ports.SerfLan = 10201 + 10*idx
+	conf.Ports.SerfWan = 10202 + 10*idx
+	conf.Ports.Server = 10300 + 10*idx
 
 	cons := consul.DefaultConfig()
 	conf.ConsulConfig = cons

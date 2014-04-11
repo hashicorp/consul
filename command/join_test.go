@@ -21,7 +21,7 @@ func TestJoinCommandRun(t *testing.T) {
 	c := &JoinCommand{Ui: ui}
 	args := []string{
 		"-rpc-addr=" + a1.addr,
-		fmt.Sprintf("127.0.0.1:%d", a2.config.SerfLanPort),
+		fmt.Sprintf("127.0.0.1:%d", a2.config.Ports.SerfLan),
 	}
 
 	code := c.Run(args)
@@ -45,7 +45,7 @@ func TestJoinCommandRun_wan(t *testing.T) {
 	args := []string{
 		"-rpc-addr=" + a1.addr,
 		"-wan",
-		fmt.Sprintf("127.0.0.1:%d", a2.config.SerfWanPort),
+		fmt.Sprintf("127.0.0.1:%d", a2.config.Ports.SerfWan),
 	}
 
 	code := c.Run(args)

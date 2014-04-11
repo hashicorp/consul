@@ -42,7 +42,7 @@ func TestMembersCommandRun_WAN(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	if !strings.Contains(ui.OutputWriter.String(), fmt.Sprintf("%d", a1.config.SerfWanPort)) {
+	if !strings.Contains(ui.OutputWriter.String(), fmt.Sprintf("%d", a1.config.Ports.SerfWan)) {
 		t.Fatalf("bad: %#v", ui.OutputWriter.String())
 	}
 }

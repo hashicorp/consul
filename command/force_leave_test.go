@@ -20,7 +20,7 @@ func TestForceLeaveCommandRun(t *testing.T) {
 	defer a1.Shutdown()
 	defer a2.Shutdown()
 
-	addr := fmt.Sprintf("127.0.0.1:%d", a2.config.SerfLanPort)
+	addr := fmt.Sprintf("127.0.0.1:%d", a2.config.Ports.SerfLan)
 	_, err := a1.agent.JoinLAN([]string{addr})
 	if err != nil {
 		t.Fatalf("err: %s", err)
