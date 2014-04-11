@@ -171,6 +171,15 @@ definitions support being updated during a reload.
   it will send a Leave message to the rest of the cluster and gracefully
   leave. Defaults to false.
 
+* `ports` - This is a nested object that allows setting the bind ports
+   for the following keys:
+    * dns - The DNS server, -1 to disable. Default 8600.
+    * http - The HTTP api, -1 to disable. Default 8500.
+    * rpc - The RPC endpoint. Default 8400.
+    * serf_lan - The Serf LAN port. Default 8301.
+    * serf_wan - The Serf WAN port. Default 8302.
+    * server - Server RPC address. Default 8300.
+
 * `recursor` - This flag provides an address of an upstream DNS server that is used to
   recursively resolve queries if they are not inside the service domain for consul. For example,
   a node can use Consul directly as a DNS server, and if the record is outside of the "consul." domain,
