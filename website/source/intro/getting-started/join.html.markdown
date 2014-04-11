@@ -30,7 +30,7 @@ and it *must* be accessible by all other nodes in the cluster. The first node
 will act as our server in this cluster.
 
 ```
-$ consul agent -node=agent-one -bind=172.20.20.10
+$ consul agent -server -bootstrap -data-dir /tmp/consul -node=agent-one -serf-bind=172.20.20.10 -server-addr=172.20.20.10:8300 -advertise=172.20.20.10
 ...
 ```
 
@@ -40,7 +40,7 @@ as specified in the Vagrantfile. In production, you will generally want
 to provide a bind address or interface as well.
 
 ```
-$ consul agent -node=agent-two -bind=172.20.20.11
+$ consul agent -data-dir /tmp/consul -node=agent-two -serf-bind=172.20.20.11 -server-addr=172.20.20.11:8300 -advertise=172.20.20.11
 ...
 ```
 
@@ -55,7 +55,7 @@ Now, let's tell the first agent to join the second agent by running
 the following command in a new terminal:
 
 ```
-$ consul join 127.0.0.1:7947
+$ consul join 172.20.20.11
 Successfully joined cluster by contacting 1 nodes.
 ```
 
@@ -66,12 +66,8 @@ know about each other:
 
 ```
 $ consul members
-agent-one    127.0.0.1:7946    alive
-agent-two    127.0.0.1:7947    alive
-
-$ consul members -rpc-addr=127.0.0.1:7374
-agent-two    127.0.0.1:7947    alive
-agent-one    127.0.0.1:4946    alive
+agent-one  172.20.20.10:8301  alive  role=consul,dc=dc1,vsn=1,vsn_min=1,vsn_max=1,port=8300,bootstrap=1
+agent-two  172.20.20.11:8301  alive  role=node,dc=dc1,vsn=1,vsn_min=1,vsn_max=1
 ```
 
 <div class="alert alert-block alert-info">
