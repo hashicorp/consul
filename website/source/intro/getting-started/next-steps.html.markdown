@@ -6,21 +6,22 @@ sidebar_current: "gettingstarted-nextsteps"
 
 # Next Steps
 
-That concludes the getting started guide for Serf. Hopefully you're able to
-see that while Serf is an incredibly simple tool, it is also extremely
-powerful. The dead simple membership information and events system that
-Serf provides make up the building blocks of [incredible use cases](/intro/use-cases.html).
+That concludes the getting started guide for Consul. Hopefully you're able to
+see that while Consul is simple to use, it has a powerful set of features.
 
-And because Serf is completely decentralized, fault tolerant, self-healing,
-etc. it is a dream tool for system administrators and built specifically
-for modern, elastic infrastructures.
+Consul is designed to be friendly to both the DevOps community and
+application developers, making it perfect for modern, elastic infrastructures.
 
 As a next step, the following resources are available:
 
 * [Documentation](/docs/index.html) - The documentation is an in-depth reference
-  guide to all the features of Serf, including technical details about the
-  internals of how Serf operates.
+  guide to all the features of Consul, including technical details about the
+  internals of how Consul operates.
 
-* [Examples](https://github.com/hashicorp/serf/tree/master/demo) - The work-in-progress examples folder within the GitHub
-  repository for Serf contains functional examples of various use cases
-  of Serf to help you get started with exactly what you need.
+* [Guides](/docs/guides/index.html) - This section provides various getting
+  started guides with Consul, including how to bootstrap a new datacenter.
+
+* [Examples](https://github.com/hashicorp/consul/tree/master/demo) - The work-in-progress examples folder within the GitHub
+  repository for Consul contains functional examples of various use cases
+  of Consul to help you get started with exactly what you need.
+
