@@ -30,7 +30,7 @@ and coordinating infrastructure. It provides several key features:
 
 * **Key/Value Store**: Applications can make use of Consul's hierarchical key/value
   store for any number of purposes including dynamic configuration, feature flagging,
-  coordination, leader election, etc. The simple HTTP API makes dead easy to use.
+  coordination, leader election, etc. The simple HTTP API makes it easy to use.
 
 * **Multi Datacenter**: Consul supports multiple datacenters out of the box. This
   means users of Consul do not have to worry about building additional layers of

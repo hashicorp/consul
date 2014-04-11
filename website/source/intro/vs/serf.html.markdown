@@ -37,9 +37,9 @@ of [multiple gossip pools](/docs/internals/architecture.html), so that
 the performance of Serf over a LAN can be retained while still using it over
 a WAN for linking together multiple datacenters.
 
-Consul is also more opinionated in its usage than Serf, enabling Serf
-to be used in a wider variety of cases. Consul also uses a CP architecture,
-favoring consistency over availability. Serf is a AP system, and sacrifices consistency
-for availability. This means Consul cannot operate if the central servers cannot
-form a quorum, while Serf will continue to function under almost all circumstances.
+Consul is opinionated in its usage, while Serf is a more flexible and
+general purpose tool. Consul uses a CP architecture, favoring consistency over
+availability. Serf is a AP system, and sacrifices consistency for availability.
+This means Consul cannot operate if the central servers cannot form a quorum,
+while Serf will continue to function under almost all circumstances.
 
