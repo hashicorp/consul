@@ -67,8 +67,8 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		return nil, fmt.Errorf("Must configure a DataDir")
 	}
 
-	// Ensure the RPC Addr is sane
-	if _, err := net.ResolveTCPAddr("tcp", config.ServerAddr); err != nil {
+	// Ensure the Bind Addr is sane
+	if _, err := net.ResolveTCPAddr("tcp", config.BindAddr); err != nil {
 		return nil, fmt.Errorf("Bad server address: %v", err)
 	}
 
@@ -138,20 +138,20 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.NodeName != "" {
 		base.NodeName = a.config.NodeName
 	}
-	if a.config.SerfBindAddr != "" {
-		base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddr
-		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.SerfBindAddr
+	if a.config.BindAddr != "" {
+		base.SerfLANConfig.MemberlistConfig.BindAddr = a.config.BindAddr
+		base.SerfWANConfig.MemberlistConfig.BindAddr = a.config.BindAddr
 	}
-	if a.config.SerfLanPort != 0 {
-		base.SerfLANConfig.MemberlistConfig.BindPort = a.config.SerfLanPort
-		base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.SerfLanPort
+	if a.config.Ports.SerfLan != 0 {
+		base.SerfLANConfig.MemberlistConfig.BindPort = a.config.Ports.SerfLan
+		base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.Ports.SerfLan
 	}
-	if a.config.SerfWanPort != 0 {
-		base.SerfWANConfig.MemberlistConfig.BindPort = a.config.SerfWanPort
-		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.SerfWanPort
+	if a.config.Ports.SerfWan != 0 {
+		base.SerfWANConfig.MemberlistConfig.BindPort = a.config.Ports.SerfWan
+		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.Ports.SerfWan
 	}
-	if a.config.ServerAddr != "" {
-		addr, _ := net.ResolveTCPAddr("tcp", a.config.ServerAddr)
+	if a.config.BindAddr != "" {
+		addr, _ := net.ResolveTCPAddr("tcp", a.config.BindAddr)
 		base.RPCAddr = addr
 	}
 	if a.config.AdvertiseAddr != "" {

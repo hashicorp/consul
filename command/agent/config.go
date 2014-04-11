@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/consul"
 	"github.com/mitchellh/mapstructure"
 	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"sort"
@@ -14,27 +15,36 @@ import (
 	"time"
 )
 
+// Ports is used to simplify the configuration by
+// providing default ports, and allowing the addresses
+// to only be specified once
+type PortConfig struct {
+	DNS     int // DNS Query interface
+	HTTP    int // HTTP API
+	RPC     int // CLI RPC
+	SerfLan int `mapstructure:"serf_lan"` // LAN gossip (Client + Server)
+	SerfWan int `mapstructure:"serv_wan"` // WAN gossip (Server onlyg)
+	Server  int // Server internal RPC
+}
+
 // Config is the configuration that can be set for an Agent.
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
 type Config struct {
-	// AEInterval controls the anti-entropy interval. This is how often
-	// the agent attempts to reconcile it's local state with the server'
-	// representation of our state. Defaults to every 60s.
-	AEInterval time.Duration `mapstructure:"-"`
-
 	// Bootstrap is used to bring up the first Consul server, and
 	// permits that node to elect itself leader
 	Bootstrap bool `mapstructure:"bootstrap"`
+
+	// Server controls if this agent acts like a Consul server,
+	// or merely as a client. Servers have more state, take part
+	// in leader election, etc.
+	Server bool `mapstructure:"server"`
 
 	// Datacenter is the datacenter this node is in. Defaults to dc1
 	Datacenter string `mapstructure:"datacenter"`
 
 	// DataDir is the directory to store our state in
 	DataDir string `mapstructure:"data_dir"`
-
-	// DNSAddr is the address of the DNS server for the agent
-	DNSAddr string `mapstructure:"dns_addr"`
 
 	// DNSRecursor can be set to allow the DNS server to recursively
 	// resolve non-consul domains
@@ -46,44 +56,28 @@ type Config struct {
 	// Encryption key to use for the Serf communication
 	EncryptKey string `mapstructure:"encrypt"`
 
-	// HTTP interface address
-	HTTPAddr string `mapstructure:"http_addr"`
-
 	// LogLevel is the level of the logs to putout
 	LogLevel string `mapstructure:"log_level"`
 
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string `mapstructure:"node_name"`
 
-	// RPCAddr is the address and port to listen on for the
-	// agent's RPC interface.
-	RPCAddr string `mapstructure:"rpc_addr"`
+	// ClientAddr is used to control the address we bind to for
+	// client services (DNS, HTTP, RPC)
+	ClientAddr string `mapstructure:"client_addr"`
 
-	// BindAddr is the address that Consul's RPC and Serf's will
-	// bind to. This address should be routable by all other hosts.
-	SerfBindAddr string `mapstructure:"serf_bind_addr"`
-
-	// SerfLanPort is the port we use for the lan-local serf cluster
-	// This is used for all nodes.
-	SerfLanPort int `mapstructure:"serf_lan_port"`
-
-	// SerfWanPort is the port we use for the wan serf cluster.
-	// This is only for the Consul servers
-	SerfWanPort int `mapstructure:"serf_wan_port"`
-
-	// ServerAddr is the address we use for Consul server communication.
-	// Defaults to 0.0.0.0:8300
-	ServerAddr string `mapstructure:"server_addr"`
+	// BindAddr is used to control the address we bind to.
+	// If not specified, the first private IP we find is used.
+	// This controls the address we use for cluster facing
+	// services (Gossip, Server RPC)
+	BindAddr string `mapstructure:"bind_addr"`
 
 	// AdvertiseAddr is the address we use for advertising our Serf,
-	// and Consul RPC IP. If not specified, the first private IP we
-	// find is used.
+	// and Consul RPC IP. If not specified, bind address is used.
 	AdvertiseAddr string `mapstructure:"advertise_addr"`
 
-	// Server controls if this agent acts like a Consul server,
-	// or merely as a client. Servers have more state, take part
-	// in leader election, etc.
-	Server bool `mapstructure:"server"`
+	// Port configurations
+	Ports PortConfig
 
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving
 	// the TERM signal. Defaults false. This can be changed on reload.
@@ -125,6 +119,11 @@ type Config struct {
 	// Must be provided to serve TLS connections.
 	KeyFile string `mapstructure:"key_file"`
 
+	// AEInterval controls the anti-entropy interval. This is how often
+	// the agent attempts to reconcile it's local state with the server'
+	// representation of our state. Defaults to every 60s.
+	AEInterval time.Duration `mapstructure:"-"`
+
 	// Checks holds the provided check definitions
 	Checks []*CheckDefinition `mapstructure:"-"`
 
@@ -140,23 +139,38 @@ type dirEnts []os.FileInfo
 // DefaultConfig is used to return a sane default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		AEInterval:  time.Minute,
-		Datacenter:  consul.DefaultDC,
-		DNSAddr:     "127.0.0.1:8600",
-		Domain:      "consul.",
-		HTTPAddr:    "127.0.0.1:8500",
-		LogLevel:    "INFO",
-		RPCAddr:     "127.0.0.1:8400",
-		SerfLanPort: consul.DefaultLANSerfPort,
-		SerfWanPort: consul.DefaultWANSerfPort,
-		Server:      false,
-		Protocol:    consul.ProtocolVersionMax,
+		Bootstrap:  false,
+		Server:     false,
+		Datacenter: consul.DefaultDC,
+		Domain:     "consul.",
+		LogLevel:   "INFO",
+		ClientAddr: "127.0.0.1",
+		Ports: PortConfig{
+			DNS:     8600,
+			HTTP:    8500,
+			RPC:     8400,
+			SerfLan: consul.DefaultLANSerfPort,
+			SerfWan: consul.DefaultWANSerfPort,
+			Server:  8300,
+		},
+		Protocol:   consul.ProtocolVersionMax,
+		AEInterval: time.Minute,
 	}
 }
 
 // EncryptBytes returns the encryption key configured.
 func (c *Config) EncryptBytes() ([]byte, error) {
 	return base64.StdEncoding.DecodeString(c.EncryptKey)
+}
+
+// ClientListener is used to format a listener for a
+// port on a ClientAddr
+func (c *Config) ClientListener(port int) (*net.TCPAddr, error) {
+	ip := net.ParseIP(c.ClientAddr)
+	if ip == nil {
+		return nil, fmt.Errorf("Failed to parse IP: %v", c.ClientAddr)
+	}
+	return &net.TCPAddr{IP: ip, Port: port}, nil
 }
 
 // DecodeConfig reads the configuration from the given reader in JSON
@@ -303,9 +317,6 @@ func MergeConfig(a, b *Config) *Config {
 	if b.DataDir != "" {
 		result.DataDir = b.DataDir
 	}
-	if b.DNSAddr != "" {
-		result.DNSAddr = b.DNSAddr
-	}
 	if b.DNSRecursor != "" {
 		result.DNSRecursor = b.DNSRecursor
 	}
@@ -314,9 +325,6 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.EncryptKey != "" {
 		result.EncryptKey = b.EncryptKey
-	}
-	if b.HTTPAddr != "" {
-		result.HTTPAddr = b.HTTPAddr
 	}
 	if b.LogLevel != "" {
 		result.LogLevel = b.LogLevel
@@ -327,20 +335,11 @@ func MergeConfig(a, b *Config) *Config {
 	if b.NodeName != "" {
 		result.NodeName = b.NodeName
 	}
-	if b.RPCAddr != "" {
-		result.RPCAddr = b.RPCAddr
+	if b.ClientAddr != "" {
+		result.ClientAddr = b.ClientAddr
 	}
-	if b.SerfBindAddr != "" {
-		result.SerfBindAddr = b.SerfBindAddr
-	}
-	if b.SerfLanPort > 0 {
-		result.SerfLanPort = b.SerfLanPort
-	}
-	if b.SerfWanPort > 0 {
-		result.SerfWanPort = b.SerfWanPort
-	}
-	if b.ServerAddr != "" {
-		result.ServerAddr = b.ServerAddr
+	if b.BindAddr != "" {
+		result.BindAddr = b.BindAddr
 	}
 	if b.AdvertiseAddr != "" {
 		result.AdvertiseAddr = b.AdvertiseAddr
@@ -377,6 +376,24 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Services != nil {
 		result.Services = append(result.Services, b.Services...)
+	}
+	if b.Ports.DNS != 0 {
+		result.Ports.DNS = b.Ports.DNS
+	}
+	if b.Ports.HTTP != 0 {
+		result.Ports.HTTP = b.Ports.HTTP
+	}
+	if b.Ports.RPC != 0 {
+		result.Ports.RPC = b.Ports.RPC
+	}
+	if b.Ports.SerfLan != 0 {
+		result.Ports.SerfLan = b.Ports.SerfLan
+	}
+	if b.Ports.SerfWan != 0 {
+		result.Ports.SerfWan = b.Ports.SerfWan
+	}
+	if b.Ports.Server != 0 {
+		result.Ports.Server = b.Ports.Server
 	}
 	return &result
 }
