@@ -26,19 +26,15 @@ $ ./bin/consul agent -server -bootstrap -data-dir /tmp/consul
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...
 ==> Consul agent running!
-         Node name: 'Armons-MacBook-Air'
-        Datacenter: 'dc1'
-    Advertise addr: '10.1.10.38'
-          RPC addr: '127.0.0.1:8400'
-         HTTP addr: '127.0.0.1:8500'
-          DNS addr: '127.0.0.1:8600'
-         Encrypted: false
-            Server: true (bootstrap: true)
+       Node name: 'Armons-MacBook-Air'
+      Datacenter: 'dc1'
+          Server: true (bootstrap: true)
+     Client Addr: 127.0.0.1 (HTTP: 8500, DNS: 8600, RPC: 8400)
+    Cluster Addr: 10.1.10.38 (LAN: 8301, WAN: 8302)
 
 ==> Log data will now stream in as it occurs:
 
-[INFO] serf: EventMemberJoin: Armons-MacBook-Air 10.1.10.38
-[INFO] serf: EventMemberJoin: Armons-MacBook-Air 10.1.10.38
+[INFO] serf: EventMemberJoin: Armons-MacBook-Air.local 10.1.10.38
 [INFO] raft: Node at 10.1.10.38:8300 [Follower] entering Follower state
 [INFO] consul: adding server for datacenter: dc1, addr: 10.1.10.38:8300
 [ERR] agent: failed to sync remote state: rpc error: No cluster leader

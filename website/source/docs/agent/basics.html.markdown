@@ -30,19 +30,15 @@ $ consul agent -data=/tmp/consul
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...
 ==> Consul agent running!
-         Node name: 'Armons-MacBook-Air.local'
-        Datacenter: 'dc1'
-    Advertise addr: '10.1.10.12'
-          RPC addr: '127.0.0.1:8400'
-         HTTP addr: '127.0.0.1:8500'
-          DNS addr: '127.0.0.1:8600'
-         Encrypted: false
-            Server: false (bootstrap: false)
+       Node name: 'Armons-MacBook-Air'
+      Datacenter: 'dc1'
+          Server: false (bootstrap: false)
+     Client Addr: 127.0.0.1 (HTTP: 8500, DNS: 8600, RPC: 8400)
+    Cluster Addr: 192.168.1.43 (LAN: 8301, WAN: 8302)
 
 ==> Log data will now stream in as it occurs:
 
-    2014/02/18 14:25:02 [INFO] serf: EventMemberJoin: Armons-MacBook-Air.local 10.1.10.12
-    2014/02/18 14:25:02 [ERR] agent: failed to sync remote state: No known Consul servers
+    [INFO] serf: EventMemberJoin: Armons-MacBook-Air.local 192.168.1.43
 ...
 ```
 
@@ -58,33 +54,25 @@ There are several important components that `consul agent` outputs:
  can be used to set the datacenter. For single-DC configurations, the agent
  will default to "dc1".
 
-* **Advertise addr**: This is the address and port used for communication between
-  Consul agents in a cluster. Every Consul agent in a cluster does not have to
-  use the same port, but this address **MUST** be reachable by all other nodes.
-
-* **RPC addr**: This is the address and port used for RPC communications
-  for other `consul` commands. Other Consul commands such as `consul members`
-  connect to a running agent and use RPC to query and control the agent.
-  By default, this binds only to localhost on the default port. If you
-  change this address, you'll have to specify an `-rpc-addr` to commands
-  such as `consul members` so they know how to talk to the agent. This is also
-  the address other applications can use over [RPC to control Consul](/docs/agent/rpc.html).
-
-* **HTTP/DNS addr**: This is the addresses the agent is listening on for the
-  HTTP and DNS interfaces respectively. These are bound to localhost for security,
-  but can be configured to listen on other addresses or ports.
-
-* **Encrypted**: This shows if Consul is encrypting all traffic that it
-  sends and expects to receive. It is a good sanity check to avoid sending
-  non-encrypted traffic over any public networks. You can read more about
-  [encryption here](/docs/agent/encryption.html).
-
 * **Server**: This shows if the agent is running in the server or client mode.
   Server nodes have the extra burden of participating in the consensus quorum,
   storing cluster state, and handling queries. Additionally, a server may be
   in "bootstrap" mode. The first server must be in this mode to allow additional
   servers to join the cluster. Multiple servers cannot be in bootstrap mode,
   otherwise the cluster state will be inconsistent.
+
+* **Client Addr**: This is the addressused for client interfaces to the agent.
+  This includes the ports for the HTTP, DNS, and RPC interfaces. The RPC
+  address is used for other `consul` commands. Other Consul commands such
+  as `consul members` connect to a running agent and use RPC to query and
+  control the agent. By default, this binds only to localhost. If you
+  change this address or port, you'll have to specify an `-rpc-addr` to commands
+  such as `consul members` so they know how to talk to the agent. This is also
+  the address other applications can use over [RPC to control Consul](/docs/agent/rpc.html).
+
+* **Cluster Addr**: This is the address and ports used for communication between
+  Consul agents in a cluster. Every Consul agent in a cluster does not have to
+  use the same port, but this address **MUST** be reachable by all other nodes.
 
 ## Stopping an Agent
 

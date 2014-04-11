@@ -30,7 +30,7 @@ and it *must* be accessible by all other nodes in the cluster. The first node
 will act as our server in this cluster.
 
 ```
-$ consul agent -server -bootstrap -data-dir /tmp/consul -node=agent-one -serf-bind=172.20.20.10 -server-addr=172.20.20.10:8300 -advertise=172.20.20.10
+$ consul agent -server -bootstrap -data-dir /tmp/consul -node=agent-one -bind=172.20.20.10
 ...
 ```
 
@@ -40,7 +40,7 @@ as specified in the Vagrantfile. In production, you will generally want
 to provide a bind address or interface as well.
 
 ```
-$ consul agent -data-dir /tmp/consul -node=agent-two -serf-bind=172.20.20.11 -server-addr=172.20.20.11:8300 -advertise=172.20.20.11
+$ consul agent -data-dir /tmp/consul -node=agent-two -bind=172.20.20.11
 ...
 ```
 

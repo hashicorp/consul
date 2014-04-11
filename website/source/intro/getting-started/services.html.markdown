@@ -28,7 +28,7 @@ We now restart the second agent, providing the configuration directory as well a
 first node to re-join:
 
 ```
-$ consul agent -data-dir /tmp/consul -node=agent-two -serf-bind=172.20.20.11 -server-addr=172.20.20.11:8300 -advertise=172.20.20.11 -config-dir /etc/consul/
+$ consul agent -data-dir /tmp/consul -node=agent-two -bind=172.20.20.11 -config-dir /etc/consul/
 ==> Starting Consul agent...
 ...
     [INFO] agent: Synced service 'web'
