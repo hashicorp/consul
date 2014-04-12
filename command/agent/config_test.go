@@ -229,6 +229,23 @@ func TestDecodeConfig(t *testing.T) {
 	if config.KeyFile != "key.pem" {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// Start join
+	input = `{"start_join": ["1.1.1.1", "2.2.2.2"]}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(config.StartJoin) != 2 {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.StartJoin[0] != "1.1.1.1" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.StartJoin[1] != "2.2.2.2" {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -359,6 +376,7 @@ func TestMergeConfig(t *testing.T) {
 		KeyFile:        "test/key.pem",
 		Checks:         []*CheckDefinition{nil},
 		Services:       []*ServiceDefinition{nil},
+		StartJoin:      []string{"1.1.1.1"},
 	}
 
 	c := MergeConfig(a, b)
