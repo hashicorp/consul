@@ -3,7 +3,11 @@
 	<div id="jumbotron">
 			<div class="container">
 				<div class="col-lg-6 col-md-6">
-					<h2 class="rls-l">Create and configure lightweight, reproducible, and portable development environments.</h2>
+					<h2 class="rls-l">
+					Service discovery and configuration made easy.
+					Distributed, highly available, and
+					datacenter-aware.
+					</h2>
 				</div>
 				<div class="jumbo-logo-wrap col-lg-offset-1 col-lg-5 col-md-6 hidden-xs hidden-sm">
 					<div class="jumbo-logo"></div>
@@ -24,7 +28,7 @@
 					</div>
 					<div class="col-lg-7 col-md-7">
 						<h2>Service Discovery</h2>
-						<p>Consul makes it simple for services to register themselves, and to discover other service</p>
+						<p>Consul makes it simple for services to register themselves, and to discover other services via a DNS or HTTP interface.</p>
 					</div>
 				</div>
 			</div>
@@ -60,7 +64,7 @@
 					</div>
 					<div class="col-lg-7 col-md-7">
 						<h2>Shared Configuration</h2>
-						<p>Store hierarchical key/value configuration data for services.</p>
+						<p>Store hierarchical key/value configuration data for services and get notified when any of these values change.</p>
 					</div>
 				</div>
 			</div>
@@ -75,7 +79,11 @@
 
 			<div class="col-xs-12 col-lg-12 explantion">
 				<h2>DNS Query Interface</h2>
-				<p>Make use of Consul's built-in DNS server to resolve requests directly, avoiding expensive HTTP requests.</p>
+				<p>
+				Look up services using Consul's built-in DNS server. This
+				avoids the need for a Consul-specific client in any of your
+				services.
+				</p>
 			</div>
 
 			<div class="terminal-item col-xs-12 col-lg-12">
@@ -114,7 +122,12 @@
 
 			<div class="col-xs-12 col-lg-12 explantion">
 				<h2>Key Value Storage</h2>
-				<p>Consul provides a flexible key/value store accessible via a simple HTTP API to store just about anything for your application.</p>
+				<p>
+				Consul provides a flexible, hierarchical key/value store accessible
+				via a simple HTTP API. This data is replicated across multiple
+				servers and is highly available. Other HTTP APIs let you long poll
+				for changes to a key.
+				</p>
 			</div>
 
 			<div class="terminal-item col-xs-12 col-lg-12">
