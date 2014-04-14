@@ -2,7 +2,7 @@
 
 * Website: http://www.consul.io
 * IRC: `#consul` on Freenode
-* Mailing list: [Google Groups](https://groups.google.com/group/consul/)
+* Mailing list: [Google Groups](https://groups.google.com/group/consul-tool/)
 
 Consul is a tool for managing and coordinating infrastructure. To do that
 it provides several key features:
