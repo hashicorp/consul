@@ -7,7 +7,7 @@
 				</div>
 				<div class="jumbo-logo-wrap col-lg-offset-1 col-lg-5 col-md-6 hidden-xs hidden-sm">
 					<div class="jumbo-logo"></div>
-				</div>			
+				</div>
 				<!-- <p><a class="btn btn-primary btn-lg">Learn more &raquo;</a></p> -->
 			</div>
 			<div class="jumbotron-dots"></div>
@@ -16,7 +16,6 @@
 
 <div id="features">
 	<div class="container">
-		
 		<div class="row double-row">
 			<div class="col-lg-6 col-md-6">
 				<div class="row">
@@ -69,3 +68,87 @@
 
 	</div> <!-- /container -->
 </div> <!-- /features -->
+
+<div id="demos">
+	<div class="container">
+		<div class="terminals row">
+
+			<div class="col-xs-12 col-lg-12 explantion">
+				<h2>DNS Query Interface</h2>
+				<p>Make use of Consul's built-in DNS server to resolve requests directly, avoiding expensive HTTP requests.</p>
+			</div>
+
+			<div class="terminal-item col-xs-12 col-lg-12">
+					<div class="terminal">
+						<header>
+							<h4>Terminal</h4>
+							<ul class='shell-dots'>
+								<li></li>
+								<li></li>
+								<li></li>
+							</ul>
+						</header>
+						<div class="terminal-window">
+							<div class="terminal">
+								<div class="display">
+									<p class="command"><span class="txt-r">admin@hashicorp</span>: dig web-frontend.service.consul. ANY</p>
+									<p>; &lt;&lt;&gt;&gt; DiG 9.8.3-P1 &lt;&lt;&gt;&gt; web-frontend.service.consul. ANY</p>
+									<p>;; global options: +cmd</p>
+									<p> </p>
+									<p>;; Got answer:</p>
+									<p>;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 29981</p>
+									<p>;; flags: qr aa rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 0</p>
+									<p> </p>
+									<p>;; QUESTION SECTION:</p>
+									<p>;web-frontend.service.consul. IN	ANY</p>
+									<p> </p>
+									<p>;; ANSWER SECTION:</p>
+									<p>web-frontend.service.consul. 0 IN	A	<span class="txt-p">10.0.3.83</span></p>
+									<p>web-frontend.service.consul. 0 IN	A	<span class="txt-p">10.0.1.109</span></p>
+									<p class="command"><span class="txt-r">admin@hashicorp</span>: <span class="cursor">&nbsp;</span></p>
+								</div>
+							</div>
+						</div>
+					</div>
+			</div> <!-- /.terminal-item -->
+
+			<div class="col-xs-12 col-lg-12 explantion">
+				<h2>Key Value Storage</h2>
+				<p>Consul provides a flexible key/value store accessible via a simple HTTP API to store just about anything for your application.</p>
+			</div>
+
+			<div class="terminal-item col-xs-12 col-lg-12">
+					<div class="terminal">
+						<header>
+							<h4>Terminal</h4>
+							<ul class='shell-dots'>
+								<li></li>
+								<li></li>
+								<li></li>
+							</ul>
+						</header>
+						<div class="terminal-window">
+							<div class="terminal">
+								<div class="display">
+									<p class="command"><span class="txt-r">admin@hashicorp</span>: curl -X PUT -d 'bar' http://localhost:8500/v1/kv/foo</p>
+									<p>true</p>
+									<p class="command"><span class="txt-r">admin@hashicorp</span>: curl http://localhost:8500/v1/kv/foo</p>
+									<p>[</p>
+									<p>     {</p>
+									<p>       "CreateIndex":100,</p>
+									<p>       "ModifyIndex":200,</p>
+									<p>        "Key":"zip",</p>
+									<p>        "Flags":0,</p>
+									<p>        "Value":"<span class="txt-p">aGVsbG8gd29ybGQK==</span>"</p>
+									<p>    }</p>
+									<p>]</p>
+									<p class="command"><span class="txt-r">admin@hashicorp</span>: <span class="cursor">&nbsp;</span></p>
+								</div>
+							</div>
+						</div>
+					</div>
+			</div> <!-- /.terminal-item -->
+		</div>
+	</div>
+</div><!-- /#demos -->
+
