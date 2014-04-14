@@ -32,7 +32,7 @@ for your operating system or [compile Consul yourself](#developing-consul).
 
 An extensive quick quick start is viewable on the Consul website:
 
-http://www.consul.io/intro/getting-started/
+http://www.consul.io/intro/getting-started/install.html
 
 ## Documentation
 
