@@ -216,16 +216,17 @@ func (l *localState) antiEntropy(shutdownCh chan struct{}) {
 SYNC:
 	// Sync our state with the servers
 	for {
-		if err := l.setSyncState(); err != nil {
-			l.logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
-			select {
-			case <-l.consulCh:
-			case <-time.After(aeScale(syncRetryIntv, len(l.iface.LANMembers()))):
-			case <-shutdownCh:
-				return
-			}
+		err := l.setSyncState()
+		if err == nil {
+			break
 		}
-		break
+		l.logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
+		select {
+		case <-l.consulCh:
+		case <-time.After(aeScale(syncRetryIntv, len(l.iface.LANMembers()))):
+		case <-shutdownCh:
+			return
+		}
 	}
 
 	// Force-trigger AE to pickup any changes
