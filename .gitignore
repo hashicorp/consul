@@ -2,6 +2,7 @@
 *.o
 *.a
 *.so
+Thumbs.db
 
 # Folders
 _obj

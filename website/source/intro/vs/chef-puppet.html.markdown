@@ -32,7 +32,7 @@ without a slow convergence run. Lastly, because each datacenter runs indepedentl
 supporting multiple datacenters is no different than a single datacenter.
 
 That said, Consul is not a replacement for configuration management tools.
-These tools are still critical to setup setup applications and even to
+These tools are still critical to setup applications and even to
 configure Consul itself. Static provisioning is best managed
 by existing tools, while dynamic state and discovery is better managed by
 Consul. The separation of configuration management and cluster management

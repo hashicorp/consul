@@ -20,7 +20,8 @@ However, the systems differ in many ways. Consul provides a much richer
 health checking framework, with support for arbitrary checks and
 a highly scalable failure detection scheme. SkyDNS relies on naive
 heartbeating and TTLs, which have known scalability issues. Additionally,
-the heartbeat only provides a limited liveness check.
+the heartbeat only provides a limited liveness check, versus the rich
+health checks that Consul is capable of.
 
 Multiple datacenters can be supported by using "regions" in SkyDNS,
 however the data is managed and queried from a single cluster. If servers
@@ -35,5 +36,6 @@ scopes the managed data to be per-datacenter. This means each datacenter
 runs an independent cluster of servers. Requests are forwarded to remote
 datacenters if necessary. This means requests for services within a datacenter
 never go over the WAN, and connectivity issues between datacenters do not
-affect availability within a datacenter.
-
+affect availability within a datacenter. Additionally, the unavailability
+of one datacenter does not affect the service discovery of services
+in any other datacenter.
