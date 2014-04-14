@@ -9,7 +9,9 @@ sidebar_current: "vs-other-chef"
 It is not uncommon to find people using Chef, Puppet, and other configuration
 management tools to build service discovery mechanisms. This is usually
 done by querying global state to construct configuration files on each
-node during a periodic convergence run. Unfortunately, this approach has
+node during a periodic convergence run.
+
+Unfortunately, this approach has
 a number of pitfalls. The configuration information is static,
 and cannot update any more frequently than convergence runs. Generally this
 is on the interval of many minutes or hours. Additionally, there is no

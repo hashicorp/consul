@@ -14,8 +14,9 @@ of a reference for all available features.
 
 ## What is Consul?
 
-Consul has multiple components, but as a whole, it is tool for managing
-and coordinating infrastructure. It provides several key features:
+Consul has multiple components, but as a whole, it is tool for discovering
+and configuring services in your infrastructure.. It provides several
+key features:
 
 * **Service Discovery**: Clients of Consul can _provide_ a service, such as
   `api` or `mysql`, and other clients can use Consul to _discover_ providers
