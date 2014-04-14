@@ -37,6 +37,9 @@ key features:
   means users of Consul do not have to worry about building additional layers of
   abstraction to grow to multiple regions.
 
+Consul is designed to be friendly to both the DevOps community and
+application developers, making it perfect for modern, elastic infrastructures.
+
 ## Basic Architecture of Consul
 
 Consul is a distributed, highly available system. There is an
