@@ -119,4 +119,3 @@ To leave the cluster, you can either gracefully quit an agent (using
 the node to transition into the _left_ state, otherwise other nodes
 will detect it as having _failed_. The difference is covered
 in more detail [here](/intro/getting-started/agent.html#toc_3).
-
