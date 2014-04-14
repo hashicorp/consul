@@ -37,6 +37,35 @@ key features:
   means users of Consul do not have to worry about building additional layers of
   abstraction to grow to multiple regions.
 
+## Basic Architecture of Consul
+
+Consul is a distributed, highly available system. There is an
+[in-depth architecture overview](/docs/internals/architecture.html) available,
+but this section will cover the basics so you can get an understanding
+of how Consul works. This section will purposely omit details to quickly
+provide an overview the architecture.
+
+Every node that provides services to Consul runs a _Consul agent_. Running
+an agent is not required for discovering other services or getting/setting
+key/value data. The agent is responsible for health checking the services
+on the node as well as the node itself.
+
+The agents talk to one or more _Consul servers_. The Consul servers are
+where data is stored and replicated. The servers themselves elect a leader.
+While Consul can function with one server, 3 to 5 is recommended to avoid
+data loss scenarios. A cluster of Consul servers is recommended for each
+datacenter.
+
+Components of your infrastructure that need to discover other services
+or nodes can query any of the Consul servers _or_ any of the Consul agents.
+The agents forward queries to the servers automatically.
+
+Each datacenter runs a cluster of Consul servers. When a cross-datacenter
+service discovery or configuration request is made, the local Consul servers
+forward the request to the remote datacenter and return the result.
+
+## Next Steps
+
 See the page on [how Consul compares to other software](/intro/vs/index.html)
 to see just how it fits into your existing infrastructure. Or continue onwards with
 the [getting started guide](/intro/getting-started/install.html) to get
