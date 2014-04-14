@@ -148,15 +148,18 @@ func (a *Agent) consulConfig() *consul.Config {
 		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.Ports.SerfWan
 	}
 	if a.config.BindAddr != "" {
-		addr, _ := net.ResolveTCPAddr("tcp", a.config.BindAddr)
-		base.RPCAddr = addr
+		bindAddr := &net.TCPAddr{
+			IP:   net.ParseIP(a.config.BindAddr),
+			Port: a.config.Ports.Server,
+		}
+		base.RPCAddr = bindAddr
 	}
 	if a.config.AdvertiseAddr != "" {
 		base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
 		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
 		base.RPCAdvertise = &net.TCPAddr{
 			IP:   net.ParseIP(a.config.AdvertiseAddr),
-			Port: a.config.Ports.RPC,
+			Port: a.config.Ports.Server,
 		}
 	}
 	if a.config.Bootstrap {
