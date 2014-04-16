@@ -15,8 +15,8 @@ This is used to ensure other nodes see the agent as "left" instead of
 on restarting with a snapshot.
 
 For nodes in server mode, the node is removed from the Raft peer set
-in a graceful manner. This is critical, as in certain situation a
-non-graceful can affect cluster availability.
+in a graceful manner. This is critical, as in certain situations a
+non-graceful leave can affect cluster availability.
 
 ## Usage
 

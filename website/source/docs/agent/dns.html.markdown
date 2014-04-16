@@ -42,7 +42,7 @@ the following format:
 
 So, for example, if we have a "foo" node with default settings, we could look for
 "foo.node.dc1.consul." The datacenter is an optional part of the FQDN, and if not
-provided defaults to the datacenter of the agent. So if know "foo" is running in our
+provided defaults to the datacenter of the agent. So if we know "foo" is running in our
 same datacenter, we can instead use "foo.node.consul." Alternatively, we can do a
 DNS lookup for nodes in other datacenters, with no additional effort.
 

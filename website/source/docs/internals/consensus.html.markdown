@@ -32,8 +32,7 @@ the entries and their order.
 * FSM - [Finite State Machine](http://en.wikipedia.org/wiki/Finite-state_machine).
 An FSM is a collection of finite states with transitions between them. As new logs
 are applied, the FSM is allowed to transition between states. Application of the
-same sequence of logs must result in the same state, meaning non-deterministic
-behavior is not permitted.
+same sequence of logs must result in the same state, meaning behavior must be deterministic.
 
 * Peer set - The peer set is the set of all members participating in log replication.
 For Consul's purposes, all server nodes are in the peer set of the local datacenter.
@@ -97,7 +96,7 @@ run 3 or 5 Consul servers per datacenter. This maximizes availability without
 greatly sacrificing performance. See below for a deployment table.
 
 In terms of performance, Raft is comprable to Paxos. Assuming stable leadership,
-a committing a log entry requires a single round trip to half of the cluster.
+committing a log entry requires a single round trip to half of the cluster.
 Thus performance is bound by disk I/O and network latency. Although Consul is
 not designed to be a high-throughput write system, it should handle on the order
 of hundreds to thousands of transactions per second depending on network and

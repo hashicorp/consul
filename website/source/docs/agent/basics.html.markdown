@@ -50,7 +50,7 @@ There are several important components that `consul agent` outputs:
 
 * **Datacenter**: This is the datacenter the agent is configured to run
  in. Consul has first-class support for multiple datacenters, but to work efficiently
- each node must be configured to correctly report it's datacenter. The `-dc` flag
+ each node must be configured to correctly report its datacenter. The `-dc` flag
  can be used to set the datacenter. For single-DC configurations, the agent
  will default to "dc1".
 
@@ -61,7 +61,7 @@ There are several important components that `consul agent` outputs:
   servers to join the cluster. Multiple servers cannot be in bootstrap mode,
   otherwise the cluster state will be inconsistent.
 
-* **Client Addr**: This is the addressused for client interfaces to the agent.
+* **Client Addr**: This is the address used for client interfaces to the agent.
   This includes the ports for the HTTP, DNS, and RPC interfaces. The RPC
   address is used for other `consul` commands. Other Consul commands such
   as `consul members` connect to a running agent and use RPC to query and
