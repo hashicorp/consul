@@ -22,7 +22,7 @@ Each of the categories and their respective endpoints are documented below.
 
 ## Blocking Queries
 
-Certain endpoints support a feature called a "blocking query". A blocking query
+Certain endpoints support a feature called a "blocking query." A blocking query
 is used to wait for a change to potentially take place using long polling.
 
 Queries that support this will mention it specifically, however the use of this
@@ -52,7 +52,7 @@ a single endpoint:
     /v1/kv/<key>
 
 This is the only endpoint that is used with the Key/Value store.
-It's use depends on the HTTP method. The `GET`, `PUT` and `DELETE` methods
+Its use depends on the HTTP method. The `GET`, `PUT` and `DELETE` methods
 are all supported. It is important to note that each datacenter has its
 own K/V store, and that there is no replication between datacenters.
 By default the datacenter of the agent is queried, however the dc can

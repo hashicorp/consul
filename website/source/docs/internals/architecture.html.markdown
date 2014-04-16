@@ -25,7 +25,7 @@ clarify what is being discussed:
 * Agent - An agent is the long running daemon on every member of the Consul cluster.
 It is started by running `consul agent`. The agent is able to run in either *client*,
 or *server* mode. Since all nodes must be running an agent, it is simpler to refer to
-the node as either being a client or server, but other are instances of the agent. All
+the node as either being a client or server, but there are other instances of the agent. All
 agents can run the DNS or HTTP interfaces, and are responsible for running checks and
 keeping services in sync.
 
@@ -34,12 +34,12 @@ stateless. The only background activity a client performs is taking part of LAN 
 This has a minimal resource overhead and consumes only a small amount of network bandwidth.
 
 * Server - An agent that is server mode. When in server mode, there is an expanded set
-of responsibilities including participated in the Raft quorum, maintaining cluster state,
-responding to RPC queries, WAN gossip to other datacenters, forwarding of queries to leaders
+of responsibilities including participating in the Raft quorum, maintaining cluster state,
+responding to RPC queries, WAN gossip to other datacenters, and forwarding queries to leaders
 or remote datacenters.
 
-* Datacenter - A data center seems obvious, but there are subtle details such as multiple
-availability zones in EC2. We define a data center to be a networking environment that is
+* Datacenter - A datacenter seems obvious, but there are subtle details such as multiple
+availability zones in EC2. We define a datacenter to be a networking environment that is
 private, low latency, and high badwidth. This excludes communication that would traverse
 the public internet.
 
@@ -53,7 +53,7 @@ as well as our [implementation here](/docs/internals/consensus.html).
 [gossip protocol](http://en.wikipedia.org/wiki/Gossip_protocol) that is used for multiple purposes.
 Serf provides membership, failure detection, and event broadcast mechanisms. Our use of these
 is described more in the [gossip documentation](/docs/internals/gossip.html). It is enough to know
-gossip involves random node-to-node communication, primary over UDP.
+gossip involves random node-to-node communication, primarily over UDP.
 
 * LAN Gossip - This is used to mean that there is a gossip pool, containing nodes that
 are all located on the same local area network or datacenter.
@@ -73,16 +73,16 @@ From a 10,000 foot altitude the architecture of Consul looks like this:
 
 Lets break down this image and describe each piece. First of all we can see
 that there are two datacenters, one and two respectively. Consul has first
-class support for multiple data centers and expects this to be the common case.
+class support for multiple datacenters and expects this to be the common case.
 
-Within each datacenter we have a mixture of clients, and servers. It is expected
+Within each datacenter we have a mixture of clients and servers. It is expected
 that there be between three and five servers. This strikes a balance between
 availability in the case of failure and performance, as consensus gets progressively
 slower as more machines are added. However, there is no limit to the number of clients,
 and they can easily scale into the thousands or tens of thousands.
 
 All the nodes that are in a datacenter participate in a [gossip protocol](/docs/internals/gossip.html).
-This means is there is a gossip pool that contains all the nodes for a given datacenter. This serves
+This means there is a gossip pool that contains all the nodes for a given datacenter. This serves
 a few purposes: first, there is no need to configure clients with the addresses of servers,
 discovery is done automatically. Second, the work of detecting node failures
 is not placed on the servers but is distributed. This makes the failure detection much more
@@ -111,7 +111,7 @@ connection caching and multiplexing, cross-datacenter requests are relatively fa
 At this point we've covered the high level architecture of Consul, but there are much
 more details to each of the sub-systems. The [consensus protocol](/docs/internals/consensus.html) is
 documented in detail, as is the [gossip protocol](/docs/internals/gossip.html). The [documentation](/docs/internals/security.html)
-for the security model and protocols used for is also available.
+for the security model and protocols used are also available.
 
 For other details, either consult the code, ask in IRC or reach out to the mailing list.
 
