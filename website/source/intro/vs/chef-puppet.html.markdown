@@ -24,8 +24,8 @@ Consul is designed specifically as a service discovery tool. As such,
 it is much more dynamic and responsive to the state of the cluster. Nodes
 can register and deregister the services they provide, enabling dependent
 applications and services to rapidly discover all providers. By using the
-integrating health checking, Consul can route traffic away from unhealthy
-nodes, and allowing systems and services to gracefully recover. Static configuration
+integrated health checking, Consul can route traffic away from unhealthy
+nodes, allowing systems and services to gracefully recover. Static configuration
 that may be provided by configuraiton management tools can be moved into the
 dynamic key/value store. This allows application configuration to be updated
 without a slow convergence run. Lastly, because each datacenter runs indepedently,

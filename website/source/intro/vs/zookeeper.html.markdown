@@ -18,7 +18,7 @@ as well as a more complex gossip system that links server nodes and clients.
 
 If any of these systems are used for pure key/value storage, then they all
 roughly provide the same semantics. Reads are strongly consistent, and availability
-is sacraficed for consistency in the face of a network partition. However, the differences
+is sacrificed for consistency in the face of a network partition. However, the differences
 become more apparent when these systems are used for advanced cases.
 
 The semantics provided by these systems are attractive for building
@@ -47,15 +47,15 @@ These clients are part of a [gossip pool](/docs/internals/gossip.html), which
 serves several functions including distributed health checking. The gossip protocol implements
 an efficient failure detector that can scale to clusters of any size without concentrating
 the work on any select group of servers. The clients also enable a much richer set of health checks to be run locally,
-where ZooKeeper ephemeral nodes are a very primitve check of liveness. Clients can check that
+whereas ZooKeeper ephemeral nodes are a very primitve check of liveness. Clients can check that
 a web server is returning 200 status codes, that memory utilization is not critical, there is sufficient
 disk space, etc. The Consul clients expose a simple HTTP interface and avoid exposing the complexity
 of the system is to clients in the same way as ZooKeeper.
 
 Consul provides first class support for service discovery, health checking,
-K/V storage, and multiple datacenters. To support anything more that simple K/V storage,
+K/V storage, and multiple datacenters. To support anything more than simple K/V storage,
 all these other systems require additional tools and libraries to be built on
-top. By using client nodes, Consul provides a simple API than only requires thin clients.
+top. By using client nodes, Consul provides a simple API that only requires thin clients.
 Additionally, the API can be avoided entirely by using configuration files and the
 DNS interface to have a complete service discovery solution with no development at all.
 
