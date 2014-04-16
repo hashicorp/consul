@@ -34,7 +34,7 @@ matching tags.
 
 The systems also differ in how they manage health checking.
 Nerve's performs local health checks in a manner similar to Consul agents.
-However, Consul maintains seperate catalog and health systems, which allow
+However, Consul maintains separate catalog and health systems, which allow
 operators to see which nodes are in each service pool, as well as providing
 insight into failing checks. Nerve simply deregisters nodes on failed checks,
 providing limited operator insight. Synapse also configures HAProxy to perform

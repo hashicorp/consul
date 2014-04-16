@@ -12,7 +12,7 @@ to quickly notify operators when an issue occurs.
 Nagios uses a group of central servers that are configured to perform
 checks on remote hosts. This design makes it difficult to scale Nagios,
 as large fleets quickly reach the limit of vertical scaling, and Nagios
-does not easily horizontal scale either. Nagios is also notoriously
+does not easily scale horizontally. Nagios is also notoriously
 difficult to use with modern DevOps and configuration management tools,
 as local configurations must be updated when remote servers are added
 or removed.
@@ -31,10 +31,10 @@ a burden on central servers. The status of checks is maintained by the Consul
 servers, which are fault tolerant and have no single point of failure.
 Lastly, Consul can scale to vastly more checks because it relies on edge triggered
 updates. This means only when a check transitions from "passing" to "failing"
-or visa versa an update is triggered.
+or vice versa an update is triggered.
 
 In a large fleet, the majority of checks are passing, and even the minority
-that are failing are persistent. By capturing only changes, Consul reduces
+that are failing are persistent. By capturing changes only, Consul reduces
 the amount of networking and compute resources used by the health checks,
 allowing the system to be much more scalable.
 

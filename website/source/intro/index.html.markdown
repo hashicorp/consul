@@ -14,7 +14,7 @@ of a reference for all available features.
 
 ## What is Consul?
 
-Consul has multiple components, but as a whole, it is tool for discovering
+Consul has multiple components, but as a whole, it is a tool for discovering
 and configuring services in your infrastructure. It provides several
 key features:
 
@@ -30,7 +30,7 @@ key features:
   discovery components to route traffic away from unhealthy hosts.
 
 * **Key/Value Store**: Applications can make use of Consul's hierarchical key/value
-  store for any number of purposes including dynamic configuration, feature flagging,
+  store for any number of purposes including: dynamic configuration, feature flagging,
   coordination, leader election, etc. The simple HTTP API makes it easy to use.
 
 * **Multi Datacenter**: Consul supports multiple datacenters out of the box. This
@@ -70,6 +70,6 @@ forward the request to the remote datacenter and return the result.
 ## Next Steps
 
 See the page on [how Consul compares to other software](/intro/vs/index.html)
-to see just how it fits into your existing infrastructure. Or continue onwards with
+to see how it fits into your existing infrastructure. Or continue onwards with
 the [getting started guide](/intro/getting-started/install.html) to get
 Consul up and running and see how it works.
