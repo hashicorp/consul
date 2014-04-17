@@ -6,7 +6,7 @@ $consul_os = []
 if ENV["CONSUL_VERSION"]
   raise "BINTRAY_API_KEY must be set." if !ENV["BINTRAY_API_KEY"]
   http = Net::HTTP.new("dl.bintray.com", 80)
-  req = Net::HTTP::Get.new("/mitchellh/consul")
+  req = Net::HTTP::Get.new("/mitchellh/consul/")
   req.basic_auth "mitchellh", ENV["BINTRAY_API_KEY"]
   response = http.request(req)
 
