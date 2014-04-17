@@ -28,7 +28,7 @@ mkdir -p ./dist/pkg
 for FILENAME in $(find ./dist -mindepth 1 -maxdepth 1 -type f); do
     FILENAME=$(basename $FILENAME)
     PLATFORM="${FILENAME%.*}"
-    zip ./dist/pkg/${PLATFORM}.zip ./dist/${FILENAME}
+    zip ./dist/pkg/${VERSION}_${PLATFORM}.zip ./dist/${FILENAME}
 done
 
 # Make the checksums
