@@ -79,14 +79,14 @@ func TestMDBTableInsert(t *testing.T) {
 		Env:  env,
 		Name: "test",
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
-			"name": &MDBIndex{
+			"name": {
 				Fields: []string{"First", "Last"},
 			},
-			"country": &MDBIndex{
+			"country": {
 				Fields: []string{"Country"},
 			},
 		},
@@ -98,19 +98,19 @@ func TestMDBTableInsert(t *testing.T) {
 	}
 
 	objs := []*MockData{
-		&MockData{
+		{
 			Key:     "1",
 			First:   "Kevin",
 			Last:    "Smith",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "2",
 			First:   "Kevin",
 			Last:    "Wang",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "3",
 			First:   "Bernardo",
 			Last:    "Torres",
@@ -204,14 +204,14 @@ func TestMDBTableInsert_MissingFields(t *testing.T) {
 		Env:  env,
 		Name: "test",
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
-			"name": &MDBIndex{
+			"name": {
 				Fields: []string{"First", "Last"},
 			},
-			"country": &MDBIndex{
+			"country": {
 				Fields: []string{"Country"},
 			},
 		},
@@ -223,22 +223,22 @@ func TestMDBTableInsert_MissingFields(t *testing.T) {
 	}
 
 	objs := []*MockData{
-		&MockData{
+		{
 			First:   "Kevin",
 			Last:    "Smith",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "2",
 			Last:    "Wang",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "2",
 			First:   "Kevin",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:   "3",
 			First: "Bernardo",
 			Last:  "Torres",
@@ -262,14 +262,14 @@ func TestMDBTableInsert_AllowBlank(t *testing.T) {
 		Env:  env,
 		Name: "test",
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
-			"name": &MDBIndex{
+			"name": {
 				Fields: []string{"First", "Last"},
 			},
-			"country": &MDBIndex{
+			"country": {
 				Fields:     []string{"Country"},
 				AllowBlank: true,
 			},
@@ -282,7 +282,7 @@ func TestMDBTableInsert_AllowBlank(t *testing.T) {
 	}
 
 	objs := []*MockData{
-		&MockData{
+		{
 			Key:     "1",
 			First:   "Kevin",
 			Last:    "Smith",
@@ -307,14 +307,14 @@ func TestMDBTableDelete(t *testing.T) {
 		Env:  env,
 		Name: "test",
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
-			"name": &MDBIndex{
+			"name": {
 				Fields: []string{"First", "Last"},
 			},
-			"country": &MDBIndex{
+			"country": {
 				Fields: []string{"Country"},
 			},
 		},
@@ -326,19 +326,19 @@ func TestMDBTableDelete(t *testing.T) {
 	}
 
 	objs := []*MockData{
-		&MockData{
+		{
 			Key:     "1",
 			First:   "Kevin",
 			Last:    "Smith",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "2",
 			First:   "Kevin",
 			Last:    "Wang",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "3",
 			First:   "Bernardo",
 			Last:    "Torres",
@@ -399,14 +399,14 @@ func TestMDBTableUpdate(t *testing.T) {
 		Env:  env,
 		Name: "test",
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
-			"name": &MDBIndex{
+			"name": {
 				Fields: []string{"First", "Last"},
 			},
-			"country": &MDBIndex{
+			"country": {
 				Fields: []string{"Country"},
 			},
 		},
@@ -418,37 +418,37 @@ func TestMDBTableUpdate(t *testing.T) {
 	}
 
 	objs := []*MockData{
-		&MockData{
+		{
 			Key:     "1",
 			First:   "Kevin",
 			Last:    "Smith",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "2",
 			First:   "Kevin",
 			Last:    "Wang",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "3",
 			First:   "Bernardo",
 			Last:    "Torres",
 			Country: "Mexico",
 		},
-		&MockData{
+		{
 			Key:     "1",
 			First:   "Roger",
 			Last:    "Rodrigez",
 			Country: "Mexico",
 		},
-		&MockData{
+		{
 			Key:     "2",
 			First:   "Anna",
 			Last:    "Smith",
 			Country: "UK",
 		},
-		&MockData{
+		{
 			Key:     "3",
 			First:   "Ahmad",
 			Last:    "Badari",
@@ -532,14 +532,14 @@ func TestMDBTableLastRowID(t *testing.T) {
 		Env:  env,
 		Name: "test",
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
-			"name": &MDBIndex{
+			"name": {
 				Fields: []string{"First", "Last"},
 			},
-			"country": &MDBIndex{
+			"country": {
 				Fields: []string{"Country"},
 			},
 		},
@@ -555,19 +555,19 @@ func TestMDBTableLastRowID(t *testing.T) {
 	}
 
 	objs := []*MockData{
-		&MockData{
+		{
 			Key:     "1",
 			First:   "Kevin",
 			Last:    "Smith",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "2",
 			First:   "Kevin",
 			Last:    "Wang",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "3",
 			First:   "Bernardo",
 			Last:    "Torres",
@@ -591,14 +591,14 @@ func TestMDBTableLastRowID(t *testing.T) {
 		Env:  env,
 		Name: "test",
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
-			"name": &MDBIndex{
+			"name": {
 				Fields: []string{"First", "Last"},
 			},
-			"country": &MDBIndex{
+			"country": {
 				Fields: []string{"Country"},
 			},
 		},
@@ -623,7 +623,7 @@ func TestMDBTableIndex(t *testing.T) {
 		Env:  env,
 		Name: "test",
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
@@ -640,19 +640,19 @@ func TestMDBTableIndex(t *testing.T) {
 	}
 
 	objs := []*MockData{
-		&MockData{
+		{
 			Key:     "1",
 			First:   "Kevin",
 			Last:    "Smith",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "2",
 			First:   "Kevin",
 			Last:    "Wang",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "3",
 			First:   "Bernardo",
 			Last:    "Torres",
@@ -683,7 +683,7 @@ func TestMDBTableIndex(t *testing.T) {
 		Env:  env,
 		Name: "test",
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
@@ -713,7 +713,7 @@ func TestMDBTableDelete_Prefix(t *testing.T) {
 		Env:  env,
 		Name: "test",
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"First", "Last"},
 			},
@@ -726,31 +726,31 @@ func TestMDBTableDelete_Prefix(t *testing.T) {
 	}
 
 	objs := []*MockData{
-		&MockData{
+		{
 			Key:     "1",
 			First:   "James",
 			Last:    "Smith",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "1",
 			First:   "Kevin",
 			Last:    "Smith",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "2",
 			First:   "Kevin",
 			Last:    "Wang",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "3",
 			First:   "Kevin",
 			Last:    "Torres",
 			Country: "Mexico",
 		},
-		&MockData{
+		{
 			Key:     "1",
 			First:   "Lana",
 			Last:    "Smith",
@@ -791,11 +791,11 @@ func TestMDBTableVirtualIndex(t *testing.T) {
 		Env:  env,
 		Name: "test",
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"First"},
 			},
-			"id_prefix": &MDBIndex{
+			"id_prefix": {
 				Virtual:   true,
 				RealIndex: "id",
 				Fields:    []string{"First"},
@@ -814,19 +814,19 @@ func TestMDBTableVirtualIndex(t *testing.T) {
 	}
 
 	objs := []*MockData{
-		&MockData{
+		{
 			Key:     "1",
 			First:   "Jack",
 			Last:    "Smith",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "2",
 			First:   "John",
 			Last:    "Wang",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "3",
 			First:   "James",
 			Last:    "Torres",
@@ -894,14 +894,14 @@ func TestMDBTableStream(t *testing.T) {
 		Env:  env,
 		Name: "test",
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
-			"name": &MDBIndex{
+			"name": {
 				Fields: []string{"First", "Last"},
 			},
-			"country": &MDBIndex{
+			"country": {
 				Fields: []string{"Country"},
 			},
 		},
@@ -913,19 +913,19 @@ func TestMDBTableStream(t *testing.T) {
 	}
 
 	objs := []*MockData{
-		&MockData{
+		{
 			Key:     "1",
 			First:   "Kevin",
 			Last:    "Smith",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "2",
 			First:   "Kevin",
 			Last:    "Wang",
 			Country: "USA",
 		},
-		&MockData{
+		{
 			Key:     "3",
 			First:   "Bernardo",
 			Last:    "Torres",
