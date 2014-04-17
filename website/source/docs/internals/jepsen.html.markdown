@@ -8,23 +8,21 @@ sidebar_current: "docs-internals-jepsen"
 
 [Jepsen](http://aphyr.com/posts/281-call-me-maybe-carly-rae-jepsen-and-the-perils-of-network-partitions)
 is a tool written by Kyle Kingsbury that is designed to test the partition
-tolerance of a distributed systems. In effect, it causes various network
-partitions to take place while fuzzing the system with constant operations.
-The results are analyzed to see if the system violates any of the consistency
-properties it claims to have.
+tolerance of distributed systems. It creates network partitions while fuzzing
+the system with random operations. The results are analyzed to see if the system
+violates any of the consistency properties it claims to have.
 
 As part of our Consul testing, we ran it against Jepsen to determine if
-any consistency issues could be uncovered. In our testing, we Consul
-was able to gracefully recover from partitions without introducing
-any consistency issues.
+any consistency issues could be uncovered. In our testing, Consul gracefully
+recovered from partitions without introducing any consistency issues.
 
 ## Running the tests
 
 At the moment, testing with Jepsen is rather complex, as it requires
-setting up multiple virtual machines, SSH setup, DNS configuration,
-and a working Clojure environment. We hope to be able to contribute
-our Consul testing harness upstream, and to create a Vagrant environment
-to simplify the testing so that it can be done more easily.
+setting up multiple virtual machines, SSH keys, DNS configuration,
+and a working Clojure environment. We hope to contribute our Consul
+testing code upstream and to provide a Vagrant environment for Jepsen
+testing soon.
 
 ## Output
 
