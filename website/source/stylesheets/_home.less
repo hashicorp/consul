@@ -177,10 +177,51 @@ body.page-home{
 	}
 }
 
+#cta {
+	padding: 160px 0 160px;
+
+	.intro {
+		.left {
+			text-align: right;
+		}
+
+		.right {
+			margin-top: 12px;
+		}
+
+	}
+
+	p{
+		font-size: 14px;
+		letter-spacing: 1px;
+        line-height: 1.5em;
+		color: @consul-gray;
+		font-family: @font-family-museo;
+		font-weight: @font-weight-museo-sb;
+	}
+
+
+
+	.outline-btn {
+		padding: 8px;
+	}
+
+	a {
+		font-weight: 500;
+	    font-size: 16px;
+	    text-transform: uppercase;
+	    letter-spacing: 3px;
+	    color: @purple;
+	    &:hover {
+	    	text-decoration: none;
+	    }
+	}
+}
+
 #demos{
 	padding: 30px 0 60px;
 	background-color: @light-purple;
-	background-color: darken(@light-purple, 3%);
+	background: @light-purple url('../images/sidebar-dots.jpg') left 62px no-repeat;
 
 	.explantion {
 		margin: 40px 0 40px 0;
