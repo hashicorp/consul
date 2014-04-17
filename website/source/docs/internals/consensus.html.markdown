@@ -95,7 +95,7 @@ of 5 can tolerate 2 node failures. The recommended configuration is to either
 run 3 or 5 Consul servers per datacenter. This maximizes availability without
 greatly sacrificing performance. See below for a deployment table.
 
-In terms of performance, Raft is comprable to Paxos. Assuming stable leadership,
+In terms of performance, Raft is comparable to Paxos. Assuming stable leadership,
 committing a log entry requires a single round trip to half of the cluster.
 Thus performance is bound by disk I/O and network latency. Although Consul is
 not designed to be a high-throughput write system, it should handle on the order
