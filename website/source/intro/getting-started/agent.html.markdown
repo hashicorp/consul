@@ -52,6 +52,12 @@ data. From the log data, you can see that our agent is running in server mode,
 and has claimed leadership of the cluster. Additionally, the local member has
 been marked as a healthy member of the cluster.
 
+<div class="alert alert-block alert-warning">
+<strong>Note for OS X Users:</strong> If your <code>hostname</code> contains periods, Consul
+may fail DNS queries. To avoid this, explicity set the name
+of your node with the <code>-node</code> flag.
+</div>
+
 ## Cluster Members
 
 If you run `consul members` in another terminal, you can see the members of
