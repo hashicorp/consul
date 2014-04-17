@@ -8,9 +8,8 @@ page_title: "Downloads"
 			<h1>Downloads</h1>
 
 			<section class="downloads">
-				<div class="container">
 					<div class="description row">
-						<div class="col-md-8">
+						<div class="col-md-12">
 							<p>
 							Below are all available downloads for the latest version of Consul
 							(<%= latest_version %>). Please download the proper package for your
@@ -20,9 +19,10 @@ page_title: "Downloads"
 						</div>
 					</div>
 					<% $consul_os.each do |os| %>
-						<div class="row">
-						<div class="col-md-8 download">
-							<div class="icon pull-left"><%= image_tag "/images/icons/icon_#{os}.png" %></div>
+					<div class="row">
+						<div class="col-md-12 download">
+							<div class="icon pull-left"><%= image_tag "/images/icons/icon_#{os}.png" %>
+							</div>
 							<div class="details">
 								<h2 class="os-name"><%= download_os_human(os) %></h2>
 								<ul>
@@ -30,20 +30,20 @@ page_title: "Downloads"
 										<li><a href="<%= download_url(file) %>"><%= download_arch(file) %></a></li>
 								<% end %>
 								</ul>
-								<div class="clearfix"></div>
+								<div class="clearfix">
+								</div>
 							</div>
 						</div>
 					</div>
 				<% end %>
 
 					<div class="row">
-						<div class="col-md-8 poweredby">
+						<div class="col-md-12 poweredby">
 							<a href='http://www.bintray.com'>
 								<img src='http://www.bintray.com/docs/images/poweredByBintray_ColorTransparent.png'>
 							</a>
 						</div>
 					</div>
-				</div>
 			</section>
 		</div>
 	</div>
