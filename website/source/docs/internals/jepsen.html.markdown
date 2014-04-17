@@ -18,6 +18,14 @@ any consistency issues could be uncovered. In our testing, we Consul
 was able to gracefully recover from partitions without introducing
 any consistency issues.
 
+## Running the tests
+
+At the moment, testing with Jepsen is rather complex, as it requires
+setting up multiple virtual machines, SSH setup, DNS configuration,
+and a working Clojure environment. We hope to be able to contribute
+our Consul testing harness upstream, and to create a Vagrant environment
+to simplify the testing so that it can be done more easily.
+
 ## Output
 
 Below is the output captured from Jepsen. We ran Jepsen multiple times,
