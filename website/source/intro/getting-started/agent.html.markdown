@@ -53,9 +53,10 @@ and has claimed leadership of the cluster. Additionally, the local member has
 been marked as a healthy member of the cluster.
 
 <div class="alert alert-block alert-warning">
-<strong>Note for OS X Users:</strong> If your <code>hostname</code> contains periods, Consul
-may fail DNS queries. To avoid this, explicity set the name
-of your node with the <code>-node</code> flag.
+<strong>Note for OS X Users:</strong> Consul uses your hostname as the
+default node name. If your hostname contains periods, DNS queries to
+that node will not work with Consul. To avoid this, explicitly set
+the name of your node with the <code>-node</code> flag.
 </div>
 
 ## Cluster Members
