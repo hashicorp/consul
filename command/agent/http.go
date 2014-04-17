@@ -124,8 +124,8 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			if err = enc.Encode(obj); err != nil {
 				goto HAS_ERR
 			}
-			resp.Write(buf.Bytes())
 			resp.Header().Set("Content-Type", "application/json")
+			resp.Write(buf.Bytes())
 		}
 	}
 	return f
