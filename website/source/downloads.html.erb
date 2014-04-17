@@ -10,7 +10,7 @@ page_title: "Downloads"
 			<section class="downloads">
 				<div class="container">
 					<div class="description row">
-						<div class="span8 offset2">
+						<div class="col-md-8">
 							<p>
 							Below are all available downloads for the latest version of Consul
 							(<%= latest_version %>). Please download the proper package for your
@@ -21,7 +21,7 @@ page_title: "Downloads"
 					</div>
 					<% $consul_os.each do |os| %>
 						<div class="row">
-						<div class="span8 offset2 download">
+						<div class="col-md-8 download">
 							<div class="icon pull-left"><%= image_tag "/images/icons/icon_#{os}.png" %></div>
 							<div class="details">
 								<h2 class="os-name"><%= download_os_human(os) %></h2>
@@ -37,7 +37,7 @@ page_title: "Downloads"
 				<% end %>
 
 					<div class="row">
-						<div class="span8 offset2 poweredby">
+						<div class="col-md-8 poweredby">
 							<a href='http://www.bintray.com'>
 								<img src='http://www.bintray.com/docs/images/poweredByBintray_ColorTransparent.png'>
 							</a>
