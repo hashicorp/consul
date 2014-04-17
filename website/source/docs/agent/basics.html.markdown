@@ -26,7 +26,7 @@ of configuration options but the defaults are usually good enough. When
 running `consul agent`, you should see output similar to that below:
 
 ```
-$ consul agent -data=/tmp/consul
+$ consul agent -data-dir=/tmp/consul
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...
 ==> Consul agent running!
