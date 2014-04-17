@@ -27,8 +27,22 @@ rm -rf ./dist/pkg
 mkdir -p ./dist/pkg
 for FILENAME in $(find ./dist -mindepth 1 -maxdepth 1 -type f); do
     FILENAME=$(basename $FILENAME)
+    EXTENSION="${FILENAME##*.}"
     PLATFORM="${FILENAME%.*}"
-    zip ./dist/pkg/${VERSION}_${PLATFORM}.zip ./dist/${FILENAME}
+
+    if [ "${EXTENSION}" != "exe" ]; then
+        EXTENSION=""
+    else
+        EXTENSION=".${EXTENSION}"
+    fi
+
+    CONSULNAME="consul${EXTENSION}"
+
+    pushd ./dist
+    cp ${FILENAME} ${CONSULNAME}
+    zip ./pkg/${VERSION}_${PLATFORM}.zip ${CONSULNAME}
+    rm ${CONSULNAME}
+    popd
 done
 
 # Make the checksums
