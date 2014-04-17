@@ -100,7 +100,8 @@ Then run the same query against your Bind instance and make sure you get a resul
 
 ### Troubleshooting
 
-If you don't get an answer from Bind but you do get an answer from Consul then your best bet is to turn on the query log to see what's going on:
+If you don't get an answer from Bind but you do get an answer from Consul then your
+best bet is to turn on the query log to see what's going on:
 
     [root@localhost ~]# rndc querylog
     [root@localhost ~]# tail -f /var/log/messages
@@ -110,5 +111,6 @@ In there if you see errors like this:
     error (no valid RRSIG) resolving
     error (no valid DS) resolving
 
-Then DNSSEC is not disabled properly.  If you see errors about network connections then verify that there are no firewall or routing problems between the servers running Bind and Consul
-
+Then DNSSEC is not disabled properly.  If you see errors about network connections
+then verify that there are no firewall or routing problems between the servers
+running Bind and Consul.

@@ -29,7 +29,7 @@ the node as either being a client or server, but there are other instances of th
 agents can run the DNS or HTTP interfaces, and are responsible for running checks and
 keeping services in sync.
 
-* Client - A client is an agent that forwards all RPC's to a server. The client is relatively
+* Client - A client is an agent that forwards all RPCs to a server. The client is relatively
 stateless. The only background activity a client performs is taking part of LAN gossip pool.
 This has a minimal resource overhead and consumes only a small amount of network bandwidth.
 

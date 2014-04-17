@@ -6,7 +6,7 @@ sidebar_current: "docs-guides-datacenters"
 
 # Multi-Datacenter Deploys
 
-One of the key features of Consul is it's support for multiple datacenters.
+One of the key features of Consul is its support for multiple datacenters.
 The [architecture](/docs/internals/architecture.html) of Consul is designed to
 promote a low-coupling of datacenters, so that connectivity issues or
 failure of any datacenter does not impact the availability of Consul in other

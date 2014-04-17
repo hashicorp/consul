@@ -64,7 +64,7 @@ the `last_log_index` shows the last log that is on disk. The same `info` command
 can be run on the new server to see how far behind it is. Eventually the server
 will be caught up, and the values should match.
 
-It is best to add servers one at a time, allowing them to catchup. This avoids
+It is best to add servers one at a time, allowing them to catch up. This avoids
 the possibility of data loss in case the existing servers fail while bringing
 the new servers up-to-date.
 
@@ -101,6 +101,4 @@ The leader should also emit various logs including:
     ...
 
 At this point the node has been gracefully removed from the cluster, and
-will shutdown.
-
-
+will shut down.

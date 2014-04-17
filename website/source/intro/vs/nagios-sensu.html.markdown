@@ -25,13 +25,13 @@ and a weaker coupling between the servers and agents. However, the central broke
 has scaling limits, and acts as a single point of failure in the system.
 
 Consul provides the same health checking abilities as both Nagios and Sensu,
-is friendly to modern DevOps, and avoids the scaling issues inherint in the
-other systems. Consul runs all checks locally like Sensu avoiding placing
+is friendly to modern DevOps, and avoids the scaling issues inherent in the
+other systems. Consul runs all checks locally, like Sensu, avoiding placing
 a burden on central servers. The status of checks is maintained by the Consul
 servers, which are fault tolerant and have no single point of failure.
 Lastly, Consul can scale to vastly more checks because it relies on edge triggered
-updates. This means only when a check transitions from "passing" to "failing"
-or vice versa an update is triggered.
+updates. This means that an update is only triggered when a check transitions
+from "passing" to "failing" or vice versa.
 
 In a large fleet, the majority of checks are passing, and even the minority
 that are failing are persistent. By capturing changes only, Consul reduces

@@ -11,7 +11,7 @@ It uses multiple central servers that are strongly consistent and
 fault tolerant. Nodes register services using an HTTP API, and
 queries can be made over HTTP or DNS to perform discovery.
 
-Consul is very similar, but provides a super-set of features. Consul
+Consul is very similar, but provides a superset of features. Consul
 also relies on multiple central servers to provide strong consistency
 and fault tolerance. Nodes can use an HTTP API or use an agent to
 register services, and queries are made over HTTP or DNS.
