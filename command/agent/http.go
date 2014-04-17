@@ -125,6 +125,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 				goto HAS_ERR
 			}
 			resp.Write(buf.Bytes())
+			resp.Header().Set("Content-Type", "application/json")
 		}
 	}
 	return f

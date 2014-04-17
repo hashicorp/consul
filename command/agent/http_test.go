@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
@@ -36,6 +37,33 @@ func TestSetIndex(t *testing.T) {
 	header := resp.Header().Get("X-Consul-Index")
 	if header != "1000" {
 		t.Fatalf("Bad: %v", header)
+	}
+}
+
+func TestContentTypeIsJSON(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Wait for a leader
+	time.Sleep(100 * time.Millisecond)
+
+	resp := httptest.NewRecorder()
+
+	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+		// stub out a DirEntry so that it will be encoded as JSON
+		return &structs.DirEntry{Key: "key"}, nil
+	}
+
+	req, _ := http.NewRequest("GET", "/v1/kv/key", nil)
+	srv.wrap(handler)(resp, req)
+
+	contentType := resp.Header().Get("Content-Type")
+
+	if contentType != "application/json" {
+		t.Fatalf("Content-Type header was not 'application/json'")
 	}
 }
 
