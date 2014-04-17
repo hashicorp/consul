@@ -37,7 +37,7 @@ to the number of nodes and place the demand on a fixed number of servers. Additi
 failure detection window is at least as long as the TTL. ZooKeeper provides ephemeral
 nodes which are K/V entries that are removed when a client disconnects. These are more
 sophisticated than a heartbeat system, but also have inherent scalability issues and add
-client side complexity. All clients must maintain active connecitons to the ZooKeeper servers,
+client side complexity. All clients must maintain active connections to the ZooKeeper servers,
 and perform keep-alives. Additionally, this requires "thick clients", which are difficult
 to write and often result in difficult to debug issues.
 
