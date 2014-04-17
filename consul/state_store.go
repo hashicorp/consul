@@ -122,7 +122,7 @@ func (s *StateStore) initialize() error {
 	s.nodeTable = &MDBTable{
 		Name: dbNodes,
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Node"},
 			},
@@ -139,11 +139,11 @@ func (s *StateStore) initialize() error {
 	s.serviceTable = &MDBTable{
 		Name: dbServices,
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Node", "ServiceID"},
 			},
-			"service": &MDBIndex{
+			"service": {
 				AllowBlank: true,
 				Fields:     []string{"ServiceName"},
 			},
@@ -160,18 +160,18 @@ func (s *StateStore) initialize() error {
 	s.checkTable = &MDBTable{
 		Name: dbChecks,
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Node", "CheckID"},
 			},
-			"status": &MDBIndex{
+			"status": {
 				Fields: []string{"Status"},
 			},
-			"service": &MDBIndex{
+			"service": {
 				AllowBlank: true,
 				Fields:     []string{"ServiceName"},
 			},
-			"node": &MDBIndex{
+			"node": {
 				AllowBlank: true,
 				Fields:     []string{"Node", "ServiceID"},
 			},
@@ -188,11 +188,11 @@ func (s *StateStore) initialize() error {
 	s.kvsTable = &MDBTable{
 		Name: dbKVS,
 		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
+			"id": {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
-			"id_prefix": &MDBIndex{
+			"id_prefix": {
 				Virtual:   true,
 				RealIndex: "id",
 				Fields:    []string{"Key"},
@@ -223,16 +223,16 @@ func (s *StateStore) initialize() error {
 
 	// Setup the query tables
 	s.queryTables = map[string]MDBTables{
-		"Nodes":             MDBTables{s.nodeTable},
-		"Services":          MDBTables{s.serviceTable},
-		"ServiceNodes":      MDBTables{s.nodeTable, s.serviceTable},
-		"NodeServices":      MDBTables{s.nodeTable, s.serviceTable},
-		"ChecksInState":     MDBTables{s.checkTable},
-		"NodeChecks":        MDBTables{s.checkTable},
-		"ServiceChecks":     MDBTables{s.checkTable},
-		"CheckServiceNodes": MDBTables{s.nodeTable, s.serviceTable, s.checkTable},
-		"KVSGet":            MDBTables{s.kvsTable},
-		"KVSList":           MDBTables{s.kvsTable},
+		"Nodes":             {s.nodeTable},
+		"Services":          {s.serviceTable},
+		"ServiceNodes":      {s.nodeTable, s.serviceTable},
+		"NodeServices":      {s.nodeTable, s.serviceTable},
+		"ChecksInState":     {s.checkTable},
+		"NodeChecks":        {s.checkTable},
+		"ServiceChecks":     {s.checkTable},
+		"CheckServiceNodes": {s.nodeTable, s.serviceTable, s.checkTable},
+		"KVSGet":            {s.kvsTable},
+		"KVSList":           {s.kvsTable},
 	}
 	return nil
 }
