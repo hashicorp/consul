@@ -32,7 +32,6 @@ sudo apt-get install -y git-core
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "precise64"
   config.vm.provision "shell", inline: $script
 
   ["vmware_fusion", "vmware_workstation"].each do |p|
@@ -41,5 +40,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.vmx["numvcpus"] = "2"
       v.vmx["cpuid.coresPerSocket"] = "1"
     end
+  end
+
+  config.vm.define "default" do |n1|
+      n1.vm.box = "hashicorp/precise64"
+  end
+  config.vm.define "32bit" do |n2|
+      n2.vm.box = "chef/ubuntu-12.04-i386"
   end
 end
