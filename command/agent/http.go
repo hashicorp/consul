@@ -80,7 +80,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
 
 	s.mux.HandleFunc("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
-	s.mux.HandleFunc("/v1/agent/check/deregister", s.wrap(s.AgentDeregisterCheck))
+	s.mux.HandleFunc("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))
 	s.mux.HandleFunc("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
 	s.mux.HandleFunc("/v1/agent/check/warn/", s.wrap(s.AgentCheckWarn))
 	s.mux.HandleFunc("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
