@@ -6,12 +6,13 @@ sidebar_current: "vs-other-serf"
 
 # Consul vs. Serf
 
-[Serf](http://www.serfdom.io) is a service discovery and orchestration tool and is the only
+[Serf](http://www.serfdom.io) is a node discovery and orchestration tool and is the only
 tool discussed so far that is built on an eventually consistent gossip model,
 with no centralized servers. It provides a number of features, including group
 membership, failure detection, event broadcasts and a query mechanism. However,
 Serf does not provide any high-level features such as service discovery, health
-checking or key/value storage.
+checking or key/value storage. To clarify, the discovery feature of Serf is at a node
+level, while Consul provides a service and node level abstraction.
 
 Consul is a complete system providing all of those features. In fact, the internal
 [gossip protocol](/docs/internals/gossip.html) used within Consul, is powered by
