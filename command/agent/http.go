@@ -86,7 +86,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
 
 	s.mux.HandleFunc("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
-	s.mux.HandleFunc("/v1/agent/service/deregister", s.wrap(s.AgentDeregisterService))
+	s.mux.HandleFunc("/v1/agent/service/deregister/", s.wrap(s.AgentDeregisterService))
 
 	s.mux.HandleFunc("/v1/kv/", s.wrap(s.KVSEndpoint))
 
