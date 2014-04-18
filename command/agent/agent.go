@@ -213,7 +213,7 @@ func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 	return a.client.RPC(method, args, reply)
 }
 
-// Leave prepares the agent for a graceful shutdown
+// Leave is used to prepare the agent for a graceful shutdown
 func (a *Agent) Leave() error {
 	if a.server != nil {
 		return a.server.Leave()
@@ -222,8 +222,8 @@ func (a *Agent) Leave() error {
 	}
 }
 
-// Shutdown is used to hard stop the agent. Should be preceeded
-// by a call to Leave to do it gracefully.
+// Shutdown is used to hard stop the agent. Should be
+// preceeded by a call to Leave to do it gracefully.
 func (a *Agent) Shutdown() error {
 	a.shutdownLock.Lock()
 	defer a.shutdownLock.Unlock()
@@ -256,8 +256,8 @@ func (a *Agent) Shutdown() error {
 	return err
 }
 
-// ShutdownCh returns a channel that can be selected to wait
-// for the agent to perform a shutdown.
+// ShutdownCh is used to return a channel that can be
+// selected to wait for the agent to perform a shutdown.
 func (a *Agent) ShutdownCh() <-chan struct{} {
 	return a.shutdownCh
 }
@@ -300,7 +300,7 @@ func (a *Agent) ForceLeave(node string) (err error) {
 	return err
 }
 
-// Used to retrieve the LAN members
+// LANMembers is used to retrieve the LAN members
 func (a *Agent) LANMembers() []serf.Member {
 	if a.server != nil {
 		return a.server.LANMembers()
@@ -309,7 +309,7 @@ func (a *Agent) LANMembers() []serf.Member {
 	}
 }
 
-// Used to retrieve the WAN members
+// WANMembers is used to retrieve the WAN members
 func (a *Agent) WANMembers() []serf.Member {
 	if a.server != nil {
 		return a.server.WANMembers()
@@ -325,12 +325,12 @@ func (a *Agent) StartSync() {
 	go a.state.antiEntropy(a.shutdownCh)
 }
 
-// PauseSync is called to pause anti-entropy while bulk changes are make
+// PauseSync is used to pause anti-entropy while bulk changes are make
 func (a *Agent) PauseSync() {
 	a.state.Pause()
 }
 
-// ResumeSync is called to to unpause anti-entropy after bulk changes are make
+// ResumeSync is used to unpause anti-entropy after bulk changes are make
 func (a *Agent) ResumeSync() {
 	a.state.Resume()
 }
