@@ -40,7 +40,7 @@ or remote datacenters.
 
 * Datacenter - A datacenter seems obvious, but there are subtle details such as multiple
 availability zones in EC2. We define a datacenter to be a networking environment that is
-private, low latency, and high badwidth. This excludes communication that would traverse
+private, low latency, and high bandwidth. This excludes communication that would traverse
 the public internet.
 
 * Consensus - When used in our documentation we use consensus to mean agreement upon
