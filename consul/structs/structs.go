@@ -38,6 +38,29 @@ type BlockingQuery struct {
 	MaxQueryTime time.Duration
 }
 
+// QueryOptions is used to specify various flags for read queries
+type QueryOptions struct {
+	// If set, any follower can service the request. Results
+	// may be arbitrarily stale.
+	AllowStale bool
+
+	// If set, the leader must verify leadership prior to
+	// servicing the request. Prevents a stale read.
+	RequireConsistent bool
+}
+
+// QueryMeta allows a query response to include potentially
+// useful metadata about a query
+type QueryMeta struct {
+	// If AllowStale is used, this is time elapsed since
+	// last contact between the follower and leader. This
+	// can be used to gauge staleness.
+	LastContact time.Duration
+
+	// Used to indicate if there is a known leader node
+	KnownLeader bool
+}
+
 // RegisterRequest is used for the Catalog.Register endpoint
 // to register a node as providing a service. If no service
 // is provided, the node is registered.
@@ -63,6 +86,7 @@ type DeregisterRequest struct {
 type DCSpecificRequest struct {
 	Datacenter string
 	BlockingQuery
+	QueryOptions
 }
 
 // ServiceSpecificRequest is used to query about a specific node
@@ -72,6 +96,7 @@ type ServiceSpecificRequest struct {
 	ServiceTag  string
 	TagFilter   bool // Controls tag filtering
 	BlockingQuery
+	QueryOptions
 }
 
 // NodeSpecificRequest is used to request the information about a single node
@@ -79,6 +104,7 @@ type NodeSpecificRequest struct {
 	Datacenter string
 	Node       string
 	BlockingQuery
+	QueryOptions
 }
 
 // ChecksInStateRequest is used to query for nodes in a state
@@ -86,6 +112,7 @@ type ChecksInStateRequest struct {
 	Datacenter string
 	State      string
 	BlockingQuery
+	QueryOptions
 }
 
 // Used to return information about a node
@@ -146,31 +173,37 @@ type CheckServiceNodes []CheckServiceNode
 type IndexedNodes struct {
 	Index uint64
 	Nodes Nodes
+	QueryMeta
 }
 
 type IndexedServices struct {
 	Index    uint64
 	Services Services
+	QueryMeta
 }
 
 type IndexedServiceNodes struct {
 	Index        uint64
 	ServiceNodes ServiceNodes
+	QueryMeta
 }
 
 type IndexedNodeServices struct {
 	Index        uint64
 	NodeServices *NodeServices
+	QueryMeta
 }
 
 type IndexedHealthChecks struct {
 	Index        uint64
 	HealthChecks HealthChecks
+	QueryMeta
 }
 
 type IndexedCheckServiceNodes struct {
 	Index uint64
 	Nodes CheckServiceNodes
+	QueryMeta
 }
 
 // DirEntry is used to represent a directory entry. This is
@@ -205,11 +238,13 @@ type KeyRequest struct {
 	Datacenter string
 	Key        string
 	BlockingQuery
+	QueryOptions
 }
 
 type IndexedDirEntries struct {
 	Index   uint64
 	Entries DirEntries
+	QueryMeta
 }
 
 // Decode is used to decode a MsgPack encoded object
