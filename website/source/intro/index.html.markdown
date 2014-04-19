@@ -6,7 +6,7 @@ sidebar_current: "what"
 
 # Introduction to Consul
 
-Welcome to the intro guide to Consul! This guide is a the best place to start
+Welcome to the intro guide to Consul! This guide is the best place to start
 with Consul. We cover what Consul is, what problems it can solve, how it compares
 to existing software, and a quick start for using Consul. If you are already familiar
 with the basics of Consul, the [documentation](/docs/index.html) provides more
