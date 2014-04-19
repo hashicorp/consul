@@ -53,6 +53,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 	return k.srv.blockingRPC(&args.BlockingQuery,
 		state.QueryTables("KVSGet"),
 		func() (uint64, error) {
+			k.srv.setQueryMeta(&reply.QueryMeta)
 			index, ent, err := state.KVSGet(args.Key)
 			if err != nil {
 				return 0, err
@@ -85,6 +86,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 	return k.srv.blockingRPC(&args.BlockingQuery,
 		state.QueryTables("KVSList"),
 		func() (uint64, error) {
+			k.srv.setQueryMeta(&reply.QueryMeta)
 			index, ent, err := state.KVSList(args.Key)
 			if err != nil {
 				return 0, err

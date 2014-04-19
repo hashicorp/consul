@@ -253,3 +253,14 @@ RUN_QUERY:
 	}
 	return err
 }
+
+// setQueryMeta is used to populate the QueryMeta data for an RPC call
+func (s *Server) setQueryMeta(m *structs.QueryMeta) {
+	if s.IsLeader() {
+		m.LastContact = 0
+		m.KnownLeader = true
+	} else {
+		m.LastContact = time.Now().Sub(s.raft.LastContact())
+		m.KnownLeader = (s.raft.Leader() != nil)
+	}
+}
