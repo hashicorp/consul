@@ -239,7 +239,7 @@ func TestCatalogListNodes_StaleRaad(t *testing.T) {
 	client1 := rpcClient(t, s1)
 	defer client1.Close()
 
-	dir2, s2 := testServer(t)
+	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 	client2 := rpcClient(t, s2)
@@ -278,8 +278,21 @@ func TestCatalogListNodes_StaleRaad(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(out.Nodes) != 3 {
-		t.Fatalf("bad: %v", out)
+	found := false
+	for _, n := range out.Nodes {
+		if n.Node == "foo" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("failed to find foo")
+	}
+
+	if out.QueryMeta.LastContact == 0 {
+		t.Fatalf("should have a last contact time")
+	}
+	if !out.QueryMeta.KnownLeader {
+		t.Fatalf("should have known leader")
 	}
 }
 
