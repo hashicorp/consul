@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/hashicorp/raft"
+	"github.com/hashicorp/raft-mdb"
 	"github.com/hashicorp/serf/serf"
 	"log"
 	"net"
@@ -62,7 +63,7 @@ type Server struct {
 	raft          *raft.Raft
 	raftLayer     *RaftLayer
 	raftPeers     raft.PeerStore
-	raftStore     *raft.MDBStore
+	raftStore     *raftmdb.MDBStore
 	raftTransport *raft.NetworkTransport
 
 	// reconcileCh is used to pass events from the serf handler
@@ -240,7 +241,7 @@ func (s *Server) setupRaft() error {
 	}
 
 	// Create the MDB store for logs and stable storage
-	store, err := raft.NewMDBStoreWithSize(path, raftDBSize)
+	store, err := raftmdb.NewMDBStoreWithSize(path, raftDBSize)
 	if err != nil {
 		return err
 	}
