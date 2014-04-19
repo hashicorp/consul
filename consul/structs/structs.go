@@ -28,6 +28,13 @@ const (
 	HealthCritical = "critical"
 )
 
+// RPCInfo is used to describe common information about query
+type RPCInfo interface {
+	RequestDatacenter() string
+	IsRead() bool
+	AllowStaleRead() bool
+}
+
 // BlockingQuery is used to block on a query and wait for a change.
 // Either both fields, or neither must be provided.
 type BlockingQuery struct {
@@ -47,6 +54,26 @@ type QueryOptions struct {
 	// If set, the leader must verify leadership prior to
 	// servicing the request. Prevents a stale read.
 	RequireConsistent bool
+}
+
+// QueryOption only applies to reads, so always true
+func (q QueryOptions) IsRead() bool {
+	return true
+}
+
+func (q QueryOptions) AllowStaleRead() bool {
+	return q.AllowStale
+}
+
+type WriteRequest struct{}
+
+// WriteRequest only applies to writes, always false
+func (w WriteRequest) IsRead() bool {
+	return false
+}
+
+func (w WriteRequest) AllowStaleRead() bool {
+	return false
 }
 
 // QueryMeta allows a query response to include potentially
@@ -70,6 +97,11 @@ type RegisterRequest struct {
 	Address    string
 	Service    *NodeService
 	Check      *HealthCheck
+	WriteRequest
+}
+
+func (r *RegisterRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // DeregisterRequest is used for the Catalog.Deregister endpoint
@@ -80,6 +112,11 @@ type DeregisterRequest struct {
 	Node       string
 	ServiceID  string
 	CheckID    string
+	WriteRequest
+}
+
+func (r *DeregisterRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // DCSpecificRequest is used to query about a specific DC
@@ -87,6 +124,10 @@ type DCSpecificRequest struct {
 	Datacenter string
 	BlockingQuery
 	QueryOptions
+}
+
+func (r *DCSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // ServiceSpecificRequest is used to query about a specific node
@@ -99,6 +140,10 @@ type ServiceSpecificRequest struct {
 	QueryOptions
 }
 
+func (r *ServiceSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
 // NodeSpecificRequest is used to request the information about a single node
 type NodeSpecificRequest struct {
 	Datacenter string
@@ -107,12 +152,20 @@ type NodeSpecificRequest struct {
 	QueryOptions
 }
 
+func (r *NodeSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
 // ChecksInStateRequest is used to query for nodes in a state
 type ChecksInStateRequest struct {
 	Datacenter string
 	State      string
 	BlockingQuery
 	QueryOptions
+}
+
+func (r *ChecksInStateRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // Used to return information about a node
@@ -231,6 +284,11 @@ type KVSRequest struct {
 	Datacenter string
 	Op         KVSOp    // Which operation are we performing
 	DirEnt     DirEntry // Which directory entry
+	WriteRequest
+}
+
+func (r *KVSRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // KeyRequest is used to request a key, or key prefix
@@ -239,6 +297,10 @@ type KeyRequest struct {
 	Key        string
 	BlockingQuery
 	QueryOptions
+}
+
+func (r *KeyRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 type IndexedDirEntries struct {
