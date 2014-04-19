@@ -264,3 +264,11 @@ func (s *Server) setQueryMeta(m *structs.QueryMeta) {
 		m.KnownLeader = (s.raft.Leader() != nil)
 	}
 }
+
+// consistentRead is used to ensure we do not perform a stale
+// read. This is done by verifying leadership before the read.
+func (s *Server) consistentRead() error {
+	defer metrics.MeasureSince([]string{"consul", "rpc", "consistentRead"}, time.Now())
+	future := s.raft.VerifyLeader()
+	return future.Error()
+}
