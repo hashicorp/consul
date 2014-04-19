@@ -1,4 +1,4 @@
-# Consul
+# Consul [![Build Status](https://travis-ci.org/hashicorp/consul.png)](https://travis-ci.org/hashicorp/consul)
 
 * Website: http://www.consul.io
 * IRC: `#consul` on Freenode
