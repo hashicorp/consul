@@ -142,6 +142,11 @@ func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, 
 		return true, err
 	}
 
+	// Check if we can allow a stale read
+	if info.IsRead() && info.AllowStaleRead() {
+		return false, nil
+	}
+
 	// Handle leader forwarding
 	if !s.IsLeader() {
 		err := s.forwardLeader(method, args, reply)
