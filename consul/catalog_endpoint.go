@@ -14,7 +14,7 @@ type Catalog struct {
 
 // Register is used register that a node is providing a given service.
 func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
-	if done, err := c.srv.forward("Catalog.Register", args.Datacenter, args, reply); done {
+	if done, err := c.srv.forward("Catalog.Register", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "catalog", "register"}, time.Now())
@@ -55,7 +55,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 // Deregister is used to remove a service registration for a given node.
 func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) error {
-	if done, err := c.srv.forward("Catalog.Deregister", args.Datacenter, args, reply); done {
+	if done, err := c.srv.forward("Catalog.Deregister", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "catalog", "deregister"}, time.Now())
@@ -91,7 +91,7 @@ func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
 
 // ListNodes is used to query the nodes in a DC
 func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.IndexedNodes) error {
-	if done, err := c.srv.forward("Catalog.ListNodes", args.Datacenter, args, reply); done {
+	if done, err := c.srv.forward("Catalog.ListNodes", args, args, reply); done {
 		return err
 	}
 
@@ -107,7 +107,7 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 
 // ListServices is used to query the services in a DC
 func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.IndexedServices) error {
-	if done, err := c.srv.forward("Catalog.ListServices", args.Datacenter, args, reply); done {
+	if done, err := c.srv.forward("Catalog.ListServices", args, args, reply); done {
 		return err
 	}
 
@@ -123,7 +123,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 
 // ServiceNodes returns all the nodes registered as part of a service
 func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceNodes) error {
-	if done, err := c.srv.forward("Catalog.ServiceNodes", args.Datacenter, args, reply); done {
+	if done, err := c.srv.forward("Catalog.ServiceNodes", args, args, reply); done {
 		return err
 	}
 
@@ -160,7 +160,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 // NodeServices returns all the services registered as part of a node
 func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs.IndexedNodeServices) error {
-	if done, err := c.srv.forward("Catalog.NodeServices", args.Datacenter, args, reply); done {
+	if done, err := c.srv.forward("Catalog.NodeServices", args, args, reply); done {
 		return err
 	}
 

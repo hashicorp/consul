@@ -134,8 +134,9 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 
 // forward is used to forward to a remote DC or to forward to the local leader
 // Returns a bool of if forwarding was performed, as well as any error
-func (s *Server) forward(method, dc string, args interface{}, reply interface{}) (bool, error) {
+func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
 	// Handle DC forwarding
+	dc := info.RequestDatacenter()
 	if dc != s.config.Datacenter {
 		err := s.forwardDC(method, dc, args, reply)
 		return true, err

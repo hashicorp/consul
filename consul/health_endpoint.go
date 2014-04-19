@@ -14,7 +14,7 @@ type Health struct {
 // ChecksInState is used to get all the checks in a given state
 func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 	reply *structs.IndexedHealthChecks) error {
-	if done, err := h.srv.forward("Health.ChecksInState", args.Datacenter, args, reply); done {
+	if done, err := h.srv.forward("Health.ChecksInState", args, args, reply); done {
 		return err
 	}
 
@@ -31,7 +31,7 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 // NodeChecks is used to get all the checks for a node
 func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedHealthChecks) error {
-	if done, err := h.srv.forward("Health.NodeChecks", args.Datacenter, args, reply); done {
+	if done, err := h.srv.forward("Health.NodeChecks", args, args, reply); done {
 		return err
 	}
 
@@ -54,7 +54,7 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 	}
 
 	// Potentially forward
-	if done, err := h.srv.forward("Health.ServiceChecks", args.Datacenter, args, reply); done {
+	if done, err := h.srv.forward("Health.ServiceChecks", args, args, reply); done {
 		return err
 	}
 
@@ -70,7 +70,7 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 
 // ServiceNodes returns all the nodes registered as part of a service including health info
 func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedCheckServiceNodes) error {
-	if done, err := h.srv.forward("Health.ServiceNodes", args.Datacenter, args, reply); done {
+	if done, err := h.srv.forward("Health.ServiceNodes", args, args, reply); done {
 		return err
 	}
 

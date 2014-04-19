@@ -15,7 +15,7 @@ type KVS struct {
 // Apply is used to apply a KVS request to the data store. This should
 // only be used for operations that modify the data
 func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
-	if done, err := k.srv.forward("KVS.Apply", args.Datacenter, args, reply); done {
+	if done, err := k.srv.forward("KVS.Apply", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "kvs", "apply"}, time.Now())
@@ -44,7 +44,7 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 
 // Get is used to lookup a single key
 func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) error {
-	if done, err := k.srv.forward("KVS.Get", args.Datacenter, args, reply); done {
+	if done, err := k.srv.forward("KVS.Get", args, args, reply); done {
 		return err
 	}
 
@@ -76,7 +76,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 
 // List is used to list all keys with a given prefix
 func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) error {
-	if done, err := k.srv.forward("KVS.List", args.Datacenter, args, reply); done {
+	if done, err := k.srv.forward("KVS.List", args, args, reply); done {
 		return err
 	}
 
