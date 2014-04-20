@@ -25,10 +25,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "shell", inline: $script
 
   config.vm.define "n1" do |n1|
+      n1.vm.hostname = "n1"
       n1.vm.network "private_network", ip: "172.20.20.10"
   end
 
   config.vm.define "n2" do |n2|
+      n2.vm.hostname = "n2"
       n2.vm.network "private_network", ip: "172.20.20.11"
   end
 end
