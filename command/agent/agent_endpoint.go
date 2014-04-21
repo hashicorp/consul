@@ -55,7 +55,11 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 
 func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args CheckDefinition
-	if err := decodeBody(req, &args); err != nil {
+	// Fixup the type decode of TTL or Interval
+	decodeCB := func(raw interface{}) error {
+		return FixupCheckType(raw)
+	}
+	if err := decodeBody(req, &args, decodeCB); err != nil {
 		resp.WriteHeader(400)
 		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
 		return nil, nil
@@ -108,7 +112,19 @@ func (s *HTTPServer) AgentCheckFail(resp http.ResponseWriter, req *http.Request)
 
 func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args ServiceDefinition
-	if err := decodeBody(req, &args); err != nil {
+	// Fixup the type decode of TTL or Interval if a check if provided
+	decodeCB := func(raw interface{}) error {
+		rawMap, ok := raw.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		check, ok := rawMap["check"]
+		if !ok {
+			return nil
+		}
+		return FixupCheckType(check)
+	}
+	if err := decodeBody(req, &args, decodeCB); err != nil {
 		resp.WriteHeader(400)
 		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
 		return nil, nil

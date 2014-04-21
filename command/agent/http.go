@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/mitchellh/mapstructure"
 	"io"
 	"log"
 	"net"
@@ -151,9 +152,20 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 }
 
 // decodeBody is used to decode a JSON request body
-func decodeBody(req *http.Request, out interface{}) error {
+func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) error {
+	var raw interface{}
 	dec := json.NewDecoder(req.Body)
-	return dec.Decode(out)
+	if err := dec.Decode(&raw); err != nil {
+		return err
+	}
+
+	// Invoke the callback prior to decode
+	if cb != nil {
+		if err := cb(raw); err != nil {
+			return err
+		}
+	}
+	return mapstructure.Decode(raw, out)
 }
 
 // setIndex is used to set the index response header

@@ -9,7 +9,7 @@ import (
 
 func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.RegisterRequest
-	if err := decodeBody(req, &args); err != nil {
+	if err := decodeBody(req, &args, nil); err != nil {
 		resp.WriteHeader(400)
 		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
 		return nil, nil
@@ -30,7 +30,7 @@ func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request
 
 func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DeregisterRequest
-	if err := decodeBody(req, &args); err != nil {
+	if err := decodeBody(req, &args, nil); err != nil {
 		resp.WriteHeader(400)
 		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
 		return nil, nil
