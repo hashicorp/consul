@@ -131,6 +131,39 @@ only for data in their datacenter. When a request is received for a remote datac
 the request is forwarded to the correct leader. This design allows for lower latency
 transactions and higher availability without sacrificing consistency.
 
+## Consistency Modes
+
+Although all writes to the replicated log go through Raft, reads are more
+flexible. To support various tradeoffs that developers may want, Consul
+supports 3 different consistency modes for reads.
+
+The three read modes are:
+
+* default - Raft makes use of leader leasing, providing a time window
+  in which the leader assumes it's role is stable. However, if a leader
+  is partitioned from the remaining peers, a new leader may be elected
+  while the old leader is holding the lease. This means there are 2 leader
+  nodes. There is no risk of a split-brain since the old leader will be
+  unable to commit new logs. However, if the old leader services any reads
+  the values are potentially stale. The default consistency mode relies only
+  on leader leasing, exposing clients to potentially stale values. We make
+  this trade off because reads are fast, usually strongly consistent, and
+  only stale in a hard to trigger situation. The time window of stale reads
+  is also bounded, since the leader will step down due to the partition.
+
+* consistent - This mode is strongly consistent without caveats. It requires
+  that a leader verify with a quorum of peers that it is still leader. This
+  introduces an additional round-trip to all server nodes. The trade off is
+  always consistent reads, but increased latency due to an extra round trip.
+
+* stale - This mode allows any server to service the read, regardless of if
+  it is the leader. This means reads can be arbitrarily stale, but are generally
+  within 50 milliseconds of the leader. The trade off is very fast and scalable
+  reads but values will be stale. This mode allows reads without a leader, meaning
+  a cluster that is unavailable will still be able to respond.
+
+For more documentation about using these various modes, see the [HTTP API](/docs/agent/http.html).
+
 ## Deployment Table
 
 Below is a table that shows for the number of servers how large the

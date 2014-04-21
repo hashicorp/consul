@@ -14,34 +14,36 @@ type Health struct {
 // ChecksInState is used to get all the checks in a given state
 func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 	reply *structs.IndexedHealthChecks) error {
-	if done, err := h.srv.forward("Health.ChecksInState", args.Datacenter, args, reply); done {
+	if done, err := h.srv.forward("Health.ChecksInState", args, args, reply); done {
 		return err
 	}
 
 	// Get the state specific checks
 	state := h.srv.fsm.State()
-	return h.srv.blockingRPC(&args.BlockingQuery,
+	return h.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
 		state.QueryTables("ChecksInState"),
-		func() (uint64, error) {
+		func() error {
 			reply.Index, reply.HealthChecks = state.ChecksInState(args.State)
-			return reply.Index, nil
+			return nil
 		})
 }
 
 // NodeChecks is used to get all the checks for a node
 func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedHealthChecks) error {
-	if done, err := h.srv.forward("Health.NodeChecks", args.Datacenter, args, reply); done {
+	if done, err := h.srv.forward("Health.NodeChecks", args, args, reply); done {
 		return err
 	}
 
 	// Get the node checks
 	state := h.srv.fsm.State()
-	return h.srv.blockingRPC(&args.BlockingQuery,
+	return h.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
 		state.QueryTables("NodeChecks"),
-		func() (uint64, error) {
+		func() error {
 			reply.Index, reply.HealthChecks = state.NodeChecks(args.Node)
-			return reply.Index, nil
+			return nil
 		})
 }
 
@@ -54,23 +56,24 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 	}
 
 	// Potentially forward
-	if done, err := h.srv.forward("Health.ServiceChecks", args.Datacenter, args, reply); done {
+	if done, err := h.srv.forward("Health.ServiceChecks", args, args, reply); done {
 		return err
 	}
 
 	// Get the service checks
 	state := h.srv.fsm.State()
-	return h.srv.blockingRPC(&args.BlockingQuery,
+	return h.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
 		state.QueryTables("ServiceChecks"),
-		func() (uint64, error) {
+		func() error {
 			reply.Index, reply.HealthChecks = state.ServiceChecks(args.ServiceName)
-			return reply.Index, nil
+			return nil
 		})
 }
 
 // ServiceNodes returns all the nodes registered as part of a service including health info
 func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedCheckServiceNodes) error {
-	if done, err := h.srv.forward("Health.ServiceNodes", args.Datacenter, args, reply); done {
+	if done, err := h.srv.forward("Health.ServiceNodes", args, args, reply); done {
 		return err
 	}
 
@@ -81,15 +84,16 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 
 	// Get the nodes
 	state := h.srv.fsm.State()
-	err := h.srv.blockingRPC(&args.BlockingQuery,
+	err := h.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
 		state.QueryTables("CheckServiceNodes"),
-		func() (uint64, error) {
+		func() error {
 			if args.TagFilter {
 				reply.Index, reply.Nodes = state.CheckServiceTagNodes(args.ServiceName, args.ServiceTag)
 			} else {
 				reply.Index, reply.Nodes = state.CheckServiceNodes(args.ServiceName)
 			}
-			return reply.Index, nil
+			return nil
 		})
 
 	// Provide some metrics

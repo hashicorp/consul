@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -23,14 +24,12 @@ func TestHealthChecksInState(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, obj, err := srv.HealthChecksInState(nil, req)
+	resp := httptest.NewRecorder()
+	obj, err := srv.HealthChecksInState(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if idx == 0 {
-		t.Fatalf("bad: %v", idx)
-	}
+	assertIndex(t, resp)
 
 	// Should be 1 health check for the server
 	nodes := obj.(structs.HealthChecks)
@@ -54,14 +53,12 @@ func TestHealthNodeChecks(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, obj, err := srv.HealthNodeChecks(nil, req)
+	resp := httptest.NewRecorder()
+	obj, err := srv.HealthNodeChecks(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if idx == 0 {
-		t.Fatalf("bad: %v", idx)
-	}
+	assertIndex(t, resp)
 
 	// Should be 1 health check for the server
 	nodes := obj.(structs.HealthChecks)
@@ -100,14 +97,12 @@ func TestHealthServiceChecks(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, obj, err := srv.HealthServiceChecks(nil, req)
+	resp := httptest.NewRecorder()
+	obj, err := srv.HealthServiceChecks(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if idx == 0 {
-		t.Fatalf("bad: %v", idx)
-	}
+	assertIndex(t, resp)
 
 	// Should be 1 health check for consul
 	nodes := obj.(structs.HealthChecks)
@@ -130,14 +125,12 @@ func TestHealthServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, obj, err := srv.HealthServiceNodes(nil, req)
+	resp := httptest.NewRecorder()
+	obj, err := srv.HealthServiceNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if idx == 0 {
-		t.Fatalf("bad: %v", idx)
-	}
+	assertIndex(t, resp)
 
 	// Should be 1 health check for consul
 	nodes := obj.(structs.CheckServiceNodes)

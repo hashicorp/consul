@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -115,14 +116,14 @@ func TestCatalogNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, obj, err := srv.CatalogNodes(nil, req)
+	resp := httptest.NewRecorder()
+	obj, err := srv.CatalogNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if idx == 0 {
-		t.Fatalf("bad: %v", idx)
-	}
+	// Verify an index is set
+	assertIndex(t, resp)
 
 	nodes := obj.(structs.Nodes)
 	if len(nodes) != 2 {
@@ -170,7 +171,8 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, obj, err := srv.CatalogNodes(nil, req)
+	resp := httptest.NewRecorder()
+	obj, err := srv.CatalogNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -180,7 +182,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 		t.Fatalf("too fast")
 	}
 
-	if idx <= out.Index {
+	if idx := getIndex(t, resp); idx <= out.Index {
 		t.Fatalf("bad: %v", idx)
 	}
 
@@ -218,14 +220,13 @@ func TestCatalogServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, obj, err := srv.CatalogServices(nil, req)
+	resp := httptest.NewRecorder()
+	obj, err := srv.CatalogServices(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if idx == 0 {
-		t.Fatalf("bad: %v", idx)
-	}
+	assertIndex(t, resp)
 
 	services := obj.(structs.Services)
 	if len(services) != 2 {
@@ -262,14 +263,13 @@ func TestCatalogServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, obj, err := srv.CatalogServiceNodes(nil, req)
+	resp := httptest.NewRecorder()
+	obj, err := srv.CatalogServiceNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if idx == 0 {
-		t.Fatalf("bad: %v", idx)
-	}
+	assertIndex(t, resp)
 
 	nodes := obj.(structs.ServiceNodes)
 	if len(nodes) != 1 {
@@ -306,14 +306,12 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, obj, err := srv.CatalogNodeServices(nil, req)
+	resp := httptest.NewRecorder()
+	obj, err := srv.CatalogNodeServices(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	if idx == 0 {
-		t.Fatalf("bad: %v", idx)
-	}
+	assertIndex(t, resp)
 
 	services := obj.(*structs.NodeServices)
 	if len(services.Services) != 1 {

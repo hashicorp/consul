@@ -15,7 +15,7 @@ type KVS struct {
 // Apply is used to apply a KVS request to the data store. This should
 // only be used for operations that modify the data
 func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
-	if done, err := k.srv.forward("KVS.Apply", args.Datacenter, args, reply); done {
+	if done, err := k.srv.forward("KVS.Apply", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "kvs", "apply"}, time.Now())
@@ -44,18 +44,19 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 
 // Get is used to lookup a single key
 func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) error {
-	if done, err := k.srv.forward("KVS.Get", args.Datacenter, args, reply); done {
+	if done, err := k.srv.forward("KVS.Get", args, args, reply); done {
 		return err
 	}
 
 	// Get the local state
 	state := k.srv.fsm.State()
-	return k.srv.blockingRPC(&args.BlockingQuery,
+	return k.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
 		state.QueryTables("KVSGet"),
-		func() (uint64, error) {
+		func() error {
 			index, ent, err := state.KVSGet(args.Key)
 			if err != nil {
-				return 0, err
+				return err
 			}
 			if ent == nil {
 				// Must provide non-zero index to prevent blocking
@@ -70,24 +71,25 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 				reply.Index = ent.ModifyIndex
 				reply.Entries = structs.DirEntries{ent}
 			}
-			return reply.Index, nil
+			return nil
 		})
 }
 
 // List is used to list all keys with a given prefix
 func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) error {
-	if done, err := k.srv.forward("KVS.List", args.Datacenter, args, reply); done {
+	if done, err := k.srv.forward("KVS.List", args, args, reply); done {
 		return err
 	}
 
 	// Get the local state
 	state := k.srv.fsm.State()
-	return k.srv.blockingRPC(&args.BlockingQuery,
+	return k.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
 		state.QueryTables("KVSList"),
-		func() (uint64, error) {
+		func() error {
 			index, ent, err := state.KVSList(args.Key)
 			if err != nil {
-				return 0, err
+				return err
 			}
 			if len(ent) == 0 {
 				// Must provide non-zero index to prevent blocking
@@ -110,6 +112,6 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 				reply.Index = maxIndex
 				reply.Entries = ent
 			}
-			return reply.Index, nil
+			return nil
 		})
 }

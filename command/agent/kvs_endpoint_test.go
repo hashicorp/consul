@@ -57,11 +57,7 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-
-		header := resp.Header().Get("X-Consul-Index")
-		if header == "" {
-			t.Fatalf("Bad: %v", header)
-		}
+		assertIndex(t, resp)
 
 		res, ok := obj.(structs.DirEntries)
 		if !ok {
@@ -138,11 +134,7 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
-
-		header := resp.Header().Get("X-Consul-Index")
-		if header == "" {
-			t.Fatalf("Bad: %v", header)
-		}
+		assertIndex(t, resp)
 
 		res, ok := obj.(structs.DirEntries)
 		if !ok {

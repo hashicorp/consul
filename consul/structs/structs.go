@@ -28,14 +28,64 @@ const (
 	HealthCritical = "critical"
 )
 
-// BlockingQuery is used to block on a query and wait for a change.
-// Either both fields, or neither must be provided.
-type BlockingQuery struct {
-	// If set, wait until query exceeds given index
+// RPCInfo is used to describe common information about query
+type RPCInfo interface {
+	RequestDatacenter() string
+	IsRead() bool
+	AllowStaleRead() bool
+}
+
+// QueryOptions is used to specify various flags for read queries
+type QueryOptions struct {
+	// If set, wait until query exceeds given index. Must be provided
+	// with MaxQueryTime.
 	MinQueryIndex uint64
 
-	// Provided with MinQueryIndex to wait for change
+	// Provided with MinQueryIndex to wait for change.
 	MaxQueryTime time.Duration
+
+	// If set, any follower can service the request. Results
+	// may be arbitrarily stale.
+	AllowStale bool
+
+	// If set, the leader must verify leadership prior to
+	// servicing the request. Prevents a stale read.
+	RequireConsistent bool
+}
+
+// QueryOption only applies to reads, so always true
+func (q QueryOptions) IsRead() bool {
+	return true
+}
+
+func (q QueryOptions) AllowStaleRead() bool {
+	return q.AllowStale
+}
+
+type WriteRequest struct{}
+
+// WriteRequest only applies to writes, always false
+func (w WriteRequest) IsRead() bool {
+	return false
+}
+
+func (w WriteRequest) AllowStaleRead() bool {
+	return false
+}
+
+// QueryMeta allows a query response to include potentially
+// useful metadata about a query
+type QueryMeta struct {
+	// This is the index associated with the read
+	Index uint64
+
+	// If AllowStale is used, this is time elapsed since
+	// last contact between the follower and leader. This
+	// can be used to gauge staleness.
+	LastContact time.Duration
+
+	// Used to indicate if there is a known leader node
+	KnownLeader bool
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint
@@ -47,6 +97,11 @@ type RegisterRequest struct {
 	Address    string
 	Service    *NodeService
 	Check      *HealthCheck
+	WriteRequest
+}
+
+func (r *RegisterRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // DeregisterRequest is used for the Catalog.Deregister endpoint
@@ -57,12 +112,21 @@ type DeregisterRequest struct {
 	Node       string
 	ServiceID  string
 	CheckID    string
+	WriteRequest
+}
+
+func (r *DeregisterRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
 	Datacenter string
-	BlockingQuery
+	QueryOptions
+}
+
+func (r *DCSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // ServiceSpecificRequest is used to query about a specific node
@@ -71,21 +135,33 @@ type ServiceSpecificRequest struct {
 	ServiceName string
 	ServiceTag  string
 	TagFilter   bool // Controls tag filtering
-	BlockingQuery
+	QueryOptions
+}
+
+func (r *ServiceSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // NodeSpecificRequest is used to request the information about a single node
 type NodeSpecificRequest struct {
 	Datacenter string
 	Node       string
-	BlockingQuery
+	QueryOptions
+}
+
+func (r *NodeSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // ChecksInStateRequest is used to query for nodes in a state
 type ChecksInStateRequest struct {
 	Datacenter string
 	State      string
-	BlockingQuery
+	QueryOptions
+}
+
+func (r *ChecksInStateRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // Used to return information about a node
@@ -144,33 +220,33 @@ type CheckServiceNode struct {
 type CheckServiceNodes []CheckServiceNode
 
 type IndexedNodes struct {
-	Index uint64
 	Nodes Nodes
+	QueryMeta
 }
 
 type IndexedServices struct {
-	Index    uint64
 	Services Services
+	QueryMeta
 }
 
 type IndexedServiceNodes struct {
-	Index        uint64
 	ServiceNodes ServiceNodes
+	QueryMeta
 }
 
 type IndexedNodeServices struct {
-	Index        uint64
 	NodeServices *NodeServices
+	QueryMeta
 }
 
 type IndexedHealthChecks struct {
-	Index        uint64
 	HealthChecks HealthChecks
+	QueryMeta
 }
 
 type IndexedCheckServiceNodes struct {
-	Index uint64
 	Nodes CheckServiceNodes
+	QueryMeta
 }
 
 // DirEntry is used to represent a directory entry. This is
@@ -198,18 +274,27 @@ type KVSRequest struct {
 	Datacenter string
 	Op         KVSOp    // Which operation are we performing
 	DirEnt     DirEntry // Which directory entry
+	WriteRequest
+}
+
+func (r *KVSRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // KeyRequest is used to request a key, or key prefix
 type KeyRequest struct {
 	Datacenter string
 	Key        string
-	BlockingQuery
+	QueryOptions
+}
+
+func (r *KeyRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 type IndexedDirEntries struct {
-	Index   uint64
 	Entries DirEntries
+	QueryMeta
 }
 
 // Decode is used to decode a MsgPack encoded object

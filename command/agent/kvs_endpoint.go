@@ -12,7 +12,7 @@ import (
 func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.KeyRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
 
@@ -47,10 +47,10 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 
 	// Make the RPC
 	var out structs.IndexedDirEntries
+	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC(method, &args, &out); err != nil {
 		return nil, err
 	}
-	setIndex(resp, out.Index)
 
 	// Check if we get a not found
 	if len(out.Entries) == 0 {

@@ -14,7 +14,7 @@ type Catalog struct {
 
 // Register is used register that a node is providing a given service.
 func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
-	if done, err := c.srv.forward("Catalog.Register", args.Datacenter, args, reply); done {
+	if done, err := c.srv.forward("Catalog.Register", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "catalog", "register"}, time.Now())
@@ -55,7 +55,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 
 // Deregister is used to remove a service registration for a given node.
 func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) error {
-	if done, err := c.srv.forward("Catalog.Deregister", args.Datacenter, args, reply); done {
+	if done, err := c.srv.forward("Catalog.Deregister", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "catalog", "deregister"}, time.Now())
@@ -91,39 +91,41 @@ func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
 
 // ListNodes is used to query the nodes in a DC
 func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.IndexedNodes) error {
-	if done, err := c.srv.forward("Catalog.ListNodes", args.Datacenter, args, reply); done {
+	if done, err := c.srv.forward("Catalog.ListNodes", args, args, reply); done {
 		return err
 	}
 
 	// Get the local state
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.BlockingQuery,
+	return c.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
 		state.QueryTables("Nodes"),
-		func() (uint64, error) {
+		func() error {
 			reply.Index, reply.Nodes = state.Nodes()
-			return reply.Index, nil
+			return nil
 		})
 }
 
 // ListServices is used to query the services in a DC
 func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.IndexedServices) error {
-	if done, err := c.srv.forward("Catalog.ListServices", args.Datacenter, args, reply); done {
+	if done, err := c.srv.forward("Catalog.ListServices", args, args, reply); done {
 		return err
 	}
 
 	// Get the current nodes
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.BlockingQuery,
+	return c.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
 		state.QueryTables("Services"),
-		func() (uint64, error) {
+		func() error {
 			reply.Index, reply.Services = state.Services()
-			return reply.Index, nil
+			return nil
 		})
 }
 
 // ServiceNodes returns all the nodes registered as part of a service
 func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceNodes) error {
-	if done, err := c.srv.forward("Catalog.ServiceNodes", args.Datacenter, args, reply); done {
+	if done, err := c.srv.forward("Catalog.ServiceNodes", args, args, reply); done {
 		return err
 	}
 
@@ -134,15 +136,16 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 	// Get the nodes
 	state := c.srv.fsm.State()
-	err := c.srv.blockingRPC(&args.BlockingQuery,
+	err := c.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
 		state.QueryTables("ServiceNodes"),
-		func() (uint64, error) {
+		func() error {
 			if args.TagFilter {
 				reply.Index, reply.ServiceNodes = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
 			} else {
 				reply.Index, reply.ServiceNodes = state.ServiceNodes(args.ServiceName)
 			}
-			return reply.Index, nil
+			return nil
 		})
 
 	// Provide some metrics
@@ -160,7 +163,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 // NodeServices returns all the services registered as part of a node
 func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs.IndexedNodeServices) error {
-	if done, err := c.srv.forward("Catalog.NodeServices", args.Datacenter, args, reply); done {
+	if done, err := c.srv.forward("Catalog.NodeServices", args, args, reply); done {
 		return err
 	}
 
@@ -171,10 +174,11 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 
 	// Get the node services
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.BlockingQuery,
+	return c.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
 		state.QueryTables("NodeServices"),
-		func() (uint64, error) {
+		func() error {
 			reply.Index, reply.NodeServices = state.NodeServices(args.Node)
-			return reply.Index, nil
+			return nil
 		})
 }

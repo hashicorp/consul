@@ -134,11 +134,17 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 
 // forward is used to forward to a remote DC or to forward to the local leader
 // Returns a bool of if forwarding was performed, as well as any error
-func (s *Server) forward(method, dc string, args interface{}, reply interface{}) (bool, error) {
+func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, reply interface{}) (bool, error) {
 	// Handle DC forwarding
+	dc := info.RequestDatacenter()
 	if dc != s.config.Datacenter {
 		err := s.forwardDC(method, dc, args, reply)
 		return true, err
+	}
+
+	// Check if we can allow a stale read
+	if info.IsRead() && info.AllowStaleRead() {
+		return false, nil
 	}
 
 	// Handle leader forwarding
@@ -197,7 +203,8 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 
 // blockingRPC is used for queries that need to wait for a
 // minimum index. This is used to block and wait for changes.
-func (s *Server) blockingRPC(b *structs.BlockingQuery, tables MDBTables, run func() (uint64, error)) error {
+func (s *Server) blockingRPC(b *structs.QueryOptions, m *structs.QueryMeta,
+	tables MDBTables, run func() error) error {
 	var timeout <-chan time.Time
 	var notifyCh chan struct{}
 
@@ -233,12 +240,22 @@ SETUP_NOTIFY:
 		s.fsm.State().Watch(tables, notifyCh)
 	}
 
-	// Run the query function
 RUN_QUERY:
-	idx, err := run()
+	// Update the query meta data
+	s.setQueryMeta(m)
+
+	// Check if query must be consistent
+	if b.RequireConsistent {
+		if err := s.consistentRead(); err != nil {
+			return err
+		}
+	}
+
+	// Run the query function
+	err := run()
 
 	// Check for minimum query time
-	if err == nil && idx <= b.MinQueryIndex {
+	if err == nil && m.Index > 0 && m.Index <= b.MinQueryIndex {
 		select {
 		case <-notifyCh:
 			goto SETUP_NOTIFY
@@ -246,4 +263,23 @@ RUN_QUERY:
 		}
 	}
 	return err
+}
+
+// setQueryMeta is used to populate the QueryMeta data for an RPC call
+func (s *Server) setQueryMeta(m *structs.QueryMeta) {
+	if s.IsLeader() {
+		m.LastContact = 0
+		m.KnownLeader = true
+	} else {
+		m.LastContact = time.Now().Sub(s.raft.LastContact())
+		m.KnownLeader = (s.raft.Leader() != nil)
+	}
+}
+
+// consistentRead is used to ensure we do not perform a stale
+// read. This is done by verifying leadership before the read.
+func (s *Server) consistentRead() error {
+	defer metrics.MeasureSince([]string{"consul", "rpc", "consistentRead"}, time.Now())
+	future := s.raft.VerifyLeader()
+	return future.Error()
 }
