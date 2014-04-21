@@ -12,6 +12,12 @@ import (
 	"time"
 )
 
+const (
+	// Do not allow for a interval below this value.
+	// Otherwise we risk fork bombing a system.
+	MinInterval = time.Second
+)
+
 // CheckType is used to create either the CheckMonitor
 // or the CheckTTL. Only one of TTL or Script/Interval
 // needs to be provided

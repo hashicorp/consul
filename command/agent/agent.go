@@ -417,6 +417,11 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType) error {
 			if _, ok := a.checkMonitors[check.CheckID]; ok {
 				return fmt.Errorf("CheckID is already registered")
 			}
+			if chkType.Interval < MinInterval {
+				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
+					check.CheckID, MinInterval))
+				chkType.Interval = MinInterval
+			}
 
 			monitor := &CheckMonitor{
 				Notify:   &a.state,

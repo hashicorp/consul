@@ -205,6 +205,39 @@ func TestAgent_AddCheck(t *testing.T) {
 	}
 }
 
+func TestAgent_AddCheck_MinInterval(t *testing.T) {
+	dir, agent := makeAgent(t, nextConfig())
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "mem",
+		Name:    "memory util",
+		Status:  structs.HealthUnknown,
+	}
+	chk := &CheckType{
+		Script:   "exit 0",
+		Interval: time.Microsecond,
+	}
+	err := agent.AddCheck(health, chk)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we have a check mapping
+	if _, ok := agent.state.Checks()["mem"]; !ok {
+		t.Fatalf("missing mem check")
+	}
+
+	// Ensure a TTL is setup
+	if mon, ok := agent.checkMonitors["mem"]; !ok {
+		t.Fatalf("missing mem monitor")
+	} else if mon.Interval != MinInterval {
+		t.Fatalf("bad mem monitor interval")
+	}
+}
+
 func TestAgent_RemoveCheck(t *testing.T) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
