@@ -98,9 +98,9 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 	// Get the local state
 	state := c.srv.fsm.State()
 	return c.srv.blockingRPC(&args.BlockingQuery,
+		&reply.QueryMeta,
 		state.QueryTables("Nodes"),
 		func() (uint64, error) {
-			c.srv.setQueryMeta(&reply.QueryMeta)
 			reply.Index, reply.Nodes = state.Nodes()
 			return reply.Index, nil
 		})
@@ -115,9 +115,9 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 	// Get the current nodes
 	state := c.srv.fsm.State()
 	return c.srv.blockingRPC(&args.BlockingQuery,
+		&reply.QueryMeta,
 		state.QueryTables("Services"),
 		func() (uint64, error) {
-			c.srv.setQueryMeta(&reply.QueryMeta)
 			reply.Index, reply.Services = state.Services()
 			return reply.Index, nil
 		})
@@ -137,9 +137,9 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	// Get the nodes
 	state := c.srv.fsm.State()
 	err := c.srv.blockingRPC(&args.BlockingQuery,
+		&reply.QueryMeta,
 		state.QueryTables("ServiceNodes"),
 		func() (uint64, error) {
-			c.srv.setQueryMeta(&reply.QueryMeta)
 			if args.TagFilter {
 				reply.Index, reply.ServiceNodes = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
 			} else {
@@ -175,9 +175,9 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 	// Get the node services
 	state := c.srv.fsm.State()
 	return c.srv.blockingRPC(&args.BlockingQuery,
+		&reply.QueryMeta,
 		state.QueryTables("NodeServices"),
 		func() (uint64, error) {
-			c.srv.setQueryMeta(&reply.QueryMeta)
 			reply.Index, reply.NodeServices = state.NodeServices(args.Node)
 			return reply.Index, nil
 		})
