@@ -2,9 +2,9 @@ server:
 	python -m SimpleHTTPServer
 
 watch:
-	sass styles --watch
+	sass styles:static --watch
 
 build:
-	sass styles
+	sass styles:static
 
 .PHONY: server watch build

@@ -32,3 +32,4 @@ website/npm-debug.log
 *.attr
 
 ui/.sass-cache
+ui/static/base.css
