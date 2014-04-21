@@ -79,6 +79,9 @@ func (w WriteRequest) AllowStaleRead() bool {
 // QueryMeta allows a query response to include potentially
 // useful metadata about a query
 type QueryMeta struct {
+	// This is the index associated with the read
+	Index uint64
+
 	// If AllowStale is used, this is time elapsed since
 	// last contact between the follower and leader. This
 	// can be used to gauge staleness.
@@ -224,37 +227,31 @@ type CheckServiceNode struct {
 type CheckServiceNodes []CheckServiceNode
 
 type IndexedNodes struct {
-	Index uint64
 	Nodes Nodes
 	QueryMeta
 }
 
 type IndexedServices struct {
-	Index    uint64
 	Services Services
 	QueryMeta
 }
 
 type IndexedServiceNodes struct {
-	Index        uint64
 	ServiceNodes ServiceNodes
 	QueryMeta
 }
 
 type IndexedNodeServices struct {
-	Index        uint64
 	NodeServices *NodeServices
 	QueryMeta
 }
 
 type IndexedHealthChecks struct {
-	Index        uint64
 	HealthChecks HealthChecks
 	QueryMeta
 }
 
 type IndexedCheckServiceNodes struct {
-	Index uint64
 	Nodes CheckServiceNodes
 	QueryMeta
 }
@@ -304,7 +301,6 @@ func (r *KeyRequest) RequestDatacenter() string {
 }
 
 type IndexedDirEntries struct {
-	Index   uint64
 	Entries DirEntries
 	QueryMeta
 }
