@@ -188,6 +188,7 @@ This endpoint is hit with a GET and returns a JSON body like this:
             "Name":"Service 'redis' check",
             "Status":"passing",
             "Notes":"",
+            "Output": "",
             "ServiceID":"redis",
             "ServiceName":"redis"
         }
@@ -618,6 +619,7 @@ It returns a JSON body like this:
             "Name":"Serf Health Status",
             "Status":"passing",
             "Notes":"",
+            "Output": "",
             "ServiceID":"",
             "ServiceName":""
         },
@@ -627,6 +629,7 @@ It returns a JSON body like this:
             "Name":"Service 'redis' check",
             "Status":"passing",
             "Notes":"",
+            "Output": "",
             "ServiceID":"redis",
             "ServiceName":"redis"
         }
@@ -658,6 +661,7 @@ It returns a JSON body like this:
             "Name":"Service 'redis' check",
             "Status":"passing",
             "Notes":"",
+            "Output": "",
             "ServiceID":"redis",
             "ServiceName":"redis"
         }
@@ -709,6 +713,7 @@ It returns a JSON body like this:
                     "Name":"Service 'redis' check",
                     "Status":"passing",
                     "Notes":"",
+                    "Output": "",
                     "ServiceID":"redis",
                     "ServiceName":"redis"
                 },{
@@ -717,6 +722,7 @@ It returns a JSON body like this:
                     "Name":"Serf Health Status",
                     "Status":"passing",
                     "Notes":"",
+                    "Output": "",
                     "ServiceID":"",
                     "ServiceName":""
                 }
@@ -744,6 +750,7 @@ It returns a JSON body like this:
             "Name":"Serf Health Status",
             "Status":"passing",
             "Notes":"",
+            "Output": "",
             "ServiceID":"",
             "ServiceName":""
         },
@@ -753,6 +760,7 @@ It returns a JSON body like this:
             "Name":"Service 'redis' check",
             "Status":"passing",
             "Notes":"",
+            "Output": "",
             "ServiceID":"redis",
             "ServiceName":"redis"
         }
