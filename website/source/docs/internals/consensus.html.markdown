@@ -141,8 +141,8 @@ The three read modes are:
 
 * default - Raft makes use of leader leasing, providing a time window
   in which the leader assumes it's role is stable. However, if a leader
-  is partitioned from the remaining peers, they may elect a new leader
-  while the leader is still holding the lease. This means there are 2 leader
+  is partitioned from the remaining peers, a new leader may be elected
+  while the old leader is holding the lease. This means there are 2 leader
   nodes. There is no risk of a split-brain since the old leader will be
   unable to commit new logs. However, if the old leader services any reads
   the values are potentially stale. The default consistency mode relies only
