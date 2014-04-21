@@ -163,7 +163,7 @@ func setIndex(resp http.ResponseWriter, index uint64) {
 
 // parseWait is used to parse the ?wait and ?index query params
 // Returns true on error
-func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.BlockingQuery) bool {
+func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
 	query := req.URL.Query()
 	if wait := query.Get("wait"); wait != "" {
 		dur, err := time.ParseDuration(wait)
@@ -186,6 +186,24 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.BlockingQ
 	return false
 }
 
+// parseConsistency is used to parse the ?stale and ?consistent query params.
+// Returns true on error
+func parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.QueryOptions) bool {
+	query := req.URL.Query()
+	if _, ok := query["stale"]; ok {
+		b.AllowStale = true
+	}
+	if _, ok := query["consistent"]; ok {
+		b.RequireConsistent = true
+	}
+	if b.AllowStale && b.RequireConsistent {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Cannot specify ?stale with ?consistent, conflicting semantics."))
+		return true
+	}
+	return false
+}
+
 // parseDC is used to parse the ?dc query param
 func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 	if other := req.URL.Query().Get("dc"); other != "" {
@@ -197,7 +215,10 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 
 // parse is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
-func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.BlockingQuery) bool {
+func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	s.parseDC(req, dc)
+	if parseConsistency(resp, req, b) {
+		return true
+	}
 	return parseWait(resp, req, b)
 }
