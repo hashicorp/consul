@@ -57,39 +57,41 @@ func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Requ
 	return out, nil
 }
 
-func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
+func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Setup the request
 	args := structs.DCSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-		return 0, nil, nil
+		return nil, nil
 	}
 
 	var out structs.IndexedNodes
+	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Catalog.ListNodes", &args, &out); err != nil {
-		return 0, nil, err
+		return nil, err
 	}
-	return out.Index, out.Nodes, nil
+	return out.Nodes, nil
 }
 
-func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
+func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.DCSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-		return 0, nil, nil
+		return nil, nil
 	}
 
 	var out structs.IndexedServices
+	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Catalog.ListServices", &args, &out); err != nil {
-		return 0, nil, err
+		return nil, err
 	}
-	return out.Index, out.Services, nil
+	return out.Services, nil
 }
 
-func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
+func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-		return 0, nil, nil
+		return nil, nil
 	}
 
 	// Check for a tag
@@ -104,22 +106,23 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	if args.ServiceName == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Missing service name"))
-		return 0, nil, nil
+		return nil, nil
 	}
 
 	// Make the RPC request
 	var out structs.IndexedServiceNodes
+	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Catalog.ServiceNodes", &args, &out); err != nil {
-		return 0, nil, err
+		return nil, err
 	}
-	return out.Index, out.ServiceNodes, nil
+	return out.ServiceNodes, nil
 }
 
-func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
+func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default Datacenter
 	args := structs.NodeSpecificRequest{}
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-		return 0, nil, nil
+		return nil, nil
 	}
 
 	// Pull out the node name
@@ -127,13 +130,14 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 	if args.Node == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Missing node name"))
-		return 0, nil, nil
+		return nil, nil
 	}
 
 	// Make the RPC request
 	var out structs.IndexedNodeServices
+	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
-		return 0, nil, err
+		return nil, err
 	}
-	return out.Index, out.NodeServices, nil
+	return out.NodeServices, nil
 }

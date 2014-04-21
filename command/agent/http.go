@@ -63,15 +63,15 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/catalog/register", s.wrap(s.CatalogRegister))
 	s.mux.HandleFunc("/v1/catalog/deregister", s.wrap(s.CatalogDeregister))
 	s.mux.HandleFunc("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
-	s.mux.HandleFunc("/v1/catalog/nodes", s.wrapQuery(s.CatalogNodes))
-	s.mux.HandleFunc("/v1/catalog/services", s.wrapQuery(s.CatalogServices))
-	s.mux.HandleFunc("/v1/catalog/service/", s.wrapQuery(s.CatalogServiceNodes))
-	s.mux.HandleFunc("/v1/catalog/node/", s.wrapQuery(s.CatalogNodeServices))
+	s.mux.HandleFunc("/v1/catalog/nodes", s.wrap(s.CatalogNodes))
+	s.mux.HandleFunc("/v1/catalog/services", s.wrap(s.CatalogServices))
+	s.mux.HandleFunc("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
+	s.mux.HandleFunc("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
 
-	s.mux.HandleFunc("/v1/health/node/", s.wrapQuery(s.HealthNodeChecks))
-	s.mux.HandleFunc("/v1/health/checks/", s.wrapQuery(s.HealthServiceChecks))
-	s.mux.HandleFunc("/v1/health/state/", s.wrapQuery(s.HealthChecksInState))
-	s.mux.HandleFunc("/v1/health/service/", s.wrapQuery(s.HealthServiceNodes))
+	s.mux.HandleFunc("/v1/health/node/", s.wrap(s.HealthNodeChecks))
+	s.mux.HandleFunc("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
+	s.mux.HandleFunc("/v1/health/state/", s.wrap(s.HealthChecksInState))
+	s.mux.HandleFunc("/v1/health/service/", s.wrap(s.HealthServiceNodes))
 
 	s.mux.HandleFunc("/v1/agent/services", s.wrap(s.AgentServices))
 	s.mux.HandleFunc("/v1/agent/checks", s.wrap(s.AgentChecks))
@@ -131,16 +131,6 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 	return f
 }
 
-// wrapQuery is used to wrap query functions to make them more convenient
-func (s *HTTPServer) wrapQuery(handler func(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error)) func(resp http.ResponseWriter, req *http.Request) {
-	f := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-		idx, obj, err := handler(resp, req)
-		setIndex(resp, idx)
-		return obj, err
-	}
-	return s.wrap(f)
-}
-
 // Renders a simple index page
 func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	if req.URL.Path == "/" {
@@ -159,6 +149,28 @@ func decodeBody(req *http.Request, out interface{}) error {
 // setIndex is used to set the index response header
 func setIndex(resp http.ResponseWriter, index uint64) {
 	resp.Header().Add("X-Consul-Index", strconv.FormatUint(index, 10))
+}
+
+// setKnownLeader is used to set the known leader header
+func setKnownLeader(resp http.ResponseWriter, known bool) {
+	s := "true"
+	if !known {
+		s = "false"
+	}
+	resp.Header().Add("X-Consul-KnownLeader", s)
+}
+
+// setLastContact is used to set the last contact header
+func setLastContact(resp http.ResponseWriter, last time.Duration) {
+	lastMsec := uint64(last / time.Millisecond)
+	resp.Header().Add("X-Consul-LastContact", strconv.FormatUint(lastMsec, 10))
+}
+
+// setMeta is used to set the query response meta data
+func setMeta(resp http.ResponseWriter, m *structs.QueryMeta) {
+	setIndex(resp, m.Index)
+	setLastContact(resp, m.LastContact)
+	setKnownLeader(resp, m.KnownLeader)
 }
 
 // parseWait is used to parse the ?wait and ?index query params
