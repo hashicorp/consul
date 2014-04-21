@@ -75,7 +75,7 @@ are provided. It is an error to provide both.
 To support bounding how stale data is, there is an "X-Consul-LastContact"
 which is the last time a server was contacted by the leader node in
 milliseconds. The "X-Consul-KnownLeader" also indicates if there is a known
-leader. These can be used to gauage if a stale read should be used.
+leader. These can be used to gauge if a stale read should be used.
 
 ## KV
 
