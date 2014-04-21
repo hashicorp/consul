@@ -261,16 +261,40 @@ func (s *Server) setupRaft() error {
 	// Setup the peer store
 	s.raftPeers = raft.NewJSONPeers(path, trans)
 
-	// Ensure local host is always included if we are in bootstrap mode
-	if s.config.Bootstrap {
-		peers, err := s.raftPeers.Peers()
+	peers, err := s.raftPeers.Peers()
+	if err != nil {
+		store.Close()
+		return err
+	}
+
+	// Remove all local addresses from peer store to prevent loopback
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return err
+	}
+
+	for _, inter := range interfaces {
+		addrs, err := inter.Addrs()
 		if err != nil {
-			store.Close()
 			return err
 		}
-		if !raft.PeerContained(peers, trans.LocalAddr()) {
-			s.raftPeers.SetPeers(raft.AddUniquePeer(peers, trans.LocalAddr()))
+
+		for _, addr := range addrs {
+			ip := addr.(*net.IPNet).IP
+			addr = &net.TCPAddr{
+				IP:   ip,
+				Port: trans.LocalAddr().(*net.TCPAddr).Port,
+			}
+
+			if raft.PeerContained(peers, addr) {
+				s.raftPeers.SetPeers(raft.ExcludePeer(peers, addr))
+			}
 		}
+	}
+
+	// Ensure local host is always included if we are in bootstrap mode
+	if s.config.Bootstrap {
+		s.raftPeers.SetPeers(raft.AddUniquePeer(peers, trans.LocalAddr()))
 	}
 
 	// Make sure we set the LogOutput
