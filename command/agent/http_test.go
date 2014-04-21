@@ -41,6 +41,52 @@ func TestSetIndex(t *testing.T) {
 	}
 }
 
+func TestSetKnownLeader(t *testing.T) {
+	resp := httptest.NewRecorder()
+	setKnownLeader(resp, true)
+	header := resp.Header().Get("X-Consul-KnownLeader")
+	if header != "true" {
+		t.Fatalf("Bad: %v", header)
+	}
+	resp = httptest.NewRecorder()
+	setKnownLeader(resp, false)
+	header = resp.Header().Get("X-Consul-KnownLeader")
+	if header != "false" {
+		t.Fatalf("Bad: %v", header)
+	}
+}
+
+func TestSetLastContact(t *testing.T) {
+	resp := httptest.NewRecorder()
+	setLastContact(resp, 123456*time.Microsecond)
+	header := resp.Header().Get("X-Consul-LastContact")
+	if header != "123" {
+		t.Fatalf("Bad: %v", header)
+	}
+}
+
+func TestSetMeta(t *testing.T) {
+	meta := structs.QueryMeta{
+		Index:       1000,
+		KnownLeader: true,
+		LastContact: 123456 * time.Microsecond,
+	}
+	resp := httptest.NewRecorder()
+	setMeta(resp, &meta)
+	header := resp.Header().Get("X-Consul-Index")
+	if header != "1000" {
+		t.Fatalf("Bad: %v", header)
+	}
+	header = resp.Header().Get("X-Consul-KnownLeader")
+	if header != "true" {
+		t.Fatalf("Bad: %v", header)
+	}
+	header = resp.Header().Get("X-Consul-LastContact")
+	if header != "123" {
+		t.Fatalf("Bad: %v", header)
+	}
+}
+
 func TestContentTypeIsJSON(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 
@@ -120,6 +166,65 @@ func TestParseWait_InvalidIndex(t *testing.T) {
 	}
 
 	if d := parseWait(resp, req, &b); !d {
+		t.Fatalf("expected done")
+	}
+
+	if resp.Code != 400 {
+		t.Fatalf("bad code: %v", resp.Code)
+	}
+}
+
+func TestParseConsistency(t *testing.T) {
+	resp := httptest.NewRecorder()
+	var b structs.QueryOptions
+
+	req, err := http.NewRequest("GET",
+		"/v1/catalog/nodes?stale", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if d := parseConsistency(resp, req, &b); d {
+		t.Fatalf("unexpected done")
+	}
+
+	if !b.AllowStale {
+		t.Fatalf("Bad: %v", b)
+	}
+	if b.RequireConsistent {
+		t.Fatalf("Bad: %v", b)
+	}
+
+	b = structs.QueryOptions{}
+	req, err = http.NewRequest("GET",
+		"/v1/catalog/nodes?consistent", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if d := parseConsistency(resp, req, &b); d {
+		t.Fatalf("unexpected done")
+	}
+
+	if b.AllowStale {
+		t.Fatalf("Bad: %v", b)
+	}
+	if !b.RequireConsistent {
+		t.Fatalf("Bad: %v", b)
+	}
+}
+
+func TestParseConsistency_Invalid(t *testing.T) {
+	resp := httptest.NewRecorder()
+	var b structs.QueryOptions
+
+	req, err := http.NewRequest("GET",
+		"/v1/catalog/nodes?stale&consistent", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if d := parseConsistency(resp, req, &b); !d {
 		t.Fatalf("expected done")
 	}
 
