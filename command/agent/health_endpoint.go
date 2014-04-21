@@ -9,7 +9,7 @@ import (
 func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default DC
 	args := structs.ChecksInStateRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return 0, nil, nil
 	}
 
@@ -32,7 +32,7 @@ func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Req
 func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default DC
 	args := structs.NodeSpecificRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return 0, nil, nil
 	}
 
@@ -55,7 +55,7 @@ func (s *HTTPServer) HealthNodeChecks(resp http.ResponseWriter, req *http.Reques
 func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return 0, nil, nil
 	}
 
@@ -78,7 +78,7 @@ func (s *HTTPServer) HealthServiceChecks(resp http.ResponseWriter, req *http.Req
 func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return 0, nil, nil
 	}
 

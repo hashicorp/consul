@@ -60,7 +60,7 @@ func (s *HTTPServer) CatalogDatacenters(resp http.ResponseWriter, req *http.Requ
 func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Setup the request
 	args := structs.DCSpecificRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return 0, nil, nil
 	}
 
@@ -74,7 +74,7 @@ func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (
 func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default DC
 	args := structs.DCSpecificRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return 0, nil, nil
 	}
 
@@ -88,7 +88,7 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return 0, nil, nil
 	}
 
@@ -118,7 +118,7 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (uint64, interface{}, error) {
 	// Set default Datacenter
 	args := structs.NodeSpecificRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return 0, nil, nil
 	}
 

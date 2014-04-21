@@ -12,7 +12,7 @@ import (
 func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.KeyRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.BlockingQuery); done {
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
 
