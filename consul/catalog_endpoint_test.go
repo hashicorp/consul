@@ -458,6 +458,39 @@ func TestCatalogListServices_Timeout(t *testing.T) {
 	}
 }
 
+func TestCatalogListServices_Stale(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	args := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	args.AllowStale = true
+	var out structs.IndexedServices
+
+	// Inject a fake service
+	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{"db", "db", []string{"primary"}, 5000})
+
+	// Run the query, do not wait for leader!
+	if err := client.Call("Catalog.ListServices", &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should find the service
+	if len(out.Services) != 1 {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Should not have a leader! Stale read
+	if out.KnownLeader {
+		t.Fatalf("bad: %v", out)
+	}
+}
+
 func TestCatalogListServiceNodes(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
