@@ -42,6 +42,40 @@ note is that when the query returns there is **no guarantee** of a change. It is
 possible that the timeout was reached, or that there was an idempotent write that
 does not affect the result.
 
+## Consistency Modes
+
+Most of the read query endpoints support multiple levels of consistency.
+These are to provide a tuning knob that clients can be used to find a happy
+medium that best matches their needs.
+
+The three read modes are:
+
+* default - If not specified, this mode is used. It is strongly consistent
+  in almost all cases. However, there is a small window in which an new
+  leader may be elected, and the old leader may service stale values. The
+  trade off is fast reads, but potentially stale values. This condition is
+  hard to trigger, and most clients should not need to worry about the stale read.
+  This only applies to reads, and a split-brain is not possible on writes.
+
+* consistent - This mode is strongly consistent without caveats. It requires
+  that a leader verify with a quorum of peers that it is still leader. This
+  introduces an additional round-trip to all server nodes. The trade off is
+  always consistent reads, but increased latency due to an extra round trip.
+  Most clients should not use this unless they cannot tolerate a stale read.
+
+* stale - This mode allows any server to service the read, regardless of if
+  it is the leader. This means reads can be arbitrarily stale, but are generally
+  within 50 milliseconds of the leader. The trade off is very fast and scalable
+  reads but values will be stale. This mode allows reads without a leader, meaning
+  a cluster that is unavailable will still be able to respond.
+
+To switch these modes, either the "?stale" or "?consistent" query parameters
+are provided. It is an error to provide both.
+
+To support bounding how stale data is, there is an "X-Consul-LastContact"
+which is the last time a server was contacted by the leader node in
+milliseconds. The "X-Consul-KnownLeader" also indicates if there is a known
+leader. These can be used to gauage if a stale read should be used.
 
 ## KV
 
@@ -81,7 +115,8 @@ that modified this key. This index corresponds to the `X-Consul-Index`
 header value that is returned. A blocking query can be used to wait for
 a value to change. If "?recurse" is used, the `X-Consul-Index` corresponds
 to the latest `ModifyIndex` and so a blocking query waits until any of the
-listed keys are updated.
+listed keys are updated. The multiple consistency modes can be used for
+`GET` requests as well.
 
 The `Key` is simply the full path of the entry. `Flags` are an opaque
 unsigned integer that can be attached to each entry. The use of this is
@@ -347,7 +382,8 @@ The following endpoints are supported:
 * /v1/catalog/service/\<service\> : Lists the nodes in a given service
 * /v1/catalog/node/\<node\> : Lists the services provided by a node
 
-The last 4 endpoints of the catalog support blocking queries.
+The last 4 endpoints of the catalog support blocking queries and
+consistency modes.
 
 ### /v1/catalog/register
 
@@ -473,7 +509,7 @@ It returns a JSON body like this:
         }
     ]
 
-This endpoint supports blocking queries.
+This endpoint supports blocking queries and all consistency modes.
 
 ### /v1/catalog/services
 
@@ -492,7 +528,7 @@ It returns a JSON body like this:
 The main object keys are the service names, while the array
 provides all the known tags for a given service.
 
-This endpoint supports blocking queries.
+This endpoint supports blocking queries and all consistency modes.
 
 ### /v1/catalog/service/\<service\>
 
@@ -517,7 +553,7 @@ It returns a JSON body like this:
         }
     ]
 
-This endpoint supports blocking queries.
+This endpoint supports blocking queries and all consistency modes.
 
 ### /v1/catalog/node/\<node\>
 
@@ -549,7 +585,7 @@ It returns a JSON body like this:
         }
     }
 
-This endpoint supports blocking queries.
+This endpoint supports blocking queries and all consistency modes.
 
 ## Health
 
@@ -564,7 +600,7 @@ The following endpoints are supported:
 * /v1/health/service/\<service\>: Returns the nodes and health info of a service
 * /v1/health/state/\<state\>: Returns the checks in a given state
 
-All of the health endpoints supports blocking queries.
+All of the health endpoints supports blocking queries and all consistency modes.
 
 ### /v1/health/node/\<node\>
 
@@ -603,7 +639,7 @@ joins the Consul cluster, it is part of a distributed failure detection
 provided by Serf. If a node fails, it is detected and the status is automatically
 changed to "critical".
 
-This endpoint supports blocking queries.
+This endpoint supports blocking queries and all consistency modes.
 
 ### /v1/health/checks/\<service\>
 
@@ -627,7 +663,7 @@ It returns a JSON body like this:
         }
     ]
 
-This endpoint supports blocking queries.
+This endpoint supports blocking queries and all consistency modes.
 
 ### /v1/health/service/\<service\>
 
@@ -684,7 +720,7 @@ It returns a JSON body like this:
         }
     ]
 
-This endpoint supports blocking queries.
+This endpoint supports blocking queries and all consistency modes.
 
 ### /v1/health/state/\<state\>
 
@@ -718,7 +754,7 @@ It returns a JSON body like this:
         }
     ]
 
-This endpoint supports blocking queries.
+This endpoint supports blocking queries and all consistency modes.
 
 ## Status
 
