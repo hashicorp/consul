@@ -97,7 +97,7 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 
 	// Get the local state
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.BlockingQuery,
+	return c.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
 		state.QueryTables("Nodes"),
 		func() error {
@@ -114,7 +114,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 
 	// Get the current nodes
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.BlockingQuery,
+	return c.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
 		state.QueryTables("Services"),
 		func() error {
@@ -136,7 +136,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 	// Get the nodes
 	state := c.srv.fsm.State()
-	err := c.srv.blockingRPC(&args.BlockingQuery,
+	err := c.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
 		state.QueryTables("ServiceNodes"),
 		func() error {
@@ -174,7 +174,7 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 
 	// Get the node services
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.BlockingQuery,
+	return c.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
 		state.QueryTables("NodeServices"),
 		func() error {

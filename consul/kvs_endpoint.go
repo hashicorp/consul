@@ -50,7 +50,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 
 	// Get the local state
 	state := k.srv.fsm.State()
-	return k.srv.blockingRPC(&args.BlockingQuery,
+	return k.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
 		state.QueryTables("KVSGet"),
 		func() error {
@@ -83,7 +83,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 
 	// Get the local state
 	state := k.srv.fsm.State()
-	return k.srv.blockingRPC(&args.BlockingQuery,
+	return k.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
 		state.QueryTables("KVSList"),
 		func() error {

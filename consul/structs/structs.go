@@ -35,18 +35,15 @@ type RPCInfo interface {
 	AllowStaleRead() bool
 }
 
-// BlockingQuery is used to block on a query and wait for a change.
-// Either both fields, or neither must be provided.
-type BlockingQuery struct {
-	// If set, wait until query exceeds given index
-	MinQueryIndex uint64
-
-	// Provided with MinQueryIndex to wait for change
-	MaxQueryTime time.Duration
-}
-
 // QueryOptions is used to specify various flags for read queries
 type QueryOptions struct {
+	// If set, wait until query exceeds given index. Must be provided
+	// with MaxQueryTime.
+	MinQueryIndex uint64
+
+	// Provided with MinQueryIndex to wait for change.
+	MaxQueryTime time.Duration
+
 	// If set, any follower can service the request. Results
 	// may be arbitrarily stale.
 	AllowStale bool
@@ -125,7 +122,6 @@ func (r *DeregisterRequest) RequestDatacenter() string {
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
 	Datacenter string
-	BlockingQuery
 	QueryOptions
 }
 
@@ -139,7 +135,6 @@ type ServiceSpecificRequest struct {
 	ServiceName string
 	ServiceTag  string
 	TagFilter   bool // Controls tag filtering
-	BlockingQuery
 	QueryOptions
 }
 
@@ -151,7 +146,6 @@ func (r *ServiceSpecificRequest) RequestDatacenter() string {
 type NodeSpecificRequest struct {
 	Datacenter string
 	Node       string
-	BlockingQuery
 	QueryOptions
 }
 
@@ -163,7 +157,6 @@ func (r *NodeSpecificRequest) RequestDatacenter() string {
 type ChecksInStateRequest struct {
 	Datacenter string
 	State      string
-	BlockingQuery
 	QueryOptions
 }
 
@@ -292,7 +285,6 @@ func (r *KVSRequest) RequestDatacenter() string {
 type KeyRequest struct {
 	Datacenter string
 	Key        string
-	BlockingQuery
 	QueryOptions
 }
 

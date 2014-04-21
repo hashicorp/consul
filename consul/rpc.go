@@ -203,7 +203,7 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 
 // blockingRPC is used for queries that need to wait for a
 // minimum index. This is used to block and wait for changes.
-func (s *Server) blockingRPC(b *structs.BlockingQuery, m *structs.QueryMeta,
+func (s *Server) blockingRPC(b *structs.QueryOptions, m *structs.QueryMeta,
 	tables MDBTables, run func() error) error {
 	var timeout <-chan time.Time
 	var notifyCh chan struct{}
