@@ -100,9 +100,9 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 	return c.srv.blockingRPC(&args.BlockingQuery,
 		&reply.QueryMeta,
 		state.QueryTables("Nodes"),
-		func() (uint64, error) {
+		func() error {
 			reply.Index, reply.Nodes = state.Nodes()
-			return reply.Index, nil
+			return nil
 		})
 }
 
@@ -117,9 +117,9 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 	return c.srv.blockingRPC(&args.BlockingQuery,
 		&reply.QueryMeta,
 		state.QueryTables("Services"),
-		func() (uint64, error) {
+		func() error {
 			reply.Index, reply.Services = state.Services()
-			return reply.Index, nil
+			return nil
 		})
 }
 
@@ -139,13 +139,13 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	err := c.srv.blockingRPC(&args.BlockingQuery,
 		&reply.QueryMeta,
 		state.QueryTables("ServiceNodes"),
-		func() (uint64, error) {
+		func() error {
 			if args.TagFilter {
 				reply.Index, reply.ServiceNodes = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
 			} else {
 				reply.Index, reply.ServiceNodes = state.ServiceNodes(args.ServiceName)
 			}
-			return reply.Index, nil
+			return nil
 		})
 
 	// Provide some metrics
@@ -177,8 +177,8 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 	return c.srv.blockingRPC(&args.BlockingQuery,
 		&reply.QueryMeta,
 		state.QueryTables("NodeServices"),
-		func() (uint64, error) {
+		func() error {
 			reply.Index, reply.NodeServices = state.NodeServices(args.Node)
-			return reply.Index, nil
+			return nil
 		})
 }

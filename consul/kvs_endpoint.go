@@ -53,10 +53,10 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 	return k.srv.blockingRPC(&args.BlockingQuery,
 		&reply.QueryMeta,
 		state.QueryTables("KVSGet"),
-		func() (uint64, error) {
+		func() error {
 			index, ent, err := state.KVSGet(args.Key)
 			if err != nil {
-				return 0, err
+				return err
 			}
 			if ent == nil {
 				// Must provide non-zero index to prevent blocking
@@ -71,7 +71,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 				reply.Index = ent.ModifyIndex
 				reply.Entries = structs.DirEntries{ent}
 			}
-			return reply.Index, nil
+			return nil
 		})
 }
 
@@ -86,10 +86,10 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 	return k.srv.blockingRPC(&args.BlockingQuery,
 		&reply.QueryMeta,
 		state.QueryTables("KVSList"),
-		func() (uint64, error) {
+		func() error {
 			index, ent, err := state.KVSList(args.Key)
 			if err != nil {
-				return 0, err
+				return err
 			}
 			if len(ent) == 0 {
 				// Must provide non-zero index to prevent blocking
@@ -112,6 +112,6 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 				reply.Index = maxIndex
 				reply.Entries = ent
 			}
-			return reply.Index, nil
+			return nil
 		})
 }

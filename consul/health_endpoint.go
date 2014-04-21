@@ -23,9 +23,9 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 	return h.srv.blockingRPC(&args.BlockingQuery,
 		&reply.QueryMeta,
 		state.QueryTables("ChecksInState"),
-		func() (uint64, error) {
+		func() error {
 			reply.Index, reply.HealthChecks = state.ChecksInState(args.State)
-			return reply.Index, nil
+			return nil
 		})
 }
 
@@ -41,9 +41,9 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 	return h.srv.blockingRPC(&args.BlockingQuery,
 		&reply.QueryMeta,
 		state.QueryTables("NodeChecks"),
-		func() (uint64, error) {
+		func() error {
 			reply.Index, reply.HealthChecks = state.NodeChecks(args.Node)
-			return reply.Index, nil
+			return nil
 		})
 }
 
@@ -65,9 +65,9 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 	return h.srv.blockingRPC(&args.BlockingQuery,
 		&reply.QueryMeta,
 		state.QueryTables("ServiceChecks"),
-		func() (uint64, error) {
+		func() error {
 			reply.Index, reply.HealthChecks = state.ServiceChecks(args.ServiceName)
-			return reply.Index, nil
+			return nil
 		})
 }
 
@@ -87,13 +87,13 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 	err := h.srv.blockingRPC(&args.BlockingQuery,
 		&reply.QueryMeta,
 		state.QueryTables("CheckServiceNodes"),
-		func() (uint64, error) {
+		func() error {
 			if args.TagFilter {
 				reply.Index, reply.Nodes = state.CheckServiceTagNodes(args.ServiceName, args.ServiceTag)
 			} else {
 				reply.Index, reply.Nodes = state.CheckServiceNodes(args.ServiceName)
 			}
-			return reply.Index, nil
+			return nil
 		})
 
 	// Provide some metrics
