@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -69,7 +70,7 @@ func TestContentTypeIsJSON(t *testing.T) {
 
 func TestParseWait(t *testing.T) {
 	resp := httptest.NewRecorder()
-	var b structs.BlockingQuery
+	var b structs.QueryOptions
 
 	req, err := http.NewRequest("GET",
 		"/v1/catalog/nodes?wait=60s&index=1000", nil)
@@ -91,7 +92,7 @@ func TestParseWait(t *testing.T) {
 
 func TestParseWait_InvalidTime(t *testing.T) {
 	resp := httptest.NewRecorder()
-	var b structs.BlockingQuery
+	var b structs.QueryOptions
 
 	req, err := http.NewRequest("GET",
 		"/v1/catalog/nodes?wait=60foo&index=1000", nil)
@@ -110,7 +111,7 @@ func TestParseWait_InvalidTime(t *testing.T) {
 
 func TestParseWait_InvalidIndex(t *testing.T) {
 	resp := httptest.NewRecorder()
-	var b structs.BlockingQuery
+	var b structs.QueryOptions
 
 	req, err := http.NewRequest("GET",
 		"/v1/catalog/nodes?wait=60s&index=foo", nil)
@@ -125,4 +126,25 @@ func TestParseWait_InvalidIndex(t *testing.T) {
 	if resp.Code != 400 {
 		t.Fatalf("bad code: %v", resp.Code)
 	}
+}
+
+// assertIndex tests that X-Consul-Index is set and non-zero
+func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
+	header := resp.Header().Get("X-Consul-Index")
+	if header == "" || header == "0" {
+		t.Fatalf("Bad: %v", header)
+	}
+}
+
+// getIndex parses X-Consul-Index
+func getIndex(t *testing.T, resp *httptest.ResponseRecorder) uint64 {
+	header := resp.Header().Get("X-Consul-Index")
+	if header == "" {
+		t.Fatalf("Bad: %v", header)
+	}
+	val, err := strconv.Atoi(header)
+	if err != nil {
+		t.Fatalf("Bad: %v", header)
+	}
+	return uint64(val)
 }
