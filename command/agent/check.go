@@ -47,7 +47,7 @@ func (c *CheckType) IsMonitor() bool {
 // to notify when a check has a status update. The update
 // should take care to be idempotent.
 type CheckNotifier interface {
-	UpdateCheck(checkID, status, note string)
+	UpdateCheck(checkID, status, output string)
 }
 
 // CheckMonitor is used to periodically invoke a script to
@@ -137,14 +137,14 @@ func (c *CheckMonitor) check() {
 	}()
 	err := <-errCh
 
-	notes := string(output.Bytes())
+	outputStr := string(output.Bytes())
 	c.Logger.Printf("[DEBUG] agent: check '%s' script '%s' output: %s",
-		c.CheckID, c.Script, notes)
+		c.CheckID, c.Script, outputStr)
 
 	// Check if the check passed
 	if err == nil {
 		c.Logger.Printf("[DEBUG] Check '%v' is passing", c.CheckID)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, notes)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, outputStr)
 		return
 	}
 
@@ -155,7 +155,7 @@ func (c *CheckMonitor) check() {
 			code := status.ExitStatus()
 			if code == 1 {
 				c.Logger.Printf("[WARN] Check '%v' is now warning", c.CheckID)
-				c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, notes)
+				c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, outputStr)
 				return
 			}
 		}
@@ -163,7 +163,7 @@ func (c *CheckMonitor) check() {
 
 	// Set the health as critical
 	c.Logger.Printf("[WARN] Check '%v' is now critical", c.CheckID)
-	c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, notes)
+	c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, outputStr)
 }
 
 // CheckTTL is used to apply a TTL to check status,
@@ -221,9 +221,9 @@ func (c *CheckTTL) run() {
 
 // SetStatus is used to update the status of the check,
 // and to renew the TTL. If expired, TTL is restarted.
-func (c *CheckTTL) SetStatus(status, note string) {
+func (c *CheckTTL) SetStatus(status, output string) {
 	c.Logger.Printf("[DEBUG] Check '%v' status is now %v",
 		c.CheckID, status)
-	c.Notify.UpdateCheck(c.CheckID, status, note)
+	c.Notify.UpdateCheck(c.CheckID, status, output)
 	c.timer.Reset(c.TTL)
 }

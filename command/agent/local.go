@@ -186,13 +186,13 @@ func (l *localState) UpdateCheck(checkID, status, output string) {
 	}
 
 	// Do nothing if update is idempotent
-	if check.Status == status && check.Notes == output {
+	if check.Status == status && check.Output == output {
 		return
 	}
 
 	// Update status and mark out of sync
 	check.Status = status
-	check.Notes = output
+	check.Output = output
 	l.checkStatus[checkID] = syncStatus{inSync: false}
 	l.changeMade()
 }

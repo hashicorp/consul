@@ -308,7 +308,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	if status.Status != structs.HealthPassing {
 		t.Fatalf("bad: %v", status)
 	}
-	if status.Notes != "foo" {
+	if status.Output != "foo" {
 		t.Fatalf("bad: %v", status)
 	}
 }
