@@ -244,6 +244,13 @@ RUN_QUERY:
 	// Update the query meta data
 	s.setQueryMeta(m)
 
+	// Check if query must be consistent
+	if b.RequireConsistent {
+		if err := s.consistentRead(); err != nil {
+			return err
+		}
+	}
+
 	// Run the query function
 	err := run()
 
