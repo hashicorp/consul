@@ -124,6 +124,48 @@ func TestDNS_NodeLookup(t *testing.T) {
 	}
 }
 
+func TestDNS_NodeLookup_PeriodName(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Register node with period in name
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo.bar",
+		Address:    "127.0.0.1",
+	}
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("foo.bar.node.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	aRec, ok := in.Answer[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aRec.A.String() != "127.0.0.1" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+}
+
 func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
@@ -235,6 +277,67 @@ func TestDNS_ServiceLookup(t *testing.T) {
 
 	m := new(dns.Msg)
 	m.SetQuestion("db.service.consul.", dns.TypeSRV)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	srvRec, ok := in.Answer[0].(*dns.SRV)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if srvRec.Port != 12345 {
+		t.Fatalf("Bad: %#v", srvRec)
+	}
+	if srvRec.Target != "foo.node.dc1.consul." {
+		t.Fatalf("Bad: %#v", srvRec)
+	}
+
+	aRec, ok := in.Extra[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if aRec.Hdr.Name != "foo.node.dc1.consul." {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if aRec.A.String() != "127.0.0.1" {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+}
+
+func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"v1.master"},
+			Port:    12345,
+		},
+	}
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("v1.master.db.service.consul.", dns.TypeSRV)
 
 	c := new(dns.Client)
 	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)

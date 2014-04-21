@@ -254,31 +254,40 @@ func (d *DNSServer) dispatch(network string, req, resp *dns.Msg) {
 
 	// The last label is either "node", "service" or a datacenter name
 PARSE:
-	if len(labels) == 0 {
+	n := len(labels)
+	if n == 0 {
 		goto INVALID
 	}
-	switch labels[len(labels)-1] {
+	switch labels[n-1] {
 	case "service":
-		// Handle lookup with and without tag
-		switch len(labels) {
-		case 2:
-			d.serviceLookup(network, datacenter, labels[0], "", req, resp)
-		case 3:
-			d.serviceLookup(network, datacenter, labels[1], labels[0], req, resp)
-		default:
+		if n == 1 {
 			goto INVALID
 		}
 
+		// Extract the service
+		service := labels[n-2]
+
+		// Support "." in the label, re-join all the parts
+		tag := ""
+		if n >= 3 {
+			tag = strings.Join(labels[:n-2], ".")
+		}
+
+		// Handle lookup with and without tag
+		d.serviceLookup(network, datacenter, service, tag, req, resp)
+
 	case "node":
-		if len(labels) != 2 {
+		if len(labels) == 1 {
 			goto INVALID
 		}
-		d.nodeLookup(network, datacenter, labels[0], req, resp)
+		// Allow a "." in the node name, just join all the parts
+		node := strings.Join(labels[:n-1], ".")
+		d.nodeLookup(network, datacenter, node, req, resp)
 
 	default:
 		// Store the DC, and re-parse
-		datacenter = labels[len(labels)-1]
-		labels = labels[:len(labels)-1]
+		datacenter = labels[n-1]
+		labels = labels[:n-1]
 		goto PARSE
 	}
 	return
