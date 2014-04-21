@@ -106,5 +106,26 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	if err := s.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
 		return nil, err
 	}
+
+	// Filter to only passing if specified
+	if _, ok := params["passing"]; ok {
+		out.Nodes = filterNonPassing(out.Nodes)
+	}
 	return out.Nodes, nil
+}
+
+// filterNonPassing is used to filter out any nodes that have check that are not passing
+func filterNonPassing(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+	n := len(nodes)
+	for i := 0; i < n; i++ {
+		node := nodes[i]
+		for _, check := range node.Checks {
+			if check.Status != structs.HealthPassing {
+				nodes[i], nodes[n-1] = nodes[n-1], structs.CheckServiceNode{}
+				n--
+				i--
+			}
+		}
+	}
+	return nodes[:n]
 }

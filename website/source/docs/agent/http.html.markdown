@@ -681,6 +681,10 @@ endpoint automatically returns the status of the associated health check,
 as well as any system level health checks. This allows a client to avoid
 sending traffic to nodes failing health tests, or who are reporting warnings.
 
+Providing the "?passing" query parameter will filter results to only nodes
+with all checks in the passing state. This can be used to avoid some filtering
+logic on the client side. (Added in Consul 0.2)
+
 Users can also built in support for dynamic load balancing and other features
 by incorporating the use of health checks.
 
