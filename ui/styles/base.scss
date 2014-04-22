@@ -1,5 +1,41 @@
+@import "mixins";
 @import "variables";
+@import "type";
+@import "panels";
+@import "nav";
+@import "buttons";
 
-body {
-    background-color: $foobar;
+.row {
+    &.colored {
+        background-color: $light-purple;
+    }
+}
+
+
+.bg-purple {
+    background-color: $purple;
+}
+
+.bg-light-purple {
+    background-color: $light-purple;
+}
+
+.bg-orange {
+    background-color: $orange-faded;
+}
+
+.bg-green {
+    background-color: $green-faded;
+}
+
+.bg-red {
+    background-color: $red-faded;
+}
+
+.bg-gray {
+    background-color: $gray;
+}
+
+.bg-light-gray {
+    background-color: $gray-background;
 }

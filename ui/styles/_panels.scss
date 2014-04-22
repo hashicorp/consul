@@ -1,0 +1,67 @@
+.panel {
+    border-width: 2px;
+    border-color: $gray-background;
+
+    .panel-heading {
+        background-color: transparent;
+        border-width: 2px;
+        border-color: $gray-background;
+    }
+
+    h3.panel-title {
+        padding: 4px 0px 4px 0px;
+        font-size: 20px;
+        color: $gray-light;
+        color: $gray-darker;
+        border-radius: 3px;
+
+        small {
+            font-size: 14px;
+            margin-left: 5px;
+        }
+
+        .panel-note {
+            float: right;
+            font-weight: 600;
+            color: $gray-light;
+            font-size: 14px;
+        }
+    }
+
+    .panel-body {
+        p {
+            font-size: 14px;
+        }
+    }
+
+    .panel-bar {
+        width: 100%;
+        height: 20px;
+        border-top-left-radius: 3px;
+        border-top-right-radius: 3px;
+    }
+
+    &.panel-default {
+        .panel-bar {
+            background-color: $gray-background;
+        }
+    }
+
+    &.panel-success {
+        .panel-bar {
+            background-color: $green-faded;
+        }
+    }
+
+    &.panel-danger {
+        .panel-bar {
+            background-color: $red-faded;
+        }
+    }
+
+    &.panel-warning {
+        .panel-bar {
+            background-color: $orange-faded;
+        }
+    }
+}

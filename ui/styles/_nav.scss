@@ -1,0 +1,21 @@
+
+.top-brand {
+    background: transparent url('/static/consul-logo.png') 0 no-repeat;
+    background-size: 30px 30px;
+    width: 30px;
+    height: 30px;
+}
+
+
+.topbar {
+    padding: 40px;
+    height: 100px;
+
+    .btn {
+        width: 140px;
+    }
+
+    .btn-dropdown {
+        width: auto;
+    }
+}

@@ -1,0 +1,37 @@
+body {
+    -webkit-font-smoothing:antialiased;
+    font-size: 16px;
+    color: $text-color;
+}
+
+a {
+    color: $purple;
+    font-weight: 600;
+    @include transition(color .2s ease-in-out);
+
+    &:hover {
+        text-decoration: none;
+        color: darken($purple, 15%);
+    }
+}
+
+
+small {
+    color: $gray;
+}
+
+h1, h2, h3, h4, h5 {
+    color: darken($text-color, 7%);
+}
+
+h5 {
+    text-transform: uppercase;
+    font-weight: 700;
+    color: $gray-light;
+}
+
+pre {
+    background-color: $gray;
+    color: white;
+    font-size: 11px;
+}
