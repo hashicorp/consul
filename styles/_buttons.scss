@@ -1,0 +1,38 @@
+.btn {
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 11px;
+    color: $gray;
+    @include transition(background-color .1s ease-in-out);
+
+    &:hover {
+        color: darken($gray, 10%);
+        background-color: lighten($gray-background, 5%);
+    }
+
+    .btn-default {
+    }
+
+    &.btn-primary {
+        color: $purple;
+        background-color: transparent;
+        border: 2px solid $purple;
+
+        &:hover {
+            background-color: $light-purple;
+            color: darken($purple, 10%);
+        }
+    }
+
+    &.btn-warning {
+        color: $orange-faded;
+        background-color: transparent;
+        border: 2px solid $orange-faded;
+
+        &:hover {
+            background-color: lighten($orange-faded, 29%);
+            color: darken($orange-faded, 10%);
+        }
+
+    }
+}
