@@ -1,7 +1,7 @@
 .btn {
     text-transform: uppercase;
     font-weight: 600;
-    font-size: 11px;
+    font-size: 12px;
     color: $gray;
     @include transition(background-color .1s ease-in-out);
 
@@ -35,4 +35,17 @@
         }
 
     }
+
+    &.btn-success {
+        color: $green-dark;
+        background-color: transparent;
+        border: 2px solid $green-dark;
+
+        &:hover {
+            background-color: lighten($green-faded, 24%);
+            color: darken($green-dark, 10%);
+        }
+
+    }
+
 }

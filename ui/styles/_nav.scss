@@ -1,5 +1,6 @@
 
 .top-brand {
+    margin-top: 20px;
     background: transparent url('/static/consul-logo.png') 0 no-repeat;
     background-size: 30px 30px;
     width: 30px;
@@ -8,14 +9,17 @@
 
 
 .topbar {
-    padding: 40px;
-    height: 100px;
+    padding: 30px;
+    min-height: 100px;
+    border-bottom: 1px #eee solid;
 
     .btn {
-        width: 140px;
+        margin-top: 20px;
+        min-width: 140px;
     }
 
     .btn-dropdown {
         width: auto;
     }
+
 }
