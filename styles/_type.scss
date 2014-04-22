@@ -11,7 +11,15 @@ a {
 
     &:hover {
         text-decoration: none;
-        color: darken($purple, 15%);
+        color: darken($purple, 10%);
+    }
+
+    &.subtle {
+        color: inherit;
+
+        &:hover {
+            color: $purple;
+        }
     }
 }
 
@@ -21,7 +29,7 @@ small {
 }
 
 h1, h2, h3, h4, h5 {
-    color: darken($text-color, 7%);
+    color: $gray-darker;
 }
 
 h5 {

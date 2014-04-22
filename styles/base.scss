@@ -4,6 +4,7 @@
 @import "panels";
 @import "nav";
 @import "buttons";
+@import "lists";
 
 .row {
     &.colored {
@@ -26,6 +27,10 @@
 
 .bg-green {
     background-color: $green-faded;
+}
+
+.bg-dark-green {
+    background-color: $green-dark;
 }
 
 .bg-red {

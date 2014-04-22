@@ -30,31 +30,34 @@
     <div class="col-md-12">
 
         <div class="row">
-          <div class="col-md-12 topbar">
-            <div class="col-md-1">
-              <div class="top-brand"></div>
+          <div class="col-md-12 col-sm-12 topbar">
+
+            <div class="col-md-1 col-sm-2">
+              <a href="#"><div class="top-brand"></div></a>
             </div>
-            <div class="col-md-2">
+
+            <div class="col-md-2 col-sm-3">
                 <a class="btn btn-primary" href="#">Services</a>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-2 col-sm-3">
               <a class="btn btn-default" href="#">Nodes</a>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-2 col-sm-3">
                 <a class="btn btn-default" href="#">Key/Value</a>
             </div>
-            <div class="col-md-2 col-md-offset-1">
+
+            <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-0">
                 <a class="btn btn-warning" href="#">5 checks failing</a>
             </div>
-            <div class="col-md-2">
+
+            <div class="col-md-2 col-sm-3">
                 <a class="btn btn-dropdown btn-default" href="#">
-                  Data Center 1
+                  us-east-1
                   <span class="caret"></span>
                 </a>
             </div>
           </div>
         </div>
-        <hr>
 
     </div>
   </div>
@@ -78,6 +81,7 @@
               <div style="width: 75px; height: 75px; display:inline-block" class="bg-orange"></div>
             </li>
             <li>
+              <div style="width: 75px; height: 75px; display:inline-block" class="bg-dark-green"></div>
               <div style="width: 75px; height: 75px; display:inline-block" class="bg-green"></div>
             </li>
             <li>
@@ -113,14 +117,14 @@
             <div class="panel-bar"></div>
             <div class="panel-heading">
               <h3 class="panel-title">
-                Panel Title
-                <small>Panel Subtitle</small>
-                <span class="panel-note">Panel Note</span>
+                Default Panel
+                <small>Subtitle</small>
+                <span class="panel-note">:8080</span>
               </h3>
             </div>
 
             <div class="panel-body">
-              Panel content
+              Content
             </div>
 
           </div>
@@ -204,18 +208,108 @@ Socket connect timed out
         <div class="col-md-6">
           <h2>Loaders</h2>
           <hr>
-          <div class="bg-gray text-center" style="width: 200px; height: 200px; padding: 20px;">
-          </div>
+          <p>Pending...</p>
         </div>
 
         <div class="col-md-6">
           <h2>Icons</h2>
           <hr>
-
-          <p>This is style guide for Consul. When possible,
-            it's best to follow this guide modifying the UI.</p>
+          <p>Pending...</p>
         </div>
       </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <h2>Buttons</h2>
+          <hr>
+          <a href="#" class="btn btn-default">Default button</a>
+          <a href="#" class="btn btn-primary">Primary button</a>
+          <a href="#" class="btn btn-success">Success button</a>
+          <a href="#" class="btn btn-warning">Warning button</a>
+        </div>
+      </div>
+
+      <div class="row">
+
+        <div class="col-md-12">
+          <h2>Lists</h2>
+
+          <div class="list-group">
+              <div class="list-group-item">
+                <div class="list-bar bg-green"></div>
+                <h4 class="list-group-item-heading">
+                  <a href="#" class="subtle">vagrant-cloud-http</a>
+                  <small>vagrant-cloud-http</small>
+                  <div class="heading-helper">
+                    <a class="subtle" href="#">5 passing</a>
+                  </div>
+                </h4>
+                <ul class="list-inline">
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                </ul>
+              </div>
+
+              <div class="list-group-item">
+                <div class="list-bar bg-green"></div>
+                <h4 class="list-group-item-heading">
+                  <a href="#" class="subtle">vagrant-cloud-http</a>
+                  <small>vagrant-cloud-http</small>
+                  <div class="heading-helper">
+                    <a class="subtle" href="#">5 passing</a>
+                  </div>
+                </h4>
+                <ul class="list-inline">
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                </ul>
+              </div>
+
+              <div class="list-group-item">
+                <div class="list-bar bg-orange"></div>
+                <h4 class="list-group-item-heading">
+                  <a href="#" class="subtle">vagrant-cloud-http</a>
+                  <small>vagrant-cloud-http</small>
+                  <div class="heading-helper">
+                    <a class="subtle" href="#">1 failing</a>
+                  </div>
+                </h4>
+                <ul class="list-inline">
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                </ul>
+              </div>
+
+              <div class="list-group-item">
+                <div class="list-bar bg-red"></div>
+                <h4 class="list-group-item-heading">
+                  <a href="#" class="subtle">vagrant-cloud-http</a>
+                  <small>vagrant-cloud-http</small>
+                  <div class="heading-helper">
+                    <a class="subtle" href="#">2 failing</a>
+                  </div>
+                </h4>
+                <ul class="list-inline">
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                  <li><a class="subtle" href="#">node-10-0-109</a></li>
+                </ul>
+              </div>
+          </div>
+
+
+
+        </div>
+
+      </div>
+
 
     </div>
   </div>

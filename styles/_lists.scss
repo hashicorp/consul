@@ -1,0 +1,37 @@
+.list-group-item {
+    padding: 0;
+    border-width: 2px;
+    border-radius: 0px;
+
+    .list-group-item-heading, .list-inline {
+        margin: 10px 15px 10px 15px;
+        padding: 0px 5px 10px 5px;
+    }
+
+    .list-inline {
+        padding-left: 0px;
+        color: $gray;
+    }
+
+    .list-group-item-heading {
+        border-bottom: 2px solid #eee;
+        color: $gray-darker;
+
+        .heading-helper {
+            float: right;
+            font-weight: 600;
+            color: $gray-light;
+            font-size: 14px;
+        }
+    }
+
+    .list-bar {
+        width: 100%;
+        height: 20px;
+    }
+
+    &:first-child {
+        border-top-right-radius: 0px;
+        border-top-left-radius: 0px;
+    }
+}
