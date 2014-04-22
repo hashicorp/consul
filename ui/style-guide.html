@@ -14,6 +14,15 @@
           <h2>Consul Web UI Style Guide</h2>
           <p>This is style guide for the <a href="http://www.consul.io">Consul</a> Web UI. When possible,
             it's best to follow this guide modifying the UI.</p>
+          <p>Some reasoning behind choices:
+            <ul>
+              <li>Colors. Bright colors were chosen to allow for easy
+                "scanning" of information.</li>
+              <li>Icons will accompany most "actions", those are still
+                pending</li>
+              <li>Layout. The layout will be primarily 2 columns with the
+                header at the top for navigation.</li>
+          </p>
         </div>
       </div>
 
@@ -112,23 +121,10 @@
         <div class="col-md-12">
           <h2>Panels</h2>
           <hr>
-
-          <div class="panel panel-default">
-            <div class="panel-bar"></div>
-            <div class="panel-heading">
-              <h3 class="panel-title">
-                Default Panel
-                <small>Subtitle</small>
-                <span class="panel-note">:8080</span>
-              </h3>
-            </div>
-
-            <div class="panel-body">
-              Content
-            </div>
-
-          </div>
-
+          <p>Panels are for displaying data in the 2nd (right) column.
+            They show extensive information and are flexible, but also
+            use the highlight colors to allow for scanning.</p>
+          <hr>
 
           <div class="panel panel-danger">
             <div class="panel-bar"></div>
@@ -233,6 +229,12 @@ Socket connect timed out
 
         <div class="col-md-12">
           <h2>Lists</h2>
+          <hr>
+          <p>Lists are used primarily for the first (left) column
+            view. They are designed as a quick summary, with links
+            embedded for the top-level item as well as sub-items (
+            such as a list of nodes, as below).</p>
+          <hr>
 
           <div class="list-group">
               <div class="list-group-item">
