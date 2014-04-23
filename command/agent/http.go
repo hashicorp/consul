@@ -98,6 +98,11 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 		s.mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	}
+
+	// Enable the UI + special endpoints
+	if s.uiDir != "" {
+		s.mux.HandleFunc("/ui/", s.UiIndex)
+	}
 }
 
 // wrap is used to wrap functions to make them more convenient

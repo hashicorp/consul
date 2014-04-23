@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 	"time"
@@ -17,8 +18,10 @@ import (
 func makeHTTPServer(t *testing.T) (string, *HTTPServer) {
 	conf := nextConfig()
 	dir, agent := makeAgent(t, conf)
+	uiDir := filepath.Join(dir, "ui")
+	println(uiDir)
 	addr, _ := agent.config.ClientListener(agent.config.Ports.HTTP)
-	server, err := NewHTTPServer(agent, "", true, agent.logOutput, addr.String())
+	server, err := NewHTTPServer(agent, uiDir, true, agent.logOutput, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
