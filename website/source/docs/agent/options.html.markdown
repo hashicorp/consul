@@ -93,6 +93,9 @@ The options below are all specified on the command-line.
   participate in a WAN gossip pool with server nodes in other datacenters. Servers act as gateways
   to other datacenters and forward traffic as appropriate.
 
+* `-ui-dir` - This flag provides a the directory containing the Web UI resources
+  for Consul. This must be provided to enable the Web UI. Directory must be readable.
+
 ## Configuration Files
 
 In addition to the command-line options, configuration can be put into
@@ -141,6 +144,8 @@ definitions support being updated during a reload.
 * `protocol` - Equivalent to the `-protocol` command-line flag.
 
 * `server` - Equivalent to the `-server` command-line flag.
+
+* `ui_dir` - Equivalent to the `-ui-dir` command-line flag.
 
 * `advertise_addr` - The advertise address is used to change the address that we
   advertise to other nodes in the cluster. By default, the `-bind` address is
