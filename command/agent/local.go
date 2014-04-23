@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	syncRetryIntv = 30 * time.Second
+	syncStaggerIntv = 3 * time.Second
+	syncRetryIntv   = 15 * time.Second
 )
 
 // syncStatus is used to represent the difference between
@@ -223,7 +224,13 @@ SYNC:
 		l.logger.Printf("[ERR] agent: failed to sync remote state: %v", err)
 		select {
 		case <-l.consulCh:
-		case <-time.After(aeScale(syncRetryIntv, len(l.iface.LANMembers()))):
+			// Stagger the retry on leader election, avoid a thundering heard
+			select {
+			case <-time.After(randomStagger(aeScale(syncStaggerIntv, len(l.iface.LANMembers())))):
+			case <-shutdownCh:
+				return
+			}
+		case <-time.After(randomStagger(aeScale(syncRetryIntv, len(l.iface.LANMembers())))):
 		case <-shutdownCh:
 			return
 		}
