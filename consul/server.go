@@ -55,6 +55,9 @@ type Server struct {
 	// strong consistency.
 	fsm *consulFSM
 
+	// Have we attempted to leave the cluster
+	left bool
+
 	// Logger uses the provided LogOutput
 	logger *log.Logger
 
@@ -364,6 +367,12 @@ func (s *Server) Shutdown() error {
 			s.logger.Printf("[WARN] consul: Error shutting down raft: %s", err)
 		}
 		s.raftStore.Close()
+
+		// Clear the peer set on a graceful leave to avoid
+		// triggering elections on a rejoin.
+		if s.left {
+			s.raftPeers.SetPeers(nil)
+		}
 	}
 
 	if s.rpcListener != nil {
@@ -391,6 +400,7 @@ func (s *Server) Shutdown() error {
 // Leave is used to prepare for a graceful shutdown of the server
 func (s *Server) Leave() error {
 	s.logger.Printf("[INFO] consul: server starting leave")
+	s.left = true
 
 	// Leave the WAN pool
 	if s.serfWAN != nil {
@@ -434,7 +444,8 @@ func (s *Server) Leave() error {
 		// Wait for the commit
 		select {
 		case err := <-ch:
-			if err != nil {
+			// Ignore if we have already been deregistered by the leader
+			if err != nil && err.Error() != raft.UnknownPeer.Error() {
 				s.logger.Printf("[ERR] consul: failed to leave Raft cluster: %v", err)
 			}
 		case <-time.After(3 * time.Second):
