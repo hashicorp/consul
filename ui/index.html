@@ -7,22 +7,104 @@
   <link rel="stylesheet" href="static/base.css">
 </head>
 <body>
+
+  <div class="container">
+    <div class="col-md-12">
+      <div id="app">
+      </div>
+    </div>
+  </div>
+
   <script type="text/x-handlebars">
-    <h1>Base</h1>
     {{outlet}}
   </script>
 
+
+  <script type="text/x-handlebars" data-template-name="default_layout">
+    <div class="row">
+      <div class="col-md-12 col-sm-12 topbar">
+
+        <div class="col-md-1 col-sm-2">
+          <a href="#"><div class="top-brand"></div></a>
+        </div>
+
+        <div class="col-md-2 col-sm-3">
+            <a class="btn btn-primary" href="#">Services</a>
+        </div>
+        <div class="col-md-2 col-sm-3">
+          <a class="btn btn-default" href="#">Nodes</a>
+        </div>
+        <div class="col-md-2 col-sm-3">
+            <a class="btn btn-default" href="#">Key/Value</a>
+        </div>
+
+        <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-0">
+            <a class="btn btn-warning" href="#">5 checks failing</a>
+        </div>
+
+        <div class="col-md-2 col-sm-3">
+            <a class="btn btn-dropdown btn-default" href="#">
+              us-east-1
+              <span class="caret"></span>
+            </a>
+        </div>
+      </div>
+    </div>
+
+    {{yield}}
+  </script>
+
+  <script type="text/x-handlebars" id="services">
+    <div class="col-md-6">
+
+      {{#each item in model}}
+        <div class="list-group-item">
+          <div {{bind-attr class="item.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+          <h4 class="list-group-item-heading">
+            <a href="#" class="subtle">{{item.Name}}</a>
+            <small>{{item.Name}}</small>
+            <div class="heading-helper">
+              <a class="subtle" href="#">{{item.checkMessage}}</a>
+            </div>
+          </h4>
+          <ul class="list-inline">
+            {{#each node in item.Nodes }}
+            <li>{{#link-to 'node' controllers.application.getDc node class='subtle'}}{{node}}{{/link-to}}</li>
+            {{/each}}
+          </ul>
+        </div>
+      {{/each}}
+
+    </div>
+
+    <div class="col-md-6">
+    </div>
+  </script>
+
+
   <script type="text/x-handlebars" id="index">
-    <ul>
-    {{#each item in model}}
-      <li>{{item}}</li>
-    {{/each}}
-    </ul>
+    <div class="col-md-8 col-md-offset-2 vertical-center">
+      {{#each item in model}}
+        <a {{action 'selectDc' item}}>
+            <div class="panel panel-success panel-link">
+              <div class="panel-bar"></div>
+              <div class="panel-heading">
+                <h3 class="panel-title">
+                  {{item}}
+                  <small>{{item}}</small>
+                  <span class="panel-note">all checks passing</span>
+                </h3>
+              </div>
+            </div>
+        </a>
+      {{/each}}
+    </div>
   </script>
 
   <script src="javascripts/libs/jquery-1.10.2.js"></script>
   <script src="javascripts/libs/handlebars-1.1.2.js"></script>
   <script src="javascripts/libs/ember-1.5.0.js"></script>
+  <script src="javascripts/fixtures.js"></script>
   <script src="javascripts/app.js"></script>
 
   <!-- to activate the test runner, add the "?test" query string parameter -->

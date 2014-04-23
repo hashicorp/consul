@@ -6,6 +6,11 @@
 @import "buttons";
 @import "lists";
 
+
+.vertical-center {
+    margin-top: 200px;
+}
+
 .row {
     &.colored {
         background-color: $light-purple;

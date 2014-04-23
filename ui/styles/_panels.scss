@@ -64,4 +64,8 @@
             background-color: $orange-faded;
         }
     }
+
+    &.panel-link:hover {
+      background-color: lighten($gray-background, 8%);
+    }
 }
