@@ -42,6 +42,7 @@ func NewHTTPServer(agent *Agent, uiDir string, enableDebug bool, logOutput io.Wr
 		mux:      mux,
 		listener: list,
 		logger:   log.New(logOutput, "", log.LstdFlags),
+		uiDir:    uiDir,
 	}
 	srv.registerHandlers(enableDebug)
 

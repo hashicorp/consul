@@ -19,7 +19,9 @@ func TestUiIndex(t *testing.T) {
 
 	// Create file
 	path := filepath.Join(srv.uiDir, "my-file")
-	ioutil.WriteFile(path, []byte("test"), 777)
+	if err := ioutil.WriteFile(path, []byte("test"), 777); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	// Register node
 	req, err := http.NewRequest("GET", "/ui/my-file", nil)

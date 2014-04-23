@@ -19,7 +19,9 @@ func makeHTTPServer(t *testing.T) (string, *HTTPServer) {
 	conf := nextConfig()
 	dir, agent := makeAgent(t, conf)
 	uiDir := filepath.Join(dir, "ui")
-	println(uiDir)
+	if err := os.Mkdir(uiDir, 755); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	addr, _ := agent.config.ClientListener(agent.config.Ports.HTTP)
 	server, err := NewHTTPServer(agent, uiDir, true, agent.logOutput, addr.String())
 	if err != nil {
