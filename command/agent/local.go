@@ -341,6 +341,8 @@ func (l *localState) syncChanges() error {
 			if err := l.syncService(id); err != nil {
 				return err
 			}
+		} else {
+			l.logger.Printf("[DEBUG] agent: Service '%s' in sync", id)
 		}
 	}
 
@@ -354,6 +356,8 @@ func (l *localState) syncChanges() error {
 			if err := l.syncCheck(id); err != nil {
 				return err
 			}
+		} else {
+			l.logger.Printf("[DEBUG] agent: Check '%s' in sync", id)
 		}
 	}
 	return nil
