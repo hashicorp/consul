@@ -21,11 +21,12 @@ type HTTPServer struct {
 	mux      *http.ServeMux
 	listener net.Listener
 	logger   *log.Logger
+	uiDir    string
 }
 
 // NewHTTPServer starts a new HTTP server to provide an interface to
 // the agent.
-func NewHTTPServer(agent *Agent, enableDebug bool, logOutput io.Writer, bind string) (*HTTPServer, error) {
+func NewHTTPServer(agent *Agent, uiDir string, enableDebug bool, logOutput io.Writer, bind string) (*HTTPServer, error) {
 	// Create the mux
 	mux := http.NewServeMux()
 

@@ -180,7 +180,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 			return err
 		}
 
-		server, err := NewHTTPServer(agent, config.EnableDebug, logOutput, httpAddr.String())
+		server, err := NewHTTPServer(agent, config.UiDir, config.EnableDebug, logOutput, httpAddr.String())
 		if err != nil {
 			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Error starting http server: %s", err))
