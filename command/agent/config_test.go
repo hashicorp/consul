@@ -246,6 +246,17 @@ func TestDecodeConfig(t *testing.T) {
 	if config.StartJoin[1] != "2.2.2.2" {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// UI Dir
+	input = `{"ui_dir": "/opt/consul-ui"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.UiDir != "/opt/consul-ui" {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -377,6 +388,7 @@ func TestMergeConfig(t *testing.T) {
 		Checks:         []*CheckDefinition{nil},
 		Services:       []*ServiceDefinition{nil},
 		StartJoin:      []string{"1.1.1.1"},
+		UiDir:          "/opt/consul-ui",
 	}
 
 	c := MergeConfig(a, b)
