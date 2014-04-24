@@ -31,7 +31,7 @@ fixtures.services = [
       ],
       "Nodes": [
         "node-10-0-1-109",
-        "node-10-0-3-84"
+        "node-10-0-1-102"
       ]
     },
     {
@@ -51,8 +51,8 @@ fixtures.services = [
         }
       ],
       "Nodes": [
-        "node-10-0-1-103",
-        "node-10-0-1-104"
+        "node-10-0-1-109",
+        "node-10-0-1-102"
       ]
     },
 ]
@@ -83,7 +83,7 @@ fixtures.services_full = {
           "Status": "critical",
           "Name": "Serf Health Status",
           "CheckID": "serfHealth",
-          "Node": "node-10-0-3-83"
+          "Node": "node-10-0-1-109"
         }
       ]
     },
@@ -93,8 +93,8 @@ fixtures.services_full = {
       "ServiceTags": null,
       "ServiceName": "vagrant-cloud-http",
       "ServiceID": "vagrant-cloud-http",
-      "Address": "10.0.3.83",
-      "Node": "node-10-0-3-84",
+      "Address": "10.0.1.102",
+      "Node": "node-10-0-1-102",
       "Checks": [
         {
           "ServiceName": "",
@@ -103,7 +103,7 @@ fixtures.services_full = {
           "Status": "passing",
           "Name": "Serf Health Status",
           "CheckID": "serfHealth",
-          "Node": "node-10-0-3-84"
+          "Node": "node-10-0-1-102"
         }
       ]
     }
@@ -115,8 +115,8 @@ fixtures.services_full = {
       "ServiceTags": null,
       "ServiceName": "vagrant-share-mux",
       "ServiceID": "vagrant-share-mux",
-      "Address": "10.0.1.104",
-      "Node": "node-10-0-1-104",
+      "Address": "10.0.1.102",
+      "Node": "node-10-0-1-102",
       "Checks": [
         {
           "ServiceName": "vagrant-share-mux",
@@ -126,7 +126,7 @@ fixtures.services_full = {
           "Status": "passing",
           "Name": "Foo Heathly",
           "CheckID": "fooHealth",
-          "Node": "node-10-0-1-104"
+          "Node": "node-10-0-1-102"
         }
       ]
     },
@@ -136,8 +136,8 @@ fixtures.services_full = {
       "ServiceTags": null,
       "ServiceName": "vagrant-share-mux",
       "ServiceID": "vagrant-share-mux",
-      "Address": "10.0.1.103",
-      "Node": "node-10-0-1-103",
+      "Address": "10.0.1.109",
+      "Node": "node-10-0-1-109",
       "Checks": [
         {
           "ServiceName": "",
@@ -147,7 +147,7 @@ fixtures.services_full = {
           "Status": "passing",
           "Name": "Baz Status",
           "CheckID": "bazHealth",
-          "Node": "node-10-0-1-103"
+          "Node": "node-10-0-1-109"
         },
         {
           "ServiceName": "",
@@ -157,7 +157,7 @@ fixtures.services_full = {
           "Status": "passing",
           "Name": "Serf Health Status",
           "CheckID": "serfHealth",
-          "Node": "node-10-0-1-103"
+          "Node": "node-10-0-1-109"
         }
       ]
     }
@@ -170,7 +170,7 @@ fixtures.nodes = [
       "Address": "10.0.1.109",
       "Name": "node-10-0-1-109",
       "Services": [
-          "vagrant-cloud-worker",
+          "vagrant-share-mux",
           "vagrant-cloud-http"
       ],
       "Checks": [
@@ -192,7 +192,7 @@ fixtures.nodes = [
       "Address": "10.0.1.102",
       "Name": "node-10-0-1-102",
       "Services": [
-          "vagrant-cloud-worker",
+          "vagrant-share-mux",
           "vagrant-cloud-http"
       ],
       "Checks": [
@@ -209,29 +209,6 @@ fixtures.nodes = [
           "status": "passing"
         }
      ],
-
-    },
-    {
-      "Address": "10.0.1.103",
-      "Name": "node-10-0-1-103",
-      "Services": [
-          "vagrant-cloud-worker",
-          "vagrant-cloud-http"
-      ],
-      "Checks": [
-        {
-          "Name": "serfHealth",
-          "status": "passing"
-        },
-        {
-          "Name": "fooHealth",
-          "status": "critical"
-        },
-        {
-          "Name": "bazHealth",
-          "status": "passing"
-        }
-      ]
     }
 ]
 

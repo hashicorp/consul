@@ -98,7 +98,7 @@
               <div class="panel-bar"></div>
               <div class="panel-heading">
                 <h3 class="panel-title">
-                  {{node.Node}}
+                  {{#link-to 'node' controllers.application.getDc node.Node class='subtle'}}{{node.Node}}{{/link-to}}
                   <small>{{node.Address}}</small>
                   <span class="panel-note">{{node.checkMessage}}</span>
                 </h3>
