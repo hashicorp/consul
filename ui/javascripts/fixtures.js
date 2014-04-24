@@ -8,6 +8,10 @@
 
 window.fixtures = {}
 
+//
+// The array route, i.e /ui/services, should return _all_ services
+// in the DC
+//
 fixtures.services = [
     {
       "Name": "vagrant-cloud-http",
@@ -53,12 +57,17 @@ fixtures.services = [
     },
 ]
 
-// This is both of the fixture services full response. We
-// would just expect one of these, inside of the top level
-// key. We require that key just for the fixture lookup.
+//
+// This one is slightly more complicated to allow more UI interaction.
+// It represents the route /ui/services/<service> BUT it's what is
+// BELOW the top-level key.
+//
+// So, what is actually returned should be similar to the /catalog/service/<service>
+// endpoint.
 fixtures.services_full = {
-  "vagrant-cloud-http": [
-    // A node
+  "vagrant-cloud-http":
+  // This array is what is actually expected from the API.
+  [
     {
       "ServicePort": 80,
       "ServiceTags": null,
