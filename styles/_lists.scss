@@ -2,6 +2,8 @@
     padding: 0;
     border-width: 2px;
     border-radius: 0px;
+    margin-bottom: 15px;
+    margin-top: 15px;
 
     .list-group-item-heading, .list-inline {
         margin: 10px 15px 10px 15px;
@@ -34,6 +36,11 @@
     &:first-child {
         border-top-right-radius: 0px;
         border-top-left-radius: 0px;
+    }
+
+    &.list-link:hover {
+        cursor: pointer;
+        background-color: lighten($gray-background, 8%);
     }
 }
 

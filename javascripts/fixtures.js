@@ -213,8 +213,8 @@ fixtures.nodes_full = {
       {
         "Port": 0,
         "Tags": null,
-        "Service": "vagrant-cloud-http",
-        "ID": "vagrant-cloud-http"
+        "Service": "vagrant-share-mux",
+        "ID": "vagrant-share-mux"
       },
       {
         "Port": 80,
@@ -254,8 +254,8 @@ fixtures.nodes_full = {
       {
         "Port": 0,
         "Tags": null,
-        "Service": "vagrant-cloud-http",
-        "ID": "vagrant-cloud-http"
+        "Service": "vagrant-share-mux",
+        "ID": "vagrant-share-mux"
       },
       {
         "Port": 80,
@@ -272,7 +272,7 @@ fixtures.nodes_full = {
         {
           "ServiceName": "",
           "ServiceID": "",
-          "Notes": "",
+          "Notes": "Checks if the food is healthy",
           "Output": "foobar baz",
           "Status": "passing",
           "Name": "Foo Healthy",

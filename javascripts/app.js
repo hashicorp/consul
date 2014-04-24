@@ -52,6 +52,17 @@ App.BaseRoute = Ember.Route.extend({
     if (controller.getDc === null) {
       this.transitionTo('index');
     };
+  },
+
+  actions: {
+    //
+    // Mimics the link-to helper for triggering actions on
+    // no <a> tags. Takes the route name, i.e nodes, the datacenter,
+    // i.e "ny1" and a name.
+    //
+    linkTo: function(route, dc, name) {
+      return this.transitionTo(route, dc, name);
+    },
   }
 });
 
