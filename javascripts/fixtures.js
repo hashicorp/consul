@@ -164,6 +164,153 @@ fixtures.services_full = {
   ]
 }
 
+
+fixtures.nodes = [
+    {
+      "Address": "10.0.1.109",
+      "Name": "node-10-0-1-109",
+      "Services": [
+          "vagrant-cloud-worker",
+          "vagrant-cloud-http"
+      ],
+      "Checks": [
+        {
+          "Name": "serfHealth",
+          "status": "passing"
+        },
+        {
+          "Name": "fooHealth",
+          "status": "critical"
+        },
+        {
+          "Name": "bazHealth",
+          "status": "passing"
+        }
+      ]
+    },
+    {
+      "Address": "10.0.1.102",
+      "Name": "node-10-0-1-102",
+      "Services": [
+          "vagrant-cloud-worker",
+          "vagrant-cloud-http"
+      ],
+      "Checks": [
+        {
+          "Name": "serfHealth",
+          "status": "passing"
+        },
+        {
+          "Name": "fooHealth",
+          "status": "critical"
+        },
+        {
+          "Name": "bazHealth",
+          "status": "passing"
+        }
+     ],
+
+    },
+    {
+      "Address": "10.0.1.103",
+      "Name": "node-10-0-1-103",
+      "Services": [
+          "vagrant-cloud-worker",
+          "vagrant-cloud-http"
+      ],
+      "Checks": [
+        {
+          "Name": "serfHealth",
+          "status": "passing"
+        },
+        {
+          "Name": "fooHealth",
+          "status": "critical"
+        },
+        {
+          "Name": "bazHealth",
+          "status": "passing"
+        }
+      ]
+    }
+]
+
+fixtures.nodes_full = {
+  "node-10-0-1-109": {
+    "Services": [
+      {
+        "Port": 0,
+        "Tags": null,
+        "Service": "vagrant-cloud-http",
+        "ID": "vagrant-cloud-http"
+      },
+      {
+        "Port": 80,
+        "Tags": null,
+        "Service": "vagrant-cloud-http",
+        "ID": "vagrant-cloud-http"
+      }
+    ],
+    "Node": {
+      "Address": "10.0.1.109",
+      "Node": "node-10-0-1-109"
+    },
+    "Checks": [
+      {
+        "ServiceName": "",
+        "ServiceID": "",
+        "Notes": "Checks the status of the serf agent",
+        "Status": "passing",
+        "Name": "Serf Health Status",
+        "CheckID": "serfHealth",
+        "Node": "node-10-0-1-109"
+      }
+    ]
+  },
+  "node-10-0-1-102": {
+    "Services": [
+      {
+        "Port": 0,
+        "Tags": null,
+        "Service": "vagrant-cloud-http",
+        "ID": "vagrant-cloud-http"
+      },
+      {
+        "Port": 80,
+        "Tags": null,
+        "Service": "vagrant-cloud-http",
+        "ID": "vagrant-cloud-http"
+      }
+    ],
+    "Node": {
+      "Address": "10.0.1.102",
+      "Node": "node-10-0-1-102"
+    },
+    "Checks": [
+        {
+          "ServiceName": "",
+          "ServiceID": "",
+          "Notes": "",
+          "Output": "foobar baz",
+          "Status": "passing",
+          "Name": "Baz Status",
+          "CheckID": "bazHealth",
+          "Node": "node-10-0-1-102"
+        },
+        {
+          "ServiceName": "",
+          "ServiceID": "",
+          "Notes": "",
+          "Output": "foobar baz",
+          "Status": "passing",
+          "Name": "Serf Health Status",
+          "CheckID": "serfHealth",
+          "Node": "node-10-0-1-102"
+        }
+    ]
+  }
+}
+
 fixtures.dcs = ['nyc1', 'sf1', 'sg1']
 
 localStorage.setItem("current_dc", fixtures.dcs[0]);
