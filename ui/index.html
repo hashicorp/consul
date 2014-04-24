@@ -60,21 +60,22 @@
     <div class="col-md-5">
 
       {{#each service in services}}
-
-        <div class="list-group-item">
-          <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
-          <h4 class="list-group-item-heading">
-            {{#link-to 'service' controllers.application.getDc service.Name class='subtle'}}{{service.Name}}{{/link-to}}
-            <small>{{service.Name}}</small>
-            <div class="heading-helper">
-              <a class="subtle" href="#">{{service.checkMessage}}</a>
-            </div>
-          </h4>
-          <ul class="list-inline">
-            {{#each node in service.Nodes }}
-            <li>{{#link-to 'node' controllers.application.getDc node class='subtle'}}{{node}}{{/link-to}}</li>
-            {{/each}}
-          </ul>
+        <div class="row">
+          <div class="list-group-item">
+            <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+            <h4 class="list-group-item-heading">
+              {{#link-to 'service' controllers.application.getDc service.Name class='subtle'}}{{service.Name}}{{/link-to}}
+              <small>{{service.Name}}</small>
+              <div class="heading-helper">
+                <a class="subtle" href="#">{{service.checkMessage}}</a>
+              </div>
+            </h4>
+            <ul class="list-inline">
+              {{#each node in service.Nodes }}
+              <li>{{#link-to 'node' controllers.application.getDc node class='subtle'}}{{node}}{{/link-to}}</li>
+              {{/each}}
+            </ul>
+          </div>
         </div>
 
       {{/each}}
@@ -120,6 +121,71 @@
     </div>
   </script>
 
+
+  <script type="text/x-handlebars" id="nodes">
+    <div class="col-md-5">
+
+      {{#each node in nodes}}
+        <div class="row">
+          <div class="list-group-item">
+            <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+            <h4 class="list-group-item-heading">
+              {{#link-to 'node' controllers.application.getDc node.Name class='subtle'}}{{node.Name}}{{/link-to}}
+              <small>{{node.Name}}</small>
+              <div class="heading-helper">
+                <a class="subtle" href="#">{{node.checkMessage}}</a>
+              </div>
+            </h4>
+            <ul class="list-inline">
+              {{#each service in node.Services }}
+              <li>{{#link-to 'service' controllers.application.getDc service class='subtle'}}{{service}}{{/link-to}}</li>
+              {{/each}}
+            </ul>
+          </div>
+        </div>
+
+      {{/each}}
+
+    </div>
+
+    <div class="col-md-6 col-md-offset-1">
+      <div class="row">
+        {{#if model}}
+          <h2 class="no-margin">{{ model.Node.Node }}</h2>
+          <hr>
+
+          <h5>Checks</h5>
+
+          {{#each check in model.Checks }}
+
+            <div {{bind-attr class=":panel model.hasFailingChecks:panel-warning:panel-success"}}>
+              <div class="panel-bar"></div>
+              <div class="panel-heading">
+                <h3 class="panel-title">
+                  {{check.Name}}
+                  <small>{{check.CheckID}}</small>
+                  <span class="panel-note">{{check.Status}}</span>
+                </h3>
+              </div>
+
+              <div class="panel-body">
+                <h5>Notes</h5>
+                <p>{{ check.Notes }}</p>
+                <ul class="list-unstyled list-broken">
+                  {{#each check in node.Checks }}
+                    <li>
+                      <h4>{{ check.Name }} <small>{{ check.CheckID }}</small> <span class="pull-right"><small>{{check.Status}}</small></h4>
+                    </li>
+                  {{/each}}
+                </ul>
+              </div>
+            </div>
+
+          {{/each}}
+        {{/if}}
+      </div>
+    </div>
+  </script>
 
   <script type="text/x-handlebars" id="index">
     <div class="col-md-8 col-md-offset-2 vertical-center">

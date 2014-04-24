@@ -191,6 +191,7 @@ App.ServicesRoute = App.BaseRoute.extend({
   }
 });
 
+
 //
 // Display an individual service, as well as the global services in the left
 // column.
@@ -227,6 +228,11 @@ App.ServicesView = Ember.View.extend({
 // Services
 //
 App.ServiceView = Ember.View.extend({
+    //
+    // We use the same template as we do for the services
+    // array and have a simple conditional to display the nested
+    // individual service resource.
+    //
     templateName: 'services',
     layoutName: 'default_layout'
 })
@@ -242,10 +248,80 @@ App.ServicesController = Ember.Controller.extend({
 // path: /:dc/services/:name
 //
 App.ServiceController = Ember.Controller.extend({
-  //
-  // We use the same template as we do for the services
-  // array and have a simple conditional to display the nested
-  // individual service resource.
-  //
   needs: ['application']
 })
+
+//
+// path: /:dc/nodes
+//
+App.NodesController = Ember.Controller.extend({
+  needs: ['application']
+})
+
+//
+// path: /:dc/nodes/:name
+//
+App.NodeController = Ember.Controller.extend({
+  needs: ['application']
+})
+
+//
+// Nodes
+//
+App.NodesView = Ember.View.extend({
+    templateName: 'nodes',
+    layoutName: 'default_layout'
+})
+
+App.NodeView = Ember.View.extend({
+    //
+    // We use the same template as we do for the nodes
+    // array and have a simple conditional to display the nested
+    // individual node resource.
+    //
+    templateName: 'nodes',
+    layoutName: 'default_layout'
+})
+
+
+//
+// Display an individual node, as well as the global nodes in the left
+// column.
+//
+App.NodeRoute = App.BaseRoute.extend({
+  //
+  // Set the model on the route. We look up the specific node
+  // by it's identifier passed via the route
+  //
+  model: function(params) {
+    return App.Node.create(window.fixtures.nodes_full[params.name]);
+  },
+
+  setupController: function(controller, model) {
+      controller.set('content', model);
+      //
+      // Since we have 2 column layout, we need to also display the
+      // list of services on the left. Hence setting the attribute
+      // {{services}} on the controller.
+      //
+      controller.set('nodes', [App.Node.create(window.fixtures.nodes[0]), App.Node.create(window.fixtures.nodes[1])]);
+  }
+});
+
+//
+// Display all the services, allow to drill down into the specific services.
+//
+App.NodesRoute = App.BaseRoute.extend({
+  //
+  // Set the services as the routes default model to be called in
+  // the template as {{model}}
+  //
+  setupController: function(controller, model) {
+      //
+      // Since we have 2 column layout, we need to also display the
+      // list of nodes on the left. Hence setting the attribute
+      // {{nodes}} on the controller.
+      //
+      controller.set('nodes', [App.Node.create(window.fixtures.nodes[0]), App.Node.create(window.fixtures.nodes[1])]);
+  }
+});
