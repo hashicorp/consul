@@ -101,10 +101,13 @@
               </div>
 
               <div class="panel-body">
-                {{#each check in node.Checks }}
-                  <h4>{{ check.Name }} <small>{{ check.CheckID }}</small> <span class="pull-right"><small>{{check.Status}}</small></h4>
-                  <hr>
-                {{/each}}
+                <ul class="list-unstyled list-broken">
+                  {{#each check in node.Checks }}
+                    <li>
+                      <h4>{{ check.Name }} <small>{{ check.CheckID }}</small> <span class="pull-right"><small>{{check.Status}}</small></h4>
+                    </li>
+                  {{/each}}
+                </ul>
               </div>
             </div>
 

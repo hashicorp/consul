@@ -36,3 +36,14 @@
         border-top-left-radius: 0px;
     }
 }
+
+ul.list-broken {
+    li {
+        border-bottom: 2px $gray-background solid;
+    }
+
+    li:last-child {
+        border-width: 0px;
+    }
+
+}
