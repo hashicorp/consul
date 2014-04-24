@@ -301,20 +301,20 @@ App.NodeRoute = App.BaseRoute.extend({
       controller.set('content', model);
       //
       // Since we have 2 column layout, we need to also display the
-      // list of services on the left. Hence setting the attribute
-      // {{services}} on the controller.
+      // list of nodes on the left. Hence setting the attribute
+      // {{nodes}} on the controller.
       //
       controller.set('nodes', [App.Node.create(window.fixtures.nodes[0]), App.Node.create(window.fixtures.nodes[1])]);
   }
 });
 
 //
-// Display all the services, allow to drill down into the specific services.
+// Display all the nodes, allow to drill down into the specific nodes.
 //
 App.NodesRoute = App.BaseRoute.extend({
   //
-  // Set the services as the routes default model to be called in
-  // the template as {{model}}
+  // Set the node as the routes default model to be called in
+  // the template as {{model}}. This is the "expanded" view.
   //
   setupController: function(controller, model) {
       //
