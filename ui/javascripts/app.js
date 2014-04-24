@@ -7,6 +7,7 @@ window.App = Ember.Application.create({
 App.Router.map(function() {
   this.route("index", { path: "/" });
   this.route("services", { path: "/:dc/services" });
+  this.route("service", { path: "/:dc/services/:name" });
   this.route("nodes", { path: "/:dc/nodes" });
   this.route("node", { path: "/:dc/nodes/:name" });
   this.route("kv", { path: "/:dc/kv" });
@@ -35,13 +36,6 @@ App.ApplicationController = Ember.Controller.extend({
     return localStorage.getItem("current_dc");
   }.property("getDc")
 });
-
-//
-// path: /:dc/services
-//
-App.ServicesController = Ember.Controller.extend({
-  needs: ['application']
-})
 
 //
 // Superclass to be used by all of the main routes below. All routes
@@ -141,11 +135,83 @@ App.Service = Ember.Object.extend({
 });
 
 //
+// A Consul Node
+//
+App.Node = Ember.Object.extend({
+  //
+  // The number of failing checks within the service.
+  //
+  failingChecks: function() {
+    return this.get('Checks').filterBy('Status', 'critical').get('length');
+  }.property('failingChecks'),
+
+  //
+  // The number of passing checks within the service.
+  //
+  passingChecks: function() {
+    return this.get('Checks').filterBy('Status', 'passing').get('length');
+  }.property('passingChecks'),
+
+  //
+  // The formatted message returned for the user which represents the
+  // number of checks failing or passing. Returns `1 passing` or `2 failing`
+  //
+  checkMessage: function() {
+    if (this.get('hasFailingChecks') === false) {
+      return this.get('passingChecks') + ' passing';
+    } else {
+      return this.get('failingChecks') + ' failing';
+    }
+  }.property('checkMessage'),
+
+  //
+  // Boolean of whether or not there are failing checks in the service.
+  // This is used to set color backgrounds and so on.
+  //
+  hasFailingChecks: function() {
+    return (this.get('failingChecks') > 0);
+  }.property('hasFailingChecks')
+});
+
+//
 // Display all the services, allow to drill down into the specific services.
 //
 App.ServicesRoute = App.BaseRoute.extend({
-  model: function() {
-    return [App.Service.create(window.fixtures.services[0]), App.Service.create(window.fixtures.services[1])];
+  //
+  // Set the services as the routes default model to be called in
+  // the template as {{model}}
+  //
+  setupController: function(controller, model) {
+      //
+      // Since we have 2 column layout, we need to also display the
+      // list of services on the left. Hence setting the attribute
+      // {{services}} on the controller.
+      //
+      controller.set('services', [App.Service.create(window.fixtures.services[0]), App.Service.create(window.fixtures.services[1])]);
+  }
+});
+
+//
+// Display an individual service, as well as the global services in the left
+// column.
+//
+App.ServiceRoute = App.BaseRoute.extend({
+  //
+  // Set the model on the route. We look up the specific service
+  // by it's identifier passed via the route
+  //
+  model: function(params) {
+    return [App.Node.create(window.fixtures.services_full[params.name][0]), App.Node.create(window.fixtures.services_full[params.name][1])];
+  },
+
+  setupController: function(controller, model) {
+      controller.set('content', model);
+      //
+      // Since we have 2 column layout, we need to also display the
+      // list of services on the left. Hence setting the attribute
+      // {{services}} on the controller.
+      //
+      controller.set('services', [App.Service.create(window.fixtures.services[0]), App.Service.create(window.fixtures.services[1])]);
   }
 });
 
@@ -153,6 +219,33 @@ App.ServicesRoute = App.BaseRoute.extend({
 // Services
 //
 App.ServicesView = Ember.View.extend({
+    templateName: 'services',
     layoutName: 'default_layout'
 })
 
+//
+// Services
+//
+App.ServiceView = Ember.View.extend({
+    templateName: 'services',
+    layoutName: 'default_layout'
+})
+
+//
+// path: /:dc/services
+//
+App.ServicesController = Ember.Controller.extend({
+  needs: ['application']
+})
+
+//
+// path: /:dc/services/:name
+//
+App.ServiceController = Ember.Controller.extend({
+  //
+  // We use the same template as we do for the services
+  // array and have a simple conditional to display the nested
+  // individual service resource.
+  //
+  needs: ['application']
+})

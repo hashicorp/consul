@@ -13,7 +13,12 @@
     .btn-default {
     }
 
-    &.btn-primary {
+    &.active {
+        box-shadow: none;
+        -webkit-box-shadow: none;
+    }
+
+    &.btn-primary, &.active {
         color: $purple;
         background-color: transparent;
         border: 2px solid $purple;

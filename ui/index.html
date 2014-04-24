@@ -29,11 +29,13 @@
         </div>
 
         <div class="col-md-2 col-sm-3">
-            <a class="btn btn-primary" href="#">Services</a>
+         {{#link-to 'services' controllers.application.getDc class='btn btn-default'}}Services{{/link-to}}
         </div>
+
         <div class="col-md-2 col-sm-3">
-          <a class="btn btn-default" href="#">Nodes</a>
+          {{#link-to 'nodes' controllers.application.getDc class='btn btn-default'}}Nodes{{/link-to}}
         </div>
+
         <div class="col-md-2 col-sm-3">
             <a class="btn btn-default" href="#">Key/Value</a>
         </div>
@@ -55,29 +57,60 @@
   </script>
 
   <script type="text/x-handlebars" id="services">
-    <div class="col-md-6">
+    <div class="col-md-5">
 
-      {{#each item in model}}
+      {{#each service in services}}
+
         <div class="list-group-item">
-          <div {{bind-attr class="item.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+          <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
           <h4 class="list-group-item-heading">
-            <a href="#" class="subtle">{{item.Name}}</a>
-            <small>{{item.Name}}</small>
+            {{#link-to 'service' controllers.application.getDc service.Name class='subtle'}}{{service.Name}}{{/link-to}}
+            <small>{{service.Name}}</small>
             <div class="heading-helper">
-              <a class="subtle" href="#">{{item.checkMessage}}</a>
+              <a class="subtle" href="#">{{service.checkMessage}}</a>
             </div>
           </h4>
           <ul class="list-inline">
-            {{#each node in item.Nodes }}
+            {{#each node in service.Nodes }}
             <li>{{#link-to 'node' controllers.application.getDc node class='subtle'}}{{node}}{{/link-to}}</li>
             {{/each}}
           </ul>
         </div>
+
       {{/each}}
 
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-6 col-md-offset-1">
+      <div class="row">
+        {{#if model}}
+          <h2 class="no-margin">{{ model.1.ServiceName }}</h2>
+          <hr>
+          <h5>Nodes</h5>
+
+          {{#each node in model }}
+
+            <div {{bind-attr class=":panel node.hasFailingChecks:panel-warning:panel-success"}}>
+              <div class="panel-bar"></div>
+              <div class="panel-heading">
+                <h3 class="panel-title">
+                  {{node.Node}}
+                  <small>{{node.Address}}</small>
+                  <span class="panel-note">{{node.checkMessage}}</span>
+                </h3>
+              </div>
+
+              <div class="panel-body">
+                {{#each check in node.Checks }}
+                  <h4>{{ check.Name }} <small>{{ check.CheckID }}</small> <span class="pull-right"><small>{{check.Status}}</small></h4>
+                  <hr>
+                {{/each}}
+              </div>
+            </div>
+
+          {{/each}}
+        {{/if}}
+      </div>
     </div>
   </script>
 
