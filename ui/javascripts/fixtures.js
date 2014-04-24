@@ -9,7 +9,7 @@
 window.fixtures = {}
 
 //
-// The array route, i.e /ui/services, should return _all_ services
+// The array route, i.e /ui/<dc>/services, should return _all_ services
 // in the DC
 //
 fixtures.services = [
@@ -59,7 +59,7 @@ fixtures.services = [
 
 //
 // This one is slightly more complicated to allow more UI interaction.
-// It represents the route /ui/services/<service> BUT it's what is
+// It represents the route /ui/<dc>/services/<service> BUT it's what is
 // BELOW the top-level key.
 //
 // So, what is actually returned should be similar to the /catalog/service/<service>
@@ -164,7 +164,10 @@ fixtures.services_full = {
   ]
 }
 
-
+//
+// /ui/<dc>/nodes
+// all the nodes
+//
 fixtures.nodes = [
     {
       "Address": "10.0.1.109",
@@ -212,8 +215,12 @@ fixtures.nodes = [
     }
 ]
 
+// These are for retrieving individual nodes. Same story as services,
+// the top level key is just for the demo.
 fixtures.nodes_full = {
-  "node-10-0-1-109": {
+  "node-10-0-1-109":
+  // This is what would be returned.
+  {
     "Services": [
       {
         "Port": 0,
