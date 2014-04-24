@@ -6,6 +6,26 @@
 @import "buttons";
 @import "lists";
 
+@media (min-width: 768px) { // + 18
+  .container {
+    width: 750px;
+  }
+}
+@media (min-width: 992px) { // + 22
+  .container {
+    width: 970px;
+  }
+}
+@media (min-width: 1200px) { // + 30
+  .container {
+    width: 1400px;
+  }
+}
+
+
+.no-margin {
+    margin: 0;
+}
 
 .vertical-center {
     margin-top: 200px;
@@ -15,6 +35,10 @@
     &.colored {
         background-color: $light-purple;
     }
+}
+
+.bordered {
+    border-left: 2px solid $gray-background;
 }
 
 

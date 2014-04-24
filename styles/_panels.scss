@@ -66,6 +66,7 @@
     }
 
     &.panel-link:hover {
-      background-color: lighten($gray-background, 8%);
+        cursor: pointer;
+        background-color: lighten($gray-background, 8%);
     }
 }
