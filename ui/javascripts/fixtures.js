@@ -39,7 +39,7 @@ fixtures.services = [
       "Checks": [
         {
           "Name": "serfHealth",
-          "Status": "passing"
+          "Status": "critical"
         },
         {
           "Name": "fooHealth",
@@ -154,7 +154,7 @@ fixtures.services_full = {
           "ServiceID": "",
           "Notes": "",
           "Output": "foobar baz",
-          "Status": "passing",
+          "Status": "critical",
           "Name": "Serf Health Status",
           "CheckID": "serfHealth",
           "Node": "node-10-0-1-109"
@@ -179,15 +179,11 @@ fixtures.nodes = [
       "Checks": [
         {
           "Name": "serfHealth",
-          "status": "passing"
-        },
-        {
-          "Name": "fooHealth",
-          "status": "critical"
+          "Status": "critical"
         },
         {
           "Name": "bazHealth",
-          "status": "passing"
+          "Status": "passing"
         }
       ]
     },
@@ -200,16 +196,8 @@ fixtures.nodes = [
       ],
       "Checks": [
         {
-          "Name": "serfHealth",
-          "status": "passing"
-        },
-        {
           "Name": "fooHealth",
-          "status": "critical"
-        },
-        {
-          "Name": "bazHealth",
-          "status": "passing"
+          "Status": "passing"
         }
      ],
     }
@@ -244,9 +232,19 @@ fixtures.nodes_full = {
         "ServiceName": "",
         "ServiceID": "",
         "Notes": "Checks the status of the serf agent",
-        "Status": "passing",
+        "Status": "critical",
         "Name": "Serf Health Status",
         "CheckID": "serfHealth",
+        "Node": "node-10-0-1-109"
+      },
+      {
+        "ServiceName": "",
+        "ServiceID": "",
+        "Notes": "",
+        "Output": "foobar baz",
+        "Status": "passing",
+        "Name": "Baz Status",
+        "CheckID": "bazHealth",
         "Node": "node-10-0-1-109"
       }
     ]
@@ -277,18 +275,8 @@ fixtures.nodes_full = {
           "Notes": "",
           "Output": "foobar baz",
           "Status": "passing",
-          "Name": "Baz Status",
-          "CheckID": "bazHealth",
-          "Node": "node-10-0-1-102"
-        },
-        {
-          "ServiceName": "",
-          "ServiceID": "",
-          "Notes": "",
-          "Output": "foobar baz",
-          "Status": "passing",
-          "Name": "Serf Health Status",
-          "CheckID": "serfHealth",
+          "Name": "Foo Healthy",
+          "CheckID": "fooStatus",
           "Node": "node-10-0-1-102"
         }
     ]
