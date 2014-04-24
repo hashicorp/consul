@@ -109,7 +109,7 @@ the example below, we ask Consul for all web services with the "rails"
 tag. We get a response since we registered our service with that tag.
 
 ```
-$ dig @127.0.0.1 -p 8600 rails.web.service.consul SRV
+$ dig @127.0.0.1 -p 8600 rails.web.service.consul
 ...
 
 ;; QUESTION SECTION:
