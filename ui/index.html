@@ -127,7 +127,7 @@
 
       {{#each node in nodes}}
         <div class="row">
-          <div class="list-group-item">
+          <div {{action 'linkTo' 'node' controllers.application.getDc node.Name}} class="list-group-item list-link">
             <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
             <h4 class="list-group-item-heading">
               {{#link-to 'node' controllers.application.getDc node.Name class='subtle'}}{{node.Name}}{{/link-to}}
@@ -171,17 +171,34 @@
               <div class="panel-body">
                 <h5>Notes</h5>
                 <p>{{ check.Notes }}</p>
-                <ul class="list-unstyled list-broken">
-                  {{#each check in node.Checks }}
-                    <li>
-                      <h4>{{ check.Name }} <small>{{ check.CheckID }}</small> <span class="pull-right"><small>{{check.Status}}</small></h4>
-                    </li>
-                  {{/each}}
-                </ul>
+                <h5>Output</h5>
+                <pre>
+{{check.Output}}
+                </pre>
               </div>
             </div>
 
           {{/each}}
+
+
+          <h5>Services</h5>
+
+          {{#each service in model.Services }}
+
+          {{#link-to 'service' controllers.application.getDc service.Service }}
+              <div class="panel panel-default panel-link">
+                <div class="panel-bar"></div>
+                <div class="panel-heading">
+                  <h3 class="panel-title">
+                    {{service.Service}}
+                    <small>{{sevice.ID}}</small>
+                    <span class="panel-note">:{{service.Port}}</span>
+                  </h3>
+                </div>
+            </div>
+          {{/link-to}}
+          {{/each}}
+
         {{/if}}
       </div>
     </div>
