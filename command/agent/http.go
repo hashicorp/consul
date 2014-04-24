@@ -102,7 +102,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 
 	// Enable the UI + special endpoints
 	if s.uiDir != "" {
-		s.mux.HandleFunc("/ui/", s.UiIndex)
+		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
 	}
 }
 
