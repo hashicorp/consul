@@ -5,9 +5,13 @@ window.App = Ember.Application.create({
 });
 
 App.Router.map(function() {
-  this.resource("services", { path: "/:dc/services" }, function(){
-    this.resource("service", { path: "/:name" });
+  this.resource("dc", {path: "/:dc"}, function() {
+    this.resource("services", { path: "/services" }, function(){
+      this.route("show", { path: "/:name" });
+    });
   });
+  // this.route("services", { path: "/:dc/services" });
+  // this.route("service", { path: "/:dc/services/:name" });
   this.route("index", { path: "/" });
   this.route("nodes", { path: "/:dc/nodes" });
   this.route("node", { path: "/:dc/nodes/:name" });
@@ -204,11 +208,21 @@ App.ServicesRoute = App.BaseRoute.extend({
 });
 
 
+App.DcRoute = App.BaseRoute.extend({
+  //
+  // Set the model on the route. We look up the specific service
+  // by it's identifier passed via the route
+  //
+  model: function(params) {
+    return params.dc;
+  }
+});
+
 //
 // Display an individual service, as well as the global services in the left
 // column.
 //
-App.ServiceRoute = App.BaseRoute.extend({
+App.ServicesShowRoute = App.BaseRoute.extend({
   //
   // Set the model on the route. We look up the specific service
   // by it's identifier passed via the route
@@ -229,26 +243,40 @@ App.ServiceRoute = App.BaseRoute.extend({
 });
 
 //
-// Services
+// DC
 //
-App.ServicesView = Ember.View.extend({
-    templateName: 'services',
-    layoutName: 'default_layout'
+App.DcView = Ember.View.extend({
+    templateName: 'dc',
 })
 
 //
 // Services
 //
-App.ServiceView = Ember.View.extend({
+App.ServicesView = Ember.View.extend({
+    templateName: 'services',
+})
+
+//
+// Services
+//
+App.ServicesShowView = Ember.View.extend({
     //
     // We use the same template as we do for the services
     // array and have a simple conditional to display the nested
     // individual service resource.
     //
-    templateName: 'services',
-    layoutName: 'default_layout'
+    templateName: 'service',
 })
 
+
+//
+// path: /:dc
+//
+App.DcController = Ember.Controller.extend({
+  needs: ['application']
+})
+
+//
 //
 // path: /:dc/services
 //
@@ -259,7 +287,7 @@ App.ServicesController = Ember.Controller.extend({
 //
 // path: /:dc/services/:name
 //
-App.ServiceController = Ember.Controller.extend({
+App.ServicesShowController = Ember.Controller.extend({
   needs: ['application']
 })
 

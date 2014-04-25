@@ -20,7 +20,7 @@
   </script>
 
 
-  <script type="text/x-handlebars" data-template-name="default_layout">
+  <script type="text/x-handlebars" data-template-name="dc">
     <div class="row">
       <div class="col-md-12 col-sm-12 topbar">
 
@@ -46,14 +46,14 @@
 
         <div class="col-md-2 col-sm-3">
             <a class="btn btn-dropdown btn-default" href="#">
-              us-east-1
+              {{model}}
               <span class="caret"></span>
             </a>
         </div>
       </div>
     </div>
 
-    {{yield}}
+    {{outlet}}
   </script>
 
   <script type="text/x-handlebars" id="services">
@@ -61,10 +61,10 @@
 
       {{#each service in services}}
         <div class="row">
-          {{#link-to 'service' controllers.application.getDc service.Name tagName="div" href=false class="list-group-item list-link" }}
+          {{#link-to 'services.show' service.Name tagName="div" href=false class="list-group-item list-link" }}
             <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
             <h4 class="list-group-item-heading">
-              {{#link-to 'service' controllers.application.getDc service.Name class='subtle'}}{{service.Name}}{{/link-to}}
+              {{#link-to 'services.show' service.Name class='subtle'}}{{service.Name}}{{/link-to}}
               <small>{{service.Name}}</small>
               <div class="heading-helper">
                 <a class="subtle" href="#">{{service.checkMessage}}</a>
@@ -84,6 +84,12 @@
 
     <div class="col-md-6 col-md-offset-1">
       <div class="row">
+        {{outlet}}
+      </div>
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" id="service">
         {{#if model}}
           <h2 class="no-margin">{{ model.1.ServiceName }}</h2>
           <hr>
@@ -117,10 +123,7 @@
 
           {{/each}}
         {{/if}}
-      </div>
-    </div>
   </script>
-
 
   <script type="text/x-handlebars" id="nodes">
     <div class="col-md-5">
@@ -138,7 +141,7 @@
             </h4>
             <ul class="list-inline">
               {{#each service in node.Services }}
-              <li>{{#link-to 'service' controllers.application.getDc service class='subtle'}}{{service}}{{/link-to}}</li>
+              <li>{{#link-to 'services.show' service class='subtle'}}{{service}}{{/link-to}}</li>
               {{/each}}
             </ul>
           </div>
@@ -150,56 +153,7 @@
 
     <div class="col-md-6 col-md-offset-1">
       <div class="row">
-        {{#if model}}
-          <h2 class="no-margin">{{ model.Node.Node }}</h2>
-          <hr>
-
-          <h5>Checks</h5>
-
-          {{#each check in model.Checks }}
-
-            <div {{bind-attr class=":panel model.hasFailingChecks:panel-warning:panel-success"}}>
-              <div class="panel-bar"></div>
-              <div class="panel-heading">
-                <h3 class="panel-title">
-                  {{check.Name}}
-                  <small>{{check.CheckID}}</small>
-                  <span class="panel-note">{{check.Status}}</span>
-                </h3>
-              </div>
-
-              <div class="panel-body">
-                <h5>Notes</h5>
-                <p>{{ check.Notes }}</p>
-                <h5>Output</h5>
-                <pre>
-{{check.Output}}
-                </pre>
-              </div>
-            </div>
-
-          {{/each}}
-
-
-          <h5>Services</h5>
-
-          {{#each service in model.Services }}
-
-          {{#link-to 'service' controllers.application.getDc service.Service }}
-              <div class="panel panel-default panel-link panel-short">
-                <div class="panel-bar"></div>
-                <div class="panel-heading">
-                  <h3 class="panel-title">
-                    {{service.Service}}
-                    <small>{{sevice.ID}}</small>
-                    <span class="panel-note">:{{service.Port}}</span>
-                  </h3>
-                </div>
-            </div>
-          {{/link-to}}
-          {{/each}}
-
-        {{/if}}
+        {{outlet}}
       </div>
     </div>
   </script>
