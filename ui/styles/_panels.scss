@@ -69,6 +69,14 @@
         }
     }
 
+    &.panel-link {
+        border-bottom-width: 4px;
+    }
+
+    &.panel-short {
+        border-bottom-width: 2px;
+    }
+
     &.panel-link:hover {
         cursor: pointer;
         background-color: lighten($gray-background, 8%);

@@ -5,9 +5,10 @@ window.App = Ember.Application.create({
 });
 
 App.Router.map(function() {
+  this.resource("services", { path: "/:dc/services" }, function(){
+    this.resource("service", { path: "/:name" });
+  });
   this.route("index", { path: "/" });
-  this.route("services", { path: "/:dc/services" });
-  this.route("service", { path: "/:dc/services/:name" });
   this.route("nodes", { path: "/:dc/nodes" });
   this.route("node", { path: "/:dc/nodes/:name" });
   this.route("kv", { path: "/:dc/kv" });
