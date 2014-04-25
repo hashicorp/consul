@@ -31,4 +31,4 @@ go build \
     -ldflags "-X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
     -v \
     -o bin/consul${EXTENSION}
-cp bin/consul${EXTENSION} $GOPATH/bin
+cp bin/consul${EXTENSION} ${GOPATH%:*}/bin
