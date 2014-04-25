@@ -143,6 +143,8 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 
 // decodeBody is used to decode a JSON request body
 func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) error {
+	defer req.Body.Close()
+
 	var raw interface{}
 	dec := json.NewDecoder(req.Body)
 	if err := dec.Decode(&raw); err != nil {
