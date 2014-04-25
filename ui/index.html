@@ -209,7 +209,7 @@
   <script type="text/x-handlebars" id="index">
     <div class="col-md-8 col-md-offset-2 vertical-center">
       {{#each item in model}}
-        <a {{action 'selectDc' item}}>
+        {{#link-to 'dc' item }}
             <div class="panel panel-success panel-link panel-short">
               <div class="panel-bar"></div>
               <div class="panel-heading">
@@ -220,7 +220,7 @@
                 </h3>
               </div>
             </div>
-        </a>
+        {{/link-to}}
       {{/each}}
     </div>
   </script>
