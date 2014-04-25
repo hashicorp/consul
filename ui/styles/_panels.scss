@@ -45,30 +45,6 @@
         border-top-right-radius: 3px;
     }
 
-    &.panel-default {
-        .panel-bar {
-            background-color: $gray-background;
-        }
-    }
-
-    &.panel-success {
-        .panel-bar {
-            background-color: $green-faded;
-        }
-    }
-
-    &.panel-danger {
-        .panel-bar {
-            background-color: $red-faded;
-        }
-    }
-
-    &.panel-warning {
-        .panel-bar {
-            background-color: $orange-faded;
-        }
-    }
-
     &.panel-link {
         border-bottom-width: 4px;
     }
