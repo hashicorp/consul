@@ -5,16 +5,17 @@ window.App = Ember.Application.create({
 });
 
 App.Router.map(function() {
+
   this.resource("dc", {path: "/:dc"}, function() {
     this.resource("services", { path: "/services" }, function(){
       this.route("show", { path: "/:name" });
     });
+    this.resource("nodes", { path: "/nodes" }, function() {
+      this.route("show", { path: "/:name" });
+    });
   });
-  // this.route("services", { path: "/:dc/services" });
-  // this.route("service", { path: "/:dc/services/:name" });
+
   this.route("index", { path: "/" });
-  this.route("nodes", { path: "/:dc/nodes" });
-  this.route("node", { path: "/:dc/nodes/:name" });
   this.route("kv", { path: "/:dc/kv" });
 });
 
@@ -57,17 +58,6 @@ App.BaseRoute = Ember.Route.extend({
     if (controller.getDc === null) {
       this.transitionTo('index');
     };
-  },
-
-  actions: {
-    //
-    // Mimics the link-to helper for triggering actions on
-    // no <a> tags. Takes the route name, i.e nodes, the datacenter,
-    // i.e "ny1" and a name.
-    //
-    linkTo: function(route, dc, name) {
-      return this.transitionTo(route, dc, name);
-    },
   }
 });
 
@@ -265,7 +255,7 @@ App.ServicesShowView = Ember.View.extend({
     // array and have a simple conditional to display the nested
     // individual service resource.
     //
-    templateName: 'service',
+    templateName: 'service'
 })
 
 
@@ -291,7 +281,7 @@ App.ServicesShowController = Ember.Controller.extend({
   needs: ['application']
 })
 
-//
+//=
 // path: /:dc/nodes
 //
 App.NodesController = Ember.Controller.extend({
@@ -301,7 +291,7 @@ App.NodesController = Ember.Controller.extend({
 //
 // path: /:dc/nodes/:name
 //
-App.NodeController = Ember.Controller.extend({
+App.NodesShowController = Ember.Controller.extend({
   needs: ['application']
 })
 
@@ -309,18 +299,16 @@ App.NodeController = Ember.Controller.extend({
 // Nodes
 //
 App.NodesView = Ember.View.extend({
-    templateName: 'nodes',
-    layoutName: 'default_layout'
+    templateName: 'nodes'
 })
 
-App.NodeView = Ember.View.extend({
+App.NodesShowView = Ember.View.extend({
     //
     // We use the same template as we do for the nodes
     // array and have a simple conditional to display the nested
     // individual node resource.
     //
-    templateName: 'nodes',
-    layoutName: 'default_layout'
+    templateName: 'node'
 })
 
 
@@ -328,7 +316,7 @@ App.NodeView = Ember.View.extend({
 // Display an individual node, as well as the global nodes in the left
 // column.
 //
-App.NodeRoute = App.BaseRoute.extend({
+App.NodesShowRoute = App.BaseRoute.extend({
   //
   // Set the model on the route. We look up the specific node
   // by it's identifier passed via the route
