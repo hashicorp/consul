@@ -61,7 +61,7 @@
 
       {{#each service in services}}
         <div class="row">
-          <div class="list-group-item">
+          {{#link-to 'service' controllers.application.getDc service.Name tagName="div" href=false class="list-group-item list-link" }}
             <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
             <h4 class="list-group-item-heading">
               {{#link-to 'service' controllers.application.getDc service.Name class='subtle'}}{{service.Name}}{{/link-to}}
@@ -76,7 +76,7 @@
               {{/each}}
             </ul>
           </div>
-        </div>
+        {{/link-to}}
 
       {{/each}}
 
@@ -127,7 +127,7 @@
 
       {{#each node in nodes}}
         <div class="row">
-          <div {{action 'linkTo' 'node' controllers.application.getDc node.Name}} class="list-group-item list-link">
+          {{#link-to 'node' controllers.application.getDc node.Name tagName="div" href=false class="list-group-item list-link" }}
             <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
             <h4 class="list-group-item-heading">
               {{#link-to 'node' controllers.application.getDc node.Name class='subtle'}}{{node.Name}}{{/link-to}}
@@ -142,7 +142,7 @@
               {{/each}}
             </ul>
           </div>
-        </div>
+        {{/link-to}}
 
       {{/each}}
 
@@ -186,7 +186,7 @@
           {{#each service in model.Services }}
 
           {{#link-to 'service' controllers.application.getDc service.Service }}
-              <div class="panel panel-default panel-link">
+              <div class="panel panel-default panel-link panel-short">
                 <div class="panel-bar"></div>
                 <div class="panel-heading">
                   <h3 class="panel-title">
@@ -208,7 +208,7 @@
     <div class="col-md-8 col-md-offset-2 vertical-center">
       {{#each item in model}}
         <a {{action 'selectDc' item}}>
-            <div class="panel panel-success panel-link">
+            <div class="panel panel-success panel-link panel-short">
               <div class="panel-bar"></div>
               <div class="panel-heading">
                 <h3 class="panel-title">

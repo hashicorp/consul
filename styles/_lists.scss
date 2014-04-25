@@ -1,6 +1,7 @@
 .list-group-item {
     padding: 0;
     border-width: 2px;
+    border-bottom-width: 4px;
     border-radius: 0px;
     margin-bottom: 15px;
     margin-top: 15px;
@@ -31,26 +32,28 @@
     .list-bar {
         width: 100%;
         height: 20px;
-    }
-
-    &:first-child {
-        border-top-right-radius: 0px;
-        border-top-left-radius: 0px;
+        border-top-right-radius: 2px;
+        border-top-left-radius: 2px;
     }
 
     &.list-link:hover {
         cursor: pointer;
         background-color: lighten($gray-background, 8%);
     }
+
+    &.active {
+        background-color: $purple;
+    }
+
 }
 
 ul.list-broken {
     li {
-        border-bottom: 2px $gray-background solid;
+        // border-top: 2px lighten($gray-background, 5%) solid;
     }
 
-    li:last-child {
-        border-width: 0px;
+    &:last-child {
+        // border-bottom: 2px lighten($gray-background, 5%) solid;
     }
 
 }
