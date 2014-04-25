@@ -265,23 +265,38 @@ func FixupCheckType(raw interface{}) error {
 	if !ok {
 		return nil
 	}
-	if ttl, ok := rawMap["ttl"]; ok {
+
+	var ttlKey string
+	for k, _ := range rawMap {
+		if strings.ToLower(k) == "ttl" {
+			ttlKey = k
+		}
+	}
+	var intervalKey string
+	for k, _ := range rawMap {
+		if strings.ToLower(k) == "interval" {
+			intervalKey = k
+		}
+	}
+
+	if ttl, ok := rawMap[ttlKey]; ok {
 		ttlS, ok := ttl.(string)
 		if ok {
 			if dur, err := time.ParseDuration(ttlS); err != nil {
 				return err
 			} else {
-				rawMap["ttl"] = dur
+				rawMap[ttlKey] = dur
 			}
 		}
 	}
-	if interval, ok := rawMap["interval"]; ok {
+
+	if interval, ok := rawMap[intervalKey]; ok {
 		intervalS, ok := interval.(string)
 		if ok {
 			if dur, err := time.ParseDuration(intervalS); err != nil {
 				return err
 			} else {
-				rawMap["interval"] = dur
+				rawMap[intervalKey] = dur
 			}
 		}
 	}
