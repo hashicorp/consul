@@ -5,6 +5,7 @@
     border-width: 2px;
     color: $gray;
     @include transition(background-color .1s ease-in-out);
+    outline: none;
 
     &:hover {
         color: darken($gray, 10%);

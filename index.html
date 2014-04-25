@@ -41,14 +41,20 @@
         </div>
 
         <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-0">
-            <a class="btn btn-warning" href="#">5 checks failing</a>
+            {{#link-to 'services'}}<button {{bind-attr class=":btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</button>{{/link-to}}
         </div>
 
         <div class="col-md-2 col-sm-3">
-            <a class="btn btn-dropdown btn-default" href="#">
-              {{model}}
-              <span class="caret"></span>
-            </a>
+          <button type="button" {{bind-attr class=":btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> {{model}} <span class="caret"></span> </button>
+
+          {{#if isDropdownVisible}}
+            <ul class="dropdown-menu" style="display:block;">
+              {{#each dc in dcs}}
+                <li {{action "toggle"}}>{{#link-to 'services' dc}}{{dc}}{{/link-to}}</li>
+              {{/each}}
+            </ul>
+          {{/if}}
+
         </div>
       </div>
     </div>
@@ -209,9 +215,9 @@
   <script type="text/x-handlebars" id="index">
     <div class="col-md-8 col-md-offset-2 vertical-center">
       {{#each item in model}}
-        {{#link-to 'dc' item }}
-            <div class="panel panel-success panel-link panel-short">
-              <div class="panel-bar"></div>
+        {{#link-to 'services' item }}
+            <div class="panel panel-link panel-short">
+              <div class="panel-bar bg-green"></div>
               <div class="panel-heading">
                 <h3 class="panel-title">
                   {{item}}

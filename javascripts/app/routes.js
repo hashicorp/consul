@@ -43,6 +43,18 @@ App.DcRoute = App.BaseRoute.extend({
   //
   model: function(params) {
     return params.dc;
+  },
+
+  setupController: function(controller, model) {
+    controller.set('content', model);
+
+    controller.set('services', [App.Service.create(window.fixtures.services[0]), App.Service.create(window.fixtures.services[1])]);
+
+    controller.set('dcs', window.fixtures.dcs);
+  },
+
+  afterModel: function(dcs, transition) {
+    this.transitionTo('services');
   }
 });
 

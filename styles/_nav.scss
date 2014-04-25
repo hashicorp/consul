@@ -23,4 +23,23 @@
         width: auto;
     }
 
+    ul.dropdown-menu {
+        li {
+
+            a {
+                text-transform: uppercase;
+                font-weight: 600;
+                font-size: 12px;
+                color: $gray;
+                @include transition(background-color .1s ease-in-out);
+
+                &:hover {
+                    color: darken($gray, 10%);
+                    background-color: lighten($gray-background, 5%);
+                }
+
+            }
+        }
+    }
+
 }
