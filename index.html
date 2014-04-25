@@ -99,8 +99,8 @@
 
       {{#each node in model }}
 
-        <div {{bind-attr class=":panel node.hasFailingChecks:panel-warning:panel-success"}}>
-          <div class="panel-bar"></div>
+        {{#link-to 'nodes.show' node.Node tagName="div" href=false class="panel panel-link" }}
+          <div {{ bind-attr class=":panel-bar node.hasFailingChecks:bg-orange:bg-green" }}></div>
           <div class="panel-heading">
             <h3 class="panel-title">
               {{#link-to 'nodes.show' node.Node class='subtle'}}{{node.Node}}{{/link-to}}
@@ -118,7 +118,7 @@
               {{/each}}
             </ul>
           </div>
-        </div>
+        {{/link-to}}
 
       {{/each}}
   </script>
@@ -164,8 +164,8 @@
 
       {{#each check in model.Checks }}
 
-        <div {{bind-attr class=":panel model.hasFailingChecks:panel-warning:panel-success"}}>
-          <div class="panel-bar"></div>
+        <div class="panel">
+          <div {{bind-attr class=":panel-bar model.hasFailingChecks:bg-orange:bg-green"}} ></div>
           <div class="panel-heading">
             <h3 class="panel-title">
               {{check.Name}}
@@ -192,8 +192,8 @@
       {{#each service in model.Services }}
 
       {{#link-to 'services.show' service.Service }}
-          <div class="panel panel-default panel-link panel-short">
-            <div class="panel-bar"></div>
+          <div class="panel panel-link panel-short">
+            <div class="panel-bar bg-light-gray"></div>
             <div class="panel-heading">
               <h3 class="panel-title">
                 {{service.Service}}
