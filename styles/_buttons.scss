@@ -2,6 +2,7 @@
     text-transform: uppercase;
     font-weight: 600;
     font-size: 12px;
+    border-width: 2px;
     color: $gray;
     @include transition(background-color .1s ease-in-out);
 
@@ -19,9 +20,9 @@
     }
 
     &.btn-primary, &.active {
-        color: $purple;
+        color: $purple-dark;
         background-color: transparent;
-        border: 2px solid $purple;
+        border: 2px solid $purple-dark;
 
         &:hover {
             background-color: $light-purple;
