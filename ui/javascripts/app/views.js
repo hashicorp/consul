@@ -5,6 +5,13 @@
 
 App.DcView = Ember.View.extend({
     templateName: 'dc',
+    classNames: 'dropdowns',
+
+    click: function(e){
+        if ($(e.target).is('.dropdowns')){
+          $('ul.dropdown-menu').hide();
+        }
+    }
 })
 
 //
@@ -40,4 +47,3 @@ App.NodesShowView = Ember.View.extend({
     //
     templateName: 'node'
 })
-
