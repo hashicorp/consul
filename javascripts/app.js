@@ -19,29 +19,6 @@ App.Router.map(function() {
   this.route("kv", { path: "/:dc/kv" });
 });
 
-//
-// The main controller for the application. To use this in other
-// controller you have to use the needs api
-//
-App.ApplicationController = Ember.Controller.extend({
-  //
-  // Sets the current datacenter to be used when linking. DC is
-  // a required parameter in the routes, above, and we need
-  // to know our scope. This is so #link-to 'node' dc node-name
-  // works.
-  //
-  setDc: function(dc) {
-    localStorage.setItem("current_dc", dc);
-  },
-
-  //
-  // Retrieves the current datacenter set by this.setDc from
-  // localstorage. returns null if the dc has not been set.
-  //
-  getDc: function() {
-    return localStorage.getItem("current_dc");
-  }.property("getDc")
-});
 
 //
 // Superclass to be used by all of the main routes below. All routes
@@ -85,20 +62,6 @@ App.IndexRoute = Ember.Route.extend({
 // The index is for choosing datacenters.
 //
 App.IndexController = Ember.Controller.extend({
-  needs: ['application'],
-
-  actions: {
-    //
-    // selectDc is called with the datacenter name to be set for
-    // future actions within the application. It's a namespace, essentially.
-    //
-    // See ApplicationController#setDc
-    //
-    selectDc: function(dc) {
-      this.get('controllers.application').setDc(dc)
-      this.transitionToRoute('services', dc)
-    }
-  }
 });
 
 //
@@ -263,36 +226,6 @@ App.ServicesShowView = Ember.View.extend({
 // path: /:dc
 //
 App.DcController = Ember.Controller.extend({
-  needs: ['application']
-})
-
-//
-//
-// path: /:dc/services
-//
-App.ServicesController = Ember.Controller.extend({
-  needs: ['application']
-})
-
-//
-// path: /:dc/services/:name
-//
-App.ServicesShowController = Ember.Controller.extend({
-  needs: ['application']
-})
-
-//=
-// path: /:dc/nodes
-//
-App.NodesController = Ember.Controller.extend({
-  needs: ['application']
-})
-
-//
-// path: /:dc/nodes/:name
-//
-App.NodesShowController = Ember.Controller.extend({
-  needs: ['application']
 })
 
 //
