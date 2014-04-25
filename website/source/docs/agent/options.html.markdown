@@ -83,7 +83,7 @@ The options below are all specified on the command-line.
 
 * `-protocol` - The Consul protocol version to use. This defaults to the latest
   version. This should be set only when [upgrading](/docs/upgrading.html).
-  You can view the protocol versions supported by Consul by running `serf -v`.
+  You can view the protocol versions supported by Consul by running `consul -v`.
 
 * `-server` - This flag is used to control if an agent is in server or client mode. When provided,
   an agent will act as a Consul server. Each Consul cluster must have at least one server, and ideally
