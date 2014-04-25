@@ -13,10 +13,10 @@ App.Router.map(function() {
     this.resource("nodes", { path: "/nodes" }, function() {
       this.route("show", { path: "/:name" });
     });
+    this.resource("kv", { path: "/kv" });
   });
 
   this.route("index", { path: "/" });
-  this.route("kv", { path: "/:dc/kv" });
 });
 
 
