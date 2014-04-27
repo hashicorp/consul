@@ -1101,14 +1101,15 @@ func TestNodeInfo(t *testing.T) {
 		t.Fatalf("err: %v")
 	}
 
-	idx, info := store.NodeInfo("foo")
+	idx, dump := store.NodeInfo("foo")
 	if idx != 4 {
 		t.Fatalf("bad: %v", idx)
 	}
-	if info == nil {
-		t.Fatalf("Bad: %v", info)
+	if len(dump) != 1 {
+		t.Fatalf("Bad: %v", dump)
 	}
 
+	info := dump[0]
 	if info.Node != "foo" {
 		t.Fatalf("Bad: %v", info)
 	}

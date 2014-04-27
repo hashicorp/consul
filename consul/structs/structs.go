@@ -265,6 +265,11 @@ type IndexedCheckServiceNodes struct {
 	QueryMeta
 }
 
+type IndexedNodeDump struct {
+	Dump NodeDump
+	QueryMeta
+}
+
 // DirEntry is used to represent a directory entry. This is
 // used for values in our Key-Value store.
 type DirEntry struct {

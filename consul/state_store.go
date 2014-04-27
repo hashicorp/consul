@@ -746,7 +746,7 @@ func (s *StateStore) parseCheckServiceNodes(tx *MDBTxn, res []interface{}, err e
 }
 
 // NodeInfo is used to generate the full info about a node.
-func (s *StateStore) NodeInfo(node string) (uint64, *structs.NodeInfo) {
+func (s *StateStore) NodeInfo(node string) (uint64, structs.NodeDump) {
 	tables := s.queryTables["NodeInfo"]
 	tx, err := tables.StartTxn(true)
 	if err != nil {
@@ -760,12 +760,7 @@ func (s *StateStore) NodeInfo(node string) (uint64, *structs.NodeInfo) {
 	}
 
 	res, err := s.nodeTable.GetTxn(tx, "id", node)
-	dump := s.parseNodeInfo(tx, res, err)
-	var n *structs.NodeInfo
-	if len(dump) > 0 {
-		n = dump[0]
-	}
-	return idx, n
+	return idx, s.parseNodeInfo(tx, res, err)
 }
 
 // NodeDump is used to generate the NodeInfo for all nodes. This is very expensive,
