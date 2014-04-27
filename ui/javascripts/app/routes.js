@@ -26,6 +26,13 @@ App.IndexRoute = Ember.Route.extend({
   model: function() {
     return window.fixtures.dcs;
   },
+
+  setupController: function(controller, model) {
+    controller.set('content', model);
+
+    controller.set('dcs', window.fixtures.dcs);
+  },
+
   afterModel: function(dcs, transition) {
     if (dcs.get('length') === 1) {
       this.get('controllers.application').setDc(dcs[0])
