@@ -220,6 +220,21 @@ type CheckServiceNode struct {
 }
 type CheckServiceNodes []CheckServiceNode
 
+// NodeInfo is used to dump all associated information about
+// a node. This is currently used for the UI only, as it is
+// rather expensive to generate.
+type NodeInfo struct {
+	Node     string
+	Address  string
+	Services []*NodeService
+	Checks   []*HealthCheck
+}
+
+// NodeDump is used to dump all the nodes with all their
+// associated data. This is currently used for the UI only,
+// as it is rather expensive to generate.
+type NodeDump []*NodeInfo
+
 type IndexedNodes struct {
 	Nodes Nodes
 	QueryMeta

@@ -1068,6 +1068,108 @@ func TestSS_Register_Deregister_Query(t *testing.T) {
 	}
 }
 
+func TestNodeInfo(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "db",
+		Name:      "Can connect",
+		Status:    structs.HealthPassing,
+		ServiceID: "db1",
+	}
+	if err := store.EnsureCheck(3, check); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check = &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: SerfCheckID,
+		Name:    SerfCheckName,
+		Status:  structs.HealthPassing,
+	}
+	if err := store.EnsureCheck(4, check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	idx, info := store.NodeInfo("foo")
+	if idx != 4 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if info == nil {
+		t.Fatalf("Bad: %v", info)
+	}
+
+	if info.Node != "foo" {
+		t.Fatalf("Bad: %v", info)
+	}
+	if info.Services[0].ID != "db1" {
+		t.Fatalf("Bad: %v", info)
+	}
+	if len(info.Checks) != 2 {
+		t.Fatalf("Bad: %v", info)
+	}
+	if info.Checks[0].CheckID != "db" {
+		t.Fatalf("Bad: %v", info)
+	}
+	if info.Checks[1].CheckID != SerfCheckID {
+		t.Fatalf("Bad: %v", info)
+	}
+}
+
+func TestNodeDump(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	if err := store.EnsureNode(3, structs.Node{"baz", "127.0.0.2"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureService(4, "baz", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	idx, dump := store.NodeDump()
+	if idx != 4 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(dump) != 2 {
+		t.Fatalf("Bad: %v", dump)
+	}
+
+	info := dump[0]
+	if info.Node != "baz" {
+		t.Fatalf("Bad: %v", info)
+	}
+	if info.Services[0].ID != "db1" {
+		t.Fatalf("Bad: %v", info)
+	}
+	info = dump[1]
+	if info.Node != "foo" {
+		t.Fatalf("Bad: %v", info)
+	}
+	if info.Services[0].ID != "db1" {
+		t.Fatalf("Bad: %v", info)
+	}
+}
+
 func TestKVSSet_Get(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
