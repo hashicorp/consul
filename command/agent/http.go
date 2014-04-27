@@ -141,11 +141,20 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 
 // Renders a simple index page
 func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
-	if req.URL.Path == "/" {
-		resp.Write([]byte("Consul Agent"))
-	} else {
+	// Check if this is a non-index path
+	if req.URL.Path != "/" {
 		resp.WriteHeader(404)
+		return
 	}
+
+	// Check if we have no UI configured
+	if s.uiDir == "" {
+		resp.Write([]byte("Consul Agent"))
+		return
+	}
+
+	// Redirect to the UI endpoint
+	http.Redirect(resp, req, "/ui/", 301)
 }
 
 // decodeBody is used to decode a JSON request body
