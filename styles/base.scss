@@ -22,6 +22,12 @@
   }
 }
 
+a {
+    button:active {
+        outline: none;
+    }
+}
+
 
 .no-margin {
     margin: 0;
