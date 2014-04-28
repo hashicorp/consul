@@ -102,7 +102,11 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 
 	// Enable the UI + special endpoints
 	if s.uiDir != "" {
+		// Static file serving done from /ui/
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
+
+		// API's are under /internal/ui/ to avoid conflict
+		s.mux.HandleFunc("/v1/internal/ui/nodes/", s.wrap(s.UINodes))
 	}
 }
 

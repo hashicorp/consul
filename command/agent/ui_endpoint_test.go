@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"github.com/hashicorp/consul/consul/structs"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestUiIndex(t *testing.T) {
@@ -28,13 +30,17 @@ func TestUiIndex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	req.URL.Scheme = "http"
+	req.URL.Host = srv.listener.Addr().String()
 
 	// Make the request
-	resp := httptest.NewRecorder()
-	srv.UiIndex(resp, req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	// Verify teh response
-	if resp.Code != 200 {
+	if resp.StatusCode != 200 {
 		t.Fatalf("bad: %v", resp)
 	}
 
@@ -43,5 +49,33 @@ func TestUiIndex(t *testing.T) {
 	io.Copy(out, resp.Body)
 	if string(out.Bytes()) != "test" {
 		t.Fatalf("bad: %s", out.Bytes())
+	}
+}
+
+func TestUiNodes(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	req, err := http.NewRequest("GET", "/v1/internal/ui/nodes/dc1", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := srv.UINodes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	assertIndex(t, resp)
+
+	// Should be 1 node for the server
+	nodes := obj.(structs.NodeDump)
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", obj)
 	}
 }
