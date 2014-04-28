@@ -115,3 +115,27 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 			return nil
 		})
 }
+
+// ListKeys is used to list all keys with a given prefix to a seperator
+func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyList) error {
+	// Ensure we have a seperator
+	if args.Seperator == "" {
+		return fmt.Errorf("Missing seperator")
+	}
+
+	// Forward if necessary
+	if done, err := k.srv.forward("KVS.ListKeys", args, args, reply); done {
+		return err
+	}
+
+	// Get the local state
+	state := k.srv.fsm.State()
+	return k.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
+		state.QueryTables("KVSListKeys"),
+		func() error {
+			var err error
+			reply.Index, reply.Keys, err = state.KVSListKeys(args.Prefix, args.Seperator)
+			return err
+		})
+}

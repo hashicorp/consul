@@ -171,3 +171,62 @@ func TestKVSEndpoint_List(t *testing.T) {
 		}
 	}
 }
+
+func TestKVSEndpoint_ListKeys(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	keys := []string{
+		"/test/key1",
+		"/test/key2",
+		"/test/sub/key3",
+	}
+
+	for _, key := range keys {
+		arg := structs.KVSRequest{
+			Datacenter: "dc1",
+			Op:         structs.KVSSet,
+			DirEnt: structs.DirEntry{
+				Key:   key,
+				Flags: 1,
+			},
+		}
+		var out bool
+		if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	getR := structs.KeyListRequest{
+		Datacenter: "dc1",
+		Prefix:     "/test/",
+		Seperator:  "/",
+	}
+	var dirent structs.IndexedKeyList
+	if err := client.Call("KVS.ListKeys", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Keys) != 3 {
+		t.Fatalf("Bad: %v", dirent.Keys)
+	}
+	if dirent.Keys[0] != "/test/key1" {
+		t.Fatalf("Bad: %v", dirent.Keys)
+	}
+	if dirent.Keys[1] != "/test/key2" {
+		t.Fatalf("Bad: %v", dirent.Keys)
+	}
+	if dirent.Keys[2] != "/test/sub/" {
+		t.Fatalf("Bad: %v", dirent.Keys)
+	}
+
+}

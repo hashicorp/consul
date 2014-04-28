@@ -313,8 +313,25 @@ func (r *KeyRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
+// KeyListRequest is used to list keys
+type KeyListRequest struct {
+	Datacenter string
+	Prefix     string
+	Seperator  string
+	QueryOptions
+}
+
+func (r *KeyListRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
 type IndexedDirEntries struct {
 	Entries DirEntries
+	QueryMeta
+}
+
+type IndexedKeyList struct {
+	Keys []string
 	QueryMeta
 }
 
