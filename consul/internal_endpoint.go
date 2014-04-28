@@ -4,17 +4,17 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 )
 
-// Misc endpoint is used to query the miscellaneous info that
+// Internal endpoint is used to query the miscellaneous info that
 // does not necessarily fit into the other systems. It is also
 // used to hold undocumented APIs that users should not rely on.
-type Misc struct {
+type Internal struct {
 	srv *Server
 }
 
 // ChecksInState is used to get all the checks in a given state
-func (m *Misc) NodeInfo(args *structs.NodeSpecificRequest,
+func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedNodeDump) error {
-	if done, err := m.srv.forward("Misc.NodeInfo", args, args, reply); done {
+	if done, err := m.srv.forward("Internal.NodeInfo", args, args, reply); done {
 		return err
 	}
 
@@ -30,9 +30,9 @@ func (m *Misc) NodeInfo(args *structs.NodeSpecificRequest,
 }
 
 // ChecksInState is used to get all the checks in a given state
-func (m *Misc) NodeDump(args *structs.DCSpecificRequest,
+func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 	reply *structs.IndexedNodeDump) error {
-	if done, err := m.srv.forward("Misc.NodeDump", args, args, reply); done {
+	if done, err := m.srv.forward("Internal.NodeDump", args, args, reply); done {
 		return err
 	}
 

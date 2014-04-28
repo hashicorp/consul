@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestMisc_NodeInfo(t *testing.T) {
+func TestInternal_NodeInfo(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -42,7 +42,7 @@ func TestMisc_NodeInfo(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       "foo",
 	}
-	if err := client.Call("Misc.NodeInfo", &req, &out2); err != nil {
+	if err := client.Call("Internal.NodeInfo", &req, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -61,7 +61,7 @@ func TestMisc_NodeInfo(t *testing.T) {
 	}
 }
 
-func TestMisc_NodeDump(t *testing.T) {
+func TestInternal_NodeDump(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -114,7 +114,7 @@ func TestMisc_NodeDump(t *testing.T) {
 	req := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
-	if err := client.Call("Misc.NodeDump", &req, &out2); err != nil {
+	if err := client.Call("Internal.NodeDump", &req, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
