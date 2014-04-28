@@ -285,4 +285,32 @@ fixtures.nodes_full = {
 
 fixtures.dcs = ['nyc1', 'sf1', 'sg1']
 
-localStorage.setItem("current_dc", fixtures.dcs[0]);
+fixtures.keys_full = {
+  "application":  {
+    'key': 'application',
+    'value': '',
+    'children': [
+      'secrets',
+      'foobar',
+      'baz'
+    ]
+  },
+  "application/foobar": {
+    'key': 'application/foobar',
+    'value': 'baz',
+    'children': []
+  }
+};
+
+// represents the root index key '/'
+fixtures.keys = [
+  {
+    'key': 'application',
+    'value': '',
+    'children': [
+      'secrets',
+      'foobar',
+      'baz'
+    ]
+  }
+];

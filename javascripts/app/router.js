@@ -12,7 +12,9 @@ App.Router.map(function() {
     this.resource("nodes", { path: "/nodes" }, function() {
       this.route("show", { path: "/:name" });
     });
-    this.resource("kv", { path: "/kv" });
+    this.resource("kv", { path: "/kv" }, function() {
+      this.route("key", { path: "/*wildcard" });
+    });
   });
 
   this.route("index", { path: "/" });
