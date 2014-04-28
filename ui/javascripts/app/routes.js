@@ -4,16 +4,6 @@
 //
 //
 App.BaseRoute = Ember.Route.extend({
-  //
-  // When activating the base route, if we don't have a datacenter set,
-  // transition the user to the index route to choose a datacenter.
-  //
-  activate: function() {
-    var controller = this.controllerFor('application');
-    if (controller.getDc === null) {
-      this.transitionTo('index');
-    };
-  }
 });
 
 //
@@ -58,10 +48,6 @@ App.DcRoute = App.BaseRoute.extend({
     controller.set('services', [App.Service.create(window.fixtures.services[0]), App.Service.create(window.fixtures.services[1])]);
 
     controller.set('dcs', window.fixtures.dcs);
-  },
-
-  afterModel: function(dcs, transition) {
-    this.transitionTo('services');
   }
 });
 
@@ -77,12 +63,12 @@ App.ServicesRoute = App.BaseRoute.extend({
   // the template as {{model}}
   //
   setupController: function(controller, model) {
-      //
-      // Since we have 2 column layout, we need to also display the
-      // list of services on the left. Hence setting the attribute
-      // {{services}} on the controller.
-      //
-      controller.set('services', [App.Service.create(window.fixtures.services[0]), App.Service.create(window.fixtures.services[1])]);
+    //
+    // Since we have 2 column layout, we need to also display the
+    // list of services on the left. Hence setting the attribute
+    // {{services}} on the controller.
+    //
+    controller.set('services', [App.Service.create(window.fixtures.services[0]), App.Service.create(window.fixtures.services[1])]);
   }
 });
 
@@ -98,16 +84,6 @@ App.ServicesShowRoute = App.BaseRoute.extend({
   //
   model: function(params) {
     return [App.Node.create(window.fixtures.services_full[params.name][0]), App.Node.create(window.fixtures.services_full[params.name][1])];
-  },
-
-  setupController: function(controller, model) {
-      controller.set('content', model);
-      //
-      // Since we have 2 column layout, we need to also display the
-      // list of services on the left. Hence setting the attribute
-      // {{services}} on the controller.
-      //
-      controller.set('services', [App.Service.create(window.fixtures.services[0]), App.Service.create(window.fixtures.services[1])]);
   }
 });
 
