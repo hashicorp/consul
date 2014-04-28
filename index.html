@@ -22,33 +22,33 @@
 
   <script type="text/x-handlebars" data-template-name="dc">
     <div class="row">
-      <div class="col-md-12 col-sm-12 topbar">
+      <div class="col-md-12 col-sm-12 col-xs-12 topbar">
 
-        <div class="col-md-1 col-sm-2">
+        <div class="col-md-1 col-sm-2 col-xs-12">
           <a href="#"><div class="top-brand"></div></a>
         </div>
 
-        <div class="col-md-2 col-sm-3">
-         {{#link-to 'services' class='btn btn-default'}}Services{{/link-to}}
+        <div class="col-md-2 col-sm-3 col-xs-12">
+         {{#link-to 'services' class='btn btn-default col-xs-12'}}Services{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-3">
-          {{#link-to 'nodes' class='btn btn-default'}}Nodes{{/link-to}}
+        <div class="col-md-2 col-sm-3 col-xs-12">
+          {{#link-to 'nodes' class='btn btn-default col-xs-12'}}Nodes{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-3">
-          {{#link-to 'kv' class='btn btn-default'}}Key/Value{{/link-to}}
+        <div class="col-md-2 col-sm-3 col-xs-12">
+          {{#link-to 'kv' class='btn btn-default col-xs-12'}}Key/Value{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-0">
-            {{#link-to 'services'}}<button {{bind-attr class=":btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</button>{{/link-to}}
+        <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-5 col-xs-6">
+            {{#link-to 'services'}}<button {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</button>{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-3">
-          <button type="button" {{bind-attr class=":btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> {{model}} <span class="caret"></span> </button>
+        <div class="col-md-2 col-sm-3 col-xs-6">
+          <button type="button" {{bind-attr class=":col-xs-12 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> {{model}} <span class="caret"></span> </button>
 
           {{#if isDropdownVisible}}
-            <ul class="dropdown-menu" style="display:block;">
+            <ul class="dropdown-menu col-xs-12" style="display:block;">
               {{#each dc in dcs}}
                 <li {{action "toggle"}}>{{#link-to 'services' dc}}{{dc}}{{/link-to}}</li>
               {{/each}}
@@ -63,26 +63,27 @@
   </script>
 
   <script type="text/x-handlebars" id="services">
-    <div class="col-md-5">
+    <div {{ bind-attr class=":col-md-5 hasChild:hidden" }}>
 
       {{#each service in services}}
+
         <div class="row">
-          {{#link-to 'services.show' service.Name tagName="div" href=false class="list-group-item list-link" }}
-            <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
-            <h4 class="list-group-item-heading">
-              {{#link-to 'services.show' service.Name class='subtle'}}{{service.Name}}{{/link-to}}
-              <small>{{service.Name}}</small>
-              <div class="heading-helper">
-                <a class="subtle" href="#">{{service.checkMessage}}</a>
-              </div>
-            </h4>
-            <ul class="list-inline">
-              {{#each node in service.Nodes }}
-              <li>{{#link-to 'nodes.show' node class='subtle'}}{{node}}{{/link-to}}</li>
-              {{/each}}
-            </ul>
-          </div>
-        {{/link-to}}
+            {{#link-to 'services.show' service.Name tagName="div" href=false class="list-group-item list-link" }}
+              <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+              <h4 class="list-group-item-heading">
+                {{#link-to 'services.show' service.Name class='subtle'}}{{service.Name}}{{/link-to}}
+                <small>{{service.Name}}</small>
+                <div class="heading-helper">
+                  <a class="subtle" href="#">{{service.checkMessage}}</a>
+                </div>
+              </h4>
+              <ul class="list-inline">
+                {{#each node in service.Nodes }}
+                <li>{{#link-to 'nodes.show' node class='subtle'}}{{node}}{{/link-to}}</li>
+                {{/each}}
+              </ul>
+          {{/link-to}}
+        </div>
 
       {{/each}}
 
@@ -127,6 +128,8 @@
         {{/link-to}}
 
       {{/each}}
+
+      {{#link-to "services" class="btn btn-default col-xs-12 visible-xs" }}All Services{{/link-to}}
   </script>
 
   <script type="text/x-handlebars" id="nodes">
@@ -210,6 +213,8 @@
         </div>
       {{/link-to}}
       {{/each}}
+
+      {{#link-to "nodes" class="btn btn-default col-xs-12 visible-xs" }}All Nodes{{/link-to}}
   </script>
 
   <script type="text/x-handlebars" id="index">

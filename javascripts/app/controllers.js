@@ -53,4 +53,20 @@ App.DcController = Ember.Controller.extend({
   }
 })
 
+//
+// path: /:dc/services
+//
+// The index is for choosing services.
+//
+App.ServicesController = Ember.ArrayController.extend({
+  needs: ['application']
+});
 
+//
+// path: /:dc/services/:name
+//
+// An individual service.
+//
+App.ServicesShowController = Ember.Controller.extend({
+  needs: ['services']
+});
