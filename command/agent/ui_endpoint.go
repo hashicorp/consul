@@ -3,8 +3,18 @@ package agent
 import (
 	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
+	"sort"
 	"strings"
 )
+
+// ServiceSummary is used to summarize a service
+type ServiceSummary struct {
+	Name           string
+	Nodes          []string
+	ChecksPassing  int
+	ChecksWarning  int
+	ChecksCritical int
+}
 
 // UINodes is used to list the nodes in a given datacenter. We return a
 // NodeDump which provides overview information for all the nodes
@@ -85,4 +95,69 @@ START:
 	// Set the result
 	*dump = out.Dump
 	return nil
+}
+
+// UIServices is used to list the services in a given datacenter. We return a
+// ServiceSummary which provides overview information for the service
+func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Get the datacenter
+	var dc string
+	s.parseDC(req, &dc)
+
+	// Get the full node dump...
+	var dump structs.NodeDump
+	if err := s.getNodeDump(resp, dc, "", &dump); err != nil {
+		return nil, err
+	}
+
+	// Generate the summary
+	return summarizeServices(dump), nil
+}
+
+func summarizeServices(dump structs.NodeDump) []*ServiceSummary {
+	// Collect the summary information
+	var services []string
+	summary := make(map[string]*ServiceSummary)
+	getService := func(service string) *ServiceSummary {
+		serv, ok := summary[service]
+		if !ok {
+			serv = &ServiceSummary{Name: service}
+			summary[service] = serv
+			services = append(services, service)
+		}
+		return serv
+	}
+
+	// Aggregate all the node information
+	for _, node := range dump {
+		for _, service := range node.Services {
+			sum := getService(service.Service)
+			sum.Nodes = append(sum.Nodes, node.Node)
+		}
+		for _, check := range node.Checks {
+			if check.ServiceName == "" {
+				continue
+			}
+			sum := getService(check.ServiceName)
+			switch check.Status {
+			case structs.HealthPassing:
+				sum.ChecksPassing++
+			case structs.HealthWarning:
+				sum.ChecksWarning++
+			case structs.HealthCritical:
+				sum.ChecksCritical++
+			}
+		}
+	}
+
+	// Return the services in sorted order
+	sort.Strings(services)
+	output := make([]*ServiceSummary, len(summary))
+	for idx, service := range services {
+		// Sort the nodes
+		sum := summary[service]
+		sort.Strings(sum.Nodes)
+		output[idx] = sum
+	}
+	return output
 }

@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -107,5 +108,98 @@ func TestUiNodeInfo(t *testing.T) {
 	node := obj.(*structs.NodeInfo)
 	if node.Node != srv.agent.config.NodeName {
 		t.Fatalf("bad: %v", node)
+	}
+}
+
+func TestSummarizeServices(t *testing.T) {
+	dump := structs.NodeDump{
+		&structs.NodeInfo{
+			Node:    "foo",
+			Address: "127.0.0.1",
+			Services: []*structs.NodeService{
+				&structs.NodeService{
+					Service: "api",
+				},
+				&structs.NodeService{
+					Service: "web",
+				},
+			},
+			Checks: []*structs.HealthCheck{
+				&structs.HealthCheck{
+					Status:      structs.HealthCritical,
+					ServiceName: "",
+				},
+				&structs.HealthCheck{
+					Status:      structs.HealthPassing,
+					ServiceName: "web",
+				},
+				&structs.HealthCheck{
+					Status:      structs.HealthWarning,
+					ServiceName: "api",
+				},
+			},
+		},
+		&structs.NodeInfo{
+			Node:    "bar",
+			Address: "127.0.0.2",
+			Services: []*structs.NodeService{
+				&structs.NodeService{
+					Service: "web",
+				},
+			},
+			Checks: []*structs.HealthCheck{
+				&structs.HealthCheck{
+					Status:      structs.HealthCritical,
+					ServiceName: "web",
+				},
+			},
+		},
+		&structs.NodeInfo{
+			Node:    "zip",
+			Address: "127.0.0.3",
+			Services: []*structs.NodeService{
+				&structs.NodeService{
+					Service: "cache",
+				},
+			},
+		},
+	}
+
+	summary := summarizeServices(dump)
+	if len(summary) != 3 {
+		t.Fatalf("bad: %v", summary)
+	}
+
+	expectAPI := &ServiceSummary{
+		Name:           "api",
+		Nodes:          []string{"foo"},
+		ChecksPassing:  0,
+		ChecksWarning:  1,
+		ChecksCritical: 0,
+	}
+	if !reflect.DeepEqual(summary[0], expectAPI) {
+		t.Fatalf("bad: %v", summary[0])
+	}
+
+	expectCache := &ServiceSummary{
+		Name:           "cache",
+		Nodes:          []string{"zip"},
+		ChecksPassing:  0,
+		ChecksWarning:  0,
+		ChecksCritical: 0,
+	}
+	if !reflect.DeepEqual(summary[1], expectCache) {
+		t.Fatalf("bad: %v", summary[1])
+	}
+
+	expectWeb := &ServiceSummary{
+		Name:           "web",
+		Nodes:          []string{"bar", "foo"},
+		ChecksPassing:  1,
+		ChecksWarning:  0,
+		ChecksCritical: 1,
+	}
+	if !reflect.DeepEqual(summary[2], expectWeb) {
+		t.Fatalf("bad: %v", summary[2])
 	}
 }

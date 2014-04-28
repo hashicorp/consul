@@ -108,6 +108,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		// API's are under /internal/ui/ to avoid conflict
 		s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
 		s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
+		s.mux.HandleFunc("/v1/internal/ui/services", s.wrap(s.UIServices))
 	}
 }
 
