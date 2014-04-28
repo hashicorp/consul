@@ -62,6 +62,26 @@
     {{outlet}}
   </script>
 
+  <script type="text/x-handlebars" data-template-name="kv">
+    <div class="row">
+      <div class="col-md-5">
+
+        <ul>
+        {{#each child in model.children}}
+          <li {{action 'linkToKey' model.key child }}>{{ child }}</li>
+        {{/each}}
+        </ul>
+      </div>
+
+      {{#if model.value}}
+      <div class="col-md-5 col-md-offset-1">
+      <h4>{{ model.key }}</h4>
+      {{ input value=model.value class="form-control"}}
+      </div>
+      {{/if}}
+    </div>
+  </script>
+
   <script type="text/x-handlebars" id="services">
     <div {{ bind-attr class=":col-md-5 hasChild:hidden" }}>
 
@@ -72,7 +92,6 @@
               <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
               <h4 class="list-group-item-heading">
                 {{#link-to 'services.show' service.Name class='subtle'}}{{service.Name}}{{/link-to}}
-                <small>{{service.Name}}</small>
                 <div class="heading-helper">
                   <a class="subtle" href="#">{{service.checkMessage}}</a>
                 </div>
@@ -141,7 +160,7 @@
             <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
             <h4 class="list-group-item-heading">
               {{#link-to 'nodes.show' node.Name class='subtle'}}{{node.Name}}{{/link-to}}
-              <small>{{node.Name}}</small>
+              <small>{{node.Address}}</small>
               <div class="heading-helper">
                 <a class="subtle" href="#">{{node.checkMessage}}</a>
               </div>

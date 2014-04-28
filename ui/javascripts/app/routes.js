@@ -51,6 +51,25 @@ App.DcRoute = App.BaseRoute.extend({
   }
 });
 
+//
+// The route for for browsing and editing k/v data
+//
+//
+App.KvRoute = Ember.Route.extend({
+  model: function(params) {
+    var parts = window.location.hash.split("/").slice(3)
+
+    var key = parts.join("/")
+
+    console.log(key);
+
+    return window.fixtures.keys_full[key];
+  },
+
+  setupController: function(controller, model) {
+    controller.set('content', model);
+  }
+});
 
 /// services
 
