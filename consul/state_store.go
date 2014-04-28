@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strings"
 )
 
 const (
@@ -245,6 +246,7 @@ func (s *StateStore) initialize() error {
 		"NodeDump":          MDBTables{s.nodeTable, s.serviceTable, s.checkTable},
 		"KVSGet":            MDBTables{s.kvsTable},
 		"KVSList":           MDBTables{s.kvsTable},
+		"KVSListKeys":       MDBTables{s.kvsTable},
 	}
 	return nil
 }
@@ -900,6 +902,51 @@ func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) 
 		ents[idx] = r.(*structs.DirEntry)
 	}
 	return idx, ents, err
+}
+
+// KVSListKeys is used to list keys with a prefix, and up to a given seperator
+func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, error) {
+	tx, err := s.kvsTable.StartTxn(true, nil)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer tx.Abort()
+
+	idx, err := s.kvsTable.LastIndexTxn(tx)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// Aggregate the stream
+	stream := make(chan interface{}, 128)
+	done := make(chan struct{})
+	var keys []string
+	go func() {
+		prefixLen := len(prefix)
+		last := ""
+		for raw := range stream {
+			ent := raw.(*structs.DirEntry)
+			after := ent.Key[prefixLen:]
+
+			// Check for the seperator
+			if idx := strings.Index(after, seperator); idx >= 0 {
+				toSep := ent.Key[:prefixLen+idx+1]
+				if last != toSep {
+					keys = append(keys, toSep)
+					last = toSep
+				}
+
+			} else {
+				keys = append(keys, ent.Key)
+			}
+		}
+		close(done)
+	}()
+
+	// Start the stream, and wait for completion
+	err = s.kvsTable.StreamTxn(stream, tx, "id_prefix", prefix)
+	<-done
+	return idx, keys, err
 }
 
 // KVSDelete is used to delete a KVS entry
