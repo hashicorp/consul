@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -279,5 +280,66 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 	}
 	if string(d.Value) != "zip" {
 		t.Fatalf("bad: %v", d)
+	}
+}
+
+func TestKVSEndpoint_ListKeys(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Wait for a leader
+	time.Sleep(100 * time.Millisecond)
+
+	keys := []string{
+		"bar",
+		"baz",
+		"foo/sub1",
+		"foo/sub2",
+		"zip",
+	}
+
+	for _, key := range keys {
+		buf := bytes.NewBuffer([]byte("test"))
+		req, err := http.NewRequest("PUT", "/v1/kv/"+key, buf)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.KVSEndpoint(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if res := obj.(bool); !res {
+			t.Fatalf("should work")
+		}
+	}
+
+	{
+		// Get all the keys
+		req, err := http.NewRequest("GET", "/v1/kv/?keys&seperator=/", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.KVSEndpoint(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		assertIndex(t, resp)
+
+		res, ok := obj.([]string)
+		if !ok {
+			t.Fatalf("should work")
+		}
+
+		expect := []string{"bar", "baz", "foo/", "zip"}
+		if !reflect.DeepEqual(res, expect) {
+			t.Fatalf("bad: %v", res)
+		}
 	}
 }

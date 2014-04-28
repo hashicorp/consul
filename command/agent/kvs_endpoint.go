@@ -19,10 +19,21 @@ func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (i
 	// Pull out the key name, validation left to each sub-handler
 	args.Key = strings.TrimPrefix(req.URL.Path, "/v1/kv/")
 
+	// Check for a key list
+	keyList := false
+	params := req.URL.Query()
+	if _, ok := params["keys"]; ok {
+		keyList = true
+	}
+
 	// Switch on the method
 	switch req.Method {
 	case "GET":
-		return s.KVSGet(resp, req, &args)
+		if keyList {
+			return s.KVSGetKeys(resp, req, &args)
+		} else {
+			return s.KVSGet(resp, req, &args)
+		}
 	case "PUT":
 		return s.KVSPut(resp, req, &args)
 	case "DELETE":
@@ -58,6 +69,38 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 		return nil, nil
 	}
 	return out.Entries, nil
+}
+
+// KVSGetKeys handles a GET request for keys
+func (s *HTTPServer) KVSGetKeys(resp http.ResponseWriter, req *http.Request, args *structs.KeyRequest) (interface{}, error) {
+	// Check for a seperator
+	var sep string
+	params := req.URL.Query()
+	if _, ok := params["seperator"]; ok {
+		sep = params.Get("seperator")
+	}
+
+	// Construct the args
+	listArgs := structs.KeyListRequest{
+		Datacenter:   args.Datacenter,
+		Prefix:       args.Key,
+		Seperator:    sep,
+		QueryOptions: args.QueryOptions,
+	}
+
+	// Make the RPC
+	var out structs.IndexedKeyList
+	if err := s.agent.RPC("KVS.ListKeys", &listArgs, &out); err != nil {
+		return nil, err
+	}
+	setMeta(resp, &out.QueryMeta)
+
+	// Check if we get a not found
+	if len(out.Keys) == 0 {
+		resp.WriteHeader(404)
+		return nil, nil
+	}
+	return out.Keys, nil
 }
 
 // KVSPut handles a PUT request
