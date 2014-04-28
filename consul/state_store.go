@@ -923,19 +923,25 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 	var keys []string
 	go func() {
 		prefixLen := len(prefix)
+		sepLen := len(seperator)
 		last := ""
 		for raw := range stream {
 			ent := raw.(*structs.DirEntry)
 			after := ent.Key[prefixLen:]
 
+			// If there is no seperator, always accumulate
+			if sepLen == 0 {
+				keys = append(keys, ent.Key)
+				continue
+			}
+
 			// Check for the seperator
 			if idx := strings.Index(after, seperator); idx >= 0 {
-				toSep := ent.Key[:prefixLen+idx+1]
+				toSep := ent.Key[:prefixLen+idx+sepLen]
 				if last != toSep {
 					keys = append(keys, toSep)
 					last = toSep
 				}
-
 			} else {
 				keys = append(keys, ent.Key)
 			}

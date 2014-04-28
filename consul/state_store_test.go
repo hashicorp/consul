@@ -1499,6 +1499,21 @@ func TestKVS_ListKeys(t *testing.T) {
 	if keys[0] != "/web/sub/c" {
 		t.Fatalf("bad: %v", keys)
 	}
+
+	// Should list all
+	idx, keys, err = store.KVSListKeys("/web/", "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1002 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(keys) != 3 {
+		t.Fatalf("bad: %v", keys)
+	}
+	if keys[2] != "/web/sub/c" {
+		t.Fatalf("bad: %v", keys)
+	}
 }
 
 func TestKVSDeleteTree(t *testing.T) {
