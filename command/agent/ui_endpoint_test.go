@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
 	"io"
 	"io/ioutil"
@@ -77,5 +78,34 @@ func TestUiNodes(t *testing.T) {
 	nodes := obj.(structs.NodeDump)
 	if len(nodes) != 1 {
 		t.Fatalf("bad: %v", obj)
+	}
+}
+
+func TestUiNodeInfo(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Wait for leader
+	time.Sleep(100 * time.Millisecond)
+
+	req, err := http.NewRequest("GET",
+		fmt.Sprintf("/v1/internal/ui/node/%s", srv.agent.config.NodeName), nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := srv.UINodeInfo(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	assertIndex(t, resp)
+
+	// Should be 1 node for the server
+	node := obj.(*structs.NodeInfo)
+	if node.Node != srv.agent.config.NodeName {
+		t.Fatalf("bad: %v", node)
 	}
 }

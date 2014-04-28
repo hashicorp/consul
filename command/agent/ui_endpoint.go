@@ -7,36 +7,76 @@ import (
 )
 
 // UINodes is used to list the nodes in a given datacenter. We return a
-// UINodeList which provides overview information for all the nodes
+// NodeDump which provides overview information for all the nodes
 func (s *HTTPServer) UINodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Verify we have some DC, or use the default
-	dc := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/nodes/")
-	if dc == "" {
-		dc = s.agent.config.Datacenter
-	}
+	// Get the datacenter
+	var dc string
+	s.parseDC(req, &dc)
 
 	// Try to ge ta node dump
 	var dump structs.NodeDump
-	if err := s.getNodeDump(resp, dc, &dump); err != nil {
+	if err := s.getNodeDump(resp, dc, "", &dump); err != nil {
 		return nil, err
 	}
 
 	return dump, nil
 }
 
+// UINodeInfo is used to get info on a single node in a given datacenter. We return a
+// NodeInfo which provides overview information for the node
+func (s *HTTPServer) UINodeInfo(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Get the datacenter
+	var dc string
+	s.parseDC(req, &dc)
+
+	// Verify we have some DC, or use the default
+	node := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/node/")
+	if node == "" {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Missing node name"))
+		return nil, nil
+	}
+
+	// Try to get a node dump
+	var dump structs.NodeDump
+	if err := s.getNodeDump(resp, dc, node, &dump); err != nil {
+		return nil, err
+	}
+
+	// Return only the first entry
+	if len(dump) > 0 {
+		return dump[0], nil
+	}
+	return nil, nil
+}
+
 // getNodeDump is used to get a dump of all node data. We make a best effort by
 // reading stale data in the case of an availability outage.
-func (s *HTTPServer) getNodeDump(resp http.ResponseWriter, dc string, dump *structs.NodeDump) error {
-	args := structs.DCSpecificRequest{Datacenter: dc}
+func (s *HTTPServer) getNodeDump(resp http.ResponseWriter, dc, node string, dump *structs.NodeDump) error {
+	var args interface{}
+	var method string
+	var allowStale *bool
+
+	if node == "" {
+		raw := structs.DCSpecificRequest{Datacenter: dc}
+		method = "Internal.NodeDump"
+		allowStale = &raw.AllowStale
+		args = &raw
+	} else {
+		raw := &structs.NodeSpecificRequest{Datacenter: dc, Node: node}
+		method = "Internal.NodeInfo"
+		allowStale = &raw.AllowStale
+		args = &raw
+	}
 	var out structs.IndexedNodeDump
 	defer setMeta(resp, &out.QueryMeta)
 
 START:
-	if err := s.agent.RPC("Internal.NodeDump", &args, &out); err != nil {
+	if err := s.agent.RPC(method, args, &out); err != nil {
 		// Retry the request allowing stale data if no leader. The UI should continue
 		// to function even during an outage
-		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
-			args.AllowStale = true
+		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !*allowStale {
+			*allowStale = true
 			goto START
 		}
 		return err

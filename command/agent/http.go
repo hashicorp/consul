@@ -106,7 +106,8 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
 
 		// API's are under /internal/ui/ to avoid conflict
-		s.mux.HandleFunc("/v1/internal/ui/nodes/", s.wrap(s.UINodes))
+		s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
+		s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
 	}
 }
 
