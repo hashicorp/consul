@@ -303,10 +303,15 @@ fixtures.keys_full = {
     'key': 'web/foo/bar',
     'value': 'baz'
   },
+  "web/foo/baz": {
+    'key': 'web/foo/baz',
+    'value': 'test'
+  },
   "web/": [
     "web/foo/"
   ],
   "web/foo/": [
-    "web/foo/bar"
+    "web/foo/bar",
+    "web/foo/baz"
   ]
 };

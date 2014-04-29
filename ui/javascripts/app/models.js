@@ -87,9 +87,12 @@ App.Key = Ember.Object.extend({
 
   parentKeys: function() {
     var parts = this.get('key').split('/')
-    parts.pop()
-    console.log(parts)
 
-    return parts
+    console.log(parts)
+    part = parts.slice(2)
+
+    console.log(part)
+
+    return '/'
   }.property('parentKey')
 });

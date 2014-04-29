@@ -65,8 +65,8 @@
   <script type="text/x-handlebars" data-template-name="kv/show">
     <a {{action 'linkToKey' parent }}>{{parent}}</a>
 
-    <div class="row">
-      <div class="col-md-5">
+    <div class="col-md-5">
+      <div class="row">
 
         {{#each item in model }}
           <div {{action 'linkToKey' item.key }} class="panel panel-link panel-short">
@@ -89,19 +89,22 @@
   <script type="text/x-handlebars" data-template-name="kv/edit">
     <a {{action 'linkToKey' parent }}>{{parent}}</a>
 
-    <div class="col-md-5">
-      <div class="row">
-          <div {{action 'linkToKey' model.key }} class="panel panel-link panel-short">
-            <div {{bind-attr class=":panel-bar model.isFolder:bg-gray:bg-light-gray" }}></div>
-            <div class="panel-heading">
-              <h3 class="panel-title">
-                {{model.key}}
-              </h3>
+      <div class="col-md-5">
+        <div class="row">
+          {{#each item in siblings }}
+            <div {{action 'linkToKey' item.key }} class="panel panel-link panel-short">
+              <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
+              <div class="panel-heading">
+                <h3 class="panel-title">
+                  {{item.key}}
+                </h3>
+              </div>
             </div>
-          </div>
-      </div>
+          {{/each}}
 
+        </div>
     </div>
+
 
     <div class="col-md-5 col-md-offset-1">
       {{ input value=model.value class="form-control"}}
