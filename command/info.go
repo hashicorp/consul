@@ -73,6 +73,14 @@ func (i *InfoCommand) Run(args []string) int {
 			i.Ui.Output(fmt.Sprintf("\t%s = %s", subkey, val))
 		}
 	}
+
+	// Check for specific warnings
+	runtime, ok := stats["runtime"]
+	if ok {
+		if maxprocs := runtime["max_procs"]; maxprocs == "1" {
+			i.Ui.Output("WARNING: It is highly recommended to set GOMAXPROCS higher than 1")
+		}
+	}
 	return 0
 }
 
