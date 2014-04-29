@@ -85,6 +85,20 @@ App.Key = Ember.Object.extend({
     return (this.get('key').slice(-1) == "/")
   }.property('key'),
 
+  urlSafeKey: function() {
+    return this.get('key').replace(/\//g, "-")
+  }.property('key'),
+
+  linkToRoute: function() {
+    var key = this.get('urlSafeKey')
+
+    if (key.slice(-1) === "-") {
+      return 'kv.show'
+    } else {
+      return 'kv.edit'
+    }
+  }.property('key'),
+
   keyParts: function() {
     var key = this.get('key');
 

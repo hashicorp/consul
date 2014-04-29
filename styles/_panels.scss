@@ -41,8 +41,6 @@
     .panel-bar {
         width: 100%;
         height: 20px;
-        border-top-left-radius: 3px;
-        border-top-right-radius: 3px;
     }
 
     &.panel-link {
@@ -56,5 +54,17 @@
     &.panel-link:hover {
         cursor: pointer;
         background-color: lighten($gray-background, 8%);
+    }
+
+    &.active {
+        >.panel-heading {
+            border-color: $purple;
+        }
+
+        border-color: $purple;
+
+        .panel-bar {
+            background-color: $purple;
+        }
     }
 }

@@ -64,7 +64,7 @@
 
   <script type="text/x-handlebars" data-template-name="kv/show">
   <div class="row">
-    <h5><a href="" {{action 'linkToKey' topModel.grandParentKey }}>{{topModel.parentKey}}</a></h5>
+    <h5><a class="subtle" href="" {{action 'linkToKey' topModel.grandParentKey }}>{{topModel.parentKey}}</a></h5>
   </div>
 
   <div class="row">
@@ -72,48 +72,50 @@
       <div class="row">
 
         {{#each item in model }}
-          <div {{action 'linkToKey' item.key }} class="panel panel-link panel-short">
+
+          {{#link-to item.linkToRoute item.urlSafeKey href=false tagName="div" class="panel panel-link panel-short"}}
             <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
             <div class="panel-heading">
               <h3 class="panel-title">
                 {{item.key}}
               </h3>
             </div>
-          </div>
+          {{/link-to}}
+
         {{/each}}
 
       </div>
     </div>
 
-    <div class="col-md-5 col-md-offset-1">
+    <div class="col-md-6 col-md-offset-1">
     </div>
   </div>
   </script>
 
   <script type="text/x-handlebars" data-template-name="kv/edit">
   <div class="row">
-    <h5><a href="" {{action 'linkToKey' model.grandParentKey }}>{{model.parentKey}}</a></h5>
+    <h5><a class="subtle" href="" {{action 'linkToKey' model.grandParentKey }}>{{model.parentKey}}</a></h5>
   </div>
 
   <div class="row">
       <div class="col-md-5">
         <div class="row">
           {{#each item in siblings }}
-            <div {{action 'linkToKey' item.key }} class="panel panel-link panel-short">
+            {{#link-to item.linkToRoute item.urlSafeKey href=false tagName="div" class="panel panel-link panel-short"}}
               <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
               <div class="panel-heading">
                 <h3 class="panel-title">
                   {{item.key}}
                 </h3>
               </div>
-            </div>
+            {{/link-to}}
           {{/each}}
 
         </div>
     </div>
 
 
-    <div class="col-md-5 col-md-offset-1">
+    <div class="col-md-6 col-md-offset-1">
       <div class="panel">
         <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green" }}></div>
           <div class="panel-heading">
