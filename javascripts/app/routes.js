@@ -91,8 +91,11 @@ App.KvEditRoute = App.BaseRoute.extend({
     var key = params.key.replace(/-/g, "/")
     return App.Key.create().setProperties(window.fixtures.keys_full[key]);
   },
+
   setupController: function(controller, model) {
     controller.set('content', model);
+    controller.set('siblings', this.modelFor('kv.show'));
+    console.log(this.modelFor('kv.show'))
     controller.set('parent', model.get('parentKeys'));
   }
 });
