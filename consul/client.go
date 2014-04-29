@@ -342,6 +342,7 @@ func (c *Client) Stats() map[string]map[string]string {
 			"known_servers": toString(uint64(len(c.consuls))),
 		},
 		"serf_lan": c.serf.Stats(),
+		"runtime":  runtimeStats(),
 	}
 	return stats
 }

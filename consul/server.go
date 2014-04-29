@@ -528,6 +528,7 @@ func (s *Server) Stats() map[string]map[string]string {
 		"raft":     s.raft.Stats(),
 		"serf_lan": s.serfLAN.Stats(),
 		"serf_wan": s.serfWAN.Stats(),
+		"runtime":  runtimeStats(),
 	}
 	return stats
 }
