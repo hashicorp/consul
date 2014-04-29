@@ -64,7 +64,7 @@
 
   <script type="text/x-handlebars" data-template-name="kv/show">
   <div class="row">
-    <a {{action 'linkToKey' parent }} class="btn btn-default">{{parent}}</a>
+    <h5><a href="" {{action 'linkToKey' topModel.grandParentKey }}>{{topModel.parentKey}}</a></h5>
   </div>
 
   <div class="row">
@@ -92,7 +92,7 @@
 
   <script type="text/x-handlebars" data-template-name="kv/edit">
   <div class="row">
-    <a {{action 'linkToKey' parent }} class="btn btn-default">{{parent}}</a>
+    <h5><a href="" {{action 'linkToKey' model.grandParentKey }}>{{model.parentKey}}</a></h5>
   </div>
 
   <div class="row">
@@ -114,7 +114,18 @@
 
 
     <div class="col-md-5 col-md-offset-1">
-      {{ input value=model.value class="form-control"}}
+      <div class="panel">
+        <div class="panel-bar bg-green"></div>
+          <div class="panel-heading">
+            <h3 class="panel-title">
+              {{model.key}}
+            </h3>
+          </div>
+
+          <div class="panel-body">
+            {{ textarea value=model.value class="form-control"}}
+          </div>
+        </div>
     </div>
   </div>
   </script>

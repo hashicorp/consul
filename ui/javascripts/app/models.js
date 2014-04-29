@@ -7,14 +7,14 @@ App.Service = Ember.Object.extend({
   //
   failingChecks: function() {
     return this.get('Checks').filterBy('Status', 'critical').get('length');
-  }.property('failingChecks'),
+  }.property('Checks'),
 
   //
   // The number of passing checks within the service.
   //
   passingChecks: function() {
     return this.get('Checks').filterBy('Status', 'passing').get('length');
-  }.property('passingChecks'),
+  }.property('Checks'),
 
   //
   // The formatted message returned for the user which represents the
@@ -26,7 +26,7 @@ App.Service = Ember.Object.extend({
     } else {
       return this.get('failingChecks') + ' failing';
     }
-  }.property('checkMessage'),
+  }.property('Checks'),
 
   //
   // Boolean of whether or not there are failing checks in the service.
@@ -34,7 +34,7 @@ App.Service = Ember.Object.extend({
   //
   hasFailingChecks: function() {
     return (this.get('failingChecks') > 0);
-  }.property('hasFailingChecks')
+  }.property('Checks')
 });
 
 //
@@ -53,7 +53,7 @@ App.Node = Ember.Object.extend({
   //
   passingChecks: function() {
     return this.get('Checks').filterBy('Status', 'passing').get('length');
-  }.property('passingChecks'),
+  }.property('Checks'),
 
   //
   // The formatted message returned for the user which represents the
@@ -65,7 +65,7 @@ App.Node = Ember.Object.extend({
     } else {
       return this.get('failingChecks') + ' failing';
     }
-  }.property('checkMessage'),
+  }.property('Checks'),
 
   //
   // Boolean of whether or not there are failing checks in the service.
@@ -73,7 +73,7 @@ App.Node = Ember.Object.extend({
   //
   hasFailingChecks: function() {
     return (this.get('failingChecks') > 0);
-  }.property('hasFailingChecks')
+  }.property('Checks')
 });
 
 
@@ -83,7 +83,7 @@ App.Node = Ember.Object.extend({
 App.Key = Ember.Object.extend({
   isFolder: function() {
     return (this.get('key').slice(-1) == "/")
-  }.property('isFolder'),
+  }.property('key'),
 
   keyParts: function() {
     var key = this.get('key');
@@ -92,22 +92,23 @@ App.Key = Ember.Object.extend({
       key = key.substring(0, key.length - 1);
     }
     return key.split('/');
-  }.property('keyParts'),
+  }.property('key'),
 
   parentKey: function() {
-    var parts = this.get('keyParts');
+    var parts = this.get('keyParts').toArray();
 
     parts.pop();
 
     return parts.join("/") + "/";
-  }.property('parentKey'),
+  }.property('key'),
 
   grandParentKey: function() {
-    var parts = this.get('keyParts');
+    var parts = this.get('keyParts').toArray();
+    console.log(parts)
 
     parts.pop();
     parts.pop();
 
     return parts.join("/") + "/";
-  }.property('grandParentKey')
+  }.property('key')
 });
