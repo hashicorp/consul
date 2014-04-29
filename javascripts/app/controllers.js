@@ -70,14 +70,3 @@ App.ServicesController = Ember.ArrayController.extend({
 App.ServicesShowController = Ember.Controller.extend({
   needs: ['services']
 });
-
-
-// Key value controller
-App.KvController = Ember.Controller.extend({
-  actions: {
-    linkToKey: function(top, child) {
-      var route = top + "/" + child
-      this.transitionToRoute('kv.key', route)
-    }
-  }
-});

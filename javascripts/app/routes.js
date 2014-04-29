@@ -4,6 +4,17 @@
 //
 //
 App.BaseRoute = Ember.Route.extend({
+  actions: {
+    linkToKey: function(key) {
+      key = key.replace(/\//g, "-")
+
+      if (key.slice(-1) === "-") {
+        this.transitionTo('kv.show', key)
+      } else {
+        this.transitionTo('kv.edit', key)
+      }
+    }
+  }
 });
 
 //
@@ -19,7 +30,6 @@ App.IndexRoute = Ember.Route.extend({
 
   setupController: function(controller, model) {
     controller.set('content', model);
-
     controller.set('dcs', window.fixtures.dcs);
   },
 
@@ -51,23 +61,39 @@ App.DcRoute = App.BaseRoute.extend({
   }
 });
 
-//
-// The route for for browsing and editing k/v data
-//
-//
-App.KvRoute = Ember.Route.extend({
+
+App.KvRoute = App.BaseRoute.extend({
+  beforeModel: function() {
+    this.transitionTo('kv.show', '-')
+  }
+});
+
+App.KvShowRoute = App.BaseRoute.extend({
   model: function(params) {
-    var parts = window.location.hash.split("/").slice(3)
+    var key = params.key.replace(/-/g, "/")
+    objs = [];
 
-    var key = parts.join("/")
+    window.fixtures.keys_full[key].map(function(obj){
+     objs.push(App.Key.create({key: obj}));
+    });
 
-    console.log(key);
-
-    return window.fixtures.keys_full[key];
+    return objs
   },
 
   setupController: function(controller, model) {
     controller.set('content', model);
+    controller.set('parent', model[0].get('parentKeys'));
+  }
+});
+
+App.KvEditRoute = App.BaseRoute.extend({
+  model: function(params) {
+    var key = params.key.replace(/-/g, "/")
+    return App.Key.create().setProperties(window.fixtures.keys_full[key]);
+  },
+  setupController: function(controller, model) {
+    controller.set('content', model);
+    controller.set('parent', model.get('parentKeys'));
   }
 });
 

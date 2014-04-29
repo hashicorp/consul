@@ -47,3 +47,9 @@ App.NodesShowView = Ember.View.extend({
     //
     templateName: 'node'
 })
+
+
+
+App.KvListView = Ember.View.extend({
+    templateName: 'kv'
+})
