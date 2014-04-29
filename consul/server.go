@@ -11,6 +11,7 @@ import (
 	"net/rpc"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -25,11 +26,12 @@ const (
 )
 
 const (
-	serfLANSnapshot   = "serf/local.snapshot"
-	serfWANSnapshot   = "serf/remote.snapshot"
-	raftState         = "raft/"
-	snapshotsRetained = 2
-	raftDBSize        = 128 * 1024 * 1024 // Limit Raft log to 128MB
+	serfLANSnapshot          = "serf/local.snapshot"
+	serfWANSnapshot          = "serf/remote.snapshot"
+	raftState                = "raft/"
+	snapshotsRetained        = 2
+	raftDBSize32bit   uint64 = 128 * 1024 * 1024      // Limit Raft log to 128MB
+	raftDBSize64bit   uint64 = 8 * 1024 * 1024 * 1024 // Limit Raft log to 8GB
 )
 
 // Server is Consul server which manages the service discovery,
@@ -243,8 +245,16 @@ func (s *Server) setupRaft() error {
 		return err
 	}
 
+	// Set the maximum raft size based on 32/64bit. Since we are
+	// doing an mmap underneath, we need to limit our use of virtual
+	// address space on 32bit, but don't have to care on 64bit.
+	dbSize := raftDBSize32bit
+	if runtime.GOARCH == "amd64" {
+		dbSize = raftDBSize64bit
+	}
+
 	// Create the MDB store for logs and stable storage
-	store, err := raftmdb.NewMDBStoreWithSize(path, raftDBSize)
+	store, err := raftmdb.NewMDBStoreWithSize(path, dbSize)
 	if err != nil {
 		return err
 	}

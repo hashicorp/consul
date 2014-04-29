@@ -8,14 +8,16 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"runtime"
 )
 
 const (
-	dbNodes      = "nodes"
-	dbServices   = "services"
-	dbChecks     = "checks"
-	dbKVS        = "kvs"
-	dbMaxMapSize = 512 * 1024 * 1024 // 512MB maximum size
+	dbNodes                  = "nodes"
+	dbServices               = "services"
+	dbChecks                 = "checks"
+	dbKVS                    = "kvs"
+	dbMaxMapSize32bit uint64 = 512 * 1024 * 1024       // 512MB maximum size
+	dbMaxMapSize64bit uint64 = 32 * 1024 * 1024 * 1024 // 32GB maximum size
 )
 
 // The StateStore is responsible for maintaining all the Consul
@@ -96,8 +98,16 @@ func (s *StateStore) initialize() error {
 		return err
 	}
 
+	// Set the maximum db size based on 32/64bit. Since we are
+	// doing an mmap underneath, we need to limit our use of virtual
+	// address space on 32bit, but don't have to care on 64bit.
+	dbSize := dbMaxMapSize32bit
+	if runtime.GOARCH == "amd64" {
+		dbSize = dbMaxMapSize64bit
+	}
+
 	// Increase the maximum map size
-	if err := s.env.SetMapSize(dbMaxMapSize); err != nil {
+	if err := s.env.SetMapSize(dbSize); err != nil {
 		return err
 	}
 
