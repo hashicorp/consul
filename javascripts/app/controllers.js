@@ -70,3 +70,21 @@ App.ServicesController = Ember.ArrayController.extend({
 App.ServicesShowController = Ember.Controller.extend({
   needs: ['services']
 });
+
+
+App.KvEditController = Ember.Controller.extend({
+  isLoading: false,
+
+  actions: {
+    updateKey: function() {
+      var key = this.get("model");
+      this.set('isLoading', true);
+
+      Ember.run.later(this, function() {
+        this.set('isLoading', false)
+      }, 500);
+
+    }
+  }
+
+});
