@@ -62,23 +62,49 @@
     {{outlet}}
   </script>
 
-  <script type="text/x-handlebars" data-template-name="kv">
+  <script type="text/x-handlebars" data-template-name="kv/show">
+    <a {{action 'linkToKey' parent }}>{{parent}}</a>
+
     <div class="row">
       <div class="col-md-5">
 
-        <ul>
-        {{#each child in model.children}}
-          <li {{action 'linkToKey' model.key child }}>{{ child }}</li>
+        {{#each item in model }}
+          <div {{action 'linkToKey' item.key }} class="panel panel-link panel-short">
+            <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
+            <div class="panel-heading">
+              <h3 class="panel-title">
+                {{item.key}}
+              </h3>
+            </div>
+          </div>
         {{/each}}
-        </ul>
+
+      </div>
+    </div>
+
+    <div class="col-md-5 col-md-offset-1">
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" data-template-name="kv/edit">
+    <a {{action 'linkToKey' parent }}>{{parent}}</a>
+
+    <div class="col-md-5">
+      <div class="row">
+          <div {{action 'linkToKey' model.key }} class="panel panel-link panel-short">
+            <div {{bind-attr class=":panel-bar model.isFolder:bg-gray:bg-light-gray" }}></div>
+            <div class="panel-heading">
+              <h3 class="panel-title">
+                {{model.key}}
+              </h3>
+            </div>
+          </div>
       </div>
 
-      {{#if model.value}}
-      <div class="col-md-5 col-md-offset-1">
-      <h4>{{ model.key }}</h4>
+    </div>
+
+    <div class="col-md-5 col-md-offset-1">
       {{ input value=model.value class="form-control"}}
-      </div>
-      {{/if}}
     </div>
   </script>
 

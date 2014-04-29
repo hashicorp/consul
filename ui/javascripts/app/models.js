@@ -76,3 +76,20 @@ App.Node = Ember.Object.extend({
   }.property('hasFailingChecks')
 });
 
+
+//
+// A key/value object
+//
+App.Key = Ember.Object.extend({
+  isFolder: function() {
+    return (this.get('key').slice(-1) == "/")
+  }.property('isFolder'),
+
+  parentKeys: function() {
+    var parts = this.get('key').split('/')
+    parts.pop()
+    console.log(parts)
+
+    return parts
+  }.property('parentKey')
+});

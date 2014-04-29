@@ -286,31 +286,27 @@ fixtures.nodes_full = {
 fixtures.dcs = ['nyc1', 'sf1', 'sg1']
 
 fixtures.keys_full = {
+  "/": [
+    'foobar',
+    'application',
+    'web/'
+  ],
   "application":  {
     'key': 'application',
-    'value': '',
-    'children': [
-      'secrets',
-      'foobar',
-      'baz'
-    ]
+    'value': 'foobarz'
   },
-  "application/foobar": {
-    'key': 'application/foobar',
-    'value': 'baz',
-    'children': []
-  }
+  "foobar": {
+    'key': 'foobar',
+    'value': 'baz'
+  },
+  "web/foo/bar": {
+    'key': 'web/foo/bar',
+    'value': 'baz'
+  },
+  "web/": [
+    "web/foo/"
+  ],
+  "web/foo/": [
+    "web/foo/bar"
+  ]
 };
-
-// represents the root index key '/'
-fixtures.keys = [
-  {
-    'key': 'application',
-    'value': '',
-    'children': [
-      'secrets',
-      'foobar',
-      'baz'
-    ]
-  }
-];
