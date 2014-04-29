@@ -82,7 +82,7 @@ App.KvShowRoute = App.BaseRoute.extend({
 
   setupController: function(controller, model) {
     controller.set('content', model);
-    controller.set('parent', model[0].get('grandParentKey'));
+    controller.set('topModel', model[0]);
   }
 });
 
@@ -105,8 +105,6 @@ App.KvEditRoute = App.BaseRoute.extend({
     } else {
       controller.set('siblings', this.modelFor('kv.show'));
     }
-
-    controller.set('parent', controller.get('siblings')[0].get('grandParentKey'));
   }
 });
 
