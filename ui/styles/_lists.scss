@@ -42,7 +42,10 @@
     }
 
     &.active {
-        border-color: $gray;
+        border-color: $purple;
+        .list-bar {
+            background-color: $purple;
+        }
     }
 
 }
