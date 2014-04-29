@@ -85,14 +85,29 @@ App.Key = Ember.Object.extend({
     return (this.get('key').slice(-1) == "/")
   }.property('isFolder'),
 
-  parentKeys: function() {
-    var parts = this.get('key').split('/')
+  keyParts: function() {
+    var key = this.get('key');
 
-    console.log(parts)
-    part = parts.slice(2)
+    if (key.slice(-1) == "/") {
+      key = key.substring(0, key.length - 1);
+    }
+    return key.split('/');
+  }.property('keyParts'),
 
-    console.log(part)
+  parentKey: function() {
+    var parts = this.get('keyParts');
 
-    return '/'
-  }.property('parentKey')
+    parts.pop();
+
+    return parts.join("/") + "/";
+  }.property('parentKey'),
+
+  grandParentKey: function() {
+    var parts = this.get('keyParts');
+
+    parts.pop();
+    parts.pop();
+
+    return parts.join("/") + "/";
+  }.property('grandParentKey')
 });
