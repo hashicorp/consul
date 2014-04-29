@@ -1,8 +1,8 @@
 package agent
 
 import (
-	"bytes"
 	"fmt"
+	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/consul/structs"
 	"log"
 	"os/exec"
@@ -16,6 +16,11 @@ const (
 	// Do not allow for a interval below this value.
 	// Otherwise we risk fork bombing a system.
 	MinInterval = time.Second
+
+	// Limit the size of a check's output to the
+	// last CheckBufSize. Prevents an enormous buffer
+	// from being captured
+	CheckBufSize = 4 * 1024 // 4KB
 )
 
 // CheckType is used to create either the CheckMonitor
@@ -115,9 +120,9 @@ func (c *CheckMonitor) check() {
 	cmd := exec.Command(shell, flag, c.Script)
 
 	// Collect the output
-	var output bytes.Buffer
-	cmd.Stdout = &output
-	cmd.Stderr = &output
+	output, _ := circbuf.NewBuffer(CheckBufSize)
+	cmd.Stdout = output
+	cmd.Stderr = output
 
 	// Start the check
 	if err := cmd.Start(); err != nil {
@@ -137,7 +142,13 @@ func (c *CheckMonitor) check() {
 	}()
 	err := <-errCh
 
+	// Get the output, add a message about truncation
 	outputStr := string(output.Bytes())
+	if output.TotalWritten() > output.Size() {
+		outputStr = fmt.Sprintf("Captured %d of %d bytes\n...\n%s",
+			output.Size(), output.TotalWritten(), outputStr)
+	}
+
 	c.Logger.Printf("[DEBUG] agent: check '%s' script '%s' output: %s",
 		c.CheckID, c.Script, outputStr)
 
