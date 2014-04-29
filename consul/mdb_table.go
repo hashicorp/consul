@@ -450,8 +450,29 @@ func (t *MDBTable) DeleteTxn(tx *MDBTxn, index string, parts ...string) (int, er
 }
 
 // deleteWithIndex deletes all associated rows while scanning
-// a given index for a key prefix.
-func (t *MDBTable) deleteWithIndex(tx *MDBTxn, idx *MDBIndex, key []byte) (num int, err error) {
+// a given index for a key prefix. May perform multiple index traversals.
+// This is a hack around a bug in LMDB which can cause a partial delete to
+// take place. To fix this, we invoke the innerDelete until all rows are
+// removed. This hack can be removed once the LMDB bug is resolved.
+func (t *MDBTable) deleteWithIndex(tx *MDBTxn, idx *MDBIndex, key []byte) (int, error) {
+	var total int
+	var num int
+	var err error
+DELETE:
+	num, err = t.innerDeleteWithIndex(tx, idx, key)
+	total += num
+	if err != nil {
+		return total, err
+	}
+	if num > 0 {
+		goto DELETE
+	}
+	return total, nil
+}
+
+// innerDeleteWithIndex deletes all associated rows while scanning
+// a given index for a key prefix. It only traverses the index a single time.
+func (t *MDBTable) innerDeleteWithIndex(tx *MDBTxn, idx *MDBIndex, key []byte) (num int, err error) {
 	// Handle an error while deleting
 	defer func() {
 		if r := recover(); r != nil {

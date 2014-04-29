@@ -57,7 +57,7 @@ func testMDBEnv(t *testing.T) (string, *mdb.Env) {
 	}
 
 	// Increase the maximum map size
-	if err := env.SetMapSize(dbMaxMapSize); err != nil {
+	if err := env.SetMapSize(dbMaxMapSize32bit); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
