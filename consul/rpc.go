@@ -25,6 +25,10 @@ const (
 
 const (
 	maxQueryTime = 600 * time.Second
+
+	// Warn if the Raft command is larger than this.
+	// If it's over 8MB something is probably being abusive.
+	raftWarnSize = 8 * 1024 * 1024
 )
 
 // listen is used to listen for incoming RPC connections
@@ -191,6 +195,11 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 	buf, err := structs.Encode(t, msg)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to encode request: %v", err)
+	}
+
+	// Warn if the command is very large
+	if n := len(buf); n > raftWarnSize {
+		s.logger.Printf("[WARN] consul: Attempting to apply large raft entry (%d bytes)", n)
 	}
 
 	future := s.raft.Apply(buf, 0)
