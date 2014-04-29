@@ -46,7 +46,7 @@ App.Node = Ember.Object.extend({
   //
   failingChecks: function() {
     return this.get('Checks').filterBy('Status', 'critical').get('length');
-  }.property('failingChecks'),
+  }.property('Checks'),
 
   //
   // The number of passing checks within the service.
@@ -104,7 +104,6 @@ App.Key = Ember.Object.extend({
 
   grandParentKey: function() {
     var parts = this.get('keyParts').toArray();
-    console.log(parts)
 
     parts.pop();
     parts.pop();
