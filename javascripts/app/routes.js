@@ -62,7 +62,7 @@ App.DcRoute = App.BaseRoute.extend({
 });
 
 
-App.KvRoute = App.BaseRoute.extend({
+App.KvIndexRoute = App.BaseRoute.extend({
   beforeModel: function() {
     this.transitionTo('kv.show', '-')
   }
@@ -82,7 +82,7 @@ App.KvShowRoute = App.BaseRoute.extend({
 
   setupController: function(controller, model) {
     controller.set('content', model);
-    controller.set('parent', model[0].get('parentKeys'));
+    controller.set('parent', model[0].get('grandParentKey'));
   }
 });
 
@@ -94,9 +94,19 @@ App.KvEditRoute = App.BaseRoute.extend({
 
   setupController: function(controller, model) {
     controller.set('content', model);
-    controller.set('siblings', this.modelFor('kv.show'));
-    console.log(this.modelFor('kv.show'))
-    controller.set('parent', model.get('parentKeys'));
+
+    if (this.modelFor('kv.show') == undefined ) {
+      var key = model.get('parentKey')
+      objs = [];
+      window.fixtures.keys_full[key].map(function(obj){
+       objs.push(App.Key.create({key: obj}));
+      });
+      controller.set('siblings', objs);
+    } else {
+      controller.set('siblings', this.modelFor('kv.show'));
+    }
+
+    controller.set('parent', controller.get('siblings')[0].get('grandParentKey'));
   }
 });
 

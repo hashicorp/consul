@@ -13,6 +13,7 @@ App.Router.map(function() {
       this.route("show", { path: "/:name" });
     });
     this.resource("kv", { path: "/kv" }, function(){
+      this.route("index", { path: "/" });
       this.route("show", { path: "/:key" });
       this.route("edit", { path: "/:key/edit" });
     })
