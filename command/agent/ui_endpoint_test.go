@@ -126,7 +126,7 @@ func TestSummarizeServices(t *testing.T) {
 			},
 			Checks: []*structs.HealthCheck{
 				&structs.HealthCheck{
-					Status:      structs.HealthCritical,
+					Status:      structs.HealthPassing,
 					ServiceName: "",
 				},
 				&structs.HealthCheck{
@@ -173,7 +173,7 @@ func TestSummarizeServices(t *testing.T) {
 	expectAPI := &ServiceSummary{
 		Name:           "api",
 		Nodes:          []string{"foo"},
-		ChecksPassing:  0,
+		ChecksPassing:  1,
 		ChecksWarning:  1,
 		ChecksCritical: 0,
 	}
@@ -195,7 +195,7 @@ func TestSummarizeServices(t *testing.T) {
 	expectWeb := &ServiceSummary{
 		Name:           "web",
 		Nodes:          []string{"bar", "foo"},
-		ChecksPassing:  1,
+		ChecksPassing:  2,
 		ChecksWarning:  0,
 		ChecksCritical: 1,
 	}

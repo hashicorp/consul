@@ -130,22 +130,28 @@ func summarizeServices(dump structs.NodeDump) []*ServiceSummary {
 
 	// Aggregate all the node information
 	for _, node := range dump {
-		for _, service := range node.Services {
+		nodeServices := make([]*ServiceSummary, len(node.Services))
+		for idx, service := range node.Services {
 			sum := getService(service.Service)
 			sum.Nodes = append(sum.Nodes, node.Node)
+			nodeServices[idx] = sum
 		}
 		for _, check := range node.Checks {
+			var services []*ServiceSummary
 			if check.ServiceName == "" {
-				continue
+				services = nodeServices
+			} else {
+				services = []*ServiceSummary{getService(check.ServiceName)}
 			}
-			sum := getService(check.ServiceName)
-			switch check.Status {
-			case structs.HealthPassing:
-				sum.ChecksPassing++
-			case structs.HealthWarning:
-				sum.ChecksWarning++
-			case structs.HealthCritical:
-				sum.ChecksCritical++
+			for _, sum := range services {
+				switch check.Status {
+				case structs.HealthPassing:
+					sum.ChecksPassing++
+				case structs.HealthWarning:
+					sum.ChecksWarning++
+				case structs.HealthCritical:
+					sum.ChecksCritical++
+				}
 			}
 		}
 	}
