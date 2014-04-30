@@ -70,14 +70,15 @@ App.KvShowController.reopen({
       this.set('isLoading', true);
 
       var newKey = this.get('newKey');
-      var topModel = this.get('topModel');
+      var parentKey = this.get('parentKey');
+      var grandParentKey = this.get('grandParentKey');
       var controller = this;
 
       // If we don't have a previous model to base
       // on our parent, or we're not at the root level,
       // strip the leading slash.
-      if (!topModel || topModel.get('parentKey') != "/") {
-        newKey.set('Key', (topModel.get('parentKey') + newKey.get('Key')));
+      if (!parentKey || parentKey != "/") {
+        newKey.set('Key', (parentKey + newKey.get('Key')));
       }
 
       // Put the Key and the Value retrieved from the form
