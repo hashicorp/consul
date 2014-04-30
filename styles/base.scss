@@ -28,6 +28,17 @@ a {
     }
 }
 
+.border-left {
+  display: block;
+  height: 700px;
+
+  .line {
+    margin: 0 auto;
+    background-color: $gray-background;
+    height: 100%;
+    width: 1px;
+  }
+}
 
 .no-margin {
     margin: 0;
