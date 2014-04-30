@@ -222,27 +222,25 @@ App.NodesShowRoute = App.BaseRoute.extend({
   // by it's identifier passed via the route
   //
   model: function(params) {
-    return Ember.$.getJSON('/v1/internal/ui/node/' + params.name).then(function(data) {
-      return App.Node.create(data)
+    return Ember.RSVP.hash({
+      node: Ember.$.getJSON('/v1/internal/ui/node/' + params.name).then(function(data) {
+        return App.Node.create(data)
+      }),
+      nodes: Ember.$.getJSON('/v1/internal/ui/node/' + params.name).then(function(data) {
+        return App.Node.create(data)
+      })
     });
+
   },
 
-  setupController: function(controller, model) {
-      controller.set('content', model);
+  setupController: function(controller, models) {
+      controller.set('content', models.node);
       //
       // Since we have 2 column layout, we need to also display the
       // list of nodes on the left. Hence setting the attribute
       // {{nodes}} on the controller.
       //
-      Ember.$.getJSON('/v1/internal/ui/nodes').then(function(data) {
-        objs = [];
-
-        data.map(function(obj){
-         objs.push(App.Node.create(obj));
-        });
-
-        controller.set('nodes', objs);
-      });
+      controller.set('nodes', models.nodes);
   }
 });
 
