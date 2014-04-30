@@ -114,7 +114,6 @@
 
             <div class="panel-body">
               <form class="form">
-
                 <div {{ bind-attr class=":form-group newKey.keyValid:valid" }}>
                   <div class="input-group">
                     <span class="input-group-addon">{{parentKey}}</span>
@@ -122,9 +121,13 @@
                   </div>
                 </div>
 
-                <div {{ bind-attr class=":form-group newKey.valueValid:valid" }}>
+                {{#if newKey.isFolder }}
+                <p>No value needed for nested keys.</p>
+                {{else}}
+                <div class="form-group">
                   {{ textarea value=newKey.Value class="form-control"}}
                 </div>
+                {{/if}}
 
                 <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
               </form>
@@ -137,7 +140,7 @@
 
   <script type="text/x-handlebars" data-template-name="kv/edit">
   <div class="row">
-    <h5><a class="subtle" href="" {{action 'linkToKey' model.grandParentKey }}>{{model.parentKey}}</a></h5>
+    <h5><a class="subtle" href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a></h5>
   </div>
 
   <div class="row">
