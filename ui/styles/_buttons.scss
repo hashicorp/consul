@@ -4,7 +4,10 @@
     font-size: 12px;
     border-width: 2px;
     color: $gray;
-    @include transition(background-color .1s ease-in-out);
+    @include transition(background-color .2s ease-in-out);
+    @include transition(border-color .2s ease-in-out);
+    @include transition(color .2s ease-in-out);
+
     outline: none;
 
     &:hover {

@@ -112,7 +112,7 @@ App.KvEditController = Ember.Controller.extend({
 
       Ember.run.later(this, function() {
         this.set('isLoading', false)
-      }, 500);
+      }, 1500);
 
     },
 
@@ -122,7 +122,7 @@ App.KvEditController = Ember.Controller.extend({
 
       Ember.run.later(this, function() {
         this.set('isLoading', false)
-      }, 500);
+      }, 1000);
 
     }
   }
