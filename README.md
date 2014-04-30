@@ -1,4 +1,4 @@
-# Consul [![Build Status](https://travis-ci.org/hashicorp/consul.png)](https://travis-ci.org/hashicorp/consul)
+# Consul [![Build Status](https://travis-ci.org/hashicorp/consul.png)](https://travis-ci.org/hashicorp/consul) [![Go Walker](http://gowalker.org/api/v1/badge)](https://gowalker.org/github.com/hashicorp/consul)
 
 * Website: http://www.consul.io
 * IRC: `#consul` on Freenode
