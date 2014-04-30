@@ -24,18 +24,19 @@ App.BaseRoute = Ember.Route.extend({
 // and loop of transitions.
 //
 App.IndexRoute = Ember.Route.extend({
-  model: function() {
-    return window.fixtures.dcs;
+  model: function(params) {
+    return Ember.$.getJSON('/v1/catalog/datacenters').then(function(data) {
+      return data
+    });
   },
 
   setupController: function(controller, model) {
     controller.set('content', model);
-    controller.set('dcs', window.fixtures.dcs);
+    controller.set('dcs', model);
   },
 
   afterModel: function(dcs, transition) {
     if (dcs.get('length') === 1) {
-      this.get('controllers.application').setDc(dcs[0])
       this.transitionTo('services', dcs[0]);
     }
   }
@@ -49,15 +50,32 @@ App.DcRoute = App.BaseRoute.extend({
   // by it's identifier passed via the route
   //
   model: function(params) {
-    return params.dc;
+    var object = Ember.Object.create();
+    object.set('dc', params.dc)
+
+    var nodesPromise =  Ember.$.getJSON('/v1/internal/ui/nodes').then(function(data) {
+      objs = [];
+
+      data.map(function(obj){
+        objs.push(App.Node.create(obj));
+      });
+
+      object.set('nodes', objs);
+      return object;
+    });
+
+    var datacentersPromise = Ember.$.getJSON('/v1/catalog/datacenters').then(function(data) {
+      object.set('dcs', data);
+      return object;
+    });
+
+    return nodesPromise.then(datacentersPromise);
   },
 
   setupController: function(controller, model) {
-    controller.set('content', model);
-
-    controller.set('services', [App.Service.create(window.fixtures.services[0]), App.Service.create(window.fixtures.services[1])]);
-
-    controller.set('dcs', window.fixtures.dcs);
+    controller.set('content', model.get('dc'));
+    controller.set('nodes', model.get('nodes'));
+    controller.set('dcs', model.get('dcs'));
   }
 });
 
@@ -115,6 +133,15 @@ App.KvEditRoute = App.BaseRoute.extend({
 // Display all the services, allow to drill down into the specific services.
 //
 App.ServicesRoute = App.BaseRoute.extend({
+  model: function(params) {
+    return Ember.$.getJSON('/v1/internal/ui/services').then(function(data) {
+      objs = [];
+      data.map(function(obj){
+       objs.push(App.Service.create(obj));
+      });
+      return objs
+    });
+  },
   //
   // Set the services as the routes default model to be called in
   // the template as {{model}}
@@ -125,7 +152,7 @@ App.ServicesRoute = App.BaseRoute.extend({
     // list of services on the left. Hence setting the attribute
     // {{services}} on the controller.
     //
-    controller.set('services', [App.Service.create(window.fixtures.services[0]), App.Service.create(window.fixtures.services[1])]);
+    controller.set('services', model);
   }
 });
 
@@ -140,8 +167,17 @@ App.ServicesShowRoute = App.BaseRoute.extend({
   // by it's identifier passed via the route
   //
   model: function(params) {
-    return [App.Node.create(window.fixtures.services_full[params.name][0]), App.Node.create(window.fixtures.services_full[params.name][1])];
-  }
+    return Ember.$.getJSON('/v1/health/service/' + params.name).then(function(data) {
+      objs = [];
+
+      data.map(function(obj){
+       objs.push(App.Node.create(obj));
+      });
+
+      console.log(objs)
+      return objs;
+    });
+  },
 });
 
 
@@ -157,7 +193,9 @@ App.NodesShowRoute = App.BaseRoute.extend({
   // by it's identifier passed via the route
   //
   model: function(params) {
-    return App.Node.create(window.fixtures.nodes_full[params.name]);
+    return Ember.$.getJSON('/v1/internal/ui/node/' + params.name).then(function(data) {
+      return App.Node.create(data)
+    });
   },
 
   setupController: function(controller, model) {
@@ -167,7 +205,15 @@ App.NodesShowRoute = App.BaseRoute.extend({
       // list of nodes on the left. Hence setting the attribute
       // {{nodes}} on the controller.
       //
-      controller.set('nodes', [App.Node.create(window.fixtures.nodes[0]), App.Node.create(window.fixtures.nodes[1])]);
+      Ember.$.getJSON('/v1/internal/ui/nodes').then(function(data) {
+        objs = [];
+
+        data.map(function(obj){
+         objs.push(App.Node.create(obj));
+        });
+
+        controller.set('nodes', objs);
+      });
   }
 });
 
@@ -175,6 +221,16 @@ App.NodesShowRoute = App.BaseRoute.extend({
 // Display all the nodes, allow to drill down into the specific nodes.
 //
 App.NodesRoute = App.BaseRoute.extend({
+
+  model: function(params) {
+    return Ember.$.getJSON('/v1/internal/ui/nodes').then(function(data) {
+      objs = [];
+      data.map(function(obj){
+       objs.push(App.Node.create(obj));
+      });
+      return objs
+    });
+  },
   //
   // Set the node as the routes default model to be called in
   // the template as {{model}}. This is the "expanded" view.
@@ -185,6 +241,6 @@ App.NodesRoute = App.BaseRoute.extend({
       // list of nodes on the left. Hence setting the attribute
       // {{nodes}} on the controller.
       //
-      controller.set('nodes', [App.Node.create(window.fixtures.nodes[0]), App.Node.create(window.fixtures.nodes[1])]);
+      controller.set('nodes', model);
   }
 });

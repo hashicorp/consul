@@ -195,7 +195,7 @@
               </h4>
               <ul class="list-inline">
                 {{#each node in service.Nodes }}
-                <li>{{#link-to 'nodes.show' node class='subtle'}}{{node}}{{/link-to}}</li>
+                <li>{{node}}</li>
                 {{/each}}
               </ul>
           {{/link-to}}
@@ -219,21 +219,19 @@
   </script>
 
   <script type="text/x-handlebars" id="service">
-      <h2 class="no-margin">{{ model.1.ServiceName }}</h2>
+      <h2 class="no-margin">{{ model.0.Service.Service }}</h2>
       <hr>
-      <h5>Tags</h5>
-      <p>Pending...</p>
 
       <h5>Nodes</h5>
 
       {{#each node in model }}
 
-        {{#link-to 'nodes.show' node.Node tagName="div" href=false class="panel panel-link" }}
+        {{#link-to 'nodes.show' node.Node.Node tagName="div" href=false class="panel panel-link" }}
           <div {{ bind-attr class=":panel-bar node.hasFailingChecks:bg-orange:bg-green" }}></div>
           <div class="panel-heading">
             <h3 class="panel-title">
-              {{#link-to 'nodes.show' node.Node class='subtle'}}{{node.Node}}{{/link-to}}
-              <small>{{node.Address}}</small>
+              {{node.Node.Node}}
+              <small>{{node.Node.Address}}</small>
               <span class="panel-note">{{node.checkMessage}}</span>
             </h3>
           </div>
@@ -259,10 +257,10 @@
 
       {{#each node in nodes}}
         <div class="row">
-          {{#link-to 'nodes.show' node.Name tagName="div" href=false class="list-group-item list-link" }}
+          {{#link-to 'nodes.show' node.Node tagName="div" href=false class="list-group-item list-link" }}
             <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
             <h4 class="list-group-item-heading">
-              {{#link-to 'nodes.show' node.Name class='subtle'}}{{node.Name}}{{/link-to}}
+              {{node.Node}}
               <small>{{node.Address}}</small>
               <div class="heading-helper">
                 <a class="subtle" href="#">{{node.checkMessage}}</a>
@@ -270,7 +268,7 @@
             </h4>
             <ul class="list-inline">
               {{#each service in node.Services }}
-              <li>{{#link-to 'services.show' service class='subtle'}}{{service}}{{/link-to}}</li>
+                <li>{{service.Service}}</li>
               {{/each}}
             </ul>
           </div>
@@ -294,7 +292,7 @@
   </script>
 
   <script type="text/x-handlebars" id="node">
-      <h2 class="no-margin">{{ model.Node.Node }} <small> {{ model.Node.Address }}</small></h2>
+      <h2 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h2>
       <hr>
 
       <h5>Checks</h5>

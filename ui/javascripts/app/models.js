@@ -6,14 +6,22 @@ App.Service = Ember.Object.extend({
   // The number of failing checks within the service.
   //
   failingChecks: function() {
-    return this.get('Checks').filterBy('Status', 'critical').get('length');
+    if (this.get('ChecksCritical') != undefined) {
+      return (this.get('ChecksCritical') + this.get('ChecksWarning'))
+    } else {
+      return this.get('Checks').filterBy('Status', 'critical').get('length');
+    }
   }.property('Checks'),
 
   //
   // The number of passing checks within the service.
   //
   passingChecks: function() {
-    return this.get('Checks').filterBy('Status', 'passing').get('length');
+    if (this.get('ChecksPassing') != undefined) {
+      return this.get('ChecksPassing')
+    } else {
+      return this.get('Checks').filterBy('Status', 'passing').get('length');
+    }
   }.property('Checks'),
 
   //

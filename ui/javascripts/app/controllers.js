@@ -16,7 +16,7 @@ App.DcController = Ember.Controller.extend({
   isDropdownVisible: false,
 
   checks: function() {
-    var services = this.get('services');
+    var services = this.get('nodes');
     var checks = Ember.A()
 
     // loop over all of the services we have,
