@@ -76,7 +76,7 @@ There are several important components that `consul agent` outputs:
 
 ## Stopping an Agent
 
-An agent can be stoped in two ways: gracefully or forcefully. To gracefully
+An agent can be stopped in two ways: gracefully or forcefully. To gracefully
 halt an agent, send the process an interrupt signal, which is usually
 `Ctrl-C` from a terminal. When gracefully exiting, the agent first notifies
 the cluster it intends to leave the cluster. This way, other cluster members
@@ -88,7 +88,7 @@ eventually (usually within seconds) detect that the node has died and will
 notify the cluster that the node has _failed_.
 
 It is especially important that a server node be allowed to gracefully leave,
-so that there will be a minimal impact on availablity as the server leaves
+so that there will be a minimal impact on availability as the server leaves
 the consensus quorum.
 
 For client agents, the difference between a node _failing_ and a node _leaving_
@@ -96,4 +96,3 @@ may not be important for your use case. For example, for a web server and load
 balancer setup, both result in the same action: remove the web node
 from the load balancer pool. But for other situations, you may handle
 each scenario differently.
-

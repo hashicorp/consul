@@ -169,7 +169,7 @@ we may start getting messages like:
     {"Log": "2013/12/03 13:06:53 [INFO] agent: Received event: member-join"}
 ```
 
-It is important to realize that these messages are sent asyncronously,
+It is important to realize that these messages are sent asynchronously,
 and not in response to any command. That means if a client is streaming
 commands, there may be logs streamed while a client is waiting for a
 response to a command. This is why the `Seq` must be used to pair requests
@@ -214,4 +214,3 @@ There is no request body, the response body looks like:
         ...
     }
 ```
-

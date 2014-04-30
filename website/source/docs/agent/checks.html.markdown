@@ -19,7 +19,7 @@ There are two different kinds of checks:
  every 30 seconds). This is similar to the Nagios plugin system.
 
  * TTL - These checks retain their last known state for a given TTL. The state
- of the check must be updated periodicadically over the HTTP interface. If an
+ of the check must be updated periodically over the HTTP interface. If an
  external system fails to update the status within a given TTL, the check is
  set to the failed state. This mechanism is used to allow an application to
  directly report it's health. For example, a web app can periodically curl the
@@ -79,4 +79,3 @@ a specific meaning. Specifically:
 This is the only convention that Consul depends on. Any output of the script
 will be captured and stored in the `notes` field so that it can be viewed
 by human operators.
-
