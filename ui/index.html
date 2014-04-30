@@ -77,7 +77,7 @@
             <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
             <div class="panel-heading">
               <h3 class="panel-title">
-                {{item.key}}
+                {{item.keyWithoutParent}}
               </h3>
             </div>
           {{/link-to}}
@@ -109,7 +109,7 @@
                 <div {{ bind-attr class=":form-group newKey.keyValid:valid" }}>
                   <div class="input-group">
                     <span class="input-group-addon">{{topModel.parentKey}}</span>
-                    {{ input value=newKey.key class="form-control" required=true }}
+                    {{ input value=newKey.Key class="form-control" required=true }}
                   </div>
                 </div>
 
@@ -139,7 +139,7 @@
               <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
               <div class="panel-heading">
                 <h3 class="panel-title">
-                  {{item.key}}
+                  {{item.keyWithoutParent}}
                 </h3>
               </div>
             {{/link-to}}
@@ -160,7 +160,7 @@
           <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green" }}></div>
             <div class="panel-heading">
               <h3 class="panel-title">
-                {{model.key}}
+                {{model.Key}}
               </h3>
             </div>
 

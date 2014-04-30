@@ -89,13 +89,17 @@ App.KvIndexRoute = App.BaseRoute.extend({
 App.KvShowRoute = App.BaseRoute.extend({
   model: function(params) {
     var key = params.key.replace(/-/g, "/")
-    objs = [];
 
-    window.fixtures.keys_full[key].map(function(obj){
-     objs.push(App.Key.create({key: obj}));
+    return Ember.$.getJSON('/v1/kv/' + key + '?keys&seperator=' + '/').then(function(data) {
+
+      objs = [];
+
+      data.map(function(obj){
+       objs.push(App.Key.create({Key: obj}));
+      });
+
+      return objs;
     });
-
-    return objs
   },
 
   setupController: function(controller, model) {
@@ -107,20 +111,45 @@ App.KvShowRoute = App.BaseRoute.extend({
 
 App.KvEditRoute = App.BaseRoute.extend({
   model: function(params) {
-    var key = params.key.replace(/-/g, "/")
-    return App.Key.create().setProperties(window.fixtures.keys_full[key]);
+    var object = Ember.Object.create();
+    var keyName = params.key.replace(/-/g, "/")
+    var key = keyName;
+    var parentKey;
+
+    // Get the parent key
+    if (key.slice(-1) == "/") {
+      key = key.substring(0, key.length - 1);
+    }
+    parts = key.split('/');
+    parts.pop();
+    if (parts.length == 0) {
+      parentKey = ""
+    } else {
+      parentKey = parts.join("/") + "/";
+    }
+
+    var keyPromise = Ember.$.getJSON('/v1/kv/' + keyName).then(function(data) {
+      object.set('key', App.Key.create().setProperties(data[0]))
+      return object;
+    });
+
+    var keysPromise = Ember.$.getJSON('/v1/kv/' + parentKey + '?keys&seperator=' + '/').then(function(data) {
+      objs = [];
+      data.map(function(obj){
+       objs.push(App.Key.create({Key: obj}));
+      });
+      object.set('keys', objs);
+      return object;
+    });
+
+    return keysPromise.then(keyPromise);
   },
 
   setupController: function(controller, model) {
-    controller.set('content', model);
+    controller.set('content', model.get('key'));
+    controller.set('siblings', model.get('keys'));
 
     if (this.modelFor('kv.show') == undefined ) {
-      var key = model.get('parentKey')
-      objs = [];
-      window.fixtures.keys_full[key].map(function(obj){
-       objs.push(App.Key.create({key: obj}));
-      });
-      controller.set('siblings', objs);
     } else {
       controller.set('siblings', this.modelFor('kv.show'));
     }
