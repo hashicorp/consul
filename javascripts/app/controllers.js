@@ -114,6 +114,16 @@ App.KvEditController = Ember.Controller.extend({
         this.set('isLoading', false)
       }, 500);
 
+    },
+
+    deleteKey: function() {
+      var key = this.get("model");
+      this.set('isLoading', true);
+
+      Ember.run.later(this, function() {
+        this.set('isLoading', false)
+      }, 500);
+
     }
   }
 

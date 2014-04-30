@@ -111,9 +111,7 @@
                 {{ textarea value=newKey.value class="form-control"}}
               </div>
 
-              <div class="form-group">
-                <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
-              </div>
+              <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
             </form>
           </div>
         </div>
@@ -159,9 +157,8 @@
               <div class="form-group">
                 {{ textarea value=model.value class="form-control"}}
               </div>
-              <div class="form-group">
-                <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
-              </div>
+              <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
+              <button {{ action "deleteKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete</button>
             </form>
           </div>
         </div>
