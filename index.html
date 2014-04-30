@@ -94,34 +94,35 @@
     </div>
 
     <div class="col-md-6">
-      <div class="panel">
-        <div {{ bind-attr class=":panel-bar newKey.isValid:bg-green:bg-light-gray" }}></div>
-          <div class="panel-heading">
-            <h3 class="panel-title">
-              Create Key
-            </h3>
-          </div>
+      <div class="row">
+        <div class="panel">
+          <div {{ bind-attr class=":panel-bar newKey.isValid:bg-green:bg-light-gray" }}></div>
+            <div class="panel-heading">
+              <h3 class="panel-title">
+                Create Key
+              </h3>
+            </div>
 
-          <div class="panel-body">
-            <form class="form">
+            <div class="panel-body">
+              <form class="form">
 
-              <div class="form-group">
-                <div class="input-group">
-                  <span class="input-group-addon">{{topModel.parentKey}}</span>
-                  {{ input value=newKey.key class="form-control" required=true }}
+                <div class="form-group">
+                  <div class="input-group">
+                    <span class="input-group-addon">{{topModel.parentKey}}</span>
+                    {{ input value=newKey.key class="form-control" required=true }}
+                  </div>
                 </div>
-              </div>
 
-              <div class="form-group">
-                {{ textarea value=newKey.value class="form-control"}}
-              </div>
+                <div class="form-group">
+                  {{ textarea value=newKey.value class="form-control"}}
+                </div>
 
-              <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
-            </form>
+                <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
+              </form>
+            </div>
           </div>
-        </div>
+      </div>
     </div>
-
   </div>
   </script>
 
@@ -154,24 +155,26 @@
     </div>
 
     <div class="col-md-6">
-      <div class="panel">
-        <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green" }}></div>
-          <div class="panel-heading">
-            <h3 class="panel-title">
-              {{model.key}}
-            </h3>
-          </div>
+      <div class="row">
+        <div class="panel">
+          <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green" }}></div>
+            <div class="panel-heading">
+              <h3 class="panel-title">
+                {{model.key}}
+              </h3>
+            </div>
 
-          <div class="panel-body">
-            <form class="form">
-              <div class="form-group">
-                {{ textarea value=model.value class="form-control"}}
-              </div>
-              <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
-              <button {{ action "deleteKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete</button>
-            </form>
+            <div class="panel-body">
+              <form class="form">
+                <div class="form-group">
+                  {{ textarea value=model.value class="form-control"}}
+                </div>
+                <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
+                <button {{ action "deleteKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete</button>
+              </form>
+            </div>
           </div>
-        </div>
+      </div>
     </div>
   </div>
   </script>

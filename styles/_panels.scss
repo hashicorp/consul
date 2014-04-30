@@ -41,6 +41,7 @@
     .panel-bar {
         width: 100%;
         height: 20px;
+        @include transition(background-color .3s ease-in-out);
     }
 
     &.panel-link {
@@ -60,6 +61,8 @@
         >.panel-heading {
             border-color: $purple;
         }
+
+        @include transition(background-color .3s ease-in-out);
 
         border-color: $purple;
 
