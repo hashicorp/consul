@@ -156,6 +156,7 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     // setter
     if (arguments.length > 1) {
       this.set('Value', value);
+      return value;
     }
 
     // getter

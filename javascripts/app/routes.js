@@ -83,30 +83,36 @@ App.KvShowRoute = App.BaseRoute.extend({
     var key = params.key.replace(/-/g, "/")
     var dc = this.modelFor('dc').dc;
 
-    // Return a promise to retrieve the ?keys for that namespace
-    return Ember.$.getJSON('/v1/kv/' + key + '?keys&seperator=' + '/&dc=' + dc).then(function(data) {
-      objs = [];
-      data.map(function(obj){
-       objs.push(App.Key.create({Key: obj}));
-      });
-      return objs;
+    // Return a promise has with the ?keys for that namespace
+    // and the original key requested in params
+    return Ember.RSVP.hash({
+      key: key,
+      keys: Ember.$.getJSON('/v1/kv/' + key + '?keys&seperator=' + '/&dc=' + dc).then(function(data) {
+        objs = [];
+        data.map(function(obj){
+          objs.push(App.Key.create({Key: obj}));
+        });
+        return objs;
+      })
     });
   },
 
-  setupController: function(controller, model) {
+  setupController: function(controller, models) {
     var parentKey = "/";
     var grandParentKey = "/";
+    var key = models.key;
 
-    // If we don't have any k/v, we need to set some basic
-    // stuff so we can create them
-    if (model.length > 0) {
-      var parentKey = model[0].get('parentKey');
-      var grandParentKey = model[0].get('grandParentKey');
-    }
+    // Loop over the keys
+    models.keys.forEach(function(item, index) {
+      if (item.get('Key') == key) {
+        parentKey = item.get('Key');
+        grandParentKey = item.get('grandParentKey');
+        // Remove the dupe
+        models.keys.splice(index, 1);
+      }
+    });
 
-    console.log(parentKey, grandParentKey)
-
-    controller.set('content', model);
+    controller.set('content', models.keys);
     controller.set('parentKey', parentKey);
     controller.set('grandParentKey', grandParentKey);
     controller.set('newKey', App.Key.create());
@@ -154,13 +160,26 @@ App.KvEditRoute = App.BaseRoute.extend({
   setupController: function(controller, models) {
     controller.set('content', models.key);
 
+    var parentKey = "/";
+    var grandParentKey = "/";
+
+    // Loop over the keys
+    models.keys.forEach(function(item, index) {
+      if (item.get('Key') == models.key.get('parentKey')) {
+        parentKey = item.get('Key');
+        grandParentKey = item.get('grandParentKey');
+        // Remove the dupe
+        models.keys.splice(index, 1);
+      }
+    });
+
     // If we don't have the cached model from our
     // the kv.show controller, we need to go get it,
     // otherwise we just load what we have.
     if (this.modelFor('kv.show') == undefined ) {
       controller.set('siblings', models.keys);
     } else {
-      controller.set('siblings', this.modelFor('kv.show'));
+      controller.set('siblings', this.modelFor('kv.show').keys);
     }
   }
 });
