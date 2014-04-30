@@ -2,6 +2,10 @@ App.DcController = Ember.Controller.extend({
   // Whether or not the dropdown menu can be seen
   isDropdownVisible: false,
 
+  datacenter: function() {
+    return this.get('content')
+  }.property('Content'),
+
   checks: function() {
     var nodes = this.get('nodes');
     var checks = Ember.A()
@@ -13,7 +17,7 @@ App.DcController = Ember.Controller.extend({
     });
 
     return checks
-  }.property('Checks'),
+  }.property('nodes'),
 
   // Returns the total number of failing checks.
   //
@@ -23,7 +27,7 @@ App.DcController = Ember.Controller.extend({
     var checks = this.get('checks')
     return (checks.filterBy('Status', 'critical').get('length') +
       checks.filterBy('Status', 'warning').get('length'))
-  }.property('Checks'),
+  }.property('nodes'),
 
   //
   // Returns the human formatted message for the button state
@@ -39,7 +43,7 @@ App.DcController = Ember.Controller.extend({
       return  passingChecks + ' checks passing';
     }
 
-  }.property('Checks'),
+  }.property('nodes'),
 
   //
   // Boolean if the datacenter has any failing checks.
@@ -47,7 +51,7 @@ App.DcController = Ember.Controller.extend({
   hasFailingChecks: function() {
     var checks = this.get('checks')
     return (checks.filterBy('Status', 'critical').get('length') > 0);
-  }.property('Checks'),
+  }.property('nodes'),
 
   actions: {
     // Hide and show the dropdown menu
@@ -61,6 +65,8 @@ App.DcController = Ember.Controller.extend({
 App.KvShowController = Ember.ObjectController.extend(Ember.Validations.Mixin);
 
 App.KvShowController.reopen({
+  needs: ["dc"],
+  dc: Ember.computed.alias("controllers.dc"),
   isLoading: false,
 
   actions: {
@@ -73,17 +79,19 @@ App.KvShowController.reopen({
       var parentKey = this.get('parentKey');
       var grandParentKey = this.get('grandParentKey');
       var controller = this;
+      var dc = this.get('dc').get('datacenter');
+      console.log(dc)
 
       // If we don't have a previous model to base
       // on our parent, or we're not at the root level,
       // strip the leading slash.
-      if (!parentKey || parentKey != "/") {
+      if (parentKey != undefined || parentKey != "/") {
         newKey.set('Key', (parentKey + newKey.get('Key')));
       }
 
       // Put the Key and the Value retrieved from the form
       Ember.$.ajax({
-          url: "/v1/kv/" + newKey.get('Key'),
+          url: ("/v1/kv/" + newKey.get('Key') + '?dc=' + dc),
           type: 'PUT',
           data: newKey.get('Value')
       }).then(function(response) {
