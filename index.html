@@ -99,13 +99,18 @@
 
           <div class="panel-body">
             <form class="form">
+
               <div class="form-group">
                 <div class="input-group">
                   <span class="input-group-addon">{{topModel.parentKey}}</span>
                   {{ input value=newKey.key class="form-control" required=true }}
                 </div>
+              </div>
+
+              <div class="form-group">
                 {{ textarea value=newKey.value class="form-control"}}
               </div>
+
               <div class="form-group">
                 <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
               </div>
