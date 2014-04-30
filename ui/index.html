@@ -73,7 +73,7 @@
 
   <script type="text/x-handlebars" data-template-name="kv/show">
   <div class="row">
-    <h5><a class="subtle" href="" {{action 'linkToKey' topModel.grandParentKey }}>{{topModel.parentKey}}</a></h5>
+    <h5><a class="subtle" href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a></h5>
   </div>
 
   <div class="row">
@@ -117,7 +117,7 @@
 
                 <div {{ bind-attr class=":form-group newKey.keyValid:valid" }}>
                   <div class="input-group">
-                    <span class="input-group-addon">{{topModel.parentKey}}</span>
+                    <span class="input-group-addon">{{parentKey}}</span>
                     {{ input value=newKey.Key class="form-control" required=true }}
                   </div>
                 </div>

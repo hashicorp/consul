@@ -93,8 +93,19 @@ App.KvShowRoute = App.BaseRoute.extend({
   },
 
   setupController: function(controller, model) {
+    // If we don't have any k/v, we need to set some basic
+    // stuff so we can create them
+    if (model.length == 0) {
+      var parentKey = "/";
+      var grandParentKey = "/";
+    } else {
+      var parentKey = model[0].parentKey;
+      var grandParentKey = model[0].grandParentKey;
+    }
+
     controller.set('content', model);
-    controller.set('topModel', model[0]);
+    controller.set('parentKey', parentKey);
+    controller.set('grandParentKey', grandParentKey);
     controller.set('newKey', App.Key.create());
   }
 });
