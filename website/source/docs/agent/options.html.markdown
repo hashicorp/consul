@@ -28,8 +28,8 @@ The options below are all specified on the command-line.
 
 * `-bootstrap` - This flag is used to control if a server is in "bootstrap" mode. It is important that
   no more than one server *per* datacenter be running in this mode. The initial server **must** be in bootstrap
-  mode. Technically, a server in boostrap mode is allowed to self-elect as the Raft leader. It is important
-  that only a single node is in this mode, because otherwise consistency cannot be guarenteed if multiple
+  mode. Technically, a server in bootstrap mode is allowed to self-elect as the Raft leader. It is important
+  that only a single node is in this mode, because otherwise consistency cannot be guaranteed if multiple
   nodes are able to self-elect. Once there are multiple servers in a datacenter, it is generally a good idea
   to disable bootstrap mode on all of them.
 
@@ -88,7 +88,7 @@ The options below are all specified on the command-line.
 * `-server` - This flag is used to control if an agent is in server or client mode. When provided,
   an agent will act as a Consul server. Each Consul cluster must have at least one server, and ideally
   no more than 5 *per* datacenter. All servers participate in the Raft consensus algorithm, to ensure that
-  transactions occur in a consistent, linearlizable manner. Transactions modify cluster state, which
+  transactions occur in a consistent, linearizable manner. Transactions modify cluster state, which
   is maintained on all server nodes to ensure availability in the case of node failure. Server nodes also
   participate in a WAN gossip pool with server nodes in other datacenters. Servers act as gateways
   to other datacenters and forward traffic as appropriate.
@@ -158,7 +158,8 @@ definitions support being updated during a reload.
   Must be provided along with the `key_file`.
 
 * `domain` - By default, Consul responds to DNS queries in the "consul." domain.
-  This flag can be used to change that domain. All queries in this domain are assumed to be handled by Consul, and will not be recursively resolved.
+  This flag can be used to change that domain. All queries in this domain are assumed
+  to be handled by Consul, and will not be recursively resolved.
 
 * `enable_debug` - When set, enables some additional debugging features. Currently,
   only used to set the runtime profiling HTTP endpoints.
@@ -213,4 +214,3 @@ definitions support being updated during a reload.
   the Certificate Authority from the `ca_file`. By default, this is false, and Consul
   will not make use of TLS for outgoing connections. This applies to clients and servers,
   as both will make outgoing connections.
-

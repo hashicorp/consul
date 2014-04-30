@@ -101,11 +101,11 @@ Each object will look like:
 
     [
         {
-            "CreateIndex":100,
-            "ModifyIndex":200,
-            "Key":"zip",
-            "Flags":0,
-            "Value":"dGVzdA=="
+            "CreateIndex": 100,
+            "ModifyIndex": 200,
+            "Key": "zip",
+            "Flags": 0,
+            "Value": "dGVzdA=="
         }
     ]
 
@@ -182,15 +182,15 @@ anti-entropy, so in most situations everything will be in sync within a few seco
 This endpoint is hit with a GET and returns a JSON body like this:
 
     {
-        "service:redis":{
-            "Node":"foobar",
-            "CheckID":"service:redis",
-            "Name":"Service 'redis' check",
-            "Status":"passing",
-            "Notes":"",
+        "service:redis": {
+            "Node": "foobar",
+            "CheckID": "service:redis",
+            "Name": "Service 'redis' check",
+            "Status": "passing",
+            "Notes": "",
             "Output": "",
-            "ServiceID":"redis",
-            "ServiceName":"redis"
+            "ServiceID": "redis",
+            "ServiceName": "redis"
         }
     }
 
@@ -206,11 +206,11 @@ anti-entropy, so in most situations everything will be in sync within a few seco
 This endpoint is hit with a GET and returns a JSON body like this:
 
     {
-        "redis":{
-            "ID":"redis",
-            "Service":"redis",
-            "Tags":null,
-            "Port":8000
+        "redis": {
+            "ID": "redis",
+            "Service": "redis",
+            "Tags": null,
+            "Port": 8000
         }
     }
 
@@ -228,22 +228,22 @@ This endpoint returns a JSON body like:
 
     [
         {
-            "Name":"foobar",
-            "Addr":"10.1.10.12",
-            "Port":8301,
-            "Tags":{
-                "bootstrap":"1",
-                "dc":"dc1",
-                "port":"8300",
-                "role":"consul"
+            "Name": "foobar",
+            "Addr": "10.1.10.12",
+            "Port": 8301,
+            "Tags": {
+                "bootstrap": "1",
+                "dc": "dc1",
+                "port": "8300",
+                "role": "consul"
             },
-            "Status":1,
-            "ProtocolMin":1,
-            "ProtocolMax":2,
-            "ProtocolCur":2,
-            "DelegateMin":1,
-            "DelegateMax":3,
-            "DelegateCur":3
+            "Status": 1,
+            "ProtocolMin": 1,
+            "ProtocolMax": 2,
+            "ProtocolCur": 2,
+            "DelegateMin": 1,
+            "DelegateMax": 3,
+            "DelegateCur": 3
         }
     ]
 
@@ -268,7 +268,7 @@ The endpoint always returns 200.
 
 The register endpoint is used to add a new check to the local agent.
 There is more documentation on checks [here](/docs/agent/checks.html).
-Checks are either a script or TTL type. The agent is reponsible for managing
+Checks are either a script or TTL type. The agent is responsible for managing
 the status of the check and keeping the Catalog in sync.
 
 The register endpoint expects a JSON request body to be PUT. The request
@@ -276,8 +276,8 @@ body must look like:
 
     {
         "ID": "mem",
-	    "Name": "Memory utilization",
-	    "Notes": "Ensure we don't oversubscribe memory",
+        "Name": "Memory utilization",
+        "Notes": "Ensure we don't oversubscribe memory",
         "Script": "/usr/local/bin/check_mem.py",
         "Interval": "10s",
         "TTL": "15s"
@@ -332,7 +332,7 @@ The return code is 200 on success.
 
 The register endpoint is used to add a new service to the local agent.
 There is more documentation on services [here](/docs/agent/services.html).
-Services may also provide a health check. The agent is reponsible for managing
+Services may also provide a health check. The agent is responsible for managing
 the status of the check and keeping the Catalog in sync.
 
 The register endpoint expects a JSON request body to be PUT. The request
@@ -340,9 +340,12 @@ body must look like:
 
     {
         "ID": "redis1",
-	    "Name": "redis",
-	    "Tags": ["master", "v1"],
-	    "Port": 8000,
+        "Name": "redis",
+        "Tags": [
+            "master",
+            "v1"
+        ],
+        "Port": 8000,
         "Check": {
             "Script": "/usr/local/bin/check_redis.py",
             "Interval": "10s",
@@ -402,8 +405,11 @@ body must look like:
         "Service": {
             "ID": "redis1",
             "Service": "redis",
-            "Tags": ["master", "v1"],
-            "Port": 8000,
+            "Tags": [
+                "master",
+                "v1"
+            ],
+            "Port": 8000
         },
         "Check": {
             "Node": "foobar",
@@ -501,12 +507,12 @@ It returns a JSON body like this:
 
     [
         {
-            "Node":"baz",
-            "Address":"10.1.10.11"
+            "Node": "baz",
+            "Address": "10.1.10.11"
         },
         {
-            "Node":"foobar",
-            "Address":"10.1.10.12"
+            "Node": "foobar",
+            "Address": "10.1.10.12"
         }
     ]
 
@@ -521,9 +527,12 @@ however the dc can be provided using the "?dc=" query parameter.
 It returns a JSON body like this:
 
     {
-        "consul":[],
-        "redis":[],
-        "postgresql":["master","slave"]
+        "consul": [],
+        "redis": [],
+        "postgresql": [
+            "master",
+            "slave"
+        ]
     }
 
 The main object keys are the service names, while the array
@@ -545,12 +554,12 @@ It returns a JSON body like this:
 
     [
         {
-            "Node":"foobar",
-            "Address":"10.1.10.12",
-            "ServiceID":"redis",
-            "ServiceName":"redis",
-            "ServiceTags":null,
-            "ServicePort":8000
+            "Node": "foobar",
+            "Address": "10.1.10.12",
+            "ServiceID": "redis",
+            "ServiceName": "redis",
+            "ServiceTags": null,
+            "ServicePort": 8000
         }
     ]
 
@@ -566,22 +575,24 @@ The node being queried must be provided after the slash.
 It returns a JSON body like this:
 
     {
-        "Node":{
-            "Node":"foobar",
-            "Address":"10.1.10.12"
+        "Node": {
+            "Node": "foobar",
+            "Address": "10.1.10.12"
         },
-        "Services":{
-            "consul":{
-                "ID":"consul",
-                "Service":"consul",
-                "Tags":null,
-                "Port":8300
+        "Services": {
+            "consul": {
+                "ID": "consul",
+                "Service": "consul",
+                "Tags": null,
+                "Port": 8300
             },
-            "redis":{
-                "ID":"redis",
-                "Service":"redis",
-                "Tags":["v1"],
-                "Port":8000
+            "redis": {
+                "ID": "redis",
+                "Service": "redis",
+                "Tags": [
+                    "v1"
+                ],
+                "Port": 8000
             }
         }
     }
@@ -590,7 +601,7 @@ This endpoint supports blocking queries and all consistency modes.
 
 ## Health
 
-The Health used to query health related information. It is provided seperately
+The Health used to query health related information. It is provided separately
 from the Catalog, since users may prefer to not use the health checking mechanisms
 as they are totally optional. Additionally, some of the query results from the Health system are filtered, while the Catalog endpoints provide the raw entries.
 
@@ -614,24 +625,24 @@ It returns a JSON body like this:
 
     [
         {
-            "Node":"foobar",
-            "CheckID":"serfHealth",
-            "Name":"Serf Health Status",
-            "Status":"passing",
-            "Notes":"",
+            "Node": "foobar",
+            "CheckID": "serfHealth",
+            "Name": "Serf Health Status",
+            "Status": "passing",
+            "Notes": "",
             "Output": "",
-            "ServiceID":"",
-            "ServiceName":""
+            "ServiceID": "",
+            "ServiceName": ""
         },
         {
-            "Node":"foobar",
-            "CheckID":"service:redis",
-            "Name":"Service 'redis' check",
-            "Status":"passing",
-            "Notes":"",
+            "Node": "foobar",
+            "CheckID": "service:redis",
+            "Name": "Service 'redis' check",
+            "Status": "passing",
+            "Notes": "",
             "Output": "",
-            "ServiceID":"redis",
-            "ServiceName":"redis"
+            "ServiceID": "redis",
+            "ServiceName": "redis"
         }
     ]
 
@@ -656,14 +667,14 @@ It returns a JSON body like this:
 
     [
         {
-            "Node":"foobar",
-            "CheckID":"service:redis",
-            "Name":"Service 'redis' check",
-            "Status":"passing",
-            "Notes":"",
+            "Node": "foobar",
+            "CheckID": "service:redis",
+            "Name": "Service 'redis' check",
+            "Status": "passing",
+            "Notes": "",
             "Output": "",
-            "ServiceID":"redis",
-            "ServiceName":"redis"
+            "ServiceID": "redis",
+            "ServiceName": "redis"
         }
     ]
 
@@ -696,35 +707,36 @@ It returns a JSON body like this:
 
     [
         {
-            "Node":{
-                "Node":"foobar",
-                "Address":"10.1.10.12"
+            "Node": {
+                "Node": "foobar",
+                "Address": "10.1.10.12"
             },
-            "Service":{
-                "ID":"redis",
-                "Service":"redis",
-                "Tags":null,
-                "Port":8000
+            "Service": {
+                "ID": "redis",
+                "Service": "redis",
+                "Tags": null,
+                "Port": 8000
             },
-            "Checks":[
+            "Checks": [
                 {
-                    "Node":"foobar",
-                    "CheckID":"service:redis",
-                    "Name":"Service 'redis' check",
-                    "Status":"passing",
-                    "Notes":"",
+                    "Node": "foobar",
+                    "CheckID": "service:redis",
+                    "Name": "Service 'redis' check",
+                    "Status": "passing",
+                    "Notes": "",
                     "Output": "",
-                    "ServiceID":"redis",
-                    "ServiceName":"redis"
-                },{
-                    "Node":"foobar",
-                    "CheckID":"serfHealth",
-                    "Name":"Serf Health Status",
-                    "Status":"passing",
-                    "Notes":"",
+                    "ServiceID": "redis",
+                    "ServiceName": "redis"
+                },
+                {
+                    "Node": "foobar",
+                    "CheckID": "serfHealth",
+                    "Name": "Serf Health Status",
+                    "Status": "passing",
+                    "Notes": "",
                     "Output": "",
-                    "ServiceID":"",
-                    "ServiceName":""
+                    "ServiceID": "",
+                    "ServiceName": ""
                 }
             ]
         }
@@ -745,24 +757,24 @@ It returns a JSON body like this:
 
     [
         {
-            "Node":"foobar",
-            "CheckID":"serfHealth",
-            "Name":"Serf Health Status",
-            "Status":"passing",
-            "Notes":"",
+            "Node": "foobar",
+            "CheckID": "serfHealth",
+            "Name": "Serf Health Status",
+            "Status": "passing",
+            "Notes": "",
             "Output": "",
-            "ServiceID":"",
-            "ServiceName":""
+            "ServiceID": "",
+            "ServiceName": ""
         },
         {
-            "Node":"foobar",
-            "CheckID":"service:redis",
-            "Name":"Service 'redis' check",
-            "Status":"passing",
-            "Notes":"",
+            "Node": "foobar",
+            "CheckID": "service:redis",
+            "Name": "Service 'redis' check",
+            "Status": "passing",
+            "Notes": "",
             "Output": "",
-            "ServiceID":"redis",
-            "ServiceName":"redis"
+            "ServiceID": "redis",
+            "ServiceName": "redis"
         }
     ]
 
@@ -792,5 +804,3 @@ This endpoint is used to get the Raft peers for the datacenter
 the agent is running in. It returns a list of addresses like:
 
     ["10.1.10.12:8300", "10.1.10.11:8300", "10.1.10.10:8300"]
-
-
