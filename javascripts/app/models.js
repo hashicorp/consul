@@ -86,6 +86,9 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     value: { presence: true }
   },
 
+  keyValid: Ember.computed.empty('errors.key'),
+  valueValid: Ember.computed.empty('errors.value'),
+
   isFolder: function() {
     return (this.get('key').slice(-1) == "/")
   }.property('key'),

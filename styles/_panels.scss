@@ -1,6 +1,7 @@
 .panel {
     border-width: 2px;
     border-color: $gray-background;
+    @include transition(background-color .3s ease-in-out);
 
     .panel-heading {
         background-color: transparent;
@@ -41,7 +42,7 @@
     .panel-bar {
         width: 100%;
         height: 20px;
-        @include transition(background-color .3s ease-in-out);
+        @include transition(background-color .1s linear);
     }
 
     &.panel-link {
@@ -62,7 +63,7 @@
             border-color: $purple;
         }
 
-        @include transition(background-color .3s ease-in-out);
+        @include transition(background-color .1s linear);
 
         border-color: $purple;
 

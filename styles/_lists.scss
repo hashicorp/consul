@@ -5,6 +5,7 @@
     border-radius: 0px;
     margin-bottom: 15px;
     margin-top: 15px;
+    @include transition(background-color .3s ease-in-out);
 
     .list-group-item-heading, .list-inline {
         margin: 10px 15px 10px 15px;
@@ -42,9 +43,11 @@
     }
 
     &.active {
+        @include transition(border-color .1s linear);
         border-color: $purple;
 
         .list-bar {
+            @include transition(background-color .1s linear);
             background-color: $purple;
         }
     }

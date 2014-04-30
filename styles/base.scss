@@ -5,6 +5,7 @@
 @import "nav";
 @import "buttons";
 @import "lists";
+@import "forms";
 
 @media (min-width: 768px) { // + 18
   .container {
@@ -84,7 +85,7 @@ a {
 }
 
 .bg-gray {
-    background-color: $gray;
+    background-color: $gray-light;
 }
 
 .bg-light-gray {

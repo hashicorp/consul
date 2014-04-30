@@ -106,14 +106,14 @@
             <div class="panel-body">
               <form class="form">
 
-                <div class="form-group">
+                <div {{ bind-attr class=":form-group newKey.keyValid:valid" }}>
                   <div class="input-group">
                     <span class="input-group-addon">{{topModel.parentKey}}</span>
                     {{ input value=newKey.key class="form-control" required=true }}
                   </div>
                 </div>
 
-                <div class="form-group">
+                <div {{ bind-attr class=":form-group newKey.valueValid:valid" }}>
                   {{ textarea value=newKey.value class="form-control"}}
                 </div>
 
