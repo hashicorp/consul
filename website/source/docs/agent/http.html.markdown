@@ -279,8 +279,8 @@ body must look like:
         "Name": "Memory utilization",
         "Notes": "Ensure we don't oversubscribe memory",
         "Script": "/usr/local/bin/check_mem.py",
-        "Interval": 10,
-        "TTL": 15
+        "Interval": "10s",
+        "TTL": "15s"
     }
 
 The `Name` field is mandatory, as is either `Script` and `Interval`
@@ -348,8 +348,8 @@ body must look like:
         "Port": 8000,
         "Check": {
             "Script": "/usr/local/bin/check_redis.py",
-            "Interval": 10,
-            "TTL": 15
+            "Interval": "10s",
+            "TTL": "15s"
         }
     }
 
