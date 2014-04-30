@@ -5,6 +5,8 @@
 //
 App.BaseRoute = Ember.Route.extend({
   actions: {
+    // Used to link to keys that are not objects,
+    // like parents and grandParents
     linkToKey: function(key) {
       key = key.replace(/\//g, "-")
 
@@ -20,37 +22,37 @@ App.BaseRoute = Ember.Route.extend({
 //
 // The route for choosing datacenters, typically the first route loaded.
 //
-// Note: This *does not* extend from BaseRoute as that could cause
-// and loop of transitions.
-//
-App.IndexRoute = Ember.Route.extend({
+App.IndexRoute = App.BaseRoute.extend({
+  // Retrieve the list of datacenters
   model: function(params) {
     return Ember.$.getJSON('/v1/catalog/datacenters').then(function(data) {
       return data
-    });
-  },
-
-  setupController: function(controller, model) {
-    controller.set('content', model);
+    })
   },
 
   afterModel: function(model, transition) {
+    // If we only have one datacenter, jump
+    // straight to it and bypass the global
+    // view
     if (model.get('length') === 1) {
       this.transitionTo('services', model[0]);
     }
   }
 });
 
-// The base DC route
-
+// The parent route for all resources. This keeps the top bar
+// functioning, as well as the per-dc requests.
 App.DcRoute = App.BaseRoute.extend({
   model: function(params) {
+    // Return a promise hash to retreieve the
+    // dcs and nodes used in the header
     return Ember.RSVP.hash({
       dc: params.dc,
       dcs: Ember.$.getJSON('/v1/catalog/datacenters'),
       nodes: Ember.$.getJSON('/v1/internal/ui/nodes').then(function(data) {
         objs = [];
 
+        // Merge the nodes into a list and create objects out of them
         data.map(function(obj){
           objs.push(App.Node.create(obj));
         });
@@ -69,6 +71,7 @@ App.DcRoute = App.BaseRoute.extend({
 
 
 App.KvIndexRoute = App.BaseRoute.extend({
+  // If they hit /kv we want to just move them to /kv/-
   beforeModel: function() {
     this.transitionTo('kv.show', '-')
   }
@@ -76,16 +79,15 @@ App.KvIndexRoute = App.BaseRoute.extend({
 
 App.KvShowRoute = App.BaseRoute.extend({
   model: function(params) {
+    // Convert the key back to the format consul understands
     var key = params.key.replace(/-/g, "/")
 
+    // Return a promise to retrieve the ?keys for that namespace
     return Ember.$.getJSON('/v1/kv/' + key + '?keys&seperator=' + '/').then(function(data) {
-
       objs = [];
-
       data.map(function(obj){
        objs.push(App.Key.create({Key: obj}));
       });
-
       return objs;
     });
   },
@@ -108,15 +110,20 @@ App.KvEditRoute = App.BaseRoute.extend({
       key = key.substring(0, key.length - 1);
     }
     parts = key.split('/');
+    // Go one level up
     parts.pop();
+    // If we are all the way up, just return nothing for the root
     if (parts.length == 0) {
       parentKey = ""
     } else {
+      // Add a slash
       parentKey = parts.join("/") + "/";
     }
 
+    // Return a promise hash to get the data for both columns
     return Ember.RSVP.hash({
       key: Ember.$.getJSON('/v1/kv/' + keyName).then(function(data) {
+        // Convert the returned data to a Key
         return App.Key.create().setProperties(data[0]);
       }),
       keys: keysPromise = Ember.$.getJSON('/v1/kv/' + parentKey + '?keys&seperator=' + '/').then(function(data) {
@@ -132,6 +139,9 @@ App.KvEditRoute = App.BaseRoute.extend({
   setupController: function(controller, models) {
     controller.set('content', models.key);
 
+    // If we don't have the cached model from our
+    // the kv.show controller, we need to go get it,
+    // otherwise we just load what we have.
     if (this.modelFor('kv.show') == undefined ) {
       controller.set('siblings', models.keys);
     } else {
@@ -140,13 +150,9 @@ App.KvEditRoute = App.BaseRoute.extend({
   }
 });
 
-/// services
-
-//
-// Display all the services, allow to drill down into the specific services.
-//
 App.ServicesRoute = App.BaseRoute.extend({
   model: function(params) {
+    // Return a promise to retrieve all of the services
     return Ember.$.getJSON('/v1/internal/ui/services').then(function(data) {
       objs = [];
       data.map(function(obj){
@@ -155,56 +161,29 @@ App.ServicesRoute = App.BaseRoute.extend({
       return objs
     });
   },
-  //
-  // Set the services as the routes default model to be called in
-  // the template as {{model}}
-  //
   setupController: function(controller, model) {
-    //
-    // Since we have 2 column layout, we need to also display the
-    // list of services on the left. Hence setting the attribute
-    // {{services}} on the controller.
-    //
     controller.set('services', model);
   }
 });
 
 
-//
-// Display an individual service, as well as the global services in the left
-// column.
-//
 App.ServicesShowRoute = App.BaseRoute.extend({
-  //
-  // Set the model on the route. We look up the specific service
-  // by it's identifier passed via the route
-  //
   model: function(params) {
+    // Here we just use the built-in health endpoint, as it gives us everything
+    // we need.
     return Ember.$.getJSON('/v1/health/service/' + params.name).then(function(data) {
       objs = [];
-
       data.map(function(obj){
        objs.push(App.Node.create(obj));
       });
-
       return objs;
     });
   },
 });
 
-
-/// nodes
-
-//
-// Display an individual node, as well as the global nodes in the left
-// column.
-//
 App.NodesShowRoute = App.BaseRoute.extend({
-  //
-  // Set the model on the route. We look up the specific node
-  // by it's identifier passed via the route
-  //
   model: function(params) {
+    // Return a promise hash of the node and nodes
     return Ember.RSVP.hash({
       node: Ember.$.getJSON('/v1/internal/ui/node/' + params.name).then(function(data) {
         return App.Node.create(data)
@@ -226,12 +205,9 @@ App.NodesShowRoute = App.BaseRoute.extend({
   }
 });
 
-//
-// Display all the nodes, allow to drill down into the specific nodes.
-//
 App.NodesRoute = App.BaseRoute.extend({
-
   model: function(params) {
+    // Return a promise containing the nodes
     return Ember.$.getJSON('/v1/internal/ui/nodes').then(function(data) {
       objs = [];
       data.map(function(obj){
@@ -240,16 +216,7 @@ App.NodesRoute = App.BaseRoute.extend({
       return objs
     });
   },
-  //
-  // Set the node as the routes default model to be called in
-  // the template as {{model}}. This is the "expanded" view.
-  //
   setupController: function(controller, model) {
-      //
-      // Since we have 2 column layout, we need to also display the
-      // list of nodes on the left. Hence setting the attribute
-      // {{nodes}} on the controller.
-      //
       controller.set('nodes', model);
   }
 });

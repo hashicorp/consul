@@ -19,6 +19,16 @@
     {{outlet}}
   </script>
 
+  <script type="text/x-handlebars" data-template-name="error">
+    <div class="row">
+      <div class="col-md-12 col-sm-12 col-xs-12">
+        <div class="text-center">
+          uh oh! This is an error page.
+        </div>
+      </div>
+    </div>
+  </script>
+
   <script type="text/x-handlebars" data-template-name="dc">
     <div class="row">
       <div class="col-md-12 col-sm-12 col-xs-12 topbar">
@@ -347,6 +357,7 @@
 
   <script type="text/x-handlebars" id="index">
     <div class="col-md-8 col-md-offset-2 vertical-center">
+      {{errorMessage}}
       {{#each item in model}}
         {{#link-to 'services' item }}
             <div class="panel panel-link panel-short">
