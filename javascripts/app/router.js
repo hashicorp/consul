@@ -1,7 +1,9 @@
 window.App = Ember.Application.create({
   rootElement: "#app",
-  LOG_TRANSITIONS: true
+  LOG_TRANSITIONS: true,
+  baseUrl: 'http://localhost:8500'
 });
+
 
 App.Router.map(function() {
 
