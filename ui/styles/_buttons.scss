@@ -55,4 +55,17 @@
 
     }
 
+    &.btn-danger {
+        color: $red;
+        background-color: transparent;
+        border: 2px solid $red;
+
+        &:hover {
+            background-color: lighten($red, 38%);
+            color: darken($red, 10%);
+        }
+
+    }
+
+
 }
