@@ -95,10 +95,16 @@ func (s *HTTPServer) KVSGetKeys(resp http.ResponseWriter, req *http.Request, arg
 	}
 	setMeta(resp, &out.QueryMeta)
 
-	// Check if we get a not found
-	if len(out.Keys) == 0 {
+	// Check if we get a not found. We do not generate
+	// not found for the root, but just provide the empty list
+	if len(out.Keys) == 0 && listArgs.Prefix != "" {
 		resp.WriteHeader(404)
 		return nil, nil
+	}
+
+	// Use empty list instead of null
+	if out.Keys == nil {
+		out.Keys = []string{}
 	}
 	return out.Keys, nil
 }
