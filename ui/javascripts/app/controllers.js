@@ -1,3 +1,6 @@
+// Add mixins
+App.KvShowController = Ember.ObjectController.extend(Ember.Validations.Mixin);
+
 //
 // path: /
 //
@@ -71,6 +74,33 @@ App.ServicesShowController = Ember.Controller.extend({
   needs: ['services']
 });
 
+App.KvShowController.reopen({
+  isLoading: false,
+
+  actions: {
+    createKey: function() {
+      this.set('isLoading', true);
+
+      var newKey = this.get('newKey');
+      var topModel = this.get('topModel');
+
+      // If we don't have a previous model to base
+      // see our parent, or we're not at the root level,
+      // strip the leading slash.
+      if (!topModel || topModel.get('parentKey') != "/") {
+        newKey.set('key', (topModel.get('parentKey') + newKey.get('key')));
+      }
+
+      // Persist newKey
+      //
+
+      Ember.run.later(this, function() {
+        this.set('isLoading', false)
+      }, 500);
+
+    }
+  }
+});
 
 App.KvEditController = Ember.Controller.extend({
   isLoading: false,
