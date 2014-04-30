@@ -106,9 +106,11 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
   }.property('Key'),
 
   urlSafeKey: function() {
-    console.log(this)
-
     return this.get('Key').replace(/\//g, "-")
+  }.property('Key'),
+
+  urlSafeParentKey: function() {
+    return this.get('parentKey').replace(/\//g, "-")
   }.property('Key'),
 
   linkToRoute: function() {
@@ -120,6 +122,19 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
       return 'kv.edit'
     }
   }.property('Key'),
+
+  valueDecoded: function(key, value) {
+    // Setter
+    if (arguments.length > 1) {
+      this.set('Value', window.btoa(value));
+    }
+
+    if (this.get('Value') === null) {
+      return "";
+    }
+    // getter
+    return window.atob(this.get('Value'));
+  }.property('Value'),
 
   keyParts: function() {
     var key = this.get('Key');

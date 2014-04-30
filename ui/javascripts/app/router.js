@@ -6,7 +6,6 @@ window.App = Ember.Application.create({
 
 
 App.Router.map(function() {
-
   this.resource("dc", {path: "/:dc"}, function() {
     this.resource("services", { path: "/services" }, function(){
       this.route("show", { path: "/:name" });
