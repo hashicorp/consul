@@ -80,7 +80,12 @@ App.Node = Ember.Object.extend({
 //
 // A key/value object
 //
-App.Key = Ember.Object.extend({
+App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
+  validations: {
+    key: { presence: true },
+    value: { presence: true }
+  },
+
   isFolder: function() {
     return (this.get('key').slice(-1) == "/")
   }.property('key'),

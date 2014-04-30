@@ -83,6 +83,7 @@ App.KvShowRoute = App.BaseRoute.extend({
   setupController: function(controller, model) {
     controller.set('content', model);
     controller.set('topModel', model[0]);
+    controller.set('newKey', App.Key.create());
   }
 });
 
