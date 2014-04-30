@@ -19,7 +19,6 @@
     {{outlet}}
   </script>
 
-
   <script type="text/x-handlebars" data-template-name="dc">
     <div class="row">
       <div class="col-md-12 col-sm-12 col-xs-12 topbar">
@@ -114,7 +113,7 @@
                 </div>
 
                 <div {{ bind-attr class=":form-group newKey.valueValid:valid" }}>
-                  {{ textarea value=newKey.value class="form-control"}}
+                  {{ textarea value=newKey.Value class="form-control"}}
                 </div>
 
                 <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
@@ -165,9 +164,12 @@
             </div>
 
             <div class="panel-body">
+              <div class="form-group">
+                {{errorMessage}}
+              </div>
               <form class="form">
                 <div class="form-group">
-                  {{ textarea value=model.value class="form-control"}}
+                  {{ textarea value=model.valueDecoded class="form-control"}}
                 </div>
                 <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
                 <button {{ action "deleteKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete</button>

@@ -83,20 +83,26 @@ App.KvShowController.reopen({
 
       var newKey = this.get('newKey');
       var topModel = this.get('topModel');
+      var controller = this;
 
       // If we don't have a previous model to base
       // see our parent, or we're not at the root level,
       // strip the leading slash.
       if (!topModel || topModel.get('parentKey') != "/") {
-        newKey.set('key', (topModel.get('parentKey') + newKey.get('key')));
+        newKey.set('Key', (topModel.get('parentKey') + newKey.get('Key')));
       }
 
-      // Persist newKey
-      //
-
-      Ember.run.later(this, function() {
-        this.set('isLoading', false)
-      }, 500);
+      Ember.$.ajax({
+          url: "/v1/kv/" + newKey.get('Key'),
+          type: 'PUT',
+          data: newKey.get('Value')
+      }).then(function(response) {
+        controller.set('isLoading', false)
+        controller.transitionToRoute('kv.edit', newKey.get('urlSafeKey'));
+        controller.get('keys').reload()
+      }).fail(function(response) {
+        controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
+      });
 
     }
   }
@@ -107,22 +113,38 @@ App.KvEditController = Ember.Controller.extend({
 
   actions: {
     updateKey: function() {
-      var key = this.get("model");
       this.set('isLoading', true);
 
-      Ember.run.later(this, function() {
-        this.set('isLoading', false)
-      }, 1500);
+      var key = this.get("model");
+      var controller = this;
 
+      Ember.$.ajax({
+          url: "/v1/kv/" + key.get('Key'),
+          type: 'PUT',
+          data: key.get('valueDecoded')
+      }).then(function(response) {
+        controller.set('isLoading', false)
+      }).fail(function(response) {
+        controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
+      })
     },
 
     deleteKey: function() {
-      var key = this.get("model");
       this.set('isLoading', true);
 
-      Ember.run.later(this, function() {
-        this.set('isLoading', false)
-      }, 1000);
+      var key = this.get("model");
+      var controller = this;
+      var parent = key.get('urlSafeParentKey');
+
+      Ember.$.ajax({
+          url: "/v1/kv/" + key.get('Key'),
+          type: 'DELETE'
+      }).then(function(response) {
+        controller.set('isLoading', false);
+        controller.transitionToRoute('kv.show', parent);
+      }).fail(function(response) {
+        controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
+      })
 
     }
   }

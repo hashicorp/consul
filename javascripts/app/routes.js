@@ -32,12 +32,11 @@ App.IndexRoute = Ember.Route.extend({
 
   setupController: function(controller, model) {
     controller.set('content', model);
-    controller.set('dcs', model);
   },
 
-  afterModel: function(dcs, transition) {
-    if (dcs.get('length') === 1) {
-      this.transitionTo('services', dcs[0]);
+  afterModel: function(model, transition) {
+    if (model.get('length') === 1) {
+      this.transitionTo('services', model[0]);
     }
   }
 });
@@ -45,37 +44,26 @@ App.IndexRoute = Ember.Route.extend({
 // The base DC route
 
 App.DcRoute = App.BaseRoute.extend({
-  //
-  // Set the model on the route. We look up the specific service
-  // by it's identifier passed via the route
-  //
   model: function(params) {
-    var object = Ember.Object.create();
-    object.set('dc', params.dc)
+    return Ember.RSVP.hash({
+      dc: params.dc,
+      dcs: Ember.$.getJSON('/v1/catalog/datacenters'),
+      nodes: Ember.$.getJSON('/v1/internal/ui/nodes').then(function(data) {
+        objs = [];
 
-    var nodesPromise =  Ember.$.getJSON('/v1/internal/ui/nodes').then(function(data) {
-      objs = [];
+        data.map(function(obj){
+          objs.push(App.Node.create(obj));
+        });
 
-      data.map(function(obj){
-        objs.push(App.Node.create(obj));
-      });
-
-      object.set('nodes', objs);
-      return object;
+        return objs;
+      })
     });
-
-    var datacentersPromise = Ember.$.getJSON('/v1/catalog/datacenters').then(function(data) {
-      object.set('dcs', data);
-      return object;
-    });
-
-    return nodesPromise.then(datacentersPromise);
   },
 
-  setupController: function(controller, model) {
-    controller.set('content', model.get('dc'));
-    controller.set('nodes', model.get('nodes'));
-    controller.set('dcs', model.get('dcs'));
+  setupController: function(controller, models) {
+    controller.set('content', models.dc);
+    controller.set('nodes', models.nodes);
+    controller.set('dcs', models.dcs);
   }
 });
 
@@ -111,7 +99,6 @@ App.KvShowRoute = App.BaseRoute.extend({
 
 App.KvEditRoute = App.BaseRoute.extend({
   model: function(params) {
-    var object = Ember.Object.create();
     var keyName = params.key.replace(/-/g, "/")
     var key = keyName;
     var parentKey;
@@ -128,28 +115,25 @@ App.KvEditRoute = App.BaseRoute.extend({
       parentKey = parts.join("/") + "/";
     }
 
-    var keyPromise = Ember.$.getJSON('/v1/kv/' + keyName).then(function(data) {
-      object.set('key', App.Key.create().setProperties(data[0]))
-      return object;
+    return Ember.RSVP.hash({
+      key: Ember.$.getJSON('/v1/kv/' + keyName).then(function(data) {
+        return App.Key.create().setProperties(data[0]);
+      }),
+      keys: keysPromise = Ember.$.getJSON('/v1/kv/' + parentKey + '?keys&seperator=' + '/').then(function(data) {
+        objs = [];
+        data.map(function(obj){
+         objs.push(App.Key.create({Key: obj}));
+        });
+        return objs;
+      }),
     });
-
-    var keysPromise = Ember.$.getJSON('/v1/kv/' + parentKey + '?keys&seperator=' + '/').then(function(data) {
-      objs = [];
-      data.map(function(obj){
-       objs.push(App.Key.create({Key: obj}));
-      });
-      object.set('keys', objs);
-      return object;
-    });
-
-    return keysPromise.then(keyPromise);
   },
 
-  setupController: function(controller, model) {
-    controller.set('content', model.get('key'));
-    controller.set('siblings', model.get('keys'));
+  setupController: function(controller, models) {
+    controller.set('content', models.key);
 
     if (this.modelFor('kv.show') == undefined ) {
+      controller.set('siblings', models.keys);
     } else {
       controller.set('siblings', this.modelFor('kv.show'));
     }
@@ -203,7 +187,6 @@ App.ServicesShowRoute = App.BaseRoute.extend({
        objs.push(App.Node.create(obj));
       });
 
-      console.log(objs)
       return objs;
     });
   },
@@ -230,7 +213,6 @@ App.NodesShowRoute = App.BaseRoute.extend({
         return App.Node.create(data)
       })
     });
-
   },
 
   setupController: function(controller, models) {
