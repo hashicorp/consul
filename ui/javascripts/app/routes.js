@@ -105,8 +105,9 @@ App.KvShowRoute = App.BaseRoute.extend({
     // Loop over the keys
     models.keys.forEach(function(item, index) {
       if (item.get('Key') == key) {
+        // Handle having only one key as a sub-parent
         parentKey = item.get('Key');
-        grandParentKey = item.get('grandParentKey');
+        grandParentKey = item.get('parentKey');
         // Remove the dupe
         models.keys.splice(index, 1);
       }
@@ -167,7 +168,7 @@ App.KvEditRoute = App.BaseRoute.extend({
     models.keys.forEach(function(item, index) {
       if (item.get('Key') == models.key.get('parentKey')) {
         parentKey = item.get('Key');
-        grandParentKey = item.get('grandParentKey');
+        grandParentKey = item.get('parentKey');
         // Remove the dupe
         models.keys.splice(index, 1);
       }

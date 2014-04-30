@@ -103,8 +103,7 @@ App.Node = Ember.Object.extend({
 App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
   // Validates using the Ember.Valdiations library
   validations: {
-    Key: { presence: true },
-    Value: { presence: true }
+    Key: { presence: true }
   },
 
   // Boolean if the key is valid
@@ -122,6 +121,9 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
   // Boolean if the key is a "folder" or not, i.e is a nested key
   // that feels like a folder. Used for UI
   isFolder: function() {
+    if (this.get('Key') === undefined) {
+      return false;
+    };
     return (this.get('Key').slice(-1) == "/")
   }.property('Key'),
 
