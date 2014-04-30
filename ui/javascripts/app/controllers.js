@@ -1,83 +1,71 @@
-// Add mixins
-App.KvShowController = Ember.ObjectController.extend(Ember.Validations.Mixin);
-
-//
-// path: /
-//
-// The index is for choosing datacenters.
-//
-App.IndexController = Ember.Controller.extend({
-});
-
-//
-// path: /:dc
-//
 App.DcController = Ember.Controller.extend({
+  // Whether or not the dropdown menu can be seen
   isDropdownVisible: false,
 
   checks: function() {
-    var services = this.get('nodes');
+    var nodes = this.get('nodes');
     var checks = Ember.A()
 
-    // loop over all of the services we have,
-    // merge their checks into one.
-    services.forEach(function(item) {
+    // Combine the checks from all of our nodes
+    // into one.
+    nodes.forEach(function(item) {
       checks = checks.concat(item.Checks)
     });
 
-    // return the checks
     return checks
-  }.property('checks'),
+  }.property('Checks'),
 
+  // Returns the total number of failing checks.
+  //
+  // We treat any non-passing checks as failing
+  //
+  totalChecksFailing: function() {
+    var checks = this.get('checks')
+    return (checks.filterBy('Status', 'critical').get('length') +
+      checks.filterBy('Status', 'warning').get('length'))
+  }.property('Checks'),
+
+  //
+  // Returns the human formatted message for the button state
+  //
   checkMessage: function() {
     var checks = this.get('checks')
+    var failingChecks = this.get('totalChecksFailing');
+    var passingChecks = checks.filterBy('Status', 'passing').get('length');
 
-    // return the message for display
     if (this.get('hasFailingChecks') == true) {
-      return checks.filterBy('Status', 'critical').get('length') + ' checks failing';
+      return  failingChecks + ' checks failing';
     } else {
-      return checks.filterBy('Status', 'passing').get('length') + ' checks passing';
+      return  passingChecks + ' checks passing';
     }
 
-  }.property('checkMessage'),
+  }.property('Checks'),
 
+  //
+  // Boolean if the datacenter has any failing checks.
+  //
   hasFailingChecks: function() {
     var checks = this.get('checks')
-
-    // Return a boolean if checks are failing.
     return (checks.filterBy('Status', 'critical').get('length') > 0);
-
-  }.property('hasFailingChecks'),
+  }.property('Checks'),
 
   actions: {
+    // Hide and show the dropdown menu
     toggle: function(item){
       this.toggleProperty('isDropdownVisible');
     }
   }
 })
 
-//
-// path: /:dc/services
-//
-// The index is for choosing services.
-//
-App.ServicesController = Ember.ArrayController.extend({
-  needs: ['application']
-});
-
-//
-// path: /:dc/services/:name
-//
-// An individual service.
-//
-App.ServicesShowController = Ember.Controller.extend({
-  needs: ['services']
-});
+// Add mixins
+App.KvShowController = Ember.ObjectController.extend(Ember.Validations.Mixin);
 
 App.KvShowController.reopen({
   isLoading: false,
 
   actions: {
+    // Creates the key from the newKey model
+    // set on the route.
     createKey: function() {
       this.set('isLoading', true);
 
@@ -86,21 +74,25 @@ App.KvShowController.reopen({
       var controller = this;
 
       // If we don't have a previous model to base
-      // see our parent, or we're not at the root level,
+      // on our parent, or we're not at the root level,
       // strip the leading slash.
       if (!topModel || topModel.get('parentKey') != "/") {
         newKey.set('Key', (topModel.get('parentKey') + newKey.get('Key')));
       }
 
+      // Put the Key and the Value retrieved from the form
       Ember.$.ajax({
           url: "/v1/kv/" + newKey.get('Key'),
           type: 'PUT',
           data: newKey.get('Value')
       }).then(function(response) {
         controller.set('isLoading', false)
+        // Transition to edit the key
         controller.transitionToRoute('kv.edit', newKey.get('urlSafeKey'));
+        // Reload the keys in the left column
         controller.get('keys').reload()
       }).fail(function(response) {
+        // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
       });
 
@@ -112,19 +104,24 @@ App.KvEditController = Ember.Controller.extend({
   isLoading: false,
 
   actions: {
+    // Updates the key set as the model on the route.
     updateKey: function() {
       this.set('isLoading', true);
 
       var key = this.get("model");
       var controller = this;
 
+      // Put the key and the decoded (plain text) value
+      // from the form.
       Ember.$.ajax({
           url: "/v1/kv/" + key.get('Key'),
           type: 'PUT',
           data: key.get('valueDecoded')
       }).then(function(response) {
+        // If success, just reset the loading state.
         controller.set('isLoading', false)
       }).fail(function(response) {
+        // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
       })
     },
@@ -134,15 +131,20 @@ App.KvEditController = Ember.Controller.extend({
 
       var key = this.get("model");
       var controller = this;
+      // Get the parent for the transition back up a level
+      // after the delete
       var parent = key.get('urlSafeParentKey');
 
+      // Delete the key
       Ember.$.ajax({
           url: "/v1/kv/" + key.get('Key'),
           type: 'DELETE'
       }).then(function(response) {
         controller.set('isLoading', false);
+        // Tranisiton back up a level
         controller.transitionToRoute('kv.show', parent);
       }).fail(function(response) {
+        // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
       })
 
