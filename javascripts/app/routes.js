@@ -81,9 +81,10 @@ App.KvShowRoute = App.BaseRoute.extend({
   model: function(params) {
     // Convert the key back to the format consul understands
     var key = params.key.replace(/-/g, "/")
+    var dc = this.modelFor('dc').dc;
 
     // Return a promise to retrieve the ?keys for that namespace
-    return Ember.$.getJSON('/v1/kv/' + key + '?keys&seperator=' + '/').then(function(data) {
+    return Ember.$.getJSON('/v1/kv/' + key + '?keys&seperator=' + '/&dc=' + dc).then(function(data) {
       objs = [];
       data.map(function(obj){
        objs.push(App.Key.create({Key: obj}));
@@ -93,15 +94,17 @@ App.KvShowRoute = App.BaseRoute.extend({
   },
 
   setupController: function(controller, model) {
+    var parentKey = "/";
+    var grandParentKey = "/";
+
     // If we don't have any k/v, we need to set some basic
     // stuff so we can create them
-    if (model.length == 0) {
-      var parentKey = "/";
-      var grandParentKey = "/";
-    } else {
-      var parentKey = model[0].parentKey;
-      var grandParentKey = model[0].grandParentKey;
+    if (model.length > 0) {
+      var parentKey = model[0].get('parentKey');
+      var grandParentKey = model[0].get('grandParentKey');
     }
+
+    console.log(parentKey, grandParentKey)
 
     controller.set('content', model);
     controller.set('parentKey', parentKey);
@@ -112,9 +115,10 @@ App.KvShowRoute = App.BaseRoute.extend({
 
 App.KvEditRoute = App.BaseRoute.extend({
   model: function(params) {
-    var keyName = params.key.replace(/-/g, "/")
+    var keyName = params.key.replace(/-/g, "/");
     var key = keyName;
     var parentKey;
+    var dc = this.modelFor('dc').dc;
 
     // Get the parent key
     if (key.slice(-1) == "/") {
@@ -137,7 +141,7 @@ App.KvEditRoute = App.BaseRoute.extend({
         // Convert the returned data to a Key
         return App.Key.create().setProperties(data[0]);
       }),
-      keys: keysPromise = Ember.$.getJSON('/v1/kv/' + parentKey + '?keys&seperator=' + '/').then(function(data) {
+      keys: keysPromise = Ember.$.getJSON('/v1/kv/' + parentKey + '?keys&seperator=' + '/' + '&dc=' + dc).then(function(data) {
         objs = [];
         data.map(function(obj){
          objs.push(App.Key.create({Key: obj}));
@@ -163,8 +167,9 @@ App.KvEditRoute = App.BaseRoute.extend({
 
 App.ServicesRoute = App.BaseRoute.extend({
   model: function(params) {
+    var dc = this.modelFor('dc').dc
     // Return a promise to retrieve all of the services
-    return Ember.$.getJSON('/v1/internal/ui/services').then(function(data) {
+    return Ember.$.getJSON('/v1/internal/ui/services?dc=' + dc).then(function(data) {
       objs = [];
       data.map(function(obj){
        objs.push(App.Service.create(obj));
@@ -180,9 +185,10 @@ App.ServicesRoute = App.BaseRoute.extend({
 
 App.ServicesShowRoute = App.BaseRoute.extend({
   model: function(params) {
+    var dc = this.modelFor('dc').dc
     // Here we just use the built-in health endpoint, as it gives us everything
     // we need.
-    return Ember.$.getJSON('/v1/health/service/' + params.name).then(function(data) {
+    return Ember.$.getJSON('/v1/health/service/' + params.name + '?dc=' + dc).then(function(data) {
       objs = [];
       data.map(function(obj){
        objs.push(App.Node.create(obj));
@@ -194,12 +200,13 @@ App.ServicesShowRoute = App.BaseRoute.extend({
 
 App.NodesShowRoute = App.BaseRoute.extend({
   model: function(params) {
+    var dc = this.modelFor('dc').dc
     // Return a promise hash of the node and nodes
     return Ember.RSVP.hash({
-      node: Ember.$.getJSON('/v1/internal/ui/node/' + params.name).then(function(data) {
+      node: Ember.$.getJSON('/v1/internal/ui/node/' + params.name + '?dc=' + dc).then(function(data) {
         return App.Node.create(data)
       }),
-      nodes: Ember.$.getJSON('/v1/internal/ui/node/' + params.name).then(function(data) {
+      nodes: Ember.$.getJSON('/v1/internal/ui/node/' + params.name + '?dc=' + dc).then(function(data) {
         return App.Node.create(data)
       })
     });
@@ -218,8 +225,9 @@ App.NodesShowRoute = App.BaseRoute.extend({
 
 App.NodesRoute = App.BaseRoute.extend({
   model: function(params) {
+    var dc = this.modelFor('dc').dc
     // Return a promise containing the nodes
-    return Ember.$.getJSON('/v1/internal/ui/nodes').then(function(data) {
+    return Ember.$.getJSON('/v1/internal/ui/nodes?dc=' + dc).then(function(data) {
       objs = [];
       data.map(function(obj){
        objs.push(App.Node.create(obj));
