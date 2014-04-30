@@ -5,6 +5,6 @@ watch:
 	sass styles:static --watch
 
 build:
-	sass styles:static
+	sass styles/base.scss static/base.css
 
 .PHONY: server watch build
