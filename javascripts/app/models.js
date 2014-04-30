@@ -90,20 +90,26 @@ App.Node = Ember.Object.extend({
 //
 App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
   validations: {
-    key: { presence: true },
-    value: { presence: true }
+    Key: { presence: true },
+    Value: { presence: true }
   },
 
-  keyValid: Ember.computed.empty('errors.key'),
-  valueValid: Ember.computed.empty('errors.value'),
+  keyValid: Ember.computed.empty('errors.Key'),
+  valueValid: Ember.computed.empty('errors.Value'),
+
+  keyWithoutParent: function() {
+    return (this.get('Key').replace(this.get('parentKey'), ''));
+  }.property('Key'),
 
   isFolder: function() {
-    return (this.get('key').slice(-1) == "/")
-  }.property('key'),
+    return (this.get('Key').slice(-1) == "/")
+  }.property('Key'),
 
   urlSafeKey: function() {
-    return this.get('key').replace(/\//g, "-")
-  }.property('key'),
+    console.log(this)
+
+    return this.get('Key').replace(/\//g, "-")
+  }.property('Key'),
 
   linkToRoute: function() {
     var key = this.get('urlSafeKey')
@@ -113,16 +119,16 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     } else {
       return 'kv.edit'
     }
-  }.property('key'),
+  }.property('Key'),
 
   keyParts: function() {
-    var key = this.get('key');
+    var key = this.get('Key');
 
     if (key.slice(-1) == "/") {
       key = key.substring(0, key.length - 1);
     }
     return key.split('/');
-  }.property('key'),
+  }.property('Key'),
 
   parentKey: function() {
     var parts = this.get('keyParts').toArray();
@@ -130,7 +136,7 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     parts.pop();
 
     return parts.join("/") + "/";
-  }.property('key'),
+  }.property('Key'),
 
   grandParentKey: function() {
     var parts = this.get('keyParts').toArray();
@@ -139,5 +145,5 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     parts.pop();
 
     return parts.join("/") + "/";
-  }.property('key')
+  }.property('Key')
 });
