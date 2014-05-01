@@ -1,6 +1,11 @@
-## 0.2.0 (unreleased)
+## 0.2.0 (May 1, 2014)
 
 FEATURES:
+
+  * Adding Web UI for Consul. This is enabled by providing the `-ui-dir` flag
+  with the path to the web directory. The UI is visited at the standard HTTP
+  address (Defaults to http://127.0.0.1:8500/). There is a demo
+  [available here](http://demo.consul.io).
 
   * Adding new read consistency modes. `?consistent` can be used for strongly
   consistent reads without caveats. `?stale` can be used for stale reads to
@@ -8,6 +13,9 @@ FEATURES:
 
   * /v1/health/service/ endpoint can take an optional `?passing` flag
   to filter to only nodes with passing results. [GH-57]
+
+  * The KV endpoint suports listing keys with the `?keys` query parameter,
+  and limited up to a seperator using `?seperator=`.
 
 IMPROVEMENTS:
 
