@@ -19,11 +19,14 @@
     {{outlet}}
   </script>
 
-  <script type="text/x-handlebars" data-template-name="errora">
+  <script type="text/x-handlebars" data-template-name="error">
     <div class="row">
-      <div class="col-md-12 col-sm-12 col-xs-12">
-        <div class="text-center">
-          uh oh! This is an error page.
+      <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
+        <div class="text-center error">
+          <p>This is an error page for the Consul web UI. You may have visited a URL that is loading an
+          unknown resource, so you can try going back to thes <a href="#">root</a>.</p>
+          <p>Otherwise, please report any unexpected
+          issues to the <a href="https://github.com/hashicorp/consul">GitHub page</a>.</p>
         </div>
       </div>
     </div>
@@ -119,6 +122,7 @@
                     <span class="input-group-addon">{{parentKey}}</span>
                     {{ input value=newKey.Key class="form-control" required=true }}
                   </div>
+                  <span class="help-block">To create a folder, end the key with <code>/</code></span>
                 </div>
 
                 {{#if newKey.isFolder }}
@@ -126,6 +130,7 @@
                 {{else}}
                 <div class="form-group">
                   {{ textarea value=newKey.Value class="form-control"}}
+                  <span class="help-block">Value can be any format and length</span>
                 </div>
                 {{/if}}
 

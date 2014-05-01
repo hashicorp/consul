@@ -34,7 +34,7 @@
             font-size: 14px;
             color: $text-color;
         }
-        h5 {
+      h5 {
             font-size: 12px;
         }
     }
@@ -63,11 +63,11 @@
             border-color: $purple;
         }
 
-        @include transition(background-color .1s linear);
-
+        @include transition(border-color .1s linear);
         border-color: $purple;
 
         .panel-bar {
+        @include transition(background-color .1s linear);
             background-color: $purple;
         }
     }
