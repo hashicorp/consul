@@ -356,6 +356,24 @@
       <h2 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h2>
       <hr>
 
+      <h5>Services</h5>
+
+      {{#each service in model.Services }}
+
+      {{#link-to 'services.show' service.Service }}
+          <div class="panel panel-link panel-short">
+            <div class="panel-bar bg-light-gray"></div>
+            <div class="panel-heading">
+              <h3 class="panel-title">
+                {{service.Service}}
+                <small>{{sevice.ID}}</small>
+                <span class="panel-note">:{{service.Port}}</span>
+              </h3>
+            </div>
+        </div>
+      {{/link-to}}
+      {{/each}}
+
       <h5>Checks</h5>
 
       {{#each check in model.Checks }}
@@ -378,25 +396,6 @@
           </div>
         </div>
 
-      {{/each}}
-
-
-      <h5>Services</h5>
-
-      {{#each service in model.Services }}
-
-      {{#link-to 'services.show' service.Service }}
-          <div class="panel panel-link panel-short">
-            <div class="panel-bar bg-light-gray"></div>
-            <div class="panel-heading">
-              <h3 class="panel-title">
-                {{service.Service}}
-                <small>{{sevice.ID}}</small>
-                <span class="panel-note">:{{service.Port}}</span>
-              </h3>
-            </div>
-        </div>
-      {{/link-to}}
       {{/each}}
 
       {{#link-to "nodes" class="btn btn-default col-xs-12 visible-xs" }}All Nodes{{/link-to}}
