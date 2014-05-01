@@ -95,13 +95,14 @@ App.KvShowController.reopen({
           data: newKey.get('Value')
       }).then(function(response) {
         controller.set('isLoading', false)
+
         // transition to the right place
-        console.log(newKey.get('Key'));
         if (newKey.get('isFolder') == true) {
           controller.transitionToRoute('kv.show', newKey.get('urlSafeKey'));
         } else {
           controller.transitionToRoute('kv.edit', newKey.get('urlSafeKey'));
         }
+
         // Reload the keys in the left column
         controller.get('keys').reload()
       }).fail(function(response) {
