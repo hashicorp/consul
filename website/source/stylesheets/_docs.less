@@ -32,7 +32,7 @@ body.layout-intro{
 
 .docs-sidebar{
     position: relative;
-    z-index: 20;	
+    z-index: 20;
     margin-bottom: 30px;
 	margin-top: 50px;
 	margin-right: 4%;
@@ -73,7 +73,7 @@ body.layout-intro{
 			padding: 10px 0;
 			margin: 0 30px;
 			border-bottom: 2px solid #fff;
-			
+
 			>.nav{
 				li{
 					a{
@@ -170,6 +170,12 @@ body.layout-intro{
 		}
 	}
 
+    img{
+        max-width: 650px;
+        margin-top: 25px;
+        margin-bottom: 25px;
+    }
+
 	h1{
 		color: @purple;
 		text-transform: uppercase;
@@ -205,6 +211,10 @@ body.layout-intro{
 
 @media (max-width: 480px) {
 	.bs-docs-section{
+        img{
+            max-width: 450px;
+        }
+
 		h1{
 			font-size: 32px;
 		}
