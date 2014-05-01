@@ -4,7 +4,8 @@ This directory contains the Consul Web UI. Consul contains a built-in
 HTTP server that serves this directoy, but any common HTTP server
 is capable of serving it.
 
-It uses JavaScript to communicate with the [Consul API](). The basic
+It uses JavaScript and [Ember](http://emberjs.com) to communicate with
+the [Consul API](http://www.consul.io/docs/agent/http.html). The basic
 features it provides are:
 
 - Service view. A list of your registered services, their
@@ -16,6 +17,9 @@ on each and the health of the node.
 It's aware of multiple data centers, so you can get a quick global
 overview before drilling into specific data-centers for detailed
 views.
+
+The UI uses some internal undocumented HTTP APIs to optimize
+performance and usability.
 
 ### Development
 
@@ -34,9 +38,7 @@ Reloading compilation for development:
 
     make watch
 
-Additionally, you'll need to run a local webserver.
-
-    make server
-
-
-### Running the tests
+Consul ships with an HTTP server for the API and UI. By default, when
+you run the agent, it is off. However, if you pass a `-ui-dir` flag
+with a path to this directoy, you'll be able to access the UI via the
+Consul HTTP server address, which defaults to `localhost:8500/ui`.
