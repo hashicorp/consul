@@ -25,14 +25,11 @@ performance and usability.
 
 Improvements and bug fixes are welcome and encouraged for the Web UI.
 
-The UI is built with SASS CSS, so you'll need to compile that through
-the associated makefile, as well as installing the `sass` gem.
+You'll need sass to compile CSS stylesheets. Install that with
+bundler:
 
-    gem install sass
-
-One-time stylesheet compilation:
-
-    make build
+    cd ui/
+    bundle
 
 Reloading compilation for development:
 
@@ -47,3 +44,9 @@ An example of this command, from inside the `ui/` directory, would be:
 
     consul agent -bootstrap -server -data-dir /tmp/ -ui-dir .
 
+
+### Releasing
+
+These steps are slightly manual at the moment.
+
+1. Build with `make dist`
