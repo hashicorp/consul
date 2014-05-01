@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strings"
 )
 
 const (
@@ -241,8 +242,11 @@ func (s *StateStore) initialize() error {
 		"NodeChecks":        MDBTables{s.checkTable},
 		"ServiceChecks":     MDBTables{s.checkTable},
 		"CheckServiceNodes": MDBTables{s.nodeTable, s.serviceTable, s.checkTable},
+		"NodeInfo":          MDBTables{s.nodeTable, s.serviceTable, s.checkTable},
+		"NodeDump":          MDBTables{s.nodeTable, s.serviceTable, s.checkTable},
 		"KVSGet":            MDBTables{s.kvsTable},
 		"KVSList":           MDBTables{s.kvsTable},
+		"KVSListKeys":       MDBTables{s.kvsTable},
 	}
 	return nil
 }
@@ -743,6 +747,94 @@ func (s *StateStore) parseCheckServiceNodes(tx *MDBTxn, res []interface{}, err e
 	return nodes
 }
 
+// NodeInfo is used to generate the full info about a node.
+func (s *StateStore) NodeInfo(node string) (uint64, structs.NodeDump) {
+	tables := s.queryTables["NodeInfo"]
+	tx, err := tables.StartTxn(true)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	idx, err := tables.LastIndexTxn(tx)
+	if err != nil {
+		panic(fmt.Errorf("Failed to get last index: %v", err))
+	}
+
+	res, err := s.nodeTable.GetTxn(tx, "id", node)
+	return idx, s.parseNodeInfo(tx, res, err)
+}
+
+// NodeDump is used to generate the NodeInfo for all nodes. This is very expensive,
+// and should generally be avoided for programatic access.
+func (s *StateStore) NodeDump() (uint64, structs.NodeDump) {
+	tables := s.queryTables["NodeDump"]
+	tx, err := tables.StartTxn(true)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	idx, err := tables.LastIndexTxn(tx)
+	if err != nil {
+		panic(fmt.Errorf("Failed to get last index: %v", err))
+	}
+
+	res, err := s.nodeTable.GetTxn(tx, "id")
+	return idx, s.parseNodeInfo(tx, res, err)
+}
+
+// parseNodeInfo is used to scan over the results of a node
+// iteration and generate a NodeDump
+func (s *StateStore) parseNodeInfo(tx *MDBTxn, res []interface{}, err error) structs.NodeDump {
+	dump := make(structs.NodeDump, 0, len(res))
+	if err != nil {
+		s.logger.Printf("[ERR] consul.state: Failed to get nodes: %v", err)
+		return dump
+	}
+
+	for _, r := range res {
+		// Copy the address and node
+		node := r.(*structs.Node)
+		info := &structs.NodeInfo{
+			Node:    node.Node,
+			Address: node.Address,
+		}
+
+		// Get any services of the node
+		res, err = s.serviceTable.GetTxn(tx, "id", node.Node)
+		if err != nil {
+			s.logger.Printf("[ERR] consul.state: Failed to get node services: %v", err)
+		}
+		info.Services = make([]*structs.NodeService, 0, len(res))
+		for _, r := range res {
+			service := r.(*structs.ServiceNode)
+			srv := &structs.NodeService{
+				ID:      service.ServiceID,
+				Service: service.ServiceName,
+				Tags:    service.ServiceTags,
+				Port:    service.ServicePort,
+			}
+			info.Services = append(info.Services, srv)
+		}
+
+		// Get any checks of the node
+		res, err = s.checkTable.GetTxn(tx, "node", node.Node)
+		if err != nil {
+			s.logger.Printf("[ERR] consul.state: Failed to get node checks: %v", err)
+		}
+		info.Checks = make([]*structs.HealthCheck, 0, len(res))
+		for _, r := range res {
+			chk := r.(*structs.HealthCheck)
+			info.Checks = append(info.Checks, chk)
+		}
+
+		// Add the node info
+		dump = append(dump, info)
+	}
+	return dump
+}
+
 // KVSSet is used to create or update a KV entry
 func (s *StateStore) KVSSet(index uint64, d *structs.DirEntry) error {
 	// Start a new txn
@@ -810,6 +902,57 @@ func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) 
 		ents[idx] = r.(*structs.DirEntry)
 	}
 	return idx, ents, err
+}
+
+// KVSListKeys is used to list keys with a prefix, and up to a given seperator
+func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, error) {
+	tx, err := s.kvsTable.StartTxn(true, nil)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer tx.Abort()
+
+	idx, err := s.kvsTable.LastIndexTxn(tx)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	// Aggregate the stream
+	stream := make(chan interface{}, 128)
+	done := make(chan struct{})
+	var keys []string
+	go func() {
+		prefixLen := len(prefix)
+		sepLen := len(seperator)
+		last := ""
+		for raw := range stream {
+			ent := raw.(*structs.DirEntry)
+			after := ent.Key[prefixLen:]
+
+			// If there is no seperator, always accumulate
+			if sepLen == 0 {
+				keys = append(keys, ent.Key)
+				continue
+			}
+
+			// Check for the seperator
+			if idx := strings.Index(after, seperator); idx >= 0 {
+				toSep := ent.Key[:prefixLen+idx+sepLen]
+				if last != toSep {
+					keys = append(keys, toSep)
+					last = toSep
+				}
+			} else {
+				keys = append(keys, ent.Key)
+			}
+		}
+		close(done)
+	}()
+
+	// Start the stream, and wait for completion
+	err = s.kvsTable.StreamTxn(stream, tx, "id_prefix", prefix)
+	<-done
+	return idx, keys, err
 }
 
 // KVSDelete is used to delete a KVS entry

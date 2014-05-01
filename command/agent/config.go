@@ -124,6 +124,10 @@ type Config struct {
 	// addresses, then the agent will error and exit.
 	StartJoin []string `mapstructure:"start_join"`
 
+	// UiDir is the directory containing the Web UI resources.
+	// If provided, the UI endpoints will be enabled.
+	UiDir string `mapstructure:"ui_dir"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -415,6 +419,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Ports.Server != 0 {
 		result.Ports.Server = b.Ports.Server
+	}
+	if b.UiDir != "" {
+		result.UiDir = b.UiDir
 	}
 
 	// Copy the start join addresses

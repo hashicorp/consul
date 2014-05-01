@@ -107,11 +107,12 @@ type Server struct {
 
 // Holds the RPC endpoints
 type endpoints struct {
-	Catalog *Catalog
-	Health  *Health
-	Raft    *Raft
-	Status  *Status
-	KVS     *KVS
+	Catalog  *Catalog
+	Health   *Health
+	Raft     *Raft
+	Status   *Status
+	KVS      *KVS
+	Internal *Internal
 }
 
 // NewServer is used to construct a new Consul server from the
@@ -311,6 +312,7 @@ func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 	s.endpoints.Catalog = &Catalog{s}
 	s.endpoints.Health = &Health{s}
 	s.endpoints.KVS = &KVS{s}
+	s.endpoints.Internal = &Internal{s}
 
 	// Register the handlers
 	s.rpcServer.Register(s.endpoints.Status)
@@ -318,6 +320,7 @@ func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 	s.rpcServer.Register(s.endpoints.Catalog)
 	s.rpcServer.Register(s.endpoints.Health)
 	s.rpcServer.Register(s.endpoints.KVS)
+	s.rpcServer.Register(s.endpoints.Internal)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {

@@ -220,6 +220,21 @@ type CheckServiceNode struct {
 }
 type CheckServiceNodes []CheckServiceNode
 
+// NodeInfo is used to dump all associated information about
+// a node. This is currently used for the UI only, as it is
+// rather expensive to generate.
+type NodeInfo struct {
+	Node     string
+	Address  string
+	Services []*NodeService
+	Checks   []*HealthCheck
+}
+
+// NodeDump is used to dump all the nodes with all their
+// associated data. This is currently used for the UI only,
+// as it is rather expensive to generate.
+type NodeDump []*NodeInfo
+
 type IndexedNodes struct {
 	Nodes Nodes
 	QueryMeta
@@ -247,6 +262,11 @@ type IndexedHealthChecks struct {
 
 type IndexedCheckServiceNodes struct {
 	Nodes CheckServiceNodes
+	QueryMeta
+}
+
+type IndexedNodeDump struct {
+	Dump NodeDump
 	QueryMeta
 }
 
@@ -293,8 +313,25 @@ func (r *KeyRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
+// KeyListRequest is used to list keys
+type KeyListRequest struct {
+	Datacenter string
+	Prefix     string
+	Seperator  string
+	QueryOptions
+}
+
+func (r *KeyListRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
 type IndexedDirEntries struct {
 	Entries DirEntries
+	QueryMeta
+}
+
+type IndexedKeyList struct {
+	Keys []string
 	QueryMeta
 }
 

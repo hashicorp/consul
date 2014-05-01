@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=0.5">
+  <title>Consul</title>
+  <link rel="stylesheet" href="static/bootstrap.min.css">
+  <link rel="stylesheet" href="static/base.css">
+</head>
+<body>
+
+  <div class="container">
+    <div class="col-md-12">
+      <div id="app">
+      </div>
+    </div>
+  </div>
+
+  <script type="text/x-handlebars">
+    {{outlet}}
+  </script>
+
+  <script type="text/x-handlebars" data-template-name="error">
+    <div class="row">
+      <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
+        <div class="text-center vertical-center">
+          {{#if controller.model.statusText }}
+            <p class="bold">HTTP error code from Consul: <code>{{controller.model.status}} {{controller.model.statusText}}</code></p>
+          {{/if}}
+          <p>This is an error page for the Consul web UI. You may have visited a URL that is loading an
+          unknown resource, so you can try going back to the <a href="#">root</a>.</p>
+          <p>Otherwise, please report any unexpected
+          issues on the <a href="https://github.com/hashicorp/consul">GitHub page</a>.</p>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" data-template-name="loading">
+    <div class="row">
+      <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
+        <div class="text-center vertical-center">
+          <img src="static/loading-cylon-purple.svg" width="384" height="48">
+          <p><small>Loading...</small></p>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" data-template-name="dc">
+    <div class="row">
+      <div class="col-md-12 col-sm-12 col-xs-12 topbar">
+
+        <div class="col-md-1 col-sm-2 col-xs-10 col-sm-offset-0 col-xs-offset-1">
+          <a href="#"><div class="top-brand"></div></a>
+        </div>
+
+        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
+         {{#link-to 'services' class='btn btn-default col-xs-12'}}Services{{/link-to}}
+        </div>
+
+        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
+          {{#link-to 'nodes' class='btn btn-default col-xs-12'}}Nodes{{/link-to}}
+        </div>
+
+        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
+          {{#link-to 'kv' class='btn btn-default col-xs-12'}}Key/Value{{/link-to}}
+        </div>
+
+        <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-5 col-xs-10 col-xs-offset-1">
+            {{#link-to 'services' tagName="div" href=false}}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</a>{{/link-to}}
+        </div>
+
+        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
+          <a {{bind-attr class=":col-xs-12 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> {{model}} <span class="caret"></span> </a>
+
+          {{#if isDropdownVisible}}
+            <ul class="dropdown-menu col-xs-8" style="display:block;">
+              {{#each dc in dcs}}
+                <li {{action "hideDrop"}}>{{#link-to 'services' dc}}{{dc}}{{/link-to}}</li>
+              {{/each}}
+            </ul>
+          {{/if}}
+
+        </div>
+      </div>
+    </div>
+
+    {{outlet}}
+  </script>
+
+  <script type="text/x-handlebars" data-template-name="kv/show">
+  <div class="row">
+    <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a></h4>
+  </div>
+
+  <div class="row">
+    <div class="col-md-5">
+      <div class="row">
+
+        {{#each item in model }}
+
+          {{#link-to item.linkToRoute item.urlSafeKey href=false tagName="div" class="panel panel-link panel-short"}}
+            <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
+            <div class="panel-heading">
+              <h3 class="panel-title">
+                {{item.keyWithoutParent}}
+              </h3>
+            </div>
+          {{/link-to}}
+
+        {{/each}}
+
+      </div>
+    </div>
+
+    <div class="col-md-1">
+      <div class="border-left hidden-xs hidden-sm">
+        <div class="line"></div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="row">
+        <div class="panel">
+          <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
+            <div class="panel-heading">
+              <h3 class="panel-title">
+                Create Key
+              </h3>
+            </div>
+
+            <div class="panel-body">
+              <form class="form">
+                <div {{ bind-attr class=":form-group newKey.keyValid:valid" }}>
+                  <div class="input-group">
+                    <span class="input-group-addon">{{parentKey}}</span>
+                    {{ input value=newKey.Key class="form-control" required=true }}
+                  </div>
+                  <span class="help-block">To create a folder, end the key with <code>/</code></span>
+                </div>
+
+                {{#if newKey.isFolder }}
+                <p>No value needed for nested keys.</p>
+                {{else}}
+                <div class="form-group">
+                  {{ textarea value=newKey.Value class="form-control"}}
+                  <span class="help-block">Value can be any format and length</span>
+                </div>
+                {{/if}}
+
+                <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
+              </form>
+            </div>
+          </div>
+      </div>
+    </div>
+  </div>
+  </script>
+
+  <script type="text/x-handlebars" data-template-name="kv/edit">
+  <div class="row">
+    <div class="col-md-5">
+      <div class="row">
+        <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a></h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+      <div class="col-md-5">
+        <div class="row">
+          {{#each item in siblings }}
+            {{#link-to item.linkToRoute item.urlSafeKey href=false tagName="div" class="panel panel-link panel-short"}}
+              <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
+              <div class="panel-heading">
+                <h3 class="panel-title">
+                  {{item.keyWithoutParent}}
+                </h3>
+              </div>
+            {{/link-to}}
+          {{/each}}
+
+        </div>
+    </div>
+
+    <div class="col-md-1">
+      <div class="border-left hidden-xs hidden-sm">
+        <div class="line"></div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="row">
+        <div class="panel">
+          <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green" }}></div>
+            <div class="panel-heading">
+              <h3 class="panel-title">
+                {{model.Key}}
+              </h3>
+            </div>
+
+            <div class="panel-body">
+              <div class="form-group">
+                {{errorMessage}}
+              </div>
+              <form class="form">
+                <div class="form-group">
+                  {{ textarea value=model.valueDecoded class="form-control"}}
+                </div>
+                <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
+                <button {{ action "deleteKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete</button>
+              </form>
+            </div>
+          </div>
+      </div>
+    </div>
+  </div>
+  </script>
+
+  <script type="text/x-handlebars" data-template-name="item/loading">
+    <div class="row">
+      <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
+        <div class="text-center vertical-center">
+          <img src="static/loading-cylon-purple.svg" width="384" height="48">
+          <p><small>Loading...</small></p>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" id="services">
+
+    <div {{ bind-attr class=":col-md-5" }}>
+
+      {{#each service in services}}
+
+        <div class="row">
+            {{#link-to 'services.show' service.Name tagName="div" href=false class="list-group-item list-link" }}
+              <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+              <h4 class="list-group-item-heading">
+                {{#link-to 'services.show' service.Name class='subtle'}}{{service.Name}}{{/link-to}}
+                <div class="heading-helper">
+                  <a class="subtle" href="#">{{service.checkMessage}}</a>
+                </div>
+              </h4>
+              <ul class="list-inline">
+                {{#each node in service.Nodes }}
+                <li class="bold">{{node}}</li>
+                {{/each}}
+              </ul>
+          {{/link-to}}
+        </div>
+
+      {{/each}}
+
+    </div>
+
+    <div class="col-md-1">
+      <div class="border-left hidden-xs hidden-sm">
+        <div class="line"></div>
+      </div>
+    </div>
+
+    <div class="visible-xs visible-sm">
+      <hr>
+    </div>
+
+    <div class="col-md-6">
+      <div class="row">
+        {{outlet}}
+      </div>
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" id="service">
+      <h2 class="no-margin">{{ model.0.Service.Service }}</h2>
+      <hr>
+
+      <h5>Nodes</h5>
+
+      {{#each node in model }}
+
+        {{#link-to 'nodes.show' node.Node.Node tagName="div" href=false class="panel panel-link" }}
+          <div {{ bind-attr class=":panel-bar node.hasFailingChecks:bg-orange:bg-green" }}></div>
+          <div class="panel-heading">
+            <h3 class="panel-title">
+              {{node.Node.Node}}
+              <small>{{node.Node.Address}}</small>
+              <span class="panel-note">{{node.checkMessage}}</span>
+            </h3>
+          </div>
+
+          <div class="panel-body">
+            <ul class="list-unstyled list-broken">
+              {{#each check in node.Checks }}
+                <li>
+                  <h4 class="check">{{ check.Name }} <small>{{ check.CheckID }}</small> <span class="pull-right"><small>{{check.Status}}</small></h4>
+                </li>
+              {{/each}}
+            </ul>
+          </div>
+        {{/link-to}}
+
+      {{/each}}
+
+      {{#link-to "services" class="btn btn-default col-xs-12 visible-xs" }}All Services{{/link-to}}
+  </script>
+
+  <script type="text/x-handlebars" id="nodes">
+    <div class="col-md-5">
+
+      {{#each node in nodes}}
+        <div class="row">
+          {{#link-to 'nodes.show' node.Node tagName="div" href=false class="list-group-item list-link" }}
+            <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+            <h4 class="list-group-item-heading">
+              {{node.Node}}
+              <small>{{node.Address}}</small>
+              <div class="heading-helper">
+                <a class="subtle" href="#">{{node.checkMessage}}</a>
+              </div>
+            </h4>
+            <ul class="list-inline">
+              {{#each service in node.Services }}
+                <li class="bold">{{service.Service}}</li>
+              {{/each}}
+            </ul>
+          </div>
+        {{/link-to}}
+
+      {{/each}}
+
+    </div>
+
+    <div class="col-md-1">
+      <div class="border-left hidden-xs hidden-sm">
+        <div class="line"></div>
+      </div>
+    </div>
+
+    <div class="visible-xs visible-sm">
+      <hr>
+    </div>
+
+
+    <div class="col-md-6">
+      <div class="row">
+        {{outlet}}
+      </div>
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" id="node">
+      <h2 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h2>
+      <hr>
+
+      <h5>Services</h5>
+
+      {{#each service in model.Services }}
+
+      {{#link-to 'services.show' service.Service }}
+          <div class="panel panel-link panel-short">
+            <div class="panel-bar bg-light-gray"></div>
+            <div class="panel-heading">
+              <h3 class="panel-title">
+                {{service.Service}}
+                <small>{{sevice.ID}}</small>
+                <span class="panel-note">:{{service.Port}}</span>
+              </h3>
+            </div>
+        </div>
+      {{/link-to}}
+      {{/each}}
+
+      <h5>Checks</h5>
+
+      {{#each check in model.Checks }}
+
+        <div class="panel">
+          {{ panelBar check.Status }}
+          <div class="panel-heading">
+            <h3 class="panel-title">
+              {{check.Name}}
+              <small>{{check.CheckID}}</small>
+              <span class="panel-note">{{check.Status}}</span>
+            </h3>
+          </div>
+
+          <div class="panel-body">
+            <h5>Notes</h5>
+            <p>{{ check.Notes }}</p>
+            <h5>Output</h5>
+            <pre>{{check.Output}}</pre>
+          </div>
+        </div>
+
+      {{/each}}
+
+      {{#link-to "nodes" class="btn btn-default col-xs-12 visible-xs" }}All Nodes{{/link-to}}
+  </script>
+
+  <script type="text/x-handlebars" id="index">
+    <div class="col-md-8 col-md-offset-2 col-xs-offset-0 col-sm-offset-0 col-xs-12 col-sm-12 vertical-center">
+      <h5>Select a datacenter</h5>
+      {{#each item in model}}
+        {{#link-to 'services' item }}
+            <div class="panel panel-link panel-short">
+              <div class="panel-bar bg-light-gray"></div>
+              <div class="panel-heading">
+                <h3 class="panel-title">
+                  {{item}}
+                  <span class="panel-note"></span>
+                </h3>
+              </div>
+            </div>
+        {{/link-to}}
+      {{/each}}
+    </div>
+  </script>
+
+  <!-- ASSETS -->
+  <script src="javascripts/libs/jquery-1.10.2.js"></script>
+  <script src="javascripts/libs/handlebars-1.1.2.js"></script>
+  <script src="javascripts/libs/ember-1.5.1.js"></script>
+  <script src="javascripts/libs/ember-validations.js"></script>
+  <script src="javascripts/fixtures.js"></script>
+  <script src="javascripts/app/router.js"></script>
+  <script src="javascripts/app/routes.js"></script>
+  <script src="javascripts/app/models.js"></script>
+  <script src="javascripts/app/views.js"></script>
+  <script src="javascripts/app/controllers.js"></script>
+  <script src="javascripts/app/helpers.js"></script>
+  <!-- to activate the test runner, add the "?test" query string parameter -->
+  <script src="tests/runner.js"></script>
+  <!-- <script src="static/application.min.js"></script> -->
+  <!-- /ASSETS -->
+
+</body>
+</html>

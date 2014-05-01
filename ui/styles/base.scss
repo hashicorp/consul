@@ -1,0 +1,97 @@
+@import "mixins";
+@import "variables";
+@import "type";
+@import "panels";
+@import "nav";
+@import "buttons";
+@import "lists";
+@import "forms";
+
+@media (min-width: 768px) { // + 18
+  .container {
+    width: 750px;
+  }
+}
+@media (min-width: 992px) { // + 22
+  .container {
+    width: 970px;
+  }
+}
+@media (min-width: 1200px) { // + 30
+  .container {
+    width: 1400px;
+  }
+}
+
+a {
+    button:active {
+        outline: none;
+    }
+}
+
+.buffer-small {
+  height: 50px;
+}
+
+.border-left {
+  display: block;
+  height: 700px;
+
+  .line {
+    margin: 0 auto;
+    background-color: $gray-background;
+    height: 100%;
+    width: 1px;
+  }
+}
+
+.no-margin {
+    margin: 0;
+}
+
+.vertical-center {
+    margin-top: 200px;
+}
+
+.row {
+    &.colored {
+        background-color: $light-purple;
+    }
+}
+
+.bordered {
+    border-left: 2px solid $gray-background;
+}
+
+
+.bg-purple {
+    background-color: $purple;
+}
+
+.bg-light-purple {
+    background-color: $light-purple;
+}
+
+.bg-orange {
+    background-color: $orange-faded;
+}
+
+.bg-green {
+    background-color: $green-faded;
+}
+
+.bg-dark-green {
+    background-color: $green-dark;
+}
+
+.bg-red {
+    background-color: $red-faded;
+}
+
+.bg-gray {
+    background-color: $gray-light;
+}
+
+.bg-light-gray {
+    background-color: $gray-background;
+}

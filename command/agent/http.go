@@ -21,11 +21,12 @@ type HTTPServer struct {
 	mux      *http.ServeMux
 	listener net.Listener
 	logger   *log.Logger
+	uiDir    string
 }
 
 // NewHTTPServer starts a new HTTP server to provide an interface to
 // the agent.
-func NewHTTPServer(agent *Agent, enableDebug bool, logOutput io.Writer, bind string) (*HTTPServer, error) {
+func NewHTTPServer(agent *Agent, uiDir string, enableDebug bool, logOutput io.Writer, bind string) (*HTTPServer, error) {
 	// Create the mux
 	mux := http.NewServeMux()
 
@@ -41,6 +42,7 @@ func NewHTTPServer(agent *Agent, enableDebug bool, logOutput io.Writer, bind str
 		mux:      mux,
 		listener: list,
 		logger:   log.New(logOutput, "", log.LstdFlags),
+		uiDir:    uiDir,
 	}
 	srv.registerHandlers(enableDebug)
 
@@ -97,6 +99,17 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 		s.mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	}
+
+	// Enable the UI + special endpoints
+	if s.uiDir != "" {
+		// Static file serving done from /ui/
+		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
+
+		// API's are under /internal/ui/ to avoid conflict
+		s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
+		s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
+		s.mux.HandleFunc("/v1/internal/ui/services", s.wrap(s.UIServices))
+	}
 }
 
 // wrap is used to wrap functions to make them more convenient
@@ -134,11 +147,20 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 
 // Renders a simple index page
 func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
-	if req.URL.Path == "/" {
-		resp.Write([]byte("Consul Agent"))
-	} else {
+	// Check if this is a non-index path
+	if req.URL.Path != "/" {
 		resp.WriteHeader(404)
+		return
 	}
+
+	// Check if we have no UI configured
+	if s.uiDir == "" {
+		resp.Write([]byte("Consul Agent"))
+		return
+	}
+
+	// Redirect to the UI endpoint
+	http.Redirect(resp, req, "/ui/", 301)
 }
 
 // decodeBody is used to decode a JSON request body

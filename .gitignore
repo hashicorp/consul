@@ -30,3 +30,9 @@ website/build/
 website/npm-debug.log
 *.old
 *.attr
+
+ui/.sass-cache
+ui/static/base.css
+
+ui/static/application.min.js
+ui/dist/

@@ -1,0 +1,18 @@
+.form-group {
+    .form-control {
+        @include transition(border-color .2s ease-in-out);
+        @include transition(box-shadow .2s ease-in-out);
+        @include transition(border-color .2s ease-in-out);
+    }
+
+    &.valid {
+        .form-control {
+            border-color: $green-faded;
+            box-shadow: 0 0 5px $green-faded;
+        }
+    }
+
+    .input-group-addon {
+        background-color: $gray-background;
+    }
+}

@@ -1,0 +1,80 @@
+.btn {
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 12px;
+    border-width: 2px;
+    color: $gray;
+    @include transition(background-color .2s ease-in-out);
+    @include transition(border-color .2s ease-in-out);
+    @include transition(color .2s ease-in-out);
+
+    outline: none;
+    outline-color: white;
+
+    &:hover {
+        color: darken($gray, 10%);
+        background-color: lighten($gray-background, 5%);
+    }
+
+    &:focus {
+        outline: none;
+        outline-color: white;
+        outline: none;
+        box-shadow: none;
+    }
+
+    &.active {
+        outline-color: white;
+        outline: none;
+        box-shadow: none;
+    }
+
+    &.btn-primary, &.active {
+        color: $purple-dark;
+        background-color: transparent;
+        border: 2px solid $purple;
+
+        &:hover {
+            background-color: $light-purple;
+            color: darken($purple, 10%);
+        }
+    }
+
+    &.btn-warning {
+        color: $orange-faded;
+        background-color: transparent;
+        border: 2px solid $orange-faded;
+
+        &:hover {
+            background-color: lighten($orange-faded, 29%);
+            color: darken($orange-faded, 10%);
+        }
+
+    }
+
+    &.btn-success {
+        color: $green-dark;
+        background-color: transparent;
+        border: 2px solid $green-dark;
+
+        &:hover {
+            background-color: lighten($green-faded, 24%);
+            color: darken($green-dark, 10%);
+        }
+
+    }
+
+    &.btn-danger {
+        color: $red;
+        background-color: transparent;
+        border: 2px solid $red;
+
+        &:hover {
+            background-color: lighten($red, 38%);
+            color: darken($red, 10%);
+        }
+
+    }
+
+
+}

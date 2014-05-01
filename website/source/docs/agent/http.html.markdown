@@ -10,13 +10,14 @@ The main interface to Consul is a RESTful HTTP API. The API can be
 used for CRUD for nodes, services, checks, and configuration. The endpoints are
 versioned to enable changes without breaking backwards compatibility.
 
-All endpoints fall into one of 5 categories:
+All endpoints fall into one of 6 categories:
 
 * kv - Key/Value store
 * agent - Agent control
 * catalog - Manages nodes and services
 * health - Manages health checks
 * status - Consul system status
+* internal - Internal APIs. Purposely undocumented, subject to change.
 
 Each of the categories and their respective endpoints are documented below.
 
@@ -146,6 +147,21 @@ keys sharing a prefix. If the "?recurse" query parameter is provided,
 then all keys with the prefix are deleted, otherwise only the specified
 key.
 
+It is possible to also only list keys without any values by using the
+"?keys" query parameter along with a `GET` request. This will return
+a list of the keys under the given prefix. The optional "?seperator="
+can be used to list only up to a given seperator.
+
+For example, listing "/web/" with a "/" seperator may return:
+
+    [
+    "/web/bar",
+    "/web/foo",
+    "/web/subdir/"
+    ]
+
+Using the key listing method may be suitable when you do not need
+the values or flags, or want to implement a key-space explorer.
 
 ## Agent
 

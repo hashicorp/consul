@@ -49,6 +49,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.NodeName, "node", "", "node name")
 	cmdFlags.StringVar(&cmdConfig.Datacenter, "dc", "", "node datacenter")
 	cmdFlags.StringVar(&cmdConfig.DataDir, "data-dir", "", "path to the data directory")
+	cmdFlags.StringVar(&cmdConfig.UiDir, "ui-dir", "", "path to the web UI directory")
 
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
@@ -179,7 +180,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 			return err
 		}
 
-		server, err := NewHTTPServer(agent, config.EnableDebug, logOutput, httpAddr.String())
+		server, err := NewHTTPServer(agent, config.UiDir, config.EnableDebug, logOutput, httpAddr.String())
 		if err != nil {
 			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Error starting http server: %s", err))
@@ -483,6 +484,7 @@ Options:
   -node=hostname           Name of this node. Must be unique in the cluster
   -protocol=N              Sets the protocol version. Defaults to latest.
   -server                  Switches agent to server mode.
+  -ui-dir=path             Path to directory containing the Web UI resources
 
  `
 	return strings.TrimSpace(helpText)
