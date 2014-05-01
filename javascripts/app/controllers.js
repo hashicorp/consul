@@ -57,6 +57,10 @@ App.DcController = Ember.Controller.extend({
     // Hide and show the dropdown menu
     toggle: function(item){
       this.toggleProperty('isDropdownVisible');
+    },
+    // Just hide the dropdown menu
+    hideDrop: function(item){
+      this.set('isDropdownVisible', false);
     }
   }
 })

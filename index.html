@@ -78,7 +78,7 @@
           {{#if isDropdownVisible}}
             <ul class="dropdown-menu col-xs-8" style="display:block;">
               {{#each dc in dcs}}
-                <li {{action "toggle"}}>{{#link-to 'services' dc}}{{dc}}{{/link-to}}</li>
+                <li {{action "hideDrop"}}>{{#link-to 'services' dc}}{{dc}}{{/link-to}}</li>
               {{/each}}
             </ul>
           {{/if}}
