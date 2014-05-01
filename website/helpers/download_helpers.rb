@@ -56,6 +56,10 @@ module DownloadHelpers
     "https://dl.bintray.com/mitchellh/consul/#{file}"
   end
 
+  def ui_download_url
+    download_url("#{latest_version}_web_ui.zip")
+  end
+
   def latest_version
     ENV["CONSUL_VERSION"]
   end
