@@ -80,12 +80,11 @@ App.KvShowController.reopen({
       var grandParentKey = this.get('grandParentKey');
       var controller = this;
       var dc = this.get('dc').get('datacenter');
-      console.log(dc)
 
       // If we don't have a previous model to base
       // on our parent, or we're not at the root level,
-      // strip the leading slash.
-      if (parentKey != undefined || parentKey != "/") {
+      // add the prefix
+      if (parentKey != undefined && parentKey != "/") {
         newKey.set('Key', (parentKey + newKey.get('Key')));
       }
 
@@ -95,13 +94,13 @@ App.KvShowController.reopen({
           type: 'PUT',
           data: newKey.get('Value')
       }).then(function(response) {
-        controller.set('isLoading', false)
         // transition to the right place
         if (newKey.get('isFolder') == true) {
           controller.transitionToRoute('kv.show', newKey.get('urlSafeKey'));
         } else {
           controller.transitionToRoute('kv.edit', newKey.get('urlSafeKey'));
         }
+        controller.set('isLoading', false)
       }).fail(function(response) {
         // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
@@ -113,19 +112,22 @@ App.KvShowController.reopen({
 
 App.KvEditController = Ember.Controller.extend({
   isLoading: false,
+  needs: ["dc"],
+  dc: Ember.computed.alias("controllers.dc"),
 
   actions: {
     // Updates the key set as the model on the route.
     updateKey: function() {
       this.set('isLoading', true);
 
+      var dc = this.get('dc').get('datacenter');
       var key = this.get("model");
       var controller = this;
 
       // Put the key and the decoded (plain text) value
       // from the form.
       Ember.$.ajax({
-          url: "/v1/kv/" + key.get('Key'),
+          url: ("/v1/kv/" + key.get('Key') + '?dc=' + dc),
           type: 'PUT',
           data: key.get('valueDecoded')
       }).then(function(response) {
@@ -139,21 +141,22 @@ App.KvEditController = Ember.Controller.extend({
 
     deleteKey: function() {
       this.set('isLoading', true);
-
       var key = this.get("model");
       var controller = this;
+      var dc = this.get('dc').get('datacenter');
+
       // Get the parent for the transition back up a level
       // after the delete
       var parent = key.get('urlSafeParentKey');
 
       // Delete the key
       Ember.$.ajax({
-          url: "/v1/kv/" + key.get('Key'),
+          url: ("/v1/kv/" + key.get('Key') + '?dc=' + dc),
           type: 'DELETE'
       }).then(function(response) {
-        controller.set('isLoading', false);
         // Tranisiton back up a level
         controller.transitionToRoute('kv.show', parent);
+        controller.set('isLoading', false);
       }).fail(function(response) {
         // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText)

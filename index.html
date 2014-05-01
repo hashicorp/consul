@@ -19,7 +19,7 @@
     {{outlet}}
   </script>
 
-  <script type="text/x-handlebars" data-template-name="error">
+  <script type="text/x-handlebars" data-template-name="errora">
     <div class="row">
       <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
         <div class="text-center error">
@@ -108,7 +108,7 @@
     <div class="col-md-6">
       <div class="row">
         <div class="panel">
-          <div {{ bind-attr class=":panel-bar newKey.isValid:bg-green:bg-light-gray" }}></div>
+          <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
             <div class="panel-heading">
               <h3 class="panel-title">
                 Create Key
