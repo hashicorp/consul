@@ -58,7 +58,7 @@ App.BaseRoute = Ember.Route.extend({
 App.IndexRoute = App.BaseRoute.extend({
   // Retrieve the list of datacenters
   model: function(params) {
-    return Ember.$.getJSON('/v1/catalog/datacenaters').then(function(data) {
+    return Ember.$.getJSON('/v1/catalog/datacenters').then(function(data) {
       return data
     })
   },
