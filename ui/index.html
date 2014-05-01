@@ -204,7 +204,8 @@
   </script>
 
   <script type="text/x-handlebars" id="services">
-    <div {{ bind-attr class=":col-md-5 hasChild:hidden" }}>
+
+    <div {{ bind-attr class=":col-md-5" }}>
 
       {{#each service in services}}
 
@@ -233,6 +234,10 @@
       <div class="border-left hidden-xs hidden-sm">
         <div class="line"></div>
       </div>
+    </div>
+
+    <div class="visible-xs visible-sm">
+      <hr>
     </div>
 
     <div class="col-md-6">
@@ -307,6 +312,11 @@
         <div class="line"></div>
       </div>
     </div>
+
+    <div class="visible-xs visible-sm">
+      <hr>
+    </div>
+
 
     <div class="col-md-6">
       <div class="row">
