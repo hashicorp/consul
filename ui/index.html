@@ -2,6 +2,8 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=0.5">
   <title>Consul</title>
   <link rel="stylesheet" href="static/bootstrap.min.css">
   <link rel="stylesheet" href="static/base.css">
@@ -22,7 +24,7 @@
   <script type="text/x-handlebars" data-template-name="error">
     <div class="row">
       <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
-        <div class="text-center error">
+        <div class="text-center vertical-center">
           {{#if controller.model.statusText }}
             <p class="bold">HTTP error code from Consul: <code>{{controller.model.status}} {{controller.model.statusText}}</code></p>
           {{/if}}
@@ -39,31 +41,31 @@
     <div class="row">
       <div class="col-md-12 col-sm-12 col-xs-12 topbar">
 
-        <div class="col-md-1 col-sm-2 col-xs-12">
+        <div class="col-md-1 col-sm-2 col-xs-10 col-sm-offset-0 col-xs-offset-1">
           <a href="#"><div class="top-brand"></div></a>
         </div>
 
-        <div class="col-md-2 col-sm-3 col-xs-12">
+        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
          {{#link-to 'services' class='btn btn-default col-xs-12'}}Services{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-3 col-xs-12">
+        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
           {{#link-to 'nodes' class='btn btn-default col-xs-12'}}Nodes{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-3 col-xs-12">
+        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
           {{#link-to 'kv' class='btn btn-default col-xs-12'}}Key/Value{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-5 col-xs-6">
+        <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-5 col-xs-10 col-xs-offset-1">
             {{#link-to 'services'}}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</a>{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-3 col-xs-6">
+        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
           <a {{bind-attr class=":col-xs-12 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> {{model}} <span class="caret"></span> </a>
 
           {{#if isDropdownVisible}}
-            <ul class="dropdown-menu col-xs-12" style="display:block;">
+            <ul class="dropdown-menu col-xs-8" style="display:block;">
               {{#each dc in dcs}}
                 <li {{action "toggle"}}>{{#link-to 'services' dc}}{{dc}}{{/link-to}}</li>
               {{/each}}
@@ -381,7 +383,7 @@
   </script>
 
   <script type="text/x-handlebars" id="index">
-    <div class="col-md-8 col-md-offset-2 vertical-center">
+    <div class="col-md-8 col-md-offset-2 col-xs-offset-0 col-sm-offset-0 col-xs-12 col-sm-12 vertical-center">
       {{errorMessage}}
       {{#each item in model}}
         {{#link-to 'services' item }}
@@ -390,7 +392,6 @@
               <div class="panel-heading">
                 <h3 class="panel-title">
                   {{item}}
-                  <small>{{item}}</small>
                   <span class="panel-note">all checks passing</span>
                 </h3>
               </div>
