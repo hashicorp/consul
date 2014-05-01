@@ -23,6 +23,15 @@ a {
     }
 }
 
+code {
+    color: $purple-dark;
+    background-color: $gray-background;
+}
+
+.help-block {
+    font-size: 14px;
+    color: $gray-light;
+}
 
 small {
     color: $gray;
