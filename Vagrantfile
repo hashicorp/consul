@@ -42,10 +42,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   end
 
-  config.vm.define "default" do |n1|
-      n1.vm.box = "hashicorp/precise64"
+  config.vm.define "64bit" do |n1|
+      n1.vm.box = "chef/ubuntu-10.04"
   end
   config.vm.define "32bit" do |n2|
-      n2.vm.box = "chef/ubuntu-12.04-i386"
+      n2.vm.box = "chef/ubuntu-10.04-i386"
   end
 end
