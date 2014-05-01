@@ -15,6 +15,7 @@ if ENV["CONSUL_VERSION"]
     filename = $1.to_s
     os = filename.split("_")[1]
     next if os == "SHA256SUMS"
+    next if os == "web"
 
     $consul_files[os] ||= []
     $consul_files[os] << filename
