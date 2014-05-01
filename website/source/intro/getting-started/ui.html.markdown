@@ -23,6 +23,12 @@ agent itself can be configured to serve the UI.
 You can view a live demo of the Consul Web UI
 [here](http://demo.consul.io).
 
+While the live demo is able to access data from all datacenters,
+we've also setup demo endpoints in the specific datacenters:
+[AMS2](http://ams2.demo.consul.io) (Amsterdam),
+[SFO1](http://sfo1.demo.consul.io) (San Francisco),
+and [NYC1](http://ny1.demo.consul.io) (New York).
+
 A screenshot of one page of the demo is shown below so you can get an
 idea of what the web UI is like. Click the screenshot for the full size.
 
