@@ -50,3 +50,6 @@ An example of this command, from inside the `ui/` directory, would be:
 These steps are slightly manual at the moment.
 
 1. Build with `make dist`
+2. In `dist/index.html`, replace the JS files between `<!-- ASSETS -->` tags with:
+
+    <script src="static/application.min.js"></script>
