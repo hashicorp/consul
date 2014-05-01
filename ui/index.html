@@ -403,15 +403,15 @@
 
   <script type="text/x-handlebars" id="index">
     <div class="col-md-8 col-md-offset-2 col-xs-offset-0 col-sm-offset-0 col-xs-12 col-sm-12 vertical-center">
-      {{errorMessage}}
+      <h5>Select a datacenter</h5>
       {{#each item in model}}
         {{#link-to 'services' item }}
             <div class="panel panel-link panel-short">
-              <div class="panel-bar bg-green"></div>
+              <div class="panel-bar bg-light-gray"></div>
               <div class="panel-heading">
                 <h3 class="panel-title">
                   {{item}}
-                  <span class="panel-note">all checks passing</span>
+                  <span class="panel-note"></span>
                 </h3>
               </div>
             </div>
