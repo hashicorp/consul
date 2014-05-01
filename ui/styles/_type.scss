@@ -38,8 +38,20 @@ h5 {
     color: $gray-light;
 }
 
+h4.breadcrumbs {
+    padding-bottom: 5px;
+    text-transform: uppercase;
+    a {
+        color: $gray-light;
+    }
+}
+
 pre {
     background-color: $gray;
     color: white;
     font-size: 11px;
+}
+
+.bold {
+    font-weight: 700;
 }

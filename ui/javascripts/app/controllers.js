@@ -80,11 +80,12 @@ App.KvShowController.reopen({
       var grandParentKey = this.get('grandParentKey');
       var controller = this;
       var dc = this.get('dc').get('datacenter');
+      console.log(dc)
 
       // If we don't have a previous model to base
       // on our parent, or we're not at the root level,
       // strip the leading slash.
-      if (parentKey != undefined && parentKey != "/") {
+      if (parentKey != undefined || parentKey != "/") {
         newKey.set('Key', (parentKey + newKey.get('Key')));
       }
 
@@ -95,16 +96,12 @@ App.KvShowController.reopen({
           data: newKey.get('Value')
       }).then(function(response) {
         controller.set('isLoading', false)
-
         // transition to the right place
         if (newKey.get('isFolder') == true) {
           controller.transitionToRoute('kv.show', newKey.get('urlSafeKey'));
         } else {
           controller.transitionToRoute('kv.edit', newKey.get('urlSafeKey'));
         }
-
-        // Reload the keys in the left column
-        controller.get('keys').reload()
       }).fail(function(response) {
         // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
