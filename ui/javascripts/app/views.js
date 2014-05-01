@@ -22,14 +22,12 @@ App.ServicesView = Ember.View.extend({
 })
 
 App.ServicesShowView = Ember.View.extend({
-    //
-    // We use the same template as we do for the services
-    // array and have a simple conditional to display the nested
-    // individual service resource.
-    //
     templateName: 'service'
 })
 
+App.ServicesLoadingView = Ember.View.extend({
+    templateName: 'item/loading'
+})
 
 //
 // Nodes
@@ -40,15 +38,12 @@ App.NodesView = Ember.View.extend({
 })
 
 App.NodesShowView = Ember.View.extend({
-    //
-    // We use the same template as we do for the nodes
-    // array and have a simple conditional to display the nested
-    // individual node resource.
-    //
     templateName: 'node'
 })
 
-
+App.NodesLoadingView = Ember.View.extend({
+    templateName: 'item/loading'
+})
 
 App.KvListView = Ember.View.extend({
     templateName: 'kv'
