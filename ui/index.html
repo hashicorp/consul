@@ -53,11 +53,11 @@
         </div>
 
         <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-5 col-xs-6">
-            {{#link-to 'services'}}<button {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</button>{{/link-to}}
+            {{#link-to 'services'}}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</a>{{/link-to}}
         </div>
 
         <div class="col-md-2 col-sm-3 col-xs-6">
-          <button type="button" {{bind-attr class=":col-xs-12 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> {{model}} <span class="caret"></span> </button>
+          <a {{bind-attr class=":col-xs-12 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> {{model}} <span class="caret"></span> </a>
 
           {{#if isDropdownVisible}}
             <ul class="dropdown-menu col-xs-12" style="display:block;">
