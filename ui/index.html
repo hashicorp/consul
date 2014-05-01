@@ -19,14 +19,17 @@
     {{outlet}}
   </script>
 
-  <script type="text/x-handlebars" data-template-name="errora">
+  <script type="text/x-handlebars" data-template-name="error">
     <div class="row">
       <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
         <div class="text-center error">
+          {{#if controller.model.statusText }}
+            <p class="bold">HTTP error code from Consul: <code>{{controller.model.status}} {{controller.model.statusText}}</code></p>
+          {{/if}}
           <p>This is an error page for the Consul web UI. You may have visited a URL that is loading an
-          unknown resource, so you can try going back to thes <a href="#">root</a>.</p>
+          unknown resource, so you can try going back to the <a href="#">root</a>.</p>
           <p>Otherwise, please report any unexpected
-          issues to the <a href="https://github.com/hashicorp/consul">GitHub page</a>.</p>
+          issues on the <a href="https://github.com/hashicorp/consul">GitHub page</a>.</p>
         </div>
       </div>
     </div>

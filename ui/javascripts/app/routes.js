@@ -1,7 +1,5 @@
-    //
-// Superclass to be used by all of the main routes below. All routes
-// but the IndexRoute share the need to have a datacenter set.
 //
+// Superclass to be used by all of the main routes below.
 //
 App.BaseRoute = Ember.Route.extend({
   getParentAndGrandparent: function(key) {

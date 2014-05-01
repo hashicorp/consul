@@ -1,13 +1,5 @@
 window.App = Ember.Application.create({
-  rootElement: "#app",
-  LOG_TRANSITIONS: true,
-  LOG_STACKTRACE_ON_DEPRECATION: true,
-  LOG_BINDINGS: true,
-  LOG_TRANSITIONS: true,
-  LOG_ACTIVE_GENERATION: true,
-  // The baseUrl for AJAX requests
-  // TODO implement in AJAX logic
-  baseUrl: 'http://localhost:8500'
+  rootElement: "#app"
 });
 
 
