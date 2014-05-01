@@ -4,7 +4,11 @@ server:
 watch:
 	sass styles:static --watch
 
-build:
-	sass styles/base.scss static/base.css
+dist:
+	@echo "compile styles/*.scss"
+	@sass styles/base.scss static/base.css
+	@ruby scripts/compile.rb
+	cp -R ./static dist/static
+	cp index.html dist/
 
-.PHONY: server watch build
+.PHONY: server watch dist
