@@ -99,7 +99,8 @@ App.DcRoute = App.BaseRoute.extend({
     controller.set('content', models.dc);
     controller.set('nodes', models.nodes);
     controller.set('dcs', models.dcs);
-  }
+    controller.set('isDropdownVisible', false);
+  },
 });
 
 
