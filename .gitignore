@@ -33,3 +33,6 @@ website/npm-debug.log
 
 ui/.sass-cache
 ui/static/base.css
+
+ui/static/application.min.js
+ui/dist/
