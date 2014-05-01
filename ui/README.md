@@ -47,9 +47,6 @@ An example of this command, from inside the `ui/` directory, would be:
 
 ### Releasing
 
-These steps are slightly manual at the moment.
+`make dist`
 
-1. Build with `make dist`
-2. `dist/index.html`, replace the JS script src files between `<!-- ASSETS -->` tags with a single
-tag linking to `src="static/application.min.js"`.
-
+The `dist` folder will contain the files you should use for deployment.
