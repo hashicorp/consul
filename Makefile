@@ -13,5 +13,7 @@ dist:
 	@ruby scripts/compile.rb
 	cp -R ./static dist/static/
 	cp index.html dist/index.html
+	sed -E -e "/ASSETS/,/\/ASSETS/ d" -ibak dist/index.html
+	sed -E "s#<\/body>#<script src=\"static/application.min.js\"></script></body>#" -ibak dist/index.html
 
 .PHONY: server watch dist
