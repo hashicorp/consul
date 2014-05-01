@@ -12,12 +12,20 @@
     width: 750px;
   }
 }
-@media (min-width: 992px) { // + 22
+
+@media (min-width: 970px) { // + 22
   .container {
     width: 970px;
   }
 }
-@media (min-width: 1200px) { // + 30
+
+@media (min-width: 1230px) { // + 30
+  .container {
+    width: 1200px;
+  }
+}
+
+@media (min-width: 1438px) { // + 38
   .container {
     width: 1400px;
   }
