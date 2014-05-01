@@ -15,6 +15,7 @@ app = [
   "javascripts/app/routes.js",
   "javascripts/app/controllers.js",
   "javascripts/app/views.js",
+  "javascripts/app/helpers.js",
 ]
 
 libs.each do |js_file|
