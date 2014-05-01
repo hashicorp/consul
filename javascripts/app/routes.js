@@ -210,7 +210,7 @@ App.ServicesShowRoute = App.BaseRoute.extend({
       });
       return objs;
     });
-  },
+  }
 });
 
 App.NodesShowRoute = App.BaseRoute.extend({
