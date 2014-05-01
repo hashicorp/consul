@@ -1,9 +1,44 @@
-//
+    //
 // Superclass to be used by all of the main routes below. All routes
 // but the IndexRoute share the need to have a datacenter set.
 //
 //
 App.BaseRoute = Ember.Route.extend({
+  getParentAndGrandparent: function(key) {
+    var parentKey, grandParentKey, isFolder;
+
+    parts = key.split('/');
+
+    // If we are the root, set the parent and grandparent to the
+    // root.
+    if (key == "/") {
+      parentKey = "/";
+      grandParentKey ="/"
+    } else {
+      // Go one level up
+      parts.pop();
+      parentKey = parts.join("/") + "/";
+
+      // Go two levels up
+      parts.pop();
+      grandParentKey = parts.join("/") + "/";
+    }
+
+    return {grandParent: grandParentKey, parent: parentKey}
+  },
+
+  removeDuplicateKeys: function(keys, matcher) {
+    // Loop over the keys
+    keys.forEach(function(item, index) {
+      if (item.get('Key') == matcher) {
+      // If we are in a nested folder and the folder
+      // name matches our position, remove it
+        keys.splice(index, 1);
+      }
+    });
+    return keys;
+  },
+
   actions: {
     // Used to link to keys that are not objects,
     // like parents and grandParents
@@ -49,7 +84,7 @@ App.DcRoute = App.BaseRoute.extend({
     return Ember.RSVP.hash({
       dc: params.dc,
       dcs: Ember.$.getJSON('/v1/catalog/datacenters'),
-      nodes: Ember.$.getJSON('/v1/internal/ui/nodes').then(function(data) {
+      nodes: Ember.$.getJSON('/v1/internal/ui/nodes?dc=' + params.dc).then(function(data) {
         objs = [];
 
         // Merge the nodes into a list and create objects out of them
@@ -98,57 +133,30 @@ App.KvShowRoute = App.BaseRoute.extend({
   },
 
   setupController: function(controller, models) {
-    var parentKey = "/";
-    var grandParentKey = "/";
     var key = models.key;
-
-    // Loop over the keys
-    models.keys.forEach(function(item, index) {
-      if (item.get('Key') == key) {
-        // Handle having only one key as a sub-parent
-        parentKey = item.get('Key');
-        grandParentKey = item.get('parentKey');
-        // Remove the dupe
-        models.keys.splice(index, 1);
-      }
-    });
+    var parentKeys = this.getParentAndGrandparent(key);
+    models.keys = this.removeDuplicateKeys(models.keys, models.key);
 
     controller.set('content', models.keys);
-    controller.set('parentKey', parentKey);
-    controller.set('grandParentKey', grandParentKey);
+    controller.set('parentKey', parentKeys.parent);
+    controller.set('grandParentKey', parentKeys.grandParent);
     controller.set('newKey', App.Key.create());
   }
 });
 
 App.KvEditRoute = App.BaseRoute.extend({
   model: function(params) {
-    var keyName = params.key.replace(/-/g, "/");
-    var key = keyName;
-    var parentKey;
+    var key = params.key.replace(/-/g, "/");
     var dc = this.modelFor('dc').dc;
-
-    // Get the parent key
-    if (key.slice(-1) == "/") {
-      key = key.substring(0, key.length - 1);
-    }
-    parts = key.split('/');
-    // Go one level up
-    parts.pop();
-    // If we are all the way up, just return nothing for the root
-    if (parts.length == 0) {
-      parentKey = ""
-    } else {
-      // Add a slash
-      parentKey = parts.join("/") + "/";
-    }
+    var parentKeys = this.getParentAndGrandparent(key)
 
     // Return a promise hash to get the data for both columns
     return Ember.RSVP.hash({
-      key: Ember.$.getJSON('/v1/kv/' + keyName).then(function(data) {
+      key: Ember.$.getJSON('/v1/kv/' + key + '?dc=' + dc).then(function(data) {
         // Convert the returned data to a Key
         return App.Key.create().setProperties(data[0]);
       }),
-      keys: keysPromise = Ember.$.getJSON('/v1/kv/' + parentKey + '?keys&seperator=' + '/' + '&dc=' + dc).then(function(data) {
+      keys: keysPromise = Ember.$.getJSON('/v1/kv/' + parentKeys.parent + '?keys&seperator=' + '/' + '&dc=' + dc).then(function(data) {
         objs = [];
         data.map(function(obj){
          objs.push(App.Key.create({Key: obj}));
@@ -159,23 +167,13 @@ App.KvEditRoute = App.BaseRoute.extend({
   },
 
   setupController: function(controller, models) {
+    var key = models.key;
+    var parentKeys = this.getParentAndGrandparent(key.get('Key'));
+    models.keys = this.removeDuplicateKeys(models.keys, parentKeys.parent);
+
     controller.set('content', models.key);
-
-    var parentKey = "/";
-    var grandParentKey = "/";
-
-    // Loop over the keys
-    models.keys.forEach(function(item, index) {
-      if (item.get('Key') == models.key.get('parentKey')) {
-        parentKey = item.get('Key');
-        grandParentKey = item.get('parentKey');
-        // Remove the dupe
-        models.keys.splice(index, 1);
-      }
-    });
-
-    controller.set('parentKey', parentKey);
-    controller.set('grandParentKey', grandParentKey);
+    controller.set('parentKey', parentKeys.parent);
+    controller.set('grandParentKey', parentKeys.grandParent);
     controller.set('siblings', models.keys);
   }
 });
