@@ -42,3 +42,8 @@ Consul ships with an HTTP server for the API and UI. By default, when
 you run the agent, it is off. However, if you pass a `-ui-dir` flag
 with a path to this directoy, you'll be able to access the UI via the
 Consul HTTP server address, which defaults to `localhost:8500/ui`.
+
+An example of this command, from inside the `ui/` directory, would be:
+
+    consul agent -bootstrap -server -data-dir /tmp/ -ui-dir .
+
