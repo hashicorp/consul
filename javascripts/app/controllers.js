@@ -50,7 +50,8 @@ App.DcController = Ember.Controller.extend({
   //
   hasFailingChecks: function() {
     var checks = this.get('checks')
-    return (checks.filterBy('Status', 'critical').get('length') > 0);
+    return (checks.filterBy('Status', 'critical').get('length') +
+      checks.filterBy('Status', 'warning').get('length'));
   }.property('nodes'),
 
   actions: {
