@@ -174,6 +174,9 @@ App.KvEditRoute = App.BaseRoute.extend({
       }
     });
 
+    controller.set('parentKey', parentKey);
+    controller.set('grandParentKey', grandParentKey);
+
     // If we don't have the cached model from our
     // the kv.show controller, we need to go get it,
     // otherwise we just load what we have.
