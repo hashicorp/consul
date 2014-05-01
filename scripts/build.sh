@@ -21,6 +21,11 @@ if [ "$(go env GOOS)" = "windows" ]; then
     EXTENSION=".exe"
 fi
 
+GOPATHSINGLE=${GOPATH%%:*}
+if [ "$(go env GOOS)" = "windows" ]; then
+    GOPATHSINGLE=${GOPATH%%;*}
+fi
+
 # Install dependencies
 echo "--> Installing dependencies to speed up builds..."
 go get ./...
@@ -31,4 +36,4 @@ go build \
     -ldflags "-X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
     -v \
     -o bin/consul${EXTENSION}
-cp bin/consul${EXTENSION} ${GOPATH%%:*}/bin
+cp bin/consul${EXTENSION} ${GOPATHSINGLE}/bin
