@@ -16,7 +16,7 @@ The first server that is deployed in a new datacenter must provide the `-bootstr
 option](/docs/agent/options.html). This option allows the server to assert leadership of the cluster
 without agreement from any other server. This is necessary because at this point, there are no other
 servers running in the datacenter! Lets call this first server `Node A`. When starting `Node A` something
-the following will be logged:
+like the following will be logged:
 
     2014/02/22 19:23:32 [INFO] consul: cluster leadership acquired
 
