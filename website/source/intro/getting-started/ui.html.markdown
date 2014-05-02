@@ -27,7 +27,7 @@ While the live demo is able to access data from all datacenters,
 we've also setup demo endpoints in the specific datacenters:
 [AMS2](http://ams2.demo.consul.io) (Amsterdam),
 [SFO1](http://sfo1.demo.consul.io) (San Francisco),
-and [NYC1](http://ny1.demo.consul.io) (New York).
+and [NYC1](http://nyc1.demo.consul.io) (New York).
 
 A screenshot of one page of the demo is shown below so you can get an
 idea of what the web UI is like. Click the screenshot for the full size.
