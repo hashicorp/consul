@@ -1,7 +1,7 @@
 ## Consul Web UI
 
 This directory contains the Consul Web UI. Consul contains a built-in
-HTTP server that serves this directoy, but any common HTTP server
+HTTP server that serves this directory, but any common HTTP server
 is capable of serving it.
 
 It uses JavaScript and [Ember](http://emberjs.com) to communicate with
