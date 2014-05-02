@@ -3,10 +3,10 @@ require 'uglifier'
 File.open("static/application.min.js", "w") {|file| file.truncate(0) }
 
 libs = [
-  "javascripts/libs/jquery-1.10.2.js",
-  "javascripts/libs/handlebars-1.1.2.js",
-  "javascripts/libs/ember-1.5.1.js",
-  "javascripts/libs/ember-validations.js",
+  "javascripts/libs/jquery-1.10.2.min.js",
+  "javascripts/libs/handlebars-1.1.2.min.js",
+  "javascripts/libs/ember-1.5.1.min.js",
+  "javascripts/libs/ember-validations.min.js",
 ]
 
 app = [
@@ -20,8 +20,8 @@ app = [
 
 libs.each do |js_file|
   File.open("static/application.min.js", "a") do |f|
-    puts "compile #{js_file}"
-    f << Uglifier.compile(File.read(js_file))
+    puts "cat #{js_file}"
+    f << File.read(js_file)
   end
 end
 
