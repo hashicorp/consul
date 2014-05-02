@@ -458,7 +458,7 @@ func (s *Server) Leave() error {
 		select {
 		case err := <-ch:
 			// Ignore if we have already been deregistered by the leader
-			if err != nil && err.Error() != raft.UnknownPeer.Error() {
+			if err != nil && err.Error() != raft.ErrUnknownPeer.Error() {
 				s.logger.Printf("[ERR] consul: failed to leave Raft cluster: %v", err)
 			}
 		case <-time.After(3 * time.Second):

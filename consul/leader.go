@@ -367,7 +367,7 @@ func (s *Server) joinConsulServer(m serf.Member, parts *serverParts) error {
 	// Attempt to add as a peer
 	var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: parts.Port}
 	future := s.raft.AddPeer(addr)
-	if err := future.Error(); err != nil && err != raft.KnownPeer {
+	if err := future.Error(); err != nil && err != raft.ErrKnownPeer {
 		s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
 		return err
 	}
@@ -384,7 +384,7 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 	// Attempt to remove as peer
 	peer := &net.TCPAddr{IP: m.Addr, Port: port}
 	future := s.raft.RemovePeer(peer)
-	if err := future.Error(); err != nil && err != raft.UnknownPeer {
+	if err := future.Error(); err != nil && err != raft.ErrUnknownPeer {
 		s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
 			peer, err)
 		return err
