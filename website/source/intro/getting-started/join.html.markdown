@@ -17,7 +17,7 @@ an isolated cluster of one.  To learn about other cluster members, the agent mus
 _join_ an existing cluster.  To join an existing cluster, only needs to know
 about a _single_ existing member. After it joins, the agent will gossip with this
 member and quickly discover the other members in the cluster. A Consul
-agent can join any other agent, it doesn't have be an agent in server mode.
+agent can join any other agent, it doesn't have to be an agent in server mode.
 
 ## Starting the Agents
 

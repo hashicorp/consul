@@ -88,7 +88,7 @@ will not return any results, since the service is unhealthy:
 This section should have shown that checks can be easily added. Check definitions
 can be updated by changing configuration files and sending a `SIGHUP` to the agent.
 Alternatively the HTTP API can be used to add, remove and modify checks dynamically.
-The API allows allows for a "dead man's switch" or [TTL based check](/docs/agent/checks.html).
+The API allows for a "dead man's switch" or [TTL based check](/docs/agent/checks.html).
 TTL checks can be used to integrate an application more tightly with Consul, enabling
 business logic to be evaluated as part of passing a check.
 
