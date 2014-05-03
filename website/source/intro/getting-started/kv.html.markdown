@@ -58,7 +58,7 @@ $ curl http://localhost:8500/v1/kv/?recurse
 ```
 
 Here we have created 3 keys, each with the value of "test". Note that the
-`Value` field returned is base64 encoded to encode allow for non-UTF8
+`Value` field returned is base64 encoded to allow non-UTF8
 characters. For the "web/key2" key, we set a `flag` value of 42. All keys
 support setting a 64bit integer flag value. This is opaque to Consul but can
 be used by clients for any purpose.

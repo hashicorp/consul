@@ -495,7 +495,7 @@ requires `Node` to be provided, while `Datacenter` will be defaulted
 to match that of the agent. If only `Node` is provided, then the node, and
 all associated services and checks are deleted. If `CheckID` is provided, only
 that check belonging to the node is removed. If `ServiceID` is provided, then the
-service along with it's associated health check (if any) is removed.
+service along with its associated health check (if any) is removed.
 
 If the API call succeeds a 200 status code is returned.
 

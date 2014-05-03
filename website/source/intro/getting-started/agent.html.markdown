@@ -114,8 +114,8 @@ and shut down.
 By gracefully leaving, Consul notifies other cluster members that the
 node _left_. If you had forcibly killed the agent process, other members
 of the cluster would have detected that the node _failed_. When a member leaves,
-it's services and checks are removed from the catalog. When a member fails,
-it's health is simply marked as critical, but is not removed from the catalog.
+its services and checks are removed from the catalog. When a member fails,
+its health is simply marked as critical, but is not removed from the catalog.
 Consul will automatically try to reconnect to _failed_ nodes, which allows it
 to recover from certain network conditions, while _left_ nodes are no longer contacted.
 

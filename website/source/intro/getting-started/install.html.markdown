@@ -47,7 +47,7 @@ Available commands are:
 ```
 
 If you get an error that `consul` could not be found, then your PATH
-environmental variable was not setup properly. Please go back and ensure
+environment variable was not setup properly. Please go back and ensure
 that your PATH variable contains the directory where Consul was installed.
 
 Otherwise, Consul is installed and ready to go!

@@ -43,7 +43,7 @@ be discovered.
 Lastly, a service can have an associated health check. This is a powerful
 feature as it allows a web balancer to gracefully remove failing nodes, or
 a database to replace a failed slave, etc. The health check is strongly integrated
-in the DNS interface as well. If a service is failing it's health check or
+in the DNS interface as well. If a service is failing its health check or
 a node has any failing system-level check, the DNS interface will omit that
 node from any service query.
 

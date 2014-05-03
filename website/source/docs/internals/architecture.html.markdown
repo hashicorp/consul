@@ -76,7 +76,7 @@ that there are two datacenters, one and two respectively. Consul has first
 class support for multiple datacenters and expects this to be the common case.
 
 Within each datacenter we have a mixture of clients and servers. It is expected
-that there be between three and five servers. This strikes a balance between
+that there be between three to five servers. This strikes a balance between
 availability in the case of failure and performance, as consensus gets progressively
 slower as more machines are added. However, there is no limit to the number of clients,
 and they can easily scale into the thousands or tens of thousands.
