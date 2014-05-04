@@ -80,12 +80,16 @@ func TestMembersCommandRun_statusFilter_failed(t *testing.T) {
 	}
 
 	code := c.Run(args)
-	if code != 0 {
+	if code == 1 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
 	if strings.Contains(ui.OutputWriter.String(), a1.config.NodeName) {
 		t.Fatalf("bad: %#v", ui.OutputWriter.String())
+	}
+
+	if code != 2 {
+		t.Fatalf("bad: %d", code)
 	}
 }
 
@@ -122,11 +126,15 @@ func TestMembersCommandRun_roleFilter_failed(t *testing.T) {
 	}
 
 	code := c.Run(args)
-	if code != 0 {
+	if code == 1 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
 	if strings.Contains(ui.OutputWriter.String(), a1.config.NodeName) {
 		t.Fatalf("bad: %#v", ui.OutputWriter.String())
+	}
+
+	if code != 2 {
+		t.Fatalf("bad: %d", code)
 	}
 }
