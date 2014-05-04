@@ -2,11 +2,11 @@
 // Superclass to be used by all of the main routes below.
 //
 App.BaseRoute = Ember.Route.extend({
-  rootRoute: '',
+  rootKey: '',
 
   getParentAndGrandparent: function(key) {
-    var parentKey = this.rootRoute,
-        grandParentKey = this.rootRoute,
+    var parentKey = this.rootKey,
+        grandParentKey = this.rootKey,
         parts = key.split('/');
 
     if (parts.length > 0) {
@@ -38,7 +38,7 @@ App.BaseRoute = Ember.Route.extend({
     // Used to link to keys that are not objects,
     // like parents and grandParents
     linkToKey: function(key) {
-      if (key.slice(-1) === '/' || key === this.rootRoute) {
+      if (key.slice(-1) === '/' || key === this.rootKey) {
         this.transitionTo('kv.show', key)
       } else {
         this.transitionTo('kv.edit', key)
@@ -100,7 +100,7 @@ App.DcRoute = App.BaseRoute.extend({
 
 App.KvIndexRoute = App.BaseRoute.extend({
   beforeModel: function() {
-    this.transitionTo('kv.show', this.rootRoute)
+    this.transitionTo('kv.show', this.rootKey)
   }
 });
 
