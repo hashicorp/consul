@@ -1,3 +1,15 @@
+## 0.2.1 (unreleased)
+
+FEATURES:
+
+BUG FIXES:
+
+IMPROVEMENTS:
+
+  * Improved the URL formatting for the key/value editor in the Web UI.
+  Importantly, the editor now allows editing keys with dashes in the
+  name. [GH-119]
+
 ## 0.2.0 (May 1, 2014)
 
 FEATURES:
@@ -13,9 +25,6 @@ FEATURES:
       to filter to only nodes with passing results. [GH-57]
   * The KV endpoint suports listing keys with the `?keys` query parameter,
       and limited up to a seperator using `?seperator=`.
-  * Improved the URL formatting for the key/value editor in the Web UI.
-  Importantly, the editor now allows editing keys with dashes in the
-  name. [GH-119]
 
 IMPROVEMENTS:
 
