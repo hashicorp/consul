@@ -102,6 +102,11 @@ func (c *MembersCommand) Run(args []string) int {
 		result = append(result, line)
 	}
 
+	// No matching members
+	if len(result) == 0 {
+		return 2
+	}
+
 	// Generate the columnized version
 	output := columnize.SimpleFormat(result)
 	c.Ui.Output(string(output))
