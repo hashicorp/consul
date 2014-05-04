@@ -210,6 +210,7 @@
                   {{ textarea value=model.valueDecoded class="form-control"}}
                 </div>
                 <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
+                <button {{ action "cancelEdit"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-default" }}>Cancel</button>
                 <button {{ action "deleteKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete</button>
               </form>
             </div>
