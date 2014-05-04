@@ -2,22 +2,19 @@
 // Superclass to be used by all of the main routes below.
 //
 App.BaseRoute = Ember.Route.extend({
+  rootRoute: '',
+
   getParentAndGrandparent: function(key) {
-    var parentKey, grandParentKey, isFolder;
+    var parentKey = this.rootRoute,
+        grandParentKey = this.rootRoute,
+        parts = key.split('/');
 
-    parts = key.split('/');
-
-    // If we are the root, set the parent and grandparent to the
-    // root.
-    if (key == "/") {
-      parentKey = "/";
-      grandParentKey ="/"
-    } else {
-      // Go one level up
+    if (parts.length > 0) {
       parts.pop();
       parentKey = parts.join("/") + "/";
+    }
 
-      // Go two levels up
+    if (parts.length > 1) {
       parts.pop();
       grandParentKey = parts.join("/") + "/";
     }
@@ -41,9 +38,7 @@ App.BaseRoute = Ember.Route.extend({
     // Used to link to keys that are not objects,
     // like parents and grandParents
     linkToKey: function(key) {
-      key = key.replace(/\//g, "-")
-
-      if (key.slice(-1) === "-") {
+      if (key.slice(-1) === '/' || key === this.rootRoute) {
         this.transitionTo('kv.show', key)
       } else {
         this.transitionTo('kv.edit', key)
@@ -103,18 +98,15 @@ App.DcRoute = App.BaseRoute.extend({
   },
 });
 
-
 App.KvIndexRoute = App.BaseRoute.extend({
-  // If they hit /kv we want to just move them to /kv/-
   beforeModel: function() {
-    this.transitionTo('kv.show', '-')
+    this.transitionTo('kv.show', this.rootRoute)
   }
 });
 
 App.KvShowRoute = App.BaseRoute.extend({
   model: function(params) {
-    // Convert the key back to the format consul understands
-    var key = params.key.replace(/-/g, "/")
+    var key = params.key;
     var dc = this.modelFor('dc').dc;
 
     // Return a promise has with the ?keys for that namespace
@@ -145,7 +137,7 @@ App.KvShowRoute = App.BaseRoute.extend({
 
 App.KvEditRoute = App.BaseRoute.extend({
   model: function(params) {
-    var key = params.key.replace(/-/g, "/");
+    var key = params.key;
     var dc = this.modelFor('dc').dc;
     var parentKeys = this.getParentAndGrandparent(key)
 
