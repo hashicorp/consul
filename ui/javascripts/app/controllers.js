@@ -143,6 +143,12 @@ App.KvEditController = Ember.Controller.extend({
       })
     },
 
+    cancelEdit: function() {
+      this.set('isLoading', true);
+      this.transitionToRoute('kv.show', this.get("model").get('parentKey'));
+      this.set('isLoading', false);
+    },
+
     deleteKey: function() {
       this.set('isLoading', true);
       var key = this.get("model");
