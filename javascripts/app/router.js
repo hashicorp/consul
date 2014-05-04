@@ -19,12 +19,11 @@ App.Router.map(function() {
     });
     // Key/Value
     this.resource("kv", { path: "/kv" }, function(){
-      // This route just redirects to /-
       this.route("index", { path: "/" });
       // List keys. This is more like an index
-      this.route("show", { path: "/:key" });
+      this.route("show", { path: "/*key" });
       // Edit a specific key
-      this.route("edit", { path: "/:key/edit" });
+      this.route("edit", { path: "/*key/edit" });
     })
   });
 
