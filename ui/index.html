@@ -101,7 +101,7 @@
 
         {{#each item in model }}
 
-          {{#link-to item.linkToRoute item.urlSafeKey href=false tagName="div" class="panel panel-link panel-short"}}
+          {{#link-to item.linkToRoute item.Key href=false tagName="div" class="panel panel-link panel-short"}}
             <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
             <div class="panel-heading">
               <h3 class="panel-title">
@@ -172,7 +172,7 @@
       <div class="col-md-5">
         <div class="row">
           {{#each item in siblings }}
-            {{#link-to item.linkToRoute item.urlSafeKey href=false tagName="div" class="panel panel-link panel-short"}}
+            {{#link-to item.linkToRoute item.Key href=false tagName="div" class="panel panel-link panel-short"}}
               <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
               <div class="panel-heading">
                 <h3 class="panel-title">

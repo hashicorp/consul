@@ -100,9 +100,9 @@ App.KvShowController.reopen({
       }).then(function(response) {
         // transition to the right place
         if (newKey.get('isFolder') == true) {
-          controller.transitionToRoute('kv.show', newKey.get('urlSafeKey'));
+          controller.transitionToRoute('kv.show', newKey.get('Key'));
         } else {
-          controller.transitionToRoute('kv.edit', newKey.get('urlSafeKey'));
+          controller.transitionToRoute('kv.edit', newKey.get('Key'));
         }
         controller.set('isLoading', false)
       }).fail(function(response) {
@@ -151,7 +151,7 @@ App.KvEditController = Ember.Controller.extend({
 
       // Get the parent for the transition back up a level
       // after the delete
-      var parent = key.get('urlSafeParentKey');
+      var parent = key.get('parentKey');
 
       // Delete the key
       Ember.$.ajax({

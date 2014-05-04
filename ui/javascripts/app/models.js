@@ -124,26 +124,13 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     if (this.get('Key') === undefined) {
       return false;
     };
-    return (this.get('Key').slice(-1) == "/")
-  }.property('Key'),
-
-  // The dasherized URL safe version of the key for routing
-  urlSafeKey: function() {
-    return this.get('Key').replace(/\//g, "-")
-  }.property('Key'),
-
-  // The dasherized URL safe version of the parent key for routing
-  urlSafeParentKey: function() {
-    return this.get('parentKey').replace(/\//g, "-")
+    return (this.get('Key').slice(-1) === '/')
   }.property('Key'),
 
   // Determines what route to link to. If it's a folder,
   // it will link to kv.show. Otherwise, kv.edit
   linkToRoute: function() {
-    var key = this.get('urlSafeKey')
-
-    // If the key ends in - it's a folder
-    if (key.slice(-1) === "-") {
+    if (this.get('Key').slice(-1) === '/') {
       return 'kv.show'
     } else {
       return 'kv.edit'
