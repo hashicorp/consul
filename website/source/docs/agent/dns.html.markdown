@@ -18,7 +18,7 @@ provide the redis service, located in the "east-aws" datacenter,
 with no failing health checks. It's that simple!
 
 There are a number of [configuration options](/docs/agent/options.html) that
-are important for the DNS interface. They are `dns_addr`, `recursor`,
+are important for the DNS interface. They are `ports.dns`, `recursor`,
 and `domain`. By default Consul will listen on 127.0.0.1:8600 for DNS queries
 in the "consul." domain, without support for DNS recursion.
 
