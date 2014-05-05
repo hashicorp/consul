@@ -137,6 +137,7 @@ App.KvShowRoute = App.BaseRoute.extend({
     controller.set('grandParentKey', parentKeys.grandParent);
     controller.set('isRoot', parentKeys.isRoot);
     controller.set('newKey', App.Key.create());
+    controller.set('rootKey', this.rootKey);
   }
 });
 
@@ -170,9 +171,9 @@ App.KvEditRoute = App.BaseRoute.extend({
     controller.set('content', models.key);
     controller.set('parentKey', parentKeys.parent);
     controller.set('grandParentKey', parentKeys.grandParent);
+    controller.set('isRoot', parentKeys.isRoot);
     controller.set('siblings', models.keys);
     controller.set('rootKey', this.rootKey);
-    controller.set('isRoot', parentKeys.isRoot);
   }
 });
 
