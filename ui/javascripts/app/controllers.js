@@ -65,8 +65,29 @@ App.DcController = Ember.Controller.extend({
   }
 })
 
+KvBaseController = Ember.ObjectController.extend({
+  transitionToNearestParent: function(parent) {
+    var controller = this;
+    var rootKey = controller.get('rootKey');
+    var dc = controller.get('dc').get('datacenter');
+
+    Ember.$.ajax({
+      url: ('/v1/kv/' + parent + '?keys&c=' + dc),
+      type: 'GET'
+    }).then(function(data) {
+      controller.transitionToRoute('kv.show', parent);
+    }).fail(function(response) {
+      if (response.status === 404) {
+        controller.transitionToRoute('kv.show', rootKey);
+      }
+    });
+
+    controller.set('isLoading', false);
+  }
+});
+
 // Add mixins
-App.KvShowController = Ember.ObjectController.extend(Ember.Validations.Mixin);
+App.KvShowController = KvBaseController.extend(Ember.Validations.Mixin);
 
 App.KvShowController.reopen({
   needs: ["dc"],
@@ -79,11 +100,11 @@ App.KvShowController.reopen({
     createKey: function() {
       this.set('isLoading', true);
 
-      var newKey = this.get('newKey');
-      var parentKey = this.get('parentKey');
-      var grandParentKey = this.get('grandParentKey');
       var controller = this;
-      var dc = this.get('dc').get('datacenter');
+      var newKey = controller.get('newKey');
+      var parentKey = controller.get('parentKey');
+      var grandParentKey = controller.get('grandParentKey');
+      var dc = controller.get('dc').get('datacenter');
 
       // If we don't have a previous model to base
       // on our parent, or we're not at the root level,
@@ -109,12 +130,30 @@ App.KvShowController.reopen({
         // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
       });
+    },
 
+    deleteFolder: function() {
+      this.set('isLoading', true);
+
+      var controller = this;
+      var key = controller.get("model");
+      var grandParent = key.get('grandParentKey');
+
+      // Delete the folder
+      Ember.$.ajax({
+          url: ("/v1/kv/" + key.get('parentKey') + '?recurse'),
+          type: 'DELETE'
+      }).then(function(response) {
+        controller.transitionToNearestParent(grandParent);
+      }).fail(function(response) {
+        // Render the error message on the form if the request failed
+        controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
+      });
     }
   }
 });
 
-App.KvEditController = Ember.Controller.extend({
+App.KvEditController = KvBaseController.extend({
   isLoading: false,
   needs: ["dc"],
   dc: Ember.computed.alias("controllers.dc"),
@@ -151,27 +190,23 @@ App.KvEditController = Ember.Controller.extend({
 
     deleteKey: function() {
       this.set('isLoading', true);
-      var key = this.get("model");
-      var controller = this;
-      var dc = this.get('dc').get('datacenter');
 
-      // Get the parent for the transition back up a level
-      // after the delete
-      var parent = key.get('parentKey');
+      var controller = this;
+      var dc = controller.get('dc').get('datacenter');
+      var key = controller.get("model");
+      var isRoot = controller.get('isRoot');
+      var parent = isRoot ? controller.get('rootKey') : key.get('parentKey');
 
       // Delete the key
       Ember.$.ajax({
           url: ("/v1/kv/" + key.get('Key') + '?dc=' + dc),
           type: 'DELETE'
-      }).then(function(response) {
-        // Tranisiton back up a level
-        controller.transitionToRoute('kv.show', parent);
-        controller.set('isLoading', false);
+      }).then(function(data) {
+        controller.transitionToNearestParent(parent);
       }).fail(function(response) {
         // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
       })
-
     }
   }
 
