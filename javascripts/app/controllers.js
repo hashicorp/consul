@@ -65,7 +65,7 @@ App.DcController = Ember.Controller.extend({
   }
 })
 
-KvHelpController = Ember.ObjectController.extend({
+KvBaseController = Ember.ObjectController.extend({
   transitionToNearestParent: function(parent) {
     var controller = this;
     var rootKey = controller.get('rootKey');
@@ -87,7 +87,7 @@ KvHelpController = Ember.ObjectController.extend({
 });
 
 // Add mixins
-App.KvShowController = KvHelpController.extend(Ember.Validations.Mixin);
+App.KvShowController = KvBaseController.extend(Ember.Validations.Mixin);
 
 App.KvShowController.reopen({
   needs: ["dc"],
@@ -153,7 +153,7 @@ App.KvShowController.reopen({
   }
 });
 
-App.KvEditController = KvHelpController.extend({
+App.KvEditController = KvBaseController.extend({
   isLoading: false,
   needs: ["dc"],
   dc: Ember.computed.alias("controllers.dc"),
