@@ -66,6 +66,13 @@ App.DcController = Ember.Controller.extend({
 })
 
 KvBaseController = Ember.ObjectController.extend({
+  getParentKeyRoute: function() {
+    if (this.get('isRoot')) {
+      return this.get('rootKey');
+    }
+    return this.get("parentKey");
+  },
+
   transitionToNearestParent: function(parent) {
     var controller = this;
     var rootKey = controller.get('rootKey');
@@ -136,12 +143,11 @@ App.KvShowController.reopen({
       this.set('isLoading', true);
 
       var controller = this;
-      var key = controller.get("model");
-      var grandParent = key.get('grandParentKey');
+      var grandParent = controller.get('grandParentKey');
 
       // Delete the folder
       Ember.$.ajax({
-          url: ("/v1/kv/" + key.get('parentKey') + '?recurse'),
+          url: ("/v1/kv/" + controller.get('parentKey') + '?recurse'),
           type: 'DELETE'
       }).then(function(response) {
         controller.transitionToNearestParent(grandParent);
@@ -184,7 +190,7 @@ App.KvEditController = KvBaseController.extend({
 
     cancelEdit: function() {
       this.set('isLoading', true);
-      this.transitionToRoute('kv.show', this.get("model").get('parentKey'));
+      this.transitionToRoute('kv.show', this.getParentKeyRoute());
       this.set('isLoading', false);
     },
 
@@ -194,8 +200,7 @@ App.KvEditController = KvBaseController.extend({
       var controller = this;
       var dc = controller.get('dc').get('datacenter');
       var key = controller.get("model");
-      var isRoot = controller.get('isRoot');
-      var parent = isRoot ? controller.get('rootKey') : key.get('parentKey');
+      var parent = controller.getParentKeyRoute();
 
       // Delete the key
       Ember.$.ajax({
