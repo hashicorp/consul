@@ -174,11 +174,8 @@ App.KvEditController = Ember.Controller.extend({
       var controller = this;
       var dc = controller.get('dc').get('datacenter');
       var key = controller.get("model");
-      var parent = key.get('parentKey');
-
-      if (parent === '/') {
-        parent = controller.get('rootKey');
-      }
+      var isRoot = controller.get('isRoot');
+      var parent = isRoot ? controller.get('rootKey') : key.get('parentKey');
 
       // Delete the key
       Ember.$.ajax({

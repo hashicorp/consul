@@ -19,7 +19,11 @@ App.BaseRoute = Ember.Route.extend({
       grandParentKey = parts.join("/") + "/";
     }
 
-    return {grandParent: grandParentKey, parent: parentKey}
+    return {
+      parent: parentKey,
+      grandParent: grandParentKey,
+      isRoot: parentKey === '/'
+    }
   },
 
   removeDuplicateKeys: function(keys, matcher) {
@@ -131,7 +135,7 @@ App.KvShowRoute = App.BaseRoute.extend({
     controller.set('content', models.keys);
     controller.set('parentKey', parentKeys.parent);
     controller.set('grandParentKey', parentKeys.grandParent);
-    controller.set('isRoot', parentKeys.parent === '/');
+    controller.set('isRoot', parentKeys.isRoot);
     controller.set('newKey', App.Key.create());
   }
 });
@@ -168,6 +172,7 @@ App.KvEditRoute = App.BaseRoute.extend({
     controller.set('grandParentKey', parentKeys.grandParent);
     controller.set('siblings', models.keys);
     controller.set('rootKey', this.rootKey);
+    controller.set('isRoot', parentKeys.isRoot);
   }
 });
 
