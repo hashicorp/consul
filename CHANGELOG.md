@@ -9,6 +9,8 @@ IMPROVEMENTS:
   * Improved the URL formatting for the key/value editor in the Web UI.
   Importantly, the editor now allows editing keys with dashes in the
   name. [GH-119]
+  * The web UI now has cancel and delete folder actions in the key/value
+  editor. [GH-124], [GH-122]
 
 ## 0.2.0 (May 1, 2014)
 
