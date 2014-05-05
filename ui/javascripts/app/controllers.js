@@ -171,9 +171,14 @@ App.KvEditController = Ember.Controller.extend({
     deleteKey: function() {
       this.set('isLoading', true);
 
-      var dc = this.get('dc').get('datacenter');
-      var key = this.get("model");
       var controller = this;
+      var dc = controller.get('dc').get('datacenter');
+      var key = controller.get("model");
+      var parent = key.get('parentKey');
+
+      if (parent === '/') {
+        parent = controller.get('rootKey');
+      }
 
       // Delete the key
       Ember.$.ajax({
@@ -181,7 +186,7 @@ App.KvEditController = Ember.Controller.extend({
           type: 'DELETE'
       }).then(function(response) {
         // Tranisiton back up a level
-        controller.transitionToRoute('kv.show', key.get('parentKey'));
+        controller.transitionToRoute('kv.show', parent);
         controller.set('isLoading', false);
       }).fail(function(response) {
         // Render the error message on the form if the request failed

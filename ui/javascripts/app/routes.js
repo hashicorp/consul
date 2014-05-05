@@ -167,6 +167,7 @@ App.KvEditRoute = App.BaseRoute.extend({
     controller.set('parentKey', parentKeys.parent);
     controller.set('grandParentKey', parentKeys.grandParent);
     controller.set('siblings', models.keys);
+    controller.set('rootKey', this.rootKey);
   }
 });
 
