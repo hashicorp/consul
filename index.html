@@ -133,6 +133,11 @@
 
             <div class="panel-body">
               <form class="form">
+
+                <div class="form-group">
+                  <p>{{errorMessage}}</p>
+                </div>
+
                 <div {{ bind-attr class=":form-group newKey.keyValid:valid" }}>
                   <div class="input-group">
                     <span class="input-group-addon">{{parentKey}}</span>
@@ -151,7 +156,7 @@
                 {{/if}}
 
                 <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
-                <button {{ action "deleteFolder"}} {{bind-attr disabled=isRoot }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete folder</button>
+                <button {{ action "deleteFolder"}} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger isRoot:hidden" }}>Delete folder</button>
               </form>
             </div>
           </div>
