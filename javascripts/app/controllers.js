@@ -149,8 +149,6 @@ App.KvShowController.reopen({
         // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
       });
-
-      controller.set('isLoading', false);
     }
   }
 });
