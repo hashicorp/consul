@@ -109,7 +109,26 @@ App.KvShowController.reopen({
         // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
       });
+    },
 
+    deleteFolder: function() {
+      this.set('isLoading', true);
+
+      var key = this.get("model");
+      var controller = this;
+
+      // Delete the folder
+      Ember.$.ajax({
+          url: ("/v1/kv/" + key.get('parentKey') + '?recurse'),
+          type: 'DELETE'
+      }).then(function(response) {
+        // Tranisiton back up a level
+        controller.transitionToRoute('kv.show', key.get('grandParentKey'));
+        controller.set('isLoading', false);
+      }).fail(function(response) {
+        // Render the error message on the form if the request failed
+        controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
+      })
     }
   }
 });
@@ -151,13 +170,10 @@ App.KvEditController = Ember.Controller.extend({
 
     deleteKey: function() {
       this.set('isLoading', true);
+
+      var dc = this.get('dc').get('datacenter');
       var key = this.get("model");
       var controller = this;
-      var dc = this.get('dc').get('datacenter');
-
-      // Get the parent for the transition back up a level
-      // after the delete
-      var parent = key.get('parentKey');
 
       // Delete the key
       Ember.$.ajax({
@@ -165,13 +181,12 @@ App.KvEditController = Ember.Controller.extend({
           type: 'DELETE'
       }).then(function(response) {
         // Tranisiton back up a level
-        controller.transitionToRoute('kv.show', parent);
+        controller.transitionToRoute('kv.show', key.get('parentKey'));
         controller.set('isLoading', false);
       }).fail(function(response) {
         // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
       })
-
     }
   }
 
