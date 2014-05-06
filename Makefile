@@ -1,4 +1,5 @@
 DEPS = $(shell go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
+PACKAGES = $(shell go list ./...)
 
 all: deps
 	@mkdir -p bin/
@@ -17,6 +18,9 @@ test: deps
 
 integ:
 	go list ./... | INTEG_TESTS=yes xargs -n1 go test
+
+format:
+	go fmt $(PACKAGES)
 
 web:
 	./scripts/website_run.sh
