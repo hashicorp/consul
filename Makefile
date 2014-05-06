@@ -1,7 +1,7 @@
 DEPS = $(shell go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
 PACKAGES = $(shell go list ./...)
 
-all: deps
+all: deps format
 	@mkdir -p bin/
 	@bash --norc -i ./scripts/build.sh
 
@@ -10,8 +10,9 @@ cov:
 	open /tmp/coverage.html
 
 deps:
-	go get -d -v ./...
-	echo $(DEPS) | xargs -n1 go get -d
+	@echo "--> Installing build dependencies"
+	@go get -d -v ./...
+	@echo $(DEPS) | xargs -n1 go get -d
 
 test: deps
 	go list ./... | xargs -n1 go test
@@ -20,7 +21,8 @@ integ:
 	go list ./... | INTEG_TESTS=yes xargs -n1 go test
 
 format:
-	go fmt $(PACKAGES)
+	@echo "--> Running go fmt"
+	@go fmt $(PACKAGES)
 
 web:
 	./scripts/website_run.sh
