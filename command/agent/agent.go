@@ -107,6 +107,11 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		return nil, err
 	}
 
+	err = agent.storePid()
+	if err != nil {
+		return nil, err
+	}
+
 	return agent, nil
 }
 
@@ -248,6 +253,11 @@ func (a *Agent) Shutdown() error {
 		err = a.server.Shutdown()
 	} else {
 		err = a.client.Shutdown()
+	}
+
+	pidErr := a.deletePid()
+	if pidErr != nil {
+		a.logger.Println("[WARN] agent: could not delete pid file ", pidErr)
 	}
 
 	a.logger.Println("[INFO] agent: shutdown complete")
@@ -495,4 +505,51 @@ func (a *Agent) Stats() map[string]map[string]string {
 		"services":       toString(uint64(len(a.state.services))),
 	}
 	return stats
+}
+
+func (a *Agent) storePid() error {
+	pidPath := a.config.PidFile
+
+	if pidPath != "" {
+		pid := os.Getpid()
+		pidFile, err := os.OpenFile(pidPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+
+		if err != nil {
+			return fmt.Errorf("Could not open pid file: %v", err)
+		}
+
+		defer pidFile.Close()
+
+		_, err = pidFile.WriteString(fmt.Sprintf("%d", pid))
+
+		if err != nil {
+			return fmt.Errorf("Could not write to pid file: %s", err)
+		}
+	}
+
+	return nil
+}
+
+func (a *Agent) deletePid() error {
+	pidPath := a.config.PidFile
+
+	if pidPath != "" {
+		stat, err := os.Stat(pidPath)
+
+		if err != nil {
+			return fmt.Errorf("Could not remove pid file: %s", err)
+		}
+
+		if stat.IsDir() {
+			return fmt.Errorf("Specified pid file path is directory")
+		}
+
+		err = os.Remove(pidPath)
+
+		if err != nil {
+			return fmt.Errorf("Could not remove pid file: %s", err)
+		}
+	}
+
+	return nil
 }

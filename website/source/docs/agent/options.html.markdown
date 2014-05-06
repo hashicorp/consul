@@ -96,6 +96,9 @@ The options below are all specified on the command-line.
 * `-ui-dir` - This flag provides a the directory containing the Web UI resources
   for Consul. This must be provided to enable the Web UI. Directory must be readable.
 
+* `-pid-file` - This flag provides the file path for the agent to store it's PID. This is useful for
+  sending signals to the agent, such as `SIGINT` to close it or `SIGHUP` to update check definitions.
+
 ## Configuration Files
 
 In addition to the command-line options, configuration can be put into

@@ -50,6 +50,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.Datacenter, "dc", "", "node datacenter")
 	cmdFlags.StringVar(&cmdConfig.DataDir, "data-dir", "", "path to the data directory")
 	cmdFlags.StringVar(&cmdConfig.UiDir, "ui-dir", "", "path to the web UI directory")
+	cmdFlags.StringVar(&cmdConfig.PidFile, "pid-file", "", "path to file to store PID")
 
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
@@ -485,6 +486,7 @@ Options:
   -protocol=N              Sets the protocol version. Defaults to latest.
   -server                  Switches agent to server mode.
   -ui-dir=path             Path to directory containing the Web UI resources
+  -pid-file=path           Path to file to store agent PID
 
  `
 	return strings.TrimSpace(helpText)
