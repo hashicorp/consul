@@ -486,7 +486,7 @@ Options:
   -protocol=N              Sets the protocol version. Defaults to latest.
   -server                  Switches agent to server mode.
   -ui-dir=path             Path to directory containing the Web UI resources
-  -pid-file=path                Path to file to store agent PID
+  -pid-file=path           Path to file to store agent PID
 
  `
 	return strings.TrimSpace(helpText)
