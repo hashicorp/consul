@@ -98,13 +98,13 @@ func TestCheckTTL(t *testing.T) {
 	check := &CheckTTL{
 		Notify:  mock,
 		CheckID: "foo",
-		TTL:     20 * time.Millisecond,
+		TTL:     100 * time.Millisecond,
 		Logger:  log.New(os.Stderr, "", log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 	check.SetStatus(structs.HealthPassing, "")
 
 	if mock.updates["foo"] != 1 {
@@ -116,13 +116,13 @@ func TestCheckTTL(t *testing.T) {
 	}
 
 	// Ensure we don't fail early
-	time.Sleep(15 * time.Millisecond)
+	time.Sleep(75 * time.Millisecond)
 	if mock.updates["foo"] != 1 {
 		t.Fatalf("should have 1 updates %v", mock.updates)
 	}
 
 	// Wait for the TTL to expire
-	time.Sleep(15 * time.Millisecond)
+	time.Sleep(75 * time.Millisecond)
 
 	if mock.updates["foo"] != 2 {
 		t.Fatalf("should have 2 updates %v", mock.updates)
