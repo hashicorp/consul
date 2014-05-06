@@ -107,6 +107,8 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		return nil, err
 	}
 
+	agent.storePid()
+
 	return agent, nil
 }
 
@@ -249,6 +251,8 @@ func (a *Agent) Shutdown() error {
 	} else {
 		err = a.client.Shutdown()
 	}
+
+	a.deletePid()
 
 	a.logger.Println("[INFO] agent: shutdown complete")
 	a.shutdown = true
@@ -495,4 +499,37 @@ func (a *Agent) Stats() map[string]map[string]string {
 		"services":       toString(uint64(len(a.state.services))),
 	}
 	return stats
+}
+
+func (a *Agent) storePid() {
+	pidPath := a.config.PidFile
+
+	if pidPath != "" {
+		pid := os.Getpid()
+		pidFile, err := os.OpenFile(pidPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+
+		if err != nil {
+			fmt.Errorf("Could not open pid file: %v", err)
+		}
+
+		defer pidFile.Close()
+
+		_, err = pidFile.WriteString(fmt.Sprintf("%d", pid))
+
+		if err != nil {
+			fmt.Errorf("Could not write to pid file: %s", err)
+		}
+	}
+}
+
+func (a *Agent) deletePid() {
+	pidPath := a.config.PidFile
+
+	if pidPath != "" {
+		err := os.Remove(pidPath)
+
+		if err != nil {
+			fmt.Errorf("Could not remove pid file: %s", err)
+		}
+	}
 }

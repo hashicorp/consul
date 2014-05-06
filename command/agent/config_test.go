@@ -257,6 +257,17 @@ func TestDecodeConfig(t *testing.T) {
 	if config.UiDir != "/opt/consul-ui" {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// Pid File
+	input = `{"pid_file": "/tmp/consul/pid"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.PidFile != "/tmp/consul/pid" {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {

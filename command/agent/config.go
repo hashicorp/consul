@@ -128,6 +128,9 @@ type Config struct {
 	// If provided, the UI endpoints will be enabled.
 	UiDir string `mapstructure:"ui_dir"`
 
+	// PidFile is the file to store our PID in
+	PidFile string `mapstructure:"pid_file"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -422,6 +425,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.UiDir != "" {
 		result.UiDir = b.UiDir
+	}
+	if b.PidFile != "" {
+		result.PidFile = b.PidFile
 	}
 
 	// Copy the start join addresses
