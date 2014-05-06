@@ -11,6 +11,7 @@ IMPROVEMENTS:
   name. [GH-119]
   * The web UI now has cancel and delete folder actions in the key/value
   editor. [GH-124], [GH-122]
+  * Add flag to agent to write pid to a file. [GH-106]
 
 ## 0.2.0 (May 1, 2014)
 
