@@ -2,11 +2,19 @@ package agent
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+)
+
+const (
+	// maxKVSize is used to limit the maximum payload length
+	// of a KV entry. If it exceeds this amount, the client is
+	// likely abusing the KV store.
+	maxKVSize = 512 * 1024
 )
 
 func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -142,6 +150,13 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 		}
 		applyReq.DirEnt.ModifyIndex = casVal
 		applyReq.Op = structs.KVSCAS
+	}
+
+	// Check the content-length
+	if req.ContentLength > maxKVSize {
+		resp.WriteHeader(413)
+		resp.Write([]byte(fmt.Sprintf("Value exceeds %d byte limit", maxKVSize)))
+		return nil, nil
 	}
 
 	// Copy the value
