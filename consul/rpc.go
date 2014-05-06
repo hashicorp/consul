@@ -27,8 +27,8 @@ const (
 	maxQueryTime = 600 * time.Second
 
 	// Warn if the Raft command is larger than this.
-	// If it's over 8MB something is probably being abusive.
-	raftWarnSize = 8 * 1024 * 1024
+	// If it's over 1MB something is probably being abusive.
+	raftWarnSize = 1024 * 1024
 )
 
 // listen is used to listen for incoming RPC connections
