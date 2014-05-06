@@ -323,24 +323,33 @@ The return code is 200 on success.
 ### /v1/agent/check/pass/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
-When this endpoint is accessed, the status of the check is set to "passing", and
-the TTL clock is reset.
+When this endpoint is accessed via a GET, the status of the check is set to "passing",
+and the TTL clock is reset.
+
+The optional "?node=" query parameter can be used to associate output with
+the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
 
 ### /v1/agent/check/warn/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
-When this endpoint is accessed, the status of the check is set to "warning", and
-the TTL clock is reset.
+When this endpoint is accessed via a GET, the status of the check is set to "warning",
+and the TTL clock is reset.
+
+The optional "?node=" query parameter can be used to associate output with
+the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
 
 ### /v1/agent/check/fail/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
-When this endpoint is accessed, the status of the check is set to "critical", and
-the TTL clock is reset.
+When this endpoint is accessed via a GET, the status of the check is set to "critical",
+and the TTL clock is reset.
+
+The optional "?node=" query parameter can be used to associate output with
+the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
 
