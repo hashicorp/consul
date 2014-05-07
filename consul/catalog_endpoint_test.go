@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
 	"net/rpc"
 	"os"
@@ -35,12 +36,12 @@ func TestCatalogRegister(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
-
-	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+	testutil.WaitForResult(func() (bool, error) {
+		err := client.Call("Catalog.Register", &arg, &out)
+		return err == nil, err
+	}, func(err error) {
 		t.Fatalf("err: %v", err)
-	}
+	})
 }
 
 func TestCatalogRegister_ForwardLeader(t *testing.T) {
