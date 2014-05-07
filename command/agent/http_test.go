@@ -99,9 +99,6 @@ func TestContentTypeIsJSON(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
-
 	resp := httptest.NewRecorder()
 
 	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
