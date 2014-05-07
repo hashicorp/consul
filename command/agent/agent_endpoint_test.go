@@ -2,12 +2,14 @@ package agent
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
 	"net/http"
 	"os"
 	"testing"
 	"time"
+	"errors"
 )
 
 func TestHTTPAgentServices(t *testing.T) {
@@ -189,9 +191,7 @@ func TestHTTPAgentForceLeave(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Shutdown, wait for detection
 	a2.Shutdown()
-	time.Sleep(500 * time.Millisecond)
 
 	// Force leave now
 	req, err := http.NewRequest("GET", fmt.Sprintf("/v1/agent/force-leave/%s", a2.config.NodeName), nil)
@@ -207,11 +207,13 @@ func TestHTTPAgentForceLeave(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 
-	// SHould be left
-	mem := srv.agent.LANMembers()
-	if mem[1].Status != serf.StatusLeft {
-		t.Fatalf("should have left: %v", mem)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		m := srv.agent.LANMembers()
+		success := m[1].Status == serf.StatusLeft
+		return success, errors.New(m[1].Status.String())
+	}, func(err error) {
+		t.Fatalf("member status is %v, should be left", err)
+	})
 }
 
 func TestHTTPAgentRegisterCheck(t *testing.T) {
