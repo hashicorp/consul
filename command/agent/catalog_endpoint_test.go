@@ -17,15 +17,15 @@ func TestCatalogRegister(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
+	testutil.WaitForLeader(t, srv.agent.RPC)
+
+	// Register node
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
 		Address:    "127.0.0.1",
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
-
-	// Register node
 	req, err := http.NewRequest("GET", "/v1/catalog/register", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -49,14 +49,14 @@ func TestCatalogDeregister(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
+	testutil.WaitForLeader(t, srv.agent.RPC)
+
+	// Register node
 	args := &structs.DeregisterRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
-
-	// Register node
 	req, err := http.NewRequest("GET", "/v1/catalog/deregister", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -97,15 +97,15 @@ func TestCatalogNodes(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
+	testutil.WaitForLeader(t, srv.agent.RPC)
+
+	// Register node
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
 		Address:    "127.0.0.1",
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
-
-	// Register node
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -137,13 +137,13 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
+	testutil.WaitForLeader(t, srv.agent.RPC)
+
+	// Register node
 	args := &structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
-
-	// Register node
 	var out structs.IndexedNodes
 	if err := srv.agent.RPC("Catalog.ListNodes", *args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -198,6 +198,9 @@ func TestCatalogServices(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
+	testutil.WaitForLeader(t, srv.agent.RPC)
+
+	// Register node
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
@@ -207,9 +210,6 @@ func TestCatalogServices(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
-
-	// Register node
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -240,6 +240,9 @@ func TestCatalogServiceNodes(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
+	testutil.WaitForLeader(t, srv.agent.RPC)
+
+	// Register node
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
@@ -250,9 +253,6 @@ func TestCatalogServiceNodes(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
-
-	// Register node
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -283,6 +283,9 @@ func TestCatalogNodeServices(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
+	testutil.WaitForLeader(t, srv.agent.RPC)
+
+	// Register node
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       "foo",
@@ -293,9 +296,6 @@ func TestCatalogNodeServices(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
-
-	// Register node
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)

@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
 	"os"
@@ -18,8 +19,8 @@ func TestLeader_RegisterMember(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer c1.Shutdown()
 
-	// Wait until we have a leader
-	time.Sleep(100 * time.Millisecond)
+	client := rpcClient(t, s1)
+	testutil.WaitForLeader(t, client.Call)
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",

@@ -18,11 +18,7 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-	}
-
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	keys := []string{
 		"baz",
@@ -97,11 +93,7 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-	}
-
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	keys := []string{
 		"bar",
@@ -197,11 +189,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-	}
-
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	{
 		buf := bytes.NewBuffer([]byte("test"))
@@ -298,11 +286,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-	}
-
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	keys := []string{
 		"bar",

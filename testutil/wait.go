@@ -29,9 +29,12 @@ func WaitForResult(test testFn, error errorFn) {
 
 type rpcFn func(string, interface {}, interface {}) error
 
-func WaitForLeader(t *testing.T, rpc rpcFn, args interface{}) structs.IndexedNodes {
+func WaitForLeader(t *testing.T, rpc rpcFn) structs.IndexedNodes {
 	var out structs.IndexedNodes
 	WaitForResult(func() (bool, error) {
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+		}
 		err := rpc("Catalog.ListNodes", args, &out)
 		return out.QueryMeta.KnownLeader, err
 	}, func(err error) {

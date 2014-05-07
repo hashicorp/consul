@@ -21,7 +21,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		Address:    "127.0.0.1",
 	}
 
-	testutil.WaitForLeader(t, agent.RPC, args)
+	testutil.WaitForLeader(t, agent.RPC)
 
 	// Register info. Exists both, same (noop)
 	var out struct{}
@@ -142,7 +142,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		Address:    "127.0.0.1",
 	}
 
-	testutil.WaitForLeader(t, agent.RPC, args)
+	testutil.WaitForLeader(t, agent.RPC)
 
 	// Register info. Exists both, same (noop)
 	var out struct{}

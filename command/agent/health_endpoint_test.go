@@ -16,11 +16,7 @@ func TestHealthChecksInState(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-	}
-
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	req, err := http.NewRequest("GET", "/v1/health/state/passing?dc=dc1", nil)
 	if err != nil {
@@ -47,11 +43,7 @@ func TestHealthNodeChecks(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-	}
-
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	req, err := http.NewRequest("GET",
 		fmt.Sprintf("/v1/health/node/%s?dc=dc1", srv.agent.config.NodeName), nil)
@@ -90,7 +82,7 @@ func TestHealthServiceChecks(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	// Create a service check
 	var out struct{}
@@ -123,11 +115,7 @@ func TestHealthServiceNodes(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-	}
-
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	req, err := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
 	if err != nil {
@@ -166,7 +154,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	// Create a failing service check
 	var out struct{}

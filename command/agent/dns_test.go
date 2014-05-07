@@ -72,7 +72,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 		Address:    "127.0.0.1",
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -136,7 +136,7 @@ func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 		Address:    "127.0.0.1",
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -178,7 +178,7 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 		Address:    "::4242:4242",
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -220,7 +220,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 		Address:    "www.google.com",
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -268,7 +268,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -329,7 +329,7 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -390,7 +390,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -467,7 +467,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -601,7 +601,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -660,7 +660,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 			},
 		}
 
-		testutil.WaitForLeader(t, srv.agent.RPC, args)
+		testutil.WaitForLeader(t, srv.agent.RPC)
 
 		var out struct{}
 		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
@@ -723,7 +723,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, args)
+	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {

@@ -259,8 +259,8 @@ func TestCatalogListNodes_StaleRaad(t *testing.T) {
 		QueryOptions: structs.QueryOptions{AllowStale: true},
 	}
 
-	testutil.WaitForLeader(t, client1.Call, args)
-	testutil.WaitForLeader(t, client2.Call, args)
+	testutil.WaitForLeader(t, client1.Call)
+	testutil.WaitForLeader(t, client2.Call)
 
 	// Use the follower as the client
 	var client *rpc.Client
