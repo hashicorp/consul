@@ -257,11 +257,6 @@ func TestCatalogListNodes_StaleRaad(t *testing.T) {
 	testutil.WaitForLeader(t, client1.Call)
 	testutil.WaitForLeader(t, client2.Call)
 
-	args := structs.DCSpecificRequest{
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{AllowStale: true},
-	}
-
 	// Use the follower as the client
 	var client *rpc.Client
 	if !s1.IsLeader() {
@@ -276,6 +271,10 @@ func TestCatalogListNodes_StaleRaad(t *testing.T) {
 		s2.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
 	}
 
+	args := structs.DCSpecificRequest{
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{AllowStale: true},
+	}
 	var out structs.IndexedNodes
 	if err := client.Call("Catalog.ListNodes", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)

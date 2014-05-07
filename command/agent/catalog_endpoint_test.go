@@ -20,15 +20,13 @@ func TestCatalogRegister(t *testing.T) {
 	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	// Register node
-	args := &structs.RegisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-		Address:    "127.0.0.1",
-	}
-
 	req, err := http.NewRequest("GET", "/v1/catalog/register", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+	args := &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
 	}
 	req.Body = encodeReq(args)
 
@@ -52,14 +50,12 @@ func TestCatalogDeregister(t *testing.T) {
 	testutil.WaitForLeader(t, srv.agent.RPC)
 
 	// Register node
-	args := &structs.DeregisterRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-	}
-
 	req, err := http.NewRequest("GET", "/v1/catalog/deregister", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+	args := &structs.DeregisterRequest{
+		Node: "foo",
 	}
 	req.Body = encodeReq(args)
 
