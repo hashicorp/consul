@@ -2,12 +2,12 @@ package command
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/serf"
-	"github.com/hashicorp/serf/testutil"
 	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
-	"time"
+	"errors"
 )
 
 func TestForceLeaveCommand_implements(t *testing.T) {
@@ -26,12 +26,8 @@ func TestForceLeaveCommandRun(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	testutil.Yield()
-
 	// Forcibly shutdown a2 so that it appears "failed" in a1
 	a2.Shutdown()
-
-	time.Sleep(time.Second)
 
 	ui := new(cli.MockUi)
 	c := &ForceLeaveCommand{Ui: ui}
@@ -50,9 +46,14 @@ func TestForceLeaveCommandRun(t *testing.T) {
 		t.Fatalf("should have 2 members: %#v", m)
 	}
 
-	if m[1].Status != serf.StatusLeft {
-		t.Fatalf("should be left: %#v", m[1])
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		m = a1.agent.LANMembers()
+		success := m[1].Status == serf.StatusLeft
+		err := errors.New(m[1].Status.String())
+		return success, err
+	}, func(err error) {
+		t.Fatalf("member status is %v, not left", err)
+	})
 }
 
 func TestForceLeaveCommandRun_noAddrs(t *testing.T) {
