@@ -15,7 +15,7 @@ seperate systems, one for gossip traffic and one for RPC.
 
 Enabling gossip encryption only requires that you set an encryption key when
 starting the Consul agent. The key can be set using the `-encrypt` flag
-on `consul agent` or by setting the `encrypt_key` in a configuration file.
+on `consul agent` or by setting the `encrypt` parameter in a configuration file.
 It is advisable to put the key in a configuration file to avoid other users
 from being able to discover it by inspecting running processes.
 The key must be 16-bytes that are base64 encoded. The easiest method to
