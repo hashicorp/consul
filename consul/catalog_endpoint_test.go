@@ -2,8 +2,8 @@ package consul
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 	"net/rpc"
 	"os"
 	"sort"
@@ -254,8 +254,13 @@ func TestCatalogListNodes_StaleRaad(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	args := structs.DCSpecificRequest{
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{AllowStale: true},
+	}
+
+	testutil.WaitForLeader(t, client1.Call, args)
+	testutil.WaitForLeader(t, client2.Call, args)
 
 	// Use the follower as the client
 	var client *rpc.Client
@@ -271,10 +276,6 @@ func TestCatalogListNodes_StaleRaad(t *testing.T) {
 		s2.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
 	}
 
-	args := structs.DCSpecificRequest{
-		Datacenter:   "dc1",
-		QueryOptions: structs.QueryOptions{AllowStale: true},
-	}
 	var out structs.IndexedNodes
 	if err := client.Call("Catalog.ListNodes", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)

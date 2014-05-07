@@ -27,14 +27,15 @@ func WaitForResult(test testFn, error errorFn) {
 	}
 }
 
-type clientRPC func(string, interface {}, interface {}) error
+type rpcFn func(string, interface {}, interface {}) error
 
-func WaitForLeader(t *testing.T, rpc clientRPC, args interface{}) {
+func WaitForLeader(t *testing.T, rpc rpcFn, args interface{}) structs.IndexedNodes {
+	var out structs.IndexedNodes
 	WaitForResult(func() (bool, error) {
-		var out structs.IndexedNodes
 		err := rpc("Catalog.ListNodes", args, &out)
 		return out.QueryMeta.KnownLeader, err
 	}, func(err error) {
 		t.Fatalf("failed to find leader: %v", err)
 	})
+	return out
 }
