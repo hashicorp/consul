@@ -49,10 +49,9 @@ func TestForceLeaveCommandRun(t *testing.T) {
 	testutil.WaitForResult(func() (bool, error) {
 		m = a1.agent.LANMembers()
 		success := m[1].Status == serf.StatusLeft
-		err := errors.New(m[1].Status.String())
-		return success, err
+		return success, errors.New(m[1].Status.String())
 	}, func(err error) {
-		t.Fatalf("member status is %v, not left", err)
+		t.Fatalf("member status is %v, should be left", err)
 	})
 }
 
