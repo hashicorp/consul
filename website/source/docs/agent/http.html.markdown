@@ -149,8 +149,8 @@ key.
 
 It is possible to also only list keys without any values by using the
 "?keys" query parameter along with a `GET` request. This will return
-a list of the keys under the given prefix. The optional "?seperator="
-can be used to list only up to a given seperator.
+a list of the keys under the given prefix. The optional "?separator="
+can be used to list only up to a given separator.
 
 For example, listing "/web/" with a "/" seperator may return:
 

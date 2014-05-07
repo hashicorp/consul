@@ -4,6 +4,9 @@ FEATURES:
 
 BUG FIXES:
 
+ * Renaming "seperator" to "separator". This is the correct spelling,
+ but both spellings are respected for backwards compatibility. [GH-101]
+
 IMPROVEMENTS:
 
   * Improved the URL formatting for the key/value editor in the Web UI.
