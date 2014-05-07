@@ -15,15 +15,16 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
+	testutil.WaitForLeader(t, agent.RPC)
+
+	// Register info
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       agent.config.NodeName,
 		Address:    "127.0.0.1",
 	}
 
-	testutil.WaitForLeader(t, agent.RPC)
-
-	// Register info. Exists both, same (noop)
+	// Exists both, same (noop)
 	var out struct{}
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
@@ -136,15 +137,16 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
+	testutil.WaitForLeader(t, agent.RPC)
+
+	// Register info
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       agent.config.NodeName,
 		Address:    "127.0.0.1",
 	}
 
-	testutil.WaitForLeader(t, agent.RPC)
-
-	// Register info. Exists both, same (noop)
+	// Exists both, same (noop)
 	var out struct{}
 	chk1 := &structs.HealthCheck{
 		Node:    agent.config.NodeName,

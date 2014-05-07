@@ -254,13 +254,13 @@ func TestCatalogListNodes_StaleRaad(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	testutil.WaitForLeader(t, client1.Call)
+	testutil.WaitForLeader(t, client2.Call)
+
 	args := structs.DCSpecificRequest{
 		Datacenter:   "dc1",
 		QueryOptions: structs.QueryOptions{AllowStale: true},
 	}
-
-	testutil.WaitForLeader(t, client1.Call)
-	testutil.WaitForLeader(t, client2.Call)
 
 	// Use the follower as the client
 	var client *rpc.Client

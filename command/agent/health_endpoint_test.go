@@ -71,6 +71,9 @@ func TestHealthServiceChecks(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
+	testutil.WaitForLeader(t, srv.agent.RPC)
+
+	// Create a service check
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       srv.agent.config.NodeName,
@@ -82,9 +85,6 @@ func TestHealthServiceChecks(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
-
-	// Create a service check
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -142,6 +142,9 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
+	testutil.WaitForLeader(t, srv.agent.RPC)
+
+	// Create a failing service check
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       srv.agent.config.NodeName,
@@ -154,9 +157,6 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		},
 	}
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
-
-	// Create a failing service check
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
