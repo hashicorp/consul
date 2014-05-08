@@ -13,7 +13,6 @@ We used `bonnie++` to benchmark the disk, and the key metrics are:
 
  * 188MB/s sequential write
  * 86MB/s sequential read-write-flush
- * 840MB/s sequential read
  * 2636 random seeks per second
 
 # Output
