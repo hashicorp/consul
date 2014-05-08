@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"github.com/hashicorp/consul/testutil"
 	"github.com/ugorji/go/codec"
 	"net"
 	"net/rpc"
@@ -38,7 +39,7 @@ func TestStatusLeader(t *testing.T) {
 		t.Fatalf("unexpected leader: %v", leader)
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	if err := client.Call("Status.Leader", arg, &leader); err != nil {
 		t.Fatalf("err: %v", err)
