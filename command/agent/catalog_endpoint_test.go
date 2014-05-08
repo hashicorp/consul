@@ -17,7 +17,7 @@ func TestCatalogRegister(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	req, err := http.NewRequest("GET", "/v1/catalog/register", nil)
@@ -47,7 +47,7 @@ func TestCatalogDeregister(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	req, err := http.NewRequest("GET", "/v1/catalog/deregister", nil)
@@ -93,7 +93,7 @@ func TestCatalogNodes(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -133,7 +133,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.DCSpecificRequest{
@@ -194,7 +194,7 @@ func TestCatalogServices(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -236,7 +236,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -279,7 +279,7 @@ func TestCatalogNodeServices(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{

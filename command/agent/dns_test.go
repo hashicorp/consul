@@ -65,7 +65,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -129,7 +129,7 @@ func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node with period in name
 	args := &structs.RegisterRequest{
@@ -171,7 +171,7 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -213,7 +213,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -256,7 +256,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -317,7 +317,7 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -378,7 +378,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -455,7 +455,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -584,7 +584,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register nodes
 	args := &structs.RegisterRequest{
@@ -648,7 +648,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register nodes
 	for i := 0; i < 3*maxServiceResponses; i++ {
@@ -712,7 +712,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	testutil.WaitForLeader(t, srv.agent.RPC)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{

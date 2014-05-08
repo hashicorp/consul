@@ -20,7 +20,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	defer c1.Shutdown()
 
 	client := rpcClient(t, s1)
-	testutil.WaitForLeader(t, client.Call)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",

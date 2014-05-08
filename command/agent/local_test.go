@@ -15,7 +15,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC)
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Register info
 	args := &structs.RegisterRequest{
@@ -137,7 +137,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
-	testutil.WaitForLeader(t, agent.RPC)
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Register info
 	args := &structs.RegisterRequest{
