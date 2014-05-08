@@ -335,6 +335,14 @@ type IndexedKeyList struct {
 	QueryMeta
 }
 
+// Session is used to represent an open session in the KV store.
+// This issued to associate node checks with acquired locks.
+type Session struct {
+	ID     string
+	Node   string
+	Checks []string
+}
+
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {
 	var handle codec.MsgpackHandle
