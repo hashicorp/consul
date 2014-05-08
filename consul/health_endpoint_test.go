@@ -14,8 +14,7 @@ func TestHealth_ChecksInState(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -61,8 +60,7 @@ func TestHealth_NodeChecks(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -103,8 +101,7 @@ func TestHealth_ServiceChecks(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -150,8 +147,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
