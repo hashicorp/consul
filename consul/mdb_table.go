@@ -734,6 +734,19 @@ func (t *MDBTable) SetLastIndexTxn(tx *MDBTxn, index uint64) error {
 	return tx.tx.Put(tx.dbis[t.Name], encRowId, encIndex, 0)
 }
 
+// SetMaxLastIndexTxn is used to set the last index within a transaction
+// if it exceeds the current maximum
+func (t *MDBTable) SetMaxLastIndexTxn(tx *MDBTxn, index uint64) error {
+	current, err := t.LastIndexTxn(tx)
+	if err != nil {
+		return err
+	}
+	if index > current {
+		return t.SetLastIndexTxn(tx, index)
+	}
+	return nil
+}
+
 // StartTxn is used to create a transaction that spans a list of tables
 func (t MDBTables) StartTxn(readonly bool) (*MDBTxn, error) {
 	var tx *MDBTxn

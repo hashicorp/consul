@@ -338,9 +338,10 @@ type IndexedKeyList struct {
 // Session is used to represent an open session in the KV store.
 // This issued to associate node checks with acquired locks.
 type Session struct {
-	ID     string
-	Node   string
-	Checks []string
+	ID          string
+	Node        string
+	Checks      []string
+	CreateIndex uint64
 }
 
 // Decode is used to decode a MsgPack encoded object
