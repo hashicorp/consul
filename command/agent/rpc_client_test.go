@@ -3,12 +3,13 @@ package agent
 import (
 	"fmt"
 	"github.com/hashicorp/serf/serf"
-	"github.com/hashicorp/serf/testutil"
+	"github.com/hashicorp/consul/testutil"
 	"io"
 	"net"
 	"os"
 	"strings"
 	"testing"
+	"errors"
 	"time"
 )
 
@@ -59,35 +60,32 @@ func TestRPCClientForceLeave(t *testing.T) {
 	p2 := testRPCClient(t)
 	defer p1.Close()
 	defer p2.Close()
-	testutil.Yield()
 
 	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.Ports.SerfLan)
 	if _, err := p1.agent.JoinLAN([]string{s2Addr}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	testutil.Yield()
-
 	if err := p2.agent.Shutdown(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	time.Sleep(time.Second)
-
 	if err := p1.client.ForceLeave(p2.agent.config.NodeName); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	testutil.Yield()
 
 	m := p1.agent.LANMembers()
 	if len(m) != 2 {
 		t.Fatalf("should have 2 members: %#v", m)
 	}
 
-	if m[1].Status != serf.StatusLeft {
-		t.Fatalf("should be left: %#v %v", m[1], m[1].Status == serf.StatusLeft)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		m := p1.agent.LANMembers()
+		success := m[1].Status == serf.StatusLeft
+		return success, errors.New(m[1].Status.String())
+	}, func(err error) {
+		t.Fatalf("member status is %v, should be left", err)
+	})
 }
 
 func TestRPCClientJoinLAN(t *testing.T) {
@@ -95,7 +93,6 @@ func TestRPCClientJoinLAN(t *testing.T) {
 	p2 := testRPCClient(t)
 	defer p1.Close()
 	defer p2.Close()
-	testutil.Yield()
 
 	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.Ports.SerfLan)
 	n, err := p1.client.Join([]string{s2Addr}, false)
@@ -113,7 +110,6 @@ func TestRPCClientJoinWAN(t *testing.T) {
 	p2 := testRPCClient(t)
 	defer p1.Close()
 	defer p2.Close()
-	testutil.Yield()
 
 	s2Addr := fmt.Sprintf("127.0.0.1:%d", p2.agent.config.Ports.SerfWan)
 	n, err := p1.client.Join([]string{s2Addr}, true)
@@ -131,7 +127,6 @@ func TestRPCClientLANMembers(t *testing.T) {
 	p2 := testRPCClient(t)
 	defer p1.Close()
 	defer p2.Close()
-	testutil.Yield()
 
 	mem, err := p1.client.LANMembers()
 	if err != nil {
@@ -148,8 +143,6 @@ func TestRPCClientLANMembers(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	testutil.Yield()
-
 	mem, err = p1.client.LANMembers()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -165,7 +158,6 @@ func TestRPCClientWANMembers(t *testing.T) {
 	p2 := testRPCClient(t)
 	defer p1.Close()
 	defer p2.Close()
-	testutil.Yield()
 
 	mem, err := p1.client.WANMembers()
 	if err != nil {
@@ -182,8 +174,6 @@ func TestRPCClientWANMembers(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	testutil.Yield()
-
 	mem, err = p1.client.WANMembers()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -194,16 +184,33 @@ func TestRPCClientWANMembers(t *testing.T) {
 	}
 }
 
+func TestRPCClientStats(t *testing.T) {
+	p1 := testRPCClient(t)
+	defer p1.Close()
+
+	stats, err := p1.client.Stats()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, ok := stats["agent"]; !ok {
+		t.Fatalf("bad: %#v", stats)
+	}
+
+	if _, ok := stats["consul"]; !ok {
+		t.Fatalf("bad: %#v", stats)
+	}
+}
+
 func TestRPCClientLeave(t *testing.T) {
 	p1 := testRPCClient(t)
 	defer p1.Close()
-	testutil.Yield()
 
 	if err := p1.client.Leave(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	testutil.Yield()
+	time.Sleep(1 * time.Second)
 
 	select {
 	case <-p1.agent.ShutdownCh():
@@ -215,7 +222,6 @@ func TestRPCClientLeave(t *testing.T) {
 func TestRPCClientMonitor(t *testing.T) {
 	p1 := testRPCClient(t)
 	defer p1.Close()
-	testutil.Yield()
 
 	eventCh := make(chan string, 64)
 	if handle, err := p1.client.Monitor("debug", eventCh); err != nil {
@@ -223,8 +229,6 @@ func TestRPCClientMonitor(t *testing.T) {
 	} else {
 		defer p1.client.Stop(handle)
 	}
-
-	testutil.Yield()
 
 	found := false
 OUTER1:
@@ -244,7 +248,8 @@ OUTER1:
 
 	// Join a bad thing to generate more events
 	p1.agent.JoinLAN(nil)
-	testutil.Yield()
+
+	time.Sleep(1 * time.Second)
 
 	found = false
 OUTER2:
@@ -260,24 +265,5 @@ OUTER2:
 	}
 	if !found {
 		t.Fatalf("should log joining")
-	}
-}
-
-func TestRPCClientStats(t *testing.T) {
-	p1 := testRPCClient(t)
-	defer p1.Close()
-	testutil.Yield()
-
-	stats, err := p1.client.Stats()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if _, ok := stats["agent"]; !ok {
-		t.Fatalf("bad: %#v", stats)
-	}
-
-	if _, ok := stats["consul"]; !ok {
-		t.Fatalf("bad: %#v", stats)
 	}
 }
