@@ -1,0 +1,4 @@
+{
+    "data_dir": "/var/lib/consul",
+    "log_level": "info"
+}
