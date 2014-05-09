@@ -1,10 +1,10 @@
 package consul
 
 import (
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestKVS_Apply(t *testing.T) {
@@ -14,8 +14,7 @@ func TestKVS_Apply(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -71,8 +70,7 @@ func TestKVS_Get(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -119,8 +117,7 @@ func TestKVSEndpoint_List(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	keys := []string{
 		"/test/key1",
@@ -179,8 +176,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	keys := []string{
 		"/test/key1",
