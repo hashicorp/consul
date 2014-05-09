@@ -1165,12 +1165,6 @@ func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error
 		return err
 	}
 	defer s.watch[s.sessionTable].Notify()
-
-	if err := s.sessionCheckTable.SetLastIndexTxn(tx, index); err != nil {
-		return err
-	}
-	defer s.watch[s.sessionCheckTable].Notify()
-
 	return tx.Commit()
 }
 
@@ -1206,12 +1200,6 @@ func (s *StateStore) SessionRestore(session *structs.Session) error {
 		return err
 	}
 	defer s.watch[s.sessionTable].Notify()
-
-	if err := s.sessionCheckTable.SetMaxLastIndexTxn(tx, index); err != nil {
-		return err
-	}
-	defer s.watch[s.sessionCheckTable].Notify()
-
 	return tx.Commit()
 }
 
@@ -1243,6 +1231,49 @@ func (s *StateStore) NodeSessions(node string) (uint64, []*structs.Session, erro
 		out[i] = raw.(*structs.Session)
 	}
 	return idx, out, err
+}
+
+// SessionDelete is used to destroy a session.
+func (s *StateStore) SessionDestroy(index uint64, id string) error {
+	// Start the transaction
+	tables := MDBTables{s.sessionTable, s.sessionCheckTable}
+	tx, err := tables.StartTxn(false)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	// Get the session
+	res, err := s.sessionTable.GetTxn(tx, "id", id)
+	if err != nil {
+		return err
+	}
+
+	// Quit if this session does not exist
+	if len(res) == 0 {
+		return nil
+	}
+	session := res[0].(*structs.Session)
+
+	// Nuke the session
+	if _, err := s.sessionTable.DeleteTxn(tx, "id", id); err != nil {
+		return err
+	}
+
+	// Delete the check mappings
+	for _, checkID := range session.Checks {
+		if _, err := s.sessionCheckTable.DeleteTxn(tx, "id",
+			session.Node, checkID, id); err != nil {
+			return err
+		}
+	}
+
+	// Trigger the update notifications
+	if err := s.sessionTable.SetLastIndexTxn(tx, index); err != nil {
+		return err
+	}
+	defer s.watch[s.sessionTable].Notify()
+	return tx.Commit()
 }
 
 // Snapshot is used to create a point in time snapshot
