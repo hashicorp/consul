@@ -31,7 +31,7 @@ func expectStatus(t *testing.T, script, status string) {
 		Notify:   mock,
 		CheckID:  "foo",
 		Script:   script,
-		Interval: 25 * time.Millisecond,
+		Interval: 10 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
 	}
 	check.Start()
