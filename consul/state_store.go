@@ -299,6 +299,9 @@ func (s *StateStore) initialize() error {
 		"KVSGet":            MDBTables{s.kvsTable},
 		"KVSList":           MDBTables{s.kvsTable},
 		"KVSListKeys":       MDBTables{s.kvsTable},
+		"SessionGet":        MDBTables{s.sessionTable},
+		"SessionList":       MDBTables{s.sessionTable},
+		"NodeSessions":      MDBTables{s.sessionTable},
 	}
 	return nil
 }
@@ -1210,6 +1213,36 @@ func (s *StateStore) SessionRestore(session *structs.Session) error {
 	defer s.watch[s.sessionCheckTable].Notify()
 
 	return tx.Commit()
+}
+
+// SessionGet is used to get a session entry
+func (s *StateStore) SessionGet(id string) (uint64, *structs.Session, error) {
+	idx, res, err := s.sessionTable.Get("id", id)
+	var d *structs.Session
+	if len(res) > 0 {
+		d = res[0].(*structs.Session)
+	}
+	return idx, d, err
+}
+
+// SessionList is used to list all the open sessions
+func (s *StateStore) SessionList() (uint64, []*structs.Session, error) {
+	idx, res, err := s.sessionTable.Get("id")
+	out := make([]*structs.Session, len(res))
+	for i, raw := range res {
+		out[i] = raw.(*structs.Session)
+	}
+	return idx, out, err
+}
+
+// NodeSessions is used to list all the open sessions for a node
+func (s *StateStore) NodeSessions(node string) (uint64, []*structs.Session, error) {
+	idx, res, err := s.sessionTable.Get("node", node)
+	out := make([]*structs.Session, len(res))
+	for i, raw := range res {
+		out[i] = raw.(*structs.Session)
+	}
+	return idx, out, err
 }
 
 // Snapshot is used to create a point in time snapshot
