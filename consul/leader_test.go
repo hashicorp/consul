@@ -88,10 +88,12 @@ func TestLeader_FailedMember(t *testing.T) {
 
 	// Should be registered
 	state := s1.fsm.State()
-	_, found, _ := state.GetNode(c1.config.NodeName)
-	if !found {
+	testutil.WaitForResult(func() (bool, error) {
+		_, found, _ := state.GetNode(c1.config.NodeName)
+		return found == true, nil
+	}, func(err error) {
 		t.Fatalf("client not registered")
-	}
+	})
 
 	// Should have a check
 	_, checks := state.NodeChecks(c1.config.NodeName)
