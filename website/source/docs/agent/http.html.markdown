@@ -416,7 +416,7 @@ consistency modes.
 
 ### /v1/catalog/register
 
-The register endpoint is a low level mechanism for direclty registering
+The register endpoint is a low level mechanism for directly registering
 or updating entries in the catalog. It is usually recommended to use
 the agent local endpoints, as they are simpler and perform anti-entropy.
 
