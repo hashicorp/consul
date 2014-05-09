@@ -212,13 +212,12 @@ func TestCatalogListNodes(t *testing.T) {
 	// Just add a node
 	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
 
-	if err := client.Call("Catalog.ListNodes", &args, &out); err != nil {
+	testutil.WaitForResult(func() (bool, error) {
+		client.Call("Catalog.ListNodes", &args, &out)
+		return len(out.Nodes) == 2, nil
+	}, func(err error) {
 		t.Fatalf("err: %v", err)
-	}
-
-	if len(out.Nodes) != 2 {
-		t.Fatalf("bad: %v", out)
-	}
+	})
 
 	// Server node is auto added from Serf
 	if out.Nodes[0].Node != s1.config.NodeName {
