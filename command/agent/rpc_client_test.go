@@ -243,6 +243,7 @@ OUTER1:
 		}
 	}
 	if !found {
+		// TODO: Failing
 		t.Fatalf("should log client accept")
 	}
 

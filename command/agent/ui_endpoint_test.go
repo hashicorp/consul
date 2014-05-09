@@ -100,6 +100,8 @@ func TestUiNodeInfo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
+	// TODO: Failing
 	assertIndex(t, resp)
 
 	// Should be 1 node for the server

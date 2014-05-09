@@ -540,6 +540,7 @@ func TestCatalogListServices_Timeout(t *testing.T) {
 
 	// Should block at least 100ms
 	if time.Now().Sub(start) < 100 * time.Millisecond {
+		// TODO: Failing
 		t.Fatalf("too fast")
 	}
 
