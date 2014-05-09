@@ -482,7 +482,7 @@ func TestCatalogListServices_Blocking(t *testing.T) {
 	// Async cause a change
 	start := time.Now()
 	go func() {
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
 		s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{"db", "db", []string{"primary"}, 5000})
 	}()
@@ -494,7 +494,7 @@ func TestCatalogListServices_Blocking(t *testing.T) {
 	}
 
 	// Should block at least 100ms
-	if time.Now().Sub(start) < 50 * time.Millisecond {
+	if time.Now().Sub(start) < 100 * time.Millisecond {
 		t.Fatalf("too fast")
 	}
 
@@ -530,7 +530,7 @@ func TestCatalogListServices_Timeout(t *testing.T) {
 
 	// Setup a blocking query
 	args.MinQueryIndex = out.Index
-	args.MaxQueryTime = 50 * time.Millisecond
+	args.MaxQueryTime = 100 * time.Millisecond
 
 	// Re-run the query
 	start := time.Now()
@@ -540,7 +540,7 @@ func TestCatalogListServices_Timeout(t *testing.T) {
 	}
 
 	// Should block at least 100ms
-	if time.Now().Sub(start) < 50 * time.Millisecond {
+	if time.Now().Sub(start) < 100 * time.Millisecond {
 		t.Fatalf("too fast")
 	}
 
