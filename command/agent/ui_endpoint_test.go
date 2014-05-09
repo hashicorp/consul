@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"fmt"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
 	"io"
 	"io/ioutil"
@@ -12,7 +13,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
-	"time"
 )
 
 func TestUiIndex(t *testing.T) {
@@ -60,8 +60,7 @@ func TestUiNodes(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	req, err := http.NewRequest("GET", "/v1/internal/ui/nodes/dc1", nil)
 	if err != nil {
@@ -88,8 +87,7 @@ func TestUiNodeInfo(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	req, err := http.NewRequest("GET",
 		fmt.Sprintf("/v1/internal/ui/node/%s", srv.agent.config.NodeName), nil)
