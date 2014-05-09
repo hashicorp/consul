@@ -31,10 +31,12 @@ func TestLeader_RegisterMember(t *testing.T) {
 
 	// Client should be registered
 	state := s1.fsm.State()
-	_, found, _ := state.GetNode(c1.config.NodeName)
-	if !found {
+	testutil.WaitForResult(func() (bool, error) {
+		_, found, _ := state.GetNode(c1.config.NodeName)
+		return found == true, nil
+	}, func(err error) {
 		t.Fatalf("client not registered")
-	}
+	})
 
 	// Should have a check
 	_, checks := state.NodeChecks(c1.config.NodeName)
@@ -52,7 +54,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	}
 
 	// Server should be registered
-	_, found, _ = state.GetNode(s1.config.NodeName)
+	_, found, _ := state.GetNode(s1.config.NodeName)
 	if !found {
 		t.Fatalf("server not registered")
 	}
