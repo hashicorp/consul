@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"os"
 	"testing"
-	"time"
+	"errors"
 )
 
 func TestLeader_RegisterMember(t *testing.T) {
@@ -19,9 +19,6 @@ func TestLeader_RegisterMember(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer c1.Shutdown()
 
-	client := rpcClient(t, s1)
-	testutil.WaitForLeader(t, client.Call, "dc1")
-
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
 		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
@@ -29,8 +26,8 @@ func TestLeader_RegisterMember(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for registration
-	time.Sleep(10 * time.Millisecond)
+	client := rpcClient(t, s1)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	// Client should be registered
 	state := s1.fsm.State()
@@ -76,8 +73,8 @@ func TestLeader_FailedMember(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer c1.Shutdown()
 
-	// Wait until we have a leader
-	time.Sleep(100 * time.Millisecond)
+	client := rpcClient(t, s1)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
@@ -88,9 +85,6 @@ func TestLeader_FailedMember(t *testing.T) {
 
 	// Fail the member
 	c1.Shutdown()
-
-	// Wait for failure detection
-	time.Sleep(500 * time.Millisecond)
 
 	// Should be registered
 	state := s1.fsm.State()
@@ -110,9 +104,13 @@ func TestLeader_FailedMember(t *testing.T) {
 	if checks[0].Name != SerfCheckName {
 		t.Fatalf("bad check: %v", checks[0])
 	}
-	if checks[0].Status != structs.HealthCritical {
-		t.Fatalf("bad check: %v", checks[0])
-	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		_, checks = state.NodeChecks(c1.config.NodeName)
+		return checks[0].Status == structs.HealthCritical, errors.New(checks[0].Status)
+	}, func(err error) {
+		t.Fatalf("check status is %v, should be critical", err)
+	})
 }
 
 func TestLeader_LeftMember(t *testing.T) {
@@ -124,9 +122,6 @@ func TestLeader_LeftMember(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer c1.Shutdown()
 
-	// Wait until we have a leader
-	time.Sleep(100 * time.Millisecond)
-
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
 		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
@@ -134,28 +129,28 @@ func TestLeader_LeftMember(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for registration
-	time.Sleep(10 * time.Millisecond)
+	var found bool
+	state := s1.fsm.State()
 
 	// Should be registered
-	state := s1.fsm.State()
-	_, found, _ := state.GetNode(c1.config.NodeName)
-	if !found {
-		t.Fatalf("client not registered")
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		_, found, _ = state.GetNode(c1.config.NodeName)
+		return found == true, nil
+	}, func(err error) {
+		t.Fatalf("client should be registered")
+	})
 
 	// Node should leave
 	c1.Leave()
 	c1.Shutdown()
 
-	// Wait for failure detection
-	time.Sleep(500 * time.Millisecond)
-
 	// Should be deregistered
-	_, found, _ = state.GetNode(c1.config.NodeName)
-	if found {
-		t.Fatalf("client registered")
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		_, found, _ = state.GetNode(c1.config.NodeName)
+		return found == false, nil
+	}, func(err error) {
+		t.Fatalf("client should not be registered")
+	})
 }
 
 func TestLeader_ReapMember(t *testing.T) {
@@ -167,9 +162,6 @@ func TestLeader_ReapMember(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer c1.Shutdown()
 
-	// Wait until we have a leader
-	time.Sleep(100 * time.Millisecond)
-
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
 		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
@@ -177,15 +169,16 @@ func TestLeader_ReapMember(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for registration
-	time.Sleep(10 * time.Millisecond)
+	var found bool
+	state := s1.fsm.State()
 
 	// Should be registered
-	state := s1.fsm.State()
-	_, found, _ := state.GetNode(c1.config.NodeName)
-	if !found {
-		t.Fatalf("client not registered")
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		_, found, _ = state.GetNode(c1.config.NodeName)
+		return found == true, nil
+	}, func(err error) {
+		t.Fatalf("client should be registered")
+	})
 
 	// Simulate a node reaping
 	mems := s1.LANMembers()
@@ -199,14 +192,13 @@ func TestLeader_ReapMember(t *testing.T) {
 	}
 	s1.reconcileCh <- c1mem
 
-	// Wait to reconcile
-	time.Sleep(10 * time.Millisecond)
-
 	// Should be deregistered
-	_, found, _ = state.GetNode(c1.config.NodeName)
-	if found {
-		t.Fatalf("client registered")
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		_, found, _ = state.GetNode(c1.config.NodeName)
+		return found == false, nil
+	}, func(err error) {
+		t.Fatalf("client should not be registered")
+	})
 }
 
 func TestLeader_Reconcile_ReapMember(t *testing.T) {
@@ -214,8 +206,8 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	// Wait until we have a leader
-	time.Sleep(100 * time.Millisecond)
+	client := rpcClient(t, s1)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	// Register a non-existing member
 	dead := structs.RegisterRequest{
@@ -270,14 +262,13 @@ func TestLeader_Reconcile(t *testing.T) {
 		t.Fatalf("client registered")
 	}
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
-
 	// Should be registered
-	_, found, _ = state.GetNode(c1.config.NodeName)
-	if !found {
-		t.Fatalf("client not registered")
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		_, found, _ = state.GetNode(c1.config.NodeName)
+		return found == true, nil
+	}, func(err error) {
+		t.Fatalf("client should be registered")
+	})
 }
 
 func TestLeader_LeftServer(t *testing.T) {
@@ -304,48 +295,30 @@ func TestLeader_LeftServer(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait until we have 3 peers
-	start := time.Now()
-CHECK1:
 	for _, s := range servers {
-		peers, _ := s.raftPeers.Peers()
-		if len(peers) != 3 {
-			if time.Now().Sub(start) >= 2*time.Second {
-				t.Fatalf("should have 3 peers")
-			} else {
-				time.Sleep(100 * time.Millisecond)
-				goto CHECK1
-			}
-		}
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.raftPeers.Peers()
+			return len(peers) == 3, nil
+		}, func(err error) {
+			t.Fatalf("should have 3 peers")
+		})
 	}
 
 	// Kill any server
 	servers[0].Shutdown()
-
-	// Wait for failure detection
-	time.Sleep(500 * time.Millisecond)
 
 	// Force remove the non-leader (transition to left state)
 	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for intent propagation
-	time.Sleep(500 * time.Millisecond)
-
-	// Wait until we have 2 peers
-	start = time.Now()
-CHECK2:
 	for _, s := range servers[1:] {
-		peers, _ := s.raftPeers.Peers()
-		if len(peers) != 2 {
-			if time.Now().Sub(start) >= 2*time.Second {
-				t.Fatalf("should have 2 peers")
-			} else {
-				time.Sleep(100 * time.Millisecond)
-				goto CHECK2
-			}
-		}
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.raftPeers.Peers()
+			return len(peers) == 2, nil
+		}, func(err error) {
+			t.Fatalf("should have 2 peers")
+		})
 	}
 }
 
@@ -367,23 +340,14 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait until we have 2 peers
-	start := time.Now()
-CHECK1:
 	for _, s := range servers {
-		peers := s.serfLAN.Members()
-		if len(peers) != 2 {
-			if time.Now().Sub(start) >= 2*time.Second {
-				t.Fatalf("should have 2 peers")
-			} else {
-				time.Sleep(100 * time.Millisecond)
-				goto CHECK1
-			}
-		}
+		testutil.WaitForResult(func() (bool, error) {
+			peers := s.serfLAN.Members()
+			return len(peers) == 2, nil
+		}, func(err error) {
+			t.Fatalf("should have 2 peers")
+		})
 	}
-
-	// Wait to ensure no peer is added
-	time.Sleep(200 * time.Millisecond)
 
 	// Ensure we don't have multiple raft peers
 	for _, s := range servers {
