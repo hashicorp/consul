@@ -136,13 +136,17 @@ func TestServer_JoinLAN(t *testing.T) {
 	}
 
 	// Check the members
-	if len(s1.LANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.LANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
+	})
 
-	if len(s2.LANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s2.LANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
+	})
 }
 
 func TestServer_JoinWAN(t *testing.T) {
@@ -162,13 +166,17 @@ func TestServer_JoinWAN(t *testing.T) {
 	}
 
 	// Check the members
-	if len(s1.WANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.WANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
+	})
 
-	if len(s2.WANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s2.WANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
+	})
 
 	// Check the remoteConsuls has both
 	if len(s1.remoteConsuls) != 2 {
@@ -271,13 +279,17 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	}
 
 	// Check the members
-	if len(s1.LANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.LANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
+	})
 
-	if len(s2.LANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s2.LANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
+	})
 
 	// Verify Raft has established a peer
 	testutil.WaitForResult(func() (bool, error) {
