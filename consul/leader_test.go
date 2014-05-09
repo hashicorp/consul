@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 	"errors"
+	"time"
 )
 
 func TestLeader_RegisterMember(t *testing.T) {
@@ -310,6 +311,7 @@ func TestLeader_LeftServer(t *testing.T) {
 
 	// Kill any server
 	servers[0].Shutdown()
+	time.Sleep(100 * time.Millisecond)
 
 	// Force remove the non-leader (transition to left state)
 	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName); err != nil {
