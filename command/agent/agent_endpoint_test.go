@@ -169,9 +169,11 @@ func TestHTTPAgentJoin_WAN(t *testing.T) {
 		t.Fatalf("Err: %v", obj)
 	}
 
-	if len(a2.WANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(a2.WANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("should have 2 members")
-	}
+	})
 }
 
 func TestHTTPAgentForceLeave(t *testing.T) {
