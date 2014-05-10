@@ -24,11 +24,18 @@ const (
 )
 
 const (
+	// maxQueryTime is used to bound the limit of a blocking query
 	maxQueryTime = 600 * time.Second
 
 	// Warn if the Raft command is larger than this.
 	// If it's over 1MB something is probably being abusive.
 	raftWarnSize = 1024 * 1024
+
+	// enqueueLimit caps how long we will wait to enqueue
+	// a new Raft command. Something is probably wrong if this
+	// value is ever reached. However, it prevents us from blocking
+	// the requesting goroutine forever.
+	enqueueLimit = 30 * time.Second
 )
 
 // listen is used to listen for incoming RPC connections
@@ -202,7 +209,7 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 		s.logger.Printf("[WARN] consul: Attempting to apply large raft entry (%d bytes)", n)
 	}
 
-	future := s.raft.Apply(buf, 0)
+	future := s.raft.Apply(buf, enqueueLimit)
 	if err := future.Error(); err != nil {
 		return nil, err
 	}
