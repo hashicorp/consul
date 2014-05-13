@@ -24,6 +24,19 @@ depending on if you want to restrict the install to a single user or
 expose it to the entire system. On Windows systems, you can put it wherever
 you would like.
 
+### OS X
+
+If you are using [homebrew](http://brew.sh/#install) as a package manager,
+than you can install consul as simple as:
+```
+brew cask install consul
+```
+
+if you are missing the [cask plugin](http://caskroom.io/) you can install it with:
+```
+brew install caskroom/cask/brew-cask
+```
+
 ## Verifying the Installation
 
 After installing Consul, verify the installation worked by opening a new
