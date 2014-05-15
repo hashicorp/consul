@@ -1480,3 +1480,13 @@ func (s *StateSnapshot) NodeChecks(node string) structs.HealthChecks {
 func (s *StateSnapshot) KVSDump(stream chan<- interface{}) error {
 	return s.store.kvsTable.StreamTxn(stream, s.tx, "id")
 }
+
+// SessionList is used to list all the open sessions
+func (s *StateSnapshot) SessionList() ([]*structs.Session, error) {
+	res, err := s.store.sessionTable.GetTxn(s.tx, "id")
+	out := make([]*structs.Session, len(res))
+	for i, raw := range res {
+		out[i] = raw.(*structs.Session)
+	}
+	return out, err
+}

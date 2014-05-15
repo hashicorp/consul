@@ -636,6 +636,21 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Add some sessions
+	session := &structs.Session{Node: "foo"}
+	if err := store.SessionCreate(16, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	session = &structs.Session{Node: "bar"}
+	if err := store.SessionCreate(17, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d.Session = session.ID
+	if ok, err := store.KVSLock(18, d); err != nil || !ok {
+		t.Fatalf("err: %v", err)
+	}
+
 	// Take a snapshot
 	snap, err := store.Snapshot()
 	if err != nil {
@@ -644,7 +659,7 @@ func TestStoreSnapshot(t *testing.T) {
 	defer snap.Close()
 
 	// Check the last nodes
-	if idx := snap.LastIndex(); idx != 15 {
+	if idx := snap.LastIndex(); idx != 18 {
 		t.Fatalf("bad: %v", idx)
 	}
 
@@ -699,14 +714,23 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("missing KVS entries!")
 	}
 
+	// Check there are 2 sessions
+	sessions, err := snap.SessionList()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(sessions) != 2 {
+		t.Fatalf("missing sessions")
+	}
+
 	// Make some changes!
-	if err := store.EnsureService(14, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
+	if err := store.EnsureService(19, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(15, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(20, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureNode(16, structs.Node{"baz", "127.0.0.3"}); err != nil {
+	if err := store.EnsureNode(21, structs.Node{"baz", "127.0.0.3"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	checkAfter := &structs.HealthCheck{
@@ -716,11 +740,11 @@ func TestStoreSnapshot(t *testing.T) {
 		Status:    structs.HealthCritical,
 		ServiceID: "db",
 	}
-	if err := store.EnsureCheck(17, checkAfter); err != nil {
+	if err := store.EnsureCheck(22, checkAfter); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.KVSDelete(18, "/web/a"); err != nil {
+	if err := store.KVSDelete(23, "/web/b"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -772,6 +796,15 @@ func TestStoreSnapshot(t *testing.T) {
 	<-doneCh
 	if len(ents) != 2 {
 		t.Fatalf("missing KVS entries!")
+	}
+
+	// Check there are 2 sessions
+	sessions, err = snap.SessionList()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(sessions) != 2 {
+		t.Fatalf("missing sessions")
 	}
 }
 
