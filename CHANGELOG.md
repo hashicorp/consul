@@ -14,6 +14,8 @@ BUG FIXES:
   * Renaming "seperator" to "separator". This is the correct spelling,
       but both spellings are respected for backwards compatibility. [GH-101]
   * Private IP is properly found on Windows clients.
+  * Windows agents won't show "failed to decode" errors on every RPC
+      request.
 
 ## 0.2.0 (May 1, 2014)
 
