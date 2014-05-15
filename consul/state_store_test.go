@@ -1561,3 +1561,161 @@ func TestKVSDeleteTree(t *testing.T) {
 		t.Fatalf("bad: %v", ents)
 	}
 }
+
+func TestSessionCreate(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "bar",
+		Status:  structs.HealthPassing,
+	}
+	if err := store.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	session := &structs.Session{
+		Node:   "foo",
+		Checks: []string{"bar"},
+	}
+
+	if err := store.SessionCreate(1000, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if session.ID == "" {
+		t.Fatalf("bad: %v", session)
+	}
+
+	if session.CreateIndex != 1000 {
+		t.Fatalf("bad: %v", session)
+	}
+}
+
+func TestSessionCreate_Invalid(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// No node registered
+	session := &structs.Session{
+		Node:   "foo",
+		Checks: []string{"bar"},
+	}
+	if err := store.SessionCreate(1000, session); err.Error() != "Missing node registration" {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check not registered
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	if err := store.SessionCreate(1000, session); err.Error() != "Missing check 'bar' registration" {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Unhealthy check
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "bar",
+		Status:  structs.HealthCritical,
+	}
+	if err := store.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v")
+	}
+	if err := store.SessionCreate(1000, session); err.Error() != "Check 'bar' is in critical state" {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestSession_Lookups(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Create a session
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	session := &structs.Session{
+		Node: "foo",
+	}
+	if err := store.SessionCreate(1000, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lookup by ID
+	idx, s2, err := store.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1000 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if !reflect.DeepEqual(s2, session) {
+		t.Fatalf("bad: %v", s2)
+	}
+
+	// Create many sessions
+	ids := []string{session.ID}
+	for i := 0; i < 10; i++ {
+		session := &structs.Session{
+			Node: "foo",
+		}
+		if err := store.SessionCreate(uint64(1000+i), session); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		ids = append(ids, session.ID)
+	}
+
+	// List all
+	idx, all, err := store.SessionList()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1009 {
+		t.Fatalf("bad: %v", idx)
+	}
+
+	// Retrieve the ids
+	var out []string
+	for _, s := range all {
+		out = append(out, s.ID)
+	}
+
+	sort.Strings(ids)
+	sort.Strings(out)
+	if !reflect.DeepEqual(ids, out) {
+		t.Fatalf("bad: %v %v", ids, out)
+	}
+
+	// List by node
+	idx, nodes, err := store.NodeSessions("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1009 {
+		t.Fatalf("bad: %v", idx)
+	}
+
+	// Check again for the node list
+	out = nil
+	for _, s := range nodes {
+		out = append(out, s.ID)
+	}
+	sort.Strings(out)
+	if !reflect.DeepEqual(ids, out) {
+		t.Fatalf("bad: %v %v", ids, out)
+	}
+}
