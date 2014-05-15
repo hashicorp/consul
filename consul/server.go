@@ -81,10 +81,6 @@ type Server struct {
 	remoteConsuls map[string][]net.Addr
 	remoteLock    sync.RWMutex
 
-	// rpcClients is used to track active clients
-	rpcClients    map[net.Conn]struct{}
-	rpcClientLock sync.Mutex
-
 	// rpcListener is used to listen for incoming connections
 	rpcListener net.Listener
 	rpcServer   *rpc.Server
@@ -160,7 +156,6 @@ func NewServer(config *Config) (*Server, error) {
 		logger:        logger,
 		reconcileCh:   make(chan serf.Member, 32),
 		remoteConsuls: make(map[string][]net.Addr),
-		rpcClients:    make(map[net.Conn]struct{}),
 		rpcServer:     rpc.NewServer(),
 		rpcTLS:        incomingTLS,
 		shutdownCh:    make(chan struct{}),
@@ -391,13 +386,6 @@ func (s *Server) Shutdown() error {
 	if s.rpcListener != nil {
 		s.rpcListener.Close()
 	}
-
-	// Close all the RPC connections
-	s.rpcClientLock.Lock()
-	for conn := range s.rpcClients {
-		conn.Close()
-	}
-	s.rpcClientLock.Unlock()
 
 	// Close the connection pool
 	s.connPool.Shutdown()

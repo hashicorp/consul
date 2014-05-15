@@ -51,11 +51,6 @@ func (s *Server) listen() {
 			continue
 		}
 
-		// Track this client
-		s.rpcClientLock.Lock()
-		s.rpcClients[conn] = struct{}{}
-		s.rpcClientLock.Unlock()
-
 		go s.handleConn(conn, false)
 		metrics.IncrCounter([]string{"consul", "rpc", "accept_conn"}, 1)
 	}
@@ -125,13 +120,7 @@ func (s *Server) handleMultiplex(conn net.Conn) {
 
 // handleConsulConn is used to service a single Consul RPC connection
 func (s *Server) handleConsulConn(conn net.Conn) {
-	defer func() {
-		conn.Close()
-		s.rpcClientLock.Lock()
-		delete(s.rpcClients, conn)
-		s.rpcClientLock.Unlock()
-	}()
-
+	defer conn.Close()
 	rpcCodec := codec.GoRpc.ServerCodec(conn, &codec.MsgpackHandle{})
 	for !s.shutdown {
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
