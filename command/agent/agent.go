@@ -79,7 +79,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get advertise address: %v", err)
 		}
-		config.AdvertiseAddr = ip.IP.String()
+		config.AdvertiseAddr = ip.String()
 	}
 
 	agent := &Agent{

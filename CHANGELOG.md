@@ -1,20 +1,19 @@
 ## 0.2.1 (unreleased)
 
-FEATURES:
-
-BUG FIXES:
-
- * Renaming "seperator" to "separator". This is the correct spelling,
- but both spellings are respected for backwards compatibility. [GH-101]
-
 IMPROVEMENTS:
 
   * Improved the URL formatting for the key/value editor in the Web UI.
-  Importantly, the editor now allows editing keys with dashes in the
-  name. [GH-119]
+      Importantly, the editor now allows editing keys with dashes in the
+      name. [GH-119]
   * The web UI now has cancel and delete folder actions in the key/value
-  editor. [GH-124], [GH-122]
+      editor. [GH-124], [GH-122]
   * Add flag to agent to write pid to a file. [GH-106]
+
+BUG FIXES:
+
+  * Renaming "seperator" to "separator". This is the correct spelling,
+      but both spellings are respected for backwards compatibility. [GH-101]
+  * Private IP is properly found on Windows clients.
 
 ## 0.2.0 (May 1, 2014)
 

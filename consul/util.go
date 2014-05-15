@@ -106,26 +106,34 @@ func isPrivateIP(ip_str string) bool {
 
 // GetPrivateIP is used to return the first private IP address
 // associated with an interface on the machine
-func GetPrivateIP() (*net.IPNet, error) {
+func GetPrivateIP() (net.IP, error) {
 	addresses, err := net.InterfaceAddrs()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get interface addresses: %v", err)
 	}
 
 	// Find private IPv4 address
-	for _, addr := range addresses {
-		ip, ok := addr.(*net.IPNet)
-		if !ok {
+	for _, rawAddr := range addresses {
+		var ip net.IP
+		switch addr := rawAddr.(type) {
+		case *net.IPAddr:
+			ip = addr.IP
+		case *net.IPNet:
+			ip = addr.IP
+		default:
 			continue
 		}
-		if ip.IP.To4() == nil {
+
+		if ip.To4() == nil {
 			continue
 		}
-		if !isPrivateIP(ip.IP.String()) {
+		if !isPrivateIP(ip.String()) {
 			continue
 		}
+
 		return ip, nil
 	}
+
 	return nil, fmt.Errorf("No private IP address found")
 }
 
