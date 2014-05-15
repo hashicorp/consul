@@ -63,6 +63,7 @@ type MDBTxn struct {
 	readonly bool
 	tx       *mdb.Txn
 	dbis     map[string]mdb.DBI
+	after    []func()
 }
 
 // Abort is used to close the transaction
@@ -74,7 +75,19 @@ func (t *MDBTxn) Abort() {
 
 // Commit is used to commit a transaction
 func (t *MDBTxn) Commit() error {
-	return t.tx.Commit()
+	if err := t.tx.Commit(); err != nil {
+		return err
+	}
+	for _, f := range t.after {
+		f()
+	}
+	t.after = nil
+	return nil
+}
+
+// Defer is used to defer a function call until a successful commit
+func (t *MDBTxn) Defer(f func()) {
+	t.after = append(t.after, f)
 }
 
 type IndexFunc func(*MDBIndex, []string) string
