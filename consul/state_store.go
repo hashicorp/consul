@@ -333,7 +333,7 @@ func (s *StateStore) EnsureNode(index uint64, node structs.Node) error {
 	if err := s.nodeTable.SetLastIndexTxn(tx, index); err != nil {
 		return err
 	}
-	defer s.watch[s.nodeTable].Notify()
+	tx.Defer(func() { s.watch[s.nodeTable].Notify() })
 	return tx.Commit()
 }
 
@@ -397,7 +397,7 @@ func (s *StateStore) EnsureService(index uint64, node string, ns *structs.NodeSe
 	if err := s.serviceTable.SetLastIndexTxn(tx, index); err != nil {
 		return err
 	}
-	defer s.watch[s.serviceTable].Notify()
+	tx.Defer(func() { s.watch[s.serviceTable].Notify() })
 	return tx.Commit()
 }
 
@@ -472,7 +472,7 @@ func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
 		if err := s.serviceTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.serviceTable].Notify()
+		tx.Defer(func() { s.watch[s.serviceTable].Notify() })
 	}
 
 	// Invalidate any sessions using these checks
@@ -493,7 +493,7 @@ func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
 		if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.checkTable].Notify()
+		tx.Defer(func() { s.watch[s.checkTable].Notify() })
 	}
 	return tx.Commit()
 }
@@ -517,7 +517,7 @@ func (s *StateStore) DeleteNode(index uint64, node string) error {
 		if err := s.serviceTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.serviceTable].Notify()
+		tx.Defer(func() { s.watch[s.serviceTable].Notify() })
 	}
 	if n, err := s.checkTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
@@ -525,7 +525,7 @@ func (s *StateStore) DeleteNode(index uint64, node string) error {
 		if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.checkTable].Notify()
+		tx.Defer(func() { s.watch[s.checkTable].Notify() })
 	}
 	if n, err := s.nodeTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
@@ -533,7 +533,7 @@ func (s *StateStore) DeleteNode(index uint64, node string) error {
 		if err := s.nodeTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.nodeTable].Notify()
+		tx.Defer(func() { s.watch[s.nodeTable].Notify() })
 	}
 	return tx.Commit()
 }
@@ -692,7 +692,7 @@ func (s *StateStore) EnsureCheck(index uint64, check *structs.HealthCheck) error
 	if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
 		return err
 	}
-	defer s.watch[s.checkTable].Notify()
+	tx.Defer(func() { s.watch[s.checkTable].Notify() })
 	return tx.Commit()
 }
 
@@ -715,7 +715,7 @@ func (s *StateStore) DeleteNodeCheck(index uint64, node, id string) error {
 		if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.checkTable].Notify()
+		tx.Defer(func() { s.watch[s.checkTable].Notify() })
 	}
 	return tx.Commit()
 }
@@ -946,7 +946,7 @@ func (s *StateStore) KVSSet(index uint64, d *structs.DirEntry) error {
 	if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
 		return err
 	}
-	defer s.watch[s.kvsTable].Notify()
+	tx.Defer(func() { s.watch[s.kvsTable].Notify() })
 	return tx.Commit()
 }
 
@@ -1068,7 +1068,7 @@ func (s *StateStore) kvsDeleteWithIndex(index uint64, tableIndex string, parts .
 		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.kvsTable].Notify()
+		tx.Defer(func() { s.watch[s.kvsTable].Notify() })
 	}
 	return tx.Commit()
 }
@@ -1117,7 +1117,7 @@ func (s *StateStore) KVSCheckAndSet(index uint64, d *structs.DirEntry) (bool, er
 	if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
 		return false, err
 	}
-	defer s.watch[s.kvsTable].Notify()
+	tx.Defer(func() { s.watch[s.kvsTable].Notify() })
 	return true, tx.Commit()
 }
 
@@ -1189,7 +1189,7 @@ func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error
 	if err := s.sessionTable.SetLastIndexTxn(tx, index); err != nil {
 		return err
 	}
-	defer s.watch[s.sessionTable].Notify()
+	tx.Defer(func() { s.watch[s.sessionTable].Notify() })
 	return tx.Commit()
 }
 
@@ -1222,7 +1222,7 @@ func (s *StateStore) SessionRestore(session *structs.Session) error {
 	if err := s.sessionTable.SetMaxLastIndexTxn(tx, index); err != nil {
 		return err
 	}
-	defer s.watch[s.sessionTable].Notify()
+	tx.Defer(func() { s.watch[s.sessionTable].Notify() })
 	return tx.Commit()
 }
 
