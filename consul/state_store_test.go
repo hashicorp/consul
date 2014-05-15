@@ -2015,3 +2015,51 @@ func TestKVSUnlock(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 }
+
+func TestSessionInvalidate_KeyUnlock(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	session := &structs.Session{Node: "foo"}
+	if err := store.SessionCreate(4, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lock a key with the session
+	d := &structs.DirEntry{
+		Key:     "/foo",
+		Flags:   42,
+		Value:   []byte("test"),
+		Session: session.ID,
+	}
+	ok, err := store.KVSLock(5, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected fail")
+	}
+
+	// Delete the node
+	if err := store.DeleteNode(6, "foo"); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	// Key should be unlocked
+	idx, d2, err := store.KVSGet("/foo")
+	if idx != 6 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if d2.LockIndex != 1 {
+		t.Fatalf("bad: %v", *d2)
+	}
+	if d2.Session != "" {
+		t.Fatalf("bad: %v", *d2)
+	}
+}

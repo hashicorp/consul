@@ -233,6 +233,10 @@ func (s *StateStore) initialize() error {
 				Fields:    []string{"Key"},
 				IdxFunc:   DefaultIndexPrefixFunc,
 			},
+			"session": &MDBIndex{
+				AllowBlank: true,
+				Fields:     []string{"Session"},
+			},
 		},
 		Decoder: func(buf []byte) interface{} {
 			out := new(structs.DirEntry)
@@ -1363,6 +1367,11 @@ func (s *StateStore) invalidateSession(index uint64, tx *MDBTxn, id string) erro
 	}
 	session := res[0].(*structs.Session)
 
+	// Invalidate any held locks
+	if err := s.invalidateLocks(index, tx, id); err != nil {
+		return err
+	}
+
 	// Nuke the session
 	if _, err := s.sessionTable.DeleteTxn(tx, "id", id); err != nil {
 		return err
@@ -1381,6 +1390,30 @@ func (s *StateStore) invalidateSession(index uint64, tx *MDBTxn, id string) erro
 		return err
 	}
 	tx.Defer(func() { s.watch[s.sessionTable].Notify() })
+	return nil
+}
+
+// invalidateLocks is used to invalidate all the locks held by a session
+// within a given txn. All tables should be locked in the tx.
+func (s *StateStore) invalidateLocks(index uint64, tx *MDBTxn, id string) error {
+	pairs, err := s.kvsTable.GetTxn(tx, "session", id)
+	if err != nil {
+		return err
+	}
+	for _, pair := range pairs {
+		kv := pair.(*structs.DirEntry)
+		kv.Session = ""        // Clear the lock
+		kv.ModifyIndex = index // Update the modified time
+		if err := s.kvsTable.InsertTxn(tx, kv); err != nil {
+			return err
+		}
+	}
+	if len(pairs) > 0 {
+		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
+		tx.Defer(func() { s.watch[s.kvsTable].Notify() })
+	}
 	return nil
 }
 
