@@ -366,8 +366,7 @@ func (s *StateStore) Nodes() (uint64, structs.Nodes) {
 
 // EnsureService is used to ensure a given node exposes a service
 func (s *StateStore) EnsureService(index uint64, node string, ns *structs.NodeService) error {
-	tables := MDBTables{s.nodeTable, s.serviceTable}
-	tx, err := tables.StartTxn(false)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
@@ -461,8 +460,7 @@ func (s *StateStore) parseNodeServices(tables MDBTables, tx *MDBTxn, name string
 
 // DeleteNodeService is used to delete a node service
 func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
-	tables := MDBTables{s.serviceTable, s.checkTable}
-	tx, err := tables.StartTxn(false)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
@@ -476,6 +474,19 @@ func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
 		}
 		defer s.watch[s.serviceTable].Notify()
 	}
+
+	// Invalidate any sessions using these checks
+	checks, err := s.checkTable.GetTxn(tx, "node", node, id)
+	if err != nil {
+		return err
+	}
+	for _, c := range checks {
+		check := c.(*structs.HealthCheck)
+		if err := s.invalidateCheck(index, tx, node, check.CheckID); err != nil {
+			return err
+		}
+	}
+
 	if n, err := s.checkTable.DeleteTxn(tx, "node", node, id); err != nil {
 		return err
 	} else if n > 0 {
@@ -489,12 +500,16 @@ func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
 
 // DeleteNode is used to delete a node and all it's services
 func (s *StateStore) DeleteNode(index uint64, node string) error {
-	tables := MDBTables{s.nodeTable, s.serviceTable, s.checkTable}
-	tx, err := tables.StartTxn(false)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
+
+	// Invalidate any sessions held by the node
+	if err := s.invalidateNode(index, tx, node); err != nil {
+		return err
+	}
 
 	if n, err := s.serviceTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
@@ -633,8 +648,7 @@ func (s *StateStore) EnsureCheck(index uint64, check *structs.HealthCheck) error
 	}
 
 	// Start the txn
-	tables := MDBTables{s.nodeTable, s.serviceTable, s.checkTable}
-	tx, err := tables.StartTxn(false)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
@@ -663,6 +677,14 @@ func (s *StateStore) EnsureCheck(index uint64, check *structs.HealthCheck) error
 		check.ServiceName = srv.ServiceName
 	}
 
+	// Invalidate any sessions if status is critical
+	if check.Status == structs.HealthCritical {
+		err := s.invalidateCheck(index, tx, check.Node, check.CheckID)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Ensure the check is set
 	if err := s.checkTable.InsertTxn(tx, check); err != nil {
 		return err
@@ -676,11 +698,16 @@ func (s *StateStore) EnsureCheck(index uint64, check *structs.HealthCheck) error
 
 // DeleteNodeCheck is used to delete a node health check
 func (s *StateStore) DeleteNodeCheck(index uint64, node, id string) error {
-	tx, err := s.checkTable.StartTxn(false, nil)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		return err
 	}
 	defer tx.Abort()
+
+	// Invalidate any sessions held by this check
+	if err := s.invalidateCheck(index, tx, node, id); err != nil {
+		return err
+	}
 
 	if n, err := s.checkTable.DeleteTxn(tx, "id", node, id); err != nil {
 		return err
@@ -1101,9 +1128,7 @@ func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error
 	session.CreateIndex = index
 
 	// Start the transaction
-	tables := MDBTables{s.nodeTable, s.checkTable,
-		s.sessionTable, s.sessionCheckTable}
-	tx, err := tables.StartTxn(false)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
@@ -1172,9 +1197,7 @@ func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error
 // doing a restore, otherwise SessionCreate should be used.
 func (s *StateStore) SessionRestore(session *structs.Session) error {
 	// Start the transaction
-	tables := MDBTables{s.nodeTable, s.checkTable,
-		s.sessionTable, s.sessionCheckTable}
-	tx, err := tables.StartTxn(false)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
@@ -1235,14 +1258,53 @@ func (s *StateStore) NodeSessions(node string) (uint64, []*structs.Session, erro
 
 // SessionDelete is used to destroy a session.
 func (s *StateStore) SessionDestroy(index uint64, id string) error {
-	// Start the transaction
-	tables := MDBTables{s.sessionTable, s.sessionCheckTable}
-	tx, err := tables.StartTxn(false)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
 
+	if err := s.invalidateSession(index, tx, id); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// invalideNode is used to invalide all sessions belonging to a node
+// All tables should be locked in the tx.
+func (s *StateStore) invalidateNode(index uint64, tx *MDBTxn, node string) error {
+	sessions, err := s.sessionTable.GetTxn(tx, "node", node)
+	if err != nil {
+		return err
+	}
+	for _, sess := range sessions {
+		session := sess.(*structs.Session).ID
+		if err := s.invalidateSession(index, tx, session); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// invalidateCheck is used to invalide all sessions belonging to a check
+// All tables should be locked in the tx.
+func (s *StateStore) invalidateCheck(index uint64, tx *MDBTxn, node, check string) error {
+	sessionChecks, err := s.sessionCheckTable.GetTxn(tx, "id", node, check)
+	if err != nil {
+		return err
+	}
+	for _, sc := range sessionChecks {
+		session := sc.(*sessionCheck).Session
+		if err := s.invalidateSession(index, tx, session); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// invalidateSession is used to invalide a session within a given txn
+// All tables should be locked in the tx.
+func (s *StateStore) invalidateSession(index uint64, tx *MDBTxn, id string) error {
 	// Get the session
 	res, err := s.sessionTable.GetTxn(tx, "id", id)
 	if err != nil {
@@ -1272,8 +1334,8 @@ func (s *StateStore) SessionDestroy(index uint64, id string) error {
 	if err := s.sessionTable.SetLastIndexTxn(tx, index); err != nil {
 		return err
 	}
-	defer s.watch[s.sessionTable].Notify()
-	return tx.Commit()
+	tx.Defer(func() { s.watch[s.sessionTable].Notify() })
+	return nil
 }
 
 // Snapshot is used to create a point in time snapshot

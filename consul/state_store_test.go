@@ -717,11 +717,11 @@ func TestStoreSnapshot(t *testing.T) {
 		ServiceID: "db",
 	}
 	if err := store.EnsureCheck(17, checkAfter); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.KVSDelete(18, "/web/a"); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	// Check snapshot has old values
@@ -1630,7 +1630,7 @@ func TestSessionCreate_Invalid(t *testing.T) {
 		Status:  structs.HealthCritical,
 	}
 	if err := store.EnsureCheck(13, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	if err := store.SessionCreate(1000, session); err.Error() != "Check 'bar' is in critical state" {
 		t.Fatalf("err: %v", err)
@@ -1717,5 +1717,170 @@ func TestSession_Lookups(t *testing.T) {
 	sort.Strings(out)
 	if !reflect.DeepEqual(ids, out) {
 		t.Fatalf("bad: %v %v", ids, out)
+	}
+}
+
+func TestSessionInvalidate_CriticalHealthCheck(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "bar",
+		Status:  structs.HealthPassing,
+	}
+	if err := store.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	session := &structs.Session{
+		Node:   "foo",
+		Checks: []string{"bar"},
+	}
+	if err := store.SessionCreate(14, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Invalidate the check
+	check.Status = structs.HealthCritical
+	if err := store.EnsureCheck(15, check); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lookup by ID, should be nil
+	_, s2, err := store.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+}
+
+func TestSessionInvalidate_DeleteHealthCheck(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "bar",
+		Status:  structs.HealthPassing,
+	}
+	if err := store.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	session := &structs.Session{
+		Node:   "foo",
+		Checks: []string{"bar"},
+	}
+	if err := store.SessionCreate(14, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Delete the check
+	if err := store.DeleteNodeCheck(15, "foo", "bar"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lookup by ID, should be nil
+	_, s2, err := store.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+}
+
+func TestSessionInvalidate_DeleteNode(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	session := &structs.Session{
+		Node: "foo",
+	}
+	if err := store.SessionCreate(14, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Delete the node
+	if err := store.DeleteNode(15, "foo"); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	// Lookup by ID, should be nil
+	_, s2, err := store.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+}
+
+func TestSessionInvalidate_DeleteNodeService(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(11, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	check := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "api",
+		Name:      "Can connect",
+		Status:    structs.HealthPassing,
+		ServiceID: "api",
+	}
+	if err := store.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	session := &structs.Session{
+		Node:   "foo",
+		Checks: []string{"api"},
+	}
+	if err := store.SessionCreate(14, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should invalidate the session
+	if err := store.DeleteNodeService(15, "foo", "api"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lookup by ID, should be nil
+	_, s2, err := store.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
 	}
 }
