@@ -1884,3 +1884,134 @@ func TestSessionInvalidate_DeleteNodeService(t *testing.T) {
 		t.Fatalf("session should be invalidated")
 	}
 }
+
+func TestKVSLock(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	session := &structs.Session{Node: "foo"}
+	if err := store.SessionCreate(4, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lock with a non-existing keys should work
+	d := &structs.DirEntry{
+		Key:     "/foo",
+		Flags:   42,
+		Value:   []byte("test"),
+		Session: session.ID,
+	}
+	ok, err := store.KVSLock(5, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected fail")
+	}
+	if d.LockIndex != 1 {
+		t.Fatalf("bad: %v", d)
+	}
+
+	// Re-locking should fail
+	ok, err = store.KVSLock(6, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("expected fail")
+	}
+
+	// Set a normal key
+	k1 := &structs.DirEntry{
+		Key:   "/bar",
+		Flags: 0,
+		Value: []byte("asdf"),
+	}
+	if err := store.KVSSet(7, k1); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should acquire the lock
+	k1.Session = session.ID
+	ok, err = store.KVSLock(8, k1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected fail")
+	}
+
+	// Re-acquire should fail
+	ok, err = store.KVSLock(9, k1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("expected fail")
+	}
+
+}
+
+func TestKVSUnlock(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	session := &structs.Session{Node: "foo"}
+	if err := store.SessionCreate(4, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Unlock with a non-existing keys should fail
+	d := &structs.DirEntry{
+		Key:     "/foo",
+		Flags:   42,
+		Value:   []byte("test"),
+		Session: session.ID,
+	}
+	ok, err := store.KVSUnlock(5, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("expected fail")
+	}
+
+	// Lock should work
+	d.Session = session.ID
+	if ok, _ := store.KVSLock(6, d); !ok {
+		t.Fatalf("expected lock")
+	}
+
+	// Unlock should work
+	d.Session = session.ID
+	ok, err = store.KVSUnlock(7, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected fail")
+	}
+
+	// Re-lock should work
+	d.Session = session.ID
+	if ok, err := store.KVSLock(8, d); err != nil {
+		t.Fatalf("err: %v", err)
+	} else if !ok {
+		t.Fatalf("expected lock")
+	}
+	if d.LockIndex != 2 {
+		t.Fatalf("bad: %v", d)
+	}
+}

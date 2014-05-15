@@ -275,9 +275,11 @@ type IndexedNodeDump struct {
 type DirEntry struct {
 	CreateIndex uint64
 	ModifyIndex uint64
+	LockIndex   uint64
 	Key         string
 	Flags       uint64
 	Value       []byte
+	Session     string `json:",omitempty"`
 }
 type DirEntries []*DirEntry
 
@@ -287,7 +289,9 @@ const (
 	KVSSet        KVSOp = "set"
 	KVSDelete           = "delete"
 	KVSDeleteTree       = "delete-tree"
-	KVSCAS              = "cas" // Check-and-set
+	KVSCAS              = "cas"    // Check-and-set
+	KVSLock             = "lock"   // Lock a key
+	KVSUnlock           = "unlock" // Unlock a key
 )
 
 // KVSRequest is used to operate on the Key-Value store
