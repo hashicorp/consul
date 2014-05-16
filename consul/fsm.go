@@ -182,7 +182,11 @@ func (c *consulFSM) applySessionOperation(buf []byte, index uint64) interface{} 
 	}
 	switch req.Op {
 	case structs.SessionCreate:
-		return c.state.SessionCreate(index, &req.Session)
+		if err := c.state.SessionCreate(index, &req.Session); err != nil {
+			return err
+		} else {
+			return req.Session.ID
+		}
 	case structs.SessionDestroy:
 		return c.state.SessionDestroy(index, req.Session.ID)
 	default:

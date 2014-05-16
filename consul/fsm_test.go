@@ -569,3 +569,82 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 }
+
+func TestFSM_SessionCreate_Destroy(t *testing.T) {
+	fsm, err := NewFSM(os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	fsm.state.EnsureCheck(2, &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "web",
+		Status:  structs.HealthPassing,
+	})
+
+	// Create a new session
+	req := structs.SessionRequest{
+		Datacenter: "dc1",
+		Op:         structs.SessionCreate,
+		Session: structs.Session{
+			Node:   "foo",
+			Checks: []string{"web"},
+		},
+	}
+	buf, err := structs.Encode(structs.SessionRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if err, ok := resp.(error); ok {
+		t.Fatalf("resp: %v", err)
+	}
+
+	// Get the session
+	id := resp.(string)
+	_, session, err := fsm.state.SessionGet(id)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if session == nil {
+		t.Fatalf("missing")
+	}
+
+	// Verify the session
+	if session.ID != id {
+		t.Fatalf("bad: %v", *session)
+	}
+	if session.Node != "foo" {
+		t.Fatalf("bad: %v", *session)
+	}
+	if session.Checks[0] != "web" {
+		t.Fatalf("bad: %v", *session)
+	}
+
+	// Try to destroy
+	destroy := structs.SessionRequest{
+		Datacenter: "dc1",
+		Op:         structs.SessionDestroy,
+		Session: structs.Session{
+			ID: id,
+		},
+	}
+	buf, err = structs.Encode(structs.SessionRequestType, destroy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	_, session, err = fsm.state.SessionGet(id)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if session != nil {
+		t.Fatalf("should be destroyed")
+	}
+}
