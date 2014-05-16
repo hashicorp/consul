@@ -219,6 +219,11 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.EventCh = ch
 	conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
 	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]
+
+	// Until Consul supports this fully, we disable automatic resolution.
+	// When enabled, the Serf gossip may just turn off if we are the minority
+	// node which is rather unexpected.
+	conf.EnableNameConflictResolution = false
 	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
