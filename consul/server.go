@@ -108,6 +108,7 @@ type endpoints struct {
 	Raft     *Raft
 	Status   *Status
 	KVS      *KVS
+	Session  *Session
 	Internal *Internal
 }
 
@@ -316,6 +317,7 @@ func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 	s.endpoints.Catalog = &Catalog{s}
 	s.endpoints.Health = &Health{s}
 	s.endpoints.KVS = &KVS{s}
+	s.endpoints.Session = &Session{s}
 	s.endpoints.Internal = &Internal{s}
 
 	// Register the handlers
@@ -324,6 +326,7 @@ func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 	s.rpcServer.Register(s.endpoints.Catalog)
 	s.rpcServer.Register(s.endpoints.Health)
 	s.rpcServer.Register(s.endpoints.KVS)
+	s.rpcServer.Register(s.endpoints.Session)
 	s.rpcServer.Register(s.endpoints.Internal)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)

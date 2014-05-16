@@ -348,6 +348,7 @@ type Session struct {
 	Checks      []string
 	CreateIndex uint64
 }
+type Sessions []*Session
 
 type SessionOp string
 
@@ -366,6 +367,22 @@ type SessionRequest struct {
 
 func (r *SessionRequest) RequestDatacenter() string {
 	return r.Datacenter
+}
+
+// SessionGetRequest is used to request a session by ID
+type SessionGetRequest struct {
+	Datacenter string
+	Session    string
+	QueryOptions
+}
+
+func (r *SessionGetRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+type IndexedSessions struct {
+	Sessions Sessions
+	QueryMeta
 }
 
 // Decode is used to decode a MsgPack encoded object
