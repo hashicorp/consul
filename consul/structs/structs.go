@@ -19,6 +19,7 @@ const (
 	RegisterRequestType MessageType = iota
 	DeregisterRequestType
 	KVSRequestType
+	SessionRequestType
 )
 
 const (
@@ -346,6 +347,25 @@ type Session struct {
 	Node        string
 	Checks      []string
 	CreateIndex uint64
+}
+
+type SessionOp string
+
+const (
+	SessionCreate  SessionOp = "create"
+	SessionDestroy           = "destroy"
+)
+
+// SessionRequest is used to operate on sessions
+type SessionRequest struct {
+	Datacenter string
+	Op         SessionOp // Which operation are we performing
+	Session    Session   // Which session
+	WriteRequest
+}
+
+func (r *SessionRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // Decode is used to decode a MsgPack encoded object
