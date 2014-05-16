@@ -26,6 +26,13 @@ are documented below.
 
 The options below are all specified on the command-line.
 
+* `-advertise` - The advertise address is used to change the address that we
+  advertise to other nodes in the cluster. By default, the `-bind` address is
+  advertised. However, in some cases, there may be a routable address that cannot
+  be bound to. This flag enables gossiping a different address to support this.
+  If this address is not routable, the node will be in a constant flapping state,
+  as other nodes will treat the non-routability as a failure.
+
 * `-bootstrap` - This flag is used to control if a server is in "bootstrap" mode. It is important that
   no more than one server *per* datacenter be running in this mode. The initial server **must** be in bootstrap
   mode. Technically, a server in bootstrap mode is allowed to self-elect as the Raft leader. It is important
@@ -150,12 +157,7 @@ definitions support being updated during a reload.
 
 * `ui_dir` - Equivalent to the `-ui-dir` command-line flag.
 
-* `advertise_addr` - The advertise address is used to change the address that we
-  advertise to other nodes in the cluster. By default, the `-bind` address is
-  advertised. However, in some cases, there may be a routable address that cannot
-  be bound to. This flag enables gossiping a different address to support this.
-  If this address is not routable, the node will be in a constant flapping state,
-  as other nodes will treat the non-routability as a failure.
+* `advertise_addr` - Equivalent to the `-advertise` command-line flag.
 
 * `ca_file` - This provides a the file path to a PEM encoded certificate authority.
   The certificate authority is used to check the authenticity of client and server
