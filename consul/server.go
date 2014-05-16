@@ -179,7 +179,7 @@ func NewServer(config *Config) (*Server, error) {
 
 	// Initialize the lan Serf
 	s.serfLAN, err = s.setupSerf(config.SerfLANConfig,
-		s.eventChLAN, serfLANSnapshot)
+		s.eventChLAN, serfLANSnapshot, false)
 	if err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
@@ -187,7 +187,7 @@ func NewServer(config *Config) (*Server, error) {
 
 	// Initialize the wan Serf
 	s.serfWAN, err = s.setupSerf(config.SerfWANConfig,
-		s.eventChWAN, serfWANSnapshot)
+		s.eventChWAN, serfWANSnapshot, true)
 	if err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start wan serf: %v", err)
@@ -197,10 +197,14 @@ func NewServer(config *Config) (*Server, error) {
 }
 
 // setupSerf is used to setup and initialize a Serf
-func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (*serf.Serf, error) {
+func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, wan bool) (*serf.Serf, error) {
 	addr := s.rpcListener.Addr().(*net.TCPAddr)
 	conf.Init()
-	conf.NodeName = s.config.NodeName
+	if wan {
+		conf.NodeName = fmt.Sprintf("%s.%s", s.config.NodeName, s.config.Datacenter)
+	} else {
+		conf.NodeName = s.config.NodeName
+	}
 	conf.Tags["role"] = "consul"
 	conf.Tags["dc"] = s.config.Datacenter
 	conf.Tags["vsn"] = fmt.Sprintf("%d", s.config.ProtocolVersion)

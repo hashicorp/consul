@@ -98,7 +98,7 @@ func TestServer_StartStop(t *testing.T) {
 	}
 
 	config.RPCAdvertise = &net.TCPAddr{
-		IP:   private.IP,
+		IP:   private,
 		Port: 8300,
 	}
 
