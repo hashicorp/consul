@@ -81,7 +81,7 @@ func TestSessionEndpoint_Get(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	getR := structs.SessionGetRequest{
+	getR := structs.SessionSpecificRequest{
 		Datacenter: "dc1",
 		Session:    out,
 	}

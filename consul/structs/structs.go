@@ -369,14 +369,14 @@ func (r *SessionRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// SessionGetRequest is used to request a session by ID
-type SessionGetRequest struct {
+// SessionSpecificRequest is used to request a session by ID
+type SessionSpecificRequest struct {
 	Datacenter string
 	Session    string
 	QueryOptions
 }
 
-func (r *SessionGetRequest) RequestDatacenter() string {
+func (r *SessionSpecificRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 

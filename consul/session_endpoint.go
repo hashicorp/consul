@@ -46,7 +46,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 }
 
 // Get is used to retrieve a single session
-func (s *Session) Get(args *structs.SessionGetRequest,
+func (s *Session) Get(args *structs.SessionSpecificRequest,
 	reply *structs.IndexedSessions) error {
 	if done, err := s.srv.forward("Session.Get", args, args, reply); done {
 		return err
