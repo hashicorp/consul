@@ -1,9 +1,9 @@
 package testutil
 
 import (
-	"time"
-	"testing"
 	"github.com/hashicorp/consul/consul/structs"
+	"testing"
+	"time"
 )
 
 type testFn func() (bool, error)
@@ -27,7 +27,7 @@ func WaitForResult(test testFn, error errorFn) {
 	}
 }
 
-type rpcFn func(string, interface {}, interface {}) error
+type rpcFn func(string, interface{}, interface{}) error
 
 func WaitForLeader(t *testing.T, rpc rpcFn, dc string) structs.IndexedNodes {
 	var out structs.IndexedNodes

@@ -1,15 +1,15 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/serf"
 	"net/http"
 	"os"
 	"testing"
 	"time"
-	"errors"
 )
 
 func TestHTTPAgentServices(t *testing.T) {
