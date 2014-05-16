@@ -10,6 +10,12 @@ import (
 
 // SessionCreate is used to create a new session
 func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Mandate a PUT request
+	if req.Method != "PUT" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
 	// Default the session to our node + serf check
 	args := structs.SessionRequest{
 		Op: structs.SessionCreate,
