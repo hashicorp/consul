@@ -326,6 +326,8 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		Key:   "/test",
 		Value: []byte("foo"),
 	})
+	session := &structs.Session{Node: "foo"}
+	fsm.state.SessionCreate(9, session)
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -381,6 +383,15 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if string(d.Value) != "foo" {
+		t.Fatalf("bad: %v", d)
+	}
+
+	// Verify session is restored
+	_, s, err := fsm.state.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s.Node != "foo" {
 		t.Fatalf("bad: %v", d)
 	}
 }
