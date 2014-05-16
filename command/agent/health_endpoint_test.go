@@ -2,12 +2,12 @@ package agent
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestHealthChecksInState(t *testing.T) {
@@ -16,8 +16,7 @@ func TestHealthChecksInState(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	req, err := http.NewRequest("GET", "/v1/health/state/passing?dc=dc1", nil)
 	if err != nil {
@@ -29,6 +28,8 @@ func TestHealthChecksInState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
+	// TODO: Failing
 	assertIndex(t, resp)
 
 	// Should be 1 health check for the server
@@ -44,8 +45,7 @@ func TestHealthNodeChecks(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	req, err := http.NewRequest("GET",
 		fmt.Sprintf("/v1/health/node/%s?dc=dc1", srv.agent.config.NodeName), nil)
@@ -73,8 +73,7 @@ func TestHealthServiceChecks(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Create a service check
 	args := &structs.RegisterRequest{
@@ -87,6 +86,7 @@ func TestHealthServiceChecks(t *testing.T) {
 			ServiceID: "consul",
 		},
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -107,6 +107,7 @@ func TestHealthServiceChecks(t *testing.T) {
 	// Should be 1 health check for consul
 	nodes := obj.(structs.HealthChecks)
 	if len(nodes) != 1 {
+		// TODO: Failing
 		t.Fatalf("bad: %v", obj)
 	}
 }
@@ -117,8 +118,7 @@ func TestHealthServiceNodes(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	req, err := http.NewRequest("GET", "/v1/health/service/consul?dc=dc1", nil)
 	if err != nil {
@@ -130,6 +130,8 @@ func TestHealthServiceNodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
+	// TODO: Failing
 	assertIndex(t, resp)
 
 	// Should be 1 health check for consul
@@ -145,8 +147,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Create a failing service check
 	args := &structs.RegisterRequest{
@@ -160,6 +161,7 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 			Status:    structs.HealthCritical,
 		},
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -175,6 +177,8 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
+	// TODO: Failing
 	assertIndex(t, resp)
 
 	// Should be 0 health check for consul

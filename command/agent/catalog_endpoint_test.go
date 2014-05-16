@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"net/http/httptest"
@@ -16,8 +17,7 @@ func TestCatalogRegister(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	req, err := http.NewRequest("GET", "/v1/catalog/register", nil)
@@ -47,8 +47,7 @@ func TestCatalogDeregister(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	req, err := http.NewRequest("GET", "/v1/catalog/deregister", nil)
@@ -77,9 +76,6 @@ func TestCatalogDatacenters(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for initialization
-	time.Sleep(10 * time.Millisecond)
-
 	obj, err := srv.CatalogDatacenters(nil, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -97,8 +93,7 @@ func TestCatalogNodes(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -106,6 +101,7 @@ func TestCatalogNodes(t *testing.T) {
 		Node:       "foo",
 		Address:    "127.0.0.1",
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -137,13 +133,13 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
+
 	var out structs.IndexedNodes
 	if err := srv.agent.RPC("Catalog.ListNodes", *args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -152,7 +148,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	// Do an update in a little while
 	start := time.Now()
 	go func() {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       "foo",
@@ -178,7 +174,8 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	}
 
 	// Should block for a while
-	if time.Now().Sub(start) < 100*time.Millisecond {
+	if time.Now().Sub(start) < 50 * time.Millisecond {
+		// TODO: Failing
 		t.Fatalf("too fast")
 	}
 
@@ -198,8 +195,7 @@ func TestCatalogServices(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -210,6 +206,7 @@ func TestCatalogServices(t *testing.T) {
 			Service: "api",
 		},
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -240,8 +237,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -253,6 +249,7 @@ func TestCatalogServiceNodes(t *testing.T) {
 			Tags:    []string{"a"},
 		},
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -283,8 +280,7 @@ func TestCatalogNodeServices(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -296,6 +292,7 @@ func TestCatalogNodeServices(t *testing.T) {
 			Tags:    []string{"a"},
 		},
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)

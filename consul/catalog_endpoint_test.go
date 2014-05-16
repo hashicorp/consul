@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 	"net/rpc"
 	"os"
 	"sort"
@@ -35,12 +36,12 @@ func TestCatalogRegister(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
-
-	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+	testutil.WaitForResult(func() (bool, error) {
+		err := client.Call("Catalog.Register", &arg, &out)
+		return err == nil, err
+	}, func(err error) {
 		t.Fatalf("err: %v", err)
-	}
+	})
 }
 
 func TestCatalogRegister_ForwardLeader(t *testing.T) {
@@ -63,8 +64,8 @@ func TestCatalogRegister_ForwardLeader(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client1.Call, "dc1")
+	testutil.WaitForLeader(t, client2.Call, "dc1")
 
 	// Use the follower as the client
 	var client *rpc.Client
@@ -108,8 +109,7 @@ func TestCatalogRegister_ForwardDC(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for the leaders
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc2")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc2", // SHould forward through s1
@@ -145,8 +145,7 @@ func TestCatalogDeregister(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	if err := client.Call("Catalog.Deregister", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -170,7 +169,8 @@ func TestCatalogListDatacenters(t *testing.T) {
 	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(10 * time.Millisecond)
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	var out []string
 	if err := client.Call("Catalog.ListDatacenters", struct{}{}, &out); err != nil {
@@ -207,19 +207,17 @@ func TestCatalogListNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	// Just add a node
 	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
 
-	if err := client.Call("Catalog.ListNodes", &args, &out); err != nil {
+	testutil.WaitForResult(func() (bool, error) {
+		client.Call("Catalog.ListNodes", &args, &out)
+		return len(out.Nodes) == 2, nil
+	}, func(err error) {
 		t.Fatalf("err: %v", err)
-	}
-
-	if len(out.Nodes) != 2 {
-		t.Fatalf("bad: %v", out)
-	}
+	})
 
 	// Server node is auto added from Serf
 	if out.Nodes[0].Node != s1.config.NodeName {
@@ -253,8 +251,8 @@ func TestCatalogListNodes_StaleRaad(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client1.Call, "dc1")
+	testutil.WaitForLeader(t, client2.Call, "dc1")
 
 	// Use the follower as the client
 	var client *rpc.Client
@@ -317,8 +315,8 @@ func TestCatalogListNodes_ConsistentRead_Fail(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client1.Call, "dc1")
+	testutil.WaitForLeader(t, client2.Call, "dc1")
 
 	// Use the leader as the client, kill the follower
 	var client *rpc.Client
@@ -367,8 +365,8 @@ func TestCatalogListNodes_ConsistentRead(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client1.Call, "dc1")
+	testutil.WaitForLeader(t, client2.Call, "dc1")
 
 	// Use the leader as the client, kill the follower
 	var client *rpc.Client
@@ -402,9 +400,6 @@ func BenchmarkCatalogListNodes(t *testing.B) {
 	client := rpcClient(nil, s1)
 	defer client.Close()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
-
 	// Just add a node
 	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
 
@@ -435,8 +430,7 @@ func TestCatalogListServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	// Just add a node
 	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
@@ -473,8 +467,7 @@ func TestCatalogListServices_Blocking(t *testing.T) {
 	}
 	var out structs.IndexedServices
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	// Run the query
 	if err := client.Call("Catalog.ListServices", &args, &out); err != nil {
@@ -500,7 +493,7 @@ func TestCatalogListServices_Blocking(t *testing.T) {
 	}
 
 	// Should block at least 100ms
-	if time.Now().Sub(start) < 100*time.Millisecond {
+	if time.Now().Sub(start) < 100 * time.Millisecond {
 		t.Fatalf("too fast")
 	}
 
@@ -527,8 +520,7 @@ func TestCatalogListServices_Timeout(t *testing.T) {
 	}
 	var out structs.IndexedServices
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	// Run the query
 	if err := client.Call("Catalog.ListServices", &args, &out); err != nil {
@@ -547,7 +539,8 @@ func TestCatalogListServices_Timeout(t *testing.T) {
 	}
 
 	// Should block at least 100ms
-	if time.Now().Sub(start) < 100*time.Millisecond {
+	if time.Now().Sub(start) < 100 * time.Millisecond {
+		// TODO: Failing
 		t.Fatalf("too fast")
 	}
 
@@ -609,8 +602,7 @@ func TestCatalogListServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	// Just add a node
 	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
@@ -653,8 +645,7 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	// Just add a node
 	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
@@ -705,8 +696,7 @@ func TestCatalogRegister_FailedCase1(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)

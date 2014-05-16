@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
 	"net"
 	"os"
@@ -80,12 +81,12 @@ func TestClient_JoinLAN(t *testing.T) {
 		t.Fatalf("bad len")
 	}
 
-	time.Sleep(10 * time.Millisecond)
-
 	// Check we have a new consul
-	if len(c1.consuls) != 1 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(c1.consuls) == 1, nil
+	}, func(err error) {
 		t.Fatalf("expected consul server")
-	}
+	})
 }
 
 func TestClient_RPC(t *testing.T) {
@@ -119,12 +120,13 @@ func TestClient_RPC(t *testing.T) {
 		t.Fatalf("bad len")
 	}
 
-	time.Sleep(10 * time.Millisecond)
-
-	// RPC shoudl succeed
-	if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+	// RPC should succeed
+	testutil.WaitForResult(func() (bool, error) {
+		err := c1.RPC("Status.Ping", struct{}{}, &out)
+		return err == nil, err
+	}, func(err error) {
 		t.Fatalf("err: %v", err)
-	}
+	})
 }
 
 func TestClient_RPC_TLS(t *testing.T) {
@@ -171,10 +173,11 @@ func TestClient_RPC_TLS(t *testing.T) {
 		t.Fatalf("bad len")
 	}
 
-	time.Sleep(10 * time.Millisecond)
-
-	// RPC shoudl succeed
-	if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+	// RPC should succeed
+	testutil.WaitForResult(func() (bool, error) {
+		err := c1.RPC("Status.Ping", struct{}{}, &out)
+		return err == nil, err
+	}, func(err error) {
 		t.Fatalf("err: %v", err)
-	}
+	})
 }

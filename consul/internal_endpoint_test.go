@@ -1,10 +1,10 @@
 package consul
 
 import (
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestInternal_NodeInfo(t *testing.T) {
@@ -14,8 +14,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -68,8 +67,7 @@ func TestInternal_NodeDump(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",

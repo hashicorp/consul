@@ -2,11 +2,13 @@ package consul
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/testutil"
 	"io/ioutil"
 	"net"
 	"os"
 	"testing"
 	"time"
+	"errors"
 )
 
 var nextPort = 15000
@@ -134,13 +136,17 @@ func TestServer_JoinLAN(t *testing.T) {
 	}
 
 	// Check the members
-	if len(s1.LANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.LANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
+	})
 
-	if len(s2.LANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s2.LANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
+	})
 }
 
 func TestServer_JoinWAN(t *testing.T) {
@@ -160,24 +166,28 @@ func TestServer_JoinWAN(t *testing.T) {
 	}
 
 	// Check the members
-	if len(s1.WANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.WANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
+	})
 
-	if len(s2.WANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s2.WANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
-
-	time.Sleep(10 * time.Millisecond)
+	})
 
 	// Check the remoteConsuls has both
 	if len(s1.remoteConsuls) != 2 {
 		t.Fatalf("remote consul missing")
 	}
 
-	if len(s2.remoteConsuls) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s2.remoteConsuls) == 2, nil
+	}, func(err error) {
 		t.Fatalf("remote consul missing")
-	}
+	})
 }
 
 func TestServer_Leave(t *testing.T) {
@@ -197,17 +207,22 @@ func TestServer_Leave(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	time.Sleep(time.Second)
+	var p1 []net.Addr
+	var p2 []net.Addr
 
-	p1, _ := s1.raftPeers.Peers()
-	if len(p1) != 2 {
-		t.Fatalf("should have 2 peers: %v", p1)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		p1, _ = s1.raftPeers.Peers()
+		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 2 peers: %v", err)
+	})
 
-	p2, _ := s2.raftPeers.Peers()
-	if len(p2) != 2 {
-		t.Fatalf("should have 2 peers: %v", p2)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		p2, _ = s2.raftPeers.Peers()
+		return len(p2) == 2, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 2 peers: %v", err)
+	})
 
 	// Issue a leave
 	if err := s2.Leave(); err != nil {
@@ -264,22 +279,28 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	}
 
 	// Check the members
-	if len(s1.LANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.LANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
+	})
 
-	if len(s2.LANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s2.LANMembers()) == 2, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
-
-	// Wait a while
-	time.Sleep(100 * time.Millisecond)
+	})
 
 	// Verify Raft has established a peer
-	if s1.Stats()["raft"]["num_peers"] != "1" {
-		t.Fatalf("bad: %v", s1.Stats()["raft"])
-	}
-	if s2.Stats()["raft"]["num_peers"] != "1" {
-		t.Fatalf("bad: %v", s2.Stats()["raft"])
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		return s1.Stats()["raft"]["num_peers"] == "1", nil	
+	}, func(err error) {
+		t.Fatalf("no peer established")
+	})
+
+	testutil.WaitForResult(func() (bool, error) {
+		return s2.Stats()["raft"]["num_peers"] == "1", nil
+	}, func(err error) {
+		t.Fatalf("no peer established")
+	})
 }

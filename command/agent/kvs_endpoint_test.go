@@ -3,13 +3,13 @@ package agent
 import (
 	"bytes"
 	"fmt"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
 	"testing"
-	"time"
 )
 
 func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
@@ -18,8 +18,7 @@ func TestKVSEndpoint_PUT_GET_DELETE(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	keys := []string{
 		"baz",
@@ -94,8 +93,7 @@ func TestKVSEndpoint_Recurse(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	keys := []string{
 		"bar",
@@ -191,8 +189,7 @@ func TestKVSEndpoint_CAS(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	{
 		buf := bytes.NewBuffer([]byte("test"))
@@ -289,8 +286,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Wait for a leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	keys := []string{
 		"bar",

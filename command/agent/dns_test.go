@@ -2,12 +2,12 @@ package agent
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/miekg/dns"
 	"os"
 	"strings"
 	"testing"
-	"time"
 )
 
 func makeDNSServer(t *testing.T) (string, *DNSServer) {
@@ -65,8 +65,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -74,6 +73,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 		Node:       "foo",
 		Address:    "127.0.0.1",
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -129,8 +129,7 @@ func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node with period in name
 	args := &structs.RegisterRequest{
@@ -138,6 +137,7 @@ func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 		Node:       "foo.bar",
 		Address:    "127.0.0.1",
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -171,8 +171,7 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -180,6 +179,7 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 		Node:       "bar",
 		Address:    "::4242:4242",
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -213,8 +213,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -222,6 +221,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 		Node:       "google",
 		Address:    "www.google.com",
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -256,8 +256,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -270,6 +269,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 			Port:    12345,
 		},
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -317,8 +317,7 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -331,6 +330,7 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 			Port:    12345,
 		},
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -378,8 +378,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -392,6 +391,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 			Port:    12345,
 		},
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -455,8 +455,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -469,6 +468,7 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 			Port:    12345,
 		},
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -584,8 +584,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register nodes
 	args := &structs.RegisterRequest{
@@ -603,6 +602,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 			Status:  structs.HealthCritical,
 		},
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -648,8 +648,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register nodes
 	for i := 0; i < 3*maxServiceResponses; i++ {
@@ -662,6 +661,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 				Port:    8000,
 			},
 		}
+
 		var out struct{}
 		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 			t.Fatalf("err: %v", err)
@@ -712,8 +712,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
-	// Wait for leader
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
 	args := &structs.RegisterRequest{
@@ -725,6 +724,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 			Port:    80,
 		},
 	}
+
 	var out struct{}
 	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
