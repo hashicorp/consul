@@ -443,6 +443,11 @@ func TestCatalogListServices(t *testing.T) {
 	if len(out.Services) != 2 {
 		t.Fatalf("bad: %v", out)
 	}
+	for _, s := range out.Services {
+		if s == nil {
+			t.Fatalf("bad: %v", s)
+		}
+	}
 	// Consul service should auto-register
 	if _, ok := out.Services["consul"]; !ok {
 		t.Fatalf("bad: %v", out)

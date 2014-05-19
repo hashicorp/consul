@@ -480,7 +480,7 @@ func (s *StateStore) Services() (uint64, map[string][]string) {
 		srv := r.(*structs.ServiceNode)
 		tags, ok := services[srv.ServiceName]
 		if !ok {
-			services[srv.ServiceName] = tags
+			services[srv.ServiceName] = make([]string, 0)
 		}
 
 		for _, tag := range srv.ServiceTags {
