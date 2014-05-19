@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 )
 
 func testStateStore() (*StateStore, error) {
@@ -2059,7 +2060,7 @@ func TestSessionInvalidate_KeyUnlock(t *testing.T) {
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v")
 	}
-	session := &structs.Session{Node: "foo"}
+	session := &structs.Session{Node: "foo", LockDelay: 50 * time.Millisecond}
 	if err := store.SessionCreate(4, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2094,5 +2095,11 @@ func TestSessionInvalidate_KeyUnlock(t *testing.T) {
 	}
 	if d2.Session != "" {
 		t.Fatalf("bad: %v", *d2)
+	}
+
+	// Key should have a lock delay
+	expires := store.KVSLockDelay("/foo")
+	if expires.Before(time.Now().Add(30 * time.Millisecond)) {
+		t.Fatalf("Bad: %v", expires)
 	}
 }

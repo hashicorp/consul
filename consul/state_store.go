@@ -10,6 +10,8 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
 )
 
 const (
@@ -54,6 +56,22 @@ type StateStore struct {
 	tables            MDBTables
 	watch             map[*MDBTable]*NotifyGroup
 	queryTables       map[string]MDBTables
+
+	// lockDelay is used to mark certain locks as unacquirable.
+	// When a lock is forcefully released (failing health
+	// check, destroyed session, etc), it is subject to the LockDelay
+	// impossed by the session. This prevents another session from
+	// acquiring the lock for some period of time as a protection against
+	// split-brains. This is inspired by the lock-delay in Chubby.
+	// Because this relies on wall-time, we cannot assume all peers
+	// perceive time as flowing uniformly. This means KVSLock MUST ignore
+	// lockDelay, since the lockDelay may have expired on the leader,
+	// but not on the follower. Rejecting the lock could result in
+	// inconsistencies in the FSMs due to the rate time progresses. Instead,
+	// only the opinion of the leader is respected, and the Raft log
+	// is never questioned.
+	lockDelay     map[string]time.Time
+	lockDelayLock sync.RWMutex
 }
 
 // StateSnapshot is used to provide a point-in-time snapshot
@@ -94,10 +112,11 @@ func NewStateStore(logOutput io.Writer) (*StateStore, error) {
 	}
 
 	s := &StateStore{
-		logger: log.New(logOutput, "", log.LstdFlags),
-		path:   path,
-		env:    env,
-		watch:  make(map[*MDBTable]*NotifyGroup),
+		logger:    log.New(logOutput, "", log.LstdFlags),
+		path:      path,
+		env:       env,
+		watch:     make(map[*MDBTable]*NotifyGroup),
+		lockDelay: make(map[string]time.Time),
 	}
 
 	// Ensure we can initialize
@@ -1076,6 +1095,17 @@ func (s *StateStore) KVSUnlock(index uint64, d *structs.DirEntry) (bool, error) 
 	return s.kvsSet(index, d, kvUnlock)
 }
 
+// KVSLockDelay returns the expiration time of a key lock delay. A key may
+// have a lock delay if it was unlocked due to a session invalidation instead
+// of a graceful unlock. This must be checked on the leader node, and not in
+// KVSLock due to the variability of clocks.
+func (s *StateStore) KVSLockDelay(key string) time.Time {
+	s.lockDelayLock.RLock()
+	expires := s.lockDelay[key]
+	s.lockDelayLock.RUnlock()
+	return expires
+}
+
 // kvsSet is the internal setter
 func (s *StateStore) kvsSet(
 	index uint64,
@@ -1367,8 +1397,14 @@ func (s *StateStore) invalidateSession(index uint64, tx *MDBTxn, id string) erro
 	}
 	session := res[0].(*structs.Session)
 
+	// Enforce the MaxLockDelay
+	delay := session.LockDelay
+	if delay > structs.MaxLockDelay {
+		delay = structs.MaxLockDelay
+	}
+
 	// Invalidate any held locks
-	if err := s.invalidateLocks(index, tx, id); err != nil {
+	if err := s.invalidateLocks(index, tx, delay, id); err != nil {
 		return err
 	}
 
@@ -1395,17 +1431,36 @@ func (s *StateStore) invalidateSession(index uint64, tx *MDBTxn, id string) erro
 
 // invalidateLocks is used to invalidate all the locks held by a session
 // within a given txn. All tables should be locked in the tx.
-func (s *StateStore) invalidateLocks(index uint64, tx *MDBTxn, id string) error {
+func (s *StateStore) invalidateLocks(index uint64, tx *MDBTxn,
+	lockDelay time.Duration, id string) error {
 	pairs, err := s.kvsTable.GetTxn(tx, "session", id)
 	if err != nil {
 		return err
 	}
+
+	var expires time.Time
+	if lockDelay > 0 {
+		s.lockDelayLock.Lock()
+		defer s.lockDelayLock.Unlock()
+		expires = time.Now().Add(lockDelay)
+	}
+
 	for _, pair := range pairs {
 		kv := pair.(*structs.DirEntry)
 		kv.Session = ""        // Clear the lock
 		kv.ModifyIndex = index // Update the modified time
 		if err := s.kvsTable.InsertTxn(tx, kv); err != nil {
 			return err
+		}
+		// If there is a lock delay, prevent acquisition
+		// for at least lockDelay period
+		if lockDelay > 0 {
+			s.lockDelay[kv.Key] = expires
+			time.AfterFunc(lockDelay, func() {
+				s.lockDelayLock.Lock()
+				delete(s.lockDelay, kv.Key)
+				s.lockDelayLock.Unlock()
+			})
 		}
 	}
 	if len(pairs) > 0 {

@@ -29,6 +29,12 @@ const (
 	HealthCritical = "critical"
 )
 
+const (
+	// MaxLockDelay provides a maximum LockDelay value for
+	// a session. Any value above this will not be respected.
+	MaxLockDelay = 60 * time.Second
+)
+
 // RPCInfo is used to describe common information about query
 type RPCInfo interface {
 	RequestDatacenter() string
@@ -343,10 +349,11 @@ type IndexedKeyList struct {
 // Session is used to represent an open session in the KV store.
 // This issued to associate node checks with acquired locks.
 type Session struct {
+	CreateIndex uint64
 	ID          string
 	Node        string
 	Checks      []string
-	CreateIndex uint64
+	LockDelay   time.Duration
 }
 type Sessions []*Session
 

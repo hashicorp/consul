@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/consul/testutil"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestKVS_Apply(t *testing.T) {
@@ -224,5 +225,72 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	if dirent.Keys[2] != "/test/sub/" {
 		t.Fatalf("Bad: %v", dirent.Keys)
 	}
+}
 
+func TestKVS_Apply_LockDelay(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Create and invalidate a session with a lock
+	state := s1.fsm.State()
+	if err := state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	session := &structs.Session{
+		Node:      "foo",
+		LockDelay: 50 * time.Millisecond,
+	}
+	if err := state.SessionCreate(2, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	id := session.ID
+	d := &structs.DirEntry{
+		Key:     "test",
+		Session: id,
+	}
+	if ok, err := state.KVSLock(3, d); err != nil || !ok {
+		t.Fatalf("err: %v", err)
+	}
+	if err := state.SessionDestroy(4, id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make a new session that is valid
+	if err := state.SessionCreate(5, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	validId := session.ID
+
+	// Make a lock request
+	arg := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSLock,
+		DirEnt: structs.DirEntry{
+			Key:     "test",
+			Session: validId,
+		},
+	}
+	var out bool
+	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if out != false {
+		t.Fatalf("should not acquire")
+	}
+
+	// Wait for lock-delay
+	time.Sleep(50 * time.Millisecond)
+
+	// Should acquire
+	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if out != true {
+		t.Fatalf("should acquire")
+	}
 }

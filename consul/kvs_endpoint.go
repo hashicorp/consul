@@ -25,6 +25,23 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 		return fmt.Errorf("Must provide key")
 	}
 
+	// If this is a lock, we must check for a lock-delay. Since lock-delay
+	// is based on wall-time, each peer expire the lock-delay at a slightly
+	// different time. This means the enforcement of lock-delay cannot be done
+	// after the raft log is committed as it would lead to inconsistent FSMs.
+	// Instead, the lock-delay must be enforced before commit. This means that
+	// only the wall-time of the leader node is used, preventing any inconsistencies.
+	if args.Op == structs.KVSLock {
+		state := k.srv.fsm.State()
+		expires := state.KVSLockDelay(args.DirEnt.Key)
+		if expires.After(time.Now()) {
+			k.srv.logger.Printf("[WARN] consul.kvs: Rejecting lock of %s due to lock-delay until %v",
+				args.DirEnt.Key, expires)
+			*reply = false
+			return nil
+		}
+	}
+
 	// Apply the update
 	resp, err := k.srv.raftApply(structs.KVSRequestType, args)
 	if err != nil {
