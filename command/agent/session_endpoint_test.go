@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestSessionCreate(t *testing.T) {
@@ -33,8 +34,9 @@ func TestSessionCreate(t *testing.T) {
 		body := bytes.NewBuffer(nil)
 		enc := json.NewEncoder(body)
 		raw := map[string]interface{}{
-			"Node":   srv.agent.config.NodeName,
-			"Checks": []string{consul.SerfCheckID, "consul"},
+			"Node":      srv.agent.config.NodeName,
+			"Checks":    []string{consul.SerfCheckID, "consul"},
+			"LockDelay": "20s",
 		}
 		enc.Encode(raw)
 
@@ -52,8 +54,39 @@ func TestSessionCreate(t *testing.T) {
 		if _, ok := obj.(sessionCreateResponse); !ok {
 			t.Fatalf("should work")
 		}
-
 	})
+}
+
+func TestFixupLockDelay(t *testing.T) {
+	inp := map[string]interface{}{
+		"lockdelay": float64(15),
+	}
+	if err := FixupLockDelay(inp); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if inp["lockdelay"] != 15*time.Second {
+		t.Fatalf("bad: %v", inp)
+	}
+
+	inp = map[string]interface{}{
+		"lockDelay": float64(15 * time.Second),
+	}
+	if err := FixupLockDelay(inp); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if inp["lockDelay"] != 15*time.Second {
+		t.Fatalf("bad: %v", inp)
+	}
+
+	inp = map[string]interface{}{
+		"LockDelay": "15s",
+	}
+	if err := FixupLockDelay(inp); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if inp["LockDelay"] != 15*time.Second {
+		t.Fatalf("bad: %v", inp)
+	}
 }
 
 func makeTestSession(t *testing.T, srv *HTTPServer) string {

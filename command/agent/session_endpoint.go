@@ -6,6 +6,17 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"strings"
+	"time"
+)
+
+const (
+	// lockDelayMinThreshold is used to convert a numeric lock
+	// delay value from nanoseconds to seconds if it is below this
+	// threshold. Users often send a value like 5, which they assume
+	// is seconds, but because Go uses nanosecond granularity, ends
+	// up being very small. If we see a value below this threshold,
+	// we multply by time.Second
+	lockDelayMinThreshold = 1000
 )
 
 // sessionCreateResponse is used to wrap the session ID
@@ -25,15 +36,16 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 	args := structs.SessionRequest{
 		Op: structs.SessionCreate,
 		Session: structs.Session{
-			Node:   s.agent.config.NodeName,
-			Checks: []string{consul.SerfCheckID},
+			Node:      s.agent.config.NodeName,
+			Checks:    []string{consul.SerfCheckID},
+			LockDelay: 15 * time.Second,
 		},
 	}
 	s.parseDC(req, &args.Datacenter)
 
 	// Handle optional request body
 	if req.ContentLength > 0 {
-		if err := decodeBody(req, &args.Session, nil); err != nil {
+		if err := decodeBody(req, &args.Session, FixupLockDelay); err != nil {
 			resp.WriteHeader(400)
 			resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
 			return nil, nil
@@ -48,6 +60,45 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 
 	// Format the response as a JSON object
 	return sessionCreateResponse{out}, nil
+}
+
+// FixupLockDelay is used to handle parsing the JSON body to session/create
+// and properly parsing out the lock delay duration value.
+func FixupLockDelay(raw interface{}) error {
+	rawMap, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	var key string
+	for k, _ := range rawMap {
+		if strings.ToLower(k) == "lockdelay" {
+			key = k
+			break
+		}
+	}
+	if key != "" {
+		val := rawMap[key]
+		// Convert a string value into an integer
+		if vStr, ok := val.(string); ok {
+			dur, err := time.ParseDuration(vStr)
+			if err != nil {
+				return err
+			}
+			if dur < lockDelayMinThreshold {
+				dur = dur * time.Second
+			}
+			rawMap[key] = dur
+		}
+		// Convert low value integers into seconds
+		if vNum, ok := val.(float64); ok {
+			dur := time.Duration(vNum)
+			if dur < lockDelayMinThreshold {
+				dur = dur * time.Second
+			}
+			rawMap[key] = dur
+		}
+	}
+	return nil
 }
 
 // SessionDestroy is used to destroy an existing session
