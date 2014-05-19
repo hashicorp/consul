@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+// sessionCreateResponse is used to wrap the session ID
+type sessionCreateResponse struct {
+	ID string
+}
+
 // SessionCreate is used to create a new session
 func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Mandate a PUT request
@@ -42,10 +47,7 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 	}
 
 	// Format the response as a JSON object
-	type response struct {
-		ID string
-	}
-	return response{out}, nil
+	return sessionCreateResponse{out}, nil
 }
 
 // SessionDestroy is used to destroy an existing session
