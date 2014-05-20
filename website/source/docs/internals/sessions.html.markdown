@@ -4,11 +4,12 @@ page_title: "Sessions"
 sidebar_current: "docs-internals-sessions"
 ---
 
-# Consensus Protocol
+# Sessions
 
 Consul provides a session mechansim which can be used to build distributed locks.
 Sessions act as a binding layer between nodes, health checks, and key/value data.
-They are designed to provide granular locking similar to Chubby.
+They are designed to provide granular locking, and are heavily inspired
+by [The Chubby Lock Service for Loosely-Coupled Distributed Systems](http://research.google.com/archive/chubby.html).
 
 <div class="alert alert-block alert-warning">
 <strong>Advanced Topic!</strong> This page covers technical details of
@@ -87,7 +88,7 @@ and the `Session` value is updated to reflect the session holding the lock.
 Once held, the lock can be released using a corresponding `release` operation,
 providing the same session. Again, this acts like a Check-And-Set operations,
 since the request will fail if given an invalid session. A critical note is
-that the session ID can be destroyed without being the creator of the session.
+that the lock can be released without being the creator of the session.
 This is by design, as it allows operators to intervene and force terminate
 a session if necessary. As mentioned above, a session invalidation will also
 cause all held locks to be released. When a lock is released, the `LockIndex`,
@@ -104,4 +105,10 @@ To make clear, this locking system is purely *advisory*. There is no enforcement
 that clients must acquire a lock to perform any operation. Any client can
 read, write, and delete a key without owning the corresponding lock. It is not
 the goal of Consul to protect against misbehaving clients.
+
+## Leader Election
+
+The primitives provided by sessions and the locking mechanisms of the KV
+store can be used to build client-side leader election algorithms.
+These are covered in more detail in the [Leader Election guide](/docs/guides/leader-election.html).
 
