@@ -16,6 +16,7 @@ All endpoints fall into one of 6 categories:
 * agent - Agent control
 * catalog - Manages nodes and services
 * health - Manages health checks
+* session - Session manipulation
 * status - Consul system status
 * internal - Internal APIs. Purposely undocumented, subject to change.
 
@@ -801,6 +802,137 @@ It returns a JSON body like this:
             "ServiceID": "redis",
             "ServiceName": "redis"
         }
+    ]
+
+This endpoint supports blocking queries and all consistency modes.
+
+## Session
+
+The Session endpoints are used to create, destroy and query sessions.
+The following endpoints are supported:
+
+* /v1/session/create: Creates a new session
+* /v1/session/destroy/\<session\>: Destroys a given session
+* /v1/session/info/\<session\>: Queries a given session
+* /v1/session/node/\<node\>: Lists sessions belonging to a node
+* /v1/session/list: Lists all the active sessions
+
+All of the read session endpoints supports blocking queries and all consistency modes.
+
+### /v1/session/create
+
+The create endpoint is used to initialize a new session.
+There is more documentation on sessions [here](/docs/internals/sessions.html).
+Sessions must be associated with a node, and optionally any number of checks.
+By default, the agent uses it's own node name, and provides the "serfHealth"
+check, along with a 15 second lock delay.
+
+By default, the agent's local datacenter is used, but another datacenter
+can be specified using the "?dc=" query parameter. It is not recommended
+to use cross-region sessions.
+
+The create endpoint expects a JSON request body to be PUT. The request
+body must look like:
+
+    {
+        "LockDelay": "15s",
+        "Node": "foobar",
+        "Checks": ["a", "b", "c"]
+    }
+
+None of the fields are mandatory, and in fact no body needs to be PUT
+if the defaults are to be used. The `LockDelay` field can be specified
+as a duration string using a "s" suffix for seconds. It can also be a numeric
+value. Small values are treated as seconds, and otherwise it is provided with
+nanosecond granularity.
+
+The `Node` field must refer to a node that is already registered. By default,
+the agent will use it's own name. Lastly, the `Checks` field is used to provide
+a list of associated health checks. By default the "serfHealth" check is provided.
+It is highly recommended that if you override this list, you include that check.
+
+The return code is 200 on success, along with a body like:
+
+    {"ID":"adf4238a-882b-9ddc-4a9d-5b6758e4159e"}
+
+This is used to provide the ID of the newly created session.
+
+### /v1/session/destroy/\<session\>
+
+The destroy endpoint is hit with a PUT and destroys the given session.
+By default the local datacenter is used, but the "?dc=" query parameter
+can be used to specify the datacenter. The session being destroyed must
+be provided after the slash.
+
+The return code is 200 on success.
+
+### /v1/session/info/\<session\>
+
+This endpoint is hit with a GET and returns the session information
+by ID within a given datacenter. By default the datacenter of the agent is queried,
+however the dc can be provided using the "?dc=" query parameter.
+The session being queried must be provided after the slash.
+
+It returns a JSON body like this:
+
+    [
+      {
+        "LockDelay": 1.5e+10,
+        "Checks": [
+          "serfHealth"
+        ],
+        "Node": "foobar",
+        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+        "CreateIndex": 1086449
+      }
+    ]
+
+If the session is not found, null is returned instead of a JSON list.
+This endpoint supports blocking queries and all consistency modes.
+
+### /v1/session/node/\<node\>
+
+This endpoint is hit with a GET and returns the active sessions
+for a given node and datacenter. By default the datacenter of the agent is queried,
+however the dc can be provided using the "?dc=" query parameter.
+The node being queried must be provided after the slash.
+
+It returns a JSON body like this:
+
+    [
+      {
+        "LockDelay": 1.5e+10,
+        "Checks": [
+          "serfHealth"
+        ],
+        "Node": "foobar",
+        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+        "CreateIndex": 1086449
+      },
+      ...
+    ]
+
+This endpoint supports blocking queries and all consistency modes.
+
+### /v1/session/list
+
+This endpoint is hit with a GET and returns the active sessions
+for a given datacenter. By default the datacenter of the agent is queried,
+however the dc can be provided using the "?dc=" query parameter.
+
+It returns a JSON body like this:
+
+    [
+      {
+        "LockDelay": 1.5e+10,
+        "Checks": [
+          "serfHealth"
+        ],
+        "Node": "foobar",
+        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+        "CreateIndex": 1086449
+      },
+      ...
     ]
 
 This endpoint supports blocking queries and all consistency modes.
