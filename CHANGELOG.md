@@ -8,6 +8,11 @@ IMPROVEMENTS:
   * The web UI now has cancel and delete folder actions in the key/value
       editor. [GH-124], [GH-122]
   * Add flag to agent to write pid to a file. [GH-106]
+  * Time out commands if Raft exceeds command enqueue timeout
+  * Adding support for the `-advertise` CLI flag. [GH-156]
+  * Fixing potential name conflicts on the WAN gossip ring [GH-158]
+  * /v1/catalog/services returns an empty slice instead of null. [GH-145]
+  * `members` command returns exit code 2 if no results. [GH-116]
 
 BUG FIXES:
 
@@ -16,6 +21,16 @@ BUG FIXES:
   * Private IP is properly found on Windows clients.
   * Windows agents won't show "failed to decode" errors on every RPC
       request.
+  * Fixed memory leak with RPC clients. [GH-149]
+  * Serf name conflict resoultion disabled. [GH-97]
+  * Raft deadlock possibility fixed. [GH-141]
+
+MISC:
+
+  * Updating to latest version of LMDB
+  * Reduced the limit of KV entries to 512KB. [GH-123].
+  * Warn if any Raft log exceeds 1MB
+  * Lots of docs fixes
 
 ## 0.2.0 (May 1, 2014)
 
