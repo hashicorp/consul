@@ -46,7 +46,7 @@ Consul is a distributed, highly available system. There is an
 [in-depth architecture overview](/docs/internals/architecture.html) available,
 but this section will cover the basics so you can get an understanding
 of how Consul works. This section will purposely omit details to quickly
-provide an overview the architecture.
+provide an overview of the architecture.
 
 Every node that provides services to Consul runs a _Consul agent_. Running
 an agent is not required for discovering other services or getting/setting
