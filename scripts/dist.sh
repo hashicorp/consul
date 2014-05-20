@@ -43,6 +43,10 @@ for FILENAME in $(find ./dist -mindepth 1 -maxdepth 1 -type f); do
     if [ "${FILENAME}" = "ui.zip" ]; then
         cp ${FILENAME} ./pkg/${VERSION}_web_ui.zip
     else
+        if [ "${EXTENSION}" = "" ]; then
+            chmod +x ${FILENAME}
+        fi
+
         cp ${FILENAME} ${CONSULNAME}
         zip ./pkg/${VERSION}_${PLATFORM}.zip ${CONSULNAME}
         rm ${CONSULNAME}
