@@ -3,8 +3,8 @@ package agent
 import (
 	"bytes"
 	"fmt"
-	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -338,4 +338,74 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 			t.Fatalf("bad: %v", res)
 		}
 	}
+}
+
+func TestKVSEndpoint_AcquireRelease(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		// Acquire the lock
+		id := makeTestSession(t, srv)
+		req, err := http.NewRequest("PUT",
+			"/v1/kv/test?acquire="+id, bytes.NewReader(nil))
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.KVSEndpoint(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if res := obj.(bool); !res {
+			t.Fatalf("should work")
+		}
+
+		// Verify we have the lock
+		req, err = http.NewRequest("GET", "/v1/kv/test", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp = httptest.NewRecorder()
+		obj, err = srv.KVSEndpoint(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		d := obj.(structs.DirEntries)[0]
+
+		// Check the flags
+		if d.Session != id {
+			t.Fatalf("bad: %v", d)
+		}
+
+		// Release the lock
+		req, err = http.NewRequest("PUT",
+			"/v1/kv/test?release="+id, bytes.NewReader(nil))
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp = httptest.NewRecorder()
+		obj, err = srv.KVSEndpoint(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if res := obj.(bool); !res {
+			t.Fatalf("should work")
+		}
+
+		// Verify we do not have the lock
+		req, err = http.NewRequest("GET", "/v1/kv/test", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp = httptest.NewRecorder()
+		obj, err = srv.KVSEndpoint(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		d = obj.(structs.DirEntries)[0]
+
+		// Check the flags
+		if d.Session != "" {
+			t.Fatalf("bad: %v", d)
+		}
+	})
 }

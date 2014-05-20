@@ -1,13 +1,13 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
-	"errors"
 )
 
 func TestForceLeaveCommand_implements(t *testing.T) {

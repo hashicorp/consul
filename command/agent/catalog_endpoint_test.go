@@ -2,8 +2,8 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -174,7 +174,7 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 	}
 
 	// Should block for a while
-	if time.Now().Sub(start) < 50 * time.Millisecond {
+	if time.Now().Sub(start) < 50*time.Millisecond {
 		// TODO: Failing
 		t.Fatalf("too fast")
 	}

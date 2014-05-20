@@ -1,9 +1,9 @@
 package agent
 
 import (
+	"github.com/hashicorp/consul/testutil"
 	"os"
 	"testing"
-	"github.com/hashicorp/consul/testutil"
 )
 
 func TestStatusLeader(t *testing.T) {

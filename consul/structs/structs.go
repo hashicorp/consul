@@ -19,6 +19,7 @@ const (
 	RegisterRequestType MessageType = iota
 	DeregisterRequestType
 	KVSRequestType
+	SessionRequestType
 )
 
 const (
@@ -26,6 +27,12 @@ const (
 	HealthPassing  = "passing"
 	HealthWarning  = "warning"
 	HealthCritical = "critical"
+)
+
+const (
+	// MaxLockDelay provides a maximum LockDelay value for
+	// a session. Any value above this will not be respected.
+	MaxLockDelay = 60 * time.Second
 )
 
 // RPCInfo is used to describe common information about query
@@ -275,9 +282,11 @@ type IndexedNodeDump struct {
 type DirEntry struct {
 	CreateIndex uint64
 	ModifyIndex uint64
+	LockIndex   uint64
 	Key         string
 	Flags       uint64
 	Value       []byte
+	Session     string `json:",omitempty"`
 }
 type DirEntries []*DirEntry
 
@@ -287,7 +296,9 @@ const (
 	KVSSet        KVSOp = "set"
 	KVSDelete           = "delete"
 	KVSDeleteTree       = "delete-tree"
-	KVSCAS              = "cas" // Check-and-set
+	KVSCAS              = "cas"    // Check-and-set
+	KVSLock             = "lock"   // Lock a key
+	KVSUnlock           = "unlock" // Unlock a key
 )
 
 // KVSRequest is used to operate on the Key-Value store
@@ -332,6 +343,52 @@ type IndexedDirEntries struct {
 
 type IndexedKeyList struct {
 	Keys []string
+	QueryMeta
+}
+
+// Session is used to represent an open session in the KV store.
+// This issued to associate node checks with acquired locks.
+type Session struct {
+	CreateIndex uint64
+	ID          string
+	Node        string
+	Checks      []string
+	LockDelay   time.Duration
+}
+type Sessions []*Session
+
+type SessionOp string
+
+const (
+	SessionCreate  SessionOp = "create"
+	SessionDestroy           = "destroy"
+)
+
+// SessionRequest is used to operate on sessions
+type SessionRequest struct {
+	Datacenter string
+	Op         SessionOp // Which operation are we performing
+	Session    Session   // Which session
+	WriteRequest
+}
+
+func (r *SessionRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// SessionSpecificRequest is used to request a session by ID
+type SessionSpecificRequest struct {
+	Datacenter string
+	Session    string
+	QueryOptions
+}
+
+func (r *SessionSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+type IndexedSessions struct {
+	Sessions Sessions
 	QueryMeta
 }
 

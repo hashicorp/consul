@@ -9,7 +9,7 @@
         "api_key": "{{ user `do_api_key` }}",
         "client_id": "{{ user `do_client_id` }}",
         "region_id": "1",
-        "size_id": "61",
+        "size_id": "66",
         "image_id": "3101045",
         "snapshot_name": "bench-bootstrap-{{ isotime }}",
         "name": "bootstrap"
@@ -19,7 +19,7 @@
         "api_key": "{{ user `do_api_key` }}",
         "client_id": "{{ user `do_client_id` }}",
         "region_id": "1",
-        "size_id": "61",
+        "size_id": "66",
         "image_id": "3101045",
         "snapshot_name": "bench-server-{{ isotime }}",
         "name": "server"
@@ -29,7 +29,7 @@
         "api_key": "{{ user `do_api_key` }}",
         "client_id": "{{ user `do_client_id` }}",
         "region_id": "1",
-        "size_id": "61",
+        "size_id": "66",
         "image_id": "3101045",
         "snapshot_name": "bench-worker-{{ isotime }}",
         "name": "worker"
@@ -73,8 +73,8 @@
     {
         "type": "shell",
         "inline": [
-            "curl https://s3.amazonaws.com/hc-ops/boom_linux_amd64 -o /usr/bin/boom",
-            "chmod +x /usr/bin/boom"
+            "curl https://s3.amazonaws.com/hc-ops/boom_linux_amd64 -o /usr/local/bin/boom",
+            "chmod +x /usr/local/bin/boom"
         ]
     },
     {

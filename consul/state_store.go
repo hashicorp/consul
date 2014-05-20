@@ -10,6 +10,8 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
 )
 
 const (
@@ -17,8 +19,21 @@ const (
 	dbServices               = "services"
 	dbChecks                 = "checks"
 	dbKVS                    = "kvs"
+	dbSessions               = "sessions"
+	dbSessionChecks          = "sessionChecks"
 	dbMaxMapSize32bit uint64 = 512 * 1024 * 1024       // 512MB maximum size
 	dbMaxMapSize64bit uint64 = 32 * 1024 * 1024 * 1024 // 32GB maximum size
+)
+
+// kvMode is used internally to control which type of set
+// operation we are performing
+type kvMode int
+
+const (
+	kvSet kvMode = iota
+	kvCAS
+	kvLock
+	kvUnlock
 )
 
 // The StateStore is responsible for maintaining all the Consul
@@ -29,16 +44,34 @@ const (
 // implementation uses the Lightning Memory-Mapped Database (MDB).
 // This gives us Multi-Version Concurrency Control for "free"
 type StateStore struct {
-	logger       *log.Logger
-	path         string
-	env          *mdb.Env
-	nodeTable    *MDBTable
-	serviceTable *MDBTable
-	checkTable   *MDBTable
-	kvsTable     *MDBTable
-	tables       MDBTables
-	watch        map[*MDBTable]*NotifyGroup
-	queryTables  map[string]MDBTables
+	logger            *log.Logger
+	path              string
+	env               *mdb.Env
+	nodeTable         *MDBTable
+	serviceTable      *MDBTable
+	checkTable        *MDBTable
+	kvsTable          *MDBTable
+	sessionTable      *MDBTable
+	sessionCheckTable *MDBTable
+	tables            MDBTables
+	watch             map[*MDBTable]*NotifyGroup
+	queryTables       map[string]MDBTables
+
+	// lockDelay is used to mark certain locks as unacquirable.
+	// When a lock is forcefully released (failing health
+	// check, destroyed session, etc), it is subject to the LockDelay
+	// impossed by the session. This prevents another session from
+	// acquiring the lock for some period of time as a protection against
+	// split-brains. This is inspired by the lock-delay in Chubby.
+	// Because this relies on wall-time, we cannot assume all peers
+	// perceive time as flowing uniformly. This means KVSLock MUST ignore
+	// lockDelay, since the lockDelay may have expired on the leader,
+	// but not on the follower. Rejecting the lock could result in
+	// inconsistencies in the FSMs due to the rate time progresses. Instead,
+	// only the opinion of the leader is respected, and the Raft log
+	// is never questioned.
+	lockDelay     map[string]time.Time
+	lockDelayLock sync.RWMutex
 }
 
 // StateSnapshot is used to provide a point-in-time snapshot
@@ -47,6 +80,15 @@ type StateSnapshot struct {
 	store     *StateStore
 	tx        *MDBTxn
 	lastIndex uint64
+}
+
+// sessionCheck is used to create a many-to-one table such
+// that each check registered by a session can be mapped back
+// to the session row.
+type sessionCheck struct {
+	Node    string
+	CheckID string
+	Session string
 }
 
 // Close is used to abort the transaction and allow for cleanup
@@ -70,10 +112,11 @@ func NewStateStore(logOutput io.Writer) (*StateStore, error) {
 	}
 
 	s := &StateStore{
-		logger: log.New(logOutput, "", log.LstdFlags),
-		path:   path,
-		env:    env,
-		watch:  make(map[*MDBTable]*NotifyGroup),
+		logger:    log.New(logOutput, "", log.LstdFlags),
+		path:      path,
+		env:       env,
+		watch:     make(map[*MDBTable]*NotifyGroup),
+		lockDelay: make(map[string]time.Time),
 	}
 
 	// Ensure we can initialize
@@ -209,6 +252,10 @@ func (s *StateStore) initialize() error {
 				Fields:    []string{"Key"},
 				IdxFunc:   DefaultIndexPrefixFunc,
 			},
+			"session": &MDBIndex{
+				AllowBlank: true,
+				Fields:     []string{"Session"},
+			},
 		},
 		Decoder: func(buf []byte) interface{} {
 			out := new(structs.DirEntry)
@@ -219,8 +266,47 @@ func (s *StateStore) initialize() error {
 		},
 	}
 
+	s.sessionTable = &MDBTable{
+		Name: dbSessions,
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"ID"},
+			},
+			"node": &MDBIndex{
+				AllowBlank: true,
+				Fields:     []string{"Node"},
+			},
+		},
+		Decoder: func(buf []byte) interface{} {
+			out := new(structs.Session)
+			if err := structs.Decode(buf, out); err != nil {
+				panic(err)
+			}
+			return out
+		},
+	}
+
+	s.sessionCheckTable = &MDBTable{
+		Name: dbSessionChecks,
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Node", "CheckID", "Session"},
+			},
+		},
+		Decoder: func(buf []byte) interface{} {
+			out := new(sessionCheck)
+			if err := structs.Decode(buf, out); err != nil {
+				panic(err)
+			}
+			return out
+		},
+	}
+
 	// Store the set of tables
-	s.tables = []*MDBTable{s.nodeTable, s.serviceTable, s.checkTable, s.kvsTable}
+	s.tables = []*MDBTable{s.nodeTable, s.serviceTable, s.checkTable,
+		s.kvsTable, s.sessionTable, s.sessionCheckTable}
 	for _, table := range s.tables {
 		table.Env = s.env
 		table.Encoder = encoder
@@ -247,6 +333,9 @@ func (s *StateStore) initialize() error {
 		"KVSGet":            MDBTables{s.kvsTable},
 		"KVSList":           MDBTables{s.kvsTable},
 		"KVSListKeys":       MDBTables{s.kvsTable},
+		"SessionGet":        MDBTables{s.sessionTable},
+		"SessionList":       MDBTables{s.sessionTable},
+		"NodeSessions":      MDBTables{s.sessionTable},
 	}
 	return nil
 }
@@ -278,7 +367,7 @@ func (s *StateStore) EnsureNode(index uint64, node structs.Node) error {
 	if err := s.nodeTable.SetLastIndexTxn(tx, index); err != nil {
 		return err
 	}
-	defer s.watch[s.nodeTable].Notify()
+	tx.Defer(func() { s.watch[s.nodeTable].Notify() })
 	return tx.Commit()
 }
 
@@ -311,8 +400,7 @@ func (s *StateStore) Nodes() (uint64, structs.Nodes) {
 
 // EnsureService is used to ensure a given node exposes a service
 func (s *StateStore) EnsureService(index uint64, node string, ns *structs.NodeService) error {
-	tables := MDBTables{s.nodeTable, s.serviceTable}
-	tx, err := tables.StartTxn(false)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
@@ -343,7 +431,7 @@ func (s *StateStore) EnsureService(index uint64, node string, ns *structs.NodeSe
 	if err := s.serviceTable.SetLastIndexTxn(tx, index); err != nil {
 		return err
 	}
-	defer s.watch[s.serviceTable].Notify()
+	tx.Defer(func() { s.watch[s.serviceTable].Notify() })
 	return tx.Commit()
 }
 
@@ -406,8 +494,7 @@ func (s *StateStore) parseNodeServices(tables MDBTables, tx *MDBTxn, name string
 
 // DeleteNodeService is used to delete a node service
 func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
-	tables := MDBTables{s.serviceTable, s.checkTable}
-	tx, err := tables.StartTxn(false)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
@@ -419,27 +506,44 @@ func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
 		if err := s.serviceTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.serviceTable].Notify()
+		tx.Defer(func() { s.watch[s.serviceTable].Notify() })
 	}
+
+	// Invalidate any sessions using these checks
+	checks, err := s.checkTable.GetTxn(tx, "node", node, id)
+	if err != nil {
+		return err
+	}
+	for _, c := range checks {
+		check := c.(*structs.HealthCheck)
+		if err := s.invalidateCheck(index, tx, node, check.CheckID); err != nil {
+			return err
+		}
+	}
+
 	if n, err := s.checkTable.DeleteTxn(tx, "node", node, id); err != nil {
 		return err
 	} else if n > 0 {
 		if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.checkTable].Notify()
+		tx.Defer(func() { s.watch[s.checkTable].Notify() })
 	}
 	return tx.Commit()
 }
 
 // DeleteNode is used to delete a node and all it's services
 func (s *StateStore) DeleteNode(index uint64, node string) error {
-	tables := MDBTables{s.nodeTable, s.serviceTable, s.checkTable}
-	tx, err := tables.StartTxn(false)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
 	defer tx.Abort()
+
+	// Invalidate any sessions held by the node
+	if err := s.invalidateNode(index, tx, node); err != nil {
+		return err
+	}
 
 	if n, err := s.serviceTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
@@ -447,7 +551,7 @@ func (s *StateStore) DeleteNode(index uint64, node string) error {
 		if err := s.serviceTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.serviceTable].Notify()
+		tx.Defer(func() { s.watch[s.serviceTable].Notify() })
 	}
 	if n, err := s.checkTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
@@ -455,7 +559,7 @@ func (s *StateStore) DeleteNode(index uint64, node string) error {
 		if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.checkTable].Notify()
+		tx.Defer(func() { s.watch[s.checkTable].Notify() })
 	}
 	if n, err := s.nodeTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
@@ -463,7 +567,7 @@ func (s *StateStore) DeleteNode(index uint64, node string) error {
 		if err := s.nodeTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.nodeTable].Notify()
+		tx.Defer(func() { s.watch[s.nodeTable].Notify() })
 	}
 	return tx.Commit()
 }
@@ -578,8 +682,7 @@ func (s *StateStore) EnsureCheck(index uint64, check *structs.HealthCheck) error
 	}
 
 	// Start the txn
-	tables := MDBTables{s.nodeTable, s.serviceTable, s.checkTable}
-	tx, err := tables.StartTxn(false)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		panic(fmt.Errorf("Failed to start txn: %v", err))
 	}
@@ -608,6 +711,14 @@ func (s *StateStore) EnsureCheck(index uint64, check *structs.HealthCheck) error
 		check.ServiceName = srv.ServiceName
 	}
 
+	// Invalidate any sessions if status is critical
+	if check.Status == structs.HealthCritical {
+		err := s.invalidateCheck(index, tx, check.Node, check.CheckID)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Ensure the check is set
 	if err := s.checkTable.InsertTxn(tx, check); err != nil {
 		return err
@@ -615,17 +726,22 @@ func (s *StateStore) EnsureCheck(index uint64, check *structs.HealthCheck) error
 	if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
 		return err
 	}
-	defer s.watch[s.checkTable].Notify()
+	tx.Defer(func() { s.watch[s.checkTable].Notify() })
 	return tx.Commit()
 }
 
 // DeleteNodeCheck is used to delete a node health check
 func (s *StateStore) DeleteNodeCheck(index uint64, node, id string) error {
-	tx, err := s.checkTable.StartTxn(false, nil)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		return err
 	}
 	defer tx.Abort()
+
+	// Invalidate any sessions held by this check
+	if err := s.invalidateCheck(index, tx, node, id); err != nil {
+		return err
+	}
 
 	if n, err := s.checkTable.DeleteTxn(tx, "id", node, id); err != nil {
 		return err
@@ -633,7 +749,7 @@ func (s *StateStore) DeleteNodeCheck(index uint64, node, id string) error {
 		if err := s.checkTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.checkTable].Notify()
+		tx.Defer(func() { s.watch[s.checkTable].Notify() })
 	}
 	return tx.Commit()
 }
@@ -837,35 +953,8 @@ func (s *StateStore) parseNodeInfo(tx *MDBTxn, res []interface{}, err error) str
 
 // KVSSet is used to create or update a KV entry
 func (s *StateStore) KVSSet(index uint64, d *structs.DirEntry) error {
-	// Start a new txn
-	tx, err := s.kvsTable.StartTxn(false, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Abort()
-
-	// Get the existing node
-	res, err := s.kvsTable.GetTxn(tx, "id", d.Key)
-	if err != nil {
-		return err
-	}
-
-	// Set the create and modify times
-	if len(res) == 0 {
-		d.CreateIndex = index
-	} else {
-		d.CreateIndex = res[0].(*structs.DirEntry).CreateIndex
-	}
-	d.ModifyIndex = index
-
-	if err := s.kvsTable.InsertTxn(tx, d); err != nil {
-		return err
-	}
-	if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
-		return err
-	}
-	defer s.watch[s.kvsTable].Notify()
-	return tx.Commit()
+	_, err := s.kvsSet(index, d, kvSet)
+	return err
 }
 
 // KVSRestore is used to restore a DirEntry. It should only be used when
@@ -986,15 +1075,44 @@ func (s *StateStore) kvsDeleteWithIndex(index uint64, tableIndex string, parts .
 		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		defer s.watch[s.kvsTable].Notify()
+		tx.Defer(func() { s.watch[s.kvsTable].Notify() })
 	}
 	return tx.Commit()
 }
 
 // KVSCheckAndSet is used to perform an atomic check-and-set
 func (s *StateStore) KVSCheckAndSet(index uint64, d *structs.DirEntry) (bool, error) {
+	return s.kvsSet(index, d, kvCAS)
+}
+
+// KVSLock works like KVSSet but only writes if the lock can be acquired
+func (s *StateStore) KVSLock(index uint64, d *structs.DirEntry) (bool, error) {
+	return s.kvsSet(index, d, kvLock)
+}
+
+// KVSUnlock works like KVSSet but only writes if the lock can be unlocked
+func (s *StateStore) KVSUnlock(index uint64, d *structs.DirEntry) (bool, error) {
+	return s.kvsSet(index, d, kvUnlock)
+}
+
+// KVSLockDelay returns the expiration time of a key lock delay. A key may
+// have a lock delay if it was unlocked due to a session invalidation instead
+// of a graceful unlock. This must be checked on the leader node, and not in
+// KVSLock due to the variability of clocks.
+func (s *StateStore) KVSLockDelay(key string) time.Time {
+	s.lockDelayLock.RLock()
+	expires := s.lockDelay[key]
+	s.lockDelayLock.RUnlock()
+	return expires
+}
+
+// kvsSet is the internal setter
+func (s *StateStore) kvsSet(
+	index uint64,
+	d *structs.DirEntry,
+	mode kvMode) (bool, error) {
 	// Start a new txn
-	tx, err := s.kvsTable.StartTxn(false, nil)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		return false, err
 	}
@@ -1015,10 +1133,51 @@ func (s *StateStore) KVSCheckAndSet(index uint64, d *structs.DirEntry) (bool, er
 	// Use the ModifyIndex as the constraint. A modify of time of 0
 	// means we are doing a set-if-not-exists, while any other value
 	// means we expect that modify time.
-	if d.ModifyIndex == 0 && exist != nil {
-		return false, nil
-	} else if d.ModifyIndex > 0 && (exist == nil || exist.ModifyIndex != d.ModifyIndex) {
-		return false, nil
+	if mode == kvCAS {
+		if d.ModifyIndex == 0 && exist != nil {
+			return false, nil
+		} else if d.ModifyIndex > 0 && (exist == nil || exist.ModifyIndex != d.ModifyIndex) {
+			return false, nil
+		}
+	}
+
+	// If attempting to lock, check this is possible
+	if mode == kvLock {
+		// Verify we have a session
+		if d.Session == "" {
+			return false, fmt.Errorf("Missing session")
+		}
+
+		// Bail if it is already locked
+		if exist != nil && exist.Session != "" {
+			return false, nil
+		}
+
+		// Verify the session exists
+		res, err := s.sessionTable.GetTxn(tx, "id", d.Session)
+		if err != nil {
+			return false, err
+		}
+		if len(res) == 0 {
+			return false, fmt.Errorf("Invalid session")
+		}
+
+		// Update the lock index
+		if exist != nil {
+			exist.LockIndex++
+			exist.Session = d.Session
+		} else {
+			d.LockIndex = 1
+		}
+	}
+
+	// If attempting to unlock, verify the key exists and is held
+	if mode == kvUnlock {
+		if exist == nil || exist.Session != d.Session {
+			return false, nil
+		}
+		// Clear the session to unlock
+		exist.Session = ""
 	}
 
 	// Set the create and modify times
@@ -1026,6 +1185,9 @@ func (s *StateStore) KVSCheckAndSet(index uint64, d *structs.DirEntry) (bool, er
 		d.CreateIndex = index
 	} else {
 		d.CreateIndex = exist.CreateIndex
+		d.LockIndex = exist.LockIndex
+		d.Session = exist.Session
+
 	}
 	d.ModifyIndex = index
 
@@ -1035,8 +1197,279 @@ func (s *StateStore) KVSCheckAndSet(index uint64, d *structs.DirEntry) (bool, er
 	if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
 		return false, err
 	}
-	defer s.watch[s.kvsTable].Notify()
+	tx.Defer(func() { s.watch[s.kvsTable].Notify() })
 	return true, tx.Commit()
+}
+
+// SessionCreate is used to create a new session. The
+// ID will be populated on a successful return
+func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error {
+	// Assign the create index
+	session.CreateIndex = index
+
+	// Start the transaction
+	tx, err := s.tables.StartTxn(false)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	// Verify that the node exists
+	res, err := s.nodeTable.GetTxn(tx, "id", session.Node)
+	if err != nil {
+		return err
+	}
+	if len(res) == 0 {
+		return fmt.Errorf("Missing node registration")
+	}
+
+	// Verify that the checks exist and are not critical
+	for _, checkId := range session.Checks {
+		res, err := s.checkTable.GetTxn(tx, "id", session.Node, checkId)
+		if err != nil {
+			return err
+		}
+		if len(res) == 0 {
+			return fmt.Errorf("Missing check '%s' registration", checkId)
+		}
+		chk := res[0].(*structs.HealthCheck)
+		if chk.Status == structs.HealthCritical {
+			return fmt.Errorf("Check '%s' is in %s state", checkId, chk.Status)
+		}
+	}
+
+	// Generate a new session ID, verify uniqueness
+	session.ID = generateUUID()
+	for {
+		res, err = s.sessionTable.GetTxn(tx, "id", session.ID)
+		if err != nil {
+			return err
+		}
+		// Quit if this ID is unique
+		if len(res) == 0 {
+			break
+		}
+	}
+
+	// Insert the session
+	if err := s.sessionTable.InsertTxn(tx, session); err != nil {
+		return err
+	}
+
+	// Insert the check mappings
+	sCheck := sessionCheck{Node: session.Node, Session: session.ID}
+	for _, checkID := range session.Checks {
+		sCheck.CheckID = checkID
+		if err := s.sessionCheckTable.InsertTxn(tx, &sCheck); err != nil {
+			return err
+		}
+	}
+
+	// Trigger the update notifications
+	if err := s.sessionTable.SetLastIndexTxn(tx, index); err != nil {
+		return err
+	}
+	tx.Defer(func() { s.watch[s.sessionTable].Notify() })
+	return tx.Commit()
+}
+
+// SessionRestore is used to restore a session. It should only be used when
+// doing a restore, otherwise SessionCreate should be used.
+func (s *StateStore) SessionRestore(session *structs.Session) error {
+	// Start the transaction
+	tx, err := s.tables.StartTxn(false)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	// Insert the session
+	if err := s.sessionTable.InsertTxn(tx, session); err != nil {
+		return err
+	}
+
+	// Insert the check mappings
+	sCheck := sessionCheck{Node: session.Node, Session: session.ID}
+	for _, checkID := range session.Checks {
+		sCheck.CheckID = checkID
+		if err := s.sessionCheckTable.InsertTxn(tx, &sCheck); err != nil {
+			return err
+		}
+	}
+
+	// Trigger the update notifications
+	index := session.CreateIndex
+	if err := s.sessionTable.SetMaxLastIndexTxn(tx, index); err != nil {
+		return err
+	}
+	tx.Defer(func() { s.watch[s.sessionTable].Notify() })
+	return tx.Commit()
+}
+
+// SessionGet is used to get a session entry
+func (s *StateStore) SessionGet(id string) (uint64, *structs.Session, error) {
+	idx, res, err := s.sessionTable.Get("id", id)
+	var d *structs.Session
+	if len(res) > 0 {
+		d = res[0].(*structs.Session)
+	}
+	return idx, d, err
+}
+
+// SessionList is used to list all the open sessions
+func (s *StateStore) SessionList() (uint64, []*structs.Session, error) {
+	idx, res, err := s.sessionTable.Get("id")
+	out := make([]*structs.Session, len(res))
+	for i, raw := range res {
+		out[i] = raw.(*structs.Session)
+	}
+	return idx, out, err
+}
+
+// NodeSessions is used to list all the open sessions for a node
+func (s *StateStore) NodeSessions(node string) (uint64, []*structs.Session, error) {
+	idx, res, err := s.sessionTable.Get("node", node)
+	out := make([]*structs.Session, len(res))
+	for i, raw := range res {
+		out[i] = raw.(*structs.Session)
+	}
+	return idx, out, err
+}
+
+// SessionDelete is used to destroy a session.
+func (s *StateStore) SessionDestroy(index uint64, id string) error {
+	tx, err := s.tables.StartTxn(false)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	if err := s.invalidateSession(index, tx, id); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// invalideNode is used to invalide all sessions belonging to a node
+// All tables should be locked in the tx.
+func (s *StateStore) invalidateNode(index uint64, tx *MDBTxn, node string) error {
+	sessions, err := s.sessionTable.GetTxn(tx, "node", node)
+	if err != nil {
+		return err
+	}
+	for _, sess := range sessions {
+		session := sess.(*structs.Session).ID
+		if err := s.invalidateSession(index, tx, session); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// invalidateCheck is used to invalide all sessions belonging to a check
+// All tables should be locked in the tx.
+func (s *StateStore) invalidateCheck(index uint64, tx *MDBTxn, node, check string) error {
+	sessionChecks, err := s.sessionCheckTable.GetTxn(tx, "id", node, check)
+	if err != nil {
+		return err
+	}
+	for _, sc := range sessionChecks {
+		session := sc.(*sessionCheck).Session
+		if err := s.invalidateSession(index, tx, session); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// invalidateSession is used to invalide a session within a given txn
+// All tables should be locked in the tx.
+func (s *StateStore) invalidateSession(index uint64, tx *MDBTxn, id string) error {
+	// Get the session
+	res, err := s.sessionTable.GetTxn(tx, "id", id)
+	if err != nil {
+		return err
+	}
+
+	// Quit if this session does not exist
+	if len(res) == 0 {
+		return nil
+	}
+	session := res[0].(*structs.Session)
+
+	// Enforce the MaxLockDelay
+	delay := session.LockDelay
+	if delay > structs.MaxLockDelay {
+		delay = structs.MaxLockDelay
+	}
+
+	// Invalidate any held locks
+	if err := s.invalidateLocks(index, tx, delay, id); err != nil {
+		return err
+	}
+
+	// Nuke the session
+	if _, err := s.sessionTable.DeleteTxn(tx, "id", id); err != nil {
+		return err
+	}
+
+	// Delete the check mappings
+	for _, checkID := range session.Checks {
+		if _, err := s.sessionCheckTable.DeleteTxn(tx, "id",
+			session.Node, checkID, id); err != nil {
+			return err
+		}
+	}
+
+	// Trigger the update notifications
+	if err := s.sessionTable.SetLastIndexTxn(tx, index); err != nil {
+		return err
+	}
+	tx.Defer(func() { s.watch[s.sessionTable].Notify() })
+	return nil
+}
+
+// invalidateLocks is used to invalidate all the locks held by a session
+// within a given txn. All tables should be locked in the tx.
+func (s *StateStore) invalidateLocks(index uint64, tx *MDBTxn,
+	lockDelay time.Duration, id string) error {
+	pairs, err := s.kvsTable.GetTxn(tx, "session", id)
+	if err != nil {
+		return err
+	}
+
+	var expires time.Time
+	if lockDelay > 0 {
+		s.lockDelayLock.Lock()
+		defer s.lockDelayLock.Unlock()
+		expires = time.Now().Add(lockDelay)
+	}
+
+	for _, pair := range pairs {
+		kv := pair.(*structs.DirEntry)
+		kv.Session = ""        // Clear the lock
+		kv.ModifyIndex = index // Update the modified time
+		if err := s.kvsTable.InsertTxn(tx, kv); err != nil {
+			return err
+		}
+		// If there is a lock delay, prevent acquisition
+		// for at least lockDelay period
+		if lockDelay > 0 {
+			s.lockDelay[kv.Key] = expires
+			time.AfterFunc(lockDelay, func() {
+				s.lockDelayLock.Lock()
+				delete(s.lockDelay, kv.Key)
+				s.lockDelayLock.Unlock()
+			})
+		}
+	}
+	if len(pairs) > 0 {
+		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
+		tx.Defer(func() { s.watch[s.kvsTable].Notify() })
+	}
+	return nil
 }
 
 // Snapshot is used to create a point in time snapshot
@@ -1101,4 +1534,14 @@ func (s *StateSnapshot) NodeChecks(node string) structs.HealthChecks {
 // in a goroutine.
 func (s *StateSnapshot) KVSDump(stream chan<- interface{}) error {
 	return s.store.kvsTable.StreamTxn(stream, s.tx, "id")
+}
+
+// SessionList is used to list all the open sessions
+func (s *StateSnapshot) SessionList() ([]*structs.Session, error) {
+	res, err := s.store.sessionTable.GetTxn(s.tx, "id")
+	out := make([]*structs.Session, len(res))
+	for i, raw := range res {
+		out[i] = raw.(*structs.Session)
+	}
+	return out, err
 }

@@ -326,6 +326,8 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		Key:   "/test",
 		Value: []byte("foo"),
 	})
+	session := &structs.Session{Node: "foo"}
+	fsm.state.SessionCreate(9, session)
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -381,6 +383,15 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if string(d.Value) != "foo" {
+		t.Fatalf("bad: %v", d)
+	}
+
+	// Verify session is restored
+	_, s, err := fsm.state.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s.Node != "foo" {
 		t.Fatalf("bad: %v", d)
 	}
 }
@@ -567,5 +578,192 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 	}
 	if string(d.Value) != "zip" {
 		t.Fatalf("bad: %v", d)
+	}
+}
+
+func TestFSM_SessionCreate_Destroy(t *testing.T) {
+	fsm, err := NewFSM(os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	fsm.state.EnsureCheck(2, &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "web",
+		Status:  structs.HealthPassing,
+	})
+
+	// Create a new session
+	req := structs.SessionRequest{
+		Datacenter: "dc1",
+		Op:         structs.SessionCreate,
+		Session: structs.Session{
+			Node:   "foo",
+			Checks: []string{"web"},
+		},
+	}
+	buf, err := structs.Encode(structs.SessionRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if err, ok := resp.(error); ok {
+		t.Fatalf("resp: %v", err)
+	}
+
+	// Get the session
+	id := resp.(string)
+	_, session, err := fsm.state.SessionGet(id)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if session == nil {
+		t.Fatalf("missing")
+	}
+
+	// Verify the session
+	if session.ID != id {
+		t.Fatalf("bad: %v", *session)
+	}
+	if session.Node != "foo" {
+		t.Fatalf("bad: %v", *session)
+	}
+	if session.Checks[0] != "web" {
+		t.Fatalf("bad: %v", *session)
+	}
+
+	// Try to destroy
+	destroy := structs.SessionRequest{
+		Datacenter: "dc1",
+		Op:         structs.SessionDestroy,
+		Session: structs.Session{
+			ID: id,
+		},
+	}
+	buf, err = structs.Encode(structs.SessionRequestType, destroy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	_, session, err = fsm.state.SessionGet(id)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if session != nil {
+		t.Fatalf("should be destroyed")
+	}
+}
+
+func TestFSM_KVSLock(t *testing.T) {
+	fsm, err := NewFSM(os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	session := &structs.Session{Node: "foo"}
+	fsm.state.SessionCreate(2, session)
+
+	req := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSLock,
+		DirEnt: structs.DirEntry{
+			Key:     "/test/path",
+			Value:   []byte("test"),
+			Session: session.ID,
+		},
+	}
+	buf, err := structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if resp != true {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify key is locked
+	_, d, err := fsm.state.KVSGet("/test/path")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if d == nil {
+		t.Fatalf("missing")
+	}
+	if d.LockIndex != 1 {
+		t.Fatalf("bad: %v", *d)
+	}
+	if d.Session != session.ID {
+		t.Fatalf("bad: %v", *d)
+	}
+}
+
+func TestFSM_KVSUnlock(t *testing.T) {
+	fsm, err := NewFSM(os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	session := &structs.Session{Node: "foo"}
+	fsm.state.SessionCreate(2, session)
+
+	req := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSLock,
+		DirEnt: structs.DirEntry{
+			Key:     "/test/path",
+			Value:   []byte("test"),
+			Session: session.ID,
+		},
+	}
+	buf, err := structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if resp != true {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	req = structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSUnlock,
+		DirEnt: structs.DirEntry{
+			Key:     "/test/path",
+			Value:   []byte("test"),
+			Session: session.ID,
+		},
+	}
+	buf, err = structs.Encode(structs.KVSRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	if resp != true {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify key is unlocked
+	_, d, err := fsm.state.KVSGet("/test/path")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if d == nil {
+		t.Fatalf("missing")
+	}
+	if d.LockIndex != 1 {
+		t.Fatalf("bad: %v", *d)
+	}
+	if d.Session != "" {
+		t.Fatalf("bad: %v", *d)
 	}
 }

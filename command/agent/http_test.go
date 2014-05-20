@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -254,4 +255,13 @@ func getIndex(t *testing.T, resp *httptest.ResponseRecorder) uint64 {
 		t.Fatalf("Bad: %v", header)
 	}
 	return uint64(val)
+}
+
+func httpTest(t *testing.T, f func(srv *HTTPServer)) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+	f(srv)
 }

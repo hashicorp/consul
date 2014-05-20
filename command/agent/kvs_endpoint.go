@@ -156,6 +156,18 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 		applyReq.Op = structs.KVSCAS
 	}
 
+	// Check for lock acquisition
+	if _, ok := params["acquire"]; ok {
+		applyReq.DirEnt.Session = params.Get("acquire")
+		applyReq.Op = structs.KVSLock
+	}
+
+	// Check for lock release
+	if _, ok := params["release"]; ok {
+		applyReq.DirEnt.Session = params.Get("release")
+		applyReq.Op = structs.KVSUnlock
+	}
+
 	// Check the content-length
 	if req.ContentLength > maxKVSize {
 		resp.WriteHeader(413)

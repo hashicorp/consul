@@ -93,6 +93,12 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 
 	s.mux.HandleFunc("/v1/kv/", s.wrap(s.KVSEndpoint))
 
+	s.mux.HandleFunc("/v1/session/create", s.wrap(s.SessionCreate))
+	s.mux.HandleFunc("/v1/session/destroy/", s.wrap(s.SessionDestroy))
+	s.mux.HandleFunc("/v1/session/info/", s.wrap(s.SessionGet))
+	s.mux.HandleFunc("/v1/session/node/", s.wrap(s.SessionsForNode))
+	s.mux.HandleFunc("/v1/session/list", s.wrap(s.SessionList))
+
 	if enableDebug {
 		s.mux.HandleFunc("/debug/pprof/", pprof.Index)
 		s.mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)

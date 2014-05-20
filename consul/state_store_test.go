@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 )
 
 func testStateStore() (*StateStore, error) {
@@ -636,6 +637,21 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Add some sessions
+	session := &structs.Session{Node: "foo"}
+	if err := store.SessionCreate(16, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	session = &structs.Session{Node: "bar"}
+	if err := store.SessionCreate(17, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d.Session = session.ID
+	if ok, err := store.KVSLock(18, d); err != nil || !ok {
+		t.Fatalf("err: %v", err)
+	}
+
 	// Take a snapshot
 	snap, err := store.Snapshot()
 	if err != nil {
@@ -644,7 +660,7 @@ func TestStoreSnapshot(t *testing.T) {
 	defer snap.Close()
 
 	// Check the last nodes
-	if idx := snap.LastIndex(); idx != 15 {
+	if idx := snap.LastIndex(); idx != 18 {
 		t.Fatalf("bad: %v", idx)
 	}
 
@@ -699,14 +715,23 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("missing KVS entries!")
 	}
 
+	// Check there are 2 sessions
+	sessions, err := snap.SessionList()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(sessions) != 2 {
+		t.Fatalf("missing sessions")
+	}
+
 	// Make some changes!
-	if err := store.EnsureService(14, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
+	if err := store.EnsureService(19, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(15, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(20, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureNode(16, structs.Node{"baz", "127.0.0.3"}); err != nil {
+	if err := store.EnsureNode(21, structs.Node{"baz", "127.0.0.3"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	checkAfter := &structs.HealthCheck{
@@ -716,12 +741,12 @@ func TestStoreSnapshot(t *testing.T) {
 		Status:    structs.HealthCritical,
 		ServiceID: "db",
 	}
-	if err := store.EnsureCheck(17, checkAfter); err != nil {
-		t.Fatalf("err: %v")
+	if err := store.EnsureCheck(22, checkAfter); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.KVSDelete(18, "/web/a"); err != nil {
-		t.Fatalf("err: %v")
+	if err := store.KVSDelete(23, "/web/b"); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
 	// Check snapshot has old values
@@ -772,6 +797,15 @@ func TestStoreSnapshot(t *testing.T) {
 	<-doneCh
 	if len(ents) != 2 {
 		t.Fatalf("missing KVS entries!")
+	}
+
+	// Check there are 2 sessions
+	sessions, err = snap.SessionList()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(sessions) != 2 {
+		t.Fatalf("missing sessions")
 	}
 }
 
@@ -1559,5 +1593,513 @@ func TestKVSDeleteTree(t *testing.T) {
 	}
 	if len(ents) != 0 {
 		t.Fatalf("bad: %v", ents)
+	}
+}
+
+func TestSessionCreate(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "bar",
+		Status:  structs.HealthPassing,
+	}
+	if err := store.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	session := &structs.Session{
+		Node:   "foo",
+		Checks: []string{"bar"},
+	}
+
+	if err := store.SessionCreate(1000, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if session.ID == "" {
+		t.Fatalf("bad: %v", session)
+	}
+
+	if session.CreateIndex != 1000 {
+		t.Fatalf("bad: %v", session)
+	}
+}
+
+func TestSessionCreate_Invalid(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// No node registered
+	session := &structs.Session{
+		Node:   "foo",
+		Checks: []string{"bar"},
+	}
+	if err := store.SessionCreate(1000, session); err.Error() != "Missing node registration" {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check not registered
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	if err := store.SessionCreate(1000, session); err.Error() != "Missing check 'bar' registration" {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Unhealthy check
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "bar",
+		Status:  structs.HealthCritical,
+	}
+	if err := store.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.SessionCreate(1000, session); err.Error() != "Check 'bar' is in critical state" {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestSession_Lookups(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Create a session
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	session := &structs.Session{
+		Node: "foo",
+	}
+	if err := store.SessionCreate(1000, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lookup by ID
+	idx, s2, err := store.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1000 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if !reflect.DeepEqual(s2, session) {
+		t.Fatalf("bad: %v", s2)
+	}
+
+	// Create many sessions
+	ids := []string{session.ID}
+	for i := 0; i < 10; i++ {
+		session := &structs.Session{
+			Node: "foo",
+		}
+		if err := store.SessionCreate(uint64(1000+i), session); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		ids = append(ids, session.ID)
+	}
+
+	// List all
+	idx, all, err := store.SessionList()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1009 {
+		t.Fatalf("bad: %v", idx)
+	}
+
+	// Retrieve the ids
+	var out []string
+	for _, s := range all {
+		out = append(out, s.ID)
+	}
+
+	sort.Strings(ids)
+	sort.Strings(out)
+	if !reflect.DeepEqual(ids, out) {
+		t.Fatalf("bad: %v %v", ids, out)
+	}
+
+	// List by node
+	idx, nodes, err := store.NodeSessions("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1009 {
+		t.Fatalf("bad: %v", idx)
+	}
+
+	// Check again for the node list
+	out = nil
+	for _, s := range nodes {
+		out = append(out, s.ID)
+	}
+	sort.Strings(out)
+	if !reflect.DeepEqual(ids, out) {
+		t.Fatalf("bad: %v %v", ids, out)
+	}
+}
+
+func TestSessionInvalidate_CriticalHealthCheck(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "bar",
+		Status:  structs.HealthPassing,
+	}
+	if err := store.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	session := &structs.Session{
+		Node:   "foo",
+		Checks: []string{"bar"},
+	}
+	if err := store.SessionCreate(14, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Invalidate the check
+	check.Status = structs.HealthCritical
+	if err := store.EnsureCheck(15, check); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lookup by ID, should be nil
+	_, s2, err := store.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+}
+
+func TestSessionInvalidate_DeleteHealthCheck(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "bar",
+		Status:  structs.HealthPassing,
+	}
+	if err := store.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	session := &structs.Session{
+		Node:   "foo",
+		Checks: []string{"bar"},
+	}
+	if err := store.SessionCreate(14, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Delete the check
+	if err := store.DeleteNodeCheck(15, "foo", "bar"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lookup by ID, should be nil
+	_, s2, err := store.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+}
+
+func TestSessionInvalidate_DeleteNode(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	session := &structs.Session{
+		Node: "foo",
+	}
+	if err := store.SessionCreate(14, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Delete the node
+	if err := store.DeleteNode(15, "foo"); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	// Lookup by ID, should be nil
+	_, s2, err := store.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+}
+
+func TestSessionInvalidate_DeleteNodeService(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(11, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	check := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "api",
+		Name:      "Can connect",
+		Status:    structs.HealthPassing,
+		ServiceID: "api",
+	}
+	if err := store.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	session := &structs.Session{
+		Node:   "foo",
+		Checks: []string{"api"},
+	}
+	if err := store.SessionCreate(14, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should invalidate the session
+	if err := store.DeleteNodeService(15, "foo", "api"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lookup by ID, should be nil
+	_, s2, err := store.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+}
+
+func TestKVSLock(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	session := &structs.Session{Node: "foo"}
+	if err := store.SessionCreate(4, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lock with a non-existing keys should work
+	d := &structs.DirEntry{
+		Key:     "/foo",
+		Flags:   42,
+		Value:   []byte("test"),
+		Session: session.ID,
+	}
+	ok, err := store.KVSLock(5, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected fail")
+	}
+	if d.LockIndex != 1 {
+		t.Fatalf("bad: %v", d)
+	}
+
+	// Re-locking should fail
+	ok, err = store.KVSLock(6, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("expected fail")
+	}
+
+	// Set a normal key
+	k1 := &structs.DirEntry{
+		Key:   "/bar",
+		Flags: 0,
+		Value: []byte("asdf"),
+	}
+	if err := store.KVSSet(7, k1); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should acquire the lock
+	k1.Session = session.ID
+	ok, err = store.KVSLock(8, k1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected fail")
+	}
+
+	// Re-acquire should fail
+	ok, err = store.KVSLock(9, k1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("expected fail")
+	}
+
+}
+
+func TestKVSUnlock(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	session := &structs.Session{Node: "foo"}
+	if err := store.SessionCreate(4, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Unlock with a non-existing keys should fail
+	d := &structs.DirEntry{
+		Key:     "/foo",
+		Flags:   42,
+		Value:   []byte("test"),
+		Session: session.ID,
+	}
+	ok, err := store.KVSUnlock(5, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("expected fail")
+	}
+
+	// Lock should work
+	d.Session = session.ID
+	if ok, _ := store.KVSLock(6, d); !ok {
+		t.Fatalf("expected lock")
+	}
+
+	// Unlock should work
+	d.Session = session.ID
+	ok, err = store.KVSUnlock(7, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected fail")
+	}
+
+	// Re-lock should work
+	d.Session = session.ID
+	if ok, err := store.KVSLock(8, d); err != nil {
+		t.Fatalf("err: %v", err)
+	} else if !ok {
+		t.Fatalf("expected lock")
+	}
+	if d.LockIndex != 2 {
+		t.Fatalf("bad: %v", d)
+	}
+}
+
+func TestSessionInvalidate_KeyUnlock(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v")
+	}
+	session := &structs.Session{Node: "foo", LockDelay: 50 * time.Millisecond}
+	if err := store.SessionCreate(4, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lock a key with the session
+	d := &structs.DirEntry{
+		Key:     "/foo",
+		Flags:   42,
+		Value:   []byte("test"),
+		Session: session.ID,
+	}
+	ok, err := store.KVSLock(5, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected fail")
+	}
+
+	// Delete the node
+	if err := store.DeleteNode(6, "foo"); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	// Key should be unlocked
+	idx, d2, err := store.KVSGet("/foo")
+	if idx != 6 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if d2.LockIndex != 1 {
+		t.Fatalf("bad: %v", *d2)
+	}
+	if d2.Session != "" {
+		t.Fatalf("bad: %v", *d2)
+	}
+
+	// Key should have a lock delay
+	expires := store.KVSLockDelay("/foo")
+	if expires.Before(time.Now().Add(30 * time.Millisecond)) {
+		t.Fatalf("Bad: %v", expires)
 	}
 }

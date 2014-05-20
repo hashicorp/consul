@@ -1,13 +1,13 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/serf"
 	"os"
 	"testing"
-	"errors"
 	"time"
 )
 

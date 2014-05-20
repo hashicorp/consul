@@ -2,6 +2,7 @@ package consul
 
 import (
 	"github.com/hashicorp/serf/serf"
+	"regexp"
 	"testing"
 )
 
@@ -73,5 +74,21 @@ func TestByteConversion(t *testing.T) {
 	raw := uint64ToBytes(val)
 	if bytesToUint64(raw) != val {
 		t.Fatalf("no match")
+	}
+}
+
+func TestGenerateUUID(t *testing.T) {
+	prev := generateUUID()
+	for i := 0; i < 100; i++ {
+		id := generateUUID()
+		if prev == id {
+			t.Fatalf("Should get a new ID!")
+		}
+
+		matched, err := regexp.MatchString(
+			"[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}", id)
+		if !matched || err != nil {
+			t.Fatalf("expected match %s %v %s", id, matched, err)
+		}
 	}
 }

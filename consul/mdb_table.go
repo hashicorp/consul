@@ -63,6 +63,7 @@ type MDBTxn struct {
 	readonly bool
 	tx       *mdb.Txn
 	dbis     map[string]mdb.DBI
+	after    []func()
 }
 
 // Abort is used to close the transaction
@@ -74,7 +75,19 @@ func (t *MDBTxn) Abort() {
 
 // Commit is used to commit a transaction
 func (t *MDBTxn) Commit() error {
-	return t.tx.Commit()
+	if err := t.tx.Commit(); err != nil {
+		return err
+	}
+	for _, f := range t.after {
+		f()
+	}
+	t.after = nil
+	return nil
+}
+
+// Defer is used to defer a function call until a successful commit
+func (t *MDBTxn) Defer(f func()) {
+	t.after = append(t.after, f)
 }
 
 type IndexFunc func(*MDBIndex, []string) string
@@ -732,6 +745,19 @@ func (t *MDBTable) SetLastIndexTxn(tx *MDBTxn, index uint64) error {
 	encRowId := uint64ToBytes(lastIndexRowID)
 	encIndex := uint64ToBytes(index)
 	return tx.tx.Put(tx.dbis[t.Name], encRowId, encIndex, 0)
+}
+
+// SetMaxLastIndexTxn is used to set the last index within a transaction
+// if it exceeds the current maximum
+func (t *MDBTable) SetMaxLastIndexTxn(tx *MDBTxn, index uint64) error {
+	current, err := t.LastIndexTxn(tx)
+	if err != nil {
+		return err
+	}
+	if index > current {
+		return t.SetLastIndexTxn(tx, index)
+	}
+	return nil
 }
 
 // StartTxn is used to create a transaction that spans a list of tables

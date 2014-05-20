@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"errors"
 	"fmt"
 	"github.com/hashicorp/consul/testutil"
 	"io/ioutil"
@@ -8,7 +9,6 @@ import (
 	"os"
 	"testing"
 	"time"
-	"errors"
 )
 
 var nextPort = 15000
@@ -293,7 +293,7 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	// Verify Raft has established a peer
 	testutil.WaitForResult(func() (bool, error) {
-		return s1.Stats()["raft"]["num_peers"] == "1", nil	
+		return s1.Stats()["raft"]["num_peers"] == "1", nil
 	}, func(err error) {
 		t.Fatalf("no peer established")
 	})

@@ -10,12 +10,13 @@ The main interface to Consul is a RESTful HTTP API. The API can be
 used for CRUD for nodes, services, checks, and configuration. The endpoints are
 versioned to enable changes without breaking backwards compatibility.
 
-All endpoints fall into one of 6 categories:
+All endpoints fall into one of several categories:
 
 * kv - Key/Value store
 * agent - Agent control
 * catalog - Manages nodes and services
 * health - Manages health checks
+* session - Session manipulation
 * status - Consul system status
 * internal - Internal APIs. Purposely undocumented, subject to change.
 
@@ -94,6 +95,8 @@ By default the datacenter of the agent is queried, however the dc can
 be provided using the "?dc=" query parameter. If a client wants to write
 to all Datacenters, one request per datacenter must be made.
 
+### GET Method
+
 When using the `GET` method, Consul will return the specified key,
 or if the "?recurse" query parameter is provided, it will return
 all keys with the given prefix.
@@ -104,9 +107,11 @@ Each object will look like:
         {
             "CreateIndex": 100,
             "ModifyIndex": 200,
+            "LockIndex": 200,
             "Key": "zip",
             "Flags": 0,
-            "Value": "dGVzdA=="
+            "Value": "dGVzdA==",
+            "Session": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
         }
     ]
 
@@ -116,36 +121,13 @@ that modified this key. This index corresponds to the `X-Consul-Index`
 header value that is returned. A blocking query can be used to wait for
 a value to change. If "?recurse" is used, the `X-Consul-Index` corresponds
 to the latest `ModifyIndex` and so a blocking query waits until any of the
-listed keys are updated. The multiple consistency modes can be used for
-`GET` requests as well.
+listed keys are updated.  The `LockIndex` is the last index of a successful
+lock acquisition. If the lock is held, the `Session` key provides the
+session that owns the lock.
 
 The `Key` is simply the full path of the entry. `Flags` are an opaque
 unsigned integer that can be attached to each entry. The use of this is
 left totally to the user. Lastly, the `Value` is a base64 key value.
-
-If no entries are found, a 404 code is returned.
-
-When using the `PUT` method, Consul expects the request body to be the
-value corresponding to the key. There are a number of parameters that can
-be used with a PUT request:
-
-* ?flags=\<num\> : This can be used to specify an unsigned value between
-  0 and 2^64-1. It is opaque to the user, but a client application may
-  use it.
-
-* ?cas=\<index\> : This flag is used to turn the `PUT` into a **Check-And-Set**
-  operation. This is very useful as it allows clients to build more complex
-  syncronization primitives on top. If the index is 0, then Consul will only
-  put the key if it does not already exist. If the index is non-zero, then
-  the key is only set if the index matches the `ModifyIndex` of that key.
-
-The return value is simply either `true` or `false`. If the CAS check fails,
-then `false` will be returned.
-
-Lastly, the `DELETE` method can be used to delete a single key or all
-keys sharing a prefix. If the "?recurse" query parameter is provided,
-then all keys with the prefix are deleted, otherwise only the specified
-key.
 
 It is possible to also only list keys without any values by using the
 "?keys" query parameter along with a `GET` request. This will return
@@ -162,6 +144,47 @@ For example, listing "/web/" with a "/" seperator may return:
 
 Using the key listing method may be suitable when you do not need
 the values or flags, or want to implement a key-space explorer.
+
+If no entries are found, a 404 code is returned.
+
+This endpoint supports blocking queries and all consistency modes.
+
+### PUT method
+
+When using the `PUT` method, Consul expects the request body to be the
+value corresponding to the key. There are a number of parameters that can
+be used with a PUT request:
+
+* ?flags=\<num\> : This can be used to specify an unsigned value between
+  0 and 2^64-1. It is opaque to the user, but a client application may
+  use it.
+
+* ?cas=\<index\> : This flag is used to turn the `PUT` into a Check-And-Set
+  operation. This is very useful as it allows clients to build more complex
+  syncronization primitives on top. If the index is 0, then Consul will only
+  put the key if it does not already exist. If the index is non-zero, then
+  the key is only set if the index matches the `ModifyIndex` of that key.
+
+* ?acquire=\<session\> : This flag is used to turn the `PUT` into a lock acquisition
+  operation. This is useful as it allows leader election to be built on top
+  of Consul. If the lock is not held and the session is valid, this increments
+  the `LockIndex` and sets the `Session` value of the key in addition to updating
+  the key contents. A key does not need to exist to be acquired.
+
+* ?release=\<session\> : This flag is used to turn the `PUT` into a lock release
+  operation. This is useful when paired with "?acquire=" as it allows clients to
+  yield a lock. This will leave the `LockIndex` unmodified but will clear the associated
+  `Session` of the key. The key must be held by this session to be unlocked.
+
+The return value is simply either `true` or `false`. If `false` is returned,
+then the update has not taken place.
+
+### DELETE method
+
+Lastly, the `DELETE` method can be used to delete a single key or all
+keys sharing a prefix. If the "?recurse" query parameter is provided,
+then all keys with the prefix are deleted, otherwise only the specified
+key.
 
 ## Agent
 
@@ -801,6 +824,137 @@ It returns a JSON body like this:
             "ServiceID": "redis",
             "ServiceName": "redis"
         }
+    ]
+
+This endpoint supports blocking queries and all consistency modes.
+
+## Session
+
+The Session endpoints are used to create, destroy and query sessions.
+The following endpoints are supported:
+
+* /v1/session/create: Creates a new session
+* /v1/session/destroy/\<session\>: Destroys a given session
+* /v1/session/info/\<session\>: Queries a given session
+* /v1/session/node/\<node\>: Lists sessions belonging to a node
+* /v1/session/list: Lists all the active sessions
+
+All of the read session endpoints supports blocking queries and all consistency modes.
+
+### /v1/session/create
+
+The create endpoint is used to initialize a new session.
+There is more documentation on sessions [here](/docs/internals/sessions.html).
+Sessions must be associated with a node, and optionally any number of checks.
+By default, the agent uses it's own node name, and provides the "serfHealth"
+check, along with a 15 second lock delay.
+
+By default, the agent's local datacenter is used, but another datacenter
+can be specified using the "?dc=" query parameter. It is not recommended
+to use cross-region sessions.
+
+The create endpoint expects a JSON request body to be PUT. The request
+body must look like:
+
+    {
+        "LockDelay": "15s",
+        "Node": "foobar",
+        "Checks": ["a", "b", "c"]
+    }
+
+None of the fields are mandatory, and in fact no body needs to be PUT
+if the defaults are to be used. The `LockDelay` field can be specified
+as a duration string using a "s" suffix for seconds. It can also be a numeric
+value. Small values are treated as seconds, and otherwise it is provided with
+nanosecond granularity.
+
+The `Node` field must refer to a node that is already registered. By default,
+the agent will use it's own name. Lastly, the `Checks` field is used to provide
+a list of associated health checks. By default the "serfHealth" check is provided.
+It is highly recommended that if you override this list, you include that check.
+
+The return code is 200 on success, along with a body like:
+
+    {"ID":"adf4238a-882b-9ddc-4a9d-5b6758e4159e"}
+
+This is used to provide the ID of the newly created session.
+
+### /v1/session/destroy/\<session\>
+
+The destroy endpoint is hit with a PUT and destroys the given session.
+By default the local datacenter is used, but the "?dc=" query parameter
+can be used to specify the datacenter. The session being destroyed must
+be provided after the slash.
+
+The return code is 200 on success.
+
+### /v1/session/info/\<session\>
+
+This endpoint is hit with a GET and returns the session information
+by ID within a given datacenter. By default the datacenter of the agent is queried,
+however the dc can be provided using the "?dc=" query parameter.
+The session being queried must be provided after the slash.
+
+It returns a JSON body like this:
+
+    [
+      {
+        "LockDelay": 1.5e+10,
+        "Checks": [
+          "serfHealth"
+        ],
+        "Node": "foobar",
+        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+        "CreateIndex": 1086449
+      }
+    ]
+
+If the session is not found, null is returned instead of a JSON list.
+This endpoint supports blocking queries and all consistency modes.
+
+### /v1/session/node/\<node\>
+
+This endpoint is hit with a GET and returns the active sessions
+for a given node and datacenter. By default the datacenter of the agent is queried,
+however the dc can be provided using the "?dc=" query parameter.
+The node being queried must be provided after the slash.
+
+It returns a JSON body like this:
+
+    [
+      {
+        "LockDelay": 1.5e+10,
+        "Checks": [
+          "serfHealth"
+        ],
+        "Node": "foobar",
+        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+        "CreateIndex": 1086449
+      },
+      ...
+    ]
+
+This endpoint supports blocking queries and all consistency modes.
+
+### /v1/session/list
+
+This endpoint is hit with a GET and returns the active sessions
+for a given datacenter. By default the datacenter of the agent is queried,
+however the dc can be provided using the "?dc=" query parameter.
+
+It returns a JSON body like this:
+
+    [
+      {
+        "LockDelay": 1.5e+10,
+        "Checks": [
+          "serfHealth"
+        ],
+        "Node": "foobar",
+        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+        "CreateIndex": 1086449
+      },
+      ...
     ]
 
 This endpoint supports blocking queries and all consistency modes.
