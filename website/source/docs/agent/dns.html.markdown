@@ -113,4 +113,8 @@ SRV records.
     ;; ADDITIONAL SECTION:
     foobar.node.dc1.consul.	0	IN	A	10.1.10.12
 
+When the DNS query is performed using UDP, Consul will truncate the results
+without setting the truncate bit. This is to prevent a redundant lookup over
+TCP which generate additional load. If the lookup is done over TCP, the results
+are not truncated.
 
