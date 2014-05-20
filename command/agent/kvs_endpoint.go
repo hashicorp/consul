@@ -76,6 +76,16 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 		resp.WriteHeader(404)
 		return nil, nil
 	}
+
+	// Check if we are in raw mode with a normal get, write out
+	// the raw body
+	if _, ok := params["raw"]; ok && method == "KVS.Get" {
+		body := out.Entries[0].Value
+		resp.Header().Set("Content-Length", strconv.FormatInt(int64(len(body)), 10))
+		resp.Write(body)
+		return nil, nil
+	}
+
 	return out.Entries, nil
 }
 

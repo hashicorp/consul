@@ -145,6 +145,10 @@ For example, listing "/web/" with a "/" seperator may return:
 Using the key listing method may be suitable when you do not need
 the values or flags, or want to implement a key-space explorer.
 
+If the "?raw" query parameter is used with a non-recursive GET,
+then the response is just the raw value of the key, without any
+encoding.
+
 If no entries are found, a 404 code is returned.
 
 This endpoint supports blocking queries and all consistency modes.

@@ -409,3 +409,37 @@ func TestKVSEndpoint_AcquireRelease(t *testing.T) {
 		}
 	})
 }
+
+func TestKVSEndpoint_GET_Raw(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		buf := bytes.NewBuffer([]byte("test"))
+		req, err := http.NewRequest("PUT", "/v1/kv/test", buf)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp := httptest.NewRecorder()
+		obj, err := srv.KVSEndpoint(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if res := obj.(bool); !res {
+			t.Fatalf("should work")
+		}
+
+		req, err = http.NewRequest("GET", "/v1/kv/test?raw", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp = httptest.NewRecorder()
+		obj, err = srv.KVSEndpoint(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		assertIndex(t, resp)
+
+		// Check the body
+		if !bytes.Equal(resp.Body.Bytes(), []byte("test")) {
+			t.Fatalf("bad: %s", resp.Body.Bytes())
+		}
+	})
+}
