@@ -803,7 +803,8 @@ state for a given datacenter. By default the datacenter of the agent is queried,
 however the dc can be provided using the "?dc=" query parameter.
 
 The state being queried must be provided after the slash. The supported states
-are "unknown", "passing", "warning", or "critical".
+are "any", "unknown", "passing", "warning", or "critical". The "any" state is
+a wildcard that can be used to return all the checks.
 
 It returns a JSON body like this:
 

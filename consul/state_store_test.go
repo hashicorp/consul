@@ -889,6 +889,20 @@ func TestEnsureCheck(t *testing.T) {
 	if !reflect.DeepEqual(checks[0], check2) {
 		t.Fatalf("bad: %v", checks[0])
 	}
+
+	idx, checks = store.ChecksInState(structs.HealthAny)
+	if idx != 4 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(checks) != 2 {
+		t.Fatalf("bad: %v", checks)
+	}
+	if !reflect.DeepEqual(checks[0], check) {
+		t.Fatalf("bad: %v", checks[0])
+	}
+	if !reflect.DeepEqual(checks[1], check2) {
+		t.Fatalf("bad: %v", checks[1])
+	}
 }
 
 func TestDeleteNodeCheck(t *testing.T) {

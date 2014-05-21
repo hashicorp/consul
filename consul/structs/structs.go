@@ -23,6 +23,9 @@ const (
 )
 
 const (
+	// HealthAny is special, and is used as a wild card,
+	// not as a specific state.
+	HealthAny      = "any"
 	HealthUnknown  = "unknown"
 	HealthPassing  = "passing"
 	HealthWarning  = "warning"

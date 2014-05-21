@@ -13,6 +13,7 @@ IMPROVEMENTS:
   * Allow raw key value lookup [GH-150]
   * Log encryption enabled [GH-151]
   * Support `-rejoin` to rejoin a cluster after a previous leave. [GH-110]
+  * Support the "any" wildcard for v1/health/state/ [GH-152]
 
 ## 0.2.1 (May 20, 2014)
 

@@ -766,7 +766,15 @@ func (s *StateStore) ServiceChecks(service string) (uint64, structs.HealthChecks
 
 // CheckInState is used to get all the checks for a service in a given state
 func (s *StateStore) ChecksInState(state string) (uint64, structs.HealthChecks) {
-	return s.parseHealthChecks(s.checkTable.Get("status", state))
+	var idx uint64
+	var res []interface{}
+	var err error
+	if state == structs.HealthAny {
+		idx, res, err = s.checkTable.Get("id")
+	} else {
+		idx, res, err = s.checkTable.Get("status", state)
+	}
+	return s.parseHealthChecks(idx, res, err)
 }
 
 // parseHealthChecks is used to handle the resutls of a Get against
