@@ -1,3 +1,18 @@
+## 0.3.0 (Unreleased)
+
+FEATURES:
+
+  * Sessions, which  act as a binding layer between
+  nodes, checks and KV data.
+  * Key locking. KV data integrates with sessions to
+  enable distributed locking.
+
+IMPROVEMENTS:
+
+  * Enable logging to syslog. [GH-105]
+  * Allow raw key value lookup [GH-150]
+  * Log encryption enabled [GH-151]
+
 ## 0.2.1 (May 20, 2014)
 
 IMPROVEMENTS:
@@ -13,7 +28,6 @@ IMPROVEMENTS:
   * Fixing potential name conflicts on the WAN gossip ring [GH-158]
   * /v1/catalog/services returns an empty slice instead of null. [GH-145]
   * `members` command returns exit code 2 if no results. [GH-116]
-  * Enable logging to syslog. [GH-105]
 
 BUG FIXES:
 
