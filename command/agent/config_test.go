@@ -279,6 +279,17 @@ func TestDecodeConfig(t *testing.T) {
 	if !config.EnableSyslog {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// Rejoin
+	input = `{"rejoin_after_leave": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !config.RejoinAfterLeave {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -398,20 +409,21 @@ func TestMergeConfig(t *testing.T) {
 			SerfWan: 5,
 			Server:  6,
 		},
-		Server:         true,
-		LeaveOnTerm:    true,
-		SkipLeaveOnInt: true,
-		EnableDebug:    true,
-		VerifyIncoming: true,
-		VerifyOutgoing: true,
-		CAFile:         "test/ca.pem",
-		CertFile:       "test/cert.pem",
-		KeyFile:        "test/key.pem",
-		Checks:         []*CheckDefinition{nil},
-		Services:       []*ServiceDefinition{nil},
-		StartJoin:      []string{"1.1.1.1"},
-		UiDir:          "/opt/consul-ui",
-		EnableSyslog:   true,
+		Server:           true,
+		LeaveOnTerm:      true,
+		SkipLeaveOnInt:   true,
+		EnableDebug:      true,
+		VerifyIncoming:   true,
+		VerifyOutgoing:   true,
+		CAFile:           "test/ca.pem",
+		CertFile:         "test/cert.pem",
+		KeyFile:          "test/key.pem",
+		Checks:           []*CheckDefinition{nil},
+		Services:         []*ServiceDefinition{nil},
+		StartJoin:        []string{"1.1.1.1"},
+		UiDir:            "/opt/consul-ui",
+		EnableSyslog:     true,
+		RejoinAfterLeave: true,
 	}
 
 	c := MergeConfig(a, b)

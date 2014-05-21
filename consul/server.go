@@ -220,6 +220,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.EventCh = ch
 	conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
 	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]
+	conf.RejoinAfterLeave = s.config.RejoinAfterLeave
 
 	// Until Consul supports this fully, we disable automatic resolution.
 	// When enabled, the Serf gossip may just turn off if we are the minority

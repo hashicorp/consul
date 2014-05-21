@@ -92,6 +92,11 @@ The options below are all specified on the command-line.
   version. This should be set only when [upgrading](/docs/upgrading.html).
   You can view the protocol versions supported by Consul by running `consul -v`.
 
+* `-rejoin` - When provided Consul will ignore a previous leave and attempt to
+  rejoin the cluster when starting. By default, Consul treats leave as a permanent
+  intent, and does not attempt to join the cluster again when starting. This flag
+  allows the previous state to be used to rejoin the cluster.
+
 * `-server` - This flag is used to control if an agent is in server or client mode. When provided,
   an agent will act as a Consul server. Each Consul cluster must have at least one server, and ideally
   no more than 5 *per* datacenter. All servers participate in the Raft consensus algorithm, to ensure that
@@ -163,6 +168,8 @@ definitions support being updated during a reload.
 * `advertise_addr` - Equivalent to the `-advertise` command-line flag.
 
 * `enable_syslog` - Equivalent to the `-syslog` command-line flag.
+
+* `rejoin_after_leave` - Equivalent to the `-rejoin` command-line flag.
 
 * `ca_file` - This provides a the file path to a PEM encoded certificate authority.
   The certificate authority is used to check the authenticity of client and server

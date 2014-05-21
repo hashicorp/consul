@@ -12,6 +12,7 @@ IMPROVEMENTS:
   * Enable logging to syslog. [GH-105]
   * Allow raw key value lookup [GH-150]
   * Log encryption enabled [GH-151]
+  * Support `-rejoin` to rejoin a cluster after a previous leave. [GH-110]
 
 ## 0.2.1 (May 20, 2014)
 

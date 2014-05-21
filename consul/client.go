@@ -127,6 +127,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.EventCh = ch
 	conf.SnapshotPath = filepath.Join(c.config.DataDir, path)
 	conf.ProtocolVersion = protocolVersionMap[c.config.ProtocolVersion]
+	conf.RejoinAfterLeave = c.config.RejoinAfterLeave
 	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}

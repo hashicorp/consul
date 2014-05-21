@@ -135,6 +135,12 @@ type Config struct {
 	// on linux and OSX. Other platforms will generate an error.
 	EnableSyslog bool `mapstructure:"enable_syslog"`
 
+	// RejoinAfterLeave controls our interaction with the cluster after leave.
+	// When set to false (default), a leave causes Consul to not rejoin
+	// the cluster until an explicit join is received. If this is set to
+	// true, we ignore the leave, and rejoin the cluster on start.
+	RejoinAfterLeave bool `mapstructure:"rejoin_after_leave"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -435,6 +441,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.EnableSyslog {
 		result.EnableSyslog = true
+	}
+	if b.RejoinAfterLeave {
+		result.RejoinAfterLeave = true
 	}
 
 	// Copy the start join addresses

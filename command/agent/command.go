@@ -64,6 +64,8 @@ func (c *Command) readConfig() *Config {
 
 	cmdFlags.BoolVar(&cmdConfig.EnableSyslog, "syslog", false,
 		"enable logging to syslog facility")
+	cmdFlags.BoolVar(&cmdConfig.RejoinAfterLeave, "rejoin", false,
+		"enable re-joining after a previous leave")
 	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.StartJoin), "join",
 		"address of agent to join on startup")
 
@@ -507,6 +509,7 @@ Options:
   -log-level=info          Log level of the agent.
   -node=hostname           Name of this node. Must be unique in the cluster
   -protocol=N              Sets the protocol version. Defaults to latest.
+  -rejoin                  Ignores a previous leave and attempts to rejoin the cluster.
   -server                  Switches agent to server mode.
   -syslog                  Enables logging to syslog
   -ui-dir=path             Path to directory containing the Web UI resources

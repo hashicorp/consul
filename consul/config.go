@@ -108,6 +108,12 @@ type Config struct {
 	// Must be provided to serve TLS connections.
 	KeyFile string
 
+	// RejoinAfterLeave controls our interaction with Serf.
+	// When set to false (default), a leave causes a Consul to not rejoin
+	// the cluster until an explicit join is received. If this is set to
+	// true, we ignore the leave, and rejoin the cluster on start.
+	RejoinAfterLeave bool
+
 	// ServerUp callback can be used to trigger a notification that
 	// a Consul server is now up and known about.
 	ServerUp func()
