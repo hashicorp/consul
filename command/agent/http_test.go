@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
 	"io"
@@ -242,6 +243,15 @@ func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
 	if header == "" || header == "0" {
 		t.Fatalf("Bad: %v", header)
 	}
+}
+
+// checkIndex is like assertIndex but returns an error
+func checkIndex(resp *httptest.ResponseRecorder) error {
+	header := resp.Header().Get("X-Consul-Index")
+	if header == "" || header == "0" {
+		return fmt.Errorf("Bad: %v", header)
+	}
+	return nil
 }
 
 // getIndex parses X-Consul-Index

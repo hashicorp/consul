@@ -11,32 +11,30 @@ import (
 )
 
 func TestHealthChecksInState(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
-	defer srv.agent.Shutdown()
+	httpTest(t, func(srv *HTTPServer) {
+		req, err := http.NewRequest("GET", "/v1/health/state/passing?dc=dc1", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+		testutil.WaitForResult(func() (bool, error) {
+			resp := httptest.NewRecorder()
+			obj, err := srv.HealthChecksInState(resp, req)
+			if err != nil {
+				return false, err
+			}
+			if err := checkIndex(resp); err != nil {
+				return false, err
+			}
 
-	req, err := http.NewRequest("GET", "/v1/health/state/passing?dc=dc1", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	resp := httptest.NewRecorder()
-	obj, err := srv.HealthChecksInState(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// TODO: Failing
-	assertIndex(t, resp)
-
-	// Should be 1 health check for the server
-	nodes := obj.(structs.HealthChecks)
-	if len(nodes) != 1 {
-		t.Fatalf("bad: %v", obj)
-	}
+			// Should be 1 health check for the server
+			nodes := obj.(structs.HealthChecks)
+			if len(nodes) != 1 {
+				return false, fmt.Errorf("bad: %v", obj)
+			}
+			return true, nil
+		}, func(err error) { t.Fatalf("err: %v", err) })
+	})
 }
 
 func TestHealthNodeChecks(t *testing.T) {
