@@ -131,6 +131,10 @@ type Config struct {
 	// PidFile is the file to store our PID in
 	PidFile string `mapstructure:"pid_file"`
 
+	// EnableSyslog is used to also tee all the logs over to syslog. Only supported
+	// on linux and OSX. Other platforms will generate an error.
+	EnableSyslog bool `mapstructure:"enable_syslog"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -428,6 +432,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.PidFile != "" {
 		result.PidFile = b.PidFile
+	}
+	if b.EnableSyslog {
+		result.EnableSyslog = true
 	}
 
 	// Copy the start join addresses

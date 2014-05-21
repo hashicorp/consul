@@ -100,6 +100,9 @@ The options below are all specified on the command-line.
   participate in a WAN gossip pool with server nodes in other datacenters. Servers act as gateways
   to other datacenters and forward traffic as appropriate.
 
+* `-syslog` - This flag enables logging to syslog. This is only supported on Linux
+  and OSX. It will result in an error if provided on Windows.
+
 * `-ui-dir` - This flag provides a the directory containing the Web UI resources
   for Consul. This must be provided to enable the Web UI. Directory must be readable.
 
@@ -158,6 +161,8 @@ definitions support being updated during a reload.
 * `ui_dir` - Equivalent to the `-ui-dir` command-line flag.
 
 * `advertise_addr` - Equivalent to the `-advertise` command-line flag.
+
+* `enable_syslog` - Equivalent to the `-syslog` command-line flag.
 
 * `ca_file` - This provides a the file path to a PEM encoded certificate authority.
   The certificate authority is used to check the authenticity of client and server

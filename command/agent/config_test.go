@@ -268,6 +268,17 @@ func TestDecodeConfig(t *testing.T) {
 	if config.PidFile != "/tmp/consul/pid" {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// Syslog
+	input = `{"enable_syslog": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !config.EnableSyslog {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -400,6 +411,7 @@ func TestMergeConfig(t *testing.T) {
 		Services:       []*ServiceDefinition{nil},
 		StartJoin:      []string{"1.1.1.1"},
 		UiDir:          "/opt/consul-ui",
+		EnableSyslog:   true,
 	}
 
 	c := MergeConfig(a, b)

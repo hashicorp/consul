@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
 	"io"
@@ -61,6 +62,8 @@ func (c *Command) readConfig() *Config {
 
 	cmdFlags.IntVar(&cmdConfig.Protocol, "protocol", -1, "protocol version")
 
+	cmdFlags.BoolVar(&cmdConfig.EnableSyslog, "syslog", false,
+		"enable logging to syslog facility")
 	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.StartJoin), "join",
 		"address of agent to join on startup")
 
@@ -141,9 +144,25 @@ func (c *Command) setupLoggers(config *Config) (*GatedWriter, *logWriter, io.Wri
 		return nil, nil, nil
 	}
 
+	// Check if syslog is enabled
+	var syslog io.Writer
+	if config.EnableSyslog {
+		l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, "consul")
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Syslog setup failed: %v", err))
+			return nil, nil, nil
+		}
+		syslog = &SyslogWrapper{l}
+	}
+
 	// Create a log writer, and wrap a logOutput around it
 	logWriter := NewLogWriter(512)
-	logOutput := io.MultiWriter(c.logFilter, logWriter)
+	var logOutput io.Writer
+	if syslog != nil {
+		logOutput = io.MultiWriter(c.logFilter, logWriter, syslog)
+	} else {
+		logOutput = io.MultiWriter(c.logFilter, logWriter)
+	}
 	return logGate, logWriter, logOutput
 }
 
@@ -489,6 +508,7 @@ Options:
   -node=hostname           Name of this node. Must be unique in the cluster
   -protocol=N              Sets the protocol version. Defaults to latest.
   -server                  Switches agent to server mode.
+  -syslog                  Enables logging to syslog
   -ui-dir=path             Path to directory containing the Web UI resources
   -pid-file=path           Path to file to store agent PID
 

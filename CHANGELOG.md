@@ -13,6 +13,7 @@ IMPROVEMENTS:
   * Fixing potential name conflicts on the WAN gossip ring [GH-158]
   * /v1/catalog/services returns an empty slice instead of null. [GH-145]
   * `members` command returns exit code 2 if no results. [GH-116]
+  * Enable logging to syslog. [GH-105]
 
 BUG FIXES:
 
