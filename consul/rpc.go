@@ -62,7 +62,9 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	// Read a single byte
 	buf := make([]byte, 1)
 	if _, err := conn.Read(buf); err != nil {
-		s.logger.Printf("[ERR] consul.rpc: failed to read byte: %v", err)
+		if err != io.EOF {
+			s.logger.Printf("[ERR] consul.rpc: failed to read byte: %v", err)
+		}
 		conn.Close()
 		return
 	}
