@@ -200,7 +200,8 @@ msgpack RPC protocol.
 
 The following endpoints are supported:
 
-* /v1/agent/checks: Returns the checks the local agent is managing
+* /v1/agent/self : Returns the local node configuration
+* /v1/agent/checks : Returns the checks the local agent is managing
 * /v1/agent/services : Returns the services local agent is managing
 * /v1/agent/members : Returns the members as seen by the local serf agent
 * /v1/agent/join/\<address\> : Trigger local agent to join a node
@@ -212,6 +213,34 @@ The following endpoints are supported:
 * /v1/agent/check/fail/\<checkID\> : Mark a local test as critical
 * /v1/agent/service/register : Registers a new local service
 * /v1/agent/service/deregister/\<serviceID\> : Deregister a local service
+
+### /v1/agent/self
+
+This endpoint is used to return configuration of the local agent.
+
+It returns a JSON body like this:
+
+    {
+        "Name": "foobar",
+        "Addr": "10.1.10.12",
+        "Port": 8301,
+        "Tags": {
+            "bootstrap": "1",
+            "dc": "dc1",
+            "port": "8300",
+            "role": "consul",
+            "vsn": "1",
+            "vsn_max": "1",
+            "vsn_min":"1"
+        },
+        "Status": 1,
+        "ProtocolMin": 1,
+        "ProtocolMax": 2,
+        "ProtocolCur": 2,
+        "DelegateMin": 2,
+        "DelegateMax": 4,
+        "DelegateCur": 4
+    }
 
 ### /v1/agent/checks
 

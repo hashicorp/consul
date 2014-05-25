@@ -66,6 +66,28 @@ func TestHTTPAgentChecks(t *testing.T) {
 	}
 }
 
+func TestHTTPAgentSelf(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	req, err := http.NewRequest("GET", "/v1/agent/self", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	obj, err := srv.AgentSelf(nil, req)
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+
+	val := obj.(serf.Member)
+	if int(val.Port) != srv.agent.config.Ports.SerfLan {
+		t.Fatalf("incorrect port: %v", obj)
+	}
+}
+
 func TestHTTPAgentMembers(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)

@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return s.agent.LocalMember(), nil
+}
+
 func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	services := s.agent.state.Services()
 	return services, nil
