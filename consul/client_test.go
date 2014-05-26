@@ -70,13 +70,13 @@ func TestClient_JoinLAN(t *testing.T) {
 	}
 
 	// Check the members
-	if len(s1.LANMembers()) != 2 {
+	testutil.WaitForResult(func() (bool, error) {
+		server_check := len(s1.LANMembers()) == 2
+		client_check := len(c1.LANMembers()) == 2
+		return server_check && client_check, nil
+	}, func(err error) {
 		t.Fatalf("bad len")
-	}
-
-	if len(c1.LANMembers()) != 2 {
-		t.Fatalf("bad len")
-	}
+	})
 
 	// Check we have a new consul
 	testutil.WaitForResult(func() (bool, error) {
