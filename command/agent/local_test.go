@@ -78,7 +78,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 
 	// Trigger anti-entropy run and wait
 	agent.StartSync()
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify that we are in sync
 	req := structs.NodeSpecificRequest{
@@ -200,7 +200,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 	// Trigger anti-entropy run and wait
 	agent.StartSync()
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// Verify that we are in sync
 	req := structs.NodeSpecificRequest{
