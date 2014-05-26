@@ -36,7 +36,7 @@ func WaitForLeader(t *testing.T, rpc rpcFn, dc string) structs.IndexedNodes {
 			Datacenter: dc,
 		}
 		err := rpc("Catalog.ListNodes", args, &out)
-		return out.QueryMeta.KnownLeader, err
+		return out.QueryMeta.KnownLeader && out.Index > 0, err
 	}, func(err error) {
 		t.Fatalf("failed to find leader: %v", err)
 	})

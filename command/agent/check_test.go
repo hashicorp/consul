@@ -74,7 +74,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 	check := &CheckMonitor{
 		Notify:   mock,
 		CheckID:  "foo",
-		Script:   "dd if=/dev/urandom bs=8192 count=10",
+		Script:   "od -N 81920 /dev/urandom",
 		Interval: 25 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
 	}
