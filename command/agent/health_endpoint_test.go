@@ -105,7 +105,6 @@ func TestHealthServiceChecks(t *testing.T) {
 	// Should be 1 health check for consul
 	nodes := obj.(structs.HealthChecks)
 	if len(nodes) != 1 {
-		// TODO: Failing
 		t.Fatalf("bad: %v", obj)
 	}
 }
@@ -129,7 +128,6 @@ func TestHealthServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// TODO: Failing
 	assertIndex(t, resp)
 
 	// Should be 1 health check for consul
@@ -176,7 +174,6 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// TODO: Failing
 	assertIndex(t, resp)
 
 	// Should be 0 health check for consul

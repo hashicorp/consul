@@ -175,7 +175,6 @@ func TestCatalogNodes_Blocking(t *testing.T) {
 
 	// Should block for a while
 	if time.Now().Sub(start) < 50*time.Millisecond {
-		// TODO: Failing
 		t.Fatalf("too fast")
 	}
 
