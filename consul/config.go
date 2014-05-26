@@ -3,16 +3,16 @@ package consul
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
-	"github.com/hashicorp/memberlist"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/serf"
 	"io"
 	"io/ioutil"
 	"net"
 	"os"
 	"time"
+
+	"github.com/hashicorp/memberlist"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
 )
 
 const (
@@ -131,30 +131,24 @@ func (c *Config) CheckVersion() error {
 	return nil
 }
 
-// CACertificate is used to open and parse a CA file
-func (c *Config) CACertificate() (*x509.Certificate, error) {
+// AppendCA opens and parses the CA file and adds the certificates to
+// the provided CertPool.
+func (c *Config) AppendCA(pool *x509.CertPool) error {
 	if c.CAFile == "" {
-		return nil, nil
+		return nil
 	}
 
 	// Read the file
 	data, err := ioutil.ReadFile(c.CAFile)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read CA file: %v", err)
+		return fmt.Errorf("Failed to read CA file: %v", err)
 	}
 
-	// Decode from the PEM format
-	block, _ := pem.Decode(data)
-	if block == nil {
-		return nil, fmt.Errorf("Failed to decode CA PEM!")
+	if !pool.AppendCertsFromPEM(data) {
+		return fmt.Errorf("Failed to parse any CA certificates")
 	}
 
-	// Parse the certificate
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to parse CA file: %v", err)
-	}
-	return cert, nil
+	return nil
 }
 
 // KeyPair is used to open and parse a certificate and key file
@@ -177,17 +171,15 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 		InsecureSkipVerify: !c.VerifyOutgoing,
 	}
 
-	// Parse the CA cert if any
-	ca, err := c.CACertificate()
-	if err != nil {
-		return nil, err
-	} else if ca != nil {
-		tlsConfig.RootCAs.AddCert(ca)
+	// Ensure we have a CA if VerifyOutgoing is set
+	if c.VerifyOutgoing && c.CAFile == "" {
+		return nil, fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
 	}
 
-	// Ensure we have a CA if VerifyOutgoing is set
-	if c.VerifyOutgoing && ca == nil {
-		return nil, fmt.Errorf("VerifyOutgoing set, and no CA certificate provided!")
+	// Parse the CA cert if any
+	err := c.AppendCA(tlsConfig.RootCAs)
+	if err != nil {
+		return nil, err
 	}
 
 	// Add cert/key
@@ -210,11 +202,9 @@ func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 	}
 
 	// Parse the CA cert if any
-	ca, err := c.CACertificate()
+	err := c.AppendCA(tlsConfig.ClientCAs)
 	if err != nil {
 		return nil, err
-	} else if ca != nil {
-		tlsConfig.ClientCAs.AddCert(ca)
 	}
 
 	// Add cert/key
@@ -228,7 +218,7 @@ func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 	// Check if we require verification
 	if c.VerifyIncoming {
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		if ca == nil {
+		if c.CAFile == "" {
 			return nil, fmt.Errorf("VerifyIncoming set, and no CA certificate provided!")
 		}
 		if cert == nil {
