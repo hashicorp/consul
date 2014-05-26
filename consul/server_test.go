@@ -291,13 +291,16 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 		t.Fatalf("bad len")
 	})
 
-	time.Sleep(100 * time.Millisecond)
-
 	// Verify Raft has established a peer
-	if s1.Stats()["raft"]["num_peers"] != "1" {
-		t.Fatalf("bad: %v", s1.Stats()["raft"])
-	}
-	if s2.Stats()["raft"]["num_peers"] != "1" {
-		t.Fatalf("bad: %v", s2.Stats()["raft"])
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		return s1.Stats()["raft"]["num_peers"] == "1", nil
+	}, func(err error) {
+		t.Fatalf("no peer established")
+	})
+
+	testutil.WaitForResult(func() (bool, error) {
+		return s2.Stats()["raft"]["num_peers"] == "1", nil
+	}, func(err error) {
+		t.Fatalf("no peer established")
+	})
 }

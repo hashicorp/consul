@@ -173,10 +173,11 @@ func TestClient_RPC_TLS(t *testing.T) {
 		t.Fatalf("bad len")
 	}
 
-	time.Sleep(100 * time.Millisecond)
-
 	// RPC should succeed
-	if err := c1.RPC("Status.Ping", struct{}{}, &out); err != nil {
+	testutil.WaitForResult(func() (bool, error) {
+		err := c1.RPC("Status.Ping", struct{}{}, &out)
+		return err == nil, err
+	}, func(err error) {
 		t.Fatalf("err: %v", err)
-	}
+	})
 }
