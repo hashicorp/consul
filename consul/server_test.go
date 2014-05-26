@@ -33,19 +33,17 @@ func configureTLS(config *Config) {
 	config.KeyFile = "../test/key/ourdomain.key"
 }
 
-func testServerConfig(t *testing.T) (string, *Config) {
+func testServerConfig(t *testing.T, NodeName string) (string, *Config) {
 	dir := tmpDir(t)
 	config := DefaultConfig()
+
+	config.NodeName = NodeName
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
 	config.DataDir = dir
-
-	// Adjust the ports
-	p := getPort()
-	config.NodeName = fmt.Sprintf("Node %d", p)
 	config.RPCAddr = &net.TCPAddr{
 		IP:   []byte{127, 0, 0, 1},
-		Port: p,
+		Port: getPort(),
 	}
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	config.SerfLANConfig.MemberlistConfig.BindPort = getPort()
@@ -77,7 +75,8 @@ func testServerDC(t *testing.T, dc string) (string, *Server) {
 }
 
 func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Server) {
-	dir, config := testServerConfig(t)
+	name := fmt.Sprintf("Node %d", getPort())
+	dir, config := testServerConfig(t, name)
 	config.Datacenter = dc
 	config.Bootstrap = bootstrap
 	server, err := NewServer(config)
@@ -248,7 +247,7 @@ func TestServer_RPC(t *testing.T) {
 }
 
 func TestServer_JoinLAN_TLS(t *testing.T) {
-	dir1, conf1 := testServerConfig(t)
+	dir1, conf1 := testServerConfig(t, "a.testco.internal")
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
@@ -259,7 +258,7 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, conf2 := testServerConfig(t)
+	dir2, conf2 := testServerConfig(t, "b.testco.internal")
 	conf2.Bootstrap = false
 	conf2.VerifyIncoming = true
 	conf2.VerifyOutgoing = true

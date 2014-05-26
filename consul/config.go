@@ -173,6 +173,7 @@ func (c *Config) KeyPair() (*tls.Certificate, error) {
 func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	// Create the tlsConfig
 	tlsConfig := &tls.Config{
+		ServerName:         c.NodeName,
 		RootCAs:            x509.NewCertPool(),
 		InsecureSkipVerify: !c.VerifyOutgoing,
 	}
@@ -205,6 +206,7 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 	// Create the tlsConfig
 	tlsConfig := &tls.Config{
+		ServerName: c.NodeName,
 		ClientCAs:  x509.NewCertPool(),
 		ClientAuth: tls.NoClientCert,
 	}

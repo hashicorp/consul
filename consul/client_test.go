@@ -10,18 +10,15 @@ import (
 	"time"
 )
 
-func testClientConfig(t *testing.T) (string, *Config) {
+func testClientConfig(t *testing.T, NodeName string) (string, *Config) {
 	dir := tmpDir(t)
 	config := DefaultConfig()
 	config.Datacenter = "dc1"
 	config.DataDir = dir
-
-	// Adjust the ports
-	p := getPort()
-	config.NodeName = fmt.Sprintf("Node %d", p)
+	config.NodeName = NodeName
 	config.RPCAddr = &net.TCPAddr{
 		IP:   []byte{127, 0, 0, 1},
-		Port: p,
+		Port: getPort(),
 	}
 	config.SerfLANConfig.MemberlistConfig.BindAddr = "127.0.0.1"
 	config.SerfLANConfig.MemberlistConfig.BindPort = getPort()
@@ -37,7 +34,7 @@ func testClient(t *testing.T) (string, *Client) {
 }
 
 func testClientDC(t *testing.T, dc string) (string, *Client) {
-	dir, config := testClientConfig(t)
+	dir, config := testClientConfig(t, "testco.internal")
 	config.Datacenter = dc
 
 	client, err := NewClient(config)
@@ -130,7 +127,7 @@ func TestClient_RPC(t *testing.T) {
 }
 
 func TestClient_RPC_TLS(t *testing.T) {
-	dir1, conf1 := testServerConfig(t)
+	dir1, conf1 := testServerConfig(t, "a.testco.internal")
 	conf1.VerifyIncoming = true
 	conf1.VerifyOutgoing = true
 	configureTLS(conf1)
@@ -141,7 +138,7 @@ func TestClient_RPC_TLS(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, conf2 := testClientConfig(t)
+	dir2, conf2 := testClientConfig(t, "b.testco.internal")
 	conf2.VerifyOutgoing = true
 	configureTLS(conf2)
 	c1, err := NewClient(conf2)
