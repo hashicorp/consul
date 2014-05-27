@@ -2,6 +2,7 @@ package consul
 
 import (
 	"github.com/hashicorp/serf/serf"
+	"net"
 	"regexp"
 	"testing"
 )
@@ -36,6 +37,7 @@ func TestIsPrivateIP(t *testing.T) {
 
 func TestIsConsulServer(t *testing.T) {
 	m := serf.Member{
+		Addr: net.IP([]byte{127, 0, 0, 1}),
 		Tags: map[string]string{
 			"role": "consul",
 			"dc":   "east-aws",
@@ -53,6 +55,9 @@ func TestIsConsulServer(t *testing.T) {
 	valid, parts = isConsulServer(m)
 	if !valid || !parts.Bootstrap {
 		t.Fatalf("expected bootstrap")
+	}
+	if parts.Addr.String() != "127.0.0.1:10000" {
+		t.Fatalf("bad addr: %v", parts.Addr)
 	}
 }
 

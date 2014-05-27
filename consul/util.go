@@ -25,6 +25,7 @@ type serverParts struct {
 	Datacenter string
 	Port       int
 	Bootstrap  bool
+	Addr       net.Addr
 }
 
 func init() {
@@ -81,8 +82,8 @@ func isConsulServer(m serf.Member) (bool, *serverParts) {
 	if err != nil {
 		return false, nil
 	}
-
-	return true, &serverParts{datacenter, port, bootstrap}
+	addr := &net.TCPAddr{IP: m.Addr, Port: port}
+	return true, &serverParts{datacenter, port, bootstrap, addr}
 }
 
 // Returns if a member is a consul node. Returns a boo,
