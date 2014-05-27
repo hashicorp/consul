@@ -33,6 +33,7 @@ var protocolVersionMap map[uint8]uint8
 func init() {
 	protocolVersionMap = map[uint8]uint8{
 		1: 4,
+		2: 4,
 	}
 }
 
