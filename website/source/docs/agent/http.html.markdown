@@ -200,10 +200,10 @@ msgpack RPC protocol.
 
 The following endpoints are supported:
 
-* /v1/agent/self : Returns the local node configuration
 * /v1/agent/checks : Returns the checks the local agent is managing
 * /v1/agent/services : Returns the services local agent is managing
 * /v1/agent/members : Returns the members as seen by the local serf agent
+* /v1/agent/self : Returns the local node configuration
 * /v1/agent/join/\<address\> : Trigger local agent to join a node
 * /v1/agent/force-leave/\<node\>: Force remove node
 * /v1/agent/check/register : Registers a new local check
@@ -213,34 +213,6 @@ The following endpoints are supported:
 * /v1/agent/check/fail/\<checkID\> : Mark a local test as critical
 * /v1/agent/service/register : Registers a new local service
 * /v1/agent/service/deregister/\<serviceID\> : Deregister a local service
-
-### /v1/agent/self
-
-This endpoint is used to return configuration of the local agent.
-
-It returns a JSON body like this:
-
-    {
-        "Name": "foobar",
-        "Addr": "10.1.10.12",
-        "Port": 8301,
-        "Tags": {
-            "bootstrap": "1",
-            "dc": "dc1",
-            "port": "8300",
-            "role": "consul",
-            "vsn": "1",
-            "vsn_max": "1",
-            "vsn_min":"1"
-        },
-        "Status": 1,
-        "ProtocolMin": 1,
-        "ProtocolMax": 2,
-        "ProtocolCur": 2,
-        "DelegateMin": 2,
-        "DelegateMax": 4,
-        "DelegateCur": 4
-    }
 
 ### /v1/agent/checks
 
@@ -318,6 +290,77 @@ This endpoint returns a JSON body like:
             "DelegateCur": 3
         }
     ]
+
+### /v1/agent/self
+
+This endpoint is used to return configuration of the local agent and member information.
+
+It returns a JSON body like this:
+
+    {
+        "Config": {
+            "Bootstrap": true,
+            "Server": true,
+            "Datacenter": "dc1",
+            "DataDir": "/tmp/consul",
+            "DNSRecursor": "",
+            "Domain": "consul.",
+            "EncryptKey": "",
+            "LogLevel": "INFO",
+            "NodeName": "foobar",
+            "ClientAddr": "127.0.0.1",
+            "BindAddr": "0.0.0.0",
+            "AdvertiseAddr": "10.1.10.12",
+            "Ports": {
+                "DNS": 8600,
+                "HTTP": 8500,
+                "RPC": 8400,
+                "SerfLan": 8301,
+                "SerfWan": 8302,
+                "Server": 8300
+            },
+            "LeaveOnTerm": false,
+            "SkipLeaveOnInt": false,
+            "StatsiteAddr": "",
+            "Protocol": 1,
+            "EnableDebug": false,
+            "VerifyIncoming": false,
+            "VerifyOutgoing": false,
+            "CAFile": "",
+            "CertFile": "",
+            "KeyFile": "",
+            "StartJoin": [],
+            "UiDir": "",
+            "PidFile": "",
+            "EnableSyslog": false,
+            "RejoinAfterLeave": false,
+            "AEInterval": 60000000000,
+            "Checks": null,
+            "Services": null,
+            "ConsulConfig": null
+        },
+        "Member": {
+            "Name": "foobar",
+            "Addr": "10.1.10.12",
+            "Port": 8301,
+            "Tags": {
+                "bootstrap": "1",
+                "dc": "dc1",
+                "port": "8300",
+                "role": "consul",
+                "vsn": "1",
+                "vsn_max": "1",
+                "vsn_min": "1"
+            },
+            "Status": 1,
+            "ProtocolMin": 1,
+            "ProtocolMax": 2,
+            "ProtocolCur": 2,
+            "DelegateMin": 2,
+            "DelegateMax": 4,
+            "DelegateCur": 4
+        }
+    }
 
 ### /v1/agent/join/\<address\>
 

@@ -3,12 +3,21 @@ package agent
 import (
 	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/serf"
 	"net/http"
 	"strings"
 )
 
+type AgentSelf struct {
+	Config *Config
+	Member serf.Member
+}
+
 func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.agent.LocalMember(), nil
+	return AgentSelf{
+		Config: s.agent.config,
+		Member: s.agent.LocalMember(),
+	}, nil
 }
 
 func (s *HTTPServer) AgentServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

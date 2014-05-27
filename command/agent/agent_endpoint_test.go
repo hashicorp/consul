@@ -82,8 +82,12 @@ func TestHTTPAgentSelf(t *testing.T) {
 		t.Fatalf("Err: %v", err)
 	}
 
-	val := obj.(serf.Member)
-	if int(val.Port) != srv.agent.config.Ports.SerfLan {
+	val := obj.(AgentSelf)
+	if int(val.Member.Port) != srv.agent.config.Ports.SerfLan {
+		t.Fatalf("incorrect port: %v", obj)
+	}
+
+	if int(val.Config.Ports.SerfLan) != srv.agent.config.Ports.SerfLan {
 		t.Fatalf("incorrect port: %v", obj)
 	}
 }
