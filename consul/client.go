@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/serf/serf"
 	"log"
 	"math/rand"
-	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -263,14 +262,13 @@ func (c *Client) nodeFail(me serf.MemberEvent) {
 		if !ok {
 			continue
 		}
-		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: parts.Port}
-		c.logger.Printf("[INFO] consul: removing server for datacenter: %s, addr: %s", parts.Datacenter, addr)
+		c.logger.Printf("[INFO] consul: removing server %s", parts)
 
 		// Remove the server if known
 		c.consulLock.Lock()
 		n := len(c.consuls)
 		for i := 0; i < n; i++ {
-			if c.consuls[i].String() == addr.String() {
+			if c.consuls[i].Name == parts.Name {
 				c.consuls[i], c.consuls[n-1] = c.consuls[n-1], nil
 				c.consuls = c.consuls[:n-1]
 				break
