@@ -3,17 +3,9 @@
 Consul provides a few high-level services, each of which exposes
 methods. The services exposed are:
 
-* Raft : Used to manipulate Raft from non-leader nodes
 * Status : Used to query status information
 * Catalog: Used to register, deregister, and query service information
 * Health: Used to notify of health checks and changes to health
-
-## Raft Service
-
-The Raft service is used to manipulate the Raft controls on the Leader
-node. It is only for internal use. It exposes the following methods:
-
-* RemovePeer: Used to remove a peer from the group
 
 ## Status Service
 

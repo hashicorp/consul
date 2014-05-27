@@ -113,7 +113,6 @@ type Server struct {
 type endpoints struct {
 	Catalog  *Catalog
 	Health   *Health
-	Raft     *Raft
 	Status   *Status
 	KVS      *KVS
 	Session  *Session
@@ -322,7 +321,6 @@ func (s *Server) setupRaft() error {
 func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 	// Create endpoints
 	s.endpoints.Status = &Status{s}
-	s.endpoints.Raft = &Raft{s}
 	s.endpoints.Catalog = &Catalog{s}
 	s.endpoints.Health = &Health{s}
 	s.endpoints.KVS = &KVS{s}
@@ -331,7 +329,6 @@ func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 
 	// Register the handlers
 	s.rpcServer.Register(s.endpoints.Status)
-	s.rpcServer.Register(s.endpoints.Raft)
 	s.rpcServer.Register(s.endpoints.Catalog)
 	s.rpcServer.Register(s.endpoints.Health)
 	s.rpcServer.Register(s.endpoints.KVS)
@@ -437,45 +434,6 @@ func (s *Server) Leave() error {
 			s.logger.Printf("[ERR] consul: failed to leave LAN Serf cluster: %v", err)
 		}
 	}
-
-	// Leave the Raft cluster
-	if s.raft != nil {
-		// Check if we have other raft nodes
-		peers, _ := s.raftPeers.Peers()
-		if len(peers) <= 1 {
-			s.logger.Printf("[WARN] consul: not leaving Raft cluster, no peers")
-			goto AFTER_LEAVE
-		}
-
-		// Get the leader
-		leader := s.raft.Leader()
-		if leader == nil {
-			s.logger.Printf("[ERR] consul: failed to leave Raft cluster: no leader")
-			goto AFTER_LEAVE
-		}
-
-		// Request that we are removed
-		ch := make(chan error, 1)
-		go func() {
-			var out struct{}
-			peer := s.raftTransport.LocalAddr().String()
-			// TODO: Correct version
-			err := s.connPool.RPC(leader, 1, "Raft.RemovePeer", peer, &out)
-			ch <- err
-		}()
-
-		// Wait for the commit
-		select {
-		case err := <-ch:
-			// Ignore if we have already been deregistered by the leader
-			if err != nil && err.Error() != raft.ErrUnknownPeer.Error() {
-				s.logger.Printf("[ERR] consul: failed to leave Raft cluster: %v", err)
-			}
-		case <-time.After(3 * time.Second):
-			s.logger.Printf("[ERR] consul: timed out leaving Raft cluster")
-		}
-	}
-AFTER_LEAVE:
 	return nil
 }
 
