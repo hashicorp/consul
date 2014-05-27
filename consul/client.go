@@ -43,7 +43,7 @@ type Client struct {
 	connPool *ConnPool
 
 	// consuls tracks the locally known servers
-	consuls    []net.Addr
+	consuls    []*serverParts
 	consulLock sync.RWMutex
 
 	// eventCh is used to receive events from the
@@ -52,7 +52,7 @@ type Client struct {
 
 	// lastServer is the last server we made an RPC call to,
 	// this is used to re-use the last connection
-	lastServer  net.Addr
+	lastServer  *serverParts
 	lastRPCTime time.Time
 
 	// Logger uses the provided LogOutput
@@ -230,15 +230,14 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 				m.Name, parts.Datacenter)
 			continue
 		}
-
-		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: parts.Port}
-		c.logger.Printf("[INFO] consul: adding server for datacenter: %s, addr: %s", parts.Datacenter, addr)
+		c.logger.Printf("[INFO] consul: adding server %s", parts)
 
 		// Check if this server is known
 		found := false
 		c.consulLock.Lock()
-		for _, c := range c.consuls {
-			if c.String() == addr.String() {
+		for idx, existing := range c.consuls {
+			if existing.Name == parts.Name {
+				c.consuls[idx] = parts
 				found = true
 				break
 			}
@@ -246,7 +245,7 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 
 		// Add to the list if not known
 		if !found {
-			c.consuls = append(c.consuls, addr)
+			c.consuls = append(c.consuls, parts)
 		}
 		c.consulLock.Unlock()
 
@@ -304,7 +303,7 @@ func (c *Client) localEvent(event serf.UserEvent) {
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	// Check the last rpc time
-	var server net.Addr
+	var server *serverParts
 	if time.Now().Sub(c.lastRPCTime) < clientRPCCache {
 		server = c.lastServer
 		if server != nil {
@@ -325,8 +324,7 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 
 	// Forward to remote Consul
 TRY_RPC:
-	// TODO: Correct version
-	if err := c.connPool.RPC(server, 1, method, args, reply); err != nil {
+	if err := c.connPool.RPC(server.Addr, server.Version, method, args, reply); err != nil {
 		c.lastServer = nil
 		c.lastRPCTime = time.Time{}
 		return err

@@ -37,16 +37,21 @@ func TestIsPrivateIP(t *testing.T) {
 
 func TestIsConsulServer(t *testing.T) {
 	m := serf.Member{
+		Name: "foo",
 		Addr: net.IP([]byte{127, 0, 0, 1}),
 		Tags: map[string]string{
 			"role": "consul",
 			"dc":   "east-aws",
 			"port": "10000",
+			"vsn":  "1",
 		},
 	}
 	valid, parts := isConsulServer(m)
 	if !valid || parts.Datacenter != "east-aws" || parts.Port != 10000 {
 		t.Fatalf("bad: %v %v", valid, parts)
+	}
+	if parts.Name != "foo" {
+		t.Fatalf("bad: %v", parts)
 	}
 	if parts.Bootstrap {
 		t.Fatalf("unexpected bootstrap")
@@ -58,6 +63,9 @@ func TestIsConsulServer(t *testing.T) {
 	}
 	if parts.Addr.String() != "127.0.0.1:10000" {
 		t.Fatalf("bad addr: %v", parts.Addr)
+	}
+	if parts.Version != 1 {
+		t.Fatalf("bad: %v", parts)
 	}
 }
 

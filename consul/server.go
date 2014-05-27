@@ -86,7 +86,7 @@ type Server struct {
 
 	// remoteConsuls is used to track the known consuls in
 	// remote data centers. Used to do DC forwarding.
-	remoteConsuls map[string][]net.Addr
+	remoteConsuls map[string][]*serverParts
 	remoteLock    sync.RWMutex
 
 	// rpcListener is used to listen for incoming connections
@@ -164,7 +164,7 @@ func NewServer(config *Config) (*Server, error) {
 		eventChWAN:    make(chan serf.Event, 256),
 		logger:        logger,
 		reconcileCh:   make(chan serf.Member, 32),
-		remoteConsuls: make(map[string][]net.Addr),
+		remoteConsuls: make(map[string][]*serverParts),
 		rpcServer:     rpc.NewServer(),
 		rpcTLS:        incomingTLS,
 		shutdownCh:    make(chan struct{}),
@@ -522,8 +522,8 @@ func (s *Server) IsLeader() bool {
 // RPC is used to make a local RPC call
 func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 	addr := s.rpcListener.Addr()
-	// TODO: Correct version
-	return s.connPool.RPC(addr, 1, method, args, reply)
+	version := int(s.config.ProtocolVersion)
+	return s.connPool.RPC(addr, version, method, args, reply)
 }
 
 // Stats is used to return statistics for debugging and insight

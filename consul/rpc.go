@@ -186,7 +186,8 @@ func (s *Server) forwardLeader(method string, args interface{}, reply interface{
 	if leader == nil {
 		return structs.ErrNoLeader
 	}
-	return s.connPool.RPC(leader, method, args, reply)
+	// TODO: Correct version
+	return s.connPool.RPC(leader, 1, method, args, reply)
 }
 
 // forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
@@ -207,7 +208,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 
 	// Forward to remote Consul
 	metrics.IncrCounter([]string{"consul", "rpc", "cross-dc", dc}, 1)
-	return s.connPool.RPC(server, method, args, reply)
+	return s.connPool.RPC(server.Addr, server.Version, method, args, reply)
 }
 
 // raftApply is used to encode a message, run it through raft, and return

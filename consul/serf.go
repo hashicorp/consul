@@ -2,7 +2,6 @@ package consul
 
 import (
 	"github.com/hashicorp/serf/serf"
-	"net"
 	"strings"
 )
 
@@ -118,15 +117,15 @@ func (s *Server) remoteJoin(me serf.MemberEvent) {
 			s.logger.Printf("[WARN] consul: non-server in WAN pool: %s %s", m.Name)
 			continue
 		}
-		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: parts.Port}
-		s.logger.Printf("[INFO] consul: adding server for datacenter: %s, addr: %s", parts.Datacenter, addr)
+		s.logger.Printf("[INFO] consul: adding server %s", parts)
 
 		// Check if this server is known
 		found := false
 		s.remoteLock.Lock()
 		existing := s.remoteConsuls[parts.Datacenter]
-		for _, e := range existing {
-			if e.String() == addr.String() {
+		for idx, e := range existing {
+			if e.Name == parts.Name {
+				existing[idx] = parts
 				found = true
 				break
 			}
@@ -134,7 +133,7 @@ func (s *Server) remoteJoin(me serf.MemberEvent) {
 
 		// Add ot the list if not known
 		if !found {
-			s.remoteConsuls[parts.Datacenter] = append(existing, addr)
+			s.remoteConsuls[parts.Datacenter] = append(existing, parts)
 		}
 		s.remoteLock.Unlock()
 	}
@@ -147,15 +146,14 @@ func (s *Server) remoteFailed(me serf.MemberEvent) {
 		if !ok {
 			continue
 		}
-		var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: parts.Port}
-		s.logger.Printf("[INFO] consul: removing server for datacenter: %s, addr: %s", parts.Datacenter, addr)
+		s.logger.Printf("[INFO] consul: removing server %s", parts)
 
 		// Remove the server if known
 		s.remoteLock.Lock()
 		existing := s.remoteConsuls[parts.Datacenter]
 		n := len(existing)
 		for i := 0; i < n; i++ {
-			if existing[i].String() == addr.String() {
+			if existing[i].Name == parts.Name {
 				existing[i], existing[n-1] = existing[n-1], nil
 				existing = existing[:n-1]
 				n--

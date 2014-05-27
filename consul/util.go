@@ -22,10 +22,16 @@ var privateBlocks []*net.IPNet
 
 // serverparts is used to return the parts of a server role
 type serverParts struct {
+	Name       string
 	Datacenter string
 	Port       int
 	Bootstrap  bool
+	Version    int
 	Addr       net.Addr
+}
+
+func (s *serverParts) String() string {
+	return fmt.Sprintf("%s (Addr: %s) (DC: %s)", s.Name, s.Addr, s.Datacenter)
 }
 
 func init() {
@@ -76,14 +82,31 @@ func isConsulServer(m serf.Member) (bool, *serverParts) {
 	}
 
 	datacenter := m.Tags["dc"]
-	port_str := m.Tags["port"]
 	_, bootstrap := m.Tags["bootstrap"]
+
+	port_str := m.Tags["port"]
 	port, err := strconv.Atoi(port_str)
 	if err != nil {
 		return false, nil
 	}
+
+	vsn_str := m.Tags["vsn"]
+	vsn, err := strconv.Atoi(vsn_str)
+	if err != nil {
+		return false, nil
+	}
+
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
-	return true, &serverParts{datacenter, port, bootstrap, addr}
+
+	parts := &serverParts{
+		Name:       m.Name,
+		Datacenter: datacenter,
+		Port:       port,
+		Bootstrap:  bootstrap,
+		Addr:       addr,
+		Version:    vsn,
+	}
+	return true, parts
 }
 
 // Returns if a member is a consul node. Returns a boo,
