@@ -24,7 +24,7 @@ func (s *Server) lanEventHandler() {
 			case serf.EventMemberLeave:
 				fallthrough
 			case serf.EventMemberFailed:
-				s.nodeFailed(e.(serf.MemberEvent))
+				s.nodeFailed(e.(serf.MemberEvent), false)
 				s.localMemberEvent(e.(serf.MemberEvent))
 
 			case serf.EventMemberReap:
@@ -54,7 +54,7 @@ func (s *Server) wanEventHandler() {
 			case serf.EventMemberLeave:
 				fallthrough
 			case serf.EventMemberFailed:
-				s.nodeFailed(e.(serf.MemberEvent))
+				s.nodeFailed(e.(serf.MemberEvent), true)
 			case serf.EventMemberUpdate: // Ignore
 			case serf.EventMemberReap: // Ignore
 			case serf.EventUser:
@@ -142,11 +142,18 @@ func (s *Server) nodeJoin(me serf.MemberEvent, wan bool) {
 			s.remoteConsuls[parts.Datacenter] = append(existing, parts)
 		}
 		s.remoteLock.Unlock()
+
+		// Add to the local list as well
+		if !wan {
+			s.localLock.Lock()
+			s.localConsuls[parts.Addr.String()] = parts
+			s.localLock.Unlock()
+		}
 	}
 }
 
 // nodeFailed is used to handle fail events on both the serf clustes
-func (s *Server) nodeFailed(me serf.MemberEvent) {
+func (s *Server) nodeFailed(me serf.MemberEvent, wan bool) {
 	for _, m := range me.Members {
 		ok, parts := isConsulServer(m)
 		if !ok {
@@ -174,5 +181,12 @@ func (s *Server) nodeFailed(me serf.MemberEvent) {
 			s.remoteConsuls[parts.Datacenter] = existing
 		}
 		s.remoteLock.Unlock()
+
+		// Remove from the local list as well
+		if !wan {
+			s.localLock.Lock()
+			delete(s.localConsuls, parts.Addr.String())
+			s.localLock.Unlock()
+		}
 	}
 }

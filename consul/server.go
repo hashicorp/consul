@@ -68,6 +68,11 @@ type Server struct {
 	// Have we attempted to leave the cluster
 	left bool
 
+	// localConsuls is used to track the known consuls
+	// in the local data center. Used to do leader forwarding.
+	localConsuls map[string]*serverParts
+	localLock    sync.RWMutex
+
 	// Logger uses the provided LogOutput
 	logger *log.Logger
 
@@ -161,6 +166,7 @@ func NewServer(config *Config) (*Server, error) {
 		connPool:      NewPool(serverRPCCache, serverMaxStreams, tlsConfig),
 		eventChLAN:    make(chan serf.Event, 256),
 		eventChWAN:    make(chan serf.Event, 256),
+		localConsuls:  make(map[string]*serverParts),
 		logger:        logger,
 		reconcileCh:   make(chan serf.Member, 32),
 		remoteConsuls: make(map[string][]*serverParts),

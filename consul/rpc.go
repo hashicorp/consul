@@ -182,12 +182,22 @@ func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, 
 
 // forwardLeader is used to forward an RPC call to the leader, or fail if no leader
 func (s *Server) forwardLeader(method string, args interface{}, reply interface{}) error {
+	// Get the leader
 	leader := s.raft.Leader()
 	if leader == nil {
 		return structs.ErrNoLeader
 	}
-	// TODO: Correct version
-	return s.connPool.RPC(leader, 1, method, args, reply)
+
+	// Lookup the server
+	s.localLock.RLock()
+	server := s.localConsuls[leader.String()]
+	s.localLock.RUnlock()
+
+	// Handle a missing server
+	if server == nil {
+		return structs.ErrNoLeader
+	}
+	return s.connPool.RPC(server.Addr, server.Version, method, args, reply)
 }
 
 // forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
