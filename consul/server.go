@@ -32,6 +32,14 @@ const (
 	snapshotsRetained        = 2
 	raftDBSize32bit   uint64 = 128 * 1024 * 1024      // Limit Raft log to 128MB
 	raftDBSize64bit   uint64 = 8 * 1024 * 1024 * 1024 // Limit Raft log to 8GB
+
+	// serverRPCCache controls how long we keep an idle connection
+	// open to a server
+	serverRPCCache = 2 * time.Minute
+
+	// serverMaxStreams controsl how many idle streams we keep
+	// open to a server
+	serverMaxStreams = 64
 )
 
 // Server is Consul server which manages the service discovery,
@@ -151,7 +159,7 @@ func NewServer(config *Config) (*Server, error) {
 	// Create server
 	s := &Server{
 		config:        config,
-		connPool:      NewPool(time.Minute, tlsConfig),
+		connPool:      NewPool(serverRPCCache, serverMaxStreams, tlsConfig),
 		eventChLAN:    make(chan serf.Event, 256),
 		eventChWAN:    make(chan serf.Event, 256),
 		logger:        logger,
@@ -451,7 +459,8 @@ func (s *Server) Leave() error {
 		go func() {
 			var out struct{}
 			peer := s.raftTransport.LocalAddr().String()
-			err := s.connPool.RPC(leader, "Raft.RemovePeer", peer, &out)
+			// TODO: Correct version
+			err := s.connPool.RPC(leader, 1, "Raft.RemovePeer", peer, &out)
 			ch <- err
 		}()
 
@@ -513,7 +522,8 @@ func (s *Server) IsLeader() bool {
 // RPC is used to make a local RPC call
 func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 	addr := s.rpcListener.Addr()
-	return s.connPool.RPC(addr, method, args, reply)
+	// TODO: Correct version
+	return s.connPool.RPC(addr, 1, method, args, reply)
 }
 
 // Stats is used to return statistics for debugging and insight

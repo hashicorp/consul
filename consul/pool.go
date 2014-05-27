@@ -1,8 +1,10 @@
 package consul
 
 import (
+	"container/list"
 	"crypto/tls"
 	"fmt"
+	"github.com/hashicorp/yamux"
 	"github.com/inconshreveable/muxado"
 	"github.com/ugorji/go/codec"
 	"net"
@@ -12,16 +14,92 @@ import (
 	"time"
 )
 
+// muxSession is used to provide an interface for either muxado or yamux
+type muxSession interface {
+	Open() (net.Conn, error)
+	Close() error
+}
+
+type muxadoWrapper struct {
+	m muxado.Session
+}
+
+func (w *muxadoWrapper) Open() (net.Conn, error) {
+	return w.m.Open()
+}
+
+func (w *muxadoWrapper) Close() error {
+	return w.m.Close()
+}
+
+// streamClient is used to wrap a stream with an RPC client
+type StreamClient struct {
+	stream net.Conn
+	client *rpc.Client
+}
+
 // Conn is a pooled connection to a Consul server
 type Conn struct {
 	refCount int32
 	addr     net.Addr
-	session  muxado.Session
+	session  muxSession
 	lastUsed time.Time
+	version  int
+
+	pool *ConnPool
+
+	clients    *list.List
+	clientLock sync.Mutex
 }
 
 func (c *Conn) Close() error {
 	return c.session.Close()
+}
+
+// getClient is used to get a cached or new client
+func (c *Conn) getClient() (*StreamClient, error) {
+	// Check for cached client
+	c.clientLock.Lock()
+	front := c.clients.Front()
+	if front != nil {
+		c.clients.Remove(front)
+	}
+	c.clientLock.Unlock()
+	if front != nil {
+		return front.Value.(*StreamClient), nil
+	}
+
+	// Open a new session
+	stream, err := c.session.Open()
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the RPC client
+	cc := codec.GoRpc.ClientCodec(stream, &codec.MsgpackHandle{})
+	client := rpc.NewClientWithCodec(cc)
+
+	// Return a new stream client
+	sc := &StreamClient{
+		stream: stream,
+		client: client,
+	}
+	return sc, nil
+}
+
+// returnStream is used when done with a stream
+// to allow re-use by a future RPC
+func (c *Conn) returnClient(client *StreamClient) {
+	didSave := false
+	c.clientLock.Lock()
+	if c.clients.Len() < c.pool.maxStreams {
+		c.clients.PushFront(client)
+		didSave = true
+	}
+	c.clientLock.Unlock()
+	if !didSave {
+		client.stream.Close()
+	}
 }
 
 // ConnPool is used to maintain a connection pool to other
@@ -34,6 +112,9 @@ type ConnPool struct {
 
 	// The maximum time to keep a connection open
 	maxTime time.Duration
+
+	// The maximum number of open streams to keep
+	maxStreams int
 
 	// Pool maps an address to a open connection
 	pool map[string]*Conn
@@ -48,11 +129,13 @@ type ConnPool struct {
 
 // NewPool is used to make a new connection pool
 // Maintain at most one connection per host, for up to maxTime.
-// Set maxTime to 0 to disable reaping. If TLS settings are provided
-// outgoing connections use TLS.
-func NewPool(maxTime time.Duration, tlsConfig *tls.Config) *ConnPool {
+// Set maxTime to 0 to disable reaping. maxStreams is used to control
+// the number of idle streams allowed.
+// If TLS settings are provided outgoing connections use TLS.
+func NewPool(maxTime time.Duration, maxStreams int, tlsConfig *tls.Config) *ConnPool {
 	pool := &ConnPool{
 		maxTime:    maxTime,
+		maxStreams: maxStreams,
 		pool:       make(map[string]*Conn),
 		tlsConfig:  tlsConfig,
 		shutdownCh: make(chan struct{}),
@@ -83,18 +166,18 @@ func (p *ConnPool) Shutdown() error {
 
 // Acquire is used to get a connection that is
 // pooled or to return a new connection
-func (p *ConnPool) acquire(addr net.Addr) (*Conn, error) {
+func (p *ConnPool) acquire(addr net.Addr, version int) (*Conn, error) {
 	// Check for a pooled ocnn
-	if conn := p.getPooled(addr); conn != nil {
+	if conn := p.getPooled(addr, version); conn != nil {
 		return conn, nil
 	}
 
 	// Create a new connection
-	return p.getNewConn(addr)
+	return p.getNewConn(addr, version)
 }
 
 // getPooled is used to return a pooled connection
-func (p *ConnPool) getPooled(addr net.Addr) *Conn {
+func (p *ConnPool) getPooled(addr net.Addr, version int) *Conn {
 	p.Lock()
 	defer p.Unlock()
 
@@ -108,7 +191,7 @@ func (p *ConnPool) getPooled(addr net.Addr) *Conn {
 }
 
 // getNewConn is used to return a new connection
-func (p *ConnPool) getNewConn(addr net.Addr) (*Conn, error) {
+func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 	// Try to dial the conn
 	conn, err := net.DialTimeout("tcp", addr.String(), 10*time.Second)
 	if err != nil {
@@ -133,32 +216,39 @@ func (p *ConnPool) getNewConn(addr net.Addr) (*Conn, error) {
 		conn = tls.Client(conn, p.tlsConfig)
 	}
 
-	// Write the Consul multiplex byte to set the mode
-	if _, err := conn.Write([]byte{byte(rpcMultiplex)}); err != nil {
-		conn.Close()
-		return nil, err
-	}
+	// Switch the multiplexing based on version
+	var session muxSession
+	if version < 2 {
+		// Write the Consul multiplex byte to set the mode
+		if _, err := conn.Write([]byte{byte(rpcMultiplex)}); err != nil {
+			conn.Close()
+			return nil, err
+		}
 
-	// Create a multiplexed session
-	session := muxado.Client(conn)
+		// Create a multiplexed session
+		session = &muxadoWrapper{muxado.Client(conn)}
+
+	} else {
+		// Write the Consul multiplex byte to set the mode
+		if _, err := conn.Write([]byte{byte(rpcMultiplexV2)}); err != nil {
+			conn.Close()
+			return nil, err
+		}
+
+		// Create a multiplexed session
+		session, _ = yamux.Client(conn, nil)
+	}
 
 	// Wrap the connection
 	c := &Conn{
 		refCount: 1,
 		addr:     addr,
 		session:  session,
+		clients:  list.New(),
 		lastUsed: time.Now(),
+		version:  version,
+		pool:     p,
 	}
-
-	// Monitor the session
-	go func() {
-		session.Wait()
-		p.Lock()
-		defer p.Unlock()
-		if conn, ok := p.pool[addr.String()]; ok && conn.session == session {
-			delete(p.pool, addr.String())
-		}
-	}()
 
 	// Track this connection, handle potential race condition
 	p.Lock()
@@ -184,19 +274,18 @@ func (p *ConnPool) releaseConn(conn *Conn) {
 	atomic.AddInt32(&conn.refCount, -1)
 }
 
-// RPC is used to make an RPC call to a remote host
-func (p *ConnPool) RPC(addr net.Addr, method string, args interface{}, reply interface{}) error {
+// getClient is used to get a usable client for an address and protocol version
+func (p *ConnPool) getClient(addr net.Addr, version int) (*Conn, *StreamClient, error) {
 	retries := 0
 START:
 	// Try to get a conn first
-	conn, err := p.acquire(addr)
+	conn, err := p.acquire(addr, version)
 	if err != nil {
-		return fmt.Errorf("failed to get conn: %v", err)
+		return nil, nil, fmt.Errorf("failed to get conn: %v", err)
 	}
-	defer p.releaseConn(conn)
 
-	// Create a new stream
-	stream, err := conn.session.Open()
+	// Get a client
+	client, err := conn.getClient()
 	if err != nil {
 		p.clearConn(addr)
 
@@ -205,16 +294,21 @@ START:
 			retries++
 			goto START
 		}
-		return fmt.Errorf("failed to start stream: %v", err)
+		return nil, nil, fmt.Errorf("failed to start stream: %v", err)
 	}
-	defer stream.Close()
+	return conn, client, nil
+}
 
-	// Create the RPC client
-	cc := codec.GoRpc.ClientCodec(stream, &codec.MsgpackHandle{})
-	client := rpc.NewClientWithCodec(cc)
+// RPC is used to make an RPC call to a remote host
+func (p *ConnPool) RPC(addr net.Addr, version int, method string, args interface{}, reply interface{}) error {
+	conn, sc, err := p.getClient(addr, version)
+	defer func() {
+		conn.returnClient(sc)
+		p.releaseConn(conn)
+	}()
 
 	// Make the RPC call
-	err = client.Call(method, args, reply)
+	err = sc.client.Call(method, args, reply)
 
 	// Fast path the non-error case
 	if err == nil {

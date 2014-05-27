@@ -16,8 +16,14 @@ import (
 	"time"
 )
 
-var (
+const (
+	// clientRPCCache controls how long we keep an idle connection
+	// open to a server
 	clientRPCCache = 30 * time.Second
+
+	// clientMaxStreams controsl how many idle streams we keep
+	// open to a server
+	clientMaxStreams = 32
 )
 
 // Interface is used to provide either a Client or Server,
@@ -94,7 +100,7 @@ func NewClient(config *Config) (*Client, error) {
 	// Create server
 	c := &Client{
 		config:     config,
-		connPool:   NewPool(clientRPCCache, tlsConfig),
+		connPool:   NewPool(clientRPCCache, clientMaxStreams, tlsConfig),
 		eventCh:    make(chan serf.Event, 256),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
@@ -319,7 +325,8 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 
 	// Forward to remote Consul
 TRY_RPC:
-	if err := c.connPool.RPC(server, method, args, reply); err != nil {
+	// TODO: Correct version
+	if err := c.connPool.RPC(server, 1, method, args, reply); err != nil {
 		c.lastServer = nil
 		c.lastRPCTime = time.Time{}
 		return err
