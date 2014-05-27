@@ -18,11 +18,15 @@ func (s *Server) lanEventHandler() {
 		case e := <-s.eventChLAN:
 			switch e.EventType() {
 			case serf.EventMemberJoin:
-				fallthrough
+				s.nodeJoin(e.(serf.MemberEvent), false)
+				s.localMemberEvent(e.(serf.MemberEvent))
+
 			case serf.EventMemberLeave:
 				fallthrough
 			case serf.EventMemberFailed:
-				fallthrough
+				s.nodeFailed(e.(serf.MemberEvent))
+				s.localMemberEvent(e.(serf.MemberEvent))
+
 			case serf.EventMemberReap:
 				s.localMemberEvent(e.(serf.MemberEvent))
 			case serf.EventUser:
@@ -46,11 +50,11 @@ func (s *Server) wanEventHandler() {
 		case e := <-s.eventChWAN:
 			switch e.EventType() {
 			case serf.EventMemberJoin:
-				s.remoteJoin(e.(serf.MemberEvent))
+				s.nodeJoin(e.(serf.MemberEvent), true)
 			case serf.EventMemberLeave:
 				fallthrough
 			case serf.EventMemberFailed:
-				s.remoteFailed(e.(serf.MemberEvent))
+				s.nodeFailed(e.(serf.MemberEvent))
 			case serf.EventMemberUpdate: // Ignore
 			case serf.EventMemberReap: // Ignore
 			case serf.EventUser:
@@ -109,12 +113,14 @@ func (s *Server) localEvent(event serf.UserEvent) {
 	}
 }
 
-// remoteJoin is used to handle join events on the wan serf cluster
-func (s *Server) remoteJoin(me serf.MemberEvent) {
+// nodeJoin is used to handle join events on the both serf clusters
+func (s *Server) nodeJoin(me serf.MemberEvent, wan bool) {
 	for _, m := range me.Members {
 		ok, parts := isConsulServer(m)
 		if !ok {
-			s.logger.Printf("[WARN] consul: non-server in WAN pool: %s %s", m.Name)
+			if wan {
+				s.logger.Printf("[WARN] consul: non-server in WAN pool: %s %s", m.Name)
+			}
 			continue
 		}
 		s.logger.Printf("[INFO] consul: adding server %s", parts)
@@ -139,8 +145,8 @@ func (s *Server) remoteJoin(me serf.MemberEvent) {
 	}
 }
 
-// remoteFailed is used to handle fail events on the wan serf cluster
-func (s *Server) remoteFailed(me serf.MemberEvent) {
+// nodeFailed is used to handle fail events on both the serf clustes
+func (s *Server) nodeFailed(me serf.MemberEvent) {
 	for _, m := range me.Members {
 		ok, parts := isConsulServer(m)
 		if !ok {
