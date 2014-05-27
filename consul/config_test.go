@@ -2,17 +2,19 @@ package consul
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"testing"
 )
 
-func TestConfig_CACertificate_None(t *testing.T) {
+func TestConfig_AppendCA_None(t *testing.T) {
 	conf := &Config{}
-	cert, err := conf.CACertificate()
+	pool := x509.NewCertPool()
+	err := conf.AppendCA(pool)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if cert != nil {
-		t.Fatalf("bad: %v", cert)
+	if len(pool.Subjects()) != 0 {
+		t.Fatalf("bad: %v", pool.Subjects())
 	}
 }
 
@@ -20,11 +22,12 @@ func TestConfig_CACertificate_Valid(t *testing.T) {
 	conf := &Config{
 		CAFile: "../test/ca/root.cer",
 	}
-	cert, err := conf.CACertificate()
+	pool := x509.NewCertPool()
+	err := conf.AppendCA(pool)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if cert == nil {
+	if len(pool.Subjects()) == 0 {
 		t.Fatalf("expected cert")
 	}
 }
