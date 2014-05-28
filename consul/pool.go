@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/yamux"
 	"github.com/inconshreveable/muxado"
 	"github.com/ugorji/go/codec"
+	"io"
 	"net"
 	"net/rpc"
 	"sync"
@@ -110,6 +111,9 @@ func (c *Conn) returnClient(client *StreamClient) {
 type ConnPool struct {
 	sync.Mutex
 
+	// LogOutput is used to control logging
+	logOutput io.Writer
+
 	// The maximum time to keep a connection open
 	maxTime time.Duration
 
@@ -132,8 +136,9 @@ type ConnPool struct {
 // Set maxTime to 0 to disable reaping. maxStreams is used to control
 // the number of idle streams allowed.
 // If TLS settings are provided outgoing connections use TLS.
-func NewPool(maxTime time.Duration, maxStreams int, tlsConfig *tls.Config) *ConnPool {
+func NewPool(logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsConfig *tls.Config) *ConnPool {
 	pool := &ConnPool{
+		logOutput:  logOutput,
 		maxTime:    maxTime,
 		maxStreams: maxStreams,
 		pool:       make(map[string]*Conn),
@@ -235,8 +240,12 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 			return nil, err
 		}
 
+		// Setup the logger
+		conf := yamux.DefaultConfig()
+		conf.LogOutput = nil
+
 		// Create a multiplexed session
-		session, _ = yamux.Client(conn, nil)
+		session, _ = yamux.Client(conn, conf)
 	}
 
 	// Wrap the connection

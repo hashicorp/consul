@@ -130,7 +130,9 @@ func (s *Server) handleMultiplex(conn net.Conn) {
 // using the Yamux multiplexer
 func (s *Server) handleMultiplexV2(conn net.Conn) {
 	defer conn.Close()
-	server, _ := yamux.Server(conn, nil)
+	conf := yamux.DefaultConfig()
+	conf.LogOutput = s.config.LogOutput
+	server, _ := yamux.Server(conn, conf)
 	for {
 		sub, err := server.Accept()
 		if err != nil {

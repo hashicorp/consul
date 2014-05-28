@@ -163,7 +163,7 @@ func NewServer(config *Config) (*Server, error) {
 	// Create server
 	s := &Server{
 		config:        config,
-		connPool:      NewPool(serverRPCCache, serverMaxStreams, tlsConfig),
+		connPool:      NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsConfig),
 		eventChLAN:    make(chan serf.Event, 256),
 		eventChWAN:    make(chan serf.Event, 256),
 		localConsuls:  make(map[string]*serverParts),
