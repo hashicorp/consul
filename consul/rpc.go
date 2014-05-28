@@ -149,7 +149,7 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 	rpcCodec := codec.GoRpc.ServerCodec(conn, &codec.MsgpackHandle{})
 	for !s.shutdown {
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
-			if err != io.EOF {
+			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
 				s.logger.Printf("[ERR] consul.rpc: RPC error: %v (%v)", err, conn)
 			}
 			return
