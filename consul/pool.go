@@ -266,7 +266,10 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 func (p *ConnPool) clearConn(addr net.Addr) {
 	p.Lock()
 	defer p.Unlock()
-	delete(p.pool, addr.String())
+	if conn, ok := p.pool[addr.String()]; ok {
+		conn.Close()
+		delete(p.pool, addr.String())
+	}
 }
 
 // releaseConn is invoked when we are done with a conn to reduce the ref count
@@ -315,10 +318,8 @@ func (p *ConnPool) RPC(addr net.Addr, version int, method string, args interface
 		return nil
 	}
 
-	// If its a network error, nuke the connection
-	if _, ok := err.(net.Error); ok {
-		p.clearConn(addr)
-	}
+	// Do-not re-use as a pre-caution
+	p.clearConn(addr)
 	return fmt.Errorf("rpc error: %v", err)
 }
 
