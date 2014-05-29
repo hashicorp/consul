@@ -31,6 +31,7 @@ const (
 type Interface interface {
 	RPC(method string, args interface{}, reply interface{}) error
 	LANMembers() []serf.Member
+	LocalMember() serf.Member
 }
 
 // Client is Consul client which uses RPC to communicate with the
@@ -179,6 +180,11 @@ func (c *Client) Leave() error {
 // listening on the Serf LAN address
 func (c *Client) JoinLAN(addrs []string) (int, error) {
 	return c.serf.Join(addrs, true)
+}
+
+// LocalMember is used to return the local node
+func (c *Client) LocalMember() serf.Member {
+	return c.serf.LocalMember()
 }
 
 // LANMembers is used to return the members of the LAN cluster

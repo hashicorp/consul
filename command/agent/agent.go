@@ -313,7 +313,11 @@ func (a *Agent) ForceLeave(node string) (err error) {
 
 // LocalMember is used to return the local node
 func (a *Agent) LocalMember() serf.Member {
-	return a.server.LocalMember()
+	if a.server != nil {
+		return a.server.LocalMember()
+	} else {
+		return a.client.LocalMember()
+	}
 }
 
 // LANMembers is used to retrieve the LAN members
