@@ -305,7 +305,6 @@ It returns a JSON body like this:
             "DataDir": "/tmp/consul",
             "DNSRecursor": "",
             "Domain": "consul.",
-            "EncryptKey": "",
             "LogLevel": "INFO",
             "NodeName": "foobar",
             "ClientAddr": "127.0.0.1",
@@ -333,11 +332,7 @@ It returns a JSON body like this:
             "UiDir": "",
             "PidFile": "",
             "EnableSyslog": false,
-            "RejoinAfterLeave": false,
-            "AEInterval": 60000000000,
-            "Checks": null,
-            "Services": null,
-            "ConsulConfig": null
+            "RejoinAfterLeave": false
         },
         "Member": {
             "Name": "foobar",

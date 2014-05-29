@@ -54,7 +54,7 @@ type Config struct {
 	Domain string `mapstructure:"domain"`
 
 	// Encryption key to use for the Serf communication
-	EncryptKey string `mapstructure:"encrypt"`
+	EncryptKey string `mapstructure:"encrypt" json:"-"`
 
 	// LogLevel is the level of the logs to putout
 	LogLevel string `mapstructure:"log_level"`
@@ -144,16 +144,16 @@ type Config struct {
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
-	AEInterval time.Duration `mapstructure:"-"`
+	AEInterval time.Duration `mapstructure:"-" json:"-"`
 
 	// Checks holds the provided check definitions
-	Checks []*CheckDefinition `mapstructure:"-"`
+	Checks []*CheckDefinition `mapstructure:"-" json:"-"`
 
 	// Services holds the provided service definitions
-	Services []*ServiceDefinition `mapstructure:"-"`
+	Services []*ServiceDefinition `mapstructure:"-" json:"-"`
 
 	// ConsulConfig can either be provided or a default one created
-	ConsulConfig *consul.Config `mapstructure:"-"`
+	ConsulConfig *consul.Config `mapstructure:"-" json:"-"`
 }
 
 type dirEnts []os.FileInfo
