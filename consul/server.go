@@ -457,6 +457,11 @@ func (s *Server) JoinWAN(addrs []string) (int, error) {
 	return s.serfWAN.Join(addrs, true)
 }
 
+// LocalMember is used to return the local node
+func (c *Server) LocalMember() serf.Member {
+	return c.serfLAN.LocalMember()
+}
+
 // LANMembers is used to return the members of the LAN cluster
 func (s *Server) LANMembers() []serf.Member {
 	return s.serfLAN.Members()

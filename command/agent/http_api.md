@@ -28,7 +28,8 @@ Status:
 * /v1/status/peers : Returns the current Raft peer set
 
 Agent:
-* /v1/agent/checks: Returns the checks the local agent is managing
+* /v1/agent/self : Returns the local configuration
+* /v1/agent/checks : Returns the checks the local agent is managing
 * /v1/agent/services : Returns the services local agent is managing
 * /v1/agent/members : Returns the members as seen by the local serf agent
 * /v1/agent/join/<node> : Instructs the local agent to join a node
