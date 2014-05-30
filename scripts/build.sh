@@ -26,14 +26,21 @@ if [ "$(go env GOOS)" = "windows" ]; then
     GOPATHSINGLE=${GOPATH%%;*}
 fi
 
+if [ "$(go env GOOS)" = "freebsd" ]; then
+  export CC="clang"
+  export CGO_LDFLAGS="$CGO_LDFLAGS -extld clang" # Workaround for https://code.google.com/p/go/issues/detail?id=6845
+fi
+
 # Install dependencies
 echo "--> Installing dependencies to speed up builds..."
-go get ./...
+go get \
+  -ldflags "${CGO_LDFLAGS}" \
+  ./...
 
 # Build!
 echo "--> Building..."
 go build \
-    -ldflags "-X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
+    -ldflags "${CGO_LDFLAGS} -X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
     -v \
     -o bin/consul${EXTENSION}
 cp bin/consul${EXTENSION} ${GOPATHSINGLE}/bin
