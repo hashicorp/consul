@@ -318,27 +318,46 @@
   <script type="text/x-handlebars" id="nodes">
     <div class="col-md-5">
 
-      {{#each node in nodes}}
-        <div class="row">
-          {{#link-to 'nodes.show' node.Node tagName="div" href=false class="list-group-item list-link" }}
-            <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
-            <h4 class="list-group-item-heading">
-              {{node.Node}}
-              <small>{{node.Address}}</small>
-              <div class="heading-helper">
-                <a class="subtle" href="#">{{node.checkMessage}}</a>
+      {{#if condensedView }}
+
+        {{#each node in nodes}}
+          <div class="row">
+            {{#link-to 'nodes.show' node.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
+              <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar-horizontal"}}></div>
+              <div class="name">
+                {{node.Node}}
+                <small class="pull-right">
+                  {{ node.Services.length }} services
+                </small>
               </div>
-            </h4>
-            <ul class="list-inline">
-              {{#each service in node.Services }}
-                <li class="bold">{{service.Service}}</li>
-              {{/each}}
-            </ul>
-          </div>
-        {{/link-to}}
+            </div>
+          {{/link-to}}
 
-      {{/each}}
+        {{/each}}
 
+      {{else}}
+
+        {{#each node in nodes}}
+          <div class="row">
+            {{#link-to 'nodes.show' node.Node tagName="div" href=false class="list-group-item list-link" }}
+              <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+              <h4 class="list-group-item-heading">
+                {{node.Node}}
+                <small>{{node.Address}}</small>
+                <div class="heading-helper">
+                  <a class="subtle" href="#">{{node.checkMessage}}</a>
+                </div>
+              </h4>
+              <ul class="list-inline">
+                {{#each service in node.Services }}
+                  <li class="bold">{{service.Service}}</li>
+                {{/each}}
+              </ul>
+            </div>
+          {{/link-to}}
+
+        {{/each}}
+      {{/if}}
     </div>
 
     <div class="col-md-1">
@@ -439,6 +458,7 @@
   <script src="javascripts/app/views.js"></script>
   <script src="javascripts/app/controllers.js"></script>
   <script src="javascripts/app/helpers.js"></script>
+  <script src="javascripts/app/components.js"></script>
   <!-- to activate the test runner, add the "?test" query string parameter -->
   <script src="tests/runner.js"></script>
   <!-- <script src="static/application.min.js"></script> -->

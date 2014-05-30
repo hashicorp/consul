@@ -216,3 +216,7 @@ App.KvEditController = KvBaseController.extend({
   }
 
 });
+
+App.NodesController = Ember.ArrayController.extend({
+  condensedView: true
+});
