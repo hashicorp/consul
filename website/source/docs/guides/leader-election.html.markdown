@@ -59,7 +59,7 @@ releasing the lock:
 ## Discovering a Leader
 
 The second flow is for nodes who are attempting to discover the leader
-for a given servie. All nodes that are participating should agree on the key
+for a given service. All nodes that are participating should agree on the key
 being used to coordinate, including the contendors. This key will be referred
 to as just `key`.
 
