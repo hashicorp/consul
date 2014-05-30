@@ -93,7 +93,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 }
 
 func pruneHiddenEntries(ents structs.DirEntries) structs.DirEntries {
-	newEnts := make(structs.DirEntries, 0, len(ents))
+	newEnts := make(structs.DirEntries, len(ents))
 
 	idx := 0
 	for _, e := range ents {
@@ -103,11 +103,11 @@ func pruneHiddenEntries(ents structs.DirEntries) structs.DirEntries {
 		}
 	}
 
-	return newEnts
+	return newEnts[:idx]
 }
 
 func pruneHiddenKeys(keys []string) []string {
-	newKeys := make([]string, 0, len(keys))
+	newKeys := make([]string, len(keys))
 
 	idx := 0
 	for _, e := range keys {
@@ -117,7 +117,7 @@ func pruneHiddenKeys(keys []string) []string {
 		}
 	}
 
-	return newKeys
+	return newKeys[:idx]
 }
 
 // List is used to list all keys with a given prefix
