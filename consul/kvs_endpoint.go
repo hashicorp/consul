@@ -92,6 +92,34 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 		})
 }
 
+func pruneHiddenEntries(ents structs.DirEntries) structs.DirEntries {
+	newEnts := make(structs.DirEntries, 0, len(ents))
+
+	idx := 0
+	for _, e := range ents {
+		if e.Key[0] != '.' {
+			newEnts[idx] = e
+			idx++
+		}
+	}
+
+	return newEnts
+}
+
+func pruneHiddenKeys(keys []string) []string {
+	newKeys := make([]string, 0, len(keys))
+
+	idx := 0
+	for _, e := range keys {
+		if e[0] != '.' {
+			newKeys[idx] = e
+			idx++
+		}
+	}
+
+	return newKeys
+}
+
 // List is used to list all keys with a given prefix
 func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) error {
 	if done, err := k.srv.forward("KVS.List", args, args, reply); done {
@@ -118,6 +146,8 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 				}
 				reply.Entries = nil
 			} else {
+				ent = pruneHiddenEntries(ent)
+
 				// Determine the maximum affected index
 				var maxIndex uint64
 				for _, e := range ent {
@@ -147,6 +177,7 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 		func() error {
 			var err error
 			reply.Index, reply.Keys, err = state.KVSListKeys(args.Prefix, args.Seperator)
+			reply.Keys = pruneHiddenKeys(reply.Keys)
 			return err
 		})
 }
