@@ -321,9 +321,9 @@ func TestLeader_LeftServer(t *testing.T) {
 	for _, s := range servers[1:] {
 		testutil.WaitForResult(func() (bool, error) {
 			peers, _ := s.raftPeers.Peers()
-			return len(peers) == 2, nil
+			return len(peers) == 2, errors.New(fmt.Sprintf("%v", peers))
 		}, func(err error) {
-			t.Fatalf("should have 2 peers")
+			t.Fatalf("should have 2 peers: %v", err)
 		})
 	}
 }
