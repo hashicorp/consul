@@ -59,6 +59,7 @@ func testServerConfig(t *testing.T, NodeName string) (string, *Config) {
 	config.SerfWANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
 	config.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
 
+	config.RaftConfig.LeaderLeaseTimeout = 20 * time.Millisecond
 	config.RaftConfig.HeartbeatTimeout = 40 * time.Millisecond
 	config.RaftConfig.ElectionTimeout = 40 * time.Millisecond
 

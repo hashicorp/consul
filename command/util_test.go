@@ -95,6 +95,7 @@ func nextConfig() *agent.Config {
 	cons.SerfWANConfig.MemberlistConfig.ProbeInterval = 100 * time.Millisecond
 	cons.SerfWANConfig.MemberlistConfig.GossipInterval = 100 * time.Millisecond
 
+	cons.RaftConfig.LeaderLeaseTimeout = 20 * time.Millisecond
 	cons.RaftConfig.HeartbeatTimeout = 40 * time.Millisecond
 	cons.RaftConfig.ElectionTimeout = 40 * time.Millisecond
 
