@@ -246,6 +246,13 @@ App.NodesRoute = App.BaseRoute.extend({
       objs = [];
       data.map(function(obj){
        objs.push(App.Node.create(obj));
+       objs.push(App.Node.create(obj));
+       objs.push(App.Node.create(obj));
+       objs.push(App.Node.create(obj));
+       objs.push(App.Node.create(obj));
+       objs.push(App.Node.create(obj));
+       objs.push(App.Node.create(obj));
+       objs.push(App.Node.create(obj));
       });
       return objs
     });

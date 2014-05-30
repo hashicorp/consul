@@ -42,16 +42,48 @@
         background-color: lighten($gray-background, 8%);
     }
 
+    &.list-condensed-link:hover {
+        cursor: pointer;
+        background-color: lighten($gray-background, 8%);
+    }
+
     &.active {
         @include transition(border-color .1s linear);
         border-color: $purple;
 
-        .list-bar {
+        .list-bar, .list-bar-horizontal {
             @include transition(background-color .1s linear);
             background-color: $purple;
         }
     }
 
+    &.list-condensed-link {
+        border-color: $gray-background;
+        margin-bottom: 4px;
+        margin-top: 4px;
+
+        height: 40px;
+        font-weight: 700;
+
+        .name {
+            font-size: 15px;
+            padding-top: 7px;
+
+            small {
+                padding-right: 8px;
+                padding-top: 1px;
+                font-size: 12px;
+                color: $gray-light;
+            }
+        }
+    }
+
+    .list-bar-horizontal {
+        width: 20px;
+        float: left;
+        height: 100%;
+        margin-right: 10px;
+    }
 }
 
 ul.list-broken {
