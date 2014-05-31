@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
+	"strings"
 	"time"
 )
 
@@ -97,7 +98,7 @@ func pruneHiddenEntries(ents structs.DirEntries) structs.DirEntries {
 
 	idx := 0
 	for _, e := range ents {
-		if e.Key[0] != '.' {
+		if e.Key[0] != '.' && strings.Index(e.Key, "/.") == -1 {
 			newEnts[idx] = e
 			idx++
 		}
@@ -111,7 +112,7 @@ func pruneHiddenKeys(keys []string) []string {
 
 	idx := 0
 	for _, e := range keys {
-		if e[0] != '.' {
+		if e[0] != '.' && strings.Index(e, "/.") == -1 {
 			newKeys[idx] = e
 			idx++
 		}
