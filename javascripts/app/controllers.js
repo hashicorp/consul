@@ -223,15 +223,28 @@ ItemBaseController = Ember.ArrayController.extend({
   condensedView: true,
   filter: "", // default
   filterStatus: "any status", // default
-  statuses: ["passing", "warning", "critical", "any status"],
+  statuses: ["any status", "passing", "failing"],
 
   filteredContent: function() {
     var filter = this.get('filter');
+    var filterStatus = this.get('filterStatus');
 
-    return this.get('items').filter(function(item, index, enumerable){
+    var items = this.get('items').filter(function(item, index, enumerable){
       return item.get('filterKey').toLowerCase().match(filter.toLowerCase());
     });
-  }.property('filter', 'items.@each'),
+
+    switch (filterStatus) {
+      case "passing":
+        return items.filterBy('hasFailingChecks', false)
+        break;
+      case "failing":
+        return items.filterBy('hasFailingChecks', true)
+        break;
+      default:
+        return items
+    }
+
+  }.property('filter', 'filterStatus', 'items.@each'),
 
   actions: {
     toggleCondensed: function() {
