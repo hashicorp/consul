@@ -54,14 +54,14 @@
         <div class="col-md-5">
           {{ input type="text" value=filter class="form-control form-control-mini" placeholder="Filter by name"}}
         </div>
+        <div class="col-md-3">
+          {{view Ember.Select content=statuses value=filterStatus class="form-control form-control-mini"}}
+        </div>
         <div class="col-md-4">
-          <div class="btn-group">
+          <div class="btn-group pull-right">
             <button {{ bind-attr class=":btn :btn-mini condensedView:btn-default:btn-primary" }} {{action toggleCondensed }}>Expand</button>
             <button {{ bind-attr class=":btn :btn-mini true:btn-primary:btn-default" }} {{action }}>Action</button>
           </div>
-        </div>
-        <div class="col-md-3">
-          {{view Ember.Select content=statuses value=filterStatus class="form-control form-control-mini"}}
         </div>
       </div>
     </div>
@@ -261,40 +261,45 @@
       <div class="col-md-5 scrollable">
         {{view App.ActionBarView }}
 
-        {{#each service in filteredContent}}
+        {{#if filteredContent}}
+          {{#each service in filteredContent}}
 
-            {{#if condensedView }}
+              {{#if condensedView }}
 
-              {{#link-to 'services.show' service.Name tagName="div" href=false class="list-group-item list-condensed-link" }}
-                <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar-horizontal"}}></div>
-                <div class="name">
-                  {{service.Name}}
-                  <small class="pull-right">
-                    {{ service.checkMessage }}
-                  </small>
-                </div>
-              {{/link-to}}
-
-            {{else}}
-
-              {{#link-to 'services.show' service.Name tagName="div" href=false class="list-group-item list-link" }}
-                <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
-                <h4 class="list-group-item-heading">
-                  {{#link-to 'services.show' service.Name class='subtle'}}{{service.Name}}{{/link-to}}
-                  <div class="heading-helper">
-                    <a class="subtle" href="#">{{service.checkMessage}}</a>
+                {{#link-to 'services.show' service.Name tagName="div" href=false class="list-group-item list-condensed-link" }}
+                  <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar-horizontal"}}></div>
+                  <div class="name">
+                    {{service.Name}}
+                    <small class="pull-right">
+                      {{ service.checkMessage }}
+                    </small>
                   </div>
-                </h4>
-                <ul class="list-inline">
-                  {{#each node in service.Nodes }}
-                  <li class="bold">{{node}}</li>
-                  {{/each}}
-                </ul>
-              {{/link-to}}
+                {{/link-to}}
 
-            {{/if}}
+              {{else}}
 
-        {{/each}}
+                {{#link-to 'services.show' service.Name tagName="div" href=false class="list-group-item list-link" }}
+                  <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+                  <h4 class="list-group-item-heading">
+                    {{#link-to 'services.show' service.Name class='subtle'}}{{service.Name}}{{/link-to}}
+                    <div class="heading-helper">
+                      <a class="subtle" href="#">{{service.checkMessage}}</a>
+                    </div>
+                  </h4>
+                  <ul class="list-inline">
+                    {{#each node in service.Nodes }}
+                    <li class="bold">{{node}}</li>
+                    {{/each}}
+                  </ul>
+                {{/link-to}}
+
+              {{/if}}
+
+          {{/each}}
+
+        {{else}}
+        <p>There are no services to show.</p>
+        {{/if}}
 
       </div>
 
@@ -355,40 +360,44 @@
       <div class="col-md-5 scrollable">
         {{view App.ActionBarView }}
 
-          {{#each node in filteredContent}}
+          {{#if filteredContent}}
+            {{#each node in filteredContent}}
 
-            {{#if condensedView }}
+              {{#if condensedView }}
 
-              {{#link-to 'nodes.show' node.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
-                <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar-horizontal"}}></div>
-                <div class="name">
-                  {{node.Node}}
-                  <small class="pull-right">
-                    {{ node.numServices }} services
-                  </small>
-                </div>
-              {{/link-to}}
-
-            {{else}}
-
-              {{#link-to 'nodes.show' node.Node tagName="div" href=false class="list-group-item list-link" }}
-                <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
-                <h4 class="list-group-item-heading">
-                  {{node.Node}}
-                  <small>{{node.Address}}</small>
-                  <div class="heading-helper">
-                    <a class="subtle" href="#">{{node.checkMessage}}</a>
+                {{#link-to 'nodes.show' node.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
+                  <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar-horizontal"}}></div>
+                  <div class="name">
+                    {{node.Node}}
+                    <small class="pull-right">
+                      {{ node.numServices }} services
+                    </small>
                   </div>
-                </h4>
-                <ul class="list-inline">
-                  {{#each service in node.Services }}
-                    <li class="bold">{{service.Service}}</li>
-                  {{/each}}
-                </ul>
-              {{/link-to}}
-            {{/if}}
+                {{/link-to}}
 
-          {{/each}}
+              {{else}}
+
+                {{#link-to 'nodes.show' node.Node tagName="div" href=false class="list-group-item list-link" }}
+                  <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+                  <h4 class="list-group-item-heading">
+                    {{node.Node}}
+                    <small>{{node.Address}}</small>
+                    <div class="heading-helper">
+                      <a class="subtle" href="#">{{node.checkMessage}}</a>
+                    </div>
+                  </h4>
+                  <ul class="list-inline">
+                    {{#each service in node.Services }}
+                      <li class="bold">{{service.Service}}</li>
+                    {{/each}}
+                  </ul>
+                {{/link-to}}
+              {{/if}}
+
+            {{/each}}
+          {{else}}
+          <p>There are no nodes to show.</p>
+          {{/if}}
       </div>
 
       <div class="col-md-1">
