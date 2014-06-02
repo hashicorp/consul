@@ -47,17 +47,9 @@
         background-color: lighten($gray-background, 8%);
     }
 
-    &.active {
-        @include transition(border-color .1s linear);
-        border-color: $purple;
-
-        .list-bar, .list-bar-horizontal {
-            @include transition(background-color .1s linear);
-            background-color: $purple;
-        }
-    }
-
     &.list-condensed-link {
+        border-top-right-radius: 4px;
+        border-top-left-radius: 4px;
         border-color: $gray-background;
         margin-bottom: 4px;
         margin-top: 4px;
@@ -84,15 +76,16 @@
         height: 100%;
         margin-right: 10px;
     }
-}
 
-ul.list-broken {
-    li {
-        // border-top: 2px lighten($gray-background, 5%) solid;
-    }
 
-    &:last-child {
-        // border-bottom: 2px lighten($gray-background, 5%) solid;
+    &.active {
+        @include transition(border-color .1s linear);
+        border-color: $purple;
+
+        .list-bar, .list-bar-horizontal {
+            @include transition(background-color .1s linear);
+            background-color: $purple;
+        }
     }
 
 }

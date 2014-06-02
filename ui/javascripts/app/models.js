@@ -51,7 +51,11 @@ App.Service = Ember.Object.extend({
   //
   hasFailingChecks: function() {
     return (this.get('failingChecks') > 0);
-  }.property('Checks')
+  }.property('Checks'),
+
+  filterKey: function() {
+    return this.get('Name')
+  }.property('Name')
 });
 
 //
@@ -93,7 +97,18 @@ App.Node = Ember.Object.extend({
   //
   hasFailingChecks: function() {
     return (this.get('failingChecks') > 0);
-  }.property('Checks')
+  }.property('Checks'),
+
+  //
+  // The number of services on the node
+  //
+  numServices: function() {
+    return (this.get('Services').length)
+  }.property('Services'),
+
+  filterKey: function() {
+    return this.get('Node')
+  }.property('Node')
 });
 
 
