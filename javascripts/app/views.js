@@ -14,6 +14,11 @@ App.DcView = Ember.View.extend({
     }
 })
 
+
+App.ItemView = Ember.View.extend({
+    templateName: 'item'
+})
+
 //
 // Services
 //
@@ -45,6 +50,15 @@ App.NodesLoadingView = Ember.View.extend({
     templateName: 'item/loading'
 })
 
+
+// KV
+
 App.KvListView = Ember.View.extend({
     templateName: 'kv'
+})
+
+// Actions
+
+App.ActionBarView = Ember.View.extend({
+    templateName: 'actionbar'
 })

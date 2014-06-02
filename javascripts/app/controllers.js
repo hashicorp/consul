@@ -217,6 +217,27 @@ App.KvEditController = KvBaseController.extend({
 
 });
 
-App.NodesController = Ember.ArrayController.extend({
-  condensedView: true
+ItemBaseController = Ember.ArrayController.extend({
+  needs: ["dc"],
+  dc: Ember.computed.alias("controllers.dc"),
+  condensedView: true,
+  filter: "",
+
+  filteredContent: function() {
+    var filter = this.get('filter');
+
+    return this.get('items').filter(function(item, index, enumerable){
+      return item.get('filterKey').toLowerCase().match(filter.toLowerCase());
+    });
+  }.property('filter', 'items.@each'),
 });
+
+App.NodesController = ItemBaseController.extend({
+  items: Ember.computed.alias("nodes"),
+});
+
+
+App.ServicesController = ItemBaseController.extend({
+  items: Ember.computed.alias("services"),
+});
+

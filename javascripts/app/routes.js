@@ -3,6 +3,7 @@
 //
 App.BaseRoute = Ember.Route.extend({
   rootKey: '',
+  condensedView: false,
 
   getParentAndGrandparent: function(key) {
     var parentKey = this.rootKey,
@@ -245,13 +246,6 @@ App.NodesRoute = App.BaseRoute.extend({
     return Ember.$.getJSON('/v1/internal/ui/nodes?dc=' + dc).then(function(data) {
       objs = [];
       data.map(function(obj){
-       objs.push(App.Node.create(obj));
-       objs.push(App.Node.create(obj));
-       objs.push(App.Node.create(obj));
-       objs.push(App.Node.create(obj));
-       objs.push(App.Node.create(obj));
-       objs.push(App.Node.create(obj));
-       objs.push(App.Node.create(obj));
        objs.push(App.Node.create(obj));
       });
       return objs
