@@ -221,7 +221,9 @@ ItemBaseController = Ember.ArrayController.extend({
   needs: ["dc"],
   dc: Ember.computed.alias("controllers.dc"),
   condensedView: true,
-  filter: "",
+  filter: "", // default
+  filterStatus: "any status", // default
+  statuses: ["passing", "warning", "critical", "any status"],
 
   filteredContent: function() {
     var filter = this.get('filter');
@@ -230,6 +232,12 @@ ItemBaseController = Ember.ArrayController.extend({
       return item.get('filterKey').toLowerCase().match(filter.toLowerCase());
     });
   }.property('filter', 'items.@each'),
+
+  actions: {
+    toggleCondensed: function() {
+      this.set('condensedView', !this.get('condensedView'))
+    }
+  }
 });
 
 App.NodesController = ItemBaseController.extend({

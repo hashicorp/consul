@@ -50,15 +50,18 @@
 
   <script type="text/x-handlebars" id="actionbar">
     <div class="row">
-      <div class="col-md-8">
-        {{ input type="text" value=filter class="form-control" placeholder="Filter by name"}}
-      </div>
-      <div class="col-md-4">
-        <div class="checkbox">
-          <label>
-            {{input type="checkbox" name="condensedView" checked=condensedView}}
-            Condensed
-          </label>
+      <div class="action-bar">
+        <div class="col-md-5">
+          {{ input type="text" value=filter class="form-control form-control-mini" placeholder="Filter by name"}}
+        </div>
+        <div class="col-md-4">
+          <div class="btn-group">
+            <button {{ bind-attr class=":btn :btn-mini condensedView:btn-default:btn-primary" }} {{action toggleCondensed }}>Expand</button>
+            <button {{ bind-attr class=":btn :btn-mini true:btn-primary:btn-default" }} {{action }}>Action</button>
+          </div>
+        </div>
+        <div class="col-md-3">
+          {{view Ember.Select content=statuses value=filterStatus class="form-control form-control-mini"}}
         </div>
       </div>
     </div>

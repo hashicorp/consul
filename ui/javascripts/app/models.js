@@ -108,7 +108,7 @@ App.Node = Ember.Object.extend({
 
   filterKey: function() {
     return this.get('Node')
-  }.property('Node')
+  }.property('Node'),
 });
 
 
