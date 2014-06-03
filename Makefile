@@ -20,7 +20,7 @@ test: deps
 integ:
 	go list ./... | INTEG_TESTS=yes xargs -n1 go test
 
-format:
+format: deps
 	@echo "--> Running go fmt"
 	@go fmt $(PACKAGES)
 
