@@ -7,19 +7,25 @@
 @import "lists";
 @import "forms";
 
-@media (min-width: 768px) { // + 18
+// @media (min-width: 768px) { // + 18
+//   .container {
+//     width: 740px;
+//   }
+// }
+
+// @media (min-width: 970px) { // + 22
+//   .container {
+//     width: 970px;
+//   }
+// }
+
+@media (min-width: 1120px) { // + 30
   .container {
-    width: 750px;
+    width: 1100px;
   }
 }
 
-@media (min-width: 970px) { // + 22
-  .container {
-    width: 970px;
-  }
-}
-
-@media (min-width: 1230px) { // + 30
+@media (min-width: 1200px) { // + 30
   .container {
     width: 1200px;
   }
@@ -42,14 +48,10 @@ a {
 }
 
 .border-left {
-  display: block;
-  height: 700px;
+  border-left: 1px $gray-background solid;
 
-  .line {
-    margin: 0 auto;
-    background-color: $gray-background;
-    height: 100%;
-    width: 1px;
+  .padded-border{
+    padding-left: 20px;
   }
 }
 
@@ -105,5 +107,7 @@ a {
 }
 
 .action-bar {
-  height: 50px;
+  min-height: 50px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }

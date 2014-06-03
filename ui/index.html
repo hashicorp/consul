@@ -52,15 +52,18 @@
     <div class="row">
       <div class="action-bar">
         <div class="col-md-5">
-          {{ input type="text" value=filter class="form-control form-control-mini" placeholder="Filter by name"}}
+          <div class="form-group">
+            {{ input type="text" value=filter class="form-control form-control-mini" placeholder="Filter by name"}}
+          </div>
         </div>
-        <div class="col-md-3">
-          {{view Ember.Select content=statuses value=filterStatus class="form-control form-control-mini"}}
+        <div class="col-md-5">
+          <div class="form-group">
+            {{view Ember.Select content=statuses value=filterStatus class="form-control form-control-mini"}}
+          </div>
         </div>
-        <div class="col-md-4">
-          <div class="btn-group pull-right">
-            <button {{ bind-attr class=":btn :btn-mini condensedView:btn-default:btn-primary" }} {{action toggleCondensed }}>Expand</button>
-            <button {{ bind-attr class=":btn :btn-mini true:btn-primary:btn-default" }} {{action }}>Action</button>
+        <div class="col-md-2">
+          <div class="form-group">
+            <button {{ bind-attr class=":btn :btn-mini :pull-right condensedView:btn-default:btn-primary" }} {{action toggleCondensed }}>Expand</button>
           </div>
         </div>
       </div>
@@ -110,136 +113,122 @@
   </script>
 
   <script type="text/x-handlebars" data-template-name="kv/show">
-  <div class="row">
-    <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a> <a href="" {{action 'linkToKey' parentKey }}>+</a></h4>
-  </div>
-
-  <div class="row">
-    <div class="col-md-5">
-      <div class="row">
-
-        {{#each item in model }}
-
-          {{#link-to item.linkToRoute item.Key href=false tagName="div" class="panel panel-link panel-short"}}
-            <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
-            <div class="panel-heading">
-              <h3 class="panel-title">
-                {{item.keyWithoutParent}}
-              </h3>
-            </div>
-          {{/link-to}}
-
-        {{/each}}
-
-      </div>
-    </div>
-
-    <div class="col-md-1">
-      <div class="border-left hidden-xs hidden-sm">
-        <div class="line"></div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="row">
-        <div class="panel">
-          <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
-            <div class="panel-heading">
-              <h3 class="panel-title">
-                Create Key
-              </h3>
-            </div>
-
-            <div class="panel-body">
-              <form class="form">
-
-                <div class="form-group">
-                  <p>{{errorMessage}}</p>
-                </div>
-
-                <div {{ bind-attr class=":form-group newKey.keyValid:valid" }}>
-                  <div class="input-group">
-                    <span class="input-group-addon">{{parentKey}}</span>
-                    {{ input value=newKey.Key class="form-control" required=true }}
-                  </div>
-                  <span class="help-block">To create a folder, end the key with <code>/</code></span>
-                </div>
-
-                {{#if newKey.isFolder }}
-                <p>No value needed for nested keys.</p>
-                {{else}}
-                <div class="form-group">
-                  {{ textarea value=newKey.Value class="form-control"}}
-                  <span class="help-block">Value can be any format and length</span>
-                </div>
-                {{/if}}
-
-                <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
-                <button {{ action "deleteFolder"}} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger isRoot:hidden" }}>Delete folder</button>
-              </form>
-            </div>
-          </div>
-      </div>
-    </div>
-  </div>
-  </script>
-
-  <script type="text/x-handlebars" data-template-name="kv/edit">
-  <div class="row">
-    <div class="col-md-5">
-      <div class="row">
+    <div class="row">
+      <div class="col-md-6 col-lg-5 scrollable">
         <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a> <a href="" {{action 'linkToKey' parentKey }}>+</a></h4>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-      <div class="col-md-5">
-        <div class="row">
-          {{#each item in siblings }}
-            {{#link-to item.linkToRoute item.Key href=false tagName="div" class="panel panel-link panel-short"}}
-              <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
-              <div class="panel-heading">
-                <h3 class="panel-title">
-                  {{item.keyWithoutParent}}
-                </h3>
-              </div>
-            {{/link-to}}
-          {{/each}}
-
         </div>
     </div>
 
-    <div class="col-md-1">
+    <div class="row">
+      <div class="col-md-6 col-lg-5 scrollable">
+
+          {{#each item in model }}
+            {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
+              <div {{bind-attr class="item.isFolder:bg-gray:bg-light-gray :list-bar-horizontal"}}></div>
+              <div class="name">
+                {{item.keyWithoutParent}}
+              </div>
+            {{/link-to}}
+
+          {{/each}}
+      </div>
+
       <div class="border-left hidden-xs hidden-sm">
         <div class="line"></div>
       </div>
+
+      <div class="col-md-6 col-lg-7 scrollable border-left">
+        <div class="row padded-border">
+          <div class="panel">
+            <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
+              <div class="panel-heading">
+                <h3 class="panel-title">
+                  Create Key
+                </h3>
+              </div>
+
+              <div class="panel-body">
+                <form class="form">
+
+                  <div class="form-group">
+                    <p>{{errorMessage}}</p>
+                  </div>
+
+                  <div {{ bind-attr class=":form-group newKey.keyValid:valid" }}>
+                    <div class="input-group">
+                      <span class="input-group-addon">{{parentKey}}</span>
+                      {{ input value=newKey.Key class="form-control" required=true }}
+                    </div>
+                    <span class="help-block">To create a folder, end the key with <code>/</code></span>
+                  </div>
+
+                  {{#if newKey.isFolder }}
+                  <p>No value needed for nested keys.</p>
+                  {{else}}
+                  <div class="form-group">
+                    {{ textarea value=newKey.Value class="form-control"}}
+                    <span class="help-block">Value can be any format and length</span>
+                  </div>
+                  {{/if}}
+
+                  <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
+                  <button {{ action "deleteFolder"}} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger isRoot:hidden" }}>Delete folder</button>
+                </form>
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" data-template-name="kv/edit">
+    <div class="row">
+      <div class="col-md-6 col-lg-5">
+        <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a> <a href="" {{action 'linkToKey' parentKey }}>+</a></h4>
+      </div>
     </div>
 
-    <div class="col-md-6">
-      <div class="row">
-        <div class="panel">
-          <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green" }}></div>
-            <div class="panel-heading">
-              <h3 class="panel-title">
-                {{model.Key}}
-              </h3>
-            </div>
-
-            <div class="panel-body">
-              <div class="form-group">
-                {{errorMessage}}
+    <div class="row">
+      <div class="col-md-6 col-lg-5 scrollable">
+          {{#each item in siblings }}
+            {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
+              <div {{bind-attr class="item.isFolder:bg-gray:bg-light-gray :list-bar-horizontal"}}></div>
+              <div class="name">
+                {{item.keyWithoutParent}}
               </div>
-              <form class="form">
+            {{/link-to}}
+          {{/each}}
+      </div>
+
+    <div class="border-left hidden-xs hidden-sm">
+      <div class="line"></div>
+    </div>
+
+      <div class="col-md-6 col-lg-7 border-left">
+        <div class="row padded-border">
+          <div class="panel">
+            <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green" }}></div>
+              <div class="panel-heading">
+                <h3 class="panel-title">
+                  {{model.Key}}
+                </h3>
+              </div>
+
+              <div class="panel-body">
                 <div class="form-group">
-                  {{ textarea value=model.valueDecoded class="form-control"}}
+                  {{errorMessage}}
                 </div>
-                <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
-                <button {{ action "cancelEdit"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-default" }}>Cancel</button>
-                <button {{ action "deleteKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete key</button>
-              </form>
+                <form class="form">
+                  <div class="form-group">
+                    {{ textarea value=model.valueDecoded class="form-control"}}
+                  </div>
+                  <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
+                  <button {{ action "cancelEdit"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-default" }}>Cancel</button>
+                  <button {{ action "deleteKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete key</button>
+                </form>
+              </div>
             </div>
-          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -258,7 +247,7 @@
 
   <script type="text/x-handlebars" id="services">
     <div class="row">
-      <div class="col-md-5 scrollable">
+      <div class="col-md-6 col-lg-5 scrollable">
         {{view App.ActionBarView }}
 
         {{#if filteredContent}}
@@ -298,23 +287,21 @@
           {{/each}}
 
         {{else}}
-        <p>There are no services to show.</p>
+        <p class="light">There are no services to show.</p>
         {{/if}}
 
       </div>
 
-      <div class="col-md-1">
-        <div class="border-left hidden-xs hidden-sm">
-          <div class="line"></div>
-        </div>
+      <div class="border-left hidden-xs hidden-sm">
+        <div class="line"></div>
       </div>
 
       <div class="visible-xs visible-sm">
         <hr>
       </div>
 
-      <div class="col-md-6 scrollable">
-        <div class="row">
+      <div class="col-md-6 col-lg-7 scrollable border-left">
+        <div class="row padded-border">
           {{outlet}}
         </div>
       </div>
@@ -357,7 +344,7 @@
 
   <script type="text/x-handlebars" id="nodes">
     <div class="row">
-      <div class="col-md-5 scrollable">
+      <div class="col-md-6 col-lg-5 scrollable">
         {{view App.ActionBarView }}
 
           {{#if filteredContent}}
@@ -396,14 +383,12 @@
 
             {{/each}}
           {{else}}
-          <p>There are no nodes to show.</p>
+          <p class="light">There are no nodes to show.</p>
           {{/if}}
       </div>
 
-      <div class="col-md-1">
-        <div class="border-left hidden-xs hidden-sm">
-          <div class="line"></div>
-        </div>
+      <div class="border-left hidden-xs hidden-sm">
+        <div class="line"></div>
       </div>
 
       <div class="visible-xs visible-sm">
@@ -411,8 +396,8 @@
       </div>
 
 
-      <div class="col-md-6 scrollable">
-        <div class="row">
+      <div class="col-md-6 col-lg-7 scrollable border-left">
+        <div class="row padded-border">
           {{outlet}}
         </div>
       </div>
