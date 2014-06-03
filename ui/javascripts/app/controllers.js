@@ -235,6 +235,7 @@ ItemBaseController = Ember.ArrayController.extend({
 
     switch (filterStatus) {
       case "passing":
+        console.log(items)
         return items.filterBy('hasFailingChecks', false)
         break;
       case "failing":

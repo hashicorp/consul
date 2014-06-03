@@ -13,8 +13,9 @@ App.Service = Ember.Object.extend({
     // Otherwise, we need to filter the child checks by both failing
     // states
     } else {
-    return (checks.filterBy('Status', 'critical').get('length') +
-      checks.filterBy('Status', 'warning').get('length'))
+      var checks = this.get('Checks');
+      return (checks.filterBy('Status', 'critical').get('length') +
+        checks.filterBy('Status', 'warning').get('length'))
     }
   }.property('Checks'),
 
@@ -53,9 +54,13 @@ App.Service = Ember.Object.extend({
     return (this.get('failingChecks') > 0);
   }.property('Checks'),
 
+  //
+  // Key used for filtering through an array of this model, i.e s
+  // searching
+  //
   filterKey: function() {
     return this.get('Name')
-  }.property('Name')
+  }.property('Name'),
 });
 
 //
@@ -109,6 +114,25 @@ App.Node = Ember.Object.extend({
   filterKey: function() {
     return this.get('Node')
   }.property('Node'),
+
+  //
+  // Returns a combined and distinct list of the tags on the services
+  // running on the node
+  //
+  nodeTags: function() {
+    var tags = [];
+
+    // Collect the services tags
+    this.get('Services').map(function(Service){
+      tags.push(Service.Tags)
+    })
+
+    // strip nulls
+    tags = tags.filter(function(n){ return n != undefined });
+
+    // only keep unique tags and convert to comma sep
+    return tags.uniq().join(', ')
+  }.property('Services')
 });
 
 

@@ -134,7 +134,6 @@
       </div>
 
       <div class="border-left hidden-xs hidden-sm">
-        <div class="line"></div>
       </div>
 
       <div class="col-md-6 col-lg-7 scrollable border-left">
@@ -201,7 +200,6 @@
       </div>
 
     <div class="border-left hidden-xs hidden-sm">
-      <div class="line"></div>
     </div>
 
       <div class="col-md-6 col-lg-7 border-left">
@@ -293,7 +291,6 @@
       </div>
 
       <div class="border-left hidden-xs hidden-sm">
-        <div class="line"></div>
       </div>
 
       <div class="visible-xs visible-sm">
@@ -309,7 +306,7 @@
   </script>
 
   <script type="text/x-handlebars" id="service">
-      <h2 class="no-margin">{{ model.0.Service.Service }}</h2>
+      <h3 class="no-margin">{{ model.0.Service.Service }}</h3>
       <hr>
 
       <h5>Nodes</h5>
@@ -344,7 +341,7 @@
 
   <script type="text/x-handlebars" id="nodes">
     <div class="row">
-      <div class="col-md-6 col-lg-5 scrollable">
+      <div class="col-md-6 col-lg-5 scrollable padded-right-middle">
         {{view App.ActionBarView }}
 
           {{#if filteredContent}}
@@ -388,7 +385,6 @@
       </div>
 
       <div class="border-left hidden-xs hidden-sm">
-        <div class="line"></div>
       </div>
 
       <div class="visible-xs visible-sm">
@@ -405,25 +401,29 @@
   </script>
 
   <script type="text/x-handlebars" id="node">
-      <h2 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h2>
+      <h3 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h3>
       <hr>
+      <h5>Tags</h5>
+
+      {{#if model.nodeTags}}
+        <p class="bold">{{model.nodeTags}}</p>
+      {{else}}
+        <p class="light small">No tags</p>
+      {{/if}}
 
       <h5>Services</h5>
 
       {{#each service in model.Services }}
-
-      {{#link-to 'services.show' service.Service }}
-          <div class="panel panel-link panel-short">
-            <div class="panel-bar bg-light-gray"></div>
-            <div class="panel-heading">
-              <h3 class="panel-title">
-                {{service.Service}}
-                <small>{{sevice.ID}}</small>
-                <span class="panel-note">:{{service.Port}}</span>
-              </h3>
+        {{#link-to 'services.show' service.Service tagName="div" href=false class="list-group-item list-condensed-link" }}
+          <div class="list-bar-horizontal bg-light-gray"></div>
+            <div class="name">
+              {{service.Service}}
+              <small class="pull-right">
+                :{{service.Port}}
+              </small>
             </div>
-        </div>
-      {{/link-to}}
+        {{/link-to}}
+
       {{/each}}
 
       <h5>Checks</h5>
