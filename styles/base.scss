@@ -119,7 +119,13 @@ a {
   overflow: auto;
   position: relative;
 }
+
 .ember-list-item-view {
   position: absolute;
   width: 100%;
+}
+
+.scrollable {
+  overflow: auto;
+  height: 800px;
 }
