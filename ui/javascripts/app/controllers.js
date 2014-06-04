@@ -46,6 +46,18 @@ App.DcController = Ember.Controller.extend({
   }.property('nodes'),
 
   //
+  //
+  //
+  checkStatus: function() {
+    if (this.get('hasFailingChecks') == true) {
+      return "failing";
+    } else {
+      return "passing";
+    }
+
+  }.property('nodes'),
+
+  //
   // Boolean if the datacenter has any failing checks.
   //
   hasFailingChecks: function() {
