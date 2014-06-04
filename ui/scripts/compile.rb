@@ -7,6 +7,7 @@ libs = [
   "javascripts/libs/handlebars-1.1.2.min.js",
   "javascripts/libs/ember-1.6.0-beta5.min.js",
   "javascripts/libs/ember-validations.min.js",
+  "javascripts/libs/list-view.min.js",
 ]
 
 app = [
