@@ -120,7 +120,7 @@
     </div>
 
     <div class="row">
-      <div class="col-md-6 col-lg-5 scrollable">
+      <div class="col-md-6 col-lg-5">
 
           {{#each item in model }}
             {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
@@ -136,7 +136,7 @@
       <div class="border-left hidden-xs hidden-sm">
       </div>
 
-      <div class="col-md-6 col-lg-7 scrollable border-left">
+      <div class="col-md-6 col-lg-7 border-left">
         <div class="row padded-border">
           <div class="panel">
             <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
@@ -188,7 +188,7 @@
     </div>
 
     <div class="row">
-      <div class="col-md-6 col-lg-5 scrollable">
+      <div class="col-md-6 col-lg-5">
           {{#each item in siblings }}
             {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
               <div {{bind-attr class="item.isFolder:bg-gray:bg-light-gray :list-bar-horizontal"}}></div>
@@ -245,7 +245,7 @@
 
   <script type="text/x-handlebars" id="services">
     <div class="row">
-      <div class="col-md-6 col-lg-5 scrollable">
+      <div class="col-md-6 col-lg-5">
         {{view App.ActionBarView }}
 
         {{#if filteredContent}}
@@ -298,7 +298,7 @@
         <hr>
       </div>
 
-      <div class="col-md-6 col-lg-7 scrollable border-left">
+      <div class="col-md-6 col-lg-7 border-left">
         <div class="row padded-border">
           {{outlet}}
         </div>
@@ -342,7 +342,7 @@
 
   <script type="text/x-handlebars" id="nodes">
     <div class="row">
-      <div class="col-md-6 col-lg-5 scrollable padded-right-middle">
+      <div class="col-md-6 col-lg-5 padded-right-middle">
         {{view App.ActionBarView }}
 
           {{#if filteredContent}}
@@ -395,7 +395,7 @@
       </div>
 
 
-      <div class="col-md-6 col-lg-7 scrollable border-left">
+      <div class="col-md-6 col-lg-7 border-left">
         <div class="row padded-border">
           {{outlet}}
         </div>
