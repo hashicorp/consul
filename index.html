@@ -63,7 +63,7 @@
         </div>
         <div class="col-md-2">
           <div class="form-group">
-            <button {{ bind-attr class=":btn :btn-mini :pull-right condensedView:btn-default:btn-primary" }} {{action toggleCondensed }}>Expand</button>
+            <button {{ bind-attr class=":btn :btn-mini :pull-right condensed:btn-default:btn-primary" }} {{action toggleCondensed }}>Expand</button>
           </div>
         </div>
       </div>
@@ -250,7 +250,7 @@
 
         {{#if filteredContent}}
 
-              {{#if condensedView }}
+              {{#if condensed }}
 
                 {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=44 }}
                   {{#link-to 'services.show' Name tagName="div" href=false class="list-group-item list-condensed-link" }}
@@ -347,7 +347,7 @@
 
           {{#if filteredContent}}
 
-                {{#if condensedView }}
+                {{#if condensed }}
                     {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=44 }}
                       {{#link-to 'nodes.show' Node tagName="div" href=false class="list-group-item list-condensed-link" }}
                         <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :list-bar-horizontal"}}></div>
@@ -475,10 +475,15 @@
     </div>
   </script>
 
+  <script>
+  // Enable query params, must be loaded before ember is
+  EmberENV = {FEATURES: {'query-params-new': true}};
+  </script>
+
   <!-- ASSETS -->
   <script src="javascripts/libs/jquery-1.10.2.min.js"></script>
   <script src="javascripts/libs/handlebars-1.1.2.min.js"></script>
-  <script src="javascripts/libs/ember-1.6.0-beta5-debug.min.js"></script>
+  <script src="javascripts/libs/ember-debug.min.js"></script>
   <script src="javascripts/libs/ember-validations.min.js"></script>
   <script src="javascripts/libs/list-view.min.js"></script>
   <script src="javascripts/fixtures.js"></script>

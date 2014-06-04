@@ -243,7 +243,8 @@ App.NodesRoute = App.BaseRoute.extend({
   model: function(params) {
     var dc = this.modelFor('dc').dc
     // Return a promise containing the nodes
-    return Ember.$.getJSON('/v1/internal/ui/nodes?dc=' + dc).then(function(data) {
+    // return Ember.$.getJSON('/v1/internal/ui/nodes?dc=' + dc).then(function(data) {
+    return Ember.$.getJSON('/ui/nodes.json').then(function(data) {
       objs = [];
       data.map(function(obj){
        objs.push(App.Node.create(obj));
