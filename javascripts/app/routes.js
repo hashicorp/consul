@@ -5,6 +5,14 @@ App.BaseRoute = Ember.Route.extend({
   rootKey: '',
   condensedView: false,
 
+  // Don't record characters in browser history
+  // for the "search" query item (filter)
+  queryParams: {
+    filter: {
+      replace: true
+    }
+  },
+
   getParentAndGrandparent: function(key) {
     var parentKey = this.rootKey,
         grandParentKey = this.rootKey,
