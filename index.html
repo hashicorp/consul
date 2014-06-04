@@ -266,7 +266,7 @@
 
               {{else}}
 
-                {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=44 }}
+                {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=120 }}
                   {{#link-to 'services.show' Name tagName="div" href=false class="list-group-item list-link" }}
                     <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
                     <h4 class="list-group-item-heading">
