@@ -442,18 +442,9 @@
 
           <div class="panel-body">
             <h5>Notes</h5>
-            {{#if check.Notes}}
               <p>{{ check.Notes }}</p>
-            {{else}}
-              <p>No notes</p>
-            {{/if}}
             <h5>Output</h5>
-            {{#if check.Output }}
-            <pre>{{check.Output}}</pre>
-            {{else}}
-            <pre>No output</pre>
-            {{/if}}
-          </div>
+              <pre>{{check.output}}</pre>
         </div>
 
       {{/each}}
