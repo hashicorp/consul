@@ -46,6 +46,10 @@ App.Service = Ember.Object.extend({
     }
   }.property('Checks'),
 
+  nodes: function() {
+    return (this.get('Nodes'))
+  }.property('Nodes'),
+
   //
   // Boolean of whether or not there are failing checks in the service.
   // This is used to set color backgrounds and so on.
@@ -109,6 +113,12 @@ App.Node = Ember.Object.extend({
   //
   numServices: function() {
     return (this.get('Services').length)
+  }.property('Services'),
+  // The number of services on the node
+  //
+
+  services: function() {
+    return (this.get('Services'))
   }.property('Services'),
 
   filterKey: function() {

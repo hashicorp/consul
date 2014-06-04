@@ -58,7 +58,7 @@
         </div>
         <div class="col-md-5">
           <div class="form-group">
-            {{view Ember.Select content=statuses value=filterStatus class="form-control form-control-mini"}}
+            {{view Ember.Select content=statuses value=status class="form-control form-control-mini"}}
           </div>
         </div>
         <div class="col-md-2">
@@ -114,7 +114,7 @@
 
   <script type="text/x-handlebars" data-template-name="kv/show">
     <div class="row">
-      <div class="col-md-6 col-lg-5 scrollable">
+      <div class="col-md-6 col-lg-5">
         <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a> <a href="" {{action 'linkToKey' parentKey }}>+</a></h4>
         </div>
     </div>
@@ -249,40 +249,41 @@
         {{view App.ActionBarView }}
 
         {{#if filteredContent}}
-          {{#each service in filteredContent}}
 
               {{#if condensedView }}
 
-                {{#link-to 'services.show' service.Name tagName="div" href=false class="list-group-item list-condensed-link" }}
-                  <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar-horizontal"}}></div>
-                  <div class="name">
-                    {{service.Name}}
-                    <small class="pull-right">
-                      {{ service.checkMessage }}
-                    </small>
-                  </div>
-                {{/link-to}}
+                {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=44 }}
+                  {{#link-to 'services.show' Name tagName="div" href=false class="list-group-item list-condensed-link" }}
+                    <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :list-bar-horizontal"}}></div>
+                    <div class="name">
+                      {{Name}}
+                      <small class="pull-right">
+                        {{ checkMessage }}
+                      </small>
+                    </div>
+                  {{/link-to}}
+                {{/collection}}
 
               {{else}}
 
-                {{#link-to 'services.show' service.Name tagName="div" href=false class="list-group-item list-link" }}
-                  <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
-                  <h4 class="list-group-item-heading">
-                    {{#link-to 'services.show' service.Name class='subtle'}}{{service.Name}}{{/link-to}}
-                    <div class="heading-helper">
-                      <a class="subtle" href="#">{{service.checkMessage}}</a>
-                    </div>
-                  </h4>
-                  <ul class="list-inline">
-                    {{#each node in service.Nodes }}
-                    <li class="bold">{{node}}</li>
-                    {{/each}}
-                  </ul>
-                {{/link-to}}
+                {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=44 }}
+                  {{#link-to 'services.show' Name tagName="div" href=false class="list-group-item list-link" }}
+                    <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+                    <h4 class="list-group-item-heading">
+                      {{#link-to 'services.show' Name class='subtle'}}{{Name}}{{/link-to}}
+                      <div class="heading-helper">
+                        <a class="subtle" href="#">{{checkMessage}}</a>
+                      </div>
+                    </h4>
+                    <ul class="list-inline">
+                      {{#each node in nodes }}
+                      <li class="bold">{{node}}</li>
+                      {{/each}}
+                    </ul>
+                  {{/link-to}}
+                {{/collection}}
 
               {{/if}}
-
-          {{/each}}
 
         {{else}}
         <p class="light">There are no services to show.</p>
@@ -345,40 +346,42 @@
         {{view App.ActionBarView }}
 
           {{#if filteredContent}}
-            {{#each node in filteredContent}}
 
-              {{#if condensedView }}
+                {{#if condensedView }}
+                    {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=44 }}
+                      {{#link-to 'nodes.show' Node tagName="div" href=false class="list-group-item list-condensed-link" }}
+                        <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :list-bar-horizontal"}}></div>
+                        <div class="name">
+                          {{Node}}
+                          <small class="pull-right">
+                            {{ numServices }} services
+                          </small>
+                        </div>
+                      {{/link-to}}
+                    {{/collection}}
 
-                {{#link-to 'nodes.show' node.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
-                  <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar-horizontal"}}></div>
-                  <div class="name">
-                    {{node.Node}}
-                    <small class="pull-right">
-                      {{ node.numServices }} services
-                    </small>
-                  </div>
-                {{/link-to}}
+                {{else}}
 
-              {{else}}
+                  {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=120 }}
+                    {{#link-to 'nodes.show' Node tagName="div" href=false class="list-group-item list-link" }}
+                      <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+                      <h4 class="list-group-item-heading">
+                        {{Node}}
+                        <small>{{Address}}</small>
+                        <div class="heading-helper">
+                          <a class="subtle" href="#">{{checkMessage}}</a>
+                        </div>
+                      </h4>
+                      <ul class="list-inline">
+                        {{#each service in services}}
+                          <li class="bold">{{service.Service}}</li>
+                        {{/each}}
+                      </ul>
+                    {{/link-to}}
+                  {{/collection}}
 
-                {{#link-to 'nodes.show' node.Node tagName="div" href=false class="list-group-item list-link" }}
-                  <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
-                  <h4 class="list-group-item-heading">
-                    {{node.Node}}
-                    <small>{{node.Address}}</small>
-                    <div class="heading-helper">
-                      <a class="subtle" href="#">{{node.checkMessage}}</a>
-                    </div>
-                  </h4>
-                  <ul class="list-inline">
-                    {{#each service in node.Services }}
-                      <li class="bold">{{service.Service}}</li>
-                    {{/each}}
-                  </ul>
-                {{/link-to}}
-              {{/if}}
+                {{/if}}
 
-            {{/each}}
           {{else}}
           <p class="light">There are no nodes to show.</p>
           {{/if}}
@@ -475,7 +478,7 @@
   <!-- ASSETS -->
   <script src="javascripts/libs/jquery-1.10.2.min.js"></script>
   <script src="javascripts/libs/handlebars-1.1.2.min.js"></script>
-  <script src="javascripts/libs/ember-1.6.0-beta5.js"></script>
+  <script src="javascripts/libs/ember-1.6.0-beta5-debug.min.js"></script>
   <script src="javascripts/libs/ember-validations.min.js"></script>
   <script src="javascripts/libs/list-view.min.js"></script>
   <script src="javascripts/fixtures.js"></script>

@@ -114,3 +114,17 @@ a {
   padding-top: 10px;
   padding-bottom: 10px;
 }
+
+// .scrollable {
+//   height: 80vh;
+//   overflow: scroll;
+// }
+
+.ember-list-view {
+  overflow: auto;
+  position: relative;
+}
+.ember-list-item-view {
+  position: absolute;
+  width: 100%;
+}
