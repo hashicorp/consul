@@ -91,7 +91,7 @@
         </div>
 
         <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-5 col-xs-10 col-xs-offset-1">
-            {{#link-to 'services' tagName="div" href=false}}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</a>{{/link-to}}
+            {{#link-to 'services' (query-params status=checkStatus) tagName="div" href=false }}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</a>{{/link-to}}
         </div>
 
         <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
@@ -482,7 +482,7 @@
 
   <!-- ASSETS -->
   <script src="javascripts/libs/jquery-1.10.2.min.js"></script>
-  <script src="javascripts/libs/handlebars-1.1.2.min.js"></script>
+  <script src="javascripts/libs/handlebars-1.3.0.min.js"></script>
   <script src="javascripts/libs/ember-debug.min.js"></script>
   <script src="javascripts/libs/ember-validations.min.js"></script>
   <script src="javascripts/libs/list-view.min.js"></script>
