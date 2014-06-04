@@ -114,13 +114,13 @@
 
   <script type="text/x-handlebars" data-template-name="kv/show">
     <div class="row">
-      <div class="col-md-6 col-lg-5">
+      <div class="col-md-6 col-lg-5 padded-right-middle">
         <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a> <a href="" {{action 'linkToKey' parentKey }}>+</a></h4>
         </div>
     </div>
 
     <div class="row">
-      <div class="col-md-6 col-lg-5">
+      <div class="col-md-6 col-lg-5 padded-right-middle">
 
           {{#each item in model }}
             {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
@@ -146,7 +146,7 @@
                 </h3>
               </div>
 
-              <div class="panel-body">
+              <div class="panel-body panel-form">
                 <form class="form">
 
                   <div class="form-group">
@@ -182,13 +182,13 @@
 
   <script type="text/x-handlebars" data-template-name="kv/edit">
     <div class="row">
-      <div class="col-md-6 col-lg-5">
+      <div class="col-md-6 col-lg-5 padded-right-middle">
         <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a> <a href="" {{action 'linkToKey' parentKey }}>+</a></h4>
       </div>
     </div>
 
     <div class="row">
-      <div class="col-md-6 col-lg-5">
+      <div class="col-md-6 col-lg-5 padded-right-middle">
           {{#each item in siblings }}
             {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
               <div {{bind-attr class="item.isFolder:bg-gray:bg-light-gray :list-bar-horizontal"}}></div>
@@ -212,7 +212,7 @@
                 </h3>
               </div>
 
-              <div class="panel-body">
+              <div class="panel-body panel-form">
                 <div class="form-group">
                   {{errorMessage}}
                 </div>
