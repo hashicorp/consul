@@ -219,23 +219,23 @@ App.KvEditController = KvBaseController.extend({
 
 ItemBaseController = Ember.ArrayController.extend({
   needs: ["dc"],
+  queryParams: ["filter", "status", "condensed"],
   dc: Ember.computed.alias("controllers.dc"),
-  condensedView: true,
+  condensed: true,
   filter: "", // default
-  filterStatus: "any status", // default
+  status: "any status", // default
   statuses: ["any status", "passing", "failing"],
 
   filteredContent: function() {
     var filter = this.get('filter');
-    var filterStatus = this.get('filterStatus');
+    var status = this.get('status');
 
     var items = this.get('items').filter(function(item, index, enumerable){
       return item.get('filterKey').toLowerCase().match(filter.toLowerCase());
     });
 
-    switch (filterStatus) {
+    switch (status) {
       case "passing":
-        console.log(items)
         return items.filterBy('hasFailingChecks', false)
         break;
       case "failing":
@@ -245,11 +245,11 @@ ItemBaseController = Ember.ArrayController.extend({
         return items
     }
 
-  }.property('filter', 'filterStatus', 'items.@each'),
+  }.property('filter', 'status', 'items.@each'),
 
   actions: {
     toggleCondensed: function() {
-      this.set('condensedView', !this.get('condensedView'))
+      this.set('condensed', !this.get('condensed'))
     }
   }
 });
