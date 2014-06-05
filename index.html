@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=0.5">
+  <meta name="viewport" content="width=device-width, initial-scale=0.7, user-scalable=no">
   <title>Consul</title>
   <link rel="stylesheet" href="static/bootstrap.min.css">
   <link rel="stylesheet" href="static/base.css">
@@ -61,7 +61,7 @@
             {{view Ember.Select content=statuses value=status class="form-control form-control-mini"}}
           </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-2 hidden-xs hidden-sm">
           <div class="form-group">
             <button {{ bind-attr class=":btn :btn-mini :pull-right condensed:btn-default:btn-primary" }} {{action toggleCondensed }}>Expand</button>
           </div>
@@ -348,8 +348,6 @@
         {{/link-to}}
 
       {{/each}}
-
-      {{#link-to "services" class="btn btn-default col-xs-12 visible-xs" }}All Services{{/link-to}}
   </script>
 
   <script type="text/x-handlebars" id="nodes">
