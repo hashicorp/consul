@@ -245,7 +245,7 @@
 
   <script type="text/x-handlebars" id="services">
     <div class="row">
-      <div class="col-md-6 col-lg-5 padded-right-middle">
+      <div {{ bind-attr class=":col-md-6 :col-lg-5 :padded-right-middle isShowingItem:hidden-xs isShowingItem:hidden-sm" }}>
         {{view App.ActionBarView }}
 
         {{#if filteredContent}}
@@ -294,10 +294,6 @@
       <div class="border-left hidden-xs hidden-sm">
       </div>
 
-      <div class="visible-xs visible-sm">
-        <hr>
-      </div>
-
       <div class="col-md-6 col-lg-7 border-left scrollable">
         <div class="row padded-border">
           {{outlet}}
@@ -307,6 +303,11 @@
   </script>
 
   <script type="text/x-handlebars" id="service">
+      <div class="col-xs-12 col-sm-12 visible-xs visible-sm">
+        {{#link-to "services" class="btn btn-default btn-block" }}Back to all services{{/link-to}}
+        <hr>
+      </div>
+
       <h3 class="no-margin">{{ model.0.Service.Service }}</h3>
       <hr>
 
@@ -342,7 +343,7 @@
 
   <script type="text/x-handlebars" id="nodes">
     <div class="row">
-      <div class="col-md-6 col-lg-5 padded-right-middle">
+      <div {{ bind-attr class=":col-md-6 :col-lg-5 :padded-right-middle isShowingItem:hidden-xs isShowingItem:hidden-sm" }}>
         {{view App.ActionBarView }}
 
           {{#if filteredContent}}
@@ -390,10 +391,6 @@
       <div class="border-left hidden-xs hidden-sm">
       </div>
 
-      <div class="visible-xs visible-sm">
-        <hr>
-      </div>
-
       <div class="col-md-6 col-lg-7 border-left scrollable">
         <div class="row padded-border">
           {{outlet}}
@@ -403,8 +400,14 @@
   </script>
 
   <script type="text/x-handlebars" id="node">
+      <div class="col-xs-12 col-sm-12 visible-xs visible-sm">
+        {{#link-to "nodes" class="btn btn-default btn-block" }}Back to all nodes{{/link-to}}
+        <hr>
+      </div>
+
       <h3 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h3>
       <hr>
+      {{foobar}}
 
       <h5>Service Tags</h5>
       {{#if model.nodeTags}}
@@ -451,8 +454,6 @@
         </div>
 
       {{/each}}
-
-      {{#link-to "nodes" class="btn btn-default col-xs-12 visible-xs" }}All Nodes{{/link-to}}
   </script>
 
   <script type="text/x-handlebars" id="index">
