@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=0.5">
+  <meta name="viewport" content="width=device-width, initial-scale=0.7, user-scalable=no">
   <title>Consul</title>
   <link rel="stylesheet" href="static/bootstrap.min.css">
   <link rel="stylesheet" href="static/base.css">
@@ -48,6 +48,28 @@
     </div>
   </script>
 
+  <script type="text/x-handlebars" id="actionbar">
+    <div class="row">
+      <div class="action-bar">
+        <div class="col-md-5">
+          <div class="form-group">
+            {{ input type="text" value=filter class="form-control form-control-mini" placeholder="Filter by name"}}
+          </div>
+        </div>
+        <div class="col-md-5">
+          <div class="form-group">
+            {{view Ember.Select content=statuses value=status class="form-control form-control-mini"}}
+          </div>
+        </div>
+        <div class="col-md-2 hidden-xs hidden-sm">
+          <div class="form-group">
+            <button {{ bind-attr class=":btn :btn-mini :pull-right condensed:btn-default:btn-primary" }} {{action toggleCondensed }}>Expand</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </script>
+
   <script type="text/x-handlebars" data-template-name="dc">
     <div class="row">
       <div class="col-md-12 col-sm-12 col-xs-12 topbar">
@@ -69,7 +91,7 @@
         </div>
 
         <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-5 col-xs-10 col-xs-offset-1">
-            {{#link-to 'services' tagName="div" href=false}}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</a>{{/link-to}}
+            {{#link-to 'services' (query-params status=checkStatus) tagName="div" href=false }}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</a>{{/link-to}}
         </div>
 
         <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
@@ -91,136 +113,128 @@
   </script>
 
   <script type="text/x-handlebars" data-template-name="kv/show">
-  <div class="row">
-    <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a> <a href="" {{action 'linkToKey' parentKey }}>+</a></h4>
-  </div>
-
-  <div class="row">
-    <div class="col-md-5">
-      <div class="row">
-
-        {{#each item in model }}
-
-          {{#link-to item.linkToRoute item.Key href=false tagName="div" class="panel panel-link panel-short"}}
-            <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
-            <div class="panel-heading">
-              <h3 class="panel-title">
-                {{item.keyWithoutParent}}
-              </h3>
-            </div>
-          {{/link-to}}
-
-        {{/each}}
-
-      </div>
-    </div>
-
-    <div class="col-md-1">
-      <div class="border-left hidden-xs hidden-sm">
-        <div class="line"></div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="row">
-        <div class="panel">
-          <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
-            <div class="panel-heading">
-              <h3 class="panel-title">
-                Create Key
-              </h3>
-            </div>
-
-            <div class="panel-body">
-              <form class="form">
-
-                <div class="form-group">
-                  <p>{{errorMessage}}</p>
-                </div>
-
-                <div {{ bind-attr class=":form-group newKey.keyValid:valid" }}>
-                  <div class="input-group">
-                    <span class="input-group-addon">{{parentKey}}</span>
-                    {{ input value=newKey.Key class="form-control" required=true }}
-                  </div>
-                  <span class="help-block">To create a folder, end the key with <code>/</code></span>
-                </div>
-
-                {{#if newKey.isFolder }}
-                <p>No value needed for nested keys.</p>
-                {{else}}
-                <div class="form-group">
-                  {{ textarea value=newKey.Value class="form-control"}}
-                  <span class="help-block">Value can be any format and length</span>
-                </div>
-                {{/if}}
-
-                <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
-                <button {{ action "deleteFolder"}} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger isRoot:hidden" }}>Delete folder</button>
-              </form>
-            </div>
-          </div>
-      </div>
-    </div>
-  </div>
-  </script>
-
-  <script type="text/x-handlebars" data-template-name="kv/edit">
-  <div class="row">
-    <div class="col-md-5">
-      <div class="row">
+    <div class="row">
+      <div class="col-md-6 col-lg-5 padded-right-middle">
         <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a> <a href="" {{action 'linkToKey' parentKey }}>+</a></h4>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-      <div class="col-md-5">
-        <div class="row">
-          {{#each item in siblings }}
-            {{#link-to item.linkToRoute item.Key href=false tagName="div" class="panel panel-link panel-short"}}
-              <div {{bind-attr class=":panel-bar item.isFolder:bg-gray:bg-light-gray" }}></div>
-              <div class="panel-heading">
-                <h3 class="panel-title">
-                  {{item.keyWithoutParent}}
-                </h3>
-              </div>
-            {{/link-to}}
-          {{/each}}
-
         </div>
     </div>
 
-    <div class="col-md-1">
+    <div class="row">
+      <div class="col-md-6 col-lg-5 padded-right-middle">
+
+          {{#each item in model }}
+            {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
+              <div {{bind-attr class="item.isFolder:bg-gray:bg-light-gray :list-bar-horizontal"}}></div>
+              <div class="name">
+                {{item.keyWithoutParent}}
+              </div>
+            {{/link-to}}
+
+          {{/each}}
+      </div>
+
       <div class="border-left hidden-xs hidden-sm">
-        <div class="line"></div>
+      </div>
+
+      <div class="visible-xs visible-sm">
+        <hr>
+      </div>
+
+      <div class="col-md-6 col-lg-7 border-left">
+        <div class="padded-border">
+          <div class="panel">
+            <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
+              <div class="panel-heading">
+                <h3 class="panel-title">
+                  Create Key
+                </h3>
+              </div>
+
+              <div class="panel-body panel-form">
+                <form class="form">
+
+                  <div class="form-group">
+                    <p>{{errorMessage}}</p>
+                  </div>
+
+                  <div {{ bind-attr class=":form-group newKey.keyValid:valid" }}>
+                    <div class="input-group">
+                      <span class="input-group-addon">{{parentKey}}</span>
+                      {{ input value=newKey.Key class="form-control" required=true }}
+                    </div>
+                    <span class="help-block">To create a folder, end the key with <code>/</code></span>
+                  </div>
+
+                  {{#if newKey.isFolder }}
+                  <p>No value needed for nested keys.</p>
+                  {{else}}
+                  <div class="form-group">
+                    {{ textarea value=newKey.Value class="form-control"}}
+                    <span class="help-block">Value can be any format and length</span>
+                  </div>
+                  {{/if}}
+
+                  <button {{ action "createKey"}} {{bind-attr disabled=newKey.isInvalid }} {{ bind-attr class=":btn newKey.isValid:btn-success:btn-default" }}>Create</button>
+                  <button {{ action "deleteFolder"}} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger isRoot:hidden" }}>Delete folder</button>
+                </form>
+              </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" data-template-name="kv/edit">
+    <div class="row">
+      <div class="col-md-6 col-lg-5 padded-right-middle">
+        <h4 class="breadcrumbs"><a href="" {{action 'linkToKey' grandParentKey }}>{{parentKey}}</a> <a href="" {{action 'linkToKey' parentKey }}>+</a></h4>
       </div>
     </div>
 
-    <div class="col-md-6">
-      <div class="row">
-        <div class="panel">
-          <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green" }}></div>
-            <div class="panel-heading">
-              <h3 class="panel-title">
-                {{model.Key}}
-              </h3>
-            </div>
-
-            <div class="panel-body">
-              <div class="form-group">
-                {{errorMessage}}
+    <div class="row">
+      <div class="col-md-6 col-lg-5 padded-right-middle">
+          {{#each item in siblings }}
+            {{#link-to item.linkToRoute item.Key tagName="div" href=false class="list-group-item list-condensed-link" }}
+              <div {{bind-attr class="item.isFolder:bg-gray:bg-light-gray :list-bar-horizontal"}}></div>
+              <div class="name">
+                {{item.keyWithoutParent}}
               </div>
-              <form class="form">
+            {{/link-to}}
+          {{/each}}
+      </div>
+
+    <div class="border-left hidden-xs hidden-sm">
+    </div>
+
+    <div class="visible-xs visible-sm">
+      <hr>
+    </div>
+
+      <div class="col-md-6 col-lg-7 border-left">
+        <div class="padded-border">
+          <div class="panel">
+            <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green" }}></div>
+              <div class="panel-heading">
+                <h3 class="panel-title">
+                  {{model.Key}}
+                </h3>
+              </div>
+
+              <div class="panel-body panel-form">
                 <div class="form-group">
-                  {{ textarea value=model.valueDecoded class="form-control"}}
+                  {{errorMessage}}
                 </div>
-                <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
-                <button {{ action "cancelEdit"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-default" }}>Cancel</button>
-                <button {{ action "deleteKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete key</button>
-              </form>
+                <form class="form">
+                  <div class="form-group">
+                    {{ textarea value=model.valueDecoded class="form-control"}}
+                  </div>
+                  <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
+                  <button {{ action "cancelEdit"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-default" }}>Cancel</button>
+                  <button {{ action "deleteKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete key</button>
+                </form>
+              </div>
             </div>
-          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -238,59 +252,84 @@
   </script>
 
   <script type="text/x-handlebars" id="services">
+    <div class="row">
+      <div {{ bind-attr class=":col-md-6 :col-lg-5 :padded-right-middle isShowingItem:hidden-xs isShowingItem:hidden-sm" }}>
+        {{view App.ActionBarView }}
 
-    <div {{ bind-attr class=":col-md-5" }}>
+        {{#if filteredContent}}
 
-      {{#each service in services}}
+              {{#if condensed }}
 
-        <div class="row">
-            {{#link-to 'services.show' service.Name tagName="div" href=false class="list-group-item list-link" }}
-              <div {{bind-attr class="service.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
-              <h4 class="list-group-item-heading">
-                {{#link-to 'services.show' service.Name class='subtle'}}{{service.Name}}{{/link-to}}
-                <div class="heading-helper">
-                  <a class="subtle" href="#">{{service.checkMessage}}</a>
-                </div>
-              </h4>
-              <ul class="list-inline">
-                {{#each node in service.Nodes }}
-                <li class="bold">{{node}}</li>
-                {{/each}}
-              </ul>
-          {{/link-to}}
-        </div>
+                {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=44 }}
+                  {{#link-to 'services.show' Name tagName="div" href=false class="list-group-item list-condensed-link" }}
+                    <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :list-bar-horizontal"}}></div>
+                    <div class="name">
+                      {{Name}}
+                      <small class="pull-right">
+                        {{ checkMessage }}
+                      </small>
+                    </div>
+                  {{/link-to}}
+                {{/collection}}
 
-      {{/each}}
+              {{else}}
 
-    </div>
+                {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=120 }}
+                  {{#link-to 'services.show' Name tagName="div" href=false class="list-group-item list-link" }}
+                    <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+                    <h4 class="list-group-item-heading">
+                      {{#link-to 'services.show' Name class='subtle'}}{{Name}}{{/link-to}}
+                      <div class="heading-helper">
+                        <a class="subtle" href="#">{{checkMessage}}</a>
+                      </div>
+                    </h4>
+                    <ul class="list-inline">
+                      {{#each node in nodes }}
+                      <li class="bold">{{node}}</li>
+                      {{/each}}
+                    </ul>
+                  {{/link-to}}
+                {{/collection}}
 
-    <div class="col-md-1">
-      <div class="border-left hidden-xs hidden-sm">
-        <div class="line"></div>
+              {{/if}}
+
+        {{else}}
+        <p class="light">There are no services to show.</p>
+        {{/if}}
+
       </div>
-    </div>
 
-    <div class="visible-xs visible-sm">
-      <hr>
-    </div>
+      <div class="border-left hidden-xs hidden-sm">
+      </div>
 
-    <div class="col-md-6">
-      <div class="row">
-        {{outlet}}
+      <div class="visible-xs visible-sm">
+        <hr>
+      </div>
+
+      <div class="col-md-6 col-lg-7 border-left">
+        <div class="row padded-border">
+          {{outlet}}
+        </div>
       </div>
     </div>
   </script>
 
   <script type="text/x-handlebars" id="service">
-      <h2 class="no-margin">{{ model.0.Service.Service }}</h2>
+      <div class="col-xs-12 col-sm-12 visible-xs visible-sm">
+        {{#link-to "services" class="btn btn-default btn-block" }}Back to all services{{/link-to}}
+        <hr>
+      </div>
+
+      <h3 class="no-margin">{{ model.0.Service.Service }}</h3>
       <hr>
 
       <h5>Nodes</h5>
 
       {{#each node in model }}
 
-        {{#link-to 'nodes.show' node.Node.Node tagName="div" href=false class="panel panel-link" }}
-          <div {{ bind-attr class=":panel-bar node.hasFailingChecks:bg-orange:bg-green" }}></div>
+        {{#link-to 'nodes.show' node.Node.Node tagName="div" href=false class="panel panel-link panel-list" }}
+          <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :panel-bar-horizontal"}}></div>
+
           <div class="panel-heading">
             <h3 class="panel-title">
               {{node.Node.Node}}
@@ -299,86 +338,114 @@
             </h3>
           </div>
 
-          <div class="panel-body">
-            <ul class="list-unstyled list-broken">
-              {{#each check in node.Checks }}
-                <li>
-                  <h4 class="check">{{ check.Name }} <small>{{ check.CheckID }}</small> <span class="pull-right"><small>{{check.Status}}</small></h4>
-                </li>
-              {{/each}}
-            </ul>
-          </div>
+          <ul class="list-unstyled">
+            {{#each check in node.Checks }}
+              <li class="list-group-item list-condensed-link">
+                {{listBar check.Status}}
+                <div class="name">
+                  {{check.Name}}
+                  <small>{{ check.CheckID }}</small>
+                  <small class="pull-right">
+                  {{check.Status}}
+                  </small>
+                </div>
+              </li>
+            {{/each}}
+          </ul>
+
         {{/link-to}}
 
       {{/each}}
-
-      {{#link-to "services" class="btn btn-default col-xs-12 visible-xs" }}All Services{{/link-to}}
   </script>
 
   <script type="text/x-handlebars" id="nodes">
-    <div class="col-md-5">
+    <div class="row">
+      <div {{ bind-attr class=":col-md-6 :col-lg-5 :padded-right-middle isShowingItem:hidden-xs isShowingItem:hidden-sm" }}>
+        {{view App.ActionBarView }}
 
-      {{#each node in nodes}}
-        <div class="row">
-          {{#link-to 'nodes.show' node.Node tagName="div" href=false class="list-group-item list-link" }}
-            <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
-            <h4 class="list-group-item-heading">
-              {{node.Node}}
-              <small>{{node.Address}}</small>
-              <div class="heading-helper">
-                <a class="subtle" href="#">{{node.checkMessage}}</a>
-              </div>
-            </h4>
-            <ul class="list-inline">
-              {{#each service in node.Services }}
-                <li class="bold">{{service.Service}}</li>
-              {{/each}}
-            </ul>
-          </div>
-        {{/link-to}}
+          {{#if filteredContent}}
 
-      {{/each}}
+                {{#if condensed }}
+                    {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=44 }}
+                      {{#link-to 'nodes.show' Node tagName="div" href=false class="list-group-item list-condensed-link" }}
+                        <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :list-bar-horizontal"}}></div>
+                        <div class="name">
+                          {{Node}}
+                          <small class="pull-right">
+                            {{ numServices }} services
+                          </small>
+                        </div>
+                      {{/link-to}}
+                    {{/collection}}
 
-    </div>
+                {{else}}
 
-    <div class="col-md-1">
-      <div class="border-left hidden-xs hidden-sm">
-        <div class="line"></div>
+                  {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=120 }}
+                    {{#link-to 'nodes.show' Node tagName="div" href=false class="list-group-item list-link" }}
+                      <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+                      <h4 class="list-group-item-heading">
+                        {{Node}}
+                        <small>{{Address}}</small>
+                        <div class="heading-helper">
+                          <a class="subtle" href="#">{{checkMessage}}</a>
+                        </div>
+                      </h4>
+                      <ul class="list-inline">
+                        {{#each service in services}}
+                          <li class="bold">{{service.Service}}</li>
+                        {{/each}}
+                      </ul>
+                    {{/link-to}}
+                  {{/collection}}
+
+                {{/if}}
+
+          {{else}}
+          <p class="light">There are no nodes to show.</p>
+          {{/if}}
       </div>
-    </div>
 
-    <div class="visible-xs visible-sm">
-      <hr>
-    </div>
+      <div class="border-left hidden-xs hidden-sm">
+      </div>
 
-
-    <div class="col-md-6">
-      <div class="row">
-        {{outlet}}
+      <div class="col-md-6 col-lg-7 border-left">
+        <div class="row padded-border">
+          {{outlet}}
+        </div>
       </div>
     </div>
   </script>
 
   <script type="text/x-handlebars" id="node">
-      <h2 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h2>
+      <div class="col-xs-12 col-sm-12 visible-xs visible-sm">
+        {{#link-to "nodes" class="btn btn-default btn-block" }}Back to all nodes{{/link-to}}
+        <hr>
+      </div>
+
+      <h3 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h3>
       <hr>
+      {{foobar}}
+
+      <h5>Service Tags</h5>
+      {{#if model.nodeTags}}
+        <p class="bold">{{model.nodeTags}}</p>
+      {{else}}
+        <p class="light small">No tags</p>
+      {{/if}}
 
       <h5>Services</h5>
 
       {{#each service in model.Services }}
-
-      {{#link-to 'services.show' service.Service }}
-          <div class="panel panel-link panel-short">
-            <div class="panel-bar bg-light-gray"></div>
-            <div class="panel-heading">
-              <h3 class="panel-title">
-                {{service.Service}}
-                <small>{{sevice.ID}}</small>
-                <span class="panel-note">:{{service.Port}}</span>
-              </h3>
+        {{#link-to 'services.show' service.Service tagName="div" href=false class="list-group-item list-condensed-link" }}
+          <div class="list-bar-horizontal bg-light-gray"></div>
+            <div class="name">
+              {{service.Service}}
+              <small class="pull-right">
+                :{{service.Port}}
+              </small>
             </div>
-        </div>
-      {{/link-to}}
+        {{/link-to}}
+
       {{/each}}
 
       <h5>Checks</h5>
@@ -404,8 +471,6 @@
         </div>
 
       {{/each}}
-
-      {{#link-to "nodes" class="btn btn-default col-xs-12 visible-xs" }}All Nodes{{/link-to}}
   </script>
 
   <script type="text/x-handlebars" id="index">
@@ -427,11 +492,17 @@
     </div>
   </script>
 
+  <script>
+  // Enable query params, must be loaded before ember is
+  EmberENV = {FEATURES: {'query-params-new': true}};
+  </script>
+
   <!-- ASSETS -->
   <script src="javascripts/libs/jquery-1.10.2.min.js"></script>
-  <script src="javascripts/libs/handlebars-1.1.2.min.js"></script>
-  <script src="javascripts/libs/ember-1.5.1.min.js"></script>
+  <script src="javascripts/libs/handlebars-1.3.0.min.js"></script>
+  <script src="javascripts/libs/ember-debug.min.js"></script>
   <script src="javascripts/libs/ember-validations.min.js"></script>
+  <script src="javascripts/libs/list-view.min.js"></script>
   <script src="javascripts/fixtures.js"></script>
   <script src="javascripts/app/router.js"></script>
   <script src="javascripts/app/routes.js"></script>

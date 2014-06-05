@@ -13,8 +13,9 @@ App.Service = Ember.Object.extend({
     // Otherwise, we need to filter the child checks by both failing
     // states
     } else {
-    return (checks.filterBy('Status', 'critical').get('length') +
-      checks.filterBy('Status', 'warning').get('length'))
+      var checks = this.get('Checks');
+      return (checks.filterBy('Status', 'critical').get('length') +
+        checks.filterBy('Status', 'warning').get('length'))
     }
   }.property('Checks'),
 
@@ -45,13 +46,25 @@ App.Service = Ember.Object.extend({
     }
   }.property('Checks'),
 
+  nodes: function() {
+    return (this.get('Nodes'))
+  }.property('Nodes'),
+
   //
   // Boolean of whether or not there are failing checks in the service.
   // This is used to set color backgrounds and so on.
   //
   hasFailingChecks: function() {
     return (this.get('failingChecks') > 0);
-  }.property('Checks')
+  }.property('Checks'),
+
+  //
+  // Key used for filtering through an array of this model, i.e s
+  // searching
+  //
+  filterKey: function() {
+    return this.get('Name')
+  }.property('Name'),
 });
 
 //
@@ -93,7 +106,43 @@ App.Node = Ember.Object.extend({
   //
   hasFailingChecks: function() {
     return (this.get('failingChecks') > 0);
-  }.property('Checks')
+  }.property('Checks'),
+
+  //
+  // The number of services on the node
+  //
+  numServices: function() {
+    return (this.get('Services').length)
+  }.property('Services'),
+  // The number of services on the node
+  //
+
+  services: function() {
+    return (this.get('Services'))
+  }.property('Services'),
+
+  filterKey: function() {
+    return this.get('Node')
+  }.property('Node'),
+
+  //
+  // Returns a combined and distinct list of the tags on the services
+  // running on the node
+  //
+  nodeTags: function() {
+    var tags = [];
+
+    // Collect the services tags
+    this.get('Services').map(function(Service){
+      tags.push(Service.Tags)
+    })
+
+    // strip nulls
+    tags = tags.filter(function(n){ return n != undefined });
+
+    // only keep unique tags and convert to comma sep
+    return tags.uniq().join(', ')
+  }.property('Services')
 });
 
 

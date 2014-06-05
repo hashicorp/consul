@@ -1,5 +1,6 @@
 window.App = Ember.Application.create({
-  rootElement: "#app"
+  rootElement: "#app",
+  currentPath: ''
 });
 
 

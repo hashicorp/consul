@@ -1,3 +1,9 @@
+App.ApplicationController = Ember.ObjectController.extend({
+  updateCurrentPath: function() {
+    App.set('currentPath', this.get('currentPath'));
+  }.observes('currentPath')
+});
+
 App.DcController = Ember.Controller.extend({
   // Whether or not the dropdown menu can be seen
   isDropdownVisible: false,
@@ -41,6 +47,18 @@ App.DcController = Ember.Controller.extend({
       return  failingChecks + ' checks failing';
     } else {
       return  passingChecks + ' checks passing';
+    }
+
+  }.property('nodes'),
+
+  //
+  //
+  //
+  checkStatus: function() {
+    if (this.get('hasFailingChecks') == true) {
+      return "failing";
+    } else {
+      return "passing";
     }
 
   }.property('nodes'),
@@ -216,3 +234,54 @@ App.KvEditController = KvBaseController.extend({
   }
 
 });
+
+ItemBaseController = Ember.ArrayController.extend({
+  needs: ["dc", "application"],
+  queryParams: ["filter", "status", "condensed"],
+  dc: Ember.computed.alias("controllers.dc"),
+  condensed: true,
+  filter: "", // default
+  status: "any status", // default
+  statuses: ["any status", "passing", "failing"],
+
+  isShowingItem: function() {
+    var currentPath = this.get('controllers.application.currentPath');
+    return (currentPath === "dc.nodes.show" || currentPath === "dc.services.show");
+  }.property('controllers.application.currentPath'),
+
+  filteredContent: function() {
+    var filter = this.get('filter');
+    var status = this.get('status');
+
+    var items = this.get('items').filter(function(item, index, enumerable){
+      return item.get('filterKey').toLowerCase().match(filter.toLowerCase());
+    });
+
+    switch (status) {
+      case "passing":
+        return items.filterBy('hasFailingChecks', false)
+        break;
+      case "failing":
+        return items.filterBy('hasFailingChecks', true)
+        break;
+      default:
+        return items
+    }
+
+  }.property('filter', 'status', 'items.@each'),
+
+  actions: {
+    toggleCondensed: function() {
+      this.set('condensed', !this.get('condensed'))
+    }
+  }
+});
+
+App.NodesController = ItemBaseController.extend({
+  items: Ember.computed.alias("nodes"),
+});
+
+App.ServicesController = ItemBaseController.extend({
+  items: Ember.computed.alias("services"),
+});
+

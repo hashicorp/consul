@@ -7,19 +7,13 @@
 @import "lists";
 @import "forms";
 
-@media (min-width: 768px) { // + 18
+@media (min-width: 1120px) { // + 30
   .container {
-    width: 750px;
+    width: 1100px;
   }
 }
 
-@media (min-width: 970px) { // + 22
-  .container {
-    width: 970px;
-  }
-}
-
-@media (min-width: 1230px) { // + 30
+@media (min-width: 1200px) { // + 30
   .container {
     width: 1200px;
   }
@@ -41,16 +35,16 @@ a {
   height: 50px;
 }
 
-.border-left {
-  display: block;
-  height: 700px;
-
-  .line {
-    margin: 0 auto;
-    background-color: $gray-background;
-    height: 100%;
-    width: 1px;
+@media (min-width: 991px) {
+  .border-left {
+    border-left: 1px $gray-background solid;
+    .padded-border{
+      padding-left: 30px;
+    }
   }
+}
+.padded-right-middle {
+  padding-right: 30px;
 }
 
 .no-margin {
@@ -102,4 +96,25 @@ a {
 
 .bg-light-gray {
     background-color: $gray-background;
+}
+
+.action-bar {
+  min-height: 50px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.ember-list-view {
+  overflow: auto;
+  position: relative;
+}
+
+.ember-list-item-view {
+  position: absolute;
+  width: 100%;
+}
+
+.scrollable {
+  overflow: auto;
+  height: 800px;
 }

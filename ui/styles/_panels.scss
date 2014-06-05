@@ -4,6 +4,7 @@
     @include transition(background-color .3s ease-in-out);
 
     .panel-heading {
+        padding: 10px 7px;
         background-color: transparent;
         border-width: 2px;
         border-color: $gray-background;
@@ -31,6 +32,7 @@
     }
 
     .panel-body {
+        padding: 0px 15px 0px 15px;
         p {
             font-size: 14px;
             color: $text-color;
@@ -40,6 +42,9 @@
         }
         h4.check {
             font-size: 16px;
+        }
+        &.panel-form {
+            padding-bottom: 15px;
         }
     }
 
@@ -51,6 +56,23 @@
 
     &.panel-link {
         border-bottom-width: 2px;
+    }
+
+    &.panel-list {
+        ul {
+            margin: 0;
+            li {
+                margin: 0;
+                border: 0;
+            }
+        }
+    }
+    .panel-bar-horizontal {
+        width: 20px;
+        float: left;
+        height: 50px;
+        margin-right: 10px;
+        display: block;
     }
 
     &.panel-short {

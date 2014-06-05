@@ -4,9 +4,10 @@ File.open("static/application.min.js", "w") {|file| file.truncate(0) }
 
 libs = [
   "javascripts/libs/jquery-1.10.2.min.js",
-  "javascripts/libs/handlebars-1.1.2.min.js",
-  "javascripts/libs/ember-1.5.1.min.js",
+  "javascripts/libs/handlebars-1.3.0.min.js",
+  "javascripts/libs/ember.min.js",
   "javascripts/libs/ember-validations.min.js",
+  "javascripts/libs/list-view.min.js",
 ]
 
 app = [
