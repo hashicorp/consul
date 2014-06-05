@@ -420,7 +420,7 @@ This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.
 When this endpoint is accessed via a GET, the status of the check is set to "passing",
 and the TTL clock is reset.
 
-The optional "?node=" query parameter can be used to associate output with
+The optional "?note=" query parameter can be used to associate output with
 the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
@@ -431,7 +431,7 @@ This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.
 When this endpoint is accessed via a GET, the status of the check is set to "warning",
 and the TTL clock is reset.
 
-The optional "?node=" query parameter can be used to associate output with
+The optional "?note=" query parameter can be used to associate output with
 the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
@@ -442,7 +442,7 @@ This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.
 When this endpoint is accessed via a GET, the status of the check is set to "critical",
 and the TTL clock is reset.
 
-The optional "?node=" query parameter can be used to associate output with
+The optional "?note=" query parameter can be used to associate output with
 the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
