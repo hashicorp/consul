@@ -246,7 +246,6 @@ ItemBaseController = Ember.ArrayController.extend({
 
   isShowingItem: function() {
     var currentPath = this.get('controllers.application.currentPath');
-    console.log(currentPath);
     return (currentPath === "dc.nodes.show" || currentPath === "dc.services.show");
   }.property('controllers.application.currentPath'),
 
