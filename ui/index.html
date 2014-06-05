@@ -294,7 +294,11 @@
       <div class="border-left hidden-xs hidden-sm">
       </div>
 
-      <div class="col-md-6 col-lg-7 border-left scrollable">
+      <div class="visible-xs visible-sm">
+        <hr>
+      </div>
+
+      <div class="col-md-6 col-lg-7 border-left">
         <div class="row padded-border">
           {{outlet}}
         </div>
@@ -315,8 +319,9 @@
 
       {{#each node in model }}
 
-        {{#link-to 'nodes.show' node.Node.Node tagName="div" href=false class="panel panel-link" }}
-          <div {{ bind-attr class=":panel-bar node.hasFailingChecks:bg-orange:bg-green" }}></div>
+        {{#link-to 'nodes.show' node.Node.Node tagName="div" href=false class="panel panel-link panel-list" }}
+          <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :panel-bar-horizontal"}}></div>
+
           <div class="panel-heading">
             <h3 class="panel-title">
               {{node.Node.Node}}
@@ -325,15 +330,21 @@
             </h3>
           </div>
 
-          <div class="panel-body">
-            <ul class="list-unstyled list-broken">
-              {{#each check in node.Checks }}
-                <li>
-                  <h4 class="check">{{ check.Name }} <small>{{ check.CheckID }}</small> <span class="pull-right"><small>{{check.Status}}</small></h4>
-                </li>
-              {{/each}}
-            </ul>
-          </div>
+          <ul class="list-unstyled">
+            {{#each check in node.Checks }}
+              <li class="list-group-item list-condensed-link">
+                {{listBar check.Status}}
+                <div class="name">
+                  {{check.Name}}
+                  <small>{{ check.CheckID }}</small>
+                  <small class="pull-right">
+                  {{check.Status}}
+                  </small>
+                </div>
+              </li>
+            {{/each}}
+          </ul>
+
         {{/link-to}}
 
       {{/each}}
@@ -391,7 +402,7 @@
       <div class="border-left hidden-xs hidden-sm">
       </div>
 
-      <div class="col-md-6 col-lg-7 border-left scrollable">
+      <div class="col-md-6 col-lg-7 border-left">
         <div class="row padded-border">
           {{outlet}}
         </div>
