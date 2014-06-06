@@ -102,3 +102,18 @@ The leader should also emit various logs including:
 
 At this point the node has been gracefully removed from the cluster, and
 will shut down.
+
+## Forced Removal
+
+In some cases, it may not be possible to gracefully remove a server. For example,
+if the server simply fails, then there is no ability to issue a leave. Instead,
+the cluster will detect the failure and replication will continuously retry.
+
+If the server can be recovered, it is best to bring it back online and then gracefully
+leave the cluster. However, if this is not a possibility, then the `force-leave` command
+can be used to force removal of a server.
+
+This is done by invoking that command with the name of the failed node. At this point,
+the cluster leader will mark the node as having left the cluster and it will stop attempting
+to replicate.
+

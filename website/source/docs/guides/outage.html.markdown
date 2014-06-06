@@ -11,6 +11,12 @@ Do not panic! This is a critical first step. Depending on your
 take only a single server failure for cluster unavailability. Recovery
 requires an operator to intervene, but is straightforward.
 
+<div class="alert alert-block alert-warning">
+This page covers recovery from Consul becoming unavailable due to a majority
+of server nodes in a datacenter being lost. If you are just looking to
+add or remove a server [see this page](/docs/guides/servers.html).
+</div>
+
 If you had only a single server and it has failed, simply restart it.
 Note that a single server configuration requires the `-bootstrap` flag.
 If that server cannot be recovered, you need to bring up a new server.
