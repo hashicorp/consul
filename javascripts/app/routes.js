@@ -241,6 +241,7 @@ App.NodesShowRoute = App.BaseRoute.extend({
     var dc = this.modelFor('dc').dc
     // Return a promise hash of the node and nodes
     return Ember.RSVP.hash({
+      dc: dc,
       node: Ember.$.getJSON('/v1/internal/ui/node/' + params.name + '?dc=' + dc).then(function(data) {
         return App.Node.create(data)
       }),
@@ -250,8 +251,17 @@ App.NodesShowRoute = App.BaseRoute.extend({
     });
   },
 
+  // Load the sessions for the node
+  afterModel: function(models) {
+    return Ember.$.getJSON('/v1/session/node/' + models.node.Node + '?dc=' + models.dc).then(function(data) {
+      models.sessions = data
+      return models
+    });
+  },
+
   setupController: function(controller, models) {
       controller.set('content', models.node);
+      controller.set('sessions', models.sessions);
       //
       // Since we have 2 column layout, we need to also display the
       // list of nodes on the left. Hence setting the attribute

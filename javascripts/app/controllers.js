@@ -161,11 +161,12 @@ App.KvShowController.reopen({
       this.set('isLoading', true);
 
       var controller = this;
+      var dc = controller.get('dc').get('datacenter');
       var grandParent = controller.get('grandParentKey');
 
       // Delete the folder
       Ember.$.ajax({
-          url: ("/v1/kv/" + controller.get('parentKey') + '?recurse'),
+          url: ("/v1/kv/" + controller.get('parentKey') + '?recurse&dc=' + dc),
           type: 'DELETE'
       }).then(function(response) {
         controller.transitionToNearestParent(grandParent);
@@ -273,6 +274,35 @@ ItemBaseController = Ember.ArrayController.extend({
   actions: {
     toggleCondensed: function() {
       this.set('condensed', !this.get('condensed'))
+    }
+  }
+});
+
+App.NodesShowController = Ember.ObjectController.extend({
+  needs: ["dc"],
+  dc: Ember.computed.alias("controllers.dc"),
+
+  actions: {
+    invalidateSession: function(sessionId) {
+      this.set('isLoading', true);
+      var controller = this;
+      var node = controller.get('model');
+      var dc = controller.get('dc').get('datacenter');
+
+      if (window.confirm("Are you sure you want to invalidate this session?")) {
+        // Delete the session
+        Ember.$.ajax({
+            url: ("/v1/session/destroy/" + sessionId + '?dc=' + dc),
+            type: 'PUT'
+        }).then(function(response) {
+          return Ember.$.getJSON('/v1/session/node/' + node.Node + '?dc=' + dc).then(function(data) {
+            controller.set('sessions', data)
+          });
+        }).fail(function(response) {
+          // Render the error message on the form if the request failed
+          controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
+        });
+      }
     }
   }
 });

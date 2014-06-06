@@ -327,7 +327,7 @@
         <hr>
       </div>
 
-      <div class="col-md-6 col-lg-7 border-left">
+      <div class="col-md-6 col-lg-7 border-left scrollable">
         <div class="row padded-border">
           {{outlet}}
         </div>
@@ -429,7 +429,7 @@
       <div class="border-left hidden-xs hidden-sm">
       </div>
 
-      <div class="col-md-6 col-lg-7 border-left">
+      <div class="col-md-6 col-lg-7 border-left scrollable">
         <div class="row padded-border">
           {{outlet}}
         </div>
@@ -445,7 +445,6 @@
 
       <h3 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h3>
       <hr>
-      {{foobar}}
 
       <h5>Service Tags</h5>
       {{#if model.nodeTags}}
@@ -492,6 +491,25 @@
         </div>
 
       {{/each}}
+
+      <h5>Lock Sessions</h5>
+
+      {{#if sessions }}
+        {{errorMessage}}
+
+        {{#each session in sessions }}
+          <div class="list-group-item list-condensed">
+            <div class="bg-light-gray list-bar-horizontal"></div>
+            <div class="name">
+              {{session.ID}}
+              <button {{ action "invalidateSession" session.ID }} {{ bind-attr class=":btn :btn-danger :pull-right :btn-list isLoading:btn-warning" }}>Invalidate</button>
+            </div>
+          </div>
+        {{/each}}
+
+      {{else}}
+        <p class="light small">No sessions</p>
+      {{/if}}
   </script>
 
   <script type="text/x-handlebars" id="index">
