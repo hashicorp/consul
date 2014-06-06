@@ -175,6 +175,14 @@ func (a *Agent) consulConfig() *consul.Config {
 		base.ProtocolVersion = uint8(a.config.Protocol)
 	}
 
+	// Format the build string
+	revision := a.config.Revision
+	if len(revision) > 8 {
+		revision = revision[:8]
+	}
+	base.Build = fmt.Sprintf("%s%s:%s",
+		a.config.Version, a.config.VersionPrerelease, revision)
+
 	// Copy the TLS configuration
 	base.VerifyIncoming = a.config.VerifyIncoming
 	base.VerifyOutgoing = a.config.VerifyOutgoing

@@ -115,6 +115,10 @@ type Config struct {
 	// true, we ignore the leave, and rejoin the cluster on start.
 	RejoinAfterLeave bool
 
+	// Build is a string that is gossiped around, and can be used to help
+	// operators track which versions are actively deployed
+	Build string
+
 	// ServerUp callback can be used to trigger a notification that
 	// a Consul server is now up and known about.
 	ServerUp func()
