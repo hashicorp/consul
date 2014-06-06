@@ -426,13 +426,6 @@
       <hr>
       {{foobar}}
 
-      <h5>Service Tags</h5>
-      {{#if model.nodeTags}}
-        <p class="bold">{{model.nodeTags}}</p>
-      {{else}}
-        <p class="light small">No tags</p>
-      {{/if}}
-
       <h5>Services</h5>
 
       {{#each service in model.Services }}
@@ -440,6 +433,11 @@
           <div class="list-bar-horizontal bg-light-gray"></div>
             <div class="name">
               {{service.Service}}
+              <span class="tag-bar">
+              {{#each tag in service.Tags}}
+              <span class="service-tag">{{tag}}</span>
+              {{/each}}
+              </span>
               <small class="pull-right">
                 :{{service.Port}}
               </small>
