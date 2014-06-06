@@ -230,7 +230,7 @@ SYNC:
 			case <-shutdownCh:
 				return
 			}
-		case <-time.After(randomStagger(aeScale(syncRetryIntv, len(l.iface.LANMembers())))):
+		case <-time.After(syncRetryIntv + randomStagger(aeScale(syncRetryIntv, len(l.iface.LANMembers())))):
 		case <-shutdownCh:
 			return
 		}
