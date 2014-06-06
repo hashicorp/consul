@@ -172,6 +172,12 @@ App.KvEditRoute = App.BaseRoute.extend({
         });
         return objs;
       }),
+    }).then(function(models) {
+        // If the key is locked, add the session
+        if (models.key.get('isLocked') == true) {
+          models.session = Ember.$.getJSON('/v1/session/info/' + key.Session + '/&dc=' + dc)
+        }
+        return models
     });
   },
 

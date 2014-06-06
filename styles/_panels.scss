@@ -10,6 +10,32 @@
         border-color: $gray-background;
     }
 
+    h4.panel-title {
+        padding: 4px 10px 4px 10px;
+        font-size: 20px;
+        color: $gray-light;
+        color: $gray-darker;
+        border-radius: 3px;
+        opacity: 0.8;
+
+        small {
+            font-size: 14px;
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-left: 5px;
+            padding-top: 2px;
+        }
+
+        .panel-note {
+            margin-top: 5px;
+            float: right;
+            font-weight: 600;
+            color: $gray-light;
+            font-size: 14px;
+        }
+    }
+
+
     h3.panel-title {
         padding: 4px 0px 4px 0px;
         font-size: 20px;

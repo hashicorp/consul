@@ -176,6 +176,15 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     return (this.get('Key').slice(-1) === '/')
   }.property('Key'),
 
+  // Boolean if the key is locked or now
+  isLocked: function() {
+    if (!this.get('Session')) {
+      return false;
+    } else {
+      return true;
+    }
+  }.property('Session'),
+
   // Determines what route to link to. If it's a folder,
   // it will link to kv.show. Otherwise, kv.edit
   linkToRoute: function() {
