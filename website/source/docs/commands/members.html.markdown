@@ -22,8 +22,8 @@ Usage: `consul members [options]`
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-role` - If provided, output is filtered to only nodes matching
-  the regular expression for role
+* `-detailed` - If provided, output shows more detailed information
+  about each node.
 
 * `-rpc-addr` - Address to the RPC server of the agent you want to contact
   to send this command. If this isn't specified, the command will contact

@@ -25,8 +25,7 @@ Usage: consul members [options]
 
 Options:
 
-  -role=<regexp>            If provided, output is filtered to only nodes matching
-                            the regular expression for role
+  -detailed                 Provides detailed information about nodes
 
   -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
 
@@ -40,12 +39,13 @@ Options:
 }
 
 func (c *MembersCommand) Run(args []string) int {
+	var detailed bool
 	var wan bool
-	var roleFilter, statusFilter string
+	var statusFilter string
 	cmdFlags := flag.NewFlagSet("members", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
+	cmdFlags.BoolVar(&detailed, "detailed", false, "detailed output")
 	cmdFlags.BoolVar(&wan, "wan", false, "wan members")
-	cmdFlags.StringVar(&roleFilter, "role", ".*", "role filter")
 	cmdFlags.StringVar(&statusFilter, "status", ".*", "status filter")
 	rpcAddr := RPCAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
@@ -53,11 +53,6 @@ func (c *MembersCommand) Run(args []string) int {
 	}
 
 	// Compile the regexp
-	roleRe, err := regexp.Compile(roleFilter)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to compile role regexp: %v", err))
-		return 1
-	}
 	statusRe, err := regexp.Compile(statusFilter)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to compile status regexp: %v", err))
@@ -82,13 +77,80 @@ func (c *MembersCommand) Run(args []string) int {
 		return 1
 	}
 
-	result := make([]string, 0, len(members))
-	for _, member := range members {
-		// Skip the non-matching members
-		if !roleRe.MatchString(member.Tags["role"]) || !statusRe.MatchString(member.Status) {
+	// Filter the results
+	n := len(members)
+	for i := 0; i < n; i++ {
+		member := members[i]
+		if !statusRe.MatchString(member.Status) {
+			members[i], members[n-1] = members[n-1], members[i]
+			i--
+			n--
 			continue
 		}
+	}
+	members = members[:n]
 
+	// No matching members
+	if len(members) == 0 {
+		return 2
+	}
+
+	// Generate the output
+	var result []string
+	if detailed {
+		result = c.detailedOutput(members)
+	} else {
+		result = c.standardOutput(members)
+	}
+
+	// Generate the columnized version
+	output := columnize.SimpleFormat(result)
+	c.Ui.Output(string(output))
+
+	return 0
+}
+
+// standardOutput is used to dump the most useful information about nodes
+// in a more human-friendly format
+func (c *MembersCommand) standardOutput(members []agent.Member) []string {
+	result := make([]string, 0, len(members))
+	header := "Node|Address|Status|Type|Build|Protocol"
+	result = append(result, header)
+	for _, member := range members {
+		addr := net.TCPAddr{IP: member.Addr, Port: int(member.Port)}
+		protocol := member.Tags["vsn"]
+		build := member.Tags["build"]
+		if build == "" {
+			build = "< 0.3"
+		} else if idx := strings.Index(build, ":"); idx != -1 {
+			build = build[:idx]
+		}
+
+		switch member.Tags["role"] {
+		case "node":
+			line := fmt.Sprintf("%s|%s|%s|client|%s|%s",
+				member.Name, addr.String(), member.Status, build, protocol)
+			result = append(result, line)
+		case "consul":
+			line := fmt.Sprintf("%s|%s|%s|server|%s|%s",
+				member.Name, addr.String(), member.Status, build, protocol)
+			result = append(result, line)
+		default:
+			line := fmt.Sprintf("%s|%s|%s|unknown||",
+				member.Name, addr.String(), member.Status)
+			result = append(result, line)
+		}
+	}
+	return result
+}
+
+// detailedOutput is used to dump all known information about nodes in
+// their raw format
+func (c *MembersCommand) detailedOutput(members []agent.Member) []string {
+	result := make([]string, 0, len(members))
+	header := "Node|Address|Status|Tags"
+	result = append(result, header)
+	for _, member := range members {
 		// Format the tags as tag1=v1,tag2=v2,...
 		var tagPairs []string
 		for name, value := range member.Tags {
@@ -101,17 +163,7 @@ func (c *MembersCommand) Run(args []string) int {
 			member.Name, addr.String(), member.Status, tags)
 		result = append(result, line)
 	}
-
-	// No matching members
-	if len(result) == 0 {
-		return 2
-	}
-
-	// Generate the columnized version
-	output := columnize.SimpleFormat(result)
-	c.Ui.Output(string(output))
-
-	return 0
+	return result
 }
 
 func (c *MembersCommand) Synopsis() string {
