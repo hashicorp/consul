@@ -107,6 +107,7 @@ a {
 .ember-list-view {
   overflow: auto;
   position: relative;
+  margin-bottom: 30px;
 }
 
 .ember-list-item-view {
@@ -117,4 +118,5 @@ a {
 .scrollable {
   overflow: auto;
   height: 800px;
+  margin-bottom: 30px;
 }

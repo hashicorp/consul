@@ -45,7 +45,7 @@
         background-color: lighten($gray-background, 8%);
     }
 
-    &.list-condensed-link {
+    &.list-condensed-link, &.list-condensed {
         border-color: $gray-background;
         margin-bottom: 4px;
         margin-top: 4px;
@@ -55,7 +55,7 @@
 
         .name {
             font-size: 15px;
-            padding-top: 7px;
+            padding-top: 6px;
 
             small {
                 padding-right: 8px;
