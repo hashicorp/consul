@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
+	"sort"
 	"time"
 )
 
@@ -83,6 +84,9 @@ func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
 	for dc := range c.srv.remoteConsuls {
 		dcs = append(dcs, dc)
 	}
+
+	// Sort the DCs
+	sort.Strings(dcs)
 
 	// Return
 	*reply = dcs
