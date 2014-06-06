@@ -203,46 +203,62 @@
           {{/each}}
       </div>
 
-    <div class="border-left hidden-xs hidden-sm">
-    </div>
+      <div class="border-left hidden-xs hidden-sm">
+      </div>
 
-    <div class="visible-xs visible-sm">
-      <hr>
-    </div>
+      <div class="visible-xs visible-sm">
+        <hr>
+      </div>
 
       <div class="col-md-6 col-lg-7 border-left">
         <div class="padded-border">
+
           <div class="panel">
             <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green isLocked:bg-light-gray" }}></div>
-              <div class="panel-heading">
-                <h4 {{bind-attr class=":panel-title isLocked:locked"}}>
-                  {{model.Key}}
-                  {{#if model.isLocked}}
-                  <small class="pull-right">
-                  KEY LOCKED
-                  </small>
-                  {{/if}}
-                </h3>
-              </div>
-
-              <div class="panel-body panel-form">
-                <div class="form-group">
-                  {{errorMessage}}
-                </div>
-                <form class="form">
-                  <div class="form-group">
-                    {{ textarea value=model.valueDecoded class="form-control" disabled=model.isLocked}}
-                  </div>
-                  <button {{action "updateKey"}} {{bind-attr disabled=isLoading}} {{bind-attr class=":btn isLoading:btn-warning:btn-success"}} {{bind-attr disabled=isLocked}}>Update</button>
-                  <button {{action "cancelEdit"}} {{bind-attr disabled=isLoading}} {{bind-attr class=":btn isLoading:btn-warning:btn-default"}}>Cancel</button>
-                  <button {{action "deleteKey"}} {{bind-attr disabled=isLoading}} {{bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger"}} {{bind-attr disabled=isLocked}}>Delete key</button>
-                </form>
-              </div>
+            <div class="panel-heading">
+              <h4 {{bind-attr class=":panel-title isLocked:locked"}}>
+                {{model.Key}}
+                {{#if model.isLocked}}
+                <small class="pull-right">
+                KEY LOCKED
+                </small>
+                {{/if}}
+              </h4>
             </div>
+
+            <div class="panel-body panel-form">
+              <div class="form-group">
+                {{errorMessage}}
+              </div>
+              <form class="form">
+                <div class="form-group">
+                  {{ textarea value=model.valueDecoded class="form-control" disabled=model.isLocked}}
+                </div>
+                <button {{action "updateKey"}} {{bind-attr disabled=isLoading}} {{bind-attr class=":btn isLoading:btn-warning:btn-success"}} {{bind-attr disabled=isLocked}}>Update</button>
+                <button {{action "cancelEdit"}} {{bind-attr disabled=isLoading}} {{bind-attr class=":btn isLoading:btn-warning:btn-default"}}>Cancel</button>
+                <button {{action "deleteKey"}} {{bind-attr disabled=isLoading}} {{bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger"}} {{bind-attr disabled=isLocked}}>Delete key</button>
+              </form>
+            </div>
+          </div>
+
+          {{#if model.isLocked}}
+            <h5>Lock Session</h5>
+
+            {{#link-to 'nodes.show' model.session.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
+              <div class="bg-light-gray list-bar-horizontal"></div>
+              <div class="name">
+                {{session.Node}}
+                <small class="pull-right">
+                  {{session.ID}}
+                </small>
+              </div>
+            {{/link-to}}
+          {{/if}}
+
         </div>
       </div>
+
     </div>
-  </div>
   </script>
 
   <script type="text/x-handlebars" data-template-name="item/loading">

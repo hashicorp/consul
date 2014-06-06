@@ -161,6 +161,7 @@ App.KvEditRoute = App.BaseRoute.extend({
 
     // Return a promise hash to get the data for both columns
     return Ember.RSVP.hash({
+      dc: dc,
       key: Ember.$.getJSON('/v1/kv/' + key + '?dc=' + dc).then(function(data) {
         // Convert the returned data to a Key
         return App.Key.create().setProperties(data[0]);
@@ -172,13 +173,19 @@ App.KvEditRoute = App.BaseRoute.extend({
         });
         return objs;
       }),
-    }).then(function(models) {
-        // If the key is locked, add the session
-        if (models.key.get('isLocked') == true) {
-          models.session = Ember.$.getJSON('/v1/session/info/' + key.Session + '/&dc=' + dc)
-        }
-        return models
     });
+  },
+
+  // Load the session on the key, if there is one
+  afterModel: function(models) {
+    if (models.key.get('isLocked')) {
+      return Ember.$.getJSON('/v1/session/info/' + models.key.Session + '?dc=' + models.dc).then(function(data) {
+        models.session = data[0]
+        return models
+      });
+    } else {
+      return models
+    }
   },
 
   setupController: function(controller, models) {
@@ -192,6 +199,7 @@ App.KvEditRoute = App.BaseRoute.extend({
     controller.set('isRoot', parentKeys.isRoot);
     controller.set('siblings', models.keys);
     controller.set('rootKey', this.rootKey);
+    controller.set('session', models.session);
   }
 });
 
