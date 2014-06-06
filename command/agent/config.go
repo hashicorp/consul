@@ -154,6 +154,15 @@ type Config struct {
 
 	// ConsulConfig can either be provided or a default one created
 	ConsulConfig *consul.Config `mapstructure:"-" json:"-"`
+
+	// Revision is the GitCommit this maps to
+	Revision string `mapstructure:"-"`
+
+	// Version is the release version number
+	Version string `mapstructure:"-"`
+
+	// VersionPrerelease is a label for pre-release builds
+	VersionPrerelease string `mapstructure:"-"`
 }
 
 type dirEnts []os.FileInfo

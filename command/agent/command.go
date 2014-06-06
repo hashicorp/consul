@@ -25,14 +25,17 @@ var gracefulTimeout = 5 * time.Second
 // ShutdownCh. If two messages are sent on the ShutdownCh it will forcibly
 // exit.
 type Command struct {
-	Ui         cli.Ui
-	ShutdownCh <-chan struct{}
-	args       []string
-	logFilter  *logutils.LevelFilter
-	agent      *Agent
-	rpcServer  *AgentRPC
-	httpServer *HTTPServer
-	dnsServer  *DNSServer
+	Revision          string
+	Version           string
+	VersionPrerelease string
+	Ui                cli.Ui
+	ShutdownCh        <-chan struct{}
+	args              []string
+	logFilter         *logutils.LevelFilter
+	agent             *Agent
+	rpcServer         *AgentRPC
+	httpServer        *HTTPServer
+	dnsServer         *DNSServer
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -123,6 +126,11 @@ func (c *Command) readConfig() *Config {
 	if config.Server && runtime.GOOS == "windows" {
 		c.Ui.Error("WARNING: Windows is not recommended as a Consul server. Do not use in production.")
 	}
+
+	// Set the version info
+	config.Revision = c.Revision
+	config.Version = c.Version
+	config.VersionPrerelease = c.VersionPrerelease
 
 	return config
 }

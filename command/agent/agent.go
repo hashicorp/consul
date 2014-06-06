@@ -514,6 +514,16 @@ func (a *Agent) Stats() map[string]map[string]string {
 		"checks":         toString(uint64(len(a.state.checks))),
 		"services":       toString(uint64(len(a.state.services))),
 	}
+
+	revision := a.config.Revision
+	if len(revision) > 8 {
+		revision = revision[:8]
+	}
+	stats["build"] = map[string]string{
+		"revision":   revision,
+		"version":    a.config.Version,
+		"prerelease": a.config.VersionPrerelease,
+	}
 	return stats
 }
 
