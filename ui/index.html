@@ -145,7 +145,7 @@
           <div class="panel">
             <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
               <div class="panel-heading">
-                <h3 class="panel-title">
+                <h4 class="panel-title">
                   Create Key
                 </h3>
               </div>
@@ -213,10 +213,15 @@
       <div class="col-md-6 col-lg-7 border-left">
         <div class="padded-border">
           <div class="panel">
-            <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green" }}></div>
+            <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green isLocked:bg-light-gray" }}></div>
               <div class="panel-heading">
-                <h3 class="panel-title">
+                <h4 {{bind-attr class=":panel-title isLocked:locked"}}>
                   {{model.Key}}
+                  {{#if model.isLocked}}
+                  <small class="pull-right">
+                  KEY LOCKED
+                  </small>
+                  {{/if}}
                 </h3>
               </div>
 
@@ -226,11 +231,11 @@
                 </div>
                 <form class="form">
                   <div class="form-group">
-                    {{ textarea value=model.valueDecoded class="form-control"}}
+                    {{ textarea value=model.valueDecoded class="form-control" disabled=model.isLocked}}
                   </div>
-                  <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
-                  <button {{ action "cancelEdit"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-default" }}>Cancel</button>
-                  <button {{ action "deleteKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete key</button>
+                  <button {{action "updateKey"}} {{bind-attr disabled=isLoading}} {{bind-attr class=":btn isLoading:btn-warning:btn-success"}} {{bind-attr disabled=isLocked}}>Update</button>
+                  <button {{action "cancelEdit"}} {{bind-attr disabled=isLoading}} {{bind-attr class=":btn isLoading:btn-warning:btn-default"}}>Cancel</button>
+                  <button {{action "deleteKey"}} {{bind-attr disabled=isLoading}} {{bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger"}} {{bind-attr disabled=isLocked}}>Delete key</button>
                 </form>
               </div>
             </div>
