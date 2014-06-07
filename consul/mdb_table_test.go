@@ -19,8 +19,7 @@ type MockData struct {
 
 func MockEncoder(obj interface{}) []byte {
 	buf := bytes.NewBuffer(nil)
-	handle := codec.MsgpackHandle{}
-	encoder := codec.NewEncoder(buf, &handle)
+	encoder := codec.NewEncoder(buf, &mh)
 	err := encoder.Encode(obj)
 	if err != nil {
 		panic(err)
@@ -30,8 +29,7 @@ func MockEncoder(obj interface{}) []byte {
 
 func MockDecoder(buf []byte) interface{} {
 	out := new(MockData)
-	var handle codec.MsgpackHandle
-	err := codec.NewDecoder(bytes.NewReader(buf), &handle).Decode(out)
+	err := codec.NewDecoder(bytes.NewReader(buf), &mh).Decode(out)
 	if err != nil {
 		panic(err)
 	}
