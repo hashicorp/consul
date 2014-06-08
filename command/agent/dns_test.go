@@ -14,8 +14,9 @@ func makeDNSServer(t *testing.T) (string, *DNSServer) {
 	conf := nextConfig()
 	addr, _ := conf.ClientListener(conf.Ports.DNS)
 	dir, agent := makeAgent(t, conf)
-	server, err := NewDNSServer(agent, agent.logOutput, conf.Domain,
-		addr.String(), "8.8.8.8:53")
+	config := &DNSConfig{}
+	server, err := NewDNSServer(agent, config, agent.logOutput,
+		conf.Domain, addr.String(), "8.8.8.8:53")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

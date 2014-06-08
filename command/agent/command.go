@@ -227,8 +227,8 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 			return err
 		}
 
-		server, err := NewDNSServer(agent, logOutput, config.Domain,
-			dnsAddr.String(), config.DNSRecursor)
+		server, err := NewDNSServer(agent, &config.DNSConfig, logOutput,
+			config.Domain, dnsAddr.String(), config.DNSRecursor)
 		if err != nil {
 			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Error starting dns server: %s", err))

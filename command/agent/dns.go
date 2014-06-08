@@ -23,6 +23,7 @@ const (
 // service discovery endpoints using a DNS interface.
 type DNSServer struct {
 	agent        *Agent
+	config       *DNSConfig
 	dnsHandler   *dns.ServeMux
 	dnsServer    *dns.Server
 	dnsServerTCP *dns.Server
@@ -32,7 +33,7 @@ type DNSServer struct {
 }
 
 // NewDNSServer starts a new DNS server to provide an agent interface
-func NewDNSServer(agent *Agent, logOutput io.Writer, domain, bind, recursor string) (*DNSServer, error) {
+func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain, bind, recursor string) (*DNSServer, error) {
 	// Make sure domain is FQDN
 	domain = dns.Fqdn(domain)
 
@@ -55,6 +56,7 @@ func NewDNSServer(agent *Agent, logOutput io.Writer, domain, bind, recursor stri
 	// Create the server
 	srv := &DNSServer{
 		agent:        agent,
+		config:       config,
 		dnsHandler:   mux,
 		dnsServer:    server,
 		dnsServerTCP: serverTCP,
@@ -306,14 +308,23 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 
 	// Make an RPC request
 	args := structs.NodeSpecificRequest{
-		Datacenter: datacenter,
-		Node:       node,
+		Datacenter:   datacenter,
+		Node:         node,
+		QueryOptions: structs.QueryOptions{AllowStale: d.config.AllowStale},
 	}
 	var out structs.IndexedNodeServices
+RPC:
 	if err := d.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
+	}
+
+	// Verify that request is not too stale, redo the request
+	if args.AllowStale && out.LastContact > d.config.MaxStale {
+		args.AllowStale = false
+		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+		goto RPC
 	}
 
 	// If we have no address, return not found!
@@ -398,16 +409,25 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, qName string, qType uin
 func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg) {
 	// Make an RPC request
 	args := structs.ServiceSpecificRequest{
-		Datacenter:  datacenter,
-		ServiceName: service,
-		ServiceTag:  tag,
-		TagFilter:   tag != "",
+		Datacenter:   datacenter,
+		ServiceName:  service,
+		ServiceTag:   tag,
+		TagFilter:    tag != "",
+		QueryOptions: structs.QueryOptions{AllowStale: d.config.AllowStale},
 	}
 	var out structs.IndexedCheckServiceNodes
+RPC:
 	if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
+	}
+
+	// Verify that request is not too stale, redo the request
+	if args.AllowStale && out.LastContact > d.config.MaxStale {
+		args.AllowStale = false
+		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+		goto RPC
 	}
 
 	// If we have no nodes, return not found!
