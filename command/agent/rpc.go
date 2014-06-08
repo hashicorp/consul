@@ -60,7 +60,12 @@ const (
 	monitorExists         = "Monitor already exists"
 )
 
-var mh = codec.MsgpackHandle{RawToString: true, WriteExt: true}
+// msgpackHandle is a shared handle for encoding/decoding of
+// messages
+var msgpackHandle = &codec.MsgpackHandle{
+	RawToString: true,
+	WriteExt:    true,
+}
 
 // Request header is sent before each request
 type requestHeader struct {
@@ -251,8 +256,8 @@ func (i *AgentRPC) listen() {
 			reader: bufio.NewReader(conn),
 			writer: bufio.NewWriter(conn),
 		}
-		client.dec = codec.NewDecoder(client.reader, &mh)
-		client.enc = codec.NewEncoder(client.writer, &mh)
+		client.dec = codec.NewDecoder(client.reader, msgpackHandle)
+		client.enc = codec.NewEncoder(client.writer, msgpackHandle)
 		if err != nil {
 			i.logger.Printf("[ERR] agent.rpc: Failed to create decoder: %v", err)
 			conn.Close()

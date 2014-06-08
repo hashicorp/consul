@@ -395,17 +395,18 @@ type IndexedSessions struct {
 	QueryMeta
 }
 
-var mh = codec.MsgpackHandle{}
+// msgpackHandle is a shared handle for encoding/decoding of structs
+var msgpackHandle = &codec.MsgpackHandle{}
 
 // Decode is used to decode a MsgPack encoded object
 func Decode(buf []byte, out interface{}) error {
-	return codec.NewDecoder(bytes.NewReader(buf), &mh).Decode(out)
+	return codec.NewDecoder(bytes.NewReader(buf), msgpackHandle).Decode(out)
 }
 
 // Encode is used to encode a MsgPack object with type prefix
 func Encode(t MessageType, msg interface{}) ([]byte, error) {
-	buf := bytes.NewBuffer(nil)
+	var buf bytes.Buffer
 	buf.WriteByte(uint8(t))
-	err := codec.NewEncoder(buf, &mh).Encode(msg)
+	err := codec.NewEncoder(&buf, msgpackHandle).Encode(msg)
 	return buf.Bytes(), err
 }

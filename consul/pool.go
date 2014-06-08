@@ -15,7 +15,8 @@ import (
 	"time"
 )
 
-var mh = codec.MsgpackHandle{}
+// msgpackHandle is a shared handle for encoding/decoding of RPC messages
+var msgpackHandle = &codec.MsgpackHandle{}
 
 // muxSession is used to provide an interface for either muxado or yamux
 type muxSession interface {
@@ -81,7 +82,7 @@ func (c *Conn) getClient() (*StreamClient, error) {
 	}
 
 	// Create the RPC client
-	cc := codec.GoRpc.ClientCodec(stream, &mh)
+	cc := codec.GoRpc.ClientCodec(stream, msgpackHandle)
 	client := rpc.NewClientWithCodec(cc)
 
 	// Return a new stream client

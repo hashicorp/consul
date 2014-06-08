@@ -19,7 +19,7 @@ func rpcClient(t *testing.T, s *Server) *rpc.Client {
 	// Write the Consul RPC byte to set the mode
 	conn.Write([]byte{byte(rpcConsul)})
 
-	cc := codec.GoRpc.ClientCodec(conn, &mh)
+	cc := codec.GoRpc.ClientCodec(conn, msgpackHandle)
 	return rpc.NewClientWithCodec(cc)
 }
 
