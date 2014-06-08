@@ -217,6 +217,9 @@ func DefaultConfig() *Config {
 			SerfWan: consul.DefaultWANSerfPort,
 			Server:  8300,
 		},
+		DNSConfig: DNSConfig{
+			MaxStale: 5 * time.Second,
+		},
 		Protocol:   consul.ProtocolVersionMax,
 		AEInterval: time.Minute,
 	}
@@ -274,6 +277,36 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 
 	if err := msdec.Decode(raw); err != nil {
 		return nil, err
+	}
+
+	// Handle time conversions
+	if raw := result.DNSConfig.NodeTTLRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("NodeTTL invalid: %v", err)
+		}
+		result.DNSConfig.NodeTTL = dur
+	}
+
+	if raw := result.DNSConfig.MaxStaleRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("MaxStale invalid: %v", err)
+		}
+		result.DNSConfig.MaxStale = dur
+	}
+
+	if len(result.DNSConfig.ServiceTTLRaw) != 0 {
+		if result.DNSConfig.ServiceTTL == nil {
+			result.DNSConfig.ServiceTTL = make(map[string]time.Duration)
+		}
+		for service, raw := range result.DNSConfig.ServiceTTLRaw {
+			dur, err := time.ParseDuration(raw)
+			if err != nil {
+				return nil, fmt.Errorf("ServiceTTL %s invalid: %v", service, err)
+			}
+			result.DNSConfig.ServiceTTL[service] = dur
+		}
 	}
 
 	return &result, nil
@@ -485,6 +518,23 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.RejoinAfterLeave {
 		result.RejoinAfterLeave = true
+	}
+	if b.DNSConfig.NodeTTL != 0 {
+		result.DNSConfig.NodeTTL = b.DNSConfig.NodeTTL
+	}
+	if len(b.DNSConfig.ServiceTTL) != 0 {
+		if result.DNSConfig.ServiceTTL == nil {
+			result.DNSConfig.ServiceTTL = make(map[string]time.Duration)
+		}
+		for service, dur := range b.DNSConfig.ServiceTTL {
+			result.DNSConfig.ServiceTTL[service] = dur
+		}
+	}
+	if b.DNSConfig.AllowStale {
+		result.DNSConfig.AllowStale = true
+	}
+	if b.DNSConfig.MaxStale != 0 {
+		result.DNSConfig.MaxStale = b.DNSConfig.MaxStale
 	}
 
 	// Copy the start join addresses
