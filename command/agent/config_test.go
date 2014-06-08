@@ -425,10 +425,18 @@ func TestMergeConfig(t *testing.T) {
 	}
 
 	b := &Config{
-		Bootstrap:     true,
-		Datacenter:    "dc2",
-		DataDir:       "/tmp/bar",
-		DNSRecursor:   "127.0.0.2:1001",
+		Bootstrap:   true,
+		Datacenter:  "dc2",
+		DataDir:     "/tmp/bar",
+		DNSRecursor: "127.0.0.2:1001",
+		DNSConfig: DNSConfig{
+			NodeTTL: 10 * time.Second,
+			ServiceTTL: map[string]time.Duration{
+				"api": 10 * time.Second,
+			},
+			AllowStale: true,
+			MaxStale:   30 * time.Second,
+		},
 		Domain:        "other",
 		LogLevel:      "info",
 		NodeName:      "baz",
