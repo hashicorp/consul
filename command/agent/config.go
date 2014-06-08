@@ -27,6 +27,35 @@ type PortConfig struct {
 	Server  int // Server internal RPC
 }
 
+// DNSConfig is used to fine tune the DNS sub-system.
+// It can be used to control cache values, and stale
+// reads
+type DNSConfig struct {
+	// NodeTTL provides the TTL value for a node query
+	NodeTTL    time.Duration `mapstructure:"-"`
+	NodeTTLRaw string        `mapstructure:"node_ttl" json:"-"`
+
+	// ServiceTTL provides the TTL value for a service
+	// query for given service. The "*" wildcard can be used
+	// to set a default for all services.
+	ServiceTTL    map[string]time.Duration `mapstructure:"-"`
+	ServiceTTLRaw map[string]string        `mapstructure:"service_ttl" json:"-"`
+
+	// AllowStale is used to enable lookups with stale
+	// data. This gives horizontal read scalability since
+	// any Consul server can service the query instead of
+	// only the leader.
+	AllowStale bool `mapstructure:"allow_stale"`
+
+	// MaxStale is used to bound how stale of a result is
+	// accepted for a DNS lookup. This can be used with
+	// AllowStale to limit how old of a value is served up.
+	// If the stale result exceeds this, another non-stale
+	// stale read is performed.
+	MaxStale    time.Duration `mapstructure:"-"`
+	MaxStaleRaw string        `mapstructure:"max_stale" json:"-"`
+}
+
 // Config is the configuration that can be set for an Agent.
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
@@ -49,6 +78,9 @@ type Config struct {
 	// DNSRecursor can be set to allow the DNS server to recursively
 	// resolve non-consul domains
 	DNSRecursor string `mapstructure:"recursor"`
+
+	// DNS configuration
+	DNSConfig DNSConfig `mapstructure:"dns_config"`
 
 	// Domain is the DNS domain for the records. Defaults to "consul."
 	Domain string `mapstructure:"domain"`
