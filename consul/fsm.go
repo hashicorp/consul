@@ -221,8 +221,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	c.state = state
 
 	// Create a decoder
-	var handle codec.MsgpackHandle
-	dec := codec.NewDecoder(old, &handle)
+	dec := codec.NewDecoder(old, &mh)
 
 	// Read in the header
 	var header snapshotHeader
@@ -278,8 +277,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 
 func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 	// Register the nodes
-	handle := codec.MsgpackHandle{}
-	encoder := codec.NewEncoder(sink, &handle)
+	encoder := codec.NewEncoder(sink, &mh)
 
 	// Write the header
 	header := snapshotHeader{

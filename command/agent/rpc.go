@@ -60,6 +60,8 @@ const (
 	monitorExists         = "Monitor already exists"
 )
 
+var mh = codec.MsgpackHandle{RawToString: true, WriteExt: true}
+
 // Request header is sent before each request
 type requestHeader struct {
 	Command string
@@ -249,10 +251,8 @@ func (i *AgentRPC) listen() {
 			reader: bufio.NewReader(conn),
 			writer: bufio.NewWriter(conn),
 		}
-		client.dec = codec.NewDecoder(client.reader,
-			&codec.MsgpackHandle{RawToString: true, WriteExt: true})
-		client.enc = codec.NewEncoder(client.writer,
-			&codec.MsgpackHandle{RawToString: true, WriteExt: true})
+		client.dec = codec.NewDecoder(client.reader, &mh)
+		client.enc = codec.NewEncoder(client.writer, &mh)
 		if err != nil {
 			i.logger.Printf("[ERR] agent.rpc: Failed to create decoder: %v", err)
 			conn.Close()

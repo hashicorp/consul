@@ -94,10 +94,8 @@ func NewRPCClient(addr string) (*RPCClient, error) {
 		dispatch:   make(map[uint64]seqHandler),
 		shutdownCh: make(chan struct{}),
 	}
-	client.dec = codec.NewDecoder(client.reader,
-		&codec.MsgpackHandle{RawToString: true, WriteExt: true})
-	client.enc = codec.NewEncoder(client.writer,
-		&codec.MsgpackHandle{RawToString: true, WriteExt: true})
+	client.dec = codec.NewDecoder(client.reader, &mh)
+	client.enc = codec.NewEncoder(client.writer, &mh)
 	go client.listen()
 
 	// Do the initial handshake

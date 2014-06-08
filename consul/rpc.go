@@ -148,7 +148,7 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 // handleConsulConn is used to service a single Consul RPC connection
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
-	rpcCodec := codec.GoRpc.ServerCodec(conn, &codec.MsgpackHandle{})
+	rpcCodec := codec.GoRpc.ServerCodec(conn, &mh)
 	for !s.shutdown {
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
