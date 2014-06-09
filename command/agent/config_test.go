@@ -324,6 +324,17 @@ func TestDecodeConfig(t *testing.T) {
 	if config.DNSConfig.ServiceTTL["web"] != 30*time.Second {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// CheckUpdateInterval
+	input = `{"check_update_interval": "10m"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.CheckUpdateInterval != 10*time.Minute {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -408,20 +419,21 @@ func TestDecodeConfig_Check(t *testing.T) {
 
 func TestMergeConfig(t *testing.T) {
 	a := &Config{
-		Bootstrap:      false,
-		Datacenter:     "dc1",
-		DataDir:        "/tmp/foo",
-		DNSRecursor:    "127.0.0.1:1001",
-		Domain:         "basic",
-		LogLevel:       "debug",
-		NodeName:       "foo",
-		ClientAddr:     "127.0.0.1",
-		BindAddr:       "127.0.0.1",
-		AdvertiseAddr:  "127.0.0.1",
-		Server:         false,
-		LeaveOnTerm:    false,
-		SkipLeaveOnInt: false,
-		EnableDebug:    false,
+		Bootstrap:              false,
+		Datacenter:             "dc1",
+		DataDir:                "/tmp/foo",
+		DNSRecursor:            "127.0.0.1:1001",
+		Domain:                 "basic",
+		LogLevel:               "debug",
+		NodeName:               "foo",
+		ClientAddr:             "127.0.0.1",
+		BindAddr:               "127.0.0.1",
+		AdvertiseAddr:          "127.0.0.1",
+		Server:                 false,
+		LeaveOnTerm:            false,
+		SkipLeaveOnInt:         false,
+		EnableDebug:            false,
+		CheckUpdateIntervalRaw: "8m",
 	}
 
 	b := &Config{
@@ -451,21 +463,23 @@ func TestMergeConfig(t *testing.T) {
 			SerfWan: 5,
 			Server:  6,
 		},
-		Server:           true,
-		LeaveOnTerm:      true,
-		SkipLeaveOnInt:   true,
-		EnableDebug:      true,
-		VerifyIncoming:   true,
-		VerifyOutgoing:   true,
-		CAFile:           "test/ca.pem",
-		CertFile:         "test/cert.pem",
-		KeyFile:          "test/key.pem",
-		Checks:           []*CheckDefinition{nil},
-		Services:         []*ServiceDefinition{nil},
-		StartJoin:        []string{"1.1.1.1"},
-		UiDir:            "/opt/consul-ui",
-		EnableSyslog:     true,
-		RejoinAfterLeave: true,
+		Server:                 true,
+		LeaveOnTerm:            true,
+		SkipLeaveOnInt:         true,
+		EnableDebug:            true,
+		VerifyIncoming:         true,
+		VerifyOutgoing:         true,
+		CAFile:                 "test/ca.pem",
+		CertFile:               "test/cert.pem",
+		KeyFile:                "test/key.pem",
+		Checks:                 []*CheckDefinition{nil},
+		Services:               []*ServiceDefinition{nil},
+		StartJoin:              []string{"1.1.1.1"},
+		UiDir:                  "/opt/consul-ui",
+		EnableSyslog:           true,
+		RejoinAfterLeave:       true,
+		CheckUpdateInterval:    8 * time.Minute,
+		CheckUpdateIntervalRaw: "8m",
 	}
 
 	c := MergeConfig(a, b)

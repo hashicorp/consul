@@ -173,6 +173,14 @@ type Config struct {
 	// true, we ignore the leave, and rejoin the cluster on start.
 	RejoinAfterLeave bool `mapstructure:"rejoin_after_leave"`
 
+	// CheckUpdateInterval controls the interval on which the output of a health check
+	// is updated if there is no change to the state. For example, a check in a steady
+	// state may run every 5 second generating a unique output (timestamp, etc), forcing
+	// constant writes. This allows Consul to defer the write for some period of time,
+	// reducing the write pressure when the state is steady.
+	CheckUpdateInterval    time.Duration `mapstructure:"-"`
+	CheckUpdateIntervalRaw string        `mapstructure:"check_update_interval" json:"-"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -220,8 +228,9 @@ func DefaultConfig() *Config {
 		DNSConfig: DNSConfig{
 			MaxStale: 5 * time.Second,
 		},
-		Protocol:   consul.ProtocolVersionMax,
-		AEInterval: time.Minute,
+		Protocol:            consul.ProtocolVersionMax,
+		CheckUpdateInterval: 5 * time.Minute,
+		AEInterval:          time.Minute,
 	}
 }
 
@@ -307,6 +316,14 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 			}
 			result.DNSConfig.ServiceTTL[service] = dur
 		}
+	}
+
+	if raw := result.CheckUpdateIntervalRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("CheckUpdateInterval invalid: %v", err)
+		}
+		result.CheckUpdateInterval = dur
 	}
 
 	return &result, nil
@@ -535,6 +552,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.DNSConfig.MaxStale != 0 {
 		result.DNSConfig.MaxStale = b.DNSConfig.MaxStale
+	}
+	if b.CheckUpdateIntervalRaw != "" {
+		result.CheckUpdateInterval = b.CheckUpdateInterval
 	}
 
 	// Copy the start join addresses
