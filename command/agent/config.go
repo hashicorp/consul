@@ -27,6 +27,35 @@ type PortConfig struct {
 	Server  int // Server internal RPC
 }
 
+// DNSConfig is used to fine tune the DNS sub-system.
+// It can be used to control cache values, and stale
+// reads
+type DNSConfig struct {
+	// NodeTTL provides the TTL value for a node query
+	NodeTTL    time.Duration `mapstructure:"-"`
+	NodeTTLRaw string        `mapstructure:"node_ttl" json:"-"`
+
+	// ServiceTTL provides the TTL value for a service
+	// query for given service. The "*" wildcard can be used
+	// to set a default for all services.
+	ServiceTTL    map[string]time.Duration `mapstructure:"-"`
+	ServiceTTLRaw map[string]string        `mapstructure:"service_ttl" json:"-"`
+
+	// AllowStale is used to enable lookups with stale
+	// data. This gives horizontal read scalability since
+	// any Consul server can service the query instead of
+	// only the leader.
+	AllowStale bool `mapstructure:"allow_stale"`
+
+	// MaxStale is used to bound how stale of a result is
+	// accepted for a DNS lookup. This can be used with
+	// AllowStale to limit how old of a value is served up.
+	// If the stale result exceeds this, another non-stale
+	// stale read is performed.
+	MaxStale    time.Duration `mapstructure:"-"`
+	MaxStaleRaw string        `mapstructure:"max_stale" json:"-"`
+}
+
 // Config is the configuration that can be set for an Agent.
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
@@ -49,6 +78,9 @@ type Config struct {
 	// DNSRecursor can be set to allow the DNS server to recursively
 	// resolve non-consul domains
 	DNSRecursor string `mapstructure:"recursor"`
+
+	// DNS configuration
+	DNSConfig DNSConfig `mapstructure:"dns_config"`
 
 	// Domain is the DNS domain for the records. Defaults to "consul."
 	Domain string `mapstructure:"domain"`
@@ -185,6 +217,9 @@ func DefaultConfig() *Config {
 			SerfWan: consul.DefaultWANSerfPort,
 			Server:  8300,
 		},
+		DNSConfig: DNSConfig{
+			MaxStale: 5 * time.Second,
+		},
 		Protocol:   consul.ProtocolVersionMax,
 		AEInterval: time.Minute,
 	}
@@ -242,6 +277,36 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 
 	if err := msdec.Decode(raw); err != nil {
 		return nil, err
+	}
+
+	// Handle time conversions
+	if raw := result.DNSConfig.NodeTTLRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("NodeTTL invalid: %v", err)
+		}
+		result.DNSConfig.NodeTTL = dur
+	}
+
+	if raw := result.DNSConfig.MaxStaleRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("MaxStale invalid: %v", err)
+		}
+		result.DNSConfig.MaxStale = dur
+	}
+
+	if len(result.DNSConfig.ServiceTTLRaw) != 0 {
+		if result.DNSConfig.ServiceTTL == nil {
+			result.DNSConfig.ServiceTTL = make(map[string]time.Duration)
+		}
+		for service, raw := range result.DNSConfig.ServiceTTLRaw {
+			dur, err := time.ParseDuration(raw)
+			if err != nil {
+				return nil, fmt.Errorf("ServiceTTL %s invalid: %v", service, err)
+			}
+			result.DNSConfig.ServiceTTL[service] = dur
+		}
 	}
 
 	return &result, nil
@@ -453,6 +518,23 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.RejoinAfterLeave {
 		result.RejoinAfterLeave = true
+	}
+	if b.DNSConfig.NodeTTL != 0 {
+		result.DNSConfig.NodeTTL = b.DNSConfig.NodeTTL
+	}
+	if len(b.DNSConfig.ServiceTTL) != 0 {
+		if result.DNSConfig.ServiceTTL == nil {
+			result.DNSConfig.ServiceTTL = make(map[string]time.Duration)
+		}
+		for service, dur := range b.DNSConfig.ServiceTTL {
+			result.DNSConfig.ServiceTTL[service] = dur
+		}
+	}
+	if b.DNSConfig.AllowStale {
+		result.DNSConfig.AllowStale = true
+	}
+	if b.DNSConfig.MaxStale != 0 {
+		result.DNSConfig.MaxStale = b.DNSConfig.MaxStale
 	}
 
 	// Copy the start join addresses

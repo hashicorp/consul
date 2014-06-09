@@ -183,6 +183,30 @@ definitions support being updated during a reload.
   This flag can be used to change that domain. All queries in this domain are assumed
   to be handled by Consul, and will not be recursively resolved.
 
+* `dns_config` - This object allows a number of sub-keys to be set which can tune
+  how DNS queries are perfomed. See this guide on [DNS caching](/docs/guides/dns-cache.html).
+  The following sub-keys are available:
+
+  * `node_ttl` - By default, this is "0s", which means all node lookups are served with
+  a 0 TTL value. This can be set to allow node lookups to set a TTL value, which enables
+  DNS caching. This should be specified with the "s" suffix for second, or "m" for minute.
+
+  * `service_ttl` - This is a sub-object, which allows for setting a TTL on service lookups
+  with a per-service policy. The "*" wildcard service can be specified and is used when
+  there is no specific policy available for a service. By default, all services are served
+  with a 0 TTL value. Setting this enables DNS caching.
+
+  * `allow_stale` - Enables a stale query for DNS information. This allows any Consul
+  server to service the request, instead of only the leader. The advantage of this is
+  you get linear read scalability with Consul servers. By default, this is false, meaning
+  all requests are serviced by the leader. This provides stronger consistency but
+  with less throughput and higher latency.
+
+  * `max_stale` - When `allow_stale` is specified, this is used to limit how
+  stale of a result will be used. By default, this is set to "5s", which means
+  if a Consul server is more than 5 seconds behind the leader, the query will be
+  re-evaluated on the leader to get more up-to-date results.
+
 * `enable_debug` - When set, enables some additional debugging features. Currently,
   only used to set the runtime profiling HTTP endpoints.
 
@@ -201,12 +225,12 @@ definitions support being updated during a reload.
 
 * `ports` - This is a nested object that allows setting the bind ports
    for the following keys:
-    * dns - The DNS server, -1 to disable. Default 8600.
-    * http - The HTTP api, -1 to disable. Default 8500.
-    * rpc - The RPC endpoint. Default 8400.
-    * serf_lan - The Serf LAN port. Default 8301.
-    * serf_wan - The Serf WAN port. Default 8302.
-    * server - Server RPC address. Default 8300.
+    * `dns` - The DNS server, -1 to disable. Default 8600.
+    * `http` - The HTTP api, -1 to disable. Default 8500.
+    * `rpc` - The RPC endpoint. Default 8400.
+    * `serf_lan` - The Serf LAN port. Default 8301.
+    * `serf_wan` - The Serf WAN port. Default 8302.
+    * `server` - Server RPC address. Default 8300.
 
 * `recursor` - This flag provides an address of an upstream DNS server that is used to
   recursively resolve queries if they are not inside the service domain for consul. For example,

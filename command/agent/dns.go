@@ -23,6 +23,7 @@ const (
 // service discovery endpoints using a DNS interface.
 type DNSServer struct {
 	agent        *Agent
+	config       *DNSConfig
 	dnsHandler   *dns.ServeMux
 	dnsServer    *dns.Server
 	dnsServerTCP *dns.Server
@@ -32,7 +33,7 @@ type DNSServer struct {
 }
 
 // NewDNSServer starts a new DNS server to provide an agent interface
-func NewDNSServer(agent *Agent, logOutput io.Writer, domain, bind, recursor string) (*DNSServer, error) {
+func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain, bind, recursor string) (*DNSServer, error) {
 	// Make sure domain is FQDN
 	domain = dns.Fqdn(domain)
 
@@ -55,6 +56,7 @@ func NewDNSServer(agent *Agent, logOutput io.Writer, domain, bind, recursor stri
 	// Create the server
 	srv := &DNSServer{
 		agent:        agent,
+		config:       config,
 		dnsHandler:   mux,
 		dnsServer:    server,
 		dnsServerTCP: serverTCP,
@@ -306,14 +308,23 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 
 	// Make an RPC request
 	args := structs.NodeSpecificRequest{
-		Datacenter: datacenter,
-		Node:       node,
+		Datacenter:   datacenter,
+		Node:         node,
+		QueryOptions: structs.QueryOptions{AllowStale: d.config.AllowStale},
 	}
 	var out structs.IndexedNodeServices
+RPC:
 	if err := d.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
+	}
+
+	// Verify that request is not too stale, redo the request
+	if args.AllowStale && out.LastContact > d.config.MaxStale {
+		args.AllowStale = false
+		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+		goto RPC
 	}
 
 	// If we have no address, return not found!
@@ -323,14 +334,15 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 	}
 
 	// Add the node record
-	records := d.formatNodeRecord(&out.NodeServices.Node, req.Question[0].Name, qType)
+	records := d.formatNodeRecord(&out.NodeServices.Node, req.Question[0].Name,
+		qType, d.config.NodeTTL)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
 	}
 }
 
 // formatNodeRecord takes a Node and returns an A, AAAA, or CNAME record
-func (d *DNSServer) formatNodeRecord(node *structs.Node, qName string, qType uint16) (records []dns.RR) {
+func (d *DNSServer) formatNodeRecord(node *structs.Node, qName string, qType uint16, ttl time.Duration) (records []dns.RR) {
 	// Parse the IP
 	ip := net.ParseIP(node.Address)
 	var ipv4 net.IP
@@ -344,7 +356,7 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, qName string, qType uin
 				Name:   qName,
 				Rrtype: dns.TypeA,
 				Class:  dns.ClassINET,
-				Ttl:    0,
+				Ttl:    uint32(ttl / time.Second),
 			},
 			A: ip,
 		}}
@@ -355,7 +367,7 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, qName string, qType uin
 				Name:   qName,
 				Rrtype: dns.TypeAAAA,
 				Class:  dns.ClassINET,
-				Ttl:    0,
+				Ttl:    uint32(ttl / time.Second),
 			},
 			AAAA: ip,
 		}}
@@ -368,7 +380,7 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, qName string, qType uin
 				Name:   qName,
 				Rrtype: dns.TypeCNAME,
 				Class:  dns.ClassINET,
-				Ttl:    0,
+				Ttl:    uint32(ttl / time.Second),
 			},
 			Target: dns.Fqdn(node.Address),
 		}
@@ -398,22 +410,41 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, qName string, qType uin
 func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg) {
 	// Make an RPC request
 	args := structs.ServiceSpecificRequest{
-		Datacenter:  datacenter,
-		ServiceName: service,
-		ServiceTag:  tag,
-		TagFilter:   tag != "",
+		Datacenter:   datacenter,
+		ServiceName:  service,
+		ServiceTag:   tag,
+		TagFilter:    tag != "",
+		QueryOptions: structs.QueryOptions{AllowStale: d.config.AllowStale},
 	}
 	var out structs.IndexedCheckServiceNodes
+RPC:
 	if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
 	}
 
+	// Verify that request is not too stale, redo the request
+	if args.AllowStale && out.LastContact > d.config.MaxStale {
+		args.AllowStale = false
+		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+		goto RPC
+	}
+
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
+	}
+
+	// Determine the TTL
+	var ttl time.Duration
+	if d.config.ServiceTTL != nil {
+		var ok bool
+		ttl, ok = d.config.ServiceTTL[service]
+		if !ok {
+			ttl = d.config.ServiceTTL["*"]
+		}
 	}
 
 	// Filter out any service nodes due to health checks
@@ -429,10 +460,10 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
-	d.serviceNodeRecords(out.Nodes, req, resp)
+	d.serviceNodeRecords(out.Nodes, req, resp, ttl)
 
 	if qType == dns.TypeSRV {
-		d.serviceSRVRecords(datacenter, out.Nodes, req, resp)
+		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
 }
 
@@ -464,7 +495,7 @@ func shuffleServiceNodes(nodes structs.CheckServiceNodes) {
 }
 
 // serviceNodeRecords is used to add the node records for a service lookup
-func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, resp *dns.Msg) {
+func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration) {
 	qName := req.Question[0].Name
 	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
@@ -478,7 +509,7 @@ func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, res
 		handled[addr] = struct{}{}
 
 		// Add the node record
-		records := d.formatNodeRecord(&node.Node, qName, qType)
+		records := d.formatNodeRecord(&node.Node, qName, qType, ttl)
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
 		}
@@ -486,7 +517,7 @@ func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, res
 }
 
 // serviceARecords is used to add the SRV records for a service lookup
-func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg) {
+func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration) {
 	handled := make(map[string]struct{})
 	for _, node := range nodes {
 		// Avoid duplicate entries, possible if a node has
@@ -503,7 +534,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 				Name:   req.Question[0].Name,
 				Rrtype: dns.TypeSRV,
 				Class:  dns.ClassINET,
-				Ttl:    0,
+				Ttl:    uint32(ttl / time.Second),
 			},
 			Priority: 1,
 			Weight:   1,
@@ -513,7 +544,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		resp.Answer = append(resp.Answer, srvRec)
 
 		// Add the extra record
-		records := d.formatNodeRecord(&node.Node, srvRec.Target, dns.TypeANY)
+		records := d.formatNodeRecord(&node.Node, srvRec.Target, dns.TypeANY, ttl)
 		if records != nil {
 			resp.Extra = append(resp.Extra, records...)
 		}

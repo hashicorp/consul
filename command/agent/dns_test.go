@@ -8,14 +8,20 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 func makeDNSServer(t *testing.T) (string, *DNSServer) {
+	config := &DNSConfig{}
+	return makeDNSServerConfig(t, config)
+}
+
+func makeDNSServerConfig(t *testing.T, config *DNSConfig) (string, *DNSServer) {
 	conf := nextConfig()
 	addr, _ := conf.ClientListener(conf.Ports.DNS)
 	dir, agent := makeAgent(t, conf)
-	server, err := NewDNSServer(agent, agent.logOutput, conf.Domain,
-		addr.String(), "8.8.8.8:53")
+	server, err := NewDNSServer(agent, config, agent.logOutput,
+		conf.Domain, addr.String(), "8.8.8.8:53")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -100,6 +106,9 @@ func TestDNS_NodeLookup(t *testing.T) {
 	if aRec.A.String() != "127.0.0.1" {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
+	if aRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
 
 	// Re-do the query, but specify the DC
 	m = new(dns.Msg)
@@ -120,6 +129,9 @@ func TestDNS_NodeLookup(t *testing.T) {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
 	if aRec.A.String() != "127.0.0.1" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
 }
@@ -206,6 +218,9 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	if aRec.AAAA.String() != "::4242:4242" {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
+	if aRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
 }
 
 func TestDNS_NodeLookup_CNAME(t *testing.T) {
@@ -247,6 +262,9 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
 	if cnRec.Target != "www.google.com." {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if cnRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
 }
@@ -299,6 +317,9 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	if srvRec.Target != "foo.node.dc1.consul." {
 		t.Fatalf("Bad: %#v", srvRec)
 	}
+	if srvRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
 
 	aRec, ok := in.Extra[0].(*dns.A)
 	if !ok {
@@ -308,6 +329,9 @@ func TestDNS_ServiceLookup(t *testing.T) {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
 	if aRec.A.String() != "127.0.0.1" {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if aRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
 }
@@ -758,5 +782,228 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 		if _, ok := in.Answer[i].(*dns.A); !ok {
 			t.Fatalf("Bad: %#v", in.Answer[i])
 		}
+	}
+}
+
+func TestDNS_NodeLookup_TTL(t *testing.T) {
+	config := &DNSConfig{
+		NodeTTL:    10 * time.Second,
+		AllowStale: true,
+		MaxStale:   time.Second,
+	}
+
+	dir, srv := makeDNSServerConfig(t, config)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("foo.node.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	aRec, ok := in.Answer[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aRec.A.String() != "127.0.0.1" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aRec.Hdr.Ttl != 10 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+
+	// Register node with IPv6
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "::4242:4242",
+	}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check an IPv6 record
+	m = new(dns.Msg)
+	m.SetQuestion("bar.node.consul.", dns.TypeANY)
+
+	in, _, err = c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	aaaaRec, ok := in.Answer[0].(*dns.AAAA)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aaaaRec.AAAA.String() != "::4242:4242" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aaaaRec.Hdr.Ttl != 10 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+
+	// Register node with CNAME
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "google",
+		Address:    "www.google.com",
+	}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m = new(dns.Msg)
+	m.SetQuestion("google.node.consul.", dns.TypeANY)
+
+	in, _, err = c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should have the CNAME record + a few A records
+	if len(in.Answer) < 2 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	cnRec, ok := in.Answer[0].(*dns.CNAME)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if cnRec.Target != "www.google.com." {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if cnRec.Hdr.Ttl != 10 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+}
+
+func TestDNS_ServiceLookup_TTL(t *testing.T) {
+	config := &DNSConfig{
+		ServiceTTL: map[string]time.Duration{
+			"db": 10 * time.Second,
+			"*":  5 * time.Second,
+		},
+		AllowStale: true,
+		MaxStale:   time.Second,
+	}
+
+	dir, srv := makeDNSServerConfig(t, config)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node with 2 services
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    12345,
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "api",
+			Port:    2222,
+		},
+	}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeSRV)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	srvRec, ok := in.Answer[0].(*dns.SRV)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if srvRec.Hdr.Ttl != 10 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+
+	aRec, ok := in.Extra[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if aRec.Hdr.Ttl != 10 {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+
+	m = new(dns.Msg)
+	m.SetQuestion("api.service.consul.", dns.TypeSRV)
+	in, _, err = c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	srvRec, ok = in.Answer[0].(*dns.SRV)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if srvRec.Hdr.Ttl != 5 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+
+	aRec, ok = in.Extra[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if aRec.Hdr.Ttl != 5 {
+		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
 }

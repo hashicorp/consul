@@ -290,6 +290,40 @@ func TestDecodeConfig(t *testing.T) {
 	if !config.RejoinAfterLeave {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// DNS node ttl, max stale
+	input = `{"dns_config": {"node_ttl": "5s", "max_stale": "15s", "allow_stale": true}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.DNSConfig.NodeTTL != 5*time.Second {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.DNSConfig.MaxStale != 15*time.Second {
+		t.Fatalf("bad: %#v", config)
+	}
+	if !config.DNSConfig.AllowStale {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// DNS service ttl
+	input = `{"dns_config": {"service_ttl": {"*": "1s", "api": "10s", "web": "30s"}}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.DNSConfig.ServiceTTL["*"] != time.Second {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.DNSConfig.ServiceTTL["api"] != 10*time.Second {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.DNSConfig.ServiceTTL["web"] != 30*time.Second {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -391,10 +425,18 @@ func TestMergeConfig(t *testing.T) {
 	}
 
 	b := &Config{
-		Bootstrap:     true,
-		Datacenter:    "dc2",
-		DataDir:       "/tmp/bar",
-		DNSRecursor:   "127.0.0.2:1001",
+		Bootstrap:   true,
+		Datacenter:  "dc2",
+		DataDir:     "/tmp/bar",
+		DNSRecursor: "127.0.0.2:1001",
+		DNSConfig: DNSConfig{
+			NodeTTL: 10 * time.Second,
+			ServiceTTL: map[string]time.Duration{
+				"api": 10 * time.Second,
+			},
+			AllowStale: true,
+			MaxStale:   30 * time.Second,
+		},
 		Domain:        "other",
 		LogLevel:      "info",
 		NodeName:      "baz",
