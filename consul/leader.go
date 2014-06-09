@@ -11,11 +11,13 @@ import (
 )
 
 const (
-	SerfCheckID       = "serfHealth"
-	SerfCheckName     = "Serf Health Status"
-	ConsulServiceID   = "consul"
-	ConsulServiceName = "consul"
-	newLeaderEvent    = "consul:new-leader"
+	SerfCheckID           = "serfHealth"
+	SerfCheckName         = "Serf Health Status"
+	SerfCheckAliveOutput  = "Agent alive and reachable"
+	SerfCheckFailedOutput = "Agent not live or unreachable"
+	ConsulServiceID       = "consul"
+	ConsulServiceName     = "consul"
+	newLeaderEvent        = "consul:new-leader"
 )
 
 // monitorLeadership is used to monitor if we acquire or lose our role
@@ -266,6 +268,7 @@ AFTER_CHECK:
 			CheckID: SerfCheckID,
 			Name:    SerfCheckName,
 			Status:  structs.HealthPassing,
+			Output:  SerfCheckAliveOutput,
 		},
 	}
 	var out struct{}
@@ -300,6 +303,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 			CheckID: SerfCheckID,
 			Name:    SerfCheckName,
 			Status:  structs.HealthCritical,
+			Output:  SerfCheckFailedOutput,
 		},
 	}
 	var out struct{}
