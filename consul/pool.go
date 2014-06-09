@@ -245,7 +245,7 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 
 		// Setup the logger
 		conf := yamux.DefaultConfig()
-		conf.LogOutput = nil
+		conf.LogOutput = p.logOutput
 
 		// Create a multiplexed session
 		session, _ = yamux.Client(conn, conf)
