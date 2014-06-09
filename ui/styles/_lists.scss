@@ -71,9 +71,14 @@
         float: left;
         height: 100%;
         margin-right: 10px;
+
     }
 
-
+    .tag-bar {
+        font-size: 0.7em;
+        color: $gray-light;
+    }
+    
     &.active {
         @include transition(border-color .1s linear);
         border-color: $purple;
