@@ -145,9 +145,9 @@
           <div class="panel">
             <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
               <div class="panel-heading">
-                <h3 class="panel-title">
+                <h4 class="panel-title">
                   Create Key
-                </h3>
+                </h4>
               </div>
 
               <div class="panel-body panel-form">
@@ -203,41 +203,62 @@
           {{/each}}
       </div>
 
-    <div class="border-left hidden-xs hidden-sm">
-    </div>
+      <div class="border-left hidden-xs hidden-sm">
+      </div>
 
-    <div class="visible-xs visible-sm">
-      <hr>
-    </div>
+      <div class="visible-xs visible-sm">
+        <hr>
+      </div>
 
       <div class="col-md-6 col-lg-7 border-left">
         <div class="padded-border">
-          <div class="panel">
-            <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green" }}></div>
-              <div class="panel-heading">
-                <h3 class="panel-title">
-                  {{model.Key}}
-                </h3>
-              </div>
 
-              <div class="panel-body panel-form">
-                <div class="form-group">
-                  {{errorMessage}}
-                </div>
-                <form class="form">
-                  <div class="form-group">
-                    {{ textarea value=model.valueDecoded class="form-control"}}
-                  </div>
-                  <button {{ action "updateKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-success" }}>Update</button>
-                  <button {{ action "cancelEdit"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn isLoading:btn-warning:btn-default" }}>Cancel</button>
-                  <button {{ action "deleteKey"}} {{bind-attr disabled=isLoading }} {{ bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger" }}>Delete key</button>
-                </form>
-              </div>
+          <div class="panel">
+            <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-green isLocked:bg-light-gray" }}></div>
+            <div class="panel-heading">
+              <h4 {{bind-attr class=":panel-title isLocked:locked"}}>
+                {{model.Key}}
+                {{#if model.isLocked}}
+                <small class="pull-right">
+                KEY LOCKED
+                </small>
+                {{/if}}
+              </h4>
             </div>
+
+            <div class="panel-body panel-form">
+              <div class="form-group">
+                {{errorMessage}}
+              </div>
+              <form class="form">
+                <div class="form-group">
+                  {{ textarea value=model.valueDecoded class="form-control" disabled=model.isLocked}}
+                </div>
+                <button {{action "updateKey"}} {{bind-attr disabled=isLoading}} {{bind-attr class=":btn isLoading:btn-warning:btn-success"}} {{bind-attr disabled=isLocked}}>Update</button>
+                <button {{action "cancelEdit"}} {{bind-attr disabled=isLoading}} {{bind-attr class=":btn isLoading:btn-warning:btn-default"}}>Cancel</button>
+                <button {{action "deleteKey"}} {{bind-attr disabled=isLoading}} {{bind-attr class=":btn :pull-right isLoading:btn-warning:btn-danger"}} {{bind-attr disabled=isLocked}}>Delete key</button>
+              </form>
+            </div>
+          </div>
+
+          {{#if model.isLocked}}
+            <h5>Lock Session</h5>
+
+            {{#link-to 'nodes.show' model.session.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
+              <div class="bg-light-gray list-bar-horizontal"></div>
+              <div class="name">
+                {{session.Node}}
+                <small class="pull-right">
+                  {{session.ID}}
+                </small>
+              </div>
+            {{/link-to}}
+          {{/if}}
+
         </div>
       </div>
+
     </div>
-  </div>
   </script>
 
   <script type="text/x-handlebars" data-template-name="item/loading">
@@ -306,7 +327,7 @@
         <hr>
       </div>
 
-      <div class="col-md-6 col-lg-7 border-left">
+      <div class="col-md-6 col-lg-7 border-left scrollable">
         <div class="row padded-border">
           {{outlet}}
         </div>
@@ -408,7 +429,7 @@
       <div class="border-left hidden-xs hidden-sm">
       </div>
 
-      <div class="col-md-6 col-lg-7 border-left">
+      <div class="col-md-6 col-lg-7 border-left scrollable">
         <div class="row padded-border">
           {{outlet}}
         </div>
@@ -424,7 +445,6 @@
 
       <h3 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h3>
       <hr>
-      {{foobar}}
 
       <h5>Service Tags</h5>
       {{#if model.nodeTags}}
@@ -471,6 +491,30 @@
         </div>
 
       {{/each}}
+
+      <h5>Lock Sessions</h5>
+
+      {{#if sessions }}
+        {{errorMessage}}
+
+        {{#each session in sessions }}
+          <div class="list-group-item list-condensed double-line">
+            <div class="bg-light-gray list-bar-horizontal"></div>
+            <div class="name">
+              {{session.ID}}
+              <button {{ action "invalidateSession" session.ID }} {{ bind-attr class=":btn :btn-danger :pull-right :btn-list isLoading:btn-warning" }}>Invalidate</button>
+            </div>
+              <ul class="list-inline sub">
+                {{#each check in session.Checks}}
+                  <li class="bold">{{check}}</li>
+                {{/each}}
+              </ul>
+          </div>
+        {{/each}}
+
+      {{else}}
+        <p class="light small">No sessions</p>
+      {{/if}}
   </script>
 
   <script type="text/x-handlebars" id="index">

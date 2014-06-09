@@ -161,6 +161,7 @@ App.KvEditRoute = App.BaseRoute.extend({
 
     // Return a promise hash to get the data for both columns
     return Ember.RSVP.hash({
+      dc: dc,
       key: Ember.$.getJSON('/v1/kv/' + key + '?dc=' + dc).then(function(data) {
         // Convert the returned data to a Key
         return App.Key.create().setProperties(data[0]);
@@ -175,6 +176,18 @@ App.KvEditRoute = App.BaseRoute.extend({
     });
   },
 
+  // Load the session on the key, if there is one
+  afterModel: function(models) {
+    if (models.key.get('isLocked')) {
+      return Ember.$.getJSON('/v1/session/info/' + models.key.Session + '?dc=' + models.dc).then(function(data) {
+        models.session = data[0]
+        return models
+      });
+    } else {
+      return models
+    }
+  },
+
   setupController: function(controller, models) {
     var key = models.key;
     var parentKeys = this.getParentAndGrandparent(key.get('Key'));
@@ -186,6 +199,7 @@ App.KvEditRoute = App.BaseRoute.extend({
     controller.set('isRoot', parentKeys.isRoot);
     controller.set('siblings', models.keys);
     controller.set('rootKey', this.rootKey);
+    controller.set('session', models.session);
   }
 });
 
@@ -227,6 +241,7 @@ App.NodesShowRoute = App.BaseRoute.extend({
     var dc = this.modelFor('dc').dc
     // Return a promise hash of the node and nodes
     return Ember.RSVP.hash({
+      dc: dc,
       node: Ember.$.getJSON('/v1/internal/ui/node/' + params.name + '?dc=' + dc).then(function(data) {
         return App.Node.create(data)
       }),
@@ -236,8 +251,17 @@ App.NodesShowRoute = App.BaseRoute.extend({
     });
   },
 
+  // Load the sessions for the node
+  afterModel: function(models) {
+    return Ember.$.getJSON('/v1/session/node/' + models.node.Node + '?dc=' + models.dc).then(function(data) {
+      models.sessions = data
+      return models
+    });
+  },
+
   setupController: function(controller, models) {
       controller.set('content', models.node);
+      controller.set('sessions', models.sessions);
       //
       // Since we have 2 column layout, we need to also display the
       // list of nodes on the left. Hence setting the attribute
