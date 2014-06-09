@@ -51,6 +51,11 @@
         margin-top: 4px;
 
         height: 40px;
+
+        &.double-line {
+            height: 50px;
+        }
+
         font-weight: 700;
 
         .name {
@@ -63,6 +68,16 @@
                 font-size: 12px;
                 color: $gray-light;
             }
+        }
+
+        ul.sub {
+            li {
+                padding: 0;
+            }
+
+            margin: 0;
+            font-size: 12px;
+            color: $gray-light;
         }
     }
 
