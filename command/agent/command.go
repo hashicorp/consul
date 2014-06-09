@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"regexp"
 	"runtime"
 	"strings"
 	"syscall"
@@ -19,6 +20,9 @@ import (
 
 // gracefulTimeout controls how long we wait before forcefully terminating
 var gracefulTimeout = 5 * time.Second
+
+// validDatacenter is used to validate a datacenter
+var validDatacenter = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 
 // Command is a Command implementation that runs a Consul agent.
 // The command will not end unless a shutdown message is sent on the
@@ -108,6 +112,12 @@ func (c *Command) readConfig() *Config {
 	// Ensure we have a data directory
 	if config.DataDir == "" {
 		c.Ui.Error("Must specify data directory using -data-dir")
+		return nil
+	}
+
+	// Verify data center is valid
+	if !validDatacenter.MatchString(config.Datacenter) {
+		c.Ui.Error("Datacenter must be alpha-numeric with underscores and hypens only")
 		return nil
 	}
 
