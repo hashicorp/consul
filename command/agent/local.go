@@ -206,7 +206,7 @@ func (l *localState) UpdateCheck(checkID, status, output string) {
 				l.changeMade()
 				l.Unlock()
 			})
-			l.checkStatus[checkID] = syncStatus{deferSync: deferSync}
+			l.checkStatus[checkID] = syncStatus{inSync: true, deferSync: deferSync}
 		}
 		return
 	}
