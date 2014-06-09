@@ -19,3 +19,11 @@ Ember.Handlebars.helper('listBar', function(status) {
   }
   return new Handlebars.SafeString('<div class="list-bar-horizontal ' + highlightClass + '"></div>');
 });
+
+Ember.Handlebars.helper('sessionName', function(session) {
+  if (session.Name === "") {
+    return session.ID;
+  } else {
+    return new Handlebars.SafeString(session.Name + ' <small>' + session.ID + '</small>');
+  }
+});
