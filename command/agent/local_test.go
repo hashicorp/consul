@@ -252,3 +252,77 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 		}
 	}
 }
+
+func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
+	conf := nextConfig()
+	conf.CheckUpdateInterval = 100 * time.Millisecond
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	// Create a check
+	check := &structs.HealthCheck{
+		Node:    agent.config.NodeName,
+		CheckID: "web",
+		Name:    "web",
+		Status:  structs.HealthPassing,
+		Output:  "",
+	}
+	agent.state.AddCheck(check)
+
+	// Trigger anti-entropy run and wait
+	agent.StartSync()
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify that we are in sync
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+	}
+	var checks structs.IndexedHealthChecks
+	if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Verify checks in place
+	if len(checks.HealthChecks) != 2 {
+		t.Fatalf("checks: %v", check)
+	}
+
+	// Update the check output! Should be defered
+	agent.state.UpdateCheck("web", structs.HealthPassing, "output")
+
+	// Should not update for 100 milliseconds
+	time.Sleep(50 * time.Millisecond)
+	if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Verify not updated
+	for _, chk := range checks.HealthChecks {
+		switch chk.CheckID {
+		case "web":
+			if chk.Output != "" {
+				t.Fatalf("early update: %v", chk)
+			}
+		}
+	}
+
+	// Wait for a defered update
+	time.Sleep(100 * time.Millisecond)
+	if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Verify not updated
+	for _, chk := range checks.HealthChecks {
+		switch chk.CheckID {
+		case "web":
+			if chk.Output != "output" {
+				t.Fatalf("no update: %v", chk)
+			}
+		}
+	}
+}

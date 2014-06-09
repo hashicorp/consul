@@ -18,8 +18,9 @@ const (
 // syncStatus is used to represent the difference between
 // the local and remote state, and if action needs to be taken
 type syncStatus struct {
-	remoteDelete bool // Should this be deleted from the server
-	inSync       bool // Is this in sync with the server
+	remoteDelete bool        // Should this be deleted from the server
+	inSync       bool        // Is this in sync with the server
+	deferSync    *time.Timer // Defer sync until this time
 }
 
 // localState is used to represent the node's services,
@@ -188,6 +189,25 @@ func (l *localState) UpdateCheck(checkID, status, output string) {
 
 	// Do nothing if update is idempotent
 	if check.Status == status && check.Output == output {
+		return
+	}
+
+	// Defer a sync if the output has changed. This is an optimization around
+	// frequent updates of output. Instead, we update the output internally,
+	// and periodically do a write-back to the servers. If there is a status
+	// change we do the write immediately.
+	if l.config.CheckUpdateInterval > 0 && check.Status == status {
+		check.Output = output
+		status := l.checkStatus[checkID]
+		if status.deferSync == nil && status.inSync {
+			deferSync := time.AfterFunc(l.config.CheckUpdateInterval, func() {
+				l.Lock()
+				l.checkStatus[checkID] = syncStatus{inSync: false}
+				l.changeMade()
+				l.Unlock()
+			})
+			l.checkStatus[checkID] = syncStatus{deferSync: deferSync}
+		}
 		return
 	}
 
