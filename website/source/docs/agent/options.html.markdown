@@ -179,6 +179,14 @@ definitions support being updated during a reload.
   The certificate is provided to clients or servers to verify the agents authenticity.
   Must be provided along with the `key_file`.
 
+* `check_update_interval` - This interval controls how often check output from
+  checks in a steady state is syncronized with the server. By default, this is
+  set to 5 minutes ("5m"). Many checks which are in a steady state produce
+  slightly different output per run (timestamps, etc) which cause constant writes.
+  This configuration allows defering the sync of check output for a given interval to
+  reduce write pressure. If a check ever changes state, the new state and associated
+  output is syncronized immediately. To disable this behavior, set the value to "0s".
+
 * `domain` - By default, Consul responds to DNS queries in the "consul." domain.
   This flag can be used to change that domain. All queries in this domain are assumed
   to be handled by Consul, and will not be recursively resolved.
