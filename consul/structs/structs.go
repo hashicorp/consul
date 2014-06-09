@@ -354,6 +354,7 @@ type IndexedKeyList struct {
 type Session struct {
 	CreateIndex uint64
 	ID          string
+	Name        string
 	Node        string
 	Checks      []string
 	LockDelay   time.Duration

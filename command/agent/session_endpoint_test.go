@@ -34,6 +34,7 @@ func TestSessionCreate(t *testing.T) {
 		body := bytes.NewBuffer(nil)
 		enc := json.NewEncoder(body)
 		raw := map[string]interface{}{
+			"Name":      "my-cool-session",
 			"Node":      srv.agent.config.NodeName,
 			"Checks":    []string{consul.SerfCheckID, "consul"},
 			"LockDelay": "20s",

@@ -930,6 +930,7 @@ body must look like:
 
     {
         "LockDelay": "15s",
+        "Name": "my-service-lock",
         "Node": "foobar",
         "Checks": ["a", "b", "c"]
     }
@@ -941,7 +942,8 @@ value. Small values are treated as seconds, and otherwise it is provided with
 nanosecond granularity.
 
 The `Node` field must refer to a node that is already registered. By default,
-the agent will use it's own name. Lastly, the `Checks` field is used to provide
+the agent will use it's own name. The `Name` field can be used to provide a human
+readable name for the Session. Lastly, the `Checks` field is used to provide
 a list of associated health checks. By default the "serfHealth" check is provided.
 It is highly recommended that if you override this list, you include that check.
 

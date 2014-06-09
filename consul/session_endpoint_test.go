@@ -24,6 +24,7 @@ func TestSessionEndpoint_Apply(t *testing.T) {
 		Op:         structs.SessionCreate,
 		Session: structs.Session{
 			Node: "foo",
+			Name: "my-session",
 		},
 	}
 	var out string
@@ -40,6 +41,12 @@ func TestSessionEndpoint_Apply(t *testing.T) {
 	}
 	if s == nil {
 		t.Fatalf("should not be nil")
+	}
+	if s.Node != "foo" {
+		t.Fatalf("bad: %v", s)
+	}
+	if s.Name != "my-session" {
+		t.Fatalf("bad: %v", s)
 	}
 
 	// Do a delete
