@@ -31,8 +31,8 @@ A service definition that is a script looks like:
 
 A service definition must include a `name`, and may optionally provide
 an `id`, `tags`, `port`, and `check`.  The `id` is set to the `name` if not
-provided. It is required that all services have a unique ID, so if names
-might conflict, then unique ID's should be provided.
+provided. It is required that all services have a unique ID per node, so if names
+might conflict then unique ID's should be provided.
 
 The `tags` is a list of opaque value to Consul, but can be used to distinguish
 between "master" or "slave" nodes, different versions, or any other service level labels.

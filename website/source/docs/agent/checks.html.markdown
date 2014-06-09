@@ -52,8 +52,8 @@ A TTL based check is very similar:
 
 Both types of definitions must include a `name`, and may optionally
 provide an `id` and `notes` field. The `id` is set to the `name` if not
-provided. It is required that all checks have a unique ID, so if names
-might conflict, then unique ID's should be provided.
+provided. It is required that all checks have a unique ID per node, so if names
+might conflict then unique ID's should be provided.
 
 The `notes` field is opaque to Consul, but may be used for human
 readable descriptions. The field is set to any output that a script
