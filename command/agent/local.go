@@ -202,8 +202,11 @@ func (l *localState) UpdateCheck(checkID, status, output string) {
 		if status.deferSync == nil && status.inSync {
 			deferSync := time.AfterFunc(l.config.CheckUpdateInterval, func() {
 				l.Lock()
-				l.checkStatus[checkID] = syncStatus{inSync: false}
-				l.changeMade()
+				status, ok := l.checkStatus[checkID]
+				if ok && status.inSync {
+					l.checkStatus[checkID] = syncStatus{inSync: false}
+					l.changeMade()
+				}
 				l.Unlock()
 			})
 			l.checkStatus[checkID] = syncStatus{inSync: true, deferSync: deferSync}
@@ -339,7 +342,18 @@ func (l *localState) setSyncState() error {
 		}
 
 		// If our definition is different, we need to update it
-		equal := reflect.DeepEqual(existing, check)
+		var equal bool
+		if l.config.CheckUpdateInterval == 0 {
+			equal = reflect.DeepEqual(existing, check)
+		} else {
+			eCopy := new(structs.HealthCheck)
+			*eCopy = *existing
+			eCopy.Output = ""
+			check.Output = ""
+			equal = reflect.DeepEqual(eCopy, check)
+		}
+
+		// Update the status
 		l.checkStatus[id] = syncStatus{inSync: equal}
 	}
 	return nil
