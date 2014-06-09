@@ -501,7 +501,7 @@
           <div class="list-group-item list-condensed double-line">
             <div class="bg-light-gray list-bar-horizontal"></div>
             <div class="name">
-              {{session.ID}}
+              {{ sessionName session }}
               <button {{ action "invalidateSession" session.ID }} {{ bind-attr class=":btn :btn-danger :pull-right :btn-list isLoading:btn-warning" }}>Invalidate</button>
             </div>
               <ul class="list-inline sub">
