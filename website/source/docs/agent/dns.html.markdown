@@ -19,7 +19,7 @@ with no failing health checks. It's that simple!
 
 There are a number of [configuration options](/docs/agent/options.html) that
 are important for the DNS interface. They are `client_addr`, `ports.dns`, `recursor`,
-and `domain`. By default Consul will listen on 127.0.0.1:8600 for DNS queries
+`domain`, and `dns_config`. By default Consul will listen on 127.0.0.1:8600 for DNS queries
 in the "consul." domain, without support for DNS recursion.
 
 There are a few ways to use the DNS interface. One option is to use a custom
@@ -117,4 +117,11 @@ When the DNS query is performed using UDP, Consul will truncate the results
 without setting the truncate bit. This is to prevent a redundant lookup over
 TCP which generate additional load. If the lookup is done over TCP, the results
 are not truncated.
+
+## Caching
+
+By default, all DNS results served by Consul set a 0 TTL value. This disables
+caching of DNS results. However, there are many situations in which caching is
+desirable for performance and scalability. This is discussed more in the guide
+for [DNS Caching](/docs/guides/dns-cache.html).
 
