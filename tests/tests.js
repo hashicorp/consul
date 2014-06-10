@@ -68,8 +68,9 @@ test("servicesShow", function() {
     ok(find(".ember-list-item-view .list-group-item").hasClass('active'), "highlights active service");
     ok(find(".ember-list-item-view .name:contains('"+ fixtures.service +"')"), "uses service name");
     ok(find(".ember-list-item-view .name:contains('passing')"), "shows passing check num");
-    equal(find("h5").text(), "Nodes", "Shows node list");
-    ok(find("h3.panel-title:contains('"+ fixtures.node +"')"), "Shows node name");
+    ok(find("h3:contains('"+ fixtures.service+"')"), "shows service name");
+    equal(find("h5").text(), "Nodes", "shows node list");
+    ok(find("h3.panel-title:contains('"+ fixtures.node +"')"), "shows node name");
   });
 });
 
@@ -82,6 +83,21 @@ test("nodes", function() {
     equal(find(".ember-list-item-view").length, 1, "renders one node");
     ok(find(".ember-list-item-view .name:contains('"+ fixtures.node +"')"), "contains node name");
     ok(find(".ember-list-item-view .name:contains('services')"), "contains services num");
+  });
+});
+
+test("nodesShow", function() {
+  visit("/");
+  click("a:contains('Nodes')");
+  // First item in list
+  click('.ember-list-item-view .list-group-item');
+
+  andThen(function() {
+    ok(find("a:contains('Nodes')").hasClass('active'), "highlights services in nav");
+    equal(find(".ember-list-item-view").length, 1, "renders one service");
+    ok(find(".ember-list-item-view .list-group-item").hasClass('active'), "highlights active node");
+    ok(find(".ember-list-item-view .name:contains('"+ fixtures.node +"')"), "uses node name");
+    ok(find(".ember-list-item-view .name:contains('passing')"), "shows passing check num");
   });
 });
 
