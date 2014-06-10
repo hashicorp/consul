@@ -18,9 +18,8 @@ const (
 // syncStatus is used to represent the difference between
 // the local and remote state, and if action needs to be taken
 type syncStatus struct {
-	remoteDelete bool        // Should this be deleted from the server
-	inSync       bool        // Is this in sync with the server
-	deferSync    *time.Timer // Defer sync until this time
+	remoteDelete bool // Should this be deleted from the server
+	inSync       bool // Is this in sync with the server
 }
 
 // localState is used to represent the node's services,
@@ -48,6 +47,9 @@ type localState struct {
 	checks      map[string]*structs.HealthCheck
 	checkStatus map[string]syncStatus
 
+	// Used to track checks that are being defered
+	deferCheck map[string]*time.Timer
+
 	// consulCh is used to inform of a change to the known
 	// consul nodes. This may be used to retry a sync run
 	consulCh chan struct{}
@@ -65,6 +67,7 @@ func (l *localState) Init(config *Config, logger *log.Logger) {
 	l.serviceStatus = make(map[string]syncStatus)
 	l.checks = make(map[string]*structs.HealthCheck)
 	l.checkStatus = make(map[string]syncStatus)
+	l.deferCheck = make(map[string]*time.Timer)
 	l.consulCh = make(chan struct{}, 1)
 	l.triggerCh = make(chan struct{}, 1)
 }
@@ -198,18 +201,17 @@ func (l *localState) UpdateCheck(checkID, status, output string) {
 	// change we do the write immediately.
 	if l.config.CheckUpdateInterval > 0 && check.Status == status {
 		check.Output = output
-		status := l.checkStatus[checkID]
-		if status.deferSync == nil && status.inSync {
+		if _, ok := l.deferCheck[checkID]; !ok {
 			deferSync := time.AfterFunc(l.config.CheckUpdateInterval, func() {
 				l.Lock()
-				status, ok := l.checkStatus[checkID]
-				if ok && status.inSync {
+				if _, ok := l.checkStatus[checkID]; ok {
 					l.checkStatus[checkID] = syncStatus{inSync: false}
 					l.changeMade()
 				}
+				delete(l.deferCheck, checkID)
 				l.Unlock()
 			})
-			l.checkStatus[checkID] = syncStatus{inSync: true, deferSync: deferSync}
+			l.deferCheck[checkID] = deferSync
 		}
 		return
 	}
@@ -387,6 +389,12 @@ func (l *localState) syncChanges() error {
 				return err
 			}
 		} else if !status.inSync {
+			// Cancel a defered sync
+			if timer := l.deferCheck[id]; timer != nil {
+				timer.Stop()
+				delete(l.deferCheck, id)
+			}
+
 			if err := l.syncCheck(id); err != nil {
 				return err
 			}
