@@ -553,7 +553,7 @@ func MergeConfig(a, b *Config) *Config {
 	if b.DNSConfig.MaxStale != 0 {
 		result.DNSConfig.MaxStale = b.DNSConfig.MaxStale
 	}
-	if b.CheckUpdateIntervalRaw != "" {
+	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval
 	}
 
