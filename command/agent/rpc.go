@@ -50,6 +50,7 @@ const (
 	monitorCommand    = "monitor"
 	leaveCommand      = "leave"
 	statsCommand      = "stats"
+	reloadCommand     = "reload"
 )
 
 const (
@@ -156,6 +157,7 @@ type AgentRPC struct {
 	listener  net.Listener
 	logger    *log.Logger
 	logWriter *logWriter
+	reloadCh  chan struct{}
 	stop      bool
 	stopCh    chan struct{}
 }
@@ -211,6 +213,7 @@ func NewAgentRPC(agent *Agent, listener net.Listener,
 		listener:  listener,
 		logger:    log.New(logOutput, "", log.LstdFlags),
 		logWriter: logWriter,
+		reloadCh:  make(chan struct{}, 1),
 		stopCh:    make(chan struct{}),
 	}
 	go rpc.listen()
@@ -234,6 +237,12 @@ func (i *AgentRPC) Shutdown() {
 	for _, client := range i.clients {
 		client.conn.Close()
 	}
+}
+
+// ReloadCh returns a channel that can be watched for
+// when a reload is being triggered.
+func (i *AgentRPC) ReloadCh() <-chan struct{} {
+	return i.reloadCh
 }
 
 // listen is a long running routine that listens for new clients
@@ -360,6 +369,9 @@ func (i *AgentRPC) handleRequest(client *rpcClient, reqHeader *requestHeader) er
 
 	case statsCommand:
 		return i.handleStats(client, seq)
+
+	case reloadCommand:
+		return i.handleReload(client, seq)
 
 	default:
 		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
@@ -557,6 +569,18 @@ func (i *AgentRPC) handleStats(client *rpcClient, seq uint64) error {
 	}
 	resp := i.agent.Stats()
 	return client.Send(&header, resp)
+}
+
+func (i *AgentRPC) handleReload(client *rpcClient, seq uint64) error {
+	// Push to the reload channel
+	select {
+	case i.reloadCh <- struct{}{}:
+	default:
+	}
+
+	// Always succeed
+	resp := responseHeader{Seq: seq, Error: ""}
+	return client.Send(&resp, nil)
 }
 
 // Used to convert an error to a string representation
