@@ -27,3 +27,11 @@ Ember.Handlebars.helper('sessionName', function(session) {
     return new Handlebars.SafeString(session.Name + ' <small>' + session.ID + '</small>');
   }
 });
+
+// We need to do this because of our global namespace properties. The
+// service.Tags
+Ember.Handlebars.helper('serviceTagMessage', function(tags) {
+  if (tags === null) {
+    return "No tags";
+  }
+});

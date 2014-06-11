@@ -344,6 +344,13 @@
       <h3 class="no-margin">{{ model.0.Service.Service }}</h3>
       <hr>
 
+      <h5>Tags</h5>
+      <ul class="list-inline">
+        {{#each tag in model.service.Tags}}
+          {{serviceTag tag}}
+        {{/each}}
+        {{serviceTagMessage service.Tags}}
+      </ul>
       <h5>Nodes</h5>
 
       {{#each node in model }}
@@ -446,17 +453,10 @@
       <h3 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h3>
       <hr>
 
-      <h5>Service Tags</h5>
-      {{#if model.nodeTags}}
-        <p class="bold">{{model.nodeTags}}</p>
-      {{else}}
-        <p class="light small">No tags</p>
-      {{/if}}
-
       <h5>Services</h5>
 
       {{#each service in model.Services }}
-        {{#link-to 'services.show' service.Service tagName="div" href=false class="list-group-item list-condensed-link" }}
+        {{#link-to 'services.show' service.Service tagName="div" href=false class="list-group-item list-condensed-link double-line" }}
           <div class="list-bar-horizontal bg-light-gray"></div>
             <div class="name">
               {{service.Service}}
@@ -464,6 +464,12 @@
                 :{{service.Port}}
               </small>
             </div>
+            <ul class="list-inline sub">
+              {{#each tag in service.Tags}}
+                {{serviceTag tag}}
+              {{/each}}
+              {{serviceTagMessage service.Tags}}
+            </ul>
         {{/link-to}}
 
       {{/each}}
