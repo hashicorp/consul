@@ -2,18 +2,49 @@
 
 FEATURES:
 
+  * Better, faster, cleaner UI [GH-194] [GH-196]
   * Sessions, which  act as a binding layer between
-  nodes, checks and KV data.
+  nodes, checks and KV data. [GH-162]
   * Key locking. KV data integrates with sessions to
-  enable distributed locking.
+  enable distributed locking. [GH-162]
+  * DNS lookups can do stale reads and TTLs. [GH-200]
+  * Added new /v1/agent/self endpoint [GH-173]
+  * `reload` command can be used to trigger configuration
+  reload from the CLI [GH-142]
 
 IMPROVEMENTS:
 
+  * `members` has a much cleaner output format [GH-143]
+  * `info` includes build version information
+  * Sorted results for datacneter list [GH-198]
+  * Switch multiplexing to yamux
+  * Allow multiple CA certis in ca_file [GH-174]
   * Enable logging to syslog. [GH-105]
   * Allow raw key value lookup [GH-150]
   * Log encryption enabled [GH-151]
   * Support `-rejoin` to rejoin a cluster after a previous leave. [GH-110]
   * Support the "any" wildcard for v1/health/state/ [GH-152]
+  * Defer sync of health check output [GH-157]
+  * Provide output for serfHealth check [GH-176]
+  * Datacenter name is validated [GH-169]
+  * Configurable syslog facilities [GH-170]
+  * Pipelining replication of writes
+  * Raft group commits
+  * Increased stability of leader terms
+  * Prevent previously left nodes from causing re-elections
+
+BUG FIXES:
+
+  * Fixed memory leak in in-memory stats system
+  * Fixing race between RPC and Raft init [GH-160]
+  * Server-local RPC is avoids network [GH-148]
+  * Fixing builds for older OSX [GH-147]
+
+MISC:
+
+  * Fixed missing prefixes on some log messages
+  * Removed the `-role` filter of `members` command
+  * Lots of docs fixes
 
 ## 0.2.1 (May 20, 2014)
 
