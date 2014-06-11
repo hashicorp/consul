@@ -177,6 +177,12 @@ func NewServer(config *Config) (*Server, error) {
 		shutdownCh:    make(chan struct{}),
 	}
 
+	// Initialize the RPC layer
+	if err := s.setupRPC(tlsConfig); err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
+	}
+
 	// Initialize the Raft server
 	if err := s.setupRaft(); err != nil {
 		s.Shutdown()
@@ -203,12 +209,8 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start wan serf: %v", err)
 	}
 
-	// Initialize the RPC layer
-	if err := s.setupRPC(tlsConfig); err != nil {
-		s.Shutdown()
-		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
-	}
-
+	// Start listening for RPC requests
+	go s.listen()
 	return s, nil
 }
 
@@ -369,7 +371,6 @@ func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 	}
 
 	s.raftLayer = NewRaftLayer(advertise, tlsConfig)
-	go s.listen()
 	return nil
 }
 
