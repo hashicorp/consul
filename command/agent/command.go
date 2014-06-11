@@ -388,6 +388,8 @@ WAIT:
 	select {
 	case s := <-signalCh:
 		sig = s
+	case <-c.rpcServer.ReloadCh():
+		sig = syscall.SIGHUP
 	case <-c.ShutdownCh:
 		sig = os.Interrupt
 	case <-c.agent.ShutdownCh():
