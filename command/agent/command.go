@@ -167,7 +167,7 @@ func (c *Command) setupLoggers(config *Config) (*GatedWriter, *logWriter, io.Wri
 	// Check if syslog is enabled
 	var syslog io.Writer
 	if config.EnableSyslog {
-		l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, "consul")
+		l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.SyslogFacility, "consul")
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Syslog setup failed: %v", err))
 			return nil, nil, nil
