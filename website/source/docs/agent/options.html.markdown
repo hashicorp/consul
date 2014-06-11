@@ -20,7 +20,8 @@ The exact merging behavior will be specified.
 
 Consul also supports reloading of configuration when it receives the
 SIGHUP signal. Not all changes are respected, but those that are
-are documented below.
+are documented below. The [reload command](/docs/commands/reload.html)
+can also be used to trigger a configuration reload.
 
 ## Command-line Options
 

@@ -32,6 +32,7 @@ Available commands are:
     leave          Gracefully leaves the Consul cluster and shuts down
     members        Lists the members of a Consul cluster
     monitor        Stream logs from a Consul agent
+    reload         Triggers the agent to reload configuration files
     version        Prints the Consul version
 ```
 
