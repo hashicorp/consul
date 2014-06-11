@@ -1,6 +1,6 @@
 # Consul Benchmark Results
 
-As part of a benchmark, we started a 5 node DigitalOcean cluster to do.
+As part of a benchmark, we started a 4 node DigitalOcean cluster to benchmark.
 There are 3 servers, meaning writes must commit to at least 2 servers.
 The cluster uses the 16GB DigitalOcean droplet which has the following specs:
 
