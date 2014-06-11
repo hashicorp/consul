@@ -53,6 +53,7 @@ Possible commands include:
 * stop - Stops streaming logs
 * leave - Consul agent performs a graceful leave and shutdown
 * stats - Provides various debugging statistics
+* reload - Triggers a configuration reload
 
 Below each command is documented along with any request or
 response body that is applicable.
@@ -214,3 +215,9 @@ There is no request body, the response body looks like:
         ...
     }
 ```
+
+### reload
+
+The reload command is used trigger a reload of configurations.
+There is no request body, or special response body.
+
