@@ -37,27 +37,18 @@ Available commands are:
 ```
 
 To get help for any specific command, pass the `-h` flag to the relevant
-subcommand. For example, to see help about the `members` subcommand:
+subcommand. For example, to see help about the `join` subcommand:
 
 ```
-$ consul members -h
-Usage: consul members [options]
+$ consul join -h
+Usage: consul join [options] address ...
 
-  Outputs the members of a running Consul agent.
+  Tells a running Consul agent (with "consul agent") to join the cluster
+  by specifying at least one existing member.
 
 Options:
 
-  -detailed                 Additional information such as protocol verions
-                            will be shown.
-
-  -role=<regexp>            If provided, output is filtered to only nodes matching
-                            the regular expression for role
-
   -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
+  -wan                      Joins a server to another server in the WAN pool
 
-  -status=<regexp>			If provided, output is filtered to only nodes matching
-                            the regular expression for status
-
-  -wan						If the agent is in server mode, this can be used to return
-                            the other peers in the WAN pool
 ```
