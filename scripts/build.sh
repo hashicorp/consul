@@ -31,6 +31,12 @@ if [ "$(go env GOOS)" = "freebsd" ]; then
   export CGO_LDFLAGS="$CGO_LDFLAGS -extld clang" # Workaround for https://code.google.com/p/go/issues/detail?id=6845
 fi
 
+# On OSX, we need to use an older target to ensure binaries are
+# compatible with older linkers
+if [ "$(go env GOOS)" = "darwin" ]; then
+    export MACOSX_DEPLOYMENT_TARGET=10.6
+fi
+
 # Install dependencies
 echo "--> Installing dependencies to speed up builds..."
 go get \
