@@ -76,15 +76,20 @@ func TestCatalogDatacenters(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	obj, err := srv.CatalogDatacenters(nil, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		obj, err := srv.CatalogDatacenters(nil, nil)
+		if err != nil {
+			return false, err
+		}
 
-	dcs := obj.([]string)
-	if len(dcs) != 1 {
-		t.Fatalf("bad: %v", obj)
-	}
+		dcs := obj.([]string)
+		if len(dcs) != 1 {
+			return false, fmt.Errorf("missing dc: %v", dcs)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("bad: %v", err)
+	})
 }
 
 func TestCatalogNodes(t *testing.T) {
