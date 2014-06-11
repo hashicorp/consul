@@ -68,6 +68,12 @@ func init() {
 			}, nil
 		},
 
+		"reload": func() (cli.Command, error) {
+			return &command.ReloadCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				Revision:          GitCommit,
