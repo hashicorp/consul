@@ -15,10 +15,10 @@ We promise that every subsequent release of Consul will remain backwards
 compatible with _at least_ one prior version. Concretely: version 0.5 can
 speak to 0.4 (and vice versa), but may not be able to speak to 0.1.
 
-The backwards compatibility must be explicitly enabled: Consul agents by
-default will speak the latest protocol, but can be configured to speak earlier
+The backwards compatibility is automatic unless otherwise noted. Consul agents by
+default will speak the latest protocol, but can understand earlier
 ones. If speaking an earlier protocol, _new features may not be available_.
-The ability for an agent to speak an earlier protocol is only so that they
+The ability for an agent to speak an earlier protocol is so that they
 can be upgraded without cluster disruption.
 
 This compatibility guarantee makes it possible to upgrade Consul agents one
