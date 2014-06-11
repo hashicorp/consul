@@ -197,6 +197,15 @@ func (c *RPCClient) Stats() (map[string]map[string]string, error) {
 	return resp, err
 }
 
+// Reload is used to trigger a configuration reload
+func (c *RPCClient) Reload() error {
+	header := requestHeader{
+		Command: reloadCommand,
+		Seq:     c.getSeq(),
+	}
+	return c.genericRPC(&header, nil, nil)
+}
+
 type monitorHandler struct {
 	client *RPCClient
 	closed bool
