@@ -345,12 +345,12 @@
       <hr>
 
       <h5>Tags</h5>
-      <ul class="list-inline">
-        {{#each tag in model.service.Tags}}
-          {{serviceTag tag}}
-        {{/each}}
-        {{serviceTagMessage service.Tags}}
-      </ul>
+      {{#if tags}}
+        <p>{{tags}}</p>
+      {{else}}
+        <p>No tags</p>
+      {{/if}}
+
       <h5>Nodes</h5>
 
       {{#each node in model }}
@@ -466,7 +466,7 @@
             </div>
             <ul class="list-inline sub">
               {{#each tag in service.Tags}}
-                {{serviceTag tag}}
+                <li>{{tag}}</li>
               {{/each}}
               {{serviceTagMessage service.Tags}}
             </ul>

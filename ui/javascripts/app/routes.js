@@ -233,6 +233,18 @@ App.ServicesShowRoute = App.BaseRoute.extend({
       });
       return objs;
     });
+  },
+  setupController: function(controller, model) {
+    var tags = [];
+    model.map(function(obj){
+      tags = tags.concat(obj.Service.Tags)
+    });
+
+    tags = tags.filter(function(n){ return n != undefined });
+    tags = tags.uniq().join(', ')
+
+    controller.set('content', model);
+    controller.set('tags', tags);
   }
 });
 

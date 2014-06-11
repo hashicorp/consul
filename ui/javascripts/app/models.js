@@ -123,26 +123,7 @@ App.Node = Ember.Object.extend({
 
   filterKey: function() {
     return this.get('Node')
-  }.property('Node'),
-
-  //
-  // Returns a combined and distinct list of the tags on the services
-  // running on the node
-  //
-  nodeTags: function() {
-    var tags = [];
-
-    // Collect the services tags
-    this.get('Services').map(function(Service){
-      tags.push(Service.Tags)
-    })
-
-    // strip nulls
-    tags = tags.filter(function(n){ return n != undefined });
-
-    // only keep unique tags and convert to comma sep
-    return tags.uniq().join(', ')
-  }.property('Services')
+  }.property('Node')
 });
 
 
