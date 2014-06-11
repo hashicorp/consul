@@ -167,6 +167,10 @@ type Config struct {
 	// on linux and OSX. Other platforms will generate an error.
 	EnableSyslog bool `mapstructure:"enable_syslog"`
 
+	// SyslogFacility is used to control where the syslog messages go
+	// By default, goes to LOCAL0
+	SyslogFacility string `mapstructure:"syslog_facility"`
+
 	// RejoinAfterLeave controls our interaction with the cluster after leave.
 	// When set to false (default), a leave causes Consul to not rejoin
 	// the cluster until an explicit join is received. If this is set to
@@ -228,6 +232,7 @@ func DefaultConfig() *Config {
 		DNSConfig: DNSConfig{
 			MaxStale: 5 * time.Second,
 		},
+		SyslogFacility:      "LOCAL0",
 		Protocol:            consul.ProtocolVersionMax,
 		CheckUpdateInterval: 5 * time.Minute,
 		AEInterval:          time.Minute,
@@ -555,6 +560,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval
+	}
+	if b.SyslogFacility != "" {
+		result.SyslogFacility = b.SyslogFacility
 	}
 
 	// Copy the start join addresses

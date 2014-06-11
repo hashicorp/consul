@@ -270,13 +270,16 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Syslog
-	input = `{"enable_syslog": true}`
+	input = `{"enable_syslog": true, "syslog_facility": "LOCAL4"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	if !config.EnableSyslog {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.SyslogFacility != "LOCAL4" {
 		t.Fatalf("bad: %#v", config)
 	}
 

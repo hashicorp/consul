@@ -257,6 +257,9 @@ definitions support being updated during a reload.
   Consul will stream various telemetry information to that instance for aggregation.
   This can be used to capture various runtime information.
 
+* `syslog_facility` - When `enable_syslog` is provided, this controls which
+  facility messages are sent to. By default, `LOCAL0` will be used.
+
 * `verify_incoming` - If set to True, Consul requires that all incoming
   connections make use of TLS, and that the client provides a certificate signed
   by the Certificate Authority from the `ca_file`. By default, this is false, and
