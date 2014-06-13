@@ -129,7 +129,7 @@ The `Key` is simply the full path of the entry. `Flags` are an opaque
 unsigned integer that can be attached to each entry. The use of this is
 left totally to the user. Lastly, the `Value` is a base64 key value.
 
-It is possible to also only list keys without any values by using the
+It is possible to also only list keys without their values by using the
 "?keys" query parameter along with a `GET` request. This will return
 a list of the keys under the given prefix. The optional "?separator="
 can be used to list only up to a given separator.
