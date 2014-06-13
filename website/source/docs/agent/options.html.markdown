@@ -254,6 +254,10 @@ definitions support being updated during a reload.
 * `start_join` - An array of strings specifying addresses of nodes to
   join upon startup.
 
+* `server_name` - When give, this overrides the `node_name` for the TLS certificate.
+  It can be used to ensure that the certificate name matches the hostname we
+  declare.
+
 * `statsite_addr` - This provides the address of a statsite instance. If provided
   Consul will stream various telemetry information to that instance for aggregation.
   This can be used to capture various runtime information.

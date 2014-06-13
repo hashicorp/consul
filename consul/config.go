@@ -109,6 +109,10 @@ type Config struct {
 	// Must be provided to serve TLS connections.
 	KeyFile string
 
+	// ServerName is used with the TLS certificate to ensure the name we
+	// provide matches the certificate
+	ServerName string
+
 	// RejoinAfterLeave controls our interaction with Serf.
 	// When set to false (default), a leave causes a Consul to not rejoin
 	// the cluster until an explicit join is received. If this is set to
@@ -172,9 +176,12 @@ func (c *Config) KeyPair() (*tls.Certificate, error) {
 func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	// Create the tlsConfig
 	tlsConfig := &tls.Config{
-		ServerName:         c.NodeName,
+		ServerName:         c.ServerName,
 		RootCAs:            x509.NewCertPool(),
 		InsecureSkipVerify: !c.VerifyOutgoing,
+	}
+	if tlsConfig.ServerName == "" {
+		tlsConfig.ServerName = c.NodeName
 	}
 
 	// Ensure we have a CA if VerifyOutgoing is set
@@ -203,9 +210,12 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 	// Create the tlsConfig
 	tlsConfig := &tls.Config{
-		ServerName: c.NodeName,
+		ServerName: c.ServerName,
 		ClientCAs:  x509.NewCertPool(),
 		ClientAuth: tls.NoClientCert,
+	}
+	if tlsConfig.ServerName == "" {
+		tlsConfig.ServerName = c.NodeName
 	}
 
 	// Parse the CA cert if any

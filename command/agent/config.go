@@ -151,6 +151,10 @@ type Config struct {
 	// Must be provided to serve TLS connections.
 	KeyFile string `mapstructure:"key_file"`
 
+	// ServerName is used with the TLS certificates to ensure the name we
+	// provid ematches the certificate
+	ServerName string `mapstructure:"server_name"`
+
 	// StartJoin is a list of addresses to attempt to join when the
 	// agent starts. If Serf is unable to communicate with any of these
 	// addresses, then the agent will error and exit.
@@ -504,6 +508,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.KeyFile != "" {
 		result.KeyFile = b.KeyFile
+	}
+	if b.ServerName != "" {
+		result.ServerName = b.ServerName
 	}
 	if b.Checks != nil {
 		result.Checks = append(result.Checks, b.Checks...)

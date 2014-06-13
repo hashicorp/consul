@@ -214,7 +214,7 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// TLS keys
-	input = `{"ca_file": "my/ca/file", "cert_file": "my.cert", "key_file": "key.pem"}`
+	input = `{"ca_file": "my/ca/file", "cert_file": "my.cert", "key_file": "key.pem", "server_name": "example.com"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -227,6 +227,9 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.KeyFile != "key.pem" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.ServerName != "example.com" {
 		t.Fatalf("bad: %#v", config)
 	}
 
