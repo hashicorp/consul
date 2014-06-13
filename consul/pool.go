@@ -288,7 +288,7 @@ func (p *ConnPool) clearConn(conn *Conn) {
 	p.Unlock()
 
 	// Close down immediately if idle
-	if refCount := atomic.LoadInt32(&conn.shouldClose); refCount == 0 {
+	if refCount := atomic.LoadInt32(&conn.refCount); refCount == 0 {
 		conn.Close()
 	}
 }
