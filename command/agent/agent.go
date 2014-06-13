@@ -189,6 +189,7 @@ func (a *Agent) consulConfig() *consul.Config {
 	base.CAFile = a.config.CAFile
 	base.CertFile = a.config.CertFile
 	base.KeyFile = a.config.KeyFile
+	base.ServerName = a.config.ServerName
 
 	// Setup the ServerUp callback
 	base.ServerUp = a.state.ConsulServerUp
