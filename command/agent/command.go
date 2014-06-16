@@ -3,10 +3,6 @@ package agent
 import (
 	"flag"
 	"fmt"
-	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-syslog"
-	"github.com/hashicorp/logutils"
-	"github.com/mitchellh/cli"
 	"io"
 	"net"
 	"os"
@@ -16,6 +12,11 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-syslog"
+	"github.com/hashicorp/logutils"
+	"github.com/mitchellh/cli"
 )
 
 // gracefulTimeout controls how long we wait before forcefully terminating
@@ -62,6 +63,7 @@ func (c *Command) readConfig() *Config {
 
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
+	cmdFlags.IntVar(&cmdConfig.Expect, "expect", 0, "enable automatic bootstrap via expect mode")
 
 	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, RPC)")
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
@@ -125,6 +127,30 @@ func (c *Command) readConfig() *Config {
 	if config.Bootstrap && !config.Server {
 		c.Ui.Error("Bootstrap mode cannot be enabled when server mode is not enabled")
 		return nil
+	}
+
+	// Expect can only work when acting as a server
+	if config.Expect != 0 && !config.Server {
+		c.Ui.Error("Expect mode cannot be enabled when server mode is not enabled")
+		return nil
+	}
+
+	// Expect & Bootstrap are mutually exclusive
+	if config.Expect != 0 && config.Bootstrap {
+		c.Ui.Error("Expect mode and Bootstrap mode are mutually exclusive")
+		return nil
+	}
+
+	// Warn if we are in expect mode
+	if config.Expect != 0 {
+		if config.Expect == 1 {
+			// just use bootstrap mode
+			c.Ui.Error("WARNING: Expect Mode is specified as 1; this is the same as Bootstrap mode.")
+			config.Expect = 0
+			config.Bootstrap = true
+		} else {
+			c.Ui.Error(fmt.Sprintf("WARNING: Expect Mode enabled, looking for %v servers!", config.Expect))
+		}
 	}
 
 	// Warn if we are in bootstrap mode
@@ -524,6 +550,7 @@ Options:
                            order.
   -data-dir=path           Path to a data directory to store agent state
   -dc=east-aws             Datacenter of the agent
+  -expect=0                Sets server to expect bootstrap mode.
   -join=1.2.3.4            Address of an agent to join at start time.
                            Can be specified multiple times.
   -log-level=info          Log level of the agent.

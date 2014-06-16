@@ -2,15 +2,16 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/consul"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/serf/serf"
 	"io"
 	"log"
 	"net"
 	"os"
 	"strconv"
 	"sync"
+
+	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/serf"
 )
 
 /*
@@ -170,6 +171,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	}
 	if a.config.Bootstrap {
 		base.Bootstrap = true
+	}
+	if a.config.Expect != 0 {
+		base.Expect = a.config.Expect
 	}
 	if a.config.Protocol > 0 {
 		base.ProtocolVersion = uint8(a.config.Protocol)

@@ -3,12 +3,13 @@ package consul
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/testutil"
 	"io/ioutil"
 	"net"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/testutil"
 )
 
 var nextPort = 15000
@@ -80,6 +81,19 @@ func testServerDCBootstrap(t *testing.T, dc string, bootstrap bool) (string, *Se
 	dir, config := testServerConfig(t, name)
 	config.Datacenter = dc
 	config.Bootstrap = bootstrap
+	server, err := NewServer(config)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	return dir, server
+}
+
+func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
+	name := fmt.Sprintf("Node %d", getPort())
+	dir, config := testServerConfig(t, name)
+	config.Datacenter = dc
+	config.Bootstrap = false
+	config.Expect = expect
 	server, err := NewServer(config)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -303,4 +317,146 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("no peer established")
 	})
+}
+
+func TestServer_Expect(t *testing.T) {
+	// all test servers should be in expect=3 mode
+	dir1, s1 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	var p1 []net.Addr
+	var p2 []net.Addr
+
+	// should have no peers yet
+	testutil.WaitForResult(func() (bool, error) {
+		p1, _ = s1.raftPeers.Peers()
+		return len(p1) == 0, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 0 peers: %v", err)
+	})
+
+	testutil.WaitForResult(func() (bool, error) {
+		p2, _ = s2.raftPeers.Peers()
+		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 0 peers: %v", err)
+	})
+
+	// join the third node
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	var p3 []net.Addr
+
+	// should now have all three peers
+	testutil.WaitForResult(func() (bool, error) {
+		p1, _ = s1.raftPeers.Peers()
+		return len(p1) == 3, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 3 peers: %v", err)
+	})
+
+	testutil.WaitForResult(func() (bool, error) {
+		p2, _ = s2.raftPeers.Peers()
+		return len(p2) == 3, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 3 peers: %v", err)
+	})
+
+	testutil.WaitForResult(func() (bool, error) {
+		p3, _ = s3.raftPeers.Peers()
+		return len(p3) == 3, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 3 peers: %v", err)
+	})
+
+}
+
+func TestServer_BadExpect(t *testing.T) {
+	// this one is in expect=3 mode
+	dir1, s1 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	// this one is in expect=2 mode
+	dir2, s2 := testServerDCExpect(t, "dc1", 2)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// and this one is in expect=3 mode
+	dir3, s3 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	var p1 []net.Addr
+	var p2 []net.Addr
+
+	// should have no peers yet
+	testutil.WaitForResult(func() (bool, error) {
+		p1, _ = s1.raftPeers.Peers()
+		return len(p1) == 0, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 0 peers: %v", err)
+	})
+
+	testutil.WaitForResult(func() (bool, error) {
+		p2, _ = s2.raftPeers.Peers()
+		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 0 peers: %v", err)
+	})
+
+	// join the third node
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	var p3 []net.Addr
+
+	// should still have no peers (because s2 is in expect=2 mode)
+	testutil.WaitForResult(func() (bool, error) {
+		p1, _ = s1.raftPeers.Peers()
+		return len(p1) == 0, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 0 peers: %v", err)
+	})
+
+	testutil.WaitForResult(func() (bool, error) {
+		p2, _ = s2.raftPeers.Peers()
+		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 0 peers: %v", err)
+	})
+
+	testutil.WaitForResult(func() (bool, error) {
+		p3, _ = s3.raftPeers.Peers()
+		return len(p3) == 0, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 0 peers: %v", err)
+	})
+
 }

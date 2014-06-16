@@ -44,6 +44,11 @@ type Config struct {
 	// other nodes being present
 	Bootstrap bool
 
+	// Expect mode is used to automatically bring up a collection of
+	// Consul servers. This can be used to automatically bring up a collection
+	// of nodes.
+	Expect int
+
 	// Datacenter is the datacenter this Consul server represents
 	Datacenter string
 

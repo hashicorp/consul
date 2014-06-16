@@ -4,12 +4,13 @@ import (
 	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"github.com/hashicorp/serf/serf"
 	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
+
+	"github.com/hashicorp/serf/serf"
 )
 
 /*
@@ -26,6 +27,7 @@ type serverParts struct {
 	Datacenter string
 	Port       int
 	Bootstrap  bool
+	Expect     int
 	Version    int
 	Addr       net.Addr
 }
@@ -84,6 +86,12 @@ func isConsulServer(m serf.Member) (bool, *serverParts) {
 	datacenter := m.Tags["dc"]
 	_, bootstrap := m.Tags["bootstrap"]
 
+	expect_str := m.Tags["expect"]
+	expect, err := strconv.Atoi(expect_str)
+	if err != nil {
+		return false, nil
+	}
+
 	port_str := m.Tags["port"]
 	port, err := strconv.Atoi(port_str)
 	if err != nil {
@@ -103,6 +111,7 @@ func isConsulServer(m serf.Member) (bool, *serverParts) {
 		Datacenter: datacenter,
 		Port:       port,
 		Bootstrap:  bootstrap,
+		Expect:     expect,
 		Addr:       addr,
 		Version:    vsn,
 	}

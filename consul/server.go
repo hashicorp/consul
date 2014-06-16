@@ -4,9 +4,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/raft-mdb"
-	"github.com/hashicorp/serf/serf"
 	"log"
 	"net"
 	"net/rpc"
@@ -17,6 +14,10 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/raft-mdb"
+	"github.com/hashicorp/serf/serf"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
@@ -233,6 +234,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"
 	}
+	conf.Tags["expect"] = fmt.Sprintf("%d", s.config.Expect)
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput
 	conf.EventCh = ch
@@ -252,8 +254,8 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 
 // setupRaft is used to setup and initialize Raft
 func (s *Server) setupRaft() error {
-	// If we are in bootstrap mode, enable a single node cluster
-	if s.config.Bootstrap {
+	// If we are in bootstrap or expect mode, enable a single node cluster
+	if s.config.Bootstrap || s.config.Expect != 0 {
 		s.config.RaftConfig.EnableSingleNode = true
 	}
 
