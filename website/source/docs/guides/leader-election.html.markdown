@@ -23,7 +23,7 @@ key being used to coordinate. A good choice is simply:
 
     service/<service name>/leader
 
-We will refer to this as just `key` for simplify.
+We will refer to this as just `key` for simplicity.
 
 The first step is to create a session. This is done using the /v1/session/create endpoint.
 The session by default makes use of only the gossip failure detector. Additional checks
