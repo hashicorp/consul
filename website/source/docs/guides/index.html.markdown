@@ -8,7 +8,7 @@ sidebar_current: "docs-guides"
 
 This section provides various guides for common actions. Due to the nature
 of Consul, some of these procedures can be complex, so our goal is to provide
-guidance do doing them safely.
+guidance to do them safely.
 
 The following guides are available:
 

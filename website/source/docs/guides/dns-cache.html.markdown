@@ -35,14 +35,14 @@ and `dns_config.max_stale` which limits how stale results are allowed to
 be.
 
 By default, `allow_stale` is disabled meaning no stale results may be served.
-The default for `max_stale` is 5 seconds. This means that is `allow_stale` is
+The default for `max_stale` is 5 seconds. This means that if `allow_stale` is
 enabled, we will use data from any Consul server that is within 5 seconds
 of the leader.
 
 ## TTL Values
 
 TTL values can be set to allow DNS results to be cached upstream
-of Consul which can be reduce the number of lookups and to amortize
+of Consul which can be used to reduce the number of lookups and to amortize
 the latency of doing a DNS lookup. By default, all TTLs are zero,
 preventing any caching.
 

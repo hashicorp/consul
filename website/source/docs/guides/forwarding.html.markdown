@@ -6,7 +6,7 @@ sidebar_current: "docs-guides-forwarding"
 
 # Forwarding DNS
 
-By default DNS is served from port 53 which requires root privileges.
+By default, DNS is served from port 53 which requires root privileges.
 Instead of running Consul as root, it is possible to instead run Bind
 and forward queries to Consul as appropriate.
 
