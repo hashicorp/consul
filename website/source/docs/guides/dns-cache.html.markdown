@@ -41,7 +41,7 @@ of the leader.
 
 ## TTL Values
 
-TTL values can be set to allow DNS results to be cached upstream
+TTL values can be set to allow DNS results to be cached downstream
 of Consul which can be reduce the number of lookups and to amortize
 the latency of doing a DNS lookup. By default, all TTLs are zero,
 preventing any caching.
