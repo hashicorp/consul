@@ -393,7 +393,6 @@ func (a *Agent) AddService(service *structs.NodeService, chkType *CheckType) err
 			ServiceName: service.Service,
 		}
 		if err := a.AddCheck(check, chkType); err != nil {
-			a.state.RemoveService(service.ID)
 			return err
 		}
 	}
@@ -429,8 +428,8 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType) error {
 	// Check if already registered
 	if chkType != nil {
 		if chkType.IsTTL() {
-			if _, ok := a.checkTTLs[check.CheckID]; ok {
-				return fmt.Errorf("CheckID is already registered")
+			if existing, ok := a.checkTTLs[check.CheckID]; ok {
+				existing.Stop()
 			}
 
 			ttl := &CheckTTL{
@@ -443,8 +442,8 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType) error {
 			a.checkTTLs[check.CheckID] = ttl
 
 		} else {
-			if _, ok := a.checkMonitors[check.CheckID]; ok {
-				return fmt.Errorf("CheckID is already registered")
+			if existing, ok := a.checkMonitors[check.CheckID]; ok {
+				existing.Stop()
 			}
 			if chkType.Interval < MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
