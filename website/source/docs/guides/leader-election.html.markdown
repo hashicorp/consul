@@ -23,11 +23,11 @@ key being used to coordinate. A good choice is simply:
 
     service/<service name>/leader
 
-We will refer to this as just `key` for simplicy.
+We will refer to this as just `key` for simplify.
 
 The first step is to create a session. This is done using the /v1/session/create endpoint.
 The session by default makes use of only the gossip failure detector. Additional checks
-can be specified if desired. The session ID returned will be refered to as `session`.
+can be specified if desired. The session ID returned will be referred to as `session`.
 
 Create `body` to represent the local node. This can be a simple JSON object
 that contains the node's name, port or any application specific information
@@ -48,7 +48,7 @@ or automatically released due to a false positive in the failure detector.
 
 Watching for changes is done by doing a blocking query against `key`. If we ever
 notice that the `Session` of the `key` is blank, then there is no leader, and we should
-retry acquiring the lock. Each attempt to acquire the key should be seperated by a timed
+retry acquiring the lock. Each attempt to acquire the key should be separated by a timed
 wait. This is because Consul may be enforcing a [`lock-delay`](/docs/internals/sessions.html).
 
 If the leader ever wishes to step down voluntarily, this should be done by simply
@@ -60,7 +60,7 @@ releasing the lock:
 
 The second flow is for nodes who are attempting to discover the leader
 for a given service. All nodes that are participating should agree on the key
-being used to coordinate, including the contendors. This key will be referred
+being used to coordinate, including the contenders. This key will be referred
 to as just `key`.
 
 Clients have a very simple role, they simply read `key` to discover who the current
