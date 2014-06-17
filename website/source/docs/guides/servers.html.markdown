@@ -72,7 +72,7 @@ the new servers up-to-date.
 
 Removing servers must be done carefully to avoid causing an availability outage.
 For a cluster of N servers, at least (N/2)+1 must be available for the cluster
-to functions. See this [deployment table](/docs/internals/consensus.html#toc_3).
+to function. See this [deployment table](/docs/internals/consensus.html#toc_3).
 If you have 3 servers, and 1 of them is currently failed, removing any servers
 will cause the cluster to become unavailable.
 
