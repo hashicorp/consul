@@ -4,9 +4,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/raft-mdb"
-	"github.com/hashicorp/serf/serf"
 	"log"
 	"net"
 	"net/rpc"
@@ -17,6 +14,10 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/raft-mdb"
+	"github.com/hashicorp/serf/serf"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
@@ -232,6 +233,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.Tags["port"] = fmt.Sprintf("%d", addr.Port)
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"
+	}
+	if s.config.Expect != 0 {
+		conf.Tags["expect"] = fmt.Sprintf("%d", s.config.Expect)
 	}
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput

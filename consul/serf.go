@@ -1,8 +1,10 @@
 package consul
 
 import (
-	"github.com/hashicorp/serf/serf"
+	"net"
 	"strings"
+
+	"github.com/hashicorp/serf/serf"
 )
 
 const (
@@ -148,6 +150,41 @@ func (s *Server) nodeJoin(me serf.MemberEvent, wan bool) {
 			s.localLock.Lock()
 			s.localConsuls[parts.Addr.String()] = parts
 			s.localLock.Unlock()
+		}
+
+		// If we're still expecting, and they are too, check servers.
+		if s.config.Expect != 0 && parts.Expect != 0 {
+			index, err := s.raftStore.LastIndex()
+			if err == nil && index == 0 {
+				members := s.serfLAN.Members()
+				addrs := make([]net.Addr, 0)
+				for _, member := range members {
+					valid, p := isConsulServer(member)
+					if valid && p.Datacenter == parts.Datacenter {
+						if p.Expect != parts.Expect {
+							s.logger.Printf("[ERR] consul: '%v' and '%v' have different expect values. All expect nodes should have the same value, will never leave expect mode", m.Name, member.Name)
+							return
+						} else {
+							addrs = append(addrs, &net.TCPAddr{IP: member.Addr, Port: p.Port})
+						}
+					}
+				}
+
+				if len(addrs) >= s.config.Expect {
+					// we have enough nodes, set peers.
+
+					future := s.raft.SetPeers(addrs)
+
+					if err := future.Error(); err != nil {
+						s.logger.Printf("[ERR] consul: failed to leave expect mode and set peers: %v", err)
+					} else {
+						// we've left expect mode, don't enter this again
+						s.config.Expect = 0
+					}
+				}
+			} else if err != nil {
+				s.logger.Printf("[ERR] consul: error retrieving index: %v", err)
+			}
 		}
 	}
 }
