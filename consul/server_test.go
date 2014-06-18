@@ -329,7 +329,7 @@ func TestServer_Expect(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer s2.Shutdown()
 
-	dir3, s3 := testServerDCExpect(t, "dc1", 3)
+	dir3, s3 := testServerDCExpect(t, "dc1", 0)
 	defer os.RemoveAll(dir3)
 	defer s3.Shutdown()
 

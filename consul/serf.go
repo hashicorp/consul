@@ -146,47 +146,70 @@ func (s *Server) nodeJoin(me serf.MemberEvent, wan bool) {
 		s.remoteLock.Unlock()
 
 		// Add to the local list as well
-		if !wan {
+		if !wan && parts.Datacenter == s.config.Datacenter {
 			s.localLock.Lock()
 			s.localConsuls[parts.Addr.String()] = parts
 			s.localLock.Unlock()
 		}
 
-		// If we're still expecting, and they are too, check servers.
-		if s.config.Expect != 0 && parts.Expect != 0 {
-			index, err := s.raftStore.LastIndex()
-			if err == nil && index == 0 {
-				members := s.serfLAN.Members()
-				addrs := make([]net.Addr, 0)
-				for _, member := range members {
-					valid, p := isConsulServer(member)
-					if valid && p.Datacenter == parts.Datacenter {
-						if p.Expect != parts.Expect {
-							s.logger.Printf("[ERR] consul: '%v' and '%v' have different expect values. All expect nodes should have the same value, will never leave expect mode", m.Name, member.Name)
-							return
-						} else {
-							addrs = append(addrs, &net.TCPAddr{IP: member.Addr, Port: p.Port})
-						}
-					}
-				}
-
-				if len(addrs) >= s.config.Expect {
-					// we have enough nodes, set peers.
-
-					future := s.raft.SetPeers(addrs)
-
-					if err := future.Error(); err != nil {
-						s.logger.Printf("[ERR] consul: failed to leave expect mode and set peers: %v", err)
-					} else {
-						// we've left expect mode, don't enter this again
-						s.config.Expect = 0
-					}
-				}
-			} else if err != nil {
-				s.logger.Printf("[ERR] consul: error retrieving index: %v", err)
-			}
+		// If we still expecting to bootstrap, may need to handle this
+		if s.config.Expect != 0 {
+			s.maybeBootstrap()
 		}
 	}
+}
+
+// maybeBootsrap is used to handle bootstrapping when a new consul server joins
+func (s *Server) maybeBootstrap() {
+	index, err := s.raftStore.LastIndex()
+	if err != nil {
+		s.logger.Printf("[ERR] consul: failed to read last raft index: %v", err)
+		return
+	}
+
+	// Bootstrap can only be done if there are no committed logs,
+	// remove our expectations of bootstrapping
+	if index != 0 {
+		s.config.Expect = 0
+		return
+	}
+
+	// Scan for all the known servers
+	members := s.serfLAN.Members()
+	addrs := make([]net.Addr, 0)
+	for _, member := range members {
+		valid, p := isConsulServer(member)
+		if !valid {
+			continue
+		}
+		if p.Datacenter != s.config.Datacenter {
+			s.logger.Printf("[ERR] consul: Member %v has a conflicting datacenter, ignoring", member)
+			continue
+		}
+		if p.Expect != 0 && p.Expect != s.config.Expect {
+			s.logger.Printf("[ERR] consul: Member %v has a conflicting expect value. All nodes should expect the same number.", member)
+			return
+		}
+		if p.Bootstrap {
+			s.logger.Printf("[ERR] consul: Member %v has bootstrap mode. Expect disabled.", member)
+			return
+		}
+		addrs = append(addrs, &net.TCPAddr{IP: member.Addr, Port: p.Port})
+	}
+
+	// Skip if we haven't met the minimum expect count
+	if len(addrs) < s.config.Expect {
+		return
+	}
+
+	// Update the peer set
+	s.logger.Printf("[INFO] consul: Attempting bootstrap with nodes: %v", addrs)
+	if err := s.raft.SetPeers(addrs).Error(); err != nil {
+		s.logger.Printf("[ERR] consul: failed to bootstrap peers: %v", err)
+	}
+
+	// Bootstrapping comlete, don't enter this again
+	s.config.Expect = 0
 }
 
 // nodeFailed is used to handle fail events on both the serf clustes
