@@ -93,6 +93,21 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Expect bootstrap
+	input = `{"server": true, "expect": 3}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !config.Server {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.Expect != 3 {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// DNS setup
 	input = `{"ports": {"dns": 8500}, "recursor": "8.8.8.8", "domain": "foobar"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -426,6 +441,7 @@ func TestDecodeConfig_Check(t *testing.T) {
 func TestMergeConfig(t *testing.T) {
 	a := &Config{
 		Bootstrap:              false,
+		Expect:                 0,
 		Datacenter:             "dc1",
 		DataDir:                "/tmp/foo",
 		DNSRecursor:            "127.0.0.1:1001",
@@ -444,6 +460,7 @@ func TestMergeConfig(t *testing.T) {
 
 	b := &Config{
 		Bootstrap:   true,
+		Expect:      3,
 		Datacenter:  "dc2",
 		DataDir:     "/tmp/bar",
 		DNSRecursor: "127.0.0.2:1001",
