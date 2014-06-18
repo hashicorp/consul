@@ -369,57 +369,6 @@ func (s *Server) joinConsulServer(m serf.Member, parts *serverParts) error {
 		}
 	}
 
-	// Or, check for possibility that expect is not the same.
-	if parts.Expect != 0 {
-		members := s.serfLAN.Members()
-		for _, member := range members {
-			valid, p := isConsulServer(member)
-			if valid && member.Name != m.Name && p.Expect != parts.Expect {
-				s.logger.Printf("[ERR] consul: '%v' and '%v' have different expect values. All expect nodes should have the same value, not adding Raft peer.", m.Name, member.Name)
-				return nil
-			}
-		}
-	}
-
-	// If we're not a bootstrapped server, we're expecting servers,
-	// and our raft index is zero, try to auto bootstrap.
-	if !s.config.Bootstrap && s.config.Expect != 0 {
-		if index, _ := s.raftStore.LastIndex(); index == 0 {
-			// do not do standard op and add peer... yet
-			count := 0
-			members := s.serfLAN.Members()
-			for _, member := range members {
-				valid, p := isConsulServer(member)
-				if valid && member.Name != m.Name && p.Expect == parts.Expect {
-					count++
-					if count >= s.config.Expect {
-						break
-					}
-				}
-			}
-
-			if count >= s.config.Expect {
-				// we've met expected limit - add servers
-				s.config.RaftConfig.EnableSingleNode = false
-				for _, member := range members {
-					valid, p := isConsulServer(member)
-					if valid && member.Name != m.Name && p.Expect != parts.Expect {
-						addAddr := &net.TCPAddr{IP: member.Addr, Port: p.Port}
-						future := s.raft.AddPeer(addAddr)
-
-						if err := future.Error(); err != nil && err != raft.ErrKnownPeer {
-							s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
-							// hmm....
-						}
-					}
-				}
-			} else {
-				// not enough servers yet
-				return nil
-			}
-		}
-	}
-
 	// Attempt to add as a peer
 	var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: parts.Port}
 	future := s.raft.AddPeer(addr)

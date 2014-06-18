@@ -137,7 +137,7 @@ func (c *Command) readConfig() *Config {
 
 	// Expect & Bootstrap are mutually exclusive
 	if config.Expect != 0 && config.Bootstrap {
-		c.Ui.Error("Expect mode and Bootstrap mode are mutually exclusive")
+		c.Ui.Error("Bootstrap cannot be provided with an expected server count")
 		return nil
 	}
 
