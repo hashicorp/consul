@@ -1,3 +1,16 @@
+## 0.3.1 (Unreleased)
+
+BUG FIXES:
+
+  * Fixed issue with service re-registration [GH-216]
+  * Fixed handling of `-rejoin` flag
+
+IMPROVEMENTS:
+
+  * Improved handling of Serf snapshot data
+  * Increase reliability of failure detector
+
+
 ## 0.3.0 (June 13, 2014)
 
 FEATURES:
