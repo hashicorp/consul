@@ -160,7 +160,7 @@ func (s *Server) nodeJoin(me serf.MemberEvent, wan bool) {
 				addrs := make([]net.Addr, 0)
 				for _, member := range members {
 					valid, p := isConsulServer(member)
-					if valid {
+					if valid && p.Datacenter == parts.Datacenter {
 						if p.Expect != parts.Expect {
 							s.logger.Printf("[ERR] consul: '%v' and '%v' have different expect values. All expect nodes should have the same value, will never leave expect mode", m.Name, member.Name)
 							return

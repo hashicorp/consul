@@ -86,10 +86,14 @@ func isConsulServer(m serf.Member) (bool, *serverParts) {
 	datacenter := m.Tags["dc"]
 	_, bootstrap := m.Tags["bootstrap"]
 
-	expect_str := m.Tags["expect"]
-	expect, err := strconv.Atoi(expect_str)
-	if err != nil {
-		return false, nil
+	expect := 0
+	expect_str, ok := m.Tags["expect"]
+	var err error
+	if ok {
+		expect, err = strconv.Atoi(expect_str)
+		if err != nil {
+			return false, nil
+		}
 	}
 
 	port_str := m.Tags["port"]

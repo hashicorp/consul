@@ -41,11 +41,10 @@ func TestIsConsulServer(t *testing.T) {
 		Name: "foo",
 		Addr: net.IP([]byte{127, 0, 0, 1}),
 		Tags: map[string]string{
-			"expect": "0",
-			"role":   "consul",
-			"dc":     "east-aws",
-			"port":   "10000",
-			"vsn":    "1",
+			"role": "consul",
+			"dc":   "east-aws",
+			"port": "10000",
+			"vsn":  "1",
 		},
 	}
 	valid, parts := isConsulServer(m)

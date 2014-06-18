@@ -353,7 +353,7 @@ func TestServer_Expect(t *testing.T) {
 
 	testutil.WaitForResult(func() (bool, error) {
 		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p1))
+		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p2))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
@@ -375,18 +375,20 @@ func TestServer_Expect(t *testing.T) {
 
 	testutil.WaitForResult(func() (bool, error) {
 		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 3, errors.New(fmt.Sprintf("%v", p1))
+		return len(p2) == 3, errors.New(fmt.Sprintf("%v", p2))
 	}, func(err error) {
 		t.Fatalf("should have 3 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
 		p3, _ = s3.raftPeers.Peers()
-		return len(p3) == 3, errors.New(fmt.Sprintf("%v", p1))
+		return len(p3) == 3, errors.New(fmt.Sprintf("%v", p3))
 	}, func(err error) {
 		t.Fatalf("should have 3 peers: %v", err)
 	})
 
+	// check if there is one leader now
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 }
 
 func TestServer_BadExpect(t *testing.T) {
@@ -425,7 +427,7 @@ func TestServer_BadExpect(t *testing.T) {
 
 	testutil.WaitForResult(func() (bool, error) {
 		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p1))
+		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p2))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
@@ -447,14 +449,14 @@ func TestServer_BadExpect(t *testing.T) {
 
 	testutil.WaitForResult(func() (bool, error) {
 		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p1))
+		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p2))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
 		p3, _ = s3.raftPeers.Peers()
-		return len(p3) == 0, errors.New(fmt.Sprintf("%v", p1))
+		return len(p3) == 0, errors.New(fmt.Sprintf("%v", p3))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
