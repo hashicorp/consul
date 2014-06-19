@@ -199,7 +199,7 @@ There is no request body, or special response body.
 
 ### stats
 
-The stats command is used to provide operator information for debugginer.
+The stats command is used to provide operator information for debugging.
 There is no request body, the response body looks like:
 
 ```
