@@ -247,9 +247,9 @@
             {{#link-to 'nodes.show' model.session.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
               <div class="bg-light-gray list-bar-horizontal"></div>
               <div class="name">
-                {{session.Node}}
+                {{ sessionName session }}
                 <small class="pull-right">
-                  {{session.ID}}
+                  {{session.Node}}
                 </small>
               </div>
             {{/link-to}}
