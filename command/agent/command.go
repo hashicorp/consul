@@ -63,7 +63,7 @@ func (c *Command) readConfig() *Config {
 
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
-	cmdFlags.IntVar(&cmdConfig.Expect, "expect", 0, "enable automatic bootstrap via expect mode")
+	cmdFlags.IntVar(&cmdConfig.BootstrapExpect, "bootstrap-expect", 0, "enable automatic bootstrap via expect mode")
 
 	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, RPC)")
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
@@ -130,27 +130,24 @@ func (c *Command) readConfig() *Config {
 	}
 
 	// Expect can only work when acting as a server
-	if config.Expect != 0 && !config.Server {
+	if config.BootstrapExpect != 0 && !config.Server {
 		c.Ui.Error("Expect mode cannot be enabled when server mode is not enabled")
 		return nil
 	}
 
 	// Expect & Bootstrap are mutually exclusive
-	if config.Expect != 0 && config.Bootstrap {
+	if config.BootstrapExpect != 0 && config.Bootstrap {
 		c.Ui.Error("Bootstrap cannot be provided with an expected server count")
 		return nil
 	}
 
 	// Warn if we are in expect mode
-	if config.Expect != 0 {
-		if config.Expect == 1 {
-			// just use bootstrap mode
-			c.Ui.Error("WARNING: Expect Mode is specified as 1; this is the same as Bootstrap mode.")
-			config.Expect = 0
-			config.Bootstrap = true
-		} else {
-			c.Ui.Error(fmt.Sprintf("WARNING: Expect Mode enabled, looking for %v servers!", config.Expect))
-		}
+	if config.BootstrapExpect == 1 {
+		c.Ui.Error("WARNING: BootstrapExpect Mode is specified as 1; this is the same as Bootstrap mode.")
+		config.BootstrapExpect = 0
+		config.Bootstrap = true
+	} else if config.BootstrapExpect > 0 {
+		c.Ui.Error(fmt.Sprintf("WARNING: Expect Mode enabled, expecting %d servers", config.BootstrapExpect))
 	}
 
 	// Warn if we are in bootstrap mode

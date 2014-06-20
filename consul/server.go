@@ -234,8 +234,8 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"
 	}
-	if s.config.Expect != 0 {
-		conf.Tags["expect"] = fmt.Sprintf("%d", s.config.Expect)
+	if s.config.BootstrapExpect != 0 {
+		conf.Tags["expect"] = fmt.Sprintf("%d", s.config.BootstrapExpect)
 	}
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput

@@ -65,9 +65,9 @@ type Config struct {
 	// permits that node to elect itself leader
 	Bootstrap bool `mapstructure:"bootstrap"`
 
-	// Expect tries to automatically bootstrap the Consul cluster,
+	// BootstrapExpect tries to automatically bootstrap the Consul cluster,
 	// by witholding peers until enough servers join.
-	Expect int `mapstructure:"expect"`
+	BootstrapExpect int `mapstructure:"bootstrap_expect"`
 
 	// Server controls if this agent acts like a Consul server,
 	// or merely as a client. Servers have more state, take part
@@ -223,14 +223,14 @@ type dirEnts []os.FileInfo
 // DefaultConfig is used to return a sane default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		Bootstrap:  false,
-		Expect:     0,
-		Server:     false,
-		Datacenter: consul.DefaultDC,
-		Domain:     "consul.",
-		LogLevel:   "INFO",
-		ClientAddr: "127.0.0.1",
-		BindAddr:   "0.0.0.0",
+		Bootstrap:       false,
+		BootstrapExpect: 0,
+		Server:          false,
+		Datacenter:      consul.DefaultDC,
+		Domain:          "consul.",
+		LogLevel:        "INFO",
+		ClientAddr:      "127.0.0.1",
+		BindAddr:        "0.0.0.0",
 		Ports: PortConfig{
 			DNS:     8600,
 			HTTP:    8500,
@@ -455,8 +455,8 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Bootstrap {
 		result.Bootstrap = true
 	}
-	if b.Expect != 0 {
-		result.Expect = b.Expect
+	if b.BootstrapExpect != 0 {
+		result.BootstrapExpect = b.BootstrapExpect
 	}
 	if b.Datacenter != "" {
 		result.Datacenter = b.Datacenter

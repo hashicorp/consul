@@ -175,8 +175,8 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.RejoinAfterLeave {
 		base.RejoinAfterLeave = true
 	}
-	if a.config.Expect != 0 {
-		base.Expect = a.config.Expect
+	if a.config.BootstrapExpect != 0 {
+		base.BootstrapExpect = a.config.BootstrapExpect
 	}
 	if a.config.Protocol > 0 {
 		base.ProtocolVersion = uint8(a.config.Protocol)

@@ -93,7 +93,7 @@ func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 	dir, config := testServerConfig(t, name)
 	config.Datacenter = dc
 	config.Bootstrap = false
-	config.Expect = expect
+	config.BootstrapExpect = expect
 	server, err := NewServer(config)
 	if err != nil {
 		t.Fatalf("err: %v", err)

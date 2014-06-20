@@ -153,7 +153,7 @@ func (s *Server) nodeJoin(me serf.MemberEvent, wan bool) {
 		}
 
 		// If we still expecting to bootstrap, may need to handle this
-		if s.config.Expect != 0 {
+		if s.config.BootstrapExpect != 0 {
 			s.maybeBootstrap()
 		}
 	}
@@ -170,7 +170,7 @@ func (s *Server) maybeBootstrap() {
 	// Bootstrap can only be done if there are no committed logs,
 	// remove our expectations of bootstrapping
 	if index != 0 {
-		s.config.Expect = 0
+		s.config.BootstrapExpect = 0
 		return
 	}
 
@@ -186,7 +186,7 @@ func (s *Server) maybeBootstrap() {
 			s.logger.Printf("[ERR] consul: Member %v has a conflicting datacenter, ignoring", member)
 			continue
 		}
-		if p.Expect != 0 && p.Expect != s.config.Expect {
+		if p.Expect != 0 && p.Expect != s.config.BootstrapExpect {
 			s.logger.Printf("[ERR] consul: Member %v has a conflicting expect value. All nodes should expect the same number.", member)
 			return
 		}
@@ -198,7 +198,7 @@ func (s *Server) maybeBootstrap() {
 	}
 
 	// Skip if we haven't met the minimum expect count
-	if len(addrs) < s.config.Expect {
+	if len(addrs) < s.config.BootstrapExpect {
 		return
 	}
 
@@ -209,7 +209,7 @@ func (s *Server) maybeBootstrap() {
 	}
 
 	// Bootstrapping comlete, don't enter this again
-	s.config.Expect = 0
+	s.config.BootstrapExpect = 0
 }
 
 // nodeFailed is used to handle fail events on both the serf clustes
