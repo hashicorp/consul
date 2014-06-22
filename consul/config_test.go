@@ -78,14 +78,8 @@ func TestConfig_OutgoingTLS_OnlyCA(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if tls == nil {
-		t.Fatalf("expected config")
-	}
-	if len(tls.RootCAs.Subjects()) != 1 {
-		t.Fatalf("expect root cert")
-	}
-	if !tls.InsecureSkipVerify {
-		t.Fatalf("expect to skip verification")
+	if tls != nil {
+		t.Fatalf("expected no config")
 	}
 }
 
@@ -104,8 +98,35 @@ func TestConfig_OutgoingTLS_VerifyOutgoing(t *testing.T) {
 	if len(tls.RootCAs.Subjects()) != 1 {
 		t.Fatalf("expect root cert")
 	}
+	if tls.ServerName != "" {
+		t.Fatalf("expect no server name verification")
+	}
+	if !tls.InsecureSkipVerify {
+		t.Fatalf("should skip built-in verification")
+	}
+}
+
+func TestConfig_OutgoingTLS_ServerName(t *testing.T) {
+	conf := &Config{
+		VerifyOutgoing: true,
+		CAFile:         "../test/ca/root.cer",
+		ServerName:     "consul.example.com",
+	}
+	tls, err := conf.OutgoingTLSConfig()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if tls == nil {
+		t.Fatalf("expected config")
+	}
+	if len(tls.RootCAs.Subjects()) != 1 {
+		t.Fatalf("expect root cert")
+	}
+	if tls.ServerName != "consul.example.com" {
+		t.Fatalf("expect server name")
+	}
 	if tls.InsecureSkipVerify {
-		t.Fatalf("should not skip verification")
+		t.Fatalf("should not skip built-in verification")
 	}
 }
 
@@ -126,8 +147,8 @@ func TestConfig_OutgoingTLS_WithKeyPair(t *testing.T) {
 	if len(tls.RootCAs.Subjects()) != 1 {
 		t.Fatalf("expect root cert")
 	}
-	if tls.InsecureSkipVerify {
-		t.Fatalf("should not skip verification")
+	if !tls.InsecureSkipVerify {
+		t.Fatalf("should skip verification")
 	}
 	if len(tls.Certificates) != 1 {
 		t.Fatalf("expected client cert")

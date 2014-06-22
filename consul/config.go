@@ -172,16 +172,21 @@ func (c *Config) KeyPair() (*tls.Certificate, error) {
 	return &cert, err
 }
 
-// OutgoingTLSConfig generates a TLS configuration for outgoing requests
+// OutgoingTLSConfig generates a TLS configuration for outgoing
+// requests. It will return a nil config if this configuration should
+// not use TLS for outgoing connections.
 func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
+	if !c.VerifyOutgoing {
+		return nil, nil
+	}
 	// Create the tlsConfig
 	tlsConfig := &tls.Config{
-		ServerName:         c.ServerName,
 		RootCAs:            x509.NewCertPool(),
-		InsecureSkipVerify: !c.VerifyOutgoing,
+		InsecureSkipVerify: true,
 	}
-	if tlsConfig.ServerName == "" {
-		tlsConfig.ServerName = c.NodeName
+	if c.ServerName != "" {
+		tlsConfig.ServerName = c.ServerName
+		tlsConfig.InsecureSkipVerify = false
 	}
 
 	// Ensure we have a CA if VerifyOutgoing is set
@@ -204,6 +209,59 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	}
 
 	return tlsConfig, nil
+}
+
+// Wrap a net.Conn into a tls connection, performing any additional
+// verification as needed.
+//
+// As of go 1.3, crypto/tls only supports either doing no certificate
+// verification, or doing full verification including of the peer's
+// DNS name. For consul, we want to validate that the certificate is
+// signed by a known CA, but because consul doesn't use DNS names for
+// node names, we don't verify the certificate DNS names. Since go 1.3
+// no longer supports this mode of operation, we have to do it
+// manually.
+func wrapTLSClient(conn net.Conn, tlsConfig *tls.Config) (net.Conn, error) {
+	var err error
+	var tlsConn *tls.Conn
+
+	tlsConn = tls.Client(conn, tlsConfig)
+
+	// If crypto/tls is doing verification, there's no need to do
+	// our own.
+	if tlsConfig.InsecureSkipVerify == false {
+		return tlsConn, nil
+	}
+
+	if err = tlsConn.Handshake(); err != nil {
+		tlsConn.Close()
+		return nil, err
+	}
+
+	// The following is lightly-modified from the doFullHandshake
+	// method in crypto/tls's handshake_client.go.
+	opts := x509.VerifyOptions{
+		Roots:         tlsConfig.RootCAs,
+		CurrentTime:   time.Now(),
+		DNSName:       "",
+		Intermediates: x509.NewCertPool(),
+	}
+
+	certs := tlsConn.ConnectionState().PeerCertificates
+	for i, cert := range certs {
+		if i == 0 {
+			continue
+		}
+		opts.Intermediates.AddCert(cert)
+	}
+
+	_, err = certs[0].Verify(opts)
+	if err != nil {
+		tlsConn.Close()
+		return nil, err
+	}
+
+	return tlsConn, err
 }
 
 // IncomingTLSConfig generates a TLS configuration for incoming requests

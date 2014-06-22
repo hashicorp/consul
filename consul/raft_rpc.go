@@ -94,7 +94,10 @@ func (l *RaftLayer) Dial(address string, timeout time.Duration) (net.Conn, error
 		}
 
 		// Wrap the connection in a TLS client
-		conn = tls.Client(conn, l.tlsConfig)
+		conn, err = wrapTLSClient(conn, l.tlsConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Write the Raft byte to set the mode

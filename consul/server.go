@@ -145,12 +145,9 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Create the tlsConfig for outgoing connections
-	var tlsConfig *tls.Config
-	var err error
-	if config.VerifyOutgoing {
-		if tlsConfig, err = config.OutgoingTLSConfig(); err != nil {
-			return nil, err
-		}
+	tlsConfig, err := config.OutgoingTLSConfig()
+	if err != nil {
+		return nil, err
 	}
 
 	// Get the incoming tls config
