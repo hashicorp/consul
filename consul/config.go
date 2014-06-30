@@ -211,8 +211,8 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
-// Wrap a net.Conn into a tls connection, performing any additional
-// verification as needed.
+// Wrap a net.Conn into a client tls connection, performing any
+// additional verification as needed.
 //
 // As of go 1.3, crypto/tls only supports either doing no certificate
 // verification, or doing full verification including of the peer's

@@ -3,6 +3,9 @@ package consul
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"io"
+	"io/ioutil"
+	"net"
 	"testing"
 )
 
@@ -152,6 +155,99 @@ func TestConfig_OutgoingTLS_WithKeyPair(t *testing.T) {
 	}
 	if len(tls.Certificates) != 1 {
 		t.Fatalf("expected client cert")
+	}
+}
+
+func startTLSServer(config *Config) (net.Conn, chan error) {
+	errc := make(chan error, 1)
+
+	tlsConfigServer, err := config.IncomingTLSConfig()
+	if err != nil {
+		errc <- err
+		return nil, errc
+	}
+
+	client, server := net.Pipe()
+	go func() {
+		tlsServer := tls.Server(server, tlsConfigServer)
+		if err := tlsServer.Handshake(); err != nil {
+			errc <- err
+		}
+		close(errc)
+		// Because net.Pipe() is unbuffered, if both sides
+		// Close() simultaneously, we will deadlock as they
+		// both send an alert and then block. So we make the
+		// server read any data from the client until error or
+		// EOF, which will allow the client to Close(), and
+		// *then* we Close() the server.
+		io.Copy(ioutil.Discard, tlsServer)
+		tlsServer.Close()
+	}()
+	return client, errc
+}
+
+func TestConfig_wrapTLS_OK(t *testing.T) {
+	config := &Config{
+		CAFile:         "../test/ca/root.cer",
+		CertFile:       "../test/key/ourdomain.cer",
+		KeyFile:        "../test/key/ourdomain.key",
+		VerifyOutgoing: true,
+	}
+
+	client, errc := startTLSServer(config)
+	if client == nil {
+		t.Fatalf("startTLSServer err: %v", <-errc)
+	}
+
+	clientConfig, err := config.OutgoingTLSConfig()
+	if err != nil {
+		t.Fatalf("OutgoingTLSConfig err: %v", err)
+	}
+
+	tlsClient, err := wrapTLSClient(client, clientConfig)
+	if err != nil {
+		t.Fatalf("wrapTLS err: %v", err)
+	} else {
+		tlsClient.Close()
+	}
+	err = <-errc
+	if err != nil {
+		t.Fatalf("server: %v", err)
+	}
+}
+
+func TestConfig_wrapTLS_BadCert(t *testing.T) {
+	serverConfig := &Config{
+		CertFile: "../test/key/ssl-cert-snakeoil.pem",
+		KeyFile:  "../test/key/ssl-cert-snakeoil.key",
+	}
+
+	client, errc := startTLSServer(serverConfig)
+	if client == nil {
+		t.Fatalf("startTLSServer err: %v", <-errc)
+	}
+
+	clientConfig := &Config{
+		CAFile:         "../test/ca/root.cer",
+		VerifyOutgoing: true,
+	}
+
+	clientTLSConfig, err := clientConfig.OutgoingTLSConfig()
+	if err != nil {
+		t.Fatalf("OutgoingTLSConfig err: %v", err)
+	}
+
+	tlsClient, err := wrapTLSClient(client, clientTLSConfig)
+	if err == nil {
+		t.Fatalf("wrapTLS no err")
+	}
+	if tlsClient != nil {
+		t.Fatalf("returned a client")
+	}
+
+	err = <-errc
+	if err != nil {
+		t.Fatalf("server: %v", err)
 	}
 }
 
