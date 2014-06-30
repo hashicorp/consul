@@ -30,4 +30,4 @@ web:
 web-push:
 	./scripts/website_push.sh
 
-.PNONY: all cov deps integ test web web-push
+.PHONY: all cov deps integ test web web-push
