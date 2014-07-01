@@ -57,8 +57,7 @@ There are several important components that `consul agent` outputs:
 * **Server**: This shows if the agent is running in the server or client mode.
   Server nodes have the extra burden of participating in the consensus quorum,
   storing cluster state, and handling queries. Additionally, a server may be
-  in "bootstrap" mode. The first server must be in this mode to allow additional
-  servers to join the cluster. Multiple servers cannot be in bootstrap mode,
+  in "bootstrap" mode. Multiple servers cannot be in bootstrap mode,
   otherwise the cluster state will be inconsistent.
 
 * **Client Addr**: This is the address used for client interfaces to the agent.

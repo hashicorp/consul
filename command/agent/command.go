@@ -537,6 +537,7 @@ Options:
   -advertise=addr          Sets the advertise address to use
   -bootstrap               Sets server to bootstrap mode
   -bind=0.0.0.0            Sets the bind address for cluster communication
+  -bootstrap-expect=0      Sets server to expect bootstrap mode.
   -client=127.0.0.1        Sets the address to bind for client access.
                            This includes RPC, DNS and HTTP
   -config-file=foo         Path to a JSON file to read configuration from.
@@ -547,7 +548,6 @@ Options:
                            order.
   -data-dir=path           Path to a data directory to store agent state
   -dc=east-aws             Datacenter of the agent
-  -expect=0                Sets server to expect bootstrap mode.
   -join=1.2.3.4            Address of an agent to join at start time.
                            Can be specified multiple times.
   -log-level=info          Log level of the agent.
