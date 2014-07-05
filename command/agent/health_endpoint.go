@@ -117,6 +117,7 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 // filterNonPassing is used to filter out any nodes that have check that are not passing
 func filterNonPassing(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
 	n := len(nodes)
+OUTER:
 	for i := 0; i < n; i++ {
 		node := nodes[i]
 		for _, check := range node.Checks {
@@ -124,6 +125,7 @@ func filterNonPassing(nodes structs.CheckServiceNodes) structs.CheckServiceNodes
 				nodes[i], nodes[n-1] = nodes[n-1], structs.CheckServiceNode{}
 				n--
 				i--
+				continue OUTER
 			}
 		}
 	}
