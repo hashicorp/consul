@@ -500,6 +500,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.SkipLeaveOnInt == true {
 		result.SkipLeaveOnInt = true
 	}
+	if b.StatsiteAddr != "" {
+		result.StatsiteAddr = b.StatsiteAddr
+	}
 	if b.EnableDebug {
 		result.EnableDebug = true
 	}
