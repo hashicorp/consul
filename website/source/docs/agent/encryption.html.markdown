@@ -28,7 +28,10 @@ With that key, you can enable encryption on the agent. You can verify
 encryption is enabled because the output will include "Encrypted: true".
 
 ```
-$ consul agent -data=/tmp/consul -encrypt=cg8StVXbQJ0gPvMd9o7yrg==
+$ cat encrypt.json
+{"encrypt": "cg8StVXbQJ0gPvMd9o7yrg=="}
+
+$ consul agent -data=/tmp/consul -config-file encrypt.json
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...
 ==> Consul agent running!
