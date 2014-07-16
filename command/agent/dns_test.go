@@ -651,6 +651,40 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	args3 := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.2",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    12345,
+		},
+		Check: &structs.HealthCheck{
+			CheckID:   "db",
+			Name:      "db",
+			ServiceID: "db",
+			Status:    structs.HealthCritical,
+		},
+	}
+	if err := srv.agent.RPC("Catalog.Register", args3, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	args4 := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "baz",
+		Address:    "127.0.0.3",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    12345,
+		},
+	}
+	if err := srv.agent.RPC("Catalog.Register", args4, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	m := new(dns.Msg)
 	m.SetQuestion("db.service.consul.", dns.TypeANY)
 
@@ -662,8 +696,14 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	}
 
 	// Should get no answer since we are failing!
-	if len(in.Answer) != 0 {
+	if len(in.Answer) != 1 {
 		t.Fatalf("Bad: %#v", in)
+	}
+
+	resp := in.Answer[0]
+	aRec := resp.(*dns.A)
+	if aRec.A.String() != "127.0.0.3" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
 }
 

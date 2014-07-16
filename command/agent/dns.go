@@ -471,6 +471,7 @@ RPC:
 // health checks to prevent routing to unhealthy nodes
 func (d *DNSServer) filterServiceNodes(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
 	n := len(nodes)
+OUTER:
 	for i := 0; i < n; i++ {
 		node := nodes[i]
 		for _, check := range node.Checks {
@@ -480,6 +481,7 @@ func (d *DNSServer) filterServiceNodes(nodes structs.CheckServiceNodes) structs.
 				nodes[i], nodes[n-1] = nodes[n-1], structs.CheckServiceNode{}
 				n--
 				i--
+				continue OUTER
 			}
 		}
 	}
