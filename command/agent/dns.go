@@ -84,14 +84,14 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain, 
 	go func() {
 		err := server.ListenAndServe()
 		srv.logger.Printf("[ERR] dns: error starting udp server: %v", err)
-		errCh <- err
+		errCh <- fmt.Errorf("dns udp setup failed: %v", err)
 	}()
 
 	errChTCP := make(chan error, 1)
 	go func() {
 		err := serverTCP.ListenAndServe()
 		srv.logger.Printf("[ERR] dns: error starting tcp server: %v", err)
-		errChTCP <- err
+		errChTCP <- fmt.Errorf("dns tcp setup failed: %v", err)
 	}()
 
 	// Check the server is running, do a test lookup
@@ -107,7 +107,7 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain, 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, bind)
 		if err != nil {
-			checkCh <- err
+			checkCh <- fmt.Errorf("dns test query failed: %v", err)
 			return
 		}
 
