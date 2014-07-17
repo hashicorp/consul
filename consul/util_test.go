@@ -18,6 +18,15 @@ func TestStrContains(t *testing.T) {
 	}
 }
 
+func TestToLowerList(t *testing.T) {
+	l := []string{"ABC", "Abc", "abc"}
+	for _, value := range ToLowerList(l) {
+		if value != "abc" {
+			t.Fatalf("failed lowercasing")
+		}
+	}
+}
+
 func TestIsPrivateIP(t *testing.T) {
 	if !isPrivateIP("192.168.1.1") {
 		t.Fatalf("bad")

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/serf/serf"
 )
@@ -66,6 +67,14 @@ func strContains(l []string, s string) bool {
 		}
 	}
 	return false
+}
+
+func ToLowerList(l []string) []string {
+	var out []string
+	for _, value := range l {
+		out = append(out, strings.ToLower(value))
+	}
+	return out
 }
 
 // ensurePath is used to make sure a path exists
