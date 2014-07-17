@@ -45,12 +45,13 @@ type MDBTables []*MDBTable
 // An Index is named, and uses a series of column values to
 // map to the row-id containing the table
 type MDBIndex struct {
-	AllowBlank bool      // Can fields be blank
-	Unique     bool      // Controls if values are unique
-	Fields     []string  // Fields are used to build the index
-	IdxFunc    IndexFunc // Can be used to provide custom indexing
-	Virtual    bool      // Virtual index does not exist, but can be used for queries
-	RealIndex  string    // Virtual indexes use a RealIndex for iteration
+	AllowBlank      bool      // Can fields be blank
+	Unique          bool      // Controls if values are unique
+	Fields          []string  // Fields are used to build the index
+	IdxFunc         IndexFunc // Can be used to provide custom indexing
+	Virtual         bool      // Virtual index does not exist, but can be used for queries
+	RealIndex       string    // Virtual indexes use a RealIndex for iteration
+	CaseInsensitive bool      // Controls if values are case-insensitive
 
 	table     *MDBTable
 	name      string

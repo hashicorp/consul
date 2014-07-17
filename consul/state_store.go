@@ -179,6 +179,7 @@ func (s *StateStore) initialize() error {
 			"id": &MDBIndex{
 				Unique: true,
 				Fields: []string{"Node"},
+				CaseInsensitive: true,
 			},
 		},
 		Decoder: func(buf []byte) interface{} {
