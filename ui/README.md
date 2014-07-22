@@ -44,6 +44,8 @@ An example of this command, from inside the `ui/` directory, would be:
 
     consul agent -bootstrap -server -data-dir /tmp/ -ui-dir .
 
+Basic tests can be run by adding the `?test` query parameter to the
+application.
 
 ### Releasing
 
