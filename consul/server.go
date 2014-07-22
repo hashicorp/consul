@@ -187,10 +187,6 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
-	// Start the Serf listeners to prevent a deadlock
-	go s.lanEventHandler()
-	go s.wanEventHandler()
-
 	// Initialize the lan Serf
 	s.serfLAN, err = s.setupSerf(config.SerfLANConfig,
 		s.eventChLAN, serfLANSnapshot, false)
@@ -198,6 +194,7 @@ func NewServer(config *Config) (*Server, error) {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
+	go s.lanEventHandler()
 
 	// Initialize the wan Serf
 	s.serfWAN, err = s.setupSerf(config.SerfWANConfig,
@@ -206,6 +203,7 @@ func NewServer(config *Config) (*Server, error) {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start wan serf: %v", err)
 	}
+	go s.wanEventHandler()
 
 	// Start listening for RPC requests
 	go s.listen()
