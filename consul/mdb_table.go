@@ -427,6 +427,10 @@ func (t *MDBTable) getIndex(index string, parts []string) (*MDBIndex, []byte, er
 		return nil, nil, tooManyFields
 	}
 
+	if idx.CaseInsensitive {
+		parts = ToLowerList(parts)
+	}
+
 	// Construct the key
 	key := idx.keyFromParts(parts...)
 	return idx, key, nil
@@ -613,6 +617,9 @@ func (i *MDBIndex) keyFromObject(obj interface{}) ([]byte, error) {
 		val := fv.String()
 		if !i.AllowBlank && val == "" {
 			return nil, fmt.Errorf("Field '%s' must be set: %#v", field, obj)
+		}
+		if i.CaseInsensitive {
+			val = strings.ToLower(val)
 		}
 		parts = append(parts, val)
 	}
