@@ -156,7 +156,7 @@ func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
 	}
 
 	m := new(dns.Msg)
-	m.SetQuestion("fOO.node.DC1.consul.", dns.TypeANY)
+	m.SetQuestion("fOO.node.dc1.consul.", dns.TypeANY)
 
 	c := new(dns.Client)
 	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
