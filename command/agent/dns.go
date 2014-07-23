@@ -248,7 +248,7 @@ func (d *DNSServer) dispatch(network string, req, resp *dns.Msg) {
 	datacenter := d.agent.config.Datacenter
 
 	// Get the QName without the domain suffix
-	qName := dns.Fqdn(req.Question[0].Name)
+	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
 	qName = strings.TrimSuffix(qName, d.domain)
 
 	// Split into the label parts
