@@ -201,6 +201,7 @@ func (s *StateStore) initialize() error {
 			"service": &MDBIndex{
 				AllowBlank: true,
 				Fields:     []string{"ServiceName"},
+				CaseInsensitive: true,
 			},
 		},
 		Decoder: func(buf []byte) interface{} {
