@@ -20,7 +20,8 @@ with no failing health checks. It's that simple!
 There are a number of [configuration options](/docs/agent/options.html) that
 are important for the DNS interface. They are `client_addr`, `ports.dns`, `recursor`,
 `domain`, and `dns_config`. By default Consul will listen on 127.0.0.1:8600 for DNS queries
-in the "consul." domain, without support for DNS recursion.
+in the "consul." domain, without support for DNS recursion. All queries are case-insensitive, a
+name lookup for `PostgreSQL.node.dc1.consul` will find all nodes named `postgresql`, no matter of case.
 
 There are a few ways to use the DNS interface. One option is to use a custom
 DNS resolver library and point it at Consul. Another option is to set Consul

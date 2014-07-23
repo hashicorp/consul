@@ -179,6 +179,7 @@ func (s *StateStore) initialize() error {
 			"id": &MDBIndex{
 				Unique: true,
 				Fields: []string{"Node"},
+				CaseInsensitive: true,
 			},
 		},
 		Decoder: func(buf []byte) interface{} {
@@ -200,6 +201,7 @@ func (s *StateStore) initialize() error {
 			"service": &MDBIndex{
 				AllowBlank: true,
 				Fields:     []string{"ServiceName"},
+				CaseInsensitive: true,
 			},
 		},
 		Decoder: func(buf []byte) interface{} {
@@ -640,7 +642,7 @@ func serviceTagFilter(l []interface{}, tag string) []interface{} {
 	n := len(l)
 	for i := 0; i < n; i++ {
 		srv := l[i].(*structs.ServiceNode)
-		if !strContains(srv.ServiceTags, tag) {
+		if !strContains(ToLowerList(srv.ServiceTags), strings.ToLower(tag)) {
 			l[i], l[n-1] = l[n-1], nil
 			i--
 			n--

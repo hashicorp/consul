@@ -220,13 +220,13 @@ func TestCatalogListNodes(t *testing.T) {
 	})
 
 	// Server node is auto added from Serf
-	if out.Nodes[0].Node != s1.config.NodeName {
+	if out.Nodes[1].Node != s1.config.NodeName {
 		t.Fatalf("bad: %v", out)
 	}
-	if out.Nodes[1].Node != "foo" {
+	if out.Nodes[0].Node != "foo" {
 		t.Fatalf("bad: %v", out)
 	}
-	if out.Nodes[1].Address != "127.0.0.1" {
+	if out.Nodes[0].Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", out)
 	}
 }

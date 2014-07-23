@@ -136,6 +136,40 @@ func TestDNS_NodeLookup(t *testing.T) {
 	}
 }
 
+func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "Foo",
+		Address:    "127.0.0.1",
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("fOO.node.dc1.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("empty lookup: %#v", in)
+	}
+}
+
 func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
@@ -333,6 +367,45 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	}
 	if aRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+}
+
+func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "Db",
+			Tags:    []string{"Master"},
+			Port:    12345,
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("mASTER.dB.service.consul.", dns.TypeSRV)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener(srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("empty lookup: %#v", in)
 	}
 }
 
