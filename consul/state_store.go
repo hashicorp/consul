@@ -642,8 +642,7 @@ func serviceTagFilter(l []interface{}, tag string) []interface{} {
 	n := len(l)
 	for i := 0; i < n; i++ {
 		srv := l[i].(*structs.ServiceNode)
-		srv.ServiceTags = ToLowerList(srv.ServiceTags)
-		if !strContains(srv.ServiceTags, strings.ToLower(tag)) {
+		if !strContains(ToLowerList(srv.ServiceTags), strings.ToLower(tag)) {
 			l[i], l[n-1] = l[n-1], nil
 			i--
 			n--
