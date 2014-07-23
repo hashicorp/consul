@@ -1,3 +1,9 @@
+## 0.3.2 (Unreleased)
+
+IMPROVEMENTS:
+
+  * DNS case-insensitivity [GH-189]
+
 ## 0.3.1 (July 21, 2014)
 
 FEATURES:
