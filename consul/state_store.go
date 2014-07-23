@@ -177,8 +177,8 @@ func (s *StateStore) initialize() error {
 		Name: dbNodes,
 		Indexes: map[string]*MDBIndex{
 			"id": &MDBIndex{
-				Unique: true,
-				Fields: []string{"Node"},
+				Unique:          true,
+				Fields:          []string{"Node"},
 				CaseInsensitive: true,
 			},
 		},
@@ -199,8 +199,8 @@ func (s *StateStore) initialize() error {
 				Fields: []string{"Node", "ServiceID"},
 			},
 			"service": &MDBIndex{
-				AllowBlank: true,
-				Fields:     []string{"ServiceName"},
+				AllowBlank:      true,
+				Fields:          []string{"ServiceName"},
 				CaseInsensitive: true,
 			},
 		},
