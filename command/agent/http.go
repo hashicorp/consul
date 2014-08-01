@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"bytes"
 	"encoding/json"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/mitchellh/mapstructure"
@@ -138,15 +137,25 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			return
 		}
 
+		var prettyPrint bool
+		if req.URL.Query().Get("pretty") == "true" {
+			prettyPrint = true
+		} else {
+			prettyPrint = false
+		}
 		// Write out the JSON object
 		if obj != nil {
-			var buf bytes.Buffer
-			enc := json.NewEncoder(&buf)
-			if err = enc.Encode(obj); err != nil {
+			var buf []byte
+			if prettyPrint == true {
+				buf, err = json.MarshalIndent(obj, "", "    ")
+			} else {
+				buf, err = json.Marshal(obj)
+			}
+			if err != nil {
 				goto HAS_ERR
 			}
 			resp.Header().Set("Content-Type", "application/json")
-			resp.Write(buf.Bytes())
+			resp.Write(buf)
 		}
 	}
 	return f
