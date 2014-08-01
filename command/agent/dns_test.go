@@ -781,6 +781,10 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_Randomize(t *testing.T) {
+	config := &DNSConfig{
+		MaxUDPResponses: 5,
+	}
+
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -788,7 +792,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register nodes
-	for i := 0; i < 3*maxServiceResponses; i++ {
+	for i := 0; i < 3*config.MaxUDPResponses; i++ {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       fmt.Sprintf("foo%d", i),
@@ -820,7 +824,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 
 		// Response length should be truncated
 		// We should get an A record for each response
-		if len(in.Answer) != maxServiceResponses {
+		if len(in.Answer) != config.MaxUDPResponses {
 			t.Fatalf("Bad: %#v", len(in.Answer))
 		}
 

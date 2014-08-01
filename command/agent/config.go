@@ -55,6 +55,10 @@ type DNSConfig struct {
 	// stale read is performed.
 	MaxStale    time.Duration `mapstructure:"-"`
 	MaxStaleRaw string        `mapstructure:"max_stale" json:"-"`
+
+	// MaxUDPResponses is used to restrict the number of
+	// responses if the network is not TCP
+	MaxUDPResponses int `mapstructure:"max_udp_responses" json"-"`
 }
 
 // Config is the configuration that can be set for an Agent.
@@ -240,7 +244,8 @@ func DefaultConfig() *Config {
 			Server:  8300,
 		},
 		DNSConfig: DNSConfig{
-			MaxStale: 5 * time.Second,
+			MaxStale:        5 * time.Second,
+			MaxUDPResponses: 3,
 		},
 		SyslogFacility:      "LOCAL0",
 		Protocol:            consul.ProtocolVersionMax,

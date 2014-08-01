@@ -13,10 +13,9 @@ import (
 )
 
 const (
-	testQuery           = "_test.consul."
-	consulDomain        = "consul."
-	maxServiceResponses = 3 // For UDP only
-	maxRecurseRecords   = 3
+	testQuery         = "_test.consul."
+	consulDomain      = "consul."
+	maxRecurseRecords = 3
 )
 
 // DNSServer is used to wrap an Agent and expose various
@@ -454,8 +453,8 @@ RPC:
 	shuffleServiceNodes(out.Nodes)
 
 	// If the network is not TCP, restrict the number of responses
-	if network != "tcp" && len(out.Nodes) > maxServiceResponses {
-		out.Nodes = out.Nodes[:maxServiceResponses]
+	if network != "tcp" && len(out.Nodes) > d.config.MaxUDPResponses {
+		out.Nodes = out.Nodes[:d.config.MaxUDPResponses]
 	}
 
 	// Add various responses depending on the request
