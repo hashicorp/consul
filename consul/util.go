@@ -4,12 +4,14 @@ import (
 	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"github.com/hashicorp/serf/serf"
 	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
+
+	"github.com/hashicorp/serf/serf"
 )
 
 /*
@@ -26,6 +28,7 @@ type serverParts struct {
 	Datacenter string
 	Port       int
 	Bootstrap  bool
+	Expect     int
 	Version    int
 	Addr       net.Addr
 }
@@ -66,6 +69,14 @@ func strContains(l []string, s string) bool {
 	return false
 }
 
+func ToLowerList(l []string) []string {
+	var out []string
+	for _, value := range l {
+		out = append(out, strings.ToLower(value))
+	}
+	return out
+}
+
 // ensurePath is used to make sure a path exists
 func ensurePath(path string, dir bool) error {
 	if !dir {
@@ -83,6 +94,16 @@ func isConsulServer(m serf.Member) (bool, *serverParts) {
 
 	datacenter := m.Tags["dc"]
 	_, bootstrap := m.Tags["bootstrap"]
+
+	expect := 0
+	expect_str, ok := m.Tags["expect"]
+	var err error
+	if ok {
+		expect, err = strconv.Atoi(expect_str)
+		if err != nil {
+			return false, nil
+		}
+	}
 
 	port_str := m.Tags["port"]
 	port, err := strconv.Atoi(port_str)
@@ -103,6 +124,7 @@ func isConsulServer(m serf.Member) (bool, *serverParts) {
 		Datacenter: datacenter,
 		Port:       port,
 		Bootstrap:  bootstrap,
+		Expect:     expect,
 		Addr:       addr,
 		Version:    vsn,
 	}

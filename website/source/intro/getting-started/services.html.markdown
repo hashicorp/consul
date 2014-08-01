@@ -43,7 +43,7 @@ $ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80}}' \
 Now, restart the agent we're running, providing the configuration directory:
 
 ```
-$ consul agent -server -bootstrap -data-dir /tmp/consul -config-dir /etc/consul.d
+$ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul -config-dir /etc/consul.d
 ==> Starting Consul agent...
 ...
     [INFO] agent: Synced service 'web'

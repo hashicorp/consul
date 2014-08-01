@@ -3,6 +3,9 @@ package consul
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"io"
+	"io/ioutil"
+	"net"
 	"testing"
 )
 
@@ -78,14 +81,8 @@ func TestConfig_OutgoingTLS_OnlyCA(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if tls == nil {
-		t.Fatalf("expected config")
-	}
-	if len(tls.RootCAs.Subjects()) != 1 {
-		t.Fatalf("expect root cert")
-	}
-	if !tls.InsecureSkipVerify {
-		t.Fatalf("expect to skip verification")
+	if tls != nil {
+		t.Fatalf("expected no config")
 	}
 }
 
@@ -104,8 +101,35 @@ func TestConfig_OutgoingTLS_VerifyOutgoing(t *testing.T) {
 	if len(tls.RootCAs.Subjects()) != 1 {
 		t.Fatalf("expect root cert")
 	}
+	if tls.ServerName != "" {
+		t.Fatalf("expect no server name verification")
+	}
+	if !tls.InsecureSkipVerify {
+		t.Fatalf("should skip built-in verification")
+	}
+}
+
+func TestConfig_OutgoingTLS_ServerName(t *testing.T) {
+	conf := &Config{
+		VerifyOutgoing: true,
+		CAFile:         "../test/ca/root.cer",
+		ServerName:     "consul.example.com",
+	}
+	tls, err := conf.OutgoingTLSConfig()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if tls == nil {
+		t.Fatalf("expected config")
+	}
+	if len(tls.RootCAs.Subjects()) != 1 {
+		t.Fatalf("expect root cert")
+	}
+	if tls.ServerName != "consul.example.com" {
+		t.Fatalf("expect server name")
+	}
 	if tls.InsecureSkipVerify {
-		t.Fatalf("should not skip verification")
+		t.Fatalf("should not skip built-in verification")
 	}
 }
 
@@ -126,11 +150,104 @@ func TestConfig_OutgoingTLS_WithKeyPair(t *testing.T) {
 	if len(tls.RootCAs.Subjects()) != 1 {
 		t.Fatalf("expect root cert")
 	}
-	if tls.InsecureSkipVerify {
-		t.Fatalf("should not skip verification")
+	if !tls.InsecureSkipVerify {
+		t.Fatalf("should skip verification")
 	}
 	if len(tls.Certificates) != 1 {
 		t.Fatalf("expected client cert")
+	}
+}
+
+func startTLSServer(config *Config) (net.Conn, chan error) {
+	errc := make(chan error, 1)
+
+	tlsConfigServer, err := config.IncomingTLSConfig()
+	if err != nil {
+		errc <- err
+		return nil, errc
+	}
+
+	client, server := net.Pipe()
+	go func() {
+		tlsServer := tls.Server(server, tlsConfigServer)
+		if err := tlsServer.Handshake(); err != nil {
+			errc <- err
+		}
+		close(errc)
+		// Because net.Pipe() is unbuffered, if both sides
+		// Close() simultaneously, we will deadlock as they
+		// both send an alert and then block. So we make the
+		// server read any data from the client until error or
+		// EOF, which will allow the client to Close(), and
+		// *then* we Close() the server.
+		io.Copy(ioutil.Discard, tlsServer)
+		tlsServer.Close()
+	}()
+	return client, errc
+}
+
+func TestConfig_wrapTLS_OK(t *testing.T) {
+	config := &Config{
+		CAFile:         "../test/ca/root.cer",
+		CertFile:       "../test/key/ourdomain.cer",
+		KeyFile:        "../test/key/ourdomain.key",
+		VerifyOutgoing: true,
+	}
+
+	client, errc := startTLSServer(config)
+	if client == nil {
+		t.Fatalf("startTLSServer err: %v", <-errc)
+	}
+
+	clientConfig, err := config.OutgoingTLSConfig()
+	if err != nil {
+		t.Fatalf("OutgoingTLSConfig err: %v", err)
+	}
+
+	tlsClient, err := wrapTLSClient(client, clientConfig)
+	if err != nil {
+		t.Fatalf("wrapTLS err: %v", err)
+	} else {
+		tlsClient.Close()
+	}
+	err = <-errc
+	if err != nil {
+		t.Fatalf("server: %v", err)
+	}
+}
+
+func TestConfig_wrapTLS_BadCert(t *testing.T) {
+	serverConfig := &Config{
+		CertFile: "../test/key/ssl-cert-snakeoil.pem",
+		KeyFile:  "../test/key/ssl-cert-snakeoil.key",
+	}
+
+	client, errc := startTLSServer(serverConfig)
+	if client == nil {
+		t.Fatalf("startTLSServer err: %v", <-errc)
+	}
+
+	clientConfig := &Config{
+		CAFile:         "../test/ca/root.cer",
+		VerifyOutgoing: true,
+	}
+
+	clientTLSConfig, err := clientConfig.OutgoingTLSConfig()
+	if err != nil {
+		t.Fatalf("OutgoingTLSConfig err: %v", err)
+	}
+
+	tlsClient, err := wrapTLSClient(client, clientTLSConfig)
+	if err == nil {
+		t.Fatalf("wrapTLS no err")
+	}
+	if tlsClient != nil {
+		t.Fatalf("returned a client")
+	}
+
+	err = <-errc
+	if err != nil {
+		t.Fatalf("server: %v", err)
 	}
 }
 

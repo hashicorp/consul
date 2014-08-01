@@ -34,7 +34,7 @@ will act as our server in this cluster. We're still not making a cluster
 of servers.
 
 ```
-$ consul agent -server -bootstrap -data-dir /tmp/consul \
+$ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul \
     -node=agent-one -bind=172.20.20.10
 ...
 ```
@@ -70,9 +70,10 @@ run `consul members` against each agent, you'll see that both agents now
 know about each other:
 
 ```
-$ consul members
-agent-one  172.20.20.10:8301  alive  role=consul,dc=dc1,vsn=1,vsn_min=1,vsn_max=1,port=8300,bootstrap=1
-agent-two  172.20.20.11:8301  alive  role=node,dc=dc1,vsn=1,vsn_min=1,vsn_max=1
+$ consul members -detailed
+Node        Address             Status  Tags
+agent-one   172.20.20.10:8301   alive   role=consul,dc=dc1,vsn=2,vsn_min=1,vsn_max=2,port=8300,bootstrap=1
+agent-two   172.20.20.11:8301   alive   role=node,dc=dc1,vsn=2,vsn_min=1,vsn_max=2
 ```
 
 <div class="alert alert-block alert-info">

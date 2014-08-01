@@ -221,7 +221,11 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 		}
 
 		// Wrap the connection in a TLS client
-		conn = tls.Client(conn, p.tlsConfig)
+		conn, err = wrapTLSClient(conn, p.tlsConfig)
+		if err != nil {
+			conn.Close()
+			return nil, err
+		}
 	}
 
 	// Switch the multiplexing based on version

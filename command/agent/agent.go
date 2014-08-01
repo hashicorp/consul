@@ -2,15 +2,16 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/consul"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/serf/serf"
 	"io"
 	"log"
 	"net"
 	"os"
 	"strconv"
 	"sync"
+
+	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/serf"
 )
 
 /*
@@ -170,6 +171,12 @@ func (a *Agent) consulConfig() *consul.Config {
 	}
 	if a.config.Bootstrap {
 		base.Bootstrap = true
+	}
+	if a.config.RejoinAfterLeave {
+		base.RejoinAfterLeave = true
+	}
+	if a.config.BootstrapExpect != 0 {
+		base.BootstrapExpect = a.config.BootstrapExpect
 	}
 	if a.config.Protocol > 0 {
 		base.ProtocolVersion = uint8(a.config.Protocol)
@@ -393,7 +400,6 @@ func (a *Agent) AddService(service *structs.NodeService, chkType *CheckType) err
 			ServiceName: service.Service,
 		}
 		if err := a.AddCheck(check, chkType); err != nil {
-			a.state.RemoveService(service.ID)
 			return err
 		}
 	}
@@ -429,8 +435,8 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType) error {
 	// Check if already registered
 	if chkType != nil {
 		if chkType.IsTTL() {
-			if _, ok := a.checkTTLs[check.CheckID]; ok {
-				return fmt.Errorf("CheckID is already registered")
+			if existing, ok := a.checkTTLs[check.CheckID]; ok {
+				existing.Stop()
 			}
 
 			ttl := &CheckTTL{
@@ -443,8 +449,8 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType) error {
 			a.checkTTLs[check.CheckID] = ttl
 
 		} else {
-			if _, ok := a.checkMonitors[check.CheckID]; ok {
-				return fmt.Errorf("CheckID is already registered")
+			if existing, ok := a.checkMonitors[check.CheckID]; ok {
+				existing.Stop()
 			}
 			if chkType.Interval < MinInterval {
 				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",

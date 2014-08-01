@@ -3,10 +3,6 @@ package agent
 import (
 	"flag"
 	"fmt"
-	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-syslog"
-	"github.com/hashicorp/logutils"
-	"github.com/mitchellh/cli"
 	"io"
 	"net"
 	"os"
@@ -16,6 +12,11 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-syslog"
+	"github.com/hashicorp/logutils"
+	"github.com/mitchellh/cli"
 )
 
 // gracefulTimeout controls how long we wait before forcefully terminating
@@ -62,6 +63,7 @@ func (c *Command) readConfig() *Config {
 
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
+	cmdFlags.IntVar(&cmdConfig.BootstrapExpect, "bootstrap-expect", 0, "enable automatic bootstrap via expect mode")
 
 	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, RPC)")
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
@@ -125,6 +127,27 @@ func (c *Command) readConfig() *Config {
 	if config.Bootstrap && !config.Server {
 		c.Ui.Error("Bootstrap mode cannot be enabled when server mode is not enabled")
 		return nil
+	}
+
+	// Expect can only work when acting as a server
+	if config.BootstrapExpect != 0 && !config.Server {
+		c.Ui.Error("Expect mode cannot be enabled when server mode is not enabled")
+		return nil
+	}
+
+	// Expect & Bootstrap are mutually exclusive
+	if config.BootstrapExpect != 0 && config.Bootstrap {
+		c.Ui.Error("Bootstrap cannot be provided with an expected server count")
+		return nil
+	}
+
+	// Warn if we are in expect mode
+	if config.BootstrapExpect == 1 {
+		c.Ui.Error("WARNING: BootstrapExpect Mode is specified as 1; this is the same as Bootstrap mode.")
+		config.BootstrapExpect = 0
+		config.Bootstrap = true
+	} else if config.BootstrapExpect > 0 {
+		c.Ui.Error(fmt.Sprintf("WARNING: Expect Mode enabled, expecting %d servers", config.BootstrapExpect))
 	}
 
 	// Warn if we are in bootstrap mode
@@ -514,6 +537,7 @@ Options:
   -advertise=addr          Sets the advertise address to use
   -bootstrap               Sets server to bootstrap mode
   -bind=0.0.0.0            Sets the bind address for cluster communication
+  -bootstrap-expect=0      Sets server to expect bootstrap mode.
   -client=127.0.0.1        Sets the address to bind for client access.
                            This includes RPC, DNS and HTTP
   -config-file=foo         Path to a JSON file to read configuration from.

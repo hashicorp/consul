@@ -57,8 +57,7 @@ There are several important components that `consul agent` outputs:
 * **Server**: This shows if the agent is running in the server or client mode.
   Server nodes have the extra burden of participating in the consensus quorum,
   storing cluster state, and handling queries. Additionally, a server may be
-  in "bootstrap" mode. The first server must be in this mode to allow additional
-  servers to join the cluster. Multiple servers cannot be in bootstrap mode,
+  in "bootstrap" mode. Multiple servers cannot be in bootstrap mode,
   otherwise the cluster state will be inconsistent.
 
 * **Client Addr**: This is the address used for client interfaces to the agent.
@@ -66,9 +65,9 @@ There are several important components that `consul agent` outputs:
   address is used for other `consul` commands. Other Consul commands such
   as `consul members` connect to a running agent and use RPC to query and
   control the agent. By default, this binds only to localhost. If you
-  change this address or port, you'll have to specify an `-rpc-addr` to commands
-  such as `consul members` so they know how to talk to the agent. This is also
-  the address other applications can use over [RPC to control Consul](/docs/agent/rpc.html).
+  change this address or port, you'll have to specify an `-rpc-addr` whenever
+  you run commands such as `consul members` so they know how to talk to the
+  agent. This is also the address other applications can use over [RPC to control Consul](/docs/agent/rpc.html).
 
 * **Cluster Addr**: This is the address and ports used for communication between
   Consul agents in a cluster. Every Consul agent in a cluster does not have to

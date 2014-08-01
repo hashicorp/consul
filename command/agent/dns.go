@@ -84,14 +84,14 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain, 
 	go func() {
 		err := server.ListenAndServe()
 		srv.logger.Printf("[ERR] dns: error starting udp server: %v", err)
-		errCh <- err
+		errCh <- fmt.Errorf("dns udp setup failed: %v", err)
 	}()
 
 	errChTCP := make(chan error, 1)
 	go func() {
 		err := serverTCP.ListenAndServe()
 		srv.logger.Printf("[ERR] dns: error starting tcp server: %v", err)
-		errChTCP <- err
+		errChTCP <- fmt.Errorf("dns tcp setup failed: %v", err)
 	}()
 
 	// Check the server is running, do a test lookup
@@ -107,7 +107,7 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain, 
 		c := new(dns.Client)
 		in, _, err := c.Exchange(m, bind)
 		if err != nil {
-			checkCh <- err
+			checkCh <- fmt.Errorf("dns test query failed: %v", err)
 			return
 		}
 
@@ -248,7 +248,7 @@ func (d *DNSServer) dispatch(network string, req, resp *dns.Msg) {
 	datacenter := d.agent.config.Datacenter
 
 	// Get the QName without the domain suffix
-	qName := dns.Fqdn(req.Question[0].Name)
+	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
 	qName = strings.TrimSuffix(qName, d.domain)
 
 	// Split into the label parts
@@ -471,6 +471,7 @@ RPC:
 // health checks to prevent routing to unhealthy nodes
 func (d *DNSServer) filterServiceNodes(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
 	n := len(nodes)
+OUTER:
 	for i := 0; i < n; i++ {
 		node := nodes[i]
 		for _, check := range node.Checks {
@@ -480,6 +481,7 @@ func (d *DNSServer) filterServiceNodes(nodes structs.CheckServiceNodes) structs.
 				nodes[i], nodes[n-1] = nodes[n-1], structs.CheckServiceNode{}
 				n--
 				i--
+				continue OUTER
 			}
 		}
 	}

@@ -4,9 +4,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/raft-mdb"
-	"github.com/hashicorp/serf/serf"
 	"log"
 	"net"
 	"net/rpc"
@@ -17,6 +14,10 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/raft-mdb"
+	"github.com/hashicorp/serf/serf"
 )
 
 // These are the protocol versions that Consul can _understand_. These are
@@ -145,12 +146,9 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Create the tlsConfig for outgoing connections
-	var tlsConfig *tls.Config
-	var err error
-	if config.VerifyOutgoing {
-		if tlsConfig, err = config.OutgoingTLSConfig(); err != nil {
-			return nil, err
-		}
+	tlsConfig, err := config.OutgoingTLSConfig()
+	if err != nil {
+		return nil, err
 	}
 
 	// Get the incoming tls config
@@ -189,10 +187,6 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
-	// Start the Serf listeners to prevent a deadlock
-	go s.lanEventHandler()
-	go s.wanEventHandler()
-
 	// Initialize the lan Serf
 	s.serfLAN, err = s.setupSerf(config.SerfLANConfig,
 		s.eventChLAN, serfLANSnapshot, false)
@@ -200,6 +194,7 @@ func NewServer(config *Config) (*Server, error) {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
+	go s.lanEventHandler()
 
 	// Initialize the wan Serf
 	s.serfWAN, err = s.setupSerf(config.SerfWANConfig,
@@ -208,6 +203,7 @@ func NewServer(config *Config) (*Server, error) {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start wan serf: %v", err)
 	}
+	go s.wanEventHandler()
 
 	// Start listening for RPC requests
 	go s.listen()
@@ -232,6 +228,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.Tags["port"] = fmt.Sprintf("%d", addr.Port)
 	if s.config.Bootstrap {
 		conf.Tags["bootstrap"] = "1"
+	}
+	if s.config.BootstrapExpect != 0 {
+		conf.Tags["expect"] = fmt.Sprintf("%d", s.config.BootstrapExpect)
 	}
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput

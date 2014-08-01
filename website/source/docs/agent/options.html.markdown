@@ -35,11 +35,16 @@ The options below are all specified on the command-line.
   as other nodes will treat the non-routability as a failure.
 
 * `-bootstrap` - This flag is used to control if a server is in "bootstrap" mode. It is important that
-  no more than one server *per* datacenter be running in this mode. The initial server **must** be in bootstrap
-  mode. Technically, a server in bootstrap mode is allowed to self-elect as the Raft leader. It is important
-  that only a single node is in this mode, because otherwise consistency cannot be guaranteed if multiple
-  nodes are able to self-elect. Once there are multiple servers in a datacenter, it is generally a good idea
-  to disable bootstrap mode on all of them.
+  no more than one server *per* datacenter be running in this mode. Technically, a server in bootstrap mode
+  is allowed to self-elect as the Raft leader. It is important that only a single node is in this mode,
+  because otherwise consistency cannot be guaranteed if multiple nodes are able to self-elect.
+  It is not recommended to use this flag after a cluster has been bootstrapped.
+
+* `-bootstrap-expect` - This flag provides the number of expected servers in the datacenter.
+  Either this value should not be provided, or the value must agree with other servers in
+  the cluster. When provided, Consul waits until the specified number of servers are
+  available, and then bootstraps the cluster. This allows an initial leader to be elected
+  automatically. This cannot be used in conjunction with the `-bootstrap` flag.
 
 * `-bind` - The address that should be bound to for internal cluster communications.
   This is an IP address that should be reachable by all other nodes in the cluster.
@@ -147,6 +152,8 @@ definitions support being updated during a reload.
 #### Configuration Key Reference
 
 * `bootstrap` - Equivalent to the `-bootstrap` command-line flag.
+
+* `bootstrap_expect` - Equivalent to the `-bootstrap-expect` command-line flag.
 
 * `bind_addr` - Equivalent to the `-bind` command-line flag.
 

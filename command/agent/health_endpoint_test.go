@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -180,5 +181,41 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	nodes := obj.(structs.CheckServiceNodes)
 	if len(nodes) != 0 {
 		t.Fatalf("bad: %v", obj)
+	}
+}
+
+func TestFilterNonPassing(t *testing.T) {
+	nodes := structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Status: structs.HealthCritical,
+				},
+				&structs.HealthCheck{
+					Status: structs.HealthCritical,
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Status: structs.HealthCritical,
+				},
+				&structs.HealthCheck{
+					Status: structs.HealthCritical,
+				},
+			},
+		},
+		structs.CheckServiceNode{
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Status: structs.HealthPassing,
+				},
+			},
+		},
+	}
+	out := filterNonPassing(nodes)
+	if len(out) != 1 && reflect.DeepEqual(out[0], nodes[2]) {
+		t.Fatalf("bad: %v", out)
 	}
 }

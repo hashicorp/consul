@@ -20,7 +20,8 @@ will be part of the cluster.
 For simplicity, we'll run a single Consul agent in server mode right now:
 
 ```
-$ consul agent -server -bootstrap -data-dir /tmp/consul
+$ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul
+==> WARNING: BootstrapExpect Mode is specified as 1; this is the same as Bootstrap mode.
 ==> WARNING: Bootstrap mode enabled! Do not enable unless necessary
 ==> WARNING: It is highly recommended to set GOMAXPROCS higher than 1
 ==> Starting Consul agent...
@@ -67,15 +68,13 @@ joining clusters in the next section.
 
 ```
 $ consul members
-Armons-MacBook-Air  10.1.10.38:8301  alive  role=consul,dc=dc1,vsn=1,vsn_min=1,vsn_max=1,port=8300,bootstrap=1
+Node                    Address             Status  Type    Build  Protocol
+Armons-MacBook-Air      10.1.10.38:8301     alive   server  0.3.0  2
 ```
 
 The output shows our own node, the address it is running on, its
-health state, and some metadata associated with the node. Some important
-metadata keys to recognize are the `role` and `dc` keys. These tell you
-the service name and the datacenter that member is within. These can be
-used to lookup nodes and services using the DNS interface, which is covered
-shortly.
+health state, its role in the cluster, as well as some versioning information.
+Additional metadata can be viewed by providing the `-detailed` flag.
 
 The output from the `members` command is generated based on the
 [gossip protocol](/docs/internals/gossip.html) and is eventually consistent.

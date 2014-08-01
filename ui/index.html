@@ -7,6 +7,7 @@
   <title>Consul</title>
   <link rel="stylesheet" href="static/bootstrap.min.css">
   <link rel="stylesheet" href="static/base.css">
+  <link rel="shortcut icon" href="static/favicon.png">
 </head>
 <body>
 
@@ -247,9 +248,9 @@
             {{#link-to 'nodes.show' model.session.Node tagName="div" href=false class="list-group-item list-condensed-link" }}
               <div class="bg-light-gray list-bar-horizontal"></div>
               <div class="name">
-                {{session.Node}}
+                {{ sessionName session }}
                 <small class="pull-right">
-                  {{session.ID}}
+                  {{session.Node}}
                 </small>
               </div>
             {{/link-to}}

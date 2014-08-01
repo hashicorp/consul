@@ -18,8 +18,7 @@ to first add the new nodes and then remove the old nodes.
 
 ## Adding New Servers
 
-Adding new servers is generally straightforward. After the initial server, no further
-servers should ever be started with the `-bootstrap` flag. Instead, simply start the new
+Adding new servers is generally straightforward. Simply start the new
 server with the `-server` flag. At this point, the server will not be a member of
 any cluster, and should emit something like:
 

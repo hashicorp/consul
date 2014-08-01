@@ -18,7 +18,7 @@ add or remove a server <a href="/docs/guides/servers.html">see this page</a>.
 </div>
 
 If you had only a single server and it has failed, simply restart it.
-Note that a single server configuration requires the `-bootstrap` flag.
+Note that a single server configuration requires the `-bootstrap` or `-bootstrap-expect 1` flag.
 If that server cannot be recovered, you need to bring up a new server.
 See the [bootstrapping guide](/docs/guides/bootstrapping.html). Data loss
 is inevitable, since data was not replicated to any other servers. This

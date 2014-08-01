@@ -1,10 +1,11 @@
 package consul
 
 import (
-	"github.com/hashicorp/serf/serf"
 	"net"
 	"regexp"
 	"testing"
+
+	"github.com/hashicorp/serf/serf"
 )
 
 func TestStrContains(t *testing.T) {
@@ -14,6 +15,15 @@ func TestStrContains(t *testing.T) {
 	}
 	if strContains(l, "d") {
 		t.Fatalf("should not contain")
+	}
+}
+
+func TestToLowerList(t *testing.T) {
+	l := []string{"ABC", "Abc", "abc"}
+	for _, value := range ToLowerList(l) {
+		if value != "abc" {
+			t.Fatalf("failed lowercasing")
+		}
 	}
 }
 
@@ -56,6 +66,9 @@ func TestIsConsulServer(t *testing.T) {
 	if parts.Bootstrap {
 		t.Fatalf("unexpected bootstrap")
 	}
+	if parts.Expect != 0 {
+		t.Fatalf("bad: %v", parts.Expect)
+	}
 	m.Tags["bootstrap"] = "1"
 	valid, parts = isConsulServer(m)
 	if !valid || !parts.Bootstrap {
@@ -66,6 +79,12 @@ func TestIsConsulServer(t *testing.T) {
 	}
 	if parts.Version != 1 {
 		t.Fatalf("bad: %v", parts)
+	}
+	m.Tags["expect"] = "3"
+	delete(m.Tags, "bootstrap")
+	valid, parts = isConsulServer(m)
+	if !valid || parts.Expect != 3 {
+		t.Fatalf("bad: %v", parts.Expect)
 	}
 }
 

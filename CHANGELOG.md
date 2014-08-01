@@ -1,3 +1,31 @@
+## 0.3.2 (Unreleased)
+
+IMPROVEMENTS:
+
+  * DNS case-insensitivity [GH-189]
+
+## 0.3.1 (July 21, 2014)
+
+FEATURES:
+
+  * Improved bootstrapping process, thanks to @robxu9
+
+BUG FIXES:
+
+  * Fixed issue with service re-registration [GH-216]
+  * Fixed handling of `-rejoin` flag
+  * Restored 0.2 TLS behavior, thanks to @nelhage [GH-233]
+  * Fix the statsite flags, thanks to @nelhage [GH-243]
+  * Fixed filters on criticial / non-passing checks [GH-241]
+
+IMPROVEMENTS:
+
+  * UI Improvements
+  * Improved handling of Serf snapshot data
+  * Increase reliability of failure detector
+  * More useful logging messages
+
+
 ## 0.3.0 (June 13, 2014)
 
 FEATURES:

@@ -88,10 +88,8 @@ func NewClient(config *Config) (*Client, error) {
 	// Create the tlsConfig
 	var tlsConfig *tls.Config
 	var err error
-	if config.VerifyOutgoing {
-		if tlsConfig, err = config.OutgoingTLSConfig(); err != nil {
-			return nil, err
-		}
+	if tlsConfig, err = config.OutgoingTLSConfig(); err != nil {
+		return nil, err
 	}
 
 	// Create a logger
