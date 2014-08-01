@@ -82,7 +82,7 @@ leader. These can be used to gauge if a stale read should be used.
 ## Formatted JSON Output
 
 By default, the output of all HTTP API requests return minimized JSON with all
-whitespace removed.  By adding "?pretty=true" to the HTTP request URL, 
+whitespace removed.  By adding "?pretty" to the HTTP request URL,
 formatted JSON will be returned.
 
 ## KV
