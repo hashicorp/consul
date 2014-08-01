@@ -137,11 +137,9 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			return
 		}
 
-		var prettyPrint bool
+		prettyPrint := false
 		if req.URL.Query().Get("pretty") == "true" {
 			prettyPrint = true
-		} else {
-			prettyPrint = false
 		}
 		// Write out the JSON object
 		if obj != nil {
