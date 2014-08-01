@@ -138,13 +138,13 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		}
 
 		prettyPrint := false
-		if req.URL.Query().Get("pretty") == "true" {
+		if req.URL.Query().Get("pretty") != "" {
 			prettyPrint = true
 		}
 		// Write out the JSON object
 		if obj != nil {
 			var buf []byte
-			if prettyPrint == true {
+			if prettyPrint {
 				buf, err = json.MarshalIndent(obj, "", "    ")
 			} else {
 				buf, err = json.Marshal(obj)
