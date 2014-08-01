@@ -79,6 +79,12 @@ which is the last time a server was contacted by the leader node in
 milliseconds. The "X-Consul-KnownLeader" also indicates if there is a known
 leader. These can be used to gauge if a stale read should be used.
 
+## Formatted JSON Output
+
+By default, the output of all HTTP API requests return minimized JSON with all
+whitespace removed.  By adding "?pretty=true" to the HTTP request URL, 
+formatted JSON will be returned.
+
 ## KV
 
 The KV endpoint is used to expose a simple key/value store. This can be used
