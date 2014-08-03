@@ -50,7 +50,7 @@ the work on any select group of servers. The clients also enable a much richer s
 whereas ZooKeeper ephemeral nodes are a very primitive check of liveness. Clients can check that
 a web server is returning 200 status codes, that memory utilization is not critical, there is sufficient
 disk space, etc. The Consul clients expose a simple HTTP interface and avoid exposing the complexity
-of the system is to clients in the same way as ZooKeeper.
+of the system to clients in the same way as ZooKeeper.
 
 Consul provides first class support for service discovery, health checking,
 K/V storage, and multiple datacenters. To support anything more than simple K/V storage,
