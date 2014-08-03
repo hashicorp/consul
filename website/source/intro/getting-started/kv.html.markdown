@@ -85,7 +85,7 @@ $ curl http://localhost:8500/v1/kv/web?recurse
 
 A key can be updated by setting a new value by issuing the same PUT request.
 Additionally, Consul provides a Check-And-Set operation, enabling atomic
-key updates. This is done by providing the `?cas=` paramter with the last
+key updates. This is done by providing the `?cas=` parameter with the last
 `ModifyIndex` value from the GET request. For example, suppose we wanted
 to update "web/key1":
 
