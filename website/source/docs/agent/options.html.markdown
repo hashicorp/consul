@@ -288,16 +288,21 @@ definitions support being updated during a reload.
 
 * `TCP:8300` Server RPC port. Used to bootstrap agents and replicate data.
   Should be open between agents.
+
 * `TCP+UDP:8301` Serf LAN port. Used by the gossip protocol. Should be opened
   to all other agents on the same LAN.
+
 * `TCP+UDP:8302` Serf WAN port. Used by the gossip protocol. Should be opened
   to all other agents on the same WAN.
+
 * `TCP:8400` Used by the RPC endpoint, which is also used by the CLI. Should be
   opened to localhost only to serve your local CLI. Also needs to be opened to
   any client doing RPC requests against this agent.
+
 * `TCP:8500` Used by the HTTP api. Should be opened to localhost only to
   serve your local requests. Also needs to be opened to any client doing api
   requests against this agent.
+
 * `TCP+UDP:8600` Used by the DNS server. Should be opened to localhost only to
   serve your local requests. Also needs to be opened to any client doing DNS
   queries against this agent.
