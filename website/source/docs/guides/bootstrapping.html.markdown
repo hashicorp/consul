@@ -19,7 +19,7 @@ inconsistencies and split-brain situations, all servers should specify the same 
 or specify no value at all. Any server that does not specify a value will not attempt to
 bootstrap the cluster.
 
-There is a [deployment table](/docs/internals/consensus.html#toc_3) that covers various options,
+There is a [deployment table](/docs/internals/consensus.html#toc_4) that covers various options,
 but it is recommended to have 3 or 5 total servers per data center. A single server deployment is _**highly**_
 discouraged as data loss is inevitable in a failure scenario.
 

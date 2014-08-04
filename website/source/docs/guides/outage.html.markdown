@@ -7,7 +7,7 @@ sidebar_current: "docs-guides-outage"
 # Outage Recovery
 
 Do not panic! This is a critical first step. Depending on your
-[deployment configuration](/docs/internals/consensus.html#toc_3), it may
+[deployment configuration](/docs/internals/consensus.html#toc_4), it may
 take only a single server failure for cluster unavailability. Recovery
 requires an operator to intervene, but is straightforward.
 
