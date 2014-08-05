@@ -133,6 +133,11 @@ type Config struct {
 	// backwards compatibility as well.
 	ACLToken string
 
+	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
+	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
+	// that the Master token is available. This provides the initial token.
+	ACLMasterToken string
+
 	// ACLDatacenter provides the authoritative datacenter for ACL
 	// tokens. If not provided, ACL verification is disabled.
 	ACLDatacenter string

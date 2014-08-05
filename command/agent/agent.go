@@ -184,6 +184,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.ACLToken != "" {
 		base.ACLToken = a.config.ACLToken
 	}
+	if a.config.ACLMasterToken != "" {
+		base.ACLMasterToken = a.config.ACLMasterToken
+	}
 	if a.config.ACLDatacenter != "" {
 		base.ACLDatacenter = a.config.ACLDatacenter
 	}

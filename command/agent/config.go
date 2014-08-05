@@ -198,6 +198,11 @@ type Config struct {
 	// token is not provided. If not configured the 'anonymous' token is used.
 	ACLToken string `mapstructure:"acl_token" json:"-"`
 
+	// ACLMasterToken is used to bootstrap the ACL system. It should be specified
+	// on the servers in the ACLDatacenter. When the leader comes online, it ensures
+	// that the Master token is available. This provides the initial token.
+	ACLMasterToken string `mapstructure:"acl_master_token" json:"-"`
+
 	// ACLDatacenter is the central datacenter that holds authoritative
 	// ACL records. This must be the same for the entire cluster.
 	// If this is not set, ACLs are not enabled. Off by default.
@@ -626,6 +631,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ACLToken != "" {
 		result.ACLToken = b.ACLToken
+	}
+	if b.ACLMasterToken != "" {
+		result.ACLMasterToken = b.ACLMasterToken
 	}
 	if b.ACLDatacenter != "" {
 		result.ACLDatacenter = b.ACLDatacenter

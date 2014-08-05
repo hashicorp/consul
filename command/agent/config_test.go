@@ -360,13 +360,16 @@ func TestDecodeConfig(t *testing.T) {
 	// ACLs
 	input = `{"acl_token": "1234", "acl_datacenter": "dc2",
 	"acl_ttl": "60s", "acl_down_policy": "deny",
-	"acl_default_policy": "deny"}`
+	"acl_default_policy": "deny", "acl_master_token": "2345"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	if config.ACLToken != "1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.ACLMasterToken != "2345" {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.ACLDatacenter != "dc2" {
@@ -529,6 +532,7 @@ func TestMergeConfig(t *testing.T) {
 		CheckUpdateInterval:    8 * time.Minute,
 		CheckUpdateIntervalRaw: "8m",
 		ACLToken:               "1234",
+		ACLMasterToken:         "2345",
 		ACLDatacenter:          "dc2",
 		ACLTTL:                 15 * time.Second,
 		ACLTTLRaw:              "15s",
