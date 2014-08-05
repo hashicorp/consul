@@ -194,6 +194,30 @@ type Config struct {
 	CheckUpdateInterval    time.Duration `mapstructure:"-"`
 	CheckUpdateIntervalRaw string        `mapstructure:"check_update_interval" json:"-"`
 
+	// ACLToken is the default token used to make requests if a per-request
+	// token is not provided. If not configured the 'anonymous' token is used.
+	ACLToken string `mapstructure:"acl_token" json:"-"`
+
+	// ACLDatacenter is the central datacenter that holds authoritative
+	// ACL records. This must be the same for the entire cluster.
+	// If this is not set, ACLs are not enabled. Off by default.
+	ACLDatacenter string `mapstructure:"acl_datacenter"`
+
+	// ACLCacheInterval is used to control how long ACLs are cached. This has
+	// a major impact on performance. By default, it is set to 30 seconds.
+	ACLCacheInterval    time.Duration `mapstructure:"-"`
+	ACLCacheIntervalRaw string        `mapstructure:"acl_cache_interval"`
+
+	// ACLDownPolicy is used to control the ACL interaction when we cannot
+	// reach the ACLDatacenter and the token is not in the cache.
+	// There are two modes:
+	//   * deny - Deny all requests
+	//   * extend-cache - Ignore the cache expiration, and allow cached
+	//                    ACL's to be used to service requests. This
+	//	                  is the default. If the ACL is not in the cache,
+	//                    this acts like deny.
+	ACLDownPolicy string `mapstructure:"acl_down_policy"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -246,6 +270,8 @@ func DefaultConfig() *Config {
 		Protocol:            consul.ProtocolVersionMax,
 		CheckUpdateInterval: 5 * time.Minute,
 		AEInterval:          time.Minute,
+		ACLCacheInterval:    30 * time.Second,
+		ACLDownPolicy:       "extend-cache",
 	}
 }
 
@@ -339,6 +365,14 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 			return nil, fmt.Errorf("CheckUpdateInterval invalid: %v", err)
 		}
 		result.CheckUpdateInterval = dur
+	}
+
+	if raw := result.ACLCacheIntervalRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("ACLCacheInterval invalid: %v", err)
+		}
+		result.ACLCacheInterval = dur
 	}
 
 	return &result, nil
@@ -582,6 +616,19 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.SyslogFacility != "" {
 		result.SyslogFacility = b.SyslogFacility
+	}
+	if b.ACLToken != "" {
+		result.ACLToken = b.ACLToken
+	}
+	if b.ACLDatacenter != "" {
+		result.ACLDatacenter = b.ACLDatacenter
+	}
+	if b.ACLCacheIntervalRaw != "" {
+		result.ACLCacheInterval = b.ACLCacheInterval
+		result.ACLCacheIntervalRaw = b.ACLCacheIntervalRaw
+	}
+	if b.ACLDownPolicy != "" {
+		result.ACLDownPolicy = b.ACLDownPolicy
 	}
 
 	// Copy the start join addresses
