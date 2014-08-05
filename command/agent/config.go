@@ -203,10 +203,16 @@ type Config struct {
 	// If this is not set, ACLs are not enabled. Off by default.
 	ACLDatacenter string `mapstructure:"acl_datacenter"`
 
-	// ACLCacheInterval is used to control how long ACLs are cached. This has
+	// ACLTTL is used to control the time-to-live of cached ACLs . This has
 	// a major impact on performance. By default, it is set to 30 seconds.
-	ACLCacheInterval    time.Duration `mapstructure:"-"`
-	ACLCacheIntervalRaw string        `mapstructure:"acl_cache_interval"`
+	ACLTTL    time.Duration `mapstructure:"-"`
+	ACLTTLRaw string        `mapstructure:"acl_ttl"`
+
+	// ACLDefaultPolicy is used to control the ACL interaction when
+	// there is no defined policy. This can be "allow" which means
+	// ACLs are used to black-list, or "deny" which means ACLs are
+	// white-lists.
+	ACLDefaultPolicy string `mapstructure:"acl_default_policy"`
 
 	// ACLDownPolicy is used to control the ACL interaction when we cannot
 	// reach the ACLDatacenter and the token is not in the cache.
@@ -270,8 +276,9 @@ func DefaultConfig() *Config {
 		Protocol:            consul.ProtocolVersionMax,
 		CheckUpdateInterval: 5 * time.Minute,
 		AEInterval:          time.Minute,
-		ACLCacheInterval:    30 * time.Second,
+		ACLTTL:              30 * time.Second,
 		ACLDownPolicy:       "extend-cache",
+		ACLDefaultPolicy:    "allow",
 	}
 }
 
@@ -367,12 +374,12 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.CheckUpdateInterval = dur
 	}
 
-	if raw := result.ACLCacheIntervalRaw; raw != "" {
+	if raw := result.ACLTTLRaw; raw != "" {
 		dur, err := time.ParseDuration(raw)
 		if err != nil {
-			return nil, fmt.Errorf("ACLCacheInterval invalid: %v", err)
+			return nil, fmt.Errorf("ACL TTL invalid: %v", err)
 		}
-		result.ACLCacheInterval = dur
+		result.ACLTTL = dur
 	}
 
 	return &result, nil
@@ -623,12 +630,15 @@ func MergeConfig(a, b *Config) *Config {
 	if b.ACLDatacenter != "" {
 		result.ACLDatacenter = b.ACLDatacenter
 	}
-	if b.ACLCacheIntervalRaw != "" {
-		result.ACLCacheInterval = b.ACLCacheInterval
-		result.ACLCacheIntervalRaw = b.ACLCacheIntervalRaw
+	if b.ACLTTLRaw != "" {
+		result.ACLTTL = b.ACLTTL
+		result.ACLTTLRaw = b.ACLTTLRaw
 	}
 	if b.ACLDownPolicy != "" {
 		result.ACLDownPolicy = b.ACLDownPolicy
+	}
+	if b.ACLDefaultPolicy != "" {
+		result.ACLDefaultPolicy = b.ACLDefaultPolicy
 	}
 
 	// Copy the start join addresses

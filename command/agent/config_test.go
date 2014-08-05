@@ -359,7 +359,8 @@ func TestDecodeConfig(t *testing.T) {
 
 	// ACLs
 	input = `{"acl_token": "1234", "acl_datacenter": "dc2",
-	"acl_cache_interval": "60s", "acl_down_policy": "deny"}`
+	"acl_cache_interval": "60s", "acl_down_policy": "deny",
+	"acl_default_policy": "deny"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -375,6 +376,9 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.ACLDownPolicy != "deny" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.ACLDefaultPolicy != "deny" {
 		t.Fatalf("bad: %#v", config)
 	}
 }
@@ -526,9 +530,10 @@ func TestMergeConfig(t *testing.T) {
 		CheckUpdateIntervalRaw: "8m",
 		ACLToken:               "1234",
 		ACLDatacenter:          "dc2",
-		ACLCacheInterval:       15 * time.Second,
-		ACLCacheIntervalRaw:    "15s",
+		ACLTTL:                 15 * time.Second,
+		ACLTTLRaw:              "15s",
 		ACLDownPolicy:          "deny",
+		ACLDefaultPolicy:       "deny",
 	}
 
 	c := MergeConfig(a, b)
