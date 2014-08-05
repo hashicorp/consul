@@ -346,6 +346,17 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Max UDP Response
+	input = `{"dns_config": {"max_udp_responses": 3}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.DNSConfig.MaxUDPResponses != 3 {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// CheckUpdateInterval
 	input = `{"check_update_interval": "10m"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
