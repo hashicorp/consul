@@ -43,10 +43,15 @@ type RPCInfo interface {
 	RequestDatacenter() string
 	IsRead() bool
 	AllowStaleRead() bool
+	ACLToken() string
 }
 
 // QueryOptions is used to specify various flags for read queries
 type QueryOptions struct {
+	// Token is the ACL token ID. If not provided, the 'anonymous'
+	// token is assumed for backwards compatibility.
+	Token string
+
 	// If set, wait until query exceeds given index. Must be provided
 	// with MaxQueryTime.
 	MinQueryIndex uint64
@@ -72,7 +77,15 @@ func (q QueryOptions) AllowStaleRead() bool {
 	return q.AllowStale
 }
 
-type WriteRequest struct{}
+func (q QueryOptions) ACLToken() string {
+	return q.Token
+}
+
+type WriteRequest struct {
+	// Token is the ACL token ID. If not provided, the 'anonymous'
+	// token is assumed for backwards compatibility.
+	Token string
+}
 
 // WriteRequest only applies to writes, always false
 func (w WriteRequest) IsRead() bool {
@@ -81,6 +94,10 @@ func (w WriteRequest) IsRead() bool {
 
 func (w WriteRequest) AllowStaleRead() bool {
 	return false
+}
+
+func (w WriteRequest) ACLToken() string {
+	return w.Token
 }
 
 // QueryMeta allows a query response to include potentially
@@ -393,6 +410,53 @@ func (r *SessionSpecificRequest) RequestDatacenter() string {
 
 type IndexedSessions struct {
 	Sessions Sessions
+	QueryMeta
+}
+
+// ACL is used to represent a token and it's rules
+type ACL struct {
+	CreateIndex uint64
+	ModifyIndex uint64
+	ID          string
+	Name        string
+	Type        string
+	Rules       string
+	TTL         time.Duration
+}
+type ACLs []*ACL
+
+type ACLOp string
+
+const (
+	ACLSet    ACLOp = "set"
+	ACLDelete       = "delete"
+)
+
+// ACLRequest is used to create, update or delete an ACL
+type ACLRequest struct {
+	Datacenter string
+	Op         ACLOp
+	ACL        ACL
+	WriteRequest
+}
+
+func (r *ACLRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLSpecificRequest is used to request an ACL by ID
+type ACLSpecificRequest struct {
+	Datacenter string
+	ACL        string
+	QueryOptions
+}
+
+func (r *ACLSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+type IndexedACLs struct {
+	ACLs ACLs
 	QueryMeta
 }
 
