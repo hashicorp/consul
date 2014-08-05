@@ -652,6 +652,22 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	a1 := &structs.ACL{
+		Name: "User token",
+		Type: structs.ACLTypeClient,
+	}
+	if err := store.ACLSet(19, a1); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	a2 := &structs.ACL{
+		Name: "User token",
+		Type: structs.ACLTypeClient,
+	}
+	if err := store.ACLSet(20, a2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	// Take a snapshot
 	snap, err := store.Snapshot()
 	if err != nil {
@@ -660,7 +676,7 @@ func TestStoreSnapshot(t *testing.T) {
 	defer snap.Close()
 
 	// Check the last nodes
-	if idx := snap.LastIndex(); idx != 18 {
+	if idx := snap.LastIndex(); idx != 20 {
 		t.Fatalf("bad: %v", idx)
 	}
 
@@ -724,14 +740,23 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("missing sessions")
 	}
 
+	// Check for an acl
+	acls, err := snap.ACLList()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(acls) != 2 {
+		t.Fatalf("missing acls")
+	}
+
 	// Make some changes!
-	if err := store.EnsureService(19, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
+	if err := store.EnsureService(21, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(20, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(22, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureNode(21, structs.Node{"baz", "127.0.0.3"}); err != nil {
+	if err := store.EnsureNode(23, structs.Node{"baz", "127.0.0.3"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	checkAfter := &structs.HealthCheck{
@@ -741,11 +766,16 @@ func TestStoreSnapshot(t *testing.T) {
 		Status:    structs.HealthCritical,
 		ServiceID: "db",
 	}
-	if err := store.EnsureCheck(22, checkAfter); err != nil {
+	if err := store.EnsureCheck(24, checkAfter); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.KVSDelete(23, "/web/b"); err != nil {
+	if err := store.KVSDelete(25, "/web/b"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nuke an ACL
+	if err := store.ACLDelete(26, a1.ID); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -806,6 +836,15 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 	if len(sessions) != 2 {
 		t.Fatalf("missing sessions")
+	}
+
+	// Check for an acl
+	acls, err = snap.ACLList()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(acls) != 2 {
+		t.Fatalf("missing acls")
 	}
 }
 
@@ -2115,5 +2154,146 @@ func TestSessionInvalidate_KeyUnlock(t *testing.T) {
 	expires := store.KVSLockDelay("/foo")
 	if expires.Before(time.Now().Add(30 * time.Millisecond)) {
 		t.Fatalf("Bad: %v", expires)
+	}
+}
+
+func TestACLSet_Get(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	idx, out, err := store.ACLGet("1234")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if out != nil {
+		t.Fatalf("bad: %v", out)
+	}
+
+	a := &structs.ACL{
+		Name:  "User token",
+		Type:  structs.ACLTypeClient,
+		Rules: "",
+	}
+	if err := store.ACLSet(50, a); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if a.CreateIndex != 50 {
+		t.Fatalf("Bad: %v", a)
+	}
+	if a.ModifyIndex != 50 {
+		t.Fatalf("Bad: %v", a)
+	}
+	if a.ID == "" {
+		t.Fatalf("Bad: %v", a)
+	}
+
+	idx, out, err = store.ACLGet(a.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 50 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if !reflect.DeepEqual(out, a) {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Update
+	a.Rules = "foo bar baz"
+	if err := store.ACLSet(52, a); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if a.CreateIndex != 50 {
+		t.Fatalf("Bad: %v", a)
+	}
+	if a.ModifyIndex != 52 {
+		t.Fatalf("Bad: %v", a)
+	}
+
+	idx, out, err = store.ACLGet(a.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 52 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if !reflect.DeepEqual(out, a) {
+		t.Fatalf("bad: %v", out)
+	}
+}
+
+func TestACLDelete(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	a := &structs.ACL{
+		Name:  "User token",
+		Type:  structs.ACLTypeClient,
+		Rules: "",
+	}
+	if err := store.ACLSet(50, a); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.ACLDelete(52, a.ID); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.ACLDelete(53, a.ID); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, out, err := store.ACLGet(a.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 52 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if out != nil {
+		t.Fatalf("bad: %v", out)
+	}
+}
+
+func TestACLList(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	a1 := &structs.ACL{
+		Name: "User token",
+		Type: structs.ACLTypeClient,
+	}
+	if err := store.ACLSet(50, a1); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	a2 := &structs.ACL{
+		Name: "User token",
+		Type: structs.ACLTypeClient,
+	}
+	if err := store.ACLSet(51, a2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, out, err := store.ACLList()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 51 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(out) != 2 {
+		t.Fatalf("bad: %v", out)
 	}
 }

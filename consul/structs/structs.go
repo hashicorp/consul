@@ -20,6 +20,7 @@ const (
 	DeregisterRequestType
 	KVSRequestType
 	SessionRequestType
+	ACLRequestType
 )
 
 const (
@@ -30,6 +31,15 @@ const (
 	HealthPassing  = "passing"
 	HealthWarning  = "warning"
 	HealthCritical = "critical"
+)
+
+const (
+	// Client tokens have rules applied
+	ACLTypeClient = "client"
+
+	// Management tokens have an always allow policy.
+	// They are used for token management.
+	ACLTypeManagement = "management"
 )
 
 const (
@@ -421,7 +431,6 @@ type ACL struct {
 	Name        string
 	Type        string
 	Rules       string
-	TTL         time.Duration
 }
 type ACLs []*ACL
 
