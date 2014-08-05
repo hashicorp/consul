@@ -69,6 +69,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		return c.applyKVSOperation(buf[1:], log.Index)
 	case structs.SessionRequestType:
 		return c.applySessionOperation(buf[1:], log.Index)
+	case structs.ACLRequestType:
+		return c.applyACLOperation(buf[1:], log.Index)
 	default:
 		panic(fmt.Errorf("failed to apply request: %#v", buf))
 	}
@@ -196,6 +198,27 @@ func (c *consulFSM) applySessionOperation(buf []byte, index uint64) interface{} 
 	return nil
 }
 
+func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
+	var req structs.ACLRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	switch req.Op {
+	case structs.ACLSet:
+		if err := c.state.ACLSet(index, &req.ACL); err != nil {
+			return err
+		} else {
+			return req.ACL.ID
+		}
+	case structs.ACLDelete:
+		return c.state.ACLDelete(index, req.ACL.ID)
+	default:
+		c.logger.Printf("[WARN] consul.fsm: Invalid ACL operation '%s'", req.Op)
+		return fmt.Errorf("Invalid ACL operation '%s'", req.Op)
+	}
+	return nil
+}
+
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
 	defer func(start time.Time) {
 		c.logger.Printf("[INFO] consul.fsm: snapshot created in %v", time.Now().Sub(start))
@@ -267,6 +290,15 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 
+		case structs.ACLRequestType:
+			var req structs.ACL
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := c.state.ACLRestore(&req); err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("Unrecognized msg type: %v", msgType)
 		}
@@ -294,6 +326,11 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 	}
 
 	if err := s.persistSessions(sink, encoder); err != nil {
+		sink.Cancel()
+		return err
+	}
+
+	if err := s.persistACLs(sink, encoder); err != nil {
 		sink.Cancel()
 		return err
 	}
@@ -357,6 +394,22 @@ func (s *consulSnapshot) persistSessions(sink raft.SnapshotSink,
 
 	for _, s := range sessions {
 		sink.Write([]byte{byte(structs.SessionRequestType)})
+		if err := encoder.Encode(s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *consulSnapshot) persistACLs(sink raft.SnapshotSink,
+	encoder *codec.Encoder) error {
+	acls, err := s.state.ACLList()
+	if err != nil {
+		return err
+	}
+
+	for _, s := range acls {
+		sink.Write([]byte{byte(structs.ACLRequestType)})
 		if err := encoder.Encode(s); err != nil {
 			return err
 		}
