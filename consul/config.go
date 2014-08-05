@@ -128,6 +128,33 @@ type Config struct {
 	// operators track which versions are actively deployed
 	Build string
 
+	// ACLToken is the default token to use when making a request.
+	// If not provided, the anonymous token is used. This enables
+	// backwards compatibility as well.
+	ACLToken string
+
+	// ACLDatacenter provides the authoritative datacenter for ACL
+	// tokens. If not provided, ACL verification is disabled.
+	ACLDatacenter string
+
+	// ACLTTL controls the time-to-live of cached ACL policies.
+	// It can be set to zero to disable caching, but this adds
+	// a substantial cost.
+	ACLTTL time.Duration
+
+	// ACLDefaultPolicy is used to control the ACL interaction when
+	// there is no defined policy. This can be "allow" which means
+	// ACLs are used to black-list, or "deny" which means ACLs are
+	// white-lists.
+	ACLDefaultPolicy string
+
+	// ACLDownPolicy controls the behavior of ACLs if the ACLDatacenter
+	// cannot be contacted. It can be either "deny" to deny all requests,
+	// or "extend-cache" which ignores the ACLCacheInterval and uses
+	// cached policies. If a policy is not in the cache, it acts like deny.
+	// "allow" can be used to allow all requests. This is not recommended.
+	ACLDownPolicy string
+
 	// ServerUp callback can be used to trigger a notification that
 	// a Consul server is now up and known about.
 	ServerUp func()
@@ -141,6 +168,24 @@ func (c *Config) CheckVersion() error {
 	} else if c.ProtocolVersion > ProtocolVersionMax {
 		return fmt.Errorf("Protocol version '%d' too high. Must be in range: [%d, %d]",
 			c.ProtocolVersion, ProtocolVersionMin, ProtocolVersionMax)
+	}
+	return nil
+}
+
+// CheckACL is used to sanity check the ACL configuration
+func (c *Config) CheckACL() error {
+	switch c.ACLDefaultPolicy {
+	case "allow":
+	case "deny":
+	default:
+		return fmt.Errorf("Unsupported default ACL policy: %s", c.ACLDefaultPolicy)
+	}
+	switch c.ACLDownPolicy {
+	case "allow":
+	case "deny":
+	case "extend-cache":
+	default:
+		return fmt.Errorf("Unsupported down ACL policy: %s", c.ACLDownPolicy)
 	}
 	return nil
 }
@@ -324,6 +369,9 @@ func DefaultConfig() *Config {
 		SerfWANConfig:     serf.DefaultConfig(),
 		ReconcileInterval: 60 * time.Second,
 		ProtocolVersion:   ProtocolVersionMax,
+		ACLTTL:            30 * time.Second,
+		ACLDefaultPolicy:  "allow",
+		ACLDownPolicy:     "extend-cache",
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

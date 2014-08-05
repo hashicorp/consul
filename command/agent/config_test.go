@@ -359,7 +359,7 @@ func TestDecodeConfig(t *testing.T) {
 
 	// ACLs
 	input = `{"acl_token": "1234", "acl_datacenter": "dc2",
-	"acl_cache_interval": "60s", "acl_down_policy": "deny",
+	"acl_ttl": "60s", "acl_down_policy": "deny",
 	"acl_default_policy": "deny"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
@@ -372,7 +372,7 @@ func TestDecodeConfig(t *testing.T) {
 	if config.ACLDatacenter != "dc2" {
 		t.Fatalf("bad: %#v", config)
 	}
-	if config.ACLCacheInterval != 60*time.Second {
+	if config.ACLTTL != 60*time.Second {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.ACLDownPolicy != "deny" {
