@@ -18,7 +18,7 @@ func (s *HTTPServer) ACLDelete(resp http.ResponseWriter, req *http.Request) (int
 	}
 	s.parseDC(req, &args.Datacenter)
 
-	// Pull out the session id
+	// Pull out the acl id
 	args.ACL.ID = strings.TrimPrefix(req.URL.Path, "/v1/acl/delete/")
 	if args.ACL.ID == "" {
 		resp.WriteHeader(400)
@@ -95,7 +95,7 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 		return nil, nil
 	}
 
-	// Pull out the session id
+	// Pull out the acl id
 	args.ACL = strings.TrimPrefix(req.URL.Path, "/v1/acl/clone/")
 	if args.ACL == "" {
 		resp.WriteHeader(400)
@@ -140,7 +140,7 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 		return nil, nil
 	}
 
-	// Pull out the session id
+	// Pull out the acl id
 	args.ACL = strings.TrimPrefix(req.URL.Path, "/v1/acl/info/")
 	if args.ACL == "" {
 		resp.WriteHeader(400)

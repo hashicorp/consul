@@ -20,16 +20,26 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 	}
 	defer metrics.MeasureSince([]string{"consul", "acl", "apply"}, time.Now())
 
-	// Verify the args
-	switch args.ACL.Type {
-	case structs.ACLTypeClient:
-	case structs.ACLTypeManagement:
-	default:
-		return fmt.Errorf("Invalid ACL Type")
-	}
+	switch args.Op {
+	case structs.ACLSet:
+		// Verify the ACL type
+		switch args.ACL.Type {
+		case structs.ACLTypeClient:
+		case structs.ACLTypeManagement:
+		default:
+			return fmt.Errorf("Invalid ACL Type")
+		}
 
-	// TODO: Verify ACL compiles...
-	if args.Op == structs.ACLSet {
+		// TODO: Validate the rules compile
+		//
+
+	case structs.ACLDelete:
+		if args.ACL.ID == "" {
+			return fmt.Errorf("Missing ACL ID")
+		}
+
+	default:
+		return fmt.Errorf("Invalid ACL Operation")
 	}
 
 	// Apply the update

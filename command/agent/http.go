@@ -100,9 +100,9 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/session/list", s.wrap(s.SessionList))
 
 	s.mux.HandleFunc("/v1/acl/create", s.wrap(s.ACLCreate))
+	s.mux.HandleFunc("/v1/acl/update", s.wrap(s.ACLUpdate))
 	s.mux.HandleFunc("/v1/acl/delete/", s.wrap(s.ACLDelete))
 	s.mux.HandleFunc("/v1/acl/info/", s.wrap(s.ACLGet))
-	s.mux.HandleFunc("/v1/acl/update/", s.wrap(s.ACLUpdate))
 	s.mux.HandleFunc("/v1/acl/clone/", s.wrap(s.ACLClone))
 	s.mux.HandleFunc("/v1/acl/list", s.wrap(s.ACLList))
 
