@@ -125,6 +125,7 @@ type endpoints struct {
 	KVS      *KVS
 	Session  *Session
 	Internal *Internal
+	ACL      *ACL
 }
 
 // NewServer is used to construct a new Consul server from the
@@ -341,6 +342,7 @@ func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 	s.endpoints.KVS = &KVS{s}
 	s.endpoints.Session = &Session{s}
 	s.endpoints.Internal = &Internal{s}
+	s.endpoints.ACL = &ACL{s}
 
 	// Register the handlers
 	s.rpcServer.Register(s.endpoints.Status)
@@ -349,6 +351,7 @@ func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 	s.rpcServer.Register(s.endpoints.KVS)
 	s.rpcServer.Register(s.endpoints.Session)
 	s.rpcServer.Register(s.endpoints.Internal)
+	s.rpcServer.Register(s.endpoints.ACL)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
