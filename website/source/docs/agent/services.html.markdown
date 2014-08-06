@@ -20,6 +20,7 @@ A service definition that is a script looks like:
     {
         "service": {
             "name": "redis",
+            "id": "redis8080",
             "tags": ["master"],
             "port": 8000,
             "check": {
