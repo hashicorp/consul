@@ -357,6 +357,8 @@ func (s *StateStore) initialize() error {
 		"SessionGet":        MDBTables{s.sessionTable},
 		"SessionList":       MDBTables{s.sessionTable},
 		"NodeSessions":      MDBTables{s.sessionTable},
+		"ACLGet":            MDBTables{s.aclTable},
+		"ACLList":           MDBTables{s.aclTable},
 	}
 	return nil
 }
