@@ -2,9 +2,11 @@ package consul
 
 import (
 	"fmt"
-	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/consul/structs"
 	"time"
+
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 // ACL endpoint is used to manipulate ACLs
@@ -30,8 +32,11 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 			return fmt.Errorf("Invalid ACL Type")
 		}
 
-		// TODO: Validate the rules compile
-		//
+		// Validate the rules compile
+		_, err := acl.Parse(args.ACL.Rules)
+		if err != nil {
+			return fmt.Errorf("ACL rule compilation failed: %v", err)
+		}
 
 	case structs.ACLDelete:
 		if args.ACL.ID == "" {
