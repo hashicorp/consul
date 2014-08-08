@@ -5,9 +5,6 @@ import (
 	"github.com/hashicorp/hcl"
 )
 
-// KeyPolicyType controls the various access levels for keys
-type KeyPolicyType string
-
 const (
 	KeyPolicyDeny  = "deny"
 	KeyPolicyRead  = "read"
@@ -23,7 +20,11 @@ type Policy struct {
 // KeyPolicy represents a policy for a key
 type KeyPolicy struct {
 	Prefix string `hcl:",key"`
-	Policy KeyPolicyType
+	Policy string
+}
+
+func (k *KeyPolicy) GoString() string {
+	return fmt.Sprintf("%#v", *k)
 }
 
 // Parse is used to parse the specified ACL rules into an

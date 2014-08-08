@@ -46,7 +46,7 @@ key "foo/bar/baz" {
 		t.Fatalf("err: %v", err)
 	}
 
-	if reflect.DeepEqual(out, exp) {
-		t.Fatalf("bad: %#v", out)
+	if !reflect.DeepEqual(out, exp) {
+		t.Fatalf("bad: %#v %#v", out, exp)
 	}
 }
