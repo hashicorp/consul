@@ -95,8 +95,10 @@ func (a *ACL) GetPolicy(args *structs.ACLSpecificRequest, reply *structs.ACLPoli
 	}
 
 	// Setup the response
+	conf := a.srv.config
 	reply.Policy = policy
-	reply.TTL = a.srv.config.ACLTTL
+	reply.Root = conf.ACLDefaultPolicy
+	reply.TTL = conf.ACLTTL
 	a.srv.setQueryMeta(&reply.QueryMeta)
 	return nil
 }

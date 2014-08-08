@@ -472,6 +472,7 @@ type IndexedACLs struct {
 }
 
 type ACLPolicy struct {
+	Root   string
 	Policy *acl.Policy
 	TTL    time.Duration
 	QueryMeta
