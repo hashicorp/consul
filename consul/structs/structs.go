@@ -466,12 +466,26 @@ func (r *ACLSpecificRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
+// ACLPolicyRequest is used to request an ACL by ID, conditionally
+// filtering on an ID
+type ACLPolicyRequest struct {
+	Datacenter string
+	ACL        string
+	ETag       string
+	QueryOptions
+}
+
+func (r *ACLPolicyRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
 type IndexedACLs struct {
 	ACLs ACLs
 	QueryMeta
 }
 
 type ACLPolicy struct {
+	ETag   string
 	Root   string
 	Policy *acl.Policy
 	TTL    time.Duration

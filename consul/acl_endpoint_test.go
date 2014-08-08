@@ -130,7 +130,7 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	getR := structs.ACLSpecificRequest{
+	getR := structs.ACLPolicyRequest{
 		Datacenter: "dc1",
 		ACL:        out,
 	}
@@ -144,6 +144,20 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 	}
 	if acls.TTL != 30*time.Second {
 		t.Fatalf("bad: %v", acls)
+	}
+
+	// Do a conditional lookup with etag
+	getR.ETag = acls.ETag
+	var out2 structs.ACLPolicy
+	if err := client.Call("ACL.GetPolicy", &getR, &out2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if out2.Policy != nil {
+		t.Fatalf("Bad: %v", out2)
+	}
+	if out2.TTL != 30*time.Second {
+		t.Fatalf("bad: %v", out2)
 	}
 }
 

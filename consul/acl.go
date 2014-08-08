@@ -69,7 +69,7 @@ func (s *Server) lookupACL(id, authDC string) (acl.ACL, error) {
 	}
 
 	// Attempt to refresh the policy
-	args := structs.ACLSpecificRequest{
+	args := structs.ACLPolicyRequest{
 		Datacenter: authDC,
 		ACL:        id,
 	}
