@@ -58,6 +58,7 @@ func (c *Cache) getPolicy(id, rules string) (*Policy, error) {
 	if err != nil {
 		return nil, err
 	}
+	policy.ID = id
 	c.policyCache.Add(id, policy)
 	return policy, nil
 

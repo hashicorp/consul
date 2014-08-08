@@ -14,6 +14,7 @@ const (
 // Policy is used to represent the policy specified by
 // an ACL configuration.
 type Policy struct {
+	ID   string       `hcl:"-"`
 	Keys []*KeyPolicy `hcl:"key"`
 }
 
