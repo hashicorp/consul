@@ -32,6 +32,11 @@ type KeyPolicy struct {
 func Parse(rules string) (*Policy, error) {
 	// Decode the rules
 	p := &Policy{}
+	if rules == "" {
+		// Hot path for empty rules
+		return p, nil
+	}
+
 	if err := hcl.Decode(p, rules); err != nil {
 		return nil, fmt.Errorf("Failed to parse ACL rules: %v", err)
 	}
