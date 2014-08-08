@@ -1,10 +1,12 @@
 package consul
 
 import (
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestACLEndpoint_Apply(t *testing.T) {
@@ -103,6 +105,45 @@ func TestACLEndpoint_Get(t *testing.T) {
 	s := acls.ACLs[0]
 	if s.ID != out {
 		t.Fatalf("bad: %v", s)
+	}
+}
+
+func TestACLEndpoint_GetPolicy(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+		},
+	}
+	var out string
+	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	getR := structs.ACLSpecificRequest{
+		Datacenter: "dc1",
+		ACL:        out,
+	}
+	var acls structs.ACLPolicy
+	if err := client.Call("ACL.GetPolicy", &getR, &acls); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if acls.Policy == nil {
+		t.Fatalf("Bad: %v", acls)
+	}
+	if acls.TTL != 30*time.Second {
+		t.Fatalf("bad: %v", acls)
 	}
 }
 

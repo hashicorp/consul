@@ -3,8 +3,10 @@ package structs
 import (
 	"bytes"
 	"fmt"
-	"github.com/ugorji/go/codec"
 	"time"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/ugorji/go/codec"
 )
 
 var (
@@ -466,6 +468,12 @@ func (r *ACLSpecificRequest) RequestDatacenter() string {
 
 type IndexedACLs struct {
 	ACLs ACLs
+	QueryMeta
+}
+
+type ACLPolicy struct {
+	Policy *acl.Policy
+	TTL    time.Duration
 	QueryMeta
 }
 

@@ -81,6 +81,26 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 		})
 }
 
+// GetPolicy is used to retrieve a compiled policy object with a TTL. Does not
+// support a blocking query.
+func (a *ACL) GetPolicy(args *structs.ACLSpecificRequest, reply *structs.ACLPolicy) error {
+	if done, err := a.srv.forward("ACL.GetPolicy", args, args, reply); done {
+		return err
+	}
+
+	// Get the policy via the cache
+	policy, err := a.srv.aclAuthCache.GetACLPolicy(args.ACL)
+	if err != nil {
+		return err
+	}
+
+	// Setup the response
+	reply.Policy = policy
+	reply.TTL = a.srv.config.ACLTTL
+	a.srv.setQueryMeta(&reply.QueryMeta)
+	return nil
+}
+
 // List is used to list all the ACLs
 func (a *ACL) List(args *structs.DCSpecificRequest,
 	reply *structs.IndexedACLs) error {

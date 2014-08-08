@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-mdb"
 	"github.com/hashicorp/serf/serf"
@@ -43,11 +45,21 @@ const (
 	// serverMaxStreams controsl how many idle streams we keep
 	// open to a server
 	serverMaxStreams = 64
+
+	// Maximum number of cached ACL entries
+	aclCacheSize = 256
 )
 
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
+	// aclAuthCache is the authoritative ACL cache
+	aclAuthCache *acl.Cache
+
+	// aclCache is a non-authoritative ACL cache
+	aclCache *lru.Cache
+
+	// Consul configuration
 	config *Config
 
 	// Connection pool to other consul servers
@@ -179,6 +191,29 @@ func NewServer(config *Config) (*Server, error) {
 		rpcServer:     rpc.NewServer(),
 		rpcTLS:        incomingTLS,
 		shutdownCh:    make(chan struct{}),
+	}
+
+	// Determine the ACL root policy
+	var aclRoot acl.ACL
+	switch config.ACLDefaultPolicy {
+	case "allow":
+		aclRoot = acl.AllowAll()
+	case "deny":
+		aclRoot = acl.DenyAll()
+	}
+
+	// Initialize the authoritative ACL cache
+	s.aclAuthCache, err = acl.NewCache(aclCacheSize, aclRoot, s.aclFault)
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to create ACL cache: %v", err)
+	}
+
+	// Initialize the non-authoritative ACL cache
+	s.aclCache, err = lru.New(aclCacheSize)
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to create ACL cache: %v", err)
 	}
 
 	// Initialize the RPC layer
