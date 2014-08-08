@@ -17,7 +17,7 @@ key "foo/bar/" {
 	policy = "read"
 }
 key "foo/bar/baz" {
-	polizy = "deny"
+	policy = "deny"
 }
 	`
 	exp := &Policy{

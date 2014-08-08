@@ -123,6 +123,48 @@ func TestCache_ClearACL(t *testing.T) {
 	}
 }
 
+func TestCache_GetACLPolicy(t *testing.T) {
+	policies := map[string]string{
+		"foo": testSimplePolicy,
+		"bar": testSimplePolicy,
+	}
+	faultfn := func(id string) (string, error) {
+		return policies[id], nil
+	}
+	c, err := NewCache(1, DenyAll(), faultfn)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	p, err := c.GetPolicy(testSimplePolicy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	_, err = c.GetACL("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	p2, err := c.GetACLPolicy("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if p2 != p {
+		t.Fatalf("expected cached policy")
+	}
+
+	p3, err := c.GetACLPolicy("bar")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if p3 != p {
+		t.Fatalf("expected cached policy")
+	}
+}
+
 var testSimplePolicy = `
 key "foo/" {
 	policy = "read"

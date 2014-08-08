@@ -11,6 +11,12 @@ import (
 // ACL given it's ID
 type FaultFunc func(id string) (string, error)
 
+// aclEntry allows us to store the ACL with it's policy ID
+type aclEntry struct {
+	ACL      ACL
+	PolicyID string
+}
+
 // Cache is used to implement policy and ACL caching
 type Cache struct {
 	aclCache    *lru.Cache
@@ -38,8 +44,13 @@ func NewCache(size int, parent ACL, faultfn FaultFunc) (*Cache, error) {
 // GetPolicy is used to get a potentially cached policy set.
 // If not cached, it will be parsed, and then cached.
 func (c *Cache) GetPolicy(rules string) (*Policy, error) {
-	hash := fmt.Sprintf("%x", md5.Sum([]byte(rules)))
-	raw, ok := c.policyCache.Get(hash)
+	return c.getPolicy(c.ruleID(rules), rules)
+}
+
+// getPolicy is an internal method to get a cached policy,
+// but it assumes a pre-computed ID
+func (c *Cache) getPolicy(id, rules string) (*Policy, error) {
+	raw, ok := c.policyCache.Get(id)
 	if ok {
 		return raw.(*Policy), nil
 	}
@@ -47,8 +58,35 @@ func (c *Cache) GetPolicy(rules string) (*Policy, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.policyCache.Add(hash, policy)
+	c.policyCache.Add(id, policy)
 	return policy, nil
+
+}
+
+// ruleID is used to generate an ID for a rule
+func (c *Cache) ruleID(rules string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(rules)))
+}
+
+// GetACLPolicy is used to get the potentially cached ACL
+// policy. If not cached, it will be generated and then cached.
+func (c *Cache) GetACLPolicy(id string) (*Policy, error) {
+	// Check for a cached acl
+	if raw, ok := c.aclCache.Get(id); ok {
+		cached := raw.(aclEntry)
+		if raw, ok := c.policyCache.Get(cached.PolicyID); ok {
+			return raw.(*Policy), nil
+		}
+	}
+
+	// Fault in the rules
+	rules, err := c.faultfn(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get cached
+	return c.GetPolicy(rules)
 }
 
 // GetACL is used to get a potentially cached ACL policy.
@@ -57,7 +95,7 @@ func (c *Cache) GetACL(id string) (ACL, error) {
 	// Look for the ACL directly
 	raw, ok := c.aclCache.Get(id)
 	if ok {
-		return raw.(ACL), nil
+		return raw.(aclEntry).ACL, nil
 	}
 
 	// Get the rules
@@ -65,9 +103,10 @@ func (c *Cache) GetACL(id string) (ACL, error) {
 	if err != nil {
 		return nil, err
 	}
+	ruleID := c.ruleID(rules)
 
 	// Get the policy
-	policy, err := c.GetPolicy(rules)
+	policy, err := c.getPolicy(ruleID, rules)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +118,7 @@ func (c *Cache) GetACL(id string) (ACL, error) {
 	}
 
 	// Cache and return the ACL
-	c.aclCache.Add(id, acl)
+	c.aclCache.Add(id, aclEntry{acl, ruleID})
 	return acl, nil
 }
 
