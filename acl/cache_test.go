@@ -43,7 +43,7 @@ func TestCache_GetPolicy(t *testing.T) {
 func TestCache_GetACL(t *testing.T) {
 	policies := map[string]string{
 		"foo": testSimplePolicy,
-		"bar": testSimplePolicy,
+		"bar": testSimplePolicy2,
 	}
 	faultfn := func(id string) (string, error) {
 		return policies[id], nil
@@ -113,6 +113,9 @@ func TestCache_ClearACL(t *testing.T) {
 	// Nuke the cache
 	c.ClearACL("foo")
 
+	// Clear the policy cache
+	c.policyCache.Remove(c.ruleID(testSimplePolicy))
+
 	acl2, err := c.GetACL("foo")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -167,6 +170,12 @@ func TestCache_GetACLPolicy(t *testing.T) {
 
 var testSimplePolicy = `
 key "foo/" {
+	policy = "read"
+}
+`
+
+var testSimplePolicy2 = `
+key "bar/" {
 	policy = "read"
 }
 `

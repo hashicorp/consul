@@ -19,10 +19,11 @@ type aclEntry struct {
 
 // Cache is used to implement policy and ACL caching
 type Cache struct {
-	aclCache    *lru.Cache
+	aclCache    *lru.Cache // Cache id -> acl
 	faultfn     FaultFunc
 	parent      ACL
-	policyCache *lru.Cache
+	policyCache *lru.Cache // Cache policy -> acl
+	ruleCache   *lru.Cache // Cache rules -> policy
 }
 
 // NewCache contructs a new policy and ACL cache of a given size
@@ -30,6 +31,7 @@ func NewCache(size int, parent ACL, faultfn FaultFunc) (*Cache, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("Must provide positive cache size")
 	}
+	rc, _ := lru.New(size)
 	pc, _ := lru.New(size)
 	ac, _ := lru.New(size)
 	c := &Cache{
@@ -37,6 +39,7 @@ func NewCache(size int, parent ACL, faultfn FaultFunc) (*Cache, error) {
 		faultfn:     faultfn,
 		parent:      parent,
 		policyCache: pc,
+		ruleCache:   rc,
 	}
 	return c, nil
 }
@@ -50,7 +53,7 @@ func (c *Cache) GetPolicy(rules string) (*Policy, error) {
 // getPolicy is an internal method to get a cached policy,
 // but it assumes a pre-computed ID
 func (c *Cache) getPolicy(id, rules string) (*Policy, error) {
-	raw, ok := c.policyCache.Get(id)
+	raw, ok := c.ruleCache.Get(id)
 	if ok {
 		return raw.(*Policy), nil
 	}
@@ -59,7 +62,7 @@ func (c *Cache) getPolicy(id, rules string) (*Policy, error) {
 		return nil, err
 	}
 	policy.ID = id
-	c.policyCache.Add(id, policy)
+	c.ruleCache.Add(id, policy)
 	return policy, nil
 
 }
@@ -75,7 +78,7 @@ func (c *Cache) GetACLPolicy(id string) (*Policy, error) {
 	// Check for a cached acl
 	if raw, ok := c.aclCache.Get(id); ok {
 		cached := raw.(aclEntry)
-		if raw, ok := c.policyCache.Get(cached.PolicyID); ok {
+		if raw, ok := c.ruleCache.Get(cached.PolicyID); ok {
 			return raw.(*Policy), nil
 		}
 	}
@@ -106,21 +109,31 @@ func (c *Cache) GetACL(id string) (ACL, error) {
 	}
 	ruleID := c.ruleID(rules)
 
-	// Get the policy
-	policy, err := c.getPolicy(ruleID, rules)
-	if err != nil {
-		return nil, err
-	}
+	// Check for a compiled ACL
+	var compiled ACL
+	if raw, ok := c.policyCache.Get(ruleID); ok {
+		compiled = raw.(ACL)
+	} else {
+		// Get the policy
+		policy, err := c.getPolicy(ruleID, rules)
+		if err != nil {
+			return nil, err
+		}
 
-	// Get the ACL
-	acl, err := New(c.parent, policy)
-	if err != nil {
-		return nil, err
+		// Compile the ACL
+		acl, err := New(c.parent, policy)
+		if err != nil {
+			return nil, err
+		}
+
+		// Cache the compiled ACL
+		c.policyCache.Add(ruleID, acl)
+		compiled = acl
 	}
 
 	// Cache and return the ACL
-	c.aclCache.Add(id, aclEntry{acl, ruleID})
-	return acl, nil
+	c.aclCache.Add(id, aclEntry{compiled, ruleID})
+	return compiled, nil
 }
 
 // ClearACL is used to clear the ACL cache if any
