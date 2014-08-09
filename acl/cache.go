@@ -140,3 +140,10 @@ func (c *Cache) GetACL(id string) (ACL, error) {
 func (c *Cache) ClearACL(id string) {
 	c.aclCache.Remove(id)
 }
+
+// Purge is used to clear all the ACL caches. The
+// rule and policy caches are not purged, since they
+// are content-hashed anyways.
+func (c *Cache) Purge() {
+	c.aclCache.Purge()
+}

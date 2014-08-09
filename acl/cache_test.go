@@ -126,6 +126,39 @@ func TestCache_ClearACL(t *testing.T) {
 	}
 }
 
+func TestCache_Purge(t *testing.T) {
+	policies := map[string]string{
+		"foo": testSimplePolicy,
+		"bar": testSimplePolicy,
+	}
+	faultfn := func(id string) (string, error) {
+		return policies[id], nil
+	}
+
+	c, err := NewCache(1, DenyAll(), faultfn)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	acl, err := c.GetACL("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nuke the cache
+	c.Purge()
+	c.policyCache.Purge()
+
+	acl2, err := c.GetACL("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if acl == acl2 {
+		t.Fatalf("should not be cached")
+	}
+}
+
 func TestCache_GetACLPolicy(t *testing.T) {
 	policies := map[string]string{
 		"foo": testSimplePolicy,
