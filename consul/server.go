@@ -59,6 +59,9 @@ type Server struct {
 	// aclCache is a non-authoritative ACL cache
 	aclCache *lru.Cache
 
+	// aclPolicyCache is a policy cache
+	aclPolicyCache *lru.Cache
+
 	// Consul configuration
 	config *Config
 
@@ -214,6 +217,13 @@ func NewServer(config *Config) (*Server, error) {
 	if err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL cache: %v", err)
+	}
+
+	// Initialize the ACL policy cache
+	s.aclPolicyCache, err = lru.New(aclCacheSize)
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to create ACL policy cache: %v", err)
 	}
 
 	// Initialize the RPC layer

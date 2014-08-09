@@ -18,8 +18,8 @@ const (
 // If non-authoritative, then we must respect a TTL
 type aclCacheEntry struct {
 	ACL     acl.ACL
-	TTL     time.Duration
 	Expires time.Time
+	ETag    string
 }
 
 // aclFault is used to fault in the rules for an ACL if we take a miss
@@ -78,31 +78,7 @@ func (s *Server) lookupACL(id, authDC string) (acl.ACL, error) {
 
 	// Handle the happy path
 	if err == nil {
-		// Determine the root
-		var root acl.ACL
-		switch out.Root {
-		case "allow":
-			root = acl.AllowAll()
-		default:
-			root = acl.DenyAll()
-		}
-
-		// Compile the ACL
-		acl, err := acl.New(root, out.Policy)
-		if err != nil {
-			return nil, err
-		}
-
-		// Cache the ACL
-		cached := &aclCacheEntry{
-			ACL: acl,
-			TTL: out.TTL,
-		}
-		if out.TTL > 0 {
-			cached.Expires = time.Now().Add(out.TTL)
-		}
-		s.aclCache.Add(id, cached)
-		return acl, nil
+		return s.useACLPolicy(id, cached, &out)
 	}
 
 	// Check for not-found
@@ -124,4 +100,52 @@ func (s *Server) lookupACL(id, authDC string) (acl.ACL, error) {
 	default:
 		return acl.DenyAll(), nil
 	}
+}
+
+// useACLPolicy handles an ACLPolicy response
+func (s *Server) useACLPolicy(id string, cached *aclCacheEntry, p *structs.ACLPolicy) (acl.ACL, error) {
+	// Check if we can used the cached policy
+	if cached != nil && cached.ETag == p.ETag {
+		if p.TTL > 0 {
+			cached.Expires = time.Now().Add(p.TTL)
+		}
+		return cached.ACL, nil
+	}
+
+	// Check for a cached compiled policy
+	var compiled acl.ACL
+	raw, ok := s.aclPolicyCache.Get(cached.ETag)
+	if ok {
+		compiled = raw.(acl.ACL)
+	} else {
+		// Determine the root policy
+		var root acl.ACL
+		switch p.Root {
+		case "allow":
+			root = acl.AllowAll()
+		default:
+			root = acl.DenyAll()
+		}
+
+		// Compile the ACL
+		acl, err := acl.New(root, p.Policy)
+		if err != nil {
+			return nil, err
+		}
+
+		// Cache the policy
+		s.aclPolicyCache.Add(p.ETag, acl)
+		compiled = acl
+	}
+
+	// Cache the ACL
+	cached = &aclCacheEntry{
+		ACL:  compiled,
+		ETag: p.ETag,
+	}
+	if p.TTL > 0 {
+		cached.Expires = time.Now().Add(p.TTL)
+	}
+	s.aclCache.Add(id, cached)
+	return acl, nil
 }
