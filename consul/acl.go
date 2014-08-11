@@ -114,7 +114,7 @@ func (s *Server) useACLPolicy(id string, cached *aclCacheEntry, p *structs.ACLPo
 
 	// Check for a cached compiled policy
 	var compiled acl.ACL
-	raw, ok := s.aclPolicyCache.Get(cached.ETag)
+	raw, ok := s.aclPolicyCache.Get(p.ETag)
 	if ok {
 		compiled = raw.(acl.ACL)
 	} else {
@@ -147,5 +147,5 @@ func (s *Server) useACLPolicy(id string, cached *aclCacheEntry, p *structs.ACLPo
 		cached.Expires = time.Now().Add(p.TTL)
 	}
 	s.aclCache.Add(id, cached)
-	return acl, nil
+	return compiled, nil
 }

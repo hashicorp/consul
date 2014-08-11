@@ -101,6 +101,17 @@ func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 	return dir, server
 }
 
+func testServerWithConfig(t *testing.T, cb func(c *Config)) (string, *Server) {
+	name := fmt.Sprintf("Node %d", getPort())
+	dir, config := testServerConfig(t, name)
+	cb(config)
+	server, err := NewServer(config)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	return dir, server
+}
+
 func TestServer_StartStop(t *testing.T) {
 	dir := tmpDir(t)
 	defer os.RemoveAll(dir)
