@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"time"
@@ -54,6 +55,11 @@ func (s *Server) leaderLoop(stopCh chan struct{}) {
 		s.logger.Printf("[WARN] consul: failed to broadcast new leader event: %v", err)
 	}
 
+	// Setup ACLs if we are the leader and need to
+	if err := s.initializeACL(); err != nil {
+		s.logger.Printf("[ERR] consul: ACL initialization failed: %v", err)
+	}
+
 	// Reconcile channel is only used once initial reconcile
 	// has succeeded
 	var reconcileCh chan serf.Member
@@ -97,6 +103,73 @@ WAIT:
 			s.reconcileMember(member)
 		}
 	}
+}
+
+// initializeACL is used to setup the ACLs if we are the leader
+// and need to do this.
+func (s *Server) initializeACL() error {
+	// Bail if not configured or we are not authoritative
+	authDC := s.config.ACLDatacenter
+	if len(authDC) == 0 || authDC != s.config.Datacenter {
+		return nil
+	}
+
+	// Purge the cache, since it could've changed while we
+	// were not the leader
+	s.aclAuthCache.Purge()
+
+	// Look for the anonymous token
+	state := s.fsm.State()
+	_, acl, err := state.ACLGet(anonymousToken)
+	if err != nil {
+		return fmt.Errorf("failed to get anonymous token: %v", err)
+	}
+
+	// Create anonymous token if missing
+	if acl == nil {
+		req := structs.ACLRequest{
+			Datacenter: authDC,
+			Op:         structs.ACLForceSet,
+			ACL: structs.ACL{
+				ID:   anonymousToken,
+				Name: "Anonymous Token",
+				Type: structs.ACLTypeClient,
+			},
+		}
+		_, err := s.raftApply(structs.ACLRequestType, &req)
+		if err != nil {
+			return fmt.Errorf("failed to create anonymous token: %v", err)
+		}
+	}
+
+	// Check for configured master token
+	master := s.config.ACLMasterToken
+	if len(master) == 0 {
+		return nil
+	}
+
+	// Look for the master token
+	_, acl, err = state.ACLGet(master)
+	if err != nil {
+		return fmt.Errorf("failed to get master token: %v", err)
+	}
+	if acl == nil {
+		req := structs.ACLRequest{
+			Datacenter: authDC,
+			Op:         structs.ACLForceSet,
+			ACL: structs.ACL{
+				ID:   master,
+				Name: "Master Token",
+				Type: structs.ACLTypeManagement,
+			},
+		}
+		_, err := s.raftApply(structs.ACLRequestType, &req)
+		if err != nil {
+			return fmt.Errorf("failed to create master token: %v", err)
+		}
+
+	}
+	return nil
 }
 
 // reconcile is used to reconcile the differences between Serf

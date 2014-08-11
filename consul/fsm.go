@@ -205,7 +205,13 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	}
 	switch req.Op {
 	case structs.ACLSet:
-		if err := c.state.ACLSet(index, &req.ACL); err != nil {
+		if err := c.state.ACLSet(index, &req.ACL, false); err != nil {
+			return err
+		} else {
+			return req.ACL.ID
+		}
+	case structs.ACLForceSet:
+		if err := c.state.ACLSet(index, &req.ACL, true); err != nil {
 			return err
 		} else {
 			return req.ACL.ID

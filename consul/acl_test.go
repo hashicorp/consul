@@ -93,6 +93,59 @@ func TestACL_Authority_Found(t *testing.T) {
 	}
 }
 
+func TestACL_Authority_Anonymous_Found(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1" // Enable ACLs!
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Resolve the token
+	acl, err := s1.resolveToken("")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if acl == nil {
+		t.Fatalf("missing acl")
+	}
+
+	// Check the policy, should allow all
+	if !acl.KeyRead("foo/test") {
+		t.Fatalf("unexpected failed read")
+	}
+}
+
+func TestACL_Authority_Master_Found(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1" // Enable ACLs!
+		c.ACLMasterToken = "foobar"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Resolve the token
+	acl, err := s1.resolveToken("foobar")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if acl == nil {
+		t.Fatalf("missing acl")
+	}
+
+	// Check the policy, should allow all
+	if !acl.KeyRead("foo/test") {
+		t.Fatalf("unexpected failed read")
+	}
+}
+
 func TestACL_NonAuthority_NotFound(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"

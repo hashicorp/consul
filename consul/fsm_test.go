@@ -329,7 +329,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	session := &structs.Session{Node: "foo"}
 	fsm.state.SessionCreate(9, session)
 	acl := &structs.ACL{Name: "User Token"}
-	fsm.state.ACLSet(10, acl)
+	fsm.state.ACLSet(10, acl, false)
 
 	// Snapshot
 	snap, err := fsm.Snapshot()

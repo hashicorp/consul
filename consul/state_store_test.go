@@ -656,7 +656,7 @@ func TestStoreSnapshot(t *testing.T) {
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(19, a1); err != nil {
+	if err := store.ACLSet(19, a1, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -664,7 +664,7 @@ func TestStoreSnapshot(t *testing.T) {
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(20, a2); err != nil {
+	if err := store.ACLSet(20, a2, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -2180,7 +2180,7 @@ func TestACLSet_Get(t *testing.T) {
 		Type:  structs.ACLTypeClient,
 		Rules: "",
 	}
-	if err := store.ACLSet(50, a); err != nil {
+	if err := store.ACLSet(50, a, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if a.CreateIndex != 50 {
@@ -2206,7 +2206,7 @@ func TestACLSet_Get(t *testing.T) {
 
 	// Update
 	a.Rules = "foo bar baz"
-	if err := store.ACLSet(52, a); err != nil {
+	if err := store.ACLSet(52, a, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if a.CreateIndex != 50 {
@@ -2240,7 +2240,7 @@ func TestACLDelete(t *testing.T) {
 		Type:  structs.ACLTypeClient,
 		Rules: "",
 	}
-	if err := store.ACLSet(50, a); err != nil {
+	if err := store.ACLSet(50, a, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -2274,7 +2274,7 @@ func TestACLList(t *testing.T) {
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(50, a1); err != nil {
+	if err := store.ACLSet(50, a1, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -2282,7 +2282,7 @@ func TestACLList(t *testing.T) {
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(51, a2); err != nil {
+	if err := store.ACLSet(51, a2, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

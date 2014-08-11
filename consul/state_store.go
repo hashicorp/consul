@@ -1504,7 +1504,9 @@ func (s *StateStore) invalidateLocks(index uint64, tx *MDBTxn,
 }
 
 // ACLSet is used to create or update an ACL entry
-func (s *StateStore) ACLSet(index uint64, acl *structs.ACL) error {
+// allowCreate is used for initialization of the anonymous and master tokens,
+// since it permits them to be created with a specified ID that does not exist.
+func (s *StateStore) ACLSet(index uint64, acl *structs.ACL, allowCreate bool) error {
 	// Start a new txn
 	tx, err := s.tables.StartTxn(false)
 	if err != nil {
@@ -1537,7 +1539,11 @@ func (s *StateStore) ACLSet(index uint64, acl *structs.ACL) error {
 
 		switch len(res) {
 		case 0:
-			return fmt.Errorf("Invalid ACL")
+			if !allowCreate {
+				return fmt.Errorf("Invalid ACL")
+			}
+			acl.CreateIndex = index
+			acl.ModifyIndex = index
 		case 1:
 			exist := res[0].(*structs.ACL)
 			acl.CreateIndex = exist.CreateIndex

@@ -12,6 +12,10 @@ import (
 const (
 	// aclNotFound indicates there is no matching ACL
 	aclNotFound = "ACL not found"
+
+	// anonymousToken is the token ID we re-write to if there
+	// is no token ID provided
+	anonymousToken = "anonymous"
 )
 
 // aclCacheEntry is used to cache non-authoritative ACL's
@@ -39,8 +43,13 @@ func (s *Server) aclFault(id string) (string, error) {
 func (s *Server) resolveToken(id string) (acl.ACL, error) {
 	// Check if there is no ACL datacenter (ACL's disabled)
 	authDC := s.config.ACLDatacenter
-	if authDC == "" {
+	if len(authDC) == 0 {
 		return nil, nil
+	}
+
+	// Handle the anonymous token
+	if len(id) == 0 {
+		id = anonymousToken
 	}
 
 	// Check if we are the ACL datacenter and the leader, use the

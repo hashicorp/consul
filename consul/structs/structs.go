@@ -439,8 +439,9 @@ type ACLs []*ACL
 type ACLOp string
 
 const (
-	ACLSet    ACLOp = "set"
-	ACLDelete       = "delete"
+	ACLSet      ACLOp = "set"
+	ACLForceSet       = "force-set"
+	ACLDelete         = "delete"
 )
 
 // ACLRequest is used to create, update or delete an ACL
