@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/structs"
 )
@@ -28,6 +29,7 @@ type aclCacheEntry struct {
 
 // aclFault is used to fault in the rules for an ACL if we take a miss
 func (s *Server) aclFault(id string) (string, error) {
+	defer metrics.MeasureSince([]string{"consul", "acl", "fault"}, time.Now())
 	state := s.fsm.State()
 	_, acl, err := state.ACLGet(id)
 	if err != nil {
@@ -46,6 +48,7 @@ func (s *Server) resolveToken(id string) (acl.ACL, error) {
 	if len(authDC) == 0 {
 		return nil, nil
 	}
+	defer metrics.MeasureSince([]string{"consul", "acl", "resolveToken"}, time.Now())
 
 	// Handle the anonymous token
 	if len(id) == 0 {
@@ -74,7 +77,10 @@ func (s *Server) lookupACL(id, authDC string) (acl.ACL, error) {
 
 	// Check for live cache
 	if cached != nil && time.Now().Before(cached.Expires) {
+		metrics.IncrCounter([]string{"consul", "acl", "cache_hit"}, 1)
 		return cached.ACL, nil
+	} else {
+		metrics.IncrCounter([]string{"consul", "acl", "cache_miss"}, 1)
 	}
 
 	// Attempt to refresh the policy
