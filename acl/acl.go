@@ -1,8 +1,6 @@
 package acl
 
 import (
-	"fmt"
-
 	"github.com/armon/go-radix"
 )
 
@@ -58,11 +56,8 @@ type PolicyACL struct {
 	// no matching rule.
 	parent ACL
 
-	// keyRead contains the read policies
-	keyRead *radix.Tree
-
-	// keyWrite contains the write policies
-	keyWrite *radix.Tree
+	// keyRules contains the key policies
+	keyRules *radix.Tree
 }
 
 // New is used to construct a policy based ACL from a set of policies
@@ -70,25 +65,12 @@ type PolicyACL struct {
 func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 	p := &PolicyACL{
 		parent:   parent,
-		keyRead:  radix.New(),
-		keyWrite: radix.New(),
+		keyRules: radix.New(),
 	}
 
 	// Load the key policy
 	for _, kp := range policy.Keys {
-		switch kp.Policy {
-		case KeyPolicyDeny:
-			p.keyRead.Insert(kp.Prefix, false)
-			p.keyWrite.Insert(kp.Prefix, false)
-		case KeyPolicyRead:
-			p.keyRead.Insert(kp.Prefix, true)
-			p.keyWrite.Insert(kp.Prefix, false)
-		case KeyPolicyWrite:
-			p.keyRead.Insert(kp.Prefix, true)
-			p.keyWrite.Insert(kp.Prefix, true)
-		default:
-			return nil, fmt.Errorf("Invalid key policy: %#v", kp)
-		}
+		p.keyRules.Insert(kp.Prefix, kp.Policy)
 	}
 	return p, nil
 }
@@ -96,9 +78,16 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 // KeyRead returns if a key is allowed to be read
 func (p *PolicyACL) KeyRead(key string) bool {
 	// Look for a matching rule
-	_, rule, ok := p.keyRead.LongestPrefix(key)
+	_, rule, ok := p.keyRules.LongestPrefix(key)
 	if ok {
-		return rule.(bool)
+		switch rule.(string) {
+		case KeyPolicyRead:
+			return true
+		case KeyPolicyWrite:
+			return true
+		default:
+			return false
+		}
 	}
 
 	// No matching rule, use the parent.
@@ -108,9 +97,14 @@ func (p *PolicyACL) KeyRead(key string) bool {
 // KeyWrite returns if a key is allowed to be written
 func (p *PolicyACL) KeyWrite(key string) bool {
 	// Look for a matching rule
-	_, rule, ok := p.keyWrite.LongestPrefix(key)
+	_, rule, ok := p.keyRules.LongestPrefix(key)
 	if ok {
-		return rule.(bool)
+		switch rule.(string) {
+		case KeyPolicyWrite:
+			return true
+		default:
+			return false
+		}
 	}
 
 	// No matching rule, use the parent.
