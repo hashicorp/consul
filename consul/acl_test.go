@@ -29,6 +29,30 @@ func TestACL_Disabled(t *testing.T) {
 	}
 }
 
+func TestACL_ResolveRootACL(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1" // Enable ACLs!
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	acl, err := s1.resolveToken("allow")
+	if err == nil || err.Error() != rootDenied {
+		t.Fatalf("err: %v", err)
+	}
+	if acl != nil {
+		t.Fatalf("bad: %v", acl)
+	}
+
+	acl, err = s1.resolveToken("deny")
+	if err == nil || err.Error() != rootDenied {
+		t.Fatalf("err: %v", err)
+	}
+	if acl != nil {
+		t.Fatalf("bad: %v", acl)
+	}
+}
+
 func TestACL_Authority_NotFound(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!

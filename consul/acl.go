@@ -14,6 +14,9 @@ const (
 	// aclNotFound indicates there is no matching ACL
 	aclNotFound = "ACL not found"
 
+	// rootDenied is returned when attempting to resolve a root ACL
+	rootDenied = "Cannot resolve root ACL"
+
 	// anonymousToken is the token ID we re-write to if there
 	// is no token ID provided
 	anonymousToken = "anonymous"
@@ -60,6 +63,8 @@ func (s *Server) resolveToken(id string) (acl.ACL, error) {
 	// Handle the anonymous token
 	if len(id) == 0 {
 		id = anonymousToken
+	} else if acl.RootACL(id) != nil {
+		return nil, errors.New(rootDenied)
 	}
 
 	// Check if we are the ACL datacenter and the leader, use the
