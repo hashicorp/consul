@@ -295,6 +295,63 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 	}
 }
 
+func TestACL_NonAuthority_Management(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1" // Enable ACLs!
+		c.ACLMasterToken = "foobar"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1" // Enable ACLs!
+		c.ACLDefaultPolicy = "deny"
+		c.Bootstrap = false // Disable bootstrap
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForResult(func() (bool, error) {
+		p1, _ := s1.raftPeers.Peers()
+		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 2 peers: %v", err)
+	})
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// find the non-authoritative server
+	var nonAuth *Server
+	if !s1.IsLeader() {
+		nonAuth = s1
+	} else {
+		nonAuth = s2
+	}
+
+	// Resolve the token
+	acl, err := nonAuth.resolveToken("foobar")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if acl == nil {
+		t.Fatalf("missing acl")
+	}
+
+	// Check the policy, should allow all
+	if !acl.KeyRead("foo/test") {
+		t.Fatalf("unexpected failed read")
+	}
+}
+
 func TestACL_DownPolicy_Deny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"

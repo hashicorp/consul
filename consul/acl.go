@@ -100,7 +100,7 @@ func (s *Server) lookupACL(id, authDC string) (acl.ACL, error) {
 
 	// Handle the happy path
 	if err == nil {
-		return s.useACLPolicy(id, cached, &out)
+		return s.useACLPolicy(id, authDC, cached, &out)
 	}
 
 	// Check for not-found
@@ -125,7 +125,7 @@ func (s *Server) lookupACL(id, authDC string) (acl.ACL, error) {
 }
 
 // useACLPolicy handles an ACLPolicy response
-func (s *Server) useACLPolicy(id string, cached *aclCacheEntry, p *structs.ACLPolicy) (acl.ACL, error) {
+func (s *Server) useACLPolicy(id, authDC string, cached *aclCacheEntry, p *structs.ACLPolicy) (acl.ACL, error) {
 	// Check if we can used the cached policy
 	if cached != nil && cached.ETag == p.ETag {
 		if p.TTL > 0 {
@@ -140,17 +140,18 @@ func (s *Server) useACLPolicy(id string, cached *aclCacheEntry, p *structs.ACLPo
 	if ok {
 		compiled = raw.(acl.ACL)
 	} else {
-		// Determine the root policy
-		var root acl.ACL
-		switch p.Root {
-		case "allow":
-			root = acl.AllowAll()
-		default:
-			root = acl.DenyAll()
+		// Resolve the parent policy
+		parent := acl.RootACL(p.Parent)
+		if parent == nil {
+			var err error
+			parent, err = s.lookupACL(p.Parent, authDC)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// Compile the ACL
-		acl, err := acl.New(root, p.Policy)
+		acl, err := acl.New(parent, p.Policy)
 		if err != nil {
 			return nil, err
 		}

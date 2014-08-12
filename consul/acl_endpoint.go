@@ -94,23 +94,23 @@ func (a *ACL) GetPolicy(args *structs.ACLPolicyRequest, reply *structs.ACLPolicy
 	}
 
 	// Get the policy via the cache
-	policy, err := a.srv.aclAuthCache.GetACLPolicy(args.ACL)
+	parent, policy, err := a.srv.aclAuthCache.GetACLPolicy(args.ACL)
 	if err != nil {
 		return err
 	}
 
 	// Generate an ETag
 	conf := a.srv.config
-	etag := fmt.Sprintf("%s:%s", conf.ACLDefaultPolicy, policy.ID)
+	etag := fmt.Sprintf("%s:%s", parent, policy.ID)
 
 	// Setup the response
 	reply.ETag = etag
-	reply.Root = conf.ACLDefaultPolicy
 	reply.TTL = conf.ACLTTL
 	a.srv.setQueryMeta(&reply.QueryMeta)
 
 	// Only send the policy on an Etag mis-match
 	if args.ETag != etag {
+		reply.Parent = parent
 		reply.Policy = policy
 	}
 	return nil

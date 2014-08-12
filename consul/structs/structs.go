@@ -487,7 +487,7 @@ type IndexedACLs struct {
 
 type ACLPolicy struct {
 	ETag   string
-	Root   string
+	Parent string
 	Policy *acl.Policy
 	TTL    time.Duration
 	QueryMeta
