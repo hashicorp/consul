@@ -2,6 +2,7 @@ package consul
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -10,7 +11,10 @@ import (
 )
 
 func TestACLEndpoint_Apply(t *testing.T) {
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	client := rpcClient(t, s1)
@@ -25,6 +29,7 @@ func TestACLEndpoint_Apply(t *testing.T) {
 			Name: "User token",
 			Type: structs.ACLTypeClient,
 		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var out string
 	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
@@ -65,8 +70,10 @@ func TestACLEndpoint_Apply(t *testing.T) {
 	}
 }
 
-func TestACLEndpoint_Get(t *testing.T) {
-	dir1, s1 := testServer(t)
+func TestACLEndpoint_Apply_Denied(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	client := rpcClient(t, s1)
@@ -81,6 +88,34 @@ func TestACLEndpoint_Get(t *testing.T) {
 			Name: "User token",
 			Type: structs.ACLTypeClient,
 		},
+	}
+	var out string
+	err := client.Call("ACL.Apply", &arg, &out)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestACLEndpoint_Get(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var out string
 	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
@@ -109,7 +144,10 @@ func TestACLEndpoint_Get(t *testing.T) {
 }
 
 func TestACLEndpoint_GetPolicy(t *testing.T) {
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	client := rpcClient(t, s1)
@@ -124,6 +162,7 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 			Name: "User token",
 			Type: structs.ACLTypeClient,
 		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var out string
 	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
@@ -162,7 +201,10 @@ func TestACLEndpoint_GetPolicy(t *testing.T) {
 }
 
 func TestACLEndpoint_List(t *testing.T) {
-	dir1, s1 := testServer(t)
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 	client := rpcClient(t, s1)
@@ -179,6 +221,7 @@ func TestACLEndpoint_List(t *testing.T) {
 				Name: "User token",
 				Type: structs.ACLTypeClient,
 			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out string
 		if err := client.Call("ACL.Apply", &arg, &out); err != nil {
@@ -188,7 +231,8 @@ func TestACLEndpoint_List(t *testing.T) {
 	}
 
 	getR := structs.DCSpecificRequest{
-		Datacenter: "dc1",
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{Token: "root"},
 	}
 	var acls structs.IndexedACLs
 	if err := client.Call("ACL.List", &getR, &acls); err != nil {
@@ -198,16 +242,42 @@ func TestACLEndpoint_List(t *testing.T) {
 	if acls.Index == 0 {
 		t.Fatalf("Bad: %v", acls)
 	}
-	if len(acls.ACLs) != 5 {
+
+	// 5 + anonymous + master
+	if len(acls.ACLs) != 7 {
 		t.Fatalf("Bad: %v", acls.ACLs)
 	}
 	for i := 0; i < len(acls.ACLs); i++ {
 		s := acls.ACLs[i]
+		if s.ID == anonymousToken || s.ID == "root" {
+			continue
+		}
 		if !strContains(ids, s.ID) {
 			t.Fatalf("bad: %v", s)
 		}
 		if s.Name != "User token" {
 			t.Fatalf("bad: %v", s)
 		}
+	}
+}
+
+func TestACLEndpoint_List_Denied(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	getR := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var acls structs.IndexedACLs
+	err := client.Call("ACL.List", &getR, &acls)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
 	}
 }

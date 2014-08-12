@@ -22,6 +22,18 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 	}
 	defer metrics.MeasureSince([]string{"consul", "acl", "apply"}, time.Now())
 
+	// Verify we are allowed to serve this request
+	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
+		return fmt.Errorf(aclDisabled)
+	}
+
+	// Verify token is permitted to list ACLs
+	if acl, err := a.srv.resolveToken(args.Token); err != nil {
+		return err
+	} else if acl == nil || !acl.ACLModify() {
+		return permissionDeniedErr
+	}
+
 	switch args.Op {
 	case structs.ACLSet:
 		// Verify the ACL type
@@ -71,6 +83,11 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 		return err
 	}
 
+	// Verify we are allowed to serve this request
+	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
+		return fmt.Errorf(aclDisabled)
+	}
+
 	// Get the local state
 	state := a.srv.fsm.State()
 	return a.srv.blockingRPC(&args.QueryOptions,
@@ -91,6 +108,11 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 func (a *ACL) GetPolicy(args *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
 	if done, err := a.srv.forward("ACL.GetPolicy", args, args, reply); done {
 		return err
+	}
+
+	// Verify we are allowed to serve this request
+	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
+		return fmt.Errorf(aclDisabled)
 	}
 
 	// Get the policy via the cache
@@ -121,6 +143,18 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	reply *structs.IndexedACLs) error {
 	if done, err := a.srv.forward("ACL.List", args, args, reply); done {
 		return err
+	}
+
+	// Verify we are allowed to serve this request
+	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
+		return fmt.Errorf(aclDisabled)
+	}
+
+	// Verify token is permitted to list ACLs
+	if acl, err := a.srv.resolveToken(args.Token); err != nil {
+		return err
+	} else if acl == nil || !acl.ACLList() {
+		return permissionDeniedErr
 	}
 
 	// Get the local state

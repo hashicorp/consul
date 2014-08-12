@@ -76,6 +76,7 @@ func TestACL_Authority_NotFound(t *testing.T) {
 func TestACL_Authority_Found(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1" // Enable ACLs!
+		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -93,6 +94,7 @@ func TestACL_Authority_Found(t *testing.T) {
 			Type:  structs.ACLTypeClient,
 			Rules: testACLPolicy,
 		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
 	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
@@ -250,6 +252,7 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 func TestACL_NonAuthority_Found(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -287,6 +290,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 			Type:  structs.ACLTypeClient,
 			Rules: testACLPolicy,
 		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
 	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
@@ -380,6 +384,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLDownPolicy = "deny"
+		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -418,6 +423,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 			Type:  structs.ACLTypeClient,
 			Rules: testACLPolicy,
 		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
 	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
@@ -452,6 +458,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLDownPolicy = "allow"
+		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -490,6 +497,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 			Type:  structs.ACLTypeClient,
 			Rules: testACLPolicy,
 		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
 	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
@@ -525,6 +533,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLTTL = 0
 		c.ACLDownPolicy = "extend-cache"
+		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -564,6 +573,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 			Type:  structs.ACLTypeClient,
 			Rules: testACLPolicy,
 		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
 	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
@@ -606,6 +616,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 func TestACL_MultiDC_Found(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -638,6 +649,7 @@ func TestACL_MultiDC_Found(t *testing.T) {
 			Type:  structs.ACLTypeClient,
 			Rules: testACLPolicy,
 		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
 	if err := client.Call("ACL.Apply", &arg, &id); err != nil {

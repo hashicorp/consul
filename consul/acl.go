@@ -17,9 +17,20 @@ const (
 	// rootDenied is returned when attempting to resolve a root ACL
 	rootDenied = "Cannot resolve root ACL"
 
+	// permissionDenied is returned when an ACL based rejection happens
+	permissionDenied = "Permission denied"
+
+	// aclDisabled is returned when ACL changes are not permitted
+	// since they are disabled.
+	aclDisabled = "ACL support disabled"
+
 	// anonymousToken is the token ID we re-write to if there
 	// is no token ID provided
 	anonymousToken = "anonymous"
+)
+
+var (
+	permissionDeniedErr = errors.New(permissionDenied)
 )
 
 // aclCacheEntry is used to cache non-authoritative ACL's
@@ -42,9 +53,10 @@ func (s *Server) aclFault(id string) (string, string, error) {
 		return "", "", errors.New(aclNotFound)
 	}
 
-	// Management tokens have no policy and inherit from allow
+	// Management tokens have no policy and inherit from the
+	// 'manage' root policy
 	if acl.Type == structs.ACLTypeManagement {
-		return "allow", "", nil
+		return "manage", "", nil
 	}
 
 	// Otherwise use the base policy
