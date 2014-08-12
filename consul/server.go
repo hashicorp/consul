@@ -196,17 +196,8 @@ func NewServer(config *Config) (*Server, error) {
 		shutdownCh:    make(chan struct{}),
 	}
 
-	// Determine the ACL root policy
-	var aclRoot acl.ACL
-	switch config.ACLDefaultPolicy {
-	case "allow":
-		aclRoot = acl.AllowAll()
-	case "deny":
-		aclRoot = acl.DenyAll()
-	}
-
 	// Initialize the authoritative ACL cache
-	s.aclAuthCache, err = acl.NewCache(aclCacheSize, aclRoot, s.aclFault)
+	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclFault)
 	if err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to create ACL cache: %v", err)

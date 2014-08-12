@@ -28,17 +28,24 @@ type aclCacheEntry struct {
 }
 
 // aclFault is used to fault in the rules for an ACL if we take a miss
-func (s *Server) aclFault(id string) (string, error) {
+func (s *Server) aclFault(id string) (string, string, error) {
 	defer metrics.MeasureSince([]string{"consul", "acl", "fault"}, time.Now())
 	state := s.fsm.State()
 	_, acl, err := state.ACLGet(id)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if acl == nil {
-		return "", errors.New(aclNotFound)
+		return "", "", errors.New(aclNotFound)
 	}
-	return acl.Rules, nil
+
+	// Management tokens have no policy and inherit from allow
+	if acl.Type == structs.ACLTypeManagement {
+		return "allow", "", nil
+	}
+
+	// Otherwise use the base policy
+	return s.config.ACLDefaultPolicy, acl.Rules, nil
 }
 
 // resolveToken is used to resolve an ACL is any is appropriate
