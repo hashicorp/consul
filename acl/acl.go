@@ -158,10 +158,10 @@ func (p *PolicyACL) KeyWrite(key string) bool {
 
 // ACLList checks if listing of ACLs is allowed
 func (p *PolicyACL) ACLList() bool {
-	return p.ACLList()
+	return p.parent.ACLList()
 }
 
 // ACLModify checks if modification of ACLs is allowed
 func (p *PolicyACL) ACLModify() bool {
-	return p.ACLModify()
+	return p.parent.ACLModify()
 }
