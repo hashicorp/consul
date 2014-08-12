@@ -182,18 +182,24 @@ func TestCache_GetACLPolicy(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	p2, err := c.GetACLPolicy("foo")
+	parent, p2, err := c.GetACLPolicy("foo")
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+	if parent != "deny" {
+		t.Fatalf("bad: %v", parent)
 	}
 
 	if p2 != p {
 		t.Fatalf("expected cached policy")
 	}
 
-	p3, err := c.GetACLPolicy("bar")
+	parent, p3, err := c.GetACLPolicy("bar")
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+	if parent != "deny" {
+		t.Fatalf("bad: %v", parent)
 	}
 
 	if p3 != p {

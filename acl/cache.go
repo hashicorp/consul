@@ -14,6 +14,7 @@ type FaultFunc func(id string) (string, string, error)
 // aclEntry allows us to store the ACL with it's policy ID
 type aclEntry struct {
 	ACL      ACL
+	Parent   string
 	PolicyID string
 }
 
@@ -72,23 +73,24 @@ func (c *Cache) ruleID(rules string) string {
 
 // GetACLPolicy is used to get the potentially cached ACL
 // policy. If not cached, it will be generated and then cached.
-func (c *Cache) GetACLPolicy(id string) (*Policy, error) {
+func (c *Cache) GetACLPolicy(id string) (string, *Policy, error) {
 	// Check for a cached acl
 	if raw, ok := c.aclCache.Get(id); ok {
 		cached := raw.(aclEntry)
 		if raw, ok := c.ruleCache.Get(cached.PolicyID); ok {
-			return raw.(*Policy), nil
+			return cached.Parent, raw.(*Policy), nil
 		}
 	}
 
 	// Fault in the rules
-	_, rules, err := c.faultfn(id)
+	parent, rules, err := c.faultfn(id)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	// Get cached
-	return c.GetPolicy(rules)
+	policy, err := c.GetPolicy(rules)
+	return parent, policy, err
 }
 
 // GetACL is used to get a potentially cached ACL policy.
@@ -139,7 +141,7 @@ func (c *Cache) GetACL(id string) (ACL, error) {
 	}
 
 	// Cache and return the ACL
-	c.aclCache.Add(id, aclEntry{compiled, ruleID})
+	c.aclCache.Add(id, aclEntry{compiled, parentID, ruleID})
 	return compiled, nil
 }
 
