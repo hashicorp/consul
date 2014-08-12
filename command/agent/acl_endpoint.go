@@ -21,9 +21,10 @@ func aclDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, erro
 
 func (s *HTTPServer) ACLDelete(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.ACLRequest{
-		Op: structs.ACLDelete,
+		Datacenter: s.agent.config.ACLDatacenter,
+		Op:         structs.ACLDelete,
 	}
-	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
 
 	// Pull out the acl id
 	args.ACL.ID = strings.TrimPrefix(req.URL.Path, "/v1/acl/delete/")
@@ -56,12 +57,13 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 	}
 
 	args := structs.ACLRequest{
-		Op: structs.ACLSet,
+		Datacenter: s.agent.config.ACLDatacenter,
+		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Type: structs.ACLTypeClient,
 		},
 	}
-	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
 
 	// Handle optional request body
 	if req.ContentLength > 0 {
@@ -97,8 +99,11 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 }
 
 func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	args := structs.ACLSpecificRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+	args := structs.ACLSpecificRequest{
+		Datacenter: s.agent.config.ACLDatacenter,
+	}
+	var dc string
+	if done := s.parse(resp, req, &dc, &args.QueryOptions); done {
 		return nil, nil
 	}
 
@@ -130,6 +135,7 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 		ACL:        *out.ACLs[0],
 	}
 	createArgs.ACL.ID = ""
+	createArgs.Token = args.Token
 
 	// Create the acl, get the ID
 	var outID string
@@ -142,8 +148,11 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 }
 
 func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	args := structs.ACLSpecificRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+	args := structs.ACLSpecificRequest{
+		Datacenter: s.agent.config.ACLDatacenter,
+	}
+	var dc string
+	if done := s.parse(resp, req, &dc, &args.QueryOptions); done {
 		return nil, nil
 	}
 
@@ -164,8 +173,11 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 }
 
 func (s *HTTPServer) ACLList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	args := structs.DCSpecificRequest{}
-	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+	args := structs.DCSpecificRequest{
+		Datacenter: s.agent.config.ACLDatacenter,
+	}
+	var dc string
+	if done := s.parse(resp, req, &dc, &args.QueryOptions); done {
 		return nil, nil
 	}
 

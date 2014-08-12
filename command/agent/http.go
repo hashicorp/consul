@@ -289,10 +289,20 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 	}
 }
 
+// parseToken is used to parse the ?token query param
+func (s *HTTPServer) parseToken(req *http.Request, token *string) {
+	if other := req.URL.Query().Get("token"); other != "" {
+		*token = other
+	} else if *token == "" {
+		*token = s.agent.config.ACLToken
+	}
+}
+
 // parse is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
 func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	s.parseDC(req, dc)
+	s.parseToken(req, &b.Token)
 	if parseConsistency(resp, req, b) {
 		return true
 	}
