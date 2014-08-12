@@ -5,29 +5,47 @@ import (
 )
 
 var (
-	// allowAll is a singleton policy which allows all actions
+	// allowAll is a singleton policy which allows all
+	// non-management actions
 	allowAll ACL
 
 	// denyAll is a singleton policy which denies all actions
 	denyAll ACL
+
+	// manageAll is a singleton policy which allows all
+	// actions, including management
+	manageAll ACL
 )
 
 func init() {
 	// Setup the singletons
-	allowAll = &StaticACL{defaultAllow: true}
-	denyAll = &StaticACL{defaultAllow: false}
+	allowAll = &StaticACL{
+		allowManage:  false,
+		defaultAllow: true,
+	}
+	denyAll = &StaticACL{
+		allowManage:  false,
+		defaultAllow: false,
+	}
+	manageAll = &StaticACL{
+		allowManage:  true,
+		defaultAllow: true,
+	}
 }
 
 // ACL is the interface for policy enforcement.
 type ACL interface {
 	KeyRead(string) bool
 	KeyWrite(string) bool
+	ACLList() bool
+	ACLModify() bool
 }
 
 // StaticACL is used to implement a base ACL policy. It either
 // allows or denies all requests. This can be used as a parent
 // ACL to act in a blacklist or whitelist mode.
 type StaticACL struct {
+	allowManage  bool
 	defaultAllow bool
 }
 
@@ -37,6 +55,14 @@ func (s *StaticACL) KeyRead(string) bool {
 
 func (s *StaticACL) KeyWrite(string) bool {
 	return s.defaultAllow
+}
+
+func (s *StaticACL) ACLList() bool {
+	return s.allowManage
+}
+
+func (s *StaticACL) ACLModify() bool {
+	return s.allowManage
 }
 
 // AllowAll returns an ACL rule that allows all operations
@@ -49,6 +75,11 @@ func DenyAll() ACL {
 	return denyAll
 }
 
+// ManageAll returns an ACL rule that can manage all resources
+func ManageAll() ACL {
+	return manageAll
+}
+
 // RootACL returns a possible ACL if the ID matches a root policy
 func RootACL(id string) ACL {
 	switch id {
@@ -56,6 +87,8 @@ func RootACL(id string) ACL {
 		return allowAll
 	case "deny":
 		return denyAll
+	case "manage":
+		return manageAll
 	default:
 		return nil
 	}
@@ -121,4 +154,14 @@ func (p *PolicyACL) KeyWrite(key string) bool {
 
 	// No matching rule, use the parent.
 	return p.parent.KeyWrite(key)
+}
+
+// ACLList checks if listing of ACLs is allowed
+func (p *PolicyACL) ACLList() bool {
+	return p.ACLList()
+}
+
+// ACLModify checks if modification of ACLs is allowed
+func (p *PolicyACL) ACLModify() bool {
+	return p.ACLModify()
 }

@@ -11,6 +11,9 @@ func TestRootACL(t *testing.T) {
 	if RootACL("deny") != DenyAll() {
 		t.Fatalf("Bad root")
 	}
+	if RootACL("manage") != ManageAll() {
+		t.Fatalf("Bad root")
+	}
 	if RootACL("foo") != nil {
 		t.Fatalf("bad root")
 	}
@@ -27,11 +30,22 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("expected static")
 	}
 
+	manage := ManageAll()
+	if _, ok := none.(*StaticACL); !ok {
+		t.Fatalf("expected static")
+	}
+
 	if !all.KeyRead("foobar") {
 		t.Fatalf("should allow")
 	}
 	if !all.KeyWrite("foobar") {
 		t.Fatalf("should allow")
+	}
+	if all.ACLList() {
+		t.Fatalf("should not allow")
+	}
+	if all.ACLModify() {
+		t.Fatalf("should not allow")
 	}
 
 	if none.KeyRead("foobar") {
@@ -39,6 +53,25 @@ func TestStaticACL(t *testing.T) {
 	}
 	if none.KeyWrite("foobar") {
 		t.Fatalf("should not allow")
+	}
+	if none.ACLList() {
+		t.Fatalf("should not noneow")
+	}
+	if none.ACLModify() {
+		t.Fatalf("should not noneow")
+	}
+
+	if !manage.KeyRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.KeyWrite("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.ACLList() {
+		t.Fatalf("should allow")
+	}
+	if !manage.ACLModify() {
+		t.Fatalf("should allow")
 	}
 }
 
