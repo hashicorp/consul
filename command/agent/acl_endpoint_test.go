@@ -151,7 +151,9 @@ func TestACLList(t *testing.T) {
 		if !ok {
 			t.Fatalf("should work")
 		}
-		if len(respObj) != 10 {
+
+		// 10 + anonymous
+		if len(respObj) != 11 {
 			t.Fatalf("bad: %v", respObj)
 		}
 	})
