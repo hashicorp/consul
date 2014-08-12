@@ -5,7 +5,7 @@ import (
 )
 
 func TestCache_GetPolicy(t *testing.T) {
-	c, err := NewCache(1, AllowAll(), nil)
+	c, err := NewCache(1, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -45,11 +45,11 @@ func TestCache_GetACL(t *testing.T) {
 		"foo": testSimplePolicy,
 		"bar": testSimplePolicy2,
 	}
-	faultfn := func(id string) (string, error) {
-		return policies[id], nil
+	faultfn := func(id string) (string, string, error) {
+		return "deny", policies[id], nil
 	}
 
-	c, err := NewCache(1, DenyAll(), faultfn)
+	c, err := NewCache(1, faultfn)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -96,11 +96,11 @@ func TestCache_ClearACL(t *testing.T) {
 		"foo": testSimplePolicy,
 		"bar": testSimplePolicy,
 	}
-	faultfn := func(id string) (string, error) {
-		return policies[id], nil
+	faultfn := func(id string) (string, string, error) {
+		return "deny", policies[id], nil
 	}
 
-	c, err := NewCache(1, DenyAll(), faultfn)
+	c, err := NewCache(1, faultfn)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -131,11 +131,11 @@ func TestCache_Purge(t *testing.T) {
 		"foo": testSimplePolicy,
 		"bar": testSimplePolicy,
 	}
-	faultfn := func(id string) (string, error) {
-		return policies[id], nil
+	faultfn := func(id string) (string, string, error) {
+		return "deny", policies[id], nil
 	}
 
-	c, err := NewCache(1, DenyAll(), faultfn)
+	c, err := NewCache(1, faultfn)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -164,10 +164,10 @@ func TestCache_GetACLPolicy(t *testing.T) {
 		"foo": testSimplePolicy,
 		"bar": testSimplePolicy,
 	}
-	faultfn := func(id string) (string, error) {
-		return policies[id], nil
+	faultfn := func(id string) (string, string, error) {
+		return "deny", policies[id], nil
 	}
-	c, err := NewCache(1, DenyAll(), faultfn)
+	c, err := NewCache(1, faultfn)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -198,6 +198,37 @@ func TestCache_GetACLPolicy(t *testing.T) {
 
 	if p3 != p {
 		t.Fatalf("expected cached policy")
+	}
+}
+
+func TestCache_GetACL_Parent(t *testing.T) {
+	faultfn := func(id string) (string, string, error) {
+		switch id {
+		case "foo":
+			// Foo inherits from bar
+			return "bar", testSimplePolicy, nil
+		case "bar":
+			return "deny", testSimplePolicy2, nil
+		}
+		t.Fatalf("bad case")
+		return "", "", nil
+	}
+
+	c, err := NewCache(1, faultfn)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	acl, err := c.GetACL("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if !acl.KeyRead("bar/test") {
+		t.Fatalf("should allow")
+	}
+	if !acl.KeyRead("foo/test") {
+		t.Fatalf("should allow")
 	}
 }
 

@@ -7,9 +7,9 @@ import (
 	"github.com/hashicorp/golang-lru"
 )
 
-// FaultFunc is a function used to fault in the rules for an
-// ACL given it's ID
-type FaultFunc func(id string) (string, error)
+// FaultFunc is a function used to fault in the parent,
+// rules for an  ACL given it's ID
+type FaultFunc func(id string) (string, string, error)
 
 // aclEntry allows us to store the ACL with it's policy ID
 type aclEntry struct {
@@ -19,15 +19,14 @@ type aclEntry struct {
 
 // Cache is used to implement policy and ACL caching
 type Cache struct {
-	aclCache    *lru.Cache // Cache id -> acl
 	faultfn     FaultFunc
-	parent      ACL
+	aclCache    *lru.Cache // Cache id -> acl
 	policyCache *lru.Cache // Cache policy -> acl
 	ruleCache   *lru.Cache // Cache rules -> policy
 }
 
 // NewCache contructs a new policy and ACL cache of a given size
-func NewCache(size int, parent ACL, faultfn FaultFunc) (*Cache, error) {
+func NewCache(size int, faultfn FaultFunc) (*Cache, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("Must provide positive cache size")
 	}
@@ -35,9 +34,8 @@ func NewCache(size int, parent ACL, faultfn FaultFunc) (*Cache, error) {
 	pc, _ := lru.New(size)
 	ac, _ := lru.New(size)
 	c := &Cache{
-		aclCache:    ac,
 		faultfn:     faultfn,
-		parent:      parent,
+		aclCache:    ac,
 		policyCache: pc,
 		ruleCache:   rc,
 	}
@@ -84,7 +82,7 @@ func (c *Cache) GetACLPolicy(id string) (*Policy, error) {
 	}
 
 	// Fault in the rules
-	rules, err := c.faultfn(id)
+	_, rules, err := c.faultfn(id)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +101,7 @@ func (c *Cache) GetACL(id string) (ACL, error) {
 	}
 
 	// Get the rules
-	rules, err := c.faultfn(id)
+	parentID, rules, err := c.faultfn(id)
 	if err != nil {
 		return nil, err
 	}
@@ -120,8 +118,17 @@ func (c *Cache) GetACL(id string) (ACL, error) {
 			return nil, err
 		}
 
+		// Get the parent ACL
+		parent := RootACL(parentID)
+		if parent == nil {
+			parent, err = c.GetACL(parentID)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		// Compile the ACL
-		acl, err := New(c.parent, policy)
+		acl, err := New(parent, policy)
 		if err != nil {
 			return nil, err
 		}

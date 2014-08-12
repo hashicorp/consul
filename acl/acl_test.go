@@ -4,6 +4,18 @@ import (
 	"testing"
 )
 
+func TestRootACL(t *testing.T) {
+	if RootACL("allow") != AllowAll() {
+		t.Fatalf("Bad root")
+	}
+	if RootACL("deny") != DenyAll() {
+		t.Fatalf("Bad root")
+	}
+	if RootACL("foo") != nil {
+		t.Fatalf("bad root")
+	}
+}
+
 func TestStaticACL(t *testing.T) {
 	all := AllowAll()
 	if _, ok := all.(*StaticACL); !ok {

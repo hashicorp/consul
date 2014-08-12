@@ -49,6 +49,18 @@ func DenyAll() ACL {
 	return denyAll
 }
 
+// RootACL returns a possible ACL if the ID matches a root policy
+func RootACL(id string) ACL {
+	switch id {
+	case "allow":
+		return allowAll
+	case "deny":
+		return denyAll
+	default:
+		return nil
+	}
+}
+
 // PolicyACL is used to wrap a set of ACL policies to provide
 // the ACL interface.
 type PolicyACL struct {
