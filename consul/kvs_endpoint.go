@@ -2,9 +2,10 @@ package consul
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
-	"time"
 )
 
 // KVS endpoint is used to manipulate the Key-Value store
@@ -65,6 +66,11 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 		return err
 	}
 
+	acl, err := k.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
 	// Get the local state
 	state := k.srv.fsm.State()
 	return k.srv.blockingRPC(&args.QueryOptions,
@@ -74,6 +80,9 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 			index, ent, err := state.KVSGet(args.Key)
 			if err != nil {
 				return err
+			}
+			if acl != nil && !acl.KeyRead(args.Key) {
+				ent = nil
 			}
 			if ent == nil {
 				// Must provide non-zero index to prevent blocking
@@ -98,6 +107,11 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 		return err
 	}
 
+	acl, err := k.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
 	// Get the local state
 	state := k.srv.fsm.State()
 	return k.srv.blockingRPC(&args.QueryOptions,
@@ -107,6 +121,9 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 			index, ent, err := state.KVSList(args.Key)
 			if err != nil {
 				return err
+			}
+			if acl != nil {
+				ent = FilterDirEnt(acl, ent)
 			}
 			if len(ent) == 0 {
 				// Must provide non-zero index to prevent blocking
@@ -139,14 +156,23 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 		return err
 	}
 
+	acl, err := k.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
 	// Get the local state
 	state := k.srv.fsm.State()
 	return k.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
 		state.QueryTables("KVSListKeys"),
 		func() error {
-			var err error
-			reply.Index, reply.Keys, err = state.KVSListKeys(args.Prefix, args.Seperator)
+			index, keys, err := state.KVSListKeys(args.Prefix, args.Seperator)
+			reply.Index = index
+			if acl != nil {
+				keys = FilterKeys(acl, keys)
+			}
+			reply.Keys = keys
 			return err
 		})
 }

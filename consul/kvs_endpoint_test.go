@@ -111,6 +111,51 @@ func TestKVS_Get(t *testing.T) {
 	}
 }
 
+func TestKVS_Get_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	arg := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "test",
+			Flags: 42,
+			Value: []byte("test"),
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out bool
+	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	getR := structs.KeyRequest{
+		Datacenter: "dc1",
+		Key:        "test",
+	}
+	var dirent structs.IndexedDirEntries
+	if err := client.Call("KVS.Get", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Entries) != 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+}
+
 func TestKVSEndpoint_List(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -170,6 +215,90 @@ func TestKVSEndpoint_List(t *testing.T) {
 	}
 }
 
+func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	keys := []string{
+		"abe",
+		"bar",
+		"foo",
+		"test",
+		"zip",
+	}
+
+	for _, key := range keys {
+		arg := structs.KVSRequest{
+			Datacenter: "dc1",
+			Op:         structs.KVSSet,
+			DirEnt: structs.DirEntry{
+				Key:   key,
+				Flags: 1,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out bool
+		if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "User token",
+			Type:  structs.ACLTypeClient,
+			Rules: testListRules,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out string
+	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	id := out
+
+	getR := structs.KeyRequest{
+		Datacenter:   "dc1",
+		Key:          "",
+		QueryOptions: structs.QueryOptions{Token: id},
+	}
+	var dirent structs.IndexedDirEntries
+	if err := client.Call("KVS.List", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Entries) != 2 {
+		t.Fatalf("Bad: %v", dirent.Entries)
+	}
+	for i := 0; i < len(dirent.Entries); i++ {
+		d := dirent.Entries[i]
+		switch i {
+		case 0:
+			if d.Key != "foo" {
+				t.Fatalf("bad key")
+			}
+		case 1:
+			if d.Key != "test" {
+				t.Fatalf("bad key")
+			}
+		}
+	}
+}
+
 func TestKVSEndpoint_ListKeys(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -223,6 +352,84 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 		t.Fatalf("Bad: %v", dirent.Keys)
 	}
 	if dirent.Keys[2] != "/test/sub/" {
+		t.Fatalf("Bad: %v", dirent.Keys)
+	}
+}
+
+func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	keys := []string{
+		"abe",
+		"bar",
+		"foo",
+		"test",
+		"zip",
+	}
+
+	for _, key := range keys {
+		arg := structs.KVSRequest{
+			Datacenter: "dc1",
+			Op:         structs.KVSSet,
+			DirEnt: structs.DirEntry{
+				Key:   key,
+				Flags: 1,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var out bool
+		if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "User token",
+			Type:  structs.ACLTypeClient,
+			Rules: testListRules,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out string
+	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	id := out
+
+	getR := structs.KeyListRequest{
+		Datacenter:   "dc1",
+		Prefix:       "",
+		Seperator:    "/",
+		QueryOptions: structs.QueryOptions{Token: id},
+	}
+	var dirent structs.IndexedKeyList
+	if err := client.Call("KVS.ListKeys", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Keys) != 2 {
+		t.Fatalf("Bad: %v", dirent.Keys)
+	}
+	if dirent.Keys[0] != "foo" {
+		t.Fatalf("Bad: %v", dirent.Keys)
+	}
+	if dirent.Keys[1] != "test" {
 		t.Fatalf("Bad: %v", dirent.Keys)
 	}
 }
@@ -294,3 +501,15 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 		t.Fatalf("should acquire")
 	}
 }
+
+var testListRules = `
+key "" {
+	policy = "deny"
+}
+key "foo" {
+	policy = "read"
+}
+key "test" {
+	policy = "write"
+}
+`
