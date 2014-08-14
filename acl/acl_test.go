@@ -103,16 +103,19 @@ func TestPolicyACL(t *testing.T) {
 	}
 
 	type tcase struct {
-		inp   string
-		read  bool
-		write bool
+		inp         string
+		read        bool
+		write       bool
+		writePrefix bool
 	}
 	cases := []tcase{
-		{"other", true, true},
-		{"foo/test", true, true},
-		{"foo/priv/test", false, false},
-		{"bar/any", false, false},
-		{"zip/test", true, false},
+		{"other", true, true, true},
+		{"foo/test", true, true, true},
+		{"foo/priv/test", false, false, false},
+		{"bar/any", false, false, false},
+		{"zip/test", true, false, false},
+		{"foo/", true, true, false},
+		{"", true, true, false},
 	}
 	for _, c := range cases {
 		if c.read != acl.KeyRead(c.inp) {
@@ -120,6 +123,9 @@ func TestPolicyACL(t *testing.T) {
 		}
 		if c.write != acl.KeyWrite(c.inp) {
 			t.Fatalf("Write fail: %#v", c)
+		}
+		if c.writePrefix != acl.KeyWritePrefix(c.inp) {
+			t.Fatalf("Write prefix fail: %#v", c)
 		}
 	}
 }
@@ -165,16 +171,17 @@ func TestPolicyACL_Parent(t *testing.T) {
 	}
 
 	type tcase struct {
-		inp   string
-		read  bool
-		write bool
+		inp         string
+		read        bool
+		write       bool
+		writePrefix bool
 	}
 	cases := []tcase{
-		{"other", false, false},
-		{"foo/test", true, true},
-		{"foo/priv/test", true, false},
-		{"bar/any", false, false},
-		{"zip/test", true, false},
+		{"other", false, false, false},
+		{"foo/test", true, true, true},
+		{"foo/priv/test", true, false, false},
+		{"bar/any", false, false, false},
+		{"zip/test", true, false, false},
 	}
 	for _, c := range cases {
 		if c.read != acl.KeyRead(c.inp) {
@@ -182,6 +189,9 @@ func TestPolicyACL_Parent(t *testing.T) {
 		}
 		if c.write != acl.KeyWrite(c.inp) {
 			t.Fatalf("Write fail: %#v", c)
+		}
+		if c.writePrefix != acl.KeyWritePrefix(c.inp) {
+			t.Fatalf("Write prefix fail: %#v", c)
 		}
 	}
 }

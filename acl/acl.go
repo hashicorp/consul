@@ -35,9 +35,21 @@ func init() {
 
 // ACL is the interface for policy enforcement.
 type ACL interface {
+	// KeyRead checks for permission to read a given key
 	KeyRead(string) bool
+
+	// KeyWrite checks for permission to write a given key
 	KeyWrite(string) bool
+
+	// KeyWritePrefix checks for permission to write to an
+	// entire key prefix. This means there must be no sub-policies
+	// that deny a write.
+	KeyWritePrefix(string) bool
+
+	// ACLList checks for permission to list all the ACLs
 	ACLList() bool
+
+	// ACLModify checks for permission to manipulate ACLs
 	ACLModify() bool
 }
 
@@ -54,6 +66,10 @@ func (s *StaticACL) KeyRead(string) bool {
 }
 
 func (s *StaticACL) KeyWrite(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) KeyWritePrefix(string) bool {
 	return s.defaultAllow
 }
 
@@ -154,6 +170,39 @@ func (p *PolicyACL) KeyWrite(key string) bool {
 
 	// No matching rule, use the parent.
 	return p.parent.KeyWrite(key)
+}
+
+// KeyWritePrefix returns if a prefix is allowed to be written
+func (p *PolicyACL) KeyWritePrefix(prefix string) bool {
+	// Look for a matching rule that denies
+	_, rule, ok := p.keyRules.LongestPrefix(prefix)
+	if ok && rule.(string) != KeyPolicyWrite {
+		return false
+	}
+
+	// Look if any of our children have a deny policy
+	deny := false
+	p.keyRules.WalkPrefix(prefix, func(path string, rule interface{}) bool {
+		// We have a rule to prevent a write in a sub-directory!
+		if rule.(string) != KeyPolicyWrite {
+			deny = true
+			return true
+		}
+		return false
+	})
+
+	// Deny the write if any sub-rules may be violated
+	if deny {
+		return false
+	}
+
+	// If we had a matching rule, done
+	if ok {
+		return true
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.KeyWritePrefix(prefix)
 }
 
 // ACLList checks if listing of ACLs is allowed
