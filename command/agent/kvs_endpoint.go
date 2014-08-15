@@ -145,6 +145,7 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 			Value: nil,
 		},
 	}
+	applyReq.Token = args.Token
 
 	// Check for flags
 	params := req.URL.Query()
@@ -215,6 +216,7 @@ func (s *HTTPServer) KVSDelete(resp http.ResponseWriter, req *http.Request, args
 			Key: args.Key,
 		},
 	}
+	applyReq.Token = args.Token
 
 	// Check for recurse
 	params := req.URL.Query()
