@@ -26,6 +26,23 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 		return fmt.Errorf("Must provide key")
 	}
 
+	// Apply the ACL policy if any
+	acl, err := k.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	} else if acl != nil {
+		switch args.Op {
+		case structs.KVSDeleteTree:
+			if !acl.KeyWritePrefix(args.DirEnt.Key) {
+				return permissionDeniedErr
+			}
+		default:
+			if !acl.KeyWrite(args.DirEnt.Key) {
+				return permissionDeniedErr
+			}
+		}
+	}
+
 	// If this is a lock, we must check for a lock-delay. Since lock-delay
 	// is based on wall-time, each peer expire the lock-delay at a slightly
 	// different time. This means the enforcement of lock-delay cannot be done

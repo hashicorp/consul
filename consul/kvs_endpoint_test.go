@@ -1,11 +1,13 @@
 package consul
 
 import (
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
 	"os"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestKVS_Apply(t *testing.T) {
@@ -61,6 +63,68 @@ func TestKVS_Apply(t *testing.T) {
 	}
 	if d.Flags != 43 {
 		t.Fatalf("bad: %v", d)
+	}
+}
+
+func TestKVS_Apply_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Create the ACL
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "User token",
+			Type:  structs.ACLTypeClient,
+			Rules: testListRules,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out string
+	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	id := out
+
+	// Try a write
+	argR := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "foo/bar",
+			Flags: 42,
+			Value: []byte("test"),
+		},
+		WriteRequest: structs.WriteRequest{Token: id},
+	}
+	var outR bool
+	err := client.Call("KVS.Apply", &argR, &outR)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try a recursive delete
+	argR = structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSDeleteTree,
+		DirEnt: structs.DirEntry{
+			Key: "test",
+		},
+		WriteRequest: structs.WriteRequest{Token: id},
+	}
+	err = client.Call("KVS.Apply", &argR, &outR)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
 	}
 }
 
@@ -128,7 +192,7 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.KVSSet,
 		DirEnt: structs.DirEntry{
-			Key:   "test",
+			Key:   "zip",
 			Flags: 42,
 			Value: []byte("test"),
 		},
@@ -141,7 +205,7 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 
 	getR := structs.KeyRequest{
 		Datacenter: "dc1",
-		Key:        "test",
+		Key:        "zip",
 	}
 	var dirent structs.IndexedDirEntries
 	if err := client.Call("KVS.Get", &getR, &dirent); err != nil {
@@ -511,5 +575,8 @@ key "foo" {
 }
 key "test" {
 	policy = "write"
+}
+key "test/priv" {
+	policy = "read"
 }
 `
