@@ -114,7 +114,7 @@ func TestCache_ClearACL(t *testing.T) {
 	c.ClearACL("foo")
 
 	// Clear the policy cache
-	c.policyCache.Remove(c.ruleID(testSimplePolicy))
+	c.policyCache.Purge()
 
 	acl2, err := c.GetACL("foo")
 	if err != nil {
@@ -234,6 +234,53 @@ func TestCache_GetACL_Parent(t *testing.T) {
 		t.Fatalf("should allow")
 	}
 	if !acl.KeyRead("foo/test") {
+		t.Fatalf("should allow")
+	}
+}
+
+func TestCache_GetACL_ParentCache(t *testing.T) {
+	// Same rules, different parent
+	faultfn := func(id string) (string, string, error) {
+		switch id {
+		case "foo":
+			return "allow", testSimplePolicy, nil
+		case "bar":
+			return "deny", testSimplePolicy, nil
+		}
+		t.Fatalf("bad case")
+		return "", "", nil
+	}
+
+	c, err := NewCache(16, faultfn)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	acl, err := c.GetACL("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if !acl.KeyRead("bar/test") {
+		t.Fatalf("should allow")
+	}
+	if !acl.KeyRead("foo/test") {
+		t.Fatalf("should allow")
+	}
+
+	acl2, err := c.GetACL("bar")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if acl == acl2 {
+		t.Fatalf("should not match")
+	}
+
+	if acl2.KeyRead("bar/test") {
+		t.Fatalf("should not allow")
+	}
+	if !acl2.KeyRead("foo/test") {
 		t.Fatalf("should allow")
 	}
 }
