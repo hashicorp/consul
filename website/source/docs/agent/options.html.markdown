@@ -284,6 +284,38 @@ definitions support being updated during a reload.
   will not make use of TLS for outgoing connections. This applies to clients and servers,
   as both will make outgoing connections.
 
+* `acl_datacenter` - Only used by servers. This designates the datacenter which
+   is authoritative for ACL information. It must be provided to enable ACLs.
+   All servers and datacenters must agree on the ACL datacenter.
+
+* `acl_token` - When provided, the agent will use this token when making requests
+   to the Consul servers. Clients can override this token on a per-request basis
+   by providing the ?token parameter. When not provided, the empty token is used
+   which maps to the 'anonymous' ACL policy.
+
+* `acl_master_token` - Only used for servers in the `acl_datacenter`. This token
+   will be created if it does not exist with management level permissions. It allows
+   operators to bootstrap the ACL system with a token ID that is well-known.
+
+* `acl_default_policy` - Either "allow" or "deny", defaults to "allow". The
+  default policy controls the behavior of a token when there is no matching
+  rule. In "allow" mode, ACLs are a blacklist: any operation not specifically
+  prohibited is allowed. In "deny" mode, ACLs are a whilelist: any operation not
+  specifically allowed is blocked.
+
+* `acl_down_policy` - Either "allow", "deny" or "extend-cache" which is the
+  default. In the case that the policy for a token cannot be read from the
+  `acl_datacenter` or leader node, the down policy is applied. In "allow" mode,
+  all actions are permitted, "deny" restricts all operations, and "extend-cache"
+  allows any cached ACLs to be used, ignoring their TTL values. If a non-cached
+  ACL is used, "extend-cache" acts like "deny".
+
+* `acl_ttl` - Used to control Time-To-Live caching of ACLs. By default this
+   is 30 seconds. This setting has a major performance impact: reducing it will
+   cause more frequent refreshes, while increasing it reduces the number of caches.
+   However, because the caches are not actively invalidated, ACL policy may be stale
+   up to the TTL value.
+
 ## Ports Used
 
 Consul requires up to 5 different ports to work properly, some requiring
