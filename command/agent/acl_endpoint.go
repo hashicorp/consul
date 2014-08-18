@@ -19,7 +19,7 @@ func aclDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, erro
 	return nil, nil
 }
 
-func (s *HTTPServer) ACLDelete(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.ACLRequest{
 		Datacenter: s.agent.config.ACLDatacenter,
 		Op:         structs.ACLDelete,
@@ -27,7 +27,7 @@ func (s *HTTPServer) ACLDelete(resp http.ResponseWriter, req *http.Request) (int
 	s.parseToken(req, &args.Token)
 
 	// Pull out the acl id
-	args.ACL.ID = strings.TrimPrefix(req.URL.Path, "/v1/acl/delete/")
+	args.ACL.ID = strings.TrimPrefix(req.URL.Path, "/v1/acl/destroy/")
 	if args.ACL.ID == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Missing ACL"))

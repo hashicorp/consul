@@ -62,12 +62,12 @@ func TestACLUpdate(t *testing.T) {
 	})
 }
 
-func TestACLDelete(t *testing.T) {
+func TestACLDestroy(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestACL(t, srv)
-		req, err := http.NewRequest("PUT", "/v1/session/delete/"+id, nil)
+		req, err := http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
 		resp := httptest.NewRecorder()
-		obj, err := srv.ACLDelete(resp, req)
+		obj, err := srv.ACLDestroy(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
