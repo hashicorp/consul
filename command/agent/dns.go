@@ -280,7 +280,7 @@ PARSE:
 			// _name._tag.service.consul
 			d.serviceLookup(network, datacenter, labels[n-3][1:], tag, req, resp)
 
-			// Consul 0.3 and prior format for SRV queries
+		// Consul 0.3 and prior format for SRV queries
 		} else {
 
 			// Support "." in the label, re-join all the parts
