@@ -157,6 +157,11 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
+	// Verify the service as an address, using node address as fallback
+	if args.Address == "" {
+		args.Address = s.agent.config.AdvertiseAddr
+	}
+
 	// Get the node service
 	ns := args.NodeService()
 

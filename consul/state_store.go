@@ -419,11 +419,12 @@ func (s *StateStore) EnsureService(index uint64, node string, ns *structs.NodeSe
 
 	// Create the entry
 	entry := structs.ServiceNode{
-		Node:        node,
-		ServiceID:   ns.ID,
-		ServiceName: ns.Service,
-		ServiceTags: ns.Tags,
-		ServicePort: ns.Port,
+		Node:           node,
+		ServiceID:      ns.ID,
+		ServiceName:    ns.Service,
+		ServiceTags:    ns.Tags,
+		ServicePort:    ns.Port,
+		ServiceAddress: ns.Address,
 	}
 
 	// Ensure the service entry is set
@@ -668,7 +669,11 @@ func (s *StateStore) parseServiceNodes(tx *MDBTxn, table *MDBTable, res []interf
 			s.logger.Printf("[ERR] consul.state: Failed to join service node %#v with node: %v", *srv, err)
 			continue
 		}
-		srv.Address = nodeRes[0].(*structs.Node).Address
+		if srv.ServiceAddress != "" {
+			srv.Address = srv.ServiceAddress
+		} else {
+			srv.Address = nodeRes[0].(*structs.Node).Address
+		}
 
 		nodes[i] = *srv
 	}
@@ -866,6 +871,7 @@ func (s *StateStore) parseCheckServiceNodes(tx *MDBTxn, res []interface{}, err e
 			Service: srv.ServiceName,
 			Tags:    srv.ServiceTags,
 			Port:    srv.ServicePort,
+			Address: srv.ServiceAddress,
 		}
 		nodes[i].Checks = checks
 	}
