@@ -80,6 +80,11 @@ func NewClient(config *Config) (*Client, error) {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
 
+	// Sanity check the ACLs
+	if err := config.CheckACL(); err != nil {
+		return nil, err
+	}
+
 	// Ensure we have a log output
 	if config.LogOutput == nil {
 		config.LogOutput = os.Stderr

@@ -181,6 +181,24 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.Protocol > 0 {
 		base.ProtocolVersion = uint8(a.config.Protocol)
 	}
+	if a.config.ACLToken != "" {
+		base.ACLToken = a.config.ACLToken
+	}
+	if a.config.ACLMasterToken != "" {
+		base.ACLMasterToken = a.config.ACLMasterToken
+	}
+	if a.config.ACLDatacenter != "" {
+		base.ACLDatacenter = a.config.ACLDatacenter
+	}
+	if a.config.ACLTTLRaw != "" {
+		base.ACLTTL = a.config.ACLTTL
+	}
+	if a.config.ACLDefaultPolicy != "" {
+		base.ACLDefaultPolicy = a.config.ACLDefaultPolicy
+	}
+	if a.config.ACLDownPolicy != "" {
+		base.ACLDownPolicy = a.config.ACLDownPolicy
+	}
 
 	// Format the build string
 	revision := a.config.Revision

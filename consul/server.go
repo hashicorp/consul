@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-mdb"
 	"github.com/hashicorp/serf/serf"
@@ -43,11 +45,24 @@ const (
 	// serverMaxStreams controsl how many idle streams we keep
 	// open to a server
 	serverMaxStreams = 64
+
+	// Maximum number of cached ACL entries
+	aclCacheSize = 256
 )
 
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
+	// aclAuthCache is the authoritative ACL cache
+	aclAuthCache *acl.Cache
+
+	// aclCache is a non-authoritative ACL cache
+	aclCache *lru.Cache
+
+	// aclPolicyCache is a policy cache
+	aclPolicyCache *lru.Cache
+
+	// Consul configuration
 	config *Config
 
 	// Connection pool to other consul servers
@@ -125,6 +140,7 @@ type endpoints struct {
 	KVS      *KVS
 	Session  *Session
 	Internal *Internal
+	ACL      *ACL
 }
 
 // NewServer is used to construct a new Consul server from the
@@ -138,6 +154,11 @@ func NewServer(config *Config) (*Server, error) {
 	// Check for a data directory!
 	if config.DataDir == "" {
 		return nil, fmt.Errorf("Config must provide a DataDir")
+	}
+
+	// Sanity check the ACLs
+	if err := config.CheckACL(); err != nil {
+		return nil, err
 	}
 
 	// Ensure we have a log output
@@ -173,6 +194,27 @@ func NewServer(config *Config) (*Server, error) {
 		rpcServer:     rpc.NewServer(),
 		rpcTLS:        incomingTLS,
 		shutdownCh:    make(chan struct{}),
+	}
+
+	// Initialize the authoritative ACL cache
+	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclFault)
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to create ACL cache: %v", err)
+	}
+
+	// Initialize the non-authoritative ACL cache
+	s.aclCache, err = lru.New(aclCacheSize)
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to create ACL cache: %v", err)
+	}
+
+	// Initialize the ACL policy cache
+	s.aclPolicyCache, err = lru.New(aclCacheSize)
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to create ACL policy cache: %v", err)
 	}
 
 	// Initialize the RPC layer
@@ -336,6 +378,7 @@ func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 	s.endpoints.KVS = &KVS{s}
 	s.endpoints.Session = &Session{s}
 	s.endpoints.Internal = &Internal{s}
+	s.endpoints.ACL = &ACL{s}
 
 	// Register the handlers
 	s.rpcServer.Register(s.endpoints.Status)
@@ -344,6 +387,7 @@ func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 	s.rpcServer.Register(s.endpoints.KVS)
 	s.rpcServer.Register(s.endpoints.Session)
 	s.rpcServer.Register(s.endpoints.Internal)
+	s.rpcServer.Register(s.endpoints.ACL)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {

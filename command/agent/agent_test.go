@@ -30,6 +30,7 @@ func nextConfig() *Config {
 	conf.Ports.SerfWan = 18300 + idx
 	conf.Ports.Server = 18100 + idx
 	conf.Server = true
+	conf.ACLDatacenter = "dc1"
 
 	cons := consul.DefaultConfig()
 	conf.ConsulConfig = cons

@@ -99,6 +99,22 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/session/node/", s.wrap(s.SessionsForNode))
 	s.mux.HandleFunc("/v1/session/list", s.wrap(s.SessionList))
 
+	if s.agent.config.ACLDatacenter != "" {
+		s.mux.HandleFunc("/v1/acl/create", s.wrap(s.ACLCreate))
+		s.mux.HandleFunc("/v1/acl/update", s.wrap(s.ACLUpdate))
+		s.mux.HandleFunc("/v1/acl/destroy/", s.wrap(s.ACLDestroy))
+		s.mux.HandleFunc("/v1/acl/info/", s.wrap(s.ACLGet))
+		s.mux.HandleFunc("/v1/acl/clone/", s.wrap(s.ACLClone))
+		s.mux.HandleFunc("/v1/acl/list", s.wrap(s.ACLList))
+	} else {
+		s.mux.HandleFunc("/v1/acl/create", s.wrap(aclDisabled))
+		s.mux.HandleFunc("/v1/acl/update", s.wrap(aclDisabled))
+		s.mux.HandleFunc("/v1/acl/destroy/", s.wrap(aclDisabled))
+		s.mux.HandleFunc("/v1/acl/info/", s.wrap(aclDisabled))
+		s.mux.HandleFunc("/v1/acl/clone/", s.wrap(aclDisabled))
+		s.mux.HandleFunc("/v1/acl/list", s.wrap(aclDisabled))
+	}
+
 	if enableDebug {
 		s.mux.HandleFunc("/debug/pprof/", pprof.Index)
 		s.mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -273,10 +289,20 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 	}
 }
 
+// parseToken is used to parse the ?token query param
+func (s *HTTPServer) parseToken(req *http.Request, token *string) {
+	if other := req.URL.Query().Get("token"); other != "" {
+		*token = other
+	} else if *token == "" {
+		*token = s.agent.config.ACLToken
+	}
+}
+
 // parse is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
 func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {
 	s.parseDC(req, dc)
+	s.parseToken(req, &b.Token)
 	if parseConsistency(resp, req, b) {
 		return true
 	}

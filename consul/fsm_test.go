@@ -328,6 +328,8 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	})
 	session := &structs.Session{Node: "foo"}
 	fsm.state.SessionCreate(9, session)
+	acl := &structs.ACL{Name: "User Token"}
+	fsm.state.ACLSet(10, acl, false)
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -392,7 +394,16 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if s.Node != "foo" {
-		t.Fatalf("bad: %v", d)
+		t.Fatalf("bad: %v", s)
+	}
+
+	// Verify ACL is restored
+	_, a, err := fsm.state.ACLGet(acl.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if a.Name != "User Token" {
+		t.Fatalf("bad: %v", a)
 	}
 }
 
@@ -765,5 +776,77 @@ func TestFSM_KVSUnlock(t *testing.T) {
 	}
 	if d.Session != "" {
 		t.Fatalf("bad: %v", *d)
+	}
+}
+
+func TestFSM_ACL_Set_Delete(t *testing.T) {
+	fsm, err := NewFSM(os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	// Create a new ACL
+	req := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+		},
+	}
+	buf, err := structs.Encode(structs.ACLRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if err, ok := resp.(error); ok {
+		t.Fatalf("resp: %v", err)
+	}
+
+	// Get the ACL
+	id := resp.(string)
+	_, acl, err := fsm.state.ACLGet(id)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if acl == nil {
+		t.Fatalf("missing")
+	}
+
+	// Verify the ACL
+	if acl.ID != id {
+		t.Fatalf("bad: %v", *acl)
+	}
+	if acl.Name != "User token" {
+		t.Fatalf("bad: %v", *acl)
+	}
+	if acl.Type != structs.ACLTypeClient {
+		t.Fatalf("bad: %v", *acl)
+	}
+
+	// Try to destroy
+	destroy := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLDelete,
+		ACL: structs.ACL{
+			ID: id,
+		},
+	}
+	buf, err = structs.Encode(structs.ACLRequestType, destroy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp = fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	_, acl, err = fsm.state.ACLGet(id)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if acl != nil {
+		t.Fatalf("should be destroyed")
 	}
 }

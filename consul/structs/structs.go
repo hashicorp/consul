@@ -3,8 +3,10 @@ package structs
 import (
 	"bytes"
 	"fmt"
-	"github.com/ugorji/go/codec"
 	"time"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/ugorji/go/codec"
 )
 
 var (
@@ -20,6 +22,7 @@ const (
 	DeregisterRequestType
 	KVSRequestType
 	SessionRequestType
+	ACLRequestType
 )
 
 const (
@@ -33,6 +36,15 @@ const (
 )
 
 const (
+	// Client tokens have rules applied
+	ACLTypeClient = "client"
+
+	// Management tokens have an always allow policy.
+	// They are used for token management.
+	ACLTypeManagement = "management"
+)
+
+const (
 	// MaxLockDelay provides a maximum LockDelay value for
 	// a session. Any value above this will not be respected.
 	MaxLockDelay = 60 * time.Second
@@ -43,10 +55,15 @@ type RPCInfo interface {
 	RequestDatacenter() string
 	IsRead() bool
 	AllowStaleRead() bool
+	ACLToken() string
 }
 
 // QueryOptions is used to specify various flags for read queries
 type QueryOptions struct {
+	// Token is the ACL token ID. If not provided, the 'anonymous'
+	// token is assumed for backwards compatibility.
+	Token string
+
 	// If set, wait until query exceeds given index. Must be provided
 	// with MaxQueryTime.
 	MinQueryIndex uint64
@@ -72,7 +89,15 @@ func (q QueryOptions) AllowStaleRead() bool {
 	return q.AllowStale
 }
 
-type WriteRequest struct{}
+func (q QueryOptions) ACLToken() string {
+	return q.Token
+}
+
+type WriteRequest struct {
+	// Token is the ACL token ID. If not provided, the 'anonymous'
+	// token is assumed for backwards compatibility.
+	Token string
+}
 
 // WriteRequest only applies to writes, always false
 func (w WriteRequest) IsRead() bool {
@@ -81,6 +106,10 @@ func (w WriteRequest) IsRead() bool {
 
 func (w WriteRequest) AllowStaleRead() bool {
 	return false
+}
+
+func (w WriteRequest) ACLToken() string {
+	return w.Token
 }
 
 // QueryMeta allows a query response to include potentially
@@ -393,6 +422,74 @@ func (r *SessionSpecificRequest) RequestDatacenter() string {
 
 type IndexedSessions struct {
 	Sessions Sessions
+	QueryMeta
+}
+
+// ACL is used to represent a token and it's rules
+type ACL struct {
+	CreateIndex uint64
+	ModifyIndex uint64
+	ID          string
+	Name        string
+	Type        string
+	Rules       string
+}
+type ACLs []*ACL
+
+type ACLOp string
+
+const (
+	ACLSet      ACLOp = "set"
+	ACLForceSet       = "force-set"
+	ACLDelete         = "delete"
+)
+
+// ACLRequest is used to create, update or delete an ACL
+type ACLRequest struct {
+	Datacenter string
+	Op         ACLOp
+	ACL        ACL
+	WriteRequest
+}
+
+func (r *ACLRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLSpecificRequest is used to request an ACL by ID
+type ACLSpecificRequest struct {
+	Datacenter string
+	ACL        string
+	QueryOptions
+}
+
+func (r *ACLSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ACLPolicyRequest is used to request an ACL by ID, conditionally
+// filtering on an ID
+type ACLPolicyRequest struct {
+	Datacenter string
+	ACL        string
+	ETag       string
+	QueryOptions
+}
+
+func (r *ACLPolicyRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+type IndexedACLs struct {
+	ACLs ACLs
+	QueryMeta
+}
+
+type ACLPolicy struct {
+	ETag   string
+	Parent string
+	Policy *acl.Policy
+	TTL    time.Duration
 	QueryMeta
 }
 
