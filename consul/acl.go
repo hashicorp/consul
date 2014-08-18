@@ -112,6 +112,9 @@ func (s *Server) lookupACL(id, authDC string) (acl.ACL, error) {
 		Datacenter: authDC,
 		ACL:        id,
 	}
+	if cached != nil {
+		args.ETag = cached.ETag
+	}
 	var out structs.ACLPolicy
 	err := s.RPC("ACL.GetPolicy", &args, &out)
 
