@@ -69,6 +69,11 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 		return respErr
 	}
 
+	// Clear the cache if applicable
+	if args.ACL.ID != "" {
+		a.srv.aclAuthCache.ClearACL(args.ACL.ID)
+	}
+
 	// Check if the return type is a string
 	if respString, ok := resp.(string); ok {
 		*reply = respString

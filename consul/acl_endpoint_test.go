@@ -70,6 +70,84 @@ func TestACLEndpoint_Apply(t *testing.T) {
 	}
 }
 
+func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out string
+	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	id := out
+
+	// Resolve
+	acl1, err := s1.resolveToken(id)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if acl1 == nil {
+		t.Fatalf("should not be nil")
+	}
+	if !acl1.KeyRead("foo") {
+		t.Fatalf("should be allowed")
+	}
+
+	// Do an update
+	arg.ACL.ID = out
+	arg.ACL.Rules = `{"key": {"": {"policy": "deny"}}}`
+	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Resolve again
+	acl2, err := s1.resolveToken(id)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if acl2 == nil {
+		t.Fatalf("should not be nil")
+	}
+	if acl2 == acl1 {
+		t.Fatalf("should not be cached")
+	}
+	if acl2.KeyRead("foo") {
+		t.Fatalf("should not be allowed")
+	}
+
+	// Do a delete
+	arg.Op = structs.ACLDelete
+	arg.ACL.Rules = ""
+	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Resolve again
+	acl3, err := s1.resolveToken(id)
+	if err == nil || err.Error() != aclNotFound {
+		t.Fatalf("err: %v", err)
+	}
+	if acl3 != nil {
+		t.Fatalf("should be nil")
+	}
+}
+
 func TestACLEndpoint_Apply_Denied(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
