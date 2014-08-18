@@ -1088,7 +1088,7 @@ body must look like:
 None of the fields are mandatory, and in fact no body needs to be PUT
 if the defaults are to be used. The `Name` and `Rules` default to being
 blank, and the `Type` defaults to "client". The format of `Rules` is
-[documented here]().
+[documented here](/docs/internals/acl.html).
 
 The return code is 200 on success, along with a body like:
 
@@ -1120,7 +1120,7 @@ body must look like:
 
 Only the `ID` field is mandatory, the other fields provide defaults.
 The `Name` and `Rules` default to being blank, and the `Type` defaults to "client".
-The format of `Rules` is [documented here]().
+The format of `Rules` is [documented here](/docs/internals/acl.html).
 
 The return code is 200 on success.
 
