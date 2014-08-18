@@ -7,8 +7,8 @@ sidebar_current: "docs-internals-acl"
 # ACL System
 
 Consul provides an optional Access Control List (ACL) system which can be used to control
-access to data and APIs. The ACL system is an
-[Object-Capability system](http://en.wikipedia.org/wiki/Object-capability_model) that relies
+access to data and APIs. The ACL system is a
+[Capability-based system](http://en.wikipedia.org/wiki/Capability-based_security) that relies
 on tokens which can have fine grained rules applied to them. It is very similar to
 [AWS IAM](http://aws.amazon.com/iam/) in many ways.
 
