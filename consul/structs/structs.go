@@ -187,12 +187,13 @@ type Services map[string][]string
 
 // ServiceNode represents a node that is part of a service
 type ServiceNode struct {
-	Node        string
-	Address     string
-	ServiceID   string
-	ServiceName string
-	ServiceTags []string
-	ServicePort int
+	Node           string
+	Address        string
+	ServiceID      string
+	ServiceName    string
+	ServiceTags    []string
+	ServicePort    int
+	ServiceAddress string
 }
 type ServiceNodes []ServiceNode
 
@@ -202,6 +203,7 @@ type NodeService struct {
 	Service string
 	Tags    []string
 	Port    int
+	Address string
 }
 type NodeServices struct {
 	Node     Node
