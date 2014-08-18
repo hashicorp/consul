@@ -266,17 +266,32 @@ PARSE:
 			goto INVALID
 		}
 
-		// Extract the service
-		service := labels[n-2]
+		// Support RFC 2782 style syntax
+		if n == 3 && strings.HasPrefix(labels[n-2], "_") && strings.HasPrefix(labels[n-3], "_") {
 
-		// Support "." in the label, re-join all the parts
-		tag := ""
-		if n >= 3 {
-			tag = strings.Join(labels[:n-2], ".")
+			// Grab the tag since we make nuke it if it's tcp
+			tag := labels[n-2][1:]
+
+			// Treat _name._tcp.service.consul as a default, no need to filter on that tag
+			if tag == "tcp" {
+				tag = ""
+			}
+
+			// _name._tag.service.consul
+			d.serviceLookup(network, datacenter, labels[n-3][1:], tag, req, resp)
+
+			// Consul 0.3 and prior format for SRV queries
+		} else {
+
+			// Support "." in the label, re-join all the parts
+			tag := ""
+			if n >= 3 {
+				tag = strings.Join(labels[:n-2], ".")
+			}
+
+			// tag[.tag].name.service.consul
+			d.serviceLookup(network, datacenter, labels[n-2], tag, req, resp)
 		}
-
-		// Handle lookup with and without tag
-		d.serviceLookup(network, datacenter, service, tag, req, resp)
 
 	case "node":
 		if len(labels) == 1 {
