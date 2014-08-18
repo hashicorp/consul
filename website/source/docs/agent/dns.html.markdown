@@ -73,9 +73,14 @@ the node.
 ## Service Lookups
 
 A service lookup is the alternate type of query. It is used to query for service
-providers. The format of a service lookup is like the following:
+providers and supports two mode of lookup, a strict RCF style lookup and the
+standard lookup.
 
-    <tag>.<service>.service.<datacenter>.<domain>
+### Standard Style Lookup
+
+The format of a standard service lookup is like the following:
+
+    [tag.]<service>.service[.datacenter][.domain]
 
 As with node lookups, the `datacenter` is optional, as is the `tag`. If no tag is
 provided, then no filtering is done on tag. So, if we want to find any redis service
@@ -114,6 +119,46 @@ SRV records.
     ;; ADDITIONAL SECTION:
     foobar.node.dc1.consul.	0	IN	A	10.1.10.12
 
+### RFC-2782 Style Lookup
+
+The format for RFC style lookups uses the following format:
+
+  _<service>._<protocol>.service[.datacenter][.domain]
+
+Per [RFC-2782](https://www.ietf.org/rfc/rfc2782.txt), SRV queries should use
+underscores (_) as a prefix to the `service` and `protocol` values in a query to
+prevent DNS collisions. The `protocol` value can be any of the tags for a
+service or if the service has no tags, the value "tcp" should be used. If "tcp"
+is specified as the protocol, the query will not perform any tag filtering.
+
+Other than the query format and default "tcp" protocol/tag value, the behavior
+of the RFC style lookup is the same as the standard style of lookup.
+
+Using the RCF style lookup, If you registered the service "rabbitmq" on port
+5672 and tagged it with "amqp" you would query the SRV record as
+"_rabbitmq._amqp.service.consul" as illustrated in the example below:
+
+    $ dig @127.0.0.1 -p 8600 consul.service.consul SRV
+
+    ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul ANY
+    ; (1 server found)
+    ;; global options: +cmd
+    ;; Got answer:
+    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 52838
+    ;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+    ;; WARNING: recursion requested but not available
+
+    ;; QUESTION SECTION:
+    ;_rabbitmq._amqp.service.consul.	IN	SRV
+
+    ;; ANSWER SECTION:
+    _rabbitmq._amqp.service.consul.	0	IN	SRV	1 1 5672 rabbitmq.node1.dc1.consul.
+
+    ;; ADDITIONAL SECTION:
+    rabbitmq.node1.dc1.consul.	0	IN	A	10.1.11.20
+
+### UDP Based DNS Queries
+
 When the DNS query is performed using UDP, Consul will truncate the results
 without setting the truncate bit. This is to prevent a redundant lookup over
 TCP which generate additional load. If the lookup is done over TCP, the results
@@ -125,4 +170,3 @@ By default, all DNS results served by Consul set a 0 TTL value. This disables
 caching of DNS results. However, there are many situations in which caching is
 desirable for performance and scalability. This is discussed more in the guide
 for [DNS Caching](/docs/guides/dns-cache.html).
-
