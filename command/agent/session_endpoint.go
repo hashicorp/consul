@@ -103,6 +103,12 @@ func FixupLockDelay(raw interface{}) error {
 
 // SessionDestroy is used to destroy an existing session
 func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Mandate a PUT request
+	if req.Method != "PUT" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
 	args := structs.SessionRequest{
 		Op: structs.SessionDestroy,
 	}
