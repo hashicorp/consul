@@ -138,7 +138,7 @@ Using the RCF style lookup, If you registered the service "rabbitmq" on port
 5672 and tagged it with "amqp" you would query the SRV record as
 "_rabbitmq._amqp.service.consul" as illustrated in the example below:
 
-    $ dig @127.0.0.1 -p 8600 consul.service.consul SRV
+    $ dig @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul SRV
 
     ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul ANY
     ; (1 server found)
