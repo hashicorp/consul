@@ -20,6 +20,12 @@ func aclDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, erro
 }
 
 func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Mandate a PUT request
+	if req.Method != "PUT" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
 	args := structs.ACLRequest{
 		Datacenter: s.agent.config.ACLDatacenter,
 		Op:         structs.ACLDelete,
@@ -99,6 +105,12 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 }
 
 func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Mandate a PUT request
+	if req.Method != "PUT" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
 	args := structs.ACLSpecificRequest{
 		Datacenter: s.agent.config.ACLDatacenter,
 	}
