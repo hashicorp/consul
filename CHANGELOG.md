@@ -4,6 +4,10 @@ IMPROVEMENTS:
 
   * DNS case-insensitivity [GH-189]
 
+BUG FIXES:
+
+  * Require PUT to /v1/session/destroy [GH-285]
+
 ## 0.3.1 (July 21, 2014)
 
 FEATURES:
