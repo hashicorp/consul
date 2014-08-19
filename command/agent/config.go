@@ -229,6 +229,11 @@ type Config struct {
 	//                    this acts like deny.
 	ACLDownPolicy string `mapstructure:"acl_down_policy"`
 
+	// Watches are used to monitor various endpoints and to invoke a
+	// handler to act appropriately. These are managed entirely in the
+	// agent layer using the standard APIs.
+	Watches []string `mapstructure:"watches"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -647,6 +652,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ACLDefaultPolicy != "" {
 		result.ACLDefaultPolicy = b.ACLDefaultPolicy
+	}
+	if len(b.Watches) != 0 {
+		result.Watches = append(result.Watches, b.Watches...)
 	}
 
 	// Copy the start join addresses
