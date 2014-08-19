@@ -19,7 +19,7 @@ func makeTestACL(t *testing.T, srv *HTTPServer) string {
 	}
 	enc.Encode(raw)
 
-	req, err := http.NewRequest("PUT", "/v1/acl/create", body)
+	req, err := http.NewRequest("PUT", "/v1/acl/create?token=root", body)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestACLUpdate(t *testing.T) {
 		}
 		enc.Encode(raw)
 
-		req, err := http.NewRequest("PUT", "/v1/acl/update", body)
+		req, err := http.NewRequest("PUT", "/v1/acl/update?token=root", body)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -65,7 +65,7 @@ func TestACLUpdate(t *testing.T) {
 func TestACLDestroy(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestACL(t, srv)
-		req, err := http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
+		req, err := http.NewRequest("PUT", "/v1/session/destroy/"+id+"?token=root", nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.ACLDestroy(resp, req)
 		if err != nil {
@@ -81,8 +81,8 @@ func TestACLClone(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestACL(t, srv)
 
-		req, err := http.NewRequest("GET",
-			"/v1/acl/clone/"+id, nil)
+		req, err := http.NewRequest("PUT",
+			"/v1/acl/clone/"+id+"?token=root", nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.ACLClone(resp, req)
 		if err != nil {
@@ -141,7 +141,7 @@ func TestACLList(t *testing.T) {
 			ids = append(ids, makeTestACL(t, srv))
 		}
 
-		req, err := http.NewRequest("GET", "/v1/acl/list", nil)
+		req, err := http.NewRequest("GET", "/v1/acl/list?token=root", nil)
 		resp := httptest.NewRecorder()
 		obj, err := srv.ACLList(resp, req)
 		if err != nil {
@@ -152,8 +152,8 @@ func TestACLList(t *testing.T) {
 			t.Fatalf("should work")
 		}
 
-		// 10 + anonymous
-		if len(respObj) != 11 {
+		// 10 + anonymous + master
+		if len(respObj) != 12 {
 			t.Fatalf("bad: %v", respObj)
 		}
 	})

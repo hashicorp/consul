@@ -31,6 +31,7 @@ func nextConfig() *Config {
 	conf.Ports.Server = 18100 + idx
 	conf.Server = true
 	conf.ACLDatacenter = "dc1"
+	conf.ACLMasterToken = "root"
 
 	cons := consul.DefaultConfig()
 	conf.ConsulConfig = cons
