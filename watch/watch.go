@@ -3,6 +3,9 @@ package watch
 import (
 	"fmt"
 	"strings"
+	"sync"
+
+	"github.com/armon/consul-api"
 )
 
 // WatchPlan is the parsed version of a watch specification. A watch provides
@@ -10,10 +13,28 @@ import (
 // This view is watched for changes and a handler is invoked to take any
 // appropriate actions.
 type WatchPlan struct {
+	Query      string
 	Datacenter string
 	Token      string
 	Type       string
+	Func       WatchFunc
+	Handler    HandlerFunc
+
+	address    string
+	client     *consulapi.Client
+	lastIndex  uint64
+	lastResult interface{}
+
+	stop     bool
+	stopCh   chan struct{}
+	stopLock sync.Mutex
 }
+
+// WatchFunc is used to watch for a diff
+type WatchFunc func(*WatchPlan) (uint64, interface{}, error)
+
+// HandlerFunc is used to handle new data
+type HandlerFunc func(uint64, interface{})
 
 // Parse takes a watch query and compiles it into a WatchPlan or an error
 func Parse(query string) (*WatchPlan, error) {
@@ -22,21 +43,48 @@ func Parse(query string) (*WatchPlan, error) {
 		return nil, fmt.Errorf("Failed to parse: %v", err)
 	}
 	params := collapse(tokens)
-	plan := &WatchPlan{}
+	plan := &WatchPlan{
+		Query:  query,
+		stopCh: make(chan struct{}),
+	}
 
-	if err := assignValue(params, "type", &plan.Type); err != nil {
-		return nil, err
-	}
-	if plan.Type == "" {
-		return nil, fmt.Errorf("Watch type must be specified")
-	}
+	// Parse the generic parameters
 	if err := assignValue(params, "datacenter", &plan.Datacenter); err != nil {
 		return nil, err
 	}
 	if err := assignValue(params, "token", &plan.Token); err != nil {
 		return nil, err
 	}
+	if err := assignValue(params, "type", &plan.Type); err != nil {
+		return nil, err
+	}
 
+	// Ensure there is a watch type
+	if plan.Type == "" {
+		return nil, fmt.Errorf("Watch type must be specified")
+	}
+
+	// Look for a factory function
+	factory := watchFuncFactory[plan.Type]
+	if factory == nil {
+		return nil, fmt.Errorf("Unsupported watch type: %s", plan.Type)
+	}
+
+	// Get the watch func
+	fn, err := factory(params)
+	if err != nil {
+		return nil, err
+	}
+	plan.Func = fn
+
+	// Ensure all parameters are consumed
+	if len(params) != 0 {
+		var bad []string
+		for key := range params {
+			bad = append(bad, key)
+		}
+		return nil, fmt.Errorf("Invalid parameters: %v", bad)
+	}
 	return plan, nil
 }
 

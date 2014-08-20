@@ -90,7 +90,7 @@ func TestCollapse(t *testing.T) {
 }
 
 func TestParseBasic(t *testing.T) {
-	p, err := Parse("type:key datacenter:dc2 token:12345")
+	p, err := Parse("type:key datacenter:dc2 token:12345 key:foo")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
