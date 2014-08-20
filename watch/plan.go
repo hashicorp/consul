@@ -25,7 +25,7 @@ func (p *WatchPlan) Run(address string) error {
 	conf := consulapi.DefaultConfig()
 	conf.Address = address
 	conf.Datacenter = p.Datacenter
-	// TODO: conf.Token = p.Token
+	conf.Token = p.Token
 	client, err := consulapi.NewClient(conf)
 	if err != nil {
 		return fmt.Errorf("Failed to connect to agent: %v", err)
