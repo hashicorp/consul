@@ -9,20 +9,20 @@ App.DcController = Ember.Controller.extend({
   isDropdownVisible: false,
 
   datacenter: function() {
-    return this.get('content')
+    return this.get('content');
   }.property('Content'),
 
   checks: function() {
     var nodes = this.get('nodes');
-    var checks = Ember.A()
+    var checks = Ember.A();
 
     // Combine the checks from all of our nodes
     // into one.
     nodes.forEach(function(item) {
-      checks = checks.concat(item.Checks)
+      checks = checks.concat(item.Checks);
     });
 
-    return checks
+    return checks;
   }.property('nodes'),
 
   // Returns the total number of failing checks.
@@ -30,20 +30,20 @@ App.DcController = Ember.Controller.extend({
   // We treat any non-passing checks as failing
   //
   totalChecksFailing: function() {
-    var checks = this.get('checks')
+    var checks = this.get('checks');
     return (checks.filterBy('Status', 'critical').get('length') +
-      checks.filterBy('Status', 'warning').get('length'))
+      checks.filterBy('Status', 'warning').get('length'));
   }.property('nodes'),
 
   //
   // Returns the human formatted message for the button state
   //
   checkMessage: function() {
-    var checks = this.get('checks')
+    var checks = this.get('checks');
     var failingChecks = this.get('totalChecksFailing');
     var passingChecks = checks.filterBy('Status', 'passing').get('length');
 
-    if (this.get('hasFailingChecks') == true) {
+    if (this.get('hasFailingChecks') === true) {
       return  failingChecks + ' checks failing';
     } else {
       return  passingChecks + ' checks passing';
@@ -55,7 +55,7 @@ App.DcController = Ember.Controller.extend({
   //
   //
   checkStatus: function() {
-    if (this.get('hasFailingChecks') == true) {
+    if (this.get('hasFailingChecks') === true) {
       return "failing";
     } else {
       return "passing";
@@ -67,7 +67,7 @@ App.DcController = Ember.Controller.extend({
   // Boolean if the datacenter has any failing checks.
   //
   hasFailingChecks: function() {
-    var failingChecks = this.get('totalChecksFailing')
+    var failingChecks = this.get('totalChecksFailing');
     return (failingChecks > 0);
   }.property('nodes'),
 
@@ -81,7 +81,7 @@ App.DcController = Ember.Controller.extend({
       this.set('isDropdownVisible', false);
     }
   }
-})
+});
 
 KvBaseController = Ember.ObjectController.extend({
   getParentKeyRoute: function() {
@@ -134,7 +134,7 @@ App.KvShowController.reopen({
       // If we don't have a previous model to base
       // on our parent, or we're not at the root level,
       // add the prefix
-      if (parentKey != undefined && parentKey != "/") {
+      if (parentKey !== undefined && parentKey !== "/") {
         newKey.set('Key', (parentKey + newKey.get('Key')));
       }
 
@@ -145,15 +145,15 @@ App.KvShowController.reopen({
           data: newKey.get('Value')
       }).then(function(response) {
         // transition to the right place
-        if (newKey.get('isFolder') == true) {
+        if (newKey.get('isFolder') === true) {
           controller.transitionToRoute('kv.show', newKey.get('Key'));
         } else {
           controller.transitionToRoute('kv.edit', newKey.get('Key'));
         }
-        controller.set('isLoading', false)
+        controller.set('isLoading', false);
       }).fail(function(response) {
         // Render the error message on the form if the request failed
-        controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
+        controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
       });
     },
 
@@ -172,7 +172,7 @@ App.KvShowController.reopen({
         controller.transitionToNearestParent(grandParent);
       }).fail(function(response) {
         // Render the error message on the form if the request failed
-        controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
+        controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
       });
     }
   }
@@ -200,11 +200,11 @@ App.KvEditController = KvBaseController.extend({
           data: key.get('valueDecoded')
       }).then(function(response) {
         // If success, just reset the loading state.
-        controller.set('isLoading', false)
+        controller.set('isLoading', false);
       }).fail(function(response) {
         // Render the error message on the form if the request failed
-        controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
-      })
+        controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+      });
     },
 
     cancelEdit: function() {
@@ -229,8 +229,8 @@ App.KvEditController = KvBaseController.extend({
         controller.transitionToNearestParent(parent);
       }).fail(function(response) {
         // Render the error message on the form if the request failed
-        controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
-      })
+        controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+      });
     }
   }
 
@@ -260,20 +260,18 @@ ItemBaseController = Ember.ArrayController.extend({
 
     switch (status) {
       case "passing":
-        return items.filterBy('hasFailingChecks', false)
-        break;
+        return items.filterBy('hasFailingChecks', false);
       case "failing":
-        return items.filterBy('hasFailingChecks', true)
-        break;
+        return items.filterBy('hasFailingChecks', true);
       default:
-        return items
+        return items;
     }
 
   }.property('filter', 'status', 'items.@each'),
 
   actions: {
     toggleCondensed: function() {
-      this.set('condensed', !this.get('condensed'))
+      this.set('condensed', !this.get('condensed'));
     }
   }
 });
@@ -296,11 +294,11 @@ App.NodesShowController = Ember.ObjectController.extend({
             type: 'PUT'
         }).then(function(response) {
           return Ember.$.getJSON('/v1/session/node/' + node.Node + '?dc=' + dc).then(function(data) {
-            controller.set('sessions', data)
+            controller.set('sessions', data);
           });
         }).fail(function(response) {
           // Render the error message on the form if the request failed
-          controller.set('errorMessage', 'Received error while processing: ' + response.statusText)
+          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
         });
       }
     }
