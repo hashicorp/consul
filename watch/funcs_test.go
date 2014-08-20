@@ -215,3 +215,52 @@ func TestNodesWatch(t *testing.T) {
 		t.Fatalf("bad: %v", invoke)
 	}
 }
+
+func TestServiceWatch(t *testing.T) {
+	if consulAddr == "" {
+		t.Skip()
+	}
+	plan := mustParse(t, "type:service service:foo tag:bar passingonly:true")
+	invoke := 0
+	plan.Handler = func(idx uint64, raw interface{}) {
+		if invoke == 0 {
+			if raw == nil {
+				return
+			}
+			v, ok := raw.([]*consulapi.ServiceEntry)
+			if ok && len(v) == 0 {
+				return
+			}
+			if !ok || v[0].Service.ID != "foo" {
+				t.Fatalf("Bad: %#v", raw)
+			}
+			invoke++
+		}
+	}
+
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+
+		agent := plan.client.Agent()
+		reg := &consulapi.AgentServiceRegistration{
+			ID:   "foo",
+			Name: "foo",
+			Tags: []string{"bar"},
+		}
+		agent.ServiceRegister(reg)
+
+		time.Sleep(20 * time.Millisecond)
+		plan.Stop()
+
+		agent.ServiceDeregister("foo")
+	}()
+
+	err := plan.Run(consulAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if invoke == 0 {
+		t.Fatalf("bad: %v", invoke)
+	}
+}

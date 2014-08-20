@@ -2,6 +2,7 @@ package watch
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/armon/consul-api"
 )
@@ -19,19 +20,20 @@ func init() {
 		"keyprefix": keyPrefixWatch,
 		"services":  servicesWatch,
 		"nodes":     nodesWatch,
-		"service":   nil,
+		"service":   serviceWatch,
 		"checks":    nil,
 	}
 }
 
 // keyWatch is used to return a key watching function
 func keyWatch(params map[string][]string) (WatchFunc, error) {
-	keys := params["key"]
-	delete(params, "key")
-	if len(keys) != 1 {
+	var key string
+	if err := assignValue(params, "key", &key); err != nil {
+		return nil, err
+	}
+	if key == "" {
 		return nil, fmt.Errorf("Must specify a single key to watch")
 	}
-	key := keys[0]
 
 	fn := func(p *WatchPlan) (uint64, interface{}, error) {
 		kv := p.client.KV()
@@ -50,12 +52,13 @@ func keyWatch(params map[string][]string) (WatchFunc, error) {
 
 // keyPrefixWatch is used to return a key prefix watching function
 func keyPrefixWatch(params map[string][]string) (WatchFunc, error) {
-	list := params["prefix"]
-	delete(params, "prefix")
-	if len(list) != 1 {
+	var prefix string
+	if err := assignValue(params, "prefix", &prefix); err != nil {
+		return nil, err
+	}
+	if prefix == "" {
 		return nil, fmt.Errorf("Must specify a single prefix to watch")
 	}
-	prefix := list[0]
 
 	fn := func(p *WatchPlan) (uint64, interface{}, error) {
 		kv := p.client.KV()
@@ -89,6 +92,44 @@ func nodesWatch(params map[string][]string) (WatchFunc, error) {
 		catalog := p.client.Catalog()
 		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
 		nodes, meta, err := catalog.Nodes(&opts)
+		if err != nil {
+			return 0, nil, err
+		}
+		return meta.LastIndex, nodes, err
+	}
+	return fn, nil
+}
+
+// serviceWatch is used to watch a specific service for changes
+func serviceWatch(params map[string][]string) (WatchFunc, error) {
+	var service, tag, passingRaw string
+	if err := assignValue(params, "service", &service); err != nil {
+		return nil, err
+	}
+	if service == "" {
+		return nil, fmt.Errorf("Must specify a single service to watch")
+	}
+
+	if err := assignValue(params, "tag", &tag); err != nil {
+		return nil, err
+	}
+
+	if err := assignValue(params, "passingonly", &passingRaw); err != nil {
+		return nil, err
+	}
+	passingOnly := false
+	if passingRaw != "" {
+		b, err := strconv.ParseBool(passingRaw)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse passingonly value: %v", err)
+		}
+		passingOnly = b
+	}
+
+	fn := func(p *WatchPlan) (uint64, interface{}, error) {
+		health := p.client.Health()
+		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
+		nodes, meta, err := health.Service(service, tag, passingOnly, &opts)
 		if err != nil {
 			return 0, nil, err
 		}
