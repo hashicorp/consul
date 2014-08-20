@@ -21,7 +21,7 @@ func init() {
 		"services":  servicesWatch,
 		"nodes":     nodesWatch,
 		"service":   serviceWatch,
-		"checks":    nil,
+		"checks":    checksWatch,
 	}
 }
 
@@ -134,6 +134,41 @@ func serviceWatch(params map[string][]string) (WatchFunc, error) {
 			return 0, nil, err
 		}
 		return meta.LastIndex, nodes, err
+	}
+	return fn, nil
+}
+
+// checksWatch is used to watch a specific checks in a given state
+func checksWatch(params map[string][]string) (WatchFunc, error) {
+	var service, state string
+	if err := assignValue(params, "service", &service); err != nil {
+		return nil, err
+	}
+	if err := assignValue(params, "state", &state); err != nil {
+		return nil, err
+	}
+	if service != "" && state != "" {
+		return nil, fmt.Errorf("Cannot specify service and state")
+	}
+	if service == "" && state == "" {
+		state = "any"
+	}
+
+	fn := func(p *WatchPlan) (uint64, interface{}, error) {
+		health := p.client.Health()
+		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
+		var checks []*consulapi.HealthCheck
+		var meta *consulapi.QueryMeta
+		var err error
+		if state != "" {
+			checks, meta, err = health.State(state, &opts)
+		} else {
+			checks, meta, err = health.Checks(service, &opts)
+		}
+		if err != nil {
+			return 0, nil, err
+		}
+		return meta.LastIndex, checks, err
 	}
 	return fn, nil
 }

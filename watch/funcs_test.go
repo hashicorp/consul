@@ -264,3 +264,131 @@ func TestServiceWatch(t *testing.T) {
 		t.Fatalf("bad: %v", invoke)
 	}
 }
+
+func TestChecksWatch_State(t *testing.T) {
+	if consulAddr == "" {
+		t.Skip()
+	}
+	plan := mustParse(t, "type:checks state:warning")
+	invoke := 0
+	plan.Handler = func(idx uint64, raw interface{}) {
+		if invoke == 0 {
+			if raw == nil {
+				return
+			}
+			v, ok := raw.([]*consulapi.HealthCheck)
+			if len(v) == 0 {
+				return
+			}
+			if !ok || v[0].CheckID != "foobar" {
+				t.Fatalf("Bad: %#v", raw)
+			}
+			invoke++
+		}
+	}
+
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+
+		catalog := plan.client.Catalog()
+		reg := &consulapi.CatalogRegistration{
+			Node:       "foobar",
+			Address:    "1.1.1.1",
+			Datacenter: "dc1",
+			Check: &consulapi.AgentCheck{
+				Node:    "foobar",
+				CheckID: "foobar",
+				Name:    "foobar",
+				Status:  "warning",
+			},
+		}
+		catalog.Register(reg, nil)
+
+		time.Sleep(20 * time.Millisecond)
+		plan.Stop()
+
+		dereg := &consulapi.CatalogDeregistration{
+			Node:       "foobar",
+			Address:    "1.1.1.1",
+			Datacenter: "dc1",
+		}
+		catalog.Deregister(dereg, nil)
+	}()
+
+	err := plan.Run(consulAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if invoke == 0 {
+		t.Fatalf("bad: %v", invoke)
+	}
+}
+
+func TestChecksWatch_Service(t *testing.T) {
+	if consulAddr == "" {
+		t.Skip()
+	}
+	plan := mustParse(t, "type:checks service:foobar")
+	invoke := 0
+	plan.Handler = func(idx uint64, raw interface{}) {
+		if invoke == 0 {
+			if raw == nil {
+				return
+			}
+			v, ok := raw.([]*consulapi.HealthCheck)
+			if len(v) == 0 {
+				return
+			}
+			if !ok || v[0].CheckID != "foobar" {
+				t.Fatalf("Bad: %#v", raw)
+			}
+			invoke++
+		}
+	}
+
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+
+		catalog := plan.client.Catalog()
+		reg := &consulapi.CatalogRegistration{
+			Node:       "foobar",
+			Address:    "1.1.1.1",
+			Datacenter: "dc1",
+			Service: &consulapi.AgentService{
+				ID:      "foobar",
+				Service: "foobar",
+			},
+			Check: &consulapi.AgentCheck{
+				Node:      "foobar",
+				CheckID:   "foobar",
+				Name:      "foobar",
+				Status:    "passing",
+				ServiceID: "foobar",
+			},
+		}
+		_, err := catalog.Register(reg, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		time.Sleep(20 * time.Millisecond)
+		plan.Stop()
+
+		dereg := &consulapi.CatalogDeregistration{
+			Node:       "foobar",
+			Address:    "1.1.1.1",
+			Datacenter: "dc1",
+		}
+		catalog.Deregister(dereg, nil)
+	}()
+
+	err := plan.Run(consulAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if invoke == 0 {
+		t.Fatalf("bad: %v", invoke)
+	}
+}
