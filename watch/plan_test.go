@@ -17,11 +17,16 @@ func noopWatch(params map[string][]string) (WatchFunc, error) {
 	return fn, nil
 }
 
-func TestRun_Stop(t *testing.T) {
-	plan, err := Parse("type:noop")
+func mustParse(t *testing.T, q string) *WatchPlan {
+	plan, err := Parse(q)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	return plan
+}
+
+func TestRun_Stop(t *testing.T) {
+	plan := mustParse(t, "type:noop")
 	var expect uint64 = 1
 	plan.Handler = func(idx uint64, val interface{}) {
 		if idx != expect {
@@ -37,7 +42,7 @@ func TestRun_Stop(t *testing.T) {
 		plan.Stop()
 	})
 
-	err = plan.Run("127.0.0.1:8500")
+	err := plan.Run("127.0.0.1:8500")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -35,6 +35,9 @@ func keyWatch(params map[string][]string) (WatchFunc, error) {
 		if err != nil {
 			return 0, nil, err
 		}
+		if pair == nil {
+			return meta.LastIndex, nil, err
+		}
 		return meta.LastIndex, pair, err
 	}
 	return fn, nil

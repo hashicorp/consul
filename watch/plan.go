@@ -34,6 +34,7 @@ func (p *WatchPlan) Run(address string) error {
 
 	// Loop until we are canceled
 	failures := 0
+OUTER:
 	for !p.shouldStop() {
 		// Invoke the handler
 		index, result, err := p.Func(p)
@@ -56,7 +57,7 @@ func (p *WatchPlan) Run(address string) error {
 			}
 			select {
 			case <-time.After(retry):
-				continue
+				continue OUTER
 			case <-p.stopCh:
 				return nil
 			}
@@ -78,7 +79,9 @@ func (p *WatchPlan) Run(address string) error {
 
 		// Handle the updated result
 		p.lastResult = result
-		p.Handler(index, result)
+		if p.Handler != nil {
+			p.Handler(index, result)
+		}
 	}
 	return nil
 }
