@@ -104,3 +104,17 @@ func TestParseBasic(t *testing.T) {
 		t.Fatalf("Bad: %#v", p)
 	}
 }
+
+func TestParse_exempt(t *testing.T) {
+	p, err := ParseExempt("type:key key:foo handler:foobar", []string{"handler"})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if p.Type != "key" {
+		t.Fatalf("Bad: %#v", p)
+	}
+	ex := p.Exempt["handler"]
+	if len(ex) != 1 && ex[0] != "foobar" {
+		t.Fatalf("bad: %v", ex)
+	}
+}

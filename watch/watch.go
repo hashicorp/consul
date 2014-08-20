@@ -17,6 +17,7 @@ type WatchPlan struct {
 	Datacenter string
 	Token      string
 	Type       string
+	Exempt     map[string][]string
 	Func       WatchFunc
 	Handler    HandlerFunc
 
@@ -38,6 +39,12 @@ type HandlerFunc func(uint64, interface{})
 
 // Parse takes a watch query and compiles it into a WatchPlan or an error
 func Parse(query string) (*WatchPlan, error) {
+	return ParseExempt(query, nil)
+}
+
+// ParseExempt takes a watch query and compiles it into a WatchPlan or an error
+// Any exempt parameters are stored in the Exempt map
+func ParseExempt(query string, exempt []string) (*WatchPlan, error) {
 	tokens, err := tokenize(query)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to parse: %v", err)
@@ -76,6 +83,18 @@ func Parse(query string) (*WatchPlan, error) {
 		return nil, err
 	}
 	plan.Func = fn
+
+	// Remove the exempt parameters
+	if len(exempt) > 0 {
+		plan.Exempt = make(map[string][]string)
+		for _, ex := range exempt {
+			val, ok := params[ex]
+			if ok {
+				plan.Exempt[ex] = val
+				delete(params, ex)
+			}
+		}
+	}
 
 	// Ensure all parameters are consumed
 	if len(params) != 0 {
