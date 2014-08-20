@@ -166,3 +166,52 @@ func TestServicesWatch(t *testing.T) {
 		t.Fatalf("bad: %v", invoke)
 	}
 }
+
+func TestNodesWatch(t *testing.T) {
+	if consulAddr == "" {
+		t.Skip()
+	}
+	plan := mustParse(t, "type:nodes")
+	invoke := 0
+	plan.Handler = func(idx uint64, raw interface{}) {
+		if invoke == 0 {
+			if raw == nil {
+				return
+			}
+			v, ok := raw.([]*consulapi.Node)
+			if !ok || len(v) == 0 {
+				t.Fatalf("Bad: %#v", raw)
+			}
+			invoke++
+		}
+	}
+
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		plan.Stop()
+
+		catalog := plan.client.Catalog()
+		reg := &consulapi.CatalogRegistration{
+			Node:       "foobar",
+			Address:    "1.1.1.1",
+			Datacenter: "dc1",
+		}
+		catalog.Register(reg, nil)
+		time.Sleep(20 * time.Millisecond)
+		dereg := &consulapi.CatalogDeregistration{
+			Node:       "foobar",
+			Address:    "1.1.1.1",
+			Datacenter: "dc1",
+		}
+		catalog.Deregister(dereg, nil)
+	}()
+
+	err := plan.Run(consulAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if invoke == 0 {
+		t.Fatalf("bad: %v", invoke)
+	}
+}

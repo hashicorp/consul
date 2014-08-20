@@ -18,7 +18,7 @@ func init() {
 		"key":       keyWatch,
 		"keyprefix": keyPrefixWatch,
 		"services":  servicesWatch,
-		"nodes":     nil,
+		"nodes":     nodesWatch,
 		"service":   nil,
 		"checks":    nil,
 	}
@@ -79,6 +79,20 @@ func servicesWatch(params map[string][]string) (WatchFunc, error) {
 			return 0, nil, err
 		}
 		return meta.LastIndex, services, err
+	}
+	return fn, nil
+}
+
+// nodesWatch is used to watch the list of available nodes
+func nodesWatch(params map[string][]string) (WatchFunc, error) {
+	fn := func(p *WatchPlan) (uint64, interface{}, error) {
+		catalog := p.client.Catalog()
+		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
+		nodes, meta, err := catalog.Nodes(&opts)
+		if err != nil {
+			return 0, nil, err
+		}
+		return meta.LastIndex, nodes, err
 	}
 	return fn, nil
 }
