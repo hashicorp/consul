@@ -80,6 +80,9 @@ func TestKeyPrefixWatch(t *testing.T) {
 				return
 			}
 			v, ok := raw.(consulapi.KVPairs)
+			if ok && v == nil {
+				return
+			}
 			if !ok || v == nil || string(v[0].Key) != "foo/bar" {
 				t.Fatalf("Bad: %#v", raw)
 			}
@@ -109,6 +112,49 @@ func TestKeyPrefixWatch(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
+	}()
+
+	err := plan.Run(consulAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if invoke == 0 {
+		t.Fatalf("bad: %v", invoke)
+	}
+}
+
+func TestServicesWatch(t *testing.T) {
+	if consulAddr == "" {
+		t.Skip()
+	}
+	plan := mustParse(t, "type:services")
+	invoke := 0
+	plan.Handler = func(idx uint64, raw interface{}) {
+		if invoke == 0 {
+			if raw == nil {
+				return
+			}
+			v, ok := raw.(map[string][]string)
+			if !ok || v["consul"] == nil {
+				t.Fatalf("Bad: %#v", raw)
+			}
+			invoke++
+		}
+	}
+
+	go func() {
+		time.Sleep(20 * time.Millisecond)
+		plan.Stop()
+
+		agent := plan.client.Agent()
+		reg := &consulapi.AgentServiceRegistration{
+			ID:   "foo",
+			Name: "foo",
+		}
+		agent.ServiceRegister(reg)
+		time.Sleep(20 * time.Millisecond)
+		agent.ServiceDeregister("foo")
 	}()
 
 	err := plan.Run(consulAddr)

@@ -17,6 +17,10 @@ func init() {
 	watchFuncFactory = map[string]watchFactory{
 		"key":       keyWatch,
 		"keyprefix": keyPrefixWatch,
+		"services":  servicesWatch,
+		"nodes":     nil,
+		"service":   nil,
+		"checks":    nil,
 	}
 }
 
@@ -61,6 +65,20 @@ func keyPrefixWatch(params map[string][]string) (WatchFunc, error) {
 			return 0, nil, err
 		}
 		return meta.LastIndex, pairs, err
+	}
+	return fn, nil
+}
+
+// servicesWatch is used to watch the list of available services
+func servicesWatch(params map[string][]string) (WatchFunc, error) {
+	fn := func(p *WatchPlan) (uint64, interface{}, error) {
+		catalog := p.client.Catalog()
+		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
+		services, meta, err := catalog.Services(&opts)
+		if err != nil {
+			return 0, nil, err
+		}
+		return meta.LastIndex, services, err
 	}
 	return fn, nil
 }
