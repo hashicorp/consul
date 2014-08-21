@@ -7,8 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
-	"runtime"
 	"strconv"
 
 	"github.com/armon/circbuf"
@@ -39,18 +37,12 @@ func makeWatchHandler(logOutput io.Writer, params interface{}) watch.HandlerFunc
 	script := params.(string)
 	logger := log.New(logOutput, "", log.LstdFlags)
 	fn := func(idx uint64, data interface{}) {
-		// Determine the shell invocation based on OS
-		var shell, flag string
-		if runtime.GOOS == "windows" {
-			shell = "cmd"
-			flag = "/C"
-		} else {
-			shell = "/bin/sh"
-			flag = "-c"
-		}
-
 		// Create the command
-		cmd := exec.Command(shell, flag, script)
+		cmd, err := ExecScript(script)
+		if err != nil {
+			logger.Printf("[ERR] agent: Failed to setup watch: %v", err)
+			return
+		}
 		cmd.Env = append(os.Environ(),
 			"CONSUL_INDEX="+strconv.FormatUint(idx, 10),
 		)
