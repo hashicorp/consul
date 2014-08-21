@@ -32,7 +32,7 @@ App.BaseRoute = Ember.Route.extend({
       parent: parentKey,
       grandParent: grandParentKey,
       isRoot: parentKey === '/'
-    }
+    };
   },
 
   removeDuplicateKeys: function(keys, matcher) {
@@ -52,12 +52,12 @@ App.BaseRoute = Ember.Route.extend({
     // like parents and grandParents
     linkToKey: function(key) {
       if (key == "/") {
-        this.transitionTo('kv.show', "")
+        this.transitionTo('kv.show', "");
       }
       else if (key.slice(-1) === '/' || key === this.rootKey) {
-        this.transitionTo('kv.show', key)
+        this.transitionTo('kv.show', key);
       } else {
-        this.transitionTo('kv.edit', key)
+        this.transitionTo('kv.edit', key);
       }
     }
   }
@@ -70,8 +70,8 @@ App.IndexRoute = App.BaseRoute.extend({
   // Retrieve the list of datacenters
   model: function(params) {
     return Ember.$.getJSON('/v1/catalog/datacenters').then(function(data) {
-      return data
-    })
+      return data;
+    });
   },
 
   afterModel: function(model, transition) {
@@ -116,7 +116,7 @@ App.DcRoute = App.BaseRoute.extend({
 
 App.KvIndexRoute = App.BaseRoute.extend({
   beforeModel: function() {
-    this.transitionTo('kv.show', this.rootKey)
+    this.transitionTo('kv.show', this.rootKey);
   }
 });
 
@@ -157,7 +157,7 @@ App.KvEditRoute = App.BaseRoute.extend({
   model: function(params) {
     var key = params.key;
     var dc = this.modelFor('dc').dc;
-    var parentKeys = this.getParentAndGrandparent(key)
+    var parentKeys = this.getParentAndGrandparent(key);
 
     // Return a promise hash to get the data for both columns
     return Ember.RSVP.hash({
@@ -180,11 +180,11 @@ App.KvEditRoute = App.BaseRoute.extend({
   afterModel: function(models) {
     if (models.key.get('isLocked')) {
       return Ember.$.getJSON('/v1/session/info/' + models.key.Session + '?dc=' + models.dc).then(function(data) {
-        models.session = data[0]
-        return models
+        models.session = data[0];
+        return models;
       });
     } else {
-      return models
+      return models;
     }
   },
 
@@ -205,14 +205,14 @@ App.KvEditRoute = App.BaseRoute.extend({
 
 App.ServicesRoute = App.BaseRoute.extend({
   model: function(params) {
-    var dc = this.modelFor('dc').dc
+    var dc = this.modelFor('dc').dc;
     // Return a promise to retrieve all of the services
     return Ember.$.getJSON('/v1/internal/ui/services?dc=' + dc).then(function(data) {
       objs = [];
       data.map(function(obj){
        objs.push(App.Service.create(obj));
       });
-      return objs
+      return objs;
     });
   },
   setupController: function(controller, model) {
@@ -223,7 +223,7 @@ App.ServicesRoute = App.BaseRoute.extend({
 
 App.ServicesShowRoute = App.BaseRoute.extend({
   model: function(params) {
-    var dc = this.modelFor('dc').dc
+    var dc = this.modelFor('dc').dc;
     // Here we just use the built-in health endpoint, as it gives us everything
     // we need.
     return Ember.$.getJSON('/v1/health/service/' + params.name + '?dc=' + dc).then(function(data) {
@@ -237,11 +237,11 @@ App.ServicesShowRoute = App.BaseRoute.extend({
   setupController: function(controller, model) {
     var tags = [];
     model.map(function(obj){
-      tags = tags.concat(obj.Service.Tags)
+      tags = tags.concat(obj.Service.Tags);
     });
 
-    tags = tags.filter(function(n){ return n != undefined });
-    tags = tags.uniq().join(', ')
+    tags = tags.filter(function(n){ return n !== undefined; });
+    tags = tags.uniq().join(', ');
 
     controller.set('content', model);
     controller.set('tags', tags);
@@ -250,15 +250,15 @@ App.ServicesShowRoute = App.BaseRoute.extend({
 
 App.NodesShowRoute = App.BaseRoute.extend({
   model: function(params) {
-    var dc = this.modelFor('dc').dc
+    var dc = this.modelFor('dc').dc;
     // Return a promise hash of the node and nodes
     return Ember.RSVP.hash({
       dc: dc,
       node: Ember.$.getJSON('/v1/internal/ui/node/' + params.name + '?dc=' + dc).then(function(data) {
-        return App.Node.create(data)
+        return App.Node.create(data);
       }),
       nodes: Ember.$.getJSON('/v1/internal/ui/node/' + params.name + '?dc=' + dc).then(function(data) {
-        return App.Node.create(data)
+        return App.Node.create(data);
       })
     });
   },
@@ -266,8 +266,8 @@ App.NodesShowRoute = App.BaseRoute.extend({
   // Load the sessions for the node
   afterModel: function(models) {
     return Ember.$.getJSON('/v1/session/node/' + models.node.Node + '?dc=' + models.dc).then(function(data) {
-      models.sessions = data
-      return models
+      models.sessions = data;
+      return models;
     });
   },
 
@@ -285,14 +285,14 @@ App.NodesShowRoute = App.BaseRoute.extend({
 
 App.NodesRoute = App.BaseRoute.extend({
   model: function(params) {
-    var dc = this.modelFor('dc').dc
+    var dc = this.modelFor('dc').dc;
     // Return a promise containing the nodes
     return Ember.$.getJSON('/v1/internal/ui/nodes?dc=' + dc).then(function(data) {
       objs = [];
       data.map(function(obj){
        objs.push(App.Node.create(obj));
       });
-      return objs
+      return objs;
     });
   },
   setupController: function(controller, model) {
