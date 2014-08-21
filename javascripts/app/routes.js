@@ -305,7 +305,7 @@ App.AclsRoute = App.BaseRoute.extend({
   model: function(params) {
     var dc = this.modelFor('dc').dc;
     // Return a promise containing the ACLS
-    return Ember.$.getJSON('/v1/acl/list?dc=' + dc).then(function(data) {
+    return Ember.$.getJSON(formatUrl('/v1/acl/list', dc, "")).then(function(data) {
       objs = [];
       data.map(function(obj){
        objs.push(App.Acl.create(obj));
@@ -332,3 +332,17 @@ App.AclsRoute = App.BaseRoute.extend({
       controller.set('acls', model);
   }
 });
+
+// Adds any global parameters we need to set to a url/path
+function formatUrl(url, dc, token) {
+  if (url.indexOf("?") > 0) {
+    // If our url has existing params
+    url = url + "&dc=" + dc;
+    url = url + "&token=" + token;
+  } else {
+    // Our url doesn't have params
+    url = url + "?dc=" + dc;
+    url = url + "&token=" + token;
+  }
+  return url;
+}
