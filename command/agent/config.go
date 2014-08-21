@@ -232,7 +232,7 @@ type Config struct {
 	// Watches are used to monitor various endpoints and to invoke a
 	// handler to act appropriately. These are managed entirely in the
 	// agent layer using the standard APIs.
-	Watches []string `mapstructure:"watches"`
+	Watches []map[string]interface{} `mapstructure:"watches"`
 
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'

@@ -386,7 +386,7 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Watches
-	input = `{"watches": ["type:keyprefix prefix:foo/ handler:foobar"]}`
+	input = `{"watches": [{"type":"keyprefix", "prefix":"foo/", "handler":"foobar"}]}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -395,7 +395,14 @@ func TestDecodeConfig(t *testing.T) {
 	if len(config.Watches) != 1 {
 		t.Fatalf("bad: %#v", config)
 	}
-	if config.Watches[0] != "type:keyprefix prefix:foo/ handler:foobar" {
+
+	out := config.Watches[0]
+	exp := map[string]interface{}{
+		"type":    "keyprefix",
+		"prefix":  "foo/",
+		"handler": "foobar",
+	}
+	if !reflect.DeepEqual(out, exp) {
 		t.Fatalf("bad: %#v", config)
 	}
 }
@@ -552,7 +559,13 @@ func TestMergeConfig(t *testing.T) {
 		ACLTTLRaw:              "15s",
 		ACLDownPolicy:          "deny",
 		ACLDefaultPolicy:       "deny",
-		Watches:                []string{"type:keyprefix prefix:foobar/ handler:foo"},
+		Watches: []map[string]interface{}{
+			map[string]interface{}{
+				"type":    "keyprefix",
+				"prefix":  "foo/",
+				"handler": "foobar",
+			},
+		},
 	}
 
 	c := MergeConfig(a, b)
