@@ -18,7 +18,7 @@ func TestKeyWatch(t *testing.T) {
 	if consulAddr == "" {
 		t.Skip()
 	}
-	plan := mustParse(t, "type:key key:foo/bar/baz")
+	plan := mustParse(t, `{"type":"key", "key":"foo/bar/baz"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if invoke == 0 {
@@ -72,7 +72,7 @@ func TestKeyPrefixWatch(t *testing.T) {
 	if consulAddr == "" {
 		t.Skip()
 	}
-	plan := mustParse(t, "type:keyprefix prefix:foo/")
+	plan := mustParse(t, `{"type":"keyprefix", "prefix":"foo/"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if invoke == 0 {
@@ -128,7 +128,7 @@ func TestServicesWatch(t *testing.T) {
 	if consulAddr == "" {
 		t.Skip()
 	}
-	plan := mustParse(t, "type:services")
+	plan := mustParse(t, `{"type":"services"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if invoke == 0 {
@@ -171,7 +171,7 @@ func TestNodesWatch(t *testing.T) {
 	if consulAddr == "" {
 		t.Skip()
 	}
-	plan := mustParse(t, "type:nodes")
+	plan := mustParse(t, `{"type":"nodes"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if invoke == 0 {
@@ -220,7 +220,7 @@ func TestServiceWatch(t *testing.T) {
 	if consulAddr == "" {
 		t.Skip()
 	}
-	plan := mustParse(t, "type:service service:foo tag:bar passingonly:true")
+	plan := mustParse(t, `{"type":"service", "service":"foo", "tag":"bar", "passingonly":true}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if invoke == 0 {
@@ -269,7 +269,7 @@ func TestChecksWatch_State(t *testing.T) {
 	if consulAddr == "" {
 		t.Skip()
 	}
-	plan := mustParse(t, "type:checks state:warning")
+	plan := mustParse(t, `{"type":"checks", "state":"warning"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if invoke == 0 {
@@ -329,7 +329,7 @@ func TestChecksWatch_Service(t *testing.T) {
 	if consulAddr == "" {
 		t.Skip()
 	}
-	plan := mustParse(t, "type:checks service:foobar")
+	plan := mustParse(t, `{"type":"checks", "service":"foobar"}`)
 	invoke := 0
 	plan.Handler = func(idx uint64, raw interface{}) {
 		if invoke == 0 {

@@ -47,7 +47,7 @@ OUTER:
 
 		// Handle an error in the watch function
 		if err != nil {
-			log.Printf("consul.watch: Watch '%s' errored: %v", p.Query, err)
+			log.Printf("consul.watch: Watch (type: %s) errored: %v", p.Type, err)
 
 			// Perform an exponential backoff
 			failures++

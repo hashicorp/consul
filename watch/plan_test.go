@@ -9,7 +9,7 @@ func init() {
 	watchFuncFactory["noop"] = noopWatch
 }
 
-func noopWatch(params map[string][]string) (WatchFunc, error) {
+func noopWatch(params map[string]interface{}) (WatchFunc, error) {
 	fn := func(p *WatchPlan) (uint64, interface{}, error) {
 		idx := p.lastIndex + 1
 		return idx, idx, nil
@@ -18,7 +18,8 @@ func noopWatch(params map[string][]string) (WatchFunc, error) {
 }
 
 func mustParse(t *testing.T, q string) *WatchPlan {
-	plan, err := Parse(q)
+	params := makeParams(t, q)
+	plan, err := Parse(params)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -26,7 +27,7 @@ func mustParse(t *testing.T, q string) *WatchPlan {
 }
 
 func TestRun_Stop(t *testing.T) {
-	plan := mustParse(t, "type:noop")
+	plan := mustParse(t, `{"type":"noop"}`)
 	var expect uint64 = 1
 	plan.Handler = func(idx uint64, val interface{}) {
 		if idx != expect {

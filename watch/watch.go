@@ -2,7 +2,6 @@ package watch
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/armon/consul-api"
@@ -13,11 +12,10 @@ import (
 // This view is watched for changes and a handler is invoked to take any
 // appropriate actions.
 type WatchPlan struct {
-	Query      string
 	Datacenter string
 	Token      string
 	Type       string
-	Exempt     map[string][]string
+	Exempt     map[string]interface{}
 	Func       WatchFunc
 	Handler    HandlerFunc
 
@@ -38,20 +36,14 @@ type WatchFunc func(*WatchPlan) (uint64, interface{}, error)
 type HandlerFunc func(uint64, interface{})
 
 // Parse takes a watch query and compiles it into a WatchPlan or an error
-func Parse(query string) (*WatchPlan, error) {
-	return ParseExempt(query, nil)
+func Parse(params map[string]interface{}) (*WatchPlan, error) {
+	return ParseExempt(params, nil)
 }
 
 // ParseExempt takes a watch query and compiles it into a WatchPlan or an error
 // Any exempt parameters are stored in the Exempt map
-func ParseExempt(query string, exempt []string) (*WatchPlan, error) {
-	tokens, err := tokenize(query)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to parse: %v", err)
-	}
-	params := collapse(tokens)
+func ParseExempt(params map[string]interface{}, exempt []string) (*WatchPlan, error) {
 	plan := &WatchPlan{
-		Query:  query,
 		stopCh: make(chan struct{}),
 	}
 
@@ -86,7 +78,7 @@ func ParseExempt(query string, exempt []string) (*WatchPlan, error) {
 
 	// Remove the exempt parameters
 	if len(exempt) > 0 {
-		plan.Exempt = make(map[string][]string)
+		plan.Exempt = make(map[string]interface{})
 		for _, ex := range exempt {
 			val, ok := params[ex]
 			if ok {
@@ -107,121 +99,28 @@ func ParseExempt(query string, exempt []string) (*WatchPlan, error) {
 	return plan, nil
 }
 
-// assignValue is used to extract a value ensuring it is only
-// defined once
-func assignValue(params map[string][]string, name string, out *string) error {
-	if vals, ok := params[name]; ok {
-		if len(vals) != 1 {
-			return fmt.Errorf("Multiple definitions of %s", name)
+// assignValue is used to extract a value ensuring it is a string
+func assignValue(params map[string]interface{}, name string, out *string) error {
+	if raw, ok := params[name]; ok {
+		val, ok := raw.(string)
+		if !ok {
+			return fmt.Errorf("Expecting %s to be a string")
 		}
-		*out = vals[0]
+		*out = val
 		delete(params, name)
 	}
 	return nil
 }
 
-// token is used to represent a "datacenter:foobar" pair, where
-// datacenter is the param and foobar is the value
-type token struct {
-	param string
-	val   string
-}
-
-func (t *token) GoString() string {
-	return fmt.Sprintf("%#v", *t)
-}
-
-// tokenize splits a query string into a slice of tokens
-func tokenize(query string) ([]*token, error) {
-	var tokens []*token
-	for i := 0; i < len(query); i++ {
-		char := query[i]
-
-		// Ignore whitespace
-		if char == ' ' || char == '\t' || char == '\n' {
-			continue
+// assignValueBool is used to extract a value ensuring it is a bool
+func assignValueBool(params map[string]interface{}, name string, out *bool) error {
+	if raw, ok := params[name]; ok {
+		val, ok := raw.(bool)
+		if !ok {
+			return fmt.Errorf("Expecting %s to be a boolean")
 		}
-
-		// Read the next token
-		next, offset, err := readToken(query[i:])
-		if err != nil {
-			return nil, err
-		}
-
-		// Store the token
-		tokens = append(tokens, next)
-
-		// Increment the offset
-		i += offset
+		*out = val
+		delete(params, name)
 	}
-	return tokens, nil
-}
-
-// readToken is used to read a single token
-func readToken(query string) (*token, int, error) {
-	// Get the token
-	param, offset, err := readParameter(query)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	// Get the value
-	query = query[offset:]
-	val, offset2, err := readValue(query)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	// Return the new token
-	token := &token{
-		param: param,
-		val:   val,
-	}
-	return token, offset + offset2, nil
-}
-
-// readParameter scans for the next parameter
-func readParameter(query string) (string, int, error) {
-	for i := 0; i < len(query); i++ {
-		char := query[i]
-		if char == ':' {
-			if i == 0 {
-				return "", 0, fmt.Errorf("Missing parameter name")
-			} else {
-				return query[:i], i + 1, nil
-			}
-		}
-	}
-	return "", 0, fmt.Errorf("Parameter delimiter not found")
-}
-
-// readValue is used to scan for the next value
-func readValue(query string) (string, int, error) {
-	// Handle quoted values
-	if query[0] == '\'' || query[0] == '"' {
-		quoteChar := query[0:1]
-		endChar := strings.Index(query[1:], quoteChar)
-		if endChar == -1 {
-			return "", 0, fmt.Errorf("Missing end of quotation")
-		}
-		return query[1 : endChar+1], endChar + 2, nil
-	}
-
-	// Look for white space
-	endChar := strings.IndexAny(query, " \t\n")
-	if endChar == -1 {
-		return query, len(query), nil
-	}
-	return query[:endChar], endChar, nil
-}
-
-// collapse is used to collapse a token stream into a map
-// of parameter name to list of values.
-func collapse(tokens []*token) map[string][]string {
-	out := make(map[string][]string)
-	for _, t := range tokens {
-		existing := out[t.param]
-		out[t.param] = append(existing, t.val)
-	}
-	return out
+	return nil
 }

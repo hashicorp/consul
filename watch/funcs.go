@@ -2,14 +2,13 @@ package watch
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/armon/consul-api"
 )
 
 // watchFactory is a function that can create a new WatchFunc
 // from a parameter configuration
-type watchFactory func(params map[string][]string) (WatchFunc, error)
+type watchFactory func(params map[string]interface{}) (WatchFunc, error)
 
 // watchFuncFactory maps each type to a factory function
 var watchFuncFactory map[string]watchFactory
@@ -26,7 +25,7 @@ func init() {
 }
 
 // keyWatch is used to return a key watching function
-func keyWatch(params map[string][]string) (WatchFunc, error) {
+func keyWatch(params map[string]interface{}) (WatchFunc, error) {
 	var key string
 	if err := assignValue(params, "key", &key); err != nil {
 		return nil, err
@@ -51,7 +50,7 @@ func keyWatch(params map[string][]string) (WatchFunc, error) {
 }
 
 // keyPrefixWatch is used to return a key prefix watching function
-func keyPrefixWatch(params map[string][]string) (WatchFunc, error) {
+func keyPrefixWatch(params map[string]interface{}) (WatchFunc, error) {
 	var prefix string
 	if err := assignValue(params, "prefix", &prefix); err != nil {
 		return nil, err
@@ -73,7 +72,7 @@ func keyPrefixWatch(params map[string][]string) (WatchFunc, error) {
 }
 
 // servicesWatch is used to watch the list of available services
-func servicesWatch(params map[string][]string) (WatchFunc, error) {
+func servicesWatch(params map[string]interface{}) (WatchFunc, error) {
 	fn := func(p *WatchPlan) (uint64, interface{}, error) {
 		catalog := p.client.Catalog()
 		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
@@ -87,7 +86,7 @@ func servicesWatch(params map[string][]string) (WatchFunc, error) {
 }
 
 // nodesWatch is used to watch the list of available nodes
-func nodesWatch(params map[string][]string) (WatchFunc, error) {
+func nodesWatch(params map[string]interface{}) (WatchFunc, error) {
 	fn := func(p *WatchPlan) (uint64, interface{}, error) {
 		catalog := p.client.Catalog()
 		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
@@ -101,8 +100,8 @@ func nodesWatch(params map[string][]string) (WatchFunc, error) {
 }
 
 // serviceWatch is used to watch a specific service for changes
-func serviceWatch(params map[string][]string) (WatchFunc, error) {
-	var service, tag, passingRaw string
+func serviceWatch(params map[string]interface{}) (WatchFunc, error) {
+	var service, tag string
 	if err := assignValue(params, "service", &service); err != nil {
 		return nil, err
 	}
@@ -114,16 +113,9 @@ func serviceWatch(params map[string][]string) (WatchFunc, error) {
 		return nil, err
 	}
 
-	if err := assignValue(params, "passingonly", &passingRaw); err != nil {
-		return nil, err
-	}
 	passingOnly := false
-	if passingRaw != "" {
-		b, err := strconv.ParseBool(passingRaw)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to parse passingonly value: %v", err)
-		}
-		passingOnly = b
+	if err := assignValueBool(params, "passingonly", &passingOnly); err != nil {
+		return nil, err
 	}
 
 	fn := func(p *WatchPlan) (uint64, interface{}, error) {
@@ -139,7 +131,7 @@ func serviceWatch(params map[string][]string) (WatchFunc, error) {
 }
 
 // checksWatch is used to watch a specific checks in a given state
-func checksWatch(params map[string][]string) (WatchFunc, error) {
+func checksWatch(params map[string]interface{}) (WatchFunc, error) {
 	var service, state string
 	if err := assignValue(params, "service", &service); err != nil {
 		return nil, err
