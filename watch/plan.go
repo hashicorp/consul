@@ -3,6 +3,7 @@ package watch
 import (
 	"fmt"
 	"log"
+	"os"
 	"reflect"
 	"time"
 
@@ -32,6 +33,13 @@ func (p *WatchPlan) Run(address string) error {
 	}
 	p.client = client
 
+	// Create the logger
+	output := p.LogOutput
+	if output == nil {
+		output = os.Stderr
+	}
+	logger := log.New(output, "", log.LstdFlags)
+
 	// Loop until we are canceled
 	failures := 0
 OUTER:
@@ -47,14 +55,14 @@ OUTER:
 
 		// Handle an error in the watch function
 		if err != nil {
-			log.Printf("consul.watch: Watch (type: %s) errored: %v", p.Type, err)
-
 			// Perform an exponential backoff
 			failures++
 			retry := retryInterval * time.Duration(failures*failures)
 			if retry > maxBackoffTime {
 				retry = maxBackoffTime
 			}
+			logger.Printf("consul.watch: Watch (type: %s) errored: %v, retry in %v",
+				p.Type, err, retry)
 			select {
 			case <-time.After(retry):
 				continue OUTER

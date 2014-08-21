@@ -2,6 +2,7 @@ package watch
 
 import (
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/armon/consul-api"
@@ -16,8 +17,10 @@ type WatchPlan struct {
 	Token      string
 	Type       string
 	Exempt     map[string]interface{}
-	Func       WatchFunc
-	Handler    HandlerFunc
+
+	Func      WatchFunc
+	Handler   HandlerFunc
+	LogOutput io.Writer
 
 	address    string
 	client     *consulapi.Client
