@@ -1,6 +1,11 @@
 window.App = Ember.Application.create({
   rootElement: "#app",
-  currentPath: ''
+  currentPath: '',
+
+  initialize: function(container, application) {
+    console.log("initialize");
+    console.log(localStorage.getItem("foobars"));
+  }
 });
 
 
@@ -33,6 +38,9 @@ App.Router.map(function() {
 
     // Shows a page explaining that ACLs haven't been set-up
     this.route("aclsdisabled", { path: "/aclsdisabled" });
+    // Shows a page explaining that the ACL key being used isn't
+    // authorized
+    this.route("unauthorized", { path: "/unauthorized" });
   });
 
   // Shows a datacenter picker. If you only have one

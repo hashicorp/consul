@@ -56,7 +56,7 @@
       <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
         <div class="text-center vertical-center">
           <p class="bold">ACLs Disabled</p>
-          <p>ACLs are disabled in this Consul cluster. This is the default behavior, as you have to implicitly enable them.</p>
+          <p>ACLs are disabled in this Consul cluster. This is the default behavior, as you have to implictly enable them.</p>
           </p>Learn more in the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation</a>.</p>
         </div>
       </div>
@@ -100,28 +100,32 @@
     <div class="row">
       <div class="col-md-12 col-sm-12 col-xs-12 topbar">
 
-        <div class="col-md-1 col-sm-2 col-xs-10 col-sm-offset-0 col-xs-offset-1">
+        <div class="col-md-1 col-sm-2 col-xs-8 col-sm-offset-0 col-xs-offset-1">
           <a href="#"><div class="top-brand"></div></a>
         </div>
 
-        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
+        <div class="col-md-2 col-sm-3 col-xs-8 col-sm-offset-0 col-xs-offset-1">
          {{#link-to 'services' class='btn btn-default col-xs-12'}}Services{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
+        <div class="col-md-2 col-sm-3 col-xs-8 col-sm-offset-0 col-xs-offset-1">
           {{#link-to 'nodes' class='btn btn-default col-xs-12'}}Nodes{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
+        <div class="col-md-2 col-sm-3 col-xs-8 col-sm-offset-0 col-xs-offset-1">
           {{#link-to 'kv' class='btn btn-default col-xs-12'}}Key/Value{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-5 col-xs-10 col-xs-offset-1">
+        <div class="col-md-2 col-sm-2 col-xs-8 col-md-offset-0 col-sm-offset-2 col-xs-offset-1">
+          {{#link-to 'acls' class='btn btn-default col-xs-12'}}ACL{{/link-to}}
+        </div>
+
+        <div class="col-md-1 col-md-offset-1 col-sm-3 col-sm-offset-1 col-xs-10 col-xs-offset-1">
             {{#link-to 'services' (query-params status=checkStatus) tagName="div" href=false }}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</a>{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
-          <a {{bind-attr class=":col-xs-12 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> {{model}} <span class="caret"></span> </a>
+        <div class="col-md-1 col-sm-2 col-xs-6 col-sm-offset-0 col-xs-offset-1">
+          <a {{bind-attr class=":col-xs-6 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> <span class="elip-overflow">{{model}} <span class="caret"></span></span> </a>
 
           {{#if isDropdownVisible}}
             <ul class="dropdown-menu col-xs-8" style="display:block;">

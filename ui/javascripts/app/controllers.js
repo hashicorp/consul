@@ -44,9 +44,9 @@ App.DcController = Ember.Controller.extend({
     var passingChecks = checks.filterBy('Status', 'passing').get('length');
 
     if (this.get('hasFailingChecks') === true) {
-      return  failingChecks + ' checks failing';
+      return  failingChecks + ' failing';
     } else {
-      return  passingChecks + ' checks passing';
+      return  passingChecks + ' passing';
     }
 
   }.property('nodes'),
