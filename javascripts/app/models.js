@@ -8,14 +8,14 @@ App.Service = Ember.Object.extend({
   failingChecks: function() {
     // If the service was returned from `/v1/internal/ui/services`
     // then we have a aggregated value which we can just grab
-    if (this.get('ChecksCritical') != undefined) {
-      return (this.get('ChecksCritical') + this.get('ChecksWarning'))
+    if (this.get('ChecksCritical') !== undefined) {
+      return (this.get('ChecksCritical') + this.get('ChecksWarning'));
     // Otherwise, we need to filter the child checks by both failing
     // states
     } else {
       var checks = this.get('Checks');
       return (checks.filterBy('Status', 'critical').get('length') +
-        checks.filterBy('Status', 'warning').get('length'))
+        checks.filterBy('Status', 'warning').get('length'));
     }
   }.property('Checks'),
 
@@ -25,8 +25,8 @@ App.Service = Ember.Object.extend({
   passingChecks: function() {
     // If the service was returned from `/v1/internal/ui/services`
     // then we have a aggregated value which we can just grab
-    if (this.get('ChecksPassing') != undefined) {
-      return this.get('ChecksPassing')
+    if (this.get('ChecksPassing') !== undefined) {
+      return this.get('ChecksPassing');
     // Otherwise, we need to filter the child checks by both failing
     // states
     } else {
@@ -47,7 +47,7 @@ App.Service = Ember.Object.extend({
   }.property('Checks'),
 
   nodes: function() {
-    return (this.get('Nodes'))
+    return (this.get('Nodes'));
   }.property('Nodes'),
 
   //
@@ -63,7 +63,7 @@ App.Service = Ember.Object.extend({
   // searching
   //
   filterKey: function() {
-    return this.get('Name')
+    return this.get('Name');
   }.property('Name'),
 });
 
@@ -78,7 +78,7 @@ App.Node = Ember.Object.extend({
     var checks = this.get('Checks');
     // We view both warning and critical as failing
     return (checks.filterBy('Status', 'critical').get('length') +
-      checks.filterBy('Status', 'warning').get('length'))
+      checks.filterBy('Status', 'warning').get('length'));
   }.property('Checks'),
 
   //
@@ -112,17 +112,17 @@ App.Node = Ember.Object.extend({
   // The number of services on the node
   //
   numServices: function() {
-    return (this.get('Services').length)
+    return (this.get('Services').length);
   }.property('Services'),
   // The number of services on the node
   //
 
   services: function() {
-    return (this.get('Services'))
+    return (this.get('Services'));
   }.property('Services'),
 
   filterKey: function() {
-    return this.get('Node')
+    return this.get('Node');
   }.property('Node')
 });
 
@@ -153,8 +153,8 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
   isFolder: function() {
     if (this.get('Key') === undefined) {
       return false;
-    };
-    return (this.get('Key').slice(-1) === '/')
+    }
+    return (this.get('Key').slice(-1) === '/');
   }.property('Key'),
 
   // Boolean if the key is locked or now
@@ -170,9 +170,9 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
   // it will link to kv.show. Otherwise, kv.edit
   linkToRoute: function() {
     if (this.get('Key').slice(-1) === '/') {
-      return 'kv.show'
+      return 'kv.show';
     } else {
-      return 'kv.edit'
+      return 'kv.edit';
     }
   }.property('Key'),
 
