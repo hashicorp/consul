@@ -82,6 +82,13 @@ func init() {
 				Ui:                ui,
 			}, nil
 		},
+
+		"watch": func() (cli.Command, error) {
+			return &command.WatchCommand{
+				ShutdownCh: makeShutdownCh(),
+				Ui:         ui,
+			}, nil
+		},
 	}
 }
 
