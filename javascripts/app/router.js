@@ -25,7 +25,14 @@ App.Router.map(function() {
       this.route("show", { path: "/*key" });
       // Edit a specific key
       this.route("edit", { path: "/*key/edit" });
-    })
+    });
+    // ACLs
+    this.resource("acls", { path: "/acls" }, function(){
+      this.route("show", { path: "/:name" });
+    });
+
+    // Shows a page explaining that ACLs haven't been set-up
+    this.route("aclsdisabled", { path: "/aclsdisabled" });
   });
 
   // Shows a datacenter picker. If you only have one

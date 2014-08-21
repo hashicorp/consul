@@ -38,6 +38,31 @@
     </div>
   </script>
 
+  <script type="text/x-handlebars" data-template-name="dc/unauthorized">
+    <div class="row">
+      <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
+        <div class="text-center vertical-center">
+          <p class="bold">Access Denied</p>
+          <p>Your ACL token, <code>foobarbaz</code>, does not
+          have the appropriate permissions to perform the expected action.</p>
+          <p>Learn more in the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation</a>.</p>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" data-template-name="dc/aclsdisabled">
+    <div class="row">
+      <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
+        <div class="text-center vertical-center">
+          <p class="bold">ACLs Disabled</p>
+          <p>ACLs are disabled in this Consul cluster. This is the default behavior, as you have to implicitly enable them.</p>
+          </p>Learn more in the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation</a>.</p>
+        </div>
+      </div>
+    </div>
+  </script>
+
   <script type="text/x-handlebars" data-template-name="loading">
     <div class="row">
       <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
@@ -446,6 +471,143 @@
   </script>
 
   <script type="text/x-handlebars" id="node">
+      <div class="col-xs-12 col-sm-12 visible-xs visible-sm">
+        {{#link-to "nodes" class="btn btn-default btn-block" }}Back to all nodes{{/link-to}}
+        <hr>
+      </div>
+
+      <h3 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h3>
+      <hr>
+
+      <h5>Services</h5>
+
+      {{#each service in model.Services }}
+        {{#link-to 'services.show' service.Service tagName="div" href=false class="list-group-item list-condensed-link double-line" }}
+          <div class="list-bar-horizontal bg-light-gray"></div>
+            <div class="name">
+              {{service.Service}}
+              <small class="pull-right">
+                :{{service.Port}}
+              </small>
+            </div>
+            <ul class="list-inline sub">
+              {{#each tag in service.Tags}}
+                <li>{{tag}}</li>
+              {{/each}}
+              {{serviceTagMessage service.Tags}}
+            </ul>
+        {{/link-to}}
+
+      {{/each}}
+
+      <h5>Checks</h5>
+
+      {{#each check in model.Checks }}
+
+        <div class="panel">
+          {{ panelBar check.Status }}
+          <div class="panel-heading">
+            <h3 class="panel-title">
+              {{check.Name}}
+              <small>{{check.CheckID}}</small>
+              <span class="panel-note">{{check.Status}}</span>
+            </h3>
+          </div>
+
+          <div class="panel-body">
+            <h5>Notes</h5>
+            <p>{{ check.Notes }}</p>
+            <h5>Output</h5>
+            <pre>{{check.Output}}</pre>
+          </div>
+        </div>
+
+      {{/each}}
+
+      <h5>Lock Sessions</h5>
+
+      {{#if sessions }}
+        {{errorMessage}}
+
+        {{#each session in sessions }}
+          <div class="list-group-item list-condensed double-line">
+            <div class="bg-light-gray list-bar-horizontal"></div>
+            <div class="name">
+              {{ sessionName session }}
+              <button {{ action "invalidateSession" session.ID }} {{ bind-attr class=":btn :btn-danger :pull-right :btn-list isLoading:btn-warning" }}>Invalidate</button>
+            </div>
+              <ul class="list-inline sub">
+                {{#each check in session.Checks}}
+                  <li class="bold">{{check}}</li>
+                {{/each}}
+              </ul>
+          </div>
+        {{/each}}
+
+      {{else}}
+        <p class="light small">No sessions</p>
+      {{/if}}
+  </script>
+
+  <script type="text/x-handlebars" id="acls">
+    <div class="row">
+      <div {{ bind-attr class=":col-md-6 :col-lg-5 :padded-right-middle isShowingItem:hidden-xs isShowingItem:hidden-sm" }}>
+        {{view App.ActionBarView }}
+
+          {{#if filteredContent}}
+
+                {{#if condensed }}
+                    {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=44 }}
+                      {{#link-to 'acl.show' Node tagName="div" href=false class="list-group-item list-condensed-link" }}
+                        <div {{bind-attr class=":list-bar-horizontal"}}></div>
+                        <div class="name">
+                          foo
+                          <small class="pull-right">
+                          bar
+                          </small>
+                        </div>
+                      {{/link-to}}
+                    {{/collection}}
+
+                {{else}}
+
+                  {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=120 }}
+                    {{#link-to 'nodes.show' Node tagName="div" href=false class="list-group-item list-link" }}
+                      <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
+                      <h4 class="list-group-item-heading">
+                        {{Node}}
+                        <small>{{Address}}</small>
+                        <div class="heading-helper">
+                          <a class="subtle" href="#">{{checkMessage}}</a>
+                        </div>
+                      </h4>
+                      <ul class="list-inline">
+                        {{#each service in services}}
+                          <li class="bold">{{service.Service}}</li>
+                        {{/each}}
+                      </ul>
+                    {{/link-to}}
+                  {{/collection}}
+
+                {{/if}}
+
+          {{else}}
+          <p class="light">There are no nodes to show.</p>
+          {{/if}}
+      </div>
+
+      <div class="border-left hidden-xs hidden-sm">
+      </div>
+
+      <div class="col-md-6 col-lg-7 border-left scrollable">
+        <div class="row padded-border">
+          {{outlet}}
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" id="acl">
       <div class="col-xs-12 col-sm-12 visible-xs visible-sm">
         {{#link-to "nodes" class="btn btn-default btn-block" }}Back to all nodes{{/link-to}}
         <hr>
