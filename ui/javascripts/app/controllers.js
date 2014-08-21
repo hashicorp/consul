@@ -313,3 +313,36 @@ App.ServicesController = ItemBaseController.extend({
   items: Ember.computed.alias("services"),
 });
 
+App.AclsIndexController = Ember.ArrayController.extend({
+  needs: ["dc", "application"],
+  queryParams: ["filter"],
+  dc: Ember.computed.alias("controllers.dc"),
+
+  isShowingItem: function() {
+    var currentPath = this.get('controllers.application.currentPath');
+    return (currentPath === "dc.acls.show");
+  }.property('controllers.application.currentPath'),
+
+  filteredContent: function() {
+    var filter = this.get('filter');
+
+    var items = this.get('items').filter(function(item, index, enumerable){
+      // First try to match on the name
+      var nameMatch = item.get('Name').toLowerCase().match(filter.toLowerCase());
+      if (nameMatch.length > 0) {
+        return nameMatch;
+      // Otherwise match on the ID
+      } else {
+        return item.get('ID').toLowerCase().match(filter.toLowerCase());
+      }
+    });
+
+  }.property('filter', 'items.@each'),
+});
+
+
+App.AclsShowController = Ember.ArrayController.extend({
+  needs: ["dc"],
+  dc: Ember.computed.alias("controllers.dc"),
+});
+

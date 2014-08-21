@@ -62,3 +62,13 @@ App.KvListView = Ember.View.extend({
 App.ActionBarView = Ember.View.extend({
     templateName: 'actionbar'
 });
+
+// ACLS
+
+App.AclView = Ember.View.extend({
+    templateName: 'acls',
+});
+
+App.AclsShowView = Ember.View.extend({
+    templateName: 'acl'
+});

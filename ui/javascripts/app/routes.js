@@ -299,3 +299,36 @@ App.NodesRoute = App.BaseRoute.extend({
       controller.set('nodes', model);
   }
 });
+
+
+App.AclsRoute = App.BaseRoute.extend({
+  model: function(params) {
+    var dc = this.modelFor('dc').dc;
+    // Return a promise containing the ACLS
+    return Ember.$.getJSON('/v1/acl/list?dc=' + dc).then(function(data) {
+      objs = [];
+      data.map(function(obj){
+       objs.push(App.Acl.create(obj));
+      });
+      return objs;
+    });
+  },
+
+  actions: {
+    error: function(error, transition) {
+      // If consul returns 401, ACLs are disabled
+      if (error && error.status === 401) {
+        this.transitionTo('dc.aclsdisabled');
+      // If consul returns 403, they key isn't authorized for that
+      // action.
+      } else if (error && error.status === 403) {
+        this.transitionTo('dc.unauthorized');
+      }
+      return true;
+    }
+  },
+
+  setupController: function(controller, model) {
+      controller.set('acls', model);
+  }
+});

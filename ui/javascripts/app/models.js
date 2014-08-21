@@ -239,3 +239,9 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     return parts.join("/") + "/";
   }.property('Key')
 });
+
+//
+// An ACL
+//
+App.Acl = Ember.Object.extend({
+});
