@@ -55,7 +55,8 @@ Consul supports using TLS to verify the authenticity of servers and clients. For
 to work, Consul requires that all clients and servers have key pairs that are generated
 by a single Certificate Authority. This can be a private CA, used only internally. The
 CA then signs keys for each of the agents. [Here](https://langui.sh/2009/01/18/openssl-self-signed-ca/)
-is a tutorial on generating both a CA and signing keys using OpenSSL.
+is a tutorial on generating both a CA and signing keys using OpenSSL. Client certificates
+must have extended key usage enabled for client and server authentication.
 
 There are a number of things to consider when setting up TLS for Consul. Either we can
 use TLS just to verify the authenticity of the servers, or we can also verify the authenticity
