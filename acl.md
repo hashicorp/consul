@@ -1,0 +1,6 @@
+- ACL management
+  - KV takes ?token=ACCESS_KEY
+    - There is a default token
+    - Allow setting a token
+    - store the token in local storage
+    - return error (notification) if the write fails

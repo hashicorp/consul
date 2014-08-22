@@ -1,13 +1,41 @@
 window.App = Ember.Application.create({
   rootElement: "#app",
-  currentPath: '',
+  currentPath: ''
+});
+
+Ember.Application.initializer({
+  name: 'settings',
 
   initialize: function(container, application) {
-    console.log("initialize");
-    console.log(localStorage.getItem("foobars"));
+    application.set('settings', App.Settings.create());
   }
 });
 
+// Wrap localstorage with an ember object
+App.Settings = Ember.Object.extend({
+  unknownProperty: function(key) {
+    return localStorage[key];
+  },
+
+  setUnknownProperty: function(key, value) {
+    if(Ember.isNone(value)) {
+      delete localStorage[key];
+    } else {
+      localStorage[key] = value;
+    }
+    this.notifyPropertyChange(key);
+    return value;
+  },
+
+  clear: function() {
+    this.beginPropertyChanges();
+    for (var i=0, l=localStorage.length; i<l; i++){
+      this.set(localStorage.key(i));
+    }
+    localStorage.clear();
+    this.endPropertyChanges();
+  }
+});
 
 App.Router.map(function() {
   // Our parent datacenter resource sets the namespace
