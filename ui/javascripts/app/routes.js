@@ -310,7 +310,7 @@ App.AclsRoute = App.BaseRoute.extend({
       objs = [];
       data.map(function(obj){
         if (obj.ID === "anonymous") {
-          objs.unshift(App.Acl.create(obj))
+          objs.unshift(App.Acl.create(obj));
         } else {
           objs.push(App.Acl.create(obj));
         }
@@ -355,6 +355,13 @@ App.AclsShowRoute = App.BaseRoute.extend({
       controller.set('content', models.acl);
   }
 });
+
+App.SettingsRoute = App.BaseRoute.extend({
+  model: function(params) {
+    return App.get('settings');
+  }
+});
+
 
 // Adds any global parameters we need to set to a url/path
 function formatUrl(url, dc, token) {

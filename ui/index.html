@@ -102,7 +102,7 @@
 
   <script type="text/x-handlebars" data-template-name="dc">
     <div class="row">
-      <div {{ bind-attr class=":col-md-12 :col-sm-12 :col-xs-12 :topbar hasFailingChecks:topbar-orange:topbar-green" }}>
+      <div {{ bind-attr class=":col-md-12 :col-sm-12 :col-xs-12 :topbar" }}>
 
         <div class="col-md-1 col-sm-2 col-xs-8 col-sm-offset-0 col-xs-offset-1">
           <a href="#"><div class="top-brand"></div></a>
@@ -137,7 +137,7 @@
         </div>
 
         <div class="col-md-1 col-sm-2 col-xs-8 col-md-offset-0 col-sm-offset-2 col-xs-offset-1">
-          {{#link-to 'nodes' class='btn btn-default col-xs-6 icon'}}<span class="wrap">&#9881;</span>{{/link-to}}
+          {{#link-to 'settings' class='btn btn-default col-xs-6 icon'}}<span class="wrap">&#9881;</span>{{/link-to}}
         </div>
       </div>
     </div>
@@ -628,6 +628,25 @@
     </div>
   </script>
 
+  <script type="text/x-handlebars" id="settings">
+    <div class="col-md-8 col-md-offset-2 col-xs-offset-0 col-sm-offset-0 col-xs-12 col-sm-12">
+      <h3>Settings</h3>
+      <p>These settings allow you to configure your browser for the Consul Web UI. Everything is saved to localstorage,
+      and should persist through visits and browser usage.</p>
+      <p>Settings are automatically persisted upon modification, so no manual save is required.</p>
+      <h5>Access Token</h5>
+      <div class="form-group">
+        {{ input type="text" value=model.token class="form-control form-mono" placeholder="token"}}
+        <span class="help-block">The token is sent with requests as the <code>?token</code> parameter. This is used to control the ACL for the
+        web UI.</span>
+      </div>
+      <div class="form-group">
+        <button {{ action "reset" }} {{ bind-attr class=":btn :btn-danger" }}>Reset Defaults</button>
+      </div>
+    </div>
+  </script>
+
+
   <script>
   // Enable query params, must be loaded before ember is
   EmberENV = {FEATURES: {'query-params-new': true}};
@@ -639,6 +658,8 @@
   <script src="javascripts/libs/ember-debug.min.js"></script>
   <script src="javascripts/libs/ember-validations.min.js"></script>
   <script src="javascripts/libs/list-view.min.js"></script>
+  <script src="javascripts/libs/classie.js"></script>
+  <script src="javascripts/libs/notificationFx.js"></script>
   <script src="javascripts/fixtures.js"></script>
   <script src="javascripts/app/router.js"></script>
   <script src="javascripts/app/routes.js"></script>

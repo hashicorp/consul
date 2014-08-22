@@ -278,3 +278,5 @@ App.Settings = Ember.Object.extend({
     this.endPropertyChanges();
   }
 });
+
+

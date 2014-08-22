@@ -8,6 +8,8 @@ libs = [
   "javascripts/libs/ember.min.js",
   "javascripts/libs/ember-validations.min.js",
   "javascripts/libs/list-view.min.js",
+  "javascripts/libs/classie.js",
+  "javascripts/libs/notificationFx.js",
 ]
 
 app = [

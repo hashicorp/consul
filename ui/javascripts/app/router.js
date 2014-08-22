@@ -43,6 +43,8 @@ App.Router.map(function() {
     // Shows a page explaining that the ACL key being used isn't
     // authorized
     this.route("unauthorized", { path: "/unauthorized" });
+
+    this.resource("settings", { path: "/settings" });
   });
 
   // Shows a datacenter picker. If you only have one

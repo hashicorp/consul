@@ -53,3 +53,27 @@ Ember.Handlebars.helper('serviceTagMessage', function(tags) {
     return "No tags";
   }
 });
+
+
+// Sends a new notification to the UI
+function notify(message, ttl) {
+  if (window.notifications !== undefined && window.notifications.length > 0) {
+    $(window.notifications).each(function(i, v) {
+      v.dismiss();
+    });
+  }
+  var notification = new NotificationFx({
+    message : '<p>'+ message + '</p>',
+    layout : 'growl',
+    effect : 'slide',
+    type : 'notice',
+    ttl: ttl,
+  });
+
+  // show the notification
+  notification.show();
+
+  // Add the notification to the queue to be closed
+  window.notifications = [];
+  window.notifications.push(notification);
+}
