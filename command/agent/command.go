@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
@@ -37,6 +38,7 @@ type Command struct {
 	ShutdownCh        <-chan struct{}
 	args              []string
 	logFilter         *logutils.LevelFilter
+	logOutput         io.Writer
 	agent             *Agent
 	rpcServer         *AgentRPC
 	httpServer        *HTTPServer
@@ -141,6 +143,25 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
+	// Compile all the watches
+	for _, params := range config.Watches {
+		// Parse the watches, excluding the handler
+		wp, err := watch.ParseExempt(params, []string{"handler"})
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to parse watch (%#v): %v", params, err))
+			return nil
+		}
+
+		// Get the handler
+		if err := verifyWatchHandler(wp.Exempt["handler"]); err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to setup watch handler (%#v): %v", params, err))
+			return nil
+		}
+
+		// Store the watch plan
+		config.WatchPlans = append(config.WatchPlans, wp)
+	}
+
 	// Warn if we are in expect mode
 	if config.BootstrapExpect == 1 {
 		c.Ui.Error("WARNING: BootstrapExpect Mode is specified as 1; this is the same as Bootstrap mode.")
@@ -206,6 +227,7 @@ func (c *Command) setupLoggers(config *Config) (*GatedWriter, *logWriter, io.Wri
 	} else {
 		logOutput = io.MultiWriter(c.logFilter, logWriter)
 	}
+	c.logOutput = logOutput
 	return logGate, logWriter, logOutput
 }
 
@@ -377,6 +399,23 @@ func (c *Command) Run(args []string) int {
 		}
 	}
 
+	// Get the new client listener addr
+	httpAddr, err := config.ClientListenerAddr(config.Ports.HTTP)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
+	}
+
+	// Register the watches
+	for _, wp := range config.WatchPlans {
+		go func() {
+			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"])
+			wp.LogOutput = c.logOutput
+			if err := wp.Run(httpAddr); err != nil {
+				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
+			}
+		}()
+	}
+
 	// Let the agent know we've finished registration
 	c.agent.StartSync()
 
@@ -516,6 +555,28 @@ func (c *Command) handleReload(config *Config) *Config {
 		if err := c.agent.AddCheck(health, chkType); err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to register check '%s': %v %v", check.Name, err, check))
 		}
+	}
+
+	// Get the new client listener addr
+	httpAddr, err := newConf.ClientListenerAddr(config.Ports.HTTP)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
+	}
+
+	// Deregister the old watches
+	for _, wp := range config.WatchPlans {
+		wp.Stop()
+	}
+
+	// Register the new watches
+	for _, wp := range newConf.WatchPlans {
+		go func() {
+			wp.Handler = makeWatchHandler(c.logOutput, wp.Exempt["handler"])
+			wp.LogOutput = c.logOutput
+			if err := wp.Run(httpAddr); err != nil {
+				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
+			}
+		}()
 	}
 
 	return newConf

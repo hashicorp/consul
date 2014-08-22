@@ -384,6 +384,27 @@ func TestDecodeConfig(t *testing.T) {
 	if config.ACLDefaultPolicy != "deny" {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// Watches
+	input = `{"watches": [{"type":"keyprefix", "prefix":"foo/", "handler":"foobar"}]}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(config.Watches) != 1 {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	out := config.Watches[0]
+	exp := map[string]interface{}{
+		"type":    "keyprefix",
+		"prefix":  "foo/",
+		"handler": "foobar",
+	}
+	if !reflect.DeepEqual(out, exp) {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -538,6 +559,13 @@ func TestMergeConfig(t *testing.T) {
 		ACLTTLRaw:              "15s",
 		ACLDownPolicy:          "deny",
 		ACLDefaultPolicy:       "deny",
+		Watches: []map[string]interface{}{
+			map[string]interface{}{
+				"type":    "keyprefix",
+				"prefix":  "foo/",
+				"handler": "foobar",
+			},
+		},
 	}
 
 	c := MergeConfig(a, b)

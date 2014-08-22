@@ -3,6 +3,8 @@ package agent
 import (
 	"math"
 	"math/rand"
+	"os/exec"
+	"runtime"
 	"time"
 )
 
@@ -38,4 +40,18 @@ func strContains(l []string, s string) bool {
 		}
 	}
 	return false
+}
+
+// ExecScript returns a command to execute a script
+func ExecScript(script string) (*exec.Cmd, error) {
+	var shell, flag string
+	if runtime.GOOS == "windows" {
+		shell = "cmd"
+		flag = "/C"
+	} else {
+		shell = "/bin/sh"
+		flag = "-c"
+	}
+	cmd := exec.Command(shell, flag, script)
+	return cmd, nil
 }

@@ -22,16 +22,19 @@ func init() {
 }
 
 type agentWrapper struct {
-	dir    string
-	config *agent.Config
-	agent  *agent.Agent
-	rpc    *agent.AgentRPC
-	addr   string
+	dir      string
+	config   *agent.Config
+	agent    *agent.Agent
+	rpc      *agent.AgentRPC
+	http     *agent.HTTPServer
+	addr     string
+	httpAddr string
 }
 
 func (a *agentWrapper) Shutdown() {
 	a.rpc.Shutdown()
 	a.agent.Shutdown()
+	a.http.Shutdown()
 	os.RemoveAll(a.dir)
 }
 
@@ -59,12 +62,22 @@ func testAgent(t *testing.T) *agentWrapper {
 	}
 
 	rpc := agent.NewAgentRPC(a, l, mult, lw)
+
+	httpAddr := fmt.Sprintf("127.0.0.1:%d", conf.Ports.HTTP)
+	http, err := agent.NewHTTPServer(a, "", false, os.Stderr, httpAddr)
+	if err != nil {
+		os.RemoveAll(dir)
+		t.Fatalf(fmt.Sprintf("err: %v", err))
+	}
+
 	return &agentWrapper{
-		dir:    dir,
-		config: conf,
-		agent:  a,
-		rpc:    rpc,
-		addr:   l.Addr().String(),
+		dir:      dir,
+		config:   conf,
+		agent:    a,
+		rpc:      rpc,
+		http:     http,
+		addr:     l.Addr().String(),
+		httpAddr: httpAddr,
 	}
 }
 

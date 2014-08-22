@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/watch"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -229,6 +230,11 @@ type Config struct {
 	//                    this acts like deny.
 	ACLDownPolicy string `mapstructure:"acl_down_policy"`
 
+	// Watches are used to monitor various endpoints and to invoke a
+	// handler to act appropriately. These are managed entirely in the
+	// agent layer using the standard APIs.
+	Watches []map[string]interface{} `mapstructure:"watches"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -251,6 +257,9 @@ type Config struct {
 
 	// VersionPrerelease is a label for pre-release builds
 	VersionPrerelease string `mapstructure:"-"`
+
+	// WatchPlans contains the compiled watches
+	WatchPlans []*watch.WatchPlan `mapstructure:"-" json:"-"`
 }
 
 type dirEnts []os.FileInfo
@@ -300,6 +309,19 @@ func (c *Config) ClientListener(port int) (*net.TCPAddr, error) {
 		return nil, fmt.Errorf("Failed to parse IP: %v", c.ClientAddr)
 	}
 	return &net.TCPAddr{IP: ip, Port: port}, nil
+}
+
+// ClientListenerAddr is used to format an address for a
+// port on a ClientAddr, handling the zero IP.
+func (c *Config) ClientListenerAddr(port int) (string, error) {
+	addr, err := c.ClientListener(port)
+	if err != nil {
+		return "", err
+	}
+	if addr.IP.IsUnspecified() {
+		addr.IP = net.ParseIP("127.0.0.1")
+	}
+	return addr.String(), nil
 }
 
 // DecodeConfig reads the configuration from the given reader in JSON
@@ -647,6 +669,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ACLDefaultPolicy != "" {
 		result.ACLDefaultPolicy = b.ACLDefaultPolicy
+	}
+	if len(b.Watches) != 0 {
+		result.Watches = append(result.Watches, b.Watches...)
+	}
+	if len(b.WatchPlans) != 0 {
+		result.WatchPlans = append(result.WatchPlans, b.WatchPlans...)
 	}
 
 	// Copy the start join addresses

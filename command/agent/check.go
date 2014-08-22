@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"log"
 	"os/exec"
-	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -106,18 +105,13 @@ func (c *CheckMonitor) run() {
 
 // check is invoked periodically to perform the script check
 func (c *CheckMonitor) check() {
-	// Determine the shell invocation based on OS
-	var shell, flag string
-	if runtime.GOOS == "windows" {
-		shell = "cmd"
-		flag = "/C"
-	} else {
-		shell = "/bin/sh"
-		flag = "-c"
-	}
-
 	// Create the command
-	cmd := exec.Command(shell, flag, c.Script)
+	cmd, err := ExecScript(c.Script)
+	if err != nil {
+		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", c.Script, err)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthUnknown, err.Error())
+		return
+	}
 
 	// Collect the output
 	output, _ := circbuf.NewBuffer(CheckBufSize)
@@ -140,7 +134,7 @@ func (c *CheckMonitor) check() {
 		time.Sleep(30 * time.Second)
 		errCh <- fmt.Errorf("Timed out running check '%s'", c.Script)
 	}()
-	err := <-errCh
+	err = <-errCh
 
 	// Get the output, add a message about truncation
 	outputStr := string(output.Bytes())
