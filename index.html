@@ -578,11 +578,50 @@
       <div class="border-left hidden-xs hidden-sm">
       </div>
 
+      {{#if isShowingItem}}
       <div class="col-md-6 col-lg-7 border-left scrollable">
         <div class="row padded-border">
           {{outlet}}
         </div>
       </div>
+      {{else}}
+        <div class="col-md-6 col-lg-7 border-left">
+          <div class="row padded-border">
+            <div class="panel">
+              <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    Create ACL
+                  </h4>
+                </div>
+
+                <div class="panel-body panel-form">
+                  <div class="form-group"></div>
+
+                  <form class="form">
+                    <div class="form-group">
+                      {{ input value=newAcl.Name class="form-control" }}
+                      <span class="help-block">Set the optional name for the ACL.</span>
+                    </div>
+
+                    <div class="form-group">
+                      {{view Ember.Select content=types value=newAcl.Type class="form-control form-control-mini"}}
+                      <span class="help-block">The type of ACL this is.</span>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Rules</label>
+                      {{ textarea value=newAcl.Rules class="form-control" }}
+                      <span class="help-block">For more information on rules, visit the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation.</a></span>
+                    </div>
+
+                    <button {{ action "createAcl"}} {{ bind-attr class=":btn :btn-success" }}>Create</button>
+                  </form>
+                </div>
+              </div>
+          </div>
+        </div>
+      {{/if}}
     </div>
   </script>
 
@@ -592,21 +631,45 @@
         <hr>
       </div>
 
-      {{errorMessage}}
+        <div class="panel">
+          <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
+            <div class="panel-heading">
+              <h4 class="panel-title">
+                {{ aclName "Update ACL" model.ID }}
+              </h4>
+            </div>
 
-      <h3 class="no-margin">{{aclName model.Name model.ID }}</h3>
+            <div class="panel-body panel-form">
+              <div class="form-group"></div>
+
+              <form class="form">
+                <div class="form-group">
+                  {{ input value=model.Name class="form-control" }}
+                  <span class="help-block">Set the optional name for the ACL.</span>
+                </div>
+
+                <div class="form-group">
+                  {{view Ember.Select content=types value=model.Type class="form-control form-control-mini"}}
+                  <span class="help-block">The type of ACL this is.</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Rules</label>
+                  {{ textarea value=model.Rules class="form-control" }}
+                  <span class="help-block">For more information on rules, visit the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation.</a></span>
+                </div>
+
+                <button {{ action "updateAcl"}} {{ bind-attr class=":btn :btn-success" }}>Update</button>
+                <button {{ action "clone" }} {{ bind-attr class=":btn :btn-default" }}>Clone</button>
+                <button {{ action "set" }} {{ bind-attr class=":btn :btn-default" }}>Use Token</button>
+                {{# if model.isNotAnon }}
+                <button {{ action "delete"}} {{ bind-attr class=":btn isLoading:btn-warning:btn-danger :pull-right" }}>Delete</button>
+                {{/if}}
+
+              </form>
+            </div>
+          </div>
       <hr>
-
-      <button {{ action "clone" }} {{ bind-attr class=":btn :btn-default" }}>Clone</button>
-      <button {{ action "set" }} {{ bind-attr class=":btn :btn-default" }}>Use Token</button>
-      {{# if model.isNotAnon }}
-      <button {{ action "delete"}} {{ bind-attr class=":btn isLoading:btn-warning:btn-danger" }}>Delete</button>
-      {{/if}}
-      <h5>Type</h5>
-      <p>{{Type}}</p>
-
-      <h5>Rules</h5>
-      <pre>{{formatRules model.Rules}}</pre>
   </script>
 
   <script type="text/x-handlebars" id="index">

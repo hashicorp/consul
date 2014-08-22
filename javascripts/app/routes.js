@@ -335,6 +335,7 @@ App.AclsRoute = App.BaseRoute.extend({
 
   setupController: function(controller, model) {
       controller.set('acls', model);
+      controller.set('newAcl', App.Acl.create());
   }
 });
 

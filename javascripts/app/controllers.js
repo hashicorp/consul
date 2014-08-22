@@ -320,6 +320,7 @@ App.AclsController = Ember.ArrayController.extend({
   queryParams: ["filter"],
   filterText: "Filter by name or ID",
   searchBar: true,
+  types: ["management", "client"],
 
   dc: Ember.computed.alias("controllers.dc"),
   items: Ember.computed.alias("acls"),
@@ -346,6 +347,34 @@ App.AclsController = Ember.ArrayController.extend({
 
     return items;
   }.property('filter', 'items.@each'),
+
+  actions: {
+    createAcl: function() {
+      this.set('isLoading', true);
+
+      var controller = this;
+      var newAcl = controller.get('newAcl');
+      var dc = controller.get('dc').get('datacenter');
+      var token = App.get('settings.token');
+
+      console.log();
+
+      // Create the ACL
+      Ember.$.ajax({
+          url: formatUrl('/v1/acl/create', dc, token),
+          type: 'PUT',
+          data: JSON.stringify(newAcl)
+      }).then(function(response) {
+        // transition to the acl
+        controller.transitionToRoute('acls.show', response.ID);
+        controller.set('isLoading', false);
+      }).fail(function(response) {
+        // Render the error message on the form if the request failed
+        notify('Received error while creating ACL: ' + response.statusText, 8000);
+        controller.set('isLoading', false);
+      });
+    },
+  }
 });
 
 
@@ -353,6 +382,7 @@ App.AclsShowController = Ember.ObjectController.extend({
   needs: ["dc", "acls"],
   dc: Ember.computed.alias("controllers.dc"),
   isLoading: false,
+  types: ["management", "client"],
 
   actions: {
     set: function() {
@@ -428,6 +458,30 @@ App.AclsShowController = Ember.ObjectController.extend({
           controller.set('isLoading', false);
         });
       }
+    },
+
+    updateAcl: function() {
+      this.set('isLoading', true);
+
+      var controller = this;
+      var acl = controller.get('model');
+      var dc = controller.get('dc').get('datacenter');
+      var token = App.get('settings.token');
+
+      // Update the ACL
+      Ember.$.ajax({
+          url: formatUrl('/v1/acl/update', dc, token),
+          type: 'PUT',
+          data: JSON.stringify(acl)
+      }).then(function(response) {
+        // transition to the acl
+        controller.set('isLoading', false);
+        notify('ACL updated successfully', 3000);
+      }).fail(function(response) {
+        // Render the error message on the form if the request failed
+        notify('Received error while creating ACL: ' + response.statusText, 8000);
+        controller.set('isLoading', false);
+      });
     }
   }
 });
