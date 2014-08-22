@@ -3,6 +3,7 @@ package agent
 import (
 	"math"
 	"math/rand"
+	"os"
 	"os/exec"
 	"runtime"
 	"time"
@@ -51,6 +52,9 @@ func ExecScript(script string) (*exec.Cmd, error) {
 	} else {
 		shell = "/bin/sh"
 		flag = "-c"
+	}
+	if other := os.Getenv("SHELL"); other != "" {
+		shell = other
 	}
 	cmd := exec.Command(shell, flag, script)
 	return cmd, nil
