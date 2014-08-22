@@ -85,29 +85,11 @@ func (c *consulFSM) decodeRegister(buf []byte, index uint64) interface{} {
 }
 
 func (c *consulFSM) applyRegister(req *structs.RegisterRequest, index uint64) interface{} {
-	// Ensure the node
-	node := structs.Node{req.Node, req.Address}
-	if err := c.state.EnsureNode(index, node); err != nil {
-		c.logger.Printf("[INFO] consul.fsm: EnsureNode failed: %v", err)
+	// Apply all updates in a single transaction
+	if err := c.state.EnsureRegistration(index, req); err != nil {
+		c.logger.Printf("[INFO] consul.fsm: EnsureRegistration failed: %v", err)
 		return err
 	}
-
-	// Ensure the service if provided
-	if req.Service != nil {
-		if err := c.state.EnsureService(index, req.Node, req.Service); err != nil {
-			c.logger.Printf("[INFO] consul.fsm: EnsureService failed: %v", err)
-			return err
-		}
-	}
-
-	// Ensure the check if provided
-	if req.Check != nil {
-		if err := c.state.EnsureCheck(index, req.Check); err != nil {
-			c.logger.Printf("[INFO] consul.fsm: EnsureCheck failed: %v", err)
-			return err
-		}
-	}
-
 	return nil
 }
 

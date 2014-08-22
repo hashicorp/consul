@@ -13,6 +13,57 @@ func testStateStore() (*StateStore, error) {
 	return NewStateStore(os.Stderr)
 }
 
+func TestEnsureRegistration(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	reg := &structs.RegisterRequest{
+		Node:    "foo",
+		Address: "127.0.0.1",
+		Service: &structs.NodeService{"api", "api", nil, 5000},
+		Check: &structs.HealthCheck{
+			Node:      "foo",
+			CheckID:   "api",
+			Name:      "Can connect",
+			Status:    structs.HealthPassing,
+			ServiceID: "api",
+		},
+	}
+
+	if err := store.EnsureRegistration(13, reg); err != nil {
+		t.Fatalf("err: %v")
+	}
+
+	idx, found, addr := store.GetNode("foo")
+	if idx != 13 || !found || addr != "127.0.0.1" {
+		t.Fatalf("Bad: %v %v %v", idx, found, addr)
+	}
+
+	idx, services := store.NodeServices("foo")
+	if idx != 13 {
+		t.Fatalf("bad: %v", idx)
+	}
+
+	entry, ok := services.Services["api"]
+	if !ok {
+		t.Fatalf("missing api: %#v", services)
+	}
+	if entry.Tags != nil || entry.Port != 5000 {
+		t.Fatalf("Bad entry: %#v", entry)
+	}
+
+	idx, checks := store.NodeChecks("foo")
+	if idx != 13 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(checks) != 1 {
+		t.Fatalf("check: %#v", checks)
+	}
+}
+
 func TestEnsureNode(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {

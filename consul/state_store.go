@@ -375,6 +375,39 @@ func (s *StateStore) QueryTables(q string) MDBTables {
 	return s.queryTables[q]
 }
 
+// EnsureRegistration is used to make sure a node, service, and check registration
+// is performed within a single transaction to avoid race conditions on state updates.
+func (s *StateStore) EnsureRegistration(index uint64, req *structs.RegisterRequest) error {
+	tx, err := s.tables.StartTxn(false)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	// Ensure the node
+	node := structs.Node{req.Node, req.Address}
+	if err := s.ensureNodeTxn(index, node, tx); err != nil {
+		return err
+	}
+
+	// Ensure the service if provided
+	if req.Service != nil {
+		if err := s.ensureServiceTxn(index, req.Node, req.Service, tx); err != nil {
+			return err
+		}
+	}
+
+	// Ensure the check if provided
+	if req.Check != nil {
+		if err := s.ensureCheckTxn(index, req.Check, tx); err != nil {
+			return err
+		}
+	}
+
+	// Commit as one unit
+	return tx.Commit()
+}
+
 // EnsureNode is used to ensure a given node exists, with the provided address
 func (s *StateStore) EnsureNode(index uint64, node structs.Node) error {
 	tx, err := s.nodeTable.StartTxn(false, nil)
