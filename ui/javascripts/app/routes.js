@@ -304,8 +304,9 @@ App.NodesRoute = App.BaseRoute.extend({
 App.AclsRoute = App.BaseRoute.extend({
   model: function(params) {
     var dc = this.modelFor('dc').dc;
+    var token = App.get('settings.token');
     // Return a promise containing the ACLS
-    return Ember.$.getJSON(formatUrl('/v1/acl/list', dc, "")).then(function(data) {
+    return Ember.$.getJSON(formatUrl('/v1/acl/list', dc, token)).then(function(data) {
       objs = [];
       data.map(function(obj){
        objs.push(App.Acl.create(obj));
