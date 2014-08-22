@@ -95,3 +95,36 @@ may not be important for your use case. For example, for a web server and load
 balancer setup, both result in the same action: remove the web node
 from the load balancer pool. But for other situations, you may handle
 each scenario differently.
+
+## Lifecycle
+
+Every agent in the Consul cluster goes through a lifecycle. Understanding
+this lifecycle is useful to building a mental model of an agent's interactions
+with a cluster, and how the cluster treats a node.
+
+When an agent is first started, it does not know about any other node in the cluster.
+To discover it's peers, it must _join_ the cluster. This is done with the `join`
+command or by providing the proper configuration to auto-join on start. Once a node
+joins, this information is gossiped to the entire cluster, meaning all nodes will
+eventually be aware of each other. If the agent is a server, existing servers will
+begin replicating to the new node.
+
+In the case of a network failure, some nodes may be unreachable by other nodes.
+In this case, unreachable nodes are marked as _failed_. It is impossible to distinguish
+between a network failure and an agent crash, so both cases are handled the same.
+Once a node is marked as failed, this information is updated in the service catalog.
+There is some nuance here relating, since this update is only possible if the
+servers can still [form a quorum](/docs/internals/consensus.html). Once the network
+failure recovers, or a crashed agent restarts, the cluster will repair itself,
+and unmark a node as failed. The health check in the catalog will also be updated
+to reflect this.
+
+When a node _leaves_, it specifies it's intent to do so, and so the cluster
+marks that node as having _left_. Unlike the _failed_ case, all of the
+services provided by a node are immediately deregistered. If the agent was
+a server, replication to it will stop. To prevent an accumulation
+of dead nodes, Consul will automatically reap _failed_ nodes out of the
+catalog as well. This is currently done on a non-configurable interval
+which defaults to 72 hours. Reaping is similar to leaving, causing all
+associated services to be deregistered.
+
