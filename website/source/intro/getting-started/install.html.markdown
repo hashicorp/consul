@@ -57,6 +57,7 @@ Available commands are:
     members        Lists the members of a Consul cluster
     monitor        Stream logs from a Consul agent
     version        Prints the Consul version
+    watch          Watch for changes in Consul
 ```
 
 If you get an error that `consul` could not be found, then your PATH

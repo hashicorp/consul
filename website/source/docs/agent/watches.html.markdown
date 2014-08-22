@@ -8,7 +8,7 @@ sidebar_current: "docs-agent-watches"
 
 Watches are a way of specifying a view of data (list of nodes, KV pairs,
 health checks, etc) which is monitored for any updates. When an update
-is detected, an external handler handler is invoked. A handler can be any
+is detected, an external handler is invoked. A handler can be any
 executable. As an example, you could  watch the status of health checks and
 notify an external system when a check is critical.
 
