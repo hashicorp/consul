@@ -2,15 +2,17 @@ package agent
 
 import (
 	"encoding/json"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/mitchellh/mapstructure"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	"net/http/pprof"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/mitchellh/mapstructure"
 )
 
 // HTTPServer is used to wrap an Agent and expose various API's
@@ -148,7 +150,12 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 	HAS_ERR:
 		if err != nil {
 			s.logger.Printf("[ERR] http: Request %v, error: %v", req.URL, err)
-			resp.WriteHeader(500)
+			code := 500
+			errMsg := err.Error()
+			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
+				code = 403
+			}
+			resp.WriteHeader(code)
 			resp.Write([]byte(err.Error()))
 			return
 		}
