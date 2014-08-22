@@ -241,6 +241,8 @@ ItemBaseController = Ember.ArrayController.extend({
   queryParams: ["filter", "status", "condensed"],
   dc: Ember.computed.alias("controllers.dc"),
   condensed: true,
+  hasExpanded: true,
+  filterText: "Filter by name",
   filter: "", // default
   status: "any status", // default
   statuses: ["any status", "passing", "failing"],
@@ -313,10 +315,16 @@ App.ServicesController = ItemBaseController.extend({
   items: Ember.computed.alias("services"),
 });
 
-App.AclsIndexController = Ember.ArrayController.extend({
+App.AclsController = Ember.ArrayController.extend({
   needs: ["dc", "application"],
   queryParams: ["filter"],
+  filterText: "Filter by name or ID",
+  searchBar: true,
+
   dc: Ember.computed.alias("controllers.dc"),
+  items: Ember.computed.alias("acls"),
+
+  filter: "",
 
   isShowingItem: function() {
     var currentPath = this.get('controllers.application.currentPath');
@@ -329,20 +337,95 @@ App.AclsIndexController = Ember.ArrayController.extend({
     var items = this.get('items').filter(function(item, index, enumerable){
       // First try to match on the name
       var nameMatch = item.get('Name').toLowerCase().match(filter.toLowerCase());
-      if (nameMatch.length > 0) {
+      if (nameMatch !== null) {
         return nameMatch;
-      // Otherwise match on the ID
       } else {
         return item.get('ID').toLowerCase().match(filter.toLowerCase());
       }
     });
 
+    return items;
   }.property('filter', 'items.@each'),
 });
 
 
-App.AclsShowController = Ember.ArrayController.extend({
-  needs: ["dc"],
+App.AclsShowController = Ember.ObjectController.extend({
+  needs: ["dc", "acls"],
   dc: Ember.computed.alias("controllers.dc"),
+  isLoading: false,
+
+  actions: {
+    set: function() {
+      this.set('isLoading', true);
+      var controller = this;
+      var acl = controller.get('model');
+      var dc = controller.get('dc').get('datacenter');
+
+      if (window.confirm("Are you sure you want to use this token for your session?")) {
+        // Set
+        var token = App.set('settings.token', acl.ID);
+        controller.transitionToRoute('services');
+        this.set('isLoading', false);
+      }
+    },
+
+    clone: function() {
+      this.set('isLoading', true);
+      var controller = this;
+      var acl = controller.get('model');
+      var dc = controller.get('dc').get('datacenter');
+      var token = App.get('settings.token');
+
+      // Set
+      controller.transitionToRoute('services');
+
+      Ember.$.ajax({
+          url: formatUrl('/v1/acl/clone/'+ acl.ID, dc, token),
+          type: 'PUT'
+      }).then(function(response) {
+        controller.transitionToRoute('acls.show', response.ID);
+        controller.set('isLoading', false);
+      }).fail(function(response) {
+        // Render the error message on the form if the request failed
+        controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+        controller.set('isLoading', false);
+      });
+
+    },
+
+    delete: function() {
+      this.set('isLoading', true);
+      var controller = this;
+      var acl = controller.get('model');
+      var dc = controller.get('dc').get('datacenter');
+      var token = App.get('settings.token');
+
+      if (window.confirm("Are you sure you want to delete this token?")) {
+        Ember.$.ajax({
+            url: formatUrl('/v1/acl/destroy/'+ acl.ID, dc, token),
+            type: 'PUT'
+        }).then(function(response) {
+          Ember.$.getJSON(formatUrl('/v1/acl/list', dc, token)).then(function(data) {
+            objs = [];
+            data.map(function(obj){
+              if (obj.ID === "anonymous") {
+                objs.unshift(App.Acl.create(obj));
+              } else {
+                objs.push(App.Acl.create(obj));
+              }
+            });
+            controller.get('controllers.acls').set('acls', objs);
+          }).then(function() {
+            controller.transitionToRoute('acls');
+            controller.set('isLoading', false);
+          });
+        }).fail(function(response) {
+          // Render the error message on the form if the request failed
+          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+          controller.set('isLoading', false);
+        });
+      }
+    }
+  }
 });
 
