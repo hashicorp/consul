@@ -29,17 +29,6 @@
         box-shadow: none;
     }
 
-    &.btn-primary, &.active {
-        color: $purple-dark;
-        background-color: transparent;
-        border: 2px solid $purple;
-
-        &:hover {
-            background-color: $light-purple;
-            color: darken($purple, 10%);
-        }
-    }
-
     &.btn-warning {
         color: $orange-faded;
         background-color: transparent;
@@ -61,7 +50,6 @@
             background-color: lighten($green-faded, 24%);
             color: darken($green-dark, 10%);
         }
-
     }
 
     &.btn-danger {
@@ -73,7 +61,18 @@
             background-color: lighten($red, 38%);
             color: darken($red, 10%);
         }
+    }
 
+
+    &.active {
+        color: $purple-dark;
+        background-color: transparent;
+        border: 2px solid $purple;
+
+        &:hover {
+            background-color: $light-purple;
+            color: darken($purple, 10%);
+        }
     }
 
     &.btn-mini {
@@ -88,4 +87,17 @@
         border-radius: 3px;
     }
 
+}
+
+.active {
+    .btn {
+        color: $purple-dark;
+        background-color: transparent;
+        border: 2px solid $purple;
+
+        &:hover {
+            background-color: $light-purple;
+            color: darken($purple, 10%);
+        }
+    }
 }

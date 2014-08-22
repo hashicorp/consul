@@ -77,21 +77,25 @@
   <script type="text/x-handlebars" id="actionbar">
     <div class="row">
       <div class="action-bar">
-        <div class="col-md-5">
+        <div {{ bind-attr class="searchBar:col-md-12:col-md-5" }} >
           <div class="form-group">
-            {{ input type="text" value=filter class="form-control form-control-mini" placeholder="Filter by name"}}
+            {{ input type="text" value=filter class="form-control form-control-mini" placeholder=filterText}}
           </div>
         </div>
+        {{#if statuses}}
         <div class="col-md-5">
           <div class="form-group">
             {{view Ember.Select content=statuses value=status class="form-control form-control-mini"}}
           </div>
         </div>
+        {{/if}}
+        {{#if hasExpanded }}
         <div class="col-md-2 hidden-xs hidden-sm">
           <div class="form-group">
             <button {{ bind-attr class=":btn :btn-mini :pull-right condensed:btn-default:btn-primary" }} {{action toggleCondensed }}>Expand</button>
           </div>
         </div>
+        {{/if}}
       </div>
     </div>
   </script>
@@ -105,11 +109,11 @@
         </div>
 
         <div class="col-md-2 col-sm-3 col-xs-8 col-sm-offset-0 col-xs-offset-1">
-         {{#link-to 'services' class='btn btn-default col-xs-12'}}Services{{/link-to}}
+          {{#link-to 'services' (query-params status=checkStatus) tagName="div" href=false }}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>Services</a>{{/link-to}}
         </div>
 
         <div class="col-md-2 col-sm-3 col-xs-8 col-sm-offset-0 col-xs-offset-1">
-          {{#link-to 'nodes' class='btn btn-default col-xs-12'}}Nodes{{/link-to}}
+          {{#link-to 'nodes' (query-params status=checkStatus) tagName="div" href=false }}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>Nodes</a>{{/link-to}}
         </div>
 
         <div class="col-md-2 col-sm-3 col-xs-8 col-sm-offset-0 col-xs-offset-1">
@@ -120,12 +124,8 @@
           {{#link-to 'acls' class='btn btn-default col-xs-12'}}ACL{{/link-to}}
         </div>
 
-        <div class="col-md-1 col-md-offset-1 col-sm-3 col-sm-offset-1 col-xs-10 col-xs-offset-1">
-            {{#link-to 'services' (query-params status=checkStatus) tagName="div" href=false }}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</a>{{/link-to}}
-        </div>
-
-        <div class="col-md-1 col-sm-2 col-xs-6 col-sm-offset-0 col-xs-offset-1">
-          <a {{bind-attr class=":col-xs-6 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> <span class="elip-overflow">{{model}} <span class="caret"></span></span> </a>
+        <div class="col-md-2 col-md-offset-1 col-sm-2 col-xs-6 col-sm-offset-0 col-xs-offset-1">
+          <a {{bind-attr class=":col-xs-12 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> <span class="elip-overflow">{{model}} <span class="caret"></span></span> </a>
 
           {{#if isDropdownVisible}}
             <ul class="dropdown-menu col-xs-8" style="display:block;">
@@ -559,44 +559,16 @@
         {{view App.ActionBarView }}
 
           {{#if filteredContent}}
-
-                {{#if condensed }}
-                    {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=44 }}
-                      {{#link-to 'acl.show' Node tagName="div" href=false class="list-group-item list-condensed-link" }}
-                        <div {{bind-attr class=":list-bar-horizontal"}}></div>
-                        <div class="name">
-                          foo
-                          <small class="pull-right">
-                          bar
-                          </small>
-                        </div>
-                      {{/link-to}}
-                    {{/collection}}
-
-                {{else}}
-
-                  {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=120 }}
-                    {{#link-to 'nodes.show' Node tagName="div" href=false class="list-group-item list-link" }}
-                      <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :list-bar"}}></div>
-                      <h4 class="list-group-item-heading">
-                        {{Node}}
-                        <small>{{Address}}</small>
-                        <div class="heading-helper">
-                          <a class="subtle" href="#">{{checkMessage}}</a>
-                        </div>
-                      </h4>
-                      <ul class="list-inline">
-                        {{#each service in services}}
-                          <li class="bold">{{service.Service}}</li>
-                        {{/each}}
-                      </ul>
-                    {{/link-to}}
-                  {{/collection}}
-
-                {{/if}}
-
+              {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=44 }}
+                {{#link-to 'acls.show' ID tagName="div" href=false class="list-group-item list-condensed-link" }}
+                  <div class="bg-light-gray list-bar-horizontal"></div>
+                  <div class="name">
+                    {{ aclName Name ID }}
+                  </div>
+                {{/link-to}}
+              {{/collection}}
           {{else}}
-          <p class="light">There are no nodes to show.</p>
+            <p class="light">There are no ACLs to show.</p>
           {{/if}}
       </div>
 
@@ -613,81 +585,25 @@
 
   <script type="text/x-handlebars" id="acl">
       <div class="col-xs-12 col-sm-12 visible-xs visible-sm">
-        {{#link-to "nodes" class="btn btn-default btn-block" }}Back to all nodes{{/link-to}}
+        {{#link-to "acls" class="btn btn-default btn-block" }}Back to all ACLs{{/link-to}}
         <hr>
       </div>
 
-      <h3 class="no-margin">{{ model.Node }} <small> {{ model.Address }}</small></h3>
+      {{errorMessage}}
+
+      <h3 class="no-margin">{{aclName model.Name model.ID }}</h3>
       <hr>
 
-      <h5>Services</h5>
-
-      {{#each service in model.Services }}
-        {{#link-to 'services.show' service.Service tagName="div" href=false class="list-group-item list-condensed-link double-line" }}
-          <div class="list-bar-horizontal bg-light-gray"></div>
-            <div class="name">
-              {{service.Service}}
-              <small class="pull-right">
-                :{{service.Port}}
-              </small>
-            </div>
-            <ul class="list-inline sub">
-              {{#each tag in service.Tags}}
-                <li>{{tag}}</li>
-              {{/each}}
-              {{serviceTagMessage service.Tags}}
-            </ul>
-        {{/link-to}}
-
-      {{/each}}
-
-      <h5>Checks</h5>
-
-      {{#each check in model.Checks }}
-
-        <div class="panel">
-          {{ panelBar check.Status }}
-          <div class="panel-heading">
-            <h3 class="panel-title">
-              {{check.Name}}
-              <small>{{check.CheckID}}</small>
-              <span class="panel-note">{{check.Status}}</span>
-            </h3>
-          </div>
-
-          <div class="panel-body">
-            <h5>Notes</h5>
-            <p>{{ check.Notes }}</p>
-            <h5>Output</h5>
-            <pre>{{check.Output}}</pre>
-          </div>
-        </div>
-
-      {{/each}}
-
-      <h5>Lock Sessions</h5>
-
-      {{#if sessions }}
-        {{errorMessage}}
-
-        {{#each session in sessions }}
-          <div class="list-group-item list-condensed double-line">
-            <div class="bg-light-gray list-bar-horizontal"></div>
-            <div class="name">
-              {{ sessionName session }}
-              <button {{ action "invalidateSession" session.ID }} {{ bind-attr class=":btn :btn-danger :pull-right :btn-list isLoading:btn-warning" }}>Invalidate</button>
-            </div>
-              <ul class="list-inline sub">
-                {{#each check in session.Checks}}
-                  <li class="bold">{{check}}</li>
-                {{/each}}
-              </ul>
-          </div>
-        {{/each}}
-
-      {{else}}
-        <p class="light small">No sessions</p>
+      <button {{ action "clone" }} {{ bind-attr class=":btn :btn-default" }}>Clone</button>
+      <button {{ action "set" }} {{ bind-attr class=":btn :btn-default" }}>Use Token</button>
+      {{# if model.isNotAnon }}
+      <button {{ action "delete"}} {{ bind-attr class=":btn isLoading:btn-warning:btn-danger" }}>Delete</button>
       {{/if}}
+      <h5>Type</h5>
+      <p>{{Type}}</p>
+
+      <h5>Rules</h5>
+      <pre>{{formatRules model.Rules}}</pre>
   </script>
 
   <script type="text/x-handlebars" id="index">

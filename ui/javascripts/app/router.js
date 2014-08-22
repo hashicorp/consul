@@ -11,32 +11,6 @@ Ember.Application.initializer({
   }
 });
 
-// Wrap localstorage with an ember object
-App.Settings = Ember.Object.extend({
-  unknownProperty: function(key) {
-    return localStorage[key];
-  },
-
-  setUnknownProperty: function(key, value) {
-    if(Ember.isNone(value)) {
-      delete localStorage[key];
-    } else {
-      localStorage[key] = value;
-    }
-    this.notifyPropertyChange(key);
-    return value;
-  },
-
-  clear: function() {
-    this.beginPropertyChanges();
-    for (var i=0, l=localStorage.length; i<l; i++){
-      this.set(localStorage.key(i));
-    }
-    localStorage.clear();
-    this.endPropertyChanges();
-  }
-});
-
 App.Router.map(function() {
   // Our parent datacenter resource sets the namespace
   // for the entire application
@@ -61,7 +35,7 @@ App.Router.map(function() {
     });
     // ACLs
     this.resource("acls", { path: "/acls" }, function(){
-      this.route("show", { path: "/:name" });
+      this.route("show", { path: "/:id" });
     });
 
     // Shows a page explaining that ACLs haven't been set-up
