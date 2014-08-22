@@ -72,7 +72,9 @@ The options below are all specified on the command-line.
 * `-data-dir` - This flag provides a data directory for the agent to store state.
   This is required for all agents. The directory should be durable across reboots.
   This is especially critical for agents that are running in server mode, as they
-  must be able to persist the cluster state.
+  must be able to persist the cluster state. Additional, the directory must support
+  the use of filesystem locking, meaning some types of mounted folders (e.g. VirtualBox
+  shared folders) may not be suitable.
 
 * `-dc` - This flag controls the datacenter the agent is running in. If not provided
   it defaults to "dc1". Consul has first class support for multiple data centers but
