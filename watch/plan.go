@@ -80,8 +80,9 @@ OUTER:
 		}
 
 		// Update the index, look for change
+		oldIndex := p.lastIndex
 		p.lastIndex = index
-		if reflect.DeepEqual(p.lastResult, result) {
+		if oldIndex != 0 && reflect.DeepEqual(p.lastResult, result) {
 			continue
 		}
 
