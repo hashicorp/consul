@@ -64,7 +64,7 @@ func TestKeys(t *testing.T) {
 		},
 		tcase{
 			in:  []string{"abe", "lincoln"},
-			out: nil,
+			out: []string{},
 		},
 		tcase{
 			in:  []string{"abe", "foo/1", "foo/2", "foo/3", "nope"},
