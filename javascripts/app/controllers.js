@@ -366,6 +366,7 @@ App.AclsShowController = Ember.ObjectController.extend({
         var token = App.set('settings.token', acl.ID);
         controller.transitionToRoute('services');
         this.set('isLoading', false);
+        notify('Now using token: ' + acl.ID, 3000);
       }
     },
 
@@ -385,6 +386,7 @@ App.AclsShowController = Ember.ObjectController.extend({
       }).then(function(response) {
         controller.transitionToRoute('acls.show', response.ID);
         controller.set('isLoading', false);
+        notify('Succesfully cloned token', 4000);
       }).fail(function(response) {
         // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
@@ -418,12 +420,29 @@ App.AclsShowController = Ember.ObjectController.extend({
           }).then(function() {
             controller.transitionToRoute('acls');
             controller.set('isLoading', false);
+            notify('ACL token deleted', 3000);
           });
         }).fail(function(response) {
           // Render the error message on the form if the request failed
           controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
           controller.set('isLoading', false);
         });
+      }
+    }
+  }
+});
+
+App.SettingsController = Ember.ObjectController.extend({
+  actions: {
+    reset: function() {
+      this.set('isLoading', true);
+      var controller = this;
+
+      if (window.confirm("Are your sure you want to reset your settings?")) {
+        localStorage.clear();
+        controller.set('content', App.Settings.create());
+        notify('Settings reset', 3000);
+        this.set('isLoading', false);
       }
     }
   }

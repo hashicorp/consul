@@ -72,3 +72,10 @@ App.AclView = Ember.View.extend({
 App.AclsShowView = Ember.View.extend({
     templateName: 'acl'
 });
+
+
+// Settings
+
+App.SettingsView = Ember.View.extend({
+    templateName: 'settings',
+});
