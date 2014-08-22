@@ -27,7 +27,7 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 		return fmt.Errorf(aclDisabled)
 	}
 
-	// Verify token is permitted to list ACLs
+	// Verify token is permitted to modify ACLs
 	if acl, err := a.srv.resolveToken(args.Token); err != nil {
 		return err
 	} else if acl == nil || !acl.ACLModify() {
@@ -44,6 +44,11 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 			return fmt.Errorf("Invalid ACL Type")
 		}
 
+		// Verify this is not a root ACL
+		if acl.RootACL(args.ACL.ID) != nil {
+			return fmt.Errorf("%s: Cannot modify root ACL", permissionDenied)
+		}
+
 		// Validate the rules compile
 		_, err := acl.Parse(args.ACL.Rules)
 		if err != nil {
@@ -53,6 +58,8 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 	case structs.ACLDelete:
 		if args.ACL.ID == "" {
 			return fmt.Errorf("Missing ACL ID")
+		} else if args.ACL.ID == anonymousToken {
+			return fmt.Errorf("%s: Cannot delete anonymous token", permissionDenied)
 		}
 
 	default:

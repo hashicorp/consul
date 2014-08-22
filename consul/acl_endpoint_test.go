@@ -174,6 +174,64 @@ func TestACLEndpoint_Apply_Denied(t *testing.T) {
 	}
 }
 
+func TestACLEndpoint_Apply_DeleteAnon(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLDelete,
+		ACL: structs.ACL{
+			ID:   anonymousToken,
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out string
+	err := client.Call("ACL.Apply", &arg, &out)
+	if err == nil || !strings.Contains(err.Error(), "delete anonymous") {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestACLEndpoint_Apply_RootChange(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			ID:   "manage",
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out string
+	err := client.Call("ACL.Apply", &arg, &out)
+	if err == nil || !strings.Contains(err.Error(), "root ACL") {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestACLEndpoint_Get(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
