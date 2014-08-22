@@ -98,6 +98,20 @@ a {
     background-color: $gray-background;
 }
 
+.topbar {
+  .btn.icon {
+    min-width: 50px;
+    font-size: 30px;
+    height: 33px;
+    padding: 0;
+    .wrap {
+      position: absolute;
+      top: -8px;
+      left: 14px;
+    }
+  }
+}
+
 .action-bar {
   min-height: 50px;
   padding-top: 10px;

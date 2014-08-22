@@ -102,18 +102,17 @@
 
   <script type="text/x-handlebars" data-template-name="dc">
     <div class="row">
-      <div class="col-md-12 col-sm-12 col-xs-12 topbar">
+      <div {{ bind-attr class=":col-md-12 :col-sm-12 :col-xs-12 :topbar hasFailingChecks:topbar-orange:topbar-green" }}>
 
         <div class="col-md-1 col-sm-2 col-xs-8 col-sm-offset-0 col-xs-offset-1">
           <a href="#"><div class="top-brand"></div></a>
         </div>
-
         <div class="col-md-2 col-sm-3 col-xs-8 col-sm-offset-0 col-xs-offset-1">
-          {{#link-to 'services' (query-params status=checkStatus) tagName="div" href=false }}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>Services</a>{{/link-to}}
+          {{#link-to 'services' class='btn btn-default col-xs-12'}}Services{{/link-to}}
         </div>
 
         <div class="col-md-2 col-sm-3 col-xs-8 col-sm-offset-0 col-xs-offset-1">
-          {{#link-to 'nodes' (query-params status=checkStatus) tagName="div" href=false }}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>Nodes</a>{{/link-to}}
+          {{#link-to 'nodes' class='btn btn-default col-xs-12'}}Nodes{{/link-to}}
         </div>
 
         <div class="col-md-2 col-sm-3 col-xs-8 col-sm-offset-0 col-xs-offset-1">
@@ -124,7 +123,7 @@
           {{#link-to 'acls' class='btn btn-default col-xs-12'}}ACL{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-md-offset-1 col-sm-2 col-xs-6 col-sm-offset-0 col-xs-offset-1">
+        <div class="col-md-2 col-sm-2 col-xs-6 col-sm-offset-0 col-xs-offset-1">
           <a {{bind-attr class=":col-xs-12 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> <span class="elip-overflow">{{model}} <span class="caret"></span></span> </a>
 
           {{#if isDropdownVisible}}
@@ -135,6 +134,10 @@
             </ul>
           {{/if}}
 
+        </div>
+
+        <div class="col-md-1 col-sm-2 col-xs-8 col-md-offset-0 col-sm-offset-2 col-xs-offset-1">
+          {{#link-to 'nodes' class='btn btn-default col-xs-6 icon'}}<span class="wrap">&#9881;</span>{{/link-to}}
         </div>
       </div>
     </div>

@@ -16,6 +16,14 @@
     min-height: 95px;
     border-bottom: 1px #eee solid;
 
+    &.topbar-green {
+        border-top: 6px $green-faded solid;
+    }
+
+    &.topbar-orange {
+        border-top: 6px $orange-faded solid;
+    }
+
     .btn {
         margin-top: 20px;
         min-width: 100px;
