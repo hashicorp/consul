@@ -34,6 +34,7 @@ Available commands are:
     monitor        Stream logs from a Consul agent
     reload         Triggers the agent to reload configuration files
     version        Prints the Consul version
+    watch          Watch for changes in Consul
 ```
 
 To get help for any specific command, pass the `-h` flag to the relevant

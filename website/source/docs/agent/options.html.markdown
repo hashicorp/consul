@@ -145,7 +145,13 @@ definitions support being updated during a reload.
   "data_dir": "/opt/consul",
   "log_level": "INFO",
   "node_name": "foobar",
-  "server": true
+  "server": true,
+  "watches": [
+    {
+        "type": "checks",
+        "handler": "/usr/bin/health-check-handler.sh"
+    }
+  ]
 }
 </pre>
 
@@ -315,6 +321,11 @@ definitions support being updated during a reload.
    cause more frequent refreshes, while increasing it reduces the number of caches.
    However, because the caches are not actively invalidated, ACL policy may be stale
    up to the TTL value.
+
+* `watches` - Watches is a list of watch specifications.
+   These allow an external process to be automatically invoked when a particular
+   data view is updated. See the [watch documentation](/docs/agent/watches.html) for
+   more documentation. Watches can be modified when the configuration is reloaded.
 
 ## Ports Used
 
