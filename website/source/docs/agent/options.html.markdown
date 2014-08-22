@@ -81,6 +81,11 @@ The options below are all specified on the command-line.
   it relies on proper configuration. Nodes in the same datacenter should be on a single
   LAN.
 
+* `-encrypt` - Specifies the secret key to use for encryption of Consul
+  network traffic. This key must be 16-bytes that are base64 encoded. The
+  easiest way to create an encryption key is to use `consul keygen`. All
+  nodes within a cluster must share the same encryption key to communicate.
+
 * `-join` - Address of another agent to join upon starting up. This can be
   specified multiple times to specify multiple agents to join. If Consul is
   unable to join with any of the specified addresses, agent startup will
@@ -234,10 +239,7 @@ definitions support being updated during a reload.
 * `enable_debug` - When set, enables some additional debugging features. Currently,
   only used to set the runtime profiling HTTP endpoints.
 
-* `encrypt` - Specifies the secret key to use for encryption of Consul
-  network traffic. This key must be 16-bytes that are base64 encoded. The
-  easiest way to create an encryption key is to use `consul keygen`. All
-  nodes within a cluster must share the same encryption key to communicate.
+* `encrypt` - Equivalent to the `-encrypt` command-line flag.
 
 * `key_file` - This provides a the file path to a PEM encoded private key.
   The key is used with the certificate to verify the agents authenticity.
