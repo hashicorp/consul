@@ -320,6 +320,7 @@ App.AclsController = Ember.ArrayController.extend({
   queryParams: ["filter"],
   filterText: "Filter by name or ID",
   searchBar: true,
+  newAclButton: true,
   types: ["management", "client"],
 
   dc: Ember.computed.alias("controllers.dc"),

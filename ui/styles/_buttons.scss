@@ -29,6 +29,17 @@
         box-shadow: none;
     }
 
+    &.btn-primary {
+        color: $purple-dark;
+        background-color: transparent;
+        border: 2px solid $purple;
+
+        &:hover {
+            background-color: $light-purple;
+            color: darken($purple, 10%);
+        }
+    }
+
     &.btn-warning {
         color: $orange-faded;
         background-color: transparent;
@@ -73,6 +84,13 @@
             background-color: $light-purple;
             color: darken($purple, 10%);
         }
+
+        &.btn-noactive {
+            color: inherit;
+            background-color: inherit;
+            border: 2px solid #ccc;
+        }
+
     }
 
     &.btn-mini {
@@ -87,17 +105,4 @@
         border-radius: 3px;
     }
 
-}
-
-.active {
-    .btn {
-        color: $purple-dark;
-        background-color: transparent;
-        border: 2px solid $purple;
-
-        &:hover {
-            background-color: $light-purple;
-            color: darken($purple, 10%);
-        }
-    }
 }
