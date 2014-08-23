@@ -43,8 +43,13 @@
       <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
         <div class="text-center vertical-center">
           <p class="bold">Access Denied</p>
-          <p>Your ACL token, <code>foobarbaz</code>, does not
+          {{#if aclToken}}
+          <p>Your ACL token, <code>{{aclToken}}</code>, does not
           have the appropriate permissions to perform the expected action.</p>
+          {{else}}
+          <p>The default agent token does not
+          have the appropriate permissions to perform the expected action.</p>
+          {{/if}}
           <p>Learn more in the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation</a>.</p>
         </div>
       </div>
@@ -130,7 +135,7 @@
           {{#link-to 'acls' class='btn btn-default col-xs-12'}}ACL{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-2 col-xs-6 col-sm-offset-0 col-xs-offset-1">
+        <div class="col-md-2 col-sm-2 col-xs-6 col-md-offset-0 col-sm-offset-4 col-xs-offset-1">
           <a {{bind-attr class=":col-xs-12 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> <span class="elip-overflow">{{model}} <span class="caret"></span></span> </a>
 
           {{#if isDropdownVisible}}
@@ -143,7 +148,7 @@
 
         </div>
 
-        <div class="col-md-1 col-sm-2 col-xs-8 col-md-offset-0 col-sm-offset-2 col-xs-offset-1">
+        <div class="col-md-1 col-sm-2 col-xs-2 col-md-offset-0 col-sm-offset-0 col-xs-offset-0">
           {{#link-to 'settings' class='btn btn-default col-xs-6 icon'}}<span class="wrap">&#9881;</span>{{/link-to}}
         </div>
       </div>
