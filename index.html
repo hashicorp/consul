@@ -77,11 +77,18 @@
   <script type="text/x-handlebars" id="actionbar">
     <div class="row">
       <div class="action-bar">
-        <div {{ bind-attr class="searchBar:col-md-12:col-md-5" }} >
+        <div {{ bind-attr class="searchBar:col-md-10:col-md-5" }} >
           <div class="form-group">
             {{ input type="text" value=filter class="form-control form-control-mini" placeholder=filterText}}
           </div>
         </div>
+        {{#if newAclButton }}
+          <div class="col-md-2">
+            <div class="form-group">
+              {{#link-to 'acls' class='btn btn-mini btn-default btn-noactive pull-right'}}New ACL{{/link-to}}
+            </div>
+          </div>
+        {{/if}}
         {{#if statuses}}
         <div class="col-md-5">
           <div class="form-group">
@@ -591,7 +598,7 @@
               <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
                 <div class="panel-heading">
                   <h4 class="panel-title">
-                    Create ACL
+                    New ACL
                   </h4>
                 </div>
 
