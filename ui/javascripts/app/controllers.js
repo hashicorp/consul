@@ -360,8 +360,6 @@ App.AclsController = Ember.ArrayController.extend({
       var dc = controller.get('dc').get('datacenter');
       var token = App.get('settings.token');
 
-      console.log();
-
       // Create the ACL
       Ember.$.ajax({
           url: formatUrl('/v1/acl/create', dc, token),
