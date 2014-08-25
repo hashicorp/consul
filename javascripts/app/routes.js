@@ -93,7 +93,7 @@ App.DcRoute = App.BaseRoute.extend({
     return Ember.RSVP.hash({
       dc: params.dc,
       dcs: Ember.$.getJSON('/v1/catalog/datacenters'),
-      nodes: Ember.$.getJSON('/v1/internal/ui/nodes?dc=' + params.dc).then(function(data) {
+      nodes: Ember.$.getJSON(formatUrl('/v1/internal/ui/nodes', params.dc)).then(function(data) {
         objs = [];
 
         // Merge the nodes into a list and create objects out of them
@@ -124,12 +124,13 @@ App.KvShowRoute = App.BaseRoute.extend({
   model: function(params) {
     var key = params.key;
     var dc = this.modelFor('dc').dc;
+    var token = App.get('settings.token');
 
     // Return a promise has with the ?keys for that namespace
     // and the original key requested in params
     return Ember.RSVP.hash({
       key: key,
-      keys: Ember.$.getJSON('/v1/kv/' + key + '?keys&seperator=' + '/&dc=' + dc).then(function(data) {
+      keys: Ember.$.getJSON(formatUrl('/v1/kv/' + key + '?keys&seperator=/', dc, token)).then(function(data) {
         objs = [];
         data.map(function(obj){
           objs.push(App.Key.create({Key: obj}));
@@ -158,15 +159,17 @@ App.KvEditRoute = App.BaseRoute.extend({
     var key = params.key;
     var dc = this.modelFor('dc').dc;
     var parentKeys = this.getParentAndGrandparent(key);
+    var token = App.get('settings.token');
 
     // Return a promise hash to get the data for both columns
     return Ember.RSVP.hash({
       dc: dc,
-      key: Ember.$.getJSON('/v1/kv/' + key + '?dc=' + dc).then(function(data) {
+      token: token,
+      key: Ember.$.getJSON(formatUrl('/v1/kv/' + key, dc, token)).then(function(data) {
         // Convert the returned data to a Key
         return App.Key.create().setProperties(data[0]);
       }),
-      keys: keysPromise = Ember.$.getJSON('/v1/kv/' + parentKeys.parent + '?keys&seperator=' + '/' + '&dc=' + dc).then(function(data) {
+      keys: keysPromise = Ember.$.getJSON(formatUrl('/v1/kv/' + parentKeys.parent + '?keys&seperator=/', dc, token)).then(function(data) {
         objs = [];
         data.map(function(obj){
          objs.push(App.Key.create({Key: obj}));
@@ -179,7 +182,7 @@ App.KvEditRoute = App.BaseRoute.extend({
   // Load the session on the key, if there is one
   afterModel: function(models) {
     if (models.key.get('isLocked')) {
-      return Ember.$.getJSON('/v1/session/info/' + models.key.Session + '?dc=' + models.dc).then(function(data) {
+      return Ember.$.getJSON(formatUrl('/v1/session/info/' + models.key.Session, models.dc, models.token)).then(function(data) {
         models.session = data[0];
         return models;
       });
@@ -206,8 +209,10 @@ App.KvEditRoute = App.BaseRoute.extend({
 App.ServicesRoute = App.BaseRoute.extend({
   model: function(params) {
     var dc = this.modelFor('dc').dc;
+    var token = App.get('settings.token');
+
     // Return a promise to retrieve all of the services
-    return Ember.$.getJSON('/v1/internal/ui/services?dc=' + dc).then(function(data) {
+    return Ember.$.getJSON(formatUrl('/v1/internal/ui/services', dc, token)).then(function(data) {
       objs = [];
       data.map(function(obj){
        objs.push(App.Service.create(obj));
@@ -224,9 +229,11 @@ App.ServicesRoute = App.BaseRoute.extend({
 App.ServicesShowRoute = App.BaseRoute.extend({
   model: function(params) {
     var dc = this.modelFor('dc').dc;
+    var token = App.get('settings.token');
+
     // Here we just use the built-in health endpoint, as it gives us everything
     // we need.
-    return Ember.$.getJSON('/v1/health/service/' + params.name + '?dc=' + dc).then(function(data) {
+    return Ember.$.getJSON(formatUrl('/v1/health/service/' + params.name, dc, token)).then(function(data) {
       objs = [];
       data.map(function(obj){
        objs.push(App.Node.create(obj));
@@ -251,13 +258,16 @@ App.ServicesShowRoute = App.BaseRoute.extend({
 App.NodesShowRoute = App.BaseRoute.extend({
   model: function(params) {
     var dc = this.modelFor('dc').dc;
+    var token = App.get('settings.token');
+
     // Return a promise hash of the node and nodes
     return Ember.RSVP.hash({
       dc: dc,
-      node: Ember.$.getJSON('/v1/internal/ui/node/' + params.name + '?dc=' + dc).then(function(data) {
+      token: token,
+      node: Ember.$.getJSON(formatUrl('/v1/internal/ui/node/' + params.name, dc, token)).then(function(data) {
         return App.Node.create(data);
       }),
-      nodes: Ember.$.getJSON('/v1/internal/ui/node/' + params.name + '?dc=' + dc).then(function(data) {
+      nodes: Ember.$.getJSON(formatUrl('/v1/internal/ui/node/' + params.name, dc, token)).then(function(data) {
         return App.Node.create(data);
       })
     });
@@ -265,7 +275,7 @@ App.NodesShowRoute = App.BaseRoute.extend({
 
   // Load the sessions for the node
   afterModel: function(models) {
-    return Ember.$.getJSON('/v1/session/node/' + models.node.Node + '?dc=' + models.dc).then(function(data) {
+    return Ember.$.getJSON(formatUrl('/v1/session/node/' + models.node.Node, models.dc, models.token)).then(function(data) {
       models.sessions = data;
       return models;
     });
@@ -286,8 +296,10 @@ App.NodesShowRoute = App.BaseRoute.extend({
 App.NodesRoute = App.BaseRoute.extend({
   model: function(params) {
     var dc = this.modelFor('dc').dc;
+    var token = App.get('settings.token');
+
     // Return a promise containing the nodes
-    return Ember.$.getJSON('/v1/internal/ui/nodes?dc=' + dc).then(function(data) {
+    return Ember.$.getJSON(formatUrl('/v1/internal/ui/nodes', dc, token)).then(function(data) {
       objs = [];
       data.map(function(obj){
        objs.push(App.Node.create(obj));
@@ -343,6 +355,7 @@ App.AclsShowRoute = App.BaseRoute.extend({
   model: function(params) {
     var dc = this.modelFor('dc').dc;
     var token = App.get('settings.token');
+
     // Return a promise hash of the node and nodes
     return Ember.RSVP.hash({
       dc: dc,
