@@ -1,14 +1,14 @@
 .ns-box {
     position: fixed;
     background: lighten(black, 40%);
-    padding: 14px;
+    padding: 20px;
     line-height: 1.4;
     z-index: 1000;
     min-width: 400px;
     pointer-events: none;
     color: rgba(250,251,255,0.95);
     font-weight: 700;
-    font-size: 14px;
+    font-size: 15px;
     opacity: 0.8;
 }
 

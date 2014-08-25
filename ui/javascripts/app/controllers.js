@@ -97,9 +97,10 @@ KvBaseController = Ember.ObjectController.extend({
     var controller = this;
     var rootKey = controller.get('rootKey');
     var dc = controller.get('dc').get('datacenter');
+    var token = App.get('settings.token');
 
     Ember.$.ajax({
-      url: ('/v1/kv/' + parent + '?keys&c=' + dc),
+      url: (formatUrl('/v1/kv/' + parent + '?keys', dc, token)),
       type: 'GET'
     }).then(function(data) {
       controller.transitionToRoute('kv.show', parent);
@@ -132,6 +133,7 @@ App.KvShowController.reopen({
       var parentKey = controller.get('parentKey');
       var grandParentKey = controller.get('grandParentKey');
       var dc = controller.get('dc').get('datacenter');
+      var token = App.get('settings.token');
 
       // If we don't have a previous model to base
       // on our parent, or we're not at the root level,
@@ -142,7 +144,7 @@ App.KvShowController.reopen({
 
       // Put the Key and the Value retrieved from the form
       Ember.$.ajax({
-          url: ("/v1/kv/" + newKey.get('Key') + '?dc=' + dc),
+          url: (formatUrl("/v1/kv/" + newKey.get('Key'), dc, token)),
           type: 'PUT',
           data: newKey.get('Value')
       }).then(function(response) {
@@ -165,10 +167,11 @@ App.KvShowController.reopen({
       var controller = this;
       var dc = controller.get('dc').get('datacenter');
       var grandParent = controller.get('grandParentKey');
+      var token = App.get('settings.token');
 
       // Delete the folder
       Ember.$.ajax({
-          url: ("/v1/kv/" + controller.get('parentKey') + '?recurse&dc=' + dc),
+          url: (formatUrl("/v1/kv/" + controller.get('parentKey') + '?recurse', dc, token)),
           type: 'DELETE'
       }).then(function(response) {
         controller.transitionToNearestParent(grandParent);
@@ -193,11 +196,12 @@ App.KvEditController = KvBaseController.extend({
       var dc = this.get('dc').get('datacenter');
       var key = this.get("model");
       var controller = this;
+      var token = App.get('settings.token');
 
       // Put the key and the decoded (plain text) value
       // from the form.
       Ember.$.ajax({
-          url: ("/v1/kv/" + key.get('Key') + '?dc=' + dc),
+          url: (formatUrl("/v1/kv/" + key.get('Key'), dc, token)),
           type: 'PUT',
           data: key.get('valueDecoded')
       }).then(function(response) {
@@ -222,10 +226,11 @@ App.KvEditController = KvBaseController.extend({
       var dc = controller.get('dc').get('datacenter');
       var key = controller.get("model");
       var parent = controller.getParentKeyRoute();
+      var token = App.get('settings.token');
 
       // Delete the key
       Ember.$.ajax({
-          url: ("/v1/kv/" + key.get('Key') + '?dc=' + dc),
+          url: (formatUrl("/v1/kv/" + key.get('Key'), dc, token)),
           type: 'DELETE'
       }).then(function(data) {
         controller.transitionToNearestParent(parent);
@@ -290,14 +295,15 @@ App.NodesShowController = Ember.ObjectController.extend({
       var controller = this;
       var node = controller.get('model');
       var dc = controller.get('dc').get('datacenter');
+      var token = App.get('settings.token');
 
       if (window.confirm("Are you sure you want to invalidate this session?")) {
         // Delete the session
         Ember.$.ajax({
-            url: ("/v1/session/destroy/" + sessionId + '?dc=' + dc),
+            url: (formatUrl("/v1/session/destroy/" + sessionId, dc, token)),
             type: 'PUT'
         }).then(function(response) {
-          return Ember.$.getJSON('/v1/session/node/' + node.Node + '?dc=' + dc).then(function(data) {
+          return Ember.$.getJSON(formatUrl('/v1/session/node/' + node.Node, dc, token)).then(function(data) {
             controller.set('sessions', data);
           });
         }).fail(function(response) {
@@ -451,7 +457,7 @@ App.AclsShowController = Ember.ObjectController.extend({
           }).then(function() {
             controller.transitionToRoute('acls');
             controller.set('isLoading', false);
-            notify('ACL token deleted', 3000);
+            notify('ACL deleted successfully', 3000);
           });
         }).fail(function(response) {
           // Render the error message on the form if the request failed
@@ -480,7 +486,7 @@ App.AclsShowController = Ember.ObjectController.extend({
         notify('ACL updated successfully', 3000);
       }).fail(function(response) {
         // Render the error message on the form if the request failed
-        notify('Received error while creating ACL: ' + response.statusText, 8000);
+        notify('Received error while updating ACL: ' + response.statusText, 8000);
         controller.set('isLoading', false);
       });
     }
