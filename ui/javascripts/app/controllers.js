@@ -5,8 +5,10 @@ App.ApplicationController = Ember.ObjectController.extend({
 });
 
 App.DcController = Ember.Controller.extend({
+  needs: ["application"],
   // Whether or not the dropdown menu can be seen
   isDropdownVisible: false,
+  aclToken: Ember.computed.alias("application.settings.token"),
 
   datacenter: function() {
     return this.get('content');
@@ -44,9 +46,9 @@ App.DcController = Ember.Controller.extend({
     var passingChecks = checks.filterBy('Status', 'passing').get('length');
 
     if (this.get('hasFailingChecks') === true) {
-      return  failingChecks + ' checks failing';
+      return  failingChecks + ' failing';
     } else {
-      return  passingChecks + ' checks passing';
+      return  passingChecks + ' passing';
     }
 
   }.property('nodes'),
@@ -241,6 +243,8 @@ ItemBaseController = Ember.ArrayController.extend({
   queryParams: ["filter", "status", "condensed"],
   dc: Ember.computed.alias("controllers.dc"),
   condensed: true,
+  hasExpanded: true,
+  filterText: "Filter by name",
   filter: "", // default
   status: "any status", // default
   statuses: ["any status", "passing", "failing"],
@@ -311,5 +315,191 @@ App.NodesController = ItemBaseController.extend({
 
 App.ServicesController = ItemBaseController.extend({
   items: Ember.computed.alias("services"),
+});
+
+App.AclsController = Ember.ArrayController.extend({
+  needs: ["dc", "application"],
+  queryParams: ["filter"],
+  filterText: "Filter by name or ID",
+  searchBar: true,
+  newAclButton: true,
+  types: ["management", "client"],
+
+  dc: Ember.computed.alias("controllers.dc"),
+  items: Ember.computed.alias("acls"),
+
+  filter: "",
+
+  isShowingItem: function() {
+    var currentPath = this.get('controllers.application.currentPath');
+    return (currentPath === "dc.acls.show");
+  }.property('controllers.application.currentPath'),
+
+  filteredContent: function() {
+    var filter = this.get('filter');
+
+    var items = this.get('items').filter(function(item, index, enumerable){
+      // First try to match on the name
+      var nameMatch = item.get('Name').toLowerCase().match(filter.toLowerCase());
+      if (nameMatch !== null) {
+        return nameMatch;
+      } else {
+        return item.get('ID').toLowerCase().match(filter.toLowerCase());
+      }
+    });
+
+    return items;
+  }.property('filter', 'items.@each'),
+
+  actions: {
+    createAcl: function() {
+      this.set('isLoading', true);
+
+      var controller = this;
+      var newAcl = controller.get('newAcl');
+      var dc = controller.get('dc').get('datacenter');
+      var token = App.get('settings.token');
+
+      // Create the ACL
+      Ember.$.ajax({
+          url: formatUrl('/v1/acl/create', dc, token),
+          type: 'PUT',
+          data: JSON.stringify(newAcl)
+      }).then(function(response) {
+        // transition to the acl
+        controller.transitionToRoute('acls.show', response.ID);
+        controller.set('isLoading', false);
+      }).fail(function(response) {
+        // Render the error message on the form if the request failed
+        notify('Received error while creating ACL: ' + response.statusText, 8000);
+        controller.set('isLoading', false);
+      });
+    },
+  }
+});
+
+
+App.AclsShowController = Ember.ObjectController.extend({
+  needs: ["dc", "acls"],
+  dc: Ember.computed.alias("controllers.dc"),
+  isLoading: false,
+  types: ["management", "client"],
+
+  actions: {
+    set: function() {
+      this.set('isLoading', true);
+      var controller = this;
+      var acl = controller.get('model');
+      var dc = controller.get('dc').get('datacenter');
+
+      if (window.confirm("Are you sure you want to use this token for your session?")) {
+        // Set
+        var token = App.set('settings.token', acl.ID);
+        controller.transitionToRoute('services');
+        this.set('isLoading', false);
+        notify('Now using token: ' + acl.ID, 3000);
+      }
+    },
+
+    clone: function() {
+      this.set('isLoading', true);
+      var controller = this;
+      var acl = controller.get('model');
+      var dc = controller.get('dc').get('datacenter');
+      var token = App.get('settings.token');
+
+      // Set
+      controller.transitionToRoute('services');
+
+      Ember.$.ajax({
+          url: formatUrl('/v1/acl/clone/'+ acl.ID, dc, token),
+          type: 'PUT'
+      }).then(function(response) {
+        controller.transitionToRoute('acls.show', response.ID);
+        controller.set('isLoading', false);
+        notify('Succesfully cloned token', 4000);
+      }).fail(function(response) {
+        // Render the error message on the form if the request failed
+        controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+        controller.set('isLoading', false);
+      });
+
+    },
+
+    delete: function() {
+      this.set('isLoading', true);
+      var controller = this;
+      var acl = controller.get('model');
+      var dc = controller.get('dc').get('datacenter');
+      var token = App.get('settings.token');
+
+      if (window.confirm("Are you sure you want to delete this token?")) {
+        Ember.$.ajax({
+            url: formatUrl('/v1/acl/destroy/'+ acl.ID, dc, token),
+            type: 'PUT'
+        }).then(function(response) {
+          Ember.$.getJSON(formatUrl('/v1/acl/list', dc, token)).then(function(data) {
+            objs = [];
+            data.map(function(obj){
+              if (obj.ID === "anonymous") {
+                objs.unshift(App.Acl.create(obj));
+              } else {
+                objs.push(App.Acl.create(obj));
+              }
+            });
+            controller.get('controllers.acls').set('acls', objs);
+          }).then(function() {
+            controller.transitionToRoute('acls');
+            controller.set('isLoading', false);
+            notify('ACL token deleted', 3000);
+          });
+        }).fail(function(response) {
+          // Render the error message on the form if the request failed
+          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+          controller.set('isLoading', false);
+        });
+      }
+    },
+
+    updateAcl: function() {
+      this.set('isLoading', true);
+
+      var controller = this;
+      var acl = controller.get('model');
+      var dc = controller.get('dc').get('datacenter');
+      var token = App.get('settings.token');
+
+      // Update the ACL
+      Ember.$.ajax({
+          url: formatUrl('/v1/acl/update', dc, token),
+          type: 'PUT',
+          data: JSON.stringify(acl)
+      }).then(function(response) {
+        // transition to the acl
+        controller.set('isLoading', false);
+        notify('ACL updated successfully', 3000);
+      }).fail(function(response) {
+        // Render the error message on the form if the request failed
+        notify('Received error while creating ACL: ' + response.statusText, 8000);
+        controller.set('isLoading', false);
+      });
+    }
+  }
+});
+
+App.SettingsController = Ember.ObjectController.extend({
+  actions: {
+    reset: function() {
+      this.set('isLoading', true);
+      var controller = this;
+
+      if (window.confirm("Are your sure you want to reset your settings?")) {
+        localStorage.clear();
+        controller.set('content', App.Settings.create());
+        notify('Settings reset', 3000);
+        this.set('isLoading', false);
+      }
+    }
+  }
 });
 

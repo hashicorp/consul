@@ -299,3 +299,81 @@ App.NodesRoute = App.BaseRoute.extend({
       controller.set('nodes', model);
   }
 });
+
+
+App.AclsRoute = App.BaseRoute.extend({
+  model: function(params) {
+    var dc = this.modelFor('dc').dc;
+    var token = App.get('settings.token');
+    // Return a promise containing the ACLS
+    return Ember.$.getJSON(formatUrl('/v1/acl/list', dc, token)).then(function(data) {
+      objs = [];
+      data.map(function(obj){
+        if (obj.ID === "anonymous") {
+          objs.unshift(App.Acl.create(obj));
+        } else {
+          objs.push(App.Acl.create(obj));
+        }
+      });
+      return objs;
+    });
+  },
+
+  actions: {
+    error: function(error, transition) {
+      // If consul returns 401, ACLs are disabled
+      if (error && error.status === 401) {
+        this.transitionTo('dc.aclsdisabled');
+      // If consul returns 403, they key isn't authorized for that
+      // action.
+      } else if (error && error.status === 403) {
+        this.transitionTo('dc.unauthorized');
+      }
+      return true;
+    }
+  },
+
+  setupController: function(controller, model) {
+      controller.set('acls', model);
+      controller.set('newAcl', App.Acl.create());
+  }
+});
+
+App.AclsShowRoute = App.BaseRoute.extend({
+  model: function(params) {
+    var dc = this.modelFor('dc').dc;
+    var token = App.get('settings.token');
+    // Return a promise hash of the node and nodes
+    return Ember.RSVP.hash({
+      dc: dc,
+      acl: Ember.$.getJSON(formatUrl('/v1/acl/info/'+ params.id, dc, token)).then(function(data) {
+        return App.Acl.create(data[0]);
+      })
+    });
+  },
+
+  setupController: function(controller, models) {
+      controller.set('content', models.acl);
+  }
+});
+
+App.SettingsRoute = App.BaseRoute.extend({
+  model: function(params) {
+    return App.get('settings');
+  }
+});
+
+
+// Adds any global parameters we need to set to a url/path
+function formatUrl(url, dc, token) {
+  if (url.indexOf("?") > 0) {
+    // If our url has existing params
+    url = url + "&dc=" + dc;
+    url = url + "&token=" + token;
+  } else {
+    // Our url doesn't have params
+    url = url + "?dc=" + dc;
+    url = url + "&token=" + token;
+  }
+  return url;
+}

@@ -6,6 +6,7 @@
 @import "buttons";
 @import "lists";
 @import "forms";
+@import "notifications";
 
 @media (min-width: 1120px) { // + 30
   .container {
@@ -119,4 +120,11 @@ a {
   overflow: auto;
   height: 800px;
   margin-bottom: 30px;
+}
+
+.elip-overflow {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }

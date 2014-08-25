@@ -29,7 +29,7 @@
         box-shadow: none;
     }
 
-    &.btn-primary, &.active {
+    &.btn-primary {
         color: $purple-dark;
         background-color: transparent;
         border: 2px solid $purple;
@@ -61,7 +61,6 @@
             background-color: lighten($green-faded, 24%);
             color: darken($green-dark, 10%);
         }
-
     }
 
     &.btn-danger {
@@ -72,6 +71,24 @@
         &:hover {
             background-color: lighten($red, 38%);
             color: darken($red, 10%);
+        }
+    }
+
+
+    &.active {
+        color: $purple-dark;
+        background-color: transparent;
+        border: 2px solid $purple;
+
+        &:hover {
+            background-color: $light-purple;
+            color: darken($purple, 10%);
+        }
+
+        &.btn-noactive {
+            color: inherit;
+            background-color: inherit;
+            border: 2px solid #ccc;
         }
 
     }
@@ -88,4 +105,18 @@
         border-radius: 3px;
     }
 
+}
+
+.topbar {
+  .btn.icon {
+    min-width: 50px;
+    font-size: 30px;
+    height: 33px;
+    padding: 0;
+    .wrap {
+      position: absolute;
+      top: -8px;
+      left: 14px;
+    }
+  }
 }

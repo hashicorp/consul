@@ -38,6 +38,36 @@
     </div>
   </script>
 
+  <script type="text/x-handlebars" data-template-name="dc/unauthorized">
+    <div class="row">
+      <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
+        <div class="text-center vertical-center">
+          <p class="bold">Access Denied</p>
+          {{#if aclToken}}
+          <p>Your ACL token, <code>{{aclToken}}</code>, does not
+          have the appropriate permissions to perform the expected action.</p>
+          {{else}}
+          <p>The default agent token does not
+          have the appropriate permissions to perform the expected action.</p>
+          {{/if}}
+          <p>Learn more in the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation</a>.</p>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" data-template-name="dc/aclsdisabled">
+    <div class="row">
+      <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
+        <div class="text-center vertical-center">
+          <p class="bold">ACLs Disabled</p>
+          <p>ACLs are disabled in this Consul cluster. This is the default behavior, as you have to implictly enable them.</p>
+          </p>Learn more in the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation</a>.</p>
+        </div>
+      </div>
+    </div>
+  </script>
+
   <script type="text/x-handlebars" data-template-name="loading">
     <div class="row">
       <div class="col-md-8 col-md-offset-2 col-sm-12 col-xs-12">
@@ -52,51 +82,61 @@
   <script type="text/x-handlebars" id="actionbar">
     <div class="row">
       <div class="action-bar">
-        <div class="col-md-5">
+        <div {{ bind-attr class="searchBar:col-md-10:col-md-5" }} >
           <div class="form-group">
-            {{ input type="text" value=filter class="form-control form-control-mini" placeholder="Filter by name"}}
+            {{ input type="text" value=filter class="form-control form-control-mini" placeholder=filterText}}
           </div>
         </div>
+        {{#if newAclButton }}
+          <div class="col-md-2">
+            <div class="form-group">
+              {{#link-to 'acls' class='btn btn-mini btn-default btn-noactive pull-right'}}New ACL{{/link-to}}
+            </div>
+          </div>
+        {{/if}}
+        {{#if statuses}}
         <div class="col-md-5">
           <div class="form-group">
             {{view Ember.Select content=statuses value=status class="form-control form-control-mini"}}
           </div>
         </div>
+        {{/if}}
+        {{#if hasExpanded }}
         <div class="col-md-2 hidden-xs hidden-sm">
           <div class="form-group">
             <button {{ bind-attr class=":btn :btn-mini :pull-right condensed:btn-default:btn-primary" }} {{action toggleCondensed }}>Expand</button>
           </div>
         </div>
+        {{/if}}
       </div>
     </div>
   </script>
 
   <script type="text/x-handlebars" data-template-name="dc">
     <div class="row">
-      <div class="col-md-12 col-sm-12 col-xs-12 topbar">
+      <div {{ bind-attr class=":col-md-12 :col-sm-12 :col-xs-12 :topbar" }}>
 
-        <div class="col-md-1 col-sm-2 col-xs-10 col-sm-offset-0 col-xs-offset-1">
+        <div class="col-md-1 col-sm-2 col-xs-8 col-sm-offset-0 col-xs-offset-1">
           <a href="#"><div class="top-brand"></div></a>
         </div>
-
-        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
-         {{#link-to 'services' class='btn btn-default col-xs-12'}}Services{{/link-to}}
+        <div class="col-md-2 col-sm-3 col-xs-8 col-sm-offset-0 col-xs-offset-1">
+          {{#link-to 'services' class='btn btn-default col-xs-12'}}Services{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
+        <div class="col-md-2 col-sm-3 col-xs-8 col-sm-offset-0 col-xs-offset-1">
           {{#link-to 'nodes' class='btn btn-default col-xs-12'}}Nodes{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
+        <div class="col-md-2 col-sm-3 col-xs-8 col-sm-offset-0 col-xs-offset-1">
           {{#link-to 'kv' class='btn btn-default col-xs-12'}}Key/Value{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-md-offset-1 col-sm-3 col-sm-offset-5 col-xs-10 col-xs-offset-1">
-            {{#link-to 'services' (query-params status=checkStatus) tagName="div" href=false }}<a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}}>{{ checkMessage }}</a>{{/link-to}}
+        <div class="col-md-2 col-sm-2 col-xs-8 col-md-offset-0 col-sm-offset-2 col-xs-offset-1">
+          {{#link-to 'acls' class='btn btn-default col-xs-12'}}ACL{{/link-to}}
         </div>
 
-        <div class="col-md-2 col-sm-3 col-xs-10 col-sm-offset-0 col-xs-offset-1">
-          <a {{bind-attr class=":col-xs-12 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> {{model}} <span class="caret"></span> </a>
+        <div class="col-md-2 col-sm-2 col-xs-6 col-md-offset-0 col-sm-offset-4 col-xs-offset-1">
+          <a {{bind-attr class=":col-xs-12 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> <span class="elip-overflow">{{model}} <span class="caret"></span></span> </a>
 
           {{#if isDropdownVisible}}
             <ul class="dropdown-menu col-xs-8" style="display:block;">
@@ -106,6 +146,10 @@
             </ul>
           {{/if}}
 
+        </div>
+
+        <div class="col-md-1 col-sm-2 col-xs-2 col-md-offset-0 col-sm-offset-0 col-xs-offset-0">
+          {{#link-to 'settings' class='btn btn-default col-xs-6 icon'}}<span class="wrap">&#9881;</span>{{/link-to}}
         </div>
       </div>
     </div>
@@ -524,6 +568,124 @@
       {{/if}}
   </script>
 
+  <script type="text/x-handlebars" id="acls">
+    <div class="row">
+      <div {{ bind-attr class=":col-md-6 :col-lg-5 :padded-right-middle isShowingItem:hidden-xs isShowingItem:hidden-sm" }}>
+        {{view App.ActionBarView }}
+
+          {{#if filteredContent}}
+              {{#collection Ember.ListView contentBinding="filteredContent" height=800 rowHeight=44 }}
+                {{#link-to 'acls.show' ID tagName="div" href=false class="list-group-item list-condensed-link" }}
+                  <div class="bg-light-gray list-bar-horizontal"></div>
+                  <div class="name">
+                    {{ aclName Name ID }}
+                  </div>
+                {{/link-to}}
+              {{/collection}}
+          {{else}}
+            <p class="light">There are no ACLs to show.</p>
+          {{/if}}
+      </div>
+
+      <div class="border-left hidden-xs hidden-sm">
+      </div>
+
+      {{#if isShowingItem}}
+      <div class="col-md-6 col-lg-7 border-left scrollable">
+        <div class="row padded-border">
+          {{outlet}}
+        </div>
+      </div>
+      {{else}}
+        <div class="col-md-6 col-lg-7 border-left">
+          <div class="row padded-border">
+            <div class="panel">
+              <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
+                <div class="panel-heading">
+                  <h4 class="panel-title">
+                    New ACL
+                  </h4>
+                </div>
+
+                <div class="panel-body panel-form">
+                  <div class="form-group"></div>
+
+                  <form class="form">
+                    <div class="form-group">
+                      {{ input value=newAcl.Name class="form-control" }}
+                      <span class="help-block">Set the optional name for the ACL.</span>
+                    </div>
+
+                    <div class="form-group">
+                      {{view Ember.Select content=types value=newAcl.Type class="form-control form-control-mini"}}
+                      <span class="help-block">The type of ACL this is.</span>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Rules</label>
+                      {{ textarea value=newAcl.Rules class="form-control" }}
+                      <span class="help-block">For more information on rules, visit the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation.</a></span>
+                    </div>
+
+                    <button {{ action "createAcl"}} {{ bind-attr class=":btn :btn-success" }}>Create</button>
+                  </form>
+                </div>
+              </div>
+          </div>
+        </div>
+      {{/if}}
+    </div>
+  </script>
+
+  <script type="text/x-handlebars" id="acl">
+    <div class="row">
+      <div class="col-xs-12 col-sm-12 visible-xs visible-sm">
+        {{#link-to "acls" class="btn btn-default btn-block" }}Back to all ACLs{{/link-to}}
+        <hr>
+      </div>
+    </div>
+
+        <div class="panel">
+          <div {{ bind-attr class=":panel-bar isLoading:bg-orange:bg-light-gray" }}></div>
+            <div class="panel-heading">
+              <h4 class="panel-title">
+                {{ aclName "Update ACL" model.ID }}
+              </h4>
+            </div>
+
+            <div class="panel-body panel-form">
+              <div class="form-group"></div>
+
+              <form class="form">
+                <div class="form-group">
+                  {{ input value=model.Name class="form-control" }}
+                  <span class="help-block">Set the optional name for the ACL.</span>
+                </div>
+
+                <div class="form-group">
+                  {{view Ember.Select content=types value=model.Type class="form-control form-control-mini"}}
+                  <span class="help-block">The type of ACL this is.</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Rules</label>
+                  {{ textarea value=model.Rules class="form-control" }}
+                  <span class="help-block">For more information on rules, visit the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation.</a></span>
+                </div>
+
+                <button {{ action "updateAcl"}} {{ bind-attr class=":btn :btn-success" }}>Update</button>
+                <button {{ action "clone" }} {{ bind-attr class=":btn :btn-default" }}>Clone</button>
+                <button {{ action "set" }} {{ bind-attr class=":btn :btn-default" }}>Use Token</button>
+                {{# if model.isNotAnon }}
+                <button {{ action "delete"}} {{ bind-attr class=":btn isLoading:btn-warning:btn-danger :pull-right" }}>Delete</button>
+                {{/if}}
+
+              </form>
+            </div>
+          </div>
+      <hr>
+  </script>
+
   <script type="text/x-handlebars" id="index">
     <div class="col-md-8 col-md-offset-2 col-xs-offset-0 col-sm-offset-0 col-xs-12 col-sm-12 vertical-center">
       <h5>Select a datacenter</h5>
@@ -543,6 +705,25 @@
     </div>
   </script>
 
+  <script type="text/x-handlebars" id="settings">
+    <div class="col-md-8 col-md-offset-2 col-xs-offset-0 col-sm-offset-0 col-xs-12 col-sm-12">
+      <h3>Settings</h3>
+      <p>These settings allow you to configure your browser for the Consul Web UI. Everything is saved to localstorage,
+      and should persist through visits and browser usage.</p>
+      <p>Settings are automatically persisted upon modification, so no manual save is required.</p>
+      <h5>Access Token</h5>
+      <div class="form-group">
+        {{ input type="text" value=model.token class="form-control form-mono" placeholder="token"}}
+        <span class="help-block">The token is sent with requests as the <code>?token</code> parameter. This is used to control the ACL for the
+        web UI.</span>
+      </div>
+      <div class="form-group">
+        <button {{ action "reset" }} {{ bind-attr class=":btn :btn-danger" }}>Reset Defaults</button>
+      </div>
+    </div>
+  </script>
+
+
   <script>
   // Enable query params, must be loaded before ember is
   EmberENV = {FEATURES: {'query-params-new': true}};
@@ -554,6 +735,8 @@
   <script src="javascripts/libs/ember-debug.min.js"></script>
   <script src="javascripts/libs/ember-validations.min.js"></script>
   <script src="javascripts/libs/list-view.min.js"></script>
+  <script src="javascripts/libs/classie.js"></script>
+  <script src="javascripts/libs/notificationFx.js"></script>
   <script src="javascripts/fixtures.js"></script>
   <script src="javascripts/app/router.js"></script>
   <script src="javascripts/app/routes.js"></script>

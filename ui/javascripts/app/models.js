@@ -239,3 +239,44 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     return parts.join("/") + "/";
   }.property('Key')
 });
+
+//
+// An ACL
+//
+App.Acl = Ember.Object.extend({
+  isNotAnon: function() {
+    if (this.get('ID') === "anonymous"){
+      return false;
+    } else {
+      return true;
+    }
+  }.property('ID')
+});
+
+// Wrap localstorage with an ember object
+App.Settings = Ember.Object.extend({
+  unknownProperty: function(key) {
+    return localStorage[key];
+  },
+
+  setUnknownProperty: function(key, value) {
+    if(Ember.isNone(value)) {
+      delete localStorage[key];
+    } else {
+      localStorage[key] = value;
+    }
+    this.notifyPropertyChange(key);
+    return value;
+  },
+
+  clear: function() {
+    this.beginPropertyChanges();
+    for (var i=0, l=localStorage.length; i<l; i++){
+      this.set(localStorage.key(i));
+    }
+    localStorage.clear();
+    this.endPropertyChanges();
+  }
+});
+
+
