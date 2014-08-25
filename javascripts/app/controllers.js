@@ -8,7 +8,6 @@ App.DcController = Ember.Controller.extend({
   needs: ["application"],
   // Whether or not the dropdown menu can be seen
   isDropdownVisible: false,
-  aclToken: Ember.computed.alias("application.settings.token"),
 
   datacenter: function() {
     return this.get('content');

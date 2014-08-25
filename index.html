@@ -136,7 +136,7 @@
         </div>
 
         <div class="col-md-2 col-sm-2 col-xs-6 col-md-offset-0 col-sm-offset-4 col-xs-offset-1">
-          <a {{bind-attr class=":col-xs-12 :btn isDropDownVisible:btn-primary:btn-default"}} {{action "toggle"}}> <span class="elip-overflow">{{model}} <span class="caret"></span></span> </a>
+          <a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}} {{action "toggle"}}> <span class="elip-overflow">{{model}} <span class="caret"></span></span> </a>
 
           {{#if isDropdownVisible}}
             <ul class="dropdown-menu col-xs-8" style="display:block;">
