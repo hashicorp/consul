@@ -32,7 +32,7 @@ Ember.Handlebars.helper('aclName', function(name, id) {
   if (name === "") {
     return id;
   } else {
-    return new Handlebars.SafeString(name + ' <small class="pull-right">' + id + '</small>');
+    return new Handlebars.SafeString(name + ' <small class="pull-right no-case">' + id + '</small>');
   }
 });
 
