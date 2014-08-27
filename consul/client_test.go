@@ -2,12 +2,14 @@ package consul
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
 	"net"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/serf/serf"
 )
 
 func testClientConfig(t *testing.T, NodeName string) (string, *Config) {
@@ -37,6 +39,17 @@ func testClientDC(t *testing.T, dc string) (string, *Client) {
 	dir, config := testClientConfig(t, "testco.internal")
 	config.Datacenter = dc
 
+	client, err := NewClient(config)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	return dir, client
+}
+
+func testClientWithConfig(t *testing.T, cb func(c *Config)) (string, *Client) {
+	name := fmt.Sprintf("Client %d", getPort())
+	dir, config := testClientConfig(t, name)
+	cb(config)
 	client, err := NewClient(config)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -177,4 +190,82 @@ func TestClient_RPC_TLS(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("err: %v", err)
 	})
+}
+
+func TestClientServer_UserEvent(t *testing.T) {
+	clientOut := make(chan serf.UserEvent, 2)
+	dir1, c1 := testClientWithConfig(t, func(conf *Config) {
+		conf.UserEventHandler = func(e serf.UserEvent) {
+			clientOut <- e
+		}
+	})
+	defer os.RemoveAll(dir1)
+	defer c1.Shutdown()
+
+	serverOut := make(chan serf.UserEvent, 2)
+	dir2, s1 := testServerWithConfig(t, func(conf *Config) {
+		conf.UserEventHandler = func(e serf.UserEvent) {
+			serverOut <- e
+		}
+	})
+	defer os.RemoveAll(dir2)
+	defer s1.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := c1.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the members
+	testutil.WaitForResult(func() (bool, error) {
+		return len(c1.LANMembers()) == 2 && len(s1.LANMembers()) == 2, nil
+	}, func(err error) {
+		t.Fatalf("bad len")
+	})
+
+	// Fire the user event
+	err := c1.UserEvent("foo", []byte("bar"))
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	err = s1.UserEvent("bar", []byte("baz"))
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Wait for all the events
+	var serverFoo, serverBar, clientFoo, clientBar bool
+	for i := 0; i < 4; i++ {
+		select {
+		case e := <-clientOut:
+			switch e.Name {
+			case "foo":
+				clientFoo = true
+			case "bar":
+				clientBar = true
+			default:
+				t.Fatalf("Bad: %#v", e)
+			}
+
+		case e := <-serverOut:
+			switch e.Name {
+			case "foo":
+				serverFoo = true
+			case "bar":
+				serverBar = true
+			default:
+				t.Fatalf("Bad: %#v", e)
+			}
+
+		case <-time.After(10 * time.Second):
+			t.Fatalf("timeout")
+		}
+	}
+
+	if !(serverFoo && serverBar && clientFoo && clientBar) {
+		t.Fatalf("missing events")
+	}
 }
