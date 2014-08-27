@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"net"
 	"strings"
 
@@ -12,6 +13,11 @@ const (
 	// are handling a EventMemberReap
 	StatusReap = serf.MemberStatus(-1)
 )
+
+// userEventName computes the name of a user event
+func userEventName(name string) string {
+	return fmt.Sprintf("consul:event:%s")
+}
 
 // lanEventHandler is used to handle events from the lan Serf cluster
 func (s *Server) lanEventHandler() {

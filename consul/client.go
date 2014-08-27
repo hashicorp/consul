@@ -201,6 +201,11 @@ func (c *Client) RemoveFailedNode(node string) error {
 	return c.serf.RemoveFailedNode(node)
 }
 
+// UserEvent is used to fire an event via the Serf layer
+func (c *Client) UserEvent(name string, payload []byte) error {
+	return c.serf.UserEvent(userEventName(name), payload, false)
+}
+
 // lanEventHandler is used to handle events from the lan Serf cluster
 func (c *Client) lanEventHandler() {
 	for {

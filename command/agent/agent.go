@@ -372,6 +372,15 @@ func (a *Agent) WANMembers() []serf.Member {
 	}
 }
 
+// UserEvent is used to fire an event via the Serf layer on the LAN
+func (a *Agent) UserEvent(name string, payload []byte) error {
+	if a.server != nil {
+		return a.server.UserEvent(name, payload)
+	} else {
+		return a.client.UserEvent(name, payload)
+	}
+}
+
 // StartSync is called once Services and Checks are registered.
 // This is called to prevent a race between clients and the anti-entropy routines
 func (a *Agent) StartSync() {
