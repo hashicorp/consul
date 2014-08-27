@@ -47,6 +47,9 @@ type Agent struct {
 	checkTTLs     map[string]*CheckTTL
 	checkLock     sync.Mutex
 
+	// eventCh is used to receive user events
+	eventCh chan serf.UserEvent
+
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
@@ -89,6 +92,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		logOutput:     logOutput,
 		checkMonitors: make(map[string]*CheckMonitor),
 		checkTTLs:     make(map[string]*CheckTTL),
+		eventCh:       make(chan serf.UserEvent, 1024),
 		shutdownCh:    make(chan struct{}),
 	}
 
@@ -107,6 +111,9 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Start handling events
+	go agent.handleEvents()
 
 	// Write out the PID file if necessary
 	err = agent.storePid()
@@ -218,6 +225,14 @@ func (a *Agent) consulConfig() *consul.Config {
 
 	// Setup the ServerUp callback
 	base.ServerUp = a.state.ConsulServerUp
+
+	// Setup the user event callback
+	base.UserEventHandler = func(e serf.UserEvent) {
+		select {
+		case a.eventCh <- e:
+		case <-a.shutdownCh:
+		}
+	}
 
 	// Setup the loggers
 	base.LogOutput = a.logOutput
@@ -369,15 +384,6 @@ func (a *Agent) WANMembers() []serf.Member {
 		return a.server.WANMembers()
 	} else {
 		return nil
-	}
-}
-
-// UserEvent is used to fire an event via the Serf layer on the LAN
-func (a *Agent) UserEvent(name string, payload []byte) error {
-	if a.server != nil {
-		return a.server.UserEvent(name, payload)
-	} else {
-		return a.client.UserEvent(name, payload)
 	}
 }
 
