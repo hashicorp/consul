@@ -300,13 +300,21 @@ func (c *Client) localEvent(event serf.UserEvent) {
 		return
 	}
 
-	switch event.Name {
-	case newLeaderEvent:
+	switch name := event.Name; {
+	case name == newLeaderEvent:
 		c.logger.Printf("[INFO] consul: New leader elected: %s", event.Payload)
 
 		// Trigger the callback
 		if c.config.ServerUp != nil {
 			c.config.ServerUp()
+		}
+	case isUserEvent(name):
+		event.Name = rawUserEventName(name)
+		c.logger.Printf("[DEBUG] consul: user event: %s", event.Name)
+
+		// Trigger the callback
+		if c.config.UserEventHandler != nil {
+			c.config.UserEventHandler(event)
 		}
 	default:
 		c.logger.Printf("[WARN] consul: Unhandled local event: %v", event)

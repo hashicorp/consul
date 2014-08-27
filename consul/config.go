@@ -163,6 +163,10 @@ type Config struct {
 	// ServerUp callback can be used to trigger a notification that
 	// a Consul server is now up and known about.
 	ServerUp func()
+
+	// UserEventHandler callback can be used to handle incoming
+	// user events. This function should not block.
+	UserEventHandler func(serf.UserEvent)
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
