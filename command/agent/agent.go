@@ -54,7 +54,7 @@ type Agent struct {
 	// using eventIndex as the next index to insert into. This
 	// is guarded by eventLock. When an insert happens, the
 	// eventNotify group is notified.
-	eventBuf    []*userEventEnc
+	eventBuf    []*UserEvent
 	eventIndex  int
 	eventLock   sync.RWMutex
 	eventNotify consul.NotifyGroup
@@ -102,7 +102,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		checkMonitors: make(map[string]*CheckMonitor),
 		checkTTLs:     make(map[string]*CheckTTL),
 		eventCh:       make(chan serf.UserEvent, 1024),
-		eventBuf:      make([]*userEventEnc, 256),
+		eventBuf:      make([]*UserEvent, 256),
 		shutdownCh:    make(chan struct{}),
 	}
 

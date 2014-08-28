@@ -14,37 +14,32 @@ const (
 )
 
 // UserEventParam is used to parameterize a user event
-type UserEventParam struct {
+type UserEvent struct {
+	// ID of the user event. Automatically generated.
+	ID string
+
 	// Name of the event
-	Name string
+	Name string `codec:"n"`
 
 	// Optional payload
-	Payload []byte
+	Payload []byte `codec:"p,omitempty"`
 
 	// NodeFilter is a regular expression to filter on nodes
-	NodeFilter string
+	NodeFilter string `codec:"nf,omitempty"`
 
 	// ServiceFilter is a regular expression to filter on services
-	ServiceFilter string
+	ServiceFilter string `codec:"sf,omitempty"`
 
 	// TagFilter is a regular expression to filter on tags of a service,
 	// must be provided with ServiceFilter
-	TagFilter string
-}
+	TagFilter string `codec:"tf,omitempty"`
 
-// userEventEnc is the encoded version
-type userEventEnc struct {
-	Version       int `codec:"v"`
-	ID            string
-	Name          string `codec:"n"`
-	Payload       []byte `codec:"p,omitempty"`
-	NodeFilter    string `codec:"nf,omitempty"`
-	ServiceFilter string `codec:"sf,omitempty"`
-	TagFilter     string `codec:"tf,omitempty"`
+	// Version of the user event. Automatically generated.
+	Version int `codec:"v"`
 }
 
 // validateUserEventParams is used to sanity check the inputs
-func validateUserEventParams(params *UserEventParam) error {
+func validateUserEventParams(params *UserEvent) error {
 	// Validate the inputs
 	if params.Name == "" {
 		return fmt.Errorf("User event missing name")
@@ -71,23 +66,16 @@ func validateUserEventParams(params *UserEventParam) error {
 }
 
 // UserEvent is used to fire an event via the Serf layer on the LAN
-func (a *Agent) UserEvent(params *UserEventParam) error {
+func (a *Agent) UserEvent(params *UserEvent) error {
 	// Validate the params
 	if err := validateUserEventParams(params); err != nil {
 		return err
 	}
 
 	// Format message
-	msg := userEventEnc{
-		Version:       userEventMaxVersion,
-		ID:            generateUUID(),
-		Name:          params.Name,
-		Payload:       params.Payload,
-		NodeFilter:    params.NodeFilter,
-		ServiceFilter: params.ServiceFilter,
-		TagFilter:     params.TagFilter,
-	}
-	payload, err := encodeUserEvent(&msg)
+	params.ID = generateUUID()
+	params.Version = userEventMaxVersion
+	payload, err := encodeUserEvent(&params)
 	if err != nil {
 		return fmt.Errorf("UserEvent encoding failed: %v", err)
 	}
@@ -104,7 +92,7 @@ func (a *Agent) handleEvents() {
 		select {
 		case e := <-a.eventCh:
 			// Decode the event
-			msg := new(userEventEnc)
+			msg := new(UserEvent)
 			if err := decodeUserEvent(e.Payload, msg); err != nil {
 				a.logger.Printf("[ERR] agent: Failed to decode event: %v", err)
 				continue
@@ -125,7 +113,7 @@ func (a *Agent) handleEvents() {
 }
 
 // shouldProcessUserEvent checks if an event makes it through our filters
-func (a *Agent) shouldProcessUserEvent(msg *userEventEnc) bool {
+func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 	// Check the version
 	if msg.Version > userEventMaxVersion {
 		a.logger.Printf("[WARN] agent: Event version %d may have unsupported features (%s)",
@@ -197,7 +185,7 @@ func (a *Agent) shouldProcessUserEvent(msg *userEventEnc) bool {
 }
 
 // ingestUserEvent is used to process an event that passes filtering
-func (a *Agent) ingestUserEvent(msg *userEventEnc) {
+func (a *Agent) ingestUserEvent(msg *UserEvent) {
 	a.eventLock.Lock()
 	defer func() {
 		a.eventLock.Unlock()
