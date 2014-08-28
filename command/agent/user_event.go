@@ -230,7 +230,8 @@ func (a *Agent) UserEvents() []*UserEvent {
 func (a *Agent) LastUserEvent() *UserEvent {
 	a.eventLock.RLock()
 	defer a.eventLock.RUnlock()
-	idx := (a.eventIndex - 1) % len(a.eventBuf)
+	n := len(a.eventBuf)
+	idx := (((a.eventIndex - 1) % n) + n) % n
 	return a.eventBuf[idx]
 }
 
