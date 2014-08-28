@@ -73,6 +73,12 @@ func (s *HTTPServer) EventList(resp http.ResponseWriter, req *http.Request) (int
 		return nil, nil
 	}
 
+	// Look for a name filter
+	var nameFilter string
+	if filt := req.URL.Query().Get("name"); filt != "" {
+		nameFilter = filt
+	}
+
 	// Lots of this logic is borrowed from consul/rpc.go:blockingRPC
 	// However we cannot use that directly since this code has some
 	// slight semantics differences...
@@ -109,6 +115,22 @@ SETUP_NOTIFY:
 RUN_QUERY:
 	// Get the recent events
 	events := s.agent.UserEvents()
+
+	// Filter the events if necessary
+	if nameFilter != "" {
+		n := len(events)
+		for i := 0; i < n; i++ {
+			if events[i].Name == nameFilter {
+				continue
+			}
+			events[i], events[n-1] = events[n-1], nil
+			i--
+			n--
+		}
+		events = events[:n]
+	}
+
+	// Determine the index
 	var index uint64
 	if len(events) == 0 {
 		index = 0
