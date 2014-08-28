@@ -133,7 +133,10 @@ RUN_QUERY:
 	// Determine the index
 	var index uint64
 	if len(events) == 0 {
-		index = 0
+		// Return a non-zero index to prevent a hot query loop. This
+		// can be caused by a watch for example when there is no matching
+		// events.
+		index = 1
 	} else {
 		last := events[len(events)-1]
 		index = uuidToUint64(last.ID)
