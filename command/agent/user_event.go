@@ -190,6 +190,7 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 
 // ingestUserEvent is used to process an event that passes filtering
 func (a *Agent) ingestUserEvent(msg *UserEvent) {
+	a.logger.Printf("[DEBUG] agent: new event: %s (%s)", msg.Name, msg.ID)
 	a.eventLock.Lock()
 	defer func() {
 		a.eventLock.Unlock()
