@@ -36,6 +36,9 @@ type UserEvent struct {
 
 	// Version of the user event. Automatically generated.
 	Version int `codec:"v"`
+
+	// LTime is the lamport time. Automatically generated.
+	LTime uint64 `codec:"-"`
 }
 
 // validateUserEventParams is used to sanity check the inputs
@@ -97,6 +100,7 @@ func (a *Agent) handleEvents() {
 				a.logger.Printf("[ERR] agent: Failed to decode event: %v", err)
 				continue
 			}
+			msg.LTime = uint64(e.LTime)
 
 			// Skip if we don't pass filtering
 			if !a.shouldProcessUserEvent(msg) {
@@ -195,6 +199,39 @@ func (a *Agent) ingestUserEvent(msg *UserEvent) {
 	idx := a.eventIndex
 	a.eventBuf[idx] = msg
 	a.eventIndex = (idx + 1) % len(a.eventBuf)
+}
+
+// UserEvents is used to return a slice of the most recent
+// user events.
+func (a *Agent) UserEvents() []*UserEvent {
+	n := len(a.eventBuf)
+	out := make([]*UserEvent, n)
+	a.eventLock.RLock()
+	defer a.eventLock.RUnlock()
+
+	// Check if the buffer is full
+	if a.eventBuf[a.eventIndex] != nil {
+		if a.eventIndex == 0 {
+			copy(out, a.eventBuf)
+		} else {
+			copy(out, a.eventBuf[a.eventIndex:])
+			copy(out[n-a.eventIndex:], a.eventBuf[:a.eventIndex])
+		}
+	} else {
+		// We haven't filled the buffer yet
+		copy(out, a.eventBuf[:a.eventIndex])
+		out = out[:a.eventIndex]
+	}
+	return out
+}
+
+// LastUserEvent is used to return the lastest user event.
+// This will return nil if there is no recent event.
+func (a *Agent) LastUserEvent() *UserEvent {
+	a.eventLock.RLock()
+	defer a.eventLock.RUnlock()
+	idx := (a.eventIndex - 1) % len(a.eventBuf)
+	return a.eventBuf[idx]
 }
 
 // Decode is used to decode a MsgPack encoded object
