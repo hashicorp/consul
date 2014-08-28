@@ -115,7 +115,8 @@ func (a *Agent) handleEvents() {
 				continue
 			}
 
-			// TODO: Process event
+			// Ingest the event
+			a.ingestUserEvent(msg)
 
 		case <-a.shutdownCh:
 			return
@@ -193,6 +194,19 @@ func (a *Agent) shouldProcessUserEvent(msg *userEventEnc) bool {
 		}
 	}
 	return true
+}
+
+// ingestUserEvent is used to process an event that passes filtering
+func (a *Agent) ingestUserEvent(msg *userEventEnc) {
+	a.eventLock.Lock()
+	defer func() {
+		a.eventLock.Unlock()
+		a.eventNotify.Notify()
+	}()
+
+	idx := a.eventIndex
+	a.eventBuf[idx] = msg
+	a.eventIndex = (idx + 1) % len(a.eventBuf)
 }
 
 // Decode is used to decode a MsgPack encoded object

@@ -50,6 +50,15 @@ type Agent struct {
 	// eventCh is used to receive user events
 	eventCh chan serf.UserEvent
 
+	// eventBuf stores the most recent events in a ring buffer
+	// using eventIndex as the next index to insert into. This
+	// is guarded by eventLock. When an insert happens, the
+	// eventNotify group is notified.
+	eventBuf    []*userEventEnc
+	eventIndex  int
+	eventLock   sync.RWMutex
+	eventNotify consul.NotifyGroup
+
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
@@ -93,6 +102,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		checkMonitors: make(map[string]*CheckMonitor),
 		checkTTLs:     make(map[string]*CheckTTL),
 		eventCh:       make(chan serf.UserEvent, 1024),
+		eventBuf:      make([]*userEventEnc, 256),
 		shutdownCh:    make(chan struct{}),
 	}
 
