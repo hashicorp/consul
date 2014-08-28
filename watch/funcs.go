@@ -21,6 +21,7 @@ func init() {
 		"nodes":     nodesWatch,
 		"service":   serviceWatch,
 		"checks":    checksWatch,
+		"event":     eventWatch,
 	}
 }
 
@@ -161,6 +162,33 @@ func checksWatch(params map[string]interface{}) (WatchFunc, error) {
 			return 0, nil, err
 		}
 		return meta.LastIndex, checks, err
+	}
+	return fn, nil
+}
+
+// eventWatch is used to watch for events, optionally filtering on name
+func eventWatch(params map[string]interface{}) (WatchFunc, error) {
+	var name string
+	if err := assignValue(params, "name", &name); err != nil {
+		return nil, err
+	}
+
+	fn := func(p *WatchPlan) (uint64, interface{}, error) {
+		event := p.client.Event()
+		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
+		events, meta, err := event.List(name, &opts)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		// Prune to only the new events
+		for i := 0; i < len(events); i++ {
+			if event.IDToIndex(events[i].ID) == p.lastIndex {
+				events = events[i+1:]
+				break
+			}
+		}
+		return meta.LastIndex, events, err
 	}
 	return fn, nil
 }

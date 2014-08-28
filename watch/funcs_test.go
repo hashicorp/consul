@@ -392,3 +392,43 @@ func TestChecksWatch_Service(t *testing.T) {
 		t.Fatalf("bad: %v", invoke)
 	}
 }
+
+func TestEventWatch(t *testing.T) {
+	if consulAddr == "" {
+		t.Skip()
+	}
+	plan := mustParse(t, `{"type":"event", "name": "foo"}`)
+	invoke := 0
+	plan.Handler = func(idx uint64, raw interface{}) {
+		if invoke == 0 {
+			if raw == nil {
+				return
+			}
+			v, ok := raw.([]*consulapi.UserEvent)
+			if !ok || len(v) == 0 || string(v[len(v)-1].Name) != "foo" {
+				t.Fatalf("Bad: %#v", raw)
+			}
+			invoke++
+		}
+	}
+
+	go func() {
+		defer plan.Stop()
+		time.Sleep(20 * time.Millisecond)
+
+		event := plan.client.Event()
+		params := &consulapi.UserEvent{Name: "foo"}
+		if _, _, err := event.Fire(params, nil); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	err := plan.Run(consulAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if invoke == 0 {
+		t.Fatalf("bad: %v", invoke)
+	}
+}
