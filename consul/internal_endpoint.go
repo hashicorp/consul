@@ -46,3 +46,19 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 			return nil
 		})
 }
+
+// EventFire is a bit of an odd endpoint, but it allows for a cross-DC RPC
+// call to fire an event. The primary use case is to enable user events being
+// triggered in a remote DC.
+func (m *Internal) EventFire(args *structs.EventFireRequest,
+	reply *structs.EventFireResponse) error {
+	if done, err := m.srv.forward("Internal.EventFire", args, args, reply); done {
+		return err
+	}
+
+	// Set the query meta data
+	m.srv.setQueryMeta(&reply.QueryMeta)
+
+	// Fire the event
+	return m.srv.UserEvent(args.Name, args.Payload)
+}

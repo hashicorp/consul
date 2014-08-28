@@ -162,13 +162,13 @@ func TestFireReceiveEvent(t *testing.T) {
 	agent.state.AddService(srv1)
 
 	p1 := &UserEvent{Name: "deploy", ServiceFilter: "web"}
-	err := agent.UserEvent(p1)
+	err := agent.UserEvent("", p1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	p2 := &UserEvent{Name: "deploy"}
-	err = agent.UserEvent(p2)
+	err = agent.UserEvent("", p2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/ugorji/go/codec"
 )
 
@@ -69,7 +70,7 @@ func validateUserEventParams(params *UserEvent) error {
 }
 
 // UserEvent is used to fire an event via the Serf layer on the LAN
-func (a *Agent) UserEvent(params *UserEvent) error {
+func (a *Agent) UserEvent(dc string, params *UserEvent) error {
 	// Validate the params
 	if err := validateUserEventParams(params); err != nil {
 		return err
@@ -82,10 +83,27 @@ func (a *Agent) UserEvent(params *UserEvent) error {
 	if err != nil {
 		return fmt.Errorf("UserEvent encoding failed: %v", err)
 	}
-	if a.server != nil {
-		return a.server.UserEvent(params.Name, payload)
+
+	// Check if this is the local DC, fire locally
+	if dc == "" || dc == a.config.Datacenter {
+		if a.server != nil {
+			return a.server.UserEvent(params.Name, payload)
+		} else {
+			return a.client.UserEvent(params.Name, payload)
+		}
 	} else {
-		return a.client.UserEvent(params.Name, payload)
+		// Send an RPC to remote datacenter to service this
+		args := structs.EventFireRequest{
+			Datacenter: dc,
+			Name:       params.Name,
+			Payload:    payload,
+		}
+
+		// Any server can process in the remote DC, since the
+		// gossip will take over anyways
+		args.AllowStale = true
+		var out structs.EventFireResponse
+		return a.RPC("Internal.EventFire", &args, &out)
 	}
 }
 

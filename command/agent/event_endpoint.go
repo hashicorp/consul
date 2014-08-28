@@ -24,6 +24,10 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 		return nil, nil
 	}
 
+	// Get the datacenter
+	var dc string
+	s.parseDC(req, &dc)
+
 	event := &UserEvent{}
 	event.Name = strings.TrimPrefix(req.URL.Path, "/v1/event/fire/")
 	if event.Name == "" {
@@ -53,7 +57,7 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 	}
 
 	// Try to fire the event
-	if err := s.agent.UserEvent(event); err != nil {
+	if err := s.agent.UserEvent(dc, event); err != nil {
 		return nil, err
 	}
 
