@@ -1232,7 +1232,7 @@ This is used to provide the ID of the newly fired event.
 
 ### /v1/event/list
 
-Thie endpoint is hit with a GET and returns the most recent
+This endpoint is hit with a GET and returns the most recent
 events known by the agent. As a consequence of how the
 [event command](/docs/commands/event.html) works, each agent
 may have a different view of the events. Events are broadcast using
@@ -1248,7 +1248,7 @@ the `?name=` query parameter.
 
 Lastly, to support [watches](/docs/agent/watches.html), this endpoint
 supports blocking queries. However, the semantics of this endpoint
-is slightly different. Most blocking queries provide a monotonic index,
+are slightly different. Most blocking queries provide a monotonic index,
 and block until a newer index is available. This can be supported as
 a consequence of the total ordering of the [consensus protocol](/docs/internals/consensus.html).
 With gossip, there is no ordering, and instead `X-Consul-Index` maps
@@ -1259,7 +1259,7 @@ single agent, and has no meaning globally. Because Consul defines
 the index as being opaque, clients should not be expecting a natural
 ordering either.
 
-Lastly, agent's only buffer the most recent entries. The number
+Lastly, agents only buffer the most recent entries. The number
 of entries should not be depended upon, but currently defaults to
 256. This value could change in the future. The buffer should be large
 enough for most clients and watches.
