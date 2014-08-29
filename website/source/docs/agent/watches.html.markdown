@@ -293,7 +293,7 @@ events. These are fired using the [consul event](/docs/commands/event.html) comm
 It takes only a single optional "name" parameter, which restricts
 the watch to only events with the given name.
 
-This maps to the `v1/event/list` API internvally.
+This maps to the `v1/event/list` API internally.
 
 Here is an example configuration:
 
