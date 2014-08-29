@@ -47,6 +47,18 @@ type Agent struct {
 	checkTTLs     map[string]*CheckTTL
 	checkLock     sync.Mutex
 
+	// eventCh is used to receive user events
+	eventCh chan serf.UserEvent
+
+	// eventBuf stores the most recent events in a ring buffer
+	// using eventIndex as the next index to insert into. This
+	// is guarded by eventLock. When an insert happens, the
+	// eventNotify group is notified.
+	eventBuf    []*UserEvent
+	eventIndex  int
+	eventLock   sync.RWMutex
+	eventNotify consul.NotifyGroup
+
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
@@ -89,6 +101,8 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		logOutput:     logOutput,
 		checkMonitors: make(map[string]*CheckMonitor),
 		checkTTLs:     make(map[string]*CheckTTL),
+		eventCh:       make(chan serf.UserEvent, 1024),
+		eventBuf:      make([]*UserEvent, 256),
 		shutdownCh:    make(chan struct{}),
 	}
 
@@ -107,6 +121,9 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Start handling events
+	go agent.handleEvents()
 
 	// Write out the PID file if necessary
 	err = agent.storePid()
@@ -218,6 +235,14 @@ func (a *Agent) consulConfig() *consul.Config {
 
 	// Setup the ServerUp callback
 	base.ServerUp = a.state.ConsulServerUp
+
+	// Setup the user event callback
+	base.UserEventHandler = func(e serf.UserEvent) {
+		select {
+		case a.eventCh <- e:
+		case <-a.shutdownCh:
+		}
+	}
 
 	// Setup the loggers
 	base.LogOutput = a.logOutput

@@ -25,6 +25,12 @@ func init() {
 			}, nil
 		},
 
+		"event": func() (cli.Command, error) {
+			return &command.EventCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"force-leave": func() (cli.Command, error) {
 			return &command.ForceLeaveCommand{
 				Ui: ui,

@@ -41,6 +41,7 @@ Options:
 Watch Specification:
 
   -key=val                   Specifies the key to watch. Only for 'key' type.
+  -name=val                  Specifies an event name to watch. Only for 'event' type.
   -passingonly=[true|false]  Specifies if only hosts passing all checks are displayed.
                              Optional for 'service' type. Defaults false.
   -prefix=val                Specifies the key prefix to watch. Only for 'keyprefix' type.
@@ -50,13 +51,13 @@ Watch Specification:
   -tag=val                   Specifies the service tag to filter on. Optional for 'service'
                              type.
   -type=val                  Specifies the watch type. One of key, keyprefix
-                             services, nodes, service, or checks.
+                             services, nodes, service, checks, or event.
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *WatchCommand) Run(args []string) int {
-	var watchType, datacenter, token, key, prefix, service, tag, passingOnly, state string
+	var watchType, datacenter, token, key, prefix, service, tag, passingOnly, state, name string
 	cmdFlags := flag.NewFlagSet("watch", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 	cmdFlags.StringVar(&watchType, "type", "", "")
@@ -68,6 +69,7 @@ func (c *WatchCommand) Run(args []string) int {
 	cmdFlags.StringVar(&tag, "tag", "", "")
 	cmdFlags.StringVar(&passingOnly, "passingonly", "", "")
 	cmdFlags.StringVar(&state, "state", "", "")
+	cmdFlags.StringVar(&name, "name", "", "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -109,6 +111,9 @@ func (c *WatchCommand) Run(args []string) int {
 	}
 	if state != "" {
 		params["state"] = state
+	}
+	if name != "" {
+		params["name"] = name
 	}
 	if passingOnly != "" {
 		b, err := strconv.ParseBool(passingOnly)

@@ -11,7 +11,25 @@ const (
 	// StatusReap is used to update the status of a node if we
 	// are handling a EventMemberReap
 	StatusReap = serf.MemberStatus(-1)
+
+	// userEventPrefix is pre-pended to a user event to distinguish it
+	userEventPrefix = "consul:event:"
 )
+
+// userEventName computes the name of a user event
+func userEventName(name string) string {
+	return userEventPrefix + name
+}
+
+// isUserEvent checks if a serf event is a user event
+func isUserEvent(name string) bool {
+	return strings.HasPrefix(name, userEventPrefix)
+}
+
+// rawUserEventName is used to get the raw user event name
+func rawUserEventName(name string) string {
+	return strings.TrimPrefix(name, userEventPrefix)
+}
 
 // lanEventHandler is used to handle events from the lan Serf cluster
 func (s *Server) lanEventHandler() {
@@ -102,13 +120,21 @@ func (s *Server) localEvent(event serf.UserEvent) {
 		return
 	}
 
-	switch event.Name {
-	case newLeaderEvent:
+	switch name := event.Name; {
+	case name == newLeaderEvent:
 		s.logger.Printf("[INFO] consul: New leader elected: %s", event.Payload)
 
 		// Trigger the callback
 		if s.config.ServerUp != nil {
 			s.config.ServerUp()
+		}
+	case isUserEvent(name):
+		event.Name = rawUserEventName(name)
+		s.logger.Printf("[DEBUG] consul: user event: %s", event.Name)
+
+		// Trigger the callback
+		if s.config.UserEventHandler != nil {
+			s.config.UserEventHandler(event)
 		}
 	default:
 		s.logger.Printf("[WARN] consul: Unhandled local event: %v", event)

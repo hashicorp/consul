@@ -37,6 +37,8 @@ The list of available flags are:
 
 * `-key` - Key to watch. Only for `key` type.
 
+* `-name`- Event name to watch. Only for `event` type.
+
 * `-passingonly=[true|false]` - Should only passing entries be returned. Default false.
   only for `service` type.
 
@@ -49,5 +51,5 @@ The list of available flags are:
 * `-tag` - Service tag to filter on. Optional for `service` type.
 
 * `-type` - Watch type. Required, one of "key", "keyprefix", "services",
-  "nodes", "services", or "checks".
+  "nodes", "services", "checks", or "event".
 

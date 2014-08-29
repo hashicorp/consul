@@ -201,6 +201,11 @@ func (c *Client) RemoveFailedNode(node string) error {
 	return c.serf.RemoveFailedNode(node)
 }
 
+// UserEvent is used to fire an event via the Serf layer
+func (c *Client) UserEvent(name string, payload []byte) error {
+	return c.serf.UserEvent(userEventName(name), payload, false)
+}
+
 // lanEventHandler is used to handle events from the lan Serf cluster
 func (c *Client) lanEventHandler() {
 	for {
@@ -295,13 +300,21 @@ func (c *Client) localEvent(event serf.UserEvent) {
 		return
 	}
 
-	switch event.Name {
-	case newLeaderEvent:
+	switch name := event.Name; {
+	case name == newLeaderEvent:
 		c.logger.Printf("[INFO] consul: New leader elected: %s", event.Payload)
 
 		// Trigger the callback
 		if c.config.ServerUp != nil {
 			c.config.ServerUp()
+		}
+	case isUserEvent(name):
+		event.Name = rawUserEventName(name)
+		c.logger.Printf("[DEBUG] consul: user event: %s", event.Name)
+
+		// Trigger the callback
+		if c.config.UserEventHandler != nil {
+			c.config.UserEventHandler(event)
 		}
 	default:
 		c.logger.Printf("[WARN] consul: Unhandled local event: %v", event)

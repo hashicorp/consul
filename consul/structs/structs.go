@@ -493,6 +493,29 @@ type ACLPolicy struct {
 	QueryMeta
 }
 
+// EventFireRequest is used to ask a server to fire
+// a Serf event. It is a bit odd, since it doesn't depend on
+// the catalog or leader. Any node can respond, so it's not quite
+// like a standard write request. This is used only internally.
+type EventFireRequest struct {
+	Datacenter string
+	Name       string
+	Payload    []byte
+
+	// Not using WriteRequest so that any server can process
+	// the request. It is a bit unusual...
+	QueryOptions
+}
+
+func (r *EventFireRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// EventFireResponse is used to respond to a fire request.
+type EventFireResponse struct {
+	QueryMeta
+}
+
 // msgpackHandle is a shared handle for encoding/decoding of structs
 var msgpackHandle = &codec.MsgpackHandle{}
 
