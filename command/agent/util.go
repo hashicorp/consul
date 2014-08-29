@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	crand "crypto/rand"
 	"fmt"
 	"math"
@@ -9,6 +10,8 @@ import (
 	"os/exec"
 	"runtime"
 	"time"
+
+	"github.com/ugorji/go/codec"
 )
 
 const (
@@ -75,4 +78,16 @@ func generateUUID() string {
 		buf[6:8],
 		buf[8:10],
 		buf[10:16])
+}
+
+// decodeMsgPack is used to decode a MsgPack encoded object
+func decodeMsgPack(buf []byte, out interface{}) error {
+	return codec.NewDecoder(bytes.NewReader(buf), msgpackHandle).Decode(out)
+}
+
+// encodeMsgPack is used to encode an object with msgpack
+func encodeMsgPack(msg interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	err := codec.NewEncoder(&buf, msgpackHandle).Encode(msg)
+	return buf.Bytes(), err
 }
