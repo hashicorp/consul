@@ -62,6 +62,7 @@ The following types are supported, with more documentation below:
 * `nodes` - Watch the list of nodes
 * `service`-  Watch the instances of a service
 * `checks` - Watch the value of health checks
+* `event` - Watch for custom user events
 
 
 ### Type: key
@@ -283,4 +284,46 @@ An example of the output of this command:
             "ServiceName": "redis"
         }
     ]
+
+
+### Type: event
+
+The "event" watch type is used to monitor for custom user
+events. These are fired using the [consul event](/docs/commands/event.html) command.
+It takes only a single optional "name" parameter, which restricts
+the watch to only events with the given name.
+
+This maps to the `v1/event/list` API internvally.
+
+Here is an example configuration:
+
+    {
+        "type": "event",
+        "name": "web-deploy",
+        "handler": "/usr/bin/my-deploy-handler.sh"
+    }
+
+Or, using the watch command:
+
+    $ consul watch -type event -name web-deploy /usr/bin/my-deploy-handler.sh
+
+An example of the output of this command:
+
+    [
+      {
+        "ID": "f07f3fcc-4b7d-3a7c-6d1e-cf414039fcee",
+        "Name": "web-deploy",
+        "Payload": "MTYwOTAzMA==",
+        "NodeFilter": "",
+        "ServiceFilter": "",
+        "TagFilter": "",
+        "Version": 1,
+        "LTime": 18
+      },
+      ...
+    ]
+
+To fire a new `web-deploy` event the following could be used:
+
+    $ consul event -name web-deploy 1609030
 
