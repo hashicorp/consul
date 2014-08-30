@@ -9,7 +9,7 @@ sidebar_current: "docs-internals-consensus"
 Consul uses a [consensus protocol](http://en.wikipedia.org/wiki/Consensus_(computer_science))
 to provide [Consistency](http://en.wikipedia.org/wiki/CAP_theorem) as defined by CAP.
 This page documents the details of this internal protocol. The consensus protocol is based on
-["Raft: In search of an Understandable Consensus Algorithm"](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf).
+["Raft: In search of an Understandable Consensus Algorithm"](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf). For a visual explanation of Raft, see the [The Secret Lives of Data](http://thesecretlivesofdata.com/raft).
 
 <div class="alert alert-block alert-warning">
 <strong>Advanced Topic!</strong> This page covers technical details of
