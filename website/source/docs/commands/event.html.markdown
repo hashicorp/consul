@@ -48,7 +48,7 @@ The list of available flags are:
 
 * `-node` - Regular expression to filter nodes which should evaluate the event.
 
-* `-service` - Regular expression to filter to only nodes which matching services.
+* `-service` - Regular expression to filter to only nodes with matching services.
 
 * `-tag` - Regular expression to filter to only nodes with a service that has
   a matching tag. This must be used with `-service`. As an example, you may

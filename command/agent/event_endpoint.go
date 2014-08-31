@@ -143,7 +143,7 @@ RUN_QUERY:
 	}
 	setIndex(resp, index)
 
-	// Check for exactly match on the query value. Because
+	// Check for exact match on the query value. Because
 	// the index value is not monotonic, we just ensure it is
 	// not an exact match.
 	if index > 0 && index == b.MinQueryIndex {
