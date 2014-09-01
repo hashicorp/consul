@@ -220,7 +220,11 @@ WAIT:
 			}
 		case <-time.After(spec.Wait):
 			// Acts like a heartbeat, since there is no output
-			a.remoteExecWriteOutput(&event, num, nil)
+			if !a.remoteExecWriteOutput(&event, num, nil) {
+				close(writer.CancelCh)
+				exitCode = 255
+				return
+			}
 		}
 	}
 
