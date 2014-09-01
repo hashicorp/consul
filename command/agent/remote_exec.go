@@ -53,12 +53,15 @@ type remoteExecSpec struct {
 }
 
 type rexecWriter struct {
-	bufCh    chan []byte
-	buf      []byte
-	bufLen   int
-	bufLock  sync.Mutex
-	cancelCh chan struct{}
-	flush    *time.Timer
+	BufCh    chan []byte
+	BufSize  int
+	BufIdle  time.Duration
+	CancelCh chan struct{}
+
+	buf     []byte
+	bufLen  int
+	bufLock sync.Mutex
+	flush   *time.Timer
 }
 
 func (r *rexecWriter) Write(b []byte) (int, error) {
@@ -69,10 +72,13 @@ func (r *rexecWriter) Write(b []byte) (int, error) {
 		r.flush = nil
 	}
 	inpLen := len(b)
+	if r.buf == nil {
+		r.buf = make([]byte, r.BufSize)
+	}
 
 COPY:
 	remain := len(r.buf) - r.bufLen
-	if remain >= len(b) {
+	if remain > len(b) {
 		copy(r.buf[r.bufLen:], b)
 		r.bufLen += len(b)
 	} else {
@@ -80,31 +86,30 @@ COPY:
 		b = b[remain:]
 		r.bufLen += remain
 		r.bufLock.Unlock()
-		r.flushBuf()
+		r.Flush()
 		r.bufLock.Lock()
 		goto COPY
 	}
 
-	r.flush = time.AfterFunc(remoteExecOutputDeadline, r.flushBuf)
+	r.flush = time.AfterFunc(r.BufIdle, r.Flush)
 	return inpLen, nil
 }
 
-func (r *rexecWriter) Close() {
-	r.flushBuf()
-	close(r.bufCh)
-}
-
-func (r *rexecWriter) flushBuf() {
+func (r *rexecWriter) Flush() {
 	r.bufLock.Lock()
 	defer r.bufLock.Unlock()
+	if r.flush != nil {
+		r.flush.Stop()
+		r.flush = nil
+	}
 	if r.bufLen == 0 {
 		return
 	}
 	select {
-	case r.bufCh <- r.buf:
-		r.buf = make([]byte, remoteExecOutputSize)
+	case r.BufCh <- r.buf[:r.bufLen]:
+		r.buf = make([]byte, r.BufSize)
 		r.bufLen = 0
-	case <-r.cancelCh:
+	case <-r.CancelCh:
 		r.bufLen = 0
 	}
 }
@@ -162,9 +167,10 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 
 	// Setup the output streaming
 	writer := &rexecWriter{
-		bufCh:    make(chan []byte, 16),
-		buf:      make([]byte, remoteExecOutputSize),
-		cancelCh: make(chan struct{}),
+		BufCh:    make(chan []byte, 16),
+		BufSize:  remoteExecOutputSize,
+		BufIdle:  remoteExecOutputDeadline,
+		CancelCh: make(chan struct{}),
 	}
 	cmd.Stdout = writer
 	cmd.Stderr = writer
@@ -181,7 +187,8 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 	exitCh := make(chan int, 1)
 	go func() {
 		err := cmd.Wait()
-		writer.Close()
+		writer.Flush()
+		close(writer.BufCh)
 		if err != nil {
 			exitCh <- 0
 			return
@@ -201,12 +208,12 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 WAIT:
 	for num := 0; ; num++ {
 		select {
-		case out := <-writer.bufCh:
+		case out := <-writer.BufCh:
 			if out == nil {
 				break WAIT
 			}
 			if !a.remoteExecWriteOutput(&event, num, out) {
-				close(writer.cancelCh)
+				close(writer.CancelCh)
 				exitCode = 255
 				return
 			}
