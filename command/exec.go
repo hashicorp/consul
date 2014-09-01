@@ -34,6 +34,13 @@ const (
 
 	// rExecOutputDivider is used to namespace the output
 	rExecOutputDivider = "/out/"
+
+	// rExecReplicationWait is how long we wait for replication
+	rExecReplicationWait = 200 * time.Millisecond
+
+	// rExecQuietWait is how long we wait for no responses
+	// before assuming the job is done.
+	rExecQuietWait = 2 * time.Second
 )
 
 // rExecConf is used to pass around configuration
@@ -113,8 +120,8 @@ func (c *ExecCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.conf.service, "service", "", "")
 	cmdFlags.StringVar(&c.conf.tag, "tag", "", "")
 	cmdFlags.StringVar(&c.conf.prefix, "prefix", rExecPrefix, "")
-	cmdFlags.DurationVar(&c.conf.replWait, "wait-repl", 100*time.Millisecond, "")
-	cmdFlags.DurationVar(&c.conf.wait, "wait", time.Second, "")
+	cmdFlags.DurationVar(&c.conf.replWait, "wait-repl", rExecReplicationWait, "")
+	cmdFlags.DurationVar(&c.conf.wait, "wait", rExecQuietWait, "")
 	cmdFlags.BoolVar(&c.conf.verbose, "verbose", false, "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
@@ -233,7 +240,7 @@ OUTER:
 		// nodes which are still working.
 		waitIntv := c.conf.wait
 		if ackCount > exitCount {
-			waitIntv *= 4
+			waitIntv *= 2
 		}
 
 		select {
