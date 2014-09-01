@@ -264,22 +264,8 @@ QUERY:
 // remoteExecWriteAck is used to write an ack. Returns if execution should
 // continue.
 func (a *Agent) remoteExecWriteAck(event *remoteExecEvent) bool {
-	write := structs.KVSRequest{
-		Datacenter: a.config.Datacenter,
-		Op:         structs.KVSLock,
-		DirEnt: structs.DirEntry{
-			Key: path.Join(event.Prefix, event.Session,
-				a.config.NodeName, remoteExecAckSuffix),
-			Session: event.Session,
-		},
-	}
-	var success bool
-	if err := a.RPC("KVS.Apply", &write, &success); err != nil {
+	if err := a.remoteExecWriteKey(event, remoteExecAckSuffix, nil); err != nil {
 		a.logger.Printf("[ERR] agent: failed to ack remote exec job: %v", err)
-		return false
-	}
-	if !success {
-		a.logger.Printf("[DEBUG] agent: remote exec aborted, ack failed")
 		return false
 	}
 	return true
@@ -287,25 +273,9 @@ func (a *Agent) remoteExecWriteAck(event *remoteExecEvent) bool {
 
 // remoteExecWriteOutput is used to write output
 func (a *Agent) remoteExecWriteOutput(event *remoteExecEvent, num int, output []byte) bool {
-	outputNum := fmt.Sprintf("%05x", num)
-	key := path.Join(event.Prefix, event.Session,
-		a.config.NodeName, remoteExecOutputDivider, outputNum)
-	write := structs.KVSRequest{
-		Datacenter: a.config.Datacenter,
-		Op:         structs.KVSLock,
-		DirEnt: structs.DirEntry{
-			Key:     key,
-			Value:   output,
-			Session: event.Session,
-		},
-	}
-	var success bool
-	if err := a.RPC("KVS.Apply", &write, &success); err != nil {
+	suffix := path.Join(remoteExecOutputDivider, fmt.Sprintf("%05x", num))
+	if err := a.remoteExecWriteKey(event, suffix, output); err != nil {
 		a.logger.Printf("[ERR] agent: failed to write output for remote exec job: %v", err)
-		return false
-	}
-	if !success {
-		a.logger.Printf("[DEBUG] agent: remote exec aborted, output write failed")
 		return false
 	}
 	return true
@@ -313,21 +283,30 @@ func (a *Agent) remoteExecWriteOutput(event *remoteExecEvent, num int, output []
 
 // remoteExecWriteExitCode is used to write an exit code
 func (a *Agent) remoteExecWriteExitCode(event *remoteExecEvent, exitCode int) {
+	val := []byte(strconv.FormatInt(int64(exitCode), 10))
+	if err := a.remoteExecWriteKey(event, remoteExecExitSuffix, val); err != nil {
+		a.logger.Printf("[ERR] agent: failed to write exit code for remote exec job: %v", err)
+	}
+}
+
+// remoteExecWriteKey is used to write an output key for a remote exec job
+func (a *Agent) remoteExecWriteKey(event *remoteExecEvent, suffix string, val []byte) error {
+	key := path.Join(event.Prefix, event.Session, a.config.NodeName, suffix)
 	write := structs.KVSRequest{
 		Datacenter: a.config.Datacenter,
 		Op:         structs.KVSLock,
 		DirEnt: structs.DirEntry{
-			Key: path.Join(event.Prefix, event.Session,
-				a.config.NodeName, remoteExecExitSuffix),
-			Value:   []byte(strconv.FormatInt(int64(exitCode), 10)),
+			Key:     key,
+			Value:   val,
 			Session: event.Session,
 		},
 	}
 	var success bool
 	if err := a.RPC("KVS.Apply", &write, &success); err != nil {
-		a.logger.Printf("[ERR] agent: failed to write exit code for remote exec job: %v", err)
+		return err
 	}
 	if !success {
-		a.logger.Printf("[DEBUG] agent: remote exec aborted, exit code write failed")
+		return fmt.Errorf("write failed")
 	}
+	return nil
 }
