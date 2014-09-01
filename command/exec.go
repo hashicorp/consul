@@ -115,7 +115,7 @@ func (c *ExecCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.conf.prefix, "prefix", rExecPrefix, "")
 	cmdFlags.DurationVar(&c.conf.replWait, "wait-repl", 100*time.Millisecond, "")
 	cmdFlags.DurationVar(&c.conf.wait, "wait", time.Second, "")
-	cmdFlags.BoolVar(&c.conf.verbose, "v", false, "")
+	cmdFlags.BoolVar(&c.conf.verbose, "verbose", false, "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -496,7 +496,7 @@ Options:
   -wait=1s                   Period to wait with no responses before terminating execution.
   -wait-repl=100ms           Period to wait for replication before firing event. This is an
                              optimization to allow stale reads to be performed.
-  -v						 Enables verbose output
+  -verbose                   Enables verbose output
 `
 	return strings.TrimSpace(helpText)
 }
