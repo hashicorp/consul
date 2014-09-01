@@ -49,6 +49,8 @@ usage: consul [--version] [--help] <command> [<args>]
 
 Available commands are:
     agent          Runs a Consul agent
+    event          Fire a new event
+    exec           Executes a command on Consul nodes
     force-leave    Forces a member of the cluster to enter the "left" state
     info           Provides debugging information for operators
     join           Tell Consul agent to join cluster
@@ -56,6 +58,7 @@ Available commands are:
     leave          Gracefully leaves the Consul cluster and shuts down
     members        Lists the members of a Consul cluster
     monitor        Stream logs from a Consul agent
+    reload         Triggers the agent to reload configuration files
     version        Prints the Consul version
     watch          Watch for changes in Consul
 ```
