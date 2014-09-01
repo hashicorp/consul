@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/armon/consul-api"
 	"github.com/mitchellh/cli"
@@ -186,6 +187,9 @@ func (c *ExecCommand) Run(args []string) int {
 		return 1
 	}
 	defer c.destroySession()
+	if c.conf.verbose {
+		c.Ui.Info(fmt.Sprintf("Created remote execution session: %s", c.sessionID))
+	}
 
 	// Upload the payload
 	if err := c.uploadPayload(spec); err != nil {
@@ -193,6 +197,9 @@ func (c *ExecCommand) Run(args []string) int {
 		return 1
 	}
 	defer c.destroyData()
+	if c.conf.verbose {
+		c.Ui.Info(fmt.Sprintf("Uploaded remote execution spec"))
+	}
 
 	// Wait for replication. This is done so that when the event is
 	// received, the job file can be read using a stale read. If the
@@ -211,7 +218,7 @@ func (c *ExecCommand) Run(args []string) int {
 		return 1
 	}
 	if c.conf.verbose {
-		c.Ui.Output(fmt.Sprintf("Fired remote execution event. ID: %s", id))
+		c.Ui.Info(fmt.Sprintf("Fired remote execution event: %s", id))
 	}
 
 	// Wait for the job to finish now
@@ -233,7 +240,9 @@ func (c *ExecCommand) waitForJob() int {
 	errCh := make(chan struct{}, 1)
 	defer close(doneCh)
 	go c.streamResults(doneCh, ackCh, heartCh, outputCh, exitCh, errCh)
-	var ackCount, exitCount int
+	target := &TargettedUi{Ui: c.Ui}
+
+	var ackCount, exitCount, badExit int
 OUTER:
 	for {
 		// Determine wait time. We provide a larger window if we know about
@@ -246,24 +255,35 @@ OUTER:
 		select {
 		case e := <-ackCh:
 			ackCount++
-			c.Ui.Output(fmt.Sprintf("Node %s: acknowledged event", e.Node))
+			if c.conf.verbose {
+				target.Target = e.Node
+				target.Info("acknowledged")
+			}
 
 		case h := <-heartCh:
 			if c.conf.verbose {
-				c.Ui.Output(fmt.Sprintf("Node %s: heartbeated", h.Node))
+				target.Target = h.Node
+				target.Info("heartbeat received")
 			}
 
 		case e := <-outputCh:
-			c.Ui.Output(fmt.Sprintf("Node %s: %s", e.Node, e.Output))
+			target.Target = e.Node
+			target.Output(string(e.Output))
 
 		case e := <-exitCh:
 			exitCount++
-			c.Ui.Output(fmt.Sprintf("Node %s: exited with code %d", e.Node, e.Code))
+			target.Target = e.Node
+			target.Info(fmt.Sprintf("finished with exit code %d", e.Code))
+			if e.Code != 0 {
+				badExit++
+			}
 
 		case <-time.After(waitIntv):
-			c.Ui.Output(fmt.Sprintf("%d / %d node(s) completed / acknowledged", exitCount, ackCount))
-			c.Ui.Output(fmt.Sprintf("Exec complete in %0.2f seconds",
-				float64(time.Now().Sub(start))/float64(time.Second)))
+			c.Ui.Info(fmt.Sprintf("%d / %d node(s) completed / acknowledged", exitCount, ackCount))
+			if c.conf.verbose {
+				c.Ui.Info(fmt.Sprintf("Completed in %0.2f seconds",
+					float64(time.Now().Sub(start))/float64(time.Second)))
+			}
 			break OUTER
 
 		case <-errCh:
@@ -272,6 +292,10 @@ OUTER:
 		case <-c.ShutdownCh:
 			return 1
 		}
+	}
+
+	if badExit > 0 {
+		return 2
 	}
 	return 0
 }
@@ -500,10 +524,51 @@ Options:
   -service=""                Regular expression to filter on service instances
   -tag=""                    Regular expression to filter on service tags. Must be used
                              with -service.
-  -wait=1s                   Period to wait with no responses before terminating execution.
-  -wait-repl=100ms           Period to wait for replication before firing event. This is an
+  -wait=2s                   Period to wait with no responses before terminating execution.
+  -wait-repl=200ms           Period to wait for replication before firing event. This is an
                              optimization to allow stale reads to be performed.
   -verbose                   Enables verbose output
 `
 	return strings.TrimSpace(helpText)
+}
+
+// TargettedUi is a UI that wraps another UI implementation and modifies
+// the output to indicate a specific target. Specifically, all Say output
+// is prefixed with the target name. Message output is not prefixed but
+// is offset by the length of the target so that output is lined up properly
+// with Say output. Machine-readable output has the proper target set.
+type TargettedUi struct {
+	Target string
+	Ui     cli.Ui
+}
+
+func (u *TargettedUi) Ask(query string) (string, error) {
+	return u.Ui.Ask(u.prefixLines(true, query))
+}
+
+func (u *TargettedUi) Info(message string) {
+	u.Ui.Info(u.prefixLines(true, message))
+}
+
+func (u *TargettedUi) Output(message string) {
+	u.Ui.Output(u.prefixLines(false, message))
+}
+
+func (u *TargettedUi) Error(message string) {
+	u.Ui.Error(u.prefixLines(true, message))
+}
+
+func (u *TargettedUi) prefixLines(arrow bool, message string) string {
+	arrowText := "==>"
+	if !arrow {
+		arrowText = strings.Repeat(" ", len(arrowText))
+	}
+
+	var result bytes.Buffer
+
+	for _, line := range strings.Split(message, "\n") {
+		result.WriteString(fmt.Sprintf("%s %s: %s\n", arrowText, u.Target, line))
+	}
+
+	return strings.TrimRightFunc(result.String(), unicode.IsSpace)
 }
