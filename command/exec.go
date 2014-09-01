@@ -94,7 +94,7 @@ type rExecExit struct {
 // ExecCommand is a Command implementation that is used to
 // do remote execution of commands
 type ExecCommand struct {
-	ShutdownCh chan struct{}
+	ShutdownCh <-chan struct{}
 	Ui         cli.Ui
 	conf       rExecConf
 	client     *consulapi.Client
@@ -218,8 +218,9 @@ func (c *ExecCommand) waitForJob() int {
 	outputCh := make(chan rExecOutput, 128)
 	exitCh := make(chan rExecExit, 128)
 	doneCh := make(chan struct{})
+	errCh := make(chan struct{}, 1)
 	defer close(doneCh)
-	go c.streamResults(doneCh, ackCh, heartCh, outputCh, exitCh)
+	go c.streamResults(doneCh, ackCh, heartCh, outputCh, exitCh, errCh)
 	var ackCount, exitCount int
 OUTER:
 	for {
@@ -243,10 +244,13 @@ OUTER:
 			c.Ui.Output(fmt.Sprintf("Node %s: exited with code %d", e.Node, e.Code))
 
 		case <-time.After(waitIntv):
-			c.Ui.Output(fmt.Sprintf("%d nodes completed, %d nodes acknowledged", exitCount, ackCount))
+			c.Ui.Output(fmt.Sprintf("%d / %d node(s) completed / acknowledged", exitCount, ackCount))
 			c.Ui.Output(fmt.Sprintf("Exec complete in %0.2f seconds",
 				float64(time.Now().Sub(start))/float64(time.Second)))
 			break OUTER
+
+		case <-errCh:
+			return 1
 
 		case <-c.ShutdownCh:
 			return 1
@@ -258,7 +262,7 @@ OUTER:
 // streamResults is used to perform blocking queries against the KV endpoint and stream in
 // notice of various events into waitForJob
 func (c *ExecCommand) streamResults(doneCh chan struct{}, ackCh chan rExecAck, heartCh chan rExecHeart,
-	outputCh chan rExecOutput, exitCh chan rExecExit) {
+	outputCh chan rExecOutput, exitCh chan rExecExit, errCh chan struct{}) {
 	kv := c.client.KV()
 	opts := consulapi.QueryOptions{WaitTime: c.conf.wait}
 	dir := path.Join(c.conf.prefix, c.sessionID) + "/"
@@ -343,7 +347,7 @@ func (c *ExecCommand) streamResults(doneCh chan struct{}, ackCh chan rExecAck, h
 
 ERR_EXIT:
 	select {
-	case c.ShutdownCh <- struct{}{}:
+	case errCh <- struct{}{}:
 	default:
 	}
 }
