@@ -13,7 +13,7 @@ FEATURES:
  * Event system added to support custom user events. Events are fired using
    the `consul event` command. They are handled using a standard watch.
 
- * Remote execution support added. This allows for command execution on remote
+ * Remote execution using `consul exec`. This allows for command execution on remote
    instances mediated through Consul.
 
  * RFC-2782 style DNS lookups supported
@@ -46,6 +46,7 @@ BUG FIXES:
   * Restored 0.2 TLS behavior, thanks to @nelhage [GH-233]
   * Fix the statsite flags, thanks to @nelhage [GH-243]
   * Fixed filters on criticial / non-passing checks [GH-241]
+  * Fixed initial log compaction crash [GH-297]
 
 IMPROVEMENTS:
 
