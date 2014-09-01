@@ -18,6 +18,10 @@ import (
 )
 
 const (
+	// rExecPrefix is the prefix in the KV store used to
+	// store the remote exec data
+	rExecPrefix = "_rexec"
+
 	// rExecFileName is the name of the file we append to
 	// the path, e.g. _rexec/session_id/job
 	rExecFileName = "job"
@@ -108,7 +112,7 @@ func (c *ExecCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.conf.node, "node", "", "")
 	cmdFlags.StringVar(&c.conf.service, "service", "", "")
 	cmdFlags.StringVar(&c.conf.tag, "tag", "", "")
-	cmdFlags.StringVar(&c.conf.prefix, "prefix", "_rexec", "")
+	cmdFlags.StringVar(&c.conf.prefix, "prefix", rExecPrefix, "")
 	cmdFlags.DurationVar(&c.conf.replWait, "wait-repl", 100*time.Millisecond, "")
 	cmdFlags.DurationVar(&c.conf.wait, "wait", time.Second, "")
 	cmdFlags.BoolVar(&c.conf.verbose, "v", false, "")
