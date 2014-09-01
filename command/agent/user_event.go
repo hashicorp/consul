@@ -10,6 +10,9 @@ import (
 const (
 	// userEventMaxVersion is the maximum protocol version we understand
 	userEventMaxVersion = 1
+
+	// remoteExecName is the event name for a remote exec command
+	remoteExecName = "_rexec"
 )
 
 // UserEventParam is used to parameterize a user event
@@ -206,7 +209,19 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 
 // ingestUserEvent is used to process an event that passes filtering
 func (a *Agent) ingestUserEvent(msg *UserEvent) {
-	a.logger.Printf("[DEBUG] agent: new event: %s (%s)", msg.Name, msg.ID)
+	// Special handling for internal events
+	switch msg.Name {
+	case remoteExecName:
+		if a.config.DisableRemoteExec {
+			a.logger.Printf("[INFO] agent: ignoring remote exec event (%s), disabled.", msg.ID)
+		} else {
+			go a.handleRemoteExec(msg)
+		}
+		return
+	default:
+		a.logger.Printf("[DEBUG] agent: new event: %s (%s)", msg.Name, msg.ID)
+	}
+
 	a.eventLock.Lock()
 	defer func() {
 		a.eventLock.Unlock()
