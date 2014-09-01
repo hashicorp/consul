@@ -1,12 +1,37 @@
-## 0.3.2 (Unreleased)
+## 0.4.0 (Unreleased)
+
+FEATURES:
+
+ * Fine-grained ACL system to restrict access to KV store. Clients
+   use tokens which can be restricted to (read, write, deny) permissions
+   using longest-prefix matches.
+
+ * Watch mechanisms added to invoke a handler when data changes in consul.
+   Used with the `consul watch` command, or by specifying `watches` in
+   an agent configuration.
+
+ * Event system added to support custom user events. Events are fired using
+   the `consul event` command. They are handled using a standard watch.
+
+ * Remote execution support added. This allows for command execution on remote
+   instances mediated through Consul.
+
+ * RFC-2782 style DNS lookups supported
+
+ * UI improvements, including support for ACLs.
 
 IMPROVEMENTS:
 
   * DNS case-insensitivity [GH-189]
+  * Support for HTTP `?pretty` parameter to pretty format JSON output.
+  * Use $SHELL when invoking handlers. [GH-237]
+  * Agent takes the `-encrypt` CLI Flag [GH-245]
 
 BUG FIXES:
 
+  * Fixed race condition in `-bootstrap-expect` [GH-254]
   * Require PUT to /v1/session/destroy [GH-285]
+  * Fixed registration race condition [GH-300] [GH-279]
 
 ## 0.3.1 (July 21, 2014)
 
