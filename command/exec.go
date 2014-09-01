@@ -125,7 +125,8 @@ func (c *ExecCommand) Run(args []string) int {
 	c.conf.cmd = strings.Join(cmdFlags.Args(), " ")
 
 	// If there is no command, read stdin for a script input
-	if c.conf.cmd == "" {
+	if c.conf.cmd == "-" {
+		c.conf.cmd = ""
 		var buf bytes.Buffer
 		_, err := io.Copy(&buf, os.Stdin)
 		if err != nil {
@@ -239,6 +240,11 @@ OUTER:
 		case e := <-ackCh:
 			ackCount++
 			c.Ui.Output(fmt.Sprintf("Node %s: acknowledged event", e.Node))
+
+		case h := <-heartCh:
+			if c.conf.verbose {
+				c.Ui.Output(fmt.Sprintf("Node %s: heartbeated", h.Node))
+			}
 
 		case e := <-outputCh:
 			c.Ui.Output(fmt.Sprintf("Node %s: %s", e.Node, e.Output))
@@ -471,11 +477,11 @@ func (c *ExecCommand) Synopsis() string {
 
 func (c *ExecCommand) Help() string {
 	helpText := `
-Usage: consul exec [options] [command...]
+Usage: consul exec [options] [-|command...]
 
   Evaluates a command on remote Consul nodes. The nodes responding can
   be filtered using regular expressions on node name, service, and tag
-  definitions. If a command is not provided, stdin will be read until EOF
+  definitions. If a command is '-', stdin will be read until EOF
   and used as a script input.
 
 Options:

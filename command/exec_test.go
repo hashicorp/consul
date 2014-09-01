@@ -1,11 +1,13 @@
 package command
 
 import (
-	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/armon/consul-api"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/mitchellh/cli"
 )
 
 func TestExecCommand_implements(t *testing.T) {
@@ -45,4 +47,273 @@ func waitForLeader(t *testing.T, httpAddr string) {
 	}, func(err error) {
 		t.Fatalf("failed to find leader: %v", err)
 	})
+}
+
+func TestExecCommand_Validate(t *testing.T) {
+	conf := &rExecConf{}
+	err := conf.validate()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	conf.node = "("
+	err = conf.validate()
+	if err == nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	conf.node = ""
+	conf.service = "("
+	err = conf.validate()
+	if err == nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	conf.service = "()"
+	conf.tag = "("
+	err = conf.validate()
+	if err == nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	conf.service = ""
+	conf.tag = "foo"
+	err = conf.validate()
+	if err == nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestExecCommand_Sessions(t *testing.T) {
+	a1 := testAgent(t)
+	defer a1.Shutdown()
+	waitForLeader(t, a1.httpAddr)
+
+	client, err := HTTPClient(a1.httpAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &ExecCommand{
+		Ui:     ui,
+		client: client,
+	}
+
+	id, err := c.createSession()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	se, _, err := client.Session().Info(id, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if se == nil || se.Name != "Remote Exec" {
+		t.Fatalf("bad: %v", se)
+	}
+
+	c.sessionID = id
+	err = c.destroySession()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	se, _, err = client.Session().Info(id, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if se != nil {
+		t.Fatalf("bad: %v", se)
+	}
+}
+
+func TestExecCommand_UploadDestroy(t *testing.T) {
+	a1 := testAgent(t)
+	defer a1.Shutdown()
+	waitForLeader(t, a1.httpAddr)
+
+	client, err := HTTPClient(a1.httpAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &ExecCommand{
+		Ui:     ui,
+		client: client,
+	}
+
+	id, err := c.createSession()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	c.sessionID = id
+
+	c.conf.prefix = "_rexec"
+	c.conf.cmd = "uptime"
+	c.conf.wait = time.Second
+
+	buf, err := c.makeRExecSpec()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	err = c.uploadPayload(buf)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	pair, _, err := client.KV().Get("_rexec/"+id+"/job", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if pair == nil || len(pair.Value) == 0 {
+		t.Fatalf("missing job spec")
+	}
+
+	err = c.destroyData()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	pair, _, err = client.KV().Get("_rexec/"+id+"/job", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if pair != nil {
+		t.Fatalf("should be destroyed")
+	}
+}
+
+func TestExecCommand_StreamResults(t *testing.T) {
+	a1 := testAgent(t)
+	defer a1.Shutdown()
+	waitForLeader(t, a1.httpAddr)
+
+	client, err := HTTPClient(a1.httpAddr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &ExecCommand{
+		Ui:     ui,
+		client: client,
+	}
+	c.conf.prefix = "_rexec"
+
+	id, err := c.createSession()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	c.sessionID = id
+
+	ackCh := make(chan rExecAck, 128)
+	heartCh := make(chan rExecHeart, 128)
+	outputCh := make(chan rExecOutput, 128)
+	exitCh := make(chan rExecExit, 128)
+	doneCh := make(chan struct{})
+	errCh := make(chan struct{}, 1)
+	defer close(doneCh)
+	go c.streamResults(doneCh, ackCh, heartCh, outputCh, exitCh, errCh)
+
+	prefix := "_rexec/" + id + "/"
+	ok, _, err := client.KV().Acquire(&consulapi.KVPair{
+		Key:     prefix + "foo/ack",
+		Session: id,
+	}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("should be ok bro")
+	}
+
+	select {
+	case a := <-ackCh:
+		if a.Node != "foo" {
+			t.Fatalf("bad: %#v", a)
+		}
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timeout")
+	}
+
+	ok, _, err = client.KV().Acquire(&consulapi.KVPair{
+		Key:     prefix + "foo/exit",
+		Value:   []byte("127"),
+		Session: id,
+	}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("should be ok bro")
+	}
+
+	select {
+	case e := <-exitCh:
+		if e.Node != "foo" || e.Code != 127 {
+			t.Fatalf("bad: %#v", e)
+		}
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timeout")
+	}
+
+	// Random key, should ignore
+	ok, _, err = client.KV().Acquire(&consulapi.KVPair{
+		Key:     prefix + "foo/random",
+		Session: id,
+	}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("should be ok bro")
+	}
+
+	// Output heartbeat
+	ok, _, err = client.KV().Acquire(&consulapi.KVPair{
+		Key:     prefix + "foo/out/00000",
+		Session: id,
+	}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("should be ok bro")
+	}
+
+	select {
+	case h := <-heartCh:
+		if h.Node != "foo" {
+			t.Fatalf("bad: %#v", h)
+		}
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timeout")
+	}
+
+	// Output value
+	ok, _, err = client.KV().Acquire(&consulapi.KVPair{
+		Key:     prefix + "foo/out/00001",
+		Value:   []byte("test"),
+		Session: id,
+	}, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("should be ok bro")
+	}
+
+	select {
+	case o := <-outputCh:
+		if o.Node != "foo" || string(o.Output) != "test" {
+			t.Fatalf("bad: %#v", o)
+		}
+	case <-time.After(50 * time.Millisecond):
+		t.Fatalf("timeout")
+	}
 }
