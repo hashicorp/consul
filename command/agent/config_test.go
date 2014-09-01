@@ -405,6 +405,17 @@ func TestDecodeConfig(t *testing.T) {
 	if !reflect.DeepEqual(out, exp) {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// remote exec
+	input = `{"disable_remote_exec": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !config.DisableRemoteExec {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -566,6 +577,7 @@ func TestMergeConfig(t *testing.T) {
 				"handler": "foobar",
 			},
 		},
+		DisableRemoteExec: true,
 	}
 
 	c := MergeConfig(a, b)

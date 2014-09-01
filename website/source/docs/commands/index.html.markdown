@@ -25,6 +25,8 @@ usage: consul [--version] [--help] <command> [<args>]
 
 Available commands are:
     agent          Runs a Consul agent
+    event          Fire a new event
+    exec           Executes a command on Consul nodes
     force-leave    Forces a member of the cluster to enter the "left" state
     info           Provides debugging information for operators
     join           Tell Consul agent to join cluster

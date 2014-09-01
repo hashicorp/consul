@@ -227,6 +227,9 @@ definitions support being updated during a reload.
 
 * `data_dir` - Equivalent to the `-data-dir` command-line flag.
 
+* `disable_remote_exec` - Disables support for remote execution. When set to true,
+  the agent will ignore any incoming remote exec requests.
+
 * `dns_config` - This object allows a number of sub-keys to be set which can tune
   how DNS queries are perfomed. See this guide on [DNS caching](/docs/guides/dns-cache.html).
   The following sub-keys are available:

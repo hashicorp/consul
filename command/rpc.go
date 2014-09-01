@@ -27,7 +27,13 @@ func HTTPAddrFlag(f *flag.FlagSet) *string {
 
 // HTTPClient returns a new Consul HTTP client with the given address.
 func HTTPClient(addr string) (*consulapi.Client, error) {
+	return HTTPClientDC(addr, "")
+}
+
+// HTTPClientDC returns a new Consul HTTP client with the given address and datacenter
+func HTTPClientDC(addr, dc string) (*consulapi.Client, error) {
 	conf := consulapi.DefaultConfig()
 	conf.Address = addr
+	conf.Datacenter = dc
 	return consulapi.NewClient(conf)
 }

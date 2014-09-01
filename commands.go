@@ -31,6 +31,13 @@ func init() {
 			}, nil
 		},
 
+		"exec": func() (cli.Command, error) {
+			return &command.ExecCommand{
+				ShutdownCh: makeShutdownCh(),
+				Ui:         ui,
+			}, nil
+		},
+
 		"force-leave": func() (cli.Command, error) {
 			return &command.ForceLeaveCommand{
 				Ui: ui,

@@ -235,6 +235,10 @@ type Config struct {
 	// agent layer using the standard APIs.
 	Watches []map[string]interface{} `mapstructure:"watches"`
 
+	// DisableRemoteExec is used to turn off the remote execution
+	// feature. This is for security to prevent unknown scripts from running.
+	DisableRemoteExec bool `mapstructure:"disable_remote_exec"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -675,6 +679,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if len(b.WatchPlans) != 0 {
 		result.WatchPlans = append(result.WatchPlans, b.WatchPlans...)
+	}
+	if b.DisableRemoteExec {
+		result.DisableRemoteExec = true
 	}
 
 	// Copy the start join addresses

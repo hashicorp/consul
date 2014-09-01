@@ -1,17 +1,18 @@
 package agent
 
 import (
-	"bytes"
 	"fmt"
 	"regexp"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/ugorji/go/codec"
 )
 
 const (
 	// userEventMaxVersion is the maximum protocol version we understand
 	userEventMaxVersion = 1
+
+	// remoteExecName is the event name for a remote exec command
+	remoteExecName = "_rexec"
 )
 
 // UserEventParam is used to parameterize a user event
@@ -79,7 +80,7 @@ func (a *Agent) UserEvent(dc string, params *UserEvent) error {
 	// Format message
 	params.ID = generateUUID()
 	params.Version = userEventMaxVersion
-	payload, err := encodeUserEvent(&params)
+	payload, err := encodeMsgPack(&params)
 	if err != nil {
 		return fmt.Errorf("UserEvent encoding failed: %v", err)
 	}
@@ -114,7 +115,7 @@ func (a *Agent) handleEvents() {
 		case e := <-a.eventCh:
 			// Decode the event
 			msg := new(UserEvent)
-			if err := decodeUserEvent(e.Payload, msg); err != nil {
+			if err := decodeMsgPack(e.Payload, msg); err != nil {
 				a.logger.Printf("[ERR] agent: Failed to decode event: %v", err)
 				continue
 			}
@@ -208,7 +209,19 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 
 // ingestUserEvent is used to process an event that passes filtering
 func (a *Agent) ingestUserEvent(msg *UserEvent) {
-	a.logger.Printf("[DEBUG] agent: new event: %s (%s)", msg.Name, msg.ID)
+	// Special handling for internal events
+	switch msg.Name {
+	case remoteExecName:
+		if a.config.DisableRemoteExec {
+			a.logger.Printf("[INFO] agent: ignoring remote exec event (%s), disabled.", msg.ID)
+		} else {
+			go a.handleRemoteExec(msg)
+		}
+		return
+	default:
+		a.logger.Printf("[DEBUG] agent: new event: %s (%s)", msg.Name, msg.ID)
+	}
+
 	a.eventLock.Lock()
 	defer func() {
 		a.eventLock.Unlock()
@@ -252,16 +265,4 @@ func (a *Agent) LastUserEvent() *UserEvent {
 	n := len(a.eventBuf)
 	idx := (((a.eventIndex - 1) % n) + n) % n
 	return a.eventBuf[idx]
-}
-
-// Decode is used to decode a MsgPack encoded object
-func decodeUserEvent(buf []byte, out interface{}) error {
-	return codec.NewDecoder(bytes.NewReader(buf), msgpackHandle).Decode(out)
-}
-
-// encodeUserEvent is used to encode user event
-func encodeUserEvent(msg interface{}) ([]byte, error) {
-	var buf bytes.Buffer
-	err := codec.NewEncoder(&buf, msgpackHandle).Encode(msg)
-	return buf.Bytes(), err
 }

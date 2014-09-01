@@ -1209,7 +1209,8 @@ can be specified using the "?dc=" query parameter.
 
 The fire endpoint expects a PUT request, with an optional body.
 The body contents are opaque to Consul, and become the "payload"
-of the event.
+of the event. Any names starting with the "_" prefix should be considered
+reserved, and for Consul's internal use.
 
 The `?node=`, `?service=`, and `?tag=` query parameters may optionally
 be provided. They respectively provide a regular expression to filter
