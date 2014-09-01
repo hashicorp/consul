@@ -164,33 +164,46 @@ definitions support being updated during a reload.
 
 #### Configuration Key Reference
 
+* `acl_datacenter` - Only used by servers. This designates the datacenter which
+   is authoritative for ACL information. It must be provided to enable ACLs.
+   All servers and datacenters must agree on the ACL datacenter.
+
+* `acl_default_policy` - Either "allow" or "deny", defaults to "allow". The
+  default policy controls the behavior of a token when there is no matching
+  rule. In "allow" mode, ACLs are a blacklist: any operation not specifically
+  prohibited is allowed. In "deny" mode, ACLs are a whilelist: any operation not
+  specifically allowed is blocked.
+
+* `acl_down_policy` - Either "allow", "deny" or "extend-cache" which is the
+  default. In the case that the policy for a token cannot be read from the
+  `acl_datacenter` or leader node, the down policy is applied. In "allow" mode,
+  all actions are permitted, "deny" restricts all operations, and "extend-cache"
+  allows any cached ACLs to be used, ignoring their TTL values. If a non-cached
+  ACL is used, "extend-cache" acts like "deny".
+
+* `acl_master_token` - Only used for servers in the `acl_datacenter`. This token
+   will be created if it does not exist with management level permissions. It allows
+   operators to bootstrap the ACL system with a token ID that is well-known.
+
+* `acl_token` - When provided, the agent will use this token when making requests
+   to the Consul servers. Clients can override this token on a per-request basis
+   by providing the ?token parameter. When not provided, the empty token is used
+   which maps to the 'anonymous' ACL policy.
+
+
+* `acl_ttl` - Used to control Time-To-Live caching of ACLs. By default this
+   is 30 seconds. This setting has a major performance impact: reducing it will
+   cause more frequent refreshes, while increasing it reduces the number of caches.
+   However, because the caches are not actively invalidated, ACL policy may be stale
+   up to the TTL value.
+
+* `advertise_addr` - Equivalent to the `-advertise` command-line flag.
+
 * `bootstrap` - Equivalent to the `-bootstrap` command-line flag.
 
 * `bootstrap_expect` - Equivalent to the `-bootstrap-expect` command-line flag.
 
 * `bind_addr` - Equivalent to the `-bind` command-line flag.
-
-* `client_addr` - Equivalent to the `-client` command-line flag.
-
-* `datacenter` - Equivalent to the `-dc` command-line flag.
-
-* `data_dir` - Equivalent to the `-data-dir` command-line flag.
-
-* `log_level` - Equivalent to the `-log-level` command-line flag.
-
-* `node_name` - Equivalent to the `-node` command-line flag.
-
-* `protocol` - Equivalent to the `-protocol` command-line flag.
-
-* `server` - Equivalent to the `-server` command-line flag.
-
-* `ui_dir` - Equivalent to the `-ui-dir` command-line flag.
-
-* `advertise_addr` - Equivalent to the `-advertise` command-line flag.
-
-* `enable_syslog` - Equivalent to the `-syslog` command-line flag.
-
-* `rejoin_after_leave` - Equivalent to the `-rejoin` command-line flag.
 
 * `ca_file` - This provides a the file path to a PEM encoded certificate authority.
   The certificate authority is used to check the authenticity of client and server
@@ -208,22 +221,15 @@ definitions support being updated during a reload.
   reduce write pressure. If a check ever changes state, the new state and associated
   output is syncronized immediately. To disable this behavior, set the value to "0s".
 
-* `domain` - By default, Consul responds to DNS queries in the "consul." domain.
-  This flag can be used to change that domain. All queries in this domain are assumed
-  to be handled by Consul, and will not be recursively resolved.
+* `client_addr` - Equivalent to the `-client` command-line flag.
+
+* `datacenter` - Equivalent to the `-dc` command-line flag.
+
+* `data_dir` - Equivalent to the `-data-dir` command-line flag.
 
 * `dns_config` - This object allows a number of sub-keys to be set which can tune
   how DNS queries are perfomed. See this guide on [DNS caching](/docs/guides/dns-cache.html).
   The following sub-keys are available:
-
-  * `node_ttl` - By default, this is "0s", which means all node lookups are served with
-  a 0 TTL value. This can be set to allow node lookups to set a TTL value, which enables
-  DNS caching. This should be specified with the "s" suffix for second, or "m" for minute.
-
-  * `service_ttl` - This is a sub-object, which allows for setting a TTL on service lookups
-  with a per-service policy. The "*" wildcard service can be specified and is used when
-  there is no specific policy available for a service. By default, all services are served
-  with a 0 TTL value. Setting this enables DNS caching.
 
   * `allow_stale` - Enables a stale query for DNS information. This allows any Consul
   server to service the request, instead of only the leader. The advantage of this is
@@ -236,8 +242,23 @@ definitions support being updated during a reload.
   if a Consul server is more than 5 seconds behind the leader, the query will be
   re-evaluated on the leader to get more up-to-date results.
 
+  * `node_ttl` - By default, this is "0s", which means all node lookups are served with
+  a 0 TTL value. This can be set to allow node lookups to set a TTL value, which enables
+  DNS caching. This should be specified with the "s" suffix for second, or "m" for minute.
+
+  * `service_ttl` - This is a sub-object, which allows for setting a TTL on service lookups
+  with a per-service policy. The "*" wildcard service can be specified and is used when
+  there is no specific policy available for a service. By default, all services are served
+  with a 0 TTL value. Setting this enables DNS caching.
+
+* `domain` - By default, Consul responds to DNS queries in the "consul." domain.
+  This flag can be used to change that domain. All queries in this domain are assumed
+  to be handled by Consul, and will not be recursively resolved.
+
 * `enable_debug` - When set, enables some additional debugging features. Currently,
   only used to set the runtime profiling HTTP endpoints.
+
+* `enable_syslog` - Equivalent to the `-syslog` command-line flag.
 
 * `encrypt` - Equivalent to the `-encrypt` command-line flag.
 
@@ -249,6 +270,10 @@ definitions support being updated during a reload.
   it will send a Leave message to the rest of the cluster and gracefully
   leave. Defaults to false.
 
+* `log_level` - Equivalent to the `-log-level` command-line flag.
+
+* `node_name` - Equivalent to the `-node` command-line flag.
+
 * `ports` - This is a nested object that allows setting the bind ports
    for the following keys:
     * `dns` - The DNS server, -1 to disable. Default 8600.
@@ -258,10 +283,20 @@ definitions support being updated during a reload.
     * `serf_wan` - The Serf WAN port. Default 8302.
     * `server` - Server RPC address. Default 8300.
 
+* `protocol` - Equivalent to the `-protocol` command-line flag.
+
 * `recursor` - This flag provides an address of an upstream DNS server that is used to
   recursively resolve queries if they are not inside the service domain for consul. For example,
   a node can use Consul directly as a DNS server, and if the record is outside of the "consul." domain,
   the query will be resolved upstream using this server.
+
+* `rejoin_after_leave` - Equivalent to the `-rejoin` command-line flag.
+
+* `server` - Equivalent to the `-server` command-line flag.
+
+* `server_name` - When give, this overrides the `node_name` for the TLS certificate.
+  It can be used to ensure that the certificate name matches the hostname we
+  declare.
 
 * `skip_leave_on_interrupt` - This is the similar to`leave_on_terminate` but
   only affects interrupt handling. By default, an interrupt causes Consul to
@@ -271,16 +306,14 @@ definitions support being updated during a reload.
 * `start_join` - An array of strings specifying addresses of nodes to
   join upon startup.
 
-* `server_name` - When give, this overrides the `node_name` for the TLS certificate.
-  It can be used to ensure that the certificate name matches the hostname we
-  declare.
-
 * `statsite_addr` - This provides the address of a statsite instance. If provided
   Consul will stream various telemetry information to that instance for aggregation.
   This can be used to capture various runtime information.
 
 * `syslog_facility` - When `enable_syslog` is provided, this controls which
   facility messages are sent to. By default, `LOCAL0` will be used.
+
+* `ui_dir` - Equivalent to the `-ui-dir` command-line flag.
 
 * `verify_incoming` - If set to True, Consul requires that all incoming
   connections make use of TLS, and that the client provides a certificate signed
@@ -293,38 +326,6 @@ definitions support being updated during a reload.
   the Certificate Authority from the `ca_file`. By default, this is false, and Consul
   will not make use of TLS for outgoing connections. This applies to clients and servers,
   as both will make outgoing connections.
-
-* `acl_datacenter` - Only used by servers. This designates the datacenter which
-   is authoritative for ACL information. It must be provided to enable ACLs.
-   All servers and datacenters must agree on the ACL datacenter.
-
-* `acl_token` - When provided, the agent will use this token when making requests
-   to the Consul servers. Clients can override this token on a per-request basis
-   by providing the ?token parameter. When not provided, the empty token is used
-   which maps to the 'anonymous' ACL policy.
-
-* `acl_master_token` - Only used for servers in the `acl_datacenter`. This token
-   will be created if it does not exist with management level permissions. It allows
-   operators to bootstrap the ACL system with a token ID that is well-known.
-
-* `acl_default_policy` - Either "allow" or "deny", defaults to "allow". The
-  default policy controls the behavior of a token when there is no matching
-  rule. In "allow" mode, ACLs are a blacklist: any operation not specifically
-  prohibited is allowed. In "deny" mode, ACLs are a whilelist: any operation not
-  specifically allowed is blocked.
-
-* `acl_down_policy` - Either "allow", "deny" or "extend-cache" which is the
-  default. In the case that the policy for a token cannot be read from the
-  `acl_datacenter` or leader node, the down policy is applied. In "allow" mode,
-  all actions are permitted, "deny" restricts all operations, and "extend-cache"
-  allows any cached ACLs to be used, ignoring their TTL values. If a non-cached
-  ACL is used, "extend-cache" acts like "deny".
-
-* `acl_ttl` - Used to control Time-To-Live caching of ACLs. By default this
-   is 30 seconds. This setting has a major performance impact: reducing it will
-   cause more frequent refreshes, while increasing it reduces the number of caches.
-   However, because the caches are not actively invalidated, ACL policy may be stale
-   up to the TTL value.
 
 * `watches` - Watches is a list of watch specifications.
    These allow an external process to be automatically invoked when a particular
