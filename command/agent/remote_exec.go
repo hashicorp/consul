@@ -158,6 +158,7 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 	}
 
 	// Create the exec.Cmd
+	a.logger.Printf("[INFO] agent: remote exec '%s'", script)
 	cmd, err := ExecScript(script)
 	if err != nil {
 		a.logger.Printf("[DEBUG] agent: failed to start remote exec: %v", err)
@@ -282,11 +283,13 @@ func (a *Agent) remoteExecWriteOutput(event *remoteExecEvent, num int, output []
 }
 
 // remoteExecWriteExitCode is used to write an exit code
-func (a *Agent) remoteExecWriteExitCode(event *remoteExecEvent, exitCode int) {
+func (a *Agent) remoteExecWriteExitCode(event *remoteExecEvent, exitCode int) bool {
 	val := []byte(strconv.FormatInt(int64(exitCode), 10))
 	if err := a.remoteExecWriteKey(event, remoteExecExitSuffix, val); err != nil {
 		a.logger.Printf("[ERR] agent: failed to write exit code for remote exec job: %v", err)
+		return false
 	}
+	return true
 }
 
 // remoteExecWriteKey is used to write an output key for a remote exec job
