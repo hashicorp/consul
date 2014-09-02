@@ -197,6 +197,12 @@ definitions support being updated during a reload.
    However, because the caches are not actively invalidated, ACL policy may be stale
    up to the TTL value.
 
+* `addresses` - This is a nested object that allows setting the bind address
+  for the following keys:
+    * `dns` - The DNS server. Defaults to `client_addr`
+    * `http` - The HTTP API. Defaults to `client_addr`
+    * `rpc` - The RPC endpoint. Defaults to `client_addr`
+
 * `advertise_addr` - Equivalent to the `-advertise` command-line flag.
 
 * `bootstrap` - Equivalent to the `-bootstrap` command-line flag.
