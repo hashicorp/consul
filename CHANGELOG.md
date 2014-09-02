@@ -29,6 +29,8 @@ IMPROVEMENTS:
   * New `statsd_add` config for Statsd support. [GH-247]
   * New `addresses` config for providing an override to `client_addr` for
     DNS, HTTP, or RPC endpoints. [GH-301] [GH-253]
+  * Support [Checkpoint](http://checkpoint.hashicorp.com) for security bulletins
+    and update announcements.
 
 BUG FIXES:
 
