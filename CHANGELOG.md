@@ -27,6 +27,8 @@ IMPROVEMENTS:
   * Use $SHELL when invoking handlers. [GH-237]
   * Agent takes the `-encrypt` CLI Flag [GH-245]
   * New `statsd_add` config for Statsd support. [GH-247]
+  * New `addresses` config for providing an override to `client_addr` for
+    DNS, HTTP, or RPC endpoints. [GH-301] [GH-253]
 
 BUG FIXES:
 
