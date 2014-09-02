@@ -243,7 +243,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	c.agent = agent
 
 	// Setup the RPC listener
-	rpcAddr, err := config.ClientListener(config.Ports.RPC)
+	rpcAddr, err := config.ClientListener(config.Addresses.RPC, config.Ports.RPC)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Invalid RPC bind address: %s", err))
 		return err
@@ -261,7 +261,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	c.rpcServer = NewAgentRPC(agent, rpcListener, logOutput, logWriter)
 
 	if config.Ports.HTTP > 0 {
-		httpAddr, err := config.ClientListener(config.Ports.HTTP)
+		httpAddr, err := config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Invalid HTTP bind address: %s", err))
 			return err
@@ -277,7 +277,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	}
 
 	if config.Ports.DNS > 0 {
-		dnsAddr, err := config.ClientListener(config.Ports.DNS)
+		dnsAddr, err := config.ClientListener(config.Addresses.DNS, config.Ports.DNS)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Invalid DNS bind address: %s", err))
 			return err
@@ -416,7 +416,7 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Get the new client listener addr
-	httpAddr, err := config.ClientListenerAddr(config.Ports.HTTP)
+	httpAddr, err := config.ClientListenerAddr(config.Addresses.HTTP, config.Ports.HTTP)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
 	}
@@ -574,7 +574,7 @@ func (c *Command) handleReload(config *Config) *Config {
 	}
 
 	// Get the new client listener addr
-	httpAddr, err := newConf.ClientListenerAddr(config.Ports.HTTP)
+	httpAddr, err := newConf.ClientListenerAddr(config.Addresses.HTTP, config.Ports.HTTP)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
 	}

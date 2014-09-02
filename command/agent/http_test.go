@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +13,9 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func makeHTTPServer(t *testing.T) (string, *HTTPServer) {
@@ -24,7 +25,7 @@ func makeHTTPServer(t *testing.T) (string, *HTTPServer) {
 	if err := os.Mkdir(uiDir, 755); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	addr, _ := agent.config.ClientListener(agent.config.Ports.HTTP)
+	addr, _ := agent.config.ClientListener("", agent.config.Ports.HTTP)
 	server, err := NewHTTPServer(agent, uiDir, true, agent.logOutput, addr.String())
 	if err != nil {
 		t.Fatalf("err: %v", err)

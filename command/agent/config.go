@@ -323,18 +323,24 @@ func (c *Config) EncryptBytes() ([]byte, error) {
 
 // ClientListener is used to format a listener for a
 // port on a ClientAddr
-func (c *Config) ClientListener(port int) (*net.TCPAddr, error) {
-	ip := net.ParseIP(c.ClientAddr)
+func (c *Config) ClientListener(override string, port int) (*net.TCPAddr, error) {
+	var addr string
+	if override != "" {
+		addr = override
+	} else {
+		addr = c.ClientAddr
+	}
+	ip := net.ParseIP(addr)
 	if ip == nil {
-		return nil, fmt.Errorf("Failed to parse IP: %v", c.ClientAddr)
+		return nil, fmt.Errorf("Failed to parse IP: %v", addr)
 	}
 	return &net.TCPAddr{IP: ip, Port: port}, nil
 }
 
 // ClientListenerAddr is used to format an address for a
 // port on a ClientAddr, handling the zero IP.
-func (c *Config) ClientListenerAddr(port int) (string, error) {
-	addr, err := c.ClientListener(port)
+func (c *Config) ClientListenerAddr(override string, port int) (string, error) {
+	addr, err := c.ClientListener(override, port)
 	if err != nil {
 		return "", err
 	}
