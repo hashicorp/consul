@@ -8,7 +8,7 @@ sidebar_current: "docs-commands-exec"
 
 Command: `consul exec`
 
-The exec command provides a mechahanism for remote execution. For example,
+The exec command provides a mechanism for remote execution. For example,
 this can be used to run the `uptime` command across all machines providing
 the `web` service.
 
