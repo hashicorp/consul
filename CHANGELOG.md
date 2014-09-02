@@ -38,6 +38,12 @@ BUG FIXES:
   * Require PUT to /v1/session/destroy [GH-285]
   * Fixed registration race condition [GH-300] [GH-279]
 
+UPGRADE NOTES:
+
+  * ACL support should not be enabled until all server nodes are running
+  Consul 0.4. Mixed server versions with ACL support enabled may result in
+  panics.
+
 ## 0.3.1 (July 21, 2014)
 
 FEATURES:
