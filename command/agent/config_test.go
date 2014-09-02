@@ -447,6 +447,20 @@ func TestDecodeConfig(t *testing.T) {
 	if config.Addresses.RPC != "127.0.0.1" {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// Disable updates
+	input = `{"disable_update_check": true, "disable_anonymous_signature": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !config.DisableUpdateCheck {
+		t.Fatalf("bad: %#v", config)
+	}
+	if !config.DisableAnonymousSignature {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -613,9 +627,11 @@ func TestMergeConfig(t *testing.T) {
 				"handler": "foobar",
 			},
 		},
-		DisableRemoteExec: true,
-		StatsiteAddr:      "127.0.0.1:7250",
-		StatsdAddr:        "127.0.0.1:7251",
+		DisableRemoteExec:         true,
+		StatsiteAddr:              "127.0.0.1:7250",
+		StatsdAddr:                "127.0.0.1:7251",
+		DisableUpdateCheck:        true,
+		DisableAnonymousSignature: true,
 	}
 
 	c := MergeConfig(a, b)

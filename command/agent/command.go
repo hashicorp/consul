@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/watch"
+	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 	"github.com/mitchellh/cli"
@@ -293,7 +295,46 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		c.dnsServer = server
 	}
 
+	// Setup update checking
+	if !config.DisableUpdateCheck {
+		updateParams := &checkpoint.CheckParams{
+			Product: "consul",
+			Version: fmt.Sprintf("%s%s", config.Version, config.VersionPrerelease),
+		}
+		if !config.DisableAnonymousSignature {
+			updateParams.SignatureFile = filepath.Join(config.DataDir, "checkpoint-signature")
+		}
+
+		// Schedule a periodic check with expected interval of 24 hours
+		checkpoint.CheckInterval(updateParams, 24*time.Hour, c.checkpointResults)
+
+		// Do an immediate check within the next 30 seconds
+		go func() {
+			time.Sleep(randomStagger(30 * time.Second))
+			c.checkpointResults(checkpoint.Check(updateParams))
+		}()
+	}
+
 	return nil
+}
+
+// checkpointResults is used to handler periodic results from our update checker
+func (c *Command) checkpointResults(results *checkpoint.CheckResponse, err error) {
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to check for updates: %v", err))
+		return
+	}
+	if results.Outdated {
+		c.Ui.Error(fmt.Sprintf("Newer Consul version available: %s", results.CurrentVersion))
+	}
+	for _, alert := range results.Alerts {
+		switch alert.Level {
+		case "info":
+			c.Ui.Info(fmt.Sprintf("Bulletin [%s]: %s (%s)", alert.Level, alert.Message, alert.URL))
+		default:
+			c.Ui.Error(fmt.Sprintf("Bulletin [%s]: %s (%s)", alert.Level, alert.Message, alert.URL))
+		}
+	}
 }
 
 // startupJoin is invoked to handle any joins specified to take place at start time

@@ -255,6 +255,14 @@ type Config struct {
 	// feature. This is for security to prevent unknown scripts from running.
 	DisableRemoteExec bool `mapstructure:"disable_remote_exec"`
 
+	// DisableUpdateCheck is used to turn off the automatic update and
+	// security bulletin checking.
+	DisableUpdateCheck bool `mapstructure:"disable_update_check"`
+
+	// DisableAnonymousSignature is used to turn off the anonymous signature
+	// send with the update check. This is used to deduplicate messages.
+	DisableAnonymousSignature bool `mapstructure:"disable_anonymous_signature"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
