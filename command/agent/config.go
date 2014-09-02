@@ -725,6 +725,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.DisableRemoteExec {
 		result.DisableRemoteExec = true
 	}
+	if b.DisableUpdateCheck {
+		result.DisableUpdateCheck = true
+	}
+	if b.DisableAnonymousSignature {
+		result.DisableAnonymousSignature = true
+	}
 
 	// Copy the start join addresses
 	result.StartJoin = make([]string, 0, len(a.StartJoin)+len(b.StartJoin))

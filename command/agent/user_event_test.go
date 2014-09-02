@@ -122,7 +122,7 @@ func TestIngestUserEvent(t *testing.T) {
 	defer agent.Shutdown()
 
 	for i := 0; i < 512; i++ {
-		msg := &UserEvent{LTime: uint64(i)}
+		msg := &UserEvent{LTime: uint64(i), Name: "test"}
 		agent.ingestUserEvent(msg)
 		if agent.LastUserEvent() != msg {
 			t.Fatalf("bad: %#v", msg)
