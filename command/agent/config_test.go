@@ -430,6 +430,23 @@ func TestDecodeConfig(t *testing.T) {
 	if config.StatsdAddr != "127.0.0.1:7251" {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// Address overrides
+	input = `{"addresses": {"dns": "0.0.0.0", "http": "127.0.0.1", "rpc": "127.0.0.1"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.Addresses.DNS != "0.0.0.0" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Addresses.HTTP != "127.0.0.1" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Addresses.RPC != "127.0.0.1" {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -559,6 +576,11 @@ func TestMergeConfig(t *testing.T) {
 			SerfLan: 4,
 			SerfWan: 5,
 			Server:  6,
+		},
+		Addresses: AddressConfig{
+			DNS:  "127.0.0.1",
+			HTTP: "127.0.0.2",
+			RPC:  "127.0.0.3",
 		},
 		Server:                 true,
 		LeaveOnTerm:            true,

@@ -29,6 +29,15 @@ type PortConfig struct {
 	Server  int // Server internal RPC
 }
 
+// AddressConfig is used to provide address overrides
+// for specific services. By default, either ClientAddress
+// or ServerAddress is used.
+type AddressConfig struct {
+	DNS  string // DNS Query interface
+	HTTP string // HTTP API
+	RPC  string // CLI RPC
+}
+
 // DNSConfig is used to fine tune the DNS sub-system.
 // It can be used to control cache values, and stale
 // reads
@@ -116,6 +125,9 @@ type Config struct {
 
 	// Port configurations
 	Ports PortConfig
+
+	// Address configurations
+	Addresses AddressConfig
 
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving
 	// the TERM signal. Defaults false. This can be changed on reload.
@@ -626,6 +638,15 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Ports.Server != 0 {
 		result.Ports.Server = b.Ports.Server
+	}
+	if b.Addresses.DNS != "" {
+		result.Addresses.DNS = b.Addresses.DNS
+	}
+	if b.Addresses.HTTP != "" {
+		result.Addresses.HTTP = b.Addresses.HTTP
+	}
+	if b.Addresses.RPC != "" {
+		result.Addresses.RPC = b.Addresses.RPC
 	}
 	if b.UiDir != "" {
 		result.UiDir = b.UiDir
