@@ -416,6 +416,20 @@ func TestDecodeConfig(t *testing.T) {
 	if !config.DisableRemoteExec {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// stats(d|ite) exec
+	input = `{"statsite_addr": "127.0.0.1:7250", "statsd_addr": "127.0.0.1:7251"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.StatsiteAddr != "127.0.0.1:7250" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.StatsdAddr != "127.0.0.1:7251" {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Service(t *testing.T) {
@@ -578,6 +592,8 @@ func TestMergeConfig(t *testing.T) {
 			},
 		},
 		DisableRemoteExec: true,
+		StatsiteAddr:      "127.0.0.1:7250",
+		StatsdAddr:        "127.0.0.1:7251",
 	}
 
 	c := MergeConfig(a, b)

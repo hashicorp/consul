@@ -26,6 +26,7 @@ IMPROVEMENTS:
   * Support for HTTP `?pretty` parameter to pretty format JSON output.
   * Use $SHELL when invoking handlers. [GH-237]
   * Agent takes the `-encrypt` CLI Flag [GH-245]
+  * New `statsd_add` config for Statsd support. [GH-247]
 
 BUG FIXES:
 

@@ -347,16 +347,31 @@ func (c *Command) Run(args []string) int {
 	metrics.DefaultInmemSignal(inm)
 	metricsConf := metrics.DefaultConfig("consul")
 
-	// Optionally configure a statsite sink if provided
+	// Configure the statsite sink
+	var fanout metrics.FanoutSink
 	if config.StatsiteAddr != "" {
 		sink, err := metrics.NewStatsiteSink(config.StatsiteAddr)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to start statsite sink. Got: %s", err))
 			return 1
 		}
-		fanout := metrics.FanoutSink{inm, sink}
-		metrics.NewGlobal(metricsConf, fanout)
+		fanout = append(fanout, sink)
+	}
 
+	// Configure the statsd sink
+	if config.StatsdAddr != "" {
+		sink, err := metrics.NewStatsdSink(config.StatsdAddr)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to start statsd sink. Got: %s", err))
+			return 1
+		}
+		fanout = append(fanout, sink)
+	}
+
+	// Initialize the global sink
+	if len(fanout) > 0 {
+		fanout = append(fanout, inm)
+		metrics.NewGlobal(metricsConf, fanout)
 	} else {
 		metricsConf.EnableHostname = false
 		metrics.NewGlobal(metricsConf, inm)

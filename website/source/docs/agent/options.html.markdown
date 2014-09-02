@@ -309,9 +309,15 @@ definitions support being updated during a reload.
 * `start_join` - An array of strings specifying addresses of nodes to
   join upon startup.
 
+* `statsd_addr` - This provides the address of a statsd instance.  If provided
+  Consul will send various telemetry information to that instance for aggregation.
+  This can be used to capture various runtime information. This sends UDP packets
+  only, and can be used with statsd or statsite.
+
 * `statsite_addr` - This provides the address of a statsite instance. If provided
   Consul will stream various telemetry information to that instance for aggregation.
-  This can be used to capture various runtime information.
+  This can be used to capture various runtime information. This streams via
+  TCP and can only be used with statsite.
 
 * `syslog_facility` - When `enable_syslog` is provided, this controls which
   facility messages are sent to. By default, `LOCAL0` will be used.

@@ -129,6 +129,10 @@ type Config struct {
 	// metrics will be streamed to that instance.
 	StatsiteAddr string `mapstructure:"statsite_addr"`
 
+	// StatsdAddr is the address of a statsd instance. If provided,
+	// metrics will be sent to that instance.
+	StatsdAddr string `mapstructure:"statsd_addr"`
+
 	// Protocol is the Consul protocol version to use.
 	Protocol int `mapstructure:"protocol"`
 
@@ -574,6 +578,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.StatsiteAddr != "" {
 		result.StatsiteAddr = b.StatsiteAddr
+	}
+	if b.StatsdAddr != "" {
+		result.StatsdAddr = b.StatsdAddr
 	}
 	if b.EnableDebug {
 		result.EnableDebug = true
