@@ -233,8 +233,14 @@ definitions support being updated during a reload.
 
 * `data_dir` - Equivalent to the `-data-dir` command-line flag.
 
+* `disable_anonymous_signature` - Disables providing an anonymous signature for
+  de-duplication with the update check. See `disable_update_check`.
+
 * `disable_remote_exec` - Disables support for remote execution. When set to true,
   the agent will ignore any incoming remote exec requests.
+
+* `disable_update_check` - Disables automatic checking for security bulletins and
+  new version releases.
 
 * `dns_config` - This object allows a number of sub-keys to be set which can tune
   how DNS queries are perfomed. See this guide on [DNS caching](/docs/guides/dns-cache.html).
