@@ -1083,7 +1083,7 @@ body must look like:
     {
         "Name": "my-app-token",
         "Type": "client",
-        "Rules": "",
+        "Rules": ""
     }
 
 None of the fields are mandatory, and in fact no body needs to be PUT
