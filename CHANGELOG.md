@@ -1,4 +1,4 @@
-## 0.4.0 (Unreleased)
+## 0.4.0 (September 5, 2014)
 
 FEATURES:
 
