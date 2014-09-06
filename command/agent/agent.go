@@ -1,16 +1,21 @@
 package agent
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -109,6 +114,33 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	// Initialize the local state
 	agent.state.Init(config, agent.logger)
 
+	// Setup encryption keyring files
+	if !config.DisableKeyring && config.EncryptKey != "" {
+		keyringBytes, err := json.MarshalIndent([]string{config.EncryptKey})
+		if err != nil {
+			return nil, err
+		}
+		paths := []string{
+			filepath.Join(config.DataDir, "serf", "keyring_lan"),
+			filepath.Join(config.DataDir, "serf", "keyring_wan"),
+		}
+		for _, path := range paths {
+			if _, err := os.Stat(path); err == nil {
+				continue
+			}
+			fh, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+			if err != nil {
+				return nil, err
+			}
+			defer fh.Close()
+
+			if _, err := fh.Write(keyringBytes); err != nil {
+				os.Remove(path)
+				return nil, err
+			}
+		}
+	}
+
 	// Setup either the client or the server
 	var err error
 	if config.Server {
@@ -160,10 +192,20 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.DataDir != "" {
 		base.DataDir = a.config.DataDir
 	}
-	if a.config.EncryptKey != "" {
+	if a.config.EncryptKey != "" && a.config.DisableKeyring {
 		key, _ := a.config.EncryptBytes()
 		base.SerfLANConfig.MemberlistConfig.SecretKey = key
 		base.SerfWANConfig.MemberlistConfig.SecretKey = key
+	}
+	if !a.config.DisableKeyring {
+		lanKeyring := filepath.Join(base.DataDir, "serf", "keyring_lan")
+		wanKeyring := filepath.Join(base.DataDir, "serf", "keyring_wan")
+
+		base.SerfLANConfig.KeyringFile = lanKeyring
+		base.SerfWANConfig.KeyringFile = wanKeyring
+
+		base.SerfLANConfig.MemberlistConfig.Keyring = loadKeyringFile(lanKeyring)
+		base.SerfWANConfig.MemberlistConfig.Keyring = loadKeyringFile(wanKeyring)
 	}
 	if a.config.NodeName != "" {
 		base.NodeName = a.config.NodeName
@@ -252,6 +294,9 @@ func (a *Agent) consulConfig() *consul.Config {
 		case <-a.shutdownCh:
 		}
 	}
+
+	// Setup gossip keyring configuration
+	base.DisableKeyring = a.config.DisableKeyring
 
 	// Setup the loggers
 	base.LogOutput = a.logOutput
@@ -647,4 +692,42 @@ func (a *Agent) deletePid() error {
 		return fmt.Errorf("Could not remove pid file: %s", err)
 	}
 	return nil
+}
+
+// loadKeyringFile will load a keyring out of a file
+func loadKeyringFile(keyringFile string) *memberlist.Keyring {
+	if _, err := os.Stat(keyringFile); err != nil {
+		return nil
+	}
+
+	// Read in the keyring file data
+	keyringData, err := ioutil.ReadFile(keyringFile)
+	if err != nil {
+		return nil
+	}
+
+	// Decode keyring JSON
+	keys := make([]string, 0)
+	if err := json.Unmarshal(keyringData, &keys); err != nil {
+		return nil
+	}
+
+	// Decode base64 values
+	keysDecoded := make([][]byte, len(keys))
+	for i, key := range keys {
+		keyBytes, err := base64.StdEncoding.DecodeString(key)
+		if err != nil {
+			return nil
+		}
+		keysDecoded[i] = keyBytes
+	}
+
+	// Create the keyring
+	keyring, err := memberlist.NewKeyring(keysDecoded, keysDecoded[0])
+	if err != nil {
+		return nil
+	}
+
+	// Success!
+	return keyring
 }

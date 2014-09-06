@@ -104,6 +104,9 @@ type Config struct {
 	// recursors array.
 	DNSRecursor string `mapstructure:"recursor"`
 
+	// Disable use of an encryption keyring.
+	DisableKeyring bool `mapstructure:"disable_keyring"`
+
 	// DNSRecursors can be set to allow the DNS servers to recursively
 	// resolve non-consul domains
 	DNSRecursors []string `mapstructure:"recursors"`
@@ -675,6 +678,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.EncryptKey != "" {
 		result.EncryptKey = b.EncryptKey
+	}
+	if b.DisableKeyring {
+		result.DisableKeyring = true
 	}
 	if b.LogLevel != "" {
 		result.LogLevel = b.LogLevel

@@ -67,6 +67,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.UiDir, "ui-dir", "", "path to the web UI directory")
 	cmdFlags.StringVar(&cmdConfig.PidFile, "pid-file", "", "path to file to store PID")
 	cmdFlags.StringVar(&cmdConfig.EncryptKey, "encrypt", "", "gossip encryption key")
+	cmdFlags.BoolVar(&cmdConfig.DisableKeyring, "disable-keyring", false, "disable use of encryption keyring")
 
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
@@ -143,13 +144,6 @@ func (c *Command) readConfig() *Config {
 		config.NodeName = hostname
 	}
 
-	if config.EncryptKey != "" {
-		if _, err := config.EncryptBytes(); err != nil {
-			c.Ui.Error(fmt.Sprintf("Invalid encryption key: %s", err))
-			return nil
-		}
-	}
-
 	// Ensure we have a data directory
 	if config.DataDir == "" {
 		c.Ui.Error("Must specify data directory using -data-dir")
@@ -178,6 +172,13 @@ func (c *Command) readConfig() *Config {
 	if config.BootstrapExpect != 0 && config.Bootstrap {
 		c.Ui.Error("Bootstrap cannot be provided with an expected server count")
 		return nil
+	}
+
+	if config.EncryptKey != "" {
+		if _, err := config.EncryptBytes(); err != nil {
+			c.Ui.Error(fmt.Sprintf("Invalid encryption key: %s", err))
+			return nil
+		}
 	}
 
 	// Compile all the watches
