@@ -411,6 +411,18 @@ func (c *Config) ClientListenerAddr(override string, port int) (string, error) {
 	return addr.String(), nil
 }
 
+// CheckKeyringFiles checks for existence of the keyring files for Serf
+func (c *Config) CheckKeyringFiles() bool {
+	serfDir := filepath.Join(c.DataDir, "serf")
+	if _, err := os.Stat(filepath.Join(serfDir, "keyring_lan")); err != nil {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(serfDir, "keyring_wan")); err != nil {
+		return false
+	}
+	return true
+}
+
 // DecodeConfig reads the configuration from the given reader in JSON
 // format and decodes it into a proper Config structure.
 func DecodeConfig(r io.Reader) (*Config, error) {

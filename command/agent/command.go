@@ -219,6 +219,13 @@ func (c *Command) readConfig() *Config {
 		c.Ui.Error("WARNING: Windows is not recommended as a Consul server. Do not use in production.")
 	}
 
+	// Warn if an encryption key is passed while a keyring already exists
+	if config.EncryptKey != "" && config.CheckKeyringFiles() {
+		c.Ui.Error(fmt.Sprintf(
+			"WARNING: Keyring already exists, ignoring new key %s",
+			config.EncryptKey))
+	}
+
 	// Set the version info
 	config.Revision = c.Revision
 	config.Version = c.Version
@@ -586,6 +593,9 @@ func (c *Command) Run(args []string) int {
 		}(wp)
 	}
 
+	// Determine if gossip is encrypted
+	gossipEncrypted := (config.EncryptKey != "" || config.CheckKeyringFiles())
+
 	// Let the agent know we've finished registration
 	c.agent.StartSync()
 
@@ -598,7 +608,7 @@ func (c *Command) Run(args []string) int {
 	c.Ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
-		config.EncryptKey != "", config.VerifyOutgoing, config.VerifyIncoming))
+		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
 
 	// Enable log streaming
 	c.Ui.Info("")
