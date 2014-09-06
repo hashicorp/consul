@@ -116,15 +116,22 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 
 	// Setup encryption keyring files
 	if !config.DisableKeyring && config.EncryptKey != "" {
+		serfDir := filepath.Join(config.DataDir, "serf")
+		if err := os.MkdirAll(serfDir, 0700); err != nil {
+			return nil, err
+		}
+
 		keys := []string{config.EncryptKey}
 		keyringBytes, err := json.MarshalIndent(keys, "", "  ")
 		if err != nil {
 			return nil, err
 		}
+
 		paths := []string{
-			filepath.Join(config.DataDir, "serf", "keyring_lan"),
-			filepath.Join(config.DataDir, "serf", "keyring_wan"),
+			filepath.Join(serfDir, "keyring_lan"),
+			filepath.Join(serfDir, "keyring_wan"),
 		}
+
 		for _, path := range paths {
 			if _, err := os.Stat(path); err == nil {
 				continue
