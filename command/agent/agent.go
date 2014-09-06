@@ -116,7 +116,8 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 
 	// Setup encryption keyring files
 	if !config.DisableKeyring && config.EncryptKey != "" {
-		keyringBytes, err := json.MarshalIndent([]string{config.EncryptKey})
+		keys := []string{config.EncryptKey}
+		keyringBytes, err := json.MarshalIndent(keys, "", "  ")
 		if err != nil {
 			return nil, err
 		}
