@@ -501,6 +501,7 @@ App.SettingsController = Ember.ObjectController.extend({
       if (window.confirm("Are your sure you want to reset your settings?")) {
         localStorage.clear();
         controller.set('content', App.Settings.create());
+        App.set('settings.token', '');
         notify('Settings reset', 3000);
         this.set('isLoading', false);
       }

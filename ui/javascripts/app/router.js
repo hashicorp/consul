@@ -8,6 +8,7 @@ Ember.Application.initializer({
 
   initialize: function(container, application) {
     application.set('settings', App.Settings.create());
+    App.set('settings.token', '');
   }
 });
 
