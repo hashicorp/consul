@@ -198,6 +198,32 @@ func (c *RPCClient) ListKeysWAN() (map[string]int, int, map[string]string, error
 	return resp.Keys, resp.NumNodes, resp.Messages, err
 }
 
+func (c *RPCClient) InstallKeyWAN(key string) (map[string]string, error) {
+	header := requestHeader{
+		Command: installKeyWANCommand,
+		Seq:     c.getSeq(),
+	}
+
+	req := keyRequest{key}
+
+	resp := new(keyResponse)
+	err := c.genericRPC(&header, &req, resp)
+	return resp.Messages, err
+}
+
+func (c *RPCClient) InstallKeyLAN(key string) (map[string]string, error) {
+	header := requestHeader{
+		Command: installKeyLANCommand,
+		Seq:     c.getSeq(),
+	}
+
+	req := keyRequest{key}
+
+	resp := new(keyResponse)
+	err := c.genericRPC(&header, &req, resp)
+	return resp.Messages, err
+}
+
 // Leave is used to trigger a graceful leave and shutdown
 func (c *RPCClient) Leave() error {
 	header := requestHeader{

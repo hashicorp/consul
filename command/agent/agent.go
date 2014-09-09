@@ -756,5 +756,24 @@ func (a *Agent) ListKeysWAN() (*serf.KeyResponse, error) {
 		km := a.server.KeyManagerWAN()
 		return km.ListKeys()
 	}
-	return nil, nil
+	return nil, fmt.Errorf("WAN keyring not available on client node")
+}
+
+// InstallKeyWAN installs a new WAN gossip encryption key on server nodes
+func (a *Agent) InstallKeyWAN(key string) (*serf.KeyResponse, error) {
+	if a.server != nil {
+		km := a.server.KeyManagerWAN()
+		return km.InstallKey(key)
+	}
+	return nil, fmt.Errorf("WAN keyring not available on client node")
+}
+
+// InstallKeyLAN installs a new LAN gossip encryption key on all nodes
+func (a *Agent) InstallKeyLAN(key string) (*serf.KeyResponse, error) {
+	if a.server != nil {
+		km := a.server.KeyManagerLAN()
+		return km.InstallKey(key)
+	}
+	km := a.client.KeyManagerLAN()
+	return km.InstallKey(key)
 }

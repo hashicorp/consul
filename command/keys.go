@@ -40,6 +40,10 @@ func (c *KeysCommand) Run(args []string) int {
 		Ui:           c.Ui,
 	}
 
+	var out []string
+	var failures map[string]string
+	var err error
+
 	// Only accept a single argument
 	found := listKeys
 	for _, arg := range []string{installKey, useKey, removeKey} {
@@ -68,21 +72,20 @@ func (c *KeysCommand) Run(args []string) int {
 
 		var keys map[string]int
 		var numNodes int
-		var messages map[string]string
-		var err error
-		var out []string
 
 		if wan {
-			keys, numNodes, messages, err = client.ListKeysWAN()
+			keys, numNodes, failures, err = client.ListKeysWAN()
 		} else {
-			keys, numNodes, messages, err = client.ListKeysLAN()
+			keys, numNodes, failures, err = client.ListKeysLAN()
 		}
 
 		if err != nil {
-			for node, msg := range messages {
-				out = append(out, fmt.Sprintf("failed: %s | %s", node, msg))
+			if len(failures) > 0 {
+				for node, msg := range failures {
+					out = append(out, fmt.Sprintf("failed: %s | %s", node, msg))
+				}
+				c.Ui.Error(columnize.SimpleFormat(out))
 			}
-			c.Ui.Error(columnize.SimpleFormat(out))
 			c.Ui.Error("")
 			c.Ui.Error(fmt.Sprintf("Failed gathering member keys: %s", err))
 			return 1
@@ -100,6 +103,27 @@ func (c *KeysCommand) Run(args []string) int {
 	}
 
 	if installKey != "" {
+		if wan {
+			c.Ui.Info("Installing new WAN gossip encryption key...")
+			failures, err = client.InstallKeyWAN(installKey)
+		} else {
+			c.Ui.Info("Installing new LAN gossip encryption key...")
+			failures, err = client.InstallKeyLAN(installKey)
+		}
+
+		if err != nil {
+			if len(failures) > 0 {
+				for node, msg := range failures {
+					out = append(out, fmt.Sprintf("failed: %s | %s", node, msg))
+				}
+				c.Ui.Error(columnize.SimpleFormat(out))
+			}
+			c.Ui.Error("")
+			c.Ui.Error(fmt.Sprintf("Error installing key: %s", err))
+			return 1
+		}
+
+		c.Ui.Info("Successfully installed key!")
 		return 0
 	}
 

@@ -111,6 +111,10 @@ type joinResponse struct {
 	Num int32
 }
 
+type keyRequest struct {
+	Key string
+}
+
 type keyResponse struct {
 	Messages map[string]string
 	NumNodes int
@@ -389,19 +393,13 @@ func (i *AgentRPC) handleRequest(client *rpcClient, reqHeader *requestHeader) er
 	case reloadCommand:
 		return i.handleReload(client, seq)
 
-	case listKeysLANCommand:
-		return i.handleListKeysLAN(client, seq)
+	case listKeysLANCommand, listKeysWANCommand:
+		return i.handleListKeys(client, seq, command)
 
-	case listKeysWANCommand:
-		return i.handleListKeysWAN(client, seq)
+	case installKeyLANCommand, installKeyWANCommand:
+		return i.handleInstallKey(client, seq, command)
 
 		/*
-			case installKeyLANCommand:
-				return i.handleInstallKeyLAN(client, seq)
-
-			case installKeyWANCommand:
-				return i.handleInstallKeyWAN(client, seq)
-
 			case useKeyLANCommand:
 				return i.handleUseKeyLAN(client, seq)
 
@@ -625,8 +623,16 @@ func (i *AgentRPC) handleReload(client *rpcClient, seq uint64) error {
 	return client.Send(&resp, nil)
 }
 
-func (i *AgentRPC) handleListKeysLAN(client *rpcClient, seq uint64) error {
-	queryResp, err := i.agent.ListKeysLAN()
+func (i *AgentRPC) handleListKeys(client *rpcClient, seq uint64, cmd string) error {
+	var queryResp *serf.KeyResponse
+	var err error
+
+	switch cmd {
+	case listKeysWANCommand:
+		queryResp, err = i.agent.ListKeysWAN()
+	default:
+		queryResp, err = i.agent.ListKeysLAN()
+	}
 
 	header := responseHeader{
 		Seq:   seq,
@@ -644,15 +650,29 @@ func (i *AgentRPC) handleListKeysLAN(client *rpcClient, seq uint64) error {
 	return client.Send(&header, &resp)
 }
 
-func (i *AgentRPC) handleListKeysWAN(client *rpcClient, seq uint64) error {
-	queryResp, err := i.agent.ListKeysWAN()
+func (i *AgentRPC) handleInstallKey(client *rpcClient, seq uint64, cmd string) error {
+	var req keyRequest
+	var resp keyResponse
+	var queryResp *serf.KeyResponse
+	var err error
+
+	if err = client.dec.Decode(&req); err != nil {
+		return fmt.Errorf("decode failed: %v", err)
+	}
+
+	switch cmd {
+	case installKeyWANCommand:
+		queryResp, err = i.agent.InstallKeyWAN(req.Key)
+	default:
+		queryResp, err = i.agent.InstallKeyLAN(req.Key)
+	}
 
 	header := responseHeader{
 		Seq:   seq,
 		Error: errToString(err),
 	}
 
-	resp := keyResponse{
+	resp = keyResponse{
 		Messages: queryResp.Messages,
 		Keys:     queryResp.Keys,
 		NumResp:  queryResp.NumResp,
