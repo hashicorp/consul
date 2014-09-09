@@ -390,10 +390,10 @@ func (i *AgentRPC) handleRequest(client *rpcClient, reqHeader *requestHeader) er
 		return i.handleReload(client, seq)
 
 	case listKeysLANCommand:
-		return i.handleListKeysWAN(client, seq)
+		return i.handleListKeysLAN(client, seq)
 
 	case listKeysWANCommand:
-		return i.handleListKeysLAN(client, seq)
+		return i.handleListKeysWAN(client, seq)
 
 		/*
 			case installKeyLANCommand:
