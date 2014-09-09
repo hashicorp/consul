@@ -128,6 +128,28 @@ func (c *KeysCommand) Run(args []string) int {
 	}
 
 	if useKey != "" {
+		if wan {
+			c.Ui.Info("Changing primary encryption key on WAN members...")
+			failures, err = client.UseKeyWAN(useKey)
+		} else {
+			c.Ui.Info("Changing primary encryption key on LAN members...")
+			failures, err = client.UseKeyLAN(useKey)
+		}
+
+		if err != nil {
+			if len(failures) > 0 {
+				for node, msg := range failures {
+					out = append(out, fmt.Sprintf("failed: %s | %s", node, msg))
+				}
+				c.Ui.Error(columnize.SimpleFormat(out))
+			}
+			c.Ui.Error("")
+			c.Ui.Error(fmt.Sprintf("Error changing primary key: %s", err))
+			return 1
+		}
+
+		c.Ui.Info("Successfully changed primary key!")
+
 		return 0
 	}
 

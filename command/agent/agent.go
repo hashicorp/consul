@@ -777,3 +777,22 @@ func (a *Agent) InstallKeyLAN(key string) (*serf.KeyResponse, error) {
 	km := a.client.KeyManagerLAN()
 	return km.InstallKey(key)
 }
+
+// UseKeyWAN changes the primary WAN gossip encryption key on server nodes
+func (a *Agent) UseKeyWAN(key string) (*serf.KeyResponse, error) {
+	if a.server != nil {
+		km := a.server.KeyManagerWAN()
+		return km.UseKey(key)
+	}
+	return nil, fmt.Errorf("WAN keyring not available on client node")
+}
+
+// UseKeyLAN changes the primary LAN gossip encryption key on all nodes
+func (a *Agent) UseKeyLAN(key string) (*serf.KeyResponse, error) {
+	if a.server != nil {
+		km := a.server.KeyManagerLAN()
+		return km.UseKey(key)
+	}
+	km := a.client.KeyManagerLAN()
+	return km.UseKey(key)
+}

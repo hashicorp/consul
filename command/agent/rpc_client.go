@@ -199,21 +199,24 @@ func (c *RPCClient) ListKeysWAN() (map[string]int, int, map[string]string, error
 }
 
 func (c *RPCClient) InstallKeyWAN(key string) (map[string]string, error) {
-	header := requestHeader{
-		Command: installKeyWANCommand,
-		Seq:     c.getSeq(),
-	}
-
-	req := keyRequest{key}
-
-	resp := new(keyResponse)
-	err := c.genericRPC(&header, &req, resp)
-	return resp.Messages, err
+	return c.changeGossipKey(key, installKeyWANCommand)
 }
 
 func (c *RPCClient) InstallKeyLAN(key string) (map[string]string, error) {
+	return c.changeGossipKey(key, installKeyLANCommand)
+}
+
+func (c *RPCClient) UseKeyWAN(key string) (map[string]string, error) {
+	return c.changeGossipKey(key, useKeyWANCommand)
+}
+
+func (c *RPCClient) UseKeyLAN(key string) (map[string]string, error) {
+	return c.changeGossipKey(key, useKeyLANCommand)
+}
+
+func (c *RPCClient) changeGossipKey(key, cmd string) (map[string]string, error) {
 	header := requestHeader{
-		Command: installKeyLANCommand,
+		Command: cmd,
 		Seq:     c.getSeq(),
 	}
 

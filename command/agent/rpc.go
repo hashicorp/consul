@@ -397,15 +397,12 @@ func (i *AgentRPC) handleRequest(client *rpcClient, reqHeader *requestHeader) er
 		return i.handleListKeys(client, seq, command)
 
 	case installKeyLANCommand, installKeyWANCommand:
-		return i.handleInstallKey(client, seq, command)
+		return i.handleGossipKeyChange(client, seq, command)
+
+	case useKeyLANCommand, useKeyWANCommand:
+		return i.handleGossipKeyChange(client, seq, command)
 
 		/*
-			case useKeyLANCommand:
-				return i.handleUseKeyLAN(client, seq)
-
-			case useKeyWANCommand:
-				return i.handleUseKeyWAN(client, seq)
-
 			case removeKeyLANCommand:
 				return i.handleRemoveKeyLAN(client, seq)
 
@@ -650,7 +647,7 @@ func (i *AgentRPC) handleListKeys(client *rpcClient, seq uint64, cmd string) err
 	return client.Send(&header, &resp)
 }
 
-func (i *AgentRPC) handleInstallKey(client *rpcClient, seq uint64, cmd string) error {
+func (i *AgentRPC) handleGossipKeyChange(client *rpcClient, seq uint64, cmd string) error {
 	var req keyRequest
 	var resp keyResponse
 	var queryResp *serf.KeyResponse
@@ -663,8 +660,12 @@ func (i *AgentRPC) handleInstallKey(client *rpcClient, seq uint64, cmd string) e
 	switch cmd {
 	case installKeyWANCommand:
 		queryResp, err = i.agent.InstallKeyWAN(req.Key)
-	default:
+	case installKeyLANCommand:
 		queryResp, err = i.agent.InstallKeyLAN(req.Key)
+	case useKeyWANCommand:
+		queryResp, err = i.agent.UseKeyWAN(req.Key)
+	case useKeyLANCommand:
+		queryResp, err = i.agent.UseKeyLAN(req.Key)
 	}
 
 	header := responseHeader{
