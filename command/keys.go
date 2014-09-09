@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/mitchellh/cli"
+	"github.com/ryanuber/columnize"
 )
 
 // KeysCommand is a Command implementation that handles querying, installing,
@@ -51,20 +52,35 @@ func (c *KeysCommand) Run(args []string) int {
 
 	if listKeys {
 		var keys map[string]int
+		var numNodes int
+		var messages map[string]string
 		var err error
+		var out []string
 
 		if wan {
-			keys, err = client.ListKeysWAN()
+			keys, numNodes, messages, err = client.ListKeysWAN()
 		} else {
-			keys, err = client.ListKeysLAN()
+			keys, numNodes, messages, err = client.ListKeysLAN()
 		}
 
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error: %s", err))
+			for node, msg := range messages {
+				out = append(out, fmt.Sprintf("failed: %s | %s", node, msg))
+			}
+			c.Ui.Error(columnize.SimpleFormat(out))
+			c.Ui.Error("")
+			c.Ui.Error(fmt.Sprintf("Failed gathering member keys: %s", err))
 			return 1
 		}
 
-		fmt.Println(keys)
+		c.Ui.Info("Keys gathered, listing cluster keys...")
+		c.Ui.Output("")
+
+		for key, num := range keys {
+			out = append(out, fmt.Sprintf("%s | [%d/%d]", key, num, numNodes))
+		}
+		c.Ui.Output(columnize.SimpleFormat(out))
+
 		return 0
 	}
 

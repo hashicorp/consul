@@ -111,10 +111,11 @@ type joinResponse struct {
 	Num int32
 }
 
-type keysResponse struct {
+type keyResponse struct {
 	Messages map[string]string
 	NumNodes int
 	NumResp  int
+	NumErr   int
 	Keys     map[string]int
 }
 
@@ -625,27 +626,41 @@ func (i *AgentRPC) handleReload(client *rpcClient, seq uint64) error {
 }
 
 func (i *AgentRPC) handleListKeysLAN(client *rpcClient, seq uint64) error {
-	header := responseHeader{
-		Seq:   seq,
-		Error: "",
-	}
-	resp, err := i.agent.ListKeysLAN()
-	if err != nil {
-		return err
-	}
-
-	return client.Send(&header, resp)
-}
-
-func (i *AgentRPC) handleListKeysWAN(client *rpcClient, seq uint64) error {
-	resp, err := i.agent.ListKeysWAN()
+	queryResp, err := i.agent.ListKeysLAN()
 
 	header := responseHeader{
 		Seq:   seq,
 		Error: errToString(err),
 	}
 
-	return client.Send(&header, resp)
+	resp := keyResponse{
+		Messages: queryResp.Messages,
+		Keys:     queryResp.Keys,
+		NumResp:  queryResp.NumResp,
+		NumErr:   queryResp.NumErr,
+		NumNodes: queryResp.NumNodes,
+	}
+
+	return client.Send(&header, &resp)
+}
+
+func (i *AgentRPC) handleListKeysWAN(client *rpcClient, seq uint64) error {
+	queryResp, err := i.agent.ListKeysWAN()
+
+	header := responseHeader{
+		Seq:   seq,
+		Error: errToString(err),
+	}
+
+	resp := keyResponse{
+		Messages: queryResp.Messages,
+		Keys:     queryResp.Keys,
+		NumResp:  queryResp.NumResp,
+		NumErr:   queryResp.NumErr,
+		NumNodes: queryResp.NumNodes,
+	}
+
+	return client.Send(&header, &resp)
 }
 
 // Used to convert an error to a string representation
