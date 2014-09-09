@@ -638,14 +638,11 @@ func (i *AgentRPC) handleListKeysLAN(client *rpcClient, seq uint64) error {
 }
 
 func (i *AgentRPC) handleListKeysWAN(client *rpcClient, seq uint64) error {
+	resp, err := i.agent.ListKeysWAN()
+
 	header := responseHeader{
 		Seq:   seq,
-		Error: "",
-	}
-
-	resp, err := i.agent.ListKeysWAN()
-	if err != nil {
-		return err
+		Error: errToString(err),
 	}
 
 	return client.Send(&header, resp)

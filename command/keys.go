@@ -16,7 +16,7 @@ type KeysCommand struct {
 
 func (c *KeysCommand) Run(args []string) int {
 	var installKey, useKey, removeKey string
-	var listKeys bool
+	var listKeys, wan bool
 
 	cmdFlags := flag.NewFlagSet("keys", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
@@ -25,6 +25,7 @@ func (c *KeysCommand) Run(args []string) int {
 	cmdFlags.StringVar(&useKey, "use", "", "use key")
 	cmdFlags.StringVar(&removeKey, "remove", "", "remove key")
 	cmdFlags.BoolVar(&listKeys, "list", false, "list keys")
+	cmdFlags.BoolVar(&wan, "wan", false, "operate on wan keys")
 
 	rpcAddr := RPCAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
@@ -49,11 +50,20 @@ func (c *KeysCommand) Run(args []string) int {
 	}
 
 	if listKeys {
-		keys, err := client.ListKeysLAN()
+		var keys map[string]int
+		var err error
+
+		if wan {
+			keys, err = client.ListKeysWAN()
+		} else {
+			keys, err = client.ListKeysLAN()
+		}
+
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error: %s", err))
 			return 1
 		}
+
 		fmt.Println(keys)
 		return 0
 	}
@@ -70,7 +80,8 @@ func (c *KeysCommand) Run(args []string) int {
 		return 0
 	}
 
-	return 0
+	c.Ui.Output(c.Help())
+	return 1
 }
 
 func (c *KeysCommand) Help() string {
@@ -94,6 +105,8 @@ Options:
                             operation may only be performed on keys which are
                             not currently the primary key.
   -list                     List all keys currently in use within the cluster.
+  -wan                      If talking with a server node, this flag can be used
+                            to operate on the WAN gossip layer.
   -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
 `
 	return strings.TrimSpace(helpText)
