@@ -796,3 +796,22 @@ func (a *Agent) UseKeyLAN(key string) (*serf.KeyResponse, error) {
 	km := a.client.KeyManagerLAN()
 	return km.UseKey(key)
 }
+
+// RemoveKeyWAN removes a WAN gossip encryption key on server nodes
+func (a *Agent) RemoveKeyWAN(key string) (*serf.KeyResponse, error) {
+	if a.server != nil {
+		km := a.server.KeyManagerWAN()
+		return km.RemoveKey(key)
+	}
+	return nil, fmt.Errorf("WAN keyring not available on client node")
+}
+
+// RemoveKeyLAN removes a LAN gossip encryption key on all nodes
+func (a *Agent) RemoveKeyLAN(key string) (*serf.KeyResponse, error) {
+	if a.server != nil {
+		km := a.server.KeyManagerLAN()
+		return km.RemoveKey(key)
+	}
+	km := a.client.KeyManagerLAN()
+	return km.RemoveKey(key)
+}

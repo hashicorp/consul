@@ -214,6 +214,14 @@ func (c *RPCClient) UseKeyLAN(key string) (map[string]string, error) {
 	return c.changeGossipKey(key, useKeyLANCommand)
 }
 
+func (c *RPCClient) RemoveKeyWAN(key string) (map[string]string, error) {
+	return c.changeGossipKey(key, removeKeyWANCommand)
+}
+
+func (c *RPCClient) RemoveKeyLAN(key string) (map[string]string, error) {
+	return c.changeGossipKey(key, removeKeyLANCommand)
+}
+
 func (c *RPCClient) changeGossipKey(key, cmd string) (map[string]string, error) {
 	header := requestHeader{
 		Command: cmd,

@@ -402,13 +402,8 @@ func (i *AgentRPC) handleRequest(client *rpcClient, reqHeader *requestHeader) er
 	case useKeyLANCommand, useKeyWANCommand:
 		return i.handleGossipKeyChange(client, seq, command)
 
-		/*
-			case removeKeyLANCommand:
-				return i.handleRemoveKeyLAN(client, seq)
-
-			case removeKeyWANCommand:
-				return i.handleRemoveKeyWAN(client, seq)
-		*/
+	case removeKeyLANCommand, removeKeyWANCommand:
+		return i.handleGossipKeyChange(client, seq, command)
 
 	default:
 		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
@@ -666,6 +661,10 @@ func (i *AgentRPC) handleGossipKeyChange(client *rpcClient, seq uint64, cmd stri
 		queryResp, err = i.agent.UseKeyWAN(req.Key)
 	case useKeyLANCommand:
 		queryResp, err = i.agent.UseKeyLAN(req.Key)
+	case removeKeyWANCommand:
+		queryResp, err = i.agent.RemoveKeyWAN(req.Key)
+	case removeKeyLANCommand:
+		queryResp, err = i.agent.RemoveKeyLAN(req.Key)
 	}
 
 	header := responseHeader{

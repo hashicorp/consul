@@ -149,11 +149,31 @@ func (c *KeysCommand) Run(args []string) int {
 		}
 
 		c.Ui.Info("Successfully changed primary key!")
-
 		return 0
 	}
 
 	if removeKey != "" {
+		if wan {
+			c.Ui.Info("Removing key from WAN members...")
+			failures, err = client.RemoveKeyWAN(removeKey)
+		} else {
+			c.Ui.Info("Removing key from LAN members...")
+			failures, err = client.RemoveKeyLAN(removeKey)
+		}
+
+		if err != nil {
+			if len(failures) > 0 {
+				for node, msg := range failures {
+					out = append(out, fmt.Sprintf("failed: %s | %s", node, msg))
+				}
+				c.Ui.Error(columnize.SimpleFormat(out))
+			}
+			c.Ui.Error("")
+			c.Ui.Error(fmt.Sprintf("Error removing key: %s", err))
+			return 1
+		}
+
+		c.Ui.Info("Successfully removed key!")
 		return 0
 	}
 
