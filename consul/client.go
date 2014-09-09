@@ -206,8 +206,8 @@ func (c *Client) UserEvent(name string, payload []byte) error {
 	return c.serf.UserEvent(userEventName(name), payload, false)
 }
 
-// KeyManager returns the Serf keyring manager
-func (c *Client) KeyManager() *serf.KeyManager {
+// KeyManager returns the LAN Serf keyring manager
+func (c *Client) KeyManagerLAN() *serf.KeyManager {
 	return c.serf.KeyManager()
 }
 

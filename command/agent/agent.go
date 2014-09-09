@@ -741,17 +741,20 @@ func loadKeyringFile(keyringFile string) *memberlist.Keyring {
 }
 
 // ListKeysLAN returns the keys installed on the LAN gossip pool
-func (a *Agent) ListKeysLAN() map[string]int {
+func (a *Agent) ListKeysLAN() (*serf.KeyResponse, error) {
 	if a.server != nil {
-		return a.server.ListKeysLAN()
+		km := a.server.KeyManagerLAN()
+		return km.ListKeys()
 	}
-	return a.client.ListKeysLAN()
+	km := a.client.KeyManagerLAN()
+	return km.ListKeys()
 }
 
 // ListKeysWAN returns the keys installed on the WAN gossip pool
-func (a *Agent) ListKeysWAN() map[string]int {
+func (a *Agent) ListKeysWAN() (*serf.KeyResponse, error) {
 	if a.server != nil {
-		return a.server.ListKeysWAN()
+		km := a.server.KeyManagerWAN()
+		return km.ListKeys()
 	}
-	return nil
+	return nil, nil
 }

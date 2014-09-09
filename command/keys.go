@@ -49,8 +49,12 @@ func (c *KeysCommand) Run(args []string) int {
 	}
 
 	if listKeys {
-		km := client.KeyManager()
-		fmt.Println(km.ListKeys())
+		keys, err := client.ListKeysLAN()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error: %s", err))
+			return 1
+		}
+		fmt.Println(keys)
 		return 0
 	}
 

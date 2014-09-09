@@ -629,7 +629,11 @@ func (i *AgentRPC) handleListKeysLAN(client *rpcClient, seq uint64) error {
 		Seq:   seq,
 		Error: "",
 	}
-	resp := i.agent.ListKeysLAN()
+	resp, err := i.agent.ListKeysLAN()
+	if err != nil {
+		return err
+	}
+
 	return client.Send(&header, resp)
 }
 
@@ -638,7 +642,12 @@ func (i *AgentRPC) handleListKeysWAN(client *rpcClient, seq uint64) error {
 		Seq:   seq,
 		Error: "",
 	}
-	resp := i.agent.ListKeysWAN()
+
+	resp, err := i.agent.ListKeysWAN()
+	if err != nil {
+		return err
+	}
+
 	return client.Send(&header, resp)
 }
 

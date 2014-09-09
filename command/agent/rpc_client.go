@@ -176,6 +176,28 @@ func (c *RPCClient) WANMembers() ([]Member, error) {
 	return resp.Members, err
 }
 
+func (c *RPCClient) ListKeysLAN() (map[string]int, error) {
+	header := requestHeader{
+		Command: listKeysLANCommand,
+		Seq:     c.getSeq(),
+	}
+	resp := make(map[string]int)
+
+	err := c.genericRPC(&header, nil, &resp)
+	return resp, err
+}
+
+func (c *RPCClient) ListKeysWAN() (map[string]int, error) {
+	header := requestHeader{
+		Command: listKeysWANCommand,
+		Seq:     c.getSeq(),
+	}
+	resp := make(map[string]int)
+
+	err := c.genericRPC(&header, nil, &resp)
+	return resp, err
+}
+
 // Leave is used to trigger a graceful leave and shutdown
 func (c *RPCClient) Leave() error {
 	header := requestHeader{
