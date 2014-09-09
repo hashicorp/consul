@@ -68,14 +68,14 @@ func (c *KeysCommand) Run(args []string) int {
 	defer client.Close()
 
 	if listKeys {
-		c.Ui.Info("Asking all members for installed keys...")
-
 		var keys map[string]int
 		var numNodes int
 
 		if wan {
+			c.Ui.Info("Asking all WAN members for installed keys...")
 			keys, numNodes, failures, err = client.ListKeysWAN()
 		} else {
+			c.Ui.Info("Asking all LAN members for installed keys...")
 			keys, numNodes, failures, err = client.ListKeysLAN()
 		}
 
