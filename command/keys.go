@@ -3,8 +3,9 @@ package command
 import (
 	"flag"
 	"fmt"
-	"github.com/mitchellh/cli"
 	"strings"
+
+	"github.com/mitchellh/cli"
 )
 
 // KeysCommand is a Command implementation that handles querying, installing,
@@ -30,6 +31,13 @@ func (c *KeysCommand) Run(args []string) int {
 		return 1
 	}
 
+	client, err := RPCClient(*rpcAddr)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
+		return 1
+	}
+	defer client.Close()
+
 	// Only accept a single argument
 	found := listKeys
 	for _, arg := range []string{installKey, useKey, removeKey} {
@@ -40,14 +48,9 @@ func (c *KeysCommand) Run(args []string) int {
 		found = found || len(arg) > 0
 	}
 
-	client, err := RPCClient(*rpcAddr)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
-		return 1
-	}
-	defer client.Close()
-
 	if listKeys {
+		km := client.KeyManager()
+		fmt.Println(km.ListKeys())
 		return 0
 	}
 

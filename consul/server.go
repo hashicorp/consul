@@ -551,6 +551,16 @@ func (s *Server) IsLeader() bool {
 	return s.raft.State() == raft.Leader
 }
 
+// KeyManagerLAN returns the LAN Serf keyring manager
+func (s *Server) KeyManagerLAN() *serf.KeyManager {
+	return s.serfLAN.KeyManager()
+}
+
+// KeyManagerWAN returns the WAN Serf keyring manager
+func (s *Server) KeyManagerWAN() *serf.KeyManager {
+	return s.serfWAN.KeyManager()
+}
+
 // inmemCodec is used to do an RPC call without going over a network
 type inmemCodec struct {
 	method string

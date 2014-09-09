@@ -739,3 +739,19 @@ func loadKeyringFile(keyringFile string) *memberlist.Keyring {
 	// Success!
 	return keyring
 }
+
+// ListKeysLAN returns the keys installed on the LAN gossip pool
+func (a *Agent) ListKeysLAN() map[string]int {
+	if a.server != nil {
+		return a.server.ListKeysLAN()
+	}
+	return a.client.ListKeysLAN()
+}
+
+// ListKeysWAN returns the keys installed on the WAN gossip pool
+func (a *Agent) ListKeysWAN() map[string]int {
+	if a.server != nil {
+		return a.server.ListKeysWAN()
+	}
+	return nil
+}

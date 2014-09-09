@@ -206,6 +206,11 @@ func (c *Client) UserEvent(name string, payload []byte) error {
 	return c.serf.UserEvent(userEventName(name), payload, false)
 }
 
+// KeyManager returns the Serf keyring manager
+func (c *Client) KeyManager() *serf.KeyManager {
+	return c.serf.KeyManager()
+}
+
 // lanEventHandler is used to handle events from the lan Serf cluster
 func (c *Client) lanEventHandler() {
 	for {

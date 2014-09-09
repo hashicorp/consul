@@ -41,16 +41,24 @@ const (
 )
 
 const (
-	handshakeCommand  = "handshake"
-	forceLeaveCommand = "force-leave"
-	joinCommand       = "join"
-	membersLANCommand = "members-lan"
-	membersWANCommand = "members-wan"
-	stopCommand       = "stop"
-	monitorCommand    = "monitor"
-	leaveCommand      = "leave"
-	statsCommand      = "stats"
-	reloadCommand     = "reload"
+	handshakeCommand     = "handshake"
+	forceLeaveCommand    = "force-leave"
+	joinCommand          = "join"
+	membersLANCommand    = "members-lan"
+	membersWANCommand    = "members-wan"
+	stopCommand          = "stop"
+	monitorCommand       = "monitor"
+	leaveCommand         = "leave"
+	statsCommand         = "stats"
+	reloadCommand        = "reload"
+	listKeysLANCommand   = "list-keys-lan"
+	listKeysWANCommand   = "list-keys-wan"
+	installKeyLANCommand = "install-key-lan"
+	installKeyWANCommand = "install-key-wan"
+	useKeyLANCommand     = "use-key-lan"
+	useKeyWANCommand     = "use-key-wan"
+	removeKeyLANCommand  = "remove-key-lan"
+	removeKeyWANCommand  = "remove-key-wan"
 )
 
 const (
@@ -101,6 +109,13 @@ type joinRequest struct {
 
 type joinResponse struct {
 	Num int32
+}
+
+type keysResponse struct {
+	Messages map[string]string
+	NumNodes int
+	NumResp  int
+	Keys     map[string]int
 }
 
 type membersResponse struct {
@@ -373,6 +388,32 @@ func (i *AgentRPC) handleRequest(client *rpcClient, reqHeader *requestHeader) er
 	case reloadCommand:
 		return i.handleReload(client, seq)
 
+	case listKeysLANCommand:
+		return i.handleListKeysWAN(client, seq)
+
+	case listKeysWANCommand:
+		return i.handleListKeysLAN(client, seq)
+
+		/*
+			case installKeyLANCommand:
+				return i.handleInstallKeyLAN(client, seq)
+
+			case installKeyWANCommand:
+				return i.handleInstallKeyWAN(client, seq)
+
+			case useKeyLANCommand:
+				return i.handleUseKeyLAN(client, seq)
+
+			case useKeyWANCommand:
+				return i.handleUseKeyWAN(client, seq)
+
+			case removeKeyLANCommand:
+				return i.handleRemoveKeyLAN(client, seq)
+
+			case removeKeyWANCommand:
+				return i.handleRemoveKeyWAN(client, seq)
+		*/
+
 	default:
 		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
 		client.Send(&respHeader, nil)
@@ -581,6 +622,24 @@ func (i *AgentRPC) handleReload(client *rpcClient, seq uint64) error {
 	// Always succeed
 	resp := responseHeader{Seq: seq, Error: ""}
 	return client.Send(&resp, nil)
+}
+
+func (i *AgentRPC) handleListKeysLAN(client *rpcClient, seq uint64) error {
+	header := responseHeader{
+		Seq:   seq,
+		Error: "",
+	}
+	resp := i.agent.ListKeysLAN()
+	return client.Send(&header, resp)
+}
+
+func (i *AgentRPC) handleListKeysWAN(client *rpcClient, seq uint64) error {
+	header := responseHeader{
+		Seq:   seq,
+		Error: "",
+	}
+	resp := i.agent.ListKeysWAN()
+	return client.Send(&header, resp)
 }
 
 // Used to convert an error to a string representation
