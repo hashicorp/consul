@@ -33,6 +33,13 @@ func (c *KeysCommand) Run(args []string) int {
 		return 1
 	}
 
+	c.Ui = &cli.PrefixedUi{
+		OutputPrefix: "",
+		InfoPrefix:   "==> ",
+		ErrorPrefix:  "",
+		Ui:           c.Ui,
+	}
+
 	// Only accept a single argument
 	found := listKeys
 	for _, arg := range []string{installKey, useKey, removeKey} {
@@ -57,6 +64,8 @@ func (c *KeysCommand) Run(args []string) int {
 	defer client.Close()
 
 	if listKeys {
+		c.Ui.Info("Asking all members for installed keys...")
+
 		var keys map[string]int
 		var numNodes int
 		var messages map[string]string
