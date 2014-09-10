@@ -112,8 +112,23 @@ func TestKeysCommandRun_help(t *testing.T) {
 	if code != 1 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
+
+	// Test that we didn't actually try to dial the RPC server.
 	if !strings.Contains(ui.ErrorWriter.String(), "Usage:") {
 		t.Fatalf("bad: %#v", ui.ErrorWriter.String())
+	}
+}
+
+func TestKeysCommandRun_failedConnection(t *testing.T) {
+	ui := new(cli.MockUi)
+	c := &KeysCommand{Ui: ui}
+	args := []string{"-list", "-rpc-addr=127.0.0.1:0"}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("bad: %d, %#v", code, ui.ErrorWriter.String())
+	}
+	if !strings.Contains(ui.ErrorWriter.String(), "dial") {
+		t.Fatalf("bad: %#v", ui.OutputWriter.String())
 	}
 }
 
