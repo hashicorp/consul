@@ -665,6 +665,10 @@ func (i *AgentRPC) handleGossipKeyChange(client *rpcClient, seq uint64, cmd stri
 		queryResp, err = i.agent.RemoveKeyWAN(req.Key)
 	case removeKeyLANCommand:
 		queryResp, err = i.agent.RemoveKeyLAN(req.Key)
+	default:
+		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
+		client.Send(&respHeader, nil)
+		return fmt.Errorf("command '%s' not recognized", cmd)
 	}
 
 	header := responseHeader{
