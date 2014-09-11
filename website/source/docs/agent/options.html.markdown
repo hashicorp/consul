@@ -85,10 +85,17 @@ The options below are all specified on the command-line.
   it relies on proper configuration. Nodes in the same datacenter should be on a single
   LAN.
 
+* `-persist-keyring` - This flag enables persistence of changes to the
+  encryption keys used in the gossip pools. By default, any modifications to
+  the keyring via the [consul keys](/docs/command/keys.html) command will be
+  lost when the agent shuts down.
+
 * `-encrypt` - Specifies the secret key to use for encryption of Consul
   network traffic. This key must be 16-bytes that are base64 encoded. The
   easiest way to create an encryption key is to use `consul keygen`. All
   nodes within a cluster must share the same encryption key to communicate.
+  If keyring persistence is enabled, the given key will only be used if there is
+  no pre-existing keyring. Otherwise, Consul will emit a warning and continue.
 
 * `-join` - Address of another agent to join upon starting up. This can be
   specified multiple times to specify multiple agents to join. If Consul is

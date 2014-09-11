@@ -23,8 +23,9 @@ responsibility of the operator to ensure that only the required encryption keys
 are installed on the cluster. You can ensure that a key is not installed using
 the `-list` and `-remove` options.
 
-By default, modifications made using this command will be persisted in the
-Consul agent's data directory. This functionality can be altered via the
+By default, modifications made using this command will **NOT** be persisted, and
+will be lost when the agent shuts down. You can alter this behavior via the
+`-persist-keyring` option in the
 [Agent Configuration](/docs/agent/options.html).
 
 All variations of the keys command will return 0 if all nodes reply and there
