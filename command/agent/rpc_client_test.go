@@ -30,6 +30,10 @@ func (r *rpcParts) Close() {
 // testRPCClient returns an RPCClient connected to an RPC server that
 // serves only this connection.
 func testRPCClient(t *testing.T) *rpcParts {
+	return testRPCClientWithConfig(t, nil)
+}
+
+func testRPCClientWithConfig(t *testing.T, c *Config) *rpcParts {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -39,6 +43,10 @@ func testRPCClient(t *testing.T) *rpcParts {
 	mult := io.MultiWriter(os.Stderr, lw)
 
 	conf := nextConfig()
+	if c != nil {
+		conf = MergeConfig(conf, c)
+	}
+
 	dir, agent := makeAgentLog(t, conf, mult)
 	rpc := NewAgentRPC(agent, l, mult, lw)
 
@@ -271,5 +279,81 @@ OUTER2:
 	}
 	if !found {
 		t.Fatalf("should log joining")
+	}
+}
+
+func TestRPCClientListKeysLAN(t *testing.T) {
+	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
+	conf := Config{EncryptKey: key1}
+	p1 := testRPCClientWithConfig(t, &conf)
+	defer p1.Close()
+
+	keys, numNodes, messages, err := p1.client.ListKeysLAN()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, ok := keys[key1]; !ok {
+		t.Fatalf("bad: %#v", keys)
+	}
+
+	if keys[key1] != 1 {
+		t.Fatalf("bad: %#v", keys)
+	}
+
+	if numNodes != 1 {
+		t.Fatalf("bad: %d", numNodes)
+	}
+
+	if len(messages) != 0 {
+		t.Fatalf("bad: %#v", messages)
+	}
+}
+
+func TestRPCClientListKeysWAN(t *testing.T) {
+	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
+	conf := Config{EncryptKey: key1}
+	p1 := testRPCClientWithConfig(t, &conf)
+	defer p1.Close()
+
+	keys, numNodes, messages, err := p1.client.ListKeysWAN()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, ok := keys[key1]; !ok {
+		t.Fatalf("bad: %#v", keys)
+	}
+
+	if keys[key1] != 1 {
+		t.Fatalf("bad: %#v", keys)
+	}
+
+	if numNodes != 1 {
+		t.Fatalf("bad: %d", numNodes)
+	}
+
+	if len(messages) != 0 {
+		t.Fatalf("bad: %#v", messages)
+	}
+}
+
+func TestRPCClientListKeysLAN_encryptionDisabled(t *testing.T) {
+	p1 := testRPCClient(t)
+	defer p1.Close()
+
+	_, _, _, err := p1.client.ListKeysLAN()
+	if err == nil {
+		t.Fatalf("no error listing keys with encryption disabled")
+	}
+}
+
+func TestRPCClientListKeysWAN_encryptionDisabled(t *testing.T) {
+	p1 := testRPCClient(t)
+	defer p1.Close()
+
+	_, _, _, err := p1.client.ListKeysWAN()
+	if err == nil {
+		t.Fatalf("no error listing keys with encryption disabled")
 	}
 }
