@@ -165,11 +165,6 @@ type Config struct {
 	// UserEventHandler callback can be used to handle incoming
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
-
-	// DisableKeyring is used to disable persisting the encryption keyring to
-	// filesystem. By default, if encryption is enabled, Consul will create a
-	// file inside of the DataDir to keep track of changes made to the ring.
-	DisableKeyring bool
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid

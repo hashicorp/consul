@@ -115,7 +115,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	agent.state.Init(config, agent.logger)
 
 	// Setup encryption keyring files
-	if !config.DisableKeyring && config.EncryptKey != "" {
+	if config.PersistKeyring && config.EncryptKey != "" {
 		serfDir := filepath.Join(config.DataDir, "serf")
 		if err := os.MkdirAll(serfDir, 0700); err != nil {
 			return nil, err
@@ -200,20 +200,17 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.DataDir != "" {
 		base.DataDir = a.config.DataDir
 	}
-	if a.config.EncryptKey != "" && a.config.DisableKeyring {
+	if a.config.EncryptKey != "" && !a.config.PersistKeyring {
 		key, _ := a.config.EncryptBytes()
 		base.SerfLANConfig.MemberlistConfig.SecretKey = key
 		base.SerfWANConfig.MemberlistConfig.SecretKey = key
 	}
-	if !a.config.DisableKeyring {
+	if a.config.PersistKeyring {
 		lanKeyring := filepath.Join(base.DataDir, "serf", "keyring_lan")
 		wanKeyring := filepath.Join(base.DataDir, "serf", "keyring_wan")
 
 		base.SerfLANConfig.KeyringFile = lanKeyring
 		base.SerfWANConfig.KeyringFile = wanKeyring
-
-		base.SerfLANConfig.MemberlistConfig.Keyring = loadKeyringFile(lanKeyring)
-		base.SerfWANConfig.MemberlistConfig.Keyring = loadKeyringFile(wanKeyring)
 	}
 	if a.config.NodeName != "" {
 		base.NodeName = a.config.NodeName
@@ -303,9 +300,6 @@ func (a *Agent) consulConfig() *consul.Config {
 		}
 	}
 
-	// Setup gossip keyring configuration
-	base.DisableKeyring = a.config.DisableKeyring
-
 	// Setup the loggers
 	base.LogOutput = a.logOutput
 	return base
@@ -313,6 +307,16 @@ func (a *Agent) consulConfig() *consul.Config {
 
 // setupServer is used to initialize the Consul server
 func (a *Agent) setupServer() error {
+	config := a.consulConfig()
+
+	// Load a keyring file, if present
+	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
+		return err
+	}
+	if err := loadKeyringFile(config.SerfWANConfig); err != nil {
+		return err
+	}
+
 	server, err := consul.NewServer(a.consulConfig())
 	if err != nil {
 		return fmt.Errorf("Failed to start Consul server: %v", err)
@@ -703,21 +707,25 @@ func (a *Agent) deletePid() error {
 }
 
 // loadKeyringFile will load a keyring out of a file
-func loadKeyringFile(keyringFile string) *memberlist.Keyring {
-	if _, err := os.Stat(keyringFile); err != nil {
+func loadKeyringFile(c *serf.Config) error {
+	if c.KeyringFile == "" {
 		return nil
 	}
 
+	if _, err := os.Stat(c.KeyringFile); err != nil {
+		return err
+	}
+
 	// Read in the keyring file data
-	keyringData, err := ioutil.ReadFile(keyringFile)
+	keyringData, err := ioutil.ReadFile(c.KeyringFile)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// Decode keyring JSON
 	keys := make([]string, 0)
 	if err := json.Unmarshal(keyringData, &keys); err != nil {
-		return nil
+		return err
 	}
 
 	// Decode base64 values
@@ -725,7 +733,7 @@ func loadKeyringFile(keyringFile string) *memberlist.Keyring {
 	for i, key := range keys {
 		keyBytes, err := base64.StdEncoding.DecodeString(key)
 		if err != nil {
-			return nil
+			return err
 		}
 		keysDecoded[i] = keyBytes
 	}
@@ -733,11 +741,13 @@ func loadKeyringFile(keyringFile string) *memberlist.Keyring {
 	// Create the keyring
 	keyring, err := memberlist.NewKeyring(keysDecoded, keysDecoded[0])
 	if err != nil {
-		return nil
+		return err
 	}
 
+	c.MemberlistConfig.Keyring = keyring
+
 	// Success!
-	return keyring
+	return nil
 }
 
 // ListKeysLAN returns the keys installed on the LAN gossip pool

@@ -67,7 +67,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.UiDir, "ui-dir", "", "path to the web UI directory")
 	cmdFlags.StringVar(&cmdConfig.PidFile, "pid-file", "", "path to file to store PID")
 	cmdFlags.StringVar(&cmdConfig.EncryptKey, "encrypt", "", "gossip encryption key")
-	cmdFlags.BoolVar(&cmdConfig.DisableKeyring, "disable-keyring", false, "disable use of encryption keyring")
+	cmdFlags.BoolVar(&cmdConfig.PersistKeyring, "persist-keyring", false, "persist keyring changes")
 
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
@@ -802,10 +802,6 @@ Options:
   -data-dir=path           Path to a data directory to store agent state
   -dc=east-aws             Datacenter of the agent
   -encrypt=key             Provides the gossip encryption key
-  -disable-keyring         Disables the use of an encryption keyring. The
-                           Default behavior is to persist encryption keys using
-                           a keyring file, and reload the keys on subsequent
-                           starts. This argument disables keyring persistence.
   -join=1.2.3.4            Address of an agent to join at start time.
                            Can be specified multiple times.
   -join-wan=1.2.3.4        Address of an agent to join -wan at start time.
@@ -823,6 +819,7 @@ Options:
   -log-level=info          Log level of the agent.
   -node=hostname           Name of this node. Must be unique in the cluster
   -protocol=N              Sets the protocol version. Defaults to latest.
+  -persist-keyring         Enable encryption keyring persistence.
   -rejoin                  Ignores a previous leave and attempts to rejoin the cluster.
   -server                  Switches agent to server mode.
   -syslog                  Enables logging to syslog

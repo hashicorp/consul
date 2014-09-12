@@ -104,12 +104,12 @@ type Config struct {
 	// recursors array.
 	DNSRecursor string `mapstructure:"recursor"`
 
-	// Disable use of an encryption keyring.
-	DisableKeyring bool `mapstructure:"disable_keyring"`
-
 	// DNSRecursors can be set to allow the DNS servers to recursively
 	// resolve non-consul domains
 	DNSRecursors []string `mapstructure:"recursors"`
+
+	// Disable use of an encryption keyring.
+	DisableKeyring bool `mapstructure:"disable_keyring"`
 
 	// DNS configuration
 	DNSConfig DNSConfig `mapstructure:"dns_config"`
@@ -149,6 +149,11 @@ type Config struct {
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving
 	// the TERM signal. Defaults false. This can be changed on reload.
 	LeaveOnTerm bool `mapstructure:"leave_on_terminate"`
+
+	// Enable keyring persistence. There are currently two keyrings; one for
+	// the LAN serf cluster and the other for the WAN. Each will maintain its
+	// own keyring file in the agent's data directory.
+	PersistKeyring bool `mapstructure:"persist_keyring"`
 
 	// SkipLeaveOnInt controls if Serf skips a graceful leave when receiving
 	// the INT signal. Defaults false. This can be changed on reload.
@@ -691,8 +696,8 @@ func MergeConfig(a, b *Config) *Config {
 	if b.EncryptKey != "" {
 		result.EncryptKey = b.EncryptKey
 	}
-	if b.DisableKeyring {
-		result.DisableKeyring = true
+	if b.PersistKeyring {
+		result.PersistKeyring = true
 	}
 	if b.LogLevel != "" {
 		result.LogLevel = b.LogLevel
