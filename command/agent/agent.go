@@ -298,7 +298,7 @@ func (a *Agent) setupServer() error {
 		return err
 	}
 
-	server, err := consul.NewServer(a.consulConfig())
+	server, err := consul.NewServer(config)
 	if err != nil {
 		return fmt.Errorf("Failed to start Consul server: %v", err)
 	}
@@ -308,7 +308,14 @@ func (a *Agent) setupServer() error {
 
 // setupClient is used to initialize the Consul client
 func (a *Agent) setupClient() error {
-	client, err := consul.NewClient(a.consulConfig())
+	config := a.consulConfig()
+
+	// Load a keyring file, if present
+	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
+		return err
+	}
+
+	client, err := consul.NewClient(config)
 	if err != nil {
 		return fmt.Errorf("Failed to start Consul client: %v", err)
 	}
