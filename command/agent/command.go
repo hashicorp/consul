@@ -220,7 +220,7 @@ func (c *Command) readConfig() *Config {
 	}
 
 	// Warn if an encryption key is passed while a keyring already exists
-	if config.EncryptKey != "" && config.CheckKeyringFiles() {
+	if config.EncryptKey != "" && (config.PersistKeyring && config.CheckKeyringFiles()) {
 		c.Ui.Error(fmt.Sprintf(
 			"WARNING: Keyring already exists, ignoring new key %s",
 			config.EncryptKey))
@@ -594,7 +594,10 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Determine if gossip is encrypted
-	gossipEncrypted := (config.EncryptKey != "" || config.CheckKeyringFiles())
+	gossipEncrypted := false
+	if config.EncryptKey != "" || (config.PersistKeyring && config.CheckKeyringFiles()) {
+		gossipEncrypted = true
+	}
 
 	// Let the agent know we've finished registration
 	c.agent.StartSync()

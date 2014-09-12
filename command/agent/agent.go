@@ -19,6 +19,11 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
+const (
+	serfLANKeyring = "serf/local.keyring"
+	serfWANKeyring = "serf/remote.keyring"
+)
+
 /*
  The agent is the long running process that is run on every machine.
  It exposes an RPC interface that is used by the CLI to control the
@@ -116,36 +121,13 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 
 	// Setup encryption keyring files
 	if config.PersistKeyring && config.EncryptKey != "" {
-		serfDir := filepath.Join(config.DataDir, "serf")
-		if err := os.MkdirAll(serfDir, 0700); err != nil {
-			return nil, err
-		}
-
-		keys := []string{config.EncryptKey}
-		keyringBytes, err := json.MarshalIndent(keys, "", "  ")
-		if err != nil {
-			return nil, err
-		}
-
-		paths := []string{
-			filepath.Join(serfDir, "keyring_lan"),
-			filepath.Join(serfDir, "keyring_wan"),
-		}
-
-		for _, path := range paths {
-			if _, err := os.Stat(path); err == nil {
-				continue
-			}
-			fh, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-			if err != nil {
+		if config.Server {
+			if err := agent.initKeyringFile(serfWANKeyring); err != nil {
 				return nil, err
 			}
-			defer fh.Close()
-
-			if _, err := fh.Write(keyringBytes); err != nil {
-				os.Remove(path)
-				return nil, err
-			}
+		}
+		if err := agent.initKeyringFile(serfLANKeyring); err != nil {
+			return nil, err
 		}
 	}
 
@@ -206,9 +188,8 @@ func (a *Agent) consulConfig() *consul.Config {
 		base.SerfWANConfig.MemberlistConfig.SecretKey = key
 	}
 	if a.config.PersistKeyring {
-		lanKeyring := filepath.Join(base.DataDir, "serf", "keyring_lan")
-		wanKeyring := filepath.Join(base.DataDir, "serf", "keyring_wan")
-
+		lanKeyring := filepath.Join(base.DataDir, serfLANKeyring)
+		wanKeyring := filepath.Join(base.DataDir, serfWANKeyring)
 		base.SerfLANConfig.KeyringFile = lanKeyring
 		base.SerfWANConfig.KeyringFile = wanKeyring
 	}
@@ -824,4 +805,40 @@ func (a *Agent) RemoveKeyLAN(key string) (*serf.KeyResponse, error) {
 	}
 	km := a.client.KeyManagerLAN()
 	return km.RemoveKey(key)
+}
+
+// initKeyringFile is used to create and initialize a persistent keyring file
+// for gossip encryption keys. It is used at agent startup to dump the initial
+// encryption key into a keyfile if persistence is enabled.
+func (a *Agent) initKeyringFile(path string) error {
+	serfDir := filepath.Join(a.config.DataDir, "serf")
+	if err := os.MkdirAll(serfDir, 0700); err != nil {
+		return err
+	}
+
+	keys := []string{a.config.EncryptKey}
+	keyringBytes, err := json.MarshalIndent(keys, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	keyringFile := filepath.Join(a.config.DataDir, path)
+
+	// If the keyring file already exists, don't re-initialize
+	if _, err := os.Stat(keyringFile); err == nil {
+		return nil
+	}
+
+	fh, err := os.OpenFile(keyringFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+
+	if _, err := fh.Write(keyringBytes); err != nil {
+		os.Remove(keyringFile)
+		return err
+	}
+
+	return nil
 }
