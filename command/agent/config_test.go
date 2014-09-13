@@ -1030,3 +1030,56 @@ func TestReadConfigPaths_dir(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 }
+
+func TestKeyringFileExists(t *testing.T) {
+	tempDir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	fileLAN := filepath.Join(tempDir, SerfLANKeyring)
+	fileWAN := filepath.Join(tempDir, SerfWANKeyring)
+	config := &Config{DataDir: tempDir, Server: true}
+
+	// Returns false if we are a server and no keyring files present
+	if config.keyringFileExists() {
+		t.Fatalf("should return false")
+	}
+
+	// Returns false if we are a client and no keyring files present
+	config.Server = false
+	if config.keyringFileExists() {
+		t.Fatalf("should return false")
+	}
+
+	// Returns true if we are a client and the lan file exists
+	if err := ioutil.WriteFile(fileLAN, nil, 0600); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !config.keyringFileExists() {
+		t.Fatalf("should return true")
+	}
+
+	// Returns true if we are a server and only the lan file exists
+	config.Server = true
+	if !config.keyringFileExists() {
+		t.Fatalf("should return true")
+	}
+
+	// Returns true if we are a server and both files exist
+	if err := ioutil.WriteFile(fileWAN, nil, 0600); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !config.keyringFileExists() {
+		t.Fatalf("should return true")
+	}
+
+	// Returns true if we are a server and only the wan file exists
+	if err := os.Remove(fileLAN); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !config.keyringFileExists() {
+		t.Fatalf("should return true")
+	}
+}
