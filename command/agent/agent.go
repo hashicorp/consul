@@ -20,8 +20,7 @@ import (
 )
 
 const (
-	SerfLANKeyring = "serf/local.keyring"
-	SerfWANKeyring = "serf/remote.keyring"
+	SerfKeyring = "serf/keyring"
 )
 
 /*
@@ -176,10 +175,8 @@ func (a *Agent) consulConfig() *consul.Config {
 		base.SerfWANConfig.MemberlistConfig.SecretKey = key
 	}
 	if a.config.Server && a.config.keyringFilesExist() {
-		pathWAN := filepath.Join(base.DataDir, SerfWANKeyring)
-		pathLAN := filepath.Join(base.DataDir, SerfLANKeyring)
-		base.SerfWANConfig.KeyringFile = pathWAN
-		base.SerfLANConfig.KeyringFile = pathLAN
+		path := filepath.Join(base.DataDir, SerfKeyring)
+		base.SerfLANConfig.KeyringFile = path
 	}
 	if a.config.NodeName != "" {
 		base.NodeName = a.config.NodeName

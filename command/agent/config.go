@@ -413,13 +413,8 @@ func (c *Config) ClientListenerAddr(override string, port int) (string, error) {
 
 // keyringFilesExist checks for existence of the keyring files for Serf
 func (c *Config) keyringFilesExist() bool {
-	if _, err := os.Stat(filepath.Join(c.DataDir, SerfLANKeyring)); err != nil {
+	if _, err := os.Stat(filepath.Join(c.DataDir, SerfKeyring)); err != nil {
 		return false
-	}
-	if c.Server {
-		if _, err := os.Stat(filepath.Join(c.DataDir, SerfWANKeyring)); err != nil {
-			return false
-		}
 	}
 	return true
 }
