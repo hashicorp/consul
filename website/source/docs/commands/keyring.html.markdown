@@ -32,7 +32,7 @@ be 1.
 Usage: `consul keyring [options]`
 
 Only one actionable argument may be specified per run, including `-init`,
-`-list`, `-install`, `-remove`, and `-update`.
+`-list`, `-install`, `-remove`, and `-use`.
 
 The list of available flags are:
 
