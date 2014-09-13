@@ -14,13 +14,13 @@ import (
 	"github.com/ryanuber/columnize"
 )
 
-// KeysCommand is a Command implementation that handles querying, installing,
+// KeyringCommand is a Command implementation that handles querying, installing,
 // and removing gossip encryption keys from a keyring.
-type KeysCommand struct {
+type KeyringCommand struct {
 	Ui cli.Ui
 }
 
-func (c *KeysCommand) Run(args []string) int {
+func (c *KeyringCommand) Run(args []string) int {
 	var installKey, useKey, removeKey, init, dataDir string
 	var listKeys bool
 
@@ -150,9 +150,12 @@ func (c *KeysCommand) Run(args []string) int {
 	return 0
 }
 
+// keyFunc is a function which manipulates gossip encryption keyrings. This is
+// used for key installation, removal, and primary key changes.
 type keyFunc func(string) (map[string]string, error)
 
-func (c *KeysCommand) keyOperation(key string, fn keyFunc) int {
+// keyOperation is a unified process for manipulating the gossip keyrings.
+func (c *KeyringCommand) keyOperation(key string, fn keyFunc) int {
 	var out []string
 
 	failures, err := fn(key)
@@ -172,9 +175,12 @@ func (c *KeysCommand) keyOperation(key string, fn keyFunc) int {
 	return 0
 }
 
+// listKeysFunc is a function which handles querying lists of gossip keys
 type listKeysFunc func() (map[string]int, int, map[string]string, error)
 
-func (c *KeysCommand) listKeysOperation(fn listKeysFunc) int {
+// listKeysOperation is a unified process for querying and
+// displaying gossip keys.
+func (c *KeyringCommand) listKeysOperation(fn listKeysFunc) int {
 	var out []string
 
 	keys, numNodes, failures, err := fn()
@@ -233,15 +239,18 @@ func initializeKeyring(path, key string) error {
 	return nil
 }
 
-func (c *KeysCommand) Help() string {
+func (c *KeyringCommand) Help() string {
 	helpText := `
-Usage: consul keys [options]
+Usage: consul keyring [options]
 
   Manages encryption keys used for gossip messages. Gossip encryption is
   optional. When enabled, this command may be used to examine active encryption
   keys in the cluster, add new keys, and remove old ones. When combined, this
   functionality provides the ability to perform key rotation cluster-wide,
   without disrupting the cluster.
+
+  With the exception of the -init argument, all other operations performed by
+  this command can only be run against server nodes.
 
 Options:
 
@@ -254,19 +263,14 @@ Options:
                             operation may only be performed on keys which are
                             not currently the primary key.
   -list                     List all keys currently in use within the cluster.
-  -wan                      If talking with a server node, this flag can be used
-                            to operate on the WAN gossip layer.
   -init=<key>               Create an initial keyring file for Consul to use
-                            containing the provided key. By default, this option
-                            will only initialize the LAN keyring. If the -wan
-                            option is also passed, then the wan keyring will be
-                            created as well. The -data-dir argument is required
-                            with this option.
+                            containing the provided key. The -data-dir argument
+                            is required with this option.
   -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
 `
 	return strings.TrimSpace(helpText)
 }
 
-func (c *KeysCommand) Synopsis() string {
+func (c *KeyringCommand) Synopsis() string {
 	return "Manages gossip layer encryption keys"
 }

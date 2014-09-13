@@ -56,8 +56,8 @@ func init() {
 			}, nil
 		},
 
-		"keys": func() (cli.Command, error) {
-			return &command.KeysCommand{
+		"keyring": func() (cli.Command, error) {
+			return &command.KeyringCommand{
 				Ui: ui,
 			}, nil
 		},
