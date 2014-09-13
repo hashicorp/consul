@@ -67,8 +67,6 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.UiDir, "ui-dir", "", "path to the web UI directory")
 	cmdFlags.StringVar(&cmdConfig.PidFile, "pid-file", "", "path to file to store PID")
 	cmdFlags.StringVar(&cmdConfig.EncryptKey, "encrypt", "", "gossip encryption key")
-	cmdFlags.BoolVar(&cmdConfig.PersistKeyring, "persist-keyring", false, "persist keyring changes")
-
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
 	cmdFlags.IntVar(&cmdConfig.BootstrapExpect, "bootstrap-expect", 0, "enable automatic bootstrap via expect mode")
@@ -219,11 +217,10 @@ func (c *Command) readConfig() *Config {
 		c.Ui.Error("WARNING: Windows is not recommended as a Consul server. Do not use in production.")
 	}
 
-	// Warn if an encryption key is passed while a keyring already exists
-	if config.EncryptKey != "" && (config.PersistKeyring && config.CheckKeyringFiles()) {
-		c.Ui.Error(fmt.Sprintf(
-			"WARNING: Keyring already exists, ignoring new key %s",
-			config.EncryptKey))
+	// Error if an encryption key is passed while a keyring already exists
+	if config.EncryptKey != "" && config.keyringFilesExist() {
+		c.Ui.Error(fmt.Sprintf("Error: -encrypt specified but keyring files exist"))
+		return nil
 	}
 
 	// Set the version info
@@ -595,7 +592,7 @@ func (c *Command) Run(args []string) int {
 
 	// Determine if gossip is encrypted
 	gossipEncrypted := false
-	if config.EncryptKey != "" || (config.PersistKeyring && config.CheckKeyringFiles()) {
+	if config.EncryptKey != "" || config.keyringFilesExist() {
 		gossipEncrypted = true
 	}
 

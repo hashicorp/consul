@@ -150,11 +150,6 @@ type Config struct {
 	// the TERM signal. Defaults false. This can be changed on reload.
 	LeaveOnTerm bool `mapstructure:"leave_on_terminate"`
 
-	// Enable keyring persistence. There are currently two keyrings; one for
-	// the LAN serf cluster and the other for the WAN. Each will maintain its
-	// own keyring file in the agent's data directory.
-	PersistKeyring bool `mapstructure:"persist_keyring"`
-
 	// SkipLeaveOnInt controls if Serf skips a graceful leave when receiving
 	// the INT signal. Defaults false. This can be changed on reload.
 	SkipLeaveOnInt bool `mapstructure:"skip_leave_on_interrupt"`
@@ -416,13 +411,13 @@ func (c *Config) ClientListenerAddr(override string, port int) (string, error) {
 	return addr.String(), nil
 }
 
-// CheckKeyringFiles checks for existence of the keyring files for Serf
-func (c *Config) CheckKeyringFiles() bool {
-	if _, err := os.Stat(filepath.Join(c.DataDir, serfLANKeyring)); err != nil {
+// keyringFilesExist checks for existence of the keyring files for Serf
+func (c *Config) keyringFilesExist() bool {
+	if _, err := os.Stat(filepath.Join(c.DataDir, SerfLANKeyring)); err != nil {
 		return false
 	}
 	if c.Server {
-		if _, err := os.Stat(filepath.Join(c.DataDir, serfWANKeyring)); err != nil {
+		if _, err := os.Stat(filepath.Join(c.DataDir, SerfWANKeyring)); err != nil {
 			return false
 		}
 	}
@@ -696,9 +691,6 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.EncryptKey != "" {
 		result.EncryptKey = b.EncryptKey
-	}
-	if b.PersistKeyring {
-		result.PersistKeyring = true
 	}
 	if b.LogLevel != "" {
 		result.LogLevel = b.LogLevel

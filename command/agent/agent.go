@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	serfLANKeyring = "serf/local.keyring"
-	serfWANKeyring = "serf/remote.keyring"
+	SerfLANKeyring = "serf/local.keyring"
+	SerfWANKeyring = "serf/remote.keyring"
 )
 
 /*
@@ -119,18 +119,6 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	// Initialize the local state
 	agent.state.Init(config, agent.logger)
 
-	// Setup encryption keyring files
-	if config.PersistKeyring && config.EncryptKey != "" {
-		if config.Server {
-			if err := agent.initKeyringFile(serfWANKeyring); err != nil {
-				return nil, err
-			}
-		}
-		if err := agent.initKeyringFile(serfLANKeyring); err != nil {
-			return nil, err
-		}
-	}
-
 	// Setup either the client or the server
 	var err error
 	if config.Server {
@@ -182,16 +170,16 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.DataDir != "" {
 		base.DataDir = a.config.DataDir
 	}
-	if a.config.EncryptKey != "" && !a.config.PersistKeyring {
+	if a.config.EncryptKey != "" {
 		key, _ := a.config.EncryptBytes()
 		base.SerfLANConfig.MemberlistConfig.SecretKey = key
 		base.SerfWANConfig.MemberlistConfig.SecretKey = key
 	}
-	if a.config.PersistKeyring {
-		lanKeyring := filepath.Join(base.DataDir, serfLANKeyring)
-		wanKeyring := filepath.Join(base.DataDir, serfWANKeyring)
-		base.SerfLANConfig.KeyringFile = lanKeyring
-		base.SerfWANConfig.KeyringFile = wanKeyring
+	if a.config.Server && a.config.keyringFilesExist() {
+		pathWAN := filepath.Join(base.DataDir, SerfWANKeyring)
+		pathLAN := filepath.Join(base.DataDir, SerfLANKeyring)
+		base.SerfWANConfig.KeyringFile = pathWAN
+		base.SerfLANConfig.KeyringFile = pathLAN
 	}
 	if a.config.NodeName != "" {
 		base.NodeName = a.config.NodeName
@@ -812,40 +800,4 @@ func (a *Agent) RemoveKeyLAN(key string) (*serf.KeyResponse, error) {
 	}
 	km := a.client.KeyManagerLAN()
 	return km.RemoveKey(key)
-}
-
-// initKeyringFile is used to create and initialize a persistent keyring file
-// for gossip encryption keys. It is used at agent startup to dump the initial
-// encryption key into a keyfile if persistence is enabled.
-func (a *Agent) initKeyringFile(path string) error {
-	serfDir := filepath.Join(a.config.DataDir, "serf")
-	if err := os.MkdirAll(serfDir, 0700); err != nil {
-		return err
-	}
-
-	keys := []string{a.config.EncryptKey}
-	keyringBytes, err := json.MarshalIndent(keys, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	keyringFile := filepath.Join(a.config.DataDir, path)
-
-	// If the keyring file already exists, don't re-initialize
-	if _, err := os.Stat(keyringFile); err == nil {
-		return nil
-	}
-
-	fh, err := os.OpenFile(keyringFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-	if err != nil {
-		return err
-	}
-	defer fh.Close()
-
-	if _, err := fh.Write(keyringBytes); err != nil {
-		os.Remove(keyringFile)
-		return err
-	}
-
-	return nil
 }
