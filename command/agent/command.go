@@ -218,7 +218,7 @@ func (c *Command) readConfig() *Config {
 	}
 
 	// Error if an encryption key is passed while a keyring already exists
-	if config.EncryptKey != "" && config.keyringFilesExist() {
+	if config.EncryptKey != "" && config.keyringFileExists() {
 		c.Ui.Error(fmt.Sprintf("Error: -encrypt specified but keyring files exist"))
 		return nil
 	}
@@ -592,7 +592,7 @@ func (c *Command) Run(args []string) int {
 
 	// Determine if gossip is encrypted
 	gossipEncrypted := false
-	if config.EncryptKey != "" || config.keyringFilesExist() {
+	if config.EncryptKey != "" || config.keyringFileExists() {
 		gossipEncrypted = true
 	}
 
@@ -819,7 +819,6 @@ Options:
   -log-level=info          Log level of the agent.
   -node=hostname           Name of this node. Must be unique in the cluster
   -protocol=N              Sets the protocol version. Defaults to latest.
-  -persist-keyring         Enable encryption keyring persistence.
   -rejoin                  Ignores a previous leave and attempts to rejoin the cluster.
   -server                  Switches agent to server mode.
   -syslog                  Enables logging to syslog

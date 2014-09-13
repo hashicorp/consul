@@ -67,8 +67,14 @@ func (c *KeyringCommand) Run(args []string) int {
 			c.Ui.Error("Must provide -data-dir")
 			return 1
 		}
-		path := filepath.Join(dataDir, agent.SerfKeyring)
-		if err := initializeKeyring(path, init); err != nil {
+
+		fileLAN := filepath.Join(dataDir, agent.SerfLANKeyring)
+		if err := initializeKeyring(fileLAN, init); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error: %s", err))
+			return 1
+		}
+		fileWAN := filepath.Join(dataDir, agent.SerfWANKeyring)
+		if err := initializeKeyring(fileWAN, init); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error: %s", err))
 			return 1
 		}
@@ -84,7 +90,10 @@ func (c *KeyringCommand) Run(args []string) int {
 	}
 	defer client.Close()
 
-	// For all key-related operations, we must be querying a server node.
+	// For all key-related operations, we must be querying a server node. It is
+	// probably better to enforce this even for LAN pool changes, because other-
+	// wise, the same exact command syntax will have different results depending
+	// on where it was run.
 	s, err := client.Stats()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error: %s", err))
@@ -263,7 +272,7 @@ Options:
                             operation may only be performed on keys which are
                             not currently the primary key.
   -list                     List all keys currently in use within the cluster.
-  -init=<key>               Create an initial keyring file for Consul to use
+  -init=<key>               Create the initial keyring files for Consul to use
                             containing the provided key. The -data-dir argument
                             is required with this option.
   -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.

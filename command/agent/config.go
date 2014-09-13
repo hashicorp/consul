@@ -411,12 +411,22 @@ func (c *Config) ClientListenerAddr(override string, port int) (string, error) {
 	return addr.String(), nil
 }
 
-// keyringFilesExist checks for existence of the keyring files for Serf
-func (c *Config) keyringFilesExist() bool {
-	if _, err := os.Stat(filepath.Join(c.DataDir, SerfKeyring)); err != nil {
+// keyringFileExists determines if there are encryption key files present
+// in the data directory.
+func (c *Config) keyringFileExists() bool {
+	fileLAN := filepath.Join(c.DataDir, SerfLANKeyring)
+	fileWAN := filepath.Join(c.DataDir, SerfWANKeyring)
+
+	if _, err := os.Stat(fileLAN); err == nil {
+		return true
+	}
+	if !c.Server {
 		return false
 	}
-	return true
+	if _, err := os.Stat(fileWAN); err == nil {
+		return true
+	}
+	return false
 }
 
 // DecodeConfig reads the configuration from the given reader in JSON

@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	SerfKeyring = "serf/keyring"
+	SerfLANKeyring = "serf/local.keyring"
+	SerfWANKeyring = "serf/remote.keyring"
 )
 
 /*
@@ -174,10 +175,6 @@ func (a *Agent) consulConfig() *consul.Config {
 		base.SerfLANConfig.MemberlistConfig.SecretKey = key
 		base.SerfWANConfig.MemberlistConfig.SecretKey = key
 	}
-	if a.config.Server && a.config.keyringFilesExist() {
-		path := filepath.Join(base.DataDir, SerfKeyring)
-		base.SerfLANConfig.KeyringFile = path
-	}
 	if a.config.NodeName != "" {
 		base.NodeName = a.config.NodeName
 	}
@@ -276,6 +273,14 @@ func (a *Agent) setupServer() error {
 	config := a.consulConfig()
 
 	// Load a keyring file, if present
+	keyfileLAN := filepath.Join(config.DataDir, SerfLANKeyring)
+	if _, err := os.Stat(keyfileLAN); err == nil {
+		config.SerfLANConfig.KeyringFile = keyfileLAN
+	}
+	keyfileWAN := filepath.Join(config.DataDir, SerfWANKeyring)
+	if _, err := os.Stat(keyfileWAN); err == nil {
+		config.SerfWANConfig.KeyringFile = keyfileWAN
+	}
 	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
 		return err
 	}
@@ -296,6 +301,10 @@ func (a *Agent) setupClient() error {
 	config := a.consulConfig()
 
 	// Load a keyring file, if present
+	keyfileLAN := filepath.Join(config.DataDir, SerfLANKeyring)
+	if _, err := os.Stat(keyfileLAN); err == nil {
+		config.SerfLANConfig.KeyringFile = keyfileLAN
+	}
 	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
 		return err
 	}
