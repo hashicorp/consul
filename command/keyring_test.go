@@ -1,6 +1,9 @@
 package command
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -81,6 +84,72 @@ func TestKeyringCommandRun_failedConnection(t *testing.T) {
 	}
 	if !strings.Contains(ui.ErrorWriter.String(), "dial") {
 		t.Fatalf("bad: %#v", ui.OutputWriter.String())
+	}
+}
+
+func TestKeyCommandRun_initKeyringFail(t *testing.T) {
+	ui := new(cli.MockUi)
+	c := &KeyringCommand{Ui: ui}
+
+	// Should error if no data-dir given
+	args := []string{"-init=HS5lJ+XuTlYKWaeGYyG+/A=="}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	// Errors on invalid key
+	args = []string{"-init=xyz", "-data-dir=/tmp"}
+	code = c.Run(args)
+	if code != 1 {
+		t.Fatalf("should have errored")
+	}
+}
+
+func TestKeyCommandRun_initKeyring(t *testing.T) {
+	ui := new(cli.MockUi)
+	c := &KeyringCommand{Ui: ui}
+
+	tempDir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	args := []string{
+		"-init=HS5lJ+XuTlYKWaeGYyG+/A==",
+		"-data-dir=" + tempDir,
+	}
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	fileLAN := filepath.Join(tempDir, agent.SerfLANKeyring)
+	fileWAN := filepath.Join(tempDir, agent.SerfWANKeyring)
+	if _, err := os.Stat(fileLAN); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(fileWAN); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := "[\n  \"HS5lJ+XuTlYKWaeGYyG+/A==\"\n]"
+
+	contentLAN, err := ioutil.ReadFile(fileLAN)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if string(contentLAN) != expected {
+		t.Fatalf("bad: %#v", string(contentLAN))
+	}
+
+	contentWAN, err := ioutil.ReadFile(fileWAN)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if string(contentWAN) != expected {
+		t.Fatalf("bad: %#v", string(contentWAN))
 	}
 }
 
