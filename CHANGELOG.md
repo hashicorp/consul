@@ -1,3 +1,10 @@
+## 0.4.1 (Unreleased)
+
+BUG FIXES:
+
+ * Fixing only a single watch being run by an agent [GH-337]
+ * Fixing potential race in connection multiplexing
+
 ## 0.4.0 (September 5, 2014)
 
 FEATURES:

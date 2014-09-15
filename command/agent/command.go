@@ -464,13 +464,13 @@ func (c *Command) Run(args []string) int {
 
 	// Register the watches
 	for _, wp := range config.WatchPlans {
-		go func() {
+		go func(wp *watch.WatchPlan) {
 			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
 			if err := wp.Run(httpAddr); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
 			}
-		}()
+		}(wp)
 	}
 
 	// Let the agent know we've finished registration
@@ -627,13 +627,13 @@ func (c *Command) handleReload(config *Config) *Config {
 
 	// Register the new watches
 	for _, wp := range newConf.WatchPlans {
-		go func() {
+		go func(wp *watch.WatchPlan) {
 			wp.Handler = makeWatchHandler(c.logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
 			if err := wp.Run(httpAddr); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
 			}
-		}()
+		}(wp)
 	}
 
 	return newConf
