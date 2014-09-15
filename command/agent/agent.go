@@ -688,7 +688,8 @@ func (a *Agent) deletePid() error {
 	return nil
 }
 
-// loadKeyringFile will load a keyring out of a file
+// loadKeyringFile will load a gossip encryption keyring out of a file. The file
+// must be in JSON format and contain a list of encryption key strings.
 func loadKeyringFile(c *serf.Config) error {
 	if c.KeyringFile == "" {
 		return nil
