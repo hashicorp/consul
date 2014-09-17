@@ -140,7 +140,8 @@ func TestRemoteExecWrites(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
-	if !agent.remoteExecWriteExitCode(event, 1) {
+	exitCode := 1
+	if !agent.remoteExecWriteExitCode(event, &exitCode) {
 		t.Fatalf("bad")
 	}
 
@@ -223,6 +224,64 @@ func TestHandleRemoteExec(t *testing.T) {
 	key = "_rexec/" + event.Session + "/" + agent.config.NodeName + "/exit"
 	d = getKV(t, agent, key)
 	if d == nil || d.Session != event.Session || string(d.Value) != "0" {
+		t.Fatalf("bad output: %#v", d)
+	}
+}
+
+func TestHandleRemoteExecFailed(t *testing.T) {
+	dir, agent := makeAgent(t, nextConfig())
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	event := &remoteExecEvent{
+		Prefix:  "_rexec",
+		Session: makeRexecSession(t, agent),
+	}
+	defer destroySession(t, agent, event.Session)
+
+	spec := &remoteExecSpec{
+		Command: "echo failing;exit 2",
+		Wait:    time.Second,
+	}
+	buf, err := json.Marshal(spec)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	key := "_rexec/" + event.Session + "/job"
+	setKV(t, agent, key, buf)
+
+	buf, err = json.Marshal(event)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	msg := &UserEvent{
+		ID:      generateUUID(),
+		Payload: buf,
+	}
+
+	// Handle the event...
+	agent.handleRemoteExec(msg)
+
+	// Verify we have an ack
+	key = "_rexec/" + event.Session + "/" + agent.config.NodeName + "/ack"
+	d := getKV(t, agent, key)
+	if d == nil || d.Session != event.Session {
+		t.Fatalf("bad ack: %#v", d)
+	}
+
+	// Verify we have output
+	key = "_rexec/" + event.Session + "/" + agent.config.NodeName + "/out/00000"
+	d = getKV(t, agent, key)
+	if d == nil || d.Session != event.Session ||
+		!bytes.Contains(d.Value, []byte("failing")) {
+		t.Fatalf("bad output: %#v", d)
+	}
+
+	// Verify we have an exit code
+	key = "_rexec/" + event.Session + "/" + agent.config.NodeName + "/exit"
+	d = getKV(t, agent, key)
+	if d == nil || d.Session != event.Session || string(d.Value) != "2" {
 		t.Fatalf("bad output: %#v", d)
 	}
 }
