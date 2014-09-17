@@ -170,7 +170,9 @@ func TestRemoteExecWrites(t *testing.T) {
 	}
 }
 
-func TestHandleRemoteExec(t *testing.T) {
+
+
+func _TestHandleRemoteExec(t *testing.T, command string, expectedSubstring string, expectedReturnCode string) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
@@ -183,7 +185,7 @@ func TestHandleRemoteExec(t *testing.T) {
 	defer destroySession(t, agent, event.Session)
 
 	spec := &remoteExecSpec{
-		Command: "uptime",
+		Command: command,
 		Wait:    time.Second,
 	}
 	buf, err := json.Marshal(spec)
@@ -216,74 +218,24 @@ func TestHandleRemoteExec(t *testing.T) {
 	key = "_rexec/" + event.Session + "/" + agent.config.NodeName + "/out/00000"
 	d = getKV(t, agent, key)
 	if d == nil || d.Session != event.Session ||
-		!bytes.Contains(d.Value, []byte("load")) {
+		!bytes.Contains(d.Value, []byte(expectedSubstring)) {
 		t.Fatalf("bad output: %#v", d)
 	}
 
 	// Verify we have an exit code
 	key = "_rexec/" + event.Session + "/" + agent.config.NodeName + "/exit"
 	d = getKV(t, agent, key)
-	if d == nil || d.Session != event.Session || string(d.Value) != "0" {
+	if d == nil || d.Session != event.Session || string(d.Value) != expectedReturnCode {
 		t.Fatalf("bad output: %#v", d)
 	}
 }
 
+func TestHandleRemoteExec(t *testing.T) {
+	_TestHandleRemoteExec(t, "uptime", "load", "0")
+}
+
 func TestHandleRemoteExecFailed(t *testing.T) {
-	dir, agent := makeAgent(t, nextConfig())
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-	testutil.WaitForLeader(t, agent.RPC, "dc1")
-
-	event := &remoteExecEvent{
-		Prefix:  "_rexec",
-		Session: makeRexecSession(t, agent),
-	}
-	defer destroySession(t, agent, event.Session)
-
-	spec := &remoteExecSpec{
-		Command: "echo failing;exit 2",
-		Wait:    time.Second,
-	}
-	buf, err := json.Marshal(spec)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	key := "_rexec/" + event.Session + "/job"
-	setKV(t, agent, key, buf)
-
-	buf, err = json.Marshal(event)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	msg := &UserEvent{
-		ID:      generateUUID(),
-		Payload: buf,
-	}
-
-	// Handle the event...
-	agent.handleRemoteExec(msg)
-
-	// Verify we have an ack
-	key = "_rexec/" + event.Session + "/" + agent.config.NodeName + "/ack"
-	d := getKV(t, agent, key)
-	if d == nil || d.Session != event.Session {
-		t.Fatalf("bad ack: %#v", d)
-	}
-
-	// Verify we have output
-	key = "_rexec/" + event.Session + "/" + agent.config.NodeName + "/out/00000"
-	d = getKV(t, agent, key)
-	if d == nil || d.Session != event.Session ||
-		!bytes.Contains(d.Value, []byte("failing")) {
-		t.Fatalf("bad output: %#v", d)
-	}
-
-	// Verify we have an exit code
-	key = "_rexec/" + event.Session + "/" + agent.config.NodeName + "/exit"
-	d = getKV(t, agent, key)
-	if d == nil || d.Session != event.Session || string(d.Value) != "2" {
-		t.Fatalf("bad output: %#v", d)
-	}
+	_TestHandleRemoteExec(t, "echo failing;exit 2", "failing", "2")
 }
 
 func makeRexecSession(t *testing.T, agent *Agent) string {
