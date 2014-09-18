@@ -231,11 +231,11 @@ func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string
 }
 
 func TestHandleRemoteExec(t *testing.T) {
-	_TestHandleRemoteExec(t, "uptime", "load", "0")
+	testHandleRemoteExec(t, "uptime", "load", "0")
 }
 
 func TestHandleRemoteExecFailed(t *testing.T) {
-	_TestHandleRemoteExec(t, "echo failing;exit 2", "failing", "2")
+	testHandleRemoteExec(t, "echo failing;exit 2", "failing", "2")
 }
 
 func makeRexecSession(t *testing.T, agent *Agent) string {
