@@ -1040,6 +1040,14 @@ func TestKeyringFileExists(t *testing.T) {
 
 	fileLAN := filepath.Join(tempDir, SerfLANKeyring)
 	fileWAN := filepath.Join(tempDir, SerfWANKeyring)
+
+	if err := os.MkdirAll(filepath.Dir(fileLAN), 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(fileWAN), 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
 	config := &Config{DataDir: tempDir, Server: true}
 
 	// Returns false if we are a server and no keyring files present

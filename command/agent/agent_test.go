@@ -1,10 +1,12 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -66,6 +68,43 @@ func makeAgentLog(t *testing.T, conf *Config, l io.Writer) (string, *Agent) {
 	if err != nil {
 		os.RemoveAll(dir)
 		t.Fatalf(fmt.Sprintf("err: %v", err))
+	}
+
+	return dir, agent
+}
+
+func makeAgentKeyring(t *testing.T, conf *Config, key string) (string, *Agent) {
+	keyBytes, err := json.Marshal([]string{key})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	dir, err := ioutil.TempDir("", "agent")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	conf.DataDir = dir
+
+	fileLAN := filepath.Join(dir, SerfLANKeyring)
+	if err := os.MkdirAll(filepath.Dir(fileLAN), 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := ioutil.WriteFile(fileLAN, keyBytes, 0600); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	fileWAN := filepath.Join(dir, SerfWANKeyring)
+	if err := os.MkdirAll(filepath.Dir(fileWAN), 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := ioutil.WriteFile(fileWAN, keyBytes, 0600); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	agent, err := Create(conf, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
 	return dir, agent
@@ -352,5 +391,70 @@ func TestAgent_ConsulService(t *testing.T) {
 	// Consul service should be in sync
 	if !agent.state.serviceStatus[consul.ConsulServiceID].inSync {
 		t.Fatalf("%s service should be in sync", consul.ConsulServiceID)
+	}
+}
+
+func TestAgent_LoadKeyrings(t *testing.T) {
+	key := "tbLJg26ZJyJ9pK3qhc9jig=="
+
+	// Should be no configured keyring file by default
+	conf1 := nextConfig()
+	dir1, agent1 := makeAgent(t, conf1)
+	defer os.RemoveAll(dir1)
+	defer agent1.Shutdown()
+
+	c := agent1.config.ConsulConfig
+	if c.SerfLANConfig.KeyringFile != "" {
+		t.Fatalf("bad: %#v", c.SerfLANConfig.KeyringFile)
+	}
+	if c.SerfLANConfig.MemberlistConfig.Keyring != nil {
+		t.Fatalf("keyring should not be loaded")
+	}
+	if c.SerfWANConfig.KeyringFile != "" {
+		t.Fatalf("bad: %#v", c.SerfLANConfig.KeyringFile)
+	}
+	if c.SerfWANConfig.MemberlistConfig.Keyring != nil {
+		t.Fatalf("keyring should not be loaded")
+	}
+
+	// Server should auto-load LAN and WAN keyring files
+	conf2 := nextConfig()
+	dir2, agent2 := makeAgentKeyring(t, conf2, key)
+	defer os.RemoveAll(dir2)
+	defer agent2.Shutdown()
+
+	c = agent2.config.ConsulConfig
+	if c.SerfLANConfig.KeyringFile == "" {
+		t.Fatalf("should have keyring file")
+	}
+	if c.SerfLANConfig.MemberlistConfig.Keyring == nil {
+		t.Fatalf("keyring should be loaded")
+	}
+	if c.SerfWANConfig.KeyringFile == "" {
+		t.Fatalf("should have keyring file")
+	}
+	if c.SerfWANConfig.MemberlistConfig.Keyring == nil {
+		t.Fatalf("keyring should be loaded")
+	}
+
+	// Client should auto-load only the LAN keyring file
+	conf3 := nextConfig()
+	conf3.Server = false
+	dir3, agent3 := makeAgentKeyring(t, conf3, key)
+	defer os.RemoveAll(dir3)
+	defer agent3.Shutdown()
+
+	c = agent3.config.ConsulConfig
+	if c.SerfLANConfig.KeyringFile == "" {
+		t.Fatalf("should have keyring file")
+	}
+	if c.SerfLANConfig.MemberlistConfig.Keyring == nil {
+		t.Fatalf("keyring should be loaded")
+	}
+	if c.SerfWANConfig.KeyringFile != "" {
+		t.Fatalf("bad: %#v", c.SerfLANConfig.KeyringFile)
+	}
+	if c.SerfWANConfig.MemberlistConfig.Keyring != nil {
+		t.Fatalf("keyring should not be loaded")
 	}
 }
