@@ -140,7 +140,8 @@ func TestRemoteExecWrites(t *testing.T) {
 		t.Fatalf("bad")
 	}
 
-	if !agent.remoteExecWriteExitCode(event, 1) {
+	exitCode := 1
+	if !agent.remoteExecWriteExitCode(event, &exitCode) {
 		t.Fatalf("bad")
 	}
 
@@ -169,7 +170,9 @@ func TestRemoteExecWrites(t *testing.T) {
 	}
 }
 
-func TestHandleRemoteExec(t *testing.T) {
+
+
+func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string, expectedReturnCode string) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
@@ -182,7 +185,7 @@ func TestHandleRemoteExec(t *testing.T) {
 	defer destroySession(t, agent, event.Session)
 
 	spec := &remoteExecSpec{
-		Command: "uptime",
+		Command: command,
 		Wait:    time.Second,
 	}
 	buf, err := json.Marshal(spec)
@@ -215,16 +218,24 @@ func TestHandleRemoteExec(t *testing.T) {
 	key = "_rexec/" + event.Session + "/" + agent.config.NodeName + "/out/00000"
 	d = getKV(t, agent, key)
 	if d == nil || d.Session != event.Session ||
-		!bytes.Contains(d.Value, []byte("load")) {
+		!bytes.Contains(d.Value, []byte(expectedSubstring)) {
 		t.Fatalf("bad output: %#v", d)
 	}
 
 	// Verify we have an exit code
 	key = "_rexec/" + event.Session + "/" + agent.config.NodeName + "/exit"
 	d = getKV(t, agent, key)
-	if d == nil || d.Session != event.Session || string(d.Value) != "0" {
+	if d == nil || d.Session != event.Session || string(d.Value) != expectedReturnCode {
 		t.Fatalf("bad output: %#v", d)
 	}
+}
+
+func TestHandleRemoteExec(t *testing.T) {
+	testHandleRemoteExec(t, "uptime", "load", "0")
+}
+
+func TestHandleRemoteExecFailed(t *testing.T) {
+	testHandleRemoteExec(t, "echo failing;exit 2", "failing", "2")
 }
 
 func makeRexecSession(t *testing.T, agent *Agent) string {
