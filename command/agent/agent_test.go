@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -74,11 +73,6 @@ func makeAgentLog(t *testing.T, conf *Config, l io.Writer) (string, *Agent) {
 }
 
 func makeAgentKeyring(t *testing.T, conf *Config, key string) (string, *Agent) {
-	keyBytes, err := json.Marshal([]string{key})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	dir, err := ioutil.TempDir("", "agent")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -87,18 +81,11 @@ func makeAgentKeyring(t *testing.T, conf *Config, key string) (string, *Agent) {
 	conf.DataDir = dir
 
 	fileLAN := filepath.Join(dir, SerfLANKeyring)
-	if err := os.MkdirAll(filepath.Dir(fileLAN), 0700); err != nil {
+	if err := testutil.InitKeyring(fileLAN, key); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := ioutil.WriteFile(fileLAN, keyBytes, 0600); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	fileWAN := filepath.Join(dir, SerfWANKeyring)
-	if err := os.MkdirAll(filepath.Dir(fileWAN), 0700); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := ioutil.WriteFile(fileWAN, keyBytes, 0600); err != nil {
+	if err := testutil.InitKeyring(fileWAN, key); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

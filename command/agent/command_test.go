@@ -1,10 +1,17 @@
 package agent
 
 import (
+<<<<<<< HEAD
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+=======
+	"github.com/hashicorp/consul/testutil"
+	"github.com/mitchellh/cli"
+	"io/ioutil"
+	"path/filepath"
+>>>>>>> command: test generated keyring file content and conflicting args for agent
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"
@@ -38,6 +45,7 @@ func TestValidDatacenter(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
 func TestRetryJoin(t *testing.T) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
@@ -161,5 +169,33 @@ func TestRetryJoinWanFail(t *testing.T) {
 
 	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("bad: %d", code)
+=======
+func TestArgConflict(t *testing.T) {
+	ui := new(cli.MockUi)
+	c := &Command{Ui: ui}
+
+	dir, err := ioutil.TempDir("", "agent")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	key := "HS5lJ+XuTlYKWaeGYyG+/A=="
+
+	fileLAN := filepath.Join(dir, SerfLANKeyring)
+	if err := testutil.InitKeyring(fileLAN, key); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	args := []string{
+		"-encrypt=" + key,
+		"-data-dir=" + dir,
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+	if !strings.Contains(ui.ErrorWriter.String(), "keyring files exist") {
+		t.Fatalf("bad: %#v", ui.ErrorWriter.String())
+>>>>>>> command: test generated keyring file content and conflicting args for agent
 	}
 }

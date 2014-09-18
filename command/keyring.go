@@ -69,12 +69,12 @@ func (c *KeyringCommand) Run(args []string) int {
 		}
 
 		fileLAN := filepath.Join(dataDir, agent.SerfLANKeyring)
-		if err := initializeKeyring(fileLAN, init); err != nil {
+		if err := initKeyring(fileLAN, init); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error: %s", err))
 			return 1
 		}
 		fileWAN := filepath.Join(dataDir, agent.SerfWANKeyring)
-		if err := initializeKeyring(fileWAN, init); err != nil {
+		if err := initKeyring(fileWAN, init); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error: %s", err))
 			return 1
 		}
@@ -214,14 +214,14 @@ func (c *KeyringCommand) listKeysOperation(fn listKeysFunc) int {
 	return 0
 }
 
-// initializeKeyring will create a keyring file at a given path.
-func initializeKeyring(path, key string) error {
+// initKeyring will create a keyring file at a given path.
+func initKeyring(path, key string) error {
 	if _, err := base64.StdEncoding.DecodeString(key); err != nil {
 		return fmt.Errorf("Invalid key: %s", err)
 	}
 
 	keys := []string{key}
-	keyringBytes, err := json.MarshalIndent(keys, "", "  ")
+	keyringBytes, err := json.Marshal(keys)
 	if err != nil {
 		return err
 	}

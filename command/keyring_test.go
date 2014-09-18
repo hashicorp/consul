@@ -134,7 +134,7 @@ func TestKeyCommandRun_initKeyring(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := "[\n  \"HS5lJ+XuTlYKWaeGYyG+/A==\"\n]"
+	expected := `["HS5lJ+XuTlYKWaeGYyG+/A=="]`
 
 	contentLAN, err := ioutil.ReadFile(fileLAN)
 	if err != nil {
