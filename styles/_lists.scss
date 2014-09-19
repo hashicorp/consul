@@ -82,6 +82,7 @@
             overflow: auto;
 
             &::-webkit-scrollbar {
+                display: none;
                 -webkit-appearance: none;
             }
         }
