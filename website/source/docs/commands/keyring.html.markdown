@@ -10,12 +10,14 @@ Command: `consul keyring`
 
 The `keyring` command is used to examine and modify the encryption keys used in
 Consul's [Gossip Pools](/docs/internals/gossip.html). It is capable of
-distributing new encryption keys to the cluster, revoking old encryption keys,
-and changing the key used by the cluster to encrypt messages.
+distributing new encryption keys to the cluster, retiring old encryption keys,
+and changing the keys used by the cluster to encrypt messages.
 
 Because Consul utilizes multiple gossip pools, this command will only operate
-against a server node for most operations. The only operation which may be used
-on client machines is the `-init` argument for initial key configuration.
+against a server node for most operations. All members in a Consul cluster,
+regardless of operational mode (client or server) or datacenter, will be
+modified/queried each time this command is run. This helps maintain operational
+simplicity by managing the multiple pools as a single unit.
 
 Consul allows multiple encryption keys to be in use simultaneously. This is
 intended to provide a transition state while the cluster converges. It is the
@@ -23,9 +25,9 @@ responsibility of the operator to ensure that only the required encryption keys
 are installed on the cluster. You can ensure that a key is not installed using
 the `-list` and `-remove` options.
 
-All variations of the keys command will return 0 if all nodes reply and there
-are no errors. If any node fails to reply or reports failure, the exit code will
-be 1.
+All variations of the `keyring` command, unless otherwise specified below, will
+return 0 if all nodes reply and there are no errors. If any node fails to reply
+or reports failure, the exit code will be 1.
 
 ## Usage
 
@@ -43,6 +45,9 @@ The list of available flags are:
 
   This operation can be run on both client and server nodes and requires no
   network connectivity.
+
+	Returns 0 if the key is successfully configured, or 1 if there were any
+	problems.
 
 * `-install` - Install a new encryption key. This will broadcast the new key to
   all members in the cluster.
