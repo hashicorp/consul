@@ -9,15 +9,14 @@
 
     .list-group-item-heading, .list-inline {
         margin: 10px 15px 10px 15px;
-        padding: 0px 5px 10px 5px;
+        padding: 0px 5px 0px 5px;
     }
 
     .list-inline {
         padding-left: 0px;
         color: $gray;
         font-size: 13px;
-        overflow: scroll;
-        height: 30px;
+        height: 20px;
     }
 
     .list-group-item-heading {
@@ -80,6 +79,11 @@
             margin: 0;
             font-size: 12px;
             color: $gray-light;
+            overflow: auto;
+
+            &::-webkit-scrollbar {
+                -webkit-appearance: none;
+            }
         }
     }
 
