@@ -170,8 +170,6 @@ func TestRemoteExecWrites(t *testing.T) {
 	}
 }
 
-
-
 func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string, expectedReturnCode string) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
