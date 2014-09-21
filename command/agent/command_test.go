@@ -1,17 +1,12 @@
 package agent
 
 import (
-<<<<<<< HEAD
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
-=======
-	"github.com/hashicorp/consul/testutil"
-	"github.com/mitchellh/cli"
-	"io/ioutil"
 	"path/filepath"
->>>>>>> command: test generated keyring file content and conflicting args for agent
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"
@@ -45,7 +40,6 @@ func TestValidDatacenter(t *testing.T) {
 	}
 }
 
-<<<<<<< HEAD
 func TestRetryJoin(t *testing.T) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
@@ -169,7 +163,9 @@ func TestRetryJoinWanFail(t *testing.T) {
 
 	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("bad: %d", code)
-=======
+	}
+}
+
 func TestArgConflict(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &Command{Ui: ui}
@@ -196,6 +192,5 @@ func TestArgConflict(t *testing.T) {
 	}
 	if !strings.Contains(ui.ErrorWriter.String(), "keyring files exist") {
 		t.Fatalf("bad: %#v", ui.ErrorWriter.String())
->>>>>>> command: test generated keyring file content and conflicting args for agent
 	}
 }

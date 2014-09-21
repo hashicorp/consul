@@ -14,10 +14,9 @@ distributing new encryption keys to the cluster, retiring old encryption keys,
 and changing the keys used by the cluster to encrypt messages.
 
 Because Consul utilizes multiple gossip pools, this command will only operate
-against a server node for most operations. All members in a Consul cluster,
-regardless of operational mode (client or server) or datacenter, will be
-modified/queried each time this command is run. This helps maintain operational
-simplicity by managing the multiple pools as a single unit.
+against a server node for most operations. By default, all operations carried
+out by this command are run against the LAN gossip pool in the datacenter of the
+agent.
 
 Consul allows multiple encryption keys to be in use simultaneously. This is
 intended to provide a transition state while the cluster converges. It is the
@@ -59,5 +58,7 @@ The list of available flags are:
   performed on keys which are not currently the primary key.
 
 * `-list` - List all keys currently in use within the cluster.
+
+* `-wan` - Operate on the WAN keyring instead of the LAN keyring (default)
 
 * `-rpc-addr` - RPC address of the Consul agent.

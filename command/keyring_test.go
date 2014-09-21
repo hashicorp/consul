@@ -25,7 +25,7 @@ func TestKeyringCommandRun(t *testing.T) {
 	defer a1.Shutdown()
 
 	// The keyring was initialized with only the provided key
-	out := listKeys(t, a1.addr)
+	out := listKeys(t, a1.addr, false)
 	if !strings.Contains(out, key1) {
 		t.Fatalf("bad: %#v", out)
 	}
@@ -34,28 +34,54 @@ func TestKeyringCommandRun(t *testing.T) {
 	}
 
 	// Install the second key onto the keyring
-	installKey(t, a1.addr, key2)
+	installKey(t, a1.addr, key2, false)
 
 	// Both keys should be present
-	out = listKeys(t, a1.addr)
+	out = listKeys(t, a1.addr, false)
 	for _, key := range []string{key1, key2} {
 		if !strings.Contains(out, key) {
 			t.Fatalf("bad: %#v", out)
 		}
 	}
 
+	// WAN keyring is untouched
+	out = listKeys(t, a1.addr, true)
+	if strings.Contains(out, key2) {
+		t.Fatalf("bad: %#v", out)
+	}
+
 	// Change out the primary key
-	useKey(t, a1.addr, key2)
+	useKey(t, a1.addr, key2, false)
 
 	// Remove the original key
-	removeKey(t, a1.addr, key1)
+	removeKey(t, a1.addr, key1, false)
 
 	// Make sure only the new key is present
-	out = listKeys(t, a1.addr)
+	out = listKeys(t, a1.addr, false)
 	if strings.Contains(out, key1) {
 		t.Fatalf("bad: %#v", out)
 	}
 	if !strings.Contains(out, key2) {
+		t.Fatalf("bad: %#v", out)
+	}
+
+	// WAN keyring is still untouched
+	out = listKeys(t, a1.addr, true)
+	if !strings.Contains(out, key1) {
+		t.Fatalf("bad: %#v", out)
+	}
+
+	// Rotate out the WAN key
+	installKey(t, a1.addr, key2, true)
+	useKey(t, a1.addr, key2, true)
+	removeKey(t, a1.addr, key1, true)
+
+	// WAN keyring now has only the proper key
+	out = listKeys(t, a1.addr, true)
+	if !strings.Contains(out, key2) {
+		t.Fatalf("bad: %#v", out)
+	}
+	if strings.Contains(out, key1) {
 		t.Fatalf("bad: %#v", out)
 	}
 }
@@ -87,7 +113,7 @@ func TestKeyringCommandRun_failedConnection(t *testing.T) {
 	}
 }
 
-func TestKeyCommandRun_initKeyringFail(t *testing.T) {
+func TestKeyringCommandRun_initKeyringFail(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &KeyringCommand{Ui: ui}
 
@@ -106,7 +132,7 @@ func TestKeyCommandRun_initKeyringFail(t *testing.T) {
 	}
 }
 
-func TestKeyCommandRun_initKeyring(t *testing.T) {
+func TestKeyringCommandRun_initKeyring(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &KeyringCommand{Ui: ui}
 
@@ -153,11 +179,14 @@ func TestKeyCommandRun_initKeyring(t *testing.T) {
 	}
 }
 
-func listKeys(t *testing.T, addr string) string {
+func listKeys(t *testing.T, addr string, wan bool) string {
 	ui := new(cli.MockUi)
 	c := &KeyringCommand{Ui: ui}
 
 	args := []string{"-list", "-rpc-addr=" + addr}
+	if wan {
+		args = append(args, "-wan")
+	}
 
 	code := c.Run(args)
 	if code != 0 {
@@ -167,33 +196,45 @@ func listKeys(t *testing.T, addr string) string {
 	return ui.OutputWriter.String()
 }
 
-func installKey(t *testing.T, addr string, key string) {
+func installKey(t *testing.T, addr string, key string, wan bool) {
 	ui := new(cli.MockUi)
 	c := &KeyringCommand{Ui: ui}
 
 	args := []string{"-install=" + key, "-rpc-addr=" + addr}
+	if wan {
+		args = append(args, "-wan")
+	}
+
 	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 }
 
-func useKey(t *testing.T, addr string, key string) {
+func useKey(t *testing.T, addr string, key string, wan bool) {
 	ui := new(cli.MockUi)
 	c := &KeyringCommand{Ui: ui}
 
 	args := []string{"-use=" + key, "-rpc-addr=" + addr}
+	if wan {
+		args = append(args, "-wan")
+	}
+
 	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 }
 
-func removeKey(t *testing.T, addr string, key string) {
+func removeKey(t *testing.T, addr string, key string, wan bool) {
 	ui := new(cli.MockUi)
 	c := &KeyringCommand{Ui: ui}
 
 	args := []string{"-remove=" + key, "-rpc-addr=" + addr}
+	if wan {
+		args = append(args, "-wan")
+	}
+
 	code := c.Run(args)
 	if code != 0 {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())

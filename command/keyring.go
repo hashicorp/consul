@@ -22,7 +22,7 @@ type KeyringCommand struct {
 
 func (c *KeyringCommand) Run(args []string) int {
 	var installKey, useKey, removeKey, init, dataDir string
-	var listKeys bool
+	var listKeys, wan bool
 
 	cmdFlags := flag.NewFlagSet("keys", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
@@ -33,6 +33,7 @@ func (c *KeyringCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&listKeys, "list", false, "list keys")
 	cmdFlags.StringVar(&init, "init", "", "initialize keyring")
 	cmdFlags.StringVar(&dataDir, "data-dir", "", "data directory")
+	cmdFlags.BoolVar(&wan, "wan", false, "operate on wan keyring")
 
 	rpcAddr := RPCAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
@@ -105,51 +106,57 @@ func (c *KeyringCommand) Run(args []string) int {
 	}
 
 	if listKeys {
-		c.Ui.Info("Asking all WAN members for installed keys...")
-		if rval := c.listKeysOperation(client.ListKeysWAN); rval != 0 {
-			return rval
+		if wan {
+			c.Ui.Info("Asking all WAN members for installed keys...")
+			return c.listKeysOperation(client.ListKeysWAN)
 		}
 		c.Ui.Info("Asking all LAN members for installed keys...")
-		if rval := c.listKeysOperation(client.ListKeysLAN); rval != 0 {
-			return rval
-		}
-		return 0
+		return c.listKeysOperation(client.ListKeysLAN)
 	}
 
 	if installKey != "" {
-		c.Ui.Info("Installing new WAN gossip encryption key...")
-		if rval := c.keyOperation(installKey, client.InstallKeyWAN); rval != 0 {
-			return rval
-		}
-		c.Ui.Info("Installing new LAN gossip encryption key...")
-		if rval := c.keyOperation(installKey, client.InstallKeyLAN); rval != 0 {
-			return rval
+		if wan {
+			c.Ui.Info("Installing new WAN gossip encryption key...")
+			if rval := c.keyOperation(installKey, client.InstallKeyWAN); rval != 0 {
+				return rval
+			}
+		} else {
+			c.Ui.Info("Installing new LAN gossip encryption key...")
+			if rval := c.keyOperation(installKey, client.InstallKeyLAN); rval != 0 {
+				return rval
+			}
 		}
 		c.Ui.Info("Successfully installed key!")
 		return 0
 	}
 
 	if useKey != "" {
-		c.Ui.Info("Changing primary WAN gossip encryption key...")
-		if rval := c.keyOperation(useKey, client.UseKeyWAN); rval != 0 {
-			return rval
-		}
-		c.Ui.Info("Changing primary LAN gossip encryption key...")
-		if rval := c.keyOperation(useKey, client.UseKeyLAN); rval != 0 {
-			return rval
+		if wan {
+			c.Ui.Info("Changing primary WAN gossip encryption key...")
+			if rval := c.keyOperation(useKey, client.UseKeyWAN); rval != 0 {
+				return rval
+			}
+		} else {
+			c.Ui.Info("Changing primary LAN gossip encryption key...")
+			if rval := c.keyOperation(useKey, client.UseKeyLAN); rval != 0 {
+				return rval
+			}
 		}
 		c.Ui.Info("Successfully changed primary key!")
 		return 0
 	}
 
 	if removeKey != "" {
-		c.Ui.Info("Removing WAN gossip encryption key...")
-		if rval := c.keyOperation(removeKey, client.RemoveKeyWAN); rval != 0 {
-			return rval
-		}
-		c.Ui.Info("Removing LAN gossip encryption key...")
-		if rval := c.keyOperation(removeKey, client.RemoveKeyLAN); rval != 0 {
-			return rval
+		if wan {
+			c.Ui.Info("Removing WAN gossip encryption key...")
+			if rval := c.keyOperation(removeKey, client.RemoveKeyWAN); rval != 0 {
+				return rval
+			}
+		} else {
+			c.Ui.Info("Removing LAN gossip encryption key...")
+			if rval := c.keyOperation(removeKey, client.RemoveKeyLAN); rval != 0 {
+				return rval
+			}
 		}
 		c.Ui.Info("Successfully removed key!")
 		return 0
@@ -258,8 +265,9 @@ Usage: consul keyring [options]
   functionality provides the ability to perform key rotation cluster-wide,
   without disrupting the cluster.
 
-  With the exception of the -init argument, all other operations performed by
-  this command can only be run against server nodes.
+  With the exception of the -init argument, all operations performed by this
+  command can only be run against server nodes. All operations default to the
+  LAN gossip pool.
 
 Options:
 
@@ -275,6 +283,8 @@ Options:
   -init=<key>               Create the initial keyring files for Consul to use
                             containing the provided key. The -data-dir argument
                             is required with this option.
+  -wan                      Operate on the WAN keyring instead of the LAN
+                            keyring (default).
   -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
 `
 	return strings.TrimSpace(helpText)
