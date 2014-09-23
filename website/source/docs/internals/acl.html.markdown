@@ -55,7 +55,7 @@ servers to resolve tokens. Consul provides a number of configurable `acl_down_po
 choices to tune behavior. It is possible to deny or permit all actions, or to ignore
 cache TTLs and enter a fail-safe mode.
 
-ACLs can also act in either a whilelist or blacklist mode depending
+ACLs can also act in either a whitelist or blacklist mode depending
 on the configuration of `acl_default_policy`. If the default policy is
 to deny all actions, then token rules can be set to allow or whitelist
 actions. In the inverse, the allow all default behavior is a blacklist,
