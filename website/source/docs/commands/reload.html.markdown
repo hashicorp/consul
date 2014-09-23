@@ -8,7 +8,7 @@ sidebar_current: "docs-commands-reload"
 
 Command: `consul reload`
 
-The leave command triggers a reload of configuration files for the agent.
+The reload command triggers a reload of configuration files for the agent.
 
 The `SIGHUP` signal is usually used to trigger a reload of configurations,
 but in some cases it may be more convenient to trigger the CLI instead.
