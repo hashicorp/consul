@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/serf/serf"
 )
@@ -61,78 +62,48 @@ func loadKeyringFile(c *serf.Config) error {
 	return nil
 }
 
-// ListKeysLAN returns the keys installed on the LAN gossip pool
-func (a *Agent) ListKeysLAN() (*serf.KeyResponse, error) {
-	if a.server != nil {
-		km := a.server.KeyManagerLAN()
-		return km.ListKeys()
+// keyringProcess is used to abstract away the semantic similarities in
+// performing various operations on the encryption keyring.
+func (a *Agent) keyringProcess(
+	method string,
+	args *structs.KeyringRequest) (*structs.KeyringResponse, error) {
+
+	var reply structs.KeyringResponse
+	if a.server == nil {
+		return nil, fmt.Errorf("keyring operations must run against a server node")
 	}
-	km := a.client.KeyManagerLAN()
-	return km.ListKeys()
+	if err := a.RPC(method, args, &reply); err != nil {
+		return &reply, err
+	}
+
+	return &reply, nil
 }
 
-// ListKeysWAN returns the keys installed on the WAN gossip pool
-func (a *Agent) ListKeysWAN() (*serf.KeyResponse, error) {
-	if a.server != nil {
-		km := a.server.KeyManagerWAN()
-		return km.ListKeys()
-	}
-	return nil, fmt.Errorf("WAN keyring not available on client node")
+// ListKeys lists out all keys installed on the collective Consul cluster. This
+// includes both servers and clients in all DC's.
+func (a *Agent) ListKeys() (*structs.KeyringResponse, error) {
+	args := structs.KeyringRequest{}
+	args.AllowStale = true
+	return a.keyringProcess("Internal.ListKeys", &args)
 }
 
-// InstallKeyWAN installs a new WAN gossip encryption key on server nodes
-func (a *Agent) InstallKeyWAN(key string) (*serf.KeyResponse, error) {
-	if a.server != nil {
-		km := a.server.KeyManagerWAN()
-		return km.InstallKey(key)
-	}
-	return nil, fmt.Errorf("WAN keyring not available on client node")
+// InstallKey installs a new gossip encryption key
+func (a *Agent) InstallKey(key string) (*structs.KeyringResponse, error) {
+	args := structs.KeyringRequest{Key: key}
+	args.AllowStale = true
+	return a.keyringProcess("Internal.InstallKey", &args)
 }
 
-// InstallKeyLAN installs a new LAN gossip encryption key on all nodes
-func (a *Agent) InstallKeyLAN(key string) (*serf.KeyResponse, error) {
-	if a.server != nil {
-		km := a.server.KeyManagerLAN()
-		return km.InstallKey(key)
-	}
-	km := a.client.KeyManagerLAN()
-	return km.InstallKey(key)
+// UseKey changes the primary encryption key used to encrypt messages
+func (a *Agent) UseKey(key string) (*structs.KeyringResponse, error) {
+	args := structs.KeyringRequest{Key: key}
+	args.AllowStale = true
+	return a.keyringProcess("Internal.UseKey", &args)
 }
 
-// UseKeyWAN changes the primary WAN gossip encryption key on server nodes
-func (a *Agent) UseKeyWAN(key string) (*serf.KeyResponse, error) {
-	if a.server != nil {
-		km := a.server.KeyManagerWAN()
-		return km.UseKey(key)
-	}
-	return nil, fmt.Errorf("WAN keyring not available on client node")
-}
-
-// UseKeyLAN changes the primary LAN gossip encryption key on all nodes
-func (a *Agent) UseKeyLAN(key string) (*serf.KeyResponse, error) {
-	if a.server != nil {
-		km := a.server.KeyManagerLAN()
-		return km.UseKey(key)
-	}
-	km := a.client.KeyManagerLAN()
-	return km.UseKey(key)
-}
-
-// RemoveKeyWAN removes a WAN gossip encryption key on server nodes
-func (a *Agent) RemoveKeyWAN(key string) (*serf.KeyResponse, error) {
-	if a.server != nil {
-		km := a.server.KeyManagerWAN()
-		return km.RemoveKey(key)
-	}
-	return nil, fmt.Errorf("WAN keyring not available on client node")
-}
-
-// RemoveKeyLAN removes a LAN gossip encryption key on all nodes
-func (a *Agent) RemoveKeyLAN(key string) (*serf.KeyResponse, error) {
-	if a.server != nil {
-		km := a.server.KeyManagerLAN()
-		return km.RemoveKey(key)
-	}
-	km := a.client.KeyManagerLAN()
-	return km.RemoveKey(key)
+// RemoveKey will remove a gossip encryption key from the keyring
+func (a *Agent) RemoveKey(key string) (*structs.KeyringResponse, error) {
+	args := structs.KeyringRequest{Key: key}
+	args.AllowStale = true
+	return a.keyringProcess("Internal.RemoveKey", &args)
 }

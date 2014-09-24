@@ -176,60 +176,44 @@ func (c *RPCClient) WANMembers() ([]Member, error) {
 	return resp.Members, err
 }
 
-func (c *RPCClient) ListKeysLAN() (map[string]int, int, map[string]string, error) {
+func (c *RPCClient) ListKeys() (map[string]int, int, map[string]string, error) {
 	header := requestHeader{
-		Command: listKeysLANCommand,
+		Command: listKeysCommand,
 		Seq:     c.getSeq(),
 	}
 	resp := new(keyResponse)
-
 	err := c.genericRPC(&header, nil, resp)
 	return resp.Keys, resp.NumNodes, resp.Messages, err
 }
 
-func (c *RPCClient) ListKeysWAN() (map[string]int, int, map[string]string, error) {
+func (c *RPCClient) InstallKey(key string) (map[string]string, error) {
 	header := requestHeader{
-		Command: listKeysWANCommand,
+		Command: installKeyCommand,
 		Seq:     c.getSeq(),
 	}
-	resp := new(keyResponse)
-
-	err := c.genericRPC(&header, nil, resp)
-	return resp.Keys, resp.NumNodes, resp.Messages, err
-}
-
-func (c *RPCClient) InstallKeyWAN(key string) (map[string]string, error) {
-	return c.changeGossipKey(key, installKeyWANCommand)
-}
-
-func (c *RPCClient) InstallKeyLAN(key string) (map[string]string, error) {
-	return c.changeGossipKey(key, installKeyLANCommand)
-}
-
-func (c *RPCClient) UseKeyWAN(key string) (map[string]string, error) {
-	return c.changeGossipKey(key, useKeyWANCommand)
-}
-
-func (c *RPCClient) UseKeyLAN(key string) (map[string]string, error) {
-	return c.changeGossipKey(key, useKeyLANCommand)
-}
-
-func (c *RPCClient) RemoveKeyWAN(key string) (map[string]string, error) {
-	return c.changeGossipKey(key, removeKeyWANCommand)
-}
-
-func (c *RPCClient) RemoveKeyLAN(key string) (map[string]string, error) {
-	return c.changeGossipKey(key, removeKeyLANCommand)
-}
-
-func (c *RPCClient) changeGossipKey(key, cmd string) (map[string]string, error) {
-	header := requestHeader{
-		Command: cmd,
-		Seq:     c.getSeq(),
-	}
-
 	req := keyRequest{key}
+	resp := new(keyResponse)
+	err := c.genericRPC(&header, &req, resp)
+	return resp.Messages, err
+}
 
+func (c *RPCClient) UseKey(key string) (map[string]string, error) {
+	header := requestHeader{
+		Command: useKeyCommand,
+		Seq:     c.getSeq(),
+	}
+	req := keyRequest{key}
+	resp := new(keyResponse)
+	err := c.genericRPC(&header, &req, resp)
+	return resp.Messages, err
+}
+
+func (c *RPCClient) RemoveKey(key string) (map[string]string, error) {
+	header := requestHeader{
+		Command: removeKeyCommand,
+		Seq:     c.getSeq(),
+	}
+	req := keyRequest{key}
 	resp := new(keyResponse)
 	err := c.genericRPC(&header, &req, resp)
 	return resp.Messages, err

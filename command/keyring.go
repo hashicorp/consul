@@ -106,59 +106,34 @@ func (c *KeyringCommand) Run(args []string) int {
 	}
 
 	if listKeys {
-		if wan {
-			c.Ui.Info("Asking all WAN members for installed keys...")
-			return c.listKeysOperation(client.ListKeysWAN)
-		}
-		c.Ui.Info("Asking all LAN members for installed keys...")
-		return c.listKeysOperation(client.ListKeysLAN)
+		c.Ui.Info("Asking all members for installed keys...")
+		return c.listKeysOperation(client.ListKeys)
 	}
 
 	if installKey != "" {
-		if wan {
-			c.Ui.Info("Installing new WAN gossip encryption key...")
-			if rval := c.keyOperation(installKey, client.InstallKeyWAN); rval != 0 {
-				return rval
-			}
-		} else {
-			c.Ui.Info("Installing new LAN gossip encryption key...")
-			if rval := c.keyOperation(installKey, client.InstallKeyLAN); rval != 0 {
-				return rval
-			}
+		c.Ui.Info("Installing new gossip encryption key...")
+		if rval := c.keyOperation(installKey, client.InstallKey); rval != 0 {
+			return rval
 		}
 		c.Ui.Info("Successfully installed key!")
 		return 0
 	}
 
 	if useKey != "" {
-		if wan {
-			c.Ui.Info("Changing primary WAN gossip encryption key...")
-			if rval := c.keyOperation(useKey, client.UseKeyWAN); rval != 0 {
-				return rval
-			}
-		} else {
-			c.Ui.Info("Changing primary LAN gossip encryption key...")
-			if rval := c.keyOperation(useKey, client.UseKeyLAN); rval != 0 {
-				return rval
-			}
+		c.Ui.Info("Changing primary gossip encryption key...")
+		if rval := c.keyOperation(useKey, client.UseKey); rval != 0 {
+			return rval
 		}
 		c.Ui.Info("Successfully changed primary key!")
 		return 0
 	}
 
 	if removeKey != "" {
-		if wan {
-			c.Ui.Info("Removing WAN gossip encryption key...")
-			if rval := c.keyOperation(removeKey, client.RemoveKeyWAN); rval != 0 {
-				return rval
-			}
-		} else {
-			c.Ui.Info("Removing LAN gossip encryption key...")
-			if rval := c.keyOperation(removeKey, client.RemoveKeyLAN); rval != 0 {
-				return rval
-			}
+		c.Ui.Info("Removing gossip encryption key...")
+		if rval := c.keyOperation(removeKey, client.RemoveKey); rval != 0 {
+			return rval
 		}
-		c.Ui.Info("Successfully removed key!")
+		c.Ui.Info("Successfully removed gossip encryption key!")
 		return 0
 	}
 

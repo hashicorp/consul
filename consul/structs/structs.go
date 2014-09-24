@@ -531,3 +531,22 @@ func Encode(t MessageType, msg interface{}) ([]byte, error) {
 	err := codec.NewEncoder(&buf, msgpackHandle).Encode(msg)
 	return buf.Bytes(), err
 }
+
+// KeyringRequest encapsulates a request to modify an encryption keyring.
+// It can be used for install, remove, or use key type operations.
+type KeyringRequest struct {
+	Key       string
+	Forwarded bool
+	QueryOptions
+}
+
+// KeyringResponse is a unified key response and can be used for install,
+// remove, use, as well as listing key queries.
+type KeyringResponse struct {
+	Messages map[string]string
+	Keys     map[string]int
+	NumNodes int
+	NumResp  int
+	NumErr   int
+	QueryMeta
+}

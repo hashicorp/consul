@@ -24,15 +24,17 @@ package agent
 import (
 	"bufio"
 	"fmt"
-	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/hashicorp/logutils"
-	"github.com/hashicorp/serf/serf"
 	"io"
 	"log"
 	"net"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/logutils"
+	"github.com/hashicorp/serf/serf"
 )
 
 const (
@@ -41,24 +43,20 @@ const (
 )
 
 const (
-	handshakeCommand     = "handshake"
-	forceLeaveCommand    = "force-leave"
-	joinCommand          = "join"
-	membersLANCommand    = "members-lan"
-	membersWANCommand    = "members-wan"
-	stopCommand          = "stop"
-	monitorCommand       = "monitor"
-	leaveCommand         = "leave"
-	statsCommand         = "stats"
-	reloadCommand        = "reload"
-	listKeysLANCommand   = "list-keys-lan"
-	listKeysWANCommand   = "list-keys-wan"
-	installKeyLANCommand = "install-key-lan"
-	installKeyWANCommand = "install-key-wan"
-	useKeyLANCommand     = "use-key-lan"
-	useKeyWANCommand     = "use-key-wan"
-	removeKeyLANCommand  = "remove-key-lan"
-	removeKeyWANCommand  = "remove-key-wan"
+	handshakeCommand  = "handshake"
+	forceLeaveCommand = "force-leave"
+	joinCommand       = "join"
+	membersLANCommand = "members-lan"
+	membersWANCommand = "members-wan"
+	stopCommand       = "stop"
+	monitorCommand    = "monitor"
+	leaveCommand      = "leave"
+	statsCommand      = "stats"
+	reloadCommand     = "reload"
+	installKeyCommand = "install-key"
+	useKeyCommand     = "use-key"
+	removeKeyCommand  = "remove-key"
+	listKeysCommand   = "list-keys"
 )
 
 const (
@@ -117,10 +115,10 @@ type keyRequest struct {
 
 type keyResponse struct {
 	Messages map[string]string
+	Keys     map[string]int
 	NumNodes int
 	NumResp  int
 	NumErr   int
-	Keys     map[string]int
 }
 
 type membersResponse struct {
@@ -393,17 +391,8 @@ func (i *AgentRPC) handleRequest(client *rpcClient, reqHeader *requestHeader) er
 	case reloadCommand:
 		return i.handleReload(client, seq)
 
-	case listKeysLANCommand, listKeysWANCommand:
-		return i.handleListKeys(client, seq, command)
-
-	case installKeyLANCommand, installKeyWANCommand:
-		return i.handleGossipKeyChange(client, seq, command)
-
-	case useKeyLANCommand, useKeyWANCommand:
-		return i.handleGossipKeyChange(client, seq, command)
-
-	case removeKeyLANCommand, removeKeyWANCommand:
-		return i.handleGossipKeyChange(client, seq, command)
+	case installKeyCommand, useKeyCommand, removeKeyCommand, listKeysCommand:
+		return i.handleKeyring(client, seq, command)
 
 	default:
 		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
@@ -615,56 +604,27 @@ func (i *AgentRPC) handleReload(client *rpcClient, seq uint64) error {
 	return client.Send(&resp, nil)
 }
 
-func (i *AgentRPC) handleListKeys(client *rpcClient, seq uint64, cmd string) error {
-	var queryResp *serf.KeyResponse
-	var err error
-
-	switch cmd {
-	case listKeysWANCommand:
-		queryResp, err = i.agent.ListKeysWAN()
-	default:
-		queryResp, err = i.agent.ListKeysLAN()
-	}
-
-	header := responseHeader{
-		Seq:   seq,
-		Error: errToString(err),
-	}
-
-	resp := keyResponse{
-		Messages: queryResp.Messages,
-		Keys:     queryResp.Keys,
-		NumResp:  queryResp.NumResp,
-		NumErr:   queryResp.NumErr,
-		NumNodes: queryResp.NumNodes,
-	}
-
-	return client.Send(&header, &resp)
-}
-
-func (i *AgentRPC) handleGossipKeyChange(client *rpcClient, seq uint64, cmd string) error {
+func (i *AgentRPC) handleKeyring(client *rpcClient, seq uint64, cmd string) error {
 	var req keyRequest
+	var queryResp *structs.KeyringResponse
 	var resp keyResponse
-	var queryResp *serf.KeyResponse
 	var err error
 
-	if err = client.dec.Decode(&req); err != nil {
-		return fmt.Errorf("decode failed: %v", err)
+	if cmd != listKeysCommand {
+		if err = client.dec.Decode(&req); err != nil {
+			return fmt.Errorf("decode failed: %v", err)
+		}
 	}
 
 	switch cmd {
-	case installKeyWANCommand:
-		queryResp, err = i.agent.InstallKeyWAN(req.Key)
-	case installKeyLANCommand:
-		queryResp, err = i.agent.InstallKeyLAN(req.Key)
-	case useKeyWANCommand:
-		queryResp, err = i.agent.UseKeyWAN(req.Key)
-	case useKeyLANCommand:
-		queryResp, err = i.agent.UseKeyLAN(req.Key)
-	case removeKeyWANCommand:
-		queryResp, err = i.agent.RemoveKeyWAN(req.Key)
-	case removeKeyLANCommand:
-		queryResp, err = i.agent.RemoveKeyLAN(req.Key)
+	case listKeysCommand:
+		queryResp, err = i.agent.ListKeys()
+	case installKeyCommand:
+		queryResp, err = i.agent.InstallKey(req.Key)
+	case useKeyCommand:
+		queryResp, err = i.agent.UseKey(req.Key)
+	case removeKeyCommand:
+		queryResp, err = i.agent.RemoveKey(req.Key)
 	default:
 		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
 		client.Send(&respHeader, nil)
@@ -676,15 +636,17 @@ func (i *AgentRPC) handleGossipKeyChange(client *rpcClient, seq uint64, cmd stri
 		Error: errToString(err),
 	}
 
-	resp = keyResponse{
-		Messages: queryResp.Messages,
-		Keys:     queryResp.Keys,
-		NumResp:  queryResp.NumResp,
-		NumErr:   queryResp.NumErr,
-		NumNodes: queryResp.NumNodes,
+	if queryResp != nil {
+		resp = keyResponse{
+			Messages: queryResp.Messages,
+			Keys:     queryResp.Keys,
+			NumNodes: queryResp.NumNodes,
+			NumResp:  queryResp.NumResp,
+			NumErr:   queryResp.NumErr,
+		}
 	}
 
-	return client.Send(&header, &resp)
+	return client.Send(&header, resp)
 }
 
 // Used to convert an error to a string representation
