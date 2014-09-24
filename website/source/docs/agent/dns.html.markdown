@@ -123,7 +123,7 @@ SRV records.
 
 The format for RFC style lookups uses the following format:
 
-  _<service>._<protocol>.service[.datacenter][.domain]
+    _<service>._<protocol>.service[.datacenter][.domain]
 
 Per [RFC-2782](https://www.ietf.org/rfc/rfc2782.txt), SRV queries should use
 underscores (_) as a prefix to the `service` and `protocol` values in a query to
