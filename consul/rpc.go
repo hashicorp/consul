@@ -227,9 +227,10 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 func (s *Server) forwardAll(method string, args, reply interface{}) error {
 	for dc, _ := range s.remoteConsuls {
 		if dc != s.config.Datacenter {
-			if err := s.forwardDC(method, dc, args, reply); err != nil {
-				return err
-			}
+			// Forward the RPC call. Even if an error is returned here, we still
+			// want to continue broadcasting to the remaining DC's to avoid
+			// network partitions completely killing us.
+			go s.forwardDC(method, dc, args, reply)
 		}
 	}
 	return nil
