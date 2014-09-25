@@ -66,9 +66,9 @@ func loadKeyringFile(c *serf.Config) error {
 // performing various operations on the encryption keyring.
 func (a *Agent) keyringProcess(
 	method string,
-	args *structs.KeyringRequest) (*structs.KeyringResponse, error) {
+	args *structs.KeyringRequest) (*structs.KeyringResponses, error) {
 
-	var reply structs.KeyringResponse
+	var reply structs.KeyringResponses
 	if a.server == nil {
 		return nil, fmt.Errorf("keyring operations must run against a server node")
 	}
@@ -81,28 +81,28 @@ func (a *Agent) keyringProcess(
 
 // ListKeys lists out all keys installed on the collective Consul cluster. This
 // includes both servers and clients in all DC's.
-func (a *Agent) ListKeys() (*structs.KeyringResponse, error) {
+func (a *Agent) ListKeys() (*structs.KeyringResponses, error) {
 	args := structs.KeyringRequest{}
 	args.AllowStale = true
 	return a.keyringProcess("Internal.ListKeys", &args)
 }
 
 // InstallKey installs a new gossip encryption key
-func (a *Agent) InstallKey(key string) (*structs.KeyringResponse, error) {
+func (a *Agent) InstallKey(key string) (*structs.KeyringResponses, error) {
 	args := structs.KeyringRequest{Key: key}
 	args.AllowStale = true
 	return a.keyringProcess("Internal.InstallKey", &args)
 }
 
 // UseKey changes the primary encryption key used to encrypt messages
-func (a *Agent) UseKey(key string) (*structs.KeyringResponse, error) {
+func (a *Agent) UseKey(key string) (*structs.KeyringResponses, error) {
 	args := structs.KeyringRequest{Key: key}
 	args.AllowStale = true
 	return a.keyringProcess("Internal.UseKey", &args)
 }
 
 // RemoveKey will remove a gossip encryption key from the keyring
-func (a *Agent) RemoveKey(key string) (*structs.KeyringResponse, error) {
+func (a *Agent) RemoveKey(key string) (*structs.KeyringResponses, error) {
 	args := structs.KeyringRequest{Key: key}
 	args.AllowStale = true
 	return a.keyringProcess("Internal.RemoveKey", &args)

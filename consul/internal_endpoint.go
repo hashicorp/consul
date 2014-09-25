@@ -1,10 +1,7 @@
 package consul
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/serf/serf"
 )
 
 // Internal endpoint is used to query the miscellaneous info that
@@ -66,49 +63,69 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	return m.srv.UserEvent(args.Name, args.Payload)
 }
 
-// TODO(ryanuber): Clean up all of these methods
-func (m *Internal) InstallKey(args *structs.KeyringRequest,
-	reply *structs.KeyringResponse) error {
+func (m *Internal) ListKeys(
+	args *structs.KeyringRequest,
+	reply *structs.KeyringResponses) error {
 
-	var respLAN, respWAN *serf.KeyResponse
-	var err error
-
-	if reply.Messages == nil {
-		reply.Messages = make(map[string]string)
-	}
-	if reply.Keys == nil {
-		reply.Keys = make(map[string]int)
-	}
-
-	m.srv.setQueryMeta(&reply.QueryMeta)
-
-	// Do a LAN key install. This will be invoked in each DC once the RPC call
-	// is forwarded below.
-	respLAN, err = m.srv.KeyManagerLAN().InstallKey(args.Key)
-	for node, msg := range respLAN.Messages {
-		reply.Messages["client."+node+"."+m.srv.config.Datacenter] = msg
-	}
-	reply.NumResp += respLAN.NumResp
-	reply.NumErr += respLAN.NumErr
-	reply.NumNodes += respLAN.NumNodes
+	respLAN, err := m.srv.KeyManagerLAN().ListKeys()
 	if err != nil {
-		return fmt.Errorf("failed rotating LAN keyring in %s: %s",
-			m.srv.config.Datacenter,
-			err)
+		return err
 	}
+	reply.Responses = append(reply.Responses, &structs.KeyringResponse{
+		Datacenter: m.srv.config.Datacenter,
+		Messages:   respLAN.Messages,
+		Keys:       respLAN.Keys,
+		NumResp:    respLAN.NumResp,
+		NumNodes:   respLAN.NumNodes,
+		NumErr:     respLAN.NumErr,
+	})
 
 	if !args.Forwarded {
-		// Only perform WAN key rotation once.
-		respWAN, err = m.srv.KeyManagerWAN().InstallKey(args.Key)
+		respWAN, err := m.srv.KeyManagerWAN().ListKeys()
 		if err != nil {
 			return err
 		}
-		for node, msg := range respWAN.Messages {
-			reply.Messages["server."+node] = msg
-		}
-		reply.NumResp += respWAN.NumResp
-		reply.NumErr += respWAN.NumErr
-		reply.NumNodes += respWAN.NumNodes
+		reply.Responses = append(reply.Responses, &structs.KeyringResponse{
+			Datacenter: m.srv.config.Datacenter,
+			Messages:   respWAN.Messages,
+			Keys:       respWAN.Keys,
+			NumResp:    respWAN.NumResp,
+			NumNodes:   respWAN.NumNodes,
+			NumErr:     respWAN.NumErr,
+		})
+
+		// Mark key rotation as being already forwarded, then forward.
+		args.Forwarded = true
+		return m.srv.forwardAll("Internal.ListKeys", args, reply)
+	}
+
+	return nil
+}
+
+func (m *Internal) InstallKey(
+	args *structs.KeyringRequest,
+	reply *structs.KeyringResponses) error {
+
+	respLAN, _ := m.srv.KeyManagerLAN().InstallKey(args.Key)
+	reply.Responses = append(reply.Responses, &structs.KeyringResponse{
+		Datacenter: m.srv.config.Datacenter,
+		Messages:   respLAN.Messages,
+		Keys:       respLAN.Keys,
+		NumResp:    respLAN.NumResp,
+		NumNodes:   respLAN.NumNodes,
+		NumErr:     respLAN.NumErr,
+	})
+
+	if !args.Forwarded {
+		respWAN, _ := m.srv.KeyManagerWAN().InstallKey(args.Key)
+		reply.Responses = append(reply.Responses, &structs.KeyringResponse{
+			Datacenter: m.srv.config.Datacenter,
+			Messages:   respWAN.Messages,
+			Keys:       respWAN.Keys,
+			NumResp:    respWAN.NumResp,
+			NumNodes:   respWAN.NumNodes,
+			NumErr:     respWAN.NumErr,
+		})
 
 		// Mark key rotation as being already forwarded, then forward.
 		args.Forwarded = true
@@ -118,47 +135,30 @@ func (m *Internal) InstallKey(args *structs.KeyringRequest,
 	return nil
 }
 
-func (m *Internal) UseKey(args *structs.KeyringRequest,
-	reply *structs.KeyringResponse) error {
-	var respLAN, respWAN *serf.KeyResponse
-	var err error
+func (m *Internal) UseKey(
+	args *structs.KeyringRequest,
+	reply *structs.KeyringResponses) error {
 
-	if reply.Messages == nil {
-		reply.Messages = make(map[string]string)
-	}
-	if reply.Keys == nil {
-		reply.Keys = make(map[string]int)
-	}
-
-	m.srv.setQueryMeta(&reply.QueryMeta)
-
-	// Do a LAN key install. This will be invoked in each DC once the RPC call
-	// is forwarded below.
-	respLAN, err = m.srv.KeyManagerLAN().UseKey(args.Key)
-	for node, msg := range respLAN.Messages {
-		reply.Messages["client."+node+"."+m.srv.config.Datacenter] = msg
-	}
-	reply.NumResp += respLAN.NumResp
-	reply.NumErr += respLAN.NumErr
-	reply.NumNodes += respLAN.NumNodes
-	if err != nil {
-		return fmt.Errorf("failed rotating LAN keyring in %s: %s",
-			m.srv.config.Datacenter,
-			err)
-	}
+	respLAN, _ := m.srv.KeyManagerLAN().UseKey(args.Key)
+	reply.Responses = append(reply.Responses, &structs.KeyringResponse{
+		Datacenter: m.srv.config.Datacenter,
+		Messages:   respLAN.Messages,
+		Keys:       respLAN.Keys,
+		NumResp:    respLAN.NumResp,
+		NumNodes:   respLAN.NumNodes,
+		NumErr:     respLAN.NumErr,
+	})
 
 	if !args.Forwarded {
-		// Only perform WAN key rotation once.
-		respWAN, err = m.srv.KeyManagerWAN().UseKey(args.Key)
-		if err != nil {
-			return err
-		}
-		for node, msg := range respWAN.Messages {
-			reply.Messages["server."+node] = msg
-		}
-		reply.NumResp += respWAN.NumResp
-		reply.NumErr += respWAN.NumErr
-		reply.NumNodes += respWAN.NumNodes
+		respWAN, _ := m.srv.KeyManagerWAN().UseKey(args.Key)
+		reply.Responses = append(reply.Responses, &structs.KeyringResponse{
+			Datacenter: m.srv.config.Datacenter,
+			Messages:   respWAN.Messages,
+			Keys:       respWAN.Keys,
+			NumResp:    respWAN.NumResp,
+			NumNodes:   respWAN.NumNodes,
+			NumErr:     respWAN.NumErr,
+		})
 
 		// Mark key rotation as being already forwarded, then forward.
 		args.Forwarded = true
@@ -168,101 +168,34 @@ func (m *Internal) UseKey(args *structs.KeyringRequest,
 	return nil
 }
 
-func (m *Internal) RemoveKey(args *structs.KeyringRequest,
-	reply *structs.KeyringResponse) error {
-	var respLAN, respWAN *serf.KeyResponse
-	var err error
+func (m *Internal) RemoveKey(
+	args *structs.KeyringRequest,
+	reply *structs.KeyringResponses) error {
 
-	if reply.Messages == nil {
-		reply.Messages = make(map[string]string)
-	}
-	if reply.Keys == nil {
-		reply.Keys = make(map[string]int)
-	}
-
-	m.srv.setQueryMeta(&reply.QueryMeta)
-
-	// Do a LAN key install. This will be invoked in each DC once the RPC call
-	// is forwarded below.
-	respLAN, err = m.srv.KeyManagerLAN().RemoveKey(args.Key)
-	for node, msg := range respLAN.Messages {
-		reply.Messages["client."+node+"."+m.srv.config.Datacenter] = msg
-	}
-	reply.NumResp += respLAN.NumResp
-	reply.NumErr += respLAN.NumErr
-	reply.NumNodes += respLAN.NumNodes
-	if err != nil {
-		return fmt.Errorf("failed rotating LAN keyring in %s: %s",
-			m.srv.config.Datacenter,
-			err)
-	}
+	respLAN, _ := m.srv.KeyManagerLAN().RemoveKey(args.Key)
+	reply.Responses = append(reply.Responses, &structs.KeyringResponse{
+		Datacenter: m.srv.config.Datacenter,
+		Messages:   respLAN.Messages,
+		Keys:       respLAN.Keys,
+		NumResp:    respLAN.NumResp,
+		NumNodes:   respLAN.NumNodes,
+		NumErr:     respLAN.NumErr,
+	})
 
 	if !args.Forwarded {
-		// Only perform WAN key rotation once.
-		respWAN, err = m.srv.KeyManagerWAN().RemoveKey(args.Key)
-		if err != nil {
-			return err
-		}
-		for node, msg := range respWAN.Messages {
-			reply.Messages["server."+node] = msg
-		}
-		reply.NumResp += respWAN.NumResp
-		reply.NumErr += respWAN.NumErr
-		reply.NumNodes += respWAN.NumNodes
+		respWAN, _ := m.srv.KeyManagerWAN().RemoveKey(args.Key)
+		reply.Responses = append(reply.Responses, &structs.KeyringResponse{
+			Datacenter: m.srv.config.Datacenter,
+			Messages:   respWAN.Messages,
+			Keys:       respWAN.Keys,
+			NumResp:    respWAN.NumResp,
+			NumNodes:   respWAN.NumNodes,
+			NumErr:     respWAN.NumErr,
+		})
 
 		// Mark key rotation as being already forwarded, then forward.
 		args.Forwarded = true
 		return m.srv.forwardAll("Internal.RemoveKey", args, reply)
-	}
-
-	return nil
-}
-
-func (m *Internal) ListKeys(args *structs.KeyringRequest,
-	reply *structs.KeyringResponse) error {
-	var respLAN, respWAN *serf.KeyResponse
-	var err error
-
-	if reply.Messages == nil {
-		reply.Messages = make(map[string]string)
-	}
-	if reply.Keys == nil {
-		reply.Keys = make(map[string]int)
-	}
-
-	m.srv.setQueryMeta(&reply.QueryMeta)
-
-	// Do a LAN key install. This will be invoked in each DC once the RPC call
-	// is forwarded below.
-	respLAN, err = m.srv.KeyManagerLAN().ListKeys()
-	for node, msg := range respLAN.Messages {
-		reply.Messages["client."+node+"."+m.srv.config.Datacenter] = msg
-	}
-	reply.NumResp += respLAN.NumResp
-	reply.NumErr += respLAN.NumErr
-	reply.NumNodes += respLAN.NumNodes
-	if err != nil {
-		return fmt.Errorf("failed rotating LAN keyring in %s: %s",
-			m.srv.config.Datacenter,
-			err)
-	}
-
-	if !args.Forwarded {
-		// Only perform WAN key rotation once.
-		respWAN, err = m.srv.KeyManagerWAN().ListKeys()
-		if err != nil {
-			return err
-		}
-		for node, msg := range respWAN.Messages {
-			reply.Messages["server."+node] = msg
-		}
-		reply.NumResp += respWAN.NumResp
-		reply.NumErr += respWAN.NumErr
-		reply.NumNodes += respWAN.NumNodes
-
-		// Mark key rotation as being already forwarded, then forward.
-		args.Forwarded = true
-		return m.srv.forwardAll("Internal.ListKeys", args, reply)
 	}
 
 	return nil

@@ -606,7 +606,7 @@ func (i *AgentRPC) handleReload(client *rpcClient, seq uint64) error {
 
 func (i *AgentRPC) handleKeyring(client *rpcClient, seq uint64, cmd string) error {
 	var req keyRequest
-	var queryResp *structs.KeyringResponse
+	var queryResp *structs.KeyringResponses
 	var resp keyResponse
 	var err error
 
@@ -636,14 +636,27 @@ func (i *AgentRPC) handleKeyring(client *rpcClient, seq uint64, cmd string) erro
 		Error: errToString(err),
 	}
 
-	if queryResp != nil {
-		resp = keyResponse{
-			Messages: queryResp.Messages,
-			Keys:     queryResp.Keys,
-			NumNodes: queryResp.NumNodes,
-			NumResp:  queryResp.NumResp,
-			NumErr:   queryResp.NumErr,
+	if resp.Messages == nil {
+		resp.Messages = make(map[string]string)
+	}
+	if resp.Keys == nil {
+		resp.Keys = make(map[string]int)
+	}
+
+	for _, kr := range queryResp.Responses {
+		for node, msg := range kr.Messages {
+			resp.Messages[node+"."+kr.Datacenter] = msg
 		}
+		for key, qty := range kr.Keys {
+			if _, ok := resp.Keys[key]; ok {
+				resp.Keys[key] += qty
+			} else {
+				resp.Keys[key] = qty
+			}
+		}
+		resp.NumNodes += kr.NumNodes
+		resp.NumResp += kr.NumResp
+		resp.NumErr += kr.NumErr
 	}
 
 	return client.Send(&header, resp)
