@@ -113,7 +113,16 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if listKeys {
 		c.Ui.Info("Asking all members for installed keys...")
-		return c.listKeysOperation(client)
+		r, err := client.ListKeys()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("error: %s", err))
+			return 1
+		}
+		if rval := c.handleResponse(r.Info, r.Messages, r.Keys); rval != 0 {
+			return rval
+		}
+		c.handleList(r.Info, r.Messages, r.Keys)
+		return 0
 	}
 
 	if installKey != "" {
@@ -123,11 +132,7 @@ func (c *KeyringCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		rval := c.handleResponse(r.Info, r.Messages, r.Keys)
-		if rval == 0 {
-			c.Ui.Info("Successfully installed new key!")
-		}
-		return rval
+		return c.handleResponse(r.Info, r.Messages, r.Keys)
 	}
 
 	if useKey != "" {
@@ -137,11 +142,7 @@ func (c *KeyringCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		rval := c.handleResponse(r.Info, r.Messages, r.Keys)
-		if rval == 0 {
-			c.Ui.Info("Successfully changed primary encryption key!")
-		}
-		return rval
+		return c.handleResponse(r.Info, r.Messages, r.Keys)
 	}
 
 	if removeKey != "" {
@@ -151,11 +152,7 @@ func (c *KeyringCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		rval := c.handleResponse(r.Info, r.Messages, r.Keys)
-		if rval == 0 {
-			c.Ui.Info("Successfully removed encryption key!")
-		}
-		return rval
+		return c.handleResponse(r.Info, r.Messages, r.Keys)
 	}
 
 	// Should never make it here
@@ -165,7 +162,7 @@ func (c *KeyringCommand) Run(args []string) int {
 func (c *KeyringCommand) handleResponse(
 	info []agent.KeyringInfo,
 	messages []agent.KeyringMessage,
-	entries []agent.KeyringEntry) int {
+	keys []agent.KeyringEntry) int {
 
 	var rval int
 
@@ -194,57 +191,49 @@ func (c *KeyringCommand) handleResponse(
 		}
 	}
 
+	if rval == 0 {
+		c.Ui.Info("Done!")
+	}
+
 	return rval
 }
 
-// listKeysOperation is a unified process for querying and
-// displaying gossip keys.
-func (c *KeyringCommand) listKeysOperation(client *agent.RPCClient) int {
-	var out []string
+func (c *KeyringCommand) handleList(
+	info []agent.KeyringInfo,
+	messages []agent.KeyringMessage,
+	keys []agent.KeyringEntry) {
 
-	resp, err := client.ListKeys()
-
-	if err != nil {
-		if len(resp.Messages) > 0 {
-			for _, msg := range resp.Messages {
-				out = append(out, fmt.Sprintf(
-					"failed: %s | %s | %s | %s",
-					msg.Datacenter,
-					msg.Pool,
-					msg.Node,
-					msg.Message))
+	installed := make(map[string]map[string][]int)
+	for _, key := range keys {
+		var nodes int
+		for _, i := range info {
+			if i.Datacenter == key.Datacenter && i.Pool == key.Pool {
+				nodes = i.NumNodes
 			}
-			c.Ui.Error(columnize.SimpleFormat(out))
 		}
-		c.Ui.Error("")
-		c.Ui.Error(fmt.Sprintf("Failed gathering member keys: %s", err))
-		return 1
-	}
 
-	entries := make(map[string]map[string]int)
-	for _, key := range resp.Keys {
-		var dc string
-		if key.Pool == "WAN" {
-			dc = key.Pool
+		pool := key.Pool
+		if pool != "WAN" {
+			pool = key.Datacenter + " (LAN)"
+		}
+
+		if _, ok := installed[pool]; !ok {
+			installed[pool] = map[string][]int{key.Key: []int{key.Count, nodes}}
 		} else {
-			dc = key.Datacenter
-		}
-		if _, ok := entries[dc]; !ok {
-			entries[dc] = make(map[string]int)
-		}
-		entries[dc][key.Key] = key.Count
-	}
-	for dc, keys := range entries {
-		out = append(out, "")
-		out = append(out, dc)
-		for key, count := range keys {
-			out = append(out, fmt.Sprintf("%s|[%d/%d]", key, count, count))
+			installed[pool][key.Key] = []int{key.Count, nodes}
 		}
 	}
-	c.Ui.Output(columnize.SimpleFormat(out))
-
-	c.Ui.Output("")
-	return 0
+	for pool, keys := range installed {
+		c.Ui.Output("")
+		c.Ui.Output(pool + ":")
+		var out []string
+		for key, num := range keys {
+			out = append(out, fmt.Sprintf(
+				"%s | [%d/%d]",
+				key, num[0], num[1]))
+		}
+		c.Ui.Output(columnize.SimpleFormat(out))
+	}
 }
 
 // initKeyring will create a keyring file at a given path.
