@@ -14,6 +14,12 @@ import (
 	"github.com/ryanuber/columnize"
 )
 
+const (
+	installKeyCommand = "install"
+	useKeyCommand     = "use"
+	removeKeyCommand  = "remove"
+)
+
 // KeyringCommand is a Command implementation that handles querying, installing,
 // and removing gossip encryption keys from a keyring.
 type KeyringCommand struct {
@@ -107,79 +113,106 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if listKeys {
 		c.Ui.Info("Asking all members for installed keys...")
-		return c.listKeysOperation(client.ListKeys)
+		return c.listKeysOperation(client)
 	}
 
 	if installKey != "" {
 		c.Ui.Info("Installing new gossip encryption key...")
-		if rval := c.keyOperation(installKey, client.InstallKey); rval != 0 {
-			return rval
+		r, err := client.InstallKey(installKey)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("error: %s", err))
+			return 1
 		}
-		c.Ui.Info("Successfully installed key!")
-		return 0
+		rval := c.handleResponse(r.Info, r.Messages, r.Keys)
+		if rval == 0 {
+			c.Ui.Info("Successfully installed new key!")
+		}
+		return rval
 	}
 
 	if useKey != "" {
 		c.Ui.Info("Changing primary gossip encryption key...")
-		if rval := c.keyOperation(useKey, client.UseKey); rval != 0 {
-			return rval
+		r, err := client.UseKey(useKey)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("error: %s", err))
+			return 1
 		}
-		c.Ui.Info("Successfully changed primary key!")
-		return 0
+		rval := c.handleResponse(r.Info, r.Messages, r.Keys)
+		if rval == 0 {
+			c.Ui.Info("Successfully changed primary encryption key!")
+		}
+		return rval
 	}
 
 	if removeKey != "" {
 		c.Ui.Info("Removing gossip encryption key...")
-		if rval := c.keyOperation(removeKey, client.RemoveKey); rval != 0 {
-			return rval
+		r, err := client.RemoveKey(removeKey)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("error: %s", err))
+			return 1
 		}
-		c.Ui.Info("Successfully removed gossip encryption key!")
-		return 0
+		rval := c.handleResponse(r.Info, r.Messages, r.Keys)
+		if rval == 0 {
+			c.Ui.Info("Successfully removed encryption key!")
+		}
+		return rval
 	}
 
 	// Should never make it here
 	return 0
 }
 
-// keyFunc is a function which manipulates gossip encryption keyrings. This is
-// used for key installation, removal, and primary key changes.
-type keyFunc func(string) (map[string]string, error)
+func (c *KeyringCommand) handleResponse(
+	info []agent.KeyringInfo,
+	messages []agent.KeyringMessage,
+	entries []agent.KeyringEntry) int {
 
-// keyOperation is a unified process for manipulating the gossip keyrings.
-func (c *KeyringCommand) keyOperation(key string, fn keyFunc) int {
-	var out []string
+	var rval int
 
-	failures, err := fn(key)
-
-	if err != nil {
-		if len(failures) > 0 {
-			for node, msg := range failures {
-				out = append(out, fmt.Sprintf("failed: %s | %s", node, msg))
+	for _, i := range info {
+		if i.Error != "" {
+			pool := i.Pool
+			if pool != "WAN" {
+				pool = i.Datacenter + " (LAN)"
 			}
-			c.Ui.Error(columnize.SimpleFormat(out))
+
+			c.Ui.Error("")
+			c.Ui.Error(fmt.Sprintf("%s error: %s", pool, i.Error))
+
+			var errors []string
+			for _, msg := range messages {
+				if msg.Datacenter != i.Datacenter || msg.Pool != i.Pool {
+					continue
+				}
+				errors = append(errors, fmt.Sprintf(
+					"failed: %s | %s",
+					msg.Node,
+					msg.Message))
+			}
+			c.Ui.Error(columnize.SimpleFormat(errors))
+			rval = 1
 		}
-		c.Ui.Error("")
-		c.Ui.Error(fmt.Sprintf("Error: %s", err))
-		return 1
 	}
 
-	return 0
+	return rval
 }
-
-// listKeysFunc is a function which handles querying lists of gossip keys
-type listKeysFunc func() (map[string]int, int, map[string]string, error)
 
 // listKeysOperation is a unified process for querying and
 // displaying gossip keys.
-func (c *KeyringCommand) listKeysOperation(fn listKeysFunc) int {
+func (c *KeyringCommand) listKeysOperation(client *agent.RPCClient) int {
 	var out []string
 
-	keys, numNodes, failures, err := fn()
+	resp, err := client.ListKeys()
 
 	if err != nil {
-		if len(failures) > 0 {
-			for node, msg := range failures {
-				out = append(out, fmt.Sprintf("failed: %s | %s", node, msg))
+		if len(resp.Messages) > 0 {
+			for _, msg := range resp.Messages {
+				out = append(out, fmt.Sprintf(
+					"failed: %s | %s | %s | %s",
+					msg.Datacenter,
+					msg.Pool,
+					msg.Node,
+					msg.Message))
 			}
 			c.Ui.Error(columnize.SimpleFormat(out))
 		}
@@ -187,8 +220,26 @@ func (c *KeyringCommand) listKeysOperation(fn listKeysFunc) int {
 		c.Ui.Error(fmt.Sprintf("Failed gathering member keys: %s", err))
 		return 1
 	}
-	for key, num := range keys {
-		out = append(out, fmt.Sprintf("%s | [%d/%d]", key, num, numNodes))
+
+	entries := make(map[string]map[string]int)
+	for _, key := range resp.Keys {
+		var dc string
+		if key.Pool == "WAN" {
+			dc = key.Pool
+		} else {
+			dc = key.Datacenter
+		}
+		if _, ok := entries[dc]; !ok {
+			entries[dc] = make(map[string]int)
+		}
+		entries[dc][key.Key] = key.Count
+	}
+	for dc, keys := range entries {
+		out = append(out, "")
+		out = append(out, dc)
+		for key, count := range keys {
+			out = append(out, fmt.Sprintf("%s|[%d/%d]", key, count, count))
+		}
 	}
 	c.Ui.Output(columnize.SimpleFormat(out))
 

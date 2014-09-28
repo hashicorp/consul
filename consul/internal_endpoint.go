@@ -64,18 +64,49 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	return m.srv.UserEvent(args.Name, args.Payload)
 }
 
+// ingestKeyringResponse is a helper method to pick the relative information
+// from a Serf message and stuff it into a KeyringResponse.
 func (m *Internal) ingestKeyringResponse(
-	resp *serf.KeyResponse,
-	reply *structs.KeyringResponses) {
+	serfResp *serf.KeyResponse,
+	reply *structs.KeyringResponses,
+	err error, wan bool) {
+
+	errStr := ""
+	if err != nil {
+		errStr = err.Error()
+	}
 
 	reply.Responses = append(reply.Responses, &structs.KeyringResponse{
+		WAN:        wan,
 		Datacenter: m.srv.config.Datacenter,
-		Messages:   resp.Messages,
-		Keys:       resp.Keys,
-		NumResp:    resp.NumResp,
-		NumNodes:   resp.NumNodes,
-		NumErr:     resp.NumErr,
+		Messages:   serfResp.Messages,
+		Keys:       serfResp.Keys,
+		NumResp:    serfResp.NumResp,
+		NumNodes:   serfResp.NumNodes,
+		NumErr:     serfResp.NumErr,
+		Error:      errStr,
 	})
+}
+
+func (m *Internal) forwardKeyring(
+	method string,
+	args *structs.KeyringRequest,
+	replies *structs.KeyringResponses) error {
+
+	for dc, _ := range m.srv.remoteConsuls {
+		if dc == m.srv.config.Datacenter {
+			continue
+		}
+		rr := structs.KeyringResponses{}
+		if err := m.srv.forwardDC(method, dc, args, &rr); err != nil {
+			return err
+		}
+		for _, r := range rr.Responses {
+			replies.Responses = append(replies.Responses, r)
+		}
+	}
+
+	return nil
 }
 
 // ListKeys will query the WAN and LAN gossip keyrings of all nodes, adding
@@ -84,22 +115,18 @@ func (m *Internal) ListKeys(
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses) error {
 
+	m.srv.setQueryMeta(&reply.QueryMeta)
+
 	respLAN, err := m.srv.KeyManagerLAN().ListKeys()
-	if err != nil {
-		return err
-	}
-	m.ingestKeyringResponse(respLAN, reply)
+	m.ingestKeyringResponse(respLAN, reply, err, false)
 
 	if !args.Forwarded {
 		respWAN, err := m.srv.KeyManagerWAN().ListKeys()
-		if err != nil {
-			return err
-		}
-		m.ingestKeyringResponse(respWAN, reply)
+		m.ingestKeyringResponse(respWAN, reply, err, true)
 
 		// Mark key rotation as being already forwarded, then forward.
 		args.Forwarded = true
-		return m.srv.forwardAll("Internal.ListKeys", args, reply)
+		m.forwardKeyring("Internal.ListKeys", args, reply)
 	}
 
 	return nil
@@ -112,20 +139,15 @@ func (m *Internal) InstallKey(
 	reply *structs.KeyringResponses) error {
 
 	respLAN, err := m.srv.KeyManagerLAN().InstallKey(args.Key)
-	if err != nil {
-		return err
-	}
-	m.ingestKeyringResponse(respLAN, reply)
+	m.ingestKeyringResponse(respLAN, reply, err, false)
 
 	if !args.Forwarded {
 		respWAN, err := m.srv.KeyManagerWAN().InstallKey(args.Key)
-		if err != nil {
-			return err
-		}
-		m.ingestKeyringResponse(respWAN, reply)
+		m.ingestKeyringResponse(respWAN, reply, err, true)
 
+		// Mark key rotation as being already forwarded, then forward.
 		args.Forwarded = true
-		return m.srv.forwardAll("Internal.InstallKey", args, reply)
+		m.forwardKeyring("Internal.InstallKey", args, reply)
 	}
 
 	return nil
@@ -138,20 +160,15 @@ func (m *Internal) UseKey(
 	reply *structs.KeyringResponses) error {
 
 	respLAN, err := m.srv.KeyManagerLAN().UseKey(args.Key)
-	if err != nil {
-		return err
-	}
-	m.ingestKeyringResponse(respLAN, reply)
+	m.ingestKeyringResponse(respLAN, reply, err, false)
 
 	if !args.Forwarded {
 		respWAN, err := m.srv.KeyManagerWAN().UseKey(args.Key)
-		if err != nil {
-			return err
-		}
-		m.ingestKeyringResponse(respWAN, reply)
+		m.ingestKeyringResponse(respWAN, reply, err, true)
 
+		// Mark key rotation as being already forwarded, then forward.
 		args.Forwarded = true
-		return m.srv.forwardAll("Internal.UseKey", args, reply)
+		m.forwardKeyring("Internal.UseKey", args, reply)
 	}
 
 	return nil
@@ -163,20 +180,15 @@ func (m *Internal) RemoveKey(
 	reply *structs.KeyringResponses) error {
 
 	respLAN, err := m.srv.KeyManagerLAN().RemoveKey(args.Key)
-	if err != nil {
-		return err
-	}
-	m.ingestKeyringResponse(respLAN, reply)
+	m.ingestKeyringResponse(respLAN, reply, err, false)
 
 	if !args.Forwarded {
 		respWAN, err := m.srv.KeyManagerWAN().RemoveKey(args.Key)
-		if err != nil {
-			return err
-		}
-		m.ingestKeyringResponse(respWAN, reply)
+		m.ingestKeyringResponse(respWAN, reply, err, true)
 
+		// Mark key rotation as being already forwarded, then forward.
 		args.Forwarded = true
-		return m.srv.forwardAll("Internal.RemoveKey", args, reply)
+		m.forwardKeyring("Internal.RemoveKey", args, reply)
 	}
 
 	return nil

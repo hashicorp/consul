@@ -223,19 +223,6 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	return s.connPool.RPC(server.Addr, server.Version, method, args, reply)
 }
 
-// forwardAll forwards a single RPC call to every known datacenter.
-func (s *Server) forwardAll(method string, args, reply interface{}) error {
-	for dc, _ := range s.remoteConsuls {
-		if dc != s.config.Datacenter {
-			// Forward the RPC call. Even if an error is returned here, we still
-			// want to continue broadcasting to the remaining DC's to avoid
-			// network partitions completely killing us.
-			go s.forwardDC(method, dc, args, reply)
-		}
-	}
-	return nil
-}
-
 // raftApply is used to encode a message, run it through raft, and return
 // the FSM response along with any errors
 func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {

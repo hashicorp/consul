@@ -113,12 +113,33 @@ type keyRequest struct {
 	Key string
 }
 
+type KeyringEntry struct {
+	Datacenter string
+	Pool       string
+	Key        string
+	Count      int
+}
+
+type KeyringMessage struct {
+	Datacenter string
+	Pool       string
+	Node       string
+	Message    string
+}
+
+type KeyringInfo struct {
+	Datacenter string
+	Pool       string
+	NumNodes   int
+	NumResp    int
+	NumErr     int
+	Error      string
+}
+
 type keyResponse struct {
-	Messages map[string]string
-	Keys     map[string]int
-	NumNodes int
-	NumResp  int
-	NumErr   int
+	Keys     []KeyringEntry
+	Messages []KeyringMessage
+	Info     []KeyringInfo
 }
 
 type membersResponse struct {
@@ -607,7 +628,7 @@ func (i *AgentRPC) handleReload(client *rpcClient, seq uint64) error {
 func (i *AgentRPC) handleKeyring(client *rpcClient, seq uint64, cmd string) error {
 	var req keyRequest
 	var queryResp *structs.KeyringResponses
-	var resp keyResponse
+	var r keyResponse
 	var err error
 
 	if cmd != listKeysCommand {
@@ -636,30 +657,43 @@ func (i *AgentRPC) handleKeyring(client *rpcClient, seq uint64, cmd string) erro
 		Error: errToString(err),
 	}
 
-	if resp.Messages == nil {
-		resp.Messages = make(map[string]string)
-	}
-	if resp.Keys == nil {
-		resp.Keys = make(map[string]int)
-	}
-
 	for _, kr := range queryResp.Responses {
-		for node, msg := range kr.Messages {
-			resp.Messages[node+"."+kr.Datacenter] = msg
+		var pool string
+		if kr.WAN {
+			pool = "WAN"
+		} else {
+			pool = "LAN"
+		}
+		for node, message := range kr.Messages {
+			msg := KeyringMessage{
+				Datacenter: kr.Datacenter,
+				Pool:       pool,
+				Node:       node,
+				Message:    message,
+			}
+			r.Messages = append(r.Messages, msg)
 		}
 		for key, qty := range kr.Keys {
-			if _, ok := resp.Keys[key]; ok {
-				resp.Keys[key] += qty
-			} else {
-				resp.Keys[key] = qty
+			k := KeyringEntry{
+				Datacenter: kr.Datacenter,
+				Pool:       pool,
+				Key:        key,
+				Count:      qty,
 			}
+			r.Keys = append(r.Keys, k)
 		}
-		resp.NumNodes += kr.NumNodes
-		resp.NumResp += kr.NumResp
-		resp.NumErr += kr.NumErr
+		info := KeyringInfo{
+			Datacenter: kr.Datacenter,
+			Pool:       pool,
+			NumNodes:   kr.NumNodes,
+			NumResp:    kr.NumResp,
+			NumErr:     kr.NumErr,
+			Error:      kr.Error,
+		}
+		r.Info = append(r.Info, info)
 	}
 
-	return client.Send(&header, resp)
+	return client.Send(&header, r)
 }
 
 // Used to convert an error to a string representation

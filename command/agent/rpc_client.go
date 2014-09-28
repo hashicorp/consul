@@ -176,47 +176,47 @@ func (c *RPCClient) WANMembers() ([]Member, error) {
 	return resp.Members, err
 }
 
-func (c *RPCClient) ListKeys() (map[string]int, int, map[string]string, error) {
+func (c *RPCClient) ListKeys() (keyResponse, error) {
 	header := requestHeader{
 		Command: listKeysCommand,
 		Seq:     c.getSeq(),
 	}
-	resp := new(keyResponse)
-	err := c.genericRPC(&header, nil, resp)
-	return resp.Keys, resp.NumNodes, resp.Messages, err
+	var resp keyResponse
+	err := c.genericRPC(&header, nil, &resp)
+	return resp, err
 }
 
-func (c *RPCClient) InstallKey(key string) (map[string]string, error) {
+func (c *RPCClient) InstallKey(key string) (keyResponse, error) {
 	header := requestHeader{
 		Command: installKeyCommand,
 		Seq:     c.getSeq(),
 	}
 	req := keyRequest{key}
-	resp := new(keyResponse)
-	err := c.genericRPC(&header, &req, resp)
-	return resp.Messages, err
+	var resp keyResponse
+	err := c.genericRPC(&header, &req, &resp)
+	return resp, err
 }
 
-func (c *RPCClient) UseKey(key string) (map[string]string, error) {
+func (c *RPCClient) UseKey(key string) (keyResponse, error) {
 	header := requestHeader{
 		Command: useKeyCommand,
 		Seq:     c.getSeq(),
 	}
 	req := keyRequest{key}
-	resp := new(keyResponse)
-	err := c.genericRPC(&header, &req, resp)
-	return resp.Messages, err
+	var resp keyResponse
+	err := c.genericRPC(&header, &req, &resp)
+	return resp, err
 }
 
-func (c *RPCClient) RemoveKey(key string) (map[string]string, error) {
+func (c *RPCClient) RemoveKey(key string) (keyResponse, error) {
 	header := requestHeader{
 		Command: removeKeyCommand,
 		Seq:     c.getSeq(),
 	}
 	req := keyRequest{key}
-	resp := new(keyResponse)
-	err := c.genericRPC(&header, &req, resp)
-	return resp.Messages, err
+	var resp keyResponse
+	err := c.genericRPC(&header, &req, &resp)
+	return resp, err
 }
 
 // Leave is used to trigger a graceful leave and shutdown

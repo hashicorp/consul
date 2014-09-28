@@ -543,14 +543,17 @@ type KeyringRequest struct {
 // KeyringResponse is a unified key response and can be used for install,
 // remove, use, as well as listing key queries.
 type KeyringResponse struct {
+	WAN        bool
 	Datacenter string
 	Messages   map[string]string
 	Keys       map[string]int
 	NumNodes   int
 	NumResp    int
 	NumErr     int
+	Error      string
 }
 
 type KeyringResponses struct {
 	Responses []*KeyringResponse
+	QueryMeta
 }
