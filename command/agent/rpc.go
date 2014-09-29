@@ -109,7 +109,7 @@ type joinResponse struct {
 	Num int32
 }
 
-type keyRequest struct {
+type keyringRequest struct {
 	Key string
 }
 
@@ -136,7 +136,7 @@ type KeyringInfo struct {
 	Error      string
 }
 
-type keyResponse struct {
+type keyringResponse struct {
 	Keys     []KeyringEntry
 	Messages []KeyringMessage
 	Info     []KeyringInfo
@@ -626,9 +626,9 @@ func (i *AgentRPC) handleReload(client *rpcClient, seq uint64) error {
 }
 
 func (i *AgentRPC) handleKeyring(client *rpcClient, seq uint64, cmd string) error {
-	var req keyRequest
+	var req keyringRequest
 	var queryResp *structs.KeyringResponses
-	var r keyResponse
+	var r keyringResponse
 	var err error
 
 	if cmd != listKeysCommand {

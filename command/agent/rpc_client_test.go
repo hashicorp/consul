@@ -403,7 +403,7 @@ func listKeys(t *testing.T, c *RPCClient) map[string]map[string]int {
 	return out
 }
 
-func keyringError(t *testing.T, r keyResponse) {
+func keyringError(t *testing.T, r keyringResponse) {
 	for _, i := range r.Info {
 		if i.Error == "" {
 			t.Fatalf("no error reported from %s (%s)", i.Datacenter, i.Pool)
@@ -411,7 +411,7 @@ func keyringError(t *testing.T, r keyResponse) {
 	}
 }
 
-func keyringSuccess(t *testing.T, r keyResponse) {
+func keyringSuccess(t *testing.T, r keyringResponse) {
 	for _, i := range r.Info {
 		if i.Error != "" {
 			t.Fatalf("error from %s (%s): %s", i.Datacenter, i.Pool, i.Error)

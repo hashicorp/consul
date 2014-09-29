@@ -176,45 +176,45 @@ func (c *RPCClient) WANMembers() ([]Member, error) {
 	return resp.Members, err
 }
 
-func (c *RPCClient) ListKeys() (keyResponse, error) {
+func (c *RPCClient) ListKeys() (keyringResponse, error) {
 	header := requestHeader{
 		Command: listKeysCommand,
 		Seq:     c.getSeq(),
 	}
-	var resp keyResponse
+	var resp keyringResponse
 	err := c.genericRPC(&header, nil, &resp)
 	return resp, err
 }
 
-func (c *RPCClient) InstallKey(key string) (keyResponse, error) {
+func (c *RPCClient) InstallKey(key string) (keyringResponse, error) {
 	header := requestHeader{
 		Command: installKeyCommand,
 		Seq:     c.getSeq(),
 	}
-	req := keyRequest{key}
-	var resp keyResponse
+	req := keyringRequest{key}
+	var resp keyringResponse
 	err := c.genericRPC(&header, &req, &resp)
 	return resp, err
 }
 
-func (c *RPCClient) UseKey(key string) (keyResponse, error) {
+func (c *RPCClient) UseKey(key string) (keyringResponse, error) {
 	header := requestHeader{
 		Command: useKeyCommand,
 		Seq:     c.getSeq(),
 	}
-	req := keyRequest{key}
-	var resp keyResponse
+	req := keyringRequest{key}
+	var resp keyringResponse
 	err := c.genericRPC(&header, &req, &resp)
 	return resp, err
 }
 
-func (c *RPCClient) RemoveKey(key string) (keyResponse, error) {
+func (c *RPCClient) RemoveKey(key string) (keyringResponse, error) {
 	header := requestHeader{
 		Command: removeKeyCommand,
 		Seq:     c.getSeq(),
 	}
-	req := keyRequest{key}
-	var resp keyResponse
+	req := keyringRequest{key}
+	var resp keyringResponse
 	err := c.genericRPC(&header, &req, &resp)
 	return resp, err
 }

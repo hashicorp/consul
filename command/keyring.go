@@ -28,7 +28,7 @@ type KeyringCommand struct {
 
 func (c *KeyringCommand) Run(args []string) int {
 	var installKey, useKey, removeKey, init, dataDir string
-	var listKeys, wan bool
+	var listKeys bool
 
 	cmdFlags := flag.NewFlagSet("keys", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
@@ -39,7 +39,6 @@ func (c *KeyringCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&listKeys, "list", false, "list keys")
 	cmdFlags.StringVar(&init, "init", "", "initialize keyring")
 	cmdFlags.StringVar(&dataDir, "data-dir", "", "data directory")
-	cmdFlags.BoolVar(&wan, "wan", false, "operate on wan keyring")
 
 	rpcAddr := RPCAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
@@ -281,8 +280,8 @@ Usage: consul keyring [options]
   without disrupting the cluster.
 
   With the exception of the -init argument, all operations performed by this
-  command can only be run against server nodes. All operations default to the
-  LAN gossip pool.
+  command can only be run against server nodes, and affect both the LAN and
+  WAN keyrings in lock-step.
 
 Options:
 
@@ -298,8 +297,6 @@ Options:
   -init=<key>               Create the initial keyring files for Consul to use
                             containing the provided key. The -data-dir argument
                             is required with this option.
-  -wan                      Operate on the WAN keyring instead of the LAN
-                            keyring (default).
   -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
 `
 	return strings.TrimSpace(helpText)
