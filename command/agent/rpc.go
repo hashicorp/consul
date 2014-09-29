@@ -655,6 +655,10 @@ func (i *AgentRPC) handleKeyring(client *rpcClient, seq uint64, cmd string) erro
 		Error: errToString(err),
 	}
 
+	if queryResp == nil {
+		goto SEND
+	}
+
 	for _, kr := range queryResp.Responses {
 		var pool string
 		if kr.WAN {
@@ -689,6 +693,7 @@ func (i *AgentRPC) handleKeyring(client *rpcClient, seq uint64, cmd string) erro
 		r.Info = append(r.Info, info)
 	}
 
+SEND:
 	return client.Send(&header, r)
 }
 

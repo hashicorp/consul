@@ -96,20 +96,6 @@ func (c *KeyringCommand) Run(args []string) int {
 	}
 	defer client.Close()
 
-	// For all key-related operations, we must be querying a server node. It is
-	// probably better to enforce this even for LAN pool changes, because other-
-	// wise, the same exact command syntax will have different results depending
-	// on where it was run.
-	s, err := client.Stats()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error: %s", err))
-		return 1
-	}
-	if s["consul"]["server"] != "true" {
-		c.Ui.Error("Error: Key modification can only be handled by a server")
-		return 1
-	}
-
 	if listKeys {
 		c.Ui.Info("Asking all members for installed keys...")
 		r, err := client.ListKeys()
