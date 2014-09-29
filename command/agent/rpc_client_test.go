@@ -284,19 +284,16 @@ OUTER2:
 
 func TestRPCClientListKeys(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
-	conf := Config{EncryptKey: key1}
+	conf := Config{EncryptKey: key1, Datacenter: "dc1"}
 	p1 := testRPCClientWithConfig(t, &conf)
 	defer p1.Close()
 
-	// Check WAN keys
-	keys := listKeys(t, p1.client, false)
-	if _, ok := keys[key1]; !ok {
+	// Key is initially installed to both wan/lan
+	keys := listKeys(t, p1.client)
+	if _, ok := keys["dc1"][key1]; !ok {
 		t.Fatalf("bad: %#v", keys)
 	}
-
-	// Check LAN keys
-	keys = listKeys(t, p1.client, true)
-	if _, ok := keys[key1]; !ok {
+	if _, ok := keys["wan"][key1]; !ok {
 		t.Fatalf("bad: %#v", keys)
 	}
 }
@@ -308,74 +305,64 @@ func TestRPCClientInstallKey(t *testing.T) {
 	p1 := testRPCClientWithConfig(t, &conf)
 	defer p1.Close()
 
-	// Test WAN keys
-	keys := listKeys(t, p1.client, true)
-	if _, ok := keys[key2]; ok {
+	// key2 is not installed yet
+	keys := listKeys(t, p1.client)
+	if num, ok := keys["dc1"][key2]; ok || num != 0 {
+		t.Fatalf("bad: %#v", keys)
+	}
+	if num, ok := keys["wan"][key2]; ok || num != 0 {
 		t.Fatalf("bad: %#v", keys)
 	}
 
-	installKey(t, p1.client, key2, true)
-
-	keys = listKeys(t, p1.client, true)
-	if _, ok := keys[key2]; !ok {
-		t.Fatalf("bad: %#v", keys)
+	// install key2
+	if _, err := p1.client.InstallKey(key2); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
-	// Test LAN keys
-	keys = listKeys(t, p1.client, false)
-	if _, ok := keys[key2]; ok {
+	// key2 should now be installed
+	keys = listKeys(t, p1.client)
+	if num, ok := keys["dc1"][key2]; !ok || num != 1 {
 		t.Fatalf("bad: %#v", keys)
 	}
-
-	installKey(t, p1.client, key2, false)
-
-	keys = listKeys(t, p1.client, false)
-	if _, ok := keys[key2]; !ok {
+	if num, ok := keys["wan"][key2]; !ok || num != 1 {
 		t.Fatalf("bad: %#v", keys)
 	}
 }
 
-func TestRPCClientRotateKey(t *testing.T) {
+func TestRPCClientUseKey(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "xAEZ3uVHRMZD9GcYMZaRQw=="
 	conf := Config{EncryptKey: key1}
 	p1 := testRPCClientWithConfig(t, &conf)
 	defer p1.Close()
 
-	// Test WAN keys
-	keys := listKeys(t, p1.client, true)
-	if _, ok := keys[key2]; ok {
+	// add a second key to the ring
+	if _, err := p1.client.InstallKey(key2); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// key2 is installed
+	keys := listKeys(t, p1.client)
+	if num, ok := keys["dc1"][key2]; !ok || num != 1 {
+		t.Fatalf("bad: %#v", keys)
+	}
+	if num, ok := keys["wan"][key2]; !ok || num != 1 {
 		t.Fatalf("bad: %#v", keys)
 	}
 
-	installKey(t, p1.client, key2, true)
-	useKey(t, p1.client, key2, true)
-	removeKey(t, p1.client, key1, true)
-
-	keys = listKeys(t, p1.client, true)
-	if _, ok := keys[key1]; ok {
-		t.Fatalf("bad: %#v", keys)
-	}
-	if _, ok := keys[key2]; !ok {
-		t.Fatalf("bad: %#v", keys)
+	// can't remove key1 yet
+	if _, err := p1.client.RemoveKey(key1); err == nil {
+		t.Fatalf("expected error removing primary key")
 	}
 
-	// Test LAN keys
-	keys = listKeys(t, p1.client, false)
-	if _, ok := keys[key2]; ok {
-		t.Fatalf("bad: %#v", keys)
+	// change primary key
+	if _, err := p1.client.UseKey(key2); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
-	installKey(t, p1.client, key2, false)
-	useKey(t, p1.client, key2, false)
-	removeKey(t, p1.client, key1, false)
-
-	keys = listKeys(t, p1.client, false)
-	if _, ok := keys[key1]; ok {
-		t.Fatalf("bad: %#v", keys)
-	}
-	if _, ok := keys[key2]; !ok {
-		t.Fatalf("bad: %#v", keys)
+	// can remove key1 now
+	if _, err := p1.client.RemoveKey(key1); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }
 
@@ -383,66 +370,28 @@ func TestRPCClientKeyOperation_encryptionDisabled(t *testing.T) {
 	p1 := testRPCClient(t)
 	defer p1.Close()
 
-	_, _, failures, err := p1.client.ListKeysLAN()
+	r, err := p1.client.ListKeys()
 	if err == nil {
 		t.Fatalf("no error listing keys with encryption disabled")
 	}
 
-	if len(failures) != 1 {
-		t.Fatalf("bad: %#v", failures)
+	if len(r.Messages) != 1 {
+		t.Fatalf("bad: %#v", r)
 	}
 }
 
-func listKeys(t *testing.T, c *RPCClient, wan bool) (keys map[string]int) {
-	var err error
-
-	if wan {
-		keys, _, _, err = c.ListKeysWAN()
-	} else {
-		keys, _, _, err = c.ListKeysLAN()
-	}
+func listKeys(t *testing.T, c *RPCClient) map[string]map[string]int {
+	resp, err := c.ListKeys()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	return
-}
-
-func installKey(t *testing.T, c *RPCClient, key string, wan bool) {
-	var err error
-
-	if wan {
-		_, err = c.InstallKeyWAN(key)
-	} else {
-		_, err = c.InstallKeyLAN(key)
+	out := make(map[string]map[string]int)
+	for _, k := range resp.Keys {
+		respID := k.Datacenter
+		if k.Pool == "WAN" {
+			respID = "wan"
+		}
+		out[respID] = map[string]int{k.Key: k.Count}
 	}
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-}
-
-func useKey(t *testing.T, c *RPCClient, key string, wan bool) {
-	var err error
-
-	if wan {
-		_, err = c.UseKeyWAN(key)
-	} else {
-		_, err = c.UseKeyLAN(key)
-	}
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-}
-
-func removeKey(t *testing.T, c *RPCClient, key string, wan bool) {
-	var err error
-
-	if wan {
-		_, err = c.RemoveKeyWAN(key)
-	} else {
-		_, err = c.RemoveKeyLAN(key)
-	}
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	return out
 }
