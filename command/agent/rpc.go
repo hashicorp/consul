@@ -131,8 +131,6 @@ type KeyringInfo struct {
 	Datacenter string
 	Pool       string
 	NumNodes   int
-	NumResp    int
-	NumErr     int
 	Error      string
 }
 
@@ -686,8 +684,6 @@ func (i *AgentRPC) handleKeyring(client *rpcClient, seq uint64, cmd string) erro
 			Datacenter: kr.Datacenter,
 			Pool:       pool,
 			NumNodes:   kr.NumNodes,
-			NumResp:    kr.NumResp,
-			NumErr:     kr.NumErr,
 			Error:      kr.Error,
 		}
 		r.Info = append(r.Info, info)

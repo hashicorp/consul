@@ -548,8 +548,6 @@ type KeyringResponse struct {
 	Messages   map[string]string
 	Keys       map[string]int
 	NumNodes   int
-	NumResp    int
-	NumErr     int
 	Error      string
 }
 

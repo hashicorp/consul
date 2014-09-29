@@ -81,9 +81,7 @@ func (m *Internal) ingestKeyringResponse(
 		Datacenter: m.srv.config.Datacenter,
 		Messages:   serfResp.Messages,
 		Keys:       serfResp.Keys,
-		NumResp:    serfResp.NumResp,
 		NumNodes:   serfResp.NumNodes,
-		NumErr:     serfResp.NumErr,
 		Error:      errStr,
 	})
 }
