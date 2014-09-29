@@ -53,7 +53,7 @@ func testAgentWithConfig(c *agent.Config, t *testing.T) *agentWrapper {
 
 	conf := nextConfig()
 	if c != nil {
-		conf = agent.MergeConfig(conf, c)
+		conf = agent.MergeConfig(c, conf)
 	}
 
 	dir, err := ioutil.TempDir("", "agent")

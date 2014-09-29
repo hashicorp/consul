@@ -315,9 +315,11 @@ func TestRPCClientInstallKey(t *testing.T) {
 	}
 
 	// install key2
-	if _, err := p1.client.InstallKey(key2); err != nil {
+	r, err := p1.client.InstallKey(key2)
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	keyringSuccess(t, r)
 
 	// key2 should now be installed
 	keys = listKeys(t, p1.client)
@@ -337,9 +339,11 @@ func TestRPCClientUseKey(t *testing.T) {
 	defer p1.Close()
 
 	// add a second key to the ring
-	if _, err := p1.client.InstallKey(key2); err != nil {
+	r, err := p1.client.InstallKey(key2)
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	keyringSuccess(t, r)
 
 	// key2 is installed
 	keys := listKeys(t, p1.client)
@@ -351,19 +355,25 @@ func TestRPCClientUseKey(t *testing.T) {
 	}
 
 	// can't remove key1 yet
-	if _, err := p1.client.RemoveKey(key1); err == nil {
-		t.Fatalf("expected error removing primary key")
+	r, err = p1.client.RemoveKey(key1)
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
+	keyringError(t, r)
 
 	// change primary key
-	if _, err := p1.client.UseKey(key2); err != nil {
+	r, err = p1.client.UseKey(key2)
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	keyringSuccess(t, r)
 
 	// can remove key1 now
-	if _, err := p1.client.RemoveKey(key1); err != nil {
+	r, err = p1.client.RemoveKey(key1)
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	keyringSuccess(t, r)
 }
 
 func TestRPCClientKeyOperation_encryptionDisabled(t *testing.T) {
@@ -371,13 +381,10 @@ func TestRPCClientKeyOperation_encryptionDisabled(t *testing.T) {
 	defer p1.Close()
 
 	r, err := p1.client.ListKeys()
-	if err == nil {
-		t.Fatalf("no error listing keys with encryption disabled")
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
-
-	if len(r.Messages) != 1 {
-		t.Fatalf("bad: %#v", r)
-	}
+	keyringError(t, r)
 }
 
 func listKeys(t *testing.T, c *RPCClient) map[string]map[string]int {
@@ -394,4 +401,20 @@ func listKeys(t *testing.T, c *RPCClient) map[string]map[string]int {
 		out[respID] = map[string]int{k.Key: k.Count}
 	}
 	return out
+}
+
+func keyringError(t *testing.T, r keyResponse) {
+	for _, i := range r.Info {
+		if i.Error == "" {
+			t.Fatalf("no error reported from %s (%s)", i.Datacenter, i.Pool)
+		}
+	}
+}
+
+func keyringSuccess(t *testing.T, r keyResponse) {
+	for _, i := range r.Info {
+		if i.Error != "" {
+			t.Fatalf("error from %s (%s): %s", i.Datacenter, i.Pool, i.Error)
+		}
+	}
 }
