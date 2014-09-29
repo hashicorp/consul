@@ -367,7 +367,6 @@ func (c *Command) Run(args []string) int {
 	if config == nil {
 		return 1
 	}
-	c.args = args
 
 	// Check GOMAXPROCS
 	if runtime.GOMAXPROCS(0) == 1 {
