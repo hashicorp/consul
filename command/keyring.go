@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/mitchellh/cli"
-	"github.com/ryanuber/columnize"
 )
 
 const (
@@ -97,7 +96,7 @@ func (c *KeyringCommand) Run(args []string) int {
 	defer client.Close()
 
 	if listKeys {
-		c.Ui.Info("Asking all members for installed keys...")
+		c.Ui.Info("Gathering installed encryption keys...")
 		r, err := client.ListKeys()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
@@ -161,17 +160,12 @@ func (c *KeyringCommand) handleResponse(
 			c.Ui.Error("")
 			c.Ui.Error(fmt.Sprintf("%s error: %s", pool, i.Error))
 
-			var errors []string
 			for _, msg := range messages {
 				if msg.Datacenter != i.Datacenter || msg.Pool != i.Pool {
 					continue
 				}
-				errors = append(errors, fmt.Sprintf(
-					"failed: %s | %s",
-					msg.Node,
-					msg.Message))
+				c.Ui.Error(fmt.Sprintf("  %s: %s", msg.Node, msg.Message))
 			}
-			c.Ui.Error(columnize.SimpleFormat(errors))
 			rval = 1
 		}
 	}
@@ -208,16 +202,13 @@ func (c *KeyringCommand) handleList(
 			installed[pool][key.Key] = []int{key.Count, nodes}
 		}
 	}
+
 	for pool, keys := range installed {
 		c.Ui.Output("")
 		c.Ui.Output(pool + ":")
-		var out []string
 		for key, num := range keys {
-			out = append(out, fmt.Sprintf(
-				"%s | [%d/%d]",
-				key, num[0], num[1]))
+			c.Ui.Output(fmt.Sprintf("  %s [%d/%d]", key, num[0], num[1]))
 		}
-		c.Ui.Output(columnize.SimpleFormat(out))
 	}
 }
 

@@ -26,10 +26,10 @@ func TestKeyringCommandRun(t *testing.T) {
 
 	// The LAN and WAN keyrings were initialized with key1
 	out := listKeys(t, a1.addr)
-	if !strings.Contains(out, "dc1 (LAN):\n"+key1) {
+	if !strings.Contains(out, "dc1 (LAN):\n  "+key1) {
 		t.Fatalf("bad: %#v", out)
 	}
-	if !strings.Contains(out, "WAN:\n"+key1) {
+	if !strings.Contains(out, "WAN:\n  "+key1) {
 		t.Fatalf("bad: %#v", out)
 	}
 	if strings.Contains(out, key2) {
@@ -53,10 +53,10 @@ func TestKeyringCommandRun(t *testing.T) {
 
 	// Only key2 is present now
 	out = listKeys(t, a1.addr)
-	if !strings.Contains(out, "dc1 (LAN):\n"+key2) {
+	if !strings.Contains(out, "dc1 (LAN):\n  "+key2) {
 		t.Fatalf("bad: %#v", out)
 	}
-	if !strings.Contains(out, "WAN:\n"+key2) {
+	if !strings.Contains(out, "WAN:\n  "+key2) {
 		t.Fatalf("bad: %#v", out)
 	}
 	if strings.Contains(out, key1) {
