@@ -325,6 +325,11 @@ func (s *Server) keyringRPC(
 	args *structs.KeyringRequest,
 	replies *structs.KeyringResponses) error {
 
+	rlen := len(s.remoteConsuls) - 1
+	if rlen == 0 {
+		return nil
+	}
+
 	errorCh := make(chan error)
 	respCh := make(chan *structs.KeyringResponses)
 
@@ -335,7 +340,6 @@ func (s *Server) keyringRPC(
 		go s.forwardKeyringRPC(method, dc, args, errorCh, respCh)
 	}
 
-	rlen := len(s.remoteConsuls) - 1
 	done := 0
 	for {
 		select {
