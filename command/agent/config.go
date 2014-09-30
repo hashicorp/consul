@@ -58,6 +58,13 @@ type DNSConfig struct {
 	// only the leader.
 	AllowStale bool `mapstructure:"allow_stale"`
 
+	// EnableTruncate is used to enable setting the truncate
+	// flag for UDP DNS queries.  This allows unmodified
+	// clients to re-query the consul server using TCP
+	// when the total number of records exceeds the number
+	// returned by default for UDP.
+	EnableTruncate bool `mapstructure:"enable_truncate"`
+
 	// MaxStale is used to bound how stale of a result is
 	// accepted for a DNS lookup. This can be used with
 	// AllowStale to limit how old of a value is served up.
@@ -687,6 +694,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.DNSConfig.AllowStale {
 		result.DNSConfig.AllowStale = true
+	}
+	if b.DNSConfig.EnableTruncate {
+		result.DNSConfig.EnableTruncate = true
 	}
 	if b.DNSConfig.MaxStale != 0 {
 		result.DNSConfig.MaxStale = b.DNSConfig.MaxStale
