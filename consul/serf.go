@@ -4,6 +4,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -275,4 +276,82 @@ func (s *Server) nodeFailed(me serf.MemberEvent, wan bool) {
 			s.localLock.Unlock()
 		}
 	}
+}
+
+// ingestKeyringResponse is a helper method to pick the relative information
+// from a Serf message and stuff it into a KeyringResponse.
+func ingestKeyringResponse(
+	serfResp *serf.KeyResponse, reply *structs.KeyringResponses,
+	dc string, wan bool, err error) {
+
+	errStr := ""
+	if err != nil {
+		errStr = err.Error()
+	}
+
+	reply.Responses = append(reply.Responses, &structs.KeyringResponse{
+		WAN:        wan,
+		Datacenter: dc,
+		Messages:   serfResp.Messages,
+		Keys:       serfResp.Keys,
+		NumNodes:   serfResp.NumNodes,
+		Error:      errStr,
+	})
+}
+
+// forwardKeyring handles sending an RPC request to a remote datacenter and
+// funneling any errors or responses back through the provided channels.
+func (s *Server) forwardKeyringRPC(
+	method, dc string,
+	args *structs.KeyringRequest,
+	errorCh chan<- error,
+	respCh chan<- *structs.KeyringResponses) {
+
+	rr := structs.KeyringResponses{}
+	if err := s.forwardDC(method, dc, args, &rr); err != nil {
+		errorCh <- err
+		return
+	}
+	respCh <- &rr
+	return
+}
+
+// keyringRPC is used to forward a keyring-related RPC request to one
+// server in each datacenter. This will only error for RPC-related errors.
+// Otherwise, application-level errors are returned inside of the inner
+// response objects.
+func (s *Server) keyringRPC(
+	method string,
+	args *structs.KeyringRequest,
+	replies *structs.KeyringResponses) error {
+
+	errorCh := make(chan error)
+	respCh := make(chan *structs.KeyringResponses)
+
+	for dc, _ := range s.remoteConsuls {
+		if dc == s.config.Datacenter {
+			continue
+		}
+		go s.forwardKeyringRPC(method, dc, args, errorCh, respCh)
+	}
+
+	rlen := len(s.remoteConsuls) - 1
+	done := 0
+	for {
+		select {
+		case err := <-errorCh:
+			return err
+		case rr := <-respCh:
+			for _, r := range rr.Responses {
+				replies.Responses = append(replies.Responses, r)
+			}
+			done++
+		}
+
+		if done == rlen {
+			break
+		}
+	}
+
+	return nil
 }

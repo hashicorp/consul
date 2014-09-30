@@ -79,7 +79,7 @@ func (m *Internal) ListKeys(
 
 		// Mark key rotation as being already forwarded, then forward.
 		args.Forwarded = true
-		m.srv.forwardKeyringRPC("Internal.ListKeys", args, reply)
+		m.srv.keyringRPC("Internal.ListKeys", args, reply)
 	}
 
 	return nil
@@ -100,7 +100,7 @@ func (m *Internal) InstallKey(
 		ingestKeyringResponse(respWAN, reply, dc, true, err)
 
 		args.Forwarded = true
-		m.srv.forwardKeyringRPC("Internal.InstallKey", args, reply)
+		m.srv.keyringRPC("Internal.InstallKey", args, reply)
 	}
 
 	return nil
@@ -121,7 +121,7 @@ func (m *Internal) UseKey(
 		ingestKeyringResponse(respWAN, reply, dc, true, err)
 
 		args.Forwarded = true
-		m.srv.forwardKeyringRPC("Internal.UseKey", args, reply)
+		m.srv.keyringRPC("Internal.UseKey", args, reply)
 	}
 
 	return nil
@@ -141,7 +141,7 @@ func (m *Internal) RemoveKey(
 		ingestKeyringResponse(respWAN, reply, dc, true, err)
 
 		args.Forwarded = true
-		m.srv.forwardKeyringRPC("Internal.RemoveKey", args, reply)
+		m.srv.keyringRPC("Internal.RemoveKey", args, reply)
 	}
 
 	return nil
