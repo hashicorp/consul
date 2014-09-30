@@ -266,6 +266,10 @@ definitions support being updated during a reload.
   there is no specific policy available for a service. By default, all services are served
   with a 0 TTL value. Setting this enables DNS caching.
 
+  * `enable_truncate` - If set to true, a UDP DNS query that would return more than 3 records
+  will set the truncated flag, indicating to clients that they should re-query using TCP to
+  get the full set of records.
+
 * `domain` - By default, Consul responds to DNS queries in the "consul." domain.
   This flag can be used to change that domain. All queries in this domain are assumed
   to be handled by Consul, and will not be recursively resolved.
