@@ -13,12 +13,6 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-const (
-	installKeyCommand = "install"
-	useKeyCommand     = "use"
-	removeKeyCommand  = "remove"
-)
-
 // KeyringCommand is a Command implementation that handles querying, installing,
 // and removing gossip encryption keys from a keyring.
 type KeyringCommand struct {
@@ -102,10 +96,10 @@ func (c *KeyringCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		if rval := c.handleResponse(r.Info, r.Messages, r.Keys); rval != 0 {
+		if rval := c.handleResponse(r.Info, r.Messages); rval != 0 {
 			return rval
 		}
-		c.handleList(r.Info, r.Messages, r.Keys)
+		c.handleList(r.Info, r.Keys)
 		return 0
 	}
 
@@ -116,7 +110,7 @@ func (c *KeyringCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		return c.handleResponse(r.Info, r.Messages, r.Keys)
+		return c.handleResponse(r.Info, r.Messages)
 	}
 
 	if useKey != "" {
@@ -126,7 +120,7 @@ func (c *KeyringCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		return c.handleResponse(r.Info, r.Messages, r.Keys)
+		return c.handleResponse(r.Info, r.Messages)
 	}
 
 	if removeKey != "" {
@@ -136,7 +130,7 @@ func (c *KeyringCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
 		}
-		return c.handleResponse(r.Info, r.Messages, r.Keys)
+		return c.handleResponse(r.Info, r.Messages)
 	}
 
 	// Should never make it here
@@ -145,8 +139,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 func (c *KeyringCommand) handleResponse(
 	info []agent.KeyringInfo,
-	messages []agent.KeyringMessage,
-	keys []agent.KeyringEntry) int {
+	messages []agent.KeyringMessage) int {
 
 	var rval int
 
@@ -179,7 +172,6 @@ func (c *KeyringCommand) handleResponse(
 
 func (c *KeyringCommand) handleList(
 	info []agent.KeyringInfo,
-	messages []agent.KeyringMessage,
 	keys []agent.KeyringEntry) {
 
 	installed := make(map[string]map[string][]int)
@@ -274,6 +266,8 @@ Options:
   -init=<key>               Create the initial keyring files for Consul to use
                             containing the provided key. The -data-dir argument
                             is required with this option.
+  -data-dir=<path>          The path to the Consul agent's data directory. This
+                            argument is only needed for keyring initialization.
   -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
 `
 	return strings.TrimSpace(helpText)

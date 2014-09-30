@@ -22,6 +22,10 @@ responsibility of the operator to ensure that only the required encryption keys
 are installed on the cluster. You can ensure that a key is not installed using
 the `-list` and `-remove` options.
 
+With the exception of the `-init` argument, all operations performed by this
+command can only be run against server nodes, and affect both the LAN and
+WAN keyrings in lock-step.
+
 All variations of the `keyring` command, unless otherwise specified below, will
 return 0 if all nodes reply and there are no errors. If any node fails to reply
 or reports failure, the exit code will be 1.
@@ -38,13 +42,14 @@ The list of available flags are:
 * `-init` - Creates the keyring file(s). This is useful to configure initial
   encryption keyrings, which can later be mutated using the other arguments in
   this command. This argument accepts an ASCII key, which can be generated using
-  the [keygen command](/docs/commands/keygen.html).
+  the [keygen command](/docs/commands/keygen.html). Requires the `-data-dir`
+  argument.
 
   This operation can be run on both client and server nodes and requires no
   network connectivity.
 
-	Returns 0 if the key is successfully configured, or 1 if there were any
-	problems.
+  Returns 0 if the key is successfully configured, or 1 if there were any
+  problems.
 
 * `-install` - Install a new encryption key. This will broadcast the new key to
   all members in the cluster.
@@ -57,6 +62,6 @@ The list of available flags are:
 
 * `-list` - List all keys currently in use within the cluster.
 
-* `-wan` - Operate on the WAN keyring instead of the LAN keyring (default)
+* `-data-dir` - The path to Consul's data directory. Used with `-init` only.
 
 * `-rpc-addr` - RPC address of the Consul agent.

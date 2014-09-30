@@ -551,6 +551,9 @@ type KeyringResponse struct {
 	Error      string
 }
 
+// KeyringResponses holds multiple responses to keyring queries. Each
+// datacenter replies independently, and KeyringResponses is used as a
+// container for the set of all responses.
 type KeyringResponses struct {
 	Responses []*KeyringResponse
 	QueryMeta
