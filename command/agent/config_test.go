@@ -346,6 +346,17 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// DNS enable truncate
+	input = `{"dns_config": {"enable_truncate": true}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !config.DNSConfig.EnableTruncate {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// CheckUpdateInterval
 	input = `{"check_update_interval": "10m"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -574,8 +585,9 @@ func TestMergeConfig(t *testing.T) {
 			ServiceTTL: map[string]time.Duration{
 				"api": 10 * time.Second,
 			},
-			AllowStale: true,
-			MaxStale:   30 * time.Second,
+			AllowStale:     true,
+			MaxStale:       30 * time.Second,
+			EnableTruncate: true,
 		},
 		Domain:        "other",
 		LogLevel:      "info",
