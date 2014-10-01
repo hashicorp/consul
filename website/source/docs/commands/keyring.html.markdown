@@ -13,14 +13,11 @@ Consul's [Gossip Pools](/docs/internals/gossip.html). It is capable of
 distributing new encryption keys to the cluster, retiring old encryption keys,
 and changing the keys used by the cluster to encrypt messages.
 
-Because Consul utilizes multiple gossip pools, this command will only operate
-against a server node for most operations.
-
 Consul allows multiple encryption keys to be in use simultaneously. This is
 intended to provide a transition state while the cluster converges. It is the
 responsibility of the operator to ensure that only the required encryption keys
-are installed on the cluster. You can ensure that a key is not installed using
-the `-list` and `-remove` options.
+are installed on the cluster. You can review the installed keys using the
+`-list` argument, and remove unneeded keys with `-remove`.
 
 With the exception of the `-init` argument, all operations performed by this
 command can only be run against server nodes, and affect both the LAN and
@@ -65,3 +62,55 @@ The list of available flags are:
 * `-data-dir` - The path to Consul's data directory. Used with `-init` only.
 
 * `-rpc-addr` - RPC address of the Consul agent.
+
+## Output
+
+The output of the `consul keyring -list` command consolidates information from
+all nodes and all datacenters to provide a simple and easy to understand view of
+the cluster. The following is some example output from a cluster with two
+datacenters, each which consist of one server and one client:
+
+```
+==> Gathering installed encryption keys...
+==> Done!
+
+WAN:
+  a1i101sMY8rxB+0eAKD/gw== [2/2]
+
+dc2 (LAN):
+  a1i101sMY8rxB+0eAKD/gw== [2/2]
+
+dc1 (LAN):
+  a1i101sMY8rxB+0eAKD/gw== [2/2]
+```
+
+As you can see, the output above is divided first by gossip pool, and then by
+encryption key. The indicator to the right of each key displays the number of
+nodes the key is installed on over the total number of nodes in the pool.
+
+## Errors
+
+If any errors are encountered while performing a keyring operation, no key
+information is displayed, but instead only error information. The error
+information is arranged in a similar fashion, organized first by datacenter,
+followed by a simple list of nodes which had errors, and the actual text of the
+error. Below is sample output from the same cluster as above, if we try to do
+something that causes an error; in this case, trying to remove the primary key:
+
+```
+==> Removing gossip encryption key...
+
+dc1 (LAN) error: 2/2 nodes reported failure
+  server1: Removing the primary key is not allowed
+  client1: Removing the primary key is not allowed
+
+WAN error: 2/2 nodes reported failure
+  server1.dc1: Removing the primary key is not allowed
+  server2.dc2: Removing the primary key is not allowed
+
+dc2 (LAN) error: 2/2 nodes reported failure
+  server2: Removing the primary key is not allowed
+  client2: Removing the primary key is not allowed
+```
+
+As you can see, each node with a failure reported what went wrong.
