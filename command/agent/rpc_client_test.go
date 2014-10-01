@@ -301,7 +301,7 @@ func TestRPCClientListKeys(t *testing.T) {
 func TestRPCClientInstallKey(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "xAEZ3uVHRMZD9GcYMZaRQw=="
-	conf := Config{EncryptKey: key1}
+	conf := Config{EncryptKey: key1, Server: true}
 	p1 := testRPCClientWithConfig(t, &conf)
 	defer p1.Close()
 
