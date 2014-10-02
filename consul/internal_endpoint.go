@@ -2,6 +2,7 @@ package consul
 
 import (
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/serf"
 )
 
 // Internal endpoint is used to query the miscellaneous info that
@@ -77,9 +78,8 @@ func (m *Internal) ListKeys(
 		respWAN, err := m.srv.KeyManagerWAN().ListKeys()
 		ingestKeyringResponse(respWAN, reply, dc, true, err)
 
-		// Mark key rotation as being already forwarded, then forward.
 		args.Forwarded = true
-		m.srv.keyringRPC("Internal.ListKeys", args, reply)
+		m.srv.globalRPC("Internal.ListKeys", args, reply)
 	}
 
 	return nil
@@ -100,7 +100,7 @@ func (m *Internal) InstallKey(
 		ingestKeyringResponse(respWAN, reply, dc, true, err)
 
 		args.Forwarded = true
-		m.srv.keyringRPC("Internal.InstallKey", args, reply)
+		m.srv.globalRPC("Internal.InstallKey", args, reply)
 	}
 
 	return nil
@@ -121,7 +121,7 @@ func (m *Internal) UseKey(
 		ingestKeyringResponse(respWAN, reply, dc, true, err)
 
 		args.Forwarded = true
-		m.srv.keyringRPC("Internal.UseKey", args, reply)
+		m.srv.globalRPC("Internal.UseKey", args, reply)
 	}
 
 	return nil
@@ -141,8 +141,29 @@ func (m *Internal) RemoveKey(
 		ingestKeyringResponse(respWAN, reply, dc, true, err)
 
 		args.Forwarded = true
-		m.srv.keyringRPC("Internal.RemoveKey", args, reply)
+		m.srv.globalRPC("Internal.RemoveKey", args, reply)
 	}
 
 	return nil
+}
+
+// ingestKeyringResponse is a helper method to pick the relative information
+// from a Serf message and stuff it into a KeyringResponse.
+func ingestKeyringResponse(
+	serfResp *serf.KeyResponse, reply *structs.KeyringResponses,
+	dc string, wan bool, err error) {
+
+	errStr := ""
+	if err != nil {
+		errStr = err.Error()
+	}
+
+	reply.Responses = append(reply.Responses, &structs.KeyringResponse{
+		WAN:        wan,
+		Datacenter: dc,
+		Messages:   serfResp.Messages,
+		Keys:       serfResp.Keys,
+		NumNodes:   serfResp.NumNodes,
+		Error:      errStr,
+	})
 }
