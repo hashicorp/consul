@@ -4,15 +4,16 @@ import (
 	"container/list"
 	"crypto/tls"
 	"fmt"
-	"github.com/hashicorp/yamux"
-	"github.com/inconshreveable/muxado"
-	"github.com/ugorji/go/codec"
 	"io"
 	"net"
 	"net/rpc"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/hashicorp/yamux"
+	"github.com/inconshreveable/muxado"
+	"github.com/ugorji/go/codec"
 )
 
 // msgpackHandle is a shared handle for encoding/decoding of RPC messages
@@ -221,11 +222,12 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 		}
 
 		// Wrap the connection in a TLS client
-		conn, err = wrapTLSClient(conn, p.tlsConfig)
+		tlsConn, err := wrapTLSClient(conn, p.tlsConfig)
 		if err != nil {
 			conn.Close()
 			return nil, err
 		}
+		conn = tlsConn
 	}
 
 	// Switch the multiplexing based on version
