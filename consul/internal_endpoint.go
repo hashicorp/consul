@@ -81,11 +81,11 @@ func (m *Internal) KeyringOperation(
 
 	dc := m.srv.config.Datacenter
 
-	respLAN, err := m.doKeyringOperation(args, m.srv.KeyManagerLAN())
+	respLAN, err := executeKeyringOp(args, m.srv.KeyManagerLAN())
 	ingestKeyringResponse(respLAN, reply, dc, false, err)
 
 	if !args.Forwarded {
-		respWAN, err := m.doKeyringOperation(args, m.srv.KeyManagerWAN())
+		respWAN, err := executeKeyringOp(args, m.srv.KeyManagerWAN())
 		ingestKeyringResponse(respWAN, reply, dc, true, err)
 
 		args.Forwarded = true
@@ -95,7 +95,10 @@ func (m *Internal) KeyringOperation(
 	return nil
 }
 
-func (m *Internal) doKeyringOperation(
+// executeKeyringOp executes the appropriate keyring-related function based on
+// the type of keyring operation in the request. It takes the KeyManager as an
+// argument, so it can handle any operation for either LAN or WAN pools.
+func executeKeyringOp(
 	args *structs.KeyringRequest,
 	mgr *serf.KeyManager) (r *serf.KeyResponse, err error) {
 
