@@ -411,25 +411,6 @@ func (c *Config) ClientListenerAddr(override string, port int) (string, error) {
 	return addr.String(), nil
 }
 
-// keyringFileExists determines if there are encryption key files present
-// in the data directory. On client nodes, this returns true if a LAN keyring
-// is present. On server nodes, it returns true if either keyring file exists.
-func (c *Config) keyringFileExists() bool {
-	fileLAN := filepath.Join(c.DataDir, SerfLANKeyring)
-	fileWAN := filepath.Join(c.DataDir, SerfWANKeyring)
-
-	if _, err := os.Stat(fileLAN); err == nil {
-		return true
-	}
-	if !c.Server {
-		return false
-	}
-	if _, err := os.Stat(fileWAN); err == nil {
-		return true
-	}
-	return false
-}
-
 // DecodeConfig reads the configuration from the given reader in JSON
 // format and decodes it into a proper Config structure.
 func DecodeConfig(r io.Reader) (*Config, error) {

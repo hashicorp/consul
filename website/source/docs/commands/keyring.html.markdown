@@ -19,34 +19,23 @@ responsibility of the operator to ensure that only the required encryption keys
 are installed on the cluster. You can review the installed keys using the
 `-list` argument, and remove unneeded keys with `-remove`.
 
-With the exception of the `-init` argument, all operations performed by this
-command can only be run against server nodes, and affect both the LAN and
-WAN keyrings in lock-step.
+All operations performed by this command can only be run against server nodes,
+and affect both the LAN and WAN keyrings in lock-step.
 
-All variations of the `keyring` command, unless otherwise specified below, will
-return 0 if all nodes reply and there are no errors. If any node fails to reply
-or reports failure, the exit code will be 1.
+All variations of the `keyring` command return 0 if all nodes reply and there
+are no errors. If any node fails to reply or reports failure, the exit code
+will be 1.
 
 ## Usage
 
 Usage: `consul keyring [options]`
 
-Only one actionable argument may be specified per run, including `-init`,
-`-list`, `-install`, `-remove`, and `-use`.
+Only one actionable argument may be specified per run, including `-list`,
+`-install`, `-remove`, and `-use`.
 
 The list of available flags are:
 
-* `-init` - Creates the keyring file(s). This is useful to configure initial
-  encryption keyrings, which can later be mutated using the other arguments in
-  this command. This argument accepts an ASCII key, which can be generated using
-  the [keygen command](/docs/commands/keygen.html). Requires the `-data-dir`
-  argument.
-
-  This operation can be run on both client and server nodes and requires no
-  network connectivity.
-
-  Returns 0 if the key is successfully configured, or 1 if there were any
-  problems.
+* `-list` - List all keys currently in use within the cluster.
 
 * `-install` - Install a new encryption key. This will broadcast the new key to
   all members in the cluster.
@@ -56,10 +45,6 @@ The list of available flags are:
 
 * `-remove` - Remove the given key from the cluster. This operation may only be
   performed on keys which are not currently the primary key.
-
-* `-list` - List all keys currently in use within the cluster.
-
-* `-data-dir` - The path to Consul's data directory. Used with `-init` only.
 
 * `-rpc-addr` - RPC address of the Consul agent.
 

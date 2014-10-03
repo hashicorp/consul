@@ -143,17 +143,35 @@ func (c *Command) readConfig() *Config {
 		config.NodeName = hostname
 	}
 
+	// Ensure we have a data directory
+	if config.DataDir == "" {
+		c.Ui.Error("Must specify data directory using -data-dir")
+		return nil
+	}
+
 	if config.EncryptKey != "" {
 		if _, err := config.EncryptBytes(); err != nil {
 			c.Ui.Error(fmt.Sprintf("Invalid encryption key: %s", err))
 			return nil
 		}
-	}
 
-	// Ensure we have a data directory
-	if config.DataDir == "" {
-		c.Ui.Error("Must specify data directory using -data-dir")
-		return nil
+		fileLAN := filepath.Join(config.DataDir, serfLANKeyring)
+		if _, err := os.Stat(fileLAN); err != nil {
+			initKeyring(fileLAN, config.EncryptKey)
+		} else {
+			c.Ui.Error(fmt.Sprintf("WARNING: %s exists, not using key: %s",
+				fileLAN, config.EncryptKey))
+		}
+
+		if config.Server {
+			fileWAN := filepath.Join(config.DataDir, serfWANKeyring)
+			if _, err := os.Stat(fileWAN); err != nil {
+				initKeyring(fileWAN, config.EncryptKey)
+			} else {
+				c.Ui.Error(fmt.Sprintf("WARNING: %s exists, not using key: %s",
+					fileWAN, config.EncryptKey))
+			}
+		}
 	}
 
 	// Verify data center is valid
@@ -216,12 +234,6 @@ func (c *Command) readConfig() *Config {
 	// Warn if using windows as a server
 	if config.Server && runtime.GOOS == "windows" {
 		c.Ui.Error("WARNING: Windows is not recommended as a Consul server. Do not use in production.")
-	}
-
-	// Error if an encryption key is passed while a keyring already exists
-	if config.EncryptKey != "" && config.keyringFileExists() {
-		c.Ui.Error(fmt.Sprintf("Error: -encrypt specified but keyring files exist"))
-		return nil
 	}
 
 	// Set the version info
@@ -465,6 +477,22 @@ func (c *Command) retryJoinWan(config *Config, errCh chan<- struct{}) {
 	}
 }
 
+// gossipEncrypted determines if the consul instance is using symmetric
+// encryption keys to protect gossip protocol messages.
+func (c *Command) gossipEncrypted() bool {
+	if c.agent.config.EncryptKey != "" {
+		return true
+	}
+
+	server := c.agent.server
+	if server != nil {
+		return server.KeyManagerLAN() != nil || server.KeyManagerWAN() != nil
+	}
+
+	client := c.agent.client
+	return client != nil && client.KeyManagerLAN() != nil
+}
+
 func (c *Command) Run(args []string) int {
 	c.Ui = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
@@ -591,9 +619,6 @@ func (c *Command) Run(args []string) int {
 		}(wp)
 	}
 
-	// Determine if gossip is encrypted
-	gossipEncrypted := config.EncryptKey != "" || config.keyringFileExists()
-
 	// Let the agent know we've finished registration
 	c.agent.StartSync()
 
@@ -606,7 +631,7 @@ func (c *Command) Run(args []string) int {
 	c.Ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
-		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
+		c.gossipEncrypted(), config.VerifyOutgoing, config.VerifyIncoming))
 
 	// Enable log streaming
 	c.Ui.Info("")

@@ -1,12 +1,8 @@
 package command
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/consul/command/agent"
@@ -20,7 +16,7 @@ type KeyringCommand struct {
 }
 
 func (c *KeyringCommand) Run(args []string) int {
-	var installKey, useKey, removeKey, init, dataDir string
+	var installKey, useKey, removeKey string
 	var listKeys bool
 
 	cmdFlags := flag.NewFlagSet("keys", flag.ContinueOnError)
@@ -30,8 +26,6 @@ func (c *KeyringCommand) Run(args []string) int {
 	cmdFlags.StringVar(&useKey, "use", "", "use key")
 	cmdFlags.StringVar(&removeKey, "remove", "", "remove key")
 	cmdFlags.BoolVar(&listKeys, "list", false, "list keys")
-	cmdFlags.StringVar(&init, "init", "", "initialize keyring")
-	cmdFlags.StringVar(&dataDir, "data-dir", "", "data directory")
 
 	rpcAddr := RPCAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
@@ -47,7 +41,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	// Only accept a single argument
 	found := listKeys
-	for _, arg := range []string{installKey, useKey, removeKey, init} {
+	for _, arg := range []string{installKey, useKey, removeKey} {
 		if found && len(arg) > 0 {
 			c.Ui.Error("Only a single action is allowed")
 			return 1
@@ -59,26 +53,6 @@ func (c *KeyringCommand) Run(args []string) int {
 	if !found {
 		c.Ui.Error(c.Help())
 		return 1
-	}
-
-	if init != "" {
-		if dataDir == "" {
-			c.Ui.Error("Must provide -data-dir")
-			return 1
-		}
-
-		fileLAN := filepath.Join(dataDir, agent.SerfLANKeyring)
-		if err := initKeyring(fileLAN, init); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error: %s", err))
-			return 1
-		}
-		fileWAN := filepath.Join(dataDir, agent.SerfWANKeyring)
-		if err := initKeyring(fileWAN, init); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error: %s", err))
-			return 1
-		}
-
-		return 0
 	}
 
 	// All other operations will require a client connection
@@ -204,40 +178,6 @@ func (c *KeyringCommand) handleList(
 	}
 }
 
-// initKeyring will create a keyring file at a given path.
-func initKeyring(path, key string) error {
-	if _, err := base64.StdEncoding.DecodeString(key); err != nil {
-		return fmt.Errorf("Invalid key: %s", err)
-	}
-
-	keys := []string{key}
-	keyringBytes, err := json.Marshal(keys)
-	if err != nil {
-		return err
-	}
-
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-		return err
-	}
-
-	if _, err := os.Stat(path); err == nil {
-		return fmt.Errorf("File already exists: %s", path)
-	}
-
-	fh, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-	if err != nil {
-		return err
-	}
-	defer fh.Close()
-
-	if _, err := fh.Write(keyringBytes); err != nil {
-		os.Remove(path)
-		return err
-	}
-
-	return nil
-}
-
 func (c *KeyringCommand) Help() string {
 	helpText := `
 Usage: consul keyring [options]
@@ -263,11 +203,6 @@ Options:
                             operation may only be performed on keys which are
                             not currently the primary key.
   -list                     List all keys currently in use within the cluster.
-  -init=<key>               Create the initial keyring files for Consul to use
-                            containing the provided key. The -data-dir argument
-                            is required with this option.
-  -data-dir=<path>          The path to the Consul agent's data directory. This
-                            argument is only needed for keyring initialization.
   -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
 `
 	return strings.TrimSpace(helpText)

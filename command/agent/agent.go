@@ -264,16 +264,17 @@ func (a *Agent) setupServer() error {
 	config := a.consulConfig()
 
 	// Load a keyring file, if present
-	keyfileLAN := filepath.Join(config.DataDir, SerfLANKeyring)
+	keyfileLAN := filepath.Join(config.DataDir, serfLANKeyring)
 	if _, err := os.Stat(keyfileLAN); err == nil {
 		config.SerfLANConfig.KeyringFile = keyfileLAN
 	}
-	keyfileWAN := filepath.Join(config.DataDir, SerfWANKeyring)
-	if _, err := os.Stat(keyfileWAN); err == nil {
-		config.SerfWANConfig.KeyringFile = keyfileWAN
-	}
 	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
 		return err
+	}
+
+	keyfileWAN := filepath.Join(config.DataDir, serfWANKeyring)
+	if _, err := os.Stat(keyfileWAN); err == nil {
+		config.SerfWANConfig.KeyringFile = keyfileWAN
 	}
 	if err := loadKeyringFile(config.SerfWANConfig); err != nil {
 		return err
@@ -292,7 +293,7 @@ func (a *Agent) setupClient() error {
 	config := a.consulConfig()
 
 	// Load a keyring file, if present
-	keyfileLAN := filepath.Join(config.DataDir, SerfLANKeyring)
+	keyfileLAN := filepath.Join(config.DataDir, serfLANKeyring)
 	if _, err := os.Stat(keyfileLAN); err == nil {
 		config.SerfLANConfig.KeyringFile = keyfileLAN
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/memberlist"
@@ -13,9 +14,43 @@ import (
 )
 
 const (
-	SerfLANKeyring = "serf/local.keyring"
-	SerfWANKeyring = "serf/remote.keyring"
+	serfLANKeyring = "serf/local.keyring"
+	serfWANKeyring = "serf/remote.keyring"
 )
+
+// initKeyring will create a keyring file at a given path.
+func initKeyring(path, key string) error {
+	if _, err := base64.StdEncoding.DecodeString(key); err != nil {
+		return fmt.Errorf("Invalid key: %s", err)
+	}
+
+	keys := []string{key}
+	keyringBytes, err := json.Marshal(keys)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(path); err == nil {
+		return fmt.Errorf("File already exists: %s", path)
+	}
+
+	fh, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+
+	if _, err := fh.Write(keyringBytes); err != nil {
+		os.Remove(path)
+		return err
+	}
+
+	return nil
+}
 
 // loadKeyringFile will load a gossip encryption keyring out of a file. The file
 // must be in JSON format and contain a list of encryption key strings.
