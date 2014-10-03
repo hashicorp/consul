@@ -12,15 +12,6 @@ type Internal struct {
 	srv *Server
 }
 
-type KeyringOperation uint8
-
-const (
-	listKeysOperation KeyringOperation = iota
-	installKeyOperation
-	useKeyOperation
-	removeKeyOperation
-)
-
 // ChecksInState is used to get all the checks in a given state
 func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedNodeDump) error {

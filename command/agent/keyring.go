@@ -73,6 +73,10 @@ func (a *Agent) keyringProcess(
 	method string,
 	args *structs.KeyringRequest) (*structs.KeyringResponses, error) {
 
+	// Allow any server to handle the request, since this is
+	// done over the gossip protocol.
+	args.AllowStale = true
+
 	var reply structs.KeyringResponses
 	if a.server == nil {
 		return nil, fmt.Errorf("keyring operations must run against a server node")
@@ -87,32 +91,24 @@ func (a *Agent) keyringProcess(
 // ListKeys lists out all keys installed on the collective Consul cluster. This
 // includes both servers and clients in all DC's.
 func (a *Agent) ListKeys() (*structs.KeyringResponses, error) {
-	args := structs.KeyringRequest{}
-	args.AllowStale = true
-	args.Operation = structs.KeyringList
+	args := structs.KeyringRequest{Operation: structs.KeyringList}
 	return a.keyringProcess("Internal.KeyringOperation", &args)
 }
 
 // InstallKey installs a new gossip encryption key
 func (a *Agent) InstallKey(key string) (*structs.KeyringResponses, error) {
-	args := structs.KeyringRequest{Key: key}
-	args.AllowStale = true
-	args.Operation = structs.KeyringInstall
+	args := structs.KeyringRequest{Key: key, Operation: structs.KeyringInstall}
 	return a.keyringProcess("Internal.KeyringOperation", &args)
 }
 
 // UseKey changes the primary encryption key used to encrypt messages
 func (a *Agent) UseKey(key string) (*structs.KeyringResponses, error) {
-	args := structs.KeyringRequest{Key: key}
-	args.AllowStale = true
-	args.Operation = structs.KeyringUse
+	args := structs.KeyringRequest{Key: key, Operation: structs.KeyringUse}
 	return a.keyringProcess("Internal.KeyringOperation", &args)
 }
 
 // RemoveKey will remove a gossip encryption key from the keyring
 func (a *Agent) RemoveKey(key string) (*structs.KeyringResponses, error) {
-	args := structs.KeyringRequest{Key: key}
-	args.AllowStale = true
-	args.Operation = structs.KeyringRemove
+	args := structs.KeyringRequest{Key: key, Operation: structs.KeyringRemove}
 	return a.keyringProcess("Internal.KeyringOperation", &args)
 }
