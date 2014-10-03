@@ -50,6 +50,11 @@ func loadKeyringFile(c *serf.Config) error {
 		keysDecoded[i] = keyBytes
 	}
 
+	// Guard against empty keyring
+	if len(keysDecoded) == 0 {
+		return fmt.Errorf("no keys present in keyring file: %s", c.KeyringFile)
+	}
+
 	// Create the keyring
 	keyring, err := memberlist.NewKeyring(keysDecoded, keysDecoded[0])
 	if err != nil {
