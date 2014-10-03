@@ -84,26 +84,30 @@ func (a *Agent) keyringProcess(
 func (a *Agent) ListKeys() (*structs.KeyringResponses, error) {
 	args := structs.KeyringRequest{}
 	args.AllowStale = true
-	return a.keyringProcess("Internal.ListKeys", &args)
+	args.Operation = structs.KeyringList
+	return a.keyringProcess("Internal.KeyringOperation", &args)
 }
 
 // InstallKey installs a new gossip encryption key
 func (a *Agent) InstallKey(key string) (*structs.KeyringResponses, error) {
 	args := structs.KeyringRequest{Key: key}
 	args.AllowStale = true
-	return a.keyringProcess("Internal.InstallKey", &args)
+	args.Operation = structs.KeyringInstall
+	return a.keyringProcess("Internal.KeyringOperation", &args)
 }
 
 // UseKey changes the primary encryption key used to encrypt messages
 func (a *Agent) UseKey(key string) (*structs.KeyringResponses, error) {
 	args := structs.KeyringRequest{Key: key}
 	args.AllowStale = true
-	return a.keyringProcess("Internal.UseKey", &args)
+	args.Operation = structs.KeyringUse
+	return a.keyringProcess("Internal.KeyringOperation", &args)
 }
 
 // RemoveKey will remove a gossip encryption key from the keyring
 func (a *Agent) RemoveKey(key string) (*structs.KeyringResponses, error) {
 	args := structs.KeyringRequest{Key: key}
 	args.AllowStale = true
-	return a.keyringProcess("Internal.RemoveKey", &args)
+	args.Operation = structs.KeyringRemove
+	return a.keyringProcess("Internal.KeyringOperation", &args)
 }

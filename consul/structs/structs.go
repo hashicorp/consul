@@ -554,9 +554,19 @@ type CompoundResponse interface {
 	New() interface{}
 }
 
+type KeyringOp string
+
+const (
+	KeyringList    KeyringOp = "list"
+	KeyringInstall           = "install"
+	KeyringUse               = "use"
+	KeyringRemove            = "remove"
+)
+
 // KeyringRequest encapsulates a request to modify an encryption keyring.
 // It can be used for install, remove, or use key type operations.
 type KeyringRequest struct {
+	Operation  KeyringOp
 	Key        string
 	Datacenter string
 	Forwarded  bool

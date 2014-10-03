@@ -12,6 +12,15 @@ type Internal struct {
 	srv *Server
 }
 
+type KeyringOperation uint8
+
+const (
+	listKeysOperation KeyringOperation = iota
+	installKeyOperation
+	useKeyOperation
+	removeKeyOperation
+)
+
 // ChecksInState is used to get all the checks in a given state
 func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedNodeDump) error {
@@ -66,85 +75,42 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 
 // ListKeys will query the WAN and LAN gossip keyrings of all nodes, adding
 // results into a collective response as we go.
-func (m *Internal) ListKeys(
+func (m *Internal) KeyringOperation(
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses) error {
 
 	dc := m.srv.config.Datacenter
-	respLAN, err := m.srv.KeyManagerLAN().ListKeys()
+
+	respLAN, err := m.doKeyringOperation(args, m.srv.KeyManagerLAN())
 	ingestKeyringResponse(respLAN, reply, dc, false, err)
 
 	if !args.Forwarded {
-		respWAN, err := m.srv.KeyManagerWAN().ListKeys()
+		respWAN, err := m.doKeyringOperation(args, m.srv.KeyManagerWAN())
 		ingestKeyringResponse(respWAN, reply, dc, true, err)
 
 		args.Forwarded = true
-		m.srv.globalRPC("Internal.ListKeys", args, reply)
+		return m.srv.globalRPC("Internal.KeyringOperation", args, reply)
 	}
 
 	return nil
 }
 
-// InstallKey broadcasts a new encryption key to all nodes. This involves
-// installing a new key on every node across all datacenters.
-func (m *Internal) InstallKey(
+func (m *Internal) doKeyringOperation(
 	args *structs.KeyringRequest,
-	reply *structs.KeyringResponses) error {
+	mgr *serf.KeyManager) (r *serf.KeyResponse, err error) {
 
-	dc := m.srv.config.Datacenter
-	respLAN, err := m.srv.KeyManagerLAN().InstallKey(args.Key)
-	ingestKeyringResponse(respLAN, reply, dc, false, err)
-
-	if !args.Forwarded {
-		respWAN, err := m.srv.KeyManagerWAN().InstallKey(args.Key)
-		ingestKeyringResponse(respWAN, reply, dc, true, err)
-
-		args.Forwarded = true
-		m.srv.globalRPC("Internal.InstallKey", args, reply)
+	switch args.Operation {
+	case structs.KeyringList:
+		r, err = mgr.ListKeys()
+	case structs.KeyringInstall:
+		r, err = mgr.InstallKey(args.Key)
+	case structs.KeyringUse:
+		r, err = mgr.UseKey(args.Key)
+	case structs.KeyringRemove:
+		r, err = mgr.RemoveKey(args.Key)
 	}
 
-	return nil
-}
-
-// UseKey instructs all nodes to change the key they are using to
-// encrypt gossip messages.
-func (m *Internal) UseKey(
-	args *structs.KeyringRequest,
-	reply *structs.KeyringResponses) error {
-
-	dc := m.srv.config.Datacenter
-	respLAN, err := m.srv.KeyManagerLAN().UseKey(args.Key)
-	ingestKeyringResponse(respLAN, reply, dc, false, err)
-
-	if !args.Forwarded {
-		respWAN, err := m.srv.KeyManagerWAN().UseKey(args.Key)
-		ingestKeyringResponse(respWAN, reply, dc, true, err)
-
-		args.Forwarded = true
-		m.srv.globalRPC("Internal.UseKey", args, reply)
-	}
-
-	return nil
-}
-
-// RemoveKey instructs all nodes to drop the specified key from the keyring.
-func (m *Internal) RemoveKey(
-	args *structs.KeyringRequest,
-	reply *structs.KeyringResponses) error {
-
-	dc := m.srv.config.Datacenter
-	respLAN, err := m.srv.KeyManagerLAN().RemoveKey(args.Key)
-	ingestKeyringResponse(respLAN, reply, dc, false, err)
-
-	if !args.Forwarded {
-		respWAN, err := m.srv.KeyManagerWAN().RemoveKey(args.Key)
-		ingestKeyringResponse(respWAN, reply, dc, true, err)
-
-		args.Forwarded = true
-		m.srv.globalRPC("Internal.RemoveKey", args, reply)
-	}
-
-	return nil
+	return r, err
 }
 
 // ingestKeyringResponse is a helper method to pick the relative information
