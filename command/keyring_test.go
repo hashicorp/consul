@@ -129,8 +129,8 @@ func TestKeyringCommandRun_initKeyring(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
-	fileLAN := filepath.Join(tempDir, agent.SerfLANKeyring)
-	fileWAN := filepath.Join(tempDir, agent.SerfWANKeyring)
+	fileLAN := filepath.Join(tempDir, agent.serfLANKeyring)
+	fileWAN := filepath.Join(tempDir, agent.serfWANKeyring)
 	if _, err := os.Stat(fileLAN); err != nil {
 		t.Fatalf("err: %s", err)
 	}

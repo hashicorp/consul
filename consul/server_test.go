@@ -6,9 +6,11 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
 )
 
@@ -471,5 +473,43 @@ func TestServer_BadExpect(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
+}
 
+func TestServer_globalRPC(t *testing.T) {
+	dir1, s1 := testServerDC(t, "dc1")
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Check that replies from each DC come in
+	resp := &structs.KeyringResponses{}
+	args := &structs.KeyringRequest{Operation: structs.KeyringList}
+	if err := s1.globalRPC("Internal.KeyringOperation", args, resp); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(resp.Responses) != 3 {
+		t.Fatalf("bad: %#v", resp.Responses)
+	}
+
+	// Check that error from remote DC is returned
+	resp = &structs.KeyringResponses{}
+	err := s1.globalRPC("Bad.Method", nil, resp)
+	if err == nil {
+		t.Fatalf("should have errored")
+	}
+	if !strings.Contains(err.Error(), "Bad.Method") {
+		t.Fatalf("unexpcted error: %s", err)
+	}
 }

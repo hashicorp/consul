@@ -1,12 +1,16 @@
 package agent
 
 import (
+<<<<<<< HEAD
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+=======
+	"github.com/mitchellh/cli"
+>>>>>>> agent: -encrypt appends to keyring if one exists
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"

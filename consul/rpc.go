@@ -229,6 +229,9 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 func (s *Server) globalRPC(method string, args interface{},
 	reply structs.CompoundResponse) error {
 
+	if reply == nil {
+		return fmt.Errorf("nil reply struct")
+	}
 	rlen := len(s.remoteConsuls)
 	if rlen < 2 {
 		return nil

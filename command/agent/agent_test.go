@@ -80,11 +80,11 @@ func makeAgentKeyring(t *testing.T, conf *Config, key string) (string, *Agent) {
 
 	conf.DataDir = dir
 
-	fileLAN := filepath.Join(dir, SerfLANKeyring)
+	fileLAN := filepath.Join(dir, serfLANKeyring)
 	if err := testutil.InitKeyring(fileLAN, key); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	fileWAN := filepath.Join(dir, SerfWANKeyring)
+	fileWAN := filepath.Join(dir, serfWANKeyring)
 	if err := testutil.InitKeyring(fileWAN, key); err != nil {
 		t.Fatalf("err: %s", err)
 	}

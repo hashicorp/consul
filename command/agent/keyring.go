@@ -20,11 +20,28 @@ const (
 
 // initKeyring will create a keyring file at a given path.
 func initKeyring(path, key string) error {
+	var keys []string
+
 	if _, err := base64.StdEncoding.DecodeString(key); err != nil {
 		return fmt.Errorf("Invalid key: %s", err)
 	}
 
-	keys := []string{key}
+	if _, err := os.Stat(path); err == nil {
+		content, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(content, &keys); err != nil {
+			return err
+		}
+		for _, existing := range keys {
+			if key == existing {
+				return nil
+			}
+		}
+	}
+
+	keys = append(keys, key)
 	keyringBytes, err := json.Marshal(keys)
 	if err != nil {
 		return err
@@ -32,10 +49,6 @@ func initKeyring(path, key string) error {
 
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
-	}
-
-	if _, err := os.Stat(path); err == nil {
-		return fmt.Errorf("File already exists: %s", path)
 	}
 
 	fh, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
