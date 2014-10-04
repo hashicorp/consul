@@ -293,7 +293,7 @@ func TestRPCClientListKeys(t *testing.T) {
 	if _, ok := keys["dc1"][key1]; !ok {
 		t.Fatalf("bad: %#v", keys)
 	}
-	if _, ok := keys["wan"][key1]; !ok {
+	if _, ok := keys["WAN"][key1]; !ok {
 		t.Fatalf("bad: %#v", keys)
 	}
 }
@@ -301,18 +301,23 @@ func TestRPCClientListKeys(t *testing.T) {
 func TestRPCClientInstallKey(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "xAEZ3uVHRMZD9GcYMZaRQw=="
-	conf := Config{EncryptKey: key1, Server: true}
+	conf := Config{EncryptKey: key1}
 	p1 := testRPCClientWithConfig(t, &conf)
 	defer p1.Close()
 
 	// key2 is not installed yet
-	keys := listKeys(t, p1.client)
-	if num, ok := keys["dc1"][key2]; ok || num != 0 {
-		t.Fatalf("bad: %#v", keys)
-	}
-	if num, ok := keys["wan"][key2]; ok || num != 0 {
-		t.Fatalf("bad: %#v", keys)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		keys := listKeys(t, p1.client)
+		if num, ok := keys["dc1"][key2]; ok || num != 0 {
+			return false, fmt.Errorf("bad: %#v", keys)
+		}
+		if num, ok := keys["WAN"][key2]; ok || num != 0 {
+			return false, fmt.Errorf("bad: %#v", keys)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatal(err.Error())
+	})
 
 	// install key2
 	r, err := p1.client.InstallKey(key2)
@@ -322,19 +327,24 @@ func TestRPCClientInstallKey(t *testing.T) {
 	keyringSuccess(t, r)
 
 	// key2 should now be installed
-	keys = listKeys(t, p1.client)
-	if num, ok := keys["dc1"][key2]; !ok || num != 1 {
-		t.Fatalf("bad: %#v", keys)
-	}
-	if num, ok := keys["wan"][key2]; !ok || num != 1 {
-		t.Fatalf("bad: %#v", keys)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		keys := listKeys(t, p1.client)
+		if num, ok := keys["dc1"][key2]; !ok || num != 1 {
+			return false, fmt.Errorf("bad: %#v", keys)
+		}
+		if num, ok := keys["WAN"][key2]; !ok || num != 1 {
+			return false, fmt.Errorf("bad: %#v", keys)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatal(err.Error())
+	})
 }
 
 func TestRPCClientUseKey(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "xAEZ3uVHRMZD9GcYMZaRQw=="
-	conf := Config{EncryptKey: key1, Server: true}
+	conf := Config{EncryptKey: key1}
 	p1 := testRPCClientWithConfig(t, &conf)
 	defer p1.Close()
 
@@ -346,13 +356,18 @@ func TestRPCClientUseKey(t *testing.T) {
 	keyringSuccess(t, r)
 
 	// key2 is installed
-	keys := listKeys(t, p1.client)
-	if num, ok := keys["dc1"][key2]; !ok || num != 1 {
-		t.Fatalf("bad: %#v", keys)
-	}
-	if num, ok := keys["wan"][key2]; !ok || num != 1 {
-		t.Fatalf("bad: %#v", keys)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		keys := listKeys(t, p1.client)
+		if num, ok := keys["dc1"][key2]; !ok || num != 1 {
+			return false, fmt.Errorf("bad: %#v", keys)
+		}
+		if num, ok := keys["WAN"][key2]; !ok || num != 1 {
+			return false, fmt.Errorf("bad: %#v", keys)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatal(err.Error())
+	})
 
 	// can't remove key1 yet
 	r, err = p1.client.RemoveKey(key1)
@@ -396,7 +411,7 @@ func listKeys(t *testing.T, c *RPCClient) map[string]map[string]int {
 	for _, k := range resp.Keys {
 		respID := k.Datacenter
 		if k.Pool == "WAN" {
-			respID = "wan"
+			respID = k.Pool
 		}
 		out[respID] = map[string]int{k.Key: k.Count}
 	}
