@@ -89,6 +89,13 @@ The options below are all specified on the command-line.
   network traffic. This key must be 16-bytes that are base64 encoded. The
   easiest way to create an encryption key is to use `consul keygen`. All
   nodes within a cluster must share the same encryption key to communicate.
+  The provided key is automatically persisted to the data directory, and loaded
+  automatically whenever the agent is restarted. This means that to encrypt
+  Consul's gossip protocol, this option only needs to be provided once on each
+  agent's initial startup sequence. If it is provided after Consul has been
+  initialized with an encryption key, then the provided key is simply added
+  as a secondary encryption key. More information on how keys can be changed
+  is available on the [keyring command](/docs/commands/keyring.html) page.
 
 * `-join` - Address of another agent to join upon starting up. This can be
   specified multiple times to specify multiple agents to join. If Consul is
