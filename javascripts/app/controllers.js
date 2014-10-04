@@ -307,7 +307,6 @@ App.NodesShowController = Ember.ObjectController.extend({
             })
         }).then(function(response) {
           controller.transitionToRoute('nodes');
-          console.log(controller);
         }).fail(function(response) {
           controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
         });
