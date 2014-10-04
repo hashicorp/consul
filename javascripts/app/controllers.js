@@ -285,7 +285,7 @@ ItemBaseController = Ember.ArrayController.extend({
 });
 
 App.NodesShowController = Ember.ObjectController.extend({
-  needs: ["dc"],
+  needs: ["dc", "nodes"],
   dc: Ember.computed.alias("controllers.dc"),
 
   actions: {
@@ -306,6 +306,10 @@ App.NodesShowController = Ember.ObjectController.extend({
               'Node': node.Node
             })
         }).then(function(response) {
+          var nodes = controller.get('controllers.nodes').get('nodes');
+          controller.get('controllers.nodes').set('nodes', nodes.filter(function(n) {
+            return n.Node !== node.Node;
+          }));
           controller.transitionToRoute('nodes');
         }).fail(function(response) {
           controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
