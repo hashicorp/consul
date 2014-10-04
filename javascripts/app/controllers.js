@@ -289,6 +289,31 @@ App.NodesShowController = Ember.ObjectController.extend({
   dc: Ember.computed.alias("controllers.dc"),
 
   actions: {
+    deregisterNode: function() {
+      this.set('isLoading', true);
+      var controller = this;
+      var node = controller.get('model');
+      var dc = controller.get('dc').get('datacenter');
+      var token = App.get('settings.token');
+
+      if (window.confirm("Are you sure you want to deregister this node?")) {
+        // Deregister node
+        Ember.$.ajax({
+            url: formatUrl('/v1/catalog/deregister', dc, token),
+            type: 'PUT',
+            data: JSON.stringify({
+              'Datacenter': dc,
+              'Node': node.Node
+            })
+        }).then(function(response) {
+          controller.transitionToRoute('nodes');
+          console.log(controller);
+        }).fail(function(response) {
+          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+        });
+      }
+    },
+
     invalidateSession: function(sessionId) {
       this.set('isLoading', true);
       var controller = this;
