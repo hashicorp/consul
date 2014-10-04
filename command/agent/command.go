@@ -619,6 +619,11 @@ func (c *Command) Run(args []string) int {
 		}(wp)
 	}
 
+	// Figure out if gossip is encrypted
+	gossipEncrypted := (config.Server &&
+		c.agent.server.Encrypted() ||
+		c.agent.client.Encrypted())
+
 	// Let the agent know we've finished registration
 	c.agent.StartSync()
 
@@ -631,7 +636,7 @@ func (c *Command) Run(args []string) int {
 	c.Ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
-		c.gossipEncrypted(), config.VerifyOutgoing, config.VerifyIncoming))
+		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
 
 	// Enable log streaming
 	c.Ui.Info("")

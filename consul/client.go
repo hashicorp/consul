@@ -211,6 +211,11 @@ func (c *Client) KeyManagerLAN() *serf.KeyManager {
 	return c.serf.KeyManager()
 }
 
+// Encrypted determines if gossip is encrypted
+func (c *Client) Encrypted() bool {
+	return c.serf.EncryptionEnabled()
+}
+
 // lanEventHandler is used to handle events from the lan Serf cluster
 func (c *Client) lanEventHandler() {
 	for {

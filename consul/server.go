@@ -561,6 +561,11 @@ func (s *Server) KeyManagerWAN() *serf.KeyManager {
 	return s.serfWAN.KeyManager()
 }
 
+// Encrypted determines if gossip is encrypted
+func (s *Server) Encrypted() bool {
+	return s.serfLAN.EncryptionEnabled() && s.serfWAN.EncryptionEnabled()
+}
+
 // inmemCodec is used to do an RPC call without going over a network
 type inmemCodec struct {
 	method string
