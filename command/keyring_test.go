@@ -1,9 +1,6 @@
 package command
 
 import (
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -107,53 +104,6 @@ func TestKeyringCommandRun_initKeyringFail(t *testing.T) {
 	code = c.Run(args)
 	if code != 1 {
 		t.Fatalf("should have errored")
-	}
-}
-
-func TestKeyringCommandRun_initKeyring(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &KeyringCommand{Ui: ui}
-
-	tempDir, err := ioutil.TempDir("", "consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	args := []string{
-		"-init=HS5lJ+XuTlYKWaeGYyG+/A==",
-		"-data-dir=" + tempDir,
-	}
-	code := c.Run(args)
-	if code != 0 {
-		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
-	}
-
-	fileLAN := filepath.Join(tempDir, agent.serfLANKeyring)
-	fileWAN := filepath.Join(tempDir, agent.serfWANKeyring)
-	if _, err := os.Stat(fileLAN); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if _, err := os.Stat(fileWAN); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	expected := `["HS5lJ+XuTlYKWaeGYyG+/A=="]`
-
-	contentLAN, err := ioutil.ReadFile(fileLAN)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if string(contentLAN) != expected {
-		t.Fatalf("bad: %#v", string(contentLAN))
-	}
-
-	contentWAN, err := ioutil.ReadFile(fileWAN)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if string(contentWAN) != expected {
-		t.Fatalf("bad: %#v", string(contentWAN))
 	}
 }
 
