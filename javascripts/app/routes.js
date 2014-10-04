@@ -94,7 +94,7 @@ App.DcRoute = App.BaseRoute.extend({
       dc: params.dc,
       dcs: Ember.$.getJSON('/v1/catalog/datacenters'),
       nodes: Ember.$.getJSON(formatUrl('/v1/internal/ui/nodes', params.dc)).then(function(data) {
-        objs = [];
+        var objs = [];
 
         // Merge the nodes into a list and create objects out of them
         data.map(function(obj){
@@ -131,7 +131,7 @@ App.KvShowRoute = App.BaseRoute.extend({
     return Ember.RSVP.hash({
       key: key,
       keys: Ember.$.getJSON(formatUrl('/v1/kv/' + key + '?keys&seperator=/', dc, token)).then(function(data) {
-        objs = [];
+        var objs = [];
         data.map(function(obj){
           objs.push(App.Key.create({Key: obj}));
         });
@@ -170,7 +170,7 @@ App.KvEditRoute = App.BaseRoute.extend({
         return App.Key.create().setProperties(data[0]);
       }),
       keys: keysPromise = Ember.$.getJSON(formatUrl('/v1/kv/' + parentKeys.parent + '?keys&seperator=/', dc, token)).then(function(data) {
-        objs = [];
+        var objs = [];
         data.map(function(obj){
          objs.push(App.Key.create({Key: obj}));
         });
@@ -213,7 +213,7 @@ App.ServicesRoute = App.BaseRoute.extend({
 
     // Return a promise to retrieve all of the services
     return Ember.$.getJSON(formatUrl('/v1/internal/ui/services', dc, token)).then(function(data) {
-      objs = [];
+      var objs = [];
       data.map(function(obj){
        objs.push(App.Service.create(obj));
       });
@@ -234,7 +234,7 @@ App.ServicesShowRoute = App.BaseRoute.extend({
     // Here we just use the built-in health endpoint, as it gives us everything
     // we need.
     return Ember.$.getJSON(formatUrl('/v1/health/service/' + params.name, dc, token)).then(function(data) {
-      objs = [];
+      var objs = [];
       data.map(function(obj){
        objs.push(App.Node.create(obj));
       });
@@ -300,7 +300,7 @@ App.NodesRoute = App.BaseRoute.extend({
 
     // Return a promise containing the nodes
     return Ember.$.getJSON(formatUrl('/v1/internal/ui/nodes', dc, token)).then(function(data) {
-      objs = [];
+      var objs = [];
       data.map(function(obj){
        objs.push(App.Node.create(obj));
       });
@@ -308,7 +308,7 @@ App.NodesRoute = App.BaseRoute.extend({
     });
   },
   setupController: function(controller, model) {
-      controller.set('nodes', model);
+    controller.set('nodes', model);
   }
 });
 
@@ -319,7 +319,7 @@ App.AclsRoute = App.BaseRoute.extend({
     var token = App.get('settings.token');
     // Return a promise containing the ACLS
     return Ember.$.getJSON(formatUrl('/v1/acl/list', dc, token)).then(function(data) {
-      objs = [];
+      var objs = [];
       data.map(function(obj){
         if (obj.ID === "anonymous") {
           objs.unshift(App.Acl.create(obj));
