@@ -1,21 +1,29 @@
 Source: consul
 Section: net
 Priority: extra
-Maintainer: Mikael Knutsson <mikael.knutsson@gmail.com>
-Build-Depends: debhelper (>= 8.0.0),
+Maintainer: HashiCorp <hello@hashicorp.com>
+Build-Depends: debhelper (>= 9.0.0),
                dh-golang,
                golang-go
-Standards-Version: 3.9.2
+Standards-Version: 3.9.5
 Vcs-Git: https://github.com/hashicorp/consul.git
 Vcs-Browser: https://github.com/hashicorp/consul
 
 Package: consul
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, dpkg-dev
+Depends: ${shlibs:Depends}, ${misc:Depends}, dpkg-dev, adduser
 Built-Using: ${misc:Built-Using}
-Description: Consul is a tool for service discovery, monitoring and configuration.
+Description: Tool for service discovery, monitoring and configuration.
  Consul provides several key features:
- * Service Discovery - Consul makes it simple for services to register themselves and to discover other services via a DNS or HTTP interface. External services such as SaaS providers can be registered as well.
- * Health Checking - Health Checking enables Consul to quickly alert operators about any issues in a cluster. The integration with service discovery prevents routing traffic to unhealthy hosts and enables service level circuit breakers.
- * Key/Value Storage - A flexible key/value store enables storing dynamic configuration, feature flagging, coordination, leader election and more. The simple HTTP API makes it easy to use anywhere.
- * Multi-Datacenter - Consul is built to be datacenter aware, and can support any number of regions without complex configuration.
+  * Service Discovery - Consul makes it simple for services to register
+    themselves and to discover other services via a DNS or HTTP interface.
+    External services such as SaaS providers can be registered as well.
+  * Health Checking - Health Checking enables Consul to quickly alert operators
+    about any issues in a cluster. The integration with service discovery
+    prevents routing traffic to unhealthy hosts and enables service level
+    circuit breakers.
+  * Key/Value Storage - A flexible key/value store enables storing dynamic
+    configuration, feature flagging, coordination, leader election and more.
+    The simple HTTP API makes it easy to use anywhere.
+  * Multi-Datacenter - Consul is built to be datacenter aware, and can support
+    any number of regions without complex configuration.
