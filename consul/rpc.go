@@ -225,7 +225,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 
 // globalRPC is used to forward an RPC request to one server in each datacenter.
 // This will only error for RPC-related errors. Otherwise, application-level
-// errors are returned inside of the inner response objects.
+// errors can be sent in the response objects.
 func (s *Server) globalRPC(method string, args interface{},
 	reply structs.CompoundResponse) error {
 

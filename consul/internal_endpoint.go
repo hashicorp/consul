@@ -64,8 +64,9 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	return m.srv.UserEvent(args.Name, args.Payload)
 }
 
-// ListKeys will query the WAN and LAN gossip keyrings of all nodes, adding
-// results into a collective response as we go.
+// KeyringOperation will query the WAN and LAN gossip keyrings of all nodes,
+// adding results into a collective response as we go. It can describe requests
+// for all keyring-related operations.
 func (m *Internal) KeyringOperation(
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses) error {

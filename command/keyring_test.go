@@ -88,25 +88,6 @@ func TestKeyringCommandRun_failedConnection(t *testing.T) {
 	}
 }
 
-func TestKeyringCommandRun_initKeyringFail(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &KeyringCommand{Ui: ui}
-
-	// Should error if no data-dir given
-	args := []string{"-init=HS5lJ+XuTlYKWaeGYyG+/A=="}
-	code := c.Run(args)
-	if code != 1 {
-		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
-	}
-
-	// Errors on invalid key
-	args = []string{"-init=xyz", "-data-dir=/tmp"}
-	code = c.Run(args)
-	if code != 1 {
-		t.Fatalf("should have errored")
-	}
-}
-
 func listKeys(t *testing.T, addr string) string {
 	ui := new(cli.MockUi)
 	c := &KeyringCommand{Ui: ui}
