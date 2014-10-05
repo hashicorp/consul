@@ -18,9 +18,9 @@
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="consul"
-NAME=consul-agent
+NAME=consul
 DAEMON=/usr/bin/consul
-DAEMON_ARGS="agent -config-file=/etc/consul/consul-agent.hcl -config-dir=/etc/consul/conf.d/ -data-dir=/var/cache/consul/"
+DAEMON_ARGS="agent -config-file=/etc/consul/consul-agent.json -config-dir=/etc/consul/conf.d/ -data-dir=/var/cache/consul/"
 DAEMON_USER=consul
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
@@ -50,7 +50,7 @@ do_start()
 	#   2 if daemon could not be started
 	start-stop-daemon --start --chuid $DAEMON_USER --quiet --pidfile $PIDFILE --exec $DAEMON --test > /dev/null \
 		|| return 1
-	start-stop-daemon --start --chuid $DAEMON_USER --quiet --pidfile $PIDFILE --exec $DAEMON -- \
+	start-stop-daemon --background --start --chuid $DAEMON_USER --quiet --pidfile $PIDFILE --exec $DAEMON -- \
 		$DAEMON_ARGS \
 		|| return 2
 

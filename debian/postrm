@@ -32,15 +32,15 @@ case "$1" in
             set +e
         fi
 
-        if getent group $GROUP >/dev/null
-        then
-            delgroup $GROUP >/dev/null
-        fi
-
         # creating user if it isn't already there
         if getent passwd $USER >/dev/null
         then
             deluser $USER  >/dev/null
+        fi
+
+        if getent group $GROUP >/dev/null
+        then
+            delgroup $GROUP >/dev/null
         fi
 
         # end of NIS tolerance zone

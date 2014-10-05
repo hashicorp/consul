@@ -11,7 +11,7 @@ Vcs-Browser: https://github.com/hashicorp/consul
 
 Package: consul
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, dpkg-dev, adduser
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser
 Built-Using: ${misc:Built-Using}
 Description: Tool for service discovery, monitoring and configuration.
  Consul provides several key features:

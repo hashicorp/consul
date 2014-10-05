@@ -4,11 +4,14 @@ export DH_VERBOSE=1
 export DH_OPTIONS
 export DH_GOPKG := github.com/hashicorp/consul
 
+override_dh_installinit:
+	dh_installinit -- --name=consul-agent
+
 override_dh_auto_test:
 	echo "Skipping tests..."
 
 override_dh_auto_configure:
-	dh_auto_configure $@ --builddirectory=./build/
+	dh_auto_configure -- --builddirectory=./build/
 	GOPATH=$(CURDIR)/build/ go get -v -d
 	for dep in $(DEPS); do GOPATH=$(CURDIR)/build/ go get -d -v; done
 
