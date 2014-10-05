@@ -4,9 +4,6 @@ export DH_VERBOSE=1
 export DH_OPTIONS
 export DH_GOPKG := github.com/hashicorp/consul
 
-override_dh_installinit:
-	dh_installinit -- --name=consul-agent
-
 override_dh_auto_test:
 	echo "Skipping tests..."
 
