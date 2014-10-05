@@ -1,0 +1,16 @@
+[Unit]
+Description=consul-agent - tool for service discovery and configuration
+After=network.target auditd.service
+ConditionPathExists=!/etc/consul/consul_not_to_be_run
+
+[Service]
+User=consul
+Group=consul
+ExecStart=/usr/bin/consul agent -config-file=/etc/consul/consul-agent.hcl -config-dir=/etc/consul/conf.d/ -data-dir=/var/cache/consul/
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+StandardError=inherit
+
+[Install]
+Alias=consul-agent.service

@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+export DH_OPTIONS
+export DH_GOPKG := github.com/hashicorp/consul
+
+override_dh_auto_test:
+	echo "Skipping tests..."
+
+override_dh_auto_configure:
+	dh_auto_configure $@
+	GOPATH=$(CURDIR)/obj-$(DEB_BUILD_MULTIARCH) go get -v -d
+	for dep in $(DEPS); do GOPATH=$(CURDIR)/obj-$(DEB_BUILD_MULTIARCH) go get -d -v; done
+
+%:
+	dh $@ --buildsystem=golang --with=golang
