@@ -71,15 +71,10 @@ func (m *Internal) KeyringOperation(
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses) error {
 
-	dc := m.srv.config.Datacenter
-
-	respLAN, err := executeKeyringOp(args, m.srv.KeyManagerLAN())
-	ingestKeyringResponse(respLAN, reply, dc, false, err)
+	m.executeKeyringOp(args, reply, false)
 
 	if !args.Forwarded {
-		respWAN, err := executeKeyringOp(args, m.srv.KeyManagerWAN())
-		ingestKeyringResponse(respWAN, reply, dc, true, err)
-
+		m.executeKeyringOp(args, reply, true)
 		args.Forwarded = true
 		return m.srv.globalRPC("Internal.KeyringOperation", args, reply)
 	}
@@ -90,29 +85,33 @@ func (m *Internal) KeyringOperation(
 // executeKeyringOp executes the appropriate keyring-related function based on
 // the type of keyring operation in the request. It takes the KeyManager as an
 // argument, so it can handle any operation for either LAN or WAN pools.
-func executeKeyringOp(
+func (m *Internal) executeKeyringOp(
 	args *structs.KeyringRequest,
-	mgr *serf.KeyManager) (r *serf.KeyResponse, err error) {
+	reply *structs.KeyringResponses,
+	wan bool) {
+
+	var serfResp *serf.KeyResponse
+	var err error
+
+	dc := m.srv.config.Datacenter
+
+	var mgr *serf.KeyManager
+	if wan {
+		mgr = m.srv.KeyManagerWAN()
+	} else {
+		mgr = m.srv.KeyManagerLAN()
+	}
 
 	switch args.Operation {
 	case structs.KeyringList:
-		r, err = mgr.ListKeys()
+		serfResp, err = mgr.ListKeys()
 	case structs.KeyringInstall:
-		r, err = mgr.InstallKey(args.Key)
+		serfResp, err = mgr.InstallKey(args.Key)
 	case structs.KeyringUse:
-		r, err = mgr.UseKey(args.Key)
+		serfResp, err = mgr.UseKey(args.Key)
 	case structs.KeyringRemove:
-		r, err = mgr.RemoveKey(args.Key)
+		serfResp, err = mgr.RemoveKey(args.Key)
 	}
-
-	return r, err
-}
-
-// ingestKeyringResponse is a helper method to pick the relative information
-// from a Serf message and stuff it into a KeyringResponse.
-func ingestKeyringResponse(
-	serfResp *serf.KeyResponse, reply *structs.KeyringResponses,
-	dc string, wan bool, err error) {
 
 	errStr := ""
 	if err != nil {
