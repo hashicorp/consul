@@ -188,9 +188,12 @@ Usage: consul keyring [options]
   functionality provides the ability to perform key rotation cluster-wide,
   without disrupting the cluster.
 
-  With the exception of the -init argument, all operations performed by this
-  command can only be run against server nodes, and affect both the LAN and
-  WAN keyrings in lock-step.
+  All operations performed by this command can only be run against server nodes,
+  and affect both the LAN and WAN keyrings in lock-step.
+
+  All variations of the keyring command return 0 if all nodes reply and there
+  are no errors. If any node fails to reply or reports failure, the exit code
+  will be 1.
 
 Options:
 
