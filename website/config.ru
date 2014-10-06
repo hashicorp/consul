@@ -12,7 +12,7 @@ use Rack::Deflater
 # to do.
 use Rack::StaticCache,
   :root => "build",
-  :urls => ["/images", "/javascripts", "/stylesheets"],
+  :urls => ["/assets"],
   :duration => 2,
   :versioning => false
 
