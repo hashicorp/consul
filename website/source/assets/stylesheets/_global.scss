@@ -9,31 +9,31 @@
 
 body {
     font-size: 15px;
-    color: @black;
+    color: $black;
     font-weight: 300;
 }
 
 h1{
 	font-size: 42px;
 	line-height: 42px;
-	font-family: @font-family-museo;
-	font-weight: @font-weight-museo-sb;
+	font-family: $font-family-museo;
+	font-weight: $font-weight-museo-sb;
 	margin-bottom: 24px;
 }
 
 h3{
 	font-size: 28px;
 	line-height: 28px;
-	font-family: @font-family-museo;
-	font-weight: @font-weight-museo-sb;
+	font-family: $font-family-museo;
+	font-weight: $font-weight-museo-sb;
 }
 
 //an alternative color for buttons in the doc body
 .btn-serf{
-	color: @white !important;
-	background-color: @btn-color;
-	border-radius: @btn-border-radius;
-	//.box-shadow( @shadow );
+	color: $white !important;
+	background-color: $btn-color;
+	border-radius: $btn-border-radius;
+	//@include box-shadow( $shadow );
 }
 
 .highlight{
@@ -41,8 +41,8 @@ h3{
 }
 
 pre {
-	background-color: @black;
-	color: @white;
+	background-color: $black;
+	color: $white;
 	font-size: 14px;
 	font-weight: normal;
 	font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
