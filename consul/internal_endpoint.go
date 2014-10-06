@@ -72,10 +72,9 @@ func (m *Internal) KeyringOperation(
 	reply *structs.KeyringResponses) error {
 
 	m.executeKeyringOp(args, reply, false)
-
 	if !args.Forwarded {
-		m.executeKeyringOp(args, reply, true)
 		args.Forwarded = true
+		m.executeKeyringOp(args, reply, true)
 		return m.srv.globalRPC("Internal.KeyringOperation", args, reply)
 	}
 
@@ -92,10 +91,8 @@ func (m *Internal) executeKeyringOp(
 
 	var serfResp *serf.KeyResponse
 	var err error
-
-	dc := m.srv.config.Datacenter
-
 	var mgr *serf.KeyManager
+
 	if wan {
 		mgr = m.srv.KeyManagerWAN()
 	} else {
@@ -120,7 +117,7 @@ func (m *Internal) executeKeyringOp(
 
 	reply.Responses = append(reply.Responses, &structs.KeyringResponse{
 		WAN:        wan,
-		Datacenter: dc,
+		Datacenter: m.srv.config.Datacenter,
 		Messages:   serfResp.Messages,
 		Keys:       serfResp.Keys,
 		NumNodes:   serfResp.NumNodes,

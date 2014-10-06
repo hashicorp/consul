@@ -117,10 +117,7 @@ func loadKeyringFile(c *serf.Config) error {
 
 // keyringProcess is used to abstract away the semantic similarities in
 // performing various operations on the encryption keyring.
-func (a *Agent) keyringProcess(
-	method string,
-	args *structs.KeyringRequest) (*structs.KeyringResponses, error) {
-
+func (a *Agent) keyringProcess(args *structs.KeyringRequest) (*structs.KeyringResponses, error) {
 	// Allow any server to handle the request, since this is
 	// done over the gossip protocol.
 	args.AllowStale = true
@@ -129,7 +126,7 @@ func (a *Agent) keyringProcess(
 	if a.server == nil {
 		return nil, fmt.Errorf("keyring operations must run against a server node")
 	}
-	if err := a.RPC(method, args, &reply); err != nil {
+	if err := a.RPC("Internal.KeyringOperation", args, &reply); err != nil {
 		return &reply, err
 	}
 
@@ -140,23 +137,23 @@ func (a *Agent) keyringProcess(
 // includes both servers and clients in all DC's.
 func (a *Agent) ListKeys() (*structs.KeyringResponses, error) {
 	args := structs.KeyringRequest{Operation: structs.KeyringList}
-	return a.keyringProcess("Internal.KeyringOperation", &args)
+	return a.keyringProcess(&args)
 }
 
 // InstallKey installs a new gossip encryption key
 func (a *Agent) InstallKey(key string) (*structs.KeyringResponses, error) {
 	args := structs.KeyringRequest{Key: key, Operation: structs.KeyringInstall}
-	return a.keyringProcess("Internal.KeyringOperation", &args)
+	return a.keyringProcess(&args)
 }
 
 // UseKey changes the primary encryption key used to encrypt messages
 func (a *Agent) UseKey(key string) (*structs.KeyringResponses, error) {
 	args := structs.KeyringRequest{Key: key, Operation: structs.KeyringUse}
-	return a.keyringProcess("Internal.KeyringOperation", &args)
+	return a.keyringProcess(&args)
 }
 
 // RemoveKey will remove a gossip encryption key from the keyring
 func (a *Agent) RemoveKey(key string) (*structs.KeyringResponses, error) {
 	args := structs.KeyringRequest{Key: key, Operation: structs.KeyringRemove}
-	return a.keyringProcess("Internal.KeyringOperation", &args)
+	return a.keyringProcess(&args)
 }

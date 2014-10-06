@@ -229,11 +229,8 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 func (s *Server) globalRPC(method string, args interface{},
 	reply structs.CompoundResponse) error {
 
-	if reply == nil {
-		return fmt.Errorf("nil reply struct")
-	}
-	rlen := len(s.remoteConsuls)
-	if rlen < 2 {
+	totalDC := len(s.remoteConsuls)
+	if totalDC == 1 {
 		return nil
 	}
 
@@ -253,17 +250,14 @@ func (s *Server) globalRPC(method string, args interface{},
 		}()
 	}
 
-	done := 0
-	for {
+	replies := 0
+	for replies < totalDC {
 		select {
 		case err := <-errorCh:
 			return err
 		case rr := <-respCh:
 			reply.Add(rr)
-			done++
-		}
-		if done == rlen {
-			break
+			replies++
 		}
 	}
 	return nil
