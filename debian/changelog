@@ -1,0 +1,7 @@
+consul (0.4.1) UNRELEASED; urgency=low
+
+  * Initial release with debian packaging
+  * Fixing potential race in connection multiplexing
+  * Fixing only a single watch being run by an agent [GH-337]
+
+ -- HashiCorp <hello@hashicorp.com>  Sat, 04 Oct 2014 22:16:03 +0200

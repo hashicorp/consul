@@ -30,6 +30,8 @@ website/build/
 website/npm-debug.log
 *.old
 *.attr
+*.sw[n-p]
+/build/
 
 ui/.sass-cache
 ui/static/base.css

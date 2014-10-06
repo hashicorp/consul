@@ -1,0 +1,11 @@
+# Defaults for consul initscript
+# sourced by /etc/init.d/consul
+# installed at /etc/default/consul by the maintainer scripts
+
+#
+# This is a POSIX shell fragment
+#
+
+# Additional options that are passed to the Daemon.
+GOMAXPROCS=2
+DAEMON_OPTS=""
