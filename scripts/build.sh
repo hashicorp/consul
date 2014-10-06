@@ -28,7 +28,6 @@ fi
 
 if [ "$(go env GOOS)" = "freebsd" ]; then
   export CC="clang"
-  export CGO_LDFLAGS="$CGO_LDFLAGS -extld clang" # Workaround for https://code.google.com/p/go/issues/detail?id=6845
 fi
 
 # On OSX, we need to use an older target to ensure binaries are
