@@ -8,9 +8,14 @@ activate :hashicorp do |h|
   h.bintray_user = 'mitchellh'
   h.bintray_key  = ENV['BINTRAY_API_KEY']
 
+  # Do not include the "web" in the default list of packages
   h.bintray_exclude_proc = Proc.new do |os, filename|
     os == 'web'
   end
+
+  # Consul packages are not prefixed with consul_ - they should be in the
+  # future though!
+  h.bintray_prefixed = false
 end
 
 helpers do
