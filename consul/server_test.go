@@ -486,14 +486,23 @@ func TestServer_globalRPC(t *testing.T) {
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Check the members
+	testutil.WaitForResult(func() (bool, error) {
+		members := len(s1.WANMembers())
+		return members == 2, fmt.Errorf("expected 2 members, got %d", members)
+	}, func(err error) {
+		t.Fatalf(err.Error())
+	})
+
+	// Wait for leader election
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Check that replies from each DC come in
+	// Check that replies from each gossip pool come in
 	resp := &structs.KeyringResponses{}
 	args := &structs.KeyringRequest{Operation: structs.KeyringList}
 	if err := s1.globalRPC("Internal.KeyringOperation", args, resp); err != nil {
@@ -503,7 +512,7 @@ func TestServer_globalRPC(t *testing.T) {
 		t.Fatalf("bad: %#v", resp.Responses)
 	}
 
-	// Check that error from remote DC is returned
+	// Check that an error from a remote DC is returned
 	resp = &structs.KeyringResponses{}
 	err := s1.globalRPC("Bad.Method", nil, resp)
 	if err == nil {
@@ -511,5 +520,26 @@ func TestServer_globalRPC(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "Bad.Method") {
 		t.Fatalf("unexpcted error: %s", err)
+	}
+}
+
+func TestServer_Encrypted(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	key := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.SerfLANConfig.MemberlistConfig.SecretKey = key
+		c.SerfWANConfig.MemberlistConfig.SecretKey = key
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	if s1.Encrypted() {
+		t.Fatalf("should not be encrypted")
+	}
+	if !s2.Encrypted() {
+		t.Fatalf("should be encrypted")
 	}
 }

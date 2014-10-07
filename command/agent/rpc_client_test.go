@@ -30,10 +30,10 @@ func (r *rpcParts) Close() {
 // testRPCClient returns an RPCClient connected to an RPC server that
 // serves only this connection.
 func testRPCClient(t *testing.T) *rpcParts {
-	return testRPCClientWithConfig(t, nil)
+	return testRPCClientWithConfig(t, func(c *Config) {})
 }
 
-func testRPCClientWithConfig(t *testing.T, c *Config) *rpcParts {
+func testRPCClientWithConfig(t *testing.T, cb func(c *Config)) *rpcParts {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -43,9 +43,7 @@ func testRPCClientWithConfig(t *testing.T, c *Config) *rpcParts {
 	mult := io.MultiWriter(os.Stderr, lw)
 
 	conf := nextConfig()
-	if c != nil {
-		conf = MergeConfig(conf, c)
-	}
+	cb(conf)
 
 	dir, agent := makeAgentLog(t, conf, mult)
 	rpc := NewAgentRPC(agent, l, mult, lw)
@@ -284,8 +282,10 @@ OUTER2:
 
 func TestRPCClientListKeys(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
-	conf := Config{EncryptKey: key1, Datacenter: "dc1"}
-	p1 := testRPCClientWithConfig(t, &conf)
+	p1 := testRPCClientWithConfig(t, func(c *Config) {
+		c.EncryptKey = key1
+		c.Datacenter = "dc1"
+	})
 	defer p1.Close()
 
 	// Key is initially installed to both wan/lan
@@ -301,8 +301,9 @@ func TestRPCClientListKeys(t *testing.T) {
 func TestRPCClientInstallKey(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "xAEZ3uVHRMZD9GcYMZaRQw=="
-	conf := Config{EncryptKey: key1}
-	p1 := testRPCClientWithConfig(t, &conf)
+	p1 := testRPCClientWithConfig(t, func(c *Config) {
+		c.EncryptKey = key1
+	})
 	defer p1.Close()
 
 	// key2 is not installed yet
@@ -344,8 +345,9 @@ func TestRPCClientInstallKey(t *testing.T) {
 func TestRPCClientUseKey(t *testing.T) {
 	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
 	key2 := "xAEZ3uVHRMZD9GcYMZaRQw=="
-	conf := Config{EncryptKey: key1}
-	p1 := testRPCClientWithConfig(t, &conf)
+	p1 := testRPCClientWithConfig(t, func(c *Config) {
+		c.EncryptKey = key1
+	})
 	defer p1.Close()
 
 	// add a second key to the ring

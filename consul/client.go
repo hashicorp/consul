@@ -206,11 +206,6 @@ func (c *Client) UserEvent(name string, payload []byte) error {
 	return c.serf.UserEvent(userEventName(name), payload, false)
 }
 
-// KeyManager returns the LAN Serf keyring manager
-func (c *Client) KeyManagerLAN() *serf.KeyManager {
-	return c.serf.KeyManager()
-}
-
 // Encrypted determines if gossip is encrypted
 func (c *Client) Encrypted() bool {
 	return c.serf.EncryptionEnabled()

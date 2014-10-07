@@ -39,10 +39,10 @@ func (a *agentWrapper) Shutdown() {
 }
 
 func testAgent(t *testing.T) *agentWrapper {
-	return testAgentWithConfig(nil, t)
+	return testAgentWithConfig(t, func(c *agent.Config) {})
 }
 
-func testAgentWithConfig(c *agent.Config, t *testing.T) *agentWrapper {
+func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *agentWrapper {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -52,9 +52,7 @@ func testAgentWithConfig(c *agent.Config, t *testing.T) *agentWrapper {
 	mult := io.MultiWriter(os.Stderr, lw)
 
 	conf := nextConfig()
-	if c != nil {
-		conf = agent.MergeConfig(c, conf)
-	}
+	cb(conf)
 
 	dir, err := ioutil.TempDir("", "agent")
 	if err != nil {
