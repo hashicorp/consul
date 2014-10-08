@@ -127,16 +127,6 @@ type QueryMeta struct {
 	KnownLeader bool
 }
 
-// GenericRPC is the simplest possible RPCInfo implementation
-type GenericRPC struct {
-	Datacenter string
-	QueryOptions
-}
-
-func (r *GenericRPC) RequestDatacenter() string {
-	return r.Datacenter
-}
-
 // RegisterRequest is used for the Catalog.Register endpoint
 // to register a node as providing a service. If no service
 // is provided, the node is registered.

@@ -71,13 +71,13 @@ func (m *Internal) KeyringOperation(
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses) error {
 
-	m.executeKeyringOp(args, reply, false)
 	if !args.Forwarded {
 		args.Forwarded = true
 		m.executeKeyringOp(args, reply, true)
 		return m.srv.globalRPC("Internal.KeyringOperation", args, reply)
 	}
 
+	m.executeKeyringOp(args, reply, false)
 	return nil
 }
 

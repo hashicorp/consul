@@ -229,29 +229,23 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 func (s *Server) globalRPC(method string, args interface{},
 	reply structs.CompoundResponse) error {
 
-	totalDC := len(s.remoteConsuls)
-	if totalDC == 1 {
-		return nil
-	}
-
 	errorCh := make(chan error)
 	respCh := make(chan interface{})
 
 	// Make a new request into each datacenter
 	for dc, _ := range s.remoteConsuls {
-		info := &structs.GenericRPC{Datacenter: dc}
-		go func() {
+		go func(dc string) {
 			rr := reply.New()
-			if _, err := s.forward(method, info, args, &rr); err != nil {
+			if err := s.forwardDC(method, dc, args, &rr); err != nil {
 				errorCh <- err
 				return
 			}
 			respCh <- rr
-		}()
+		}(dc)
 	}
 
-	replies := 0
-	for replies < totalDC {
+	replies, total := 0, len(s.remoteConsuls)
+	for replies < total {
 		select {
 		case err := <-errorCh:
 			return err

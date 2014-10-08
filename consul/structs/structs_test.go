@@ -35,7 +35,6 @@ func TestEncodeDecode(t *testing.T) {
 
 func TestStructs_Implements(t *testing.T) {
 	var (
-		_ RPCInfo          = &GenericRPC{}
 		_ RPCInfo          = &RegisterRequest{}
 		_ RPCInfo          = &DeregisterRequest{}
 		_ RPCInfo          = &DCSpecificRequest{}
