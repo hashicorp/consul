@@ -15,6 +15,7 @@ deps:
 	@echo $(DEPS) | xargs -n1 go get -d
 
 test: deps
+	./scripts/verify_no_uuid.sh
 	go list ./... | xargs -n1 go test
 
 integ:
