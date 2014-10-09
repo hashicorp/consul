@@ -118,10 +118,6 @@ func loadKeyringFile(c *serf.Config) error {
 // keyringProcess is used to abstract away the semantic similarities in
 // performing various operations on the encryption keyring.
 func (a *Agent) keyringProcess(args *structs.KeyringRequest) (*structs.KeyringResponses, error) {
-	// Allow any server to handle the request, since this is
-	// done over the gossip protocol.
-	args.AllowStale = true
-
 	var reply structs.KeyringResponses
 	if a.server == nil {
 		return nil, fmt.Errorf("keyring operations must run against a server node")

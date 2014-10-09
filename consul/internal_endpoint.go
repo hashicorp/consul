@@ -64,19 +64,19 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	return m.srv.UserEvent(args.Name, args.Payload)
 }
 
-// KeyringOperation will query the WAN and LAN gossip keyrings of all nodes,
-// adding results into a collective response as we go. It can describe requests
-// for all keyring-related operations.
+// KeyringOperation will query the WAN and LAN gossip keyrings of all nodes.
 func (m *Internal) KeyringOperation(
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses) error {
 
+	// Only perform WAN keyring querying and RPC forwarding once
 	if !args.Forwarded {
 		args.Forwarded = true
 		m.executeKeyringOp(args, reply, true)
 		return m.srv.globalRPC("Internal.KeyringOperation", args, reply)
 	}
 
+	// Query the LAN keyring of this node's DC
 	m.executeKeyringOp(args, reply, false)
 	return nil
 }

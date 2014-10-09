@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
 )
 
@@ -475,46 +474,23 @@ func TestServer_BadExpect(t *testing.T) {
 	})
 }
 
-func TestServer_globalRPC(t *testing.T) {
+type fakeGlobalResp struct{}
+
+func (r *fakeGlobalResp) Add(interface{}) {
+	return
+}
+
+func (r *fakeGlobalResp) New() interface{} {
+	return struct{}{}
+}
+
+func TestServer_globalRPCErrors(t *testing.T) {
 	dir1, s1 := testServerDC(t, "dc1")
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	dir2, s2 := testServerDC(t, "dc2")
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
-
-	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Check the members
-	testutil.WaitForResult(func() (bool, error) {
-		members := len(s1.WANMembers())
-		return members == 2, fmt.Errorf("expected 2 members, got %d", members)
-	}, func(err error) {
-		t.Fatalf(err.Error())
-	})
-
-	// Wait for leader election
-	testutil.WaitForLeader(t, s1.RPC, "dc1")
-
-	// Check that replies from each gossip pool come in
-	resp := &structs.KeyringResponses{}
-	args := &structs.KeyringRequest{Operation: structs.KeyringList}
-	if err := s1.globalRPC("Internal.KeyringOperation", args, resp); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(resp.Responses) != 3 {
-		t.Fatalf("bad: %#v", resp.Responses)
-	}
-
 	// Check that an error from a remote DC is returned
-	resp = &structs.KeyringResponses{}
-	err := s1.globalRPC("Bad.Method", nil, resp)
+	err := s1.globalRPC("Bad.Method", nil, &fakeGlobalResp{})
 	if err == nil {
 		t.Fatalf("should have errored")
 	}
