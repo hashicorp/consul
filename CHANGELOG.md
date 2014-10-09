@@ -4,6 +4,8 @@ BUG FIXES:
 
  * Fixing only a single watch being run by an agent [GH-337]
  * Fixing potential race in connection multiplexing
+ * Fixing issue with Session ID and ACL ID generation. Previously,
+   sessions and tokens could be invalidated when the leader changed.
 
 ## 0.4.0 (September 5, 2014)
 
