@@ -93,9 +93,8 @@ The options below are all specified on the command-line.
   automatically whenever the agent is restarted. This means that to encrypt
   Consul's gossip protocol, this option only needs to be provided once on each
   agent's initial startup sequence. If it is provided after Consul has been
-  initialized with an encryption key, then the provided key is simply added
-  as a secondary encryption key. More information on how keys can be changed
-  is available on the [keyring command](/docs/commands/keyring.html) page.
+  initialized with an encryption key, then the provided key is ignored and
+  a warning will be displayed.
 
 * `-join` - Address of another agent to join upon starting up. This can be
   specified multiple times to specify multiple agents to join. If Consul is

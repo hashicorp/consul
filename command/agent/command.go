@@ -156,16 +156,28 @@ func (c *Command) readConfig() *Config {
 		}
 
 		fileLAN := filepath.Join(config.DataDir, serfLANKeyring)
-		if err := initKeyring(fileLAN, config.EncryptKey); err != nil {
+		done, err := initKeyring(fileLAN, config.EncryptKey)
+		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error initializing keyring: %s", err))
 			return nil
+		}
+		if !done {
+			c.Ui.Error(fmt.Sprintf(
+				"WARNING: keyring file %s already exists, not overwriting",
+				fileLAN))
 		}
 
 		if config.Server {
 			fileWAN := filepath.Join(config.DataDir, serfWANKeyring)
-			if err := initKeyring(fileWAN, config.EncryptKey); err != nil {
+			done, err := initKeyring(fileWAN, config.EncryptKey)
+			if err != nil {
 				c.Ui.Error(fmt.Sprintf("Error initializing keyring: %s", err))
 				return nil
+			}
+			if !done {
+				c.Ui.Error(fmt.Sprintf(
+					"WARNING: keyring file %s already exists, not overwriting",
+					fileWAN))
 			}
 		}
 	}
