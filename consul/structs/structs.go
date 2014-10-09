@@ -440,7 +440,7 @@ type ACLOp string
 
 const (
 	ACLSet      ACLOp = "set"
-	ACLForceSet       = "force-set"
+	ACLForceSet       = "force-set" // Deprecated, left to backwards compatibility
 	ACLDelete         = "delete"
 )
 

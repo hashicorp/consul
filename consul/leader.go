@@ -129,7 +129,7 @@ func (s *Server) initializeACL() error {
 	if acl == nil {
 		req := structs.ACLRequest{
 			Datacenter: authDC,
-			Op:         structs.ACLForceSet,
+			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				ID:   anonymousToken,
 				Name: "Anonymous Token",
@@ -156,7 +156,7 @@ func (s *Server) initializeACL() error {
 	if acl == nil {
 		req := structs.ACLRequest{
 			Datacenter: authDC,
-			Op:         structs.ACLForceSet,
+			Op:         structs.ACLSet,
 			ACL: structs.ACL{
 				ID:   master,
 				Name: "Master Token",
