@@ -1,3 +1,7 @@
+// Import bootstrap
+@import "bootstrap-sprockets";
+@import "bootstrap";
+
 // Core variables and mixins
 @import "_variables";
 @import "_mixins";
@@ -24,5 +28,3 @@
 
 // Components w/ JavaScript
 /*@import "modals.less";*/
-
-// 68

@@ -4,15 +4,15 @@
 
 body.page-sub{
     #header{
-        .consul-gradient-bg();
+        @include consul-gradient-bg();
     }
 }
 
 #footer,
 #header {
-    .anti-alias();
+    @include anti-alias();
     position: relative;
-    color: @white;
+    color: $white;
     text-rendering: optimizeLegibility;
     margin-bottom: 0;
 
@@ -25,15 +25,15 @@ body.page-sub{
     }
 
     a{
-        color: @white;
+        color: $white;
     }
 
     .navbar-toggle{
         margin-top: 14px;
         margin-bottom: 14px;
-        border: 2px solid @white;
+        border: 2px solid $white;
         .icon-bar{
-            border: 1px solid @white;
+            border: 1px solid $white;
         }
     }
 
@@ -46,8 +46,8 @@ body.page-sub{
                 display: inline-block;
                 width: 179px;
                 height: 59px;
-                background: url(../images/consul-header-logo.png) 0 0 no-repeat;
-                .img-retina("../images/consul-header-logo.png", "../images/consul-header-logo@2x.png", 179px, 59px);
+                background: image-url('consul-header-logo.png') 0 0 no-repeat;
+                @include img-retina("consul-header-logo.png", "consul-header-logo@2x.png", 179px, 59px);
             }
         }
     }
@@ -78,8 +78,8 @@ body.page-sub{
 
     .nav > li > a:hover, .nav > li > a:focus {
         background-color: transparent;
-        /*color: @p;
-        .transition( color 0.3s ease );*/
+        /*color: $p;
+        @include transition( color 0.3s ease );*/
     }
 
     .main-links.navbar-nav{
@@ -90,8 +90,8 @@ body.page-sub{
             top: 35px;
             width: 4px;
             height: 23px;
-            background: url(../images/nav-dotpipes.png) 0 0 no-repeat;
-            .img-retina("../images/nav-dotpipes.png", "../images/nav-dotpipes@2x.png", 4px, 23px);
+            background: image-url('nav-dotpipes.png') 0 0 no-repeat;
+            @include img-retina("nav-dotpipes.png", "nav-dotpipes@2x.png", 4px, 23px);
             padding-right: 15px;
         }
 
@@ -116,15 +116,15 @@ body.page-sub{
 
             &.download{
                 a{
-                  background: url(../images/icon-download.png)  8px 6px no-repeat;
-                  .img-retina("../images/icon-download.png", "../images/icon-download@2x.png", 20px, 20px);
+                  background: image-url('icon-download.png')  8px 6px no-repeat;
+                  @include img-retina("icon-download.png", "icon-download@2x.png", 20px, 20px);
                 }
             }
 
             &.github{
                 a{
-                  background: url(../images/icon-github.png)  8px 6px no-repeat;
-                  .img-retina("../images/icon-github.png", "../images/icon-github@2x.png", 20px, 20px);
+                  background: image-url('icon-github.png')  8px 6px no-repeat;
+                  @include img-retina("icon-github.png", "icon-github@2x.png", 20px, 20px);
                 }
             }
         }
@@ -140,7 +140,7 @@ body.page-sub{
 #footer{
     height: 650px;
     text-align: center;
-    color: @purple;
+    color: $purple;
 
     .main-links.navbar-nav{
         float: none;
@@ -148,7 +148,7 @@ body.page-sub{
         padding-top: 155px;
 
         .li-under a::after {
-            background-color: @purple;
+            background-color: $purple;
         }
     }
 
@@ -157,7 +157,7 @@ body.page-sub{
     }
 
     a{
-        color: @purple;
+        color: $purple;
     }
 
     .buttons.navbar-nav{
@@ -173,15 +173,15 @@ body.page-sub{
 
             &.download{
                 a{
-                  background: url(../images/icon-download-purple.png)  8px 6px no-repeat;
-                  .img-retina("../images/icon-download-purple.png", "../images/icon-download-purple@2x.png", 20px, 20px);
+                  background: image-url('icon-download-purple.png')  8px 6px no-repeat;
+                  @include img-retina("icon-download-purple.png", "icon-download-purple@2x.png", 20px, 20px);
                 }
             }
 
             &.github{
                 a{
-                  background: url(../images/icon-github-purple.png)  8px 6px no-repeat;
-                  .img-retina("../images/icon-github-purple.png", "../images/icon-github-purple@2x.png", 20px, 20px);
+                  background: image-url('icon-github-purple.png')  8px 6px no-repeat;
+                  @include img-retina("icon-github-purple.png", "icon-github-purple@2x.png", 20px, 20px);
                 }
             }
         }
@@ -274,7 +274,7 @@ body.page-sub{
     }
 
     #header{
-        .consul-gradient-bg();
+        @include consul-gradient-bg();
 
         .navbar-right{
             float: none !important;
@@ -307,15 +307,15 @@ body.page-sub{
 
                 &.download{
                     a{
-                        background: url(../images/icon-download.png)  8px 6px no-repeat !important;;
-                        .img-retina("../images/icon-download.png", "../images/icon-download@2x.png", 20px, 20px);
+                        background: image-url('icon-download.png')  8px 6px no-repeat !important;;
+                        @include img-retina("icon-download.png", "icon-download@2x.png", 20px, 20px);
                     }
                 }
 
                 &.github{
                     a{
-                        background: url(../images/icon-github.png)  8px 6px no-repeat !important;;
-                        .img-retina("../images/icon-github.png", "../images/icon-github@2x.png", 20px, 20px);
+                        background: image-url('icon-github.png')  8px 6px no-repeat !important;;
+                        @include img-retina("icon-github.png", "icon-github@2x.png", 20px, 20px);
                     }
                 }
             }

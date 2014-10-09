@@ -27,7 +27,9 @@ a named ID which can be used to refer to it. This ID can be used with the KV
 store to acquire locks, which are advisory mechanisms for mutual exclusion.
 Below is a diagram showing the relationship between these components:
 
-![Session Architecture](/images/consul-sessions.png)
+<div class="center">
+  <%= link_to image_tag('consul-sessions.png'), image_path('consul-sessions.png') %>
+</div>
 
 The contract that Consul provides is that under any of the folllowing
 situations the session will be *invalidated*:

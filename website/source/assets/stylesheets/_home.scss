@@ -6,9 +6,9 @@ body.page-home{
 }
 
 #features{
-	.anti-alias();
+	@include anti-alias();
 	padding: 130px 0 0 0;
-	background: #f8f8f8 url(../images/hero-dots-below@2x.png) center top no-repeat;
+	background: #f8f8f8 image-url('hero-dots-below@2x.png') center top no-repeat;
 	background-size: 1280px 49px;
 
 	.double-row{
@@ -18,17 +18,17 @@ body.page-home{
 	h2{
 		font-size: 24px;
 		letter-spacing: 2px;
-		color: @purple;
-		font-family: @font-family-museo;
-		font-weight: @font-weight-museo-xb;
+		color: $purple;
+		font-family: $font-family-museo;
+		font-weight: $font-weight-museo-xb;
 	}
 	p{
 		font-size: 16px;
 		letter-spacing: 1px;
         line-height: 1.5em;
-		color: @consul-gray;
-		font-family: @font-family-museo;
-		font-weight: @font-weight-museo-sb;
+		color: $consul-gray;
+		font-family: $font-family-museo;
+		font-weight: $font-weight-museo-sb;
 	}
 
 	.icn{
@@ -41,30 +41,30 @@ body.page-home{
 	}
 
 	.discovery{
-		background-image: url( ../images/feature-discovery@2x.png);
+		background-image: image-url('feature-discovery@2x.png');
 		background-size: 181px 181px;
 	}
 	.health{
-		background-image: url( ../images/feature-health@2x.png);
+		background-image: image-url('feature-health@2x.png');
 		background-size: 125px 179px;
 	}
 	.multi{
-		background-image: url( ../images/feature-multi@2x.png);
+		background-image: image-url('feature-multi@2x.png');
 		background-size: 182px 184px;
 	}
 	.config{
-		background-image: url( ../images/feature-config@2x.png);
+		background-image: image-url('feature-config@2x.png');
 		background-size: 157px 179px;
 	}
 }
 
 #trusted{
-	background-color: @black;
+	background-color: $black;
 	padding: 140px 0;
 
 	h3{
 		margin-bottom: 60px;
-		color: @white;
+		color: $white;
 		text-transform: uppercase;
 		font-size: 18px;
 		text-align: center;
@@ -82,7 +82,7 @@ body.page-home{
 				width: 25%;
 				height: 80px;
 				margin: 12px 0;
-				background: url( ../images/trusted-sprite.png ) 0 0 no-repeat;
+				background: image-url('trusted-sprite.png') 0 0 no-repeat;
 
 				&#i0{
 					background-position: 0 0;
@@ -128,9 +128,9 @@ body.page-home{
 
 
 #footer{
-	background-color: @consul-footer-gray;
-    background: @consul-footer-gray url(../images/consul-footer-logo.png) center center no-repeat;
-    .img-retina("../images/consul-footer-logo.png", "../images/consul-footer-logo@2x.png", 446px, 443px);
+	background-color: $consul-footer-gray;
+    background: $consul-footer-gray image-url('consul-footer-logo.png') center center no-repeat;
+    @include img-retina("consul-footer-logo.png", "consul-footer-logo@2x.png", 446px, 443px);
 
 	.footer-links{
 		margin-bottom: 20px;
@@ -141,7 +141,7 @@ body.page-home{
     	margin-bottom: 30px;
 
     	a{
-    		font-weight: @font-weight-museo-xb;
+    		font-weight: $font-weight-museo-xb;
     	}
 
 	    span{
@@ -195,9 +195,9 @@ body.page-home{
 		font-size: 14px;
 		letter-spacing: 1px;
         line-height: 1.5em;
-		color: @consul-gray;
-		font-family: @font-family-museo;
-		font-weight: @font-weight-museo-sb;
+		color: $consul-gray;
+		font-family: $font-family-museo;
+		font-weight: $font-weight-museo-sb;
 	}
 
 
@@ -216,7 +216,7 @@ body.page-home{
 	    font-size: 16px;
 	    text-transform: uppercase;
 	    letter-spacing: 3px;
-	    color: @purple;
+	    color: $purple;
 	    &:hover {
 	    	text-decoration: none;
 	    }
@@ -225,27 +225,27 @@ body.page-home{
 
 #demos{
 	padding: 30px 0 60px;
-	background-color: @light-purple;
-	background: @light-purple url('../images/sidebar-dots.jpg') left 62px no-repeat;
+	background-color: $light-purple;
+	background: $light-purple image-url('sidebar-dots.jpg') left 62px no-repeat;
 
 	.explantion {
 		margin: 40px 0 40px 0;
 
 		h2 {
 			font-size: 22px;
-			color: lighten(@gray-light, 15%);
+			color: lighten($gray-light, 15%);
 			text-transform: uppercase;
-			font-family: @font-family-museo;
-			font-weight: @font-weight-museo-xb;
+			font-family: $font-family-museo;
+			font-weight: $font-weight-museo-xb;
 		}
 
 		p{
 			font-size: 16px;
 			letter-spacing: 1px;
 	        line-height: 1.5em;
-			color: @consul-gray;
-			font-family: @font-family-museo;
-			font-weight: @font-weight-museo-sb;
+			color: $consul-gray;
+			font-family: $font-family-museo;
+			font-weight: $font-weight-museo-sb;
 		}
 	}
 
@@ -283,12 +283,12 @@ body.page-home{
 			}
 
 			.terminal{
-				background-color: darken(@gray-darker, 15%);
+				background-color: darken($gray-darker, 15%);
 				border-radius: 4px;
 
 				header{
 					position: relative;
-					background-color: @consul-gray;
+					background-color: $consul-gray;
 					text-align: center;
 					padding: 3px;
 					border-top-left-radius: 4px;
@@ -297,9 +297,9 @@ body.page-home{
 					h4{
 						font-size: 14px;
 						letter-spacing: 1px;
-						color: @gray-darker;
-						font-family: @font-family-museo;
-						font-weight: @font-weight-museo-xb;
+						color: $gray-darker;
+						font-family: $font-family-museo;
+						font-weight: $font-weight-museo-xb;
 					}
 
 					ul.shell-dots{
@@ -313,7 +313,7 @@ body.page-home{
 							width: 12px;
 							height: 12px;
 							border-radius: 6px;
-							background-color: @gray-darker;
+							background-color: $gray-darker;
 							margin-left: 6px;
 						}
 					}
@@ -325,21 +325,21 @@ body.page-home{
 					font-size: 15px;
 					font-weight: normal;
 					font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
-					color: @white;
+					color: $white;
 
 					.txt-r {
-						color: lighten(@red, 8%);;
+						color: lighten($red, 8%);;
 					}
 					.txt-p {
 						font-weight: bold;
-						color: lighten(@purple, 15%);
+						color: lighten($purple, 15%);
 					}
 					p{
 						margin-bottom: 2px;
 						white-space: pre-wrap;
 					}
 					.cursor {
-						background-color: @light-purple;
+						background-color: $light-purple;
 					}
 				}
 			}

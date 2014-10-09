@@ -4,7 +4,7 @@
 
 body.layout-docs,
 body.layout-intro{
-	background: @light-purple url('../images/sidebar-dots.jpg') left 62px no-repeat;
+	background: $light-purple image-url('sidebar-dots.jpg') left 62px no-repeat;
 
 	>.container{
 		.col-md-8[role=main]{
@@ -36,11 +36,11 @@ body.layout-intro{
     margin-bottom: 30px;
 	margin-top: 50px;
 	margin-right: 4%;
-	background-color: @light-purple;
-	border-radius: @el-border-radius;
+	background-color: $light-purple;
+	border-radius: $el-border-radius;
 
 	a{
-			color: @purple;
+			color: $purple;
 	}
 
 	.docs-sidenav{
@@ -56,15 +56,15 @@ body.layout-intro{
 			position: relative;
 
 			> a{
-				color: @purple;
-				.transition( color 0.5s ease );
+				color: $purple;
+				@include transition( color 0.5s ease );
 			}
 
 			> a:hover,
 			> a:focus {
 				background-color: transparent !important;
-				color: @black;
-				.transition( color 0.5s ease );
+				color: $black;
+				@include transition( color 0.5s ease );
 			}
 		}
 
@@ -77,7 +77,7 @@ body.layout-intro{
 			>.nav{
 				li{
 					a{
-						color: @black;
+						color: $black;
 					}
 				}
 			}
@@ -88,7 +88,7 @@ body.layout-intro{
 					position: absolute;
 					width: 8px;
 					height: 8px;
-					background-color: @purple;
+					background-color: $purple;
 					border-radius: 4px;
 					top: 26px;
 					left: -10px;
@@ -99,22 +99,22 @@ body.layout-intro{
 
 				/*> a:hover,
 				> a:focus {
-					font-weight: @font-weight-museo-xb;
+					font-weight: $font-weight-museo-xb;
 				}*/
 
 				.nav {
 					display: block;
 
                     li.active a {
-						font-weight: @font-weight-museo-xb;
+						font-weight: $font-weight-museo-xb;
                     }
 				}
 			}
 
 			> a {
 				text-transform: uppercase;
-				font-family: @font-family-museo;
-				font-weight: @font-weight-museo-sb;
+				font-family: $font-family-museo;
+				font-weight: $font-weight-museo-sb;
                 -webkit-font-smoothing: antialiased;
 			}
 		}
@@ -128,7 +128,7 @@ body.layout-intro{
 
 				> a{
                     -webkit-font-smoothing: antialiased;
-					font-family: @font-family-open-sans;
+					font-family: $font-family-open-sans;
 					padding: 6px 15px;
 				}
 			}
@@ -152,8 +152,8 @@ body.layout-intro{
 
 	p, li, .alert {
 		font-size: 20px;
-		font-family: @font-family-open-sans;
-		font-weight: @font-weight-open;
+		font-family: $font-family-open-sans;
+		font-weight: $font-weight-open;
         line-height: 1.5em;
 		margin: 0 0 18px;
         -webkit-font-smoothing: antialiased;
@@ -164,7 +164,7 @@ body.layout-intro{
     }
 
 	a{
-		color: @purple;
+		color: $purple;
 		&:hover{
 			text-decoration: underline;
 		}
@@ -177,7 +177,7 @@ body.layout-intro{
     }
 
 	h1{
-		color: @purple;
+		color: $purple;
 		text-transform: uppercase;
 		padding-bottom: 24px;
         margin-top: 40px;
