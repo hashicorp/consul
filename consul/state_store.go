@@ -1550,9 +1550,12 @@ func (s *StateStore) invalidateLocks(index uint64, tx *MDBTxn,
 }
 
 // ACLSet is used to create or update an ACL entry
-// allowCreate is used for initialization of the anonymous and master tokens,
-// since it permits them to be created with a specified ID that does not exist.
-func (s *StateStore) ACLSet(index uint64, acl *structs.ACL, allowCreate bool) error {
+func (s *StateStore) ACLSet(index uint64, acl *structs.ACL) error {
+	// Check for an ID
+	if acl.ID == "" {
+		return fmt.Errorf("Missing ACL ID")
+	}
+
 	// Start a new txn
 	tx, err := s.tables.StartTxn(false)
 	if err != nil {
@@ -1560,43 +1563,22 @@ func (s *StateStore) ACLSet(index uint64, acl *structs.ACL, allowCreate bool) er
 	}
 	defer tx.Abort()
 
-	// Generate a new session ID
-	if acl.ID == "" {
-		for {
-			acl.ID = generateUUID()
-			res, err := s.aclTable.GetTxn(tx, "id", acl.ID)
-			if err != nil {
-				return err
-			}
-			// Quit if this ID is unique
-			if len(res) == 0 {
-				break
-			}
-		}
+	// Look for the existing node
+	res, err := s.aclTable.GetTxn(tx, "id", acl.ID)
+	if err != nil {
+		return err
+	}
+
+	switch len(res) {
+	case 0:
 		acl.CreateIndex = index
 		acl.ModifyIndex = index
-
-	} else {
-		// Look for the existing node
-		res, err := s.aclTable.GetTxn(tx, "id", acl.ID)
-		if err != nil {
-			return err
-		}
-
-		switch len(res) {
-		case 0:
-			if !allowCreate {
-				return fmt.Errorf("Invalid ACL")
-			}
-			acl.CreateIndex = index
-			acl.ModifyIndex = index
-		case 1:
-			exist := res[0].(*structs.ACL)
-			acl.CreateIndex = exist.CreateIndex
-			acl.ModifyIndex = index
-		default:
-			panic(fmt.Errorf("Duplicate ACL definition. Internal error"))
-		}
+	case 1:
+		exist := res[0].(*structs.ACL)
+		acl.CreateIndex = exist.CreateIndex
+		acl.ModifyIndex = index
+	default:
+		panic(fmt.Errorf("Duplicate ACL definition. Internal error"))
 	}
 
 	// Insert the ACL

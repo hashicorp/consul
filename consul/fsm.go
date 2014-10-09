@@ -2,12 +2,13 @@ package consul
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/raft"
-	"github.com/ugorji/go/codec"
 	"io"
 	"log"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/raft"
+	"github.com/ugorji/go/codec"
 )
 
 // consulFSM implements a finite state machine that is used
@@ -186,14 +187,10 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 	switch req.Op {
-	case structs.ACLSet:
-		if err := c.state.ACLSet(index, &req.ACL, false); err != nil {
-			return err
-		} else {
-			return req.ACL.ID
-		}
 	case structs.ACLForceSet:
-		if err := c.state.ACLSet(index, &req.ACL, true); err != nil {
+		fallthrough
+	case structs.ACLSet:
+		if err := c.state.ACLSet(index, &req.ACL); err != nil {
 			return err
 		} else {
 			return req.ACL.ID

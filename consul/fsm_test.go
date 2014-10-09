@@ -329,8 +329,8 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	fsm.state.SessionCreate(9, session)
-	acl := &structs.ACL{Name: "User Token"}
-	fsm.state.ACLSet(10, acl, false)
+	acl := &structs.ACL{ID: generateUUID(), Name: "User Token"}
+	fsm.state.ACLSet(10, acl)
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -793,6 +793,7 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
+			ID:   generateUUID(),
 			Name: "User token",
 			Type: structs.ACLTypeClient,
 		},

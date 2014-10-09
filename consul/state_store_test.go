@@ -705,18 +705,20 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 
 	a1 := &structs.ACL{
+		ID:   generateUUID(),
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(19, a1, false); err != nil {
+	if err := store.ACLSet(19, a1); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	a2 := &structs.ACL{
+		ID:   generateUUID(),
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(20, a2, false); err != nil {
+	if err := store.ACLSet(20, a2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -2237,11 +2239,12 @@ func TestACLSet_Get(t *testing.T) {
 	}
 
 	a := &structs.ACL{
+		ID:    generateUUID(),
 		Name:  "User token",
 		Type:  structs.ACLTypeClient,
 		Rules: "",
 	}
-	if err := store.ACLSet(50, a, false); err != nil {
+	if err := store.ACLSet(50, a); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if a.CreateIndex != 50 {
@@ -2267,7 +2270,7 @@ func TestACLSet_Get(t *testing.T) {
 
 	// Update
 	a.Rules = "foo bar baz"
-	if err := store.ACLSet(52, a, false); err != nil {
+	if err := store.ACLSet(52, a); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if a.CreateIndex != 50 {
@@ -2297,11 +2300,12 @@ func TestACLDelete(t *testing.T) {
 	defer store.Close()
 
 	a := &structs.ACL{
+		ID:    generateUUID(),
 		Name:  "User token",
 		Type:  structs.ACLTypeClient,
 		Rules: "",
 	}
-	if err := store.ACLSet(50, a, false); err != nil {
+	if err := store.ACLSet(50, a); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -2332,18 +2336,20 @@ func TestACLList(t *testing.T) {
 	defer store.Close()
 
 	a1 := &structs.ACL{
+		ID:   generateUUID(),
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(50, a1, false); err != nil {
+	if err := store.ACLSet(50, a1); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	a2 := &structs.ACL{
+		ID:   generateUUID(),
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(51, a2, false); err != nil {
+	if err := store.ACLSet(51, a2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
