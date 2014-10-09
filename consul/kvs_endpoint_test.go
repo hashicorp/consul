@@ -513,6 +513,7 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 		t.Fatalf("err: %v")
 	}
 	session := &structs.Session{
+		ID:        generateUUID(),
 		Node:      "foo",
 		LockDelay: 50 * time.Millisecond,
 	}

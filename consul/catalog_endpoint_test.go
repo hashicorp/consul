@@ -2,14 +2,15 @@ package consul
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
 	"net/rpc"
 	"os"
 	"sort"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestCatalogRegister(t *testing.T) {
@@ -670,7 +671,7 @@ func TestCatalogNodeServices(t *testing.T) {
 	if !strContains(services["db"].Tags, "primary") || services["db"].Port != 5000 {
 		t.Fatalf("bad: %v", out)
 	}
-	if services["web"].Tags != nil || services["web"].Port != 80 {
+	if len(services["web"].Tags) != 0 || services["web"].Port != 80 {
 		t.Fatalf("bad: %v", out)
 	}
 }

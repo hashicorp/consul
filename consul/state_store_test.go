@@ -1,12 +1,13 @@
 package consul
 
 import (
-	"github.com/hashicorp/consul/consul/structs"
 	"os"
 	"reflect"
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 func testStateStore() (*StateStore, error) {
@@ -51,7 +52,7 @@ func TestEnsureRegistration(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing api: %#v", services)
 	}
-	if entry.Tags != nil || entry.Port != 5000 {
+	if len(entry.Tags) != 0 || entry.Port != 5000 {
 		t.Fatalf("Bad entry: %#v", entry)
 	}
 
@@ -169,7 +170,7 @@ func TestEnsureService(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing api: %#v", services)
 	}
-	if entry.Tags != nil || entry.Port != 5001 {
+	if len(entry.Tags) != 0 || entry.Port != 5001 {
 		t.Fatalf("Bad entry: %#v", entry)
 	}
 
@@ -214,7 +215,7 @@ func TestEnsureService_DuplicateNode(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing api: %#v", services)
 	}
-	if entry.Tags != nil || entry.Port != 5000 {
+	if len(entry.Tags) != 0 || entry.Port != 5000 {
 		t.Fatalf("Bad entry: %#v", entry)
 	}
 
@@ -222,7 +223,7 @@ func TestEnsureService_DuplicateNode(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing api: %#v", services)
 	}
-	if entry.Tags != nil || entry.Port != 5001 {
+	if len(entry.Tags) != 0 || entry.Port != 5001 {
 		t.Fatalf("Bad entry: %#v", entry)
 	}
 
@@ -230,7 +231,7 @@ func TestEnsureService_DuplicateNode(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing api: %#v", services)
 	}
-	if entry.Tags != nil || entry.Port != 5002 {
+	if len(entry.Tags) != 0 || entry.Port != 5002 {
 		t.Fatalf("Bad entry: %#v", entry)
 	}
 }
@@ -689,12 +690,12 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 
 	// Add some sessions
-	session := &structs.Session{Node: "foo"}
+	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	if err := store.SessionCreate(16, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	session = &structs.Session{Node: "bar"}
+	session = &structs.Session{ID: generateUUID(), Node: "bar"}
 	if err := store.SessionCreate(17, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1720,16 +1721,13 @@ func TestSessionCreate(t *testing.T) {
 	}
 
 	session := &structs.Session{
+		ID:     generateUUID(),
 		Node:   "foo",
 		Checks: []string{"bar"},
 	}
 
 	if err := store.SessionCreate(1000, session); err != nil {
 		t.Fatalf("err: %v", err)
-	}
-
-	if session.ID == "" {
-		t.Fatalf("bad: %v", session)
 	}
 
 	if session.CreateIndex != 1000 {
@@ -1746,6 +1744,7 @@ func TestSessionCreate_Invalid(t *testing.T) {
 
 	// No node registered
 	session := &structs.Session{
+		ID:     generateUUID(),
 		Node:   "foo",
 		Checks: []string{"bar"},
 	}
@@ -1787,7 +1786,9 @@ func TestSession_Lookups(t *testing.T) {
 		t.Fatalf("err: %v")
 	}
 	session := &structs.Session{
-		Node: "foo",
+		ID:     generateUUID(),
+		Node:   "foo",
+		Checks: []string{},
 	}
 	if err := store.SessionCreate(1000, session); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1802,13 +1803,14 @@ func TestSession_Lookups(t *testing.T) {
 		t.Fatalf("bad: %v", idx)
 	}
 	if !reflect.DeepEqual(s2, session) {
-		t.Fatalf("bad: %v", s2)
+		t.Fatalf("bad: %#v %#v", s2, session)
 	}
 
 	// Create many sessions
 	ids := []string{session.ID}
 	for i := 0; i < 10; i++ {
 		session := &structs.Session{
+			ID:   generateUUID(),
 			Node: "foo",
 		}
 		if err := store.SessionCreate(uint64(1000+i), session); err != nil {
@@ -1878,6 +1880,7 @@ func TestSessionInvalidate_CriticalHealthCheck(t *testing.T) {
 	}
 
 	session := &structs.Session{
+		ID:     generateUUID(),
 		Node:   "foo",
 		Checks: []string{"bar"},
 	}
@@ -1921,6 +1924,7 @@ func TestSessionInvalidate_DeleteHealthCheck(t *testing.T) {
 	}
 
 	session := &structs.Session{
+		ID:     generateUUID(),
 		Node:   "foo",
 		Checks: []string{"bar"},
 	}
@@ -1955,6 +1959,7 @@ func TestSessionInvalidate_DeleteNode(t *testing.T) {
 	}
 
 	session := &structs.Session{
+		ID:   generateUUID(),
 		Node: "foo",
 	}
 	if err := store.SessionCreate(14, session); err != nil {
@@ -2001,6 +2006,7 @@ func TestSessionInvalidate_DeleteNodeService(t *testing.T) {
 	}
 
 	session := &structs.Session{
+		ID:     generateUUID(),
 		Node:   "foo",
 		Checks: []string{"api"},
 	}
@@ -2033,7 +2039,7 @@ func TestKVSLock(t *testing.T) {
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v")
 	}
-	session := &structs.Session{Node: "foo"}
+	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	if err := store.SessionCreate(4, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2106,7 +2112,7 @@ func TestKVSUnlock(t *testing.T) {
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v")
 	}
-	session := &structs.Session{Node: "foo"}
+	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	if err := store.SessionCreate(4, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2164,7 +2170,11 @@ func TestSessionInvalidate_KeyUnlock(t *testing.T) {
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v")
 	}
-	session := &structs.Session{Node: "foo", LockDelay: 50 * time.Millisecond}
+	session := &structs.Session{
+		ID:        generateUUID(),
+		Node:      "foo",
+		LockDelay: 50 * time.Millisecond,
+	}
 	if err := store.SessionCreate(4, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -2,8 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"github.com/armon/gomdb"
-	"github.com/hashicorp/consul/consul/structs"
 	"io"
 	"io/ioutil"
 	"log"
@@ -12,6 +10,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/armon/gomdb"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 const (
@@ -1288,6 +1289,11 @@ func (s *StateStore) kvsSet(
 // SessionCreate is used to create a new session. The
 // ID will be populated on a successful return
 func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error {
+	// Verify a Session ID is generated
+	if session.ID == "" {
+		return fmt.Errorf("Missing Session ID")
+	}
+
 	// Assign the create index
 	session.CreateIndex = index
 
@@ -1319,19 +1325,6 @@ func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error
 		chk := res[0].(*structs.HealthCheck)
 		if chk.Status == structs.HealthCritical {
 			return fmt.Errorf("Check '%s' is in %s state", checkId, chk.Status)
-		}
-	}
-
-	// Generate a new session ID, verify uniqueness
-	for {
-		session.ID = generateUUID()
-		res, err = s.sessionTable.GetTxn(tx, "id", session.ID)
-		if err != nil {
-			return err
-		}
-		// Quit if this ID is unique
-		if len(res) == 0 {
-			break
 		}
 	}
 

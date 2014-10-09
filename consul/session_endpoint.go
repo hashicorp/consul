@@ -2,9 +2,10 @@ package consul
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
-	"time"
 )
 
 // Session endpoint is used to manipulate sessions for KV
@@ -26,6 +27,26 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	}
 	if args.Session.Node == "" && args.Op == structs.SessionCreate {
 		return fmt.Errorf("Must provide Node")
+	}
+
+	// If this is a create, we must generate the Session ID. This must
+	// be done prior to appending to the raft log, because the ID is not
+	// deterministic. Once the entry is in the log, the state update MUST
+	// be deterministic or the followers will not converge.
+	if args.Op == structs.SessionCreate {
+		// Generate a new session ID, verify uniqueness
+		state := s.srv.fsm.State()
+		for {
+			args.Session.ID = generateUUID()
+			_, sess, err := state.SessionGet(args.Session.ID)
+			if err != nil {
+				s.srv.logger.Printf("[ERR] consul.session: Session lookup failed: %v", err)
+				return err
+			}
+			if sess == nil {
+				break
+			}
+		}
 	}
 
 	// Apply the update

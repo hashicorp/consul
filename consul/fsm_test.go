@@ -2,10 +2,11 @@ package consul
 
 import (
 	"bytes"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/raft"
 	"os"
 	"testing"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/raft"
 )
 
 type MockSink struct {
@@ -326,7 +327,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		Key:   "/test",
 		Value: []byte("foo"),
 	})
-	session := &structs.Session{Node: "foo"}
+	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	fsm.state.SessionCreate(9, session)
 	acl := &structs.ACL{Name: "User Token"}
 	fsm.state.ACLSet(10, acl, false)
@@ -611,6 +612,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.SessionCreate,
 		Session: structs.Session{
+			ID:     generateUUID(),
 			Node:   "foo",
 			Checks: []string{"web"},
 		},
@@ -679,7 +681,7 @@ func TestFSM_KVSLock(t *testing.T) {
 	defer fsm.Close()
 
 	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
-	session := &structs.Session{Node: "foo"}
+	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	fsm.state.SessionCreate(2, session)
 
 	req := structs.KVSRequest{
@@ -724,7 +726,7 @@ func TestFSM_KVSUnlock(t *testing.T) {
 	defer fsm.Close()
 
 	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
-	session := &structs.Session{Node: "foo"}
+	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	fsm.state.SessionCreate(2, session)
 
 	req := structs.KVSRequest{
