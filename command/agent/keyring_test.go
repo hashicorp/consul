@@ -66,7 +66,7 @@ func TestAgent_LoadKeyrings(t *testing.T) {
 		t.Fatalf("keyring should be loaded")
 	}
 	if c.SerfWANConfig.KeyringFile != "" {
-		t.Fatalf("bad: %#v", c.SerfLANConfig.KeyringFile)
+		t.Fatalf("bad: %#v", c.SerfWANConfig.KeyringFile)
 	}
 	if c.SerfWANConfig.MemberlistConfig.Keyring != nil {
 		t.Fatalf("keyring should not be loaded")
@@ -87,12 +87,8 @@ func TestAgent_InitKeyring(t *testing.T) {
 	file := filepath.Join(dir, "keyring")
 
 	// First initialize the keyring
-	done, err := initKeyring(file, key1)
-	if err != nil {
+	if err := initKeyring(file, key1); err != nil {
 		t.Fatalf("err: %s", err)
-	}
-	if !done {
-		t.Fatalf("should have modified keyring")
 	}
 
 	content, err := ioutil.ReadFile(file)
@@ -104,14 +100,11 @@ func TestAgent_InitKeyring(t *testing.T) {
 	}
 
 	// Try initializing again with a different key
-	done, err = initKeyring(file, key2)
-	if err != nil {
+	if err := initKeyring(file, key2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if done {
-		t.Fatalf("should not have modified keyring")
-	}
 
+	// Content should still be the same
 	content, err = ioutil.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)

@@ -18,42 +18,41 @@ const (
 	serfWANKeyring = "serf/remote.keyring"
 )
 
-// initKeyring will create a keyring file at a given path. Returns whether any
-// action was taken and any applicable error.
-func initKeyring(path, key string) (bool, error) {
+// initKeyring will create a keyring file at a given path.
+func initKeyring(path, key string) error {
 	var keys []string
 
 	if _, err := base64.StdEncoding.DecodeString(key); err != nil {
-		return false, fmt.Errorf("Invalid key: %s", err)
+		return fmt.Errorf("Invalid key: %s", err)
 	}
 
 	// Just exit if the file already exists.
 	if _, err := os.Stat(path); err == nil {
-		return false, nil
+		return nil
 	}
 
 	keys = append(keys, key)
 	keyringBytes, err := json.Marshal(keys)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-		return false, err
+		return err
 	}
 
 	fh, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
-		return false, err
+		return err
 	}
 	defer fh.Close()
 
 	if _, err := fh.Write(keyringBytes); err != nil {
 		os.Remove(path)
-		return false, err
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
 // loadKeyringFile will load a gossip encryption keyring out of a file. The file
