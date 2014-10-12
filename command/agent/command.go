@@ -369,6 +369,8 @@ func (c *Command) startupJoin(config *Config) error {
 	return nil
 }
 
+// retryJoin is used to handle retrying a join until it succeeds or all
+// retries are exhausted.
 func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 	if len(config.RetryJoin) == 0 {
 		return
