@@ -612,9 +612,12 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Figure out if gossip is encrypted
-	gossipEncrypted := (config.Server &&
-		c.agent.server.Encrypted() ||
-		c.agent.client.Encrypted())
+	var gossipEncrypted bool
+	if config.Server {
+		gossipEncrypted = c.agent.server.Encrypted()
+	} else {
+		gossipEncrypted = c.agent.client.Encrypted()
+	}
 
 	// Let the agent know we've finished registration
 	c.agent.StartSync()
