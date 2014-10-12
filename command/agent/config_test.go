@@ -265,6 +265,37 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Retry join
+	input = `{"retry_join": ["1.1.1.1", "2.2.2.2"]}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(config.RetryJoin) != 2 {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoin[0] != "1.1.1.1" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoin[1] != "2.2.2.2" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Retry interval
+	input = `{"retry_interval": "10s"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.RetryIntervalRaw != "10s" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryInterval.String() != "10s" {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// UI Dir
 	input = `{"ui_dir": "/opt/consul-ui"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -561,6 +592,7 @@ func TestMergeConfig(t *testing.T) {
 		SkipLeaveOnInt:         false,
 		EnableDebug:            false,
 		CheckUpdateIntervalRaw: "8m",
+		RetryIntervalRaw:       "10s",
 	}
 
 	b := &Config{
@@ -611,6 +643,9 @@ func TestMergeConfig(t *testing.T) {
 		UiDir:                  "/opt/consul-ui",
 		EnableSyslog:           true,
 		RejoinAfterLeave:       true,
+		RetryJoin:              []string{"1.1.1.1"},
+		RetryIntervalRaw:       "10s",
+		RetryInterval:          10 * time.Second,
 		CheckUpdateInterval:    8 * time.Minute,
 		CheckUpdateIntervalRaw: "8m",
 		ACLToken:               "1234",
