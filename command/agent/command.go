@@ -720,6 +720,11 @@ Options:
   -encrypt=key             Provides the gossip encryption key
   -join=1.2.3.4            Address of an agent to join at start time.
                            Can be specified multiple times.
+  -retry-join=1.2.3.4      Address of an agent to join at start time with
+                           retries enabled. Can be specified multiple times.
+  -retry-interval=30s      Time to wait between join attempts.
+  -retry-max=0             Maximum number of join attempts. Defaults to 0, which
+                           will retry indefinitely.
   -log-level=info          Log level of the agent.
   -node=hostname           Name of this node. Must be unique in the cluster
   -protocol=N              Sets the protocol version. Defaults to latest.
