@@ -296,6 +296,17 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Retry Max
+	input = `{"retry_max": 3}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.RetryMaxAttempts != 3 {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// UI Dir
 	input = `{"ui_dir": "/opt/consul-ui"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
