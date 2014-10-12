@@ -213,7 +213,7 @@ Here is an example configuration:
 
     {
         "type": "service",
-        "key": "redis",
+        "service": "redis",
         "handler": "/usr/bin/my-service-handler.sh"
     }
 
