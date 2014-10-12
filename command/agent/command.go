@@ -52,6 +52,7 @@ type Command struct {
 func (c *Command) readConfig() *Config {
 	var cmdConfig Config
 	var configFiles []string
+	var retryInterval string
 	cmdFlags := flag.NewFlagSet("agent", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
@@ -82,9 +83,24 @@ func (c *Command) readConfig() *Config {
 		"enable re-joining after a previous leave")
 	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.StartJoin), "join",
 		"address of agent to join on startup")
+	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.RetryJoin), "retry-join",
+		"address of agent to join on startup with retry")
+	cmdFlags.IntVar(&cmdConfig.RetryMaxAttempts, "retry-max", 0,
+		"number of retries for joining")
+	cmdFlags.StringVar(&retryInterval, "retry-interval", "",
+		"interval between join attempts")
 
 	if err := cmdFlags.Parse(c.args); err != nil {
 		return nil
+	}
+
+	if retryInterval != "" {
+		dur, err := time.ParseDuration(retryInterval)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error: %s", err))
+			return nil
+		}
+		cmdConfig.RetryInterval = dur
 	}
 
 	config := DefaultConfig()
@@ -353,6 +369,35 @@ func (c *Command) startupJoin(config *Config) error {
 	return nil
 }
 
+func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
+	if len(config.RetryJoin) == 0 {
+		return
+	}
+
+	logger := c.agent.logger
+	logger.Printf("[INFO] agent: Joining cluster...")
+
+	attempt := 0
+	for {
+		n, err := c.agent.JoinLAN(config.RetryJoin)
+		if err == nil {
+			logger.Printf("[INFO] agent: Join completed. Synced with %d initial agents", n)
+			return
+		}
+
+		attempt++
+		if config.RetryMaxAttempts > 0 && attempt > config.RetryMaxAttempts {
+			logger.Printf("[ERROR] agent: max join retry exhausted, exiting")
+			close(errCh)
+			return
+		}
+
+		logger.Printf("[WARN] agent: Join failed: %v, retrying in %v", err,
+			config.RetryInterval)
+		time.Sleep(config.RetryInterval)
+	}
+}
+
 func (c *Command) Run(args []string) int {
 	c.Ui = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
@@ -492,12 +537,16 @@ func (c *Command) Run(args []string) int {
 	c.Ui.Output("Log data will now stream in as it occurs:\n")
 	logGate.Flush()
 
+	// Start retry join process
+	errCh := make(chan struct{})
+	go c.retryJoin(config, errCh)
+
 	// Wait for exit
-	return c.handleSignals(config)
+	return c.handleSignals(config, errCh)
 }
 
 // handleSignals blocks until we get an exit-causing signal
-func (c *Command) handleSignals(config *Config) int {
+func (c *Command) handleSignals(config *Config, retryJoin <-chan struct{}) int {
 	signalCh := make(chan os.Signal, 4)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 
@@ -511,6 +560,8 @@ WAIT:
 		sig = syscall.SIGHUP
 	case <-c.ShutdownCh:
 		sig = os.Interrupt
+	case <-retryJoin:
+		return 1
 	case <-c.agent.ShutdownCh():
 		// Agent is already shutdown!
 		return 0
