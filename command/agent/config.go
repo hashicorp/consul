@@ -700,6 +700,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.RetryMaxAttempts != 0 {
 		result.RetryMaxAttempts = b.RetryMaxAttempts
 	}
+	if b.RetryInterval != 0 {
+		result.RetryInterval = b.RetryInterval
+	}
 	if b.DNSConfig.NodeTTL != 0 {
 		result.DNSConfig.NodeTTL = b.DNSConfig.NodeTTL
 	}
