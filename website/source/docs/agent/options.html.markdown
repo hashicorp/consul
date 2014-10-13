@@ -91,6 +91,16 @@ The options below are all specified on the command-line.
   unable to join with any of the specified addresses, agent startup will
   fail. By default, the agent won't join any nodes when it starts up.
 
+* `-retry-join` - Similar to `-join`, but allows retrying a join if the first
+  attempt fails. This is useful for cases where we know the address will become
+  available eventually.
+
+* `-retry-interval` - Time to wait between join attempts. Defaults to 30s.
+
+* `-retry-max` - The maximum number of join attempts to be made before exiting
+  with return code 1. By default, this is set to 0, which will continue to
+  retry the join indefinitely.
+
 * `-log-level` - The level of logging to show after the Consul agent has
   started. This defaults to "info". The available log levels are "trace",
   "debug", "info", "warn", "err". This is the log level that will be shown

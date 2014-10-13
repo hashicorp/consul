@@ -189,6 +189,20 @@ type Config struct {
 	// addresses, then the agent will error and exit.
 	StartJoin []string `mapstructure:"start_join"`
 
+	// RetryJoin is a list of addresses to join with retry enabled.
+	RetryJoin []string `mapstructure:"retry_join"`
+
+	// RetryMaxAttempts specifies the maximum number of times to retry joining a
+	// host on startup. This is useful for cases where we know the node will be
+	// online eventually.
+	RetryMaxAttempts int `mapstructure:"retry_max"`
+
+	// RetryInterval specifies the amount of time to wait in between join
+	// attempts on agent start. The minimum allowed value is 1 second and
+	// the default is 30s.
+	RetryInterval    time.Duration `mapstructure:"-" json:"-"`
+	RetryIntervalRaw string        `mapstructure:"retry_interval"`
+
 	// UiDir is the directory containing the Web UI resources.
 	// If provided, the UI endpoints will be enabled.
 	UiDir string `mapstructure:"ui_dir"`
@@ -328,6 +342,7 @@ func DefaultConfig() *Config {
 		ACLTTL:              30 * time.Second,
 		ACLDownPolicy:       "extend-cache",
 		ACLDefaultPolicy:    "allow",
+		RetryInterval:       30 * time.Second,
 	}
 }
 
@@ -448,6 +463,14 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 			return nil, fmt.Errorf("ACL TTL invalid: %v", err)
 		}
 		result.ACLTTL = dur
+	}
+
+	if raw := result.RetryIntervalRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("RetryInterval invalid: %v", err)
+		}
+		result.RetryInterval = dur
 	}
 
 	return &result, nil
@@ -681,6 +704,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.RejoinAfterLeave {
 		result.RejoinAfterLeave = true
 	}
+	if b.RetryMaxAttempts != 0 {
+		result.RetryMaxAttempts = b.RetryMaxAttempts
+	}
+	if b.RetryInterval != 0 {
+		result.RetryInterval = b.RetryInterval
+	}
 	if b.DNSConfig.NodeTTL != 0 {
 		result.DNSConfig.NodeTTL = b.DNSConfig.NodeTTL
 	}
@@ -746,6 +775,11 @@ func MergeConfig(a, b *Config) *Config {
 	result.StartJoin = make([]string, 0, len(a.StartJoin)+len(b.StartJoin))
 	result.StartJoin = append(result.StartJoin, a.StartJoin...)
 	result.StartJoin = append(result.StartJoin, b.StartJoin...)
+
+	// Copy the retry join addresses
+	result.RetryJoin = make([]string, 0, len(a.RetryJoin)+len(b.RetryJoin))
+	result.RetryJoin = append(result.RetryJoin, a.RetryJoin...)
+	result.RetryJoin = append(result.RetryJoin, b.RetryJoin...)
 
 	return &result
 }
