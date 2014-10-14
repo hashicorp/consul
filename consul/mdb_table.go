@@ -3,11 +3,12 @@ package consul
 import (
 	"bytes"
 	"fmt"
-	"github.com/armon/gomdb"
 	"reflect"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/armon/gomdb"
 )
 
 var (
@@ -21,6 +22,13 @@ const (
 	// is not used by MDBTable, but is stored so that the client can map
 	// back to the Raft index number
 	lastIndexRowID = 0
+
+	// deadlockTimeout is a heuristic to detect a potential MDB deadlock.
+	// If we have a transaction that is left open indefinitely, it can
+	// prevent new transactions from making progress and deadlocking
+	// the system. If we fail to start a transaction after this long,
+	// assume a potential deadlock and panic.
+	deadlockTimeout = 30 * time.Second
 )
 
 /*
@@ -215,7 +223,7 @@ func (t *MDBTable) StartTxn(readonly bool, mdbTxn *MDBTxn) (*MDBTxn, error) {
 	var err error
 
 	// Panic if we deadlock acquiring a transaction
-	timeout := time.AfterFunc(5*time.Second, func() {
+	timeout := time.AfterFunc(deadlockTimeout, func() {
 		panic("Timeout starting MDB transaction, potential deadlock")
 	})
 	defer timeout.Stop()
