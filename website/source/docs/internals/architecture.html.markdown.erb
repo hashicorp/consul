@@ -55,12 +55,12 @@ Serf provides membership, failure detection, and event broadcast mechanisms. Our
 is described more in the [gossip documentation](/docs/internals/gossip.html). It is enough to know
 gossip involves random node-to-node communication, primarily over UDP.
 
-* LAN Gossip - This is used to mean that there is a gossip pool, containing nodes that
-are all located on the same local area network or datacenter.
+* LAN Gossip - Refers to the LAN gossip pool, which contains nodes that are all
+located on the same local area network or datacenter.
 
-* WAN Gossip - This is used to mean that there is a gossip pool, containing servers that
-are primary located in different datacenters and must communicate over the internet or
-wide area network.
+* WAN Gossip - Refers to the WAN gossip pool, which contains only servers. These
+servers are primarily located in different datacenters and typically communicate
+over the internet or wide area network.
 
 * RPC - RPC is short for a Remote Procedure Call. This is a request / response mechanism
 allowing a client to make a request from a server.

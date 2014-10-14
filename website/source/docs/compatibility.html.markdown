@@ -44,5 +44,9 @@ upgrading, see the [upgrading page](/docs/upgrading.html).
 <td>0.3</td>
 <td>1, 2</td>
 </tr>
+<tr>
+<td>0.4</td>
+<td>1, 2</td>
+</tr>
 </table>
 
