@@ -47,6 +47,10 @@ func TestSetIndex(t *testing.T) {
 	if header != "1000" {
 		t.Fatalf("Bad: %v", header)
 	}
+	setIndex(resp, 2000)
+	if v := resp.Header()["X-Consul-Index"]; len(v) != 1 {
+		t.Fatalf("bad: %#v", v)
+	}
 }
 
 func TestSetKnownLeader(t *testing.T) {

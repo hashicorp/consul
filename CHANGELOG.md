@@ -6,6 +6,7 @@ BUG FIXES:
  * Fixing potential race in connection multiplexing
  * Fixing issue with Session ID and ACL ID generation. Previously,
    sessions and tokens could be invalidated when the leader changed.
+ * Fixing multiple headers for /v1/event/list endpoint [GH-361]
 
 ## 0.4.0 (September 5, 2014)
 

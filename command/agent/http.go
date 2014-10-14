@@ -222,7 +222,7 @@ func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) 
 
 // setIndex is used to set the index response header
 func setIndex(resp http.ResponseWriter, index uint64) {
-	resp.Header().Add("X-Consul-Index", strconv.FormatUint(index, 10))
+	resp.Header().Set("X-Consul-Index", strconv.FormatUint(index, 10))
 }
 
 // setKnownLeader is used to set the known leader header
@@ -231,13 +231,13 @@ func setKnownLeader(resp http.ResponseWriter, known bool) {
 	if !known {
 		s = "false"
 	}
-	resp.Header().Add("X-Consul-KnownLeader", s)
+	resp.Header().Set("X-Consul-KnownLeader", s)
 }
 
 // setLastContact is used to set the last contact header
 func setLastContact(resp http.ResponseWriter, last time.Duration) {
 	lastMsec := uint64(last / time.Millisecond)
-	resp.Header().Add("X-Consul-LastContact", strconv.FormatUint(lastMsec, 10))
+	resp.Header().Set("X-Consul-LastContact", strconv.FormatUint(lastMsec, 10))
 }
 
 // setMeta is used to set the query response meta data
