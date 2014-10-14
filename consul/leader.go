@@ -197,8 +197,8 @@ func (s *Server) reconcile() (err error) {
 // a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	state := s.fsm.State()
-	_, critical := state.ChecksInState(structs.HealthAny)
-	for _, check := range critical {
+	_, checks := state.ChecksInState(structs.HealthAny)
+	for _, check := range checks {
 		// Ignore any non serf checks
 		if check.CheckID != SerfCheckID {
 			continue
