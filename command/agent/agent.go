@@ -14,9 +14,6 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
-// The internal service ID of the consul service
-const internalServiceID = "consul"
-
 /*
  The agent is the long running process that is run on every machine.
  It exposes an RPC interface that is used by the CLI to control the
@@ -120,8 +117,8 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 
 		// Automatically register the "consul" service on server nodes
 		consulService := structs.NodeService{
-			Service: internalServiceID,
-			ID:      internalServiceID,
+			Service: consul.ConsulServiceName,
+			ID:      consul.ConsulServiceID,
 			Port:    agent.config.Ports.Server,
 		}
 		agent.state.AddService(&consulService)
@@ -464,9 +461,9 @@ func (a *Agent) AddService(service *structs.NodeService, chkType *CheckType) err
 // The agent will make a best effort to ensure it is deregistered
 func (a *Agent) RemoveService(serviceID string) error {
 	// Protect "consul" service from deletion by a user
-	if a.server != nil && serviceID == internalServiceID {
+	if a.server != nil && serviceID == consul.ConsulServiceID {
 		return fmt.Errorf(
-			"Deregistering the %s service is not allowed", internalServiceID)
+			"Deregistering the %s service is not allowed", consul.ConsulServiceID)
 	}
 
 	// Remove service immeidately

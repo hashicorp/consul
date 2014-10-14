@@ -327,7 +327,7 @@ func TestAgent_ConsulService(t *testing.T) {
 	defer agent.Shutdown()
 
 	services := agent.state.Services()
-	if _, ok := services[internalServiceID]; !ok {
-		t.Fatalf("%s service should be registered", internalServiceID)
+	if _, ok := services[consul.ConsulServiceID]; !ok {
+		t.Fatalf("%s service should be registered", consul.ConsulServiceID)
 	}
 }
