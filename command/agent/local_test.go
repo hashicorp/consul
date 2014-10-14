@@ -1,12 +1,13 @@
 package agent
 
 import (
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
 	"os"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
@@ -42,7 +43,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	srv2 := &structs.NodeService{
 		ID:      "redis",
 		Service: "redis",
-		Tags:    nil,
+		Tags:    []string{},
 		Port:    8000,
 	}
 	agent.state.AddService(srv2)
@@ -59,7 +60,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	srv3 := &structs.NodeService{
 		ID:      "web",
 		Service: "web",
-		Tags:    nil,
+		Tags:    []string{},
 		Port:    80,
 	}
 	agent.state.AddService(srv3)
@@ -68,7 +69,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	srv4 := &structs.NodeService{
 		ID:      "lb",
 		Service: "lb",
-		Tags:    nil,
+		Tags:    []string{},
 		Port:    443,
 	}
 	args.Service = srv4
@@ -104,7 +105,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			}
 		case "redis":
 			if !reflect.DeepEqual(serv, srv2) {
-				t.Fatalf("bad: %v %v", serv, srv2)
+				t.Fatalf("bad: %#v %#v", serv, srv2)
 			}
 		case "web":
 			if !reflect.DeepEqual(serv, srv3) {
