@@ -399,22 +399,30 @@ func (s *Server) handleReapMember(member serf.Member) error {
 // handleDeregisterMember is used to deregister a member of a given reason
 func (s *Server) handleDeregisterMember(reason string, member serf.Member) error {
 	state := s.fsm.State()
-
 	// Check if the node does not exists
 	_, found, _ := state.GetNode(member.Name)
 	if !found {
 		return nil
 	}
-	s.logger.Printf("[INFO] consul: member '%s' %s, deregistering", member.Name, reason)
 
 	// Remove from Raft peers if this was a server
 	if valid, parts := isConsulServer(member); valid {
+		s.logger.Printf("[INFO] consul: server '%s' %s, removing as peer", member.Name, reason)
 		if err := s.removeConsulServer(member, parts.Port); err != nil {
 			return err
 		}
 	}
 
+	// Do not deregister ourself. This can only happen if the current leader
+	// is leaving. Instead, we should allow a follower to take-over and
+	// deregister us later.
+	if member.Name == s.config.NodeName {
+		s.logger.Printf("[WARN] consul: deregistering self (%s) should be done by follower", s.config.NodeName)
+		return nil
+	}
+
 	// Deregister the node
+	s.logger.Printf("[INFO] consul: member '%s' %s, deregistering", member.Name, reason)
 	req := structs.DeregisterRequest{
 		Datacenter: s.config.Datacenter,
 		Node:       member.Name,
@@ -454,11 +462,6 @@ func (s *Server) joinConsulServer(m serf.Member, parts *serverParts) error {
 
 // removeConsulServer is used to try to remove a consul server that has left
 func (s *Server) removeConsulServer(m serf.Member, port int) error {
-	// Do not remove ourself
-	if m.Name == s.config.NodeName {
-		return nil
-	}
-
 	// Attempt to remove as peer
 	peer := &net.TCPAddr{IP: m.Addr, Port: port}
 	future := s.raft.RemovePeer(peer)

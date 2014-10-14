@@ -7,6 +7,7 @@ BUG FIXES:
  * Fixing issue with Session ID and ACL ID generation. Previously,
    sessions and tokens could be invalidated when the leader changed.
  * Fixing multiple headers for /v1/event/list endpoint [GH-361]
+ * Fixing graceful leave of leader causing invalid Raft peers [GH-360]
 
 ## 0.4.0 (September 5, 2014)
 

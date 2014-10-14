@@ -3,12 +3,13 @@ package consul
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/serf/serf"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/serf/serf"
 )
 
 func TestLeader_RegisterMember(t *testing.T) {
@@ -325,6 +326,73 @@ func TestLeader_LeftServer(t *testing.T) {
 		}, func(err error) {
 			t.Fatalf("should have 2 peers: %v", err)
 		})
+	}
+}
+
+func TestLeader_LeftLeader(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+	servers := []*Server{s1, s2, s3}
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	for _, s := range servers {
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.raftPeers.Peers()
+			return len(peers) == 3, nil
+		}, func(err error) {
+			t.Fatalf("should have 3 peers")
+		})
+	}
+
+	// Kill the leader!
+	var leader *Server
+	for _, s := range servers {
+		if s.IsLeader() {
+			leader = s
+			break
+		}
+	}
+	leader.Leave()
+	leader.Shutdown()
+	time.Sleep(100 * time.Millisecond)
+
+	var remain *Server
+	for _, s := range servers {
+		if s == leader {
+			continue
+		}
+		remain = s
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.raftPeers.Peers()
+			return len(peers) == 2, errors.New(fmt.Sprintf("%v", peers))
+		}, func(err error) {
+			t.Fatalf("should have 2 peers: %v", err)
+		})
+	}
+
+	// Verify the old leader is deregistered
+	state := remain.fsm.State()
+	_, found, _ := state.GetNode(leader.config.NodeName)
+	if found {
+		t.Fatalf("leader should be deregistered")
 	}
 }
 
