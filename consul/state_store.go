@@ -1421,6 +1421,8 @@ func (s *StateStore) SessionDestroy(index uint64, id string) error {
 	}
 	defer tx.Abort()
 
+	log.Printf("[DEBUG] consul.state: Invalidating session %s due to session destroy",
+		id)
 	if err := s.invalidateSession(index, tx, id); err != nil {
 		return err
 	}
@@ -1436,6 +1438,8 @@ func (s *StateStore) invalidateNode(index uint64, tx *MDBTxn, node string) error
 	}
 	for _, sess := range sessions {
 		session := sess.(*structs.Session).ID
+		log.Printf("[DEBUG] consul.state: Invalidating session %s due to node '%s' invalidation",
+			session, node)
 		if err := s.invalidateSession(index, tx, session); err != nil {
 			return err
 		}
@@ -1452,6 +1456,8 @@ func (s *StateStore) invalidateCheck(index uint64, tx *MDBTxn, node, check strin
 	}
 	for _, sc := range sessionChecks {
 		session := sc.(*sessionCheck).Session
+		log.Printf("[DEBUG] consul.state: Invalidating session %s due to check '%s' invalidation",
+			session, check)
 		if err := s.invalidateSession(index, tx, session); err != nil {
 			return err
 		}
