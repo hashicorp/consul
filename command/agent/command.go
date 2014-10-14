@@ -235,7 +235,7 @@ func (c *Command) setupLoggers(config *Config) (*GatedWriter, *logWriter, io.Wri
 			c.Ui.Error(fmt.Sprintf("Syslog setup failed: %v", err))
 			return nil, nil, nil
 		}
-		syslog = &SyslogWrapper{l}
+		syslog = &SyslogWrapper{l, c.logFilter}
 	}
 
 	// Create a log writer, and wrap a logOutput around it
