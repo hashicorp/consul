@@ -157,11 +157,6 @@ func (a *Agent) shouldProcessUserEvent(msg *UserEvent) bool {
 	}
 
 	if msg.ServiceFilter != "" {
-		// Handle "consul" service on server nodes
-		if a.server != nil && msg.ServiceFilter == "consul" {
-			return true
-		}
-
 		re, err := regexp.Compile(msg.ServiceFilter)
 		if err != nil {
 			a.logger.Printf("[ERR] agent: Failed to parse service filter '%s' for event '%s': %v",

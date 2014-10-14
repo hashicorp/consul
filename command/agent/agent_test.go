@@ -146,6 +146,11 @@ func TestAgent_RemoveService(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Remove the consul service
+	if err := agent.RemoveService("consul"); err == nil {
+		t.Fatalf("should have errored")
+	}
+
 	srv := &structs.NodeService{
 		ID:      "redis",
 		Service: "redis",
@@ -313,5 +318,16 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	}
 	if status.Output != "foo" {
 		t.Fatalf("bad: %v", status)
+	}
+}
+
+func TestAgent_ConsulService(t *testing.T) {
+	dir, agent := makeAgent(t, nextConfig())
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	services := agent.state.Services()
+	if _, ok := services[internalServiceID]; !ok {
+		t.Fatalf("%s service should be registered", internalServiceID)
 	}
 }
