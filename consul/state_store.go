@@ -767,7 +767,7 @@ func (s *StateStore) EnsureCheck(index uint64, check *structs.HealthCheck) error
 func (s *StateStore) ensureCheckTxn(index uint64, check *structs.HealthCheck, tx *MDBTxn) error {
 	// Ensure we have a status
 	if check.Status == "" {
-		check.Status = structs.HealthUnknown
+		check.Status = structs.HealthCritical
 	}
 
 	// Ensure the node exists

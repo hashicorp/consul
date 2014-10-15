@@ -172,7 +172,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 	chk2_mod := new(structs.HealthCheck)
 	*chk2_mod = *chk2
-	chk2_mod.Status = structs.HealthUnknown
+	chk2_mod.Status = structs.HealthCritical
 	args.Check = chk2_mod
 	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
