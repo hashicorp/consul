@@ -401,6 +401,16 @@ App.AclsController = Ember.ArrayController.extend({
       }).then(function(response) {
         // transition to the acl
         controller.transitionToRoute('acls.show', response.ID);
+
+        // Get the ACL again, including the newly created one
+        Ember.$.getJSON(formatUrl('/v1/acl/list', dc, token)).then(function(data) {
+          var objs = [];
+          data.map(function(obj){
+            objs.push(App.Acl.create(obj));
+          });
+          controller.set('items', objs);
+        });
+
         controller.set('isLoading', false);
       }).fail(function(response) {
         // Render the error message on the form if the request failed
