@@ -70,7 +70,7 @@ func TestRetryJoin(t *testing.T) {
 
 	args := []string{
 		"-data-dir", tmpDir,
-		"-node", conf2.NodeName,
+		"-node", fmt.Sprintf(`"%s"`, conf2.NodeName),
 		"-retry-join", serfAddr,
 		"-retry-interval", "1s",
 	}
