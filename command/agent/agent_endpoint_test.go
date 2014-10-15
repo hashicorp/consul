@@ -31,7 +31,7 @@ func TestHTTPAgentServices(t *testing.T) {
 		t.Fatalf("Err: %v", err)
 	}
 	val := obj.(map[string]*structs.NodeService)
-	if len(val) != 1 {
+	if len(val) != 2 {
 		t.Fatalf("bad services: %v", obj)
 	}
 	if val["mysql"].Port != 5000 {
