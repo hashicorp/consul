@@ -24,7 +24,7 @@ Ember.Handlebars.helper('sessionName', function(session) {
   if (session.Name === "") {
     return session.ID;
   } else {
-    return new Handlebars.SafeString(session.Name + ' <small>' + session.ID + '</small>');
+    return new Handlebars.SafeString('<span>' + session.Name + '</span>' + ' <small>' + session.ID + '</small>');
   }
 });
 

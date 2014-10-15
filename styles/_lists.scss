@@ -63,7 +63,18 @@
             font-size: 15px;
             padding-top: 6px;
 
+            span {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 35%;
+                float: left;
+                display:inline-block;
+                padding-right: 4px;
+            }
+
             small {
+                display:inline-block;
                 padding-right: 8px;
                 padding-top: 2px;
                 font-size: 12px;
