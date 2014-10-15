@@ -109,7 +109,7 @@ func (c *CheckMonitor) check() {
 	cmd, err := ExecScript(c.Script)
 	if err != nil {
 		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", c.Script, err)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthUnknown, err.Error())
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
 		return
 	}
 
@@ -121,7 +121,7 @@ func (c *CheckMonitor) check() {
 	// Start the check
 	if err := cmd.Start(); err != nil {
 		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", c.Script, err)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthUnknown, err.Error())
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
 		return
 	}
 

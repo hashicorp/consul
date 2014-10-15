@@ -437,7 +437,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkType *CheckType) err
 			Node:        a.config.NodeName,
 			CheckID:     fmt.Sprintf("service:%s", service.ID),
 			Name:        fmt.Sprintf("Service '%s' check", service.Service),
-			Status:      structs.HealthUnknown,
+			Status:      structs.HealthCritical,
 			Notes:       "",
 			ServiceID:   service.ID,
 			ServiceName: service.Service,

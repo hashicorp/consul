@@ -186,7 +186,7 @@ func TestAgent_AddCheck(t *testing.T) {
 		Node:    "foo",
 		CheckID: "mem",
 		Name:    "memory util",
-		Status:  structs.HealthUnknown,
+		Status:  structs.HealthCritical,
 	}
 	chk := &CheckType{
 		Script:   "exit 0",
@@ -217,7 +217,7 @@ func TestAgent_AddCheck_MinInterval(t *testing.T) {
 		Node:    "foo",
 		CheckID: "mem",
 		Name:    "memory util",
-		Status:  structs.HealthUnknown,
+		Status:  structs.HealthCritical,
 	}
 	chk := &CheckType{
 		Script:   "exit 0",
@@ -255,7 +255,7 @@ func TestAgent_RemoveCheck(t *testing.T) {
 		Node:    "foo",
 		CheckID: "mem",
 		Name:    "memory util",
-		Status:  structs.HealthUnknown,
+		Status:  structs.HealthCritical,
 	}
 	chk := &CheckType{
 		Script:   "exit 0",
@@ -291,7 +291,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 		Node:    "foo",
 		CheckID: "mem",
 		Name:    "memory util",
-		Status:  structs.HealthUnknown,
+		Status:  structs.HealthCritical,
 	}
 	chk := &CheckType{
 		TTL: 15 * time.Second,
