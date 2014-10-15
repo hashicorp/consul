@@ -314,11 +314,6 @@ func (l *localState) setSyncState() error {
 			// If we don't have the service locally, deregister it
 			existing, ok := l.services[id]
 			if !ok {
-				// The Consul service is created automatically, and
-				// does not need to be registered
-				if id == consul.ConsulServiceID && l.config.Server {
-					continue
-				}
 				l.serviceStatus[id] = syncStatus{remoteDelete: true}
 				continue
 			}
@@ -339,6 +334,7 @@ func (l *localState) setSyncState() error {
 			if id == consul.SerfCheckID {
 				continue
 			}
+
 			l.checkStatus[id] = syncStatus{remoteDelete: true}
 			continue
 		}
