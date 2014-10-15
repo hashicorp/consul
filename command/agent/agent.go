@@ -463,7 +463,8 @@ func (a *Agent) RemoveService(serviceID string) error {
 	// Protect "consul" service from deletion by a user
 	if a.server != nil && serviceID == consul.ConsulServiceID {
 		return fmt.Errorf(
-			"Deregistering the %s service is not allowed", consul.ConsulServiceID)
+			"Deregistering the %s service is not allowed",
+			consul.ConsulServiceID)
 	}
 
 	// Remove service immeidately

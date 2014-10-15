@@ -334,7 +334,6 @@ func (l *localState) setSyncState() error {
 			if id == consul.SerfCheckID {
 				continue
 			}
-
 			l.checkStatus[id] = syncStatus{remoteDelete: true}
 			continue
 		}
