@@ -118,10 +118,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	}
 
 	// Check the local state
-	if len(agent.state.services) != 3 {
+	if len(agent.state.services) != 4 {
 		t.Fatalf("bad: %v", agent.state.services)
 	}
-	if len(agent.state.serviceStatus) != 3 {
+	if len(agent.state.serviceStatus) != 4 {
 		t.Fatalf("bad: %v", agent.state.serviceStatus)
 	}
 	for name, status := range agent.state.serviceStatus {
