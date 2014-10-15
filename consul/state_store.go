@@ -107,7 +107,12 @@ func NewStateStore(logOutput io.Writer) (*StateStore, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewStateStorePath(path, logOutput)
+}
 
+// NewStateStorePath is used to create a new state store at a given path
+// The path is cleared on closing.
+func NewStateStorePath(path string, logOutput io.Writer) (*StateStore, error) {
 	// Open the env
 	env, err := mdb.NewEnv()
 	if err != nil {
