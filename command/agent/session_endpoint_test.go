@@ -23,6 +23,7 @@ func TestSessionCreate(t *testing.T) {
 				Node:      srv.agent.config.NodeName,
 				Name:      "consul",
 				ServiceID: "consul",
+				Status:    structs.HealthPassing,
 			},
 		}
 		var out struct{}
