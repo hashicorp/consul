@@ -34,6 +34,7 @@ const (
 	serfLANSnapshot          = "serf/local.snapshot"
 	serfWANSnapshot          = "serf/remote.snapshot"
 	raftState                = "raft/"
+	tmpStatePath             = "tmp/"
 	snapshotsRetained        = 2
 	raftDBSize32bit   uint64 = 64 * 1024 * 1024       // Limit Raft log to 64MB
 	raftDBSize64bit   uint64 = 8 * 1024 * 1024 * 1024 // Limit Raft log to 8GB
@@ -298,15 +299,18 @@ func (s *Server) setupRaft() error {
 		s.config.RaftConfig.EnableSingleNode = true
 	}
 
-	// Create the base path
-	path := filepath.Join(s.config.DataDir, raftState)
-	if err := ensurePath(path, true); err != nil {
+	// Create the base state path
+	statePath := filepath.Join(s.config.DataDir, tmpStatePath)
+	if err := os.RemoveAll(statePath); err != nil {
+		return err
+	}
+	if err := ensurePath(statePath, true); err != nil {
 		return err
 	}
 
 	// Create the FSM
 	var err error
-	s.fsm, err = NewFSM(s.config.LogOutput)
+	s.fsm, err = NewFSM(statePath, s.config.LogOutput)
 	if err != nil {
 		return err
 	}
@@ -317,6 +321,12 @@ func (s *Server) setupRaft() error {
 	dbSize := raftDBSize32bit
 	if runtime.GOARCH == "amd64" {
 		dbSize = raftDBSize64bit
+	}
+
+	// Create the base raft path
+	path := filepath.Join(s.config.DataDir, raftState)
+	if err := ensurePath(path, true); err != nil {
+		return err
 	}
 
 	// Create the MDB store for logs and stable storage
