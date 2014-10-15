@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 type consulFSM struct {
 	logOutput io.Writer
 	logger    *log.Logger
+	path      string
 	state     *StateStore
 }
 
@@ -34,9 +36,16 @@ type snapshotHeader struct {
 	LastIndex uint64
 }
 
-// NewFSM is used to construct a new FSM with a blank state
-func NewFSM(logOutput io.Writer) (*consulFSM, error) {
-	state, err := NewStateStore(logOutput)
+// NewFSMPath is used to construct a new FSM with a blank state
+func NewFSM(path string, logOutput io.Writer) (*consulFSM, error) {
+	// Create a temporary path for the state store
+	tmpPath, err := ioutil.TempDir(path, "state")
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a state store
+	state, err := NewStateStorePath(tmpPath, logOutput)
 	if err != nil {
 		return nil, err
 	}
@@ -44,6 +53,7 @@ func NewFSM(logOutput io.Writer) (*consulFSM, error) {
 	fsm := &consulFSM{
 		logOutput: logOutput,
 		logger:    log.New(logOutput, "", log.LstdFlags),
+		path:      path,
 		state:     state,
 	}
 	return fsm, nil
@@ -220,8 +230,14 @@ func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
 func (c *consulFSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
+	// Create a temporary path for the state store
+	tmpPath, err := ioutil.TempDir(c.path, "state")
+	if err != nil {
+		return err
+	}
+
 	// Create a new state store
-	state, err := NewStateStore(c.logOutput)
+	state, err := NewStateStorePath(tmpPath, c.logOutput)
 	if err != nil {
 		return err
 	}
