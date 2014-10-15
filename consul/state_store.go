@@ -23,7 +23,7 @@ const (
 	dbSessions               = "sessions"
 	dbSessionChecks          = "sessionChecks"
 	dbACLs                   = "acls"
-	dbMaxMapSize32bit uint64 = 512 * 1024 * 1024       // 512MB maximum size
+	dbMaxMapSize32bit uint64 = 128 * 1024 * 1024       // 128MB maximum size
 	dbMaxMapSize64bit uint64 = 32 * 1024 * 1024 * 1024 // 32GB maximum size
 )
 

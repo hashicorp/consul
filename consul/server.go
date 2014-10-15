@@ -35,7 +35,7 @@ const (
 	serfWANSnapshot          = "serf/remote.snapshot"
 	raftState                = "raft/"
 	snapshotsRetained        = 2
-	raftDBSize32bit   uint64 = 128 * 1024 * 1024      // Limit Raft log to 128MB
+	raftDBSize32bit   uint64 = 64 * 1024 * 1024       // Limit Raft log to 64MB
 	raftDBSize64bit   uint64 = 8 * 1024 * 1024 * 1024 // Limit Raft log to 8GB
 
 	// serverRPCCache controls how long we keep an idle connection
