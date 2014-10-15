@@ -46,7 +46,7 @@ func (c *CheckDefinition) HealthCheck(node string) *structs.HealthCheck {
 		Node:    node,
 		CheckID: c.ID,
 		Name:    c.Name,
-		Status:  structs.HealthUnknown,
+		Status:  structs.HealthCritical,
 		Notes:   c.Notes,
 	}
 	if health.CheckID == "" && health.Name != "" {
