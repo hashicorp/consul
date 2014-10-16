@@ -232,7 +232,7 @@ func TestRPCClientMonitor(t *testing.T) {
 
 	found := false
 OUTER1:
-	for {
+	for i := 0; ; i++ {
 		select {
 		case e := <-eventCh:
 			if strings.Contains(e, "Accepted client") {
@@ -240,6 +240,10 @@ OUTER1:
 				break OUTER1
 			}
 		default:
+			if i > 100 {
+				break OUTER1
+			}
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 	if !found {
@@ -249,18 +253,20 @@ OUTER1:
 	// Join a bad thing to generate more events
 	p1.agent.JoinLAN(nil)
 
-	time.Sleep(1 * time.Second)
-
 	found = false
 OUTER2:
-	for {
+	for i := 0; ; i++ {
 		select {
 		case e := <-eventCh:
 			if strings.Contains(e, "joining") {
 				found = true
+				break OUTER2
 			}
 		default:
-			break OUTER2
+			if i > 100 {
+				break OUTER2
+			}
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 	if !found {
