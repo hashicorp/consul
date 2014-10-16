@@ -24,7 +24,7 @@ BUG FIXES:
  * Raft snapshots work on Windows [GH-265]
  * Consul service entry clean by clients now possible
 
- IMPROVEMENTS:
+IMPROVEMENTS:
 
  * Use "critical" health state instead of "unknown" [GH-341]
  * Consul service can be targed for exec [GH-344]
