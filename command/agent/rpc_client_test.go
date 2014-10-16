@@ -237,9 +237,9 @@ OUTER1:
 		case e := <-eventCh:
 			if strings.Contains(e, "Accepted client") {
 				found = true
+				break OUTER1
 			}
 		default:
-			break OUTER1
 		}
 	}
 	if !found {
