@@ -1,13 +1,42 @@
 ## 0.4.1 (Unreleased)
 
+FEATURES:
+
+ * Adding flags for `-retry-join` to attempt a join with
+   configurable retry behavior. [GH-395]
+
 BUG FIXES:
 
+ * Fixed ACL token in UI
+ * Fixed ACL reloading in UI [GH-323]
+ * Fixed long session names in UI [GH-353]
+ * Fixed exit code from remote exec [GH-346]
  * Fixing only a single watch being run by an agent [GH-337]
  * Fixing potential race in connection multiplexing
- * Fixing issue with Session ID and ACL ID generation. Previously,
-   sessions and tokens could be invalidated when the leader changed.
+ * Fixing issue with Session ID and ACL ID generation. [GH-391]
  * Fixing multiple headers for /v1/event/list endpoint [GH-361]
  * Fixing graceful leave of leader causing invalid Raft peers [GH-360]
+ * Fixing bug with closing TLS connction on error
+ * Fixing issue with node reaping [GH-371]
+ * Fixing aggressive deadlock time [GH-389]
+ * Fixing syslog filter level [GH-272]
+ * Serf snapshot compaction works on Windows [GH-332]
+ * Raft snapshots work on Windows [GH-265]
+ * Consul service entry clean by clients now possible
+
+ IMPROVEMENTS:
+
+ * Use "critical" health state instead of "unknown" [GH-341]
+ * Consul service can be targed for exec [GH-344]
+ * Provide debug logging for session invalidation [GH-390]
+ * Added "Deregister" button to UI [GH-364]
+ * Added `enable_truncate` DNS configuration flag [GH-376]
+ * Reduce mmap() size on 32bit systems [GH-265]
+ * Temporary state is cleaned after an abort [GH-338] [GH-178]
+
+MISC:
+
+ * Health state "unknown" being deprecated
 
 ## 0.4.0 (September 5, 2014)
 
