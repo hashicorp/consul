@@ -1,0 +1,10 @@
+{
+  "datacenter": "docker-dc1",
+  "data_dir": "/var/lib/consul/data",
+  "ui_dir": "/var/lib/consul/ui/dist",
+  "log_level": "DEBUG",
+  "client_addr": "0.0.0.0",
+  "recursor": "8.8.8.8",
+  "addresses": {"dns": "0.0.0.0"},
+  "dns_config": {"allow_stale": true}
+}
