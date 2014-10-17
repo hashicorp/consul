@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 	"io"
 	"io/ioutil"
 	"os"
@@ -326,8 +327,21 @@ func TestAgent_ConsulService(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	// Consul service is registered
 	services := agent.state.Services()
 	if _, ok := services[consul.ConsulServiceID]; !ok {
 		t.Fatalf("%s service should be registered", consul.ConsulServiceID)
+	}
+
+	// Perform anti-entropy on consul service
+	if err := agent.state.syncService(consul.ConsulServiceID); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Consul service should be in sync
+	if !agent.state.serviceStatus[consul.ConsulServiceID].inSync {
+		t.Fatalf("%s service should be in sync", consul.ConsulServiceID)
 	}
 }
