@@ -156,7 +156,7 @@ definitions support being updated during a reload.
 
 #### Example Configuration File
 
-<pre class="prettyprint lang-json">
+```javascript
 {
   "datacenter": "east-aws",
   "data_dir": "/opt/consul",
@@ -170,7 +170,7 @@ definitions support being updated during a reload.
     }
   ]
 }
-</pre>
+```
 
 #### Configuration Key Reference
 
