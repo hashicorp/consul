@@ -5,9 +5,7 @@
     <meta charset="utf-8">
 
     <title><%= current_page.data.page_title ? "#{current_page.data.page_title} - " : "" %>Consul</title>
-    <meta name="description" content="Service discovery and configuration made easy. Distributed, highly available, and datacenter-aware.">
-    <meta name="description" content="<%#= page_description %>" />
-    <meta name="keywords" content="<%#= (current_page.data.tags || ['Seth', 'Vargo', 'Chef', 'Ruby']).join(', ') %>" />
+    <meta name="description" content="<%= current_page.data.description %>" />
 
     <%= stylesheet_link_tag "application" %>
 
