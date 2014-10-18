@@ -1,4 +1,4 @@
-## 0.4.1 (October 17, 2014)
+## 0.4.1 (Unreleased)
 
 FEATURES:
 
@@ -23,6 +23,7 @@ BUG FIXES:
  * Serf snapshot compaction works on Windows [GH-332]
  * Raft snapshots work on Windows [GH-265]
  * Consul service entry clean by clients now possible
+ * Fixing improper deserialization
 
 IMPROVEMENTS:
 
