@@ -3,7 +3,7 @@
 $script = <<SCRIPT
 
 echo Installing dependencies...
-sudo apt-get install -y unzip
+sudo apt-get install -y unzip curl
 
 echo Fetching Consul...
 cd /tmp/
