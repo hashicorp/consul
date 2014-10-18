@@ -159,6 +159,15 @@ body.layout-intro{
         -webkit-font-smoothing: antialiased;
 	}
 
+  li p a, li a {
+    text-decoration: none;
+
+    &:hover {
+      cursor: default;
+      text-decoration: none;
+    }
+  }
+
     pre{
         margin: 0 0 18px;
     }
