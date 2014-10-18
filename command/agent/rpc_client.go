@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/hashicorp/logutils"
-	"github.com/ugorji/go/codec"
+	"github.com/hashicorp/go-msgpack/codec"
 	"log"
 	"net"
 	"sync"

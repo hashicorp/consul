@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/yamux"
 	"github.com/inconshreveable/muxado"
-	"github.com/ugorji/go/codec"
+	"github.com/hashicorp/go-msgpack/codec"
 	"io"
 	"math/rand"
 	"net"

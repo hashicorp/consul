@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/ugorji/go/codec"
+	"github.com/hashicorp/go-msgpack/codec"
 )
 
 var (
