@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/hashicorp/go-syslog"
@@ -8,6 +9,9 @@ import (
 )
 
 func TestSyslogFilter(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.SkipNow()
+	}
 	l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, "LOCAL0", "consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)

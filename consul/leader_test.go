@@ -390,10 +390,12 @@ func TestLeader_LeftLeader(t *testing.T) {
 
 	// Verify the old leader is deregistered
 	state := remain.fsm.State()
-	_, found, _ := state.GetNode(leader.config.NodeName)
-	if found {
+	testutil.WaitForResult(func() (bool, error) {
+		_, found, _ := state.GetNode(leader.config.NodeName)
+		return !found, nil
+	}, func(err error) {
 		t.Fatalf("leader should be deregistered")
-	}
+	})
 }
 
 func TestLeader_MultiBootstrap(t *testing.T) {

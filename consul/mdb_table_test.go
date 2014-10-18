@@ -3,7 +3,7 @@ package consul
 import (
 	"bytes"
 	"github.com/armon/gomdb"
-	"github.com/ugorji/go/codec"
+	"github.com/hashicorp/go-msgpack/codec"
 	"io/ioutil"
 	"os"
 	"reflect"

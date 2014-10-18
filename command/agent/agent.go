@@ -120,6 +120,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 			Service: consul.ConsulServiceName,
 			ID:      consul.ConsulServiceID,
 			Port:    agent.config.Ports.Server,
+			Tags:    []string{},
 		}
 		agent.state.AddService(&consulService)
 	} else {

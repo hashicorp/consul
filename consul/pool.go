@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/yamux"
 	"github.com/inconshreveable/muxado"
-	"github.com/ugorji/go/codec"
+	"github.com/hashicorp/go-msgpack/codec"
 )
 
 // msgpackHandle is a shared handle for encoding/decoding of RPC messages
