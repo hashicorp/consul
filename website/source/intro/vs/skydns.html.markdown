@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Consul vs. SkyDNS"
 sidebar_current: "vs-other-skydns"
+description: |-
+  SkyDNS is a relatively new tool designed to solve service discovery. It uses multiple central servers that are strongly consistent and fault tolerant. Nodes register services using an HTTP API, and queries can be made over HTTP or DNS to perform discovery.
 ---
 
 # Consul vs. SkyDNS

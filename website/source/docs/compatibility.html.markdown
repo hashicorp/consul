@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Consul Protocol Compatibility Promise"
 sidebar_current: "docs-upgrading-compatibility"
+description: |-
+  We expect Consul to run in large clusters as long-running agents. Because upgrading agents in this sort of environment relies heavily on protocol compatibility, this page makes it clear on our promise to keeping different Consul versions compatible with each other.
 ---
 
 # Protocol Compatibility Promise
@@ -28,25 +30,24 @@ upgrading, see the [upgrading page](/docs/upgrading.html).
 ## Protocol Compatibility Table
 
 <table class="table table-bordered table-striped">
-<tr>
-<th>Version</th>
-<th>Protocol Compatibility</th>
-</tr>
-<tr>
-<td>0.1</td>
-<td>1</td>
-</tr>
-<tr>
-<td>0.2</td>
-<td>1</td>
-</tr>
-<tr>
-<td>0.3</td>
-<td>1, 2</td>
-</tr>
-<tr>
-<td>0.4</td>
-<td>1, 2</td>
-</tr>
+  <tr>
+    <th>Version</th>
+    <th>Protocol Compatibility</th>
+  </tr>
+  <tr>
+    <td>0.1</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>0.2</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>0.3</td>
+    <td>1, 2</td>
+  </tr>
+  <tr>
+    <td>0.4</td>
+    <td>1, 2</td>
+  </tr>
 </table>
-

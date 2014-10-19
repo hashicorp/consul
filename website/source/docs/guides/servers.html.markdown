@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Adding/Removing Servers"
 sidebar_current: "docs-guides-servers"
+description: |-
+  Consul is designed to require minimal operator involvement, however any changes to the set of Consul servers must be handled carefully. To better understand why, reading about the consensus protocol will be useful. In short, the Consul servers perform leader election and replication. For changes to be processed, a minimum quorum of servers (N/2)+1 must be available. That means if there are 3 server nodes, at least 2 must be available.
 ---
 
 # Adding/Removing Servers
@@ -22,26 +24,32 @@ Adding new servers is generally straightforward. Simply start the new
 server with the `-server` flag. At this point, the server will not be a member of
 any cluster, and should emit something like:
 
-    [WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
+```text
+[WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
+```
 
 This means that it does not know about any peers and is not configured to elect itself.
 This is expected, and we can now add this node to the existing cluster using `join`.
 From the new server, we can join any member of the existing cluster:
 
-    $ consul join <Node Address>
-    Successfully joined cluster by contacting 1 nodes.
+```text
+$ consul join <Node Address>
+Successfully joined cluster by contacting 1 nodes.
+```
 
 It is important to note that any node, including a non-server may be specified for
 join. The gossip protocol is used to properly discover all the nodes in the cluster.
 Once the node has joined, the existing cluster leader should log something like:
 
-    [INFO] raft: Added peer 127.0.0.2:8300, starting replication
+```text
+[INFO] raft: Added peer 127.0.0.2:8300, starting replication
+```
 
 This means that raft, the underlying consensus protocol, has added the peer and begun
 replicating state. Since the existing cluster may be very far ahead, it can take some
 time for the new node to catch up. To check on this, run `info` on the leader:
 
-```
+```text
 $ consul info
 ...
 raft:
@@ -86,18 +94,22 @@ can handle a node leaving, the actual process is simple. You simply issue a
 
 The server leaving should contain logs like:
 
-    ...
-    [INFO] consul: server starting leave
-    ...
-    [INFO] raft: Removed ourself, transitioning to follower
-    ...
+```text
+...
+[INFO] consul: server starting leave
+...
+[INFO] raft: Removed ourself, transitioning to follower
+...
+```
 
 The leader should also emit various logs including:
 
-    ...
-    [INFO] consul: member 'node-10-0-1-8' left, deregistering
-    [INFO] raft: Removed peer 10.0.1.8:8300, stopping replication
-    ...
+```text
+...
+[INFO] consul: member 'node-10-0-1-8' left, deregistering
+[INFO] raft: Removed peer 10.0.1.8:8300, stopping replication
+...
+```
 
 At this point the node has been gracefully removed from the cluster, and
 will shut down.
@@ -113,6 +125,4 @@ leave the cluster. However, if this is not a possibility, then the `force-leave`
 can be used to force removal of a server.
 
 This is done by invoking that command with the name of the failed node. At this point,
-the cluster leader will mark the node as having left the cluster and it will stop attempting
-to replicate.
-
+the cluster leader will mark the node as having left the cluster and it will stop attempting to replicate.

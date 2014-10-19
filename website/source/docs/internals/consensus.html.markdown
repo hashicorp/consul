@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Consensus Protocol"
 sidebar_current: "docs-internals-consensus"
+description: |-
+  Consul uses a consensus protocol to provide Consistency as defined by CAP. This page documents the details of this internal protocol. The consensus protocol is based on Raft: In search of an Understandable Consensus Algorithm. For a visual explanation of Raft, see the The Secret Lives of Data.
 ---
 
 # Consensus Protocol
@@ -11,12 +13,10 @@ to provide [Consistency](http://en.wikipedia.org/wiki/CAP_theorem) as defined by
 This page documents the details of this internal protocol. The consensus protocol is based on
 ["Raft: In search of an Understandable Consensus Algorithm"](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf). For a visual explanation of Raft, see the [The Secret Lives of Data](http://thesecretlivesofdata.com/raft).
 
-<div class="alert alert-block alert-warning">
-<strong>Advanced Topic!</strong> This page covers technical details of
+~> **Advanced Topic!** This page covers technical details of
 the internals of Consul. You don't need to know these details to effectively
 operate and use Consul. These details are documented here for those who wish
 to learn about them without having to go spelunking through the source code.
-</div>
 
 ## Raft Protocol Overview
 
@@ -139,7 +139,7 @@ supports 3 different consistency modes for reads.
 
 The three read modes are:
 
-* default - Raft makes use of leader leasing, providing a time window
+* `default` - Raft makes use of leader leasing, providing a time window
   in which the leader assumes its role is stable. However, if a leader
   is partitioned from the remaining peers, a new leader may be elected
   while the old leader is holding the lease. This means there are 2 leader
@@ -151,12 +151,12 @@ The three read modes are:
   only stale in a hard to trigger situation. The time window of stale reads
   is also bounded, since the leader will step down due to the partition.
 
-* consistent - This mode is strongly consistent without caveats. It requires
+* `consistent` - This mode is strongly consistent without caveats. It requires
   that a leader verify with a quorum of peers that it is still leader. This
   introduces an additional round-trip to all server nodes. The trade off is
   always consistent reads, but increased latency due to an extra round trip.
 
-* stale - This mode allows any server to service the read, regardless of if
+* `stale` - This mode allows any server to service the read, regardless of if
   it is the leader. This means reads can be arbitrarily stale, but are generally
   within 50 milliseconds of the leader. The trade off is very fast and scalable
   reads but values will be stale. This mode allows reads without a leader, meaning
@@ -172,45 +172,44 @@ recommended deployment is either 3 or 5 servers. A single server deployment
 is _**highly**_ discouraged as data loss is inevitable in a failure scenario.
 
 <table class="table table-bordered table-striped">
-<tr>
-<th>Servers</th>
-<th>Quorum Size</th>
-<th>Failure Tolerance</th>
-</tr>
-<tr>
-<td>1</td>
-<td>1</td>
-<td>0</td>
-</tr>
-<tr>
-<td>2</td>
-<td>2</td>
-<td>0</td>
-</tr>
-<tr class="warning">
-<td>3</td>
-<td>2</td>
-<td>1</td>
-</tr>
-<tr>
-<td>4</td>
-<td>3</td>
-<td>1</td>
-</tr>
-<tr class="warning">
-<td>5</td>
-<td>3</td>
-<td>2</td>
-</tr>
-<tr>
-<td>6</td>
-<td>4</td>
-<td>2</td>
-</tr>
-<tr>
-<td>7</td>
-<td>4</td>
-<td>3</td>
-</tr>
+  <tr>
+    <th>Servers</th>
+    <th>Quorum Size</th>
+    <th>Failure Tolerance</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>1</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>2</td>
+    <td>0</td>
+  </tr>
+  <tr class="warning">
+    <td>3</td>
+    <td>2</td>
+    <td>1</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>3</td>
+    <td>1</td>
+  </tr>
+  <tr class="warning">
+    <td>5</td>
+    <td>3</td>
+    <td>2</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>4</td>
+    <td>2</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>4</td>
+    <td>3</td>
+  </tr>
 </table>
-

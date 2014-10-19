@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Configuration"
 sidebar_current: "docs-agent-config"
+description: |-
+  The agent has various configuration options that can be specified via the command-line or via configuration files. All of the configuration options are completely optional and their defaults will be specified with their descriptions.
 ---
 
 # Configuration

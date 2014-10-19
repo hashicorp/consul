@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Consul vs. Serf"
 sidebar_current: "vs-other-serf"
+description: |-
+  Serf is a node discovery and orchestration tool and is the only tool discussed so far that is built on an eventually consistent gossip model, with no centralized servers. It provides a number of features, including group membership, failure detection, event broadcasts and a query mechanism. However, Serf does not provide any high-level features such as service discovery, health checking or key/value storage. To clarify, the discovery feature of Serf is at a node level, while Consul provides a service and node level abstraction.
 ---
 
 # Consul vs. Serf
@@ -43,4 +45,3 @@ general purpose tool. Consul uses a CP architecture, favoring consistency over
 availability. Serf is a AP system, and sacrifices consistency for availability.
 This means Consul cannot operate if the central servers cannot form a quorum,
 while Serf will continue to function under almost all circumstances.
-

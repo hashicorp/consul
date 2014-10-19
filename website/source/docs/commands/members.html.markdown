@@ -2,13 +2,15 @@
 layout: "docs"
 page_title: "Commands: Members"
 sidebar_current: "docs-commands-members"
+description: |-
+  The `members` command outputs the current list of members that a Consul agent knows about, along with their state. The state of a node can only be alive, left, or failed.
 ---
 
 # Consul Members
 
 Command: `consul members`
 
-The members command outputs the current list of members that a Consul
+The `members` command outputs the current list of members that a Consul
 agent knows about, along with their state. The state of a node can only
 be "alive", "left", or "failed".
 

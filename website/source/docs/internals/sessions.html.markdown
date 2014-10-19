@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Sessions"
 sidebar_current: "docs-internals-sessions"
+description: |-
+  Consul provides a session mechansim which can be used to build distributed locks. Sessions act as a binding layer between nodes, health checks, and key/value data. They are designed to provide granular locking, and are heavily inspired by The Chubby Lock Service for Loosely-Coupled Distributed Systems.
 ---
 
 # Sessions
@@ -11,12 +13,10 @@ Sessions act as a binding layer between nodes, health checks, and key/value data
 They are designed to provide granular locking, and are heavily inspired
 by [The Chubby Lock Service for Loosely-Coupled Distributed Systems](http://research.google.com/archive/chubby.html).
 
-<div class="alert alert-block alert-warning">
-<strong>Advanced Topic!</strong> This page covers technical details of
+~> **Advanced Topic!** This page covers technical details of
 the internals of Consul. You don't need to know these details to effectively
 operate and use Consul. These details are documented here for those who wish
 to learn about them without having to go spelunking through the source code.
-</div>
 
 ## Session Design
 
@@ -28,7 +28,7 @@ store to acquire locks, which are advisory mechanisms for mutual exclusion.
 Below is a diagram showing the relationship between these components:
 
 <div class="center">
-  <%= link_to image_tag('consul-sessions.png'), image_path('consul-sessions.png') %>
+![Consul Sessions](consul-sessions.png)
 </div>
 
 The contract that Consul provides is that under any of the folllowing
@@ -113,4 +113,3 @@ the goal of Consul to protect against misbehaving clients.
 The primitives provided by sessions and the locking mechanisms of the KV
 store can be used to build client-side leader election algorithms.
 These are covered in more detail in the [Leader Election guide](/docs/guides/leader-election.html).
-

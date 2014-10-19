@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Registering Services"
 sidebar_current: "gettingstarted-services"
+description: |-
+  In the previous page, we ran our first agent, saw the cluster members, and queried that node. On this page, we'll register our first service and query that service. We're not yet running a cluster of Consul agents.
 ---
 
 # Registering Services
@@ -26,7 +28,7 @@ First, create a directory for Consul configurations. A good directory
 is typically `/etc/consul.d`. Consul loads all configuration files in the
 configuration directory.
 
-```
+```text
 $ sudo mkdir /etc/consul.d
 ```
 
@@ -35,14 +37,14 @@ pretend we have a service named "web" running on port 80. Additionally,
 we'll give it some tags, which we can use as additional ways to query
 it later.
 
-```
+```text
 $ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80}}' \
     >/etc/consul.d/web.json
 ```
 
 Now, restart the agent we're running, providing the configuration directory:
 
-```
+```text
 $ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul -config-dir /etc/consul.d
 ==> Starting Consul agent...
 ...
@@ -69,7 +71,7 @@ for services is `NAME.service.consul`. All DNS names are always in the
 querying services, and the `NAME` is the name of the service. For the
 web service we registered, that would be `web.service.consul`:
 
-```
+```text
 $ dig @127.0.0.1 -p 8600 web.service.consul
 ...
 
@@ -85,7 +87,7 @@ the service is available on. A records can only hold IP addresses. You can
 also use the DNS API to retrieve the entire address/port pair using SRV
 records:
 
-```
+```text
 $ dig @127.0.0.1 -p 8600 web.service.consul SRV
 ...
 
@@ -108,7 +110,7 @@ format for tag-based service queries is `TAG.NAME.service.consul`. In
 the example below, we ask Consul for all web services with the "rails"
 tag. We get a response since we registered our service with that tag.
 
-```
+```text
 $ dig @127.0.0.1 -p 8600 rails.web.service.consul
 ...
 
@@ -123,7 +125,7 @@ rails.web.service.consul.	0	IN	A	172.20.20.11
 
 In addition to the DNS API, the HTTP API can be used to query services:
 
-```
+```text
 $ curl http://localhost:8500/v1/catalog/service/web
 [{"Node":"agent-one","Address":"172.20.20.11","ServiceID":"web","ServiceName":"web","ServiceTags":["rails"],"ServicePort":80}]
 ```
@@ -136,4 +138,3 @@ any downtime or unavailability to service queries.
 
 Alternatively the HTTP API can be used to add, remove, and modify services
 dynamically.
-

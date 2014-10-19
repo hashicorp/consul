@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Key/Value Data"
 sidebar_current: "gettingstarted-kv"
+description: |-
+  In addition to providing service discovery and integrated health checking, Consul provides an easy to use Key/Value store. This can be used to hold dynamic configuration, assist in service coordination, build leader election, and anything else a developer can think to build.
 ---
 
 # Key/Value Data
@@ -22,7 +24,7 @@ in the K/V store.
 Querying the agent we started in a prior page, we can first verify that
 there are no existing keys in the k/v store:
 
-```
+```text
 $ curl -v http://localhost:8500/v1/kv/?recurse
 * About to connect() to localhost port 8500 (#0)
 *   Trying 127.0.0.1... connected
@@ -68,7 +70,7 @@ keys using the `?recurse` parameter.
 
 You can also fetch a single key just as easily:
 
-```
+```text
 $ curl http://localhost:8500/v1/kv/web/key1
 [{"CreateIndex":97,"ModifyIndex":97,"Key":"web/key1","Flags":0,"Value":"dGVzdA=="}]
 ```
@@ -76,7 +78,7 @@ $ curl http://localhost:8500/v1/kv/web/key1
 Deleting keys is simple as well. We can delete a single key by specifying the
 full path, or we can recursively delete all keys under a root using "?recurse":
 
-```
+```text
 $ curl -X DELETE http://localhost:8500/v1/kv/web/sub?recurse
 $ curl http://localhost:8500/v1/kv/web?recurse
 [{"CreateIndex":97,"ModifyIndex":97,"Key":"web/key1","Flags":0,"Value":"dGVzdA=="},
@@ -89,7 +91,7 @@ key updates. This is done by providing the `?cas=` parameter with the last
 `ModifyIndex` value from the GET request. For example, suppose we wanted
 to update "web/key1":
 
-```
+```text
 $ curl -X PUT -d 'newval' http://localhost:8500/v1/kv/web/key1?cas=97
 true
 $ curl -X PUT -d 'newval' http://localhost:8500/v1/kv/web/key1?cas=97
@@ -102,7 +104,7 @@ However the second operation fails because the `ModifyIndex` is no longer 97.
 We can also make use of the `ModifyIndex` to wait for a key's value to change.
 For example, suppose we wanted to wait for key2 to be modified:
 
-```
+```text
 $ curl "http://localhost:8500/v1/kv/web/key2?index=101&wait=5s"
 [{"CreateIndex":98,"ModifyIndex":101,"Key":"web/key2","Flags":42,"Value":"dGVzdA=="}]
 ```
@@ -115,4 +117,3 @@ of keys, waiting only until any of the keys has a newer modification time.
 
 This is only a few example of what the API supports. For full documentation, please
 reference the [HTTP API](/docs/agent/http.html).
-

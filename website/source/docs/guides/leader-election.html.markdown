@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Leader Election"
 sidebar_current: "docs-guides-leader"
+description: |-
+  The goal of this guide is to cover how to build client-side leader election using Consul. If you are interested in the leader election used internally to Consul, you want to read about the consensus protocol instead.
 ---
 
 # Leader Election
@@ -21,7 +23,9 @@ The first flow we cover is for nodes who are attempting to acquire leadership
 for a given service. All nodes that are participating should agree on a given
 key being used to coordinate. A good choice is simply:
 
-    service/<service name>/leader
+```text
+service/<service name>/leader
+```
 
 We will refer to this as just `key` for simplicity.
 
@@ -35,7 +39,9 @@ that may be needed.
 
 Attempt to `acquire` the `key` by doing a `PUT`. This is something like:
 
-     curl -X PUT -d body http://localhost:8500/v1/kv/key?acquire=session
+```text
+ curl -X PUT -d body http://localhost:8500/v1/kv/key?acquire=session
+ ```
 
 This will either return `true` or `false`. If `true` is returned, the lock
 has been acquired and the local node is now the leader. If `false` is returned,
@@ -54,7 +60,9 @@ wait. This is because Consul may be enforcing a [`lock-delay`](/docs/internals/s
 If the leader ever wishes to step down voluntarily, this should be done by simply
 releasing the lock:
 
-     curl -X PUT http://localhost:8500/v1/kv/key?release=session
+```text
+curl -X PUT http://localhost:8500/v1/kv/key?release=session
+```
 
 ## Discovering a Leader
 
@@ -70,4 +78,3 @@ the value of the key will provide all the application-dependent information requ
 Clients should also watch the key using a blocking query for any changes. If the leader
 steps down, or fails, then the `Session` associated with the key will be cleared. When
 a new leader is elected, the key value will also be updated.
-

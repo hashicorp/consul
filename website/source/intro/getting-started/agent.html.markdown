@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Run the Agent"
 sidebar_current: "gettingstarted-agent"
+description: |-
+  After Consul is installed, the agent must be run. The agent can either run in a server or client mode. Each datacenter must have at least one server, although 3 or 5 is recommended. A single server deployment is highly discouraged as data loss is inevitable in a failure scenario.
 ---
 
 # Run the Consul Agent
@@ -19,7 +21,7 @@ will be part of the cluster.
 
 For simplicity, we'll run a single Consul agent in server mode right now:
 
-```
+```text
 $ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul
 ==> WARNING: BootstrapExpect Mode is specified as 1; this is the same as Bootstrap mode.
 ==> WARNING: Bootstrap mode enabled! Do not enable unless necessary
@@ -53,12 +55,10 @@ data. From the log data, you can see that our agent is running in server mode,
 and has claimed leadership of the cluster. Additionally, the local member has
 been marked as a healthy member of the cluster.
 
-<div class="alert alert-block alert-warning">
-<strong>Note for OS X Users:</strong> Consul uses your hostname as the
+~> **Note for OS X Users:** Consul uses your hostname as the
 default node name. If your hostname contains periods, DNS queries to
 that node will not work with Consul. To avoid this, explicitly set
-the name of your node with the <code>-node</code> flag.
-</div>
+the name of your node with the `-node` flag.
 
 ## Cluster Members
 
@@ -66,7 +66,7 @@ If you run `consul members` in another terminal, you can see the members of
 the Consul cluster. You should only see one member (yourself). We'll cover
 joining clusters in the next section.
 
-```
+```text
 $ consul members
 Node                    Address             Status  Type    Build  Protocol
 Armons-MacBook-Air      10.1.10.38:8301     alive   server  0.3.0  2
@@ -82,7 +82,7 @@ For a strongly consistent view of the world, use the
 [HTTP API](/docs/agent/http.html), which forwards the request to the
 Consul servers:
 
-```
+```text
 $ curl localhost:8500/v1/catalog/nodes
 [{"Node":"Armons-MacBook-Air","Address":"10.1.10.38"}]
 ```
@@ -93,7 +93,7 @@ that you have to make sure to point your DNS lookups to the Consul agent's
 DNS server, which runs on port 8600 by default. The format of the DNS
 entries (such as "Armons-MacBook-Air.node.consul") will be covered later.
 
-```
+```text
 $ dig @127.0.0.1 -p 8600 Armons-MacBook-Air.node.consul
 ...
 
@@ -121,4 +121,3 @@ to recover from certain network conditions, while _left_ nodes are no longer con
 Additionally, if an agent is operating as a server, a graceful leave is important
 to avoid causing a potential availability outage affecting the [consensus protocol](/docs/internals/consensus.html).
 See the [guides section](/docs/guides/index.html) to safely add and remove servers.
-

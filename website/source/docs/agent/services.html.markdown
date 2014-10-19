@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Service Definition"
 sidebar_current: "docs-agent-services"
+description: |-
+  One of the main goals of service discovery is to provide a catalog of available services. To that end, the agent provides a simple service definition format to declare the availability of a service, and to potentially associate it with a health check. A health check is considered to be application level if it associated with a service. A service is defined in a configuration file, or added at runtime over the HTTP interface.
 ---
 
 # Services
@@ -17,17 +19,19 @@ or added at runtime over the HTTP interface.
 
 A service definition that is a script looks like:
 
-    {
-        "service": {
-            "name": "redis",
-            "tags": ["master"],
-            "port": 8000,
-            "check": {
-                "script": "/usr/local/bin/check_redis.py",
-                "interval": "10s"
-            }
-        }
+```javascript
+{
+  "service": {
+    "name": "redis",
+    "tags": ["master"],
+    "port": 8000,
+    "check": {
+      "script": "/usr/local/bin/check_redis.py",
+      "interval": "10s"
     }
+  }
+}
+```
 
 A service definition must include a `name`, and may optionally provide
 an `id`, `tags`, `port`, and `check`.  The `id` is set to the `name` if not

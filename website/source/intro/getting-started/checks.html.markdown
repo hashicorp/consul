@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Registering Health Checks"
 sidebar_current: "gettingstarted-checks"
+description: |-
+  We've now seen how simple it is to run Consul, add nodes and services, and query those nodes and services. In this section we will continue by adding health checks to both nodes and services, a critical component of service discovery that prevents using services that are unhealthy.
 ---
 
 # Health Checks
@@ -29,7 +31,7 @@ the second node.
 The first file will add a host-level check, and the second will modify the web
 service definition to add a service-level check.
 
-```
+```text
 $ echo '{"check": {"name": "ping", "script": "ping -c1 google.com >/dev/null", "interval": "30s"}}' >/etc/consul.d/ping.json
 
 $ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80,
@@ -46,7 +48,7 @@ curl every 10 seconds to verify that the web server is running.
 Restart the second agent, or send a `SIGHUP` to it. We should now see the
 following log lines:
 
-```
+```text
 ==> Starting Consul agent...
 ...
     [INFO] agent: Synced service 'web'
@@ -66,7 +68,7 @@ Now that we've added some simple checks, we can use the HTTP API to check
 them. First, we can look for any failing checks. You can run this curl
 on either node:
 
-```
+```text
 $ curl http://localhost:8500/v1/health/state/critical
 [{"Node":"agent-two","CheckID":"service:web","Name":"Service 'web' check","Status":"critical","Notes":"","ServiceID":"web","ServiceName":"web"}]
 ```
@@ -77,8 +79,8 @@ our `web` service check.
 Additionally, we can attempt to query the web service using DNS. Consul
 will not return any results, since the service is unhealthy:
 
-```
- dig @127.0.0.1 -p 8600 web.service.consul
+```text
+dig @127.0.0.1 -p 8600 web.service.consul
 ...
 
 ;; QUESTION SECTION:
@@ -91,4 +93,3 @@ Alternatively the HTTP API can be used to add, remove and modify checks dynamica
 The API allows for a "dead man's switch" or [TTL based check](/docs/agent/checks.html).
 TTL checks can be used to integrate an application more tightly with Consul, enabling
 business logic to be evaluated as part of passing a check.
-
