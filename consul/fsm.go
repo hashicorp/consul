@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/raft"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/raft"
 )
 
 // consulFSM implements a finite state machine that is used

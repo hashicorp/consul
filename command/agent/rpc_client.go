@@ -3,8 +3,8 @@ package agent
 import (
 	"bufio"
 	"fmt"
-	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/logutils"
 	"log"
 	"net"
 	"sync"

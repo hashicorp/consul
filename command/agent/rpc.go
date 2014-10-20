@@ -24,9 +24,9 @@ package agent
 import (
 	"bufio"
 	"fmt"
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/logutils"
 	"github.com/hashicorp/serf/serf"
-	"github.com/hashicorp/go-msgpack/codec"
 	"io"
 	"log"
 	"net"
