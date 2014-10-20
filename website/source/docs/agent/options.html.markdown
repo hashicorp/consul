@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Configuration"
 sidebar_current: "docs-agent-config"
+description: |-
+  The agent has various configuration options that can be specified via the command-line or via configuration files. All of the configuration options are completely optional and their defaults will be specified with their descriptions.
 ---
 
 # Configuration
@@ -156,7 +158,7 @@ definitions support being updated during a reload.
 
 #### Example Configuration File
 
-<pre class="prettyprint lang-json">
+```javascript
 {
   "datacenter": "east-aws",
   "data_dir": "/opt/consul",
@@ -170,7 +172,7 @@ definitions support being updated during a reload.
     }
   ]
 }
-</pre>
+```
 
 #### Configuration Key Reference
 

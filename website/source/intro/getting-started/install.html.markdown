@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Installing Consul"
 sidebar_current: "gettingstarted-install"
+description: |-
+  Consul must first be installed on every node that will be a member of a Consul cluster. To make installation easy, Consul is distributed as a binary package for all supported platforms and architectures. This page will not cover how to compile Consul from source.
 ---
 
 # Install Consul
@@ -28,13 +30,15 @@ you would like.
 
 If you are using [homebrew](http://brew.sh/#install) as a package manager,
 than you can install consul as simple as:
-```
-brew cask install consul
+
+```text
+$ brew cask install consul
 ```
 
 if you are missing the [cask plugin](http://caskroom.io/) you can install it with:
-```
-brew install caskroom/cask/brew-cask
+
+```text
+$ brew install caskroom/cask/brew-cask
 ```
 
 ## Verifying the Installation
@@ -43,7 +47,7 @@ After installing Consul, verify the installation worked by opening a new
 terminal session and checking that `consul` is available. By executing
 `consul` you should see help output similar to that below:
 
-```
+```text
 $ consul
 usage: consul [--version] [--help] <command> [<args>]
 

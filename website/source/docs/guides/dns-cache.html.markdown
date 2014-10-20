@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "DNS Caching"
 sidebar_current: "docs-guides-dns-cache"
+description: |-
+  One of the main interfaces to Consul is DNS. Using DNS is a simple way integrate Consul into an existing infrastructure without any high-touch integration.
 ---
 
 # DNS Caching
@@ -57,18 +59,17 @@ that matches if there is no specific service TTL provided.
 This is specified using the `dns_config.service_ttl` map. The "*" service
 is the wildcard service. For example, if we specify:
 
-```
-    {
-        "dns_config": {
-            "service_ttl": {
-                "*": "5s",
-                "web": "30s"
-            }
-        }
+```javascript
+{
+  "dns_config": {
+    "service_ttl": {
+      "*": "5s",
+      "web": "30s"
     }
+  }
+}
 ```
 
 This sets all lookups to "web.service.consul" to use a 30 second TTL,
 while lookups to "db.service.consul" or "api.service.consul" will use the
 5 second TTL from the wildcard.
-

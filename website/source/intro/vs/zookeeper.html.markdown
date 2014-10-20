@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Consul vs. ZooKeeper, doozerd, etcd"
 sidebar_current: "vs-other-zk"
+description: |-
+  ZooKeeper, doozerd and etcd are all similar in their architecture. All three have server nodes that require a quorum of nodes to operate (usually a simple majority). They are strongly consistent, and expose various primitives that can be used through client libraries within applications to build complex distributed systems.
 ---
 
 # Consul vs. ZooKeeper, doozerd, etcd
@@ -58,4 +60,3 @@ all these other systems require additional tools and libraries to be built on
 top. By using client nodes, Consul provides a simple API that only requires thin clients.
 Additionally, the API can be avoided entirely by using configuration files and the
 DNS interface to have a complete service discovery solution with no development at all.
-

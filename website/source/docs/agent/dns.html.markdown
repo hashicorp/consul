@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "DNS Interface"
 sidebar_current: "docs-agent-dns"
+description: |-
+  One of the primary query interfaces for Consul is using DNS. The DNS interface allows applications to make use of service discovery without any high-touch integration with Consul.
 ---
 
 # DNS Interface
@@ -50,25 +52,26 @@ DNS lookup for nodes in other datacenters, with no additional effort.
 For a node lookup, the only records returned are A records with the IP address of
 the node.
 
-    $ dig @127.0.0.1 -p 8600 foobar.node.consul ANY
+```text
+$ dig @127.0.0.1 -p 8600 foobar.node.consul ANY
 
-    ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 foobar.node.consul ANY
-    ; (1 server found)
-    ;; global options: +cmd
-    ;; Got answer:
-    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 24355
-    ;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 0
-    ;; WARNING: recursion requested but not available
+; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 foobar.node.consul ANY
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 24355
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 1, ADDITIONAL: 0
+;; WARNING: recursion requested but not available
 
-    ;; QUESTION SECTION:
-    ;foobar.node.consul.		IN	ANY
+;; QUESTION SECTION:
+;foobar.node.consul.		IN	ANY
 
-    ;; ANSWER SECTION:
-    foobar.node.consul.	0	IN	A	10.1.10.12
+;; ANSWER SECTION:
+foobar.node.consul.	0	IN	A	10.1.10.12
 
-    ;; AUTHORITY SECTION:
-    consul.			0	IN	SOA	ns.consul. postmaster.consul. 1392836399 3600 600 86400 0
-
+;; AUTHORITY SECTION:
+consul.			0	IN	SOA	ns.consul. postmaster.consul. 1392836399 3600 600 86400 0
+```
 
 ## Service Lookups
 
@@ -100,24 +103,26 @@ provide the port that a service is registered on, enabling services to avoid rel
 on well-known ports. SRV records are only served if the client specifically requests
 SRV records.
 
-    $ dig @127.0.0.1 -p 8600 consul.service.consul SRV
+```text
+$ dig @127.0.0.1 -p 8600 consul.service.consul SRV
 
-    ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 consul.service.consul ANY
-    ; (1 server found)
-    ;; global options: +cmd
-    ;; Got answer:
-    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 50483
-    ;; flags: qr aa rd; QUERY: 1, ANSWER: 3, AUTHORITY: 1, ADDITIONAL: 1
-    ;; WARNING: recursion requested but not available
+; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 consul.service.consul ANY
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 50483
+;; flags: qr aa rd; QUERY: 1, ANSWER: 3, AUTHORITY: 1, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
 
-    ;; QUESTION SECTION:
-    ;consul.service.consul.		IN	SRV
+;; QUESTION SECTION:
+;consul.service.consul.		IN	SRV
 
-    ;; ANSWER SECTION:
-    consul.service.consul.	0	IN	SRV	1 1 8300 foobar.node.dc1.consul.
+;; ANSWER SECTION:
+consul.service.consul.	0	IN	SRV	1 1 8300 foobar.node.dc1.consul.
 
-    ;; ADDITIONAL SECTION:
-    foobar.node.dc1.consul.	0	IN	A	10.1.10.12
+;; ADDITIONAL SECTION:
+foobar.node.dc1.consul.	0	IN	A	10.1.10.12
+```
 
 ### RFC-2782 Style Lookup
 
@@ -138,24 +143,26 @@ Using the RCF style lookup, If you registered the service "rabbitmq" on port
 5672 and tagged it with "amqp" you would query the SRV record as
 "_rabbitmq._amqp.service.consul" as illustrated in the example below:
 
-    $ dig @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul SRV
+```text
+$ dig @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul SRV
 
-    ; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul ANY
-    ; (1 server found)
-    ;; global options: +cmd
-    ;; Got answer:
-    ;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 52838
-    ;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
-    ;; WARNING: recursion requested but not available
+; <<>> DiG 9.8.3-P1 <<>> @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul ANY
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 52838
+;; flags: qr aa rd; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
 
-    ;; QUESTION SECTION:
-    ;_rabbitmq._amqp.service.consul.	IN	SRV
+;; QUESTION SECTION:
+;_rabbitmq._amqp.service.consul.	IN	SRV
 
-    ;; ANSWER SECTION:
-    _rabbitmq._amqp.service.consul.	0	IN	SRV	1 1 5672 rabbitmq.node1.dc1.consul.
+;; ANSWER SECTION:
+_rabbitmq._amqp.service.consul.	0	IN	SRV	1 1 5672 rabbitmq.node1.dc1.consul.
 
-    ;; ADDITIONAL SECTION:
-    rabbitmq.node1.dc1.consul.	0	IN	A	10.1.11.20
+;; ADDITIONAL SECTION:
+rabbitmq.node1.dc1.consul.	0	IN	A	10.1.11.20
+```
 
 ### UDP Based DNS Queries
 

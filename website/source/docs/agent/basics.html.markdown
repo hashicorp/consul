@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Agent"
 sidebar_current: "docs-agent-running"
+description: |-
+  The Consul agent is the core process of Consul. The agent maintains membership information, registers services, runs checks, responds to queries and more. The agent must run on every node that is part of a Consul cluster.
 ---
 
 # Consul Agent
@@ -25,7 +27,7 @@ running forever or until told to quit. The agent command takes a variety
 of configuration options but the defaults are usually good enough. When
 running `consul agent`, you should see output similar to that below:
 
-```
+```text
 $ consul agent -data-dir=/tmp/consul
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...

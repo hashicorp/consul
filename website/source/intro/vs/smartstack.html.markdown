@@ -2,6 +2,9 @@
 layout: "intro"
 page_title: "Consul vs. SmartStack"
 sidebar_current: "vs-other-smartstack"
+description: |-
+  SmartStack is another tool which tackles the service discovery problem. It has a rather unique architecture, and has 4 major components: ZooKeeper, HAProxy, Synapse, and Nerve. The ZooKeeper servers are responsible for storing cluster state in a consistent and fault tolerant manner. Each node in the SmartStack cluster then runs both Nerves and Synapses. The Nerve is responsible for running health checks against a service, and registering with the ZooKeeper servers. Synapse queries ZooKeeper for service providers and dynamically configures HAProxy. Finally, clients speak to HAProxy, which does health checking and load balancing across service providers.
+
 ---
 
 # Consul vs. SmartStack
@@ -54,4 +57,3 @@ an integrated key/value store for configuration and multi-datacenter support.
 While it may be possible to configure SmartStack for multiple datacenters,
 the central ZooKeeper cluster would be a serious impediment to a fault tolerant
 deployment.
-

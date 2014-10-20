@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "HTTP API"
 sidebar_current: "docs-agent-http"
+description: |-
+  The main interface to Consul is a RESTful HTTP API. The API can be used for CRUD for nodes, services, checks, and configuration. The endpoints are versioned to enable changes without breaking backwards compatibility.
 ---
 
 # HTTP API
@@ -120,17 +122,19 @@ all keys with the given prefix.
 
 Each object will look like:
 
-    [
-        {
-            "CreateIndex": 100,
-            "ModifyIndex": 200,
-            "LockIndex": 200,
-            "Key": "zip",
-            "Flags": 0,
-            "Value": "dGVzdA==",
-            "Session": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
-        }
-    ]
+```javascript
+[
+  {
+    "CreateIndex": 100,
+    "ModifyIndex": 200,
+    "LockIndex": 200,
+    "Key": "zip",
+    "Flags": 0,
+    "Value": "dGVzdA==",
+    "Session": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+  }
+]
+```
 
 The `CreateIndex` is the internal index value that represents
 when the entry was created. The `ModifyIndex` is the last index
@@ -153,11 +157,13 @@ can be used to list only up to a given separator.
 
 For example, listing "/web/" with a "/" seperator may return:
 
-    [
-    "/web/bar",
-    "/web/foo",
-    "/web/subdir/"
-    ]
+```javascript
+[
+  "/web/bar",
+  "/web/foo",
+  "/web/subdir/"
+]
+```
 
 Using the key listing method may be suitable when you do not need
 the values or flags, or want to implement a key-space explorer.
@@ -242,18 +248,20 @@ anti-entropy, so in most situations everything will be in sync within a few seco
 
 This endpoint is hit with a GET and returns a JSON body like this:
 
-    {
-        "service:redis": {
-            "Node": "foobar",
-            "CheckID": "service:redis",
-            "Name": "Service 'redis' check",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "redis",
-            "ServiceName": "redis"
-        }
-    }
+```javascript
+{
+  "service:redis": {
+    "Node": "foobar",
+    "CheckID": "service:redis",
+    "Name": "Service 'redis' check",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "redis",
+    "ServiceName": "redis"
+  }
+}
+```
 
 ### /v1/agent/services
 
@@ -266,14 +274,16 @@ anti-entropy, so in most situations everything will be in sync within a few seco
 
 This endpoint is hit with a GET and returns a JSON body like this:
 
-    {
-        "redis": {
-            "ID": "redis",
-            "Service": "redis",
-            "Tags": null,
-            "Port": 8000
-        }
-    }
+```javascript
+{
+  "redis": {
+    "ID": "redis",
+    "Service": "redis",
+    "Tags": null,
+    "Port": 8000
+  }
+}
+```
 
 ### /v1/agent/members
 
@@ -287,26 +297,28 @@ the list of WAN members instead of the LAN members which is default.
 
 This endpoint returns a JSON body like:
 
-    [
-        {
-            "Name": "foobar",
-            "Addr": "10.1.10.12",
-            "Port": 8301,
-            "Tags": {
-                "bootstrap": "1",
-                "dc": "dc1",
-                "port": "8300",
-                "role": "consul"
-            },
-            "Status": 1,
-            "ProtocolMin": 1,
-            "ProtocolMax": 2,
-            "ProtocolCur": 2,
-            "DelegateMin": 1,
-            "DelegateMax": 3,
-            "DelegateCur": 3
-        }
-    ]
+```javascript
+[
+  {
+    "Name": "foobar",
+    "Addr": "10.1.10.12",
+    "Port": 8301,
+    "Tags": {
+      "bootstrap": "1",
+      "dc": "dc1",
+      "port": "8300",
+      "role": "consul"
+    },
+    "Status": 1,
+    "ProtocolMin": 1,
+    "ProtocolMax": 2,
+    "ProtocolCur": 2,
+    "DelegateMin": 1,
+    "DelegateMax": 3,
+    "DelegateCur": 3
+  }
+]
+```
 
 ### /v1/agent/self
 
@@ -314,65 +326,67 @@ This endpoint is used to return configuration of the local agent and member info
 
 It returns a JSON body like this:
 
-    {
-        "Config": {
-            "Bootstrap": true,
-            "Server": true,
-            "Datacenter": "dc1",
-            "DataDir": "/tmp/consul",
-            "DNSRecursor": "",
-            "Domain": "consul.",
-            "LogLevel": "INFO",
-            "NodeName": "foobar",
-            "ClientAddr": "127.0.0.1",
-            "BindAddr": "0.0.0.0",
-            "AdvertiseAddr": "10.1.10.12",
-            "Ports": {
-                "DNS": 8600,
-                "HTTP": 8500,
-                "RPC": 8400,
-                "SerfLan": 8301,
-                "SerfWan": 8302,
-                "Server": 8300
-            },
-            "LeaveOnTerm": false,
-            "SkipLeaveOnInt": false,
-            "StatsiteAddr": "",
-            "Protocol": 1,
-            "EnableDebug": false,
-            "VerifyIncoming": false,
-            "VerifyOutgoing": false,
-            "CAFile": "",
-            "CertFile": "",
-            "KeyFile": "",
-            "StartJoin": [],
-            "UiDir": "",
-            "PidFile": "",
-            "EnableSyslog": false,
-            "RejoinAfterLeave": false
-        },
-        "Member": {
-            "Name": "foobar",
-            "Addr": "10.1.10.12",
-            "Port": 8301,
-            "Tags": {
-                "bootstrap": "1",
-                "dc": "dc1",
-                "port": "8300",
-                "role": "consul",
-                "vsn": "1",
-                "vsn_max": "1",
-                "vsn_min": "1"
-            },
-            "Status": 1,
-            "ProtocolMin": 1,
-            "ProtocolMax": 2,
-            "ProtocolCur": 2,
-            "DelegateMin": 2,
-            "DelegateMax": 4,
-            "DelegateCur": 4
-        }
-    }
+```javascript
+{
+  "Config": {
+    "Bootstrap": true,
+    "Server": true,
+    "Datacenter": "dc1",
+    "DataDir": "/tmp/consul",
+    "DNSRecursor": "",
+    "Domain": "consul.",
+    "LogLevel": "INFO",
+    "NodeName": "foobar",
+    "ClientAddr": "127.0.0.1",
+    "BindAddr": "0.0.0.0",
+    "AdvertiseAddr": "10.1.10.12",
+    "Ports": {
+      "DNS": 8600,
+      "HTTP": 8500,
+      "RPC": 8400,
+      "SerfLan": 8301,
+      "SerfWan": 8302,
+      "Server": 8300
+    },
+    "LeaveOnTerm": false,
+    "SkipLeaveOnInt": false,
+    "StatsiteAddr": "",
+    "Protocol": 1,
+    "EnableDebug": false,
+    "VerifyIncoming": false,
+    "VerifyOutgoing": false,
+    "CAFile": "",
+    "CertFile": "",
+    "KeyFile": "",
+    "StartJoin": [],
+    "UiDir": "",
+    "PidFile": "",
+    "EnableSyslog": false,
+    "RejoinAfterLeave": false
+  },
+  "Member": {
+    "Name": "foobar",
+    "Addr": "10.1.10.12",
+    "Port": 8301,
+    "Tags": {
+      "bootstrap": "1",
+      "dc": "dc1",
+      "port": "8300",
+      "role": "consul",
+      "vsn": "1",
+      "vsn_max": "1",
+      "vsn_min": "1"
+    },
+    "Status": 1,
+    "ProtocolMin": 1,
+    "ProtocolMax": 2,
+    "ProtocolCur": 2,
+    "DelegateMin": 2,
+    "DelegateMax": 4,
+    "DelegateCur": 4
+  }
+}
+```
 
 ### /v1/agent/join/\<address\>
 
@@ -401,14 +415,16 @@ the status of the check and keeping the Catalog in sync.
 The register endpoint expects a JSON request body to be PUT. The request
 body must look like:
 
-    {
-        "ID": "mem",
-        "Name": "Memory utilization",
-        "Notes": "Ensure we don't oversubscribe memory",
-        "Script": "/usr/local/bin/check_mem.py",
-        "Interval": "10s",
-        "TTL": "15s"
-    }
+```javascript
+{
+  "ID": "mem",
+  "Name": "Memory utilization",
+  "Notes": "Ensure we don't oversubscribe memory",
+  "Script": "/usr/local/bin/check_mem.py",
+  "Interval": "10s",
+  "TTL": "15s"
+}
+```
 
 The `Name` field is mandatory, as is either `Script` and `Interval`
 or `TTL`. Only one of `Script` and `Interval` or `TTL` should be provided.
@@ -474,20 +490,22 @@ the status of the check and keeping the Catalog in sync.
 The register endpoint expects a JSON request body to be PUT. The request
 body must look like:
 
-    {
-        "ID": "redis1",
-        "Name": "redis",
-        "Tags": [
-            "master",
-            "v1"
-        ],
-        "Port": 8000,
-        "Check": {
-            "Script": "/usr/local/bin/check_redis.py",
-            "Interval": "10s",
-            "TTL": "15s"
-        }
-    }
+```javascript
+{
+  "ID": "redis1",
+  "Name": "redis",
+  "Tags": [
+    "master",
+    "v1"
+  ],
+  "Port": 8000,
+  "Check": {
+    "Script": "/usr/local/bin/check_redis.py",
+    "Interval": "10s",
+    "TTL": "15s"
+  }
+}
+```
 
 The `Name` field is mandatory,  If an `ID` is not provided, it is set to `Name`.
 You cannot have duplicate `ID` entries per agent, so it may be necessary to provide an ID.
@@ -534,28 +552,30 @@ the agent local endpoints, as they are simpler and perform anti-entropy.
 The register endpoint expects a JSON request body to be PUT. The request
 body must look like:
 
-    {
-        "Datacenter": "dc1",
-        "Node": "foobar",
-        "Address": "192.168.10.10",
-        "Service": {
-            "ID": "redis1",
-            "Service": "redis",
-            "Tags": [
-                "master",
-                "v1"
-            ],
-            "Port": 8000
-        },
-        "Check": {
-            "Node": "foobar",
-            "CheckID": "service:redis1",
-            "Name": "Redis health check",
-            "Notes": "Script based health check",
-            "Status": "passing",
-            "ServiceID": "redis1"
-        }
-    }
+```javascript
+{
+  "Datacenter": "dc1",
+  "Node": "foobar",
+  "Address": "192.168.10.10",
+  "Service": {
+    "ID": "redis1",
+    "Service": "redis",
+    "Tags": [
+      "master",
+      "v1"
+    ],
+    "Port": 8000
+  },
+  "Check": {
+    "Node": "foobar",
+    "CheckID": "service:redis1",
+    "Name": "Redis health check",
+    "Notes": "Script based health check",
+    "Status": "passing",
+    "ServiceID": "redis1"
+  }
+}
+```
 
 The behavior of the endpoint depends on what keys are provided. The endpoint
 requires `Node` and `Address` to be provided, while `Datacenter` will be defaulted
@@ -593,22 +613,28 @@ endpoints, as they are simpler and perform anti-entropy.
 The deregister endpoint expects a JSON request body to be PUT. The request
 body must look like one of the following:
 
-    {
-        "Datacenter": "dc1",
-        "Node": "foobar",
-    }
+```javascript
+{
+  "Datacenter": "dc1",
+  "Node": "foobar",
+}
+```
 
-    {
-        "Datacenter": "dc1",
-        "Node": "foobar",
-        "CheckID": "service:redis1"
-    }
+```javascript
+{
+  "Datacenter": "dc1",
+  "Node": "foobar",
+  "CheckID": "service:redis1"
+}
+```
 
-    {
-        "Datacenter": "dc1",
-        "Node": "foobar",
-        "ServiceID": "redis1",
-    }
+```javascript
+{
+  "Datacenter": "dc1",
+  "Node": "foobar",
+  "ServiceID": "redis1",
+}
+```
 
 The behavior of the endpoint depends on what keys are provided. The endpoint
 requires `Node` to be provided, while `Datacenter` will be defaulted
@@ -627,7 +653,9 @@ datacenters that are known by the Consul server.
 
 It returns a JSON body like this:
 
-    ["dc1", "dc2"]
+```javascript
+["dc1", "dc2"]
+```
 
 This endpoint does not require a cluster leader, and as such
 will succeed even during an availability outage. It can thus be
@@ -641,16 +669,18 @@ however the dc can be provided using the "?dc=" query parameter.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "Node": "baz",
-            "Address": "10.1.10.11"
-        },
-        {
-            "Node": "foobar",
-            "Address": "10.1.10.12"
-        }
-    ]
+```javascript
+[
+  {
+    "Node": "baz",
+    "Address": "10.1.10.11"
+  },
+  {
+    "Node": "foobar",
+    "Address": "10.1.10.12"
+  }
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
@@ -662,14 +692,16 @@ however the dc can be provided using the "?dc=" query parameter.
 
 It returns a JSON body like this:
 
-    {
-        "consul": [],
-        "redis": [],
-        "postgresql": [
-            "master",
-            "slave"
-        ]
-    }
+```javascript
+{
+  "consul": [],
+  "redis": [],
+  "postgresql": [
+    "master",
+    "slave"
+  ]
+}
+```
 
 The main object keys are the service names, while the array
 provides all the known tags for a given service.
@@ -688,16 +720,18 @@ by tag using the "?tag=" query parameter.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "Node": "foobar",
-            "Address": "10.1.10.12",
-            "ServiceID": "redis",
-            "ServiceName": "redis",
-            "ServiceTags": null,
-            "ServicePort": 8000
-        }
-    ]
+```javascript
+[
+  {
+    "Node": "foobar",
+    "Address": "10.1.10.12",
+    "ServiceID": "redis",
+    "ServiceName": "redis",
+    "ServiceTags": null,
+    "ServicePort": 8000
+  }
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
@@ -710,28 +744,30 @@ The node being queried must be provided after the slash.
 
 It returns a JSON body like this:
 
-    {
-        "Node": {
-            "Node": "foobar",
-            "Address": "10.1.10.12"
-        },
-        "Services": {
-            "consul": {
-                "ID": "consul",
-                "Service": "consul",
-                "Tags": null,
-                "Port": 8300
-            },
-            "redis": {
-                "ID": "redis",
-                "Service": "redis",
-                "Tags": [
-                    "v1"
-                ],
-                "Port": 8000
-            }
-        }
+```javascript
+{
+  "Node": {
+    "Node": "foobar",
+    "Address": "10.1.10.12"
+  },
+  "Services": {
+    "consul": {
+      "ID": "consul",
+      "Service": "consul",
+      "Tags": null,
+      "Port": 8300
+    },
+    "redis": {
+      "ID": "redis",
+      "Service": "redis",
+      "Tags": [
+        "v1"
+      ],
+      "Port": 8000
     }
+  }
+}
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
@@ -759,28 +795,30 @@ The node being queried must be provided after the slash.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "Node": "foobar",
-            "CheckID": "serfHealth",
-            "Name": "Serf Health Status",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "",
-            "ServiceName": ""
-        },
-        {
-            "Node": "foobar",
-            "CheckID": "service:redis",
-            "Name": "Service 'redis' check",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "redis",
-            "ServiceName": "redis"
-        }
-    ]
+```javascript
+[
+  {
+    "Node": "foobar",
+    "CheckID": "serfHealth",
+    "Name": "Serf Health Status",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "",
+    "ServiceName": ""
+  },
+  {
+    "Node": "foobar",
+    "CheckID": "service:redis",
+    "Name": "Service 'redis' check",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "redis",
+    "ServiceName": "redis"
+  }
+]
+```
 
 In this case, we can see there is a system level check (no associated
 `ServiceID`, as well as a service check for Redis). The "serfHealth" check
@@ -801,18 +839,20 @@ The service being queried must be provided after the slash.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "Node": "foobar",
-            "CheckID": "service:redis",
-            "Name": "Service 'redis' check",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "redis",
-            "ServiceName": "redis"
-        }
-    ]
+```javascript
+[
+  {
+    "Node": "foobar",
+    "CheckID": "service:redis",
+    "Name": "Service 'redis' check",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "redis",
+    "ServiceName": "redis"
+  }
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
@@ -841,42 +881,44 @@ by incorporating the use of health checks.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "Node": {
-                "Node": "foobar",
-                "Address": "10.1.10.12"
-            },
-            "Service": {
-                "ID": "redis",
-                "Service": "redis",
-                "Tags": null,
-                "Port": 8000
-            },
-            "Checks": [
-                {
-                    "Node": "foobar",
-                    "CheckID": "service:redis",
-                    "Name": "Service 'redis' check",
-                    "Status": "passing",
-                    "Notes": "",
-                    "Output": "",
-                    "ServiceID": "redis",
-                    "ServiceName": "redis"
-                },
-                {
-                    "Node": "foobar",
-                    "CheckID": "serfHealth",
-                    "Name": "Serf Health Status",
-                    "Status": "passing",
-                    "Notes": "",
-                    "Output": "",
-                    "ServiceID": "",
-                    "ServiceName": ""
-                }
-            ]
-        }
+```javascript
+[
+  {
+    "Node": {
+      "Node": "foobar",
+      "Address": "10.1.10.12"
+    },
+    "Service": {
+      "ID": "redis",
+      "Service": "redis",
+      "Tags": null,
+      "Port": 8000
+    },
+    "Checks": [
+      {
+        "Node": "foobar",
+        "CheckID": "service:redis",
+        "Name": "Service 'redis' check",
+        "Status": "passing",
+        "Notes": "",
+        "Output": "",
+        "ServiceID": "redis",
+        "ServiceName": "redis"
+      },
+      {
+        "Node": "foobar",
+        "CheckID": "serfHealth",
+        "Name": "Serf Health Status",
+        "Status": "passing",
+        "Notes": "",
+        "Output": "",
+        "ServiceID": "",
+        "ServiceName": ""
+      }
     ]
+  }
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
@@ -892,28 +934,30 @@ a wildcard that can be used to return all the checks.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "Node": "foobar",
-            "CheckID": "serfHealth",
-            "Name": "Serf Health Status",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "",
-            "ServiceName": ""
-        },
-        {
-            "Node": "foobar",
-            "CheckID": "service:redis",
-            "Name": "Service 'redis' check",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "redis",
-            "ServiceName": "redis"
-        }
-    ]
+```javascript
+[
+  {
+    "Node": "foobar",
+    "CheckID": "serfHealth",
+    "Name": "Serf Health Status",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "",
+    "ServiceName": ""
+  },
+  {
+    "Node": "foobar",
+    "CheckID": "service:redis",
+    "Name": "Service 'redis' check",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "redis",
+    "ServiceName": "redis"
+  }
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
@@ -945,12 +989,14 @@ to use cross-region sessions.
 The create endpoint expects a JSON request body to be PUT. The request
 body must look like:
 
-    {
-        "LockDelay": "15s",
-        "Name": "my-service-lock",
-        "Node": "foobar",
-        "Checks": ["a", "b", "c"]
-    }
+```javascript
+{
+  "LockDelay": "15s",
+  "Name": "my-service-lock",
+  "Node": "foobar",
+  "Checks": ["a", "b", "c"]
+}
+```
 
 None of the fields are mandatory, and in fact no body needs to be PUT
 if the defaults are to be used. The `LockDelay` field can be specified
@@ -966,7 +1012,11 @@ It is highly recommended that if you override this list, you include that check.
 
 The return code is 200 on success, along with a body like:
 
-    {"ID":"adf4238a-882b-9ddc-4a9d-5b6758e4159e"}
+```javascript
+{
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+}
+```
 
 This is used to provide the ID of the newly created session.
 
@@ -988,17 +1038,19 @@ The session being queried must be provided after the slash.
 
 It returns a JSON body like this:
 
-    [
-      {
-        "LockDelay": 1.5e+10,
-        "Checks": [
-          "serfHealth"
-        ],
-        "Node": "foobar",
-        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-        "CreateIndex": 1086449
-      }
-    ]
+```javascript
+[
+  {
+    "LockDelay": 1.5e+10,
+    "Checks": [
+      "serfHealth"
+    ],
+    "Node": "foobar",
+    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "CreateIndex": 1086449
+  }
+]
+```
 
 If the session is not found, null is returned instead of a JSON list.
 This endpoint supports blocking queries and all consistency modes.
@@ -1012,18 +1064,20 @@ The node being queried must be provided after the slash.
 
 It returns a JSON body like this:
 
-    [
-      {
-        "LockDelay": 1.5e+10,
-        "Checks": [
-          "serfHealth"
-        ],
-        "Node": "foobar",
-        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-        "CreateIndex": 1086449
-      },
-      ...
-    ]
+```javascript
+[
+  {
+    "LockDelay": 1.5e+10,
+    "Checks": [
+      "serfHealth"
+    ],
+    "Node": "foobar",
+    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "CreateIndex": 1086449
+  },
+  ...
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
@@ -1035,18 +1089,20 @@ however the dc can be provided using the "?dc=" query parameter.
 
 It returns a JSON body like this:
 
-    [
-      {
-        "LockDelay": 1.5e+10,
-        "Checks": [
-          "serfHealth"
-        ],
-        "Node": "foobar",
-        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-        "CreateIndex": 1086449
-      },
-      ...
-    ]
+```javascript
+[
+  {
+    "LockDelay": 1.5e+10,
+    "Checks": [
+      "serfHealth"
+    ],
+    "Node": "foobar",
+    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "CreateIndex": 1086449
+  },
+  ...
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
@@ -1080,11 +1136,13 @@ of the agent that the request is made to.
 The create endpoint expects a JSON request body to be PUT. The request
 body must look like:
 
-    {
-        "Name": "my-app-token",
-        "Type": "client",
-        "Rules": ""
-    }
+```javascript
+{
+  "Name": "my-app-token",
+  "Type": "client",
+  "Rules": ""
+}
+```
 
 None of the fields are mandatory, and in fact no body needs to be PUT
 if the defaults are to be used. The `Name` and `Rules` default to being
@@ -1093,7 +1151,11 @@ blank, and the `Type` defaults to "client". The format of `Rules` is
 
 The return code is 200 on success, along with a body like:
 
-    {"ID":"adf4238a-882b-9ddc-4a9d-5b6758e4159e"}
+```javascript
+{
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+}
+```
 
 This is used to provide the ID of the newly created ACL token.
 
@@ -1112,12 +1174,14 @@ of the agent that the request is made to.
 The update endpoint expects a JSON request body to be PUT. The request
 body must look like:
 
-    {
-        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
-        "Name": "my-app-token-updated",
-        "Type": "client",
-        "Rules": "# New Rules",
-    }
+```javascript
+{
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+  "Name": "my-app-token-updated",
+  "Type": "client",
+  "Rules": "# New Rules",
+}
+```
 
 Only the `ID` field is mandatory, the other fields provide defaults.
 The `Name` and `Rules` default to being blank, and the `Type` defaults to "client".
@@ -1142,16 +1206,18 @@ The token being queried must be provided after the slash.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "CreateIndex":3,
-            "ModifyIndex":3,
-            "ID":"8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
-            "Name":"Client Token",
-            "Type":"client",
-            "Rules":"..."
-        }
-    ]
+```javascript
+[
+  {
+    "CreateIndex": 3,
+    "ModifyIndex": 3,
+    "ID": "8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
+    "Name": "Client Token",
+    "Type": "client",
+    "Rules": "..."
+  }
+]
+```
 
 If the session is not found, null is returned instead of a JSON list.
 
@@ -1165,7 +1231,11 @@ after the slash. Requests to this endpoint require a management token.
 
 The return code is 200 on success, along with a body like:
 
-    {"ID":"adf4238a-882b-9ddc-4a9d-5b6758e4159e"}
+```javascript
+{
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+}
+```
 
 This is used to provide the ID of the newly created ACL token.
 
@@ -1177,17 +1247,19 @@ management token.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "CreateIndex":3,
-            "ModifyIndex":3,
-            "ID":"8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
-            "Name":"Client Token",
-            "Type":"client",
-            "Rules":"..."
-        },
-        ...
-    ]
+```javascript
+[
+  {
+    "CreateIndex": 3,
+    "ModifyIndex": 3,
+    "ID": "8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
+    "Name": "Client Token",
+    "Type": "client",
+    "Rules": "..."
+  },
+  ...
+]
+```
 
 ## Event
 
@@ -1218,16 +1290,18 @@ by node name, service, and service tags.
 
 The return code is 200 on success, along with a body like:
 
-    {
-        "ID":"b54fe110-7af5-cafc-d1fb-afc8ba432b1c",
-        "Name":"deploy",
-        "Payload":null,
-        "NodeFilter":"",
-        "ServiceFilter":"",
-        "TagFilter":"",
-        "Version":1,
-        "LTime":0
-    }
+```javascript
+{
+  "ID": "b54fe110-7af5-cafc-d1fb-afc8ba432b1c",
+  "Name": "deploy",
+  "Payload": null,
+  "NodeFilter": "",
+  "ServiceFilter": "",
+  "TagFilter": "",
+  "Version": 1,
+  "LTime": 0
+}
+```
 
 This is used to provide the ID of the newly fired event.
 
@@ -1267,19 +1341,21 @@ enough for most clients and watches.
 
 It returns a JSON body like this:
 
-    [
-      {
-        "ID": "b54fe110-7af5-cafc-d1fb-afc8ba432b1c",
-        "Name": "deploy",
-        "Payload": "MTYwOTAzMA=="",
-        "NodeFilter": "",
-        "ServiceFilter": "",
-        "TagFilter": "",
-        "Version": 1,
-        "LTime": 19
-      },
-      ...
-    ]
+```javascript
+[
+  {
+    "ID": "b54fe110-7af5-cafc-d1fb-afc8ba432b1c",
+    "Name": "deploy",
+    "Payload": "MTYwOTAzMA==",
+    "NodeFilter": "",
+    "ServiceFilter": "",
+    "TagFilter": "",
+    "Version": 1,
+    "LTime": 19
+  },
+  ...
+]
+```
 
 ## Status
 
@@ -1297,11 +1373,19 @@ The following endpoints are supported:
 This endpoint is used to get the Raft leader for the datacenter
 the agent is running in. It returns only an address like:
 
-    "10.1.10.12:8300"
+```text
+"10.1.10.12:8300"
+```
 
 ### /v1/status/peers
 
 This endpoint is used to get the Raft peers for the datacenter
 the agent is running in. It returns a list of addresses like:
 
-    ["10.1.10.12:8300", "10.1.10.11:8300", "10.1.10.10:8300"]
+```javascript
+[
+  "10.1.10.12:8300",
+  "10.1.10.11:8300",
+  "10.1.10.10:8300"
+]
+```

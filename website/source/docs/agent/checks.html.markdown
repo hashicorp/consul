@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Check Definition"
 sidebar_current: "docs-agent-checks"
+description: |-
+  One of the primary roles of the agent is the management of system and application level health checks. A health check is considered to be application level if it associated with a service. A check is defined in a configuration file, or added at runtime over the HTTP interface.
 ---
 
 # Checks
@@ -30,25 +32,29 @@ There are two different kinds of checks:
 
 A check definition that is a script looks like:
 
-    {
-        "check": {
-            "id": "mem-util",
-            "name": "Memory utilization",
-            "script": "/usr/local/bin/check_mem.py",
-            "interval": "10s"
-        }
-    }
+```javascript
+{
+  "check": {
+    "id": "mem-util",
+    "name": "Memory utilization",
+    "script": "/usr/local/bin/check_mem.py",
+    "interval": "10s"
+  }
+}
+```
 
 A TTL based check is very similar:
 
-    {
-        "check": {
-            "id": "web-app",
-            "name": "Web App Status",
-            "notes": "Web app does a curl internally every 10 seconds",
-            "ttl": "30s"
-        }
-    }
+```javascript
+{
+  "check": {
+    "id": "web-app",
+    "name": "Web App Status",
+    "notes": "Web app does a curl internally every 10 seconds",
+    "ttl": "30s"
+  }
+}
+```
 
 Both types of definitions must include a `name`, and may optionally
 provide an `id` and `notes` field. The `id` is set to the `name` if not

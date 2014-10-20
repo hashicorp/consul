@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Consul vs. Nagios, Sensu"
 sidebar_current: "vs-other-nagios-sensu"
+description: |-
+  Nagios and Sensu are both tools built for monitoring. They are used to quickly notify operators when an issue occurs.
 ---
 
 # Consul vs. Nagios, Sensu
@@ -46,4 +48,3 @@ integrates a distributed failure detector. This means that if a Consul agent fai
 the failure will be detected, and thus all checks being run by that node can be
 assumed failed. This failure detector distributes the work among the entire cluster,
 and critically enables the edge triggered architecture to work.
-

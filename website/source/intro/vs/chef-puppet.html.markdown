@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Consul vs. Chef, Puppet, etc."
 sidebar_current: "vs-other-chef"
+description: |-
+  It is not uncommon to find people using Chef, Puppet, and other configuration management tools to build service discovery mechanisms. This is usually done by querying global state to construct configuration files on each node during a periodic convergence run.
 ---
 
 # Consul vs. Chef, Puppet, etc.

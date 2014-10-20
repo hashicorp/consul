@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Next Steps"
 sidebar_current: "gettingstarted-nextsteps"
+description: |-
+  That concludes the getting started guide for Consul. Hopefully you're able to see that while Consul is simple to use, it has a powerful set of features. We've covered the basics for all of these features in this guide.
 ---
 
 # Next Steps
@@ -26,4 +28,3 @@ As a next step, the following resources are available:
   The work-in-progress examples folder within the GitHub
   repository for Consul contains functional examples of various use cases
   of Consul to help you get started with exactly what you need.
-

@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Encryption"
 sidebar_current: "docs-agent-encryption"
+description: |-
+  The Consul agent supports encrypting all of its network traffic. The exact method of this encryption is described on the encryption internals page. There are two seperate systems, one for gossip traffic and one for RPC.
 ---
 
 # Encryption
@@ -19,7 +21,7 @@ in a configuration file for the agent. The key must be 16-bytes that are base64
 encoded. The easiest method to obtain a cryptographically suitable key is by
 using `consul keygen`.
 
-```
+```text
 $ consul keygen
 cg8StVXbQJ0gPvMd9o7yrg==
 ```
@@ -27,7 +29,7 @@ cg8StVXbQJ0gPvMd9o7yrg==
 With that key, you can enable encryption on the agent. You can verify
 encryption is enabled because the output will include "Encrypted: true".
 
-```
+```text
 $ cat encrypt.json
 {"encrypt": "cg8StVXbQJ0gPvMd9o7yrg=="}
 

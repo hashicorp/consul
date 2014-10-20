@@ -2,13 +2,15 @@
 layout: "docs"
 page_title: "Commands: Exec"
 sidebar_current: "docs-commands-exec"
+description: |-
+  The exec command provides a mechanism for remote execution. For example, this can be used to run the `uptime` command across all machines providing the `web` service.
 ---
 
 # Consul Exec
 
 Command: `consul exec`
 
-The exec command provides a mechanism for remote execution. For example,
+The `exec` command provides a mechanism for remote execution. For example,
 this can be used to run the `uptime` command across all machines providing
 the `web` service.
 

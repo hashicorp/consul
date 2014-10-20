@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Bootstrapping"
 sidebar_current: "docs-guides-bootstrapping"
+description: |-
+  Before a Consul cluster can begin to service requests, it is necessary for a server node to be elected leader. For this reason, the first nodes that are started are generally the server nodes. Remember that an agent can run in both client and server mode. Server nodes are responsible for running the consensus protocol, and storing the cluster state. The client nodes are mostly stateless and rely on the server nodes, so they can be started easily.
 ---
 
 # Bootstrapping a Datacenter
@@ -26,22 +28,28 @@ discouraged as data loss is inevitable in a failure scenario.
 Suppose we are starting a 3 server cluster, we can start `Node A`, `Node B` and `Node C` providing
 the `-bootstrap-expect 3` flag. Once the nodes are started, you should see a message to the effect of:
 
-    [WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
+```text
+[WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
+```
 
 This indicates that the nodes are expecting 2 peers, but none are known yet. The servers will not elect
 themselves leader to prevent a split-brain. We can now join these machines together. Since a join operation
 is symmetric it does not matter which node initiates it. From any node you can do the following:
 
-    $ consul join <Node A Address> <Node B Address> <Node C Address>
-    Successfully joined cluster by contacting 3 nodes.
+```text
+$ consul join <Node A Address> <Node B Address> <Node C Address>
+Successfully joined cluster by contacting 3 nodes.
+```
 
 Once the join is successful, one of the nodes will output something like:
 
-    [INFO] consul: adding server foo (Addr: 127.0.0.2:8300) (DC: dc1)
-    [INFO] consul: adding server bar (Addr: 127.0.0.1:8300) (DC: dc1)
-    [INFO] consul: Attempting bootstrap with nodes: [127.0.0.3:8300 127.0.0.2:8300 127.0.0.1:8300]
+```text
+[INFO] consul: adding server foo (Addr: 127.0.0.2:8300) (DC: dc1)
+[INFO] consul: adding server bar (Addr: 127.0.0.1:8300) (DC: dc1)
+[INFO] consul: Attempting bootstrap with nodes: [127.0.0.3:8300 127.0.0.2:8300 127.0.0.1:8300]
     ...
-    [INFO] consul: cluster leadership acquired
+[INFO] consul: cluster leadership acquired
+```
 
 As a sanity check, the `consul info` command is a useful tool. It can be used to
 verify `raft.num_peers` is now 2, and you can view the latest log index under `raft.last_log_index`.
@@ -64,4 +72,3 @@ In versions of Consul previous to 0.4, bootstrapping was a more manual process.
 For a guide on using the `-bootstrap` flag directly, see the [manual bootstrapping guide](/docs/guides/manual-bootstrap.html).
 
 This is not recommended, as it is more error prone than automatic bootstrapping.
-
