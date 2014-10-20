@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "RPC"
 sidebar_current: "docs-agent-rpc"
+description: |-
+  The Consul agent provides a complete RPC mechanism that can be used to control the agent programmatically. This RPC mechanism is the same one used by the CLI, but can be used by other applications to easily leverage the power of Consul without directly embedding.
 ---
 
 # RPC Protocol
@@ -24,15 +26,21 @@ that is broadly available across languages.
 All RPC requests have a request header, and some requests have
 a request body. The request header looks like:
 
-```
-    {"Command": "Handshake", "Seq": 0}
+```javascript
+{
+  "Command": "Handshake",
+  "Seq": 0
+}
 ```
 
 All responses have a response header, and some may contain
 a response body. The response header looks like:
 
-```
-    {"Seq": 0, "Error": ""}
+```javascript
+{
+  "Seq": 0,
+  "Error": ""
+}
 ```
 
 The `Command` is used to specify what command the server should
@@ -65,8 +73,10 @@ the server which version the client is using.
 
 The request header must be followed with a handshake body, like:
 
-```
-    {"Version": 1}
+```javascript
+{
+  "Version": 1
+}
 ```
 
 The body specifies the IPC version being used, however only version
@@ -81,8 +91,10 @@ response and check for an error.
 This command is used to remove failed nodes from a cluster. It takes
 the following body:
 
-```
-    {"Node": "failed-node-name"}
+```javascript
+{
+  "Node": "failed-node-name"
+}
 ```
 
 There is no special response body.
@@ -92,8 +104,14 @@ There is no special response body.
 This command is used to join an existing cluster using a known node.
 It takes the following body:
 
-```
-    {"Existing": ["192.168.0.1:6000", "192.168.0.2:6000"], "WAN": false}
+```javascript
+{
+  "Existing": [
+    "192.168.0.1:6000",
+    "192.168.0.2:6000"
+  ],
+  "WAN": false
+}
 ```
 
 The `Existing` nodes are each contacted, and `WAN` controls if we are adding a
@@ -105,8 +123,10 @@ WAN.
 
 The response body in addition to the header is returned. The body looks like:
 
-```
-    {"Num": 2}
+```javascript
+{
+  "Num": 2
+}
 ```
 
 The body returns the number of nodes successfully joined.
@@ -118,25 +138,27 @@ information. All agents will respond to this command.
 
 There is no request body, but the response looks like:
 
-```
-    {"Members": [
-        {
-        "Name": "TestNode"
-        "Addr": [127, 0, 0, 1],
-        "Port": 5000,
-        "Tags": {
-            "role": "test"
-        },
-        "Status": "alive",
-        "ProtocolMin": 0,
-        "ProtocolMax": 3,
-        "ProtocolCur": 2,
-        "DelegateMin": 0,
-        "DelegateMax": 1,
-        "DelegateCur": 1,
-        },
-        ...]
-    }
+```javascript
+{
+  "Members": [
+    {
+      "Name": "TestNode"
+      "Addr": [127, 0, 0, 1],
+      "Port": 5000,
+      "Tags": {
+        "role": "test"
+      },
+      "Status": "alive",
+      "ProtocolMin": 0,
+      "ProtocolMax": 3,
+      "ProtocolCur": 2,
+      "DelegateMin": 0,
+      "DelegateMax": 1,
+      "DelegateCur": 1,
+    },
+  ...
+  ]
+}
 ```
 
 ### members-wan
@@ -152,8 +174,10 @@ The monitor command subscribes the channel to log messages from the Agent.
 
 The request is like:
 
-```
-    {"LogLevel": "DEBUG"}
+```javascript
+{
+  "LogLevel": "DEBUG"
+}
 ```
 
 This subscribes the client to all messages of at least DEBUG level.
@@ -165,9 +189,15 @@ the same `Seq` as the monitor command that matches.
 Assume we issued the previous monitor command with Seq `50`,
 we may start getting messages like:
 
-```
-    {"Seq": 50, "Error": ""}
-    {"Log": "2013/12/03 13:06:53 [INFO] agent: Received event: member-join"}
+```javascript
+{
+  "Seq": 50,
+  "Error": ""
+}
+
+{
+  "Log": "2013/12/03 13:06:53 [INFO] agent: Received event: member-join"
+}
 ```
 
 It is important to realize that these messages are sent asynchronously,
@@ -184,8 +214,10 @@ To stop streaming, the `stop` command is used.
 The stop command is used to stop a monitor.
 The request looks like:
 
-```
-    {"Stop": 50}
+```javascript
+{
+  "Stop": 50
+}
 ```
 
 This unsubscribes the client from the monitor with `Seq` value of 50.
@@ -202,22 +234,21 @@ There is no request body, or special response body.
 The stats command is used to provide operator information for debugging.
 There is no request body, the response body looks like:
 
-```
-    {
-        "agent": {
-            "check_monitors": 0,
-            ...
-        },
-        "consul: {
-            "server": "true",
-            ...
-        },
-        ...
-    }
+```javascript
+{
+  "agent": {
+    "check_monitors": 0,
+    ...
+  },
+  "consul: {
+    "server": "true",
+    ...
+  },
+  ...
+}
 ```
 
 ### reload
 
 The reload command is used trigger a reload of configurations.
 There is no request body, or special response body.
-

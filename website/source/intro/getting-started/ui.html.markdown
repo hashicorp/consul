@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Web UI"
 sidebar_current: "gettingstarted-ui"
+description: |-
+  Consul comes with support for a beautiful, functional web UI out of the box. This UI can be used for viewing all services and nodes, viewing all health checks and their current status, and for reading and setting key/value data. The UI automatically supports multi-datacenter.
 ---
 
 # Consul Web UI
@@ -33,7 +35,7 @@ A screenshot of one page of the demo is shown below so you can get an
 idea of what the web UI is like. Click the screenshot for the full size.
 
 <div class="center">
-  <%= link_to image_tag('consul_web_ui.png'), image_path('consul_web_ui.png') %>
+![Consul Web UI](consul_web_ui.png)
 </div>
 
 ## Set Up
@@ -45,7 +47,7 @@ is also being run. Then, just append the `-ui-dir` to the `consul agent`
 command pointing to the directory where you unzipped the UI (the
 directory with the `index.html` file):
 
-```
+```text
 $ consul agent -ui-dir /path/to/ui
 ...
 ```

@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "ACL System"
 sidebar_current: "docs-internals-acl"
+description: |-
+  Consul provides an optional Access Control List (ACL) system which can be used to control access to data and APIs. The ACL system is a Capability-based system that relies on tokens which can have fine grained rules applied to them. It is very similar to AWS IAM in many ways.
 ---
 
 # ACL System
@@ -76,37 +78,40 @@ with JSON making it easy to machine generate.
 As of Consul 0.4, it is only possible to specify policies for the
 KV store. Specification in the HCL format looks like:
 
-    # Default all keys to read-only
-    key "" {
-        policy = "read"
-    }
-    key "foo/" {
-        policy = "write"
-    }
-    key "foo/private/" {
-        # Deny access to the private dir
-        policy = "deny"
-    }
+```javascript
+# Default all keys to read-only
+key "" {
+  policy = "read"
+}
+key "foo/" {
+  policy = "write"
+}
+key "foo/private/" {
+  # Deny access to the private dir
+  policy = "deny"
+}
+```
 
 This is equivalent to the following JSON input:
 
-    {
-        "key": {
-            "": {
-                "policy": "read",
-            },
-            "foo/": {
-                "policy": "write",
-            },
-            "foo/private": {
-                "policy": "deny",
-            }
-        }
+```javascript
+{
+  "key": {
+    "": {
+      "policy": "read",
+    },
+    "foo/": {
+      "policy": "write",
+    },
+    "foo/private": {
+      "policy": "deny",
     }
+  }
+}
+```
 
 Key policies provide both a prefix and a policy. The rules are enforced
 using a longest-prefix match policy. This means we pick the most specific
 policy possible. The policy is either "read", "write" or "deny". A "write"
 policy implies "read", and there is no way to specify write-only. If there
 is no applicable rule, the `acl_default_policy` is applied.
-

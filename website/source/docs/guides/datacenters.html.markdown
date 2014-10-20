@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Multiple Datacenters"
 sidebar_current: "docs-guides-datacenters"
+description: |-
+  One of the key features of Consul is its support for multiple datacenters. The architecture of Consul is designed to promote a low-coupling of datacenters, so that connectivity issues or failure of any datacenter does not impact the availability of Consul in other regions. This means each datacenter runs independently, with a dedicated group of servers and a private LAN gossip pool.
 ---
 
 # Multi-Datacenter Deploys
@@ -20,7 +22,7 @@ we can refer to as `dc1` and `dc2`, although the names are opaque to Consul.
 The next step is to ensure that all the server nodes join the WAN gossip pool.
 To query the known WAN nodes, we use the `members` command:
 
-```
+```text
 $ consul members -wan
 ...
 ```
@@ -31,7 +33,7 @@ to a datacenter-local server, which then forwards the request to a server in the
 
 The next step is to simply join all the servers in the WAN pool:
 
-```
+```text
 $ consul join -wan <server 1> <server 2> ...
 ...
 ```
@@ -46,14 +48,14 @@ Once this is done the `members` command can be used to verify that
 all server nodes are known about. We can also verify that both datacenters
 are known using the HTTP API:
 
-```
+```text
 $ curl http://localhost:8500/v1/catalog/datacenters
 ["dc1", "dc2"]
 ```
 
 As a simple test, you can try to query the nodes in each datacenter:
 
-```
+```text
 $ curl http://localhost:8500/v1/catalog/nodes?dc=dc1
 ...
 $ curl http://localhost:8500/v1/catalog/nodes?dc=dc2
@@ -67,4 +69,3 @@ is to be used across datacenters, then the network must be able to route traffic
 between IP addresses across regions as well. Usually, this means that all datacenters
 must be connected using a VPN or other tunneling mechanism. Consul does not handle
 VPN, address rewriting, or NAT traversal for you.
-

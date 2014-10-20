@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Consul Architecture"
 sidebar_current: "docs-internals-architecture"
+description: |-
+  Consul is a complex system that has many different moving parts. To help users and developers of Consul form a mental model of how it works, this page documents the system architecture.
 ---
 
 # Consul Architecture
@@ -10,12 +12,10 @@ Consul is a complex system that has many different moving parts. To help
 users and developers of Consul form a mental model of how it works, this
 page documents the system architecture.
 
-<div class="alert alert-block alert-warning">
-<strong>Advanced Topic!</strong> This page covers technical details of
+~> **Advanced Topic!** This page covers technical details of
 the internals of Consul. You don't need to know these details to effectively
 operate and use Consul. These details are documented here for those who wish
 to learn about them without having to go spelunking through the source code.
-</div>
 
 ## Glossary
 
@@ -70,7 +70,7 @@ allowing a client to make a request from a server.
 From a 10,000 foot altitude the architecture of Consul looks like this:
 
 <div class="center">
-  <%= link_to image_tag('consul-arch.png', alt: 'Consul Architecture'), image_path('consul-arch.png') %>
+![Consul Architecture](consul-arch.png)
 </div>
 
 Lets break down this image and describe each piece. First of all we can see
@@ -116,4 +116,3 @@ documented in detail, as is the [gossip protocol](/docs/internals/gossip.html). 
 for the security model and protocols used are also available.
 
 For other details, either consult the code, ask in IRC or reach out to the mailing list.
-

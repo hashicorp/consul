@@ -2,13 +2,15 @@
 layout: "docs"
 page_title: "Commands: Event"
 sidebar_current: "docs-commands-event"
+description: |-
+  The event command provides a mechanism to fire a custom user event to an entire datacenter. These events are opaque to Consul, but they can be used to build scripting infrastructure to do automated deploys, restart services, or perform any other orchestration action. Events can be handled by using a watch.
 ---
 
 # Consul Event
 
 Command: `consul event`
 
-The event command provides a mechanism to fire a custom user event to an
+The `event` command provides a mechanism to fire a custom user event to an
 entire datacenter. These events are opaque to Consul, but they can be used
 to build scripting infrastructure to do automated deploys, restart services,
 or perform any other orchestration action. Events can be handled by

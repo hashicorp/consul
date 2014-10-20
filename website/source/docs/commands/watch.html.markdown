@@ -2,13 +2,15 @@
 layout: "docs"
 page_title: "Commands: Watch"
 sidebar_current: "docs-commands-watch"
+description: |-
+  The `watch` command provides a mechanism to watch for changes in a particular data view (list of nodes, service members, key value, etc) and to invoke a process with the latest values of the view. If no process is specified, the current values are dumped to stdout which can be a useful way to inspect data in Consul.
 ---
 
 # Consul Watch
 
 Command: `consul watch`
 
-The watch command provides a mechanism to watch for changes in a particular
+The `watch` command provides a mechanism to watch for changes in a particular
 data view (list of nodes, service members, key value, etc) and to invoke
 a process with the latest values of the view. If no process is specified,
 the current values are dumped to stdout which can be a useful way to inspect

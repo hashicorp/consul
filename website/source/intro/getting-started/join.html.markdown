@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Consul Cluster"
 sidebar_current: "gettingstarted-join"
+description: |-
+  By this point, we've started our first agent and registered and queried one or more services on that agent. This showed how easy it is to use Consul, but didn't show how this could be extended to a scalable production service discovery infrastructure. On this page, we'll create our first real cluster with multiple members.
 ---
 
 # Consul Cluster
@@ -33,7 +35,7 @@ and it *must* be accessible by all other nodes in the cluster. The first node
 will act as our server in this cluster. We're still not making a cluster
 of servers.
 
-```
+```text
 $ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul \
     -node=agent-one -bind=172.20.20.10
 ...
@@ -44,7 +46,7 @@ This time, we set the bind address to match the IP of the second node
 as specified in the Vagrantfile. In production, you will generally want
 to provide a bind address or interface as well.
 
-```
+```text
 $ consul agent -data-dir /tmp/consul -node=agent-two -bind=172.20.20.11
 ...
 ```
@@ -59,7 +61,7 @@ against each agent and noting that only one member is a part of each.
 Now, let's tell the first agent to join the second agent by running
 the following command in a new terminal:
 
-```
+```text
 $ consul join 172.20.20.11
 Successfully joined cluster by contacting 1 nodes.
 ```
@@ -69,19 +71,16 @@ carefully, you'll see that they received join information. If you
 run `consul members` against each agent, you'll see that both agents now
 know about each other:
 
-```
+```text
 $ consul members -detailed
 Node        Address             Status  Tags
 agent-one   172.20.20.10:8301   alive   role=consul,dc=dc1,vsn=2,vsn_min=1,vsn_max=2,port=8300,bootstrap=1
 agent-two   172.20.20.11:8301   alive   role=node,dc=dc1,vsn=2,vsn_min=1,vsn_max=2
 ```
 
-<div class="alert alert-block alert-info">
-<p><strong>Remember:</strong> To join a cluster, a Consul agent needs to only
+-> **Remember:** To join a cluster, a Consul agent needs to only
 learn about <em>one existing member</em>. After joining the cluster, the
 agents gossip with each other to propagate full membership information.
-</p>
-</div>
 
 In addition to using `consul join` you can use the `-join` flag on
 `consul agent` to join a cluster as part of starting up the agent.

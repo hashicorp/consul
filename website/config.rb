@@ -2,6 +2,8 @@
 # Configure Middleman
 #-------------------------------------------------------------------------
 
+set :base_url, "https://www.consul.io/"
+
 activate :hashicorp do |h|
   h.version      = '0.4.0'
   h.bintray_repo = 'mitchellh/consul'

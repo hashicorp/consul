@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Introduction"
 sidebar_current: "what"
+description: |-
+  Welcome to the intro guide to Consul! This guide is the best place to start with Consul. We cover what Consul is, what problems it can solve, how it compares to existing software, and a quick start for using Consul. If you are already familiar with the basics of Consul, the documentation provides more of a reference for all available features.
 ---
 
 # Introduction to Consul

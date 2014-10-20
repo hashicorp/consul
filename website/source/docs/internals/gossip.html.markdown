@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Gossip Protocol"
 sidebar_current: "docs-internals-gossip"
+description: |-
+  Consul uses a gossip protocol to manage membership and broadcast messages to the cluster. All of this is provided through the use of the Serf library. The gossip protocol used by Serf is based on SWIM: Scalable Weakly-consistent Infection-style Process Group Membership Protocol, with a few minor adaptations.
 ---
 
 # Gossip Protocol
@@ -13,12 +15,10 @@ used by Serf is based on
 ["SWIM: Scalable Weakly-consistent Infection-style Process Group Membership Protocol"](http://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf),
 with a few minor adaptations. There are more details about [Serf's protocol here](http://www.serfdom.io/docs/internals/gossip.html).
 
-<div class="alert alert-block alert-warning">
-<strong>Advanced Topic!</strong> This page covers technical details of
+~> **Advanced Topic!** This page covers technical details of
 the internals of Consul. You don't need to know these details to effectively
 operate and use Consul. These details are documented here for those who wish
 to learn about them without having to go spelunking through the source code.
-</div>
 
 ## Gossip in Consul
 
@@ -41,4 +41,3 @@ All of these features are provided by leveraging [Serf](http://www.serfdom.io/).
 is used as an embedded library to provide these features. From a user perspective,
 this is not important, since the abstraction should be masked by Consul. It can be useful
 however as a developer to understand how this library is leveraged.
-
