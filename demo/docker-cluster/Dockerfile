@@ -1,12 +1,13 @@
 FROM ubuntu:14.04
 MAINTAINER Steffen Roegner 'steffen.roegner@gmail.com'
 
-ENV CONSUL_VERSION 0.4.0
 ENV DEBIAN_FRONTEND noninteractive
 ENV REFRESHED_AT 2014-10-17
 
 RUN apt-get update
 RUN apt-get -y install curl unzip
+
+ENV CONSUL_VERSION 0.4.1
 
 RUN mkdir -p /etc/consul /var/lib/consul/data /var/lib/consul/ui /var/lib/consul/scripts; \
     curl -L https://dl.bintray.com/mitchellh/consul/${CONSUL_VERSION}_linux_amd64.zip -o /tmp/c.zip && \
