@@ -223,21 +223,21 @@ msgpack RPC protocol.
 
 The following endpoints are supported:
 
-* /v1/agent/checks : Returns the checks the local agent is managing
-* /v1/agent/services : Returns the services local agent is managing
-* /v1/agent/members : Returns the members as seen by the local serf agent
-* /v1/agent/self : Returns the local node configuration
-* /v1/agent/join/\<address\> : Trigger local agent to join a node
-* /v1/agent/force-leave/\<node\>: Force remove node
-* /v1/agent/check/register : Registers a new local check
-* /v1/agent/check/deregister/\<checkID\> : Deregister a local check
-* /v1/agent/check/pass/\<checkID\> : Mark a local test as passing
-* /v1/agent/check/warn/\<checkID\> : Mark a local test as warning
-* /v1/agent/check/fail/\<checkID\> : Mark a local test as critical
-* /v1/agent/service/register : Registers a new local service
-* /v1/agent/service/deregister/\<serviceID\> : Deregister a local service
+* [`/v1/agent/checks`](#agent_checks) : Returns the checks the local agent is managing
+* [`/v1/agent/services`](#agent_services) : Returns the services local agent is managing
+* [`/v1/agent/members`](#agent_members) : Returns the members as seen by the local serf agent
+* [`/v1/agent/self`](#agent_self) : Returns the local node configuration
+* [`/v1/agent/join/\<address\>`](#agent_join) : Trigger local agent to join a node
+* [`/v1/agent/force-leave/\<node\`](#agent_force_leave)>: Force remove node
+* [`/v1/agent/check/register`](#agent_check_register) : Registers a new local check
+* [`/v1/agent/check/deregister/\<checkID\>`](#agent_check_deregister) : Deregister a local check
+* [`/v1/agent/check/pass/\<checkID\>`](#agent_check_pass) : Mark a local test as passing
+* [`/v1/agent/check/warn/\<checkID\>`](#agent_check_warn) : Mark a local test as warning
+* [`/v1/agent/check/fail/\<checkID\>`](#agent_check_fail) : Mark a local test as critical
+* [`/v1/agent/service/register`](#agent_service_register) : Registers a new local service
+* [`/v1/agent/service/deregister/\<serviceID\>`](#agent_service_deregister) : Deregister a local service
 
-### /v1/agent/checks
+### <a name="agent_checks"></a> /v1/agent/checks
 
 This endpoint is used to return the all the checks that are registered with
 the local agent. These checks were either provided through configuration files,
@@ -263,7 +263,7 @@ This endpoint is hit with a GET and returns a JSON body like this:
 }
 ```
 
-### /v1/agent/services
+### <a name="agent_services"></a> /v1/agent/services
 
 This endpoint is used to return the all the services that are registered with
 the local agent. These services were either provided through configuration files,
@@ -285,7 +285,7 @@ This endpoint is hit with a GET and returns a JSON body like this:
 }
 ```
 
-### /v1/agent/members
+### <a name="agent_members"></a> /v1/agent/members
 
 This endpoint is hit with a GET and returns the members the agent sees in the
 cluster gossip pool. Due to the nature of gossip, this is eventually consistent
@@ -320,7 +320,7 @@ This endpoint returns a JSON body like:
 ]
 ```
 
-### /v1/agent/self
+### <a name="agent_self"></a> /v1/agent/self
 
 This endpoint is used to return configuration of the local agent and member information.
 
@@ -388,7 +388,7 @@ It returns a JSON body like this:
 }
 ```
 
-### /v1/agent/join/\<address\>
+### <a name="agent_join"></a> /v1/agent/join/\<address\>
 
 This endpoint is hit with a GET and is used to instruct the agent to attempt to
 connect to a given address.  For agents running in server mode, providing a "?wan=1"
@@ -396,7 +396,7 @@ query parameter causes the agent to attempt to join using the WAN pool.
 
 The endpoint returns 200 on successful join.
 
-### /v1/agent/force-leave/\<node\>
+### <a name="agent_force_leave"></a> /v1/agent/force-leave/\<node\>
 
 This endpoint is hit with a GET and is used to instructs the agent to force a node into the left state.
 If a node fails unexpectedly, then it will be in a "failed" state. Once in this state, Consul will
@@ -405,7 +405,7 @@ cleaned up. Forcing a node into the left state allows its old entries to be remo
 
 The endpoint always returns 200.
 
-### /v1/agent/check/register
+### <a name="agent_check_register"></a> /v1/agent/check/register
 
 The register endpoint is used to add a new check to the local agent.
 There is more documentation on checks [here](/docs/agent/checks.html).
@@ -439,7 +439,7 @@ the state of the check.
 
 The return code is 200 on success.
 
-### /v1/agent/check/deregister/\<checkId\>
+### <a name="agent_check_deregister"></a> /v1/agent/check/deregister/\<checkId\>
 
 The deregister endpoint is used to remove a check from the local agent.
 The CheckID must be passed after the slash. The agent will take care
@@ -447,7 +447,7 @@ of deregistering the check with the Catalog.
 
 The return code is 200 on success.
 
-### /v1/agent/check/pass/\<checkId\>
+### <a name="agent_check_pass"></a> /v1/agent/check/pass/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
 When this endpoint is accessed via a GET, the status of the check is set to "passing",
@@ -458,7 +458,7 @@ the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
 
-### /v1/agent/check/warn/\<checkId\>
+### <a name="agent_check_warn"></a> /v1/agent/check/warn/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
 When this endpoint is accessed via a GET, the status of the check is set to "warning",
@@ -469,7 +469,7 @@ the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
 
-### /v1/agent/check/fail/\<checkId\>
+### <a name="agent_check_fail"></a> /v1/agent/check/fail/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
 When this endpoint is accessed via a GET, the status of the check is set to "critical",
@@ -480,7 +480,7 @@ the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
 
-### /v1/agent/service/register
+### <a name="agent_service_register"></a> /v1/agent/service/register
 
 The register endpoint is used to add a new service to the local agent.
 There is more documentation on services [here](/docs/agent/services.html).
@@ -516,7 +516,7 @@ The created check will be named "service:\<ServiceId\>".
 
 The return code is 200 on success.
 
-### /v1/agent/service/deregister/\<serviceId\>
+### <a name="agent_service_deregister"></a> /v1/agent/service/deregister/\<serviceId\>
 
 The deregister endpoint is used to remove a service from the local agent.
 The ServiceID must be passed after the slash. The agent will take care
