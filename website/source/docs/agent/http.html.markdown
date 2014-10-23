@@ -532,18 +532,18 @@ services, and checks. It also provides a number of query endpoints.
 
 The following endpoints are supported:
 
-* /v1/catalog/register : Registers a new node, service, or check
-* /v1/catalog/deregister : Deregisters a node, service, or check
-* /v1/catalog/datacenters : Lists known datacenters
-* /v1/catalog/nodes : Lists nodes in a given DC
-* /v1/catalog/services : Lists services in a given DC
-* /v1/catalog/service/\<service\> : Lists the nodes in a given service
-* /v1/catalog/node/\<node\> : Lists the services provided by a node
+* [`/v1/catalog/register`](#catalog_register) : Registers a new node, service, or check
+* [`/v1/catalog/deregister`](#catalog_deregister) : Deregisters a node, service, or check
+* [`/v1/catalog/datacenters`](#catalog_datacenters) : Lists known datacenters
+* [`/v1/catalog/nodes`](#catalog_nodes) : Lists nodes in a given DC
+* [`/v1/catalog/services`](#catalog_services) : Lists services in a given DC
+* [`/v1/catalog/service/\<service\>`](#catalog_service) : Lists the nodes in a given service
+* [`/v1/catalog/node/\<node\>`](#catalog_nodes) : Lists the services provided by a node
 
 The last 4 endpoints of the catalog support blocking queries and
 consistency modes.
 
-### /v1/catalog/register
+### <a name="catalog_register"></a> /v1/catalog/register
 
 The register endpoint is a low level mechanism for directly registering
 or updating entries in the catalog. It is usually recommended to use
@@ -604,7 +604,7 @@ and visa-versa. They can be provided or omitted at will.
 
 If the API call succeeds a 200 status code is returned.
 
-### /v1/catalog/deregister
+### <a name="catalog_deregister"></a> /v1/catalog/deregister
 
 The deregister endpoint is a low level mechanism for direclty removing
 entries in the catalog. It is usually recommended to use the agent local
@@ -646,7 +646,7 @@ service along with its associated health check (if any) is removed.
 If the API call succeeds a 200 status code is returned.
 
 
-### /v1/catalog/datacenters
+### <a name="catalog_datacenters"></a> /v1/catalog/datacenters
 
 This endpoint is hit with a GET and is used to return all the
 datacenters that are known by the Consul server.
@@ -661,7 +661,7 @@ This endpoint does not require a cluster leader, and as such
 will succeed even during an availability outage. It can thus be
 a simple check to see if any Consul servers are routable.
 
-### /v1/catalog/nodes
+### <a name="catalog_nodes"></a> /v1/catalog/nodes
 
 This endpoint is hit with a GET and returns the nodes known
 about in a given DC. By default the datacenter of the agent is queried,
@@ -684,7 +684,7 @@ It returns a JSON body like this:
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/catalog/services
+### <a name="catalog_services"></a> /v1/catalog/services
 
 This endpoint is hit with a GET and returns the services known
 about in a given DC. By default the datacenter of the agent is queried,
@@ -708,7 +708,7 @@ provides all the known tags for a given service.
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/catalog/service/\<service\>
+### <a name="catalog_service"></a> /v1/catalog/service/\<service\>
 
 This endpoint is hit with a GET and returns the nodes providing a service
 in a given DC. By default the datacenter of the agent is queried,
@@ -735,7 +735,7 @@ It returns a JSON body like this:
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/catalog/node/\<node\>
+### <a name="catalog_node"></a> /v1/catalog/node/\<node\>
 
 This endpoint is hit with a GET and returns the node provided services.
 By default the datacenter of the agent is queried,
