@@ -966,15 +966,15 @@ This endpoint supports blocking queries and all consistency modes.
 The Session endpoints are used to create, destroy and query sessions.
 The following endpoints are supported:
 
-* /v1/session/create: Creates a new session
-* /v1/session/destroy/\<session\>: Destroys a given session
-* /v1/session/info/\<session\>: Queries a given session
-* /v1/session/node/\<node\>: Lists sessions belonging to a node
-* /v1/session/list: Lists all the active sessions
+* [`/v1/session/create`](#session_create): Creates a new session
+* [`/v1/session/destroy/\<session\>`](#session_destroy): Destroys a given session
+* [`/v1/session/info/\<session\>`](#session_info): Queries a given session
+* [`/v1/session/node/\<node\>`](#session_node): Lists sessions belonging to a node
+* [`/v1/session/list`](#session_list): Lists all the active sessions
 
 All of the read session endpoints supports blocking queries and all consistency modes.
 
-### /v1/session/create
+### <a name="session_create"></a> /v1/session/create
 
 The create endpoint is used to initialize a new session.
 There is more documentation on sessions [here](/docs/internals/sessions.html).
@@ -1020,7 +1020,7 @@ The return code is 200 on success, along with a body like:
 
 This is used to provide the ID of the newly created session.
 
-### /v1/session/destroy/\<session\>
+### <a name="session_destroy"></a> /v1/session/destroy/\<session\>
 
 The destroy endpoint is hit with a PUT and destroys the given session.
 By default the local datacenter is used, but the "?dc=" query parameter
@@ -1029,7 +1029,7 @@ be provided after the slash.
 
 The return code is 200 on success.
 
-### /v1/session/info/\<session\>
+### <a name="session_info"></a> /v1/session/info/\<session\>
 
 This endpoint is hit with a GET and returns the session information
 by ID within a given datacenter. By default the datacenter of the agent is queried,
@@ -1055,7 +1055,7 @@ It returns a JSON body like this:
 If the session is not found, null is returned instead of a JSON list.
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/session/node/\<node\>
+### <a name="session_node"></a> /v1/session/node/\<node\>
 
 This endpoint is hit with a GET and returns the active sessions
 for a given node and datacenter. By default the datacenter of the agent is queried,
@@ -1081,7 +1081,7 @@ It returns a JSON body like this:
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/session/list
+### <a name="session_list"></a> /v1/session/list
 
 This endpoint is hit with a GET and returns the active sessions
 for a given datacenter. By default the datacenter of the agent is queried,
