@@ -1365,10 +1365,10 @@ useful for clients.
 
 The following endpoints are supported:
 
-* /v1/status/leader : Returns the current Raft leader
-* /v1/status/peers : Returns the current Raft peer set
+* [`/v1/status/leader`](#status_leader) : Returns the current Raft leader
+* [`/v1/status/peers`](#status_peers) : Returns the current Raft peer set
 
-### /v1/status/leader
+### <a name="status_leader"></a> /v1/status/leader
 
 This endpoint is used to get the Raft leader for the datacenter
 the agent is running in. It returns only an address like:
@@ -1377,7 +1377,7 @@ the agent is running in. It returns only an address like:
 "10.1.10.12:8300"
 ```
 
-### /v1/status/peers
+### <a name="status_peers"></a> /v1/status/peers
 
 This endpoint is used to get the Raft peers for the datacenter
 the agent is running in. It returns a list of addresses like:
