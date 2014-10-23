@@ -779,14 +779,14 @@ as they are totally optional. Additionally, some of the query results from the H
 
 The following endpoints are supported:
 
-* /v1/health/node/\<node\>: Returns the health info of a node
-* /v1/health/checks/\<service\>: Returns the checks of a service
-* /v1/health/service/\<service\>: Returns the nodes and health info of a service
-* /v1/health/state/\<state\>: Returns the checks in a given state
+* [`/v1/health/node/\<node\>`](#health_node): Returns the health info of a node
+* [`/v1/health/checks/\<service\>`](#health_checks): Returns the checks of a service
+* [`/v1/health/service/\<service\>`](#health_service): Returns the nodes and health info of a service
+* [`/v1/health/state/\<state\>`](#health_state): Returns the checks in a given state
 
 All of the health endpoints supports blocking queries and all consistency modes.
 
-### /v1/health/node/\<node\>
+### <a name="health_node"></a> /v1/health/node/\<node\>
 
 This endpoint is hit with a GET and returns the node specific checks known.
 By default the datacenter of the agent is queried,
@@ -829,7 +829,7 @@ changed to "critical".
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/health/checks/\<service\>
+### <a name="health_checks"></a> /v1/health/checks/\<service\>
 
 This endpoint is hit with a GET and returns the checks associated with
 a service in a given datacenter.
@@ -856,7 +856,7 @@ It returns a JSON body like this:
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/health/service/\<service\>
+### <a name="health_service"></a> /v1/health/service/\<service\>
 
 This endpoint is hit with a GET and returns the service nodes providing
 a given service in a given datacenter.
@@ -922,7 +922,7 @@ It returns a JSON body like this:
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/health/state/\<state\>
+### <a name="health_state"></a> /v1/health/state/\<state\>
 
 This endpoint is hit with a GET and returns the checks in a specific
 state for a given datacenter. By default the datacenter of the agent is queried,
