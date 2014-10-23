@@ -14,14 +14,14 @@ versioned to enable changes without breaking backwards compatibility.
 
 All endpoints fall into one of several categories:
 
-* kv - Key/Value store
-* agent - Agent control
-* catalog - Manages nodes and services
-* health - Manages health checks
-* session - Session manipulation
-* acl - ACL creations and management
-* event - User Events
-* status - Consul system status
+* [kv][kv] - Key/Value store
+* [agent][agent] - Agent control
+* [catalog][catalog] - Manages nodes and services
+* [health][health] - Manages health checks
+* [session][session] - Session manipulation
+* [acl][acl] - ACL creations and management
+* [event][event] - User Events
+* [status][status] - Consul system status
 * internal - Internal APIs. Purposely undocumented, subject to change.
 
 Each of the categories and their respective endpoints are documented below.
@@ -97,7 +97,7 @@ configuration option. However, the token can also be specified per-request
 by using the "?token=" query parameter. This will take precedence over the
 default token.
 
-## KV
+## <a name="kv"></a> KV
 
 The KV endpoint is used to expose a simple key/value store. This can be used
 to store service configurations or other meta data in a simple way. It has only
@@ -213,7 +213,7 @@ keys sharing a prefix. If the "?recurse" query parameter is provided,
 then all keys with the prefix are deleted, otherwise only the specified
 key.
 
-## Agent
+## <a name="agent"></a> Agent
 
 The Agent endpoints are used to interact with a local Consul agent. Usually,
 services and checks are registered with an agent, which then takes on the
@@ -525,7 +525,7 @@ check, that is also deregistered.
 
 The return code is 200 on success.
 
-## Catalog
+## <a name="catalog"></a> Catalog
 
 The Catalog is the endpoint used to register and deregister nodes,
 services, and checks. It also provides a number of query endpoints.
@@ -771,7 +771,7 @@ It returns a JSON body like this:
 
 This endpoint supports blocking queries and all consistency modes.
 
-## Health
+## <a name="health"></a> Health
 
 The Health used to query health related information. It is provided separately
 from the Catalog, since users may prefer to not use the health checking mechanisms
@@ -961,7 +961,7 @@ It returns a JSON body like this:
 
 This endpoint supports blocking queries and all consistency modes.
 
-## Session
+## <a name="session"></a> Session
 
 The Session endpoints are used to create, destroy and query sessions.
 The following endpoints are supported:
@@ -1106,7 +1106,7 @@ It returns a JSON body like this:
 
 This endpoint supports blocking queries and all consistency modes.
 
-## ACL
+## <a name="acl"></a> ACL
 
 The ACL endpoints are used to create, update, destroy and query ACL tokens.
 The following endpoints are supported:
@@ -1261,7 +1261,7 @@ It returns a JSON body like this:
 ]
 ```
 
-## Event
+## <a name="event"></a> Event
 
 The Event endpoints are used to fire new events and to query the available
 events.
@@ -1357,7 +1357,7 @@ It returns a JSON body like this:
 ]
 ```
 
-## Status
+## <a name="status"></a> Status
 
 The Status endpoints are used to get information about the status
 of the Consul cluster. This are generally very low level, and not really
@@ -1389,3 +1389,12 @@ the agent is running in. It returns a list of addresses like:
   "10.1.10.10:8300"
 ]
 ```
+
+[kv]: #kv
+[agent]: #agent
+[catalog]: #catalog
+[health]: #health
+[session]: #session
+[acl]: #acl
+[event]: #event
+[status]: #status
