@@ -323,6 +323,12 @@ definitions support being updated during a reload.
 
 * `rejoin_after_leave` - Equivalent to the `-rejoin` command-line flag.
 
+* `retry_join` - Equivalent to the `-retry-join` command-line flag. Takes a list
+  of addresses to attempt joining every `retry_interval` until at least one
+  join works.
+
+* `retry_interval` - Equivalent to the `-retry-interval` command-line flag.
+
 * `server` - Equivalent to the `-server` command-line flag.
 
 * `server_name` - When give, this overrides the `node_name` for the TLS certificate.
