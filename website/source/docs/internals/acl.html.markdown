@@ -37,7 +37,7 @@ on legacy clients.
 
 Enforcement is always done by the server nodes. All servers must be [configured
 to provide](/docs/agent/options.html) an `acl_datacenter`, which enables
-ACL enforcement but also specified the authoritative datacenter. Consul does not
+ACL enforcement but also specifies the authoritative datacenter. Consul does not
 replicate data cross-WAN, and instead relies on [RPC forwarding](/docs/internal/architecture.html)
 to support Multi-Datacenter configurations. However, because requests can be
 made across datacenter boundaries, ACL tokens must be valid globally. To avoid
