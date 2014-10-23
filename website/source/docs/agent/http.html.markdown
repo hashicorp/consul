@@ -1111,14 +1111,14 @@ This endpoint supports blocking queries and all consistency modes.
 The ACL endpoints are used to create, update, destroy and query ACL tokens.
 The following endpoints are supported:
 
-* /v1/acl/create: Creates a new token with policy
-* /v1/acl/update: Update the policy of a token
-* /v1/acl/destroy/\<id\>: Destroys a given token
-* /v1/acl/info/\<id\>: Queries the policy of a given token
-* /v1/acl/clone/\<id\>: Creates a new token by cloning an existing token
-* /v1/acl/list: Lists all the active tokens
+* [`/v1/acl/create`](#acl_create): Creates a new token with policy
+* [`/v1/acl/update`](#acl_update): Update the policy of a token
+* [`/v1/acl/destroy/\<id\>`](#acl_destroy): Destroys a given token
+* [`/v1/acl/info/\<id\>`](#acl_info): Queries the policy of a given token
+* [`/v1/acl/clone/\<id\>`](#acl_clone): Creates a new token by cloning an existing token
+* [`/v1/acl/list`](#acl_list): Lists all the active tokens
 
-### /v1/acl/create
+### <a name="acl_create"></a> /v1/acl/create
 
 The create endpoint is used to make a new token. A token has a name,
 type, and a set of ACL rules. The name is opaque to Consul, and type
@@ -1159,7 +1159,7 @@ The return code is 200 on success, along with a body like:
 
 This is used to provide the ID of the newly created ACL token.
 
-### /v1/acl/update
+### <a name="acl_update"></a> /v1/acl/update
 
 The update endpoint is used to modify the policy for a given
 ACL token. It is very similar to the create endpoint, however
@@ -1189,7 +1189,7 @@ The format of `Rules` is [documented here](/docs/internals/acl.html).
 
 The return code is 200 on success.
 
-### /v1/acl/destroy/\<id\>
+### <a name="acl_destroy"></a> /v1/acl/destroy/\<id\>
 
 The destroy endpoint is hit with a PUT and destroys the given ACL token.
 The request is automatically routed to the authoritative ACL datacenter.
@@ -1198,7 +1198,7 @@ to the endpoint must be made with a management token.
 
 The return code is 200 on success.
 
-### /v1/acl/info/\<id\>
+### <a name="acl_info"></a> /v1/acl/info/\<id\>
 
 This endpoint is hit with a GET and returns the token information
 by ID. All requests are routed to the authoritative ACL datacenter
@@ -1221,7 +1221,7 @@ It returns a JSON body like this:
 
 If the session is not found, null is returned instead of a JSON list.
 
-### /v1/acl/clone/\<id\>
+### <a name="acl_clone"></a> /v1/acl/clone/\<id\>
 
 The clone endpoint is hit with a PUT and returns a token ID that
 is cloned from an existing token. This allows a token to serve
@@ -1239,7 +1239,7 @@ The return code is 200 on success, along with a body like:
 
 This is used to provide the ID of the newly created ACL token.
 
-### /v1/acl/list
+### <a name="acl_list"></a> /v1/acl/list
 
 The list endpoint is hit with a GET and lists all the active
 ACL tokens. This is a privileged endpoint, and requires a
