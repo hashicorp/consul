@@ -1268,10 +1268,10 @@ events.
 
 The following endpoints are supported:
 
-* /v1/event/fire/\<name\>: Fires a new user event
-* /v1/event/list: Lists the most recent events an agent has seen.
+* [`/v1/event/fire/\<name\>`](#event_fire): Fires a new user event
+* [`/v1/event/list`](#event_list): Lists the most recent events an agent has seen.
 
-### /v1/event/fire/\<name\>
+### <a name="event_fire"></a> /v1/event/fire/\<name\>
 
 The fire endpoint is used to trigger a new user event. A user event
 needs a name, and optionally takes a number of parameters.
@@ -1305,7 +1305,7 @@ The return code is 200 on success, along with a body like:
 
 This is used to provide the ID of the newly fired event.
 
-### /v1/event/list
+### <a name="event_list"></a> /v1/event/list
 
 This endpoint is hit with a GET and returns the most recent
 events known by the agent. As a consequence of how the
