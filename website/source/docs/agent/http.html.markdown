@@ -227,15 +227,15 @@ The following endpoints are supported:
 * [`/v1/agent/services`](#agent_services) : Returns the services local agent is managing
 * [`/v1/agent/members`](#agent_members) : Returns the members as seen by the local serf agent
 * [`/v1/agent/self`](#agent_self) : Returns the local node configuration
-* [`/v1/agent/join/\<address\>`](#agent_join) : Trigger local agent to join a node
-* [`/v1/agent/force-leave/\<node\`](#agent_force_leave)>: Force remove node
+* [`/v1/agent/join/<address>`](#agent_join) : Trigger local agent to join a node
+* [`/v1/agent/force-leave/<node>`](#agent_force_leave)>: Force remove node
 * [`/v1/agent/check/register`](#agent_check_register) : Registers a new local check
-* [`/v1/agent/check/deregister/\<checkID\>`](#agent_check_deregister) : Deregister a local check
-* [`/v1/agent/check/pass/\<checkID\>`](#agent_check_pass) : Mark a local test as passing
-* [`/v1/agent/check/warn/\<checkID\>`](#agent_check_warn) : Mark a local test as warning
-* [`/v1/agent/check/fail/\<checkID\>`](#agent_check_fail) : Mark a local test as critical
+* [`/v1/agent/check/deregister/<checkID>`](#agent_check_deregister) : Deregister a local check
+* [`/v1/agent/check/pass/<checkID>`](#agent_check_pass) : Mark a local test as passing
+* [`/v1/agent/check/warn/<checkID>`](#agent_check_warn) : Mark a local test as warning
+* [`/v1/agent/check/fail/<checkID>`](#agent_check_fail) : Mark a local test as critical
 * [`/v1/agent/service/register`](#agent_service_register) : Registers a new local service
-* [`/v1/agent/service/deregister/\<serviceID\>`](#agent_service_deregister) : Deregister a local service
+* [`/v1/agent/service/deregister/<serviceID>`](#agent_service_deregister) : Deregister a local service
 
 ### <a name="agent_checks"></a> /v1/agent/checks
 
@@ -537,8 +537,8 @@ The following endpoints are supported:
 * [`/v1/catalog/datacenters`](#catalog_datacenters) : Lists known datacenters
 * [`/v1/catalog/nodes`](#catalog_nodes) : Lists nodes in a given DC
 * [`/v1/catalog/services`](#catalog_services) : Lists services in a given DC
-* [`/v1/catalog/service/\<service\>`](#catalog_service) : Lists the nodes in a given service
-* [`/v1/catalog/node/\<node\>`](#catalog_nodes) : Lists the services provided by a node
+* [`/v1/catalog/service/<service>`](#catalog_service) : Lists the nodes in a given service
+* [`/v1/catalog/node/<node>`](#catalog_nodes) : Lists the services provided by a node
 
 The last 4 endpoints of the catalog support blocking queries and
 consistency modes.
@@ -779,10 +779,10 @@ as they are totally optional. Additionally, some of the query results from the H
 
 The following endpoints are supported:
 
-* [`/v1/health/node/\<node\>`](#health_node): Returns the health info of a node
-* [`/v1/health/checks/\<service\>`](#health_checks): Returns the checks of a service
-* [`/v1/health/service/\<service\>`](#health_service): Returns the nodes and health info of a service
-* [`/v1/health/state/\<state\>`](#health_state): Returns the checks in a given state
+* [`/v1/health/node/<node>`](#health_node): Returns the health info of a node
+* [`/v1/health/checks/<service>`](#health_checks): Returns the checks of a service
+* [`/v1/health/service/<service>`](#health_service): Returns the nodes and health info of a service
+* [`/v1/health/state/<state>`](#health_state): Returns the checks in a given state
 
 All of the health endpoints supports blocking queries and all consistency modes.
 
@@ -967,9 +967,9 @@ The Session endpoints are used to create, destroy and query sessions.
 The following endpoints are supported:
 
 * [`/v1/session/create`](#session_create): Creates a new session
-* [`/v1/session/destroy/\<session\>`](#session_destroy): Destroys a given session
-* [`/v1/session/info/\<session\>`](#session_info): Queries a given session
-* [`/v1/session/node/\<node\>`](#session_node): Lists sessions belonging to a node
+* [`/v1/session/destroy/<session>`](#session_destroy): Destroys a given session
+* [`/v1/session/info/<session>`](#session_info): Queries a given session
+* [`/v1/session/node/<node>`](#session_node): Lists sessions belonging to a node
 * [`/v1/session/list`](#session_list): Lists all the active sessions
 
 All of the read session endpoints supports blocking queries and all consistency modes.
@@ -1113,9 +1113,9 @@ The following endpoints are supported:
 
 * [`/v1/acl/create`](#acl_create): Creates a new token with policy
 * [`/v1/acl/update`](#acl_update): Update the policy of a token
-* [`/v1/acl/destroy/\<id\>`](#acl_destroy): Destroys a given token
-* [`/v1/acl/info/\<id\>`](#acl_info): Queries the policy of a given token
-* [`/v1/acl/clone/\<id\>`](#acl_clone): Creates a new token by cloning an existing token
+* [`/v1/acl/destroy/<id>`](#acl_destroy): Destroys a given token
+* [`/v1/acl/info/<id>`](#acl_info): Queries the policy of a given token
+* [`/v1/acl/clone/<id>`](#acl_clone): Creates a new token by cloning an existing token
 * [`/v1/acl/list`](#acl_list): Lists all the active tokens
 
 ### <a name="acl_create"></a> /v1/acl/create
@@ -1268,7 +1268,7 @@ events.
 
 The following endpoints are supported:
 
-* [`/v1/event/fire/\<name\>`](#event_fire): Fires a new user event
+* [`/v1/event/fire/<name>`](#event_fire): Fires a new user event
 * [`/v1/event/list`](#event_list): Lists the most recent events an agent has seen.
 
 ### <a name="event_fire"></a> /v1/event/fire/\<name\>
