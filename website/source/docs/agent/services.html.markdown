@@ -62,3 +62,41 @@ end in the ".json" extension to be loaded by Consul. Check definitions can
 also be updated by sending a `SIGHUP` to the agent. Alternatively, the
 service can be registered dynamically using the [HTTP API](/docs/agent/http.html).
 
+## Multiple Service Definitions
+
+Multiple services definitions can be provided at once. Single and mutiple service definitions can't be provided together in one configuration file.
+
+```javascript
+{
+  "services": [
+    {
+      "id": "red0",
+      "name": "redis",
+      "tags": [
+        "master"
+      ],
+      "port": 6000,
+      "check": {
+        "script": "/bin/check_redis -p 6000",
+        "interval": "5s",
+        "ttl": "20s"
+      }
+    },
+    {
+      "id": "red1",
+      "name": "redis",
+      "tags": [
+        "delayed",
+        "slave"
+      ],
+      "port": 7000,
+      "check": {
+        "script": "/bin/check_redis -p 7000",
+        "interval": "30s",
+        "ttl": "60s"
+      }
+    },
+    ...
+  ]
+}
+```

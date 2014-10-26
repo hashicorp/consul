@@ -392,9 +392,20 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 
 	// Check the result type
 	if obj, ok := raw.(map[string]interface{}); ok {
-		// Check for a "service" or "check" key, meaning
+		// Check for a "services", "service" or "check" key, meaning
 		// this is actually a definition entry
-		if sub, ok := obj["service"]; ok {
+		if sub, ok := obj["services"]; ok {
+			if list, ok := sub.([]interface{}); ok {
+				for _, srv := range list {
+					service, err := DecodeServiceDefinition(srv)
+					if err != nil {
+						return nil, err
+					}
+					result.Services = append(result.Services, service)
+				}
+				return &result, nil
+			}
+		} else if sub, ok := obj["service"]; ok {
 			service, err := DecodeServiceDefinition(sub)
 			result.Services = append(result.Services, service)
 			return &result, err
