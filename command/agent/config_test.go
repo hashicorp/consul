@@ -554,45 +554,40 @@ func TestDecodeConfig_Services(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if len(config.Services) != 2 {
-		t.Fatalf("missing services")
+	expected := &Config{
+		Services: []*ServiceDefinition{
+			&ServiceDefinition{
+				Check: CheckType{
+					Interval: 5 * time.Second,
+					Script:   "/bin/check_redis -p 6000",
+					TTL:      20 * time.Second,
+				},
+				ID:   "red0",
+				Name: "redis",
+				Tags: []string{
+					"master",
+				},
+				Port: 6000,
+			},
+			&ServiceDefinition{
+				Check: CheckType{
+					Interval: 30 * time.Second,
+					Script:   "/bin/check_redis -p 7000",
+					TTL:      60 * time.Second,
+				},
+				ID:   "red1",
+				Name: "redis",
+				Tags: []string{
+					"delayed",
+					"slave",
+				},
+				Port: 7000,
+			},
+		},
 	}
 
-	expected := &ServiceDefinition{
-		Check: CheckType{
-			Interval: 5 * time.Second,
-			Script:   "/bin/check_redis -p 6000",
-			TTL:      20 * time.Second,
-		},
-		ID:   "red0",
-		Name: "redis",
-		Tags: []string{
-			"master",
-		},
-		Port: 6000,
-	}
-
-	if !reflect.DeepEqual(config.Services[0], expected) {
-		t.Fatalf("services do not match:\n%+v\n%+v", config.Services[0], expected)
-	}
-
-	expected = &ServiceDefinition{
-		Check: CheckType{
-			Interval: 30 * time.Second,
-			Script:   "/bin/check_redis -p 7000",
-			TTL:      60 * time.Second,
-		},
-		ID:   "red1",
-		Name: "redis",
-		Tags: []string{
-			"delayed",
-			"slave",
-		},
-		Port: 7000,
-	}
-
-	if !reflect.DeepEqual(config.Services[1], expected) {
-		t.Fatalf("services do not match:\n%+v\n%+v", config.Services[1], expected)
+	if !reflect.DeepEqual(config, expected) {
+		t.Fatalf("bad: %#v", config)
 	}
 }
 
