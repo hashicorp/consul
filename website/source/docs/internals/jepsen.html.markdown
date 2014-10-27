@@ -32,6 +32,8 @@ Below is the output captured from Jepsen. We ran Jepsen multiple times,
 and it passed each time. This output is only representative of a single
 run.
 
+<!--googleoff: all-->
+
 ```text
 $ lein test :only jepsen.system.consul-test
 
@@ -4020,3 +4022,5 @@ INFO  jepsen.system.consul - :n5 consul nuked
 Ran 1 tests containing 1 assertions.
 0 failures, 0 errors.
 ```
+
+<!--googleon: all-->
