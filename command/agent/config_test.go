@@ -591,6 +591,120 @@ func TestDecodeConfig_Services(t *testing.T) {
 	}
 }
 
+func TestDecodeConfig_Checks(t *testing.T) {
+	input := `{
+		"checks": [
+			{
+				"id": "chk1",
+				"name": "mem",
+				"script": "/bin/check_mem",
+				"interval": "5s"
+			},
+			{
+				"id": "chk2",
+				"name": "cpu",
+				"script": "/bin/check_cpu",
+				"interval": "10s"
+			}
+		]
+	}`
+
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := &Config{
+		Checks: []*CheckDefinition{
+			&CheckDefinition{
+				ID:   "chk1",
+				Name: "mem",
+				CheckType: CheckType{
+					Script:   "/bin/check_mem",
+					Interval: 5 * time.Second,
+				},
+			},
+			&CheckDefinition{
+				ID:   "chk2",
+				Name: "cpu",
+				CheckType: CheckType{
+					Script:   "/bin/check_cpu",
+					Interval: 10 * time.Second,
+				},
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(config, expected) {
+		t.Fatalf("bad: %#v", config)
+	}
+}
+
+func TestDecodeConfig_Multiples(t *testing.T) {
+	input := `{
+		"services": [
+			{
+				"id": "red0",
+				"name": "redis",
+				"tags": [
+					"master"
+				],
+				"port": 6000,
+				"check": {
+					"script": "/bin/check_redis -p 6000",
+					"interval": "5s",
+					"ttl": "20s"
+				}
+			}
+		],
+		"checks": [
+			{
+				"id": "chk1",
+				"name": "mem",
+				"script": "/bin/check_mem",
+				"interval": "10s"
+			}
+		]
+	}`
+
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := &Config{
+		Services: []*ServiceDefinition{
+			&ServiceDefinition{
+				Check: CheckType{
+					Interval: 5 * time.Second,
+					Script:   "/bin/check_redis -p 6000",
+					TTL:      20 * time.Second,
+				},
+				ID:   "red0",
+				Name: "redis",
+				Tags: []string{
+					"master",
+				},
+				Port: 6000,
+			},
+		},
+		Checks: []*CheckDefinition{
+			&CheckDefinition{
+				ID:   "chk1",
+				Name: "mem",
+				CheckType: CheckType{
+					Script:   "/bin/check_mem",
+					Interval: 10 * time.Second,
+				},
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(config, expected) {
+		t.Fatalf("bad: %#v", config)
+	}
+}
+
 func TestDecodeConfig_Service(t *testing.T) {
 	// Basics
 	input := `{"service": {"id": "red1", "name": "redis", "tags": ["master"], "port":8000, "check": {"script": "/bin/check_redis", "interval": "10s", "ttl": "15s" }}}`

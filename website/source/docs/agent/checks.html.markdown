@@ -85,3 +85,28 @@ a specific meaning. Specifically:
 This is the only convention that Consul depends on. Any output of the script
 will be captured and stored in the `notes` field so that it can be viewed
 by human operators.
+
+## Multiple Check Definitions
+
+Multiple check definitions can be provided at once using the `checks` (plural)
+key in your configuration file.
+
+```javascript
+{
+  "checks": [
+    {
+      "id": "chk1",
+      "name": "mem",
+      "script": "/bin/check_mem",
+      "interval": "5s"
+    },
+    {
+      "id": "chk2",
+      "name": "cpu",
+      "script": "/bin/check_cpu",
+      "interval": "10s"
+    },
+    ...
+  ]
+}
+```

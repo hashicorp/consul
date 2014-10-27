@@ -64,7 +64,8 @@ service can be registered dynamically using the [HTTP API](/docs/agent/http.html
 
 ## Multiple Service Definitions
 
-Multiple services definitions can be provided at once. Single and mutiple service definitions can't be provided together in one configuration file.
+Multiple services definitions can be provided at once using the `services`
+(plural) key in your configuration file.
 
 ```javascript
 {

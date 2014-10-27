@@ -403,16 +403,32 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 					}
 					result.Services = append(result.Services, service)
 				}
-				return &result, nil
 			}
-		} else if sub, ok := obj["service"]; ok {
+		}
+		if sub, ok := obj["service"]; ok {
 			service, err := DecodeServiceDefinition(sub)
+			if err != nil {
+				return nil, err
+			}
 			result.Services = append(result.Services, service)
-			return &result, err
-		} else if sub, ok := obj["check"]; ok {
+		}
+		if sub, ok := obj["checks"]; ok {
+			if list, ok := sub.([]interface{}); ok {
+				for _, chk := range list {
+					check, err := DecodeCheckDefinition(chk)
+					if err != nil {
+						return nil, err
+					}
+					result.Checks = append(result.Checks, check)
+				}
+			}
+		}
+		if sub, ok := obj["check"]; ok {
 			check, err := DecodeCheckDefinition(sub)
+			if err != nil {
+				return nil, err
+			}
 			result.Checks = append(result.Checks, check)
-			return &result, err
 		}
 	}
 
