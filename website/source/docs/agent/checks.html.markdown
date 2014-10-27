@@ -98,13 +98,13 @@ key in your configuration file.
       "id": "chk1",
       "name": "mem",
       "script": "/bin/check_mem",
-      "interval": "5s",
+      "interval": "5s"
     },
     {
       "id": "chk2",
       "name": "cpu",
       "script": "/bin/check_cpu",
-      "interval": "10s",
+      "interval": "10s"
     },
     ...
   ]
