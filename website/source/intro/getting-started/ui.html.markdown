@@ -15,7 +15,7 @@ health checks and their current status, and for reading and setting
 key/value data. The UI automatically supports multi-datacenter.
 
 For ease of deployment, the UI is
-[distributed](/downloads_tools.html)
+[distributed](/downloads.html)
 as static HTML and JavaScript.
 You don't need a separate web server to run the web UI. The Consul
 agent itself can be configured to serve the UI.
@@ -41,7 +41,7 @@ idea of what the web UI is like. Click the screenshot for the full size.
 ## Set Up
 
 To set up the web UI,
-[download the web UI package](/downloads_tools.html)
+[download the web UI package](/downloads.html)
 and unzip it to a directory somewhere on the server where the Consul agent
 is also being run. Then, just append the `-ui-dir` to the `consul agent`
 command pointing to the directory where you unzipped the UI (the
