@@ -178,7 +178,12 @@ definitions support being updated during a reload.
 
 * `acl_datacenter` - Only used by servers. This designates the datacenter which
    is authoritative for ACL information. It must be provided to enable ACLs.
-   All servers and datacenters must agree on the ACL datacenter.
+   All servers and datacenters must agree on the ACL datacenter. Setting it on
+   the servers is all you need for enforcement, but for the APIs to work on the
+   clients, it must be set on them too (to forward properly). Also, if we want
+   to enhance the ACL support for other features like service discovery,
+   enforcement might move to the edges, so it's best to just set the
+   `acl_datacenter` on all the nodes.
 
 * `acl_default_policy` - Either "allow" or "deny", defaults to "allow". The
   default policy controls the behavior of a token when there is no matching
