@@ -109,7 +109,7 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// DNS setup
-	input = `{"ports": {"dns": 8500}, "recursor": "8.8.8.8", "domain": "foobar"}`
+	input = `{"ports": {"dns": 8500}, "recursor": ["8.8.8.8","8.8.4.4"], "domain": "foobar"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -119,7 +119,13 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
-	if config.DNSRecursor != "8.8.8.8" {
+	if len(config.DNSRecursors) != 2 {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.DNSRecursors[0] != "8.8.8.8" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.DNSRecursors[1] != "8.8.4.4" {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -791,7 +797,6 @@ func TestMergeConfig(t *testing.T) {
 		BootstrapExpect:        0,
 		Datacenter:             "dc1",
 		DataDir:                "/tmp/foo",
-		DNSRecursor:            "127.0.0.1:1001",
 		Domain:                 "basic",
 		LogLevel:               "debug",
 		NodeName:               "foo",
@@ -811,7 +816,7 @@ func TestMergeConfig(t *testing.T) {
 		BootstrapExpect: 3,
 		Datacenter:      "dc2",
 		DataDir:         "/tmp/bar",
-		DNSRecursor:     "127.0.0.2:1001",
+		DNSRecursors:    []string{"127.0.0.2:1001"},
 		DNSConfig: DNSConfig{
 			NodeTTL: 10 * time.Second,
 			ServiceTTL: map[string]time.Duration{

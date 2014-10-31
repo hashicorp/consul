@@ -97,9 +97,9 @@ type Config struct {
 	// DataDir is the directory to store our state in
 	DataDir string `mapstructure:"data_dir"`
 
-	// DNSRecursor can be set to allow the DNS server to recursively
+	// DNSRecursors can be set to allow the DNS servers to recursively
 	// resolve non-consul domains
-	DNSRecursor string `mapstructure:"recursor"`
+	DNSRecursors []string `mapstructure:"recursors"`
 
 	// DNS configuration
 	DNSConfig DNSConfig `mapstructure:"dns_config"`
@@ -623,9 +623,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.DataDir != "" {
 		result.DataDir = b.DataDir
 	}
-	if b.DNSRecursor != "" {
-		result.DNSRecursor = b.DNSRecursor
-	}
+
+	// Copy the dns recursors
+	result.DNSRecursors = make([]string, 0, len(a.DNSRecursors)+len(b.DNSRecursors))
+	result.DNSRecursors = append(result.DNSRecursors, a.DNSRecursors...)
+	result.DNSRecursors = append(result.DNSRecursors, b.DNSRecursors...)
+
 	if b.Domain != "" {
 		result.Domain = b.Domain
 	}

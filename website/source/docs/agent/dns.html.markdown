@@ -20,14 +20,14 @@ provide the redis service, located in the "east-aws" datacenter,
 with no failing health checks. It's that simple!
 
 There are a number of [configuration options](/docs/agent/options.html) that
-are important for the DNS interface. They are `client_addr`, `ports.dns`, `recursor`,
+are important for the DNS interface. They are `client_addr`, `ports.dns`, `recursors`,
 `domain`, and `dns_config`. By default Consul will listen on 127.0.0.1:8600 for DNS queries
 in the "consul." domain, without support for DNS recursion. All queries are case-insensitive, a
 name lookup for `PostgreSQL.node.dc1.consul` will find all nodes named `postgresql`, no matter of case.
 
 There are a few ways to use the DNS interface. One option is to use a custom
 DNS resolver library and point it at Consul. Another option is to set Consul
-as the DNS server for a node, and provide a `recursor` so that non-Consul queries
+as the DNS server for a node, and provide `recursors` so that non-Consul queries
 can also be resolved. The last method is to forward all queries for the "consul."
 domain to a Consul agent from the existing DNS server. To play with the DNS server
 on the command line, dig can be used:
