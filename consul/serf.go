@@ -147,7 +147,7 @@ func (s *Server) nodeJoin(me serf.MemberEvent, wan bool) {
 		ok, parts := isConsulServer(m)
 		if !ok {
 			if wan {
-				s.logger.Printf("[WARN] consul: non-server in WAN pool: %s %s", m.Name)
+				s.logger.Printf("[WARN] consul: non-server in WAN pool: %s", m.Name)
 			}
 			continue
 		}

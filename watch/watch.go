@@ -107,7 +107,7 @@ func assignValue(params map[string]interface{}, name string, out *string) error 
 	if raw, ok := params[name]; ok {
 		val, ok := raw.(string)
 		if !ok {
-			return fmt.Errorf("Expecting %s to be a string")
+			return fmt.Errorf("Expecting %s to be a string", name)
 		}
 		*out = val
 		delete(params, name)
@@ -120,7 +120,7 @@ func assignValueBool(params map[string]interface{}, name string, out *bool) erro
 	if raw, ok := params[name]; ok {
 		val, ok := raw.(bool)
 		if !ok {
-			return fmt.Errorf("Expecting %s to be a boolean")
+			return fmt.Errorf("Expecting %s to be a boolean", name)
 		}
 		*out = val
 		delete(params, name)
