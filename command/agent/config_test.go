@@ -109,7 +109,7 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// DNS setup
-	input = `{"ports": {"dns": 8500}, "recursor": ["8.8.8.8","8.8.4.4"], "domain": "foobar"}`
+	input = `{"ports": {"dns": 8500}, "recursors": ["8.8.8.8","8.8.4.4"], "recursor":"127.0.0.1", "domain": "foobar"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -119,13 +119,16 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
-	if len(config.DNSRecursors) != 2 {
+	if len(config.DNSRecursors) != 3 {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.DNSRecursors[0] != "8.8.8.8" {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.DNSRecursors[1] != "8.8.4.4" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.DNSRecursors[2] != "127.0.0.1" {
 		t.Fatalf("bad: %#v", config)
 	}
 

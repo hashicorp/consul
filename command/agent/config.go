@@ -98,6 +98,11 @@ type Config struct {
 	DataDir string `mapstructure:"data_dir"`
 
 	// DNSRecursors can be set to allow the DNS servers to recursively
+	// resolve non-consul domains. It is deprecated, and merges into the
+	// recursors array.
+	DNSRecursor string `mapstructure:"recursor"`
+
+	// DNSRecursors can be set to allow the DNS servers to recursively
 	// resolve non-consul domains
 	DNSRecursors []string `mapstructure:"recursors"`
 
@@ -498,6 +503,11 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 			return nil, fmt.Errorf("RetryInterval invalid: %v", err)
 		}
 		result.RetryInterval = dur
+	}
+
+	// Merge the single recursor
+	if result.DNSRecursor != "" {
+		result.DNSRecursors = append(result.DNSRecursors, result.DNSRecursor)
 	}
 
 	return &result, nil
