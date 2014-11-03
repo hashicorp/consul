@@ -333,7 +333,7 @@ It returns a JSON body like this:
     "Server": true,
     "Datacenter": "dc1",
     "DataDir": "/tmp/consul",
-    "DNSRecursor": "",
+    "DNSRecursors": [],
     "Domain": "consul.",
     "LogLevel": "INFO",
     "NodeName": "foobar",

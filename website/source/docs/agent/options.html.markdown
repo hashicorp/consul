@@ -321,10 +321,10 @@ definitions support being updated during a reload.
 
 * `protocol` - Equivalent to the `-protocol` command-line flag.
 
-* `recursor` - This flag provides an address of an upstream DNS server that is used to
+* `recursors` - This flag provides addresses of upstream DNS servers that are used to
   recursively resolve queries if they are not inside the service domain for consul. For example,
   a node can use Consul directly as a DNS server, and if the record is outside of the "consul." domain,
-  the query will be resolved upstream using this server.
+  the query will be resolved upstream using their servers.
 
 * `rejoin_after_leave` - Equivalent to the `-rejoin` command-line flag.
 
