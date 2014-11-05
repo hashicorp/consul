@@ -152,7 +152,7 @@ at a single JSON object with configuration within it.
 Configuration files are used for more than just setting up the agent,
 they are also used to provide check and service definitions. These are used
 to announce the availability of system servers to the rest of the cluster.
-They are documented seperately under [check configuration](/docs/agent/checks.html) and
+They are documented separately under [check configuration](/docs/agent/checks.html) and
 [service configuration](/docs/agent/services.html) respectively. The service and check
 definitions support being updated during a reload.
 
@@ -188,7 +188,7 @@ definitions support being updated during a reload.
 * `acl_default_policy` - Either "allow" or "deny", defaults to "allow". The
   default policy controls the behavior of a token when there is no matching
   rule. In "allow" mode, ACLs are a blacklist: any operation not specifically
-  prohibited is allowed. In "deny" mode, ACLs are a whilelist: any operation not
+  prohibited is allowed. In "deny" mode, ACLs are a whitelist: any operation not
   specifically allowed is blocked.
 
 * `acl_down_policy` - Either "allow", "deny" or "extend-cache" which is the
@@ -237,12 +237,12 @@ definitions support being updated during a reload.
   Must be provided along with the `key_file`.
 
 * `check_update_interval` - This interval controls how often check output from
-  checks in a steady state is syncronized with the server. By default, this is
+  checks in a steady state is synchronized with the server. By default, this is
   set to 5 minutes ("5m"). Many checks which are in a steady state produce
   slightly different output per run (timestamps, etc) which cause constant writes.
-  This configuration allows defering the sync of check output for a given interval to
+  This configuration allows deferring the sync of check output for a given interval to
   reduce write pressure. If a check ever changes state, the new state and associated
-  output is syncronized immediately. To disable this behavior, set the value to "0s".
+  output is synchronized immediately. To disable this behavior, set the value to "0s".
 
 * `client_addr` - Equivalent to the `-client` command-line flag.
 
@@ -260,7 +260,7 @@ definitions support being updated during a reload.
   new version releases.
 
 * `dns_config` - This object allows a number of sub-keys to be set which can tune
-  how DNS queries are perfomed. See this guide on [DNS caching](/docs/guides/dns-cache.html).
+  how DNS queries are performed. See this guide on [DNS caching](/docs/guides/dns-cache.html).
   The following sub-keys are available:
 
   * `allow_stale` - Enables a stale query for DNS information. This allows any Consul
@@ -395,7 +395,7 @@ port.
 * Serf LAN (Default 8301). This is used to handle gossip in the LAN.
   Required by all agents, TCP and UDP.
 
-* Serf WAN( Default 8302). This is used by servers to gossip over the
+* Serf WAN (Default 8302). This is used by servers to gossip over the
   WAN to other servers. TCP and UDP.
 
 * CLI RPC (Default 8400). This is used by all agents to handle RPC

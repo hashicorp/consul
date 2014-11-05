@@ -16,7 +16,7 @@ the `web` service.
 
 Remote execution works by specifying a job which is stored in the KV store.
 Agent's are informed about the new job using the [event system](/docs/commands/event.html),
-which propogates messages via the [gossip protocol](/docs/internals/gossip.html).
+which propagates messages via the [gossip protocol](/docs/internals/gossip.html).
 As a result, delivery is best-effort, and there is **no guarantee** of execution.
 
 While events are purely gossip driven, remote execution relies on the KV store
