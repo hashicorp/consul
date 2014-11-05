@@ -30,7 +30,7 @@ integrated health checking, Consul can route traffic away from unhealthy
 nodes, allowing systems and services to gracefully recover. Static configuration
 that may be provided by configuration management tools can be moved into the
 dynamic key/value store. This allows application configuration to be updated
-without a slow convergence run. Lastly, because each datacenter runs indepedently,
+without a slow convergence run. Lastly, because each datacenter runs independently,
 supporting multiple datacenters is no different than a single datacenter.
 
 That said, Consul is not a replacement for configuration management tools.

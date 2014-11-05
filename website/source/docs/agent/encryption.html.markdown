@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Encryption"
 sidebar_current: "docs-agent-encryption"
 description: |-
-  The Consul agent supports encrypting all of its network traffic. The exact method of this encryption is described on the encryption internals page. There are two seperate systems, one for gossip traffic and one for RPC.
+  The Consul agent supports encrypting all of its network traffic. The exact method of this encryption is described on the encryption internals page. There are two separate systems, one for gossip traffic and one for RPC.
 ---
 
 # Encryption
@@ -11,7 +11,7 @@ description: |-
 The Consul agent supports encrypting all of its network traffic. The exact
 method of this encryption is described on the
 [encryption internals page](/docs/internals/security.html). There are two
-seperate systems, one for gossip traffic and one for RPC.
+separate systems, one for gossip traffic and one for RPC.
 
 ## Gossip Encryption
 
@@ -74,7 +74,7 @@ key pair set using `cert_file` and `key_file`.
 If `verify_incoming` is set, then the servers verify the authenticity of all incoming
 connections. Servers will also disallow any non-TLS connections. If this is set, then all
 clients must have a valid key pair set using `cert_file` and `key_file`. To force clients to
-use TLs, `verify_outgoing` must also be set.
+use TLS, `verify_outgoing` must also be set.
 
 TLS is used to secure the RPC calls between agents, but gossip between nodes is done over UDP
 and is secured using a symmetric key. See above for enabling gossip encryption.

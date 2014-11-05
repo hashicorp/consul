@@ -3,12 +3,12 @@ layout: "docs"
 page_title: "Sessions"
 sidebar_current: "docs-internals-sessions"
 description: |-
-  Consul provides a session mechansim which can be used to build distributed locks. Sessions act as a binding layer between nodes, health checks, and key/value data. They are designed to provide granular locking, and are heavily inspired by The Chubby Lock Service for Loosely-Coupled Distributed Systems.
+  Consul provides a session mechanism which can be used to build distributed locks. Sessions act as a binding layer between nodes, health checks, and key/value data. They are designed to provide granular locking, and are heavily inspired by The Chubby Lock Service for Loosely-Coupled Distributed Systems.
 ---
 
 # Sessions
 
-Consul provides a session mechansim which can be used to build distributed locks.
+Consul provides a session mechanism which can be used to build distributed locks.
 Sessions act as a binding layer between nodes, health checks, and key/value data.
 They are designed to provide granular locking, and are heavily inspired
 by [The Chubby Lock Service for Loosely-Coupled Distributed Systems](http://research.google.com/archive/chubby.html).
@@ -31,7 +31,7 @@ Below is a diagram showing the relationship between these components:
 ![Consul Sessions](consul-sessions.png)
 </div>
 
-The contract that Consul provides is that under any of the folllowing
+The contract that Consul provides is that under any of the following
 situations the session will be *invalidated*:
 
 * Node is deregistered
@@ -79,7 +79,7 @@ mechanism by providing a zero delay value.
 
 Integration between the Key/Value store and sessions are the primary
 place where sessions are used. A session must be created prior to use,
-and is then refered to by it's ID.
+and is then referred to by it's ID.
 
 The Key/Value API is extended to support an `acquire` and `release` operation.
 The `acquire` operation acts like a Check-And-Set operation, except it

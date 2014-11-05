@@ -32,7 +32,7 @@ in a JSON body when using agent configuration, or as CLI flags for the watch com
 
 ## Handlers
 
-The watch specifiation specifies the view of data to be monitored.
+The watch specification specifies the view of data to be monitored.
 Once that view is updated the specified handler is invoked. The handler
 can be any executable.
 

@@ -188,7 +188,7 @@ be used with a PUT request:
 
 * ?cas=\<index\> : This flag is used to turn the `PUT` into a Check-And-Set
   operation. This is very useful as it allows clients to build more complex
-  syncronization primitives on top. If the index is 0, then Consul will only
+  synchronization primitives on top. If the index is 0, then Consul will only
   put the key if it does not already exist. If the index is non-zero, then
   the key is only set if the index matches the `ModifyIndex` of that key.
 
@@ -607,7 +607,7 @@ If the API call succeeds a 200 status code is returned.
 
 ### <a name="catalog_deregister"></a> /v1/catalog/deregister
 
-The deregister endpoint is a low level mechanism for direclty removing
+The deregister endpoint is a low level mechanism for directly removing
 entries in the catalog. It is usually recommended to use the agent local
 endpoints, as they are simpler and perform anti-entropy.
 
