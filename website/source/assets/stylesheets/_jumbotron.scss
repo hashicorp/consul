@@ -16,6 +16,7 @@
   padding-bottom: 0;
   margin-top: $negative-hero-margin;
   color: $jumbotron-color;
+  -webkit-backface-visibility:hidden;
   @include consul-gradient-bg();
 
   &.mobile-hero{
@@ -40,7 +41,8 @@
       position: relative;
       height: 100%;
       margin-top: $header-height;
-
+      -webkit-backface-visibility:hidden;
+      
       .jumbo-logo-wrap{
         margin-top: 135px;
 
