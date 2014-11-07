@@ -115,7 +115,10 @@ func TestAgent_AddService(t *testing.T) {
 		Tags:    []string{"foo"},
 		Port:    8000,
 	}
-	chk := &CheckType{TTL: time.Minute}
+	chk := &CheckType{
+		TTL:   time.Minute,
+		Notes: "redis health check",
+	}
 	err := agent.AddService(srv, chk)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -134,6 +137,11 @@ func TestAgent_AddService(t *testing.T) {
 	// Ensure a TTL is setup
 	if _, ok := agent.checkTTLs["service:redis"]; !ok {
 		t.Fatalf("missing redis check ttl")
+	}
+
+	// Ensure the notes are passed through
+	if agent.state.Checks()["service:redis"].Notes == "" {
+		t.Fatalf("missing redis check notes")
 	}
 }
 

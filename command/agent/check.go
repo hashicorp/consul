@@ -30,6 +30,8 @@ type CheckType struct {
 	Interval time.Duration
 
 	TTL time.Duration
+
+	Notes string
 }
 
 // Valid checks if the CheckType is valid
