@@ -63,13 +63,15 @@ The options below are all specified on the command-line.
   the format of this file, read the "Configuration Files" section below.
   This option can be specified multiple times to load multiple configuration
   files. If it is specified multiple times, configuration files loaded later
-  will merge with configuration files loaded earlier, with the later values
-  overriding the earlier values.
+  will merge with configuration files loaded earlier. During a config merge,
+  single-value keys (string, int, bool) will simply have their values replaced,
+  while list types will be appended together.
 
 * `-config-dir` - A directory of configuration files to load. Consul will
   load all files in this directory ending in ".json" as configuration files
-  in alphabetical order. For more information on the format of the configuration
-  files, see the "Configuration Files" section below.
+  in alphabetical order using the same merge routine as the `config-file`
+  option above. For more information on the format of the configuration files,
+  see the "Configuration Files" section below.
 
 * `-data-dir` - This flag provides a data directory for the agent to store state.
   This is required for all agents. The directory should be durable across reboots.
