@@ -63,6 +63,30 @@ to deny all actions, then token rules can be set to allow or whitelist
 actions. In the inverse, the allow all default behavior is a blacklist,
 where rules are used to prohibit actions.
 
+### Blacklist mode and `consul exec`
+
+If you set `acl_default_policy` to `deny`, the `anonymous` token won't have the
+permission to read the default `_rexec` prefix, and therefore token-less consul
+agents (using the `anonymous` token) won't be able to perform `consul exec`
+actions.
+
+There is a subtle interaction there. The agents will need permission to
+read/write to the `_rexec` prefix for `consul exec` to work properly. They use
+that as the transport for most data, only the edge trigger uses the event
+system.
+
+You can do this by allowing the `anonymous` token to access that prefix, or by
+providing tokens to the agents that enable it. The formar can be done by giving
+this rule to the `anonymous` token`:
+
+```javascript
+key "_rexec/" {
+    policy = "write"
+}
+```
+
+### Bootstrapping ACLs
+
 Bootstrapping the ACL system is done by providing an initial `acl_master_token`
 [configuration](/docs/agent/options.html), which will be created as a
 "management" type token if it does not exist.
