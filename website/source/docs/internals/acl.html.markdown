@@ -76,7 +76,7 @@ that as the transport for most data, only the edge trigger uses the event
 system.
 
 You can do this by allowing the `anonymous` token to access that prefix, or by
-providing tokens to the agents that enable it. The formar can be done by giving
+providing tokens to the agents that enable it. The former can be done by giving
 this rule to the `anonymous` token:
 
 ```javascript
