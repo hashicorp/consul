@@ -77,7 +77,7 @@ system.
 
 You can do this by allowing the `anonymous` token to access that prefix, or by
 providing tokens to the agents that enable it. The formar can be done by giving
-this rule to the `anonymous` token`:
+this rule to the `anonymous` token:
 
 ```javascript
 key "_rexec/" {
