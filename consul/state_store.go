@@ -1060,6 +1060,9 @@ func (s *StateStore) KVSRestore(d *structs.DirEntry) error {
 	if err := s.kvsTable.InsertTxn(tx, d); err != nil {
 		return err
 	}
+	if err := s.kvsTable.SetMaxLastIndexTxn(tx, d.ModifyIndex); err != nil {
+		return err
+	}
 	return tx.Commit()
 }
 
@@ -1096,10 +1099,18 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 		return 0, nil, err
 	}
 
+	// Ensure a non-zero index
+	if idx == 0 {
+		// Must provide non-zero index to prevent blocking
+		// Index 1 is impossible anyways (due to Raft internals)
+		idx = 1
+	}
+
 	// Aggregate the stream
 	stream := make(chan interface{}, 128)
 	done := make(chan struct{})
 	var keys []string
+	var maxIndex uint64
 	go func() {
 		prefixLen := len(prefix)
 		sepLen := len(seperator)
@@ -1107,6 +1118,11 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 		for raw := range stream {
 			ent := raw.(*structs.DirEntry)
 			after := ent.Key[prefixLen:]
+
+			// Update the hightest index we've seen
+			if ent.ModifyIndex > maxIndex {
+				maxIndex = ent.ModifyIndex
+			}
 
 			// If there is no seperator, always accumulate
 			if sepLen == 0 {
@@ -1131,6 +1147,11 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 	// Start the stream, and wait for completion
 	err = s.kvsTable.StreamTxn(stream, tx, "id_prefix", prefix)
 	<-done
+
+	// Use the maxIndex if we have any keys
+	if maxIndex != 0 {
+		idx = maxIndex
+	}
 	return idx, keys, err
 }
 
@@ -1616,6 +1637,9 @@ func (s *StateStore) ACLRestore(acl *structs.ACL) error {
 	defer tx.Abort()
 
 	if err := s.aclTable.InsertTxn(tx, acl); err != nil {
+		return err
+	}
+	if err := s.aclTable.SetMaxLastIndexTxn(tx, acl.ModifyIndex); err != nil {
 		return err
 	}
 	return tx.Commit()
