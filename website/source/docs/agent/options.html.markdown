@@ -316,6 +316,7 @@ definitions support being updated during a reload.
    for the following keys:
     * `dns` - The DNS server, -1 to disable. Default 8600.
     * `http` - The HTTP api, -1 to disable. Default 8500.
+    * `https` - The HTTPS api, -1 to disable. Default -1 (disabled).
     * `rpc` - The RPC endpoint. Default 8400.
     * `serf_lan` - The Serf LAN port. Default 8301.
     * `serf_wan` - The Serf WAN port. Default 8302.

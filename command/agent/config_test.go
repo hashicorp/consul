@@ -137,7 +137,7 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// RPC configs
-	input = `{"ports": {"http": 1234, "rpc": 8100}, "client_addr": "0.0.0.0"}`
+	input = `{"ports": {"http": 1234, "https": 1243, "rpc": 8100}, "client_addr": "0.0.0.0"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -148,6 +148,10 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	if config.Ports.HTTP != 1234 {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.Ports.HTTPS != 1243 {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -494,7 +498,7 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Address overrides
-	input = `{"addresses": {"dns": "0.0.0.0", "http": "127.0.0.1", "rpc": "127.0.0.1"}}`
+	input = `{"addresses": {"dns": "0.0.0.0", "http": "127.0.0.1", "https": "127.0.0.1", "rpc": "127.0.0.1"}}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -504,6 +508,9 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.Addresses.HTTP != "127.0.0.1" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Addresses.HTTPS != "127.0.0.1" {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.Addresses.RPC != "127.0.0.1" {
@@ -842,11 +849,13 @@ func TestMergeConfig(t *testing.T) {
 			SerfLan: 4,
 			SerfWan: 5,
 			Server:  6,
+			HTTPS:   7,
 		},
 		Addresses: AddressConfig{
-			DNS:  "127.0.0.1",
-			HTTP: "127.0.0.2",
-			RPC:  "127.0.0.3",
+			DNS:   "127.0.0.1",
+			HTTP:  "127.0.0.2",
+			RPC:   "127.0.0.3",
+			HTTPS: "127.0.0.4",
 		},
 		Server:                 true,
 		LeaveOnTerm:            true,
