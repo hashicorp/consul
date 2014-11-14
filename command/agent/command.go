@@ -53,6 +53,7 @@ func (c *Command) readConfig() *Config {
 	var cmdConfig Config
 	var configFiles []string
 	var retryInterval string
+	var retryWanInterval string
 	cmdFlags := flag.NewFlagSet("agent", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
@@ -83,12 +84,20 @@ func (c *Command) readConfig() *Config {
 		"enable re-joining after a previous leave")
 	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.StartJoin), "join",
 		"address of agent to join on startup")
+	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.StartWanJoin), "join-wan",
+		"address of agent to join -wan on startup")
 	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.RetryJoin), "retry-join",
 		"address of agent to join on startup with retry")
 	cmdFlags.IntVar(&cmdConfig.RetryMaxAttempts, "retry-max", 0,
 		"number of retries for joining")
 	cmdFlags.StringVar(&retryInterval, "retry-interval", "",
 		"interval between join attempts")
+	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.RetryWanJoin), "retry-wan-join",
+		"address of agent to join -wan on startup with retry")
+	cmdFlags.IntVar(&cmdConfig.RetryWanMaxAttempts, "retry-wan-max", 0,
+		"number of retries for joining -wan")
+	cmdFlags.StringVar(&retryWanInterval, "retry-wan-interval", "",
+		"interval between join -wan attempts")
 
 	if err := cmdFlags.Parse(c.args); err != nil {
 		return nil
@@ -101,6 +110,15 @@ func (c *Command) readConfig() *Config {
 			return nil
 		}
 		cmdConfig.RetryInterval = dur
+	}
+
+	if retryWanInterval != "" {
+		dur, err := time.ParseDuration(retryWanInterval)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error: %s", err))
+			return nil
+		}
+		cmdConfig.RetryWanInterval = dur
 	}
 
 	config := DefaultConfig()
@@ -369,6 +387,22 @@ func (c *Command) startupJoin(config *Config) error {
 	return nil
 }
 
+// startupWanJoin is invoked to handle any joins -wan specified to take place at start time
+func (c *Command) startupWanJoin(config *Config) error {
+	if len(config.StartWanJoin) == 0 {
+		return nil
+	}
+
+	c.Ui.Output("Joining -wan cluster...")
+	n, err := c.agent.JoinWAN(config.StartWanJoin)
+	if err != nil {
+		return err
+	}
+
+	c.Ui.Info(fmt.Sprintf("Join -wan completed. Synced with %d initial agents", n))
+	return nil
+}
+
 // retryJoin is used to handle retrying a join until it succeeds or all
 // retries are exhausted.
 func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
@@ -397,6 +431,37 @@ func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 		logger.Printf("[WARN] agent: Join failed: %v, retrying in %v", err,
 			config.RetryInterval)
 		time.Sleep(config.RetryInterval)
+	}
+}
+
+// retryWanJoin is used to handle retrying a join -wan until it succeeds or all
+// retries are exhausted.
+func (c *Command) retryWanJoin(config *Config, errCh chan<- struct{}) {
+	if len(config.RetryWanJoin) == 0 {
+		return
+	}
+
+	logger := c.agent.logger
+	logger.Printf("[INFO] agent: Joining WAN cluster...")
+
+	attempt := 0
+	for {
+		n, err := c.agent.JoinWAN(config.RetryWanJoin)
+		if err == nil {
+			logger.Printf("[INFO] agent: Join -wan completed. Synced with %d initial agents", n)
+			return
+		}
+
+		attempt++
+		if config.RetryWanMaxAttempts > 0 && attempt > config.RetryWanMaxAttempts {
+			logger.Printf("[ERROR] agent: max join -wan retry exhausted, exiting")
+			close(errCh)
+			return
+		}
+
+		logger.Printf("[WARN] agent: Join -wan failed: %v, retrying in %v", err,
+			config.RetryWanInterval)
+		time.Sleep(config.RetryWanInterval)
 	}
 }
 
@@ -482,6 +547,12 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
+	// Join startup nodes if specified
+	if err := c.startupWanJoin(config); err != nil {
+		c.Ui.Error(err.Error())
+		return 1
+	}
+
 	// Register the services
 	for _, service := range config.Services {
 		ns := service.NodeService()
@@ -542,12 +613,16 @@ func (c *Command) Run(args []string) int {
 	errCh := make(chan struct{})
 	go c.retryJoin(config, errCh)
 
+	// Start retry -wan join process
+	errWanCh := make(chan struct{})
+	go c.retryWanJoin(config, errWanCh)
+
 	// Wait for exit
-	return c.handleSignals(config, errCh)
+	return c.handleSignals(config, errCh, errWanCh)
 }
 
 // handleSignals blocks until we get an exit-causing signal
-func (c *Command) handleSignals(config *Config, retryJoin <-chan struct{}) int {
+func (c *Command) handleSignals(config *Config, retryJoin <-chan struct{}, retryWanJoin <-chan struct{}) int {
 	signalCh := make(chan os.Signal, 4)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 
@@ -562,6 +637,8 @@ WAIT:
 	case <-c.ShutdownCh:
 		sig = os.Interrupt
 	case <-retryJoin:
+		return 1
+	case <-retryWanJoin:
 		return 1
 	case <-c.agent.ShutdownCh():
 		// Agent is already shutdown!
@@ -721,10 +798,17 @@ Options:
   -encrypt=key             Provides the gossip encryption key
   -join=1.2.3.4            Address of an agent to join at start time.
                            Can be specified multiple times.
+  -join-wan=1.2.3.4        Address of an agent to join -wan at start time.
+                           Can be specified multiple times.
   -retry-join=1.2.3.4      Address of an agent to join at start time with
                            retries enabled. Can be specified multiple times.
   -retry-interval=30s      Time to wait between join attempts.
   -retry-max=0             Maximum number of join attempts. Defaults to 0, which
+                           will retry indefinitely.
+  -retry-wan-join=1.2.3.4  Address of an agent to join -wan at start time with
+                           retries enabled. Can be specified multiple times.
+  -retry-wan-interval=30s  Time to wait between join -wan attempts.
+  -retry-wan-max=0         Maximum number of join -wan attempts. Defaults to 0, which
                            will retry indefinitely.
   -log-level=info          Log level of the agent.
   -node=hostname           Name of this node. Must be unique in the cluster
