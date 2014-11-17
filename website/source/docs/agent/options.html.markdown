@@ -110,13 +110,13 @@ The options below are all specified on the command-line.
   unable to join with any of the specified addresses, agent startup will
   fail. By default, the agent won't join -wan any nodes when it starts up.
 
-* `-retry-wan-join` - Similar to `retry-join`, but allows retrying a wan join if the first
+* `-retry-join-wan` - Similar to `retry-join`, but allows retrying a wan join if the first
   attempt fails. This is useful for cases where we know the address will become
   available eventually.
 
-* `-retry-wan-interval` - Time to wait between join -wan attempts. Defaults to 30s.
+* `-retry-interval-wan` - Time to wait between join -wan attempts. Defaults to 30s.
 
-* `-retry-wan-max` - The maximum number of join -wan attempts to be made before exiting
+* `-retry-max-wan` - The maximum number of join -wan attempts to be made before exiting
   with return code 1. By default, this is set to 0, which will continue to
   retry the join -wan indefinitely.
 
@@ -354,11 +354,11 @@ definitions support being updated during a reload.
 
 * `retry_interval` - Equivalent to the `-retry-interval` command-line flag.
 
-* `retry_wan_join` - Equivalent to the `-retry-wan-join` command-line flag. Takes a list
-  of addresses to attempt joining to WAN every `retry_wan_interval` until at least one
+* `retry_join_wan` - Equivalent to the `-retry-join-wan` command-line flag. Takes a list
+  of addresses to attempt joining to WAN every `retry_interval_wan` until at least one
   join -wan works.
 
-* `retry_wan_interval` - Equivalent to the `-retry-wan-interval` command-line flag.
+* `retry_interval_wan` - Equivalent to the `-retry-interval-wan` command-line flag.
 
 * `server` - Equivalent to the `-server` command-line flag.
 
@@ -374,7 +374,7 @@ definitions support being updated during a reload.
 * `start_join` - An array of strings specifying addresses of nodes to
   join upon startup.
 
-* `start_wan_join` - An array of strings specifying addresses of WAN nodes to
+* `start_join_wan` - An array of strings specifying addresses of WAN nodes to
   join -wan upon startup.
 
 * `statsd_addr` - This provides the address of a statsd instance.  If provided

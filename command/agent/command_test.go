@@ -121,7 +121,7 @@ func TestRetryJoinFail(t *testing.T) {
 		t.Fatalf("bad: %d", code)
 	}
 }
-func TestRetryWanJoin(t *testing.T) {
+func TestRetryJoinWan(t *testing.T) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
@@ -154,7 +154,7 @@ func TestRetryWanJoin(t *testing.T) {
 	args := []string{
 		"-data-dir", tmpDir,
 		"-node", fmt.Sprintf(`"%s"`, conf2.NodeName),
-		"-retry-wan-join", serfAddr,
+		"-retry-join-wan", serfAddr,
 		"-retry-interval", "1s",
 	}
 
@@ -176,7 +176,7 @@ func TestRetryWanJoin(t *testing.T) {
 	})
 }
 
-func TestRetryWanJoinFail(t *testing.T) {
+func TestRetryJoinWanFail(t *testing.T) {
 	conf := nextConfig()
 	tmpDir, err := ioutil.TempDir("", "consul")
 	if err != nil {
@@ -196,7 +196,7 @@ func TestRetryWanJoinFail(t *testing.T) {
 
 	args := []string{
 		"-data-dir", tmpDir,
-		"-retry-wan-join", serfAddr,
+		"-retry-join-wan", serfAddr,
 		"-retry-max", "1",
 	}
 
