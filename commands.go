@@ -90,7 +90,7 @@ func init() {
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				Revision:          GitCommit,
-				Version:           Version,
+				Version:           GitDescribe,
 				VersionPrerelease: VersionPrerelease,
 				Ui:                ui,
 			}, nil

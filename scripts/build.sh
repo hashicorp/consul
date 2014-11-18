@@ -14,6 +14,7 @@ cd $DIR
 # Get the git commit
 GIT_COMMIT=$(git rev-parse HEAD)
 GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
+GIT_DESCRIBE=$(git describe --tags)
 
 # If we're building on Windows, specify an extension
 EXTENSION=""
@@ -45,7 +46,7 @@ go get \
 # Build!
 echo "--> Building..."
 go build \
-    -ldflags "${CGO_LDFLAGS} -X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
+    -ldflags "${CGO_LDFLAGS} -X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY} -X main.GitDescribe ${GIT_DESCRIBE}" \
     -v \
     -o bin/consul${EXTENSION}
 cp bin/consul${EXTENSION} ${GOPATHSINGLE}/bin

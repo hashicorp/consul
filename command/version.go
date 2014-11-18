@@ -21,7 +21,7 @@ func (c *VersionCommand) Help() string {
 
 func (c *VersionCommand) Run(_ []string) int {
 	var versionString bytes.Buffer
-	fmt.Fprintf(&versionString, "Consul v%s", c.Version)
+	fmt.Fprintf(&versionString, "Consul %s", c.Version)
 	if c.VersionPrerelease != "" {
 		fmt.Fprintf(&versionString, ".%s", c.VersionPrerelease)
 
