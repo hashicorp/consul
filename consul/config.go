@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
@@ -233,4 +234,17 @@ func DefaultConfig() *Config {
 	conf.RaftConfig.ShutdownOnRemove = false
 
 	return conf
+}
+
+func (c *Config) tlsConfig() *tlsutil.Config {
+	tlsConf := &tlsutil.Config{
+		VerifyIncoming: c.VerifyIncoming,
+		VerifyOutgoing: c.VerifyOutgoing,
+		CAFile:         c.CAFile,
+		CertFile:       c.CertFile,
+		KeyFile:        c.KeyFile,
+		NodeName:       c.NodeName,
+		ServerName:     c.ServerName}
+
+	return tlsConf
 }

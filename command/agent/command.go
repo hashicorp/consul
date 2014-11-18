@@ -466,10 +466,9 @@ func (c *Command) Run(args []string) int {
 	if c.rpcServer != nil {
 		defer c.rpcServer.Shutdown()
 	}
-	if c.httpServers != nil {
-		for _, server := range c.httpServers {
-			defer server.Shutdown()
-		}
+
+	for _, server := range c.httpServers {
+		defer server.Shutdown()
 	}
 
 	// Join startup nodes if specified

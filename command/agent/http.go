@@ -93,10 +93,12 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 		}
 
 		// Create non-TLS listener
-		list, err = net.Listen("tcp", httpAddr.String())
+		ln, err := net.Listen("tcp", httpAddr.String())
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
 		}
+
+		list = tcpKeepAliveListener{ln.(*net.TCPListener)}
 
 		// Create the mux
 		mux := http.NewServeMux()
@@ -140,7 +142,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 		return
 	}
 	tc.SetKeepAlive(true)
-	tc.SetKeepAlivePeriod(3 * time.Minute)
+	tc.SetKeepAlivePeriod(30 * time.Second)
 	return tc, nil
 }
 

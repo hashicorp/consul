@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-mdb"
@@ -169,15 +168,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Create the tlsConfig for outgoing connections
-	tlsConf := &tlsutil.Config{
-		VerifyIncoming: config.VerifyIncoming,
-		VerifyOutgoing: config.VerifyOutgoing,
-		CAFile:         config.CAFile,
-		CertFile:       config.CertFile,
-		KeyFile:        config.KeyFile,
-		NodeName:       config.NodeName,
-		ServerName:     config.ServerName}
-
+	tlsConf := config.tlsConfig()
 	tlsConfig, err := tlsConf.OutgoingTLSConfig()
 	if err != nil {
 		return nil, err

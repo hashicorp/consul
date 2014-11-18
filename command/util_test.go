@@ -98,7 +98,7 @@ func nextConfig() *agent.Config {
 	conf.Server = true
 
 	conf.Ports.HTTP = 10000 + 10*idx
-	conf.Ports.HTTPS = 10400 + 10*idx
+	conf.Ports.HTTPS = 10401 + 10*idx
 	conf.Ports.RPC = 10100 + 10*idx
 	conf.Ports.SerfLan = 10201 + 10*idx
 	conf.Ports.SerfWan = 10202 + 10*idx
