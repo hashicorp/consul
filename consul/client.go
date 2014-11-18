@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/serf/serf"
 	"log"
 	"math/rand"
@@ -93,7 +94,16 @@ func NewClient(config *Config) (*Client, error) {
 	// Create the tlsConfig
 	var tlsConfig *tls.Config
 	var err error
-	if tlsConfig, err = config.OutgoingTLSConfig(); err != nil {
+	tlsConf := &tlsutil.Config{
+		VerifyIncoming: config.VerifyIncoming,
+		VerifyOutgoing: config.VerifyOutgoing,
+		CAFile:         config.CAFile,
+		CertFile:       config.CertFile,
+		KeyFile:        config.KeyFile,
+		NodeName:       config.NodeName,
+		ServerName:     config.ServerName}
+
+	if tlsConfig, err = tlsConf.OutgoingTLSConfig(); err != nil {
 		return nil, err
 	}
 

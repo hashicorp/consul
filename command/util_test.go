@@ -63,11 +63,17 @@ func testAgent(t *testing.T) *agentWrapper {
 
 	rpc := agent.NewAgentRPC(a, l, mult, lw)
 
+	conf.Addresses.HTTP = "127.0.0.1"
 	httpAddr := fmt.Sprintf("127.0.0.1:%d", conf.Ports.HTTP)
-	http, err := agent.NewHTTPServer(a, "", false, os.Stderr, httpAddr)
+	http, err := agent.NewHTTPServers(a, conf, os.Stderr)
 	if err != nil {
 		os.RemoveAll(dir)
 		t.Fatalf(fmt.Sprintf("err: %v", err))
+	}
+
+	if http == nil || len(http) == 0 {
+		os.RemoveAll(dir)
+		t.Fatalf(fmt.Sprintf("Could not create HTTP server to listen on: %s", httpAddr))
 	}
 
 	return &agentWrapper{
@@ -75,7 +81,7 @@ func testAgent(t *testing.T) *agentWrapper {
 		config:   conf,
 		agent:    a,
 		rpc:      rpc,
-		http:     http,
+		http:     http[0],
 		addr:     l.Addr().String(),
 		httpAddr: httpAddr,
 	}
@@ -92,6 +98,7 @@ func nextConfig() *agent.Config {
 	conf.Server = true
 
 	conf.Ports.HTTP = 10000 + 10*idx
+	conf.Ports.HTTPS = 10400 + 10*idx
 	conf.Ports.RPC = 10100 + 10*idx
 	conf.Ports.SerfLan = 10201 + 10*idx
 	conf.Ports.SerfWan = 10202 + 10*idx

@@ -3,6 +3,7 @@ package agent
 import (
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -42,7 +44,16 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, err
 		}
 
-		tlsConfig, err = config.IncomingTLSConfig()
+		tlsConf := &tlsutil.Config{
+			VerifyIncoming: config.VerifyIncoming,
+			VerifyOutgoing: config.VerifyOutgoing,
+			CAFile:         config.CAFile,
+			CertFile:       config.CertFile,
+			KeyFile:        config.KeyFile,
+			NodeName:       config.NodeName,
+			ServerName:     config.ServerName}
+
+		tlsConfig, err = tlsConf.IncomingTLSConfig()
 		if err != nil {
 			return nil, err
 		}
@@ -78,13 +89,13 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 	if config.Ports.HTTP > 0 {
 		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to get ClientListener address:port: %v", err)
 		}
 
 		// Create non-TLS listener
 		list, err = net.Listen("tcp", httpAddr.String())
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
 		// Create the mux
