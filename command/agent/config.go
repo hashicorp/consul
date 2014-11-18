@@ -194,6 +194,11 @@ type Config struct {
 	// addresses, then the agent will error and exit.
 	StartJoin []string `mapstructure:"start_join"`
 
+	// StartJoinWan is a list of addresses to attempt to join -wan when the
+	// agent starts. If Serf is unable to communicate with any of these
+	// addresses, then the agent will error and exit.
+	StartJoinWan []string `mapstructure:"start_join_wan"`
+
 	// RetryJoin is a list of addresses to join with retry enabled.
 	RetryJoin []string `mapstructure:"retry_join"`
 
@@ -207,6 +212,20 @@ type Config struct {
 	// the default is 30s.
 	RetryInterval    time.Duration `mapstructure:"-" json:"-"`
 	RetryIntervalRaw string        `mapstructure:"retry_interval"`
+
+	// RetryJoinWan is a list of addresses to join -wan with retry enabled.
+	RetryJoinWan []string `mapstructure:"retry_join_wan"`
+
+	// RetryMaxAttemptsWan specifies the maximum number of times to retry joining a
+	// -wan host on startup. This is useful for cases where we know the node will be
+	// online eventually.
+	RetryMaxAttemptsWan int `mapstructure:"retry_max_wan"`
+
+	// RetryIntervalWan specifies the amount of time to wait in between join
+	// -wan attempts on agent start. The minimum allowed value is 1 second and
+	// the default is 30s.
+	RetryIntervalWan    time.Duration `mapstructure:"-" json:"-"`
+	RetryIntervalWanRaw string        `mapstructure:"retry_interval_wan"`
 
 	// UiDir is the directory containing the Web UI resources.
 	// If provided, the UI endpoints will be enabled.
@@ -348,6 +367,7 @@ func DefaultConfig() *Config {
 		ACLDownPolicy:       "extend-cache",
 		ACLDefaultPolicy:    "allow",
 		RetryInterval:       30 * time.Second,
+		RetryIntervalWan:    30 * time.Second,
 	}
 }
 
@@ -503,6 +523,14 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 			return nil, fmt.Errorf("RetryInterval invalid: %v", err)
 		}
 		result.RetryInterval = dur
+	}
+
+	if raw := result.RetryIntervalWanRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("RetryIntervalWan invalid: %v", err)
+		}
+		result.RetryIntervalWan = dur
 	}
 
 	// Merge the single recursor
@@ -750,6 +778,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.RetryInterval != 0 {
 		result.RetryInterval = b.RetryInterval
 	}
+	if b.RetryMaxAttemptsWan != 0 {
+		result.RetryMaxAttemptsWan = b.RetryMaxAttemptsWan
+	}
+	if b.RetryIntervalWan != 0 {
+		result.RetryIntervalWan = b.RetryIntervalWan
+	}
 	if b.DNSConfig.NodeTTL != 0 {
 		result.DNSConfig.NodeTTL = b.DNSConfig.NodeTTL
 	}
@@ -816,10 +850,20 @@ func MergeConfig(a, b *Config) *Config {
 	result.StartJoin = append(result.StartJoin, a.StartJoin...)
 	result.StartJoin = append(result.StartJoin, b.StartJoin...)
 
+	// Copy the start join addresses
+	result.StartJoinWan = make([]string, 0, len(a.StartJoinWan)+len(b.StartJoinWan))
+	result.StartJoinWan = append(result.StartJoinWan, a.StartJoinWan...)
+	result.StartJoinWan = append(result.StartJoinWan, b.StartJoinWan...)
+
 	// Copy the retry join addresses
 	result.RetryJoin = make([]string, 0, len(a.RetryJoin)+len(b.RetryJoin))
 	result.RetryJoin = append(result.RetryJoin, a.RetryJoin...)
 	result.RetryJoin = append(result.RetryJoin, b.RetryJoin...)
+
+	// Copy the retry join -wan addresses
+	result.RetryJoinWan = make([]string, 0, len(a.RetryJoinWan)+len(b.RetryJoinWan))
+	result.RetryJoinWan = append(result.RetryJoinWan, a.RetryJoinWan...)
+	result.RetryJoinWan = append(result.RetryJoinWan, b.RetryJoinWan...)
 
 	return &result
 }

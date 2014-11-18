@@ -105,6 +105,21 @@ The options below are all specified on the command-line.
   with return code 1. By default, this is set to 0, which will continue to
   retry the join indefinitely.
 
+* `-join-wan` - Address of another wan agent to join upon starting up. This can be
+  specified multiple times to specify multiple agents that are on the WAN to join. If Consul is
+  unable to join with any of the specified addresses, agent startup will
+  fail. By default, the agent won't join -wan any nodes when it starts up.
+
+* `-retry-join-wan` - Similar to `retry-join`, but allows retrying a wan join if the first
+  attempt fails. This is useful for cases where we know the address will become
+  available eventually.
+
+* `-retry-interval-wan` - Time to wait between join -wan attempts. Defaults to 30s.
+
+* `-retry-max-wan` - The maximum number of join -wan attempts to be made before exiting
+  with return code 1. By default, this is set to 0, which will continue to
+  retry the join -wan indefinitely.
+
 * `-log-level` - The level of logging to show after the Consul agent has
   started. This defaults to "info". The available log levels are "trace",
   "debug", "info", "warn", "err". This is the log level that will be shown
@@ -339,6 +354,12 @@ definitions support being updated during a reload.
 
 * `retry_interval` - Equivalent to the `-retry-interval` command-line flag.
 
+* `retry_join_wan` - Equivalent to the `-retry-join-wan` command-line flag. Takes a list
+  of addresses to attempt joining to WAN every `retry_interval_wan` until at least one
+  join -wan works.
+
+* `retry_interval_wan` - Equivalent to the `-retry-interval-wan` command-line flag.
+
 * `server` - Equivalent to the `-server` command-line flag.
 
 * `server_name` - When give, this overrides the `node_name` for the TLS certificate.
@@ -352,6 +373,9 @@ definitions support being updated during a reload.
 
 * `start_join` - An array of strings specifying addresses of nodes to
   join upon startup.
+
+* `start_join_wan` - An array of strings specifying addresses of WAN nodes to
+  join -wan upon startup.
 
 * `statsd_addr` - This provides the address of a statsd instance.  If provided
   Consul will send various telemetry information to that instance for aggregation.

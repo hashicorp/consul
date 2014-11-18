@@ -274,6 +274,23 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Start Join wan
+	input = `{"start_join_wan": ["1.1.1.1", "2.2.2.2"]}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(config.StartJoinWan) != 2 {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.StartJoinWan[0] != "1.1.1.1" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.StartJoinWan[1] != "2.2.2.2" {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// Retry join
 	input = `{"retry_join": ["1.1.1.1", "2.2.2.2"]}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -313,6 +330,48 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	if config.RetryMaxAttempts != 3 {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Retry Join wan
+	input = `{"retry_join_wan": ["1.1.1.1", "2.2.2.2"]}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(config.RetryJoinWan) != 2 {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinWan[0] != "1.1.1.1" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryJoinWan[1] != "2.2.2.2" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Retry Interval wan
+	input = `{"retry_interval_wan": "10s"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.RetryIntervalWanRaw != "10s" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.RetryIntervalWan.String() != "10s" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Retry Max wan
+	input = `{"retry_max_wan": 3}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.RetryMaxAttemptsWan != 3 {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -860,12 +919,16 @@ func TestMergeConfig(t *testing.T) {
 		Checks:                 []*CheckDefinition{nil},
 		Services:               []*ServiceDefinition{nil},
 		StartJoin:              []string{"1.1.1.1"},
+		StartJoinWan:           []string{"1.1.1.1"},
 		UiDir:                  "/opt/consul-ui",
 		EnableSyslog:           true,
 		RejoinAfterLeave:       true,
 		RetryJoin:              []string{"1.1.1.1"},
 		RetryIntervalRaw:       "10s",
 		RetryInterval:          10 * time.Second,
+		RetryJoinWan:           []string{"1.1.1.1"},
+		RetryIntervalWanRaw:    "10s",
+		RetryIntervalWan:       10 * time.Second,
 		CheckUpdateInterval:    8 * time.Minute,
 		CheckUpdateIntervalRaw: "8m",
 		ACLToken:               "1234",
