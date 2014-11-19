@@ -878,6 +878,7 @@ func TestMergeConfig(t *testing.T) {
 		EnableDebug:            false,
 		CheckUpdateIntervalRaw: "8m",
 		RetryIntervalRaw:       "10s",
+		RetryIntervalWanRaw:    "10s",
 	}
 
 	b := &Config{
@@ -964,7 +965,7 @@ func TestMergeConfig(t *testing.T) {
 	c := MergeConfig(a, b)
 
 	if !reflect.DeepEqual(c, b) {
-		t.Fatalf("should be equal %v %v", c, b)
+		t.Fatalf("should be equal %#v %#v", c, b)
 	}
 }
 
