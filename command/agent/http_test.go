@@ -25,16 +25,12 @@ func makeHTTPServer(t *testing.T) (string, *HTTPServer) {
 	if err := os.Mkdir(uiDir, 755); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	conf.Addresses.HTTP = ""
-	conf.Ports.HTTP = agent.config.Ports.HTTP
-	conf.Ports.HTTPS = -1
-	addr, _ := agent.config.ClientListener("", agent.config.Ports.HTTP)
 	servers, err := NewHTTPServers(agent, conf, agent.logOutput)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if servers == nil || len(servers) == 0 {
-		t.Fatalf(fmt.Sprintf("Could not create HTTP server to listen on: %s", addr.String()))
+	if len(servers) == 0 {
+		t.Fatalf(fmt.Sprintf("Failed to make HTTP server"))
 	}
 	return dir, servers[0]
 }

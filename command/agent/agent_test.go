@@ -2,15 +2,16 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/consul"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
 	"io"
 	"io/ioutil"
 	"os"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 )
 
 var offset uint64
@@ -24,12 +25,12 @@ func nextConfig() *Config {
 	conf.Datacenter = "dc1"
 	conf.NodeName = fmt.Sprintf("Node %d", idx)
 	conf.BindAddr = "127.0.0.1"
-	conf.Ports.DNS = 18600 + idx
-	conf.Ports.HTTP = 18500 + idx
-	conf.Ports.RPC = 18400 + idx
+	conf.Ports.DNS = 19000 + idx
+	conf.Ports.HTTP = 18800 + idx
+	conf.Ports.RPC = 18600 + idx
 	conf.Ports.SerfLan = 18200 + idx
-	conf.Ports.SerfWan = 18300 + idx
-	conf.Ports.Server = 18100 + idx
+	conf.Ports.SerfWan = 18400 + idx
+	conf.Ports.Server = 18000 + idx
 	conf.Server = true
 	conf.ACLDatacenter = "dc1"
 	conf.ACLMasterToken = "root"

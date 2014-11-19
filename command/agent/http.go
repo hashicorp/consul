@@ -81,9 +81,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 
 		// Start the server
 		go http.Serve(list, mux)
-
-		servers := make([]*HTTPServer, 1)
-		servers[0] = srv
+		servers = append(servers, srv)
 	}
 
 	if config.Ports.HTTP > 0 {
@@ -116,14 +114,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 
 		// Start the server
 		go http.Serve(list, mux)
-
-		if servers != nil {
-			// we already have the https server in servers, append
-			servers = append(servers, srv)
-		} else {
-			servers := make([]*HTTPServer, 1)
-			servers[0] = srv
-		}
+		servers = append(servers, srv)
 	}
 
 	return servers, nil
