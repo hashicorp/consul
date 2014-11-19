@@ -1108,7 +1108,10 @@ func TestCheckServiceNodes(t *testing.T) {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
 
-	idx, nodes = store.CheckServiceTagNodes("db", "master")
+	idx, nodes, err = store.CheckServiceTagNodes("db", "master")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	if idx != 4 {
 		t.Fatalf("bad: %v", idx)
 	}
