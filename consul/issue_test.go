@@ -51,7 +51,10 @@ func TestHealthCheckRace(t *testing.T) {
 	}
 
 	// Verify the index
-	idx, out1 := state.CheckServiceNodes("db")
+	idx, out1, err := state.CheckServiceNodes("db")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	if idx != 10 {
 		t.Fatalf("Bad index")
 	}
@@ -71,7 +74,10 @@ func TestHealthCheckRace(t *testing.T) {
 	}
 
 	// Verify the index changed
-	idx, out2 := state.CheckServiceNodes("db")
+	idx, out2, err := state.CheckServiceNodes("db")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	if idx != 20 {
 		t.Fatalf("Bad index")
 	}
