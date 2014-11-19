@@ -3,6 +3,7 @@ package consul
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/hashicorp/consul/tlsutil"
 	"net"
 	"sync"
 	"time"
@@ -94,7 +95,7 @@ func (l *RaftLayer) Dial(address string, timeout time.Duration) (net.Conn, error
 		}
 
 		// Wrap the connection in a TLS client
-		conn, err = wrapTLSClient(conn, l.tlsConfig)
+		conn, err = tlsutil.WrapTLSClient(conn, l.tlsConfig)
 		if err != nil {
 			return nil, err
 		}

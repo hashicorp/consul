@@ -168,13 +168,14 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Create the tlsConfig for outgoing connections
-	tlsConfig, err := config.OutgoingTLSConfig()
+	tlsConf := config.tlsConfig()
+	tlsConfig, err := tlsConf.OutgoingTLSConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	// Get the incoming tls config
-	incomingTLS, err := config.IncomingTLSConfig()
+	incomingTLS, err := tlsConf.IncomingTLSConfig()
 	if err != nil {
 		return nil, err
 	}

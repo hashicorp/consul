@@ -1,4 +1,4 @@
-package consul
+package tlsutil
 
 import (
 	"crypto/tls"
@@ -204,7 +204,7 @@ func TestConfig_wrapTLS_OK(t *testing.T) {
 		t.Fatalf("OutgoingTLSConfig err: %v", err)
 	}
 
-	tlsClient, err := wrapTLSClient(client, clientConfig)
+	tlsClient, err := WrapTLSClient(client, clientConfig)
 	if err != nil {
 		t.Fatalf("wrapTLS err: %v", err)
 	} else {
@@ -237,7 +237,7 @@ func TestConfig_wrapTLS_BadCert(t *testing.T) {
 		t.Fatalf("OutgoingTLSConfig err: %v", err)
 	}
 
-	tlsClient, err := wrapTLSClient(client, clientTLSConfig)
+	tlsClient, err := WrapTLSClient(client, clientTLSConfig)
 	if err == nil {
 		t.Fatalf("wrapTLS no err")
 	}

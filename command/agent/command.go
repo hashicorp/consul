@@ -43,7 +43,7 @@ type Command struct {
 	logOutput         io.Writer
 	agent             *Agent
 	rpcServer         *AgentRPC
-	httpServer        *HTTPServer
+	httpServers       []*HTTPServer
 	dnsServer         *DNSServer
 }
 
@@ -72,7 +72,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
 	cmdFlags.IntVar(&cmdConfig.BootstrapExpect, "bootstrap-expect", 0, "enable automatic bootstrap via expect mode")
 
-	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, RPC)")
+	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, HTTPS, RPC)")
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "address to advertise instead of bind addr")
 
@@ -296,20 +296,14 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	c.Ui.Output("Starting Consul agent RPC...")
 	c.rpcServer = NewAgentRPC(agent, rpcListener, logOutput, logWriter)
 
-	if config.Ports.HTTP > 0 {
-		httpAddr, err := config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Invalid HTTP bind address: %s", err))
-			return err
-		}
-
-		server, err := NewHTTPServer(agent, config.UiDir, config.EnableDebug, logOutput, httpAddr.String())
+	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 {
+		servers, err := NewHTTPServers(agent, config, logOutput)
 		if err != nil {
 			agent.Shutdown()
-			c.Ui.Error(fmt.Sprintf("Error starting http server: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error starting http servers:", err))
 			return err
 		}
-		c.httpServer = server
+		c.httpServers = servers
 	}
 
 	if config.Ports.DNS > 0 {
@@ -537,8 +531,9 @@ func (c *Command) Run(args []string) int {
 	if c.rpcServer != nil {
 		defer c.rpcServer.Shutdown()
 	}
-	if c.httpServer != nil {
-		defer c.httpServer.Shutdown()
+
+	for _, server := range c.httpServers {
+		defer server.Shutdown()
 	}
 
 	// Join startup nodes if specified
@@ -573,7 +568,7 @@ func (c *Command) Run(args []string) int {
 		}
 	}
 
-	// Get the new client listener addr
+	// Get the new client http listener addr
 	httpAddr, err := config.ClientListenerAddr(config.Addresses.HTTP, config.Ports.HTTP)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
@@ -597,8 +592,8 @@ func (c *Command) Run(args []string) int {
 	c.Ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
 	c.Ui.Info(fmt.Sprintf("    Datacenter: '%s'", config.Datacenter))
 	c.Ui.Info(fmt.Sprintf("        Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))
-	c.Ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, DNS: %d, RPC: %d)", config.ClientAddr,
-		config.Ports.HTTP, config.Ports.DNS, config.Ports.RPC))
+	c.Ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, DNS: %d, RPC: %d)", config.ClientAddr,
+		config.Ports.HTTP, config.Ports.HTTPS, config.Ports.DNS, config.Ports.RPC))
 	c.Ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
@@ -786,7 +781,7 @@ Options:
   -bind=0.0.0.0            Sets the bind address for cluster communication
   -bootstrap-expect=0      Sets server to expect bootstrap mode.
   -client=127.0.0.1        Sets the address to bind for client access.
-                           This includes RPC, DNS and HTTP
+                           This includes RPC, DNS, HTTP and HTTPS (if configured)
   -config-file=foo         Path to a JSON file to read configuration from.
                            This can be specified multiple times.
   -config-dir=foo          Path to a directory to read configuration files

@@ -93,7 +93,7 @@ func NewClient(config *Config) (*Client, error) {
 	// Create the tlsConfig
 	var tlsConfig *tls.Config
 	var err error
-	if tlsConfig, err = config.OutgoingTLSConfig(); err != nil {
+	if tlsConfig, err = config.tlsConfig().OutgoingTLSConfig(); err != nil {
 		return nil, err
 	}
 

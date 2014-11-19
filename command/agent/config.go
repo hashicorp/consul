@@ -23,6 +23,7 @@ import (
 type PortConfig struct {
 	DNS     int // DNS Query interface
 	HTTP    int // HTTP API
+	HTTPS   int // HTTPS API
 	RPC     int // CLI RPC
 	SerfLan int `mapstructure:"serf_lan"` // LAN gossip (Client + Server)
 	SerfWan int `mapstructure:"serf_wan"` // WAN gossip (Server onlyg)
@@ -33,9 +34,10 @@ type PortConfig struct {
 // for specific services. By default, either ClientAddress
 // or ServerAddress is used.
 type AddressConfig struct {
-	DNS  string // DNS Query interface
-	HTTP string // HTTP API
-	RPC  string // CLI RPC
+	DNS   string // DNS Query interface
+	HTTP  string // HTTP API
+	HTTPS string // HTTPS API
+	RPC   string // CLI RPC
 }
 
 // DNSConfig is used to fine tune the DNS sub-system.
@@ -122,7 +124,7 @@ type Config struct {
 	NodeName string `mapstructure:"node_name"`
 
 	// ClientAddr is used to control the address we bind to for
-	// client services (DNS, HTTP, RPC)
+	// client services (DNS, HTTP, HTTPS, RPC)
 	ClientAddr string `mapstructure:"client_addr"`
 
 	// BindAddr is used to control the address we bind to.
@@ -351,6 +353,7 @@ func DefaultConfig() *Config {
 		Ports: PortConfig{
 			DNS:     8600,
 			HTTP:    8500,
+			HTTPS:   -1,
 			RPC:     8400,
 			SerfLan: consul.DefaultLANSerfPort,
 			SerfWan: consul.DefaultWANSerfPort,
@@ -739,6 +742,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Ports.HTTP != 0 {
 		result.Ports.HTTP = b.Ports.HTTP
 	}
+	if b.Ports.HTTPS != 0 {
+		result.Ports.HTTPS = b.Ports.HTTPS
+	}
 	if b.Ports.RPC != 0 {
 		result.Ports.RPC = b.Ports.RPC
 	}
@@ -756,6 +762,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Addresses.HTTP != "" {
 		result.Addresses.HTTP = b.Addresses.HTTP
+	}
+	if b.Addresses.HTTPS != "" {
+		result.Addresses.HTTPS = b.Addresses.HTTPS
 	}
 	if b.Addresses.RPC != "" {
 		result.Addresses.RPC = b.Addresses.RPC

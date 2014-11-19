@@ -1,7 +1,9 @@
 package agent
 
 import (
+	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -12,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -23,38 +26,132 @@ type HTTPServer struct {
 	listener net.Listener
 	logger   *log.Logger
 	uiDir    string
+	addr     string
 }
 
-// NewHTTPServer starts a new HTTP server to provide an interface to
+// NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
-func NewHTTPServer(agent *Agent, uiDir string, enableDebug bool, logOutput io.Writer, bind string) (*HTTPServer, error) {
-	// Create the mux
-	mux := http.NewServeMux()
+func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPServer, error) {
+	var tlsConfig *tls.Config
+	var list net.Listener
+	var httpAddr *net.TCPAddr
+	var err error
+	var servers []*HTTPServer
 
-	// Create listener
-	list, err := net.Listen("tcp", bind)
+	if config.Ports.HTTPS > 0 {
+		httpAddr, err = config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
+		if err != nil {
+			return nil, err
+		}
+
+		tlsConf := &tlsutil.Config{
+			VerifyIncoming: config.VerifyIncoming,
+			VerifyOutgoing: config.VerifyOutgoing,
+			CAFile:         config.CAFile,
+			CertFile:       config.CertFile,
+			KeyFile:        config.KeyFile,
+			NodeName:       config.NodeName,
+			ServerName:     config.ServerName}
+
+		tlsConfig, err = tlsConf.IncomingTLSConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		ln, err := net.Listen("tcp", httpAddr.String())
+		if err != nil {
+			return nil, err
+		}
+
+		list = tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
+
+		// Create the mux
+		mux := http.NewServeMux()
+
+		// Create the server
+		srv := &HTTPServer{
+			agent:    agent,
+			mux:      mux,
+			listener: list,
+			logger:   log.New(logOutput, "", log.LstdFlags),
+			uiDir:    config.UiDir,
+			addr:     httpAddr.String(),
+		}
+		srv.registerHandlers(config.EnableDebug)
+
+		// Start the server
+		go http.Serve(list, mux)
+
+		servers := make([]*HTTPServer, 1)
+		servers[0] = srv
+	}
+
+	if config.Ports.HTTP > 0 {
+		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get ClientListener address:port: %v", err)
+		}
+
+		// Create non-TLS listener
+		ln, err := net.Listen("tcp", httpAddr.String())
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
+		}
+
+		list = tcpKeepAliveListener{ln.(*net.TCPListener)}
+
+		// Create the mux
+		mux := http.NewServeMux()
+
+		// Create the server
+		srv := &HTTPServer{
+			agent:    agent,
+			mux:      mux,
+			listener: list,
+			logger:   log.New(logOutput, "", log.LstdFlags),
+			uiDir:    config.UiDir,
+			addr:     httpAddr.String(),
+		}
+		srv.registerHandlers(config.EnableDebug)
+
+		// Start the server
+		go http.Serve(list, mux)
+
+		if servers != nil {
+			// we already have the https server in servers, append
+			servers = append(servers, srv)
+		} else {
+			servers := make([]*HTTPServer, 1)
+			servers[0] = srv
+		}
+	}
+
+	return servers, nil
+}
+
+// tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
+// connections. It's used by NewHttpServer so
+// dead TCP connections eventually go away.
+type tcpKeepAliveListener struct {
+	*net.TCPListener
+}
+
+func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
+	tc, err := ln.AcceptTCP()
 	if err != nil {
-		return nil, err
+		return
 	}
-
-	// Create the server
-	srv := &HTTPServer{
-		agent:    agent,
-		mux:      mux,
-		listener: list,
-		logger:   log.New(logOutput, "", log.LstdFlags),
-		uiDir:    uiDir,
-	}
-	srv.registerHandlers(enableDebug)
-
-	// Start the server
-	go http.Serve(list, mux)
-	return srv, nil
+	tc.SetKeepAlive(true)
+	tc.SetKeepAlivePeriod(30 * time.Second)
+	return tc, nil
 }
 
 // Shutdown is used to shutdown the HTTP server
 func (s *HTTPServer) Shutdown() {
-	s.listener.Close()
+	if s != nil {
+		s.logger.Printf("[DEBUG] http: Shutting down http server(%v)", s.addr)
+		s.listener.Close()
+	}
 }
 
 // registerHandlers is used to attach our handlers to the mux
