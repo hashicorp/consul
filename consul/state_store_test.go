@@ -1081,7 +1081,10 @@ func TestCheckServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, nodes := store.CheckServiceNodes("db")
+	idx, nodes, err := store.CheckServiceNodes("db")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	if idx != 4 {
 		t.Fatalf("bad: %v", idx)
 	}
@@ -1200,7 +1203,10 @@ func TestSS_Register_Deregister_Query(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	idx, nodes := store.CheckServiceNodes("statsite-share-stats")
+	idx, nodes, err := store.CheckServiceNodes("statsite-share-stats")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	if idx != 4 {
 		t.Fatalf("bad: %v", idx)
 	}
