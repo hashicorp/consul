@@ -25,6 +25,7 @@ func makeHTTPServer(t *testing.T) (string, *HTTPServer) {
 	if err := os.Mkdir(uiDir, 755); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	conf.UiDir = uiDir
 	servers, err := NewHTTPServers(agent, conf, agent.logOutput)
 	if err != nil {
 		t.Fatalf("err: %v", err)
