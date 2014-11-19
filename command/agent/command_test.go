@@ -68,11 +68,19 @@ func TestRetryJoin(t *testing.T) {
 		agent.config.BindAddr,
 		agent.config.Ports.SerfLan)
 
+	serfWanAddr := fmt.Sprintf(
+		"%s:%d",
+		agent.config.BindAddr,
+		agent.config.Ports.SerfWan)
+
 	args := []string{
+		"-server",
 		"-data-dir", tmpDir,
 		"-node", fmt.Sprintf(`"%s"`, conf2.NodeName),
 		"-retry-join", serfAddr,
 		"-retry-interval", "1s",
+		"-retry-join-wan", serfWanAddr,
+		"-retry-interval-wan", "1s",
 	}
 
 	go func() {
@@ -86,6 +94,10 @@ func TestRetryJoin(t *testing.T) {
 		mem := agent.LANMembers()
 		if len(mem) != 2 {
 			return false, fmt.Errorf("bad: %#v", mem)
+		}
+		mem = agent.WANMembers()
+		if len(mem) != 2 {
+			return false, fmt.Errorf("bad (wan): %#v", mem)
 		}
 		return true, nil
 	}, func(err error) {
@@ -121,60 +133,6 @@ func TestRetryJoinFail(t *testing.T) {
 		t.Fatalf("bad: %d", code)
 	}
 }
-func TestRetryJoinWan(t *testing.T) {
-	dir, agent := makeAgent(t, nextConfig())
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	conf2 := nextConfig()
-	tmpDir, err := ioutil.TempDir("", "consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	doneCh := make(chan struct{})
-	shutdownCh := make(chan struct{})
-
-	defer func() {
-		close(shutdownCh)
-		<-doneCh
-	}()
-
-	cmd := &Command{
-		ShutdownCh: shutdownCh,
-		Ui:         new(cli.MockUi),
-	}
-
-	serfAddr := fmt.Sprintf(
-		"%s:%d",
-		agent.config.BindAddr,
-		agent.config.Ports.SerfLan)
-
-	args := []string{
-		"-data-dir", tmpDir,
-		"-node", fmt.Sprintf(`"%s"`, conf2.NodeName),
-		"-retry-join-wan", serfAddr,
-		"-retry-interval", "1s",
-	}
-
-	go func() {
-		if code := cmd.Run(args); code != 0 {
-			log.Printf("bad: %d", code)
-		}
-		close(doneCh)
-	}()
-
-	testutil.WaitForResult(func() (bool, error) {
-		mem := agent.WANMembers()
-		if len(mem) != 2 {
-			return false, fmt.Errorf("bad: %#v", mem)
-		}
-		return true, nil
-	}, func(err error) {
-		t.Fatalf(err.Error())
-	})
-}
 
 func TestRetryJoinWanFail(t *testing.T) {
 	conf := nextConfig()
@@ -195,9 +153,10 @@ func TestRetryJoinWanFail(t *testing.T) {
 	serfAddr := fmt.Sprintf("%s:%d", conf.BindAddr, conf.Ports.SerfWan)
 
 	args := []string{
+		"-server",
 		"-data-dir", tmpDir,
 		"-retry-join-wan", serfAddr,
-		"-retry-max", "1",
+		"-retry-max-wan", "1",
 	}
 
 	if code := cmd.Run(args); code == 0 {
