@@ -25,6 +25,7 @@ const (
 	dbACLs                   = "acls"
 	dbMaxMapSize32bit uint64 = 128 * 1024 * 1024       // 128MB maximum size
 	dbMaxMapSize64bit uint64 = 32 * 1024 * 1024 * 1024 // 32GB maximum size
+	dbMaxReaders      uint   = 4096                    // 4K, default is 126
 )
 
 // kvMode is used internally to control which type of set
@@ -160,6 +161,12 @@ func (s *StateStore) initialize() error {
 
 	// Increase the maximum map size
 	if err := s.env.SetMapSize(dbSize); err != nil {
+		return err
+	}
+
+	// Increase the maximum number of concurrent readers
+	// TODO: Block transactions if we could exceed dbMaxReaders
+	if err := s.env.SetMaxReaders(dbMaxReaders); err != nil {
 		return err
 	}
 
