@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
 )
@@ -88,10 +89,17 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 		&reply.QueryMeta,
 		state.QueryTables("CheckServiceNodes"),
 		func() error {
+			var stateErr error
 			if args.TagFilter {
-				reply.Index, reply.Nodes = state.CheckServiceTagNodes(args.ServiceName, args.ServiceTag)
+				if reply.Index, reply.Nodes, stateErr = state.CheckServiceTagNodes(
+					args.ServiceName, args.ServiceTag); stateErr != nil {
+					return stateErr
+				}
 			} else {
-				reply.Index, reply.Nodes = state.CheckServiceNodes(args.ServiceName)
+				if reply.Index, reply.Nodes, stateErr = state.CheckServiceNodes(
+					args.ServiceName); stateErr != nil {
+					return stateErr
+				}
 			}
 			return nil
 		})

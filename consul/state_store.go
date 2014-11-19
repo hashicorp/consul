@@ -875,41 +875,41 @@ func (s *StateStore) parseHealthChecks(idx uint64, res []interface{}, err error)
 
 // CheckServiceNodes returns the nodes associated with a given service, along
 // with any associated check
-func (s *StateStore) CheckServiceNodes(service string) (uint64, structs.CheckServiceNodes) {
+func (s *StateStore) CheckServiceNodes(service string) (uint64, structs.CheckServiceNodes, error) {
 	tables := s.queryTables["CheckServiceNodes"]
 	tx, err := tables.StartTxn(true)
 	if err != nil {
-		panic(fmt.Errorf("Failed to start txn: %v", err))
+		return 0, nil, fmt.Errorf("Failed to start txn: %v", err)
 	}
 	defer tx.Abort()
 
 	idx, err := tables.LastIndexTxn(tx)
 	if err != nil {
-		panic(fmt.Errorf("Failed to get last index: %v", err))
+		return 0, nil, fmt.Errorf("Failed to get last index: %v", err)
 	}
 
 	res, err := s.serviceTable.GetTxn(tx, "service", service)
-	return idx, s.parseCheckServiceNodes(tx, res, err)
+	return idx, s.parseCheckServiceNodes(tx, res, err), nil
 }
 
 // CheckServiceNodes returns the nodes associated with a given service, along
 // with any associated checks
-func (s *StateStore) CheckServiceTagNodes(service, tag string) (uint64, structs.CheckServiceNodes) {
+func (s *StateStore) CheckServiceTagNodes(service, tag string) (uint64, structs.CheckServiceNodes, error) {
 	tables := s.queryTables["CheckServiceNodes"]
 	tx, err := tables.StartTxn(true)
 	if err != nil {
-		panic(fmt.Errorf("Failed to start txn: %v", err))
+		return 0, nil, fmt.Errorf("Failed to start txn: %v", err)
 	}
 	defer tx.Abort()
 
 	idx, err := tables.LastIndexTxn(tx)
 	if err != nil {
-		panic(fmt.Errorf("Failed to get last index: %v", err))
+		return 0, nil, fmt.Errorf("Failed to get last index: %v", err)
 	}
 
 	res, err := s.serviceTable.GetTxn(tx, "service", service)
 	res = serviceTagFilter(res, tag)
-	return idx, s.parseCheckServiceNodes(tx, res, err)
+	return idx, s.parseCheckServiceNodes(tx, res, err), nil
 }
 
 // parseCheckServiceNodes parses results CheckServiceNodes and CheckServiceTagNodes
