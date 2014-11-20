@@ -230,12 +230,12 @@ The following endpoints are supported:
 * [`/v1/agent/join/<address>`](#agent_join) : Trigger local agent to join a node
 * [`/v1/agent/force-leave/<node>`](#agent_force_leave)>: Force remove node
 * [`/v1/agent/check/register`](#agent_check_register) : Registers a new local check
-* [`/v1/agent/check/deregister/<checkID>`](#agent_check_deregister) : Deregister a local check
-* [`/v1/agent/check/pass/<checkID>`](#agent_check_pass) : Mark a local test as passing
-* [`/v1/agent/check/warn/<checkID>`](#agent_check_warn) : Mark a local test as warning
-* [`/v1/agent/check/fail/<checkID>`](#agent_check_fail) : Mark a local test as critical
+* [`/v1/agent/check/deregister/<check>`](#agent_check_deregister) : Deregister a local check
+* [`/v1/agent/check/pass/<check>`](#agent_check_pass) : Mark a local test as passing
+* [`/v1/agent/check/warn/<check>`](#agent_check_warn) : Mark a local test as warning
+* [`/v1/agent/check/fail/<check>`](#agent_check_fail) : Mark a local test as critical
 * [`/v1/agent/service/register`](#agent_service_register) : Registers a new local service
-* [`/v1/agent/service/deregister/<serviceID>`](#agent_service_deregister) : Deregister a local service
+* [`/v1/agent/service/deregister/<check>`](#agent_service_deregister) : Deregister a local service
 
 ### <a name="agent_checks"></a> /v1/agent/checks
 
@@ -440,7 +440,7 @@ the state of the check.
 
 The return code is 200 on success.
 
-### <a name="agent_check_deregister"></a> /v1/agent/check/deregister/\<checkId\>
+### <a name="agent_check_deregister"></a> /v1/agent/check/deregister/\<check\>
 
 The deregister endpoint is used to remove a check from the local agent.
 The CheckID must be passed after the slash. The agent will take care
@@ -448,7 +448,7 @@ of deregistering the check with the Catalog.
 
 The return code is 200 on success.
 
-### <a name="agent_check_pass"></a> /v1/agent/check/pass/\<checkId\>
+### <a name="agent_check_pass"></a> /v1/agent/check/pass/\<check\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
 When this endpoint is accessed via a GET, the status of the check is set to "passing",
@@ -459,7 +459,7 @@ the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
 
-### <a name="agent_check_warn"></a> /v1/agent/check/warn/\<checkId\>
+### <a name="agent_check_warn"></a> /v1/agent/check/warn/\<check\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
 When this endpoint is accessed via a GET, the status of the check is set to "warning",
@@ -470,7 +470,7 @@ the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
 
-### <a name="agent_check_fail"></a> /v1/agent/check/fail/\<checkId\>
+### <a name="agent_check_fail"></a> /v1/agent/check/fail/\<check\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
 When this endpoint is accessed via a GET, the status of the check is set to "critical",
@@ -517,7 +517,7 @@ The created check will be named "service:\<ServiceId\>".
 
 The return code is 200 on success.
 
-### <a name="agent_service_deregister"></a> /v1/agent/service/deregister/\<serviceId\>
+### <a name="agent_service_deregister"></a> /v1/agent/service/deregister/\<service\>
 
 The deregister endpoint is used to remove a service from the local agent.
 The ServiceID must be passed after the slash. The agent will take care
