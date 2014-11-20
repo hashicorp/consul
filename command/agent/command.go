@@ -143,17 +143,27 @@ func (c *Command) readConfig() *Config {
 		config.NodeName = hostname
 	}
 
+	// Ensure we have a data directory
+	if config.DataDir == "" {
+		c.Ui.Error("Must specify data directory using -data-dir")
+		return nil
+	}
+
 	if config.EncryptKey != "" {
 		if _, err := config.EncryptBytes(); err != nil {
 			c.Ui.Error(fmt.Sprintf("Invalid encryption key: %s", err))
 			return nil
 		}
-	}
-
-	// Ensure we have a data directory
-	if config.DataDir == "" {
-		c.Ui.Error("Must specify data directory using -data-dir")
-		return nil
+		keyfileLAN := filepath.Join(config.DataDir, serfLANKeyring)
+		if _, err := os.Stat(keyfileLAN); err == nil {
+			c.Ui.Error("WARNING: LAN keyring exists but -encrypt given, ignoring")
+		}
+		if config.Server {
+			keyfileWAN := filepath.Join(config.DataDir, serfWANKeyring)
+			if _, err := os.Stat(keyfileWAN); err == nil {
+				c.Ui.Error("WARNING: WAN keyring exists but -encrypt given, ignoring")
+			}
+		}
 	}
 
 	// Verify data center is valid
@@ -459,6 +469,22 @@ func (c *Command) retryJoinWan(config *Config, errCh chan<- struct{}) {
 	}
 }
 
+// gossipEncrypted determines if the consul instance is using symmetric
+// encryption keys to protect gossip protocol messages.
+func (c *Command) gossipEncrypted() bool {
+	if c.agent.config.EncryptKey != "" {
+		return true
+	}
+
+	server := c.agent.server
+	if server != nil {
+		return server.KeyManagerLAN() != nil || server.KeyManagerWAN() != nil
+	}
+
+	client := c.agent.client
+	return client != nil && client.KeyManagerLAN() != nil
+}
+
 func (c *Command) Run(args []string) int {
 	c.Ui = &cli.PrefixedUi{
 		OutputPrefix: "==> ",
@@ -585,6 +611,14 @@ func (c *Command) Run(args []string) int {
 		}(wp)
 	}
 
+	// Figure out if gossip is encrypted
+	var gossipEncrypted bool
+	if config.Server {
+		gossipEncrypted = c.agent.server.Encrypted()
+	} else {
+		gossipEncrypted = c.agent.client.Encrypted()
+	}
+
 	// Let the agent know we've finished registration
 	c.agent.StartSync()
 
@@ -597,7 +631,7 @@ func (c *Command) Run(args []string) int {
 	c.Ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
-		config.EncryptKey != "", config.VerifyOutgoing, config.VerifyIncoming))
+		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
 
 	// Enable log streaming
 	c.Ui.Info("")

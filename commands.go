@@ -56,6 +56,12 @@ func init() {
 			}, nil
 		},
 
+		"keyring": func() (cli.Command, error) {
+			return &command.KeyringCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"leave": func() (cli.Command, error) {
 			return &command.LeaveCommand{
 				Ui: ui,

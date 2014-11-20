@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -160,11 +161,6 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.DataDir != "" {
 		base.DataDir = a.config.DataDir
 	}
-	if a.config.EncryptKey != "" {
-		key, _ := a.config.EncryptBytes()
-		base.SerfLANConfig.MemberlistConfig.SecretKey = key
-		base.SerfWANConfig.MemberlistConfig.SecretKey = key
-	}
 	if a.config.NodeName != "" {
 		base.NodeName = a.config.NodeName
 	}
@@ -260,7 +256,13 @@ func (a *Agent) consulConfig() *consul.Config {
 
 // setupServer is used to initialize the Consul server
 func (a *Agent) setupServer() error {
-	server, err := consul.NewServer(a.consulConfig())
+	config := a.consulConfig()
+
+	if err := a.setupKeyrings(config); err != nil {
+		return fmt.Errorf("Failed to configure keyring: %v", err)
+	}
+
+	server, err := consul.NewServer(config)
 	if err != nil {
 		return fmt.Errorf("Failed to start Consul server: %v", err)
 	}
@@ -270,11 +272,58 @@ func (a *Agent) setupServer() error {
 
 // setupClient is used to initialize the Consul client
 func (a *Agent) setupClient() error {
-	client, err := consul.NewClient(a.consulConfig())
+	config := a.consulConfig()
+
+	if err := a.setupKeyrings(config); err != nil {
+		return fmt.Errorf("Failed to configure keyring: %v", err)
+	}
+
+	client, err := consul.NewClient(config)
 	if err != nil {
 		return fmt.Errorf("Failed to start Consul client: %v", err)
 	}
 	a.client = client
+	return nil
+}
+
+// setupKeyrings is used to initialize and load keyrings during agent startup
+func (a *Agent) setupKeyrings(config *consul.Config) error {
+	fileLAN := filepath.Join(a.config.DataDir, serfLANKeyring)
+	fileWAN := filepath.Join(a.config.DataDir, serfWANKeyring)
+
+	if a.config.EncryptKey == "" {
+		goto LOAD
+	}
+	if _, err := os.Stat(fileLAN); err != nil {
+		if err := initKeyring(fileLAN, a.config.EncryptKey); err != nil {
+			return err
+		}
+	}
+	if a.config.Server {
+		if _, err := os.Stat(fileWAN); err != nil {
+			if err := initKeyring(fileWAN, a.config.EncryptKey); err != nil {
+				return err
+			}
+		}
+	}
+
+LOAD:
+	if _, err := os.Stat(fileLAN); err == nil {
+		config.SerfLANConfig.KeyringFile = fileLAN
+	}
+	if err := loadKeyringFile(config.SerfLANConfig); err != nil {
+		return err
+	}
+	if a.config.Server {
+		if _, err := os.Stat(fileWAN); err == nil {
+			config.SerfWANConfig.KeyringFile = fileWAN
+		}
+		if err := loadKeyringFile(config.SerfWANConfig); err != nil {
+			return err
+		}
+	}
+
+	// Success!
 	return nil
 }
 

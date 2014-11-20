@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -66,6 +67,31 @@ func makeAgentLog(t *testing.T, conf *Config, l io.Writer) (string, *Agent) {
 	if err != nil {
 		os.RemoveAll(dir)
 		t.Fatalf(fmt.Sprintf("err: %v", err))
+	}
+
+	return dir, agent
+}
+
+func makeAgentKeyring(t *testing.T, conf *Config, key string) (string, *Agent) {
+	dir, err := ioutil.TempDir("", "agent")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	conf.DataDir = dir
+
+	fileLAN := filepath.Join(dir, serfLANKeyring)
+	if err := initKeyring(fileLAN, key); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	fileWAN := filepath.Join(dir, serfWANKeyring)
+	if err := initKeyring(fileWAN, key); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	agent, err := Create(conf, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
 	return dir, agent

@@ -223,6 +223,40 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	return s.connPool.RPC(server.Addr, server.Version, method, args, reply)
 }
 
+// globalRPC is used to forward an RPC request to one server in each datacenter.
+// This will only error for RPC-related errors. Otherwise, application-level
+// errors can be sent in the response objects.
+func (s *Server) globalRPC(method string, args interface{},
+	reply structs.CompoundResponse) error {
+
+	errorCh := make(chan error)
+	respCh := make(chan interface{})
+
+	// Make a new request into each datacenter
+	for dc, _ := range s.remoteConsuls {
+		go func(dc string) {
+			rr := reply.New()
+			if err := s.forwardDC(method, dc, args, &rr); err != nil {
+				errorCh <- err
+				return
+			}
+			respCh <- rr
+		}(dc)
+	}
+
+	replies, total := 0, len(s.remoteConsuls)
+	for replies < total {
+		select {
+		case err := <-errorCh:
+			return err
+		case rr := <-respCh:
+			reply.Add(rr)
+			replies++
+		}
+	}
+	return nil
+}
+
 // raftApply is used to encode a message, run it through raft, and return
 // the FSM response along with any errors
 func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{}, error) {

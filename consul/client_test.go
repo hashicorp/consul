@@ -269,3 +269,23 @@ func TestClientServer_UserEvent(t *testing.T) {
 		t.Fatalf("missing events")
 	}
 }
+
+func TestClient_Encrypted(t *testing.T) {
+	dir1, c1 := testClient(t)
+	defer os.RemoveAll(dir1)
+	defer c1.Shutdown()
+
+	key := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	dir2, c2 := testClientWithConfig(t, func(c *Config) {
+		c.SerfLANConfig.MemberlistConfig.SecretKey = key
+	})
+	defer os.RemoveAll(dir2)
+	defer c2.Shutdown()
+
+	if c1.Encrypted() {
+		t.Fatalf("should not be encrypted")
+	}
+	if !c2.Encrypted() {
+		t.Fatalf("should be encrypted")
+	}
+}
