@@ -32,13 +32,14 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 		return nil, nil
 	}
 
-	// Default the session to our node + serf check
+	// Default the session to our node + serf check + release session invalidate behavior
 	args := structs.SessionRequest{
 		Op: structs.SessionCreate,
 		Session: structs.Session{
 			Node:      s.agent.config.NodeName,
 			Checks:    []string{consul.SerfCheckID},
 			LockDelay: 15 * time.Second,
+			Behavior:  structs.SessionKeysRelease,
 		},
 	}
 	s.parseDC(req, &args.Datacenter)

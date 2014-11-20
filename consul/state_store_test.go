@@ -2279,6 +2279,53 @@ func TestSessionInvalidate_KeyUnlock(t *testing.T) {
 	}
 }
 
+func TestSessionInvalidate_KeyDelete(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	session := &structs.Session{
+		ID:        generateUUID(),
+		Node:      "foo",
+		LockDelay: 50 * time.Millisecond,
+		Behavior:  structs.SessionKeysDelete,
+	}
+	if err := store.SessionCreate(4, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lock a key with the session
+	d := &structs.DirEntry{
+		Key:     "/bar",
+		Flags:   42,
+		Value:   []byte("test"),
+		Session: session.ID,
+	}
+	ok, err := store.KVSLock(5, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected fail")
+	}
+
+	// Delete the node
+	if err := store.DeleteNode(6, "foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Key should be deleted
+	_, d2, err := store.KVSGet("/bar")
+	if d2 != nil {
+		t.Fatalf("unexpected undeleted key")
+	}
+}
+
 func TestACLSet_Get(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {

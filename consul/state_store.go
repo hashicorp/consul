@@ -1327,6 +1327,11 @@ func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error
 		return fmt.Errorf("Missing Session ID")
 	}
 
+	// make sure we have a default set for session.Behavior
+	if session.Behavior == "" {
+		session.Behavior = structs.SessionKeysRelease
+	}
+
 	// Assign the create index
 	session.CreateIndex = index
 
@@ -1454,7 +1459,7 @@ func (s *StateStore) SessionDestroy(index uint64, id string) error {
 	}
 	defer tx.Abort()
 
-	log.Printf("[DEBUG] consul.state: Invalidating session %s due to session destroy",
+	s.logger.Printf("[DEBUG] consul.state: Invalidating session %s due to session destroy",
 		id)
 	if err := s.invalidateSession(index, tx, id); err != nil {
 		return err
@@ -1471,7 +1476,7 @@ func (s *StateStore) invalidateNode(index uint64, tx *MDBTxn, node string) error
 	}
 	for _, sess := range sessions {
 		session := sess.(*structs.Session).ID
-		log.Printf("[DEBUG] consul.state: Invalidating session %s due to node '%s' invalidation",
+		s.logger.Printf("[DEBUG] consul.state: Invalidating session %s due to node '%s' invalidation",
 			session, node)
 		if err := s.invalidateSession(index, tx, session); err != nil {
 			return err
@@ -1489,7 +1494,7 @@ func (s *StateStore) invalidateCheck(index uint64, tx *MDBTxn, node, check strin
 	}
 	for _, sc := range sessionChecks {
 		session := sc.(*sessionCheck).Session
-		log.Printf("[DEBUG] consul.state: Invalidating session %s due to check '%s' invalidation",
+		s.logger.Printf("[DEBUG] consul.state: Invalidating session %s due to check '%s' invalidation",
 			session, check)
 		if err := s.invalidateSession(index, tx, session); err != nil {
 			return err
@@ -1513,15 +1518,23 @@ func (s *StateStore) invalidateSession(index uint64, tx *MDBTxn, id string) erro
 	}
 	session := res[0].(*structs.Session)
 
-	// Enforce the MaxLockDelay
-	delay := session.LockDelay
-	if delay > structs.MaxLockDelay {
-		delay = structs.MaxLockDelay
-	}
+	if session.Behavior == structs.SessionKeysDelete {
+		// delete the keys held by the session
+		if err := s.deleteKeys(index, tx, id); err != nil {
+			return err
+		}
 
-	// Invalidate any held locks
-	if err := s.invalidateLocks(index, tx, delay, id); err != nil {
-		return err
+	} else { // default to release
+		// Enforce the MaxLockDelay
+		delay := session.LockDelay
+		if delay > structs.MaxLockDelay {
+			delay = structs.MaxLockDelay
+		}
+
+		// Invalidate any held locks
+		if err := s.invalidateLocks(index, tx, delay, id); err != nil {
+			return err
+		}
 	}
 
 	// Nuke the session
@@ -1580,6 +1593,23 @@ func (s *StateStore) invalidateLocks(index uint64, tx *MDBTxn,
 		}
 	}
 	if len(pairs) > 0 {
+		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
+		tx.Defer(func() { s.watch[s.kvsTable].Notify() })
+	}
+	return nil
+}
+
+// deleteKeys is used to delete all the keys created by a session
+// within a given txn. All tables should be locked in the tx.
+func (s *StateStore) deleteKeys(index uint64, tx *MDBTxn, id string) error {
+	num, err := s.kvsTable.DeleteTxn(tx, "session", id)
+	if err != nil {
+		return err
+	}
+
+	if num > 0 {
 		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
