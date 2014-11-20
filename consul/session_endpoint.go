@@ -28,7 +28,11 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	if args.Session.Node == "" && args.Op == structs.SessionCreate {
 		return fmt.Errorf("Must provide Node")
 	}
-	if args.Session.Behavior == "" {
+	switch args.Session.Behavior {
+	case structs.SessionKeysRelease, structs.SessionKeysDelete:
+		// we like it, use it
+
+	default:
 		args.Session.Behavior = structs.SessionKeysRelease // force default behavior
 	}
 

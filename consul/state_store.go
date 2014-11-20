@@ -1327,8 +1327,11 @@ func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error
 		return fmt.Errorf("Missing Session ID")
 	}
 
-	// make sure we have a default set for session.Behavior
-	if session.Behavior == "" {
+	switch session.Behavior {
+	case structs.SessionKeysRelease, structs.SessionKeysDelete:
+		// we like
+	default:
+		// force SessionKeysRelease
 		session.Behavior = structs.SessionKeysRelease
 	}
 

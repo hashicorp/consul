@@ -87,7 +87,7 @@ func TestSessionCreateDelete(t *testing.T) {
 			"Node":      srv.agent.config.NodeName,
 			"Checks":    []string{consul.SerfCheckID, "consul"},
 			"LockDelay": "20s",
-			"Behavior":  "delete",
+			"Behavior":  structs.SessionKeysDelete,
 		}
 		enc.Encode(raw)
 
@@ -280,7 +280,7 @@ func TestSessionDeleteDestroy(t *testing.T) {
 			t.Fatalf("should work")
 		}
 
-		// now destroy the session, this should delete the key create above
+		// now destroy the session, this should delete the key created above
 		req, err = http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
 		resp = httptest.NewRecorder()
 		obj, err = srv.SessionDestroy(resp, req)
@@ -298,74 +298,6 @@ func TestSessionDeleteDestroy(t *testing.T) {
 		res, found := obj.(structs.DirEntries)
 		if found || len(res) != 0 {
 			t.Fatalf("bad: %v found, should be nothing", res)
-		}
-	})
-}
-
-func TestSessionDeleteGet(t *testing.T) {
-	httpTest(t, func(srv *HTTPServer) {
-		id := makeTestSessionDelete(t, srv)
-
-		req, err := http.NewRequest("GET",
-			"/v1/session/info/"+id, nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionGet(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if len(respObj) != 1 {
-			t.Fatalf("bad: %v", respObj)
-		}
-	})
-}
-
-func TestSessionDeleteList(t *testing.T) {
-	httpTest(t, func(srv *HTTPServer) {
-		var ids []string
-		for i := 0; i < 10; i++ {
-			ids = append(ids, makeTestSessionDelete(t, srv))
-		}
-
-		req, err := http.NewRequest("GET", "/v1/session/list", nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionList(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if len(respObj) != 10 {
-			t.Fatalf("bad: %v", respObj)
-		}
-	})
-}
-
-func TestSessionsDeleteForNode(t *testing.T) {
-	httpTest(t, func(srv *HTTPServer) {
-		var ids []string
-		for i := 0; i < 10; i++ {
-			ids = append(ids, makeTestSessionDelete(t, srv))
-		}
-
-		req, err := http.NewRequest("GET",
-			"/v1/session/node/"+srv.agent.config.NodeName, nil)
-		resp := httptest.NewRecorder()
-		obj, err := srv.SessionsForNode(resp, req)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		respObj, ok := obj.(structs.Sessions)
-		if !ok {
-			t.Fatalf("should work")
-		}
-		if len(respObj) != 10 {
-			t.Fatalf("bad: %v", respObj)
 		}
 	})
 }

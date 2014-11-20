@@ -108,6 +108,9 @@ func TestSessionEndpoint_DeleteApply(t *testing.T) {
 	if s.Name != "my-session" {
 		t.Fatalf("bad: %v", s)
 	}
+	if s.Behavior != structs.SessionKeysDelete {
+		t.Fatalf("bad: %v", s)
+	}
 
 	// Do a delete
 	arg.Op = structs.SessionDestroy
@@ -140,51 +143,7 @@ func TestSessionEndpoint_Get(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.SessionCreate,
 		Session: structs.Session{
-			Node:     "foo",
-		},
-	}
-	var out string
-	if err := client.Call("Session.Apply", &arg, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	getR := structs.SessionSpecificRequest{
-		Datacenter: "dc1",
-		Session:    out,
-	}
-	var sessions structs.IndexedSessions
-	if err := client.Call("Session.Get", &getR, &sessions); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if sessions.Index == 0 {
-		t.Fatalf("Bad: %v", sessions)
-	}
-	if len(sessions.Sessions) != 1 {
-		t.Fatalf("Bad: %v", sessions)
-	}
-	s := sessions.Sessions[0]
-	if s.ID != out {
-		t.Fatalf("bad: %v", s)
-	}
-}
-
-func TestSessionEndpoint_DeleteGet(t *testing.T) {
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
-
-	testutil.WaitForLeader(t, client.Call, "dc1")
-
-	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
-	arg := structs.SessionRequest{
-		Datacenter: "dc1",
-		Op:         structs.SessionCreate,
-		Session: structs.Session{
-			Node:     "foo",
-			Behavior: structs.SessionKeysDelete,
+			Node: "foo",
 		},
 	}
 	var out string
@@ -264,58 +223,6 @@ func TestSessionEndpoint_List(t *testing.T) {
 	}
 }
 
-func TestSessionEndpoint_DeleteList(t *testing.T) {
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
-
-	testutil.WaitForLeader(t, client.Call, "dc1")
-
-	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
-	ids := []string{}
-	for i := 0; i < 5; i++ {
-		arg := structs.SessionRequest{
-			Datacenter: "dc1",
-			Op:         structs.SessionCreate,
-			Session: structs.Session{
-				Node:     "foo",
-				Behavior: structs.SessionKeysDelete,
-			},
-		}
-		var out string
-		if err := client.Call("Session.Apply", &arg, &out); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		ids = append(ids, out)
-	}
-
-	getR := structs.DCSpecificRequest{
-		Datacenter: "dc1",
-	}
-	var sessions structs.IndexedSessions
-	if err := client.Call("Session.List", &getR, &sessions); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if sessions.Index == 0 {
-		t.Fatalf("Bad: %v", sessions)
-	}
-	if len(sessions.Sessions) != 5 {
-		t.Fatalf("Bad: %v", sessions.Sessions)
-	}
-	for i := 0; i < len(sessions.Sessions); i++ {
-		s := sessions.Sessions[i]
-		if !strContains(ids, s.ID) {
-			t.Fatalf("bad: %v", s)
-		}
-		if s.Node != "foo" {
-			t.Fatalf("bad: %v", s)
-		}
-	}
-}
-
 func TestSessionEndpoint_NodeSessions(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -334,65 +241,6 @@ func TestSessionEndpoint_NodeSessions(t *testing.T) {
 			Op:         structs.SessionCreate,
 			Session: structs.Session{
 				Node: "bar",
-			},
-		}
-		if i < 5 {
-			arg.Session.Node = "foo"
-		}
-		var out string
-		if err := client.Call("Session.Apply", &arg, &out); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		if i < 5 {
-			ids = append(ids, out)
-		}
-	}
-
-	getR := structs.NodeSpecificRequest{
-		Datacenter: "dc1",
-		Node:       "foo",
-	}
-	var sessions structs.IndexedSessions
-	if err := client.Call("Session.NodeSessions", &getR, &sessions); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if sessions.Index == 0 {
-		t.Fatalf("Bad: %v", sessions)
-	}
-	if len(sessions.Sessions) != 5 {
-		t.Fatalf("Bad: %v", sessions.Sessions)
-	}
-	for i := 0; i < len(sessions.Sessions); i++ {
-		s := sessions.Sessions[i]
-		if !strContains(ids, s.ID) {
-			t.Fatalf("bad: %v", s)
-		}
-		if s.Node != "foo" {
-			t.Fatalf("bad: %v", s)
-		}
-	}
-}
-
-func TestSessionEndpoint_DeleteNodeSessions(t *testing.T) {
-	dir1, s1 := testServer(t)
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
-
-	testutil.WaitForLeader(t, client.Call, "dc1")
-
-	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
-	s1.fsm.State().EnsureNode(1, structs.Node{"bar", "127.0.0.1"})
-	ids := []string{}
-	for i := 0; i < 10; i++ {
-		arg := structs.SessionRequest{
-			Datacenter: "dc1",
-			Op:         structs.SessionCreate,
-			Session: structs.Session{
-				Node:     "bar",
-				Behavior: structs.SessionKeysDelete,
 			},
 		}
 		if i < 5 {
