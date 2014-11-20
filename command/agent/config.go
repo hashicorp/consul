@@ -108,9 +108,6 @@ type Config struct {
 	// resolve non-consul domains
 	DNSRecursors []string `mapstructure:"recursors"`
 
-	// Disable use of an encryption keyring.
-	DisableKeyring bool `mapstructure:"disable_keyring"`
-
 	// DNS configuration
 	DNSConfig DNSConfig `mapstructure:"dns_config"`
 
