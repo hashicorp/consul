@@ -190,6 +190,50 @@ func TestEventList_Blocking(t *testing.T) {
 	})
 }
 
+func TestEventList_EventBufOrder(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		// Fire some events in a non-sequential order
+		expected := &UserEvent{Name: "foo"}
+
+		for _, e := range []*UserEvent{
+			&UserEvent{Name: "foo"},
+			&UserEvent{Name: "bar"},
+			&UserEvent{Name: "foo"},
+			expected,
+			&UserEvent{Name: "bar"},
+		} {
+			if err := srv.agent.UserEvent("", e); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		}
+
+		// Test that the event order is preserved when name
+		// filtering on a list of > 1 matching event.
+		testutil.WaitForResult(func() (bool, error) {
+			url := "/v1/event/list?name=foo"
+			req, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				return false, err
+			}
+			resp := httptest.NewRecorder()
+			obj, err := srv.EventList(resp, req)
+			if err != nil {
+				return false, err
+			}
+			list, ok := obj.([]*UserEvent)
+			if !ok {
+				return false, fmt.Errorf("bad: %#v", obj)
+			}
+			if len(list) != 3 || list[2].ID != expected.ID {
+				return false, fmt.Errorf("bad: %#v", list)
+			}
+			return true, nil
+		}, func(err error) {
+			t.Fatalf("err: %v", err)
+		})
+	})
+}
+
 func TestUUIDToUint64(t *testing.T) {
 	inp := "cb9a81ad-fff6-52ac-92a7-5f70687805ec"
 

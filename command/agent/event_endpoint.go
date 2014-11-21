@@ -118,16 +118,12 @@ RUN_QUERY:
 
 	// Filter the events if necessary
 	if nameFilter != "" {
-		n := len(events)
-		for i := 0; i < n; i++ {
-			if events[i].Name == nameFilter {
-				continue
+		for i := 0; i < len(events); i++ {
+			if events[i].Name != nameFilter {
+				events = append(events[:i], events[i+1:]...)
+				i--
 			}
-			events[i], events[n-1] = events[n-1], nil
-			i--
-			n--
 		}
-		events = events[:n]
 	}
 
 	// Determine the index
