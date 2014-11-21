@@ -31,9 +31,10 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	switch args.Session.Behavior {
 	case structs.SessionKeysRelease, structs.SessionKeysDelete:
 		// we like it, use it
-
-	default:
+	case "":
 		args.Session.Behavior = structs.SessionKeysRelease // force default behavior
+	default:
+		return fmt.Errorf("Invalid Behavior setting '%s'", args.Session.Behavior)
 	}
 
 	// If this is a create, we must generate the Session ID. This must
