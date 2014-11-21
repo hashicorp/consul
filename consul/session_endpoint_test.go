@@ -66,6 +66,69 @@ func TestSessionEndpoint_Apply(t *testing.T) {
 	}
 }
 
+func TestSessionEndpoint_DeleteApply(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Just add a node
+	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+
+	arg := structs.SessionRequest{
+		Datacenter: "dc1",
+		Op:         structs.SessionCreate,
+		Session: structs.Session{
+			Node:     "foo",
+			Name:     "my-session",
+			Behavior: structs.SessionKeysDelete,
+		},
+	}
+	var out string
+	if err := client.Call("Session.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	id := out
+
+	// Verify
+	state := s1.fsm.State()
+	_, s, err := state.SessionGet(out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s == nil {
+		t.Fatalf("should not be nil")
+	}
+	if s.Node != "foo" {
+		t.Fatalf("bad: %v", s)
+	}
+	if s.Name != "my-session" {
+		t.Fatalf("bad: %v", s)
+	}
+	if s.Behavior != structs.SessionKeysDelete {
+		t.Fatalf("bad: %v", s)
+	}
+
+	// Do a delete
+	arg.Op = structs.SessionDestroy
+	arg.Session.ID = out
+	if err := client.Call("Session.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Verify
+	_, s, err = state.SessionGet(id)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s != nil {
+		t.Fatalf("bad: %v", s)
+	}
+}
+
 func TestSessionEndpoint_Get(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)

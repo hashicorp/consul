@@ -378,6 +378,13 @@ type IndexedKeyList struct {
 	QueryMeta
 }
 
+type SessionBehavior string
+
+const (
+	SessionKeysRelease SessionBehavior = "release"
+	SessionKeysDelete                  = "delete"
+)
+
 // Session is used to represent an open session in the KV store.
 // This issued to associate node checks with acquired locks.
 type Session struct {
@@ -387,6 +394,7 @@ type Session struct {
 	Node        string
 	Checks      []string
 	LockDelay   time.Duration
+	Behavior    SessionBehavior // What to do when session is invalidated
 }
 type Sessions []*Session
 

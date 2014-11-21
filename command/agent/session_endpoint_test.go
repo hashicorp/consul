@@ -59,6 +59,55 @@ func TestSessionCreate(t *testing.T) {
 	})
 }
 
+func TestSessionCreateDelete(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		// Create a health check
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       srv.agent.config.NodeName,
+			Address:    "127.0.0.1",
+			Check: &structs.HealthCheck{
+				CheckID:   "consul",
+				Node:      srv.agent.config.NodeName,
+				Name:      "consul",
+				ServiceID: "consul",
+				Status:    structs.HealthPassing,
+			},
+		}
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Associate session with node and 2 health checks, and make it delete on session destroy
+		body := bytes.NewBuffer(nil)
+		enc := json.NewEncoder(body)
+		raw := map[string]interface{}{
+			"Name":      "my-cool-session",
+			"Node":      srv.agent.config.NodeName,
+			"Checks":    []string{consul.SerfCheckID, "consul"},
+			"LockDelay": "20s",
+			"Behavior":  structs.SessionKeysDelete,
+		}
+		enc.Encode(raw)
+
+		req, err := http.NewRequest("PUT", "/v1/session/create", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.SessionCreate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if _, ok := obj.(sessionCreateResponse); !ok {
+			t.Fatalf("should work")
+		}
+	})
+}
+
 func TestFixupLockDelay(t *testing.T) {
 	inp := map[string]interface{}{
 		"lockdelay": float64(15),
@@ -93,6 +142,28 @@ func TestFixupLockDelay(t *testing.T) {
 
 func makeTestSession(t *testing.T, srv *HTTPServer) string {
 	req, err := http.NewRequest("PUT", "/v1/session/create", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := httptest.NewRecorder()
+	obj, err := srv.SessionCreate(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	sessResp := obj.(sessionCreateResponse)
+	return sessResp.ID
+}
+
+func makeTestSessionDelete(t *testing.T, srv *HTTPServer) string {
+	// Create Session with delete behavior
+	body := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(body)
+	raw := map[string]interface{}{
+		"Behavior": "delete",
+	}
+	enc.Encode(raw)
+
+	req, err := http.NewRequest("PUT", "/v1/session/create", body)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -185,6 +256,48 @@ func TestSessionsForNode(t *testing.T) {
 		}
 		if len(respObj) != 10 {
 			t.Fatalf("bad: %v", respObj)
+		}
+	})
+}
+
+func TestSessionDeleteDestroy(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		id := makeTestSessionDelete(t, srv)
+
+		// now create a new key for the session and acquire it
+		buf := bytes.NewBuffer([]byte("test"))
+		req, err := http.NewRequest("PUT", "/v1/kv/ephemeral?acquire="+id, buf)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp := httptest.NewRecorder()
+		obj, err := srv.KVSEndpoint(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if res := obj.(bool); !res {
+			t.Fatalf("should work")
+		}
+
+		// now destroy the session, this should delete the key created above
+		req, err = http.NewRequest("PUT", "/v1/session/destroy/"+id, nil)
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionDestroy(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp := obj.(bool); !resp {
+			t.Fatalf("should work")
+		}
+
+		// Verify that the key is gone
+		req, _ = http.NewRequest("GET", "/v1/kv/ephemeral", nil)
+		resp = httptest.NewRecorder()
+		obj, _ = srv.KVSEndpoint(resp, req)
+		res, found := obj.(structs.DirEntries)
+		if found || len(res) != 0 {
+			t.Fatalf("bad: %v found, should be nothing", res)
 		}
 	})
 }

@@ -28,6 +28,14 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	if args.Session.Node == "" && args.Op == structs.SessionCreate {
 		return fmt.Errorf("Must provide Node")
 	}
+	switch args.Session.Behavior {
+	case structs.SessionKeysRelease, structs.SessionKeysDelete:
+		// we like it, use it
+	case "":
+		args.Session.Behavior = structs.SessionKeysRelease // force default behavior
+	default:
+		return fmt.Errorf("Invalid Behavior setting '%s'", args.Session.Behavior)
+	}
 
 	// If this is a create, we must generate the Session ID. This must
 	// be done prior to appending to the raft log, because the ID is not
