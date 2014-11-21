@@ -130,14 +130,14 @@ func TestEventList_Filter(t *testing.T) {
 
 func TestEventList_Blocking(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		p := &UserEvent{Name: "test"}
+		p := &UserEvent{Name: "foo"}
 		if err := srv.agent.UserEvent("", p); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
 		var index string
 		testutil.WaitForResult(func() (bool, error) {
-			req, err := http.NewRequest("GET", "/v1/event/list", nil)
+			req, err := http.NewRequest("GET", "/v1/event/list?name=foo", nil)
 			if err != nil {
 				return false, err
 			}
@@ -158,14 +158,14 @@ func TestEventList_Blocking(t *testing.T) {
 
 		go func() {
 			time.Sleep(50 * time.Millisecond)
-			p := &UserEvent{Name: "second"}
+			p := &UserEvent{Name: "bar"}
 			if err := srv.agent.UserEvent("", p); err != nil {
 				t.Fatalf("err: %v", err)
 			}
 		}()
 
 		testutil.WaitForResult(func() (bool, error) {
-			url := "/v1/event/list?index=" + index
+			url := "/v1/event/list?name=bar&index=" + index
 			req, err := http.NewRequest("GET", url, nil)
 			if err != nil {
 				return false, err
@@ -175,14 +175,53 @@ func TestEventList_Blocking(t *testing.T) {
 			if err != nil {
 				return false, err
 			}
-
+			header := resp.Header().Get("X-Consul-Index")
+			if header == "" || header == "0" {
+				return false, fmt.Errorf("bad: %#v", header)
+			}
 			list, ok := obj.([]*UserEvent)
 			if !ok {
 				return false, fmt.Errorf("bad: %#v", obj)
 			}
-			if len(list) != 2 || list[1].Name != "second" {
+			if len(list) != 1 || list[0].Name != "bar" {
 				return false, fmt.Errorf("bad: %#v", list)
 			}
+			index = header
+			return true, nil
+		}, func(err error) {
+			t.Fatalf("err: %v", err)
+		})
+
+		// Test again to make sure that the event order is preserved
+		// when name filtering on a list of > 1 matching event.
+		p = &UserEvent{Name: "bar"}
+		if err := srv.agent.UserEvent("", p); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		testutil.WaitForResult(func() (bool, error) {
+			url := "/v1/event/list?name=bar&index=" + index
+			req, err := http.NewRequest("GET", url, nil)
+			if err != nil {
+				return false, err
+			}
+			resp := httptest.NewRecorder()
+			obj, err := srv.EventList(resp, req)
+			if err != nil {
+				return false, err
+			}
+			header := resp.Header().Get("X-Consul-Index")
+			if header == "" || header == "0" {
+				return false, fmt.Errorf("bad: %#v", header)
+			}
+			list, ok := obj.([]*UserEvent)
+			if !ok {
+				return false, fmt.Errorf("bad: %#v", obj)
+			}
+			if len(list) != 2 || list[1].Name != "bar" || list[1].ID != p.ID {
+				return false, fmt.Errorf("bad: %#v", list)
+			}
+			index = header
 			return true, nil
 		}, func(err error) {
 			t.Fatalf("err: %v", err)
