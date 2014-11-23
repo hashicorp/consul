@@ -88,10 +88,20 @@ func init() {
 		},
 
 		"version": func() (cli.Command, error) {
+			ver := ""
+			rel := ""
+			if len(GitDescribe) == 0 {
+				ver = Version
+				rel = "dev"
+			} else {
+				ver = GitDescribe
+				rel = VersionPrerelease
+			}
+
 			return &command.VersionCommand{
 				Revision:          GitCommit,
-				Version:           GitDescribe,
-				VersionPrerelease: VersionPrerelease,
+				Version:           ver,
+				VersionPrerelease: rel,
 				Ui:                ui,
 			}, nil
 		},
