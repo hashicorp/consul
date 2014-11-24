@@ -66,6 +66,9 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 		logger:       log.New(logOutput, "", log.LstdFlags),
 	}
 
+	// Register mux handler, for reverse lookup
+	mux.HandleFunc("arpa.", srv.handlePtr)
+
 	// Register mux handlers, always handle "consul."
 	mux.HandleFunc(domain, srv.handleQuery)
 	if domain != consulDomain {
@@ -160,6 +163,55 @@ START:
 
 	// Return string
 	return addr.String(), nil
+}
+
+// handlePtr is used to handle "reverse" DNS queries
+func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
+	q := req.Question[0]
+	defer func(s time.Time) {
+		d.logger.Printf("[DEBUG] dns: request for %v (%v)", q, time.Now().Sub(s))
+	}(time.Now())
+
+	// Setup the message response
+	m := new(dns.Msg)
+	m.SetReply(req)
+	m.Authoritative = true
+	m.RecursionAvailable = (len(d.recursors) > 0)
+
+	// Only add the SOA if requested
+	if req.Question[0].Qtype == dns.TypeSOA {
+		d.addSOA(d.domain, m)
+	}
+
+	datacenter := d.agent.config.Datacenter
+
+	// Get the QName without the domain suffix
+	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
+
+	args := structs.DCSpecificRequest{
+		Datacenter:   datacenter,
+		QueryOptions: structs.QueryOptions{AllowStale: d.config.AllowStale},
+	}
+	var out structs.IndexedNodes
+
+	if err := d.agent.RPC("Catalog.ListNodes", &args, &out); err == nil {
+		for _, n := range out.Nodes {
+			arpa, _ := dns.ReverseAddr(n.Address)
+			if arpa == qName {
+				ptr := &dns.PTR{
+					Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 0},
+					Ptr: fmt.Sprintf("%s.node.%s.consul.", n.Node, datacenter),
+				}
+				m.Answer = append(m.Answer, ptr)
+				break
+			}
+		}
+	}
+
+	// Write out the complete response
+	if err := resp.WriteMsg(m); err != nil {
+		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
+	}
 }
 
 // handleQUery is used to handle DNS queries in the configured domain
