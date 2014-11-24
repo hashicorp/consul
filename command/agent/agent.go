@@ -645,7 +645,9 @@ func (a *Agent) AddService(service *structs.NodeService, chkType *CheckType) err
 	a.state.AddService(service)
 
 	// Persist the service to a file
-	a.persistService(service)
+	if err := a.persistService(service); err != nil {
+		return err
+	}
 
 	// Create an associated health check
 	if chkType != nil {
