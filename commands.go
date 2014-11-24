@@ -8,7 +8,7 @@ import (
 	"os/signal"
 )
 
-// Commands is the mapping of all the available Serf commands.
+// Commands is the mapping of all the available Consul commands.
 var Commands map[string]cli.CommandFactory
 
 func init() {
