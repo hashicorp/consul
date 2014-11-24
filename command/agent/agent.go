@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +14,14 @@ import (
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
+)
+
+const (
+	// Path to save agent service definitions
+	servicesDir = "services"
+
+	// Path to save local agent checks
+	checksDir = "checks"
 )
 
 /*
@@ -129,6 +138,14 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		agent.state.SetIface(agent.client)
 	}
 	if err != nil {
+		return nil, err
+	}
+
+	// Load any persisted services and services
+	if err := agent.restoreServices(); err != nil {
+		return nil, err
+	}
+	if err := agent.restoreChecks(); err != nil {
 		return nil, err
 	}
 
@@ -472,6 +489,144 @@ func (a *Agent) ResumeSync() {
 	a.state.Resume()
 }
 
+// persistService saves a service definition to a JSON file in the data dir
+func (a *Agent) persistService(service *structs.NodeService) error {
+	svcPath := filepath.Join(a.config.DataDir, servicesDir, service.ID)
+	if _, err := os.Stat(svcPath); os.IsNotExist(err) {
+		encoded, err := json.Marshal(service)
+		if err != nil {
+			return nil
+		}
+		if err := os.MkdirAll(filepath.Dir(svcPath), 0700); err != nil {
+			return err
+		}
+		fh, err := os.OpenFile(svcPath, os.O_CREATE|os.O_WRONLY, 0600)
+		if err != nil {
+			return err
+		}
+		defer fh.Close()
+		if _, err := fh.Write(encoded); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// purgeService removes a persisted service definition file from the data dir
+func (a *Agent) purgeService(serviceID string) error {
+	svcPath := filepath.Join(a.config.DataDir, servicesDir, serviceID)
+	if _, err := os.Stat(svcPath); err == nil {
+		return os.Remove(svcPath)
+	}
+	return nil
+}
+
+// restoreServices is used to load previously persisted service definitions
+// into the agent during startup.
+func (a *Agent) restoreServices() error {
+	svcDir := filepath.Join(a.config.DataDir, servicesDir)
+	if _, err := os.Stat(svcDir); os.IsNotExist(err) {
+		return nil
+	}
+
+	err := filepath.Walk(svcDir, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if fi.Name() == servicesDir {
+			return nil
+		}
+		fh, err := os.Open(filepath.Join(svcDir, fi.Name()))
+		if err != nil {
+			return err
+		}
+		content := make([]byte, fi.Size())
+		if _, err := fh.Read(content); err != nil {
+			return err
+		}
+
+		var svc *structs.NodeService
+		if err := json.Unmarshal(content, &svc); err != nil {
+			return err
+		}
+
+		a.logger.Printf("[DEBUG] Restored service definition: %s", svc.ID)
+		return a.AddService(svc, nil)
+	})
+	return err
+}
+
+// persistCheck saves a check definition to the local agent's state directory
+func (a *Agent) persistCheck(check *structs.HealthCheck) error {
+	checkPath := filepath.Join(a.config.DataDir, checksDir, check.CheckID)
+	if _, err := os.Stat(checkPath); os.IsNotExist(err) {
+		encoded, err := json.Marshal(check)
+		if err != nil {
+			return nil
+		}
+		if err := os.MkdirAll(filepath.Dir(checkPath), 0700); err != nil {
+			return err
+		}
+		fh, err := os.OpenFile(checkPath, os.O_CREATE|os.O_WRONLY, 0600)
+		if err != nil {
+			return err
+		}
+		defer fh.Close()
+		if _, err := fh.Write(encoded); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// purgeCheck removes a persisted check definition file from the data dir
+func (a *Agent) purgeCheck(checkID string) error {
+	checkPath := filepath.Join(a.config.DataDir, checksDir, checkID)
+	if _, err := os.Stat(checkPath); err == nil {
+		return os.Remove(checkPath)
+	}
+	return nil
+}
+
+// restoreChecks is used to load previously persisted health check definitions
+// into the agent during startup.
+func (a *Agent) restoreChecks() error {
+	checkDir := filepath.Join(a.config.DataDir, checksDir)
+	if _, err := os.Stat(checkDir); os.IsNotExist(err) {
+		return nil
+	}
+
+	err := filepath.Walk(checkDir, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if fi.Name() == checksDir {
+			return nil
+		}
+		fh, err := os.Open(filepath.Join(checkDir, fi.Name()))
+		if err != nil {
+			return err
+		}
+		content := make([]byte, fi.Size())
+		if _, err := fh.Read(content); err != nil {
+			return err
+		}
+
+		var check *structs.HealthCheck
+		if err := json.Unmarshal(content, &check); err != nil {
+			return err
+		}
+
+		// Default check to critical to avoid placing potentially unhealthy
+		// services into the active pool
+		check.Status = structs.HealthCritical
+
+		a.logger.Printf("[DEBUG] Restored health check: %s", check.CheckID)
+		return a.AddCheck(check, nil)
+	})
+	return err
+}
+
 // AddService is used to add a service entry.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
@@ -488,6 +643,11 @@ func (a *Agent) AddService(service *structs.NodeService, chkType *CheckType) err
 
 	// Add the service
 	a.state.AddService(service)
+
+	// Persist the service to a file
+	if err := a.persistService(service); err != nil {
+		return err
+	}
 
 	// Create an associated health check
 	if chkType != nil {
@@ -519,6 +679,11 @@ func (a *Agent) RemoveService(serviceID string) error {
 
 	// Remove service immeidately
 	a.state.RemoveService(serviceID)
+
+	// Remove the service from the data dir
+	if err := a.purgeService(serviceID); err != nil {
+		return err
+	}
 
 	// Deregister any associated health checks
 	checkID := fmt.Sprintf("service:%s", serviceID)
@@ -580,7 +745,9 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType) error {
 
 	// Add to the local state for anti-entropy
 	a.state.AddCheck(check)
-	return nil
+
+	// Persist the check
+	return a.persistCheck(check)
 }
 
 // RemoveCheck is used to remove a health check.
@@ -601,7 +768,7 @@ func (a *Agent) RemoveCheck(checkID string) error {
 		check.Stop()
 		delete(a.checkTTLs, checkID)
 	}
-	return nil
+	return a.purgeCheck(checkID)
 }
 
 // UpdateCheck is used to update the status of a check.
