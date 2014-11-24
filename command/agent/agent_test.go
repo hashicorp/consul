@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -378,5 +380,115 @@ func TestAgent_ConsulService(t *testing.T) {
 	// Consul service should be in sync
 	if !agent.state.serviceStatus[consul.ConsulServiceID].inSync {
 		t.Fatalf("%s service should be in sync", consul.ConsulServiceID)
+	}
+}
+
+func TestAgent_PersistService(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+
+	if err := agent.AddService(svc, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	file := filepath.Join(agent.config.DataDir, servicesDir, svc.ID)
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected, err := json.Marshal(svc)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !bytes.Equal(expected, content) {
+		t.Fatalf("bad: %s", string(content))
+	}
+	agent.Shutdown()
+
+	// Should load it back during later start
+	agent2, err := Create(config, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer agent2.Shutdown()
+
+	if _, ok := agent2.state.services[svc.ID]; !ok {
+		t.Fatalf("bad: %#v", agent2.state.services)
+	}
+
+	// Should remove the service file
+	if err := agent2.RemoveService(svc.ID); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestAgent_PersistCheck(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+
+	check := &structs.HealthCheck{
+		Node:        config.NodeName,
+		CheckID:     "service:redis1",
+		Name:        "redischeck",
+		Status:      structs.HealthPassing,
+		ServiceID:   "redis",
+		ServiceName: "redis",
+	}
+
+	if err := agent.AddCheck(check, nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	file := filepath.Join(agent.config.DataDir, checksDir, check.CheckID)
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected, err := json.Marshal(check)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !bytes.Equal(expected, content) {
+		t.Fatalf("bad: %s", string(content))
+	}
+	agent.Shutdown()
+
+	// Should load it back during later start
+	agent2, err := Create(config, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer agent2.Shutdown()
+
+	if _, ok := agent2.state.checks[check.CheckID]; !ok {
+		t.Fatalf("bad: %#v", agent2.state.checks)
+	}
+
+	// Should remove the service file
+	if err := agent2.RemoveCheck(check.CheckID); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("err: %s", err)
 	}
 }
