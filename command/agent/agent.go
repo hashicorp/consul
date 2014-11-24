@@ -617,6 +617,10 @@ func (a *Agent) restoreChecks() error {
 			return err
 		}
 
+		// Default check to critical to avoid placing potentially unhealthy
+		// services into the active pool
+		check.Status = structs.HealthCritical
+
 		a.logger.Printf("[DEBUG] Restored health check: %s", check.CheckID)
 		return a.AddCheck(check, nil)
 	})

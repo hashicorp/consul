@@ -480,8 +480,12 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 	defer agent2.Shutdown()
 
-	if _, ok := agent2.state.checks[check.CheckID]; !ok {
+	result, ok := agent2.state.checks[check.CheckID]
+	if !ok {
 		t.Fatalf("bad: %#v", agent2.state.checks)
+	}
+	if result.Status != structs.HealthCritical {
+		t.Fatalf("bad: %#v", result)
 	}
 
 	// Should remove the service file
