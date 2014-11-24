@@ -1,11 +1,12 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+
 	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/mitchellh/cli"
-	"os"
-	"os/signal"
 )
 
 // Commands is the mapping of all the available Consul commands.
@@ -94,14 +95,13 @@ func init() {
 		},
 
 		"version": func() (cli.Command, error) {
-			ver := ""
-			rel := ""
-			if len(GitDescribe) == 0 {
-				ver = Version
-				rel = "dev"
-			} else {
+			ver := Version
+			rel := VersionPrerelease
+			if GitDescribe != "" {
 				ver = GitDescribe
-				rel = VersionPrerelease
+			}
+			if GitDescribe == "" && rel == "" {
+				rel = "dev"
 			}
 
 			return &command.VersionCommand{
