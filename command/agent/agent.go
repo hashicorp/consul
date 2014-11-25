@@ -141,7 +141,27 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		return nil, err
 	}
 
-	// Load any persisted services and services
+	// Register the services from config
+	for _, service := range config.Services {
+		ns := service.NodeService()
+		chkType := service.CheckType()
+		if err := agent.AddService(ns, chkType, false); err != nil {
+			return nil, fmt.Errorf(
+				"Failed to register service '%s': %v", service.Name, err)
+		}
+	}
+
+	// Register the checks from config
+	for _, check := range config.Checks {
+		health := check.HealthCheck(config.NodeName)
+		chkType := &check.CheckType
+		if err := agent.AddCheck(health, chkType, false); err != nil {
+			return nil, fmt.Errorf(
+				"Failed to register check '%s': %v %v", check.Name, err, check)
+		}
+	}
+
+	// Load any persisted services or checks
 	if err := agent.restoreServices(); err != nil {
 		return nil, err
 	}
@@ -550,8 +570,15 @@ func (a *Agent) restoreServices() error {
 			return err
 		}
 
-		a.logger.Printf("[DEBUG] Restored service definition: %s", svc.ID)
-		return a.AddService(svc, nil)
+		if _, ok := a.state.services[svc.ID]; ok {
+			// Purge previously persisted service. This allows config to be
+			// preferred over services persisted from the API.
+			a.logger.Printf("[DEBUG] Service %s exists, not restoring", svc.ID)
+			return a.purgeService(svc.ID)
+		} else {
+			a.logger.Printf("[DEBUG] Restored service definition: %s", svc.ID)
+			return a.AddService(svc, nil, false)
+		}
 	})
 	return err
 }
@@ -617,12 +644,19 @@ func (a *Agent) restoreChecks() error {
 			return err
 		}
 
-		// Default check to critical to avoid placing potentially unhealthy
-		// services into the active pool
-		check.Status = structs.HealthCritical
+		if _, ok := a.state.checks[check.CheckID]; ok {
+			// Purge previously persisted check. This allows config to be
+			// preferred over persisted checks from the API.
+			a.logger.Printf("[DEBUG] Check %s exists, not restoring", check.CheckID)
+			return a.purgeCheck(check.CheckID)
+		} else {
+			// Default check to critical to avoid placing potentially unhealthy
+			// services into the active pool
+			check.Status = structs.HealthCritical
 
-		a.logger.Printf("[DEBUG] Restored health check: %s", check.CheckID)
-		return a.AddCheck(check, nil)
+			a.logger.Printf("[DEBUG] Restored health check: %s", check.CheckID)
+			return a.AddCheck(check, nil, false)
+		}
 	})
 	return err
 }
@@ -630,7 +664,7 @@ func (a *Agent) restoreChecks() error {
 // AddService is used to add a service entry.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (a *Agent) AddService(service *structs.NodeService, chkType *CheckType) error {
+func (a *Agent) AddService(service *structs.NodeService, chkType *CheckType, persist bool) error {
 	if service.Service == "" {
 		return fmt.Errorf("Service name missing")
 	}
@@ -645,8 +679,10 @@ func (a *Agent) AddService(service *structs.NodeService, chkType *CheckType) err
 	a.state.AddService(service)
 
 	// Persist the service to a file
-	if err := a.persistService(service); err != nil {
-		return err
+	if persist {
+		if err := a.persistService(service); err != nil {
+			return err
+		}
 	}
 
 	// Create an associated health check
@@ -660,7 +696,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkType *CheckType) err
 			ServiceID:   service.ID,
 			ServiceName: service.Service,
 		}
-		if err := a.AddCheck(check, chkType); err != nil {
+		if err := a.AddCheck(check, chkType, persist); err != nil {
 			return err
 		}
 	}
@@ -694,7 +730,7 @@ func (a *Agent) RemoveService(serviceID string) error {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered. The Check may include a CheckType which
 // is used to automatically update the check status
-func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType) error {
+func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist bool) error {
 	if check.CheckID == "" {
 		return fmt.Errorf("CheckID missing")
 	}
@@ -747,7 +783,11 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType) error {
 	a.state.AddCheck(check)
 
 	// Persist the check
-	return a.persistCheck(check)
+	if persist {
+		return a.persistCheck(check)
+	}
+
+	return nil
 }
 
 // RemoveCheck is used to remove a health check.

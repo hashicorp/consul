@@ -97,7 +97,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Add the check
-	return nil, s.agent.AddCheck(health, chkType)
+	return nil, s.agent.AddCheck(health, chkType, true)
 }
 
 func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -169,7 +169,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Add the check
-	return nil, s.agent.AddService(ns, chkType)
+	return nil, s.agent.AddService(ns, chkType, true)
 }
 
 func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

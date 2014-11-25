@@ -574,26 +574,6 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
-	// Register the services
-	for _, service := range config.Services {
-		ns := service.NodeService()
-		chkType := service.CheckType()
-		if err := c.agent.AddService(ns, chkType); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to register service '%s': %v", service.Name, err))
-			return 1
-		}
-	}
-
-	// Register the checks
-	for _, check := range config.Checks {
-		health := check.HealthCheck(config.NodeName)
-		chkType := &check.CheckType
-		if err := c.agent.AddCheck(health, chkType); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to register check '%s': %v %v", check.Name, err, check))
-			return 1
-		}
-	}
-
 	// Get the new client http listener addr
 	httpAddr, err := config.ClientListenerAddr(config.Addresses.HTTP, config.Ports.HTTP)
 	if err != nil {
@@ -758,7 +738,7 @@ func (c *Command) handleReload(config *Config) *Config {
 	for _, service := range newConf.Services {
 		ns := service.NodeService()
 		chkType := service.CheckType()
-		if err := c.agent.AddService(ns, chkType); err != nil {
+		if err := c.agent.AddService(ns, chkType, false); err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to register service '%s': %v", service.Name, err))
 		}
 	}
@@ -767,7 +747,7 @@ func (c *Command) handleReload(config *Config) *Config {
 	for _, check := range newConf.Checks {
 		health := check.HealthCheck(config.NodeName)
 		chkType := &check.CheckType
-		if err := c.agent.AddCheck(health, chkType); err != nil {
+		if err := c.agent.AddCheck(health, chkType, false); err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to register check '%s': %v %v", check.Name, err, check))
 		}
 	}
