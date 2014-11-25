@@ -139,7 +139,6 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 	case <-time.After(time.Second):
 		return srv, fmt.Errorf("timeout setting up DNS server")
 	}
-	return srv, nil
 }
 
 // recursorAddr is used to add a port to the recursor if omitted.
