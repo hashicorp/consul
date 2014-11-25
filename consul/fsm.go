@@ -167,7 +167,6 @@ func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 		c.logger.Printf("[WARN] consul.fsm: Invalid KVS operation '%s'", req.Op)
 		return fmt.Errorf("Invalid KVS operation '%s'", req.Op)
 	}
-	return nil
 }
 
 func (c *consulFSM) applySessionOperation(buf []byte, index uint64) interface{} {
@@ -188,7 +187,6 @@ func (c *consulFSM) applySessionOperation(buf []byte, index uint64) interface{} 
 		c.logger.Printf("[WARN] consul.fsm: Invalid Session operation '%s'", req.Op)
 		return fmt.Errorf("Invalid Session operation '%s'", req.Op)
 	}
-	return nil
 }
 
 func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
@@ -211,7 +209,6 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		c.logger.Printf("[WARN] consul.fsm: Invalid ACL operation '%s'", req.Op)
 		return fmt.Errorf("Invalid ACL operation '%s'", req.Op)
 	}
-	return nil
 }
 
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
@@ -443,7 +440,6 @@ func (s *consulSnapshot) persistKV(sink raft.SnapshotSink,
 			return err
 		}
 	}
-	return nil
 }
 
 func (s *consulSnapshot) Release() {

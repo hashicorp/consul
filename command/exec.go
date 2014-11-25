@@ -384,7 +384,6 @@ func (c *ExecCommand) streamResults(doneCh chan struct{}, ackCh chan rExecAck, h
 			}
 		}
 	}
-	return
 
 ERR_EXIT:
 	select {

@@ -3,11 +3,12 @@ package agent
 import (
 	"bytes"
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 const (
@@ -50,7 +51,6 @@ func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (i
 		resp.WriteHeader(405)
 		return nil, nil
 	}
-	return nil, nil
 }
 
 // KVSGet handles a GET request
