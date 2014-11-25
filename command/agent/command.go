@@ -310,7 +310,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		servers, err := NewHTTPServers(agent, config, logOutput)
 		if err != nil {
 			agent.Shutdown()
-			c.Ui.Error(fmt.Sprintf("Error starting http servers:", err))
+			c.Ui.Error(fmt.Sprintf("Error starting http servers: %s", err))
 			return err
 		}
 		c.httpServers = servers
