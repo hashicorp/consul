@@ -176,6 +176,28 @@ func makeTestSessionDelete(t *testing.T, srv *HTTPServer) string {
 	return sessResp.ID
 }
 
+func makeTestSessionTTL(t *testing.T, srv *HTTPServer, ttl string) string {
+	// Create Session with TTL
+	body := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(body)
+	raw := map[string]interface{}{
+		"TTL": ttl,
+	}
+	enc.Encode(raw)
+
+	req, err := http.NewRequest("PUT", "/v1/session/create", body)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := httptest.NewRecorder()
+	obj, err := srv.SessionCreate(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	sessResp := obj.(sessionCreateResponse)
+	return sessResp.ID
+}
+
 func TestSessionDestroy(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestSession(t, srv)
@@ -188,6 +210,133 @@ func TestSessionDestroy(t *testing.T) {
 		}
 		if resp := obj.(bool); !resp {
 			t.Fatalf("should work")
+		}
+	})
+}
+
+func TestSessionTTL(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		TTL := "30s"
+		ttl := 30 * time.Second
+
+		id := makeTestSessionTTL(t, srv, TTL)
+
+		req, err := http.NewRequest("GET",
+			"/v1/session/info/"+id, nil)
+		resp := httptest.NewRecorder()
+		obj, err := srv.SessionGet(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		respObj, ok := obj.(structs.Sessions)
+		if !ok {
+			t.Fatalf("should work")
+		}
+		if len(respObj) != 1 {
+			t.Fatalf("bad: %v", respObj)
+		}
+		if respObj[0].TTL != TTL {
+			t.Fatalf("Incorrect TTL: %s", respObj[0].TTL)
+		}
+
+		// now wait for timeout, it is really 2*TTL, so wait 3*TTL
+		time.Sleep(ttl * 3)
+
+		req, err = http.NewRequest("GET",
+			"/v1/session/info/"+id, nil)
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionGet(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		respObj, ok = obj.(structs.Sessions)
+		if ok {
+			t.Fatalf("session '%s' should have been destroyed")
+		}
+		if len(respObj) != 0 {
+			t.Fatalf("bad: %v", respObj)
+		}
+	})
+}
+
+func TestSessionTTLRenew(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		TTL := "30s"
+		ttl := 30 * time.Second
+
+		id := makeTestSessionTTL(t, srv, TTL)
+
+		req, err := http.NewRequest("GET",
+			"/v1/session/info/"+id, nil)
+		resp := httptest.NewRecorder()
+		obj, err := srv.SessionGet(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		respObj, ok := obj.(structs.Sessions)
+		if !ok {
+			t.Fatalf("should work")
+		}
+		if len(respObj) != 1 {
+			t.Fatalf("bad: %v", respObj)
+		}
+		if respObj[0].TTL != TTL {
+			t.Fatalf("Incorrect TTL: %s", respObj[0].TTL)
+		}
+
+		// Sleep for 45s (since internal effective ttl is really 60s when 30s is specified)
+		time.Sleep(45 * time.Second)
+
+		req, err = http.NewRequest("PUT",
+			"/v1/session/renew/"+id, nil)
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionRenew(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		respObj, ok = obj.(structs.Sessions)
+		if !ok {
+			t.Fatalf("should work")
+		}
+		if len(respObj) != 1 {
+			t.Fatalf("bad: %v", respObj)
+		}
+
+		// Sleep for another 45s (since effective ttl is ttl*2, meaning 60s) if renew
+		// didn't work, session would have got deleted
+		time.Sleep(45 * time.Second)
+
+		req, err = http.NewRequest("GET",
+			"/v1/session/info/"+id, nil)
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionGet(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		respObj, ok = obj.(structs.Sessions)
+		if !ok {
+			t.Fatalf("session '%s' should have renewed")
+		}
+		if len(respObj) != 1 {
+			t.Fatalf("bad: %v", respObj)
+		}
+
+		// now wait for timeout and expect session to get destroyed
+		time.Sleep(ttl * 2)
+
+		req, err = http.NewRequest("GET",
+			"/v1/session/info/"+id, nil)
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionGet(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		respObj, ok = obj.(structs.Sessions)
+		if ok {
+			t.Fatalf("session '%s' should have been destroyed")
+		}
+		if len(respObj) != 0 {
+			t.Fatalf("bad: %v", respObj)
 		}
 	})
 }

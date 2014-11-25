@@ -36,6 +36,16 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	default:
 		return fmt.Errorf("Invalid Behavior setting '%s'", args.Session.Behavior)
 	}
+	if args.Session.TTL != "" {
+		ttl, err := time.ParseDuration(args.Session.TTL)
+		if err != nil {
+			return fmt.Errorf("Session TTL '%s' invalid: %v", args.Session.TTL, err)
+		}
+
+		if ttl < structs.SessionTTLMin || ttl > structs.SessionTTLMax {
+			return fmt.Errorf("Invalid Session TTL '%d', must be between [%d-%d] seconds", ttl, structs.SessionTTLMin, structs.SessionTTLMax)
+		}
+	}
 
 	// If this is a create, we must generate the Session ID. This must
 	// be done prior to appending to the raft log, because the ID is not
@@ -63,6 +73,13 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		s.srv.logger.Printf("[ERR] consul.session: Apply failed: %v", err)
 		return err
 	}
+
+	if args.Op == structs.SessionCreate && args.Session.TTL != "" {
+		s.srv.resetSessionTimer(args.Session.ID, nil)
+	} else if args.Op == structs.SessionDestroy && args.Session.TTL != "" {
+		s.srv.clearSessionTimer(args.Session.ID)
+	}
+
 	if respErr, ok := resp.(error); ok {
 		return respErr
 	}
@@ -132,4 +149,25 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 			reply.Index, reply.Sessions, err = state.NodeSessions(args.Node)
 			return err
 		})
+}
+
+// Renew is used to renew the TTL on a single session
+func (s *Session) Renew(args *structs.SessionSpecificRequest,
+	reply *structs.IndexedSessions) error {
+	if done, err := s.srv.forward("Session.Renew", args, args, reply); done {
+		return err
+	}
+
+	// Get the local state
+	state := s.srv.fsm.State()
+	// Get the session, from local state
+	index, session, err := state.SessionGet(args.Session)
+	reply.Index = index
+	if session != nil {
+		reply.Sessions = structs.Sessions{session}
+		// reset the session TTL timer
+		err = s.srv.resetSessionTimer(args.Session, session)
+	}
+
+	return err
 }

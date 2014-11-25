@@ -40,6 +40,7 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 			Checks:    []string{consul.SerfCheckID},
 			LockDelay: 15 * time.Second,
 			Behavior:  structs.SessionKeysRelease,
+			TTL:       "",
 		},
 	}
 	s.parseDC(req, &args.Datacenter)
@@ -128,6 +129,35 @@ func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request)
 		return nil, err
 	}
 	return true, nil
+}
+
+// SessionRenew is used to renew the TTL on an existing TTL session
+func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Mandate a PUT request
+	if req.Method != "PUT" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
+	args := structs.SessionSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Pull out the session id
+	args.Session = strings.TrimPrefix(req.URL.Path, "/v1/session/renew/")
+	if args.Session == "" {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Missing session"))
+		return nil, nil
+	}
+
+	var out structs.IndexedSessions
+	defer setMeta(resp, &out.QueryMeta)
+	if err := s.agent.RPC("Session.Renew", &args, &out); err != nil {
+		return nil, err
+	}
+	return out.Sessions, nil
 }
 
 // SessionGet is used to get info for a particular session

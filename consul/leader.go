@@ -61,6 +61,13 @@ func (s *Server) leaderLoop(stopCh chan struct{}) {
 		s.logger.Printf("[ERR] consul: ACL initialization failed: %v", err)
 	}
 
+	// Setup Session Timers if we are the leader and need to
+	if err := s.initializeSessionTimers(); err != nil {
+		s.logger.Printf("[ERR] consul: Session Timers initialization failed: %v", err)
+	}
+	// clear the session timers if we are no longer leader and exit the leaderLoop
+	defer s.clearAllSessionTimers()
+
 	// Reconcile channel is only used once initial reconcile
 	// has succeeded
 	var reconcileCh chan serf.Member
