@@ -23,20 +23,20 @@ Before describing the architecture, we provide a glossary of terms to help
 clarify what is being discussed:
 
 * Agent - An agent is the long running daemon on every member of the Consul cluster.
-It is started by running `consul agent`. The agent is able to run in either *client*,
+It is started by running `consul agent`. The agent is able to run in either *client*
 or *server* mode. Since all nodes must be running an agent, it is simpler to refer to
-the node as either being a client or server, but there are other instances of the agent. All
+the node as being either a client or server, but there are other instances of the agent. All
 agents can run the DNS or HTTP interfaces, and are responsible for running checks and
 keeping services in sync.
 
 * Client - A client is an agent that forwards all RPCs to a server. The client is relatively
-stateless. The only background activity a client performs is taking part of LAN gossip pool.
-This has a minimal resource overhead and consumes only a small amount of network bandwidth.
+stateless. The only background activity a client performs is taking part in the LAN gossip
+pool. This has a minimal resource overhead and consumes only a small amount of network
+bandwidth.
 
-* Server - An agent that is server mode. When in server mode, there is an expanded set
-of responsibilities including participating in the Raft quorum, maintaining cluster state,
-responding to RPC queries, WAN gossip to other datacenters, and forwarding queries to leaders
-or remote datacenters.
+* Server - A server is an agent with an expanded set of responsibilities including
+participating in the Raft quorum, maintaining cluster state, responding to RPC queries,
+WAN gossip to other datacenters, and forwarding queries to leaders or remote datacenters.
 
 * Datacenter - A datacenter seems obvious, but there are subtle details such as multiple
 availability zones in EC2. We define a datacenter to be a networking environment that is
@@ -47,13 +47,13 @@ the public internet.
 the elected leader as well as agreement on the ordering of transactions. Since these
 transactions are applied to a FSM, we implicitly include the consistency of a replicated
 state machine. Consensus is described in more detail on [Wikipedia](http://en.wikipedia.org/wiki/Consensus_(computer_science)),
-as well as our [implementation here](/docs/internals/consensus.html).
+and our implementation is described [here](/docs/internals/consensus.html).
 
 * Gossip - Consul is built on top of [Serf](http://www.serfdom.io/), which provides a full
 [gossip protocol](http://en.wikipedia.org/wiki/Gossip_protocol) that is used for multiple purposes.
 Serf provides membership, failure detection, and event broadcast mechanisms. Our use of these
 is described more in the [gossip documentation](/docs/internals/gossip.html). It is enough to know
-gossip involves random node-to-node communication, primarily over UDP.
+that gossip involves random node-to-node communication, primarily over UDP.
 
 * LAN Gossip - Refers to the LAN gossip pool, which contains nodes that are all
 located on the same local area network or datacenter.
@@ -62,8 +62,8 @@ located on the same local area network or datacenter.
 servers are primarily located in different datacenters and typically communicate
 over the internet or wide area network.
 
-* RPC - RPC is short for a Remote Procedure Call. This is a request / response mechanism
-allowing a client to make a request from a server.
+* RPC - Remote Procedure Call. This is a request / response mechanism allowing a
+client to make a request of a server.
 
 ## 10,000 foot view
 
@@ -73,7 +73,7 @@ From a 10,000 foot altitude the architecture of Consul looks like this:
 ![Consul Architecture](consul-arch.png)
 </div>
 
-Lets break down this image and describe each piece. First of all we can see
+Let's break down this image and describe each piece. First of all we can see
 that there are two datacenters, one and two respectively. Consul has first
 class support for multiple datacenters and expects this to be the common case.
 
@@ -85,9 +85,9 @@ and they can easily scale into the thousands or tens of thousands.
 
 All the nodes that are in a datacenter participate in a [gossip protocol](/docs/internals/gossip.html).
 This means there is a gossip pool that contains all the nodes for a given datacenter. This serves
-a few purposes: first, there is no need to configure clients with the addresses of servers,
+a few purposes: first, there is no need to configure clients with the addresses of servers;
 discovery is done automatically. Second, the work of detecting node failures
-is not placed on the servers but is distributed. This makes the failure detection much more
+is not placed on the servers but is distributed. This makes failure detection much more
 scalable than naive heartbeating schemes. Thirdly, it is used as a messaging layer to notify
 when important events such as leader election take place.
 
@@ -97,8 +97,8 @@ processing all queries and transactions. Transactions must also be replicated to
 as part of the [consensus protocol](/docs/internals/consensus.html). Because of this requirement,
 when a non-leader server receives an RPC request it forwards it to the cluster leader.
 
-The server nodes also operate as part of a WAN gossip. This pool is different from the LAN pool,
-as it is optimized for the higher latency of the internet, and is expected to only contain
+The server nodes also operate as part of a WAN gossip pool. This pool is different from the LAN pool,
+as it is optimized for the higher latency of the internet, and is expected to contain only
 other Consul server nodes. The purpose of this pool is to allow datacenters to discover each
 other in a low touch manner. Bringing a new datacenter online is as easy as joining the existing
 WAN gossip. Because the servers are all operating in this pool, it also enables cross-datacenter requests.
@@ -110,8 +110,8 @@ connection caching and multiplexing, cross-datacenter requests are relatively fa
 
 ## Getting in depth
 
-At this point we've covered the high level architecture of Consul, but there are much
-more details to each of the sub-systems. The [consensus protocol](/docs/internals/consensus.html) is
+At this point we've covered the high level architecture of Consul, but there are many
+more details for each of the sub-systems. The [consensus protocol](/docs/internals/consensus.html) is
 documented in detail, as is the [gossip protocol](/docs/internals/gossip.html). The [documentation](/docs/internals/security.html)
 for the security model and protocols used are also available.
 

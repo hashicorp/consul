@@ -67,9 +67,9 @@ service using either the DNS or HTTP API.
 
 Let's first query it using the DNS API. For the DNS API, the DNS name
 for services is `NAME.service.consul`. All DNS names are always in the
-`consul` namespace. The `service` subdomain on that tells Consul we're
-querying services, and the `NAME` is the name of the service. For the
-web service we registered, that would be `web.service.consul`:
+`consul` namespace. The `service` subdomain tells Consul we're querying
+services, and the `NAME` is the name of the service. For the web service
+we registered, that would be `web.service.consul`:
 
 ```text
 $ dig @127.0.0.1 -p 8600 web.service.consul

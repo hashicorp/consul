@@ -62,7 +62,7 @@ $ curl http://localhost:8500/v1/kv/?recurse
 Here we have created 3 keys, each with the value of "test". Note that the
 `Value` field returned is base64 encoded to allow non-UTF8
 characters. For the "web/key2" key, we set a `flag` value of 42. All keys
-support setting a 64bit integer flag value. This is opaque to Consul but can
+support setting a 64-bit integer flag value. This is opaque to Consul but can
 be used by clients for any purpose.
 
 After setting the values, we then issued a GET request to retrieve multiple
@@ -115,5 +115,5 @@ returning the current, unchanged value. This can be used to efficiently wait for
 key modifications. Additionally, this same technique can be used to wait for a list
 of keys, waiting only until any of the keys has a newer modification time.
 
-This is only a few example of what the API supports. For full documentation, please
-reference the [HTTP API](/docs/agent/http.html).
+These are only a few examples of what the API supports. For full
+documentation, please see the [HTTP API](/docs/agent/http.html).

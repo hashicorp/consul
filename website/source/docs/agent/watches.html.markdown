@@ -15,7 +15,7 @@ executable. As an example, you could  watch the status of health checks and
 notify an external system when a check is critical.
 
 Watches are implemented using blocking queries in the [HTTP API](/docs/agent/http.html).
-Agent's automatically make the proper API calls to watch for changes,
+Agents automatically make the proper API calls to watch for changes,
 and inform a handler when the data view has updated.
 
 Watches can be configured as part of the [agent's configuration](/docs/agent/options.html),
@@ -36,7 +36,7 @@ The watch specification specifies the view of data to be monitored.
 Once that view is updated the specified handler is invoked. The handler
 can be any executable.
 
-A handler should read it's input from stdin, and expect to read
+A handler should read its input from stdin, and expect to read
 JSON formatted data. The format of the data depends on the type of the
 watch. Each watch type documents the format type, and because they
 map directly to an HTTP API, handlers should expect the input to
@@ -280,7 +280,7 @@ An example of the output of this command:
 ### Type: checks
 
 The "checks" watch type is used to monitor the checks of a given
-service or in a specific state. It optionally takes the "service"
+service or those in a specific state. It optionally takes the "service"
 parameter to filter to a specific service, or "state" to filter
 to a specific state. By default, it will watch all checks.
 

@@ -8,22 +8,23 @@ description: |-
 
 # DNS Interface
 
-One of the primary query interfaces for Consul is using DNS.
+One of the primary query interfaces for Consul is DNS.
 The DNS interface allows applications to make use of service
 discovery without any high-touch integration with Consul. For
-example, instead of making any HTTP API requests to Consul,
+example, instead of making HTTP API requests to Consul,
 a host can use the DNS server directly and just do a name lookup
 for "redis.service.east-aws.consul".
 
 This query automatically translates to a lookup of nodes that
-provide the redis service, located in the "east-aws" datacenter,
-with no failing health checks. It's that simple!
+provide the redis service, are located in the "east-aws" datacenter,
+and have no failing health checks. It's that simple!
 
 There are a number of [configuration options](/docs/agent/options.html) that
 are important for the DNS interface. They are `client_addr`, `ports.dns`, `recursors`,
 `domain`, and `dns_config`. By default Consul will listen on 127.0.0.1:8600 for DNS queries
-in the "consul." domain, without support for DNS recursion. All queries are case-insensitive, a
-name lookup for `PostgreSQL.node.dc1.consul` will find all nodes named `postgresql`, no matter of case.
+in the "consul." domain, without support for DNS recursion. All queries are case-insensitive: a
+name lookup for `PostgreSQL.node.dc1.consul` will find all nodes named `postgresql`,
+regardless of case.
 
 There are a few ways to use the DNS interface. One option is to use a custom
 DNS resolver library and point it at Consul. Another option is to set Consul
@@ -76,24 +77,24 @@ consul.			0	IN	SOA	ns.consul. postmaster.consul. 1392836399 3600 600 86400 0
 ## Service Lookups
 
 A service lookup is the alternate type of query. It is used to query for service
-providers and supports two mode of lookup, a strict RCF style lookup and the
-standard lookup.
+providers and supports two lookup methods: standard lookup, and strict
+[RFC 2782](https://tools.ietf.org/html/rfc2782) lookup.
 
-### Standard Style Lookup
+### Standard Lookup
 
-The format of a standard service lookup is like the following:
+The format of a standard service lookup is:
 
     [tag.]<service>.service[.datacenter][.domain]
 
 As with node lookups, the `datacenter` is optional, as is the `tag`. If no tag is
 provided, then no filtering is done on tag. So, if we want to find any redis service
-providers in our local datacenter, we could lookup "redis.service.consul.", however
+providers in our local datacenter, we could lookup "redis.service.consul.", while
 if we care about the PostgreSQL master in a particular datacenter, we could lookup
 "master.postgresql.service.dc2.consul."
 
 The DNS query system makes use of health check information to prevent routing
 to unhealthy nodes. When a service query is made, any services failing their health
-check, or failing a node system check will be omitted from the results. To allow
+check, or failing a node system check, will be omitted from the results. To allow
 for simple load balancing, the set of nodes returned is also randomized each time.
 These simple mechanisms make it easy to use DNS along with application level retries
 as a simple foundation for an auto-healing service oriented architecture.
@@ -124,13 +125,13 @@ consul.service.consul.	0	IN	SRV	1 1 8300 foobar.node.dc1.consul.
 foobar.node.dc1.consul.	0	IN	A	10.1.10.12
 ```
 
-### RFC-2782 Style Lookup
+### RFC 2782 Lookup
 
-The format for RFC style lookups uses the following format:
+The format for RFC 2782 SRV lookups is:
 
     _<service>._<protocol>.service[.datacenter][.domain]
 
-Per [RFC-2782](https://www.ietf.org/rfc/rfc2782.txt), SRV queries should use
+Per [RFC 2782](https://tools.ietf.org/html/rfc2782), SRV queries should use
 underscores (_) as a prefix to the `service` and `protocol` values in a query to
 prevent DNS collisions. The `protocol` value can be any of the tags for a
 service or if the service has no tags, the value "tcp" should be used. If "tcp"
@@ -139,7 +140,7 @@ is specified as the protocol, the query will not perform any tag filtering.
 Other than the query format and default "tcp" protocol/tag value, the behavior
 of the RFC style lookup is the same as the standard style of lookup.
 
-Using the RCF style lookup, If you registered the service "rabbitmq" on port
+Using RFC 2782 lookup, If you registered the service "rabbitmq" on port
 5672 and tagged it with "amqp" you would query the SRV record as
 "_rabbitmq._amqp.service.consul" as illustrated in the example below:
 
@@ -168,7 +169,7 @@ rabbitmq.node1.dc1.consul.	0	IN	A	10.1.11.20
 
 When the DNS query is performed using UDP, Consul will truncate the results
 without setting the truncate bit. This is to prevent a redundant lookup over
-TCP which generate additional load. If the lookup is done over TCP, the results
+TCP that generates additional load. If the lookup is done over TCP, the results
 are not truncated.
 
 ## Caching

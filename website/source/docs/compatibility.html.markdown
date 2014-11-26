@@ -10,8 +10,8 @@ description: |-
 
 We expect Consul to run in large clusters as long-running agents. Because
 upgrading agents in this sort of environment relies heavily on protocol
-compatibility, this page makes it clear on our promise to keeping different
-Consul versions compatible with each other.
+compatibility, this page makes clear our promise to keep different Consul
+versions compatible with each other.
 
 We promise that every subsequent release of Consul will remain backwards
 compatible with _at least_ one prior version. Concretely: version 0.5 can
