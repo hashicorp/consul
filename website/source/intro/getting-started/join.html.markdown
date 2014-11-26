@@ -14,12 +14,12 @@ Consul, but didn't show how this could be extended to a scalable production
 service discovery infrastructure. On this page, we'll create our first
 real cluster with multiple members.
 
-When starting a Consul agent, it begins without knowledge of any other node, and is
-an isolated cluster of one.  To learn about other cluster members, the agent must
-_join_ an existing cluster.  To join an existing cluster, it only needs to know
-about a _single_ existing member. After it joins, the agent will gossip with this
-member and quickly discover the other members in the cluster. A Consul
-agent can join any other agent, it doesn't have to be an agent in server mode.
+When a Consul agent is started, it begins without knowledge of any other node,
+and is an isolated cluster of one.  To learn about other cluster members, the
+agent must _join_ an existing cluster.  To join an existing cluster, it only
+needs to know about a _single_ existing member. After it joins, the agent will
+gossip with this member and quickly discover the other members in the cluster.
+A Consul agent can join any other agent, not just agents in server mode.
 
 ## Starting the Agents
 
@@ -78,7 +78,7 @@ agent-one   172.20.20.10:8301   alive   role=consul,dc=dc1,vsn=2,vsn_min=1,vsn_m
 agent-two   172.20.20.11:8301   alive   role=node,dc=dc1,vsn=2,vsn_min=1,vsn_max=2
 ```
 
--> **Remember:** To join a cluster, a Consul agent needs to only
+-> **Remember:** To join a cluster, a Consul agent only needs to
 learn about <em>one existing member</em>. After joining the cluster, the
 agents gossip with each other to propagate full membership information.
 
