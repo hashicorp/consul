@@ -16,12 +16,12 @@ or added at runtime over the HTTP interface.
 There are two different kinds of checks:
 
  * Script + Interval - These checks depend on invoking an external application
- which does the health check and exits with an appropriate exit code, potentially
+ that does the health check and exits with an appropriate exit code, potentially
  generating some output. A script is paired with an invocation interval (e.g.
  every 30 seconds). This is similar to the Nagios plugin system.
 
- * TTL - These checks retain their last known state for a given TTL. The state
- of the check must be updated periodically over the HTTP interface. If an
+ * Time to Live (TTL) - These checks retain their last known state for a given TTL.
+ The state of the check must be updated periodically over the HTTP interface. If an
  external system fails to update the status within a given TTL, the check is
  set to the failed state. This mechanism is used to allow an application to
  directly report its health. For example, a web app can periodically curl the
@@ -75,7 +75,7 @@ check can be registered dynamically using the [HTTP API](/docs/agent/http.html).
 ## Check Scripts
 
 A check script is generally free to do anything to determine the status
-of the check. The only limitations placed are the exit codes must convey
+of the check. The only limitations placed are that the exit codes must convey
 a specific meaning. Specifically:
 
  * Exit code 0 - Check is passing
