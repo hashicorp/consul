@@ -19,9 +19,8 @@ two node cluster running.
 ## Defining Checks
 
 Similarly to a service, a check can be registered either by providing a
-[check definition](/docs/agent/checks.html)
-, or by making the appropriate calls to the
-[HTTP API](/docs/agent/http.html).
+[check definition](/docs/agent/checks.html), or by making the
+appropriate calls to the [HTTP API](/docs/agent/http.html).
 
 We will use the check definition, because just like services, definitions
 are the most common way to setup checks.
