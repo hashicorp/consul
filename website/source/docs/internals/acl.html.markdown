@@ -11,7 +11,7 @@ description: |-
 Consul provides an optional Access Control List (ACL) system which can be used to control
 access to data and APIs. The ACL system is a
 [Capability-based system](http://en.wikipedia.org/wiki/Capability-based_security) that relies
-on tokens which can have fine grained rules applied to them. It is very similar to
+on tokens to which fine grained rules can be applied. It is very similar to
 [AWS IAM](http://aws.amazon.com/iam/) in many ways.
 
 ## ACL Design
@@ -30,10 +30,10 @@ perform all actions.
 The token ID is passed along with each RPC request to the servers. Agents
 [can be configured](/docs/agent/options.html) with `acl_token` to provide a default token,
 but the token can also be specified by a client on a [per-request basis](/docs/agent/http.html).
-ACLs are new as of Consul 0.4, meaning versions prior do not provide a token.
+ACLs are new as of Consul 0.4, meaning prior versions do not provide a token.
 This is handled by the special "anonymous" token. Anytime there is no token provided,
-the rules defined by that token are automatically applied. This lets policy be enforced
-on legacy clients.
+the rules defined by that token are automatically applied. This allows
+policy to be enforced on legacy clients.
 
 Enforcement is always done by the server nodes. All servers must be [configured
 to provide](/docs/agent/options.html) an `acl_datacenter`, which enables
@@ -47,7 +47,7 @@ all the tokens.
 When a request is made to any non-authoritative server with a token, it must
 be resolved into the appropriate policy. This is done by reading the token
 from the authoritative server and caching a configurable `acl_ttl`. The implication
-of caching is that the cache TTL is an upper-bound on the staleness of policy
+of caching is that the cache TTL is an upper bound on the staleness of policy
 that is enforced. It is possible to set a zero TTL, but this has adverse
 performance impacts, as every request requires refreshing the policy.
 
