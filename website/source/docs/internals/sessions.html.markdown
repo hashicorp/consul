@@ -64,9 +64,9 @@ systems to be built that require an operator to intervene in the
 case of a failure, but preclude the possibility of a split-brain.
 
 The final nuance is that sessions may provide a `lock-delay`. This
-is a time duration, between 0 and 60 second. When a session invalidation
+is a time duration, between 0 and 60 seconds. When a session invalidation
 takes place, Consul prevents any of the previously held locks from
-being re-acquired for the `lock-delay` interval; this is a safe guard
+being re-acquired for the `lock-delay` interval; this is a safeguard
 inspired by Google's Chubby. The purpose of this delay is to allow
 the potentially still live leader to detect the invalidation and stop
 processing requests that may lead to inconsistent state. While not a
@@ -79,7 +79,7 @@ mechanism by providing a zero delay value.
 
 Integration between the Key/Value store and sessions are the primary
 place where sessions are used. A session must be created prior to use,
-and is then referred to by it's ID.
+and is then referred to by its ID.
 
 The Key/Value API is extended to support an `acquire` and `release` operation.
 The `acquire` operation acts like a Check-And-Set operation, except it
@@ -93,7 +93,7 @@ since the request will fail if given an invalid session. A critical note is
 that the lock can be released without being the creator of the session.
 This is by design, as it allows operators to intervene and force terminate
 a session if necessary. As mentioned above, a session invalidation will also
-cause all held locks to be released. When a lock is released, the `LockIndex`,
+cause all held locks to be released. When a lock is released, the `LockIndex`
 does not change, however the `Session` is cleared and the `ModifyIndex` increments.
 
 These semantics (heavily borrowed from Chubby), allow the tuple of (Key, LockIndex, Session)
@@ -103,7 +103,7 @@ is incremented on each `acquire`, even if the same session re-acquires a lock,
 the `sequencer` will be able to detect a stale request. Similarly, if a session is
 invalided, the Session corresponding to the given `LockIndex` will be blank.
 
-To make clear, this locking system is purely *advisory*. There is no enforcement
+To be clear, this locking system is purely *advisory*. There is no enforcement
 that clients must acquire a lock to perform any operation. Any client can
 read, write, and delete a key without owning the corresponding lock. It is not
 the goal of Consul to protect against misbehaving clients.
