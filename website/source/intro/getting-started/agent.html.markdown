@@ -8,8 +8,8 @@ description: |-
 
 # Run the Consul Agent
 
-After Consul is installed, the agent must be run. The agent can either run
-in a server or client mode. Each datacenter must have at least one server,
+After Consul is installed, the agent must be run. The agent can run either
+in server or client mode. Each datacenter must have at least one server,
 although 3 or 5 is recommended. A single server deployment is _**highly**_ discouraged
 as data loss is inevitable in a failure scenario. [This guide](/docs/guides/bootstrapping.html)
 covers bootstrapping a new datacenter. All other agents run in client mode, which
@@ -114,10 +114,11 @@ By gracefully leaving, Consul notifies other cluster members that the
 node _left_. If you had forcibly killed the agent process, other members
 of the cluster would have detected that the node _failed_. When a member leaves,
 its services and checks are removed from the catalog. When a member fails,
-its health is simply marked as critical, but is not removed from the catalog.
+its health is simply marked as critical, but it is not removed from the catalog.
 Consul will automatically try to reconnect to _failed_ nodes, which allows it
 to recover from certain network conditions, while _left_ nodes are no longer contacted.
 
 Additionally, if an agent is operating as a server, a graceful leave is important
 to avoid causing a potential availability outage affecting the [consensus protocol](/docs/internals/consensus.html).
-See the [guides section](/docs/guides/index.html) to safely add and remove servers.
+See the [guides section](/docs/guides/index.html) for how to safely add
+and remove servers.
