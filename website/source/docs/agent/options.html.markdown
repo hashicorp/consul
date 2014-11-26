@@ -22,8 +22,10 @@ The exact merging behavior will be specified.
 
 Consul also supports reloading of configuration when it receives the
 SIGHUP signal. Not all changes are respected, but those that are
-are documented below. The [reload command](/docs/commands/reload.html)
-can also be used to trigger a configuration reload.
+are documented below in the
+[Reloadable Configuration](#reloadable-configuration) section. The
+[reload command](/docs/commands/reload.html) can also be used to trigger a
+configuration reload.
 
 ## Command-line Options
 
@@ -439,3 +441,14 @@ port.
 
 * DNS Interface (Default 8600). Used to resolve DNS queries. TCP and UDP.
 
+## Reloadable Configuration
+<a id="reloadable-configuration"></a>
+
+Reloading configuration does not reload all configuration items. The
+items which are reloaded include:
+
+* Log level
+* Checks
+* Services
+* Watches
+* HTTP Client Address
