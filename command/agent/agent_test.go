@@ -181,12 +181,12 @@ func TestAgent_RemoveService(t *testing.T) {
 	defer agent.Shutdown()
 
 	// Remove a service that doesn't exist
-	if err := agent.RemoveService("redis"); err != nil {
+	if err := agent.RemoveService("redis", false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Remove the consul service
-	if err := agent.RemoveService("consul"); err == nil {
+	if err := agent.RemoveService("consul", false); err == nil {
 		t.Fatalf("should have errored")
 	}
 
@@ -201,7 +201,7 @@ func TestAgent_RemoveService(t *testing.T) {
 	}
 
 	// Remove the service
-	if err := agent.RemoveService("redis"); err != nil {
+	if err := agent.RemoveService("redis", false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -291,7 +291,7 @@ func TestAgent_RemoveCheck(t *testing.T) {
 	defer agent.Shutdown()
 
 	// Remove check that doesn't exist
-	if err := agent.RemoveCheck("mem"); err != nil {
+	if err := agent.RemoveCheck("mem", false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -311,7 +311,7 @@ func TestAgent_RemoveCheck(t *testing.T) {
 	}
 
 	// Remove check
-	if err := agent.RemoveCheck("mem"); err != nil {
+	if err := agent.RemoveCheck("mem", false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -438,13 +438,39 @@ func TestAgent_PersistService(t *testing.T) {
 	if _, ok := agent2.state.services[svc.ID]; !ok {
 		t.Fatalf("bad: %#v", agent2.state.services)
 	}
+}
 
-	// Should remove the service file
-	if err := agent2.RemoveService(svc.ID); err != nil {
+func TestAgent_PurgeService(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+
+	file := filepath.Join(agent.config.DataDir, servicesDir, svc.ID)
+	if err := agent.AddService(svc, nil, true); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Not removed
+	if err := agent.RemoveService(svc.ID, false); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Removed
+	if err := agent.RemoveService(svc.ID, true); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
-		t.Fatalf("err: %s", err)
+		t.Fatalf("bad: %#v", err)
 	}
 }
 
@@ -555,13 +581,41 @@ func TestAgent_PersistCheck(t *testing.T) {
 	if result.Status != structs.HealthCritical {
 		t.Fatalf("bad: %#v", result)
 	}
+}
 
-	// Should remove the service file
-	if err := agent2.RemoveCheck(check.CheckID); err != nil {
+func TestAgent_PurgeCheck(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+
+	check := &structs.HealthCheck{
+		Node:        config.NodeName,
+		CheckID:     "service:redis1",
+		Name:        "redischeck",
+		Status:      structs.HealthPassing,
+		ServiceID:   "redis",
+		ServiceName: "redis",
+	}
+
+	file := filepath.Join(agent.config.DataDir, checksDir, check.CheckID)
+	if err := agent.AddCheck(check, nil, true); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Not removed
+	if err := agent.RemoveCheck(check.CheckID, false); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Removed
+	if err := agent.RemoveCheck(check.CheckID, true); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if _, err := os.Stat(file); !os.IsNotExist(err) {
-		t.Fatalf("err: %s", err)
+		t.Fatalf("bad: %#v", err)
 	}
 }
 

@@ -141,31 +141,11 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		return nil, err
 	}
 
-	// Register the services from config
-	for _, service := range config.Services {
-		ns := service.NodeService()
-		chkType := service.CheckType()
-		if err := agent.AddService(ns, chkType, false); err != nil {
-			return nil, fmt.Errorf(
-				"Failed to register service '%s': %v", service.Name, err)
-		}
-	}
-
-	// Register the checks from config
-	for _, check := range config.Checks {
-		health := check.HealthCheck(config.NodeName)
-		chkType := &check.CheckType
-		if err := agent.AddCheck(health, chkType, false); err != nil {
-			return nil, fmt.Errorf(
-				"Failed to register check '%s': %v %v", check.Name, err, check)
-		}
-	}
-
-	// Load any persisted services or checks
-	if err := agent.restoreServices(); err != nil {
+	// Load checks/services
+	if err := agent.reloadServices(config); err != nil {
 		return nil, err
 	}
-	if err := agent.restoreChecks(); err != nil {
+	if err := agent.reloadChecks(config); err != nil {
 		return nil, err
 	}
 
@@ -705,7 +685,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkType *CheckType, per
 
 // RemoveService is used to remove a service entry.
 // The agent will make a best effort to ensure it is deregistered
-func (a *Agent) RemoveService(serviceID string) error {
+func (a *Agent) RemoveService(serviceID string, persist bool) error {
 	// Protect "consul" service from deletion by a user
 	if a.server != nil && serviceID == consul.ConsulServiceID {
 		return fmt.Errorf(
@@ -717,13 +697,15 @@ func (a *Agent) RemoveService(serviceID string) error {
 	a.state.RemoveService(serviceID)
 
 	// Remove the service from the data dir
-	if err := a.purgeService(serviceID); err != nil {
-		return err
+	if persist {
+		if err := a.purgeService(serviceID); err != nil {
+			return err
+		}
 	}
 
 	// Deregister any associated health checks
 	checkID := fmt.Sprintf("service:%s", serviceID)
-	return a.RemoveCheck(checkID)
+	return a.RemoveCheck(checkID, persist)
 }
 
 // AddCheck is used to add a health check to the agent.
@@ -792,7 +774,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 
 // RemoveCheck is used to remove a health check.
 // The agent will make a best effort to ensure it is deregistered
-func (a *Agent) RemoveCheck(checkID string) error {
+func (a *Agent) RemoveCheck(checkID string, persist bool) error {
 	// Add to the local state for anti-entropy
 	a.state.RemoveCheck(checkID)
 
@@ -808,7 +790,10 @@ func (a *Agent) RemoveCheck(checkID string) error {
 		check.Stop()
 		delete(a.checkTTLs, checkID)
 	}
-	return a.purgeCheck(checkID)
+	if persist {
+		return a.purgeCheck(checkID)
+	}
+	return nil
 }
 
 // UpdateCheck is used to update the status of a check.
@@ -902,5 +887,60 @@ func (a *Agent) deletePid() error {
 	if err != nil {
 		return fmt.Errorf("Could not remove pid file: %s", err)
 	}
+	return nil
+}
+
+// reloadServices reloads all known services from config and state. It is used
+// at initial agent startup as well as during config reloads.
+func (a *Agent) reloadServices(conf *Config) error {
+	for _, service := range a.state.Services() {
+		if service.ID == consul.ConsulServiceID {
+			continue
+		}
+		if err := a.RemoveService(service.ID, false); err != nil {
+			return fmt.Errorf("Failed deregistering service '%s': %v", service.ID, err)
+		}
+	}
+
+	// Register the services from config
+	for _, service := range conf.Services {
+		ns := service.NodeService()
+		chkType := service.CheckType()
+		if err := a.AddService(ns, chkType, false); err != nil {
+			return fmt.Errorf("Failed to register service '%s': %v", service.ID, err)
+		}
+	}
+
+	// Load any persisted services
+	if err := a.restoreServices(); err != nil {
+		return fmt.Errorf("Failed restoring services: %s", err)
+	}
+
+	return nil
+}
+
+// reloadChecks reloads all known checks from config and state. It can be used
+// during initial agent start or for config reloads.
+func (a *Agent) reloadChecks(conf *Config) error {
+	for _, check := range a.state.Checks() {
+		if err := a.RemoveCheck(check.CheckID, false); err != nil {
+			return fmt.Errorf("Failed deregistering check '%s': %s", check.CheckID, err)
+		}
+	}
+
+	// Register the checks from config
+	for _, check := range conf.Checks {
+		health := check.HealthCheck(conf.NodeName)
+		chkType := &check.CheckType
+		if err := a.AddCheck(health, chkType, false); err != nil {
+			return fmt.Errorf("Failed to register check '%s': %v %v", check.Name, err, check)
+		}
+	}
+
+	// Load any persisted checks
+	if err := a.restoreChecks(); err != nil {
+		return fmt.Errorf("Failed restoring checks: %s", err)
+	}
+
 	return nil
 }

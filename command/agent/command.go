@@ -722,34 +722,14 @@ func (c *Command) handleReload(config *Config) *Config {
 	c.agent.PauseSync()
 	defer c.agent.ResumeSync()
 
-	// Deregister the old services
-	for _, service := range config.Services {
-		ns := service.NodeService()
-		c.agent.RemoveService(ns.ID)
+	// Reload services and check definitions
+	if err := c.agent.reloadServices(newConf); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed reloading services: %s", err))
+		return nil
 	}
-
-	// Deregister the old checks
-	for _, check := range config.Checks {
-		health := check.HealthCheck(config.NodeName)
-		c.agent.RemoveCheck(health.CheckID)
-	}
-
-	// Register the services
-	for _, service := range newConf.Services {
-		ns := service.NodeService()
-		chkType := service.CheckType()
-		if err := c.agent.AddService(ns, chkType, false); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to register service '%s': %v", service.Name, err))
-		}
-	}
-
-	// Register the checks
-	for _, check := range newConf.Checks {
-		health := check.HealthCheck(config.NodeName)
-		chkType := &check.CheckType
-		if err := c.agent.AddCheck(health, chkType, false); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to register check '%s': %v %v", check.Name, err, check))
-		}
+	if err := c.agent.reloadChecks(newConf); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed reloading checks: %s", err))
+		return nil
 	}
 
 	// Get the new client listener addr
