@@ -3,16 +3,17 @@ package consul
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/hashicorp/yamux"
-	"github.com/inconshreveable/muxado"
 	"io"
 	"math/rand"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/yamux"
+	"github.com/inconshreveable/muxado"
 )
 
 type RPCType byte
@@ -149,7 +150,13 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
 	rpcCodec := codec.GoRpc.ServerCodec(conn, msgpackHandle)
-	for !s.shutdown {
+	for {
+		select {
+		case <-s.shutdownCh:
+			return
+		default:
+		}
+
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
 				s.logger.Printf("[ERR] consul.rpc: RPC error: %v (%v)", err, conn)
