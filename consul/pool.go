@@ -358,12 +358,12 @@ func (p *ConnPool) RPC(addr net.Addr, version int, method string, args interface
 
 // Reap is used to close conns open over maxTime
 func (p *ConnPool) reap() {
-	for !p.shutdown {
+	for {
 		// Sleep for a while
 		select {
-		case <-time.After(time.Second):
 		case <-p.shutdownCh:
 			return
+		case <-time.After(time.Second):
 		}
 
 		// Reap all old conns
