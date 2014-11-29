@@ -534,11 +534,15 @@ func TestAgent_PersistCheck(t *testing.T) {
 		ServiceID:   "redis",
 		ServiceName: "redis",
 	}
+	chkType := &CheckType{
+		Script:   "/bin/true",
+		Interval: 10 * time.Second,
+	}
 
 	file := filepath.Join(agent.config.DataDir, checksDir, check.CheckID)
 
 	// Not persisted if not requested
-	if err := agent.AddCheck(check, nil, false); err != nil {
+	if err := agent.AddCheck(check, chkType, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if _, err := os.Stat(file); err == nil {
@@ -546,7 +550,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 
 	// Should persist if requested
-	if err := agent.AddCheck(check, nil, true); err != nil {
+	if err := agent.AddCheck(check, chkType, true); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -554,7 +558,8 @@ func TestAgent_PersistCheck(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected, err := json.Marshal(check)
+	p := persistedCheck{check, chkType}
+	expected, err := json.Marshal(p)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -574,12 +579,17 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 	defer agent2.Shutdown()
 
-	result, ok := agent2.state.checks[check.CheckID]
+	result, ok := agent2.state.checks[p.Check.CheckID]
 	if !ok {
 		t.Fatalf("bad: %#v", agent2.state.checks)
 	}
 	if result.Status != structs.HealthCritical {
 		t.Fatalf("bad: %#v", result)
+	}
+
+	// Should have restored the monitor
+	if _, ok := agent2.checkMonitors[p.Check.CheckID]; !ok {
+		t.Fatalf("bad: %#v", agent2.checkMonitors)
 	}
 }
 

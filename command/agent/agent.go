@@ -564,24 +564,29 @@ func (a *Agent) restoreServices() error {
 }
 
 // persistCheck saves a check definition to the local agent's state directory
-func (a *Agent) persistCheck(check *structs.HealthCheck) error {
+func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType) error {
 	checkPath := filepath.Join(a.config.DataDir, checksDir, check.CheckID)
-	if _, err := os.Stat(checkPath); os.IsNotExist(err) {
-		encoded, err := json.Marshal(check)
-		if err != nil {
-			return nil
-		}
-		if err := os.MkdirAll(filepath.Dir(checkPath), 0700); err != nil {
-			return err
-		}
-		fh, err := os.OpenFile(checkPath, os.O_CREATE|os.O_WRONLY, 0600)
-		if err != nil {
-			return err
-		}
-		defer fh.Close()
-		if _, err := fh.Write(encoded); err != nil {
-			return err
-		}
+	if _, err := os.Stat(checkPath); !os.IsNotExist(err) {
+		return err
+	}
+
+	// Create the persisted check
+	p := persistedCheck{check, chkType}
+
+	encoded, err := json.Marshal(p)
+	if err != nil {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(checkPath), 0700); err != nil {
+		return err
+	}
+	fh, err := os.OpenFile(checkPath, os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+	if _, err := fh.Write(encoded); err != nil {
+		return err
 	}
 	return nil
 }
@@ -619,23 +624,23 @@ func (a *Agent) restoreChecks() error {
 			return err
 		}
 
-		var check *structs.HealthCheck
-		if err := json.Unmarshal(content, &check); err != nil {
+		var p persistedCheck
+		if err := json.Unmarshal(content, &p); err != nil {
 			return err
 		}
 
-		if _, ok := a.state.checks[check.CheckID]; ok {
+		if _, ok := a.state.checks[p.Check.CheckID]; ok {
 			// Purge previously persisted check. This allows config to be
 			// preferred over persisted checks from the API.
-			a.logger.Printf("[DEBUG] Check %s exists, not restoring", check.CheckID)
-			return a.purgeCheck(check.CheckID)
+			a.logger.Printf("[DEBUG] Check %s exists, not restoring", p.Check.CheckID)
+			return a.purgeCheck(p.Check.CheckID)
 		} else {
 			// Default check to critical to avoid placing potentially unhealthy
 			// services into the active pool
-			check.Status = structs.HealthCritical
+			p.Check.Status = structs.HealthCritical
 
-			a.logger.Printf("[DEBUG] Restored health check: %s", check.CheckID)
-			return a.AddCheck(check, nil, false)
+			a.logger.Printf("[DEBUG] Restored health check: %s", p.Check.CheckID)
+			return a.AddCheck(p.Check, p.ChkType, false)
 		}
 	})
 	return err
@@ -766,7 +771,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 
 	// Persist the check
 	if persist {
-		return a.persistCheck(check)
+		return a.persistCheck(check, chkType)
 	}
 
 	return nil
