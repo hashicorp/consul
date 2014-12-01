@@ -559,8 +559,13 @@ func DecodeServiceDefinition(raw interface{}) (*ServiceDefinition, error) {
 		}
 	}
 
-	sub, ok = rawMap["check"]
-	if !ok {
+	for k, v := range rawMap {
+		if strings.ToLower(k) == "check" {
+			sub = v
+			break
+		}
+	}
+	if sub == nil {
 		goto AFTER_FIX
 	}
 	if err := FixupCheckType(sub); err != nil {
