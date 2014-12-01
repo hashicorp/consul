@@ -50,7 +50,6 @@ func TestCatalogRegister_ACLDeny(t *testing.T) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
-		c.ACLToken = "root"
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -91,6 +90,12 @@ func TestCatalogRegister_ACLDeny(t *testing.T) {
 
 	err := client.Call("Catalog.Register", &argR, &outR)
 	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	argR.Service.Service = "foo"
+	err = client.Call("Catalog.Register", &argR, &outR)
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
@@ -775,6 +780,6 @@ func TestCatalogRegister_FailedCase1(t *testing.T) {
 
 var testRegisterRules = `
 service "foo" {
-	policy = "read"
+	policy = "write"
 }
 `
