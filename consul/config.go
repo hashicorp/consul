@@ -158,6 +158,24 @@ type Config struct {
 	// "allow" can be used to allow all requests. This is not recommended.
 	ACLDownPolicy string
 
+	// TombstoneGC is used to control how long KV tombstones are retained.
+	// This provides a window of time where the X-Consul-Index is monotonic.
+	// Outside this window, the index may not be monotonic. This is a result
+	// of a few trade offs:
+	// 1) The index is defined by the data view and not globally. This is a
+	// performance optimization that prevents any write from incrementing the
+	// index for all data views.
+	// 2) Tombstones are not kept indefinitely, since otherwise storage required
+	// is also monotonic. This prevents deletes from reducing the disk space
+	// used.
+	// In theory, neither of these are intrinsic limitations, however for the
+	// purposes of building a practical system, they are reaonable trade offs.
+	//
+	// It is also possible to set this to an incredibly long time, thereby
+	// simulating infinite retention. This is not recommended however.
+	//
+	TombstoneGC time.Duration
+
 	// ServerUp callback can be used to trigger a notification that
 	// a Consul server is now up and known about.
 	ServerUp func()
@@ -216,6 +234,7 @@ func DefaultConfig() *Config {
 		ACLTTL:            30 * time.Second,
 		ACLDefaultPolicy:  "allow",
 		ACLDownPolicy:     "extend-cache",
+		TombstoneGC:       15 * time.Minute,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
