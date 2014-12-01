@@ -2,10 +2,11 @@ package consul
 
 import (
 	"fmt"
-	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/consul/structs"
 	"sort"
 	"time"
+
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 // Catalog endpoint is used to manipulate the service catalog
@@ -34,6 +35,20 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		// Verify ServiceName provided if ID
 		if args.Service.ID != "" && args.Service.Service == "" {
 			return fmt.Errorf("Must provide service name with ID")
+		}
+
+		// Apply the ACL policy if any
+		// The 'consul' service is excluded since it is managed
+		// automatically internally.
+		if args.Service.Service != ConsulServiceName {
+			acl, err := c.srv.resolveToken(args.Token)
+			if err != nil {
+				return err
+			} else if acl != nil && !acl.ServiceWrite(args.Service.Service) {
+				c.srv.logger.Printf("[WARN] consul.catalog: Register of service '%s' on '%s' denied due to ACLs",
+					args.Service.Service, args.Node)
+				return permissionDeniedErr
+			}
 		}
 	}
 

@@ -45,6 +45,61 @@ func TestCatalogRegister(t *testing.T) {
 	})
 }
 
+func TestCatalogRegister_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Create the ACL
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "User token",
+			Type:  structs.ACLTypeClient,
+			Rules: testRegisterRules,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out string
+	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	id := out
+
+	argR := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    8000,
+		},
+		WriteRequest: structs.WriteRequest{Token: id},
+	}
+	var outR struct{}
+
+	err := client.Call("Catalog.Register", &argR, &outR)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("err: %v", err)
+	}
+
+	argR.Service.Service = "foo"
+	err = client.Call("Catalog.Register", &argR, &outR)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestCatalogRegister_ForwardLeader(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -722,3 +777,9 @@ func TestCatalogRegister_FailedCase1(t *testing.T) {
 		t.Fatalf("Bad: %v", out2)
 	}
 }
+
+var testRegisterRules = `
+service "foo" {
+	policy = "write"
+}
+`

@@ -2,20 +2,25 @@ package acl
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/hcl"
 )
 
 const (
-	KeyPolicyDeny  = "deny"
-	KeyPolicyRead  = "read"
-	KeyPolicyWrite = "write"
+	KeyPolicyDeny      = "deny"
+	KeyPolicyRead      = "read"
+	KeyPolicyWrite     = "write"
+	ServicePolicyDeny  = "deny"
+	ServicePolicyRead  = "read"
+	ServicePolicyWrite = "write"
 )
 
 // Policy is used to represent the policy specified by
 // an ACL configuration.
 type Policy struct {
-	ID   string       `hcl:"-"`
-	Keys []*KeyPolicy `hcl:"key,expand"`
+	ID       string           `hcl:"-"`
+	Keys     []*KeyPolicy     `hcl:"key,expand"`
+	Services []*ServicePolicy `hcl:"service,expand"`
 }
 
 // KeyPolicy represents a policy for a key
@@ -25,6 +30,16 @@ type KeyPolicy struct {
 }
 
 func (k *KeyPolicy) GoString() string {
+	return fmt.Sprintf("%#v", *k)
+}
+
+// ServicePolicy represents a policy for a service
+type ServicePolicy struct {
+	Name   string `hcl:",key"`
+	Policy string
+}
+
+func (k *ServicePolicy) GoString() string {
 	return fmt.Sprintf("%#v", *k)
 }
 
@@ -53,5 +68,17 @@ func Parse(rules string) (*Policy, error) {
 			return nil, fmt.Errorf("Invalid key policy: %#v", kp)
 		}
 	}
+
+	// Validate the service policy
+	for _, sp := range p.Services {
+		switch sp.Policy {
+		case ServicePolicyDeny:
+		case ServicePolicyRead:
+		case ServicePolicyWrite:
+		default:
+			return nil, fmt.Errorf("Invalid service policy: %#v", sp)
+		}
+	}
+
 	return p, nil
 }

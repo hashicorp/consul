@@ -46,6 +46,12 @@ type ACL interface {
 	// that deny a write.
 	KeyWritePrefix(string) bool
 
+	// ServiceWrite checks for permission to read a given service
+	ServiceWrite(string) bool
+
+	// ServiceRead checks for permission to read a given service
+	ServiceRead(string) bool
+
 	// ACLList checks for permission to list all the ACLs
 	ACLList() bool
 
@@ -70,6 +76,14 @@ func (s *StaticACL) KeyWrite(string) bool {
 }
 
 func (s *StaticACL) KeyWritePrefix(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) ServiceRead(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) ServiceWrite(string) bool {
 	return s.defaultAllow
 }
 
@@ -119,19 +133,28 @@ type PolicyACL struct {
 
 	// keyRules contains the key policies
 	keyRules *radix.Tree
+
+	// serviceRules contains the service policies
+	serviceRules map[string]string
 }
 
 // New is used to construct a policy based ACL from a set of policies
 // and a parent policy to resolve missing cases.
 func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 	p := &PolicyACL{
-		parent:   parent,
-		keyRules: radix.New(),
+		parent:       parent,
+		keyRules:     radix.New(),
+		serviceRules: make(map[string]string, len(policy.Services)),
 	}
 
 	// Load the key policy
 	for _, kp := range policy.Keys {
 		p.keyRules.Insert(kp.Prefix, kp.Policy)
+	}
+
+	// Load the service policy
+	for _, sp := range policy.Services {
+		p.serviceRules[sp.Name] = sp.Policy
 	}
 	return p, nil
 }
@@ -203,6 +226,48 @@ func (p *PolicyACL) KeyWritePrefix(prefix string) bool {
 
 	// No matching rule, use the parent.
 	return p.parent.KeyWritePrefix(prefix)
+}
+
+// ServiceRead checks if reading (discovery) of a service is allowed
+func (p *PolicyACL) ServiceRead(name string) bool {
+	// Check for an exact rule or catch-all
+	rule, ok := p.serviceRules[name]
+	if !ok {
+		rule, ok = p.serviceRules[""]
+	}
+	if ok {
+		switch rule {
+		case ServicePolicyWrite:
+			return true
+		case ServicePolicyRead:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.ServiceRead(name)
+}
+
+// ServiceWrite checks if writing (registering) a service is allowed
+func (p *PolicyACL) ServiceWrite(name string) bool {
+	// Check for an exact rule or catch-all
+	rule, ok := p.serviceRules[name]
+	if !ok {
+		rule, ok = p.serviceRules[""]
+	}
+	if ok {
+		switch rule {
+		case ServicePolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// No matching rule, use the parent.
+	return p.parent.ServiceWrite(name)
 }
 
 // ACLList checks if listing of ACLs is allowed

@@ -114,6 +114,16 @@ key "foo/private/" {
   # Deny access to the private dir
   policy = "deny"
 }
+
+# Default all services to allowing registration
+service "" {
+    policy = "write"
+}
+
+service "secure" {
+    # Deny registration access to secure service
+    policy = "read"
+}
 ```
 
 This is equivalent to the following JSON input:
@@ -122,14 +132,22 @@ This is equivalent to the following JSON input:
 {
   "key": {
     "": {
-      "policy": "read",
+      "policy": "read"
     },
     "foo/": {
-      "policy": "write",
+      "policy": "write"
     },
     "foo/private": {
-      "policy": "deny",
+      "policy": "deny"
     }
+  },
+  "service": {
+      "": {
+          "policy": "write"
+      },
+      "secure": {
+          "policy": "read"
+      }
   }
 }
 ```
@@ -139,3 +157,12 @@ using a longest-prefix match policy. This means we pick the most specific
 policy possible. The policy is either "read", "write" or "deny". A "write"
 policy implies "read", and there is no way to specify write-only. If there
 is no applicable rule, the `acl_default_policy` is applied.
+
+Services policies provide both a service name and a policy. The rules are
+enforced using an exact match policy. The default rule is provided using
+the empty string. The policy is either "read", "write", or "deny". A "write"
+policy implies "read", and there is no way to specify write-only. If there
+is no applicable rule, the `acl_default_policy` is applied. Currently, only
+the "write" level is enforced for registration of services. The policy for
+the "consul" service is always "write" as it is managed internally.
+

@@ -41,6 +41,12 @@ func TestStaticACL(t *testing.T) {
 	if !all.KeyWrite("foobar") {
 		t.Fatalf("should allow")
 	}
+	if !all.ServiceRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !all.ServiceWrite("foobar") {
+		t.Fatalf("should allow")
+	}
 	if all.ACLList() {
 		t.Fatalf("should not allow")
 	}
@@ -54,6 +60,12 @@ func TestStaticACL(t *testing.T) {
 	if none.KeyWrite("foobar") {
 		t.Fatalf("should not allow")
 	}
+	if none.ServiceRead("foobar") {
+		t.Fatalf("should not allow")
+	}
+	if none.ServiceWrite("foobar") {
+		t.Fatalf("should not allow")
+	}
 	if none.ACLList() {
 		t.Fatalf("should not noneow")
 	}
@@ -65,6 +77,12 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("should allow")
 	}
 	if !manage.KeyWrite("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.ServiceRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.ServiceWrite("foobar") {
 		t.Fatalf("should allow")
 	}
 	if !manage.ACLList() {
@@ -96,19 +114,33 @@ func TestPolicyACL(t *testing.T) {
 				Policy: KeyPolicyRead,
 			},
 		},
+		Services: []*ServicePolicy{
+			&ServicePolicy{
+				Name:   "",
+				Policy: ServicePolicyWrite,
+			},
+			&ServicePolicy{
+				Name:   "foo",
+				Policy: ServicePolicyRead,
+			},
+			&ServicePolicy{
+				Name:   "bar",
+				Policy: ServicePolicyDeny,
+			},
+		},
 	}
 	acl, err := New(all, policy)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	type tcase struct {
+	type keycase struct {
 		inp         string
 		read        bool
 		write       bool
 		writePrefix bool
 	}
-	cases := []tcase{
+	cases := []keycase{
 		{"other", true, true, true},
 		{"foo/test", true, true, true},
 		{"foo/priv/test", false, false, false},
@@ -128,6 +160,26 @@ func TestPolicyACL(t *testing.T) {
 			t.Fatalf("Write prefix fail: %#v", c)
 		}
 	}
+
+	// Test the services
+	type servicecase struct {
+		inp   string
+		read  bool
+		write bool
+	}
+	scases := []servicecase{
+		{"other", true, true},
+		{"foo", true, false},
+		{"bar", false, false},
+	}
+	for _, c := range scases {
+		if c.read != acl.ServiceRead(c.inp) {
+			t.Fatalf("Read fail: %#v", c)
+		}
+		if c.write != acl.ServiceWrite(c.inp) {
+			t.Fatalf("Write fail: %#v", c)
+		}
+	}
 }
 
 func TestPolicyACL_Parent(t *testing.T) {
@@ -141,6 +193,16 @@ func TestPolicyACL_Parent(t *testing.T) {
 			&KeyPolicy{
 				Prefix: "bar/",
 				Policy: KeyPolicyRead,
+			},
+		},
+		Services: []*ServicePolicy{
+			&ServicePolicy{
+				Name:   "other",
+				Policy: ServicePolicyWrite,
+			},
+			&ServicePolicy{
+				Name:   "foo",
+				Policy: ServicePolicyRead,
 			},
 		},
 	}
@@ -164,19 +226,25 @@ func TestPolicyACL_Parent(t *testing.T) {
 				Policy: KeyPolicyRead,
 			},
 		},
+		Services: []*ServicePolicy{
+			&ServicePolicy{
+				Name:   "bar",
+				Policy: ServicePolicyDeny,
+			},
+		},
 	}
 	acl, err := New(root, policy)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	type tcase struct {
+	type keycase struct {
 		inp         string
 		read        bool
 		write       bool
 		writePrefix bool
 	}
-	cases := []tcase{
+	cases := []keycase{
 		{"other", false, false, false},
 		{"foo/test", true, true, true},
 		{"foo/priv/test", true, false, false},
@@ -192,6 +260,27 @@ func TestPolicyACL_Parent(t *testing.T) {
 		}
 		if c.writePrefix != acl.KeyWritePrefix(c.inp) {
 			t.Fatalf("Write prefix fail: %#v", c)
+		}
+	}
+
+	// Test the services
+	type servicecase struct {
+		inp   string
+		read  bool
+		write bool
+	}
+	scases := []servicecase{
+		{"fail", false, false},
+		{"other", true, true},
+		{"foo", true, false},
+		{"bar", false, false},
+	}
+	for _, c := range scases {
+		if c.read != acl.ServiceRead(c.inp) {
+			t.Fatalf("Read fail: %#v", c)
+		}
+		if c.write != acl.ServiceWrite(c.inp) {
+			t.Fatalf("Write fail: %#v", c)
 		}
 	}
 }

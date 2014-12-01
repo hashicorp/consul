@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -265,6 +266,11 @@ func (s *Server) reconcileMember(member serf.Member) error {
 	if err != nil {
 		s.logger.Printf("[ERR] consul: failed to reconcile member: %v: %v",
 			member, err)
+
+		// Permission denied should not bubble up
+		if strings.Contains(err.Error(), permissionDenied) {
+			return nil
+		}
 		return err
 	}
 	return nil
@@ -344,6 +350,7 @@ AFTER_CHECK:
 			Status:  structs.HealthPassing,
 			Output:  SerfCheckAliveOutput,
 		},
+		WriteRequest: structs.WriteRequest{Token: s.config.ACLToken},
 	}
 	var out struct{}
 	return s.endpoints.Catalog.Register(&req, &out)
@@ -379,6 +386,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 			Status:  structs.HealthCritical,
 			Output:  SerfCheckFailedOutput,
 		},
+		WriteRequest: structs.WriteRequest{Token: s.config.ACLToken},
 	}
 	var out struct{}
 	return s.endpoints.Catalog.Register(&req, &out)
