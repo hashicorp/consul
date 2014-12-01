@@ -163,5 +163,6 @@ enforced using an exact match policy. The default rule is provided using
 the empty string. The policy is either "read", "write", or "deny". A "write"
 policy implies "read", and there is no way to specify write-only. If there
 is no applicable rule, the `acl_default_policy` is applied. Currently, only
-the "write" level is enforced for registration of services.
+the "write" level is enforced for registration of services. The policy for
+the "consul" service is always "write" as it is managed internally.
 
