@@ -132,6 +132,103 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	}
 }
 
+func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
+	conf := nextConfig()
+	conf.ACLDatacenter = "dc1"
+	conf.ACLMasterToken = "root"
+	conf.ACLDefaultPolicy = "deny"
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	// Create the ACL
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "User token",
+			Type:  structs.ACLTypeClient,
+			Rules: testRegisterRules,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out string
+	if err := agent.RPC("ACL.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Update the agent ACL token, resume sync
+	conf.ACLToken = out
+
+	// Create service (Allowed)
+	srv1 := &structs.NodeService{
+		ID:      "mysql",
+		Service: "mysql",
+		Tags:    []string{"master"},
+		Port:    5000,
+	}
+	agent.state.AddService(srv1)
+
+	// Create service (Disallowed)
+	srv2 := &structs.NodeService{
+		ID:      "api",
+		Service: "api",
+		Tags:    []string{"foo"},
+		Port:    5001,
+	}
+	agent.state.AddService(srv2)
+
+	// Trigger anti-entropy run and wait
+	agent.StartSync()
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify that we are in sync
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+	}
+	var services structs.IndexedNodeServices
+	if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// We should have 2 services (consul included)
+	if len(services.NodeServices.Services) != 2 {
+		t.Fatalf("bad: %v", services.NodeServices.Services)
+	}
+
+	// All the services should match
+	for id, serv := range services.NodeServices.Services {
+		switch id {
+		case "mysql":
+			t.Fatalf("should not be permitted")
+		case "api":
+			if !reflect.DeepEqual(serv, srv2) {
+				t.Fatalf("bad: %#v %#v", serv, srv2)
+			}
+		case "consul":
+			// ignore
+		default:
+			t.Fatalf("unexpected service: %v", id)
+		}
+	}
+
+	// Check the local state
+	if len(agent.state.services) != 3 {
+		t.Fatalf("bad: %v", agent.state.services)
+	}
+	if len(agent.state.serviceStatus) != 3 {
+		t.Fatalf("bad: %v", agent.state.serviceStatus)
+	}
+	for name, status := range agent.state.serviceStatus {
+		if !status.inSync {
+			t.Fatalf("should be in sync: %v %v", name, status)
+		}
+	}
+}
+
 func TestAgentAntiEntropy_Checks(t *testing.T) {
 	conf := nextConfig()
 	dir, agent := makeAgent(t, conf)
@@ -327,3 +424,9 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		}
 	}
 }
+
+var testRegisterRules = `
+service "api" {
+	policy = "write"
+}
+`

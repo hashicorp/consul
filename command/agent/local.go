@@ -1,18 +1,23 @@
 package agent
 
 import (
-	"github.com/hashicorp/consul/consul"
-	"github.com/hashicorp/consul/consul/structs"
 	"log"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 const (
 	syncStaggerIntv = 3 * time.Second
 	syncRetryIntv   = 15 * time.Second
+
+	// permissionDenied is returned when an ACL based rejection happens
+	permissionDenied = "Permission denied"
 )
 
 // syncStatus is used to represent the difference between
@@ -292,8 +297,9 @@ SYNC:
 // the local syncStatus as appropriate
 func (l *localState) setSyncState() error {
 	req := structs.NodeSpecificRequest{
-		Datacenter: l.config.Datacenter,
-		Node:       l.config.NodeName,
+		Datacenter:   l.config.Datacenter,
+		Node:         l.config.NodeName,
+		QueryOptions: structs.QueryOptions{Token: l.config.ACLToken},
 	}
 	var out1 structs.IndexedNodeServices
 	var out2 structs.IndexedHealthChecks
@@ -403,9 +409,10 @@ func (l *localState) syncChanges() error {
 // deleteService is used to delete a service from the server
 func (l *localState) deleteService(id string) error {
 	req := structs.DeregisterRequest{
-		Datacenter: l.config.Datacenter,
-		Node:       l.config.NodeName,
-		ServiceID:  id,
+		Datacenter:   l.config.Datacenter,
+		Node:         l.config.NodeName,
+		ServiceID:    id,
+		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Deregister", &req, &out)
@@ -419,9 +426,10 @@ func (l *localState) deleteService(id string) error {
 // deleteCheck is used to delete a service from the server
 func (l *localState) deleteCheck(id string) error {
 	req := structs.DeregisterRequest{
-		Datacenter: l.config.Datacenter,
-		Node:       l.config.NodeName,
-		CheckID:    id,
+		Datacenter:   l.config.Datacenter,
+		Node:         l.config.NodeName,
+		CheckID:      id,
+		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Deregister", &req, &out)
@@ -435,16 +443,21 @@ func (l *localState) deleteCheck(id string) error {
 // syncService is used to sync a service to the server
 func (l *localState) syncService(id string) error {
 	req := structs.RegisterRequest{
-		Datacenter: l.config.Datacenter,
-		Node:       l.config.NodeName,
-		Address:    l.config.AdvertiseAddr,
-		Service:    l.services[id],
+		Datacenter:   l.config.Datacenter,
+		Node:         l.config.NodeName,
+		Address:      l.config.AdvertiseAddr,
+		Service:      l.services[id],
+		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Register", &req, &out)
 	if err == nil {
 		l.serviceStatus[id] = syncStatus{inSync: true}
 		l.logger.Printf("[INFO] agent: Synced service '%s'", id)
+	} else if strings.Contains(err.Error(), permissionDenied) {
+		l.serviceStatus[id] = syncStatus{inSync: true}
+		l.logger.Printf("[WARN] agent: Service '%s' registration blocked by ACLs", id)
+		return nil
 	}
 	return err
 }
@@ -460,17 +473,22 @@ func (l *localState) syncCheck(id string) error {
 		}
 	}
 	req := structs.RegisterRequest{
-		Datacenter: l.config.Datacenter,
-		Node:       l.config.NodeName,
-		Address:    l.config.AdvertiseAddr,
-		Service:    service,
-		Check:      l.checks[id],
+		Datacenter:   l.config.Datacenter,
+		Node:         l.config.NodeName,
+		Address:      l.config.AdvertiseAddr,
+		Service:      service,
+		Check:        l.checks[id],
+		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Register", &req, &out)
 	if err == nil {
 		l.checkStatus[id] = syncStatus{inSync: true}
 		l.logger.Printf("[INFO] agent: Synced check '%s'", id)
+	} else if strings.Contains(err.Error(), permissionDenied) {
+		l.checkStatus[id] = syncStatus{inSync: true}
+		l.logger.Printf("[WARN] agent: Check '%s' registration blocked by ACLs", id)
+		return nil
 	}
 	return err
 }
