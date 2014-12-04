@@ -49,7 +49,7 @@ The list of available flags are:
 
 * `-tag` - Regular expression to filter to only nodes with a service that has
   a matching tag. This must be used with `-service`. As an example, you may
-  do "-server mysql -tag slave".
+  do "-service mysql -tag slave".
 
 * `-wait` - Specifies the period of time in which no agent's respond before considering
   the job finished. This is basically the quiescent time required to assume completion.
