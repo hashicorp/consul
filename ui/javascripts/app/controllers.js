@@ -460,7 +460,7 @@ App.AclsShowController = Ember.ObjectController.extend({
       }).then(function(response) {
         controller.transitionToRoute('acls.show', response.ID);
         controller.set('isLoading', false);
-        notify('Succesfully cloned token', 4000);
+        notify('Successfully cloned token', 4000);
       }).fail(function(response) {
         // Render the error message on the form if the request failed
         controller.set('errorMessage', 'Received error while processing: ' + response.statusText);

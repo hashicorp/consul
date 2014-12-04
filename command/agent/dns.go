@@ -194,7 +194,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	var out structs.IndexedNodes
 
 	// TODO: Replace ListNodes with an internal RPC that can do the filter
-	// server side to avoid transfering the entire node list.
+	// server side to avoid transferring the entire node list.
 	if err := d.agent.RPC("Catalog.ListNodes", &args, &out); err == nil {
 		for _, n := range out.Nodes {
 			arpa, _ := dns.ReverseAddr(n.Address)

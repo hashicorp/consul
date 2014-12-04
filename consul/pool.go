@@ -114,7 +114,7 @@ func (c *Conn) returnClient(client *StreamClient) {
 // Consul servers. This is used to reduce the latency of
 // RPC requests between servers. It is only used to pool
 // connections in the rpcConsul mode. Raft connections
-// are pooled seperately.
+// are pooled separately.
 type ConnPool struct {
 	sync.Mutex
 

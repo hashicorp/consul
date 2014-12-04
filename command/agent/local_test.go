@@ -389,7 +389,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		t.Fatalf("checks: %v", check)
 	}
 
-	// Update the check output! Should be defered
+	// Update the check output! Should be deferred
 	agent.state.UpdateCheck("web", structs.HealthPassing, "output")
 
 	// Should not update for 100 milliseconds
@@ -408,7 +408,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 		}
 	}
 
-	// Wait for a defered update
+	// Wait for a deferred update
 	time.Sleep(100 * time.Millisecond)
 	if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
 		t.Fatalf("err: %v", err)

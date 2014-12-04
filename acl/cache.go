@@ -26,7 +26,7 @@ type Cache struct {
 	ruleCache   *lru.Cache // Cache rules -> policy
 }
 
-// NewCache contructs a new policy and ACL cache of a given size
+// NewCache constructs a new policy and ACL cache of a given size
 func NewCache(size int, faultfn FaultFunc) (*Cache, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("Must provide positive cache size")
