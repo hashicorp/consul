@@ -363,7 +363,7 @@ func (a *Agent) Leave() error {
 }
 
 // Shutdown is used to hard stop the agent. Should be
-// preceeded by a call to Leave to do it gracefully.
+// preceded by a call to Leave to do it gracefully.
 func (a *Agent) Shutdown() error {
 	a.shutdownLock.Lock()
 	defer a.shutdownLock.Unlock()

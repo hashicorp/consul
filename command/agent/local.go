@@ -52,7 +52,7 @@ type localState struct {
 	checks      map[string]*structs.HealthCheck
 	checkStatus map[string]syncStatus
 
-	// Used to track checks that are being defered
+	// Used to track checks that are being deferred
 	deferCheck map[string]*time.Timer
 
 	// consulCh is used to inform of a change to the known
@@ -101,13 +101,13 @@ func (l *localState) ConsulServerUp() {
 	}
 }
 
-// Pause is used to pause state syncronization, this can be
+// Pause is used to pause state synchronization, this can be
 // used to make batch changes
 func (l *localState) Pause() {
 	atomic.StoreInt32(&l.paused, 1)
 }
 
-// Resume is used to resume state syncronization
+// Resume is used to resume state synchronization
 func (l *localState) Resume() {
 	atomic.StoreInt32(&l.paused, 0)
 	l.changeMade()
@@ -390,7 +390,7 @@ func (l *localState) syncChanges() error {
 				return err
 			}
 		} else if !status.inSync {
-			// Cancel a defered sync
+			// Cancel a deferred sync
 			if timer := l.deferCheck[id]; timer != nil {
 				timer.Stop()
 				delete(l.deferCheck, id)

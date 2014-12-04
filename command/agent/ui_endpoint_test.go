@@ -41,7 +41,7 @@ func TestUiIndex(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Verify teh response
+	// Verify the response
 	if resp.StatusCode != 200 {
 		t.Fatalf("bad: %v", resp)
 	}

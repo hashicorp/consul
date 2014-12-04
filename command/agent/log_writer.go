@@ -29,7 +29,7 @@ func NewLogWriter(buf int) *logWriter {
 	}
 }
 
-// RegisterHandler adds a log handler to recieve logs, and sends
+// RegisterHandler adds a log handler to receive logs, and sends
 // the last buffered logs to the handler
 func (l *logWriter) RegisterHandler(lh LogHandler) {
 	l.Lock()

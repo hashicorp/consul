@@ -22,7 +22,7 @@ function classReg( className ) {
 }
 
 // classList support for class management
-// altho to be fair, the api sucks because it won't accept multiple classes at once
+// although to be fair, the api sucks because it won't accept multiple classes at once
 var hasClass, addClass, removeClass;
 
 if ( 'classList' in document.documentElement ) {
