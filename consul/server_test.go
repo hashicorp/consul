@@ -489,6 +489,12 @@ func TestServer_globalRPCErrors(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.remoteConsuls) == 1, nil
+	}, func(err error) {
+		t.Fatalf("Server did not join LAN successfully")
+	})
+
 	// Check that an error from a remote DC is returned
 	err := s1.globalRPC("Bad.Method", nil, &fakeGlobalResp{})
 	if err == nil {
