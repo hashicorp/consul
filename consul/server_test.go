@@ -256,10 +256,12 @@ func TestServer_Leave(t *testing.T) {
 	}
 
 	// Should lose a peer
-	p1, _ = s1.raftPeers.Peers()
-	if len(p1) != 1 {
+	testutil.WaitForResult(func() (bool, error) {
+		p1, _ = s1.raftPeers.Peers()
+		return len(p1) == 1, nil
+	}, func(err error) {
 		t.Fatalf("should have 1 peer: %v", p1)
-	}
+	})
 }
 
 func TestServer_RPC(t *testing.T) {
