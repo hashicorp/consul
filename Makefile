@@ -19,7 +19,7 @@ test: deps
 	go list ./... | xargs -n1 go test --cover
 
 integ:
-	go list ./... | INTEG_TESTS=yes xargs -n1 go test -test --cover
+	go list ./... | INTEG_TESTS=yes xargs -n1 go test --cover
 
 format: deps
 	@echo "--> Running go fmt"
