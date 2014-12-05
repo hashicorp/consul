@@ -386,8 +386,10 @@ func TestAgent_ConsulService(t *testing.T) {
 
 func TestAgent_PersistService(t *testing.T) {
 	config := nextConfig()
+	config.Server = false
 	dir, agent := makeAgent(t, config)
 	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
 
 	svc := &structs.NodeService{
 		ID:      "redis",
@@ -444,6 +446,7 @@ func TestAgent_PurgeService(t *testing.T) {
 	config := nextConfig()
 	dir, agent := makeAgent(t, config)
 	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
 
 	svc := &structs.NodeService{
 		ID:      "redis",
@@ -476,8 +479,10 @@ func TestAgent_PurgeService(t *testing.T) {
 
 func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	config := nextConfig()
+	config.Server = false
 	dir, agent := makeAgent(t, config)
 	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
 
 	svc1 := &structs.NodeService{
 		ID:      "redis",
@@ -523,8 +528,10 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 
 func TestAgent_PersistCheck(t *testing.T) {
 	config := nextConfig()
+	config.Server = false
 	dir, agent := makeAgent(t, config)
 	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
 
 	check := &structs.HealthCheck{
 		Node:        config.NodeName,
@@ -597,6 +604,7 @@ func TestAgent_PurgeCheck(t *testing.T) {
 	config := nextConfig()
 	dir, agent := makeAgent(t, config)
 	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
 
 	check := &structs.HealthCheck{
 		Node:        config.NodeName,
@@ -631,8 +639,10 @@ func TestAgent_PurgeCheck(t *testing.T) {
 
 func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	config := nextConfig()
+	config.Server = false
 	dir, agent := makeAgent(t, config)
 	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
 
 	check1 := &structs.HealthCheck{
 		Node:        config.NodeName,
