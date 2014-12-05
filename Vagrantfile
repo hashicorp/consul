@@ -2,9 +2,9 @@
 # vi: set ft=ruby :
 
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
-VAGRANTFILE_API_VERSION = "2"
+VAGRANTFILE_API_VERSION = '2'
 
-$script = <<SCRIPT
+@script = <<SCRIPT
 SRCROOT="/opt/go"
 
 # Install Go
@@ -29,23 +29,27 @@ sudo chown -R vagrant:vagrant /opt/gopath
 
 # Install git
 sudo apt-get install -y git-core
+
+# Install go tools
+go get code.google.com/p/go.tools/cmd/cover
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.provision "shell", inline: $script
+  config.vm.provision 'shell', inline: @script
+  config.vm.synced_folder '.', '/opt/gopath/src/github.com/hashicorp/consul'
 
-  ["vmware_fusion", "vmware_workstation"].each do |p|
-    config.vm.provider "p" do |v|
-      v.vmx["memsize"] = "2048"
-      v.vmx["numvcpus"] = "2"
-      v.vmx["cpuid.coresPerSocket"] = "1"
+  %w[vmware_fusion vmware_workstation].each do |_|
+    config.vm.provider 'p' do |v|
+      v.vmx['memsize'] = '2048'
+      v.vmx['numvcpus'] = '2'
+      v.vmx['cpuid.coresPerSocket'] = '1'
     end
   end
 
-  config.vm.define "64bit" do |n1|
-      n1.vm.box = "chef/ubuntu-10.04"
+  config.vm.define '64bit' do |n1|
+    n1.vm.box = 'chef/ubuntu-10.04'
   end
-  config.vm.define "32bit" do |n2|
-      n2.vm.box = "chef/ubuntu-10.04-i386"
+  config.vm.define '32bit' do |n2|
+    n2.vm.box = 'chef/ubuntu-10.04-i386'
   end
 end

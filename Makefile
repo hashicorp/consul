@@ -16,10 +16,10 @@ deps:
 
 test: deps
 	./scripts/verify_no_uuid.sh
-	go list ./... | xargs -n1 go test
+	go list ./... | xargs -n1 go test --cover
 
 integ:
-	go list ./... | INTEG_TESTS=yes xargs -n1 go test
+	go list ./... | INTEG_TESTS=yes xargs -n1 go test -test --cover
 
 format: deps
 	@echo "--> Running go fmt"
