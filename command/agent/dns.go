@@ -274,7 +274,7 @@ func (d *DNSServer) handleTest(resp dns.ResponseWriter, req *dns.Msg) {
 	m.Authoritative = true
 	m.RecursionAvailable = true
 	header := dns.RR_Header{Name: q.Name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0}
-	txt := &dns.TXT{header, []string{"ok"}}
+	txt := &dns.TXT{Hdr: header, Txt: []string{"ok"}}
 	m.Answer = append(m.Answer, txt)
 	d.addSOA(consulDomain, m)
 	if err := resp.WriteMsg(m); err != nil {
