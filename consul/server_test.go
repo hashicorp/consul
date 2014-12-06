@@ -256,10 +256,12 @@ func TestServer_Leave(t *testing.T) {
 	}
 
 	// Should lose a peer
-	p1, _ = s1.raftPeers.Peers()
-	if len(p1) != 1 {
+	testutil.WaitForResult(func() (bool, error) {
+		p1, _ = s1.raftPeers.Peers()
+		return len(p1) == 1, nil
+	}, func(err error) {
 		t.Fatalf("should have 1 peer: %v", p1)
-	}
+	})
 }
 
 func TestServer_RPC(t *testing.T) {
@@ -488,6 +490,12 @@ func TestServer_globalRPCErrors(t *testing.T) {
 	dir1, s1 := testServerDC(t, "dc1")
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.remoteConsuls) == 1, nil
+	}, func(err error) {
+		t.Fatalf("Server did not join LAN successfully")
+	})
 
 	// Check that an error from a remote DC is returned
 	err := s1.globalRPC("Bad.Method", nil, &fakeGlobalResp{})
