@@ -221,26 +221,24 @@ App.KvEditController = KvBaseController.extend({
     },
 
     deleteKey: function() {
-
       this.set('isLoading', true);
+
       var controller = this;
       var dc = controller.get('dc').get('datacenter');
       var key = controller.get("model");
       var parent = controller.getParentKeyRoute();
       var token = App.get('settings.token');
 
-      if (window.confirm("Are you sure you want to delete this key?")) {
-        // Delete the key
-        Ember.$.ajax({
-            url: (formatUrl("/v1/kv/" + key.get('Key'), dc, token)),
-            type: 'DELETE'
-        }).then(function(data) {
-          controller.transitionToNearestParent(parent);
-        }).fail(function(response) {
-          // Render the error message on the form if the request failed
-          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
-        });
-      }
+      // Delete the key
+      Ember.$.ajax({
+          url: (formatUrl("/v1/kv/" + key.get('Key'), dc, token)),
+          type: 'DELETE'
+      }).then(function(data) {
+        controller.transitionToNearestParent(parent);
+      }).fail(function(response) {
+        // Render the error message on the form if the request failed
+        controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+      });
     }
   }
 
