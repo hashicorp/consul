@@ -259,27 +259,28 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 	}
 
 	// Wrap the connection
-	c := &Conn{
-		refCount: 1,
-		addr:     addr,
-		session:  session,
-		clients:  list.New(),
-		lastUsed: time.Now(),
-		version:  version,
-		pool:     p,
-	}
+	var c *Conn
 
 	// Track this connection, handle potential race condition
 	p.Lock()
+	defer p.Unlock()
+
 	if existing := p.pool[addr.String()]; existing != nil {
-		c.Close()
-		p.Unlock()
-		return existing, nil
+		c = existing
 	} else {
+		c = &Conn{
+			refCount: 1,
+			addr:     addr,
+			session:  session,
+			clients:  list.New(),
+			lastUsed: time.Now(),
+			version:  version,
+			pool:     p,
+		}
 		p.pool[addr.String()] = c
-		p.Unlock()
-		return c, nil
 	}
+
+	return c, nil
 }
 
 // clearConn is used to clear any cached connection, potentially in response to an erro
