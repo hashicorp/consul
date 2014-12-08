@@ -161,23 +161,25 @@ App.KvShowController.reopen({
     },
 
     deleteFolder: function() {
-      this.set('isLoading', true);
 
+      this.set('isLoading', true);
       var controller = this;
       var dc = controller.get('dc').get('datacenter');
       var grandParent = controller.get('grandParentKey');
       var token = App.get('settings.token');
 
-      // Delete the folder
-      Ember.$.ajax({
-          url: (formatUrl("/v1/kv/" + controller.get('parentKey') + '?recurse', dc, token)),
-          type: 'DELETE'
-      }).then(function(response) {
-        controller.transitionToNearestParent(grandParent);
-      }).fail(function(response) {
-        // Render the error message on the form if the request failed
-        controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
-      });
+      if (window.confirm("Are you sure you want to delete this folder?")) {
+        // Delete the folder
+        Ember.$.ajax({
+            url: (formatUrl("/v1/kv/" + controller.get('parentKey') + '?recurse', dc, token)),
+            type: 'DELETE'
+        }).then(function(response) {
+          controller.transitionToNearestParent(grandParent);
+        }).fail(function(response) {
+          // Render the error message on the form if the request failed
+          controller.set('errorMessage', 'Received error while processing: ' + response.statusText);
+        });
+      }
     }
   }
 });
