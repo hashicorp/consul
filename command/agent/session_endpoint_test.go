@@ -250,11 +250,8 @@ func TestSessionTTL(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 		respObj, ok = obj.(structs.Sessions)
-		if ok {
-			t.Fatalf("session '%s' should have been destroyed")
-		}
 		if len(respObj) != 0 {
-			t.Fatalf("bad: %v", respObj)
+			t.Fatalf("session '%s' should have been destroyed", id)
 		}
 	})
 }
@@ -315,10 +312,10 @@ func TestSessionTTLRenew(t *testing.T) {
 		}
 		respObj, ok = obj.(structs.Sessions)
 		if !ok {
-			t.Fatalf("session '%s' should have renewed")
+			t.Fatalf("session '%s' should have renewed", id)
 		}
 		if len(respObj) != 1 {
-			t.Fatalf("bad: %v", respObj)
+			t.Fatalf("session '%s' should have renewed", id)
 		}
 
 		// now wait for timeout and expect session to get destroyed
@@ -332,11 +329,11 @@ func TestSessionTTLRenew(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 		respObj, ok = obj.(structs.Sessions)
-		if ok {
-			t.Fatalf("session '%s' should have been destroyed")
+		if !ok {
+			t.Fatalf("session '%s' should have destroyed", id)
 		}
 		if len(respObj) != 0 {
-			t.Fatalf("bad: %v", respObj)
+			t.Fatalf("session '%s' should have destroyed", id)
 		}
 	})
 }

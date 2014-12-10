@@ -370,6 +370,9 @@ func TestLeader_LeftLeader(t *testing.T) {
 			break
 		}
 	}
+	if leader == nil {
+		t.Fatalf("Should have a leader")
+	}
 	leader.Leave()
 	leader.Shutdown()
 	time.Sleep(100 * time.Millisecond)

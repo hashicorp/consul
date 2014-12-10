@@ -156,7 +156,12 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Session.Renew", &args, &out); err != nil {
 		return nil, err
+	} else if out.Sessions == nil {
+		resp.WriteHeader(404)
+		resp.Write([]byte(fmt.Sprintf("Session id '%s' not found", args.Session)))
+		return nil, nil
 	}
+
 	return out.Sessions, nil
 }
 

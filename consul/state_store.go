@@ -1825,6 +1825,16 @@ func (s *StateSnapshot) SessionList() ([]*structs.Session, error) {
 	return out, err
 }
 
+// SessionListTTL is used to list all the open sessions
+func (s *StateSnapshot) SessionListTTL() ([]*structs.Session, error) {
+	res, err := s.store.sessionTable.GetTxn(s.tx, "ttl")
+	out := make([]*structs.Session, len(res))
+	for i, raw := range res {
+		out[i] = raw.(*structs.Session)
+	}
+	return out, err
+}
+
 // ACLList is used to list all of the ACLs
 func (s *StateSnapshot) ACLList() ([]*structs.ACL, error) {
 	res, err := s.store.aclTable.GetTxn(s.tx, "id")
