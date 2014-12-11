@@ -239,7 +239,7 @@ func TestSessionTTL(t *testing.T) {
 			t.Fatalf("Incorrect TTL: %s", respObj[0].TTL)
 		}
 
-		time.Sleep(ttl * structs.SessionTTLMultiplier + ttl)
+		time.Sleep(ttl*structs.SessionTTLMultiplier + ttl)
 
 		req, err = http.NewRequest("GET",
 			"/v1/session/info/"+id, nil)

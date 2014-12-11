@@ -798,16 +798,14 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("missing sessions")
 	}
 
-	// Check there is 1 session with TTL
-	sessions, err = snap.SessionListTTL()
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	ttls := 0
+	for _, session := range sessions {
+		if session.TTL != "" {
+			ttls++
+		}
 	}
-
-	if len(sessions) < 1 {
-		t.Fatalf("missing TTL session")
-	} else if len(sessions) > 1 {
-		t.Fatalf("too many TTL sessions")
+	if ttls != 1 {
+		t.Fatalf("Wrong number of sessions with TTL")
 	}
 
 	// Check for an acl
