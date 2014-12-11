@@ -121,6 +121,7 @@ func TestServer_sessionTTL(t *testing.T) {
 	})
 
 	// Find the new leader
+	leader = nil
 	for _, s := range servers {
 		// find the leader too
 		if s.IsLeader() {

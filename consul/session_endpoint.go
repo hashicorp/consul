@@ -43,7 +43,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		}
 
 		if ttl < structs.SessionTTLMin || ttl > structs.SessionTTLMax {
-			return fmt.Errorf("Invalid Session TTL '%d', must be between [%d-%d] seconds", ttl, structs.SessionTTLMin, structs.SessionTTLMax)
+			return fmt.Errorf("Invalid Session TTL '%d', must be between [%v=%v]", ttl, structs.SessionTTLMin, structs.SessionTTLMax)
 		}
 	}
 

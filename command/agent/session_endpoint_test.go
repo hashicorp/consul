@@ -216,8 +216,8 @@ func TestSessionDestroy(t *testing.T) {
 
 func TestSessionTTL(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		TTL := "30s"
-		ttl := 30 * time.Second
+		TTL := "10s" // use the minimum legal ttl
+		ttl := 10 * time.Second
 
 		id := makeTestSessionTTL(t, srv, TTL)
 
@@ -258,8 +258,8 @@ func TestSessionTTL(t *testing.T) {
 
 func TestSessionTTLRenew(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		TTL := "30s"
-		ttl := 30 * time.Second
+		TTL := "10s" // use the minimum legal ttl
+		ttl := 10 * time.Second
 
 		id := makeTestSessionTTL(t, srv, TTL)
 
@@ -281,8 +281,8 @@ func TestSessionTTLRenew(t *testing.T) {
 			t.Fatalf("Incorrect TTL: %s", respObj[0].TTL)
 		}
 
-		// Sleep for 45s (since internal effective ttl is really 60s when 30s is specified)
-		time.Sleep(45 * time.Second)
+		// Sleep to consume some time before renew
+		time.Sleep(ttl * (structs.SessionTTLMultiplier / 2))
 
 		req, err = http.NewRequest("PUT",
 			"/v1/session/renew/"+id, nil)
@@ -299,9 +299,8 @@ func TestSessionTTLRenew(t *testing.T) {
 			t.Fatalf("bad: %v", respObj)
 		}
 
-		// Sleep for another 45s (since effective ttl is ttl*2, meaning 60s) if renew
-		// didn't work, session would have got deleted
-		time.Sleep(45 * time.Second)
+		// Sleep for ttl * TTL Multiplier
+		time.Sleep(ttl * structs.SessionTTLMultiplier)
 
 		req, err = http.NewRequest("GET",
 			"/v1/session/info/"+id, nil)
@@ -319,7 +318,7 @@ func TestSessionTTLRenew(t *testing.T) {
 		}
 
 		// now wait for timeout and expect session to get destroyed
-		time.Sleep(ttl * 2)
+		time.Sleep(ttl * structs.SessionTTLMultiplier)
 
 		req, err = http.NewRequest("GET",
 			"/v1/session/info/"+id, nil)

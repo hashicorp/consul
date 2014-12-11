@@ -1348,7 +1348,7 @@ func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error
 		}
 
 		if ttl < structs.SessionTTLMin || ttl > structs.SessionTTLMax {
-			return fmt.Errorf("Invalid Session TTL '%d', must be between [%d-%d] seconds", ttl, structs.SessionTTLMin, structs.SessionTTLMax)
+			return fmt.Errorf("Invalid Session TTL '%s', must be between [%v-%v]", session.TTL, structs.SessionTTLMin, structs.SessionTTLMax)
 		}
 	}
 

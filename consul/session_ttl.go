@@ -38,37 +38,42 @@ func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 		}
 	}
 
-	if session.TTL != "" {
-		ttl, err := time.ParseDuration(session.TTL)
-		if err != nil {
-			return fmt.Errorf("Invalid Session TTL '%s': %v", session.TTL, err)
-		}
-		s.sessionTimersLock.Lock()
-		if s.sessionTimers == nil {
-			// should not happen . . .
-			panic(fmt.Sprintf("Invalid call to resetSessionTimer before creation of session timers in leaderLoop"))
-		}
-		defer s.sessionTimersLock.Unlock()
-		if t := s.sessionTimers[id]; t != nil {
-			// TBD may modify the session's active TTL based on load here
-			t.Reset(ttl * structs.SessionTTLMultiplier)
-		} else {
-			s.sessionTimers[session.ID] = time.AfterFunc(ttl*structs.SessionTTLMultiplier, func() {
-				s.sessionTimers[session.ID].Stop()
-				args := structs.SessionRequest{
-					Datacenter: s.config.Datacenter,
-					Op:         structs.SessionDestroy,
-				}
-				args.Session.ID = session.ID
-
-				// Apply the update to destroy the session
-				_, err := s.raftApply(structs.SessionRequestType, args)
-				if err != nil {
-					s.logger.Printf("[ERR] consul.session: Apply failed: %v", err)
-				}
-			})
-		}
+	if session.TTL == "" {
+		return nil
 	}
+
+	ttl, err := time.ParseDuration(session.TTL)
+	if err != nil {
+		return fmt.Errorf("Invalid Session TTL '%s': %v", session.TTL, err)
+	}
+	if ttl == 0 {
+		return nil
+	}
+
+	s.sessionTimersLock.Lock()
+	if s.sessionTimers == nil {
+		s.sessionTimers = make(map[string]*time.Timer)
+	}
+	defer s.sessionTimersLock.Unlock()
+	if t := s.sessionTimers[id]; t != nil {
+		// TBD may modify the session's active TTL based on load here
+		t.Reset(ttl * structs.SessionTTLMultiplier)
+	} else {
+		s.sessionTimers[session.ID] = time.AfterFunc(ttl*structs.SessionTTLMultiplier, func() {
+			args := structs.SessionRequest{
+				Datacenter: s.config.Datacenter,
+				Op:         structs.SessionDestroy,
+			}
+			args.Session.ID = session.ID
+
+			// Apply the update to destroy the session
+			_, err := s.raftApply(structs.SessionRequestType, args)
+			if err != nil {
+				s.logger.Printf("[ERR] consul.session: Apply failed: %v", err)
+			}
+		})
+	}
+
 	return nil
 }
 
@@ -80,6 +85,7 @@ func (s *Server) clearSessionTimer(id string) error {
 		s.sessionTimers[id].Stop()
 		delete(s.sessionTimers, id)
 	}
+	s.sessionTimers = nil
 	return nil
 }
 
@@ -88,9 +94,9 @@ func (s *Server) clearAllSessionTimers() error {
 	defer s.sessionTimersLock.Unlock()
 
 	// stop all timers and clear out the map
-	for id, t := range s.sessionTimers {
+	for _, t := range s.sessionTimers {
 		t.Stop()
-		delete(s.sessionTimers, id)
 	}
+	s.sessionTimers = nil
 	return nil
 }

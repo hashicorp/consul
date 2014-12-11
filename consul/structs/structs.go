@@ -410,7 +410,6 @@ type SessionOp string
 const (
 	SessionCreate  SessionOp = "create"
 	SessionDestroy           = "destroy"
-	SessionRenew             = "renew"
 )
 
 // SessionRequest is used to operate on sessions

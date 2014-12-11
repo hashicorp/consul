@@ -52,6 +52,21 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 			resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
 			return nil, nil
 		}
+
+		if args.Session.TTL != "" {
+			ttl, err := time.ParseDuration(args.Session.TTL)
+			if err != nil {
+				resp.WriteHeader(400)
+				resp.Write([]byte(fmt.Sprintf("Request TTL decode failed: %v", err)))
+				return nil, nil
+			}
+
+			if ttl < structs.SessionTTLMin || ttl > structs.SessionTTLMax {
+				resp.WriteHeader(400)
+				resp.Write([]byte(fmt.Sprintf("Request TTL '%s', must be between [%v-%v]", args.Session.TTL, structs.SessionTTLMin, structs.SessionTTLMax)))
+				return nil, nil
+			}
+		}
 	}
 
 	// Create the session, get the ID
@@ -153,7 +168,6 @@ func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (
 	}
 
 	var out structs.IndexedSessions
-	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Session.Renew", &args, &out); err != nil {
 		return nil, err
 	} else if out.Sessions == nil {

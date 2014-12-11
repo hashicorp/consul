@@ -232,7 +232,8 @@ func TestSessionEndpoint_Renew(t *testing.T) {
 	defer client.Close()
 
 	testutil.WaitForLeader(t, client.Call, "dc1")
-	TTL := "10s"
+	TTL := "10s" // the minimum allowed ttl
+	ttl := 10 * time.Second
 
 	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
 	ids := []string{}
@@ -281,8 +282,8 @@ func TestSessionEndpoint_Renew(t *testing.T) {
 		t.Logf("Created session '%s'", s.ID)
 	}
 
-	// now sleep for ttl - since internally we use ttl*2 to destroy, this is ok
-	time.Sleep(10 * time.Second)
+	// Sleep for time shorter than internal destroy ttl
+	time.Sleep(ttl * structs.SessionTTLMultiplier / 2)
 
 	// renew 3 out of 5 sessions
 	for i := 0; i < 3; i++ {
@@ -313,21 +314,23 @@ func TestSessionEndpoint_Renew(t *testing.T) {
 		t.Logf("Renewed session '%s'", s.ID)
 	}
 
-	// now sleep for ttl*2 - 3 sessions should still be alive
-	time.Sleep(2 * 10 * time.Second)
+	// now sleep for 2/3 the internal destroy TTL time for renewed sessions
+	// which is more than the internal destroy TTL time for the non-renewed sessions
+	time.Sleep((ttl * structs.SessionTTLMultiplier) * 2.0 / 3.0)
 
-	if err := client.Call("Session.List", &getR, &sessions); err != nil {
+	var sessionsL1 structs.IndexedSessions
+	if err := client.Call("Session.List", &getR, &sessionsL1); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if sessions.Index == 0 {
-		t.Fatalf("Bad: %v", sessions)
+	if sessionsL1.Index == 0 {
+		t.Fatalf("Bad: %v", sessionsL1)
 	}
 
 	t.Logf("Expect 2 sessions to be destroyed")
 
-	for i := 0; i < len(sessions.Sessions); i++ {
-		s := sessions.Sessions[i]
+	for i := 0; i < len(sessionsL1.Sessions); i++ {
+		s := sessionsL1.Sessions[i]
 		if !strContains(ids, s.ID) {
 			t.Fatalf("bad: %v", s)
 		}
@@ -342,23 +345,24 @@ func TestSessionEndpoint_Renew(t *testing.T) {
 		}
 	}
 
-	if len(sessions.Sessions) > 3 {
-		t.Fatalf("Bad: %v", sessions.Sessions)
+	if len(sessionsL1.Sessions) > 3 {
+		t.Fatalf("Bad: %v", sessionsL1.Sessions)
 	}
 
 	// now sleep again for ttl*2 - no sessions should still be alive
-	time.Sleep(20 * time.Second)
+	time.Sleep(ttl * structs.SessionTTLMultiplier)
 
-	if err := client.Call("Session.List", &getR, &sessions); err != nil {
+	var sessionsL2 structs.IndexedSessions
+	if err := client.Call("Session.List", &getR, &sessionsL2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if sessions.Index != 0 {
-		t.Fatalf("Bad: %v", sessions)
+	if sessionsL2.Index == 0 {
+		t.Fatalf("Bad: %v", sessionsL2)
 	}
-	if len(sessions.Sessions) != 0 {
-		for i := 0; i < len(sessions.Sessions); i++ {
-			s := sessions.Sessions[i]
+	if len(sessionsL2.Sessions) != 0 {
+		for i := 0; i < len(sessionsL2.Sessions); i++ {
+			s := sessionsL2.Sessions[i]
 			if !strContains(ids, s.ID) {
 				t.Fatalf("bad: %v", s)
 			}
@@ -370,8 +374,8 @@ func TestSessionEndpoint_Renew(t *testing.T) {
 			}
 			t.Errorf("session '%s' should be destroyed", s.ID)
 		}
-		
-		t.Fatalf("Bad: %v", sessions.Sessions)
+
+		t.Fatalf("Bad: %v", sessionsL2.Sessions)
 	}
 }
 
