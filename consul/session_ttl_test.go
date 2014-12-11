@@ -148,12 +148,8 @@ func TestServer_sessionTTL(t *testing.T) {
 		t.Fatalf("sessionTimes length should be 2")
 	}
 
-	// destroy the id1 session (test clearSessionTimer)
-	arg.Op = structs.SessionDestroy
-	arg.Session.ID = id1
-	if err := client.Call("Session.Apply", &arg, &id1); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// destroy the via invalidateSession as if on TTL expiry
+	leader.invalidateSession(id2)
 
 	if len(leader.sessionTimers) != 1 {
 		t.Fatalf("sessionTimers length should 1")
