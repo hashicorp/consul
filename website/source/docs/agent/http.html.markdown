@@ -1361,7 +1361,7 @@ It returns a JSON body like this:
 ## <a name="status"></a> Status
 
 The Status endpoints are used to get information about the status
-of the Consul cluster. This are generally very low level, and not really
+of the Consul cluster. These are generally very low level, and not really
 useful for clients.
 
 The following endpoints are supported:
