@@ -25,11 +25,18 @@ type TombstoneGC struct {
 
 	// expires maps the time of expiration to the highest
 	// tombstone value that should be expired.
-	expires     map[time.Time]uint64
+	expires     map[time.Time]*expireInterval
 	expiresLock sync.Mutex
 
 	// expireCh is used to stream expiration
 	expireCh chan uint64
+}
+
+// expireInterval is used to track the maximum index
+// to expire in a given interval with a timer
+type expireInterval struct {
+	maxIndex uint64
+	timer    *time.Timer
 }
 
 // NewTombstoneGC is used to construct a new TombstoneGC given
@@ -46,7 +53,7 @@ func NewTombstoneGC(ttl, granularity time.Duration) (*TombstoneGC, error) {
 	t := &TombstoneGC{
 		ttl:         ttl,
 		granularity: granularity,
-		expires:     make(map[time.Time]uint64),
+		expires:     make(map[time.Time]*expireInterval),
 		expireCh:    make(chan uint64, 1),
 	}
 	return t, nil
@@ -58,6 +65,16 @@ func (t *TombstoneGC) ExpireCh() <-chan uint64 {
 	return t.expireCh
 }
 
+// Reset is used to clear the TTL timers
+func (t *TombstoneGC) Reset() {
+	t.expiresLock.Lock()
+	defer t.expiresLock.Unlock()
+	for _, exp := range t.expires {
+		exp.timer.Stop()
+	}
+	t.expires = make(map[time.Time]*expireInterval)
+}
+
 // Hint is used to indicate that keys at the given index have been
 // deleted, and that their GC should be scheduled.
 func (t *TombstoneGC) Hint(index uint64) {
@@ -67,20 +84,22 @@ func (t *TombstoneGC) Hint(index uint64) {
 	defer t.expiresLock.Unlock()
 
 	// Check for an existing expiration timer
-	existing, ok := t.expires[expires]
+	exp, ok := t.expires[expires]
 	if ok {
 		// Increment the highest index to be expired at that time
-		if index > existing {
-			t.expires[expires] = index
+		if index > exp.maxIndex {
+			exp.maxIndex = index
 		}
 		return
 	}
 
 	// Create new expiration time
-	t.expires[expires] = index
-	time.AfterFunc(expires.Sub(time.Now()), func() {
-		t.expireTime(expires)
-	})
+	t.expires[expires] = &expireInterval{
+		maxIndex: index,
+		timer: time.AfterFunc(expires.Sub(time.Now()), func() {
+			t.expireTime(expires)
+		}),
+	}
 }
 
 // nextExpires is used to calculate the next experation time
@@ -95,10 +114,10 @@ func (t *TombstoneGC) nextExpires() time.Time {
 func (t *TombstoneGC) expireTime(expires time.Time) {
 	// Get the maximum index and clear the entry
 	t.expiresLock.Lock()
-	index := t.expires[expires]
+	exp := t.expires[expires]
 	delete(t.expires, expires)
 	t.expiresLock.Unlock()
 
 	// Notify the expires channel
-	t.expireCh <- index
+	t.expireCh <- exp.maxIndex
 }

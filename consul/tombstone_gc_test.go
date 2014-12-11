@@ -66,3 +66,21 @@ func TestTombstoneGC(t *testing.T) {
 		t.Fatalf("should get expiration")
 	}
 }
+
+func TestTombstoneGC_Expire(t *testing.T) {
+	ttl := 10 * time.Millisecond
+	gran := 5 * time.Millisecond
+	gc, err := NewTombstoneGC(ttl, gran)
+	if err != nil {
+		t.Fatalf("should fail")
+	}
+
+	gc.Hint(100)
+	gc.Reset()
+
+	select {
+	case <-gc.ExpireCh():
+		t.Fatalf("shoudl be reset")
+	case <-time.After(20 * time.Millisecond):
+	}
+}
