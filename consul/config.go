@@ -158,7 +158,7 @@ type Config struct {
 	// "allow" can be used to allow all requests. This is not recommended.
 	ACLDownPolicy string
 
-	// TombstoneGC is used to control how long KV tombstones are retained.
+	// TombstoneTTL is used to control how long KV tombstones are retained.
 	// This provides a window of time where the X-Consul-Index is monotonic.
 	// Outside this window, the index may not be monotonic. This is a result
 	// of a few trade offs:
@@ -174,7 +174,12 @@ type Config struct {
 	// It is also possible to set this to an incredibly long time, thereby
 	// simulating infinite retention. This is not recommended however.
 	//
-	TombstoneGC time.Duration
+	TombstoneTTL time.Duration
+
+	// TombstoneTTLGranularity is used to control how granular the timers are
+	// for the Tombstone GC. This is used to batch the GC of many keys together
+	// to reduce overhead. It is unlikely a user would ever need to tune this.
+	TombstoneTTLGranularity time.Duration
 
 	// ServerUp callback can be used to trigger a notification that
 	// a Consul server is now up and known about.
@@ -223,18 +228,19 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Datacenter:        DefaultDC,
-		NodeName:          hostname,
-		RPCAddr:           DefaultRPCAddr,
-		RaftConfig:        raft.DefaultConfig(),
-		SerfLANConfig:     serf.DefaultConfig(),
-		SerfWANConfig:     serf.DefaultConfig(),
-		ReconcileInterval: 60 * time.Second,
-		ProtocolVersion:   ProtocolVersionMax,
-		ACLTTL:            30 * time.Second,
-		ACLDefaultPolicy:  "allow",
-		ACLDownPolicy:     "extend-cache",
-		TombstoneGC:       15 * time.Minute,
+		Datacenter:              DefaultDC,
+		NodeName:                hostname,
+		RPCAddr:                 DefaultRPCAddr,
+		RaftConfig:              raft.DefaultConfig(),
+		SerfLANConfig:           serf.DefaultConfig(),
+		SerfWANConfig:           serf.DefaultConfig(),
+		ReconcileInterval:       60 * time.Second,
+		ProtocolVersion:         ProtocolVersionMax,
+		ACLTTL:                  30 * time.Second,
+		ACLDefaultPolicy:        "allow",
+		ACLDownPolicy:           "extend-cache",
+		TombstoneTTL:            15 * time.Minute,
+		TombstoneTTLGranularity: 30 * time.Second,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
