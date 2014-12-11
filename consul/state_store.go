@@ -1212,7 +1212,10 @@ func (s *StateStore) kvsDeleteWithIndex(index uint64, tableIndex string, parts .
 		return err
 	}
 	defer tx.Abort()
-	return s.kvsDeleteWithIndexTxn(index, tx, tableIndex, parts...)
+	if err := s.kvsDeleteWithIndexTxn(index, tx, tableIndex, parts...); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // kvsDeleteWithIndexTxn does a delete within an existing transaction
@@ -1259,7 +1262,7 @@ func (s *StateStore) kvsDeleteWithIndexTxn(index uint64, tx *MDBTxn, tableIndex 
 			}
 		})
 	}
-	return tx.Commit()
+	return nil
 }
 
 // KVSCheckAndSet is used to perform an atomic check-and-set
