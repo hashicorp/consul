@@ -21,6 +21,7 @@ type consulFSM struct {
 	logger    *log.Logger
 	path      string
 	state     *StateStore
+	gc        *TombstoneGC
 }
 
 // consulSnapshot is used to provide a snapshot of the current
@@ -38,7 +39,7 @@ type snapshotHeader struct {
 }
 
 // NewFSMPath is used to construct a new FSM with a blank state
-func NewFSM(path string, logOutput io.Writer) (*consulFSM, error) {
+func NewFSM(gc *TombstoneGC, path string, logOutput io.Writer) (*consulFSM, error) {
 	// Create a temporary path for the state store
 	tmpPath, err := ioutil.TempDir(path, "state")
 	if err != nil {
@@ -46,7 +47,7 @@ func NewFSM(path string, logOutput io.Writer) (*consulFSM, error) {
 	}
 
 	// Create a state store
-	state, err := NewStateStorePath(tmpPath, logOutput)
+	state, err := NewStateStorePath(gc, tmpPath, logOutput)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +57,7 @@ func NewFSM(path string, logOutput io.Writer) (*consulFSM, error) {
 		logger:    log.New(logOutput, "", log.LstdFlags),
 		path:      path,
 		state:     state,
+		gc:        gc,
 	}
 	return fsm, nil
 }
@@ -236,7 +238,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	}
 
 	// Create a new state store
-	state, err := NewStateStorePath(tmpPath, c.logOutput)
+	state, err := NewStateStorePath(c.gc, tmpPath, c.logOutput)
 	if err != nil {
 		return err
 	}

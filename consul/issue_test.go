@@ -15,7 +15,7 @@ func TestHealthCheckRace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
