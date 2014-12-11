@@ -255,6 +255,84 @@ func TestSessionTTL(t *testing.T) {
 	})
 }
 
+func TestSessionBadTTL(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		badTTL := "10z"
+
+		// Create Session with illegal TTL
+		body := bytes.NewBuffer(nil)
+		enc := json.NewEncoder(body)
+		raw := map[string]interface{}{
+			"TTL": badTTL,
+		}
+		enc.Encode(raw)
+
+		req, err := http.NewRequest("PUT", "/v1/session/create", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp := httptest.NewRecorder()
+		obj, err := srv.SessionCreate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if obj != nil {
+			t.Fatalf("illegal TTL '%s' allowed", badTTL)
+		}
+		if resp.Code != 400 {
+			t.Fatalf("Bad response code, should be 400")
+		}
+
+		// less than SessionTTLMin
+		body = bytes.NewBuffer(nil)
+		enc = json.NewEncoder(body)
+		raw = map[string]interface{}{
+			"TTL": "5s",
+		}
+		enc.Encode(raw)
+
+		req, err = http.NewRequest("PUT", "/v1/session/create", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionCreate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if obj != nil {
+			t.Fatalf("illegal TTL '%s' allowed", badTTL)
+		}
+		if resp.Code != 400 {
+			t.Fatalf("Bad response code, should be 400")
+		}
+
+		// more than SessionTTLMax
+		body = bytes.NewBuffer(nil)
+		enc = json.NewEncoder(body)
+		raw = map[string]interface{}{
+			"TTL": "4000s",
+		}
+		enc.Encode(raw)
+
+		req, err = http.NewRequest("PUT", "/v1/session/create", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionCreate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if obj != nil {
+			t.Fatalf("illegal TTL '%s' allowed", badTTL)
+		}
+		if resp.Code != 400 {
+			t.Fatalf("Bad response code, should be 400")
+		}
+	})
+}
+
 func TestSessionTTLRenew(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		TTL := "10s" // use the minimum legal ttl

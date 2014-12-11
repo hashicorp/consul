@@ -26,6 +26,21 @@ func (s *Server) initializeSessionTimers() error {
 	return nil
 }
 
+// invalidate the session when timer expires, called by AfterFunc
+func (s *Server) invalidateSession(id string) {
+	args := structs.SessionRequest{
+		Datacenter: s.config.Datacenter,
+		Op:         structs.SessionDestroy,
+	}
+	args.Session.ID = id
+
+	// Apply the update to destroy the session
+	_, err := s.raftApply(structs.SessionRequestType, args)
+	if err != nil {
+		s.logger.Printf("[ERR] consul.session: Apply failed: %v", err)
+	}
+}
+
 func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 	if session == nil {
 		var err error
@@ -60,17 +75,7 @@ func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 		t.Reset(ttl * structs.SessionTTLMultiplier)
 	} else {
 		s.sessionTimers[session.ID] = time.AfterFunc(ttl*structs.SessionTTLMultiplier, func() {
-			args := structs.SessionRequest{
-				Datacenter: s.config.Datacenter,
-				Op:         structs.SessionDestroy,
-			}
-			args.Session.ID = session.ID
-
-			// Apply the update to destroy the session
-			_, err := s.raftApply(structs.SessionRequestType, args)
-			if err != nil {
-				s.logger.Printf("[ERR] consul.session: Apply failed: %v", err)
-			}
+			s.invalidateSession(session.ID)
 		})
 	}
 
@@ -85,7 +90,6 @@ func (s *Server) clearSessionTimer(id string) error {
 		s.sessionTimers[id].Stop()
 		delete(s.sessionTimers, id)
 	}
-	s.sessionTimers = nil
 	return nil
 }
 
