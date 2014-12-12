@@ -260,6 +260,24 @@ func (s *Server) getRemoteConsuls() map[string][]*serverParts {
 	return s.remoteConsuls
 }
 
+func (s *Server) setRemoteConsuls(existing []*serverParts, datacenters string) {
+	s.remoteLock.Lock()
+	defer s.remoteLock.Unlock()
+	s.remoteConsuls[datacenters] = existing
+}
+
+func (s *Server) addRemoteConsuls(existing []*serverParts, parts *serverParts) {
+	s.remoteLock.Lock()
+	defer s.remoteLock.Unlock()
+	s.remoteConsuls[parts.Datacenter] = append(existing, parts)
+}
+
+func (s *Server) delRemoteConsuls(datacenters string) {
+	s.remoteLock.Lock()
+	defer s.remoteLock.Unlock()
+	delete(s.remoteConsuls, datacenters)
+}
+
 // setupSerf is used to setup and initialize a Serf
 func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, wan bool) (*serf.Serf, error) {
 	addr := s.rpcListener.Addr().(*net.TCPAddr)
