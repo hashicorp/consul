@@ -128,6 +128,12 @@ type Server struct {
 	// which SHOULD only consist of Consul servers
 	serfWAN *serf.Serf
 
+	// sessionTimers track the expiration time of each Session that has
+	// a TTL. On expiration, a SessionDestroy event will occur, and
+	// destroy the session via standard session destory processing
+	sessionTimers     map[string]*time.Timer
+	sessionTimersLock sync.RWMutex
+
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex

@@ -703,13 +703,17 @@ func TestStoreSnapshot(t *testing.T) {
 	if ok, err := store.KVSLock(18, d); err != nil || !ok {
 		t.Fatalf("err: %v", err)
 	}
+	session = &structs.Session{ID: generateUUID(), Node: "baz", TTL: "60s"}
+	if err := store.SessionCreate(19, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	a1 := &structs.ACL{
 		ID:   generateUUID(),
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(19, a1); err != nil {
+	if err := store.ACLSet(20, a1); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -718,7 +722,7 @@ func TestStoreSnapshot(t *testing.T) {
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(20, a2); err != nil {
+	if err := store.ACLSet(21, a2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -730,7 +734,7 @@ func TestStoreSnapshot(t *testing.T) {
 	defer snap.Close()
 
 	// Check the last nodes
-	if idx := snap.LastIndex(); idx != 20 {
+	if idx := snap.LastIndex(); idx != 21 {
 		t.Fatalf("bad: %v", idx)
 	}
 
@@ -785,13 +789,23 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("missing KVS entries!")
 	}
 
-	// Check there are 2 sessions
+	// Check there are 3 sessions
 	sessions, err := snap.SessionList()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(sessions) != 2 {
+	if len(sessions) != 3 {
 		t.Fatalf("missing sessions")
+	}
+
+	ttls := 0
+	for _, session := range sessions {
+		if session.TTL != "" {
+			ttls++
+		}
+	}
+	if ttls != 1 {
+		t.Fatalf("Wrong number of sessions with TTL")
 	}
 
 	// Check for an acl
@@ -804,13 +818,13 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 
 	// Make some changes!
-	if err := store.EnsureService(21, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
+	if err := store.EnsureService(22, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(22, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(23, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureNode(23, structs.Node{"baz", "127.0.0.3"}); err != nil {
+	if err := store.EnsureNode(24, structs.Node{"baz", "127.0.0.3"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	checkAfter := &structs.HealthCheck{
@@ -820,16 +834,16 @@ func TestStoreSnapshot(t *testing.T) {
 		Status:    structs.HealthCritical,
 		ServiceID: "db",
 	}
-	if err := store.EnsureCheck(24, checkAfter); err != nil {
+	if err := store.EnsureCheck(26, checkAfter); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.KVSDelete(25, "/web/b"); err != nil {
+	if err := store.KVSDelete(26, "/web/b"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Nuke an ACL
-	if err := store.ACLDelete(26, a1.ID); err != nil {
+	if err := store.ACLDelete(27, a1.ID); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -883,12 +897,12 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("missing KVS entries!")
 	}
 
-	// Check there are 2 sessions
+	// Check there are 3 sessions
 	sessions, err = snap.SessionList()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(sessions) != 2 {
+	if len(sessions) != 3 {
 		t.Fatalf("missing sessions")
 	}
 

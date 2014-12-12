@@ -385,6 +385,12 @@ const (
 	SessionKeysDelete                  = "delete"
 )
 
+const (
+	SessionTTLMin        = 10 * time.Second
+	SessionTTLMax        = 3600 * time.Second
+	SessionTTLMultiplier = 2
+)
+
 // Session is used to represent an open session in the KV store.
 // This issued to associate node checks with acquired locks.
 type Session struct {
@@ -395,6 +401,7 @@ type Session struct {
 	Checks      []string
 	LockDelay   time.Duration
 	Behavior    SessionBehavior // What to do when session is invalidated
+	TTL         string
 }
 type Sessions []*Session
 

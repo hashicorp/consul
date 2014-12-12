@@ -40,6 +40,7 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 			Checks:    []string{consul.SerfCheckID},
 			LockDelay: 15 * time.Second,
 			Behavior:  structs.SessionKeysRelease,
+			TTL:       "",
 		},
 	}
 	s.parseDC(req, &args.Datacenter)
@@ -50,6 +51,21 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 			resp.WriteHeader(400)
 			resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
 			return nil, nil
+		}
+
+		if args.Session.TTL != "" {
+			ttl, err := time.ParseDuration(args.Session.TTL)
+			if err != nil {
+				resp.WriteHeader(400)
+				resp.Write([]byte(fmt.Sprintf("Request TTL decode failed: %v", err)))
+				return nil, nil
+			}
+
+			if ttl < structs.SessionTTLMin || ttl > structs.SessionTTLMax {
+				resp.WriteHeader(400)
+				resp.Write([]byte(fmt.Sprintf("Request TTL '%s', must be between [%v-%v]", args.Session.TTL, structs.SessionTTLMin, structs.SessionTTLMax)))
+				return nil, nil
+			}
 		}
 	}
 
@@ -128,6 +144,39 @@ func (s *HTTPServer) SessionDestroy(resp http.ResponseWriter, req *http.Request)
 		return nil, err
 	}
 	return true, nil
+}
+
+// SessionRenew is used to renew the TTL on an existing TTL session
+func (s *HTTPServer) SessionRenew(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Mandate a PUT request
+	if req.Method != "PUT" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
+	args := structs.SessionSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Pull out the session id
+	args.Session = strings.TrimPrefix(req.URL.Path, "/v1/session/renew/")
+	if args.Session == "" {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Missing session"))
+		return nil, nil
+	}
+
+	var out structs.IndexedSessions
+	if err := s.agent.RPC("Session.Renew", &args, &out); err != nil {
+		return nil, err
+	} else if out.Sessions == nil {
+		resp.WriteHeader(404)
+		resp.Write([]byte(fmt.Sprintf("Session id '%s' not found", args.Session)))
+		return nil, nil
+	}
+
+	return out.Sessions, nil
 }
 
 // SessionGet is used to get info for a particular session

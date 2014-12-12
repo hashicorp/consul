@@ -294,6 +294,10 @@ func (s *StateStore) initialize() error {
 				AllowBlank: true,
 				Fields:     []string{"Node"},
 			},
+			"ttl": &MDBIndex{
+				AllowBlank: true,
+				Fields:     []string{"TTL"},
+			},
 		},
 		Decoder: func(buf []byte) interface{} {
 			out := new(structs.Session)
@@ -1336,6 +1340,17 @@ func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error
 		return fmt.Errorf("Invalid Session Behavior setting '%s'", session.Behavior)
 	}
 
+	if session.TTL != "" {
+		ttl, err := time.ParseDuration(session.TTL)
+		if err != nil {
+			return fmt.Errorf("Invalid Session TTL '%s': %v", session.TTL, err)
+		}
+
+		if ttl < structs.SessionTTLMin || ttl > structs.SessionTTLMax {
+			return fmt.Errorf("Invalid Session TTL '%s', must be between [%v-%v]", session.TTL, structs.SessionTTLMin, structs.SessionTTLMax)
+		}
+	}
+
 	// Assign the create index
 	session.CreateIndex = index
 
@@ -1438,6 +1453,16 @@ func (s *StateStore) SessionGet(id string) (uint64, *structs.Session, error) {
 // SessionList is used to list all the open sessions
 func (s *StateStore) SessionList() (uint64, []*structs.Session, error) {
 	idx, res, err := s.sessionTable.Get("id")
+	out := make([]*structs.Session, len(res))
+	for i, raw := range res {
+		out[i] = raw.(*structs.Session)
+	}
+	return idx, out, err
+}
+
+// SessionListTTL is used to list all the open ttl sessions
+func (s *StateStore) SessionListTTL() (uint64, []*structs.Session, error) {
+	idx, res, err := s.sessionTable.Get("ttl")
 	out := make([]*structs.Session, len(res))
 	for i, raw := range res {
 		out[i] = raw.(*structs.Session)
