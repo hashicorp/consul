@@ -212,10 +212,10 @@ func (s *Server) forwardLeader(method string, args interface{}, reply interface{
 // forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
 func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{}) error {
 	// Bail if we can't find any servers
-	s.remoteLock.RLock()
-	servers := s.remoteConsuls[dc]
+	remoteConsuls := s.getRemoteConsuls()
+
+	servers := remoteConsuls[dc]
 	if len(servers) == 0 {
-		s.remoteLock.RUnlock()
 		s.logger.Printf("[WARN] consul.rpc: RPC request for DC '%s', no path found", dc)
 		return structs.ErrNoDCPath
 	}
@@ -223,7 +223,6 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	// Select a random addr
 	offset := rand.Int31() % int32(len(servers))
 	server := servers[offset]
-	s.remoteLock.RUnlock()
 
 	// Forward to remote Consul
 	metrics.IncrCounter([]string{"consul", "rpc", "cross-dc", dc}, 1)
@@ -239,8 +238,10 @@ func (s *Server) globalRPC(method string, args interface{},
 	errorCh := make(chan error)
 	respCh := make(chan interface{})
 
+	remoteConsuls := s.getRemoteConsuls()
+
 	// Make a new request into each datacenter
-	for dc, _ := range s.remoteConsuls {
+	for dc, _ := range remoteConsuls {
 		go func(dc string) {
 			rr := reply.New()
 			if err := s.forwardDC(method, dc, args, &rr); err != nil {
@@ -251,7 +252,7 @@ func (s *Server) globalRPC(method string, args interface{},
 		}(dc)
 	}
 
-	replies, total := 0, len(s.remoteConsuls)
+	replies, total := 0, len(remoteConsuls)
 	for replies < total {
 		select {
 		case err := <-errorCh:

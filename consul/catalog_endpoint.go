@@ -91,12 +91,11 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 
 // ListDatacenters is used to query for the list of known datacenters
 func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
-	c.srv.remoteLock.RLock()
-	defer c.srv.remoteLock.RUnlock()
+	remoteConsuls := c.srv.getRemoteConsuls()
 
 	// Read the known DCs
 	var dcs []string
-	for dc := range c.srv.remoteConsuls {
+	for dc := range remoteConsuls {
 		dcs = append(dcs, dc)
 	}
 
