@@ -3,8 +3,6 @@ package consul
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/serf/serf"
 	"log"
 	"math/rand"
 	"os"
@@ -13,6 +11,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/serf"
 )
 
 const (
@@ -374,7 +375,7 @@ func (c *Client) Stats() map[string]map[string]string {
 		return strconv.FormatUint(v, 10)
 	}
 	stats := map[string]map[string]string{
-		"consul": map[string]string{
+		"consul": {
 			"server":        "false",
 			"known_servers": toString(uint64(len(c.consuls))),
 		},

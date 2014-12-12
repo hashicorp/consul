@@ -621,7 +621,7 @@ func (s *Server) Stats() map[string]map[string]string {
 		return strconv.FormatUint(v, 10)
 	}
 	stats := map[string]map[string]string{
-		"consul": map[string]string{
+		"consul": {
 			"server":            "true",
 			"leader":            fmt.Sprintf("%v", s.IsLeader()),
 			"bootstrap":         fmt.Sprintf("%v", s.config.Bootstrap),
