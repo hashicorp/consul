@@ -61,11 +61,16 @@ func (s *Server) leaderLoop(stopCh chan struct{}) {
 		s.logger.Printf("[ERR] consul: ACL initialization failed: %v", err)
 	}
 
-	// Setup Session Timers if we are the leader and need to
+	// Setup the session timers. This is done both when starting up or when
+	// a leader fail over happens. Since the timers are maintained by the leader
+	// node along, effectively this means all the timers are renewed at the
+	// time of failover. The TTL contract is that the session will not be expired
+	// before the TTL, so expiring it later is allowable.
 	if err := s.initializeSessionTimers(); err != nil {
 		s.logger.Printf("[ERR] consul: Session Timers initialization failed: %v", err)
 	}
-	// clear the session timers if we are no longer leader and exit the leaderLoop
+	// Clear the session timers on either shutdown or step down, since we
+	// are no longer responsible for session expirations.
 	defer s.clearAllSessionTimers()
 
 	// Reconcile channel is only used once initial reconcile

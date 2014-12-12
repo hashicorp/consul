@@ -1,11 +1,12 @@
 package consul
 
 import (
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestSessionEndpoint_Apply(t *testing.T) {
@@ -345,7 +346,7 @@ func TestSessionEndpoint_Renew(t *testing.T) {
 		}
 	}
 
-	if len(sessionsL1.Sessions) > 3 {
+	if len(sessionsL1.Sessions) != 3 {
 		t.Fatalf("Bad: %v", sessionsL1.Sessions)
 	}
 
