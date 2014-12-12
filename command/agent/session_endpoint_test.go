@@ -176,6 +176,28 @@ func makeTestSessionDelete(t *testing.T, srv *HTTPServer) string {
 	return sessResp.ID
 }
 
+func makeTestSessionTTL(t *testing.T, srv *HTTPServer, ttl string) string {
+	// Create Session with TTL
+	body := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(body)
+	raw := map[string]interface{}{
+		"TTL": ttl,
+	}
+	enc.Encode(raw)
+
+	req, err := http.NewRequest("PUT", "/v1/session/create", body)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := httptest.NewRecorder()
+	obj, err := srv.SessionCreate(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	sessResp := obj.(sessionCreateResponse)
+	return sessResp.ID
+}
+
 func TestSessionDestroy(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		id := makeTestSession(t, srv)
@@ -188,6 +210,206 @@ func TestSessionDestroy(t *testing.T) {
 		}
 		if resp := obj.(bool); !resp {
 			t.Fatalf("should work")
+		}
+	})
+}
+
+func TestSessionTTL(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		TTL := "10s" // use the minimum legal ttl
+		ttl := 10 * time.Second
+
+		id := makeTestSessionTTL(t, srv, TTL)
+
+		req, err := http.NewRequest("GET",
+			"/v1/session/info/"+id, nil)
+		resp := httptest.NewRecorder()
+		obj, err := srv.SessionGet(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		respObj, ok := obj.(structs.Sessions)
+		if !ok {
+			t.Fatalf("should work")
+		}
+		if len(respObj) != 1 {
+			t.Fatalf("bad: %v", respObj)
+		}
+		if respObj[0].TTL != TTL {
+			t.Fatalf("Incorrect TTL: %s", respObj[0].TTL)
+		}
+
+		time.Sleep(ttl*structs.SessionTTLMultiplier + ttl)
+
+		req, err = http.NewRequest("GET",
+			"/v1/session/info/"+id, nil)
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionGet(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		respObj, ok = obj.(structs.Sessions)
+		if len(respObj) != 0 {
+			t.Fatalf("session '%s' should have been destroyed", id)
+		}
+	})
+}
+
+func TestSessionBadTTL(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		badTTL := "10z"
+
+		// Create Session with illegal TTL
+		body := bytes.NewBuffer(nil)
+		enc := json.NewEncoder(body)
+		raw := map[string]interface{}{
+			"TTL": badTTL,
+		}
+		enc.Encode(raw)
+
+		req, err := http.NewRequest("PUT", "/v1/session/create", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp := httptest.NewRecorder()
+		obj, err := srv.SessionCreate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if obj != nil {
+			t.Fatalf("illegal TTL '%s' allowed", badTTL)
+		}
+		if resp.Code != 400 {
+			t.Fatalf("Bad response code, should be 400")
+		}
+
+		// less than SessionTTLMin
+		body = bytes.NewBuffer(nil)
+		enc = json.NewEncoder(body)
+		raw = map[string]interface{}{
+			"TTL": "5s",
+		}
+		enc.Encode(raw)
+
+		req, err = http.NewRequest("PUT", "/v1/session/create", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionCreate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if obj != nil {
+			t.Fatalf("illegal TTL '%s' allowed", badTTL)
+		}
+		if resp.Code != 400 {
+			t.Fatalf("Bad response code, should be 400")
+		}
+
+		// more than SessionTTLMax
+		body = bytes.NewBuffer(nil)
+		enc = json.NewEncoder(body)
+		raw = map[string]interface{}{
+			"TTL": "4000s",
+		}
+		enc.Encode(raw)
+
+		req, err = http.NewRequest("PUT", "/v1/session/create", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionCreate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if obj != nil {
+			t.Fatalf("illegal TTL '%s' allowed", badTTL)
+		}
+		if resp.Code != 400 {
+			t.Fatalf("Bad response code, should be 400")
+		}
+	})
+}
+
+func TestSessionTTLRenew(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		TTL := "10s" // use the minimum legal ttl
+		ttl := 10 * time.Second
+
+		id := makeTestSessionTTL(t, srv, TTL)
+
+		req, err := http.NewRequest("GET",
+			"/v1/session/info/"+id, nil)
+		resp := httptest.NewRecorder()
+		obj, err := srv.SessionGet(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		respObj, ok := obj.(structs.Sessions)
+		if !ok {
+			t.Fatalf("should work")
+		}
+		if len(respObj) != 1 {
+			t.Fatalf("bad: %v", respObj)
+		}
+		if respObj[0].TTL != TTL {
+			t.Fatalf("Incorrect TTL: %s", respObj[0].TTL)
+		}
+
+		// Sleep to consume some time before renew
+		time.Sleep(ttl * (structs.SessionTTLMultiplier / 2))
+
+		req, err = http.NewRequest("PUT",
+			"/v1/session/renew/"+id, nil)
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionRenew(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		respObj, ok = obj.(structs.Sessions)
+		if !ok {
+			t.Fatalf("should work")
+		}
+		if len(respObj) != 1 {
+			t.Fatalf("bad: %v", respObj)
+		}
+
+		// Sleep for ttl * TTL Multiplier
+		time.Sleep(ttl * structs.SessionTTLMultiplier)
+
+		req, err = http.NewRequest("GET",
+			"/v1/session/info/"+id, nil)
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionGet(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		respObj, ok = obj.(structs.Sessions)
+		if !ok {
+			t.Fatalf("session '%s' should have renewed", id)
+		}
+		if len(respObj) != 1 {
+			t.Fatalf("session '%s' should have renewed", id)
+		}
+
+		// now wait for timeout and expect session to get destroyed
+		time.Sleep(ttl * structs.SessionTTLMultiplier)
+
+		req, err = http.NewRequest("GET",
+			"/v1/session/info/"+id, nil)
+		resp = httptest.NewRecorder()
+		obj, err = srv.SessionGet(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		respObj, ok = obj.(structs.Sessions)
+		if !ok {
+			t.Fatalf("session '%s' should have destroyed", id)
+		}
+		if len(respObj) != 0 {
+			t.Fatalf("session '%s' should have destroyed", id)
 		}
 	})
 }
