@@ -2,14 +2,16 @@
 layout: "docs"
 page_title: "Security Model"
 sidebar_current: "docs-internals-security"
+description: |-
+  Consul relies on both a lightweight gossip mechanism and an RPC system to provide various features. Both of the systems have different security mechanisms that stem from their designs. However, the goals of Consuls security are to provide confidentiality, integrity and authentication.
 ---
 
 # Security Model
 
 Consul relies on both a lightweight gossip mechanism and an RPC system
 to provide various features. Both of the systems have different security
-mechanisms that stem from their designs. However, the goals
-of Consuls security are to provide [confidentiality, integrity and authentication](http://en.wikipedia.org/wiki/Information_security).
+mechanisms that stem from their designs. However, the overall goal
+of Consul's security model is to provide [confidentiality, integrity and authentication](http://en.wikipedia.org/wiki/Information_security).
 
 The [gossip protocol](/docs/internals/gossip.html) is powered by [Serf](http://www.serfdom.io/),
 which uses a symmetric key, or shared secret, cryptosystem. There are more
@@ -17,18 +19,17 @@ details on the security of [Serf here](http://www.serfdom.io/docs/internals/secu
 
 The RPC system supports using end-to-end TLS, with optional client authentication.
 [TLS](http://en.wikipedia.org/wiki/Transport_Layer_Security) is a widely deployed asymmetric
-cryptosystem, and is the foundation of security on the Internet.
+cryptosystem, and is the foundation of security on the Web, as well as
+some other critical parts of the Internet.
 
 This means Consul communication is protected against eavesdropping, tampering,
-or spoofing. This makes it possible to run Consul over untrusted networks such
+and spoofing. This makes it possible to run Consul over untrusted networks such
 as EC2 and other shared hosting providers.
 
-<div class="alert alert-block alert-warning">
-<strong>Advanced Topic!</strong> This page covers the technical details of
+~> **Advanced Topic!** This page covers the technical details of
 the security model of Consul. You don't need to know these details to
 operate and use Consul. These details are documented here for those who wish
 to learn about them without having to go spelunking through the source code.
-</div>
 
 ## Threat Model
 
@@ -50,4 +51,3 @@ When designing security into a system you design it to fit the threat model.
 Our goal is not to protect top secret data but to provide a "reasonable"
 level of security that would require an attacker to commit a considerable
 amount of resources to defeat.
-

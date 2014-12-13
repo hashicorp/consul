@@ -35,7 +35,7 @@ func TestEnsureRegistration(t *testing.T) {
 	}
 
 	if err := store.EnsureRegistration(13, reg); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	idx, found, addr := store.GetNode("foo")
@@ -73,7 +73,7 @@ func TestEnsureNode(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	idx, found, addr := store.GetNode("foo")
@@ -82,7 +82,7 @@ func TestEnsureNode(t *testing.T) {
 	}
 
 	if err := store.EnsureNode(4, structs.Node{"foo", "127.0.0.2"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	idx, found, addr = store.GetNode("foo")
@@ -99,11 +99,11 @@ func TestGetNodes(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(40, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureNode(41, structs.Node{"bar", "127.0.0.2"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	idx, nodes := store.Nodes()
@@ -126,11 +126,11 @@ func BenchmarkGetNodes(b *testing.B) {
 	defer store.Close()
 
 	if err := store.EnsureNode(100, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		b.Fatalf("err: %v")
+		b.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureNode(101, structs.Node{"bar", "127.0.0.2"}); err != nil {
-		b.Fatalf("err: %v")
+		b.Fatalf("err: %v", err)
 	}
 
 	for i := 0; i < b.N; i++ {
@@ -259,7 +259,7 @@ func TestDeleteNodeService(t *testing.T) {
 		ServiceID: "api",
 	}
 	if err := store.EnsureCheck(13, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.DeleteNodeService(14, "foo", "api"); err != nil {
@@ -329,11 +329,11 @@ func TestDeleteNode(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(20, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(21, "foo", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	check := &structs.HealthCheck{
@@ -384,23 +384,23 @@ func TestGetServices(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(30, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureNode(31, structs.Node{"bar", "127.0.0.2"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(32, "foo", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(33, "foo", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(34, "bar", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	idx, services := store.Services()
@@ -434,31 +434,31 @@ func TestServiceNodes(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(10, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureNode(11, structs.Node{"bar", "127.0.0.2"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(13, "bar", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(14, "foo", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(15, "bar", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(16, "bar", &structs.NodeService{"db2", "db", []string{"slave"}, 8001}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	idx, nodes := store.ServiceNodes("db")
@@ -525,23 +525,23 @@ func TestServiceTagNodes(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(15, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureNode(16, structs.Node{"bar", "127.0.0.2"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(17, "foo", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(18, "foo", &structs.NodeService{"db2", "db", []string{"slave"}, 8001}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(19, "bar", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	idx, nodes := store.ServiceTagNodes("db", "master")
@@ -573,23 +573,23 @@ func TestServiceTagNodes_MultipleTags(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(15, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureNode(16, structs.Node{"bar", "127.0.0.2"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(17, "foo", &structs.NodeService{"db", "db", []string{"master", "v2"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(18, "foo", &structs.NodeService{"db2", "db", []string{"slave", "v2", "dev"}, 8001}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(19, "bar", &structs.NodeService{"db", "db", []string{"slave", "v2"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	idx, nodes := store.ServiceTagNodes("db", "master")
@@ -649,23 +649,23 @@ func TestStoreSnapshot(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(8, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureNode(9, structs.Node{"bar", "127.0.0.2"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(10, "foo", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(11, "foo", &structs.NodeService{"db2", "db", []string{"slave"}, 8001}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.EnsureService(12, "bar", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	check := &structs.HealthCheck{
@@ -676,7 +676,7 @@ func TestStoreSnapshot(t *testing.T) {
 		ServiceID: "db",
 	}
 	if err := store.EnsureCheck(13, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	// Add some KVS entries
@@ -703,13 +703,17 @@ func TestStoreSnapshot(t *testing.T) {
 	if ok, err := store.KVSLock(18, d); err != nil || !ok {
 		t.Fatalf("err: %v", err)
 	}
+	session = &structs.Session{ID: generateUUID(), Node: "bar", TTL: "60s"}
+	if err := store.SessionCreate(19, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	a1 := &structs.ACL{
 		ID:   generateUUID(),
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(19, a1); err != nil {
+	if err := store.ACLSet(20, a1); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -718,19 +722,19 @@ func TestStoreSnapshot(t *testing.T) {
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(20, a2); err != nil {
+	if err := store.ACLSet(21, a2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Take a snapshot
 	snap, err := store.Snapshot()
 	if err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	defer snap.Close()
 
 	// Check the last nodes
-	if idx := snap.LastIndex(); idx != 20 {
+	if idx := snap.LastIndex(); idx != 21 {
 		t.Fatalf("bad: %v", idx)
 	}
 
@@ -785,13 +789,23 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("missing KVS entries!")
 	}
 
-	// Check there are 2 sessions
+	// Check there are 3 sessions
 	sessions, err := snap.SessionList()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(sessions) != 2 {
+	if len(sessions) != 3 {
 		t.Fatalf("missing sessions")
+	}
+
+	ttls := 0
+	for _, session := range sessions {
+		if session.TTL != "" {
+			ttls++
+		}
+	}
+	if ttls != 1 {
+		t.Fatalf("Wrong number of sessions with TTL")
 	}
 
 	// Check for an acl
@@ -804,13 +818,13 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 
 	// Make some changes!
-	if err := store.EnsureService(21, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
+	if err := store.EnsureService(22, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(22, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(23, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureNode(23, structs.Node{"baz", "127.0.0.3"}); err != nil {
+	if err := store.EnsureNode(24, structs.Node{"baz", "127.0.0.3"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	checkAfter := &structs.HealthCheck{
@@ -820,16 +834,16 @@ func TestStoreSnapshot(t *testing.T) {
 		Status:    structs.HealthCritical,
 		ServiceID: "db",
 	}
-	if err := store.EnsureCheck(24, checkAfter); err != nil {
+	if err := store.EnsureCheck(26, checkAfter); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.KVSDelete(25, "/web/b"); err != nil {
+	if err := store.KVSDelete(26, "/web/b"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Nuke an ACL
-	if err := store.ACLDelete(26, a1.ID); err != nil {
+	if err := store.ACLDelete(27, a1.ID); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -883,12 +897,12 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("missing KVS entries!")
 	}
 
-	// Check there are 2 sessions
+	// Check there are 3 sessions
 	sessions, err = snap.SessionList()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(sessions) != 2 {
+	if len(sessions) != 3 {
 		t.Fatalf("missing sessions")
 	}
 
@@ -913,7 +927,7 @@ func TestEnsureCheck(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
 		Node:      "foo",
@@ -923,7 +937,7 @@ func TestEnsureCheck(t *testing.T) {
 		ServiceID: "db1",
 	}
 	if err := store.EnsureCheck(3, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	check2 := &structs.HealthCheck{
@@ -933,7 +947,7 @@ func TestEnsureCheck(t *testing.T) {
 		Status:  structs.HealthWarning,
 	}
 	if err := store.EnsureCheck(4, check2); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	idx, checks := store.NodeChecks("foo")
@@ -1009,7 +1023,7 @@ func TestDeleteNodeCheck(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
 		Node:      "foo",
@@ -1019,7 +1033,7 @@ func TestDeleteNodeCheck(t *testing.T) {
 		ServiceID: "db1",
 	}
 	if err := store.EnsureCheck(3, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	check2 := &structs.HealthCheck{
@@ -1029,7 +1043,7 @@ func TestDeleteNodeCheck(t *testing.T) {
 		Status:  structs.HealthWarning,
 	}
 	if err := store.EnsureCheck(4, check2); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.DeleteNodeCheck(5, "foo", "db"); err != nil {
@@ -1059,7 +1073,7 @@ func TestCheckServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
 		Node:      "foo",
@@ -1069,7 +1083,7 @@ func TestCheckServiceNodes(t *testing.T) {
 		ServiceID: "db1",
 	}
 	if err := store.EnsureCheck(3, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	check = &structs.HealthCheck{
 		Node:    "foo",
@@ -1078,7 +1092,7 @@ func TestCheckServiceNodes(t *testing.T) {
 		Status:  structs.HealthPassing,
 	}
 	if err := store.EnsureCheck(4, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	idx, nodes := store.CheckServiceNodes("db")
@@ -1140,7 +1154,7 @@ func BenchmarkCheckServiceNodes(t *testing.B) {
 		t.Fatalf("err: %v", err)
 	}
 	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
 		Node:      "foo",
@@ -1150,7 +1164,7 @@ func BenchmarkCheckServiceNodes(t *testing.B) {
 		ServiceID: "db1",
 	}
 	if err := store.EnsureCheck(3, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	check = &structs.HealthCheck{
 		Node:    "foo",
@@ -1159,7 +1173,7 @@ func BenchmarkCheckServiceNodes(t *testing.B) {
 		Status:  structs.HealthPassing,
 	}
 	if err := store.EnsureCheck(4, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	for i := 0; i < t.N; i++ {
@@ -1184,7 +1198,7 @@ func TestSS_Register_Deregister_Query(t *testing.T) {
 		nil,
 		0}
 	if err := store.EnsureService(2, "foo", srv); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	srv = &structs.NodeService{
@@ -1193,7 +1207,7 @@ func TestSS_Register_Deregister_Query(t *testing.T) {
 		nil,
 		0}
 	if err := store.EnsureService(3, "foo", srv); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	if err := store.DeleteNode(4, "foo"); err != nil {
@@ -1220,7 +1234,7 @@ func TestNodeInfo(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
 		Node:      "foo",
@@ -1230,7 +1244,7 @@ func TestNodeInfo(t *testing.T) {
 		ServiceID: "db1",
 	}
 	if err := store.EnsureCheck(3, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	check = &structs.HealthCheck{
 		Node:    "foo",
@@ -1239,7 +1253,7 @@ func TestNodeInfo(t *testing.T) {
 		Status:  structs.HealthPassing,
 	}
 	if err := store.EnsureCheck(4, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	idx, dump := store.NodeInfo("foo")
@@ -1279,13 +1293,13 @@ func TestNodeDump(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	if err := store.EnsureNode(3, structs.Node{"baz", "127.0.0.2"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if err := store.EnsureService(4, "baz", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	idx, dump := store.NodeDump()
@@ -1554,7 +1568,7 @@ func TestKVS_ListKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if idx != 0 {
+	if idx != 1 {
 		t.Fatalf("bad: %v", idx)
 	}
 	if len(keys) != 0 {
@@ -1657,6 +1671,65 @@ func TestKVS_ListKeys(t *testing.T) {
 	}
 }
 
+func TestKVS_ListKeys_Index(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Create the entries
+	d := &structs.DirEntry{Key: "/foo/a", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/bar/b", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1001, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/baz/c", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1002, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/other/d", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1003, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, keys, err := store.KVSListKeys("/foo", "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1000 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(keys) != 1 {
+		t.Fatalf("bad: %v", keys)
+	}
+
+	idx, keys, err = store.KVSListKeys("/ba", "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1002 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(keys) != 2 {
+		t.Fatalf("bad: %v", keys)
+	}
+
+	idx, keys, err = store.KVSListKeys("/nope", "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1003 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(keys) != 0 {
+		t.Fatalf("bad: %v", keys)
+	}
+}
+
 func TestKVSDeleteTree(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
@@ -1711,7 +1784,7 @@ func TestSessionCreate(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
 		Node:    "foo",
@@ -1719,7 +1792,7 @@ func TestSessionCreate(t *testing.T) {
 		Status:  structs.HealthPassing,
 	}
 	if err := store.EnsureCheck(13, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	session := &structs.Session{
@@ -1756,7 +1829,7 @@ func TestSessionCreate_Invalid(t *testing.T) {
 
 	// Check not registered
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	if err := store.SessionCreate(1000, session); err.Error() != "Missing check 'bar' registration" {
 		t.Fatalf("err: %v", err)
@@ -1785,7 +1858,7 @@ func TestSession_Lookups(t *testing.T) {
 
 	// Create a session
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{
 		ID:     generateUUID(),
@@ -1870,7 +1943,7 @@ func TestSessionInvalidate_CriticalHealthCheck(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
 		Node:    "foo",
@@ -1878,7 +1951,7 @@ func TestSessionInvalidate_CriticalHealthCheck(t *testing.T) {
 		Status:  structs.HealthPassing,
 	}
 	if err := store.EnsureCheck(13, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	session := &structs.Session{
@@ -1914,7 +1987,7 @@ func TestSessionInvalidate_DeleteHealthCheck(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
 		Node:    "foo",
@@ -1922,7 +1995,7 @@ func TestSessionInvalidate_DeleteHealthCheck(t *testing.T) {
 		Status:  structs.HealthPassing,
 	}
 	if err := store.EnsureCheck(13, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	session := &structs.Session{
@@ -1957,7 +2030,7 @@ func TestSessionInvalidate_DeleteNode(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	session := &structs.Session{
@@ -1970,7 +2043,7 @@ func TestSessionInvalidate_DeleteNode(t *testing.T) {
 
 	// Delete the node
 	if err := store.DeleteNode(15, "foo"); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	// Lookup by ID, should be nil
@@ -2004,7 +2077,7 @@ func TestSessionInvalidate_DeleteNodeService(t *testing.T) {
 		ServiceID: "api",
 	}
 	if err := store.EnsureCheck(13, check); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	session := &structs.Session{
@@ -2039,7 +2112,7 @@ func TestKVSLock(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	if err := store.SessionCreate(4, session); err != nil {
@@ -2112,7 +2185,7 @@ func TestKVSUnlock(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	if err := store.SessionCreate(4, session); err != nil {
@@ -2170,7 +2243,7 @@ func TestSessionInvalidate_KeyUnlock(t *testing.T) {
 	defer store.Close()
 
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{
 		ID:        generateUUID(),
@@ -2198,7 +2271,7 @@ func TestSessionInvalidate_KeyUnlock(t *testing.T) {
 
 	// Delete the node
 	if err := store.DeleteNode(6, "foo"); err != nil {
-		t.Fatalf("err: %v")
+		t.Fatalf("err: %v", err)
 	}
 
 	// Key should be unlocked
@@ -2217,6 +2290,53 @@ func TestSessionInvalidate_KeyUnlock(t *testing.T) {
 	expires := store.KVSLockDelay("/foo")
 	if expires.Before(time.Now().Add(30 * time.Millisecond)) {
 		t.Fatalf("Bad: %v", expires)
+	}
+}
+
+func TestSessionInvalidate_KeyDelete(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	session := &structs.Session{
+		ID:        generateUUID(),
+		Node:      "foo",
+		LockDelay: 50 * time.Millisecond,
+		Behavior:  structs.SessionKeysDelete,
+	}
+	if err := store.SessionCreate(4, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lock a key with the session
+	d := &structs.DirEntry{
+		Key:     "/bar",
+		Flags:   42,
+		Value:   []byte("test"),
+		Session: session.ID,
+	}
+	ok, err := store.KVSLock(5, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected fail")
+	}
+
+	// Delete the node
+	if err := store.DeleteNode(6, "foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Key should be deleted
+	_, d2, err := store.KVSGet("/bar")
+	if d2 != nil {
+		t.Fatalf("unexpected undeleted key")
 	}
 }
 

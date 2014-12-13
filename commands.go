@@ -1,14 +1,15 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+
 	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/mitchellh/cli"
-	"os"
-	"os/signal"
 )
 
-// Commands is the mapping of all the available Serf commands.
+// Commands is the mapping of all the available Consul commands.
 var Commands map[string]cli.CommandFactory
 
 func init() {
@@ -56,6 +57,12 @@ func init() {
 			}, nil
 		},
 
+		"keyring": func() (cli.Command, error) {
+			return &command.KeyringCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"leave": func() (cli.Command, error) {
 			return &command.LeaveCommand{
 				Ui: ui,
@@ -88,10 +95,19 @@ func init() {
 		},
 
 		"version": func() (cli.Command, error) {
+			ver := Version
+			rel := VersionPrerelease
+			if GitDescribe != "" {
+				ver = GitDescribe
+			}
+			if GitDescribe == "" && rel == "" {
+				rel = "dev"
+			}
+
 			return &command.VersionCommand{
 				Revision:          GitCommit,
-				Version:           Version,
-				VersionPrerelease: VersionPrerelease,
+				Version:           ver,
+				VersionPrerelease: rel,
 				Ui:                ui,
 			}, nil
 		},

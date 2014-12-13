@@ -1,4 +1,4 @@
-## 0.4.1 (Unreleased)
+## 0.4.1 (October 20, 2014)
 
 FEATURES:
 
@@ -23,6 +23,7 @@ BUG FIXES:
  * Serf snapshot compaction works on Windows [GH-332]
  * Raft snapshots work on Windows [GH-265]
  * Consul service entry clean by clients now possible
+ * Fixing improper deserialization
 
 IMPROVEMENTS:
 
@@ -203,11 +204,11 @@ FEATURES:
   * /v1/health/service/ endpoint can take an optional `?passing` flag
       to filter to only nodes with passing results. [GH-57]
   * The KV endpoint suports listing keys with the `?keys` query parameter,
-      and limited up to a seperator using `?seperator=`.
+      and limited up to a separator using `?separator=`.
 
 IMPROVEMENTS:
 
-  * Health check output goes into seperate `Output` field instead
+  * Health check output goes into separate `Output` field instead
       of overriding `Notes`. [GH-59]
   * Adding a minimum check interval to prevent checks with extremely
       low intervals fork bombing. [GH-64]
@@ -226,7 +227,7 @@ BUG FIXES:
   * DNS parser can handler period in a tag name. [GH-39]
   * "application/json" content-type is sent on HTTP requests. [GH-45]
   * Work around for LMDB delete issue. [GH-85]
-  * Fixed tag gossip propogation for rapid restart. [GH-86]
+  * Fixed tag gossip propagation for rapid restart. [GH-86]
 
 MISC:
 

@@ -3,16 +3,17 @@ package consul
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/yamux"
-	"github.com/inconshreveable/muxado"
-	"github.com/ugorji/go/codec"
 	"io"
 	"math/rand"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/yamux"
+	"github.com/inconshreveable/muxado"
 )
 
 type RPCType byte
@@ -149,7 +150,13 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
 	rpcCodec := codec.GoRpc.ServerCodec(conn, msgpackHandle)
-	for !s.shutdown {
+	for {
+		select {
+		case <-s.shutdownCh:
+			return
+		default:
+		}
+
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
 				s.logger.Printf("[ERR] consul.rpc: RPC error: %v (%v)", err, conn)
@@ -221,6 +228,40 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	// Forward to remote Consul
 	metrics.IncrCounter([]string{"consul", "rpc", "cross-dc", dc}, 1)
 	return s.connPool.RPC(server.Addr, server.Version, method, args, reply)
+}
+
+// globalRPC is used to forward an RPC request to one server in each datacenter.
+// This will only error for RPC-related errors. Otherwise, application-level
+// errors can be sent in the response objects.
+func (s *Server) globalRPC(method string, args interface{},
+	reply structs.CompoundResponse) error {
+
+	errorCh := make(chan error)
+	respCh := make(chan interface{})
+
+	// Make a new request into each datacenter
+	for dc, _ := range s.remoteConsuls {
+		go func(dc string) {
+			rr := reply.New()
+			if err := s.forwardDC(method, dc, args, &rr); err != nil {
+				errorCh <- err
+				return
+			}
+			respCh <- rr
+		}(dc)
+	}
+
+	replies, total := 0, len(s.remoteConsuls)
+	for replies < total {
+		select {
+		case err := <-errorCh:
+			return err
+		case rr := <-respCh:
+			reply.Add(rr)
+			replies++
+		}
+	}
+	return nil
 }
 
 // raftApply is used to encode a message, run it through raft, and return

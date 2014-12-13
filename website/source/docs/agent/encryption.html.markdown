@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Encryption"
 sidebar_current: "docs-agent-encryption"
+description: |-
+  The Consul agent supports encrypting all of its network traffic. The exact method of this encryption is described on the encryption internals page. There are two separate systems, one for gossip traffic and one for RPC.
 ---
 
 # Encryption
@@ -9,7 +11,7 @@ sidebar_current: "docs-agent-encryption"
 The Consul agent supports encrypting all of its network traffic. The exact
 method of this encryption is described on the
 [encryption internals page](/docs/internals/security.html). There are two
-seperate systems, one for gossip traffic and one for RPC.
+separate systems, one for gossip traffic and one for RPC.
 
 ## Gossip Encryption
 
@@ -19,7 +21,7 @@ in a configuration file for the agent. The key must be 16-bytes that are base64
 encoded. The easiest method to obtain a cryptographically suitable key is by
 using `consul keygen`.
 
-```
+```text
 $ consul keygen
 cg8StVXbQJ0gPvMd9o7yrg==
 ```
@@ -27,7 +29,7 @@ cg8StVXbQJ0gPvMd9o7yrg==
 With that key, you can enable encryption on the agent. You can verify
 encryption is enabled because the output will include "Encrypted: true".
 
-```
+```text
 $ cat encrypt.json
 {"encrypt": "cg8StVXbQJ0gPvMd9o7yrg=="}
 
@@ -72,7 +74,7 @@ key pair set using `cert_file` and `key_file`.
 If `verify_incoming` is set, then the servers verify the authenticity of all incoming
 connections. Servers will also disallow any non-TLS connections. If this is set, then all
 clients must have a valid key pair set using `cert_file` and `key_file`. To force clients to
-use TLs, `verify_outgoing` must also be set.
+use TLS, `verify_outgoing` must also be set.
 
 TLS is used to secure the RPC calls between agents, but gossip between nodes is done over UDP
 and is secured using a symmetric key. See above for enabling gossip encryption.

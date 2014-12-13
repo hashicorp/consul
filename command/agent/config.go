@@ -23,6 +23,7 @@ import (
 type PortConfig struct {
 	DNS     int // DNS Query interface
 	HTTP    int // HTTP API
+	HTTPS   int // HTTPS API
 	RPC     int // CLI RPC
 	SerfLan int `mapstructure:"serf_lan"` // LAN gossip (Client + Server)
 	SerfWan int `mapstructure:"serf_wan"` // WAN gossip (Server onlyg)
@@ -33,9 +34,10 @@ type PortConfig struct {
 // for specific services. By default, either ClientAddress
 // or ServerAddress is used.
 type AddressConfig struct {
-	DNS  string // DNS Query interface
-	HTTP string // HTTP API
-	RPC  string // CLI RPC
+	DNS   string // DNS Query interface
+	HTTP  string // HTTP API
+	HTTPS string // HTTPS API
+	RPC   string // CLI RPC
 }
 
 // DNSConfig is used to fine tune the DNS sub-system.
@@ -97,9 +99,14 @@ type Config struct {
 	// DataDir is the directory to store our state in
 	DataDir string `mapstructure:"data_dir"`
 
-	// DNSRecursor can be set to allow the DNS server to recursively
-	// resolve non-consul domains
+	// DNSRecursors can be set to allow the DNS servers to recursively
+	// resolve non-consul domains. It is deprecated, and merges into the
+	// recursors array.
 	DNSRecursor string `mapstructure:"recursor"`
+
+	// DNSRecursors can be set to allow the DNS servers to recursively
+	// resolve non-consul domains
+	DNSRecursors []string `mapstructure:"recursors"`
 
 	// DNS configuration
 	DNSConfig DNSConfig `mapstructure:"dns_config"`
@@ -117,7 +124,7 @@ type Config struct {
 	NodeName string `mapstructure:"node_name"`
 
 	// ClientAddr is used to control the address we bind to for
-	// client services (DNS, HTTP, RPC)
+	// client services (DNS, HTTP, HTTPS, RPC)
 	ClientAddr string `mapstructure:"client_addr"`
 
 	// BindAddr is used to control the address we bind to.
@@ -189,6 +196,11 @@ type Config struct {
 	// addresses, then the agent will error and exit.
 	StartJoin []string `mapstructure:"start_join"`
 
+	// StartJoinWan is a list of addresses to attempt to join -wan when the
+	// agent starts. If Serf is unable to communicate with any of these
+	// addresses, then the agent will error and exit.
+	StartJoinWan []string `mapstructure:"start_join_wan"`
+
 	// RetryJoin is a list of addresses to join with retry enabled.
 	RetryJoin []string `mapstructure:"retry_join"`
 
@@ -202,6 +214,20 @@ type Config struct {
 	// the default is 30s.
 	RetryInterval    time.Duration `mapstructure:"-" json:"-"`
 	RetryIntervalRaw string        `mapstructure:"retry_interval"`
+
+	// RetryJoinWan is a list of addresses to join -wan with retry enabled.
+	RetryJoinWan []string `mapstructure:"retry_join_wan"`
+
+	// RetryMaxAttemptsWan specifies the maximum number of times to retry joining a
+	// -wan host on startup. This is useful for cases where we know the node will be
+	// online eventually.
+	RetryMaxAttemptsWan int `mapstructure:"retry_max_wan"`
+
+	// RetryIntervalWan specifies the amount of time to wait in between join
+	// -wan attempts on agent start. The minimum allowed value is 1 second and
+	// the default is 30s.
+	RetryIntervalWan    time.Duration `mapstructure:"-" json:"-"`
+	RetryIntervalWanRaw string        `mapstructure:"retry_interval_wan"`
 
 	// UiDir is the directory containing the Web UI resources.
 	// If provided, the UI endpoints will be enabled.
@@ -327,6 +353,7 @@ func DefaultConfig() *Config {
 		Ports: PortConfig{
 			DNS:     8600,
 			HTTP:    8500,
+			HTTPS:   -1,
 			RPC:     8400,
 			SerfLan: consul.DefaultLANSerfPort,
 			SerfWan: consul.DefaultWANSerfPort,
@@ -343,6 +370,7 @@ func DefaultConfig() *Config {
 		ACLDownPolicy:       "extend-cache",
 		ACLDefaultPolicy:    "allow",
 		RetryInterval:       30 * time.Second,
+		RetryIntervalWan:    30 * time.Second,
 	}
 }
 
@@ -392,16 +420,43 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 
 	// Check the result type
 	if obj, ok := raw.(map[string]interface{}); ok {
-		// Check for a "service" or "check" key, meaning
+		// Check for a "services", "service" or "check" key, meaning
 		// this is actually a definition entry
+		if sub, ok := obj["services"]; ok {
+			if list, ok := sub.([]interface{}); ok {
+				for _, srv := range list {
+					service, err := DecodeServiceDefinition(srv)
+					if err != nil {
+						return nil, err
+					}
+					result.Services = append(result.Services, service)
+				}
+			}
+		}
 		if sub, ok := obj["service"]; ok {
 			service, err := DecodeServiceDefinition(sub)
+			if err != nil {
+				return nil, err
+			}
 			result.Services = append(result.Services, service)
-			return &result, err
-		} else if sub, ok := obj["check"]; ok {
+		}
+		if sub, ok := obj["checks"]; ok {
+			if list, ok := sub.([]interface{}); ok {
+				for _, chk := range list {
+					check, err := DecodeCheckDefinition(chk)
+					if err != nil {
+						return nil, err
+					}
+					result.Checks = append(result.Checks, check)
+				}
+			}
+		}
+		if sub, ok := obj["check"]; ok {
 			check, err := DecodeCheckDefinition(sub)
+			if err != nil {
+				return nil, err
+			}
 			result.Checks = append(result.Checks, check)
-			return &result, err
 		}
 	}
 
@@ -473,6 +528,19 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.RetryInterval = dur
 	}
 
+	if raw := result.RetryIntervalWanRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("RetryIntervalWan invalid: %v", err)
+		}
+		result.RetryIntervalWan = dur
+	}
+
+	// Merge the single recursor
+	if result.DNSRecursor != "" {
+		result.DNSRecursors = append(result.DNSRecursors, result.DNSRecursor)
+	}
+
 	return &result, nil
 }
 
@@ -491,8 +559,13 @@ func DecodeServiceDefinition(raw interface{}) (*ServiceDefinition, error) {
 		}
 	}
 
-	sub, ok = rawMap["check"]
-	if !ok {
+	for k, v := range rawMap {
+		if strings.ToLower(k) == "check" {
+			sub = v
+			break
+		}
+	}
+	if sub == nil {
 		goto AFTER_FIX
 	}
 	if err := FixupCheckType(sub); err != nil {
@@ -596,9 +669,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.DataDir != "" {
 		result.DataDir = b.DataDir
 	}
-	if b.DNSRecursor != "" {
-		result.DNSRecursor = b.DNSRecursor
-	}
+
+	// Copy the dns recursors
+	result.DNSRecursors = make([]string, 0, len(a.DNSRecursors)+len(b.DNSRecursors))
+	result.DNSRecursors = append(result.DNSRecursors, a.DNSRecursors...)
+	result.DNSRecursors = append(result.DNSRecursors, b.DNSRecursors...)
+
 	if b.Domain != "" {
 		result.Domain = b.Domain
 	}
@@ -671,6 +747,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Ports.HTTP != 0 {
 		result.Ports.HTTP = b.Ports.HTTP
 	}
+	if b.Ports.HTTPS != 0 {
+		result.Ports.HTTPS = b.Ports.HTTPS
+	}
 	if b.Ports.RPC != 0 {
 		result.Ports.RPC = b.Ports.RPC
 	}
@@ -688,6 +767,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Addresses.HTTP != "" {
 		result.Addresses.HTTP = b.Addresses.HTTP
+	}
+	if b.Addresses.HTTPS != "" {
+		result.Addresses.HTTPS = b.Addresses.HTTPS
 	}
 	if b.Addresses.RPC != "" {
 		result.Addresses.RPC = b.Addresses.RPC
@@ -709,6 +791,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.RetryInterval != 0 {
 		result.RetryInterval = b.RetryInterval
+	}
+	if b.RetryMaxAttemptsWan != 0 {
+		result.RetryMaxAttemptsWan = b.RetryMaxAttemptsWan
+	}
+	if b.RetryIntervalWan != 0 {
+		result.RetryIntervalWan = b.RetryIntervalWan
 	}
 	if b.DNSConfig.NodeTTL != 0 {
 		result.DNSConfig.NodeTTL = b.DNSConfig.NodeTTL
@@ -776,10 +864,20 @@ func MergeConfig(a, b *Config) *Config {
 	result.StartJoin = append(result.StartJoin, a.StartJoin...)
 	result.StartJoin = append(result.StartJoin, b.StartJoin...)
 
+	// Copy the start join addresses
+	result.StartJoinWan = make([]string, 0, len(a.StartJoinWan)+len(b.StartJoinWan))
+	result.StartJoinWan = append(result.StartJoinWan, a.StartJoinWan...)
+	result.StartJoinWan = append(result.StartJoinWan, b.StartJoinWan...)
+
 	// Copy the retry join addresses
 	result.RetryJoin = make([]string, 0, len(a.RetryJoin)+len(b.RetryJoin))
 	result.RetryJoin = append(result.RetryJoin, a.RetryJoin...)
 	result.RetryJoin = append(result.RetryJoin, b.RetryJoin...)
+
+	// Copy the retry join -wan addresses
+	result.RetryJoinWan = make([]string, 0, len(a.RetryJoinWan)+len(b.RetryJoinWan))
+	result.RetryJoinWan = append(result.RetryJoinWan, a.RetryJoinWan...)
+	result.RetryJoinWan = append(result.RetryJoinWan, b.RetryJoinWan...)
 
 	return &result
 }

@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Telemetry"
 sidebar_current: "docs-agent-telemetry"
+description: |-
+  The Consul agent collects various metrics data at runtime about the performance of different libraries and sub-systems. These metrics are aggregated on a ten second interval and are retained for one minute.
 ---
 
 # Telemetry
@@ -25,7 +27,7 @@ aggregate and flushed to Graphite or any other metrics store.
 
 Below is an example output:
 
-```
+```text
 [2014-01-29 10:56:50 -0800 PST][G] 'consul-agent.runtime.num_goroutines': 19.000
 [2014-01-29 10:56:50 -0800 PST][G] 'consul-agent.runtime.alloc_bytes': 755960.000
 [2014-01-29 10:56:50 -0800 PST][G] 'consul-agent.runtime.malloc_count': 7550.000
@@ -42,4 +44,3 @@ Below is an example output:
 [2014-01-29 10:56:50 -0800 PST][S] 'consul-agent.serf.queue.Intent': Count: 10 Sum: 0.000
 [2014-01-29 10:56:50 -0800 PST][S] 'consul-agent.serf.queue.Event': Count: 10 Min: 0.000 Mean: 2.500 Max: 5.000 Stddev: 2.121 Sum: 25.000
 ```
-

@@ -39,6 +39,17 @@ func TestCatalogRegister(t *testing.T) {
 	if res != true {
 		t.Fatalf("bad: %v", res)
 	}
+
+	// Service should be in sync
+	if err := srv.agent.state.syncService("foo"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, ok := srv.agent.state.serviceStatus["foo"]; !ok {
+		t.Fatalf("bad: %#v", srv.agent.state.serviceStatus)
+	}
+	if !srv.agent.state.serviceStatus["foo"].inSync {
+		t.Fatalf("should be in sync")
+	}
 }
 
 func TestCatalogDeregister(t *testing.T) {

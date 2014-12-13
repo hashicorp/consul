@@ -97,12 +97,12 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Add the check
-	return nil, s.agent.AddCheck(health, chkType)
+	return nil, s.agent.AddCheck(health, chkType, true)
 }
 
 func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/deregister/")
-	return nil, s.agent.RemoveCheck(checkID)
+	return nil, s.agent.RemoveCheck(checkID, true)
 }
 
 func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -169,10 +169,10 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	}
 
 	// Add the check
-	return nil, s.agent.AddService(ns, chkType)
+	return nil, s.agent.AddService(ns, chkType, true)
 }
 
 func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/")
-	return nil, s.agent.RemoveService(serviceID)
+	return nil, s.agent.RemoveService(serviceID, true)
 }

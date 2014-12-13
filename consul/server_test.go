@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -255,10 +256,12 @@ func TestServer_Leave(t *testing.T) {
 	}
 
 	// Should lose a peer
-	p1, _ = s1.raftPeers.Peers()
-	if len(p1) != 1 {
+	testutil.WaitForResult(func() (bool, error) {
+		p1, _ = s1.raftPeers.Peers()
+		return len(p1) == 1, nil
+	}, func(err error) {
 		t.Fatalf("should have 1 peer: %v", p1)
-	}
+	})
 }
 
 func TestServer_RPC(t *testing.T) {
@@ -471,5 +474,56 @@ func TestServer_BadExpect(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
+}
 
+type fakeGlobalResp struct{}
+
+func (r *fakeGlobalResp) Add(interface{}) {
+	return
+}
+
+func (r *fakeGlobalResp) New() interface{} {
+	return struct{}{}
+}
+
+func TestServer_globalRPCErrors(t *testing.T) {
+	dir1, s1 := testServerDC(t, "dc1")
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.remoteConsuls) == 1, nil
+	}, func(err error) {
+		t.Fatalf("Server did not join LAN successfully")
+	})
+
+	// Check that an error from a remote DC is returned
+	err := s1.globalRPC("Bad.Method", nil, &fakeGlobalResp{})
+	if err == nil {
+		t.Fatalf("should have errored")
+	}
+	if !strings.Contains(err.Error(), "Bad.Method") {
+		t.Fatalf("unexpcted error: %s", err)
+	}
+}
+
+func TestServer_Encrypted(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	key := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.SerfLANConfig.MemberlistConfig.SecretKey = key
+		c.SerfWANConfig.MemberlistConfig.SecretKey = key
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	if s1.Encrypted() {
+		t.Fatalf("should not be encrypted")
+	}
+	if !s2.Encrypted() {
+		t.Fatalf("should be encrypted")
+	}
 }

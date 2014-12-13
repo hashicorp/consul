@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Jepsen Testing"
 sidebar_current: "docs-internals-jepsen"
+description: |-
+  Jepsen is a tool written by Kyle Kingsbury that is designed to test the partition tolerance of distributed systems. It creates network partitions while fuzzing the system with random operations. The results are analyzed to see if the system violates any of the consistency properties it claims to have.
 ---
 
 # Jepsen Testing
@@ -30,7 +32,9 @@ Below is the output captured from Jepsen. We ran Jepsen multiple times,
 and it passed each time. This output is only representative of a single
 run.
 
-```
+<!--googleoff: all-->
+
+```text
 $ lein test :only jepsen.system.consul-test
 
 lein test jepsen.system.consul-test
@@ -4019,3 +4023,4 @@ Ran 1 tests containing 1 assertions.
 0 failures, 0 errors.
 ```
 
+<!--googleon: all-->

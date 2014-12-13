@@ -2,6 +2,8 @@
 layout: "downloads"
 page_title: "Download Consul"
 sidebar_current: "downloads-consul"
+description: |-
+  Below are all available downloads for the latest version of Consul. Please download the proper package for your operating system and architecture.
 ---
 
 <h1>Download Consul</h1>
@@ -17,6 +19,15 @@ sidebar_current: "downloads-consul"
 			</p>
 		</div>
 	</div>
+
+  <div class="row">
+    <div class="col-md-12 download center">
+      <a href="https://dl.bintray.com/mitchellh/consul/<%= latest_version %>_web_ui.zip" class="btn btn-lg btn-default">
+        Download Consul Web UI
+      </a>
+    </div>
+  </div>
+
 	<% product_versions.each do |os, versions| %>
 		<div class="row">
   		<div class="col-md-12 download">

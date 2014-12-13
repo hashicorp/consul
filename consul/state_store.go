@@ -25,6 +25,7 @@ const (
 	dbACLs                   = "acls"
 	dbMaxMapSize32bit uint64 = 128 * 1024 * 1024       // 128MB maximum size
 	dbMaxMapSize64bit uint64 = 32 * 1024 * 1024 * 1024 // 32GB maximum size
+	dbMaxReaders      uint   = 4096                    // 4K, default is 126
 )
 
 // kvMode is used internally to control which type of set
@@ -160,6 +161,12 @@ func (s *StateStore) initialize() error {
 
 	// Increase the maximum map size
 	if err := s.env.SetMapSize(dbSize); err != nil {
+		return err
+	}
+
+	// Increase the maximum number of concurrent readers
+	// TODO: Block transactions if we could exceed dbMaxReaders
+	if err := s.env.SetMaxReaders(dbMaxReaders); err != nil {
 		return err
 	}
 
@@ -1060,6 +1067,9 @@ func (s *StateStore) KVSRestore(d *structs.DirEntry) error {
 	if err := s.kvsTable.InsertTxn(tx, d); err != nil {
 		return err
 	}
+	if err := s.kvsTable.SetMaxLastIndexTxn(tx, d.ModifyIndex); err != nil {
+		return err
+	}
 	return tx.Commit()
 }
 
@@ -1096,10 +1106,18 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 		return 0, nil, err
 	}
 
+	// Ensure a non-zero index
+	if idx == 0 {
+		// Must provide non-zero index to prevent blocking
+		// Index 1 is impossible anyways (due to Raft internals)
+		idx = 1
+	}
+
 	// Aggregate the stream
 	stream := make(chan interface{}, 128)
 	done := make(chan struct{})
 	var keys []string
+	var maxIndex uint64
 	go func() {
 		prefixLen := len(prefix)
 		sepLen := len(seperator)
@@ -1107,6 +1125,11 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 		for raw := range stream {
 			ent := raw.(*structs.DirEntry)
 			after := ent.Key[prefixLen:]
+
+			// Update the hightest index we've seen
+			if ent.ModifyIndex > maxIndex {
+				maxIndex = ent.ModifyIndex
+			}
 
 			// If there is no seperator, always accumulate
 			if sepLen == 0 {
@@ -1131,6 +1154,11 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 	// Start the stream, and wait for completion
 	err = s.kvsTable.StreamTxn(stream, tx, "id_prefix", prefix)
 	<-done
+
+	// Use the maxIndex if we have any keys
+	if maxIndex != 0 {
+		idx = maxIndex
+	}
 	return idx, keys, err
 }
 
@@ -1299,6 +1327,28 @@ func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error
 		return fmt.Errorf("Missing Session ID")
 	}
 
+	switch session.Behavior {
+	case "":
+		// Default behavior is Release for backwards compatibility
+		session.Behavior = structs.SessionKeysRelease
+	case structs.SessionKeysRelease:
+	case structs.SessionKeysDelete:
+	default:
+		return fmt.Errorf("Invalid Session Behavior setting '%s'", session.Behavior)
+	}
+
+	if session.TTL != "" {
+		ttl, err := time.ParseDuration(session.TTL)
+		if err != nil {
+			return fmt.Errorf("Invalid Session TTL '%s': %v", session.TTL, err)
+		}
+
+		if ttl != 0 && (ttl < structs.SessionTTLMin || ttl > structs.SessionTTLMax) {
+			return fmt.Errorf("Invalid Session TTL '%s', must be between [%v-%v]",
+				session.TTL, structs.SessionTTLMin, structs.SessionTTLMax)
+		}
+	}
+
 	// Assign the create index
 	session.CreateIndex = index
 
@@ -1426,7 +1476,7 @@ func (s *StateStore) SessionDestroy(index uint64, id string) error {
 	}
 	defer tx.Abort()
 
-	log.Printf("[DEBUG] consul.state: Invalidating session %s due to session destroy",
+	s.logger.Printf("[DEBUG] consul.state: Invalidating session %s due to session destroy",
 		id)
 	if err := s.invalidateSession(index, tx, id); err != nil {
 		return err
@@ -1443,7 +1493,7 @@ func (s *StateStore) invalidateNode(index uint64, tx *MDBTxn, node string) error
 	}
 	for _, sess := range sessions {
 		session := sess.(*structs.Session).ID
-		log.Printf("[DEBUG] consul.state: Invalidating session %s due to node '%s' invalidation",
+		s.logger.Printf("[DEBUG] consul.state: Invalidating session %s due to node '%s' invalidation",
 			session, node)
 		if err := s.invalidateSession(index, tx, session); err != nil {
 			return err
@@ -1461,7 +1511,7 @@ func (s *StateStore) invalidateCheck(index uint64, tx *MDBTxn, node, check strin
 	}
 	for _, sc := range sessionChecks {
 		session := sc.(*sessionCheck).Session
-		log.Printf("[DEBUG] consul.state: Invalidating session %s due to check '%s' invalidation",
+		s.logger.Printf("[DEBUG] consul.state: Invalidating session %s due to check '%s' invalidation",
 			session, check)
 		if err := s.invalidateSession(index, tx, session); err != nil {
 			return err
@@ -1485,15 +1535,23 @@ func (s *StateStore) invalidateSession(index uint64, tx *MDBTxn, id string) erro
 	}
 	session := res[0].(*structs.Session)
 
-	// Enforce the MaxLockDelay
-	delay := session.LockDelay
-	if delay > structs.MaxLockDelay {
-		delay = structs.MaxLockDelay
-	}
+	if session.Behavior == structs.SessionKeysDelete {
+		// delete the keys held by the session
+		if err := s.deleteKeys(index, tx, id); err != nil {
+			return err
+		}
 
-	// Invalidate any held locks
-	if err := s.invalidateLocks(index, tx, delay, id); err != nil {
-		return err
+	} else { // default to release
+		// Enforce the MaxLockDelay
+		delay := session.LockDelay
+		if delay > structs.MaxLockDelay {
+			delay = structs.MaxLockDelay
+		}
+
+		// Invalidate any held locks
+		if err := s.invalidateLocks(index, tx, delay, id); err != nil {
+			return err
+		}
 	}
 
 	// Nuke the session
@@ -1560,6 +1618,23 @@ func (s *StateStore) invalidateLocks(index uint64, tx *MDBTxn,
 	return nil
 }
 
+// deleteKeys is used to delete all the keys created by a session
+// within a given txn. All tables should be locked in the tx.
+func (s *StateStore) deleteKeys(index uint64, tx *MDBTxn, id string) error {
+	num, err := s.kvsTable.DeleteTxn(tx, "session", id)
+	if err != nil {
+		return err
+	}
+
+	if num > 0 {
+		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
+		tx.Defer(func() { s.watch[s.kvsTable].Notify() })
+	}
+	return nil
+}
+
 // ACLSet is used to create or update an ACL entry
 func (s *StateStore) ACLSet(index uint64, acl *structs.ACL) error {
 	// Check for an ID
@@ -1616,6 +1691,9 @@ func (s *StateStore) ACLRestore(acl *structs.ACL) error {
 	defer tx.Abort()
 
 	if err := s.aclTable.InsertTxn(tx, acl); err != nil {
+		return err
+	}
+	if err := s.aclTable.SetMaxLastIndexTxn(tx, acl.ModifyIndex); err != nil {
 		return err
 	}
 	return tx.Commit()

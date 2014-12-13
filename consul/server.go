@@ -128,6 +128,12 @@ type Server struct {
 	// which SHOULD only consist of Consul servers
 	serfWAN *serf.Serf
 
+	// sessionTimers track the expiration time of each Session that has
+	// a TTL. On expiration, a SessionDestroy event will occur, and
+	// destroy the session via standard session destory processing
+	sessionTimers     map[string]*time.Timer
+	sessionTimersLock sync.Mutex
+
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
@@ -168,13 +174,14 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Create the tlsConfig for outgoing connections
-	tlsConfig, err := config.OutgoingTLSConfig()
+	tlsConf := config.tlsConfig()
+	tlsConfig, err := tlsConf.OutgoingTLSConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	// Get the incoming tls config
-	incomingTLS, err := config.IncomingTLSConfig()
+	incomingTLS, err := tlsConf.IncomingTLSConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -548,6 +555,21 @@ func (s *Server) UserEvent(name string, payload []byte) error {
 // IsLeader checks if this server is the cluster leader
 func (s *Server) IsLeader() bool {
 	return s.raft.State() == raft.Leader
+}
+
+// KeyManagerLAN returns the LAN Serf keyring manager
+func (s *Server) KeyManagerLAN() *serf.KeyManager {
+	return s.serfLAN.KeyManager()
+}
+
+// KeyManagerWAN returns the WAN Serf keyring manager
+func (s *Server) KeyManagerWAN() *serf.KeyManager {
+	return s.serfWAN.KeyManager()
+}
+
+// Encrypted determines if gossip is encrypted
+func (s *Server) Encrypted() bool {
+	return s.serfLAN.EncryptionEnabled() && s.serfWAN.EncryptionEnabled()
 }
 
 // inmemCodec is used to do an RPC call without going over a network

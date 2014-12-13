@@ -19,6 +19,12 @@ key "foo/bar/" {
 key "foo/bar/baz" {
 	policy = "deny"
 }
+service "" {
+	policy = "write"
+}
+service "foo" {
+	policy = "read"
+}
 	`
 	exp := &Policy{
 		Keys: []*KeyPolicy{
@@ -37,6 +43,16 @@ key "foo/bar/baz" {
 			&KeyPolicy{
 				Prefix: "foo/bar/baz",
 				Policy: KeyPolicyDeny,
+			},
+		},
+		Services: []*ServicePolicy{
+			&ServicePolicy{
+				Name:   "",
+				Policy: ServicePolicyWrite,
+			},
+			&ServicePolicy{
+				Name:   "foo",
+				Policy: ServicePolicyRead,
 			},
 		},
 	}
@@ -66,6 +82,14 @@ func TestParse_JSON(t *testing.T) {
 		"foo/bar/baz": {
 			"policy": "deny"
 		}
+	},
+	"service": {
+		"": {
+			"policy": "write"
+		},
+		"foo": {
+			"policy": "read"
+		}
 	}
 }`
 	exp := &Policy{
@@ -85,6 +109,16 @@ func TestParse_JSON(t *testing.T) {
 			&KeyPolicy{
 				Prefix: "foo/bar/baz",
 				Policy: KeyPolicyDeny,
+			},
+		},
+		Services: []*ServicePolicy{
+			&ServicePolicy{
+				Name:   "",
+				Policy: ServicePolicyWrite,
+			},
+			&ServicePolicy{
+				Name:   "foo",
+				Policy: ServicePolicyRead,
 			},
 		},
 	}

@@ -2,7 +2,7 @@ package consul
 
 import (
 	"github.com/hashicorp/consul/testutil"
-	"github.com/ugorji/go/codec"
+	"github.com/hashicorp/go-msgpack/codec"
 	"net"
 	"net/rpc"
 	"os"

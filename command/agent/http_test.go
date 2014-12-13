@@ -25,12 +25,15 @@ func makeHTTPServer(t *testing.T) (string, *HTTPServer) {
 	if err := os.Mkdir(uiDir, 755); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	addr, _ := agent.config.ClientListener("", agent.config.Ports.HTTP)
-	server, err := NewHTTPServer(agent, uiDir, true, agent.logOutput, addr.String())
+	conf.UiDir = uiDir
+	servers, err := NewHTTPServers(agent, conf, agent.logOutput)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	return dir, server
+	if len(servers) == 0 {
+		t.Fatalf(fmt.Sprintf("Failed to make HTTP server"))
+	}
+	return dir, servers[0]
 }
 
 func encodeReq(obj interface{}) io.ReadCloser {

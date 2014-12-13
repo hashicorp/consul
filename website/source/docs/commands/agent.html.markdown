@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Commands: Agent"
 sidebar_current: "docs-commands-agent"
+description: |-
+  The `consul agent` command is the heart of Consul: it runs the agent that performs the important task of maintaining membership information, running checks, announcing services, handling queries, etc.
 ---
 
 # Consul Agent

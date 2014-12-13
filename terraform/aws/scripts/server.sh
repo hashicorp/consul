@@ -9,6 +9,6 @@ cat >/tmp/consul_flags << EOF
 export CONSUL_FLAGS="-server -bootstrap-expect=${SERVER_COUNT} -data-dir=/mnt/consul"
 EOF
 
-# Write it to the full sevice file
+# Write it to the full service file
 sudo mv /tmp/consul_flags /etc/service/consul
 chmod 0644 /etc/service/consul

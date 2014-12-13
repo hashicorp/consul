@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Watches"
 sidebar_current: "docs-agent-watches"
+description: |-
+  Watches are a way of specifying a view of data (list of nodes, KV pairs, health checks, etc) which is monitored for any updates. When an update is detected, an external handler is invoked. A handler can be any executable. As an example, you could  watch the status of health checks and notify an external system when a check is critical.
 ---
 
 # Watches
@@ -13,7 +15,7 @@ executable. As an example, you could  watch the status of health checks and
 notify an external system when a check is critical.
 
 Watches are implemented using blocking queries in the [HTTP API](/docs/agent/http.html).
-Agent's automatically make the proper API calls to watch for changes,
+Agents automatically make the proper API calls to watch for changes,
 and inform a handler when the data view has updated.
 
 Watches can be configured as part of the [agent's configuration](/docs/agent/options.html),
@@ -30,11 +32,11 @@ in a JSON body when using agent configuration, or as CLI flags for the watch com
 
 ## Handlers
 
-The watch specifiation specifies the view of data to be monitored.
+The watch specification specifies the view of data to be monitored.
 Once that view is updated the specified handler is invoked. The handler
 can be any executable.
 
-A handler should read it's input from stdin, and expect to read
+A handler should read its input from stdin, and expect to read
 JSON formatted data. The format of the data depends on the type of the
 watch. Each watch type documents the format type, and because they
 map directly to an HTTP API, handlers should expect the input to
@@ -74,11 +76,13 @@ This maps to the `/v1/kv/` API internally.
 
 Here is an example configuration:
 
-    {
-        "type": "key",
-        "key": "foo/bar/baz",
-        "handler": "/usr/bin/my-key-handler.sh"
-    }
+```javascript
+{
+  "type": "key",
+  "key": "foo/bar/baz",
+  "handler": "/usr/bin/my-key-handler.sh"
+}
+```
 
 Or, using the watch command:
 
@@ -86,15 +90,17 @@ Or, using the watch command:
 
 An example of the output of this command:
 
-    {
-        "Key": "foo/bar/baz",
-        "CreateIndex": 1793,
-        "ModifyIndex": 1793,
-        "LockIndex": 0,
-        "Flags": 0,
-        "Value": "aGV5",
-        "Session": ""
-    }
+```javascript
+{
+  "Key": "foo/bar/baz",
+  "CreateIndex": 1793,
+  "ModifyIndex": 1793,
+  "LockIndex": 0,
+  "Flags": 0,
+  "Value": "aGV5",
+  "Session": ""
+}
+```
 
 ### Type: keyprefix
 
@@ -105,11 +111,13 @@ This maps to the `/v1/kv/` API internally.
 
 Here is an example configuration:
 
-    {
-        "type": "keyprefix",
-        "prefix": "foo/",
-        "handler": "/usr/bin/my-prefix-handler.sh"
-    }
+```javascript
+{
+  "type": "keyprefix",
+  "prefix": "foo/",
+  "handler": "/usr/bin/my-prefix-handler.sh"
+}
+```
 
 Or, using the watch command:
 
@@ -117,36 +125,37 @@ Or, using the watch command:
 
 An example of the output of this command:
 
-    [
-        {
-            "Key": "foo/bar",
-            "CreateIndex": 1796,
-            "ModifyIndex": 1796,
-            "LockIndex": 0,
-            "Flags": 0,
-            "Value": "TU9BUg==",
-            "Session": ""
-        },
-        {
-            "Key": "foo/baz",
-            "CreateIndex": 1795,
-            "ModifyIndex": 1795,
-            "LockIndex": 0,
-            "Flags": 0,
-            "Value": "YXNkZg==",
-            "Session": ""
-        },
-        {
-            "Key": "foo/test",
-            "CreateIndex": 1793,
-            "ModifyIndex": 1793,
-            "LockIndex": 0,
-            "Flags": 0,
-            "Value": "aGV5",
-            "Session": ""
-        }
-    ]
-
+```javascript
+[
+  {
+    "Key": "foo/bar",
+    "CreateIndex": 1796,
+    "ModifyIndex": 1796,
+    "LockIndex": 0,
+    "Flags": 0,
+    "Value": "TU9BUg==",
+    "Session": ""
+  },
+  {
+    "Key": "foo/baz",
+    "CreateIndex": 1795,
+    "ModifyIndex": 1795,
+    "LockIndex": 0,
+    "Flags": 0,
+    "Value": "YXNkZg==",
+    "Session": ""
+  },
+  {
+    "Key": "foo/test",
+    "CreateIndex": 1793,
+    "ModifyIndex": 1793,
+    "LockIndex": 0,
+    "Flags": 0,
+    "Value": "aGV5",
+    "Session": ""
+  }
+]
+```
 
 ### Type: services
 
@@ -157,11 +166,13 @@ This maps to the `/v1/catalog/services` API internally.
 
 An example of the output of this command:
 
-    {
-        "consul": [],
-        "redis": [],
-        "web": []
-    }
+```javascript
+{
+  "consul": [],
+  "redis": [],
+  "web": []
+}
+```
 
 ### Type: nodes
 
@@ -172,32 +183,34 @@ This maps to the `/v1/catalog/nodes` API internally.
 
 An example of the output of this command:
 
-    [
-        {
-            "Node": "nyc1-consul-1",
-            "Address": "192.241.159.115"
-        },
-        {
-            "Node": "nyc1-consul-2",
-            "Address": "192.241.158.205"
-        },
-        {
-            "Node": "nyc1-consul-3",
-            "Address": "198.199.77.133"
-        },
-        {
-            "Node": "nyc1-worker-1",
-            "Address": "162.243.162.228"
-        },
-        {
-            "Node": "nyc1-worker-2",
-            "Address": "162.243.162.226"
-        },
-        {
-            "Node": "nyc1-worker-3",
-            "Address": "162.243.162.229"
-        }
-    ]
+```javascript
+[
+  {
+    "Node": "nyc1-consul-1",
+    "Address": "192.241.159.115"
+  },
+  {
+    "Node": "nyc1-consul-2",
+    "Address": "192.241.158.205"
+  },
+  {
+    "Node": "nyc1-consul-3",
+    "Address": "198.199.77.133"
+  },
+  {
+    "Node": "nyc1-worker-1",
+    "Address": "162.243.162.228"
+  },
+  {
+    "Node": "nyc1-worker-2",
+    "Address": "162.243.162.226"
+  },
+  {
+    "Node": "nyc1-worker-3",
+    "Address": "162.243.162.229"
+  }
+]
+```
 
 ### Type: service
 
@@ -211,11 +224,13 @@ This maps to the `/v1/health/service` API internally.
 
 Here is an example configuration:
 
-    {
-        "type": "service",
-        "service": "redis",
-        "handler": "/usr/bin/my-service-handler.sh"
-    }
+```javascript
+{
+  "type": "service",
+  "key": "redis",
+  "handler": "/usr/bin/my-service-handler.sh"
+}
+```
 
 Or, using the watch command:
 
@@ -223,47 +238,49 @@ Or, using the watch command:
 
 An example of the output of this command:
 
-    [
-        {
-            "Node": {
-                "Node": "foobar",
-                "Address": "10.1.10.12"
-            },
-            "Service": {
-                "ID": "redis",
-                "Service": "redis",
-                "Tags": null,
-                "Port": 8000
-            },
-            "Checks": [
-                {
-                    "Node": "foobar",
-                    "CheckID": "service:redis",
-                    "Name": "Service 'redis' check",
-                    "Status": "passing",
-                    "Notes": "",
-                    "Output": "",
-                    "ServiceID": "redis",
-                    "ServiceName": "redis"
-                },
-                {
-                    "Node": "foobar",
-                    "CheckID": "serfHealth",
-                    "Name": "Serf Health Status",
-                    "Status": "passing",
-                    "Notes": "",
-                    "Output": "",
-                    "ServiceID": "",
-                    "ServiceName": ""
-                }
-            ]
-        }
+```javascript
+[
+  {
+    "Node": {
+      "Node": "foobar",
+      "Address": "10.1.10.12"
+    },
+    "Service": {
+      "ID": "redis",
+      "Service": "redis",
+      "Tags": null,
+      "Port": 8000
+    },
+    "Checks": [
+      {
+        "Node": "foobar",
+        "CheckID": "service:redis",
+        "Name": "Service 'redis' check",
+        "Status": "passing",
+        "Notes": "",
+        "Output": "",
+        "ServiceID": "redis",
+        "ServiceName": "redis"
+      },
+      {
+        "Node": "foobar",
+        "CheckID": "serfHealth",
+        "Name": "Serf Health Status",
+        "Status": "passing",
+        "Notes": "",
+        "Output": "",
+        "ServiceID": "",
+        "ServiceName": ""
+      }
     ]
+  }
+]
+```
 
 ### Type: checks
 
 The "checks" watch type is used to monitor the checks of a given
-service or in a specific state. It optionally takes the "service"
+service or those in a specific state. It optionally takes the "service"
 parameter to filter to a specific service, or "state" to filter
 to a specific state. By default, it will watch all checks.
 
@@ -272,19 +289,20 @@ or `/v1/health/checks/` if monitoring by service.
 
 An example of the output of this command:
 
-    [
-        {
-            "Node": "foobar",
-            "CheckID": "service:redis",
-            "Name": "Service 'redis' check",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "redis",
-            "ServiceName": "redis"
-        }
-    ]
-
+```javascript
+[
+  {
+    "Node": "foobar",
+    "CheckID": "service:redis",
+    "Name": "Service 'redis' check",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "redis",
+    "ServiceName": "redis"
+  }
+]
+```
 
 ### Type: event
 
@@ -297,11 +315,13 @@ This maps to the `v1/event/list` API internally.
 
 Here is an example configuration:
 
-    {
-        "type": "event",
-        "name": "web-deploy",
-        "handler": "/usr/bin/my-deploy-handler.sh"
-    }
+```javascript
+{
+  "type": "event",
+  "name": "web-deploy",
+  "handler": "/usr/bin/my-deploy-handler.sh"
+}
+```
 
 Or, using the watch command:
 
@@ -309,21 +329,22 @@ Or, using the watch command:
 
 An example of the output of this command:
 
-    [
-      {
-        "ID": "f07f3fcc-4b7d-3a7c-6d1e-cf414039fcee",
-        "Name": "web-deploy",
-        "Payload": "MTYwOTAzMA==",
-        "NodeFilter": "",
-        "ServiceFilter": "",
-        "TagFilter": "",
-        "Version": 1,
-        "LTime": 18
-      },
-      ...
-    ]
+```javascript
+[
+  {
+    "ID": "f07f3fcc-4b7d-3a7c-6d1e-cf414039fcee",
+    "Name": "web-deploy",
+    "Payload": "MTYwOTAzMA==",
+    "NodeFilter": "",
+    "ServiceFilter": "",
+    "TagFilter": "",
+    "Version": 1,
+    "LTime": 18
+  },
+  ...
+]
+```
 
 To fire a new `web-deploy` event the following could be used:
 
     $ consul event -name web-deploy 1609030
-

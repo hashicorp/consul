@@ -22,7 +22,7 @@ func makeDNSServerConfig(t *testing.T, config *DNSConfig) (string, *DNSServer) {
 	addr, _ := conf.ClientListener(conf.Addresses.DNS, conf.Ports.DNS)
 	dir, agent := makeAgent(t, conf)
 	server, err := NewDNSServer(agent, config, agent.logOutput,
-		conf.Domain, addr.String(), "8.8.8.8:53")
+		conf.Domain, addr.String(), []string{"8.8.8.8:53"})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -304,6 +304,89 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 	}
 }
 
+func TestDNS_ReverseLookup(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo2",
+		Address:    "127.0.0.2",
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("2.0.0.127.in-addr.arpa.", dns.TypeANY)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	ptrRec, ok := in.Answer[0].(*dns.PTR)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if ptrRec.Ptr != "foo2.node.dc1.consul." {
+		t.Fatalf("Bad: %#v", ptrRec)
+	}
+}
+
+func TestDNS_ReverseLookup_IPV6(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "::4242:4242",
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("2.4.2.4.2.4.2.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa.", dns.TypeANY)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	ptrRec, ok := in.Answer[0].(*dns.PTR)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if ptrRec.Ptr != "bar.node.dc1.consul." {
+		t.Fatalf("Bad: %#v", ptrRec)
+	}
+}
 func TestDNS_ServiceLookup(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)

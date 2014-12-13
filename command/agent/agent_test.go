@@ -1,15 +1,21 @@
 package agent
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/consul"
-	"github.com/hashicorp/consul/consul/structs"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"reflect"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 )
 
 var offset uint64
@@ -23,12 +29,12 @@ func nextConfig() *Config {
 	conf.Datacenter = "dc1"
 	conf.NodeName = fmt.Sprintf("Node %d", idx)
 	conf.BindAddr = "127.0.0.1"
-	conf.Ports.DNS = 18600 + idx
-	conf.Ports.HTTP = 18500 + idx
-	conf.Ports.RPC = 18400 + idx
+	conf.Ports.DNS = 19000 + idx
+	conf.Ports.HTTP = 18800 + idx
+	conf.Ports.RPC = 18600 + idx
 	conf.Ports.SerfLan = 18200 + idx
-	conf.Ports.SerfWan = 18300 + idx
-	conf.Ports.Server = 18100 + idx
+	conf.Ports.SerfWan = 18400 + idx
+	conf.Ports.Server = 18000 + idx
 	conf.Server = true
 	conf.ACLDatacenter = "dc1"
 	conf.ACLMasterToken = "root"
@@ -64,6 +70,31 @@ func makeAgentLog(t *testing.T, conf *Config, l io.Writer) (string, *Agent) {
 	if err != nil {
 		os.RemoveAll(dir)
 		t.Fatalf(fmt.Sprintf("err: %v", err))
+	}
+
+	return dir, agent
+}
+
+func makeAgentKeyring(t *testing.T, conf *Config, key string) (string, *Agent) {
+	dir, err := ioutil.TempDir("", "agent")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	conf.DataDir = dir
+
+	fileLAN := filepath.Join(dir, serfLANKeyring)
+	if err := initKeyring(fileLAN, key); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	fileWAN := filepath.Join(dir, serfWANKeyring)
+	if err := initKeyring(fileWAN, key); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	agent, err := Create(conf, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
 	return dir, agent
@@ -114,8 +145,11 @@ func TestAgent_AddService(t *testing.T) {
 		Tags:    []string{"foo"},
 		Port:    8000,
 	}
-	chk := &CheckType{TTL: time.Minute}
-	err := agent.AddService(srv, chk)
+	chk := &CheckType{
+		TTL:   time.Minute,
+		Notes: "redis health check",
+	}
+	err := agent.AddService(srv, chk, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -134,6 +168,11 @@ func TestAgent_AddService(t *testing.T) {
 	if _, ok := agent.checkTTLs["service:redis"]; !ok {
 		t.Fatalf("missing redis check ttl")
 	}
+
+	// Ensure the notes are passed through
+	if agent.state.Checks()["service:redis"].Notes == "" {
+		t.Fatalf("missing redis check notes")
+	}
 }
 
 func TestAgent_RemoveService(t *testing.T) {
@@ -142,12 +181,12 @@ func TestAgent_RemoveService(t *testing.T) {
 	defer agent.Shutdown()
 
 	// Remove a service that doesn't exist
-	if err := agent.RemoveService("redis"); err != nil {
+	if err := agent.RemoveService("redis", false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Remove the consul service
-	if err := agent.RemoveService("consul"); err == nil {
+	if err := agent.RemoveService("consul", false); err == nil {
 		t.Fatalf("should have errored")
 	}
 
@@ -157,12 +196,12 @@ func TestAgent_RemoveService(t *testing.T) {
 		Port:    8000,
 	}
 	chk := &CheckType{TTL: time.Minute}
-	if err := agent.AddService(srv, chk); err != nil {
+	if err := agent.AddService(srv, chk, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Remove the service
-	if err := agent.RemoveService("redis"); err != nil {
+	if err := agent.RemoveService("redis", false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -197,7 +236,7 @@ func TestAgent_AddCheck(t *testing.T) {
 		Script:   "exit 0",
 		Interval: 15 * time.Second,
 	}
-	err := agent.AddCheck(health, chk)
+	err := agent.AddCheck(health, chk, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -228,7 +267,7 @@ func TestAgent_AddCheck_MinInterval(t *testing.T) {
 		Script:   "exit 0",
 		Interval: time.Microsecond,
 	}
-	err := agent.AddCheck(health, chk)
+	err := agent.AddCheck(health, chk, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -252,7 +291,7 @@ func TestAgent_RemoveCheck(t *testing.T) {
 	defer agent.Shutdown()
 
 	// Remove check that doesn't exist
-	if err := agent.RemoveCheck("mem"); err != nil {
+	if err := agent.RemoveCheck("mem", false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -266,13 +305,13 @@ func TestAgent_RemoveCheck(t *testing.T) {
 		Script:   "exit 0",
 		Interval: 15 * time.Second,
 	}
-	err := agent.AddCheck(health, chk)
+	err := agent.AddCheck(health, chk, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Remove check
-	if err := agent.RemoveCheck("mem"); err != nil {
+	if err := agent.RemoveCheck("mem", false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -301,7 +340,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	chk := &CheckType{
 		TTL: 15 * time.Second,
 	}
-	err := agent.AddCheck(health, chk)
+	err := agent.AddCheck(health, chk, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -326,8 +365,328 @@ func TestAgent_ConsulService(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	// Consul service is registered
 	services := agent.state.Services()
 	if _, ok := services[consul.ConsulServiceID]; !ok {
 		t.Fatalf("%s service should be registered", consul.ConsulServiceID)
+	}
+
+	// Perform anti-entropy on consul service
+	if err := agent.state.syncService(consul.ConsulServiceID); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Consul service should be in sync
+	if !agent.state.serviceStatus[consul.ConsulServiceID].inSync {
+		t.Fatalf("%s service should be in sync", consul.ConsulServiceID)
+	}
+}
+
+func TestAgent_PersistService(t *testing.T) {
+	config := nextConfig()
+	config.Server = false
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+
+	file := filepath.Join(agent.config.DataDir, servicesDir, svc.ID)
+
+	// Check is not persisted unless requested
+	if err := agent.AddService(svc, nil, false); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := os.Stat(file); err == nil {
+		t.Fatalf("should not persist")
+	}
+
+	// Persists to file if requested
+	if err := agent.AddService(svc, nil, true); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected, err := json.Marshal(svc)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !bytes.Equal(expected, content) {
+		t.Fatalf("bad: %s", string(content))
+	}
+	agent.Shutdown()
+
+	// Should load it back during later start
+	agent2, err := Create(config, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer agent2.Shutdown()
+
+	if _, ok := agent2.state.services[svc.ID]; !ok {
+		t.Fatalf("bad: %#v", agent2.state.services)
+	}
+}
+
+func TestAgent_PurgeService(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+
+	file := filepath.Join(agent.config.DataDir, servicesDir, svc.ID)
+	if err := agent.AddService(svc, nil, true); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Not removed
+	if err := agent.RemoveService(svc.ID, false); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Removed
+	if err := agent.RemoveService(svc.ID, true); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("bad: %#v", err)
+	}
+}
+
+func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
+	config := nextConfig()
+	config.Server = false
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc1 := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+
+	// First persist the service
+	if err := agent.AddService(svc1, nil, true); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	agent.Shutdown()
+
+	// Try bringing the agent back up with the service already
+	// existing in the config
+	svc2 := &ServiceDefinition{
+		ID:   "redis",
+		Name: "redis",
+		Tags: []string{"bar"},
+		Port: 9000,
+	}
+
+	config.Services = []*ServiceDefinition{svc2}
+	agent2, err := Create(config, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer agent2.Shutdown()
+
+	file := filepath.Join(agent.config.DataDir, servicesDir, svc1.ID)
+	if _, err := os.Stat(file); err == nil {
+		t.Fatalf("should have removed persisted service")
+	}
+	result, ok := agent2.state.services[svc2.ID]
+	if !ok {
+		t.Fatalf("missing service registration")
+	}
+	if !reflect.DeepEqual(result.Tags, svc2.Tags) || result.Port != svc2.Port {
+		t.Fatalf("bad: %#v", result)
+	}
+}
+
+func TestAgent_PersistCheck(t *testing.T) {
+	config := nextConfig()
+	config.Server = false
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	check := &structs.HealthCheck{
+		Node:        config.NodeName,
+		CheckID:     "service:redis1",
+		Name:        "redischeck",
+		Status:      structs.HealthPassing,
+		ServiceID:   "redis",
+		ServiceName: "redis",
+	}
+	chkType := &CheckType{
+		Script:   "/bin/true",
+		Interval: 10 * time.Second,
+	}
+
+	file := filepath.Join(agent.config.DataDir, checksDir, check.CheckID)
+
+	// Not persisted if not requested
+	if err := agent.AddCheck(check, chkType, false); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := os.Stat(file); err == nil {
+		t.Fatalf("should not persist")
+	}
+
+	// Should persist if requested
+	if err := agent.AddCheck(check, chkType, true); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	p := persistedCheck{check, chkType}
+	expected, err := json.Marshal(p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !bytes.Equal(expected, content) {
+		t.Fatalf("bad: %s", string(content))
+	}
+	agent.Shutdown()
+
+	// Should load it back during later start
+	agent2, err := Create(config, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer agent2.Shutdown()
+
+	result, ok := agent2.state.checks[p.Check.CheckID]
+	if !ok {
+		t.Fatalf("bad: %#v", agent2.state.checks)
+	}
+	if result.Status != structs.HealthCritical {
+		t.Fatalf("bad: %#v", result)
+	}
+
+	// Should have restored the monitor
+	if _, ok := agent2.checkMonitors[p.Check.CheckID]; !ok {
+		t.Fatalf("bad: %#v", agent2.checkMonitors)
+	}
+}
+
+func TestAgent_PurgeCheck(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	check := &structs.HealthCheck{
+		Node:        config.NodeName,
+		CheckID:     "service:redis1",
+		Name:        "redischeck",
+		Status:      structs.HealthPassing,
+		ServiceID:   "redis",
+		ServiceName: "redis",
+	}
+
+	file := filepath.Join(agent.config.DataDir, checksDir, check.CheckID)
+	if err := agent.AddCheck(check, nil, true); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Not removed
+	if err := agent.RemoveCheck(check.CheckID, false); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Removed
+	if err := agent.RemoveCheck(check.CheckID, true); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("bad: %#v", err)
+	}
+}
+
+func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
+	config := nextConfig()
+	config.Server = false
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	check1 := &structs.HealthCheck{
+		Node:        config.NodeName,
+		CheckID:     "service:redis1",
+		Name:        "redischeck",
+		Status:      structs.HealthPassing,
+		ServiceID:   "redis",
+		ServiceName: "redis",
+	}
+
+	// First persist the check
+	if err := agent.AddCheck(check1, nil, true); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	agent.Shutdown()
+
+	// Start again with the check registered in config
+	check2 := &CheckDefinition{
+		ID:    "service:redis1",
+		Name:  "redischeck",
+		Notes: "my cool notes",
+		CheckType: CheckType{
+			Script:   "/bin/check-redis.py",
+			Interval: 30 * time.Second,
+		},
+	}
+
+	config.Checks = []*CheckDefinition{check2}
+	agent2, err := Create(config, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer agent2.Shutdown()
+
+	file := filepath.Join(agent.config.DataDir, checksDir, check1.CheckID)
+	if _, err := os.Stat(file); err == nil {
+		t.Fatalf("should have removed persisted check")
+	}
+	result, ok := agent2.state.checks[check2.ID]
+	if !ok {
+		t.Fatalf("missing check registration")
+	}
+	expected := check2.HealthCheck(config.NodeName)
+	if !reflect.DeepEqual(expected, result) {
+		t.Fatalf("bad: %#v", result)
 	}
 }

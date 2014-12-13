@@ -2,14 +2,15 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/miekg/dns"
 	"io"
 	"log"
 	"math/rand"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/miekg/dns"
 )
 
 const (
@@ -28,12 +29,12 @@ type DNSServer struct {
 	dnsServer    *dns.Server
 	dnsServerTCP *dns.Server
 	domain       string
-	recursor     string
+	recursors    []string
 	logger       *log.Logger
 }
 
 // NewDNSServer starts a new DNS server to provide an agent interface
-func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain, bind, recursor string) (*DNSServer, error) {
+func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain string, bind string, recursors []string) (*DNSServer, error) {
 	// Make sure domain is FQDN
 	domain = dns.Fqdn(domain)
 
@@ -61,21 +62,30 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain, 
 		dnsServer:    server,
 		dnsServerTCP: serverTCP,
 		domain:       domain,
-		recursor:     recursor,
+		recursors:    recursors,
 		logger:       log.New(logOutput, "", log.LstdFlags),
 	}
+
+	// Register mux handler, for reverse lookup
+	mux.HandleFunc("arpa.", srv.handlePtr)
 
 	// Register mux handlers, always handle "consul."
 	mux.HandleFunc(domain, srv.handleQuery)
 	if domain != consulDomain {
 		mux.HandleFunc(consulDomain, srv.handleTest)
 	}
-	if recursor != "" {
-		recursor, err := recursorAddr(recursor)
-		if err != nil {
-			return nil, fmt.Errorf("Invalid recursor address: %v", err)
+	if len(recursors) > 0 {
+		validatedRecursors := make([]string, len(recursors))
+
+		for idx, recursor := range recursors {
+			recursor, err := recursorAddr(recursor)
+			if err != nil {
+				return nil, fmt.Errorf("Invalid recursor address: %v", err)
+			}
+			validatedRecursors[idx] = recursor
 		}
-		srv.recursor = recursor
+
+		srv.recursors = validatedRecursors
 		mux.HandleFunc(".", srv.handleRecurse)
 	}
 
@@ -129,7 +139,6 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain, 
 	case <-time.After(time.Second):
 		return srv, fmt.Errorf("timeout setting up DNS server")
 	}
-	return srv, nil
 }
 
 // recursorAddr is used to add a port to the recursor if omitted.
@@ -155,6 +164,57 @@ START:
 	return addr.String(), nil
 }
 
+// handlePtr is used to handle "reverse" DNS queries
+func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
+	q := req.Question[0]
+	defer func(s time.Time) {
+		d.logger.Printf("[DEBUG] dns: request for %v (%v)", q, time.Now().Sub(s))
+	}(time.Now())
+
+	// Setup the message response
+	m := new(dns.Msg)
+	m.SetReply(req)
+	m.Authoritative = true
+	m.RecursionAvailable = (len(d.recursors) > 0)
+
+	// Only add the SOA if requested
+	if req.Question[0].Qtype == dns.TypeSOA {
+		d.addSOA(d.domain, m)
+	}
+
+	datacenter := d.agent.config.Datacenter
+
+	// Get the QName without the domain suffix
+	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
+
+	args := structs.DCSpecificRequest{
+		Datacenter:   datacenter,
+		QueryOptions: structs.QueryOptions{AllowStale: d.config.AllowStale},
+	}
+	var out structs.IndexedNodes
+
+	// TODO: Replace ListNodes with an internal RPC that can do the filter
+	// server side to avoid transferring the entire node list.
+	if err := d.agent.RPC("Catalog.ListNodes", &args, &out); err == nil {
+		for _, n := range out.Nodes {
+			arpa, _ := dns.ReverseAddr(n.Address)
+			if arpa == qName {
+				ptr := &dns.PTR{
+					Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 0},
+					Ptr: fmt.Sprintf("%s.node.%s.consul.", n.Node, datacenter),
+				}
+				m.Answer = append(m.Answer, ptr)
+				break
+			}
+		}
+	}
+
+	// Write out the complete response
+	if err := resp.WriteMsg(m); err != nil {
+		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
+	}
+}
+
 // handleQUery is used to handle DNS queries in the configured domain
 func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
@@ -178,7 +238,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(req)
 	m.Authoritative = true
-	m.RecursionAvailable = (d.recursor != "")
+	m.RecursionAvailable = (len(d.recursors) > 0)
 
 	// Only add the SOA if requested
 	if req.Question[0].Qtype == dns.TypeSOA {
@@ -214,7 +274,7 @@ func (d *DNSServer) handleTest(resp dns.ResponseWriter, req *dns.Msg) {
 	m.Authoritative = true
 	m.RecursionAvailable = true
 	header := dns.RR_Header{Name: q.Name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0}
-	txt := &dns.TXT{header, []string{"ok"}}
+	txt := &dns.TXT{Hdr: header, Txt: []string{"ok"}}
 	m.Answer = append(m.Answer, txt)
 	d.addSOA(consulDomain, m)
 	if err := resp.WriteMsg(m); err != nil {
@@ -587,30 +647,35 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// Recursively resolve
 	c := &dns.Client{Net: network}
-	r, rtt, err := c.Exchange(req, d.recursor)
-
-	// On failure, return a SERVFAIL message
-	if err != nil {
+	var r *dns.Msg
+	var rtt time.Duration
+	var err error
+	for _, recursor := range d.recursors {
+		r, rtt, err = c.Exchange(req, recursor)
+		if err == nil {
+			// Forward the response
+			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v)", q, rtt)
+			if err := resp.WriteMsg(r); err != nil {
+				d.logger.Printf("[WARN] dns: failed to respond: %v", err)
+			}
+			return
+		}
 		d.logger.Printf("[ERR] dns: recurse failed: %v", err)
-		m := &dns.Msg{}
-		m.SetReply(req)
-		m.RecursionAvailable = true
-		m.SetRcode(req, dns.RcodeServerFailure)
-		resp.WriteMsg(m)
-		return
 	}
-	d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v)", q, rtt)
 
-	// Forward the response
-	if err := resp.WriteMsg(r); err != nil {
-		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
-	}
+	// If all resolvers fail, return a SERVFAIL message
+	d.logger.Printf("[ERR] dns: all resolvers failed for %v", q)
+	m := &dns.Msg{}
+	m.SetReply(req)
+	m.RecursionAvailable = true
+	m.SetRcode(req, dns.RcodeServerFailure)
+	resp.WriteMsg(m)
 }
 
 // resolveCNAME is used to recursively resolve CNAME records
 func (d *DNSServer) resolveCNAME(name string) []dns.RR {
 	// Do nothing if we don't have a recursor
-	if d.recursor == "" {
+	if len(d.recursors) == 0 {
 		return nil
 	}
 
@@ -620,13 +685,17 @@ func (d *DNSServer) resolveCNAME(name string) []dns.RR {
 
 	// Make a DNS lookup request
 	c := &dns.Client{Net: "udp"}
-	r, rtt, err := c.Exchange(m, d.recursor)
-	if err != nil {
-		d.logger.Printf("[ERR] dns: cname recurse failed: %v", err)
-		return nil
+	var r *dns.Msg
+	var rtt time.Duration
+	var err error
+	for _, recursor := range d.recursors {
+		r, rtt, err = c.Exchange(m, recursor)
+		if err == nil {
+			d.logger.Printf("[DEBUG] dns: cname recurse RTT for %v (%v)", name, rtt)
+			return r.Answer
+		}
+		d.logger.Printf("[ERR] dns: cname recurse failed for %v: %v", name, err)
 	}
-	d.logger.Printf("[DEBUG] dns: cname recurse RTT for %v (%v)", name, rtt)
-
-	// Return all the answers
-	return r.Answer
+	d.logger.Printf("[ERR] dns: all resolvers failed for %v", name)
+	return nil
 }

@@ -97,7 +97,7 @@ func TestIsConsulNode(t *testing.T) {
 	}
 	valid, dc := isConsulNode(m)
 	if !valid || dc != "east-aws" {
-		t.Fatalf("bad: %v %v %v", valid, dc)
+		t.Fatalf("bad: %v %v", valid, dc)
 	}
 }
 

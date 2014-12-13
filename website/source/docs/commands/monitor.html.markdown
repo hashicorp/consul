@@ -2,13 +2,15 @@
 layout: "docs"
 page_title: "Commands: Monitor"
 sidebar_current: "docs-commands-monitor"
+description: |-
+  The `monitor` command is used to connect and follow the logs of a running Consul agent. Monitor will show the recent logs and then continue to follow the logs, not exiting until interrupted or until the remote agent quits.
 ---
 
 # Consul Monitor
 
 Command: `consul monitor`
 
-The monitor command is used to connect and follow the logs of a running
+The `monitor` command is used to connect and follow the logs of a running
 Consul agent. Monitor will show the recent logs and then continue to follow
 the logs, not exiting until interrupted or until the remote agent quits.
 

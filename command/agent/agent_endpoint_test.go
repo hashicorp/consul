@@ -288,7 +288,7 @@ func TestHTTPAgentDeregisterCheck(t *testing.T) {
 	defer srv.agent.Shutdown()
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
-	if err := srv.agent.AddCheck(chk, nil); err != nil {
+	if err := srv.agent.AddCheck(chk, nil, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -320,7 +320,7 @@ func TestHTTPAgentPassCheck(t *testing.T) {
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
 	chkType := &CheckType{TTL: 15 * time.Second}
-	if err := srv.agent.AddCheck(chk, chkType); err != nil {
+	if err := srv.agent.AddCheck(chk, chkType, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -353,7 +353,7 @@ func TestHTTPAgentWarnCheck(t *testing.T) {
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
 	chkType := &CheckType{TTL: 15 * time.Second}
-	if err := srv.agent.AddCheck(chk, chkType); err != nil {
+	if err := srv.agent.AddCheck(chk, chkType, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -386,7 +386,7 @@ func TestHTTPAgentFailCheck(t *testing.T) {
 
 	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
 	chkType := &CheckType{TTL: 15 * time.Second}
-	if err := srv.agent.AddCheck(chk, chkType); err != nil {
+	if err := srv.agent.AddCheck(chk, chkType, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -465,7 +465,7 @@ func TestHTTPAgentDeregisterService(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := srv.agent.AddService(service, nil); err != nil {
+	if err := srv.agent.AddService(service, nil, false); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

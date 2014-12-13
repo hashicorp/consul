@@ -19,7 +19,7 @@ physical memory used is much lower.
 ## Q: What is Checkpoint? / Does Consul call home?
 
 Consul makes use of a HashiCorp service called [Checkpoint](http://checkpoint.hashicorp.com)
-which is used to used to check for updates and critical security bulletins.
+which is used to check for updates and critical security bulletins.
 Only anonymous information is sent to Checkpoint, and cannot be used to
 identify the user or host. An anonymous ID is sent which helps de-duplicate
 warning messages and can be disabled. Using the Checkpoint service is optional

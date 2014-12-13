@@ -30,6 +30,8 @@ type CheckType struct {
 	Interval time.Duration
 
 	TTL time.Duration
+
+	Notes string
 }
 
 // Valid checks if the CheckType is valid
@@ -231,4 +233,11 @@ func (c *CheckTTL) SetStatus(status, output string) {
 		c.CheckID, status)
 	c.Notify.UpdateCheck(c.CheckID, status, output)
 	c.timer.Reset(c.TTL)
+}
+
+// persistedCheck is used to serialize a check and write it to disk
+// so that it may be restored later on.
+type persistedCheck struct {
+	Check   *structs.HealthCheck
+	ChkType *CheckType
 }

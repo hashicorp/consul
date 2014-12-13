@@ -11,9 +11,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/yamux"
 	"github.com/inconshreveable/muxado"
-	"github.com/ugorji/go/codec"
 )
 
 // msgpackHandle is a shared handle for encoding/decoding of RPC messages
@@ -113,7 +114,7 @@ func (c *Conn) returnClient(client *StreamClient) {
 // Consul servers. This is used to reduce the latency of
 // RPC requests between servers. It is only used to pool
 // connections in the rpcConsul mode. Raft connections
-// are pooled seperately.
+// are pooled separately.
 type ConnPool struct {
 	sync.Mutex
 
@@ -222,7 +223,7 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 		}
 
 		// Wrap the connection in a TLS client
-		tlsConn, err := wrapTLSClient(conn, p.tlsConfig)
+		tlsConn, err := tlsutil.WrapTLSClient(conn, p.tlsConfig)
 		if err != nil {
 			conn.Close()
 			return nil, err
@@ -258,27 +259,28 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 	}
 
 	// Wrap the connection
-	c := &Conn{
-		refCount: 1,
-		addr:     addr,
-		session:  session,
-		clients:  list.New(),
-		lastUsed: time.Now(),
-		version:  version,
-		pool:     p,
-	}
+	var c *Conn
 
 	// Track this connection, handle potential race condition
 	p.Lock()
+	defer p.Unlock()
+
 	if existing := p.pool[addr.String()]; existing != nil {
-		c.Close()
-		p.Unlock()
-		return existing, nil
+		c = existing
 	} else {
+		c = &Conn{
+			refCount: 1,
+			addr:     addr,
+			session:  session,
+			clients:  list.New(),
+			lastUsed: time.Now(),
+			version:  version,
+			pool:     p,
+		}
 		p.pool[addr.String()] = c
-		p.Unlock()
-		return c, nil
 	}
+
+	return c, nil
 }
 
 // clearConn is used to clear any cached connection, potentially in response to an erro
@@ -357,12 +359,12 @@ func (p *ConnPool) RPC(addr net.Addr, version int, method string, args interface
 
 // Reap is used to close conns open over maxTime
 func (p *ConnPool) reap() {
-	for !p.shutdown {
+	for {
 		// Sleep for a while
 		select {
-		case <-time.After(time.Second):
 		case <-p.shutdownCh:
 			return
+		case <-time.After(time.Second):
 		}
 
 		// Reap all old conns

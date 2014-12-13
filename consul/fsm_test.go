@@ -414,22 +414,37 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 
+	// Verify the index is restored
+	idx, _, err := fsm.state.KVSListKeys("/blah", "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx <= 1 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
 	// Verify session is restored
-	_, s, err := fsm.state.SessionGet(session.ID)
+	idx, s, err := fsm.state.SessionGet(session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s.Node != "foo" {
 		t.Fatalf("bad: %v", s)
 	}
+	if idx <= 1 {
+		t.Fatalf("bad index: %d", idx)
+	}
 
 	// Verify ACL is restored
-	_, a, err := fsm.state.ACLGet(acl.ID)
+	idx, a, err := fsm.state.ACLGet(acl.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if a.Name != "User Token" {
 		t.Fatalf("bad: %v", a)
+	}
+	if idx <= 1 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 

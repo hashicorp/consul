@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "HTTP API"
 sidebar_current: "docs-agent-http"
+description: |-
+  The main interface to Consul is a RESTful HTTP API. The API can be used for CRUD for nodes, services, checks, and configuration. The endpoints are versioned to enable changes without breaking backwards compatibility.
 ---
 
 # HTTP API
@@ -12,14 +14,14 @@ versioned to enable changes without breaking backwards compatibility.
 
 All endpoints fall into one of several categories:
 
-* kv - Key/Value store
-* agent - Agent control
-* catalog - Manages nodes and services
-* health - Manages health checks
-* session - Session manipulation
-* acl - ACL creations and management
-* event - User Events
-* status - Consul system status
+* [kv][kv] - Key/Value store
+* [agent][agent] - Agent control
+* [catalog][catalog] - Manages nodes and services
+* [health][health] - Manages health checks
+* [session][session] - Session manipulation
+* [acl][acl] - ACL creations and management
+* [event][event] - User Events
+* [status][status] - Consul system status
 * internal - Internal APIs. Purposely undocumented, subject to change.
 
 Each of the categories and their respective endpoints are documented below.
@@ -84,7 +86,7 @@ leader. These can be used to gauge if a stale read should be used.
 ## Formatted JSON Output
 
 By default, the output of all HTTP API requests return minimized JSON with all
-whitespace removed.  By adding "?pretty" to the HTTP request URL,
+whitespace removed.  By adding "?pretty=1" to the HTTP request URL,
 formatted JSON will be returned.
 
 ## ACLs
@@ -95,7 +97,7 @@ configuration option. However, the token can also be specified per-request
 by using the "?token=" query parameter. This will take precedence over the
 default token.
 
-## KV
+## <a name="kv"></a> KV
 
 The KV endpoint is used to expose a simple key/value store. This can be used
 to store service configurations or other meta data in a simple way. It has only
@@ -120,17 +122,19 @@ all keys with the given prefix.
 
 Each object will look like:
 
-    [
-        {
-            "CreateIndex": 100,
-            "ModifyIndex": 200,
-            "LockIndex": 200,
-            "Key": "zip",
-            "Flags": 0,
-            "Value": "dGVzdA==",
-            "Session": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
-        }
-    ]
+```javascript
+[
+  {
+    "CreateIndex": 100,
+    "ModifyIndex": 200,
+    "LockIndex": 200,
+    "Key": "zip",
+    "Flags": 0,
+    "Value": "dGVzdA==",
+    "Session": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+  }
+]
+```
 
 The `CreateIndex` is the internal index value that represents
 when the entry was created. The `ModifyIndex` is the last index
@@ -151,13 +155,15 @@ It is possible to also only list keys without their values by using the
 a list of the keys under the given prefix. The optional "?separator="
 can be used to list only up to a given separator.
 
-For example, listing "/web/" with a "/" seperator may return:
+For example, listing "/web/" with a "/" separator may return:
 
-    [
-    "/web/bar",
-    "/web/foo",
-    "/web/subdir/"
-    ]
+```javascript
+[
+  "/web/bar",
+  "/web/foo",
+  "/web/subdir/"
+]
+```
 
 Using the key listing method may be suitable when you do not need
 the values or flags, or want to implement a key-space explorer.
@@ -182,7 +188,7 @@ be used with a PUT request:
 
 * ?cas=\<index\> : This flag is used to turn the `PUT` into a Check-And-Set
   operation. This is very useful as it allows clients to build more complex
-  syncronization primitives on top. If the index is 0, then Consul will only
+  synchronization primitives on top. If the index is 0, then Consul will only
   put the key if it does not already exist. If the index is non-zero, then
   the key is only set if the index matches the `ModifyIndex` of that key.
 
@@ -207,7 +213,7 @@ keys sharing a prefix. If the "?recurse" query parameter is provided,
 then all keys with the prefix are deleted, otherwise only the specified
 key.
 
-## Agent
+## <a name="agent"></a> Agent
 
 The Agent endpoints are used to interact with a local Consul agent. Usually,
 services and checks are registered with an agent, which then takes on the
@@ -217,21 +223,21 @@ msgpack RPC protocol.
 
 The following endpoints are supported:
 
-* /v1/agent/checks : Returns the checks the local agent is managing
-* /v1/agent/services : Returns the services local agent is managing
-* /v1/agent/members : Returns the members as seen by the local serf agent
-* /v1/agent/self : Returns the local node configuration
-* /v1/agent/join/\<address\> : Trigger local agent to join a node
-* /v1/agent/force-leave/\<node\>: Force remove node
-* /v1/agent/check/register : Registers a new local check
-* /v1/agent/check/deregister/\<checkID\> : Deregister a local check
-* /v1/agent/check/pass/\<checkID\> : Mark a local test as passing
-* /v1/agent/check/warn/\<checkID\> : Mark a local test as warning
-* /v1/agent/check/fail/\<checkID\> : Mark a local test as critical
-* /v1/agent/service/register : Registers a new local service
-* /v1/agent/service/deregister/\<serviceID\> : Deregister a local service
+* [`/v1/agent/checks`](#agent_checks) : Returns the checks the local agent is managing
+* [`/v1/agent/services`](#agent_services) : Returns the services local agent is managing
+* [`/v1/agent/members`](#agent_members) : Returns the members as seen by the local serf agent
+* [`/v1/agent/self`](#agent_self) : Returns the local node configuration
+* [`/v1/agent/join/<address>`](#agent_join) : Trigger local agent to join a node
+* [`/v1/agent/force-leave/<node>`](#agent_force_leave)>: Force remove node
+* [`/v1/agent/check/register`](#agent_check_register) : Registers a new local check
+* [`/v1/agent/check/deregister/<checkID>`](#agent_check_deregister) : Deregister a local check
+* [`/v1/agent/check/pass/<checkID>`](#agent_check_pass) : Mark a local test as passing
+* [`/v1/agent/check/warn/<checkID>`](#agent_check_warn) : Mark a local test as warning
+* [`/v1/agent/check/fail/<checkID>`](#agent_check_fail) : Mark a local test as critical
+* [`/v1/agent/service/register`](#agent_service_register) : Registers a new local service
+* [`/v1/agent/service/deregister/<serviceID>`](#agent_service_deregister) : Deregister a local service
 
-### /v1/agent/checks
+### <a name="agent_checks"></a> /v1/agent/checks
 
 This endpoint is used to return the all the checks that are registered with
 the local agent. These checks were either provided through configuration files,
@@ -242,20 +248,22 @@ anti-entropy, so in most situations everything will be in sync within a few seco
 
 This endpoint is hit with a GET and returns a JSON body like this:
 
-    {
-        "service:redis": {
-            "Node": "foobar",
-            "CheckID": "service:redis",
-            "Name": "Service 'redis' check",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "redis",
-            "ServiceName": "redis"
-        }
-    }
+```javascript
+{
+  "service:redis": {
+    "Node": "foobar",
+    "CheckID": "service:redis",
+    "Name": "Service 'redis' check",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "redis",
+    "ServiceName": "redis"
+  }
+}
+```
 
-### /v1/agent/services
+### <a name="agent_services"></a> /v1/agent/services
 
 This endpoint is used to return the all the services that are registered with
 the local agent. These services were either provided through configuration files,
@@ -266,16 +274,18 @@ anti-entropy, so in most situations everything will be in sync within a few seco
 
 This endpoint is hit with a GET and returns a JSON body like this:
 
-    {
-        "redis": {
-            "ID": "redis",
-            "Service": "redis",
-            "Tags": null,
-            "Port": 8000
-        }
-    }
+```javascript
+{
+  "redis": {
+    "ID": "redis",
+    "Service": "redis",
+    "Tags": null,
+    "Port": 8000
+  }
+}
+```
 
-### /v1/agent/members
+### <a name="agent_members"></a> /v1/agent/members
 
 This endpoint is hit with a GET and returns the members the agent sees in the
 cluster gossip pool. Due to the nature of gossip, this is eventually consistent
@@ -287,94 +297,99 @@ the list of WAN members instead of the LAN members which is default.
 
 This endpoint returns a JSON body like:
 
-    [
-        {
-            "Name": "foobar",
-            "Addr": "10.1.10.12",
-            "Port": 8301,
-            "Tags": {
-                "bootstrap": "1",
-                "dc": "dc1",
-                "port": "8300",
-                "role": "consul"
-            },
-            "Status": 1,
-            "ProtocolMin": 1,
-            "ProtocolMax": 2,
-            "ProtocolCur": 2,
-            "DelegateMin": 1,
-            "DelegateMax": 3,
-            "DelegateCur": 3
-        }
-    ]
+```javascript
+[
+  {
+    "Name": "foobar",
+    "Addr": "10.1.10.12",
+    "Port": 8301,
+    "Tags": {
+      "bootstrap": "1",
+      "dc": "dc1",
+      "port": "8300",
+      "role": "consul"
+    },
+    "Status": 1,
+    "ProtocolMin": 1,
+    "ProtocolMax": 2,
+    "ProtocolCur": 2,
+    "DelegateMin": 1,
+    "DelegateMax": 3,
+    "DelegateCur": 3
+  }
+]
+```
 
-### /v1/agent/self
+### <a name="agent_self"></a> /v1/agent/self
 
 This endpoint is used to return configuration of the local agent and member information.
 
 It returns a JSON body like this:
 
-    {
-        "Config": {
-            "Bootstrap": true,
-            "Server": true,
-            "Datacenter": "dc1",
-            "DataDir": "/tmp/consul",
-            "DNSRecursor": "",
-            "Domain": "consul.",
-            "LogLevel": "INFO",
-            "NodeName": "foobar",
-            "ClientAddr": "127.0.0.1",
-            "BindAddr": "0.0.0.0",
-            "AdvertiseAddr": "10.1.10.12",
-            "Ports": {
-                "DNS": 8600,
-                "HTTP": 8500,
-                "RPC": 8400,
-                "SerfLan": 8301,
-                "SerfWan": 8302,
-                "Server": 8300
-            },
-            "LeaveOnTerm": false,
-            "SkipLeaveOnInt": false,
-            "StatsiteAddr": "",
-            "Protocol": 1,
-            "EnableDebug": false,
-            "VerifyIncoming": false,
-            "VerifyOutgoing": false,
-            "CAFile": "",
-            "CertFile": "",
-            "KeyFile": "",
-            "StartJoin": [],
-            "UiDir": "",
-            "PidFile": "",
-            "EnableSyslog": false,
-            "RejoinAfterLeave": false
-        },
-        "Member": {
-            "Name": "foobar",
-            "Addr": "10.1.10.12",
-            "Port": 8301,
-            "Tags": {
-                "bootstrap": "1",
-                "dc": "dc1",
-                "port": "8300",
-                "role": "consul",
-                "vsn": "1",
-                "vsn_max": "1",
-                "vsn_min": "1"
-            },
-            "Status": 1,
-            "ProtocolMin": 1,
-            "ProtocolMax": 2,
-            "ProtocolCur": 2,
-            "DelegateMin": 2,
-            "DelegateMax": 4,
-            "DelegateCur": 4
-        }
-    }
+```javascript
+{
+  "Config": {
+    "Bootstrap": true,
+    "Server": true,
+    "Datacenter": "dc1",
+    "DataDir": "/tmp/consul",
+    "DNSRecursor": "",
+    "DNSRecursors": [],
+    "Domain": "consul.",
+    "LogLevel": "INFO",
+    "NodeName": "foobar",
+    "ClientAddr": "127.0.0.1",
+    "BindAddr": "0.0.0.0",
+    "AdvertiseAddr": "10.1.10.12",
+    "Ports": {
+      "DNS": 8600,
+      "HTTP": 8500,
+      "RPC": 8400,
+      "SerfLan": 8301,
+      "SerfWan": 8302,
+      "Server": 8300
+    },
+    "LeaveOnTerm": false,
+    "SkipLeaveOnInt": false,
+    "StatsiteAddr": "",
+    "Protocol": 1,
+    "EnableDebug": false,
+    "VerifyIncoming": false,
+    "VerifyOutgoing": false,
+    "CAFile": "",
+    "CertFile": "",
+    "KeyFile": "",
+    "StartJoin": [],
+    "UiDir": "",
+    "PidFile": "",
+    "EnableSyslog": false,
+    "RejoinAfterLeave": false
+  },
+  "Member": {
+    "Name": "foobar",
+    "Addr": "10.1.10.12",
+    "Port": 8301,
+    "Tags": {
+      "bootstrap": "1",
+      "dc": "dc1",
+      "port": "8300",
+      "role": "consul",
+      "vsn": "1",
+      "vsn_max": "1",
+      "vsn_min": "1"
+    },
+    "Status": 1,
+    "ProtocolMin": 1,
+    "ProtocolMax": 2,
+    "ProtocolCur": 2,
+    "DelegateMin": 2,
+    "DelegateMax": 4,
+    "DelegateCur": 4
+  }
+}
+```
 
-### /v1/agent/join/\<address\>
+### <a name="agent_join"></a> /v1/agent/join/\<address\>
 
 This endpoint is hit with a GET and is used to instruct the agent to attempt to
 connect to a given address.  For agents running in server mode, providing a "?wan=1"
@@ -382,7 +397,7 @@ query parameter causes the agent to attempt to join using the WAN pool.
 
 The endpoint returns 200 on successful join.
 
-### /v1/agent/force-leave/\<node\>
+### <a name="agent_force_leave"></a> /v1/agent/force-leave/\<node\>
 
 This endpoint is hit with a GET and is used to instructs the agent to force a node into the left state.
 If a node fails unexpectedly, then it will be in a "failed" state. Once in this state, Consul will
@@ -391,7 +406,7 @@ cleaned up. Forcing a node into the left state allows its old entries to be remo
 
 The endpoint always returns 200.
 
-### /v1/agent/check/register
+### <a name="agent_check_register"></a> /v1/agent/check/register
 
 The register endpoint is used to add a new check to the local agent.
 There is more documentation on checks [here](/docs/agent/checks.html).
@@ -401,14 +416,16 @@ the status of the check and keeping the Catalog in sync.
 The register endpoint expects a JSON request body to be PUT. The request
 body must look like:
 
-    {
-        "ID": "mem",
-        "Name": "Memory utilization",
-        "Notes": "Ensure we don't oversubscribe memory",
-        "Script": "/usr/local/bin/check_mem.py",
-        "Interval": "10s",
-        "TTL": "15s"
-    }
+```javascript
+{
+  "ID": "mem",
+  "Name": "Memory utilization",
+  "Notes": "Ensure we don't oversubscribe memory",
+  "Script": "/usr/local/bin/check_mem.py",
+  "Interval": "10s",
+  "TTL": "15s"
+}
+```
 
 The `Name` field is mandatory, as is either `Script` and `Interval`
 or `TTL`. Only one of `Script` and `Interval` or `TTL` should be provided.
@@ -423,7 +440,7 @@ the state of the check.
 
 The return code is 200 on success.
 
-### /v1/agent/check/deregister/\<checkId\>
+### <a name="agent_check_deregister"></a> /v1/agent/check/deregister/\<checkId\>
 
 The deregister endpoint is used to remove a check from the local agent.
 The CheckID must be passed after the slash. The agent will take care
@@ -431,7 +448,7 @@ of deregistering the check with the Catalog.
 
 The return code is 200 on success.
 
-### /v1/agent/check/pass/\<checkId\>
+### <a name="agent_check_pass"></a> /v1/agent/check/pass/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
 When this endpoint is accessed via a GET, the status of the check is set to "passing",
@@ -442,7 +459,7 @@ the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
 
-### /v1/agent/check/warn/\<checkId\>
+### <a name="agent_check_warn"></a> /v1/agent/check/warn/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
 When this endpoint is accessed via a GET, the status of the check is set to "warning",
@@ -453,7 +470,7 @@ the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
 
-### /v1/agent/check/fail/\<checkId\>
+### <a name="agent_check_fail"></a> /v1/agent/check/fail/\<checkId\>
 
 This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
 When this endpoint is accessed via a GET, the status of the check is set to "critical",
@@ -464,7 +481,7 @@ the status of the check. This should be human readable for operators.
 
 The return code is 200 on success.
 
-### /v1/agent/service/register
+### <a name="agent_service_register"></a> /v1/agent/service/register
 
 The register endpoint is used to add a new service to the local agent.
 There is more documentation on services [here](/docs/agent/services.html).
@@ -474,20 +491,22 @@ the status of the check and keeping the Catalog in sync.
 The register endpoint expects a JSON request body to be PUT. The request
 body must look like:
 
-    {
-        "ID": "redis1",
-        "Name": "redis",
-        "Tags": [
-            "master",
-            "v1"
-        ],
-        "Port": 8000,
-        "Check": {
-            "Script": "/usr/local/bin/check_redis.py",
-            "Interval": "10s",
-            "TTL": "15s"
-        }
-    }
+```javascript
+{
+  "ID": "redis1",
+  "Name": "redis",
+  "Tags": [
+    "master",
+    "v1"
+  ],
+  "Port": 8000,
+  "Check": {
+    "Script": "/usr/local/bin/check_redis.py",
+    "Interval": "10s",
+    "TTL": "15s"
+  }
+}
+```
 
 The `Name` field is mandatory,  If an `ID` is not provided, it is set to `Name`.
 You cannot have duplicate `ID` entries per agent, so it may be necessary to provide an ID.
@@ -498,7 +517,7 @@ The created check will be named "service:\<ServiceId\>".
 
 The return code is 200 on success.
 
-### /v1/agent/service/deregister/\<serviceId\>
+### <a name="agent_service_deregister"></a> /v1/agent/service/deregister/\<serviceId\>
 
 The deregister endpoint is used to remove a service from the local agent.
 The ServiceID must be passed after the slash. The agent will take care
@@ -507,25 +526,25 @@ check, that is also deregistered.
 
 The return code is 200 on success.
 
-## Catalog
+## <a name="catalog"></a> Catalog
 
 The Catalog is the endpoint used to register and deregister nodes,
 services, and checks. It also provides a number of query endpoints.
 
 The following endpoints are supported:
 
-* /v1/catalog/register : Registers a new node, service, or check
-* /v1/catalog/deregister : Deregisters a node, service, or check
-* /v1/catalog/datacenters : Lists known datacenters
-* /v1/catalog/nodes : Lists nodes in a given DC
-* /v1/catalog/services : Lists services in a given DC
-* /v1/catalog/service/\<service\> : Lists the nodes in a given service
-* /v1/catalog/node/\<node\> : Lists the services provided by a node
+* [`/v1/catalog/register`](#catalog_register) : Registers a new node, service, or check
+* [`/v1/catalog/deregister`](#catalog_deregister) : Deregisters a node, service, or check
+* [`/v1/catalog/datacenters`](#catalog_datacenters) : Lists known datacenters
+* [`/v1/catalog/nodes`](#catalog_nodes) : Lists nodes in a given DC
+* [`/v1/catalog/services`](#catalog_services) : Lists services in a given DC
+* [`/v1/catalog/service/<service>`](#catalog_service) : Lists the nodes in a given service
+* [`/v1/catalog/node/<node>`](#catalog_nodes) : Lists the services provided by a node
 
 The last 4 endpoints of the catalog support blocking queries and
 consistency modes.
 
-### /v1/catalog/register
+### <a name="catalog_register"></a> /v1/catalog/register
 
 The register endpoint is a low level mechanism for directly registering
 or updating entries in the catalog. It is usually recommended to use
@@ -534,28 +553,30 @@ the agent local endpoints, as they are simpler and perform anti-entropy.
 The register endpoint expects a JSON request body to be PUT. The request
 body must look like:
 
-    {
-        "Datacenter": "dc1",
-        "Node": "foobar",
-        "Address": "192.168.10.10",
-        "Service": {
-            "ID": "redis1",
-            "Service": "redis",
-            "Tags": [
-                "master",
-                "v1"
-            ],
-            "Port": 8000
-        },
-        "Check": {
-            "Node": "foobar",
-            "CheckID": "service:redis1",
-            "Name": "Redis health check",
-            "Notes": "Script based health check",
-            "Status": "passing",
-            "ServiceID": "redis1"
-        }
-    }
+```javascript
+{
+  "Datacenter": "dc1",
+  "Node": "foobar",
+  "Address": "192.168.10.10",
+  "Service": {
+    "ID": "redis1",
+    "Service": "redis",
+    "Tags": [
+      "master",
+      "v1"
+    ],
+    "Port": 8000
+  },
+  "Check": {
+    "Node": "foobar",
+    "CheckID": "service:redis1",
+    "Name": "Redis health check",
+    "Notes": "Script based health check",
+    "Status": "passing",
+    "ServiceID": "redis1"
+  }
+}
+```
 
 The behavior of the endpoint depends on what keys are provided. The endpoint
 requires `Node` and `Address` to be provided, while `Datacenter` will be defaulted
@@ -584,31 +605,37 @@ and visa-versa. They can be provided or omitted at will.
 
 If the API call succeeds a 200 status code is returned.
 
-### /v1/catalog/deregister
+### <a name="catalog_deregister"></a> /v1/catalog/deregister
 
-The deregister endpoint is a low level mechanism for direclty removing
+The deregister endpoint is a low level mechanism for directly removing
 entries in the catalog. It is usually recommended to use the agent local
 endpoints, as they are simpler and perform anti-entropy.
 
 The deregister endpoint expects a JSON request body to be PUT. The request
 body must look like one of the following:
 
-    {
-        "Datacenter": "dc1",
-        "Node": "foobar",
-    }
+```javascript
+{
+  "Datacenter": "dc1",
+  "Node": "foobar",
+}
+```
 
-    {
-        "Datacenter": "dc1",
-        "Node": "foobar",
-        "CheckID": "service:redis1"
-    }
+```javascript
+{
+  "Datacenter": "dc1",
+  "Node": "foobar",
+  "CheckID": "service:redis1"
+}
+```
 
-    {
-        "Datacenter": "dc1",
-        "Node": "foobar",
-        "ServiceID": "redis1",
-    }
+```javascript
+{
+  "Datacenter": "dc1",
+  "Node": "foobar",
+  "ServiceID": "redis1",
+}
+```
 
 The behavior of the endpoint depends on what keys are provided. The endpoint
 requires `Node` to be provided, while `Datacenter` will be defaulted
@@ -620,20 +647,22 @@ service along with its associated health check (if any) is removed.
 If the API call succeeds a 200 status code is returned.
 
 
-### /v1/catalog/datacenters
+### <a name="catalog_datacenters"></a> /v1/catalog/datacenters
 
 This endpoint is hit with a GET and is used to return all the
 datacenters that are known by the Consul server.
 
 It returns a JSON body like this:
 
-    ["dc1", "dc2"]
+```javascript
+["dc1", "dc2"]
+```
 
 This endpoint does not require a cluster leader, and as such
 will succeed even during an availability outage. It can thus be
 a simple check to see if any Consul servers are routable.
 
-### /v1/catalog/nodes
+### <a name="catalog_nodes"></a> /v1/catalog/nodes
 
 This endpoint is hit with a GET and returns the nodes known
 about in a given DC. By default the datacenter of the agent is queried,
@@ -641,20 +670,22 @@ however the dc can be provided using the "?dc=" query parameter.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "Node": "baz",
-            "Address": "10.1.10.11"
-        },
-        {
-            "Node": "foobar",
-            "Address": "10.1.10.12"
-        }
-    ]
+```javascript
+[
+  {
+    "Node": "baz",
+    "Address": "10.1.10.11"
+  },
+  {
+    "Node": "foobar",
+    "Address": "10.1.10.12"
+  }
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/catalog/services
+### <a name="catalog_services"></a> /v1/catalog/services
 
 This endpoint is hit with a GET and returns the services known
 about in a given DC. By default the datacenter of the agent is queried,
@@ -662,21 +693,23 @@ however the dc can be provided using the "?dc=" query parameter.
 
 It returns a JSON body like this:
 
-    {
-        "consul": [],
-        "redis": [],
-        "postgresql": [
-            "master",
-            "slave"
-        ]
-    }
+```javascript
+{
+  "consul": [],
+  "redis": [],
+  "postgresql": [
+    "master",
+    "slave"
+  ]
+}
+```
 
 The main object keys are the service names, while the array
 provides all the known tags for a given service.
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/catalog/service/\<service\>
+### <a name="catalog_service"></a> /v1/catalog/service/\<service\>
 
 This endpoint is hit with a GET and returns the nodes providing a service
 in a given DC. By default the datacenter of the agent is queried,
@@ -688,20 +721,22 @@ by tag using the "?tag=" query parameter.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "Node": "foobar",
-            "Address": "10.1.10.12",
-            "ServiceID": "redis",
-            "ServiceName": "redis",
-            "ServiceTags": null,
-            "ServicePort": 8000
-        }
-    ]
+```javascript
+[
+  {
+    "Node": "foobar",
+    "Address": "10.1.10.12",
+    "ServiceID": "redis",
+    "ServiceName": "redis",
+    "ServiceTags": null,
+    "ServicePort": 8000
+  }
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/catalog/node/\<node\>
+### <a name="catalog_node"></a> /v1/catalog/node/\<node\>
 
 This endpoint is hit with a GET and returns the node provided services.
 By default the datacenter of the agent is queried,
@@ -710,32 +745,34 @@ The node being queried must be provided after the slash.
 
 It returns a JSON body like this:
 
-    {
-        "Node": {
-            "Node": "foobar",
-            "Address": "10.1.10.12"
-        },
-        "Services": {
-            "consul": {
-                "ID": "consul",
-                "Service": "consul",
-                "Tags": null,
-                "Port": 8300
-            },
-            "redis": {
-                "ID": "redis",
-                "Service": "redis",
-                "Tags": [
-                    "v1"
-                ],
-                "Port": 8000
-            }
-        }
+```javascript
+{
+  "Node": {
+    "Node": "foobar",
+    "Address": "10.1.10.12"
+  },
+  "Services": {
+    "consul": {
+      "ID": "consul",
+      "Service": "consul",
+      "Tags": null,
+      "Port": 8300
+    },
+    "redis": {
+      "ID": "redis",
+      "Service": "redis",
+      "Tags": [
+        "v1"
+      ],
+      "Port": 8000
     }
+  }
+}
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
-## Health
+## <a name="health"></a> Health
 
 The Health used to query health related information. It is provided separately
 from the Catalog, since users may prefer to not use the health checking mechanisms
@@ -743,14 +780,14 @@ as they are totally optional. Additionally, some of the query results from the H
 
 The following endpoints are supported:
 
-* /v1/health/node/\<node\>: Returns the health info of a node
-* /v1/health/checks/\<service\>: Returns the checks of a service
-* /v1/health/service/\<service\>: Returns the nodes and health info of a service
-* /v1/health/state/\<state\>: Returns the checks in a given state
+* [`/v1/health/node/<node>`](#health_node): Returns the health info of a node
+* [`/v1/health/checks/<service>`](#health_checks): Returns the checks of a service
+* [`/v1/health/service/<service>`](#health_service): Returns the nodes and health info of a service
+* [`/v1/health/state/<state>`](#health_state): Returns the checks in a given state
 
 All of the health endpoints supports blocking queries and all consistency modes.
 
-### /v1/health/node/\<node\>
+### <a name="health_node"></a> /v1/health/node/\<node\>
 
 This endpoint is hit with a GET and returns the node specific checks known.
 By default the datacenter of the agent is queried,
@@ -759,28 +796,30 @@ The node being queried must be provided after the slash.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "Node": "foobar",
-            "CheckID": "serfHealth",
-            "Name": "Serf Health Status",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "",
-            "ServiceName": ""
-        },
-        {
-            "Node": "foobar",
-            "CheckID": "service:redis",
-            "Name": "Service 'redis' check",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "redis",
-            "ServiceName": "redis"
-        }
-    ]
+```javascript
+[
+  {
+    "Node": "foobar",
+    "CheckID": "serfHealth",
+    "Name": "Serf Health Status",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "",
+    "ServiceName": ""
+  },
+  {
+    "Node": "foobar",
+    "CheckID": "service:redis",
+    "Name": "Service 'redis' check",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "redis",
+    "ServiceName": "redis"
+  }
+]
+```
 
 In this case, we can see there is a system level check (no associated
 `ServiceID`, as well as a service check for Redis). The "serfHealth" check
@@ -791,7 +830,7 @@ changed to "critical".
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/health/checks/\<service\>
+### <a name="health_checks"></a> /v1/health/checks/\<service\>
 
 This endpoint is hit with a GET and returns the checks associated with
 a service in a given datacenter.
@@ -801,22 +840,24 @@ The service being queried must be provided after the slash.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "Node": "foobar",
-            "CheckID": "service:redis",
-            "Name": "Service 'redis' check",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "redis",
-            "ServiceName": "redis"
-        }
-    ]
+```javascript
+[
+  {
+    "Node": "foobar",
+    "CheckID": "service:redis",
+    "Name": "Service 'redis' check",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "redis",
+    "ServiceName": "redis"
+  }
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/health/service/\<service\>
+### <a name="health_service"></a> /v1/health/service/\<service\>
 
 This endpoint is hit with a GET and returns the service nodes providing
 a given service in a given datacenter.
@@ -841,46 +882,48 @@ by incorporating the use of health checks.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "Node": {
-                "Node": "foobar",
-                "Address": "10.1.10.12"
-            },
-            "Service": {
-                "ID": "redis",
-                "Service": "redis",
-                "Tags": null,
-                "Port": 8000
-            },
-            "Checks": [
-                {
-                    "Node": "foobar",
-                    "CheckID": "service:redis",
-                    "Name": "Service 'redis' check",
-                    "Status": "passing",
-                    "Notes": "",
-                    "Output": "",
-                    "ServiceID": "redis",
-                    "ServiceName": "redis"
-                },
-                {
-                    "Node": "foobar",
-                    "CheckID": "serfHealth",
-                    "Name": "Serf Health Status",
-                    "Status": "passing",
-                    "Notes": "",
-                    "Output": "",
-                    "ServiceID": "",
-                    "ServiceName": ""
-                }
-            ]
-        }
+```javascript
+[
+  {
+    "Node": {
+      "Node": "foobar",
+      "Address": "10.1.10.12"
+    },
+    "Service": {
+      "ID": "redis",
+      "Service": "redis",
+      "Tags": null,
+      "Port": 8000
+    },
+    "Checks": [
+      {
+        "Node": "foobar",
+        "CheckID": "service:redis",
+        "Name": "Service 'redis' check",
+        "Status": "passing",
+        "Notes": "",
+        "Output": "",
+        "ServiceID": "redis",
+        "ServiceName": "redis"
+      },
+      {
+        "Node": "foobar",
+        "CheckID": "serfHealth",
+        "Name": "Serf Health Status",
+        "Status": "passing",
+        "Notes": "",
+        "Output": "",
+        "ServiceID": "",
+        "ServiceName": ""
+      }
     ]
+  }
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/health/state/\<state\>
+### <a name="health_state"></a> /v1/health/state/\<state\>
 
 This endpoint is hit with a GET and returns the checks in a specific
 state for a given datacenter. By default the datacenter of the agent is queried,
@@ -892,45 +935,47 @@ a wildcard that can be used to return all the checks.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "Node": "foobar",
-            "CheckID": "serfHealth",
-            "Name": "Serf Health Status",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "",
-            "ServiceName": ""
-        },
-        {
-            "Node": "foobar",
-            "CheckID": "service:redis",
-            "Name": "Service 'redis' check",
-            "Status": "passing",
-            "Notes": "",
-            "Output": "",
-            "ServiceID": "redis",
-            "ServiceName": "redis"
-        }
-    ]
+```javascript
+[
+  {
+    "Node": "foobar",
+    "CheckID": "serfHealth",
+    "Name": "Serf Health Status",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "",
+    "ServiceName": ""
+  },
+  {
+    "Node": "foobar",
+    "CheckID": "service:redis",
+    "Name": "Service 'redis' check",
+    "Status": "passing",
+    "Notes": "",
+    "Output": "",
+    "ServiceID": "redis",
+    "ServiceName": "redis"
+  }
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
-## Session
+## <a name="session"></a> Session
 
 The Session endpoints are used to create, destroy and query sessions.
 The following endpoints are supported:
 
-* /v1/session/create: Creates a new session
-* /v1/session/destroy/\<session\>: Destroys a given session
-* /v1/session/info/\<session\>: Queries a given session
-* /v1/session/node/\<node\>: Lists sessions belonging to a node
-* /v1/session/list: Lists all the active sessions
+* [`/v1/session/create`](#session_create): Creates a new session
+* [`/v1/session/destroy/<session>`](#session_destroy): Destroys a given session
+* [`/v1/session/info/<session>`](#session_info): Queries a given session
+* [`/v1/session/node/<node>`](#session_node): Lists sessions belonging to a node
+* [`/v1/session/list`](#session_list): Lists all the active sessions
 
 All of the read session endpoints supports blocking queries and all consistency modes.
 
-### /v1/session/create
+### <a name="session_create"></a> /v1/session/create
 
 The create endpoint is used to initialize a new session.
 There is more documentation on sessions [here](/docs/internals/sessions.html).
@@ -945,12 +990,14 @@ to use cross-region sessions.
 The create endpoint expects a JSON request body to be PUT. The request
 body must look like:
 
-    {
-        "LockDelay": "15s",
-        "Name": "my-service-lock",
-        "Node": "foobar",
-        "Checks": ["a", "b", "c"]
-    }
+```javascript
+{
+  "LockDelay": "15s",
+  "Name": "my-service-lock",
+  "Node": "foobar",
+  "Checks": ["a", "b", "c"]
+}
+```
 
 None of the fields are mandatory, and in fact no body needs to be PUT
 if the defaults are to be used. The `LockDelay` field can be specified
@@ -966,11 +1013,15 @@ It is highly recommended that if you override this list, you include that check.
 
 The return code is 200 on success, along with a body like:
 
-    {"ID":"adf4238a-882b-9ddc-4a9d-5b6758e4159e"}
+```javascript
+{
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+}
+```
 
 This is used to provide the ID of the newly created session.
 
-### /v1/session/destroy/\<session\>
+### <a name="session_destroy"></a> /v1/session/destroy/\<session\>
 
 The destroy endpoint is hit with a PUT and destroys the given session.
 By default the local datacenter is used, but the "?dc=" query parameter
@@ -979,7 +1030,7 @@ be provided after the slash.
 
 The return code is 200 on success.
 
-### /v1/session/info/\<session\>
+### <a name="session_info"></a> /v1/session/info/\<session\>
 
 This endpoint is hit with a GET and returns the session information
 by ID within a given datacenter. By default the datacenter of the agent is queried,
@@ -988,22 +1039,24 @@ The session being queried must be provided after the slash.
 
 It returns a JSON body like this:
 
-    [
-      {
-        "LockDelay": 1.5e+10,
-        "Checks": [
-          "serfHealth"
-        ],
-        "Node": "foobar",
-        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-        "CreateIndex": 1086449
-      }
-    ]
+```javascript
+[
+  {
+    "LockDelay": 1.5e+10,
+    "Checks": [
+      "serfHealth"
+    ],
+    "Node": "foobar",
+    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "CreateIndex": 1086449
+  }
+]
+```
 
 If the session is not found, null is returned instead of a JSON list.
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/session/node/\<node\>
+### <a name="session_node"></a> /v1/session/node/\<node\>
 
 This endpoint is hit with a GET and returns the active sessions
 for a given node and datacenter. By default the datacenter of the agent is queried,
@@ -1012,22 +1065,24 @@ The node being queried must be provided after the slash.
 
 It returns a JSON body like this:
 
-    [
-      {
-        "LockDelay": 1.5e+10,
-        "Checks": [
-          "serfHealth"
-        ],
-        "Node": "foobar",
-        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-        "CreateIndex": 1086449
-      },
-      ...
-    ]
+```javascript
+[
+  {
+    "LockDelay": 1.5e+10,
+    "Checks": [
+      "serfHealth"
+    ],
+    "Node": "foobar",
+    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "CreateIndex": 1086449
+  },
+  ...
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
-### /v1/session/list
+### <a name="session_list"></a> /v1/session/list
 
 This endpoint is hit with a GET and returns the active sessions
 for a given datacenter. By default the datacenter of the agent is queried,
@@ -1035,34 +1090,36 @@ however the dc can be provided using the "?dc=" query parameter.
 
 It returns a JSON body like this:
 
-    [
-      {
-        "LockDelay": 1.5e+10,
-        "Checks": [
-          "serfHealth"
-        ],
-        "Node": "foobar",
-        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-        "CreateIndex": 1086449
-      },
-      ...
-    ]
+```javascript
+[
+  {
+    "LockDelay": 1.5e+10,
+    "Checks": [
+      "serfHealth"
+    ],
+    "Node": "foobar",
+    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "CreateIndex": 1086449
+  },
+  ...
+]
+```
 
 This endpoint supports blocking queries and all consistency modes.
 
-## ACL
+## <a name="acl"></a> ACL
 
 The ACL endpoints are used to create, update, destroy and query ACL tokens.
 The following endpoints are supported:
 
-* /v1/acl/create: Creates a new token with policy
-* /v1/acl/update: Update the policy of a token
-* /v1/acl/destroy/\<id\>: Destroys a given token
-* /v1/acl/info/\<id\>: Queries the policy of a given token
-* /v1/acl/clone/\<id\>: Creates a new token by cloning an existing token
-* /v1/acl/list: Lists all the active tokens
+* [`/v1/acl/create`](#acl_create): Creates a new token with policy
+* [`/v1/acl/update`](#acl_update): Update the policy of a token
+* [`/v1/acl/destroy/<id>`](#acl_destroy): Destroys a given token
+* [`/v1/acl/info/<id>`](#acl_info): Queries the policy of a given token
+* [`/v1/acl/clone/<id>`](#acl_clone): Creates a new token by cloning an existing token
+* [`/v1/acl/list`](#acl_list): Lists all the active tokens
 
-### /v1/acl/create
+### <a name="acl_create"></a> /v1/acl/create
 
 The create endpoint is used to make a new token. A token has a name,
 type, and a set of ACL rules. The name is opaque to Consul, and type
@@ -1080,11 +1137,13 @@ of the agent that the request is made to.
 The create endpoint expects a JSON request body to be PUT. The request
 body must look like:
 
-    {
-        "Name": "my-app-token",
-        "Type": "client",
-        "Rules": ""
-    }
+```javascript
+{
+  "Name": "my-app-token",
+  "Type": "client",
+  "Rules": ""
+}
+```
 
 None of the fields are mandatory, and in fact no body needs to be PUT
 if the defaults are to be used. The `Name` and `Rules` default to being
@@ -1093,11 +1152,15 @@ blank, and the `Type` defaults to "client". The format of `Rules` is
 
 The return code is 200 on success, along with a body like:
 
-    {"ID":"adf4238a-882b-9ddc-4a9d-5b6758e4159e"}
+```javascript
+{
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+}
+```
 
 This is used to provide the ID of the newly created ACL token.
 
-### /v1/acl/update
+### <a name="acl_update"></a> /v1/acl/update
 
 The update endpoint is used to modify the policy for a given
 ACL token. It is very similar to the create endpoint, however
@@ -1112,12 +1175,14 @@ of the agent that the request is made to.
 The update endpoint expects a JSON request body to be PUT. The request
 body must look like:
 
-    {
-        "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
-        "Name": "my-app-token-updated",
-        "Type": "client",
-        "Rules": "# New Rules",
-    }
+```javascript
+{
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+  "Name": "my-app-token-updated",
+  "Type": "client",
+  "Rules": "# New Rules",
+}
+```
 
 Only the `ID` field is mandatory, the other fields provide defaults.
 The `Name` and `Rules` default to being blank, and the `Type` defaults to "client".
@@ -1125,7 +1190,7 @@ The format of `Rules` is [documented here](/docs/internals/acl.html).
 
 The return code is 200 on success.
 
-### /v1/acl/destroy/\<id\>
+### <a name="acl_destroy"></a> /v1/acl/destroy/\<id\>
 
 The destroy endpoint is hit with a PUT and destroys the given ACL token.
 The request is automatically routed to the authoritative ACL datacenter.
@@ -1134,7 +1199,7 @@ to the endpoint must be made with a management token.
 
 The return code is 200 on success.
 
-### /v1/acl/info/\<id\>
+### <a name="acl_info"></a> /v1/acl/info/\<id\>
 
 This endpoint is hit with a GET and returns the token information
 by ID. All requests are routed to the authoritative ACL datacenter
@@ -1142,20 +1207,22 @@ The token being queried must be provided after the slash.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "CreateIndex":3,
-            "ModifyIndex":3,
-            "ID":"8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
-            "Name":"Client Token",
-            "Type":"client",
-            "Rules":"..."
-        }
-    ]
+```javascript
+[
+  {
+    "CreateIndex": 3,
+    "ModifyIndex": 3,
+    "ID": "8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
+    "Name": "Client Token",
+    "Type": "client",
+    "Rules": "..."
+  }
+]
+```
 
 If the session is not found, null is returned instead of a JSON list.
 
-### /v1/acl/clone/\<id\>
+### <a name="acl_clone"></a> /v1/acl/clone/\<id\>
 
 The clone endpoint is hit with a PUT and returns a token ID that
 is cloned from an existing token. This allows a token to serve
@@ -1165,11 +1232,15 @@ after the slash. Requests to this endpoint require a management token.
 
 The return code is 200 on success, along with a body like:
 
-    {"ID":"adf4238a-882b-9ddc-4a9d-5b6758e4159e"}
+```javascript
+{
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+}
+```
 
 This is used to provide the ID of the newly created ACL token.
 
-### /v1/acl/list
+### <a name="acl_list"></a> /v1/acl/list
 
 The list endpoint is hit with a GET and lists all the active
 ACL tokens. This is a privileged endpoint, and requires a
@@ -1177,29 +1248,31 @@ management token.
 
 It returns a JSON body like this:
 
-    [
-        {
-            "CreateIndex":3,
-            "ModifyIndex":3,
-            "ID":"8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
-            "Name":"Client Token",
-            "Type":"client",
-            "Rules":"..."
-        },
-        ...
-    ]
+```javascript
+[
+  {
+    "CreateIndex": 3,
+    "ModifyIndex": 3,
+    "ID": "8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
+    "Name": "Client Token",
+    "Type": "client",
+    "Rules": "..."
+  },
+  ...
+]
+```
 
-## Event
+## <a name="event"></a> Event
 
 The Event endpoints are used to fire new events and to query the available
 events.
 
 The following endpoints are supported:
 
-* /v1/event/fire/\<name\>: Fires a new user event
-* /v1/event/list: Lists the most recent events an agent has seen.
+* [`/v1/event/fire/<name>`](#event_fire): Fires a new user event
+* [`/v1/event/list`](#event_list): Lists the most recent events an agent has seen.
 
-### /v1/event/fire/\<name\>
+### <a name="event_fire"></a> /v1/event/fire/\<name\>
 
 The fire endpoint is used to trigger a new user event. A user event
 needs a name, and optionally takes a number of parameters.
@@ -1218,20 +1291,22 @@ by node name, service, and service tags.
 
 The return code is 200 on success, along with a body like:
 
-    {
-        "ID":"b54fe110-7af5-cafc-d1fb-afc8ba432b1c",
-        "Name":"deploy",
-        "Payload":null,
-        "NodeFilter":"",
-        "ServiceFilter":"",
-        "TagFilter":"",
-        "Version":1,
-        "LTime":0
-    }
+```javascript
+{
+  "ID": "b54fe110-7af5-cafc-d1fb-afc8ba432b1c",
+  "Name": "deploy",
+  "Payload": null,
+  "NodeFilter": "",
+  "ServiceFilter": "",
+  "TagFilter": "",
+  "Version": 1,
+  "LTime": 0
+}
+```
 
 This is used to provide the ID of the newly fired event.
 
-### /v1/event/list
+### <a name="event_list"></a> /v1/event/list
 
 This endpoint is hit with a GET and returns the most recent
 events known by the agent. As a consequence of how the
@@ -1267,41 +1342,60 @@ enough for most clients and watches.
 
 It returns a JSON body like this:
 
-    [
-      {
-        "ID": "b54fe110-7af5-cafc-d1fb-afc8ba432b1c",
-        "Name": "deploy",
-        "Payload": "MTYwOTAzMA=="",
-        "NodeFilter": "",
-        "ServiceFilter": "",
-        "TagFilter": "",
-        "Version": 1,
-        "LTime": 19
-      },
-      ...
-    ]
+```javascript
+[
+  {
+    "ID": "b54fe110-7af5-cafc-d1fb-afc8ba432b1c",
+    "Name": "deploy",
+    "Payload": "MTYwOTAzMA==",
+    "NodeFilter": "",
+    "ServiceFilter": "",
+    "TagFilter": "",
+    "Version": 1,
+    "LTime": 19
+  },
+  ...
+]
+```
 
-## Status
+## <a name="status"></a> Status
 
 The Status endpoints are used to get information about the status
-of the Consul cluster. This are generally very low level, and not really
+of the Consul cluster. These are generally very low level, and not really
 useful for clients.
 
 The following endpoints are supported:
 
-* /v1/status/leader : Returns the current Raft leader
-* /v1/status/peers : Returns the current Raft peer set
+* [`/v1/status/leader`](#status_leader) : Returns the current Raft leader
+* [`/v1/status/peers`](#status_peers) : Returns the current Raft peer set
 
-### /v1/status/leader
+### <a name="status_leader"></a> /v1/status/leader
 
 This endpoint is used to get the Raft leader for the datacenter
 the agent is running in. It returns only an address like:
 
-    "10.1.10.12:8300"
+```text
+"10.1.10.12:8300"
+```
 
-### /v1/status/peers
+### <a name="status_peers"></a> /v1/status/peers
 
 This endpoint is used to get the Raft peers for the datacenter
 the agent is running in. It returns a list of addresses like:
 
-    ["10.1.10.12:8300", "10.1.10.11:8300", "10.1.10.10:8300"]
+```javascript
+[
+  "10.1.10.12:8300",
+  "10.1.10.11:8300",
+  "10.1.10.10:8300"
+]
+```
+
+[kv]: #kv
+[agent]: #agent
+[catalog]: #catalog
+[health]: #health
+[session]: #session
+[acl]: #acl
+[event]: #event
+[status]: #status

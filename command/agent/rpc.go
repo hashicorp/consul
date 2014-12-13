@@ -24,15 +24,17 @@ package agent
 import (
 	"bufio"
 	"fmt"
-	"github.com/hashicorp/logutils"
-	"github.com/hashicorp/serf/serf"
-	"github.com/ugorji/go/codec"
 	"io"
 	"log"
 	"net"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/logutils"
+	"github.com/hashicorp/serf/serf"
 )
 
 const (
@@ -51,6 +53,10 @@ const (
 	leaveCommand      = "leave"
 	statsCommand      = "stats"
 	reloadCommand     = "reload"
+	installKeyCommand = "install-key"
+	useKeyCommand     = "use-key"
+	removeKeyCommand  = "remove-key"
+	listKeysCommand   = "list-keys"
 )
 
 const (
@@ -101,6 +107,37 @@ type joinRequest struct {
 
 type joinResponse struct {
 	Num int32
+}
+
+type keyringRequest struct {
+	Key string
+}
+
+type KeyringEntry struct {
+	Datacenter string
+	Pool       string
+	Key        string
+	Count      int
+}
+
+type KeyringMessage struct {
+	Datacenter string
+	Pool       string
+	Node       string
+	Message    string
+}
+
+type KeyringInfo struct {
+	Datacenter string
+	Pool       string
+	NumNodes   int
+	Error      string
+}
+
+type keyringResponse struct {
+	Keys     []KeyringEntry
+	Messages []KeyringMessage
+	Info     []KeyringInfo
 }
 
 type membersResponse struct {
@@ -373,6 +410,9 @@ func (i *AgentRPC) handleRequest(client *rpcClient, reqHeader *requestHeader) er
 	case reloadCommand:
 		return i.handleReload(client, seq)
 
+	case installKeyCommand, useKeyCommand, removeKeyCommand, listKeysCommand:
+		return i.handleKeyring(client, seq, command)
+
 	default:
 		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
 		client.Send(&respHeader, nil)
@@ -581,6 +621,80 @@ func (i *AgentRPC) handleReload(client *rpcClient, seq uint64) error {
 	// Always succeed
 	resp := responseHeader{Seq: seq, Error: ""}
 	return client.Send(&resp, nil)
+}
+
+func (i *AgentRPC) handleKeyring(client *rpcClient, seq uint64, cmd string) error {
+	var req keyringRequest
+	var queryResp *structs.KeyringResponses
+	var r keyringResponse
+	var err error
+
+	if cmd != listKeysCommand {
+		if err = client.dec.Decode(&req); err != nil {
+			return fmt.Errorf("decode failed: %v", err)
+		}
+	}
+
+	switch cmd {
+	case listKeysCommand:
+		queryResp, err = i.agent.ListKeys()
+	case installKeyCommand:
+		queryResp, err = i.agent.InstallKey(req.Key)
+	case useKeyCommand:
+		queryResp, err = i.agent.UseKey(req.Key)
+	case removeKeyCommand:
+		queryResp, err = i.agent.RemoveKey(req.Key)
+	default:
+		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
+		client.Send(&respHeader, nil)
+		return fmt.Errorf("command '%s' not recognized", cmd)
+	}
+
+	header := responseHeader{
+		Seq:   seq,
+		Error: errToString(err),
+	}
+
+	if queryResp == nil {
+		goto SEND
+	}
+
+	for _, kr := range queryResp.Responses {
+		var pool string
+		if kr.WAN {
+			pool = "WAN"
+		} else {
+			pool = "LAN"
+		}
+		for node, message := range kr.Messages {
+			msg := KeyringMessage{
+				Datacenter: kr.Datacenter,
+				Pool:       pool,
+				Node:       node,
+				Message:    message,
+			}
+			r.Messages = append(r.Messages, msg)
+		}
+		for key, qty := range kr.Keys {
+			k := KeyringEntry{
+				Datacenter: kr.Datacenter,
+				Pool:       pool,
+				Key:        key,
+				Count:      qty,
+			}
+			r.Keys = append(r.Keys, k)
+		}
+		info := KeyringInfo{
+			Datacenter: kr.Datacenter,
+			Pool:       pool,
+			NumNodes:   kr.NumNodes,
+			Error:      kr.Error,
+		}
+		r.Info = append(r.Info, info)
+	}
+
+SEND:
+	return client.Send(&header, r)
 }
 
 // Used to convert an error to a string representation

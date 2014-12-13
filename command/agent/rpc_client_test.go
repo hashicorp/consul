@@ -30,6 +30,10 @@ func (r *rpcParts) Close() {
 // testRPCClient returns an RPCClient connected to an RPC server that
 // serves only this connection.
 func testRPCClient(t *testing.T) *rpcParts {
+	return testRPCClientWithConfig(t, func(c *Config) {})
+}
+
+func testRPCClientWithConfig(t *testing.T, cb func(c *Config)) *rpcParts {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -39,6 +43,8 @@ func testRPCClient(t *testing.T) *rpcParts {
 	mult := io.MultiWriter(os.Stderr, lw)
 
 	conf := nextConfig()
+	cb(conf)
+
 	dir, agent := makeAgentLog(t, conf, mult)
 	rpc := NewAgentRPC(agent, l, mult, lw)
 
@@ -232,7 +238,7 @@ func TestRPCClientMonitor(t *testing.T) {
 
 	found := false
 OUTER1:
-	for {
+	for i := 0; ; i++ {
 		select {
 		case e := <-eventCh:
 			if strings.Contains(e, "Accepted client") {
@@ -240,6 +246,10 @@ OUTER1:
 				break OUTER1
 			}
 		default:
+			if i > 100 {
+				break OUTER1
+			}
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 	if !found {
@@ -249,21 +259,179 @@ OUTER1:
 	// Join a bad thing to generate more events
 	p1.agent.JoinLAN(nil)
 
-	time.Sleep(1 * time.Second)
-
 	found = false
 OUTER2:
-	for {
+	for i := 0; ; i++ {
 		select {
 		case e := <-eventCh:
 			if strings.Contains(e, "joining") {
 				found = true
+				break OUTER2
 			}
 		default:
-			break OUTER2
+			if i > 100 {
+				break OUTER2
+			}
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 	if !found {
 		t.Fatalf("should log joining")
+	}
+}
+
+func TestRPCClientListKeys(t *testing.T) {
+	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
+	p1 := testRPCClientWithConfig(t, func(c *Config) {
+		c.EncryptKey = key1
+		c.Datacenter = "dc1"
+	})
+	defer p1.Close()
+
+	// Key is initially installed to both wan/lan
+	keys := listKeys(t, p1.client)
+	if _, ok := keys["dc1"][key1]; !ok {
+		t.Fatalf("bad: %#v", keys)
+	}
+	if _, ok := keys["WAN"][key1]; !ok {
+		t.Fatalf("bad: %#v", keys)
+	}
+}
+
+func TestRPCClientInstallKey(t *testing.T) {
+	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
+	key2 := "xAEZ3uVHRMZD9GcYMZaRQw=="
+	p1 := testRPCClientWithConfig(t, func(c *Config) {
+		c.EncryptKey = key1
+	})
+	defer p1.Close()
+
+	// key2 is not installed yet
+	testutil.WaitForResult(func() (bool, error) {
+		keys := listKeys(t, p1.client)
+		if num, ok := keys["dc1"][key2]; ok || num != 0 {
+			return false, fmt.Errorf("bad: %#v", keys)
+		}
+		if num, ok := keys["WAN"][key2]; ok || num != 0 {
+			return false, fmt.Errorf("bad: %#v", keys)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatal(err.Error())
+	})
+
+	// install key2
+	r, err := p1.client.InstallKey(key2)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	keyringSuccess(t, r)
+
+	// key2 should now be installed
+	testutil.WaitForResult(func() (bool, error) {
+		keys := listKeys(t, p1.client)
+		if num, ok := keys["dc1"][key2]; !ok || num != 1 {
+			return false, fmt.Errorf("bad: %#v", keys)
+		}
+		if num, ok := keys["WAN"][key2]; !ok || num != 1 {
+			return false, fmt.Errorf("bad: %#v", keys)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatal(err.Error())
+	})
+}
+
+func TestRPCClientUseKey(t *testing.T) {
+	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
+	key2 := "xAEZ3uVHRMZD9GcYMZaRQw=="
+	p1 := testRPCClientWithConfig(t, func(c *Config) {
+		c.EncryptKey = key1
+	})
+	defer p1.Close()
+
+	// add a second key to the ring
+	r, err := p1.client.InstallKey(key2)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	keyringSuccess(t, r)
+
+	// key2 is installed
+	testutil.WaitForResult(func() (bool, error) {
+		keys := listKeys(t, p1.client)
+		if num, ok := keys["dc1"][key2]; !ok || num != 1 {
+			return false, fmt.Errorf("bad: %#v", keys)
+		}
+		if num, ok := keys["WAN"][key2]; !ok || num != 1 {
+			return false, fmt.Errorf("bad: %#v", keys)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatal(err.Error())
+	})
+
+	// can't remove key1 yet
+	r, err = p1.client.RemoveKey(key1)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	keyringError(t, r)
+
+	// change primary key
+	r, err = p1.client.UseKey(key2)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	keyringSuccess(t, r)
+
+	// can remove key1 now
+	r, err = p1.client.RemoveKey(key1)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	keyringSuccess(t, r)
+}
+
+func TestRPCClientKeyOperation_encryptionDisabled(t *testing.T) {
+	p1 := testRPCClient(t)
+	defer p1.Close()
+
+	r, err := p1.client.ListKeys()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	keyringError(t, r)
+}
+
+func listKeys(t *testing.T, c *RPCClient) map[string]map[string]int {
+	resp, err := c.ListKeys()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	out := make(map[string]map[string]int)
+	for _, k := range resp.Keys {
+		respID := k.Datacenter
+		if k.Pool == "WAN" {
+			respID = k.Pool
+		}
+		out[respID] = map[string]int{k.Key: k.Count}
+	}
+	return out
+}
+
+func keyringError(t *testing.T, r keyringResponse) {
+	for _, i := range r.Info {
+		if i.Error == "" {
+			t.Fatalf("no error reported from %s (%s)", i.Datacenter, i.Pool)
+		}
+	}
+}
+
+func keyringSuccess(t *testing.T, r keyringResponse) {
+	for _, i := range r.Info {
+		if i.Error != "" {
+			t.Fatalf("error from %s (%s): %s", i.Datacenter, i.Pool, i.Error)
+		}
 	}
 }

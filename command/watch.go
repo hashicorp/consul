@@ -144,14 +144,18 @@ func (c *WatchCommand) Run(args []string) int {
 	}
 
 	// Setup handler
-	errExit := false
+
+	// errExit:
+	//	0: false
+	//	1: true
+	errExit := 0
 	if script == "" {
 		wp.Handler = func(idx uint64, data interface{}) {
 			defer wp.Stop()
 			buf, err := json.MarshalIndent(data, "", "    ")
 			if err != nil {
 				c.Ui.Error(fmt.Sprintf("Error encoding output: %s", err))
-				errExit = true
+				errExit = 1
 			}
 			c.Ui.Output(string(buf))
 		}
@@ -186,7 +190,7 @@ func (c *WatchCommand) Run(args []string) int {
 			return
 		ERR:
 			wp.Stop()
-			errExit = true
+			errExit = 1
 		}
 	}
 
@@ -203,12 +207,7 @@ func (c *WatchCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Handle an error exit
-	if errExit {
-		return 1
-	} else {
-		return 0
-	}
+	return errExit
 }
 
 func (c *WatchCommand) Synopsis() string {

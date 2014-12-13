@@ -43,7 +43,7 @@ type Command struct {
 	logOutput         io.Writer
 	agent             *Agent
 	rpcServer         *AgentRPC
-	httpServer        *HTTPServer
+	httpServers       []*HTTPServer
 	dnsServer         *DNSServer
 }
 
@@ -53,6 +53,7 @@ func (c *Command) readConfig() *Config {
 	var cmdConfig Config
 	var configFiles []string
 	var retryInterval string
+	var retryIntervalWan string
 	cmdFlags := flag.NewFlagSet("agent", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
@@ -71,7 +72,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
 	cmdFlags.IntVar(&cmdConfig.BootstrapExpect, "bootstrap-expect", 0, "enable automatic bootstrap via expect mode")
 
-	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, RPC)")
+	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, HTTPS, RPC)")
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "address to advertise instead of bind addr")
 
@@ -83,12 +84,20 @@ func (c *Command) readConfig() *Config {
 		"enable re-joining after a previous leave")
 	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.StartJoin), "join",
 		"address of agent to join on startup")
+	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.StartJoinWan), "join-wan",
+		"address of agent to join -wan on startup")
 	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.RetryJoin), "retry-join",
 		"address of agent to join on startup with retry")
 	cmdFlags.IntVar(&cmdConfig.RetryMaxAttempts, "retry-max", 0,
 		"number of retries for joining")
 	cmdFlags.StringVar(&retryInterval, "retry-interval", "",
 		"interval between join attempts")
+	cmdFlags.Var((*AppendSliceValue)(&cmdConfig.RetryJoinWan), "retry-join-wan",
+		"address of agent to join -wan on startup with retry")
+	cmdFlags.IntVar(&cmdConfig.RetryMaxAttemptsWan, "retry-max-wan", 0,
+		"number of retries for joining -wan")
+	cmdFlags.StringVar(&retryIntervalWan, "retry-interval-wan", "",
+		"interval between join -wan attempts")
 
 	if err := cmdFlags.Parse(c.args); err != nil {
 		return nil
@@ -101,6 +110,15 @@ func (c *Command) readConfig() *Config {
 			return nil
 		}
 		cmdConfig.RetryInterval = dur
+	}
+
+	if retryIntervalWan != "" {
+		dur, err := time.ParseDuration(retryIntervalWan)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error: %s", err))
+			return nil
+		}
+		cmdConfig.RetryIntervalWan = dur
 	}
 
 	config := DefaultConfig()
@@ -125,17 +143,27 @@ func (c *Command) readConfig() *Config {
 		config.NodeName = hostname
 	}
 
+	// Ensure we have a data directory
+	if config.DataDir == "" {
+		c.Ui.Error("Must specify data directory using -data-dir")
+		return nil
+	}
+
 	if config.EncryptKey != "" {
 		if _, err := config.EncryptBytes(); err != nil {
 			c.Ui.Error(fmt.Sprintf("Invalid encryption key: %s", err))
 			return nil
 		}
-	}
-
-	// Ensure we have a data directory
-	if config.DataDir == "" {
-		c.Ui.Error("Must specify data directory using -data-dir")
-		return nil
+		keyfileLAN := filepath.Join(config.DataDir, serfLANKeyring)
+		if _, err := os.Stat(keyfileLAN); err == nil {
+			c.Ui.Error("WARNING: LAN keyring exists but -encrypt given, ignoring")
+		}
+		if config.Server {
+			keyfileWAN := filepath.Join(config.DataDir, serfWANKeyring)
+			if _, err := os.Stat(keyfileWAN); err == nil {
+				c.Ui.Error("WARNING: WAN keyring exists but -encrypt given, ignoring")
+			}
+		}
 	}
 
 	// Verify data center is valid
@@ -278,20 +306,14 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	c.Ui.Output("Starting Consul agent RPC...")
 	c.rpcServer = NewAgentRPC(agent, rpcListener, logOutput, logWriter)
 
-	if config.Ports.HTTP > 0 {
-		httpAddr, err := config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Invalid HTTP bind address: %s", err))
-			return err
-		}
-
-		server, err := NewHTTPServer(agent, config.UiDir, config.EnableDebug, logOutput, httpAddr.String())
+	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 {
+		servers, err := NewHTTPServers(agent, config, logOutput)
 		if err != nil {
 			agent.Shutdown()
-			c.Ui.Error(fmt.Sprintf("Error starting http server: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error starting http servers: %s", err))
 			return err
 		}
-		c.httpServer = server
+		c.httpServers = servers
 	}
 
 	if config.Ports.DNS > 0 {
@@ -302,7 +324,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		}
 
 		server, err := NewDNSServer(agent, &config.DNSConfig, logOutput,
-			config.Domain, dnsAddr.String(), config.DNSRecursor)
+			config.Domain, dnsAddr.String(), config.DNSRecursors)
 		if err != nil {
 			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Error starting dns server: %s", err))
@@ -369,6 +391,22 @@ func (c *Command) startupJoin(config *Config) error {
 	return nil
 }
 
+// startupJoinWan is invoked to handle any joins -wan specified to take place at start time
+func (c *Command) startupJoinWan(config *Config) error {
+	if len(config.StartJoinWan) == 0 {
+		return nil
+	}
+
+	c.Ui.Output("Joining -wan cluster...")
+	n, err := c.agent.JoinWAN(config.StartJoinWan)
+	if err != nil {
+		return err
+	}
+
+	c.Ui.Info(fmt.Sprintf("Join -wan completed. Synced with %d initial agents", n))
+	return nil
+}
+
 // retryJoin is used to handle retrying a join until it succeeds or all
 // retries are exhausted.
 func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
@@ -398,6 +436,53 @@ func (c *Command) retryJoin(config *Config, errCh chan<- struct{}) {
 			config.RetryInterval)
 		time.Sleep(config.RetryInterval)
 	}
+}
+
+// retryJoinWan is used to handle retrying a join -wan until it succeeds or all
+// retries are exhausted.
+func (c *Command) retryJoinWan(config *Config, errCh chan<- struct{}) {
+	if len(config.RetryJoinWan) == 0 {
+		return
+	}
+
+	logger := c.agent.logger
+	logger.Printf("[INFO] agent: Joining WAN cluster...")
+
+	attempt := 0
+	for {
+		n, err := c.agent.JoinWAN(config.RetryJoinWan)
+		if err == nil {
+			logger.Printf("[INFO] agent: Join -wan completed. Synced with %d initial agents", n)
+			return
+		}
+
+		attempt++
+		if config.RetryMaxAttemptsWan > 0 && attempt > config.RetryMaxAttemptsWan {
+			logger.Printf("[ERROR] agent: max join -wan retry exhausted, exiting")
+			close(errCh)
+			return
+		}
+
+		logger.Printf("[WARN] agent: Join -wan failed: %v, retrying in %v", err,
+			config.RetryIntervalWan)
+		time.Sleep(config.RetryIntervalWan)
+	}
+}
+
+// gossipEncrypted determines if the consul instance is using symmetric
+// encryption keys to protect gossip protocol messages.
+func (c *Command) gossipEncrypted() bool {
+	if c.agent.config.EncryptKey != "" {
+		return true
+	}
+
+	server := c.agent.server
+	if server != nil {
+		return server.KeyManagerLAN() != nil || server.KeyManagerWAN() != nil
+	}
+
+	client := c.agent.client
+	return client != nil && client.KeyManagerLAN() != nil
 }
 
 func (c *Command) Run(args []string) int {
@@ -472,8 +557,9 @@ func (c *Command) Run(args []string) int {
 	if c.rpcServer != nil {
 		defer c.rpcServer.Shutdown()
 	}
-	if c.httpServer != nil {
-		defer c.httpServer.Shutdown()
+
+	for _, server := range c.httpServers {
+		defer server.Shutdown()
 	}
 
 	// Join startup nodes if specified
@@ -482,27 +568,13 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
-	// Register the services
-	for _, service := range config.Services {
-		ns := service.NodeService()
-		chkType := service.CheckType()
-		if err := c.agent.AddService(ns, chkType); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to register service '%s': %v", service.Name, err))
-			return 1
-		}
+	// Join startup nodes if specified
+	if err := c.startupJoinWan(config); err != nil {
+		c.Ui.Error(err.Error())
+		return 1
 	}
 
-	// Register the checks
-	for _, check := range config.Checks {
-		health := check.HealthCheck(config.NodeName)
-		chkType := &check.CheckType
-		if err := c.agent.AddCheck(health, chkType); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to register check '%s': %v %v", check.Name, err, check))
-			return 1
-		}
-	}
-
-	// Get the new client listener addr
+	// Get the new client http listener addr
 	httpAddr, err := config.ClientListenerAddr(config.Addresses.HTTP, config.Ports.HTTP)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
@@ -519,6 +591,14 @@ func (c *Command) Run(args []string) int {
 		}(wp)
 	}
 
+	// Figure out if gossip is encrypted
+	var gossipEncrypted bool
+	if config.Server {
+		gossipEncrypted = c.agent.server.Encrypted()
+	} else {
+		gossipEncrypted = c.agent.client.Encrypted()
+	}
+
 	// Let the agent know we've finished registration
 	c.agent.StartSync()
 
@@ -526,12 +606,12 @@ func (c *Command) Run(args []string) int {
 	c.Ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
 	c.Ui.Info(fmt.Sprintf("    Datacenter: '%s'", config.Datacenter))
 	c.Ui.Info(fmt.Sprintf("        Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))
-	c.Ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, DNS: %d, RPC: %d)", config.ClientAddr,
-		config.Ports.HTTP, config.Ports.DNS, config.Ports.RPC))
+	c.Ui.Info(fmt.Sprintf("   Client Addr: %v (HTTP: %d, HTTPS: %d, DNS: %d, RPC: %d)", config.ClientAddr,
+		config.Ports.HTTP, config.Ports.HTTPS, config.Ports.DNS, config.Ports.RPC))
 	c.Ui.Info(fmt.Sprintf("  Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddr,
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
-		config.EncryptKey != "", config.VerifyOutgoing, config.VerifyIncoming))
+		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
 
 	// Enable log streaming
 	c.Ui.Info("")
@@ -542,12 +622,16 @@ func (c *Command) Run(args []string) int {
 	errCh := make(chan struct{})
 	go c.retryJoin(config, errCh)
 
+	// Start retry -wan join process
+	errWanCh := make(chan struct{})
+	go c.retryJoinWan(config, errWanCh)
+
 	// Wait for exit
-	return c.handleSignals(config, errCh)
+	return c.handleSignals(config, errCh, errWanCh)
 }
 
 // handleSignals blocks until we get an exit-causing signal
-func (c *Command) handleSignals(config *Config, retryJoin <-chan struct{}) int {
+func (c *Command) handleSignals(config *Config, retryJoin <-chan struct{}, retryJoinWan <-chan struct{}) int {
 	signalCh := make(chan os.Signal, 4)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 
@@ -562,6 +646,8 @@ WAIT:
 	case <-c.ShutdownCh:
 		sig = os.Interrupt
 	case <-retryJoin:
+		return 1
+	case <-retryJoinWan:
 		return 1
 	case <-c.agent.ShutdownCh():
 		// Agent is already shutdown!
@@ -636,34 +722,14 @@ func (c *Command) handleReload(config *Config) *Config {
 	c.agent.PauseSync()
 	defer c.agent.ResumeSync()
 
-	// Deregister the old services
-	for _, service := range config.Services {
-		ns := service.NodeService()
-		c.agent.RemoveService(ns.ID)
+	// Reload services and check definitions
+	if err := c.agent.reloadServices(newConf); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed reloading services: %s", err))
+		return nil
 	}
-
-	// Deregister the old checks
-	for _, check := range config.Checks {
-		health := check.HealthCheck(config.NodeName)
-		c.agent.RemoveCheck(health.CheckID)
-	}
-
-	// Register the services
-	for _, service := range newConf.Services {
-		ns := service.NodeService()
-		chkType := service.CheckType()
-		if err := c.agent.AddService(ns, chkType); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to register service '%s': %v", service.Name, err))
-		}
-	}
-
-	// Register the checks
-	for _, check := range newConf.Checks {
-		health := check.HealthCheck(config.NodeName)
-		chkType := &check.CheckType
-		if err := c.agent.AddCheck(health, chkType); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to register check '%s': %v %v", check.Name, err, check))
-		}
+	if err := c.agent.reloadChecks(newConf); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed reloading checks: %s", err))
+		return nil
 	}
 
 	// Get the new client listener addr
@@ -709,7 +775,7 @@ Options:
   -bind=0.0.0.0            Sets the bind address for cluster communication
   -bootstrap-expect=0      Sets server to expect bootstrap mode.
   -client=127.0.0.1        Sets the address to bind for client access.
-                           This includes RPC, DNS and HTTP
+                           This includes RPC, DNS, HTTP and HTTPS (if configured)
   -config-file=foo         Path to a JSON file to read configuration from.
                            This can be specified multiple times.
   -config-dir=foo          Path to a directory to read configuration files
@@ -721,10 +787,17 @@ Options:
   -encrypt=key             Provides the gossip encryption key
   -join=1.2.3.4            Address of an agent to join at start time.
                            Can be specified multiple times.
+  -join-wan=1.2.3.4        Address of an agent to join -wan at start time.
+                           Can be specified multiple times.
   -retry-join=1.2.3.4      Address of an agent to join at start time with
                            retries enabled. Can be specified multiple times.
   -retry-interval=30s      Time to wait between join attempts.
   -retry-max=0             Maximum number of join attempts. Defaults to 0, which
+                           will retry indefinitely.
+  -retry-join-wan=1.2.3.4  Address of an agent to join -wan at start time with
+                           retries enabled. Can be specified multiple times.
+  -retry-interval-wan=30s  Time to wait between join -wan attempts.
+  -retry-max-wan=0         Maximum number of join -wan attempts. Defaults to 0, which
                            will retry indefinitely.
   -log-level=info          Log level of the agent.
   -node=hostname           Name of this node. Must be unique in the cluster

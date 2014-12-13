@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Configuration"
 sidebar_current: "docs-agent-config"
+description: |-
+  The agent has various configuration options that can be specified via the command-line or via configuration files. All of the configuration options are completely optional and their defaults will be specified with their descriptions.
 ---
 
 # Configuration
@@ -20,8 +22,10 @@ The exact merging behavior will be specified.
 
 Consul also supports reloading of configuration when it receives the
 SIGHUP signal. Not all changes are respected, but those that are
-are documented below. The [reload command](/docs/commands/reload.html)
-can also be used to trigger a configuration reload.
+are documented below in the
+[Reloadable Configuration](#reloadable-configuration) section. The
+[reload command](/docs/commands/reload.html) can also be used to trigger a
+configuration reload.
 
 ## Command-line Options
 
@@ -61,13 +65,15 @@ The options below are all specified on the command-line.
   the format of this file, read the "Configuration Files" section below.
   This option can be specified multiple times to load multiple configuration
   files. If it is specified multiple times, configuration files loaded later
-  will merge with configuration files loaded earlier, with the later values
-  overriding the earlier values.
+  will merge with configuration files loaded earlier. During a config merge,
+  single-value keys (string, int, bool) will simply have their values replaced,
+  while list types will be appended together.
 
 * `-config-dir` - A directory of configuration files to load. Consul will
   load all files in this directory ending in ".json" as configuration files
-  in alphabetical order. For more information on the format of the configuration
-  files, see the "Configuration Files" section below.
+  in alphabetical order using the same merge routine as the `config-file`
+  option above. For more information on the format of the configuration files,
+  see the "Configuration Files" section below.
 
 * `-data-dir` - This flag provides a data directory for the agent to store state.
   This is required for all agents. The directory should be durable across reboots.
@@ -85,6 +91,12 @@ The options below are all specified on the command-line.
   network traffic. This key must be 16-bytes that are base64 encoded. The
   easiest way to create an encryption key is to use `consul keygen`. All
   nodes within a cluster must share the same encryption key to communicate.
+  The provided key is automatically persisted to the data directory, and loaded
+  automatically whenever the agent is restarted. This means that to encrypt
+  Consul's gossip protocol, this option only needs to be provided once on each
+  agent's initial startup sequence. If it is provided after Consul has been
+  initialized with an encryption key, then the provided key is ignored and
+  a warning will be displayed.
 
 * `-join` - Address of another agent to join upon starting up. This can be
   specified multiple times to specify multiple agents to join. If Consul is
@@ -100,6 +112,21 @@ The options below are all specified on the command-line.
 * `-retry-max` - The maximum number of join attempts to be made before exiting
   with return code 1. By default, this is set to 0, which will continue to
   retry the join indefinitely.
+
+* `-join-wan` - Address of another wan agent to join upon starting up. This can be
+  specified multiple times to specify multiple agents that are on the WAN to join. If Consul is
+  unable to join with any of the specified addresses, agent startup will
+  fail. By default, the agent won't join -wan any nodes when it starts up.
+
+* `-retry-join-wan` - Similar to `retry-join`, but allows retrying a wan join if the first
+  attempt fails. This is useful for cases where we know the address will become
+  available eventually.
+
+* `-retry-interval-wan` - Time to wait between join -wan attempts. Defaults to 30s.
+
+* `-retry-max-wan` - The maximum number of join -wan attempts to be made before exiting
+  with return code 1. By default, this is set to 0, which will continue to
+  retry the join -wan indefinitely.
 
 * `-log-level` - The level of logging to show after the Consul agent has
   started. This defaults to "info". The available log levels are "trace",
@@ -150,13 +177,13 @@ at a single JSON object with configuration within it.
 Configuration files are used for more than just setting up the agent,
 they are also used to provide check and service definitions. These are used
 to announce the availability of system servers to the rest of the cluster.
-They are documented seperately under [check configuration](/docs/agent/checks.html) and
+They are documented separately under [check configuration](/docs/agent/checks.html) and
 [service configuration](/docs/agent/services.html) respectively. The service and check
 definitions support being updated during a reload.
 
 #### Example Configuration File
 
-<pre class="prettyprint lang-json">
+```javascript
 {
   "datacenter": "east-aws",
   "data_dir": "/opt/consul",
@@ -170,18 +197,23 @@ definitions support being updated during a reload.
     }
   ]
 }
-</pre>
+```
 
 #### Configuration Key Reference
 
 * `acl_datacenter` - Only used by servers. This designates the datacenter which
    is authoritative for ACL information. It must be provided to enable ACLs.
-   All servers and datacenters must agree on the ACL datacenter.
+   All servers and datacenters must agree on the ACL datacenter. Setting it on
+   the servers is all you need for enforcement, but for the APIs to work on the
+   clients, it must be set on them too (to forward properly). Also, if we want
+   to enhance the ACL support for other features like service discovery,
+   enforcement might move to the edges, so it's best to just set the
+   `acl_datacenter` on all the nodes.
 
 * `acl_default_policy` - Either "allow" or "deny", defaults to "allow". The
   default policy controls the behavior of a token when there is no matching
   rule. In "allow" mode, ACLs are a blacklist: any operation not specifically
-  prohibited is allowed. In "deny" mode, ACLs are a whilelist: any operation not
+  prohibited is allowed. In "deny" mode, ACLs are a whitelist: any operation not
   specifically allowed is blocked.
 
 * `acl_down_policy` - Either "allow", "deny" or "extend-cache" which is the
@@ -230,12 +262,12 @@ definitions support being updated during a reload.
   Must be provided along with the `key_file`.
 
 * `check_update_interval` - This interval controls how often check output from
-  checks in a steady state is syncronized with the server. By default, this is
+  checks in a steady state is synchronized with the server. By default, this is
   set to 5 minutes ("5m"). Many checks which are in a steady state produce
   slightly different output per run (timestamps, etc) which cause constant writes.
-  This configuration allows defering the sync of check output for a given interval to
+  This configuration allows deferring the sync of check output for a given interval to
   reduce write pressure. If a check ever changes state, the new state and associated
-  output is syncronized immediately. To disable this behavior, set the value to "0s".
+  output is synchronized immediately. To disable this behavior, set the value to "0s".
 
 * `client_addr` - Equivalent to the `-client` command-line flag.
 
@@ -253,7 +285,7 @@ definitions support being updated during a reload.
   new version releases.
 
 * `dns_config` - This object allows a number of sub-keys to be set which can tune
-  how DNS queries are perfomed. See this guide on [DNS caching](/docs/guides/dns-cache.html).
+  how DNS queries are performed. See this guide on [DNS caching](/docs/guides/dns-cache.html).
   The following sub-keys are available:
 
   * `allow_stale` - Enables a stale query for DNS information. This allows any Consul
@@ -307,6 +339,7 @@ definitions support being updated during a reload.
    for the following keys:
     * `dns` - The DNS server, -1 to disable. Default 8600.
     * `http` - The HTTP api, -1 to disable. Default 8500.
+    * `https` - The HTTPS api, -1 to disable. Default -1 (disabled).
     * `rpc` - The RPC endpoint. Default 8400.
     * `serf_lan` - The Serf LAN port. Default 8301.
     * `serf_wan` - The Serf WAN port. Default 8302.
@@ -314,12 +347,27 @@ definitions support being updated during a reload.
 
 * `protocol` - Equivalent to the `-protocol` command-line flag.
 
-* `recursor` - This flag provides an address of an upstream DNS server that is used to
+* `recursor` - Provides a single recursor address. This has been deprecated, and
+  the value is appended to the `recursors` list for backwards compatibility.
+
+* `recursors` - This flag provides addresses of upstream DNS servers that are used to
   recursively resolve queries if they are not inside the service domain for consul. For example,
   a node can use Consul directly as a DNS server, and if the record is outside of the "consul." domain,
-  the query will be resolved upstream using this server.
+  the query will be resolved upstream using their servers.
 
 * `rejoin_after_leave` - Equivalent to the `-rejoin` command-line flag.
+
+* `retry_join` - Equivalent to the `-retry-join` command-line flag. Takes a list
+  of addresses to attempt joining every `retry_interval` until at least one
+  join works.
+
+* `retry_interval` - Equivalent to the `-retry-interval` command-line flag.
+
+* `retry_join_wan` - Equivalent to the `-retry-join-wan` command-line flag. Takes a list
+  of addresses to attempt joining to WAN every `retry_interval_wan` until at least one
+  join -wan works.
+
+* `retry_interval_wan` - Equivalent to the `-retry-interval-wan` command-line flag.
 
 * `server` - Equivalent to the `-server` command-line flag.
 
@@ -334,6 +382,9 @@ definitions support being updated during a reload.
 
 * `start_join` - An array of strings specifying addresses of nodes to
   join upon startup.
+
+* `start_join_wan` - An array of strings specifying addresses of WAN nodes to
+  join -wan upon startup.
 
 * `statsd_addr` - This provides the address of a statsd instance.  If provided
   Consul will send various telemetry information to that instance for aggregation.
@@ -379,7 +430,7 @@ port.
 * Serf LAN (Default 8301). This is used to handle gossip in the LAN.
   Required by all agents, TCP and UDP.
 
-* Serf WAN( Default 8302). This is used by servers to gossip over the
+* Serf WAN (Default 8302). This is used by servers to gossip over the
   WAN to other servers. TCP and UDP.
 
 * CLI RPC (Default 8400). This is used by all agents to handle RPC
@@ -390,3 +441,14 @@ port.
 
 * DNS Interface (Default 8600). Used to resolve DNS queries. TCP and UDP.
 
+## Reloadable Configuration
+<a id="reloadable-configuration"></a>
+
+Reloading configuration does not reload all configuration items. The
+items which are reloaded include:
+
+* Log level
+* Checks
+* Services
+* Watches
+* HTTP Client Address

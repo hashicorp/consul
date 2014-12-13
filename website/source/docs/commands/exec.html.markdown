@@ -2,19 +2,21 @@
 layout: "docs"
 page_title: "Commands: Exec"
 sidebar_current: "docs-commands-exec"
+description: |-
+  The exec command provides a mechanism for remote execution. For example, this can be used to run the `uptime` command across all machines providing the `web` service.
 ---
 
 # Consul Exec
 
 Command: `consul exec`
 
-The exec command provides a mechanism for remote execution. For example,
+The `exec` command provides a mechanism for remote execution. For example,
 this can be used to run the `uptime` command across all machines providing
 the `web` service.
 
 Remote execution works by specifying a job which is stored in the KV store.
 Agent's are informed about the new job using the [event system](/docs/commands/event.html),
-which propogates messages via the [gossip protocol](/docs/internals/gossip.html).
+which propagates messages via the [gossip protocol](/docs/internals/gossip.html).
 As a result, delivery is best-effort, and there is **no guarantee** of execution.
 
 While events are purely gossip driven, remote execution relies on the KV store
@@ -47,7 +49,7 @@ The list of available flags are:
 
 * `-tag` - Regular expression to filter to only nodes with a service that has
   a matching tag. This must be used with `-service`. As an example, you may
-  do "-server mysql -tag slave".
+  do "-service mysql -tag slave".
 
 * `-wait` - Specifies the period of time in which no agent's respond before considering
   the job finished. This is basically the quiescent time required to assume completion.
