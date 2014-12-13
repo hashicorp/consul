@@ -664,7 +664,7 @@ func MergeConfig(a, b *Config) *Config {
 		result.BootstrapExpect = b.BootstrapExpect
 	}
 	if b.Datacenter != "" {
-		result.Datacenter = b.Datacenter
+		result.Datacenter = strings.ToLower(b.Datacenter)
 	}
 	if b.DataDir != "" {
 		result.DataDir = b.DataDir
