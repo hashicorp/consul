@@ -1328,10 +1328,11 @@ func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error
 	}
 
 	switch session.Behavior {
-	case structs.SessionKeysRelease, structs.SessionKeysDelete:
-		// we like
 	case "":
-		session.Behavior = structs.SessionKeysRelease // force default behavior
+		// Default behavior is Release for backwards compatibility
+		session.Behavior = structs.SessionKeysRelease
+	case structs.SessionKeysRelease:
+	case structs.SessionKeysDelete:
 	default:
 		return fmt.Errorf("Invalid Session Behavior setting '%s'", session.Behavior)
 	}
