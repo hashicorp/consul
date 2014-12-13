@@ -225,6 +225,47 @@ func TestSessionEndpoint_List(t *testing.T) {
 	}
 }
 
+func TestSessionEndpoint_ApplyTimers(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	arg := structs.SessionRequest{
+		Datacenter: "dc1",
+		Op:         structs.SessionCreate,
+		Session: structs.Session{
+			Node: "foo",
+			TTL:  "10s",
+		},
+	}
+	var out string
+	if err := client.Call("Session.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the session map
+	if _, ok := s1.sessionTimers[out]; !ok {
+		t.Fatalf("missing session timer")
+	}
+
+	// Destroy the session
+	arg.Op = structs.SessionDestroy
+	arg.Session.ID = out
+	if err := client.Call("Session.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the session map
+	if _, ok := s1.sessionTimers[out]; ok {
+		t.Fatalf("session timer exists")
+	}
+}
+
 func TestSessionEndpoint_Renew(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -252,6 +293,11 @@ func TestSessionEndpoint_Renew(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 		ids = append(ids, out)
+	}
+
+	// Verify the timer map is setup
+	if len(s1.sessionTimers) != 5 {
+		t.Fatalf("missing session timers")
 	}
 
 	getR := structs.DCSpecificRequest{
