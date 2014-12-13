@@ -2,11 +2,12 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/consul"
-	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 const (
@@ -61,7 +62,7 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 				return nil, nil
 			}
 
-			if ttl < structs.SessionTTLMin || ttl > structs.SessionTTLMax {
+			if ttl != 0 && (ttl < structs.SessionTTLMin || ttl > structs.SessionTTLMax) {
 				resp.WriteHeader(400)
 				resp.Write([]byte(fmt.Sprintf("Request TTL '%s', must be between [%v-%v]", args.Session.TTL, structs.SessionTTLMin, structs.SessionTTLMax)))
 				return nil, nil

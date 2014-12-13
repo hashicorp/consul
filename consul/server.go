@@ -132,7 +132,7 @@ type Server struct {
 	// a TTL. On expiration, a SessionDestroy event will occur, and
 	// destroy the session via standard session destory processing
 	sessionTimers     map[string]*time.Timer
-	sessionTimersLock sync.RWMutex
+	sessionTimersLock sync.Mutex
 
 	shutdown     bool
 	shutdownCh   chan struct{}

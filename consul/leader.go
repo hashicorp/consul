@@ -56,21 +56,14 @@ func (s *Server) leaderLoop(stopCh chan struct{}) {
 		s.logger.Printf("[WARN] consul: failed to broadcast new leader event: %v", err)
 	}
 
-	// Setup ACLs if we are the leader and need to
-	if err := s.initializeACL(); err != nil {
-		s.logger.Printf("[ERR] consul: ACL initialization failed: %v", err)
-	}
-
-	// Setup Session Timers if we are the leader and need to
-	if err := s.initializeSessionTimers(); err != nil {
-		s.logger.Printf("[ERR] consul: Session Timers initialization failed: %v", err)
-	}
-	// clear the session timers if we are no longer leader and exit the leaderLoop
+	// Clear the session timers on either shutdown or step down, since we
+	// are no longer responsible for session expirations.
 	defer s.clearAllSessionTimers()
 
 	// Reconcile channel is only used once initial reconcile
 	// has succeeded
 	var reconcileCh chan serf.Member
+	establishedLeader := false
 
 RECONCILE:
 	// Setup a reconciliation timer
@@ -85,6 +78,16 @@ RECONCILE:
 		goto WAIT
 	}
 	metrics.MeasureSince([]string{"consul", "leader", "barrier"}, start)
+
+	// Check if we need to handle initial leadership actions
+	if !establishedLeader {
+		if err := s.establishLeadership(); err != nil {
+			s.logger.Printf("[ERR] consul: failed to establish leadership: %v",
+				err)
+			goto WAIT
+		}
+		establishedLeader = true
+	}
 
 	// Reconcile any missing data
 	if err := s.reconcile(); err != nil {
@@ -111,6 +114,34 @@ WAIT:
 			s.reconcileMember(member)
 		}
 	}
+}
+
+// establishLeadership is invoked once we become leader and are able
+// to invoke an initial barrier. The barrier is used to ensure any
+// previously inflight transactions have been commited and that our
+// state is up-to-date.
+func (s *Server) establishLeadership() error {
+	// Setup ACLs if we are the leader and need to
+	if err := s.initializeACL(); err != nil {
+		s.logger.Printf("[ERR] consul: ACL initialization failed: %v", err)
+		return err
+	}
+
+	// Setup the session timers. This is done both when starting up or when
+	// a leader fail over happens. Since the timers are maintained by the leader
+	// node along, effectively this means all the timers are renewed at the
+	// time of failover. The TTL contract is that the session will not be expired
+	// before the TTL, so expiring it later is allowable.
+	//
+	// This MUST be done after the initial barrier to ensure the latest Sessions
+	// are available to be initialized. Otherwise initialization may use stale
+	// data.
+	if err := s.initializeSessionTimers(); err != nil {
+		s.logger.Printf("[ERR] consul: Session Timers initialization failed: %v",
+			err)
+		return err
+	}
+	return nil
 }
 
 // initializeACL is used to setup the ACLs if we are the leader

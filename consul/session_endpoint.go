@@ -28,22 +28,28 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	if args.Session.Node == "" && args.Op == structs.SessionCreate {
 		return fmt.Errorf("Must provide Node")
 	}
+
+	// Ensure that the specified behavior is allowed
 	switch args.Session.Behavior {
-	case structs.SessionKeysRelease, structs.SessionKeysDelete:
-		// we like it, use it
 	case "":
-		args.Session.Behavior = structs.SessionKeysRelease // force default behavior
+		// Default behavior to Release for backwards compatibility
+		args.Session.Behavior = structs.SessionKeysRelease
+	case structs.SessionKeysRelease:
+	case structs.SessionKeysDelete:
 	default:
 		return fmt.Errorf("Invalid Behavior setting '%s'", args.Session.Behavior)
 	}
+
+	// Ensure the Session TTL is valid if provided
 	if args.Session.TTL != "" {
 		ttl, err := time.ParseDuration(args.Session.TTL)
 		if err != nil {
 			return fmt.Errorf("Session TTL '%s' invalid: %v", args.Session.TTL, err)
 		}
 
-		if ttl < structs.SessionTTLMin || ttl > structs.SessionTTLMax {
-			return fmt.Errorf("Invalid Session TTL '%d', must be between [%v=%v]", ttl, structs.SessionTTLMin, structs.SessionTTLMax)
+		if ttl != 0 && (ttl < structs.SessionTTLMin || ttl > structs.SessionTTLMax) {
+			return fmt.Errorf("Invalid Session TTL '%d', must be between [%v=%v]",
+				ttl, structs.SessionTTLMin, structs.SessionTTLMax)
 		}
 	}
 
@@ -75,8 +81,11 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	}
 
 	if args.Op == structs.SessionCreate && args.Session.TTL != "" {
-		s.srv.resetSessionTimer(args.Session.ID, nil)
-	} else if args.Op == structs.SessionDestroy && args.Session.TTL != "" {
+		// If we created a session with a TTL, reset the expiration timer
+		s.srv.resetSessionTimer(args.Session.ID, &args.Session)
+	} else if args.Op == structs.SessionDestroy {
+		// If we destroyed a session, it might potentially have a TTL,
+		// and we need to clear the timer
 		s.srv.clearSessionTimer(args.Session.ID)
 	}
 
@@ -158,16 +167,21 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 		return err
 	}
 
-	// Get the local state
-	state := s.srv.fsm.State()
 	// Get the session, from local state
+	state := s.srv.fsm.State()
 	index, session, err := state.SessionGet(args.Session)
+	if err != nil {
+		return err
+	}
+
+	// Reset the session TTL timer
 	reply.Index = index
 	if session != nil {
 		reply.Sessions = structs.Sessions{session}
-		// reset the session TTL timer
-		err = s.srv.resetSessionTimer(args.Session, session)
+		if err := s.srv.resetSessionTimer(args.Session, session); err != nil {
+			s.srv.logger.Printf("[ERR] consul.session: Session renew failed: %v", err)
+			return err
+		}
 	}
-
-	return err
+	return nil
 }
