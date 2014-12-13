@@ -467,6 +467,8 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, qName string, qType uin
 	MORE_REC:
 		for _, rr := range more {
 			switch rr.Header().Rrtype {
+			case dns.TypeCNAME:
+				fallthrough
 			case dns.TypeA:
 				fallthrough
 			case dns.TypeAAAA:
@@ -478,6 +480,7 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, qName string, qType uin
 			}
 		}
 	}
+
 	return records
 }
 
