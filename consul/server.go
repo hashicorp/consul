@@ -266,10 +266,10 @@ func (s *Server) getRemoteConsuls() map[string][]*serverParts {
 	return s.remoteConsuls
 }
 
-func (s *Server) setRemoteConsuls(existing []*serverParts, datacenters string) {
+func (s *Server) setRemoteConsuls(existing []*serverParts, datacenter string) {
 	s.remoteLock.Lock()
 	defer s.remoteLock.Unlock()
-	s.remoteConsuls[datacenters] = existing
+	s.remoteConsuls[datacenter] = existing
 }
 
 func (s *Server) addRemoteConsuls(existing []*serverParts, parts *serverParts) {
@@ -278,10 +278,10 @@ func (s *Server) addRemoteConsuls(existing []*serverParts, parts *serverParts) {
 	s.remoteConsuls[parts.Datacenter] = append(existing, parts)
 }
 
-func (s *Server) delRemoteConsuls(datacenters string) {
+func (s *Server) delRemoteConsuls(datacenter string) {
 	s.remoteLock.Lock()
 	defer s.remoteLock.Unlock()
-	delete(s.remoteConsuls, datacenters)
+	delete(s.remoteConsuls, datacenter)
 }
 
 // setupSerf is used to setup and initialize a Serf
