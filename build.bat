@@ -11,7 +11,7 @@ set GOPATH=%cd%\gopath
 
 rmdir /s /q %GOPATH%\src\%REPO_PATH% 2>nul
 mkdir %GOPATH%\src\%ORG_PATH% 2>nul
-go get .\...
+go get -u .\...
 mklink /J "%GOPATH%\src\%REPO_PATH%" "%cd%" 2>nul
 
 %GOROOT%\bin\go build -o bin\%GOARCH%\consul.exe %REPO_PATH%
