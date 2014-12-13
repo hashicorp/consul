@@ -703,7 +703,7 @@ func TestStoreSnapshot(t *testing.T) {
 	if ok, err := store.KVSLock(18, d); err != nil || !ok {
 		t.Fatalf("err: %v", err)
 	}
-	session = &structs.Session{ID: generateUUID(), Node: "baz", TTL: "60s"}
+	session = &structs.Session{ID: generateUUID(), Node: "bar", TTL: "60s"}
 	if err := store.SessionCreate(19, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}

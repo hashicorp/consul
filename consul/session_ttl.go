@@ -11,9 +11,6 @@ import (
 // a new map to track session expiration and to reset all the timers from
 // the previously known set of timers.
 func (s *Server) initializeSessionTimers() error {
-	s.sessionTimersLock.Lock()
-	defer s.sessionTimersLock.Unlock()
-
 	// Scan all sessions and reset their timer
 	state := s.fsm.State()
 	_, sessions, err := state.SessionList()
@@ -45,9 +42,9 @@ func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 		session = s
 	}
 
-	// Bail if the session has no TTL
+	// Bail if the session has no TTL, fast-path some common inputs
 	switch session.TTL {
-	case "", "0s", "0m", "0h":
+	case "", "0", "0s", "0m", "0h":
 		return nil
 	}
 
@@ -62,8 +59,8 @@ func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 
 	// Reset the session timer
 	s.sessionTimersLock.Lock()
+	defer s.sessionTimersLock.Unlock()
 	s.resetSessionTimerLocked(id, ttl)
-	s.sessionTimersLock.Unlock()
 	return nil
 }
 
@@ -111,7 +108,7 @@ func (s *Server) invalidateSession(id string) {
 			ID: id,
 		},
 	}
-	s.logger.Printf("[DEBUG] consul.state: Invalidating session %s due to TTL timeout", id)
+	s.logger.Printf("[DEBUG] consul.state: Session %s TTL expired", id)
 
 	// Apply the update to destroy the session
 	if _, err := s.raftApply(structs.SessionRequestType, args); err != nil {
