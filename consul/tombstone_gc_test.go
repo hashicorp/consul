@@ -30,6 +30,10 @@ func TestTombstoneGC(t *testing.T) {
 		t.Fatalf("should fail")
 	}
 
+	if gc.PendingExpiration() {
+		t.Fatalf("should not be pending")
+	}
+
 	start := time.Now()
 	gc.Hint(100)
 
@@ -37,6 +41,10 @@ func TestTombstoneGC(t *testing.T) {
 	start2 := time.Now()
 	gc.Hint(120)
 	gc.Hint(125)
+
+	if !gc.PendingExpiration() {
+		t.Fatalf("should be pending")
+	}
 
 	select {
 	case index := <-gc.ExpireCh():
@@ -75,8 +83,16 @@ func TestTombstoneGC_Expire(t *testing.T) {
 		t.Fatalf("should fail")
 	}
 
+	if gc.PendingExpiration() {
+		t.Fatalf("should not be pending")
+	}
+
 	gc.Hint(100)
 	gc.Reset()
+
+	if gc.PendingExpiration() {
+		t.Fatalf("should not be pending")
+	}
 
 	select {
 	case <-gc.ExpireCh():

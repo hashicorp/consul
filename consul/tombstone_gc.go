@@ -102,6 +102,13 @@ func (t *TombstoneGC) Hint(index uint64) {
 	}
 }
 
+// PendingExpiration is used to check if any expirations are pending
+func (t *TombstoneGC) PendingExpiration() bool {
+	t.expiresLock.Lock()
+	defer t.expiresLock.Unlock()
+	return len(t.expires) > 0
+}
+
 // nextExpires is used to calculate the next experation time
 func (t *TombstoneGC) nextExpires() time.Time {
 	expires := time.Now().Add(t.ttl)
