@@ -53,6 +53,8 @@ Usage: consul join [options] address ...
 
 Options:
 
-  -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
+  -rpc-addr=127.0.0.1:8400  Address to the RPC server of the agent you want to contact
+                            to send this command. If this isn't specified, the command checks the
+                            CONSUL_RPC_ADDR env variable.
   -wan                      Joins a server to another server in the WAN pool
 ```
