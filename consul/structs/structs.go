@@ -23,7 +23,7 @@ const (
 	KVSRequestType
 	SessionRequestType
 	ACLRequestType
-	TombstoneReapRequestType
+	TombstoneRequestType
 )
 
 const (
@@ -532,14 +532,21 @@ type EventFireResponse struct {
 	QueryMeta
 }
 
-// TombstoneReapRequest is used to trigger a reaping of the tombstones
-type TombstoneReapRequest struct {
+type TombstoneOp string
+
+const (
+	TombstoneReap TombstoneOp = "reap"
+)
+
+// TombstoneRequest is used to trigger a reaping of the tombstones
+type TombstoneRequest struct {
 	Datacenter string
+	Op         TombstoneOp
 	ReapIndex  uint64
 	WriteRequest
 }
 
-func (r *TombstoneReapRequest) RequestDatacenter() string {
+func (r *TombstoneRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
