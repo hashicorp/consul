@@ -296,12 +296,6 @@ func (s *StateStore) initialize() error {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
-			"id_prefix": &MDBIndex{
-				Virtual:   true,
-				RealIndex: "id",
-				Fields:    []string{"Key"},
-				IdxFunc:   DefaultIndexPrefixFunc,
-			},
 		},
 		Decoder: func(buf []byte) interface{} {
 			out := new(structs.DirEntry)
@@ -1386,6 +1380,71 @@ func (s *StateStore) kvsSet(
 	return true, tx.Commit()
 }
 
+// ReapTombstones is used to delete all the tombstones with a ModifyTime
+// less than or equal to the given index. This is used to prevent unbounded
+// storage growth of the tombstones.
+func (s *StateStore) ReapTombstones(index uint64) error {
+	tx, err := s.tombstoneTable.StartTxn(false, nil)
+	if err != nil {
+		return fmt.Errorf("failed to start txn: %v", err)
+	}
+	defer tx.Abort()
+
+	// Scan the tombstone table for all the entries that are
+	// eligble for GC. This could be improved by indexing on
+	// ModifyTime and doing a less-than-equals scan, however
+	// we don't currently support numeric indexes internally.
+	// Luckily, this is a low frequency operation.
+	var toDelete []string
+	streamCh := make(chan interface{}, 128)
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		for raw := range streamCh {
+			ent := raw.(*structs.DirEntry)
+			if ent.ModifyIndex <= index {
+				toDelete = append(toDelete, ent.Key)
+			}
+		}
+	}()
+	if err := s.tombstoneTable.StreamTxn(streamCh, tx, "id"); err != nil {
+		s.logger.Printf("[ERR] consul.state: Failed to scan tombstones: %v", err)
+		return fmt.Errorf("failed to scan tombstones: %v", err)
+	}
+
+	// Delete each tombstone
+	if len(toDelete) > 0 {
+		s.logger.Printf("[DEBUG] consul.state: Reaping %d tombstones", len(toDelete))
+	}
+	for _, key := range toDelete {
+		num, err := s.tombstoneTable.DeleteTxn(tx, "id", key)
+		if err != nil {
+			s.logger.Printf("[ERR] consul.state: Failed to delete tombstone: %v", err)
+			return fmt.Errorf("failed to delete tombstone: %v", err)
+		}
+		if num != 1 {
+			return fmt.Errorf("failed to delete tombstone '%s'", key)
+		}
+	}
+	return tx.Commit()
+}
+
+// TombstoneRestore is used to restore a tombstone.
+// It should only be used when doing a restore.
+func (s *StateStore) TombstoneRestore(d *structs.DirEntry) error {
+	// Start a new txn
+	tx, err := s.tombstoneTable.StartTxn(false, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Abort()
+
+	if err := s.tombstoneTable.InsertTxn(tx, d); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 // SessionCreate is used to create a new session. The
 // ID will be populated on a successful return
 func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error {
@@ -1850,6 +1909,13 @@ func (s *StateSnapshot) NodeChecks(node string) structs.HealthChecks {
 // in a goroutine.
 func (s *StateSnapshot) KVSDump(stream chan<- interface{}) error {
 	return s.store.kvsTable.StreamTxn(stream, s.tx, "id")
+}
+
+// TombstoneDump is used to dump all tombstone entries. It takes a channel and streams
+// back *struct.DirEntry objects. This will block and should be invoked
+// in a goroutine.
+func (s *StateSnapshot) TombstoneDump(stream chan<- interface{}) error {
+	return s.store.tombstoneTable.StreamTxn(stream, s.tx, "id")
 }
 
 // SessionList is used to list all the open sessions

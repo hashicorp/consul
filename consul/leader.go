@@ -536,12 +536,13 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 // through Raft to ensure consistency. We do this outside the leader loop
 // to avoid blocking.
 func (s *Server) reapTombstones(index uint64) {
-	req := structs.TombstoneReapRequest{
+	req := structs.TombstoneRequest{
 		Datacenter:   s.config.Datacenter,
+		Op:           structs.TombstoneReap,
 		ReapIndex:    index,
 		WriteRequest: structs.WriteRequest{Token: s.config.ACLToken},
 	}
-	_, err := s.raftApply(structs.TombstoneReapRequestType, &req)
+	_, err := s.raftApply(structs.TombstoneRequestType, &req)
 	if err != nil {
 		s.logger.Printf("[ERR] consul: failed to reap tombstones up to %d: %v",
 			index, err)

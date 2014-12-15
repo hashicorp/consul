@@ -85,8 +85,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		return c.applySessionOperation(buf[1:], log.Index)
 	case structs.ACLRequestType:
 		return c.applyACLOperation(buf[1:], log.Index)
-	case structs.TombstoneReapRequestType:
-		return c.applyTombstoneReapOperation(buf[1:], log.Index)
+	case structs.TombstoneRequestType:
+		return c.applyTombstoneOperation(buf[1:], log.Index)
 	default:
 		panic(fmt.Errorf("failed to apply request: %#v", buf))
 	}
@@ -217,12 +217,18 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	}
 }
 
-func (c *consulFSM) applyTombstoneReapOperation(buf []byte, index uint64) interface{} {
-	var req structs.TombstoneReapRequest
+func (c *consulFSM) applyTombstoneOperation(buf []byte, index uint64) interface{} {
+	var req structs.TombstoneRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	return nil
+	switch req.Op {
+	case structs.TombstoneReap:
+		return c.state.ReapTombstones(req.ReapIndex)
+	default:
+		c.logger.Printf("[WARN] consul.fsm: Invalid Tombstone operation '%s'", req.Op)
+		return fmt.Errorf("Invalid Tombstone operation '%s'", req.Op)
+	}
 }
 
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
