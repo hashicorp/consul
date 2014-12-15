@@ -121,6 +121,14 @@ WAIT:
 // previously inflight transactions have been commited and that our
 // state is up-to-date.
 func (s *Server) establishLeadership() error {
+	// Hint the tombstone expiration timer. When we freshly establish leadership
+	// we become the authoritative timer, and so we need to start the clock
+	// on any pending GC events.
+	s.tombstoneGC.Reset()
+	lastIndex := s.raft.LastIndex()
+	s.tombstoneGC.Hint(lastIndex)
+	s.logger.Printf("[DEBUG] consul: reset tombstone GC to index %d", lastIndex)
+
 	// Setup ACLs if we are the leader and need to
 	if err := s.initializeACL(); err != nil {
 		s.logger.Printf("[ERR] consul: ACL initialization failed: %v", err)

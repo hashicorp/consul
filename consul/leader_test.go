@@ -436,3 +436,78 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 		}
 	}
 }
+
+func TestLeader_TombstoneGC_Reset(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+	servers := []*Server{s1, s2, s3}
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	for _, s := range servers {
+		testutil.WaitForResult(func() (bool, error) {
+			peers, _ := s.raftPeers.Peers()
+			return len(peers) == 3, nil
+		}, func(err error) {
+			t.Fatalf("should have 3 peers")
+		})
+	}
+
+	var leader *Server
+	for _, s := range servers {
+		if s.IsLeader() {
+			leader = s
+			break
+		}
+	}
+	if leader == nil {
+		t.Fatalf("Should have a leader")
+	}
+
+	// Check that the leader has a pending GC expiration
+	if !leader.tombstoneGC.PendingExpiration() {
+		t.Fatalf("should have pending expiration")
+	}
+
+	// Kill the leader
+	leader.Shutdown()
+	time.Sleep(100 * time.Millisecond)
+
+	// Wait for a new leader
+	leader = nil
+	testutil.WaitForResult(func() (bool, error) {
+		for _, s := range servers {
+			if s.IsLeader() {
+				leader = s
+				return true, nil
+			}
+		}
+		return false, nil
+	}, func(err error) {
+		t.Fatalf("should have leader")
+	})
+
+	// Check that the new leader has a pending GC expiration
+	testutil.WaitForResult(func() (bool, error) {
+		return leader.tombstoneGC.PendingExpiration(), nil
+	}, func(err error) {
+		t.Fatalf("should have pending expiration")
+	})
+}
