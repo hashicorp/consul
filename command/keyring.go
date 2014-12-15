@@ -163,7 +163,7 @@ func (c *KeyringCommand) handleList(
 		}
 
 		if _, ok := installed[pool]; !ok {
-			installed[pool] = map[string][]int{key.Key: []int{key.Count, nodes}}
+			installed[pool] = map[string][]int{key.Key: {key.Count, nodes}}
 		} else {
 			installed[pool][key.Key] = []int{key.Count, nodes}
 		}

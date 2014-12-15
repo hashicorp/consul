@@ -260,6 +260,30 @@ func NewServer(config *Config) (*Server, error) {
 	return s, nil
 }
 
+func (s *Server) getRemoteConsuls() map[string][]*serverParts {
+	s.remoteLock.RLock()
+	defer s.remoteLock.RUnlock()
+	return s.remoteConsuls
+}
+
+func (s *Server) setRemoteConsuls(existing []*serverParts, datacenter string) {
+	s.remoteLock.Lock()
+	defer s.remoteLock.Unlock()
+	s.remoteConsuls[datacenter] = existing
+}
+
+func (s *Server) addRemoteConsuls(existing []*serverParts, parts *serverParts) {
+	s.remoteLock.Lock()
+	defer s.remoteLock.Unlock()
+	s.remoteConsuls[parts.Datacenter] = append(existing, parts)
+}
+
+func (s *Server) delRemoteConsuls(datacenter string) {
+	s.remoteLock.Lock()
+	defer s.remoteLock.Unlock()
+	delete(s.remoteConsuls, datacenter)
+}
+
 // setupSerf is used to setup and initialize a Serf
 func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, wan bool) (*serf.Serf, error) {
 	addr := s.rpcListener.Addr().(*net.TCPAddr)
@@ -626,12 +650,15 @@ func (s *Server) Stats() map[string]map[string]string {
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)
 	}
+
+	remoteConsuls := s.getRemoteConsuls()
+
 	stats := map[string]map[string]string{
-		"consul": map[string]string{
+		"consul": {
 			"server":            "true",
 			"leader":            fmt.Sprintf("%v", s.IsLeader()),
 			"bootstrap":         fmt.Sprintf("%v", s.config.Bootstrap),
-			"known_datacenters": toString(uint64(len(s.remoteConsuls))),
+			"known_datacenters": toString(uint64(len(remoteConsuls))),
 		},
 		"raft":     s.raft.Stats(),
 		"serf_lan": s.serfLAN.Stats(),

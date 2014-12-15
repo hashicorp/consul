@@ -155,8 +155,7 @@ func (s *Server) nodeJoin(me serf.MemberEvent, wan bool) {
 
 		// Check if this server is known
 		found := false
-		s.remoteLock.Lock()
-		existing := s.remoteConsuls[parts.Datacenter]
+		existing := s.getRemoteConsuls()[parts.Datacenter]
 		for idx, e := range existing {
 			if e.Name == parts.Name {
 				existing[idx] = parts
@@ -167,9 +166,8 @@ func (s *Server) nodeJoin(me serf.MemberEvent, wan bool) {
 
 		// Add ot the list if not known
 		if !found {
-			s.remoteConsuls[parts.Datacenter] = append(existing, parts)
+			s.addRemoteConsuls(existing, parts)
 		}
-		s.remoteLock.Unlock()
 
 		// Add to the local list as well
 		if !wan && parts.Datacenter == s.config.Datacenter {
@@ -248,8 +246,7 @@ func (s *Server) nodeFailed(me serf.MemberEvent, wan bool) {
 		s.logger.Printf("[INFO] consul: removing server %s", parts)
 
 		// Remove the server if known
-		s.remoteLock.Lock()
-		existing := s.remoteConsuls[parts.Datacenter]
+		existing := s.getRemoteConsuls()[parts.Datacenter]
 		n := len(existing)
 		for i := 0; i < n; i++ {
 			if existing[i].Name == parts.Name {
@@ -262,11 +259,10 @@ func (s *Server) nodeFailed(me serf.MemberEvent, wan bool) {
 
 		// Trim the list if all known consuls are dead
 		if n == 0 {
-			delete(s.remoteConsuls, parts.Datacenter)
+			s.delRemoteConsuls(parts.Datacenter)
 		} else {
-			s.remoteConsuls[parts.Datacenter] = existing
+			s.setRemoteConsuls(existing, parts.Datacenter)
 		}
-		s.remoteLock.Unlock()
 
 		// Remove from the local list as well
 		if !wan {
