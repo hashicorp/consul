@@ -317,6 +317,15 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 
+		case structs.TombstoneRequestType:
+			var req structs.DirEntry
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := c.state.TombstoneRestore(&req); err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("Unrecognized msg type: %v", msgType)
 		}
@@ -354,6 +363,11 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 	}
 
 	if err := s.persistKV(sink, encoder); err != nil {
+		sink.Cancel()
+		return err
+	}
+
+	if err := s.persistTombstones(sink, encoder); err != nil {
 		sink.Cancel()
 		return err
 	}
@@ -452,6 +466,33 @@ func (s *consulSnapshot) persistKV(sink raft.SnapshotSink,
 				return nil
 			}
 			sink.Write([]byte{byte(structs.KVSRequestType)})
+			if err := encoder.Encode(raw); err != nil {
+				return err
+			}
+
+		case err := <-errorCh:
+			return err
+		}
+	}
+}
+
+func (s *consulSnapshot) persistTombstones(sink raft.SnapshotSink,
+	encoder *codec.Encoder) error {
+	streamCh := make(chan interface{}, 256)
+	errorCh := make(chan error)
+	go func() {
+		if err := s.state.TombstoneDump(streamCh); err != nil {
+			errorCh <- err
+		}
+	}()
+
+	for {
+		select {
+		case raw := <-streamCh:
+			if raw == nil {
+				return nil
+			}
+			sink.Write([]byte{byte(structs.TombstoneRequestType)})
 			if err := encoder.Encode(raw); err != nil {
 				return err
 			}
