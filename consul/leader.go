@@ -112,6 +112,8 @@ WAIT:
 			goto RECONCILE
 		case member := <-reconcileCh:
 			s.reconcileMember(member)
+		case index := <-s.tombstoneGC.ExpireCh():
+			go s.reapTombstones(index)
 		}
 	}
 }
@@ -525,4 +527,23 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 		return err
 	}
 	return nil
+}
+
+// reapTombstones is invoked by the current leader to manage garbage
+// collection of tombstones. When a key is deleted, we trigger a tombstone
+// GC clock. Once the expiration is reached, this routine is invoked
+// to clear all tombstones before this index. This must be replicated
+// through Raft to ensure consistency. We do this outside the leader loop
+// to avoid blocking.
+func (s *Server) reapTombstones(index uint64) {
+	req := structs.TombstoneReapRequest{
+		Datacenter:   s.config.Datacenter,
+		ReapIndex:    index,
+		WriteRequest: structs.WriteRequest{Token: s.config.ACLToken},
+	}
+	_, err := s.raftApply(structs.TombstoneReapRequestType, &req)
+	if err != nil {
+		s.logger.Printf("[ERR] consul: failed to reap tombstones up to %d: %v",
+			index, err)
+	}
 }

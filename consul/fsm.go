@@ -85,6 +85,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		return c.applySessionOperation(buf[1:], log.Index)
 	case structs.ACLRequestType:
 		return c.applyACLOperation(buf[1:], log.Index)
+	case structs.TombstoneReapRequestType:
+		return c.applyTombstoneReapOperation(buf[1:], log.Index)
 	default:
 		panic(fmt.Errorf("failed to apply request: %#v", buf))
 	}
@@ -213,6 +215,14 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 		c.logger.Printf("[WARN] consul.fsm: Invalid ACL operation '%s'", req.Op)
 		return fmt.Errorf("Invalid ACL operation '%s'", req.Op)
 	}
+}
+
+func (c *consulFSM) applyTombstoneReapOperation(buf []byte, index uint64) interface{} {
+	var req structs.TombstoneReapRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	return nil
 }
 
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
