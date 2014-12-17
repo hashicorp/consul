@@ -46,7 +46,9 @@ The list of available flags are:
 * `-remove` - Remove the given key from the cluster. This operation may only be
   performed on keys which are not currently the primary key.
 
-* `-rpc-addr` - RPC address of the Consul agent.
+* `-rpc-addr` - Address to the RPC server of the agent you want to contact
+  to send this command. If this isn't specified, the command will contact
+  "127.0.0.1:8400" which is the default RPC address of a Consul agent.
 
 ## Output
 

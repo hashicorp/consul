@@ -38,6 +38,7 @@ The command-line flags are all optional. The list of available flags are:
   multiple datacenters.
 
 * `-rpc-addr` - Address to the RPC server of the agent you want to contact
-  to send this command. If this isn't specified, the command will contact
-  "127.0.0.1:8400" which is the default RPC address of a Consul agent.
+  to send this command. If this isn't specified, the command checks the
+  CONSUL_RPC_ADDR env variable. If this isn't set, the default RPC 
+  address will be set to "127.0.0.1:8400". 
 

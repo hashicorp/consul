@@ -2,14 +2,24 @@ package command
 
 import (
 	"flag"
+	"os"
+
 	"github.com/armon/consul-api"
 	"github.com/hashicorp/consul/command/agent"
 )
 
+// RPCAddrEnvName defines the environment variable name, which can set
+// a default RPC address in case there is no -rpc-addr specified.
+const RPCAddrEnvName = "CONSUL_RPC_ADDR"
+
 // RPCAddrFlag returns a pointer to a string that will be populated
 // when the given flagset is parsed with the RPC address of the Consul.
 func RPCAddrFlag(f *flag.FlagSet) *string {
-	return f.String("rpc-addr", "127.0.0.1:8400",
+	defaultRPCAddr := os.Getenv(RPCAddrEnvName)
+	if defaultRPCAddr == "" {
+		defaultRPCAddr = "127.0.0.1:8400"
+	}
+	return f.String("rpc-addr", defaultRPCAddr,
 		"RPC address of the Consul agent")
 }
 
