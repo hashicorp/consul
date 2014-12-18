@@ -65,6 +65,34 @@ func TestCheckMonitor_BadCmd(t *testing.T) {
 	expectStatus(t, "foobarbaz", structs.HealthCritical)
 }
 
+func TestCheckMonitor_RandomStagger(t *testing.T) {
+	mock := &MockNotify{
+		state:   make(map[string]string),
+		updates: make(map[string]int),
+		output:  make(map[string]string),
+	}
+	check := &CheckMonitor{
+		Notify:   mock,
+		CheckID:  "foo",
+		Script:   "exit 0",
+		Interval: 5 * time.Second,
+		Logger:   log.New(os.Stderr, "", log.LstdFlags),
+	}
+	check.Start()
+	defer check.Stop()
+
+	time.Sleep(6 * time.Second)
+
+	// Should have at least 1 update
+	if mock.updates["foo"] < 1 {
+		t.Fatalf("should have 1 updates %v", mock.updates)
+	}
+
+	if mock.state["foo"] != structs.HealthPassing {
+		t.Fatalf("should be %v %v", structs.HealthPassing, mock.state)
+	}
+}
+
 func TestCheckMonitor_LimitOutput(t *testing.T) {
 	mock := &MockNotify{
 		state:   make(map[string]string),
