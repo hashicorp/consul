@@ -1237,8 +1237,10 @@ func (s *StateStore) kvsDeleteWithIndexTxn(index uint64, tx *MDBTxn, tableIndex 
 			if err := s.tombstoneTable.InsertTxn(tx, ent); err != nil {
 				return err
 			}
-			if _, err := s.kvsTable.DeleteTxn(tx, "id", ent.Key); err != nil {
+			if num, err := s.kvsTable.DeleteTxn(tx, "id", ent.Key); err != nil {
 				return err
+			} else if num != 1 {
+				return fmt.Errorf("Failed to delete key '%s'", ent.Key)
 			}
 		}
 
