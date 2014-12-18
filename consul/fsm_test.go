@@ -940,3 +940,46 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 		t.Fatalf("should be destroyed")
 	}
 }
+
+func TestFSM_TombstoneReap(t *testing.T) {
+	path, err := ioutil.TempDir("", "fsm")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	fsm, err := NewFSM(nil, path, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	// Create some  tombstones
+	fsm.state.KVSSet(11, &structs.DirEntry{
+		Key:   "/remove",
+		Value: []byte("foo"),
+	})
+	fsm.state.KVSDelete(12, "/remove")
+
+	// Create a new reap request
+	req := structs.TombstoneRequest{
+		Datacenter: "dc1",
+		Op:         structs.TombstoneReap,
+		ReapIndex:  12,
+	}
+	buf, err := structs.Encode(structs.TombstoneRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if err, ok := resp.(error); ok {
+		t.Fatalf("resp: %v", err)
+	}
+
+	// Verify the tombstones are gone
+	_, res, err := fsm.state.tombstoneTable.Get("id")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 0 {
+		t.Fatalf("bad: %v", res)
+	}
+}
