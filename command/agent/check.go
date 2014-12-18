@@ -5,7 +5,6 @@ import (
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/consul/structs"
 	"log"
-	"math/rand"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -92,29 +91,11 @@ func (c *CheckMonitor) Stop() {
 	}
 }
 
-// getInitialPauseTime returns the random duration we should wait before starting this CheckMonitor,
-// preventing potentially large numbers of checks from firing concurrently by staggering their starts.
-func (c *CheckMonitor) getInitialPauseTime() time.Duration {
-	var initialPauseTime time.Duration
-	intervalSeconds := int(c.Interval.Seconds())
-	if intervalSeconds > 0 {
-		// If the check interval is greater than 500ms, as it will be in all real-world cases due to the
-		// application of MinInterval, start after some random number of seconds between 0 and c.Interval
-		initialPauseTime = time.Duration(rand.Intn(intervalSeconds)) * time.Second
-	} else {
-		// Test cases may use sub-second intervals.  In this case, return 0 as the pause duration.
-		initialPauseTime = time.Duration(0)
-	}
-	return initialPauseTime
-}
-
 // run is invoked by a goroutine to run until Stop() is called
 func (c *CheckMonitor) run() {
-
 	// Get the randomized initial pause time
-	initialPauseTime := c.getInitialPauseTime()
-
-	c.Logger.Printf("[DEBUG] agent: pausing %ds before first invocation of %s", initialPauseTime, c.Script)
+	initialPauseTime := randomStagger(c.Interval)
+	c.Logger.Printf("[DEBUG] agent: pausing %ds before first invocation of %s", int(initialPauseTime.Seconds()), c.Script)
 	next := time.After(initialPauseTime)
 	for {
 		select {
