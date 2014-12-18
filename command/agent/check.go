@@ -95,7 +95,7 @@ func (c *CheckMonitor) Stop() {
 func (c *CheckMonitor) run() {
 	// Get the randomized initial pause time
 	initialPauseTime := randomStagger(c.Interval)
-	c.Logger.Printf("[DEBUG] agent: pausing %ds before first invocation of %s", int(initialPauseTime.Seconds()), c.Script)
+	c.Logger.Printf("[DEBUG] agent: pausing %v before first invocation of %s", initialPauseTime, c.Script)
 	next := time.After(initialPauseTime)
 	for {
 		select {

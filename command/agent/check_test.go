@@ -75,17 +75,17 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 		Notify:   mock,
 		CheckID:  "foo",
 		Script:   "exit 0",
-		Interval: 5 * time.Second,
+		Interval: 25 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
 	}
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(6 * time.Second)
+	time.Sleep(50 * time.Millisecond)
 
 	// Should have at least 1 update
 	if mock.updates["foo"] < 1 {
-		t.Fatalf("should have 1 updates %v", mock.updates)
+		t.Fatalf("should have 1 or more updates %v", mock.updates)
 	}
 
 	if mock.state["foo"] != structs.HealthPassing {
