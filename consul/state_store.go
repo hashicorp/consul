@@ -1417,6 +1417,7 @@ func (s *StateStore) ReapTombstones(index uint64) error {
 		s.logger.Printf("[ERR] consul.state: Failed to scan tombstones: %v", err)
 		return fmt.Errorf("failed to scan tombstones: %v", err)
 	}
+	<-doneCh
 
 	// Delete each tombstone
 	if len(toDelete) > 0 {

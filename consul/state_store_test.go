@@ -1835,6 +1835,96 @@ func TestKVSDeleteTree(t *testing.T) {
 	}
 }
 
+func TestReapTombstones(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	ttl := 10 * time.Millisecond
+	gran := 5 * time.Millisecond
+	gc, err := NewTombstoneGC(ttl, gran)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	store.gc = gc
+
+	// Should not exist
+	err = store.KVSDeleteTree(1000, "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create the entries
+	d := &structs.DirEntry{Key: "/web/a", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/b", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1001, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/sub/c", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1002, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nuke just a
+	err = store.KVSDelete(1010, "/web/a")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nuke the web tree
+	err = store.KVSDeleteTree(1020, "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Do a reap, should be a noop
+	if err := store.ReapTombstones(1000); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check tombstones exists
+	_, res, err := store.tombstoneTable.Get("id_prefix", "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 3 {
+		t.Fatalf("bad: %#v", d)
+	}
+
+	// Do a reap, should remove just /web/a
+	if err := store.ReapTombstones(1010); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check tombstones exists
+	_, res, err = store.tombstoneTable.Get("id_prefix", "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 2 {
+		t.Fatalf("bad: %#v", d)
+	}
+
+	// Do a reap, should remove them all
+	if err := store.ReapTombstones(1025); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check no tombstones exists
+	_, res, err = store.tombstoneTable.Get("id_prefix", "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 0 {
+		t.Fatalf("bad: %#v", d)
+	}
+}
+
 func TestSessionCreate(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
