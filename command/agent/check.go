@@ -93,7 +93,10 @@ func (c *CheckMonitor) Stop() {
 
 // run is invoked by a goroutine to run until Stop() is called
 func (c *CheckMonitor) run() {
-	next := time.After(0)
+	// Get the randomized initial pause time
+	initialPauseTime := randomStagger(c.Interval)
+	c.Logger.Printf("[DEBUG] agent: pausing %v before first invocation of %s", initialPauseTime, c.Script)
+	next := time.After(initialPauseTime)
 	for {
 		select {
 		case <-next:
