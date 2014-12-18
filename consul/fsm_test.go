@@ -357,6 +357,12 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	acl := &structs.ACL{ID: generateUUID(), Name: "User Token"}
 	fsm.state.ACLSet(10, acl)
 
+	fsm.state.KVSSet(11, &structs.DirEntry{
+		Key:   "/remove",
+		Value: []byte("foo"),
+	})
+	fsm.state.KVSDelete(12, "/remove")
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	if err != nil {
@@ -445,6 +451,15 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 	if idx <= 1 {
 		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Verify tombstones are restored
+	_, res, err := fsm.state.tombstoneTable.Get("id", "/remove")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 1 {
+		t.Fatalf("bad: %v", res)
 	}
 }
 
