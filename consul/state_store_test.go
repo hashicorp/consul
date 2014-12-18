@@ -1444,6 +1444,15 @@ func TestKVSDelete(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 
+	// Check tombstone exists
+	_, res, err := store.tombstoneTable.Get("id", "/foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if res == nil || res[0].(*structs.DirEntry).ModifyIndex != 1020 {
+		t.Fatalf("bad: %#v", d)
+	}
+
 	// Check that we get a delete
 	select {
 	case idx := <-gc.ExpireCh():
@@ -1799,6 +1808,20 @@ func TestKVSDeleteTree(t *testing.T) {
 	}
 	if len(ents) != 0 {
 		t.Fatalf("bad: %v", ents)
+	}
+
+	// Check tombstones exists
+	_, res, err := store.tombstoneTable.Get("id_prefix", "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 3 {
+		t.Fatalf("bad: %#v", d)
+	}
+	for _, r := range res {
+		if r.(*structs.DirEntry).ModifyIndex != 1010 {
+			t.Fatalf("bad: %#v", r)
+		}
 	}
 
 	// Check that we get a delete

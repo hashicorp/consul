@@ -296,6 +296,12 @@ func (s *StateStore) initialize() error {
 				Unique: true,
 				Fields: []string{"Key"},
 			},
+			"id_prefix": &MDBIndex{
+				Virtual:   true,
+				RealIndex: "id",
+				Fields:    []string{"Key"},
+				IdxFunc:   DefaultIndexPrefixFunc,
+			},
 		},
 		Decoder: func(buf []byte) interface{} {
 			out := new(structs.DirEntry)
