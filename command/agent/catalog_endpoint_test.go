@@ -329,4 +329,25 @@ func TestCatalogNodeServices(t *testing.T) {
 	if len(services.Services) != 1 {
 		t.Fatalf("bad: %v", obj)
 	}
+
+	// Test existence of non-registered node
+	req, err = http.NewRequest("GET", "/v1/catalog/node/bar", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp = httptest.NewRecorder()
+	obj, err = srv.CatalogNodeServices(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	assertIndex(t, resp)
+
+	if obj != nil {
+		t.Fatalf("bad: %+v", obj)
+	}
+
+	if resp.Code != 404 {
+		t.Fatalf("bad: %d", resp.Code)
+	}
 }
