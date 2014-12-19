@@ -166,6 +166,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	if done, err := s.srv.forward("Session.Renew", args, args, reply); done {
 		return err
 	}
+	defer metrics.MeasureSince([]string{"consul", "session", "renew"}, time.Now())
 
 	// Get the session, from local state
 	state := s.srv.fsm.State()

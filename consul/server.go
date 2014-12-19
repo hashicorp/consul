@@ -257,6 +257,9 @@ func NewServer(config *Config) (*Server, error) {
 
 	// Start listening for RPC requests
 	go s.listen()
+
+	// Start the metrics handlers
+	go s.sessionStats()
 	return s, nil
 }
 

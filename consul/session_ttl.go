@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
@@ -95,6 +96,7 @@ func (s *Server) resetSessionTimerLocked(id string, ttl time.Duration) {
 // invalidateSession is invoked when a session TTL is reached and we
 // need to invalidate the session.
 func (s *Server) invalidateSession(id string) {
+	defer metrics.MeasureSince([]string{"consul", "session_ttl", "invalidate"}, time.Now())
 	// Clear the session timer
 	s.sessionTimersLock.Lock()
 	delete(s.sessionTimers, id)
@@ -141,4 +143,21 @@ func (s *Server) clearAllSessionTimers() error {
 	}
 	s.sessionTimers = nil
 	return nil
+}
+
+// sessionStats is a long running routine used to capture
+// the number of active sessions being tracked
+func (s *Server) sessionStats() {
+	for {
+		select {
+		case <-time.After(5 * time.Second):
+			s.sessionTimersLock.Lock()
+			num := len(s.sessionTimers)
+			s.sessionTimersLock.Unlock()
+			metrics.SetGauge([]string{"consul", "session_ttl", "active"}, float32(num))
+
+		case <-s.shutdownCh:
+			return
+		}
+	}
 }
