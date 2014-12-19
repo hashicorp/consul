@@ -1152,7 +1152,8 @@ func (s *StateStore) KVSList(prefix string) (uint64, uint64, structs.DirEntries,
 
 // KVSListKeys is used to list keys with a prefix, and up to a given seperator
 func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, error) {
-	tx, err := s.kvsTable.StartTxn(true, nil)
+	tables := MDBTables{s.kvsTable, s.tombstoneTable}
+	tx, err := tables.StartTxn(true)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1172,6 +1173,7 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 
 	// Aggregate the stream
 	stream := make(chan interface{}, 128)
+	streamTomb := make(chan interface{}, 128)
 	done := make(chan struct{})
 	var keys []string
 	var maxIndex uint64
@@ -1205,18 +1207,31 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 				keys = append(keys, ent.Key)
 			}
 		}
+
+		// Handle the tombstones for any index updates
+		for raw := range streamTomb {
+			ent := raw.(*structs.DirEntry)
+			if ent.ModifyIndex > maxIndex {
+				maxIndex = ent.ModifyIndex
+			}
+		}
 		close(done)
 	}()
 
 	// Start the stream, and wait for completion
-	err = s.kvsTable.StreamTxn(stream, tx, "id_prefix", prefix)
+	if err = s.kvsTable.StreamTxn(stream, tx, "id_prefix", prefix); err != nil {
+		return 0, nil, err
+	}
+	if err := s.tombstoneTable.StreamTxn(streamTomb, tx, "id_prefix", prefix); err != nil {
+		return 0, nil, err
+	}
 	<-done
 
 	// Use the maxIndex if we have any keys
 	if maxIndex != 0 {
 		idx = maxIndex
 	}
-	return idx, keys, err
+	return idx, keys, nil
 }
 
 // KVSDelete is used to delete a KVS entry

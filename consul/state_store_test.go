@@ -1859,6 +1859,68 @@ func TestKVS_ListKeys_Index(t *testing.T) {
 	}
 }
 
+func TestKVS_ListKeys_TombstoneIndex(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Create the entries
+	d := &structs.DirEntry{Key: "/foo/a", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/bar/b", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1001, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/baz/c", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1002, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/other/d", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1003, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.KVSDelete(1004, "/baz/c"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, keys, err := store.KVSListKeys("/foo", "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1000 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(keys) != 1 {
+		t.Fatalf("bad: %v", keys)
+	}
+
+	idx, keys, err = store.KVSListKeys("/ba", "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1004 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(keys) != 1 {
+		t.Fatalf("bad: %v", keys)
+	}
+
+	idx, keys, err = store.KVSListKeys("/nope", "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1004 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(keys) != 0 {
+		t.Fatalf("bad: %v", keys)
+	}
+}
+
 func TestKVSDeleteTree(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
