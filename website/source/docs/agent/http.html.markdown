@@ -738,10 +738,13 @@ This endpoint supports blocking queries and all consistency modes.
 
 ### <a name="catalog_node"></a> /v1/catalog/node/\<node\>
 
-This endpoint is hit with a GET and returns the node provided services.
-By default the datacenter of the agent is queried,
-however the dc can be provided using the "?dc=" query parameter.
-The node being queried must be provided after the slash.
+This endpoint is hit with a GET and returns the services provided by a node.
+
+The node being queried must be provided after the slash. If the node doesn't
+exist, a 404 code is returned.
+
+By default the datacenter of the agent is queried, however the dc can be
+provided using the "?dc=" query parameter.
 
 It returns a JSON body like this:
 
