@@ -1115,13 +1115,39 @@ func (s *StateStore) KVSGet(key string) (uint64, *structs.DirEntry, error) {
 }
 
 // KVSList is used to list all KV entries with a prefix
-func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) {
-	idx, res, err := s.kvsTable.Get("id_prefix", prefix)
+func (s *StateStore) KVSList(prefix string) (uint64, uint64, structs.DirEntries, error) {
+	tables := MDBTables{s.kvsTable, s.tombstoneTable}
+	tx, err := tables.StartTxn(true)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+	defer tx.Abort()
+
+	idx, err := tables.LastIndexTxn(tx)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+
+	res, err := s.kvsTable.GetTxn(tx, "id_prefix", prefix)
+	if err != nil {
+		return 0, 0, nil, err
+	}
 	ents := make(structs.DirEntries, len(res))
 	for idx, r := range res {
 		ents[idx] = r.(*structs.DirEntry)
 	}
-	return idx, ents, err
+
+	// Check for the higest index in the tombstone table
+	var maxIndex uint64
+	res, err = s.tombstoneTable.GetTxn(tx, "id_prefix", prefix)
+	for _, r := range res {
+		ent := r.(*structs.DirEntry)
+		if ent.ModifyIndex > maxIndex {
+			maxIndex = ent.ModifyIndex
+		}
+	}
+
+	return maxIndex, idx, ents, err
 }
 
 // KVSListKeys is used to list keys with a prefix, and up to a given seperator

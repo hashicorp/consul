@@ -1588,7 +1588,7 @@ func TestKVS_List(t *testing.T) {
 	defer store.Close()
 
 	// Should not exist
-	idx, ents, err := store.KVSList("/web")
+	_, idx, ents, err := store.KVSList("/web")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1614,7 +1614,7 @@ func TestKVS_List(t *testing.T) {
 	}
 
 	// Should list
-	idx, ents, err = store.KVSList("/web")
+	_, idx, ents, err = store.KVSList("/web")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1633,6 +1633,55 @@ func TestKVS_List(t *testing.T) {
 	}
 	if ents[2].Key != "/web/sub/c" {
 		t.Fatalf("bad: %v", ents[2])
+	}
+}
+
+func TestKVSList_TombstoneIndex(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Create the entries
+	d := &structs.DirEntry{Key: "/web/a", Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/b", Value: []byte("test")}
+	if err := store.KVSSet(1001, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/c", Value: []byte("test")}
+	if err := store.KVSSet(1002, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nuke the last node
+	err = store.KVSDeleteTree(1003, "/web/c")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Add another node
+	d = &structs.DirEntry{Key: "/other", Value: []byte("test")}
+	if err := store.KVSSet(1004, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// List should properly reflect tombstoned value
+	tombIdx, idx, ents, err := store.KVSList("/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1004 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if tombIdx != 1003 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(ents) != 2 {
+		t.Fatalf("bad: %v", ents)
 	}
 }
 
@@ -1852,11 +1901,14 @@ func TestKVSDeleteTree(t *testing.T) {
 	}
 
 	// Nothing should list
-	idx, ents, err := store.KVSList("/web")
+	tombIdx, idx, ents, err := store.KVSList("/web")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if idx != 1010 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if tombIdx != 1010 {
 		t.Fatalf("bad: %v", idx)
 	}
 	if len(ents) != 0 {
