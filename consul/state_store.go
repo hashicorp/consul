@@ -132,6 +132,7 @@ func NewStateStorePath(gc *TombstoneGC, path string, logOutput io.Writer) (*Stat
 		env:       env,
 		watch:     make(map[*MDBTable]*NotifyGroup),
 		lockDelay: make(map[string]time.Time),
+		gc:        gc,
 	}
 
 	// Ensure we can initialize

@@ -511,3 +511,52 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 		t.Fatalf("should have pending expiration")
 	})
 }
+
+func TestLeader_ReapTombstones(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.TombstoneTTL = 50 * time.Millisecond
+		c.TombstoneTTLGranularity = 10 * time.Millisecond
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	client := rpcClient(t, s1)
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Create a KV entry
+	arg := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "test",
+			Value: []byte("test"),
+		},
+	}
+	var out bool
+	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Delete the KV entry (tombstoned)
+	arg.Op = structs.KVSDelete
+	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we have a tombstone
+	_, res, err := s1.fsm.State().tombstoneTable.Get("id")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) == 0 {
+		t.Fatalf("missing tombstones")
+	}
+
+	// Check that the new leader has a pending GC expiration
+	testutil.WaitForResult(func() (bool, error) {
+		_, res, err := s1.fsm.State().tombstoneTable.Get("id")
+		return len(res) == 0, err
+	}, func(err error) {
+		t.Fatalf("err: %v", err)
+	})
+}
