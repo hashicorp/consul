@@ -143,28 +143,26 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 				ent = FilterDirEnt(acl, ent)
 			}
 
-			// Determine the maximum affected index
-			var maxIndex uint64
-			for _, e := range ent {
-				if e.ModifyIndex > maxIndex {
-					maxIndex = e.ModifyIndex
-				}
-			}
-			if tombIndex > maxIndex {
-				maxIndex = tombIndex
-			}
-			// Must provide non-zero index to prevent blocking
-			// Index 1 is impossible anyways (due to Raft internals)
-			if maxIndex == 0 {
-				if index > 0 {
-					maxIndex = index
+			if len(ent) == 0 {
+				// Must provide non-zero index to prevent blocking
+				// Index 1 is impossible anyways (due to Raft internals)
+				if index == 0 {
+					reply.Index = 1
 				} else {
-					maxIndex = 1
+					reply.Index = index
 				}
-			}
-			reply.Index = maxIndex
-
-			if len(ent) != 0 {
+			} else {
+				// Determine the maximum affected index
+				var maxIndex uint64
+				for _, e := range ent {
+					if e.ModifyIndex > maxIndex {
+						maxIndex = e.ModifyIndex
+					}
+				}
+				if tombIndex > maxIndex {
+					maxIndex = tombIndex
+				}
+				reply.Index = maxIndex
 				reply.Entries = ent
 			}
 			return nil
