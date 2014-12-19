@@ -1458,19 +1458,19 @@ func (s *StateStore) ReapTombstones(index uint64) error {
 		}
 	}()
 	if err := s.tombstoneTable.StreamTxn(streamCh, tx, "id"); err != nil {
-		s.logger.Printf("[ERR] consul.state: Failed to scan tombstones: %v", err)
+		s.logger.Printf("[ERR] consul.state: failed to scan tombstones: %v", err)
 		return fmt.Errorf("failed to scan tombstones: %v", err)
 	}
 	<-doneCh
 
 	// Delete each tombstone
 	if len(toDelete) > 0 {
-		s.logger.Printf("[DEBUG] consul.state: Reaping %d tombstones", len(toDelete))
+		s.logger.Printf("[DEBUG] consul.state: reaping %d tombstones up to %d", len(toDelete), index)
 	}
 	for _, key := range toDelete {
 		num, err := s.tombstoneTable.DeleteTxn(tx, "id", key)
 		if err != nil {
-			s.logger.Printf("[ERR] consul.state: Failed to delete tombstone: %v", err)
+			s.logger.Printf("[ERR] consul.state: failed to delete tombstone: %v", err)
 			return fmt.Errorf("failed to delete tombstone: %v", err)
 		}
 		if num != 1 {
