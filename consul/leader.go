@@ -536,6 +536,7 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 // through Raft to ensure consistency. We do this outside the leader loop
 // to avoid blocking.
 func (s *Server) reapTombstones(index uint64) {
+	defer metrics.MeasureSince([]string{"consul", "leader", "reapTombstones"}, time.Now())
 	req := structs.TombstoneRequest{
 		Datacenter:   s.config.Datacenter,
 		Op:           structs.TombstoneReap,
