@@ -589,6 +589,21 @@ func TestDecodeConfig(t *testing.T) {
 	if !config.DisableAnonymousSignature {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// HTTP API response header fields
+	input = `{"http_api_response_headers": {"Access-Control-Allow-Origin": "*", "X-XSS-Protection": "1; mode=block"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.HTTPAPIResponseHeaders["Access-Control-Allow-Origin"] != "*" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.HTTPAPIResponseHeaders["X-XSS-Protection"] != "1; mode=block" {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_Services(t *testing.T) {
@@ -960,6 +975,9 @@ func TestMergeConfig(t *testing.T) {
 		StatsdAddr:                "127.0.0.1:7251",
 		DisableUpdateCheck:        true,
 		DisableAnonymousSignature: true,
+		HTTPAPIResponseHeaders: map[string]string{
+			"Access-Control-Allow-Origin": "*",
+		},
 	}
 
 	c := MergeConfig(a, b)

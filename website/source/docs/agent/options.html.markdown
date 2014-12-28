@@ -172,7 +172,7 @@ being configured using a configuration management system.
 
 The configuration files are JSON formatted, making them easily readable
 and editable by both humans and computers. The configuration is formatted
-at a single JSON object with configuration within it.
+as a single JSON object with configuration within it.
 
 Configuration files are used for more than just setting up the agent,
 they are also used to provide check and service definitions. These are used
@@ -326,6 +326,18 @@ definitions support being updated during a reload.
 * `key_file` - This provides a the file path to a PEM encoded private key.
   The key is used with the certificate to verify the agents authenticity.
   Must be provided along with the `cert_file`.
+
+* `http_api_response_headers` - This object allows adding HTTP header response fields to
+  the HTTP API responses. For example, the following config can be used to enable CORS on
+  the HTTP API endpoints:
+
+    ```javascript
+      {
+        "http_api_response_headers": {
+            "Access-Control-Allow-Origin": "*"
+        }
+      }
+    ```
 
 * `leave_on_terminate` - If enabled, when the agent receives a TERM signal,
   it will send a Leave message to the rest of the cluster and gracefully

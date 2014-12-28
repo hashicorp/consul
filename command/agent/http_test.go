@@ -102,6 +102,37 @@ func TestSetMeta(t *testing.T) {
 	}
 }
 
+func TestHTTPAPIResponseHeaders(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	srv.agent.config.HTTPAPIResponseHeaders = map[string]string{
+		"Access-Control-Allow-Origin": "*",
+		"X-XSS-Protection":            "1; mode=block",
+	}
+
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	resp := httptest.NewRecorder()
+
+	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+		return nil, nil
+	}
+
+	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+	srv.wrap(handler)(resp, req)
+
+	origin := resp.Header().Get("Access-Control-Allow-Origin")
+	if origin != "*" {
+		t.Fatalf("bad Access-Control-Allow-Origin: expected %q, got %q", "*", origin)
+	}
+
+	xss := resp.Header().Get("X-XSS-Protection")
+	if xss != "1; mode=block" {
+		t.Fatalf("bad X-XSS-Protection header: expected %q, got %q", "1; mode=block", xss)
+	}
+}
+
 func TestContentTypeIsJSON(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 
