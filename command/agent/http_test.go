@@ -126,6 +126,33 @@ func TestContentTypeIsJSON(t *testing.T) {
 	}
 }
 
+func TestPrettyPrint(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	r := &structs.DirEntry{Key: "key"}
+
+	resp := httptest.NewRecorder()
+	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+		return r, nil
+	}
+
+	req, _ := http.NewRequest("GET", "/v1/kv/key?pretty=1", nil)
+	srv.wrap(handler)(resp, req)
+
+	expected, _ := json.MarshalIndent(r, "", "    ")
+	actual, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !bytes.Equal(expected, actual) {
+		t.Fatalf("bad: %q", string(actual))
+	}
+}
+
 func TestParseWait(t *testing.T) {
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions
