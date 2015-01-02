@@ -49,7 +49,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.define '64bit' do |n1|
     n1.vm.box = 'chef/ubuntu-10.04'
   end
+
   config.vm.define '32bit' do |n2|
     n2.vm.box = 'chef/ubuntu-10.04-i386'
+  end
+
+  config.push.define "www", strategy: "local-exec" do |push|
+    push.script = "scripts/website_push.sh"
   end
 end
