@@ -253,7 +253,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		}
 
 		prettyPrint := false
-		if req.URL.Query().Get("pretty") != "" {
+		if _, ok := req.URL.Query()["pretty"]; ok {
 			prettyPrint = true
 		}
 		// Write out the JSON object

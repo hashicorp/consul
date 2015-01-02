@@ -127,6 +127,14 @@ func TestContentTypeIsJSON(t *testing.T) {
 }
 
 func TestPrettyPrint(t *testing.T) {
+	testPrettyPrint("pretty=1", t)
+}
+
+func TestPrettyPrintBare(t *testing.T) {
+	testPrettyPrint("pretty", t)
+}
+
+func testPrettyPrint(pretty string, t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -139,7 +147,8 @@ func TestPrettyPrint(t *testing.T) {
 		return r, nil
 	}
 
-	req, _ := http.NewRequest("GET", "/v1/kv/key?pretty=1", nil)
+	urlStr := "/v1/kv/key?" + pretty
+	req, _ := http.NewRequest("GET", urlStr, nil)
 	srv.wrap(handler)(resp, req)
 
 	expected, _ := json.MarshalIndent(r, "", "    ")
