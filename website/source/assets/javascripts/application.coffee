@@ -2,6 +2,6 @@
 #= require jquery
 #= require bootstrap
 
-#= require app/app
-#= require app/homepage
-#= require app/util
+#= require _app/app
+#= require _app/homepage
+#= require _app/util

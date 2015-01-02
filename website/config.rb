@@ -31,4 +31,17 @@ helpers do
       return ""
     end
   end
+
+  # Get the title for the page.
+  #
+  # @param [Middleman::Page] page
+  #
+  # @return [String]
+  def title_for(page)
+    if page && page.data.page_title
+      return "#{page.data.page_title} - Consul by HashiCorp"
+    end
+
+    "Consul by HashiCorp"
+  end
 end

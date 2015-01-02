@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8">
 
-    <title><%= current_page.data.page_title ? "#{current_page.data.page_title} - " : "" %>Consul</title>
+    <title><%= title_for(current_page) %></title>
     <meta name="description" content="<%= current_page.data.description %>" />
 
     <%= stylesheet_link_tag "application" %>
