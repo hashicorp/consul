@@ -14,8 +14,8 @@ The `exec` command provides a mechanism for remote execution. For example,
 this can be used to run the `uptime` command across all machines providing
 the `web` service.
 
-Remote execution works by specifying a job which is stored in the KV store.
-Agent's are informed about the new job using the [event system](/docs/commands/event.html),
+Remote execution works by specifying a job, which is stored in the KV store.
+Agents are informed about the new job using the [event system](/docs/commands/event.html),
 which propagates messages via the [gossip protocol](/docs/internals/gossip.html).
 As a result, delivery is best-effort, and there is **no guarantee** of execution.
 
@@ -28,7 +28,7 @@ properly function during a Consul outage.
 Usage: `consul exec [options] [-|command...]`
 
 The only required option is a command to execute. This is either given
-as trailing arguments, or by specifying '-', stdin will be read to
+as trailing arguments, or by specifying '-'; stdin will be read to
 completion as a script to evaluate.
 
 The list of available flags are:
