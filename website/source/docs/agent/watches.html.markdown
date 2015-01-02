@@ -227,7 +227,7 @@ Here is an example configuration:
 ```javascript
 {
   "type": "service",
-  "key": "redis",
+  "service": "redis",
   "handler": "/usr/bin/my-service-handler.sh"
 }
 ```
