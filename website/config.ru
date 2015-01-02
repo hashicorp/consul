@@ -4,11 +4,6 @@ require "rack/contrib/response_headers"
 require "rack/contrib/static_cache"
 require "rack/contrib/try_static"
 
-require "rake/rewrite"
-use Rack::Rewrite do
-  r301 "/downloads_web_ui.html", "/downloads.html"
-end
-
 # Properly compress the output if the client can handle it.
 use Rack::Deflater
 
