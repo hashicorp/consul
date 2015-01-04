@@ -49,7 +49,7 @@ transactions are applied to a FSM, we implicitly include the consistency of a re
 state machine. Consensus is described in more detail on [Wikipedia](http://en.wikipedia.org/wiki/Consensus_(computer_science)),
 and our implementation is described [here](/docs/internals/consensus.html).
 
-* Gossip - Consul is built on top of [Serf](http://www.serfdom.io/), which provides a full
+* Gossip - Consul is built on top of [Serf](https://www.serfdom.io/), which provides a full
 [gossip protocol](http://en.wikipedia.org/wiki/Gossip_protocol) that is used for multiple purposes.
 Serf provides membership, failure detection, and event broadcast mechanisms. Our use of these
 is described more in the [gossip documentation](/docs/internals/gossip.html). It is enough to know

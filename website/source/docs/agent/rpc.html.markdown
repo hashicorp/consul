@@ -55,8 +55,8 @@ Possible commands include:
 * handshake - Used to initialize the connection, set the version
 * force-leave - Removes a failed node from the cluster
 * join - Requests Consul join another node
-* members-lan - Returns the list of lan members
-* members-wan - Returns the list of wan members
+* members-lan - Returns the list of LAN members
+* members-wan - Returns the list of WAN members
 * monitor - Starts streaming logs over the connection
 * stop - Stops streaming logs
 * leave - Consul agent performs a graceful leave and shutdown
@@ -133,7 +133,7 @@ The body returns the number of nodes successfully joined.
 
 ### members-lan
 
-The members-lan command is used to return all the known lan members and associated
+The members-lan command is used to return all the known LAN members and associated
 information. All agents will respond to this command.
 
 There is no request body, but the response looks like:
@@ -163,7 +163,7 @@ There is no request body, but the response looks like:
 
 ### members-wan
 
-The members-wan command is used to return all the known wan members and associated
+The members-wan command is used to return all the known WAN members and associated
 information. Only agents in server mode will respond to this command.
 
 There is no request body, and the response is the same as `members-lan`
