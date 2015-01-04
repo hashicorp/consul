@@ -13,9 +13,9 @@ to provide various features. Both of the systems have different security
 mechanisms that stem from their designs. However, the overall goal
 of Consul's security model is to provide [confidentiality, integrity and authentication](http://en.wikipedia.org/wiki/Information_security).
 
-The [gossip protocol](/docs/internals/gossip.html) is powered by [Serf](http://www.serfdom.io/),
+The [gossip protocol](/docs/internals/gossip.html) is powered by [Serf](https://www.serfdom.io/),
 which uses a symmetric key, or shared secret, cryptosystem. There are more
-details on the security of [Serf here](http://www.serfdom.io/docs/internals/security.html).
+details on the security of [Serf here](https://www.serfdom.io/docs/internals/security.html).
 
 The RPC system supports using end-to-end TLS, with optional client authentication.
 [TLS](http://en.wikipedia.org/wiki/Transport_Layer_Security) is a widely deployed asymmetric

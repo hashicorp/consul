@@ -114,7 +114,7 @@ curl  http://localhost:8500/v1/kv/<key>
 
 If the key has no associated `Session`, then there is no leader.
 Otherwise, the value of the key will provide all the
-application-dependent information required as a base64 encoded blog in
+application-dependent information required as a base64 encoded blob in
 the `Value` key.  You can query the `/v1/session/info` endpoint to get
 details about the session:
 
