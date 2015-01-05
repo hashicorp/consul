@@ -29,6 +29,7 @@ func TestTombstoneGC(t *testing.T) {
 	if err != nil {
 		t.Fatalf("should fail")
 	}
+	gc.SetEnabled(true)
 
 	if gc.PendingExpiration() {
 		t.Fatalf("should not be pending")
@@ -82,13 +83,14 @@ func TestTombstoneGC_Expire(t *testing.T) {
 	if err != nil {
 		t.Fatalf("should fail")
 	}
+	gc.SetEnabled(true)
 
 	if gc.PendingExpiration() {
 		t.Fatalf("should not be pending")
 	}
 
 	gc.Hint(100)
-	gc.Reset()
+	gc.SetEnabled(false)
 
 	if gc.PendingExpiration() {
 		t.Fatalf("should not be pending")

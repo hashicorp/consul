@@ -50,15 +50,14 @@ func (s *Server) monitorLeadership() {
 // leaderLoop runs as long as we are the leader to run various
 // maintence activities
 func (s *Server) leaderLoop(stopCh chan struct{}) {
+	// Ensure we revoke leadership on stepdown
+	defer s.revokeLeadership()
+
 	// Fire a user event indicating a new leader
 	payload := []byte(s.config.NodeName)
 	if err := s.serfLAN.UserEvent(newLeaderEvent, payload, false); err != nil {
 		s.logger.Printf("[WARN] consul: failed to broadcast new leader event: %v", err)
 	}
-
-	// Clear the session timers on either shutdown or step down, since we
-	// are no longer responsible for session expirations.
-	defer s.clearAllSessionTimers()
 
 	// Reconcile channel is only used once initial reconcile
 	// has succeeded
@@ -126,7 +125,7 @@ func (s *Server) establishLeadership() error {
 	// Hint the tombstone expiration timer. When we freshly establish leadership
 	// we become the authoritative timer, and so we need to start the clock
 	// on any pending GC events.
-	s.tombstoneGC.Reset()
+	s.tombstoneGC.SetEnabled(true)
 	lastIndex := s.raft.LastIndex()
 	s.tombstoneGC.Hint(lastIndex)
 	s.logger.Printf("[DEBUG] consul: reset tombstone GC to index %d", lastIndex)
@@ -149,6 +148,21 @@ func (s *Server) establishLeadership() error {
 	if err := s.initializeSessionTimers(); err != nil {
 		s.logger.Printf("[ERR] consul: Session Timers initialization failed: %v",
 			err)
+		return err
+	}
+	return nil
+}
+
+// revokeLeadership is invoked once we step down as leader.
+// This is used to cleanup any state that may be specific to a leader.
+func (s *Server) revokeLeadership() error {
+	// Disable the tombstone GC, since it is only useful as a leader
+	s.tombstoneGC.SetEnabled(false)
+
+	// Clear the session timers on either shutdown or step down, since we
+	// are no longer responsible for session expirations.
+	if err := s.clearAllSessionTimers(); err != nil {
+		s.logger.Printf("[ERR] consul: Clearing session timers failed: %v", err)
 		return err
 	}
 	return nil
