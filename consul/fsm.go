@@ -8,6 +8,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
@@ -101,6 +102,7 @@ func (c *consulFSM) decodeRegister(buf []byte, index uint64) interface{} {
 }
 
 func (c *consulFSM) applyRegister(req *structs.RegisterRequest, index uint64) interface{} {
+	defer metrics.MeasureSince([]string{"consul", "fsm", "register"}, time.Now())
 	// Apply all updates in a single transaction
 	if err := c.state.EnsureRegistration(index, req); err != nil {
 		c.logger.Printf("[INFO] consul.fsm: EnsureRegistration failed: %v", err)
@@ -110,6 +112,7 @@ func (c *consulFSM) applyRegister(req *structs.RegisterRequest, index uint64) in
 }
 
 func (c *consulFSM) applyDeregister(buf []byte, index uint64) interface{} {
+	defer metrics.MeasureSince([]string{"consul", "fsm", "deregister"}, time.Now())
 	var req structs.DeregisterRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
@@ -140,6 +143,7 @@ func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "kvs", string(req.Op)}, time.Now())
 	switch req.Op {
 	case structs.KVSSet:
 		return c.state.KVSSet(index, &req.DirEnt)
@@ -180,6 +184,7 @@ func (c *consulFSM) applySessionOperation(buf []byte, index uint64) interface{} 
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "session", string(req.Op)}, time.Now())
 	switch req.Op {
 	case structs.SessionCreate:
 		if err := c.state.SessionCreate(index, &req.Session); err != nil {
@@ -200,6 +205,7 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "acl", string(req.Op)}, time.Now())
 	switch req.Op {
 	case structs.ACLForceSet:
 		fallthrough
@@ -222,6 +228,7 @@ func (c *consulFSM) applyTombstoneOperation(buf []byte, index uint64) interface{
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "tombstone", string(req.Op)}, time.Now())
 	switch req.Op {
 	case structs.TombstoneReap:
 		return c.state.ReapTombstones(req.ReapIndex)
@@ -335,6 +342,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 }
 
 func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
+	defer metrics.MeasureSince([]string{"consul", "fsm", "persist"}, time.Now())
 	// Register the nodes
 	encoder := codec.NewEncoder(sink, msgpackHandle)
 
