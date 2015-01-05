@@ -477,6 +477,20 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		return nil, err
 	}
 
+	// Check unused fields and verify that no bad configuration options were
+	// passed to Consul. There are a few additional fields which don't directly
+	// use mapstructure decoding, so we need to account for those as well.
+	allowedKeys := []string{"service", "services", "check", "checks"}
+	var unused []string
+	for _, field := range md.Unused {
+		if !strContains(allowedKeys, field) {
+			unused = append(unused, field)
+		}
+	}
+	if len(unused) > 0 {
+		return nil, fmt.Errorf("Config has invalid keys: %s", strings.Join(unused, ","))
+	}
+
 	// Handle time conversions
 	if raw := result.DNSConfig.NodeTTLRaw; raw != "" {
 		dur, err := time.ParseDuration(raw)
