@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -588,6 +589,14 @@ func TestDecodeConfig(t *testing.T) {
 	}
 	if !config.DisableAnonymousSignature {
 		t.Fatalf("bad: %#v", config)
+	}
+}
+
+func TestDecodeConfig_invalidKeys(t *testing.T) {
+	input := `{"bad": "no way jose"}`
+	_, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err == nil || !strings.Contains(err.Error(), "invalid keys") {
+		t.Fatalf("should have rejected invalid config keys")
 	}
 }
 

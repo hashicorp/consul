@@ -335,6 +335,13 @@ type Config struct {
 
 	// WatchPlans contains the compiled watches
 	WatchPlans []*watch.WatchPlan `mapstructure:"-" json:"-"`
+
+	// Allow the following fields to be present in configuration files without
+	// mapstructure erroring on them.
+	_ interface{} `mapstructure:"services"`
+	_ interface{} `mapstructure:"checks"`
+	_ interface{} `mapstructure:"service"`
+	_ interface{} `mapstructure:"check"`
 }
 
 type dirEnts []os.FileInfo
@@ -463,8 +470,9 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	// Decode
 	var md mapstructure.Metadata
 	msdec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Metadata: &md,
-		Result:   &result,
+		Metadata:    &md,
+		Result:      &result,
+		ErrorUnused: true,
 	})
 	if err != nil {
 		return nil, err
