@@ -628,8 +628,14 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 		resp.Answer = append(resp.Answer, srvRec)
 
+		// Determine advertised address
+		addr := node.Node.Address
+		if node.Service.Address != "" {
+			addr = node.Service.Address
+		}
+
 		// Add the extra record
-		records := d.formatNodeRecord(&node.Node, node.Node.Address, srvRec.Target, dns.TypeANY, ttl)
+		records := d.formatNodeRecord(&node.Node, addr, srvRec.Target, dns.TypeANY, ttl)
 		if records != nil {
 			resp.Extra = append(resp.Extra, records...)
 		}
