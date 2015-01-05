@@ -525,11 +525,11 @@ RPC:
 	// Filter out any service nodes due to health checks
 	out.Nodes = d.filterServiceNodes(out.Nodes)
 
-	// Perform a random shuffle
-	shuffleServiceNodes(out.Nodes)
-
 	// If the network is not TCP, restrict the number of responses
 	if network != "tcp" && len(out.Nodes) > maxServiceResponses {
+		// Perform a random shuffle
+		shuffleServiceNodes(out.Nodes)
+
 		out.Nodes = out.Nodes[:maxServiceResponses]
 		// Flag that there are more records to return in the UDP response
 		if d.config.EnableTruncate == true {
