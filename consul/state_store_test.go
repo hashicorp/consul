@@ -11,7 +11,7 @@ import (
 )
 
 func testStateStore() (*StateStore, error) {
-	return NewStateStore(os.Stderr)
+	return NewStateStore(nil, os.Stderr)
 }
 
 func TestEnsureRegistration(t *testing.T) {
@@ -688,23 +688,32 @@ func TestStoreSnapshot(t *testing.T) {
 	if err := store.KVSSet(15, d); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	d = &structs.DirEntry{Key: "/web/c", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(16, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	// Create a tombstone
+	// TODO: Change to /web/c causes failure?
+	if err := store.KVSDelete(17, "/web/a"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	// Add some sessions
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
-	if err := store.SessionCreate(16, session); err != nil {
+	if err := store.SessionCreate(18, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	session = &structs.Session{ID: generateUUID(), Node: "bar"}
-	if err := store.SessionCreate(17, session); err != nil {
+	if err := store.SessionCreate(19, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	d.Session = session.ID
-	if ok, err := store.KVSLock(18, d); err != nil || !ok {
+	if ok, err := store.KVSLock(20, d); err != nil || !ok {
 		t.Fatalf("err: %v", err)
 	}
 	session = &structs.Session{ID: generateUUID(), Node: "bar", TTL: "60s"}
-	if err := store.SessionCreate(19, session); err != nil {
+	if err := store.SessionCreate(21, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -713,7 +722,7 @@ func TestStoreSnapshot(t *testing.T) {
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(20, a1); err != nil {
+	if err := store.ACLSet(21, a1); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -722,7 +731,7 @@ func TestStoreSnapshot(t *testing.T) {
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(21, a2); err != nil {
+	if err := store.ACLSet(22, a2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -734,7 +743,7 @@ func TestStoreSnapshot(t *testing.T) {
 	defer snap.Close()
 
 	// Check the last nodes
-	if idx := snap.LastIndex(); idx != 21 {
+	if idx := snap.LastIndex(); idx != 22 {
 		t.Fatalf("bad: %v", idx)
 	}
 
@@ -786,7 +795,29 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 	<-doneCh
 	if len(ents) != 2 {
-		t.Fatalf("missing KVS entries!")
+		t.Fatalf("missing KVS entries! %#v", ents)
+	}
+
+	// Check we have the tombstone entries
+	streamCh = make(chan interface{}, 64)
+	doneCh = make(chan struct{})
+	ents = nil
+	go func() {
+		for {
+			obj := <-streamCh
+			if obj == nil {
+				close(doneCh)
+				return
+			}
+			ents = append(ents, obj.(*structs.DirEntry))
+		}
+	}()
+	if err := snap.TombstoneDump(streamCh); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	<-doneCh
+	if len(ents) != 1 {
+		t.Fatalf("missing tombstone entries!")
 	}
 
 	// Check there are 3 sessions
@@ -818,13 +849,13 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 
 	// Make some changes!
-	if err := store.EnsureService(22, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
+	if err := store.EnsureService(23, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(23, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(24, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureNode(24, structs.Node{"baz", "127.0.0.3"}); err != nil {
+	if err := store.EnsureNode(25, structs.Node{"baz", "127.0.0.3"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	checkAfter := &structs.HealthCheck{
@@ -834,16 +865,16 @@ func TestStoreSnapshot(t *testing.T) {
 		Status:    structs.HealthCritical,
 		ServiceID: "db",
 	}
-	if err := store.EnsureCheck(26, checkAfter); err != nil {
+	if err := store.EnsureCheck(27, checkAfter); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.KVSDelete(26, "/web/b"); err != nil {
+	if err := store.KVSDelete(28, "/web/b"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Nuke an ACL
-	if err := store.ACLDelete(27, a1.ID); err != nil {
+	if err := store.ACLDelete(29, a1.ID); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -895,6 +926,28 @@ func TestStoreSnapshot(t *testing.T) {
 	<-doneCh
 	if len(ents) != 2 {
 		t.Fatalf("missing KVS entries!")
+	}
+
+	// Check we have the tombstone entries
+	streamCh = make(chan interface{}, 64)
+	doneCh = make(chan struct{})
+	ents = nil
+	go func() {
+		for {
+			obj := <-streamCh
+			if obj == nil {
+				close(doneCh)
+				return
+			}
+			ents = append(ents, obj.(*structs.DirEntry))
+		}
+	}()
+	if err := snap.TombstoneDump(streamCh); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	<-doneCh
+	if len(ents) != 1 {
+		t.Fatalf("missing tombstone entries!")
 	}
 
 	// Check there are 3 sessions
@@ -1413,6 +1466,15 @@ func TestKVSDelete(t *testing.T) {
 	}
 	defer store.Close()
 
+	ttl := 10 * time.Millisecond
+	gran := 5 * time.Millisecond
+	gc, err := NewTombstoneGC(ttl, gran)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	gc.SetEnabled(true)
+	store.gc = gc
+
 	// Create the entry
 	d := &structs.DirEntry{Key: "/foo", Flags: 42, Value: []byte("test")}
 	if err := store.KVSSet(1000, d); err != nil {
@@ -1434,6 +1496,25 @@ func TestKVSDelete(t *testing.T) {
 	}
 	if d != nil {
 		t.Fatalf("bad: %v", d)
+	}
+
+	// Check tombstone exists
+	_, res, err := store.tombstoneTable.Get("id", "/foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if res == nil || res[0].(*structs.DirEntry).ModifyIndex != 1020 {
+		t.Fatalf("bad: %#v", d)
+	}
+
+	// Check that we get a delete
+	select {
+	case idx := <-gc.ExpireCh():
+		if idx != 1020 {
+			t.Fatalf("bad %d", idx)
+		}
+	case <-time.After(20 * time.Millisecond):
+		t.Fatalf("should expire")
 	}
 }
 
@@ -1508,7 +1589,7 @@ func TestKVS_List(t *testing.T) {
 	defer store.Close()
 
 	// Should not exist
-	idx, ents, err := store.KVSList("/web")
+	_, idx, ents, err := store.KVSList("/web")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1534,7 +1615,7 @@ func TestKVS_List(t *testing.T) {
 	}
 
 	// Should list
-	idx, ents, err = store.KVSList("/web")
+	_, idx, ents, err = store.KVSList("/web")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1553,6 +1634,55 @@ func TestKVS_List(t *testing.T) {
 	}
 	if ents[2].Key != "/web/sub/c" {
 		t.Fatalf("bad: %v", ents[2])
+	}
+}
+
+func TestKVSList_TombstoneIndex(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Create the entries
+	d := &structs.DirEntry{Key: "/web/a", Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/b", Value: []byte("test")}
+	if err := store.KVSSet(1001, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/c", Value: []byte("test")}
+	if err := store.KVSSet(1002, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nuke the last node
+	err = store.KVSDeleteTree(1003, "/web/c")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Add another node
+	d = &structs.DirEntry{Key: "/other", Value: []byte("test")}
+	if err := store.KVSSet(1004, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// List should properly reflect tombstoned value
+	tombIdx, idx, ents, err := store.KVSList("/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1004 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if tombIdx != 1003 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(ents) != 2 {
+		t.Fatalf("bad: %v", ents)
 	}
 }
 
@@ -1730,12 +1860,83 @@ func TestKVS_ListKeys_Index(t *testing.T) {
 	}
 }
 
+func TestKVS_ListKeys_TombstoneIndex(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// Create the entries
+	d := &structs.DirEntry{Key: "/foo/a", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/bar/b", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1001, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/baz/c", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1002, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/other/d", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1003, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.KVSDelete(1004, "/baz/c"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, keys, err := store.KVSListKeys("/foo", "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1000 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(keys) != 1 {
+		t.Fatalf("bad: %v", keys)
+	}
+
+	idx, keys, err = store.KVSListKeys("/ba", "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1004 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(keys) != 1 {
+		t.Fatalf("bad: %v", keys)
+	}
+
+	idx, keys, err = store.KVSListKeys("/nope", "")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if idx != 1004 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(keys) != 0 {
+		t.Fatalf("bad: %v", keys)
+	}
+}
+
 func TestKVSDeleteTree(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	defer store.Close()
+
+	ttl := 10 * time.Millisecond
+	gran := 5 * time.Millisecond
+	gc, err := NewTombstoneGC(ttl, gran)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	gc.SetEnabled(true)
+	store.gc = gc
 
 	// Should not exist
 	err = store.KVSDeleteTree(1000, "/web")
@@ -1764,15 +1965,133 @@ func TestKVSDeleteTree(t *testing.T) {
 	}
 
 	// Nothing should list
-	idx, ents, err := store.KVSList("/web")
+	tombIdx, idx, ents, err := store.KVSList("/web")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if idx != 1010 {
 		t.Fatalf("bad: %v", idx)
 	}
+	if tombIdx != 1010 {
+		t.Fatalf("bad: %v", idx)
+	}
 	if len(ents) != 0 {
 		t.Fatalf("bad: %v", ents)
+	}
+
+	// Check tombstones exists
+	_, res, err := store.tombstoneTable.Get("id_prefix", "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 3 {
+		t.Fatalf("bad: %#v", d)
+	}
+	for _, r := range res {
+		if r.(*structs.DirEntry).ModifyIndex != 1010 {
+			t.Fatalf("bad: %#v", r)
+		}
+	}
+
+	// Check that we get a delete
+	select {
+	case idx := <-gc.ExpireCh():
+		if idx != 1010 {
+			t.Fatalf("bad %d", idx)
+		}
+	case <-time.After(20 * time.Millisecond):
+		t.Fatalf("should expire")
+	}
+}
+
+func TestReapTombstones(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	ttl := 10 * time.Millisecond
+	gran := 5 * time.Millisecond
+	gc, err := NewTombstoneGC(ttl, gran)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	gc.SetEnabled(true)
+	store.gc = gc
+
+	// Should not exist
+	err = store.KVSDeleteTree(1000, "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Create the entries
+	d := &structs.DirEntry{Key: "/web/a", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/b", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1001, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	d = &structs.DirEntry{Key: "/web/sub/c", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1002, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nuke just a
+	err = store.KVSDelete(1010, "/web/a")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Nuke the web tree
+	err = store.KVSDeleteTree(1020, "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Do a reap, should be a noop
+	if err := store.ReapTombstones(1000); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check tombstones exists
+	_, res, err := store.tombstoneTable.Get("id_prefix", "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 3 {
+		t.Fatalf("bad: %#v", d)
+	}
+
+	// Do a reap, should remove just /web/a
+	if err := store.ReapTombstones(1010); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check tombstones exists
+	_, res, err = store.tombstoneTable.Get("id_prefix", "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 2 {
+		t.Fatalf("bad: %#v", d)
+	}
+
+	// Do a reap, should remove them all
+	if err := store.ReapTombstones(1025); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check no tombstones exists
+	_, res, err = store.tombstoneTable.Get("id_prefix", "/web")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 0 {
+		t.Fatalf("bad: %#v", d)
 	}
 }
 

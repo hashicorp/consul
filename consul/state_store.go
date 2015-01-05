@@ -20,6 +20,7 @@ const (
 	dbServices               = "services"
 	dbChecks                 = "checks"
 	dbKVS                    = "kvs"
+	dbTombstone              = "tombstones"
 	dbSessions               = "sessions"
 	dbSessionChecks          = "sessionChecks"
 	dbACLs                   = "acls"
@@ -54,6 +55,7 @@ type StateStore struct {
 	serviceTable      *MDBTable
 	checkTable        *MDBTable
 	kvsTable          *MDBTable
+	tombstoneTable    *MDBTable
 	sessionTable      *MDBTable
 	sessionCheckTable *MDBTable
 	aclTable          *MDBTable
@@ -76,6 +78,10 @@ type StateStore struct {
 	// is never questioned.
 	lockDelay     map[string]time.Time
 	lockDelayLock sync.RWMutex
+
+	// GC is when we create tombstones to track their time-to-live.
+	// The GC is consumed upstream to manage clearing of tombstones.
+	gc *TombstoneGC
 }
 
 // StateSnapshot is used to provide a point-in-time snapshot
@@ -102,18 +108,18 @@ func (s *StateSnapshot) Close() error {
 }
 
 // NewStateStore is used to create a new state store
-func NewStateStore(logOutput io.Writer) (*StateStore, error) {
+func NewStateStore(gc *TombstoneGC, logOutput io.Writer) (*StateStore, error) {
 	// Create a new temp dir
 	path, err := ioutil.TempDir("", "consul")
 	if err != nil {
 		return nil, err
 	}
-	return NewStateStorePath(path, logOutput)
+	return NewStateStorePath(gc, path, logOutput)
 }
 
 // NewStateStorePath is used to create a new state store at a given path
 // The path is cleared on closing.
-func NewStateStorePath(path string, logOutput io.Writer) (*StateStore, error) {
+func NewStateStorePath(gc *TombstoneGC, path string, logOutput io.Writer) (*StateStore, error) {
 	// Open the env
 	env, err := mdb.NewEnv()
 	if err != nil {
@@ -126,6 +132,7 @@ func NewStateStorePath(path string, logOutput io.Writer) (*StateStore, error) {
 		env:       env,
 		watch:     make(map[*MDBTable]*NotifyGroup),
 		lockDelay: make(map[string]time.Time),
+		gc:        gc,
 	}
 
 	// Ensure we can initialize
@@ -283,6 +290,29 @@ func (s *StateStore) initialize() error {
 		},
 	}
 
+	s.tombstoneTable = &MDBTable{
+		Name: dbTombstone,
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Key"},
+			},
+			"id_prefix": &MDBIndex{
+				Virtual:   true,
+				RealIndex: "id",
+				Fields:    []string{"Key"},
+				IdxFunc:   DefaultIndexPrefixFunc,
+			},
+		},
+		Decoder: func(buf []byte) interface{} {
+			out := new(structs.DirEntry)
+			if err := structs.Decode(buf, out); err != nil {
+				panic(err)
+			}
+			return out
+		},
+	}
+
 	s.sessionTable = &MDBTable{
 		Name: dbSessions,
 		Indexes: map[string]*MDBIndex{
@@ -340,7 +370,8 @@ func (s *StateStore) initialize() error {
 
 	// Store the set of tables
 	s.tables = []*MDBTable{s.nodeTable, s.serviceTable, s.checkTable,
-		s.kvsTable, s.sessionTable, s.sessionCheckTable, s.aclTable}
+		s.kvsTable, s.tombstoneTable, s.sessionTable, s.sessionCheckTable,
+		s.aclTable}
 	for _, table := range s.tables {
 		table.Env = s.env
 		table.Encoder = encoder
@@ -1084,18 +1115,45 @@ func (s *StateStore) KVSGet(key string) (uint64, *structs.DirEntry, error) {
 }
 
 // KVSList is used to list all KV entries with a prefix
-func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) {
-	idx, res, err := s.kvsTable.Get("id_prefix", prefix)
+func (s *StateStore) KVSList(prefix string) (uint64, uint64, structs.DirEntries, error) {
+	tables := MDBTables{s.kvsTable, s.tombstoneTable}
+	tx, err := tables.StartTxn(true)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+	defer tx.Abort()
+
+	idx, err := tables.LastIndexTxn(tx)
+	if err != nil {
+		return 0, 0, nil, err
+	}
+
+	res, err := s.kvsTable.GetTxn(tx, "id_prefix", prefix)
+	if err != nil {
+		return 0, 0, nil, err
+	}
 	ents := make(structs.DirEntries, len(res))
 	for idx, r := range res {
 		ents[idx] = r.(*structs.DirEntry)
 	}
-	return idx, ents, err
+
+	// Check for the higest index in the tombstone table
+	var maxIndex uint64
+	res, err = s.tombstoneTable.GetTxn(tx, "id_prefix", prefix)
+	for _, r := range res {
+		ent := r.(*structs.DirEntry)
+		if ent.ModifyIndex > maxIndex {
+			maxIndex = ent.ModifyIndex
+		}
+	}
+
+	return maxIndex, idx, ents, err
 }
 
 // KVSListKeys is used to list keys with a prefix, and up to a given seperator
 func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, error) {
-	tx, err := s.kvsTable.StartTxn(true, nil)
+	tables := MDBTables{s.kvsTable, s.tombstoneTable}
+	tx, err := tables.StartTxn(true)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1115,6 +1173,7 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 
 	// Aggregate the stream
 	stream := make(chan interface{}, 128)
+	streamTomb := make(chan interface{}, 128)
 	done := make(chan struct{})
 	var keys []string
 	var maxIndex uint64
@@ -1148,18 +1207,31 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 				keys = append(keys, ent.Key)
 			}
 		}
+
+		// Handle the tombstones for any index updates
+		for raw := range streamTomb {
+			ent := raw.(*structs.DirEntry)
+			if ent.ModifyIndex > maxIndex {
+				maxIndex = ent.ModifyIndex
+			}
+		}
 		close(done)
 	}()
 
 	// Start the stream, and wait for completion
-	err = s.kvsTable.StreamTxn(stream, tx, "id_prefix", prefix)
+	if err = s.kvsTable.StreamTxn(stream, tx, "id_prefix", prefix); err != nil {
+		return 0, nil, err
+	}
+	if err := s.tombstoneTable.StreamTxn(streamTomb, tx, "id_prefix", prefix); err != nil {
+		return 0, nil, err
+	}
 	<-done
 
 	// Use the maxIndex if we have any keys
 	if maxIndex != 0 {
 		idx = maxIndex
 	}
-	return idx, keys, err
+	return idx, keys, nil
 }
 
 // KVSDelete is used to delete a KVS entry
@@ -1177,25 +1249,64 @@ func (s *StateStore) KVSDeleteTree(index uint64, prefix string) error {
 
 // kvsDeleteWithIndex does a delete with either the id or id_prefix
 func (s *StateStore) kvsDeleteWithIndex(index uint64, tableIndex string, parts ...string) error {
-	// Start a new txn
-	tx, err := s.kvsTable.StartTxn(false, nil)
+	tx, err := s.tables.StartTxn(false)
 	if err != nil {
 		return err
 	}
 	defer tx.Abort()
-
-	num, err := s.kvsTable.DeleteTxn(tx, tableIndex, parts...)
-	if err != nil {
+	if err := s.kvsDeleteWithIndexTxn(index, tx, tableIndex, parts...); err != nil {
 		return err
+	}
+	return tx.Commit()
+}
+
+// kvsDeleteWithIndexTxn does a delete within an existing transaction
+func (s *StateStore) kvsDeleteWithIndexTxn(index uint64, tx *MDBTxn, tableIndex string, parts ...string) error {
+	num := 0
+	for {
+		// Get some number of entries to delete
+		pairs, err := s.kvsTable.GetTxnLimit(tx, 128, tableIndex, parts...)
+		if err != nil {
+			return err
+		}
+
+		// Create the tombstones and delete
+		for _, raw := range pairs {
+			ent := raw.(*structs.DirEntry)
+			ent.ModifyIndex = index // Update the index
+			ent.Value = nil         // Reduce storage required
+			ent.Session = ""
+			if err := s.tombstoneTable.InsertTxn(tx, ent); err != nil {
+				return err
+			}
+			if num, err := s.kvsTable.DeleteTxn(tx, "id", ent.Key); err != nil {
+				return err
+			} else if num != 1 {
+				return fmt.Errorf("Failed to delete key '%s'", ent.Key)
+			}
+		}
+
+		// Increment the total number
+		num += len(pairs)
+		if len(pairs) == 0 {
+			break
+		}
 	}
 
 	if num > 0 {
 		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
-		tx.Defer(func() { s.watch[s.kvsTable].Notify() })
+		tx.Defer(func() {
+			s.watch[s.kvsTable].Notify()
+			if s.gc != nil {
+				// If GC is configured, then we hint that this index
+				// required expiration.
+				s.gc.Hint(index)
+			}
+		})
 	}
-	return tx.Commit()
+	return nil
 }
 
 // KVSCheckAndSet is used to perform an atomic check-and-set
@@ -1317,6 +1428,72 @@ func (s *StateStore) kvsSet(
 	}
 	tx.Defer(func() { s.watch[s.kvsTable].Notify() })
 	return true, tx.Commit()
+}
+
+// ReapTombstones is used to delete all the tombstones with a ModifyTime
+// less than or equal to the given index. This is used to prevent unbounded
+// storage growth of the tombstones.
+func (s *StateStore) ReapTombstones(index uint64) error {
+	tx, err := s.tombstoneTable.StartTxn(false, nil)
+	if err != nil {
+		return fmt.Errorf("failed to start txn: %v", err)
+	}
+	defer tx.Abort()
+
+	// Scan the tombstone table for all the entries that are
+	// eligble for GC. This could be improved by indexing on
+	// ModifyTime and doing a less-than-equals scan, however
+	// we don't currently support numeric indexes internally.
+	// Luckily, this is a low frequency operation.
+	var toDelete []string
+	streamCh := make(chan interface{}, 128)
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		for raw := range streamCh {
+			ent := raw.(*structs.DirEntry)
+			if ent.ModifyIndex <= index {
+				toDelete = append(toDelete, ent.Key)
+			}
+		}
+	}()
+	if err := s.tombstoneTable.StreamTxn(streamCh, tx, "id"); err != nil {
+		s.logger.Printf("[ERR] consul.state: failed to scan tombstones: %v", err)
+		return fmt.Errorf("failed to scan tombstones: %v", err)
+	}
+	<-doneCh
+
+	// Delete each tombstone
+	if len(toDelete) > 0 {
+		s.logger.Printf("[DEBUG] consul.state: reaping %d tombstones up to %d", len(toDelete), index)
+	}
+	for _, key := range toDelete {
+		num, err := s.tombstoneTable.DeleteTxn(tx, "id", key)
+		if err != nil {
+			s.logger.Printf("[ERR] consul.state: failed to delete tombstone: %v", err)
+			return fmt.Errorf("failed to delete tombstone: %v", err)
+		}
+		if num != 1 {
+			return fmt.Errorf("failed to delete tombstone '%s'", key)
+		}
+	}
+	return tx.Commit()
+}
+
+// TombstoneRestore is used to restore a tombstone.
+// It should only be used when doing a restore.
+func (s *StateStore) TombstoneRestore(d *structs.DirEntry) error {
+	// Start a new txn
+	tx, err := s.tombstoneTable.StartTxn(false, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Abort()
+
+	if err := s.tombstoneTable.InsertTxn(tx, d); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // SessionCreate is used to create a new session. The
@@ -1537,7 +1714,7 @@ func (s *StateStore) invalidateSession(index uint64, tx *MDBTxn, id string) erro
 
 	if session.Behavior == structs.SessionKeysDelete {
 		// delete the keys held by the session
-		if err := s.deleteKeys(index, tx, id); err != nil {
+		if err := s.kvsDeleteWithIndexTxn(index, tx, "session", id); err != nil {
 			return err
 		}
 
@@ -1610,23 +1787,6 @@ func (s *StateStore) invalidateLocks(index uint64, tx *MDBTxn,
 		}
 	}
 	if len(pairs) > 0 {
-		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
-			return err
-		}
-		tx.Defer(func() { s.watch[s.kvsTable].Notify() })
-	}
-	return nil
-}
-
-// deleteKeys is used to delete all the keys created by a session
-// within a given txn. All tables should be locked in the tx.
-func (s *StateStore) deleteKeys(index uint64, tx *MDBTxn, id string) error {
-	num, err := s.kvsTable.DeleteTxn(tx, "session", id)
-	if err != nil {
-		return err
-	}
-
-	if num > 0 {
 		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
 		}
@@ -1800,6 +1960,13 @@ func (s *StateSnapshot) NodeChecks(node string) structs.HealthChecks {
 // in a goroutine.
 func (s *StateSnapshot) KVSDump(stream chan<- interface{}) error {
 	return s.store.kvsTable.StreamTxn(stream, s.tx, "id")
+}
+
+// TombstoneDump is used to dump all tombstone entries. It takes a channel and streams
+// back *struct.DirEntry objects. This will block and should be invoked
+// in a goroutine.
+func (s *StateSnapshot) TombstoneDump(stream chan<- interface{}) error {
+	return s.store.tombstoneTable.StreamTxn(stream, s.tx, "id")
 }
 
 // SessionList is used to list all the open sessions

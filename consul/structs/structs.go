@@ -23,6 +23,7 @@ const (
 	KVSRequestType
 	SessionRequestType
 	ACLRequestType
+	TombstoneRequestType
 )
 
 const (
@@ -529,6 +530,24 @@ func (r *EventFireRequest) RequestDatacenter() string {
 // EventFireResponse is used to respond to a fire request.
 type EventFireResponse struct {
 	QueryMeta
+}
+
+type TombstoneOp string
+
+const (
+	TombstoneReap TombstoneOp = "reap"
+)
+
+// TombstoneRequest is used to trigger a reaping of the tombstones
+type TombstoneRequest struct {
+	Datacenter string
+	Op         TombstoneOp
+	ReapIndex  uint64
+	WriteRequest
+}
+
+func (r *TombstoneRequest) RequestDatacenter() string {
+	return r.Datacenter
 }
 
 // msgpackHandle is a shared handle for encoding/decoding of structs

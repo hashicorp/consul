@@ -8,6 +8,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
@@ -21,6 +22,7 @@ type consulFSM struct {
 	logger    *log.Logger
 	path      string
 	state     *StateStore
+	gc        *TombstoneGC
 }
 
 // consulSnapshot is used to provide a snapshot of the current
@@ -38,7 +40,7 @@ type snapshotHeader struct {
 }
 
 // NewFSMPath is used to construct a new FSM with a blank state
-func NewFSM(path string, logOutput io.Writer) (*consulFSM, error) {
+func NewFSM(gc *TombstoneGC, path string, logOutput io.Writer) (*consulFSM, error) {
 	// Create a temporary path for the state store
 	tmpPath, err := ioutil.TempDir(path, "state")
 	if err != nil {
@@ -46,7 +48,7 @@ func NewFSM(path string, logOutput io.Writer) (*consulFSM, error) {
 	}
 
 	// Create a state store
-	state, err := NewStateStorePath(tmpPath, logOutput)
+	state, err := NewStateStorePath(gc, tmpPath, logOutput)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +58,7 @@ func NewFSM(path string, logOutput io.Writer) (*consulFSM, error) {
 		logger:    log.New(logOutput, "", log.LstdFlags),
 		path:      path,
 		state:     state,
+		gc:        gc,
 	}
 	return fsm, nil
 }
@@ -83,6 +86,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		return c.applySessionOperation(buf[1:], log.Index)
 	case structs.ACLRequestType:
 		return c.applyACLOperation(buf[1:], log.Index)
+	case structs.TombstoneRequestType:
+		return c.applyTombstoneOperation(buf[1:], log.Index)
 	default:
 		panic(fmt.Errorf("failed to apply request: %#v", buf))
 	}
@@ -97,6 +102,7 @@ func (c *consulFSM) decodeRegister(buf []byte, index uint64) interface{} {
 }
 
 func (c *consulFSM) applyRegister(req *structs.RegisterRequest, index uint64) interface{} {
+	defer metrics.MeasureSince([]string{"consul", "fsm", "register"}, time.Now())
 	// Apply all updates in a single transaction
 	if err := c.state.EnsureRegistration(index, req); err != nil {
 		c.logger.Printf("[INFO] consul.fsm: EnsureRegistration failed: %v", err)
@@ -106,6 +112,7 @@ func (c *consulFSM) applyRegister(req *structs.RegisterRequest, index uint64) in
 }
 
 func (c *consulFSM) applyDeregister(buf []byte, index uint64) interface{} {
+	defer metrics.MeasureSince([]string{"consul", "fsm", "deregister"}, time.Now())
 	var req structs.DeregisterRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
@@ -136,6 +143,7 @@ func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "kvs", string(req.Op)}, time.Now())
 	switch req.Op {
 	case structs.KVSSet:
 		return c.state.KVSSet(index, &req.DirEnt)
@@ -176,6 +184,7 @@ func (c *consulFSM) applySessionOperation(buf []byte, index uint64) interface{} 
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "session", string(req.Op)}, time.Now())
 	switch req.Op {
 	case structs.SessionCreate:
 		if err := c.state.SessionCreate(index, &req.Session); err != nil {
@@ -196,6 +205,7 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "acl", string(req.Op)}, time.Now())
 	switch req.Op {
 	case structs.ACLForceSet:
 		fallthrough
@@ -210,6 +220,21 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid ACL operation '%s'", req.Op)
 		return fmt.Errorf("Invalid ACL operation '%s'", req.Op)
+	}
+}
+
+func (c *consulFSM) applyTombstoneOperation(buf []byte, index uint64) interface{} {
+	var req structs.TombstoneRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "tombstone", string(req.Op)}, time.Now())
+	switch req.Op {
+	case structs.TombstoneReap:
+		return c.state.ReapTombstones(req.ReapIndex)
+	default:
+		c.logger.Printf("[WARN] consul.fsm: Invalid Tombstone operation '%s'", req.Op)
+		return fmt.Errorf("Invalid Tombstone operation '%s'", req.Op)
 	}
 }
 
@@ -236,7 +261,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	}
 
 	// Create a new state store
-	state, err := NewStateStorePath(tmpPath, c.logOutput)
+	state, err := NewStateStorePath(c.gc, tmpPath, c.logOutput)
 	if err != nil {
 		return err
 	}
@@ -299,6 +324,15 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 
+		case structs.TombstoneRequestType:
+			var req structs.DirEntry
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := c.state.TombstoneRestore(&req); err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("Unrecognized msg type: %v", msgType)
 		}
@@ -308,6 +342,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 }
 
 func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
+	defer metrics.MeasureSince([]string{"consul", "fsm", "persist"}, time.Now())
 	// Register the nodes
 	encoder := codec.NewEncoder(sink, msgpackHandle)
 
@@ -336,6 +371,11 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 	}
 
 	if err := s.persistKV(sink, encoder); err != nil {
+		sink.Cancel()
+		return err
+	}
+
+	if err := s.persistTombstones(sink, encoder); err != nil {
 		sink.Cancel()
 		return err
 	}
@@ -434,6 +474,33 @@ func (s *consulSnapshot) persistKV(sink raft.SnapshotSink,
 				return nil
 			}
 			sink.Write([]byte{byte(structs.KVSRequestType)})
+			if err := encoder.Encode(raw); err != nil {
+				return err
+			}
+
+		case err := <-errorCh:
+			return err
+		}
+	}
+}
+
+func (s *consulSnapshot) persistTombstones(sink raft.SnapshotSink,
+	encoder *codec.Encoder) error {
+	streamCh := make(chan interface{}, 256)
+	errorCh := make(chan error)
+	go func() {
+		if err := s.state.TombstoneDump(streamCh); err != nil {
+			errorCh <- err
+		}
+	}()
+
+	for {
+		select {
+		case raw := <-streamCh:
+			if raw == nil {
+				return nil
+			}
+			sink.Write([]byte{byte(structs.TombstoneRequestType)})
 			if err := encoder.Encode(raw); err != nil {
 				return err
 			}

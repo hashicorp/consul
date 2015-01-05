@@ -135,13 +135,14 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 		&reply.QueryMeta,
 		state.QueryTables("KVSList"),
 		func() error {
-			index, ent, err := state.KVSList(args.Key)
+			tombIndex, index, ent, err := state.KVSList(args.Key)
 			if err != nil {
 				return err
 			}
 			if acl != nil {
 				ent = FilterDirEnt(acl, ent)
 			}
+
 			if len(ent) == 0 {
 				// Must provide non-zero index to prevent blocking
 				// Index 1 is impossible anyways (due to Raft internals)
@@ -150,7 +151,6 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 				} else {
 					reply.Index = index
 				}
-				reply.Entries = nil
 			} else {
 				// Determine the maximum affected index
 				var maxIndex uint64
@@ -159,7 +159,9 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 						maxIndex = e.ModifyIndex
 					}
 				}
-
+				if tombIndex > maxIndex {
+					maxIndex = tombIndex
+				}
 				reply.Index = maxIndex
 				reply.Entries = ent
 			}

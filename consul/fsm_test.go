@@ -42,7 +42,7 @@ func TestFSM_RegisterNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -198,7 +198,7 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -257,7 +257,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -328,7 +328,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -357,6 +357,12 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	acl := &structs.ACL{ID: generateUUID(), Name: "User Token"}
 	fsm.state.ACLSet(10, acl)
 
+	fsm.state.KVSSet(11, &structs.DirEntry{
+		Key:   "/remove",
+		Value: []byte("foo"),
+	})
+	fsm.state.KVSDelete(12, "/remove")
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	if err != nil {
@@ -372,7 +378,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Try to restore on a new FSM
-	fsm2, err := NewFSM(path, os.Stderr)
+	fsm2, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -446,6 +452,15 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	if idx <= 1 {
 		t.Fatalf("bad index: %d", idx)
 	}
+
+	// Verify tombstones are restored
+	_, res, err := fsm.state.tombstoneTable.Get("id", "/remove")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 1 {
+		t.Fatalf("bad: %v", res)
+	}
 }
 
 func TestFSM_KVSSet(t *testing.T) {
@@ -453,7 +468,7 @@ func TestFSM_KVSSet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -492,7 +507,7 @@ func TestFSM_KVSDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -542,7 +557,7 @@ func TestFSM_KVSDeleteTree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -593,7 +608,7 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -654,7 +669,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -738,7 +753,7 @@ func TestFSM_KVSLock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -787,7 +802,7 @@ func TestFSM_KVSUnlock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -854,7 +869,7 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(path, os.Stderr)
+	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -923,5 +938,48 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 	}
 	if acl != nil {
 		t.Fatalf("should be destroyed")
+	}
+}
+
+func TestFSM_TombstoneReap(t *testing.T) {
+	path, err := ioutil.TempDir("", "fsm")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	fsm, err := NewFSM(nil, path, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	// Create some  tombstones
+	fsm.state.KVSSet(11, &structs.DirEntry{
+		Key:   "/remove",
+		Value: []byte("foo"),
+	})
+	fsm.state.KVSDelete(12, "/remove")
+
+	// Create a new reap request
+	req := structs.TombstoneRequest{
+		Datacenter: "dc1",
+		Op:         structs.TombstoneReap,
+		ReapIndex:  12,
+	}
+	buf, err := structs.Encode(structs.TombstoneRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if err, ok := resp.(error); ok {
+		t.Fatalf("resp: %v", err)
+	}
+
+	// Verify the tombstones are gone
+	_, res, err := fsm.state.tombstoneTable.Get("id")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(res) != 0 {
+		t.Fatalf("bad: %v", res)
 	}
 }
