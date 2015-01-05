@@ -329,7 +329,7 @@ PARSE:
 		// Support RFC 2782 style syntax
 		if n == 3 && strings.HasPrefix(labels[n-2], "_") && strings.HasPrefix(labels[n-3], "_") {
 
-			// Grab the tag since we make nuke it if it's tcp
+			// Grab the tag since we may nuke it if it's tcp
 			tag := labels[n-2][1:]
 
 			// Treat _name._tcp.service.consul as a default, no need to filter on that tag
@@ -597,7 +597,7 @@ func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, res
 	}
 }
 
-// serviceARecords is used to add the SRV records for a service lookup
+// serviceSRVRecords is used to add the SRV records for a service lookup
 func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration) {
 	handled := make(map[string]struct{})
 	for _, node := range nodes {
