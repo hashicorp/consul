@@ -1472,6 +1472,7 @@ func TestKVSDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	gc.SetEnabled(true)
 	store.gc = gc
 
 	// Create the entry
@@ -1934,6 +1935,7 @@ func TestKVSDeleteTree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	gc.SetEnabled(true)
 	store.gc = gc
 
 	// Should not exist
@@ -2015,6 +2017,7 @@ func TestReapTombstones(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	gc.SetEnabled(true)
 	store.gc = gc
 
 	// Should not exist
