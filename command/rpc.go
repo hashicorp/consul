@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/armon/consul-api"
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/agent"
 )
 

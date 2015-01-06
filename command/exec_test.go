@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/armon/consul-api"
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
 )

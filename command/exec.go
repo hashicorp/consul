@@ -14,7 +14,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/armon/consul-api"
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/mitchellh/cli"
 )
 
