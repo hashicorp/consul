@@ -99,6 +99,56 @@ func TestClient_JoinLAN(t *testing.T) {
 	})
 }
 
+func TestClient_JoinLAN_Invalid(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, c1 := testClientDC(t, "other")
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := c1.JoinLAN([]string{addr}); err == nil {
+		t.Fatalf("should error")
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	if len(s1.LANMembers()) != 1 {
+		t.Fatalf("should not join")
+	}
+	if len(c1.LANMembers()) != 1 {
+		t.Fatalf("should not join")
+	}
+}
+
+func TestClient_JoinWAN_Invalid(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, c1 := testClientDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := c1.JoinLAN([]string{addr}); err == nil {
+		t.Fatalf("should error")
+	}
+
+	time.Sleep(50 * time.Millisecond)
+	if len(s1.WANMembers()) != 1 {
+		t.Fatalf("should not join")
+	}
+	if len(c1.LANMembers()) != 1 {
+		t.Fatalf("should not join")
+	}
+}
+
 func TestClient_RPC(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)

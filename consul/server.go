@@ -302,6 +302,11 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
 	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]
 	conf.RejoinAfterLeave = s.config.RejoinAfterLeave
+	if wan {
+		conf.Merge = &wanMergeDelegate{logger: s.logger}
+	} else {
+		conf.Merge = &lanMergeDelegate{logger: s.logger, dc: s.config.Datacenter}
+	}
 
 	// Until Consul supports this fully, we disable automatic resolution.
 	// When enabled, the Serf gossip may just turn off if we are the minority
