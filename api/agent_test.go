@@ -5,7 +5,9 @@ import (
 )
 
 func TestAgent_Self(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	agent := c.Agent()
 
 	info, err := agent.Self()
@@ -20,7 +22,9 @@ func TestAgent_Self(t *testing.T) {
 }
 
 func TestAgent_Members(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	agent := c.Agent()
 
 	members, err := agent.Members(false)
@@ -34,7 +38,9 @@ func TestAgent_Members(t *testing.T) {
 }
 
 func TestAgent_Services(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	agent := c.Agent()
 
 	reg := &AgentServiceRegistration{
@@ -71,7 +77,9 @@ func TestAgent_Services(t *testing.T) {
 }
 
 func TestAgent_SetTTLStatus(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	agent := c.Agent()
 
 	reg := &AgentServiceRegistration{
@@ -109,7 +117,9 @@ func TestAgent_SetTTLStatus(t *testing.T) {
 }
 
 func TestAgent_Checks(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	agent := c.Agent()
 
 	reg := &AgentCheckRegistration{
@@ -134,7 +144,9 @@ func TestAgent_Checks(t *testing.T) {
 }
 
 func TestAgent_Join(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	agent := c.Agent()
 
 	info, err := agent.Self()
@@ -151,7 +163,9 @@ func TestAgent_Join(t *testing.T) {
 }
 
 func TestAgent_ForceLeave(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	agent := c.Agent()
 
 	// Eject somebody

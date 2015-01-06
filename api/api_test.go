@@ -3,18 +3,111 @@ package api
 import (
 	crand "crypto/rand"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"os/exec"
 	"testing"
 	"time"
 )
 
-func makeClient(t *testing.T) *Client {
+var consulConfig = `{
+	"ports": {
+		"http": 18800
+	},
+	"data_dir": "%s",
+	"bootstrap": true,
+	"server": true
+}`
+
+type testServer struct {
+	pid        int
+	dataDir    string
+	configFile string
+}
+
+func (s *testServer) stop() {
+	defer os.RemoveAll(s.dataDir)
+	defer os.RemoveAll(s.configFile)
+
+	cmd := exec.Command("kill", "-9", fmt.Sprintf("%d", s.pid))
+	if err := cmd.Run(); err != nil {
+		panic(err)
+	}
+}
+
+func newTestServer(t *testing.T) *testServer {
+	if path, err := exec.LookPath("consul"); err != nil || path == "" {
+		t.Log("consul not found on $PATH, skipping")
+		t.SkipNow()
+	}
+
+	pidFile, err := ioutil.TempFile("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	pidFile.Close()
+	os.Remove(pidFile.Name())
+
+	dataDir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	configFile, err := ioutil.TempFile("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	configContent := fmt.Sprintf(consulConfig, dataDir)
+	if _, err := configFile.WriteString(configContent); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	configFile.Close()
+
+	// Start the server
+	cmd := exec.Command("consul", "agent", "-config-file", configFile.Name())
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Allow the server some time to start, and verify we have a leader.
+	client := new(http.Client)
+	for i := 0; ; i++ {
+		if i >= 20 {
+			t.Fatal("Server failed to start")
+		}
+		time.Sleep(100 * time.Millisecond)
+
+		resp, err := client.Get("http://127.0.0.1:18800/v1/status/leader")
+		if err != nil {
+			continue
+		}
+		defer resp.Body.Close()
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil || len(body) == 2 {
+			continue
+		}
+
+		break
+	}
+
+	return &testServer{
+		pid:        cmd.Process.Pid,
+		dataDir:    dataDir,
+		configFile: configFile.Name(),
+	}
+}
+
+func makeClient(t *testing.T) (*Client, *testServer) {
+	server := newTestServer(t)
 	conf := DefaultConfig()
+	conf.Address = "127.0.0.1:18800"
 	client, err := NewClient(conf)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	return client
+	return client, server
 }
 
 func testKey() string {
@@ -32,7 +125,9 @@ func testKey() string {
 }
 
 func TestSetQueryOptions(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &QueryOptions{
 		Datacenter:        "foo",
@@ -65,7 +160,9 @@ func TestSetQueryOptions(t *testing.T) {
 }
 
 func TestSetWriteOptions(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &WriteOptions{
 		Datacenter: "foo",
@@ -82,7 +179,9 @@ func TestSetWriteOptions(t *testing.T) {
 }
 
 func TestRequestToHTTP(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	r := c.newRequest("DELETE", "/v1/kv/foo")
 	q := &QueryOptions{
 		Datacenter: "foo",
@@ -96,7 +195,7 @@ func TestRequestToHTTP(t *testing.T) {
 	if req.Method != "DELETE" {
 		t.Fatalf("bad: %v", req)
 	}
-	if req.URL.String() != "http://127.0.0.1:8500/v1/kv/foo?dc=foo" {
+	if req.URL.String() != "http://127.0.0.1:18800/v1/kv/foo?dc=foo" {
 		t.Fatalf("bad: %v", req)
 	}
 }

@@ -6,7 +6,9 @@ import (
 )
 
 func TestHealth_Node(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	agent := c.Agent()
 	health := c.Health()
 
@@ -30,7 +32,9 @@ func TestHealth_Node(t *testing.T) {
 }
 
 func TestHealth_Checks(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	agent := c.Agent()
 	health := c.Health()
 
@@ -63,7 +67,9 @@ func TestHealth_Checks(t *testing.T) {
 }
 
 func TestHealth_Service(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	health := c.Health()
 
 	// consul service should always exist...
@@ -81,7 +87,9 @@ func TestHealth_Service(t *testing.T) {
 }
 
 func TestHealth_State(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	health := c.Health()
 
 	checks, meta, err := health.State("any", nil)

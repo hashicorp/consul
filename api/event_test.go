@@ -5,7 +5,9 @@ import (
 )
 
 func TestEvent_FireList(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	event := c.Event()
 
 	params := &UserEvent{Name: "foo"}

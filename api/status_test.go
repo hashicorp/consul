@@ -5,7 +5,9 @@ import (
 )
 
 func TestStatusLeader(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	status := c.Status()
 
 	leader, err := status.Leader()
@@ -18,7 +20,9 @@ func TestStatusLeader(t *testing.T) {
 }
 
 func TestStatusPeers(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	status := c.Status()
 
 	peers, err := status.Peers()

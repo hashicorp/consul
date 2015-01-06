@@ -8,7 +8,9 @@ import (
 )
 
 func TestClientPutGetDelete(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	kv := c.KV()
 
 	// Get a get without a key
@@ -62,7 +64,9 @@ func TestClientPutGetDelete(t *testing.T) {
 }
 
 func TestClient_List_DeleteRecurse(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	kv := c.KV()
 
 	// Generate some test keys
@@ -114,7 +118,9 @@ func TestClient_List_DeleteRecurse(t *testing.T) {
 }
 
 func TestClient_CAS(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	kv := c.KV()
 
 	// Put the key
@@ -159,7 +165,9 @@ func TestClient_CAS(t *testing.T) {
 }
 
 func TestClient_WatchGet(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	kv := c.KV()
 
 	// Get a get without a key
@@ -178,7 +186,6 @@ func TestClient_WatchGet(t *testing.T) {
 	// Put the key
 	value := []byte("test")
 	go func() {
-		c := makeClient(t)
 		kv := c.KV()
 
 		time.Sleep(100 * time.Millisecond)
@@ -209,7 +216,9 @@ func TestClient_WatchGet(t *testing.T) {
 }
 
 func TestClient_WatchList(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	kv := c.KV()
 
 	// Get a get without a key
@@ -229,7 +238,6 @@ func TestClient_WatchList(t *testing.T) {
 	// Put the key
 	value := []byte("test")
 	go func() {
-		c := makeClient(t)
 		kv := c.KV()
 
 		time.Sleep(100 * time.Millisecond)
@@ -261,7 +269,9 @@ func TestClient_WatchList(t *testing.T) {
 }
 
 func TestClient_Keys_DeleteRecurse(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	kv := c.KV()
 
 	// Generate some test keys
@@ -308,7 +318,9 @@ func TestClient_Keys_DeleteRecurse(t *testing.T) {
 }
 
 func TestClient_AcquireRelease(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	session := c.Session()
 	kv := c.KV()
 

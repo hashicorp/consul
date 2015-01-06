@@ -5,7 +5,9 @@ import (
 )
 
 func TestCatalog_Datacenters(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	catalog := c.Catalog()
 
 	datacenters, err := catalog.Datacenters()
@@ -19,7 +21,9 @@ func TestCatalog_Datacenters(t *testing.T) {
 }
 
 func TestCatalog_Nodes(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	catalog := c.Catalog()
 
 	nodes, meta, err := catalog.Nodes(nil)
@@ -37,7 +41,9 @@ func TestCatalog_Nodes(t *testing.T) {
 }
 
 func TestCatalog_Services(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	catalog := c.Catalog()
 
 	services, meta, err := catalog.Services(nil)
@@ -55,7 +61,9 @@ func TestCatalog_Services(t *testing.T) {
 }
 
 func TestCatalog_Service(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	catalog := c.Catalog()
 
 	services, meta, err := catalog.Service("consul", "", nil)
@@ -73,7 +81,9 @@ func TestCatalog_Service(t *testing.T) {
 }
 
 func TestCatalog_Node(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	catalog := c.Catalog()
 
 	name, _ := c.Agent().NodeName()
@@ -91,7 +101,9 @@ func TestCatalog_Node(t *testing.T) {
 }
 
 func TestCatalog_Registration(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	catalog := c.Catalog()
 
 	service := &AgentService{
@@ -143,11 +155,6 @@ func TestCatalog_Registration(t *testing.T) {
 	if health[0].CheckID != "service:redis1" {
 		t.Fatalf("missing checkid service:redis1")
 	}
-}
-
-func TestCatalog_Deregistration(t *testing.T) {
-	c := makeClient(t)
-	catalog := c.Catalog()
 
 	dereg := &CatalogDeregistration{
 		Datacenter: "dc1",
@@ -156,14 +163,11 @@ func TestCatalog_Deregistration(t *testing.T) {
 		ServiceID:  "redis1",
 	}
 
-	_, err := catalog.Deregister(dereg, nil)
-
-	if err != nil {
+	if _, err := catalog.Deregister(dereg, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	node, _, err := catalog.Node("foobar", nil)
-
+	node, _, err = catalog.Node("foobar", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -179,14 +183,11 @@ func TestCatalog_Deregistration(t *testing.T) {
 		CheckID:    "service:redis1",
 	}
 
-	_, err = catalog.Deregister(dereg, nil)
-
-	if err != nil {
+	if _, err := catalog.Deregister(dereg, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	health, _, err := c.Health().Node("foobar", nil)
-
+	health, _, err = c.Health().Node("foobar", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -201,14 +202,11 @@ func TestCatalog_Deregistration(t *testing.T) {
 		Address:    "192.168.10.10",
 	}
 
-	_, err = catalog.Deregister(dereg, nil)
-
-	if err != nil {
+	if _, err = catalog.Deregister(dereg, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	node, _, err = catalog.Node("foobar", nil)
-
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

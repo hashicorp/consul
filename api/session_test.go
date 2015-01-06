@@ -5,7 +5,9 @@ import (
 )
 
 func TestSession_CreateDestroy(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	session := c.Session()
 
 	id, meta, err := session.Create(nil, nil)
@@ -32,7 +34,9 @@ func TestSession_CreateDestroy(t *testing.T) {
 }
 
 func TestSession_CreateRenewDestroy(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	session := c.Session()
 
 	se := &SessionEntry{
@@ -80,7 +84,9 @@ func TestSession_CreateRenewDestroy(t *testing.T) {
 }
 
 func TestSession_Info(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	session := c.Session()
 
 	id, _, err := session.Create(nil, nil)
@@ -131,7 +137,9 @@ func TestSession_Info(t *testing.T) {
 }
 
 func TestSession_Node(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	session := c.Session()
 
 	id, _, err := session.Create(nil, nil)
@@ -163,7 +171,9 @@ func TestSession_Node(t *testing.T) {
 }
 
 func TestSession_List(t *testing.T) {
-	c := makeClient(t)
+	c, s := makeClient(t)
+	defer s.stop()
+
 	session := c.Session()
 
 	id, _, err := session.Create(nil, nil)
