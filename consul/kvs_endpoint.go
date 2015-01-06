@@ -90,10 +90,13 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 
 	// Get the local state
 	state := k.srv.fsm.State()
-	return k.srv.blockingRPC(&args.QueryOptions,
-		&reply.QueryMeta,
-		state.QueryTables("KVSGet"),
-		func() error {
+	opts := blockingRPCOptions{
+		queryOpts: &args.QueryOptions,
+		queryMeta: &reply.QueryMeta,
+		tables:    nil,
+		kvWatch:   true,
+		kvPrefix:  args.Key,
+		run: func() error {
 			index, ent, err := state.KVSGet(args.Key)
 			if err != nil {
 				return err
@@ -115,7 +118,9 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 				reply.Entries = structs.DirEntries{ent}
 			}
 			return nil
-		})
+		},
+	}
+	return k.srv.blockingRPCOpt(&opts)
 }
 
 // List is used to list all keys with a given prefix
@@ -131,10 +136,13 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 
 	// Get the local state
 	state := k.srv.fsm.State()
-	return k.srv.blockingRPC(&args.QueryOptions,
-		&reply.QueryMeta,
-		state.QueryTables("KVSList"),
-		func() error {
+	opts := blockingRPCOptions{
+		queryOpts: &args.QueryOptions,
+		queryMeta: &reply.QueryMeta,
+		tables:    nil,
+		kvWatch:   true,
+		kvPrefix:  args.Key,
+		run: func() error {
 			tombIndex, index, ent, err := state.KVSList(args.Key)
 			if err != nil {
 				return err
@@ -166,7 +174,9 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 				reply.Entries = ent
 			}
 			return nil
-		})
+		},
+	}
+	return k.srv.blockingRPCOpt(&opts)
 }
 
 // ListKeys is used to list all keys with a given prefix to a seperator
@@ -182,10 +192,13 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 
 	// Get the local state
 	state := k.srv.fsm.State()
-	return k.srv.blockingRPC(&args.QueryOptions,
-		&reply.QueryMeta,
-		state.QueryTables("KVSListKeys"),
-		func() error {
+	opts := blockingRPCOptions{
+		queryOpts: &args.QueryOptions,
+		queryMeta: &reply.QueryMeta,
+		tables:    nil,
+		kvWatch:   true,
+		kvPrefix:  args.Prefix,
+		run: func() error {
 			index, keys, err := state.KVSListKeys(args.Prefix, args.Seperator)
 			reply.Index = index
 			if acl != nil {
@@ -193,5 +206,8 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 			}
 			reply.Keys = keys
 			return err
-		})
+
+		},
+	}
+	return k.srv.blockingRPCOpt(&opts)
 }
