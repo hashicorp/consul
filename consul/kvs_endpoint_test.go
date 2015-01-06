@@ -279,6 +279,101 @@ func TestKVSEndpoint_List(t *testing.T) {
 	}
 }
 
+func TestKVSEndpoint_List_Blocking(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	keys := []string{
+		"/test/key1",
+		"/test/key2",
+		"/test/sub/key3",
+	}
+
+	for _, key := range keys {
+		arg := structs.KVSRequest{
+			Datacenter: "dc1",
+			Op:         structs.KVSSet,
+			DirEnt: structs.DirEntry{
+				Key:   key,
+				Flags: 1,
+			},
+		}
+		var out bool
+		if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	getR := structs.KeyRequest{
+		Datacenter: "dc1",
+		Key:        "/test",
+	}
+	var dirent structs.IndexedDirEntries
+	if err := client.Call("KVS.List", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Setup a blocking query
+	getR.MinQueryIndex = dirent.Index
+	getR.MaxQueryTime = time.Second
+
+	// Async cause a change
+	start := time.Now()
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		client := rpcClient(t, s1)
+		defer client.Close()
+		arg := structs.KVSRequest{
+			Datacenter: "dc1",
+			Op:         structs.KVSDelete,
+			DirEnt: structs.DirEntry{
+				Key: "/test/sub/key3",
+			},
+		}
+		var out bool
+		if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	// Re-run the query
+	dirent = structs.IndexedDirEntries{}
+	if err := client.Call("KVS.List", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should block at least 100ms
+	if time.Now().Sub(start) < 100*time.Millisecond {
+		t.Fatalf("too fast")
+	}
+
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Entries) != 2 {
+		for _, ent := range dirent.Entries {
+			t.Errorf("Bad: %#v", *ent)
+		}
+	}
+	for i := 0; i < len(dirent.Entries); i++ {
+		d := dirent.Entries[i]
+		if d.Key != keys[i] {
+			t.Fatalf("bad: %v", d)
+		}
+		if d.Flags != 1 {
+			t.Fatalf("bad: %v", d)
+		}
+		if d.Value != nil {
+			t.Fatalf("bad: %v", d)
+		}
+	}
+}
+
 func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"

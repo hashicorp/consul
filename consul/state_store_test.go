@@ -1379,6 +1379,45 @@ func TestNodeDump(t *testing.T) {
 	}
 }
 
+func TestKVSSet_Watch(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	notify1 := make(chan struct{}, 1)
+	notify2 := make(chan struct{}, 1)
+	notify3 := make(chan struct{}, 1)
+
+	store.WatchKV("", notify1)
+	store.WatchKV("foo/", notify2)
+	store.WatchKV("foo/bar", notify3)
+
+	// Create the entry
+	d := &structs.DirEntry{Key: "foo/baz", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check that we've fired notify1 and notify2
+	select {
+	case <-notify1:
+	default:
+		t.Fatalf("should notify root")
+	}
+	select {
+	case <-notify2:
+	default:
+		t.Fatalf("should notify foo/")
+	}
+	select {
+	case <-notify3:
+		t.Fatalf("should not notify foo/bar")
+	default:
+	}
+}
+
 func TestKVSSet_Get(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
@@ -1481,9 +1520,19 @@ func TestKVSDelete(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	notify1 := make(chan struct{}, 1)
+	store.WatchKV("/", notify1)
+
 	// Delete the entry
 	if err := store.KVSDelete(1020, "/foo"); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	// Check that we've fired notify1
+	select {
+	case <-notify1:
+	default:
+		t.Fatalf("should notify /")
 	}
 
 	// Should not exist
@@ -1938,6 +1987,14 @@ func TestKVSDeleteTree(t *testing.T) {
 	gc.SetEnabled(true)
 	store.gc = gc
 
+	notify1 := make(chan struct{}, 1)
+	notify2 := make(chan struct{}, 1)
+	notify3 := make(chan struct{}, 1)
+
+	store.WatchKV("", notify1)
+	store.WatchKV("/web/sub", notify2)
+	store.WatchKV("/other", notify3)
+
 	// Should not exist
 	err = store.KVSDeleteTree(1000, "/web")
 	if err != nil {
@@ -1991,6 +2048,23 @@ func TestKVSDeleteTree(t *testing.T) {
 		if r.(*structs.DirEntry).ModifyIndex != 1010 {
 			t.Fatalf("bad: %#v", r)
 		}
+	}
+
+	// Check that we've fired notify1 and notify2
+	select {
+	case <-notify1:
+	default:
+		t.Fatalf("should notify root")
+	}
+	select {
+	case <-notify2:
+	default:
+		t.Fatalf("should notify /web/sub")
+	}
+	select {
+	case <-notify3:
+		t.Fatalf("should not notify /other")
+	default:
 	}
 
 	// Check that we get a delete
@@ -2560,7 +2634,6 @@ func TestSessionInvalidate_KeyUnlock(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	defer store.Close()
-
 	if err := store.EnsureNode(3, structs.Node{"foo", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2588,6 +2661,9 @@ func TestSessionInvalidate_KeyUnlock(t *testing.T) {
 		t.Fatalf("unexpected fail")
 	}
 
+	notify1 := make(chan struct{}, 1)
+	store.WatchKV("/f", notify1)
+
 	// Delete the node
 	if err := store.DeleteNode(6, "foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -2603,6 +2679,13 @@ func TestSessionInvalidate_KeyUnlock(t *testing.T) {
 	}
 	if d2.Session != "" {
 		t.Fatalf("bad: %v", *d2)
+	}
+
+	// Should notify of update
+	select {
+	case <-notify1:
+	default:
+		t.Fatalf("should notify /f")
 	}
 
 	// Key should have a lock delay
@@ -2647,6 +2730,9 @@ func TestSessionInvalidate_KeyDelete(t *testing.T) {
 		t.Fatalf("unexpected fail")
 	}
 
+	notify1 := make(chan struct{}, 1)
+	store.WatchKV("/f", notify1)
+
 	// Delete the node
 	if err := store.DeleteNode(6, "foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -2656,6 +2742,13 @@ func TestSessionInvalidate_KeyDelete(t *testing.T) {
 	_, d2, err := store.KVSGet("/bar")
 	if d2 != nil {
 		t.Fatalf("unexpected undeleted key")
+	}
+
+	// Should notify of update
+	select {
+	case <-notify1:
+	default:
+		t.Fatalf("should notify /f")
 	}
 }
 
