@@ -93,7 +93,6 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 	opts := blockingRPCOptions{
 		queryOpts: &args.QueryOptions,
 		queryMeta: &reply.QueryMeta,
-		tables:    nil,
 		kvWatch:   true,
 		kvPrefix:  args.Key,
 		run: func() error {
@@ -139,7 +138,6 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 	opts := blockingRPCOptions{
 		queryOpts: &args.QueryOptions,
 		queryMeta: &reply.QueryMeta,
-		tables:    nil,
 		kvWatch:   true,
 		kvPrefix:  args.Key,
 		run: func() error {
@@ -195,7 +193,6 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 	opts := blockingRPCOptions{
 		queryOpts: &args.QueryOptions,
 		queryMeta: &reply.QueryMeta,
-		tables:    nil,
 		kvWatch:   true,
 		kvPrefix:  args.Prefix,
 		run: func() error {
