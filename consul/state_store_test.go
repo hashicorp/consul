@@ -2731,7 +2731,7 @@ func TestSessionInvalidate_KeyDelete(t *testing.T) {
 	}
 
 	notify1 := make(chan struct{}, 1)
-	store.WatchKV("/f", notify1)
+	store.WatchKV("/b", notify1)
 
 	// Delete the node
 	if err := store.DeleteNode(6, "foo"); err != nil {
@@ -2748,7 +2748,13 @@ func TestSessionInvalidate_KeyDelete(t *testing.T) {
 	select {
 	case <-notify1:
 	default:
-		t.Fatalf("should notify /f")
+		t.Fatalf("should notify /b")
+	}
+
+	// Key should have a lock delay
+	expires := store.KVSLockDelay("/bar")
+	if expires.Before(time.Now().Add(30 * time.Millisecond)) {
+		t.Fatalf("Bad: %v", expires)
 	}
 }
 

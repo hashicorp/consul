@@ -1784,23 +1784,19 @@ func (s *StateStore) invalidateSession(index uint64, tx *MDBTxn, id string) erro
 	}
 	session := res[0].(*structs.Session)
 
+	// Enforce the MaxLockDelay
+	delay := session.LockDelay
+	if delay > structs.MaxLockDelay {
+		delay = structs.MaxLockDelay
+	}
+
+	// Invalidate any held locks
 	if session.Behavior == structs.SessionKeysDelete {
-		// delete the keys held by the session
-		if err := s.kvsDeleteWithIndexTxn(index, tx, "session", id); err != nil {
+		if err := s.deleteLocks(index, tx, delay, id); err != nil {
 			return err
 		}
-
-	} else { // default to release
-		// Enforce the MaxLockDelay
-		delay := session.LockDelay
-		if delay > structs.MaxLockDelay {
-			delay = structs.MaxLockDelay
-		}
-
-		// Invalidate any held locks
-		if err := s.invalidateLocks(index, tx, delay, id); err != nil {
-			return err
-		}
+	} else if err := s.invalidateLocks(index, tx, delay, id); err != nil {
+		return err
 	}
 
 	// Nuke the session
@@ -1862,6 +1858,42 @@ func (s *StateStore) invalidateLocks(index uint64, tx *MDBTxn,
 	if len(pairs) > 0 {
 		if err := s.kvsTable.SetLastIndexTxn(tx, index); err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+// deleteLocks is used to delete all the locks held by a session
+// within a given txn. All tables should be locked in the tx.
+func (s *StateStore) deleteLocks(index uint64, tx *MDBTxn,
+	lockDelay time.Duration, id string) error {
+	pairs, err := s.kvsTable.GetTxn(tx, "session", id)
+	if err != nil {
+		return err
+	}
+
+	var expires time.Time
+	if lockDelay > 0 {
+		s.lockDelayLock.Lock()
+		defer s.lockDelayLock.Unlock()
+		expires = time.Now().Add(lockDelay)
+	}
+
+	for _, pair := range pairs {
+		kv := pair.(*structs.DirEntry)
+		if err := s.kvsDeleteWithIndexTxn(index, tx, "id", kv.Key); err != nil {
+			return err
+		}
+
+		// If there is a lock delay, prevent acquisition
+		// for at least lockDelay period
+		if lockDelay > 0 {
+			s.lockDelay[kv.Key] = expires
+			time.AfterFunc(lockDelay, func() {
+				s.lockDelayLock.Lock()
+				delete(s.lockDelay, kv.Key)
+				s.lockDelayLock.Unlock()
+			})
 		}
 	}
 	return nil
