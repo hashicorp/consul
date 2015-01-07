@@ -73,6 +73,15 @@ type WriteMeta struct {
 	RequestTime time.Duration
 }
 
+// HttpBasicAuth is used to authenticate http client with HTTP Basic Authentication
+type HttpBasicAuth struct {
+	// Username to use for HTTP Basic Authentication
+	Username string
+
+	// Password to use for HTTP Basic Authentication
+	Password string
+}
+
 // Config is used to configure the creation of a client
 type Config struct {
 	// Address is the address of the Consul server
@@ -87,6 +96,9 @@ type Config struct {
 	// HttpClient is the client to use. Default will be
 	// used if not provided.
 	HttpClient *http.Client
+
+	// HttpAuth is the auth info to use for http access.
+	HttpAuth *HttpBasicAuth
 
 	// WaitTime limits how long a Watch will block. If not provided,
 	// the agent default values will be used.
@@ -207,7 +219,14 @@ func (r *request) toHTTP() (*http.Request, error) {
 	}
 
 	// Create the HTTP request
-	return http.NewRequest(r.method, urlRaw, r.body)
+	req, err := http.NewRequest(r.method, urlRaw, r.body)
+
+	// Setup auth
+	if err == nil && r.config.HttpAuth != nil {
+		req.SetBasicAuth(r.config.HttpAuth.Username, r.config.HttpAuth.Password)
+	}
+
+	return req, err
 }
 
 // newRequest is used to create a new request
