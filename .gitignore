@@ -36,3 +36,5 @@ ui/static/base.css
 
 ui/static/application.min.js
 ui/dist/
+
+*.swp
