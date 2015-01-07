@@ -79,10 +79,7 @@ func waitForLeader(t *testing.T, httpAddr string) {
 	}
 	testutil.WaitForResult(func() (bool, error) {
 		_, qm, err := client.Catalog().Nodes(nil)
-		if err != nil {
-			return false, err
-		}
-		return qm.KnownLeader, nil
+		return err == nil && qm.KnownLeader && qm.LastIndex > 0, err
 	}, func(err error) {
 		t.Fatalf("failed to find leader: %v", err)
 	})
