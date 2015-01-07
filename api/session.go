@@ -4,6 +4,17 @@ import (
 	"time"
 )
 
+const (
+	// SessionBehaviorRelease is the default behavior and causes
+	// all associated locks to be released on session invalidation.
+	SessionBehaviorRelease = "release"
+
+	// SessionBehaviorDelete is new in Consul 0.5 and changes the
+	// behavior to delete all associated locks on session invalidation.
+	// It can be used in a way similar to Ephemeral Nodes in ZooKeeper.
+	SessionBehaviorDelete = "delete"
+)
+
 // SessionEntry represents a session in consul
 type SessionEntry struct {
 	CreateIndex uint64
