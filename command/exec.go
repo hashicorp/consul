@@ -43,9 +43,8 @@ const (
 	// before assuming the job is done.
 	rExecQuietWait = 2 * time.Second
 
-	// rExecForeignTTL is how long we default the session TTL
-	// to when doing an exec in a foreign DC.
-	rExecForeignTTL = "15s"
+	// rExecTTL is how long we default the session TTL to
+	rExecTTL = "15s"
 
 	// rExecRenewInterval is how often we renew the session TTL
 	// when doing an exec in a foreign DC.
@@ -441,15 +440,18 @@ func (conf *rExecConf) validate() error {
 
 // createSession is used to create a new session for this command
 func (c *ExecCommand) createSession() (string, error) {
+	var id string
+	var err error
 	if c.conf.foreignDC {
-		id, err := c.createSessionForeign()
-		if err == nil {
-			c.stopCh = make(chan struct{})
-			go c.renewSession(id, c.stopCh)
-		}
-		return id, err
+		id, err = c.createSessionForeign()
+	} else {
+		id, err = c.createSessionLocal()
 	}
-	return c.createSessionLocal()
+	if err == nil {
+		c.stopCh = make(chan struct{})
+		go c.renewSession(id, c.stopCh)
+	}
+	return id, err
 }
 
 // createSessionLocal is used to create a new session in a local datacenter
@@ -459,6 +461,7 @@ func (c *ExecCommand) createSessionLocal() (string, error) {
 	se := consulapi.SessionEntry{
 		Name:     "Remote Exec",
 		Behavior: consulapi.SessionBehaviorDelete,
+		TTL:      rExecTTL,
 	}
 	id, _, err := session.Create(&se, nil)
 	return id, err
@@ -489,7 +492,7 @@ func (c *ExecCommand) createSessionForeign() (string, error) {
 		Node:     node,
 		Checks:   []string{},
 		Behavior: consulapi.SessionBehaviorDelete,
-		TTL:      rExecForeignTTL,
+		TTL:      rExecTTL,
 	}
 	id, _, err := session.CreateNoChecks(&se, nil)
 	return id, err
