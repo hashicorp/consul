@@ -7,13 +7,19 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 )
 
 var consulConfig = `{
 	"ports": {
-		"http": 18800
+		"dns": 19000,
+		"http": 18800,
+		"rpc": 18600,
+		"serf_lan": 18200,
+		"serf_wan": 18400,
+		"server": 18000
 	},
 	"data_dir": "%s",
 	"bootstrap": true,
@@ -85,7 +91,7 @@ func newTestServer(t *testing.T) *testServer {
 		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil || len(body) == 2 {
+		if err != nil || !strings.Contains(string(body), "18000") {
 			continue
 		}
 
