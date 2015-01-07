@@ -75,18 +75,22 @@ func TestHealth_Service(t *testing.T) {
 
 	health := c.Health()
 
-	// consul service should always exist...
-	checks, meta, err := health.Service("consul", "", true, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if meta.LastIndex == 0 {
-		t.Fatalf("bad: %v", meta)
-	}
-	if len(checks) == 0 {
-		t.Fatalf("Bad: %v", checks)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		// consul service should always exist...
+		checks, meta, err := health.Service("consul", "", true, nil)
+		if err != nil {
+			return false, err
+		}
+		if meta.LastIndex == 0 {
+			return false, fmt.Errorf("bad: %v", meta)
+		}
+		if len(checks) == 0 {
+			return false, fmt.Errorf("Bad: %v", checks)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestHealth_State(t *testing.T) {
@@ -95,15 +99,19 @@ func TestHealth_State(t *testing.T) {
 
 	health := c.Health()
 
-	checks, meta, err := health.State("any", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if meta.LastIndex == 0 {
-		t.Fatalf("bad: %v", meta)
-	}
-	if len(checks) == 0 {
-		t.Fatalf("Bad: %v", checks)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		checks, meta, err := health.State("any", nil)
+		if err != nil {
+			return false, err
+		}
+		if meta.LastIndex == 0 {
+			return false, fmt.Errorf("bad: %v", meta)
+		}
+		if len(checks) == 0 {
+			return false, fmt.Errorf("Bad: %v", checks)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }

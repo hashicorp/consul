@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/testutil"
 )
 
 var consulConfig = `{
@@ -78,25 +80,22 @@ func newTestServer(t *testing.T) *testServer {
 
 	// Allow the server some time to start, and verify we have a leader.
 	client := new(http.Client)
-	for i := 0; ; i++ {
-		if i >= 20 {
-			t.Fatal("Server failed to start")
-		}
-		time.Sleep(100 * time.Millisecond)
-
+	testutil.WaitForResult(func() (bool, error) {
 		resp, err := client.Get("http://127.0.0.1:18800/v1/status/leader")
 		if err != nil {
-			continue
+			return false, err
 		}
 		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil || !strings.Contains(string(body), "18000") {
-			continue
+			return false, fmt.Errorf("No leader")
 		}
 
-		break
-	}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 
 	return &testServer{
 		pid:        cmd.Process.Pid,
