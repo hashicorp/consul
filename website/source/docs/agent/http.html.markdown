@@ -114,6 +114,9 @@ be provided using the "?dc=" query parameter. If a client wants to write
 to all Datacenters, one request per datacenter must be made. The KV endpoint
 supports the use of ACL tokens.
 
+If you are interested in Key/Value replication between datacenters,
+look at the [consul-replicate project](https://github.com/hashicorp/consul-replicate).
+
 ### GET Method
 
 When using the `GET` method, Consul will return the specified key,
