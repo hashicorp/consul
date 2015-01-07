@@ -3,7 +3,7 @@ package watch
 import (
 	"fmt"
 
-	"github.com/armon/consul-api"
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 // watchFactory is a function that can create a new WatchFunc
