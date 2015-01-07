@@ -1,8 +1,10 @@
 package api
 
 import (
+	"fmt"
 	"testing"
-	"time"
+
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestHealth_Node(t *testing.T) {
@@ -50,20 +52,21 @@ func TestHealth_Checks(t *testing.T) {
 	}
 	defer agent.ServiceDeregister("foo")
 
-	// Wait for the register...
-	time.Sleep(20 * time.Millisecond)
-
-	checks, meta, err := health.Checks("foo", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if meta.LastIndex == 0 {
-		t.Fatalf("bad: %v", meta)
-	}
-	if len(checks) == 0 {
-		t.Fatalf("Bad: %v", checks)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		checks, meta, err := health.Checks("foo", nil)
+		if err != nil {
+			return false, err
+		}
+		if meta.LastIndex == 0 {
+			return false, fmt.Errorf("bad: %v", meta)
+		}
+		if len(checks) == 0 {
+			return false, fmt.Errorf("Bad: %v", checks)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestHealth_Service(t *testing.T) {
