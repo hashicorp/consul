@@ -975,6 +975,7 @@ The following endpoints are supported:
 * [`/v1/session/info/<session>`](#session_info): Queries a given session
 * [`/v1/session/node/<node>`](#session_node): Lists sessions belonging to a node
 * [`/v1/session/list`](#session_list): Lists all the active sessions
+* [`/v1/session/renew`](#session_renew): Renew a TTL based session
 
 All of the read session endpoints supports blocking queries and all consistency modes.
 
@@ -998,7 +999,9 @@ body must look like:
   "LockDelay": "15s",
   "Name": "my-service-lock",
   "Node": "foobar",
-  "Checks": ["a", "b", "c"]
+  "Checks": ["a", "b", "c"],
+  "Behavior": "release",
+  "TTL": "0s"
 }
 ```
 
@@ -1010,9 +1013,20 @@ nanosecond granularity.
 
 The `Node` field must refer to a node that is already registered. By default,
 the agent will use it's own name. The `Name` field can be used to provide a human
-readable name for the Session. Lastly, the `Checks` field is used to provide
+readable name for the Session. The `Checks` field is used to provide
 a list of associated health checks. By default the "serfHealth" check is provided.
 It is highly recommended that if you override this list, you include that check.
+
+The `Behavior` field can be set to either "release" or "delete". This controls
+the behavior when a session is invalidated. By default this is "release", and
+this causes any locks that are held to be released. Changing this to "delete"
+causes any locks that are held to be deleted. This is useful to create ephemeral
+key/value entries.
+
+The `TTL` field is a duration string, and like `LockDelay` it can use "s" as
+a suffix for seconds. If specified, it must be between 10s and 3600s currently.
+When provided, the session is invalidated if it is not renewed before the TTL
+expires. See the [session internals page](/docs/internals/session.html) for more documentation.
 
 The return code is 200 on success, along with a body like:
 
@@ -1109,6 +1123,38 @@ It returns a JSON body like this:
 ```
 
 This endpoint supports blocking queries and all consistency modes.
+
+### <a name="session_renew"></a> /v1/session/renew/\<session\>
+
+The renew endpoint is hit with a PUT and renews the given session.
+This is used with sessions that have a TTL set, and it extends the
+expiration by the TTL. By default the local datacenter is used, but the "?dc="
+query parameter can be used to specify the datacenter. The session being renewed
+must be provided after the slash.
+
+The return code is 200 on success and a JSON body like this:
+
+```javascript
+[
+  {
+    "LockDelay": 1.5e+10,
+    "Checks": [
+      "serfHealth"
+    ],
+    "Node": "foobar",
+    "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "CreateIndex": 1086449
+    "Behavior": "release",
+    "TTL": "15s"
+  }
+]
+```
+
+The response body includes the current session.
+Consul MAY return a TTL value higher than the one specified during session creation.
+This indicates the server is under high load and is requesting clients renew less
+often.
+
 
 ## <a name="acl"></a> ACL
 
