@@ -142,10 +142,10 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	}
 
 	// Load checks/services
-	if err := agent.reloadServices(config); err != nil {
+	if err := agent.loadServices(config); err != nil {
 		return nil, err
 	}
-	if err := agent.reloadChecks(config); err != nil {
+	if err := agent.loadChecks(config); err != nil {
 		return nil, err
 	}
 
@@ -895,18 +895,9 @@ func (a *Agent) deletePid() error {
 	return nil
 }
 
-// reloadServices reloads all known services from config and state. It is used
-// at initial agent startup as well as during config reloads.
-func (a *Agent) reloadServices(conf *Config) error {
-	for _, service := range a.state.Services() {
-		if service.ID == consul.ConsulServiceID {
-			continue
-		}
-		if err := a.RemoveService(service.ID, false); err != nil {
-			return fmt.Errorf("Failed deregistering service '%s': %v", service.ID, err)
-		}
-	}
-
+// loadServices will load service definitions from configuration and persisted
+// definitions on disk, and load them into the local agent.
+func (a *Agent) loadServices(conf *Config) error {
 	// Register the services from config
 	for _, service := range conf.Services {
 		ns := service.NodeService()
@@ -924,15 +915,24 @@ func (a *Agent) reloadServices(conf *Config) error {
 	return nil
 }
 
-// reloadChecks reloads all known checks from config and state. It can be used
-// during initial agent start or for config reloads.
-func (a *Agent) reloadChecks(conf *Config) error {
-	for _, check := range a.state.Checks() {
-		if err := a.RemoveCheck(check.CheckID, false); err != nil {
-			return fmt.Errorf("Failed deregistering check '%s': %s", check.CheckID, err)
+// unloadServices will deregister all services other than the 'consul' service
+// known to the local agent.
+func (a *Agent) unloadServices() error {
+	for _, service := range a.state.Services() {
+		if service.ID == consul.ConsulServiceID {
+			continue
+		}
+		if err := a.RemoveService(service.ID, false); err != nil {
+			return fmt.Errorf("Failed deregistering service '%s': %v", service.ID, err)
 		}
 	}
 
+	return nil
+}
+
+// loadChecks loads check definitions and/or persisted check definitions from
+// disk and re-registers them with the local agent.
+func (a *Agent) loadChecks(conf *Config) error {
 	// Register the checks from config
 	for _, check := range conf.Checks {
 		health := check.HealthCheck(conf.NodeName)
@@ -945,6 +945,17 @@ func (a *Agent) reloadChecks(conf *Config) error {
 	// Load any persisted checks
 	if err := a.restoreChecks(); err != nil {
 		return fmt.Errorf("Failed restoring checks: %s", err)
+	}
+
+	return nil
+}
+
+// unloadChecks will deregister all checks known to the local agent.
+func (a *Agent) unloadChecks() error {
+	for _, check := range a.state.Checks() {
+		if err := a.RemoveCheck(check.CheckID, false); err != nil {
+			return fmt.Errorf("Failed deregistering check '%s': %s", check.CheckID, err)
+		}
 	}
 
 	return nil

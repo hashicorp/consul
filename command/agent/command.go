@@ -722,12 +722,23 @@ func (c *Command) handleReload(config *Config) *Config {
 	c.agent.PauseSync()
 	defer c.agent.ResumeSync()
 
-	// Reload services and check definitions
-	if err := c.agent.reloadServices(newConf); err != nil {
+	// First unload all checks and services. This lets us begin the reload
+	// with a clean slate.
+	if err := c.agent.unloadServices(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed unloading services: %s", err))
+		return nil
+	}
+	if err := c.agent.unloadChecks(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed unloading checks: %s", err))
+		return nil
+	}
+
+	// Reload services and check definitions.
+	if err := c.agent.loadServices(newConf); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed reloading services: %s", err))
 		return nil
 	}
-	if err := c.agent.reloadChecks(newConf); err != nil {
+	if err := c.agent.loadChecks(newConf); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed reloading checks: %s", err))
 		return nil
 	}
