@@ -24,6 +24,7 @@ A service definition that is a script looks like:
   "service": {
     "name": "redis",
     "tags": ["master"],
+    "address": "127.0.0.1",
     "port": 8000,
     "check": {
       "script": "/usr/local/bin/check_redis.py",
@@ -34,12 +35,14 @@ A service definition that is a script looks like:
 ```
 
 A service definition must include a `name`, and may optionally provide
-an `id`, `tags`, `port`, and `check`.  The `id` is set to the `name` if not
+an `id`, `tags`, `address`, `port`, and `check`.  The `id` is set to the `name` if not
 provided. It is required that all services have a unique ID per node, so if names
 might conflict then unique ID's should be provided.
 
 The `tags` is a list of opaque value to Consul, but can be used to distinguish
 between "master" or "slave" nodes, different versions, or any other service level labels.
+The `address` can be used to specify a service specific IP address. By default,
+the IP address of the agent is used, and this does not need to be provided.
 The `port` can be used as well to make a service oriented architecture
 simpler to configure. This way the address and port of a service can
 be discovered.
@@ -76,6 +79,7 @@ Multiple services definitions can be provided at once using the `services`
       "tags": [
         "master"
       ],
+      "address": "127.0.0.1",
       "port": 6000,
       "check": {
         "script": "/bin/check_redis -p 6000",
@@ -90,6 +94,7 @@ Multiple services definitions can be provided at once using the `services`
         "delayed",
         "slave"
       ],
+      "address": "127.0.0.1",
       "port": 7000,
       "check": {
         "script": "/bin/check_redis -p 7000",
