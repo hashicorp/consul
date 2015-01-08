@@ -405,9 +405,6 @@ func (s *StateStore) initialize() error {
 		"CheckServiceNodes": MDBTables{s.nodeTable, s.serviceTable, s.checkTable},
 		"NodeInfo":          MDBTables{s.nodeTable, s.serviceTable, s.checkTable},
 		"NodeDump":          MDBTables{s.nodeTable, s.serviceTable, s.checkTable},
-		"KVSGet":            MDBTables{s.kvsTable},
-		"KVSList":           MDBTables{s.kvsTable},
-		"KVSListKeys":       MDBTables{s.kvsTable},
 		"SessionGet":        MDBTables{s.sessionTable},
 		"SessionList":       MDBTables{s.sessionTable},
 		"NodeSessions":      MDBTables{s.sessionTable},
@@ -445,9 +442,6 @@ func (s *StateStore) WatchKV(prefix string, notify chan struct{}) {
 // notifyKV is used to notify any KV listeners of a change
 // on a prefix
 func (s *StateStore) notifyKV(path string, prefix bool) {
-	// Backwards compatibility for old listeners
-	s.watch[s.kvsTable].Notify()
-
 	s.kvWatchLock.Lock()
 	defer s.kvWatchLock.Unlock()
 
