@@ -398,7 +398,7 @@ func TestAgent_PersistService(t *testing.T) {
 		Port:    8000,
 	}
 
-	file := filepath.Join(agent.config.DataDir, servicesDir, svc.ID)
+	file := filepath.Join(agent.config.DataDir, servicesDir, stringHash(svc.ID))
 
 	// Check is not persisted unless requested
 	if err := agent.AddService(svc, nil, false); err != nil {
@@ -455,7 +455,7 @@ func TestAgent_PurgeService(t *testing.T) {
 		Port:    8000,
 	}
 
-	file := filepath.Join(agent.config.DataDir, servicesDir, svc.ID)
+	file := filepath.Join(agent.config.DataDir, servicesDir, stringHash(svc.ID))
 	if err := agent.AddService(svc, nil, true); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -513,7 +513,7 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	}
 	defer agent2.Shutdown()
 
-	file := filepath.Join(agent.config.DataDir, servicesDir, svc1.ID)
+	file := filepath.Join(agent.config.DataDir, servicesDir, stringHash(svc1.ID))
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted service")
 	}
@@ -546,7 +546,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 		Interval: 10 * time.Second,
 	}
 
-	file := filepath.Join(agent.config.DataDir, checksDir, check.CheckID)
+	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check.CheckID))
 
 	// Not persisted if not requested
 	if err := agent.AddCheck(check, chkType, false); err != nil {
@@ -615,7 +615,7 @@ func TestAgent_PurgeCheck(t *testing.T) {
 		ServiceName: "redis",
 	}
 
-	file := filepath.Join(agent.config.DataDir, checksDir, check.CheckID)
+	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check.CheckID))
 	if err := agent.AddCheck(check, nil, true); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -677,7 +677,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	}
 	defer agent2.Shutdown()
 
-	file := filepath.Join(agent.config.DataDir, checksDir, check1.CheckID)
+	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check1.CheckID))
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted check")
 	}

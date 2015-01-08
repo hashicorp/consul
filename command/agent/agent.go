@@ -491,7 +491,7 @@ func (a *Agent) ResumeSync() {
 
 // persistService saves a service definition to a JSON file in the data dir
 func (a *Agent) persistService(service *structs.NodeService) error {
-	svcPath := filepath.Join(a.config.DataDir, servicesDir, service.ID)
+	svcPath := filepath.Join(a.config.DataDir, servicesDir, stringHash(service.ID))
 	if _, err := os.Stat(svcPath); os.IsNotExist(err) {
 		encoded, err := json.Marshal(service)
 		if err != nil {
@@ -514,7 +514,7 @@ func (a *Agent) persistService(service *structs.NodeService) error {
 
 // purgeService removes a persisted service definition file from the data dir
 func (a *Agent) purgeService(serviceID string) error {
-	svcPath := filepath.Join(a.config.DataDir, servicesDir, serviceID)
+	svcPath := filepath.Join(a.config.DataDir, servicesDir, stringHash(serviceID))
 	if _, err := os.Stat(svcPath); err == nil {
 		return os.Remove(svcPath)
 	}
@@ -565,7 +565,7 @@ func (a *Agent) restoreServices() error {
 
 // persistCheck saves a check definition to the local agent's state directory
 func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType) error {
-	checkPath := filepath.Join(a.config.DataDir, checksDir, check.CheckID)
+	checkPath := filepath.Join(a.config.DataDir, checksDir, stringHash(check.CheckID))
 	if _, err := os.Stat(checkPath); !os.IsNotExist(err) {
 		return err
 	}
@@ -593,7 +593,7 @@ func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType) err
 
 // purgeCheck removes a persisted check definition file from the data dir
 func (a *Agent) purgeCheck(checkID string) error {
-	checkPath := filepath.Join(a.config.DataDir, checksDir, checkID)
+	checkPath := filepath.Join(a.config.DataDir, checksDir, stringHash(checkID))
 	if _, err := os.Stat(checkPath); err == nil {
 		return os.Remove(checkPath)
 	}

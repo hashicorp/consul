@@ -30,3 +30,12 @@ func TestRandomStagger(t *testing.T) {
 		}
 	}
 }
+
+func TestStringHash(t *testing.T) {
+	in := "hello world"
+	expected := "5eb63bbbe01eeed093cb22bb8f5acdc3"
+
+	if out := stringHash(in); out != expected {
+		t.Fatalf("bad: %s", out)
+	}
+}

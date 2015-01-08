@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"crypto/md5"
 	crand "crypto/rand"
 	"fmt"
 	"math"
@@ -90,4 +91,9 @@ func encodeMsgPack(msg interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 	err := codec.NewEncoder(&buf, msgpackHandle).Encode(msg)
 	return buf.Bytes(), err
+}
+
+// stringHash returns a simple md5sum for a string.
+func stringHash(s string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(s)))
 }
