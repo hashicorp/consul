@@ -430,6 +430,7 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 		t.Fatalf("Bad: %#v", ptrRec)
 	}
 }
+
 func TestDNS_ServiceLookup(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
@@ -490,6 +491,74 @@ func TestDNS_ServiceLookup(t *testing.T) {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
 	if aRec.A.String() != "127.0.0.1" {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if aRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+}
+
+func TestDNS_ServiceLookup_ServiceAddress(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Address: "127.0.0.2",
+			Port:    12345,
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeSRV)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	srvRec, ok := in.Answer[0].(*dns.SRV)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if srvRec.Port != 12345 {
+		t.Fatalf("Bad: %#v", srvRec)
+	}
+	if srvRec.Target != "foo.node.dc1.consul." {
+		t.Fatalf("Bad: %#v", srvRec)
+	}
+	if srvRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+
+	aRec, ok := in.Extra[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if aRec.Hdr.Name != "foo.node.dc1.consul." {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if aRec.A.String() != "127.0.0.2" {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
 	if aRec.Hdr.Ttl != 0 {
