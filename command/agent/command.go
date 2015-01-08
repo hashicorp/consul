@@ -295,11 +295,24 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		return err
 	}
 
-	rpcListener, err := net.Listen("tcp", rpcAddr.String())
+	if _, ok := rpcAddr.(*net.UnixAddr); ok {
+		// Remove the socket if it exists, or we'll get a bind error
+		_ = os.Remove(rpcAddr.String())
+	}
+
+	rpcListener, err := net.Listen(rpcAddr.Network(), rpcAddr.String())
 	if err != nil {
 		agent.Shutdown()
 		c.Ui.Error(fmt.Sprintf("Error starting RPC listener: %s", err))
 		return err
+	}
+
+	if _, ok := rpcAddr.(*net.UnixAddr); ok {
+		if err := adjustUnixSocketPermissions(config.Addresses.RPC); err != nil {
+			agent.Shutdown()
+			c.Ui.Error(fmt.Sprintf("Error adjusting Unix socket permissions: %s", err))
+			return err
+		}
 	}
 
 	// Start the IPC layer
@@ -319,6 +332,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	if config.Ports.DNS > 0 {
 		dnsAddr, err := config.ClientListener(config.Addresses.DNS, config.Ports.DNS)
 		if err != nil {
+			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Invalid DNS bind address: %s", err))
 			return err
 		}

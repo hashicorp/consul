@@ -7,8 +7,10 @@ import (
 	"io"
 	"net"
 	"os"
+	"os/user"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -345,6 +347,82 @@ type Config struct {
 	WatchPlans []*watch.WatchPlan `mapstructure:"-" json:"-"`
 }
 
+// UnixSocket contains the parameters for a Unix socket interface
+type UnixSocket struct {
+	// Path to the socket on-disk
+	Path string
+
+	// uid of the owner of the socket
+	Uid int
+
+	// gid of the group of the socket
+	Gid int
+
+	// Permissions for the socket file
+	Permissions os.FileMode
+}
+
+func populateUnixSocket(addr string) (*UnixSocket, error) {
+	if !strings.HasPrefix(addr, "unix://") {
+		return nil, fmt.Errorf("Failed to parse Unix address, format is [path];[user];[group];[mode]: %v", addr)
+	}
+
+	splitAddr := strings.Split(strings.TrimPrefix(addr, "unix://"), ";")
+	if len(splitAddr) != 4 {
+		return nil, fmt.Errorf("Failed to parse Unix address, format is [path];[user];[group];[mode]: %v", addr)
+	}
+
+	ret := &UnixSocket{Path: splitAddr[0]}
+
+	if userVal, err := user.Lookup(splitAddr[1]); err != nil {
+		return nil, fmt.Errorf("Invalid user given for Unix socket ownership: %v", splitAddr[1])
+	} else {
+		if uid64, err := strconv.ParseInt(userVal.Uid, 10, 32); err != nil {
+			return nil, fmt.Errorf("Failed to parse given user ID of %v into integer", userVal.Uid)
+		} else {
+			ret.Uid = int(uid64)
+		}
+	}
+
+	// Go doesn't currently have a way to look up gid from group name,
+	// so require a numeric gid; see
+	// https://codereview.appspot.com/101310044
+	if gid64, err := strconv.ParseInt(splitAddr[2], 10, 32); err != nil {
+		return nil, fmt.Errorf("Socket group must be given as numeric gid. Failed to parse given group ID of %v into integer", splitAddr[2])
+	} else {
+		ret.Gid = int(gid64)
+	}
+
+	if mode, err := strconv.ParseUint(splitAddr[3], 8, 32); err != nil {
+		return nil, fmt.Errorf("Failed to parse given mode of %v into integer", splitAddr[3])
+	} else {
+		if mode > 0777 {
+			return nil, fmt.Errorf("Given mode is invalid; must be an octal number between 0 and 777")
+		} else {
+			ret.Permissions = os.FileMode(mode)
+		}
+	}
+
+	return ret, nil
+}
+
+func adjustUnixSocketPermissions(addr string) error {
+	sock, err := populateUnixSocket(addr)
+	if err != nil {
+		return err
+	}
+
+	if err = os.Chown(sock.Path, sock.Uid, sock.Gid); err != nil {
+		return fmt.Errorf("Error attempting to change socket permissions to userid %v and groupid %v: %v", sock.Uid, sock.Gid, err)
+	}
+
+	if err = os.Chmod(sock.Path, sock.Permissions); err != nil {
+		return fmt.Errorf("Error attempting to change socket permissions to mode %v: %v", sock.Permissions, err)
+	}
+
+	return nil
+}
+
 type dirEnts []os.FileInfo
 
 // DefaultConfig is used to return a sane default configuration
@@ -389,18 +467,30 @@ func (c *Config) EncryptBytes() ([]byte, error) {
 
 // ClientListener is used to format a listener for a
 // port on a ClientAddr
-func (c *Config) ClientListener(override string, port int) (*net.TCPAddr, error) {
+func (c *Config) ClientListener(override string, port int) (net.Addr, error) {
 	var addr string
 	if override != "" {
 		addr = override
 	} else {
 		addr = c.ClientAddr
 	}
-	ip := net.ParseIP(addr)
-	if ip == nil {
-		return nil, fmt.Errorf("Failed to parse IP: %v", addr)
+
+	switch {
+	case strings.HasPrefix(addr, "unix://"):
+		sock, err := populateUnixSocket(addr)
+		if err != nil {
+			return nil, err
+		}
+
+		return &net.UnixAddr{Name: sock.Path, Net: "unix"}, nil
+
+	default:
+		ip := net.ParseIP(addr)
+		if ip == nil {
+			return nil, fmt.Errorf("Failed to parse IP: %v", addr)
+		}
+		return &net.TCPAddr{IP: ip, Port: port}, nil
 	}
-	return &net.TCPAddr{IP: ip, Port: port}, nil
 }
 
 // ClientListenerAddr is used to format an address for a
@@ -410,8 +500,11 @@ func (c *Config) ClientListenerAddr(override string, port int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if addr.IP.IsUnspecified() {
-		addr.IP = net.ParseIP("127.0.0.1")
+
+	if ipAddr, ok := addr.(*net.TCPAddr); ok {
+		if ipAddr.IP.IsUnspecified() {
+			ipAddr.IP = net.ParseIP("127.0.0.1")
+		}
 	}
 	return addr.String(), nil
 }

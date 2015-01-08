@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/consul/command/agent"
 )
 
-// RPCAddrEnvName defines the environment variable name, which can set
-// a default RPC address in case there is no -rpc-addr specified.
+// RPCAddrEnvName defines an environment variable name which sets
+// an RPC address if there is no -rpc-addr specified.
 const RPCAddrEnvName = "CONSUL_RPC_ADDR"
 
 // RPCAddrFlag returns a pointer to a string that will be populated
@@ -43,7 +43,12 @@ func HTTPClient(addr string) (*consulapi.Client, error) {
 // HTTPClientDC returns a new Consul HTTP client with the given address and datacenter
 func HTTPClientDC(addr, dc string) (*consulapi.Client, error) {
 	conf := consulapi.DefaultConfig()
-	conf.Address = addr
+	switch {
+	case len(os.Getenv("CONSUL_HTTP_ADDR")) > 0:
+		conf.Address = os.Getenv("CONSUL_HTTP_ADDR")
+	default:
+		conf.Address = addr
+	}
 	conf.Datacenter = dc
 	return consulapi.NewClient(conf)
 }

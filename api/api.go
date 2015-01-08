@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -111,11 +114,17 @@ type Config struct {
 
 // DefaultConfig returns a default configuration for the client
 func DefaultConfig() *Config {
-	return &Config{
+	config := &Config{
 		Address:    "127.0.0.1:8500",
 		Scheme:     "http",
 		HttpClient: http.DefaultClient,
 	}
+
+	if len(os.Getenv("CONSUL_HTTP_ADDR")) > 0 {
+		config.Address = os.Getenv("CONSUL_HTTP_ADDR")
+	}
+
+	return config
 }
 
 // Client provides a client to the Consul API
@@ -128,7 +137,11 @@ func NewClient(config *Config) (*Client, error) {
 	// bootstrap the config
 	defConfig := DefaultConfig()
 
-	if len(config.Address) == 0 {
+	switch {
+	case len(config.Address) != 0:
+	case len(os.Getenv("CONSUL_HTTP_ADDR")) > 0:
+		config.Address = os.Getenv("CONSUL_HTTP_ADDR")
+	default:
 		config.Address = defConfig.Address
 	}
 
@@ -138,6 +151,16 @@ func NewClient(config *Config) (*Client, error) {
 
 	if config.HttpClient == nil {
 		config.HttpClient = defConfig.HttpClient
+	}
+
+	if strings.HasPrefix(config.Address, "unix://") {
+		shortStr := strings.TrimPrefix(config.Address, "unix://")
+		t := &http.Transport{}
+		t.Dial = func(_, _ string) (net.Conn, error) {
+			return net.Dial("unix", shortStr)
+		}
+		config.HttpClient.Transport = t
+		config.Address = shortStr
 	}
 
 	client := &Client{
@@ -206,9 +229,6 @@ func (r *request) toHTTP() (*http.Request, error) {
 	// Encode the query parameters
 	r.url.RawQuery = r.params.Encode()
 
-	// Get the url sring
-	urlRaw := r.url.String()
-
 	// Check if we should encode the body
 	if r.body == nil && r.obj != nil {
 		if b, err := encodeBody(r.obj); err != nil {
@@ -219,14 +239,21 @@ func (r *request) toHTTP() (*http.Request, error) {
 	}
 
 	// Create the HTTP request
-	req, err := http.NewRequest(r.method, urlRaw, r.body)
+	req, err := http.NewRequest(r.method, r.url.RequestURI(), r.body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.URL.Host = r.url.Host
+	req.URL.Scheme = r.url.Scheme
+	req.Host = r.url.Host
 
 	// Setup auth
 	if err == nil && r.config.HttpAuth != nil {
 		req.SetBasicAuth(r.config.HttpAuth.Username, r.config.HttpAuth.Password)
 	}
 
-	return req, err
+	return req, nil
 }
 
 // newRequest is used to create a new request
