@@ -690,3 +690,94 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 		t.Fatalf("bad: %#v", result)
 	}
 }
+
+func TestAgent_unloadChecks(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	check1 := &structs.HealthCheck{
+		Node:        config.NodeName,
+		CheckID:     "service:redis1",
+		Name:        "redischeck",
+		Status:      structs.HealthPassing,
+		ServiceID:   "redis",
+		ServiceName: "redis",
+	}
+
+	// Register the check
+	if err := agent.AddCheck(check1, nil, false); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	found := false
+	for check, _ := range agent.state.Checks() {
+		if check == check1.CheckID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("check should have been registered")
+	}
+
+	// Unload all of the checks
+	if err := agent.unloadChecks(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Make sure it was unloaded
+	for check, _ := range agent.state.Checks() {
+		if check == check1.CheckID {
+			t.Fatalf("should have unloaded checks")
+		}
+	}
+}
+
+func TestAgent_unloadServices(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+
+	// Register the service
+	if err := agent.AddService(svc, nil, false); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	found := false
+	for id, _ := range agent.state.Services() {
+		if id == svc.ID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("should have registered service")
+	}
+
+	// Unload all services
+	if err := agent.unloadServices(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Make sure it was unloaded and the consul service remains
+	found = false
+	for id, _ := range agent.state.Services() {
+		if id == svc.ID {
+			t.Fatalf("should have unloaded services")
+		}
+		if id == consul.ConsulServiceID {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("consul service should not be removed")
+	}
+}

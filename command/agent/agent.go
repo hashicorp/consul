@@ -622,7 +622,12 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 
 	// Deregister any associated health checks
 	checkID := fmt.Sprintf("service:%s", serviceID)
-	return a.RemoveCheck(checkID, persist)
+	if err := a.RemoveCheck(checkID, persist); err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] agent: removed service %q", serviceID)
+	return nil
 }
 
 // AddCheck is used to add a health check to the agent.
@@ -710,6 +715,7 @@ func (a *Agent) RemoveCheck(checkID string, persist bool) error {
 	if persist {
 		return a.purgeCheck(checkID)
 	}
+	log.Printf("[DEBUG] agent: removed check %q", checkID)
 	return nil
 }
 
@@ -850,11 +856,11 @@ func (a *Agent) loadServices(conf *Config) error {
 		if _, ok := a.state.services[svc.ID]; ok {
 			// Purge previously persisted service. This allows config to be
 			// preferred over services persisted from the API.
-			a.logger.Printf("[DEBUG] Service %q exists, not restoring from %q",
+			a.logger.Printf("[DEBUG] agent: service %q exists, not restoring from %q",
 				svc.ID, filePath)
 			return a.purgeService(svc.ID)
 		} else {
-			a.logger.Printf("[DEBUG] Restored service definition %q from %q",
+			a.logger.Printf("[DEBUG] agent: restored service definition %q from %q",
 				svc.ID, filePath)
 			return a.AddService(svc, nil, false)
 		}
@@ -921,7 +927,7 @@ func (a *Agent) loadChecks(conf *Config) error {
 		if _, ok := a.state.checks[p.Check.CheckID]; ok {
 			// Purge previously persisted check. This allows config to be
 			// preferred over persisted checks from the API.
-			a.logger.Printf("[DEBUG] Check %q exists, not restoring from %q",
+			a.logger.Printf("[DEBUG] agent: check %q exists, not restoring from %q",
 				p.Check.CheckID, filePath)
 			return a.purgeCheck(p.Check.CheckID)
 		} else {
@@ -929,7 +935,7 @@ func (a *Agent) loadChecks(conf *Config) error {
 			// services into the active pool
 			p.Check.Status = structs.HealthCritical
 
-			a.logger.Printf("[DEBUG] Restored health check %q from %q",
+			a.logger.Printf("[DEBUG] agent: restored health check %q from %q",
 				p.Check.CheckID, filePath)
 			return a.AddCheck(p.Check, p.ChkType, false)
 		}
