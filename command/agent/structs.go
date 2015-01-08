@@ -6,11 +6,12 @@ import (
 
 // ServiceDefinition is used to JSON decode the Service definitions
 type ServiceDefinition struct {
-	ID    string
-	Name  string
-	Tags  []string
-	Port  int
-	Check CheckType
+	ID      string
+	Name    string
+	Tags    []string
+	Address string
+	Port    int
+	Check   CheckType
 }
 
 func (s *ServiceDefinition) NodeService() *structs.NodeService {
@@ -18,6 +19,7 @@ func (s *ServiceDefinition) NodeService() *structs.NodeService {
 		ID:      s.ID,
 		Service: s.Name,
 		Tags:    s.Tags,
+		Address: s.Address,
 		Port:    s.Port,
 	}
 	if ns.ID == "" && ns.Service != "" {
