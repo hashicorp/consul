@@ -832,17 +832,13 @@ func (s *StateStore) parseServiceNodes(tx *MDBTxn, table *MDBTable, res []interf
 	for i, r := range res {
 		srv := r.(*structs.ServiceNode)
 
-		if srv.ServiceAddress != "" {
-			srv.Address = srv.ServiceAddress
-		} else {
-			// Get the address of the node
-			nodeRes, err := table.GetTxn(tx, "id", srv.Node)
-			if err != nil || len(nodeRes) != 1 {
-				s.logger.Printf("[ERR] consul.state: Failed to join service node %#v with node: %v", *srv, err)
-				continue
-			}
-			srv.Address = nodeRes[0].(*structs.Node).Address
+		// Get the address of the node
+		nodeRes, err := table.GetTxn(tx, "id", srv.Node)
+		if err != nil || len(nodeRes) != 1 {
+			s.logger.Printf("[ERR] consul.state: Failed to join service node %#v with node: %v", *srv, err)
+			continue
 		}
+		srv.Address = nodeRes[0].(*structs.Node).Address
 
 		nodes[i] = *srv
 	}
