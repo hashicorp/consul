@@ -490,7 +490,7 @@ func TestCatalogListServices(t *testing.T) {
 
 	// Just add a node
 	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
-	s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{"db", "db", []string{"primary"}, 5000})
+	s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
 
 	if err := client.Call("Catalog.ListServices", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -544,7 +544,7 @@ func TestCatalogListServices_Blocking(t *testing.T) {
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
-		s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{"db", "db", []string{"primary"}, 5000})
+		s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
 	}()
 
 	// Re-run the query
@@ -625,7 +625,7 @@ func TestCatalogListServices_Stale(t *testing.T) {
 
 	// Inject a fake service
 	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
-	s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{"db", "db", []string{"primary"}, 5000})
+	s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
 
 	// Run the query, do not wait for leader!
 	if err := client.Call("Catalog.ListServices", &args, &out); err != nil {
@@ -666,7 +666,7 @@ func TestCatalogListServiceNodes(t *testing.T) {
 
 	// Just add a node
 	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
-	s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{"db", "db", []string{"primary"}, 5000})
+	s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
 
 	if err := client.Call("Catalog.ServiceNodes", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -709,8 +709,8 @@ func TestCatalogNodeServices(t *testing.T) {
 
 	// Just add a node
 	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
-	s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{"db", "db", []string{"primary"}, 5000})
-	s1.fsm.State().EnsureService(3, "foo", &structs.NodeService{"web", "web", nil, 80})
+	s1.fsm.State().EnsureService(2, "foo", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
+	s1.fsm.State().EnsureService(3, "foo", &structs.NodeService{"web", "web", nil, "127.0.0.1", 80})
 
 	if err := client.Call("Catalog.NodeServices", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)

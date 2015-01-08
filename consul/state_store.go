@@ -587,11 +587,12 @@ func (s *StateStore) ensureServiceTxn(index uint64, node string, ns *structs.Nod
 
 	// Create the entry
 	entry := structs.ServiceNode{
-		Node:        node,
-		ServiceID:   ns.ID,
-		ServiceName: ns.Service,
-		ServiceTags: ns.Tags,
-		ServicePort: ns.Port,
+		Node:           node,
+		ServiceID:      ns.ID,
+		ServiceName:    ns.Service,
+		ServiceTags:    ns.Tags,
+		ServiceAddress: ns.Address,
+		ServicePort:    ns.Port,
 	}
 
 	// Ensure the service entry is set
@@ -655,6 +656,7 @@ func (s *StateStore) parseNodeServices(tables MDBTables, tx *MDBTxn, name string
 			ID:      service.ServiceID,
 			Service: service.ServiceName,
 			Tags:    service.ServiceTags,
+			Address: service.ServiceAddress,
 			Port:    service.ServicePort,
 		}
 		ns.Services[srv.ID] = srv
@@ -1039,6 +1041,7 @@ func (s *StateStore) parseCheckServiceNodes(tx *MDBTxn, res []interface{}, err e
 			ID:      srv.ServiceID,
 			Service: srv.ServiceName,
 			Tags:    srv.ServiceTags,
+			Address: srv.ServiceAddress,
 			Port:    srv.ServicePort,
 		}
 		nodes[i].Checks = checks
@@ -1113,6 +1116,7 @@ func (s *StateStore) parseNodeInfo(tx *MDBTxn, res []interface{}, err error) str
 				ID:      service.ServiceID,
 				Service: service.ServiceName,
 				Tags:    service.ServiceTags,
+				Address: service.ServiceAddress,
 				Port:    service.ServicePort,
 			}
 			info.Services = append(info.Services, srv)

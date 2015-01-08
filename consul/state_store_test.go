@@ -24,7 +24,7 @@ func TestEnsureRegistration(t *testing.T) {
 	reg := &structs.RegisterRequest{
 		Node:    "foo",
 		Address: "127.0.0.1",
-		Service: &structs.NodeService{"api", "api", nil, 5000},
+		Service: &structs.NodeService{"api", "api", nil, "", 5000},
 		Check: &structs.HealthCheck{
 			Node:      "foo",
 			CheckID:   "api",
@@ -149,15 +149,15 @@ func TestEnsureService(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(11, "foo", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
+	if err := store.EnsureService(11, "foo", &structs.NodeService{"api", "api", nil, "", 5000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, 5001}); err != nil {
+	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, "", 5001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(13, "foo", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(13, "foo", &structs.NodeService{"db", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -194,15 +194,15 @@ func TestEnsureService_DuplicateNode(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(11, "foo", &structs.NodeService{"api1", "api", nil, 5000}); err != nil {
+	if err := store.EnsureService(11, "foo", &structs.NodeService{"api1", "api", nil, "", 5000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(12, "foo", &structs.NodeService{"api2", "api", nil, 5001}); err != nil {
+	if err := store.EnsureService(12, "foo", &structs.NodeService{"api2", "api", nil, "", 5001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(13, "foo", &structs.NodeService{"api3", "api", nil, 5002}); err != nil {
+	if err := store.EnsureService(13, "foo", &structs.NodeService{"api3", "api", nil, "", 5002}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -247,7 +247,7 @@ func TestDeleteNodeService(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
+	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, "", 5000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -295,11 +295,11 @@ func TestDeleteNodeService_One(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
+	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, "", 5000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(13, "foo", &structs.NodeService{"api2", "api", nil, 5001}); err != nil {
+	if err := store.EnsureService(13, "foo", &structs.NodeService{"api2", "api", nil, "", 5001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -332,7 +332,7 @@ func TestDeleteNode(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(21, "foo", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
+	if err := store.EnsureService(21, "foo", &structs.NodeService{"api", "api", nil, "", 5000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -391,15 +391,15 @@ func TestGetServices(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(32, "foo", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
+	if err := store.EnsureService(32, "foo", &structs.NodeService{"api", "api", nil, "", 5000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(33, "foo", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(33, "foo", &structs.NodeService{"db", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(34, "bar", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
+	if err := store.EnsureService(34, "bar", &structs.NodeService{"db", "db", []string{"slave"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -441,23 +441,23 @@ func TestServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
+	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, "", 5000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(13, "bar", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
+	if err := store.EnsureService(13, "bar", &structs.NodeService{"api", "api", nil, "", 5000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(14, "foo", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(14, "foo", &structs.NodeService{"db", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(15, "bar", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
+	if err := store.EnsureService(15, "bar", &structs.NodeService{"db", "db", []string{"slave"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(16, "bar", &structs.NodeService{"db2", "db", []string{"slave"}, 8001}); err != nil {
+	if err := store.EnsureService(16, "bar", &structs.NodeService{"db2", "db", []string{"slave"}, "", 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -532,15 +532,15 @@ func TestServiceTagNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(17, "foo", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(17, "foo", &structs.NodeService{"db", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(18, "foo", &structs.NodeService{"db2", "db", []string{"slave"}, 8001}); err != nil {
+	if err := store.EnsureService(18, "foo", &structs.NodeService{"db2", "db", []string{"slave"}, "", 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(19, "bar", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
+	if err := store.EnsureService(19, "bar", &structs.NodeService{"db", "db", []string{"slave"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -580,15 +580,15 @@ func TestServiceTagNodes_MultipleTags(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(17, "foo", &structs.NodeService{"db", "db", []string{"master", "v2"}, 8000}); err != nil {
+	if err := store.EnsureService(17, "foo", &structs.NodeService{"db", "db", []string{"master", "v2"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(18, "foo", &structs.NodeService{"db2", "db", []string{"slave", "v2", "dev"}, 8001}); err != nil {
+	if err := store.EnsureService(18, "foo", &structs.NodeService{"db2", "db", []string{"slave", "v2", "dev"}, "", 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(19, "bar", &structs.NodeService{"db", "db", []string{"slave", "v2"}, 8000}); err != nil {
+	if err := store.EnsureService(19, "bar", &structs.NodeService{"db", "db", []string{"slave", "v2"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -656,15 +656,15 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(10, "foo", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(10, "foo", &structs.NodeService{"db", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(11, "foo", &structs.NodeService{"db2", "db", []string{"slave"}, 8001}); err != nil {
+	if err := store.EnsureService(11, "foo", &structs.NodeService{"db2", "db", []string{"slave"}, "", 8001}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.EnsureService(12, "bar", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
+	if err := store.EnsureService(12, "bar", &structs.NodeService{"db", "db", []string{"slave"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -849,10 +849,10 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 
 	// Make some changes!
-	if err := store.EnsureService(23, "foo", &structs.NodeService{"db", "db", []string{"slave"}, 8000}); err != nil {
+	if err := store.EnsureService(23, "foo", &structs.NodeService{"db", "db", []string{"slave"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(24, "bar", &structs.NodeService{"db", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(24, "bar", &structs.NodeService{"db", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if err := store.EnsureNode(25, structs.Node{"baz", "127.0.0.3"}); err != nil {
@@ -979,7 +979,7 @@ func TestEnsureCheck(t *testing.T) {
 	if err := store.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
@@ -1075,7 +1075,7 @@ func TestDeleteNodeCheck(t *testing.T) {
 	if err := store.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
@@ -1125,7 +1125,7 @@ func TestCheckServiceNodes(t *testing.T) {
 	if err := store.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
@@ -1206,7 +1206,7 @@ func BenchmarkCheckServiceNodes(t *testing.B) {
 	if err := store.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
@@ -1249,6 +1249,7 @@ func TestSS_Register_Deregister_Query(t *testing.T) {
 		"statsite-box-stats",
 		"statsite-box-stats",
 		nil,
+		"",
 		0}
 	if err := store.EnsureService(2, "foo", srv); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1258,6 +1259,7 @@ func TestSS_Register_Deregister_Query(t *testing.T) {
 		"statsite-share-stats",
 		"statsite-share-stats",
 		nil,
+		"",
 		0}
 	if err := store.EnsureService(3, "foo", srv); err != nil {
 		t.Fatalf("err: %v", err)
@@ -1286,7 +1288,7 @@ func TestNodeInfo(t *testing.T) {
 	if err := store.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{
@@ -1345,13 +1347,13 @@ func TestNodeDump(t *testing.T) {
 	if err := store.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(2, "foo", &structs.NodeService{"db1", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if err := store.EnsureNode(3, structs.Node{"baz", "127.0.0.2"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(4, "baz", &structs.NodeService{"db1", "db", []string{"master"}, 8000}); err != nil {
+	if err := store.EnsureService(4, "baz", &structs.NodeService{"db1", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -2459,7 +2461,7 @@ func TestSessionInvalidate_DeleteNodeService(t *testing.T) {
 	if err := store.EnsureNode(11, structs.Node{"foo", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, 5000}); err != nil {
+	if err := store.EnsureService(12, "foo", &structs.NodeService{"api", "api", nil, "", 5000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	check := &structs.HealthCheck{

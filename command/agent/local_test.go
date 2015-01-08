@@ -77,6 +77,24 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Exists both, different address (update)
+	srv5 := &structs.NodeService{
+		ID:      "api",
+		Service: "api",
+		Tags:    []string{},
+		Address: "127.0.0.10",
+		Port:    8000,
+	}
+	agent.state.AddService(srv5)
+
+	srv5_mod := new(structs.NodeService)
+	*srv5_mod = *srv5
+	srv5_mod.Address = "127.0.0.1"
+	args.Service = srv5_mod
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	// Trigger anti-entropy run and wait
 	agent.StartSync()
 	time.Sleep(200 * time.Millisecond)
@@ -91,8 +109,8 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// We should have 4 services (consul included)
-	if len(services.NodeServices.Services) != 4 {
+	// We should have 5 services (consul included)
+	if len(services.NodeServices.Services) != 5 {
 		t.Fatalf("bad: %v", services.NodeServices.Services)
 	}
 
@@ -111,6 +129,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 			if !reflect.DeepEqual(serv, srv3) {
 				t.Fatalf("bad: %v %v", serv, srv3)
 			}
+		case "api":
+			if !reflect.DeepEqual(serv, srv5) {
+				t.Fatalf("bad: %v %v", serv, srv5)
+			}
 		case "consul":
 			// ignore
 		default:
@@ -119,10 +141,10 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	}
 
 	// Check the local state
-	if len(agent.state.services) != 4 {
+	if len(agent.state.services) != 5 {
 		t.Fatalf("bad: %v", agent.state.services)
 	}
-	if len(agent.state.serviceStatus) != 4 {
+	if len(agent.state.serviceStatus) != 5 {
 		t.Fatalf("bad: %v", agent.state.serviceStatus)
 	}
 	for name, status := range agent.state.serviceStatus {

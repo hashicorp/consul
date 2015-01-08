@@ -12,6 +12,7 @@ func TestEncodeDecode(t *testing.T) {
 		Address:    "baz",
 		Service: &NodeService{
 			Service: "test",
+			Address: "127.0.0.2",
 		},
 	}
 	buf, err := Encode(RegisterRequestType, arg)

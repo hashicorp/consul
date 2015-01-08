@@ -409,17 +409,17 @@ RPC:
 	}
 
 	// Add the node record
-	records := d.formatNodeRecord(&out.NodeServices.Node, req.Question[0].Name,
-		qType, d.config.NodeTTL)
+	records := d.formatNodeRecord(&out.NodeServices.Node, out.NodeServices.Node.Address,
+		req.Question[0].Name, qType, d.config.NodeTTL)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
 	}
 }
 
 // formatNodeRecord takes a Node and returns an A, AAAA, or CNAME record
-func (d *DNSServer) formatNodeRecord(node *structs.Node, qName string, qType uint16, ttl time.Duration) (records []dns.RR) {
+func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qType uint16, ttl time.Duration) (records []dns.RR) {
 	// Parse the IP
-	ip := net.ParseIP(node.Address)
+	ip := net.ParseIP(addr)
 	var ipv4 net.IP
 	if ip != nil {
 		ipv4 = ip.To4()
@@ -457,7 +457,7 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, qName string, qType uin
 				Class:  dns.ClassINET,
 				Ttl:    uint32(ttl / time.Second),
 			},
-			Target: dns.Fqdn(node.Address),
+			Target: dns.Fqdn(addr),
 		}
 		records = append(records, cnRec)
 
@@ -584,13 +584,17 @@ func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, res
 		// Avoid duplicate entries, possible if a node has
 		// the same service on multiple ports, etc.
 		addr := node.Node.Address
+		if node.Service.Address != "" {
+			addr = node.Service.Address
+		}
+
 		if _, ok := handled[addr]; ok {
 			continue
 		}
 		handled[addr] = struct{}{}
 
 		// Add the node record
-		records := d.formatNodeRecord(&node.Node, qName, qType, ttl)
+		records := d.formatNodeRecord(&node.Node, addr, qName, qType, ttl)
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
 		}
@@ -603,7 +607,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 	for _, node := range nodes {
 		// Avoid duplicate entries, possible if a node has
 		// the same service the same port, etc.
-		tuple := fmt.Sprintf("%s:%d", node.Node.Node, node.Service.Port)
+		tuple := fmt.Sprintf("%s:%s:%d", node.Node.Node, node.Service.Address, node.Service.Port)
 		if _, ok := handled[tuple]; ok {
 			continue
 		}
@@ -624,8 +628,14 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 		resp.Answer = append(resp.Answer, srvRec)
 
+		// Determine advertised address
+		addr := node.Node.Address
+		if node.Service.Address != "" {
+			addr = node.Service.Address
+		}
+
 		// Add the extra record
-		records := d.formatNodeRecord(&node.Node, srvRec.Target, dns.TypeANY, ttl)
+		records := d.formatNodeRecord(&node.Node, addr, srvRec.Target, dns.TypeANY, ttl)
 		if records != nil {
 			resp.Extra = append(resp.Extra, records...)
 		}
