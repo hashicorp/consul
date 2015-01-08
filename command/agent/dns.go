@@ -607,7 +607,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 	for _, node := range nodes {
 		// Avoid duplicate entries, possible if a node has
 		// the same service the same port, etc.
-		tuple := fmt.Sprintf("%s:%d", node.Node.Node, node.Service.Port)
+		tuple := fmt.Sprintf("%s:%s:%d", node.Node.Node, node.Service.Address, node.Service.Port)
 		if _, ok := handled[tuple]; ok {
 			continue
 		}
