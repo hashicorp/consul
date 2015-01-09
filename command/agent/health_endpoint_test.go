@@ -186,29 +186,29 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 
 func TestFilterNonPassing(t *testing.T) {
 	nodes := structs.CheckServiceNodes{
-		structs.CheckServiceNode{
+		0: structs.CheckServiceNode{
 			Checks: structs.HealthChecks{
-				&structs.HealthCheck{
+				0: &structs.HealthCheck{
 					Status: structs.HealthCritical,
 				},
-				&structs.HealthCheck{
+				1: &structs.HealthCheck{
 					Status: structs.HealthCritical,
 				},
 			},
 		},
-		structs.CheckServiceNode{
+		1: structs.CheckServiceNode{
 			Checks: structs.HealthChecks{
-				&structs.HealthCheck{
+				0: &structs.HealthCheck{
 					Status: structs.HealthCritical,
 				},
-				&structs.HealthCheck{
+				1: &structs.HealthCheck{
 					Status: structs.HealthCritical,
 				},
 			},
 		},
-		structs.CheckServiceNode{
+		2: structs.CheckServiceNode{
 			Checks: structs.HealthChecks{
-				&structs.HealthCheck{
+				0: &structs.HealthCheck{
 					Status: structs.HealthPassing,
 				},
 			},

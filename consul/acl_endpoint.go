@@ -138,7 +138,7 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 			index, acl, err := state.ACLGet(args.ACL)
 			reply.Index = index
 			if acl != nil {
-				reply.ACLs = structs.ACLs{acl}
+				reply.ACLs = structs.ACLs{0: acl}
 			}
 			return err
 		})

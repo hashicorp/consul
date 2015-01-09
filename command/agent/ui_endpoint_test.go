@@ -112,7 +112,7 @@ func TestUiNodeInfo(t *testing.T) {
 
 func TestSummarizeServices(t *testing.T) {
 	dump := structs.NodeDump{
-		&structs.NodeInfo{
+		0: &structs.NodeInfo{
 			Node:    "foo",
 			Address: "127.0.0.1",
 			Services: []*structs.NodeService{
@@ -138,7 +138,7 @@ func TestSummarizeServices(t *testing.T) {
 				},
 			},
 		},
-		&structs.NodeInfo{
+		1: &structs.NodeInfo{
 			Node:    "bar",
 			Address: "127.0.0.2",
 			Services: []*structs.NodeService{
@@ -153,7 +153,7 @@ func TestSummarizeServices(t *testing.T) {
 				},
 			},
 		},
-		&structs.NodeInfo{
+		2: &structs.NodeInfo{
 			Node:    "zip",
 			Address: "127.0.0.3",
 			Services: []*structs.NodeService{

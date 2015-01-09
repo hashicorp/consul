@@ -17,6 +17,7 @@ deps:
 test: deps
 	./scripts/verify_no_uuid.sh
 	go list ./... | xargs -n1 go test
+	go vet ./...
 
 integ:
 	go list ./... | INTEG_TESTS=yes xargs -n1 go test

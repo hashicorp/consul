@@ -116,7 +116,7 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 			index, session, err := state.SessionGet(args.Session)
 			reply.Index = index
 			if session != nil {
-				reply.Sessions = structs.Sessions{session}
+				reply.Sessions = structs.Sessions{0: session}
 			}
 			return err
 		})
@@ -178,7 +178,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	// Reset the session TTL timer
 	reply.Index = index
 	if session != nil {
-		reply.Sessions = structs.Sessions{session}
+		reply.Sessions = structs.Sessions{0: session}
 		if err := s.srv.resetSessionTimer(args.Session, session); err != nil {
 			s.srv.logger.Printf("[ERR] consul.session: Session renew failed: %v", err)
 			return err

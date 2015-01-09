@@ -114,7 +114,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 				reply.Entries = nil
 			} else {
 				reply.Index = ent.ModifyIndex
-				reply.Entries = structs.DirEntries{ent}
+				reply.Entries = structs.DirEntries{0: ent}
 			}
 			return nil
 		},
