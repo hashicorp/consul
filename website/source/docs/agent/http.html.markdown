@@ -212,7 +212,7 @@ then the update has not taken place.
 ### DELETE method
 
 Lastly, the `DELETE` method can be used to delete a single key or all
-keys sharing a prefix.  There are a number of patameters that can
+keys sharing a prefix.  There are a number of query parameters that can
 be used with a DELETE request:
 
 * ?recurse : This is used to delete all keys which have the specified prefix.
