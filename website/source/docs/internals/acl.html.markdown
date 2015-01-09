@@ -23,9 +23,8 @@ is modeled around "tokens".
 
 Every token has an ID, name, type and rule set. The ID is a randomly generated
 UUID, making it unfeasible to guess. The name is opaque and human readable.
-Lastly the type is either "client" meaning it cannot modify ACL rules, and
-is restricted by the provided rules, or is "management" and is allowed to
-perform all actions.
+The type is either "client" meaning it cannot modify ACL rules, and is restricted
+by the provided rules, or is "management" and is allowed to perform all actions.
 
 The token ID is passed along with each RPC request to the servers. Agents
 [can be configured](/docs/agent/options.html) with `acl_token` to provide a default token,
