@@ -330,6 +330,7 @@ type KVSOp string
 const (
 	KVSSet        KVSOp = "set"
 	KVSDelete           = "delete"
+	KVSDeleteCAS        = "delete-cas" // Delete with check-and-set
 	KVSDeleteTree       = "delete-tree"
 	KVSCAS              = "cas"    // Check-and-set
 	KVSLock             = "lock"   // Lock a key
