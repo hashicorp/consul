@@ -151,7 +151,7 @@ session that owns the lock.
 
 The `Key` is simply the full path of the entry. `Flags` are an opaque
 unsigned integer that can be attached to each entry. The use of this is
-left totally to the user. Lastly, the `Value` is a base64 key value.
+left totally to the user. The `Value` is a base64 key value.
 
 It is possible to also only list keys without their values by using the
 "?keys" query parameter along with a `GET` request. This will return
@@ -211,9 +211,9 @@ then the update has not taken place.
 
 ### DELETE method
 
-Lastly, the `DELETE` method can be used to delete a single key or all
-keys sharing a prefix.  There are a number of query parameters that can
-be used with a DELETE request:
+The `DELETE` method can be used to delete a single key or all keys sharing
+a prefix.  There are a number of query parameters that can be used with a
+DELETE request:
 
 * ?recurse : This is used to delete all keys which have the specified prefix.
   Without this, only a key with an exact match will be deleted.
@@ -611,7 +611,7 @@ The `CheckID` can be omitted, and will default to the `Name`. Like before, the
 `CheckID` must be node-unique. The `Notes` is an opaque field that is meant to
 hold human readable text. If a `ServiceID` is provided that matches the `ID`
 of a service on that node, then the check is treated as a service level health
-check, instead of a node level health check. Lastly, the status must be one of
+check, instead of a node level health check. The `Status` must be one of
 "unknown", "passing", "warning", or "critical". The "unknown" status is used
 to indicate that the initial check has not been performed yet.
 
@@ -1384,11 +1384,11 @@ may be different depending on their configuration.
 This endpoint does allow for filtering on events by name by providing
 the `?name=` query parameter.
 
-Lastly, to support [watches](/docs/agent/watches.html), this endpoint
-supports blocking queries. However, the semantics of this endpoint
-are slightly different. Most blocking queries provide a monotonic index,
-and block until a newer index is available. This can be supported as
-a consequence of the total ordering of the [consensus protocol](/docs/internals/consensus.html).
+To support [watches](/docs/agent/watches.html), this endpoint supports
+blocking queries. However, the semantics of this endpoint are slightly
+different. Most blocking queries provide a monotonic index, and block
+until a newer index is available. This can be supported as a consequence
+of the total ordering of the [consensus protocol](/docs/internals/consensus.html).
 With gossip, there is no ordering, and instead `X-Consul-Index` maps
 to the newest event that matches the query.
 
@@ -1397,10 +1397,10 @@ single agent, and has no meaning globally. Because Consul defines
 the index as being opaque, clients should not be expecting a natural
 ordering either.
 
-Lastly, agents only buffer the most recent entries. The number
-of entries should not be depended upon, but currently defaults to
-256. This value could change in the future. The buffer should be large
-enough for most clients and watches.
+Agents only buffer the most recent entries. The number of entries should
+not be depended upon, but currently defaults to 256. This value could
+change in the future. The buffer should be large enough for most clients
+and watches.
 
 It returns a JSON body like this:
 

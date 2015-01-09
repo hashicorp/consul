@@ -47,11 +47,11 @@ The `port` can be used as well to make a service oriented architecture
 simpler to configure. This way the address and port of a service can
 be discovered.
 
-Lastly, a service can have an associated health check. This is a powerful
-feature as it allows a web balancer to gracefully remove failing nodes, or
-a database to replace a failed slave, etc. The health check is strongly integrated
-in the DNS interface as well. If a service is failing its health check or
-a node has any failing system-level check, the DNS interface will omit that
+A service can have an associated health check. This is a powerful feature as
+it allows a web balancer to gracefully remove failing nodes, or a database
+to replace a failed slave, etc. The health check is strongly integrated in
+the DNS interface as well. If a service is failing its health check or a
+node has any failing system-level check, the DNS interface will omit that
 node from any service query.
 
 There is more information about [checks here](/docs/agent/checks.html). The
