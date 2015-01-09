@@ -1299,6 +1299,39 @@ func (s *StateStore) KVSDelete(index uint64, key string) error {
 	return s.kvsDeleteWithIndex(index, "id", key)
 }
 
+// KVSDeleteCheckAndSet is used to perform an atomic delete check-and-set
+func (s *StateStore) KVSDeleteCheckAndSet(index uint64, key string, casIndex uint64) (bool, error) {
+	tx, err := s.tables.StartTxn(false)
+	if err != nil {
+		return false, err
+	}
+	defer tx.Abort()
+
+	// Get the existing node
+	res, err := s.kvsTable.GetTxn(tx, "id", key)
+	if err != nil {
+		return false, err
+	}
+
+	// Get the existing node if any
+	var exist *structs.DirEntry
+	if len(res) > 0 {
+		exist = res[0].(*structs.DirEntry)
+	}
+
+	// Use the casIndex as the constraint. A modify time of 0 means
+	// we are doign a delete-if-not-exists (odd...), while any other
+	// value means we expect that modify time.
+	if casIndex == 0 {
+		return exist == nil, nil
+	} else if casIndex > 0 && (exist == nil || exist.ModifyIndex != casIndex) {
+		return false, nil
+	}
+
+	// Do the actual delete
+	return true, s.kvsDeleteWithIndex(index, "id", key)
+}
+
 // KVSDeleteTree is used to delete all keys with a given prefix
 func (s *StateStore) KVSDeleteTree(index uint64, prefix string) error {
 	if prefix == "" {
