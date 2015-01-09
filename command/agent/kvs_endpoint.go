@@ -226,12 +226,28 @@ func (s *HTTPServer) KVSDelete(resp http.ResponseWriter, req *http.Request, args
 		return nil, nil
 	}
 
+	// Check for cas value
+	if _, ok := params["cas"]; ok {
+		casVal, err := strconv.ParseUint(params.Get("cas"), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		applyReq.DirEnt.ModifyIndex = casVal
+		applyReq.Op = structs.KVSDeleteCAS
+	}
+
 	// Make the RPC
 	var out bool
 	if err := s.agent.RPC("KVS.Apply", &applyReq, &out); err != nil {
 		return nil, err
 	}
-	return nil, nil
+
+	// Only use the out value if this was a CAS
+	if applyReq.Op == structs.KVSDeleteCAS {
+		return out, nil
+	} else {
+		return true, nil
+	}
 }
 
 // missingKey checks if the key is missing

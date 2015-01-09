@@ -212,9 +212,17 @@ then the update has not taken place.
 ### DELETE method
 
 Lastly, the `DELETE` method can be used to delete a single key or all
-keys sharing a prefix. If the "?recurse" query parameter is provided,
-then all keys with the prefix are deleted, otherwise only the specified
-key.
+keys sharing a prefix.  There are a number of patameters that can
+be used with a DELETE request:
+
+* ?recurse : This is used to delete all keys which have the specified prefix.
+  Without this, only a key with an exact match will be deleted.
+
+* ?cas=\<index\> : This flag is used to turn the `DELETE` into a Check-And-Set
+  operation. This is very useful as it allows clients to build more complex
+  synchronization primitives on top. If the index is 0, then Consul will only
+  delete the key if it does not already exist (noop). If the index is non-zero, then
+  the key is only deleted if the index matches the `ModifyIndex` of that key.
 
 ## <a name="agent"></a> Agent
 

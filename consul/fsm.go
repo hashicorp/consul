@@ -149,6 +149,13 @@ func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 		return c.state.KVSSet(index, &req.DirEnt)
 	case structs.KVSDelete:
 		return c.state.KVSDelete(index, req.DirEnt.Key)
+	case structs.KVSDeleteCAS:
+		act, err := c.state.KVSDeleteCheckAndSet(index, req.DirEnt.Key, req.DirEnt.ModifyIndex)
+		if err != nil {
+			return err
+		} else {
+			return act
+		}
 	case structs.KVSDeleteTree:
 		return c.state.KVSDeleteTree(index, req.DirEnt.Key)
 	case structs.KVSCAS:
