@@ -1569,6 +1569,56 @@ func TestKVSDelete(t *testing.T) {
 	}
 }
 
+func TestKVSDeleteCheckAndSet(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	// CAS should fail, no entry
+	ok, err := store.KVSDeleteCheckAndSet(1000, "/foo", 100)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("unexpected commit")
+	}
+
+	// CAS should work, no entry
+	ok, err = store.KVSDeleteCheckAndSet(1000, "/foo", 0)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected failure")
+	}
+
+	// Make an entry
+	d := &structs.DirEntry{Key: "/foo"}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Constrain on a wrong modify time
+	ok, err = store.KVSDeleteCheckAndSet(1001, "/foo", 42)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ok {
+		t.Fatalf("unexpected commit")
+	}
+
+	// Constrain on a correct modify time
+	ok, err = store.KVSDeleteCheckAndSet(1002, "/foo", 1000)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("expected commit")
+	}
+}
+
 func TestKVSCheckAndSet(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {

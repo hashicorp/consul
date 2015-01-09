@@ -1329,7 +1329,10 @@ func (s *StateStore) KVSDeleteCheckAndSet(index uint64, key string, casIndex uin
 	}
 
 	// Do the actual delete
-	return true, s.kvsDeleteWithIndex(index, "id", key)
+	if err := s.kvsDeleteWithIndexTxn(index, tx, "id", key); err != nil {
+		return false, err
+	}
+	return true, tx.Commit()
 }
 
 // KVSDeleteTree is used to delete all keys with a given prefix
