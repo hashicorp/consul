@@ -485,7 +485,7 @@ func (s *StateStore) EnsureRegistration(index uint64, req *structs.RegisterReque
 	defer tx.Abort()
 
 	// Ensure the node
-	node := structs.Node{req.Node, req.Address}
+	node := structs.Node{Node: req.Node, Address: req.Address}
 	if err := s.ensureNodeTxn(index, node, tx); err != nil {
 		return err
 	}

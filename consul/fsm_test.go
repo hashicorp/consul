@@ -335,12 +335,12 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	defer fsm.Close()
 
 	// Add some state
-	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
-	fsm.state.EnsureNode(2, structs.Node{"baz", "127.0.0.2"})
-	fsm.state.EnsureService(3, "foo", &structs.NodeService{"web", "web", nil, "127.0.0.1", 80})
-	fsm.state.EnsureService(4, "foo", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
-	fsm.state.EnsureService(5, "baz", &structs.NodeService{"web", "web", nil, "127.0.0.2", 80})
-	fsm.state.EnsureService(6, "baz", &structs.NodeService{"db", "db", []string{"secondary"}, "127.0.0.2", 5000})
+	fsm.state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"})
+	fsm.state.EnsureNode(2, structs.Node{Node: "baz", Address: "127.0.0.2"})
+	fsm.state.EnsureService(3, "foo", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.1", Port: 80})
+	fsm.state.EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000})
+	fsm.state.EnsureService(5, "baz", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.2", Port: 80})
+	fsm.state.EnsureService(6, "baz", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"secondary"}, Address: "127.0.0.2", Port: 5000})
 	fsm.state.EnsureCheck(7, &structs.HealthCheck{
 		Node:      "foo",
 		CheckID:   "web",
@@ -735,7 +735,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 	}
 	defer fsm.Close()
 
-	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	fsm.state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"})
 	fsm.state.EnsureCheck(2, &structs.HealthCheck{
 		Node:    "foo",
 		CheckID: "web",
@@ -819,7 +819,7 @@ func TestFSM_KVSLock(t *testing.T) {
 	}
 	defer fsm.Close()
 
-	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	fsm.state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	fsm.state.SessionCreate(2, session)
 
@@ -868,7 +868,7 @@ func TestFSM_KVSUnlock(t *testing.T) {
 	}
 	defer fsm.Close()
 
-	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	fsm.state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	fsm.state.SessionCreate(2, session)
 

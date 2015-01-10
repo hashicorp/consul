@@ -19,7 +19,7 @@ func TestInitializeSessionTimers(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	state := s1.fsm.State()
-	state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"})
 	session := &structs.Session{
 		ID:   generateUUID(),
 		Node: "foo",
@@ -57,7 +57,7 @@ func TestResetSessionTimer_Fault(t *testing.T) {
 
 	// Create a session
 	state := s1.fsm.State()
-	state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"})
 	session := &structs.Session{
 		ID:   generateUUID(),
 		Node: "foo",
@@ -89,7 +89,7 @@ func TestResetSessionTimer_NoTTL(t *testing.T) {
 
 	// Create a session
 	state := s1.fsm.State()
-	state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"})
 	session := &structs.Session{
 		ID:   generateUUID(),
 		Node: "foo",
@@ -200,7 +200,7 @@ func TestInvalidateSession(t *testing.T) {
 
 	// Create a session
 	state := s1.fsm.State()
-	state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"})
 	session := &structs.Session{
 		ID:   generateUUID(),
 		Node: "foo",
