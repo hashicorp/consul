@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -445,6 +446,8 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 				}
 			}
 		}
+
+		return true, nil
 	}, func(err error) {
 		t.Fatalf("err: %s", err)
 	})
