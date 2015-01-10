@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"strings"
 	"testing"
 	"time"
 
@@ -81,15 +80,18 @@ func newTestServer(t *testing.T) *testServer {
 	// Allow the server some time to start, and verify we have a leader.
 	client := new(http.Client)
 	testutil.WaitForResult(func() (bool, error) {
-		resp, err := client.Get("http://127.0.0.1:18800/v1/status/leader")
+		resp, err := client.Get("http://127.0.0.1:18800/v1/catalog/nodes")
 		if err != nil {
 			return false, err
 		}
-		defer resp.Body.Close()
+		resp.Body.Close()
 
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil || !strings.Contains(string(body), "18000") {
-			return false, fmt.Errorf("No leader")
+		// Ensure we have a leader and a node registeration
+		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
+			return false, fmt.Errorf("Consul leader status: %#v", leader)
+		}
+		if resp.Header.Get("X-Consul-Index") == "0" {
+			return false, fmt.Errorf("Consul index is 0")
 		}
 
 		return true, nil
