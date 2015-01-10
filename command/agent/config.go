@@ -74,6 +74,11 @@ type DNSConfig struct {
 	// stale read is performed.
 	MaxStale    time.Duration `mapstructure:"-"`
 	MaxStaleRaw string        `mapstructure:"max_stale" json:"-"`
+
+	// OnlyPassing is used to determine whether to filter nodes
+	// whose health checks are in any non-passing state. By
+	// default, only nodes in a critical state are excluded.
+	OnlyPassing bool `mapstructure:"only_passing"`
 }
 
 // Config is the configuration that can be set for an Agent.
@@ -834,6 +839,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.DNSConfig.MaxStale != 0 {
 		result.DNSConfig.MaxStale = b.DNSConfig.MaxStale
+	}
+	if b.DNSConfig.OnlyPassing {
+		result.DNSConfig.OnlyPassing = true
 	}
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval
