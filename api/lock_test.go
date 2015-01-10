@@ -172,7 +172,7 @@ func TestLock_Contend(t *testing.T) {
 	// Wait for everybody to get a turn
 	select {
 	case <-doneCh:
-	case <-time.After(3 * DefaultLockRetyTime):
+	case <-time.After(3 * DefaultLockRetryTime):
 		t.Fatalf("timeout")
 	}
 
