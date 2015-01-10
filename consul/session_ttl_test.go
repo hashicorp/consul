@@ -352,19 +352,24 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 	}
 
 	// Find the new leader
-	time.Sleep(200 * time.Millisecond)
-	leader = nil
-	for _, s := range servers {
-		if s.IsLeader() {
-			leader = s
+	testutil.WaitForResult(func() (bool, error) {
+		leader = nil
+		for _, s := range servers {
+			if s.IsLeader() {
+				leader = s
+			}
 		}
-	}
-	if leader == nil {
-		t.Fatalf("Should have a new leader")
-	}
+		if leader == nil {
+			return false, fmt.Errorf("Should have a new leader")
+		}
 
-	// Ensure session timer is restored
-	if _, ok := leader.sessionTimers[id1]; !ok {
-		t.Fatalf("missing session timer")
-	}
+		// Ensure session timer is restored
+		if _, ok := leader.sessionTimers[id1]; !ok {
+			return false, fmt.Errorf("missing session timer")
+		}
+
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
