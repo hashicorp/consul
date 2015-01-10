@@ -431,20 +431,23 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}
 
 	// Wait for a deferred update
-	time.Sleep(100 * time.Millisecond)
-	if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		if err := agent.RPC("Health.NodeChecks", &req, &checks); err != nil {
+			return false, err
+		}
 
-	// Verify not updated
-	for _, chk := range checks.HealthChecks {
-		switch chk.CheckID {
-		case "web":
-			if chk.Output != "output" {
-				t.Fatalf("no update: %v", chk)
+		// Verify updated
+		for _, chk := range checks.HealthChecks {
+			switch chk.CheckID {
+			case "web":
+				if chk.Output != "output" {
+					return false, fmt.Errorf("no update: %v", chk)
+				}
 			}
 		}
-	}
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 var testRegisterRules = `
