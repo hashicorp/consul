@@ -310,23 +310,24 @@ func TestLeader_LeftServer(t *testing.T) {
 		})
 	}
 
-	// Kill any server
-	servers[0].Shutdown()
-	time.Sleep(100 * time.Millisecond)
+	testutil.WaitForResult(func() (bool, error) {
+		// Kill any server
+		servers[0].Shutdown()
 
-	// Force remove the non-leader (transition to left state)
-	if err := servers[1].RemoveFailedNode(servers[0].config.NodeName); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+		// Force remove the non-leader (transition to left state)
+		if err := servers[1].RemoveFailedNode(servers[0].config.NodeName); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 
-	for _, s := range servers[1:] {
-		testutil.WaitForResult(func() (bool, error) {
+		for _, s := range servers[1:] {
 			peers, _ := s.raftPeers.Peers()
 			return len(peers) == 2, errors.New(fmt.Sprintf("%v", peers))
-		}, func(err error) {
-			t.Fatalf("should have 2 peers: %v", err)
-		})
-	}
+		}
+
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestLeader_LeftLeader(t *testing.T) {
