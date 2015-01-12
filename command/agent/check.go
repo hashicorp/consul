@@ -321,25 +321,21 @@ func (c *CheckHTTP) check() {
 	}
 	resp.Body.Close()
 
-	switch resp.StatusCode {
-
-	// PASSING
-	case http.StatusOK:
+	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+		// PASSING (2xx)
 		c.Logger.Printf("[DEBUG] http check '%v' is passing", c.CheckID)
 		result := fmt.Sprintf("%s from %s", resp.Status, c.HTTP)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, result)
 
-	// WARNING
-	// 503 Service Unavailable
-	//	The server is currently unable to handle the request due to
-	//	a temporary overloading or maintenance of the server.
-	//	http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
-	case http.StatusServiceUnavailable:
+	} else if resp.StatusCode == 429 {
+		// WARNING
+		// 429 Too Many Requests (RFC 6585)
+		// The user has sent too many requests in a given amount of time.
 		c.Logger.Printf("[WARN] check '%v' is now warning", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, resp.Status)
 
-	// CRITICAL
-	default:
+	} else {
+		// CRITICAL
 		c.Logger.Printf("[WARN] check '%v' is now critical", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, resp.Status)
 	}
