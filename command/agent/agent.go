@@ -742,6 +742,10 @@ func (a *Agent) RemoveCheck(checkID string, persist bool) error {
 		check.Stop()
 		delete(a.checkMonitors, checkID)
 	}
+	if check, ok := a.checkHTTPs[checkID]; ok {
+		check.Stop()
+		delete(a.checkHTTPs, checkID)
+	}
 	if check, ok := a.checkTTLs[checkID]; ok {
 		check.Stop()
 		delete(a.checkTTLs, checkID)
