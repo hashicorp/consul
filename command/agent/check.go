@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/consul/structs"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os/exec"
@@ -319,12 +320,17 @@ func (c *CheckHTTP) check() {
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
 		return
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		// PASSING (2xx)
-		c.Logger.Printf("[DEBUG] http check '%v' is passing", c.CheckID)
-		result := fmt.Sprintf("%s from %s", resp.Status, c.HTTP)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			c.Logger.Printf("[WARN] check '%v': Get error while reading body: %s", c.CheckID, err)
+			body = []byte{}
+		}
+		result := fmt.Sprintf("HTTP GET %s: %s Output: %s", c.HTTP, resp.Status, body)
+		c.Logger.Printf("[DEBUG] agent: http check '%v' is passing: %s", c.CheckID, result)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, result)
 
 	} else if resp.StatusCode == 429 {
