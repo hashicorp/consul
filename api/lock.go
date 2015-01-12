@@ -190,7 +190,7 @@ func (l *Lock) Unlock() error {
 		return ErrLockNotHeld
 	}
 
-	// Set that we no longwer own the lock
+	// Set that we no longer own the lock
 	l.isHeld = false
 
 	// Stop the session renew
