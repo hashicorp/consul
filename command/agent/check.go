@@ -280,6 +280,18 @@ type CheckHTTP struct {
 func (c *CheckHTTP) Start() {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
+
+	if c.httpClient == nil {
+		// For long (>10s) interval checks the http timeout is 10s, otherwise the
+		// timeout is the interval. This means that a check *should* return
+		// before the next check begins.
+		if c.Interval < 10*time.Second {
+			c.httpClient = &http.Client{Timeout: c.Interval}
+		} else {
+			c.httpClient = &http.Client{Timeout: 10 * time.Second}
+		}
+	}
+
 	c.stop = false
 	c.stopCh = make(chan struct{})
 	go c.run()

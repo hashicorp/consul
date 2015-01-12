@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -688,9 +687,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 				HTTP:     chkType.HTTP,
 				Interval: chkType.Interval,
 				Logger:   a.logger,
-				httpClient: &http.Client{
-					Timeout: chkType.Interval,
-				},
 			}
 			http.Start()
 			a.checkHTTPs[check.CheckID] = http
