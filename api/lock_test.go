@@ -182,3 +182,71 @@ func TestLock_Contend(t *testing.T) {
 		}
 	}
 }
+
+func TestLock_Destroy(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	lock, err := c.LockKey("test/lock")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should work
+	leaderCh, err := lock.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if leaderCh == nil {
+		t.Fatalf("not leader")
+	}
+
+	// Destroy should fail
+	if err := lock.Destroy(); err != ErrLockHeld {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should be able to release
+	err = lock.Unlock()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Acquire with a different lock
+	l2, err := c.LockKey("test/lock")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should work
+	leaderCh, err = l2.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if leaderCh == nil {
+		t.Fatalf("not leader")
+	}
+
+	// Destroy should still fail
+	if err := lock.Destroy(); err != ErrLockInUse {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should relese
+	err = l2.Unlock()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Destroy should work
+	err = lock.Destroy()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Double destroy should work
+	err = l2.Destroy()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
