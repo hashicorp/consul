@@ -33,6 +33,10 @@ var (
 	// ErrLockNotHeld is returned if we attempt to unlock a lock
 	// that we do not hold.
 	ErrLockNotHeld = fmt.Errorf("Lock not held")
+
+	// ErrLockInUse is returned if we attempt to destroy a lock
+	// that is in use.
+	ErrLockInUse = fmt.Errorf("Lock in use")
 )
 
 // Lock is used to implement client-side leader election. It is follows the
@@ -213,6 +217,46 @@ func (l *Lock) Unlock() error {
 	_, _, err := kv.Release(lockEnt, nil)
 	if err != nil {
 		return fmt.Errorf("failed to release lock: %v", err)
+	}
+	return nil
+}
+
+// Destroy is used to cleanup the lock entry. It is not necessary
+// to invoke. It will fail if the lock is in use.
+func (l *Lock) Destroy() error {
+	// Hold the lock as we try to release
+	l.l.Lock()
+	defer l.l.Unlock()
+
+	// Check if we already hold the lock
+	if l.isHeld {
+		return ErrLockHeld
+	}
+
+	// Look for an existing lock
+	kv := l.c.KV()
+	pair, _, err := kv.Get(l.opts.Key, nil)
+	if err != nil {
+		return fmt.Errorf("failed to read lock: %v", err)
+	}
+
+	// Nothing to do if the lock does not exist
+	if pair == nil {
+		return nil
+	}
+
+	// Check if it is in use
+	if pair.Session != "" {
+		return ErrLockInUse
+	}
+
+	// Attempt the delete
+	didRemove, _, err := kv.DeleteCAS(pair, nil)
+	if err != nil {
+		return fmt.Errorf("failed to remove lock: %v", err)
+	}
+	if !didRemove {
+		return ErrLockInUse
 	}
 	return nil
 }
