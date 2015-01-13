@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
-	"strings"
 	"sync"
 	"time"
 )
@@ -398,8 +397,9 @@ func (s *Semaphore) pruneDeadHolders(lock *semaphoreLock, pairs KVPairs) {
 	// Gather all the live holders
 	alive := make(map[string]struct{}, len(pairs))
 	for _, pair := range pairs {
-		session := strings.TrimPrefix(pair.Key, s.opts.Prefix)
-		alive[session] = struct{}{}
+		if pair.Session != "" {
+			alive[pair.Session] = struct{}{}
+		}
 	}
 
 	// Remove any holders that are dead
