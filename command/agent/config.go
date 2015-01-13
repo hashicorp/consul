@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -364,17 +365,27 @@ type UnixSocket struct {
 
 func populateUnixSocket(addr string) (*UnixSocket, error) {
 	if !strings.HasPrefix(addr, "unix://") {
-		return nil, fmt.Errorf("Failed to parse Unix address, format is [path];[user];[group];[mode]: %v", addr)
+		return nil, fmt.Errorf("Failed to parse Unix address, format is unix://[path];[user];[group];[mode]: %v", addr)
 	}
 
 	splitAddr := strings.Split(strings.TrimPrefix(addr, "unix://"), ";")
 	if len(splitAddr) != 4 {
-		return nil, fmt.Errorf("Failed to parse Unix address, format is [path];[user];[group];[mode]: %v", addr)
+		return nil, fmt.Errorf("Failed to parse Unix address, format is unix://[path];[user];[group];[mode]: %v", addr)
 	}
 
 	ret := &UnixSocket{Path: splitAddr[0]}
 
-	if userVal, err := user.Lookup(splitAddr[1]); err != nil {
+	var userVal *user.User
+	var err error
+
+	regex := regexp.MustCompile("[\\d]+")
+	if regex.MatchString(splitAddr[1]) {
+		userVal, err = user.LookupId(splitAddr[1])
+	} else {
+		userVal, err = user.Lookup(splitAddr[1])
+	}
+
+	if err != nil {
 		return nil, fmt.Errorf("Invalid user given for Unix socket ownership: %v", splitAddr[1])
 	} else {
 		if uid64, err := strconv.ParseInt(userVal.Uid, 10, 32); err != nil {

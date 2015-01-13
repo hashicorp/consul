@@ -5,8 +5,10 @@ import (
 	"encoding/base64"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -1067,4 +1069,66 @@ func TestReadConfigPaths_dir(t *testing.T) {
 	if config.NodeName != "baz" {
 		t.Fatalf("bad: %#v", config)
 	}
+}
+
+func TestUnixSockets(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.SkipNow()
+	}
+
+	_, err := populateUnixSocket("tcp://abc123")
+	if err == nil {
+		t.Fatal("Should have rejected invalid scheme")
+	}
+
+	_, err = populateUnixSocket("unix://x;y;z")
+	if err == nil {
+		t.Fatal("Should have rejected invalid number of parameters in Unix socket definition")
+	}
+
+	user, err := user.Current()
+	if err != nil {
+		t.Fatal("Could not get current user")
+	}
+
+	tempdir, err := ioutil.TempDir("", "consul-test-")
+	if err != nil {
+		t.Fatal("Could not create a working directory")
+	}
+
+	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;osdfjo9ihf9h82;" + user.Gid + ";640")
+	if err == nil {
+		t.Fatal("Did not error on invalid username")
+	}
+
+	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;999999;" + user.Gid + ";640")
+	if err == nil {
+		t.Fatal("Did not error on invalid uid")
+	}
+
+	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;" + user.Username + ";foihafwereworg;" + ";640")
+	if err == nil {
+		t.Fatal("Did not error on invalid group (a name, must be gid)")
+	}
+
+	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;" + user.Username + ";999999;" + ";640")
+	if err == nil {
+		t.Fatal("Did not error on invalid uid")
+	}
+
+	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;" + user.Username + ";" + user.Gid + ";999")
+	if err == nil {
+		t.Fatal("Did not error on invalid socket mode")
+	}
+
+	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;" + user.Username + ";" + user.Gid + ";640")
+	if err != nil {
+		t.Fatal("Unix socket test failed for no obvious reason (using username)")
+	}
+
+	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;" + user.Uid + ";" + user.Gid + ";640")
+	if err != nil {
+		t.Fatal("Unix socket test failed for no obvious reason (using uid)")
+	}
+
 }
