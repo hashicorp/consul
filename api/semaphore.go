@@ -365,7 +365,10 @@ func (s *Semaphore) findLock(pairs KVPairs) *KVPair {
 func (s *Semaphore) decodeLock(pair *KVPair) (*semaphoreLock, error) {
 	// Handle if there is no lock
 	if pair == nil || pair.Value == nil {
-		return &semaphoreLock{Limit: s.opts.Limit}, nil
+		return &semaphoreLock{
+			Limit:   s.opts.Limit,
+			Holders: make(map[string]bool),
+		}, nil
 	}
 
 	l := &semaphoreLock{}
@@ -413,16 +416,17 @@ func (s *Semaphore) monitorLock(session string, stopCh chan struct{}) {
 	defer close(stopCh)
 	kv := s.c.KV()
 	opts := &QueryOptions{RequireConsistent: true}
-	key := path.Join(s.opts.Prefix, DefaultSemaphoreKey)
 WAIT:
-	pair, meta, err := kv.Get(key, opts)
+	pairs, meta, err := kv.List(s.opts.Prefix, opts)
 	if err != nil {
 		return
 	}
-	lock, err := s.decodeLock(pair)
+	lockPair := s.findLock(pairs)
+	lock, err := s.decodeLock(lockPair)
 	if err != nil {
 		return
 	}
+	s.pruneDeadHolders(lock, pairs)
 	if _, ok := lock.Holders[session]; ok {
 		opts.WaitIndex = meta.LastIndex
 		goto WAIT
