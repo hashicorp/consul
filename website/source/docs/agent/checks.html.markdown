@@ -22,7 +22,7 @@ There are three different kinds of checks:
 
  * HTTP + Interval - These checks make an `HTTP GET` request every Interval (e.g.
  every 30 seconds) to the specified URL. The status of the service depends on the HTTP Response Code.
- `200` is passing, `503` is warning and anything else is failing.
+ any `2xx` code is passing, `429 Too Many Requests` is warning and anything else is failing.
  This type of check should be preferred over a script that for example uses `curl`.
 
  * Time to Live (TTL) - These checks retain their last known state for a given TTL.

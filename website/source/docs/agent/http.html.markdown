@@ -450,7 +450,7 @@ field is not used by Consul, and is meant to be human readable.
 If a `Script` is provided, the check type is a script, and Consul will
 evaluate the script every `Interval` to update the status.
 
-An `HTTP` check will preform an HTTP GET request to the value of `HTTP` (expected to be a URL) every `Interval`. If the response is `200` the check is passing, if the response is `503` the check is warning, otherwise the check is critical.
+An `HTTP` check will preform an HTTP GET request to the value of `HTTP` (expected to be a URL) every `Interval`. If the response is any `2xx` code the check is passing, if the response is `429 Too Many Requests` the check is warning, otherwise the check is critical.
 
 If a `TTL` type is used, then the TTL update APIs must be used to periodically update
 the state of the check.
