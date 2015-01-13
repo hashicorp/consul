@@ -20,17 +20,21 @@ func TestHealth_Node(t *testing.T) {
 	}
 	name := info["Config"]["NodeName"].(string)
 
-	checks, meta, err := health.Node(name, nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if meta.LastIndex == 0 {
-		t.Fatalf("bad: %v", meta)
-	}
-	if len(checks) == 0 {
-		t.Fatalf("Bad: %v", checks)
-	}
+	testutil.WaitForResult(func() (bool, error) {
+		checks, meta, err := health.Node(name, nil)
+		if err != nil {
+			return false, err
+		}
+		if meta.LastIndex == 0 {
+			return false, fmt.Errorf("bad: %v", meta)
+		}
+		if len(checks) == 0 {
+			return false, fmt.Errorf("bad: %v", checks)
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestHealth_Checks(t *testing.T) {
