@@ -1076,17 +1076,7 @@ func TestUnixSockets(t *testing.T) {
 		t.SkipNow()
 	}
 
-	_, err := populateUnixSocket("tcp://abc123")
-	if err == nil {
-		t.Fatal("Should have rejected invalid scheme")
-	}
-
-	_, err = populateUnixSocket("unix://x;y;z")
-	if err == nil {
-		t.Fatal("Should have rejected invalid number of parameters in Unix socket definition")
-	}
-
-	user, err := user.Current()
+	usr, err := user.Current()
 	if err != nil {
 		t.Fatal("Could not get current user")
 	}
@@ -1096,39 +1086,86 @@ func TestUnixSockets(t *testing.T) {
 		t.Fatal("Could not create a working directory")
 	}
 
-	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;osdfjo9ihf9h82;" + user.Gid + ";640")
+	type SocketTestData struct {
+		Path string
+		Uid  string
+		Gid  string
+		Mode string
+	}
+
+	testUnixSocketPopulation := func(s SocketTestData) (*UnixSocket, error) {
+		return populateUnixSocket("unix://" + s.Path + ";" + s.Uid + ";" + s.Gid + ";" + s.Mode)
+	}
+
+	testUnixSocketPermissions := func(s SocketTestData) error {
+		return adjustUnixSocketPermissions("unix://" + s.Path + ";" + s.Uid + ";" + s.Gid + ";" + s.Mode)
+	}
+
+	_, err = populateUnixSocket("tcp://abc123")
+	if err == nil {
+		t.Fatal("Should have rejected invalid scheme")
+	}
+
+	_, err = populateUnixSocket("unix://x;y;z")
+	if err == nil {
+		t.Fatal("Should have rejected invalid number of parameters in Unix socket definition")
+	}
+
+	std := SocketTestData{
+		Path: tempdir + "/unix-config-test.sock",
+		Uid:  usr.Uid,
+		Gid:  usr.Gid,
+		Mode: "640",
+	}
+
+	std.Uid = "orasdfdsnfoinweroiu"
+	_, err = testUnixSocketPopulation(std)
 	if err == nil {
 		t.Fatal("Did not error on invalid username")
 	}
 
-	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;999999;" + user.Gid + ";640")
+	std.Uid = "999999"
+	_, err = testUnixSocketPopulation(std)
 	if err == nil {
 		t.Fatal("Did not error on invalid uid")
 	}
 
-	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;" + user.Username + ";foihafwereworg;" + ";640")
+	std.Uid = usr.Username
+	std.Gid = "foinfphawepofhewof"
+	_, err = testUnixSocketPopulation(std)
 	if err == nil {
 		t.Fatal("Did not error on invalid group (a name, must be gid)")
 	}
 
-	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;" + user.Username + ";999999;" + ";640")
+	std.Uid = usr.Uid
+	std.Gid = "999999"
+	_, err = testUnixSocketPopulation(std)
 	if err == nil {
 		t.Fatal("Did not error on invalid uid")
 	}
 
-	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;" + user.Username + ";" + user.Gid + ";999")
+	std.Gid = usr.Gid
+	std.Mode = "999"
+	_, err = testUnixSocketPopulation(std)
 	if err == nil {
 		t.Fatal("Did not error on invalid socket mode")
 	}
 
-	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;" + user.Username + ";" + user.Gid + ";640")
+	std.Uid = usr.Username
+	std.Mode = "640"
+	_, err = testUnixSocketPopulation(std)
 	if err != nil {
 		t.Fatal("Unix socket test failed for no obvious reason (using username)")
 	}
 
-	_, err = populateUnixSocket("unix://" + tempdir + "/unixtest.sock;" + user.Uid + ";" + user.Gid + ";640")
+	std.Uid = usr.Uid
+	_, err = testUnixSocketPopulation(std)
 	if err != nil {
 		t.Fatal("Unix socket test failed for no obvious reason (using uid)")
 	}
 
+	err = testUnixSocketPermissions(std)
+	if err != nil {
+		t.Fatal("Adjusting socket permissions failed for no obvious reason")
+	}
 }

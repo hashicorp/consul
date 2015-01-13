@@ -589,7 +589,7 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Get the new client http listener addr
-	httpAddr, err := config.ClientListenerAddr(config.Addresses.HTTP, config.Ports.HTTP)
+	httpAddr, err := config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
 	}
@@ -599,7 +599,7 @@ func (c *Command) Run(args []string) int {
 		go func(wp *watch.WatchPlan) {
 			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
-			if err := wp.Run(httpAddr); err != nil {
+			if err := wp.Run(httpAddr.String()); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
 			}
 		}(wp)
@@ -758,7 +758,7 @@ func (c *Command) handleReload(config *Config) *Config {
 	}
 
 	// Get the new client listener addr
-	httpAddr, err := newConf.ClientListenerAddr(config.Addresses.HTTP, config.Ports.HTTP)
+	httpAddr, err := newConf.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
 	}
@@ -773,7 +773,7 @@ func (c *Command) handleReload(config *Config) *Config {
 		go func(wp *watch.WatchPlan) {
 			wp.Handler = makeWatchHandler(c.logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
-			if err := wp.Run(httpAddr); err != nil {
+			if err := wp.Run(httpAddr.String()); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
 			}
 		}(wp)

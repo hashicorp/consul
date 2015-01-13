@@ -500,24 +500,17 @@ func (c *Config) ClientListener(override string, port int) (net.Addr, error) {
 		if ip == nil {
 			return nil, fmt.Errorf("Failed to parse IP: %v", addr)
 		}
+
+		if ip.IsUnspecified() {
+			ip = net.ParseIP("127.0.0.1")
+		}
+
+		if ip == nil {
+			return nil, fmt.Errorf("Failed to parse IP 127.0.0.1")
+		}
+
 		return &net.TCPAddr{IP: ip, Port: port}, nil
 	}
-}
-
-// ClientListenerAddr is used to format an address for a
-// port on a ClientAddr, handling the zero IP.
-func (c *Config) ClientListenerAddr(override string, port int) (string, error) {
-	addr, err := c.ClientListener(override, port)
-	if err != nil {
-		return "", err
-	}
-
-	if ipAddr, ok := addr.(*net.TCPAddr); ok {
-		if ipAddr.IP.IsUnspecified() {
-			ipAddr.IP = net.ParseIP("127.0.0.1")
-		}
-	}
-	return addr.String(), nil
 }
 
 // DecodeConfig reads the configuration from the given reader in JSON
