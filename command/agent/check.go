@@ -2,8 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"github.com/armon/circbuf"
-	"github.com/hashicorp/consul/consul/structs"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -11,6 +9,9 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/armon/circbuf"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 const (
@@ -164,7 +165,7 @@ func (c *CheckMonitor) check() {
 
 	// Check if the check passed
 	if err == nil {
-		c.Logger.Printf("[DEBUG] Check '%v' is passing", c.CheckID)
+		c.Logger.Printf("[DEBUG] agent: Check '%v' is passing", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, outputStr)
 		return
 	}
@@ -175,7 +176,7 @@ func (c *CheckMonitor) check() {
 		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 			code := status.ExitStatus()
 			if code == 1 {
-				c.Logger.Printf("[WARN] Check '%v' is now warning", c.CheckID)
+				c.Logger.Printf("[WARN] agent: Check '%v' is now warning", c.CheckID)
 				c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, outputStr)
 				return
 			}
@@ -183,7 +184,7 @@ func (c *CheckMonitor) check() {
 	}
 
 	// Set the health as critical
-	c.Logger.Printf("[WARN] Check '%v' is now critical", c.CheckID)
+	c.Logger.Printf("[WARN] agent: Check '%v' is now critical", c.CheckID)
 	c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, outputStr)
 }
 
@@ -230,7 +231,7 @@ func (c *CheckTTL) run() {
 	for {
 		select {
 		case <-c.timer.C:
-			c.Logger.Printf("[WARN] Check '%v' missed TTL, is now critical",
+			c.Logger.Printf("[WARN] agent: Check '%v' missed TTL, is now critical",
 				c.CheckID)
 			c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, "TTL expired")
 
@@ -243,7 +244,7 @@ func (c *CheckTTL) run() {
 // SetStatus is used to update the status of the check,
 // and to renew the TTL. If expired, TTL is restarted.
 func (c *CheckTTL) SetStatus(status, output string) {
-	c.Logger.Printf("[DEBUG] Check '%v' status is now %v",
+	c.Logger.Printf("[DEBUG] agent: Check '%v' status is now %v",
 		c.CheckID, status)
 	c.Notify.UpdateCheck(c.CheckID, status, output)
 	c.timer.Reset(c.TTL)
@@ -258,8 +259,8 @@ type persistedCheck struct {
 
 // CheckHTTP is used to periodically make an HTTP request to
 // determine the health of a given check.
-// The check is passing if the response code is 200.
-// The check is warning if the response code is 503.
+// The check is passing if the response code is 2XX.
+// The check is warning if the response code is 429.
 // The check is critical if the response code is anything else
 // or if the request returns an error
 type CheckHTTP struct {
@@ -334,27 +335,29 @@ func (c *CheckHTTP) check() {
 	}
 	defer resp.Body.Close()
 
+	// Format the response body
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		c.Logger.Printf("[WARN] agent: check '%v': Get error while reading body: %s", c.CheckID, err)
+		body = []byte{}
+	}
+	result := fmt.Sprintf("HTTP GET %s: %s Output: %s", c.HTTP, resp.Status, body)
+
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		// PASSING (2xx)
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			c.Logger.Printf("[WARN] check '%v': Get error while reading body: %s", c.CheckID, err)
-			body = []byte{}
-		}
-		result := fmt.Sprintf("HTTP GET %s: %s Output: %s", c.HTTP, resp.Status, body)
-		c.Logger.Printf("[DEBUG] agent: http check '%v' is passing: %s", c.CheckID, result)
+		c.Logger.Printf("[DEBUG] agent: check '%v' is passing", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, result)
 
 	} else if resp.StatusCode == 429 {
 		// WARNING
 		// 429 Too Many Requests (RFC 6585)
 		// The user has sent too many requests in a given amount of time.
-		c.Logger.Printf("[WARN] check '%v' is now warning", c.CheckID)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, resp.Status)
+		c.Logger.Printf("[WARN] agent: check '%v' is now warning", c.CheckID)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, result)
 
 	} else {
 		// CRITICAL
-		c.Logger.Printf("[WARN] check '%v' is now critical", c.CheckID)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, resp.Status)
+		c.Logger.Printf("[WARN] agent: check '%v' is now critical", c.CheckID)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, result)
 	}
 }
