@@ -29,7 +29,7 @@ const (
 
 	// DefaultSemaphoreKey is the key used within the prefix to
 	// use for coordination between all the contenders.
-	DefaultSemaphoreKey = "_lock"
+	DefaultSemaphoreKey = ".lock"
 )
 
 var (
