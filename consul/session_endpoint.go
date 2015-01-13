@@ -117,6 +117,8 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 			reply.Index = index
 			if session != nil {
 				reply.Sessions = structs.Sessions{session}
+			} else {
+				reply.Sessions = nil
 			}
 			return err
 		})

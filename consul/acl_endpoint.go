@@ -139,6 +139,8 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 			reply.Index = index
 			if acl != nil {
 				reply.ACLs = structs.ACLs{acl}
+			} else {
+				reply.ACLs = nil
 			}
 			return err
 		})
