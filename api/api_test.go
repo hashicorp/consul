@@ -24,6 +24,7 @@ var consulConfig = `{
 	},
 	"data_dir": "%s",
 	"bootstrap": true,
+	"log_level": "debug",
 	"server": true
 }`
 
@@ -73,6 +74,8 @@ func newTestServer(t *testing.T) *testServer {
 
 	// Start the server
 	cmd := exec.Command("consul", "agent", "-config-file", configFile.Name())
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
 		t.Fatalf("err: %s", err)
 	}

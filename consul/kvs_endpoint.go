@@ -157,6 +157,8 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 				} else {
 					reply.Index = index
 				}
+				reply.Entries = nil
+
 			} else {
 				// Determine the maximum affected index
 				var maxIndex uint64
