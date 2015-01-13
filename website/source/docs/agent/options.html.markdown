@@ -312,6 +312,10 @@ definitions support being updated during a reload.
   will set the truncated flag, indicating to clients that they should re-query using TCP to
   get the full set of records.
 
+  * `only_passing` - If set to true, any nodes whose healthchecks are not passing will be
+  excluded from DNS results. By default (or if set to false), only nodes whose healthchecks
+  are failing as critical will be excluded.
+
 * `domain` - By default, Consul responds to DNS queries in the "consul." domain.
   This flag can be used to change that domain. All queries in this domain are assumed
   to be handled by Consul, and will not be recursively resolved.
