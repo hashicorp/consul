@@ -182,3 +182,33 @@ func TestSemaphore_Contend(t *testing.T) {
 		}
 	}
 }
+
+func TestSemaphore_BadLimit(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	sema, err := c.SemaphorePrefix("test/semaphore", 0)
+	if err == nil {
+		t.Fatalf("should error")
+	}
+
+	sema, err = c.SemaphorePrefix("test/semaphore", 1)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	_, err = sema.Acquire(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	sema2, err := c.SemaphorePrefix("test/semaphore", 2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	_, err = sema2.Acquire(nil)
+	if err.Error() != "semaphore limit conflict (lock: 1, local: 2)" {
+		t.Fatalf("err: %v", err)
+	}
+}
