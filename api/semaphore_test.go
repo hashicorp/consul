@@ -212,3 +212,58 @@ func TestSemaphore_BadLimit(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 }
+
+func TestSemaphore_Destroy(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	sema, err := c.SemaphorePrefix("test/semaphore", 2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	sema2, err := c.SemaphorePrefix("test/semaphore", 2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	_, err = sema.Acquire(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	_, err = sema2.Acquire(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Destroy should fail, still held
+	if err := sema.Destroy(); err != ErrSemaphoreHeld {
+		t.Fatalf("err: %v", err)
+	}
+
+	err = sema.Release()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Destroy should fail, still in use
+	if err := sema.Destroy(); err != ErrSemaphoreInUse {
+		t.Fatalf("err: %v", err)
+	}
+
+	err = sema2.Release()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Destroy should work
+	if err := sema.Destroy(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Destroy should work
+	if err := sema2.Destroy(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
