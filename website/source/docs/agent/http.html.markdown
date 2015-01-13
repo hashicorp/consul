@@ -422,7 +422,7 @@ The endpoint always returns 200.
 
 The register endpoint is used to add a new check to the local agent.
 There is more documentation on checks [here](/docs/agent/checks.html).
-Checks are either a script or TTL type. The agent is responsible for managing
+Checks are of script, HTTP, or TTL type. The agent is responsible for managing
 the status of the check and keeping the Catalog in sync.
 
 The register endpoint expects a JSON request body to be PUT. The request
@@ -434,20 +434,25 @@ body must look like:
   "Name": "Memory utilization",
   "Notes": "Ensure we don't oversubscribe memory",
   "Script": "/usr/local/bin/check_mem.py",
+  "HTTP": "http://example.com",
   "Interval": "10s",
   "TTL": "15s"
 }
 ```
 
-The `Name` field is mandatory, as is either `Script` and `Interval`
-or `TTL`. Only one of `Script` and `Interval` or `TTL` should be provided.
+The `Name` field is mandatory, as is one of `Script`, `HTTP` or `TTL`.
+`Script` and `HTTP` also require that `Interval` be set.
+
 If an `ID` is not provided, it is set to `Name`. You cannot have duplicate
 `ID` entries per agent, so it may be necessary to provide an ID. The `Notes`
 field is not used by Consul, and is meant to be human readable.
 
 If a `Script` is provided, the check type is a script, and Consul will
-evaluate the script every `Interval` to update the status. If a `TTL` type
-is used, then the TTL update APIs must be used to periodically update
+evaluate the script every `Interval` to update the status.
+
+An `HTTP` check will preform an HTTP GET request to the value of `HTTP` (expected to be a URL) every `Interval`. If the response is any `2xx` code the check is passing, if the response is `429 Too Many Requests` the check is warning, otherwise the check is critical.
+
+If a `TTL` type is used, then the TTL update APIs must be used to periodically update
 the state of the check.
 
 The return code is 200 on success.
@@ -515,6 +520,7 @@ body must look like:
   "Port": 8000,
   "Check": {
     "Script": "/usr/local/bin/check_redis.py",
+    "HTTP": "http://localhost:5000/health",
     "Interval": "10s",
     "TTL": "15s"
   }
@@ -523,8 +529,10 @@ body must look like:
 
 The `Name` field is mandatory,  If an `ID` is not provided, it is set to `Name`.
 You cannot have duplicate `ID` entries per agent, so it may be necessary to provide an ID.
-`Tags`, `Address`, `Port` and `Check` are optional. If `Check` is provided, only one of `Script` and `Interval`
-or `TTL` should be provided. There is more information about checks [here](/docs/agent/checks.html).
+`Tags`, `Address`, `Port` and `Check` are optional.
+If `Check` is provided, only one of `Script`, `HTTP` or `TTL` should be provided.
+`Script` and `HTTP` also require `Interval`.
+There is more information about checks [here](/docs/agent/checks.html).
 The `Address` will default to that of the agent if not provided.
 
 The created check will be named "service:\<ServiceId\>".

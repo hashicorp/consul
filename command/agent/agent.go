@@ -51,11 +51,16 @@ type Agent struct {
 	state localState
 
 	// checkMonitors maps the check ID to an associated monitor
-	// checkTTLs maps the check ID to an associated check TTL
-	// checkLock protects updates to either
 	checkMonitors map[string]*CheckMonitor
-	checkTTLs     map[string]*CheckTTL
-	checkLock     sync.Mutex
+
+	// checkHTTPs maps the check ID to an associated HTTP check
+	checkHTTPs map[string]*CheckHTTP
+
+	// checkTTLs maps the check ID to an associated check TTL
+	checkTTLs map[string]*CheckTTL
+
+	// checkLock protects updates to the check* maps
+	checkLock sync.Mutex
 
 	// eventCh is used to receive user events
 	eventCh chan serf.UserEvent
@@ -111,6 +116,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		logOutput:     logOutput,
 		checkMonitors: make(map[string]*CheckMonitor),
 		checkTTLs:     make(map[string]*CheckTTL),
+		checkHTTPs:    make(map[string]*CheckHTTP),
 		eventCh:       make(chan serf.UserEvent, 1024),
 		eventBuf:      make([]*UserEvent, 256),
 		shutdownCh:    make(chan struct{}),
@@ -379,6 +385,10 @@ func (a *Agent) Shutdown() error {
 		chk.Stop()
 	}
 	for _, chk := range a.checkTTLs {
+		chk.Stop()
+	}
+
+	for _, chk := range a.checkHTTPs {
 		chk.Stop()
 	}
 
@@ -661,6 +671,26 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			ttl.Start()
 			a.checkTTLs[check.CheckID] = ttl
 
+		} else if chkType.IsHTTP() {
+			if existing, ok := a.checkHTTPs[check.CheckID]; ok {
+				existing.Stop()
+			}
+			if chkType.Interval < MinInterval {
+				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
+					check.CheckID, MinInterval))
+				chkType.Interval = MinInterval
+			}
+
+			http := &CheckHTTP{
+				Notify:   &a.state,
+				CheckID:  check.CheckID,
+				HTTP:     chkType.HTTP,
+				Interval: chkType.Interval,
+				Logger:   a.logger,
+			}
+			http.Start()
+			a.checkHTTPs[check.CheckID] = http
+
 		} else {
 			if existing, ok := a.checkMonitors[check.CheckID]; ok {
 				existing.Stop()
@@ -707,6 +737,10 @@ func (a *Agent) RemoveCheck(checkID string, persist bool) error {
 	if check, ok := a.checkMonitors[checkID]; ok {
 		check.Stop()
 		delete(a.checkMonitors, checkID)
+	}
+	if check, ok := a.checkHTTPs[checkID]; ok {
+		check.Stop()
+		delete(a.checkHTTPs, checkID)
 	}
 	if check, ok := a.checkTTLs[checkID]; ok {
 		check.Stop()

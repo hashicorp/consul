@@ -55,7 +55,8 @@ node has any failing system-level check, the DNS interface will omit that
 node from any service query.
 
 There is more information about [checks here](/docs/agent/checks.html). The
-check must be of the script or TTL type. If it is a script type, `script` and
+check must be of the script, HTTP or TTL type. If it is a script type, `script` and
+`interval` must be provided. If it is a HTTP type, `http` and
 `interval` must be provided. If it is a TTL type, then only `ttl` must be
 provided. The check name is automatically generated as "service:<service-id>".
 

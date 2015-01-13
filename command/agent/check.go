@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/consul/structs"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -23,10 +25,14 @@ const (
 )
 
 // CheckType is used to create either the CheckMonitor
-// or the CheckTTL. Only one of TTL or Script/Interval
-// needs to be provided
+// or the CheckTTL.
+// Three types are supported: Script, HTTP, and TTL
+// Script and HTTP both require Interval
+// Only one of the types needs to be provided
+//  TTL or Script/Interval or HTTP/Interval
 type CheckType struct {
 	Script   string
+	HTTP     string
 	Interval time.Duration
 
 	TTL time.Duration
@@ -36,7 +42,7 @@ type CheckType struct {
 
 // Valid checks if the CheckType is valid
 func (c *CheckType) Valid() bool {
-	return c.IsTTL() || c.IsMonitor()
+	return c.IsTTL() || c.IsMonitor() || c.IsHTTP()
 }
 
 // IsTTL checks if this is a TTL type
@@ -47,6 +53,11 @@ func (c *CheckType) IsTTL() bool {
 // IsMonitor checks if this is a Monitor type
 func (c *CheckType) IsMonitor() bool {
 	return c.Script != "" && c.Interval != 0
+}
+
+// IsHTTP checks if this is a HTTP type
+func (c *CheckType) IsHTTP() bool {
+	return c.HTTP != "" && c.Interval != 0
 }
 
 // CheckNotifier interface is used by the CheckMonitor
@@ -243,4 +254,107 @@ func (c *CheckTTL) SetStatus(status, output string) {
 type persistedCheck struct {
 	Check   *structs.HealthCheck
 	ChkType *CheckType
+}
+
+// CheckHTTP is used to periodically make an HTTP request to
+// determine the health of a given check.
+// The check is passing if the response code is 200.
+// The check is warning if the response code is 503.
+// The check is critical if the response code is anything else
+// or if the request returns an error
+type CheckHTTP struct {
+	Notify   CheckNotifier
+	CheckID  string
+	HTTP     string
+	Interval time.Duration
+	Logger   *log.Logger
+
+	httpClient *http.Client
+	stop       bool
+	stopCh     chan struct{}
+	stopLock   sync.Mutex
+}
+
+// Start is used to start an HTTP check.
+// The check runs until stop is called
+func (c *CheckHTTP) Start() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+
+	if c.httpClient == nil {
+		// For long (>10s) interval checks the http timeout is 10s, otherwise the
+		// timeout is the interval. This means that a check *should* return
+		// before the next check begins.
+		if c.Interval < 10*time.Second {
+			c.httpClient = &http.Client{Timeout: c.Interval}
+		} else {
+			c.httpClient = &http.Client{Timeout: 10 * time.Second}
+		}
+	}
+
+	c.stop = false
+	c.stopCh = make(chan struct{})
+	go c.run()
+}
+
+// Stop is used to stop an HTTP check.
+func (c *CheckHTTP) Stop() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	if !c.stop {
+		c.stop = true
+		close(c.stopCh)
+	}
+}
+
+// run is invoked by a goroutine to run until Stop() is called
+func (c *CheckHTTP) run() {
+	// Get the randomized initial pause time
+	initialPauseTime := randomStagger(c.Interval)
+	c.Logger.Printf("[DEBUG] agent: pausing %v before first HTTP request of %s", initialPauseTime, c.HTTP)
+	next := time.After(initialPauseTime)
+	for {
+		select {
+		case <-next:
+			c.check()
+			next = time.After(c.Interval)
+		case <-c.stopCh:
+			return
+		}
+	}
+}
+
+// check is invoked periodically to perform the HTTP check
+func (c *CheckHTTP) check() {
+	resp, err := c.httpClient.Get(c.HTTP)
+	if err != nil {
+		c.Logger.Printf("[WARN] agent: http request failed '%s': %s", c.HTTP, err)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+		// PASSING (2xx)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			c.Logger.Printf("[WARN] check '%v': Get error while reading body: %s", c.CheckID, err)
+			body = []byte{}
+		}
+		result := fmt.Sprintf("HTTP GET %s: %s Output: %s", c.HTTP, resp.Status, body)
+		c.Logger.Printf("[DEBUG] agent: http check '%v' is passing: %s", c.CheckID, result)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, result)
+
+	} else if resp.StatusCode == 429 {
+		// WARNING
+		// 429 Too Many Requests (RFC 6585)
+		// The user has sent too many requests in a given amount of time.
+		c.Logger.Printf("[WARN] check '%v' is now warning", c.CheckID)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, resp.Status)
+
+	} else {
+		// CRITICAL
+		c.Logger.Printf("[WARN] check '%v' is now critical", c.CheckID)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, resp.Status)
+	}
 }

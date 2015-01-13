@@ -13,12 +13,17 @@ application level health checks. A health check is considered to be application
 level if it associated with a service. A check is defined in a configuration file,
 or added at runtime over the HTTP interface.
 
-There are two different kinds of checks:
+There are three different kinds of checks:
 
  * Script + Interval - These checks depend on invoking an external application
  that does the health check and exits with an appropriate exit code, potentially
  generating some output. A script is paired with an invocation interval (e.g.
  every 30 seconds). This is similar to the Nagios plugin system.
+
+ * HTTP + Interval - These checks make an `HTTP GET` request every Interval (e.g.
+ every 30 seconds) to the specified URL. The status of the service depends on the HTTP Response Code.
+ any `2xx` code is passing, `429 Too Many Requests` is warning and anything else is failing.
+ This type of check should be preferred over a script that for example uses `curl`.
 
  * Time to Live (TTL) - These checks retain their last known state for a given TTL.
  The state of the check must be updated periodically over the HTTP interface. If an
@@ -43,6 +48,19 @@ A check definition that is a script looks like:
 }
 ```
 
+An HTTP based check looks like:
+
+```javascript
+{
+  "check": {
+    "id": "api",
+    "name": "HTTP API on port 5000",
+    "http": "http://localhost:5000/health",
+    "interval": "10s"
+  }
+}
+```
+
 A TTL based check is very similar:
 
 ```javascript
@@ -56,7 +74,7 @@ A TTL based check is very similar:
 }
 ```
 
-Both types of definitions must include a `name`, and may optionally
+Each type of definitions must include a `name`, and may optionally
 provide an `id` and `notes` field. The `id` is set to the `name` if not
 provided. It is required that all checks have a unique ID per node, so if names
 might conflict then unique ID's should be provided.
@@ -102,6 +120,12 @@ key in your configuration file.
     },
     {
       "id": "chk2",
+      "name": "/health",
+      "http": "http://localhost:5000/health",
+      "interval": "15s"
+    },
+    {
+      "id": "chk3",
       "name": "cpu",
       "script": "/bin/check_cpu",
       "interval": "10s"
