@@ -70,6 +70,9 @@ func (c *Client) LockKey(key string) (*Lock, error) {
 // to acquire and release the mutex. The key used must have
 // write permissions.
 func (c *Client) LockOpts(opts *LockOptions) (*Lock, error) {
+	if opts.Key == "" {
+		return nil, fmt.Errorf("missing key")
+	}
 	if opts.SessionName == "" {
 		opts.SessionName = DefaultLockSessionName
 	}
@@ -264,17 +267,16 @@ func (l *Lock) renewSession(id string, doneCh chan struct{}) {
 // monitorLock is a long running routine to monitor a lock ownership
 // It closes the stopCh if we lose our leadership.
 func (l *Lock) monitorLock(session string, stopCh chan struct{}) {
+	defer close(stopCh)
 	kv := l.c.KV()
 	opts := &QueryOptions{RequireConsistent: true}
 WAIT:
 	pair, meta, err := kv.Get(l.opts.Key, opts)
 	if err != nil {
-		close(stopCh)
 		return
 	}
 	if pair != nil && pair.Session == session {
 		opts.WaitIndex = meta.LastIndex
 		goto WAIT
 	}
-	close(stopCh)
 }
