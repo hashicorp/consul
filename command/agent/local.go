@@ -468,7 +468,9 @@ func (l *localState) syncService(id string) error {
 	return err
 }
 
-// syncChecks is used to sync checks to the server
+// syncChecks is used to sync checks to the server. If a check is associated
+// with a service and the service is out of sync, it will piggyback with the
+// sync so that it is updated as part of the same transaction.
 func (l *localState) syncChecks(checkIDs []string) error {
 	checkMap := make(map[string]structs.HealthChecks)
 
@@ -479,15 +481,19 @@ func (l *localState) syncChecks(checkIDs []string) error {
 	}
 
 	for serviceID, checks := range checkMap {
-		service := l.services[serviceID]
-
 		// Create the sync request
 		req := structs.RegisterRequest{
 			Datacenter:   l.config.Datacenter,
 			Node:         l.config.NodeName,
 			Address:      l.config.AdvertiseAddr,
-			Service:      service,
 			WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
+		}
+
+		// Attach the service if it should also be synced
+		if service, ok := l.services[serviceID]; ok {
+			if status, ok := l.serviceStatus[serviceID]; ok && !status.inSync {
+				req.Service = service
+			}
 		}
 
 		// Send single Check element for backwards compat with 0.4.x
@@ -513,16 +519,13 @@ func (l *localState) syncChecks(checkIDs []string) error {
 		}
 
 		// Mark the checks and services as synced
+		if req.Service != nil {
+			l.serviceStatus[serviceID] = syncStatus{inSync: true}
+			l.logger.Printf("[INFO] agent: Synced service '%s'", serviceID)
+		}
 		for _, check := range checks {
 			l.checkStatus[check.CheckID] = syncStatus{inSync: true}
 			l.logger.Printf("[INFO] agent: Synced check '%s'", check.CheckID)
-		}
-		if service != nil {
-			if status, ok := l.serviceStatus[serviceID]; ok && status.inSync {
-				continue
-			}
-			l.serviceStatus[serviceID] = syncStatus{inSync: true}
-			l.logger.Printf("[INFO] agent: Synced service '%s'", serviceID)
 		}
 	}
 
