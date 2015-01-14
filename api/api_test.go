@@ -2,6 +2,7 @@ package api
 
 import (
 	crand "crypto/rand"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,25 +14,46 @@ import (
 	"github.com/hashicorp/consul/testutil"
 )
 
-var consulConfig = `{
-	"ports": {
-		"dns": 19000,
-		"http": 18800,
-		"rpc": 18600,
-		"serf_lan": 18200,
-		"serf_wan": 18400,
-		"server": 18000
-	},
-	"data_dir": "%s",
-	"bootstrap": true,
-	"log_level": "debug",
-	"server": true
-}`
-
 type testServer struct {
 	pid        int
 	dataDir    string
 	configFile string
+}
+
+type TestPortConfig struct {
+	DNS     int `json:"dns,omitempty"`
+	HTTP    int `json:"http,omitempty"`
+	RPC     int `json:"rpc,omitempty"`
+	SerfLan int `json:"serf_lan,omitempty"`
+	SerfWan int `json:"serf_wan,omitempty"`
+	Server  int `json:"server,omitempty"`
+}
+
+type TestAddressConfig struct {
+	HTTP string `json:"http,omitempty"`
+}
+
+type TestServerConfig struct {
+	Bootstrap bool               `json:"bootstrap,omitempty"`
+	Server    bool               `json:"server,omitempty"`
+	DataDir   string             `json:"data_dir,omitempty"`
+	LogLevel  string             `json:"log_level,omitempty"`
+	Addresses *TestAddressConfig `json:"addresses,omitempty"`
+	Ports     TestPortConfig     `json:"ports,omitempty"`
+}
+
+var consulConfig = &TestServerConfig{
+	Bootstrap: true,
+	Server:    true,
+	LogLevel:  "debug",
+	Ports: TestPortConfig{
+		DNS:     19000,
+		HTTP:    18800,
+		RPC:     18600,
+		SerfLan: 18200,
+		SerfWan: 18400,
+		Server:  18000,
+	},
 }
 
 func (s *testServer) stop() {
@@ -45,6 +67,10 @@ func (s *testServer) stop() {
 }
 
 func newTestServer(t *testing.T) *testServer {
+	return newTestServerWithConfig(t, func(c *TestServerConfig) {})
+}
+
+func newTestServerWithConfig(t *testing.T, cb func(c *TestServerConfig)) *testServer {
 	if path, err := exec.LookPath("consul"); err != nil || path == "" {
 		t.Log("consul not found on $PATH, skipping")
 		t.SkipNow()
@@ -66,8 +92,17 @@ func newTestServer(t *testing.T) *testServer {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	configContent := fmt.Sprintf(consulConfig, dataDir)
-	if _, err := configFile.WriteString(configContent); err != nil {
+
+	consulConfig.DataDir = dataDir
+
+	cb(consulConfig)
+
+	configContent, err := json.Marshal(consulConfig)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := configFile.Write(configContent); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	configFile.Close()
@@ -80,10 +115,32 @@ func newTestServer(t *testing.T) *testServer {
 		t.Fatalf("err: %s", err)
 	}
 
+	return &testServer{
+		pid:        cmd.Process.Pid,
+		dataDir:    dataDir,
+		configFile: configFile.Name(),
+	}
+}
+
+func makeClient(t *testing.T) (*Client, *testServer) {
+	return makeClientWithConfig(t, func(c *Config) {
+		c.Address = "127.0.0.1:18800"
+	}, func(c *TestServerConfig) {})
+}
+
+func makeClientWithConfig(t *testing.T, clientConfig func(c *Config), serverConfig func(c *TestServerConfig)) (*Client, *testServer) {
+	server := newTestServerWithConfig(t, serverConfig)
+	conf := DefaultConfig()
+	clientConfig(conf)
+	client, err := NewClient(conf)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	// Allow the server some time to start, and verify we have a leader.
-	client := new(http.Client)
 	testutil.WaitForResult(func() (bool, error) {
-		resp, err := client.Get("http://127.0.0.1:18800/v1/catalog/nodes")
+		req := client.newRequest("GET", "/v1/catalog/nodes")
+		_, resp, err := client.doRequest(req)
 		if err != nil {
 			return false, err
 		}
@@ -102,21 +159,6 @@ func newTestServer(t *testing.T) *testServer {
 		t.Fatalf("err: %s", err)
 	})
 
-	return &testServer{
-		pid:        cmd.Process.Pid,
-		dataDir:    dataDir,
-		configFile: configFile.Name(),
-	}
-}
-
-func makeClient(t *testing.T) (*Client, *testServer) {
-	server := newTestServer(t)
-	conf := DefaultConfig()
-	conf.Address = "127.0.0.1:18800"
-	client, err := NewClient(conf)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
 	return client, server
 }
 
@@ -205,7 +247,7 @@ func TestRequestToHTTP(t *testing.T) {
 	if req.Method != "DELETE" {
 		t.Fatalf("bad: %v", req)
 	}
-	if req.URL.String() != "http://127.0.0.1:18800/v1/kv/foo?dc=foo" {
+	if req.URL.RequestURI() != "/v1/kv/foo?dc=foo" {
 		t.Fatalf("bad: %v", req)
 	}
 }
