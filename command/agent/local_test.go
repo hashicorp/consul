@@ -155,6 +155,126 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	}
 }
 
+func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
+	conf := nextConfig()
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	{
+		// Single check
+		srv := &structs.NodeService{
+			ID:      "mysql",
+			Service: "mysql",
+			Tags:    []string{"master"},
+			Port:    5000,
+		}
+		agent.state.AddService(srv)
+
+		chk := &structs.HealthCheck{
+			Node:      agent.config.NodeName,
+			CheckID:   "mysql",
+			Name:      "mysql",
+			ServiceID: "mysql",
+			Status:    structs.HealthPassing,
+		}
+		agent.state.AddCheck(chk)
+
+		// Sync the service once
+		if err := agent.state.syncService("mysql"); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// We should have 2 services (consul included)
+		svcReq := structs.NodeSpecificRequest{
+			Datacenter: "dc1",
+			Node:       agent.config.NodeName,
+		}
+		var services structs.IndexedNodeServices
+		if err := agent.RPC("Catalog.NodeServices", &svcReq, &services); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(services.NodeServices.Services) != 2 {
+			t.Fatalf("bad: %v", services.NodeServices.Services)
+		}
+
+		// We should have one health check
+		chkReq := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "mysql",
+		}
+		var checks structs.IndexedHealthChecks
+		if err := agent.RPC("Health.ServiceChecks", &chkReq, &checks); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(checks.HealthChecks) != 1 {
+			t.Fatalf("bad: %v", checks)
+		}
+	}
+
+	{
+		// Multiple checks
+		srv := &structs.NodeService{
+			ID:      "redis",
+			Service: "redis",
+			Tags:    []string{"master"},
+			Port:    5000,
+		}
+		agent.state.AddService(srv)
+
+		chk1 := &structs.HealthCheck{
+			Node:      agent.config.NodeName,
+			CheckID:   "redis:1",
+			Name:      "redis:1",
+			ServiceID: "redis",
+			Status:    structs.HealthPassing,
+		}
+		agent.state.AddCheck(chk1)
+
+		chk2 := &structs.HealthCheck{
+			Node:      agent.config.NodeName,
+			CheckID:   "redis:2",
+			Name:      "redis:2",
+			ServiceID: "redis",
+			Status:    structs.HealthPassing,
+		}
+		agent.state.AddCheck(chk2)
+
+		// Sync the service once
+		if err := agent.state.syncService("redis"); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// We should have 3 services (consul included)
+		svcReq := structs.NodeSpecificRequest{
+			Datacenter: "dc1",
+			Node:       agent.config.NodeName,
+		}
+		var services structs.IndexedNodeServices
+		if err := agent.RPC("Catalog.NodeServices", &svcReq, &services); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(services.NodeServices.Services) != 3 {
+			t.Fatalf("bad: %v", services.NodeServices.Services)
+		}
+
+		// We should have two health checks
+		chkReq := structs.ServiceSpecificRequest{
+			Datacenter:  "dc1",
+			ServiceName: "redis",
+		}
+		var checks structs.IndexedHealthChecks
+		if err := agent.RPC("Health.ServiceChecks", &chkReq, &checks); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if len(checks.HealthChecks) != 2 {
+			t.Fatalf("bad: %v", checks)
+		}
+	}
+}
+
 func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	conf := nextConfig()
 	conf.ACLDatacenter = "dc1"
