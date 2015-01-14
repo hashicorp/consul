@@ -49,6 +49,10 @@ const (
 
 	// Maximum number of cached ACL entries
 	aclCacheSize = 256
+
+	// raftLogCacheSize is the maximum number of logs to cache in-memory.
+	// This is used to reduce disk I/O for the recently commited entries.
+	raftLogCacheSize = 512
 )
 
 // Server is Consul server which manages the service discovery,
@@ -362,6 +366,13 @@ func (s *Server) setupRaft() error {
 	}
 	s.raftStore = store
 
+	// Wrap the store in a LogCache to improve performance
+	cacheStore, err := raft.NewLogCache(raftLogCacheSize, store)
+	if err != nil {
+		store.Close()
+		return err
+	}
+
 	// Create the snapshot store
 	snapshots, err := raft.NewFileSnapshotStore(path, snapshotsRetained, s.config.LogOutput)
 	if err != nil {
@@ -392,7 +403,7 @@ func (s *Server) setupRaft() error {
 	s.config.RaftConfig.LogOutput = s.config.LogOutput
 
 	// Setup the Raft store
-	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, store, store,
+	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, cacheStore, store,
 		snapshots, s.raftPeers, trans)
 	if err != nil {
 		store.Close()
