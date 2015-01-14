@@ -132,17 +132,25 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			return nil
 		}
 
-		var check interface{}
 		for k, v := range rawMap {
-			if strings.ToLower(k) == "check" {
-				check = v
+			switch strings.ToLower(k) {
+			case "check":
+				if err := FixupCheckType(v); err != nil {
+					return err
+				}
+			case "checks":
+				chkTypes, ok := v.([]interface{})
+				if !ok {
+					return nil
+				}
+				for _, chkType := range chkTypes {
+					if err := FixupCheckType(chkType); err != nil {
+						return err
+					}
+				}
 			}
 		}
-		if check == nil {
-			return nil
-		}
-
-		return FixupCheckType(check)
+		return nil
 	}
 	if err := decodeBody(req, &args, decodeCB); err != nil {
 		resp.WriteHeader(400)
