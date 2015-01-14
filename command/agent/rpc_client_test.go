@@ -6,8 +6,11 @@ import (
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/serf"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
+	"os/user"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -34,16 +37,21 @@ func testRPCClient(t *testing.T) *rpcParts {
 }
 
 func testRPCClientWithConfig(t *testing.T, cb func(c *Config)) *rpcParts {
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	lw := NewLogWriter(512)
 	mult := io.MultiWriter(os.Stderr, lw)
 
 	conf := nextConfig()
 	cb(conf)
+
+	rpcAddr, err := conf.ClientListener(conf.Addresses.RPC, conf.Ports.RPC)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	l, err := net.Listen(rpcAddr.Network(), rpcAddr.String())
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	dir, agent := makeAgentLog(t, conf, mult)
 	rpc := NewAgentRPC(agent, l, mult, lw)
@@ -193,6 +201,41 @@ func TestRPCClientWANMembers(t *testing.T) {
 func TestRPCClientStats(t *testing.T) {
 	p1 := testRPCClient(t)
 	defer p1.Close()
+
+	stats, err := p1.client.Stats()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, ok := stats["agent"]; !ok {
+		t.Fatalf("bad: %#v", stats)
+	}
+
+	if _, ok := stats["consul"]; !ok {
+		t.Fatalf("bad: %#v", stats)
+	}
+}
+
+func TestRPCClientStatsUnix(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.SkipNow()
+	}
+
+	tempdir, err := ioutil.TempDir("", "consul-test-")
+	if err != nil {
+		t.Fatal("Could not create a working directory")
+	}
+
+	user, err := user.Current()
+	if err != nil {
+		t.Fatal("Could not get current user")
+	}
+
+	cb := func(c *Config) {
+		c.Addresses.RPC = "unix://" + tempdir + "/unix-rpc-test.sock;" + user.Uid + ";" + user.Gid + ";640"
+	}
+
+	p1 := testRPCClientWithConfig(t, cb)
 
 	stats, err := p1.client.Stats()
 	if err != nil {

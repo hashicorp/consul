@@ -85,9 +85,14 @@ func NewRPCClient(addr string) (*RPCClient, error) {
 	if len(sanedAddr) == 0 {
 		sanedAddr = addr
 	}
+
 	mode := "tcp"
+
 	if strings.HasPrefix(sanedAddr, "unix://") {
 		sanedAddr = strings.TrimPrefix(sanedAddr, "unix://")
+	}
+
+	if strings.HasPrefix(sanedAddr, "/") {
 		mode = "unix"
 	}
 
