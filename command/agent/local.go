@@ -368,7 +368,34 @@ func (l *localState) syncChanges() error {
 	l.Lock()
 	defer l.Unlock()
 
-	// Sync the services
+	// Sync the checks first. This allows registering the service in the
+	// same transaction as its checks.
+	var checkIDs []string
+	for id, status := range l.checkStatus {
+		if status.remoteDelete {
+			if err := l.deleteCheck(id); err != nil {
+				return err
+			}
+		} else if !status.inSync {
+			// Cancel a deferred sync
+			if timer, ok := l.deferCheck[id]; ok {
+				timer.Stop()
+				delete(l.deferCheck, id)
+			}
+
+			checkIDs = append(checkIDs, id)
+		} else {
+			l.logger.Printf("[DEBUG] agent: Check '%s' in sync", id)
+		}
+
+		if len(checkIDs) > 0 {
+			if err := l.syncChecks(checkIDs); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Sync any remaining services.
 	for id, status := range l.serviceStatus {
 		if status.remoteDelete {
 			if err := l.deleteService(id); err != nil {
@@ -383,26 +410,6 @@ func (l *localState) syncChanges() error {
 		}
 	}
 
-	// Sync the checks
-	for id, status := range l.checkStatus {
-		if status.remoteDelete {
-			if err := l.deleteCheck(id); err != nil {
-				return err
-			}
-		} else if !status.inSync {
-			// Cancel a deferred sync
-			if timer := l.deferCheck[id]; timer != nil {
-				timer.Stop()
-				delete(l.deferCheck, id)
-			}
-
-			if err := l.syncCheck(id); err != nil {
-				return err
-			}
-		} else {
-			l.logger.Printf("[DEBUG] agent: Check '%s' in sync", id)
-		}
-	}
 	return nil
 }
 
@@ -462,33 +469,72 @@ func (l *localState) syncService(id string) error {
 	return err
 }
 
-// syncCheck is used to sync a service to the server
-func (l *localState) syncCheck(id string) error {
-	// Pull in the associated service if any
-	check := l.checks[id]
-	var service *structs.NodeService
-	if check.ServiceID != "" {
-		if serv, ok := l.services[check.ServiceID]; ok {
-			service = serv
+// syncChecks is used to sync checks to the server
+func (l *localState) syncChecks(checkIDs []string) error {
+	reqs := make(map[string]*structs.RegisterRequest)
+
+	for _, id := range checkIDs {
+		if check, ok := l.checks[id]; ok {
+			// Add checks to the base request if it already exists
+			if req, ok := reqs[check.ServiceID]; ok {
+				req.Checks = append(req.Checks, check)
+				continue
+			}
+
+			// Pull in the associated service if any
+			var service *structs.NodeService
+			if serv, ok := l.services[check.ServiceID]; ok {
+				service = serv
+			}
+
+			// Create the base request
+			reqs[check.ServiceID] = &structs.RegisterRequest{
+				Datacenter:   l.config.Datacenter,
+				Node:         l.config.NodeName,
+				Address:      l.config.AdvertiseAddr,
+				Service:      service,
+				Checks:       structs.HealthChecks{check},
+				WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
+			}
 		}
 	}
-	req := structs.RegisterRequest{
-		Datacenter:   l.config.Datacenter,
-		Node:         l.config.NodeName,
-		Address:      l.config.AdvertiseAddr,
-		Service:      service,
-		Check:        l.checks[id],
-		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
+
+	for _, req := range reqs {
+		// Send check data as Check for backward compatibility if we only have a
+		// single check. Otherwise, send it as Checks
+		if len(req.Checks) == 1 {
+			req.Check = req.Checks[0]
+			req.Checks = nil
+		}
+
+		// Perform the sync
+		var out struct{}
+		err := l.iface.RPC("Catalog.Register", &req, &out)
+		if err == nil {
+			for _, id := range checkIDs {
+				l.checkStatus[id] = syncStatus{inSync: true}
+				l.logger.Printf("[INFO] agent: Synced check '%s'", id)
+			}
+
+			// If the check was associated with a service and we synced it,
+			// then mark the service as in sync.
+			if svc := req.Service; svc != nil {
+				if status, ok := l.serviceStatus[svc.ID]; ok && status.inSync {
+					continue
+				}
+				l.serviceStatus[svc.ID] = syncStatus{inSync: true}
+				l.logger.Printf("[INFO] agent: Synced service '%s'", svc.ID)
+			}
+		} else if strings.Contains(err.Error(), permissionDenied) {
+			for _, id := range checkIDs {
+				l.checkStatus[id] = syncStatus{inSync: true}
+				l.logger.Printf("[WARN] agent: Check '%s' registration blocked by ACLs", id)
+			}
+			return nil
+		} else {
+			return err
+		}
 	}
-	var out struct{}
-	err := l.iface.RPC("Catalog.Register", &req, &out)
-	if err == nil {
-		l.checkStatus[id] = syncStatus{inSync: true}
-		l.logger.Printf("[INFO] agent: Synced check '%s'", id)
-	} else if strings.Contains(err.Error(), permissionDenied) {
-		l.checkStatus[id] = syncStatus{inSync: true}
-		l.logger.Printf("[WARN] agent: Check '%s' registration blocked by ACLs", id)
-		return nil
-	}
-	return err
+
+	return nil
 }

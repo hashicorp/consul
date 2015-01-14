@@ -137,6 +137,7 @@ type RegisterRequest struct {
 	Address    string
 	Service    *NodeService
 	Check      *HealthCheck
+	Checks     HealthChecks
 	WriteRequest
 }
 

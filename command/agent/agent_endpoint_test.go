@@ -683,3 +683,60 @@ func TestHTTPAgent_DisableNodeMaintenance(t *testing.T) {
 		t.Fatalf("should have removed maintenance check")
 	}
 }
+
+func TestHTTPAgentRegisterServiceCheck(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// First register the service
+	req, err := http.NewRequest("GET", "/v1/agent/service/register", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	args := &ServiceDefinition{
+		Name: "memcache",
+		Port: 8000,
+		Check: CheckType{
+			TTL: 15 * time.Second,
+		},
+	}
+	req.Body = encodeReq(args)
+
+	if _, err := srv.AgentRegisterService(nil, req); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now register an additional check
+	req, err = http.NewRequest("GET", "/v1/agent/check/register", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	checkArgs := &CheckDefinition{
+		Name:      "memcache_check2",
+		ServiceID: "memcache",
+		CheckType: CheckType{
+			TTL: 15 * time.Second,
+		},
+	}
+	req.Body = encodeReq(checkArgs)
+
+	if _, err := srv.AgentRegisterCheck(nil, req); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we have a check mapping
+	result := srv.agent.state.Checks()
+	if _, ok := result["service:memcache"]; !ok {
+		t.Fatalf("missing memcached check")
+	}
+	if _, ok := result["memcache_check2"]; !ok {
+		t.Fatalf("missing memcache_check2 check")
+	}
+
+	// Make sure the new check is associated with the service
+	if result["memcache_check2"].ServiceID != "memcache" {
+		t.Fatalf("bad: %#v", result["memcached_check2"])
+	}
+}

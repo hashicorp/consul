@@ -640,7 +640,17 @@ func TestDecodeConfig_Services(t *testing.T) {
 					"script": "/bin/check_redis -p 6000",
 					"interval": "5s",
 					"ttl": "20s"
-				}
+				},
+				"checks": [
+					{
+						"script": "/bin/check_redis_read",
+						"interval": "1m"
+					},
+					{
+						"script": "/bin/check_redis_write",
+						"interval": "1m"
+					}
+				]
 			},
 			{
 				"id": "red1",
@@ -671,6 +681,16 @@ func TestDecodeConfig_Services(t *testing.T) {
 					Interval: 5 * time.Second,
 					Script:   "/bin/check_redis -p 6000",
 					TTL:      20 * time.Second,
+				},
+				Checks: CheckTypes{
+					&CheckType{
+						Interval: time.Minute,
+						Script:   "/bin/check_redis_read",
+					},
+					&CheckType{
+						Interval: time.Minute,
+						Script:   "/bin/check_redis_write",
+					},
 				},
 				ID:   "red0",
 				Name: "redis",
@@ -715,6 +735,13 @@ func TestDecodeConfig_Checks(t *testing.T) {
 				"name": "cpu",
 				"script": "/bin/check_cpu",
 				"interval": "10s"
+			},
+			{
+				"id": "chk3",
+				"name": "service:redis:tx",
+				"script": "/bin/check_redis_tx",
+				"interval": "1m",
+				"service_id": "redis"
 			}
 		]
 	}`
@@ -740,6 +767,15 @@ func TestDecodeConfig_Checks(t *testing.T) {
 				CheckType: CheckType{
 					Script:   "/bin/check_cpu",
 					Interval: 10 * time.Second,
+				},
+			},
+			&CheckDefinition{
+				ID:        "chk3",
+				Name:      "service:redis:tx",
+				ServiceID: "redis",
+				CheckType: CheckType{
+					Script:   "/bin/check_redis_tx",
+					Interval: time.Minute,
 				},
 			},
 		},

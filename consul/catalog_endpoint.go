@@ -53,11 +53,15 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 
 	if args.Check != nil {
-		if args.Check.CheckID == "" && args.Check.Name != "" {
-			args.Check.CheckID = args.Check.Name
+		args.Checks = append(args.Checks, args.Check)
+		args.Check = nil
+	}
+	for _, check := range args.Checks {
+		if check.CheckID == "" && check.Name != "" {
+			check.CheckID = check.Name
 		}
-		if args.Check.Node == "" {
-			args.Check.Node = args.Node
+		if check.Node == "" {
+			check.Node = args.Node
 		}
 	}
 
@@ -66,6 +70,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		c.srv.logger.Printf("[ERR] consul.catalog: Register failed: %v", err)
 		return err
 	}
+
 	return nil
 }
 

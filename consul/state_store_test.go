@@ -32,6 +32,15 @@ func TestEnsureRegistration(t *testing.T) {
 			Status:    structs.HealthPassing,
 			ServiceID: "api",
 		},
+		Checks: structs.HealthChecks{
+			&structs.HealthCheck{
+				Node:      "foo",
+				CheckID:   "api-cache",
+				Name:      "Can cache stuff",
+				Status:    structs.HealthPassing,
+				ServiceID: "api",
+			},
+		},
 	}
 
 	if err := store.EnsureRegistration(13, reg); err != nil {
@@ -60,7 +69,7 @@ func TestEnsureRegistration(t *testing.T) {
 	if idx != 13 {
 		t.Fatalf("bad: %v", idx)
 	}
-	if len(checks) != 1 {
+	if len(checks) != 2 {
 		t.Fatalf("check: %#v", checks)
 	}
 }

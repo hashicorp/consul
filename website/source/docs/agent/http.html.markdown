@@ -469,6 +469,21 @@ An `HTTP` check will preform an HTTP GET request to the value of `HTTP` (expecte
 If a `TTL` type is used, then the TTL update APIs must be used to periodically update
 the state of the check.
 
+It is also possible to associate a new check with an existing service registered
+on the agent by providing an additional `ServiceID` field. This type of request
+must look like:
+
+```javascript
+{
+  "ID": "service:redis:tx",
+  "ServiceID": "redis",
+  "Name": "Redis test transaction",
+  "Notes": "Tests Redis SET, GET, and DELETE",
+  "Script": "/usr/local/bin/check_redis_tx.py",
+  "Interval": "1m"
+}
+```
+
 The return code is 200 on success.
 
 ### <a name="agent_check_deregister"></a> /v1/agent/check/deregister/\<checkId\>

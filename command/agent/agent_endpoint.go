@@ -161,15 +161,17 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	ns := args.NodeService()
 
 	// Verify the check type
-	chkType := args.CheckType()
-	if chkType != nil && !chkType.Valid() {
-		resp.WriteHeader(400)
-		resp.Write([]byte("Must provide TTL or Script and Interval!"))
-		return nil, nil
+	chkTypes := args.CheckTypes()
+	for _, check := range chkTypes {
+		if !check.Valid() {
+			resp.WriteHeader(400)
+			resp.Write([]byte("Must provide TTL or Script and Interval!"))
+			return nil, nil
+		}
 	}
 
 	// Add the check
-	return nil, s.agent.AddService(ns, chkType, true)
+	return nil, s.agent.AddService(ns, chkTypes, true)
 }
 
 func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

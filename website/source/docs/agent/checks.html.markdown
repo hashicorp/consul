@@ -104,6 +104,28 @@ This is the only convention that Consul depends on. Any output of the script
 will be captured and stored in the `notes` field so that it can be viewed
 by human operators.
 
+## Service-bound checks
+
+Health checks may also be optionally bound to a specific service. This ensures
+that the status of the health check will only affect the health status of the
+given service instead of the entire node. Service-bound health checks may be
+provided by adding a `service_id` field to a check configuration:
+
+```javascript
+{
+  "check": {
+    "id": "web-app",
+    "name": "Web App Status",
+    "service_id": "web-app",
+    "ttl": "30s"
+  }
+}
+```
+
+In the above configuration, if the web-app health check begins failing, it will
+only affect the availability of the web-app service and no other services
+provided by the node.
+
 ## Multiple Check Definitions
 
 Multiple check definitions can be provided at once using the `checks` (plural)
