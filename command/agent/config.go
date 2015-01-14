@@ -384,15 +384,14 @@ func populateUnixSocket(addr string) (*UnixSocket, error) {
 	} else {
 		userVal, err = user.Lookup(splitAddr[1])
 	}
-
 	if err != nil {
 		return nil, fmt.Errorf("Invalid user given for Unix socket ownership: %v", splitAddr[1])
+	}
+
+	if uid64, err := strconv.ParseInt(userVal.Uid, 10, 32); err != nil {
+		return nil, fmt.Errorf("Failed to parse given user ID of %v into integer", userVal.Uid)
 	} else {
-		if uid64, err := strconv.ParseInt(userVal.Uid, 10, 32); err != nil {
-			return nil, fmt.Errorf("Failed to parse given user ID of %v into integer", userVal.Uid)
-		} else {
-			ret.Uid = int(uid64)
-		}
+		ret.Uid = int(uid64)
 	}
 
 	// Go doesn't currently have a way to look up gid from group name,

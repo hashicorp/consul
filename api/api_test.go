@@ -20,7 +20,7 @@ type testServer struct {
 	configFile string
 }
 
-type TestPortConfig struct {
+type testPortConfig struct {
 	DNS     int `json:"dns,omitempty"`
 	HTTP    int `json:"http,omitempty"`
 	RPC     int `json:"rpc,omitempty"`
@@ -29,31 +29,33 @@ type TestPortConfig struct {
 	Server  int `json:"server,omitempty"`
 }
 
-type TestAddressConfig struct {
+type testAddressConfig struct {
 	HTTP string `json:"http,omitempty"`
 }
 
-type TestServerConfig struct {
+type testServerConfig struct {
 	Bootstrap bool               `json:"bootstrap,omitempty"`
 	Server    bool               `json:"server,omitempty"`
 	DataDir   string             `json:"data_dir,omitempty"`
 	LogLevel  string             `json:"log_level,omitempty"`
-	Addresses *TestAddressConfig `json:"addresses,omitempty"`
-	Ports     TestPortConfig     `json:"ports,omitempty"`
+	Addresses *testAddressConfig `json:"addresses,omitempty"`
+	Ports     testPortConfig     `json:"ports,omitempty"`
 }
 
-var consulConfig = &TestServerConfig{
-	Bootstrap: true,
-	Server:    true,
-	LogLevel:  "debug",
-	Ports: TestPortConfig{
-		DNS:     19000,
-		HTTP:    18800,
-		RPC:     18600,
-		SerfLan: 18200,
-		SerfWan: 18400,
-		Server:  18000,
-	},
+func defaultConfig() *testServerConfig {
+	return &testServerConfig{
+		Bootstrap: true,
+		Server:    true,
+		LogLevel:  "debug",
+		Ports: testPortConfig{
+			DNS:     19000,
+			HTTP:    18800,
+			RPC:     18600,
+			SerfLan: 18200,
+			SerfWan: 18400,
+			Server:  18000,
+		},
+	}
 }
 
 func (s *testServer) stop() {
@@ -67,10 +69,10 @@ func (s *testServer) stop() {
 }
 
 func newTestServer(t *testing.T) *testServer {
-	return newTestServerWithConfig(t, func(c *TestServerConfig) {})
+	return newTestServerWithConfig(t, func(c *testServerConfig) {})
 }
 
-func newTestServerWithConfig(t *testing.T, cb func(c *TestServerConfig)) *testServer {
+func newTestServerWithConfig(t *testing.T, cb func(c *testServerConfig)) *testServer {
 	if path, err := exec.LookPath("consul"); err != nil || path == "" {
 		t.Log("consul not found on $PATH, skipping")
 		t.SkipNow()
@@ -93,6 +95,7 @@ func newTestServerWithConfig(t *testing.T, cb func(c *TestServerConfig)) *testSe
 		t.Fatalf("err: %s", err)
 	}
 
+	consulConfig := defaultConfig()
 	consulConfig.DataDir = dataDir
 
 	cb(consulConfig)
@@ -125,10 +128,10 @@ func newTestServerWithConfig(t *testing.T, cb func(c *TestServerConfig)) *testSe
 func makeClient(t *testing.T) (*Client, *testServer) {
 	return makeClientWithConfig(t, func(c *Config) {
 		c.Address = "127.0.0.1:18800"
-	}, func(c *TestServerConfig) {})
+	}, func(c *testServerConfig) {})
 }
 
-func makeClientWithConfig(t *testing.T, clientConfig func(c *Config), serverConfig func(c *TestServerConfig)) (*Client, *testServer) {
+func makeClientWithConfig(t *testing.T, clientConfig func(c *Config), serverConfig func(c *testServerConfig)) (*Client, *testServer) {
 	server := newTestServerWithConfig(t, serverConfig)
 	conf := DefaultConfig()
 	clientConfig(conf)

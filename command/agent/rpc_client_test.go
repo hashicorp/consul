@@ -223,12 +223,12 @@ func TestRPCClientStatsUnix(t *testing.T) {
 
 	tempdir, err := ioutil.TempDir("", "consul-test-")
 	if err != nil {
-		t.Fatal("Could not create a working directory")
+		t.Fatal("Could not create a working directory: ", err)
 	}
 
 	user, err := user.Current()
 	if err != nil {
-		t.Fatal("Could not get current user")
+		t.Fatal("Could not get current user: ", err)
 	}
 
 	cb := func(c *Config) {

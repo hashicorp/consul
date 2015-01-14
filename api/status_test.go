@@ -38,14 +38,14 @@ func TestStatusLeaderUnix(t *testing.T) {
 		c.Address = socket
 	}
 
-	serverConfig := func(c *TestServerConfig) {
+	serverConfig := func(c *testServerConfig) {
 		user, err := user.Current()
 		if err != nil {
 			t.Fatal("Could not get current user")
 		}
 
 		if c.Addresses == nil {
-			c.Addresses = &TestAddressConfig{}
+			c.Addresses = &testAddressConfig{}
 		}
 		c.Addresses.HTTP = socket + ";" + user.Uid + ";" + user.Gid + ";640"
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -1078,12 +1079,12 @@ func TestUnixSockets(t *testing.T) {
 
 	usr, err := user.Current()
 	if err != nil {
-		t.Fatal("Could not get current user")
+		t.Fatal("Could not get current user: ", err)
 	}
 
 	tempdir, err := ioutil.TempDir("", "consul-test-")
 	if err != nil {
-		t.Fatal("Could not create a working directory")
+		t.Fatal("Could not create a working directory: ", err)
 	}
 
 	type SocketTestData struct {
@@ -1124,24 +1125,11 @@ func TestUnixSockets(t *testing.T) {
 		t.Fatal("Did not error on invalid username")
 	}
 
-	std.Uid = "999999"
-	_, err = testUnixSocketPopulation(std)
-	if err == nil {
-		t.Fatal("Did not error on invalid uid")
-	}
-
 	std.Uid = usr.Username
 	std.Gid = "foinfphawepofhewof"
 	_, err = testUnixSocketPopulation(std)
 	if err == nil {
 		t.Fatal("Did not error on invalid group (a name, must be gid)")
-	}
-
-	std.Uid = usr.Uid
-	std.Gid = "999999"
-	_, err = testUnixSocketPopulation(std)
-	if err == nil {
-		t.Fatal("Did not error on invalid uid")
 	}
 
 	std.Gid = usr.Gid
@@ -1155,17 +1143,37 @@ func TestUnixSockets(t *testing.T) {
 	std.Mode = "640"
 	_, err = testUnixSocketPopulation(std)
 	if err != nil {
-		t.Fatal("Unix socket test failed for no obvious reason (using username)")
+		t.Fatal("Unix socket test failed (using username): ", err)
 	}
 
 	std.Uid = usr.Uid
-	_, err = testUnixSocketPopulation(std)
+	sock, err := testUnixSocketPopulation(std)
 	if err != nil {
-		t.Fatal("Unix socket test failed for no obvious reason (using uid)")
+		t.Fatal("Unix socket test failed (using uid): ", err)
 	}
 
+	addr := &net.UnixAddr{Name: sock.Path, Net: "unix"}
+	_, err = net.Listen(addr.Network(), addr.String())
+	if err != nil {
+		t.Fatal("Error creating socket for futher tests: ", err)
+	}
+
+	std.Uid = "-999999"
+	err = testUnixSocketPermissions(std)
+	if err == nil {
+		t.Fatal("Did not error on invalid uid")
+	}
+
+	std.Uid = usr.Uid
+	std.Gid = "-999999"
+	err = testUnixSocketPermissions(std)
+	if err == nil {
+		t.Fatal("Did not error on invalid uid")
+	}
+
+	std.Gid = usr.Gid
 	err = testUnixSocketPermissions(std)
 	if err != nil {
-		t.Fatal("Adjusting socket permissions failed for no obvious reason")
+		t.Fatal("Adjusting socket permissions failed: ", err)
 	}
 }

@@ -249,7 +249,7 @@ func (r *request) toHTTP() (*http.Request, error) {
 	req.Host = r.url.Host
 
 	// Setup auth
-	if err == nil && r.config.HttpAuth != nil {
+	if r.config.HttpAuth != nil {
 		req.SetBasicAuth(r.config.HttpAuth.Username, r.config.HttpAuth.Password)
 	}
 
