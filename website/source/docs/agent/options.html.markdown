@@ -239,8 +239,17 @@ definitions support being updated during a reload.
    However, because the caches are not actively invalidated, ACL policy may be stale
    up to the TTL value.
 
-* `addresses` - This is a nested object that allows setting the bind address
-  for the following keys:
+* `addresses` - This is a nested object that allows setting bind addresses. For `rpc`
+   and `http`, a Unix socket can be specified in the following form:
+   unix://[/path/to/socket];[username|uid];[gid];[mode]. The socket will be created
+   in the specified location with the given username or uid, gid, and mode. The
+   user Consul is running as must have appropriate permissions to change the socket
+   ownership to the given uid or gid. When running Consul agent commands against
+   Unix socket interfaces, use the `-rpc-addr` or `-http-addr` arguments to specify
+   the path to the socket, e.g. "unix://path/to/socket". You can also place the desired
+   values in `CONSUL_RPC_ADDR` and `CONSUL_HTTP_ADDR` environment variables. For TCP
+   addresses, these should be in the form ip:port.
+   The following keys are valid:
     * `dns` - The DNS server. Defaults to `client_addr`
     * `http` - The HTTP API. Defaults to `client_addr`
     * `rpc` - The RPC endpoint. Defaults to `client_addr`
