@@ -247,6 +247,7 @@ The following endpoints are supported:
 * [`/v1/agent/check/fail/<checkID>`](#agent_check_fail) : Mark a local test as critical
 * [`/v1/agent/service/register`](#agent_service_register) : Registers a new local service
 * [`/v1/agent/service/deregister/<serviceID>`](#agent_service_deregister) : Deregister a local service
+* [`/v1/agent/service/maintenance/<serviceID>`](#agent_service_maintenance) : Service maintenance mode
 
 ### <a name="agent_checks"></a> /v1/agent/checks
 
@@ -545,6 +546,20 @@ The deregister endpoint is used to remove a service from the local agent.
 The ServiceID must be passed after the slash. The agent will take care
 of deregistering the service with the Catalog. If there is an associated
 check, that is also deregistered.
+
+The return code is 200 on success.
+
+### <a name="agent_service_maintenance"></a> /v1/agent/service/maintenance/\<serviceId\>
+
+The service maintenance endpoint allows placing a given service into
+"maintenance mode". During maintenance mode, the service will be marked as
+unavailable, and will not be present in DNS or API queries.
+
+The `?enable` flag is required, and its value must be `true` (to enter
+maintenance mode), or `false` (to resume normal operation). It is an error to
+enable maintenance mode while it is already enabled, or disable it while it is
+already disabled. You will receive a 409 if either of these conflicts are
+observed.
 
 The return code is 200 on success.
 
