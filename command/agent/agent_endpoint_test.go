@@ -607,3 +607,77 @@ func TestHTTPAgent_DisableServiceMaintenance(t *testing.T) {
 		t.Fatalf("should have removed maintenance check")
 	}
 }
+
+func TestHTTPAgent_NodeMaintenanceEndpoint_BadRequest(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Fails on non-PUT
+	req, _ := http.NewRequest("GET", "/v1/agent/self/maintenance?enable=true", nil)
+	resp := httptest.NewRecorder()
+	if _, err := srv.AgentNodeMaintenance(resp, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if resp.Code != 405 {
+		t.Fatalf("expected 405, got %d", resp.Code)
+	}
+
+	// Fails when no enable flag provided
+	req, _ = http.NewRequest("PUT", "/v1/agent/self/maintenance", nil)
+	resp = httptest.NewRecorder()
+	if _, err := srv.AgentNodeMaintenance(resp, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if resp.Code != 400 {
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+}
+
+func TestHTTPAgent_EnableNodeMaintenance(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Force the node into maintenance mode
+	req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=true", nil)
+	resp := httptest.NewRecorder()
+	if _, err := srv.AgentNodeMaintenance(resp, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if resp.Code != 200 {
+		t.Fatalf("expected 200, got %d", resp.Code)
+	}
+
+	// Ensure the maintenance check was registered
+	if _, ok := srv.agent.state.Checks()[nodeMaintCheckID]; !ok {
+		t.Fatalf("should have registered maintenance check")
+	}
+}
+
+func TestHTTPAgent_DisableNodeMaintenance(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Force the node into maintenance mode
+	srv.agent.EnableNodeMaintenance()
+
+	// Leave maintenance mode
+	req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=false", nil)
+	resp := httptest.NewRecorder()
+	if _, err := srv.AgentNodeMaintenance(resp, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if resp.Code != 200 {
+		t.Fatalf("expected 200, got %d", resp.Code)
+	}
+
+	// Ensure the maintenance check was removed
+	if _, ok := srv.agent.state.Checks()[nodeMaintCheckID]; ok {
+		t.Fatalf("should have removed maintenance check")
+	}
+}

@@ -782,7 +782,7 @@ func TestAgent_unloadServices(t *testing.T) {
 	}
 }
 
-func TestAgent_MaintenanceMode(t *testing.T) {
+func TestAgent_ServiceMaintenanceMode(t *testing.T) {
 	config := nextConfig()
 	dir, agent := makeAgent(t, config)
 	defer os.RemoveAll(dir)
@@ -806,14 +806,9 @@ func TestAgent_MaintenanceMode(t *testing.T) {
 	}
 
 	// Make sure the critical health check was added
-	for _, check := range agent.state.Checks() {
-		if check.CheckID == serviceMaintCheckID {
-			return
-		}
+	if _, ok := agent.state.Checks()[serviceMaintCheckID]; !ok {
+		t.Fatalf("should have registered critical maintenance check")
 	}
-
-	// Didn't find the check
-	t.Fatalf("should have registered critical maintenance check")
 
 	// Leave maintenance mode
 	if err := agent.DisableServiceMaintenance("redis"); err != nil {
@@ -821,9 +816,30 @@ func TestAgent_MaintenanceMode(t *testing.T) {
 	}
 
 	// Ensure the check was deregistered
-	for _, check := range agent.state.Checks() {
-		if check.CheckID == serviceMaintCheckID {
-			t.Fatalf("should have deregistered maintenance check")
-		}
+	if _, ok := agent.state.Checks()[serviceMaintCheckID]; ok {
+		t.Fatalf("should have deregistered maintenance check")
+	}
+}
+
+func TestAgent_NodeMaintenanceMode(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// Enter maintenance mode for the node
+	agent.EnableNodeMaintenance()
+
+	// Make sure the critical health check was added
+	if _, ok := agent.state.Checks()[nodeMaintCheckID]; !ok {
+		t.Fatalf("should have registered critical node check")
+	}
+
+	// Leave maintenance mode
+	agent.DisableNodeMaintenance()
+
+	// Ensure the check was deregistered
+	if _, ok := agent.state.Checks()[nodeMaintCheckID]; ok {
+		t.Fatalf("should have deregistered critical node check")
 	}
 }
