@@ -295,11 +295,24 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		return err
 	}
 
-	rpcListener, err := net.Listen("tcp", rpcAddr.String())
+	if _, ok := rpcAddr.(*net.UnixAddr); ok {
+		// Remove the socket if it exists, or we'll get a bind error
+		_ = os.Remove(rpcAddr.String())
+	}
+
+	rpcListener, err := net.Listen(rpcAddr.Network(), rpcAddr.String())
 	if err != nil {
 		agent.Shutdown()
 		c.Ui.Error(fmt.Sprintf("Error starting RPC listener: %s", err))
 		return err
+	}
+
+	if _, ok := rpcAddr.(*net.UnixAddr); ok {
+		if err := adjustUnixSocketPermissions(config.Addresses.RPC); err != nil {
+			agent.Shutdown()
+			c.Ui.Error(fmt.Sprintf("Error adjusting Unix socket permissions: %s", err))
+			return err
+		}
 	}
 
 	// Start the IPC layer
@@ -319,6 +332,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	if config.Ports.DNS > 0 {
 		dnsAddr, err := config.ClientListener(config.Addresses.DNS, config.Ports.DNS)
 		if err != nil {
+			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Invalid DNS bind address: %s", err))
 			return err
 		}
@@ -575,7 +589,7 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Get the new client http listener addr
-	httpAddr, err := config.ClientListenerAddr(config.Addresses.HTTP, config.Ports.HTTP)
+	httpAddr, err := config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
 	}
@@ -585,7 +599,7 @@ func (c *Command) Run(args []string) int {
 		go func(wp *watch.WatchPlan) {
 			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
-			if err := wp.Run(httpAddr); err != nil {
+			if err := wp.Run(httpAddr.String()); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
 			}
 		}(wp)
@@ -744,7 +758,7 @@ func (c *Command) handleReload(config *Config) *Config {
 	}
 
 	// Get the new client listener addr
-	httpAddr, err := newConf.ClientListenerAddr(config.Addresses.HTTP, config.Ports.HTTP)
+	httpAddr, err := newConf.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to determine HTTP address: %v", err))
 	}
@@ -759,7 +773,7 @@ func (c *Command) handleReload(config *Config) *Config {
 		go func(wp *watch.WatchPlan) {
 			wp.Handler = makeWatchHandler(c.logOutput, wp.Exempt["handler"])
 			wp.LogOutput = c.logOutput
-			if err := wp.Run(httpAddr); err != nil {
+			if err := wp.Run(httpAddr.String()); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
 			}
 		}(wp)

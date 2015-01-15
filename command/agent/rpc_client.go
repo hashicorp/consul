@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/logutils"
 	"log"
 	"net"
+	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -34,7 +36,7 @@ type seqHandler interface {
 type RPCClient struct {
 	seq uint64
 
-	conn      *net.TCPConn
+	conn      net.Conn
 	reader    *bufio.Reader
 	writer    *bufio.Writer
 	dec       *codec.Decoder
@@ -79,8 +81,23 @@ func (c *RPCClient) send(header *requestHeader, obj interface{}) error {
 // NewRPCClient is used to create a new RPC client given the address.
 // This will properly dial, handshake, and start listening
 func NewRPCClient(addr string) (*RPCClient, error) {
+	sanedAddr := os.Getenv("CONSUL_RPC_ADDR")
+	if len(sanedAddr) == 0 {
+		sanedAddr = addr
+	}
+
+	mode := "tcp"
+
+	if strings.HasPrefix(sanedAddr, "unix://") {
+		sanedAddr = strings.TrimPrefix(sanedAddr, "unix://")
+	}
+
+	if strings.HasPrefix(sanedAddr, "/") {
+		mode = "unix"
+	}
+
 	// Try to dial to agent
-	conn, err := net.Dial("tcp", addr)
+	conn, err := net.Dial(mode, sanedAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +105,7 @@ func NewRPCClient(addr string) (*RPCClient, error) {
 	// Create the client
 	client := &RPCClient{
 		seq:        0,
-		conn:       conn.(*net.TCPConn),
+		conn:       conn,
 		reader:     bufio.NewReader(conn),
 		writer:     bufio.NewWriter(conn),
 		dispatch:   make(map[uint64]seqHandler),
