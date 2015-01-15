@@ -450,6 +450,9 @@ func (l *localState) syncService(id string) error {
 		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
 	}
 
+	// If the service has associated checks that are out of sync,
+	// piggyback them on the service sync so they are part of the
+	// same transaction and are registered atomically.
 	var checks structs.HealthChecks
 	for _, check := range l.checks {
 		if check.ServiceID == id {
@@ -459,6 +462,7 @@ func (l *localState) syncService(id string) error {
 		}
 	}
 
+	// Backwards-compatibility for Consul < 0.5
 	if len(checks) == 1 {
 		req.Check = checks[0]
 	} else {
