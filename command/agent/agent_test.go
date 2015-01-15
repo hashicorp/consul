@@ -781,3 +781,49 @@ func TestAgent_unloadServices(t *testing.T) {
 		t.Fatalf("consul service should not be removed")
 	}
 }
+
+func TestAgent_MaintenanceMode(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+
+	// Register the service
+	if err := agent.AddService(svc, nil, false); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Enter maintenance mode for the service
+	if err := agent.EnableServiceMaintenance("redis"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Make sure the critical health check was added
+	for _, check := range agent.state.Checks() {
+		if check.CheckID == maintCheckID {
+			return
+		}
+	}
+
+	// Didn't find the check
+	t.Fatalf("should have registered critical maintenance check")
+
+	// Leave maintenance mode
+	if err := agent.DisableServiceMaintenance("redis"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the check was deregistered
+	for _, check := range agent.state.Checks() {
+		if check.CheckID == maintCheckID {
+			t.Fatalf("should have deregistered maintenance check")
+		}
+	}
+}

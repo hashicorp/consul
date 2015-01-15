@@ -999,6 +999,8 @@ func (a *Agent) unloadChecks() error {
 	return nil
 }
 
+// EnableServiceMaintenance will register a false health check against the given
+// service ID with critical status. This will exclude the service from queries.
 func (a *Agent) EnableServiceMaintenance(serviceID string) error {
 	var service *structs.NodeService
 	for _, svc := range a.state.Services() {
@@ -1034,6 +1036,8 @@ func (a *Agent) EnableServiceMaintenance(serviceID string) error {
 	return nil
 }
 
+// DisableServiceMaintenance will deregister the fake maintenance mode check
+// if the service has been marked as in maintenance.
 func (a *Agent) DisableServiceMaintenance(serviceID string) error {
 	var service *structs.NodeService
 	for _, svc := range a.state.Services() {
