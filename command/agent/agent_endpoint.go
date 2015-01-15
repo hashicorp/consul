@@ -176,3 +176,40 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/")
 	return nil, s.agent.RemoveService(serviceID, true)
 }
+
+func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Ensure we have a service ID
+	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/maintenance/")
+	if serviceID == "" {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Missing service ID"))
+		return nil, nil
+	}
+
+	// Ensure we have some action
+	params := req.URL.Query()
+	if _, ok := params["enable"]; !ok {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Missing value for enable"))
+		return nil, nil
+	}
+
+	var enable bool
+	raw := params.Get("enable")
+	switch raw {
+	case "true":
+		enable = true
+	case "false":
+		enable = false
+	default:
+		resp.WriteHeader(400)
+		resp.Write([]byte(fmt.Sprintf("Invalid value for enable: %q", raw)))
+		return nil, nil
+	}
+
+	if enable {
+		return nil, s.agent.EnableServiceMaintenance(serviceID)
+	} else {
+		return nil, s.agent.DisableServiceMaintenance(serviceID)
+	}
+}

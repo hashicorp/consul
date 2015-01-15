@@ -195,6 +195,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 
 	s.mux.HandleFunc("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
 	s.mux.HandleFunc("/v1/agent/service/deregister/", s.wrap(s.AgentDeregisterService))
+	s.mux.HandleFunc("/v1/agent/service/maintenance/", s.wrap(s.AgentServiceMaintenance))
 
 	s.mux.HandleFunc("/v1/event/fire/", s.wrap(s.EventFire))
 	s.mux.HandleFunc("/v1/event/list", s.wrap(s.EventList))
