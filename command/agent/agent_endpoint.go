@@ -227,3 +227,39 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 	}
 	return nil, err
 }
+
+func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Only PUT supported
+	if req.Method != "PUT" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
+	// Ensure we have some action
+	params := req.URL.Query()
+	if _, ok := params["enable"]; !ok {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Missing value for enable"))
+		return nil, nil
+	}
+
+	var enable bool
+	raw := params.Get("enable")
+	switch raw {
+	case "true":
+		enable = true
+	case "false":
+		enable = false
+	default:
+		resp.WriteHeader(400)
+		resp.Write([]byte(fmt.Sprintf("Invalid value for enable: %q", raw)))
+		return nil, nil
+	}
+
+	if enable {
+		s.agent.EnableNodeMaintenance()
+	} else {
+		s.agent.DisableNodeMaintenance()
+	}
+	return nil, nil
+}

@@ -567,7 +567,7 @@ func TestHTTPAgent_EnableServiceMaintenance(t *testing.T) {
 	}
 
 	// Ensure the maintenance check was registered
-	if _, ok := srv.agent.state.Checks()[maintCheckID]; !ok {
+	if _, ok := srv.agent.state.Checks()[serviceMaintCheckID]; !ok {
 		t.Fatalf("should have registered maintenance check")
 	}
 }
@@ -603,7 +603,7 @@ func TestHTTPAgent_DisableServiceMaintenance(t *testing.T) {
 	}
 
 	// Ensure the maintenance check was removed
-	if _, ok := srv.agent.state.Checks()[maintCheckID]; ok {
+	if _, ok := srv.agent.state.Checks()[serviceMaintCheckID]; ok {
 		t.Fatalf("should have removed maintenance check")
 	}
 }

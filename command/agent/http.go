@@ -181,6 +181,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/health/service/", s.wrap(s.HealthServiceNodes))
 
 	s.mux.HandleFunc("/v1/agent/self", s.wrap(s.AgentSelf))
+	s.mux.HandleFunc("/v1/agent/self/maintenance", s.wrap(s.AgentNodeMaintenance))
 	s.mux.HandleFunc("/v1/agent/services", s.wrap(s.AgentServices))
 	s.mux.HandleFunc("/v1/agent/checks", s.wrap(s.AgentChecks))
 	s.mux.HandleFunc("/v1/agent/members", s.wrap(s.AgentMembers))

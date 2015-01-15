@@ -30,8 +30,9 @@ const (
 		"be left behind. If the path looks correct, remove the file " +
 		"and try again."
 
-	// The ID of the faux health check for maintenance mode
-	maintCheckID = "_maintenance_"
+	// The ID of the faux health checks for maintenance mode
+	serviceMaintCheckID = "_service_maintenance"
+	nodeMaintCheckID    = "_node_maintenenace"
 )
 
 /*
@@ -1008,14 +1009,14 @@ func (a *Agent) EnableServiceMaintenance(serviceID string) error {
 	}
 
 	// Ensure maintenance mode is not already enabled
-	if _, ok := a.state.Checks()[maintCheckID]; ok {
+	if _, ok := a.state.Checks()[serviceMaintCheckID]; ok {
 		return nil
 	}
 
 	// Create and register the critical health check
 	check := &structs.HealthCheck{
 		Node:        a.config.NodeName,
-		CheckID:     maintCheckID,
+		CheckID:     serviceMaintCheckID,
 		Name:        "Service Maintenance Mode",
 		Notes:       "Maintenance mode is enabled for this service",
 		ServiceID:   service.ID,
@@ -1035,6 +1036,29 @@ func (a *Agent) DisableServiceMaintenance(serviceID string) error {
 	}
 
 	// Deregister the maintenance check
-	a.RemoveCheck(maintCheckID, true)
+	a.RemoveCheck(serviceMaintCheckID, true)
 	return nil
+}
+
+// EnableNodeMaintenance places a node into maintenance mode.
+func (a *Agent) EnableNodeMaintenance() {
+	// Ensure node maintenance is not already enabled
+	if _, ok := a.state.Checks()[nodeMaintCheckID]; ok {
+		return
+	}
+
+	// Create and register the node maintenance check
+	check := &structs.HealthCheck{
+		Node:    a.config.NodeName,
+		CheckID: nodeMaintCheckID,
+		Name:    "Node Maintenance Mode",
+		Notes:   "Maintenance mode is enabled for this node",
+		Status:  structs.HealthCritical,
+	}
+	a.AddCheck(check, nil, true)
+}
+
+// DisableNodeMaintenance removes a node from maintenance mode
+func (a *Agent) DisableNodeMaintenance() {
+	a.RemoveCheck(nodeMaintCheckID, true)
 }

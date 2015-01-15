@@ -807,7 +807,7 @@ func TestAgent_MaintenanceMode(t *testing.T) {
 
 	// Make sure the critical health check was added
 	for _, check := range agent.state.Checks() {
-		if check.CheckID == maintCheckID {
+		if check.CheckID == serviceMaintCheckID {
 			return
 		}
 	}
@@ -822,7 +822,7 @@ func TestAgent_MaintenanceMode(t *testing.T) {
 
 	// Ensure the check was deregistered
 	for _, check := range agent.state.Checks() {
-		if check.CheckID == maintCheckID {
+		if check.CheckID == serviceMaintCheckID {
 			t.Fatalf("should have deregistered maintenance check")
 		}
 	}
