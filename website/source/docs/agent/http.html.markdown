@@ -553,13 +553,12 @@ The return code is 200 on success.
 
 The service maintenance endpoint allows placing a given service into
 "maintenance mode". During maintenance mode, the service will be marked as
-unavailable, and will not be present in DNS or API queries.
+unavailable, and will not be present in DNS or API queries. This API call is
+idempotent. Maintenance mode is persistent and will be automatically restored
+on agent restart.
 
 The `?enable` flag is required, and its value must be `true` (to enter
-maintenance mode), or `false` (to resume normal operation). It is an error to
-enable maintenance mode while it is already enabled, or disable it while it is
-already disabled. You will receive a 409 if either of these conflicts are
-observed.
+maintenance mode), or `false` (to resume normal operation).
 
 The return code is 200 on success.
 

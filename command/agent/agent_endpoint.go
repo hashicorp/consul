@@ -216,12 +216,12 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 	var err error
 	if enable {
 		if err = s.agent.EnableServiceMaintenance(serviceID); err != nil {
-			resp.WriteHeader(409)
+			resp.WriteHeader(404)
 			resp.Write([]byte(err.Error()))
 		}
 	} else {
 		if err = s.agent.DisableServiceMaintenance(serviceID); err != nil {
-			resp.WriteHeader(409)
+			resp.WriteHeader(404)
 			resp.Write([]byte(err.Error()))
 		}
 	}

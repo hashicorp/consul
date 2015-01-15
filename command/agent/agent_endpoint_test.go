@@ -507,7 +507,7 @@ func TestHTTPAgent_ServiceMaintenanceEndpoint_BadRequest(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if resp.Code != 405 {
-		t.Fatalf("expected 405 for non-PUT request")
+		t.Fatalf("expected 405, got %d", resp.Code)
 	}
 
 	// Fails when no enable flag provided
@@ -517,7 +517,7 @@ func TestHTTPAgent_ServiceMaintenanceEndpoint_BadRequest(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if resp.Code != 400 {
-		t.Fatalf("expected 400 for missing enable flag")
+		t.Fatalf("expected 400, got %d", resp.Code)
 	}
 
 	// Fails when no service ID provided
@@ -527,7 +527,17 @@ func TestHTTPAgent_ServiceMaintenanceEndpoint_BadRequest(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if resp.Code != 400 {
-		t.Fatalf("expected 400 for missing service ID")
+		t.Fatalf("expected 400, got %d", resp.Code)
+	}
+
+	// Fails when bad service ID provided
+	req, _ = http.NewRequest("PUT", "/v1/agent/service/maintenance/_nope_?enable=true", nil)
+	resp = httptest.NewRecorder()
+	if _, err := srv.AgentServiceMaintenance(resp, req); err == nil {
+		t.Fatalf("should have errored")
+	}
+	if resp.Code != 404 {
+		t.Fatalf("expected 404, got %d", resp.Code)
 	}
 }
 
@@ -546,29 +556,9 @@ func TestHTTPAgent_EnableServiceMaintenance(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Force into maintenance mode
-	if err := srv.agent.EnableServiceMaintenance("test"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Fails when service is already in maintenance mode
+	// Force the service into maintenance mode
 	req, _ := http.NewRequest("PUT", "/v1/agent/service/maintenance/test?enable=true", nil)
 	resp := httptest.NewRecorder()
-	if _, err := srv.AgentServiceMaintenance(resp, req); err == nil {
-		t.Fatalf("should have errored")
-	}
-	if resp.Code != 409 {
-		t.Fatalf("expected 409, got %d", resp.Code)
-	}
-
-	// Remove maintenance mode
-	if err := srv.agent.DisableServiceMaintenance("test"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Force the service into maintenance mode
-	req, _ = http.NewRequest("PUT", "/v1/agent/service/maintenance/test?enable=true", nil)
-	resp = httptest.NewRecorder()
 	if _, err := srv.AgentServiceMaintenance(resp, req); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -597,28 +587,23 @@ func TestHTTPAgent_DisableServiceMaintenance(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Fails when the service is not in maintenance mode
-	req, _ := http.NewRequest("PUT", "/v1/agent/service/maintenance/test?enable=false", nil)
-	resp := httptest.NewRecorder()
-	if _, err := srv.AgentServiceMaintenance(resp, req); err == nil {
-		t.Fatalf("should have failed")
-	}
-	if resp.Code != 409 {
-		t.Fatalf("expected 409, got %d", resp.Code)
-	}
-
 	// Force the service into maintenance mode
 	if err := srv.agent.EnableServiceMaintenance("test"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Leave maintenance mode
-	req, _ = http.NewRequest("PUT", "/v1/agent/service/maintenance/test?enable=false", nil)
-	resp = httptest.NewRecorder()
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/maintenance/test?enable=false", nil)
+	resp := httptest.NewRecorder()
 	if _, err := srv.AgentServiceMaintenance(resp, req); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if resp.Code != 200 {
 		t.Fatalf("expected 200, got %d", resp.Code)
+	}
+
+	// Ensure the maintenance check was removed
+	if _, ok := srv.agent.state.Checks()[maintCheckID]; ok {
+		t.Fatalf("should have removed maintenance check")
 	}
 }

@@ -1002,23 +1002,14 @@ func (a *Agent) unloadChecks() error {
 // EnableServiceMaintenance will register a false health check against the given
 // service ID with critical status. This will exclude the service from queries.
 func (a *Agent) EnableServiceMaintenance(serviceID string) error {
-	var service *structs.NodeService
-	for _, svc := range a.state.Services() {
-		if svc.ID == serviceID {
-			service = svc
-		}
-	}
-
-	// Ensure the service exists
-	if service == nil {
+	service, ok := a.state.Services()[serviceID]
+	if !ok {
 		return fmt.Errorf("No service registered with ID %q", serviceID)
 	}
 
 	// Ensure maintenance mode is not already enabled
-	for _, check := range a.state.Checks() {
-		if check.CheckID == maintCheckID {
-			return fmt.Errorf("Maintenance mode already enabled for service %q", serviceID)
-		}
+	if _, ok := a.state.Checks()[maintCheckID]; ok {
+		return nil
 	}
 
 	// Create and register the critical health check
@@ -1039,29 +1030,11 @@ func (a *Agent) EnableServiceMaintenance(serviceID string) error {
 // DisableServiceMaintenance will deregister the fake maintenance mode check
 // if the service has been marked as in maintenance.
 func (a *Agent) DisableServiceMaintenance(serviceID string) error {
-	var service *structs.NodeService
-	for _, svc := range a.state.Services() {
-		if svc.ID == serviceID {
-			service = svc
-		}
-	}
-
-	// Ensure the service exists
-	if service == nil {
+	if _, ok := a.state.Services()[serviceID]; !ok {
 		return fmt.Errorf("No service registered with ID %q", serviceID)
 	}
 
-	// Ensure maintenance mode is enabled
-	for _, check := range a.state.Checks() {
-		if check.CheckID == maintCheckID {
-			goto DEREGISTER
-		}
-	}
-	return fmt.Errorf("Maintenance mode not enabled for service %q", serviceID)
-
-DEREGISTER:
 	// Deregister the maintenance check
 	a.RemoveCheck(maintCheckID, true)
-
 	return nil
 }
