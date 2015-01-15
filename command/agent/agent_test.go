@@ -806,7 +806,8 @@ func TestAgent_ServiceMaintenanceMode(t *testing.T) {
 	}
 
 	// Make sure the critical health check was added
-	if _, ok := agent.state.Checks()[serviceMaintCheckID]; !ok {
+	checkID := serviceMaintCheckID("redis")
+	if _, ok := agent.state.Checks()[checkID]; !ok {
 		t.Fatalf("should have registered critical maintenance check")
 	}
 
@@ -816,7 +817,7 @@ func TestAgent_ServiceMaintenanceMode(t *testing.T) {
 	}
 
 	// Ensure the check was deregistered
-	if _, ok := agent.state.Checks()[serviceMaintCheckID]; ok {
+	if _, ok := agent.state.Checks()[checkID]; ok {
 		t.Fatalf("should have deregistered maintenance check")
 	}
 }
