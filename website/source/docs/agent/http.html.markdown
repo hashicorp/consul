@@ -238,6 +238,7 @@ The following endpoints are supported:
 * [`/v1/agent/services`](#agent_services) : Returns the services local agent is managing
 * [`/v1/agent/members`](#agent_members) : Returns the members as seen by the local serf agent
 * [`/v1/agent/self`](#agent_self) : Returns the local node configuration
+* [`/v1/agent/self/maintenance`](#agent_self_maintenance) : Node maintenance mode
 * [`/v1/agent/join/<address>`](#agent_join) : Trigger local agent to join a node
 * [`/v1/agent/force-leave/<node>`](#agent_force_leave)>: Force remove node
 * [`/v1/agent/check/register`](#agent_check_register) : Registers a new local check
@@ -401,6 +402,18 @@ It returns a JSON body like this:
   }
 }
 ```
+
+### <a name="agent_self_maintenance"></a> /v1/agent/self/maintenance
+
+The node maintenance endpoint allows placing the agent into "maintenance mode".
+During maintenance mode, the node will be marked as unavailable, and will not be
+present in DNS or API queries. This API call is idempotent. Maintenance mode is
+persistent and will be automatically restored on agent restart.
+
+The `?enable` flag is required, and its value must be `true` (to enter
+maintenance mode), or `false` (to resume normal operation).
+
+The return code is 200 on success.
 
 ### <a name="agent_join"></a> /v1/agent/join/\<address\>
 
