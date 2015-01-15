@@ -178,6 +178,12 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 }
 
 func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Only PUT supported
+	if req.Method != "PUT" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
 	// Ensure we have a service ID
 	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/maintenance/")
 	if serviceID == "" {
@@ -207,9 +213,17 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 		return nil, nil
 	}
 
+	var err error
 	if enable {
-		return nil, s.agent.EnableServiceMaintenance(serviceID)
+		if err = s.agent.EnableServiceMaintenance(serviceID); err != nil {
+			resp.WriteHeader(409)
+			resp.Write([]byte(err.Error()))
+		}
 	} else {
-		return nil, s.agent.DisableServiceMaintenance(serviceID)
+		if err = s.agent.DisableServiceMaintenance(serviceID); err != nil {
+			resp.WriteHeader(409)
+			resp.Write([]byte(err.Error()))
+		}
 	}
+	return nil, err
 }
