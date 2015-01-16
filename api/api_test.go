@@ -139,7 +139,6 @@ func makeClientWithConfig(t *testing.T, cb1 configCallback, cb2 serverConfigCall
 	// Make client config
 	conf := DefaultConfig()
 	cb1(conf)
-	fmt.Printf("%#v\n", conf.HttpClient.Transport)
 
 	// Create client
 	client, err := NewClient(conf)
