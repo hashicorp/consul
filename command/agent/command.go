@@ -295,9 +295,12 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		return err
 	}
 
-	if _, ok := rpcAddr.(*net.UnixAddr); ok {
-		// Remove the socket if it exists, or we'll get a bind error
-		_ = os.Remove(rpcAddr.String())
+	// Error if we are trying to bind a domain socket to an existing path
+	if path, ok := unixSocketAddr(config.Addresses.RPC); ok {
+		if _, err := os.Stat(path); err == nil || !os.IsNotExist(err) {
+			c.Ui.Output(fmt.Sprintf(errSocketFileExists, path))
+			return fmt.Errorf(errSocketFileExists, path)
+		}
 	}
 
 	rpcListener, err := net.Listen(rpcAddr.Network(), rpcAddr.String())
@@ -305,14 +308,6 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		agent.Shutdown()
 		c.Ui.Error(fmt.Sprintf("Error starting RPC listener: %s", err))
 		return err
-	}
-
-	if _, ok := rpcAddr.(*net.UnixAddr); ok {
-		if err := adjustUnixSocketPermissions(config.Addresses.RPC); err != nil {
-			agent.Shutdown()
-			c.Ui.Error(fmt.Sprintf("Error adjusting Unix socket permissions: %s", err))
-			return err
-		}
 	}
 
 	// Start the IPC layer

@@ -43,12 +43,10 @@ func HTTPClient(addr string) (*consulapi.Client, error) {
 // HTTPClientDC returns a new Consul HTTP client with the given address and datacenter
 func HTTPClientDC(addr, dc string) (*consulapi.Client, error) {
 	conf := consulapi.DefaultConfig()
-	switch {
-	case len(os.Getenv("CONSUL_HTTP_ADDR")) > 0:
-		conf.Address = os.Getenv("CONSUL_HTTP_ADDR")
-	default:
-		conf.Address = addr
+	if envAddr := os.Getenv("CONSUL_HTTP_ADDR"); envAddr != "" {
+		addr = envAddr
 	}
+	conf.Address = addr
 	conf.Datacenter = dc
 	return consulapi.NewClient(conf)
 }

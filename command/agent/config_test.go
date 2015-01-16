@@ -4,12 +4,9 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io/ioutil"
-	"net"
 	"os"
-	"os/user"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -1073,107 +1070,13 @@ func TestReadConfigPaths_dir(t *testing.T) {
 }
 
 func TestUnixSockets(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.SkipNow()
+	path1, ok := unixSocketAddr("unix:///path/to/socket")
+	if !ok || path1 != "/path/to/socket" {
+		t.Fatalf("bad: %v %v", ok, path1)
 	}
 
-	usr, err := user.Current()
-	if err != nil {
-		t.Fatal("Could not get current user: ", err)
-	}
-
-	tempdir, err := ioutil.TempDir("", "consul-test-")
-	if err != nil {
-		t.Fatal("Could not create a working directory: ", err)
-	}
-
-	type SocketTestData struct {
-		Path string
-		Uid  string
-		Gid  string
-		Mode string
-	}
-
-	testUnixSocketPopulation := func(s SocketTestData) (*UnixSocket, error) {
-		return populateUnixSocket("unix://" + s.Path + ";" + s.Uid + ";" + s.Gid + ";" + s.Mode)
-	}
-
-	testUnixSocketPermissions := func(s SocketTestData) error {
-		return adjustUnixSocketPermissions("unix://" + s.Path + ";" + s.Uid + ";" + s.Gid + ";" + s.Mode)
-	}
-
-	_, err = populateUnixSocket("tcp://abc123")
-	if err == nil {
-		t.Fatal("Should have rejected invalid scheme")
-	}
-
-	_, err = populateUnixSocket("unix://x;y;z")
-	if err == nil {
-		t.Fatal("Should have rejected invalid number of parameters in Unix socket definition")
-	}
-
-	std := SocketTestData{
-		Path: tempdir + "/unix-config-test.sock",
-		Uid:  usr.Uid,
-		Gid:  usr.Gid,
-		Mode: "640",
-	}
-
-	std.Uid = "orasdfdsnfoinweroiu"
-	_, err = testUnixSocketPopulation(std)
-	if err == nil {
-		t.Fatal("Did not error on invalid username")
-	}
-
-	std.Uid = usr.Username
-	std.Gid = "foinfphawepofhewof"
-	_, err = testUnixSocketPopulation(std)
-	if err == nil {
-		t.Fatal("Did not error on invalid group (a name, must be gid)")
-	}
-
-	std.Gid = usr.Gid
-	std.Mode = "999"
-	_, err = testUnixSocketPopulation(std)
-	if err == nil {
-		t.Fatal("Did not error on invalid socket mode")
-	}
-
-	std.Uid = usr.Username
-	std.Mode = "640"
-	_, err = testUnixSocketPopulation(std)
-	if err != nil {
-		t.Fatal("Unix socket test failed (using username): ", err)
-	}
-
-	std.Uid = usr.Uid
-	sock, err := testUnixSocketPopulation(std)
-	if err != nil {
-		t.Fatal("Unix socket test failed (using uid): ", err)
-	}
-
-	addr := &net.UnixAddr{Name: sock.Path, Net: "unix"}
-	_, err = net.Listen(addr.Network(), addr.String())
-	if err != nil {
-		t.Fatal("Error creating socket for futher tests: ", err)
-	}
-
-	std.Uid = "-999999"
-	err = testUnixSocketPermissions(std)
-	if err == nil {
-		t.Fatal("Did not error on invalid uid")
-	}
-
-	std.Uid = usr.Uid
-	std.Gid = "-999999"
-	err = testUnixSocketPermissions(std)
-	if err == nil {
-		t.Fatal("Did not error on invalid uid")
-	}
-
-	std.Gid = usr.Gid
-	err = testUnixSocketPermissions(std)
-	if err != nil {
-		t.Fatal("Adjusting socket permissions failed: ", err)
+	path2, ok := unixSocketAddr("notunix://blah")
+	if ok || path2 != "" {
+		t.Fatalf("bad: %v %v", ok, path2)
 	}
 }

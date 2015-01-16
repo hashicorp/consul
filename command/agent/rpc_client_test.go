@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"os/user"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -66,6 +66,38 @@ func testRPCClientWithConfig(t *testing.T, cb func(c *Config)) *rpcParts {
 		client: rpcClient,
 		agent:  agent,
 		rpc:    rpc,
+	}
+}
+
+func TestRPCClient_UnixSocket(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.SkipNow()
+	}
+
+	tempDir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tempDir)
+	socket := filepath.Join(tempDir, "test.sock")
+
+	p1 := testRPCClientWithConfig(t, func(c *Config) {
+		c.Addresses.RPC = "unix://" + socket
+	})
+	defer p1.Close()
+
+	// Ensure the socket was created
+	if _, err := os.Stat(socket); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure we can talk with the socket
+	mem, err := p1.client.LANMembers()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(mem) != 1 {
+		t.Fatalf("bad: %#v", mem)
 	}
 }
 
@@ -201,41 +233,6 @@ func TestRPCClientWANMembers(t *testing.T) {
 func TestRPCClientStats(t *testing.T) {
 	p1 := testRPCClient(t)
 	defer p1.Close()
-
-	stats, err := p1.client.Stats()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if _, ok := stats["agent"]; !ok {
-		t.Fatalf("bad: %#v", stats)
-	}
-
-	if _, ok := stats["consul"]; !ok {
-		t.Fatalf("bad: %#v", stats)
-	}
-}
-
-func TestRPCClientStatsUnix(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.SkipNow()
-	}
-
-	tempdir, err := ioutil.TempDir("", "consul-test-")
-	if err != nil {
-		t.Fatal("Could not create a working directory: ", err)
-	}
-
-	user, err := user.Current()
-	if err != nil {
-		t.Fatal("Could not get current user: ", err)
-	}
-
-	cb := func(c *Config) {
-		c.Addresses.RPC = "unix://" + tempdir + "/unix-rpc-test.sock;" + user.Uid + ";" + user.Gid + ";640"
-	}
-
-	p1 := testRPCClientWithConfig(t, cb)
 
 	stats, err := p1.client.Stats()
 	if err != nil {

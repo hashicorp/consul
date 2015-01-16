@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -42,6 +44,10 @@ type testServerConfig struct {
 	Ports     testPortConfig     `json:"ports,omitempty"`
 }
 
+// Callback functions for modifying config
+type configCallback func(c *Config)
+type serverConfigCallback func(c *testServerConfig)
+
 func defaultConfig() *testServerConfig {
 	return &testServerConfig{
 		Bootstrap: true,
@@ -72,7 +78,7 @@ func newTestServer(t *testing.T) *testServer {
 	return newTestServerWithConfig(t, func(c *testServerConfig) {})
 }
 
-func newTestServerWithConfig(t *testing.T, cb func(c *testServerConfig)) *testServer {
+func newTestServerWithConfig(t *testing.T, cb serverConfigCallback) *testServer {
 	if path, err := exec.LookPath("consul"); err != nil || path == "" {
 		t.Log("consul not found on $PATH, skipping")
 		t.SkipNow()
@@ -131,14 +137,19 @@ func makeClient(t *testing.T) (*Client, *testServer) {
 	}, func(c *testServerConfig) {})
 }
 
-func makeClientWithConfig(t *testing.T, clientConfig func(c *Config), serverConfig func(c *testServerConfig)) (*Client, *testServer) {
-	server := newTestServerWithConfig(t, serverConfig)
+func makeClientWithConfig(t *testing.T, cb1 configCallback, cb2 serverConfigCallback) (*Client, *testServer) {
+	// Make client config
 	conf := DefaultConfig()
-	clientConfig(conf)
+	cb1(conf)
+
+	// Create client
 	client, err := NewClient(conf)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
+	// Create server
+	server := newTestServerWithConfig(t, cb2)
 
 	// Allow the server some time to start, and verify we have a leader.
 	testutil.WaitForResult(func() (bool, error) {
@@ -276,5 +287,37 @@ func TestParseQueryMeta(t *testing.T) {
 	}
 	if !qm.KnownLeader {
 		t.Fatalf("Bad: %v", qm)
+	}
+}
+
+func TestAPI_UnixSocket(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.SkipNow()
+	}
+
+	tempDir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tempDir)
+	socket := filepath.Join(tempDir, "test.sock")
+
+	c, s := makeClientWithConfig(t, func(c *Config) {
+		c.Address = "unix://" + socket
+	}, func(c *testServerConfig) {
+		c.Addresses = &testAddressConfig{
+			HTTP: "unix://" + socket,
+		}
+	})
+	defer s.stop()
+
+	agent := c.Agent()
+
+	info, err := agent.Self()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if info["Config"]["NodeName"] == "" {
+		t.Fatalf("bad: %v", info)
 	}
 }

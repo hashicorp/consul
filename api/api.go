@@ -120,8 +120,8 @@ func DefaultConfig() *Config {
 		HttpClient: http.DefaultClient,
 	}
 
-	if len(os.Getenv("CONSUL_HTTP_ADDR")) > 0 {
-		config.Address = os.Getenv("CONSUL_HTTP_ADDR")
+	if addr := os.Getenv("CONSUL_HTTP_ADDR"); addr != "" {
+		config.Address = addr
 	}
 
 	return config
@@ -137,11 +137,7 @@ func NewClient(config *Config) (*Client, error) {
 	// bootstrap the config
 	defConfig := DefaultConfig()
 
-	switch {
-	case len(config.Address) != 0:
-	case len(os.Getenv("CONSUL_HTTP_ADDR")) > 0:
-		config.Address = os.Getenv("CONSUL_HTTP_ADDR")
-	default:
+	if len(config.Address) == 0 {
 		config.Address = defConfig.Address
 	}
 
@@ -153,14 +149,15 @@ func NewClient(config *Config) (*Client, error) {
 		config.HttpClient = defConfig.HttpClient
 	}
 
-	if strings.HasPrefix(config.Address, "unix://") {
-		shortStr := strings.TrimPrefix(config.Address, "unix://")
-		t := &http.Transport{}
-		t.Dial = func(_, _ string) (net.Conn, error) {
-			return net.Dial("unix", shortStr)
+	if parts := strings.SplitN(config.Address, "unix://", 2); len(parts) == 2 {
+		config.HttpClient = &http.Client{
+			Transport: &http.Transport{
+				Dial: func(_, _ string) (net.Conn, error) {
+					return net.Dial("unix", parts[1])
+				},
+			},
 		}
-		config.HttpClient.Transport = t
-		config.Address = shortStr
+		config.Address = parts[1]
 	}
 
 	client := &Client{
