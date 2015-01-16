@@ -61,10 +61,8 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 
 		if path, ok := unixSocketAddr(config.Addresses.HTTPS); ok {
 			// See command/agent/config.go
-			if _, err := os.Stat(path); err == nil {
-				if err := os.Remove(path); err != nil {
-					return nil, err
-				}
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return nil, err
 			}
 		}
 
@@ -106,10 +104,8 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 
 		if path, ok := unixSocketAddr(config.Addresses.HTTP); ok {
 			// See command/agent/config.go
-			if _, err := os.Stat(path); err == nil {
-				if err := os.Remove(path); err != nil {
-					return nil, err
-				}
+			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				return nil, err
 			}
 		}
 

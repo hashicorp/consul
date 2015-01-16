@@ -299,10 +299,8 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		// Remove the socket if it exists, or we'll get a bind error. This
 		// is necessary to avoid situations where Consul cannot start if the
 		// socket file exists in case of unexpected termination.
-		if _, err := os.Stat(path); err == nil {
-			if err := os.Remove(path); err != nil {
-				return err
-			}
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return err
 		}
 	}
 
