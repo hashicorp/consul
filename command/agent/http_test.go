@@ -101,6 +101,48 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	}
 }
 
+func TestHTTPServer_UnixSocket_OverwriteFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.SkipNow()
+	}
+
+	tempDir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tempDir)
+	socket := filepath.Join(tempDir, "test.sock")
+
+	// Create a regular file at the socket path
+	if err := ioutil.WriteFile(socket, []byte("hello world"), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	fi, err := os.Stat(socket)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !fi.Mode().IsRegular() {
+		t.Fatalf("not a regular file: %s", socket)
+	}
+
+	// Try to start the server with the same path anyways.
+	dir, srv := makeHTTPServerWithConfig(t, func(c *Config) {
+		c.Addresses.HTTP = "unix://" + socket
+	})
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Check if the socket overwrote the file
+	fi, err = os.Stat(socket)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if fi.Mode().IsRegular() {
+		t.Fatalf("should have socket file: %s", socket)
+	}
+}
+
 func TestSetIndex(t *testing.T) {
 	resp := httptest.NewRecorder()
 	setIndex(resp, 1000)
