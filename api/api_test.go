@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -285,5 +287,37 @@ func TestParseQueryMeta(t *testing.T) {
 	}
 	if !qm.KnownLeader {
 		t.Fatalf("Bad: %v", qm)
+	}
+}
+
+func TestAPI_UnixSocket(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.SkipNow()
+	}
+
+	tempDir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tempDir)
+	socket := filepath.Join(tempDir, "test.sock")
+
+	c, s := makeClientWithConfig(t, func(c *Config) {
+		c.Address = "unix://" + socket
+	}, func(c *testServerConfig) {
+		c.Addresses = &testAddressConfig{
+			HTTP: "unix://" + socket,
+		}
+	})
+	defer s.stop()
+
+	agent := c.Agent()
+
+	info, err := agent.Self()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if info["Config"]["NodeName"] == "" {
+		t.Fatalf("bad: %v", info)
 	}
 }
