@@ -176,3 +176,90 @@ func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.
 	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/")
 	return nil, s.agent.RemoveService(serviceID, true)
 }
+
+func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Only PUT supported
+	if req.Method != "PUT" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
+	// Ensure we have a service ID
+	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/maintenance/")
+	if serviceID == "" {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Missing service ID"))
+		return nil, nil
+	}
+
+	// Ensure we have some action
+	params := req.URL.Query()
+	if _, ok := params["enable"]; !ok {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Missing value for enable"))
+		return nil, nil
+	}
+
+	var enable bool
+	raw := params.Get("enable")
+	switch raw {
+	case "true":
+		enable = true
+	case "false":
+		enable = false
+	default:
+		resp.WriteHeader(400)
+		resp.Write([]byte(fmt.Sprintf("Invalid value for enable: %q", raw)))
+		return nil, nil
+	}
+
+	var err error
+	if enable {
+		if err = s.agent.EnableServiceMaintenance(serviceID); err != nil {
+			resp.WriteHeader(404)
+			resp.Write([]byte(err.Error()))
+		}
+	} else {
+		if err = s.agent.DisableServiceMaintenance(serviceID); err != nil {
+			resp.WriteHeader(404)
+			resp.Write([]byte(err.Error()))
+		}
+	}
+	return nil, err
+}
+
+func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Only PUT supported
+	if req.Method != "PUT" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
+	// Ensure we have some action
+	params := req.URL.Query()
+	if _, ok := params["enable"]; !ok {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Missing value for enable"))
+		return nil, nil
+	}
+
+	var enable bool
+	raw := params.Get("enable")
+	switch raw {
+	case "true":
+		enable = true
+	case "false":
+		enable = false
+	default:
+		resp.WriteHeader(400)
+		resp.Write([]byte(fmt.Sprintf("Invalid value for enable: %q", raw)))
+		return nil, nil
+	}
+
+	if enable {
+		s.agent.EnableNodeMaintenance()
+	} else {
+		s.agent.DisableNodeMaintenance()
+	}
+	return nil, nil
+}

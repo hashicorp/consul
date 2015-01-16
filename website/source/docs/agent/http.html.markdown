@@ -238,6 +238,7 @@ The following endpoints are supported:
 * [`/v1/agent/services`](#agent_services) : Returns the services local agent is managing
 * [`/v1/agent/members`](#agent_members) : Returns the members as seen by the local serf agent
 * [`/v1/agent/self`](#agent_self) : Returns the local node configuration
+* [`/v1/agent/self/maintenance`](#agent_self_maintenance) : Node maintenance mode
 * [`/v1/agent/join/<address>`](#agent_join) : Trigger local agent to join a node
 * [`/v1/agent/force-leave/<node>`](#agent_force_leave)>: Force remove node
 * [`/v1/agent/check/register`](#agent_check_register) : Registers a new local check
@@ -247,6 +248,7 @@ The following endpoints are supported:
 * [`/v1/agent/check/fail/<checkID>`](#agent_check_fail) : Mark a local test as critical
 * [`/v1/agent/service/register`](#agent_service_register) : Registers a new local service
 * [`/v1/agent/service/deregister/<serviceID>`](#agent_service_deregister) : Deregister a local service
+* [`/v1/agent/service/maintenance/<serviceID>`](#agent_service_maintenance) : Service maintenance mode
 
 ### <a name="agent_checks"></a> /v1/agent/checks
 
@@ -401,6 +403,18 @@ It returns a JSON body like this:
 }
 ```
 
+### <a name="agent_self_maintenance"></a> /v1/agent/self/maintenance
+
+The node maintenance endpoint allows placing the agent into "maintenance mode".
+During maintenance mode, the node will be marked as unavailable, and will not be
+present in DNS or API queries. This API call is idempotent. Maintenance mode is
+persistent and will be automatically restored on agent restart.
+
+The `?enable` flag is required, and its value must be `true` (to enter
+maintenance mode), or `false` (to resume normal operation).
+
+The return code is 200 on success.
+
 ### <a name="agent_join"></a> /v1/agent/join/\<address\>
 
 This endpoint is hit with a GET and is used to instruct the agent to attempt to
@@ -545,6 +559,19 @@ The deregister endpoint is used to remove a service from the local agent.
 The ServiceID must be passed after the slash. The agent will take care
 of deregistering the service with the Catalog. If there is an associated
 check, that is also deregistered.
+
+The return code is 200 on success.
+
+### <a name="agent_service_maintenance"></a> /v1/agent/service/maintenance/\<serviceId\>
+
+The service maintenance endpoint allows placing a given service into
+"maintenance mode". During maintenance mode, the service will be marked as
+unavailable, and will not be present in DNS or API queries. This API call is
+idempotent. Maintenance mode is persistent and will be automatically restored
+on agent restart.
+
+The `?enable` flag is required, and its value must be `true` (to enter
+maintenance mode), or `false` (to resume normal operation).
 
 The return code is 200 on success.
 

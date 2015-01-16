@@ -29,6 +29,10 @@ const (
 		"If Consul was not shut down properly, the socket file may " +
 		"be left behind. If the path looks correct, remove the file " +
 		"and try again."
+
+	// The ID of the faux health checks for maintenance mode
+	serviceMaintCheckPrefix = "_service_maintenance"
+	nodeMaintCheckID        = "_node_maintenenace"
 )
 
 /*
@@ -994,4 +998,87 @@ func (a *Agent) unloadChecks() error {
 	}
 
 	return nil
+}
+
+// serviceMaintCheckID returns the ID of a given service's maintenance check
+func serviceMaintCheckID(serviceID string) string {
+	return fmt.Sprintf("%s:%s", serviceMaintCheckPrefix, serviceID)
+}
+
+// EnableServiceMaintenance will register a false health check against the given
+// service ID with critical status. This will exclude the service from queries.
+func (a *Agent) EnableServiceMaintenance(serviceID string) error {
+	service, ok := a.state.Services()[serviceID]
+	if !ok {
+		return fmt.Errorf("No service registered with ID %q", serviceID)
+	}
+
+	// Check if maintenance mode is not already enabled
+	checkID := serviceMaintCheckID(serviceID)
+	if _, ok := a.state.Checks()[checkID]; ok {
+		return nil
+	}
+
+	// Create and register the critical health check
+	check := &structs.HealthCheck{
+		Node:        a.config.NodeName,
+		CheckID:     checkID,
+		Name:        "Service Maintenance Mode",
+		Notes:       "Maintenance mode is enabled for this service",
+		ServiceID:   service.ID,
+		ServiceName: service.Service,
+		Status:      structs.HealthCritical,
+	}
+	a.AddCheck(check, nil, true)
+	a.logger.Printf("[INFO] agent: service %q entered maintenance mode", serviceID)
+
+	return nil
+}
+
+// DisableServiceMaintenance will deregister the fake maintenance mode check
+// if the service has been marked as in maintenance.
+func (a *Agent) DisableServiceMaintenance(serviceID string) error {
+	if _, ok := a.state.Services()[serviceID]; !ok {
+		return fmt.Errorf("No service registered with ID %q", serviceID)
+	}
+
+	// Check if maintenance mode is enabled
+	checkID := serviceMaintCheckID(serviceID)
+	if _, ok := a.state.Checks()[checkID]; !ok {
+		return nil
+	}
+
+	// Deregister the maintenance check
+	a.RemoveCheck(checkID, true)
+	a.logger.Printf("[INFO] agent: service %q left maintenance mode", serviceID)
+
+	return nil
+}
+
+// EnableNodeMaintenance places a node into maintenance mode.
+func (a *Agent) EnableNodeMaintenance() {
+	// Ensure node maintenance is not already enabled
+	if _, ok := a.state.Checks()[nodeMaintCheckID]; ok {
+		return
+	}
+
+	// Create and register the node maintenance check
+	check := &structs.HealthCheck{
+		Node:    a.config.NodeName,
+		CheckID: nodeMaintCheckID,
+		Name:    "Node Maintenance Mode",
+		Notes:   "Maintenance mode is enabled for this node",
+		Status:  structs.HealthCritical,
+	}
+	a.AddCheck(check, nil, true)
+	a.logger.Printf("[INFO] agent: node entered maintenance mode")
+}
+
+// DisableNodeMaintenance removes a node from maintenance mode
+func (a *Agent) DisableNodeMaintenance() {
+	if _, ok := a.state.Checks()[nodeMaintCheckID]; !ok {
+		return
+	}
+	a.RemoveCheck(nodeMaintCheckID, true)
+	a.logger.Printf("[INFO] agent: node left maintenance mode")
 }
