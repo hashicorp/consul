@@ -38,10 +38,12 @@ func (h *Health) Node(node string, q *QueryOptions) ([]*HealthCheck, *QueryMeta,
 	r := h.c.newRequest("GET", "/v1/health/node/"+node)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(h.c.doRequest(r))
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -59,10 +61,12 @@ func (h *Health) Checks(service string, q *QueryOptions) ([]*HealthCheck, *Query
 	r := h.c.newRequest("GET", "/v1/health/checks/"+service)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(h.c.doRequest(r))
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -88,10 +92,12 @@ func (h *Health) Service(service, tag string, passingOnly bool, q *QueryOptions)
 		r.params.Set("passing", "1")
 	}
 	rtt, resp, err := requireOK(h.c.doRequest(r))
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -119,10 +125,12 @@ func (h *Health) State(state string, q *QueryOptions) ([]*HealthCheck, *QueryMet
 	r := h.c.newRequest("GET", "/v1/health/state/"+state)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(h.c.doRequest(r))
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

@@ -34,10 +34,12 @@ func (a *ACL) Create(acl *ACLEntry, q *WriteOptions) (string, *WriteMeta, error)
 	r.setWriteOptions(q)
 	r.obj = acl
 	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return "", nil, err
 	}
-	defer resp.Body.Close()
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out struct{ ID string }
@@ -53,10 +55,12 @@ func (a *ACL) Update(acl *ACLEntry, q *WriteOptions) (*WriteMeta, error) {
 	r.setWriteOptions(q)
 	r.obj = acl
 	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil
@@ -67,10 +71,12 @@ func (a *ACL) Destroy(id string, q *WriteOptions) (*WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/destroy/"+id)
 	r.setWriteOptions(q)
 	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, err
 	}
-	resp.Body.Close()
 
 	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil
@@ -81,10 +87,12 @@ func (a *ACL) Clone(id string, q *WriteOptions) (string, *WriteMeta, error) {
 	r := a.c.newRequest("PUT", "/v1/acl/clone/"+id)
 	r.setWriteOptions(q)
 	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return "", nil, err
 	}
-	defer resp.Body.Close()
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out struct{ ID string }
@@ -99,10 +107,12 @@ func (a *ACL) Info(id string, q *QueryOptions) (*ACLEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/info/"+id)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -123,10 +133,12 @@ func (a *ACL) List(q *QueryOptions) ([]*ACLEntry, *QueryMeta, error) {
 	r := a.c.newRequest("GET", "/v1/acl/list")
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(a.c.doRequest(r))
+	if resp != nil {
+		defer resp.Body.Close()
+	}
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
