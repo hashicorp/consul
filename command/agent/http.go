@@ -59,13 +59,6 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, err
 		}
 
-		if path, ok := unixSocketAddr(config.Addresses.HTTPS); ok {
-			// See command/agent/config.go
-			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-				return nil, err
-			}
-		}
-
 		ln, err := net.Listen(httpAddr.Network(), httpAddr.String())
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
@@ -102,10 +95,10 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, fmt.Errorf("Failed to get ClientListener address:port: %v", err)
 		}
 
+		// Error if we are trying to bind a domain socket to an existing path
 		if path, ok := unixSocketAddr(config.Addresses.HTTP); ok {
-			// See command/agent/config.go
-			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-				return nil, err
+			if _, err := os.Stat(path); err == nil || !os.IsNotExist(err) {
+				return nil, fmt.Errorf(errSocketFileExists, path)
 			}
 		}
 

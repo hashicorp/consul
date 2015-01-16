@@ -295,12 +295,11 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		return err
 	}
 
+	// Error if we are trying to bind a domain socket to an existing path
 	if path, ok := unixSocketAddr(config.Addresses.RPC); ok {
-		// Remove the socket if it exists, or we'll get a bind error. This
-		// is necessary to avoid situations where Consul cannot start if the
-		// socket file exists in case of unexpected termination.
-		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-			return err
+		if _, err := os.Stat(path); err == nil || !os.IsNotExist(err) {
+			c.Ui.Output(fmt.Sprintf(errSocketFileExists, path))
+			return fmt.Errorf(errSocketFileExists, path)
 		}
 	}
 

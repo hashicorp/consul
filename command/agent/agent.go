@@ -22,6 +22,13 @@ const (
 
 	// Path to save local agent checks
 	checksDir = "checks"
+
+	// errSocketFileExists is the human-friendly error message displayed when
+	// trying to bind a socket to an existing file.
+	errSocketFileExists = "A file exists at the requested socket path %q. " +
+		"If Consul was not shut down properly, the socket file may " +
+		"be left behind. If the path looks correct, remove the file " +
+		"and try again."
 )
 
 /*
