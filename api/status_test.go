@@ -1,8 +1,9 @@
 package api
 
 import (
+	"fmt"
 	"io/ioutil"
-	"os/user"
+	"os"
 	"runtime"
 	"testing"
 )
@@ -29,25 +30,20 @@ func TestStatusLeaderUnix(t *testing.T) {
 
 	tempdir, err := ioutil.TempDir("", "consul-test-")
 	if err != nil {
-		t.Fatal("Could not create a working directory")
+		t.Fatalf("err: %s", err)
 	}
-
-	socket := "unix://" + tempdir + "/unix-http-test.sock"
+	defer os.RemoveAll(tempdir)
+	socket := fmt.Sprintf("unix://%s/test.sock", tempdir)
 
 	clientConfig := func(c *Config) {
 		c.Address = socket
 	}
 
 	serverConfig := func(c *testServerConfig) {
-		user, err := user.Current()
-		if err != nil {
-			t.Fatal("Could not get current user")
-		}
-
 		if c.Addresses == nil {
 			c.Addresses = &testAddressConfig{}
 		}
-		c.Addresses.HTTP = socket + ";" + user.Uid + ";" + user.Gid + ";640"
+		c.Addresses.HTTP = socket
 	}
 
 	c, s := makeClientWithConfig(t, clientConfig, serverConfig)

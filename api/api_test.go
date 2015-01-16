@@ -42,6 +42,10 @@ type testServerConfig struct {
 	Ports     testPortConfig     `json:"ports,omitempty"`
 }
 
+// Callback functions for modifying config
+type configCallback func(c *Config)
+type serverConfigCallback func(c *testServerConfig)
+
 func defaultConfig() *testServerConfig {
 	return &testServerConfig{
 		Bootstrap: true,
@@ -72,7 +76,7 @@ func newTestServer(t *testing.T) *testServer {
 	return newTestServerWithConfig(t, func(c *testServerConfig) {})
 }
 
-func newTestServerWithConfig(t *testing.T, cb func(c *testServerConfig)) *testServer {
+func newTestServerWithConfig(t *testing.T, cb serverConfigCallback) *testServer {
 	if path, err := exec.LookPath("consul"); err != nil || path == "" {
 		t.Log("consul not found on $PATH, skipping")
 		t.SkipNow()
@@ -131,14 +135,20 @@ func makeClient(t *testing.T) (*Client, *testServer) {
 	}, func(c *testServerConfig) {})
 }
 
-func makeClientWithConfig(t *testing.T, clientConfig func(c *Config), serverConfig func(c *testServerConfig)) (*Client, *testServer) {
-	server := newTestServerWithConfig(t, serverConfig)
+func makeClientWithConfig(t *testing.T, cb1 configCallback, cb2 serverConfigCallback) (*Client, *testServer) {
+	// Make client config
 	conf := DefaultConfig()
-	clientConfig(conf)
+	cb1(conf)
+	fmt.Printf("%#v\n", conf.HttpClient.Transport)
+
+	// Create client
 	client, err := NewClient(conf)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+
+	// Create server
+	server := newTestServerWithConfig(t, cb2)
 
 	// Allow the server some time to start, and verify we have a leader.
 	testutil.WaitForResult(func() (bool, error) {

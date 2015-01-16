@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/user"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -125,37 +124,8 @@ func TestAgentStartStop(t *testing.T) {
 	}
 }
 
-func TestAgent_RPCPingTCP(t *testing.T) {
+func TestAgent_RPCPing(t *testing.T) {
 	dir, agent := makeAgent(t, nextConfig())
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	var out struct{}
-	if err := agent.RPC("Status.Ping", struct{}{}, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-}
-
-func TestAgent_RPCPingUnix(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.SkipNow()
-	}
-
-	nextConf := nextConfig()
-
-	tempdir, err := ioutil.TempDir("", "consul-test-")
-	if err != nil {
-		t.Fatal("Could not create a working directory")
-	}
-
-	user, err := user.Current()
-	if err != nil {
-		t.Fatal("Could not get current user")
-	}
-
-	nextConf.Addresses.RPC = "unix://" + tempdir + "/unix-rpc-test.sock;" + user.Uid + ";" + user.Gid + ";640"
-
-	dir, agent := makeAgent(t, nextConf)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 

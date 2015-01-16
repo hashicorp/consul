@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"os/user"
 	"runtime"
 	"strings"
 	"testing"
@@ -223,19 +222,13 @@ func TestRPCClientStatsUnix(t *testing.T) {
 
 	tempdir, err := ioutil.TempDir("", "consul-test-")
 	if err != nil {
-		t.Fatal("Could not create a working directory: ", err)
+		t.Fatalf("err: %s", err)
 	}
 
-	user, err := user.Current()
-	if err != nil {
-		t.Fatal("Could not get current user: ", err)
-	}
-
-	cb := func(c *Config) {
-		c.Addresses.RPC = "unix://" + tempdir + "/unix-rpc-test.sock;" + user.Uid + ";" + user.Gid + ";640"
-	}
-
-	p1 := testRPCClientWithConfig(t, cb)
+	p1 := testRPCClientWithConfig(t, func(c *Config) {
+		c.Addresses.RPC = fmt.Sprintf("unix://%s/test.sock", tempdir)
+	})
+	defer p1.Close()
 
 	stats, err := p1.client.Stats()
 	if err != nil {

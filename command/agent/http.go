@@ -59,9 +59,13 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, err
 		}
 
-		if _, ok := httpAddr.(*net.UnixAddr); ok {
-			// Remove the socket if it exists, or we'll get a bind error
-			_ = os.Remove(httpAddr.String())
+		if path, ok := unixSocketAddr(config.Addresses.HTTPS); ok {
+			// See command/agent/config.go
+			if _, err := os.Stat(path); err == nil {
+				if err := os.Remove(path); err != nil {
+					return nil, err
+				}
+			}
 		}
 
 		ln, err := net.Listen(httpAddr.Network(), httpAddr.String())
@@ -69,18 +73,10 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
-		switch httpAddr.(type) {
-		case *net.UnixAddr:
-			if err := adjustUnixSocketPermissions(config.Addresses.HTTPS); err != nil {
-				return nil, err
-			}
+		if _, ok := unixSocketAddr(config.Addresses.HTTPS); ok {
 			list = tls.NewListener(ln, tlsConfig)
-
-		case *net.TCPAddr:
+		} else {
 			list = tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
-
-		default:
-			return nil, fmt.Errorf("Error determining address type when attempting to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
 		// Create the mux
@@ -108,9 +104,13 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, fmt.Errorf("Failed to get ClientListener address:port: %v", err)
 		}
 
-		if _, ok := httpAddr.(*net.UnixAddr); ok {
-			// Remove the socket if it exists, or we'll get a bind error
-			_ = os.Remove(httpAddr.String())
+		if path, ok := unixSocketAddr(config.Addresses.HTTP); ok {
+			// See command/agent/config.go
+			if _, err := os.Stat(path); err == nil {
+				if err := os.Remove(path); err != nil {
+					return nil, err
+				}
+			}
 		}
 
 		ln, err := net.Listen(httpAddr.Network(), httpAddr.String())
@@ -118,18 +118,10 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
-		switch httpAddr.(type) {
-		case *net.UnixAddr:
-			if err := adjustUnixSocketPermissions(config.Addresses.HTTP); err != nil {
-				return nil, err
-			}
+		if _, ok := unixSocketAddr(config.Addresses.HTTP); ok {
 			list = ln
-
-		case *net.TCPAddr:
+		} else {
 			list = tcpKeepAliveListener{ln.(*net.TCPListener)}
-
-		default:
-			return nil, fmt.Errorf("Error determining address type when attempting to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
 		// Create the mux

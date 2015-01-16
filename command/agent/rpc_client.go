@@ -81,24 +81,19 @@ func (c *RPCClient) send(header *requestHeader, obj interface{}) error {
 // NewRPCClient is used to create a new RPC client given the address.
 // This will properly dial, handshake, and start listening
 func NewRPCClient(addr string) (*RPCClient, error) {
-	sanedAddr := os.Getenv("CONSUL_RPC_ADDR")
-	if len(sanedAddr) == 0 {
-		sanedAddr = addr
-	}
+	var conn net.Conn
+	var err error
 
-	mode := "tcp"
-
-	if strings.HasPrefix(sanedAddr, "unix://") {
-		sanedAddr = strings.TrimPrefix(sanedAddr, "unix://")
-	}
-
-	if strings.HasPrefix(sanedAddr, "/") {
-		mode = "unix"
+	if envAddr := os.Getenv("CONSUL_RPC_ADDR"); envAddr != "" {
+		addr = envAddr
 	}
 
 	// Try to dial to agent
-	conn, err := net.Dial(mode, sanedAddr)
-	if err != nil {
+	mode := "tcp"
+	if strings.HasPrefix(addr, "/") {
+		mode = "unix"
+	}
+	if conn, err = net.Dial(mode, addr); err != nil {
 		return nil, err
 	}
 
