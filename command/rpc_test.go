@@ -6,54 +6,82 @@ import (
 	"testing"
 )
 
-const defaultRPC = "127.0.0.1:8400"
+const (
+	defaultRPC  = "127.0.0.1:8400"
+	defaultHTTP = "127.0.0.1:8500"
+)
 
-func getParsedRPC(t *testing.T, cliRPC, envRPC string) string {
+type flagFunc func(f *flag.FlagSet) *string
+
+func getParsedAddr(t *testing.T, addrType, cliVal, envVal string) string {
+	var cliFlag, envVar string
+	var fn flagFunc
 	args := []string{}
 
-	if cliRPC != "" {
-		args = append(args, "-rpc-addr="+cliRPC)
+	switch addrType {
+	case "rpc":
+		fn = RPCAddrFlag
+		envVar = RPCAddrEnvName
+		cliFlag = "-rpc-addr"
+	case "http":
+		fn = HTTPAddrFlag
+		envVar = HTTPAddrEnvName
+		cliFlag = "-http-addr"
+	default:
+		t.Fatalf("unknown address type %s", addrType)
+	}
+
+	if cliVal != "" {
+		args = append(args, cliFlag+"="+cliVal)
 	}
 
 	os.Clearenv()
-	if envRPC != "" {
-		os.Setenv(RPCAddrEnvName, envRPC)
+	if envVal != "" {
+		os.Setenv(envVar, envVal)
 	}
 
-	cmdFlags := flag.NewFlagSet("rpc", flag.ContinueOnError)
-	rpc := RPCAddrFlag(cmdFlags)
+	cmdFlags := flag.NewFlagSet(addrType, flag.ContinueOnError)
+	result := fn(cmdFlags)
 
 	if err := cmdFlags.Parse(args); err != nil {
 		t.Fatal("Parse error", err)
 	}
 
-	return *rpc
+	return *result
 }
 
-func TestRPCAddrFlag_default(t *testing.T) {
-	rpc := getParsedRPC(t, "", "")
+func TestAddrFlag_default(t *testing.T) {
+	for a, def := range map[string]string{
+		"rpc":  defaultRPC,
+		"http": defaultHTTP,
+	} {
+		res := getParsedAddr(t, a, "", "")
 
-	if rpc != defaultRPC {
-		t.Fatalf("Expected rpc addr: %s, got: %s", defaultRPC, rpc)
+		if res != def {
+			t.Fatalf("Expected %s addr: %s, got: %s", def, res)
+		}
 	}
 }
 
-func TestRPCAddrFlag_onlyEnv(t *testing.T) {
-	envRPC := "4.4.4.4:8400"
-	rpc := getParsedRPC(t, "", envRPC)
+func TestAddrFlag_onlyEnv(t *testing.T) {
+	envAddr := "4.4.4.4:1234"
+	for _, a := range []string{"rpc", "http"} {
+		res := getParsedAddr(t, a, "", envAddr)
 
-	if rpc != envRPC {
-		t.Fatalf("Expected rpc addr: %s, got: %s", envRPC, rpc)
+		if res != envAddr {
+			t.Fatalf("Expected %s addr: %s, got: %s", a, envAddr, res)
+		}
 	}
 }
 
-func TestRPCAddrFlag_precedence(t *testing.T) {
-	cliRPC := "8.8.8.8:8400"
-	envRPC := "4.4.4.4:8400"
+func TestAddrFlag_precedence(t *testing.T) {
+	cliAddr := "8.8.8.8:8400"
+	envAddr := "4.4.4.4:8400"
+	for _, a := range []string{"rpc", "http"} {
+		res := getParsedAddr(t, a, cliAddr, envAddr)
 
-	rpc := getParsedRPC(t, cliRPC, envRPC)
-
-	if rpc != cliRPC {
-		t.Fatalf("Expected rpc addr: %s, got: %s", cliRPC, rpc)
+		if res != cliAddr {
+			t.Fatalf("Expected %s addr: %s, got: %s", a, cliAddr, res)
+		}
 	}
 }
