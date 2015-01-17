@@ -33,6 +33,16 @@ type DNSServer struct {
 	logger       *log.Logger
 }
 
+// Shutdown stops the DNS Servers
+func (d *DNSServer) Shutdown() {
+	if err := d.dnsServer.Shutdown(); err != nil {
+		d.logger.Printf("[ERR] dns: error stopping udp server: %v", err)
+	}
+	if err := d.dnsServerTCP.Shutdown(); err != nil {
+		d.logger.Printf("[ERR] dns: error stopping tcp server: %v", err)
+	}
+}
+
 // NewDNSServer starts a new DNS server to provide an agent interface
 func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain string, bind string, recursors []string) (*DNSServer, error) {
 	// Make sure domain is FQDN
@@ -92,16 +102,18 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 	// Async start the DNS Servers, handle a potential error
 	errCh := make(chan error, 1)
 	go func() {
-		err := server.ListenAndServe()
-		srv.logger.Printf("[ERR] dns: error starting udp server: %v", err)
-		errCh <- fmt.Errorf("dns udp setup failed: %v", err)
+		if err := server.ListenAndServe(); err != nil {
+			srv.logger.Printf("[ERR] dns: error starting udp server: %v", err)
+			errCh <- fmt.Errorf("dns udp setup failed: %v", err)
+		}
 	}()
 
 	errChTCP := make(chan error, 1)
 	go func() {
-		err := serverTCP.ListenAndServe()
-		srv.logger.Printf("[ERR] dns: error starting tcp server: %v", err)
-		errChTCP <- fmt.Errorf("dns tcp setup failed: %v", err)
+		if err := serverTCP.ListenAndServe(); err != nil {
+			srv.logger.Printf("[ERR] dns: error starting tcp server: %v", err)
+			errChTCP <- fmt.Errorf("dns tcp setup failed: %v", err)
+		}
 	}()
 
 	// Check the server is running, do a test lookup
