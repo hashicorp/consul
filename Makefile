@@ -13,8 +13,8 @@ cov:
 
 deps:
 	@echo "--> Installing build dependencies"
-	@go get -d -v ./...
-	@echo $(DEPS) | xargs -n1 go get -d
+	@go get -d -f -u -v ./...
+	@echo $(DEPS) | xargs -n1 go get -d -f -u
 
 test: deps
 	./scripts/verify_no_uuid.sh
