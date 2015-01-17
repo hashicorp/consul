@@ -58,7 +58,7 @@ func TestAddrFlag_default(t *testing.T) {
 		res := getParsedAddr(t, a, "", "")
 
 		if res != def {
-			t.Fatalf("Expected %s addr: %s, got: %s", def, res)
+			t.Fatalf("Expected addr: %s, got: %s", def, res)
 		}
 	}
 }
