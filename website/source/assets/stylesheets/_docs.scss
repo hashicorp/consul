@@ -108,6 +108,18 @@ body.layout-intro{
                     li.active a {
 						font-weight: $font-weight-museo-xb;
                     }
+
+                    li.active .subnav {
+                        display: block;
+
+                        li a {
+                            font-weight: $font-weight-museo-sb;
+                        }
+
+                        li.active a {
+						    font-weight: $font-weight-museo-xb;
+                        }
+                    }
 				}
 			}
 
@@ -117,7 +129,7 @@ body.layout-intro{
 				font-weight: $font-weight-museo-sb;
                 -webkit-font-smoothing: antialiased;
 			}
-		}
+        }
 
 		.nav {
 			display: none;
@@ -131,8 +143,21 @@ body.layout-intro{
 					font-family: $font-family-open-sans;
 					padding: 6px 15px;
 				}
-			}
-		}
+
+        		.subnav {
+	        		display: none;
+		        	margin-bottom: 15px;
+                    list-style: none;
+			        > li{
+                        padding: 6px 0;
+        				> a{
+                            -webkit-font-smoothing: antialiased;
+		    	    		font-family: $font-family-open-sans;
+				        }
+			        }
+                }
+		    }
+        }
 	}
 }
 
