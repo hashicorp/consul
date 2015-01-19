@@ -336,12 +336,16 @@ func encodeBody(obj interface{}) (io.Reader, error) {
 // requireOK is used to wrap doRequest and check for a 200
 func requireOK(d time.Duration, resp *http.Response, e error) (time.Duration, *http.Response, error) {
 	if e != nil {
-		return d, resp, e
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return d, nil, e
 	}
 	if resp.StatusCode != 200 {
 		var buf bytes.Buffer
 		io.Copy(&buf, resp.Body)
-		return d, resp, fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
+		resp.Body.Close()
+		return d, nil, fmt.Errorf("Unexpected response code: %d (%s)", resp.StatusCode, buf.Bytes())
 	}
-	return d, resp, e
+	return d, resp, nil
 }
