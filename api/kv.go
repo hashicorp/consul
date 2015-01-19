@@ -175,12 +175,10 @@ func (k *KV) put(key string, params map[string]string, body []byte, q *WriteOpti
 	}
 	r.body = bytes.NewReader(body)
 	rtt, resp, err := requireOK(k.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return false, nil, err
 	}
+	defer resp.Body.Close()
 
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt
@@ -221,12 +219,10 @@ func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOption
 		r.params.Set(param, val)
 	}
 	rtt, resp, err := requireOK(k.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return false, nil, err
 	}
+	defer resp.Body.Close()
 
 	qm := &WriteMeta{}
 	qm.RequestTime = rtt

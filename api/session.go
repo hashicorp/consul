@@ -97,12 +97,10 @@ func (s *Session) create(obj interface{}, q *WriteOptions) (string, *WriteMeta, 
 	r.setWriteOptions(q)
 	r.obj = obj
 	rtt, resp, err := requireOK(s.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return "", nil, err
 	}
+	defer resp.Body.Close()
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out struct{ ID string }
@@ -117,12 +115,10 @@ func (s *Session) Destroy(id string, q *WriteOptions) (*WriteMeta, error) {
 	r := s.c.newRequest("PUT", "/v1/session/destroy/"+id)
 	r.setWriteOptions(q)
 	rtt, resp, err := requireOK(s.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, err
 	}
+	resp.Body.Close()
 
 	wm := &WriteMeta{RequestTime: rtt}
 	return wm, nil
@@ -133,12 +129,10 @@ func (s *Session) Renew(id string, q *WriteOptions) (*SessionEntry, *WriteMeta, 
 	r := s.c.newRequest("PUT", "/v1/session/renew/"+id)
 	r.setWriteOptions(q)
 	rtt, resp, err := requireOK(s.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, nil, err
 	}
+	defer resp.Body.Close()
 
 	wm := &WriteMeta{RequestTime: rtt}
 
@@ -158,12 +152,10 @@ func (s *Session) Info(id string, q *QueryOptions) (*SessionEntry, *QueryMeta, e
 	r := s.c.newRequest("GET", "/v1/session/info/"+id)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(s.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, nil, err
 	}
+	defer resp.Body.Close()
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -185,12 +177,10 @@ func (s *Session) Node(node string, q *QueryOptions) ([]*SessionEntry, *QueryMet
 	r := s.c.newRequest("GET", "/v1/session/node/"+node)
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(s.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, nil, err
 	}
+	defer resp.Body.Close()
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)
@@ -208,12 +198,10 @@ func (s *Session) List(q *QueryOptions) ([]*SessionEntry, *QueryMeta, error) {
 	r := s.c.newRequest("GET", "/v1/session/list")
 	r.setQueryOptions(q)
 	rtt, resp, err := requireOK(s.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, nil, err
 	}
+	defer resp.Body.Close()
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

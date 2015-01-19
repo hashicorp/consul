@@ -47,12 +47,10 @@ func (e *Event) Fire(params *UserEvent, q *WriteOptions) (string, *WriteMeta, er
 	}
 
 	rtt, resp, err := requireOK(e.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return "", nil, err
 	}
+	defer resp.Body.Close()
 
 	wm := &WriteMeta{RequestTime: rtt}
 	var out UserEvent
@@ -73,12 +71,10 @@ func (e *Event) List(name string, q *QueryOptions) ([]*UserEvent, *QueryMeta, er
 		r.params.Set("name", name)
 	}
 	rtt, resp, err := requireOK(e.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, nil, err
 	}
+	defer resp.Body.Close()
 
 	qm := &QueryMeta{}
 	parseQueryMeta(resp, qm)

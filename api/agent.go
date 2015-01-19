@@ -82,12 +82,10 @@ func (c *Client) Agent() *Agent {
 func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 	r := a.c.newRequest("GET", "/v1/agent/self")
 	_, resp, err := requireOK(a.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var out map[string]map[string]interface{}
 	if err := decodeBody(resp, &out); err != nil {
@@ -114,12 +112,10 @@ func (a *Agent) NodeName() (string, error) {
 func (a *Agent) Checks() (map[string]*AgentCheck, error) {
 	r := a.c.newRequest("GET", "/v1/agent/checks")
 	_, resp, err := requireOK(a.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var out map[string]*AgentCheck
 	if err := decodeBody(resp, &out); err != nil {
@@ -132,12 +128,10 @@ func (a *Agent) Checks() (map[string]*AgentCheck, error) {
 func (a *Agent) Services() (map[string]*AgentService, error) {
 	r := a.c.newRequest("GET", "/v1/agent/services")
 	_, resp, err := requireOK(a.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var out map[string]*AgentService
 	if err := decodeBody(resp, &out); err != nil {
@@ -154,12 +148,10 @@ func (a *Agent) Members(wan bool) ([]*AgentMember, error) {
 		r.params.Set("wan", "1")
 	}
 	_, resp, err := requireOK(a.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var out []*AgentMember
 	if err := decodeBody(resp, &out); err != nil {
@@ -174,12 +166,10 @@ func (a *Agent) ServiceRegister(service *AgentServiceRegistration) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/register")
 	r.obj = service
 	_, resp, err := requireOK(a.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
 	return nil
 }
 
@@ -188,12 +178,10 @@ func (a *Agent) ServiceRegister(service *AgentServiceRegistration) error {
 func (a *Agent) ServiceDeregister(serviceID string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/deregister/"+serviceID)
 	_, resp, err := requireOK(a.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
 	return nil
 }
 
@@ -225,12 +213,10 @@ func (a *Agent) UpdateTTL(checkID, note, status string) error {
 	r := a.c.newRequest("PUT", endpoint)
 	r.params.Set("note", note)
 	_, resp, err := requireOK(a.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
 	return nil
 }
 
@@ -240,12 +226,10 @@ func (a *Agent) CheckRegister(check *AgentCheckRegistration) error {
 	r := a.c.newRequest("PUT", "/v1/agent/check/register")
 	r.obj = check
 	_, resp, err := requireOK(a.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
 	return nil
 }
 
@@ -254,12 +238,10 @@ func (a *Agent) CheckRegister(check *AgentCheckRegistration) error {
 func (a *Agent) CheckDeregister(checkID string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/check/deregister/"+checkID)
 	_, resp, err := requireOK(a.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
 	return nil
 }
 
@@ -271,12 +253,10 @@ func (a *Agent) Join(addr string, wan bool) error {
 		r.params.Set("wan", "1")
 	}
 	_, resp, err := requireOK(a.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
 	return nil
 }
 
@@ -284,11 +264,9 @@ func (a *Agent) Join(addr string, wan bool) error {
 func (a *Agent) ForceLeave(node string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
 	_, resp, err := requireOK(a.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
 	return nil
 }

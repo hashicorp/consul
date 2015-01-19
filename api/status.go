@@ -14,12 +14,10 @@ func (c *Client) Status() *Status {
 func (s *Status) Leader() (string, error) {
 	r := s.c.newRequest("GET", "/v1/status/leader")
 	_, resp, err := requireOK(s.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	var leader string
 	if err := decodeBody(resp, &leader); err != nil {
@@ -32,12 +30,10 @@ func (s *Status) Leader() (string, error) {
 func (s *Status) Peers() ([]string, error) {
 	r := s.c.newRequest("GET", "/v1/status/peers")
 	_, resp, err := requireOK(s.c.doRequest(r))
-	if resp != nil {
-		defer resp.Body.Close()
-	}
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	var peers []string
 	if err := decodeBody(resp, &peers); err != nil {
