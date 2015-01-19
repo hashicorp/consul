@@ -1,10 +1,12 @@
 package agent
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"
@@ -161,5 +163,49 @@ func TestRetryJoinWanFail(t *testing.T) {
 
 	if code := cmd.Run(args); code == 0 {
 		t.Fatalf("bad: %d", code)
+	}
+}
+
+func TestSetupAgent_UnixSocket_Fails(t *testing.T) {
+	conf := nextConfig()
+	tmpDir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	tmpFile, err := ioutil.TempFile("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	socketPath := tmpFile.Name()
+
+	conf.DataDir = tmpDir
+	conf.Server = true
+	conf.Bootstrap = true
+
+	// Set socket address to an existing file. Consul should fail to
+	// start and return an error.
+	conf.Addresses.RPC = "unix://" + socketPath
+
+	shutdownCh := make(chan struct{})
+	defer close(shutdownCh)
+
+	cmd := &Command{
+		ShutdownCh: shutdownCh,
+		Ui:         new(cli.MockUi),
+	}
+
+	logWriter := NewLogWriter(512)
+	logOutput := new(bytes.Buffer)
+
+	// Ensure we got an error mentioning the socket file
+	err = cmd.setupAgent(conf, logOutput, logWriter)
+	if err == nil {
+		t.Fatalf("should have failed")
+	}
+	if !strings.Contains(err.Error(), socketPath) {
+		t.Fatalf("expected socket file error, got: %q", err)
 	}
 }
