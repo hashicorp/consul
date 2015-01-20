@@ -21,6 +21,11 @@ test: deps
 	go list ./... | xargs -n1 go test
 	@$(MAKE) vet
 
+test-nodep:
+	./scripts/verify_no_uuid.sh
+	go list ./... | xargs -n1 go test
+	@$(MAKE) vet
+
 integ:
 	go list ./... | INTEG_TESTS=yes xargs -n1 go test
 
@@ -49,4 +54,4 @@ web:
 web-push:
 	./scripts/website_push.sh
 
-.PHONY: all cov deps integ test vet web web-push 
+.PHONY: all cov deps integ test vet web web-push test-nodep
