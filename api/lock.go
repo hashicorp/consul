@@ -24,6 +24,11 @@ const (
 	// before attempting to do the lock again. This is so that once a lock-delay
 	// is in affect, we do not hot loop retrying the acquisition.
 	DefaultLockRetryTime = 5 * time.Second
+
+	// LockFlagValue is a magic flag we set to indicate a key
+	// is being used for a lock. It is used to detect a potential
+	// conflict with a semaphore.
+	LockFlagValue = 0x2ddccbc058a50c18
 )
 
 var (
@@ -37,6 +42,10 @@ var (
 	// ErrLockInUse is returned if we attempt to destroy a lock
 	// that is in use.
 	ErrLockInUse = fmt.Errorf("Lock in use")
+
+	// ErrLockConflict is returned if the flags on a key
+	// used for a lock do not match expectation
+	ErrLockConflict = fmt.Errorf("Existing key does not match lock use")
 )
 
 // Lock is used to implement client-side leader election. It is follows the
@@ -103,7 +112,7 @@ func (c *Client) LockOpts(opts *LockOptions) (*Lock, error) {
 // created without any associated health checks. By default Consul sessions
 // prefer liveness over safety and an application must be able to handle
 // the lock being lost.
-func (l *Lock) Lock(stopCh chan struct{}) (chan struct{}, error) {
+func (l *Lock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	// Hold the lock as we try to acquire
 	l.l.Lock()
 	defer l.l.Unlock()
@@ -121,7 +130,8 @@ func (l *Lock) Lock(stopCh chan struct{}) (chan struct{}, error) {
 		} else {
 			l.sessionRenew = make(chan struct{})
 			l.lockSession = s
-			go l.renewSession(s, l.sessionRenew)
+			session := l.c.Session()
+			go session.RenewPeriodic(l.opts.SessionTTL, s, nil, l.sessionRenew)
 
 			// If we fail to acquire the lock, cleanup the session
 			defer func() {
@@ -151,6 +161,9 @@ WAIT:
 	pair, meta, err := kv.Get(l.opts.Key, qOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read lock: %v", err)
+	}
+	if pair != nil && pair.Flags != LockFlagValue {
+		return nil, ErrLockConflict
 	}
 	if pair != nil && pair.Session != "" {
 		qOpts.WaitIndex = meta.LastIndex
@@ -245,6 +258,11 @@ func (l *Lock) Destroy() error {
 		return nil
 	}
 
+	// Check for possible flag conflict
+	if pair.Flags != LockFlagValue {
+		return ErrLockConflict
+	}
+
 	// Check if it is in use
 	if pair.Session != "" {
 		return ErrLockInUse
@@ -281,30 +299,7 @@ func (l *Lock) lockEntry(session string) *KVPair {
 		Key:     l.opts.Key,
 		Value:   l.opts.Value,
 		Session: session,
-	}
-}
-
-// renewSession is a long running routine that maintians a session
-// by doing a periodic Session renewal.
-func (l *Lock) renewSession(id string, doneCh chan struct{}) {
-	session := l.c.Session()
-	ttl, _ := time.ParseDuration(l.opts.SessionTTL)
-	for {
-		select {
-		case <-time.After(ttl / 2):
-			entry, _, err := session.Renew(id, nil)
-			if err != nil || entry == nil {
-				return
-			}
-
-			// Handle the server updating the TTL
-			ttl, _ = time.ParseDuration(entry.TTL)
-
-		case <-doneCh:
-			// Attempt a session destroy
-			session.Destroy(id, nil)
-			return
-		}
+		Flags:   LockFlagValue,
 	}
 }
 

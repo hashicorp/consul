@@ -267,3 +267,40 @@ func TestSemaphore_Destroy(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 }
+
+func TestSemaphore_Conflict(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	lock, err := c.LockKey("test/sema/.lock")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should work
+	leaderCh, err := lock.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if leaderCh == nil {
+		t.Fatalf("not leader")
+	}
+	defer lock.Unlock()
+
+	sema, err := c.SemaphorePrefix("test/sema/", 2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should conflict with lock
+	_, err = sema.Acquire(nil)
+	if err != ErrSemaphoreConflict {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should conflict with lock
+	err = sema.Destroy()
+	if err != ErrSemaphoreConflict {
+		t.Fatalf("err: %v", err)
+	}
+}

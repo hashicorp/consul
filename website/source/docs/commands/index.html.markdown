@@ -33,7 +33,9 @@ Available commands are:
     info           Provides debugging information for operators
     join           Tell Consul agent to join cluster
     keygen         Generates a new encryption key
+    keyring        Manages gossip layer encryption keys
     leave          Gracefully leaves the Consul cluster and shuts down
+    lock           Execute a command holding a lock
     members        Lists the members of a Consul cluster
     monitor        Stream logs from a Consul agent
     reload         Triggers the agent to reload configuration files

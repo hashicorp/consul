@@ -30,6 +30,11 @@ const (
 	// DefaultSemaphoreKey is the key used within the prefix to
 	// use for coordination between all the contenders.
 	DefaultSemaphoreKey = ".lock"
+
+	// SemaphoreFlagValue is a magic flag we set to indicate a key
+	// is being used for a semaphore. It is used to detect a potential
+	// conflict with a lock.
+	SemaphoreFlagValue = 0xe0f69a2baa414de0
 )
 
 var (
@@ -43,6 +48,10 @@ var (
 	// ErrSemaphoreInUse is returned if we attempt to destroy a semaphore
 	// that is in use.
 	ErrSemaphoreInUse = fmt.Errorf("Semaphore in use")
+
+	// ErrSemaphoreConflict is returned if the flags on a key
+	// used for a semaphore do not match expectation
+	ErrSemaphoreConflict = fmt.Errorf("Existing key does not match semaphore use")
 )
 
 // Semaphore is used to implement a distributed semaphore
@@ -128,7 +137,7 @@ func (c *Client) SemaphoreOpts(opts *SemaphoreOptions) (*Semaphore, error) {
 // created without any associated health checks. By default Consul sessions
 // prefer liveness over safety and an application must be able to handle
 // the session being lost.
-func (s *Semaphore) Acquire(stopCh chan struct{}) (chan struct{}, error) {
+func (s *Semaphore) Acquire(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	// Hold the lock as we try to acquire
 	s.l.Lock()
 	defer s.l.Unlock()
@@ -146,7 +155,8 @@ func (s *Semaphore) Acquire(stopCh chan struct{}) (chan struct{}, error) {
 		} else {
 			s.sessionRenew = make(chan struct{})
 			s.lockSession = sess
-			go s.renewSession(sess, s.sessionRenew)
+			session := s.c.Session()
+			go session.RenewPeriodic(s.opts.SessionTTL, sess, nil, s.sessionRenew)
 
 			// If we fail to acquire the lock, cleanup the session
 			defer func() {
@@ -186,6 +196,9 @@ WAIT:
 
 	// Decode the lock
 	lockPair := s.findLock(pairs)
+	if lockPair.Flags != SemaphoreFlagValue {
+		return nil, ErrSemaphoreConflict
+	}
 	lock, err := s.decodeLock(lockPair)
 	if err != nil {
 		return nil, err
@@ -328,6 +341,9 @@ func (s *Semaphore) Destroy() error {
 	if lockPair.ModifyIndex == 0 {
 		return nil
 	}
+	if lockPair.Flags != SemaphoreFlagValue {
+		return ErrSemaphoreConflict
+	}
 
 	// Decode the lock
 	lock, err := s.decodeLock(lockPair)
@@ -369,36 +385,13 @@ func (s *Semaphore) createSession() (string, error) {
 	return id, nil
 }
 
-// renewSession is a long running routine that maintians a session
-// by doing a periodic Session renewal.
-func (s *Semaphore) renewSession(id string, doneCh chan struct{}) {
-	session := s.c.Session()
-	ttl, _ := time.ParseDuration(s.opts.SessionTTL)
-	for {
-		select {
-		case <-time.After(ttl / 2):
-			entry, _, err := session.Renew(id, nil)
-			if err != nil || entry == nil {
-				return
-			}
-
-			// Handle the server updating the TTL
-			ttl, _ = time.ParseDuration(entry.TTL)
-
-		case <-doneCh:
-			// Attempt a session destroy
-			session.Destroy(id, nil)
-			return
-		}
-	}
-}
-
 // contenderEntry returns a formatted KVPair for the contender
 func (s *Semaphore) contenderEntry(session string) *KVPair {
 	return &KVPair{
 		Key:     path.Join(s.opts.Prefix, session),
 		Value:   s.opts.Value,
 		Session: session,
+		Flags:   SemaphoreFlagValue,
 	}
 }
 
@@ -410,7 +403,7 @@ func (s *Semaphore) findLock(pairs KVPairs) *KVPair {
 			return pair
 		}
 	}
-	return &KVPair{}
+	return &KVPair{Flags: SemaphoreFlagValue}
 }
 
 // decodeLock is used to decode a semaphoreLock from an
@@ -441,6 +434,7 @@ func (s *Semaphore) encodeLock(l *semaphoreLock, oldIndex uint64) (*KVPair, erro
 	pair := &KVPair{
 		Key:         path.Join(s.opts.Prefix, DefaultSemaphoreKey),
 		Value:       enc,
+		Flags:       SemaphoreFlagValue,
 		ModifyIndex: oldIndex,
 	}
 	return pair, nil

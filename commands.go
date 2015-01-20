@@ -69,6 +69,13 @@ func init() {
 			}, nil
 		},
 
+		"lock": func() (cli.Command, error) {
+			return &command.LockCommand{
+				ShutdownCh: makeShutdownCh(),
+				Ui:         ui,
+			}, nil
+		},
+
 		"members": func() (cli.Command, error) {
 			return &command.MembersCommand{
 				Ui: ui,
