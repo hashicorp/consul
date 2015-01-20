@@ -132,11 +132,17 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	// Try to start the server with the same path anyways.
-	if servers, err := NewHTTPServers(agent, conf, agent.logOutput); err == nil {
-		for _, server := range servers {
-			server.Shutdown()
-		}
-		t.Fatalf("expected socket binding error")
+	if _, err := NewHTTPServers(agent, conf, agent.logOutput); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the file was replaced by the socket
+	fi, err = os.Stat(socket)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if fi.Mode()&os.ModeSocket == 0 {
+		t.Fatalf("expected socket to replace file")
 	}
 }
 
