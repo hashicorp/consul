@@ -67,6 +67,10 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 
 	dir, srv := makeHTTPServerWithConfig(t, func(c *Config) {
 		c.Addresses.HTTP = "unix://" + socket
+
+		// Only testing mode, since uid/gid might not be settable
+		// from test environment.
+		c.UnixSockets = map[string]string{"mode": "0777"}
 	})
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
@@ -75,6 +79,15 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	// Ensure the socket was created
 	if _, err := os.Stat(socket); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the mode was set properly
+	fi, err := os.Stat(socket)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if fi.Mode().String() != "Srwxrwxrwx" {
+		t.Fatalf("bad permissions: %s", fi.Mode())
 	}
 
 	// Ensure we can get a response from the socket.
