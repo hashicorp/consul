@@ -130,7 +130,8 @@ func (l *Lock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 		} else {
 			l.sessionRenew = make(chan struct{})
 			l.lockSession = s
-			go l.renewSession(s, l.sessionRenew)
+			session := l.c.Session()
+			go session.RenewPeriodic(l.opts.SessionTTL, s, nil, l.sessionRenew)
 
 			// If we fail to acquire the lock, cleanup the session
 			defer func() {
@@ -299,30 +300,6 @@ func (l *Lock) lockEntry(session string) *KVPair {
 		Value:   l.opts.Value,
 		Session: session,
 		Flags:   LockFlagValue,
-	}
-}
-
-// renewSession is a long running routine that maintians a session
-// by doing a periodic Session renewal.
-func (l *Lock) renewSession(id string, doneCh chan struct{}) {
-	session := l.c.Session()
-	ttl, _ := time.ParseDuration(l.opts.SessionTTL)
-	for {
-		select {
-		case <-time.After(ttl / 2):
-			entry, _, err := session.Renew(id, nil)
-			if err != nil || entry == nil {
-				return
-			}
-
-			// Handle the server updating the TTL
-			ttl, _ = time.ParseDuration(entry.TTL)
-
-		case <-doneCh:
-			// Attempt a session destroy
-			session.Destroy(id, nil)
-			return
-		}
 	}
 }
 

@@ -155,7 +155,8 @@ func (s *Semaphore) Acquire(stopCh <-chan struct{}) (<-chan struct{}, error) {
 		} else {
 			s.sessionRenew = make(chan struct{})
 			s.lockSession = sess
-			go s.renewSession(sess, s.sessionRenew)
+			session := s.c.Session()
+			go session.RenewPeriodic(s.opts.SessionTTL, sess, nil, s.sessionRenew)
 
 			// If we fail to acquire the lock, cleanup the session
 			defer func() {
@@ -382,30 +383,6 @@ func (s *Semaphore) createSession() (string, error) {
 		return "", err
 	}
 	return id, nil
-}
-
-// renewSession is a long running routine that maintians a session
-// by doing a periodic Session renewal.
-func (s *Semaphore) renewSession(id string, doneCh chan struct{}) {
-	session := s.c.Session()
-	ttl, _ := time.ParseDuration(s.opts.SessionTTL)
-	for {
-		select {
-		case <-time.After(ttl / 2):
-			entry, _, err := session.Renew(id, nil)
-			if err != nil || entry == nil {
-				return
-			}
-
-			// Handle the server updating the TTL
-			ttl, _ = time.ParseDuration(entry.TTL)
-
-		case <-doneCh:
-			// Attempt a session destroy
-			session.Destroy(id, nil)
-			return
-		}
-	}
 }
 
 // contenderEntry returns a formatted KVPair for the contender
