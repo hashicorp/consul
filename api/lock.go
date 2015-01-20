@@ -26,8 +26,8 @@ const (
 	DefaultLockRetryTime = 5 * time.Second
 
 	// LockFlagValue is a magic flag we set to indicate a key
-	// is being used for a semaphore. It is used to detect a potential
-	// conflict with a lock.
+	// is being used for a lock. It is used to detect a potential
+	// conflict with a semaphore.
 	LockFlagValue = 0x2ddccbc058a50c18
 )
 
