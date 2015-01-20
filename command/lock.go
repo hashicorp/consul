@@ -186,7 +186,10 @@ RELEASE:
 // setupLock is used to setup a new Lock given the API client,
 // the key prefix to operate on, and an optional session name.
 func (c *LockCommand) setupLock(client *api.Client, prefix, name string) (*LockUnlock, error) {
-	key := path.Join(prefix, "lock")
+	// Use the DefaultSemaphoreKey extention, this way if a lock and
+	// semaphore are both used at the same prefix, we will get a conflict
+	// which we can report to the user.
+	key := path.Join(prefix, api.DefaultSemaphoreKey)
 	if c.verbose {
 		c.Ui.Info(fmt.Sprintf("Setting up lock at path: %s", key))
 	}
