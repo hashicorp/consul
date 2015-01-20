@@ -128,7 +128,7 @@ func (c *Client) SemaphoreOpts(opts *SemaphoreOptions) (*Semaphore, error) {
 // created without any associated health checks. By default Consul sessions
 // prefer liveness over safety and an application must be able to handle
 // the session being lost.
-func (s *Semaphore) Acquire(stopCh chan struct{}) (chan struct{}, error) {
+func (s *Semaphore) Acquire(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	// Hold the lock as we try to acquire
 	s.l.Lock()
 	defer s.l.Unlock()

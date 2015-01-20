@@ -103,7 +103,7 @@ func (c *Client) LockOpts(opts *LockOptions) (*Lock, error) {
 // created without any associated health checks. By default Consul sessions
 // prefer liveness over safety and an application must be able to handle
 // the lock being lost.
-func (l *Lock) Lock(stopCh chan struct{}) (chan struct{}, error) {
+func (l *Lock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	// Hold the lock as we try to acquire
 	l.l.Lock()
 	defer l.l.Unlock()
