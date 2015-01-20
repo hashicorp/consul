@@ -30,6 +30,11 @@ const (
 	// DefaultSemaphoreKey is the key used within the prefix to
 	// use for coordination between all the contenders.
 	DefaultSemaphoreKey = ".lock"
+
+	// SemaphoreFlagValue is a magic flag we set to indicate a key
+	// is being used for a semaphore. It is used to detect a potential
+	// conflict with a lock.
+	SemaphoreFlagValue = 0xe0f69a2baa414de0
 )
 
 var (
@@ -43,6 +48,10 @@ var (
 	// ErrSemaphoreInUse is returned if we attempt to destroy a semaphore
 	// that is in use.
 	ErrSemaphoreInUse = fmt.Errorf("Semaphore in use")
+
+	// ErrSemaphoreConflict is returned if the flags on a key
+	// used for a semaphore do not match expectation
+	ErrSemaphoreConflict = fmt.Errorf("Existing key does not match semaphore use")
 )
 
 // Semaphore is used to implement a distributed semaphore
@@ -186,6 +195,9 @@ WAIT:
 
 	// Decode the lock
 	lockPair := s.findLock(pairs)
+	if lockPair.Flags != SemaphoreFlagValue {
+		return nil, ErrSemaphoreConflict
+	}
 	lock, err := s.decodeLock(lockPair)
 	if err != nil {
 		return nil, err
@@ -328,6 +340,9 @@ func (s *Semaphore) Destroy() error {
 	if lockPair.ModifyIndex == 0 {
 		return nil
 	}
+	if lockPair.Flags != SemaphoreFlagValue {
+		return ErrSemaphoreConflict
+	}
 
 	// Decode the lock
 	lock, err := s.decodeLock(lockPair)
@@ -399,6 +414,7 @@ func (s *Semaphore) contenderEntry(session string) *KVPair {
 		Key:     path.Join(s.opts.Prefix, session),
 		Value:   s.opts.Value,
 		Session: session,
+		Flags:   SemaphoreFlagValue,
 	}
 }
 
@@ -410,7 +426,7 @@ func (s *Semaphore) findLock(pairs KVPairs) *KVPair {
 			return pair
 		}
 	}
-	return &KVPair{}
+	return &KVPair{Flags: SemaphoreFlagValue}
 }
 
 // decodeLock is used to decode a semaphoreLock from an
@@ -441,6 +457,7 @@ func (s *Semaphore) encodeLock(l *semaphoreLock, oldIndex uint64) (*KVPair, erro
 	pair := &KVPair{
 		Key:         path.Join(s.opts.Prefix, DefaultSemaphoreKey),
 		Value:       enc,
+		Flags:       SemaphoreFlagValue,
 		ModifyIndex: oldIndex,
 	}
 	return pair, nil

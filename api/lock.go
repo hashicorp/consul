@@ -24,6 +24,11 @@ const (
 	// before attempting to do the lock again. This is so that once a lock-delay
 	// is in affect, we do not hot loop retrying the acquisition.
 	DefaultLockRetryTime = 5 * time.Second
+
+	// LockFlagValue is a magic flag we set to indicate a key
+	// is being used for a semaphore. It is used to detect a potential
+	// conflict with a lock.
+	LockFlagValue = 0x2ddccbc058a50c18
 )
 
 var (
@@ -37,6 +42,10 @@ var (
 	// ErrLockInUse is returned if we attempt to destroy a lock
 	// that is in use.
 	ErrLockInUse = fmt.Errorf("Lock in use")
+
+	// ErrLockConflict is returned if the flags on a key
+	// used for a lock do not match expectation
+	ErrLockConflict = fmt.Errorf("Existing key does not match lock use")
 )
 
 // Lock is used to implement client-side leader election. It is follows the
@@ -152,6 +161,9 @@ WAIT:
 	if err != nil {
 		return nil, fmt.Errorf("failed to read lock: %v", err)
 	}
+	if pair != nil && pair.Flags != LockFlagValue {
+		return nil, ErrLockConflict
+	}
 	if pair != nil && pair.Session != "" {
 		qOpts.WaitIndex = meta.LastIndex
 		goto WAIT
@@ -245,6 +257,11 @@ func (l *Lock) Destroy() error {
 		return nil
 	}
 
+	// Check for possible flag conflict
+	if pair.Flags != LockFlagValue {
+		return ErrLockConflict
+	}
+
 	// Check if it is in use
 	if pair.Session != "" {
 		return ErrLockInUse
@@ -281,6 +298,7 @@ func (l *Lock) lockEntry(session string) *KVPair {
 		Key:     l.opts.Key,
 		Value:   l.opts.Value,
 		Session: session,
+		Flags:   LockFlagValue,
 	}
 }
 

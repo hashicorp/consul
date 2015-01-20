@@ -250,3 +250,40 @@ func TestLock_Destroy(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 }
+
+func TestLock_Conflict(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	sema, err := c.SemaphorePrefix("test/lock/", 2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should work
+	lockCh, err := sema.Acquire(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if lockCh == nil {
+		t.Fatalf("not hold")
+	}
+	defer sema.Release()
+
+	lock, err := c.LockKey("test/lock/.lock")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should conflict with semaphore
+	_, err = lock.Lock(nil)
+	if err != ErrLockConflict {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should conflict with semaphore
+	err = lock.Destroy()
+	if err != ErrLockConflict {
+		t.Fatalf("err: %v", err)
+	}
+}

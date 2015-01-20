@@ -22,6 +22,7 @@ var consulConfig = `{
 		"serf_wan": 18400,
 		"server": 18000
 	},
+	"bind_addr": "127.0.0.1",
 	"data_dir": "%s",
 	"bootstrap": true,
 	"log_level": "debug",
