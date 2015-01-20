@@ -295,11 +295,15 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		return err
 	}
 
-	// Error if we are trying to bind a domain socket to an existing path
-	if path, ok := unixSocketAddr(config.Addresses.RPC); ok {
-		if _, err := os.Stat(path); err == nil || !os.IsNotExist(err) {
-			c.Ui.Output(fmt.Sprintf(errSocketFileExists, path))
-			return fmt.Errorf(errSocketFileExists, path)
+	// Clear the domain socket file if it exists
+	socketPath, isSocket := unixSocketAddr(config.Addresses.RPC)
+	if isSocket {
+		if _, err := os.Stat(socketPath); !os.IsNotExist(err) {
+			agent.logger.Printf("[WARN] agent: Replacing socket %q", socketPath)
+		}
+		if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
+			c.Ui.Output(fmt.Sprintf("Error removing socket file: %s", err))
+			return err
 		}
 	}
 
@@ -308,6 +312,15 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		agent.Shutdown()
 		c.Ui.Error(fmt.Sprintf("Error starting RPC listener: %s", err))
 		return err
+	}
+
+	// Set up ownership/permission bits on the socket file
+	if isSocket {
+		if err := setFilePermissions(socketPath, config.UnixSockets); err != nil {
+			agent.Shutdown()
+			c.Ui.Error(fmt.Sprintf("Error setting up socket: %s", err))
+			return err
+		}
 	}
 
 	// Start the IPC layer

@@ -343,6 +343,9 @@ type Config struct {
 
 	// WatchPlans contains the compiled watches
 	WatchPlans []*watch.WatchPlan `mapstructure:"-" json:"-"`
+
+	// UnixSockets is a map of socket configuration data
+	UnixSockets map[string]string `mapstructure:"unix_sockets"`
 }
 
 // unixSocketAddr tests if a given address describes a domain socket,
@@ -890,6 +893,15 @@ func MergeConfig(a, b *Config) *Config {
 		}
 		for field, value := range b.HTTPAPIResponseHeaders {
 			result.HTTPAPIResponseHeaders[field] = value
+		}
+	}
+
+	if len(b.UnixSockets) != 0 {
+		if result.UnixSockets == nil {
+			result.UnixSockets = make(map[string]string)
+		}
+		for field, value := range b.UnixSockets {
+			result.UnixSockets[field] = value
 		}
 	}
 

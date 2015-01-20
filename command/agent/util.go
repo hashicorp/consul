@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/go-msgpack/codec"
@@ -96,4 +97,44 @@ func encodeMsgPack(msg interface{}) ([]byte, error) {
 // stringHash returns a simple md5sum for a string.
 func stringHash(s string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(s)))
+}
+
+// setFilePermissions handles configuring ownership and permissions settings
+// on a given file. It takes a map, which defines the permissions to be set.
+// All permission/ownership settings are optional. If no user or group is
+// specified, the current user/group will be used. Mode is optional, and has
+// no default (the operation is not performed if absent).
+func setFilePermissions(path string, perms map[string]string) error {
+	var err error
+
+	uid, gid := os.Getuid(), os.Getgid()
+	if _, ok := perms["uid"]; ok {
+		if uid, err = strconv.Atoi(perms["uid"]); err != nil {
+			return fmt.Errorf("invalid user id specified: %v", perms["uid"])
+		}
+	}
+	if _, ok := perms["gid"]; ok {
+		if gid, err = strconv.Atoi(perms["gid"]); err != nil {
+			return fmt.Errorf("invalid group id specified: %v", perms["gid"])
+		}
+	}
+	if err := os.Chown(path, uid, gid); err != nil {
+		return fmt.Errorf(
+			"failed setting ownership to %d:%d on %q: %s",
+			uid, gid, path, err)
+	}
+
+	if _, ok := perms["mode"]; ok {
+		mode, err := strconv.ParseUint(perms["mode"], 8, 32)
+		if err != nil {
+			return fmt.Errorf("invalid mode specified for %q: %s",
+				path, perms["mode"])
+		}
+		if err := os.Chmod(path, os.FileMode(mode)); err != nil {
+			return fmt.Errorf("failed setting permissions to %d on %q: %s",
+				mode, path, err)
+		}
+	}
+
+	return nil
 }
