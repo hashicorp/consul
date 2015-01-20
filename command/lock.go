@@ -98,8 +98,16 @@ func (c *LockCommand) Run(args []string) int {
 	prefix := extra[0]
 	script := strings.Join(extra[1:], " ")
 
+	// Calculate a session name if none provided
+	if name == "" {
+		name = fmt.Sprintf("Consul lock for '%s' at '%s'", script, prefix)
+	}
+
 	// Create and test the HTTP client
-	client, err := HTTPClient(*httpAddr)
+	conf := api.DefaultConfig()
+	conf.Address = *httpAddr
+	conf.Token = token
+	client, err := api.NewClient(conf)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
