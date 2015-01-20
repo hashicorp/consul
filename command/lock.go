@@ -59,7 +59,7 @@ Options:
   -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
   -n=1                       Maximum number of allowed lock holders. If this
                              value is one, it operates as a lock, otherwise
-							 a semaphore is used.
+                             a semaphore is used.
   -name=""                   Optional name to associate with lock session.
   -token=""                  ACL token to use. Defaults to that of agent.
   -verbose                   Enables verbose output
