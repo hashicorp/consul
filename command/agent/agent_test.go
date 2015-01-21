@@ -952,7 +952,7 @@ func TestAgent_ServiceMaintenanceMode(t *testing.T) {
 	if !ok {
 		t.Fatalf("should have registered critical check")
 	}
-	if check.Notes == "" {
+	if check.Notes != defaultServiceMaintReason {
 		t.Fatalf("bad: %#v", check)
 	}
 }
@@ -993,7 +993,7 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	if !ok {
 		t.Fatalf("should have registered critical node check")
 	}
-	if check.Notes == "" {
+	if check.Notes != defaultNodeMaintReason {
 		t.Fatalf("bad: %#v", check)
 	}
 }

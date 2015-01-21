@@ -34,6 +34,12 @@ const (
 	// The ID of the faux health checks for maintenance mode
 	serviceMaintCheckPrefix = "_service_maintenance"
 	nodeMaintCheckID        = "_node_maintenance"
+
+	// Default reasons for node/service maintenance mode
+	defaultNodeMaintReason = "Maintenance mode is enabled for this node, " +
+		"but no reason was provided. This is a default message."
+	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
+		"service, but no reason was provided. This is a default message."
 )
 
 /*
@@ -1041,7 +1047,7 @@ func (a *Agent) EnableServiceMaintenance(serviceID, reason string) error {
 
 	// Use default notes if no reason provided
 	if reason == "" {
-		reason = "Maintenance mode is enabled for this service"
+		reason = defaultServiceMaintReason
 	}
 
 	// Create and register the critical health check
@@ -1089,7 +1095,7 @@ func (a *Agent) EnableNodeMaintenance(reason string) {
 
 	// Use a default notes value
 	if reason == "" {
-		reason = "Maintenance mode is enabled for this node"
+		reason = defaultNodeMaintReason
 	}
 
 	// Create and register the node maintenance check
