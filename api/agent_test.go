@@ -255,3 +255,57 @@ func TestAgent_ForceLeave(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 }
+
+func TestServiceMaintenance(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	agent := c.Agent()
+
+	// First register a service
+	serviceReg := &AgentServiceRegistration{
+		Name: "redis",
+	}
+	if err := agent.ServiceRegister(serviceReg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Enable maintenance mode
+	if err := agent.EnableServiceMaintenance("redis"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure a critical check was added
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	found := false
+	for _, check := range checks {
+		if check.ServiceName == "redis" {
+			found = true
+			if check.Status != "critical" {
+				t.Fatalf("bad: %#v", checks)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("bad: %#v", checks)
+	}
+
+	// Disable maintenance mode
+	if err := agent.DisableServiceMaintenance("redis"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the critical health check was removed
+	checks, err = agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	for _, check := range checks {
+		if check.ServiceID == "redis" {
+			t.Fatalf("should have removed health check")
+		}
+	}
+}

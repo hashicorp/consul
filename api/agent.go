@@ -273,3 +273,55 @@ func (a *Agent) ForceLeave(node string) error {
 	resp.Body.Close()
 	return nil
 }
+
+// EnableServiceMaintenance toggles service maintenance mode on
+// for the given service ID.
+func (a *Agent) EnableServiceMaintenance(serviceID string) error {
+	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+serviceID)
+	r.params.Set("enable", "true")
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+// DisableServiceMaintenance toggles service maintenance mode off
+// for the given service ID.
+func (a *Agent) DisableServiceMaintenance(serviceID string) error {
+	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+serviceID)
+	r.params.Set("enable", "false")
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+// EnableNodeMaintenance toggles node maintenance mode on for the
+// agent we are connected to.
+func (a *Agent) EnableNodeMaintenance() error {
+	r := a.c.newRequest("PUT", "/v1/agent/maintenance")
+	r.params.Set("enable", "true")
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+// DisableNodeMaintenance toggles node maintenance mode off for the
+// agent we are connected to.
+func (a *Agent) DisableNodeMaintenance() error {
+	r := a.c.newRequest("PUT", "/v1/agent/maintenance")
+	r.params.Set("enable", "false")
+	_, resp, err := requireOK(a.c.doRequest(r))
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
