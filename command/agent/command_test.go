@@ -187,6 +187,9 @@ func TestSetupAgent_RPCUnixSocket_FileExists(t *testing.T) {
 	// Set socket address to an existing file.
 	conf.Addresses.RPC = "unix://" + socketPath
 
+	// Custom mode for socket file
+	conf.UnixSockets = map[string]string{"mode": "0777"}
+
 	shutdownCh := make(chan struct{})
 	defer close(shutdownCh)
 
@@ -210,5 +213,10 @@ func TestSetupAgent_RPCUnixSocket_FileExists(t *testing.T) {
 	}
 	if fi.Mode()&os.ModeSocket == 0 {
 		t.Fatalf("expected socket to replace file")
+	}
+
+	// Ensure permissions were applied to the socket file
+	if fi.Mode().String() != "Srwxrwxrwx" {
+		t.Fatalf("bad permissions: %s", fi.Mode())
 	}
 }
