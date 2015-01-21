@@ -542,6 +542,9 @@ func TestHTTPAgent_ServiceMaintenanceEndpoint_BadRequest(t *testing.T) {
 	// Fails when bad service ID provided
 	req, _ = http.NewRequest("PUT", "/v1/agent/service/maintenance/_nope_?enable=true", nil)
 	resp = httptest.NewRecorder()
+	if _, err := srv.AgentServiceMaintenance(resp, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if resp.Code != 404 {
 		t.Fatalf("expected 404, got %d", resp.Code)
 	}
