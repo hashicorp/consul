@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"os/user"
 	"runtime"
 	"strconv"
 	"time"
@@ -103,32 +104,41 @@ func stringHash(s string) string {
 // on a given file. It takes a map, which defines the permissions to be set.
 // All permission/ownership settings are optional. If no user or group is
 // specified, the current user/group will be used. Mode is optional, and has
-// no default (the operation is not performed if absent).
+// no default (the operation is not performed if absent). User may be
+// specified by name or ID, but group may only be specified by ID.
 func setFilePermissions(path string, perms map[string]string) error {
 	var err error
-
 	uid, gid := os.Getuid(), os.Getgid()
-	if _, ok := perms["uid"]; ok {
-		if uid, err = strconv.Atoi(perms["uid"]); err != nil {
-			return fmt.Errorf("invalid user id specified: %v", perms["uid"])
+
+	if _, ok := perms["user"]; ok {
+		if uid, err = strconv.Atoi(perms["user"]); err == nil {
+			goto GROUP
 		}
+
+		// Try looking up the user by name
+		if u, err := user.Lookup(perms["user"]); err == nil {
+			uid, _ = strconv.Atoi(u.Uid)
+			goto GROUP
+		}
+
+		return fmt.Errorf("invalid user specified: %v", perms["user"])
 	}
-	if _, ok := perms["gid"]; ok {
-		if gid, err = strconv.Atoi(perms["gid"]); err != nil {
-			return fmt.Errorf("invalid group id specified: %v", perms["gid"])
+
+GROUP:
+	if _, ok := perms["group"]; ok {
+		if gid, err = strconv.Atoi(perms["group"]); err != nil {
+			return fmt.Errorf("invalid group specified: %v", perms["group"])
 		}
 	}
 	if err := os.Chown(path, uid, gid); err != nil {
-		return fmt.Errorf(
-			"failed setting ownership to %d:%d on %q: %s",
+		return fmt.Errorf("failed setting ownership to %d:%d on %q: %s",
 			uid, gid, path, err)
 	}
 
 	if _, ok := perms["mode"]; ok {
 		mode, err := strconv.ParseUint(perms["mode"], 8, 32)
 		if err != nil {
-			return fmt.Errorf("invalid mode specified for %q: %s",
-				path, perms["mode"])
+			return fmt.Errorf("invalid mode specified: %v", perms["mode"])
 		}
 		if err := os.Chmod(path, os.FileMode(mode)); err != nil {
 			return fmt.Errorf("failed setting permissions to %d on %q: %s",
