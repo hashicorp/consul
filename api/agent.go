@@ -276,9 +276,10 @@ func (a *Agent) ForceLeave(node string) error {
 
 // EnableServiceMaintenance toggles service maintenance mode on
 // for the given service ID.
-func (a *Agent) EnableServiceMaintenance(serviceID string) error {
+func (a *Agent) EnableServiceMaintenance(serviceID, reason string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/service/maintenance/"+serviceID)
 	r.params.Set("enable", "true")
+	r.params.Set("reason", reason)
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return err
@@ -302,9 +303,10 @@ func (a *Agent) DisableServiceMaintenance(serviceID string) error {
 
 // EnableNodeMaintenance toggles node maintenance mode on for the
 // agent we are connected to.
-func (a *Agent) EnableNodeMaintenance() error {
+func (a *Agent) EnableNodeMaintenance(reason string) error {
 	r := a.c.newRequest("PUT", "/v1/agent/maintenance")
 	r.params.Set("enable", "true")
+	r.params.Set("reason", reason)
 	_, resp, err := requireOK(a.c.doRequest(r))
 	if err != nil {
 		return err
