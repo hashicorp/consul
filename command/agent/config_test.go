@@ -589,16 +589,16 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Domain socket permissions
-	input = `{"unix_sockets": {"uid": "500", "gid": "500", "mode": "0700"}}`
+	input = `{"unix_sockets": {"user": "500", "group": "500", "mode": "0700"}}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	if !reflect.DeepEqual(config.UnixSockets, map[string]string{
-		"uid":  "500",
-		"gid":  "500",
-		"mode": "0700",
+		"user":  "500",
+		"group": "500",
+		"mode":  "0700",
 	}) {
 		t.Fatalf("bad: %v", config.UnixSockets)
 	}
@@ -1014,9 +1014,9 @@ func TestMergeConfig(t *testing.T) {
 			"Access-Control-Allow-Origin": "*",
 		},
 		UnixSockets: map[string]string{
-			"uid":  "500",
-			"gid":  "500",
-			"mode": "0700",
+			"user":  "500",
+			"group": "500",
+			"mode":  "0700",
 		},
 	}
 

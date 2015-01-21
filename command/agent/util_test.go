@@ -51,12 +51,12 @@ func TestSetFilePermissions(t *testing.T) {
 	defer os.Remove(path)
 
 	// Bad UID fails
-	if err := setFilePermissions(path, map[string]string{"uid": "%"}); err == nil {
+	if err := setFilePermissions(path, map[string]string{"user": "%"}); err == nil {
 		t.Fatalf("should fail")
 	}
 
 	// Bad GID fails
-	if err := setFilePermissions(path, map[string]string{"gid": "%"}); err == nil {
+	if err := setFilePermissions(path, map[string]string{"group": "%"}); err == nil {
 		t.Fatalf("should fail")
 	}
 
