@@ -348,24 +348,30 @@ type Config struct {
 	UnixSockets UnixSocketConfig `mapstructure:"unix_sockets"`
 }
 
-// UnixSocketConfig contains information about a unix socket, and
+// UnixSocketPermissions contains information about a unix socket, and
 // implements the FilePermissions interface.
-type UnixSocketConfig struct {
+type UnixSocketPermissions struct {
 	Usr   string `mapstructure:"user"`
 	Grp   string `mapstructure:"group"`
 	Perms string `mapstructure:"mode"`
 }
 
-func (u UnixSocketConfig) User() string {
+func (u UnixSocketPermissions) User() string {
 	return u.Usr
 }
 
-func (u UnixSocketConfig) Group() string {
+func (u UnixSocketPermissions) Group() string {
 	return u.Grp
 }
 
-func (u UnixSocketConfig) Mode() string {
+func (u UnixSocketPermissions) Mode() string {
 	return u.Perms
+}
+
+// UnixSocketConfig stores information about various unix sockets which
+// Consul creates and uses for communication.
+type UnixSocketConfig struct {
+	UnixSocketPermissions `mapstructure:",squash"`
 }
 
 // unixSocketAddr tests if a given address describes a domain socket,

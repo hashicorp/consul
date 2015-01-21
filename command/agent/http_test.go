@@ -70,7 +70,8 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 
 		// Only testing mode, since uid/gid might not be settable
 		// from test environment.
-		c.UnixSockets = UnixSocketConfig{Perms: "0777"}
+		c.UnixSockets = UnixSocketConfig{}
+		c.UnixSockets.Perms = "0777"
 	})
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()

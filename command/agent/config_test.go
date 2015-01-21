@@ -1016,9 +1016,11 @@ func TestMergeConfig(t *testing.T) {
 			"Access-Control-Allow-Origin": "*",
 		},
 		UnixSockets: UnixSocketConfig{
-			Usr:   "500",
-			Grp:   "500",
-			Perms: "0700",
+			UnixSocketPermissions{
+				Usr:   "500",
+				Grp:   "500",
+				Perms: "0700",
+			},
 		},
 	}
 
