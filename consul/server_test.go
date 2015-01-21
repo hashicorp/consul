@@ -216,6 +216,61 @@ func TestServer_JoinWAN(t *testing.T) {
 	})
 }
 
+func TestServer_LeaveLeader(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	// Second server not in bootstrap mode
+	dir2, s2 := testServerDCBootstrap(t, "dc1", false)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	var p1 []net.Addr
+	var p2 []net.Addr
+
+	testutil.WaitForResult(func() (bool, error) {
+		p1, _ = s1.raftPeers.Peers()
+		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 2 peers: %v", err)
+	})
+
+	testutil.WaitForResult(func() (bool, error) {
+		p2, _ = s2.raftPeers.Peers()
+		return len(p2) == 2, errors.New(fmt.Sprintf("%v", p1))
+	}, func(err error) {
+		t.Fatalf("should have 2 peers: %v", err)
+	})
+
+	// Issue a leave to the leader
+	for _, s := range []*Server{s1, s2} {
+		if !s.IsLeader() {
+			continue
+		}
+		if err := s.Leave(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Should lose a peer
+	for _, s := range []*Server{s1, s2} {
+		testutil.WaitForResult(func() (bool, error) {
+			p1, _ = s.raftPeers.Peers()
+			return len(p1) == 1, nil
+		}, func(err error) {
+			t.Fatalf("should have 1 peer: %v", p1)
+		})
+	}
+}
+
 func TestServer_Leave(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -250,18 +305,25 @@ func TestServer_Leave(t *testing.T) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
 
-	// Issue a leave
-	if err := s2.Leave(); err != nil {
-		t.Fatalf("err: %v", err)
+	// Issue a leave to the non-leader
+	for _, s := range []*Server{s1, s2} {
+		if s.IsLeader() {
+			continue
+		}
+		if err := s.Leave(); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}
 
 	// Should lose a peer
-	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 1, nil
-	}, func(err error) {
-		t.Fatalf("should have 1 peer: %v", p1)
-	})
+	for _, s := range []*Server{s1, s2} {
+		testutil.WaitForResult(func() (bool, error) {
+			p1, _ = s.raftPeers.Peers()
+			return len(p1) == 1, nil
+		}, func(err error) {
+			t.Fatalf("should have 1 peer: %v", p1)
+		})
+	}
 }
 
 func TestServer_RPC(t *testing.T) {
