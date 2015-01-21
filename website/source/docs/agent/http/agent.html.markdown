@@ -195,6 +195,10 @@ persistent and will be automatically restored on agent restart.
 The `?enable` flag is required, and its value must be `true` (to enter
 maintenance mode), or `false` (to resume normal operation).
 
+The `?reason` flag is optional, and can contain a text string explaining the
+reason for placing the node into maintenance mode. If no reason is provided,
+a default value will be used instead.
+
 The return code is 200 on success.
 
 ### <a name="agent_join"></a> /v1/agent/join/\<address\>
@@ -354,5 +358,9 @@ on agent restart.
 
 The `?enable` flag is required, and its value must be `true` (to enter
 maintenance mode), or `false` (to resume normal operation).
+
+The `?reason` flag is optional, and can contain a text string explaining the
+reason for placing the service into maintenance mode. If no reason is provided,
+a default value will be used instead.
 
 The return code is 200 on success.
