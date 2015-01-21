@@ -53,6 +53,10 @@ const (
 	// raftLogCacheSize is the maximum number of logs to cache in-memory.
 	// This is used to reduce disk I/O for the recently commited entries.
 	raftLogCacheSize = 512
+
+	// raftRemoveGracePeriod is how long we wait to allow a RemovePeer
+	// to replicate to gracefully leave the cluster.
+	raftRemoveGracePeriod = 5 * time.Second
 )
 
 // Server is Consul server which manages the service discovery,
@@ -553,6 +557,33 @@ func (s *Server) Leave() error {
 			s.logger.Printf("[ERR] consul: failed to leave LAN Serf cluster: %v", err)
 		}
 	}
+
+	// If we were not leader, wait to be safely removed from the cluster.
+	// We must wait to allow the raft replication to take place, otherwise
+	// an immediate shutdown could cause a loss of quorum.
+	if !isLeader {
+		limit := time.Now().Add(raftRemoveGracePeriod)
+		for numPeers > 0 && time.Now().Before(limit) {
+			// Update the number of peers
+			numPeers, err = s.numOtherPeers()
+			if err != nil {
+				s.logger.Printf("[ERR] consul: failed to check raft peers: %v", err)
+				break
+			}
+
+			// Avoid the sleep if we are done
+			if numPeers == 0 {
+				break
+			}
+
+			// Sleep a while and check again
+			time.Sleep(50 * time.Millisecond)
+		}
+		if numPeers != 0 {
+			s.logger.Printf("[WARN] consul: failed to leave raft peer set gracefully, timeout")
+		}
+	}
+
 	return nil
 }
 
