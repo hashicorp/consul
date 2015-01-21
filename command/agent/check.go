@@ -40,6 +40,7 @@ type CheckType struct {
 
 	Notes string
 }
+type CheckTypes []*CheckType
 
 // Valid checks if the CheckType is valid
 func (c *CheckType) Valid() bool {

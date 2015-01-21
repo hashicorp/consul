@@ -76,6 +76,49 @@ func TestAgent_Services(t *testing.T) {
 	}
 }
 
+func TestAgent_Services_MultipleChecks(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	agent := c.Agent()
+
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+		Checks: AgentServiceChecks{
+			&AgentServiceCheck{
+				TTL: "15s",
+			},
+			&AgentServiceCheck{
+				TTL: "30s",
+			},
+		},
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := services["foo"]; !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := checks["service:foo:1"]; !ok {
+		t.Fatalf("missing check: %v", checks)
+	}
+	if _, ok := checks["service:foo:2"]; !ok {
+		t.Fatalf("missing check: %v", checks)
+	}
+}
+
 func TestAgent_SetTTLStatus(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.stop()
@@ -140,6 +183,44 @@ func TestAgent_Checks(t *testing.T) {
 
 	if err := agent.CheckDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_Checks_serviceBound(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	agent := c.Agent()
+
+	// First register a service
+	serviceReg := &AgentServiceRegistration{
+		Name: "redis",
+	}
+	if err := agent.ServiceRegister(serviceReg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a check bound to the service
+	reg := &AgentCheckRegistration{
+		Name:      "redischeck",
+		ServiceID: "redis",
+	}
+	reg.TTL = "15s"
+	if err := agent.CheckRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	check, ok := checks["redischeck"]
+	if !ok {
+		t.Fatalf("missing check: %v", checks)
+	}
+	if check.ServiceID != "redis" {
+		t.Fatalf("missing service association for check: %v", check)
 	}
 }
 

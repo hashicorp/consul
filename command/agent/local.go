@@ -449,14 +449,40 @@ func (l *localState) syncService(id string) error {
 		Service:      l.services[id],
 		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
 	}
+
+	// If the service has associated checks that are out of sync,
+	// piggyback them on the service sync so they are part of the
+	// same transaction and are registered atomically.
+	var checks structs.HealthChecks
+	for _, check := range l.checks {
+		if check.ServiceID == id {
+			if stat, ok := l.checkStatus[check.CheckID]; !ok || !stat.inSync {
+				checks = append(checks, check)
+			}
+		}
+	}
+
+	// Backwards-compatibility for Consul < 0.5
+	if len(checks) == 1 {
+		req.Check = checks[0]
+	} else {
+		req.Checks = checks
+	}
+
 	var out struct{}
 	err := l.iface.RPC("Catalog.Register", &req, &out)
 	if err == nil {
 		l.serviceStatus[id] = syncStatus{inSync: true}
 		l.logger.Printf("[INFO] agent: Synced service '%s'", id)
+		for _, check := range checks {
+			l.checkStatus[check.CheckID] = syncStatus{inSync: true}
+		}
 	} else if strings.Contains(err.Error(), permissionDenied) {
 		l.serviceStatus[id] = syncStatus{inSync: true}
 		l.logger.Printf("[WARN] agent: Service '%s' registration blocked by ACLs", id)
+		for _, check := range checks {
+			l.checkStatus[check.CheckID] = syncStatus{inSync: true}
+		}
 		return nil
 	}
 	return err

@@ -497,9 +497,14 @@ func (s *StateStore) EnsureRegistration(index uint64, req *structs.RegisterReque
 		}
 	}
 
-	// Ensure the check if provided
+	// Ensure the check(s), if provided
 	if req.Check != nil {
 		if err := s.ensureCheckTxn(index, req.Check, tx); err != nil {
+			return err
+		}
+	}
+	for _, check := range req.Checks {
+		if err := s.ensureCheckTxn(index, check, tx); err != nil {
 			return err
 		}
 	}
