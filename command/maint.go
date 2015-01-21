@@ -102,7 +102,7 @@ func (c *MaintCommand) Run(args []string) int {
 	if enable {
 		// Enable node maintenance
 		if serviceID == "" {
-			if err := agent.EnableNodeMaintenance(); err != nil {
+			if err := agent.EnableNodeMaintenance(reason); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error enabling node maintenance: %s", err))
 				return 1
 			}
@@ -111,11 +111,32 @@ func (c *MaintCommand) Run(args []string) int {
 		}
 
 		// Enable service maintenance
-		if err := agent.EnableServiceMaintenance(serviceID); err != nil {
+		if err := agent.EnableServiceMaintenance(serviceID, reason); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error enabling service maintenance: %s", err))
 			return 1
 		}
 		c.Ui.Output(fmt.Sprintf("Service maintenance is now enabled for %q", serviceID))
+		return 0
+	}
+
+	if disable {
+		// Disable node maintenance
+		if serviceID == "" {
+			if err := agent.DisableNodeMaintenance(); err != nil {
+				c.Ui.Error(fmt.Sprintf("Error disabling node maintenance: %s", err))
+				return 1
+			}
+			c.Ui.Output("Node maintenance is now disabled")
+			return 0
+		}
+
+		// Disable service maintenance
+		if err := agent.DisableServiceMaintenance(serviceID); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error disabling service maintenance: %s", err))
+			return 1
+		}
+		c.Ui.Output(fmt.Sprintf("Service maintenance is now disabled for %q", serviceID))
+		return 0
 	}
 
 	return 0
