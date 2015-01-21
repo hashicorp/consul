@@ -469,9 +469,11 @@ func (s *Server) handleReapMember(member serf.Member) error {
 // handleDeregisterMember is used to deregister a member of a given reason
 func (s *Server) handleDeregisterMember(reason string, member serf.Member) error {
 	state := s.fsm.State()
-	// Check if the node does not exists
-	_, found, _ := state.GetNode(member.Name)
-	if !found {
+	// Do not deregister ourself. This can only happen if the current leader
+	// is leaving. Instead, we should allow a follower to take-over and
+	// deregister us later.
+	if member.Name == s.config.NodeName {
+		s.logger.Printf("[WARN] consul: deregistering self (%s) should be done by follower", s.config.NodeName)
 		return nil
 	}
 
@@ -483,11 +485,9 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 		}
 	}
 
-	// Do not deregister ourself. This can only happen if the current leader
-	// is leaving. Instead, we should allow a follower to take-over and
-	// deregister us later.
-	if member.Name == s.config.NodeName {
-		s.logger.Printf("[WARN] consul: deregistering self (%s) should be done by follower", s.config.NodeName)
+	// Check if the node does not exists
+	_, found, _ := state.GetNode(member.Name)
+	if !found {
 		return nil
 	}
 
