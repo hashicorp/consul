@@ -76,6 +76,12 @@ func init() {
 			}, nil
 		},
 
+		"maint": func() (cli.Command, error) {
+			return &command.MaintCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"members": func() (cli.Command, error) {
 			return &command.MembersCommand{
 				Ui: ui,
