@@ -33,7 +33,7 @@ const (
 
 	// The ID of the faux health checks for maintenance mode
 	serviceMaintCheckPrefix = "_service_maintenance"
-	nodeMaintCheckID        = "_node_maintenenace"
+	nodeMaintCheckID        = "_node_maintenance"
 )
 
 /*
