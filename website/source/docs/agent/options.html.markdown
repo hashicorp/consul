@@ -441,6 +441,12 @@ definitions support being updated during a reload.
   * `group` - The group ID ownership of the socket file. Note that this option
     currently only supports numeric ID's.
   * `mode` - The permission bits to set on the file.
+  <br>
+  It is important to note that this option may have different effects on
+  different operating systems. Linux generally observes socket file permissions,
+  while many BSD variants ignore permissions on the socket file itself. It is
+  important to test this feature on your specific distribution. This feature is
+  currently not functional on Windows hosts.
 
 * `verify_incoming` - If set to True, Consul requires that all incoming
   connections make use of TLS, and that the client provides a certificate signed
