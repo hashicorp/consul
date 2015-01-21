@@ -51,22 +51,22 @@ func TestSetFilePermissions(t *testing.T) {
 	defer os.Remove(path)
 
 	// Bad UID fails
-	if err := setFilePermissions(path, map[string]string{"user": "%"}); err == nil {
+	if err := setFilePermissions(path, UnixSocketConfig{Usr: "%"}); err == nil {
 		t.Fatalf("should fail")
 	}
 
 	// Bad GID fails
-	if err := setFilePermissions(path, map[string]string{"group": "%"}); err == nil {
+	if err := setFilePermissions(path, UnixSocketConfig{Grp: "%"}); err == nil {
 		t.Fatalf("should fail")
 	}
 
 	// Bad mode fails
-	if err := setFilePermissions(path, map[string]string{"mode": "%"}); err == nil {
+	if err := setFilePermissions(path, UnixSocketConfig{Perms: "%"}); err == nil {
 		t.Fatalf("should fail")
 	}
 
 	// Allows omitting user/group/mode
-	if err := setFilePermissions(path, map[string]string{}); err != nil {
+	if err := setFilePermissions(path, UnixSocketConfig{}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -74,7 +74,7 @@ func TestSetFilePermissions(t *testing.T) {
 	if err := os.Chmod(path, 0700); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := setFilePermissions(path, map[string]string{}); err != nil {
+	if err := setFilePermissions(path, UnixSocketConfig{}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	fi, err := os.Stat(path)
@@ -86,7 +86,7 @@ func TestSetFilePermissions(t *testing.T) {
 	}
 
 	// Changes mode if given
-	if err := setFilePermissions(path, map[string]string{"mode": "0777"}); err != nil {
+	if err := setFilePermissions(path, UnixSocketConfig{Perms: "0777"}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	fi, err = os.Stat(path)

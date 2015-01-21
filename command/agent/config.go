@@ -345,7 +345,27 @@ type Config struct {
 	WatchPlans []*watch.WatchPlan `mapstructure:"-" json:"-"`
 
 	// UnixSockets is a map of socket configuration data
-	UnixSockets map[string]string `mapstructure:"unix_sockets"`
+	UnixSockets UnixSocketConfig `mapstructure:"unix_sockets"`
+}
+
+// UnixSocketConfig contains information about a unix socket, and
+// implements the FilePermissions interface.
+type UnixSocketConfig struct {
+	Usr   string `mapstructure:"user"`
+	Grp   string `mapstructure:"group"`
+	Perms string `mapstructure:"mode"`
+}
+
+func (u UnixSocketConfig) User() string {
+	return u.Usr
+}
+
+func (u UnixSocketConfig) Group() string {
+	return u.Grp
+}
+
+func (u UnixSocketConfig) Mode() string {
+	return u.Perms
 }
 
 // unixSocketAddr tests if a given address describes a domain socket,
@@ -886,6 +906,15 @@ func MergeConfig(a, b *Config) *Config {
 	if b.DisableAnonymousSignature {
 		result.DisableAnonymousSignature = true
 	}
+	if b.UnixSockets.Usr != "" {
+		result.UnixSockets.Usr = b.UnixSockets.Usr
+	}
+	if b.UnixSockets.Grp != "" {
+		result.UnixSockets.Grp = b.UnixSockets.Grp
+	}
+	if b.UnixSockets.Perms != "" {
+		result.UnixSockets.Perms = b.UnixSockets.Perms
+	}
 
 	if len(b.HTTPAPIResponseHeaders) != 0 {
 		if result.HTTPAPIResponseHeaders == nil {
@@ -893,15 +922,6 @@ func MergeConfig(a, b *Config) *Config {
 		}
 		for field, value := range b.HTTPAPIResponseHeaders {
 			result.HTTPAPIResponseHeaders[field] = value
-		}
-	}
-
-	if len(b.UnixSockets) != 0 {
-		if result.UnixSockets == nil {
-			result.UnixSockets = make(map[string]string)
-		}
-		for field, value := range b.UnixSockets {
-			result.UnixSockets[field] = value
 		}
 	}
 

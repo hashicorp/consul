@@ -188,7 +188,7 @@ func TestSetupAgent_RPCUnixSocket_FileExists(t *testing.T) {
 	conf.Addresses.RPC = "unix://" + socketPath
 
 	// Custom mode for socket file
-	conf.UnixSockets = map[string]string{"mode": "0777"}
+	conf.UnixSockets.Perms = "0777"
 
 	shutdownCh := make(chan struct{})
 	defer close(shutdownCh)

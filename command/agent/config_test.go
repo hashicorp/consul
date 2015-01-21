@@ -595,12 +595,14 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(config.UnixSockets, map[string]string{
-		"user":  "500",
-		"group": "500",
-		"mode":  "0700",
-	}) {
-		t.Fatalf("bad: %v", config.UnixSockets)
+	if config.UnixSockets.Usr != "500" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.UnixSockets.Grp != "500" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.UnixSockets.Perms != "0700" {
+		t.Fatalf("bad: %#v", config)
 	}
 
 	// Disable updates
@@ -1013,10 +1015,10 @@ func TestMergeConfig(t *testing.T) {
 		HTTPAPIResponseHeaders: map[string]string{
 			"Access-Control-Allow-Origin": "*",
 		},
-		UnixSockets: map[string]string{
-			"user":  "500",
-			"group": "500",
-			"mode":  "0700",
+		UnixSockets: UnixSocketConfig{
+			Usr:   "500",
+			Grp:   "500",
+			Perms: "0700",
 		},
 	}
 
