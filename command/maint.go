@@ -70,6 +70,12 @@ func (c *MaintCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Print help if no args given
+	if len(args) == 0 {
+		c.Ui.Error(c.Help())
+		return 1
+	}
+
 	// Ensure we don't have conflicting args
 	if !enable && !disable {
 		c.Ui.Error("One of -enable or -disable must be specified")
