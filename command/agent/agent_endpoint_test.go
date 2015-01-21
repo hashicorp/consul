@@ -566,7 +566,7 @@ func TestHTTPAgent_EnableServiceMaintenance(t *testing.T) {
 	}
 
 	// Force the service into maintenance mode
-	req, _ := http.NewRequest("PUT", "/v1/agent/service/maintenance/test?enable=true", nil)
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/maintenance/test?enable=true&reason=broken", nil)
 	resp := httptest.NewRecorder()
 	if _, err := srv.AgentServiceMaintenance(resp, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -577,8 +577,14 @@ func TestHTTPAgent_EnableServiceMaintenance(t *testing.T) {
 
 	// Ensure the maintenance check was registered
 	checkID := serviceMaintCheckID("test")
-	if _, ok := srv.agent.state.Checks()[checkID]; !ok {
+	check, ok := srv.agent.state.Checks()[checkID]
+	if !ok {
 		t.Fatalf("should have registered maintenance check")
+	}
+
+	// Ensure the reason was set in notes
+	if check.Notes != "broken" {
+		t.Fatalf("bad: %#v", check)
 	}
 }
 
@@ -598,7 +604,7 @@ func TestHTTPAgent_DisableServiceMaintenance(t *testing.T) {
 	}
 
 	// Force the service into maintenance mode
-	if err := srv.agent.EnableServiceMaintenance("test"); err != nil {
+	if err := srv.agent.EnableServiceMaintenance("test", ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -653,7 +659,8 @@ func TestHTTPAgent_EnableNodeMaintenance(t *testing.T) {
 	defer srv.agent.Shutdown()
 
 	// Force the node into maintenance mode
-	req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=true", nil)
+	req, _ := http.NewRequest(
+		"PUT", "/v1/agent/self/maintenance?enable=true&reason=broken", nil)
 	resp := httptest.NewRecorder()
 	if _, err := srv.AgentNodeMaintenance(resp, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -663,8 +670,14 @@ func TestHTTPAgent_EnableNodeMaintenance(t *testing.T) {
 	}
 
 	// Ensure the maintenance check was registered
-	if _, ok := srv.agent.state.Checks()[nodeMaintCheckID]; !ok {
+	check, ok := srv.agent.state.Checks()[nodeMaintCheckID]
+	if !ok {
 		t.Fatalf("should have registered maintenance check")
+	}
+
+	// Ensure the reason was set in notes
+	if check.Notes != "broken" {
+		t.Fatalf("bad: %#v", check)
 	}
 }
 
@@ -675,7 +688,7 @@ func TestHTTPAgent_DisableNodeMaintenance(t *testing.T) {
 	defer srv.agent.Shutdown()
 
 	// Force the node into maintenance mode
-	srv.agent.EnableNodeMaintenance()
+	srv.agent.EnableNodeMaintenance("")
 
 	// Leave maintenance mode
 	req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=false", nil)
