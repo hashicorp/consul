@@ -42,7 +42,7 @@ Options:
   -enable                    Enable maintenance mode.
   -disable                   Disable maintenance mode.
   -reason=<string>           Text string describing the maintenance reason
-  -service=<serviceID>       A specific service ID to enable/disable
+  -service=<serviceID>       Control maintenance mode for a specific service ID
   -token=""                  ACL token to use. Defaults to that of agent.
   -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
 `

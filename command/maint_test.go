@@ -25,6 +25,19 @@ func TestMaintCommandRun_NoArgs(t *testing.T) {
 	}
 }
 
+func TestMaintCommandRun_ConflictingArgs(t *testing.T) {
+	ui := new(cli.MockUi)
+	c := &MaintCommand{Ui: ui}
+
+	if code := c.Run([]string{"-enable", "-disable"}); code != 1 {
+		t.Fatalf("expected return code 1, got %d", code)
+	}
+
+	if code := c.Run([]string{"-disable", "-reason=broken"}); code != 1 {
+		t.Fatalf("expected return code 1, got %d", code)
+	}
+}
+
 func TestMaintCommandRun_EnableNodeMaintenance(t *testing.T) {
 	a1 := testAgent(t)
 	defer a1.Shutdown()
@@ -43,6 +56,27 @@ func TestMaintCommandRun_EnableNodeMaintenance(t *testing.T) {
 	}
 
 	if !strings.Contains(ui.OutputWriter.String(), "now enabled") {
+		t.Fatalf("bad: %#v", ui.OutputWriter.String())
+	}
+}
+
+func TestMaintCommandRun_DisableNodeMaintenance(t *testing.T) {
+	a1 := testAgent(t)
+	defer a1.Shutdown()
+
+	ui := new(cli.MockUi)
+	c := &MaintCommand{Ui: ui}
+
+	args := []string{
+		"-http-addr=" + a1.httpAddr,
+		"-disable",
+	}
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	if !strings.Contains(ui.OutputWriter.String(), "now disabled") {
 		t.Fatalf("bad: %#v", ui.OutputWriter.String())
 	}
 }
@@ -79,7 +113,38 @@ func TestMaintCommandRun_EnableServiceMaintenance(t *testing.T) {
 	}
 }
 
-func TestMaintCommandRun_EnableServiceMaintenance_Fails(t *testing.T) {
+func TestMaintCommandRun_DisableServiceMaintenance(t *testing.T) {
+	a1 := testAgent(t)
+	defer a1.Shutdown()
+
+	// Register the service
+	service := &structs.NodeService{
+		ID:      "test",
+		Service: "test",
+	}
+	if err := a1.agent.AddService(service, nil, false); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &MaintCommand{Ui: ui}
+
+	args := []string{
+		"-http-addr=" + a1.httpAddr,
+		"-disable",
+		"-service=test",
+	}
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	if !strings.Contains(ui.OutputWriter.String(), "now disabled") {
+		t.Fatalf("bad: %#v", ui.OutputWriter.String())
+	}
+}
+
+func TestMaintCommandRun_ServiceMaintenance_NoService(t *testing.T) {
 	a1 := testAgent(t)
 	defer a1.Shutdown()
 
