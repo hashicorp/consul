@@ -521,6 +521,25 @@ func (s *Server) Leave() error {
 	s.logger.Printf("[INFO] consul: server starting leave")
 	s.left = true
 
+	// Check the number of known peers
+	numPeers, err := s.numOtherPeers()
+	if err != nil {
+		s.logger.Printf("[ERR] consul: failed to check raft peers: %v", err)
+		return err
+	}
+
+	// If we are the current leader, and we have any other peers (cluster has multiple
+	// servers), we should do a RemovePeer to safely reduce the quorum size. If we are
+	// not the leader, then we should issue our leave intention and wait to be removed
+	// for some sane period of time.
+	isLeader := s.IsLeader()
+	if isLeader && numPeers > 0 {
+		future := s.raft.RemovePeer(s.raftTransport.LocalAddr())
+		if err := future.Error(); err != nil && err != raft.ErrUnknownPeer {
+			s.logger.Printf("[ERR] consul: failed to remove ourself as raft peer: %v", err)
+		}
+	}
+
 	// Leave the WAN pool
 	if s.serfWAN != nil {
 		if err := s.serfWAN.Leave(); err != nil {
@@ -535,6 +554,17 @@ func (s *Server) Leave() error {
 		}
 	}
 	return nil
+}
+
+// numOtherPeers is used to check on the number of known peers
+// excluding the local ndoe
+func (s *Server) numOtherPeers() (int, error) {
+	peers, err := s.raftPeers.Peers()
+	if err != nil {
+		return 0, err
+	}
+	otherPeers := raft.ExcludePeer(peers, s.raftTransport.LocalAddr())
+	return len(otherPeers), nil
 }
 
 // JoinLAN is used to have Consul join the inner-DC pool
