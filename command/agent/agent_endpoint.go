@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -210,20 +211,14 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 		return nil, nil
 	}
 
-	var enable bool
 	raw := params.Get("enable")
-	switch raw {
-	case "true":
-		enable = true
-	case "false":
-		enable = false
-	default:
+	enable, err := strconv.ParseBool(raw)
+	if err != nil {
 		resp.WriteHeader(400)
 		resp.Write([]byte(fmt.Sprintf("Invalid value for enable: %q", raw)))
 		return nil, nil
 	}
 
-	var err error
 	if enable {
 		if err = s.agent.EnableServiceMaintenance(serviceID); err != nil {
 			resp.WriteHeader(404)
@@ -253,14 +248,9 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
-	var enable bool
 	raw := params.Get("enable")
-	switch raw {
-	case "true":
-		enable = true
-	case "false":
-		enable = false
-	default:
+	enable, err := strconv.ParseBool(raw)
+	if err != nil {
 		resp.WriteHeader(400)
 		resp.Write([]byte(fmt.Sprintf("Invalid value for enable: %q", raw)))
 		return nil, nil
