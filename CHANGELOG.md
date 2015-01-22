@@ -1,3 +1,72 @@
+## 0.5.0 (Unreleased)
+
+FEATURES:
+
+ * Key rotation support for gossip layer. This allows the `encrypt` key
+   to be changed globally.  See "keyring" command. [GH-336]
+ * Options to join the WAN pool on start (`start_join_wan`, `retry_join_wan`) [GH-477]
+ * Optional HTTPS interface [GH-478]
+ * Ephemeral keys via "delete" session behavior. This allows keys to be deleted when
+   a session is invalidated instead of having the lock released. Adds new "Behavior"
+   field to Session which is configurable. [GH-487]
+ * Reverse DNS lookups via PTR for IPv4 and IPv6 [GH-475]
+ * API added checks and services are persisted. This means services and
+   checks will survive a crash or restart. [GH-497]
+ * ACLs can now protect service registration. Users in blacklist mode should
+   allow registrations before upgrading to prevent a service disruption. [GH-506] [GH-465]
+ * Sessions support a heartbeat failure detector via use of TTLs. This adds a new
+   "TTL" field to Sessions and a `/v1/session/renew` endpoint. Heartbeats act like a
+   failure detector (health check), but are managed by the servers. [GH-524] [GH-172]
+ * Support for service specific IP addresses. This allows the service to advertise an
+   address that is different from the agent. [GH-229] [GH-570]
+ * Support KV Delete with Check-And-Set  [GH-589]
+ * Merge `armon/consul-api` into `api` as official Go client.
+ * Support for distributed locks and semaphores in API client [GH-594] [GH-600]
+ * Support for native HTTP health checks [GH-592]
+ * Support for node and service maintanence modes [GH-606]
+ * Added new "consul maint" command to easily toggle maintanence modes [GH-625]
+ * Added new "consul lock" command for simple highly-available deployments.
+   This lets Consul manage the leader election and easily handle N+1 deployments
+   without the applications being Consul aware. [GH-619]
+ * Multiple checks can be associated with a service [GH-591] [GH-230]
+
+BUG FIXES:
+
+ * Fixed X-Consul-Index calculation for KV ListKeys
+ * Fixed errors under extremely high read parallelism
+ * Fixed issue causing event watches to not fire reliably [GH-479]
+ * Fixed non-monotonic X-Consul-Index with key deletion [GH-577] [GH-195]
+ * Fixed use of default instead of custom TLD in some DNS responses [GH-582]
+ * Fixed memory leaks in API client when an error response is returned [GH-608]
+ * Fixed issues with graceful leave in single-node bootstrap cluster [GH-621]
+ * Fixed issue preventing node reaping [GH-371]
+
+IMPROVEMENTS:
+
+ * Support "consul exec" in foreign datacenter [GH-584]
+ * Improved K/V blocking query performance [GH-578]
+ * CLI respects CONSUL_RPC_ADDR environment variable to load parameter [GH-542]
+ * Added support for multiple DNS recursors [GH-448]
+ * Added support for definining multiple services per configuration file [GH-433]
+ * Added support for definining multiple checks per configuration file [GH-433]
+ * Allow mixing of service and check definitions in a configuration file [GH-433]
+ * Allow notes for checks in service definition file [GH-449]
+ * Random stagger for agent checks to prevent thundering herd [GH-546]
+ * More useful metrics are sent to statsd/statsite
+ * Added configuration to set custom HTTP headers (CORS) [GH-558]
+ * Reject invalid configurations to simplify validation [GH-576]
+ * Guard against accidental cluster mixing [GH-580] [GH-260]
+ * Added option to filter DNS results on warning [GH-595]
+ * Improve write throughput with raft log caching [GH-604]
+ * Added ability to bind RPC and HTTP listeners to UNIX sockets [GH-587] [GH-612]
+
+MISC:
+
+ * UI confirms before deleting key sub-tree [GH-520]
+ * More useful output in "consul version" [GH-480]
+ * Many documentation improvements
+ * Reduce log messages when quorum member is logs [GH-566]
+
 ## 0.4.1 (October 20, 2014)
 
 FEATURES:
