@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 )
@@ -37,5 +39,61 @@ func TestStringHash(t *testing.T) {
 
 	if out := stringHash(in); out != expected {
 		t.Fatalf("bad: %s", out)
+	}
+}
+
+func TestSetFilePermissions(t *testing.T) {
+	tempFile, err := ioutil.TempFile("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	path := tempFile.Name()
+	defer os.Remove(path)
+
+	// Bad UID fails
+	if err := setFilePermissions(path, UnixSocketPermissions{Usr: "%"}); err == nil {
+		t.Fatalf("should fail")
+	}
+
+	// Bad GID fails
+	if err := setFilePermissions(path, UnixSocketPermissions{Grp: "%"}); err == nil {
+		t.Fatalf("should fail")
+	}
+
+	// Bad mode fails
+	if err := setFilePermissions(path, UnixSocketPermissions{Perms: "%"}); err == nil {
+		t.Fatalf("should fail")
+	}
+
+	// Allows omitting user/group/mode
+	if err := setFilePermissions(path, UnixSocketPermissions{}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Doesn't change mode if not given
+	if err := os.Chmod(path, 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := setFilePermissions(path, UnixSocketPermissions{}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	fi, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if fi.Mode().String() != "-rwx------" {
+		t.Fatalf("bad: %s", fi.Mode())
+	}
+
+	// Changes mode if given
+	if err := setFilePermissions(path, UnixSocketPermissions{Perms: "0777"}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	fi, err = os.Stat(path)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if fi.Mode().String() != "-rwxrwxrwx" {
+		t.Fatalf("bad: %s", fi.Mode())
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"
@@ -166,7 +165,7 @@ func TestRetryJoinWanFail(t *testing.T) {
 	}
 }
 
-func TestSetupAgent_UnixSocket_Fails(t *testing.T) {
+func TestSetupAgent_RPCUnixSocket_FileExists(t *testing.T) {
 	conf := nextConfig()
 	tmpDir, err := ioutil.TempDir("", "consul")
 	if err != nil {
@@ -185,9 +184,11 @@ func TestSetupAgent_UnixSocket_Fails(t *testing.T) {
 	conf.Server = true
 	conf.Bootstrap = true
 
-	// Set socket address to an existing file. Consul should fail to
-	// start and return an error.
+	// Set socket address to an existing file.
 	conf.Addresses.RPC = "unix://" + socketPath
+
+	// Custom mode for socket file
+	conf.UnixSockets.Perms = "0777"
 
 	shutdownCh := make(chan struct{})
 	defer close(shutdownCh)
@@ -200,12 +201,22 @@ func TestSetupAgent_UnixSocket_Fails(t *testing.T) {
 	logWriter := NewLogWriter(512)
 	logOutput := new(bytes.Buffer)
 
-	// Ensure we got an error mentioning the socket file
-	err = cmd.setupAgent(conf, logOutput, logWriter)
-	if err == nil {
-		t.Fatalf("should have failed")
+	// Ensure the server is created
+	if err := cmd.setupAgent(conf, logOutput, logWriter); err != nil {
+		t.Fatalf("err: %s", err)
 	}
-	if !strings.Contains(err.Error(), socketPath) {
-		t.Fatalf("expected socket file error, got: %q", err)
+
+	// Ensure the file was replaced by the socket
+	fi, err := os.Stat(socketPath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if fi.Mode()&os.ModeSocket == 0 {
+		t.Fatalf("expected socket to replace file")
+	}
+
+	// Ensure permissions were applied to the socket file
+	if fi.Mode().String() != "Srwxrwxrwx" {
+		t.Fatalf("bad permissions: %s", fi.Mode())
 	}
 }

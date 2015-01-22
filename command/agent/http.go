@@ -96,9 +96,13 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 		}
 
 		// Error if we are trying to bind a domain socket to an existing path
-		if path, ok := unixSocketAddr(config.Addresses.HTTP); ok {
-			if _, err := os.Stat(path); err == nil || !os.IsNotExist(err) {
-				return nil, fmt.Errorf(errSocketFileExists, path)
+		socketPath, isSocket := unixSocketAddr(config.Addresses.HTTP)
+		if isSocket {
+			if _, err := os.Stat(socketPath); !os.IsNotExist(err) {
+				agent.logger.Printf("[WARN] agent: Replacing socket %q", socketPath)
+			}
+			if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
+				return nil, fmt.Errorf("error removing socket file: %s", err)
 			}
 		}
 
@@ -111,6 +115,13 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			list = ln
 		} else {
 			list = tcpKeepAliveListener{ln.(*net.TCPListener)}
+		}
+
+		// Set up ownership/permission bits on the socket file
+		if isSocket {
+			if err := setFilePermissions(socketPath, config.UnixSockets); err != nil {
+				return nil, fmt.Errorf("Failed setting up HTTP socket: %s", err)
+			}
 		}
 
 		// Create the mux

@@ -343,6 +343,35 @@ type Config struct {
 
 	// WatchPlans contains the compiled watches
 	WatchPlans []*watch.WatchPlan `mapstructure:"-" json:"-"`
+
+	// UnixSockets is a map of socket configuration data
+	UnixSockets UnixSocketConfig `mapstructure:"unix_sockets"`
+}
+
+// UnixSocketPermissions contains information about a unix socket, and
+// implements the FilePermissions interface.
+type UnixSocketPermissions struct {
+	Usr   string `mapstructure:"user"`
+	Grp   string `mapstructure:"group"`
+	Perms string `mapstructure:"mode"`
+}
+
+func (u UnixSocketPermissions) User() string {
+	return u.Usr
+}
+
+func (u UnixSocketPermissions) Group() string {
+	return u.Grp
+}
+
+func (u UnixSocketPermissions) Mode() string {
+	return u.Perms
+}
+
+// UnixSocketConfig stores information about various unix sockets which
+// Consul creates and uses for communication.
+type UnixSocketConfig struct {
+	UnixSocketPermissions `mapstructure:",squash"`
 }
 
 // unixSocketAddr tests if a given address describes a domain socket,
@@ -888,6 +917,15 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.DisableAnonymousSignature {
 		result.DisableAnonymousSignature = true
+	}
+	if b.UnixSockets.Usr != "" {
+		result.UnixSockets.Usr = b.UnixSockets.Usr
+	}
+	if b.UnixSockets.Grp != "" {
+		result.UnixSockets.Grp = b.UnixSockets.Grp
+	}
+	if b.UnixSockets.Perms != "" {
+		result.UnixSockets.Perms = b.UnixSockets.Perms
 	}
 
 	if len(b.HTTPAPIResponseHeaders) != 0 {

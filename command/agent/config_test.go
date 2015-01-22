@@ -588,6 +588,23 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Domain socket permissions
+	input = `{"unix_sockets": {"user": "500", "group": "500", "mode": "0700"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.UnixSockets.Usr != "500" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.UnixSockets.Grp != "500" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.UnixSockets.Perms != "0700" {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// Disable updates
 	input = `{"disable_update_check": true, "disable_anonymous_signature": true}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -1033,6 +1050,13 @@ func TestMergeConfig(t *testing.T) {
 		DisableAnonymousSignature: true,
 		HTTPAPIResponseHeaders: map[string]string{
 			"Access-Control-Allow-Origin": "*",
+		},
+		UnixSockets: UnixSocketConfig{
+			UnixSocketPermissions{
+				Usr:   "500",
+				Grp:   "500",
+				Perms: "0700",
+			},
 		},
 	}
 

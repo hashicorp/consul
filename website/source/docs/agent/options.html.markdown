@@ -244,8 +244,10 @@ definitions support being updated during a reload.
   Both `rpc` and `http` support binding to Unix domain sockets. A socket can be
   specified in the form `unix:///path/to/socket`. A new domain socket will be
   created at the given path. If the specified file path already exists, Consul
-  will refuse to start and return an error. For information on how to secure
-  socket file permissions, refer to the manual page for your operating system.
+  will attempt to clear the file and create the domain socket in its place.
+  <br><br>
+  The permissions of the socket file are tunable via the `unix_sockets` config
+  construct.
   <br><br>
   When running Consul agent commands against Unix socket interfaces, use the
   `-rpc-addr` or `-http-addr` arguments to specify the path to the socket. You
@@ -428,6 +430,23 @@ definitions support being updated during a reload.
   facility messages are sent to. By default, `LOCAL0` will be used.
 
 * `ui_dir` - Equivalent to the `-ui-dir` command-line flag.
+
+* `unix_sockets` - This allows tuning the ownership and permissions of the
+  Unix domain socket files created by Consul. Domain sockets are only used if
+  the HTTP or RPC addresses are configured with the `unix://` prefix. The
+  following options are valid within this construct, and apply globally to all
+  sockets created by Consul:
+  <br>
+  * `user` - The name or ID of the user who will own the socket file.
+  * `group` - The group ID ownership of the socket file. Note that this option
+    currently only supports numeric ID's.
+  * `mode` - The permission bits to set on the file.
+  <br>
+  It is important to note that this option may have different effects on
+  different operating systems. Linux generally observes socket file permissions,
+  while many BSD variants ignore permissions on the socket file itself. It is
+  important to test this feature on your specific distribution. This feature is
+  currently not functional on Windows hosts.
 
 * `verify_incoming` - If set to True, Consul requires that all incoming
   connections make use of TLS, and that the client provides a certificate signed
