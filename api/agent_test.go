@@ -45,9 +45,10 @@ func TestAgent_Services(t *testing.T) {
 	agent := c.Agent()
 
 	reg := &AgentServiceRegistration{
-		Name: "foo",
-		Tags: []string{"bar", "baz"},
-		Port: 8000,
+		Name:    "foo",
+		Tags:    []string{"bar", "baz"},
+		Port:    8000,
+		Address: "192.168.0.42",
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
