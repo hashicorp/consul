@@ -12,19 +12,6 @@ func TestMaintCommand_implements(t *testing.T) {
 	var _ cli.Command = &MaintCommand{}
 }
 
-func TestMaintCommandRun_NoArgs(t *testing.T) {
-	ui := new(cli.MockUi)
-	c := &MaintCommand{Ui: ui}
-
-	if code := c.Run([]string{}); code != 1 {
-		t.Fatalf("expected return code 1, got %d", code)
-	}
-
-	if strings.TrimSpace(ui.ErrorWriter.String()) != c.Help() {
-		t.Fatalf("bad:\n%s", ui.ErrorWriter.String())
-	}
-}
-
 func TestMaintCommandRun_ConflictingArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &MaintCommand{Ui: ui}
@@ -35,6 +22,53 @@ func TestMaintCommandRun_ConflictingArgs(t *testing.T) {
 
 	if code := c.Run([]string{"-disable", "-reason=broken"}); code != 1 {
 		t.Fatalf("expected return code 1, got %d", code)
+	}
+}
+
+func TestMaintCommandRun_NoArgs(t *testing.T) {
+	a1 := testAgent(t)
+	defer a1.Shutdown()
+
+	// Register the service and put it into maintenance mode
+	service := &structs.NodeService{
+		ID:      "test",
+		Service: "test",
+	}
+	if err := a1.agent.AddService(service, nil, false); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := a1.agent.EnableServiceMaintenance("test", "broken 1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Enable node maintenance
+	a1.agent.EnableNodeMaintenance("broken 2")
+
+	// Run consul maint with no args (list mode)
+	ui := new(cli.MockUi)
+	c := &MaintCommand{Ui: ui}
+
+	args := []string{"-http-addr=" + a1.httpAddr}
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	// Ensure the service shows up in the list
+	out := ui.OutputWriter.String()
+	if !strings.Contains(out, "test") {
+		t.Fatalf("bad:\n%s", out)
+	}
+	if !strings.Contains(out, "broken 1") {
+		t.Fatalf("bad:\n%s", out)
+	}
+
+	// Ensure the node shows up in the list
+	if !strings.Contains(out, a1.config.NodeName) {
+		t.Fatalf("bad:\n%s", out)
+	}
+	if !strings.Contains(out, "broken 2") {
+		t.Fatalf("bad:\n%s", out)
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/mitchellh/cli"
 )
 
@@ -36,6 +37,9 @@ Usage: consul maint [options]
   By default, we operate on the node as a whole. By specifying the
   "-service" argument, this behavior can be changed to enable or disable
   only a specific service.
+
+  If no arguments are given, the agent's maintenance status will be shown.
+  This will return blank if nothing is currently under maintenance.
 
 Options:
 
@@ -70,17 +74,7 @@ func (c *MaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Print help if no args given
-	if len(args) == 0 {
-		c.Ui.Error(c.Help())
-		return 1
-	}
-
 	// Ensure we don't have conflicting args
-	if !enable && !disable {
-		c.Ui.Error("One of -enable or -disable must be specified")
-		return 1
-	}
 	if enable && disable {
 		c.Ui.Error("Only one of -enable or -disable may be provided")
 		return 1
@@ -99,16 +93,42 @@ func (c *MaintCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
-	agent := client.Agent()
-	if _, err := agent.NodeName(); err != nil {
+	a := client.Agent()
+	nodeName, err := a.NodeName()
+	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error querying Consul agent: %s", err))
 		return 1
+	}
+
+	if !enable && !disable {
+		// List mode - list nodes/services in maintenance mode
+		checks, err := a.Checks()
+		if err != nil {
+			c.Ui.Output(fmt.Sprintf("Error getting checks: %s", err))
+			return 1
+		}
+
+		for _, check := range checks {
+			if check.CheckID == agent.NodeMaintCheckID {
+				c.Ui.Output("Node:")
+				c.Ui.Output("  Name:   " + nodeName)
+				c.Ui.Output("  Reason: " + check.Notes)
+				c.Ui.Output("")
+			} else if strings.HasPrefix(check.CheckID, agent.ServiceMaintCheckPrefix) {
+				c.Ui.Output("Service:")
+				c.Ui.Output("  ID:     " + check.ServiceID)
+				c.Ui.Output("  Reason: " + check.Notes)
+				c.Ui.Output("")
+			}
+		}
+
+		return 0
 	}
 
 	if enable {
 		// Enable node maintenance
 		if serviceID == "" {
-			if err := agent.EnableNodeMaintenance(reason); err != nil {
+			if err := a.EnableNodeMaintenance(reason); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error enabling node maintenance: %s", err))
 				return 1
 			}
@@ -117,7 +137,7 @@ func (c *MaintCommand) Run(args []string) int {
 		}
 
 		// Enable service maintenance
-		if err := agent.EnableServiceMaintenance(serviceID, reason); err != nil {
+		if err := a.EnableServiceMaintenance(serviceID, reason); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error enabling service maintenance: %s", err))
 			return 1
 		}
@@ -128,7 +148,7 @@ func (c *MaintCommand) Run(args []string) int {
 	if disable {
 		// Disable node maintenance
 		if serviceID == "" {
-			if err := agent.DisableNodeMaintenance(); err != nil {
+			if err := a.DisableNodeMaintenance(); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error disabling node maintenance: %s", err))
 				return 1
 			}
@@ -137,7 +157,7 @@ func (c *MaintCommand) Run(args []string) int {
 		}
 
 		// Disable service maintenance
-		if err := agent.DisableServiceMaintenance(serviceID); err != nil {
+		if err := a.DisableServiceMaintenance(serviceID); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error disabling service maintenance: %s", err))
 			return 1
 		}
