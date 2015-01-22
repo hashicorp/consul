@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/agent"
 	"github.com/mitchellh/cli"
 )
 
@@ -109,12 +108,12 @@ func (c *MaintCommand) Run(args []string) int {
 		}
 
 		for _, check := range checks {
-			if check.CheckID == agent.NodeMaintCheckID {
+			if check.CheckID == "_node_maintenance" {
 				c.Ui.Output("Node:")
 				c.Ui.Output("  Name:   " + nodeName)
 				c.Ui.Output("  Reason: " + check.Notes)
 				c.Ui.Output("")
-			} else if strings.HasPrefix(check.CheckID, agent.ServiceMaintCheckPrefix) {
+			} else if strings.HasPrefix(check.CheckID, "_service_maintenance:") {
 				c.Ui.Output("Service:")
 				c.Ui.Output("  ID:     " + check.ServiceID)
 				c.Ui.Output("  Reason: " + check.Notes)
