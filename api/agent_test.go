@@ -45,9 +45,9 @@ func TestAgent_Services(t *testing.T) {
 	agent := c.Agent()
 
 	reg := &AgentServiceRegistration{
-		Name: "foo",
-		Tags: []string{"bar", "baz"},
-		Port: 8000,
+		Name:    "foo",
+		Tags:    []string{"bar", "baz"},
+		Port:    8000,
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
@@ -70,6 +70,52 @@ func TestAgent_Services(t *testing.T) {
 	}
 	if _, ok := checks["service:foo"]; !ok {
 		t.Fatalf("missing check: %v", checks)
+	}
+
+	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_ServiceAddress(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	agent := c.Agent()
+
+	reg1 := &AgentServiceRegistration{
+		Name:    "foo1",
+		Port:    8000,
+		Address: "192.168.0.42",
+	}
+	reg2 := &AgentServiceRegistration{
+		Name:    "foo2",
+		Port:    8000,
+	}
+	if err := agent.ServiceRegister(reg1); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := agent.ServiceRegister(reg2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	
+	if _, ok := services["foo1"]; !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+	if _, ok := services["foo2"]; !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+
+	if services["foo1"].Address != "192.168.0.42" {
+		t.Fatalf("missing Address field in service foo1: %v", services)
+	}
+	if services["foo2"].Address != "" {
+		t.Fatalf("missing Address field in service foo2: %v", services)
 	}
 
 	if err := agent.ServiceDeregister("foo"); err != nil {

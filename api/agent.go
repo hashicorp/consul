@@ -22,6 +22,7 @@ type AgentService struct {
 	Service string
 	Tags    []string
 	Port    int
+	Address string
 }
 
 // AgentMember represents a cluster member known to the agent
@@ -41,12 +42,13 @@ type AgentMember struct {
 
 // AgentServiceRegistration is used to register a new service
 type AgentServiceRegistration struct {
-	ID     string   `json:",omitempty"`
-	Name   string   `json:",omitempty"`
-	Tags   []string `json:",omitempty"`
-	Port   int      `json:",omitempty"`
-	Check  *AgentServiceCheck
-	Checks AgentServiceChecks
+	ID      string   `json:",omitempty"`
+	Name    string   `json:",omitempty"`
+	Tags    []string `json:",omitempty"`
+	Port    int      `json:",omitempty"`
+	Address string   `json:",omitempty"`
+	Check   *AgentServiceCheck
+	Checks  AgentServiceChecks
 }
 
 // AgentCheckRegistration is used to register a new check
