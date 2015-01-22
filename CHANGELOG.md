@@ -40,6 +40,7 @@ BUG FIXES:
  * Fixed memory leaks in API client when an error response is returned [GH-608]
  * Fixed issues with graceful leave in single-node bootstrap cluster [GH-621]
  * Fixed issue preventing node reaping [GH-371]
+ * Fixed gossip stability at very large scale
 
 IMPROVEMENTS:
 

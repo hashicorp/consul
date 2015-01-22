@@ -45,9 +45,9 @@ func TestAgent_Services(t *testing.T) {
 	agent := c.Agent()
 
 	reg := &AgentServiceRegistration{
-		Name:    "foo",
-		Tags:    []string{"bar", "baz"},
-		Port:    8000,
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
 		Check: &AgentServiceCheck{
 			TTL: "15s",
 		},
@@ -89,8 +89,8 @@ func TestAgent_ServiceAddress(t *testing.T) {
 		Address: "192.168.0.42",
 	}
 	reg2 := &AgentServiceRegistration{
-		Name:    "foo2",
-		Port:    8000,
+		Name: "foo2",
+		Port: 8000,
 	}
 	if err := agent.ServiceRegister(reg1); err != nil {
 		t.Fatalf("err: %v", err)
@@ -103,7 +103,7 @@ func TestAgent_ServiceAddress(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	
+
 	if _, ok := services["foo1"]; !ok {
 		t.Fatalf("missing service: %v", services)
 	}
