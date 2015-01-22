@@ -1145,10 +1145,9 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	}
 
 	// Ensure the response is randomized each time.
-	loops := 5
 	uniques := map[string]struct{}{}
 	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
-	for i := 0; i < loops; i++ {
+	for i := 0; i < 10; i++ {
 		m := new(dns.Msg)
 		m.SetQuestion("web.service.consul.", dns.TypeANY)
 
@@ -1183,9 +1182,8 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	// Give some wiggle room. Since the responses are randomized and there
 	// is a finite number of combinations, requiring 0 duplicates every
 	// test run eventually gives us failures.
-	if len(uniques) < (loops - 1) {
-		t.Fatalf("unique response ratio too low: %d/%d\n%v",
-			len(uniques), loops, uniques)
+	if len(uniques) < 2 {
+		t.Fatalf("unique response ratio too low: %d/10\n%v", len(uniques), uniques)
 	}
 }
 
