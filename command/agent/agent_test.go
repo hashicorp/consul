@@ -916,14 +916,20 @@ func TestAgent_ServiceMaintenanceMode(t *testing.T) {
 	}
 
 	// Enter maintenance mode for the service
-	if err := agent.EnableServiceMaintenance("redis"); err != nil {
+	if err := agent.EnableServiceMaintenance("redis", "broken"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Make sure the critical health check was added
 	checkID := serviceMaintCheckID("redis")
-	if _, ok := agent.state.Checks()[checkID]; !ok {
+	check, ok := agent.state.Checks()[checkID]
+	if !ok {
 		t.Fatalf("should have registered critical maintenance check")
+	}
+
+	// Ensure the reason was set in notes
+	if check.Notes != "broken" {
+		t.Fatalf("bad: %#v", check)
 	}
 
 	// Leave maintenance mode
@@ -935,6 +941,20 @@ func TestAgent_ServiceMaintenanceMode(t *testing.T) {
 	if _, ok := agent.state.Checks()[checkID]; ok {
 		t.Fatalf("should have deregistered maintenance check")
 	}
+
+	// Enter service maintenance mode without providing a reason
+	if err := agent.EnableServiceMaintenance("redis", ""); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the check was registered with the default notes
+	check, ok = agent.state.Checks()[checkID]
+	if !ok {
+		t.Fatalf("should have registered critical check")
+	}
+	if check.Notes != defaultServiceMaintReason {
+		t.Fatalf("bad: %#v", check)
+	}
 }
 
 func TestAgent_NodeMaintenanceMode(t *testing.T) {
@@ -944,11 +964,17 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	defer agent.Shutdown()
 
 	// Enter maintenance mode for the node
-	agent.EnableNodeMaintenance()
+	agent.EnableNodeMaintenance("broken")
 
 	// Make sure the critical health check was added
-	if _, ok := agent.state.Checks()[nodeMaintCheckID]; !ok {
+	check, ok := agent.state.Checks()[nodeMaintCheckID]
+	if !ok {
 		t.Fatalf("should have registered critical node check")
+	}
+
+	// Ensure the reason was set in notes
+	if check.Notes != "broken" {
+		t.Fatalf("bad: %#v", check)
 	}
 
 	// Leave maintenance mode
@@ -957,5 +983,17 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	// Ensure the check was deregistered
 	if _, ok := agent.state.Checks()[nodeMaintCheckID]; ok {
 		t.Fatalf("should have deregistered critical node check")
+	}
+
+	// Enter maintenance mode without passing a reason
+	agent.EnableNodeMaintenance("")
+
+	// Make sure the check was registered with the default note
+	check, ok = agent.state.Checks()[nodeMaintCheckID]
+	if !ok {
+		t.Fatalf("should have registered critical node check")
+	}
+	if check.Notes != defaultNodeMaintReason {
+		t.Fatalf("bad: %#v", check)
 	}
 }

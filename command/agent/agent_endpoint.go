@@ -220,17 +220,21 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 	}
 
 	if enable {
-		if err = s.agent.EnableServiceMaintenance(serviceID); err != nil {
+		reason := params.Get("reason")
+		if err = s.agent.EnableServiceMaintenance(serviceID, reason); err != nil {
 			resp.WriteHeader(404)
 			resp.Write([]byte(err.Error()))
+			return nil, nil
 		}
 	} else {
 		if err = s.agent.DisableServiceMaintenance(serviceID); err != nil {
 			resp.WriteHeader(404)
 			resp.Write([]byte(err.Error()))
+			return nil, nil
 		}
 	}
-	return nil, err
+
+	return nil, nil
 }
 
 func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -257,7 +261,7 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 	}
 
 	if enable {
-		s.agent.EnableNodeMaintenance()
+		s.agent.EnableNodeMaintenance(params.Get("reason"))
 	} else {
 		s.agent.DisableNodeMaintenance()
 	}

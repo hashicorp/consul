@@ -27,6 +27,12 @@ const (
 	// The ID of the faux health checks for maintenance mode
 	serviceMaintCheckPrefix = "_service_maintenance"
 	nodeMaintCheckID        = "_node_maintenance"
+
+	// Default reasons for node/service maintenance mode
+	defaultNodeMaintReason = "Maintenance mode is enabled for this node, " +
+		"but no reason was provided. This is a default message."
+	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
+		"service, but no reason was provided. This is a default message."
 )
 
 /*
@@ -1020,7 +1026,7 @@ func serviceMaintCheckID(serviceID string) string {
 
 // EnableServiceMaintenance will register a false health check against the given
 // service ID with critical status. This will exclude the service from queries.
-func (a *Agent) EnableServiceMaintenance(serviceID string) error {
+func (a *Agent) EnableServiceMaintenance(serviceID, reason string) error {
 	service, ok := a.state.Services()[serviceID]
 	if !ok {
 		return fmt.Errorf("No service registered with ID %q", serviceID)
@@ -1032,18 +1038,23 @@ func (a *Agent) EnableServiceMaintenance(serviceID string) error {
 		return nil
 	}
 
+	// Use default notes if no reason provided
+	if reason == "" {
+		reason = defaultServiceMaintReason
+	}
+
 	// Create and register the critical health check
 	check := &structs.HealthCheck{
 		Node:        a.config.NodeName,
 		CheckID:     checkID,
 		Name:        "Service Maintenance Mode",
-		Notes:       "Maintenance mode is enabled for this service",
+		Notes:       reason,
 		ServiceID:   service.ID,
 		ServiceName: service.Service,
 		Status:      structs.HealthCritical,
 	}
 	a.AddCheck(check, nil, true)
-	a.logger.Printf("[INFO] agent: service %q entered maintenance mode", serviceID)
+	a.logger.Printf("[INFO] agent: Service %q entered maintenance mode", serviceID)
 
 	return nil
 }
@@ -1063,16 +1074,21 @@ func (a *Agent) DisableServiceMaintenance(serviceID string) error {
 
 	// Deregister the maintenance check
 	a.RemoveCheck(checkID, true)
-	a.logger.Printf("[INFO] agent: service %q left maintenance mode", serviceID)
+	a.logger.Printf("[INFO] agent: Service %q left maintenance mode", serviceID)
 
 	return nil
 }
 
 // EnableNodeMaintenance places a node into maintenance mode.
-func (a *Agent) EnableNodeMaintenance() {
+func (a *Agent) EnableNodeMaintenance(reason string) {
 	// Ensure node maintenance is not already enabled
 	if _, ok := a.state.Checks()[nodeMaintCheckID]; ok {
 		return
+	}
+
+	// Use a default notes value
+	if reason == "" {
+		reason = defaultNodeMaintReason
 	}
 
 	// Create and register the node maintenance check
@@ -1080,11 +1096,11 @@ func (a *Agent) EnableNodeMaintenance() {
 		Node:    a.config.NodeName,
 		CheckID: nodeMaintCheckID,
 		Name:    "Node Maintenance Mode",
-		Notes:   "Maintenance mode is enabled for this node",
+		Notes:   reason,
 		Status:  structs.HealthCritical,
 	}
 	a.AddCheck(check, nil, true)
-	a.logger.Printf("[INFO] agent: node entered maintenance mode")
+	a.logger.Printf("[INFO] agent: Node entered maintenance mode")
 }
 
 // DisableNodeMaintenance removes a node from maintenance mode
@@ -1093,5 +1109,5 @@ func (a *Agent) DisableNodeMaintenance() {
 		return
 	}
 	a.RemoveCheck(nodeMaintCheckID, true)
-	a.logger.Printf("[INFO] agent: node left maintenance mode")
+	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }

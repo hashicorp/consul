@@ -318,7 +318,7 @@ func TestServiceMaintenance(t *testing.T) {
 	}
 
 	// Enable maintenance mode
-	if err := agent.EnableServiceMaintenance("redis"); err != nil {
+	if err := agent.EnableServiceMaintenance("redis", "broken"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -331,7 +331,7 @@ func TestServiceMaintenance(t *testing.T) {
 	for _, check := range checks {
 		if strings.Contains(check.CheckID, "maintenance") {
 			found = true
-			if check.Status != "critical" {
+			if check.Status != "critical" || check.Notes != "broken" {
 				t.Fatalf("bad: %#v", checks)
 			}
 		}
@@ -364,7 +364,7 @@ func TestNodeMaintenance(t *testing.T) {
 	agent := c.Agent()
 
 	// Enable maintenance mode
-	if err := agent.EnableNodeMaintenance(); err != nil {
+	if err := agent.EnableNodeMaintenance("broken"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -377,7 +377,7 @@ func TestNodeMaintenance(t *testing.T) {
 	for _, check := range checks {
 		if strings.Contains(check.CheckID, "maintenance") {
 			found = true
-			if check.Status != "critical" {
+			if check.Status != "critical" || check.Notes != "broken" {
 				t.Fatalf("bad: %#v", checks)
 			}
 		}
