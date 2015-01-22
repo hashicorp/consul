@@ -3,9 +3,7 @@ layout: "docs"
 page_title: "Commands: Lock"
 sidebar_current: "docs-commands-lock"
 description: |-
-  The lock command provides a mechanism for leader election, mutual exclusion,
-  or worker pools. For example, this can be used to ensure a maximum number of
-  services running at once across a cluster.
+  The lock command provides a mechanism for leader election, mutual exclusion, or worker pools. For example, this can be used to ensure a maximum number of services running at once across a cluster.
 ---
 
 # Consul Lock
@@ -24,6 +22,9 @@ uses the [leader election algorithm](/docs/guides/leader-election.html).
 If the lock holder count is more than one, then a semaphore is used instead.
 A semaphore allows more than a single holder, but the is less efficient than
 a simple lock. This follows the [semaphore algorithm](/docs/guides/semaphore.html).
+
+All locks using the same prefix must agree on the value of `-n`. If conflictling
+values of `-n` are provided, an error will be returned.
 
 An example use case is for highly-available N+1 deployments. In these
 cases, if N instances of a service are required, N+1 are deployed and use
@@ -50,7 +51,7 @@ The list of available flags are:
 
 * `-n` - Optional, limit of lock holders. Defaults to 1. The underlying
   implementation switches from a lock to a semaphore when increased past
-  one.
+  one. All locks on the same prefix must use the same value.
 
 * `-name` - Optional name to associate with the underlying session.
   If not provided, one is generated based on the child command.
