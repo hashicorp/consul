@@ -53,6 +53,10 @@ const (
 	// raftLogCacheSize is the maximum number of logs to cache in-memory.
 	// This is used to reduce disk I/O for the recently commited entries.
 	raftLogCacheSize = 512
+
+	// raftRemoveGracePeriod is how long we wait to allow a RemovePeer
+	// to replicate to gracefully leave the cluster.
+	raftRemoveGracePeriod = 5 * time.Second
 )
 
 // Server is Consul server which manages the service discovery,
@@ -521,6 +525,25 @@ func (s *Server) Leave() error {
 	s.logger.Printf("[INFO] consul: server starting leave")
 	s.left = true
 
+	// Check the number of known peers
+	numPeers, err := s.numOtherPeers()
+	if err != nil {
+		s.logger.Printf("[ERR] consul: failed to check raft peers: %v", err)
+		return err
+	}
+
+	// If we are the current leader, and we have any other peers (cluster has multiple
+	// servers), we should do a RemovePeer to safely reduce the quorum size. If we are
+	// not the leader, then we should issue our leave intention and wait to be removed
+	// for some sane period of time.
+	isLeader := s.IsLeader()
+	if isLeader && numPeers > 0 {
+		future := s.raft.RemovePeer(s.raftTransport.LocalAddr())
+		if err := future.Error(); err != nil && err != raft.ErrUnknownPeer {
+			s.logger.Printf("[ERR] consul: failed to remove ourself as raft peer: %v", err)
+		}
+	}
+
 	// Leave the WAN pool
 	if s.serfWAN != nil {
 		if err := s.serfWAN.Leave(); err != nil {
@@ -534,7 +557,45 @@ func (s *Server) Leave() error {
 			s.logger.Printf("[ERR] consul: failed to leave LAN Serf cluster: %v", err)
 		}
 	}
+
+	// If we were not leader, wait to be safely removed from the cluster.
+	// We must wait to allow the raft replication to take place, otherwise
+	// an immediate shutdown could cause a loss of quorum.
+	if !isLeader {
+		limit := time.Now().Add(raftRemoveGracePeriod)
+		for numPeers > 0 && time.Now().Before(limit) {
+			// Update the number of peers
+			numPeers, err = s.numOtherPeers()
+			if err != nil {
+				s.logger.Printf("[ERR] consul: failed to check raft peers: %v", err)
+				break
+			}
+
+			// Avoid the sleep if we are done
+			if numPeers == 0 {
+				break
+			}
+
+			// Sleep a while and check again
+			time.Sleep(50 * time.Millisecond)
+		}
+		if numPeers != 0 {
+			s.logger.Printf("[WARN] consul: failed to leave raft peer set gracefully, timeout")
+		}
+	}
+
 	return nil
+}
+
+// numOtherPeers is used to check on the number of known peers
+// excluding the local ndoe
+func (s *Server) numOtherPeers() (int, error) {
+	peers, err := s.raftPeers.Peers()
+	if err != nil {
+		return 0, err
+	}
+	otherPeers := raft.ExcludePeer(peers, s.raftTransport.LocalAddr())
+	return len(otherPeers), nil
 }
 
 // JoinLAN is used to have Consul join the inner-DC pool
