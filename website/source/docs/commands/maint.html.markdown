@@ -24,9 +24,7 @@ health check.
 
 Usage: `consul maint [options]`
 
-Exactly one of `-enable` or `-disable` are required. The rest of the command
-line arguments are optional, and some are only usable in combination with
-others.
+All of the command line arguments are optional.
 
 The list of available flags are:
 
@@ -51,3 +49,20 @@ The list of available flags are:
 * `-http-addr` - Address to the HTTP server of the agent you want to contact
   to send this command. If this isn't specified, the command will contact
   "127.0.0.1:8500" which is the default HTTP address of a Consul agent.
+
+## List mode
+
+If neither `-enable` nor `-disable` are passed, the `maint` command will
+switch to "list mode", displaying any current maintenances. This may return
+blank if nothing is currently under maintenance. The output will look like:
+
+```
+$ consul maint
+Node:
+  Name:   node1.local
+  Reason: This node is broken.
+
+Service:
+  ID:     redis
+  Reason: Redis is currently offline.
+```
