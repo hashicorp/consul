@@ -78,8 +78,12 @@ func (c *MaintCommand) Run(args []string) int {
 		c.Ui.Error("Only one of -enable or -disable may be provided")
 		return 1
 	}
-	if disable && reason != "" {
+	if !enable && reason != "" {
 		c.Ui.Error("Reason may only be provided with -enable")
+		return 1
+	}
+	if !enable && !disable && serviceID != "" {
+		c.Ui.Error("Service requires either -enable or -disable")
 		return 1
 	}
 
@@ -103,7 +107,7 @@ func (c *MaintCommand) Run(args []string) int {
 		// List mode - list nodes/services in maintenance mode
 		checks, err := a.Checks()
 		if err != nil {
-			c.Ui.Output(fmt.Sprintf("Error getting checks: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error getting checks: %s", err))
 			return 1
 		}
 

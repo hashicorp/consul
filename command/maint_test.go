@@ -23,6 +23,14 @@ func TestMaintCommandRun_ConflictingArgs(t *testing.T) {
 	if code := c.Run([]string{"-disable", "-reason=broken"}); code != 1 {
 		t.Fatalf("expected return code 1, got %d", code)
 	}
+
+	if code := c.Run([]string{"-reason=broken"}); code != 1 {
+		t.Fatalf("expected return code 1, got %d", code)
+	}
+
+	if code := c.Run([]string{"-service=redis"}); code != 1 {
+		t.Fatalf("expected return code 1, got %d", code)
+	}
 }
 
 func TestMaintCommandRun_NoArgs(t *testing.T) {
