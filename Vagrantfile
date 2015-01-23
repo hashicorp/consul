@@ -9,8 +9,8 @@ SRCROOT="/opt/go"
 
 # Install Go
 sudo apt-get update
-sudo apt-get install -y build-essential mercurial
-sudo hg clone -u release https://code.google.com/p/go ${SRCROOT}
+sudo apt-get install -y build-essential mercurial git-core
+sudo git clone -b release-branch.go1.4 https://go.googlesource.com/go ${SRCROOT}
 cd ${SRCROOT}/src
 sudo ./all.bash
 
@@ -26,9 +26,6 @@ sudo chmod 0755 /etc/profile.d/gopath.sh
 # Make sure the gopath is usable by bamboo
 sudo chown -R vagrant:vagrant $SRCROOT
 sudo chown -R vagrant:vagrant /opt/gopath
-
-# Install git
-sudo apt-get install -y git-core
 
 # Install go tools
 go get golang.org/x/tools/cmd/cover 
