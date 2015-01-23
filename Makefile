@@ -13,15 +13,13 @@ cov:
 
 deps:
 	@echo "--> Installing build dependencies"
-	@go get -d -f -u -v ./...
-	@echo $(DEPS) | xargs -n1 go get -d -f -u
+	@go get -d -v ./... $(DEPS)
+
+updatedeps: deps
+	@echo "--> Updating build dependencies"
+	@go get -d -f -u ./... $(DEPS)
 
 test: deps
-	./scripts/verify_no_uuid.sh
-	go list ./... | xargs -n1 go test
-	@$(MAKE) vet
-
-test-nodep:
 	./scripts/verify_no_uuid.sh
 	go list ./... | xargs -n1 go test
 	@$(MAKE) vet
