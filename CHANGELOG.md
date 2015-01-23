@@ -60,6 +60,7 @@ IMPROVEMENTS:
  * Added option to filter DNS results on warning [GH-595]
  * Improve write throughput with raft log caching [GH-604]
  * Added ability to bind RPC and HTTP listeners to UNIX sockets [GH-587] [GH-612]
+ * K/V HTTP endpoint returns 400 on conflicting flags [GH-634] [GH-432]
 
 MISC:
 
