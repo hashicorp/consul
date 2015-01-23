@@ -23,7 +23,7 @@ If the lock holder count is more than one, then a semaphore is used instead.
 A semaphore allows more than a single holder, but the is less efficient than
 a simple lock. This follows the [semaphore algorithm](/docs/guides/semaphore.html).
 
-All locks using the same prefix must agree on the value of `-n`. If conflictling
+All locks using the same prefix must agree on the value of `-n`. If conflicting
 values of `-n` are provided, an error will be returned.
 
 An example use case is for highly-available N+1 deployments. In these
