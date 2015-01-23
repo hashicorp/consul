@@ -136,6 +136,9 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 	if missingKey(resp, args) {
 		return nil, nil
 	}
+	if conflictingFlags(resp, req, "cas", "acquire", "release") {
+		return nil, nil
+	}
 	applyReq := structs.KVSRequest{
 		Datacenter: args.Datacenter,
 		Op:         structs.KVSSet,
@@ -209,6 +212,9 @@ func (s *HTTPServer) KVSPut(resp http.ResponseWriter, req *http.Request, args *s
 
 // KVSPut handles a DELETE request
 func (s *HTTPServer) KVSDelete(resp http.ResponseWriter, req *http.Request, args *structs.KeyRequest) (interface{}, error) {
+	if conflictingFlags(resp, req, "recurse", "cas") {
+		return nil, nil
+	}
 	applyReq := structs.KVSRequest{
 		Datacenter: args.Datacenter,
 		Op:         structs.KVSDelete,
@@ -257,5 +263,24 @@ func missingKey(resp http.ResponseWriter, args *structs.KeyRequest) bool {
 		resp.Write([]byte("Missing key name"))
 		return true
 	}
+	return false
+}
+
+// conflictingFlags determines if non-composable flags were passed in a request.
+func conflictingFlags(resp http.ResponseWriter, req *http.Request, flags ...string) bool {
+	params := req.URL.Query()
+
+	found := false
+	for _, conflict := range flags {
+		if _, ok := params[conflict]; ok {
+			if found {
+				resp.WriteHeader(400)
+				resp.Write([]byte("Conflicting flags: " + params.Encode()))
+				return true
+			}
+			found = true
+		}
+	}
+
 	return false
 }

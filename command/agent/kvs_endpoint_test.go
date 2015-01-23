@@ -531,3 +531,45 @@ func TestKVSEndpoint_GET_Raw(t *testing.T) {
 		}
 	})
 }
+
+func TestKVSEndpoint_PUT_ConflictingFlags(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		req, err := http.NewRequest("PUT", "/v1/kv/test?cas=0&acquire=xxx", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		if _, err := srv.KVSEndpoint(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if resp.Code != 400 {
+			t.Fatalf("expected 400, got %d", resp.Code)
+		}
+		if !bytes.Contains(resp.Body.Bytes(), []byte("Conflicting")) {
+			t.Fatalf("expected conflicting args error")
+		}
+	})
+}
+
+func TestKVSEndpoint_DELETE_ConflictingFlags(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		req, err := http.NewRequest("DELETE", "/v1/kv/test?recurse&cas=0", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		if _, err := srv.KVSEndpoint(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if resp.Code != 400 {
+			t.Fatalf("expected 400, got %d", resp.Code)
+		}
+		if !bytes.Contains(resp.Body.Bytes(), []byte("Conflicting")) {
+			t.Fatalf("expected conflicting args error")
+		}
+	})
+}
