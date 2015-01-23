@@ -31,7 +31,7 @@ sudo chown -R vagrant:vagrant /opt/gopath
 sudo apt-get install -y git-core
 
 # Install go tools
-go get code.google.com/p/go.tools/cmd/cover
+go get golang.org/x/tools/cmd/cover 
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
