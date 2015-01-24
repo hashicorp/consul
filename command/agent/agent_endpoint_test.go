@@ -294,7 +294,7 @@ func TestHTTPAgentDeregisterCheck(t *testing.T) {
 	}
 
 	// Register node
-	req, err := http.NewRequest("GET", "/v1/agent/check/deregister/test", nil)
+	req, err := http.NewRequest("POST", "/v1/agent/check/deregister/test", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -480,7 +480,7 @@ func TestHTTPAgentDeregisterService(t *testing.T) {
 	}
 
 	// Register node
-	req, err := http.NewRequest("GET", "/v1/agent/service/deregister/test", nil)
+	req, err := http.NewRequest("POST", "/v1/agent/service/deregister/test", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

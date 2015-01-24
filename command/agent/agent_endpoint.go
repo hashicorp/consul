@@ -102,6 +102,12 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 }
 
 func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// GET not supported
+	if req.Method == "GET" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
 	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/deregister/")
 	return nil, s.agent.RemoveCheck(checkID, true)
 }
@@ -184,6 +190,12 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 }
 
 func (s *HTTPServer) AgentDeregisterService(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// GET not supported
+	if req.Method == "GET" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
 	serviceID := strings.TrimPrefix(req.URL.Path, "/v1/agent/service/deregister/")
 	return nil, s.agent.RemoveService(serviceID, true)
 }

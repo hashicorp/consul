@@ -30,6 +30,13 @@ func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request
 
 func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args structs.DeregisterRequest
+
+	// GET not supported
+	if req.Method == "GET" {
+		resp.WriteHeader(405)
+		return nil, nil
+	}
+
 	if err := decodeBody(req, &args, nil); err != nil {
 		resp.WriteHeader(400)
 		resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
