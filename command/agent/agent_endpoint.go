@@ -142,7 +142,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 			case "checks":
 				chkTypes, ok := v.([]interface{})
 				if !ok {
-					return nil
+					continue
 				}
 				for _, chkType := range chkTypes {
 					if err := FixupCheckType(chkType); err != nil {
