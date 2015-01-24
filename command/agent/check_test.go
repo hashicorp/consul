@@ -2,13 +2,15 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 )
 
 type MockNotify struct {
@@ -40,16 +42,20 @@ func expectStatus(t *testing.T, script, status string) {
 	check.Start()
 	defer check.Stop()
 
-	time.Sleep(50 * time.Millisecond)
+	testutil.WaitForResult(func() (bool, error) {
+		// Should have at least 2 updates
+		if mock.updates["foo"] < 2 {
+			return false, fmt.Errorf("should have 2 updates %v", mock.updates)
+		}
 
-	// Should have at least 2 updates
-	if mock.updates["foo"] < 2 {
-		t.Fatalf("should have 2 updates %v", mock.updates)
-	}
+		if mock.state["foo"] != status {
+			return false, fmt.Errorf("should be %v %v", status, mock.state)
+		}
 
-	if mock.state["foo"] != status {
-		t.Fatalf("should be %v %v", status, mock.state)
-	}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %s", err)
+	})
 }
 
 func TestCheckMonitor_Passing(t *testing.T) {
