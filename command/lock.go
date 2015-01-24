@@ -27,7 +27,7 @@ const (
 )
 
 // LockCommand is a Command implementation that is used to setup
-// a "lock" which manages lock acquasition and invokes a sub-process
+// a "lock" which manages lock acquisition and invokes a sub-process
 type LockCommand struct {
 	ShutdownCh <-chan struct{}
 	Ui         cli.Ui
@@ -47,6 +47,8 @@ Usage: consul lock [options] prefix child...
   the child process will be sent a SIGTERM signal and given time to
   gracefully exit. After the grace period expires the process will
   be hard terminated.
+  On Windows agents, the process is always hard terminated, even on
+  the first attempt.
 
   When -n=1, only a single lock holder or leader exists providing
   mutual exclusion. Setting a higher value switches to a semaphore
@@ -286,6 +288,8 @@ func (c *LockCommand) startChild(script string, doneCh chan struct{}) error {
 // killChild is used to forcefully kill the child, first using SIGTERM
 // to allow for a graceful cleanup and then using SIGKILL for a hard
 // termination.
+// On Windows, the child is always hard terminated with SIGKILL, even
+// on the first attempt.
 func (c *LockCommand) killChild(childDone chan struct{}) error {
 	// Get the child process
 	c.childLock.Lock()
@@ -300,11 +304,11 @@ func (c *LockCommand) killChild(childDone chan struct{}) error {
 		return nil
 	}
 
-	// Attempt a SIGTERM first
+	// Attempt termination first
 	if c.verbose {
-		c.Ui.Info(fmt.Sprintf("Sending SIGTERM to child pid %d", child.Pid))
+		c.Ui.Info(fmt.Sprintf("Terminating child pid %d", child.Pid))
 	}
-	if err := syscall.Kill(child.Pid, syscall.SIGTERM); err != nil {
+	if err := signalPid(child.Pid, syscall.SIGTERM); err != nil {
 		return fmt.Errorf("Failed to terminate %d: %v", child.Pid, err)
 	}
 
@@ -312,7 +316,7 @@ func (c *LockCommand) killChild(childDone chan struct{}) error {
 	select {
 	case <-childDone:
 		if c.verbose {
-			c.Ui.Info("Child exited after SIGTERM")
+			c.Ui.Info("Child terminated")
 		}
 		return nil
 	case <-time.After(lockKillGracePeriod):
@@ -322,11 +326,11 @@ func (c *LockCommand) killChild(childDone chan struct{}) error {
 		}
 	}
 
-	// Send a final SIGKILL first
+	// Send a final SIGKILL
 	if c.verbose {
-		c.Ui.Info(fmt.Sprintf("Sending SIGKILL to child pid %d", child.Pid))
+		c.Ui.Info(fmt.Sprintf("Killing child pid %d", child.Pid))
 	}
-	if err := syscall.Kill(child.Pid, syscall.SIGKILL); err != nil {
+	if err := signalPid(child.Pid, syscall.SIGKILL); err != nil {
 		return fmt.Errorf("Failed to kill %d: %v", child.Pid, err)
 	}
 	return nil
