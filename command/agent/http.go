@@ -64,11 +64,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
-		if _, ok := unixSocketAddr(config.Addresses.HTTPS); ok {
-			list = tls.NewListener(ln, tlsConfig)
-		} else {
-			list = tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
-		}
+		list = tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
 
 		// Create the mux
 		mux := http.NewServeMux()
@@ -111,17 +107,14 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
-		if _, ok := unixSocketAddr(config.Addresses.HTTP); ok {
-			list = ln
-		} else {
-			list = tcpKeepAliveListener{ln.(*net.TCPListener)}
-		}
-
-		// Set up ownership/permission bits on the socket file
 		if isSocket {
+			// Set up ownership/permission bits on the socket file
 			if err := setFilePermissions(socketPath, config.UnixSockets); err != nil {
 				return nil, fmt.Errorf("Failed setting up HTTP socket: %s", err)
 			}
+			list = ln
+		} else {
+			list = tcpKeepAliveListener{ln.(*net.TCPListener)}
 		}
 
 		// Create the mux
