@@ -42,9 +42,9 @@ http://www.consul.io/docs
 
 ## Developing Consul
 
-If you wish to work on Consul itself, you'll first need [Go](http://golang.org)
+If you wish to work on Consul itself, you'll first need [Go](https://golang.org)
 installed (version 1.4+ is _required_). Make sure you have Go properly installed,
-including setting up your [GOPATH](http://golang.org/doc/code.html#GOPATH).
+including setting up your [GOPATH](https://golang.org/doc/code.html#GOPATH).
 
 Next, clone this repository into `$GOPATH/src/github.com/hashicorp/consul` and
 then just type `make`. In a few moments, you'll have a working `consul` executable:
@@ -63,3 +63,23 @@ You can run tests by typing `make test`.
 
 If you make any changes to the code, run `make format` in order to automatically
 format the code according to Go standards.
+
+### Building Consul on Windows
+
+Make sure Go 1.4+ is installed on your system and that the Go command is in your
+%PATH%.
+
+For building Consul on Windows, you also need to have MinGW installed.
+[TDM-GCC](http://tdm-gcc.tdragon.net/) is a simple bundle installer which has all
+the required tools for building Consul with MinGW.
+
+Install TDM-GCC and make sure it has been added to your %PATH%.
+
+If all goes well, you should be able to build Consul by running `make.bat` from a
+command prompt.
+
+See also [golang/winstrap](https://github.com/golang/winstrap) and
+[golang/wiki/WindowsBuild](https://github.com/golang/go/wiki/WindowsBuild)
+for more information of how to set up a general Go build environment on Windows
+with MinGW.
+
