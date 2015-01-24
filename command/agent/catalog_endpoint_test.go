@@ -61,7 +61,7 @@ func TestCatalogDeregister(t *testing.T) {
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register node
-	req, err := http.NewRequest("GET", "/v1/catalog/deregister", nil)
+	req, err := http.NewRequest("POST", "/v1/catalog/deregister", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
