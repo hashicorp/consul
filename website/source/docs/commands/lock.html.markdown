@@ -13,9 +13,9 @@ Command: `consul lock`
 The `lock` command provides a mechanism for simple distributed locking.
 A lock (or semaphore) is created at a given prefix in the Key/Value store,
 and only when held, is a child process invoked. If the lock is lost or
-communication disrupted, the child process is terminated.A
+communication is disrupted, the child process is terminated.
 
-The number of lock holder is configurable with the `-n` flag. By default,
+The number of lock holders is configurable with the `-n` flag. By default,
 a single holder is allowed, and a lock is used for mutual exclusion. This
 uses the [leader election algorithm](/docs/guides/leader-election.html).
 
@@ -39,9 +39,11 @@ The only required options are the key prefix and the command to execute.
 The prefix must be writable. The child is invoked only when the lock is held,
 and the `CONSUL_LOCK_HELD` environment variable will be set to `true`.
 
-If the lock is lost, communication disrupted, or the parent process interrupted,
-the child process will receive a `SIGTERM`. After a grace period, a `SIGKILL`
-will be used to force termination.
+If the lock is lost, communication is disrupted, or the parent process
+interrupted, the child process will receive a `SIGTERM`. After a grace period,
+a `SIGKILL` will be used to force termination.  
+For Consul agents on Windows, the child process is always terminated with a
+`SIGKILL`, since Windows has no POSIX compatible notion for `SIGTERM`.
 
 The list of available flags are:
 
