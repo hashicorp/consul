@@ -50,4 +50,8 @@ upgrading, see the [upgrading page](/docs/upgrading.html).
     <td>0.4</td>
     <td>1, 2</td>
   </tr>
+  <tr>
+    <td>0.5</td>
+    <td>1, 2. 0.5.X servers cannot be mixed with older servers.</td>
+  </tr>
 </table>

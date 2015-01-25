@@ -69,6 +69,19 @@ MISC:
  * Many documentation improvements
  * Reduce log messages when quorum member is logs [GH-566]
 
+UPGRADE NOTES:
+
+ * If `acl_default_policy` is "deny", ensure tokens are updated to enable
+   service registration to avoid a service disruption. The new ACL policy
+   can be submitted with 0.4 before upgrading to 0.5 where it will be
+   enforced.
+
+ * Servers running 0.5.X cannot be mixed with older servers. (Any client
+   version is fine). There is a 15 minute upgrade window where mixed
+   versions are allowed before older servers will panic due to an unsupported
+   internal command. This is due to the new KV tombstones which are internal
+   to servers.
+
 ## 0.4.1 (October 20, 2014)
 
 FEATURES:
