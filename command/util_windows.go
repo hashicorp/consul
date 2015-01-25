@@ -8,7 +8,8 @@ import (
 )
 
 // signalPid sends a sig signal to the process with process id pid.
-// Interrupts et al is not implemented on Windows. Always send a SIGKILL.
+// Since interrupts et al is not implemented on Windows, signalPid
+// always sends a SIGKILL signal irrespective of the sig value.
 func signalPid(pid int, sig syscall.Signal) error {
 	p, err := os.FindProcess(pid)
 	if err != nil {

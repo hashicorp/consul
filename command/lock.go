@@ -43,12 +43,13 @@ Usage: consul lock [options] prefix child...
 
   Acquires a lock or semaphore at a given path, and invokes a child
   process when successful. The child process can assume the lock is
-  held while it executes. If the lock is lost or communication is disrupted
-  the child process will be sent a SIGTERM signal and given time to
-  gracefully exit. After the grace period expires the process will
-  be hard terminated.
-  On Windows agents, the process is always hard terminated, even on
-  the first attempt.
+  held while it executes. If the lock is lost or communication is
+  disrupted the child process will be sent a SIGTERM signal and given
+  time to gracefully exit. After the grace period expires the process
+  will be hard terminated.
+  For Consul agents on Windows, the child process is always hard 
+  terminated with a SIGKILL, since Windows has no POSIX compatible
+  notion for SIGTERM.
 
   When -n=1, only a single lock holder or leader exists providing
   mutual exclusion. Setting a higher value switches to a semaphore
@@ -288,7 +289,7 @@ func (c *LockCommand) startChild(script string, doneCh chan struct{}) error {
 // killChild is used to forcefully kill the child, first using SIGTERM
 // to allow for a graceful cleanup and then using SIGKILL for a hard
 // termination.
-// On Windows, the child is always hard terminated with SIGKILL, even
+// On Windows, the child is always hard terminated with a SIGKILL, even
 // on the first attempt.
 func (c *LockCommand) killChild(childDone chan struct{}) error {
 	// Get the child process
