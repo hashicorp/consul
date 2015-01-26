@@ -38,8 +38,8 @@ we'll give it some tags, which we can use as additional ways to query
 it later.
 
 ```text
-$ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80}}' \
-    >/etc/consul.d/web.json
+$ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80}}' |
+    sudo tee /etc/consul.d/web.json
 ```
 
 Now, restart the agent we're running, providing the configuration directory:
