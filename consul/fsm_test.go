@@ -42,6 +42,7 @@ func TestFSM_RegisterNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -82,6 +83,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -139,6 +141,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -198,6 +201,7 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -257,6 +261,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -328,6 +333,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -468,6 +474,7 @@ func TestFSM_KVSSet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -507,6 +514,7 @@ func TestFSM_KVSDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -557,6 +565,7 @@ func TestFSM_KVSDeleteTree(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -608,6 +617,7 @@ func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -668,6 +678,7 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -729,6 +740,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -813,6 +825,7 @@ func TestFSM_KVSLock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -862,6 +875,7 @@ func TestFSM_KVSUnlock(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -929,6 +943,7 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -1006,6 +1021,7 @@ func TestFSM_TombstoneReap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	defer os.RemoveAll(path)
 	fsm, err := NewFSM(nil, path, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
