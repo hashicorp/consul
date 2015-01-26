@@ -637,6 +637,11 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 			consul.ConsulServiceID)
 	}
 
+	// Validate ServiceID
+	if serviceID == "" {
+		return fmt.Errorf("ServiceID missing")
+	}
+
 	// Remove service immeidately
 	a.state.RemoveService(serviceID)
 
@@ -757,6 +762,11 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 // RemoveCheck is used to remove a health check.
 // The agent will make a best effort to ensure it is deregistered
 func (a *Agent) RemoveCheck(checkID string, persist bool) error {
+	// Validate CheckID
+	if checkID == "" {
+		return fmt.Errorf("CheckID missing")
+	}
+
 	// Add to the local state for anti-entropy
 	a.state.RemoveCheck(checkID)
 
