@@ -573,6 +573,20 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	})
 }
 
+func TestAgentAntiEntory_deleteService_fails(t *testing.T) {
+	l := new(localState)
+	if err := l.deleteService(""); err == nil {
+		t.Fatalf("should have failed")
+	}
+}
+
+func TestAgentAntiEntropy_deleteCheck_fails(t *testing.T) {
+	l := new(localState)
+	if err := l.deleteCheck(""); err == nil {
+		t.Fatalf("should have errored")
+	}
+}
+
 var testRegisterRules = `
 service "api" {
 	policy = "write"
