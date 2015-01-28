@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -408,6 +409,10 @@ func (l *localState) syncChanges() error {
 
 // deleteService is used to delete a service from the server
 func (l *localState) deleteService(id string) error {
+	if id == "" {
+		return fmt.Errorf("ServiceID missing")
+	}
+
 	req := structs.DeregisterRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
@@ -425,6 +430,10 @@ func (l *localState) deleteService(id string) error {
 
 // deleteCheck is used to delete a service from the server
 func (l *localState) deleteCheck(id string) error {
+	if id == "" {
+		return fmt.Errorf("CheckID missing")
+	}
+
 	req := structs.DeregisterRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,

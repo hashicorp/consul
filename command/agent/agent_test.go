@@ -247,6 +247,11 @@ func TestAgent_RemoveService(t *testing.T) {
 		t.Fatalf("should have errored")
 	}
 
+	// Remove without an ID
+	if err := agent.RemoveService("", false); err == nil {
+		t.Fatalf("should have errored")
+	}
+
 	// Removing a service with a single check works
 	{
 		srv := &structs.NodeService{
@@ -404,6 +409,11 @@ func TestAgent_RemoveCheck(t *testing.T) {
 	// Remove check that doesn't exist
 	if err := agent.RemoveCheck("mem", false); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	// Remove without an ID
+	if err := agent.RemoveCheck("", false); err == nil {
+		t.Fatalf("should have errored")
 	}
 
 	health := &structs.HealthCheck{
