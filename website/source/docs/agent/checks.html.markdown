@@ -13,7 +13,7 @@ checks. A health check is considered to be application-level if it is associated
 service. If not associated with a service, the check monitors the health of the entire node.
 
 A check is defined in a configuration file or added at runtime over the HTTP interface.  Checks
-created via the HTTP interface persist across runs of the Consul agent on that node.
+created via the HTTP interface persist with that node.
 
 There are three different kinds of checks:
 
