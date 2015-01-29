@@ -32,7 +32,7 @@ There are three different kinds of checks:
  The state of the check must be updated periodically over the HTTP interface. If an
  external system fails to update the status within a given TTL, the check is
  set to the failed state. This mechanism, conceptually similar to a dead man's switch,
- relies on the application to directly report its health. For example, a healthy web app
+ relies on the application to directly report its health. For example, a healthy app
  can periodically `PUT` a status update to the HTTP endpoint; if the app fails, the TTL will
  expire and the health check enters a critical state.
 
