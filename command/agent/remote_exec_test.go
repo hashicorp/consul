@@ -84,7 +84,20 @@ func TestRexecWriter(t *testing.T) {
 }
 
 func TestRemoteExecGetSpec(t *testing.T) {
-	dir, agent := makeAgent(t, nextConfig())
+	config := nextConfig()
+	testRemoteExecGetSpec(t, config)
+}
+
+func TestRemoteExecGetSpec_ACLToken(t *testing.T) {
+	config := nextConfig()
+	config.ACLDatacenter = "dc1"
+	config.ACLToken = "root"
+	config.ACLDefaultPolicy = "deny"
+	testRemoteExecGetSpec(t, config)
+}
+
+func testRemoteExecGetSpec(t *testing.T, c *Config) {
+	dir, agent := makeAgent(t, c)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 	testutil.WaitForLeader(t, agent.RPC, "dc1")
@@ -117,7 +130,20 @@ func TestRemoteExecGetSpec(t *testing.T) {
 }
 
 func TestRemoteExecWrites(t *testing.T) {
-	dir, agent := makeAgent(t, nextConfig())
+	config := nextConfig()
+	testRemoteExecWrites(t, config)
+}
+
+func TestRemoteExecWrites_ACLToken(t *testing.T) {
+	config := nextConfig()
+	config.ACLDatacenter = "dc1"
+	config.ACLToken = "root"
+	config.ACLDefaultPolicy = "deny"
+	testRemoteExecWrites(t, config)
+}
+
+func testRemoteExecWrites(t *testing.T, c *Config) {
+	dir, agent := makeAgent(t, c)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 	testutil.WaitForLeader(t, agent.RPC, "dc1")
@@ -275,6 +301,7 @@ func setKV(t *testing.T, agent *Agent, key string, val []byte) {
 			Value: val,
 		},
 	}
+	write.Token = agent.config.ACLToken
 	var success bool
 	if err := agent.RPC("KVS.Apply", &write, &success); err != nil {
 		t.Fatalf("err: %v", err)
@@ -286,6 +313,7 @@ func getKV(t *testing.T, agent *Agent, key string) *structs.DirEntry {
 		Datacenter: agent.config.Datacenter,
 		Key:        key,
 	}
+	req.Token = agent.config.ACLToken
 	var out structs.IndexedDirEntries
 	if err := agent.RPC("KVS.Get", &req, &out); err != nil {
 		t.Fatalf("err: %v", err)
