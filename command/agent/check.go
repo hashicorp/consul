@@ -36,7 +36,8 @@ type CheckType struct {
 	HTTP     string
 	Interval time.Duration
 
-	TTL time.Duration
+	Timeout time.Duration
+	TTL     time.Duration
 
 	Notes string
 }
@@ -269,6 +270,7 @@ type CheckHTTP struct {
 	CheckID  string
 	HTTP     string
 	Interval time.Duration
+	Timeout  time.Duration
 	Logger   *log.Logger
 
 	httpClient *http.Client
@@ -287,7 +289,9 @@ func (c *CheckHTTP) Start() {
 		// For long (>10s) interval checks the http timeout is 10s, otherwise the
 		// timeout is the interval. This means that a check *should* return
 		// before the next check begins.
-		if c.Interval < 10*time.Second {
+		if c.Timeout > 0 && c.Timeout < c.Interval {
+			c.httpClient = &http.Client{Timeout: c.Timeout}
+		} else if c.Interval < 10*time.Second {
 			c.httpClient = &http.Client{Timeout: c.Interval}
 		} else {
 			c.httpClient = &http.Client{Timeout: 10 * time.Second}
