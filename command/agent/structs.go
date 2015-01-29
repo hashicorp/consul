@@ -32,7 +32,7 @@ func (s *ServiceDefinition) NodeService() *structs.NodeService {
 func (s *ServiceDefinition) CheckTypes() (checks CheckTypes) {
 	s.Checks = append(s.Checks, &s.Check)
 	for _, check := range s.Checks {
-		if (check.Script != "" && check.Interval != 0) || check.TTL != 0 {
+		if check.Valid() {
 			checks = append(checks, check)
 		}
 	}
