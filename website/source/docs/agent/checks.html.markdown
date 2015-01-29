@@ -8,9 +8,12 @@ description: |-
 
 # Checks
 
-One of the primary roles of the agent is management of system- and application-level health
+One of the primary roles of the agent is management of system-level and application-level health
 checks. A health check is considered to be application-level if it is associated with a
-service. A check is defined in a configuration file or added at runtime over the HTTP interface.
+service. If not associated with a service, the check monitors the health of the entire node.
+
+A check is defined in a configuration file or added at runtime over the HTTP interface.  Checks
+created via the HTTP interface persist across runs of the Consul agent on that node.
 
 There are three different kinds of checks:
 
