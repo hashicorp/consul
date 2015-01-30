@@ -12,7 +12,7 @@ The Consul agent is the core process of Consul. The agent maintains membership
 information, registers services, runs checks, responds to queries,
 and more. The agent must run on every node that is part of a Consul cluster.
 
-Any Agent may run in one of two modes: client or server. A server
+Any agent may run in one of two modes: client or server. A server
 node takes on the additional responsibility of being part of the [consensus quorum](#).
 These nodes take part in Raft and provide strong consistency and availability in
 the case of failure. The higher burden on the server nodes means that usually they
