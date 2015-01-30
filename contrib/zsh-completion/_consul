@@ -9,7 +9,10 @@ _1st_arguments=(
   'info:Provides:debugging information for operators'
   'join:Tell Consul agent to join cluster'
   'keygen:Generates a new encryption key'
+  'keyring:Manages gossip layer encryption keys'
   'leave:Gracefully leaves the Consul cluster and shuts down'
+  'lock:Execute a command holding a lock'
+  'maint:Controls node or service maintenance mode'
   'members:Lists the members of a Consul cluster'
   'monitor:Stream logs from a Consul agent'
   'reload:Triggers the agent to reload configuration files'
@@ -92,9 +95,37 @@ __join() {
     '-wan[Joins a server to another server in the WAN pool]'
 }
 
+__keyring() {
+  _arguments \
+    '-install=[(<key>) Install a new encryption key. This will broadcast the new key to all members in the cluster]' \
+    '-use=[(key) Change the primary encryption key, which is used to encrypt messages. The key must already be installed before this operation can succeed]' \
+    '-remove=[(key) Remove the given key from the cluster. This operation may only be performed on keys which are not currently the primary key]' \
+    '-list=[(key) List all keys currently in use within the cluster]' \
+    '-rpc-addr=[(127.0.0.1:8400) RPC address of the Consul agent]'
+}
+
 __leave() {
   _arguments \
     '-rpc-addr=[(127.0.0.1:8400) RPC address of the Consul agent]'
+}
+
+__lock() {
+  _arguments \
+    '-http-addr=[(127.0.0.1:8500) HTTP address of the Consul agent]' \
+    '-n=[(1) Maximum number of allowed lock holders. If this value is one, it operates as a lock, otherwise a semaphore is used]' \
+    '-name=[Optional name to associate with lock session]' \
+    '-token=[ACL token to use. Defaults to that of agent]' \
+    '-verbose[Enables verbose output]'
+}
+
+__maint() {
+  _arguments \
+    '-enable[Enable maintenance mode]' \
+    '-disable[Dsiable maintenance mode]' \
+    '-reason=[(<string>) Text string describing the maintenance reason]' \
+    '-service=[(<serviceID>) Control maintenance mode for a specific service ID]' \
+    '-token=[ACL token to use. Defaults to that of agent]' \
+    '-http-addr=[(127.0.0.1:8500) HTTP address of the Consul agent]'
 }
 
 __members() {
@@ -129,8 +160,14 @@ case "$words[1]" in
     __info ;;
   join)
     __join ;;
+  keyring)
+    __keyring ;;
   leave)
     __leave ;;
+  lock)
+    __lock ;;
+  maint)
+    __maint ;;
   members)
     __members ;;
   monitor)
