@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "DNS Interface"
 sidebar_current: "docs-agent-dns"
 description: |-
-  One of the primary query interfaces for Consul is using DNS. The DNS interface allows applications to make use of service discovery without any high-touch integration with Consul.
+  One of the primary query interfaces for Consul is DNS. The DNS interface allows applications to make use of service discovery without any high-touch integration with Consul.
 ---
 
 # DNS Interface
@@ -12,8 +12,8 @@ One of the primary query interfaces for Consul is DNS.
 The DNS interface allows applications to make use of service
 discovery without any high-touch integration with Consul. For
 example, instead of making HTTP API requests to Consul,
-a host can use the DNS server directly and just do a name lookup
-for "redis.service.east-aws.consul".
+a host can use the DNS server directly via name lookups
+like "redis.service.east-aws.consul".
 
 This query automatically translates to a lookup of nodes that
 provide the redis service, are located in the "east-aws" datacenter,
@@ -21,10 +21,9 @@ and have no failing health checks. It's that simple!
 
 There are a number of [configuration options](/docs/agent/options.html) that
 are important for the DNS interface. They are `client_addr`, `ports.dns`, `recursors`,
-`domain`, and `dns_config`. By default Consul will listen on 127.0.0.1:8600 for DNS queries
-in the "consul." domain, without support for DNS recursion. All queries are case-insensitive: a
-name lookup for `PostgreSQL.node.dc1.consul` will find all nodes named `postgresql`,
-regardless of case.
+`domain`, and `dns_config`. By default, Consul will listen on 127.0.0.1:8600 for DNS queries
+in the "consul." domain, without support for DNS recursion. All queries are case-insensitive,
+so a lookup of `PostgreSQL.node.dc1.consul` will find all nodes named `postgresql`.
 
 There are a few ways to use the DNS interface. One option is to use a custom
 DNS resolver library and point it at Consul. Another option is to set Consul
