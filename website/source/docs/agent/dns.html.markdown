@@ -47,10 +47,10 @@ A node lookup, a simple query for the address of a named node, looks like this:
     <node>.node.<datacenter>.<domain>
 
 For example, if we have a "foo" node with default settings, we could look for
-"foo.node.dc1.consul." The datacenter is an optional part of the FQDN; if not
+"foo.node.dc1.consul." The datacenter is an optional part of the FQDN: if not
 provided, it defaults to the datacenter of the agent. If we know "foo" is running in 
 the same datacenter as our local agent, we can instead use "foo.node.consul." This
-convention allows for terse syntax where appropriate while allowing for queries of
+convention allows for terse syntax where appropriate while supporting queries of
 nodes in remote datacenters as necessary.
 
 For a node lookup, the only records returned are A records containing the IP address of
@@ -88,7 +88,7 @@ The format of a standard service lookup is:
 
     [tag.]<service>.service[.datacenter][.domain]
 
-The `tag` is optional, and as with node lookups, the `datacenter` is as well. If no tag is
+The `tag` is optional, and, as with node lookups, the `datacenter` is as well. If no tag is
 provided, no filtering is done on tag. If no datacenter is provided, the datacenter of
 this Consul agent is assumed.
 
@@ -100,7 +100,7 @@ The DNS query system makes use of health check information to prevent routing
 to unhealthy nodes. When a service query is made, any services failing their health
 check or failing a node system check will be omitted from the results. To allow
 for simple load balancing, the set of nodes returned is also randomized each time.
-These mechanisms make it easy to use DNS along with application level retries
+These mechanisms make it easy to use DNS along with application-level retries
 as the foundation for an auto-healing service oriented architecture.
 
 For standard services queries, both A and SRV records are supported. SRV records
