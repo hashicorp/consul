@@ -63,8 +63,8 @@ using OpenSSL. Note: client certificates must have
 for client and server authentication.
 
 When enabling TLS for Consul, we first must decide what we wish to verify. TLS can be used
-to verify the authenticity of the servers or also verify the authenticity of clients, controlled
-by the `verify_incoming` or `verify_outgoing` [options](/docs/agent/options.html), respectively.
+to verify the authenticity of the servers or verify the authenticity of clients.  These modes are
+controlled by the `verify_incoming` and `verify_outgoing` [options](/docs/agent/options.html), respectively.
 
 If `verify_outgoing` is set, agents verify the authenticity of Consul for outgoing
 connections. Server nodes must present a certificate signed by the `ca_file` setting that must
