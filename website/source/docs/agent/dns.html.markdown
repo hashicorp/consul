@@ -135,15 +135,14 @@ The format for RFC 2782 SRV lookups is:
 Per [RFC 2782](https://tools.ietf.org/html/rfc2782), SRV queries should use
 underscores (_) as a prefix to the `service` and `protocol` values in a query to
 prevent DNS collisions. The `protocol` value can be any of the tags for a
-service or if the service has no tags, the value "tcp" should be used. If "tcp"
+service. If the service has no tags, "tcp" should be used. If "tcp"
 is specified as the protocol, the query will not perform any tag filtering.
 
 Other than the query format and default "tcp" protocol/tag value, the behavior
 of the RFC style lookup is the same as the standard style of lookup.
 
-Using RFC 2782 lookup, If you registered the service "rabbitmq" on port
-5672 and tagged it with "amqp" you would query the SRV record as
-"_rabbitmq._amqp.service.consul" as illustrated in the example below:
+If you registered the service "rabbitmq" on port 5672 and tagged it with "amqp",
+you could make an RFC 2782 query for its SRV record as "_rabbitmq._amqp.service.consul":
 
 ```text
 $ dig @127.0.0.1 -p 8600 _rabbitmq._amqp.service.consul SRV
@@ -165,6 +164,8 @@ _rabbitmq._amqp.service.consul.	0	IN	SRV	1 1 5672 rabbitmq.node1.dc1.consul.
 ;; ADDITIONAL SECTION:
 rabbitmq.node1.dc1.consul.	0	IN	A	10.1.11.20
 ```
+
+Again, note that the SRV record returns the port of the service as well as its IP.
 
 ### UDP Based DNS Queries
 
