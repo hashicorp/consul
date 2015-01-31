@@ -10,14 +10,14 @@ description: |-
 
 One of the primary query interfaces for Consul is DNS.
 The DNS interface allows applications to make use of service
-discovery without any high-touch integration with Consul. For
-example, instead of making HTTP API requests to Consul,
-a host can use the DNS server directly via name lookups
-like "redis.service.east-aws.consul".
+discovery without any high-touch integration with Consul.
 
-This query automatically translates to a lookup of nodes that
-provide the redis service, are located in the "east-aws" datacenter,
-and have no failing health checks. It's that simple!
+For example, instead of making HTTP API requests to Consul,
+a host can use the DNS server directly via name lookups
+like "redis.service.east-aws.consul". This query automatically
+translates to a lookup of nodes that provide the redis service
+are located in the "east-aws" datacenter and have no failing health checks.
+It's that simple!
 
 There are a number of [configuration options](/docs/agent/options.html) that
 are important for the DNS interface. They are `client_addr`, `ports.dns`, `recursors`,
