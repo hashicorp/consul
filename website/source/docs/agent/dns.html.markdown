@@ -79,7 +79,7 @@ consul.			0	IN	SOA	ns.consul. postmaster.consul. 1392836399 3600 600 86400 0
 
 ## Service Lookups
 
-A service lookup is is used to query for service providers.  Service queries support
+A service lookup is used to query for service providers.  Service queries support
 two lookup methods: standard and strict [RFC 2782](https://tools.ietf.org/html/rfc2782).
 
 ### Standard Lookup
