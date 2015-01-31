@@ -15,15 +15,15 @@ discovery without any high-touch integration with Consul.
 For example, instead of making HTTP API requests to Consul,
 a host can use the DNS server directly via name lookups
 like "redis.service.east-aws.consul". This query automatically
-translates to a lookup of nodes that provide the redis service
-are located in the "east-aws" datacenter and have no failing health checks.
+translates to a lookup of nodes that provide the redis service,
+are located in the "east-aws" datacenter, and have no failing health checks.
 It's that simple!
 
-There are a number of [configuration options](/docs/agent/options.html) that
-are important for the DNS interface. They are `client_addr`, `ports.dns`, `recursors`,
-`domain`, and `dns_config`. By default, Consul will listen on 127.0.0.1:8600 for DNS queries
-in the "consul." domain, without support for DNS recursion. All queries are case-insensitive,
-so a lookup of `PostgreSQL.node.dc1.consul` will find all nodes named `postgresql`.
+There are a number of configuration options that are important for the DNS interface,
+specifically `client_addr`, `ports.dns`, `recursors`, `domain`, and `dns_config`. By default,
+Consul will listen on 127.0.0.1:8600 for DNS queries in the "consul." domain, without support
+for further DNS recursion. Please consult the [documentation on configuration options](/docs/agent/options.html)
+for more details.
 
 There are a few ways to use the DNS interface. One option is to use a custom
 DNS resolver library and point it at Consul. Another option is to set Consul
@@ -34,6 +34,9 @@ domain to a Consul agent from the existing DNS server.
 You can experiment with Consul's DNS server on the command line using tools such as `dig`:
 
     $ dig @127.0.0.1 -p 8600 redis.service.dc1.consul. ANY
+
+Note that in DNS, all queries are case-insensitive. A lookup of `PostgreSQL.node.dc1.consul`
+will find all nodes named `postgresql`.
 
 ## Node Lookups
 
