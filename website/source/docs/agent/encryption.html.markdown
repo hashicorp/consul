@@ -62,15 +62,15 @@ using OpenSSL. Note: client certificates must have
 [Extended Key Usage](https://www.openssl.org/docs/apps/x509v3_config.html#extended_key_usage_) enabled
 for client and server authentication.
 
-When enabling TLS for Consul, we first must decide what we wish to verify. TLS can be used
-to verify the authenticity of the servers or verify the authenticity of clients.  These modes are
-controlled by the `verify_incoming` and `verify_outgoing` [options](/docs/agent/options.html), respectively.
+TLS can be used to verify the authenticity of the servers or verify the authenticity of clients.  These modes are
+controlled by the `verify_outgoing` and `verify_incoming` [options](/docs/agent/options.html), respectively.
 
 If `verify_outgoing` is set, agents verify the authenticity of Consul for outgoing
-connections. Server nodes must present a certificate signed by the `ca_file` setting that in turn must
-be present on all agents. All server nodes must have an appropriate key pair set using `cert_file` and `key_file`.
+connections. Server nodes must present a certificate signed by the certificate authority
+present on all agents, set via the agent's `ca_file` option. All server nodes must have an
+appropriate key pair set using `cert_file` and `key_file`.
 
-If `verify_incoming` is set, then the servers verify the authenticity of all incoming
+If `verify_incoming` is set, the servers verify the authenticity of all incoming
 connections. Servers will also disallow any non-TLS connections. All clients must have
 a valid key pair set using `cert_file` and `key_file`. To force clients to use TLS,
 `verify_outgoing` must also be set.
