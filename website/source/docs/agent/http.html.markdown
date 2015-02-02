@@ -16,7 +16,7 @@ Each endpoint manages a different aspect of Consul:
 
 * [kv](http/kv.html) - Key/Value store
 * [agent](http/agent.html) - Consul Agent
-* [catalog](http/catalog.html) - Modes and services
+* [catalog](http/catalog.html) - Nodes and services
 * [health](http/health.html) - Health checks
 * [session](http/session.html) - Sessions
 * [acl](http/acl.html) - Access Control Lists
@@ -32,14 +32,14 @@ Certain endpoints support a feature called a "blocking query." A blocking query
 is used to wait for a potential change using long polling.
 
 Not all endpoints support blocking, but those that do are clearly designated in the
-documentations.  Any endpoint that supports blocking will also set the HTTP header
-`X-Consul-Index`, a unique identifier representing the current state of this
-requested resource.  When again requesting this resource, the client can set the `index`
-query string parameter to the value of "X-Consul-Index", indicating that it wishes to wait
-for any changes subsequent to that index.
+documentation.  Any endpoint that supports blocking will also set the HTTP header
+`X-Consul-Index`, a unique identifier representing the current state of the
+requested resource.  On subsequent requests for this resource, the client can set the `index`
+query string parameter to the value of `X-Consul-Index`, indicating that the client wishes
+to wait for any changes subsequent to that index.
 
 In addition to `index`, endpoints that support blocking will also honor a `wait`
-parameter specifying a maximum duration for the blocking request. It not set, it will
+parameter specifying a maximum duration for the blocking request. If not set, it will
 default to 10 minutes. This value can be specified in the form of "10s" or "5m" (i.e.,
 10 seconds or 5 minutes, respectively).
 
@@ -67,11 +67,11 @@ The three read modes are:
   increased latency due to an extra round trip. Most clients should not use this
   unless they cannot tolerate a stale read.
 
-* stale - This mode allows any server to service the read regardless of if
-  it is the leader. This means reads can be arbitrarily stale but are generally
+* stale - This mode allows any server to service the read regardless of whether
+  it is the leader. This means reads can be arbitrarily stale; however, results are generally
   consistent to within 50 milliseconds of the leader. The trade-off is very fast and
-  scalable reads with a higher likelihood of stale values. This mode allows reads without
-  a leader, meaning a cluster that is unavailable will still be able to respond to queries.
+  scalable reads with a higher likelihood of stale values. Since this mode allows reads without
+  a leader, a cluster that is unavailable will still be able to respond to queries.
 
 To switch these modes, either the `stale` or `consistent` query parameters
 should be provided on requests. It is an error to provide both.
