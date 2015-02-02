@@ -682,6 +682,16 @@ func TestDecodeConfig_Services(t *testing.T) {
 					"interval": "30s",
 					"ttl": "60s"
 				}
+			},
+			{
+				"id": "es0",
+				"name": "elasticsearch",
+				port: "9200",
+				"check": {
+					"HTTP": "http://localhost:9200/_cluster/health",
+					"interval": "10s",
+					"timeout": "100ms"
+				}
 			}
 		]
 	}`
@@ -730,6 +740,16 @@ func TestDecodeConfig_Services(t *testing.T) {
 				},
 				Port: 7000,
 			},
+			&ServiceDefinition{
+				Check: CheckType{
+					HTTP:     "http://localhost:9200/_cluster_health",
+					Interval: 10 * time.Second,
+					Timeout:  100 * time.Millisecond,
+				},
+				ID:   "es0",
+				Name: "elasticsearch",
+				Port: 9200,
+			},
 		},
 	}
 
@@ -759,6 +779,14 @@ func TestDecodeConfig_Checks(t *testing.T) {
 				"script": "/bin/check_redis_tx",
 				"interval": "1m",
 				"service_id": "redis"
+			},
+			{
+				"id": "chk4",
+				"name": "service:elasticsearch:health",
+				"HTTP": "http://localhost:9200/_cluster/health",
+				"interval": "10s",
+				"timeout": "100ms"
+				"service_id": "elasticsearch"
 			}
 		]
 	}`
@@ -793,6 +821,16 @@ func TestDecodeConfig_Checks(t *testing.T) {
 				CheckType: CheckType{
 					Script:   "/bin/check_redis_tx",
 					Interval: time.Minute,
+				},
+			},
+			&CheckDefinition{
+				ID:        "chk4",
+				Name:      "service:elasticsearch:health",
+				ServiceID: "elasticsearch",
+				CheckType: CheckType{
+					HTTP:     "http://localhost:9200/_cluster_health",
+					Interval: 10 * time.Second,
+					Timeout:  100 * time.Millisecond,
 				},
 			},
 		},
