@@ -615,7 +615,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 			Node:        a.config.NodeName,
 			CheckID:     checkID,
 			Name:        fmt.Sprintf("Service '%s' check", service.Service),
-			Status:      structs.HealthCritical,
+			Status:      structs.HealthUnknown,
 			Notes:       chkType.Notes,
 			ServiceID:   service.ID,
 			ServiceName: service.Service,
