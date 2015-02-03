@@ -44,7 +44,7 @@ a response body. The response header looks like:
 }
 ```
 
-The `Command` in the quest is used to specify what command the server should
+The `Command` in the request is used to specify what command the server should
 run, and the `Seq` is used to track the request. Responses are
 tagged with the same `Seq` as the request. This allows for some
 concurrency on the server side as requests are not purely FIFO.
@@ -53,14 +53,14 @@ All responses may be accompanied by an error.
 
 Possible commands include:
 
-* handshake - Initializes the connection and set the version
+* handshake - Initializes the connection and sets the version
 * force-leave - Removes a failed node from the cluster
 * join - Requests Consul join another node
 * members-lan - Returns the list of LAN members
 * members-wan - Returns the list of WAN members
 * monitor - Starts streaming logs over the connection
 * stop - Stops streaming logs
-* leave - Instructs Consul agent to perform a graceful leave and shutdown
+* leave - Instructs the Consul agent to perform a graceful leave and shutdown
 * stats - Provides various debugging statistics
 * reload - Triggers a configuration reload
 
@@ -69,8 +69,9 @@ response body that is applicable.
 
 ### handshake
 
-The handshake MUST be the first command that is sent as it informs
-the server which version the client is using.
+This command is used to initialize an RPC connection. As it informs
+the server which version the client is using, handshake MUST be the
+first command sent.
 
 The request header must be followed by a handshake body, like:
 
@@ -187,8 +188,8 @@ The server will respond with a standard response header indicating if the monito
 was successful. If so, any future logs will be sent and tagged with
 the same `Seq` as in the `monitor` request.
 
-Assume we issued the previous monitor command with Seq `50`,
-we may start getting messages like:
+Assume we issued the previous monitor command with `"Seq": 50`. We may start
+getting messages like:
 
 ```javascript
 {
@@ -228,8 +229,8 @@ There is no response body.
 
 ### leave
 
-This command is used trigger a graceful leave and shutdown.
-There is no request body or special response body.
+This command is used to trigger a graceful leave and shutdown.
+There is no request body or response body.
 
 ### stats
 
@@ -252,5 +253,5 @@ response body looks like:
 
 ### reload
 
-This command is used trigger a reload of configurations.
-There is no request body, or special response body.
+This command is used to trigger a reload of configurations.
+There is no request body or response body.
