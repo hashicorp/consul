@@ -3,29 +3,28 @@ layout: "docs"
 page_title: "Telemetry"
 sidebar_current: "docs-agent-telemetry"
 description: |-
-  The Consul agent collects various metrics data at runtime about the performance of different libraries and sub-systems. These metrics are aggregated on a ten second interval and are retained for one minute.
+  The Consul agent collects various runtime metrics about the performance of different libraries and subsystems. These metrics are aggregated on a ten second interval and are retained for one minute.
 ---
 
 # Telemetry
 
-The Consul agent collects various metrics data at runtime about the performance
-of different libraries and sub-systems. These metrics are aggregated on a ten second
-interval and are retained for one minute.
+The Consul agent collects various runtime metrics about the performance of
+different libraries and subsystems. These metrics are aggregated on a ten
+second interval and are retained for one minute.
 
-To view the telemetry information, you must send a `USR1` signal to the Consul
-process. Windows users must use the `BREAK` signal instead.
-Once Consul receives the signal, it will dump the current telemetry
-information to the stderr of the agent.
+To view this data, you must send a signal to the Consul process: on Unix,
+this is `USR1` while on Windows it is `BREAK`. Once Consul receives the signal,
+it will dump the current telemetry information to the agent's `stderr`.
 
-In general, the telemetry information is used for debugging or otherwise
-getting a better view into what Consul is doing.
+This telemetry information can be used for debugging or otherwise
+getting a better view of what Consul is doing.
 
 Additionally, if the `statsite_addr` [configuration option](/docs/agent/options.html)
-is provided, then the telemetry information will be streamed to a
+is provided, the telemetry information will be streamed to a
 [statsite](http://github.com/armon/statsite) server where it can be
 aggregate and flushed to Graphite or any other metrics store.
 
-Below is an example output:
+Below is sample output of a telemetry dump:
 
 ```text
 [2014-01-29 10:56:50 -0800 PST][G] 'consul-agent.runtime.num_goroutines': 19.000
