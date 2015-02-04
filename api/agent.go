@@ -66,6 +66,7 @@ type AgentServiceCheck struct {
 	Script   string `json:",omitempty"`
 	Interval string `json:",omitempty"`
 	TTL      string `json:",omitempty"`
+	HTTP     string `json:",omitempty"`
 }
 type AgentServiceChecks []*AgentServiceCheck
 
