@@ -24,7 +24,7 @@ is provided, the telemetry information will be streamed to a
 [statsite](http://github.com/armon/statsite) server where it can be
 aggregate and flushed to Graphite or any other metrics store.
 
-Below is an output:
+Below is sample output of a telemetry dump:
 
 ```text
 [2014-01-29 10:56:50 -0800 PST][G] 'consul-agent.runtime.num_goroutines': 19.000
