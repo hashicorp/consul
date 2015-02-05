@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
+	scada "github.com/hashicorp/scada-client"
 	"github.com/mitchellh/cli"
 )
 
@@ -45,6 +46,7 @@ type Command struct {
 	rpcServer         *AgentRPC
 	httpServers       []*HTTPServer
 	dnsServer         *DNSServer
+	scadaProvider     *scada.Provider
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -382,6 +384,17 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		}()
 	}
 
+	// Enable the SCADA integration
+	if config.AtlasCluster != "" {
+		provider, err := NewProvider(config, logOutput)
+		if err != nil {
+			agent.Shutdown()
+			c.Ui.Error(fmt.Sprintf("Error starting SCADA connection: %s", err))
+			return err
+		}
+		c.scadaProvider = provider
+	}
+
 	return nil
 }
 
@@ -589,9 +602,11 @@ func (c *Command) Run(args []string) int {
 	if c.dnsServer != nil {
 		defer c.dnsServer.Shutdown()
 	}
-
 	for _, server := range c.httpServers {
 		defer server.Shutdown()
+	}
+	if c.scadaProvider != nil {
+		defer c.scadaProvider.Shutdown()
 	}
 
 	// Join startup nodes if specified
@@ -631,6 +646,12 @@ func (c *Command) Run(args []string) int {
 		gossipEncrypted = c.agent.client.Encrypted()
 	}
 
+	// Determine the Atlas cluster
+	cluster := config.AtlasCluster
+	if cluster == "" {
+		cluster = "<disabled>"
+	}
+
 	// Let the agent know we've finished registration
 	c.agent.StartSync()
 
@@ -644,6 +665,7 @@ func (c *Command) Run(args []string) int {
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
 		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
+	c.Ui.Info(fmt.Sprintf(" Atlas Cluster: %v", cluster))
 
 	// Enable log streaming
 	c.Ui.Info("")
