@@ -3,19 +3,18 @@ layout: "docs"
 page_title: "Watches"
 sidebar_current: "docs-agent-watches"
 description: |-
-  Watches are a way of specifying a view of data (list of nodes, KV pairs, health checks, etc) which is monitored for any updates. When an update is detected, an external handler is invoked. A handler can be any executable. As an example, you could  watch the status of health checks and notify an external system when a check is critical.
+  Watches are a way of specifying a view of data (e.g. list of nodes, KV pairs, health checks) which is monitored for updates. When an update is detected, an external handler is invoked. A handler can be any executable. As an example, you could watch the status of health checks and notify an external system when a check is critical.
 ---
 
 # Watches
 
-Watches are a way of specifying a view of data (list of nodes, KV pairs,
-health checks, etc) which is monitored for any updates. When an update
-is detected, an external handler is invoked. A handler can be any
-executable. As an example, you could  watch the status of health checks and
-notify an external system when a check is critical.
+Watches are a way of specifying a view of data (e.g. list of nodes, KV pairs, health
+checks) which is monitored for updates. When an update is detected, an external handler
+is invoked. A handler can be any executable. As an example, you could watch the status
+of health checks and notify an external system when a check is critical.
 
 Watches are implemented using blocking queries in the [HTTP API](/docs/agent/http.html).
-Agents automatically make the proper API calls to watch for changes,
+Agents automatically make the proper API calls to watch for changes
 and inform a handler when the data view has updated.
 
 Watches can be configured as part of the [agent's configuration](/docs/agent/options.html),
@@ -23,27 +22,28 @@ causing them to run once the agent is initialized. Reloading the agent configura
 allows for adding or removing watches dynamically.
 
 Alternatively, the [watch command](/docs/commands/watch.html) enables a watch to be
-started outside of the agent. This can be used by an operator to inspect data in Consul,
+started outside of the agent. This can be used by an operator to inspect data in Consul
 or to easily pipe data into processes without being tied to the agent lifecycle.
 
 In either case, the `type` of the watch must be specified. Each type of watch
-supports different parameters, both required and optional. These options are specified
-in a JSON body when using agent configuration, or as CLI flags for the watch command.
+supports different parameters, some required and some optional. These options are specified
+in a JSON body when using agent configuration or as CLI flags for the watch command.
 
 ## Handlers
 
-The watch specification specifies the view of data to be monitored.
-Once that view is updated the specified handler is invoked. The handler
+The watch configuration specifies the view of data to be monitored.
+Once that view is updated, the specified handler is invoked. The handler
 can be any executable.
 
-A handler should read its input from stdin, and expect to read
+A handler should read its input from stdin and expect to read
 JSON formatted data. The format of the data depends on the type of the
-watch. Each watch type documents the format type, and because they
+watch. Each watch type documents the format type. Because they
 map directly to an HTTP API, handlers should expect the input to
 match the format of the API.
 
-Additionally, the `CONSUL_INDEX` environmental variable will be set.
-This maps to the `X-Consul-Index` value from the [HTTP API](/docs/agent/http.html).
+Additionally, the `CONSUL_INDEX` environment variable will be set.
+This maps to the `X-Consul-Index` value in responses from the
+[HTTP API](/docs/agent/http.html).
 
 ## Global Parameters
 
@@ -56,7 +56,7 @@ are a few global parameters that all watches support:
 
 ## Watch Types
 
-The following types are supported, with more documentation below:
+The following types are supported.  Detailed documentation on each is below:
 
 * `key` - Watch a specific KV pair
 * `keyprefix` - Watch a prefix in the KV store
@@ -215,10 +215,11 @@ An example of the output of this command:
 ### Type: service
 
 The "service" watch type is used to monitor the providers
-of a single service. It requires the "service" parameter,
-but optionally takes "tag" and "passingonly". The "tag" parameter
-will filter by tag, and "passingonly" is a boolean that will
-filter to only the instances passing all health checks.
+of a single service. It requires the "service" parameter
+and optionally takes the parameters "tag" and "passingonly".
+The "tag" parameter will filter by tag, and "passingonly" is
+a boolean that will filter to only the instances passing all
+health checks.
 
 This maps to the `/v1/health/service` API internally.
 
@@ -281,10 +282,10 @@ An example of the output of this command:
 
 The "checks" watch type is used to monitor the checks of a given
 service or those in a specific state. It optionally takes the "service"
-parameter to filter to a specific service, or "state" to filter
-to a specific state. By default, it will watch all checks.
+parameter to filter to a specific service or the "state" parameter to
+filter to a specific state. By default, it will watch all checks.
 
-This maps to the `/v1/health/state/` API if monitoring by state,
+This maps to the `/v1/health/state/` API if monitoring by state
 or `/v1/health/checks/` if monitoring by service.
 
 An example of the output of this command:
@@ -308,7 +309,7 @@ An example of the output of this command:
 
 The "event" watch type is used to monitor for custom user
 events. These are fired using the [consul event](/docs/commands/event.html) command.
-It takes only a single optional "name" parameter, which restricts
+It takes only a single optional "name" parameter which restricts
 the watch to only events with the given name.
 
 This maps to the `v1/event/list` API internally.
