@@ -132,7 +132,7 @@ tokens without complex rule management.
 The request is automatically routed to the authoritative ACL datacenter.
 Requests to this endpoint must be made with a management token.
 
-As with `create, a successful response body will return the `ID` of the newly
+As with `create`, a successful response body will return the `ID` of the newly
 created ACL, like so:
 
 ```javascript
@@ -143,7 +143,7 @@ created ACL, like so:
 
 ### <a name="acl_list"></a> /v1/acl/list
 
-The list endpoint must hit with a GET. It lists all the active
+The list endpoint must be hit with a GET. It lists all the active
 ACL tokens. This is a privileged endpoint and requires a
 management token.
 
