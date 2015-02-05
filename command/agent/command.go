@@ -76,6 +76,9 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "address to advertise instead of bind addr")
 
+	cmdFlags.StringVar(&cmdConfig.AtlasCluster, "atlas-cluster", "", "cluster name in Atlas")
+	cmdFlags.StringVar(&cmdConfig.AtlasToken, "atlas-token", "", "authentication token for Atlas")
+
 	cmdFlags.IntVar(&cmdConfig.Protocol, "protocol", -1, "protocol version")
 
 	cmdFlags.BoolVar(&cmdConfig.EnableSyslog, "syslog", false,
@@ -815,6 +818,8 @@ Usage: consul agent [options]
 Options:
 
   -advertise=addr          Sets the advertise address to use
+  -atlas-cluster=org/name  Sets the Atlas cluster name, enables SCADA.
+  -atlas-token=token       Provides the Atlas API token
   -bootstrap               Sets server to bootstrap mode
   -bind=0.0.0.0            Sets the bind address for cluster communication
   -bootstrap-expect=0      Sets server to expect bootstrap mode.
