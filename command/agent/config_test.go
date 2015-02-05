@@ -633,6 +633,23 @@ func TestDecodeConfig(t *testing.T) {
 	if config.HTTPAPIResponseHeaders["X-XSS-Protection"] != "1; mode=block" {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// Atlas configs
+	input = `{"atlas_cluster": "hashicorp/prod", "atlas_token": "abcdefg", "atlas_acl_token": "123456789"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.AtlasCluster != "hashicorp/prod" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.AtlasToken != "abcdefg" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.AtlasACLToken != "123456789" {
+		t.Fatalf("bad: %#v", config)
+	}
 }
 
 func TestDecodeConfig_invalidKeys(t *testing.T) {
@@ -1096,6 +1113,9 @@ func TestMergeConfig(t *testing.T) {
 				Perms: "0700",
 			},
 		},
+		AtlasCluster:  "hashicorp/prod",
+		AtlasToken:    "123456789",
+		AtlasACLToken: "abcdefgh",
 	}
 
 	c := MergeConfig(a, b)

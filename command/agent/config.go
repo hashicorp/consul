@@ -318,6 +318,19 @@ type Config struct {
 	// HTTPAPIResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
 	HTTPAPIResponseHeaders map[string]string `mapstructure:"http_api_response_headers"`
 
+	// AtlasCluster is the name of the cluster we belong to. e.g. hashicorp/stage
+	AtlasCluster string `mapstructure:"atlas_cluster"`
+
+	// AtlasToken is our authentication token from Atlas
+	AtlasToken string `mapstructure:"atlas_token"`
+
+	// AtlasACLToken is applied to inbound requests if no other token
+	// is provided. This takes higher precedence than the ACLToken.
+	// Without this, the ACLToken is used. If that is not specified either,
+	// then the 'anonymous' token is used. This can be set to 'anonymous'
+	// to reduce the Atlas privileges to below that of the ACLToken.
+	AtlasACLToken string `mapstructure:"atlas_acl_token"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -940,6 +953,15 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.UnixSockets.Perms != "" {
 		result.UnixSockets.Perms = b.UnixSockets.Perms
+	}
+	if b.AtlasCluster != "" {
+		result.AtlasCluster = b.AtlasCluster
+	}
+	if b.AtlasToken != "" {
+		result.AtlasToken = b.AtlasToken
+	}
+	if b.AtlasACLToken != "" {
+		result.AtlasACLToken = b.AtlasACLToken
 	}
 
 	if len(b.HTTPAPIResponseHeaders) != 0 {
