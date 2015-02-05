@@ -332,8 +332,21 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	c.Ui.Output("Starting Consul agent RPC...")
 	c.rpcServer = NewAgentRPC(agent, rpcListener, logOutput, logWriter)
 
-	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 {
-		servers, err := NewHTTPServers(agent, config, logOutput)
+	// Enable the SCADA integration
+	var scadaList net.Listener
+	if config.AtlasCluster != "" {
+		provider, list, err := NewProvider(config, logOutput)
+		if err != nil {
+			agent.Shutdown()
+			c.Ui.Error(fmt.Sprintf("Error starting SCADA connection: %s", err))
+			return err
+		}
+		c.scadaProvider = provider
+		scadaList = list
+	}
+
+	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 || scadaList != nil {
+		servers, err := NewHTTPServers(agent, config, scadaList, logOutput)
 		if err != nil {
 			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Error starting http servers: %s", err))
@@ -383,18 +396,6 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 			c.checkpointResults(checkpoint.Check(updateParams))
 		}()
 	}
-
-	// Enable the SCADA integration
-	if config.AtlasCluster != "" {
-		provider, err := NewProvider(config, logOutput)
-		if err != nil {
-			agent.Shutdown()
-			c.Ui.Error(fmt.Sprintf("Error starting SCADA connection: %s", err))
-			return err
-		}
-		c.scadaProvider = provider
-	}
-
 	return nil
 }
 

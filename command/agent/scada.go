@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
+	"strconv"
 
 	"github.com/hashicorp/scada-client"
 )
@@ -27,8 +29,8 @@ func ProviderService(c *Config) *client.ProviderService {
 			"http": 1,
 		},
 		Meta: map[string]string{
-			"type":       "",
-			"datacenter": "",
+			"server":     strconv.FormatBool(c.Server),
+			"datacenter": c.Datacenter,
 		},
 		ResourceType: resourceType,
 	}
@@ -48,7 +50,7 @@ func ProviderConfig(c *Config) *client.ProviderConfig {
 
 // NewProvider creates a new SCADA provider using the
 // given configuration. Requests are routed to the
-func NewProvider(c *Config, logOutput io.Writer) (*client.Provider, error) {
+func NewProvider(c *Config, logOutput io.Writer) (*client.Provider, net.Listener, error) {
 	// Get the configuration of the provider
 	config := ProviderConfig(c)
 	config.Logger = log.New(logOutput, "", log.LstdFlags)
@@ -62,5 +64,9 @@ func NewProvider(c *Config, logOutput io.Writer) (*client.Provider, error) {
 	config.Handlers["http"] = nil
 
 	// Create the provider
-	return client.NewProvider(config)
+	provider, err := client.NewProvider(config)
+	if err != nil {
+		return nil, nil, err
+	}
+	return provider, nil, nil
 }

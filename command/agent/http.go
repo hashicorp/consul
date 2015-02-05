@@ -32,7 +32,7 @@ type HTTPServer struct {
 
 // NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
-func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPServer, error) {
+func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput io.Writer) ([]*HTTPServer, error) {
 	var tlsConfig *tls.Config
 	var list net.Listener
 	var httpAddr net.Addr
@@ -130,6 +130,26 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			addr:     httpAddr.String(),
 		}
 		srv.registerHandlers(config.EnableDebug)
+
+		// Start the server
+		go http.Serve(list, mux)
+		servers = append(servers, srv)
+	}
+
+	if scada != nil {
+		// Create the mux
+		mux := http.NewServeMux()
+
+		// Create the server
+		srv := &HTTPServer{
+			agent:    agent,
+			mux:      mux,
+			listener: scada,
+			logger:   log.New(logOutput, "", log.LstdFlags),
+			uiDir:    config.UiDir,
+			addr:     "SCADA",
+		}
+		srv.registerHandlers(false) // Never allow debug for SCADA
 
 		// Start the server
 		go http.Serve(list, mux)
