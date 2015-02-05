@@ -32,8 +32,9 @@ func ProviderService(c *Config) *client.ProviderService {
 			"http": 1,
 		},
 		Meta: map[string]string{
-			"server":     strconv.FormatBool(c.Server),
+			"auto-join":  strconv.FormatBool(c.AtlasJoin),
 			"datacenter": c.Datacenter,
+			"server":     strconv.FormatBool(c.Server),
 		},
 		ResourceType: resourceType,
 	}
