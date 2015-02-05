@@ -36,7 +36,7 @@ func makeHTTPServerWithConfig(t *testing.T, cb func(c *Config)) (string, *HTTPSe
 		t.Fatalf("err: %v", err)
 	}
 	conf.UiDir = uiDir
-	servers, err := NewHTTPServers(agent, conf, agent.logOutput)
+	servers, err := NewHTTPServers(agent, conf, nil, agent.logOutput)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -146,7 +146,7 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	// Try to start the server with the same path anyways.
-	if _, err := NewHTTPServers(agent, conf, agent.logOutput); err != nil {
+	if _, err := NewHTTPServers(agent, conf, nil, agent.logOutput); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

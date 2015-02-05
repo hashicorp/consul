@@ -331,6 +331,10 @@ type Config struct {
 	// to reduce the Atlas privileges to below that of the ACLToken.
 	AtlasACLToken string `mapstructure:"atlas_acl_token"`
 
+	// AtlasJoin controls if Atlas will attempt to auto-join the node
+	// to it's cluster. Requires Atlas integration.
+	AtlasJoin bool `mapstructure:"atlas_join"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -962,6 +966,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.AtlasACLToken != "" {
 		result.AtlasACLToken = b.AtlasACLToken
+	}
+	if b.AtlasJoin {
+		result.AtlasJoin = true
 	}
 
 	if len(b.HTTPAPIResponseHeaders) != 0 {
