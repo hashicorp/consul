@@ -56,7 +56,7 @@ are a few global parameters that all watches support:
 
 ## Watch Types
 
-The following types are supported.  Detailed documentation on each is below:
+The following types are supported. Detailed documentation on each is below:
 
 * `key` - Watch a specific KV pair
 * `keyprefix` - Watch a prefix in the KV store
