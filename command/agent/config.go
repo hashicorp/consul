@@ -644,7 +644,7 @@ AFTER_FIX:
 }
 
 func FixupCheckType(raw interface{}) error {
-	var ttlKey, intervalKey string
+	var ttlKey, intervalKey, timeoutKey string
 
 	// Handle decoding of time durations
 	rawMap, ok := raw.(map[string]interface{})
@@ -658,6 +658,8 @@ func FixupCheckType(raw interface{}) error {
 			ttlKey = k
 		case "interval":
 			intervalKey = k
+		case "timeout":
+			timeoutKey = k
 		case "service_id":
 			rawMap["serviceid"] = v
 			delete(rawMap, "service_id")
@@ -685,6 +687,18 @@ func FixupCheckType(raw interface{}) error {
 			}
 		}
 	}
+
+	if timeout, ok := rawMap[timeoutKey]; ok {
+		timeoutS, ok := timeout.(string)
+		if ok {
+			if dur, err := time.ParseDuration(timeoutS); err != nil {
+				return err
+			} else {
+				rawMap[timeoutKey] = dur
+			}
+		}
+	}
+
 	return nil
 }
 

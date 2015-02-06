@@ -260,3 +260,48 @@ func TestCheckHTTPWarning(t *testing.T) {
 	expectHTTPStatus(t, server.URL, "warning")
 	server.Close()
 }
+
+func mockSlowHTTPServer(responseCode int, sleep time.Duration) *httptest.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(sleep)
+		w.WriteHeader(responseCode)
+		return
+	})
+
+	return httptest.NewServer(mux)
+}
+
+func TestCheckHTTPTimeout(t *testing.T) {
+	server := mockSlowHTTPServer(200, 10*time.Millisecond)
+	defer server.Close()
+
+	mock := &MockNotify{
+		state:   make(map[string]string),
+		updates: make(map[string]int),
+		output:  make(map[string]string),
+	}
+
+	check := &CheckHTTP{
+		Notify:   mock,
+		CheckID:  "bar",
+		HTTP:     server.URL,
+		Timeout:  5 * time.Millisecond,
+		Interval: 10 * time.Millisecond,
+		Logger:   log.New(os.Stderr, "", log.LstdFlags),
+	}
+
+	check.Start()
+	defer check.Stop()
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Should have at least 2 updates
+	if mock.updates["bar"] < 2 {
+		t.Fatalf("should have at least 2 updates %v", mock.updates)
+	}
+
+	if mock.state["bar"] != "critical" {
+		t.Fatalf("should be critical %v", mock.state)
+	}
+}

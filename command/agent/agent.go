@@ -721,6 +721,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 				CheckID:  check.CheckID,
 				HTTP:     chkType.HTTP,
 				Interval: chkType.Interval,
+				Timeout:  chkType.Timeout,
 				Logger:   a.logger,
 			}
 			http.Start()
