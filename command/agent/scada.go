@@ -120,6 +120,8 @@ func (s *scadaListener) Push(conn net.Conn) error {
 	select {
 	case s.pending <- conn:
 		return nil
+	case <-time.After(time.Second):
+		return fmt.Errorf("accept timed out")
 	case <-s.closedCh:
 		return fmt.Errorf("scada listener closed")
 	}

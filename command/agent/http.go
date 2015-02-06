@@ -33,14 +33,10 @@ type HTTPServer struct {
 // NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
 func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput io.Writer) ([]*HTTPServer, error) {
-	var tlsConfig *tls.Config
-	var list net.Listener
-	var httpAddr net.Addr
-	var err error
 	var servers []*HTTPServer
 
 	if config.Ports.HTTPS > 0 {
-		httpAddr, err = config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
+		httpAddr, err := config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +50,7 @@ func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput 
 			NodeName:       config.NodeName,
 			ServerName:     config.ServerName}
 
-		tlsConfig, err = tlsConf.IncomingTLSConfig()
+		tlsConfig, err := tlsConf.IncomingTLSConfig()
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +60,7 @@ func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput 
 			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
-		list = tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
+		list := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
 
 		// Create the mux
 		mux := http.NewServeMux()
@@ -86,7 +82,7 @@ func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput 
 	}
 
 	if config.Ports.HTTP > 0 {
-		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
+		httpAddr, err := config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get ClientListener address:port: %v", err)
 		}
@@ -107,6 +103,7 @@ func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput 
 			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
+		var list net.Listener
 		if isSocket {
 			// Set up ownership/permission bits on the socket file
 			if err := setFilePermissions(socketPath, config.UnixSockets); err != nil {
@@ -152,7 +149,7 @@ func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput 
 		srv.registerHandlers(false) // Never allow debug for SCADA
 
 		// Start the server
-		go http.Serve(list, mux)
+		go http.Serve(scada, mux)
 		servers = append(servers, srv)
 	}
 
