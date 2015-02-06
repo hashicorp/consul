@@ -19,6 +19,14 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+var (
+	// scadaHTTPAddr is the address associated with the
+	// HTTPServer. When populating an ACL token for a request,
+	// this is checked to switch between the ACLToken and
+	// AtlasACLToken
+	scadaHTTPAddr = "SCADA"
+)
+
 // HTTPServer is used to wrap an Agent and expose various API's
 // in a RESTful manner
 type HTTPServer struct {
@@ -144,7 +152,7 @@ func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput 
 			listener: scada,
 			logger:   log.New(logOutput, "", log.LstdFlags),
 			uiDir:    config.UiDir,
-			addr:     "SCADA",
+			addr:     scadaHTTPAddr,
 		}
 		srv.registerHandlers(false) // Never allow debug for SCADA
 
@@ -439,9 +447,17 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	if other := req.URL.Query().Get("token"); other != "" {
 		*token = other
-	} else if *token == "" {
-		*token = s.agent.config.ACLToken
+		return
 	}
+
+	// Set the AtlasACLToken if SCADA
+	if s.addr == scadaHTTPAddr && s.agent.config.AtlasACLToken != "" {
+		*token = s.agent.config.AtlasACLToken
+		return
+	}
+
+	// Set the default ACLToken
+	*token = s.agent.config.ACLToken
 }
 
 // parse is a convenience method for endpoints that need

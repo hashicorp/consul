@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -59,12 +60,13 @@ func NewProvider(c *Config, logOutput io.Writer) (*client.Provider, net.Listener
 	config := ProviderConfig(c)
 	config.Logger = log.New(logOutput, "", log.LstdFlags)
 
-	// TODO: REMOVE
-	config.TLSConfig = &tls.Config{
-		InsecureSkipVerify: true,
+	// SCADA_INSECURE env variable is used for testing to disable
+	// TLS certificate verification.
+	if os.Getenv("SCADA_INSECURE") != "" {
+		config.TLSConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
 	}
-
-	// TODO: AtlasACLToken
 
 	// Create an HTTP listener and handler
 	list := newScadaListener(c.AtlasInfrastructure)
