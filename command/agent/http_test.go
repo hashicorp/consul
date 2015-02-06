@@ -429,6 +429,67 @@ func TestParseConsistency_Invalid(t *testing.T) {
 	}
 }
 
+// Test ACL token is resolved in correct order
+func TestACLResolution(t *testing.T) {
+	var token string
+	// Request without token
+	req, err := http.NewRequest("GET",
+		"/v1/catalog/nodes", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Request with explicit token
+	reqToken, err := http.NewRequest("GET",
+		"/v1/catalog/nodes?token=foo", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	httpTest(t, func(srv *HTTPServer) {
+		// Check when no token is set
+		srv.agent.config.ACLToken = ""
+		srv.parseToken(req, &token)
+		if token != "" {
+			t.Fatalf("bad: %s", token)
+		}
+
+		// Check when ACLToken set
+		srv.agent.config.ACLToken = "agent"
+		srv.parseToken(req, &token)
+		if token != "agent" {
+			t.Fatalf("bad: %s", token)
+		}
+
+		// Check when AtlasACLToken set, wrong server
+		srv.agent.config.AtlasACLToken = "atlas"
+		srv.parseToken(req, &token)
+		if token != "agent" {
+			t.Fatalf("bad: %s", token)
+		}
+
+		// Check when AtlasACLToken set, correct server
+		srv.addr = scadaHTTPAddr
+		srv.parseToken(req, &token)
+		if token != "atlas" {
+			t.Fatalf("bad: %s", token)
+		}
+
+		// Check when AtlasACLToken not, correct server
+		srv.agent.config.AtlasACLToken = ""
+		srv.parseToken(req, &token)
+		if token != "agent" {
+			t.Fatalf("bad: %s", token)
+		}
+
+		// Explicit token has highest precedence
+		srv.parseToken(reqToken, &token)
+		if token != "foo" {
+			t.Fatalf("bad: %s", token)
+		}
+	})
+}
+
 // assertIndex tests that X-Consul-Index is set and non-zero
 func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
 	header := resp.Header().Get("X-Consul-Index")
