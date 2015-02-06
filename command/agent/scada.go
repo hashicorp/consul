@@ -47,7 +47,7 @@ func ProviderConfig(c *Config) *client.ProviderConfig {
 		Handlers: map[string]client.CapabilityProvider{
 			"http": nil,
 		},
-		ResourceGroup: c.AtlasCluster,
+		ResourceGroup: c.AtlasInfrastructure,
 		Token:         c.AtlasToken,
 	}
 }
@@ -67,7 +67,7 @@ func NewProvider(c *Config, logOutput io.Writer) (*client.Provider, net.Listener
 	// TODO: AtlasACLToken
 
 	// Create an HTTP listener and handler
-	list := newScadaListener(c.AtlasCluster)
+	list := newScadaListener(c.AtlasInfrastructure)
 	config.Handlers["http"] = func(capability string, meta map[string]string,
 		conn io.ReadWriteCloser) error {
 		return list.PushRWC(conn)

@@ -78,7 +78,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "address to advertise instead of bind addr")
 
-	cmdFlags.StringVar(&cmdConfig.AtlasCluster, "atlas-cluster", "", "cluster name in Atlas")
+	cmdFlags.StringVar(&cmdConfig.AtlasInfrastructure, "atlas", "", "infrastructure name in Atlas")
 	cmdFlags.StringVar(&cmdConfig.AtlasToken, "atlas-token", "", "authentication token for Atlas")
 	cmdFlags.BoolVar(&cmdConfig.AtlasJoin, "atlas-join", false, "auto-join with Atlas")
 
@@ -335,7 +335,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 
 	// Enable the SCADA integration
 	var scadaList net.Listener
-	if config.AtlasCluster != "" {
+	if config.AtlasInfrastructure != "" {
 		provider, list, err := NewProvider(config, logOutput)
 		if err != nil {
 			agent.Shutdown()
@@ -649,9 +649,9 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Determine the Atlas cluster
-	cluster := config.AtlasCluster
-	if cluster == "" {
-		cluster = "<disabled>"
+	atlas := "<disabled>"
+	if config.AtlasInfrastructure != "" {
+		atlas = fmt.Sprintf("(Infrastructure: '%s' Join: %v)", config.AtlasInfrastructure, config.AtlasJoin)
 	}
 
 	// Let the agent know we've finished registration
@@ -667,7 +667,7 @@ func (c *Command) Run(args []string) int {
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
 		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
-	c.Ui.Info(fmt.Sprintf(" Atlas Cluster: %v", cluster))
+	c.Ui.Info(fmt.Sprintf("         Atlas: %s", atlas))
 
 	// Enable log streaming
 	c.Ui.Info("")
@@ -842,7 +842,7 @@ Usage: consul agent [options]
 Options:
 
   -advertise=addr          Sets the advertise address to use
-  -atlas-cluster=org/name  Sets the Atlas cluster name, enables SCADA.
+  -atlas=org/name          Sets the Atlas infrastructure name, enables SCADA.
   -atlas-join              Enables auto-joining the Atlas cluster
   -atlas-token=token       Provides the Atlas API token
   -bootstrap               Sets server to bootstrap mode

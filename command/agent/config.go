@@ -318,8 +318,8 @@ type Config struct {
 	// HTTPAPIResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
 	HTTPAPIResponseHeaders map[string]string `mapstructure:"http_api_response_headers"`
 
-	// AtlasCluster is the name of the cluster we belong to. e.g. hashicorp/stage
-	AtlasCluster string `mapstructure:"atlas_cluster"`
+	// AtlasInfrastructure is the name of the infrastructure we belong to. e.g. hashicorp/stage
+	AtlasInfrastructure string `mapstructure:"atlas_infrastructure"`
 
 	// AtlasToken is our authentication token from Atlas
 	AtlasToken string `mapstructure:"atlas_token"`
@@ -958,8 +958,8 @@ func MergeConfig(a, b *Config) *Config {
 	if b.UnixSockets.Perms != "" {
 		result.UnixSockets.Perms = b.UnixSockets.Perms
 	}
-	if b.AtlasCluster != "" {
-		result.AtlasCluster = b.AtlasCluster
+	if b.AtlasInfrastructure != "" {
+		result.AtlasInfrastructure = b.AtlasInfrastructure
 	}
 	if b.AtlasToken != "" {
 		result.AtlasToken = b.AtlasToken

@@ -635,13 +635,13 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Atlas configs
-	input = `{"atlas_cluster": "hashicorp/prod", "atlas_token": "abcdefg", "atlas_acl_token": "123456789", "atlas_join": true}`
+	input = `{"atlas_infrastructure": "hashicorp/prod", "atlas_token": "abcdefg", "atlas_acl_token": "123456789", "atlas_join": true}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.AtlasCluster != "hashicorp/prod" {
+	if config.AtlasInfrastructure != "hashicorp/prod" {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.AtlasToken != "abcdefg" {
@@ -1116,10 +1116,10 @@ func TestMergeConfig(t *testing.T) {
 				Perms: "0700",
 			},
 		},
-		AtlasCluster:  "hashicorp/prod",
-		AtlasToken:    "123456789",
-		AtlasACLToken: "abcdefgh",
-		AtlasJoin:     true,
+		AtlasInfrastructure: "hashicorp/prod",
+		AtlasToken:          "123456789",
+		AtlasACLToken:       "abcdefgh",
+		AtlasJoin:           true,
 	}
 
 	c := MergeConfig(a, b)
