@@ -96,9 +96,9 @@ type scadaListener struct {
 }
 
 // newScadaListener returns a new listener
-func newScadaListener(cluster string) *scadaListener {
+func newScadaListener(infra string) *scadaListener {
 	l := &scadaListener{
-		addr:     &scadaAddr{cluster},
+		addr:     &scadaAddr{infra},
 		pending:  make(chan net.Conn),
 		closedCh: make(chan struct{}),
 	}
@@ -155,7 +155,7 @@ func (s *scadaListener) Addr() net.Addr {
 
 // scadaAddr is used to return a net.Addr for SCADA
 type scadaAddr struct {
-	cluster string
+	infra string
 }
 
 func (s *scadaAddr) Network() string {
@@ -163,7 +163,7 @@ func (s *scadaAddr) Network() string {
 }
 
 func (s *scadaAddr) String() string {
-	return fmt.Sprintf("SCADA::Atlas::%s", s.cluster)
+	return fmt.Sprintf("SCADA::Atlas::%s", s.infra)
 }
 
 type scadaRWC struct {
