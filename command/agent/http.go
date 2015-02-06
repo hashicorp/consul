@@ -179,7 +179,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 // Shutdown is used to shutdown the HTTP server
 func (s *HTTPServer) Shutdown() {
 	if s != nil {
-		s.logger.Printf("[DEBUG] http: Shutting down http server(%v)", s.addr)
+		s.logger.Printf("[DEBUG] http: Shutting down http server (%v)", s.addr)
 		s.listener.Close()
 	}
 }

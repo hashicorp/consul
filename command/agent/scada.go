@@ -141,7 +141,6 @@ func (s *scadaListener) Close() error {
 		return nil
 	}
 	s.closed = true
-	close(s.pending)
 	close(s.closedCh)
 	return nil
 }
