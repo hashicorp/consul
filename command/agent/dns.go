@@ -316,6 +316,8 @@ func (d *DNSServer) addSOA(domain string, msg *dns.Msg) {
 
 // dispatch is used to parse a request and invoke the correct handler
 func (d *DNSServer) dispatch(network string, req, resp *dns.Msg) {
+	dcSelection := "implicit"
+
 	// By default the query is in the default datacenter
 	datacenter := d.agent.config.Datacenter
 
@@ -338,11 +340,14 @@ PARSE:
 			goto INVALID
 		}
 
+		service := ""
+		tag := ""
+
 		// Support RFC 2782 style syntax
 		if n == 3 && strings.HasPrefix(labels[n-2], "_") && strings.HasPrefix(labels[n-3], "_") {
 
 			// Grab the tag since we make nuke it if it's tcp
-			tag := labels[n-2][1:]
+			tag = labels[n-2][1:]
 
 			// Treat _name._tcp.service.consul as a default, no need to filter on that tag
 			if tag == "tcp" {
@@ -350,19 +355,45 @@ PARSE:
 			}
 
 			// _name._tag.service.consul
-			d.serviceLookup(network, datacenter, labels[n-3][1:], tag, req, resp)
+			service = labels[n-3][1:]
 
 			// Consul 0.3 and prior format for SRV queries
 		} else {
 
 			// Support "." in the label, re-join all the parts
-			tag := ""
 			if n >= 3 {
 				tag = strings.Join(labels[:n-2], ".")
 			}
 
 			// tag[.tag].name.service.consul
-			d.serviceLookup(network, datacenter, labels[n-2], tag, req, resp)
+			service = labels[n-2]
+		}
+
+		// Kick off a service lookup for the requested datacenter
+		d.logger.Printf("[DEBUG] dns: service lookup '%s' in (%s) datacenter '%s'",
+						service, dcSelection, datacenter)
+		d.serviceLookup(network, datacenter, service, tag, req, resp, false)
+
+		if dcSelection == "implicit" {
+			// The datacenter was implicitly chosen so kick off service lookups
+			// for all other datacenters as well
+			var list []string
+
+			if err := d.agent.RPC("Catalog.ListDatacenters", struct{}{}, &list); err == nil {
+				n := len(list)
+
+				for i := 0; i < n; i++ {
+					dc := list[i]
+					if dc != datacenter {
+						d.logger.Printf("[DEBUG] dns: service lookup '%s' in (foreign) datacenter '%s'",
+							service, dc)
+						d.serviceLookup(network, dc, service, tag, req, resp, true)
+					}
+				}
+
+			} else {
+				d.logger.Printf("[ERR] dns: rpc error: %v", err)
+			}
 		}
 
 	case "node":
@@ -377,6 +408,7 @@ PARSE:
 		// Store the DC, and re-parse
 		datacenter = labels[n-1]
 		labels = labels[:n-1]
+		dcSelection = "explicit"
 		goto PARSE
 	}
 	return
@@ -494,7 +526,7 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 }
 
 // serviceLookup is used to handle a service query
-func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg) {
+func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg, isOptional bool) {
 	// Make an RPC request
 	args := structs.ServiceSpecificRequest{
 		Datacenter:   datacenter,
@@ -506,8 +538,10 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 	var out structs.IndexedCheckServiceNodes
 RPC:
 	if err := d.agent.RPC("Health.ServiceNodes", &args, &out); err != nil {
-		d.logger.Printf("[ERR] dns: rpc error: %v", err)
-		resp.SetRcode(req, dns.RcodeServerFailure)
+		if !isOptional {
+			d.logger.Printf("[ERR] dns: rpc error: %v", err)
+			resp.SetRcode(req, dns.RcodeServerFailure)
+		}
 		return
 	}
 
@@ -520,7 +554,9 @@ RPC:
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
-		resp.SetRcode(req, dns.RcodeNameError)
+		if !isOptional {
+			resp.SetRcode(req, dns.RcodeNameError)
+		}
 		return
 	}
 
@@ -535,7 +571,7 @@ RPC:
 	}
 
 	// Filter out any service nodes due to health checks
-	out.Nodes = d.filterServiceNodes(out.Nodes)
+	out.Nodes = d.filterServiceNodes(out.Nodes, datacenter)
 
 	// Perform a random shuffle
 	shuffleServiceNodes(out.Nodes)
@@ -558,13 +594,39 @@ RPC:
 	}
 }
 
+// Given an array of tag strings, see if any are 'availability.local'
+func hasLocalTag(tags []string) bool {
+	n := len(tags)
+	res := false
+	for i := 0; i < n; i++ {
+		if tags[i] == "availability.local" {
+			res = true
+			break
+		}
+	}
+
+	return res
+}
+
 // filterServiceNodes is used to filter out nodes that are failing
 // health checks to prevent routing to unhealthy nodes
-func (d *DNSServer) filterServiceNodes(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+func (d *DNSServer) filterServiceNodes(nodes structs.CheckServiceNodes, datacenter string) structs.CheckServiceNodes {
 	n := len(nodes)
 OUTER:
 	for i := 0; i < n; i++ {
 		node := nodes[i]
+
+		// If this node has a tag of 'availability.local' and it is *not* part
+		// of the local datacenter, drop it
+		if hasLocalTag(node.Service.Tags) && datacenter != d.agent.config.Datacenter {
+			d.logger.Printf("[WARN] dns: node '%s' has Tag 'availability.local' and is not in the local datacenter, dropping from service '%s'",
+				node.Node.Node, node.Service.Service)
+			nodes = nodes[:i+copy(nodes[i:], nodes[i+1:])]
+			n--
+			i--
+			continue
+		}
+
 		for _, check := range node.Checks {
 			if check.Status == structs.HealthCritical ||
 				(d.config.OnlyPassing && check.Status != structs.HealthPassing) {
