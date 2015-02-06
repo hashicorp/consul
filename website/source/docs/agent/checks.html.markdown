@@ -17,24 +17,27 @@ created via the HTTP interface persist with that node.
 
 There are three different kinds of checks:
 
- * Script + Interval - These checks depend on invoking an external application
- that performs the health check, exits with an appropriate exit code, and potentially
- generates some output. A script is paired with an invocation interval (e.g.
- every 30 seconds). This is similar to the Nagios plugin system.
+* Script + Interval - These checks depend on invoking an external application
+  that performs the health check, exits with an appropriate exit code, and potentially
+  generates some output. A script is paired with an invocation interval (e.g.
+  every 30 seconds). This is similar to the Nagios plugin system.
 
- * HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
- every 30 seconds) to the specified URL. The status of the service depends on the HTTP response code:
- any `2xx` code is considered passing, a `429 Too Many Requests` is a warning, and anything else is a failure.
- This type of check should be preferred over a script that uses `curl` or another external process
- to check a simple HTTP operation.
+* HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
+  every 30 seconds) to the specified URL. The status of the service depends on the HTTP response code:
+  any `2xx` code is considered passing, a `429 Too Many Requests` is a warning, and anything else is a failure.
+  This type of check should be preferred over a script that uses `curl` or another external process
+  to check a simple HTTP operation. By default, HTTP checks will be configured
+  with a request timeout equal to the check interval, with a max of 10 seconds.
+  It is possible to configure a custom HTTP check timeout value by specifying
+  the `timeout` field in the check definition.
 
- * Time to Live (TTL) - These checks retain their last known state for a given TTL.
- The state of the check must be updated periodically over the HTTP interface. If an
- external system fails to update the status within a given TTL, the check is
- set to the failed state. This mechanism, conceptually similar to a dead man's switch,
- relies on the application to directly report its health. For example, a healthy app
- can periodically `PUT` a status update to the HTTP endpoint; if the app fails, the TTL will
- expire and the health check enters a critical state.
+* Time to Live (TTL) - These checks retain their last known state for a given TTL.
+  The state of the check must be updated periodically over the HTTP interface. If an
+  external system fails to update the status within a given TTL, the check is
+  set to the failed state. This mechanism, conceptually similar to a dead man's switch,
+  relies on the application to directly report its health. For example, a healthy app
+  can periodically `PUT` a status update to the HTTP endpoint; if the app fails, the TTL will
+  expire and the health check enters a critical state.
 
 ## Check Definition
 
@@ -59,7 +62,8 @@ A HTTP check:
     "id": "api",
     "name": "HTTP API on port 5000",
     "http": "http://localhost:5000/health",
-    "interval": "10s"
+    "interval": "10s",
+    "timeout": "1s"
   }
 }
 ```
