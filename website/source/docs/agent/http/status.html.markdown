@@ -10,8 +10,10 @@ description: >
 # Status HTTP Endpoint
 
 The Status endpoints are used to get information about the status
-of the Consul cluster. These are generally very low level, and not really
-useful for clients.
+of the Consul cluster.
+
+Please note: this information is generally very low level
+and not often useful for clients.
 
 The following endpoints are supported:
 
@@ -21,7 +23,7 @@ The following endpoints are supported:
 ### <a name="status_leader"></a> /v1/status/leader
 
 This endpoint is used to get the Raft leader for the datacenter
-the agent is running in. It returns only an address like:
+in which the agent is running. It returns an address, such as:
 
 ```text
 "10.1.10.12:8300"
@@ -29,8 +31,8 @@ the agent is running in. It returns only an address like:
 
 ### <a name="status_peers"></a> /v1/status/peers
 
-This endpoint is used to get the Raft peers for the datacenter
-the agent is running in. It returns a list of addresses like:
+This endpoint retrieves the Raft peers for the datacenter in which the
+the agent is running. It returns a list of addresses, such as:
 
 ```javascript
 [
