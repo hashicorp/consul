@@ -686,9 +686,9 @@ func TestDecodeConfig_Services(t *testing.T) {
 			{
 				"id": "es0",
 				"name": "elasticsearch",
-				port: "9200",
+				"port": 9200,
 				"check": {
-					"HTTP": "http://localhost:9200/_cluster/health",
+					"HTTP": "http://localhost:9200/_cluster_health",
 					"interval": "10s",
 					"timeout": "100ms"
 				}
@@ -783,9 +783,9 @@ func TestDecodeConfig_Checks(t *testing.T) {
 			{
 				"id": "chk4",
 				"name": "service:elasticsearch:health",
-				"HTTP": "http://localhost:9200/_cluster/health",
+				"HTTP": "http://localhost:9200/_cluster_health",
 				"interval": "10s",
-				"timeout": "100ms"
+				"timeout": "100ms",
 				"service_id": "elasticsearch"
 			}
 		]
