@@ -28,4 +28,16 @@ and can be disabled.
 See [`disable_anonymous_signature`](/docs/agent/options.html#disable_anonymous_signature)
 and [`disable_update_check`](/docs/agent/options.html#disable_update_check).
 
+## Q: How does Atlas integration work? / Does Consul call home?
+
+Consul makes use of a HashiCorp service called [SCADA](http://scada.hashicorp.com)
+which stands for Supervisory Control And Data Acquisition. The SCADA system allows
+clients to maintain a long-running connection to Atlas which is used to make requests
+to Consul agents for features like the dashboard and auto joining. Standard ACLs can
+be applied to the SCADA connection, which has no enhanced or elevated privileges.
+Using the SCADA service is optional and only enabled by opt-in.
+
+See [`atlas_infrastructure`](/docs/agent/options.html#_atlas)
+and [`atlas_acl_token`](/docs/agent/options.html#atlas_acl_token).
+
 
