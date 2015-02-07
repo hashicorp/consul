@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"os"
 	"strconv"
@@ -58,7 +57,7 @@ func ProviderConfig(c *Config) *client.ProviderConfig {
 func NewProvider(c *Config, logOutput io.Writer) (*client.Provider, net.Listener, error) {
 	// Get the configuration of the provider
 	config := ProviderConfig(c)
-	config.Logger = log.New(logOutput, "", log.LstdFlags)
+	config.LogOutput = logOutput
 
 	// SCADA_INSECURE env variable is used for testing to disable
 	// TLS certificate verification.
