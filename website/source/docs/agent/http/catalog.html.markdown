@@ -126,7 +126,7 @@ requires `Node` to be provided while `Datacenter` will be defaulted
 to match that of the agent. If only `Node` is provided, the node and
 all associated services and checks are deleted. If `CheckID` is provided, only
 that check is removed. If `ServiceID` is provided, the
-service and its associated health check (if any) is removed.
+service and its associated health check (if any) are removed.
 
 If the API call succeeds a 200 status code is returned.
 
