@@ -357,9 +357,13 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 
 	// Setup update checking
 	if !config.DisableUpdateCheck {
+		version := config.Version
+		if config.VersionPrerelease != "" {
+			version += fmt.Sprintf("-%s", config.VersionPrerelease)
+		}
 		updateParams := &checkpoint.CheckParams{
 			Product: "consul",
-			Version: fmt.Sprintf("%s%s", config.Version, config.VersionPrerelease),
+			Version: version,
 		}
 		if !config.DisableAnonymousSignature {
 			updateParams.SignatureFile = filepath.Join(config.DataDir, "checkpoint-signature")
