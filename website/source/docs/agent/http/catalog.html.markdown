@@ -4,13 +4,13 @@ page_title: "Catalog (HTTP)"
 sidebar_current: "docs-agent-http-catalog"
 description: >
   The Catalog is the endpoint used to register and deregister nodes,
-  services, and checks. It also provides a number of query endpoints.
+  services, and checks. It also provides query endpoints.
 ---
 
 # Catalog HTTP Endpoint
 
 The Catalog is the endpoint used to register and deregister nodes,
-services, and checks. It also provides a number of query endpoints.
+services, and checks. It also provides query endpoints.
 
 The following endpoints are supported:
 
@@ -22,17 +22,17 @@ The following endpoints are supported:
 * [`/v1/catalog/service/<service>`](#catalog_service) : Lists the nodes in a given service
 * [`/v1/catalog/node/<node>`](#catalog_nodes) : Lists the services provided by a node
 
-The last 4 endpoints of the catalog support blocking queries and
-consistency modes.
+The `nodes` and `services` endpoints support blocking queries and
+tunable consistency modes.
 
 ### <a name="catalog_register"></a> /v1/catalog/register
 
-The register endpoint is a low level mechanism for directly registering
-or updating entries in the catalog. It is usually recommended to use
-the agent local endpoints, as they are simpler and perform anti-entropy.
+The register endpoint is a low-level mechanism for registering or updating
+entries in the catalog. Note: it is usually preferrable instead to use the
+[agent endpoints](agent.html) for registration as they are simpler and perform anti-entropy.
 
 The register endpoint expects a JSON request body to be PUT. The request
-body must look like:
+body must look something like:
 
 ```javascript
 {
@@ -61,37 +61,39 @@ body must look like:
 ```
 
 The behavior of the endpoint depends on what keys are provided. The endpoint
-requires `Node` and `Address` to be provided, while `Datacenter` will be defaulted
+requires `Node` and `Address` to be provided while `Datacenter` will be defaulted
 to match that of the agent. If only those are provided, the endpoint will register
 the node with the catalog.
 
-If the `Service` key is provided, then the service will also be registered. If
-`ID` is not provided, it will be defaulted to `Service`. It is mandated that the
-ID be node-unique. The `Tags`, `Address` and `Port` fields can be omitted.
+If the `Service` key is provided, the service will also be registered. If
+`ID` is not provided, it will be defaulted to the value of the `Service.Service` property.
+Only one service with a given `ID` may be present per node. The service `Tags`, `Address`,
+and `Port` fields are all optional.
 
-If the `Check` key is provided, then a health check will also be registered. It
-is important to remember that this register API is very low level. This manipulates
-the health check entry, but does not setup a script or TTL to actually update the
-status. For that behavior, an agent local check should be setup.
+If the `Check` key is provided, a health check will also be registered. Note: this
+register API manipulates the health check entry in the Catalog, but it does not setup
+the script, TTL, or HTTP check to monitor the node's health. To truly enable a new
+health check, the check must either be provided in agent configuration or set via
+the [agent endpoint](agent.html).
 
-The `CheckID` can be omitted, and will default to the `Name`. Like before, the
-`CheckID` must be node-unique. The `Notes` is an opaque field that is meant to
-hold human readable text. If a `ServiceID` is provided that matches the `ID`
-of a service on that node, then the check is treated as a service level health
+The `CheckID` can be omitted and will default to the value of `Name`. As with `Service.ID`,
+the `CheckID` must be unique on this node. `Notes` is an opaque field that is meant to
+hold human-readable text. If a `ServiceID` is provided that matches the `ID`
+of a service on that node, the check is treated as a service level health
 check, instead of a node level health check. The `Status` must be one of
-"unknown", "passing", "warning", or "critical". The "unknown" status is used
+`unknown`, `passing`, `warning`, or `critical`. The `unknown` status is used
 to indicate that the initial check has not been performed yet.
 
 It is important to note that `Check` does not have to be provided with `Service`
-and visa-versa. They can be provided or omitted at will.
+and vice versa. A catalog entry can have either, neither, or both.
 
-If the API call succeeds a 200 status code is returned.
+If the API call succeeds, a 200 status code is returned.
 
 ### <a name="catalog_deregister"></a> /v1/catalog/deregister
 
-The deregister endpoint is a low level mechanism for directly removing
-entries in the catalog. It is usually recommended to use the agent local
-endpoints, as they are simpler and perform anti-entropy.
+The deregister endpoint is a low-level mechanism for directly removing
+entries from the Catalog. Note: it is usually preferrable instead to use the
+[agent endpoints](agent.html) for deregistration as they are simpler and perform anti-entropy.
 
 The deregister endpoint expects a JSON request body to be PUT. The request
 body must look like one of the following:
@@ -120,14 +122,13 @@ body must look like one of the following:
 ```
 
 The behavior of the endpoint depends on what keys are provided. The endpoint
-requires `Node` to be provided, while `Datacenter` will be defaulted
-to match that of the agent. If only `Node` is provided, then the node, and
+requires `Node` to be provided while `Datacenter` will be defaulted
+to match that of the agent. If only `Node` is provided, the node and
 all associated services and checks are deleted. If `CheckID` is provided, only
-that check belonging to the node is removed. If `ServiceID` is provided, then the
-service along with its associated health check (if any) is removed.
+that check is removed. If `ServiceID` is provided, the
+service and its associated health check (if any) is removed.
 
 If the API call succeeds a 200 status code is returned.
-
 
 ### <a name="catalog_datacenters"></a> /v1/catalog/datacenters
 
@@ -140,15 +141,15 @@ It returns a JSON body like this:
 ["dc1", "dc2"]
 ```
 
-This endpoint does not require a cluster leader, and as such
-will succeed even during an availability outage. It can thus be
-a simple check to see if any Consul servers are routable.
+This endpoint does not require a cluster leader and
+will succeed even during an availability outage. Therefore, it can be
+used as a simple check to see if any Consul servers are routable.
 
 ### <a name="catalog_nodes"></a> /v1/catalog/nodes
 
-This endpoint is hit with a GET and returns the nodes known
-about in a given DC. By default the datacenter of the agent is queried,
-however the dc can be provided using the "?dc=" query parameter.
+This endpoint is hit with a GET and returns the nodes registered
+in a given DC. By default, the datacenter of the agent is queried;
+however, the dc can be provided using the "?dc=" query parameter.
 
 It returns a JSON body like this:
 
@@ -169,9 +170,9 @@ This endpoint supports blocking queries and all consistency modes.
 
 ### <a name="catalog_services"></a> /v1/catalog/services
 
-This endpoint is hit with a GET and returns the services known
-about in a given DC. By default the datacenter of the agent is queried,
-however the dc can be provided using the "?dc=" query parameter.
+This endpoint is hit with a GET and returns the services registered
+in a given DC. By default, the datacenter of the agent is queried;
+however, the dc can be provided using the "?dc=" query parameter.
 
 It returns a JSON body like this:
 
@@ -186,18 +187,18 @@ It returns a JSON body like this:
 }
 ```
 
-The main object keys are the service names, while the array
-provides all the known tags for a given service.
+The keys are the service names, and the array values provide all known
+tags for a given service.
 
 This endpoint supports blocking queries and all consistency modes.
 
 ### <a name="catalog_service"></a> /v1/catalog/service/\<service\>
 
 This endpoint is hit with a GET and returns the nodes providing a service
-in a given DC. By default the datacenter of the agent is queried,
-however the dc can be provided using the "?dc=" query parameter.
+in a given DC. By default, the datacenter of the agent is queried;
+however, the dc can be provided using the "?dc=" query parameter.
 
-The service being queried must be provided after the slash. By default
+The service being queried must be provided on the path. By default
 all nodes in that service are returned. However, the list can be filtered
 by tag using the "?tag=" query parameter.
 
@@ -221,10 +222,10 @@ This endpoint supports blocking queries and all consistency modes.
 
 ### <a name="catalog_node"></a> /v1/catalog/node/\<node\>
 
-This endpoint is hit with a GET and returns the node provided services.
-By default the datacenter of the agent is queried,
-however the dc can be provided using the "?dc=" query parameter.
-The node being queried must be provided after the slash.
+This endpoint is hit with a GET and returns the node's registered services.
+By default, the datacenter of the agent is queried;
+however, the dc can be provided using the "?dc=" query parameter.
+The node being queried must be provided on the path.
 
 It returns a JSON body like this:
 
