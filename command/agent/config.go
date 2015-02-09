@@ -322,14 +322,14 @@ type Config struct {
 	AtlasInfrastructure string `mapstructure:"atlas_infrastructure"`
 
 	// AtlasToken is our authentication token from Atlas
-	AtlasToken string `mapstructure:"atlas_token"`
+	AtlasToken string `mapstructure:"atlas_token" json:"-"`
 
 	// AtlasACLToken is applied to inbound requests if no other token
 	// is provided. This takes higher precedence than the ACLToken.
 	// Without this, the ACLToken is used. If that is not specified either,
 	// then the 'anonymous' token is used. This can be set to 'anonymous'
 	// to reduce the Atlas privileges to below that of the ACLToken.
-	AtlasACLToken string `mapstructure:"atlas_acl_token"`
+	AtlasACLToken string `mapstructure:"atlas_acl_token" json:"-"`
 
 	// AtlasJoin controls if Atlas will attempt to auto-join the node
 	// to it's cluster. Requires Atlas integration.
