@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,6 +34,11 @@ const (
 		"but no reason was provided. This is a default message."
 	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
 		"service, but no reason was provided. This is a default message."
+)
+
+var (
+	// serviceNameRe checks if a service name is compatible with DNS.
+	serviceNameRe = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
 )
 
 /*
@@ -593,6 +599,12 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 		if !check.Valid() {
 			return fmt.Errorf("Check type is not valid")
 		}
+	}
+
+	// Warn if the service name is incompatible with DNS
+	if !serviceNameRe.MatchString(service.Service) {
+		a.logger.Printf("[WARN] Service name %q will not be discoverable "+
+			"via DNS due to invalid characters", service.Service)
 	}
 
 	// Add the service
