@@ -37,8 +37,8 @@ const (
 )
 
 var (
-	// serviceNameRe checks if a service name is compatible with DNS.
-	serviceNameRe = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
+	// dnsNameRe checks if a name or tag is dns-compatible.
+	dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
 )
 
 /*
@@ -602,9 +602,17 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 	}
 
 	// Warn if the service name is incompatible with DNS
-	if !serviceNameRe.MatchString(service.Service) {
+	if !dnsNameRe.MatchString(service.Service) {
 		a.logger.Printf("[WARN] Service name %q will not be discoverable "+
 			"via DNS due to invalid characters", service.Service)
+	}
+
+	// Warn if any tags are incompatible with DNS
+	for _, tag := range service.Tags {
+		if !dnsNameRe.MatchString(tag) {
+			a.logger.Printf("[WARN] Service tag %q will not be discoverable "+
+				"via DNS due to invalid characters", tag)
+		}
 	}
 
 	// Add the service
