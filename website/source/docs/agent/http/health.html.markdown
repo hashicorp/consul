@@ -3,15 +3,15 @@ layout: "docs"
 page_title: "Health Checks (HTTP)"
 sidebar_current: "docs-agent-http-health"
 description: >
-  The Health endpoints are used to query health related information.
+  The Health endpoints are used to query health-related information.
 ---
 
 # Health HTTP Endpoint
 
-The Health endpoints are used to query health related information. They are provided separately
-from the Catalog since users may prefer to not use the health checking mechanisms
-as they are totally optional. Additionally, some of the query results from the
-Health system are filtered while the Catalog endpoints provide the raw entries.
+The Health endpoints are used to query health-related information. They are provided separately
+from the Catalog since users may prefer not to use the optional health checking mechanisms.
+Additionally, some of the query results from the Health endpoints are filtered while the Catalog
+endpoints provide the raw entries.
 
 The following endpoints are supported:
 
