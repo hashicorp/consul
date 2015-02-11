@@ -266,7 +266,10 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	if s.uiDir != "" {
 		// Static file serving done from /ui/
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
+	}
 
+	// Enable the special endpoints for UI or SCADA
+	if s.uiDir != "" || s.agent.config.AtlasInfrastructure != "" {
 		// API's are under /internal/ui/ to avoid conflict
 		s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
 		s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
