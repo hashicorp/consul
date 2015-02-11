@@ -311,6 +311,27 @@ func (c *Client) query(endpoint string, out interface{}, q *QueryOptions) (*Quer
 	return qm, nil
 }
 
+// write is used to do a PUT request against an endpoint
+// and serialize/deserialized using the standard Consul conventions.
+func (c *Client) write(endpoint string, in, out interface{}, q *WriteOptions) (*WriteMeta, error) {
+	r := c.newRequest("PUT", endpoint)
+	r.setWriteOptions(q)
+	r.obj = in
+	rtt, resp, err := requireOK(c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	wm := &WriteMeta{RequestTime: rtt}
+	if out != nil {
+		if err := decodeBody(resp, &out); err != nil {
+			return nil, err
+		}
+	}
+	return wm, nil
+}
+
 // parseQueryMeta is used to help parse query meta-data
 func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 	header := resp.Header
