@@ -179,23 +179,11 @@ func (s *Session) RenewPeriodic(initialTTL string, id string, q *WriteOptions, d
 
 // Info looks up a single session
 func (s *Session) Info(id string, q *QueryOptions) (*SessionEntry, *QueryMeta, error) {
-	r := s.c.newRequest("GET", "/v1/session/info/"+id)
-	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(s.c.doRequest(r))
+	var entries []*SessionEntry
+	qm, err := s.c.query("/v1/session/info/"+id, &entries, q)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer resp.Body.Close()
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
-	var entries []*SessionEntry
-	if err := decodeBody(resp, &entries); err != nil {
-		return nil, nil, err
-	}
-
 	if len(entries) > 0 {
 		return entries[0], qm, nil
 	}
@@ -204,20 +192,9 @@ func (s *Session) Info(id string, q *QueryOptions) (*SessionEntry, *QueryMeta, e
 
 // List gets sessions for a node
 func (s *Session) Node(node string, q *QueryOptions) ([]*SessionEntry, *QueryMeta, error) {
-	r := s.c.newRequest("GET", "/v1/session/node/"+node)
-	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(s.c.doRequest(r))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
 	var entries []*SessionEntry
-	if err := decodeBody(resp, &entries); err != nil {
+	qm, err := s.c.query("/v1/session/node/"+node, &entries, q)
+	if err != nil {
 		return nil, nil, err
 	}
 	return entries, qm, nil
@@ -225,20 +202,9 @@ func (s *Session) Node(node string, q *QueryOptions) ([]*SessionEntry, *QueryMet
 
 // List gets all active sessions
 func (s *Session) List(q *QueryOptions) ([]*SessionEntry, *QueryMeta, error) {
-	r := s.c.newRequest("GET", "/v1/session/list")
-	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(s.c.doRequest(r))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
 	var entries []*SessionEntry
-	if err := decodeBody(resp, &entries); err != nil {
+	qm, err := s.c.query("/v1/session/list", &entries, q)
+	if err != nil {
 		return nil, nil, err
 	}
 	return entries, qm, nil

@@ -289,6 +289,28 @@ func (c *Client) doRequest(r *request) (time.Duration, *http.Response, error) {
 	return diff, resp, err
 }
 
+// Query is used to do a GET request against an endpoint
+// and deserialize the response into an interface using
+// standard Consul conventions.
+func (c *Client) query(endpoint string, out interface{}, q *QueryOptions) (*QueryMeta, error) {
+	r := c.newRequest("GET", endpoint)
+	r.setQueryOptions(q)
+	rtt, resp, err := requireOK(c.doRequest(r))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	if err := decodeBody(resp, out); err != nil {
+		return nil, err
+	}
+	return qm, nil
+}
+
 // parseQueryMeta is used to help parse query meta-data
 func parseQueryMeta(resp *http.Response, q *QueryMeta) error {
 	header := resp.Header
