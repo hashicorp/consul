@@ -47,7 +47,7 @@ By default, the agent's local datacenter is used; another datacenter
 can be specified using the "?dc=" query parameter. However, it is not recommended
 to use cross-datacenter sessions.
 
-`LockDelay` field can be specified as a duration string using a "s" suffix for
+`LockDelay` can be specified as a duration string using a "s" suffix for
 seconds. The default is 15s. This value can also be a numeric value. Small values are
 treated as seconds while larger values are assumed to be nanoseconds.
 <QUESTION: I don't see anywhere in the code to substantiate this.  If this is true, how do we define small and large values? We need to give people some boundaries.  QUESTION>
@@ -63,7 +63,7 @@ that, if you override this list, you include the default "serfHealthCheck".
 `Behavior` can be set to either `release` or `delete`. This controls
 the behavior when a session is invalidated. By default, this is `release`, 
 causing any locks that are held to be released. Changing this to `delete`
-causes any locks that are held to be deleted. `delete is useful for creating ephemeral
+causes any locks that are held to be deleted. `delete` is useful for creating ephemeral
 key/value entries.
 
 The `TTL` field is a duration string, and like `LockDelay` it can use "s" as
@@ -177,7 +177,7 @@ query parameter can be used to specify the datacenter.
 
 The session being renewed must be provided on the path.
 
-The return code is 200 on success and a JSON body like this:
+The return code is 200 on success.  The response JSON body looks like this:
 
 ```javascript
 [
