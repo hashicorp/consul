@@ -325,7 +325,7 @@ func (c *CheckHTTP) run() {
 			c.check()
 			next = time.After(c.Interval)
 		case <-c.stopCh:
-			c.httpClient.Transport.(*http.Transport).CloseIdleConnections()
+			http.DefaultTransport.(*http.Transport).CloseIdleConnections()
 			return
 		}
 	}
