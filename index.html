@@ -569,11 +569,13 @@
               {{ sessionName session }}
               <button {{ action "invalidateSession" session.ID }} {{ bind-attr class=":btn :btn-danger :pull-right :btn-list isLoading:btn-warning" }}>Invalidate</button>
             </div>
+
               <ul class="list-inline sub">
                 {{#each check in session.Checks}}
                   <li class="bold">{{check}}</li>
                 {{/each}}
               </ul>
+          {{ sessionMeta session }}
           </div>
         {{/each}}
 
