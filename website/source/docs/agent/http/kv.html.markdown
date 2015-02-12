@@ -4,13 +4,13 @@ page_title: "Key/Value store (HTTP)"
 sidebar_current: "docs-agent-http-kv"
 description: >
   The KV endpoint is used to access Consul's simple key/value store, useful for storing
-  service configurations or other metadata.
+  service configuration or other metadata.
 ---
 
 # Key/Value HTTP Endpoint
 
 The KV endpoint is used to access Consul's simple key/value store, useful for storing
-service configurations or other metadata.
+service configuration or other metadata.
 
 It has only a single endpoint:
 
@@ -18,10 +18,10 @@ It has only a single endpoint:
 
 The `GET`, `PUT` and `DELETE` methods are all supported.
 
-By default the datacenter of the agent is queried; however, the dc can be provided
+By default, the datacenter of the agent is queried; however, the dc can be provided
 using the "?dc=" query parameter. It is important to note that each datacenter has
 its own KV store, and there is no built-in replication between datacenters. If you
-are interested replication between datacenters, look at the
+are interested in replication between datacenters, look at the
 [consul-replicate project](https://github.com/hashicorp/consul-replicate).
 
 The KV endpoint supports the use of ACL tokens.
