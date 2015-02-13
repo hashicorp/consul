@@ -53,5 +53,5 @@ The list of available flags are:
 * `-tag` - Service tag to filter on. Optional for `service` type.
 
 * `-type` - Watch type. Required, one of "key", "keyprefix", "services",
-  "nodes", "services", "checks", or "event".
+  "nodes", "service", "checks", or "event".
 
