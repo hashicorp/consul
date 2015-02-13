@@ -55,7 +55,7 @@ The options below are all specified on the command-line.
 * `-bind` - The address that should be bound to for internal cluster communications.
   This is an IP address that should be reachable by all other nodes in the cluster.
   By default, this is "0.0.0.0", meaning Consul will use the first available private
-  IP address. Consul uses both TCP and UDP and the same port for both.  If you
+  IP address. Consul uses both TCP and UDP and the same port for both. If you
   have any firewalls, be sure to allow both protocols.
 
 * `-client` - The address to which Consul will bind client interfaces,
@@ -72,8 +72,8 @@ The options below are all specified on the command-line.
   while list types will be appended together.
 
 * `-config-dir` - A directory of configuration files to load. Consul will
-  load all files in this directory with the suffix ".json".  The load order
-  is alphabetical order, and the the same merge routine is used as with the `config-file`
+  load all files in this directory with the suffix ".json". The load order
+  is alphabetical, and the the same merge routine is used as with the `config-file`
   option above. For more information on the format of the configuration files,
   see the [Configuration Files](#configuration_files) section.
 
@@ -85,12 +85,12 @@ The options below are all specified on the command-line.
   shared folders) may not be suitable.
 
 * `-dc` - This flag controls the data center in which the agent is running. If not provided,
-  it defaults to "dc1". Consul has first-class support for multiple data centers but
+  it defaults to "dc1". Consul has first-class support for multiple data centers, but
   it relies on proper configuration. Nodes in the same data center should be on a single
   LAN.
 
 * `-encrypt` - Specifies the secret key to use for encryption of Consul
-  network traffic. This key must be 16-bytes that are Base64 encoded. The
+  network traffic. This key must be 16-bytes that are Base64-encoded. The
   easiest way to create an encryption key is to use `consul keygen`. All
   nodes within a cluster must share the same encryption key to communicate.
   The provided key is automatically persisted to the data directory and loaded
@@ -186,7 +186,7 @@ definitions support being updated during a reload.
 
 ```javascript
 {
-  "data center": "east-aws",
+  "datacenter": "east-aws",
   "data_dir": "/opt/consul",
   "log_level": "INFO",
   "node_name": "foobar",
@@ -202,14 +202,14 @@ definitions support being updated during a reload.
 
 #### Configuration Key Reference
 
-* `acl_data center` - Only used by servers. This designates the data center which
+* `acl_datacenter` - Only used by servers. This designates the data center which
    is authoritative for ACL information. It must be provided to enable ACLs.
    All servers and data centers must agree on the ACL data center. Setting it on
    the servers is all you need for enforcement, but for the APIs to work on the
    clients, it must be set on them too (to forward properly). Also, if we want
    to enhance the ACL support for other features like service discovery,
    enforcement might move to the edges, so it's best to just set the
-   `acl_data center` on all the nodes.
+   `acl_datacenter` on all the nodes.
 
 * `acl_default_policy` - Either "allow" or "deny", defaults to "allow". The
   default policy controls the behavior of a token when there is no matching
@@ -219,12 +219,12 @@ definitions support being updated during a reload.
 
 * `acl_down_policy` - Either "allow", "deny" or "extend-cache" which is the
   default. In the case that the policy for a token cannot be read from the
-  `acl_data center` or leader node, the down policy is applied. In "allow" mode,
+  `acl_datacenter` or leader node, the down policy is applied. In "allow" mode,
   all actions are permitted, "deny" restricts all operations, and "extend-cache"
   allows any cached ACLs to be used, ignoring their TTL values. If a non-cached
   ACL is used, "extend-cache" acts like "deny".
 
-* `acl_master_token` - Only used for servers in the `acl_data center`. This token
+* `acl_master_token` - Only used for servers in the `acl_datacenter`. This token
    will be created if it does not exist with management level permissions. It allows
    operators to bootstrap the ACL system with a token ID that is well-known.
 
@@ -286,7 +286,7 @@ definitions support being updated during a reload.
 
 * `client_addr` - Equivalent to the `-client` command-line flag.
 
-* `data center` - Equivalent to the `-dc` command-line flag.
+* `datacenter` - Equivalent to the `-dc` command-line flag.
 
 * `data_dir` - Equivalent to the `-data-dir` command-line flag.
 
