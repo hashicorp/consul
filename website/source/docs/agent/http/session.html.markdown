@@ -48,9 +48,7 @@ can be specified using the "?dc=" query parameter. However, it is not recommende
 to use cross-datacenter sessions.
 
 `LockDelay` can be specified as a duration string using a "s" suffix for
-seconds. The default is 15s. This value can also be a numeric value. Small values are
-treated as seconds while larger values are assumed to be nanoseconds.
-<QUESTION: I don't see anywhere in the code to substantiate this.  If this is true, how do we define small and large values? We need to give people some boundaries.  QUESTION>
+seconds. The default is 15s.
 
 `Node` must refer to a node that is already registered, if specified. By default,
 the agent's own node name is used.
