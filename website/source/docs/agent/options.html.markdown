@@ -205,7 +205,7 @@ definitions support being updated during a reload.
 * `acl_datacenter` - Only used by servers. This designates the data center which
    is authoritative for ACL information. It must be provided to enable ACLs.
    All servers and data centers must agree on the ACL data center. Setting it on
-   the servers is all you need for enforcement, but for the APIs to forwarding properly
+   the servers is all you need for enforcement, but for the APIs to forward properly
    from the clients, it must be set on them too. Future changes may move
    enforcement to the edges, so it's best to just set `acl_datacenter` on all nodes.
 
@@ -315,7 +315,7 @@ definitions support being updated during a reload.
 
   * `node_ttl` - By default, this is "0s", so all node lookups are served with
   a 0 TTL value. DNS caching for node lookups can be enabled by setting this value. This
-  should be specified with the "s" suffix for second, or "m" for minute.
+  should be specified with the "s" suffix for second or "m" for minute.
 
   * `service_ttl` - This is a sub-object which allows for setting a TTL on service lookups
   with a per-service policy. The "*" wildcard service can be used when
@@ -468,7 +468,7 @@ definitions support being updated during a reload.
 
 ## Ports Used
 
-Consul requires up to 5 different ports to work properly, some requiring
+Consul requires up to 5 different ports to work properly, some on
 TCP, UDP, or both protocols. Below we document the requirements for each
 port.
 
@@ -476,7 +476,7 @@ port.
   requests from other agents. TCP only.
 
 * Serf LAN (Default 8301). This is used to handle gossip in the LAN.
-  Required by all agents, TCP and UDP.
+  Required by all agents. TCP and UDP.
 
 * Serf WAN (Default 8302). This is used by servers to gossip over the
   WAN to other servers. TCP and UDP.
