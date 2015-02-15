@@ -205,19 +205,17 @@ definitions support being updated during a reload.
 * `acl_datacenter` - Only used by servers. This designates the data center which
    is authoritative for ACL information. It must be provided to enable ACLs.
    All servers and data centers must agree on the ACL data center. Setting it on
-   the servers is all you need for enforcement, but for the APIs to work on the
-   clients, it must be set on them too (to forward properly). Also, if we want
-   to enhance the ACL support for other features like service discovery,
-   enforcement might move to the edges, so it's best to just set the
-   `acl_datacenter` on all the nodes.
+   the servers is all you need for enforcement, but for the APIs to forwarding properly
+   from the clients, it must be set on them too. Future changes may move
+   enforcement to the edges, so it's best to just set `acl_datacenter` on all nodes.
 
-* `acl_default_policy` - Either "allow" or "deny", defaults to "allow". The
+* `acl_default_policy` - Either "allow" or "deny"; defaults to "allow". The
   default policy controls the behavior of a token when there is no matching
   rule. In "allow" mode, ACLs are a blacklist: any operation not specifically
   prohibited is allowed. In "deny" mode, ACLs are a whitelist: any operation not
   specifically allowed is blocked.
 
-* `acl_down_policy` - Either "allow", "deny" or "extend-cache" which is the
+* `acl_down_policy` - Either "allow", "deny" or "extend-cache"; "extend-cache" is the
   default. In the case that the policy for a token cannot be read from the
   `acl_datacenter` or leader node, the down policy is applied. In "allow" mode,
   all actions are permitted, "deny" restricts all operations, and "extend-cache"
@@ -225,18 +223,17 @@ definitions support being updated during a reload.
   ACL is used, "extend-cache" acts like "deny".
 
 * `acl_master_token` - Only used for servers in the `acl_datacenter`. This token
-   will be created if it does not exist with management level permissions. It allows
+   will be created with management-level permissions if it does not exist. It allows
    operators to bootstrap the ACL system with a token ID that is well-known.
 
 * `acl_token` - When provided, the agent will use this token when making requests
    to the Consul servers. Clients can override this token on a per-request basis
-   by providing the ?token parameter. When not provided, the empty token is used
-   which maps to the 'anonymous' ACL policy.
+   by providing the "?token" query parameter. When not provided, the empty token, which
+   maps to the 'anonymous' ACL policy, is used.
 
-
-* `acl_ttl` - Used to control Time-To-Live caching of ACLs. By default this
+* `acl_ttl` - Used to control Time-To-Live caching of ACLs. By default, this
    is 30 seconds. This setting has a major performance impact: reducing it will
-   cause more frequent refreshes, while increasing it reduces the number of caches.
+   cause more frequent refreshes while increasing it reduces the number of caches.
    However, because the caches are not actively invalidated, ACL policy may be stale
    up to the TTL value.
 
@@ -268,13 +265,13 @@ definitions support being updated during a reload.
 
 * `bind_addr` - Equivalent to the `-bind` command-line flag.
 
-* `ca_file` - This provides a the file path to a PEM encoded certificate authority.
+* `ca_file` - This provides a file path to a PEM-encoded certificate authority.
   The certificate authority is used to check the authenticity of client and server
   connections with the appropriate `verify_incoming` or `verify_outgoing` flags.
 
-* `cert_file` - This provides a the file path to a PEM encoded certificate.
-  The certificate is provided to clients or servers to verify the agents authenticity.
-  Must be provided along with the `key_file`.
+* `cert_file` - This provides a file path to a PEM-encoded certificate.
+  The certificate is provided to clients or servers to verify the agent's authenticity.
+  It must be provided along with `key_file`.
 
 * `check_update_interval` - This interval controls how often check output from
   checks in a steady state is synchronized with the server. By default, this is
@@ -300,28 +297,30 @@ definitions support being updated during a reload.
   new version releases.
 
 * `dns_config` - This object allows a number of sub-keys to be set which can tune
-  how DNS queries are performed. See this guide on [DNS caching](/docs/guides/dns-cache.html).
+  how DNS queries are serviced. See this guide on [DNS caching](/docs/guides/dns-cache.html)
+  for more detail.
+  <br><br>
   The following sub-keys are available:
 
   * `allow_stale` - Enables a stale query for DNS information. This allows any Consul
-  server to service the request, instead of only the leader. The advantage of this is
+  server, rather than only the leader, to service the request. The advantage of this is
   you get linear read scalability with Consul servers. By default, this is false, meaning
-  all requests are serviced by the leader. This provides stronger consistency but
-  with less throughput and higher latency.
+  all requests are serviced by the leader, providing stronger consistency but
+  less throughput and higher latency.
 
   * `max_stale` - When `allow_stale` is specified, this is used to limit how
-  stale of a result will be used. By default, this is set to "5s", which means
+  stale results are allowed to be. By default, this is set to "5s":
   if a Consul server is more than 5 seconds behind the leader, the query will be
   re-evaluated on the leader to get more up-to-date results.
 
-  * `node_ttl` - By default, this is "0s", which means all node lookups are served with
-  a 0 TTL value. This can be set to allow node lookups to set a TTL value, which enables
-  DNS caching. This should be specified with the "s" suffix for second, or "m" for minute.
+  * `node_ttl` - By default, this is "0s", so all node lookups are served with
+  a 0 TTL value. DNS caching for node lookups can be enabled by setting this value. This
+  should be specified with the "s" suffix for second, or "m" for minute.
 
-  * `service_ttl` - This is a sub-object, which allows for setting a TTL on service lookups
-  with a per-service policy. The "*" wildcard service can be specified and is used when
+  * `service_ttl` - This is a sub-object which allows for setting a TTL on service lookups
+  with a per-service policy. The "*" wildcard service can be used when
   there is no specific policy available for a service. By default, all services are served
-  with a 0 TTL value. Setting this enables DNS caching.
+  with a 0 TTL value. DNS caching for service lookups can be enabled by setting this value.
 
   * `enable_truncate` - If set to true, a UDP DNS query that would return more than 3 records
   will set the truncated flag, indicating to clients that they should re-query using TCP to
@@ -333,21 +332,22 @@ definitions support being updated during a reload.
 
 * `domain` - By default, Consul responds to DNS queries in the "consul." domain.
   This flag can be used to change that domain. All queries in this domain are assumed
-  to be handled by Consul, and will not be recursively resolved.
+  to be handled by Consul and will not be recursively resolved.
 
 * `enable_debug` - When set, enables some additional debugging features. Currently,
-  only used to set the runtime profiling HTTP endpoints.
+  this is only used to set the runtime profiling HTTP endpoints.
 
 * `enable_syslog` - Equivalent to the `-syslog` command-line flag.
 
 * `encrypt` - Equivalent to the `-encrypt` command-line flag.
 
-* `key_file` - This provides a the file path to a PEM encoded private key.
-  The key is used with the certificate to verify the agents authenticity.
-  Must be provided along with the `cert_file`.
+* `key_file` - This provides a the file path to a PEM-encoded private key.
+  The key is used with the certificate to verify the agent's authenticity.
+  This must be provided along with `cert_file`.
 
-* `http_api_response_headers` - This object allows adding HTTP header response fields to
-  the HTTP API responses. For example, the following config can be used to enable CORS on
+* `http_api_response_headers` - This object allows adding headers to the HTTP API
+  responses. For example, the following config can be used to enable
+  [CORS](http://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on
   the HTTP API endpoints:
 
     ```javascript
@@ -359,7 +359,7 @@ definitions support being updated during a reload.
     ```
 
 * `leave_on_terminate` - If enabled, when the agent receives a TERM signal,
-  it will send a Leave message to the rest of the cluster and gracefully
+  it will send a `Leave` message to the rest of the cluster and gracefully
   leave. Defaults to false.
 
 * `log_level` - Equivalent to the `-log-level` command-line flag.
@@ -384,7 +384,7 @@ definitions support being updated during a reload.
 * `recursors` - This flag provides addresses of upstream DNS servers that are used to
   recursively resolve queries if they are not inside the service domain for consul. For example,
   a node can use Consul directly as a DNS server, and if the record is outside of the "consul." domain,
-  the query will be resolved upstream using their servers.
+  the query will be resolved upstream.
 
 * `rejoin_after_leave` - Equivalent to the `-rejoin` command-line flag.
 
@@ -396,75 +396,75 @@ definitions support being updated during a reload.
 
 * `retry_join_wan` - Equivalent to the `-retry-join-wan` command-line flag. Takes a list
   of addresses to attempt joining to WAN every `retry_interval_wan` until at least one
-  join -wan works.
+  `-join-wan works.
 
 * `retry_interval_wan` - Equivalent to the `-retry-interval-wan` command-line flag.
 
 * `server` - Equivalent to the `-server` command-line flag.
 
-* `server_name` - When give, this overrides the `node_name` for the TLS certificate.
+* `server_name` - When provided, this overrides the `node_name` for the TLS certificate.
   It can be used to ensure that the certificate name matches the hostname we
   declare.
 
-* `skip_leave_on_interrupt` - This is the similar to`leave_on_terminate` but
-  only affects interrupt handling. By default, an interrupt causes Consul to
-  gracefully leave, but setting this to true disables that. Defaults to false.
-  Interrupts are usually from a Control-C from a shell.
+* `skip_leave_on_interrupt` - This is similar to `leave_on_terminate` but
+  only affects interrupt handling. By default, an interrupt (such as hitting
+  Control-C in a shell) causes Consul to gracefully leave. Setting this to true
+  disables that. Defaults to false.
 
 * `start_join` - An array of strings specifying addresses of nodes to
   join upon startup.
 
 * `start_join_wan` - An array of strings specifying addresses of WAN nodes to
-  join -wan upon startup.
+  `-join-wan` upon startup.
 
-* `statsd_addr` - This provides the address of a statsd instance.  If provided
+* `statsd_addr` - This provides the address of a statsd instance.  If provided,
   Consul will send various telemetry information to that instance for aggregation.
-  This can be used to capture various runtime information. This sends UDP packets
-  only, and can be used with statsd or statsite.
+  This can be used to capture runtime information. This sends UDP packets
+  only and can be used with statsd or statsite.
 
-* `statsite_addr` - This provides the address of a statsite instance. If provided
+* `statsite_addr` - This provides the address of a statsite instance. If provided,
   Consul will stream various telemetry information to that instance for aggregation.
-  This can be used to capture various runtime information. This streams via
+  This can be used to capture runtime information. This streams via
   TCP and can only be used with statsite.
 
-* `syslog_facility` - When `enable_syslog` is provided, this controls which
-  facility messages are sent to. By default, `LOCAL0` will be used.
+* `syslog_facility` - When `enable_syslog` is provided, this controls to which
+  facility messages are sent. By default, `LOCAL0` will be used.
 
 * `ui_dir` - Equivalent to the `-ui-dir` command-line flag.
 
 * `unix_sockets` - This allows tuning the ownership and permissions of the
   Unix domain socket files created by Consul. Domain sockets are only used if
   the HTTP or RPC addresses are configured with the `unix://` prefix. The
-  following options are valid within this construct, and apply globally to all
+  following options are valid within this construct and apply globally to all
   sockets created by Consul:
   <br>
   * `user` - The name or ID of the user who will own the socket file.
   * `group` - The group ID ownership of the socket file. Note that this option
-    currently only supports numeric ID's.
+    currently only supports numeric IDs.
   * `mode` - The permission bits to set on the file.
   <br>
   It is important to note that this option may have different effects on
-  different operating systems. Linux generally observes socket file permissions,
+  different operating systems. Linux generally observes socket file permissions
   while many BSD variants ignore permissions on the socket file itself. It is
   important to test this feature on your specific distribution. This feature is
   currently not functional on Windows hosts.
 
-* `verify_incoming` - If set to True, Consul requires that all incoming
-  connections make use of TLS, and that the client provides a certificate signed
+* `verify_incoming` - If set to true, Consul requires that all incoming
+  connections make use of TLS and that the client provides a certificate signed
   by the Certificate Authority from the `ca_file`. By default, this is false, and
   Consul will not enforce the use of TLS or verify a client's authenticity. This
-  only applies to Consul servers, since a client never has an incoming connection.
+  only applies to Consul servers since a client never has an incoming connection.
 
-* `verify_outgoing` - If set to True, Consul requires that all outgoing connections
-  make use of TLS, and that the server provide a certificate that is signed by
+* `verify_outgoing` - If set to true, Consul requires that all outgoing connections
+  make use of TLS and that the server provides a certificate that is signed by
   the Certificate Authority from the `ca_file`. By default, this is false, and Consul
-  will not make use of TLS for outgoing connections. This applies to clients and servers,
+  will not make use of TLS for outgoing connections. This applies to clients and servers
   as both will make outgoing connections.
 
-* `watches` - Watches is a list of watch specifications.
-   These allow an external process to be automatically invoked when a particular
-   data view is updated. See the [watch documentation](/docs/agent/watches.html) for
-   more documentation. Watches can be modified when the configuration is reloaded.
+* `watches` - Watches is a list of watch specifications which allow an external process
+   to be automatically invoked when a particular data view is updated. See the
+   [watch documentation](/docs/agent/watches.html) for more detail. Watches can be
+   modified when the configuration is reloaded.
 
 ## Ports Used
 
