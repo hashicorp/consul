@@ -42,6 +42,7 @@ BUG FIXES:
  * Fixed issue preventing node reaping [GH-371]
  * Fixed gossip stability at very large scale
  * Fixed string of rpc error: rpc error: ... no known leader. [GH-611]
+ * Fixed panic in `exec` during cancelation
 
 IMPROVEMENTS:
 
