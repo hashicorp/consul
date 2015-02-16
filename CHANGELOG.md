@@ -41,6 +41,7 @@ BUG FIXES:
  * Fixed issues with graceful leave in single-node bootstrap cluster [GH-621]
  * Fixed issue preventing node reaping [GH-371]
  * Fixed gossip stability at very large scale
+ * Fixed string of rpc error: rpc error: ... no known leader. [GH-611]
 
 IMPROVEMENTS:
 
