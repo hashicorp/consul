@@ -111,7 +111,7 @@ The options below are all specified on the command-line.
 
 * <a id="retry_interval"></a>`-retry-interval` - Time to wait between join attempts. Defaults to 30s.
 
-* <a id="retry_max"></a>`-retry-max` - The maximum number of join attempts to be made before exiting
+* <a id="retry_max"></a>`-retry-max` - The maximum number of [`-join`](#join) attempts to be made before exiting
   with return code 1. By default, this is set to 0 which is interpreted as infinite
   retries.
 
@@ -404,7 +404,7 @@ definitions support being updated during a reload.
 
 * `server` - Equivalent to the [`-server` command-line flag](#server).
 
-* `server_name` - When provided, this overrides the `node_name` for the TLS certificate.
+* `server_name` - When provided, this overrides the [`node_name`](#node) for the TLS certificate.
   It can be used to ensure that the certificate name matches the hostname we
   declare.
 
@@ -414,7 +414,7 @@ definitions support being updated during a reload.
   disables that. Defaults to false.
 
 * `start_join` - An array of strings specifying addresses of nodes to
-  join upon startup.
+  [`-join`](#join) upon startup.
 
 * `start_join_wan` - An array of strings specifying addresses of WAN nodes to
   [`-join-wan`](#join_wan) upon startup.
