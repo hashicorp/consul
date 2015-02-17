@@ -751,6 +751,10 @@ func (c *Command) handleReload(config *Config) *Config {
 	c.agent.PauseSync()
 	defer c.agent.ResumeSync()
 
+	// Snapshot the current state, and restore it afterwards
+	snap := c.agent.snapshotCheckState()
+	defer c.agent.restoreCheckState(snap)
+
 	// First unload all checks and services. This lets us begin the reload
 	// with a clean slate.
 	if err := c.agent.unloadServices(); err != nil {
