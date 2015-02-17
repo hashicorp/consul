@@ -33,37 +33,37 @@ configuration reload.
 
 The options below are all specified on the command-line.
 
-* `-advertise` - The advertise address is used to change the address that we
+* <a id="advertise"></a>`-advertise` - The advertise address is used to change the address that we
   advertise to other nodes in the cluster. By default, the `-bind` address is
   advertised. However, in some cases, there may be a routable address that cannot
   be bound. This flag enables gossiping a different address to support this.
   If this address is not routable, the node will be in a constant flapping state
   as other nodes will treat the non-routability as a failure.
 
-* `-bootstrap` - This flag is used to control if a server is in "bootstrap" mode. It is important that
+* <a id="bootstrap_anchor"></a>`-bootstrap` - This flag is used to control if a server is in "bootstrap" mode. It is important that
   no more than one server *per* data center be running in this mode. Technically, a server in bootstrap mode
   is allowed to self-elect as the Raft leader. It is important that only a single node is in this mode;
   otherwise, consistency cannot be guaranteed as multiple nodes are able to self-elect.
   It is not recommended to use this flag after a cluster has been bootstrapped.
 
-* `-bootstrap-expect` - This flag provides the number of expected servers in the data center.
+* <a id="bootstrap_expect"></a>`-bootstrap-expect` - This flag provides the number of expected servers in the data center.
   Either this value should not be provided or the value must agree with other servers in
   the cluster. When provided, Consul waits until the specified number of servers are
   available and then bootstraps the cluster. This allows an initial leader to be elected
   automatically. This cannot be used in conjunction with the `-bootstrap` flag.
 
-* `-bind` - The address that should be bound to for internal cluster communications.
+* <a id="bind"></a>`-bind` - The address that should be bound to for internal cluster communications.
   This is an IP address that should be reachable by all other nodes in the cluster.
   By default, this is "0.0.0.0", meaning Consul will use the first available private
   IP address. Consul uses both TCP and UDP and the same port for both. If you
   have any firewalls, be sure to allow both protocols.
 
-* `-client` - The address to which Consul will bind client interfaces,
+* <a id="client"></a>`-client` - The address to which Consul will bind client interfaces,
   including the HTTP, DNS, and RPC servers. By default, this is "127.0.0.1",
   allowing only loopback connections. The RPC address is used by other Consul
   commands, such as `consul members`, in order to query a running Consul agent.
 
-* `-config-file` - A configuration file to load. For more information on
+* <a id="config_file"></a>`-config-file` - A configuration file to load. For more information on
   the format of this file, read the [Configuration Files](#configuration_files) section.
   This option can be specified multiple times to load multiple configuration
   files. If it is specified multiple times, configuration files loaded later
@@ -71,25 +71,25 @@ The options below are all specified on the command-line.
   single-value keys (string, int, bool) will simply have their values replaced
   while list types will be appended together.
 
-* `-config-dir` - A directory of configuration files to load. Consul will
+* <a id="config_dir"></a>`-config-dir` - A directory of configuration files to load. Consul will
   load all files in this directory with the suffix ".json". The load order
-  is alphabetical, and the the same merge routine is used as with the `config-file`
-  option above. For more information on the format of the configuration files,
-  see the [Configuration Files](#configuration_files) section.
+  is alphabetical, and the the same merge routine is used as with the
+  [`config-file`](config_file) option above. For more information
+  on the format of the configuration files, see the [Configuration Files](#configuration_files) section.
 
-* `-data-dir` - This flag provides a data directory for the agent to store state.
+* <a id="data_dir"></a>`-data-dir` - This flag provides a data directory for the agent to store state.
   This is required for all agents. The directory should be durable across reboots.
   This is especially critical for agents that are running in server mode as they
   must be able to persist cluster state. Additionally, the directory must support
   the use of filesystem locking, meaning some types of mounted folders (e.g. VirtualBox
   shared folders) may not be suitable.
 
-* `-dc` - This flag controls the data center in which the agent is running. If not provided,
+* <a id="dc"></a>`-dc` - This flag controls the data center in which the agent is running. If not provided,
   it defaults to "dc1". Consul has first-class support for multiple data centers, but
   it relies on proper configuration. Nodes in the same data center should be on a single
   LAN.
 
-* `-encrypt` - Specifies the secret key to use for encryption of Consul
+* <a id="encrypt"></a>`-encrypt` - Specifies the secret key to use for encryption of Consul
   network traffic. This key must be 16-bytes that are Base64-encoded. The
   easiest way to create an encryption key is to use `consul keygen`. All
   nodes within a cluster must share the same encryption key to communicate.
@@ -100,55 +100,56 @@ The options below are all specified on the command-line.
   initialized with an encryption key, then the provided key is ignored and
   a warning will be displayed.
 
-* `-join` - Address of another agent to join upon starting up. This can be
+* <a id="join"></a>`-join` - Address of another agent to join upon starting up. This can be
   specified multiple times to specify multiple agents to join. If Consul is
   unable to join with any of the specified addresses, agent startup will
   fail. By default, the agent won't join any nodes when it starts up.
 
-* `-retry-join` - Similar to `-join` but allows retrying a join if the first
+* <a id="retry_join"></a>`-retry-join` - Similar to [`-join`](#join) but allows retrying a join if the first
   attempt fails. This is useful for cases where we know the address will become
   available eventually.
 
-* `-retry-interval` - Time to wait between join attempts. Defaults to 30s.
+* <a id="retry_interval"></a>`-retry-interval` - Time to wait between join attempts. Defaults to 30s.
 
-* `-retry-max` - The maximum number of join attempts to be made before exiting
+* <a id="retry_max"></a>`-retry-max` - The maximum number of join attempts to be made before exiting
   with return code 1. By default, this is set to 0 which is interpreted as infinite
   retries.
 
-* `-join-wan` - Address of another wan agent to join upon starting up. This can be
+* <a id="join_wan"></a>`-join-wan` - Address of another wan agent to join upon starting up. This can be
   specified multiple times to specify multiple WAN agents to join. If Consul is
   unable to join with any of the specified addresses, agent startup will
-  fail. By default, the agent won't `-join-wan` any nodes when it starts up.
+  fail. By default, the agent won't [`-join-wan`](#join_wan) any nodes when it starts up.
 
-* `-retry-join-wan` - Similar to `retry-join` but allows retrying a wan join if the first
-  attempt fails. This is useful for cases where we know the address will become
+* <a id="retry_join_wan"></a>`-retry-join-wan` - Similar to [`retry-join`](#retry_join) but allows retrying
+  a wan join if the first attempt fails. This is useful for cases where we know the address will become
   available eventually.
 
-* `-retry-interval-wan` - Time to wait between `-join-wan` attempts. Defaults to 30s.
+* <a id="retry_interval_wan"></a>`-retry-interval-wan` - Time to wait between [`-join-wan`](#join_wan) attempts.
+  Defaults to 30s.
 
-* `-retry-max-wan` - The maximum number of `-join-wan` attempts to be made before exiting
-  with return code 1. By default, this is set to 0 which is interpreted as infinite
+* <a id="retry_max_wan"></a>`-retry-max-wan` - The maximum number of [`-join-wan`](#join_wan) attempts to
+  be made before exiting with return code 1. By default, this is set to 0 which is interpreted as infinite
   retries.
 
-* `-log-level` - The level of logging to show after the Consul agent has
+* <a id="log_level"></a>`-log-level` - The level of logging to show after the Consul agent has
   started. This defaults to "info". The available log levels are "trace",
   "debug", "info", "warn", and "err". Note that you can always connect to an
   agent via `consul monitor` and use any log level. Also, the log level can
   be changed during a config reload.
 
-* `-node` - The name of this node in the cluster. This must be unique within
+* <a id="node"></a>`-node` - The name of this node in the cluster. This must be unique within
   the cluster. By default this is the hostname of the machine.
 
-* `-protocol` - The Consul protocol version to use. This defaults to the latest
+* <a id="protocol"></a>`-protocol` - The Consul protocol version to use. This defaults to the latest
   version. This should be set only when [upgrading](/docs/upgrading.html).
   You can view the protocol versions supported by Consul by running `consul -v`.
 
-* `-rejoin` - When provided, Consul will ignore a previous leave and attempt to
+* <a id="rejoin"></a>`-rejoin` - When provided, Consul will ignore a previous leave and attempt to
   rejoin the cluster when starting. By default, Consul treats leave as a permanent
   intent and does not attempt to join the cluster again when starting. This flag
   allows the previous state to be used to rejoin the cluster.
 
-* `-server` - This flag is used to control if an agent is in server or client mode. When provided,
+* <a id="server"></a>`-server` - This flag is used to control if an agent is in server or client mode. When provided,
   an agent will act as a Consul server. Each Consul cluster must have at least one server and ideally
   no more than 5 per data center. All servers participate in the Raft consensus algorithm to ensure that
   transactions occur in a consistent, linearizable manner. Transactions modify cluster state, which
@@ -156,16 +157,16 @@ The options below are all specified on the command-line.
   participate in a WAN gossip pool with server nodes in other data centers. Servers act as gateways
   to other data centers and forward traffic as appropriate.
 
-* `-syslog` - This flag enables logging to syslog. This is only supported on Linux
+* <a id="syslog"></a>`-syslog` - This flag enables logging to syslog. This is only supported on Linux
   and OSX. It will result in an error if provided on Windows.
 
-* `-ui-dir` - This flag provides the directory containing the Web UI resources
+* <a id="ui_dir"></a>`-ui-dir` - This flag provides the directory containing the Web UI resources
   for Consul. This must be provided to enable the Web UI. The directory must be readable.
 
-* `-pid-file` - This flag provides the file path for the agent to store its PID. This is useful for
+* <a id="pid_file"></a>`-pid-file` - This flag provides the file path for the agent to store its PID. This is useful for
   sending signals (for example, `SIGINT` to close the agent or `SIGHUP` to update check definitions) to the agent.
 
-## <a name="configuration_files"></a> Configuration Files
+## <a id="configuration_files"></a>Configuration Files
 
 In addition to the command-line options, configuration can be put into
 files. This may be easier in certain situations, for example when Consul is
@@ -257,19 +258,20 @@ definitions support being updated during a reload.
   * `http` - The HTTP API. Defaults to `client_addr`
   * `rpc` - The RPC endpoint. Defaults to `client_addr`
 
-* `advertise_addr` - Equivalent to the `-advertise` command-line flag.
+* `advertise_addr` - Equivalent to the [`-advertise` command-line flag](#advertise).
 
-* `bootstrap` - Equivalent to the `-bootstrap` command-line flag.
+* `bootstrap` - Equivalent to the [`-bootstrap` command-line flag](#bootstrap_anchor).
 
-* `bootstrap_expect` - Equivalent to the `-bootstrap-expect` command-line flag.
+* `bootstrap_expect` - Equivalent to the [`-bootstrap-expect` command-line flag](#bootstrap_expect).
 
-* `bind_addr` - Equivalent to the `-bind` command-line flag.
+* `bind_addr` - Equivalent to the [`-bind` command-line flag](#bind).
 
-* `ca_file` - This provides a file path to a PEM-encoded certificate authority.
+* <a id="ca_file"></a>`ca_file` - This provides a file path to a PEM-encoded certificate authority.
   The certificate authority is used to check the authenticity of client and server
-  connections with the appropriate `verify_incoming` or `verify_outgoing` flags.
+  connections with the appropriate [`verify_incoming`](#verify_incoming) or
+  [`verify_outgoing`](#verify_outgoing) flags.
 
-* `cert_file` - This provides a file path to a PEM-encoded certificate.
+* <a id="cert_file"></a>`cert_file` - This provides a file path to a PEM-encoded certificate.
   The certificate is provided to clients or servers to verify the agent's authenticity.
   It must be provided along with `key_file`.
 
@@ -281,19 +283,19 @@ definitions support being updated during a reload.
   reduce write pressure. If a check ever changes state, the new state and associated
   output is synchronized immediately. To disable this behavior, set the value to "0s".
 
-* `client_addr` - Equivalent to the `-client` command-line flag.
+* `client_addr` - Equivalent to the [`-client` command-line flag](#client).
 
-* `datacenter` - Equivalent to the `-dc` command-line flag.
+* `datacenter` - Equivalent to the [`-dc` command-line flag](#dc).
 
-* `data_dir` - Equivalent to the `-data-dir` command-line flag.
+* `data_dir` - Equivalent to the [`-data-dir` command-line flag](#data_dir).
 
 * `disable_anonymous_signature` - Disables providing an anonymous signature for
-  de-duplication with the update check. See `disable_update_check`.
+  de-duplication with the update check. See [`disable_update_check`](#disable_update_check).
 
 * `disable_remote_exec` - Disables support for remote execution. When set to true,
   the agent will ignore any incoming remote exec requests.
 
-* `disable_update_check` - Disables automatic checking for security bulletins and
+* <a id="disable_update_check"></a>`disable_update_check` - Disables automatic checking for security bulletins and
   new version releases.
 
 * `dns_config` - This object allows a number of sub-keys to be set which can tune
@@ -337,13 +339,13 @@ definitions support being updated during a reload.
 * `enable_debug` - When set, enables some additional debugging features. Currently,
   this is only used to set the runtime profiling HTTP endpoints.
 
-* `enable_syslog` - Equivalent to the `-syslog` command-line flag.
+* <a id="enable_syslog"></a>`enable_syslog` - Equivalent to the [`-syslog` command-line flag](#syslog).
 
-* `encrypt` - Equivalent to the `-encrypt` command-line flag.
+* `encrypt` - Equivalent to the [`-encrypt` command-line flag](#encrypt).
 
 * `key_file` - This provides a the file path to a PEM-encoded private key.
   The key is used with the certificate to verify the agent's authenticity.
-  This must be provided along with `cert_file`.
+  This must be provided along with [`cert_file`](#cert_file).
 
 * `http_api_response_headers` - This object allows adding headers to the HTTP API
   responses. For example, the following config can be used to enable
@@ -358,13 +360,13 @@ definitions support being updated during a reload.
       }
     ```
 
-* `leave_on_terminate` - If enabled, when the agent receives a TERM signal,
+* <a id="leave_on_terminate"></a>`leave_on_terminate` - If enabled, when the agent receives a TERM signal,
   it will send a `Leave` message to the rest of the cluster and gracefully
   leave. Defaults to false.
 
-* `log_level` - Equivalent to the `-log-level` command-line flag.
+* `log_level` - Equivalent to the [`-log-level` command-line flag](#log_level).
 
-* `node_name` - Equivalent to the `-node` command-line flag.
+* `node_name` - Equivalent to the [`-node` command-line flag](#node).
 
 * `ports` - This is a nested object that allows setting the bind ports
    for the following keys:
@@ -376,37 +378,37 @@ definitions support being updated during a reload.
     * `serf_wan` - The Serf WAN port. Default 8302.
     * `server` - Server RPC address. Default 8300.
 
-* `protocol` - Equivalent to the `-protocol` command-line flag.
+* `protocol` - Equivalent to the [`-protocol` command-line flag](#protocol).
 
 * `recursor` - Provides a single recursor address. This has been deprecated, and
-  the value is appended to the `recursors` list for backwards compatibility.
+  the value is appended to the [`recursors`](#recursors) list for backwards compatibility.
 
-* `recursors` - This flag provides addresses of upstream DNS servers that are used to
+* <a id="recursors"></a>`recursors` - This flag provides addresses of upstream DNS servers that are used to
   recursively resolve queries if they are not inside the service domain for consul. For example,
   a node can use Consul directly as a DNS server, and if the record is outside of the "consul." domain,
   the query will be resolved upstream.
 
-* `rejoin_after_leave` - Equivalent to the `-rejoin` command-line flag.
+* `rejoin_after_leave` - Equivalent to the [`-rejoin` command-line flag](#rejoin).
 
-* `retry_join` - Equivalent to the `-retry-join` command-line flag. Takes a list
+* `retry_join` - Equivalent to the [`-retry-join` command-line flag](#retry_join). Takes a list
   of addresses to attempt joining every `retry_interval` until at least one
-  join works.
+  [`-join`](#join) works.
 
-* `retry_interval` - Equivalent to the `-retry-interval` command-line flag.
+* `retry_interval` - Equivalent to the [`-retry-interval` command-line flag](#retry_interval).
 
-* `retry_join_wan` - Equivalent to the `-retry-join-wan` command-line flag. Takes a list
-  of addresses to attempt joining to WAN every `retry_interval_wan` until at least one
-  `-join-wan works.
+* `retry_join_wan` - Equivalent to the [`-retry-join-wan` command-line flag](#retry_join_wan). Takes a list
+  of addresses to attempt joining to WAN every [`retry_interval_wan`](#retry_interval_wan) until at least one
+  [`-join-wan`](#join_wan) works.
 
-* `retry_interval_wan` - Equivalent to the `-retry-interval-wan` command-line flag.
+* `retry_interval_wan` - Equivalent to the [`-retry-interval-wan` command-line flag](#retry_interval_wan).
 
-* `server` - Equivalent to the `-server` command-line flag.
+* `server` - Equivalent to the [`-server` command-line flag](#server).
 
 * `server_name` - When provided, this overrides the `node_name` for the TLS certificate.
   It can be used to ensure that the certificate name matches the hostname we
   declare.
 
-* `skip_leave_on_interrupt` - This is similar to `leave_on_terminate` but
+* `skip_leave_on_interrupt` - This is similar to [`leave_on_terminate`](#leave_on_terminate) but
   only affects interrupt handling. By default, an interrupt (such as hitting
   Control-C in a shell) causes Consul to gracefully leave. Setting this to true
   disables that. Defaults to false.
@@ -415,7 +417,7 @@ definitions support being updated during a reload.
   join upon startup.
 
 * `start_join_wan` - An array of strings specifying addresses of WAN nodes to
-  `-join-wan` upon startup.
+  [`-join-wan`](#join_wan) upon startup.
 
 * `statsd_addr` - This provides the address of a statsd instance.  If provided,
   Consul will send various telemetry information to that instance for aggregation.
@@ -427,10 +429,10 @@ definitions support being updated during a reload.
   This can be used to capture runtime information. This streams via
   TCP and can only be used with statsite.
 
-* `syslog_facility` - When `enable_syslog` is provided, this controls to which
+* `syslog_facility` - When [`enable_syslog`](#enable_syslog) is provided, this controls to which
   facility messages are sent. By default, `LOCAL0` will be used.
 
-* `ui_dir` - Equivalent to the `-ui-dir` command-line flag.
+* `ui_dir` - Equivalent to the [`-ui-dir`](#ui_dir) command-line flag.
 
 * `unix_sockets` - This allows tuning the ownership and permissions of the
   Unix domain socket files created by Consul. Domain sockets are only used if
@@ -449,15 +451,15 @@ definitions support being updated during a reload.
   important to test this feature on your specific distribution. This feature is
   currently not functional on Windows hosts.
 
-* `verify_incoming` - If set to true, Consul requires that all incoming
+* <a id="verify_incoming"></a>`verify_incoming` - If set to true, Consul requires that all incoming
   connections make use of TLS and that the client provides a certificate signed
-  by the Certificate Authority from the `ca_file`. By default, this is false, and
+  by the Certificate Authority from the [`ca_file`](#ca_file). By default, this is false, and
   Consul will not enforce the use of TLS or verify a client's authenticity. This
   only applies to Consul servers since a client never has an incoming connection.
 
-* `verify_outgoing` - If set to true, Consul requires that all outgoing connections
+* <a id="verify_outgoing"></a>`verify_outgoing` - If set to true, Consul requires that all outgoing connections
   make use of TLS and that the server provides a certificate that is signed by
-  the Certificate Authority from the `ca_file`. By default, this is false, and Consul
+  the Certificate Authority from the [`ca_file`](#ca_file). By default, this is false, and Consul
   will not make use of TLS for outgoing connections. This applies to clients and servers
   as both will make outgoing connections.
 
@@ -489,8 +491,7 @@ port.
 
 * DNS Interface (Default 8600). Used to resolve DNS queries. TCP and UDP.
 
-## Reloadable Configuration
-<a id="reloadable-configuration"></a>
+## <a id="reloadable-configuration"></a>Reloadable Configuration</a>
 
 Reloading configuration does not reload all configuration items. The
 items which are reloaded include:
