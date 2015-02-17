@@ -43,6 +43,7 @@ BUG FIXES:
  * Fixed gossip stability at very large scale
  * Fixed string of rpc error: rpc error: ... no known leader. [GH-611]
  * Fixed panic in `exec` during cancelation
+ * Fixed health check state reset caused by SIGHUP [GH-693]
 
 IMPROVEMENTS:
 
