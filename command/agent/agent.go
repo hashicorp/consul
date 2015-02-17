@@ -1052,6 +1052,22 @@ func (a *Agent) unloadChecks() error {
 	return nil
 }
 
+// snapshotCheckState is used to snapshot the current state of the health
+// checks. This is done before we reload our checks, so that we can properly
+// restore into the same state.
+func (a *Agent) snapshotCheckState() map[string]*structs.HealthCheck {
+	return a.state.Checks()
+}
+
+// restoreCheckState is used to reset the health state based on a snapshot.
+// This is done after we finish the reload to avoid any unnecessary flaps
+// in health state and potential session invalidations.
+func (a *Agent) restoreCheckState(snap map[string]*structs.HealthCheck) {
+	for id, check := range snap {
+		a.state.UpdateCheck(id, check.Status, check.Output)
+	}
+}
+
 // serviceMaintCheckID returns the ID of a given service's maintenance check
 func serviceMaintCheckID(serviceID string) string {
 	return fmt.Sprintf("%s:%s", serviceMaintCheckPrefix, serviceID)
