@@ -203,7 +203,7 @@ definitions support being updated during a reload.
 
 #### Configuration Key Reference
 
-* `acl_datacenter` - Only used by servers. This designates the data center which
+* <a id="acl_datacenter"></a>`acl_datacenter` - Only used by servers. This designates the data center which
    is authoritative for ACL information. It must be provided to enable ACLs.
    All servers and data centers must agree on the ACL data center. Setting it on
    the servers is all you need for enforcement, but for the APIs to forward properly
@@ -218,12 +218,12 @@ definitions support being updated during a reload.
 
 * `acl_down_policy` - Either "allow", "deny" or "extend-cache"; "extend-cache" is the
   default. In the case that the policy for a token cannot be read from the
-  `acl_datacenter` or leader node, the down policy is applied. In "allow" mode,
+  [`acl_datacenter`](#acl_datacenter) or leader node, the down policy is applied. In "allow" mode,
   all actions are permitted, "deny" restricts all operations, and "extend-cache"
   allows any cached ACLs to be used, ignoring their TTL values. If a non-cached
   ACL is used, "extend-cache" acts like "deny".
 
-* `acl_master_token` - Only used for servers in the `acl_datacenter`. This token
+* `acl_master_token` - Only used for servers in the [`acl_datacenter`](#acl_datacenter). This token
    will be created with management-level permissions if it does not exist. It allows
    operators to bootstrap the ACL system with a token ID that is well-known.
 
@@ -245,8 +245,8 @@ definitions support being updated during a reload.
   created at the given path. If the specified file path already exists, Consul
   will attempt to clear the file and create the domain socket in its place.
   <br><br>
-  The permissions of the socket file are tunable via the `unix_sockets` config
-  construct.
+  The permissions of the socket file are tunable via the [`unix_sockets` config
+  construct](#unix_sockets).
   <br><br>
   When running Consul agent commands against Unix socket interfaces, use the
   `-rpc-addr` or `-http-addr` arguments to specify the path to the socket. You
@@ -273,7 +273,7 @@ definitions support being updated during a reload.
 
 * <a id="cert_file"></a>`cert_file` - This provides a file path to a PEM-encoded certificate.
   The certificate is provided to clients or servers to verify the agent's authenticity.
-  It must be provided along with `key_file`.
+  It must be provided along with [`key_file`](#key_file).
 
 * `check_update_interval` - This interval controls how often check output from
   checks in a steady state is synchronized with the server. By default, this is
@@ -343,7 +343,7 @@ definitions support being updated during a reload.
 
 * `encrypt` - Equivalent to the [`-encrypt` command-line flag](#encrypt).
 
-* `key_file` - This provides a the file path to a PEM-encoded private key.
+* <a id="key_file"></a>`key_file` - This provides a the file path to a PEM-encoded private key.
   The key is used with the certificate to verify the agent's authenticity.
   This must be provided along with [`cert_file`](#cert_file).
 
@@ -434,7 +434,7 @@ definitions support being updated during a reload.
 
 * `ui_dir` - Equivalent to the [`-ui-dir`](#ui_dir) command-line flag.
 
-* `unix_sockets` - This allows tuning the ownership and permissions of the
+* <a id="unix_sockets"></a>`unix_sockets` - This allows tuning the ownership and permissions of the
   Unix domain socket files created by Consul. Domain sockets are only used if
   the HTTP or RPC addresses are configured with the `unix://` prefix. The
   following options are valid within this construct and apply globally to all
