@@ -8,9 +8,9 @@ Ember.Application.initializer({
 
   initialize: function(container, application) {
     application.set('settings', App.Settings.create());
-	if (App.get('settings.token') === undefined) {
-		App.set('settings.token', '');
-	}
+    if (App.get('settings.token') === undefined) {
+      App.set('settings.token', '');
+    }
   }
 });
 
