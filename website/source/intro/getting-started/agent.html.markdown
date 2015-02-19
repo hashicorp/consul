@@ -11,10 +11,10 @@ description: |-
 After Consul is installed, the agent must be run. The agent can run either
 in server or client mode. Each data center must have at least one server,
 although 3 or 5 is recommended. A single server deployment is _**highly**_ discouraged
-as data loss is inevitable in a failure scenario.
+as data loss is inevitable in a failure scenario. [This guide](/docs/guides/bootstrapping.html)
+covers bootstrapping a new data center.
 
-[This guide](/docs/guides/bootstrapping.html) covers bootstrapping a new
-data center. All other agents run in client mode, a very lightweight
+All other agents run in client mode, a very lightweight
 process that registers services, runs health checks, and forwards queries to
 servers. The agent must be run on every node that is part of the cluster.
 
@@ -65,7 +65,7 @@ the name of your node with the `-node` flag.
 
 If you run `consul members` in another terminal, you can see the members of
 the Consul cluster. We'll cover joining clusters in the next section, but for now,
-you should only see one member (yourself).
+you should only see one member (yourself):
 
 ```text
 $ consul members
@@ -81,8 +81,8 @@ The output of the `members` command is based on the
 [gossip protocol](/docs/internals/gossip.html) and is eventually consistent.
 That is, at any point in time, the view of the world as seen by your local
 agent may not exactly match the state on the servers. For a strongly consistent
-view of the world, use the [HTTP API](/docs/agent/http.html) forwards the request
-to the Consul servers:
+view of the world, use the [HTTP API](/docs/agent/http.html) as it forwards the
+request to the Consul servers:
 
 ```text
 $ curl localhost:8500/v1/catalog/nodes
