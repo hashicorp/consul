@@ -19,6 +19,14 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+var (
+	// scadaHTTPAddr is the address associated with the
+	// HTTPServer. When populating an ACL token for a request,
+	// this is checked to switch between the ACLToken and
+	// AtlasACLToken
+	scadaHTTPAddr = "SCADA"
+)
+
 // HTTPServer is used to wrap an Agent and expose various API's
 // in a RESTful manner
 type HTTPServer struct {
@@ -32,15 +40,11 @@ type HTTPServer struct {
 
 // NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
-func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPServer, error) {
-	var tlsConfig *tls.Config
-	var list net.Listener
-	var httpAddr net.Addr
-	var err error
+func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput io.Writer) ([]*HTTPServer, error) {
 	var servers []*HTTPServer
 
 	if config.Ports.HTTPS > 0 {
-		httpAddr, err = config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
+		httpAddr, err := config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +58,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			NodeName:       config.NodeName,
 			ServerName:     config.ServerName}
 
-		tlsConfig, err = tlsConf.IncomingTLSConfig()
+		tlsConfig, err := tlsConf.IncomingTLSConfig()
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +68,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
-		list = tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
+		list := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
 
 		// Create the mux
 		mux := http.NewServeMux()
@@ -86,7 +90,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 	}
 
 	if config.Ports.HTTP > 0 {
-		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
+		httpAddr, err := config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get ClientListener address:port: %v", err)
 		}
@@ -107,6 +111,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
+		var list net.Listener
 		if isSocket {
 			// Set up ownership/permission bits on the socket file
 			if err := setFilePermissions(socketPath, config.UnixSockets); err != nil {
@@ -136,6 +141,26 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 		servers = append(servers, srv)
 	}
 
+	if scada != nil {
+		// Create the mux
+		mux := http.NewServeMux()
+
+		// Create the server
+		srv := &HTTPServer{
+			agent:    agent,
+			mux:      mux,
+			listener: scada,
+			logger:   log.New(logOutput, "", log.LstdFlags),
+			uiDir:    config.UiDir,
+			addr:     scadaHTTPAddr,
+		}
+		srv.registerHandlers(false) // Never allow debug for SCADA
+
+		// Start the server
+		go http.Serve(scada, mux)
+		servers = append(servers, srv)
+	}
+
 	return servers, nil
 }
 
@@ -159,7 +184,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 // Shutdown is used to shutdown the HTTP server
 func (s *HTTPServer) Shutdown() {
 	if s != nil {
-		s.logger.Printf("[DEBUG] http: Shutting down http server(%v)", s.addr)
+		s.logger.Printf("[DEBUG] http: Shutting down http server (%v)", s.addr)
 		s.listener.Close()
 	}
 }
@@ -241,7 +266,10 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	if s.uiDir != "" {
 		// Static file serving done from /ui/
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
+	}
 
+	// Enable the special endpoints for UI or SCADA
+	if s.uiDir != "" || s.agent.config.AtlasInfrastructure != "" {
 		// API's are under /internal/ui/ to avoid conflict
 		s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
 		s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
@@ -422,9 +450,17 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	if other := req.URL.Query().Get("token"); other != "" {
 		*token = other
-	} else if *token == "" {
-		*token = s.agent.config.ACLToken
+		return
 	}
+
+	// Set the AtlasACLToken if SCADA
+	if s.addr == scadaHTTPAddr && s.agent.config.AtlasACLToken != "" {
+		*token = s.agent.config.AtlasACLToken
+		return
+	}
+
+	// Set the default ACLToken
+	*token = s.agent.config.ACLToken
 }
 
 // parse is a convenience method for endpoints that need

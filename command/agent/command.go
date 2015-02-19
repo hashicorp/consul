@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
+	scada "github.com/hashicorp/scada-client"
 	"github.com/mitchellh/cli"
 )
 
@@ -45,6 +46,7 @@ type Command struct {
 	rpcServer         *AgentRPC
 	httpServers       []*HTTPServer
 	dnsServer         *DNSServer
+	scadaProvider     *scada.Provider
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -75,6 +77,10 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, HTTPS, RPC)")
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "address to advertise instead of bind addr")
+
+	cmdFlags.StringVar(&cmdConfig.AtlasInfrastructure, "atlas", "", "infrastructure name in Atlas")
+	cmdFlags.StringVar(&cmdConfig.AtlasToken, "atlas-token", "", "authentication token for Atlas")
+	cmdFlags.BoolVar(&cmdConfig.AtlasJoin, "atlas-join", false, "auto-join with Atlas")
 
 	cmdFlags.IntVar(&cmdConfig.Protocol, "protocol", -1, "protocol version")
 
@@ -327,8 +333,21 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	c.Ui.Output("Starting Consul agent RPC...")
 	c.rpcServer = NewAgentRPC(agent, rpcListener, logOutput, logWriter)
 
-	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 {
-		servers, err := NewHTTPServers(agent, config, logOutput)
+	// Enable the SCADA integration
+	var scadaList net.Listener
+	if config.AtlasInfrastructure != "" {
+		provider, list, err := NewProvider(config, logOutput)
+		if err != nil {
+			agent.Shutdown()
+			c.Ui.Error(fmt.Sprintf("Error starting SCADA connection: %s", err))
+			return err
+		}
+		c.scadaProvider = provider
+		scadaList = list
+	}
+
+	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 || scadaList != nil {
+		servers, err := NewHTTPServers(agent, config, scadaList, logOutput)
 		if err != nil {
 			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Error starting http servers: %s", err))
@@ -378,7 +397,6 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 			c.checkpointResults(checkpoint.Check(updateParams))
 		}()
 	}
-
 	return nil
 }
 
@@ -586,9 +604,11 @@ func (c *Command) Run(args []string) int {
 	if c.dnsServer != nil {
 		defer c.dnsServer.Shutdown()
 	}
-
 	for _, server := range c.httpServers {
 		defer server.Shutdown()
+	}
+	if c.scadaProvider != nil {
+		defer c.scadaProvider.Shutdown()
 	}
 
 	// Join startup nodes if specified
@@ -628,6 +648,12 @@ func (c *Command) Run(args []string) int {
 		gossipEncrypted = c.agent.client.Encrypted()
 	}
 
+	// Determine the Atlas cluster
+	atlas := "<disabled>"
+	if config.AtlasInfrastructure != "" {
+		atlas = fmt.Sprintf("(Infrastructure: '%s' Join: %v)", config.AtlasInfrastructure, config.AtlasJoin)
+	}
+
 	// Let the agent know we've finished registration
 	c.agent.StartSync()
 
@@ -641,6 +667,7 @@ func (c *Command) Run(args []string) int {
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
 		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
+	c.Ui.Info(fmt.Sprintf("         Atlas: %s", atlas))
 
 	// Enable log streaming
 	c.Ui.Info("")
@@ -815,6 +842,9 @@ Usage: consul agent [options]
 Options:
 
   -advertise=addr          Sets the advertise address to use
+  -atlas=org/name          Sets the Atlas infrastructure name, enables SCADA.
+  -atlas-join              Enables auto-joining the Atlas cluster
+  -atlas-token=token       Provides the Atlas API token
   -bootstrap               Sets server to bootstrap mode
   -bind=0.0.0.0            Sets the bind address for cluster communication
   -bootstrap-expect=0      Sets server to expect bootstrap mode.

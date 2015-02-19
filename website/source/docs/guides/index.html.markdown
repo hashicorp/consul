@@ -14,6 +14,8 @@ guidance to do them safely.
 
 The following guides are available:
 
+* [Atlas Integration](/docs/guides/atlas.html) - This guide covers how to integrate [Atlas](https://atlas.hashicorp.com) with Consul.
+
 * [Adding/Removing Servers](/docs/guides/servers.html) - This guide covers how to safely add and remove Consul servers from the cluster. This should be done carefully to avoid availability outages.
 
 * [Bootstrapping](/docs/guides/bootstrapping.html) - This guide covers bootstrapping a new datacenter. This covers safely adding the initial Consul servers.
