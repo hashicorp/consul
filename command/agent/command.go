@@ -172,7 +172,7 @@ func (c *Command) readConfig() *Config {
 		}
 	}
 
-	// Verify data center is valid
+	// Verify datacenter is valid
 	if !validDatacenter.MatchString(config.Datacenter) {
 		c.Ui.Error("Datacenter must be alpha-numeric with underscores and hypens only")
 		return nil

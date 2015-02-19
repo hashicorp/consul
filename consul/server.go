@@ -96,7 +96,7 @@ type Server struct {
 	left bool
 
 	// localConsuls is used to track the known consuls
-	// in the local data center. Used to do leader forwarding.
+	// in the local datacenter. Used to do leader forwarding.
 	localConsuls map[string]*serverParts
 	localLock    sync.RWMutex
 
@@ -117,7 +117,7 @@ type Server struct {
 	reconcileCh chan serf.Member
 
 	// remoteConsuls is used to track the known consuls in
-	// remote data centers. Used to do DC forwarding.
+	// remote datacenters. Used to do DC forwarding.
 	remoteConsuls map[string][]*serverParts
 	remoteLock    sync.RWMutex
 
