@@ -53,7 +53,8 @@ func ProviderConfig(c *Config) *client.ProviderConfig {
 }
 
 // NewProvider creates a new SCADA provider using the
-// given configuration. Requests are routed to the
+// given configuration. Requests for the HTTP capability
+// are passed off to the listener that is returned.
 func NewProvider(c *Config, logOutput io.Writer) (*client.Provider, net.Listener, error) {
 	// Get the configuration of the provider
 	config := ProviderConfig(c)
