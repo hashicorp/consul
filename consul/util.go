@@ -86,7 +86,7 @@ func ensurePath(path string, dir bool) error {
 }
 
 // Returns if a member is a consul server. Returns a bool,
-// the data center, and the rpc port
+// the datacenter, and the rpc port
 func isConsulServer(m serf.Member) (bool, *serverParts) {
 	if m.Tags["role"] != "consul" {
 		return false, nil
@@ -132,7 +132,7 @@ func isConsulServer(m serf.Member) (bool, *serverParts) {
 }
 
 // Returns if a member is a consul node. Returns a boo,
-// and the data center.
+// and the datacenter.
 func isConsulNode(m serf.Member) (bool, string) {
 	if m.Tags["role"] != "node" {
 		return false, ""

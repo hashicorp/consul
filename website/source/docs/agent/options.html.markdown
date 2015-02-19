@@ -52,12 +52,12 @@ The options below are all specified on the command-line.
   using the `ATLAS_TOKEN` environment variable. Required for use with Atlas.
 
 * <a id="bootstrap_anchor"></a>`-bootstrap` - This flag is used to control if a server is in "bootstrap" mode. It is important that
-  no more than one server *per* data center be running in this mode. Technically, a server in bootstrap mode
+  no more than one server *per* datacenter be running in this mode. Technically, a server in bootstrap mode
   is allowed to self-elect as the Raft leader. It is important that only a single node is in this mode;
   otherwise, consistency cannot be guaranteed as multiple nodes are able to self-elect.
   It is not recommended to use this flag after a cluster has been bootstrapped.
 
-* <a id="bootstrap_expect"></a>`-bootstrap-expect` - This flag provides the number of expected servers in the data center.
+* <a id="bootstrap_expect"></a>`-bootstrap-expect` - This flag provides the number of expected servers in the datacenter.
   Either this value should not be provided or the value must agree with other servers in
   the cluster. When provided, Consul waits until the specified number of servers are
   available and then bootstraps the cluster. This allows an initial leader to be elected
@@ -95,9 +95,9 @@ The options below are all specified on the command-line.
   the use of filesystem locking, meaning some types of mounted folders (e.g. VirtualBox
   shared folders) may not be suitable.
 
-* <a id="dc"></a>`-dc` - This flag controls the data center in which the agent is running. If not provided,
-  it defaults to "dc1". Consul has first-class support for multiple data centers, but
-  it relies on proper configuration. Nodes in the same data center should be on a single
+* <a id="dc"></a>`-dc` - This flag controls the datacenter in which the agent is running. If not provided,
+  it defaults to "dc1". Consul has first-class support for multiple datacenters, but
+  it relies on proper configuration. Nodes in the same datacenter should be on a single
   LAN.
 
 * <a id="encrypt"></a>`-encrypt` - Specifies the secret key to use for encryption of Consul
@@ -162,11 +162,11 @@ The options below are all specified on the command-line.
 
 * <a id="server"></a>`-server` - This flag is used to control if an agent is in server or client mode. When provided,
   an agent will act as a Consul server. Each Consul cluster must have at least one server and ideally
-  no more than 5 per data center. All servers participate in the Raft consensus algorithm to ensure that
+  no more than 5 per datacenter. All servers participate in the Raft consensus algorithm to ensure that
   transactions occur in a consistent, linearizable manner. Transactions modify cluster state, which
   is maintained on all server nodes to ensure availability in the case of node failure. Server nodes also
-  participate in a WAN gossip pool with server nodes in other data centers. Servers act as gateways
-  to other data centers and forward traffic as appropriate.
+  participate in a WAN gossip pool with server nodes in other datacenters. Servers act as gateways
+  to other datacenters and forward traffic as appropriate.
 
 * <a id="syslog"></a>`-syslog` - This flag enables logging to syslog. This is only supported on Linux
   and OSX. It will result in an error if provided on Windows.
@@ -214,9 +214,9 @@ definitions support being updated during a reload.
 
 #### Configuration Key Reference
 
-* <a id="acl_datacenter"></a>`acl_datacenter` - Only used by servers. This designates the data center which
+* <a id="acl_datacenter"></a>`acl_datacenter` - Only used by servers. This designates the datacenter which
    is authoritative for ACL information. It must be provided to enable ACLs.
-   All servers and data centers must agree on the ACL data center. Setting it on
+   All servers and datacenters must agree on the ACL datacenter. Setting it on
    the servers is all you need for enforcement, but for the APIs to forward properly
    from the clients, it must be set on them too. Future changes may move
    enforcement to the edges, so it's best to just set `acl_datacenter` on all nodes.
