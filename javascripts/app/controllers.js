@@ -11,7 +11,7 @@ App.DcController = Ember.Controller.extend({
 
   datacenter: function() {
     return this.get('content');
-  }.property('Content'),
+  }.property('content'),
 
   checks: function() {
     var nodes = this.get('nodes');
