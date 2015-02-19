@@ -3,16 +3,16 @@ layout: "intro"
 page_title: "Run the Agent"
 sidebar_current: "gettingstarted-agent"
 description: |-
-  After Consul is installed, the agent must be run. The agent can either run in a server or client mode. Each data center must have at least one server, although 3 or 5 is recommended. A single server deployment is highly discouraged as data loss is inevitable in a failure scenario.
+  After Consul is installed, the agent must be run. The agent can either run in a server or client mode. Each datacenter must have at least one server, although 3 or 5 is recommended. A single server deployment is highly discouraged as data loss is inevitable in a failure scenario.
 ---
 
 # Run the Consul Agent
 
 After Consul is installed, the agent must be run. The agent can run either
-in server or client mode. Each data center must have at least one server,
+in server or client mode. Each datacenter must have at least one server,
 although 3 or 5 is recommended. A single server deployment is _**highly**_ discouraged
 as data loss is inevitable in a failure scenario. [This guide](/docs/guides/bootstrapping.html)
-covers bootstrapping a new data center.
+covers bootstrapping a new datacenter.
 
 All other agents run in client mode, a very lightweight
 process that registers services, runs health checks, and forwards queries to

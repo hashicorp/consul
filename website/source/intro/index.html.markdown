@@ -35,7 +35,7 @@ key features:
   store for any number of purposes, including dynamic configuration, feature flagging,
   coordination, leader election, and more. The simple HTTP API makes it easy to use.
 
-* **Multi Data Center**: Consul supports multiple data centers out of the box. This
+* **Multi Datacenter**: Consul supports multiple datacenters out of the box. This
   means users of Consul do not have to worry about building additional layers of
   abstraction to grow to multiple regions.
 
@@ -58,15 +58,15 @@ The agents talk to one or more _Consul servers_. The Consul servers are
 where data is stored and replicated. The servers themselves elect a leader.
 While Consul can function with one server, 3 to 5 is recommended to avoid
 failure scenarios leading to data loss. A cluster of Consul servers is recommended
-for each data center.
+for each datacenter.
 
 Components of your infrastructure that need to discover other services
 or nodes can query any of the Consul servers _or_ any of the Consul agents.
 The agents forward queries to the servers automatically.
 
-Each data center runs a cluster of Consul servers. When a cross-data center
+Each datacenter runs a cluster of Consul servers. When a cross-datacenter
 service discovery or configuration request is made, the local Consul servers
-forward the request to the remote data center and return the result.
+forward the request to the remote datacenter and return the result.
 
 ## Next Steps
 
