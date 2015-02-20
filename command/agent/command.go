@@ -162,12 +162,12 @@ func (c *Command) readConfig() *Config {
 		}
 		keyfileLAN := filepath.Join(config.DataDir, serfLANKeyring)
 		if _, err := os.Stat(keyfileLAN); err == nil {
-			c.Ui.Error("WARNING: LAN keyring exists but -encrypt given, ignoring")
+			c.Ui.Error("WARNING: LAN keyring exists but -encrypt given, using keyring")
 		}
 		if config.Server {
 			keyfileWAN := filepath.Join(config.DataDir, serfWANKeyring)
 			if _, err := os.Stat(keyfileWAN); err == nil {
-				c.Ui.Error("WARNING: WAN keyring exists but -encrypt given, ignoring")
+				c.Ui.Error("WARNING: WAN keyring exists but -encrypt given, using keyring")
 			}
 		}
 	}
