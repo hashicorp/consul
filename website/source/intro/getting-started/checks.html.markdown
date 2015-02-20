@@ -26,7 +26,7 @@ appropriate calls to the [HTTP API](/docs/agent/http.html).
 We will use the check definition because, just like with services, definitions
 are the most common way to set up checks.
 
-Let's create two definition files in the Consul configuration directory of
+Create two definition files in the Consul configuration directory of
 the second node:
 
 ```text
@@ -90,7 +90,7 @@ dig @127.0.0.1 -p 8600 web.service.consul
 
 In this section, you learned how easy it is to add health checks. Check definitions
 can be updated by changing configuration files and sending a `SIGHUP` to the agent.
-Alternatively the HTTP API can be used to add, remove, and modify checks dynamically.
-The API allows for a "dead man's switch" or [TTL-based check](/docs/agent/checks.html).
+Alternatively, the HTTP API can be used to add, remove, and modify checks dynamically.
+The API also allows for a "dead man's switch", a [TTL-based check](/docs/agent/checks.html).
 TTL checks can be used to integrate an application more tightly with Consul, enabling
-business logic to be evaluated as part of assessing the state of a check.
+business logic to be evaluated as part of assessing the state of the check.
