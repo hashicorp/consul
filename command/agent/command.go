@@ -66,6 +66,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.NodeName, "node", "", "node name")
 	cmdFlags.StringVar(&cmdConfig.Datacenter, "dc", "", "node datacenter")
 	cmdFlags.StringVar(&cmdConfig.DataDir, "data-dir", "", "path to the data directory")
+	cmdFlags.StringVar(&cmdConfig.DNSRecursor, "recursor", "", "address of an upstream DNS server")
 	cmdFlags.StringVar(&cmdConfig.UiDir, "ui-dir", "", "path to the web UI directory")
 	cmdFlags.StringVar(&cmdConfig.PidFile, "pid-file", "", "path to file to store PID")
 	cmdFlags.StringVar(&cmdConfig.EncryptKey, "encrypt", "", "gossip encryption key")
@@ -857,6 +858,7 @@ Options:
                            as configuration in this directory in alphabetical
                            order.
   -data-dir=path           Path to a data directory to store agent state
+  -recursor                Address of an upstream DNS server
   -dc=east-aws             Datacenter of the agent
   -encrypt=key             Provides the gossip encryption key
   -join=1.2.3.4            Address of an agent to join at start time.
