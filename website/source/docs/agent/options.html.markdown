@@ -155,6 +155,10 @@ The options below are all specified on the command-line.
   version. This should be set only when [upgrading](/docs/upgrading.html).
   You can view the protocol versions supported by Consul by running `consul -v`.
 
+* <a id="recursor"></a>`-recursor` - Specifies the address of an upstream DNS
+  server. This option may be provided multiple times, and is functionally
+  equivalent to the [`recursors` configuration option](#recursors).
+
 * <a id="rejoin"></a>`-rejoin` - When provided, Consul will ignore a previous leave and attempt to
   rejoin the cluster when starting. By default, Consul treats leave as a permanent
   intent and does not attempt to join the cluster again when starting. This flag
