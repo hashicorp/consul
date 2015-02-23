@@ -85,7 +85,7 @@ The options below are all specified on the command-line.
 * <a id="config_dir"></a>`-config-dir` - A directory of configuration files to load. Consul will
   load all files in this directory with the suffix ".json". The load order
   is alphabetical, and the the same merge routine is used as with the
-  [`config-file`](config_file) option above. For more information
+  [`config-file`](#config_file) option above. For more information
   on the format of the configuration files, see the [Configuration Files](#configuration_files) section.
 
 * <a id="data_dir"></a>`-data-dir` - This flag provides a data directory for the agent to store state.
