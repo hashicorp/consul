@@ -56,11 +56,13 @@ func (c *Command) readConfig() *Config {
 	var configFiles []string
 	var retryInterval string
 	var retryIntervalWan string
+	var dnsRecursors []string
 	cmdFlags := flag.NewFlagSet("agent", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
 	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-file", "json file to read config from")
 	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-dir", "directory of json files to read")
+	cmdFlags.Var((*AppendSliceValue)(&dnsRecursors), "recursor", "address of an upstream DNS server")
 
 	cmdFlags.StringVar(&cmdConfig.LogLevel, "log-level", "", "log level")
 	cmdFlags.StringVar(&cmdConfig.NodeName, "node", "", "node name")
@@ -137,6 +139,8 @@ func (c *Command) readConfig() *Config {
 
 		config = MergeConfig(config, fileConfig)
 	}
+
+	cmdConfig.DNSRecursors = append(cmdConfig.DNSRecursors, dnsRecursors...)
 
 	config = MergeConfig(config, &cmdConfig)
 
@@ -857,6 +861,7 @@ Options:
                            as configuration in this directory in alphabetical
                            order.
   -data-dir=path           Path to a data directory to store agent state
+  -recursor                Address of an upstream DNS server
   -dc=east-aws             Datacenter of the agent
   -encrypt=key             Provides the gossip encryption key
   -join=1.2.3.4            Address of an agent to join at start time.
