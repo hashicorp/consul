@@ -861,7 +861,8 @@ Options:
                            as configuration in this directory in alphabetical
                            order.
   -data-dir=path           Path to a data directory to store agent state
-  -recursor                Address of an upstream DNS server
+  -recursor=1.2.3.4        Address of an upstream DNS server.
+                           Can be specified multiple times.
   -dc=east-aws             Datacenter of the agent
   -encrypt=key             Provides the gossip encryption key
   -join=1.2.3.4            Address of an agent to join at start time.
