@@ -311,9 +311,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]
 	conf.RejoinAfterLeave = s.config.RejoinAfterLeave
 	if wan {
-		conf.Merge = &wanMergeDelegate{logger: s.logger}
+		conf.Merge = &wanMergeDelegate{}
 	} else {
-		conf.Merge = &lanMergeDelegate{logger: s.logger, dc: s.config.Datacenter}
+		conf.Merge = &lanMergeDelegate{dc: s.config.Datacenter}
 	}
 
 	// Until Consul supports this fully, we disable automatic resolution.
