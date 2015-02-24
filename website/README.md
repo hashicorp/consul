@@ -34,3 +34,4 @@ $ foreman start
 Then open up `localhost:5000`.
 
 Alternately, the site can now be deployed to Heroku or Cloud Foundry.
+
