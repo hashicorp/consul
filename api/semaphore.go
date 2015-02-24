@@ -34,7 +34,7 @@ const (
 	// SemaphoreFlagValue is a magic flag we set to indicate a key
 	// is being used for a semaphore. It is used to detect a potential
 	// conflict with a lock.
-	SemaphoreFlagValue = 0xe0f69a2baa414de0
+	SemaphoreFlagValue = 0x9642d0084d1d424d
 )
 
 var (
@@ -83,9 +83,10 @@ type semaphoreLock struct {
 	// verify that all the holders agree on the value.
 	Limit int
 
-	// Holders is a list of all the semaphore holders.
-	// It maps the session ID to true. It is used as a set effectively.
-	Holders map[string]bool
+	// Holders is a list of all the semaphore holders and available slots.
+	// Its length is always Limit. A session ID in the list marks a slot
+	// as held, while an empty string denotes the slot is available.
+	Holders []string
 }
 
 // SemaphorePrefix is used to created a Semaphore which will operate
@@ -213,14 +214,17 @@ WAIT:
 	// Prune the dead holders
 	s.pruneDeadHolders(lock, pairs)
 
-	// Check if the lock is held
-	if len(lock.Holders) >= lock.Limit {
+	// Look for an open slot
+	slot := s.findSlot(lock, "")
+
+	// Check if the lock is fully held
+	if slot == -1 {
 		qOpts.WaitIndex = meta.LastIndex
 		goto WAIT
 	}
 
 	// Create a new lock with us as a holder
-	lock.Holders[s.lockSession] = true
+	lock.Holders[slot] = s.lockSession
 	newLock, err := s.encodeLock(lock, lockPair.ModifyIndex)
 	if err != nil {
 		return nil, err
@@ -292,8 +296,8 @@ READ:
 	}
 
 	// Create a new lock without us as a holder
-	if _, ok := lock.Holders[lockSession]; ok {
-		delete(lock.Holders, lockSession)
+	if slot := s.findSlot(lock, lockSession); slot != -1 {
+		lock.Holders[slot] = ""
 		newLock, err := s.encodeLock(lock, pair.ModifyIndex)
 		if err != nil {
 			return err
@@ -355,8 +359,10 @@ func (s *Semaphore) Destroy() error {
 	s.pruneDeadHolders(lock, pairs)
 
 	// Check if there are any holders
-	if len(lock.Holders) > 0 {
-		return ErrSemaphoreInUse
+	for _, holder := range lock.Holders {
+		if holder != "" {
+			return ErrSemaphoreInUse
+		}
 	}
 
 	// Attempt the delete
@@ -413,7 +419,7 @@ func (s *Semaphore) decodeLock(pair *KVPair) (*semaphoreLock, error) {
 	if pair == nil || pair.Value == nil {
 		return &semaphoreLock{
 			Limit:   s.opts.Limit,
-			Holders: make(map[string]bool),
+			Holders: make([]string, s.opts.Limit),
 		}, nil
 	}
 
@@ -440,6 +446,18 @@ func (s *Semaphore) encodeLock(l *semaphoreLock, oldIndex uint64) (*KVPair, erro
 	return pair, nil
 }
 
+// findSlot is used to locate an index position in lock.Holders.
+// By passing session == "", findSlot will return the first available
+// slot, or -1 if none are available.
+func (s *Semaphore) findSlot(lock *semaphoreLock, session string) int {
+	for i, holder := range lock.Holders {
+		if holder == session {
+			return i
+		}
+	}
+	return -1
+}
+
 // pruneDeadHolders is used to remove all the dead lock holders
 func (s *Semaphore) pruneDeadHolders(lock *semaphoreLock, pairs KVPairs) {
 	// Gather all the live holders
@@ -451,9 +469,11 @@ func (s *Semaphore) pruneDeadHolders(lock *semaphoreLock, pairs KVPairs) {
 	}
 
 	// Remove any holders that are dead
-	for holder := range lock.Holders {
-		if _, ok := alive[holder]; !ok {
-			delete(lock.Holders, holder)
+	for i, holder := range lock.Holders {
+		if holder != "" {
+			if _, ok := alive[holder]; !ok {
+				lock.Holders[i] = ""
+			}
 		}
 	}
 }
@@ -475,7 +495,7 @@ WAIT:
 		return
 	}
 	s.pruneDeadHolders(lock, pairs)
-	if _, ok := lock.Holders[session]; ok {
+	if slot := s.findSlot(lock, session); slot != -1 {
 		opts.WaitIndex = meta.LastIndex
 		goto WAIT
 	}
