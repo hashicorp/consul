@@ -13,7 +13,7 @@ information, registers services, runs checks, responds to queries,
 and more. The agent must run on every node that is part of a Consul cluster.
 
 Any agent may run in one of two modes: client or server. A server
-node takes on the additional responsibility of being part of the [consensus quorum](#).
+node takes on the additional responsibility of being part of the [consensus quorum](/docs/internals/consensus.html).
 These nodes take part in Raft and provide strong consistency and availability in
 the case of failure. The higher burden on the server nodes means that usually they
 should be run on dedicated instances -- they are more resource intensive than a client
@@ -23,11 +23,11 @@ of their own.
 
 ## Running an Agent
 
-The agent is started with the `consul agent` command. This command blocks,
-running forever or until told to quit. The agent command takes a variety
+The agent is started with the [`consul agent`](/docs/commands/agent.html) command. This
+command blocks, running forever or until told to quit. The agent command takes a variety
 of configuration options, but most have sane defaults.
 
-When running `consul agent`, you should see output similar to this:
+When running [`consul agent`](/docs/commands/agent.html), you should see output similar to this:
 
 ```text
 $ consul agent -data-dir=/tmp/consul
@@ -47,10 +47,11 @@ $ consul agent -data-dir=/tmp/consul
 ...
 ```
 
-There are several important messages that `consul agent` outputs:
+There are several important messages that [`consul agent`](/docs/commands/agent.html) outputs:
 
 * **Node name**: This is a unique name for the agent. By default, this
-  is the hostname of the machine, but you may customize it using the `-node` flag.
+  is the hostname of the machine, but you may customize it using the
+  [`-node`](/docs/agent/options.html#_node) flag.
 
 * **Datacenter**: This is the datacenter in which the agent is configured to run.
  Consul has first-class support for multiple datacenters; however, to work efficiently,
@@ -61,8 +62,8 @@ There are several important messages that `consul agent` outputs:
 * **Server**: This indicates whether the agent is running in server or client mode.
   Server nodes have the extra burden of participating in the consensus quorum,
   storing cluster state, and handling queries. Additionally, a server may be
-  in "bootstrap" mode. Multiple servers cannot be in bootstrap mode as that would
-  put the cluster in an inconsistent state.
+  in ["bootstrap"](/docs/agent/options.html#_bootstrap_expect) mode. Multiple servers
+  cannot be in bootstrap mode as that would put the cluster in an inconsistent state.
 
 * **Client Addr**: This is the address used for client interfaces to the agent.
   This includes the ports for the HTTP, DNS, and RPC interfaces. The RPC
@@ -112,7 +113,8 @@ this lifecycle is useful for building a mental model of an agent's interactions
 with a cluster and how the cluster treats a node.
 
 When an agent is first started, it does not know about any other node in the cluster.
-To discover its peers, it must _join_ the cluster. This is done with the `join`
+To discover its peers, it must _join_ the cluster. This is done with the
+[`join`](/docs/commands/join.html)
 command or by providing the proper configuration to auto-join on start. Once a node
 joins, this information is gossiped to the entire cluster, meaning all nodes will
 eventually be aware of each other. If the agent is a server, existing servers will

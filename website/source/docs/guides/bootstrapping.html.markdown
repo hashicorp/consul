@@ -16,11 +16,12 @@ Before a Consul cluster can begin to service requests, a server node must be ele
 Thus, the first nodes that are started are generally the server nodes. Bootstrapping is the process
 of joining these server nodes into a cluster.
 
-The recommended way to bootstrap is to use the `-bootstrap-expect` [configuration
-option](/docs/agent/options.html). This option informs Consul of the expected number of
+The recommended way to bootstrap is to use the [`-bootstrap-expect`](/docs/agent/options.html#_bootstrap_expect)
+configuration option. This option informs Consul of the expected number of
 server nodes and automatically bootstraps when that many servers are available. To prevent
 inconsistencies and split-brain situations (that is, clusters where multiple servers consider
-themselves leader), all servers should either specify the same value for `-bootstrap-expect`
+themselves leader), all servers should either specify the same value for
+[`-bootstrap-expect`](/docs/agent/options.html#_bootstrap_expect)
 or specify no value at all. Only servers that specify a value will attempt to bootstrap the cluster.
 
 We recommend 3 or 5 total servers per datacenter. A single server deployment is _**highly**_ discouraged
@@ -57,9 +58,9 @@ Once the join is successful, one of the nodes will output something like:
 [INFO] consul: cluster leadership acquired
 ```
 
-As a sanity check, the `consul info` command is a useful tool. It can be used to
+As a sanity check, the [`consul info`](/docs/commands/info.html) command is a useful tool. It can be used to
 verify `raft.num_peers` is now 2, and you can view the latest log index under `raft.last_log_index`.
-When running `consul info` on the followers, you should see `raft.last_log_index`
+When running [`consul info`](/docs/commands/info.html) on the followers, you should see `raft.last_log_index`
 converge to the same value once the leader begins replication. That value represents the last
 log entry that has been stored on disk.
 
@@ -74,7 +75,8 @@ operations will fail until the servers are available.
 ## Manual Bootstrapping
 
 In versions of Consul prior to 0.4, bootstrapping was a more manual process. For details on
-using the `-bootstrap` flag directly, see the [manual bootstrapping guide](/docs/guides/manual-bootstrap.html).
+using the [`-bootstrap`](/docs/agent/options.html#_bootstrap) flag directly, see the
+[manual bootstrapping guide](/docs/guides/manual-bootstrap.html).
 
 Manual bootstrapping is not recommended as it is more error-prone than automatic bootstrapping
-with `-bootstrap-expect`.
+with [`-bootstrap-expect`](/docs/agent/options.html#_bootstrap_expect).
