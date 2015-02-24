@@ -54,7 +54,7 @@ There are several important messages that `consul agent` outputs:
 
 * **Datacenter**: This is the datacenter in which the agent is configured to run.
  Consul has first-class support for multiple datacenters; however, to work efficiently,
- each node must be configured to report its datacenter. The `-dc` flag
+ each node must be configured to report its datacenter. The [`-dc`](/docs/agent/options.html#_dc) flag
  can be used to set the datacenter. For single-DC configurations, the agent
  will default to "dc1".
 
@@ -66,20 +66,22 @@ There are several important messages that `consul agent` outputs:
 
 * **Client Addr**: This is the address used for client interfaces to the agent.
   This includes the ports for the HTTP, DNS, and RPC interfaces. The RPC
-  address is used by other `consul` commands (such as `consul members`, `consul join`,
+  address is used by other `consul` commands (such as
+  [`consul members`](/docs/commands/members.html), [`consul join`](/docs/commands/join.html),
   etc) which query and control a running agent. By default, this binds only to localhost. If you
-  change this address or port, you'll have to specify an `-rpc-addr` whenever
-  you run commands such as `consul members` to indicate how to reach the
-  agent. Other applications can also use the RPC address and port [to control Consul](/docs/agent/rpc.html).
+  change this address or port, you'll have to specify a `-rpc-addr` whenever you run
+  commands such as [`consul members`](/docs/commands/members.html) to indicate how to
+  reach the agent. Other applications can also use the RPC address and port
+  [to control Consul](/docs/agent/rpc.html).
 
 * **Cluster Addr**: This is the address and set of ports used for communication between
   Consul agents in a cluster. Not all Consul agents in a cluster have to
   use the same port, but this address **MUST** be reachable by all other nodes.
 
 * **Atlas**: This shows the [Atlas infrastructure](https://atlas.hashicorp.com)
-  the node is registered with. It also indicates if auto join is enabled.
-  The Atlas infrastructure is set using `-atlas` and auto-join is enabled by
-  setting `-atlas-join`.
+  with which the node is registered. It also indicates if auto-join is enabled.
+  The Atlas infrastructure is set using [`-atlas`](/docs/agent/options.html#_atlas)
+  and auto-join is enabled by setting [`-atlas-join`](/docs/agent/options.html#_atlas_join).
 
 ## Stopping an Agent
 
