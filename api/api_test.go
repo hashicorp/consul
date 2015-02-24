@@ -16,22 +16,6 @@ import (
 	"github.com/hashicorp/consul/testutil"
 )
 
-var consulConfig = `{
-	"ports": {
-		"dns": 19000,
-		"http": 18800,
-		"rpc": 18600,
-		"serf_lan": 18200,
-		"serf_wan": 18400,
-		"server": 18000
-	},
-	"bind_addr": "127.0.0.1",
-	"data_dir": "%s",
-	"bootstrap": true,
-	"log_level": "debug",
-	"server": true
-}`
-
 type testServer struct {
 	pid        int
 	dataDir    string
