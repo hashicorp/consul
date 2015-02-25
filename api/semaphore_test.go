@@ -2,6 +2,7 @@ package api
 
 import (
 	"log"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -302,5 +303,126 @@ func TestSemaphore_Conflict(t *testing.T) {
 	err = sema.Destroy()
 	if err != ErrSemaphoreConflict {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestSemaphore_Watch(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	// Start watching
+	watcher, err := c.SemaphorePrefix("test/semaphore", 2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	valuesCh, errCh := watcher.Watch(nil)
+
+	// Expect: [[], []]
+	select {
+	case got := <-valuesCh:
+		want := [][]byte{nil, nil}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("incorrect values: %v != %v", got, want)
+		}
+	case err := <-errCh:
+		t.Fatal("err: %v", err)
+	case <-time.After(time.Second):
+		t.Fatalf("should have received new values")
+	}
+
+	// Construct semaphore with Value 'a'
+	semaA, err := c.SemaphoreOpts(&SemaphoreOptions{
+		Prefix: "test/semaphore",
+		Limit:  2,
+		Value:  []byte{'a'},
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Acquire A
+	_, err = semaA.Acquire(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Expect: [['a'], []]
+	select {
+	case got := <-valuesCh:
+		want := [][]byte{{'a'}, nil}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("incorrect values: %v != %v", got, want)
+		}
+	case err := <-errCh:
+		t.Fatal("err: %v", err)
+	case <-time.After(time.Second):
+		t.Fatalf("should have received new values")
+	}
+
+	// Construct semaphore with Value 'b'
+	semaB, err := c.SemaphoreOpts(&SemaphoreOptions{
+		Prefix: "test/semaphore",
+		Limit:  2,
+		Value:  []byte{'b'},
+	})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Acquire B
+	_, err = semaB.Acquire(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Expect: [['a'], ['b']]
+	select {
+	case got := <-valuesCh:
+		want := [][]byte{{'a'}, {'b'}}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("incorrect values: %v != %v", got, want)
+		}
+	case err := <-errCh:
+		t.Fatal("err: %v", err)
+	case <-time.After(time.Second):
+		t.Fatalf("should have received new values")
+	}
+
+	// Release A
+	err = semaA.Release()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Expect: [[], ['b']]
+	select {
+	case got := <-valuesCh:
+		want := [][]byte{nil, {'b'}}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("incorrect values: %v != %v", got, want)
+		}
+	case err := <-errCh:
+		t.Fatal("err: %v", err)
+	case <-time.After(time.Second):
+		t.Fatalf("should have received new values")
+	}
+
+	// Release B
+	err = semaB.Release()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Expect: [[], []]
+	select {
+	case got := <-valuesCh:
+		want := [][]byte{nil, nil}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("incorrect values: %v != %v", got, want)
+		}
+	case err := <-errCh:
+		t.Fatal("err: %v", err)
+	case <-time.After(time.Second):
+		t.Fatalf("should have received new values")
 	}
 }
