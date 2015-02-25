@@ -22,7 +22,7 @@ By default, the datacenter of the agent is queried; however, the dc can be provi
 using the "?dc=" query parameter. It is important to note that each datacenter has
 its own KV store, and there is no built-in replication between datacenters. If you
 are interested in replication between datacenters, look at the
-[consul-replicate project](https://github.com/hashicorp/consul-replicate).
+[Consul Replicate project](https://github.com/hashicorp/consul-replicate).
 
 The KV endpoint supports the use of ACL tokens.
 
