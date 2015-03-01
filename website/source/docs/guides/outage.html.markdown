@@ -8,12 +8,14 @@ description: |-
 
 # Outage Recovery
 
-Don't panic! This is a critical first step. Depending on your
-[deployment configuration](/docs/internals/consensus.html#toc_4), it may
-take only a single server failure for cluster unavailability. Recovery
+Don't panic! This is a critical first step.
+
+Depending on your
+[deployment configuration](/docs/internals/consensus.html#deployment_table), it
+may take only a single server failure for cluster unavailability. Recovery
 requires an operator to intervene, but the process is straightforward.
 
-~>  This page covers recovery from Consul becoming unavailable due to a majority
+~>  This guide is for recovery from a Consul outage due to a majority
 of server nodes in a datacenter being lost. If you are just looking to
 add or remove a server, [see this guide](/docs/guides/servers.html).
 
@@ -28,15 +30,26 @@ See the [bootstrapping guide](/docs/guides/bootstrapping.html) for more detail.
 
 In the case of an unrecoverable server failure in a single server cluster, data
 loss is inevitable since data was not replicated to any other servers. This is
-why a single server deploy is never recommended.
+why a single server deploy is **never** recommended.
 
 Any services registered with agents will be re-populated when the new server
 comes online as agents perform anti-entropy.
 
 ## Failure of a Server in a Multi-Server Cluster
 
-In a multi-server deploy, there are at least N remaining servers. The first
-step is to simply stop all the servers. You can attempt a graceful leave,
+If you think the failed server is recoverable, the easiest option is to bring
+it back online and have it rejoin the cluster, returning the cluster to a fully
+healthy state. Similarly, even if you need to rebuild a new Consul server to
+replace the failed node, you may wish to do that immediately. Keep in mind that
+the rebuilt server needs to have the same IP as the failed server. Again, once
+this server is online, the cluster will return to a fully healthy state.
+
+Both of these strategies involve a potentially lengthy time to reboot or rebuild
+a failed server. If this is impractical, if building a new server with the same
+IP isn't an option, or if your failed server is unrecoverable, you need to remove
+the failed server from the `raft/peers.json` file on all remaining servers.
+
+To begin, stop all remaining servers. You can attempt a graceful leave,
 but it will not work in most cases. Do not worry if the leave exits with an
 error. The cluster is in an unhealthy state, so this is expected.
 
@@ -76,7 +89,7 @@ nodes should claim leadership and emit a log like:
 [INFO] consul: cluster leadership acquired
 ```
 
-Additional, the [`info`](/docs/commands/info.html) command can be a useful
+Additionally, the [`info`](/docs/commands/info.html) command can be a useful
 debugging tool:
 
 ```text
