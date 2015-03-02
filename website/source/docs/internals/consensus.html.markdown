@@ -164,7 +164,7 @@ The three read modes are:
 
 For more documentation about using these various modes, see the [HTTP API](/docs/agent/http.html).
 
-## Deployment Table
+## <a name="deployment_table"></a>Deployment Table
 
 Below is a table that shows for the number of servers how large the
 quorum is, as well as how many node failures can be tolerated. The
