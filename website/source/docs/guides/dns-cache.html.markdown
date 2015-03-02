@@ -44,6 +44,22 @@ meaning no stale results may be served. The default for
 if [`allow_stale`](/docs/agent/options.html#allow_stale) is enabled, we will use
 data from any Consul server that is within 5 seconds of the leader.
 
+## Negative Response Caching
+
+Some DNS clients cache negative responses - that is, Consul returning a "not
+found" style response because a service exists but there are no healthy
+endpoints. What this means in practice is that cached negative responses may
+mean that services appear "down" for longer than they are actually unavailable
+when using DNS for service discovery.
+
+One common example is that Windows will default to caching negative responses
+for 15 minutes. DNS forwarders may also cache negative responses, with the same
+effect. To avoid this problem, check the negative response cache defaults for
+your client operating system and any DNS forwarder on the path between the
+client and Consul and set the cache values appropriately. In many cases
+"appropriately" simply is turning negative response caching off to get the best
+recovery time when a service becomes available again.
+
 ## TTL Values
 
 TTL values can be set to allow DNS results to be cached downstream of Consul. Higher
