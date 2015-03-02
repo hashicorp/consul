@@ -72,4 +72,7 @@ environment variable was not set up properly. Please go back and ensure
 that your `PATH` variable contains the directory where Consul was
 installed.
 
-Otherwise, Consul is installed and ready to go!
+## Next Steps
+
+Consul is installed and ready for operation. Let's
+[run the agent](agent.html)!
