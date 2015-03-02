@@ -45,9 +45,9 @@ the rebuilt server needs to have the same IP as the failed server. Again, once
 this server is online, the cluster will return to a fully healthy state.
 
 Both of these strategies involve a potentially lengthy time to reboot or rebuild
-a failed server. If this is impractical, if building a new server with the same
-IP isn't an option, or if your failed server is unrecoverable, you need to remove
-the failed server from the `raft/peers.json` file on all remaining servers.
+a failed server. If this is impractical or if building a new server with the same
+IP isn't an option, you need to remove the failed server from the `raft/peers.json`
+file on all remaining servers.
 
 To begin, stop all remaining servers. You can attempt a graceful leave,
 but it will not work in most cases. Do not worry if the leave exits with an
