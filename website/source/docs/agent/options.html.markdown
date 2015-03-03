@@ -268,8 +268,8 @@ definitions support being updated during a reload.
   permissions if it does not exist. It allows operators to bootstrap the ACL system
   with a token ID that is well-known.
   <br><br>
-  Note that the `acl_master` token is only installed when a server acquires cluster leadership. If
-  you would like to install or change the `acl_master` token, set the new value for `acl_master`
+  Note that the `acl_master_token` is only installed when a server acquires cluster leadership. If
+  you would like to install or change the `acl_master_token`, set the new value for `acl_master_token`
   in the configuration for all servers. Once this is done, restart the current leader to force a
   leader election.
 

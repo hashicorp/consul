@@ -88,10 +88,10 @@ key "_rexec/" {
 
 Bootstrapping the ACL system is done by providing an initial [`acl_master_token`
 configuration](/docs/agent/options.html#acl_master_token), which will be created
-as a "management" type token if it does not exist. Note that the `acl_master`
-token is only installed when a server acquires cluster leadership. If you would
-like to install or change the `acl_master` token, set the new value for
-`acl_master` in the configuration for all servers. Once this is done, restart the
+as a "management" type token if it does not exist. Note that the `acl_master_token`
+is only installed when a server acquires cluster leadership. If you would
+like to install or change the `acl_master_token`, set the new value for
+`acl_master_token` in the configuration for all servers. Once this is done, restart the
 current leader to force a leader election.
 
 ## Rule Specification
