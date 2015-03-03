@@ -17,9 +17,7 @@ import (
 type configCallback func(c *Config)
 
 func makeClient(t *testing.T) (*Client, *testutil.TestServer) {
-	return makeClientWithConfig(t, func(c *Config) {
-		c.Address = "127.0.0.1:18800"
-	}, nil)
+	return makeClientWithConfig(t, nil, nil)
 }
 
 func makeClientWithConfig(
@@ -33,14 +31,15 @@ func makeClientWithConfig(
 		cb1(conf)
 	}
 
+	// Create server
+	server := testutil.NewTestServerConfig(t, cb2)
+	conf.Address = server.APIAddr
+
 	// Create client
 	client, err := NewClient(conf)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	// Create server
-	server := testutil.NewTestServerConfig(t, cb2)
 
 	return client, server
 }

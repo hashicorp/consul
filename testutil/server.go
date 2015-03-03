@@ -45,20 +45,20 @@ func defaultServerConfig() *TestServerConfig {
 		Server:    true,
 		LogLevel:  "debug",
 		Ports: &TestPortConfig{
-			DNS:     19000 + idx,
-			HTTP:    18800 + idx,
-			RPC:     18600 + idx,
-			SerfLan: 18200 + idx,
-			SerfWan: 18400 + idx,
-			Server:  18000 + idx,
+			DNS:     20000 + idx,
+			HTTP:    21000 + idx,
+			RPC:     22000 + idx,
+			SerfLan: 23000 + idx,
+			SerfWan: 24000 + idx,
+			Server:  25000 + idx,
 		},
 	}
 }
 
 type TestServer struct {
-	pid     int
-	dataDir string
-	config  *TestServerConfig
+	PID     int
+	Config  *TestServerConfig
+	APIAddr string
 }
 
 func NewTestServer(t *testing.T) *TestServer {
@@ -67,8 +67,7 @@ func NewTestServer(t *testing.T) *TestServer {
 
 func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 	if path, err := exec.LookPath("consul"); err != nil || path == "" {
-		t.Log("consul not found on $PATH, skipping")
-		t.SkipNow()
+		t.Skip("consul not found on $PATH, skipping")
 	}
 
 	dataDir, err := ioutil.TempDir("", "consul")
@@ -108,28 +107,30 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 	}
 
 	server := &TestServer{
-		config:  consulConfig,
-		pid:     cmd.Process.Pid,
-		dataDir: dataDir,
+		Config:  consulConfig,
+		PID:     cmd.Process.Pid,
+		APIAddr: fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.HTTP),
 	}
 
+	// Wait for the server to be ready
 	if err := server.waitForLeader(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
 	return server
 }
 
 func (s *TestServer) Stop() {
-	defer os.RemoveAll(s.dataDir)
+	defer os.RemoveAll(s.Config.DataDir)
 
-	cmd := exec.Command("kill", "-9", fmt.Sprintf("%d", s.pid))
+	cmd := exec.Command("kill", "-9", fmt.Sprintf("%d", s.PID))
 	if err := cmd.Run(); err != nil {
 		panic(err)
 	}
 }
 
 func (s *TestServer) waitForLeader() error {
-	url := fmt.Sprintf("http://127.0.0.1:%d/v1/catalog/nodes", s.config.Ports.HTTP)
+	url := fmt.Sprintf("http://127.0.0.1:%d/v1/catalog/nodes", s.Config.Ports.HTTP)
 
 	WaitForResult(func() (bool, error) {
 		resp, err := http.Get(url)
@@ -149,6 +150,7 @@ func (s *TestServer) waitForLeader() error {
 
 		return true, nil
 	}, func(err error) {
+		s.Stop()
 		panic(err)
 	})
 
