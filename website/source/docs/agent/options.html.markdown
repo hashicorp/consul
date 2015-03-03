@@ -267,6 +267,11 @@ definitions support being updated during a reload.
   for servers in the [`acl_datacenter`](#acl_datacenter). This token will be created with management-level
   permissions if it does not exist. It allows operators to bootstrap the ACL system
   with a token ID that is well-known.
+  <br><br>
+  Note that the `acl_master_token` is only installed when a server acquires cluster leadership. If
+  you would like to install or change the `acl_master_token`, set the new value for `acl_master_token`
+  in the configuration for all servers. Once this is done, restart the current leader to force a
+  leader election.
 
 * <a name="acl_token"></a><a href="#acl_token">`acl_token`</a> - When provided, the agent will use this
   token when making requests to the Consul servers. Clients can override this token on a per-request
