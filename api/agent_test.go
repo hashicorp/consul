@@ -7,7 +7,7 @@ import (
 
 func TestAgent_Self(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
@@ -24,7 +24,7 @@ func TestAgent_Self(t *testing.T) {
 
 func TestAgent_Members(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
@@ -40,7 +40,7 @@ func TestAgent_Members(t *testing.T) {
 
 func TestAgent_Services(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
@@ -79,7 +79,7 @@ func TestAgent_Services(t *testing.T) {
 
 func TestAgent_ServiceAddress(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
@@ -125,7 +125,7 @@ func TestAgent_ServiceAddress(t *testing.T) {
 
 func TestAgent_Services_MultipleChecks(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
@@ -168,7 +168,7 @@ func TestAgent_Services_MultipleChecks(t *testing.T) {
 
 func TestAgent_SetTTLStatus(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
@@ -208,7 +208,7 @@ func TestAgent_SetTTLStatus(t *testing.T) {
 
 func TestAgent_Checks(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
@@ -235,7 +235,7 @@ func TestAgent_Checks(t *testing.T) {
 
 func TestAgent_Checks_serviceBound(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
@@ -273,7 +273,7 @@ func TestAgent_Checks_serviceBound(t *testing.T) {
 
 func TestAgent_Join(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
@@ -292,7 +292,7 @@ func TestAgent_Join(t *testing.T) {
 
 func TestAgent_ForceLeave(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
@@ -305,7 +305,7 @@ func TestAgent_ForceLeave(t *testing.T) {
 
 func TestServiceMaintenance(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
@@ -359,7 +359,7 @@ func TestServiceMaintenance(t *testing.T) {
 
 func TestNodeMaintenance(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 

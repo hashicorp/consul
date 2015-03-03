@@ -6,7 +6,7 @@ import (
 
 func TestEvent_FireList(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	event := c.Event()
 
