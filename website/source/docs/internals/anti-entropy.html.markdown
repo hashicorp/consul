@@ -102,7 +102,7 @@ how they change as the Consul cluster grows.
   </tr>
   <tr>
     <td>129 - 256</td>
-    <td>1 minutes</td>
+    <td>2 minutes</td>
   </tr>
   <tr>
     <td>257 - 512</td>
