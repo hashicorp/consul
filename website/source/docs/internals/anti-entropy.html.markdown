@@ -26,7 +26,7 @@ described conceptually below to make anti-entropy easier to understand.
 <a name="agent"></a>
 #### Agent
 
-Each Consul agent maintains its own set of service and check registrations, as
+Each Consul agent maintains its own set of service and check registrations as
 well as health information. The agents are responsible for executing their own
 health checks and updating their local state.
 
@@ -57,9 +57,9 @@ consolidated and consistent view of the cluster.
 <a name="anti-entropy"></a>
 ### Anti-Entropy
 
-Now that we have covered the functions of the agent and the catalog, we
-need a mechanism to perform synchronization between the two. In Consul, this
-method is known as anti-entropy.
+Consul has a clear separation between the global service catalog and the agent
+local state as discussed above. Reconciling these two is done using an
+anti-entropy mechanism.
 
 Anti-entropy is a syncronization of the local agent state and the catalog. For
 example, when a user registers a new service or check with the agent, the agent
@@ -75,14 +75,17 @@ availability.
 During this synchronization, the catalog is also checked for correctness. If
 any services or checks exist in the catalog that the agent is not aware of, they
 will be automatically removed to make the catalog reflect the proper set of
-services and health information for that agent.
+services and health information for that agent. Consul treats the state of the
+agent as authoritative, meaning if there are any differences between the agent
+and catalog view, the agent local view will always be used.
 
 ### Periodic Synchronization
 
 In addition to running when changes to the agent occur, anti-entropy is also a
 long-running process which periodically wakes up to sync service and check
 status to the catalog. This ensures that the catalog closely matches the agent's
-true state.
+true state. This also allows Consul to re-populate the service catalog even in
+the case of complete data loss.
 
 The amount of time between periodic anti-entropy runs will vary based on cluster
 size to avoid saturation. The table below describes the periodic sync times and
@@ -95,19 +98,19 @@ how they change as the Consul cluster grows.
   </tr>
   <tr>
     <td>1 - 128</td>
-    <td>15 seconds</td>
+    <td>1 minute</td>
   </tr>
   <tr>
     <td>129 - 256</td>
-    <td>30 seconds</td>
+    <td>1 minutes</td>
   </tr>
   <tr>
     <td>257 - 512</td>
-    <td>45 seconds</td>
+    <td>3 minutes</td>
   </tr>
   <tr>
     <td>513 - 1024</td>
-    <td>1 minute</td>
+    <td>4 minutes</td>
   </tr>
   <tr>
     <td>...</td>
@@ -127,5 +130,5 @@ among others. Because of this, the agent attempts to sync in best-effort
 fashion.
 
 If an error is encountered during an anti-entropy run, the error is logged and
-the agent continues to run. It is possible that it will be reconciled on
-a later attempt by the periodic anti-entropy sync.
+the agent continues to run. The anti-entropy mechanism is run periodically to
+automatically recover from these types of transient failures.
