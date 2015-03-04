@@ -11,8 +11,8 @@ description: >
 The Agent endpoints are used to interact with the local Consul agent. Usually,
 services and checks are registered with an agent which then takes on the
 burden of keeping that data synchronized with the cluster.  For example, the
-agent registers services and checks with the Catalog and performs anti-entropy
-to recover from outages.
+agent registers services and checks with the Catalog and performs
+[anti-entropy](/docs/internals/anti-entropy.html) to recover from outages.
 
 The following endpoints are supported:
 
@@ -39,7 +39,8 @@ the local agent. These checks were either provided through configuration files
 or added dynamically using the HTTP API. It is important to note that the checks
 known by the agent may be different from those reported by the Catalog. This is usually
 due to changes being made while there is no leader elected. The agent performs active
-anti-entropy, so in most situations everything will be in sync within a few seconds.
+[anti-entropy](/docs/internals/anti-entropy.html), so in most situations everything will
+be in sync within a few seconds.
 
 This endpoint is hit with a GET and returns a JSON body like this:
 
@@ -65,7 +66,8 @@ the local agent. These services were either provided through configuration files
 or added dynamically using the HTTP API. It is important to note that the services
 known by the agent may be different from those reported by the Catalog. This is usually
 due to changes being made while there is no leader elected. The agent performs active
-anti-entropy, so in most situations everything will be in sync within a few seconds.
+[anti-entropy](/docs/internals/anti-entropy.html), so in most situations everything will
+be in sync within a few seconds.
 
 This endpoint is hit with a GET and returns a JSON body like this:
 

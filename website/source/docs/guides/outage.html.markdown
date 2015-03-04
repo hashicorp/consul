@@ -33,7 +33,7 @@ loss is inevitable since data was not replicated to any other servers. This is
 why a single server deploy is **never** recommended.
 
 Any services registered with agents will be re-populated when the new server
-comes online as agents perform anti-entropy.
+comes online as agents perform [anti-entropy](/docs/internals/anti-entropy.html).
 
 ## Failure of a Server in a Multi-Server Cluster
 

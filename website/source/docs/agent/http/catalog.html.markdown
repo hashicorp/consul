@@ -29,7 +29,8 @@ tunable consistency modes.
 
 The register endpoint is a low-level mechanism for registering or updating
 entries in the catalog. Note: it is usually preferrable instead to use the
-[agent endpoints](agent.html) for registration as they are simpler and perform anti-entropy.
+[agent endpoints](agent.html) for registration as they are simpler and perform
+[anti-entropy](/docs/internals/anti-entropy.html).
 
 The register endpoint expects a JSON request body to be PUT. The request
 body must look something like:
@@ -93,7 +94,8 @@ If the API call succeeds, a 200 status code is returned.
 
 The deregister endpoint is a low-level mechanism for directly removing
 entries from the Catalog. Note: it is usually preferrable instead to use the
-[agent endpoints](agent.html) for deregistration as they are simpler and perform anti-entropy.
+[agent endpoints](agent.html) for deregistration as they are simpler and perform
+[anti-entropy](/docs/internals/anti-entropy.html).
 
 The deregister endpoint expects a JSON request body to be PUT. The request
 body must look like one of the following:
