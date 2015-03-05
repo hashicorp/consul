@@ -82,8 +82,18 @@ agent-two   172.20.20.11:8301   alive   role=node,dc=dc1,vsn=2,vsn_min=1,vsn_max
 learn about <em>one existing member</em>. After joining the cluster, the
 agents gossip with each other to propagate full membership information.
 
-In addition to using `consul join` you can use the `-join` flag on
-`consul agent` to join a cluster as part of starting up the agent.
+## Auto-joining a Cluster on Start
+Ideally whenever a new node is brought up in your datacenter, it should automatically join the Consul cluster without human intervention. To accomplish this, you can use [Atlas by HashiCorp](https://atlas.hashicorp.com?utm_source=oss&utm_medium=getting-started-join&utm_campaign=consul) and the [`-atlas-join` flag](/docs/agent/options.html#_atlas_join). An example configuration is shown below:
+
+```text
+$ consul agent -atlas-join \
+  -atlas=ATLAS_USERNAME/infrastructure \
+  -atlas-token="YOUR_ATLAS_TOKEN"
+```
+To get an Atlas username and token, [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=getting-started-join&utm_campaign=consul) and replace the respective values in your Consul configuration with your credentials. Now whenever a new node comes up with a Consul agent, it automatically joins your Consul cluster without any hardcoded configurations.
+
+Alternatively, you can use the [`-join` flag](http://www.consul.io/docs/agent/options.html#_join)
+with a hardcoded address of a known Consul agent to join a cluster.
 
 ## Querying Nodes
 

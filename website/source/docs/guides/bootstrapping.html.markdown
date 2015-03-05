@@ -14,7 +14,7 @@ The client nodes are mostly stateless and rely heavily on the server nodes.
 
 Before a Consul cluster can begin to service requests, a server node must be elected leader.
 Thus, the first nodes that are started are generally the server nodes. Bootstrapping is the process
-of joining these server nodes into a cluster.
+of joining these initial server nodes into a cluster.
 
 The recommended way to bootstrap is to use the [`-bootstrap-expect`](/docs/agent/options.html#_bootstrap_expect)
 configuration option. This option informs Consul of the expected number of
@@ -38,17 +38,29 @@ providing the `-bootstrap-expect 3` flag. Once the nodes are started, you should
 This indicates that the nodes are expecting 2 peers but none are known yet. To provent a split-brain
 scenario, the servers will not elect themselves leader.
 
-To trigger leader election, we must join these machines together. Since a join operation is symmetric,
-it does not matter which node initiates it.
+## Creating a cluster
 
-From any node, you can do the following:
+To trigger leader election, we must join these machines together and create a cluster. There are two options for joining; you can use [Atlas by HashiCorp](https://atlas.hashicorp.com?utm_source=oss&utm_medium=guide-bootstrapping&utm_campaign=consul) to auto-join or you can access the machine and manually run the join.
+
+For auto-join using Atlas, you must set three configurations — the name of your Atlas infrastructure with the [`-atlas` flag](/docs/agent/options.html#_atlas), your Atlas token with the [`-atlas-token` CLI flag](/docs/agent/options.html#_atlas_token), and the [`-atlas-join` flag](/docs/agent/options.html#_atlas_join). Below is an example configuration:
+
+```text
+$ consul agent -server -data-dir="/tmp/consul" -bootstrap-expect 3 \
+   -atlas=ATLAS_USERNAME/infrastructure \
+   -atlas-join \
+   -atlas-token="YOUR_ATLAS_TOKEN"
+```
+
+To get an Atlas username and token, [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=guide-bootstrapping&utm_campaign=consul) and replace the respective values in your Consul configuration with your credentials.
+
+To manually create a cluster, access one of the machines and run the following:
 
 ```text
 $ consul join <Node A Address> <Node B Address> <Node C Address>
 Successfully joined cluster by contacting 3 nodes.
 ```
 
-Once the join is successful, one of the nodes will output something like:
+Since a join operation is symmetric, it does not matter which node initiates it. Once the join is successful, one of the nodes will output something like:
 
 ```text
 [INFO] consul: adding server foo (Addr: 127.0.0.2:8300) (DC: dc1)
