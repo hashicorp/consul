@@ -9,7 +9,7 @@ description: |-
 # Atlas Integration
 
 [Atlas](https://atlas.hashicorp.com?utm_source=oss&utm_medium=guide-atlas&utm_campaign=consul) is a service provided by HashiCorp to deploy applications and manage infrastructure.
-Starting with Consul 0.5, it is possible to integrate Consul with Atlas. Atlas is able to display the state of the Consul cluster in its dashboard and set up alerts based on health checks. Additionally, nodes can use Atlas to auto-join a Consul cluster without hardcoding any configurations.
+Starting with Consul 0.5, it is possible to integrate Consul with Atlas. Atlas is able to display the state of the Consul cluster in its dashboard and set up alerts based on health checks. Additionally, nodes can use Atlas to auto-join a Consul cluster without hardcoding any configuration.
 
 Atlas is able to securely retrieve data from nodes as Consul maintains a long-running connection to the
 [SCADA](http://scada.hashicorp.com) service.
