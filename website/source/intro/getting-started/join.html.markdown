@@ -101,7 +101,7 @@ Just like querying services, Consul has an API for querying the
 nodes themselves. You can do this via the DNS or HTTP API.
 
 For the DNS API, the structure of the names is `NAME.node.consul` or
-`NAME.DATACENTER.node.consul`. If the datacenter is omitted, Consul
+`NAME.node.DATACENTER.consul`. If the datacenter is omitted, Consul
 will only search the local datacenter.
 
 From "agent-one", query "agent-two":
