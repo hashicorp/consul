@@ -8,22 +8,19 @@ description: |-
 
 # Atlas Integration
 
-[Atlas](https://atlas.hashicorp.com) is a service provided by HashiCorp to deploy applications and manage infrastructure.
-Starting with Consul 0.5, it is possible to integrate Consul with Atlas. This is done by registering a node as part
-of an Atlas infrastructure (specified with the [`-atlas`](/docs/agent/options.html#_atlas) flag). Consul maintains a long-running connection to the
-[SCADA](http://scada.hashicorp.com) service which allows Atlas to retrieve data and control nodes.
+[Atlas](https://atlas.hashicorp.com?utm_source=oss&utm_medium=guide-atlas&utm_campaign=consul) is a service provided by HashiCorp to deploy applications and manage infrastructure.
+Starting with Consul 0.5, it is possible to integrate Consul with Atlas. Atlas is able to display the state of the Consul cluster in its dashboard and set up alerts based on health checks. Additionally, nodes can use Atlas to auto-join a Consul cluster without hardcoding any configurations.
 
-Data acquisition allows Atlas to display the state of the Consul cluster in its dashboard and set up alerts
-based on health checks. Remote control enables Atlas to provide features like auto-joinining nodes.
+Atlas is able to securely retrieve data from nodes as Consul maintains a long-running connection to the
+[SCADA](http://scada.hashicorp.com) service.
 
 ## Enabling Atlas Integration
 
 To enable Atlas integration, you must specify the name of the Atlas infrastructure and the Atlas authentication
-token. The Atlas infrastructure name can be set either with the [`-atlas`](/docs/agent/options.html#_atlas)
-CLI flag or with the [`atlas_infrastructure`](/docs/agent/options.html#atlas_infrastructure) config option.
-The Atlas token is set with the [`-atlas-token`](/docs/agent/options.html#_atlas_token) CLI flag,
-[`-atlas-token`](/docs/agent/options.html#atlas_token) configuration option, or `ATLAS_TOKEN`
-environment variable.
+token in your Consul configuration. The Atlas infrastructure name can be set either with the [`-atlas` CLI flag](/docs/agent/options.html#_atlas) or with the [`atlas_infrastructure` configuration option](/docs/agent/options.html#atlas_infrastructure). The Atlas token is set with the [`-atlas-token` CLI flag](/docs/agent/options.html#_atlas_token),
+[`-atlas-token` configuration option](/docs/agent/options.html#atlas_token), or `ATLAS_TOKEN` environment variable. 
+
+To get an Atlas username and token, [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=guide-atlas&utm_campaign=consul) and replace the respective values in your Consul configuration with your credentials.
 
 To verify the integration, either run the agent with `debug`-level logging or use `consul monitor -log-level=debug`
 and look for a line like:
@@ -38,8 +35,8 @@ Once integrated with Atlas, the auto-join feature can be used to have nodes auto
 peers in their datacenter. Server nodes will automatically join peer LAN nodes and other WAN nodes.
 Client nodes will only join other LAN nodes in their datacenter.
 
-Auto-join is enabled with the [`-atlas-join`](/docs/agent/options.html#_atlas_join) CLI flag or the
-[`atlas_join`](/docs/agent/options.html#atlas_join) configuration option.
+Auto-join is enabled with the [`-atlas-join` CLI flag](/docs/agent/options.html#_atlas_join) or the
+[`atlas_join` configuration option](/docs/agent/options.html#atlas_join).
 
 ## Securing Atlas
 
