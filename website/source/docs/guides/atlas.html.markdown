@@ -20,7 +20,7 @@ To enable Atlas integration, you must specify the name of the Atlas infrastructu
 token in your Consul configuration. The Atlas infrastructure name can be set either with the [`-atlas` CLI flag](/docs/agent/options.html#_atlas) or with the [`atlas_infrastructure` configuration option](/docs/agent/options.html#atlas_infrastructure). The Atlas token is set with the [`-atlas-token` CLI flag](/docs/agent/options.html#_atlas_token),
 [`-atlas-token` configuration option](/docs/agent/options.html#atlas_token), or `ATLAS_TOKEN` environment variable. 
 
-To get an Atlas username and token, [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=guide-atlasn&utm_campaign=consul) and replace the respective values in your Consul configuration with your credentials.
+To get an Atlas username and token, [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=guide-atlas&utm_campaign=consul) and replace the respective values in your Consul configuration with your credentials.
 
 To verify the integration, either run the agent with `debug`-level logging or use `consul monitor -log-level=debug`
 and look for a line like:
