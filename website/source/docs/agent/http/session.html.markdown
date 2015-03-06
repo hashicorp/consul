@@ -56,7 +56,7 @@ the agent's own node name is used.
 `Name` can be used to provide a human-readable name for the Session.
 
 `Checks` is used to provide a list of associated health checks. It is highly recommended
-that, if you override this list, you include the default "serfHealthCheck".
+that, if you override this list, you include the default "serfHealth".
 
 `Behavior` can be set to either `release` or `delete`. This controls
 the behavior when a session is invalidated. By default, this is `release`, 
