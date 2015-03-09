@@ -50,3 +50,20 @@ TCP and UDP unicast. Broadcast and Multicast are rarely available in a multi-ten
 or cloud network environment. For that reason, Consul and Serf were both
 designed to avoid any dependence on those capabilities.
 
+## Q: Is Consul eventually or strongly consistent?
+
+Consul has two important subsystems, the service catalog and the gossip protocol.
+The service catalog stores all the nodes, service instances, health check data,
+ACLs, and Key/Value information. It is strongly consistent, and replicated
+using the [consensus protocol](/docs/internals/consensus.html).
+
+The [gossip protocol](/docs/internals/gossip.html) is used to track which
+nodes are part of the cluster and to detect a node or agent failure. This information
+is eventually consistent by nature. When the servers detects a change in membership,
+or receive a health update, they update the service catalog appropriately.
+
+Because of this split, the answer to the question is subtle. Almost all client APIs
+interact with the service catalog and are strongly consistent. Updates to the
+catalog may come via the gossip protocol which is eventually consistent, meaning
+the current state of the catalog can lag behind until the state is reconciled.
+
