@@ -22,7 +22,7 @@ To setup the Atlas UI for Consul, you must add two fields to your configuration 
 $ consul agent -atlas=ATLAS_USERNAME/demo -atlas-token="ATLAS_TOKEN"
 ```
 
-To get an Atlas username and token, [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=getting-started-ui&utm_campaign=packer) and replace the respective values in your Consul configuration with your credentials.
+To get an Atlas username and token, [create an account here](https://atlas.hashicorp.com/account/new?utm_source=oss&utm_medium=getting-started-ui&utm_campaign=consul) and replace the respective values in your Consul configuration with your credentials.
 
 You can view a live demo of the Atlas UI [here](https://atlas.hashicorp.com/hashicorp/infrastructures/consul-demo). 
 
