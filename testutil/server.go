@@ -97,10 +97,10 @@ type TestCheck struct {
 
 // TestServer is the main server wrapper struct.
 type TestServer struct {
-	PID     int
-	Config  *TestServerConfig
-	APIAddr string
-	t       *testing.T
+	PID      int
+	Config   *TestServerConfig
+	HTTPAddr string
+	t        *testing.T
 }
 
 // NewTestServer is an easy helper method to create a new Consul
@@ -153,10 +153,10 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 	}
 
 	server := &TestServer{
-		Config:  consulConfig,
-		PID:     cmd.Process.Pid,
-		APIAddr: fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.HTTP),
-		t:       t,
+		Config:   consulConfig,
+		PID:      cmd.Process.Pid,
+		HTTPAddr: fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.HTTP),
+		t:        t,
 	}
 
 	// Wait for the server to be ready

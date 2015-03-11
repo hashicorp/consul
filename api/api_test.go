@@ -33,7 +33,7 @@ func makeClientWithConfig(
 
 	// Create server
 	server := testutil.NewTestServerConfig(t, cb2)
-	conf.Address = server.APIAddr
+	conf.Address = server.HTTPAddr
 
 	// Create client
 	client, err := NewClient(conf)
