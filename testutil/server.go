@@ -1,8 +1,10 @@
 package testutil
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -59,6 +61,7 @@ type TestServer struct {
 	PID     int
 	Config  *TestServerConfig
 	APIAddr string
+	t       *testing.T
 }
 
 func NewTestServer(t *testing.T) *TestServer {
@@ -110,6 +113,7 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 		Config:  consulConfig,
 		PID:     cmd.Process.Pid,
 		APIAddr: fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.HTTP),
+		t:       t,
 	}
 
 	// Wait for the server to be ready
@@ -155,4 +159,47 @@ func (s *TestServer) waitForLeader() error {
 	})
 
 	return nil
+}
+
+func (s *TestServer) url(path string) string {
+	return fmt.Sprintf("http://127.0.0.1:%d%s", s.Config.Ports.HTTP, path)
+}
+
+func (s *TestServer) put(path string, body io.Reader) {
+	req, err := http.NewRequest("PUT", s.url(path), body)
+	if err != nil {
+		s.t.Fatalf("err: %s", err)
+	}
+	s.request(req)
+}
+
+func (s *TestServer) delete(path string) {
+	var body io.Reader
+	req, err := http.NewRequest("DELETE", s.url(path), body)
+	if err != nil {
+		s.t.Fatalf("err: %s", err)
+	}
+	s.request(req)
+}
+
+func (s *TestServer) request(req *http.Request) {
+	// Perform the PUT
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		s.t.Fatalf("err: %s", err)
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode != 200 {
+		s.t.Fatalf("Bad response code: %d", resp.StatusCode)
+	}
+}
+
+func (s *TestServer) KVSet(key string, val []byte) {
+	s.put("/v1/kv/"+key, bytes.NewBuffer(val))
+}
+
+func (s *TestServer) KVDelete(key string) {
+	s.delete("/v1/kv/" + key)
 }
