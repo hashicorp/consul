@@ -13,6 +13,7 @@ package testutil
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -94,6 +95,11 @@ type TestCheck struct {
 	Name      string `json:",omitempty"`
 	ServiceID string `json:",omitempty"`
 	TTL       string `json:",omitempty"`
+}
+
+// TestKVResponse is what we use to decode KV data.
+type TestKVResponse struct {
+	Value string
 }
 
 // TestServer is the main server wrapper struct.
@@ -287,6 +293,23 @@ func (s *TestServer) JoinWAN(addr string) {
 // SetKV sets an individual key in the K/V store.
 func (s *TestServer) SetKV(key string, val []byte) {
 	s.put("/v1/kv/"+key, bytes.NewBuffer(val))
+}
+
+// GetKV retrieves a single key and returns its value
+func (s *TestServer) GetKV(key string) []byte {
+	data := s.get("/v1/kv/" + key)
+
+	var result []*TestKVResponse
+	if err := json.Unmarshal(data, &result); err != nil {
+		s.t.Fatalf("err: %s", err)
+	}
+
+	v, err := base64.StdEncoding.DecodeString(result[0].Value)
+	if err != nil {
+		s.t.Fatalf("err: %s", err)
+	}
+
+	return []byte(v)
 }
 
 // PopulateKV fills the Consul KV with data from a generic map.
