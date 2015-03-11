@@ -1065,3 +1065,39 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 		t.Fatalf("should have restored check state")
 	}
 }
+
+func TestAgent_loadChecks_checkFails(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// Persist a health check with an invalid service ID
+	check := &structs.HealthCheck{
+		Node:      config.NodeName,
+		CheckID:   "service:redis",
+		Name:      "redischeck",
+		Status:    structs.HealthPassing,
+		ServiceID: "nope",
+	}
+	if err := agent.persistCheck(check, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check to make sure the check was persisted
+	checkHash := stringHash(check.CheckID)
+	checkPath := filepath.Join(config.DataDir, checksDir, checkHash)
+	if _, err := os.Stat(checkPath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Try loading the checks from the persisted files
+	if err := agent.loadChecks(config); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the erroneous check was purged
+	if _, err := os.Stat(checkPath); err == nil {
+		t.Fatalf("should have purged check")
+	}
+}

@@ -1032,9 +1032,16 @@ func (a *Agent) loadChecks(conf *Config) error {
 			// services into the active pool
 			p.Check.Status = structs.HealthCritical
 
+			if err := a.AddCheck(p.Check, p.ChkType, false); err != nil {
+				// Purge the check if it is unable to be restored.
+				a.logger.Printf("[WARN] agent: Failed to restore check %q: %s",
+					p.Check.CheckID, err)
+				return a.purgeCheck(p.Check.CheckID)
+			}
+
 			a.logger.Printf("[DEBUG] agent: restored health check %q from %q",
 				p.Check.CheckID, filePath)
-			return a.AddCheck(p.Check, p.ChkType, false)
+			return nil
 		}
 	})
 
