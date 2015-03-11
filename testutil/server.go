@@ -57,6 +57,21 @@ func defaultServerConfig() *TestServerConfig {
 	}
 }
 
+type TestService struct {
+	ID      string   `json:",omitempty"`
+	Name    string   `json:",omitempty"`
+	Tags    []string `json:",omitempty"`
+	Address string   `json:",omitempty"`
+	Port    int      `json:",omitempty"`
+}
+
+type TestCheck struct {
+	ID        string `json:",omitempty"`
+	Name      string `json:",omitempty"`
+	ServiceID string `json:",omitempty"`
+	TTL       string `json:",omitempty"`
+}
+
 type TestServer struct {
 	PID     int
 	Config  *TestServerConfig
@@ -190,10 +205,24 @@ func (s *TestServer) request(req *http.Request) {
 	}
 	defer resp.Body.Close()
 
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		s.t.Fatalf("err: %s", err)
+	}
+
 	// Check status code
 	if resp.StatusCode != 200 {
-		s.t.Fatalf("Bad response code: %d", resp.StatusCode)
+		s.t.Fatalf("Bad response code: %d\nBody:\n%s", resp.StatusCode, body)
 	}
+}
+
+func (s *TestServer) encodePayload(payload interface{}) io.Reader {
+	var encoded bytes.Buffer
+	enc := json.NewEncoder(&encoded)
+	if err := enc.Encode(payload); err != nil {
+		s.t.Fatalf("err: %s", err)
+	}
+	return &encoded
 }
 
 func (s *TestServer) KVSet(key string, val []byte) {
@@ -202,4 +231,30 @@ func (s *TestServer) KVSet(key string, val []byte) {
 
 func (s *TestServer) KVDelete(key string) {
 	s.delete("/v1/kv/" + key)
+}
+
+func (s *TestServer) AddService(name, status string, tags []string) {
+	svc := &TestService{
+		Name: name,
+		Tags: tags,
+	}
+	payload := s.encodePayload(svc)
+	s.put("/v1/agent/service/register", payload)
+
+	chk := &TestCheck{
+		Name:      name,
+		ServiceID: name,
+		TTL:       "10m",
+	}
+	payload = s.encodePayload(chk)
+	s.put("/v1/agent/check/register", payload)
+
+	switch status {
+	case "passing":
+		s.put("/v1/agent/check/pass/"+name, nil)
+	case "warning":
+		s.put("/v1/agent/check/warn/"+name, nil)
+	case "failing":
+		s.put("/v1/agent/check/fail/"+name, nil)
+	}
 }
