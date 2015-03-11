@@ -46,12 +46,13 @@ type TestAddressConfig struct {
 
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
-	Bootstrap bool               `json:"bootstrap,omitempty"`
-	Server    bool               `json:"server,omitempty"`
-	DataDir   string             `json:"data_dir,omitempty"`
-	LogLevel  string             `json:"log_level,omitempty"`
-	Addresses *TestAddressConfig `json:"addresses,omitempty"`
-	Ports     *TestPortConfig    `json:"ports,omitempty"`
+	Bootstrap  bool               `json:"bootstrap,omitempty"`
+	Server     bool               `json:"server,omitempty"`
+	DataDir    string             `json:"data_dir,omitempty"`
+	Datacenter string             `json:"datacenter,omitempty"`
+	LogLevel   string             `json:"log_level,omitempty"`
+	Addresses  *TestAddressConfig `json:"addresses,omitempty"`
+	Ports      *TestPortConfig    `json:"ports,omitempty"`
 }
 
 // ServerConfigCallback is a function interface which can be
@@ -97,10 +98,13 @@ type TestCheck struct {
 
 // TestServer is the main server wrapper struct.
 type TestServer struct {
-	PID      int
-	Config   *TestServerConfig
+	PID    int
+	Config *TestServerConfig
+	t      *testing.T
+
 	HTTPAddr string
-	t        *testing.T
+	LANAddr  string
+	WANAddr  string
 }
 
 // NewTestServer is an easy helper method to create a new Consul
@@ -153,10 +157,13 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 	}
 
 	server := &TestServer{
-		Config:   consulConfig,
-		PID:      cmd.Process.Pid,
+		Config: consulConfig,
+		PID:    cmd.Process.Pid,
+		t:      t,
+
 		HTTPAddr: fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.HTTP),
-		t:        t,
+		LANAddr:  fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.SerfLan),
+		WANAddr:  fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.SerfWan),
 	}
 
 	// Wait for the server to be ready
@@ -224,9 +231,18 @@ func (s *TestServer) put(path string, body io.Reader) {
 	s.request(req)
 }
 
+// get performs a new HTTP GET request.
+func (s *TestServer) get(path string) []byte {
+	req, err := http.NewRequest("GET", s.url(path), nil)
+	if err != nil {
+		s.t.Fatalf("err: %s", err)
+	}
+	return s.request(req)
+}
+
 // request is a generic HTTP request helper to make a request and
 // ensure the response code is acceptable.
-func (s *TestServer) request(req *http.Request) {
+func (s *TestServer) request(req *http.Request) []byte {
 	// Perform the PUT
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -243,6 +259,8 @@ func (s *TestServer) request(req *http.Request) {
 	if resp.StatusCode != 200 {
 		s.t.Fatalf("Bad response code: %d\nBody:\n%s", resp.StatusCode, body)
 	}
+
+	return body
 }
 
 // encodePayload returns a new io.Reader wrapping the encoded contents
@@ -254,6 +272,16 @@ func (s *TestServer) encodePayload(payload interface{}) io.Reader {
 		s.t.Fatalf("err: %s", err)
 	}
 	return &encoded
+}
+
+// JoinLAN is used to join nodes within the same datacenter.
+func (s *TestServer) JoinLAN(addr string) {
+	s.get("/v1/agent/join/" + addr)
+}
+
+// JoinWAN is used to join remote datacenters together.
+func (s *TestServer) JoinWAN(addr string) {
+	s.get("/v1/agent/join/" + addr + "?wan=1")
 }
 
 // SetKV sets an individual key in the K/V store.
