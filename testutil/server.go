@@ -24,8 +24,11 @@ import (
 	"testing"
 )
 
+// offset is used to atomically increment the port numbers.
 var offset uint64
 
+// TestPortConfig configures the various ports used for services
+// provided by the Consul server.
 type TestPortConfig struct {
 	DNS     int `json:"dns,omitempty"`
 	HTTP    int `json:"http,omitempty"`
@@ -35,10 +38,13 @@ type TestPortConfig struct {
 	Server  int `json:"server,omitempty"`
 }
 
+// TestAddressConfig contains the bind addresses for various
+// components of the Consul server.
 type TestAddressConfig struct {
 	HTTP string `json:"http,omitempty"`
 }
 
+// TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
 	Bootstrap bool               `json:"bootstrap,omitempty"`
 	Server    bool               `json:"server,omitempty"`
@@ -48,8 +54,12 @@ type TestServerConfig struct {
 	Ports     *TestPortConfig    `json:"ports,omitempty"`
 }
 
+// ServerConfigCallback is a function interface which can be
+// passed to NewTestServerConfig to modify the server config.
 type ServerConfigCallback func(c *TestServerConfig)
 
+// defaultServerConfig returns a new TestServerConfig struct
+// with all of the listen ports incremented by one.
 func defaultServerConfig() *TestServerConfig {
 	idx := int(atomic.AddUint64(&offset, 1))
 
@@ -68,6 +78,7 @@ func defaultServerConfig() *TestServerConfig {
 	}
 }
 
+// TestService is used to serialize a service definition.
 type TestService struct {
 	ID      string   `json:",omitempty"`
 	Name    string   `json:",omitempty"`
@@ -76,6 +87,7 @@ type TestService struct {
 	Port    int      `json:",omitempty"`
 }
 
+// TestCheck is used to serialize a check definition.
 type TestCheck struct {
 	ID        string `json:",omitempty"`
 	Name      string `json:",omitempty"`
@@ -83,6 +95,7 @@ type TestCheck struct {
 	TTL       string `json:",omitempty"`
 }
 
+// TestServer is the main server wrapper struct.
 type TestServer struct {
 	PID     int
 	Config  *TestServerConfig
@@ -90,10 +103,14 @@ type TestServer struct {
 	t       *testing.T
 }
 
+// NewTestServer is an easy helper method to create a new Consul
+// test server with the most basic configuration.
 func NewTestServer(t *testing.T) *TestServer {
 	return NewTestServerConfig(t, nil)
 }
 
+// NewTestServerConfig creates a new TestServer, and makes a call to
+// an optional callback function to modify the configuration.
 func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 	if path, err := exec.LookPath("consul"); err != nil || path == "" {
 		t.Skip("consul not found on $PATH, skipping")
@@ -150,6 +167,8 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 	return server
 }
 
+// Stop stops the test Consul server, and removes the Consul data
+// directory once we are done.
 func (s *TestServer) Stop() {
 	defer os.RemoveAll(s.Config.DataDir)
 
@@ -159,6 +178,9 @@ func (s *TestServer) Stop() {
 	}
 }
 
+// waitForLeader waits for the Consul server's HTTP API to become
+// available, and then waits for a known leader and an index of
+// 1 or more to be observed to confirm leader election is done.
 func (s *TestServer) waitForLeader() error {
 	url := fmt.Sprintf("http://127.0.0.1:%d/v1/catalog/nodes", s.Config.Ports.HTTP)
 
@@ -187,10 +209,13 @@ func (s *TestServer) waitForLeader() error {
 	return nil
 }
 
+// url is a helper function which takes a relative URL and
+// makes it into a proper URL against the local Consul server.
 func (s *TestServer) url(path string) string {
 	return fmt.Sprintf("http://127.0.0.1:%d%s", s.Config.Ports.HTTP, path)
 }
 
+// put performs a new HTTP PUT request.
 func (s *TestServer) put(path string, body io.Reader) {
 	req, err := http.NewRequest("PUT", s.url(path), body)
 	if err != nil {
@@ -199,6 +224,8 @@ func (s *TestServer) put(path string, body io.Reader) {
 	s.request(req)
 }
 
+// request is a generic HTTP request helper to make a request and
+// ensure the response code is acceptable.
 func (s *TestServer) request(req *http.Request) {
 	// Perform the PUT
 	resp, err := http.DefaultClient.Do(req)
@@ -218,6 +245,8 @@ func (s *TestServer) request(req *http.Request) {
 	}
 }
 
+// encodePayload returns a new io.Reader wrapping the encoded contents
+// of the payload, suitable for passing directly to a new request.
 func (s *TestServer) encodePayload(payload interface{}) io.Reader {
 	var encoded bytes.Buffer
 	enc := json.NewEncoder(&encoded)
@@ -227,16 +256,21 @@ func (s *TestServer) encodePayload(payload interface{}) io.Reader {
 	return &encoded
 }
 
+// SetKV sets an individual key in the K/V store.
 func (s *TestServer) SetKV(key string, val []byte) {
 	s.put("/v1/kv/"+key, bytes.NewBuffer(val))
 }
 
+// PopulateKV fills the Consul KV with data from a generic map.
 func (s *TestServer) PopulateKV(data map[string][]byte) {
 	for k, v := range data {
 		s.SetKV(k, v)
 	}
 }
 
+// AddService adds a new service to the Consul instance. It also
+// automatically adds a health check with the given status, which
+// can be one of "passing", "warning", or "critical".
 func (s *TestServer) AddService(name, status string, tags []string) {
 	svc := &TestService{
 		Name: name,
@@ -266,6 +300,9 @@ func (s *TestServer) AddService(name, status string, tags []string) {
 	}
 }
 
+// AddCheck adds a check to the Consul instance. If the serviceID is
+// left empty (""), then the check will be associated with the node.
+// The check status may be "passing", "warning", or "critical".
 func (s *TestServer) AddCheck(name, serviceID, status string) {
 	chk := &TestCheck{
 		ID:   name,
