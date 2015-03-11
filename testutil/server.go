@@ -1,5 +1,16 @@
 package testutil
 
+// TestServer is a test helper. It uses a fork/exec model to create
+// a test Consul server instance in the background and initialize it
+// with some data and/or services. The test server can then be used
+// to run a unit test, and offers an easy API to tear itself down
+// when the test has completed. The only prerequisite is to have a consul
+// binary available on the $PATH.
+//
+// This package does not use Consul's official API client. This is
+// because we use TestServer to test the API client, which would
+// otherwise cause an import cycle.
+
 import (
 	"bytes"
 	"encoding/json"
@@ -188,15 +199,6 @@ func (s *TestServer) put(path string, body io.Reader) {
 	s.request(req)
 }
 
-func (s *TestServer) delete(path string) {
-	var body io.Reader
-	req, err := http.NewRequest("DELETE", s.url(path), body)
-	if err != nil {
-		s.t.Fatalf("err: %s", err)
-	}
-	s.request(req)
-}
-
 func (s *TestServer) request(req *http.Request) {
 	// Perform the PUT
 	resp, err := http.DefaultClient.Do(req)
@@ -225,12 +227,14 @@ func (s *TestServer) encodePayload(payload interface{}) io.Reader {
 	return &encoded
 }
 
-func (s *TestServer) KVSet(key string, val []byte) {
+func (s *TestServer) SetKV(key string, val []byte) {
 	s.put("/v1/kv/"+key, bytes.NewBuffer(val))
 }
 
-func (s *TestServer) KVDelete(key string) {
-	s.delete("/v1/kv/" + key)
+func (s *TestServer) PopulateKV(data map[string][]byte) {
+	for k, v := range data {
+		s.SetKV(k, v)
+	}
 }
 
 func (s *TestServer) AddService(name, status string, tags []string) {
@@ -241,8 +245,9 @@ func (s *TestServer) AddService(name, status string, tags []string) {
 	payload := s.encodePayload(svc)
 	s.put("/v1/agent/service/register", payload)
 
+	chkName := "service:" + name
 	chk := &TestCheck{
-		Name:      name,
+		Name:      chkName,
 		ServiceID: name,
 		TTL:       "10m",
 	}
@@ -251,10 +256,37 @@ func (s *TestServer) AddService(name, status string, tags []string) {
 
 	switch status {
 	case "passing":
+		s.put("/v1/agent/check/pass/"+chkName, nil)
+	case "warning":
+		s.put("/v1/agent/check/warn/"+chkName, nil)
+	case "critical":
+		s.put("/v1/agent/check/fail/"+chkName, nil)
+	default:
+		s.t.Fatalf("Unrecognized status: %s", status)
+	}
+}
+
+func (s *TestServer) AddCheck(name, serviceID, status string) {
+	chk := &TestCheck{
+		ID:   name,
+		Name: name,
+		TTL:  "10m",
+	}
+	if serviceID != "" {
+		chk.ServiceID = serviceID
+	}
+
+	payload := s.encodePayload(chk)
+	s.put("/v1/agent/check/register", payload)
+
+	switch status {
+	case "passing":
 		s.put("/v1/agent/check/pass/"+name, nil)
 	case "warning":
 		s.put("/v1/agent/check/warn/"+name, nil)
-	case "failing":
+	case "critical":
 		s.put("/v1/agent/check/fail/"+name, nil)
+	default:
+		s.t.Fatalf("Unrecognized status: %s", status)
 	}
 }
