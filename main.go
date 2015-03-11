@@ -19,6 +19,9 @@ func realMain() int {
 	// just show the version.
 	args := os.Args[1:]
 	for _, arg := range args {
+		if arg == "--" {
+			break
+		}
 		if arg == "-v" || arg == "--version" {
 			newArgs := make([]string, len(args)+1)
 			newArgs[0] = "version"
