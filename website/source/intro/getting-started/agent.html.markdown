@@ -108,7 +108,7 @@ $ dig @127.0.0.1 -p 8600 Armons-MacBook-Air.node.consul
 Armons-MacBook-Air.node.consul.	0 IN	A	10.1.10.38
 ```
 
-## Stopping the Agent
+## <a name="stopping"></a>Stopping the Agent
 
 You can use `Ctrl-C` (the interrupt signal) to gracefully halt the agent.
 After interrupting the agent, you should see it leave the cluster
@@ -130,5 +130,5 @@ and remove servers.
 
 ## Next Steps
 
-Your simple Consul cluster is up and running.  Let's give it some
+Your simple Consul cluster is up and running. Let's give it some
 [services](services.html)!
