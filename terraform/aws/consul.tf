@@ -1,6 +1,6 @@
 resource "aws_instance" "server" {
     ami = "${lookup(var.ami, var.region)}"
-    instance_type = "m1.small"
+    instance_type = "${var.instance_type}"
     key_name = "${var.key_name}"
     count = "${var.servers}"
     security_groups = ["${aws_security_group.consul.name}"]
