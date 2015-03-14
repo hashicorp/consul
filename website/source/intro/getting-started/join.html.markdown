@@ -105,8 +105,8 @@ Successfully joined cluster by contacting 1 nodes.
 
 You should see some log output in each of the agent logs. If you read
 carefully, you'll see that they received join information. If you
-run `consul members` against each agent, you'll see that both agents
-now know about each other:
+run [`consul members`](/docs/commands/members.html) against each agent,
+you'll see that both agents now know about each other:
 
 ```text
 vagrant@n2:~$ consul members
@@ -139,9 +139,10 @@ credentials. Now, whenever a new node comes up with a Consul agent, it
 will automatically join your Consul cluster without any hardcoded
 configuration.
 
-Alternatively, you can use the
-[`-join` flag](http://www.consul.io/docs/agent/options.html#_join)
-with a hardcoded address of a known Consul agent to join a cluster.
+Alternatively, you can join a cluster at startup using the
+[`-join` flag](http://www.consul.io/docs/agent/options.html#_join) or
+[`start_join` setting](http://www.consul.io/docs/agent/options.html#start_join)
+with hardcoded addresses of other known Consul agents.
 
 ## Querying Nodes
 
