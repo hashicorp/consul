@@ -305,3 +305,19 @@ func TestCheckHTTPTimeout(t *testing.T) {
 		t.Fatalf("should be critical %v", mock.state)
 	}
 }
+
+func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
+	check := &CheckHTTP{
+		CheckID:  "foo",
+		HTTP:     "http://foo.bar/baz",
+		Interval: 10 * time.Second,
+		Logger:   log.New(os.Stderr, "", log.LstdFlags),
+	}
+
+	check.Start()
+	defer check.Stop()
+
+	if !check.httpClient.Transport.(*http.Transport).DisableKeepAlives {
+		t.Fatalf("should have disabled keepalives")
+	}
+}
