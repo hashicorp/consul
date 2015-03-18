@@ -70,6 +70,6 @@ the current state of the catalog can lag behind until the state is reconciled.
 ## Q: Are failed nodes ever removed?
 
 To prevent an accumulation of dead nodes, Consul will automatically reap failed
-nodes out of the catalog as well. This is currently done on a non-configurable
-interval of 72 hours. Reaping is similar to leaving, causing all associated
-services to be deregistered.
+nodes out of the catalog. This is currently done on a non-configurable interval
+of 72 hours. Reaping is similar to leaving, causing all associated services to
+be deregistered.
