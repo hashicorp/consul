@@ -302,6 +302,7 @@ definitions support being updated during a reload.
   The following keys are valid:
   * `dns` - The DNS server. Defaults to `client_addr`
   * `http` - The HTTP API. Defaults to `client_addr`
+  * `https` - The HTTPS API. Defaults to `client_addr`
   * `rpc` - The RPC endpoint. Defaults to `client_addr`
 
 * <a name="advertise_addr"></a><a href="#advertise_addr">`advertise_addr`</a> Equivalent to
@@ -546,7 +547,7 @@ definitions support being updated during a reload.
   connections make use of TLS and that the client provides a certificate signed
   by the Certificate Authority from the [`ca_file`](#ca_file). By default, this is false, and
   Consul will not enforce the use of TLS or verify a client's authenticity. This
-  only applies to Consul servers since a client never has an incoming connection.
+  applies to both server RPC and to the HTTPS API.
 
 * <a name="verify_outgoing"></a><a href="#verify_outgoing">`verify_outgoing`</a> - If set to
   true, Consul requires that all outgoing connections
