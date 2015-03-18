@@ -2,9 +2,11 @@ package api
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -122,6 +124,52 @@ func DefaultConfig() *Config {
 
 	if addr := os.Getenv("CONSUL_HTTP_ADDR"); addr != "" {
 		config.Address = addr
+	}
+
+	if token := os.Getenv("CONSUL_HTTP_TOKEN"); token != "" {
+		config.Token = token
+	}
+
+	if auth := os.Getenv("CONSUL_HTTP_AUTH"); auth != "" {
+		var username, password string
+		if strings.Contains(auth, ":") {
+			split := strings.SplitN(auth, ":", 2)
+			username = split[0]
+			password = split[1]
+		} else {
+			username = auth
+		}
+
+		config.HttpAuth = &HttpBasicAuth{
+			Username: username,
+			Password: password,
+		}
+	}
+
+	if ssl := os.Getenv("CONSUL_HTTP_SSL"); ssl != "" {
+		enabled, err := strconv.ParseBool(ssl)
+		if err != nil {
+			log.Printf("[WARN] client: could not parse CONSUL_HTTP_SSL: %s", err)
+		}
+
+		if enabled {
+			config.Scheme = "https"
+		}
+	}
+
+	if verify := os.Getenv("CONSUL_HTTP_SSL_VERIFY"); verify != "" {
+		doVerify, err := strconv.ParseBool(verify)
+		if err != nil {
+			log.Printf("[WARN] client: could not parse CONSUL_HTTP_SSL_VERIFY: %s", err)
+		}
+
+		if !doVerify {
+			config.HttpClient.Transport = &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			}
+		}
 	}
 
 	return config

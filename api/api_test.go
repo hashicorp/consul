@@ -190,6 +190,51 @@ func testKey() string {
 		buf[10:16])
 }
 
+func TestDefaultConfig_env(t *testing.T) {
+	addr := "1.2.3.4:5678"
+	token := "abcd1234"
+	auth := "username:password"
+
+	os.Setenv("CONSUL_HTTP_ADDR", addr)
+	defer os.Setenv("CONSUL_HTTP_ADDR", "")
+	os.Setenv("CONSUL_HTTP_TOKEN", token)
+	defer os.Setenv("CONSUL_HTTP_TOKEN", "")
+	os.Setenv("CONSUL_HTTP_AUTH", auth)
+	defer os.Setenv("CONSUL_HTTP_AUTH", "")
+	os.Setenv("CONSUL_HTTP_SSL", "1")
+	defer os.Setenv("CONSUL_HTTP_SSL", "")
+	os.Setenv("CONSUL_HTTP_SSL_VERIFY", "0")
+	defer os.Setenv("CONSUL_HTTP_SSL_VERIFY", "")
+
+	config := DefaultConfig()
+
+	if config.Address != addr {
+		t.Errorf("expected %q to be %q", config.Address, addr)
+	}
+
+	if config.Token != token {
+		t.Errorf("expected %q to be %q", config.Token, token)
+	}
+
+	if config.HttpAuth == nil {
+		t.Fatalf("expected HttpAuth to be enabled")
+	}
+	if config.HttpAuth.Username != "username" {
+		t.Errorf("expected %q to be %q", config.HttpAuth.Username, "username")
+	}
+	if config.HttpAuth.Password != "password" {
+		t.Errorf("expected %q to be %q", config.HttpAuth.Password, "password")
+	}
+
+	if config.Scheme != "https" {
+		t.Errorf("expected %q to be %q", config.Scheme, "https")
+	}
+
+	if !config.HttpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
+		t.Errorf("expected SSL verification to be off")
+	}
+}
+
 func TestSetQueryOptions(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.stop()
