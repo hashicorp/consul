@@ -13,10 +13,10 @@ box. UIs can be used for viewing all services and nodes, for viewing
 all health checks and their current status, and for reading and setting
 key/value data. The UIs automatically support multi-datacenter.
 
-There are two options for running a web UI for Consul. The first option
-is self-hosting the [open-source UI](/downloads.html); the second option
-is using [Atlas by HashiCorp](https://atlas.hashicorp.com) to host the
-dashboard for you. 
+There are two options for running a web UI for Consul: using
+[Atlas by HashiCorp](https://atlas.hashicorp.com) to host the
+dashboard for you or self-hosting the
+[open-source UI](/downloads.html).
 
 ## Atlas-hosted Dashboard
 
