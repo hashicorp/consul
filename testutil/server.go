@@ -18,9 +18,11 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"sync/atomic"
 	"testing"
 )
@@ -69,6 +71,7 @@ func defaultServerConfig() *TestServerConfig {
 		Bootstrap: true,
 		Server:    true,
 		LogLevel:  "debug",
+		Addresses: &TestAddressConfig{},
 		Ports: &TestPortConfig{
 			DNS:     20000 + idx,
 			HTTP:    21000 + idx,
@@ -111,6 +114,8 @@ type TestServer struct {
 	HTTPAddr string
 	LANAddr  string
 	WANAddr  string
+
+	HttpClient *http.Client
 }
 
 // NewTestServer is an easy helper method to create a new Consul
@@ -162,14 +167,32 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 		t.Fatalf("err: %s", err)
 	}
 
+	var httpAddr string
+	var client *http.Client
+	if strings.HasPrefix(consulConfig.Addresses.HTTP, "unix://") {
+		httpAddr = consulConfig.Addresses.HTTP
+		client = &http.Client{
+			Transport: &http.Transport{
+				Dial: func(_, _ string) (net.Conn, error) {
+					return net.Dial("unix", httpAddr[7:])
+				},
+			},
+		}
+	} else {
+		httpAddr = fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.HTTP)
+		client = http.DefaultClient
+	}
+
 	server := &TestServer{
 		Config: consulConfig,
 		PID:    cmd.Process.Pid,
 		t:      t,
 
-		HTTPAddr: fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.HTTP),
+		HTTPAddr: httpAddr,
 		LANAddr:  fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.SerfLan),
 		WANAddr:  fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.SerfWan),
+
+		HttpClient: client,
 	}
 
 	// Wait for the server to be ready
@@ -198,7 +221,7 @@ func (s *TestServer) waitForLeader() error {
 	url := fmt.Sprintf("http://127.0.0.1:%d/v1/catalog/nodes", s.Config.Ports.HTTP)
 
 	WaitForResult(func() (bool, error) {
-		resp, err := http.Get(url)
+		resp, err := s.HttpClient.Get(url)
 		if err != nil {
 			return false, err
 		}
@@ -250,7 +273,7 @@ func (s *TestServer) get(path string) []byte {
 // ensure the response code is acceptable.
 func (s *TestServer) request(req *http.Request) []byte {
 	// Perform the PUT
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := s.HttpClient.Do(req)
 	if err != nil {
 		s.t.Fatalf("err: %s", err)
 	}
