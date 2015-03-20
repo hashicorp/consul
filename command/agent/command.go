@@ -75,6 +75,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
 	cmdFlags.IntVar(&cmdConfig.BootstrapExpect, "bootstrap-expect", 0, "enable automatic bootstrap via expect mode")
+	cmdFlags.StringVar(&cmdConfig.Domain, "domain", "", "domain to use for DNS interface")
 
 	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, HTTPS, RPC)")
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")

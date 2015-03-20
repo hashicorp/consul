@@ -112,6 +112,10 @@ The options below are all specified on the command-line.
   it relies on proper configuration. Nodes in the same datacenter should be on a single
   LAN.
 
+* <a name="_domain"></a><a href="#_domain">`-domain`</a> - By default, Consul responds to DNS queries
+  in the "consul." domain. This flag can be used to change that domain. All queries in this domain
+  are assumed to be handled by Consul and will not be recursively resolved.
+
 * <a name="_encrypt"></a><a href="#_encrypt">`-encrypt`</a> - Specifies the secret key to
   use for encryption of Consul
   network traffic. This key must be 16-bytes that are Base64-encoded. The
@@ -405,9 +409,8 @@ definitions support being updated during a reload.
   nodes whose healthchecks are not passing will be excluded from DNS results. By default (or
   if set to false), only nodes whose healthchecks are failing as critical will be excluded.
 
-* <a name="domain"></a><a href="#domain">`domain`</a> By default, Consul responds to DNS queries
-  in the "consul." domain. This flag can be used to change that domain. All queries in this domain
-  are assumed to be handled by Consul and will not be recursively resolved.
+* <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
+  [`-domain` command-line flag](#_domain).
 
 * <a name="enable_debug"></a><a href="#enable_debug">`enable_debug`</a> When set, enables some
   additional debugging features. Currently, this is only used to set the runtime profiling HTTP endpoints.
