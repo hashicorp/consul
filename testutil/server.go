@@ -196,9 +196,7 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 	}
 
 	// Wait for the server to be ready
-	if err := server.waitForLeader(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	server.waitForLeader()
 
 	return server
 }
@@ -217,14 +215,10 @@ func (s *TestServer) Stop() {
 // waitForLeader waits for the Consul server's HTTP API to become
 // available, and then waits for a known leader and an index of
 // 1 or more to be observed to confirm leader election is done.
-func (s *TestServer) waitForLeader() error {
-	url := fmt.Sprintf("http://127.0.0.1:%d/v1/catalog/nodes", s.Config.Ports.HTTP)
-
+func (s *TestServer) waitForLeader() {
 	WaitForResult(func() (bool, error) {
-		resp, err := s.HttpClient.Get(url)
-		if err != nil {
-			return false, err
-		}
+		// Query the API and check the status code
+		resp := s.get(s.url("/v1/catalog/nodes"))
 		resp.Body.Close()
 
 		// Ensure we have a leader and a node registeration
@@ -235,14 +229,11 @@ func (s *TestServer) waitForLeader() error {
 		if resp.Header.Get("X-Consul-Index") == "0" {
 			return false, fmt.Errorf("Consul index is 0")
 		}
-
 		return true, nil
 	}, func(err error) {
 		s.Stop()
-		panic(err)
+		s.t.Fatalf("err: %s", err)
 	})
-
-	return nil
 }
 
 // url is a helper function which takes a relative URL and
@@ -251,45 +242,35 @@ func (s *TestServer) url(path string) string {
 	return fmt.Sprintf("http://127.0.0.1:%d%s", s.Config.Ports.HTTP, path)
 }
 
+func (s *TestServer) requireOK(resp *http.Response) {
+	if resp.StatusCode != 200 {
+		resp.Body.Close()
+		s.t.Fatalf("Bad status code: %s", resp.StatusCode)
+	}
+}
+
 // put performs a new HTTP PUT request.
-func (s *TestServer) put(path string, body io.Reader) {
+func (s *TestServer) put(path string, body io.Reader) *http.Response {
 	req, err := http.NewRequest("PUT", s.url(path), body)
 	if err != nil {
 		s.t.Fatalf("err: %s", err)
 	}
-	s.request(req)
-}
-
-// get performs a new HTTP GET request.
-func (s *TestServer) get(path string) []byte {
-	req, err := http.NewRequest("GET", s.url(path), nil)
-	if err != nil {
-		s.t.Fatalf("err: %s", err)
-	}
-	return s.request(req)
-}
-
-// request is a generic HTTP request helper to make a request and
-// ensure the response code is acceptable.
-func (s *TestServer) request(req *http.Request) []byte {
-	// Perform the PUT
 	resp, err := s.HttpClient.Do(req)
 	if err != nil {
 		s.t.Fatalf("err: %s", err)
 	}
-	defer resp.Body.Close()
+	s.requireOK(resp)
+	return resp
+}
 
-	body, err := ioutil.ReadAll(resp.Body)
+// get performs a new HTTP GET request.
+func (s *TestServer) get(path string) *http.Response {
+	resp, err := s.HttpClient.Get(s.url(path))
 	if err != nil {
 		s.t.Fatalf("err: %s", err)
 	}
-
-	// Check status code
-	if resp.StatusCode != 200 {
-		s.t.Fatalf("Bad response code: %d\nBody:\n%s", resp.StatusCode, body)
-	}
-
-	return body
+	s.requireOK(resp)
+	return resp
 }
 
 // encodePayload returns a new io.Reader wrapping the encoded contents
@@ -305,22 +286,31 @@ func (s *TestServer) encodePayload(payload interface{}) io.Reader {
 
 // JoinLAN is used to join nodes within the same datacenter.
 func (s *TestServer) JoinLAN(addr string) {
-	s.get("/v1/agent/join/" + addr)
+	resp := s.get("/v1/agent/join/" + addr)
+	resp.Body.Close()
 }
 
 // JoinWAN is used to join remote datacenters together.
 func (s *TestServer) JoinWAN(addr string) {
-	s.get("/v1/agent/join/" + addr + "?wan=1")
+	resp := s.get("/v1/agent/join/" + addr + "?wan=1")
+	resp.Body.Close()
 }
 
 // SetKV sets an individual key in the K/V store.
 func (s *TestServer) SetKV(key string, val []byte) {
-	s.put("/v1/kv/"+key, bytes.NewBuffer(val))
+	resp := s.put("/v1/kv/"+key, bytes.NewBuffer(val))
+	resp.Body.Close()
 }
 
 // GetKV retrieves a single key and returns its value
 func (s *TestServer) GetKV(key string) []byte {
-	data := s.get("/v1/kv/" + key)
+	resp := s.get("/v1/kv/" + key)
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		s.t.Fatalf("err: %s", err)
+	}
 
 	var result []*TestKVResponse
 	if err := json.Unmarshal(data, &result); err != nil {
