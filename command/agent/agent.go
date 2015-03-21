@@ -127,6 +127,15 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		config.AdvertiseAddr = ip.String()
 	}
 
+	// Try to get an advertise address for the wan
+	if config.AdvertiseAddrWan != "" {
+		if ip := net.ParseIP(config.AdvertiseAddrWan); ip == nil {
+			return nil, fmt.Errorf("Failed to parse advertise address for wan: %v", config.AdvertiseAddrWan)
+		}
+	} else {
+		config.AdvertiseAddrWan = config.AdvertiseAddr
+	}
+
 	agent := &Agent{
 		config:        config,
 		logger:        log.New(logOutput, "", log.LstdFlags),
@@ -225,7 +234,11 @@ func (a *Agent) consulConfig() *consul.Config {
 	}
 	if a.config.AdvertiseAddr != "" {
 		base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
-		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
+		if a.config.AdvertiseAddrWan != "" {
+			base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddrWan
+		} else {
+			base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddr
+		}
 		base.RPCAdvertise = &net.TCPAddr{
 			IP:   net.ParseIP(a.config.AdvertiseAddr),
 			Port: a.config.Ports.Server,

@@ -190,7 +190,24 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	if config.AdvertiseAddrWan != "" {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	if config.Ports.Server != 8000 {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Advertise address for wan
+	input = `{"advertise_addr_wan": "127.0.0.5"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.AdvertiseAddr != "" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.AdvertiseAddrWan != "127.0.0.5" {
 		t.Fatalf("bad: %#v", config)
 	}
 
