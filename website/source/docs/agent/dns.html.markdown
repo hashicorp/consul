@@ -20,14 +20,18 @@ are located in the "east-aws" datacenter, and have no failing health checks.
 It's that simple!
 
 There are a number of configuration options that are important for the DNS interface,
-specifically `client_addr`, `ports.dns`, `recursors`, `domain`, and `dns_config`. By default,
-Consul will listen on 127.0.0.1:8600 for DNS queries in the "consul." domain, without support
-for further DNS recursion. Please consult the [documentation on configuration options](/docs/agent/options.html)
-for more details.
+specifically [`client_addr`](/docs/agent/options.html#client_addr),
+[`ports.dns`](/docs/agent/options.html#dns_port), [`recursors`](/docs/agent/options.html#recursors),
+[`domain`](/docs/agent/options.html#domain), and [`dns_config`](/docs/agent/options.html#dns_config).
+By default, Consul will listen on 127.0.0.1:8600 for DNS queries in the "consul."
+domain, without support for further DNS recursion. Please consult the
+[documentation on configuration options](/docs/agent/options.html),
+specifically the configuration items linked above, for more details.
 
 There are a few ways to use the DNS interface. One option is to use a custom
 DNS resolver library and point it at Consul. Another option is to set Consul
-as the DNS server for a node and provide `recursors` so that non-Consul queries
+as the DNS server for a node and provide a
+[`recursors`](/docs/agent/options.html#recursors) configuration so that non-Consul queries
 can also be resolved. The last method is to forward all queries for the "consul."
 domain to a Consul agent from the existing DNS server.
 
