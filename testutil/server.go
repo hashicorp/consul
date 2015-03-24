@@ -253,9 +253,10 @@ func (s *TestServer) url(path string) string {
 	return fmt.Sprintf("http://127.0.0.1:%d%s", s.Config.Ports.HTTP, path)
 }
 
+// requireOK checks the HTTP response code and ensures it is acceptable.
 func (s *TestServer) requireOK(resp *http.Response) error {
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("Bad status code: %s", resp.StatusCode)
+		return fmt.Errorf("Bad status code: %d", resp.StatusCode)
 	}
 	return nil
 }
@@ -271,7 +272,8 @@ func (s *TestServer) put(path string, body io.Reader) *http.Response {
 		s.t.Fatalf("err: %s", err)
 	}
 	if err := s.requireOK(resp); err != nil {
-		s.t.Fatalf(err.Error())
+		defer resp.Body.Close()
+		s.t.Fatal(err)
 	}
 	return resp
 }
@@ -283,7 +285,8 @@ func (s *TestServer) get(path string) *http.Response {
 		s.t.Fatalf("err: %s", err)
 	}
 	if err := s.requireOK(resp); err != nil {
-		s.t.Fatalf(err.Error())
+		defer resp.Body.Close()
+		s.t.Fatal(err)
 	}
 	return resp
 }
@@ -322,14 +325,17 @@ func (s *TestServer) GetKV(key string) []byte {
 	resp := s.get("/v1/kv/" + key)
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	raw, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		s.t.Fatalf("err: %s", err)
 	}
 
 	var result []*TestKVResponse
-	if err := json.Unmarshal(data, &result); err != nil {
+	if err := json.Unmarshal(raw, &result); err != nil {
 		s.t.Fatalf("err: %s", err)
+	}
+	if len(result) < 1 {
+		s.t.Fatalf("key does not exist: %s", key)
 	}
 
 	v, err := base64.StdEncoding.DecodeString(result[0].Value)
@@ -345,6 +351,24 @@ func (s *TestServer) PopulateKV(data map[string][]byte) {
 	for k, v := range data {
 		s.SetKV(k, v)
 	}
+}
+
+// ListKV returns a list of keys present in the KV store. This will list all
+// keys under the given prefix recursively and return them as a slice.
+func (s *TestServer) ListKV(prefix string) []string {
+	resp := s.get("/v1/kv/" + prefix + "?keys")
+	defer resp.Body.Close()
+
+	raw, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		s.t.Fatalf("err: %s", err)
+	}
+
+	var result []string
+	if err := json.Unmarshal(raw, &result); err != nil {
+		s.t.Fatalf("err: %s", err)
+	}
+	return result
 }
 
 // AddService adds a new service to the Consul instance. It also
