@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -31,6 +32,14 @@ type DNSServer struct {
 	domain       string
 	recursors    []string
 	logger       *log.Logger
+}
+
+// KVStoreDNSRecord is used when fetching data from the KV store to
+// use to generate DNS responses.
+type KVStoreDNSRecord struct {
+	A    string
+	AAAA string
+	TXT  []string
 }
 
 // Shutdown stops the DNS Servers
@@ -318,6 +327,7 @@ func (d *DNSServer) addSOA(domain string, msg *dns.Msg) {
 func (d *DNSServer) dispatch(network string, req, resp *dns.Msg) {
 	// By default the query is in the default datacenter
 	datacenter := d.agent.config.Datacenter
+	kvsDomain := d.agent.config.DNSConfig.KVSDomain
 
 	// Get the QName without the domain suffix
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
@@ -332,8 +342,7 @@ PARSE:
 	if n == 0 {
 		goto INVALID
 	}
-	switch labels[n-1] {
-	case "service":
+	if labels[n-1] == "service" {
 		if n == 1 {
 			goto INVALID
 		}
@@ -364,8 +373,7 @@ PARSE:
 			// tag[.tag].name.service.consul
 			d.serviceLookup(network, datacenter, labels[n-2], tag, req, resp)
 		}
-
-	case "node":
+	} else if labels[n-1] == "node" {
 		if len(labels) == 1 {
 			goto INVALID
 		}
@@ -373,7 +381,14 @@ PARSE:
 		node := strings.Join(labels[:n-1], ".")
 		d.nodeLookup(network, datacenter, node, req, resp)
 
-	default:
+	} else if kvsDomain != "" && labels[n-1] == kvsDomain {
+		if len(labels) == 1 {
+			goto INVALID
+		}
+		key := strings.Join(labels[:n-1], "/")
+		d.kvsLookup(network, datacenter, key, kvsDomain, req, resp)
+
+	} else {
 		// Store the DC, and re-parse
 		datacenter = labels[n-1]
 		labels = labels[:n-1]
@@ -383,6 +398,74 @@ PARSE:
 INVALID:
 	d.logger.Printf("[WARN] dns: QName invalid: %s", qName)
 	resp.SetRcode(req, dns.RcodeNameError)
+}
+
+// Handle a query that needs to be looked up in the key-value store.
+// To enable, add "dns_config": { "kvs_domain": "example" } to your
+// consul.json file. Then, queries to 'test.example.consul' will be
+// resolved by looking for example/test in the KV store.
+//
+func (d *DNSServer) kvsLookup(network, datacenter, key, prefix string, req, resp *dns.Msg) {
+	qType := req.Question[0].Qtype
+	args := structs.KeyRequest{}
+	args.Datacenter = datacenter
+	args.Key = prefix + "/" + key
+
+	var out structs.IndexedDirEntries
+	if err := d.agent.RPC("KVS.Get", &args, &out); err != nil {
+		d.logger.Printf("Error fetching key <%s> from KV store: %s", args.Key, err)
+		resp.SetRcode(req, dns.RcodeServerFailure)
+		return
+	}
+	if len(out.Entries) == 0 {
+		d.logger.Printf("No such key <%s> in KV store", args.Key)
+		resp.SetRcode(req, dns.RcodeNameError)
+		return
+	}
+
+	var entry KVStoreDNSRecord
+	if err := json.Unmarshal(out.Entries[0].Value, &entry); err != nil {
+		d.logger.Printf("Failed to decode json from <%s>: %s", args.Key, out.Entries[0].Value)
+		resp.SetRcode(req, dns.RcodeNameError)
+		return
+	}
+
+	if qType == dns.TypeANY || qType == dns.TypeA {
+		ip := net.ParseIP(entry.A)
+		if ip != nil && ip.To4() != nil {
+			hdr := dns.RR_Header{
+				Name:   req.Question[0].Name,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(d.config.NodeTTL / time.Second),
+			}
+			resp.Answer = append(resp.Answer, &dns.A{Hdr: hdr, A: ip})
+		}
+	}
+	if qType == dns.TypeANY || qType == dns.TypeAAAA {
+		ip := net.ParseIP(entry.AAAA)
+		if ip != nil && ip.To16() != nil {
+			hdr := dns.RR_Header{
+				Name:   req.Question[0].Name,
+				Rrtype: dns.TypeAAAA,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(d.config.NodeTTL / time.Second),
+			}
+			resp.Answer = append(resp.Answer, &dns.AAAA{Hdr: hdr, AAAA: ip})
+		}
+	}
+	if qType == dns.TypeANY || qType == dns.TypeTXT {
+		if len(entry.TXT) > 0 {
+			hdr := dns.RR_Header{
+				Name:   req.Question[0].Name,
+				Rrtype: dns.TypeTXT,
+				Class:  dns.ClassINET,
+				Ttl:    uint32(d.config.NodeTTL / time.Second),
+			}
+			resp.Answer = append(resp.Answer, &dns.TXT{Hdr: hdr, Txt: entry.TXT})
+		}
+	}
+	return
 }
 
 // nodeLookup is used to handle a node query
