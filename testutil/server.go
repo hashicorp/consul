@@ -54,6 +54,7 @@ type TestServerConfig struct {
 	DataDir    string             `json:"data_dir,omitempty"`
 	Datacenter string             `json:"datacenter,omitempty"`
 	LogLevel   string             `json:"log_level,omitempty"`
+	Bind       string             `json:"bind_addr"`
 	Addresses  *TestAddressConfig `json:"addresses,omitempty"`
 	Ports      *TestPortConfig    `json:"ports,omitempty"`
 }
@@ -71,6 +72,7 @@ func defaultServerConfig() *TestServerConfig {
 		Bootstrap: true,
 		Server:    true,
 		LogLevel:  "debug",
+		Bind:      "127.0.0.1",
 		Addresses: &TestAddressConfig{},
 		Ports: &TestPortConfig{
 			DNS:     20000 + idx,
