@@ -49,14 +49,15 @@ type TestAddressConfig struct {
 
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
-	Bootstrap  bool               `json:"bootstrap,omitempty"`
-	Server     bool               `json:"server,omitempty"`
-	DataDir    string             `json:"data_dir,omitempty"`
-	Datacenter string             `json:"datacenter,omitempty"`
-	LogLevel   string             `json:"log_level,omitempty"`
-	Bind       string             `json:"bind_addr"`
-	Addresses  *TestAddressConfig `json:"addresses,omitempty"`
-	Ports      *TestPortConfig    `json:"ports,omitempty"`
+	Bootstrap         bool               `json:"bootstrap,omitempty"`
+	Server            bool               `json:"server,omitempty"`
+	DataDir           string             `json:"data_dir,omitempty"`
+	Datacenter        string             `json:"datacenter,omitempty"`
+	DisableCheckpoint bool               `json:"disable_update_check"`
+	LogLevel          string             `json:"log_level,omitempty"`
+	Bind              string             `json:"bind_addr,omitempty"`
+	Addresses         *TestAddressConfig `json:"addresses,omitempty"`
+	Ports             *TestPortConfig    `json:"ports,omitempty"`
 }
 
 // ServerConfigCallback is a function interface which can be
@@ -69,11 +70,12 @@ func defaultServerConfig() *TestServerConfig {
 	idx := int(atomic.AddUint64(&offset, 1))
 
 	return &TestServerConfig{
-		Bootstrap: true,
-		Server:    true,
-		LogLevel:  "debug",
-		Bind:      "127.0.0.1",
-		Addresses: &TestAddressConfig{},
+		DisableCheckpoint: true,
+		Bootstrap:         true,
+		Server:            true,
+		LogLevel:          "debug",
+		Bind:              "127.0.0.1",
+		Addresses:         &TestAddressConfig{},
 		Ports: &TestPortConfig{
 			DNS:     20000 + idx,
 			HTTP:    21000 + idx,
@@ -140,6 +142,7 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 
 	configFile, err := ioutil.TempFile("", "consul")
 	if err != nil {
+		defer os.RemoveAll(dataDir)
 		t.Fatalf("err: %s", err)
 	}
 	defer os.Remove(configFile.Name())
@@ -220,8 +223,14 @@ func (s *TestServer) Stop() {
 func (s *TestServer) waitForLeader() {
 	WaitForResult(func() (bool, error) {
 		// Query the API and check the status code
-		resp := s.get(s.url("/v1/catalog/nodes"))
-		resp.Body.Close()
+		resp, err := s.HttpClient.Get(s.url("/v1/catalog/nodes"))
+		if err != nil {
+			return false, err
+		}
+		defer resp.Body.Close()
+		if err := s.requireOK(resp); err != nil {
+			return false, err
+		}
 
 		// Ensure we have a leader and a node registeration
 		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
@@ -233,7 +242,7 @@ func (s *TestServer) waitForLeader() {
 		}
 		return true, nil
 	}, func(err error) {
-		s.Stop()
+		defer s.Stop()
 		s.t.Fatalf("err: %s", err)
 	})
 }
@@ -244,11 +253,11 @@ func (s *TestServer) url(path string) string {
 	return fmt.Sprintf("http://127.0.0.1:%d%s", s.Config.Ports.HTTP, path)
 }
 
-func (s *TestServer) requireOK(resp *http.Response) {
+func (s *TestServer) requireOK(resp *http.Response) error {
 	if resp.StatusCode != 200 {
-		resp.Body.Close()
-		s.t.Fatalf("Bad status code: %s", resp.StatusCode)
+		return fmt.Errorf("Bad status code: %s", resp.StatusCode)
 	}
+	return nil
 }
 
 // put performs a new HTTP PUT request.
@@ -261,7 +270,9 @@ func (s *TestServer) put(path string, body io.Reader) *http.Response {
 	if err != nil {
 		s.t.Fatalf("err: %s", err)
 	}
-	s.requireOK(resp)
+	if err := s.requireOK(resp); err != nil {
+		s.t.Fatalf(err.Error())
+	}
 	return resp
 }
 
@@ -271,7 +282,9 @@ func (s *TestServer) get(path string) *http.Response {
 	if err != nil {
 		s.t.Fatalf("err: %s", err)
 	}
-	s.requireOK(resp)
+	if err := s.requireOK(resp); err != nil {
+		s.t.Fatalf(err.Error())
+	}
 	return resp
 }
 
