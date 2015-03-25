@@ -22,6 +22,10 @@ const (
 	// a Semaphore acquisition.
 	DefaultSemaphoreWaitTime = 15 * time.Second
 
+	// DefaultSemaphoreWatchWaitTime is how long we block for at a time while watching
+	// a semaphore. This affects the minimum time it takes to stop watching.
+	DefaultSemaphoreWatchWaitTime = 5 * time.Second
+
 	// DefaultSemaphoreRetryTime is how long we wait after a failed lock acquisition
 	// before attempting to do the lock again. This is so that once a lock-delay
 	// is in affect, we do not hot loop retrying the acquisition.
@@ -34,7 +38,7 @@ const (
 	// SemaphoreFlagValue is a magic flag we set to indicate a key
 	// is being used for a semaphore. It is used to detect a potential
 	// conflict with a lock.
-	SemaphoreFlagValue = 0xe0f69a2baa414de0
+	SemaphoreFlagValue = 0x9642d0084d1d424d
 )
 
 var (
@@ -71,7 +75,7 @@ type SemaphoreOptions struct {
 	Prefix      string // Must be set and have write permissions
 	Limit       int    // Must be set, and be positive
 	Value       []byte // Optional, value to associate with the contender entry
-	Session     string // OPtional, created if not specified
+	Session     string // Optional, created if not specified
 	SessionName string // Optional, defaults to DefaultLockSessionName
 	SessionTTL  string // Optional, defaults to DefaultLockSessionTTL
 }
@@ -83,9 +87,26 @@ type semaphoreLock struct {
 	// verify that all the holders agree on the value.
 	Limit int
 
-	// Holders is a list of all the semaphore holders.
-	// It maps the session ID to true. It is used as a set effectively.
-	Holders map[string]bool
+	// Holders is a list of all the semaphore holders and available slots.
+	// Its length is always Limit. A session ID in the list marks a slot
+	// as held, while an empty string denotes the slot is available.
+	Holders semaphoreHolders
+}
+
+// semaphoreHolders is just an alias so we can extend []string
+type semaphoreHolders []string
+
+// compare against another []string for equality
+func (h semaphoreHolders) Equals(a []string) bool {
+	if len(a) != len(h) {
+		return false
+	}
+	for i, v := range a {
+		if v != h[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // SemaphorePrefix is used to created a Semaphore which will operate
@@ -213,14 +234,17 @@ WAIT:
 	// Prune the dead holders
 	s.pruneDeadHolders(lock, pairs)
 
-	// Check if the lock is held
-	if len(lock.Holders) >= lock.Limit {
+	// Look for an open slot
+	slot := s.findSlot(lock, "")
+
+	// Check if the lock is fully held
+	if slot == -1 {
 		qOpts.WaitIndex = meta.LastIndex
 		goto WAIT
 	}
 
 	// Create a new lock with us as a holder
-	lock.Holders[s.lockSession] = true
+	lock.Holders[slot] = s.lockSession
 	newLock, err := s.encodeLock(lock, lockPair.ModifyIndex)
 	if err != nil {
 		return nil, err
@@ -292,8 +316,8 @@ READ:
 	}
 
 	// Create a new lock without us as a holder
-	if _, ok := lock.Holders[lockSession]; ok {
-		delete(lock.Holders, lockSession)
+	if slot := s.findSlot(lock, lockSession); slot != -1 {
+		lock.Holders[slot] = ""
 		newLock, err := s.encodeLock(lock, pair.ModifyIndex)
 		if err != nil {
 			return err
@@ -355,8 +379,10 @@ func (s *Semaphore) Destroy() error {
 	s.pruneDeadHolders(lock, pairs)
 
 	// Check if there are any holders
-	if len(lock.Holders) > 0 {
-		return ErrSemaphoreInUse
+	for _, holder := range lock.Holders {
+		if holder != "" {
+			return ErrSemaphoreInUse
+		}
 	}
 
 	// Attempt the delete
@@ -368,6 +394,90 @@ func (s *Semaphore) Destroy() error {
 		return ErrSemaphoreInUse
 	}
 	return nil
+}
+
+// Watch continuously monitors a semaphore and provides updates on its
+// result channel whenever there are changes to the semaphore's holders.
+// The updates are in the form of a [][]byte whose length is equal to the
+// Limit of the semaphore. Each entry contains the SemaphoreOptions.Value
+// for the contender who holds that slot in the semaphore. An unheld slot
+// is represented by an empty []byte.
+// Watching will continue until an error occurs or stopCh is closed.
+func (s *Semaphore) Watch(stopCh <-chan struct{}) (<-chan [][]byte, <-chan error) {
+	resultCh := make(chan [][]byte)
+	errCh := make(chan error)
+
+	go func() {
+		defer func() {
+			close(resultCh)
+			close(errCh)
+		}()
+
+		// Setup the query options
+		qOpts := &QueryOptions{
+			WaitTime: DefaultSemaphoreWatchWaitTime,
+		}
+
+		// Our last-known state of lock.Holders
+		var holders semaphoreHolders
+
+		for {
+			// Check if we should quit
+			select {
+			case <-stopCh:
+				return
+			default:
+			}
+
+			// Read the prefix
+			kv := s.c.KV()
+			pairs, meta, err := kv.List(s.opts.Prefix, qOpts)
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			// If nothing changed, continue watching
+			if qOpts.WaitIndex == meta.LastIndex {
+				continue
+			}
+			qOpts.WaitIndex = meta.LastIndex
+
+			// Find the lock
+			lockPair := s.findLock(pairs)
+			if lockPair.Flags != SemaphoreFlagValue {
+				errCh <- ErrSemaphoreConflict
+				return
+			}
+
+			// Decode the lock
+			lock, err := s.decodeLock(lockPair)
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			// Prune dead holders, get Values for alive holders
+			alive := s.pruneDeadHolders(lock, pairs)
+
+			// If the lock holders didn't change, continue watching
+			if holders.Equals(lock.Holders) {
+				continue
+			}
+			holders = lock.Holders
+
+			// Gather Values for alive holders
+			values := make([][]byte, lock.Limit)
+			for i, holder := range lock.Holders {
+				if holder != "" {
+					values[i] = alive[holder]
+				}
+			}
+			resultCh <- values
+		}
+	}()
+
+	return resultCh, errCh
 }
 
 // createSession is used to create a new managed session
@@ -413,7 +523,7 @@ func (s *Semaphore) decodeLock(pair *KVPair) (*semaphoreLock, error) {
 	if pair == nil || pair.Value == nil {
 		return &semaphoreLock{
 			Limit:   s.opts.Limit,
-			Holders: make(map[string]bool),
+			Holders: make([]string, s.opts.Limit),
 		}, nil
 	}
 
@@ -440,22 +550,39 @@ func (s *Semaphore) encodeLock(l *semaphoreLock, oldIndex uint64) (*KVPair, erro
 	return pair, nil
 }
 
-// pruneDeadHolders is used to remove all the dead lock holders
-func (s *Semaphore) pruneDeadHolders(lock *semaphoreLock, pairs KVPairs) {
+// findSlot is used to locate an index position in lock.Holders.
+// By passing session == "", findSlot will return the first available
+// slot, or -1 if none are available.
+func (s *Semaphore) findSlot(lock *semaphoreLock, session string) int {
+	for i, holder := range lock.Holders {
+		if holder == session {
+			return i
+		}
+	}
+	return -1
+}
+
+// pruneDeadHolders is used to remove all the dead lock holders.
+// The Value from each contender pair is returned for all living lock holders.
+func (s *Semaphore) pruneDeadHolders(lock *semaphoreLock, pairs KVPairs) map[string][]byte {
 	// Gather all the live holders
-	alive := make(map[string]struct{}, len(pairs))
+	alive := make(map[string][]byte, len(pairs))
 	for _, pair := range pairs {
 		if pair.Session != "" {
-			alive[pair.Session] = struct{}{}
+			alive[pair.Session] = pair.Value
 		}
 	}
 
 	// Remove any holders that are dead
-	for holder := range lock.Holders {
-		if _, ok := alive[holder]; !ok {
-			delete(lock.Holders, holder)
+	for i, holder := range lock.Holders {
+		if holder != "" {
+			if _, ok := alive[holder]; !ok {
+				lock.Holders[i] = ""
+			}
 		}
 	}
+
+	return alive
 }
 
 // monitorLock is a long running routine to monitor a semaphore ownership
@@ -475,7 +602,7 @@ WAIT:
 		return
 	}
 	s.pruneDeadHolders(lock, pairs)
-	if _, ok := lock.Holders[session]; ok {
+	if slot := s.findSlot(lock, session); slot != -1 {
 		opts.WaitIndex = meta.LastIndex
 		goto WAIT
 	}
