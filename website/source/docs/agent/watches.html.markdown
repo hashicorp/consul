@@ -17,7 +17,7 @@ Watches are implemented using blocking queries in the [HTTP API](/docs/agent/htt
 Agents automatically make the proper API calls to watch for changes
 and inform a handler when the data view has updated.
 
-Watches can be configured as part of the [agent's configuration](/docs/agent/options.html),
+Watches can be configured as part of the [agent's configuration](/docs/agent/options.html#watches),
 causing them to run once the agent is initialized. Reloading the agent configuration
 allows for adding or removing watches dynamically.
 
