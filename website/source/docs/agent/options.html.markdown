@@ -498,6 +498,12 @@ definitions support being updated during a reload.
   the [`node_name`](#_node) for the TLS certificate. It can be used to ensure that the certificate
   name matches the hostname we declare.
 
+* <a name="session_ttl_min"></a><a href="#session_ttl_min">`session_ttl_min`</a>
+  The minimum allowed session TTL. This ensures sessions are not created with
+  TTL's shorter than the specified limit. It is recommended to keep this limit
+  at or above the default to encourage clients to send infrequent heartbeats.
+  Defaults to 10s.
+
 * <a name="skip_leave_on_interrupt"></a><a href="#skip_leave_on_interrupt">`skip_leave_on_interrupt`</a>
   This is similar to [`leave_on_terminate`](#leave_on_terminate) but
   only affects interrupt handling. By default, an interrupt (such as hitting
