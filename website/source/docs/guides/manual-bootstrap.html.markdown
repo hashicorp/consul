@@ -21,8 +21,8 @@ storing the cluster state. The client nodes are mostly stateless and rely on the
 server nodes, so they can be started easily.
 
 Manual bootstrapping requires that the first server that is deployed in a new
-datacenter provide the `-bootstrap`
-[configuration option](/docs/agent/options.html). This option allows the server
+datacenter provide the [`-bootstrap` configuration option](/docs/agent/options.html#_bootstrap).
+This option allows the server
 to assert leadership of the cluster without agreement from any other server.
 This is necessary because at this point, there are no other servers running in
 the datacenter! Lets call this first server `Node A`. When starting `Node A`
