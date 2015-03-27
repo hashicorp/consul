@@ -483,3 +483,56 @@ func TestSessionEndpoint_NodeSessions(t *testing.T) {
 		}
 	}
 }
+
+func TestSessionEndpoint_Apply_BadTTL(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	arg := structs.SessionRequest{
+		Datacenter: "dc1",
+		Op:         structs.SessionCreate,
+		Session: structs.Session{
+			Node: "foo",
+			Name: "my-session",
+		},
+	}
+
+	// Session with illegal TTL
+	arg.Session.TTL = "10z"
+
+	var out string
+	err := client.Call("Session.Apply", &arg, &out)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if err.Error() != "Session TTL '10z' invalid: time: unknown unit z in duration 10z" {
+		t.Fatalf("incorrect error message: %s", err.Error())
+	}
+
+	// less than SessionTTLMin
+	arg.Session.TTL = "5s"
+
+	err = client.Call("Session.Apply", &arg, &out)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if err.Error() != "Invalid Session TTL '5000000000', must be between [10s=1h0m0s]" {
+		t.Fatalf("incorrect error message: %s", err.Error())
+	}
+
+	// more than SessionTTLMax
+	arg.Session.TTL = "4000s"
+
+	err = client.Call("Session.Apply", &arg, &out)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if err.Error() != "Invalid Session TTL '4000000000000', must be between [10s=1h0m0s]" {
+		t.Fatalf("incorrect error message: %s", err.Error())
+	}
+}

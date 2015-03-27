@@ -363,6 +363,10 @@ type Config struct {
 
 	// UnixSockets is a map of socket configuration data
 	UnixSockets UnixSocketConfig `mapstructure:"unix_sockets"`
+
+	// Minimum Session TTL
+	SessionTTLMin    time.Duration `mapstructure:"-"`
+	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
 }
 
 // UnixSocketPermissions contains information about a unix socket, and
@@ -607,6 +611,14 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	// Merge the single recursor
 	if result.DNSRecursor != "" {
 		result.DNSRecursors = append(result.DNSRecursors, result.DNSRecursor)
+	}
+
+	if raw := result.SessionTTLMinRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("Session TTL Min invalid: %v", err)
+		}
+		result.SessionTTLMin = dur
 	}
 
 	return &result, nil
@@ -970,7 +982,10 @@ func MergeConfig(a, b *Config) *Config {
 	if b.AtlasJoin {
 		result.AtlasJoin = true
 	}
-
+	if b.SessionTTLMinRaw != "" {
+		result.SessionTTLMin = b.SessionTTLMin
+		result.SessionTTLMinRaw = b.SessionTTLMinRaw
+	}
 	if len(b.HTTPAPIResponseHeaders) != 0 {
 		if result.HTTPAPIResponseHeaders == nil {
 			result.HTTPAPIResponseHeaders = make(map[string]string)

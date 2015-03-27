@@ -521,7 +521,11 @@ func getIndex(t *testing.T, resp *httptest.ResponseRecorder) uint64 {
 }
 
 func httpTest(t *testing.T, f func(srv *HTTPServer)) {
-	dir, srv := makeHTTPServer(t)
+	httpTestWithConfig(t, f, nil)
+}
+
+func httpTestWithConfig(t *testing.T, f func(srv *HTTPServer), cb func(c *Config)) {
+	dir, srv := makeHTTPServerWithConfig(t, cb)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()

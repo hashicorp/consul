@@ -181,6 +181,9 @@ type Config struct {
 	// to reduce overhead. It is unlikely a user would ever need to tune this.
 	TombstoneTTLGranularity time.Duration
 
+	// Minimum Session TTL
+	SessionTTLMin time.Duration
+
 	// ServerUp callback can be used to trigger a notification that
 	// a Consul server is now up and known about.
 	ServerUp func()
@@ -241,6 +244,7 @@ func DefaultConfig() *Config {
 		ACLDownPolicy:           "extend-cache",
 		TombstoneTTL:            15 * time.Minute,
 		TombstoneTTLGranularity: 30 * time.Second,
+		SessionTTLMin:           10 * time.Second,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
