@@ -1,3 +1,9 @@
+## 0.5.1 (Unreleased)
+
+FEATURES:
+
+ * Ability to configure minimum session TTL. [GH-821]
+
 ## 0.5.0 (Febuary 19, 2015)
 
 FEATURES:
