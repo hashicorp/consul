@@ -3,12 +3,13 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/hashicorp/consul/consul"
-	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 func TestSessionCreate(t *testing.T) {
@@ -287,7 +288,7 @@ func TestSessionBadTTL(t *testing.T) {
 		body = bytes.NewBuffer(nil)
 		enc = json.NewEncoder(body)
 		raw = map[string]interface{}{
-			"TTL": "5s",
+			"TTL": "900ms",
 		}
 		enc.Encode(raw)
 
