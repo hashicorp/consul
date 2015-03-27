@@ -261,6 +261,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.ACLDownPolicy != "" {
 		base.ACLDownPolicy = a.config.ACLDownPolicy
 	}
+	if a.config.SessionTTLMinRaw != "" {
+		base.SessionTTLMin = a.config.SessionTTLMin
+	}
 
 	// Format the build string
 	revision := a.config.Revision

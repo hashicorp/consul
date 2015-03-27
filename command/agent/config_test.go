@@ -653,6 +653,17 @@ func TestDecodeConfig(t *testing.T) {
 	if !config.AtlasJoin {
 		t.Fatalf("bad: %#v", config)
 	}
+
+	// SessionTTLMin
+	input = `{"session_ttl_min": "5s"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.SessionTTLMin != 5*time.Second {
+		t.Fatalf("bad: %s %#v", config.SessionTTLMin.String(), config)
+	}
 }
 
 func TestDecodeConfig_invalidKeys(t *testing.T) {
@@ -1120,6 +1131,8 @@ func TestMergeConfig(t *testing.T) {
 		AtlasToken:          "123456789",
 		AtlasACLToken:       "abcdefgh",
 		AtlasJoin:           true,
+		SessionTTLMinRaw:    "1000s",
+		SessionTTLMin:       1000 * time.Second,
 	}
 
 	c := MergeConfig(a, b)
