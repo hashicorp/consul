@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/serf/coordinate"
 )
 
 var (
@@ -616,6 +617,21 @@ type ACLPolicy struct {
 	Policy *acl.Policy
 	TTL    time.Duration
 	QueryMeta
+}
+
+// Coordinate stores a mapping from a node to its network coordinate
+type Coordinate struct {
+	Node  string
+	Coord *coordinate.Coordinate
+}
+
+type CoordinateGetRequest struct {
+	Nodes []string
+}
+
+type CoordinateUpdateRequest struct {
+	Node  string
+	Coord *coordinate.Coordinate
 }
 
 // EventFireRequest is used to ask a server to fire

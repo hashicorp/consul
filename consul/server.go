@@ -144,13 +144,14 @@ type Server struct {
 
 // Holds the RPC endpoints
 type endpoints struct {
-	Catalog  *Catalog
-	Health   *Health
-	Status   *Status
-	KVS      *KVS
-	Session  *Session
-	Internal *Internal
-	ACL      *ACL
+	Catalog    *Catalog
+	Health     *Health
+	Status     *Status
+	KVS        *KVS
+	Session    *Session
+	Internal   *Internal
+	ACL        *ACL
+	Coordinate *Coordinate
 }
 
 // NewServer is used to construct a new Consul server from the
@@ -396,6 +397,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.endpoints.Session = &Session{s}
 	s.endpoints.Internal = &Internal{s}
 	s.endpoints.ACL = &ACL{s}
+	s.endpoints.Coordinate = &Coordinate{s}
 
 	// Register the handlers
 	s.rpcServer.Register(s.endpoints.Status)
