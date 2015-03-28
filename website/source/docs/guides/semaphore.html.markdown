@@ -67,7 +67,7 @@ curl -X PUT -d <body> http://localhost:8500/v1/kv/<prefix>/<session>?acquire=<se
  ```
 
 The `<session>` value is the ID returned by the call to
-[`/v1/session/create`]((/docs/agent/http/session.html#session_create).
+[`/v1/session/create`](/docs/agent/http/session.html#session_create).
 
 `body` can be used to associate a meaningful value with the contender. This is opaque
 to Consul but can be useful for human operators.
