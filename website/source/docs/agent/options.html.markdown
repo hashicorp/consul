@@ -41,6 +41,14 @@ The options below are all specified on the command-line.
   If this address is not routable, the node will be in a constant flapping state
   as other nodes will treat the non-routability as a failure.
 
+* <a name="_advertise-wan"></a><a href="#_advertise-wan">`-advertise-wan`</a> - The advertise wan
+  address is used to change the address that we advertise to server nodes joining
+  through the WAN. By default, the [`-advertise`](#_advertise) address is advertised.
+  However, in some cases all members of all datacenters cannot be on the same
+  physical or virtual network, especially on hybrid setups mixing cloud and private datacenters.
+  This flag enables server nodes gossiping through the public network for the WAN while using
+  private VLANs for gossiping to each other and their client agents.
+
 * <a name="_atlas"></a><a href="#_atlas">`-atlas`</a> - This flag
   enables [Atlas](https://atlas.hashicorp.com) integration.
   It is used to provide the Atlas infrastructure name and the SCADA connection.
@@ -311,6 +319,9 @@ definitions support being updated during a reload.
 
 * <a name="advertise_addr"></a><a href="#advertise_addr">`advertise_addr`</a> Equivalent to
   the [`-advertise` command-line flag](#_advertise).
+
+* <a name="advertise_addr_wan"></a><a href="#advertise_addr_wan">`advertise_addr_wan`</a> Equivalent to
+  the [`-advertise-wan` command-line flag](#_advertise-wan).
 
 * <a name="atlas_acl_token"></a><a href="#atlas_acl_token">`atlas_acl_token`</a> When provided,
   any requests made by Atlas will use this ACL token unless explicitly overriden. When not provided
