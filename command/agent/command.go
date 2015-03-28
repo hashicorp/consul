@@ -80,6 +80,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, HTTPS, RPC)")
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "address to advertise instead of bind addr")
+	cmdFlags.StringVar(&cmdConfig.AdvertiseAddrWan, "advertise-wan", "", "address to advertise on wan instead of bind or advertise addr")
 
 	cmdFlags.StringVar(&cmdConfig.AtlasInfrastructure, "atlas", "", "infrastructure name in Atlas")
 	cmdFlags.StringVar(&cmdConfig.AtlasToken, "atlas-token", "", "authentication token for Atlas")

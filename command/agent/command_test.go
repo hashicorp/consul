@@ -106,6 +106,32 @@ func TestRetryJoin(t *testing.T) {
 	})
 }
 
+func TestReadCliConfig(t *testing.T) {
+
+	shutdownCh := make(chan struct{})
+	defer close(shutdownCh)
+
+	tmpDir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	cmd := &Command{
+		args: []string{
+			"-data-dir", tmpDir,
+			"-node", `"a"`,
+			"-advertise-wan", "1.2.3.4",
+		},
+		ShutdownCh: shutdownCh,
+		Ui:         new(cli.MockUi),
+	}
+
+	config := cmd.readConfig()
+	if config.AdvertiseAddrWan != "1.2.3.4" {
+		t.Fatalf("expected -advertise-addr-wan 1.2.3.4 got %s", config.AdvertiseAddrWan)
+	}
+}
+
 func TestRetryJoinFail(t *testing.T) {
 	conf := nextConfig()
 	tmpDir, err := ioutil.TempDir("", "consul")
