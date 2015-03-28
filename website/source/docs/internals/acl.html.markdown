@@ -35,8 +35,8 @@ can be configured with an [`acl_token`](/docs/agent/options.html#acl_token) prop
 to provide a default token, but the token can also be specified by a client on a
 [per-request basis](/docs/agent/http.html). ACLs were added in Consul 0.4, meaning
 prior versions do not provide a token. This is handled by the special "anonymous"
-token. If no token provided, the rules associated with the anonymous token are
-automatically applied. This allows policy to be enforced on legacy clients.
+token. If no token is provided, the rules associated with the anonymous token are
+automatically applied: this allows policy to be enforced on legacy clients.
 
 Enforcement is always done by the server nodes. All servers must be configured
 to provide an [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) which
@@ -56,8 +56,8 @@ that is enforced. It is possible to set a zero TTL, but this has adverse
 performance impacts, as every request requires refreshing the policy via a
 cross-datacenter WAN call.
 
-The Consul ACL center is also built to accommodate for an outage of the
-[`acl_datacenter`](/docs/agent/options.html#acl_datacenter) or networking
+The Consul ACL system is designed with flexible rules to accommodate for an outage
+of the [`acl_datacenter`](/docs/agent/options.html#acl_datacenter) or networking
 issues preventing access to it. In this case, it may be impossible for
 servers in non-authoritative datacenters to resolve tokens. Consul provides
 a number of configurable [`acl_down_policy`](/docs/agent/options.html#acl_down_policy)
@@ -67,9 +67,9 @@ for any previously resolved tokens and to deny any uncached tokens.
 
 ACLs can also act in either a whitelist or blacklist mode depending
 on the configuration of
-[`acl_default_policy`](/docs/agent/options.html#acl_default_policy). If the default
-policy is to deny all actions, then token rules can be set to allow or whitelist
-actions. In the inverse, the allow all default behavior is a blacklist
+[`acl_default_policy`](/docs/agent/options.html#acl_default_policy). If the
+default policy is to deny all actions, then token rules can be set to whitelist
+specific actions. In the inverse, the allow all default behavior is a blacklist
 where rules are used to prohibit actions. By default, Consul will allow all
 actions.
 
@@ -116,14 +116,14 @@ that must be enforced. Consul supports ACLs for both [K/Vs](/intro/getting-start
 and [services](/intro/getting-started/services.html).
 
 Key policies are defined by coupling a prefix with a policy. The rules are enforced
-using a longest-prefix match policy; Consul picks the most specific policy possible. The
-policy is either "read", "write" or "deny". A "write" policy implies "read", and there is no
+using a longest-prefix match policy: Consul picks the most specific policy possible. The
+policy is either "read", "write", or "deny". A "write" policy implies "read", and there is no
 way to specify write-only. If there is no applicable rule, the
 [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is applied.
 
 Service policies are defined by coupling a service name and a policy. The rules are
 enforced using an exact match policy. The default rule, applied to any service that doesn't
-have a matching policy, is provided using the empty string. The policy is either "read",
+have a matching policy, is provided using the empty string. A service policy is either "read",
 "write", or "deny". A "write" policy implies "read", and there is no way to specify write-only.
 If there is no applicable rule, the
 [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
