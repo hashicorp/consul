@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/hashicorp/consul/command"
 	"github.com/hashicorp/consul/command/agent"
@@ -136,12 +137,12 @@ func init() {
 
 // makeShutdownCh returns a channel that can be used for shutdown
 // notifications for commands. This channel will send a message for every
-// interrupt received.
+// interrupt or SIGTERM received.
 func makeShutdownCh() <-chan struct{} {
 	resultCh := make(chan struct{})
 
 	signalCh := make(chan os.Signal, 4)
-	signal.Notify(signalCh, os.Interrupt)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		for {
 			<-signalCh
