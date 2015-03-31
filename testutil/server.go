@@ -49,6 +49,7 @@ type TestAddressConfig struct {
 
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
+	NodeName          string             `json:"node_name"`
 	Bootstrap         bool               `json:"bootstrap,omitempty"`
 	Server            bool               `json:"server,omitempty"`
 	DataDir           string             `json:"data_dir,omitempty"`
@@ -70,6 +71,7 @@ func defaultServerConfig() *TestServerConfig {
 	idx := int(atomic.AddUint64(&offset, 1))
 
 	return &TestServerConfig{
+		NodeName:          fmt.Sprintf("node%d", idx),
 		DisableCheckpoint: true,
 		Bootstrap:         true,
 		Server:            true,
