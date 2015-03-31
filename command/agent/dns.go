@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
@@ -51,17 +52,21 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 	// Construct the DNS components
 	mux := dns.NewServeMux()
 
+	var wg sync.WaitGroup
+
 	// Setup the servers
 	server := &dns.Server{
-		Addr:    bind,
-		Net:     "udp",
-		Handler: mux,
-		UDPSize: 65535,
+		Addr:              bind,
+		Net:               "udp",
+		Handler:           mux,
+		UDPSize:           65535,
+		NotifyStartedFunc: wg.Done,
 	}
 	serverTCP := &dns.Server{
-		Addr:    bind,
-		Net:     "tcp",
-		Handler: mux,
+		Addr:              bind,
+		Net:               "tcp",
+		Handler:           mux,
+		NotifyStartedFunc: wg.Done,
 	}
 
 	// Create the server
@@ -99,6 +104,8 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 		mux.HandleFunc(".", srv.handleRecurse)
 	}
 
+	wg.Add(2)
+
 	// Async start the DNS Servers, handle a potential error
 	errCh := make(chan error, 1)
 	go func() {
@@ -116,28 +123,11 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 		}
 	}()
 
-	// Check the server is running, do a test lookup
-	checkCh := make(chan error, 1)
+	// Wait for NotifyStartedFunc callbacks indicating server has started
+	startCh := make(chan struct{})
 	go func() {
-		// This is jank, but we have no way to edge trigger on
-		// the start of our server, so we just wait and hope it is up.
-		time.Sleep(50 * time.Millisecond)
-
-		m := new(dns.Msg)
-		m.SetQuestion(testQuery, dns.TypeANY)
-
-		c := new(dns.Client)
-		in, _, err := c.Exchange(m, bind)
-		if err != nil {
-			checkCh <- fmt.Errorf("dns test query failed: %v", err)
-			return
-		}
-
-		if len(in.Answer) == 0 {
-			checkCh <- fmt.Errorf("no response to test message")
-			return
-		}
-		close(checkCh)
+		wg.Wait()
+		close(startCh)
 	}()
 
 	// Wait for either the check, listen error, or timeout
@@ -146,8 +136,8 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 		return srv, e
 	case e := <-errChTCP:
 		return srv, e
-	case e := <-checkCh:
-		return srv, e
+	case <-startCh:
+		return srv, nil
 	case <-time.After(time.Second):
 		return srv, fmt.Errorf("timeout setting up DNS server")
 	}
