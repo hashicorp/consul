@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
@@ -14,8 +15,6 @@ import (
 )
 
 const (
-	testQuery           = "_test.consul."
-	consulDomain        = "consul."
 	maxServiceResponses = 3 // For UDP only
 	maxRecurseRecords   = 3
 )
@@ -51,17 +50,21 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 	// Construct the DNS components
 	mux := dns.NewServeMux()
 
+	var wg sync.WaitGroup
+
 	// Setup the servers
 	server := &dns.Server{
-		Addr:    bind,
-		Net:     "udp",
-		Handler: mux,
-		UDPSize: 65535,
+		Addr:              bind,
+		Net:               "udp",
+		Handler:           mux,
+		UDPSize:           65535,
+		NotifyStartedFunc: wg.Done,
 	}
 	serverTCP := &dns.Server{
-		Addr:    bind,
-		Net:     "tcp",
-		Handler: mux,
+		Addr:              bind,
+		Net:               "tcp",
+		Handler:           mux,
+		NotifyStartedFunc: wg.Done,
 	}
 
 	// Create the server
@@ -79,11 +82,8 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 	// Register mux handler, for reverse lookup
 	mux.HandleFunc("arpa.", srv.handlePtr)
 
-	// Register mux handlers, always handle "consul."
+	// Register mux handlers
 	mux.HandleFunc(domain, srv.handleQuery)
-	if domain != consulDomain {
-		mux.HandleFunc(consulDomain, srv.handleTest)
-	}
 	if len(recursors) > 0 {
 		validatedRecursors := make([]string, len(recursors))
 
@@ -98,6 +98,8 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 		srv.recursors = validatedRecursors
 		mux.HandleFunc(".", srv.handleRecurse)
 	}
+
+	wg.Add(2)
 
 	// Async start the DNS Servers, handle a potential error
 	errCh := make(chan error, 1)
@@ -116,28 +118,11 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 		}
 	}()
 
-	// Check the server is running, do a test lookup
-	checkCh := make(chan error, 1)
+	// Wait for NotifyStartedFunc callbacks indicating server has started
+	startCh := make(chan struct{})
 	go func() {
-		// This is jank, but we have no way to edge trigger on
-		// the start of our server, so we just wait and hope it is up.
-		time.Sleep(50 * time.Millisecond)
-
-		m := new(dns.Msg)
-		m.SetQuestion(testQuery, dns.TypeANY)
-
-		c := new(dns.Client)
-		in, _, err := c.Exchange(m, bind)
-		if err != nil {
-			checkCh <- fmt.Errorf("dns test query failed: %v", err)
-			return
-		}
-
-		if len(in.Answer) == 0 {
-			checkCh <- fmt.Errorf("no response to test message")
-			return
-		}
-		close(checkCh)
+		wg.Wait()
+		close(startCh)
 	}()
 
 	// Wait for either the check, listen error, or timeout
@@ -146,8 +131,8 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 		return srv, e
 	case e := <-errChTCP:
 		return srv, e
-	case e := <-checkCh:
-		return srv, e
+	case <-startCh:
+		return srv, nil
 	case <-time.After(time.Second):
 		return srv, fmt.Errorf("timeout setting up DNS server")
 	}
@@ -234,12 +219,6 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 		d.logger.Printf("[DEBUG] dns: request for %v (%v)", q, time.Now().Sub(s))
 	}(time.Now())
 
-	// Check if this is potentially a test query
-	if q.Name == testQuery {
-		d.handleTest(resp, req)
-		return
-	}
-
 	// Switch to TCP if the client is
 	network := "udp"
 	if _, ok := resp.RemoteAddr().(*net.TCPAddr); ok {
@@ -261,34 +240,6 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	d.dispatch(network, req, m)
 
 	// Write out the complete response
-	if err := resp.WriteMsg(m); err != nil {
-		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
-	}
-}
-
-// handleTest is used to handle DNS queries in the ".consul." domain
-func (d *DNSServer) handleTest(resp dns.ResponseWriter, req *dns.Msg) {
-	q := req.Question[0]
-	defer func(s time.Time) {
-		d.logger.Printf("[DEBUG] dns: request for %v (%v)", q, time.Now().Sub(s))
-	}(time.Now())
-
-	if !(q.Qtype == dns.TypeANY || q.Qtype == dns.TypeTXT) {
-		return
-	}
-	if q.Name != testQuery {
-		return
-	}
-
-	// Always respond with TXT "ok"
-	m := new(dns.Msg)
-	m.SetReply(req)
-	m.Authoritative = true
-	m.RecursionAvailable = true
-	header := dns.RR_Header{Name: q.Name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0}
-	txt := &dns.TXT{Hdr: header, Txt: []string{"ok"}}
-	m.Answer = append(m.Answer, txt)
-	d.addSOA(consulDomain, m)
 	if err := resp.WriteMsg(m); err != nil {
 		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
 	}
