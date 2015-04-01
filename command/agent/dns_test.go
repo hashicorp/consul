@@ -1192,7 +1192,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(in.Answer) != 4 {
+	if len(in.Answer) < 2 {
 		t.Fatalf("Bad: %#v", in)
 	}
 
@@ -1206,9 +1206,9 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	}
 
 	// Check we recursively resolve
-	for i := 1; i < 4; i++ {
-		if _, ok := in.Answer[i].(*dns.A); !ok {
-			t.Fatalf("Bad: %#v", in.Answer[i])
+	for _, ans := range in.Answer[1:] {
+		if _, ok := ans.(*dns.A); !ok {
+			t.Fatalf("Bad: %#v", ans)
 		}
 	}
 }
