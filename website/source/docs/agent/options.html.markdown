@@ -556,7 +556,9 @@ definitions support being updated during a reload.
   connections make use of TLS and that the client provides a certificate signed
   by the Certificate Authority from the [`ca_file`](#ca_file). By default, this is false, and
   Consul will not enforce the use of TLS or verify a client's authenticity. This
-  applies to both server RPC and to the HTTPS API.
+  applies to both server RPC and to the HTTPS API. Note: to enable the HTTPS API, you
+  must define an HTTPS port via the [`ports`](#ports) configuration. By default, HTTPS
+  is disabled.
 
 * <a name="verify_outgoing"></a><a href="#verify_outgoing">`verify_outgoing`</a> - If set to
   true, Consul requires that all outgoing connections
