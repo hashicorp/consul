@@ -44,6 +44,11 @@ type StreamClient struct {
 	client *rpc.Client
 }
 
+func (sc *StreamClient) Close() {
+	sc.stream.Close()
+	sc.client.Close()
+}
+
 // Conn is a pooled connection to a Consul server
 type Conn struct {
 	refCount    int32
@@ -106,7 +111,7 @@ func (c *Conn) returnClient(client *StreamClient) {
 	}
 	c.clientLock.Unlock()
 	if !didSave {
-		client.stream.Close()
+		client.Close()
 	}
 }
 
@@ -345,7 +350,7 @@ func (p *ConnPool) RPC(addr net.Addr, version int, method string, args interface
 	// Make the RPC call
 	err = sc.client.Call(method, args, reply)
 	if err != nil {
-		p.clearConn(conn)
+		sc.Close()
 		p.releaseConn(conn)
 		return fmt.Errorf("rpc error: %v", err)
 	}
