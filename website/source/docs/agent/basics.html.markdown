@@ -88,7 +88,7 @@ There are several important messages that [`consul agent`](/docs/commands/agent.
 
 An agent can be stopped in two ways: gracefully or forcefully. To gracefully
 halt an agent, send the process an interrupt signal (usually
-`Ctrl-C` from a terminal). When gracefully exiting, the agent first notifies
+`Ctrl-C` from a terminal or running `kill -INT consul_pid` ). When gracefully exiting, the agent first notifies
 the cluster it intends to leave the cluster. This way, other cluster members
 notify the cluster that the node has _left_.
 
