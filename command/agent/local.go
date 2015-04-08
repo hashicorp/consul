@@ -316,6 +316,13 @@ func (l *localState) setSyncState() error {
 	l.Lock()
 	defer l.Unlock()
 
+	for id, _ := range l.services {
+		// If the local service doesn't exist remotely, then sync it
+		if _, ok := services.Services[id]; !ok {
+			l.serviceStatus[id] = syncStatus{inSync: false}
+		}
+	}
+
 	if services != nil {
 		for id, service := range services.Services {
 			// If we don't have the service locally, deregister it
@@ -328,6 +335,16 @@ func (l *localState) setSyncState() error {
 			// If our definition is different, we need to update it
 			equal := reflect.DeepEqual(existing, service)
 			l.serviceStatus[id] = syncStatus{inSync: equal}
+		}
+	}
+
+	for id, _ := range l.checks {
+		// Sync any check which doesn't exist on the remote side
+		for _, check := range checks {
+			if check.CheckID == id {
+				continue
+			}
+			l.checkStatus[id] = syncStatus{inSync: false}
 		}
 	}
 
