@@ -207,7 +207,7 @@ The options below are all specified on the command-line.
 
 * <a name="_ui_dir"></a><a href="#_ui_dir">`-ui-dir`</a> - This flag provides the directory containing
   the Web UI resources for Consul. This must be provided to enable the Web UI. The directory must be
-  readable.ions) to the agent.
+  readable to the agent.
 
 ## <a name="configuration_files"></a>Configuration Files
 
