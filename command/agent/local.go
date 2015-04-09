@@ -340,10 +340,14 @@ func (l *localState) setSyncState() error {
 
 	for id, _ := range l.checks {
 		// Sync any check which doesn't exist on the remote side
+		found := false
 		for _, check := range checks {
 			if check.CheckID == id {
-				continue
+				found = true
+				break
 			}
+		}
+		if !found {
 			l.checkStatus[id] = syncStatus{inSync: false}
 		}
 	}
