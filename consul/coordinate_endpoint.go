@@ -13,22 +13,17 @@ type Coordinate struct {
 // If the node is in the same datacenter, then the LAN coordinate of the node is
 // returned.  If the node is in a remote DC, then the WAN coordinate of the node
 // is returned.
-func (c *Coordinate) Get(args *structs.CoordinateGetRequest, reply *structs.Coordinate) error {
+func (c *Coordinate) Get(args *structs.NodeSpecificRequest, reply *structs.Coordinate) error {
 	if done, err := c.srv.forward("Coordinate.Get", args, args, reply); done {
 		return err
 	}
 
-	if args.OriginDC == c.srv.config.Datacenter {
-		state := c.srv.fsm.State()
-		_, coord, err := state.CoordinateGet(args.Node)
-		if err != nil {
-			return err
-		}
-		*reply = *coord
-	} else {
-		reply.Node = args.Node
-		reply.Coord = c.srv.serfWAN.GetCoordinate()
+	state := c.srv.fsm.State()
+	_, coord, err := state.CoordinateGet(args.Node)
+	if err != nil {
+		return err
 	}
+	*reply = *coord
 
 	return nil
 }
