@@ -407,6 +407,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.rpcServer.Register(s.endpoints.Session)
 	s.rpcServer.Register(s.endpoints.Internal)
 	s.rpcServer.Register(s.endpoints.ACL)
+	s.rpcServer.Register(s.endpoints.Coordinate)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {

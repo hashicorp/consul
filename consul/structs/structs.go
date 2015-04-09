@@ -32,6 +32,7 @@ const (
 	SessionRequestType
 	ACLRequestType
 	TombstoneRequestType
+	CoordinateRequestType
 )
 
 const (
@@ -625,13 +626,24 @@ type Coordinate struct {
 	Coord *coordinate.Coordinate
 }
 
+// CoordinateGetRequest is used to request the network coordinate of a given node
 type CoordinateGetRequest struct {
-	Nodes []string
+	NodeSpecificRequest
+	OriginDC string
 }
 
+type CoordinateOp string
+
+const (
+	CoordinateSet CoordinateOp = "set"
+)
+
+// CoordinateUpdateRequest is used to update the network coordinate of a given node
 type CoordinateUpdateRequest struct {
-	Node  string
+	NodeSpecificRequest
+	Op    CoordinateOp
 	Coord *coordinate.Coordinate
+	WriteRequest
 }
 
 // EventFireRequest is used to ask a server to fire

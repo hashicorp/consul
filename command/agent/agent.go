@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -554,6 +555,23 @@ func (a *Agent) PauseSync() {
 // ResumeSync is used to unpause anti-entropy after bulk changes are make
 func (a *Agent) ResumeSync() {
 	a.state.Resume()
+}
+
+// StartSendingCoordinate starts a goroutine that periodically sends the local coordinate
+// to a server
+func (a *Agent) StartSendingCoordinate() {
+	go func() {
+		var c coordinate.Coordinate
+		if a.config.Server {
+			c = a.server
+		}
+		req := structs.CoordinateUpdateRequest{
+			Datacenter: a.config.Datacenter,
+			Node:       a.config.NodeName,
+
+			QueryOptions: structs.QueryOptions{Token: a.config.ACLToken},
+		}
+	}()
 }
 
 // persistService saves a service definition to a JSON file in the data dir

@@ -89,6 +89,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		return c.applyACLOperation(buf[1:], log.Index)
 	case structs.TombstoneRequestType:
 		return c.applyTombstoneOperation(buf[1:], log.Index)
+	case structs.CoordinateRequestType:
+		return c.applyCoordinateOperation(buf[1:], log.Index)
 	default:
 		if ignoreUnknown {
 			c.logger.Printf("[WARN] consul.fsm: ignoring unknown message type (%d), upgrade to newer version", msgType)
@@ -243,6 +245,22 @@ func (c *consulFSM) applyTombstoneOperation(buf []byte, index uint64) interface{
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid Tombstone operation '%s'", req.Op)
 		return fmt.Errorf("Invalid Tombstone operation '%s'", req.Op)
+	}
+}
+
+func (c *consulFSM) applyCoordinateOperation(buf []byte, index uint64) interface{} {
+	var req structs.CoordinateUpdateRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "coordinate", string(req.Op)}, time.Now())
+	switch req.Op {
+	case structs.CoordinateSet:
+		coord := &structs.Coordinate{req.Node, req.Coord}
+		return c.state.CoordinateUpdate(index, coord)
+	default:
+		c.logger.Printf("[WARN] consul.fsm: Invalid Coordinate operation '%s'", req.Op)
+		return fmt.Errorf("Invalid Coordinate operation '%s'", req.Op)
 	}
 }
 
