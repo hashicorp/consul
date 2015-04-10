@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul-migrate/migrator"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-syslog"
@@ -595,6 +596,28 @@ func (c *Command) Run(args []string) int {
 	} else {
 		metricsConf.EnableHostname = false
 		metrics.NewGlobal(metricsConf, inm)
+	}
+
+	// If we are starting a consul 0.5.1+ server for the first time,
+	// and we have data from a previous Consul version, attempt to
+	// migrate the data from LMDB to BoltDB using the migrator utility.
+	if config.Server {
+		m, err := migrator.New(config.DataDir)
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
+
+		start := time.Now()
+		migrated, err := m.Migrate()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to migrate raft data: %s", err))
+			return 1
+		}
+		if migrated {
+			duration := time.Now().Sub(start)
+			c.Ui.Output(fmt.Sprintf("Successfully migrated raft data in %s", duration))
+		}
 	}
 
 	// Create the agent
