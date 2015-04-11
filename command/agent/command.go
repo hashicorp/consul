@@ -603,6 +603,12 @@ func (c *Command) Run(args []string) int {
 	// and we have data from a previous Consul version, attempt to
 	// migrate the data from LMDB to BoltDB using the migrator utility.
 	if config.Server {
+		// If the data dir doesn't exist yet (first start), then don't
+		// attempt to migrate.
+		if _, err := os.Stat(config.DataDir); os.IsNotExist(err) {
+			goto AFTER_MIGRATE
+		}
+
 		m, err := migrator.New(config.DataDir)
 		if err != nil {
 			c.Ui.Error(err.Error())
@@ -621,6 +627,7 @@ func (c *Command) Run(args []string) int {
 		}
 	}
 
+AFTER_MIGRATE:
 	// Create the agent
 	if err := c.setupAgent(config, logOutput, logWriter); err != nil {
 		return 1
