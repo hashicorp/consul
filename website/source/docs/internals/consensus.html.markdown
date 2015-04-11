@@ -9,7 +9,7 @@ description: |-
 # Consensus Protocol
 
 Consul uses a [consensus protocol](http://en.wikipedia.org/wiki/Consensus_(computer_science))
-to provide [Consistency](http://en.wikipedia.org/wiki/CAP_theorem) as defined by CAP.
+to provide [Consistency (as defined by CAP)](http://en.wikipedia.org/wiki/CAP_theorem).
 The consensus protocol is based on
 ["Raft: In search of an Understandable Consensus Algorithm"](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf).
 For a visual explanation of Raft, see the [the Secret Lives of Data](http://thesecretlivesofdata.com/raft).
@@ -54,8 +54,9 @@ on a quorum of nodes. Once an entry is committed it can be applied.
 The leader is responsible for ingesting new log entries, replicating to followers,
 and managing when an entry is considered committed.
 
-Raft is a complex protocol and will not be covered here in detail. For the full
-specification, we recommend reading this [paper](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf).
+Raft is a complex protocol and will not be covered here in detail (for those who
+desire a more comprehensive treatment, the full specification is available in this
+[paper](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf)).
 We will, however, attempt to provide a high level description which may be useful
 for building a mental model.
 
@@ -69,11 +70,11 @@ In addition, if stale reads are not acceptable, all queries must also be perform
 the leader.
 
 Once a cluster has a leader, it is able to accept new log entries. A client can
-request that a leader append a new log entry: from Raft's perspective, a log entry
-is an opaque binary blob. The leader then writes the entry to durable storage and
+request that a leader append a new log entry (from Raft's perspective, a log entry
+is an opaque binary blob). The leader then writes the entry to durable storage and
 attempts to replicate to a quorum of followers. Once the log entry is considered
 *committed*, it can be *applied* to a finite state machine. The finite state machine
-is application specific, and in Consul's case, we use
+is application specific; in Consul's case, we use
 [BoltDB](https://github.com/boltdb/bolt) to maintain cluster state.
 
 Obviously, it would be undesirable to allow a replicated log to grow in an unbounded
