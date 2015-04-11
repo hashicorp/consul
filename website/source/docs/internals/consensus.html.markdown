@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Consensus Protocol"
 sidebar_current: "docs-internals-consensus"
 description: |-
-  Consul uses a consensus protocol to provide Consistency as defined by CAP. The consensus protocol is based on Raft: In search of an Understandable Consensus Algorithm. For a visual explanation of Raft, see the the Secret Lives of Data.
+  Consul uses a consensus protocol to provide Consistency as defined by CAP. The consensus protocol is based on Raft: In search of an Understandable Consensus Algorithm. For a visual explanation of Raft, see The Secret Lives of Data.
 ---
 
 # Consensus Protocol
@@ -12,7 +12,7 @@ Consul uses a [consensus protocol](http://en.wikipedia.org/wiki/Consensus_(compu
 to provide [Consistency (as defined by CAP)](http://en.wikipedia.org/wiki/CAP_theorem).
 The consensus protocol is based on
 ["Raft: In search of an Understandable Consensus Algorithm"](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf).
-For a visual explanation of Raft, see the [the Secret Lives of Data](http://thesecretlivesofdata.com/raft).
+For a visual explanation of Raft, see [The Secret Lives of Data](http://thesecretlivesofdata.com/raft).
 
 ~> **Advanced Topic!** This page covers technical details of
 the internals of Consul. You don't need to know these details to effectively
