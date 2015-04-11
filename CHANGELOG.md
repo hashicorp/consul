@@ -4,6 +4,10 @@ FEATURES:
 
  * Ability to configure minimum session TTL. [GH-821]
 
+IMPROVEMENTS:
+
+ * Raft uses BoltDB as the backend store. [GH-857]
+
 ## 0.5.0 (Febuary 19, 2015)
 
 FEATURES:
