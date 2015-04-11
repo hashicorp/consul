@@ -14,6 +14,23 @@ details provided for their upgrades as a result of new features or changed
 behavior. This page is used to document those details seperately from the
 standard upgrade flow.
 
+## Consul 0.5.1
+
+Consul version 0.5.1 uses a different backend store for persisting the Raft
+log. Because of this change, a data migration is necessary to move the log
+entries out of LMDB and into the newer backend, BoltDB.
+
+Consul version 0.5.1 makes this transition seamless and easy. As a user, there
+are no special steps you need to take. When Consul 0.5.1 starts, it checks
+for presence of the legacy LMDB data files, and migrates them automatically
+if any are found.
+
+The automatic upgrade will only exist in Consul 0.5.1. In later versions
+(0.6.0+), the migration code will not be included in the Consul binary. It
+is still possible to upgrade directly from pre-0.5.1 versions by using the
+consul-migrate utility, which is available on the
+[Consul Tools page](/downloads_tools.html).
+
 ## Consul 0.5
 
 Consul version 0.5 adds two features that complicate the upgrade process:
