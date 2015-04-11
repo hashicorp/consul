@@ -23,7 +23,12 @@ entries out of LMDB and into the newer backend, BoltDB.
 Consul version 0.5.1 makes this transition seamless and easy. As a user, there
 are no special steps you need to take. When Consul 0.5.1 starts, it checks
 for presence of the legacy LMDB data files, and migrates them automatically
-if any are found.
+if any are found. You will see a log emitted when Raft data is migrated, like
+this:
+
+```
+==> Successfully migrated raft data in 5.839642ms
+```
 
 The automatic upgrade will only exist in Consul 0.5.1. In later versions
 (0.6.0+), the migration code will not be included in the Consul binary. It
