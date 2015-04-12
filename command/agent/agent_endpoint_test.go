@@ -280,6 +280,85 @@ func TestHTTPAgentRegisterCheck(t *testing.T) {
 	if _, ok := srv.agent.checkTTLs["test"]; !ok {
 		t.Fatalf("missing test check ttl")
 	}
+
+	// By default, checks start in critical state.
+	state := srv.agent.state.Checks()["test"]
+	if state.Status != structs.HealthCritical {
+		t.Fatalf("bad: %v", state)
+	}
+}
+
+func TestHTTPAgentRegisterCheckPassing(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Register node
+	req, err := http.NewRequest("GET", "/v1/agent/check/register", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	args := &CheckDefinition{
+		Name: "test",
+		CheckType: CheckType{
+			TTL: 15 * time.Second,
+		},
+		Status: structs.HealthPassing,
+	}
+	req.Body = encodeReq(args)
+
+	obj, err := srv.AgentRegisterCheck(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if obj != nil {
+		t.Fatalf("bad: %v", obj)
+	}
+
+	// Ensure we have a check mapping
+	if _, ok := srv.agent.state.Checks()["test"]; !ok {
+		t.Fatalf("missing test check")
+	}
+
+	if _, ok := srv.agent.checkTTLs["test"]; !ok {
+		t.Fatalf("missing test check ttl")
+	}
+
+	state := srv.agent.state.Checks()["test"]
+	if state.Status != structs.HealthPassing {
+		t.Fatalf("bad: %v", state)
+	}
+}
+
+func TestHTTPAgentRegisterCheckBadStatus(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Register node
+	req, err := http.NewRequest("GET", "/v1/agent/check/register", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	args := &CheckDefinition{
+		Name: "test",
+		CheckType: CheckType{
+			TTL: 15 * time.Second,
+		},
+		Status: "fluffy",
+	}
+	req.Body = encodeReq(args)
+
+	resp := httptest.NewRecorder()
+	if _, err := srv.AgentRegisterCheck(resp, req); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if resp.Code != 400 {
+		t.Fatalf("accepted bad status")
+	}
+
 }
 
 func TestHTTPAgentDeregisterCheck(t *testing.T) {

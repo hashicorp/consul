@@ -337,8 +337,51 @@ func TestAgent_AddCheck(t *testing.T) {
 	}
 
 	// Ensure we have a check mapping
-	if _, ok := agent.state.Checks()["mem"]; !ok {
+	sChk, ok := agent.state.Checks()["mem"]
+	if !ok {
 		t.Fatalf("missing mem check")
+	}
+
+	// Ensure our check is in the right state
+	if sChk.Status != structs.HealthCritical {
+		t.Fatalf("check not critical")
+	}
+
+	// Ensure a TTL is setup
+	if _, ok := agent.checkMonitors["mem"]; !ok {
+		t.Fatalf("missing mem monitor")
+	}
+}
+
+func TestAgent_AddCheck_StartPassing(t *testing.T) {
+	dir, agent := makeAgent(t, nextConfig())
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "mem",
+		Name:    "memory util",
+		Status:  structs.HealthPassing,
+	}
+	chk := &CheckType{
+		Script:   "exit 0",
+		Interval: 15 * time.Second,
+	}
+	err := agent.AddCheck(health, chk, false)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure we have a check mapping
+	sChk, ok := agent.state.Checks()["mem"]
+	if !ok {
+		t.Fatalf("missing mem check")
+	}
+
+	// Ensure our check is in the right state
+	if sChk.Status != structs.HealthPassing {
+		t.Fatalf("check not passing")
 	}
 
 	// Ensure a TTL is setup

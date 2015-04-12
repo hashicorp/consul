@@ -36,6 +36,13 @@ const (
 	HealthCritical = "critical"
 )
 
+func ValidStatus(s string) bool {
+	return s == HealthUnknown ||
+		s == HealthPassing ||
+		s == HealthWarning ||
+		s == HealthCritical
+}
+
 const (
 	// Client tokens have rules applied
 	ACLTypeClient = "client"

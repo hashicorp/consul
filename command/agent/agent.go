@@ -645,6 +645,9 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 			ServiceID:   service.ID,
 			ServiceName: service.Service,
 		}
+		if chkType.Status != "" {
+			check.Status = chkType.Status
+		}
 		if err := a.AddCheck(check, chkType, persist); err != nil {
 			return err
 		}
