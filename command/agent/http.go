@@ -282,17 +282,26 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 	f := func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPAPIResponseHeaders)
 
+		// Obfuscate any tokens from appearing in the logs
+		req.ParseForm()
+		logURL := req.URL.String()
+		if tokens, ok := req.Form["token"]; ok {
+			for _, token := range tokens {
+				logURL = strings.Replace(logURL, token, "<hidden>", -1)
+			}
+		}
+
 		// Invoke the handler
 		start := time.Now()
 		defer func() {
-			s.logger.Printf("[DEBUG] http: Request %v (%v)", req.URL, time.Now().Sub(start))
+			s.logger.Printf("[DEBUG] http: Request %v (%v)", logURL, time.Now().Sub(start))
 		}()
 		obj, err := handler(resp, req)
 
 		// Check for an error
 	HAS_ERR:
 		if err != nil {
-			s.logger.Printf("[ERR] http: Request %v, error: %v", req.URL, err)
+			s.logger.Printf("[ERR] http: Request %v, error: %v", logURL, err)
 			code := 500
 			errMsg := err.Error()
 			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
