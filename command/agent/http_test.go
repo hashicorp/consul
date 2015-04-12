@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -271,6 +273,30 @@ func TestContentTypeIsJSON(t *testing.T) {
 
 	if contentType != "application/json" {
 		t.Fatalf("Content-Type header was not 'application/json'")
+	}
+}
+
+func TestHTTP_wrap_obfuscateLog(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Attach a custom logger so we can inspect it
+	buf := &bytes.Buffer{}
+	srv.logger = log.New(buf, "", log.LstdFlags)
+
+	resp := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/some/url?token=secret1&token=secret2", nil)
+
+	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+		return nil, nil
+	}
+	srv.wrap(handler)(resp, req)
+
+	// Make sure no tokens from the URL show up in the log
+	if strings.Contains(buf.String(), "secret") {
+		t.Fatalf("bad: %s", buf.String())
 	}
 }
 
