@@ -4,25 +4,37 @@ import (
 	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/coordinate"
 )
 
+// getRandomCoordinate generates a random coordinate.
 func getRandomCoordinate() *coordinate.Coordinate {
 	config := coordinate.DefaultConfig()
-	coord := coordinate.NewCoordinate(config)
-	for i := 0; i < len(coord.Vec); i++ {
-		coord.Vec[i] = rand.Float64()
+	// Randomly apply updates between n clients
+	n := 5
+	clients := make([]*coordinate.Client, n)
+	for i := 0; i < n; i++ {
+		clients[i] = coordinate.NewClient(config)
 	}
-	return coord
+
+	for i := 0; i < n*100; i++ {
+		k1 := rand.Intn(n)
+		k2 := rand.Intn(n)
+		if k1 == k2 {
+			continue
+		}
+		clients[k1].Update(clients[k2].GetCoordinate(), time.Duration(rand.Int63())*time.Microsecond)
+	}
+	return clients[rand.Intn(n)].GetCoordinate()
 }
 
 func coordinatesEqual(a, b *coordinate.Coordinate) bool {
 	config := coordinate.DefaultConfig()
-	client := coordinate.NewClient(config)
-	dist, err := client.DistanceBetween(a, b)
+	dist, err := a.DistanceTo(b, config)
 	if err != nil {
 		panic(err)
 	}

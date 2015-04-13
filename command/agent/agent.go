@@ -557,21 +557,20 @@ func (a *Agent) ResumeSync() {
 	a.state.Resume()
 }
 
-// StartSendingCoordinate starts a goroutine that periodically sends the local coordinate
+// SendCoordinates starts a goroutine that periodically sends the local coordinate
 // to a server
-func (a *Agent) StartSendingCoordinate() {
-	go func() {
-		var c coordinate.Coordinate
-		if a.config.Server {
-			c = a.server
-		}
-		req := structs.CoordinateUpdateRequest{
+func (a *Agent) SendCoordinates() {
+	var c coordinate.Coordinate
+	if a.config.Server {
+		c = a.server
+	}
+	req := structs.CoordinateUpdateRequest{
+		NodeSpecificRequest: NodeSpecificRequest{
 			Datacenter: a.config.Datacenter,
 			Node:       a.config.NodeName,
-
-			QueryOptions: structs.QueryOptions{Token: a.config.ACLToken},
-		}
-	}()
+		},
+		QueryOptions: structs.QueryOptions{Token: a.config.ACLToken},
+	}
 }
 
 // persistService saves a service definition to a JSON file in the data dir
