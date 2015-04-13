@@ -37,8 +37,7 @@ const (
 )
 
 func ValidStatus(s string) bool {
-	return s == HealthUnknown ||
-		s == HealthPassing ||
+	return s == HealthPassing ||
 		s == HealthWarning ||
 		s == HealthCritical
 }
