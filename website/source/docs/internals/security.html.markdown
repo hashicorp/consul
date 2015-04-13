@@ -3,24 +3,26 @@ layout: "docs"
 page_title: "Security Model"
 sidebar_current: "docs-internals-security"
 description: |-
-  Consul relies on both a lightweight gossip mechanism and an RPC system to provide various features. Both of the systems have different security mechanisms that stem from their designs. However, the goals of Consuls security are to provide confidentiality, integrity and authentication.
+  Consul relies on both a lightweight gossip mechanism and an RPC system to provide various features. Both of the systems have different security mechanisms that stem from their designs. However, the security mechanisms of Consul have a common goal: to provide confidentiality, integrity, and authentication.
 ---
 
 # Security Model
 
 Consul relies on both a lightweight gossip mechanism and an RPC system
 to provide various features. Both of the systems have different security
-mechanisms that stem from their designs. However, the overall goal
-of Consul's security model is to provide [confidentiality, integrity and authentication](http://en.wikipedia.org/wiki/Information_security).
+mechanisms that stem from their designs. However, the security mechanisms
+of Consul have a common goal: to provide
+[confidentiality, integrity, and authentication](http://en.wikipedia.org/wiki/Information_security).
 
 The [gossip protocol](/docs/internals/gossip.html) is powered by [Serf](https://www.serfdom.io/),
 which uses a symmetric key, or shared secret, cryptosystem. There are more
 details on the security of [Serf here](https://www.serfdom.io/docs/internals/security.html).
+For details on how to enable Serf's gossip encryption in Consul, see the
+[encryption doc here](/docs/agent/encryption.html).
 
-The RPC system supports using end-to-end TLS, with optional client authentication.
+The RPC system supports using end-to-end TLS with optional client authentication.
 [TLS](http://en.wikipedia.org/wiki/Transport_Layer_Security) is a widely deployed asymmetric
-cryptosystem, and is the foundation of security on the Web, as well as
-some other critical parts of the Internet.
+cryptosystem and is the foundation of security on the Web.
 
 This means Consul communication is protected against eavesdropping, tampering,
 and spoofing. This makes it possible to run Consul over untrusted networks such
