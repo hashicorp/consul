@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"testing"
@@ -38,7 +39,8 @@ func coordinatesEqual(a, b *coordinate.Coordinate) bool {
 	if err != nil {
 		panic(err)
 	}
-	return dist < 0.00001
+	fmt.Printf("dist: %v", dist)
+	return dist < 0.1
 }
 
 func TestCoordinate_Update(t *testing.T) {
@@ -70,7 +72,20 @@ func TestCoordinate_Update(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if coordinatesEqual(d.Coord, arg.Coord) {
+	if !coordinatesEqual(d.Coord, arg.Coord) {
 		t.Fatalf("should be equal\n%v\n%v", d.Coord, arg.Coord)
+	}
+
+	// Get via RPC
+	var out2 *structs.Coordinate
+	arg2 := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       "node1",
+	}
+	if err := client.Call("Coordinate.Get", &arg2, &out2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !coordinatesEqual(out2.Coord, arg.Coord) {
+		t.Fatalf("should be equal\n%v\n%v", out2.Coord, arg.Coord)
 	}
 }
