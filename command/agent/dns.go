@@ -426,13 +426,10 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 
 		// Recurse
 		more := d.resolveCNAME(cnRec.Target)
-		extra := 0
 	MORE_REC:
-		for _, rr := range more {
+		for extra, rr := range more {
 			switch rr.Header().Rrtype {
-			case dns.TypeA:
-				fallthrough
-			case dns.TypeAAAA:
+			case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA:
 				records = append(records, rr)
 				extra++
 				if extra == maxRecurseRecords {
