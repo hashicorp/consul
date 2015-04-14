@@ -287,3 +287,65 @@ func TestLock_Conflict(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 }
+
+func TestLock_ReclaimLock(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	lock, err := c.LockKey("test/lock")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should work
+	leaderCh, err := lock.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if leaderCh == nil {
+		t.Fatalf("not leader")
+	}
+	defer lock.Unlock()
+
+	// Simulate a false positive on a release lock (for example, if consul is unreachable and monitorLock returns)
+	lock.l.Lock()
+	lock.isHeld = false
+	lock.l.Unlock()
+
+	reclaimed := make(chan (<-chan struct{}), 1)
+	go func() {
+		l2Ch, err := lock.Lock(nil)
+		if err != nil {
+			t.Fatalf("not locked: %v", err)
+		}
+		reclaimed <- l2Ch
+	}()
+
+	// Should reclaim the lock
+	var leader2Ch <-chan struct{}
+
+	select {
+	case leader2Ch = <-reclaimed:
+	case <-time.After(time.Second):
+		t.Fatalf("should have locked")
+	}
+
+	// unlock should work
+	err = lock.Unlock()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	//Both locks should see the unlock
+	select {
+	case <-leader2Ch:
+	case <-time.After(time.Second):
+		t.Fatalf("should not be leader")
+	}
+
+	select {
+	case <-leaderCh:
+	case <-time.After(time.Second):
+		t.Fatalf("should not be leader")
+	}
+}

@@ -165,25 +165,28 @@ WAIT:
 	if pair != nil && pair.Flags != LockFlagValue {
 		return nil, ErrLockConflict
 	}
-	if pair != nil && pair.Session != "" {
+	if pair != nil && pair.Session != "" && pair.Session != l.opts.Session {
 		qOpts.WaitIndex = meta.LastIndex
 		goto WAIT
 	}
 
-	// Try to acquire the lock
-	lockEnt := l.lockEntry(l.lockSession)
-	locked, _, err := kv.Acquire(lockEnt, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to acquire lock: %v", err)
-	}
+	if pair == nil || pair.Session == "" {
+		// Try to acquire the lock
+		lockEnt := l.lockEntry(l.lockSession)
 
-	// Handle the case of not getting the lock
-	if !locked {
-		select {
-		case <-time.After(DefaultLockRetryTime):
-			goto WAIT
-		case <-stopCh:
-			return nil, nil
+		locked, _, err := kv.Acquire(lockEnt, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to acquire lock: %v", err)
+		}
+
+		// Handle the case of not getting the lock
+		if !locked {
+			select {
+			case <-time.After(DefaultLockRetryTime):
+				goto WAIT
+			case <-stopCh:
+				return nil, nil
+			}
 		}
 	}
 
@@ -290,6 +293,7 @@ func (l *Lock) createSession() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	l.opts.Session = id
 	return id, nil
 }
 
@@ -306,7 +310,12 @@ func (l *Lock) lockEntry(session string) *KVPair {
 // monitorLock is a long running routine to monitor a lock ownership
 // It closes the stopCh if we lose our leadership.
 func (l *Lock) monitorLock(session string, stopCh chan struct{}) {
-	defer close(stopCh)
+	defer func() {
+		l.l.Lock()
+		l.isHeld = false
+		l.l.Unlock()
+		close(stopCh)
+	}()
 	kv := l.c.KV()
 	opts := &QueryOptions{RequireConsistent: true}
 WAIT:
