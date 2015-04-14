@@ -349,3 +349,66 @@ func TestLock_ReclaimLock(t *testing.T) {
 		t.Fatalf("should not be leader")
 	}
 }
+
+// TestLock_ReclaimUnLocked tests to make sure if we are using the same lock struct to acquire a new lock, that is still possible
+func TestLock_ReclaimUnLocked(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	lock, err := c.LockKey("test/lock")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should work
+	leaderCh, err := lock.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if leaderCh == nil {
+		t.Fatalf("not leader")
+	}
+
+	// unlock should work
+	err = lock.Unlock()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	reclaimed := make(chan (<-chan struct{}), 1)
+	go func() {
+		l2Ch, err := lock.Lock(nil)
+		if err != nil {
+			t.Fatalf("not locked: %v", err)
+		}
+		reclaimed <- l2Ch
+	}()
+
+	// Should reclaim the lock
+	var leader2Ch <-chan struct{}
+
+	select {
+	case leader2Ch = <-reclaimed:
+	case <-time.After(time.Second):
+		t.Fatalf("should have locked")
+	}
+
+	// unlock should work
+	err = lock.Unlock()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	//Both locks should see the unlock
+	select {
+	case <-leader2Ch:
+	case <-time.After(time.Second):
+		t.Fatalf("should not be leader")
+	}
+
+	select {
+	case <-leaderCh:
+	case <-time.After(time.Second):
+		t.Fatalf("should not be leader")
+	}
+}

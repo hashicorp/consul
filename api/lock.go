@@ -123,23 +123,12 @@ func (l *Lock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	}
 
 	// Check if we need to create a session first
-	l.lockSession = l.opts.Session
 	if l.lockSession == "" {
-		if s, err := l.createSession(); err != nil {
+		if def, err := l.createSession(); err != nil {
 			return nil, fmt.Errorf("failed to create session: %v", err)
 		} else {
-			l.sessionRenew = make(chan struct{})
-			l.lockSession = s
-			session := l.c.Session()
-			go session.RenewPeriodic(l.opts.SessionTTL, s, nil, l.sessionRenew)
-
 			// If we fail to acquire the lock, cleanup the session
-			defer func() {
-				if !l.isHeld {
-					close(l.sessionRenew)
-					l.sessionRenew = nil
-				}
-			}()
+			defer def()
 		}
 	}
 
@@ -165,12 +154,20 @@ WAIT:
 	if pair != nil && pair.Flags != LockFlagValue {
 		return nil, ErrLockConflict
 	}
-	if pair != nil && pair.Session != "" && pair.Session != l.opts.Session {
+	if pair != nil && pair.Session != "" && pair.Session != l.lockSession {
 		qOpts.WaitIndex = meta.LastIndex
 		goto WAIT
 	}
 
 	if pair == nil || pair.Session == "" {
+		if l.lockSession != "" {
+			if def, err := l.createSession(); err != nil {
+				return nil, fmt.Errorf("failed to create session: %v", err)
+			} else {
+				// If we fail to acquire the lock, cleanup the session
+				defer def()
+			}
+		}
 		// Try to acquire the lock
 		lockEnt := l.lockEntry(l.lockSession)
 
@@ -283,7 +280,7 @@ func (l *Lock) Destroy() error {
 }
 
 // createSession is used to create a new managed session
-func (l *Lock) createSession() (string, error) {
+func (l *Lock) createSession() (func(), error) {
 	session := l.c.Session()
 	se := &SessionEntry{
 		Name: l.opts.SessionName,
@@ -291,10 +288,19 @@ func (l *Lock) createSession() (string, error) {
 	}
 	id, _, err := session.Create(se, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	l.opts.Session = id
-	return id, nil
+
+	l.sessionRenew = make(chan struct{})
+	l.lockSession = id
+	go session.RenewPeriodic(l.opts.SessionTTL, id, nil, l.sessionRenew)
+
+	return func() {
+		if !l.isHeld {
+			close(l.sessionRenew)
+			l.sessionRenew = nil
+		}
+	}, nil
 }
 
 // lockEntry returns a formatted KVPair for the lock
@@ -311,9 +317,7 @@ func (l *Lock) lockEntry(session string) *KVPair {
 // It closes the stopCh if we lose our leadership.
 func (l *Lock) monitorLock(session string, stopCh chan struct{}) {
 	defer func() {
-		l.l.Lock()
 		l.isHeld = false
-		l.l.Unlock()
 		close(stopCh)
 	}()
 	kv := l.c.KV()
