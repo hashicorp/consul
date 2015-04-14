@@ -16,7 +16,7 @@ import (
 
 const (
 	maxServiceResponses = 3 // For UDP only
-	maxRecurseRecords   = 3
+	maxRecurseRecords   = 5
 )
 
 // DNSServer is used to wrap an Agent and expose various
@@ -426,8 +426,9 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 
 		// Recurse
 		more := d.resolveCNAME(cnRec.Target)
+		extra := 0
 	MORE_REC:
-		for extra, rr := range more {
+		for _, rr := range more {
 			switch rr.Header().Rrtype {
 			case dns.TypeCNAME, dns.TypeA, dns.TypeAAAA:
 				records = append(records, rr)
