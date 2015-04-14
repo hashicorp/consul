@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -283,9 +284,14 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		setHeaders(resp, s.agent.config.HTTPAPIResponseHeaders)
 
 		// Obfuscate any tokens from appearing in the logs
-		req.ParseForm()
+		formVals, err := url.ParseQuery(req.URL.RawQuery)
+		if err != nil {
+			s.logger.Printf("[ERR] http: Failed to decode query: %s", err)
+			resp.WriteHeader(500)
+			return
+		}
 		logURL := req.URL.String()
-		if tokens, ok := req.Form["token"]; ok {
+		if tokens, ok := formVals["token"]; ok {
 			for _, token := range tokens {
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
