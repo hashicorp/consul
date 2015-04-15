@@ -38,6 +38,9 @@ const (
 		"but no reason was provided. This is a default message."
 	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
 		"service, but no reason was provided. This is a default message."
+
+	// An interval used to send network coordinates to servers
+	syncCoordinateStaggerIntv = 15 * time.Second
 )
 
 var (
@@ -557,19 +560,38 @@ func (a *Agent) ResumeSync() {
 	a.state.Resume()
 }
 
-// SendCoordinates starts a goroutine that periodically sends the local coordinate
+// SendCoordinates starts a loop that periodically sends the local coordinate
 // to a server
-func (a *Agent) SendCoordinates() {
-	var c coordinate.Coordinate
-	if a.config.Server {
-		c = a.server
-	}
-	req := structs.CoordinateUpdateRequest{
-		NodeSpecificRequest: NodeSpecificRequest{
-			Datacenter: a.config.Datacenter,
-			Node:       a.config.NodeName,
-		},
-		QueryOptions: structs.QueryOptions{Token: a.config.ACLToken},
+func (a *Agent) SendCoordinates(shutdownCh chan struct{}) {
+	for {
+		intv := aeScale(a.config.SyncCoordinateInterval, len(a.LANMembers()))
+		intv = intv + randomStagger(intv)
+		timer := time.After(intv)
+		select {
+		case <-timer:
+			var c coordinate.Coordinate
+			if a.config.Server {
+				c = a.server.GetLANCoordinate()
+			} else {
+				c = a.client.GetCoordinate()
+			}
+			req := structs.CoordinateUpdateRequest{
+				NodeSpecificRequest: NodeSpecificRequest{
+					Datacenter: a.config.Datacenter,
+					Node:       a.config.NodeName,
+				},
+				Op:           structs.CoordinateSet,
+				Coord:        c,
+				QueryOptions: structs.QueryOptions{Token: a.config.ACLToken},
+			}
+
+			var reply struct{}
+			if err := a.RPC("Coordinate.Update", &arg, &reply); err != nil {
+				a.logger.Printf("[ERR] coordinate update error: %s", err.Error())
+			}
+		case <-shutdownCh:
+			return
+		}
 	}
 }
 

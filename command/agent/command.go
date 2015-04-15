@@ -709,6 +709,9 @@ func (c *Command) Run(args []string) int {
 	errWanCh := make(chan struct{})
 	go c.retryJoinWan(config, errWanCh)
 
+	// Start sending network coordinates to servers
+	go c.agent.SendCoordinates(c.agent.shutdownCh)
+
 	// Wait for exit
 	return c.handleSignals(config, errCh, errWanCh)
 }

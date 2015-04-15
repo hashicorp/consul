@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -375,4 +376,9 @@ func (c *Client) Stats() map[string]map[string]string {
 		"runtime":  runtimeStats(),
 	}
 	return stats
+}
+
+// GetCoordinate returns the network coordinate of the receiver
+func (c *Client) GetCoordinate() *coordinate.Coordinate {
+	return c.serf.GetCoordinate()
 }

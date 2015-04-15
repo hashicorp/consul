@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -692,4 +693,9 @@ func (s *Server) Stats() map[string]map[string]string {
 		"runtime":  runtimeStats(),
 	}
 	return stats
+}
+
+// GetLANCoordinate returns the network coordinate of the receiver
+func (s *Server) GetLANCoordinate() *coordinate.Coordinate {
+	return s.serfLAN.GetCoordinate()
 }

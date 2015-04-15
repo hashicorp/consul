@@ -372,6 +372,10 @@ type Config struct {
 	// representation of our state. Defaults to every 60s.
 	AEInterval time.Duration `mapstructure:"-" json:"-"`
 
+	// SyncCoordinateInterval controls the interval for sending network coordinates
+	// to servers.
+	SyncCoordinateInterval time.Duration `mapstructure:"-" json:"-"`
+
 	// Checks holds the provided check definitions
 	Checks []*CheckDefinition `mapstructure:"-" json:"-"`
 
@@ -466,6 +470,7 @@ func DefaultConfig() *Config {
 		Protocol:            consul.ProtocolVersionMax,
 		CheckUpdateInterval: 5 * time.Minute,
 		AEInterval:          time.Minute,
+		SyncCoordinateInterval: 15 * time.Second,
 		ACLTTL:              30 * time.Second,
 		ACLDownPolicy:       "extend-cache",
 		ACLDefaultPolicy:    "allow",
