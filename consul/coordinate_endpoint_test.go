@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"fmt"
 	"math/rand"
 	"os"
 	"testing"
@@ -39,11 +38,10 @@ func coordinatesEqual(a, b *coordinate.Coordinate) bool {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("dist: %v", dist)
 	return dist < 0.1
 }
 
-func TestCoordinate_Update(t *testing.T) {
+func TestCoordinate(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -81,6 +79,19 @@ func TestCoordinate_Update(t *testing.T) {
 	arg2 := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
 		Node:       "node1",
+	}
+	if err := client.Call("Coordinate.Get", &arg2, &out2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !coordinatesEqual(out2.Coord, arg.Coord) {
+		t.Fatalf("should be equal\n%v\n%v", out2.Coord, arg.Coord)
+	}
+
+	// Now let's override the original coordinate; Coordinate.Get should return
+	// the latest coordinate
+	arg.Coord = getRandomCoordinate()
+	if err := client.Call("Coordinate.Update", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 	if err := client.Call("Coordinate.Get", &arg2, &out2); err != nil {
 		t.Fatalf("err: %v", err)
