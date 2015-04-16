@@ -373,7 +373,8 @@ type Config struct {
 	AEInterval time.Duration `mapstructure:"-" json:"-"`
 
 	// SyncCoordinateInterval controls the interval for sending network coordinates
-	// to servers.
+	// to servers.  Defaults to every 15s, but scales up as the number of nodes increases
+	// in the network, to prevent servers from being overwhelmed.
 	SyncCoordinateInterval time.Duration `mapstructure:"-" json:"-"`
 
 	// Checks holds the provided check definitions
