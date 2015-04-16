@@ -569,24 +569,24 @@ func (a *Agent) SendCoordinates(shutdownCh chan struct{}) {
 		timer := time.After(intv)
 		select {
 		case <-timer:
-			var c coordinate.Coordinate
+			var c *coordinate.Coordinate
 			if a.config.Server {
 				c = a.server.GetLANCoordinate()
 			} else {
 				c = a.client.GetCoordinate()
 			}
 			req := structs.CoordinateUpdateRequest{
-				NodeSpecificRequest: NodeSpecificRequest{
+				NodeSpecificRequest: structs.NodeSpecificRequest{
 					Datacenter: a.config.Datacenter,
 					Node:       a.config.NodeName,
 				},
 				Op:           structs.CoordinateSet,
 				Coord:        c,
-				QueryOptions: structs.QueryOptions{Token: a.config.ACLToken},
+				WriteRequest: structs.WriteRequest{Token: a.config.ACLToken},
 			}
 
 			var reply struct{}
-			if err := a.RPC("Coordinate.Update", &arg, &reply); err != nil {
+			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
 				a.logger.Printf("[ERR] coordinate update error: %s", err.Error())
 			}
 		case <-shutdownCh:
