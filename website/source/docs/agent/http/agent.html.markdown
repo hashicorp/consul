@@ -61,7 +61,7 @@ This endpoint is hit with a GET and returns a JSON body like this:
 
 ### <a name="agent_services"></a> /v1/agent/services
 
-This endpoint is used to return the all the services that are registered with
+This endpoint is used to return all the services that are registered with
 the local agent. These services were either provided through configuration files
 or added dynamically using the HTTP API. It is important to note that the services
 known by the agent may be different from those reported by the Catalog. This is usually
