@@ -51,12 +51,10 @@ func TestCoordinate(t *testing.T) {
 	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	arg := structs.CoordinateUpdateRequest{
-		NodeSpecificRequest: structs.NodeSpecificRequest{
-			Datacenter: "dc1",
-			Node:       "node1",
-		},
-		Op:    structs.CoordinateSet,
-		Coord: getRandomCoordinate(),
+		Datacenter: "dc1",
+		Node:       "node1",
+		Op:         structs.CoordinateSet,
+		Coord:      getRandomCoordinate(),
 	}
 
 	var out struct{}
@@ -75,8 +73,8 @@ func TestCoordinate(t *testing.T) {
 	}
 
 	// Get via RPC
-	var out2 *structs.Coordinate
-	arg2 := structs.NodeSpecificRequest{
+	var out2 *structs.IndexedCoordinate
+	arg2 := structs.CoordinateGetRequest{
 		Datacenter: "dc1",
 		Node:       "node1",
 	}

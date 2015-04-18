@@ -626,18 +626,38 @@ type Coordinate struct {
 	Coord *coordinate.Coordinate
 }
 
+type IndexedCoordinate struct {
+	Coord *coordinate.Coordinate
+	QueryMeta
+}
+
 type CoordinateOp string
 
 const (
 	CoordinateSet CoordinateOp = "set"
 )
 
+type CoordinateGetRequest struct {
+	Datacenter string
+	Node       string
+	QueryOptions
+}
+
+func (c *CoordinateGetRequest) RequestDatacenter() string {
+	return c.Datacenter
+}
+
 // CoordinateUpdateRequest is used to update the network coordinate of a given node
 type CoordinateUpdateRequest struct {
-	NodeSpecificRequest
-	Op    CoordinateOp
-	Coord *coordinate.Coordinate
+	Datacenter string
+	Node       string
+	Op         CoordinateOp
+	Coord      *coordinate.Coordinate
 	WriteRequest
+}
+
+func (c *CoordinateUpdateRequest) RequestDatacenter() string {
+	return c.Datacenter
 }
 
 // EventFireRequest is used to ask a server to fire

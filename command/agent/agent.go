@@ -576,10 +576,8 @@ func (a *Agent) SendCoordinates(shutdownCh chan struct{}) {
 				c = a.client.GetCoordinate()
 			}
 			req := structs.CoordinateUpdateRequest{
-				NodeSpecificRequest: structs.NodeSpecificRequest{
-					Datacenter: a.config.Datacenter,
-					Node:       a.config.NodeName,
-				},
+				Datacenter:   a.config.Datacenter,
+				Node:         a.config.NodeName,
 				Op:           structs.CoordinateSet,
 				Coord:        c,
 				WriteRequest: structs.WriteRequest{Token: a.config.ACLToken},
