@@ -710,7 +710,7 @@ func (c *Command) Run(args []string) int {
 	go c.retryJoinWan(config, errWanCh)
 
 	// Start sending network coordinates to servers
-	go c.agent.SendCoordinates(c.agent.shutdownCh)
+	go c.agent.SendCoordinates()
 
 	// Wait for exit
 	return c.handleSignals(config, errCh, errWanCh)

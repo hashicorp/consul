@@ -562,7 +562,7 @@ func (a *Agent) ResumeSync() {
 
 // SendCoordinates starts a loop that periodically sends the local coordinate
 // to a server
-func (a *Agent) SendCoordinates(shutdownCh chan struct{}) {
+func (a *Agent) SendCoordinates() {
 	for {
 		intv := aeScale(a.config.SyncCoordinateInterval, len(a.LANMembers()))
 		intv = intv + randomStagger(intv)
@@ -587,7 +587,7 @@ func (a *Agent) SendCoordinates(shutdownCh chan struct{}) {
 			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
 				a.logger.Printf("[ERR] coordinate update error: %s", err.Error())
 			}
-		case <-shutdownCh:
+		case <-a.shutdownCh:
 			return
 		}
 	}

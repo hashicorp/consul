@@ -801,3 +801,40 @@ service "api" {
 	policy = "write"
 }
 `
+
+func TestAgentSendCoordinates(t *testing.T) {
+	conf1 := nextConfig()
+	conf1.SyncCoordinateInterval = 10 * time.Millisecond
+	dir1, agent1 := makeAgent(t, conf1)
+	defer os.RemoveAll(dir1)
+	defer agent1.Shutdown()
+
+	conf2 := nextConfig()
+	conf2.SyncCoordinateInterval = 10 * time.Millisecond
+	dir2, agent2 := makeAgent(t, conf2)
+	defer os.RemoveAll(dir2)
+	defer agent2.Shutdown()
+
+	agent2Addr := fmt.Sprintf("127.0.0.1:%d", agent2.config.Ports.SerfLan)
+	if _, err := agent2.JoinLAN([]string{agent2Addr}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	testutil.WaitForLeader(t, agent1.RPC, "dc1")
+
+	go agent1.SendCoordinates()
+	go agent2.SendCoordinates()
+	time.Sleep(100 * time.Millisecond)
+
+	var reply structs.IndexedCoordinate
+	req := structs.CoordinateGetRequest{
+		Datacenter: agent1.config.Datacenter,
+		Node:       agent1.config.NodeName,
+	}
+	if err := agent1.RPC("Coordinate.Get", &req, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if reply.Coord == nil {
+		t.Fatalf("should get a coordinate")
+	}
+}
