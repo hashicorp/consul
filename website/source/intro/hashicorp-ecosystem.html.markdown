@@ -6,7 +6,7 @@ description: |-
   Learn how Consul fits in with the rest of the HashiCorp ecosystem of tools
 ---
 
-# Consul and the HashiCorp Ecosystem
+# Consul & the HashiCorp Ecosystem
 
 HashiCorp is the creator of the open source projects Vagrant, Packer, Terraform, Serf, and Consul, and the commercial product Atlas. Terraform is just one piece of the ecosystem HashiCorp has built to make application delivery a versioned, auditable, repeatable, and collaborative process. To learn more about our beliefs on the qualities of the modern datacenter and responsible application delivery, read [The Atlas Mindset: Version Control for Infrastructure](https://hashicorp.com/blog/atlas-mindset.html/?utm_source=consul&utm_campaign=HashicorpEcosystem).
 
