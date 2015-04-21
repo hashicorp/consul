@@ -261,7 +261,7 @@ is `critical`.
 If a `TTL` type is used, then the TTL update endpoint must be used periodically to update
 the state of the check.
 
-Optionally, a `ServiceID` can be provided to associate the registered check with an existing Service provided by the agent.
+Optionally, a `ServiceID` can be provided to associate the registered check with an existing service provided by the agent.
 
 The return code is 200 on success.
 
