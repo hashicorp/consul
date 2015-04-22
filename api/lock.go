@@ -318,6 +318,8 @@ func (l *Lock) lockEntry(session string) *KVPair {
 // It closes the stopCh if we lose our leadership.
 func (l *Lock) monitorLock(session string, stopCh chan struct{}) {
 	defer func() {
+		l.l.Lock()
+		defer l.l.Unlock()
 		l.isHeld = false
 		close(stopCh)
 	}()
