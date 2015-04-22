@@ -28,7 +28,7 @@ type syncStatus struct {
 	inSync       bool // Is this in sync with the server
 }
 
-// localState is used to represent the node's services,
+// localState is used to represent the node's services, archetypes
 // and checks. We used it to perform anti-entropy with the
 // catalog representation
 type localState struct {
@@ -48,6 +48,10 @@ type localState struct {
 	// Services tracks the local services
 	services      map[string]*structs.NodeService
 	serviceStatus map[string]syncStatus
+
+	// Archetypes tracks the local archetypes
+	archetypes      map[string]*structs.NodeArchetype
+	archetypeStatus map[string]syncStatus
 
 	// Checks tracks the local checks
 	checks      map[string]*structs.HealthCheck
@@ -71,6 +75,8 @@ func (l *localState) Init(config *Config, logger *log.Logger) {
 	l.logger = logger
 	l.services = make(map[string]*structs.NodeService)
 	l.serviceStatus = make(map[string]syncStatus)
+	l.archetypes = make(map[string]*structs.NodeArchetype)
+	l.archetypeStatus = make(map[string]syncStatus)
 	l.checks = make(map[string]*structs.HealthCheck)
 	l.checkStatus = make(map[string]syncStatus)
 	l.deferCheck = make(map[string]*time.Timer)
@@ -158,6 +164,47 @@ func (l *localState) Services() map[string]*structs.NodeService {
 		services[name] = serv
 	}
 	return services
+}
+
+// AddArchetype is used to add an archetype entry to the local state.
+// This entry is persistent and the agent will make a best effort to
+// ensure it is registered
+func (l *localState) AddArchetype(archetype *structs.NodeArchetype) {
+	// Assign the ID if none given
+	if archetype.ID == "" && archetype.Archetype != "" {
+		archetype.ID = archetype.Archetype
+	}
+
+	l.Lock()
+	defer l.Unlock()
+
+	l.archetypes[archetype.ID] = archetype
+	l.archetypeStatus[archetype.ID] = syncStatus{}
+	l.changeMade()
+}
+
+// RemoveArchetype is used to remove an archetype entry from the local state.
+// The agent will make a best effort to ensure it is deregistered
+func (l *localState) RemoveArchetype(archetypeID string) {
+	l.Lock()
+	defer l.Unlock()
+
+	delete(l.archetypes, archetypeID)
+	l.archetypeStatus[archetypeID] = syncStatus{remoteDelete: true}
+	l.changeMade()
+}
+
+// Archetypes returns the locally registered archetypes that the
+// agent is aware of and are being kept in sync with the server
+func (l *localState) Archetypes() map[string]*structs.NodeArchetype {
+	archetypes := make(map[string]*structs.NodeArchetype)
+	l.Lock()
+	defer l.Unlock()
+
+	for name, arch := range l.archetypes {
+		archetypes[name] = arch
+	}
+	return archetypes
 }
 
 // AddCheck is used to add a health check to the local state.
@@ -304,13 +351,18 @@ func (l *localState) setSyncState() error {
 	}
 	var out1 structs.IndexedNodeServices
 	var out2 structs.IndexedHealthChecks
+	var out3 structs.IndexedNodeArchetypes
 	if e := l.iface.RPC("Catalog.NodeServices", &req, &out1); e != nil {
 		return e
 	}
 	if err := l.iface.RPC("Health.NodeChecks", &req, &out2); err != nil {
 		return err
 	}
+	if e := l.iface.RPC("Catalog.NodeArchetypes", &req, &out3); e != nil {
+		return e
+	}
 	checks := out2.HealthChecks
+	archetypes := out3.NodeArchetypes
 
 	l.Lock()
 	defer l.Unlock()
@@ -383,10 +435,26 @@ func (l *localState) setSyncState() error {
 		// Update the status
 		l.checkStatus[id] = syncStatus{inSync: equal}
 	}
+
+	if archetypes != nil {
+		for id, archetype := range archetypes.Archetypes {
+			// If we don't have the archetype locally, deregister it
+			existing, ok := l.archetypes[id]
+			if !ok {
+				l.archetypeStatus[id] = syncStatus{remoteDelete: true}
+				continue
+			}
+
+			// If our definition is different, we need to update it
+			equal := reflect.DeepEqual(existing, archetype)
+			l.archetypeStatus[id] = syncStatus{inSync: equal}
+		}
+	}
+
 	return nil
 }
 
-// syncChanges is used to scan the status our local services and checks
+// syncChanges is used to scan the status our local services, archetypes and checks
 // and update any that are out of sync with the server
 func (l *localState) syncChanges() error {
 	l.Lock()
@@ -404,6 +472,21 @@ func (l *localState) syncChanges() error {
 			}
 		} else {
 			l.logger.Printf("[DEBUG] agent: Service '%s' in sync", id)
+		}
+	}
+
+	// Sync the archetypes
+	for id, status := range l.archetypeStatus {
+		if status.remoteDelete {
+			if err := l.deleteArchetype(id); err != nil {
+				return err
+			}
+		} else if !status.inSync {
+			if err := l.syncArchetype(id); err != nil {
+				return err
+			}
+		} else {
+			l.logger.Printf("[DEBUG] agent: Archetype '%s' in sync", id)
 		}
 	}
 
@@ -447,6 +530,27 @@ func (l *localState) deleteService(id string) error {
 	if err == nil {
 		delete(l.serviceStatus, id)
 		l.logger.Printf("[INFO] agent: Deregistered service '%s'", id)
+	}
+	return err
+}
+
+// deleteArchetype is used to delete an archetype from the server
+func (l *localState) deleteArchetype(id string) error {
+	if id == "" {
+		return fmt.Errorf("ArchetypeID missing")
+	}
+
+	req := structs.DeregisterRequest{
+		Datacenter:   l.config.Datacenter,
+		Node:         l.config.NodeName,
+		ArchetypeID:  id,
+		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
+	}
+	var out struct{}
+	err := l.iface.RPC("Catalog.Deregister", &req, &out)
+	if err == nil {
+		delete(l.archetypeStatus, id)
+		l.logger.Printf("[INFO] agent: Deregistered archetype '%s'", id)
 	}
 	return err
 }
@@ -515,6 +619,29 @@ func (l *localState) syncService(id string) error {
 		for _, check := range checks {
 			l.checkStatus[check.CheckID] = syncStatus{inSync: true}
 		}
+		return nil
+	}
+	return err
+}
+
+// syncArchetype is used to sync an archetype to the server
+func (l *localState) syncArchetype(id string) error {
+	req := structs.RegisterRequest{
+		Datacenter:   l.config.Datacenter,
+		Node:         l.config.NodeName,
+		Address:      l.config.AdvertiseAddr,
+		Archetype:    l.archetypes[id],
+		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
+	}
+
+	var out struct{}
+	err := l.iface.RPC("Catalog.Register", &req, &out)
+	if err == nil {
+		l.archetypeStatus[id] = syncStatus{inSync: true}
+		l.logger.Printf("[INFO] agent: Synced archetype '%s'", id)
+	} else if strings.Contains(err.Error(), permissionDenied) {
+		l.archetypeStatus[id] = syncStatus{inSync: true}
+		l.logger.Printf("[WARN] agent: Archetype '%s' registration blocked by ACLs", id)
 		return nil
 	}
 	return err
