@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/serf/serf"
 	"github.com/marouenj/consul/consul/structs"
 	"github.com/marouenj/consul/testutil"
-	"github.com/hashicorp/serf/serf"
 )
 
 func testClientConfig(t *testing.T, NodeName string) (string, *Config) {

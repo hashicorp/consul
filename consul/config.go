@@ -7,10 +7,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/marouenj/consul/tlsutil"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
+	"github.com/marouenj/consul/tlsutil"
 )
 
 const (

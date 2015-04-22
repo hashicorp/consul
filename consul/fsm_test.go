@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/marouenj/consul/consul/structs"
 	"github.com/hashicorp/raft"
+	"github.com/marouenj/consul/consul/structs"
 )
 
 type MockSink struct {

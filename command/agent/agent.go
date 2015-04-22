@@ -13,9 +13,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/serf/serf"
 	"github.com/marouenj/consul/consul"
 	"github.com/marouenj/consul/consul/structs"
-	"github.com/hashicorp/serf/serf"
 )
 
 const (

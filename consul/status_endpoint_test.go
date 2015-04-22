@@ -1,8 +1,8 @@
 package consul
 
 import (
-	"github.com/marouenj/consul/testutil"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/marouenj/consul/testutil"
 	"net"
 	"net/rpc"
 	"os"

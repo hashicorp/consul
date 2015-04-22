@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/marouenj/consul/consul/structs"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
+	"github.com/marouenj/consul/consul/structs"
 )
 
 const (

@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/marouenj/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
+	"github.com/marouenj/consul/consul/structs"
 )
 
 const (
