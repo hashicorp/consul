@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -17,6 +18,14 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/mitchellh/mapstructure"
+)
+
+var (
+	// scadaHTTPAddr is the address associated with the
+	// HTTPServer. When populating an ACL token for a request,
+	// this is checked to switch between the ACLToken and
+	// AtlasACLToken
+	scadaHTTPAddr = "SCADA"
 )
 
 // HTTPServer is used to wrap an Agent and expose various API's
@@ -32,15 +41,11 @@ type HTTPServer struct {
 
 // NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
-func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPServer, error) {
-	var tlsConfig *tls.Config
-	var list net.Listener
-	var httpAddr net.Addr
-	var err error
+func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput io.Writer) ([]*HTTPServer, error) {
 	var servers []*HTTPServer
 
 	if config.Ports.HTTPS > 0 {
-		httpAddr, err = config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
+		httpAddr, err := config.ClientListener(config.Addresses.HTTPS, config.Ports.HTTPS)
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +59,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			NodeName:       config.NodeName,
 			ServerName:     config.ServerName}
 
-		tlsConfig, err = tlsConf.IncomingTLSConfig()
+		tlsConfig, err := tlsConf.IncomingTLSConfig()
 		if err != nil {
 			return nil, err
 		}
@@ -64,7 +69,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
-		list = tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
+		list := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, tlsConfig)
 
 		// Create the mux
 		mux := http.NewServeMux()
@@ -86,7 +91,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 	}
 
 	if config.Ports.HTTP > 0 {
-		httpAddr, err = config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
+		httpAddr, err := config.ClientListener(config.Addresses.HTTP, config.Ports.HTTP)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to get ClientListener address:port: %v", err)
 		}
@@ -107,6 +112,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			return nil, fmt.Errorf("Failed to get Listen on %s: %v", httpAddr.String(), err)
 		}
 
+		var list net.Listener
 		if isSocket {
 			// Set up ownership/permission bits on the socket file
 			if err := setFilePermissions(socketPath, config.UnixSockets); err != nil {
@@ -136,6 +142,26 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 		servers = append(servers, srv)
 	}
 
+	if scada != nil {
+		// Create the mux
+		mux := http.NewServeMux()
+
+		// Create the server
+		srv := &HTTPServer{
+			agent:    agent,
+			mux:      mux,
+			listener: scada,
+			logger:   log.New(logOutput, "", log.LstdFlags),
+			uiDir:    config.UiDir,
+			addr:     scadaHTTPAddr,
+		}
+		srv.registerHandlers(false) // Never allow debug for SCADA
+
+		// Start the server
+		go http.Serve(scada, mux)
+		servers = append(servers, srv)
+	}
+
 	return servers, nil
 }
 
@@ -159,7 +185,7 @@ func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
 // Shutdown is used to shutdown the HTTP server
 func (s *HTTPServer) Shutdown() {
 	if s != nil {
-		s.logger.Printf("[DEBUG] http: Shutting down http server(%v)", s.addr)
+		s.logger.Printf("[DEBUG] http: Shutting down http server (%v)", s.addr)
 		s.listener.Close()
 	}
 }
@@ -241,7 +267,10 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	if s.uiDir != "" {
 		// Static file serving done from /ui/
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
+	}
 
+	// Enable the special endpoints for UI or SCADA
+	if s.uiDir != "" || s.agent.config.AtlasInfrastructure != "" {
 		// API's are under /internal/ui/ to avoid conflict
 		s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
 		s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
@@ -254,17 +283,31 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 	f := func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPAPIResponseHeaders)
 
+		// Obfuscate any tokens from appearing in the logs
+		formVals, err := url.ParseQuery(req.URL.RawQuery)
+		if err != nil {
+			s.logger.Printf("[ERR] http: Failed to decode query: %s", err)
+			resp.WriteHeader(500)
+			return
+		}
+		logURL := req.URL.String()
+		if tokens, ok := formVals["token"]; ok {
+			for _, token := range tokens {
+				logURL = strings.Replace(logURL, token, "<hidden>", -1)
+			}
+		}
+
 		// Invoke the handler
 		start := time.Now()
 		defer func() {
-			s.logger.Printf("[DEBUG] http: Request %v (%v)", req.URL, time.Now().Sub(start))
+			s.logger.Printf("[DEBUG] http: Request %v (%v)", logURL, time.Now().Sub(start))
 		}()
 		obj, err := handler(resp, req)
 
 		// Check for an error
 	HAS_ERR:
 		if err != nil {
-			s.logger.Printf("[ERR] http: Request %v, error: %v", req.URL, err)
+			s.logger.Printf("[ERR] http: Request %v, error: %v", logURL, err)
 			code := 500
 			errMsg := err.Error()
 			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
@@ -422,9 +465,17 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	if other := req.URL.Query().Get("token"); other != "" {
 		*token = other
-	} else if *token == "" {
-		*token = s.agent.config.ACLToken
+		return
 	}
+
+	// Set the AtlasACLToken if SCADA
+	if s.addr == scadaHTTPAddr && s.agent.config.AtlasACLToken != "" {
+		*token = s.agent.config.AtlasACLToken
+		return
+	}
+
+	// Set the default ACLToken
+	*token = s.agent.config.ACLToken
 }
 
 // parse is a convenience method for endpoints that need

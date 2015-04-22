@@ -1,4 +1,14 @@
-## 0.5.0 (Unreleased)
+## 0.5.1 (Unreleased)
+
+FEATURES:
+
+ * Ability to configure minimum session TTL. [GH-821]
+
+IMPROVEMENTS:
+
+ * Raft uses BoltDB as the backend store. [GH-857]
+
+## 0.5.0 (Febuary 19, 2015)
 
 FEATURES:
 
@@ -41,6 +51,10 @@ BUG FIXES:
  * Fixed issues with graceful leave in single-node bootstrap cluster [GH-621]
  * Fixed issue preventing node reaping [GH-371]
  * Fixed gossip stability at very large scale
+ * Fixed string of rpc error: rpc error: ... no known leader. [GH-611]
+ * Fixed panic in `exec` during cancelation
+ * Fixed health check state reset caused by SIGHUP [GH-693]
+ * Fixed bug in UI when multiple datacenters exist.
 
 IMPROVEMENTS:
 

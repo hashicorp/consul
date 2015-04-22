@@ -318,6 +318,23 @@ type Config struct {
 	// HTTPAPIResponseHeaders are used to add HTTP header response fields to the HTTP API responses.
 	HTTPAPIResponseHeaders map[string]string `mapstructure:"http_api_response_headers"`
 
+	// AtlasInfrastructure is the name of the infrastructure we belong to. e.g. hashicorp/stage
+	AtlasInfrastructure string `mapstructure:"atlas_infrastructure"`
+
+	// AtlasToken is our authentication token from Atlas
+	AtlasToken string `mapstructure:"atlas_token" json:"-"`
+
+	// AtlasACLToken is applied to inbound requests if no other token
+	// is provided. This takes higher precedence than the ACLToken.
+	// Without this, the ACLToken is used. If that is not specified either,
+	// then the 'anonymous' token is used. This can be set to 'anonymous'
+	// to reduce the Atlas privileges to below that of the ACLToken.
+	AtlasACLToken string `mapstructure:"atlas_acl_token" json:"-"`
+
+	// AtlasJoin controls if Atlas will attempt to auto-join the node
+	// to it's cluster. Requires Atlas integration.
+	AtlasJoin bool `mapstructure:"atlas_join"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -346,6 +363,10 @@ type Config struct {
 
 	// UnixSockets is a map of socket configuration data
 	UnixSockets UnixSocketConfig `mapstructure:"unix_sockets"`
+
+	// Minimum Session TTL
+	SessionTTLMin    time.Duration `mapstructure:"-"`
+	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
 }
 
 // UnixSocketPermissions contains information about a unix socket, and
@@ -590,6 +611,14 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	// Merge the single recursor
 	if result.DNSRecursor != "" {
 		result.DNSRecursors = append(result.DNSRecursors, result.DNSRecursor)
+	}
+
+	if raw := result.SessionTTLMinRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("Session TTL Min invalid: %v", err)
+		}
+		result.SessionTTLMin = dur
 	}
 
 	return &result, nil
@@ -941,7 +970,22 @@ func MergeConfig(a, b *Config) *Config {
 	if b.UnixSockets.Perms != "" {
 		result.UnixSockets.Perms = b.UnixSockets.Perms
 	}
-
+	if b.AtlasInfrastructure != "" {
+		result.AtlasInfrastructure = b.AtlasInfrastructure
+	}
+	if b.AtlasToken != "" {
+		result.AtlasToken = b.AtlasToken
+	}
+	if b.AtlasACLToken != "" {
+		result.AtlasACLToken = b.AtlasACLToken
+	}
+	if b.AtlasJoin {
+		result.AtlasJoin = true
+	}
+	if b.SessionTTLMinRaw != "" {
+		result.SessionTTLMin = b.SessionTTLMin
+		result.SessionTTLMinRaw = b.SessionTTLMinRaw
+	}
 	if len(b.HTTPAPIResponseHeaders) != 0 {
 		if result.HTTPAPIResponseHeaders == nil {
 			result.HTTPAPIResponseHeaders = make(map[string]string)

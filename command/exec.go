@@ -373,7 +373,7 @@ func (c *ExecCommand) streamResults(doneCh chan struct{}, ackCh chan rExecAck, h
 
 			case strings.HasSuffix(key, rExecExitSuffix):
 				pair, _, err := kv.Get(full, nil)
-				if err != nil {
+				if err != nil || pair == nil {
 					c.Ui.Error(fmt.Sprintf("Failed to read key '%s': %v", full, err))
 					continue
 				}
@@ -389,7 +389,7 @@ func (c *ExecCommand) streamResults(doneCh chan struct{}, ackCh chan rExecAck, h
 
 			case strings.LastIndex(key, rExecOutputDivider) != -1:
 				pair, _, err := kv.Get(full, nil)
-				if err != nil {
+				if err != nil || pair == nil {
 					c.Ui.Error(fmt.Sprintf("Failed to read key '%s': %v", full, err))
 					continue
 				}

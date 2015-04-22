@@ -20,8 +20,8 @@ updatedeps: deps
 	@go get -d -f -u ./... $(DEPS)
 
 test: deps
-	./scripts/verify_no_uuid.sh
-	go list ./... | xargs -n1 go test
+	@./scripts/verify_no_uuid.sh
+	@./scripts/test.sh
 	@$(MAKE) vet
 
 integ:

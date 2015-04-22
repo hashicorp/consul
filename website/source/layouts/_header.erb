@@ -26,19 +26,18 @@
 
   <body class="page-<%= current_page.data.page_title ? "#{current_page.data.page_title} layout-#{current_page.data.layout} page-sub" : "home layout-#{current_page.data.layout}" %>">
     <div id="header" class="<%= current_page.data.page_title == "home" ? "" : "navbar-static-top" %>">
-    	<div class="container">
+        <div class="container">
     		<div class="navbar-header">
     		  <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-    			<a class="navbar-brand logo" href="/">
-    				<span></span>
-    			</a>
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              <div class="brand">
+    		      <a class="logo" href="/"></a>
+              </div>
     		</div>
-
     		<nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
     			<ul class="buttons nav navbar-nav navbar-right rls-sb">
     				<li class="first download outline-btn"><a href="/downloads.html">Download</a></li>
@@ -52,5 +51,5 @@
     				<li class="li-under"><a href="http://demo.consul.io/">Demo</a></li>
     			</ul>
     		</nav>
-    	</div>
+        </div>
     </div>

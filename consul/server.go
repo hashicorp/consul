@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -18,7 +17,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/raft"
-	"github.com/hashicorp/raft-mdb"
+	"github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -31,13 +30,11 @@ const (
 )
 
 const (
-	serfLANSnapshot          = "serf/local.snapshot"
-	serfWANSnapshot          = "serf/remote.snapshot"
-	raftState                = "raft/"
-	tmpStatePath             = "tmp/"
-	snapshotsRetained        = 2
-	raftDBSize32bit   uint64 = 64 * 1024 * 1024       // Limit Raft log to 64MB
-	raftDBSize64bit   uint64 = 8 * 1024 * 1024 * 1024 // Limit Raft log to 8GB
+	serfLANSnapshot   = "serf/local.snapshot"
+	serfWANSnapshot   = "serf/remote.snapshot"
+	raftState         = "raft/"
+	tmpStatePath      = "tmp/"
+	snapshotsRetained = 2
 
 	// serverRPCCache controls how long we keep an idle connection
 	// open to a server
@@ -96,7 +93,7 @@ type Server struct {
 	left bool
 
 	// localConsuls is used to track the known consuls
-	// in the local data center. Used to do leader forwarding.
+	// in the local datacenter. Used to do leader forwarding.
 	localConsuls map[string]*serverParts
 	localLock    sync.RWMutex
 
@@ -108,7 +105,7 @@ type Server struct {
 	raft          *raft.Raft
 	raftLayer     *RaftLayer
 	raftPeers     raft.PeerStore
-	raftStore     *raftmdb.MDBStore
+	raftStore     *raftboltdb.BoltStore
 	raftTransport *raft.NetworkTransport
 
 	// reconcileCh is used to pass events from the serf handler
@@ -117,7 +114,7 @@ type Server struct {
 	reconcileCh chan serf.Member
 
 	// remoteConsuls is used to track the known consuls in
-	// remote data centers. Used to do DC forwarding.
+	// remote datacenters. Used to do DC forwarding.
 	remoteConsuls map[string][]*serverParts
 	remoteLock    sync.RWMutex
 
@@ -311,9 +308,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]
 	conf.RejoinAfterLeave = s.config.RejoinAfterLeave
 	if wan {
-		conf.Merge = &wanMergeDelegate{logger: s.logger}
+		conf.Merge = &wanMergeDelegate{}
 	} else {
-		conf.Merge = &lanMergeDelegate{logger: s.logger, dc: s.config.Datacenter}
+		conf.Merge = &lanMergeDelegate{dc: s.config.Datacenter}
 	}
 
 	// Until Consul supports this fully, we disable automatic resolution.
@@ -349,22 +346,14 @@ func (s *Server) setupRaft() error {
 		return err
 	}
 
-	// Set the maximum raft size based on 32/64bit. Since we are
-	// doing an mmap underneath, we need to limit our use of virtual
-	// address space on 32bit, but don't have to care on 64bit.
-	dbSize := raftDBSize32bit
-	if runtime.GOARCH == "amd64" {
-		dbSize = raftDBSize64bit
-	}
-
 	// Create the base raft path
 	path := filepath.Join(s.config.DataDir, raftState)
 	if err := ensurePath(path, true); err != nil {
 		return err
 	}
 
-	// Create the MDB store for logs and stable storage
-	store, err := raftmdb.NewMDBStoreWithSize(path, dbSize)
+	// Create the backend raft store for logs and stable storage
+	store, err := raftboltdb.NewBoltStore(filepath.Join(path, "raft.db"))
 	if err != nil {
 		return err
 	}

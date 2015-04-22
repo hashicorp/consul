@@ -15,10 +15,12 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul-migrate/migrator"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
+	scada "github.com/hashicorp/scada-client"
 	"github.com/mitchellh/cli"
 )
 
@@ -45,6 +47,7 @@ type Command struct {
 	rpcServer         *AgentRPC
 	httpServers       []*HTTPServer
 	dnsServer         *DNSServer
+	scadaProvider     *scada.Provider
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -54,11 +57,13 @@ func (c *Command) readConfig() *Config {
 	var configFiles []string
 	var retryInterval string
 	var retryIntervalWan string
+	var dnsRecursors []string
 	cmdFlags := flag.NewFlagSet("agent", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
 	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-file", "json file to read config from")
 	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-dir", "directory of json files to read")
+	cmdFlags.Var((*AppendSliceValue)(&dnsRecursors), "recursor", "address of an upstream DNS server")
 
 	cmdFlags.StringVar(&cmdConfig.LogLevel, "log-level", "", "log level")
 	cmdFlags.StringVar(&cmdConfig.NodeName, "node", "", "node name")
@@ -71,10 +76,15 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.BoolVar(&cmdConfig.Server, "server", false, "run agent as server")
 	cmdFlags.BoolVar(&cmdConfig.Bootstrap, "bootstrap", false, "enable server bootstrap mode")
 	cmdFlags.IntVar(&cmdConfig.BootstrapExpect, "bootstrap-expect", 0, "enable automatic bootstrap via expect mode")
+	cmdFlags.StringVar(&cmdConfig.Domain, "domain", "", "domain to use for DNS interface")
 
 	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, HTTPS, RPC)")
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "address to advertise instead of bind addr")
+
+	cmdFlags.StringVar(&cmdConfig.AtlasInfrastructure, "atlas", "", "infrastructure name in Atlas")
+	cmdFlags.StringVar(&cmdConfig.AtlasToken, "atlas-token", "", "authentication token for Atlas")
+	cmdFlags.BoolVar(&cmdConfig.AtlasJoin, "atlas-join", false, "auto-join with Atlas")
 
 	cmdFlags.IntVar(&cmdConfig.Protocol, "protocol", -1, "protocol version")
 
@@ -132,6 +142,8 @@ func (c *Command) readConfig() *Config {
 		config = MergeConfig(config, fileConfig)
 	}
 
+	cmdConfig.DNSRecursors = append(cmdConfig.DNSRecursors, dnsRecursors...)
+
 	config = MergeConfig(config, &cmdConfig)
 
 	if config.NodeName == "" {
@@ -156,17 +168,17 @@ func (c *Command) readConfig() *Config {
 		}
 		keyfileLAN := filepath.Join(config.DataDir, serfLANKeyring)
 		if _, err := os.Stat(keyfileLAN); err == nil {
-			c.Ui.Error("WARNING: LAN keyring exists but -encrypt given, ignoring")
+			c.Ui.Error("WARNING: LAN keyring exists but -encrypt given, using keyring")
 		}
 		if config.Server {
 			keyfileWAN := filepath.Join(config.DataDir, serfWANKeyring)
 			if _, err := os.Stat(keyfileWAN); err == nil {
-				c.Ui.Error("WARNING: WAN keyring exists but -encrypt given, ignoring")
+				c.Ui.Error("WARNING: WAN keyring exists but -encrypt given, using keyring")
 			}
 		}
 	}
 
-	// Verify data center is valid
+	// Verify datacenter is valid
 	if !validDatacenter.MatchString(config.Datacenter) {
 		c.Ui.Error("Datacenter must be alpha-numeric with underscores and hypens only")
 		return nil
@@ -327,8 +339,21 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	c.Ui.Output("Starting Consul agent RPC...")
 	c.rpcServer = NewAgentRPC(agent, rpcListener, logOutput, logWriter)
 
-	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 {
-		servers, err := NewHTTPServers(agent, config, logOutput)
+	// Enable the SCADA integration
+	var scadaList net.Listener
+	if config.AtlasInfrastructure != "" {
+		provider, list, err := NewProvider(config, logOutput)
+		if err != nil {
+			agent.Shutdown()
+			c.Ui.Error(fmt.Sprintf("Error starting SCADA connection: %s", err))
+			return err
+		}
+		c.scadaProvider = provider
+		scadaList = list
+	}
+
+	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 || scadaList != nil {
+		servers, err := NewHTTPServers(agent, config, scadaList, logOutput)
 		if err != nil {
 			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Error starting http servers: %s", err))
@@ -378,7 +403,6 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 			c.checkpointResults(checkpoint.Check(updateParams))
 		}()
 	}
-
 	return nil
 }
 
@@ -575,6 +599,35 @@ func (c *Command) Run(args []string) int {
 		metrics.NewGlobal(metricsConf, inm)
 	}
 
+	// If we are starting a consul 0.5.1+ server for the first time,
+	// and we have data from a previous Consul version, attempt to
+	// migrate the data from LMDB to BoltDB using the migrator utility.
+	if config.Server {
+		// If the data dir doesn't exist yet (first start), then don't
+		// attempt to migrate.
+		if _, err := os.Stat(config.DataDir); os.IsNotExist(err) {
+			goto AFTER_MIGRATE
+		}
+
+		m, err := migrator.New(config.DataDir)
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
+
+		start := time.Now()
+		migrated, err := m.Migrate()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to migrate raft data: %s", err))
+			return 1
+		}
+		if migrated {
+			duration := time.Now().Sub(start)
+			c.Ui.Output(fmt.Sprintf("Successfully migrated raft data in %s", duration))
+		}
+	}
+
+AFTER_MIGRATE:
 	// Create the agent
 	if err := c.setupAgent(config, logOutput, logWriter); err != nil {
 		return 1
@@ -586,9 +639,11 @@ func (c *Command) Run(args []string) int {
 	if c.dnsServer != nil {
 		defer c.dnsServer.Shutdown()
 	}
-
 	for _, server := range c.httpServers {
 		defer server.Shutdown()
+	}
+	if c.scadaProvider != nil {
+		defer c.scadaProvider.Shutdown()
 	}
 
 	// Join startup nodes if specified
@@ -628,6 +683,12 @@ func (c *Command) Run(args []string) int {
 		gossipEncrypted = c.agent.client.Encrypted()
 	}
 
+	// Determine the Atlas cluster
+	atlas := "<disabled>"
+	if config.AtlasInfrastructure != "" {
+		atlas = fmt.Sprintf("(Infrastructure: '%s' Join: %v)", config.AtlasInfrastructure, config.AtlasJoin)
+	}
+
 	// Let the agent know we've finished registration
 	c.agent.StartSync()
 
@@ -641,6 +702,7 @@ func (c *Command) Run(args []string) int {
 		config.Ports.SerfLan, config.Ports.SerfWan))
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
 		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
+	c.Ui.Info(fmt.Sprintf("         Atlas: %s", atlas))
 
 	// Enable log streaming
 	c.Ui.Info("")
@@ -751,6 +813,10 @@ func (c *Command) handleReload(config *Config) *Config {
 	c.agent.PauseSync()
 	defer c.agent.ResumeSync()
 
+	// Snapshot the current state, and restore it afterwards
+	snap := c.agent.snapshotCheckState()
+	defer c.agent.restoreCheckState(snap)
+
 	// First unload all checks and services. This lets us begin the reload
 	// with a clean slate.
 	if err := c.agent.unloadServices(); err != nil {
@@ -811,6 +877,9 @@ Usage: consul agent [options]
 Options:
 
   -advertise=addr          Sets the advertise address to use
+  -atlas=org/name          Sets the Atlas infrastructure name, enables SCADA.
+  -atlas-join              Enables auto-joining the Atlas cluster
+  -atlas-token=token       Provides the Atlas API token
   -bootstrap               Sets server to bootstrap mode
   -bind=0.0.0.0            Sets the bind address for cluster communication
   -bootstrap-expect=0      Sets server to expect bootstrap mode.
@@ -823,6 +892,8 @@ Options:
                            as configuration in this directory in alphabetical
                            order.
   -data-dir=path           Path to a data directory to store agent state
+  -recursor=1.2.3.4        Address of an upstream DNS server.
+                           Can be specified multiple times.
   -dc=east-aws             Datacenter of the agent
   -encrypt=key             Provides the gossip encryption key
   -join=1.2.3.4            Address of an agent to join at start time.

@@ -391,7 +391,6 @@ const (
 )
 
 const (
-	SessionTTLMin        = 10 * time.Second
 	SessionTTLMax        = 3600 * time.Second
 	SessionTTLMultiplier = 2
 )

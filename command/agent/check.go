@@ -286,15 +286,24 @@ func (c *CheckHTTP) Start() {
 	defer c.stopLock.Unlock()
 
 	if c.httpClient == nil {
+		// Create the transport. We disable HTTP Keep-Alive's to prevent
+		// failing checks due to the keepalive interval.
+		trans := *http.DefaultTransport.(*http.Transport)
+		trans.DisableKeepAlives = true
+
+		// Create the HTTP client.
+		c.httpClient = &http.Client{
+			Timeout:   10 * time.Second,
+			Transport: &trans,
+		}
+
 		// For long (>10s) interval checks the http timeout is 10s, otherwise the
 		// timeout is the interval. This means that a check *should* return
 		// before the next check begins.
 		if c.Timeout > 0 && c.Timeout < c.Interval {
-			c.httpClient = &http.Client{Timeout: c.Timeout}
+			c.httpClient.Timeout = c.Timeout
 		} else if c.Interval < 10*time.Second {
-			c.httpClient = &http.Client{Timeout: c.Interval}
-		} else {
-			c.httpClient = &http.Client{Timeout: 10 * time.Second}
+			c.httpClient.Timeout = c.Interval
 		}
 	}
 
@@ -325,7 +334,6 @@ func (c *CheckHTTP) run() {
 			c.check()
 			next = time.After(c.Interval)
 		case <-c.stopCh:
-			http.DefaultTransport.(*http.Transport).CloseIdleConnections()
 			return
 		}
 	}

@@ -1,10 +1,11 @@
 package agent
 
 import (
-	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"sort"
 	"strings"
+
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 // ServiceSummary is used to summarize a service
@@ -19,99 +20,88 @@ type ServiceSummary struct {
 // UINodes is used to list the nodes in a given datacenter. We return a
 // NodeDump which provides overview information for all the nodes
 func (s *HTTPServer) UINodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Get the datacenter
-	var dc string
-	s.parseDC(req, &dc)
-
-	// Try to ge ta node dump
-	var dump structs.NodeDump
-	if err := s.getNodeDump(resp, dc, "", &dump); err != nil {
-		return nil, err
+	// Parse arguments
+	args := structs.DCSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
 	}
 
-	return dump, nil
+	// Make the RPC request
+	var out structs.IndexedNodeDump
+	defer setMeta(resp, &out.QueryMeta)
+RPC:
+	if err := s.agent.RPC("Internal.NodeDump", &args, &out); err != nil {
+		// Retry the request allowing stale data if no leader
+		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
+			args.AllowStale = true
+			goto RPC
+		}
+		return nil, err
+	}
+	return out.Dump, nil
 }
 
 // UINodeInfo is used to get info on a single node in a given datacenter. We return a
 // NodeInfo which provides overview information for the node
 func (s *HTTPServer) UINodeInfo(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Get the datacenter
-	var dc string
-	s.parseDC(req, &dc)
+	// Parse arguments
+	args := structs.NodeSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
 
 	// Verify we have some DC, or use the default
-	node := strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/node/")
-	if node == "" {
+	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/internal/ui/node/")
+	if args.Node == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte("Missing node name"))
 		return nil, nil
 	}
 
-	// Try to get a node dump
-	var dump structs.NodeDump
-	if err := s.getNodeDump(resp, dc, node, &dump); err != nil {
+	// Make the RPC request
+	var out structs.IndexedNodeDump
+	defer setMeta(resp, &out.QueryMeta)
+RPC:
+	if err := s.agent.RPC("Internal.NodeInfo", &args, &out); err != nil {
+		// Retry the request allowing stale data if no leader
+		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
+			args.AllowStale = true
+			goto RPC
+		}
 		return nil, err
 	}
 
 	// Return only the first entry
-	if len(dump) > 0 {
-		return dump[0], nil
+	if len(out.Dump) > 0 {
+		return out.Dump[0], nil
 	}
 	return nil, nil
-}
-
-// getNodeDump is used to get a dump of all node data. We make a best effort by
-// reading stale data in the case of an availability outage.
-func (s *HTTPServer) getNodeDump(resp http.ResponseWriter, dc, node string, dump *structs.NodeDump) error {
-	var args interface{}
-	var method string
-	var allowStale *bool
-
-	if node == "" {
-		raw := structs.DCSpecificRequest{Datacenter: dc}
-		method = "Internal.NodeDump"
-		allowStale = &raw.AllowStale
-		args = &raw
-	} else {
-		raw := &structs.NodeSpecificRequest{Datacenter: dc, Node: node}
-		method = "Internal.NodeInfo"
-		allowStale = &raw.AllowStale
-		args = &raw
-	}
-	var out structs.IndexedNodeDump
-	defer setMeta(resp, &out.QueryMeta)
-
-START:
-	if err := s.agent.RPC(method, args, &out); err != nil {
-		// Retry the request allowing stale data if no leader. The UI should continue
-		// to function even during an outage
-		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !*allowStale {
-			*allowStale = true
-			goto START
-		}
-		return err
-	}
-
-	// Set the result
-	*dump = out.Dump
-	return nil
 }
 
 // UIServices is used to list the services in a given datacenter. We return a
 // ServiceSummary which provides overview information for the service
 func (s *HTTPServer) UIServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	// Get the datacenter
-	var dc string
-	s.parseDC(req, &dc)
+	// Parse arguments
+	args := structs.DCSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
 
-	// Get the full node dump...
-	var dump structs.NodeDump
-	if err := s.getNodeDump(resp, dc, "", &dump); err != nil {
+	// Make the RPC request
+	var out structs.IndexedNodeDump
+	defer setMeta(resp, &out.QueryMeta)
+RPC:
+	if err := s.agent.RPC("Internal.NodeDump", &args, &out); err != nil {
+		// Retry the request allowing stale data if no leader
+		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
+			args.AllowStale = true
+			goto RPC
+		}
 		return nil, err
 	}
 
 	// Generate the summary
-	return summarizeServices(dump), nil
+	return summarizeServices(out.Dump), nil
 }
 
 func summarizeServices(dump structs.NodeDump) []*ServiceSummary {

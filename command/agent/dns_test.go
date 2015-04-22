@@ -39,34 +39,6 @@ func TestRecursorAddr(t *testing.T) {
 	}
 }
 
-func TestDNS_IsAlive(t *testing.T) {
-	dir, srv := makeDNSServer(t)
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	m := new(dns.Msg)
-	m.SetQuestion("_test.consul.", dns.TypeANY)
-
-	c := new(dns.Client)
-	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
-	in, _, err := c.Exchange(m, addr.String())
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if len(in.Answer) != 1 {
-		t.Fatalf("Bad: %#v", in)
-	}
-
-	txt, ok := in.Answer[0].(*dns.TXT)
-	if !ok {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-	if txt.Txt[0] != "ok" {
-		t.Fatalf("Bad: %#v", in.Answer[0])
-	}
-}
-
 func TestDNS_NodeLookup(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
@@ -1220,7 +1192,7 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(in.Answer) != 4 {
+	if len(in.Answer) < 2 {
 		t.Fatalf("Bad: %#v", in)
 	}
 
@@ -1234,9 +1206,9 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	}
 
 	// Check we recursively resolve
-	for i := 1; i < 4; i++ {
-		if _, ok := in.Answer[i].(*dns.A); !ok {
-			t.Fatalf("Bad: %#v", in.Answer[i])
+	for _, ans := range in.Answer[1:] {
+		if _, ok := ans.(*dns.A); !ok {
+			t.Fatalf("Bad: %#v", ans)
 		}
 	}
 }

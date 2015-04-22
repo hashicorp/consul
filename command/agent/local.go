@@ -310,24 +310,47 @@ func (l *localState) setSyncState() error {
 	if err := l.iface.RPC("Health.NodeChecks", &req, &out2); err != nil {
 		return err
 	}
-	services := out1.NodeServices
 	checks := out2.HealthChecks
 
 	l.Lock()
 	defer l.Unlock()
 
-	if services != nil {
-		for id, service := range services.Services {
-			// If we don't have the service locally, deregister it
-			existing, ok := l.services[id]
-			if !ok {
-				l.serviceStatus[id] = syncStatus{remoteDelete: true}
-				continue
-			}
+	services := make(map[string]*structs.NodeService)
+	if out1.NodeServices != nil {
+		services = out1.NodeServices.Services
+	}
 
-			// If our definition is different, we need to update it
-			equal := reflect.DeepEqual(existing, service)
-			l.serviceStatus[id] = syncStatus{inSync: equal}
+	for id, _ := range l.services {
+		// If the local service doesn't exist remotely, then sync it
+		if _, ok := services[id]; !ok {
+			l.serviceStatus[id] = syncStatus{inSync: false}
+		}
+	}
+
+	for id, service := range services {
+		// If we don't have the service locally, deregister it
+		existing, ok := l.services[id]
+		if !ok {
+			l.serviceStatus[id] = syncStatus{remoteDelete: true}
+			continue
+		}
+
+		// If our definition is different, we need to update it
+		equal := reflect.DeepEqual(existing, service)
+		l.serviceStatus[id] = syncStatus{inSync: equal}
+	}
+
+	for id, _ := range l.checks {
+		// Sync any check which doesn't exist on the remote side
+		found := false
+		for _, check := range checks {
+			if check.CheckID == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			l.checkStatus[id] = syncStatus{inSync: false}
 		}
 	}
 

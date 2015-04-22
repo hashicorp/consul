@@ -19,7 +19,8 @@ starting the Consul agent. The key can be set via the `encrypt` parameter: the
 value of this setting is a configuration file containing the encryption key.
 
 The key must be 16-bytes, Base64 encoded.  As a convenience, Consul provides the
-`consul keygen` commmand to generate a cryptographically suitable key:
+[`consul keygen`](/docs/commands/keygen.html) commmand to generate a
+cryptographically suitable key:
 
 ```text
 $ consul keygen
@@ -27,7 +28,7 @@ cg8StVXbQJ0gPvMd9o7yrg==
 ```
 
 With that key, you can enable encryption on the agent. If encryption is enabled,
-the output of `consul agent` will include "Encrypted: true":
+the output of [`consul agent`](/docs/commands/agent.html) will include "Encrypted: true":
 
 ```text
 $ cat encrypt.json
@@ -63,17 +64,22 @@ using OpenSSL. Note: client certificates must have
 for client and server authentication.
 
 TLS can be used to verify the authenticity of the servers or verify the authenticity of clients.
-These modes are controlled by the `verify_outgoing` and `verify_incoming` [options](/docs/agent/options.html),
-respectively.
+These modes are controlled by the [`verify_outgoing`](/docs/agent/options.html#verify_outgoing)
+and [`verify_incoming`](/docs/agent/options.html#verify_incoming) options, respectively.
 
-If `verify_outgoing` is set, agents verify the authenticity of Consul for outgoing
-connections. Server nodes must present a certificate signed by the certificate authority
-present on all agents, set via the agent's `ca_file` option. All server nodes must have an
-appropriate key pair set using `cert_file` and `key_file`.
+If [`verify_outgoing`](/docs/agent/options.html#verify_outgoing) is set, agents verify the
+authenticity of Consul for outgoing connections. Server nodes must present a certificate signed
+by the certificate authority present on all agents, set via the agent's
+[`ca_file`](/docs/agent/options.html#ca_file) option. All server nodes must have an
+appropriate key pair set using [`cert_file`](/docs/agent/options.html#cert_file) and
+[`key_file`](/docs/agent/options.html#key_file).
 
-If `verify_incoming` is set, the servers verify the authenticity of all incoming
-connections. All clients must have a valid key pair set using `cert_file` and `key_file`. Servers will
-also disallow any non-TLS connections. To force clients to use TLS, `verify_outgoing` must also be set.
+If [`verify_incoming`](/docs/agent/options.html#verify_incoming) is set, the servers verify the
+authenticity of all incoming connections. All clients must have a valid key pair set using
+[`cert_file`](/docs/agent/options.html#cert_file) and
+[`key_file`](/docs/agent/options.html#key_file). Servers will
+also disallow any non-TLS connections. To force clients to use TLS,
+[`verify_outgoing`](/docs/agent/options.html#verify_outgoing) must also be set.
 
 TLS is used to secure the RPC calls between agents, but gossip between nodes is done over UDP
 and is secured using a symmetric key. See above for enabling gossip encryption.

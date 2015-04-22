@@ -37,18 +37,16 @@ body.page-sub{
         }
     }
 
-    .navbar-brand {
-        &.logo{
-            padding: 13px 15px;
-            line-height: 0;
+    .brand {
+        padding: 13px 15px;
+        line-height: 0;
 
-            span{
-                display: inline-block;
-                width: 179px;
-                height: 59px;
-                background: image-url('consul-header-logo.png') 0 0 no-repeat;
-                @include img-retina("consul-header-logo.png", "consul-header-logo@2x.png", 179px, 59px);
-            }
+        .logo{
+            display: block;
+            width: 179px;
+            height: 59px;
+            background: image-url('consul-header-logo.png') 0 0 no-repeat;
+            @include img-retina("consul-header-logo.png", "consul-header-logo@2x.png", 179px, 59px);
         }
     }
 
@@ -197,14 +195,12 @@ body.page-sub{
 
 @media (max-width: 992px) {
     #header {
-        .navbar-brand {
-            &.logo{
-                span{
-                    width: 120px;
-                    height: 39px;
-                    margin-top: 12px;
-                    background-size: 120px 39px;
-                }
+        .brand {
+            .logo{
+                width: 120px;
+                height: 39px;
+                margin-top: 12px;
+                background-size: 120px 39px;
             }
         }
 
@@ -280,11 +276,9 @@ body.page-sub{
             float: none !important;
         }
 
-        .navbar-brand {
-            &.logo{
-                span{
-                    margin-top: 0;
-                }
+        .brand {
+            .logo{
+                margin-top: 0;
             }
         }
 

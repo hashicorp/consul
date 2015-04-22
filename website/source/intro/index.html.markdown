@@ -3,16 +3,16 @@ layout: "intro"
 page_title: "Introduction"
 sidebar_current: "what"
 description: |-
-  Welcome to the intro guide to Consul! This guide is the best place to start with Consul. We cover what Consul is, what problems it can solve, how it compares to existing software, and a quick start for using Consul. If you are already familiar with the basics of Consul, the documentation provides more of a reference for all available features.
+  Welcome to the intro guide to Consul! This guide is the best place to start with Consul. We cover what Consul is, what problems it can solve, how it compares to existing software, and how you can get started using it. If you are familiar with the basics of Consul, the documentation provides a more detailed reference of available features.
 ---
 
 # Introduction to Consul
 
 Welcome to the intro guide to Consul! This guide is the best place to start
 with Consul. We cover what Consul is, what problems it can solve, how it compares
-to existing software, and a quick start for using Consul. If you are already familiar
-with the basics of Consul, the [documentation](/docs/index.html) provides more
-of a reference for all available features.
+to existing software, and how you can get started using it. If you are familiar
+with the basics of Consul, the [documentation](/docs/index.html) provides a more
+detailed reference of available features.
 
 ## What is Consul?
 
@@ -32,8 +32,8 @@ key features:
   discovery components to route traffic away from unhealthy hosts.
 
 * **Key/Value Store**: Applications can make use of Consul's hierarchical key/value
-  store for any number of purposes including: dynamic configuration, feature flagging,
-  coordination, leader election, etc. The simple HTTP API makes it easy to use.
+  store for any number of purposes, including dynamic configuration, feature flagging,
+  coordination, leader election, and more. The simple HTTP API makes it easy to use.
 
 * **Multi Datacenter**: Consul supports multiple datacenters out of the box. This
   means users of Consul do not have to worry about building additional layers of
@@ -44,11 +44,10 @@ application developers, making it perfect for modern, elastic infrastructures.
 
 ## Basic Architecture of Consul
 
-Consul is a distributed, highly available system. There is an
-[in-depth architecture overview](/docs/internals/architecture.html) available,
-but this section will cover the basics so you can get an understanding
-of how Consul works. This section will purposely omit details to quickly
-provide an overview of the architecture.
+Consul is a distributed, highly available system. This section will cover the
+basics, purposely omitting some unnecessary detail, so you can get a quick
+understanding of how Consul works. For more detail, please refer to the
+[in-depth architecture overview](/docs/internals/architecture.html).
 
 Every node that provides services to Consul runs a _Consul agent_. Running
 an agent is not required for discovering other services or getting/setting
@@ -58,8 +57,8 @@ on the node as well as the node itself.
 The agents talk to one or more _Consul servers_. The Consul servers are
 where data is stored and replicated. The servers themselves elect a leader.
 While Consul can function with one server, 3 to 5 is recommended to avoid
-data loss scenarios. A cluster of Consul servers is recommended for each
-datacenter.
+failure scenarios leading to data loss. A cluster of Consul servers is recommended
+for each datacenter.
 
 Components of your infrastructure that need to discover other services
 or nodes can query any of the Consul servers _or_ any of the Consul agents.
@@ -71,7 +70,7 @@ forward the request to the remote datacenter and return the result.
 
 ## Next Steps
 
-See the page on [how Consul compares to other software](/intro/vs/index.html)
-to see how it fits into your existing infrastructure. Or continue onwards with
-the [getting started guide](/intro/getting-started/install.html) to get
-Consul up and running and see how it works.
+* See [how Consul compares to other software](/intro/vs/index.html) to assess how it fits into your
+existing infrastructure.
+* Continue onwards with the [getting started guide](/intro/getting-started/install.html)
+to get Consul up and running.

@@ -31,7 +31,7 @@ There are three different kinds of checks:
   It is possible to configure a custom HTTP check timeout value by specifying
   the `timeout` field in the check definition.
 
-* Time to Live (TTL) - These checks retain their last known state for a given TTL.
+* <a name="TTL"></a>Time to Live (TTL) - These checks retain their last known state for a given TTL.
   The state of the check must be updated periodically over the HTTP interface. If an
   external system fails to update the status within a given TTL, the check is
   set to the failed state. This mechanism, conceptually similar to a dead man's switch,

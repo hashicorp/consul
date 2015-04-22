@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -36,7 +38,7 @@ func makeHTTPServerWithConfig(t *testing.T, cb func(c *Config)) (string, *HTTPSe
 		t.Fatalf("err: %v", err)
 	}
 	conf.UiDir = uiDir
-	servers, err := NewHTTPServers(agent, conf, agent.logOutput)
+	servers, err := NewHTTPServers(agent, conf, nil, agent.logOutput)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -146,7 +148,7 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	// Try to start the server with the same path anyways.
-	if _, err := NewHTTPServers(agent, conf, agent.logOutput); err != nil {
+	if _, err := NewHTTPServers(agent, conf, nil, agent.logOutput); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -271,6 +273,30 @@ func TestContentTypeIsJSON(t *testing.T) {
 
 	if contentType != "application/json" {
 		t.Fatalf("Content-Type header was not 'application/json'")
+	}
+}
+
+func TestHTTP_wrap_obfuscateLog(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Attach a custom logger so we can inspect it
+	buf := &bytes.Buffer{}
+	srv.logger = log.New(buf, "", log.LstdFlags)
+
+	resp := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/some/url?token=secret1&token=secret2", nil)
+
+	handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+		return nil, nil
+	}
+	srv.wrap(handler)(resp, req)
+
+	// Make sure no tokens from the URL show up in the log
+	if strings.Contains(buf.String(), "secret") {
+		t.Fatalf("bad: %s", buf.String())
 	}
 }
 
@@ -429,6 +455,67 @@ func TestParseConsistency_Invalid(t *testing.T) {
 	}
 }
 
+// Test ACL token is resolved in correct order
+func TestACLResolution(t *testing.T) {
+	var token string
+	// Request without token
+	req, err := http.NewRequest("GET",
+		"/v1/catalog/nodes", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Request with explicit token
+	reqToken, err := http.NewRequest("GET",
+		"/v1/catalog/nodes?token=foo", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	httpTest(t, func(srv *HTTPServer) {
+		// Check when no token is set
+		srv.agent.config.ACLToken = ""
+		srv.parseToken(req, &token)
+		if token != "" {
+			t.Fatalf("bad: %s", token)
+		}
+
+		// Check when ACLToken set
+		srv.agent.config.ACLToken = "agent"
+		srv.parseToken(req, &token)
+		if token != "agent" {
+			t.Fatalf("bad: %s", token)
+		}
+
+		// Check when AtlasACLToken set, wrong server
+		srv.agent.config.AtlasACLToken = "atlas"
+		srv.parseToken(req, &token)
+		if token != "agent" {
+			t.Fatalf("bad: %s", token)
+		}
+
+		// Check when AtlasACLToken set, correct server
+		srv.addr = scadaHTTPAddr
+		srv.parseToken(req, &token)
+		if token != "atlas" {
+			t.Fatalf("bad: %s", token)
+		}
+
+		// Check when AtlasACLToken not, correct server
+		srv.agent.config.AtlasACLToken = ""
+		srv.parseToken(req, &token)
+		if token != "agent" {
+			t.Fatalf("bad: %s", token)
+		}
+
+		// Explicit token has highest precedence
+		srv.parseToken(reqToken, &token)
+		if token != "foo" {
+			t.Fatalf("bad: %s", token)
+		}
+	})
+}
+
 // assertIndex tests that X-Consul-Index is set and non-zero
 func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
 	header := resp.Header().Get("X-Consul-Index")
@@ -460,7 +547,11 @@ func getIndex(t *testing.T, resp *httptest.ResponseRecorder) uint64 {
 }
 
 func httpTest(t *testing.T, f func(srv *HTTPServer)) {
-	dir, srv := makeHTTPServer(t)
+	httpTestWithConfig(t, f, nil)
+}
+
+func httpTestWithConfig(t *testing.T, f func(srv *HTTPServer), cb func(c *Config)) {
+	dir, srv := makeHTTPServerWithConfig(t, cb)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()

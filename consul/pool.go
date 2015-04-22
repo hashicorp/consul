@@ -44,6 +44,11 @@ type StreamClient struct {
 	client *rpc.Client
 }
 
+func (sc *StreamClient) Close() {
+	sc.stream.Close()
+	sc.client.Close()
+}
+
 // Conn is a pooled connection to a Consul server
 type Conn struct {
 	refCount    int32
@@ -106,7 +111,7 @@ func (c *Conn) returnClient(client *StreamClient) {
 	}
 	c.clientLock.Unlock()
 	if !didSave {
-		client.stream.Close()
+		client.Close()
 	}
 }
 
@@ -259,28 +264,27 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 	}
 
 	// Wrap the connection
-	var c *Conn
+	c := &Conn{
+		refCount: 1,
+		addr:     addr,
+		session:  session,
+		clients:  list.New(),
+		lastUsed: time.Now(),
+		version:  version,
+		pool:     p,
+	}
 
 	// Track this connection, handle potential race condition
 	p.Lock()
-	defer p.Unlock()
-
 	if existing := p.pool[addr.String()]; existing != nil {
-		c = existing
+		c.Close()
+		p.Unlock()
+		return existing, nil
 	} else {
-		c = &Conn{
-			refCount: 1,
-			addr:     addr,
-			session:  session,
-			clients:  list.New(),
-			lastUsed: time.Now(),
-			version:  version,
-			pool:     p,
-		}
 		p.pool[addr.String()] = c
+		p.Unlock()
+		return c, nil
 	}
-
-	return c, nil
 }
 
 // clearConn is used to clear any cached connection, potentially in response to an erro
@@ -346,7 +350,7 @@ func (p *ConnPool) RPC(addr net.Addr, version int, method string, args interface
 	// Make the RPC call
 	err = sc.client.Call(method, args, reply)
 	if err != nil {
-		p.clearConn(conn)
+		sc.Close()
 		p.releaseConn(conn)
 		return fmt.Errorf("rpc error: %v", err)
 	}

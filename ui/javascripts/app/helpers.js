@@ -21,11 +21,25 @@ Ember.Handlebars.helper('listBar', function(status) {
 });
 
 Ember.Handlebars.helper('sessionName', function(session) {
+  var name;
+
   if (session.Name === "") {
-    return session.ID;
+    name = '<span>' + session.ID + '</span>';
   } else {
-    return new Handlebars.SafeString('<span>' + session.Name + '</span>' + ' <small>' + session.ID + '</small>');
+    name = '<span>' + session.Name + '</span>' + ' <small>' + session.ID + '</small>';
   }
+
+  return new Handlebars.SafeString(name);
+});
+
+Ember.Handlebars.helper('sessionMeta', function(session) {
+  var meta = '<div class="metadata">' + session.Behavior + ' behavior</div>';
+
+  if (session.TTL !== "") {
+    meta = meta + '<div class="metadata">, ' + session.TTL + ' TTL</div>';
+  }
+
+  return new Handlebars.SafeString(meta);
 });
 
 Ember.Handlebars.helper('aclName', function(name, id) {

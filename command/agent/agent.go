@@ -261,6 +261,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.ACLDownPolicy != "" {
 		base.ACLDownPolicy = a.config.ACLDownPolicy
 	}
+	if a.config.SessionTTLMinRaw != "" {
+		base.SessionTTLMin = a.config.SessionTTLMin
+	}
 
 	// Format the build string
 	revision := a.config.Revision
@@ -1032,9 +1035,16 @@ func (a *Agent) loadChecks(conf *Config) error {
 			// services into the active pool
 			p.Check.Status = structs.HealthCritical
 
+			if err := a.AddCheck(p.Check, p.ChkType, false); err != nil {
+				// Purge the check if it is unable to be restored.
+				a.logger.Printf("[WARN] agent: Failed to restore check %q: %s",
+					p.Check.CheckID, err)
+				return a.purgeCheck(p.Check.CheckID)
+			}
+
 			a.logger.Printf("[DEBUG] agent: restored health check %q from %q",
 				p.Check.CheckID, filePath)
-			return a.AddCheck(p.Check, p.ChkType, false)
+			return nil
 		}
 	})
 
@@ -1050,6 +1060,22 @@ func (a *Agent) unloadChecks() error {
 	}
 
 	return nil
+}
+
+// snapshotCheckState is used to snapshot the current state of the health
+// checks. This is done before we reload our checks, so that we can properly
+// restore into the same state.
+func (a *Agent) snapshotCheckState() map[string]*structs.HealthCheck {
+	return a.state.Checks()
+}
+
+// restoreCheckState is used to reset the health state based on a snapshot.
+// This is done after we finish the reload to avoid any unnecessary flaps
+// in health state and potential session invalidations.
+func (a *Agent) restoreCheckState(snap map[string]*structs.HealthCheck) {
+	for id, check := range snap {
+		a.state.UpdateCheck(id, check.Status, check.Output)
+	}
 }
 
 // serviceMaintCheckID returns the ID of a given service's maintenance check

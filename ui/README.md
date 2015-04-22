@@ -14,7 +14,7 @@ health and the nodes they run on.
 on each and the health of the node.
 - Key/value view and update
 
-It's aware of multiple data centers, so you can get a quick global
+It's aware of multiple datacenters, so you can get a quick global
 overview before drilling into specific data-centers for detailed
 views.
 

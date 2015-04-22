@@ -17,7 +17,7 @@ Watches are implemented using blocking queries in the [HTTP API](/docs/agent/htt
 Agents automatically make the proper API calls to watch for changes
 and inform a handler when the data view has updated.
 
-Watches can be configured as part of the [agent's configuration](/docs/agent/options.html),
+Watches can be configured as part of the [agent's configuration](/docs/agent/options.html#watches),
 causing them to run once the agent is initialized. Reloading the agent configuration
 allows for adding or removing watches dynamically.
 
@@ -58,16 +58,16 @@ are a few global parameters that all watches support:
 
 The following types are supported. Detailed documentation on each is below:
 
-* `key` - Watch a specific KV pair
-* `keyprefix` - Watch a prefix in the KV store
-* `services` - Watch the list of available services
-* `nodes` - Watch the list of nodes
-* `service`-  Watch the instances of a service
-* `checks` - Watch the value of health checks
-* `event` - Watch for custom user events
+* [`key`](#key) - Watch a specific KV pair
+* [`keyprefix`](#keyprefix) - Watch a prefix in the KV store
+* [`services`](#services) - Watch the list of available services
+* [`nodes`](#nodes) - Watch the list of nodes
+* [`service`](#service)-  Watch the instances of a service
+* [`checks`](#checks) - Watch the value of health checks
+* [`event`](#event) - Watch for custom user events
 
 
-### Type: key
+### <a name="key"></a>Type: key
 
 The "key" watch type is used to watch a specific key in the KV store.
 It requires that the "key" parameter be specified.
@@ -102,7 +102,7 @@ An example of the output of this command:
 }
 ```
 
-### Type: keyprefix
+### <a name="keyprefix"></a>Type: keyprefix
 
 The "keyprefix" watch type is used to watch a prefix of keys in the KV store.
 It requires that the "prefix" parameter be specified.
@@ -157,7 +157,7 @@ An example of the output of this command:
 ]
 ```
 
-### Type: services
+### <a name="services"></a>Type: services
 
 The "services" watch type is used to watch the list of available
 services. It has no parameters.
@@ -174,7 +174,7 @@ An example of the output of this command:
 }
 ```
 
-### Type: nodes
+### <a name="nodes"></a>Type: nodes
 
 The "nodes" watch type is used to watch the list of available
 nodes. It has no parameters.
@@ -212,7 +212,7 @@ An example of the output of this command:
 ]
 ```
 
-### Type: service
+### <a name="service"></a>Type: service
 
 The "service" watch type is used to monitor the providers
 of a single service. It requires the "service" parameter
@@ -278,7 +278,7 @@ An example of the output of this command:
 ]
 ```
 
-### Type: checks
+### <a name="checks"></a>Type: checks
 
 The "checks" watch type is used to monitor the checks of a given
 service or those in a specific state. It optionally takes the "service"
@@ -305,7 +305,7 @@ An example of the output of this command:
 ]
 ```
 
-### Type: event
+### <a name="event"></a>Type: event
 
 The "event" watch type is used to monitor for custom user
 events. These are fired using the [consul event](/docs/commands/event.html) command.
