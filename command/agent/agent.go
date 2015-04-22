@@ -22,6 +22,9 @@ const (
 	// Path to save agent service definitions
 	servicesDir = "services"
 
+	// Path to save agent archetype definitions
+	archetypesDir = "archetypes"
+
 	// Path to save local agent checks
 	checksDir = "checks"
 
@@ -64,7 +67,7 @@ type Agent struct {
 	client *consul.Client
 
 	// state stores a local representation of the node,
-	// services and checks. Used for anti-entropy.
+	// services, archetypes and checks. Used for anti-entropy.
 	state localState
 
 	// checkMonitors maps the check ID to an associated monitor
@@ -164,11 +167,14 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		return nil, err
 	}
 
-	// Load checks/services
+	// Load services/checks/archetypes
 	if err := agent.loadServices(config); err != nil {
 		return nil, err
 	}
 	if err := agent.loadChecks(config); err != nil {
+		return nil, err
+	}
+	if err := agent.loadArchetypes(config); err != nil {
 		return nil, err
 	}
 
@@ -551,6 +557,38 @@ func (a *Agent) purgeService(serviceID string) error {
 	return nil
 }
 
+// persistArchetype saves an archetype definition to a JSON file in the data dir
+func (a *Agent) persistArchetype(archetype *structs.NodeArchetype) error {
+	archPath := filepath.Join(a.config.DataDir, archetypesDir, stringHash(archetype.ID))
+	if _, err := os.Stat(archPath); os.IsNotExist(err) {
+		encoded, err := json.Marshal(archetype)
+		if err != nil {
+			return nil
+		}
+		if err := os.MkdirAll(filepath.Dir(archPath), 0700); err != nil {
+			return err
+		}
+		fh, err := os.OpenFile(archPath, os.O_CREATE|os.O_WRONLY, 0600)
+		if err != nil {
+			return err
+		}
+		defer fh.Close()
+		if _, err := fh.Write(encoded); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// purgeArchetype removes a persisted archetype definition file from the data dir
+func (a *Agent) purgeArchetype(archetypeID string) error {
+	archPath := filepath.Join(a.config.DataDir, archetypesDir, stringHash(archetypeID))
+	if _, err := os.Stat(archPath); err == nil {
+		return os.Remove(archPath)
+	}
+	return nil
+}
+
 // persistCheck saves a check definition to the local agent's state directory
 func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType) error {
 	checkPath := filepath.Join(a.config.DataDir, checksDir, stringHash(check.CheckID))
@@ -667,7 +705,7 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 		return fmt.Errorf("ServiceID missing")
 	}
 
-	// Remove service immeidately
+	// Remove service immediately
 	a.state.RemoveService(serviceID)
 
 	// Remove the service from the data dir
@@ -689,6 +727,68 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 	}
 
 	log.Printf("[DEBUG] agent: removed service %q", serviceID)
+	return nil
+}
+
+// addArchetype is used to add an archetype entry.
+// This entry is persistent and the agent will make a best effort to
+// ensure it is registered
+func (a *Agent) AddArchetype(archetype *structs.NodeArchetype, persist bool) error {
+	if archetype.Archetype == "" {
+		return fmt.Errorf("Archetype name missing")
+	}
+	if archetype.ID == "" && archetype.Archetype != "" {
+		archetype.ID = archetype.Archetype
+	}
+
+	// Warn if the archetype name is incompatible with DNS
+	if !dnsNameRe.MatchString(archetype.Archetype) {
+		a.logger.Printf("[WARN] Archetype name %q will not be discoverable "+
+			"via DNS due to invalid characters. Valid characters include "+
+			"all alpha-numerics and dashes.", archetype.Archetype)
+	}
+
+	// Warn if any tags are incompatible with DNS
+	for _, tag := range archetype.Tags {
+		if !dnsNameRe.MatchString(tag) {
+			a.logger.Printf("[WARN] Archetype tag %q will not be discoverable "+
+				"via DNS due to invalid characters. Valid characters include "+
+				"all alpha-numerics and dashes.", tag)
+		}
+	}
+
+	// Add the archetype
+	a.state.AddArchetype(archetype)
+
+	//Persist the archetype to a file
+	if persist {
+		if err := a.persistArchetype(archetype); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// RemoveArchetype is used to remove an archetype entry.
+// The agent will make a best effort to ensure it is deregistered
+func (a *Agent) RemoveArchetype(archetypeID string, persist bool) error {
+	// Validate archetypeID
+	if archetypeID == "" {
+		return fmt.Errorf("archetypeID missing")
+	}
+
+	// Remove archetype immediately
+	a.state.RemoveArchetype(archetypeID)
+
+	// Remove the archetype from the data dir
+	if persist {
+		if err := a.purgeArchetype(archetypeID); err != nil {
+			return err
+		}
+	}
+
+	log.Printf("[DEBUG] agent: removed archetype %q", archetypeID)
 	return nil
 }
 
@@ -978,6 +1078,72 @@ func (a *Agent) unloadServices() error {
 		}
 		if err := a.RemoveService(service.ID, false); err != nil {
 			return fmt.Errorf("Failed deregistering service '%s': %v", service.ID, err)
+		}
+	}
+
+	return nil
+}
+
+// loadArchetypes will load archetype definitions from configuration and persisted
+// definitions on disk, and load them into the local agent.
+func (a *Agent) loadArchetypes(conf *Config) error {
+	// Register the archetypes from config
+	for _, archetype := range conf.Archetypes {
+		na := archetype.NodeArchetype()
+		if err := a.AddArchetype(na, false); err != nil {
+			return fmt.Errorf("Failed to register archetype '%s': %v", archetype.ID, err)
+		}
+	}
+
+	// Load any persisted archetypes
+	archDir := filepath.Join(a.config.DataDir, archetypesDir)
+	if _, err := os.Stat(archDir); os.IsNotExist(err) {
+		return nil
+	}
+
+	err := filepath.Walk(archDir, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if fi.Name() == archetypesDir {
+			return nil
+		}
+		filePath := filepath.Join(archDir, fi.Name())
+		fh, err := os.Open(filePath)
+		if err != nil {
+			return err
+		}
+		content := make([]byte, fi.Size())
+		if _, err := fh.Read(content); err != nil {
+			return err
+		}
+
+		var arch *structs.NodeArchetype
+		if err := json.Unmarshal(content, &arch); err != nil {
+			return err
+		}
+
+		if _, ok := a.state.archetypes[arch.ID]; ok {
+			// Purge previously persisted archetype. This allows config to be
+			// preferred over archetypes persisted from the API.
+			a.logger.Printf("[DEBUG] agent: archetype %q exists, not restoring from %q",
+				arch.ID, filePath)
+			return a.purgeArchetype(arch.ID)
+		} else {
+			a.logger.Printf("[DEBUG] agent: restored archetype definition %q from %q",
+				arch.ID, filePath)
+			return a.AddArchetype(arch, false)
+		}
+	})
+
+	return err
+}
+
+// unloadArchetypes will deregister all archetypes other known to the local agent.
+func (a *Agent) unloadArchetypes() error {
+	for _, archetype := range a.state.Archetypes() {
+		if err := a.RemoveArchetype(archetype.ID, false); err != nil {
+			return fmt.Errorf("Failed deregistering archetype '%s': %v", archetype.ID, err)
 		}
 	}
 
