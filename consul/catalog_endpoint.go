@@ -14,7 +14,7 @@ type Catalog struct {
 	srv *Server
 }
 
-// Register is used register that a node is providing a given service.
+// Register is used to register that a node is providing a given service/archetype.
 func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error {
 	if done, err := c.srv.forward("Catalog.Register", args, args, reply); done {
 		return err
@@ -52,6 +52,18 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		}
 	}
 
+	if args.Archetype != nil {
+		// If no archetype id, but archetype name, use default
+		if args.Archetype.ID == "" && args.Archetype.Archetype != "" {
+			args.Archetype.ID = args.Archetype.Archetype
+		}
+
+		// Verify Archetype Name provided if ID
+		if args.Archetype.ID != "" && args.Archetype.Archetype == "" {
+			return fmt.Errorf("Must provide archetype name with ID")
+		}
+	}
+
 	if args.Check != nil {
 		args.Checks = append(args.Checks, args.Check)
 		args.Check = nil
@@ -74,7 +86,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	return nil
 }
 
-// Deregister is used to remove a service registration for a given node.
+// Deregister is used to remove a service/archetype registration for a given node.
 func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) error {
 	if done, err := c.srv.forward("Catalog.Deregister", args, args, reply); done {
 		return err
@@ -147,6 +159,23 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		})
 }
 
+// ListArchetypes is used to query the archetypes in a DC
+func (c *Catalog) ListArchetypes(args *structs.DCSpecificRequest, reply *structs.IndexedArchetypes) error {
+	if done, err := c.srv.forward("Catalog.ListArchetypes", args, args, reply); done {
+		return err
+	}
+
+	// Get the current nodes
+	state := c.srv.fsm.State()
+	return c.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
+		state.QueryTables("Archetypes"),
+		func() error {
+			reply.Index, reply.Archetypes = state.Archetypes()
+			return nil
+		})
+}
+
 // ServiceNodes returns all the nodes registered as part of a service
 func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *structs.IndexedServiceNodes) error {
 	if done, err := c.srv.forward("Catalog.ServiceNodes", args, args, reply); done {
@@ -185,6 +214,44 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	return err
 }
 
+// ArchetypeNodes returns all the nodes registered as part of an archetype
+func (c *Catalog) ArchetypeNodes(args *structs.ArchetypeSpecificRequest, reply *structs.IndexedArchetypeNodes) error {
+	if done, err := c.srv.forward("Catalog.ArchetypeNodes", args, args, reply); done {
+		return err
+	}
+
+	// Verify the arguments
+	if args.ArchetypeName == "" {
+		return fmt.Errorf("Must provide archetype name")
+	}
+
+	// Get the nodes
+	state := c.srv.fsm.State()
+	err := c.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
+		state.QueryTables("ArchetypeNodes"),
+		func() error {
+			if args.TagFilter {
+				reply.Index, reply.ArchetypeNodes = state.ArchetypeTagNodes(args.ArchetypeName, args.ArchetypeTag)
+			} else {
+				reply.Index, reply.ArchetypeNodes = state.ArchetypeNodes(args.ArchetypeName)
+			}
+			return nil
+		})
+
+	// Provide some metrics
+	if err == nil {
+		metrics.IncrCounter([]string{"consul", "catalog", "archetype", "query", args.ArchetypeName}, 1)
+		if args.ArchetypeTag != "" {
+			metrics.IncrCounter([]string{"consul", "catalog", "archetype", "query-tag", args.ArchetypeName, args.ArchetypeTag}, 1)
+		}
+		if len(reply.ArchetypeNodes) == 0 {
+			metrics.IncrCounter([]string{"consul", "catalog", "archetype", "not-found", args.ArchetypeName}, 1)
+		}
+	}
+	return err
+}
+
 // NodeServices returns all the services registered as part of a node
 func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs.IndexedNodeServices) error {
 	if done, err := c.srv.forward("Catalog.NodeServices", args, args, reply); done {
@@ -203,6 +270,28 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 		state.QueryTables("NodeServices"),
 		func() error {
 			reply.Index, reply.NodeServices = state.NodeServices(args.Node)
+			return nil
+		})
+}
+
+// NodeArchetypes returns all the archetypes registered as part of a node
+func (c *Catalog) NodeArchetypes(args *structs.NodeSpecificRequest, reply *structs.IndexedNodeArchetypes) error {
+	if done, err := c.srv.forward("Catalog.NodeArchetypes", args, args, reply); done {
+		return err
+	}
+
+	// Verify the arguments
+	if args.Node == "" {
+		return fmt.Errorf("Must provide node")
+	}
+
+	// Get the node archetypes
+	state := c.srv.fsm.State()
+	return c.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
+		state.QueryTables("NodeArchetypes"),
+		func() error {
+			reply.Index, reply.NodeArchetypes = state.NodeArchetypes(args.Node)
 			return nil
 		})
 }
