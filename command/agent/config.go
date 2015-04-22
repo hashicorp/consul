@@ -346,6 +346,9 @@ type Config struct {
 	// Services holds the provided service definitions
 	Services []*ServiceDefinition `mapstructure:"-" json:"-"`
 
+	// Archetypes holds the provided archetype definitions
+	Archetypes []*ArchetypeDefinition `mapstructure:"-" json:"-"`
+
 	// ConsulConfig can either be provided or a default one created
 	ConsulConfig *consul.Config `mapstructure:"-" json:"-"`
 
@@ -478,8 +481,8 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 
 	// Check the result type
 	if obj, ok := raw.(map[string]interface{}); ok {
-		// Check for a "services", "service" or "check" key, meaning
-		// this is actually a definition entry
+		// Check for a "services", "service", "checks", "check", "archetypes" or "archetype" key,
+		// meaning this is actually a definition entry
 		if sub, ok := obj["services"]; ok {
 			if list, ok := sub.([]interface{}); ok {
 				for _, srv := range list {
@@ -516,6 +519,24 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 			}
 			result.Checks = append(result.Checks, check)
 		}
+		if sub, ok := obj["archetypes"]; ok {
+			if list, ok := sub.([]interface{}); ok {
+				for _, arch := range list {
+					archetype, err := DecodeArchetypeDefinition(arch)
+					if err != nil {
+						return nil, err
+					}
+					result.Archetypes = append(result.Archetypes, archetype)
+				}
+			}
+		}
+		if sub, ok := obj["archetype"]; ok {
+			archetype, err := DecodeArchetypeDefinition(sub)
+			if err != nil {
+				return nil, err
+			}
+			result.Archetypes = append(result.Archetypes, archetype)
+		}
 	}
 
 	// Decode
@@ -535,7 +556,7 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	// Check unused fields and verify that no bad configuration options were
 	// passed to Consul. There are a few additional fields which don't directly
 	// use mapstructure decoding, so we need to account for those as well.
-	allowedKeys := []string{"service", "services", "check", "checks"}
+	allowedKeys := []string{"service", "services", "check", "checks", "archetype", "archetypes"}
 	var unused []string
 	for _, field := range md.Unused {
 		if !strContains(allowedKeys, field) {
@@ -751,6 +772,51 @@ func DecodeCheckDefinition(raw interface{}) (*CheckDefinition, error) {
 	return &result, nil
 }
 
+// DecodeArchetypeDefinition is used to decode an archetype definition
+func DecodeArchetypeDefinition(raw interface{}) (*ArchetypeDefinition, error) {
+	// rawMap, ok := raw.(map[string]interface{})
+	// if !ok {
+	// 	goto AFTER_FIX
+	// }
+
+	// check definitions within an archetype are potentially in a template format
+	// for exmaple, ttl can be a variable to be interpolated when instantiating a service out of an archetype
+	// thus, a specific FixupCheckType for archetypes' checks should be implemented (later)
+
+	// for k, v := range rawMap {
+	// 	switch strings.ToLower(k) {
+	// 	case "check":
+	// 		if err := FixupCheckType(v); err != nil {
+	// 			return nil, err
+	// 		}
+	// 	case "checks":
+	// 		chkTypes, ok := v.([]interface{})
+	// 		if !ok {
+	// 			goto AFTER_FIX
+	// 		}
+	// 		for _, chkType := range chkTypes {
+	// 			if err := FixupCheckType(chkType); err != nil {
+	// 				return nil, err
+	// 			}
+	// 		}
+	// 	}
+	// }
+	// AFTER_FIX:
+	var md mapstructure.Metadata
+	var result ArchetypeDefinition
+	msdec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Metadata: &md,
+		Result:   &result,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := msdec.Decode(raw); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 // MergeConfig merges two configurations together to make a single new
 // configuration.
 func MergeConfig(a, b *Config) *Config {
@@ -840,6 +906,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Services != nil {
 		result.Services = append(result.Services, b.Services...)
+	}
+	if b.Archetypes != nil {
+		result.Archetypes = append(result.Archetypes, b.Archetypes...)
 	}
 	if b.Ports.DNS != 0 {
 		result.Ports.DNS = b.Ports.DNS
