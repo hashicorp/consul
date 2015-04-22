@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"github.com/hashicorp/consul/testutil"
+	"github.com/marouenj/consul/testutil"
 	"os"
 	"testing"
 )

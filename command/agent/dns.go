@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/consul/structs"
+	"github.com/marouenj/consul/consul/structs"
 	"github.com/miekg/dns"
 )
 

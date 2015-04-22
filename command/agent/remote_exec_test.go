@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/marouenj/consul/consul/structs"
+	"github.com/marouenj/consul/testutil"
 )
 
 func TestRexecWriter(t *testing.T) {

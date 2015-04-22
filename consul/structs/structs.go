@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
+	"github.com/marouenj/consul/acl"
 	"github.com/hashicorp/go-msgpack/codec"
 )
 

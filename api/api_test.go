@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/marouenj/consul/testutil"
 )
 
 type testServer struct {

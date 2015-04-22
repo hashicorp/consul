@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/consul/structs"
+	"github.com/marouenj/consul/consul/structs"
 )
 
 // Catalog endpoint is used to manipulate the service catalog

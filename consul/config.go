@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/hashicorp/consul/tlsutil"
+	"github.com/marouenj/consul/tlsutil"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"

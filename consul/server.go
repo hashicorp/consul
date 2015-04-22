@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
+	"github.com/marouenj/consul/acl"
 	"github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"

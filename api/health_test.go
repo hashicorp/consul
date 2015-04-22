@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/marouenj/consul/testutil"
 )
 
 func TestHealth_Node(t *testing.T) {
