@@ -39,6 +39,33 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes) {
 	return
 }
 
+// ArchetypeDefinition is used to JSON decode the Archetype definitions
+type ArchetypeDefinition struct {
+	ID        string // identifies this definition
+	PoolName  string // identifies an archetype. The convention is that definitions with the same PoolName relate to the same pool, 'redis_pool' for example
+	Tags      []string
+	Address   string
+	Port      int
+	Check     CheckType  // potentially a template, to be rendered by consul-template
+	Checks    CheckTypes // ditto
+	Templates []string   // templates for the config files of the service this archetype abstracts, to be rendered by consul-template
+	Command   string     // launcher of the service this archetype abstracts, to be executed by consul-template
+}
+
+func (a *ArchetypeDefinition) NodeArchetype() *structs.NodeArchetype {
+	na := &structs.NodeArchetype{
+		ID:        a.ID,
+		Archetype: a.PoolName,
+		Tags:      a.Tags,
+		Address:   a.Address,
+		Port:      a.Port,
+	}
+	if na.ID == "" && na.Archetype != "" {
+		na.ID = na.Archetype
+	}
+	return na
+}
+
 // ChecKDefinition is used to JSON decode the Check definitions
 type CheckDefinition struct {
 	ID        string
