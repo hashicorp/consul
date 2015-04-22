@@ -129,13 +129,14 @@ type QueryMeta struct {
 }
 
 // RegisterRequest is used for the Catalog.Register endpoint
-// to register a node as providing a service. If no service
-// is provided, the node is registered.
+// to register a node as providing a service or an archetype.
+// If neither is provided, the node is registered.
 type RegisterRequest struct {
 	Datacenter string
 	Node       string
 	Address    string
 	Service    *NodeService
+	Archetype  *NodeArchetype
 	Check      *HealthCheck
 	Checks     HealthChecks
 	WriteRequest
@@ -146,13 +147,14 @@ func (r *RegisterRequest) RequestDatacenter() string {
 }
 
 // DeregisterRequest is used for the Catalog.Deregister endpoint
-// to deregister a node as providing a service. If no service is
+// to deregister a node as providing a service or archetype. If neither is
 // provided the entire node is deregistered.
 type DeregisterRequest struct {
-	Datacenter string
-	Node       string
-	ServiceID  string
-	CheckID    string
+	Datacenter  string
+	Node        string
+	ServiceID   string
+	ArchetypeID string
+	CheckID     string
 	WriteRequest
 }
 
@@ -180,6 +182,19 @@ type ServiceSpecificRequest struct {
 }
 
 func (r *ServiceSpecificRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// ArchetypeSpecificRequest is used to query about a specific node
+type ArchetypeSpecificRequest struct {
+	Datacenter    string
+	ArchetypeName string
+	ArchetypeTag  string
+	TagFilter     bool // Controls tag filtering
+	QueryOptions
+}
+
+func (r *ArchetypeSpecificRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
@@ -216,6 +231,10 @@ type Nodes []Node
 // Maps service name to available tags
 type Services map[string][]string
 
+// Used to return information about a provided archetype.
+// Maps archetype name to available tags
+type Archetypes map[string][]string
+
 // ServiceNode represents a node that is part of a service
 type ServiceNode struct {
 	Node           string
@@ -228,6 +247,18 @@ type ServiceNode struct {
 }
 type ServiceNodes []ServiceNode
 
+// ArchetypeNode represents a node that is part of a archetype
+type ArchetypeNode struct {
+	Node             string
+	Address          string
+	ArchetypeID      string
+	ArchetypeName    string
+	ArchetypeTags    []string
+	ArchetypeAddress string
+	ArchetypePort    int
+}
+type ArchetypeNodes []ArchetypeNode
+
 // NodeService is a service provided by a node
 type NodeService struct {
 	ID      string
@@ -239,6 +270,19 @@ type NodeService struct {
 type NodeServices struct {
 	Node     Node
 	Services map[string]*NodeService
+}
+
+// NodeArchetype is an archetype provided by a node
+type NodeArchetype struct {
+	ID        string
+	Archetype string
+	Tags      []string
+	Address   string
+	Port      int
+}
+type NodeArchetypes struct {
+	Node       Node
+	Archetypes map[string]*NodeArchetype
 }
 
 // HealthCheck represents a single check on a given node
@@ -267,10 +311,11 @@ type CheckServiceNodes []CheckServiceNode
 // a node. This is currently used for the UI only, as it is
 // rather expensive to generate.
 type NodeInfo struct {
-	Node     string
-	Address  string
-	Services []*NodeService
-	Checks   []*HealthCheck
+	Node       string
+	Address    string
+	Services   []*NodeService
+	Archetypes []*NodeArchetype
+	Checks     []*HealthCheck
 }
 
 // NodeDump is used to dump all the nodes with all their
@@ -288,13 +333,28 @@ type IndexedServices struct {
 	QueryMeta
 }
 
+type IndexedArchetypes struct {
+	Archetypes Archetypes
+	QueryMeta
+}
+
 type IndexedServiceNodes struct {
 	ServiceNodes ServiceNodes
 	QueryMeta
 }
 
+type IndexedArchetypeNodes struct {
+	ArchetypeNodes ArchetypeNodes
+	QueryMeta
+}
+
 type IndexedNodeServices struct {
 	NodeServices *NodeServices
+	QueryMeta
+}
+
+type IndexedNodeArchetypes struct {
+	NodeArchetypes *NodeArchetypes
 	QueryMeta
 }
 
@@ -391,6 +451,7 @@ const (
 )
 
 const (
+	SessionTTLMin        = 10 * time.Second
 	SessionTTLMax        = 3600 * time.Second
 	SessionTTLMultiplier = 2
 )
