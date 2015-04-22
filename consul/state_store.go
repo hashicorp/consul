@@ -19,6 +19,7 @@ import (
 const (
 	dbNodes                  = "nodes"
 	dbServices               = "services"
+	dbSArchetypes            = "archetypes"
 	dbChecks                 = "checks"
 	dbKVS                    = "kvs"
 	dbTombstone              = "tombstones"
@@ -54,6 +55,7 @@ type StateStore struct {
 	env               *mdb.Env
 	nodeTable         *MDBTable
 	serviceTable      *MDBTable
+	archetypeTable    *MDBTable
 	checkTable        *MDBTable
 	kvsTable          *MDBTable
 	tombstoneTable    *MDBTable
@@ -245,6 +247,28 @@ func (s *StateStore) initialize() error {
 		},
 	}
 
+	s.archetypeTable = &MDBTable{
+		Name: dbSArchetypes,
+		Indexes: map[string]*MDBIndex{
+			"id": &MDBIndex{
+				Unique: true,
+				Fields: []string{"Node", "ArchetypeID"},
+			},
+			"archetype": &MDBIndex{
+				AllowBlank:      true,
+				Fields:          []string{"ArchetypeName"},
+				CaseInsensitive: true,
+			},
+		},
+		Decoder: func(buf []byte) interface{} {
+			out := new(structs.ArchetypeNode)
+			if err := structs.Decode(buf, out); err != nil {
+				panic(err)
+			}
+			return out
+		},
+	}
+
 	s.checkTable = &MDBTable{
 		Name: dbChecks,
 		Indexes: map[string]*MDBIndex{
@@ -397,8 +421,11 @@ func (s *StateStore) initialize() error {
 	s.queryTables = map[string]MDBTables{
 		"Nodes":             MDBTables{s.nodeTable},
 		"Services":          MDBTables{s.serviceTable},
+		"Archetypes":        MDBTables{s.archetypeTable},
 		"ServiceNodes":      MDBTables{s.nodeTable, s.serviceTable},
+		"ArchetypeNodes":    MDBTables{s.nodeTable, s.archetypeTable},
 		"NodeServices":      MDBTables{s.nodeTable, s.serviceTable},
+		"NodeArchetypes":    MDBTables{s.nodeTable, s.archetypeTable},
 		"ChecksInState":     MDBTables{s.checkTable},
 		"NodeChecks":        MDBTables{s.checkTable},
 		"ServiceChecks":     MDBTables{s.checkTable},
@@ -475,7 +502,7 @@ func (s *StateStore) QueryTables(q string) MDBTables {
 	return s.queryTables[q]
 }
 
-// EnsureRegistration is used to make sure a node, service, and check registration
+// EnsureRegistration is used to make sure a node, service, archetype and check registration
 // is performed within a single transaction to avoid race conditions on state updates.
 func (s *StateStore) EnsureRegistration(index uint64, req *structs.RegisterRequest) error {
 	tx, err := s.tables.StartTxn(false)
@@ -493,6 +520,13 @@ func (s *StateStore) EnsureRegistration(index uint64, req *structs.RegisterReque
 	// Ensure the service if provided
 	if req.Service != nil {
 		if err := s.ensureServiceTxn(index, req.Node, req.Service, tx); err != nil {
+			return err
+		}
+	}
+
+	// Ensure the archetype if provided
+	if req.Archetype != nil {
+		if err := s.ensureArchetypeTxn(index, req.Node, req.Archetype, tx); err != nil {
 			return err
 		}
 	}
@@ -611,6 +645,51 @@ func (s *StateStore) ensureServiceTxn(index uint64, node string, ns *structs.Nod
 	return nil
 }
 
+// EnsureArchetype is used to ensure a given node exposes a archetype
+func (s *StateStore) EnsureArchetype(index uint64, node string, na *structs.NodeArchetype) error {
+	tx, err := s.tables.StartTxn(false)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+	if err := s.ensureArchetypeTxn(index, node, na, tx); err != nil {
+		return nil
+	}
+	return tx.Commit()
+}
+
+// ensureArchetypeTxn is used to ensure a given node exposes an archetype in a transaction
+func (s *StateStore) ensureArchetypeTxn(index uint64, node string, na *structs.NodeArchetype, tx *MDBTxn) error {
+	// Ensure the node exists
+	res, err := s.nodeTable.GetTxn(tx, "id", node)
+	if err != nil {
+		return err
+	}
+	if len(res) == 0 {
+		return fmt.Errorf("Missing node registration")
+	}
+
+	// Create the entry
+	entry := structs.ArchetypeNode{
+		Node:             node,
+		ArchetypeID:      na.ID,
+		ArchetypeName:    na.Archetype,
+		ArchetypeTags:    na.Tags,
+		ArchetypeAddress: na.Address,
+		ArchetypePort:    na.Port,
+	}
+
+	// Ensure the service entry is set
+	if err := s.archetypeTable.InsertTxn(tx, &entry); err != nil {
+		return err
+	}
+	if err := s.archetypeTable.SetLastIndexTxn(tx, index); err != nil {
+		return err
+	}
+	tx.Defer(func() { s.watch[s.archetypeTable].Notify() })
+	return nil
+}
+
 // NodeServices is used to return all the services of a given node
 func (s *StateStore) NodeServices(name string) (uint64, *structs.NodeServices) {
 	tables := s.queryTables["NodeServices"]
@@ -669,6 +748,64 @@ func (s *StateStore) parseNodeServices(tables MDBTables, tx *MDBTxn, name string
 	return index, ns
 }
 
+// NodeArchetypes is used to return all the archetypes of a given node
+func (s *StateStore) NodeArchetypes(name string) (uint64, *structs.NodeArchetypes) {
+	tables := s.queryTables["NodeArchetypes"]
+	tx, err := tables.StartTxn(true)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+	return s.parseNodeArchetypes(tables, tx, name)
+}
+
+// parseNodeArchetypes is used to get the archetypes belonging to a
+// node, using a given txn
+func (s *StateStore) parseNodeArchetypes(tables MDBTables, tx *MDBTxn, name string) (uint64, *structs.NodeArchetypes) {
+	na := &structs.NodeArchetypes{
+		Archetypes: make(map[string]*structs.NodeArchetype),
+	}
+
+	// Get the maximum index
+	index, err := tables.LastIndexTxn(tx)
+	if err != nil {
+		panic(fmt.Errorf("Failed to get last index: %v", err))
+	}
+
+	// Get the node first
+	res, err := s.nodeTable.GetTxn(tx, "id", name)
+	if err != nil {
+		s.logger.Printf("[ERR] consul.state: Failed to get node: %v", err)
+	}
+	if len(res) == 0 {
+		return index, nil
+	}
+
+	// Set the address
+	node := res[0].(*structs.Node)
+	na.Node = *node
+
+	// Get the archetypes
+	res, err = s.archetypeTable.GetTxn(tx, "id", name)
+	if err != nil {
+		s.logger.Printf("[ERR] consul.state: Failed to get node '%s' archetypes: %v", name, err)
+	}
+
+	// Add each archetype
+	for _, r := range res {
+		archetype := r.(*structs.ArchetypeNode)
+		arch := &structs.NodeArchetype{
+			ID:        archetype.ArchetypeID,
+			Archetype: archetype.ArchetypeName,
+			Tags:      archetype.ArchetypeTags,
+			Address:   archetype.ArchetypeAddress,
+			Port:      archetype.ArchetypePort,
+		}
+		na.Archetypes[arch.ID] = arch
+	}
+	return index, na
+}
+
 // DeleteNodeService is used to delete a node service
 func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
 	tx, err := s.tables.StartTxn(false)
@@ -709,6 +846,26 @@ func (s *StateStore) DeleteNodeService(index uint64, node, id string) error {
 	return tx.Commit()
 }
 
+// DeleteNodeArchetype is used to delete a node archetype
+func (s *StateStore) DeleteNodeArchetype(index uint64, node, id string) error {
+	tx, err := s.tables.StartTxn(false)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	if n, err := s.archetypeTable.DeleteTxn(tx, "id", node, id); err != nil {
+		return err
+	} else if n > 0 {
+		if err := s.archetypeTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
+		tx.Defer(func() { s.watch[s.archetypeTable].Notify() })
+	}
+
+	return tx.Commit()
+}
+
 // DeleteNode is used to delete a node and all it's services
 func (s *StateStore) DeleteNode(index uint64, node string) error {
 	tx, err := s.tables.StartTxn(false)
@@ -729,6 +886,14 @@ func (s *StateStore) DeleteNode(index uint64, node string) error {
 			return err
 		}
 		tx.Defer(func() { s.watch[s.serviceTable].Notify() })
+	}
+	if n, err := s.archetypeTable.DeleteTxn(tx, "id", node); err != nil {
+		return err
+	} else if n > 0 {
+		if err := s.archetypeTable.SetLastIndexTxn(tx, index); err != nil {
+			return err
+		}
+		tx.Defer(func() { s.watch[s.archetypeTable].Notify() })
 	}
 	if n, err := s.checkTable.DeleteTxn(tx, "id", node); err != nil {
 		return err
@@ -774,6 +939,31 @@ func (s *StateStore) Services() (uint64, map[string][]string) {
 	return idx, services
 }
 
+// Archetypes is used to return all the archetypes with a list of associated tags
+func (s *StateStore) Archetypes() (uint64, map[string][]string) {
+	archetypes := make(map[string][]string)
+	idx, res, err := s.archetypeTable.Get("id")
+	if err != nil {
+		s.logger.Printf("[ERR] consul.state: Failed to get archetypes: %v", err)
+		return idx, archetypes
+	}
+	for _, r := range res {
+		srv := r.(*structs.ArchetypeNode)
+		tags, ok := archetypes[srv.ArchetypeName]
+		if !ok {
+			archetypes[srv.ArchetypeName] = make([]string, 0)
+		}
+
+		for _, tag := range srv.ArchetypeTags {
+			if !strContains(tags, tag) {
+				tags = append(tags, tag)
+				archetypes[srv.ArchetypeName] = tags
+			}
+		}
+	}
+	return idx, archetypes
+}
+
 // ServiceNodes returns the nodes associated with a given service
 func (s *StateStore) ServiceNodes(service string) (uint64, structs.ServiceNodes) {
 	tables := s.queryTables["ServiceNodes"]
@@ -790,6 +980,24 @@ func (s *StateStore) ServiceNodes(service string) (uint64, structs.ServiceNodes)
 
 	res, err := s.serviceTable.GetTxn(tx, "service", service)
 	return idx, s.parseServiceNodes(tx, s.nodeTable, res, err)
+}
+
+// ArchetypeNodes returns the nodes associated with a given archetype
+func (s *StateStore) ArchetypeNodes(archetype string) (uint64, structs.ArchetypeNodes) {
+	tables := s.queryTables["ArchetypeNodes"]
+	tx, err := tables.StartTxn(true)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	idx, err := tables.LastIndexTxn(tx)
+	if err != nil {
+		panic(fmt.Errorf("Failed to get last index: %v", err))
+	}
+
+	res, err := s.archetypeTable.GetTxn(tx, "archetype", archetype)
+	return idx, s.parseArchetypeNodes(tx, s.nodeTable, res, err)
 }
 
 // ServiceTagNodes returns the nodes associated with a given service matching a tag
@@ -841,6 +1049,65 @@ func (s *StateStore) parseServiceNodes(tx *MDBTxn, table *MDBTable, res []interf
 		nodeRes, err := table.GetTxn(tx, "id", srv.Node)
 		if err != nil || len(nodeRes) != 1 {
 			s.logger.Printf("[ERR] consul.state: Failed to join service node %#v with node: %v", *srv, err)
+			continue
+		}
+		srv.Address = nodeRes[0].(*structs.Node).Address
+
+		nodes[i] = *srv
+	}
+
+	return nodes
+}
+
+// ArchetypeTagNodes returns the nodes associated with a given archetype matching a tag
+func (s *StateStore) ArchetypeTagNodes(archetype, tag string) (uint64, structs.ArchetypeNodes) {
+	tables := s.queryTables["ArchetypeNodes"]
+	tx, err := tables.StartTxn(true)
+	if err != nil {
+		panic(fmt.Errorf("Failed to start txn: %v", err))
+	}
+	defer tx.Abort()
+
+	idx, err := tables.LastIndexTxn(tx)
+	if err != nil {
+		panic(fmt.Errorf("Failed to get last index: %v", err))
+	}
+
+	res, err := s.archetypeTable.GetTxn(tx, "archetype", archetype)
+	res = archetypeTagFilter(res, tag)
+	return idx, s.parseArchetypeNodes(tx, s.nodeTable, res, err)
+}
+
+// archetypeTagFilter is used to filter a list of *structs.ArchetypeNode which do
+// not have the specified tag
+func archetypeTagFilter(l []interface{}, tag string) []interface{} {
+	n := len(l)
+	for i := 0; i < n; i++ {
+		srv := l[i].(*structs.ArchetypeNode)
+		if !strContains(ToLowerList(srv.ArchetypeTags), strings.ToLower(tag)) {
+			l[i], l[n-1] = l[n-1], nil
+			i--
+			n--
+		}
+	}
+	return l[:n]
+}
+
+// parseArchetypeNodes parses results ArchetypeNodes and ArchetypeTagNodes
+func (s *StateStore) parseArchetypeNodes(tx *MDBTxn, table *MDBTable, res []interface{}, err error) structs.ArchetypeNodes {
+	nodes := make(structs.ArchetypeNodes, len(res))
+	if err != nil {
+		s.logger.Printf("[ERR] consul.state: Failed to get archetype nodes: %v", err)
+		return nodes
+	}
+
+	for i, r := range res {
+		srv := r.(*structs.ArchetypeNode)
+
+		// Get the address of the node
+		nodeRes, err := table.GetTxn(tx, "id", srv.Node)
+		if err != nil || len(nodeRes) != 1 {
+			s.logger.Printf("[ERR] consul.state: Failed to join archetype node %#v with node: %v", *srv, err)
 			continue
 		}
 		srv.Address = nodeRes[0].(*structs.Node).Address
@@ -1125,6 +1392,24 @@ func (s *StateStore) parseNodeInfo(tx *MDBTxn, res []interface{}, err error) str
 				Port:    service.ServicePort,
 			}
 			info.Services = append(info.Services, srv)
+		}
+
+		// Get any archetypes of the node
+		res, err = s.archetypeTable.GetTxn(tx, "id", node.Node)
+		if err != nil {
+			s.logger.Printf("[ERR] consul.state: Failed to get node archetypes: %v", err)
+		}
+		info.Archetypes = make([]*structs.NodeArchetype, 0, len(res))
+		for _, r := range res {
+			archetype := r.(*structs.ArchetypeNode)
+			srv := &structs.NodeArchetype{
+				ID:        archetype.ArchetypeID,
+				Archetype: archetype.ArchetypeName,
+				Tags:      archetype.ArchetypeTags,
+				Address:   archetype.ArchetypeAddress,
+				Port:      archetype.ArchetypePort,
+			}
+			info.Archetypes = append(info.Archetypes, srv)
 		}
 
 		// Get any checks of the node
@@ -1625,6 +1910,18 @@ func (s *StateStore) SessionCreate(index uint64, session *structs.Session) error
 		return fmt.Errorf("Invalid Session Behavior setting '%s'", session.Behavior)
 	}
 
+	if session.TTL != "" {
+		ttl, err := time.ParseDuration(session.TTL)
+		if err != nil {
+			return fmt.Errorf("Invalid Session TTL '%s': %v", session.TTL, err)
+		}
+
+		if ttl != 0 && (ttl < structs.SessionTTLMin || ttl > structs.SessionTTLMax) {
+			return fmt.Errorf("Invalid Session TTL '%s', must be between [%v-%v]",
+				session.TTL, structs.SessionTTLMin, structs.SessionTTLMax)
+		}
+	}
+
 	// Assign the create index
 	session.CreateIndex = index
 
@@ -2076,6 +2373,12 @@ func (s *StateSnapshot) Nodes() structs.Nodes {
 // NodeServices is used to return all the services of a given node
 func (s *StateSnapshot) NodeServices(name string) *structs.NodeServices {
 	_, res := s.store.parseNodeServices(s.store.tables, s.tx, name)
+	return res
+}
+
+// NodeArchetypes is used to return all the archetypes of a given node
+func (s *StateSnapshot) NodeArchetypes(name string) *structs.NodeArchetypes {
+	_, res := s.store.parseNodeArchetypes(s.store.tables, s.tx, name)
 	return res
 }
 
