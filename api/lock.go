@@ -161,6 +161,7 @@ WAIT:
 
 	if pair == nil || pair.Session == "" {
 		if l.lockSession != "" {
+			// if a lockSession already exists but the pair does not have a session, the session is invalid, recreate it
 			if def, err := l.createSession(); err != nil {
 				return nil, fmt.Errorf("failed to create session: %v", err)
 			} else {
@@ -296,7 +297,7 @@ func (l *Lock) createSession() (func(), error) {
 	go session.RenewPeriodic(l.opts.SessionTTL, id, nil, l.sessionRenew)
 
 	return func() {
-		if !l.isHeld {
+		if !l.isHeld && l.sessionRenew != nil {
 			close(l.sessionRenew)
 			l.sessionRenew = nil
 		}
