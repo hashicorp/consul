@@ -215,7 +215,7 @@ func (s *TestServer) Stop() {
 
 	cmd := exec.Command("kill", "-9", fmt.Sprintf("%d", s.PID))
 	if err := cmd.Run(); err != nil {
-		panic(err)
+		s.t.Errorf("err: %s", err)
 	}
 }
 
