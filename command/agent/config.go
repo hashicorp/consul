@@ -930,6 +930,9 @@ func MergeConfig(a, b *Config) *Config {
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval
 	}
+	if b.CheckUpdateStagger {
+		result.CheckUpdateStagger = true
+	}
 	if b.SyslogFacility != "" {
 		result.SyslogFacility = b.SyslogFacility
 	}
