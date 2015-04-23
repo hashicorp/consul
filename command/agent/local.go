@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"reflect"
 	"strings"
 	"sync"
@@ -211,7 +210,7 @@ func (l *localState) UpdateCheck(checkID, status, output string) {
 		if _, ok := l.deferCheck[checkID]; !ok {
 			var intv time.Duration
 			if l.config.CheckUpdateStagger {
-				intv = time.Duration(uint64(l.config.CheckUpdateInterval)/2 + uint64(rand.Int63())%uint64(l.config.CheckUpdateInterval))
+				intv = time.Duration(uint64(l.config.CheckUpdateInterval)/2) + randomStagger(l.config.CheckUpdateInterval)
 			} else {
 				intv = l.config.CheckUpdateInterval
 			}
