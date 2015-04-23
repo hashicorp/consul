@@ -118,10 +118,15 @@ func (c *consulFSM) applyDeregister(buf []byte, index uint64) interface{} {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
-	// Either remove the service entry or the whole node
+	// Either remove the service entry, archetype entry, check entry or the whole node
 	if req.ServiceID != "" {
 		if err := c.state.DeleteNodeService(index, req.Node, req.ServiceID); err != nil {
 			c.logger.Printf("[INFO] consul.fsm: DeleteNodeService failed: %v", err)
+			return err
+		}
+	} else if req.ArchetypeID != "" {
+		if err := c.state.DeleteNodeArchetype(index, req.Node, req.ArchetypeID); err != nil {
+			c.logger.Printf("[INFO] consul.fsm: DeleteNodeArchetype failed: %v", err)
 			return err
 		}
 	} else if req.CheckID != "" {
@@ -412,6 +417,16 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 		services := s.state.NodeServices(nodes[i].Node)
 		for _, srv := range services.Services {
 			req.Service = srv
+			sink.Write([]byte{byte(structs.RegisterRequestType)})
+			if err := encoder.Encode(&req); err != nil {
+				return err
+			}
+		}
+
+		// Register each archetype this node has
+		archetypes := s.state.NodeArchetypes(nodes[i].Node)
+		for _, arch := range archetypes.Archetypes {
+			req.Archetype = arch
 			sink.Write([]byte{byte(structs.RegisterRequestType)})
 			if err := encoder.Encode(&req); err != nil {
 				return err
