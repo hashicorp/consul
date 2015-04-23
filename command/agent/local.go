@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"reflect"
 	"strings"
 	"sync"
@@ -208,7 +209,13 @@ func (l *localState) UpdateCheck(checkID, status, output string) {
 	if l.config.CheckUpdateInterval > 0 && check.Status == status {
 		check.Output = output
 		if _, ok := l.deferCheck[checkID]; !ok {
-			deferSync := time.AfterFunc(l.config.CheckUpdateInterval, func() {
+			var intv time.Duration
+			if l.config.CheckUpdateStagger {
+				intv = time.Duration(uint64(l.config.CheckUpdateInterval)/2 + uint64(rand.Int63())%uint64(l.config.CheckUpdateInterval))
+			} else {
+				intv = l.config.CheckUpdateInterval
+			}
+			deferSync := time.AfterFunc(intv, func() {
 				l.Lock()
 				if _, ok := l.checkStatus[checkID]; ok {
 					l.checkStatus[checkID] = syncStatus{inSync: false}
