@@ -9,7 +9,7 @@ import (
 
 func TestClientPutGetDelete(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	kv := c.KV()
 
@@ -65,7 +65,7 @@ func TestClientPutGetDelete(t *testing.T) {
 
 func TestClient_List_DeleteRecurse(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	kv := c.KV()
 
@@ -119,7 +119,7 @@ func TestClient_List_DeleteRecurse(t *testing.T) {
 
 func TestClient_DeleteCAS(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	kv := c.KV()
 
@@ -164,7 +164,7 @@ func TestClient_DeleteCAS(t *testing.T) {
 
 func TestClient_CAS(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	kv := c.KV()
 
@@ -211,7 +211,7 @@ func TestClient_CAS(t *testing.T) {
 
 func TestClient_WatchGet(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	kv := c.KV()
 
@@ -262,7 +262,7 @@ func TestClient_WatchGet(t *testing.T) {
 
 func TestClient_WatchList(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	kv := c.KV()
 
@@ -315,7 +315,7 @@ func TestClient_WatchList(t *testing.T) {
 
 func TestClient_Keys_DeleteRecurse(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	kv := c.KV()
 
@@ -364,7 +364,7 @@ func TestClient_Keys_DeleteRecurse(t *testing.T) {
 
 func TestClient_AcquireRelease(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	session := c.Session()
 	kv := c.KV()

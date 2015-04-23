@@ -9,7 +9,7 @@ import (
 
 func TestSemaphore_AcquireRelease(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/semaphore", 2)
 	if err != nil {
@@ -66,7 +66,7 @@ func TestSemaphore_AcquireRelease(t *testing.T) {
 
 func TestSemaphore_ForceInvalidate(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/semaphore", 2)
 	if err != nil {
@@ -100,7 +100,7 @@ func TestSemaphore_ForceInvalidate(t *testing.T) {
 
 func TestSemaphore_DeleteKey(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/semaphore", 2)
 	if err != nil {
@@ -133,7 +133,7 @@ func TestSemaphore_DeleteKey(t *testing.T) {
 
 func TestSemaphore_Contend(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	wg := &sync.WaitGroup{}
 	acquired := make([]bool, 4)
@@ -185,7 +185,7 @@ func TestSemaphore_Contend(t *testing.T) {
 
 func TestSemaphore_BadLimit(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/semaphore", 0)
 	if err == nil {
@@ -215,7 +215,7 @@ func TestSemaphore_BadLimit(t *testing.T) {
 
 func TestSemaphore_Destroy(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/semaphore", 2)
 	if err != nil {
@@ -270,7 +270,7 @@ func TestSemaphore_Destroy(t *testing.T) {
 
 func TestSemaphore_Conflict(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	lock, err := c.LockKey("test/sema/.lock")
 	if err != nil {
