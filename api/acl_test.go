@@ -17,7 +17,7 @@ func TestACL_CreateDestroy(t *testing.T) {
 		t.SkipNow()
 	}
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	c.config.Token = CONSUL_ROOT
 	acl := c.ACL()
@@ -65,7 +65,7 @@ func TestACL_CloneDestroy(t *testing.T) {
 		t.SkipNow()
 	}
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	c.config.Token = CONSUL_ROOT
 	acl := c.ACL()
@@ -98,7 +98,7 @@ func TestACL_Info(t *testing.T) {
 		t.SkipNow()
 	}
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	c.config.Token = CONSUL_ROOT
 	acl := c.ACL()
@@ -125,7 +125,7 @@ func TestACL_List(t *testing.T) {
 		t.SkipNow()
 	}
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	c.config.Token = CONSUL_ROOT
 	acl := c.ACL()

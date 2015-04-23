@@ -9,7 +9,7 @@ import (
 
 func TestLock_LockUnlock(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	lock, err := c.LockKey("test/lock")
 	if err != nil {
@@ -66,7 +66,7 @@ func TestLock_LockUnlock(t *testing.T) {
 
 func TestLock_ForceInvalidate(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	lock, err := c.LockKey("test/lock")
 	if err != nil {
@@ -100,7 +100,7 @@ func TestLock_ForceInvalidate(t *testing.T) {
 
 func TestLock_DeleteKey(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	lock, err := c.LockKey("test/lock")
 	if err != nil {
@@ -133,7 +133,7 @@ func TestLock_DeleteKey(t *testing.T) {
 
 func TestLock_Contend(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	wg := &sync.WaitGroup{}
 	acquired := make([]bool, 3)
@@ -185,7 +185,7 @@ func TestLock_Contend(t *testing.T) {
 
 func TestLock_Destroy(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	lock, err := c.LockKey("test/lock")
 	if err != nil {
@@ -253,7 +253,7 @@ func TestLock_Destroy(t *testing.T) {
 
 func TestLock_Conflict(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	sema, err := c.SemaphorePrefix("test/lock/", 2)
 	if err != nil {

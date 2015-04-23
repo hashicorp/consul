@@ -2,12 +2,10 @@ package api
 
 import (
 	crand "crypto/rand"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -16,162 +14,32 @@ import (
 	"github.com/hashicorp/consul/testutil"
 )
 
-type testServer struct {
-	pid        int
-	dataDir    string
-	configFile string
-}
-
-type testPortConfig struct {
-	DNS     int `json:"dns,omitempty"`
-	HTTP    int `json:"http,omitempty"`
-	RPC     int `json:"rpc,omitempty"`
-	SerfLan int `json:"serf_lan,omitempty"`
-	SerfWan int `json:"serf_wan,omitempty"`
-	Server  int `json:"server,omitempty"`
-}
-
-type testAddressConfig struct {
-	HTTP string `json:"http,omitempty"`
-}
-
-type testServerConfig struct {
-	Bootstrap bool               `json:"bootstrap,omitempty"`
-	Server    bool               `json:"server,omitempty"`
-	DataDir   string             `json:"data_dir,omitempty"`
-	LogLevel  string             `json:"log_level,omitempty"`
-	Addresses *testAddressConfig `json:"addresses,omitempty"`
-	Ports     testPortConfig     `json:"ports,omitempty"`
-}
-
-// Callback functions for modifying config
 type configCallback func(c *Config)
-type serverConfigCallback func(c *testServerConfig)
 
-func defaultConfig() *testServerConfig {
-	return &testServerConfig{
-		Bootstrap: true,
-		Server:    true,
-		LogLevel:  "debug",
-		Ports: testPortConfig{
-			DNS:     19000,
-			HTTP:    18800,
-			RPC:     18600,
-			SerfLan: 18200,
-			SerfWan: 18400,
-			Server:  18000,
-		},
-	}
+func makeClient(t *testing.T) (*Client, *testutil.TestServer) {
+	return makeClientWithConfig(t, nil, nil)
 }
 
-func (s *testServer) stop() {
-	defer os.RemoveAll(s.dataDir)
-	defer os.RemoveAll(s.configFile)
+func makeClientWithConfig(
+	t *testing.T,
+	cb1 configCallback,
+	cb2 testutil.ServerConfigCallback) (*Client, *testutil.TestServer) {
 
-	cmd := exec.Command("kill", "-9", fmt.Sprintf("%d", s.pid))
-	if err := cmd.Run(); err != nil {
-		panic(err)
-	}
-}
-
-func newTestServer(t *testing.T) *testServer {
-	return newTestServerWithConfig(t, func(c *testServerConfig) {})
-}
-
-func newTestServerWithConfig(t *testing.T, cb serverConfigCallback) *testServer {
-	if path, err := exec.LookPath("consul"); err != nil || path == "" {
-		t.Log("consul not found on $PATH, skipping")
-		t.SkipNow()
-	}
-
-	pidFile, err := ioutil.TempFile("", "consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	pidFile.Close()
-	os.Remove(pidFile.Name())
-
-	dataDir, err := ioutil.TempDir("", "consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	configFile, err := ioutil.TempFile("", "consul")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	consulConfig := defaultConfig()
-	consulConfig.DataDir = dataDir
-
-	cb(consulConfig)
-
-	configContent, err := json.Marshal(consulConfig)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if _, err := configFile.Write(configContent); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	configFile.Close()
-
-	// Start the server
-	cmd := exec.Command("consul", "agent", "-config-file", configFile.Name())
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	return &testServer{
-		pid:        cmd.Process.Pid,
-		dataDir:    dataDir,
-		configFile: configFile.Name(),
-	}
-}
-
-func makeClient(t *testing.T) (*Client, *testServer) {
-	return makeClientWithConfig(t, func(c *Config) {
-		c.Address = "127.0.0.1:18800"
-	}, func(c *testServerConfig) {})
-}
-
-func makeClientWithConfig(t *testing.T, cb1 configCallback, cb2 serverConfigCallback) (*Client, *testServer) {
 	// Make client config
 	conf := DefaultConfig()
-	cb1(conf)
+	if cb1 != nil {
+		cb1(conf)
+	}
+
+	// Create server
+	server := testutil.NewTestServerConfig(t, cb2)
+	conf.Address = server.HTTPAddr
 
 	// Create client
 	client, err := NewClient(conf)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	// Create server
-	server := newTestServerWithConfig(t, cb2)
-
-	// Allow the server some time to start, and verify we have a leader.
-	testutil.WaitForResult(func() (bool, error) {
-		req := client.newRequest("GET", "/v1/catalog/nodes")
-		_, resp, err := client.doRequest(req)
-		if err != nil {
-			return false, err
-		}
-		resp.Body.Close()
-
-		// Ensure we have a leader and a node registeration
-		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
-			return false, fmt.Errorf("Consul leader status: %#v", leader)
-		}
-		if resp.Header.Get("X-Consul-Index") == "0" {
-			return false, fmt.Errorf("Consul index is 0")
-		}
-
-		return true, nil
-	}, func(err error) {
-		t.Fatalf("err: %s", err)
-	})
 
 	return client, server
 }
@@ -237,7 +105,7 @@ func TestDefaultConfig_env(t *testing.T) {
 
 func TestSetQueryOptions(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &QueryOptions{
@@ -272,7 +140,7 @@ func TestSetQueryOptions(t *testing.T) {
 
 func TestSetWriteOptions(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	r := c.newRequest("GET", "/v1/kv/foo")
 	q := &WriteOptions{
@@ -291,7 +159,7 @@ func TestSetWriteOptions(t *testing.T) {
 
 func TestRequestToHTTP(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	r := c.newRequest("DELETE", "/v1/kv/foo")
 	q := &QueryOptions{
@@ -349,12 +217,12 @@ func TestAPI_UnixSocket(t *testing.T) {
 
 	c, s := makeClientWithConfig(t, func(c *Config) {
 		c.Address = "unix://" + socket
-	}, func(c *testServerConfig) {
-		c.Addresses = &testAddressConfig{
+	}, func(c *testutil.TestServerConfig) {
+		c.Addresses = &testutil.TestAddressConfig{
 			HTTP: "unix://" + socket,
 		}
 	})
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
