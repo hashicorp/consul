@@ -19,7 +19,7 @@ import (
 const (
 	dbNodes                  = "nodes"
 	dbServices               = "services"
-	dbSArchetypes            = "archetypes"
+	dbArchetypes             = "archetypes"
 	dbChecks                 = "checks"
 	dbKVS                    = "kvs"
 	dbTombstone              = "tombstones"
@@ -248,7 +248,7 @@ func (s *StateStore) initialize() error {
 	}
 
 	s.archetypeTable = &MDBTable{
-		Name: dbSArchetypes,
+		Name: dbArchetypes,
 		Indexes: map[string]*MDBIndex{
 			"id": &MDBIndex{
 				Unique: true,
@@ -403,7 +403,7 @@ func (s *StateStore) initialize() error {
 	}
 
 	// Store the set of tables
-	s.tables = []*MDBTable{s.nodeTable, s.serviceTable, s.checkTable,
+	s.tables = []*MDBTable{s.nodeTable, s.serviceTable, s.archetypeTable, s.checkTable,
 		s.kvsTable, s.tombstoneTable, s.sessionTable, s.sessionCheckTable,
 		s.aclTable}
 	for _, table := range s.tables {
