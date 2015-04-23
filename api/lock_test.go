@@ -308,9 +308,20 @@ func TestLock_ReclaimLock(t *testing.T) {
 	defer lock.Unlock()
 
 	// Simulate a false positive on a release lock (for example, if consul is unreachable and monitorLock returns)
-	lock.l.Lock()
-	lock.isHeld = false
-	lock.l.Unlock()
+	kv := lock.c.KV()
+	pair, _, err := kv.Get(lock.opts.Key, nil)
+	if err != nil {
+		t.Fatalf("failed to read lock: %v", err)
+	}
+
+	didRemove, _, err := kv.DeleteCAS(pair, nil)
+	if err != nil {
+		t.Fatalf("failed to remove lock: %v", err)
+	}
+	if !didRemove {
+		t.Fatalf("could not delete")
+	}
+	time.Sleep(time.Second)
 
 	reclaimed := make(chan (<-chan struct{}), 1)
 	go func() {
@@ -321,32 +332,10 @@ func TestLock_ReclaimLock(t *testing.T) {
 		reclaimed <- l2Ch
 	}()
 
-	// Should reclaim the lock
-	var leader2Ch <-chan struct{}
-
 	select {
-	case leader2Ch = <-reclaimed:
+	case <-reclaimed:
 	case <-time.After(time.Second):
 		t.Fatalf("should have locked")
-	}
-
-	// unlock should work
-	err = lock.Unlock()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	//Both locks should see the unlock
-	select {
-	case <-leader2Ch:
-	case <-time.After(time.Second):
-		t.Fatalf("should not be leader")
-	}
-
-	select {
-	case <-leaderCh:
-	case <-time.After(time.Second):
-		t.Fatalf("should not be leader")
 	}
 }
 

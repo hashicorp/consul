@@ -54,7 +54,7 @@ type Lock struct {
 	c    *Client
 	opts *LockOptions
 
-	isHeld       bool
+	held         chan struct{}
 	sessionRenew chan struct{}
 	lockSession  string
 	l            sync.Mutex
@@ -99,7 +99,9 @@ func (c *Client) LockOpts(opts *LockOptions) (*Lock, error) {
 	l := &Lock{
 		c:    c,
 		opts: opts,
+		held: make(chan struct{}, 1),
 	}
+	close(l.held)
 	return l, nil
 }
 
@@ -113,22 +115,28 @@ func (c *Client) LockOpts(opts *LockOptions) (*Lock, error) {
 // prefer liveness over safety and an application must be able to handle
 // the lock being lost.
 func (l *Lock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
+	// Check if we already hold the lock
+	if l.isHeld() {
+		return nil, ErrLockHeld
+	}
+
 	// Hold the lock as we try to acquire
 	l.l.Lock()
 	defer l.l.Unlock()
 
-	// Check if we already hold the lock
-	if l.isHeld {
-		return nil, ErrLockHeld
-	}
-
 	// Check if we need to create a session first
+	l.lockSession = l.opts.Session
 	if l.lockSession == "" {
-		if def, err := l.createSession(); err != nil {
+		if err := l.createSession(); err != nil {
 			return nil, fmt.Errorf("failed to create session: %v", err)
 		} else {
 			// If we fail to acquire the lock, cleanup the session
-			defer def()
+			defer func() {
+				if !l.isHeld() && l.sessionRenew != nil {
+					close(l.sessionRenew)
+					l.sessionRenew = nil
+				}
+			}()
 		}
 	}
 
@@ -160,15 +168,6 @@ WAIT:
 	}
 
 	if pair == nil || pair.Session == "" {
-		if l.lockSession != "" {
-			// if a lockSession already exists but the pair does not have a session, the session is invalid, recreate it
-			if def, err := l.createSession(); err != nil {
-				return nil, fmt.Errorf("failed to create session: %v", err)
-			} else {
-				// If we fail to acquire the lock, cleanup the session
-				defer def()
-			}
-		}
 		// Try to acquire the lock
 		lockEnt := l.lockEntry(l.lockSession)
 
@@ -187,13 +186,12 @@ WAIT:
 			}
 		}
 	}
+	// Set that we own the lock
+	l.held = make(chan struct{})
 
 	// Watch to ensure we maintain leadership
 	leaderCh := make(chan struct{})
 	go l.monitorLock(l.lockSession, leaderCh)
-
-	// Set that we own the lock
-	l.isHeld = true
 
 	// Locked! All done
 	return leaderCh, nil
@@ -202,17 +200,17 @@ WAIT:
 // Unlock released the lock. It is an error to call this
 // if the lock is not currently held.
 func (l *Lock) Unlock() error {
+	// Ensure the lock is actually held
+	if !l.isHeld() {
+		return ErrLockNotHeld
+	}
+
 	// Hold the lock as we try to release
 	l.l.Lock()
 	defer l.l.Unlock()
 
-	// Ensure the lock is actually held
-	if !l.isHeld {
-		return ErrLockNotHeld
-	}
-
 	// Set that we no longer own the lock
-	l.isHeld = false
+	close(l.held)
 
 	// Stop the session renew
 	if l.sessionRenew != nil {
@@ -238,14 +236,14 @@ func (l *Lock) Unlock() error {
 // Destroy is used to cleanup the lock entry. It is not necessary
 // to invoke. It will fail if the lock is in use.
 func (l *Lock) Destroy() error {
+	// Check if we already hold the lock
+	if l.isHeld() {
+		return ErrLockHeld
+	}
+
 	// Hold the lock as we try to release
 	l.l.Lock()
 	defer l.l.Unlock()
-
-	// Check if we already hold the lock
-	if l.isHeld {
-		return ErrLockHeld
-	}
 
 	// Look for an existing lock
 	kv := l.c.KV()
@@ -281,7 +279,7 @@ func (l *Lock) Destroy() error {
 }
 
 // createSession is used to create a new managed session
-func (l *Lock) createSession() (func(), error) {
+func (l *Lock) createSession() error {
 	session := l.c.Session()
 	se := &SessionEntry{
 		Name: l.opts.SessionName,
@@ -289,19 +287,14 @@ func (l *Lock) createSession() (func(), error) {
 	}
 	id, _, err := session.Create(se, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	l.sessionRenew = make(chan struct{})
 	l.lockSession = id
 	go session.RenewPeriodic(l.opts.SessionTTL, id, nil, l.sessionRenew)
 
-	return func() {
-		if !l.isHeld && l.sessionRenew != nil {
-			close(l.sessionRenew)
-			l.sessionRenew = nil
-		}
-	}, nil
+	return nil
 }
 
 // lockEntry returns a formatted KVPair for the lock
@@ -314,13 +307,24 @@ func (l *Lock) lockEntry(session string) *KVPair {
 	}
 }
 
+func (l *Lock) isHeld() bool {
+	select {
+	case <-l.held:
+		return false
+	default:
+		return true
+	}
+}
+
 // monitorLock is a long running routine to monitor a lock ownership
 // It closes the stopCh if we lose our leadership.
 func (l *Lock) monitorLock(session string, stopCh chan struct{}) {
 	defer func() {
 		l.l.Lock()
 		defer l.l.Unlock()
-		l.isHeld = false
+		if l.isHeld() {
+			close(l.held)
+		}
 		close(stopCh)
 	}()
 	kv := l.c.KV()
