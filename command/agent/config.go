@@ -263,12 +263,6 @@ type Config struct {
 	CheckUpdateInterval    time.Duration `mapstructure:"-"`
 	CheckUpdateIntervalRaw string        `mapstructure:"check_update_interval" json:"-"`
 
-	// CheckUpdateStagger enables a randomization of the CheckUpdateInterval between
-	// .5 and 1.5 of that interval. This is useful if checks happen often to stagger
-	// writes and pervent them from all executing at the end of the same CheckUpdateInterval.
-	// Off by default.
-	CheckUpdateStagger bool `mapstructure:"check_update_stagger"`
-
 	// ACLToken is the default token used to make requests if a per-request
 	// token is not provided. If not configured the 'anonymous' token is used.
 	ACLToken string `mapstructure:"acl_token" json:"-"`
@@ -929,9 +923,6 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval
-	}
-	if b.CheckUpdateStagger {
-		result.CheckUpdateStagger = true
 	}
 	if b.SyslogFacility != "" {
 		result.SyslogFacility = b.SyslogFacility

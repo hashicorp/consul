@@ -208,12 +208,7 @@ func (l *localState) UpdateCheck(checkID, status, output string) {
 	if l.config.CheckUpdateInterval > 0 && check.Status == status {
 		check.Output = output
 		if _, ok := l.deferCheck[checkID]; !ok {
-			var intv time.Duration
-			if l.config.CheckUpdateStagger {
-				intv = time.Duration(uint64(l.config.CheckUpdateInterval)/2) + randomStagger(l.config.CheckUpdateInterval)
-			} else {
-				intv = l.config.CheckUpdateInterval
-			}
+			intv := time.Duration(uint64(l.config.CheckUpdateInterval)/2) + randomStagger(l.config.CheckUpdateInterval)
 			deferSync := time.AfterFunc(intv, func() {
 				l.Lock()
 				if _, ok := l.checkStatus[checkID]; ok {

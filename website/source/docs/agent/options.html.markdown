@@ -353,12 +353,6 @@ definitions support being updated during a reload.
   reduce write pressure. If a check ever changes state, the new state and associated
   output is synchronized immediately. To disable this behavior, set the value to "0s".
 
-* <a name="check_update_stagger"></a><a href="#check_update_stagger">`check_update_stagger`</a>
-  CheckUpdateStagger enables a randomization of the CheckUpdateInterval between
-  .5 and 1.5 of that interval. This is useful if checks happen often to stagger
-  writes and pervent them from all executing at the end of the same CheckUpdateInterval.
-  Off by default.
-
 * <a name="client_addr"></a><a href="#client_addr">`client_addr`</a> Equivalent to the
   [`-client` command-line flag](#_client).
 
