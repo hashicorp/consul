@@ -38,3 +38,6 @@ ui/static/application.min.js
 ui/dist/
 
 *.swp
+
+website/.bundle
+website/vendor
