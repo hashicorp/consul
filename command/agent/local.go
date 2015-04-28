@@ -48,10 +48,12 @@ type localState struct {
 	// Services tracks the local services
 	services      map[string]*structs.NodeService
 	serviceStatus map[string]syncStatus
+	serviceTokens map[string]string
 
 	// Checks tracks the local checks
 	checks      map[string]*structs.HealthCheck
 	checkStatus map[string]syncStatus
+	checkTokens map[string]string
 
 	// Used to track checks that are being deferred
 	deferCheck map[string]*time.Timer
@@ -71,8 +73,10 @@ func (l *localState) Init(config *Config, logger *log.Logger) {
 	l.logger = logger
 	l.services = make(map[string]*structs.NodeService)
 	l.serviceStatus = make(map[string]syncStatus)
+	l.serviceTokens = make(map[string]string)
 	l.checks = make(map[string]*structs.HealthCheck)
 	l.checkStatus = make(map[string]syncStatus)
+	l.checkTokens = make(map[string]string)
 	l.deferCheck = make(map[string]*time.Timer)
 	l.consulCh = make(chan struct{}, 1)
 	l.triggerCh = make(chan struct{}, 1)
@@ -122,7 +126,7 @@ func (l *localState) isPaused() bool {
 // AddService is used to add a service entry to the local state.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (l *localState) AddService(service *structs.NodeService) {
+func (l *localState) AddService(service *structs.NodeService, token string) {
 	// Assign the ID if none given
 	if service.ID == "" && service.Service != "" {
 		service.ID = service.Service
@@ -133,6 +137,7 @@ func (l *localState) AddService(service *structs.NodeService) {
 
 	l.services[service.ID] = service
 	l.serviceStatus[service.ID] = syncStatus{}
+	l.serviceTokens[service.ID] = token
 	l.changeMade()
 }
 
@@ -163,7 +168,7 @@ func (l *localState) Services() map[string]*structs.NodeService {
 // AddCheck is used to add a health check to the local state.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (l *localState) AddCheck(check *structs.HealthCheck) {
+func (l *localState) AddCheck(check *structs.HealthCheck, token string) {
 	// Set the node name
 	check.Node = l.config.NodeName
 
@@ -172,6 +177,7 @@ func (l *localState) AddCheck(check *structs.HealthCheck) {
 
 	l.checks[check.CheckID] = check
 	l.checkStatus[check.CheckID] = syncStatus{}
+	l.checkTokens[check.CheckID] = token
 	l.changeMade()
 }
 
@@ -436,11 +442,16 @@ func (l *localState) deleteService(id string) error {
 		return fmt.Errorf("ServiceID missing")
 	}
 
+	token := l.serviceTokens[id]
+	if token == "" {
+		token = l.config.ACLToken
+	}
+
 	req := structs.DeregisterRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
 		ServiceID:    id,
-		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
+		WriteRequest: structs.WriteRequest{Token: token},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Deregister", &req, &out)
@@ -457,11 +468,16 @@ func (l *localState) deleteCheck(id string) error {
 		return fmt.Errorf("CheckID missing")
 	}
 
+	token := l.checkTokens[id]
+	if token == "" {
+		token = l.config.ACLToken
+	}
+
 	req := structs.DeregisterRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
 		CheckID:      id,
-		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
+		WriteRequest: structs.WriteRequest{Token: token},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Deregister", &req, &out)
@@ -474,12 +490,17 @@ func (l *localState) deleteCheck(id string) error {
 
 // syncService is used to sync a service to the server
 func (l *localState) syncService(id string) error {
+	token := l.serviceTokens[id]
+	if token == "" {
+		token = l.config.ACLToken
+	}
+
 	req := structs.RegisterRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
 		Address:      l.config.AdvertiseAddr,
 		Service:      l.services[id],
-		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
+		WriteRequest: structs.WriteRequest{Token: token},
 	}
 
 	// If the service has associated checks that are out of sync,
@@ -530,13 +551,19 @@ func (l *localState) syncCheck(id string) error {
 			service = serv
 		}
 	}
+
+	token := l.checkTokens[id]
+	if token == "" {
+		token = l.config.ACLToken
+	}
+
 	req := structs.RegisterRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
 		Address:      l.config.AdvertiseAddr,
 		Service:      service,
 		Check:        l.checks[id],
-		WriteRequest: structs.WriteRequest{Token: l.config.ACLToken},
+		WriteRequest: structs.WriteRequest{Token: token},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Register", &req, &out)

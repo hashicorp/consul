@@ -13,6 +13,7 @@ type ServiceDefinition struct {
 	Port    int
 	Check   CheckType
 	Checks  CheckTypes
+	Token   string
 }
 
 func (s *ServiceDefinition) NodeService() *structs.NodeService {
