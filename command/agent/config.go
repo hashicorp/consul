@@ -774,34 +774,34 @@ func DecodeCheckDefinition(raw interface{}) (*CheckDefinition, error) {
 
 // DecodeArchetypeDefinition is used to decode an archetype definition
 func DecodeArchetypeDefinition(raw interface{}) (*ArchetypeDefinition, error) {
-	// rawMap, ok := raw.(map[string]interface{})
-	// if !ok {
-	// 	goto AFTER_FIX
-	// }
+	rawMap, ok := raw.(map[string]interface{})
+	if !ok {
+		goto AFTER_FIX
+	}
 
 	// check definitions within an archetype are potentially in a template format
 	// for exmaple, ttl can be a variable to be interpolated when instantiating a service out of an archetype
 	// thus, a specific FixupCheckType for archetypes' checks should be implemented (later)
 
-	// for k, v := range rawMap {
-	// 	switch strings.ToLower(k) {
-	// 	case "check":
-	// 		if err := FixupCheckType(v); err != nil {
-	// 			return nil, err
-	// 		}
-	// 	case "checks":
-	// 		chkTypes, ok := v.([]interface{})
-	// 		if !ok {
-	// 			goto AFTER_FIX
-	// 		}
-	// 		for _, chkType := range chkTypes {
-	// 			if err := FixupCheckType(chkType); err != nil {
-	// 				return nil, err
-	// 			}
-	// 		}
-	// 	}
-	// }
-	// AFTER_FIX:
+	for k, v := range rawMap {
+		switch strings.ToLower(k) {
+		case "check":
+			if err := FixupCheckType(v); err != nil {
+				return nil, err
+			}
+		case "checks":
+			chkTypes, ok := v.([]interface{})
+			if !ok {
+				goto AFTER_FIX
+			}
+			for _, chkType := range chkTypes {
+				if err := FixupCheckType(chkType); err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
+AFTER_FIX:
 	var md mapstructure.Metadata
 	var result ArchetypeDefinition
 	msdec, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
@@ -1106,7 +1106,7 @@ func ReadConfigPaths(paths []string) (*Config, error) {
 		}
 
 		if !fi.IsDir() {
-			config, err := DecodeConfig(f)
+			config, err := (DecodeConfig)(f)
 			f.Close()
 
 			if err != nil {
