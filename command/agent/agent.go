@@ -520,10 +520,14 @@ func (a *Agent) ResumeSync() {
 }
 
 // persistService saves a service definition to a JSON file in the data dir
-func (a *Agent) persistService(service *structs.NodeService) error {
+func (a *Agent) persistService(service *structs.NodeService, token string) error {
 	svcPath := filepath.Join(a.config.DataDir, servicesDir, stringHash(service.ID))
 	if _, err := os.Stat(svcPath); os.IsNotExist(err) {
-		encoded, err := json.Marshal(service)
+		wrapped := &persistedService{
+			Token:   token,
+			Service: service,
+		}
+		encoded, err := json.Marshal(wrapped)
 		if err != nil {
 			return nil
 		}
@@ -552,14 +556,14 @@ func (a *Agent) purgeService(serviceID string) error {
 }
 
 // persistCheck saves a check definition to the local agent's state directory
-func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType) error {
+func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType, token string) error {
 	checkPath := filepath.Join(a.config.DataDir, checksDir, stringHash(check.CheckID))
 	if _, err := os.Stat(checkPath); !os.IsNotExist(err) {
 		return err
 	}
 
 	// Create the persisted check
-	p := persistedCheck{check, chkType}
+	p := persistedCheck{check, chkType, token}
 
 	encoded, err := json.Marshal(p)
 	if err != nil {
@@ -626,7 +630,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes,
 
 	// Persist the service to a file
 	if persist {
-		if err := a.persistService(service); err != nil {
+		if err := a.persistService(service, token); err != nil {
 			return err
 		}
 	}
@@ -781,7 +785,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType,
 
 	// Persist the check
 	if persist {
-		return a.persistCheck(check, chkType)
+		return a.persistCheck(check, chkType, token)
 	}
 
 	return nil
@@ -950,10 +954,11 @@ func (a *Agent) loadServices(conf *Config) error {
 			return err
 		}
 
-		var svc *structs.NodeService
-		if err := json.Unmarshal(content, &svc); err != nil {
+		var wrapped *persistedService
+		if err := json.Unmarshal(content, &wrapped); err != nil {
 			return err
 		}
+		svc := wrapped.Service
 
 		if _, ok := a.state.services[svc.ID]; ok {
 			// Purge previously persisted service. This allows config to be
@@ -964,7 +969,7 @@ func (a *Agent) loadServices(conf *Config) error {
 		} else {
 			a.logger.Printf("[DEBUG] agent: restored service definition %q from %q",
 				svc.ID, filePath)
-			return a.AddService(svc, nil, false, "")
+			return a.AddService(svc, nil, false, wrapped.Token)
 		}
 	})
 

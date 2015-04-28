@@ -63,3 +63,10 @@ func (c *CheckDefinition) HealthCheck(node string) *structs.HealthCheck {
 	}
 	return health
 }
+
+// persistedService is used to wrap a service definition and bundle it
+// with an ACL token so we can restore both at a later agent start.
+type persistedService struct {
+	Token   string
+	Service *structs.NodeService
+}
