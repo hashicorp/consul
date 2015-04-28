@@ -953,11 +953,16 @@ func (a *Agent) loadServices(conf *Config) error {
 		}
 
 		var wrapped *persistedService
+		var svc *structs.NodeService
 		if err := json.Unmarshal(content, &wrapped); err != nil {
-			return err
+			// Backwards-compatibility for pre-0.5.1 persisted services
+			if err := json.Unmarshal(content, &svc); err != nil {
+				return fmt.Errorf("failed decoding service from %s: %s", filePath, err)
+			}
+		} else {
+			svc = wrapped.Service
+			a.state.SetServiceToken(svc.ID, wrapped.Token)
 		}
-		svc := wrapped.Service
-		a.state.SetServiceToken(svc.ID, wrapped.Token)
 
 		if _, ok := a.state.services[svc.ID]; ok {
 			// Purge previously persisted service. This allows config to be

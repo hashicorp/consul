@@ -572,6 +572,52 @@ func TestAgent_PersistService(t *testing.T) {
 	}
 }
 
+func TestAgent_persistedCheck_compat(t *testing.T) {
+	// Tests backwards compatibility of persisted services from pre-0.5.1
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+
+	// Encode the NodeService directly. This is what previous versions
+	// would serialize to the file (without the wrapper)
+	encoded, err := json.Marshal(svc)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Write the content to the file
+	file := filepath.Join(agent.config.DataDir, servicesDir, stringHash(svc.ID))
+	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := ioutil.WriteFile(file, encoded, 0600); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Load the services
+	if err := agent.loadServices(config); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the service was restored
+	services := agent.state.Services()
+	result, ok := services["redis"]
+	if !ok {
+		t.Fatalf("missing service")
+	}
+	if !reflect.DeepEqual(result, svc) {
+		t.Fatalf("bad: %#v", result)
+	}
+}
+
 func TestAgent_PurgeService(t *testing.T) {
 	config := nextConfig()
 	dir, agent := makeAgent(t, config)
