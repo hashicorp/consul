@@ -100,7 +100,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	// Get the provided token, if any
 	var token string
 	s.parseToken(req, &token)
-	s.agent.state.AddCheckToken(health.CheckID, token)
+	s.agent.state.SetCheckToken(health.CheckID, token)
 
 	// Add the check
 	if err := s.agent.AddCheck(health, chkType, true); err != nil {
@@ -207,7 +207,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	// Get the provided token, if any
 	var token string
 	s.parseToken(req, &token)
-	s.agent.state.AddServiceToken(ns.ID, token)
+	s.agent.state.SetServiceToken(ns.ID, token)
 
 	// Add the check
 	if err := s.agent.AddService(ns, chkTypes, true); err != nil {

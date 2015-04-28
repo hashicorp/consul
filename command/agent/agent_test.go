@@ -522,7 +522,7 @@ func TestAgent_PersistService(t *testing.T) {
 	file := filepath.Join(agent.config.DataDir, servicesDir, stringHash(svc.ID))
 
 	// Configure a service token
-	agent.state.AddServiceToken(svc.ID, "hello")
+	agent.state.SetServiceToken(svc.ID, "hello")
 
 	// Check is not persisted unless requested
 	if err := agent.AddService(svc, nil, false); err != nil {
@@ -677,7 +677,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check.CheckID))
 
 	// Configure a service registration token
-	agent.state.AddCheckToken(check.CheckID, "hello")
+	agent.state.SetCheckToken(check.CheckID, "hello")
 
 	// Not persisted if not requested
 	if err := agent.AddCheck(check, chkType, false); err != nil {

@@ -615,6 +615,24 @@ func TestAgentAntiEntropy_deleteCheck_fails(t *testing.T) {
 	}
 }
 
+func TestAgent_serviceTokens(t *testing.T) {
+	l := new(localState)
+	l.Init()
+	l.SetServiceToken("redis", "abc123")
+	if token := l.ServiceToken("redis"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
+	}
+}
+
+func TestAgent_checkTokens(t *testing.T) {
+	l := new(localState)
+	l.Init()
+	l.SetCheckToken("mem", "abc123")
+	if token := l.CheckToken("mem"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
+	}
+}
+
 var testRegisterRules = `
 service "api" {
 	policy = "write"

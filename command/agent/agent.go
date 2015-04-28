@@ -957,7 +957,7 @@ func (a *Agent) loadServices(conf *Config) error {
 			return err
 		}
 		svc := wrapped.Service
-		a.state.AddServiceToken(svc.ID, wrapped.Token)
+		a.state.SetServiceToken(svc.ID, wrapped.Token)
 
 		if _, ok := a.state.services[svc.ID]; ok {
 			// Purge previously persisted service. This allows config to be
@@ -1029,7 +1029,7 @@ func (a *Agent) loadChecks(conf *Config) error {
 		if err := json.Unmarshal(content, &p); err != nil {
 			return err
 		}
-		a.state.AddCheckToken(p.Check.CheckID, p.Token)
+		a.state.SetCheckToken(p.Check.CheckID, p.Token)
 
 		if _, ok := a.state.checks[p.Check.CheckID]; ok {
 			// Purge previously persisted check. This allows config to be
