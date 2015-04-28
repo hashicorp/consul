@@ -126,9 +126,18 @@ func (l *localState) isPaused() bool {
 // SetServiceToken configures the provided token for the service ID.
 // The token will be used to perform service registration operations.
 func (l *localState) SetServiceToken(id, token string) {
+	if token != "" {
+		l.Lock()
+		defer l.Unlock()
+		l.serviceTokens[id] = token
+	}
+}
+
+// RemoveServiceToken is used to remove a configured service token.
+func (l *localState) RemoveServiceToken(id string) {
 	l.Lock()
 	defer l.Unlock()
-	l.serviceTokens[id] = token
+	delete(l.serviceTokens, id)
 }
 
 // ServiceToken returns the configured ACL token for the given
@@ -192,9 +201,18 @@ func (l *localState) Services() map[string]*structs.NodeService {
 // SetCheckToken is used to configure an ACL token for a specific
 // health check. The token is used during check registration operations.
 func (l *localState) SetCheckToken(id, token string) {
+	if token != "" {
+		l.Lock()
+		defer l.Unlock()
+		l.checkTokens[id] = token
+	}
+}
+
+// RemoveCheckToken is used to remove a configured check token.
+func (l *localState) RemoveCheckToken(id string) {
 	l.Lock()
 	defer l.Unlock()
-	l.checkTokens[id] = token
+	delete(l.checkTokens, id)
 }
 
 // CheckToken is used to return the configured health check token, or

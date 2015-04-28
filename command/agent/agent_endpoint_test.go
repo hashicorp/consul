@@ -252,7 +252,7 @@ func TestHTTPAgentRegisterCheck(t *testing.T) {
 	defer srv.agent.Shutdown()
 
 	// Register node
-	req, err := http.NewRequest("GET", "/v1/agent/check/register", nil)
+	req, err := http.NewRequest("GET", "/v1/agent/check/register?token=abc123", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -279,6 +279,11 @@ func TestHTTPAgentRegisterCheck(t *testing.T) {
 
 	if _, ok := srv.agent.checkTTLs["test"]; !ok {
 		t.Fatalf("missing test check ttl")
+	}
+
+	// Ensure the token was configured
+	if token := srv.agent.state.CheckToken("test"); token == "" {
+		t.Fatalf("missing token")
 	}
 }
 
@@ -419,7 +424,7 @@ func TestHTTPAgentRegisterService(t *testing.T) {
 	defer srv.agent.Shutdown()
 
 	// Register node
-	req, err := http.NewRequest("GET", "/v1/agent/service/register", nil)
+	req, err := http.NewRequest("GET", "/v1/agent/service/register?token=abc123", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -462,6 +467,11 @@ func TestHTTPAgentRegisterService(t *testing.T) {
 
 	if len(srv.agent.checkTTLs) != 3 {
 		t.Fatalf("missing test check ttls: %v", srv.agent.checkTTLs)
+	}
+
+	// Ensure the token was configured
+	if token := srv.agent.state.ServiceToken("test"); token == "" {
+		t.Fatalf("missing token")
 	}
 }
 

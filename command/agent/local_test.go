@@ -616,19 +616,49 @@ func TestAgentAntiEntropy_deleteCheck_fails(t *testing.T) {
 }
 
 func TestAgent_serviceTokens(t *testing.T) {
+	config := nextConfig()
+	config.ACLToken = "default"
 	l := new(localState)
-	l.Init(nil, nil)
+	l.Init(config, nil)
+
+	// Returns default when no token is set
+	if token := l.ServiceToken("redis"); token != "default" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Returns configured token
 	l.SetServiceToken("redis", "abc123")
 	if token := l.ServiceToken("redis"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Removes token
+	l.RemoveServiceToken("redis")
+	if token := l.ServiceToken("redis"); token != "default" {
 		t.Fatalf("bad: %s", token)
 	}
 }
 
 func TestAgent_checkTokens(t *testing.T) {
+	config := nextConfig()
+	config.ACLToken = "default"
 	l := new(localState)
-	l.Init(nil, nil)
+	l.Init(config, nil)
+
+	// Returns default when no token is set
+	if token := l.CheckToken("mem"); token != "default" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Returns configured token
 	l.SetCheckToken("mem", "abc123")
 	if token := l.CheckToken("mem"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
+	}
+
+	// Removes token
+	l.RemoveCheckToken("mem")
+	if token := l.CheckToken("mem"); token != "default" {
 		t.Fatalf("bad: %s", token)
 	}
 }
