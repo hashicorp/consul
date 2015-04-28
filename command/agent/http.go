@@ -204,6 +204,8 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/catalog/services", s.wrap(s.CatalogServices))
 	s.mux.HandleFunc("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
 	s.mux.HandleFunc("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
+	s.mux.HandleFunc("/v1/catalog/archetypes", s.wrap(s.CatalogArchetypes))
+	s.mux.HandleFunc("/v1/catalog/archetype/", s.wrap(s.CatalogArchetypeNodes))
 
 	s.mux.HandleFunc("/v1/health/node/", s.wrap(s.HealthNodeChecks))
 	s.mux.HandleFunc("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
