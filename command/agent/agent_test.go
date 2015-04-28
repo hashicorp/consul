@@ -684,7 +684,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	p := persistedCheck{check, chkType}
+	p := persistedCheck{check, chkType, ""}
 	expected, err := json.Marshal(p)
 	if err != nil {
 		t.Fatalf("err: %s", err)

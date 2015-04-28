@@ -36,7 +36,7 @@ type localState struct {
 	// element due to a go bug.
 	paused int32
 
-	sync.Mutex
+	sync.RWMutex
 	logger *log.Logger
 
 	// Config is the agent config
@@ -123,10 +123,30 @@ func (l *localState) isPaused() bool {
 	return atomic.LoadInt32(&l.paused) == 1
 }
 
+// AddServiceToken configures the provided token for the service ID.
+// The token will be used to perform service registration operations.
+func (l *localState) AddServiceToken(id, token string) {
+	l.Lock()
+	defer l.Unlock()
+	l.serviceTokens[id] = token
+}
+
+// ServiceToken returns the configured ACL token for the given
+// service ID. If none is present, the agent's token is returned.
+func (l *localState) ServiceToken(id string) string {
+	l.RLock()
+	defer l.RUnlock()
+	token := l.serviceTokens[id]
+	if token == "" {
+		token = l.config.ACLToken
+	}
+	return token
+}
+
 // AddService is used to add a service entry to the local state.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (l *localState) AddService(service *structs.NodeService, token string) {
+func (l *localState) AddService(service *structs.NodeService) {
 	// Assign the ID if none given
 	if service.ID == "" && service.Service != "" {
 		service.ID = service.Service
@@ -137,7 +157,6 @@ func (l *localState) AddService(service *structs.NodeService, token string) {
 
 	l.services[service.ID] = service
 	l.serviceStatus[service.ID] = syncStatus{}
-	l.serviceTokens[service.ID] = token
 	l.changeMade()
 }
 
@@ -156,8 +175,8 @@ func (l *localState) RemoveService(serviceID string) {
 // agent is aware of and are being kept in sync with the server
 func (l *localState) Services() map[string]*structs.NodeService {
 	services := make(map[string]*structs.NodeService)
-	l.Lock()
-	defer l.Unlock()
+	l.RLock()
+	defer l.RUnlock()
 
 	for name, serv := range l.services {
 		services[name] = serv
@@ -165,10 +184,30 @@ func (l *localState) Services() map[string]*structs.NodeService {
 	return services
 }
 
+// AddCheckToken is used to configure an ACL token for a specific
+// health check. The token is used during check registration operations.
+func (l *localState) AddCheckToken(id, token string) {
+	l.Lock()
+	defer l.Unlock()
+	l.checkTokens[id] = token
+}
+
+// CheckToken is used to return the configured health check token, or
+// if none is configured, the default agent ACL token.
+func (l *localState) CheckToken(id string) string {
+	l.RLock()
+	defer l.RUnlock()
+	token := l.checkTokens[id]
+	if token == "" {
+		token = l.config.ACLToken
+	}
+	return token
+}
+
 // AddCheck is used to add a health check to the local state.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (l *localState) AddCheck(check *structs.HealthCheck, token string) {
+func (l *localState) AddCheck(check *structs.HealthCheck) {
 	// Set the node name
 	check.Node = l.config.NodeName
 
@@ -177,7 +216,6 @@ func (l *localState) AddCheck(check *structs.HealthCheck, token string) {
 
 	l.checks[check.CheckID] = check
 	l.checkStatus[check.CheckID] = syncStatus{}
-	l.checkTokens[check.CheckID] = token
 	l.changeMade()
 }
 
@@ -239,8 +277,8 @@ func (l *localState) UpdateCheck(checkID, status, output string) {
 // agent is aware of and are being kept in sync with the server
 func (l *localState) Checks() map[string]*structs.HealthCheck {
 	checks := make(map[string]*structs.HealthCheck)
-	l.Lock()
-	defer l.Unlock()
+	l.RLock()
+	defer l.RUnlock()
 
 	for name, check := range l.checks {
 		checks[name] = check
@@ -442,16 +480,11 @@ func (l *localState) deleteService(id string) error {
 		return fmt.Errorf("ServiceID missing")
 	}
 
-	token := l.serviceTokens[id]
-	if token == "" {
-		token = l.config.ACLToken
-	}
-
 	req := structs.DeregisterRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
 		ServiceID:    id,
-		WriteRequest: structs.WriteRequest{Token: token},
+		WriteRequest: structs.WriteRequest{Token: l.ServiceToken(id)},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Deregister", &req, &out)
@@ -468,16 +501,11 @@ func (l *localState) deleteCheck(id string) error {
 		return fmt.Errorf("CheckID missing")
 	}
 
-	token := l.checkTokens[id]
-	if token == "" {
-		token = l.config.ACLToken
-	}
-
 	req := structs.DeregisterRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
 		CheckID:      id,
-		WriteRequest: structs.WriteRequest{Token: token},
+		WriteRequest: structs.WriteRequest{Token: l.CheckToken(id)},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Deregister", &req, &out)
@@ -490,17 +518,12 @@ func (l *localState) deleteCheck(id string) error {
 
 // syncService is used to sync a service to the server
 func (l *localState) syncService(id string) error {
-	token := l.serviceTokens[id]
-	if token == "" {
-		token = l.config.ACLToken
-	}
-
 	req := structs.RegisterRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
 		Address:      l.config.AdvertiseAddr,
 		Service:      l.services[id],
-		WriteRequest: structs.WriteRequest{Token: token},
+		WriteRequest: structs.WriteRequest{Token: l.ServiceToken(id)},
 	}
 
 	// If the service has associated checks that are out of sync,
@@ -552,18 +575,13 @@ func (l *localState) syncCheck(id string) error {
 		}
 	}
 
-	token := l.checkTokens[id]
-	if token == "" {
-		token = l.config.ACLToken
-	}
-
 	req := structs.RegisterRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
 		Address:      l.config.AdvertiseAddr,
 		Service:      service,
 		Check:        l.checks[id],
-		WriteRequest: structs.WriteRequest{Token: token},
+		WriteRequest: structs.WriteRequest{Token: l.CheckToken(id)},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Register", &req, &out)
