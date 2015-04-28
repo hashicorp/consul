@@ -263,6 +263,13 @@ the state of the check.
 
 Optionally, a `ServiceID` can be provided to associate the registered check with an existing service provided by the agent.
 
+This endpoint supports [ACL tokens](/docs/internals/acl.html). If the query
+string includes a `?token=<token-id>`, the registration will use the provided
+token to authorize the request. The token is also persisted in the agent's
+local configuration to enable periodic
+[anti-entropy](/docs/internal/anti-entropy.html) syncs and seamless agent
+restarts.
+
 The return code is 200 on success.
 
 ### <a name="agent_check_deregister"></a> /v1/agent/check/deregister/\<checkId\>
@@ -345,6 +352,13 @@ in the case of a collision.
 If `Check` is provided, only one of `Script`, `HTTP`, or `TTL` should be specified.
 `Script` and `HTTP` also require `Interval`. The created check will be named "service:\<ServiceId\>".
 There is more information about checks [here](/docs/agent/checks.html).
+
+This endpoint supports [ACL tokens](/docs/internals/acl.html). If the query
+string includes a `?token=<token-id>`, the registration will use the provided
+token to authorize the request. The token is also persisted in the agent's
+local configuration to enable periodic
+[anti-entropy](/docs/internal/anti-entropy.html) syncs and seamless agent
+restarts.
 
 The return code is 200 on success.
 
