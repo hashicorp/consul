@@ -521,6 +521,9 @@ func TestAgent_PersistService(t *testing.T) {
 
 	file := filepath.Join(agent.config.DataDir, servicesDir, stringHash(svc.ID))
 
+	// Configure a service token
+	agent.state.AddServiceToken(svc.ID, "hello")
+
 	// Check is not persisted unless requested
 	if err := agent.AddService(svc, nil, false); err != nil {
 		t.Fatalf("err: %v", err)
@@ -538,7 +541,10 @@ func TestAgent_PersistService(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected, err := json.Marshal(&persistedService{Service: svc})
+	expected, err := json.Marshal(&persistedService{
+		Token:   "hello",
+		Service: svc,
+	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -560,6 +566,9 @@ func TestAgent_PersistService(t *testing.T) {
 
 	if _, ok := agent2.state.services[svc.ID]; !ok {
 		t.Fatalf("bad: %#v", agent2.state.services)
+	}
+	if agent2.state.serviceTokens[svc.ID] != "hello" {
+		t.Fatalf("bad: %#v", agent2.state.services[svc.ID])
 	}
 }
 
@@ -667,6 +676,9 @@ func TestAgent_PersistCheck(t *testing.T) {
 
 	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check.CheckID))
 
+	// Configure a service registration token
+	agent.state.AddCheckToken(check.CheckID, "hello")
+
 	// Not persisted if not requested
 	if err := agent.AddCheck(check, chkType, false); err != nil {
 		t.Fatalf("err: %v", err)
@@ -684,7 +696,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	p := persistedCheck{check, chkType, ""}
+	p := persistedCheck{check, chkType, "hello"}
 	expected, err := json.Marshal(p)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -716,6 +728,9 @@ func TestAgent_PersistCheck(t *testing.T) {
 	// Should have restored the monitor
 	if _, ok := agent2.checkMonitors[p.Check.CheckID]; !ok {
 		t.Fatalf("bad: %#v", agent2.checkMonitors)
+	}
+	if agent2.state.checkTokens[p.Check.CheckID] != "hello" {
+		t.Fatalf("bad: %s", agent2.state.checkTokens[p.Check.CheckID])
 	}
 }
 

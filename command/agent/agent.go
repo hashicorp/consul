@@ -1029,6 +1029,7 @@ func (a *Agent) loadChecks(conf *Config) error {
 		if err := json.Unmarshal(content, &p); err != nil {
 			return err
 		}
+		a.state.AddCheckToken(p.Check.CheckID, p.Token)
 
 		if _, ok := a.state.checks[p.Check.CheckID]; ok {
 			// Purge previously persisted check. This allows config to be
