@@ -133,9 +133,8 @@ func (l *localState) AddServiceToken(id, token string) {
 
 // ServiceToken returns the configured ACL token for the given
 // service ID. If none is present, the agent's token is returned.
+// Assumes a lock is already established on the state.
 func (l *localState) ServiceToken(id string) string {
-	l.RLock()
-	defer l.RUnlock()
 	token := l.serviceTokens[id]
 	if token == "" {
 		token = l.config.ACLToken
@@ -193,10 +192,9 @@ func (l *localState) AddCheckToken(id, token string) {
 }
 
 // CheckToken is used to return the configured health check token, or
-// if none is configured, the default agent ACL token.
+// if none is configured, the default agent ACL token. Assumes a lock
+// has already been taken on the state.
 func (l *localState) CheckToken(id string) string {
-	l.RLock()
-	defer l.RUnlock()
 	token := l.checkTokens[id]
 	if token == "" {
 		token = l.config.ACLToken

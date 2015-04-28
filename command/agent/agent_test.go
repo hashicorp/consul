@@ -538,7 +538,7 @@ func TestAgent_PersistService(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected, err := json.Marshal(svc)
+	expected, err := json.Marshal(&persistedService{Service: svc})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
