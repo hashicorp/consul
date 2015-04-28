@@ -87,6 +87,21 @@ func (s *HTTPServer) CatalogServices(resp http.ResponseWriter, req *http.Request
 	return out.Services, nil
 }
 
+func (s *HTTPServer) CatalogArchetypes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Set default DC
+	args := structs.DCSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var out structs.IndexedArchetypes
+	defer setMeta(resp, &out.QueryMeta)
+	if err := s.agent.RPC("Catalog.ListArchetypes", &args, &out); err != nil {
+		return nil, err
+	}
+	return out.Archetypes, nil
+}
+
 func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	// Set default DC
 	args := structs.ServiceSpecificRequest{}
@@ -116,6 +131,37 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 		return nil, err
 	}
 	return out.ServiceNodes, nil
+}
+
+func (s *HTTPServer) CatalogArchetypeNodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Set default DC
+	args := structs.ArchetypeSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Check for a tag
+	params := req.URL.Query()
+	if _, ok := params["tag"]; ok {
+		args.ArchetypeTag = params.Get("tag")
+		args.TagFilter = true
+	}
+
+	// Pull out the service name
+	args.ArchetypeName = strings.TrimPrefix(req.URL.Path, "/v1/catalog/archetype/")
+	if args.ArchetypeName == "" {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Missing archetype name"))
+		return nil, nil
+	}
+
+	// Make the RPC request
+	var out structs.IndexedArchetypeNodes
+	defer setMeta(resp, &out.QueryMeta)
+	if err := s.agent.RPC("Catalog.ArchetypeNodes", &args, &out); err != nil {
+		return nil, err
+	}
+	return out.ArchetypeNodes, nil
 }
 
 func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
