@@ -780,7 +780,7 @@ func DecodeArchetypeDefinition(raw interface{}) (*ArchetypeDefinition, error) {
 	}
 
 	// check definitions within an archetype are potentially in a template format
-	// for exmaple, ttl can be a variable to be interpolated when instantiating a service out of an archetype
+	// for example, ttl can be a variable to be interpolated when instantiating a service out of an archetype
 	// thus, a specific FixupCheckType for archetypes' checks should be implemented (later)
 
 	for k, v := range rawMap {
