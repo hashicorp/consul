@@ -523,7 +523,7 @@ func (a *Agent) ResumeSync() {
 func (a *Agent) persistService(service *structs.NodeService) error {
 	svcPath := filepath.Join(a.config.DataDir, servicesDir, stringHash(service.ID))
 	if _, err := os.Stat(svcPath); os.IsNotExist(err) {
-		wrapped := &persistedService{
+		wrapped := persistedService{
 			Token:   a.state.ServiceToken(service.ID),
 			Service: service,
 		}
@@ -563,9 +563,13 @@ func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType) err
 	}
 
 	// Create the persisted check
-	p := persistedCheck{check, chkType, a.state.CheckToken(check.CheckID)}
+	wrapped := persistedCheck{
+		Check:   check,
+		ChkType: chkType,
+		Token:   a.state.CheckToken(check.CheckID),
+	}
 
-	encoded, err := json.Marshal(p)
+	encoded, err := json.Marshal(wrapped)
 	if err != nil {
 		return nil
 	}
@@ -924,6 +928,7 @@ func (a *Agent) loadServices(conf *Config) error {
 	for _, service := range conf.Services {
 		ns := service.NodeService()
 		chkTypes := service.CheckTypes()
+		a.state.SetServiceToken(service.ID, service.Token)
 		if err := a.AddService(ns, chkTypes, false); err != nil {
 			return fmt.Errorf("Failed to register service '%s': %v", service.ID, err)
 		}
@@ -1002,6 +1007,7 @@ func (a *Agent) loadChecks(conf *Config) error {
 	for _, check := range conf.Checks {
 		health := check.HealthCheck(conf.NodeName)
 		chkType := &check.CheckType
+		a.state.SetCheckToken(check.ID, check.Token)
 		if err := a.AddCheck(health, chkType, false); err != nil {
 			return fmt.Errorf("Failed to register check '%s': %v %v", check.Name, err, check)
 		}

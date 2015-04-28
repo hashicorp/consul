@@ -46,6 +46,7 @@ type CheckDefinition struct {
 	Name      string
 	Notes     string
 	ServiceID string
+	Token     string
 	CheckType `mapstructure:",squash"`
 }
 

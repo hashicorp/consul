@@ -541,7 +541,7 @@ func TestAgent_PersistService(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected, err := json.Marshal(&persistedService{
+	expected, err := json.Marshal(persistedService{
 		Token:   "hello",
 		Service: svc,
 	})
@@ -572,7 +572,7 @@ func TestAgent_PersistService(t *testing.T) {
 	}
 }
 
-func TestAgent_persistedCheck_compat(t *testing.T) {
+func TestAgent_persistedService_compat(t *testing.T) {
 	// Tests backwards compatibility of persisted services from pre-0.5.1
 	config := nextConfig()
 	dir, agent := makeAgent(t, config)
@@ -742,8 +742,11 @@ func TestAgent_PersistCheck(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	p := persistedCheck{check, chkType, "hello"}
-	expected, err := json.Marshal(p)
+	expected, err := json.Marshal(persistedCheck{
+		Check:   check,
+		ChkType: chkType,
+		Token:   "hello",
+	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -763,7 +766,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 	defer agent2.Shutdown()
 
-	result, ok := agent2.state.checks[p.Check.CheckID]
+	result, ok := agent2.state.checks[check.CheckID]
 	if !ok {
 		t.Fatalf("bad: %#v", agent2.state.checks)
 	}
@@ -772,11 +775,11 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 
 	// Should have restored the monitor
-	if _, ok := agent2.checkMonitors[p.Check.CheckID]; !ok {
+	if _, ok := agent2.checkMonitors[check.CheckID]; !ok {
 		t.Fatalf("bad: %#v", agent2.checkMonitors)
 	}
-	if agent2.state.checkTokens[p.Check.CheckID] != "hello" {
-		t.Fatalf("bad: %s", agent2.state.checkTokens[p.Check.CheckID])
+	if agent2.state.checkTokens[check.CheckID] != "hello" {
+		t.Fatalf("bad: %s", agent2.state.checkTokens[check.CheckID])
 	}
 }
 
@@ -867,6 +870,29 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	}
 }
 
+func TestAgent_loadChecks_token(t *testing.T) {
+	config := nextConfig()
+	config.Checks = append(config.Checks, &CheckDefinition{
+		ID:    "rabbitmq",
+		Name:  "rabbitmq",
+		Token: "abc123",
+		CheckType: CheckType{
+			TTL: 10 * time.Second,
+		},
+	})
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	checks := agent.state.Checks()
+	if _, ok := checks["rabbitmq"]; !ok {
+		t.Fatalf("missing check")
+	}
+	if token := agent.state.CheckToken("rabbitmq"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
+	}
+}
+
 func TestAgent_unloadChecks(t *testing.T) {
 	config := nextConfig()
 	dir, agent := makeAgent(t, config)
@@ -917,6 +943,27 @@ func TestAgent_unloadChecks(t *testing.T) {
 		if check == check1.CheckID {
 			t.Fatalf("should have unloaded checks")
 		}
+	}
+}
+
+func TestAgent_loadServices_token(t *testing.T) {
+	config := nextConfig()
+	config.Services = append(config.Services, &ServiceDefinition{
+		ID:    "rabbitmq",
+		Name:  "rabbitmq",
+		Port:  5672,
+		Token: "abc123",
+	})
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	services := agent.state.Services()
+	if _, ok := services["rabbitmq"]; !ok {
+		t.Fatalf("missing service")
+	}
+	if token := agent.state.ServiceToken("rabbitmq"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
 	}
 }
 
