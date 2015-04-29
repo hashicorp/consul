@@ -38,9 +38,6 @@ const (
 		"but no reason was provided. This is a default message."
 	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
 		"service, but no reason was provided. This is a default message."
-
-	// An interval used to send network coordinates to servers
-	syncCoordinateStaggerIntv = 15 * time.Second
 )
 
 var (
@@ -200,6 +197,9 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Start sending network coordinates to servers
+	go agent.sendCoordinates()
 
 	return agent, nil
 }
@@ -560,15 +560,14 @@ func (a *Agent) ResumeSync() {
 	a.state.Resume()
 }
 
-// SendCoordinates starts a loop that periodically sends the local coordinate
+// sendCoordinates starts a loop that periodically sends the local coordinate
 // to a server
-func (a *Agent) SendCoordinates() {
+func (a *Agent) sendCoordinates() {
 	for {
 		intv := aeScale(a.config.SyncCoordinateInterval, len(a.LANMembers()))
 		intv = intv + randomStagger(intv)
-		timer := time.After(intv)
 		select {
-		case <-timer:
+		case <-time.After(intv):
 			var c *coordinate.Coordinate
 			if a.config.Server {
 				c = a.server.GetLANCoordinate()
@@ -585,7 +584,7 @@ func (a *Agent) SendCoordinates() {
 
 			var reply struct{}
 			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
-				a.logger.Printf("[ERR] coordinate update error: %s", err.Error())
+				a.logger.Printf("[ERR] agent: coordinate update error: %s", err.Error())
 			}
 		case <-a.shutdownCh:
 			return

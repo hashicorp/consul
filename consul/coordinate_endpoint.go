@@ -8,11 +8,7 @@ type Coordinate struct {
 	srv *Server
 }
 
-// Get returns the the coordinate or a node.
-//
-// If the node is in the same datacenter, then the LAN coordinate of the node is
-// returned.  If the node is in a remote DC, then the WAN coordinate of the node
-// is returned.
+// Get returns the the LAN coordinate of a node.
 func (c *Coordinate) Get(args *structs.CoordinateGetRequest, reply *structs.IndexedCoordinate) error {
 	if done, err := c.srv.forward("Coordinate.Get", args, args, reply); done {
 		return err
@@ -30,6 +26,7 @@ func (c *Coordinate) Get(args *structs.CoordinateGetRequest, reply *structs.Inde
 		})
 }
 
+// Update updates the the LAN coordinate of a node.
 func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct{}) error {
 	if done, err := c.srv.forward("Coordinate.Update", args, args, reply); done {
 		return err

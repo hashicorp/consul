@@ -18,7 +18,7 @@ func getRandomCoordinate() *coordinate.Coordinate {
 	n := 5
 	clients := make([]*coordinate.Client, n)
 	for i := 0; i < n; i++ {
-		clients[i] = coordinate.NewClient(config)
+		clients[i], _ = coordinate.NewClient(config)
 	}
 
 	for i := 0; i < n*100; i++ {
@@ -41,7 +41,7 @@ func coordinatesEqual(a, b *coordinate.Coordinate) bool {
 	return dist < 0.1
 }
 
-func TestCoordinate(t *testing.T) {
+func TestCoordinateUpdate(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -70,6 +70,28 @@ func TestCoordinate(t *testing.T) {
 	}
 	if !coordinatesEqual(d.Coord, arg.Coord) {
 		t.Fatalf("should be equal\n%v\n%v", d.Coord, arg.Coord)
+	}
+}
+
+func TestCoordinateGet(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	arg := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       "node1",
+		Op:         structs.CoordinateSet,
+		Coord:      getRandomCoordinate(),
+	}
+
+	var out struct{}
+	if err := client.Call("Coordinate.Update", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
 	// Get via RPC

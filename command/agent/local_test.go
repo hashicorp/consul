@@ -822,8 +822,6 @@ func TestAgentSendCoordinates(t *testing.T) {
 
 	testutil.WaitForLeader(t, agent1.RPC, "dc1")
 
-	go agent1.SendCoordinates()
-	go agent2.SendCoordinates()
 	time.Sleep(100 * time.Millisecond)
 
 	var reply structs.IndexedCoordinate
@@ -835,6 +833,18 @@ func TestAgentSendCoordinates(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if reply.Coord == nil {
+		t.Fatalf("should get a coordinate")
+	}
+
+	var reply2 structs.IndexedCoordinate
+	req2 := structs.CoordinateGetRequest{
+		Datacenter: agent2.config.Datacenter,
+		Node:       agent2.config.NodeName,
+	}
+	if err := agent1.RPC("Coordinate.Get", &req2, &reply2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if reply2.Coord == nil {
 		t.Fatalf("should get a coordinate")
 	}
 }
