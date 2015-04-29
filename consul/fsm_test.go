@@ -728,6 +728,47 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 	}
 }
 
+func TestFSM_CoordinateUpdate(t *testing.T) {
+	path, err := ioutil.TempDir("", "fsm")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(path)
+	fsm, err := NewFSM(nil, path, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	nodeName := "Node1"
+	req := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       nodeName,
+		Op:         structs.CoordinateSet,
+		Coord:      getRandomCoordinate(),
+	}
+	buf, err := structs.Encode(structs.CoordinateRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify key is set
+	_, d, err := fsm.state.CoordinateGet(nodeName)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if d == nil {
+		t.Fatalf("missing")
+	}
+	if !coordinatesEqual(req.Coord, d.Coord) {
+		t.Fatalf("wrong coordinate")
+	}
+}
+
 func TestFSM_SessionCreate_Destroy(t *testing.T) {
 	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {

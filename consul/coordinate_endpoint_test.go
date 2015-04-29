@@ -3,6 +3,7 @@ package consul
 import (
 	"math/rand"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -33,12 +34,7 @@ func getRandomCoordinate() *coordinate.Coordinate {
 }
 
 func coordinatesEqual(a, b *coordinate.Coordinate) bool {
-	config := coordinate.DefaultConfig()
-	dist, err := a.DistanceTo(b, config)
-	if err != nil {
-		panic(err)
-	}
-	return dist < 0.1
+	return reflect.DeepEqual(a, b)
 }
 
 func TestCoordinateUpdate(t *testing.T) {
