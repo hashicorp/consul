@@ -256,7 +256,7 @@ func (c *consulFSM) applyCoordinateOperation(buf []byte, index uint64) interface
 	defer metrics.MeasureSince([]string{"consul", "fsm", "coordinate", string(req.Op)}, time.Now())
 	switch req.Op {
 	case structs.CoordinateSet:
-		coord := &structs.Coordinate{req.Node, req.Coord}
+		coord := &structs.Coordinate{Node: req.Node, Coord: req.Coord}
 		return c.state.CoordinateUpdate(index, coord)
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid Coordinate operation '%s'", req.Op)
