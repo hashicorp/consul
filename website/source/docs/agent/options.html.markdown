@@ -526,6 +526,10 @@ definitions support being updated during a reload.
   aggregation. This can be used to capture runtime information. This streams via
   TCP and can only be used with statsite.
 
+* <a name="statsite_prefix"></a><a href="#statsite_prefix">`statsite_prefix`</a>
+  The prefix used while writing all telemetry data to statsite. By default, this
+  is set to "consul".
+
 * <a name="syslog_facility"></a><a href="#syslog_facility">`syslog_facility`</a> When
   [`enable_syslog`](#enable_syslog) is provided, this controls to which
   facility messages are sent. By default, `LOCAL0` will be used.
