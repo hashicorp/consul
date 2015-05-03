@@ -160,6 +160,10 @@ type Config struct {
 	// metrics will be streamed to that instance.
 	StatsiteAddr string `mapstructure:"statsite_addr"`
 
+	// StatsitePrefix is the prefix used to write stats values to. By
+	// default this is set to 'consul'.
+	StatsitePrefix string `mapstructure:"statsite_prefix"`
+
 	// StatsdAddr is the address of a statsd instance. If provided,
 	// metrics will be sent to that instance.
 	StatsdAddr string `mapstructure:"statsd_addr"`
@@ -429,6 +433,7 @@ func DefaultConfig() *Config {
 		DNSConfig: DNSConfig{
 			MaxStale: 5 * time.Second,
 		},
+		StatsitePrefix:      "consul",
 		SyslogFacility:      "LOCAL0",
 		Protocol:            consul.ProtocolVersionMax,
 		CheckUpdateInterval: 5 * time.Minute,
@@ -810,6 +815,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.StatsiteAddr != "" {
 		result.StatsiteAddr = b.StatsiteAddr
+	}
+	if b.StatsitePrefix != "" {
+		result.StatsitePrefix = b.StatsitePrefix
 	}
 	if b.StatsdAddr != "" {
 		result.StatsdAddr = b.StatsdAddr
