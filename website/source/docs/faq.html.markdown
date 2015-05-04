@@ -73,3 +73,15 @@ To prevent an accumulation of dead nodes, Consul will automatically reap failed
 nodes out of the catalog. This is currently done on a non-configurable interval
 of 72 hours. Reaping is similar to leaving, causing all associated services to
 be deregistered.
+
+## Q: Does Consul support delta updates for watchers or blocking queries?
+
+Consul does not currently support sending a delta or a change only response
+to a watcher or a blocking query. The API simply allows for an edge-trigger
+return with the full result. A client should keep the results of their last
+read and compute the delta client side.
+
+By design, Consul offloads this to clients instead of attempting to support
+the delta calculation. This avoids expensive state maintenance on the servers
+as well as race conditions between data updates and watch registrations.
+
