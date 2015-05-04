@@ -287,3 +287,195 @@ func TestLock_Conflict(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 }
+
+func TestLock_ReclaimLock(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	lock, err := c.LockKey("test/lock")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should work
+	leaderCh, err := lock.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if leaderCh == nil {
+		t.Fatalf("not leader")
+	}
+	defer lock.Unlock()
+
+	// Simulate a false positive on a release lock (for example, if consul is unreachable and monitorLock returns)
+	kv := lock.c.KV()
+	pair, _, err := kv.Get(lock.opts.Key, nil)
+	if err != nil {
+		t.Fatalf("failed to read lock: %v", err)
+	}
+
+	didRemove, _, err := kv.DeleteCAS(pair, nil)
+	if err != nil {
+		t.Fatalf("failed to remove lock: %v", err)
+	}
+	if !didRemove {
+		t.Fatalf("could not delete")
+	}
+
+	select {
+	case <-lock.held:
+	case <-time.After(time.Second):
+		t.Fatalf("lock did not get released")
+	}
+
+	reclaimed := make(chan (<-chan struct{}), 1)
+	go func() {
+		l2Ch, err := lock.Lock(nil)
+		if err != nil {
+			t.Fatalf("not locked: %v", err)
+		}
+		reclaimed <- l2Ch
+	}()
+
+	select {
+	case <-reclaimed:
+	case <-time.After(time.Second):
+		t.Fatalf("should have locked")
+	}
+}
+func TestLock_ReclaimLockOptsSession(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	session := c.Session()
+	se := &SessionEntry{
+		Name: "sessname",
+		TTL:  "15s",
+	}
+	id, _, err := session.Create(se, nil)
+	if err != nil {
+		t.Fatalf("failed to create session: %v", err)
+	}
+
+	sessionRenew := make(chan struct{})
+	go session.RenewPeriodic(se.TTL, id, nil, sessionRenew)
+	defer close(sessionRenew)
+
+	opts := &LockOptions{
+		Key:     "test/lock",
+		Session: id,
+	}
+	lock, err := c.LockOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should work
+	leaderCh, err := lock.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if leaderCh == nil {
+		t.Fatalf("not leader")
+	}
+	defer lock.Unlock()
+
+	// Simulate a false positive on a release lock (for example, if consul is unreachable and monitorLock returns)
+	kv := lock.c.KV()
+	pair, _, err := kv.Get(lock.opts.Key, nil)
+	if err != nil {
+		t.Fatalf("failed to read lock: %v", err)
+	}
+
+	didRemove, _, err := kv.DeleteCAS(pair, nil)
+	if err != nil {
+		t.Fatalf("failed to remove lock: %v", err)
+	}
+	if !didRemove {
+		t.Fatalf("could not delete")
+	}
+
+	select {
+	case <-lock.held:
+	case <-time.After(time.Second):
+		t.Fatalf("lock did not get released")
+	}
+
+	reclaimed := make(chan (<-chan struct{}), 1)
+	go func() {
+		l2Ch, err := lock.Lock(nil)
+		if err != nil {
+			t.Fatalf("not locked: %v", err)
+		}
+		reclaimed <- l2Ch
+	}()
+
+	select {
+	case <-reclaimed:
+	case <-time.After(time.Second):
+		t.Fatalf("should have locked")
+	}
+}
+
+// TestLock_ReclaimUnLocked tests to make sure if we are using the same lock struct to acquire a new lock, that is still possible
+func TestLock_ReclaimUnLocked(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	lock, err := c.LockKey("test/lock")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should work
+	leaderCh, err := lock.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if leaderCh == nil {
+		t.Fatalf("not leader")
+	}
+
+	// unlock should work
+	err = lock.Unlock()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	reclaimed := make(chan (<-chan struct{}), 1)
+	go func() {
+		l2Ch, err := lock.Lock(nil)
+		if err != nil {
+			t.Fatalf("not locked: %v", err)
+		}
+		reclaimed <- l2Ch
+	}()
+
+	// Should reclaim the lock
+	var leader2Ch <-chan struct{}
+
+	select {
+	case leader2Ch = <-reclaimed:
+	case <-time.After(time.Second):
+		t.Fatalf("should have locked")
+	}
+
+	// unlock should work
+	err = lock.Unlock()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	//Both locks should see the unlock
+	select {
+	case <-leader2Ch:
+	case <-time.After(time.Second):
+		t.Fatalf("should not be leader")
+	}
+
+	select {
+	case <-leaderCh:
+	case <-time.After(time.Second):
+		t.Fatalf("should not be leader")
+	}
+}
