@@ -567,7 +567,7 @@ func (c *Command) Run(args []string) int {
 	*/
 	inm := metrics.NewInmemSink(10*time.Second, time.Minute)
 	metrics.DefaultInmemSignal(inm)
-	metricsConf := metrics.DefaultConfig("consul")
+	metricsConf := metrics.DefaultConfig(config.StatsitePrefix)
 
 	// Configure the statsite sink
 	var fanout metrics.FanoutSink

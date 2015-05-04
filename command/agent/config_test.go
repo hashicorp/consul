@@ -568,6 +568,16 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Statsite prefix
+	input = `{"statsite_prefix": "my_prefix"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.StatsitePrefix != "my_prefix" {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// Address overrides
 	input = `{"addresses": {"dns": "0.0.0.0", "http": "127.0.0.1", "https": "127.0.0.1", "rpc": "127.0.0.1"}}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -1114,6 +1124,7 @@ func TestMergeConfig(t *testing.T) {
 		},
 		DisableRemoteExec:         true,
 		StatsiteAddr:              "127.0.0.1:7250",
+		StatsitePrefix:            "stats_prefix",
 		StatsdAddr:                "127.0.0.1:7251",
 		DisableUpdateCheck:        true,
 		DisableAnonymousSignature: true,
