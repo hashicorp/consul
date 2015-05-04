@@ -290,7 +290,7 @@ func TestLock_Conflict(t *testing.T) {
 
 func TestLock_ReclaimLock(t *testing.T) {
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	session, _, err := c.Session().Create(&SessionEntry{}, nil)
 	if err != nil {
