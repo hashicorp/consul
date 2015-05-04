@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"testing"
@@ -12,21 +13,70 @@ import (
 	"github.com/miekg/dns"
 )
 
-func makeDNSServer(t *testing.T) (string, *DNSServer) {
-	config := &DNSConfig{}
-	return makeDNSServerConfig(t, config)
-}
-
-func makeDNSServerConfig(t *testing.T, config *DNSConfig) (string, *DNSServer) {
+func makeDNSServer(t *testing.T, config *DNSConfig, recursor *dns.Server) (string, *DNSServer) {
+	if config == nil {
+		config = &DNSConfig{}
+	}
+	recursors := []string{}
+	if recursor != nil {
+		recursors = append(recursors, recursor.Addr)
+	}
 	conf := nextConfig()
 	addr, _ := conf.ClientListener(conf.Addresses.DNS, conf.Ports.DNS)
 	dir, agent := makeAgent(t, conf)
 	server, err := NewDNSServer(agent, config, agent.logOutput,
-		conf.Domain, addr.String(), []string{"8.8.8.8:53"})
+		conf.Domain, addr.String(), recursors)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	return dir, server
+}
+
+// makeRecursor creates a generic DNS server which always returns
+// the provided reply. This is useful for mocking a DNS recursor with
+// an expected result.
+func makeRecursor(t *testing.T, answer []dns.RR) *dns.Server {
+	dnsConf := nextConfig()
+	dnsAddr := fmt.Sprintf("%s:%d", dnsConf.Addresses.DNS, dnsConf.Ports.DNS)
+	mux := dns.NewServeMux()
+	mux.HandleFunc(".", func(resp dns.ResponseWriter, msg *dns.Msg) {
+		ans := &dns.Msg{Answer: answer[:]}
+		ans.SetReply(msg)
+		if err := resp.WriteMsg(ans); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	})
+	server := &dns.Server{
+		Addr:    dnsAddr,
+		Net:     "udp",
+		Handler: mux,
+	}
+	go server.ListenAndServe()
+	return server
+}
+
+// dnsCNAME returns a DNS CNAME record struct
+func dnsCNAME(src, dest string) *dns.CNAME {
+	return &dns.CNAME{
+		Hdr: dns.RR_Header{
+			Name:   dns.Fqdn(src),
+			Rrtype: dns.TypeCNAME,
+			Class:  dns.ClassINET,
+		},
+		Target: dns.Fqdn(dest),
+	}
+}
+
+// dnsA returns a DNS A record struct
+func dnsA(src, dest string) *dns.A {
+	return &dns.A{
+		Hdr: dns.RR_Header{
+			Name:   dns.Fqdn(src),
+			Rrtype: dns.TypeA,
+			Class:  dns.ClassINET,
+		},
+		A: net.ParseIP(dest),
+	}
 }
 
 func TestRecursorAddr(t *testing.T) {
@@ -40,7 +90,7 @@ func TestRecursorAddr(t *testing.T) {
 }
 
 func TestDNS_NodeLookup(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -110,7 +160,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 }
 
 func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -144,7 +194,7 @@ func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_PeriodName(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -186,7 +236,7 @@ func TestDNS_NodeLookup_PeriodName(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_AAAA(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -231,7 +281,13 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 }
 
 func TestDNS_NodeLookup_CNAME(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	recursor := makeRecursor(t, []dns.RR{
+		dnsCNAME("www.google.com", "google.com"),
+		dnsA("google.com", "1.2.3.4"),
+	})
+	defer recursor.Shutdown()
+
+	dir, srv := makeDNSServer(t, nil, recursor)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -259,8 +315,8 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Should have the CNAME record + a few A records
-	if len(in.Answer) < 2 {
+	// Should have the service record, CNAME record + A record
+	if len(in.Answer) != 3 {
 		t.Fatalf("Bad: %#v", in)
 	}
 
@@ -277,7 +333,7 @@ func TestDNS_NodeLookup_CNAME(t *testing.T) {
 }
 
 func TestDNS_ReverseLookup(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -319,7 +375,7 @@ func TestDNS_ReverseLookup(t *testing.T) {
 }
 
 func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 	srv.domain = dns.Fqdn("custom")
@@ -362,7 +418,7 @@ func TestDNS_ReverseLookup_CustomDomain(t *testing.T) {
 }
 
 func TestDNS_ReverseLookup_IPV6(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -404,7 +460,7 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -471,7 +527,7 @@ func TestDNS_ServiceLookup(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_ServiceAddress(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -539,7 +595,7 @@ func TestDNS_ServiceLookup_ServiceAddress(t *testing.T) {
 }
 
 func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -578,7 +634,7 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -639,7 +695,7 @@ func TestDNS_ServiceLookup_TagPeriod(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_Dedup(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -716,7 +772,7 @@ func TestDNS_ServiceLookup_Dedup(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -821,7 +877,10 @@ func TestDNS_ServiceLookup_Dedup_SRV(t *testing.T) {
 }
 
 func TestDNS_Recurse(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	recursor := makeRecursor(t, []dns.RR{dnsA("apple.com", "1.2.3.4")})
+	defer recursor.Shutdown()
+
+	dir, srv := makeDNSServer(t, nil, recursor)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -829,7 +888,6 @@ func TestDNS_Recurse(t *testing.T) {
 	m.SetQuestion("apple.com.", dns.TypeANY)
 
 	c := new(dns.Client)
-	c.Net = "tcp"
 	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
 	in, _, err := c.Exchange(m, addr.String())
 	if err != nil {
@@ -845,7 +903,7 @@ func TestDNS_Recurse(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -976,7 +1034,7 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
-	dir, srv := makeDNSServerConfig(t, &DNSConfig{OnlyPassing: true})
+	dir, srv := makeDNSServer(t, &DNSConfig{OnlyPassing: true}, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -1092,7 +1150,7 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_Randomize(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -1160,7 +1218,13 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_CNAME(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	recursor := makeRecursor(t, []dns.RR{
+		dnsCNAME("www.google.com", "google.com"),
+		dnsA("google.com", "1.2.3.4"),
+	})
+	defer recursor.Shutdown()
+
+	dir, srv := makeDNSServer(t, nil, recursor)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -1192,11 +1256,12 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(in.Answer) < 2 {
+	// Service CNAME, google CNAME, google A record
+	if len(in.Answer) != 3 {
 		t.Fatalf("Bad: %#v", in)
 	}
 
-	// Should have google CNAME
+	// Should have service CNAME
 	cnRec, ok := in.Answer[0].(*dns.CNAME)
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
@@ -1205,22 +1270,35 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
 
+	// Should have google CNAME
+	cnRec, ok = in.Answer[1].(*dns.CNAME)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[1])
+	}
+	if cnRec.Target != "google.com." {
+		t.Fatalf("Bad: %#v", in.Answer[1])
+	}
+
 	// Check we recursively resolve
-	for _, ans := range in.Answer[1:] {
-		if _, ok := ans.(*dns.A); !ok {
-			t.Fatalf("Bad: %#v", ans)
-		}
+	if _, ok := in.Answer[2].(*dns.A); !ok {
+		t.Fatalf("Bad: %#v", in.Answer[2])
 	}
 }
 
 func TestDNS_NodeLookup_TTL(t *testing.T) {
+	recursor := makeRecursor(t, []dns.RR{
+		dnsCNAME("www.google.com", "google.com"),
+		dnsA("google.com", "1.2.3.4"),
+	})
+	defer recursor.Shutdown()
+
 	config := &DNSConfig{
 		NodeTTL:    10 * time.Second,
 		AllowStale: true,
 		MaxStale:   time.Second,
 	}
 
-	dir, srv := makeDNSServerConfig(t, config)
+	dir, srv := makeDNSServer(t, config, recursor)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -1342,7 +1420,7 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 		MaxStale:   time.Second,
 	}
 
-	dir, srv := makeDNSServerConfig(t, config)
+	dir, srv := makeDNSServer(t, config, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -1437,7 +1515,7 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_SRV_RFC(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -1504,7 +1582,7 @@ func TestDNS_ServiceLookup_SRV_RFC(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_SRV_RFC_TCP_Default(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServer(t, nil, nil)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
