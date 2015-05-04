@@ -601,7 +601,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	})
 }
 
-func TestAgentAntiEntory_deleteService_fails(t *testing.T) {
+func TestAgentAntiEntropy_deleteService_fails(t *testing.T) {
 	l := new(localState)
 	if err := l.deleteService(""); err == nil {
 		t.Fatalf("should have failed")
