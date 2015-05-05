@@ -123,23 +123,6 @@ func (l *localState) isPaused() bool {
 	return atomic.LoadInt32(&l.paused) == 1
 }
 
-// SetServiceToken configures the provided token for the service ID.
-// The token will be used to perform service registration operations.
-func (l *localState) SetServiceToken(id, token string) {
-	if token != "" {
-		l.Lock()
-		defer l.Unlock()
-		l.serviceTokens[id] = token
-	}
-}
-
-// RemoveServiceToken is used to remove a configured service token.
-func (l *localState) RemoveServiceToken(id string) {
-	l.Lock()
-	defer l.Unlock()
-	delete(l.serviceTokens, id)
-}
-
 // ServiceToken returns the configured ACL token for the given
 // service ID. If none is present, the agent's token is returned.
 func (l *localState) ServiceToken(id string) string {
@@ -160,7 +143,7 @@ func (l *localState) serviceToken(id string) string {
 // AddService is used to add a service entry to the local state.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (l *localState) AddService(service *structs.NodeService) {
+func (l *localState) AddService(service *structs.NodeService, token string) {
 	// Assign the ID if none given
 	if service.ID == "" && service.Service != "" {
 		service.ID = service.Service
@@ -171,6 +154,7 @@ func (l *localState) AddService(service *structs.NodeService) {
 
 	l.services[service.ID] = service
 	l.serviceStatus[service.ID] = syncStatus{}
+	l.serviceTokens[service.ID] = token
 	l.changeMade()
 }
 
@@ -181,6 +165,7 @@ func (l *localState) RemoveService(serviceID string) {
 	defer l.Unlock()
 
 	delete(l.services, serviceID)
+	delete(l.serviceTokens, serviceID)
 	l.serviceStatus[serviceID] = syncStatus{remoteDelete: true}
 	l.changeMade()
 }
@@ -196,23 +181,6 @@ func (l *localState) Services() map[string]*structs.NodeService {
 		services[name] = serv
 	}
 	return services
-}
-
-// SetCheckToken is used to configure an ACL token for a specific
-// health check. The token is used during check registration operations.
-func (l *localState) SetCheckToken(id, token string) {
-	if token != "" {
-		l.Lock()
-		defer l.Unlock()
-		l.checkTokens[id] = token
-	}
-}
-
-// RemoveCheckToken is used to remove a configured check token.
-func (l *localState) RemoveCheckToken(id string) {
-	l.Lock()
-	defer l.Unlock()
-	delete(l.checkTokens, id)
 }
 
 // CheckToken is used to return the configured health check token, or
@@ -235,7 +203,7 @@ func (l *localState) checkToken(id string) string {
 // AddCheck is used to add a health check to the local state.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (l *localState) AddCheck(check *structs.HealthCheck) {
+func (l *localState) AddCheck(check *structs.HealthCheck, token string) {
 	// Set the node name
 	check.Node = l.config.NodeName
 
@@ -244,6 +212,7 @@ func (l *localState) AddCheck(check *structs.HealthCheck) {
 
 	l.checks[check.CheckID] = check
 	l.checkStatus[check.CheckID] = syncStatus{}
+	l.checkTokens[check.CheckID] = token
 	l.changeMade()
 }
 
@@ -254,6 +223,7 @@ func (l *localState) RemoveCheck(checkID string) {
 	defer l.Unlock()
 
 	delete(l.checks, checkID)
+	delete(l.checkTokens, checkID)
 	l.checkStatus[checkID] = syncStatus{remoteDelete: true}
 	l.changeMade()
 }

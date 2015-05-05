@@ -155,7 +155,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 			Port:    agent.config.Ports.Server,
 			Tags:    []string{},
 		}
-		agent.state.AddService(&consulService)
+		agent.state.AddService(&consulService, "")
 	} else {
 		err = agent.setupClient()
 		agent.state.SetIface(agent.client)
@@ -599,7 +599,7 @@ func (a *Agent) purgeCheck(checkID string) error {
 // AddService is used to add a service entry.
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
-func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, persist bool) error {
+func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, persist bool, token string) error {
 	if service.Service == "" {
 		return fmt.Errorf("Service name missing")
 	}
@@ -629,7 +629,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 	}
 
 	// Add the service
-	a.state.AddService(service)
+	a.state.AddService(service, token)
 
 	// Persist the service to a file
 	if persist {
@@ -653,7 +653,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 			ServiceID:   service.ID,
 			ServiceName: service.Service,
 		}
-		if err := a.AddCheck(check, chkType, persist); err != nil {
+		if err := a.AddCheck(check, chkType, persist, token); err != nil {
 			return err
 		}
 	}
@@ -704,7 +704,7 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered. The Check may include a CheckType which
 // is used to automatically update the check status
-func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist bool) error {
+func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist bool, token string) error {
 	if check.CheckID == "" {
 		return fmt.Errorf("CheckID missing")
 	}
@@ -783,7 +783,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 	}
 
 	// Add to the local state for anti-entropy
-	a.state.AddCheck(check)
+	a.state.AddCheck(check, token)
 
 	// Persist the check
 	if persist {
@@ -928,8 +928,7 @@ func (a *Agent) loadServices(conf *Config) error {
 	for _, service := range conf.Services {
 		ns := service.NodeService()
 		chkTypes := service.CheckTypes()
-		a.state.SetServiceToken(service.ID, service.Token)
-		if err := a.AddService(ns, chkTypes, false); err != nil {
+		if err := a.AddService(ns, chkTypes, false, service.Token); err != nil {
 			return fmt.Errorf("Failed to register service '%s': %v", service.ID, err)
 		}
 	}
@@ -958,6 +957,7 @@ func (a *Agent) loadServices(conf *Config) error {
 		}
 
 		var wrapped *persistedService
+		var token string
 		var svc *structs.NodeService
 		if err := json.Unmarshal(content, &wrapped); err != nil {
 			// Backwards-compatibility for pre-0.5.1 persisted services
@@ -966,7 +966,7 @@ func (a *Agent) loadServices(conf *Config) error {
 			}
 		} else {
 			svc = wrapped.Service
-			a.state.SetServiceToken(svc.ID, wrapped.Token)
+			token = wrapped.Token
 		}
 
 		if _, ok := a.state.services[svc.ID]; ok {
@@ -978,7 +978,7 @@ func (a *Agent) loadServices(conf *Config) error {
 		} else {
 			a.logger.Printf("[DEBUG] agent: restored service definition %q from %q",
 				svc.ID, filePath)
-			return a.AddService(svc, nil, false)
+			return a.AddService(svc, nil, false, token)
 		}
 	})
 
@@ -1007,8 +1007,7 @@ func (a *Agent) loadChecks(conf *Config) error {
 	for _, check := range conf.Checks {
 		health := check.HealthCheck(conf.NodeName)
 		chkType := &check.CheckType
-		a.state.SetCheckToken(check.ID, check.Token)
-		if err := a.AddCheck(health, chkType, false); err != nil {
+		if err := a.AddCheck(health, chkType, false, check.Token); err != nil {
 			return fmt.Errorf("Failed to register check '%s': %v %v", check.Name, err, check)
 		}
 	}
@@ -1040,7 +1039,6 @@ func (a *Agent) loadChecks(conf *Config) error {
 		if err := json.Unmarshal(content, &p); err != nil {
 			return err
 		}
-		a.state.SetCheckToken(p.Check.CheckID, p.Token)
 
 		if _, ok := a.state.checks[p.Check.CheckID]; ok {
 			// Purge previously persisted check. This allows config to be
@@ -1053,7 +1051,7 @@ func (a *Agent) loadChecks(conf *Config) error {
 			// services into the active pool
 			p.Check.Status = structs.HealthCritical
 
-			if err := a.AddCheck(p.Check, p.ChkType, false); err != nil {
+			if err := a.AddCheck(p.Check, p.ChkType, false, p.Token); err != nil {
 				// Purge the check if it is unable to be restored.
 				a.logger.Printf("[WARN] agent: Failed to restore check %q: %s",
 					p.Check.CheckID, err)
@@ -1130,7 +1128,7 @@ func (a *Agent) EnableServiceMaintenance(serviceID, reason string) error {
 		ServiceName: service.Service,
 		Status:      structs.HealthCritical,
 	}
-	a.AddCheck(check, nil, true)
+	a.AddCheck(check, nil, true, "")
 	a.logger.Printf("[INFO] agent: Service %q entered maintenance mode", serviceID)
 
 	return nil
@@ -1176,7 +1174,7 @@ func (a *Agent) EnableNodeMaintenance(reason string) {
 		Notes:   reason,
 		Status:  structs.HealthCritical,
 	}
-	a.AddCheck(check, nil, true)
+	a.AddCheck(check, nil, true, "")
 	a.logger.Printf("[INFO] agent: Node entered maintenance mode")
 }
 
