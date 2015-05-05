@@ -179,6 +179,10 @@ func (c *Command) readConfig() *Config {
 		}
 	}
 
+	// Ensure the datacenter is always lowercased. The DNS endpoints automatically
+	// lowercase all queries, and internally we expect DC1 and dc1 to be the same.
+	config.Datacenter = strings.ToLower(config.Datacenter)
+
 	// Verify datacenter is valid
 	if !validDatacenter.MatchString(config.Datacenter) {
 		c.Ui.Error("Datacenter must be alpha-numeric with underscores and hypens only")

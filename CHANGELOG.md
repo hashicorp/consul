@@ -4,6 +4,10 @@ FEATURES:
 
  * Ability to configure minimum session TTL. [GH-821]
 
+BUG FIXES:
+
+ * Datacenter is lowercased, fixes DNS lookups [GH-761]
+
 IMPROVEMENTS:
 
  * Raft uses BoltDB as the backend store. [GH-857]
