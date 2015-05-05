@@ -492,8 +492,9 @@ RPC:
 	// If the network is not TCP, restrict the number of responses
 	if network != "tcp" && len(out.Nodes) > maxServiceResponses {
 		out.Nodes = out.Nodes[:maxServiceResponses]
+
 		// Flag that there are more records to return in the UDP response
-		if d.config.EnableTruncate == true {
+		if d.config.EnableTruncate {
 			resp.Truncated = true
 		}
 	}

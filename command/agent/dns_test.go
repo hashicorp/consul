@@ -1217,6 +1217,51 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	}
 }
 
+func TestDNS_ServiceLookup_Truncate(t *testing.T) {
+	config := &DNSConfig{
+		EnableTruncate: true,
+	}
+	dir, srv := makeDNSServer(t, config, nil)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register nodes
+	for i := 0; i < 3*maxServiceResponses; i++ {
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       fmt.Sprintf("foo%d", i),
+			Address:    fmt.Sprintf("127.0.0.%d", i+1),
+			Service: &structs.NodeService{
+				Service: "web",
+				Port:    8000,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Ensure the response is randomized each time.
+	m := new(dns.Msg)
+	m.SetQuestion("web.service.consul.", dns.TypeANY)
+
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check for the truncate bit
+	if !in.Truncated {
+		t.Fatalf("should have truncate bit")
+	}
+}
+
 func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	recursor := makeRecursor(t, []dns.RR{
 		dnsCNAME("www.google.com", "google.com"),
