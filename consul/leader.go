@@ -479,7 +479,6 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 
 	// Remove from Raft peers if this was a server
 	if valid, parts := isConsulServer(member); valid {
-		s.logger.Printf("[INFO] consul: server '%s' %s, removing as peer", member.Name, reason)
 		if err := s.removeConsulServer(member, parts.Port); err != nil {
 			return err
 		}
@@ -539,6 +538,8 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 		s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
 			peer, err)
 		return err
+	} else if err == nil {
+		s.logger.Printf("[INFO] consul: removed server '%s' as peer", m.Name)
 	}
 	return nil
 }
