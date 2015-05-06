@@ -55,22 +55,12 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 			return fmt.Errorf("ACL rule compilation failed: %v", err)
 		}
 
-		// Check if this is an update
-		state := a.srv.fsm.State()
-		var existing *structs.ACL
-		if args.ACL.ID != "" {
-			_, existing, err = state.ACLGet(args.ACL.ID)
-			if err != nil {
-				a.srv.logger.Printf("[ERR] consul.acl: ACL lookup failed: %v", err)
-				return err
-			}
-		}
-
-		// If this is a create, generate a new ID. This must
+		// If no ID is provided, generate a new ID. This must
 		// be done prior to appending to the raft log, because the ID is not
 		// deterministic. Once the entry is in the log, the state update MUST
 		// be deterministic or the followers will not converge.
-		if existing == nil {
+		if args.ACL.ID == "" {
+			state := a.srv.fsm.State()
 			for {
 				args.ACL.ID = generateUUID()
 				_, acl, err := state.ACLGet(args.ACL.ID)
