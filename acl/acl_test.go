@@ -127,6 +127,10 @@ func TestPolicyACL(t *testing.T) {
 				Name:   "bar",
 				Policy: ServicePolicyDeny,
 			},
+			&ServicePolicy{
+				Name:   "barfoo",
+				Policy: ServicePolicyWrite,
+			},
 		},
 	}
 	acl, err := New(all, policy)
@@ -171,6 +175,10 @@ func TestPolicyACL(t *testing.T) {
 		{"other", true, true},
 		{"foo", true, false},
 		{"bar", false, false},
+		{"foobar", true, false},
+		{"barfo", false, false},
+		{"barfoo", true, true},
+		{"barfoo2", true, true},
 	}
 	for _, c := range scases {
 		if c.read != acl.ServiceRead(c.inp) {
