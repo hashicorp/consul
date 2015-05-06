@@ -636,6 +636,15 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 		}
 	}
 
+	// Pause the service syncs during modification
+	a.PauseSync()
+	defer a.ResumeSync()
+
+	// Take a snapshot of the current state of checks (if any), and
+	// restore them before resuming anti-entropy.
+	snap := a.snapshotCheckState()
+	defer a.restoreCheckState(snap)
+
 	// Add the service
 	a.state.AddService(service, token)
 

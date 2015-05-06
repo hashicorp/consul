@@ -1113,6 +1113,50 @@ func TestAgent_ServiceMaintenanceMode(t *testing.T) {
 	}
 }
 
+func TestAgent_addCheck_restoresSnapshot(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// First register a service
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+	if err := agent.AddService(svc, nil, false, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a check
+	check1 := &structs.HealthCheck{
+		Node:        config.NodeName,
+		CheckID:     "service:redis",
+		Name:        "redischeck",
+		Status:      structs.HealthPassing,
+		ServiceID:   "redis",
+		ServiceName: "redis",
+	}
+	if err := agent.AddCheck(check1, nil, false, ""); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Re-registering the service preserves the state of the check
+	chkTypes := CheckTypes{&CheckType{TTL: 30 * time.Second}}
+	if err := agent.AddService(svc, chkTypes, false, ""); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	check, ok := agent.state.Checks()["service:redis"]
+	if !ok {
+		t.Fatalf("missing check")
+	}
+	if check.Status != structs.HealthPassing {
+		t.Fatalf("bad: %s", check.Status)
+	}
+}
+
 func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	config := nextConfig()
 	dir, agent := makeAgent(t, config)
