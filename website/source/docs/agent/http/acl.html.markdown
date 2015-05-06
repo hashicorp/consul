@@ -54,6 +54,10 @@ None of the fields are mandatory. In fact, no body needs to be PUT if the
 defaults are to be used. The `Name` and `Rules` fields default to being
 blank, and the `Type` defaults to "client".
 
+The `ID` field may be provided, and if omitted a random UUID will be generated.
+The security of the ACL system depends on the difficulty of guessing the token.
+Tokens should not be generated in a predictable manner or with too little entropy.
+
 The format of the `Rules` property is [documented here](/docs/internals/acl.html).
 
 A successful response body will return the `ID` of the newly created ACL, like so:
@@ -69,8 +73,8 @@ A successful response body will return the `ID` of the newly created ACL, like s
 The update endpoint is used to modify the policy for a given ACL token. It
 is very similar to the create endpoint; however, instead of generating a new
 token ID, the `ID` field must be provided. As with [`/v1/acl/create`](#acl_create),
-requests to this endpoint must be made with a management
-token.
+requests to this endpoint must be made with a management token. If the ID does not
+exist, the ACL will be upserted. In this sense, create and update are identical.
 
 In any Consul cluster, only a single datacenter is authoritative for ACLs, so
 all requests are automatically routed to that datacenter regardless

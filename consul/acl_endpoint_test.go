@@ -148,6 +148,53 @@ func TestACLEndpoint_Update_PurgeCache(t *testing.T) {
 	}
 }
 
+func TestACLEndpoint_Apply_CustomID(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			ID:   "foobarbaz", // Specify custom ID, does not exist
+			Name: "User token",
+			Type: structs.ACLTypeClient,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var out string
+	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if out != "foobarbaz" {
+		t.Fatalf("bad token ID: %s", out)
+	}
+
+	// Verify
+	state := s1.fsm.State()
+	_, s, err := state.ACLGet(out)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s == nil {
+		t.Fatalf("should not be nil")
+	}
+	if s.ID != out {
+		t.Fatalf("bad: %v", s)
+	}
+	if s.Name != "User token" {
+		t.Fatalf("bad: %v", s)
+	}
+}
+
 func TestACLEndpoint_Apply_Denied(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"

@@ -2,9 +2,10 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"strings"
+
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 // aclCreateResponse is used to wrap the ACL ID
@@ -80,14 +81,8 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 		}
 	}
 
-	// Ensure there is no ID set for create
-	if !update && args.ACL.ID != "" {
-		resp.WriteHeader(400)
-		resp.Write([]byte(fmt.Sprintf("ACL ID cannot be set")))
-		return nil, nil
-	}
-
-	// Ensure there is an ID set for update
+	// Ensure there is an ID set for update. ID is optional for
+	// create, as one will be generated if not provided.
 	if update && args.ACL.ID == "" {
 		resp.WriteHeader(400)
 		resp.Write([]byte(fmt.Sprintf("ACL ID must be set")))
