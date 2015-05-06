@@ -1059,3 +1059,33 @@ func TestFSM_TombstoneReap(t *testing.T) {
 		t.Fatalf("bad: %v", res)
 	}
 }
+
+func TestFSM_IgnoreUnknown(t *testing.T) {
+	path, err := ioutil.TempDir("", "fsm")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(path)
+	fsm, err := NewFSM(nil, path, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	// Create a new reap request
+	type UnknownRequest struct {
+		Foo string
+	}
+	req := UnknownRequest{Foo: "bar"}
+	msgType := structs.IgnoreUnknownTypeFlag | 64
+	buf, err := structs.Encode(msgType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Apply should work, even though not supported
+	resp := fsm.Apply(makeLog(buf))
+	if err, ok := resp.(error); ok {
+		t.Fatalf("resp: %v", err)
+	}
+}

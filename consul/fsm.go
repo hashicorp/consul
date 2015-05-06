@@ -75,7 +75,18 @@ func (c *consulFSM) State() *StateStore {
 
 func (c *consulFSM) Apply(log *raft.Log) interface{} {
 	buf := log.Data
-	switch structs.MessageType(buf[0]) {
+	msgType := structs.MessageType(buf[0])
+
+	// Check if this message type should be ignored when unknown. This is
+	// used so that new commands can be added with developer control if older
+	// versions can safely ignore the command, or if they should crash.
+	ignoreUnknown := false
+	if msgType&structs.IgnoreUnknownTypeFlag == structs.IgnoreUnknownTypeFlag {
+		msgType &= ^structs.IgnoreUnknownTypeFlag
+		ignoreUnknown = true
+	}
+
+	switch msgType {
 	case structs.RegisterRequestType:
 		return c.decodeRegister(buf[1:], log.Index)
 	case structs.DeregisterRequestType:
@@ -89,7 +100,12 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 	case structs.TombstoneRequestType:
 		return c.applyTombstoneOperation(buf[1:], log.Index)
 	default:
-		panic(fmt.Errorf("failed to apply request: %#v", buf))
+		if ignoreUnknown {
+			c.logger.Printf("[WARN] consul.fsm: ignoring unknown message type (%d), upgrade to newer version", msgType)
+			return nil
+		} else {
+			panic(fmt.Errorf("failed to apply request: %#v", buf))
+		}
 	}
 }
 
