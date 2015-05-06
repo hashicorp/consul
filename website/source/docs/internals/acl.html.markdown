@@ -122,11 +122,11 @@ way to specify write-only. If there is no applicable rule, the
 [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is applied.
 
 Service policies are defined by coupling a service name and a policy. The rules are
-enforced using an exact match policy. The default rule, applied to any service that doesn't
-have a matching policy, is provided using the empty string. A service policy is either "read",
-"write", or "deny". A "write" policy implies "read", and there is no way to specify write-only.
-If there is no applicable rule, the
-[`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
+enforced using an longest-prefix match policy (this was an exact match in 0.5, but changed
+in 0.5.1). The default rule, applied to any service that doesn't have a matching policy,
+is provided using the empty string. A service policy is either "read", "write", or "deny".
+A "write" policy implies "read", and there is no way to specify write-only. If there is no
+applicable rule, the [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
 applied. Currently, only the "write" level is enforced for registration of
 services; services can always be read.
 
@@ -157,8 +157,8 @@ service "" {
     policy = "write"
 }
 
-service "secure" {
-    # Deny registration access to service named "secure"
+# Deny registration access to services prefixed "secure-"
+service "secure-" {
     policy = "read"
 }
 ```
@@ -182,7 +182,7 @@ This is equivalent to the following JSON input:
       "": {
           "policy": "write"
       },
-      "secure": {
+      "secure-": {
           "policy": "read"
       }
   }
