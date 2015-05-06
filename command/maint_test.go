@@ -42,7 +42,7 @@ func TestMaintCommandRun_NoArgs(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a1.agent.AddService(service, nil, false); err != nil {
+	if err := a1.agent.AddService(service, nil, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if err := a1.agent.EnableServiceMaintenance("test", "broken 1"); err != nil {
@@ -132,7 +132,7 @@ func TestMaintCommandRun_EnableServiceMaintenance(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a1.agent.AddService(service, nil, false); err != nil {
+	if err := a1.agent.AddService(service, nil, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -164,7 +164,7 @@ func TestMaintCommandRun_DisableServiceMaintenance(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a1.agent.AddService(service, nil, false); err != nil {
+	if err := a1.agent.AddService(service, nil, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

@@ -13,6 +13,7 @@ type ServiceDefinition struct {
 	Port    int
 	Check   CheckType
 	Checks  CheckTypes
+	Token   string
 }
 
 func (s *ServiceDefinition) NodeService() *structs.NodeService {
@@ -45,6 +46,7 @@ type CheckDefinition struct {
 	Name      string
 	Notes     string
 	ServiceID string
+	Token     string
 	CheckType `mapstructure:",squash"`
 }
 
@@ -61,4 +63,11 @@ func (c *CheckDefinition) HealthCheck(node string) *structs.HealthCheck {
 		health.CheckID = health.Name
 	}
 	return health
+}
+
+// persistedService is used to wrap a service definition and bundle it
+// with an ACL token so we can restore both at a later agent start.
+type persistedService struct {
+	Token   string
+	Service *structs.NodeService
 }

@@ -257,6 +257,7 @@ func (c *CheckTTL) SetStatus(status, output string) {
 type persistedCheck struct {
 	Check   *structs.HealthCheck
 	ChkType *CheckType
+	Token   string
 }
 
 // CheckHTTP is used to periodically make an HTTP request to

@@ -189,3 +189,22 @@ This is equivalent to the following JSON input:
 }
 ```
 
+## Services and Checks with ACLs
+
+Consul allows configuring ACL policies which may control access to service and
+check registration. In order to successfully register a service or check with
+these types of policies in place, a token with sufficient privileges must be
+provided to perform the registration into the global catalog. Consul also
+performs periodic [anti-entropy](/docs/internals/anti-entropy.html) syncs, which
+may require an ACL token to complete. To accommodate this, Consul provides two
+methods of configuring ACL tokens to use for registration events:
+
+1. Using the [acl_token](/docs/agent/options.html#acl_token) configuration
+   directive. This allows a single token to be configured globally and used
+   during all service and check registration operations.
+2. Providing an ACL token with service and check definitions at
+   registration time. This allows for greater flexibility and enables the use
+   of multiple tokens on the same agent. Examples of what this looks like are
+   available for both [services](/docs/agent/services.html) and
+   [checks](/docs/agent/checks.html). Tokens may also be passed to the
+   [HTTP API](/docs/agent/http.html) for operations that require them.

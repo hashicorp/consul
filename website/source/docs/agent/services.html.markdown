@@ -51,6 +51,10 @@ The `port` field can be used as well to make a service-oriented architecture
 simpler to configure; this way, the address and port of a service can
 be discovered.
 
+Services may also contain a `token` field to provide an ACL token. This token is
+used for any interaction with the catalog for the service, including
+[anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
+
 A service can have an associated health check. This is a powerful feature as
 it allows a web balancer to gracefully remove failing nodes, a database
 to replace a failed slave, etc. The health check is strongly integrated in

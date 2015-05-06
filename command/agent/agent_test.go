@@ -153,7 +153,7 @@ func TestAgent_AddService(t *testing.T) {
 				Notes: "redis heath check 2",
 			},
 		}
-		err := agent.AddService(srv, chkTypes, false)
+		err := agent.AddService(srv, chkTypes, false, "")
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -197,7 +197,7 @@ func TestAgent_AddService(t *testing.T) {
 				Notes: "memcache heath check 2",
 			},
 		}
-		if err := agent.AddService(srv, chkTypes, false); err != nil {
+		if err := agent.AddService(srv, chkTypes, false, ""); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -261,7 +261,7 @@ func TestAgent_RemoveService(t *testing.T) {
 		}
 		chkTypes := CheckTypes{&CheckType{TTL: time.Minute}}
 
-		if err := agent.AddService(srv, chkTypes, false); err != nil {
+		if err := agent.AddService(srv, chkTypes, false, ""); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -284,7 +284,7 @@ func TestAgent_RemoveService(t *testing.T) {
 			&CheckType{TTL: time.Minute},
 			&CheckType{TTL: 30 * time.Second},
 		}
-		if err := agent.AddService(srv, chkTypes, false); err != nil {
+		if err := agent.AddService(srv, chkTypes, false, ""); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -331,7 +331,7 @@ func TestAgent_AddCheck(t *testing.T) {
 		Script:   "exit 0",
 		Interval: 15 * time.Second,
 	}
-	err := agent.AddCheck(health, chk, false)
+	err := agent.AddCheck(health, chk, false, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -362,7 +362,7 @@ func TestAgent_AddCheck_MinInterval(t *testing.T) {
 		Script:   "exit 0",
 		Interval: time.Microsecond,
 	}
-	err := agent.AddCheck(health, chk, false)
+	err := agent.AddCheck(health, chk, false, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -395,7 +395,7 @@ func TestAgent_AddCheck_MissingService(t *testing.T) {
 		Script:   "exit 0",
 		Interval: time.Microsecond,
 	}
-	err := agent.AddCheck(health, chk, false)
+	err := agent.AddCheck(health, chk, false, "")
 	if err == nil || err.Error() != `ServiceID "baz" does not exist` {
 		t.Fatalf("expected service id error, got: %v", err)
 	}
@@ -426,7 +426,7 @@ func TestAgent_RemoveCheck(t *testing.T) {
 		Script:   "exit 0",
 		Interval: 15 * time.Second,
 	}
-	err := agent.AddCheck(health, chk, false)
+	err := agent.AddCheck(health, chk, false, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -461,7 +461,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	chk := &CheckType{
 		TTL: 15 * time.Second,
 	}
-	err := agent.AddCheck(health, chk, false)
+	err := agent.AddCheck(health, chk, false, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -522,7 +522,7 @@ func TestAgent_PersistService(t *testing.T) {
 	file := filepath.Join(agent.config.DataDir, servicesDir, stringHash(svc.ID))
 
 	// Check is not persisted unless requested
-	if err := agent.AddService(svc, nil, false); err != nil {
+	if err := agent.AddService(svc, nil, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if _, err := os.Stat(file); err == nil {
@@ -530,7 +530,7 @@ func TestAgent_PersistService(t *testing.T) {
 	}
 
 	// Persists to file if requested
-	if err := agent.AddService(svc, nil, true); err != nil {
+	if err := agent.AddService(svc, nil, true, "mytoken"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -538,7 +538,10 @@ func TestAgent_PersistService(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected, err := json.Marshal(svc)
+	expected, err := json.Marshal(persistedService{
+		Token:   "mytoken",
+		Service: svc,
+	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -561,6 +564,55 @@ func TestAgent_PersistService(t *testing.T) {
 	if _, ok := agent2.state.services[svc.ID]; !ok {
 		t.Fatalf("bad: %#v", agent2.state.services)
 	}
+	if agent2.state.serviceTokens[svc.ID] != "mytoken" {
+		t.Fatalf("bad: %#v", agent2.state.services[svc.ID])
+	}
+}
+
+func TestAgent_persistedService_compat(t *testing.T) {
+	// Tests backwards compatibility of persisted services from pre-0.5.1
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+
+	// Encode the NodeService directly. This is what previous versions
+	// would serialize to the file (without the wrapper)
+	encoded, err := json.Marshal(svc)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Write the content to the file
+	file := filepath.Join(agent.config.DataDir, servicesDir, stringHash(svc.ID))
+	if err := os.MkdirAll(filepath.Dir(file), 0700); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := ioutil.WriteFile(file, encoded, 0600); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Load the services
+	if err := agent.loadServices(config); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the service was restored
+	services := agent.state.Services()
+	result, ok := services["redis"]
+	if !ok {
+		t.Fatalf("missing service")
+	}
+	if !reflect.DeepEqual(result, svc) {
+		t.Fatalf("bad: %#v", result)
+	}
 }
 
 func TestAgent_PurgeService(t *testing.T) {
@@ -577,7 +629,7 @@ func TestAgent_PurgeService(t *testing.T) {
 	}
 
 	file := filepath.Join(agent.config.DataDir, servicesDir, stringHash(svc.ID))
-	if err := agent.AddService(svc, nil, true); err != nil {
+	if err := agent.AddService(svc, nil, true, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -613,7 +665,7 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	}
 
 	// First persist the service
-	if err := agent.AddService(svc1, nil, true); err != nil {
+	if err := agent.AddService(svc1, nil, true, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	agent.Shutdown()
@@ -668,7 +720,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check.CheckID))
 
 	// Not persisted if not requested
-	if err := agent.AddCheck(check, chkType, false); err != nil {
+	if err := agent.AddCheck(check, chkType, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if _, err := os.Stat(file); err == nil {
@@ -676,7 +728,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 
 	// Should persist if requested
-	if err := agent.AddCheck(check, chkType, true); err != nil {
+	if err := agent.AddCheck(check, chkType, true, "mytoken"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -684,8 +736,11 @@ func TestAgent_PersistCheck(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	p := persistedCheck{check, chkType}
-	expected, err := json.Marshal(p)
+	expected, err := json.Marshal(persistedCheck{
+		Check:   check,
+		ChkType: chkType,
+		Token:   "mytoken",
+	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -705,7 +760,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 	defer agent2.Shutdown()
 
-	result, ok := agent2.state.checks[p.Check.CheckID]
+	result, ok := agent2.state.checks[check.CheckID]
 	if !ok {
 		t.Fatalf("bad: %#v", agent2.state.checks)
 	}
@@ -714,8 +769,11 @@ func TestAgent_PersistCheck(t *testing.T) {
 	}
 
 	// Should have restored the monitor
-	if _, ok := agent2.checkMonitors[p.Check.CheckID]; !ok {
+	if _, ok := agent2.checkMonitors[check.CheckID]; !ok {
 		t.Fatalf("bad: %#v", agent2.checkMonitors)
+	}
+	if agent2.state.checkTokens[check.CheckID] != "mytoken" {
+		t.Fatalf("bad: %s", agent2.state.checkTokens[check.CheckID])
 	}
 }
 
@@ -733,7 +791,7 @@ func TestAgent_PurgeCheck(t *testing.T) {
 	}
 
 	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check.CheckID))
-	if err := agent.AddCheck(check, nil, true); err != nil {
+	if err := agent.AddCheck(check, nil, true, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -769,7 +827,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	}
 
 	// First persist the check
-	if err := agent.AddCheck(check1, nil, true); err != nil {
+	if err := agent.AddCheck(check1, nil, true, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	agent.Shutdown()
@@ -806,6 +864,29 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	}
 }
 
+func TestAgent_loadChecks_token(t *testing.T) {
+	config := nextConfig()
+	config.Checks = append(config.Checks, &CheckDefinition{
+		ID:    "rabbitmq",
+		Name:  "rabbitmq",
+		Token: "abc123",
+		CheckType: CheckType{
+			TTL: 10 * time.Second,
+		},
+	})
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	checks := agent.state.Checks()
+	if _, ok := checks["rabbitmq"]; !ok {
+		t.Fatalf("missing check")
+	}
+	if token := agent.state.CheckToken("rabbitmq"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
+	}
+}
+
 func TestAgent_unloadChecks(t *testing.T) {
 	config := nextConfig()
 	dir, agent := makeAgent(t, config)
@@ -819,7 +900,7 @@ func TestAgent_unloadChecks(t *testing.T) {
 		Tags:    []string{"foo"},
 		Port:    8000,
 	}
-	if err := agent.AddService(svc, nil, false); err != nil {
+	if err := agent.AddService(svc, nil, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -832,7 +913,7 @@ func TestAgent_unloadChecks(t *testing.T) {
 		ServiceID:   "redis",
 		ServiceName: "redis",
 	}
-	if err := agent.AddCheck(check1, nil, false); err != nil {
+	if err := agent.AddCheck(check1, nil, false, ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	found := false
@@ -859,6 +940,27 @@ func TestAgent_unloadChecks(t *testing.T) {
 	}
 }
 
+func TestAgent_loadServices_token(t *testing.T) {
+	config := nextConfig()
+	config.Services = append(config.Services, &ServiceDefinition{
+		ID:    "rabbitmq",
+		Name:  "rabbitmq",
+		Port:  5672,
+		Token: "abc123",
+	})
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	services := agent.state.Services()
+	if _, ok := services["rabbitmq"]; !ok {
+		t.Fatalf("missing service")
+	}
+	if token := agent.state.ServiceToken("rabbitmq"); token != "abc123" {
+		t.Fatalf("bad: %s", token)
+	}
+}
+
 func TestAgent_unloadServices(t *testing.T) {
 	config := nextConfig()
 	dir, agent := makeAgent(t, config)
@@ -873,7 +975,7 @@ func TestAgent_unloadServices(t *testing.T) {
 	}
 
 	// Register the service
-	if err := agent.AddService(svc, nil, false); err != nil {
+	if err := agent.AddService(svc, nil, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	found := false
@@ -921,7 +1023,7 @@ func TestAgent_ServiceMaintenanceMode(t *testing.T) {
 	}
 
 	// Register the service
-	if err := agent.AddService(svc, nil, false); err != nil {
+	if err := agent.AddService(svc, nil, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1021,7 +1123,7 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 		Tags:    []string{"foo"},
 		Port:    8000,
 	}
-	if err := agent.AddService(svc, nil, false); err != nil {
+	if err := agent.AddService(svc, nil, false, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1034,7 +1136,7 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 		ServiceID:   "redis",
 		ServiceName: "redis",
 	}
-	if err := agent.AddCheck(check1, nil, true); err != nil {
+	if err := agent.AddCheck(check1, nil, true, ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
