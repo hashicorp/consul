@@ -535,26 +535,24 @@ func (a *Agent) ResumeSync() {
 // persistService saves a service definition to a JSON file in the data dir
 func (a *Agent) persistService(service *structs.NodeService) error {
 	svcPath := filepath.Join(a.config.DataDir, servicesDir, stringHash(service.ID))
-	if _, err := os.Stat(svcPath); os.IsNotExist(err) {
-		wrapped := persistedService{
-			Token:   a.state.ServiceToken(service.ID),
-			Service: service,
-		}
-		encoded, err := json.Marshal(wrapped)
-		if err != nil {
-			return nil
-		}
-		if err := os.MkdirAll(filepath.Dir(svcPath), 0700); err != nil {
-			return err
-		}
-		fh, err := os.OpenFile(svcPath, os.O_CREATE|os.O_WRONLY, 0600)
-		if err != nil {
-			return err
-		}
-		defer fh.Close()
-		if _, err := fh.Write(encoded); err != nil {
-			return err
-		}
+	wrapped := persistedService{
+		Token:   a.state.ServiceToken(service.ID),
+		Service: service,
+	}
+	encoded, err := json.Marshal(wrapped)
+	if err != nil {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(svcPath), 0700); err != nil {
+		return err
+	}
+	fh, err := os.OpenFile(svcPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer fh.Close()
+	if _, err := fh.Write(encoded); err != nil {
+		return err
 	}
 	return nil
 }
@@ -571,9 +569,6 @@ func (a *Agent) purgeService(serviceID string) error {
 // persistCheck saves a check definition to the local agent's state directory
 func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType) error {
 	checkPath := filepath.Join(a.config.DataDir, checksDir, stringHash(check.CheckID))
-	if _, err := os.Stat(checkPath); !os.IsNotExist(err) {
-		return err
-	}
 
 	// Create the persisted check
 	wrapped := persistedCheck{
@@ -589,7 +584,7 @@ func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType) err
 	if err := os.MkdirAll(filepath.Dir(checkPath), 0700); err != nil {
 		return err
 	}
-	fh, err := os.OpenFile(checkPath, os.O_CREATE|os.O_WRONLY, 0600)
+	fh, err := os.OpenFile(checkPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}

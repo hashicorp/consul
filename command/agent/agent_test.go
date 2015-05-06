@@ -533,11 +533,9 @@ func TestAgent_PersistService(t *testing.T) {
 	if err := agent.AddService(svc, nil, true, "mytoken"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
 	if _, err := os.Stat(file); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
 	expected, err := json.Marshal(persistedService{
 		Token:   "mytoken",
 		Service: svc,
@@ -546,6 +544,26 @@ func TestAgent_PersistService(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !bytes.Equal(expected, content) {
+		t.Fatalf("bad: %s", string(content))
+	}
+
+	// Updates service definition on disk
+	svc.Port = 8001
+	if err := agent.AddService(svc, nil, true, "mytoken"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	expected, err = json.Marshal(persistedService{
+		Token:   "mytoken",
+		Service: svc,
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	content, err = ioutil.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -561,11 +579,15 @@ func TestAgent_PersistService(t *testing.T) {
 	}
 	defer agent2.Shutdown()
 
-	if _, ok := agent2.state.services[svc.ID]; !ok {
+	restored, ok := agent2.state.services[svc.ID]
+	if !ok {
 		t.Fatalf("bad: %#v", agent2.state.services)
 	}
 	if agent2.state.serviceTokens[svc.ID] != "mytoken" {
 		t.Fatalf("bad: %#v", agent2.state.services[svc.ID])
+	}
+	if restored.Port != 8001 {
+		t.Fatalf("bad: %#v", restored)
 	}
 }
 
@@ -731,11 +753,9 @@ func TestAgent_PersistCheck(t *testing.T) {
 	if err := agent.AddCheck(check, chkType, true, "mytoken"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
 	if _, err := os.Stat(file); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
 	expected, err := json.Marshal(persistedCheck{
 		Check:   check,
 		ChkType: chkType,
@@ -745,6 +765,27 @@ func TestAgent_PersistCheck(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !bytes.Equal(expected, content) {
+		t.Fatalf("bad: %s", string(content))
+	}
+
+	// Updates the check definition on disk
+	check.Name = "mem1"
+	if err := agent.AddCheck(check, chkType, true, "mytoken"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	expected, err = json.Marshal(persistedCheck{
+		Check:   check,
+		ChkType: chkType,
+		Token:   "mytoken",
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	content, err = ioutil.ReadFile(file)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -765,6 +806,9 @@ func TestAgent_PersistCheck(t *testing.T) {
 		t.Fatalf("bad: %#v", agent2.state.checks)
 	}
 	if result.Status != structs.HealthCritical {
+		t.Fatalf("bad: %#v", result)
+	}
+	if result.Name != "mem1" {
 		t.Fatalf("bad: %#v", result)
 	}
 
