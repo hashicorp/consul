@@ -41,3 +41,6 @@ the agent is running. It returns a list of addresses, such as:
   "10.1.10.10:8300"
 ]
 ```
+
+This list of peers is strongly consistent and can be useful in determining when
+a given server has successfully joined the cluster.
