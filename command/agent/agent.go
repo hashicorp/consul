@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/hashicorp/consul/consul"
@@ -703,9 +702,8 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 	}
 
 	// Deregister any associated health checks
-	for checkID, _ := range a.state.Checks() {
-		prefix := "service:" + serviceID
-		if checkID != prefix && !strings.HasPrefix(checkID, prefix+":") {
+	for checkID, health := range a.state.Checks() {
+		if health.ServiceID != serviceID {
 			continue
 		}
 		if err := a.RemoveCheck(checkID, persist); err != nil {

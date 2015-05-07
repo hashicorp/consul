@@ -265,11 +265,26 @@ func TestAgent_RemoveService(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
+		// Add a check after the fact with a specific check ID
+		check := &CheckDefinition{
+			ID:        "check2",
+			Name:      "check2",
+			ServiceID: "memcache",
+			CheckType: CheckType{TTL: time.Minute},
+		}
+		hc := check.HealthCheck("node1")
+		if err := agent.AddCheck(hc, &check.CheckType, false, ""); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
 		if err := agent.RemoveService("memcache", false); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 		if _, ok := agent.state.Checks()["service:memcache"]; ok {
 			t.Fatalf("have memcache check")
+		}
+		if _, ok := agent.state.Checks()["check2"]; ok {
+			t.Fatalf("have check2 check")
 		}
 	}
 
