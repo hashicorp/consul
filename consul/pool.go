@@ -2,7 +2,6 @@ package consul
 
 import (
 	"container/list"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -135,8 +134,8 @@ type ConnPool struct {
 	// Pool maps an address to a open connection
 	pool map[string]*Conn
 
-	// TLS settings
-	tlsConfig *tls.Config
+	// TLS wrapper
+	tlsWrap tlsutil.Wrapper
 
 	// Used to indicate the pool is shutdown
 	shutdown   bool
@@ -148,13 +147,13 @@ type ConnPool struct {
 // Set maxTime to 0 to disable reaping. maxStreams is used to control
 // the number of idle streams allowed.
 // If TLS settings are provided outgoing connections use TLS.
-func NewPool(logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsConfig *tls.Config) *ConnPool {
+func NewPool(logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap tlsutil.Wrapper) *ConnPool {
 	pool := &ConnPool{
 		logOutput:  logOutput,
 		maxTime:    maxTime,
 		maxStreams: maxStreams,
 		pool:       make(map[string]*Conn),
-		tlsConfig:  tlsConfig,
+		tlsWrap:    tlsWrap,
 		shutdownCh: make(chan struct{}),
 	}
 	if maxTime > 0 {
@@ -220,7 +219,7 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 	}
 
 	// Check if TLS is enabled
-	if p.tlsConfig != nil {
+	if p.tlsWrap != nil {
 		// Switch the connection into TLS mode
 		if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
 			conn.Close()
@@ -228,7 +227,7 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 		}
 
 		// Wrap the connection in a TLS client
-		tlsConn, err := tlsutil.WrapTLSClient(conn, p.tlsConfig)
+		tlsConn, err := p.tlsWrap(conn)
 		if err != nil {
 			conn.Close()
 			return nil, err

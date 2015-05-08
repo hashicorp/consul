@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -98,13 +100,18 @@ func NewClient(config *Config) (*Client, error) {
 		return nil, err
 	}
 
+	// Define a TLS wrapper
+	tlsWrap := func(c net.Conn) (net.Conn, error) {
+		return tlsutil.WrapTLSClient(c, tlsConfig)
+	}
+
 	// Create a logger
 	logger := log.New(config.LogOutput, "", log.LstdFlags)
 
 	// Create server
 	c := &Client{
 		config:     config,
-		connPool:   NewPool(config.LogOutput, clientRPCCache, clientMaxStreams, tlsConfig),
+		connPool:   NewPool(config.LogOutput, clientRPCCache, clientMaxStreams, tlsWrap),
 		eventCh:    make(chan serf.Event, 256),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),

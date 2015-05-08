@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
@@ -189,6 +190,11 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, err
 	}
 
+	// Define a TLS wrapper
+	tlsWrap := func(c net.Conn) (net.Conn, error) {
+		return tlsutil.WrapTLSClient(c, tlsConfig)
+	}
+
 	// Get the incoming tls config
 	incomingTLS, err := tlsConf.IncomingTLSConfig()
 	if err != nil {
@@ -207,7 +213,7 @@ func NewServer(config *Config) (*Server, error) {
 	// Create server
 	s := &Server{
 		config:        config,
-		connPool:      NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsConfig),
+		connPool:      NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap),
 		eventChLAN:    make(chan serf.Event, 256),
 		eventChWAN:    make(chan serf.Event, 256),
 		localConsuls:  make(map[string]*serverParts),
@@ -242,7 +248,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Initialize the RPC layer
-	if err := s.setupRPC(tlsConfig); err != nil {
+	if err := s.setupRPC(tlsWrap); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}
@@ -410,7 +416,7 @@ func (s *Server) setupRaft() error {
 }
 
 // setupRPC is used to setup the RPC listener
-func (s *Server) setupRPC(tlsConfig *tls.Config) error {
+func (s *Server) setupRPC(tlsWrap tlsutil.Wrapper) error {
 	// Create endpoints
 	s.endpoints.Status = &Status{s}
 	s.endpoints.Catalog = &Catalog{s}
@@ -453,7 +459,7 @@ func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 		return fmt.Errorf("RPC advertise address is not advertisable: %v", addr)
 	}
 
-	s.raftLayer = NewRaftLayer(advertise, tlsConfig)
+	s.raftLayer = NewRaftLayer(advertise, tlsWrap)
 	return nil
 }
 
