@@ -332,8 +332,8 @@ func TestServer_LeaveLeader(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 []net.Addr
-	var p2 []net.Addr
+	var p1 []string
+	var p2 []string
 
 	testutil.WaitForResult(func() (bool, error) {
 		p1, _ = s1.raftPeers.Peers()
@@ -387,8 +387,8 @@ func TestServer_Leave(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 []net.Addr
-	var p2 []net.Addr
+	var p1 []string
+	var p2 []string
 
 	testutil.WaitForResult(func() (bool, error) {
 		p1, _ = s1.raftPeers.Peers()
@@ -515,8 +515,8 @@ func TestServer_Expect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 []net.Addr
-	var p2 []net.Addr
+	var p1 []string
+	var p2 []string
 
 	// should have no peers yet
 	testutil.WaitForResult(func() (bool, error) {
@@ -538,7 +538,7 @@ func TestServer_Expect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p3 []net.Addr
+	var p3 []string
 
 	// should now have all three peers
 	testutil.WaitForResult(func() (bool, error) {
@@ -589,8 +589,8 @@ func TestServer_BadExpect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 []net.Addr
-	var p2 []net.Addr
+	var p1 []string
+	var p2 []string
 
 	// should have no peers yet
 	testutil.WaitForResult(func() (bool, error) {
@@ -612,7 +612,7 @@ func TestServer_BadExpect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p3 []net.Addr
+	var p3 []string
 
 	// should still have no peers (because s2 is in expect=2 mode)
 	testutil.WaitForResult(func() (bool, error) {

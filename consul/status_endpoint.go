@@ -13,8 +13,8 @@ func (s *Status) Ping(args struct{}, reply *struct{}) error {
 // Leader is used to get the address of the leader
 func (s *Status) Leader(args struct{}, reply *string) error {
 	leader := s.server.raft.Leader()
-	if leader != nil {
-		*reply = leader.String()
+	if leader != "" {
+		*reply = leader
 	} else {
 		*reply = ""
 	}
@@ -28,10 +28,6 @@ func (s *Status) Peers(args struct{}, reply *[]string) error {
 		return err
 	}
 
-	var peerStrings []string
-	for _, p := range peers {
-		peerStrings = append(peerStrings, p.String())
-	}
-	*reply = peerStrings
+	*reply = peers
 	return nil
 }

@@ -195,13 +195,13 @@ func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, 
 func (s *Server) forwardLeader(method string, args interface{}, reply interface{}) error {
 	// Get the leader
 	leader := s.raft.Leader()
-	if leader == nil {
+	if leader == "" {
 		return structs.ErrNoLeader
 	}
 
 	// Lookup the server
 	s.localLock.RLock()
-	server := s.localConsuls[leader.String()]
+	server := s.localConsuls[leader]
 	s.localLock.RUnlock()
 
 	// Handle a missing server
@@ -386,7 +386,7 @@ func (s *Server) setQueryMeta(m *structs.QueryMeta) {
 		m.KnownLeader = true
 	} else {
 		m.LastContact = time.Now().Sub(s.raft.LastContact())
-		m.KnownLeader = (s.raft.Leader() != nil)
+		m.KnownLeader = (s.raft.Leader() != "")
 	}
 }
 

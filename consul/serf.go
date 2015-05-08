@@ -202,7 +202,7 @@ func (s *Server) maybeBootstrap() {
 
 	// Scan for all the known servers
 	members := s.serfLAN.Members()
-	addrs := make([]net.Addr, 0)
+	addrs := make([]string, 0)
 	for _, member := range members {
 		valid, p := isConsulServer(member)
 		if !valid {
@@ -220,7 +220,8 @@ func (s *Server) maybeBootstrap() {
 			s.logger.Printf("[ERR] consul: Member %v has bootstrap mode. Expect disabled.", member)
 			return
 		}
-		addrs = append(addrs, &net.TCPAddr{IP: member.Addr, Port: p.Port})
+		addr := &net.TCPAddr{IP: member.Addr, Port: p.Port}
+		addrs = append(addrs, addr.String())
 	}
 
 	// Skip if we haven't met the minimum expect count
