@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+// Wrapper is a function that is used to wrap a non-TLS connection
+// and returns an appropriate TLS connection or error
+type Wrapper func(net.Conn) (net.Conn, error)
+
 // Config used to create tls.Config
 type Config struct {
 	// VerifyIncoming is used to verify the authenticity of incoming connections.
