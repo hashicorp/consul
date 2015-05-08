@@ -308,6 +308,14 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
+
+	conf.EnableCoordinates = s.config.EnableCoordinates
+	if conf.EnableCoordinates && wan {
+		// Cache coordinates only if it's the wan network where the number of nodes is
+		// reasonably low.
+		conf.CacheCoordinates = true
+	}
+
 	return serf.Create(conf)
 }
 
@@ -398,7 +406,9 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.endpoints.Session = &Session{s}
 	s.endpoints.Internal = &Internal{s}
 	s.endpoints.ACL = &ACL{s}
-	s.endpoints.Coordinate = &Coordinate{s}
+	if s.config.EnableCoordinates {
+		s.endpoints.Coordinate = &Coordinate{s}
+	}
 
 	// Register the handlers
 	s.rpcServer.Register(s.endpoints.Status)
@@ -408,7 +418,9 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.rpcServer.Register(s.endpoints.Session)
 	s.rpcServer.Register(s.endpoints.Internal)
 	s.rpcServer.Register(s.endpoints.ACL)
-	s.rpcServer.Register(s.endpoints.Coordinate)
+	if s.config.EnableCoordinates {
+		s.rpcServer.Register(s.endpoints.Coordinate)
+	}
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
@@ -695,7 +707,12 @@ func (s *Server) Stats() map[string]map[string]string {
 	return stats
 }
 
-// GetLANCoordinate returns the network coordinate of the receiver
+// GetLANCoordinate returns the LAN coordinate of the server
 func (s *Server) GetLANCoordinate() *coordinate.Coordinate {
 	return s.serfLAN.GetCoordinate()
+}
+
+// GetWANCoordinate returns the WAN coordinate of the server
+func (s *Server) GetWANCoordinate() *coordinate.Coordinate {
+	return s.serfWAN.GetCoordinate()
 }

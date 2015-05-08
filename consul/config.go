@@ -202,6 +202,9 @@ type Config struct {
 	// UserEventHandler callback can be used to handle incoming
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
+
+	// EnableCoordinates enables features related to network coordinates.
+	EnableCoordinates bool
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
@@ -256,6 +259,7 @@ func DefaultConfig() *Config {
 		TombstoneTTL:            15 * time.Minute,
 		TombstoneTTLGranularity: 30 * time.Second,
 		SessionTTLMin:           10 * time.Second,
+		EnableCoordinates:       true,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

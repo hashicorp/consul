@@ -741,13 +741,14 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	defer fsm.Close()
 
 	nodeName := "Node1"
-	req := structs.CoordinateUpdateRequest{
+	reqs := make([]*structs.CoordinateUpdateRequest, 1)
+	reqs[0] = &structs.CoordinateUpdateRequest{
 		Datacenter: "dc1",
 		Node:       nodeName,
 		Op:         structs.CoordinateSet,
 		Coord:      getRandomCoordinate(),
 	}
-	buf, err := structs.Encode(structs.CoordinateRequestType, req)
+	buf, err := structs.Encode(structs.CoordinateRequestType, reqs)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -764,7 +765,7 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	if d == nil {
 		t.Fatalf("missing")
 	}
-	if !coordinatesEqual(req.Coord, d.Coord) {
+	if !coordinatesEqual(reqs[0].Coord, d.Coord) {
 		t.Fatalf("wrong coordinate")
 	}
 }

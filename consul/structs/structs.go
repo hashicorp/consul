@@ -637,16 +637,6 @@ const (
 	CoordinateSet CoordinateOp = "set"
 )
 
-type CoordinateGetRequest struct {
-	Datacenter string
-	Node       string
-	QueryOptions
-}
-
-func (c *CoordinateGetRequest) RequestDatacenter() string {
-	return c.Datacenter
-}
-
 // CoordinateUpdateRequest is used to update the network coordinate of a given node
 type CoordinateUpdateRequest struct {
 	Datacenter string
