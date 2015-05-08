@@ -160,9 +160,11 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
 				s.logger.Printf("[ERR] consul.rpc: RPC error: %v (%v)", err, conn)
+				metrics.IncrCounter([]string{"consul", "rpc", "request_error"}, 1)
 			}
 			return
 		}
+		metrics.IncrCounter([]string{"consul", "rpc", "request"}, 1)
 	}
 }
 
@@ -363,6 +365,7 @@ RUN_QUERY:
 	}
 
 	// Run the query function
+	metrics.IncrCounter([]string{"consul", "rpc", "query"}, 1)
 	err := opts.run()
 
 	// Check for minimum query time
