@@ -59,6 +59,7 @@ func testKey() string {
 }
 
 func TestDefaultConfig_env(t *testing.T) {
+	t.Parallel()
 	addr := "1.2.3.4:5678"
 	token := "abcd1234"
 	auth := "username:password"
@@ -104,6 +105,7 @@ func TestDefaultConfig_env(t *testing.T) {
 }
 
 func TestSetQueryOptions(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -139,6 +141,7 @@ func TestSetQueryOptions(t *testing.T) {
 }
 
 func TestSetWriteOptions(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -158,6 +161,7 @@ func TestSetWriteOptions(t *testing.T) {
 }
 
 func TestRequestToHTTP(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -180,6 +184,7 @@ func TestRequestToHTTP(t *testing.T) {
 }
 
 func TestParseQueryMeta(t *testing.T) {
+	t.Parallel()
 	resp := &http.Response{
 		Header: make(map[string][]string),
 	}
@@ -204,6 +209,7 @@ func TestParseQueryMeta(t *testing.T) {
 }
 
 func TestAPI_UnixSocket(t *testing.T) {
+	t.Parallel()
 	if runtime.GOOS == "windows" {
 		t.SkipNow()
 	}
