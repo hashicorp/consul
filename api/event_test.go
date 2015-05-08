@@ -5,6 +5,7 @@ import (
 )
 
 func TestEvent_FireList(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 

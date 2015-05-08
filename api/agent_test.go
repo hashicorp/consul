@@ -6,6 +6,7 @@ import (
 )
 
 func TestAgent_Self(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -23,6 +24,7 @@ func TestAgent_Self(t *testing.T) {
 }
 
 func TestAgent_Members(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -39,6 +41,7 @@ func TestAgent_Members(t *testing.T) {
 }
 
 func TestAgent_Services(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -78,6 +81,7 @@ func TestAgent_Services(t *testing.T) {
 }
 
 func TestAgent_ServiceAddress(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -124,6 +128,7 @@ func TestAgent_ServiceAddress(t *testing.T) {
 }
 
 func TestAgent_Services_MultipleChecks(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -167,6 +172,7 @@ func TestAgent_Services_MultipleChecks(t *testing.T) {
 }
 
 func TestAgent_SetTTLStatus(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -207,6 +213,7 @@ func TestAgent_SetTTLStatus(t *testing.T) {
 }
 
 func TestAgent_Checks(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -234,6 +241,7 @@ func TestAgent_Checks(t *testing.T) {
 }
 
 func TestAgent_Checks_serviceBound(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -272,6 +280,7 @@ func TestAgent_Checks_serviceBound(t *testing.T) {
 }
 
 func TestAgent_Join(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -291,6 +300,7 @@ func TestAgent_Join(t *testing.T) {
 }
 
 func TestAgent_ForceLeave(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -304,6 +314,7 @@ func TestAgent_ForceLeave(t *testing.T) {
 }
 
 func TestServiceMaintenance(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 
@@ -358,6 +369,7 @@ func TestServiceMaintenance(t *testing.T) {
 }
 
 func TestNodeMaintenance(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
 	defer s.Stop()
 

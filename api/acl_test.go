@@ -13,6 +13,7 @@ func init() {
 }
 
 func TestACL_CreateDestroy(t *testing.T) {
+	t.Parallel()
 	if CONSUL_ROOT == "" {
 		t.SkipNow()
 	}
@@ -61,6 +62,7 @@ func TestACL_CreateDestroy(t *testing.T) {
 }
 
 func TestACL_CloneDestroy(t *testing.T) {
+	t.Parallel()
 	if CONSUL_ROOT == "" {
 		t.SkipNow()
 	}
@@ -94,6 +96,7 @@ func TestACL_CloneDestroy(t *testing.T) {
 }
 
 func TestACL_Info(t *testing.T) {
+	t.Parallel()
 	if CONSUL_ROOT == "" {
 		t.SkipNow()
 	}
@@ -121,6 +124,7 @@ func TestACL_Info(t *testing.T) {
 }
 
 func TestACL_List(t *testing.T) {
+	t.Parallel()
 	if CONSUL_ROOT == "" {
 		t.SkipNow()
 	}
