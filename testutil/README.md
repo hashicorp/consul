@@ -29,10 +29,9 @@ func TestMain(t *testing.T) {
 	defer srv1.Stop()
 
 	// Create a secondary server, passing in configuration
-	// to avoid bootstrapping or waiting for a leader.
+	// to avoid bootstrapping as we are forming a cluster.
 	srv2 := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
 		c.Bootstrap = false
-		c.NoLeaderWait = true
 	})
 	defer srv2.Stop()
 

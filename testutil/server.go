@@ -59,11 +59,6 @@ type TestServerConfig struct {
 	Bind              string             `json:"bind_addr,omitempty"`
 	Addresses         *TestAddressConfig `json:"addresses,omitempty"`
 	Ports             *TestPortConfig    `json:"ports,omitempty"`
-
-	// NoLeaderWait is a special config option used to instruct
-	// the test harness not to wait for a leader. Useful for
-	// bootstrapping a multi-node cluster for testing.
-	NoLeaderWait bool `json:"-"`
 }
 
 // ServerConfigCallback is a function interface which can be
@@ -207,10 +202,10 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 	}
 
 	// Wait for the server to be ready
-	if consulConfig.NoLeaderWait {
-		server.waitForAPI()
-	} else {
+	if consulConfig.Bootstrap {
 		server.waitForLeader()
+	} else {
+		server.waitForAPI()
 	}
 
 	return server
