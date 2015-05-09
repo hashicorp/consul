@@ -364,7 +364,7 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 
 	// Forward to remote Consul
 TRY_RPC:
-	if err := c.connPool.RPC(server.Addr, server.Version, method, args, reply); err != nil {
+	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, args, reply); err != nil {
 		c.lastServer = nil
 		c.lastRPCTime = time.Time{}
 		return err

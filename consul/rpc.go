@@ -208,7 +208,7 @@ func (s *Server) forwardLeader(method string, args interface{}, reply interface{
 	if server == nil {
 		return structs.ErrNoLeader
 	}
-	return s.connPool.RPC(server.Addr, server.Version, method, args, reply)
+	return s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version, method, args, reply)
 }
 
 // forwardDC is used to forward an RPC call to a remote DC, or fail if no servers
@@ -229,7 +229,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 
 	// Forward to remote Consul
 	metrics.IncrCounter([]string{"consul", "rpc", "cross-dc", dc}, 1)
-	return s.connPool.RPC(server.Addr, server.Version, method, args, reply)
+	return s.connPool.RPC(dc, server.Addr, server.Version, method, args, reply)
 }
 
 // globalRPC is used to forward an RPC request to one server in each datacenter.
