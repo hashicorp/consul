@@ -19,42 +19,46 @@ Following is some example usage:
 package main
 
 import (
-    "github.com/hashicorp/consul/testutil"
-    "testing"
+	"github.com/hashicorp/consul/testutil"
+	"testing"
 )
 
 func TestMain(t *testing.T) {
-    // Create a server
-    srv1 := testutil.NewTestServer(t)
-    defer srv1.Stop()
+	// Create a server
+	srv1 := testutil.NewTestServer(t)
+	defer srv1.Stop()
 
-    // Create a secondary server
-    srv2 := testutil.NewTestServer(t)
-    defer srv2.Stop()
+	// Create a secondary server, passing in configuration
+	// to avoid bootstrapping or waiting for a leader.
+	srv2 := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+		c.Bootstrap = false
+		c.NoLeaderWait = true
+	})
+	defer srv2.Stop()
 
-    // Join the servers together
-    srv1.JoinLAN(srv2.LANAddr)
+	// Join the servers together
+	srv1.JoinLAN(srv2.LANAddr)
 
-    // Create a test key/value pair
-    srv1.SetKV("foo", []byte("bar"))
+	// Create a test key/value pair
+	srv1.SetKV("foo", []byte("bar"))
 
-    // Create lots of test key/value pairs
-    srv1.PopulateKV(map[string][]byte{
-        "bar": []byte("123"),
-        "baz": []byte("456"),
-    })
+	// Create lots of test key/value pairs
+	srv1.PopulateKV(map[string][]byte{
+		"bar": []byte("123"),
+		"baz": []byte("456"),
+	})
 
-    // Create a service
-    srv1.AddService("redis", "passing", []string{"master"})
+	// Create a service
+	srv1.AddService("redis", "passing", []string{"master"})
 
-    // Create a service check
-    srv1.AddCheck("service:redis", "redis", "passing")
+	// Create a service check
+	srv1.AddCheck("service:redis", "redis", "passing")
 
-    // Create a node check
-    srv1.AddCheck("mem", "", "critical")
+	// Create a node check
+	srv1.AddCheck("mem", "", "critical")
 
-    // The HTTPAddr field contains the address of the Consul
-    // API on the new test server instance.
-    println(srv1.HTTPAddr)
+	// The HTTPAddr field contains the address of the Consul
+	// API on the new test server instance.
+	println(srv1.HTTPAddr)
 }
 ```

@@ -59,6 +59,11 @@ type TestServerConfig struct {
 	Bind              string             `json:"bind_addr,omitempty"`
 	Addresses         *TestAddressConfig `json:"addresses,omitempty"`
 	Ports             *TestPortConfig    `json:"ports,omitempty"`
+
+	// NoLeaderWait is a special config option used to instruct
+	// the test harness not to wait for a leader. Useful for
+	// bootstrapping a multi-node cluster for testing.
+	NoLeaderWait bool `json:"-"`
 }
 
 // ServerConfigCallback is a function interface which can be
@@ -142,12 +147,11 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 		t.Fatalf("err: %s", err)
 	}
 
-	configFile, err := ioutil.TempFile("", "consul")
+	configFile, err := ioutil.TempFile(dataDir, "config")
 	if err != nil {
 		defer os.RemoveAll(dataDir)
 		t.Fatalf("err: %s", err)
 	}
-	defer os.Remove(configFile.Name())
 
 	consulConfig := defaultServerConfig()
 	consulConfig.DataDir = dataDir
@@ -203,7 +207,11 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 	}
 
 	// Wait for the server to be ready
-	server.waitForLeader()
+	if consulConfig.NoLeaderWait {
+		server.waitForAPI()
+	} else {
+		server.waitForLeader()
+	}
 
 	return server
 }
@@ -217,6 +225,26 @@ func (s *TestServer) Stop() {
 	if err := cmd.Run(); err != nil {
 		s.t.Errorf("err: %s", err)
 	}
+}
+
+// waitForAPI waits for only the agent HTTP endpoint to start
+// responding. This is an indication that the agent has started,
+// but will likely return before a leader is elected.
+func (s *TestServer) waitForAPI() {
+	WaitForResult(func() (bool, error) {
+		resp, err := s.HttpClient.Get(s.url("/v1/agent/self"))
+		if err != nil {
+			return false, err
+		}
+		defer resp.Body.Close()
+		if err := s.requireOK(resp); err != nil {
+			return false, err
+		}
+		return true, nil
+	}, func(err error) {
+		defer s.Stop()
+		s.t.Fatalf("err: %s", err)
+	})
 }
 
 // waitForLeader waits for the Consul server's HTTP API to become
