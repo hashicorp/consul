@@ -56,6 +56,9 @@ type Config struct {
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string
 
+	// Domain is the DNS domain for the records. Defaults to "consul."
+	Domain string
+
 	// RaftConfig is the configuration used for Raft in the local DC
 	RaftConfig *raft.Config
 
@@ -99,6 +102,14 @@ type Config struct {
 	// must match a provided certificate authority. This is used to verify authenticity of
 	// server nodes.
 	VerifyOutgoing bool
+
+	// VerifyServerHostname is used to enable hostname verification of servers. This
+	// ensures that the certificate presented is valid for server.<datacenter>.<domain>.
+	// This prevents a compromised client from being restarted as a server, and then
+	// intercepting request traffic as well as being added as a raft peer. This should be
+	// enabled by default with VerifyOutgoing, but for legacy reasons we cannot break
+	// existing clients.
+	VerifyServerHostname bool
 
 	// CAFile is a path to a certificate authority file. This is used with VerifyIncoming
 	// or VerifyOutgoing to verify the TLS connection.
@@ -267,13 +278,15 @@ func DefaultConfig() *Config {
 
 func (c *Config) tlsConfig() *tlsutil.Config {
 	tlsConf := &tlsutil.Config{
-		VerifyIncoming: c.VerifyIncoming,
-		VerifyOutgoing: c.VerifyOutgoing,
-		CAFile:         c.CAFile,
-		CertFile:       c.CertFile,
-		KeyFile:        c.KeyFile,
-		NodeName:       c.NodeName,
-		ServerName:     c.ServerName}
-
+		VerifyIncoming:       c.VerifyIncoming,
+		VerifyOutgoing:       c.VerifyOutgoing,
+		VerifyServerHostname: c.VerifyServerHostname,
+		CAFile:               c.CAFile,
+		CertFile:             c.CertFile,
+		KeyFile:              c.KeyFile,
+		NodeName:             c.NodeName,
+		ServerName:           c.ServerName,
+		Domain:               c.Domain,
+	}
 	return tlsConf
 }

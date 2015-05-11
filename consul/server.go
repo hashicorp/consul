@@ -183,16 +183,11 @@ func NewServer(config *Config) (*Server, error) {
 		config.LogOutput = os.Stderr
 	}
 
-	// Create the tlsConfig for outgoing connections
+	// Create the tls wrapper for outgoing connections
 	tlsConf := config.tlsConfig()
-	tlsConfig, err := tlsConf.OutgoingTLSConfig()
+	tlsWrap, err := tlsConf.OutgoingTLSWrapper()
 	if err != nil {
 		return nil, err
-	}
-
-	// Define a TLS wrapper
-	tlsWrap := func(c net.Conn) (net.Conn, error) {
-		return tlsutil.WrapTLSClient(c, tlsConfig)
 	}
 
 	// Get the incoming tls config
@@ -416,7 +411,7 @@ func (s *Server) setupRaft() error {
 }
 
 // setupRPC is used to setup the RPC listener
-func (s *Server) setupRPC(tlsWrap tlsutil.Wrapper) error {
+func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	// Create endpoints
 	s.endpoints.Status = &Status{s}
 	s.endpoints.Catalog = &Catalog{s}
@@ -459,7 +454,10 @@ func (s *Server) setupRPC(tlsWrap tlsutil.Wrapper) error {
 		return fmt.Errorf("RPC advertise address is not advertisable: %v", addr)
 	}
 
-	s.raftLayer = NewRaftLayer(advertise, tlsWrap)
+	// Provide a DC specific wrapper. Raft replication is only
+	// ever done in the same datacenter, so we can provide it as a constant.
+	wrapper := tlsutil.SpecificDC(s.config.Datacenter, tlsWrap)
+	s.raftLayer = NewRaftLayer(advertise, wrapper)
 	return nil
 }
 

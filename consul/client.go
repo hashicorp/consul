@@ -1,11 +1,9 @@
 package consul
 
 import (
-	"crypto/tls"
 	"fmt"
 	"log"
 	"math/rand"
-	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,7 +12,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -93,16 +90,10 @@ func NewClient(config *Config) (*Client, error) {
 		config.LogOutput = os.Stderr
 	}
 
-	// Create the tlsConfig
-	var tlsConfig *tls.Config
-	var err error
-	if tlsConfig, err = config.tlsConfig().OutgoingTLSConfig(); err != nil {
+	// Create the tls Wrapper
+	tlsWrap, err := config.tlsConfig().OutgoingTLSWrapper()
+	if err != nil {
 		return nil, err
-	}
-
-	// Define a TLS wrapper
-	tlsWrap := func(c net.Conn) (net.Conn, error) {
-		return tlsutil.WrapTLSClient(c, tlsConfig)
 	}
 
 	// Create a logger
