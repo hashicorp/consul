@@ -364,7 +364,7 @@ type Config struct {
 	// WatchPlans contains the compiled watches
 	WatchPlans []*watch.WatchPlan `mapstructure:"-" json:"-"`
 
-	// A slice of WatchPlan that contain the compiled key watches 
+	// A slice of WatchPlan that contain the compiled key watches
 	// for changes on archetype/watch/{archetype_name}/{archetype_id}
 	WatchPlansForArchetypes []*watch.WatchPlan `mapstructure:"-" json:"-"`
 
@@ -531,6 +531,15 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 						return nil, err
 					}
 					result.Archetypes = append(result.Archetypes, archetype)
+
+					// archetype/watch/{archetype_name}/{archetype_id}
+					key := []string{"archetype", "watch", archetype.PoolName, archetype.ID}
+					params := compileWatchParametersForArchetype(result, strings.Join(key, "/"))
+					wp, err := watch.Parse(params)
+					if err != nil {
+						return nil, err
+					}
+					result.WatchPlansForArchetypes = append(result.WatchPlansForArchetypes, wp)
 				}
 			}
 		}
@@ -540,6 +549,15 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 				return nil, err
 			}
 			result.Archetypes = append(result.Archetypes, archetype)
+
+			// archetype/watch/{archetype_name}/{archetype_id}
+			key := []string{"archetype", "watch", archetype.PoolName, archetype.ID}
+			params := compileWatchParametersForArchetype(result, strings.Join(key, "/"))
+			wp, err := watch.Parse(params)
+			if err != nil {
+				return nil, err
+			}
+			result.WatchPlansForArchetypes = append(result.WatchPlansForArchetypes, wp)
 		}
 	}
 
