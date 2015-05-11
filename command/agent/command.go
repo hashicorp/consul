@@ -895,7 +895,7 @@ Options:
   -config-dir=foo          Path to a directory to read configuration files
                            from. This will read every file ending in ".json"
                            as configuration in this directory in alphabetical
-                           order.
+                           order. This can be specified multiple times.
   -data-dir=path           Path to a data directory to store agent state
   -recursor=1.2.3.4        Address of an upstream DNS server.
                            Can be specified multiple times.
