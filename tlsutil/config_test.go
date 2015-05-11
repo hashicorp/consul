@@ -133,6 +133,29 @@ func TestConfig_OutgoingTLS_ServerName(t *testing.T) {
 	}
 }
 
+func TestConfig_OutgoingTLS_VerifyHostname(t *testing.T) {
+	conf := &Config{
+		VerifyServerHostname: true,
+		CAFile:               "../test/ca/root.cer",
+	}
+	tls, err := conf.OutgoingTLSConfig()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if tls == nil {
+		t.Fatalf("expected config")
+	}
+	if len(tls.RootCAs.Subjects()) != 1 {
+		t.Fatalf("expect root cert")
+	}
+	if tls.ServerName != "VerifyServerHostname" {
+		t.Fatalf("expect server name")
+	}
+	if tls.InsecureSkipVerify {
+		t.Fatalf("should not skip built-in verification")
+	}
+}
+
 func TestConfig_OutgoingTLS_WithKeyPair(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing: true,
