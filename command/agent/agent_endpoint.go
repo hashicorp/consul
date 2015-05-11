@@ -86,6 +86,12 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 		return nil, nil
 	}
 
+	if args.Status != "" && !structs.ValidStatus(args.Status) {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Bad check status"))
+		return nil, nil
+	}
+
 	// Construct the health check
 	health := args.HealthCheck(s.agent.config.NodeName)
 
@@ -196,6 +202,11 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	// Verify the check type
 	chkTypes := args.CheckTypes()
 	for _, check := range chkTypes {
+		if check.Status != "" && !structs.ValidStatus(check.Status) {
+			resp.WriteHeader(400)
+			resp.Write([]byte("Status for checks must 'passing', 'warning', 'critical', 'unknown'"))
+			return nil, nil
+		}
 		if !check.Valid() {
 			resp.WriteHeader(400)
 			resp.Write([]byte("Must provide TTL or Script and Interval!"))
