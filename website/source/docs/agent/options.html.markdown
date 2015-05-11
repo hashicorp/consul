@@ -104,8 +104,9 @@ The options below are all specified on the command-line.
   load all files in this directory with the suffix ".json". The load order
   is alphabetical, and the the same merge routine is used as with the
   [`config-file`](#_config_file) option above. This option can be specified mulitple times
-  to load multiple directories. For more information on the format of the configuration files,
-  see the [Configuration Files](#configuration_files) section.
+  to load multiple directories. Sub-directories of the config directory are not loaded.
+  For more information on the format of the configuration files, see the
+  [Configuration Files](#configuration_files) section.
 
 * <a name="_data_dir"></a><a href="#_data_dir">`-data-dir`</a> - This flag provides
   a data directory for the agent to store state.
