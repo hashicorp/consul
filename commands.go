@@ -27,6 +27,12 @@ func init() {
 			}, nil
 		},
 
+		"configtest": func() (cli.Command, error) {
+			return &command.ConfigTestCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"event": func() (cli.Command, error) {
 			return &command.EventCommand{
 				Ui: ui,
