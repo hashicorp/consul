@@ -66,17 +66,84 @@ func TestAgent_Services(t *testing.T) {
 	if _, ok := services["foo"]; !ok {
 		t.Fatalf("missing service: %v", services)
 	}
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	chk, ok := checks["service:foo"]
+	if !ok {
+		t.Fatalf("missing check: %v", checks)
+	}
+
+	// Checks should default to critical
+	if chk.Status != "critical" {
+		t.Fatalf("Bad: %#v", chk)
+	}
+
+	if err := agent.ServiceDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_Services_CheckPassing(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	agent := c.Agent()
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL:    "15s",
+			Status: "passing",
+		},
+	}
+	if err := agent.ServiceRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := services["foo"]; !ok {
+		t.Fatalf("missing service: %v", services)
+	}
 
 	checks, err := agent.Checks()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if _, ok := checks["service:foo"]; !ok {
+	chk, ok := checks["service:foo"]
+	if !ok {
 		t.Fatalf("missing check: %v", checks)
 	}
 
+	if chk.Status != "passing" {
+		t.Fatalf("Bad: %#v", chk)
+	}
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_Services_CheckBadStatus(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	agent := c.Agent()
+	reg := &AgentServiceRegistration{
+		Name: "foo",
+		Tags: []string{"bar", "baz"},
+		Port: 8000,
+		Check: &AgentServiceCheck{
+			TTL:    "15s",
+			Status: "fluffy",
+		},
+	}
+	if err := agent.ServiceRegister(reg); err == nil {
+		t.Fatalf("bad status accepted")
 	}
 }
 
@@ -231,8 +298,46 @@ func TestAgent_Checks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if _, ok := checks["foo"]; !ok {
+	chk, ok := checks["foo"]
+	if !ok {
 		t.Fatalf("missing check: %v", checks)
+	}
+	if chk.Status != "critical" {
+		t.Fatalf("check not critical: %v", chk)
+	}
+
+	if err := agent.CheckDeregister("foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_CheckStartPassing(t *testing.T) {
+	c, s := makeClient(t)
+	defer s.stop()
+
+	agent := c.Agent()
+
+	reg := &AgentCheckRegistration{
+		Name: "foo",
+		AgentServiceCheck: AgentServiceCheck{
+			Status: "passing",
+		},
+	}
+	reg.TTL = "15s"
+	if err := agent.CheckRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	chk, ok := checks["foo"]
+	if !ok {
+		t.Fatalf("missing check: %v", checks)
+	}
+	if chk.Status != "passing" {
+		t.Fatalf("check not passing: %v", chk)
 	}
 
 	if err := agent.CheckDeregister("foo"); err != nil {

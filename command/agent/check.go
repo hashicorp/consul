@@ -39,6 +39,8 @@ type CheckType struct {
 	Timeout time.Duration
 	TTL     time.Duration
 
+	Status string
+
 	Notes string
 }
 type CheckTypes []*CheckType
