@@ -245,7 +245,7 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// TLS
-	input = `{"verify_incoming": true, "verify_outgoing": true}`
+	input = `{"verify_incoming": true, "verify_outgoing": true, "verify_server_hostname": true}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -256,6 +256,10 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	if config.VerifyOutgoing != true {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.VerifyServerHostname != true {
 		t.Fatalf("bad: %#v", config)
 	}
 
