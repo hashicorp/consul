@@ -1025,6 +1025,9 @@ func MergeConfig(a, b *Config) *Config {
 	if len(b.WatchPlans) != 0 {
 		result.WatchPlans = append(result.WatchPlans, b.WatchPlans...)
 	}
+	if len(b.WatchPlansForArchetypes) != 0 {
+		result.WatchPlansForArchetypes = append(result.WatchPlansForArchetypes, b.WatchPlansForArchetypes...)
+	}
 	if b.DisableRemoteExec {
 		result.DisableRemoteExec = true
 	}
