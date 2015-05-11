@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"strings"
 	"time"
 )
 
@@ -157,11 +158,14 @@ func (c *Config) OutgoingTLSWrapper() (DCWrapper, error) {
 		return nil, nil
 	}
 
+	// Strip the trailing '.' from the domain if any
+	domain := strings.TrimSuffix(c.Domain, ".")
+
 	// Generate the wrapper based on hostname verification
 	if c.VerifyServerHostname {
 		wrapper := func(dc string, conn net.Conn) (net.Conn, error) {
 			conf := *tlsConfig
-			conf.ServerName = "server." + dc + "." + c.Domain
+			conf.ServerName = "server." + dc + "." + domain
 			return WrapTLSClient(conn, &conf)
 		}
 		return wrapper, nil
