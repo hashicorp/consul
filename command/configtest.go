@@ -19,7 +19,13 @@ func (c *ConfigTestCommand) Help() string {
 	helpText := `
 Usage: consul configtest [options]
 
-  Tests that config files are valid by attempting to parse them. Useful to ensure a configuration change will not cause consul to fail after a restart.
+  Performs a basic sanity test on Consul configuration files. For each file
+  or directory given, the configtest command will attempt to parse the
+  contents just as the "consul agent" command would, and catch any errors.
+  This is useful to do a test of the configuration only, without actually
+  starting the agent.
+
+  Returns 0 if the configuration is valid, or 1 if there are problems.
 
 Options:
 
