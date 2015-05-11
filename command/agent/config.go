@@ -364,6 +364,10 @@ type Config struct {
 	// WatchPlans contains the compiled watches
 	WatchPlans []*watch.WatchPlan `mapstructure:"-" json:"-"`
 
+	// A slice of WatchPlan that contain the compiled key watches 
+	// for changes on archetype/watch/{archetype_name}/{archetype_id}
+	WatchPlansForArchetypes []*watch.WatchPlan `mapstructure:"-" json:"-"`
+
 	// UnixSockets is a map of socket configuration data
 	UnixSockets UnixSocketConfig `mapstructure:"unix_sockets"`
 
