@@ -383,7 +383,7 @@ func TestAgent_AddCheck_StartPassing(t *testing.T) {
 		Script:   "exit 0",
 		Interval: 15 * time.Second,
 	}
-	err := agent.AddCheck(health, chk, false)
+	err := agent.AddCheck(health, chk, false, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -86,8 +86,9 @@ func TestAgent_Services(t *testing.T) {
 }
 
 func TestAgent_Services_CheckPassing(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 	reg := &AgentServiceRegistration{
@@ -129,8 +130,9 @@ func TestAgent_Services_CheckPassing(t *testing.T) {
 }
 
 func TestAgent_Services_CheckBadStatus(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 	reg := &AgentServiceRegistration{
@@ -312,8 +314,9 @@ func TestAgent_Checks(t *testing.T) {
 }
 
 func TestAgent_CheckStartPassing(t *testing.T) {
+	t.Parallel()
 	c, s := makeClient(t)
-	defer s.stop()
+	defer s.Stop()
 
 	agent := c.Agent()
 
