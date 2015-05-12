@@ -288,10 +288,12 @@ func (a *Agent) consulConfig() *consul.Config {
 	// Copy the TLS configuration
 	base.VerifyIncoming = a.config.VerifyIncoming
 	base.VerifyOutgoing = a.config.VerifyOutgoing
+	base.VerifyServerHostname = a.config.VerifyServerHostname
 	base.CAFile = a.config.CAFile
 	base.CertFile = a.config.CertFile
 	base.KeyFile = a.config.KeyFile
 	base.ServerName = a.config.ServerName
+	base.Domain = a.config.Domain
 
 	// Setup the ServerUp callback
 	base.ServerUp = a.state.ConsulServerUp

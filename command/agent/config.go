@@ -188,6 +188,14 @@ type Config struct {
 	// certificate authority. This is used to verify authenticity of server nodes.
 	VerifyOutgoing bool `mapstructure:"verify_outgoing"`
 
+	// VerifyServerHostname is used to enable hostname verification of servers. This
+	// ensures that the certificate presented is valid for server.<datacenter>.<domain>.
+	// This prevents a compromised client from being restarted as a server, and then
+	// intercepting request traffic as well as being added as a raft peer. This should be
+	// enabled by default with VerifyOutgoing, but for legacy reasons we cannot break
+	// existing clients.
+	VerifyServerHostname bool `mapstructure:"verify_server_hostname"`
+
 	// CAFile is a path to a certificate authority file. This is used with VerifyIncoming
 	// or VerifyOutgoing to verify the TLS connection.
 	CAFile string `mapstructure:"ca_file"`
@@ -837,6 +845,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.VerifyOutgoing {
 		result.VerifyOutgoing = true
+	}
+	if b.VerifyServerHostname {
+		result.VerifyServerHostname = true
 	}
 	if b.CAFile != "" {
 		result.CAFile = b.CAFile

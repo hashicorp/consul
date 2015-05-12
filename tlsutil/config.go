@@ -6,8 +6,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"strings"
 	"time"
 )
+
+// DCWrapper is a function that is used to wrap a non-TLS connection
+// and returns an appropriate TLS connection or error. This takes
+// a datacenter as an argument.
+type DCWrapper func(dc string, conn net.Conn) (net.Conn, error)
+
+// Wrapper is a variant of DCWrapper, where the DC is provided as
+// a constant value. This is usually done by currying DCWrapper.
+type Wrapper func(conn net.Conn) (net.Conn, error)
 
 // Config used to create tls.Config
 type Config struct {
@@ -21,6 +31,14 @@ type Config struct {
 	// must match a provided certificate authority. This is used to verify authenticity of
 	// server nodes.
 	VerifyOutgoing bool
+
+	// VerifyServerHostname is used to enable hostname verification of servers. This
+	// ensures that the certificate presented is valid for server.<datacenter>.<domain>.
+	// This prevents a compromised client from being restarted as a server, and then
+	// intercepting request traffic as well as being added as a raft peer. This should be
+	// enabled by default with VerifyOutgoing, but for legacy reasons we cannot break
+	// existing clients.
+	VerifyServerHostname bool
 
 	// CAFile is a path to a certificate authority file. This is used with VerifyIncoming
 	// or VerifyOutgoing to verify the TLS connection.
@@ -40,6 +58,9 @@ type Config struct {
 	// ServerName is used with the TLS certificate to ensure the name we
 	// provide matches the certificate
 	ServerName string
+
+	// Domain is the Consul TLD being used. Defaults to "consul."
+	Domain string
 }
 
 // AppendCA opens and parses the CA file and adds the certificates to
@@ -78,6 +99,10 @@ func (c *Config) KeyPair() (*tls.Certificate, error) {
 // requests. It will return a nil config if this configuration should
 // not use TLS for outgoing connections.
 func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
+	// If VerifyServerHostname is true, that implies VerifyOutgoing
+	if c.VerifyServerHostname {
+		c.VerifyOutgoing = true
+	}
 	if !c.VerifyOutgoing {
 		return nil, nil
 	}
@@ -88,6 +113,11 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	}
 	if c.ServerName != "" {
 		tlsConfig.ServerName = c.ServerName
+		tlsConfig.InsecureSkipVerify = false
+	}
+	if c.VerifyServerHostname {
+		// ServerName is filled in dynamically based on the target DC
+		tlsConfig.ServerName = "VerifyServerHostname"
 		tlsConfig.InsecureSkipVerify = false
 	}
 
@@ -111,6 +141,51 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	}
 
 	return tlsConfig, nil
+}
+
+// OutgoingTLSWrapper returns a a DCWrapper based on the OutgoingTLS
+// configuration. If hostname verification is on, the wrapper
+// will properly generate the dynamic server name for verification.
+func (c *Config) OutgoingTLSWrapper() (DCWrapper, error) {
+	// Get the TLS config
+	tlsConfig, err := c.OutgoingTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if TLS is not enabled
+	if tlsConfig == nil {
+		return nil, nil
+	}
+
+	// Strip the trailing '.' from the domain if any
+	domain := strings.TrimSuffix(c.Domain, ".")
+
+	// Generate the wrapper based on hostname verification
+	if c.VerifyServerHostname {
+		wrapper := func(dc string, conn net.Conn) (net.Conn, error) {
+			conf := *tlsConfig
+			conf.ServerName = "server." + dc + "." + domain
+			return WrapTLSClient(conn, &conf)
+		}
+		return wrapper, nil
+	} else {
+		wrapper := func(dc string, c net.Conn) (net.Conn, error) {
+			return WrapTLSClient(c, tlsConfig)
+		}
+		return wrapper, nil
+	}
+}
+
+// SpecificDC is used to invoke a static datacenter
+// and turns a DCWrapper into a Wrapper type.
+func SpecificDC(dc string, tlsWrap DCWrapper) Wrapper {
+	if tlsWrap == nil {
+		return nil
+	}
+	return func(conn net.Conn) (net.Conn, error) {
+		return tlsWrap(dc, conn)
+	}
 }
 
 // Wrap a net.Conn into a client tls connection, performing any

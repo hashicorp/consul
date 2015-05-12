@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"crypto/tls"
 	"fmt"
 	"log"
 	"math/rand"
@@ -91,10 +90,9 @@ func NewClient(config *Config) (*Client, error) {
 		config.LogOutput = os.Stderr
 	}
 
-	// Create the tlsConfig
-	var tlsConfig *tls.Config
-	var err error
-	if tlsConfig, err = config.tlsConfig().OutgoingTLSConfig(); err != nil {
+	// Create the tls Wrapper
+	tlsWrap, err := config.tlsConfig().OutgoingTLSWrapper()
+	if err != nil {
 		return nil, err
 	}
 
@@ -104,7 +102,7 @@ func NewClient(config *Config) (*Client, error) {
 	// Create server
 	c := &Client{
 		config:     config,
-		connPool:   NewPool(config.LogOutput, clientRPCCache, clientMaxStreams, tlsConfig),
+		connPool:   NewPool(config.LogOutput, clientRPCCache, clientMaxStreams, tlsWrap),
 		eventCh:    make(chan serf.Event, 256),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
@@ -357,7 +355,7 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 
 	// Forward to remote Consul
 TRY_RPC:
-	if err := c.connPool.RPC(server.Addr, server.Version, method, args, reply); err != nil {
+	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, args, reply); err != nil {
 		c.lastServer = nil
 		c.lastRPCTime = time.Time{}
 		return err

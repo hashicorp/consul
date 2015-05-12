@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net"
 	"testing"
+
+	"github.com/hashicorp/yamux"
 )
 
 func TestConfig_AppendCA_None(t *testing.T) {
@@ -133,6 +135,29 @@ func TestConfig_OutgoingTLS_ServerName(t *testing.T) {
 	}
 }
 
+func TestConfig_OutgoingTLS_VerifyHostname(t *testing.T) {
+	conf := &Config{
+		VerifyServerHostname: true,
+		CAFile:               "../test/ca/root.cer",
+	}
+	tls, err := conf.OutgoingTLSConfig()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if tls == nil {
+		t.Fatalf("expected config")
+	}
+	if len(tls.RootCAs.Subjects()) != 1 {
+		t.Fatalf("expect root cert")
+	}
+	if tls.ServerName != "VerifyServerHostname" {
+		t.Fatalf("expect server name")
+	}
+	if tls.InsecureSkipVerify {
+		t.Fatalf("should not skip built-in verification")
+	}
+}
+
 func TestConfig_OutgoingTLS_WithKeyPair(t *testing.T) {
 	conf := &Config{
 		VerifyOutgoing: true,
@@ -168,8 +193,16 @@ func startTLSServer(config *Config) (net.Conn, chan error) {
 	}
 
 	client, server := net.Pipe()
+
+	// Use yamux to buffer the reads, otherwise it's easy to deadlock
+	muxConf := yamux.DefaultConfig()
+	serverSession, _ := yamux.Server(server, muxConf)
+	clientSession, _ := yamux.Client(client, muxConf)
+	clientConn, _ := clientSession.Open()
+	serverConn, _ := serverSession.Accept()
+
 	go func() {
-		tlsServer := tls.Server(server, tlsConfigServer)
+		tlsServer := tls.Server(serverConn, tlsConfigServer)
 		if err := tlsServer.Handshake(); err != nil {
 			errc <- err
 		}
@@ -183,7 +216,107 @@ func startTLSServer(config *Config) (net.Conn, chan error) {
 		io.Copy(ioutil.Discard, tlsServer)
 		tlsServer.Close()
 	}()
-	return client, errc
+	return clientConn, errc
+}
+
+func TestConfig_outgoingWrapper_OK(t *testing.T) {
+	config := &Config{
+		CAFile:               "../test/hostname/CertAuth.crt",
+		CertFile:             "../test/hostname/Alice.crt",
+		KeyFile:              "../test/hostname/Alice.key",
+		VerifyServerHostname: true,
+		Domain:               "consul",
+	}
+
+	client, errc := startTLSServer(config)
+	if client == nil {
+		t.Fatalf("startTLSServer err: %v", <-errc)
+	}
+
+	wrap, err := config.OutgoingTLSWrapper()
+	if err != nil {
+		t.Fatalf("OutgoingTLSWrapper err: %v", err)
+	}
+
+	tlsClient, err := wrap("dc1", client)
+	if err != nil {
+		t.Fatalf("wrapTLS err: %v", err)
+	}
+	defer tlsClient.Close()
+	if err := tlsClient.(*tls.Conn).Handshake(); err != nil {
+		t.Fatalf("write err: %v", err)
+	}
+
+	err = <-errc
+	if err != nil {
+		t.Fatalf("server: %v", err)
+	}
+}
+
+func TestConfig_outgoingWrapper_BadDC(t *testing.T) {
+	config := &Config{
+		CAFile:               "../test/hostname/CertAuth.crt",
+		CertFile:             "../test/hostname/Alice.crt",
+		KeyFile:              "../test/hostname/Alice.key",
+		VerifyServerHostname: true,
+		Domain:               "consul",
+	}
+
+	client, errc := startTLSServer(config)
+	if client == nil {
+		t.Fatalf("startTLSServer err: %v", <-errc)
+	}
+
+	wrap, err := config.OutgoingTLSWrapper()
+	if err != nil {
+		t.Fatalf("OutgoingTLSWrapper err: %v", err)
+	}
+
+	tlsClient, err := wrap("dc2", client)
+	if err != nil {
+		t.Fatalf("wrapTLS err: %v", err)
+	}
+	defer tlsClient.Close()
+	err = tlsClient.(*tls.Conn).Handshake()
+
+	if _, ok := err.(x509.HostnameError); !ok {
+		t.Fatalf("should get hostname err: %v", err)
+	}
+
+	<-errc
+}
+
+func TestConfig_outgoingWrapper_BadCert(t *testing.T) {
+	config := &Config{
+		CAFile:               "../test/ca/root.cer",
+		CertFile:             "../test/key/ourdomain.cer",
+		KeyFile:              "../test/key/ourdomain.key",
+		VerifyServerHostname: true,
+		Domain:               "consul",
+	}
+
+	client, errc := startTLSServer(config)
+	if client == nil {
+		t.Fatalf("startTLSServer err: %v", <-errc)
+	}
+
+	wrap, err := config.OutgoingTLSWrapper()
+	if err != nil {
+		t.Fatalf("OutgoingTLSWrapper err: %v", err)
+	}
+
+	tlsClient, err := wrap("dc1", client)
+	if err != nil {
+		t.Fatalf("wrapTLS err: %v", err)
+	}
+	defer tlsClient.Close()
+	err = tlsClient.(*tls.Conn).Handshake()
+
+	if _, ok := err.(x509.HostnameError); !ok {
+		t.Fatalf("should get hostname err: %v", err)
+	}
+
+	<-errc
 }
 
 func TestConfig_wrapTLS_OK(t *testing.T) {

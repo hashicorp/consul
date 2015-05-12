@@ -584,6 +584,14 @@ definitions support being updated during a reload.
   will not make use of TLS for outgoing connections. This applies to clients and servers
   as both will make outgoing connections.
 
+* <a name="verify_server_hostname"></a><a href="#verify_server_hostname">`verify_server_hostname`</a> - If set to
+  true, Consul verifies for all outgoing connections that the TLS certificate presented by the servers
+  matches "server.<datacenter>.<domain>" hostname. This implies `verify_outgoing`.
+  By default, this is false, and Consul does not verify the hostname of the certificate, only
+  that it is signed by a trusted CA. This setting is important to prevent a compromised
+  client from being restarted as a server, and thus being able to perform a MITM attack
+  or to be added as a Raft peer. This is new in 0.5.1.
+
 * <a name="watches"></a><a href="#watches">`watches`</a> - Watches is a list of watch
   specifications which allow an external process to be automatically invoked when a
   particular data view is updated. See the

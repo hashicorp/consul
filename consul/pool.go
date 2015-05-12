@@ -2,7 +2,6 @@ package consul
 
 import (
 	"container/list"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -135,8 +134,8 @@ type ConnPool struct {
 	// Pool maps an address to a open connection
 	pool map[string]*Conn
 
-	// TLS settings
-	tlsConfig *tls.Config
+	// TLS wrapper
+	tlsWrap tlsutil.DCWrapper
 
 	// Used to indicate the pool is shutdown
 	shutdown   bool
@@ -148,13 +147,13 @@ type ConnPool struct {
 // Set maxTime to 0 to disable reaping. maxStreams is used to control
 // the number of idle streams allowed.
 // If TLS settings are provided outgoing connections use TLS.
-func NewPool(logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsConfig *tls.Config) *ConnPool {
+func NewPool(logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap tlsutil.DCWrapper) *ConnPool {
 	pool := &ConnPool{
 		logOutput:  logOutput,
 		maxTime:    maxTime,
 		maxStreams: maxStreams,
 		pool:       make(map[string]*Conn),
-		tlsConfig:  tlsConfig,
+		tlsWrap:    tlsWrap,
 		shutdownCh: make(chan struct{}),
 	}
 	if maxTime > 0 {
@@ -183,14 +182,14 @@ func (p *ConnPool) Shutdown() error {
 
 // Acquire is used to get a connection that is
 // pooled or to return a new connection
-func (p *ConnPool) acquire(addr net.Addr, version int) (*Conn, error) {
+func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error) {
 	// Check for a pooled ocnn
 	if conn := p.getPooled(addr, version); conn != nil {
 		return conn, nil
 	}
 
 	// Create a new connection
-	return p.getNewConn(addr, version)
+	return p.getNewConn(dc, addr, version)
 }
 
 // getPooled is used to return a pooled connection
@@ -206,7 +205,7 @@ func (p *ConnPool) getPooled(addr net.Addr, version int) *Conn {
 }
 
 // getNewConn is used to return a new connection
-func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
+func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, error) {
 	// Try to dial the conn
 	conn, err := net.DialTimeout("tcp", addr.String(), 10*time.Second)
 	if err != nil {
@@ -220,7 +219,7 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 	}
 
 	// Check if TLS is enabled
-	if p.tlsConfig != nil {
+	if p.tlsWrap != nil {
 		// Switch the connection into TLS mode
 		if _, err := conn.Write([]byte{byte(rpcTLS)}); err != nil {
 			conn.Close()
@@ -228,7 +227,7 @@ func (p *ConnPool) getNewConn(addr net.Addr, version int) (*Conn, error) {
 		}
 
 		// Wrap the connection in a TLS client
-		tlsConn, err := tlsutil.WrapTLSClient(conn, p.tlsConfig)
+		tlsConn, err := p.tlsWrap(dc, conn)
 		if err != nil {
 			conn.Close()
 			return nil, err
@@ -314,11 +313,11 @@ func (p *ConnPool) releaseConn(conn *Conn) {
 }
 
 // getClient is used to get a usable client for an address and protocol version
-func (p *ConnPool) getClient(addr net.Addr, version int) (*Conn, *StreamClient, error) {
+func (p *ConnPool) getClient(dc string, addr net.Addr, version int) (*Conn, *StreamClient, error) {
 	retries := 0
 START:
 	// Try to get a conn first
-	conn, err := p.acquire(addr, version)
+	conn, err := p.acquire(dc, addr, version)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get conn: %v", err)
 	}
@@ -340,9 +339,9 @@ START:
 }
 
 // RPC is used to make an RPC call to a remote host
-func (p *ConnPool) RPC(addr net.Addr, version int, method string, args interface{}, reply interface{}) error {
+func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, args interface{}, reply interface{}) error {
 	// Get a usable client
-	conn, sc, err := p.getClient(addr, version)
+	conn, sc, err := p.getClient(dc, addr, version)
 	if err != nil {
 		return fmt.Errorf("rpc error: %v", err)
 	}

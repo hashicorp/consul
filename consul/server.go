@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
@@ -182,9 +183,9 @@ func NewServer(config *Config) (*Server, error) {
 		config.LogOutput = os.Stderr
 	}
 
-	// Create the tlsConfig for outgoing connections
+	// Create the tls wrapper for outgoing connections
 	tlsConf := config.tlsConfig()
-	tlsConfig, err := tlsConf.OutgoingTLSConfig()
+	tlsWrap, err := tlsConf.OutgoingTLSWrapper()
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +208,7 @@ func NewServer(config *Config) (*Server, error) {
 	// Create server
 	s := &Server{
 		config:        config,
-		connPool:      NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsConfig),
+		connPool:      NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap),
 		eventChLAN:    make(chan serf.Event, 256),
 		eventChWAN:    make(chan serf.Event, 256),
 		localConsuls:  make(map[string]*serverParts),
@@ -242,7 +243,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Initialize the RPC layer
-	if err := s.setupRPC(tlsConfig); err != nil {
+	if err := s.setupRPC(tlsWrap); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}
@@ -410,7 +411,7 @@ func (s *Server) setupRaft() error {
 }
 
 // setupRPC is used to setup the RPC listener
-func (s *Server) setupRPC(tlsConfig *tls.Config) error {
+func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	// Create endpoints
 	s.endpoints.Status = &Status{s}
 	s.endpoints.Catalog = &Catalog{s}
@@ -453,7 +454,10 @@ func (s *Server) setupRPC(tlsConfig *tls.Config) error {
 		return fmt.Errorf("RPC advertise address is not advertisable: %v", addr)
 	}
 
-	s.raftLayer = NewRaftLayer(advertise, tlsConfig)
+	// Provide a DC specific wrapper. Raft replication is only
+	// ever done in the same datacenter, so we can provide it as a constant.
+	wrapper := tlsutil.SpecificDC(s.config.Datacenter, tlsWrap)
+	s.raftLayer = NewRaftLayer(advertise, wrapper)
 	return nil
 }
 
