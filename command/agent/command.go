@@ -620,6 +620,7 @@ func (c *Command) Run(args []string) int {
 			return 1
 		}
 
+		c.Ui.Output("Starting raft data migration...")
 		start := time.Now()
 		migrated, err := m.Migrate()
 		if err != nil {
