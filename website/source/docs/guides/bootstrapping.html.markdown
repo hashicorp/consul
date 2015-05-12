@@ -35,7 +35,7 @@ providing the `-bootstrap-expect 3` flag. Once the nodes are started, you should
 [WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
 ```
 
-This indicates that the nodes are expecting 2 peers but none are known yet. To provent a split-brain
+This indicates that the nodes are expecting 2 peers but none are known yet. To prevent a split-brain
 scenario, the servers will not elect themselves leader.
 
 ## Creating a cluster
