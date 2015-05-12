@@ -3,14 +3,35 @@
 FEATURES:
 
  * Ability to configure minimum session TTL. [GH-821]
+ * Ability to set the initial state of a health check when registering [GH-859]
+ * New `configtest` sub-command to verify config validity [GH-904]
+ * ACL enforcement is prefix based for service names [GH-905]
+ * ACLs support upsert for simpler restore and external generation [GH-909]
+ * ACL tokens can be provided per-service during registration [GH-891]
+ * Support for distinct LAN and WAN advertise addresses [GH-816]
+ * Migrating Raft log from LMDB to BoltDB [GH-857]
+ * `session_ttl_min` is now configurable to reduce the minimum TTL [GH-821]
 
 BUG FIXES:
 
  * Datacenter is lowercased, fixes DNS lookups [GH-761]
+ * Deregister all checks when service is deregistered [GH-918]
+ * Fixing issues with updates of persisted services [GH-910]
+ * Chained CNAME resolution fixes [GH-862]
+ * Tokens are filtered out of log messages [GH-860]
+ * Fixing anti-entropy issue if servers rollback Raft log [GH-850]
+ * Datacenter name is case insensitive for DNS lookups
+ * Queries for invalid datacenters do not leak sockets [GH-807]
 
 IMPROVEMENTS:
 
+ * HTTP health checks more reliable, avoid KeepAlives [GH-824]
+ * Improved protection against a passive cluster merge
+ * SIGTERM is properly handled for graceful shutdown [GH-827]
+ * Better staggering of defered updates to checks [GH-884]
+ * Configurable stats prefix [GH-902]
  * Raft uses BoltDB as the backend store. [GH-857]
+ * API RenewPeriodic more resilient to transient errors [GH-912]
 
 ## 0.5.0 (Febuary 19, 2015)
 
