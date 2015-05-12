@@ -11,6 +11,7 @@ FEATURES:
  * Support for distinct LAN and WAN advertise addresses [GH-816]
  * Migrating Raft log from LMDB to BoltDB [GH-857]
  * `session_ttl_min` is now configurable to reduce the minimum TTL [GH-821]
+ * Adding `verify_server_hostname` to protect against server forging [GH-927]
 
 BUG FIXES:
 
