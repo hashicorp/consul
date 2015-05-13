@@ -675,6 +675,17 @@ AFTER_MIGRATE:
 		}(wp)
 	}
 
+	// Register the watches for archetypes
+	for _, wp := range config.WatchPlansForArchetypes {
+		go func(wp *watch.WatchPlan) {
+			wp.Handler = makeWatchHandlerForArchetype(logOutput, c.agent.config)
+			wp.LogOutput = c.logOutput
+			if err := wp.Run(httpAddr.String()); err != nil {
+				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
+			}
+		}(wp)
+	}
+
 	// Figure out if gossip is encrypted
 	var gossipEncrypted bool
 	if config.Server {
