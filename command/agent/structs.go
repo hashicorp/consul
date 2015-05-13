@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"github.com/marouenj/consul-template/core"
 	"github.com/marouenj/consul/consul/structs"
 )
 
@@ -41,15 +42,14 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes) {
 
 // ArchetypeDefinition is used to JSON decode the Archetype definitions
 type ArchetypeDefinition struct {
-	ID        string // identifies this definition
-	PoolName  string // identifies an archetype. The convention is that definitions with the same PoolName relate to the same pool, 'redis_pool' for example
-	Tags      []string
-	Address   string
-	Port      int
-	Check     CheckType  // potentially a template, to be rendered by consul-template
-	Checks    CheckTypes // ditto
-	Templates []string   // templates for the config files of the service this archetype abstracts, to be rendered by consul-template
-	Command   string     // launcher of the service this archetype abstracts, to be executed by consul-template
+	ID       string // identifies this definition
+	PoolName string // identifies an archetype. The convention is that definitions with the same PoolName relate to the same pool, 'redis_pool' for example
+	Tags     []string
+	Address  string
+	Port     int
+	Check    CheckType           // potentially a template, to be rendered by consul-template
+	Checks   CheckTypes          // ditto
+	Template core.ConfigTemplate // template for the config file of the service this archetype abstracts, to be rendered by consul-template
 }
 
 func (a *ArchetypeDefinition) NodeArchetype() *structs.NodeArchetype {
