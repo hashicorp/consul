@@ -49,7 +49,7 @@ this is the address that Consul listens on, and it *must* be accessible by
 all other nodes in the cluster. While a `bind` address is not strictly
 necessary (Consul will by default listen on the first private IP on a
 system), it's always best to provide one. Production servers often have
-multiple interfaces, so specifying a `bind` address insures that you will
+multiple interfaces, so specifying a `bind` address assures that you will
 never bind Consul to the wrong interface.
 
 The first node will act as our sole server in this cluster, and we indicate
