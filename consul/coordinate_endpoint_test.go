@@ -38,7 +38,7 @@ func coordinatesEqual(a, b *coordinate.Coordinate) bool {
 	return reflect.DeepEqual(a, b)
 }
 
-func TestCoordinateUpdate(t *testing.T) {
+func TestCoordinate_Update(t *testing.T) {
 	name := fmt.Sprintf("Node %d", getPort())
 	dir1, config1 := testServerConfig(t, name)
 	config1.CoordinateUpdatePeriod = 1000 * time.Millisecond
@@ -114,13 +114,13 @@ func TestCoordinateUpdate(t *testing.T) {
 	}
 }
 
-func TestCoordinateGetLAN(t *testing.T) {
+func TestCoordinate_GetLAN(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
 	client := rpcClient(t, s1)
 	defer client.Close()
-
 	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	arg := structs.CoordinateUpdateRequest{
@@ -164,5 +164,65 @@ func TestCoordinateGetLAN(t *testing.T) {
 	}
 	if !coordinatesEqual(out2.Coord, arg.Coord) {
 		t.Fatalf("should be equal\n%v\n%v", out2.Coord, arg.Coord)
+	}
+}
+
+func TestCoordinate_GetWAN(t *testing.T) {
+	// Create 1 server in dc1, 2 servers in dc2
+	dir1, s1 := testServerDC(t, "dc1")
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	client := rpcClient(t, s1)
+	defer client.Close()
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check the members
+	testutil.WaitForResult(func() (bool, error) {
+		return len(s1.WANMembers()) == 3, nil
+	}, func(err error) {
+		t.Fatalf("bad len")
+	})
+
+	// Wait for coordinates to be exchanged
+	time.Sleep(s1.config.SerfWANConfig.MemberlistConfig.ProbeInterval * 2)
+
+	var coords []*coordinate.Coordinate
+	arg := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	if err := client.Call("Coordinate.GetWAN", &arg, &coords); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(coords) != 1 {
+		t.Fatalf("there is 1 server in dc1")
+	}
+
+	arg = structs.DCSpecificRequest{
+		Datacenter: "dc2",
+	}
+	if err := client.Call("Coordinate.GetWAN", &arg, &coords); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(coords) != 2 {
+		t.Fatalf("there are 2 servers in dc2")
 	}
 }
