@@ -205,14 +205,14 @@ func TestCoordinate_GetWAN(t *testing.T) {
 	// Wait for coordinates to be exchanged
 	time.Sleep(s1.config.SerfWANConfig.MemberlistConfig.ProbeInterval * 2)
 
-	var coords []*coordinate.Coordinate
+	var coords structs.CoordinateList
 	arg := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
 	if err := client.Call("Coordinate.GetWAN", &arg, &coords); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(coords) != 1 {
+	if len(coords.Coords) != 1 {
 		t.Fatalf("there is 1 server in dc1")
 	}
 
@@ -222,7 +222,7 @@ func TestCoordinate_GetWAN(t *testing.T) {
 	if err := client.Call("Coordinate.GetWAN", &arg, &coords); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(coords) != 2 {
+	if len(coords.Coords) != 2 {
 		t.Fatalf("there are 2 servers in dc2")
 	}
 }

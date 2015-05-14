@@ -626,6 +626,10 @@ type Coordinate struct {
 	Coord *coordinate.Coordinate
 }
 
+type CoordinateList struct {
+	Coords []Coordinate
+}
+
 type IndexedCoordinate struct {
 	Coord *coordinate.Coordinate
 	QueryMeta

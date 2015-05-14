@@ -406,11 +406,9 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.endpoints.Session = &Session{s}
 	s.endpoints.Internal = &Internal{s}
 	s.endpoints.ACL = &ACL{s}
-	if s.config.EnableCoordinates {
-		s.endpoints.Coordinate = &Coordinate{
-			srv:            s,
-			updateLastSent: time.Now(),
-		}
+	s.endpoints.Coordinate = &Coordinate{
+		srv:            s,
+		updateLastSent: time.Now(),
 	}
 
 	// Register the handlers
@@ -421,9 +419,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.rpcServer.Register(s.endpoints.Session)
 	s.rpcServer.Register(s.endpoints.Internal)
 	s.rpcServer.Register(s.endpoints.ACL)
-	if s.config.EnableCoordinates {
-		s.rpcServer.Register(s.endpoints.Coordinate)
-	}
+	s.rpcServer.Register(s.endpoints.Coordinate)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
