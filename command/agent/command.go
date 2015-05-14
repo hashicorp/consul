@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 	scada "github.com/hashicorp/scada-client"
+	consultemplate "github.com/marouenj/consul-template/core"
 	"github.com/marouenj/consul/watch"
 	"github.com/mitchellh/cli"
 )
@@ -674,6 +675,9 @@ AFTER_MIGRATE:
 			}
 		}(wp)
 	}
+
+	// allocate a slice of Runner
+	config.Runners = make([]*consultemplate.Runner, len(config.Archetypes), len(config.Archetypes))
 
 	// Register the watches for archetypes
 	for i, wp := range config.WatchPlansForArchetypes {
