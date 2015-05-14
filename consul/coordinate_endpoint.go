@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"sync"
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
@@ -8,22 +9,10 @@ import (
 )
 
 type Coordinate struct {
-	srv *Server
-}
-
-var (
-	// We batch updates and send them together every 30 seconds, or every 1000 updates,
-	// whichever comes sooner
-	updatePeriod       = time.Duration(30) * time.Second
-	updateBatchMaxSize = 1000
-
-	updateBuffer   []*structs.CoordinateUpdateRequest
-	updateLastSent time.Time
-)
-
-func init() {
-	updateBuffer = nil
-	updateLastSent = time.Now()
+	srv              *Server
+	updateLastSent   time.Time
+	updateBuffer     []*structs.CoordinateUpdateRequest
+	updateBufferLock sync.Mutex
 }
 
 // Get returns the the LAN coordinate of a node.
@@ -39,7 +28,11 @@ func (c *Coordinate) GetLAN(args *structs.NodeSpecificRequest, reply *structs.In
 		func() error {
 			idx, coord, err := state.CoordinateGet(args.Node)
 			reply.Index = idx
-			reply.Coord = coord.Coord
+			if coord == nil {
+				reply.Coord = nil
+			} else {
+				reply.Coord = coord.Coord
+			}
 			return err
 		})
 }
@@ -66,18 +59,25 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 		return err
 	}
 
-	updateBuffer = append(updateBuffer, args)
-	if time.Since(updateLastSent) > updatePeriod || len(updateBuffer) > updateBatchMaxSize {
-		_, err := c.srv.raftApply(structs.CoordinateRequestType, updateBuffer)
-		// We clear the buffer regardless of whether the raft transaction succeeded, just so the
-		// buffer doesn't keep growing without bound.
-		updateBuffer = nil
-		updateLastSent = time.Now()
+	c.updateBufferLock.Lock()
+	c.updateBuffer = append(c.updateBuffer, args)
+	if time.Since(c.updateLastSent) > c.srv.config.CoordinateUpdatePeriod || len(c.updateBuffer) > c.srv.config.CoordinateUpdateMaxBatchSize {
+		c.srv.logger.Printf("sending update for %v", args.Node)
+		// Apply the potentially time-consuming transaction out of band
+		go func() {
+			defer c.updateBufferLock.Unlock()
+			_, err := c.srv.raftApply(structs.CoordinateRequestType, c.updateBuffer)
+			// We clear the buffer regardless of whether the raft transaction succeeded, just so the
+			// buffer doesn't keep growing without bound.
+			c.updateBuffer = nil
+			c.updateLastSent = time.Now()
 
-		if err != nil {
-			c.srv.logger.Printf("[ERR] consul.coordinate: Update failed: %v", err)
-			return err
-		}
+			if err != nil {
+				c.srv.logger.Printf("[ERR] consul.coordinate: Update failed: %v", err)
+			}
+		}()
+	} else {
+		c.updateBufferLock.Unlock()
 	}
 
 	return nil

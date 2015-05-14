@@ -407,7 +407,10 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.endpoints.Internal = &Internal{s}
 	s.endpoints.ACL = &ACL{s}
 	if s.config.EnableCoordinates {
-		s.endpoints.Coordinate = &Coordinate{s}
+		s.endpoints.Coordinate = &Coordinate{
+			srv:            s,
+			updateLastSent: time.Now(),
+		}
 	}
 
 	// Register the handlers

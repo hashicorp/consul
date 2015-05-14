@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"reflect"
@@ -11,11 +12,6 @@ import (
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/serf/coordinate"
 )
-
-func init() {
-	// Shorten updatePeriod so we don't have to wait as long
-	updatePeriod = time.Duration(100) * time.Millisecond
-}
 
 // getRandomCoordinate generates a random coordinate.
 func getRandomCoordinate() *coordinate.Coordinate {
@@ -43,9 +39,16 @@ func coordinatesEqual(a, b *coordinate.Coordinate) bool {
 }
 
 func TestCoordinateUpdate(t *testing.T) {
-	dir1, s1 := testServer(t)
+	name := fmt.Sprintf("Node %d", getPort())
+	dir1, config1 := testServerConfig(t, name)
+	config1.CoordinateUpdatePeriod = 1000 * time.Millisecond
+	s1, err := NewServer(config1)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+
 	client := rpcClient(t, s1)
 	defer client.Close()
 
@@ -65,8 +68,6 @@ func TestCoordinateUpdate(t *testing.T) {
 		Coord:      getRandomCoordinate(),
 	}
 
-	updateLastSent = time.Now()
-
 	var out struct{}
 	if err := client.Call("Coordinate.Update", &arg1, &out); err != nil {
 		t.Fatalf("err: %v", err)
@@ -83,10 +84,12 @@ func TestCoordinateUpdate(t *testing.T) {
 	}
 
 	// Wait a while and send another update; this time the updates should be sent
-	time.Sleep(time.Duration(2) * updatePeriod)
+	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
 	if err := client.Call("Coordinate.Update", &arg2, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	// Yield the current goroutine to allow the goroutine that sends the updates to run
+	time.Sleep(100 * time.Millisecond)
 
 	_, d, err = state.CoordinateGet("node1")
 	if err != nil {
@@ -112,8 +115,6 @@ func TestCoordinateUpdate(t *testing.T) {
 }
 
 func TestCoordinateGetLAN(t *testing.T) {
-	updatePeriod = time.Duration(0) // to make updates instant
-
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -133,9 +134,11 @@ func TestCoordinateGetLAN(t *testing.T) {
 	if err := client.Call("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	// Yield the current goroutine to allow the goroutine that sends the updates to run
+	time.Sleep(100 * time.Millisecond)
 
 	// Get via RPC
-	var out2 *structs.IndexedCoordinate
+	out2 := structs.IndexedCoordinate{}
 	arg2 := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
 		Node:       "node1",
@@ -153,6 +156,9 @@ func TestCoordinateGetLAN(t *testing.T) {
 	if err := client.Call("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	// Yield the current goroutine to allow the goroutine that sends the updates to run
+	time.Sleep(100 * time.Millisecond)
+
 	if err := client.Call("Coordinate.GetLAN", &arg2, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
