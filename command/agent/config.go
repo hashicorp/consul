@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	consultemplate "github.com/marouenj/consul-template/core"
 	"github.com/marouenj/consul/consul"
 	"github.com/marouenj/consul/watch"
 	"github.com/mitchellh/mapstructure"
@@ -367,6 +368,9 @@ type Config struct {
 	// A slice of WatchPlan that contain the compiled key watches
 	// for changes on archetype/watch/{archetype_name}/{archetype_id}
 	WatchPlansForArchetypes []*watch.WatchPlan `mapstructure:"-" json:"-"`
+
+	// consul-template runners, one for each archetype
+	Runners []*consultemplate.Runner
 
 	// UnixSockets is a map of socket configuration data
 	UnixSockets UnixSocketConfig `mapstructure:"unix_sockets"`
