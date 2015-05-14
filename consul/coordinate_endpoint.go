@@ -15,7 +15,7 @@ type Coordinate struct {
 	updateBufferLock sync.Mutex
 }
 
-// Get returns the the LAN coordinate of a node.
+// GetLAN returns the the LAN coordinate of a node.
 func (c *Coordinate) GetLAN(args *structs.NodeSpecificRequest, reply *structs.IndexedCoordinate) error {
 	if done, err := c.srv.forward("Coordinate.GetLAN", args, args, reply); done {
 		return err
@@ -37,15 +37,20 @@ func (c *Coordinate) GetLAN(args *structs.NodeSpecificRequest, reply *structs.In
 		})
 }
 
-// Get returns the the WAN coordinate of a datacenter.
-func (c *Coordinate) GetWAN(args *structs.DCSpecificRequest, reply *coordinate.Coordinate) error {
+// GetWAN returns the WAN coordinates of the servers in a given datacenter.
+//
+// Note that the server does not necessarily know about *all* servers in the given datacenter.
+// It just returns the coordinates of those that it knows.
+func (c *Coordinate) GetWAN(args *structs.DCSpecificRequest, reply *[]*coordinate.Coordinate) error {
 	if args.Datacenter == c.srv.config.Datacenter {
-		*reply = *c.srv.GetWANCoordinate()
+		*reply = make([]*coordinate.Coordinate, 1)
+		(*reply)[0] = c.srv.GetWANCoordinate()
 	} else {
 		servers := c.srv.remoteConsuls[args.Datacenter] // servers in the specified DC
+		*reply = make([]*coordinate.Coordinate, 0)
 		for i := 0; i < len(servers); i++ {
 			if coord := c.srv.serfWAN.GetCachedCoordinate(servers[i].Name); coord != nil {
-				*reply = *coord
+				*reply = append(*reply, coord)
 			}
 		}
 	}
