@@ -30,6 +30,15 @@ const (
 	// maxQueryTime is used to bound the limit of a blocking query
 	maxQueryTime = 600 * time.Second
 
+	// defaultQueryTime is the amount of time we block waiting for a change
+	// if no time is specified. Previously we would wait the maxQueryTime.
+	defaultQueryTime = 300 * time.Second
+
+	// jitterFraction is a the limit to the amount of jitter we apply
+	// to a user specified MaxQueryTime. We divide the specified time by
+	// the fraction. So 16 == 6.25% limit of jitter
+	jitterFraction = 16
+
 	// Warn if the Raft command is larger than this.
 	// If it's over 1MB something is probably being abusive.
 	raftWarnSize = 1024 * 1024
@@ -332,8 +341,11 @@ func (s *Server) blockingRPCOpt(opts *blockingRPCOptions) error {
 	if opts.queryOpts.MaxQueryTime > maxQueryTime {
 		opts.queryOpts.MaxQueryTime = maxQueryTime
 	} else if opts.queryOpts.MaxQueryTime <= 0 {
-		opts.queryOpts.MaxQueryTime = maxQueryTime
+		opts.queryOpts.MaxQueryTime = defaultQueryTime
 	}
+
+	// Apply a small amount of jitter to the request
+	opts.queryOpts.MaxQueryTime += randomStagger(opts.queryOpts.MaxQueryTime / jitterFraction)
 
 	// Setup a query timeout
 	timeout = time.NewTimer(opts.queryOpts.MaxQueryTime)

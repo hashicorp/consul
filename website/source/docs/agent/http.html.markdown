@@ -39,9 +39,9 @@ query string parameter to the value of `X-Consul-Index`, indicating that the cli
 to wait for any changes subsequent to that index.
 
 In addition to `index`, endpoints that support blocking will also honor a `wait`
-parameter specifying a maximum duration for the blocking request. If not set, it will
-default to 10 minutes. This value can be specified in the form of "10s" or "5m" (i.e.,
-10 seconds or 5 minutes, respectively).
+parameter specifying a maximum duration for the blocking request. This is limited to
+10 minutes. If not set, the wait time defaults to 5 minutes. This value can be specified
+in the form of "10s" or "5m" (i.e., 10 seconds or 5 minutes, respectively).
 
 A critical note is that the return of a blocking request is **no guarantee** of a change. It
 is possible that the timeout was reached or that there was an idempotent write that does
