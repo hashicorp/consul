@@ -127,6 +127,37 @@ func TestGetNodes(t *testing.T) {
 	}
 }
 
+func TestGetNodes_Watch_StopWatch(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	notify1 := make(chan struct{}, 1)
+	notify2 := make(chan struct{}, 1)
+
+	store.Watch(store.QueryTables("Nodes"), notify1)
+	store.Watch(store.QueryTables("Nodes"), notify2)
+	store.StopWatch(store.QueryTables("Nodes"), notify2)
+
+	if err := store.EnsureNode(40, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	select {
+	case <-notify1:
+	default:
+		t.Fatalf("should be notified")
+	}
+
+	select {
+	case <-notify2:
+		t.Fatalf("should not be notified")
+	default:
+	}
+}
+
 func BenchmarkGetNodes(b *testing.B) {
 	store, err := testStateStore()
 	if err != nil {
@@ -1425,6 +1456,32 @@ func TestKVSSet_Watch(t *testing.T) {
 	select {
 	case <-notify3:
 		t.Fatalf("should not notify foo/bar")
+	default:
+	}
+}
+
+func TestKVSSet_Watch_Stop(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	notify1 := make(chan struct{}, 1)
+
+	store.WatchKV("", notify1)
+	store.StopWatchKV("", notify1)
+
+	// Create the entry
+	d := &structs.DirEntry{Key: "foo/baz", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check that we've not fired notify1
+	select {
+	case <-notify1:
+		t.Fatalf("should not notify ")
 	default:
 	}
 }

@@ -30,6 +30,15 @@ const (
 	// maxQueryTime is used to bound the limit of a blocking query
 	maxQueryTime = 600 * time.Second
 
+	// defaultQueryTime is the amount of time we block waiting for a change
+	// if no time is specified. Previously we would wait the maxQueryTime.
+	defaultQueryTime = 300 * time.Second
+
+	// jitterFraction is a the limit to the amount of jitter we apply
+	// to a user specified MaxQueryTime. We divide the specified time by
+	// the fraction. So 16 == 6.25% limit of jitter
+	jitterFraction = 16
+
 	// Warn if the Raft command is larger than this.
 	// If it's over 1MB something is probably being abusive.
 	raftWarnSize = 1024 * 1024
@@ -314,8 +323,9 @@ type blockingRPCOptions struct {
 // blockingRPCOpt is the replacement for blockingRPC as it allows
 // for more parameterization easily. It should be prefered over blockingRPC.
 func (s *Server) blockingRPCOpt(opts *blockingRPCOptions) error {
-	var timeout <-chan time.Time
+	var timeout *time.Timer
 	var notifyCh chan struct{}
+	var state *StateStore
 
 	// Fast path non-blocking
 	if opts.queryOpts.MinQueryIndex == 0 {
@@ -327,30 +337,38 @@ func (s *Server) blockingRPCOpt(opts *blockingRPCOptions) error {
 		panic("no tables to block on")
 	}
 
-	// Restrict the max query time
+	// Restrict the max query time, and ensure there is always one
 	if opts.queryOpts.MaxQueryTime > maxQueryTime {
 		opts.queryOpts.MaxQueryTime = maxQueryTime
+	} else if opts.queryOpts.MaxQueryTime <= 0 {
+		opts.queryOpts.MaxQueryTime = defaultQueryTime
 	}
 
-	// Ensure a time limit is set if we have an index
-	if opts.queryOpts.MinQueryIndex > 0 && opts.queryOpts.MaxQueryTime == 0 {
-		opts.queryOpts.MaxQueryTime = maxQueryTime
-	}
+	// Apply a small amount of jitter to the request
+	opts.queryOpts.MaxQueryTime += randomStagger(opts.queryOpts.MaxQueryTime / jitterFraction)
 
 	// Setup a query timeout
-	if opts.queryOpts.MaxQueryTime > 0 {
-		timeout = time.After(opts.queryOpts.MaxQueryTime)
-	}
+	timeout = time.NewTimer(opts.queryOpts.MaxQueryTime)
 
-	// Setup a notification channel for changes
-SETUP_NOTIFY:
-	if opts.queryOpts.MinQueryIndex > 0 {
-		notifyCh = make(chan struct{}, 1)
-		state := s.fsm.State()
-		state.Watch(opts.tables, notifyCh)
+	// Setup the notify channel
+	notifyCh = make(chan struct{}, 1)
+
+	// Ensure we tear down any watchers on return
+	state = s.fsm.State()
+	defer func() {
+		timeout.Stop()
+		state.StopWatch(opts.tables, notifyCh)
 		if opts.kvWatch {
-			state.WatchKV(opts.kvPrefix, notifyCh)
+			state.StopWatchKV(opts.kvPrefix, notifyCh)
 		}
+	}()
+
+REGISTER_NOTIFY:
+	// Register the notification channel. This may be done
+	// multiple times if we have not reached the target wait index.
+	state.Watch(opts.tables, notifyCh)
+	if opts.kvWatch {
+		state.WatchKV(opts.kvPrefix, notifyCh)
 	}
 
 RUN_QUERY:
@@ -372,8 +390,8 @@ RUN_QUERY:
 	if err == nil && opts.queryMeta.Index > 0 && opts.queryMeta.Index <= opts.queryOpts.MinQueryIndex {
 		select {
 		case <-notifyCh:
-			goto SETUP_NOTIFY
-		case <-timeout:
+			goto REGISTER_NOTIFY
+		case <-timeout.C:
 		}
 	}
 	return err
