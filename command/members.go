@@ -114,7 +114,7 @@ func (c *MembersCommand) Run(args []string) int {
 // in a more human-friendly format
 func (c *MembersCommand) standardOutput(members []agent.Member) []string {
 	result := make([]string, 0, len(members))
-	header := "Node|Address|Status|Type|Build|Protocol"
+	header := "Node|Address|Status|Type|Build|Protocol|DC"
 	result = append(result, header)
 	for _, member := range members {
 		addr := net.TCPAddr{IP: member.Addr, Port: int(member.Port)}
@@ -125,18 +125,19 @@ func (c *MembersCommand) standardOutput(members []agent.Member) []string {
 		} else if idx := strings.Index(build, ":"); idx != -1 {
 			build = build[:idx]
 		}
+		dc := member.Tags["dc"]
 
 		switch member.Tags["role"] {
 		case "node":
-			line := fmt.Sprintf("%s|%s|%s|client|%s|%s",
-				member.Name, addr.String(), member.Status, build, protocol)
+			line := fmt.Sprintf("%s|%s|%s|client|%s|%s|%s",
+				member.Name, addr.String(), member.Status, build, protocol, dc)
 			result = append(result, line)
 		case "consul":
-			line := fmt.Sprintf("%s|%s|%s|server|%s|%s",
-				member.Name, addr.String(), member.Status, build, protocol)
+			line := fmt.Sprintf("%s|%s|%s|server|%s|%s|%s",
+				member.Name, addr.String(), member.Status, build, protocol, dc)
 			result = append(result, line)
 		default:
-			line := fmt.Sprintf("%s|%s|%s|unknown||",
+			line := fmt.Sprintf("%s|%s|%s|unknown|||",
 				member.Name, addr.String(), member.Status)
 			result = append(result, line)
 		}

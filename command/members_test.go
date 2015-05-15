@@ -24,7 +24,18 @@ func TestMembersCommandRun(t *testing.T) {
 		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
 
+	// Name
 	if !strings.Contains(ui.OutputWriter.String(), a1.config.NodeName) {
+		t.Fatalf("bad: %#v", ui.OutputWriter.String())
+	}
+
+	// Agent type
+	if !strings.Contains(ui.OutputWriter.String(), "server") {
+		t.Fatalf("bad: %#v", ui.OutputWriter.String())
+	}
+
+	// Datacenter
+	if !strings.Contains(ui.OutputWriter.String(), "dc1") {
 		t.Fatalf("bad: %#v", ui.OutputWriter.String())
 	}
 }
