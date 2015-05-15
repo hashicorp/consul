@@ -54,3 +54,19 @@ func TestNotifyGroup(t *testing.T) {
 		t.Fatalf("should not block")
 	}
 }
+
+func TestNotifyGroup_Clear(t *testing.T) {
+	grp := &NotifyGroup{}
+
+	ch1 := grp.WaitCh()
+	grp.Clear(ch1)
+
+	grp.Notify()
+
+	// Should not get anything
+	select {
+	case <-ch1:
+		t.Fatalf("should not get message")
+	default:
+	}
+}
