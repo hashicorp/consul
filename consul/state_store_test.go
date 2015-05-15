@@ -1429,6 +1429,32 @@ func TestKVSSet_Watch(t *testing.T) {
 	}
 }
 
+func TestKVSSet_Watch_Stop(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	notify1 := make(chan struct{}, 1)
+
+	store.WatchKV("", notify1)
+	store.StopWatchKV("", notify1)
+
+	// Create the entry
+	d := &structs.DirEntry{Key: "foo/baz", Flags: 42, Value: []byte("test")}
+	if err := store.KVSSet(1000, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Check that we've not fired notify1
+	select {
+	case <-notify1:
+		t.Fatalf("should not notify ")
+	default:
+	}
+}
+
 func TestKVSSet_Get(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
