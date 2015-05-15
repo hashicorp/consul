@@ -314,7 +314,7 @@ type blockingRPCOptions struct {
 // blockingRPCOpt is the replacement for blockingRPC as it allows
 // for more parameterization easily. It should be prefered over blockingRPC.
 func (s *Server) blockingRPCOpt(opts *blockingRPCOptions) error {
-	var timeout <-chan time.Time
+	var timeout *time.Timer
 	var notifyCh chan struct{}
 	var state *StateStore
 
@@ -336,7 +336,7 @@ func (s *Server) blockingRPCOpt(opts *blockingRPCOptions) error {
 	}
 
 	// Setup a query timeout
-	timeout = time.After(opts.queryOpts.MaxQueryTime)
+	timeout = time.NewTimer(opts.queryOpts.MaxQueryTime)
 
 	// Setup the notify channel
 	notifyCh = make(chan struct{}, 1)
@@ -344,6 +344,7 @@ func (s *Server) blockingRPCOpt(opts *blockingRPCOptions) error {
 	// Ensure we tear down any watchers on return
 	state = s.fsm.State()
 	defer func() {
+		timeout.Stop()
 		state.StopWatch(opts.tables, notifyCh)
 		if opts.kvWatch {
 			state.StopWatchKV(opts.kvPrefix, notifyCh)
@@ -378,7 +379,7 @@ RUN_QUERY:
 		select {
 		case <-notifyCh:
 			goto REGISTER_NOTIFY
-		case <-timeout:
+		case <-timeout.C:
 		}
 	}
 	return err
