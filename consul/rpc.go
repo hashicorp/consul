@@ -316,6 +316,7 @@ type blockingRPCOptions struct {
 func (s *Server) blockingRPCOpt(opts *blockingRPCOptions) error {
 	var timeout <-chan time.Time
 	var notifyCh chan struct{}
+	var state *StateStore
 
 	// Fast path non-blocking
 	if opts.queryOpts.MinQueryIndex == 0 {
@@ -327,30 +328,34 @@ func (s *Server) blockingRPCOpt(opts *blockingRPCOptions) error {
 		panic("no tables to block on")
 	}
 
-	// Restrict the max query time
+	// Restrict the max query time, and ensure there is always one
 	if opts.queryOpts.MaxQueryTime > maxQueryTime {
 		opts.queryOpts.MaxQueryTime = maxQueryTime
-	}
-
-	// Ensure a time limit is set if we have an index
-	if opts.queryOpts.MinQueryIndex > 0 && opts.queryOpts.MaxQueryTime == 0 {
+	} else if opts.queryOpts.MaxQueryTime <= 0 {
 		opts.queryOpts.MaxQueryTime = maxQueryTime
 	}
 
 	// Setup a query timeout
-	if opts.queryOpts.MaxQueryTime > 0 {
-		timeout = time.After(opts.queryOpts.MaxQueryTime)
-	}
+	timeout = time.After(opts.queryOpts.MaxQueryTime)
 
-	// Setup a notification channel for changes
-SETUP_NOTIFY:
-	if opts.queryOpts.MinQueryIndex > 0 {
-		notifyCh = make(chan struct{}, 1)
-		state := s.fsm.State()
-		state.Watch(opts.tables, notifyCh)
+	// Setup the notify channel
+	notifyCh = make(chan struct{}, 1)
+
+	// Ensure we tear down any watchers on return
+	state = s.fsm.State()
+	defer func() {
+		state.StopWatch(opts.tables, notifyCh)
 		if opts.kvWatch {
-			state.WatchKV(opts.kvPrefix, notifyCh)
+			state.StopWatchKV(opts.kvPrefix, notifyCh)
 		}
+	}()
+
+REGISTER_NOTIFY:
+	// Register the notification channel. This may be done
+	// multiple times if we have not reached the target wait index.
+	state.Watch(opts.tables, notifyCh)
+	if opts.kvWatch {
+		state.WatchKV(opts.kvPrefix, notifyCh)
 	}
 
 RUN_QUERY:
@@ -372,7 +377,7 @@ RUN_QUERY:
 	if err == nil && opts.queryMeta.Index > 0 && opts.queryMeta.Index <= opts.queryOpts.MinQueryIndex {
 		select {
 		case <-notifyCh:
-			goto SETUP_NOTIFY
+			goto REGISTER_NOTIFY
 		case <-timeout:
 		}
 	}
