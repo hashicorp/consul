@@ -23,6 +23,10 @@ const (
 	// last CheckBufSize. Prevents an enormous buffer
 	// from being captured
 	CheckBufSize = 4 * 1024 // 4KB
+
+	// Use this user agent when doing requests for
+	// HTTP health checks.
+	HttpUserAgent = "Consul Health Check"
 )
 
 // CheckType is used to create either the CheckMonitor
@@ -344,7 +348,16 @@ func (c *CheckHTTP) run() {
 
 // check is invoked periodically to perform the HTTP check
 func (c *CheckHTTP) check() {
-	resp, err := c.httpClient.Get(c.HTTP)
+	req, err := http.NewRequest("GET", c.HTTP, nil)
+	if err != nil {
+		c.Logger.Printf("[WARN] agent: http request failed '%s': %s", c.HTTP, err)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
+		return
+	}
+
+	req.Header.Set("User-Agent", HttpUserAgent)
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		c.Logger.Printf("[WARN] agent: http request failed '%s': %s", c.HTTP, err)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
