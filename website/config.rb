@@ -5,7 +5,7 @@
 set :base_url, "https://www.consul.io/"
 
 activate :hashicorp do |h|
-  h.version         = "0.5.1"
+  h.version         = "0.5.2"
   h.bintray_enabled = ENV["BINTRAY_ENABLED"]
   h.bintray_repo    = "mitchellh/consul"
   h.bintray_user    = "mitchellh"
