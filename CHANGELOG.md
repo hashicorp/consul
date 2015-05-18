@@ -1,3 +1,18 @@
+## 0.5.2 (May 18, 2015)
+
+FEATURES:
+
+* Include datacenter in the `members` output
+* HTTP Health Check sets user agent "Consul Health Check" [GH-951]
+
+BUG FIXES:
+
+* Fixed memory leak caused by blocking query [GH-939]
+
+MISC:
+
+* Remove unused constant [GH-941]
+
 ## 0.5.1 (May 13, 2015)
 
 FEATURES:
