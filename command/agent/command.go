@@ -620,9 +620,45 @@ func (c *Command) Run(args []string) int {
 			return 1
 		}
 
+		// Handle progress info from the migrator utility. This will
+		// just dump out the current operation and progress every ~5
+		// percent progress.
+		doneCh := make(chan struct{})
+		go func() {
+			var lastOp string
+			var lastProgress float64
+			lastFlush := time.Now()
+			for {
+				select {
+				case update := <-m.ProgressCh:
+					switch {
+					case lastOp != update.Op:
+						lastProgress = update.Progress
+						lastOp = update.Op
+						c.Ui.Output(update.Op)
+						c.Ui.Info(fmt.Sprintf("%.2f%%", update.Progress))
+
+					case update.Progress-lastProgress >= 5:
+						fallthrough
+
+					case time.Now().Sub(lastFlush) > time.Second:
+						fallthrough
+
+					case update.Progress == 100:
+						lastFlush = time.Now()
+						lastProgress = update.Progress
+						c.Ui.Info(fmt.Sprintf("%.2f%%", update.Progress))
+					}
+				case <-doneCh:
+					return
+				}
+			}
+		}()
+
 		c.Ui.Output("Starting raft data migration...")
 		start := time.Now()
 		migrated, err := m.Migrate()
+		close(doneCh)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to migrate raft data: %s", err))
 			return 1
