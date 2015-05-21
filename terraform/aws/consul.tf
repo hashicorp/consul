@@ -1,10 +1,3 @@
-# Specify the provider and access details
-provider "aws" {
-    region = "${var.region}"
-    access_key = "${var.access_key}"
-    secret_key = "${var.secret_key}" 
-}
-
 resource "aws_instance" "server" {
     ami = "${lookup(var.ami, var.region)}"
     instance_type = "${var.instance_type}"
@@ -15,6 +8,11 @@ resource "aws_instance" "server" {
     connection {
         user = "ubuntu"
         key_file = "${var.key_path}"
+    }
+
+    #Instance tags
+    tags {
+        Name = "${var.tagName}-${count.index}"
     }
 
     provisioner "file" {
@@ -40,11 +38,6 @@ resource "aws_instance" "server" {
             "${path.module}/scripts/server.sh",
             "${path.module}/scripts/service.sh",
         ]
-    }
-
-    #Instance tags
-    tags {
-        Name = "${var.tagName}-${count.index}"
     }
 }
 
@@ -72,6 +65,14 @@ resource "aws_security_group" "consul" {
         from_port = 22
         to_port = 22
         protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    // This is for outbound internet access
+    egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
         cidr_blocks = ["0.0.0.0/0"]
     }
 }

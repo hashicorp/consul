@@ -1,11 +1,3 @@
-variable "access_key" {
-    description = "AWS Access Key."
-}
-
-variable "secret_key" {
-    description = "AWS Secret Key"
-}
-
 variable "ami" {
     default = {
         us-east-1 = "ami-3acc7a52"
@@ -35,7 +27,6 @@ variable "instance_type" {
     default = "m1.small"
     description = "The instance type to launch."
 }
-
 variable "tagName" {
     default = "consul"
     description = "Name tag for the servers"
