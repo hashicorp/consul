@@ -682,7 +682,7 @@ AFTER_MIGRATE:
 	// Register the watches for archetypes
 	for i, wp := range config.WatchPlansForArchetypes {
 		go func(wp *watch.WatchPlan) {
-			wp.Handler = makeWatchHandlerForArchetype(logOutput, c.agent.config, i)
+			wp.Handler = makeWatchHandlerForArchetype(logOutput, c.agent, i)
 			wp.LogOutput = c.logOutput
 			if err := wp.Run(httpAddr.String()); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
