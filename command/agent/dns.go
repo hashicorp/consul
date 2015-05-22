@@ -171,6 +171,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	// Setup the message response
 	m := new(dns.Msg)
 	m.SetReply(req)
+	m.Compress = true
 	m.Authoritative = true
 	m.RecursionAvailable = (len(d.recursors) > 0)
 
@@ -228,6 +229,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	// Setup the message response
 	m := new(dns.Msg)
 	m.SetReply(req)
+	m.Compress = true
 	m.Authoritative = true
 	m.RecursionAvailable = (len(d.recursors) > 0)
 
@@ -625,6 +627,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	var err error
 	for _, recursor := range d.recursors {
 		r, rtt, err = c.Exchange(req, recursor)
+		r.Compress = true
 		if err == nil {
 			// Forward the response
 			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v)", q, rtt)
@@ -640,6 +643,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	d.logger.Printf("[ERR] dns: all resolvers failed for %v", q)
 	m := &dns.Msg{}
 	m.SetReply(req)
+	m.Compress = true
 	m.RecursionAvailable = true
 	m.SetRcode(req, dns.RcodeServerFailure)
 	resp.WriteMsg(m)
