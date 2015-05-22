@@ -96,6 +96,8 @@ func (c *MembersCommand) Run(args []string) int {
 		return 2
 	}
 
+	sort.Sort(ByMemberName(members))
+
 	// Generate the output
 	var result []string
 	if detailed {
@@ -110,6 +112,13 @@ func (c *MembersCommand) Run(args []string) int {
 
 	return 0
 }
+
+// so we can sort members by name
+type ByMemberName []agent.Member
+
+func (m ByMemberName) Len() int           { return len(m) }
+func (m ByMemberName) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
+func (m ByMemberName) Less(i, j int) bool { return m[i].Name < m[j].Name }
 
 // standardOutput is used to dump the most useful information about nodes
 // in a more human-friendly format
