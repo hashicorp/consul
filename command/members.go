@@ -8,6 +8,7 @@ import (
 	"github.com/ryanuber/columnize"
 	"net"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -152,11 +153,19 @@ func (c *MembersCommand) detailedOutput(members []agent.Member) []string {
 	header := "Node|Address|Status|Tags"
 	result = append(result, header)
 	for _, member := range members {
+		// Get the tags sorted by key
+		tagKeys := make([]string, 0, len(member.Tags))
+		for key := range member.Tags {
+			tagKeys = append(tagKeys, key)
+		}
+		sort.Strings(tagKeys)
+
 		// Format the tags as tag1=v1,tag2=v2,...
 		var tagPairs []string
-		for name, value := range member.Tags {
-			tagPairs = append(tagPairs, fmt.Sprintf("%s=%s", name, value))
+		for _, key := range tagKeys {
+			tagPairs = append(tagPairs, fmt.Sprintf("%s=%s", key, member.Tags[key]))
 		}
+
 		tags := strings.Join(tagPairs, ",")
 
 		addr := net.TCPAddr{IP: member.Addr, Port: int(member.Port)}
