@@ -8,6 +8,7 @@ import (
 	"github.com/ryanuber/columnize"
 	"net"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -95,6 +96,8 @@ func (c *MembersCommand) Run(args []string) int {
 		return 2
 	}
 
+	sort.Sort(ByMemberName(members))
+
 	// Generate the output
 	var result []string
 	if detailed {
@@ -109,6 +112,13 @@ func (c *MembersCommand) Run(args []string) int {
 
 	return 0
 }
+
+// so we can sort members by name
+type ByMemberName []agent.Member
+
+func (m ByMemberName) Len() int           { return len(m) }
+func (m ByMemberName) Swap(i, j int)      { m[i], m[j] = m[j], m[i] }
+func (m ByMemberName) Less(i, j int) bool { return m[i].Name < m[j].Name }
 
 // standardOutput is used to dump the most useful information about nodes
 // in a more human-friendly format
@@ -152,11 +162,19 @@ func (c *MembersCommand) detailedOutput(members []agent.Member) []string {
 	header := "Node|Address|Status|Tags"
 	result = append(result, header)
 	for _, member := range members {
+		// Get the tags sorted by key
+		tagKeys := make([]string, 0, len(member.Tags))
+		for key := range member.Tags {
+			tagKeys = append(tagKeys, key)
+		}
+		sort.Strings(tagKeys)
+
 		// Format the tags as tag1=v1,tag2=v2,...
 		var tagPairs []string
-		for name, value := range member.Tags {
-			tagPairs = append(tagPairs, fmt.Sprintf("%s=%s", name, value))
+		for _, key := range tagKeys {
+			tagPairs = append(tagPairs, fmt.Sprintf("%s=%s", key, member.Tags[key]))
 		}
+
 		tags := strings.Join(tagPairs, ",")
 
 		addr := net.TCPAddr{IP: member.Addr, Port: int(member.Port)}
