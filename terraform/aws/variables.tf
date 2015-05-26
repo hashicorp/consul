@@ -27,3 +27,7 @@ variable "instance_type" {
     default = "m1.small"
     description = "The instance type to launch."
 }
+variable "tagName" {
+    default = "consul"
+    description = "Name tag for the servers"
+}

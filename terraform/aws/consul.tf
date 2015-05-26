@@ -10,6 +10,11 @@ resource "aws_instance" "server" {
         key_file = "${var.key_path}"
     }
 
+    #Instance tags
+    tags {
+        Name = "${var.tagName}-${count.index}"
+    }
+
     provisioner "file" {
         source = "${path.module}/scripts/upstart.conf"
         destination = "/tmp/upstart.conf"
