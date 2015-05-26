@@ -46,8 +46,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision 'shell', inline: @script, privileged: false
   config.vm.synced_folder '.', '/opt/gopath/src/github.com/hashicorp/consul'
 
-  %w[vmware_fusion vmware_workstation].each do |_|
-    config.vm.provider 'p' do |v|
+  %w[vmware_fusion vmware_workstation].each do |p|
+    config.vm.provider p do |v|
       v.vmx['memsize'] = '2048'
       v.vmx['numvcpus'] = '2'
       v.vmx['cpuid.coresPerSocket'] = '1'
