@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"encoding/base64"
+	consultemplate "github.com/marouenj/consul-template/core"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -789,6 +790,149 @@ func TestDecodeConfig_Services(t *testing.T) {
 	}
 }
 
+func TestDecodeConfig_Archetypes(t *testing.T) {
+	input := `{
+		"archetypes": [
+			{
+				"id": "red0",
+				"poolname": "redis",
+				"tags": [
+					"master"
+				],
+				"port": 6000,
+				"check": {
+					"script": "/bin/check_redis -p 6000",
+					"interval": "5s",
+					"ttl": "20s"
+				},
+				"checks": [
+					{
+						"script": "/bin/check_redis_read",
+						"interval": "1m"
+					},
+					{
+						"script": "/bin/check_redis_write",
+						"interval": "1m"
+					}
+				],
+				"template": {
+					"source": "/tmp/redis.conf.tmpl",
+					"destination": "/tmp/redis.conf",
+					"startcommand": "sudo service redis start",
+					"restartcommand": "sudo service redis restart",
+					"stopcommand": "sudo service redis stop",
+					"first": true
+				}
+			},
+			{
+				"id": "red1",
+				"poolname": "redis",
+				"tags": [
+					"delayed",
+					"slave"
+				],
+				"port": 7000,
+				"check": {
+					"script": "/bin/check_redis -p 7000",
+					"interval": "30s",
+					"ttl": "60s"
+				},
+				"template": {
+					"source": "/tmp/redis.conf.tmpl",
+					"destination": "/tmp/redis.conf",
+					"restartcommand": "sudo service redis restart"
+				}
+			},
+			{
+				"id": "es0",
+				"poolname": "elasticsearch",
+				"port": 9200,
+				"check": {
+					"HTTP": "http://localhost:9200/_cluster_health",
+					"interval": "10s",
+					"timeout": "100ms"
+				}
+			}
+		]
+	}`
+
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	config.WatchPlansForArchetypes = nil
+
+	expected := &Config{
+		Archetypes: []*ArchetypeDefinition{
+			&ArchetypeDefinition{
+				Check: CheckType{
+					Interval: 5 * time.Second,
+					Script:   "/bin/check_redis -p 6000",
+					TTL:      20 * time.Second,
+				},
+				Checks: CheckTypes{
+					&CheckType{
+						Interval: time.Minute,
+						Script:   "/bin/check_redis_read",
+					},
+					&CheckType{
+						Interval: time.Minute,
+						Script:   "/bin/check_redis_write",
+					},
+				},
+				ID:       "red0",
+				PoolName: "redis",
+				Tags: []string{
+					"master",
+				},
+				Port: 6000,
+				Template: consultemplate.ConfigTemplate{
+					Source:         "/tmp/redis.conf.tmpl",
+					Destination:    "/tmp/redis.conf",
+					StartCommand:   "sudo service redis start",
+					RestartCommand: "sudo service redis restart",
+					StopCommand:    "sudo service redis stop",
+					First:          true,
+				},
+			},
+			&ArchetypeDefinition{
+				Check: CheckType{
+					Interval: 30 * time.Second,
+					Script:   "/bin/check_redis -p 7000",
+					TTL:      60 * time.Second,
+				},
+				ID:       "red1",
+				PoolName: "redis",
+				Tags: []string{
+					"delayed",
+					"slave",
+				},
+				Port: 7000,
+				Template: consultemplate.ConfigTemplate{
+					Source:         "/tmp/redis.conf.tmpl",
+					Destination:    "/tmp/redis.conf",
+					RestartCommand: "sudo service redis restart",
+				},
+			},
+			&ArchetypeDefinition{
+				Check: CheckType{
+					HTTP:     "http://localhost:9200/_cluster_health",
+					Interval: 10 * time.Second,
+					Timeout:  100 * time.Millisecond,
+				},
+				ID:       "es0",
+				PoolName: "elasticsearch",
+				Port:     9200,
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(config, expected) {
+		t.Fatalf("bad: %#v", config)
+	}
+}
+
 func TestDecodeConfig_Checks(t *testing.T) {
 	input := `{
 		"checks": [
@@ -896,6 +1040,31 @@ func TestDecodeConfig_Multiples(t *testing.T) {
 				"script": "/bin/check_mem",
 				"interval": "10s"
 			}
+		],
+		"archetypes": [
+			{
+				"id": "red0",
+				"poolname": "redis",
+				"tags": [
+					"master"
+				],
+				"port": 6000,
+				"check": {
+					"script": "/bin/check_redis -p 6000",
+					"interval": "5s",
+					"ttl": "20s"
+				},
+				"checks": [
+					{
+						"script": "/bin/check_redis_read",
+						"interval": "1m"
+					},
+					{
+						"script": "/bin/check_redis_write",
+						"interval": "1m"
+					}
+				]
+			}
 		]
 	}`
 
@@ -903,6 +1072,8 @@ func TestDecodeConfig_Multiples(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
+	config.WatchPlansForArchetypes = nil
 
 	expected := &Config{
 		Services: []*ServiceDefinition{
@@ -928,6 +1099,31 @@ func TestDecodeConfig_Multiples(t *testing.T) {
 					Script:   "/bin/check_mem",
 					Interval: 10 * time.Second,
 				},
+			},
+		},
+		Archetypes: []*ArchetypeDefinition{
+			&ArchetypeDefinition{
+				Check: CheckType{
+					Interval: 5 * time.Second,
+					Script:   "/bin/check_redis -p 6000",
+					TTL:      20 * time.Second,
+				},
+				Checks: CheckTypes{
+					&CheckType{
+						Interval: time.Minute,
+						Script:   "/bin/check_redis_read",
+					},
+					&CheckType{
+						Interval: time.Minute,
+						Script:   "/bin/check_redis_write",
+					},
+				},
+				ID:       "red0",
+				PoolName: "redis",
+				Tags: []string{
+					"master",
+				},
+				Port: 6000,
 			},
 		},
 	}
@@ -1017,6 +1213,48 @@ func TestDecodeConfig_Check(t *testing.T) {
 	}
 }
 
+func TestDecodeConfig_Archetype(t *testing.T) {
+	// Basics
+	input := `{"archetype": {"id": "red1", "poolname": "redis", "tags": ["master"], "port":8000, "check": {"script": "/bin/check_redis", "interval": "10s", "ttl": "15s" }}}`
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(config.Archetypes) != 1 {
+		t.Fatalf("missing archetype")
+	}
+
+	arch := config.Archetypes[0]
+	if arch.ID != "red1" {
+		t.Fatalf("bad: %v", arch)
+	}
+
+	if arch.PoolName != "redis" {
+		t.Fatalf("bad: %v", arch)
+	}
+
+	if !strContains(arch.Tags, "master") {
+		t.Fatalf("bad: %v", arch)
+	}
+
+	if arch.Port != 8000 {
+		t.Fatalf("bad: %v", arch)
+	}
+
+	if arch.Check.Script != "/bin/check_redis" {
+		t.Fatalf("bad: %v", arch)
+	}
+
+	if arch.Check.Interval != 10*time.Second {
+		t.Fatalf("bad: %v", arch)
+	}
+
+	if arch.Check.TTL != 15*time.Second {
+		t.Fatalf("bad: %v", arch)
+	}
+}
+
 func TestMergeConfig(t *testing.T) {
 	a := &Config{
 		Bootstrap:              false,
@@ -1085,6 +1323,7 @@ func TestMergeConfig(t *testing.T) {
 		KeyFile:                "test/key.pem",
 		Checks:                 []*CheckDefinition{nil},
 		Services:               []*ServiceDefinition{nil},
+		Archetypes:             []*ArchetypeDefinition{nil},
 		StartJoin:              []string{"1.1.1.1"},
 		StartJoinWan:           []string{"1.1.1.1"},
 		UiDir:                  "/opt/consul-ui",
