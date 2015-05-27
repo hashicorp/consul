@@ -41,9 +41,7 @@ func (s *Server) lanEventHandler() {
 				s.nodeJoin(e.(serf.MemberEvent), false)
 				s.localMemberEvent(e.(serf.MemberEvent))
 
-			case serf.EventMemberLeave:
-				fallthrough
-			case serf.EventMemberFailed:
+			case serf.EventMemberLeave, serf.EventMemberFailed:
 				s.nodeFailed(e.(serf.MemberEvent), false)
 				s.localMemberEvent(e.(serf.MemberEvent))
 
@@ -71,9 +69,7 @@ func (s *Server) wanEventHandler() {
 			switch e.EventType() {
 			case serf.EventMemberJoin:
 				s.nodeJoin(e.(serf.MemberEvent), true)
-			case serf.EventMemberLeave:
-				fallthrough
-			case serf.EventMemberFailed:
+			case serf.EventMemberLeave, serf.EventMemberFailed:
 				s.nodeFailed(e.(serf.MemberEvent), true)
 			case serf.EventMemberUpdate: // Ignore
 			case serf.EventMemberReap: // Ignore

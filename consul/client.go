@@ -224,9 +224,7 @@ func (c *Client) lanEventHandler() {
 			switch e.EventType() {
 			case serf.EventMemberJoin:
 				c.nodeJoin(e.(serf.MemberEvent))
-			case serf.EventMemberLeave:
-				fallthrough
-			case serf.EventMemberFailed:
+			case serf.EventMemberLeave, serf.EventMemberFailed:
 				c.nodeFail(e.(serf.MemberEvent))
 			case serf.EventUser:
 				c.localEvent(e.(serf.UserEvent))

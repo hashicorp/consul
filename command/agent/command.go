@@ -638,13 +638,7 @@ func (c *Command) Run(args []string) int {
 						c.Ui.Output(update.Op)
 						c.Ui.Info(fmt.Sprintf("%.2f%%", update.Progress))
 
-					case update.Progress-lastProgress >= 5:
-						fallthrough
-
-					case time.Now().Sub(lastFlush) > time.Second:
-						fallthrough
-
-					case update.Progress == 100:
+					case update.Progress-lastProgress >= 5, time.Now().Sub(lastFlush) > time.Second, update.Progress == 100:
 						lastFlush = time.Now()
 						lastProgress = update.Progress
 						c.Ui.Info(fmt.Sprintf("%.2f%%", update.Progress))

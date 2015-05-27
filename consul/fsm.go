@@ -230,9 +230,7 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	}
 	defer metrics.MeasureSince([]string{"consul", "fsm", "acl", string(req.Op)}, time.Now())
 	switch req.Op {
-	case structs.ACLForceSet:
-		fallthrough
-	case structs.ACLSet:
+	case structs.ACLForceSet, structs.ACLSet:
 		if err := c.state.ACLSet(index, &req.ACL); err != nil {
 			return err
 		} else {
