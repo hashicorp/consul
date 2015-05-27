@@ -232,6 +232,30 @@ func TestAgent_AddService(t *testing.T) {
 	}
 }
 
+func TestAgent_AddArchetype(t *testing.T) {
+	dir, agent := makeAgent(t, nextConfig())
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	{
+		arch := &structs.NodeArchetype{
+			ID:        "redis",
+			Archetype: "redis",
+			Tags:      []string{"foo"},
+			Port:      8000,
+		}
+		err := agent.AddArchetype(arch, false)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Ensure we have a state mapping
+		if _, ok := agent.state.Archetypes()["redis"]; !ok {
+			t.Fatalf("missing redis archetype")
+		}
+	}
+}
+
 func TestAgent_RemoveService(t *testing.T) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
@@ -312,6 +336,44 @@ func TestAgent_RemoveService(t *testing.T) {
 		}
 		if _, ok := agent.checkTTLs["service:redis:2"]; ok {
 			t.Fatalf("check ttl for redis:2 should be removed")
+		}
+	}
+}
+
+func TestAgent_RemoveArchetype(t *testing.T) {
+	dir, agent := makeAgent(t, nextConfig())
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// Remove an archetype that doesn't exist
+	if err := agent.RemoveArchetype("redis", false); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Remove without an ID
+	if err := agent.RemoveArchetype("", false); err == nil {
+		t.Fatalf("should have errored")
+	}
+
+	// Remove an archetype
+	{
+		arch := &structs.NodeArchetype{
+			ID:        "memcache",
+			Archetype: "memcache",
+			Port:      8000,
+		}
+
+		if err := agent.AddArchetype(arch, false); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if err := agent.RemoveArchetype("memcache", false); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// Ensure we don't have a state mapping
+		if _, ok := agent.state.Archetypes()["memcache"]; ok {
+			t.Fatalf("have memcache service")
 		}
 	}
 }
@@ -647,6 +709,148 @@ func TestAgent_PurgeServiceOnDuplicate(t *testing.T) {
 	}
 }
 
+func TestAgent_PersistArchetype(t *testing.T) {
+	config := nextConfig()
+	config.Server = false
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	arch := &structs.NodeArchetype{
+		ID:        "redis",
+		Archetype: "redis",
+		Tags:      []string{"foo"},
+		Port:      8000,
+	}
+
+	file := filepath.Join(agent.config.DataDir, archetypesDir, stringHash(arch.ID))
+
+	// Check is not persisted unless requested
+	if err := agent.AddArchetype(arch, false); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := os.Stat(file); err == nil {
+		t.Fatalf("should not persist")
+	}
+
+	// Persists to file if requested
+	if err := agent.AddArchetype(arch, true); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected, err := json.Marshal(arch)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	content, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !bytes.Equal(expected, content) {
+		t.Fatalf("bad: %s", string(content))
+	}
+	agent.Shutdown()
+
+	// Should load it back during later start
+	agent2, err := Create(config, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer agent2.Shutdown()
+
+	if _, ok := agent2.state.archetypes[arch.ID]; !ok {
+		t.Fatalf("bad: %#v", agent2.state.archetypes)
+	}
+}
+
+func TestAgent_PurgeArchetype(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	arch := &structs.NodeArchetype{
+		ID:        "redis",
+		Archetype: "redis",
+		Tags:      []string{"foo"},
+		Port:      8000,
+	}
+
+	file := filepath.Join(agent.config.DataDir, archetypesDir, stringHash(arch.ID))
+	if err := agent.AddArchetype(arch, true); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Not removed
+	if err := agent.RemoveArchetype(arch.ID, false); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Removed
+	if err := agent.RemoveArchetype(arch.ID, true); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("bad: %#v", err)
+	}
+}
+
+func TestAgent_PurgeArchetypeOnDuplicate(t *testing.T) {
+	config := nextConfig()
+	config.Server = false
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	arch1 := &structs.NodeArchetype{
+		ID:        "redis",
+		Archetype: "redis",
+		Tags:      []string{"foo"},
+		Port:      8000,
+	}
+
+	// First persist the archetype
+	if err := agent.AddArchetype(arch1, true); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	agent.Shutdown()
+
+	// Try bringing the agent back up with the service already
+	// existing in the config
+	arch2 := &ArchetypeDefinition{
+		ID:       "redis",
+		PoolName: "redis",
+		Tags:     []string{"bar"},
+		Port:     9000,
+	}
+
+	config.Archetypes = []*ArchetypeDefinition{arch2}
+	agent2, err := Create(config, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer agent2.Shutdown()
+
+	file := filepath.Join(agent.config.DataDir, archetypesDir, stringHash(arch1.ID))
+	if _, err := os.Stat(file); err == nil {
+		t.Fatalf("should have removed persisted archetype")
+	}
+	result, ok := agent2.state.archetypes[arch2.ID]
+	if !ok {
+		t.Fatalf("missing archetype registration")
+	}
+	if !reflect.DeepEqual(result.Tags, arch2.Tags) || result.Port != arch2.Port {
+		t.Fatalf("bad: %#v", result)
+	}
+}
+
 func TestAgent_PersistCheck(t *testing.T) {
 	config := nextConfig()
 	config.Server = false
@@ -904,6 +1108,45 @@ func TestAgent_unloadServices(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("consul service should not be removed")
+	}
+}
+
+func TestAgent_unloadArchetypes(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	arch := &structs.NodeArchetype{
+		ID:        "redis",
+		Archetype: "redis",
+		Tags:      []string{"foo"},
+		Port:      8000,
+	}
+
+	// Register the archetype
+	if err := agent.AddArchetype(arch, false); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	found := false
+	for id, _ := range agent.state.Archetypes() {
+		if id == arch.ID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("should have registered archetype")
+	}
+
+	// Unload all archetypes
+	if err := agent.unloadArchetypes(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Make sure archetypes were unloaded
+	if len(agent.state.Archetypes()) > 0 {
+		t.Fatalf("should have unloaded archetypes")
 	}
 }
 
