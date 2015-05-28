@@ -115,6 +115,29 @@ This is the only convention that Consul depends on. Any output of the script
 will be captured and stored in the `notes` field so that it can be viewed
 by human operators.
 
+## Initial Health Check Status
+
+By default, when checks are registered against a Consul agent, the state is set
+immediately to "critical". This is useful to prevent services from being
+registered as "passing" and entering the service pool before they are confirmed
+to be healthy. In certain cases, it may be desirable to specify the initial
+state of a health check. This can be done by specifying the `status` field in a
+health check definition, like so:
+
+```javascript
+{
+  "check": {
+    "id": "mem",
+    "script": "/bin/check_mem",
+    "interval": "10s",
+    "status": "passing"
+  }
+}
+```
+
+The above service definition would cause the new "mem" check to be
+registered with its initial state set to "passing".
+
 ## Service-bound checks
 
 Health checks may optionally be bound to a specific service. This ensures
