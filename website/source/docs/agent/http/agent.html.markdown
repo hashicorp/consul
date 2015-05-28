@@ -261,7 +261,11 @@ is `critical`.
 If a `TTL` type is used, then the TTL update endpoint must be used periodically to update
 the state of the check.
 
-Optionally, a `ServiceID` can be provided to associate the registered check with an existing service provided by the agent.
+The `ServiceID` field can be provided to associate the registered check with an
+existing service provided by the agent.
+
+The `Status` field can be provided to specify the initial state of the health
+check.
 
 This endpoint supports [ACL tokens](/docs/internals/acl.html). If the query
 string includes a `?token=<token-id>`, the registration will use the provided
