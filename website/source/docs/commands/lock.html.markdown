@@ -40,10 +40,10 @@ The prefix must be writable. The child is invoked only when the lock is held,
 and the `CONSUL_LOCK_HELD` environment variable will be set to `true`.
 
 If the lock is lost, communication is disrupted, or the parent process
-interrupted, the child process will receive a `SIGTERM`. After a grace period,
-a `SIGKILL` will be used to force termination.  
-For Consul agents on Windows, the child process is always terminated with a
-`SIGKILL`, since Windows has no POSIX compatible notion for `SIGTERM`.
+interrupted, the child process will receive a `SIGTERM`. After a grace period
+of 5 seconds, a `SIGKILL` will be used to force termination. For Consul agents
+on Windows, the child process is always terminated with a `SIGKILL`, since
+Windows has no POSIX compatible notion for `SIGTERM`.
 
 The list of available flags are:
 
