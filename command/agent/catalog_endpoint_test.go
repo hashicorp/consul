@@ -50,6 +50,16 @@ func TestCatalogRegister(t *testing.T) {
 	if !srv.agent.state.serviceStatus["foo"].inSync {
 		t.Fatalf("should be in sync")
 	}
+	// Archetype should be in sync
+	if err := srv.agent.state.syncArchetype("foo"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, ok := srv.agent.state.archetypeStatus["foo"]; !ok {
+		t.Fatalf("bad: %#v", srv.agent.state.archetypeStatus)
+	}
+	if !srv.agent.state.archetypeStatus["foo"].inSync {
+		t.Fatalf("should be in sync")
+	}
 }
 
 func TestCatalogDeregister(t *testing.T) {
@@ -327,6 +337,133 @@ func TestCatalogNodeServices(t *testing.T) {
 
 	services := obj.(*structs.NodeServices)
 	if len(services.Services) != 1 {
+		t.Fatalf("bad: %v", obj)
+	}
+}
+
+func TestCatalogArchetypes(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Archetype: &structs.NodeArchetype{
+			Archetype: "api",
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, err := http.NewRequest("GET", "/v1/catalog/archetypes?dc=dc1", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := srv.CatalogArchetypes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	assertIndex(t, resp)
+
+	archetypes := obj.(structs.Archetypes)
+	if len(archetypes) != 1 {
+		t.Fatalf("bad: %v", obj)
+	}
+}
+
+func TestCatalogArchetypeNodes(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Archetype: &structs.NodeArchetype{
+			Archetype: "api",
+			Tags:    []string{"a"},
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, err := http.NewRequest("GET", "/v1/catalog/archetype/api?tag=a", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := srv.CatalogArchetypeNodes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	assertIndex(t, resp)
+
+	nodes := obj.(structs.ArchetypeNodes)
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", obj)
+	}
+}
+
+func TestCatalogNodeArchetypes(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Archetype: &structs.NodeArchetype{
+			Archetype: "api",
+			Tags:    []string{"a"},
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, err := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc1", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := srv.CatalogNodeArchetypes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	assertIndex(t, resp)
+
+	archetypes := obj.(*structs.NodeArchetypes)
+	if len(archetypes.Archetypes) != 1 {
 		t.Fatalf("bad: %v", obj)
 	}
 }

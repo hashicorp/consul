@@ -187,3 +187,27 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 	}
 	return out.NodeServices, nil
 }
+
+func (s *HTTPServer) CatalogNodeArchetypes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Set default Datacenter
+	args := structs.NodeSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Pull out the node name
+	args.Node = strings.TrimPrefix(req.URL.Path, "/v1/catalog/node/")
+	if args.Node == "" {
+		resp.WriteHeader(400)
+		resp.Write([]byte("Missing node name"))
+		return nil, nil
+	}
+
+	// Make the RPC request
+	var out structs.IndexedNodeArchetypes
+	defer setMeta(resp, &out.QueryMeta)
+	if err := s.agent.RPC("Catalog.NodeArchetypes", &args, &out); err != nil {
+		return nil, err
+	}
+	return out.NodeArchetypes, nil
+}
