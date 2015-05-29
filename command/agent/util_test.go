@@ -3,6 +3,7 @@ package agent
 import (
 	"io/ioutil"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -43,6 +44,9 @@ func TestStringHash(t *testing.T) {
 }
 
 func TestSetFilePermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.SkipNow()
+	}
 	tempFile, err := ioutil.TempFile("", "consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
