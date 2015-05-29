@@ -169,6 +169,162 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	}
 }
 
+func TestAgentAntiEntropy_Archetypes(t *testing.T) {
+	conf := nextConfig()
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	// Register info
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+		Address:    "127.0.0.1",
+	}
+
+	// Exists both, same (noop)
+	var out struct{}
+	arch1 := &structs.NodeArchetype{
+		ID:        "mysql",
+		Archetype: "mysql",
+		Tags:      []string{"master"},
+		Port:      5000,
+	}
+	agent.state.AddArchetype(arch1)
+	args.Archetype = arch1
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Exists both, different (update)
+	arch2 := &structs.NodeArchetype{
+		ID:        "redis",
+		Archetype: "redis",
+		Tags:      []string{},
+		Port:      8000,
+	}
+	agent.state.AddArchetype(arch2)
+
+	arch2_mod := new(structs.NodeArchetype)
+	*arch2_mod = *arch2
+	arch2_mod.Port = 9000
+	args.Archetype = arch2_mod
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Exists local (create)
+	arch3 := &structs.NodeArchetype{
+		ID:        "web",
+		Archetype: "web",
+		Tags:      []string{},
+		Port:      80,
+	}
+	agent.state.AddArchetype(arch3)
+
+	// Exists remote (delete)
+	arch4 := &structs.NodeArchetype{
+		ID:        "lb",
+		Archetype: "lb",
+		Tags:      []string{},
+		Port:      443,
+	}
+	args.Archetype = arch4
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Exists both, different address (update)
+	arch5 := &structs.NodeArchetype{
+		ID:        "api",
+		Archetype: "api",
+		Tags:      []string{},
+		Address:   "127.0.0.10",
+		Port:      8000,
+	}
+	agent.state.AddArchetype(arch5)
+
+	// Exists local, in sync, remote missing (create)
+	arch6 := &structs.NodeArchetype{
+		ID:        "cache",
+		Archetype: "cache",
+		Tags:      []string{},
+		Port:      11211,
+	}
+	agent.state.AddArchetype(arch6)
+	agent.state.serviceStatus["cache"] = syncStatus{inSync: true}
+
+	arch5_mod := new(structs.NodeArchetype)
+	*arch5_mod = *arch5
+	arch5_mod.Address = "127.0.0.1"
+	args.Archetype = arch5_mod
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Trigger anti-entropy run and wait
+	agent.StartSync()
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify that we are in sync
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+	}
+	var archetypes structs.IndexedNodeArchetypes
+	if err := agent.RPC("Catalog.NodeArchetypes", &req, &archetypes); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// We should have 5 archetypes
+	if len(archetypes.NodeArchetypes.Archetypes) != 5 {
+		t.Fatalf("bad: %v", archetypes.NodeArchetypes.Archetypes)
+	}
+
+	// All the archetypes should match
+	for id, arch := range archetypes.NodeArchetypes.Archetypes {
+		switch id {
+		case "mysql":
+			if !reflect.DeepEqual(arch, arch1) {
+				t.Fatalf("bad: %v %v", arch, arch1)
+			}
+		case "redis":
+			if !reflect.DeepEqual(arch, arch2) {
+				t.Fatalf("bad: %#v %#v", arch, arch2)
+			}
+		case "web":
+			if !reflect.DeepEqual(arch, arch3) {
+				t.Fatalf("bad: %v %v", arch, arch3)
+			}
+		case "api":
+			if !reflect.DeepEqual(arch, arch5) {
+				t.Fatalf("bad: %v %v", arch, arch5)
+			}
+		case "cache":
+			if !reflect.DeepEqual(arch, arch6) {
+				t.Fatalf("bad: %v %v", arch, arch6)
+			}
+		default:
+			t.Fatalf("unexpected service: %v", id)
+		}
+	}
+
+	// Check the local state
+	if len(agent.state.archetypes) != 5 {
+		t.Fatalf("bad: %v", agent.state.archetypes)
+	}
+	if len(agent.state.archetypeStatus) != 5 {
+		t.Fatalf("bad: %v", agent.state.archetypeStatus)
+	}
+	for name, status := range agent.state.archetypeStatus {
+		if !status.inSync {
+			t.Fatalf("should be in sync: %v %v", name, status)
+		}
+	}
+}
+
 func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 	conf := nextConfig()
 	dir, agent := makeAgent(t, conf)
@@ -604,6 +760,13 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 func TestAgentAntiEntory_deleteService_fails(t *testing.T) {
 	l := new(localState)
 	if err := l.deleteService(""); err == nil {
+		t.Fatalf("should have failed")
+	}
+}
+
+func TestAgentAntiEntory_deleteArchetype_fails(t *testing.T) {
+	l := new(localState)
+	if err := l.deleteArchetype(""); err == nil {
 		t.Fatalf("should have failed")
 	}
 }
