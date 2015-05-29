@@ -29,6 +29,11 @@ func TestCatalogRegister(t *testing.T) {
 			Tags:    []string{"master"},
 			Port:    8000,
 		},
+		Archetype: &structs.NodeArchetype{
+			Archetype: "redis",
+			Tags:      []string{"slave"},
+			Port:      9000,
+		},
 	}
 	var out struct{}
 
@@ -140,6 +145,11 @@ func TestCatalogRegister_ForwardLeader(t *testing.T) {
 			Tags:    []string{"master"},
 			Port:    8000,
 		},
+		Archetype: &structs.NodeArchetype{
+			Archetype: "redis",
+			Tags:      []string{"slave"},
+			Port:      9000,
+		},
 	}
 	var out struct{}
 	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
@@ -175,6 +185,11 @@ func TestCatalogRegister_ForwardDC(t *testing.T) {
 			Service: "db",
 			Tags:    []string{"master"},
 			Port:    8000,
+		},
+		Archetype: &structs.NodeArchetype{
+			Archetype: "redis",
+			Tags:      []string{"slave"},
+			Port:      9000,
 		},
 	}
 	var out struct{}
@@ -727,6 +742,263 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 	if len(services["web"].Tags) != 0 || services["web"].Port != 80 {
+		t.Fatalf("bad: %v", out)
+	}
+}
+
+func TestCatalogListArchetypes(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	args := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var out structs.IndexedArchetypes
+	err := client.Call("Catalog.ListArchetypes", &args, &out)
+	if err == nil || err.Error() != "No cluster leader" {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Just add a node
+	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	s1.fsm.State().EnsureArchetype(2, "foo", &structs.NodeArchetype{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
+
+	if err := client.Call("Catalog.ListArchetypes", &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(out.Archetypes) != 1 {
+		t.Fatalf("bad: %v", out)
+	}
+	for _, s := range out.Archetypes {
+		if s == nil {
+			t.Fatalf("bad: %v", s)
+		}
+	}
+	if len(out.Archetypes["db"]) != 1 {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Archetypes["db"][0] != "primary" {
+		t.Fatalf("bad: %v", out)
+	}
+}
+
+// func TestCatalogListArchetypes_Blocking(t *testing.T) {
+// 	dir1, s1 := testServer(t)
+// 	defer os.RemoveAll(dir1)
+// 	defer s1.Shutdown()
+// 	client := rpcClient(t, s1)
+// 	defer client.Close()
+
+// 	args := structs.DCSpecificRequest{
+// 		Datacenter: "dc1",
+// 	}
+// 	var out structs.IndexedArchetypes
+
+// 	testutil.WaitForLeader(t, client.Call, "dc1")
+
+// 	// Run the query
+// 	if err := client.Call("Catalog.ListArchetypes", &args, &out); err != nil {
+// 		t.Fatalf("err: %v", err)
+// 	}
+
+// 	// Setup a blocking query
+// 	args.MinQueryIndex = out.Index
+// 	args.MaxQueryTime = time.Second
+
+// 	// Async cause a change
+// 	start := time.Now()
+// 	// go func() {
+// 	// 	time.Sleep(100 * time.Millisecond)
+// 	// 	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+// 	// 	s1.fsm.State().EnsureArchetype(2, "foo", &structs.NodeArchetype{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
+// 	// }()
+
+// 	// Re-run the query
+// 	out = structs.IndexedArchetypes{}
+// 	if err := client.Call("Catalog.ListArchetypes", &args, &out); err != nil {
+// 		t.Fatalf("err: %v", err)
+// 	}
+
+// 	// Should block at least 100ms
+// 	if time.Now().Sub(start) < 100*time.Millisecond {
+// 		t.Fatalf("too fast")
+// 	}
+
+// 	// Check the indexes
+// 	if out.Index != 2 {
+// 		t.Fatalf("bad: %v", out)
+// 	}
+
+// 	// Should find the service
+// 	if len(out.Archetypes) != 1 {
+// 		t.Fatalf("bad: %v", out)
+// 	}
+// }
+
+// func TestCatalogListArchetypes_Timeout(t *testing.T) {
+// 	dir1, s1 := testServer(t)
+// 	defer os.RemoveAll(dir1)
+// 	defer s1.Shutdown()
+// 	client := rpcClient(t, s1)
+// 	defer client.Close()
+
+// 	args := structs.DCSpecificRequest{
+// 		Datacenter: "dc1",
+// 	}
+// 	var out structs.IndexedArchetypes
+
+// 	testutil.WaitForLeader(t, client.Call, "dc1")
+
+// 	// Run the query
+// 	if err := client.Call("Catalog.ListArchetypes", &args, &out); err != nil {
+// 		t.Fatalf("err: %v", err)
+// 	}
+
+// 	// Setup a blocking query
+// 	args.MinQueryIndex = out.Index
+// 	args.MaxQueryTime = 100 * time.Millisecond
+
+// 	// Re-run the query
+// 	start := time.Now()
+// 	out = structs.IndexedArchetypes{}
+// 	if err := client.Call("Catalog.ListArchetypes", &args, &out); err != nil {
+// 		t.Fatalf("err: %v", err)
+// 	}
+
+// 	// Should block at least 100ms
+// 	if time.Now().Sub(start) < 100*time.Millisecond {
+// 		t.Fatalf("too fast")
+// 	}
+
+// 	// Check the indexes, should not change
+// 	if out.Index != args.MinQueryIndex {
+// 		t.Fatalf("bad: %v", out)
+// 	}
+// }
+
+func TestCatalogListSArchetypes_Stale(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	args := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	args.AllowStale = true
+	var out structs.IndexedArchetypes
+
+	// Inject a fake archetype
+	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	s1.fsm.State().EnsureArchetype(2, "foo", &structs.NodeArchetype{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
+
+	// Run the query, do not wait for leader!
+	if err := client.Call("Catalog.ListArchetypes", &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should find the archetype
+	if len(out.Archetypes) != 1 {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Should not have a leader! Stale read
+	if out.KnownLeader {
+		t.Fatalf("bad: %v", out)
+	}
+}
+
+func TestCatalogListArchetypeNodes(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	args := structs.ArchetypeSpecificRequest{
+		Datacenter:    "dc1",
+		ArchetypeName: "db",
+		ArchetypeTag:  "slave",
+		TagFilter:     false,
+	}
+	var out structs.IndexedArchetypeNodes
+	err := client.Call("Catalog.ArchetypeNodes", &args, &out)
+	if err == nil || err.Error() != "No cluster leader" {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Just add a node
+	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	s1.fsm.State().EnsureArchetype(2, "foo", &structs.NodeArchetype{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
+
+	if err := client.Call("Catalog.ArchetypeNodes", &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(out.ArchetypeNodes) != 1 {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Try with a filter
+	args.TagFilter = true
+	out = structs.IndexedArchetypeNodes{}
+
+	if err := client.Call("Catalog.ArchetypeNodes", &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(out.ArchetypeNodes) != 0 {
+		t.Fatalf("bad: %v", out)
+	}
+}
+
+func TestCatalogNodeArchetypes(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	args := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+	}
+	var out structs.IndexedNodeArchetypes
+	err := client.Call("Catalog.NodeArchetypes", &args, &out)
+	if err == nil || err.Error() != "No cluster leader" {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Just add a node
+	s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
+	s1.fsm.State().EnsureArchetype(2, "foo", &structs.NodeArchetype{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
+	s1.fsm.State().EnsureArchetype(3, "foo", &structs.NodeArchetype{"web", "web", nil, "127.0.0.1", 80})
+
+	if err := client.Call("Catalog.NodeArchetypes", &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if out.NodeArchetypes.Node.Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", out)
+	}
+	if len(out.NodeArchetypes.Archetypes) != 2 {
+		t.Fatalf("bad: %v", out)
+	}
+	archetypes := out.NodeArchetypes.Archetypes
+	if !strContains(archetypes["db"].Tags, "primary") || archetypes["db"].Port != 5000 {
+		t.Fatalf("bad: %v", out)
+	}
+	if len(archetypes["web"].Tags) != 0 || archetypes["web"].Port != 80 {
 		t.Fatalf("bad: %v", out)
 	}
 }
