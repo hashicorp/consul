@@ -790,7 +790,9 @@ WAIT:
 
 	// Check if this is a SIGHUP
 	if sig == syscall.SIGHUP {
-		config = c.handleReload(config)
+		if conf := c.handleReload(config); conf != nil {
+			config = conf
+		}
 		goto WAIT
 	}
 
