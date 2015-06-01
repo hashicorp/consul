@@ -4,11 +4,6 @@ variable "platform" {
 }
 
 variable "user" {
-    default = "ubuntu"
-    description = "The region of AWS, for AMI lookups."
-}
-
-variable "user" {
     default = {
         ubuntu = "ubuntu"
         rhel6 = "ec2-user"
@@ -43,8 +38,10 @@ variable "servers" {
 }
 
 variable "instance_type" {
-    default = "m3.medium"
-    description = "The instance type to launch."
+    default = {
+        ubuntu = "m1.small"
+        rhel6 = "m3.medium"
+    }
 }
 
 variable "tagName" {
