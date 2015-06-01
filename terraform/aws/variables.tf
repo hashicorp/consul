@@ -11,7 +11,7 @@ variable "user" {
 variable "user" {
     default = {
         ubuntu = "ubuntu"
-        rhel = "ec2-user"
+        rhel6 = "ec2-user"
     }
 }
 
@@ -19,8 +19,8 @@ variable "ami" {
     default = {
         us-east-1-ubuntu = "ami-3acc7a52"
         us-west-2-ubuntu = "ami-37501207"
-        us-east-1-rhel = "ami-b0fed2d8"
-        us-west-2-rhel = "ami-4dbf9e7d"
+        us-east-1-rhel6 = "ami-b0fed2d8"
+        us-west-2-rhel6 = "ami-2faa861f"
     }
 }
 
