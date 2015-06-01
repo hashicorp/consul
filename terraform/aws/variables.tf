@@ -1,7 +1,26 @@
+variable "platform" {
+    default = "ubuntu"
+    description = "The region of AWS, for AMI lookups."
+}
+
+variable "user" {
+    default = "ubuntu"
+    description = "The region of AWS, for AMI lookups."
+}
+
+variable "user" {
+    default = {
+        ubuntu = "ubuntu"
+        rhel = "ec2-user"
+    }
+}
+
 variable "ami" {
     default = {
-        us-east-1 = "ami-3acc7a52"
-        us-west-2 = "ami-37501207"
+        us-east-1-ubuntu = "ami-3acc7a52"
+        us-west-2-ubuntu = "ami-37501207"
+        us-east-1-rhel = "ami-b0fed2d8"
+        us-west-2-rhel = "ami-4dbf9e7d"
     }
 }
 
@@ -24,7 +43,7 @@ variable "servers" {
 }
 
 variable "instance_type" {
-    default = "m1.small"
+    default = "m3.medium"
     description = "The instance type to launch."
 }
 

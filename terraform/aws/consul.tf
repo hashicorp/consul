@@ -1,12 +1,13 @@
 resource "aws_instance" "server" {
-    ami = "${lookup(var.ami, var.region)}"
+    ami = "${lookup(var.ami, concat(var.region, "-", var.platform))}"
+    #ami = "${lookup(var.ami, var.region, var.platform)}"
     instance_type = "${var.instance_type}"
     key_name = "${var.key_name}"
     count = "${var.servers}"
     security_groups = ["${aws_security_group.consul.name}"]
 
     connection {
-        user = "ubuntu"
+        user = "${lookup(var.user, var.platform)}"
         key_file = "${var.key_path}"
     }
 
