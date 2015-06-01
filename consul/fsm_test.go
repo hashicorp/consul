@@ -76,6 +76,12 @@ func TestFSM_RegisterNode(t *testing.T) {
 	if len(services.Services) != 0 {
 		t.Fatalf("Services: %v", services)
 	}
+
+	// Verify archetype registered
+	_, archetypes := fsm.state.NodeArchetypes("foo")
+	if len(archetypes.Archetypes) != 0 {
+		t.Fatalf("Archetypes: %v", archetypes)
+	}
 }
 
 func TestFSM_RegisterNode_Service(t *testing.T) {
@@ -132,6 +138,51 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	// Verify check
 	_, checks := fsm.state.NodeChecks("foo")
 	if checks[0].CheckID != "db" {
+		t.Fatalf("not registered!")
+	}
+}
+
+func TestFSM_RegisterNode_Archetype(t *testing.T) {
+	path, err := ioutil.TempDir("", "fsm")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(path)
+	fsm, err := NewFSM(nil, path, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	req := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Archetype:  &structs.NodeArchetype{
+			ID:        "db",
+			Archetype: "db",
+			Tags:      []string{"master"},
+			Port:      8000,
+		},
+	}
+	buf, err := structs.Encode(structs.RegisterRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify we are registered
+	if _, found, _ := fsm.state.GetNode("foo"); !found {
+		t.Fatalf("not found!")
+	}
+
+	// Verify service registered
+	_, archetypes := fsm.state.NodeArchetypes("foo")
+	if _, ok := archetypes.Archetypes["db"]; !ok {
 		t.Fatalf("not registered!")
 	}
 }
@@ -256,6 +307,66 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 	}
 }
 
+func TestFSM_DeregisterArchetype(t *testing.T) {
+	path, err := ioutil.TempDir("", "fsm")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(path)
+	fsm, err := NewFSM(nil, path, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer fsm.Close()
+
+	req := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Archetype:  &structs.NodeArchetype{
+			ID:        "db",
+			Archetype: "db",
+			Tags:      []string{"master"},
+			Port:      8000,
+		},
+	}
+	buf, err := structs.Encode(structs.RegisterRequestType, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	dereg := structs.DeregisterRequest{
+		Datacenter:   "dc1",
+		Node:         "foo",
+		ArchetypeID:  "db",
+	}
+	buf, err = structs.Encode(structs.DeregisterRequestType, dereg)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp = fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Verify we are registered
+	if _, found, _ := fsm.state.GetNode("foo"); !found {
+		t.Fatalf("not found!")
+	}
+
+	// Verify archetype not registered
+	_, archetypes := fsm.state.NodeArchetypes("foo")
+	if _, ok := archetypes.Archetypes["db"]; ok {
+		t.Fatalf("db registered!")
+	}
+}
+
 func TestFSM_DeregisterNode(t *testing.T) {
 	path, err := ioutil.TempDir("", "fsm")
 	if err != nil {
@@ -285,6 +396,12 @@ func TestFSM_DeregisterNode(t *testing.T) {
 			Status:    structs.HealthPassing,
 			ServiceID: "db",
 		},
+		Archetype: &structs.NodeArchetype{
+			ID:        "db",
+			Archetype: "db",
+			Tags:      []string{"master"},
+			Port:      8000,
+		},
 	}
 	buf, err := structs.Encode(structs.RegisterRequestType, req)
 	if err != nil {
@@ -310,7 +427,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	// Verify we are registered
+	// Verify we are not registered
 	if _, found, _ := fsm.state.GetNode("foo"); found {
 		t.Fatalf("found!")
 	}
@@ -325,6 +442,12 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	_, checks := fsm.state.NodeChecks("foo")
 	if len(checks) != 0 {
 		t.Fatalf("Services: %v", services)
+	}
+
+	// Verify archetype not registered
+	_, archetypes := fsm.state.NodeArchetypes("foo")
+	if archetypes != nil {
+		t.Fatalf("Archetypes: %v", archetypes)
 	}
 }
 
@@ -368,6 +491,10 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		Value: []byte("foo"),
 	})
 	fsm.state.KVSDelete(12, "/remove")
+	fsm.state.EnsureArchetype(13, "foo", &structs.NodeArchetype{"web", "web", nil, "127.0.0.1", 80})
+	fsm.state.EnsureArchetype(14, "foo", &structs.NodeArchetype{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
+	fsm.state.EnsureArchetype(15, "baz", &structs.NodeArchetype{"web", "web", nil, "127.0.0.2", 80})
+	fsm.state.EnsureArchetype(16, "baz", &structs.NodeArchetype{"db", "db", []string{"secondary"}, "127.0.0.2", 5000})
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -415,6 +542,17 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	_, checks := fsm2.state.NodeChecks("foo")
 	if len(checks) != 1 {
 		t.Fatalf("Bad: %v", checks)
+	}
+
+	_, fooArch := fsm2.state.NodeArchetypes("foo")
+	if len(fooArch.Archetypes) != 2 {
+		t.Fatalf("Bad: %v", fooArch)
+	}
+	if !strContains(fooArch.Archetypes["db"].Tags, "primary") {
+		t.Fatalf("Bad: %v", fooArch)
+	}
+	if fooArch.Archetypes["db"].Port != 5000 {
+		t.Fatalf("Bad: %v", fooArch)
 	}
 
 	// Verify key is set
