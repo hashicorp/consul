@@ -25,6 +25,7 @@ func TestEnsureRegistration(t *testing.T) {
 		Node:    "foo",
 		Address: "127.0.0.1",
 		Service: &structs.NodeService{"api", "api", nil, "", 5000},
+		Archetype: &structs.NodeArchetype{"api1", "api2", nil, "", 6000},
 		Check: &structs.HealthCheck{
 			Node:      "foo",
 			CheckID:   "api",
@@ -63,6 +64,19 @@ func TestEnsureRegistration(t *testing.T) {
 	}
 	if len(entry.Tags) != 0 || entry.Port != 5000 {
 		t.Fatalf("Bad entry: %#v", entry)
+	}
+
+	idx, archetypes := store.NodeArchetypes("foo")
+	if idx != 13 {
+		t.Fatalf("bad: %v", idx)
+	}
+
+	entry1, ok := archetypes.Archetypes["api1"]
+	if !ok {
+		t.Fatalf("missing api: %#v", archetypes)
+	}
+	if len(entry1.Tags) != 0 || entry1.Port != 6000 {
+		t.Fatalf("Bad entry: %#v", entry1)
 	}
 
 	idx, checks := store.NodeChecks("foo")
@@ -192,6 +206,51 @@ func TestEnsureService(t *testing.T) {
 	}
 }
 
+func TestEnsureArchetype(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(10, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(11, "foo", &structs.NodeArchetype{"api", "api", nil, "", 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(12, "foo", &structs.NodeArchetype{"api", "api", nil, "", 5001}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(13, "foo", &structs.NodeArchetype{"db", "db", []string{"master"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, archetypes := store.NodeArchetypes("foo")
+	if idx != 13 {
+		t.Fatalf("bad: %v", idx)
+	}
+
+	entry, ok := archetypes.Archetypes["api"]
+	if !ok {
+		t.Fatalf("missing api: %#v", archetypes)
+	}
+	if len(entry.Tags) != 0 || entry.Port != 5001 {
+		t.Fatalf("Bad entry: %#v", entry)
+	}
+
+	entry, ok = archetypes.Archetypes["db"]
+	if !ok {
+		t.Fatalf("missing db: %#v", archetypes)
+	}
+	if !strContains(entry.Tags, "master") || entry.Port != 8000 {
+		t.Fatalf("Bad entry: %#v", entry)
+	}
+}
+
 func TestEnsureService_DuplicateNode(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
@@ -239,6 +298,59 @@ func TestEnsureService_DuplicateNode(t *testing.T) {
 	entry, ok = services.Services["api3"]
 	if !ok {
 		t.Fatalf("missing api: %#v", services)
+	}
+	if len(entry.Tags) != 0 || entry.Port != 5002 {
+		t.Fatalf("Bad entry: %#v", entry)
+	}
+}
+
+func TestEnsureArchetype_DuplicateNode(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(10, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(11, "foo", &structs.NodeArchetype{"api1", "api", nil, "", 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(12, "foo", &structs.NodeArchetype{"api2", "api", nil, "", 5001}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(13, "foo", &structs.NodeArchetype{"api3", "api", nil, "", 5002}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, archetypes := store.NodeArchetypes("foo")
+	if idx != 13 {
+		t.Fatalf("bad: %v", idx)
+	}
+
+	entry, ok := archetypes.Archetypes["api1"]
+	if !ok {
+		t.Fatalf("missing api: %#v", archetypes)
+	}
+	if len(entry.Tags) != 0 || entry.Port != 5000 {
+		t.Fatalf("Bad entry: %#v", entry)
+	}
+
+	entry, ok = archetypes.Archetypes["api2"]
+	if !ok {
+		t.Fatalf("missing api: %#v", archetypes)
+	}
+	if len(entry.Tags) != 0 || entry.Port != 5001 {
+		t.Fatalf("Bad entry: %#v", entry)
+	}
+
+	entry, ok = archetypes.Archetypes["api3"]
+	if !ok {
+		t.Fatalf("missing api: %#v", archetypes)
 	}
 	if len(entry.Tags) != 0 || entry.Port != 5002 {
 		t.Fatalf("Bad entry: %#v", entry)
@@ -293,6 +405,35 @@ func TestDeleteNodeService(t *testing.T) {
 	}
 }
 
+func TestDeleteNodeArchetype(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(11, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(12, "foo", &structs.NodeArchetype{"api", "api", nil, "", 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.DeleteNodeArchetype(13, "foo", "api"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, archetypes := store.NodeArchetypes("foo")
+	if idx != 13 {
+		t.Fatalf("bad: %v", idx)
+	}
+	_, ok := archetypes.Archetypes["api"]
+	if ok {
+		t.Fatalf("has api: %#v", archetypes)
+	}
+}
+
 func TestDeleteNodeService_One(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
@@ -330,6 +471,43 @@ func TestDeleteNodeService_One(t *testing.T) {
 	}
 }
 
+func TestDeleteNodeArchetype_One(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(11, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(12, "foo", &structs.NodeArchetype{"api", "api", nil, "", 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(13, "foo", &structs.NodeArchetype{"api2", "api", nil, "", 5001}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.DeleteNodeArchetype(14, "foo", "api"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, archetypes := store.NodeArchetypes("foo")
+	if idx != 14 {
+		t.Fatalf("bad: %v", idx)
+	}
+	_, ok := archetypes.Archetypes["api"]
+	if ok {
+		t.Fatalf("has api: %#v", archetypes)
+	}
+	_, ok = archetypes.Archetypes["api2"]
+	if !ok {
+		t.Fatalf("does not have api2: %#v", archetypes)
+	}
+}
+
 func TestDeleteNode(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
@@ -356,12 +534,16 @@ func TestDeleteNode(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.DeleteNode(23, "foo"); err != nil {
+	if err := store.EnsureArchetype(23, "foo", &structs.NodeArchetype{"api", "api", nil, "", 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.DeleteNode(24, "foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	idx, services := store.NodeServices("foo")
-	if idx != 23 {
+	if idx != 24 {
 		t.Fatalf("bad: %v", idx)
 	}
 	if services != nil {
@@ -369,15 +551,23 @@ func TestDeleteNode(t *testing.T) {
 	}
 
 	idx, checks := store.NodeChecks("foo")
-	if idx != 23 {
+	if idx != 24 {
 		t.Fatalf("bad: %v", idx)
 	}
 	if len(checks) > 0 {
 		t.Fatalf("has checks: %v", checks)
 	}
 
+	idx, archetypes := store.NodeArchetypes("foo")
+	if idx != 24 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if archetypes != nil {
+		t.Fatalf("has archetypes: %#v", archetypes)
+	}
+
 	idx, found, _ := store.GetNode("foo")
-	if idx != 23 {
+	if idx != 24 {
 		t.Fatalf("bad: %v", idx)
 	}
 	if found {
@@ -429,6 +619,56 @@ func TestGetServices(t *testing.T) {
 	sort.Strings(tags)
 	if !ok {
 		t.Fatalf("missing db: %#v", services)
+	}
+	if len(tags) != 2 || tags[0] != "master" || tags[1] != "slave" {
+		t.Fatalf("Bad entry: %#v", tags)
+	}
+}
+
+func TestGetArchetypes(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(30, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureNode(31, structs.Node{"bar", "127.0.0.2"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(32, "foo", &structs.NodeArchetype{"api", "api", nil, "", 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(33, "foo", &structs.NodeArchetype{"db", "db", []string{"master"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(34, "bar", &structs.NodeArchetype{"db", "db", []string{"slave"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, archetypes := store.Archetypes()
+	if idx != 34 {
+		t.Fatalf("bad: %v", idx)
+	}
+
+	tags, ok := archetypes["api"]
+	if !ok {
+		t.Fatalf("missing api: %#v", archetypes)
+	}
+	if len(tags) != 0 {
+		t.Fatalf("Bad entry: %#v", tags)
+	}
+
+	tags, ok = archetypes["db"]
+	sort.Strings(tags)
+	if !ok {
+		t.Fatalf("missing db: %#v", archetypes)
 	}
 	if len(tags) != 2 || tags[0] != "master" || tags[1] != "slave" {
 		t.Fatalf("Bad entry: %#v", tags)
@@ -526,6 +766,97 @@ func TestServiceNodes(t *testing.T) {
 	}
 }
 
+func TestArchetypeNodes(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(10, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureNode(11, structs.Node{"bar", "127.0.0.2"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(12, "foo", &structs.NodeArchetype{"api", "api", nil, "", 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(13, "bar", &structs.NodeArchetype{"api", "api", nil, "", 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(14, "foo", &structs.NodeArchetype{"db", "db", []string{"master"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(15, "bar", &structs.NodeArchetype{"db", "db", []string{"slave"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(16, "bar", &structs.NodeArchetype{"db2", "db", []string{"slave"}, "", 8001}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, nodes := store.ArchetypeNodes("db")
+	if idx != 16 {
+		t.Fatalf("bad: %v", 16)
+	}
+	if len(nodes) != 3 {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Node != "foo" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].ArchetypeID != "db" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if !strContains(nodes[0].ArchetypeTags, "master") {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].ArchetypePort != 8000 {
+		t.Fatalf("bad: %v", nodes)
+	}
+
+	if nodes[1].Node != "bar" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[1].Address != "127.0.0.2" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[1].ArchetypeID != "db" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if !strContains(nodes[1].ArchetypeTags, "slave") {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[1].ArchetypePort != 8000 {
+		t.Fatalf("bad: %v", nodes)
+	}
+
+	if nodes[2].Node != "bar" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[2].Address != "127.0.0.2" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[2].ArchetypeID != "db2" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if !strContains(nodes[2].ArchetypeTags, "slave") {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[2].ArchetypePort != 8001 {
+		t.Fatalf("bad: %v", nodes)
+	}
+}
+
 func TestServiceTagNodes(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
@@ -570,6 +901,54 @@ func TestServiceTagNodes(t *testing.T) {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8000 {
+		t.Fatalf("bad: %v", nodes)
+	}
+}
+
+func TestArchetypeTagNodes(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(15, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureNode(16, structs.Node{"bar", "127.0.0.2"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(17, "foo", &structs.NodeArchetype{"db", "db", []string{"master"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(18, "foo", &structs.NodeArchetype{"db2", "db", []string{"slave"}, "", 8001}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(19, "bar", &structs.NodeArchetype{"db", "db", []string{"slave"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, nodes := store.ArchetypeTagNodes("db", "master")
+	if idx != 19 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Node != "foo" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if !strContains(nodes[0].ArchetypeTags, "master") {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].ArchetypePort != 8000 {
 		t.Fatalf("bad: %v", nodes)
 	}
 }
@@ -650,6 +1029,82 @@ func TestServiceTagNodes_MultipleTags(t *testing.T) {
 	}
 }
 
+func TestArchetypeTagNodes_MultipleTags(t *testing.T) {
+	store, err := testStateStore()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer store.Close()
+
+	if err := store.EnsureNode(15, structs.Node{"foo", "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureNode(16, structs.Node{"bar", "127.0.0.2"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(17, "foo", &structs.NodeArchetype{"db", "db", []string{"master", "v2"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(18, "foo", &structs.NodeArchetype{"db2", "db", []string{"slave", "v2", "dev"}, "", 8001}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(19, "bar", &structs.NodeArchetype{"db", "db", []string{"slave", "v2"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	idx, nodes := store.ArchetypeTagNodes("db", "master")
+	if idx != 19 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Node != "foo" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if !strContains(nodes[0].ArchetypeTags, "master") {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].ArchetypePort != 8000 {
+		t.Fatalf("bad: %v", nodes)
+	}
+
+	idx, nodes = store.ArchetypeTagNodes("db", "v2")
+	if idx != 19 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(nodes) != 3 {
+		t.Fatalf("bad: %v", nodes)
+	}
+
+	idx, nodes = store.ArchetypeTagNodes("db", "dev")
+	if idx != 19 {
+		t.Fatalf("bad: %v", idx)
+	}
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Node != "foo" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if !strContains(nodes[0].ArchetypeTags, "dev") {
+		t.Fatalf("bad: %v", nodes)
+	}
+	if nodes[0].ArchetypePort != 8001 {
+		t.Fatalf("bad: %v", nodes)
+	}
+}
+
 func TestStoreSnapshot(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
@@ -688,41 +1143,53 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	if err := store.EnsureArchetype(14, "foo", &structs.NodeArchetype{"db", "db", []string{"master"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(15, "foo", &structs.NodeArchetype{"db2", "db", []string{"slave"}, "", 8001}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if err := store.EnsureArchetype(16, "bar", &structs.NodeArchetype{"db", "db", []string{"slave"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	// Add some KVS entries
 	d := &structs.DirEntry{Key: "/web/a", Flags: 42, Value: []byte("test")}
-	if err := store.KVSSet(14, d); err != nil {
+	if err := store.KVSSet(17, d); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	d = &structs.DirEntry{Key: "/web/b", Flags: 42, Value: []byte("test")}
-	if err := store.KVSSet(15, d); err != nil {
+	if err := store.KVSSet(18, d); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	d = &structs.DirEntry{Key: "/web/c", Flags: 42, Value: []byte("test")}
-	if err := store.KVSSet(16, d); err != nil {
+	if err := store.KVSSet(19, d); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	// Create a tombstone
 	// TODO: Change to /web/c causes failure?
-	if err := store.KVSDelete(17, "/web/a"); err != nil {
+	if err := store.KVSDelete(20, "/web/a"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Add some sessions
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
-	if err := store.SessionCreate(18, session); err != nil {
+	if err := store.SessionCreate(21, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	session = &structs.Session{ID: generateUUID(), Node: "bar"}
-	if err := store.SessionCreate(19, session); err != nil {
+	if err := store.SessionCreate(22, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	d.Session = session.ID
-	if ok, err := store.KVSLock(20, d); err != nil || !ok {
+	if ok, err := store.KVSLock(23, d); err != nil || !ok {
 		t.Fatalf("err: %v", err)
 	}
 	session = &structs.Session{ID: generateUUID(), Node: "bar", TTL: "60s"}
-	if err := store.SessionCreate(21, session); err != nil {
+	if err := store.SessionCreate(24, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -731,7 +1198,7 @@ func TestStoreSnapshot(t *testing.T) {
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(21, a1); err != nil {
+	if err := store.ACLSet(25, a1); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -740,7 +1207,7 @@ func TestStoreSnapshot(t *testing.T) {
 		Name: "User token",
 		Type: structs.ACLTypeClient,
 	}
-	if err := store.ACLSet(22, a2); err != nil {
+	if err := store.ACLSet(26, a2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -752,7 +1219,7 @@ func TestStoreSnapshot(t *testing.T) {
 	defer snap.Close()
 
 	// Check the last nodes
-	if idx := snap.LastIndex(); idx != 22 {
+	if idx := snap.LastIndex(); idx != 26 {
 		t.Fatalf("bad: %v", idx)
 	}
 
@@ -774,6 +1241,20 @@ func TestStoreSnapshot(t *testing.T) {
 	services = snap.NodeServices("bar")
 	if !strContains(services.Services["db"].Tags, "slave") {
 		t.Fatalf("bad: %v", services)
+	}
+
+	// Ensure we get the archetype entries
+	archetypes := snap.NodeArchetypes("foo")
+	if !strContains(archetypes.Archetypes["db"].Tags, "master") {
+		t.Fatalf("bad: %v", archetypes)
+	}
+	if !strContains(archetypes.Archetypes["db2"].Tags, "slave") {
+		t.Fatalf("bad: %v", archetypes)
+	}
+
+	archetypes = snap.NodeArchetypes("bar")
+	if !strContains(archetypes.Archetypes["db"].Tags, "slave") {
+		t.Fatalf("bad: %v", archetypes)
 	}
 
 	// Ensure we get the checks
@@ -858,13 +1339,19 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 
 	// Make some changes!
-	if err := store.EnsureService(23, "foo", &structs.NodeService{"db", "db", []string{"slave"}, "", 8000}); err != nil {
+	if err := store.EnsureService(27, "foo", &structs.NodeService{"db", "db", []string{"slave"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureService(24, "bar", &structs.NodeService{"db", "db", []string{"master"}, "", 8000}); err != nil {
+	if err := store.EnsureService(28, "bar", &structs.NodeService{"db", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := store.EnsureNode(25, structs.Node{"baz", "127.0.0.3"}); err != nil {
+	if err := store.EnsureArchetype(29, "foo", &structs.NodeArchetype{"db", "db", []string{"slave"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureArchetype(30, "bar", &structs.NodeArchetype{"db", "db", []string{"master"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := store.EnsureNode(31, structs.Node{"baz", "127.0.0.3"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	checkAfter := &structs.HealthCheck{
@@ -874,16 +1361,16 @@ func TestStoreSnapshot(t *testing.T) {
 		Status:    structs.HealthCritical,
 		ServiceID: "db",
 	}
-	if err := store.EnsureCheck(27, checkAfter); err != nil {
+	if err := store.EnsureCheck(32, checkAfter); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := store.KVSDelete(28, "/web/b"); err != nil {
+	if err := store.KVSDelete(33, "/web/b"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Nuke an ACL
-	if err := store.ACLDelete(29, a1.ID); err != nil {
+	if err := store.ACLDelete(34, a1.ID); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -902,9 +1389,17 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("bad: %v", services)
 	}
 
-	services = snap.NodeServices("bar")
-	if !strContains(services.Services["db"].Tags, "slave") {
-		t.Fatalf("bad: %v", services)
+	archetypes = snap.NodeArchetypes("foo")
+	if !strContains(archetypes.Archetypes["db"].Tags, "master") {
+		t.Fatalf("bad: %v", archetypes)
+	}
+	if !strContains(archetypes.Archetypes["db2"].Tags, "slave") {
+		t.Fatalf("bad: %v", archetypes)
+	}
+
+	archetypes = snap.NodeArchetypes("bar")
+	if !strContains(archetypes.Archetypes["db"].Tags, "slave") {
+		t.Fatalf("bad: %v", archetypes)
 	}
 
 	checks = snap.NodeChecks("foo")
@@ -1319,9 +1814,12 @@ func TestNodeInfo(t *testing.T) {
 	if err := store.EnsureCheck(4, check); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	if err := store.EnsureArchetype(5, "foo", &structs.NodeArchetype{"db1", "db", []string{"master"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	idx, dump := store.NodeInfo("foo")
-	if idx != 4 {
+	if idx != 5 {
 		t.Fatalf("bad: %v", idx)
 	}
 	if len(dump) != 1 {
@@ -1342,6 +1840,9 @@ func TestNodeInfo(t *testing.T) {
 		t.Fatalf("Bad: %v", info)
 	}
 	if info.Checks[1].CheckID != SerfCheckID {
+		t.Fatalf("Bad: %v", info)
+	}
+	if info.Archetypes[0].ID != "db1" {
 		t.Fatalf("Bad: %v", info)
 	}
 }
@@ -1365,9 +1866,13 @@ func TestNodeDump(t *testing.T) {
 	if err := store.EnsureService(4, "baz", &structs.NodeService{"db1", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	if err := store.EnsureArchetype(5, "baz", &structs.NodeArchetype{"db1", "db", []string{"master"}, "", 8000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 
 	idx, dump := store.NodeDump()
-	if idx != 4 {
+	if idx != 5 {
 		t.Fatalf("bad: %v", idx)
 	}
 	if len(dump) != 2 {
@@ -1379,6 +1884,9 @@ func TestNodeDump(t *testing.T) {
 		t.Fatalf("Bad: %v", info)
 	}
 	if info.Services[0].ID != "db1" {
+		t.Fatalf("Bad: %v", info)
+	}
+	if info.Archetypes[0].ID != "db1" {
 		t.Fatalf("Bad: %v", info)
 	}
 	info = dump[1]
