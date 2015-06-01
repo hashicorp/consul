@@ -32,5 +32,3 @@ sudo chown root:root /tmp/upstart.conf
 sudo chown root:root /tmp/upstart-join.conf
 sudo mv /tmp/upstart.conf /etc/init/consul.conf
 sudo mv /tmp/upstart-join.conf /etc/init/consul-join.conf
-echo "Installed upstart"
-sudo initctl list
