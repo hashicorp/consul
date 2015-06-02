@@ -336,6 +336,7 @@ PARSE:
 	return
 INVALID:
 	d.logger.Printf("[WARN] dns: QName invalid: %s", qName)
+	d.addSOA(d.domain, resp)
 	resp.SetRcode(req, dns.RcodeNameError)
 }
 
@@ -373,6 +374,7 @@ RPC:
 
 	// If we have no address, return not found!
 	if out.NodeServices == nil {
+		d.addSOA(d.domain, resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
@@ -478,6 +480,7 @@ RPC:
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
+		d.addSOA(d.domain, resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
