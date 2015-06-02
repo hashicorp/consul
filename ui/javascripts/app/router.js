@@ -21,7 +21,7 @@ App.Router.map(function() {
     // Services represent a consul service
     this.resource("services", { path: "/services" }, function(){
       // Show an individual service
-      this.route("show", { path: "/:name" });
+      this.route("show", { path: "/*name" });
     });
     // Nodes represent a consul node
     this.resource("nodes", { path: "/nodes" }, function() {
