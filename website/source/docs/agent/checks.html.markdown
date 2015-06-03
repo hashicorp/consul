@@ -95,6 +95,13 @@ Checks may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the check, including
 [anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
 
+Both script and HTTP checks must include an `interval` field. This field is
+parsed by Go's `time` package, and has the following
+[formatting specification](http://golang.org/pkg/time/#ParseDuration):
+> A duration string is a possibly signed sequence of decimal numbers, each with
+> optional fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m".
+> Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+
 To configure a check, either provide it as a `-config-file` option to the
 agent or place it inside the `-config-dir` of the agent. The file must
 end in the ".json" extension to be loaded by Consul. Check definitions can
