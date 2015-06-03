@@ -7,6 +7,7 @@ variable "user" {
     default = {
         ubuntu = "ubuntu"
         rhel6 = "ec2-user"
+        centos6 = "root"
     }
 }
 
@@ -17,6 +18,8 @@ variable "ami" {
         us-west-2-ubuntu = "ami-57e8d767"
         us-east-1-rhel6 = "ami-b0fed2d8"
         us-west-2-rhel6 = "ami-2faa861f"
+        us-east-1-centos6 = "ami-c2a818aa"
+        us-west-2-centos6 = "ami-81d092b1"
     }
 }
 
