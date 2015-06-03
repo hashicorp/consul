@@ -398,7 +398,7 @@ func TestCatalogArchetypeNodes(t *testing.T) {
 		Address:    "127.0.0.1",
 		Archetype: &structs.NodeArchetype{
 			Archetype: "api",
-			Tags:    []string{"a"},
+			Tags:      []string{"a"},
 		},
 	}
 
@@ -441,7 +441,7 @@ func TestCatalogNodeArchetypes(t *testing.T) {
 		Address:    "127.0.0.1",
 		Archetype: &structs.NodeArchetype{
 			Archetype: "api",
-			Tags:    []string{"a"},
+			Tags:      []string{"a"},
 		},
 	}
 

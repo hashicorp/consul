@@ -158,7 +158,7 @@ func TestFSM_RegisterNode_Archetype(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       "foo",
 		Address:    "127.0.0.1",
-		Archetype:  &structs.NodeArchetype{
+		Archetype: &structs.NodeArchetype{
 			ID:        "db",
 			Archetype: "db",
 			Tags:      []string{"master"},
@@ -323,7 +323,7 @@ func TestFSM_DeregisterArchetype(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       "foo",
 		Address:    "127.0.0.1",
-		Archetype:  &structs.NodeArchetype{
+		Archetype: &structs.NodeArchetype{
 			ID:        "db",
 			Archetype: "db",
 			Tags:      []string{"master"},
@@ -341,9 +341,9 @@ func TestFSM_DeregisterArchetype(t *testing.T) {
 	}
 
 	dereg := structs.DeregisterRequest{
-		Datacenter:   "dc1",
-		Node:         "foo",
-		ArchetypeID:  "db",
+		Datacenter:  "dc1",
+		Node:        "foo",
+		ArchetypeID: "db",
 	}
 	buf, err = structs.Encode(structs.DeregisterRequestType, dereg)
 	if err != nil {

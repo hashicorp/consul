@@ -22,9 +22,9 @@ func TestEnsureRegistration(t *testing.T) {
 	defer store.Close()
 
 	reg := &structs.RegisterRequest{
-		Node:    "foo",
-		Address: "127.0.0.1",
-		Service: &structs.NodeService{"api", "api", nil, "", 5000},
+		Node:      "foo",
+		Address:   "127.0.0.1",
+		Service:   &structs.NodeService{"api", "api", nil, "", 5000},
 		Archetype: &structs.NodeArchetype{"api1", "api2", nil, "", 6000},
 		Check: &structs.HealthCheck{
 			Node:      "foo",
@@ -1869,7 +1869,6 @@ func TestNodeDump(t *testing.T) {
 	if err := store.EnsureArchetype(5, "baz", &structs.NodeArchetype{"db1", "db", []string{"master"}, "", 8000}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
 
 	idx, dump := store.NodeDump()
 	if idx != 5 {
