@@ -8,8 +8,12 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/armon/circbuf"
+	consulapi "github.com/hashicorp/consul/api"
+	consultemplate "github.com/marouenj/consul-template/core"
 	"github.com/marouenj/consul/watch"
 )
 
@@ -18,6 +22,8 @@ const (
 	// last WatchBufSize. Prevents an enormous buffer
 	// from being captured
 	WatchBufSize = 4 * 1024 // 4KB
+	upAction     = "up"
+	downAction   = "down"
 )
 
 // verifyWatchHandler does the pre-check for our handler configuration
@@ -75,6 +81,105 @@ func makeWatchHandler(logOutput io.Writer, params interface{}) watch.HandlerFunc
 
 		// Log the output
 		logger.Printf("[DEBUG] agent: watch handler '%s' output: %s", script, outputStr)
+	}
+	return fn
+}
+
+// makeWatchHandler returns a handler that would control a consul-template instance
+func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIndex int) watch.HandlerFunc {
+	logger := log.New(logOutput, "", log.LstdFlags)
+
+	// get the key
+	archetype := agent.config.Archetypes[archetypeIndex]
+	key := strings.Join([]string{"archetype", "watch", archetype.PoolName, archetype.ID}, "/")
+
+	// get the client
+	client, _ := consulapi.NewClient(consulapi.DefaultConfig())
+
+	// get the consul-template config
+	config := consultemplate.DefaultConfig()
+	address := []string{agent.config.Addresses.HTTP, strconv.Itoa(agent.config.Ports.HTTP)}
+	config.Consul = strings.Join(address, ":")
+	config.ConfigTemplates = append(config.ConfigTemplates, &agent.config.Archetypes[0].Template)
+
+	// get the runner
+	runner := agent.config.Runners[archetypeIndex]
+
+	// define the selector
+	var once sync.Once
+	var selector func()
+
+	fn := func(idx uint64, data interface{}) {
+		logger.Printf("[INFO] agent: Calling watch handler on key %s", key)
+
+		kv := client.KV()
+
+		pair, _, err := kv.Get(key, nil)
+		if err != nil {
+			panic(err)
+		}
+
+		if pair == nil {
+			return
+		}
+		val := string(pair.Value[:])
+
+		actions := map[string]bool{
+			upAction:   true,
+			downAction: true,
+		}
+
+		if !actions[val] {
+			return
+		}
+
+		// runner can be safely initialized
+		// this bloc is executed once
+		if runner == nil {
+			logger.Printf("[INFO] agent: Initializing runner for key %s", key)
+			if val != upAction {
+				config.ConfigTemplates[0].First = true
+			}
+			runner, err = consultemplate.NewRunner(config, false, false)
+			if err != nil {
+				logger.Printf("[ERR] runner: Failed to launch: %v", err)
+			}
+			// define selector
+			selector = func() {
+			Outer:
+				for {
+					select {
+					case err := <-runner.ErrCh:
+						logger.Printf("%v", err)
+					case <-runner.DoneCh:
+						break Outer
+					}
+				}
+			}
+
+			if val == upAction {
+				// runner.Up = true
+				// runner.Init()
+				go runner.Start()
+			} else if val == downAction {
+				go func() {
+					once.Do(selector)
+					once = sync.Once{}
+				}()
+			}
+		}
+
+		if val == upAction {
+			go runner.Start()
+			go func() {
+				once.Do(selector)
+				once = sync.Once{}
+			}()
+		} else if val == downAction {
+			if err = runner.Stop(); err != nil {
+				logger.Printf("%v", err)
+			}
+		}
 	}
 	return fn
 }
