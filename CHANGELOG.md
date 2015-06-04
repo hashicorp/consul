@@ -4,6 +4,10 @@ BUG FIXES:
 
 * Allow services with `/` characters in the UI [GH-988]
 
+MISC:
+
+* Protocol version bumped to 3 for serf protocol 5 [GH-996]
+
 ## 0.5.2 (May 18, 2015)
 
 FEATURES:
