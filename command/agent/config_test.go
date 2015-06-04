@@ -861,6 +861,23 @@ func TestDecodeConfig_Archetypes(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	if len(config.WatchPlansForArchetypes) != 3 {
+		t.Fatalf("bad: %#v", config.WatchPlansForArchetypes)
+	}
+
+	for _, wp := range config.WatchPlansForArchetypes {
+		if wp.Datacenter != config.Datacenter {
+			t.Fatalf("bad: %#v", wp)
+		}
+		if wp.Token != config.ACLToken {
+			t.Fatalf("bad: %#v", wp)
+		}
+		if wp.Type != "key" {
+			t.Fatalf("bad: %#v", wp)
+		}
+	}
+
+	// some fields are inaccessible. Can't deep equal.
 	config.WatchPlansForArchetypes = nil
 
 	expected := &Config{
