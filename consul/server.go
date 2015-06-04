@@ -27,7 +27,7 @@ import (
 // protocol versions.
 const (
 	ProtocolVersionMin uint8 = 1
-	ProtocolVersionMax       = 2
+	ProtocolVersionMax       = 3
 )
 
 const (
