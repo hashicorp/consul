@@ -466,17 +466,17 @@ func DefaultConfig() *Config {
 		DNSConfig: DNSConfig{
 			MaxStale: 5 * time.Second,
 		},
-		StatsitePrefix:      "consul",
-		SyslogFacility:      "LOCAL0",
-		Protocol:            consul.ProtocolVersionMax,
-		CheckUpdateInterval: 5 * time.Minute,
-		AEInterval:          time.Minute,
+		StatsitePrefix:         "consul",
+		SyslogFacility:         "LOCAL0",
+		Protocol:               consul.ProtocolVersionMax,
+		CheckUpdateInterval:    5 * time.Minute,
+		AEInterval:             time.Minute,
 		SyncCoordinateInterval: 15 * time.Second,
-		ACLTTL:              30 * time.Second,
-		ACLDownPolicy:       "extend-cache",
-		ACLDefaultPolicy:    "allow",
-		RetryInterval:       30 * time.Second,
-		RetryIntervalWan:    30 * time.Second,
+		ACLTTL:                 30 * time.Second,
+		ACLDownPolicy:          "extend-cache",
+		ACLDefaultPolicy:       "allow",
+		RetryInterval:          30 * time.Second,
+		RetryIntervalWan:       30 * time.Second,
 	}
 }
 
