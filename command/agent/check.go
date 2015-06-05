@@ -266,6 +266,17 @@ type persistedCheck struct {
 	Token   string
 }
 
+// persistedCheckState is used to persist the current state of a given
+// check. This is different from the check definition, and includes an
+// expiration timestamp which is used to determine staleness on later
+// agent restarts.
+type persistedCheckState struct {
+	CheckID string
+	Output  string
+	Status  string
+	Expires int64
+}
+
 // CheckHTTP is used to periodically make an HTTP request to
 // determine the health of a given check.
 // The check is passing if the response code is 2XX.
