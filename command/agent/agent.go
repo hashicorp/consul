@@ -931,7 +931,7 @@ func (a *Agent) recallCheckState(check *structs.HealthCheck) error {
 	}
 
 	// Check if the state has expired
-	if time.Now().Unix() > p.Expires {
+	if time.Now().Unix() >= p.Expires {
 		a.logger.Printf("[DEBUG] agent: check state expired for %q, not restoring", check.CheckID)
 		return nil
 	}

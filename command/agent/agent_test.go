@@ -1349,3 +1349,107 @@ func TestAgent_loadChecks_checkFails(t *testing.T) {
 		t.Fatalf("should have purged check")
 	}
 }
+
+func TestAgent_persistCheckStatus(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// Create the TTL check to persist
+	check := &CheckTTL{
+		CheckID: "check1",
+		TTL:     10 * time.Minute,
+	}
+
+	// Persist some check state for the check
+	err := agent.persistCheckState(check, structs.HealthCritical, "nope")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check the persisted file exists and has the content
+	file := filepath.Join(agent.config.DataDir, checkStateDir, stringHash("check1"))
+	buf, err := ioutil.ReadFile(file)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Decode the state
+	var p persistedCheckState
+	if err := json.Unmarshal(buf, &p); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check the fields
+	if p.CheckID != "check1" {
+		t.Fatalf("bad: %#v", p)
+	}
+	if p.Output != "nope" {
+		t.Fatalf("bad: %#v", p)
+	}
+	if p.Status != structs.HealthCritical {
+		t.Fatalf("bad: %#v", p)
+	}
+
+	// Check the expiration time was set
+	if p.Expires < time.Now().Unix() {
+		t.Fatalf("bad: %#v", p)
+	}
+}
+
+func TestAgent_recallCheckState(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// Create a check whose state will expire immediately
+	check := &CheckTTL{
+		CheckID: "check1",
+		TTL:     0,
+	}
+
+	// Persist the check state
+	err := agent.persistCheckState(check, structs.HealthPassing, "yup")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Try to recall the state
+	health := &structs.HealthCheck{
+		CheckID: "check1",
+		Status:  structs.HealthCritical,
+	}
+	if err := agent.recallCheckState(health); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Should not have restored the status due to expiration
+	if health.Status != structs.HealthCritical {
+		t.Fatalf("bad: %#v", health)
+	}
+	if health.Output != "" {
+		t.Fatalf("bad: %#v", health)
+	}
+
+	// Set a TTL which will not expire before we check it
+	check.TTL = time.Minute
+	err = agent.persistCheckState(check, structs.HealthPassing, "yup")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Try to recall
+	if err := agent.recallCheckState(health); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Should have restored
+	if health.Status != structs.HealthPassing {
+		t.Fatalf("bad: %#v", health)
+	}
+	if health.Output != "yup" {
+		t.Fatalf("bad: %#v", health)
+	}
+}
