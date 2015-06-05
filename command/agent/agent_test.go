@@ -1350,7 +1350,7 @@ func TestAgent_loadChecks_checkFails(t *testing.T) {
 	}
 }
 
-func TestAgent_persistCheckStatus(t *testing.T) {
+func TestAgent_persistCheckState(t *testing.T) {
 	config := nextConfig()
 	dir, agent := makeAgent(t, config)
 	defer os.RemoveAll(dir)
@@ -1431,6 +1431,12 @@ func TestAgent_recallCheckState(t *testing.T) {
 	}
 	if health.Output != "" {
 		t.Fatalf("bad: %#v", health)
+	}
+
+	// Should have purged the state
+	file := filepath.Join(agent.config.DataDir, checksDir, stringHash("check1"))
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("should have purged state")
 	}
 
 	// Set a TTL which will not expire before we check it
