@@ -851,7 +851,12 @@ func (a *Agent) RemoveCheck(checkID string, persist bool) error {
 		delete(a.checkTTLs, checkID)
 	}
 	if persist {
-		return a.purgeCheck(checkID)
+		if err := a.purgeCheck(checkID); err != nil {
+			return err
+		}
+		if err := a.purgeCheckState(checkID); err != nil {
+			return err
+		}
 	}
 	log.Printf("[DEBUG] agent: removed check %q", checkID)
 	return nil
@@ -940,6 +945,16 @@ func (a *Agent) recallCheckState(check *structs.HealthCheck) error {
 	check.Output = p.Output
 	check.Status = p.Status
 	return nil
+}
+
+// purgeCheckState is used to purge the state of a check from the data dir
+func (a *Agent) purgeCheckState(checkID string) error {
+	file := filepath.Join(a.config.DataDir, checkStateDir, stringHash(checkID))
+	err := os.Remove(file)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	return err
 }
 
 // Stats is used to get various debugging state from the sub-systems

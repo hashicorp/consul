@@ -1453,3 +1453,36 @@ func TestAgent_recallCheckState(t *testing.T) {
 		t.Fatalf("bad: %#v", health)
 	}
 }
+
+func TestAgent_purgeCheckState(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// No error if the state does not exist
+	if err := agent.purgeCheckState("check1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Persist some state to the data dir
+	check := &CheckTTL{
+		CheckID: "check1",
+		TTL:     time.Minute,
+	}
+	err := agent.persistCheckState(check, structs.HealthPassing, "yup")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Purge the check state
+	if err := agent.purgeCheckState("check1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Removed the file
+	file := filepath.Join(agent.config.DataDir, checkStateDir, stringHash("check1"))
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("should have removed file")
+	}
+}
