@@ -459,6 +459,49 @@ func TestAgent_AddCheck_MissingService(t *testing.T) {
 	}
 }
 
+func TestAgent_AddCheck_RestoreState(t *testing.T) {
+	dir, agent := makeAgent(t, nextConfig())
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// Create some state and persist it
+	ttl := &CheckTTL{
+		CheckID: "baz",
+		TTL:     time.Minute,
+	}
+	err := agent.persistCheckState(ttl, structs.HealthPassing, "yup")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Build and register the check definition and initial state
+	health := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "baz",
+		Name:    "baz check 1",
+	}
+	chk := &CheckType{
+		TTL: time.Minute,
+	}
+	err = agent.AddCheck(health, chk, false, "")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the check status was restored during registration
+	checks := agent.state.Checks()
+	check, ok := checks["baz"]
+	if !ok {
+		t.Fatalf("missing check")
+	}
+	if check.Status != structs.HealthPassing {
+		t.Fatalf("bad: %#v", check)
+	}
+	if check.Output != "yup" {
+		t.Fatalf("bad: %#v", check)
+	}
+}
+
 func TestAgent_RemoveCheck(t *testing.T) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
