@@ -206,13 +206,14 @@ type Config struct {
 	// EnableCoordinates enables features related to network coordinates.
 	EnableCoordinates bool
 
-	// CoordinateUpdatePeriod controls how long a server batches coordinate updates
-	// before applying them in a Raft transaction.  A larger period leads to fewer
-	// Raft transactions, but also the stored coordinates being more stale.
+	// CoordinateUpdatePeriod controls how long a server batches coordinate
+	// updates before applying them in a Raft transaction. A larger period
+	// leads to fewer Raft transactions, but also the stored coordinates
+	// being more stale.
 	CoordinateUpdatePeriod time.Duration
 
 	// CoordinateUpdateMaxBatchSize controls the maximum number of updates a
-	// server batches before applying them in a Raft transaction
+	// server batches before applying them in a Raft transaction.
 	CoordinateUpdateMaxBatchSize int
 }
 
@@ -269,7 +270,7 @@ func DefaultConfig() *Config {
 		TombstoneTTLGranularity:      30 * time.Second,
 		SessionTTLMin:                10 * time.Second,
 		EnableCoordinates:            true,
-		CoordinateUpdatePeriod:       time.Duration(30) * time.Second,
+		CoordinateUpdatePeriod:       30 * time.Second,
 		CoordinateUpdateMaxBatchSize: 1000,
 	}
 

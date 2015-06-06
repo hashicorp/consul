@@ -620,28 +620,36 @@ type ACLPolicy struct {
 	QueryMeta
 }
 
-// Coordinate stores a mapping from a node to its network coordinate
+// Coordinate stores a node name with its associated network coordinate. This is
+// used when querying WAN coordinates.
 type Coordinate struct {
 	Node  string
 	Coord *coordinate.Coordinate
 }
 
+// CoordinateList is a list of Coordinate structs. This is used when querying WAN
+// coordinates.
 type CoordinateList struct {
 	Coords []Coordinate
 }
 
+// IndexedCoordinate is used to represent a single node's coordinate from the state
+// store. This is used when querying LAN coordinates.
 type IndexedCoordinate struct {
 	Coord *coordinate.Coordinate
 	QueryMeta
 }
 
+// CoordinateOp is used for encoding coordinate-related RPC requests.
 type CoordinateOp string
 
 const (
-	CoordinateSet CoordinateOp = "set"
+	// CoordinateUpdate is used to update a node's coordinates in the catalog.
+	CoordinateUpdate CoordinateOp = "update"
 )
 
-// CoordinateUpdateRequest is used to update the network coordinate of a given node
+// CoordinateUpdateRequest is used to update the network coordinate of a given
+// node.
 type CoordinateUpdateRequest struct {
 	Datacenter string
 	Node       string
@@ -650,6 +658,7 @@ type CoordinateUpdateRequest struct {
 	WriteRequest
 }
 
+// RequestDatacenter returns the datacenter for a given update request.
 func (c *CoordinateUpdateRequest) RequestDatacenter() string {
 	return c.Datacenter
 }

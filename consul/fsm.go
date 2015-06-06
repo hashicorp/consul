@@ -253,11 +253,10 @@ func (c *consulFSM) applyCoordinateOperation(buf []byte, index uint64) interface
 	if err := structs.Decode(buf, &reqs); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	for i := 0; i < len(reqs); i++ {
-		req := reqs[i]
+	for _, req := range reqs {
 		defer metrics.MeasureSince([]string{"consul", "fsm", "coordinate", string(req.Op)}, time.Now())
 		switch req.Op {
-		case structs.CoordinateSet:
+		case structs.CoordinateUpdate:
 			coord := &structs.Coordinate{Node: req.Node, Coord: req.Coord}
 			if err := c.state.CoordinateUpdate(index, coord); err != nil {
 				return err

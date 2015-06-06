@@ -380,7 +380,8 @@ func (c *Client) Stats() map[string]map[string]string {
 	return stats
 }
 
-// GetCoordinate returns the network coordinate of the receiver
+// GetCoordinate returns the network coordinate of the current node, as
+// maintained by Serf.
 func (c *Client) GetCoordinate() *coordinate.Coordinate {
 	return c.serf.GetCoordinate()
 }

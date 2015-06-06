@@ -368,13 +368,17 @@ type Config struct {
 	AtlasEndpoint string `mapstructure:"atlas_endpoint"`
 
 	// AEInterval controls the anti-entropy interval. This is how often
-	// the agent attempts to reconcile it's local state with the server'
+	// the agent attempts to reconcile its local state with the server's
 	// representation of our state. Defaults to every 60s.
 	AEInterval time.Duration `mapstructure:"-" json:"-"`
 
-	// SyncCoordinateInterval controls the interval for sending network coordinates
-	// to servers.  Defaults to every 15s, but scales up as the number of nodes increases
-	// in the network, to prevent servers from being overwhelmed.
+	// EnableCoordinates enables features related to network coordinates.
+	EnableCoordinates bool `mapstructure:"enable_coordinates" json:"-"`
+
+	// SyncCoordinateInterval controls the interval for sending network
+	// coordinates to the server. Defaults to every 15s, but scales up as
+	// the number of nodes increases in the network, to prevent servers from
+	// being overwhelmed.
 	SyncCoordinateInterval time.Duration `mapstructure:"-" json:"-"`
 
 	// Checks holds the provided check definitions
@@ -471,6 +475,7 @@ func DefaultConfig() *Config {
 		Protocol:               consul.ProtocolVersionMax,
 		CheckUpdateInterval:    5 * time.Minute,
 		AEInterval:             time.Minute,
+		EnableCoordinates:      true,
 		SyncCoordinateInterval: 15 * time.Second,
 		ACLTTL:                 30 * time.Second,
 		ACLDownPolicy:          "extend-cache",

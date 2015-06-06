@@ -387,6 +387,12 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 	}
 }
 
+var testRegisterRules = `
+service "api" {
+	policy = "write"
+}
+`
+
 func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	conf := nextConfig()
 	conf.ACLDatacenter = "dc1"
@@ -796,55 +802,31 @@ func TestAgent_nestedPauseResume(t *testing.T) {
 
 }
 
-var testRegisterRules = `
-service "api" {
-	policy = "write"
-}
-`
 
-func TestAgentSendCoordinates(t *testing.T) {
-	conf1 := nextConfig()
-	conf1.SyncCoordinateInterval = 10 * time.Millisecond
-	dir1, agent1 := makeAgent(t, conf1)
-	defer os.RemoveAll(dir1)
-	defer agent1.Shutdown()
 
-	conf2 := nextConfig()
-	conf2.SyncCoordinateInterval = 10 * time.Millisecond
-	dir2, agent2 := makeAgent(t, conf2)
-	defer os.RemoveAll(dir2)
-	defer agent2.Shutdown()
+func TestAgent_sendCoordinate(t *testing.T) {
+	conf := nextConfig()
+	conf.SyncCoordinateInterval = 10 * time.Millisecond
+	conf.ConsulConfig.CoordinateUpdatePeriod = 0 * time.Millisecond
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
 
-	agent2Addr := fmt.Sprintf("127.0.0.1:%d", agent2.config.Ports.SerfLan)
-	if _, err := agent2.JoinLAN([]string{agent2Addr}); err != nil {
-		t.Fatalf("err: %s", err)
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	// Wait a little while for an update.
+	time.Sleep(3 * conf.SyncCoordinateInterval)
+
+	// Make sure the coordinate is present.
+	req := structs.NodeSpecificRequest {
+		Datacenter: agent.config.Datacenter,
+		Node:       agent.config.NodeName,
 	}
-
-	testutil.WaitForLeader(t, agent1.RPC, "dc1")
-
-	time.Sleep(100 * time.Millisecond)
-
 	var reply structs.IndexedCoordinate
-	req := structs.CoordinateGetRequest{
-		Datacenter: agent1.config.Datacenter,
-		Node:       agent1.config.NodeName,
-	}
-	if err := agent1.RPC("Coordinate.Get", &req, &reply); err != nil {
+	if err := agent.RPC("Coordinate.Get", &req, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if reply.Coord == nil {
-		t.Fatalf("should get a coordinate")
-	}
-
-	var reply2 structs.IndexedCoordinate
-	req2 := structs.CoordinateGetRequest{
-		Datacenter: agent2.config.Datacenter,
-		Node:       agent2.config.NodeName,
-	}
-	if err := agent1.RPC("Coordinate.Get", &req2, &reply2); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reply2.Coord == nil {
 		t.Fatalf("should get a coordinate")
 	}
 }

@@ -192,14 +192,16 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	// Start handling events
 	go agent.handleEvents()
 
+	// Start sending network coordinate to the server.
+	if config.EnableCoordinates {
+		go agent.sendCoordinate()
+	}
+
 	// Write out the PID file if necessary
 	err = agent.storePid()
 	if err != nil {
 		return nil, err
 	}
-
-	// Start sending network coordinates to servers
-	go agent.sendCoordinates()
 
 	return agent, nil
 }
@@ -560,12 +562,13 @@ func (a *Agent) ResumeSync() {
 	a.state.Resume()
 }
 
-// sendCoordinates starts a loop that periodically sends the local coordinate
-// to a server
-func (a *Agent) sendCoordinates() {
+// sendCoordinate is a long-running loop that periodically sends our coordinate
+// to the server. Closing the agent's shutdownChannel will cause this to exit.
+func (a *Agent) sendCoordinate() {
 	for {
 		intv := aeScale(a.config.SyncCoordinateInterval, len(a.LANMembers()))
 		intv = intv + randomStagger(intv)
+
 		select {
 		case <-time.After(intv):
 			var c *coordinate.Coordinate
@@ -577,14 +580,14 @@ func (a *Agent) sendCoordinates() {
 			req := structs.CoordinateUpdateRequest{
 				Datacenter:   a.config.Datacenter,
 				Node:         a.config.NodeName,
-				Op:           structs.CoordinateSet,
+				Op:           structs.CoordinateUpdate,
 				Coord:        c,
 				WriteRequest: structs.WriteRequest{Token: a.config.ACLToken},
 			}
 
 			var reply struct{}
 			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
-				a.logger.Printf("[ERR] agent: coordinate update error: %s", err.Error())
+				a.logger.Printf("[ERR] agent: coordinate update error: %s", err)
 			}
 		case <-a.shutdownCh:
 			return

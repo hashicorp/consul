@@ -309,12 +309,11 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 		return nil, err
 	}
 
+	// Let Serf cache coordinates for only the WAN configuration where the
+	// number of nodes should be small, and where we serve these directly
+	// from Serf because they aren't managed in the catalog.
 	conf.EnableCoordinates = s.config.EnableCoordinates
-	if conf.EnableCoordinates && wan {
-		// Cache coordinates only if it's the wan network where the number of nodes is
-		// reasonably low.
-		conf.CacheCoordinates = true
-	}
+	conf.CacheCoordinates = s.config.EnableCoordinates && wan
 
 	return serf.Create(conf)
 }
@@ -406,10 +405,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.endpoints.Session = &Session{s}
 	s.endpoints.Internal = &Internal{s}
 	s.endpoints.ACL = &ACL{s}
-	s.endpoints.Coordinate = &Coordinate{
-		srv:            s,
-		updateLastSent: time.Now(),
-	}
+	s.endpoints.Coordinate = NewCoordinate(s)
 
 	// Register the handlers
 	s.rpcServer.Register(s.endpoints.Status)
@@ -706,12 +702,12 @@ func (s *Server) Stats() map[string]map[string]string {
 	return stats
 }
 
-// GetLANCoordinate returns the LAN coordinate of the server
+// GetLANCoordinate returns the coordinate of the server in the LAN gossip pool.
 func (s *Server) GetLANCoordinate() *coordinate.Coordinate {
 	return s.serfLAN.GetCoordinate()
 }
 
-// GetWANCoordinate returns the WAN coordinate of the server
+// GetWANCoordinate returns the coordinate of the server in the WAN gossip pool.
 func (s *Server) GetWANCoordinate() *coordinate.Coordinate {
 	return s.serfWAN.GetCoordinate()
 }

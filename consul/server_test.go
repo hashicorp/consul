@@ -68,7 +68,7 @@ func testServerConfig(t *testing.T, NodeName string) (string, *Config) {
 	config.ReconcileInterval = 100 * time.Millisecond
 
 	config.EnableCoordinates = true
-	config.CoordinateUpdatePeriod = 0 // make updates instant
+	config.CoordinateUpdatePeriod = 0 * time.Millisecond
 	return dir, config
 }
 

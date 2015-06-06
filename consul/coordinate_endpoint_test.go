@@ -13,67 +13,68 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 )
 
-// getRandomCoordinate generates a random coordinate.
-func getRandomCoordinate() *coordinate.Coordinate {
+// generateRandomCoordinate creates a random coordinate. This mucks with the
+// underlying structure directly, so it's not really useful for any particular
+// position in the network, but it's a good payload to send through to make
+// sure things come out the other side or get stored correctly.
+func generateRandomCoordinate() *coordinate.Coordinate {
 	config := coordinate.DefaultConfig()
-	// Randomly apply updates between n clients
-	n := 5
-	clients := make([]*coordinate.Client, n)
-	for i := 0; i < n; i++ {
-		clients[i], _ = coordinate.NewClient(config)
+	coord := coordinate.NewCoordinate(config)
+	for i := range coord.Vec {
+		coord.Vec[i] = rand.NormFloat64()
 	}
-
-	for i := 0; i < n*100; i++ {
-		k1 := rand.Intn(n)
-		k2 := rand.Intn(n)
-		if k1 == k2 {
-			continue
-		}
-		clients[k1].Update(clients[k2].GetCoordinate(), time.Duration(rand.Int63())*time.Microsecond)
-	}
-	return clients[rand.Intn(n)].GetCoordinate()
+	coord.Error = rand.NormFloat64()
+	coord.Adjustment = rand.NormFloat64()
+	return coord
 }
 
-func coordinatesEqual(a, b *coordinate.Coordinate) bool {
-	return reflect.DeepEqual(a, b)
+// verifyCoordinatesEqual will compare a and b and fail if they are not exactly
+// equal (no floating point fuzz is considered).
+func verifyCoordinatesEqual(t *testing.T, a, b *coordinate.Coordinate) {
+	if !reflect.DeepEqual(a, b) {
+		t.Fatalf("coordinates are not equal: %v != %v", a, b)
+	}
 }
 
 func TestCoordinate_Update(t *testing.T) {
 	name := fmt.Sprintf("Node %d", getPort())
 	dir1, config1 := testServerConfig(t, name)
-	config1.CoordinateUpdatePeriod = 1000 * time.Millisecond
+	defer os.RemoveAll(dir1)
+
+	config1.CoordinateUpdatePeriod = 1 * time.Second
+	config1.CoordinateUpdateMaxBatchSize = 5
 	s1, err := NewServer(config1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
 	client := rpcClient(t, s1)
 	defer client.Close()
-
 	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	arg1 := structs.CoordinateUpdateRequest{
 		Datacenter: "dc1",
 		Node:       "node1",
-		Op:         structs.CoordinateSet,
-		Coord:      getRandomCoordinate(),
+		Op:         structs.CoordinateUpdate,
+		Coord:      generateRandomCoordinate(),
 	}
 
 	arg2 := structs.CoordinateUpdateRequest{
 		Datacenter: "dc1",
 		Node:       "node2",
-		Op:         structs.CoordinateSet,
-		Coord:      getRandomCoordinate(),
+		Op:         structs.CoordinateUpdate,
+		Coord:      generateRandomCoordinate(),
 	}
 
+	// Send an update for the first node.
 	var out struct{}
 	if err := client.Call("Coordinate.Update", &arg1, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Verify
+	// Make sure the update did not yet apply because the batching thresholds
+	// haven't yet been met.
 	state := s1.fsm.State()
 	_, d, err := state.CoordinateGet("node1")
 	if err != nil {
@@ -83,12 +84,15 @@ func TestCoordinate_Update(t *testing.T) {
 		t.Fatalf("should be nil because the update should be batched")
 	}
 
-	// Wait a while and send another update; this time the updates should be sent
+	// Wait a while and send another update. This time both updates should
+	// be applied.
 	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
 	if err := client.Call("Coordinate.Update", &arg2, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	// Yield the current goroutine to allow the goroutine that sends the updates to run
+
+	// Wait a little while so the flush goroutine can run, then make sure
+	// both coordinates made it in.
 	time.Sleep(100 * time.Millisecond)
 
 	_, d, err = state.CoordinateGet("node1")
@@ -98,9 +102,7 @@ func TestCoordinate_Update(t *testing.T) {
 	if d == nil {
 		t.Fatalf("should return a coordinate but it's nil")
 	}
-	if !coordinatesEqual(d.Coord, arg1.Coord) {
-		t.Fatalf("should be equal\n%v\n%v", d.Coord, arg1.Coord)
-	}
+	verifyCoordinatesEqual(t, d.Coord, arg1.Coord)
 
 	_, d, err = state.CoordinateGet("node2")
 	if err != nil {
@@ -109,12 +111,32 @@ func TestCoordinate_Update(t *testing.T) {
 	if d == nil {
 		t.Fatalf("should return a coordinate but it's nil")
 	}
-	if !coordinatesEqual(d.Coord, arg2.Coord) {
-		t.Fatalf("should be equal\n%v\n%v", d.Coord, arg2.Coord)
+	verifyCoordinatesEqual(t, d.Coord, arg2.Coord)
+
+	// Now try spamming coordinates and make sure it flushes when the batch
+	// size is hit.
+	for i := 0; i < (s1.config.CoordinateUpdateMaxBatchSize + 1); i++ {
+		arg1.Coord = generateRandomCoordinate()
+		if err := client.Call("Coordinate.Update", &arg1, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 	}
+
+	// Wait a little while so the flush goroutine can run, then make sure
+	// the last coordinate update made it in.
+	time.Sleep(100 * time.Millisecond)
+
+	_, d, err = state.CoordinateGet("node1")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if d == nil {
+		t.Fatalf("should return a coordinate but it's nil")
+	}
+	verifyCoordinatesEqual(t, d.Coord, arg1.Coord)
 }
 
-func TestCoordinate_GetLAN(t *testing.T) {
+func TestCoordinate_Get(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -126,103 +148,39 @@ func TestCoordinate_GetLAN(t *testing.T) {
 	arg := structs.CoordinateUpdateRequest{
 		Datacenter: "dc1",
 		Node:       "node1",
-		Op:         structs.CoordinateSet,
-		Coord:      getRandomCoordinate(),
+		Op:         structs.CoordinateUpdate,
+		Coord:      generateRandomCoordinate(),
 	}
 
+	// Send an initial update, waiting a little while for the flush goroutine
+	// to run.
 	var out struct{}
 	if err := client.Call("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	// Yield the current goroutine to allow the goroutine that sends the updates to run
 	time.Sleep(100 * time.Millisecond)
 
-	// Get via RPC
-	out2 := structs.IndexedCoordinate{}
+	// Query the coordinate via RPC.
 	arg2 := structs.NodeSpecificRequest{
 		Datacenter: "dc1",
 		Node:       "node1",
 	}
-	if err := client.Call("Coordinate.GetLAN", &arg2, &out2); err != nil {
+	coord := structs.IndexedCoordinate{}
+	if err := client.Call("Coordinate.Get", &arg2, &coord); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if !coordinatesEqual(out2.Coord, arg.Coord) {
-		t.Fatalf("should be equal\n%v\n%v", out2.Coord, arg.Coord)
-	}
+	verifyCoordinatesEqual(t, coord.Coord, arg.Coord)
 
-	// Now let's override the original coordinate; Coordinate.Get should return
-	// the latest coordinate
-	arg.Coord = getRandomCoordinate()
+	// Send another coordinate update, waiting after for the flush.
+	arg.Coord = generateRandomCoordinate()
 	if err := client.Call("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	// Yield the current goroutine to allow the goroutine that sends the updates to run
 	time.Sleep(100 * time.Millisecond)
 
-	if err := client.Call("Coordinate.GetLAN", &arg2, &out2); err != nil {
+	// Now re-query and make sure the results are fresh.
+	if err := client.Call("Coordinate.Get", &arg2, &coord); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if !coordinatesEqual(out2.Coord, arg.Coord) {
-		t.Fatalf("should be equal\n%v\n%v", out2.Coord, arg.Coord)
-	}
-}
-
-func TestCoordinate_GetWAN(t *testing.T) {
-	// Create 1 server in dc1, 2 servers in dc2
-	dir1, s1 := testServerDC(t, "dc1")
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
-
-	dir2, s2 := testServerDC(t, "dc2")
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
-
-	dir3, s3 := testServerDC(t, "dc2")
-	defer os.RemoveAll(dir3)
-	defer s3.Shutdown()
-
-	client := rpcClient(t, s1)
-	defer client.Close()
-	testutil.WaitForLeader(t, client.Call, "dc1")
-
-	// Try to join
-	addr := fmt.Sprintf("127.0.0.1:%d",
-		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
-	if _, err := s2.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if _, err := s3.JoinWAN([]string{addr}); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Check the members
-	testutil.WaitForResult(func() (bool, error) {
-		return len(s1.WANMembers()) == 3, nil
-	}, func(err error) {
-		t.Fatalf("bad len")
-	})
-
-	// Wait for coordinates to be exchanged
-	time.Sleep(s1.config.SerfWANConfig.MemberlistConfig.ProbeInterval * 2)
-
-	var coords structs.CoordinateList
-	arg := structs.DCSpecificRequest{
-		Datacenter: "dc1",
-	}
-	if err := client.Call("Coordinate.GetWAN", &arg, &coords); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(coords.Coords) != 1 {
-		t.Fatalf("there is 1 server in dc1")
-	}
-
-	arg = structs.DCSpecificRequest{
-		Datacenter: "dc2",
-	}
-	if err := client.Call("Coordinate.GetWAN", &arg, &coords); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(coords.Coords) != 2 {
-		t.Fatalf("there are 2 servers in dc2")
-	}
+	verifyCoordinatesEqual(t, coord.Coord, arg.Coord)
 }
