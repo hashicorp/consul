@@ -1441,7 +1441,7 @@ func TestAgent_persistCheckState(t *testing.T) {
 	}
 }
 
-func TestAgent_recallCheckState(t *testing.T) {
+func TestAgent_loadCheckState(t *testing.T) {
 	config := nextConfig()
 	dir, agent := makeAgent(t, config)
 	defer os.RemoveAll(dir)
@@ -1459,12 +1459,12 @@ func TestAgent_recallCheckState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Try to recall the state
+	// Try to load the state
 	health := &structs.HealthCheck{
 		CheckID: "check1",
 		Status:  structs.HealthCritical,
 	}
-	if err := agent.recallCheckState(health); err != nil {
+	if err := agent.loadCheckState(health); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1489,8 +1489,8 @@ func TestAgent_recallCheckState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Try to recall
-	if err := agent.recallCheckState(health); err != nil {
+	// Try to load
+	if err := agent.loadCheckState(health); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

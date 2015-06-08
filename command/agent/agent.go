@@ -761,7 +761,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 
 			// Restore persisted state, if any
-			if err := a.recallCheckState(check); err != nil {
+			if err := a.loadCheckState(check); err != nil {
 				a.logger.Printf("[WARN] agent: failed restoring state for check %q: %s",
 					check.CheckID, err)
 			}
@@ -917,8 +917,8 @@ func (a *Agent) persistCheckState(check *CheckTTL, status, output string) error 
 	return nil
 }
 
-// recallCheckState is used to restore the persisted state of a check.
-func (a *Agent) recallCheckState(check *structs.HealthCheck) error {
+// loadCheckState is used to restore the persisted state of a check.
+func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 	// Try to read the persisted state for this check
 	file := filepath.Join(a.config.DataDir, checkStateDir, stringHash(check.CheckID))
 	buf, err := ioutil.ReadFile(file)
