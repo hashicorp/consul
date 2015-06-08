@@ -26,6 +26,11 @@ const (
 	downAction   = "down"
 )
 
+var actions = map[string]bool{
+	upAction:   true,
+	downAction: true,
+}
+
 // verifyWatchHandler does the pre-check for our handler configuration
 func verifyWatchHandler(params interface{}) error {
 	if params == nil {
@@ -130,11 +135,6 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 			return
 		}
 		val := string(pair.Value[:])
-
-		actions := map[string]bool{
-			upAction:   true,
-			downAction: true,
-		}
 
 		if !actions[val] {
 			return
