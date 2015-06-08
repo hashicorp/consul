@@ -153,9 +153,6 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 		// this bloc is executed once
 		if runner == nil {
 			logger.Printf("[INFO] agent: Initializing runner for key %s", key)
-			// if val != upAction {
-			// 	config.ConfigTemplates[0].First = true
-			// }
 			runner, err = consultemplate.NewRunner(config, false, false)
 			if err != nil {
 				logger.Printf("[ERR] runner: Failed to launch: %v", err)
@@ -174,8 +171,6 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 			}
 
 			if val == upAction {
-				// runner.Up = true
-				// runner.Init()
 				go runner.Start()
 			} else if val == downAction {
 				go func() {
