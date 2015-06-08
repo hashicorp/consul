@@ -93,12 +93,14 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 	archetype := agent.config.Archetypes[archetypeIndex]
 	key := strings.Join([]string{"archetype", "watch", archetype.PoolName, archetype.ID}, "/")
 
+	// http address
+	address := []string{agent.config.Addresses.HTTP, strconv.Itoa(agent.config.Ports.HTTP)}
+
 	// get the client
 	client, _ := consulapi.NewClient(consulapi.DefaultConfig())
 
 	// get the consul-template config
 	config := consultemplate.DefaultConfig()
-	address := []string{agent.config.Addresses.HTTP, strconv.Itoa(agent.config.Ports.HTTP)}
 	config.Consul = strings.Join(address, ":")
 	config.ConfigTemplates = append(config.ConfigTemplates, &agent.config.Archetypes[0].Template)
 
