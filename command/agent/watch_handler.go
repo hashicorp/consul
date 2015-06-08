@@ -103,6 +103,9 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 	// get the client
 	client, _ := consulapi.NewClient(cliConfig)
 
+	// get the kv client
+	kv := client.KV()
+
 	// get the consul-template config
 	config := consultemplate.DefaultConfig()
 	config.Consul = strings.Join(address, ":")
@@ -117,8 +120,6 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 
 	fn := func(idx uint64, data interface{}) {
 		logger.Printf("[INFO] agent: Calling watch handler on key %s", key)
-
-		kv := client.KV()
 
 		pair, _, err := kv.Get(key, nil)
 		if err != nil {
