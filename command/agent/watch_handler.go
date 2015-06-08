@@ -26,6 +26,11 @@ const (
 	downAction   = "down"
 )
 
+var actions = map[string]bool{
+	upAction:   true,
+	downAction: true,
+}
+
 // verifyWatchHandler does the pre-check for our handler configuration
 func verifyWatchHandler(params interface{}) error {
 	if params == nil {
@@ -93,14 +98,32 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 	archetype := agent.config.Archetypes[archetypeIndex]
 	key := strings.Join([]string{"archetype", "watch", archetype.PoolName, archetype.ID}, "/")
 
+	// http address
+	address := []string{agent.config.Addresses.HTTP, strconv.Itoa(agent.config.Ports.HTTP)}
+
+	// get the client config
+	cliConfig := consulapi.DefaultConfig()
+	cliConfig.Address = strings.Join(address, ":")
+
 	// get the client
-	client, _ := consulapi.NewClient(consulapi.DefaultConfig())
+	client, _ := consulapi.NewClient(cliConfig)
+
+	// get the kv client
+	kv := client.KV()
 
 	// get the consul-template config
 	config := consultemplate.DefaultConfig()
-	address := []string{agent.config.Addresses.HTTP, strconv.Itoa(agent.config.Ports.HTTP)}
 	config.Consul = strings.Join(address, ":")
 	config.ConfigTemplates = append(config.ConfigTemplates, &agent.config.Archetypes[0].Template)
+	// check the existing value on archetype/watch/{archetype_name}/{archetype_id}
+	pair, _, err := kv.Get(key, nil)
+	if err != nil {
+		panic(err)
+	}
+	if pair == nil || string(pair.Value[:]) != upAction {
+		// there's no service running (run start command on the first occasion)
+		config.ConfigTemplates[0].First = true
+	}
 
 	// get the runner
 	runner := agent.config.Runners[archetypeIndex]
@@ -112,8 +135,6 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 	fn := func(idx uint64, data interface{}) {
 		logger.Printf("[INFO] agent: Calling watch handler on key %s", key)
 
-		kv := client.KV()
-
 		pair, _, err := kv.Get(key, nil)
 		if err != nil {
 			panic(err)
@@ -124,11 +145,6 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 		}
 		val := string(pair.Value[:])
 
-		actions := map[string]bool{
-			upAction:   true,
-			downAction: true,
-		}
-
 		if !actions[val] {
 			return
 		}
@@ -137,9 +153,9 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 		// this bloc is executed once
 		if runner == nil {
 			logger.Printf("[INFO] agent: Initializing runner for key %s", key)
-			if val != upAction {
-				config.ConfigTemplates[0].First = true
-			}
+			// if val != upAction {
+			// 	config.ConfigTemplates[0].First = true
+			// }
 			runner, err = consultemplate.NewRunner(config, false, false)
 			if err != nil {
 				logger.Printf("[ERR] runner: Failed to launch: %v", err)
