@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
@@ -23,7 +24,8 @@ const (
 	servicesDir = "services"
 
 	// Path to save local agent checks
-	checksDir = "checks"
+	checksDir     = "checks"
+	checkStateDir = "checks/state"
 
 	// The ID of the faux health checks for maintenance mode
 	serviceMaintCheckPrefix = "_service_maintenance"
@@ -757,6 +759,13 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 				TTL:     chkType.TTL,
 				Logger:  a.logger,
 			}
+
+			// Restore persisted state, if any
+			if err := a.loadCheckState(check); err != nil {
+				a.logger.Printf("[WARN] agent: failed restoring state for check %q: %s",
+					check.CheckID, err)
+			}
+
 			ttl.Start()
 			a.checkTTLs[check.CheckID] = ttl
 
@@ -842,7 +851,12 @@ func (a *Agent) RemoveCheck(checkID string, persist bool) error {
 		delete(a.checkTTLs, checkID)
 	}
 	if persist {
-		return a.purgeCheck(checkID)
+		if err := a.purgeCheck(checkID); err != nil {
+			return err
+		}
+		if err := a.purgeCheckState(checkID); err != nil {
+			return err
+		}
 	}
 	log.Printf("[DEBUG] agent: removed check %q", checkID)
 	return nil
@@ -861,7 +875,86 @@ func (a *Agent) UpdateCheck(checkID, status, output string) error {
 
 	// Set the status through CheckTTL to reset the TTL
 	check.SetStatus(status, output)
+
+	// Always persist the state for TTL checks
+	if err := a.persistCheckState(check, status, output); err != nil {
+		return fmt.Errorf("failed persisting state for check %q: %s", checkID, err)
+	}
+
 	return nil
+}
+
+// persistCheckState is used to record the check status into the data dir.
+// This allows the state to be restored on a later agent start. Currently
+// only useful for TTL based checks.
+func (a *Agent) persistCheckState(check *CheckTTL, status, output string) error {
+	// Create the persisted state
+	state := persistedCheckState{
+		CheckID: check.CheckID,
+		Status:  status,
+		Output:  output,
+		Expires: time.Now().Add(check.TTL).Unix(),
+	}
+
+	// Encode the state
+	buf, err := json.Marshal(state)
+	if err != nil {
+		return err
+	}
+
+	// Create the state dir if it doesn't exist
+	dir := filepath.Join(a.config.DataDir, checkStateDir)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return fmt.Errorf("failed creating check state dir %q: %s", dir, err)
+	}
+
+	// Write the state to the file
+	file := filepath.Join(dir, stringHash(check.CheckID))
+	if err := ioutil.WriteFile(file, buf, 0600); err != nil {
+		return fmt.Errorf("failed writing file %q: %s", file, err)
+	}
+
+	return nil
+}
+
+// loadCheckState is used to restore the persisted state of a check.
+func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
+	// Try to read the persisted state for this check
+	file := filepath.Join(a.config.DataDir, checkStateDir, stringHash(check.CheckID))
+	buf, err := ioutil.ReadFile(file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed reading file %q: %s", file, err)
+	}
+
+	// Decode the state data
+	var p persistedCheckState
+	if err := json.Unmarshal(buf, &p); err != nil {
+		return fmt.Errorf("failed decoding check state: %s", err)
+	}
+
+	// Check if the state has expired
+	if time.Now().Unix() >= p.Expires {
+		a.logger.Printf("[DEBUG] agent: check state expired for %q, not restoring", check.CheckID)
+		return a.purgeCheckState(check.CheckID)
+	}
+
+	// Restore the fields from the state
+	check.Output = p.Output
+	check.Status = p.Status
+	return nil
+}
+
+// purgeCheckState is used to purge the state of a check from the data dir
+func (a *Agent) purgeCheckState(checkID string) error {
+	file := filepath.Join(a.config.DataDir, checkStateDir, stringHash(checkID))
+	err := os.Remove(file)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	return err
 }
 
 // Stats is used to get various debugging state from the sub-systems
