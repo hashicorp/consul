@@ -12,7 +12,7 @@ variable "user" {
 }
 
 variable "ami" {
-    description = "AWS AMI Id, if you change, make sure it is compatible with insatnce type, not all AMIs allow all insatnce types "
+    description = "AWS AMI Id, if you change, make sure it is compatible with instance type, not all AMIs allow all instance types "
     default = {
         us-east-1-ubuntu = "ami-83c525e8"
         us-west-2-ubuntu = "ami-57e8d767"
@@ -43,7 +43,7 @@ variable "servers" {
 
 variable "instance_type" {
     default = "t2.micro"
-    description = "AWS Instance type, if you change, make sure it is compatible with AMI, not all AMIs allow all insatnce types "
+    description = "AWS Instance type, if you change, make sure it is compatible with AMI, not all AMIs allow all instance types "
 }
 
 variable "tagName" {
