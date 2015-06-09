@@ -24,19 +24,19 @@ func TestClientPutGetDelete(t *testing.T) {
 		t.Fatalf("unexpected value: %#v", pair)
 	}
 
-	// Put the key
 	value := []byte("test")
-	p := &KVPair{Key: key, Flags: 42, Value: value}
-	if _, err := kv.Put(p, nil); err != nil {
-		t.Fatalf("err: %v", err)
-	}
 
-	// Put a key that begins with a '/'
+	// Put a key that begins with a '/', this should fail
 	invalidKey := "/test"
-	value = []byte(invalidKey)
-	p = &KVPair{Key: key, Flags: 42, Value: value}
+	p := &KVPair{Key: invalidKey, Flags: 42, Value: value}
 	if _, err := kv.Put(p, nil); err == nil {
 		t.Fatalf("Invalid key not detected: %s", invalidKey)
+	}
+
+	// Put the key
+	p = &KVPair{Key: key, Flags: 42, Value: value}
+	if _, err := kv.Put(p, nil); err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
 	// Get should work
