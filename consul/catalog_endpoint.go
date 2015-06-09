@@ -126,7 +126,7 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		state.QueryTables("Nodes"),
 		func() error {
 			reply.Index, reply.Nodes = state.Nodes()
-			return nil
+			return c.srv.applyDiscoveryACLs(args.Token, reply)
 		})
 }
 
@@ -143,7 +143,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		state.QueryTables("Services"),
 		func() error {
 			reply.Index, reply.Services = state.Services()
-			return nil
+			return c.srv.applyDiscoveryACLs(args.Token, reply)
 		})
 }
 
@@ -169,7 +169,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 			} else {
 				reply.Index, reply.ServiceNodes = state.ServiceNodes(args.ServiceName)
 			}
-			return nil
+			return c.srv.applyDiscoveryACLs(args.Token, reply)
 		})
 
 	// Provide some metrics
@@ -203,6 +203,6 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 		state.QueryTables("NodeServices"),
 		func() error {
 			reply.Index, reply.NodeServices = state.NodeServices(args.Node)
-			return nil
+			return c.srv.applyDiscoveryACLs(args.Token, reply)
 		})
 }

@@ -192,3 +192,105 @@ func (s *Server) useACLPolicy(id, authDC string, cached *aclCacheEntry, p *struc
 	s.aclCache.Add(id, cached)
 	return compiled, nil
 }
+
+// discoveryFilter is used to determine if we should return a given node
+// or service based on the ACL passed in.
+func (s *Server) discoveryFilter(node, service string, acl acl.ACL) bool {
+	if acl == nil {
+		return true
+	}
+
+	// Filter service discovery ACLs
+	if service != "" && service != ConsulServiceID && !acl.ServiceRead(service) {
+		s.logger.Printf("[DEBUG] consul: reading service '%s' denied due to ACLs", service)
+		return false
+	}
+
+	// Filtering passed
+	return true
+}
+
+// applyDiscoveryACLs is used to filter results from our service catalog based
+// on the configured rules for the request ACL. Nodes or services which do
+// not match the ACL rules will be dropped from the result.
+func (s *Server) applyDiscoveryACLs(token string, subj interface{}) error {
+	// Get the ACL from the token
+	acl, err := s.resolveToken(token)
+	if err != nil {
+		return err
+	}
+
+	// Fast path if ACLs are not enabled
+	if acl == nil {
+		return nil
+	}
+
+	filt := func(service string) bool {
+		// Don't filter the "consul" service or empty service names
+		if service == "" || service == ConsulServiceID {
+			return true
+		}
+
+		// Check the ACL
+		if !acl.ServiceRead(service) {
+			s.logger.Printf("[DEBUG] consul: reading service '%s' denied due to ACLs", service)
+			return false
+		}
+		return true
+	}
+
+	switch v := subj.(type) {
+	// Filter health checks
+	case *structs.IndexedHealthChecks:
+		for i := 0; i < len(v.HealthChecks); i++ {
+			hc := v.HealthChecks[i]
+			if filt(hc.ServiceName) {
+				continue
+			}
+			v.HealthChecks = append(v.HealthChecks[:i], v.HealthChecks[i+1:]...)
+			i--
+		}
+
+	// Filter services
+	case *structs.IndexedServices:
+		for svc, _ := range v.Services {
+			if filt(svc) {
+				continue
+			}
+			delete(v.Services, svc)
+		}
+
+	// Filter service nodes
+	case *structs.IndexedServiceNodes:
+		for i := 0; i < len(v.ServiceNodes); i++ {
+			node := v.ServiceNodes[i]
+			if filt(node.ServiceName) {
+				continue
+			}
+			v.ServiceNodes = append(v.ServiceNodes[:i], v.ServiceNodes[i+1:]...)
+			i--
+		}
+
+	// Filter node services
+	case *structs.IndexedNodeServices:
+		for svc, _ := range v.NodeServices.Services {
+			if filt(svc) {
+				continue
+			}
+			delete(v.NodeServices.Services, svc)
+		}
+
+	// Filter check service nodes
+	case *structs.IndexedCheckServiceNodes:
+		for i := 0; i < len(v.Nodes); i++ {
+			cs := v.Nodes[i]
+			if filt(cs.Service.Service) {
+				continue
+			}
+			v.Nodes = append(v.Nodes[:i], v.Nodes[i+1:]...)
+			i--
+		}
+	}
+
+	return nil
+}
