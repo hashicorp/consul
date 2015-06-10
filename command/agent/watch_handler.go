@@ -132,6 +132,10 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 	var once sync.Once
 	var selector func()
 
+	// prepare service & checks
+	ns := archetype.NodeService()
+	chkTypes := archetype.CheckTypes()
+
 	fn := func(idx uint64, data interface{}) {
 		logger.Printf("[INFO] agent: Calling watch handler on key %s", key)
 
@@ -173,6 +177,10 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 			if val == upAction {
 				if err := runner.Init(); err != nil {
 					logger.Printf("[ERR] runner: Failed to Initialize: %v", err)
+				} else {
+					if err2 := agent.AddService(ns, chkTypes, false); err != nil {
+						logger.Printf("%v", err2)
+					}
 				}
 				go runner.Start()
 			} else if val == downAction {
@@ -186,6 +194,10 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 		if val == upAction {
 			if err := runner.Init(); err != nil {
 				logger.Printf("[ERR] runner: Failed to Initialize: %v", err)
+			} else {
+				if err2 := agent.AddService(ns, chkTypes, false); err != nil {
+					logger.Printf("%v", err2)
+				}
 			}
 			go runner.Start()
 			go func() {
@@ -195,6 +207,11 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 		} else if val == downAction {
 			if err = runner.Stop(); err != nil {
 				logger.Printf("%v", err)
+			} else {
+				err2 := agent.RemoveService(ns.ID, true)
+				if err2 != nil {
+					logger.Printf("%v", err)
+				}
 			}
 		}
 	}

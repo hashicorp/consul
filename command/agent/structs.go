@@ -52,6 +52,30 @@ type ArchetypeDefinition struct {
 	Template core.ConfigTemplate // template for the config file of the service this archetype abstracts, to be rendered by consul-template
 }
 
+func (a *ArchetypeDefinition) NodeService() *structs.NodeService {
+	ns := &structs.NodeService{
+		ID:      a.ID,
+		Service: a.PoolName,
+		Tags:    a.Tags,
+		Address: a.Address,
+		Port:    a.Port,
+	}
+	if ns.ID == "" && ns.Service != "" {
+		ns.ID = ns.Service
+	}
+	return ns
+}
+
+func (a *ArchetypeDefinition) CheckTypes() (checks CheckTypes) {
+	a.Checks = append(a.Checks, &a.Check)
+	for _, check := range a.Checks {
+		if check.Valid() {
+			checks = append(checks, check)
+		}
+	}
+	return
+}
+
 func (a *ArchetypeDefinition) NodeArchetype() *structs.NodeArchetype {
 	na := &structs.NodeArchetype{
 		ID:        a.ID,
