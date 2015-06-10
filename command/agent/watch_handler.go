@@ -171,6 +171,9 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 			}
 
 			if val == upAction {
+				if err := runner.Init(); err != nil {
+					logger.Printf("[ERR] runner: Failed to Initialize: %v", err)
+				}
 				go runner.Start()
 			} else if val == downAction {
 				go func() {
@@ -181,6 +184,9 @@ func makeWatchHandlerForArchetype(logOutput io.Writer, agent *Agent, archetypeIn
 		}
 
 		if val == upAction {
+			if err := runner.Init(); err != nil {
+				logger.Printf("[ERR] runner: Failed to Initialize: %v", err)
+			}
 			go runner.Start()
 			go func() {
 				once.Do(selector)
