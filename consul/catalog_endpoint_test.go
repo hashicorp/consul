@@ -778,18 +778,14 @@ func TestCatalogRegister_FailedCase1(t *testing.T) {
 	}
 }
 
-func TestCatalog_filterACL(t *testing.T) {
-	dir, srv := testServerWithConfig(t, func(c *Config) {
+func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, client *rpc.Client) {
+	dir, srv = testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
 		c.ACLDefaultPolicy = "deny"
 	})
-	defer os.RemoveAll(dir)
-	defer srv.Shutdown()
 
-	client := rpcClient(t, srv)
-	defer client.Close()
-
+	client = rpcClient(t, srv)
 	testutil.WaitForLeader(t, client.Call, "dc1")
 
 	// Create a new token
@@ -803,8 +799,7 @@ func TestCatalog_filterACL(t *testing.T) {
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
-	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := client.Call("ACL.Apply", &arg, &token); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -847,90 +842,101 @@ func TestCatalog_filterACL(t *testing.T) {
 	if err := client.Call("Catalog.Register", &regArg, nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	return
+}
 
-	// Catalog.ListServices properly filters and returns services
-	{
-		opt := structs.DCSpecificRequest{
-			Datacenter:   "dc1",
-			QueryOptions: structs.QueryOptions{Token: id},
-		}
-		reply := structs.IndexedServices{}
-		if err := client.Call("Catalog.ListServices", &opt, &reply); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if _, ok := reply.Services["foo"]; !ok {
-			t.Fatalf("bad: %#v", reply.Services)
-		}
-		if _, ok := reply.Services["bar"]; ok {
-			t.Fatalf("bad: %#v", reply.Services)
+func TestCatalog_ListServices_FilterACL(t *testing.T) {
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	opt := structs.DCSpecificRequest{
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedServices{}
+	if err := client.Call("Catalog.ListServices", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, ok := reply.Services["foo"]; !ok {
+		t.Fatalf("bad: %#v", reply.Services)
+	}
+	if _, ok := reply.Services["bar"]; ok {
+		t.Fatalf("bad: %#v", reply.Services)
+	}
+}
+
+func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	opt := structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  "foo",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedServiceNodes{}
+	if err := client.Call("Catalog.ServiceNodes", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	found := false
+	for _, sn := range reply.ServiceNodes {
+		if sn.ServiceID == "foo" {
+			found = true
+			break
 		}
 	}
+	if !found {
+		t.Fatalf("bad: %#v", reply.ServiceNodes)
+	}
 
-	// Catalog.ServiceNodes returns services we have access to
-	{
-		opt := structs.ServiceSpecificRequest{
-			Datacenter:   "dc1",
-			ServiceName:  "foo",
-			QueryOptions: structs.QueryOptions{Token: id},
-		}
-		reply := structs.IndexedServiceNodes{}
-		if err := client.Call("Catalog.ServiceNodes", &opt, &reply); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		found := false
-		for _, sn := range reply.ServiceNodes {
-			if sn.ServiceID == "foo" {
-				found = true
-				break
-			}
-		}
-		if !found {
+	// Filters services we can't access
+	opt = structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  "bar",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply = structs.IndexedServiceNodes{}
+	if err := client.Call("Catalog.ServiceNodes", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	for _, sn := range reply.ServiceNodes {
+		if sn.ServiceID == "bar" {
 			t.Fatalf("bad: %#v", reply.ServiceNodes)
 		}
 	}
+}
 
-	// Catalog.ServiceNodes filters services we can't access
-	{
-		opt := structs.ServiceSpecificRequest{
-			Datacenter:   "dc1",
-			ServiceName:  "bar",
-			QueryOptions: structs.QueryOptions{Token: id},
+func TestCatalog_NodeServices_FilterACL(t *testing.T) {
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	opt := structs.NodeSpecificRequest{
+		Datacenter:   "dc1",
+		Node:         srv.config.NodeName,
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedNodeServices{}
+	if err := client.Call("Catalog.NodeServices", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	found := false
+	for _, svc := range reply.NodeServices.Services {
+		if svc.ID == "bar" {
+			t.Fatalf("bad: %#v", reply.NodeServices.Services)
 		}
-		reply := structs.IndexedServiceNodes{}
-		if err := client.Call("Catalog.ServiceNodes", &opt, &reply); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		for _, sn := range reply.ServiceNodes {
-			if sn.ServiceID == "bar" {
-				t.Fatalf("bad: %#v", reply.ServiceNodes)
-			}
+		if svc.ID == "foo" {
+			found = true
+			break
 		}
 	}
-
-	// Catalog.NodeServices filters and returns services properly
-	{
-		opt := structs.NodeSpecificRequest{
-			Datacenter:   "dc1",
-			Node:         srv.config.NodeName,
-			QueryOptions: structs.QueryOptions{Token: id},
-		}
-		reply := structs.IndexedNodeServices{}
-		if err := client.Call("Catalog.NodeServices", &opt, &reply); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		found := false
-		for _, svc := range reply.NodeServices.Services {
-			if svc.ID == "bar" {
-				t.Fatalf("bad: %#v", reply.NodeServices.Services)
-			}
-			if svc.ID == "foo" {
-				found = true
-				break
-			}
-		}
-		if !found {
-			t.Fatalf("bad: %#v", reply.NodeServices)
-		}
+	if !found {
+		t.Fatalf("bad: %#v", reply.NodeServices)
 	}
 }
 
