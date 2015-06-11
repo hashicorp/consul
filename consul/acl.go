@@ -309,10 +309,10 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 	}
 }
 
-// aclFilter is used to filter results from our service catalog based on the
+// filterACL is used to filter results from our service catalog based on the
 // rules configured for the provided token. The subject is scrubbed and
 // modified in-place, leaving only resources the token can access.
-func (s *Server) aclFilter(token string, subj interface{}) error {
+func (s *Server) filterACL(token string, subj interface{}) error {
 	// Get the ACL from the token
 	acl, err := s.resolveToken(token)
 	if err != nil {

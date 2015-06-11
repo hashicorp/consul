@@ -223,7 +223,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	}
 }
 
-func TestHealth_applyDiscoveryACLs(t *testing.T) {
+func TestHealth_filterACL(t *testing.T) {
 	dir, srv := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"

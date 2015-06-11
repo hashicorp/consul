@@ -778,7 +778,7 @@ func TestCatalogRegister_FailedCase1(t *testing.T) {
 	}
 }
 
-func TestCatalog_applyDiscoveryACLs(t *testing.T) {
+func TestCatalog_filterACL(t *testing.T) {
 	dir, srv := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
