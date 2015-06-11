@@ -18,7 +18,8 @@ on tokens to which fine grained rules can be applied. It is very similar to
 
 When the ACL system was launched in Consul 0.4, it was only possible to specify
 policies for the KV store.  In Consul 0.5, ACL policies were extended to service
-registrations.
+registrations. In Consul 0.6, ACL's were further extended to restrict the
+service discovery mechanisms.
 
 ## ACL Design
 
@@ -152,12 +153,14 @@ key "foo/private/" {
   policy = "deny"
 }
 
-# Default all services to allow registration
+# Default all services to allow registration. Also permits all
+# services to be discovered.
 service "" {
     policy = "write"
 }
 
-# Deny registration access to services prefixed "secure-"
+# Deny registration access to services prefixed "secure-".
+# Discovery of the service is still allowed in read mode.
 service "secure-" {
     policy = "read"
 }
@@ -208,3 +211,22 @@ methods of configuring ACL tokens to use for registration events:
    available for both [services](/docs/agent/services.html) and
    [checks](/docs/agent/checks.html). Tokens may also be passed to the
    [HTTP API](/docs/agent/http.html) for operations that require them.
+
+## Restricting service discovery with ACLs
+
+In Consul 0.6, the ACL system was extended to support restricting read access to
+service registrations. This allows tighter access control and limits the ability
+of a compromised token to discover other services running in a cluster.
+
+The ACL system permits a user to discover services using the REST API or UI if
+the token used during requests has "read"-level access or greater. Consul will
+filter out all services which the token has no access to in all API queries,
+making it appear as though the restricted services do not exist.
+
+Consul's DNS interface is also affected by restrictions to service
+registrations. If the token used by the agent does not have access to a given
+service, then the DNS interface will return no records when queried for it. If
+the [acl_default_policy](/docs/agent/options.html#acl_default_policy) is set to
+deny, this means that Consul will not be able to serve any DNS records that the
+[acl_token](/docs/agent/options.html#acl_token) is not explicitly granted read
+access to.
