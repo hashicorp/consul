@@ -861,6 +861,23 @@ func TestACL_filterNodeDump(t *testing.T) {
 	}
 }
 
+func TestACL_unhandledFilterType(t *testing.T) {
+	defer func(t *testing.T) {
+		if recover() == nil {
+			t.Fatalf("should panic")
+		}
+	}(t)
+
+	// Create the server
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	// Pass an unhandled type into the ACL filter.
+	srv.filterACL(token, &structs.HealthCheck{})
+}
+
 var testACLPolicy = `
 key "" {
 	policy = "deny"

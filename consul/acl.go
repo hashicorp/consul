@@ -2,6 +2,7 @@ package consul
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -355,6 +356,9 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 
 	case *structs.IndexedNodeDump:
 		filt.filterNodeDump(&v.Dump)
+
+	default:
+		panic(fmt.Errorf("Unhandled type passed to ACL filter: %#v", subj))
 	}
 
 	return nil

@@ -126,7 +126,7 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		state.QueryTables("Nodes"),
 		func() error {
 			reply.Index, reply.Nodes = state.Nodes()
-			return c.srv.filterACL(args.Token, reply)
+			return nil
 		})
 }
 
