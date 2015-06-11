@@ -307,6 +307,7 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 			i--
 		}
 	}
+	*dump = nd
 }
 
 // filterACL is used to filter results from our service catalog based on the
