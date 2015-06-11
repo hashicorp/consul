@@ -193,23 +193,6 @@ func (s *Server) useACLPolicy(id, authDC string, cached *aclCacheEntry, p *struc
 	return compiled, nil
 }
 
-// discoveryFilter is used to determine if we should return a given node
-// or service based on the ACL passed in.
-func (s *Server) discoveryFilter(node, service string, acl acl.ACL) bool {
-	if acl == nil {
-		return true
-	}
-
-	// Filter service discovery ACLs
-	if service != "" && service != ConsulServiceID && !acl.ServiceRead(service) {
-		s.logger.Printf("[DEBUG] consul: reading service '%s' denied due to ACLs", service)
-		return false
-	}
-
-	// Filtering passed
-	return true
-}
-
 // applyDiscoveryACLs is used to filter results from our service catalog based
 // on the configured rules for the request ACL. Nodes or services which do
 // not match the ACL rules will be dropped from the result.
