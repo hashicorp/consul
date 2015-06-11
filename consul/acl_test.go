@@ -674,11 +674,111 @@ func TestACL_MultiDC_Found(t *testing.T) {
 	}
 }
 
+func TestACL_applyDiscoveryACLs(t *testing.T) {
+	dir, srv := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+
+	client := rpcClient(t, srv)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Create a new token
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "User token",
+			Type:  structs.ACLTypeClient,
+			Rules: testACLPolicy,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var id string
+	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a service
+	regArg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       srv.config.NodeName,
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "redis",
+			Service: "redis",
+		},
+		Check: &structs.HealthCheck{
+			CheckID:   "service:redis",
+			Name:      "service:redis",
+			ServiceID: "redis",
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	if err := client.Call("Catalog.Register", &regArg, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Try querying the catalog
+	opt := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+		QueryOptions: structs.QueryOptions{
+			Token: id,
+		},
+	}
+	services := structs.IndexedServices{}
+	if err := client.Call("Catalog.ListServices", &opt, &services); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check if the service was returned
+	if _, ok := services.Services["redis"]; !ok {
+		t.Fatalf("bad: %#v", services.Services)
+	}
+
+	// Register a service which should be denied
+	regArg = structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       srv.config.NodeName,
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "rabbit",
+			Service: "rabbit",
+		},
+		Check: &structs.HealthCheck{
+			CheckID:   "service:rabbit",
+			Name:      "service:rabbit",
+			ServiceID: "rabbit",
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	if err := client.Call("Catalog.Register", &regArg, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check that the service was omitted from the result
+	services = structs.IndexedServices{}
+	if err := client.Call("Catalog.ListServices", &opt, &services); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, ok := services.Services["rabbit"]; ok {
+		t.Fatalf("bad: %#v", services.Services)
+	}
+}
+
 var testACLPolicy = `
 key "" {
 	policy = "deny"
 }
 key "foo/" {
 	policy = "write"
+}
+service "redis" {
+    policy = "read"
 }
 `
