@@ -25,8 +25,12 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 		&reply.QueryMeta,
 		state.QueryTables("NodeInfo"),
 		func() error {
-			reply.Index, reply.Dump = state.NodeInfo(args.Node)
-			return m.srv.applyDiscoveryACLs(args.Token, reply)
+			index, dump := state.NodeInfo(args.Node)
+			if err := m.srv.aclFilter(args.Token, &dump); err != nil {
+				return err
+			}
+			reply.Index, reply.Dump = index, dump
+			return nil
 		})
 }
 
@@ -43,8 +47,12 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 		&reply.QueryMeta,
 		state.QueryTables("NodeDump"),
 		func() error {
-			reply.Index, reply.Dump = state.NodeDump()
-			return m.srv.applyDiscoveryACLs(args.Token, reply)
+			index, dump := state.NodeDump()
+			if err := m.srv.aclFilter(args.Token, &dump); err != nil {
+				return err
+			}
+			reply.Index, reply.Dump = index, dump
+			return nil
 		})
 }
 
