@@ -222,3 +222,156 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
 }
+
+func TestHealth_applyDiscoveryACLs(t *testing.T) {
+	dir, srv := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+
+	client := rpcClient(t, srv)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Create a new token
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "User token",
+			Type:  structs.ACLTypeClient,
+			Rules: testRegisterRules,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var id string
+	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a service we have access to
+	regArg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       srv.config.NodeName,
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "foo",
+			Service: "foo",
+		},
+		Check: &structs.HealthCheck{
+			CheckID:   "service:foo",
+			Name:      "service:foo",
+			ServiceID: "foo",
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	if err := client.Call("Catalog.Register", &regArg, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Register a service we don't have access to
+	regArg = structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       srv.config.NodeName,
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "bar",
+			Service: "bar",
+		},
+		Check: &structs.HealthCheck{
+			CheckID:   "service:bar",
+			Name:      "service:bar",
+			ServiceID: "bar",
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	if err := client.Call("Catalog.Register", &regArg, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Health.NodeChecks properly filters and returns services
+	{
+		opt := structs.NodeSpecificRequest{
+			Datacenter:   "dc1",
+			Node:         srv.config.NodeName,
+			QueryOptions: structs.QueryOptions{Token: id},
+		}
+		reply := structs.IndexedHealthChecks{}
+		if err := client.Call("Health.NodeChecks", &opt, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		found := false
+		for _, chk := range reply.HealthChecks {
+			switch chk.ServiceName {
+			case "foo":
+				found = true
+			case "bar":
+				t.Fatalf("bad: %#v", reply.HealthChecks)
+			}
+		}
+		if !found {
+			t.Fatalf("bad: %#v", reply.HealthChecks)
+		}
+	}
+
+	// Health.ServiceChecks properly filters and returns services
+	{
+		opt := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "foo",
+			QueryOptions: structs.QueryOptions{Token: id},
+		}
+		reply := structs.IndexedHealthChecks{}
+		if err := client.Call("Health.ServiceChecks", &opt, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		found := false
+		for _, chk := range reply.HealthChecks {
+			if chk.ServiceName == "foo" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("bad: %#v", reply.HealthChecks)
+		}
+
+		opt.ServiceName = "bar"
+		reply = structs.IndexedHealthChecks{}
+		if err := client.Call("Health.ServiceChecks", &opt, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if len(reply.HealthChecks) != 0 {
+			t.Fatalf("bad: %#v", reply.HealthChecks)
+		}
+	}
+
+	// Health.ServiceNodes properly filters and returns services
+	{
+		opt := structs.ServiceSpecificRequest{
+			Datacenter:   "dc1",
+			ServiceName:  "foo",
+			QueryOptions: structs.QueryOptions{Token: id},
+		}
+		reply := structs.IndexedCheckServiceNodes{}
+		if err := client.Call("Health.ServiceNodes", &opt, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if len(reply.Nodes) != 1 {
+			t.Fatalf("bad: %#v", reply.Nodes)
+		}
+
+		opt.ServiceName = "bar"
+		reply = structs.IndexedCheckServiceNodes{}
+		if err := client.Call("Health.ServiceNodes", &opt, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if len(reply.Nodes) != 0 {
+			t.Fatalf("bad: %#v", reply.Nodes)
+		}
+	}
+}
