@@ -290,6 +290,32 @@ func (s *Server) applyDiscoveryACLs(token string, subj interface{}) error {
 			v.Nodes = append(v.Nodes[:i], v.Nodes[i+1:]...)
 			i--
 		}
+
+	// Filter node dumps
+	case *structs.IndexedNodeDump:
+		for i := 0; i < len(v.Dump); i++ {
+			dump := v.Dump[i]
+
+			// Filter the services
+			for i := 0; i < len(dump.Services); i++ {
+				svc := dump.Services[i]
+				if filt(svc.Service) {
+					continue
+				}
+				dump.Services = append(dump.Services[:i], dump.Services[i+1:]...)
+				i--
+			}
+
+			// Filter the checks
+			for i := 0; i < len(dump.Checks); i++ {
+				chk := dump.Checks[i]
+				if filt(chk.ServiceName) {
+					continue
+				}
+				dump.Checks = append(dump.Checks[:i], dump.Checks[i+1:]...)
+				i--
+			}
+		}
 	}
 
 	return nil
