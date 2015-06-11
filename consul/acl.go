@@ -280,7 +280,7 @@ func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
 		if f.filterService(node.Service.Service) {
 			continue
 		}
-		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node)
+		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node.Node)
 		csn = append(csn[:i], csn[i+1:]...)
 		i--
 	}
