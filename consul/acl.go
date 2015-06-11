@@ -3,6 +3,7 @@ package consul
 import (
 	"errors"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -201,6 +202,14 @@ type aclFilter struct {
 	logger *log.Logger
 }
 
+// newAclFilter constructs a new aclFilter.
+func newAclFilter(acl acl.ACL, logger *log.Logger) *aclFilter {
+	if logger == nil {
+		logger = log.New(os.Stdout, "", log.LstdFlags)
+	}
+	return &aclFilter{acl, logger}
+}
+
 // filterService is used to determine if a service is accessible for an ACL.
 func (f *aclFilter) filterService(service string) bool {
 	if service == "" || service == ConsulServiceID {
@@ -326,7 +335,7 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 	}
 
 	// Create the filter
-	filt := &aclFilter{acl, s.logger}
+	filt := newAclFilter(acl, s.logger)
 
 	switch v := subj.(type) {
 	case *structs.IndexedHealthChecks:
