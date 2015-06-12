@@ -185,8 +185,11 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
 
 	args := structs.DCSpecificRequest{
-		Datacenter:   datacenter,
-		QueryOptions: structs.QueryOptions{AllowStale: d.config.AllowStale},
+		Datacenter: datacenter,
+		QueryOptions: structs.QueryOptions{
+			Token:      d.agent.config.ACLToken,
+			AllowStale: d.config.AllowStale,
+		},
 	}
 	var out structs.IndexedNodes
 
@@ -346,9 +349,12 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 
 	// Make an RPC request
 	args := structs.NodeSpecificRequest{
-		Datacenter:   datacenter,
-		Node:         node,
-		QueryOptions: structs.QueryOptions{AllowStale: d.config.AllowStale},
+		Datacenter: datacenter,
+		Node:       node,
+		QueryOptions: structs.QueryOptions{
+			Token:      d.agent.config.ACLToken,
+			AllowStale: d.config.AllowStale,
+		},
 	}
 	var out structs.IndexedNodeServices
 RPC:
@@ -446,11 +452,14 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg) {
 	// Make an RPC request
 	args := structs.ServiceSpecificRequest{
-		Datacenter:   datacenter,
-		ServiceName:  service,
-		ServiceTag:   tag,
-		TagFilter:    tag != "",
-		QueryOptions: structs.QueryOptions{AllowStale: d.config.AllowStale},
+		Datacenter:  datacenter,
+		ServiceName: service,
+		ServiceTag:  tag,
+		TagFilter:   tag != "",
+		QueryOptions: structs.QueryOptions{
+			Token:      d.agent.config.ACLToken,
+			AllowStale: d.config.AllowStale,
+		},
 	}
 	var out structs.IndexedCheckServiceNodes
 RPC:
