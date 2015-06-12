@@ -79,6 +79,9 @@ type DNSConfig struct {
 	// whose health checks are in any non-passing state. By
 	// default, only nodes in a critical state are excluded.
 	OnlyPassing bool `mapstructure:"only_passing"`
+
+	// Name of a single domain that will be looked up in consul
+	KVSDomain string `mapstructure:"kvs_domain"`
 }
 
 // Config is the configuration that can be set for an Agent.
@@ -946,6 +949,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.DNSConfig.OnlyPassing {
 		result.DNSConfig.OnlyPassing = true
+	}
+	if b.DNSConfig.KVSDomain != "" {
+		result.DNSConfig.KVSDomain = b.DNSConfig.KVSDomain
 	}
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval

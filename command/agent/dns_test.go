@@ -1692,3 +1692,246 @@ func TestDNS_ServiceLookup_SRV_RFC_TCP_Default(t *testing.T) {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
 }
+
+func TestDNS_KeyValue(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	srv.agent.config.DNSConfig.KVSDomain = "example"
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	json := []byte("{\"A\": \"127.0.0.4\", \"AAAA\": \"::4\", \"TXT\": [\"I like PIES\", \"Tasty PIES\"]}")
+
+	applyReq := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "example/test1",
+			Flags: 0,
+			Value: json,
+		},
+	}
+
+	var out bool
+	if err := srv.agent.RPC("KVS.Apply", &applyReq, &out); err != nil {
+		t.Fatalf("Failed to PUT entry to KV: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("test1.example.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 3 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	aRec, ok := in.Answer[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aRec.A.String() != "127.0.0.4" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+
+	aaaaRec, ok := in.Answer[1].(*dns.AAAA)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[1])
+	}
+	if aaaaRec.AAAA.String() != "::4" {
+		t.Fatalf("Bad: %#v", in.Answer[1])
+	}
+
+	txtRec, ok := in.Answer[2].(*dns.TXT)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[2])
+	}
+	if len(txtRec.Txt) != 2 {
+		t.Fatalf("Failed to get 2 TXT records: %#v", in.Answer[2])
+	}
+	if txtRec.Txt[0] != "I like PIES" {
+		t.Fatalf("Bad: %#v", in.Answer[2])
+	}
+	if txtRec.Txt[1] != "Tasty PIES" {
+		t.Fatalf("Bad: %#v", in.Answer[2])
+	}
+}
+
+func TestDNS_KeyValue_missing(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	srv.agent.config.DNSConfig.KVSDomain = "example"
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	m := new(dns.Msg)
+	m.SetQuestion("testnx.example.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 0 {
+		t.Fatalf("Bad: %#v", in)
+	}
+}
+
+func TestDNS_KeyValue_TXT_only(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	srv.agent.config.DNSConfig.KVSDomain = "example"
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	json := []byte("{\"A\": \"127.0.0.5\", \"AAAA\": \"::5\", \"TXT\": [\"yummy pies\"]}")
+
+	applyReq := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "example/test2",
+			Flags: 0,
+			Value: json,
+		},
+	}
+
+	var out bool
+	if err := srv.agent.RPC("KVS.Apply", &applyReq, &out); err != nil {
+		t.Fatalf("Failed to PUT entry to KV: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("test2.example.consul.", dns.TypeTXT)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	txtRec, ok := in.Answer[0].(*dns.TXT)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if txtRec.Txt[0] != "yummy pies" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+
+}
+
+func TestDNS_KeyValue_A_only(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	srv.agent.config.DNSConfig.KVSDomain = "example"
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	json := []byte("{\"A\": \"127.0.0.6\", \"AAAA\": \"::6\", \"TXT\": [\"scrummy pies\"]}")
+
+	applyReq := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "example/test3",
+			Flags: 0,
+			Value: json,
+		},
+	}
+
+	var out bool
+	if err := srv.agent.RPC("KVS.Apply", &applyReq, &out); err != nil {
+		t.Fatalf("Failed to PUT entry to KV: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("test3.example.consul.", dns.TypeA)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	aRec, ok := in.Answer[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aRec.A.String() != "127.0.0.6" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+}
+
+func TestDNS_KeyValue_AAAA_only(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	srv.agent.config.DNSConfig.KVSDomain = "example"
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	json := []byte("{\"A\": \"127.0.0.7\", \"AAAA\": \"::7\", \"TXT\": [\"awesome pies\"]}")
+
+	applyReq := structs.KVSRequest{
+		Datacenter: "dc1",
+		Op:         structs.KVSSet,
+		DirEnt: structs.DirEntry{
+			Key:   "example/test4",
+			Flags: 0,
+			Value: json,
+		},
+	}
+
+	var out bool
+	if err := srv.agent.RPC("KVS.Apply", &applyReq, &out); err != nil {
+		t.Fatalf("Failed to PUT entry to KV: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("test4.example.consul.", dns.TypeAAAA)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	aaaaRec, ok := in.Answer[0].(*dns.AAAA)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aaaaRec.AAAA.String() != "::7" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+}
