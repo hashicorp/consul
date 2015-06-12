@@ -304,11 +304,6 @@ func (i *AgentRPC) listen() {
 		}
 		client.dec = codec.NewDecoder(client.reader, msgpackHandle)
 		client.enc = codec.NewEncoder(client.writer, msgpackHandle)
-		if err != nil {
-			i.logger.Printf("[ERR] agent.rpc: Failed to create decoder: %v", err)
-			conn.Close()
-			continue
-		}
 
 		// Register the client
 		i.Lock()
