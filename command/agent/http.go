@@ -293,6 +293,10 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		logURL := req.URL.String()
 		if tokens, ok := formVals["token"]; ok {
 			for _, token := range tokens {
+				if token == "" {
+					logURL += "<hidden>"
+					continue
+				}
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
 		}
