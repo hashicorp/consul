@@ -105,7 +105,7 @@ An example of the output of this command:
 ### <a name="keyprefix"></a>Type: keyprefix
 
 The "keyprefix" watch type is used to watch a prefix of keys in the KV store.
-It requires that the "prefix" parameter be specified. Note that the watch
+It requires that the "prefix" parameter be specified. This watch
 returns *all* keys matching the prefix whenever *any* key matching the prefix
 changes.
 
