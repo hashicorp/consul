@@ -99,6 +99,33 @@ Alternatively, you can, of course, add an explicit
 [`acl_token`](/docs/agent/options.html#acl_token) to each agent, giving it access
 to that prefix.
 
+### Blacklist mode and Service Discovery
+
+If your [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
+set to `deny`, the `anonymous` token will be unable to read any service
+information. This will cause the service discovery mechanisms in the REST API
+and the DNS interface to return no results for any service queries. This is
+because internally the API's and DNS interface consume the RPC interface, which
+will filter results for services the token has no access to.
+
+You can allow all services to be discovered, mimicing the behavior of pre-0.6.0
+releases, by configuring this ACL rule for the `anonymous` token:
+
+```
+service "" {
+    policy = "read"
+}
+```
+
+Note that the above will allow access for reading service information only. This
+level of access allows discovering other services in the system, but is not
+enough to allow the agent to sync its services and checks into the global
+catalog during [anti-entropy](/docs/internals/anti-entropy.html).
+
+The most secure way of handling service registration and discovery is to run
+Consul 0.6+ and issue tokens with explicit access for the services or service
+prefixes which are expected to run on each agent.
+
 ### Bootstrapping ACLs
 
 Bootstrapping the ACL system is done by providing an initial [`acl_master_token`
@@ -225,8 +252,4 @@ making it appear as though the restricted services do not exist.
 
 Consul's DNS interface is also affected by restrictions to service
 registrations. If the token used by the agent does not have access to a given
-service, then the DNS interface will return no records when queried for it. If
-the [acl_default_policy](/docs/agent/options.html#acl_default_policy) is set to
-deny, this means that Consul will not be able to serve any DNS records that the
-[acl_token](/docs/agent/options.html#acl_token) is not explicitly granted read
-access to.
+service, then the DNS interface will return no records when queried for it.
