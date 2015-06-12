@@ -12,39 +12,39 @@ type Internal struct {
 	srv *Server
 }
 
-// ChecksInState is used to get all the checks in a given state
+// NodeInfo is used to retrieve information about a specific node.
 func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedNodeDump) error {
 	if done, err := m.srv.forward("Internal.NodeInfo", args, args, reply); done {
 		return err
 	}
 
-	// Get the state specific checks
+	// Get the node info
 	state := m.srv.fsm.State()
 	return m.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
 		state.QueryTables("NodeInfo"),
 		func() error {
 			reply.Index, reply.Dump = state.NodeInfo(args.Node)
-			return nil
+			return m.srv.filterACL(args.Token, reply)
 		})
 }
 
-// ChecksInState is used to get all the checks in a given state
+// NodeDump is used to generate information about all of the nodes.
 func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 	reply *structs.IndexedNodeDump) error {
 	if done, err := m.srv.forward("Internal.NodeDump", args, args, reply); done {
 		return err
 	}
 
-	// Get the state specific checks
+	// Get all the node info
 	state := m.srv.fsm.State()
 	return m.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
 		state.QueryTables("NodeDump"),
 		func() error {
 			reply.Index, reply.Dump = state.NodeDump()
-			return nil
+			return m.srv.filterACL(args.Token, reply)
 		})
 }
 

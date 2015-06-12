@@ -222,3 +222,97 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
 }
+
+func TestHealth_NodeChecks_FilterACL(t *testing.T) {
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	opt := structs.NodeSpecificRequest{
+		Datacenter:   "dc1",
+		Node:         srv.config.NodeName,
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedHealthChecks{}
+	if err := client.Call("Health.NodeChecks", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	found := false
+	for _, chk := range reply.HealthChecks {
+		switch chk.ServiceName {
+		case "foo":
+			found = true
+		case "bar":
+			t.Fatalf("bad: %#v", reply.HealthChecks)
+		}
+	}
+	if !found {
+		t.Fatalf("bad: %#v", reply.HealthChecks)
+	}
+}
+
+func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	opt := structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  "foo",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedHealthChecks{}
+	if err := client.Call("Health.ServiceChecks", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	found := false
+	for _, chk := range reply.HealthChecks {
+		if chk.ServiceName == "foo" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("bad: %#v", reply.HealthChecks)
+	}
+
+	opt.ServiceName = "bar"
+	reply = structs.IndexedHealthChecks{}
+	if err := client.Call("Health.ServiceChecks", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(reply.HealthChecks) != 0 {
+		t.Fatalf("bad: %#v", reply.HealthChecks)
+	}
+}
+
+func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	opt := structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  "foo",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedCheckServiceNodes{}
+	if err := client.Call("Health.ServiceNodes", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(reply.Nodes) != 1 {
+		t.Fatalf("bad: %#v", reply.Nodes)
+	}
+
+	opt.ServiceName = "bar"
+	reply = structs.IndexedCheckServiceNodes{}
+	if err := client.Call("Health.ServiceNodes", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(reply.Nodes) != 0 {
+		t.Fatalf("bad: %#v", reply.Nodes)
+	}
+}

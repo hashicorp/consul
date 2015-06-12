@@ -778,6 +778,168 @@ func TestCatalogRegister_FailedCase1(t *testing.T) {
 	}
 }
 
+func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, client *rpc.Client) {
+	dir, srv = testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+
+	client = rpcClient(t, srv)
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Create a new token
+	arg := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "User token",
+			Type:  structs.ACLTypeClient,
+			Rules: testRegisterRules,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	if err := client.Call("ACL.Apply", &arg, &token); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a service
+	regArg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       srv.config.NodeName,
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "foo",
+			Service: "foo",
+		},
+		Check: &structs.HealthCheck{
+			CheckID:   "service:foo",
+			Name:      "service:foo",
+			ServiceID: "foo",
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	if err := client.Call("Catalog.Register", &regArg, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Register a service which should be denied
+	regArg = structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       srv.config.NodeName,
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "bar",
+			Service: "bar",
+		},
+		Check: &structs.HealthCheck{
+			CheckID:   "service:bar",
+			Name:      "service:bar",
+			ServiceID: "bar",
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	if err := client.Call("Catalog.Register", &regArg, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	return
+}
+
+func TestCatalog_ListServices_FilterACL(t *testing.T) {
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	opt := structs.DCSpecificRequest{
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedServices{}
+	if err := client.Call("Catalog.ListServices", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, ok := reply.Services["foo"]; !ok {
+		t.Fatalf("bad: %#v", reply.Services)
+	}
+	if _, ok := reply.Services["bar"]; ok {
+		t.Fatalf("bad: %#v", reply.Services)
+	}
+}
+
+func TestCatalog_ServiceNodes_FilterACL(t *testing.T) {
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	opt := structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  "foo",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedServiceNodes{}
+	if err := client.Call("Catalog.ServiceNodes", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	found := false
+	for _, sn := range reply.ServiceNodes {
+		if sn.ServiceID == "foo" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("bad: %#v", reply.ServiceNodes)
+	}
+
+	// Filters services we can't access
+	opt = structs.ServiceSpecificRequest{
+		Datacenter:   "dc1",
+		ServiceName:  "bar",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply = structs.IndexedServiceNodes{}
+	if err := client.Call("Catalog.ServiceNodes", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	for _, sn := range reply.ServiceNodes {
+		if sn.ServiceID == "bar" {
+			t.Fatalf("bad: %#v", reply.ServiceNodes)
+		}
+	}
+}
+
+func TestCatalog_NodeServices_FilterACL(t *testing.T) {
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	opt := structs.NodeSpecificRequest{
+		Datacenter:   "dc1",
+		Node:         srv.config.NodeName,
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedNodeServices{}
+	if err := client.Call("Catalog.NodeServices", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	found := false
+	for _, svc := range reply.NodeServices.Services {
+		if svc.ID == "bar" {
+			t.Fatalf("bad: %#v", reply.NodeServices.Services)
+		}
+		if svc.ID == "foo" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("bad: %#v", reply.NodeServices)
+	}
+}
+
 var testRegisterRules = `
 service "foo" {
 	policy = "write"

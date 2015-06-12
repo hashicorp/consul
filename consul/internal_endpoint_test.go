@@ -238,3 +238,90 @@ func TestInternal_KeyringOperation(t *testing.T) {
 		t.Fatalf("should have two lan and one wan response")
 	}
 }
+
+func TestInternal_NodeInfo_FilterACL(t *testing.T) {
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	opt := structs.NodeSpecificRequest{
+		Datacenter:   "dc1",
+		Node:         srv.config.NodeName,
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedNodeDump{}
+	if err := client.Call("Health.NodeChecks", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	for _, info := range reply.Dump {
+		found := false
+		for _, chk := range info.Checks {
+			if chk.ServiceName == "foo" {
+				found = true
+			}
+			if chk.ServiceName == "bar" {
+				t.Fatalf("bad: %#v", info.Checks)
+			}
+		}
+		if !found {
+			t.Fatalf("bad: %#v", info.Checks)
+		}
+
+		found = false
+		for _, svc := range info.Services {
+			if svc.Service == "foo" {
+				found = true
+			}
+			if svc.Service == "bar" {
+				t.Fatalf("bad: %#v", info.Services)
+			}
+		}
+		if !found {
+			t.Fatalf("bad: %#v", info.Services)
+		}
+	}
+}
+
+func TestInternal_NodeDump_FilterACL(t *testing.T) {
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	opt := structs.DCSpecificRequest{
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedNodeDump{}
+	if err := client.Call("Health.NodeChecks", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	for _, info := range reply.Dump {
+		found := false
+		for _, chk := range info.Checks {
+			if chk.ServiceName == "foo" {
+				found = true
+			}
+			if chk.ServiceName == "bar" {
+				t.Fatalf("bad: %#v", info.Checks)
+			}
+		}
+		if !found {
+			t.Fatalf("bad: %#v", info.Checks)
+		}
+
+		found = false
+		for _, svc := range info.Services {
+			if svc.Service == "foo" {
+				found = true
+			}
+			if svc.Service == "bar" {
+				t.Fatalf("bad: %#v", info.Services)
+			}
+		}
+		if !found {
+			t.Fatalf("bad: %#v", info.Services)
+		}
+	}
+}

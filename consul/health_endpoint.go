@@ -43,7 +43,7 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 		state.QueryTables("NodeChecks"),
 		func() error {
 			reply.Index, reply.HealthChecks = state.NodeChecks(args.Node)
-			return nil
+			return h.srv.filterACL(args.Token, reply)
 		})
 }
 
@@ -67,7 +67,7 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 		state.QueryTables("ServiceChecks"),
 		func() error {
 			reply.Index, reply.HealthChecks = state.ServiceChecks(args.ServiceName)
-			return nil
+			return h.srv.filterACL(args.Token, reply)
 		})
 }
 
@@ -93,7 +93,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			} else {
 				reply.Index, reply.Nodes = state.CheckServiceNodes(args.ServiceName)
 			}
-			return nil
+			return h.srv.filterACL(args.Token, reply)
 		})
 
 	// Provide some metrics

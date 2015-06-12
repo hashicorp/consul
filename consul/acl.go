@@ -2,6 +2,9 @@ package consul
 
 import (
 	"errors"
+	"fmt"
+	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -191,4 +194,172 @@ func (s *Server) useACLPolicy(id, authDC string, cached *aclCacheEntry, p *struc
 	}
 	s.aclCache.Add(id, cached)
 	return compiled, nil
+}
+
+// aclFilter is used to filter results from our state store based on ACL rules
+// configured for the provided token.
+type aclFilter struct {
+	acl    acl.ACL
+	logger *log.Logger
+}
+
+// newAclFilter constructs a new aclFilter.
+func newAclFilter(acl acl.ACL, logger *log.Logger) *aclFilter {
+	if logger == nil {
+		logger = log.New(os.Stdout, "", log.LstdFlags)
+	}
+	return &aclFilter{acl, logger}
+}
+
+// filterService is used to determine if a service is accessible for an ACL.
+func (f *aclFilter) filterService(service string) bool {
+	if service == "" || service == ConsulServiceID {
+		return true
+	}
+	return f.acl.ServiceRead(service)
+}
+
+// filterHealthChecks is used to filter a set of health checks down based on
+// the configured ACL rules for a token.
+func (f *aclFilter) filterHealthChecks(checks *structs.HealthChecks) {
+	hc := *checks
+	for i := 0; i < len(hc); i++ {
+		check := hc[i]
+		if f.filterService(check.ServiceName) {
+			continue
+		}
+		f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", check.CheckID)
+		hc = append(hc[:i], hc[i+1:]...)
+		i--
+	}
+	*checks = hc
+}
+
+// filterServices is used to filter a set of services based on ACLs.
+func (f *aclFilter) filterServices(services structs.Services) {
+	for svc, _ := range services {
+		if f.filterService(svc) {
+			continue
+		}
+		f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
+		delete(services, svc)
+	}
+}
+
+// filterServiceNodes is used to filter a set of nodes for a given service
+// based on the configured ACL rules.
+func (f *aclFilter) filterServiceNodes(nodes *structs.ServiceNodes) {
+	sn := *nodes
+	for i := 0; i < len(sn); i++ {
+		node := sn[i]
+		if f.filterService(node.ServiceName) {
+			continue
+		}
+		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node)
+		sn = append(sn[:i], sn[i+1:]...)
+		i--
+	}
+	*nodes = sn
+}
+
+// filterNodeServices is used to filter services on a given node base on ACLs.
+func (f *aclFilter) filterNodeServices(services *structs.NodeServices) {
+	for svc, _ := range services.Services {
+		if f.filterService(svc) {
+			continue
+		}
+		f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
+		delete(services.Services, svc)
+	}
+}
+
+// filterCheckServiceNodes is used to filter nodes based on ACL rules.
+func (f *aclFilter) filterCheckServiceNodes(nodes *structs.CheckServiceNodes) {
+	csn := *nodes
+	for i := 0; i < len(csn); i++ {
+		node := csn[i]
+		if f.filterService(node.Service.Service) {
+			continue
+		}
+		f.logger.Printf("[DEBUG] consul: dropping node %q from result due to ACLs", node.Node.Node)
+		csn = append(csn[:i], csn[i+1:]...)
+		i--
+	}
+	*nodes = csn
+}
+
+// filterNodeDump is used to filter through all parts of a node dump and
+// remove elements the provided ACL token cannot access.
+func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
+	nd := *dump
+	for i := 0; i < len(nd); i++ {
+		info := nd[i]
+
+		// Filter services
+		for i := 0; i < len(info.Services); i++ {
+			svc := info.Services[i].Service
+			if f.filterService(svc) {
+				continue
+			}
+			f.logger.Printf("[DEBUG] consul: dropping service %q from result due to ACLs", svc)
+			info.Services = append(info.Services[:i], info.Services[i+1:]...)
+			i--
+		}
+
+		// Filter checks
+		for i := 0; i < len(info.Checks); i++ {
+			chk := info.Checks[i]
+			if f.filterService(chk.ServiceName) {
+				continue
+			}
+			f.logger.Printf("[DEBUG] consul: dropping check %q from result due to ACLs", chk.CheckID)
+			info.Checks = append(info.Checks[:i], info.Checks[i+1:]...)
+			i--
+		}
+	}
+	*dump = nd
+}
+
+// filterACL is used to filter results from our service catalog based on the
+// rules configured for the provided token. The subject is scrubbed and
+// modified in-place, leaving only resources the token can access.
+func (s *Server) filterACL(token string, subj interface{}) error {
+	// Get the ACL from the token
+	acl, err := s.resolveToken(token)
+	if err != nil {
+		return err
+	}
+
+	// Fast path if ACLs are not enabled
+	if acl == nil {
+		return nil
+	}
+
+	// Create the filter
+	filt := newAclFilter(acl, s.logger)
+
+	switch v := subj.(type) {
+	case *structs.IndexedHealthChecks:
+		filt.filterHealthChecks(&v.HealthChecks)
+
+	case *structs.IndexedServices:
+		filt.filterServices(v.Services)
+
+	case *structs.IndexedServiceNodes:
+		filt.filterServiceNodes(&v.ServiceNodes)
+
+	case *structs.IndexedNodeServices:
+		filt.filterNodeServices(v.NodeServices)
+
+	case *structs.IndexedCheckServiceNodes:
+		filt.filterCheckServiceNodes(&v.Nodes)
+
+	case *structs.IndexedNodeDump:
+		filt.filterNodeDump(&v.Dump)
+
+	default:
+		panic(fmt.Errorf("Unhandled type passed to ACL filter: %#v", subj))
+	}
+
+	return nil
 }

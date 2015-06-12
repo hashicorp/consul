@@ -343,8 +343,9 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 	// Verify that we are in sync
 	req := structs.NodeSpecificRequest{
-		Datacenter: "dc1",
-		Node:       agent.config.NodeName,
+		Datacenter:   "dc1",
+		Node:         agent.config.NodeName,
+		QueryOptions: structs.QueryOptions{Token: out},
 	}
 	var services structs.IndexedNodeServices
 	if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
