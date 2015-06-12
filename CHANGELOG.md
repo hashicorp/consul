@@ -1,8 +1,13 @@
 ## 0.6.0 (Unreleased)
 
+FEATURES:
+
+* Service ACL's apply to service discovery [GH-1024]
+
 BUG FIXES:
 
 * Allow services with `/` characters in the UI [GH-988]
+* Token hiding in HTTP logs bug fixed [GH-1020]
 
 MISC:
 
