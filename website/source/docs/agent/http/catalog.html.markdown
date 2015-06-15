@@ -88,6 +88,17 @@ to indicate that the initial check has not been performed yet.
 It is important to note that `Check` does not have to be provided with `Service`
 and vice versa. A catalog entry can have either, neither, or both.
 
+An optional ACL token may be provided to perform the registration by including a
+`WriteRequest` block in the query payload, like this:
+
+```javascript
+{
+  "WriteRequest": {
+    "Token": "foo"
+  }
+}
+```
+
 If the API call succeeds, a 200 status code is returned.
 
 ### <a name="catalog_deregister"></a> /v1/catalog/deregister
@@ -129,6 +140,17 @@ to match that of the agent. If only `Node` is provided, the node and
 all associated services and checks are deleted. If `CheckID` is provided, only
 that check is removed. If `ServiceID` is provided, the
 service and its associated health check (if any) are removed.
+
+An optional ACL token may be provided to perform the deregister action by adding
+a `WriteRequest` block to the payload, like this:
+
+```javascript
+{
+  "WriteRequest": {
+    "Token": "foo"
+  }
+}
+```
 
 If the API call succeeds a 200 status code is returned.
 
