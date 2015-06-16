@@ -3,7 +3,7 @@ package consul
 import (
 	"fmt"
 	"github.com/armon/go-metrics"
-	"github.com/marouenj/consul/consul/structs"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 // Health endpoint is used to query the health information

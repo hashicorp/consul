@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/marouenj/consul/consul/structs"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 // ServiceSummary is used to summarize a service

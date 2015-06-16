@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/marouenj/consul/testutil"
+	"github.com/hashicorp/consul/testutil"
 )
 
 var nextPort = 15000

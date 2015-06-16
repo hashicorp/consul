@@ -3,8 +3,8 @@ package agent
 import (
 	"bytes"
 	"fmt"
-	"github.com/marouenj/consul/consul/structs"
-	"github.com/marouenj/consul/testutil"
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 	"io"
 	"io/ioutil"
 	"net/http"

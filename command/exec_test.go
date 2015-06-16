@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	consulapi "github.com/marouenj/consul/api"
-	"github.com/marouenj/consul/command/agent"
-	"github.com/marouenj/consul/testutil"
+	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/agent"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
 )
 

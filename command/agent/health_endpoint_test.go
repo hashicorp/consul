@@ -2,8 +2,8 @@ package agent
 
 import (
 	"fmt"
-	"github.com/marouenj/consul/consul/structs"
-	"github.com/marouenj/consul/testutil"
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 	"net/http"
 	"net/http/httptest"
 	"os"

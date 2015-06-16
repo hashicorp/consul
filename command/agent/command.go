@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/logutils"
 	scada "github.com/hashicorp/scada-client"
 	consultemplate "github.com/marouenj/consul-template/core"
-	"github.com/marouenj/consul/watch"
+	"github.com/hashicorp/consul/watch"
 	"github.com/mitchellh/cli"
 )
 

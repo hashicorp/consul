@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/marouenj/consul/consul/structs"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 // Session endpoint is used to manipulate sessions for KV

@@ -13,8 +13,8 @@ import (
 	"time"
 
 	consultemplate "github.com/marouenj/consul-template/core"
-	"github.com/marouenj/consul/consul"
-	"github.com/marouenj/consul/watch"
+	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/watch"
 	"github.com/mitchellh/mapstructure"
 )
 

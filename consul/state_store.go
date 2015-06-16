@@ -13,7 +13,7 @@ import (
 
 	"github.com/armon/go-radix"
 	"github.com/armon/gomdb"
-	"github.com/marouenj/consul/consul/structs"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 const (

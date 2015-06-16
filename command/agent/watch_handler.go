@@ -14,7 +14,7 @@ import (
 	"github.com/armon/circbuf"
 	consulapi "github.com/hashicorp/consul/api"
 	consultemplate "github.com/marouenj/consul-template/core"
-	"github.com/marouenj/consul/watch"
+	"github.com/hashicorp/consul/watch"
 )
 
 const (

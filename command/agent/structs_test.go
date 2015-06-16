@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/marouenj/consul/consul/structs"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 func TestAgentStructs_HealthCheck(t *testing.T) {

@@ -13,8 +13,8 @@ import (
 	"time"
 
 	consultemplate "github.com/marouenj/consul-template/core"
-	"github.com/marouenj/consul/testutil"
-	"github.com/marouenj/consul/watch"
+	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/watch"
 )
 
 func TestVerifyWatchHandler(t *testing.T) {

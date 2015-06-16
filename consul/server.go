@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
-	"github.com/marouenj/consul/acl"
+	"github.com/hashicorp/consul/acl"
 )
 
 // These are the protocol versions that Consul can _understand_. These are

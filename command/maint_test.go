@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/marouenj/consul/consul/structs"
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/mitchellh/cli"
 )
 

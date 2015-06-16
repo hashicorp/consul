@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/marouenj/consul/consul"
-	"github.com/marouenj/consul/consul/structs"
+	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 const (

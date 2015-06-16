@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/raft"
-	"github.com/marouenj/consul/consul/structs"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 type MockSink struct {

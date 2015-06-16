@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/marouenj/consul/consul/structs"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 const (

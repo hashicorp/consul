@@ -3,7 +3,7 @@ package consul
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/marouenj/consul/tlsutil"
+	"github.com/hashicorp/consul/tlsutil"
 	"net"
 	"sync"
 	"time"

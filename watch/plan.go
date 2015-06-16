@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"time"
 
-	consulapi "github.com/marouenj/consul/api"
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 const (

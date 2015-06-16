@@ -1,7 +1,7 @@
 package testutil
 
 import (
-	"github.com/marouenj/consul/consul/structs"
+	"github.com/hashicorp/consul/consul/structs"
 	"testing"
 	"time"
 )

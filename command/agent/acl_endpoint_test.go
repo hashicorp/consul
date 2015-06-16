@@ -3,7 +3,7 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/marouenj/consul/consul/structs"
+	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"net/http/httptest"
 	"testing"

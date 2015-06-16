@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/marouenj/consul/command/agent"
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/mitchellh/cli"
 )
 

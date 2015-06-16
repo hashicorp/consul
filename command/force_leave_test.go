@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/serf/serf"
-	"github.com/marouenj/consul/testutil"
+	"github.com/hashicorp/consul/testutil"
 	"github.com/mitchellh/cli"
 	"strings"
 	"testing"
