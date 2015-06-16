@@ -3,9 +3,9 @@ package agent
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/serf/serf"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/serf/serf"
 	"net/http"
 	"net/http/httptest"
 	"os"

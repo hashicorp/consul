@@ -13,8 +13,8 @@ import (
 
 	"github.com/armon/circbuf"
 	consulapi "github.com/hashicorp/consul/api"
-	consultemplate "github.com/marouenj/consul-template/core"
 	"github.com/hashicorp/consul/watch"
+	consultemplate "github.com/marouenj/consul-template/core"
 )
 
 const (

@@ -14,11 +14,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
-	"github.com/hashicorp/consul/acl"
 )
 
 // These are the protocol versions that Consul can _understand_. These are

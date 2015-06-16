@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	consultemplate "github.com/marouenj/consul-template/core"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/watch"
+	consultemplate "github.com/marouenj/consul-template/core"
 	"github.com/mitchellh/mapstructure"
 )
 

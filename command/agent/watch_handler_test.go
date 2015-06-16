@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	consultemplate "github.com/marouenj/consul-template/core"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/watch"
+	consultemplate "github.com/marouenj/consul-template/core"
 )
 
 func TestVerifyWatchHandler(t *testing.T) {

@@ -1,8 +1,8 @@
 package agent
 
 import (
-	"github.com/marouenj/consul-template/core"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/marouenj/consul-template/core"
 )
 
 // ServiceDefinition is used to JSON decode the Service definitions

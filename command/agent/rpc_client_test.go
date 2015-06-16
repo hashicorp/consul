@@ -3,8 +3,8 @@ package agent
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/serf/serf"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/serf/serf"
 	"io"
 	"io/ioutil"
 	"net"

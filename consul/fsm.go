@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
-	"github.com/hashicorp/consul/consul/structs"
 )
 
 // consulFSM implements a finite state machine that is used

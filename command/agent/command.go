@@ -16,12 +16,12 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul-migrate/migrator"
+	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 	scada "github.com/hashicorp/scada-client"
 	consultemplate "github.com/marouenj/consul-template/core"
-	"github.com/hashicorp/consul/watch"
 	"github.com/mitchellh/cli"
 )
 

@@ -11,10 +11,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/yamux"
 	"github.com/inconshreveable/muxado"
-	"github.com/hashicorp/consul/tlsutil"
 )
 
 // msgpackHandle is a shared handle for encoding/decoding of RPC messages

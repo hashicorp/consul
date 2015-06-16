@@ -1,8 +1,8 @@
 package consul
 
 import (
-	"github.com/hashicorp/serf/serf"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/serf"
 )
 
 // Internal endpoint is used to query the miscellaneous info that
