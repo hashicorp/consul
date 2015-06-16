@@ -25,9 +25,11 @@ sudo chown vagrant:vagrant $SRCROOT
 
 # Setup the GOPATH; even though the shared folder spec gives the consul
 # directory the right user/group, we need to set it properly on the
-# parent path to allow subsequent "go get" commands to work.
+# parent path to allow subsequent "go get" commands to work. We can't do
+# normal -R here because VMWare complains if we try to update the shared
+# folder permissions, so we just update the folders that matter.
 sudo mkdir -p $SRCPATH
-sudo chown -R vagrant:vagrant $SRCPATH
+find /opt/gopath -type d -maxdepth 3 | xargs sudo chown vagrant:vagrant
 
 cat <<EOF >/tmp/gopath.sh
 export GOPATH="$SRCPATH"
