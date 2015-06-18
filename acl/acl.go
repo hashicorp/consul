@@ -52,6 +52,12 @@ type ACL interface {
 	// ServiceRead checks for permission to read a given service
 	ServiceRead(string) bool
 
+	// EventRead determines if a specific event can be queried.
+	EventRead(string) bool
+
+	// EventWrite determines if a specific event may be fired.
+	EventWrite(string) bool
+
 	// ACLList checks for permission to list all the ACLs
 	ACLList() bool
 
@@ -84,6 +90,14 @@ func (s *StaticACL) ServiceRead(string) bool {
 }
 
 func (s *StaticACL) ServiceWrite(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) EventRead(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) EventWrite(string) bool {
 	return s.defaultAllow
 }
 
@@ -136,6 +150,9 @@ type PolicyACL struct {
 
 	// serviceRules contains the service policies
 	serviceRules *radix.Tree
+
+	// eventRules contains the user event policies
+	eventRules *radix.Tree
 }
 
 // New is used to construct a policy based ACL from a set of policies
@@ -145,6 +162,7 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 		parent:       parent,
 		keyRules:     radix.New(),
 		serviceRules: radix.New(),
+		eventRules:   radix.New(),
 	}
 
 	// Load the key policy
@@ -156,6 +174,12 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 	for _, sp := range policy.Services {
 		p.serviceRules.Insert(sp.Name, sp.Policy)
 	}
+
+	// Load the event policy
+	for _, ep := range policy.Events {
+		p.eventRules.Insert(ep.Event, ep.Policy)
+	}
+
 	return p, nil
 }
 
@@ -264,6 +288,37 @@ func (p *PolicyACL) ServiceWrite(name string) bool {
 
 	// No matching rule, use the parent.
 	return p.parent.ServiceWrite(name)
+}
+
+// EventRead is used to determine if the policy allows for a
+// specific user event to be read.
+func (p *PolicyACL) EventRead(name string) bool {
+	// Longest-prefix match on event names
+	if _, rule, ok := p.eventRules.LongestPrefix(name); ok {
+		switch rule {
+		case EventPolicyRead:
+			return true
+		case EventPolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// Nothing matched, use parent
+	return p.parent.EventRead(name)
+}
+
+// EventWrite is used to determine if new events can be created
+// (fired) by the policy.
+func (p *PolicyACL) EventWrite(name string) bool {
+	// Longest-prefix match event names
+	if _, rule, ok := p.eventRules.LongestPrefix(name); ok {
+		return rule == EventPolicyWrite
+	}
+
+	// No match, use parent
+	return p.parent.EventWrite(name)
 }
 
 // ACLList checks if listing of ACLs is allowed
