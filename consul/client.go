@@ -201,11 +201,6 @@ func (c *Client) RemoveFailedNode(node string) error {
 	return c.serf.RemoveFailedNode(node)
 }
 
-// UserEvent is used to fire an event via the Serf layer
-func (c *Client) UserEvent(name string, payload []byte) error {
-	return c.serf.UserEvent(userEventName(name), payload, false)
-}
-
 // KeyManagerLAN returns the LAN Serf keyring manager
 func (c *Client) KeyManagerLAN() *serf.KeyManager {
 	return c.serf.KeyManager()

@@ -85,15 +85,14 @@ func (a *Agent) UserEvent(dc, token string, params *UserEvent) error {
 		return fmt.Errorf("UserEvent encoding failed: %v", err)
 	}
 
-	// Send an RPC to service this
+	// Service the event fire over RPC. This ensures that we authorize
+	// the request against the token first.
 	args := structs.EventFireRequest{
-		Datacenter: dc,
-		Name:       params.Name,
-		Payload:    payload,
+		Datacenter:   dc,
+		Name:         params.Name,
+		Payload:      payload,
+		QueryOptions: structs.QueryOptions{Token: token},
 	}
-
-	// Pass along the ACL token, if any
-	args.Token = token
 
 	// Any server can process in the remote DC, since the
 	// gossip will take over anyways
