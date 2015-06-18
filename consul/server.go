@@ -16,7 +16,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
 	"github.com/hashicorp/serf/serf"
@@ -45,9 +44,6 @@ const (
 	// open to a server
 	serverMaxStreams = 64
 
-	// Maximum number of cached ACL entries
-	aclCacheSize = 256
-
 	// raftLogCacheSize is the maximum number of logs to cache in-memory.
 	// This is used to reduce disk I/O for the recently commited entries.
 	raftLogCacheSize = 512
@@ -63,11 +59,8 @@ type Server struct {
 	// aclAuthCache is the authoritative ACL cache
 	aclAuthCache *acl.Cache
 
-	// aclCache is a non-authoritative ACL cache
-	aclCache *lru.Cache
-
-	// aclPolicyCache is a policy cache
-	aclPolicyCache *lru.Cache
+	// aclCache is the non-authoritative ACL cache.
+	aclCache *aclCache
 
 	// Consul configuration
 	config *Config
@@ -228,18 +221,10 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, fmt.Errorf("Failed to create ACL cache: %v", err)
 	}
 
-	// Initialize the non-authoritative ACL cache
-	s.aclCache, err = lru.New(aclCacheSize)
-	if err != nil {
+	// Set up the non-authoritative ACL cache
+	if s.aclCache, err = newAclCache(config, logger, s.RPC); err != nil {
 		s.Shutdown()
-		return nil, fmt.Errorf("Failed to create ACL cache: %v", err)
-	}
-
-	// Initialize the ACL policy cache
-	s.aclPolicyCache, err = lru.New(aclCacheSize)
-	if err != nil {
-		s.Shutdown()
-		return nil, fmt.Errorf("Failed to create ACL policy cache: %v", err)
+		return nil, err
 	}
 
 	// Initialize the RPC layer
