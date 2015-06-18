@@ -153,6 +153,8 @@ func TestFireReceiveEvent(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
 	srv1 := &structs.NodeService{
 		ID:      "mysql",
 		Service: "mysql",
@@ -162,13 +164,13 @@ func TestFireReceiveEvent(t *testing.T) {
 	agent.state.AddService(srv1, "")
 
 	p1 := &UserEvent{Name: "deploy", ServiceFilter: "web"}
-	err := agent.UserEvent("", p1)
+	err := agent.UserEvent("dc1", "root", p1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	p2 := &UserEvent{Name: "deploy"}
-	err = agent.UserEvent("", p2)
+	err = agent.UserEvent("dc1", "root", p2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -186,3 +188,66 @@ func TestFireReceiveEvent(t *testing.T) {
 		t.Fatalf("bad: %#v", last)
 	}
 }
+
+func TestUserEventToken(t *testing.T) {
+	conf := nextConfig()
+
+	// Set the default policies to deny
+	conf.ACLDefaultPolicy = "deny"
+
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	// Create an ACL token
+	args := structs.ACLRequest{
+		Datacenter: "dc1",
+		Op:         structs.ACLSet,
+		ACL: structs.ACL{
+			Name:  "User token",
+			Type:  structs.ACLTypeClient,
+			Rules: testEventPolicy,
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	var token string
+	if err := agent.RPC("ACL.Apply", &args, &token); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	type tcase struct {
+		name   string
+		expect bool
+	}
+	cases := []tcase{
+		{"foo", false},
+		{"bar", false},
+		{"baz", true},
+		{"zip", false},
+	}
+	for _, c := range cases {
+		event := &UserEvent{Name: c.name}
+		err := agent.UserEvent("dc1", token, event)
+		allowed := false
+		if err == nil || err.Error() != permissionDenied {
+			allowed = true
+		}
+		if allowed != c.expect {
+			t.Fatalf("bad: %#v result: %v", c, allowed)
+		}
+	}
+}
+
+const testEventPolicy = `
+event "foo" {
+	policy = "deny"
+}
+event "bar" {
+	policy = "read"
+}
+event "baz" {
+	policy = "write"
+}
+`

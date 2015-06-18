@@ -13,6 +13,8 @@ import (
 
 func TestEventFire(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
+		testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
 		body := bytes.NewBuffer([]byte("test"))
 		url := "/v1/event/fire/test?node=Node&service=foo&tag=bar"
 		req, err := http.NewRequest("PUT", url, body)
@@ -53,8 +55,10 @@ func TestEventFire(t *testing.T) {
 
 func TestEventList(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
+		testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
 		p := &UserEvent{Name: "test"}
-		if err := srv.agent.UserEvent("", p); err != nil {
+		if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -89,13 +93,15 @@ func TestEventList(t *testing.T) {
 
 func TestEventList_Filter(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
+		testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
 		p := &UserEvent{Name: "test"}
-		if err := srv.agent.UserEvent("", p); err != nil {
+		if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
 		p = &UserEvent{Name: "foo"}
-		if err := srv.agent.UserEvent("", p); err != nil {
+		if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -130,8 +136,10 @@ func TestEventList_Filter(t *testing.T) {
 
 func TestEventList_Blocking(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
+		testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
 		p := &UserEvent{Name: "test"}
-		if err := srv.agent.UserEvent("", p); err != nil {
+		if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -159,7 +167,7 @@ func TestEventList_Blocking(t *testing.T) {
 		go func() {
 			time.Sleep(50 * time.Millisecond)
 			p := &UserEvent{Name: "second"}
-			if err := srv.agent.UserEvent("", p); err != nil {
+			if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
 				t.Fatalf("err: %v", err)
 			}
 		}()
@@ -192,6 +200,8 @@ func TestEventList_Blocking(t *testing.T) {
 
 func TestEventList_EventBufOrder(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
+		testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
 		// Fire some events in a non-sequential order
 		expected := &UserEvent{Name: "foo"}
 
@@ -202,7 +212,7 @@ func TestEventList_EventBufOrder(t *testing.T) {
 			expected,
 			&UserEvent{Name: "bar"},
 		} {
-			if err := srv.agent.UserEvent("", e); err != nil {
+			if err := srv.agent.UserEvent("dc1", "root", e); err != nil {
 				t.Fatalf("err: %v", err)
 			}
 		}
