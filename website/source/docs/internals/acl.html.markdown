@@ -155,8 +155,9 @@ in 0.5.1). The default rule, applied to any service that doesn't have a matching
 is provided using the empty string. A service policy is either "read", "write", or "deny".
 A "write" policy implies "read", and there is no way to specify write-only. If there is no
 applicable rule, the [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
-applied. Currently, only the "write" level is enforced for registration of
-services; services can always be read.
+applied. The "read" policy in a service ACL rule allows restricting access to
+the discovery of that service prefix. More information about service discovery
+and ACLs can be found [below](#discovery_acls).
 
 The policy for the "consul" service is always "write" as it is managed internally by Consul.
 
@@ -239,6 +240,7 @@ methods of configuring ACL tokens to use for registration events:
    [checks](/docs/agent/checks.html). Tokens may also be passed to the
    [HTTP API](/docs/agent/http.html) for operations that require them.
 
+<a name="discovery_acls"></a>
 ## Restricting service discovery with ACLs
 
 In Consul 0.6, the ACL system was extended to support restricting read access to
