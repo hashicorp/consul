@@ -62,9 +62,13 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 
 	// Try to fire the event
 	if err := s.agent.UserEvent(dc, token, event); err != nil {
-		resp.WriteHeader(403)
-		resp.Write([]byte(permissionDenied))
-		return nil, nil
+		if strings.Contains(err.Error(), permissionDenied) {
+			resp.WriteHeader(403)
+			resp.Write([]byte(permissionDenied))
+			return nil, nil
+		}
+		resp.WriteHeader(500)
+		return nil, err
 	}
 
 	// Return the event
