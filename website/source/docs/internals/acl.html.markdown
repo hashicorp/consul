@@ -258,7 +258,7 @@ This is equivalent to the following JSON input:
     "": {
       "policy": "write"
     },
-    "secure-": {
+    "destroy-": {
       "policy": "deny"
     }
   }
