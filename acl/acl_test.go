@@ -79,10 +79,10 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("should not allow")
 	}
 	if none.ACLList() {
-		t.Fatalf("should not noneow")
+		t.Fatalf("should not allow")
 	}
 	if none.ACLModify() {
-		t.Fatalf("should not noneow")
+		t.Fatalf("should not allow")
 	}
 
 	if !manage.KeyRead("foobar") {
