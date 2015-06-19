@@ -818,7 +818,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	time.Sleep(3 * conf.SyncCoordinateInterval)
 
 	// Make sure the coordinate is present.
-	req := structs.NodeSpecificRequest {
+	req := structs.NodeSpecificRequest{
 		Datacenter: agent.config.Datacenter,
 		Node:       agent.config.NodeName,
 	}

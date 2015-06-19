@@ -620,17 +620,10 @@ type ACLPolicy struct {
 	QueryMeta
 }
 
-// Coordinate stores a node name with its associated network coordinate. This is
-// used when querying WAN coordinates.
+// Coordinate stores a node name with its associated network coordinate.
 type Coordinate struct {
 	Node  string
 	Coord *coordinate.Coordinate
-}
-
-// CoordinateList is a list of Coordinate structs. This is used when querying WAN
-// coordinates.
-type CoordinateList struct {
-	Coords []Coordinate
 }
 
 // IndexedCoordinate is used to represent a single node's coordinate from the state
