@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
 )
 
 func TestEventFire(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
-
 		body := bytes.NewBuffer([]byte("test"))
 		url := "/v1/event/fire/test?node=Node&service=foo&tag=bar"
 		req, err := http.NewRequest("PUT", url, body)
@@ -53,10 +53,70 @@ func TestEventFire(t *testing.T) {
 	})
 }
 
+func TestEventFire_token(t *testing.T) {
+	httpTestWithConfig(t, func(srv *HTTPServer) {
+		// Create an ACL token
+		args := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: testEventPolicy,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		var token string
+		if err := srv.agent.RPC("ACL.Apply", &args, &token); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		type tcase struct {
+			event   string
+			allowed bool
+		}
+		tcases := []tcase{
+			{"foo", false},
+			{"bar", false},
+			{"baz", true},
+		}
+		for _, c := range tcases {
+			// Try to fire the event over the HTTP interface
+			url := fmt.Sprintf("/v1/event/fire/%s?token=%s", c.event, token)
+			req, err := http.NewRequest("PUT", url, nil)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			resp := httptest.NewRecorder()
+			if _, err := srv.EventFire(resp, req); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+
+			// Check the result
+			body := resp.Body.String()
+			if c.allowed {
+				if strings.Contains(body, permissionDenied) {
+					t.Fatalf("bad: %s", body)
+				}
+				if resp.Code != 200 {
+					t.Fatalf("bad: %d", resp.Code)
+				}
+			} else {
+				if !strings.Contains(body, permissionDenied) {
+					t.Fatalf("bad: %s", body)
+				}
+				if resp.Code != 403 {
+					t.Fatalf("bad: %d", resp.Code)
+				}
+			}
+		}
+	}, func(c *Config) {
+		c.ACLDefaultPolicy = "deny"
+	})
+}
+
 func TestEventList(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
-
 		p := &UserEvent{Name: "test"}
 		if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
 			t.Fatalf("err: %v", err)
@@ -93,8 +153,6 @@ func TestEventList(t *testing.T) {
 
 func TestEventList_Filter(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
-
 		p := &UserEvent{Name: "test"}
 		if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
 			t.Fatalf("err: %v", err)
@@ -136,8 +194,6 @@ func TestEventList_Filter(t *testing.T) {
 
 func TestEventList_Blocking(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
-
 		p := &UserEvent{Name: "test"}
 		if err := srv.agent.UserEvent("dc1", "root", p); err != nil {
 			t.Fatalf("err: %v", err)
@@ -200,8 +256,6 @@ func TestEventList_Blocking(t *testing.T) {
 
 func TestEventList_EventBufOrder(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
-		testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
-
 		// Fire some events in a non-sequential order
 		expected := &UserEvent{Name: "foo"}
 
