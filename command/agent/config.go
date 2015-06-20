@@ -372,8 +372,8 @@ type Config struct {
 	// representation of our state. Defaults to every 60s.
 	AEInterval time.Duration `mapstructure:"-" json:"-"`
 
-	// EnableCoordinates enables features related to network coordinates.
-	EnableCoordinates bool `mapstructure:"enable_coordinates" json:"-"`
+	// DisableCoordinates controls features related to network coordinates.
+	DisableCoordinates bool `mapstructure:"disable_coordinates" json:"-"`
 
 	// SyncCoordinateInterval controls the interval for sending network
 	// coordinates to the server. Defaults to every 15s, but scales up as
@@ -475,7 +475,7 @@ func DefaultConfig() *Config {
 		Protocol:               consul.ProtocolVersionMax,
 		CheckUpdateInterval:    5 * time.Minute,
 		AEInterval:             time.Minute,
-		EnableCoordinates:      true,
+		DisableCoordinates:     false,
 		SyncCoordinateInterval: 15 * time.Second,
 		ACLTTL:                 30 * time.Second,
 		ACLDownPolicy:          "extend-cache",

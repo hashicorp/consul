@@ -139,7 +139,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.ProtocolVersion = protocolVersionMap[c.config.ProtocolVersion]
 	conf.RejoinAfterLeave = c.config.RejoinAfterLeave
 	conf.Merge = &lanMergeDelegate{dc: c.config.Datacenter}
-	conf.EnableCoordinates = c.config.EnableCoordinates
+	conf.DisableCoordinates = c.config.DisableCoordinates
 	conf.CacheCoordinates = false
 	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err

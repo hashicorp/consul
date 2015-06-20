@@ -312,8 +312,8 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	// Let Serf cache coordinates for only the WAN configuration where the
 	// number of nodes should be small, and where we serve these directly
 	// from Serf because they aren't managed in the catalog.
-	conf.EnableCoordinates = s.config.EnableCoordinates
-	conf.CacheCoordinates = s.config.EnableCoordinates && wan
+	conf.DisableCoordinates = s.config.DisableCoordinates
+	conf.CacheCoordinates = (!s.config.DisableCoordinates) && wan
 
 	return serf.Create(conf)
 }

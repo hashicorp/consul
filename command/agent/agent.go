@@ -193,7 +193,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	go agent.handleEvents()
 
 	// Start sending network coordinate to the server.
-	if config.EnableCoordinates {
+	if !config.DisableCoordinates {
 		go agent.sendCoordinate()
 	}
 
