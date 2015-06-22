@@ -33,12 +33,14 @@ Options:
   -service=""                Regular expression to filter on service instances
   -tag=""                    Regular expression to filter on service tags. Must be used
                              with -service.
+  -token=""                  ACL token to use during requests. Defaults to that
+                             of the agent.
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *EventCommand) Run(args []string) int {
-	var datacenter, name, node, service, tag string
+	var datacenter, name, node, service, tag, token string
 	cmdFlags := flag.NewFlagSet("event", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 	cmdFlags.StringVar(&datacenter, "datacenter", "", "")
@@ -46,6 +48,7 @@ func (c *EventCommand) Run(args []string) int {
 	cmdFlags.StringVar(&node, "node", "", "")
 	cmdFlags.StringVar(&service, "service", "", "")
 	cmdFlags.StringVar(&tag, "tag", "", "")
+	cmdFlags.StringVar(&token, "token", "", "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -120,6 +123,7 @@ func (c *EventCommand) Run(args []string) int {
 	}
 	opts := &consulapi.WriteOptions{
 		Datacenter: datacenter,
+		Token:      token,
 	}
 
 	// Fire the event
