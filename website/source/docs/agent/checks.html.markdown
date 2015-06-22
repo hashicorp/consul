@@ -37,7 +37,11 @@ There are three different kinds of checks:
   set to the failed state. This mechanism, conceptually similar to a dead man's switch,
   relies on the application to directly report its health. For example, a healthy app
   can periodically `PUT` a status update to the HTTP endpoint; if the app fails, the TTL will
-  expire and the health check enters a critical state. TTL checks also persist
+  expire and the health check enters a critical state. The endpoints used to
+  update health information for a given check are the
+  [pass endpoint](https://consul.io/docs/agent/http/agent.html#agent_check_pass)
+  and the [fail endpoint](https://consul.io/docs/agent/http/agent.html#agent_check_fail).
+  TTL checks also persist
   their last known status to disk. This allows the Consul agent to restore the
   last known status of the check across restarts. Persisted check status is
   valid through the end of the TTL from the time of the last check.
