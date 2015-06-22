@@ -8,10 +8,12 @@ BUG FIXES:
 
 * Allow services with `/` characters in the UI [GH-988]
 * Token hiding in HTTP logs bug fixed [GH-1020]
+* RFC6598 addresses are accepted as private IP's [GH-1050]
 
 MISC:
 
 * Protocol version bumped to 3 for serf protocol 5 [GH-996]
+* Vagrantfile fixed for VMware [GH-1042]
 
 ## 0.5.2 (May 18, 2015)
 
