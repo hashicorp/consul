@@ -741,20 +741,17 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	defer fsm.Close()
 
 	// Write a batch of two coordinates.
-	reqs := make([]*structs.CoordinateUpdateRequest, 2)
-	reqs[0] = &structs.CoordinateUpdateRequest{
-		Datacenter: "dc1",
-		Node:       "node1",
-		Op:         structs.CoordinateUpdate,
-		Coord:      generateRandomCoordinate(),
+	updates := []*structs.Coordinate{
+		&structs.Coordinate{
+			Node:  "node1",
+			Coord: generateRandomCoordinate(),
+		},
+		&structs.Coordinate{
+			Node:  "node2",
+			Coord: generateRandomCoordinate(),
+		},
 	}
-	reqs[1] = &structs.CoordinateUpdateRequest{
-		Datacenter: "dc1",
-		Node:       "node2",
-		Op:         structs.CoordinateUpdate,
-		Coord:      generateRandomCoordinate(),
-	}
-	buf, err := structs.Encode(structs.CoordinateRequestType, reqs)
+	buf, err := structs.Encode(structs.CoordinateBatchUpdateType, updates)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -764,23 +761,23 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	}
 
 	// Read back the two coordinates to make sure they got updated.
-	_, d, err := fsm.state.CoordinateGet(reqs[0].Node)
+	_, d, err := fsm.state.CoordinateGet(updates[0].Node)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if d == nil {
 		t.Fatalf("missing")
 	}
-	verifyCoordinatesEqual(t, reqs[0].Coord, d.Coord)
+	verifyCoordinatesEqual(t, updates[0].Coord, d.Coord)
 
-	_, d, err = fsm.state.CoordinateGet(reqs[1].Node)
+	_, d, err = fsm.state.CoordinateGet(updates[1].Node)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if d == nil {
 		t.Fatalf("missing")
 	}
-	verifyCoordinatesEqual(t, reqs[1].Coord, d.Coord)
+	verifyCoordinatesEqual(t, updates[1].Coord, d.Coord)
 }
 
 func TestFSM_SessionCreate_Destroy(t *testing.T) {

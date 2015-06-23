@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -29,7 +30,8 @@ func generateRandomCoordinate() *coordinate.Coordinate {
 }
 
 // verifyCoordinatesEqual will compare a and b and fail if they are not exactly
-// equal (no floating point fuzz is considered).
+// equal (no floating point fuzz is considered since we are trying to make sure
+// we are getting exactly the coordinates we expect, without math on them).
 func verifyCoordinatesEqual(t *testing.T, a, b *coordinate.Coordinate) {
 	if !reflect.DeepEqual(a, b) {
 		t.Fatalf("coordinates are not equal: %v != %v", a, b)
@@ -41,7 +43,7 @@ func TestCoordinate_Update(t *testing.T) {
 	dir1, config1 := testServerConfig(t, name)
 	defer os.RemoveAll(dir1)
 
-	config1.CoordinateUpdatePeriod = 1 * time.Second
+	config1.CoordinateUpdatePeriod = 500 * time.Millisecond
 	config1.CoordinateUpdateMaxBatchSize = 5
 	s1, err := NewServer(config1)
 	if err != nil {
@@ -53,28 +55,29 @@ func TestCoordinate_Update(t *testing.T) {
 	defer client.Close()
 	testutil.WaitForLeader(t, client.Call, "dc1")
 
+	// Send an update for the first node.
 	arg1 := structs.CoordinateUpdateRequest{
 		Datacenter: "dc1",
 		Node:       "node1",
-		Op:         structs.CoordinateUpdate,
 		Coord:      generateRandomCoordinate(),
 	}
-
-	arg2 := structs.CoordinateUpdateRequest{
-		Datacenter: "dc1",
-		Node:       "node2",
-		Op:         structs.CoordinateUpdate,
-		Coord:      generateRandomCoordinate(),
-	}
-
-	// Send an update for the first node.
 	var out struct{}
 	if err := client.Call("Coordinate.Update", &arg1, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Make sure the update did not yet apply because the batching thresholds
-	// haven't yet been met.
+	// Send an update for the second node.
+	arg2 := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       "node2",
+		Coord:      generateRandomCoordinate(),
+	}
+	if err := client.Call("Coordinate.Update", &arg2, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the updates did not yet apply because the update period
+	// hasn't expired.
 	state := s1.fsm.State()
 	_, d, err := state.CoordinateGet("node1")
 	if err != nil {
@@ -83,18 +86,16 @@ func TestCoordinate_Update(t *testing.T) {
 	if d != nil {
 		t.Fatalf("should be nil because the update should be batched")
 	}
-
-	// Wait a while and send another update. This time both updates should
-	// be applied.
-	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
-	if err := client.Call("Coordinate.Update", &arg2, &out); err != nil {
+	_, d, err = state.CoordinateGet("node2")
+	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	if d != nil {
+		t.Fatalf("should be nil because the update should be batched")
+	}
 
-	// Wait a little while so the flush goroutine can run, then make sure
-	// both coordinates made it in.
-	time.Sleep(100 * time.Millisecond)
-
+	// Wait a while and the updates should get picked up.
+	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
 	_, d, err = state.CoordinateGet("node1")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -103,7 +104,6 @@ func TestCoordinate_Update(t *testing.T) {
 		t.Fatalf("should return a coordinate but it's nil")
 	}
 	verifyCoordinatesEqual(t, d.Coord, arg1.Coord)
-
 	_, d, err = state.CoordinateGet("node2")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -113,19 +113,25 @@ func TestCoordinate_Update(t *testing.T) {
 	}
 	verifyCoordinatesEqual(t, d.Coord, arg2.Coord)
 
-	// Now try spamming coordinates and make sure it flushes when the batch
-	// size is hit.
-	for i := 0; i < (s1.config.CoordinateUpdateMaxBatchSize + 1); i++ {
+	// Now try spamming coordinates and make sure it starts dropping when
+	// the pipe is full.
+	for i := 0; i < s1.config.CoordinateUpdateMaxBatchSize; i++ {
 		arg1.Coord = generateRandomCoordinate()
 		if err := client.Call("Coordinate.Update", &arg1, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
 
-	// Wait a little while so the flush goroutine can run, then make sure
-	// the last coordinate update made it in.
-	time.Sleep(100 * time.Millisecond)
+	// This one should get dropped.
+	arg2.Coord = generateRandomCoordinate()
+	err = client.Call("Coordinate.Update", &arg2, &out)
+	if err == nil || !strings.Contains(err.Error(), "rate limit") {
+		t.Fatalf("should have failed with a rate limit error, got %v", err)
+	}
 
+	// Wait a little while for the batch routine to run, then make sure
+	// all but the last coordinate update made it in.
+	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
 	_, d, err = state.CoordinateGet("node1")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -148,11 +154,10 @@ func TestCoordinate_Get(t *testing.T) {
 	arg := structs.CoordinateUpdateRequest{
 		Datacenter: "dc1",
 		Node:       "node1",
-		Op:         structs.CoordinateUpdate,
 		Coord:      generateRandomCoordinate(),
 	}
 
-	// Send an initial update, waiting a little while for the flush goroutine
+	// Send an initial update, waiting a little while for the batch update
 	// to run.
 	var out struct{}
 	if err := client.Call("Coordinate.Update", &arg, &out); err != nil {

@@ -376,9 +376,10 @@ type Config struct {
 	DisableCoordinates bool `mapstructure:"disable_coordinates" json:"-"`
 
 	// SyncCoordinateInterval controls the interval for sending network
-	// coordinates to the server. Defaults to every 15s, but scales up as
+	// coordinates to the server. Defaults to every 20s, but scales up as
 	// the number of nodes increases in the network, to prevent servers from
-	// being overwhelmed.
+	// being overwhelmed. If you update this, you may need to adjust the
+	// tuning of CoordinateUpdatePeriod and CoordinateUpdateMaxBatchSize.
 	SyncCoordinateInterval time.Duration `mapstructure:"-" json:"-"`
 
 	// Checks holds the provided check definitions
@@ -476,7 +477,7 @@ func DefaultConfig() *Config {
 		CheckUpdateInterval:    5 * time.Minute,
 		AEInterval:             time.Minute,
 		DisableCoordinates:     false,
-		SyncCoordinateInterval: 15 * time.Second,
+		SyncCoordinateInterval: 20 * time.Second,
 		ACLTTL:                 30 * time.Second,
 		ACLDownPolicy:          "extend-cache",
 		ACLDefaultPolicy:       "allow",

@@ -580,7 +580,6 @@ func (a *Agent) sendCoordinate() {
 			req := structs.CoordinateUpdateRequest{
 				Datacenter:   a.config.Datacenter,
 				Node:         a.config.NodeName,
-				Op:           structs.CoordinateUpdate,
 				Coord:        c,
 				WriteRequest: structs.WriteRequest{Token: a.config.ACLToken},
 			}

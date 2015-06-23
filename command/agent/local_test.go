@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/serf/coordinate"
 )
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
@@ -807,7 +808,8 @@ func TestAgent_nestedPauseResume(t *testing.T) {
 func TestAgent_sendCoordinate(t *testing.T) {
 	conf := nextConfig()
 	conf.SyncCoordinateInterval = 10 * time.Millisecond
-	conf.ConsulConfig.CoordinateUpdatePeriod = 0 * time.Millisecond
+	conf.ConsulConfig.CoordinateUpdatePeriod = 100 * time.Millisecond
+	conf.ConsulConfig.CoordinateUpdateMaxBatchSize = 20
 	dir, agent := makeAgent(t, conf)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
@@ -815,7 +817,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	testutil.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Wait a little while for an update.
-	time.Sleep(3 * conf.SyncCoordinateInterval)
+	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
 
 	// Make sure the coordinate is present.
 	req := structs.NodeSpecificRequest{
@@ -828,5 +830,46 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	}
 	if reply.Coord == nil {
 		t.Fatalf("should get a coordinate")
+	}
+
+	// Start spamming for a little while to get rate limit errors back from
+	// the server.
+	conf.SyncCoordinateInterval = 1 * time.Millisecond
+	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
+
+	// Slow down and let the server catch up.
+	conf.SyncCoordinateInterval = 10 * time.Millisecond
+	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
+
+	// Inject a random coordinate so we can confirm that the periodic process
+	// is still able to update it.
+	zeroCoord := &coordinate.Coordinate{}
+	func() {
+		req := structs.CoordinateUpdateRequest{
+			Datacenter:   agent.config.Datacenter,
+			Node:         agent.config.NodeName,
+			Coord:        zeroCoord,
+			WriteRequest: structs.WriteRequest{Token: agent.config.ACLToken},
+		}
+		var reply struct{}
+		if err := agent.RPC("Coordinate.Update", &req, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}()
+
+	// Wait a little while for the injected update, as well as periodic ones
+	// to fire.
+	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
+
+	// Make sure the injected coordinate is not the one that's present.
+	req = structs.NodeSpecificRequest{
+		Datacenter: agent.config.Datacenter,
+		Node:       agent.config.NodeName,
+	}
+	if err := agent.RPC("Coordinate.Get", &req, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if reflect.DeepEqual(zeroCoord, reply.Coord) {
+		t.Fatalf("should not have gotten the zero coordinate")
 	}
 }

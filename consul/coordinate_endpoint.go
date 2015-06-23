@@ -1,7 +1,7 @@
 package consul
 
 import (
-	"sync"
+	"fmt"
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
@@ -12,56 +12,69 @@ type Coordinate struct {
 	// srv is a pointer back to the server.
 	srv *Server
 
-	// updateLastSent is the last time we flushed pending coordinate updates
-	// to the Raft log. CoordinateUpdatePeriod is used to control how long we
-	// wait before doing an update (that time, or hitting more than the
-	// configured CoordinateUpdateMaxBatchSize, whichever comes first).
-	updateLastSent time.Time
-
-	// updateBuffer holds the pending coordinate updates, waiting to be
-	// flushed to the Raft log.
-	updateBuffer []*structs.CoordinateUpdateRequest
-
-	// updateBufferLock manages concurrent access to updateBuffer.
-	updateBufferLock sync.Mutex
+	// updateCh receives coordinate updates and applies them to the raft log
+	// in batches so that we don't create tons of tiny transactions.
+	updateCh chan *structs.Coordinate
 }
 
 // NewCoordinate returns a new Coordinate endpoint.
 func NewCoordinate(srv *Server) *Coordinate {
-	return &Coordinate{
-		srv:            srv,
-		updateLastSent: time.Now(),
+	len := srv.config.CoordinateUpdateMaxBatchSize
+	c := &Coordinate{
+		srv:      srv,
+		updateCh: make(chan *structs.Coordinate, len),
+	}
+
+	// This will flush all pending updates at a fixed period.
+	go func() {
+		for {
+			select {
+			case <-time.After(srv.config.CoordinateUpdatePeriod):
+				c.batchApplyUpdates()
+			case <-srv.shutdownCh:
+				return
+			}
+		}
+	}()
+
+	return c
+}
+
+// batchApplyUpdates is a non-blocking routine that applies all pending updates
+// to the Raft log.
+func (c *Coordinate) batchApplyUpdates() {
+	var updates []*structs.Coordinate
+	for done := false; !done; {
+		select {
+		case update := <-c.updateCh:
+			updates = append(updates, update)
+		default:
+			done = true
+		}
+	}
+
+	if len(updates) > 0 {
+		_, err := c.srv.raftApply(structs.CoordinateBatchUpdateType, updates)
+		if err != nil {
+			c.srv.logger.Printf("[ERR] consul.coordinate: Batch update failed: %v", err)
+		}
 	}
 }
 
-// Update handles requests to update the LAN coordinate of a node.
+// Update inserts or updates the LAN coordinate of a node.
 func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct{}) error {
 	if done, err := c.srv.forward("Coordinate.Update", args, args, reply); done {
 		return err
 	}
 
-	c.updateBufferLock.Lock()
-	defer c.updateBufferLock.Unlock()
-	c.updateBuffer = append(c.updateBuffer, args)
-
-	// Process updates in batches to avoid tons of small transactions against
-	// the Raft log.
-	shouldFlush := time.Since(c.updateLastSent) > c.srv.config.CoordinateUpdatePeriod ||
-		len(c.updateBuffer) > c.srv.config.CoordinateUpdateMaxBatchSize
-	if shouldFlush {
-		// This transaction could take a while so we don't block here.
-		buf := c.updateBuffer
-		go func() {
-			_, err := c.srv.raftApply(structs.CoordinateRequestType, buf)
-			if err != nil {
-				c.srv.logger.Printf("[ERR] consul.coordinate: Update failed: %v", err)
-			}
-		}()
-
-		// We clear the buffer regardless of whether the raft transaction
-		// succeeded, just so the buffer doesn't keep growing without bound.
-		c.updateLastSent = time.Now()
-		c.updateBuffer = nil
+	// Perform a non-blocking write to the channel. We'd rather spill updates
+	// than gum things up blocking here.
+	update := &structs.Coordinate{Node: args.Node, Coord: args.Coord}
+	select {
+	case c.updateCh <- update:
+		// This is a noop - we are done if the write went through.
+	default:
+		return fmt.Errorf("Coordinate update rate limit exceeded, increase SyncCoordinateInterval")
 	}
 
 	return nil

@@ -89,8 +89,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		return c.applyACLOperation(buf[1:], log.Index)
 	case structs.TombstoneRequestType:
 		return c.applyTombstoneOperation(buf[1:], log.Index)
-	case structs.CoordinateRequestType:
-		return c.applyCoordinateOperation(buf[1:], log.Index)
+	case structs.CoordinateBatchUpdateType:
+		return c.applyCoordinateBatchUpdate(buf[1:], log.Index)
 	default:
 		if ignoreUnknown {
 			c.logger.Printf("[WARN] consul.fsm: ignoring unknown message type (%d), upgrade to newer version", msgType)
@@ -248,23 +248,18 @@ func (c *consulFSM) applyTombstoneOperation(buf []byte, index uint64) interface{
 	}
 }
 
-func (c *consulFSM) applyCoordinateOperation(buf []byte, index uint64) interface{} {
-	var reqs []*structs.CoordinateUpdateRequest
-	if err := structs.Decode(buf, &reqs); err != nil {
-		panic(fmt.Errorf("failed to decode request: %v", err))
+// applyCoordinateBatchUpdate processes a batch of coordinate updates and applies
+// them in a single underlying transaction. This interface isn't 1:1 with the outer
+// update interface that the coordinate endpoint exposes, so we made it single
+// purpose and avoided the opcode convention.
+func (c *consulFSM) applyCoordinateBatchUpdate(buf []byte, index uint64) interface{} {
+	var updates []*structs.Coordinate
+	if err := structs.Decode(buf, &updates); err != nil {
+		panic(fmt.Errorf("failed to decode batch updates: %v", err))
 	}
-	for _, req := range reqs {
-		defer metrics.MeasureSince([]string{"consul", "fsm", "coordinate", string(req.Op)}, time.Now())
-		switch req.Op {
-		case structs.CoordinateUpdate:
-			coord := &structs.Coordinate{Node: req.Node, Coord: req.Coord}
-			if err := c.state.CoordinateUpdate(index, coord); err != nil {
-				return err
-			}
-		default:
-			c.logger.Printf("[WARN] consul.fsm: Invalid Coordinate operation '%s'", req.Op)
-			return fmt.Errorf("Invalid Coordinate operation '%s'", req.Op)
-		}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "coordinate", "batch-update"}, time.Now())
+	if err := c.state.CoordinateBatchUpdate(index, updates); err != nil {
+		return err
 	}
 	return nil
 }

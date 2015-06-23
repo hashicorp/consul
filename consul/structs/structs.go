@@ -32,7 +32,7 @@ const (
 	SessionRequestType
 	ACLRequestType
 	TombstoneRequestType
-	CoordinateRequestType
+	CoordinateBatchUpdateType
 )
 
 const (
@@ -633,20 +633,11 @@ type IndexedCoordinate struct {
 	QueryMeta
 }
 
-// CoordinateOp is used for encoding coordinate-related RPC requests.
-type CoordinateOp string
-
-const (
-	// CoordinateUpdate is used to update a node's coordinates in the catalog.
-	CoordinateUpdate CoordinateOp = "update"
-)
-
 // CoordinateUpdateRequest is used to update the network coordinate of a given
 // node.
 type CoordinateUpdateRequest struct {
 	Datacenter string
 	Node       string
-	Op         CoordinateOp
 	Coord      *coordinate.Coordinate
 	WriteRequest
 }

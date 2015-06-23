@@ -255,23 +255,29 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Datacenter:                   DefaultDC,
-		NodeName:                     hostname,
-		RPCAddr:                      DefaultRPCAddr,
-		RaftConfig:                   raft.DefaultConfig(),
-		SerfLANConfig:                serf.DefaultConfig(),
-		SerfWANConfig:                serf.DefaultConfig(),
-		ReconcileInterval:            60 * time.Second,
-		ProtocolVersion:              ProtocolVersionMax,
-		ACLTTL:                       30 * time.Second,
-		ACLDefaultPolicy:             "allow",
-		ACLDownPolicy:                "extend-cache",
-		TombstoneTTL:                 15 * time.Minute,
-		TombstoneTTLGranularity:      30 * time.Second,
-		SessionTTLMin:                10 * time.Second,
-		DisableCoordinates:           false,
-		CoordinateUpdatePeriod:       30 * time.Second,
-		CoordinateUpdateMaxBatchSize: 1000,
+		Datacenter:              DefaultDC,
+		NodeName:                hostname,
+		RPCAddr:                 DefaultRPCAddr,
+		RaftConfig:              raft.DefaultConfig(),
+		SerfLANConfig:           serf.DefaultConfig(),
+		SerfWANConfig:           serf.DefaultConfig(),
+		ReconcileInterval:       60 * time.Second,
+		ProtocolVersion:         ProtocolVersionMax,
+		ACLTTL:                  30 * time.Second,
+		ACLDefaultPolicy:        "allow",
+		ACLDownPolicy:           "extend-cache",
+		TombstoneTTL:            15 * time.Minute,
+		TombstoneTTLGranularity: 30 * time.Second,
+		SessionTTLMin:           10 * time.Second,
+		DisableCoordinates:      false,
+
+		// SyncCoordinateInterval defaults to 20 seconds, and scales up
+		// as the number of nodes in the cluster goes up. For 100k nodes,
+		// it will move up to 201 seconds, which gives an update rate of
+		// just under 500 updates per second. We will split this into 2
+		// batches.
+		CoordinateUpdatePeriod:       500 * time.Millisecond,
+		CoordinateUpdateMaxBatchSize: 250,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
