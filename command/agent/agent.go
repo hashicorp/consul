@@ -246,6 +246,17 @@ func (a *Agent) consulConfig() *consul.Config {
 			Port: a.config.Ports.Server,
 		}
 	}
+	if a.config.AdvertiseAddrs.SerfLan != nil {
+		base.SerfLANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddrs.SerfLan.IP.String()
+		base.SerfLANConfig.MemberlistConfig.AdvertisePort = a.config.AdvertiseAddrs.SerfLan.Port
+	}
+	if a.config.AdvertiseAddrs.SerfWan != nil {
+		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddrs.SerfWan.IP.String()
+		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.AdvertiseAddrs.SerfWan.Port
+	}
+	if a.config.AdvertiseAddrs.RPC != nil {
+		base.RPCAdvertise = a.config.AdvertiseAddrs.RPC
+	}
 	if a.config.Bootstrap {
 		base.Bootstrap = true
 	}

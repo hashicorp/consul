@@ -40,6 +40,15 @@ type AddressConfig struct {
 	RPC   string // CLI RPC
 }
 
+type AdvertiseAddrsConfig struct {
+	SerfLan    *net.TCPAddr `mapstructure:"-"`
+	SerfLanRaw string       `mapstructure:"serf_lan"`
+	SerfWan    *net.TCPAddr `mapstructure:"-"`
+	SerfWanRaw string       `mapstructure:"serf_wan"`
+	RPC        *net.TCPAddr `mapstructure:"-"`
+	RPCRaw     string       `mapstructure:"rpc"`
+}
+
 // DNSConfig is used to fine tune the DNS sub-system.
 // It can be used to control cache values, and stale
 // reads
@@ -141,6 +150,9 @@ type Config struct {
 	// AdvertiseAddr is the address we use for advertising our Serf,
 	// and Consul RPC IP. If not specified, bind address is used.
 	AdvertiseAddr string `mapstructure:"advertise_addr"`
+
+	// AdvertiseAddrs configuration
+	AdvertiseAddrs AdvertiseAddrsConfig `mapstructure:"advertise_addrs"`
 
 	// AdvertiseAddrWan is the address we use for advertising our
 	// Serf WAN IP. If not specified, the general advertise address is used.
@@ -638,6 +650,30 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.SessionTTLMin = dur
 	}
 
+	if result.AdvertiseAddrs.SerfLanRaw != "" {
+		addr, err := net.ResolveTCPAddr("tcp", result.AdvertiseAddrs.SerfLanRaw)
+		if err != nil {
+			return nil, fmt.Errorf("AdvertiseAddrs.SerfLan is invalid: %v", err)
+		}
+		result.AdvertiseAddrs.SerfLan = addr
+	}
+
+	if result.AdvertiseAddrs.SerfWanRaw != "" {
+		addr, err := net.ResolveTCPAddr("tcp", result.AdvertiseAddrs.SerfWanRaw)
+		if err != nil {
+			return nil, fmt.Errorf("AdvertiseAddrs.SerfWan is invalid: %v", err)
+		}
+		result.AdvertiseAddrs.SerfWan = addr
+	}
+
+	if result.AdvertiseAddrs.RPCRaw != "" {
+		addr, err := net.ResolveTCPAddr("tcp", result.AdvertiseAddrs.RPCRaw)
+		if err != nil {
+			return nil, fmt.Errorf("AdvertiseAddrs.RPC is invalid: %v", err)
+		}
+		result.AdvertiseAddrs.RPC = addr
+	}
+
 	return &result, nil
 }
 
@@ -818,6 +854,18 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.AdvertiseAddrWan != "" {
 		result.AdvertiseAddrWan = b.AdvertiseAddrWan
+	}
+	if b.AdvertiseAddrs.SerfLan != nil {
+		result.AdvertiseAddrs.SerfLan = b.AdvertiseAddrs.SerfLan
+		result.AdvertiseAddrs.SerfLanRaw = b.AdvertiseAddrs.SerfLanRaw
+	}
+	if b.AdvertiseAddrs.SerfWan != nil {
+		result.AdvertiseAddrs.SerfWan = b.AdvertiseAddrs.SerfWan
+		result.AdvertiseAddrs.SerfWanRaw = b.AdvertiseAddrs.SerfWanRaw
+	}
+	if b.AdvertiseAddrs.RPC != nil {
+		result.AdvertiseAddrs.RPC = b.AdvertiseAddrs.RPC
+		result.AdvertiseAddrs.RPCRaw = b.AdvertiseAddrs.RPCRaw
 	}
 	if b.Server == true {
 		result.Server = b.Server

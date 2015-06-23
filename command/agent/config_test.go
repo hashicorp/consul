@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -208,6 +209,45 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.AdvertiseAddrWan != "127.0.0.5" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Advertise addresses for serflan
+	input = `{"advertise_addrs": {"serf_lan": "127.0.0.5:1234"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.AdvertiseAddrs.SerfLanRaw != "127.0.0.5:1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.AdvertiseAddrs.SerfLan.String() != "127.0.0.5:1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Advertise addresses for serfwan
+	input = `{"advertise_addrs": {"serf_wan": "127.0.0.5:1234"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.AdvertiseAddrs.SerfWanRaw != "127.0.0.5:1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.AdvertiseAddrs.SerfWan.String() != "127.0.0.5:1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Advertise addresses for rpc
+	input = `{"advertise_addrs": {"rpc": "127.0.0.5:1234"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.AdvertiseAddrs.RPCRaw != "127.0.0.5:1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.AdvertiseAddrs.RPC.String() != "127.0.0.5:1234" {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -1166,6 +1206,14 @@ func TestMergeConfig(t *testing.T) {
 		AtlasJoin:           true,
 		SessionTTLMinRaw:    "1000s",
 		SessionTTLMin:       1000 * time.Second,
+		AdvertiseAddrs: AdvertiseAddrsConfig{
+			SerfLan:    &net.TCPAddr{},
+			SerfLanRaw: "127.0.0.5:1231",
+			SerfWan:    &net.TCPAddr{},
+			SerfWanRaw: "127.0.0.5:1232",
+			RPC:        &net.TCPAddr{},
+			RPCRaw:     "127.0.0.5:1233",
+		},
 	}
 
 	c := MergeConfig(a, b)

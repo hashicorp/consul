@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -131,6 +132,37 @@ func TestAgent_RPCPing(t *testing.T) {
 	var out struct{}
 	if err := agent.RPC("Status.Ping", struct{}{}, &out); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
+	c := nextConfig()
+	c.AdvertiseAddrs.SerfLan, _ = net.ResolveTCPAddr("tcp", "127.0.0.42:1233")
+	c.AdvertiseAddrs.SerfWan, _ = net.ResolveTCPAddr("tcp", "127.0.0.43:1234")
+	c.AdvertiseAddrs.RPC, _ = net.ResolveTCPAddr("tcp", "127.0.0.44:1235")
+	dir, agent := makeAgent(t, c)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	serfLanAddr := agent.consulConfig().SerfLANConfig.MemberlistConfig.AdvertiseAddr
+	if serfLanAddr != "127.0.0.42" {
+		t.Fatalf("SerfLan is not properly set to '127.0.0.42': %s", serfLanAddr)
+	}
+	serfLanPort := agent.consulConfig().SerfLANConfig.MemberlistConfig.AdvertisePort
+	if serfLanPort != 1233 {
+		t.Fatalf("SerfLan is not properly set to '1233': %s", serfLanPort)
+	}
+	serfWanAddr := agent.consulConfig().SerfWANConfig.MemberlistConfig.AdvertiseAddr
+	if serfWanAddr != "127.0.0.43" {
+		t.Fatalf("SerfWan is not properly set to '127.0.0.43': %s", serfWanAddr)
+	}
+	serfWanPort := agent.consulConfig().SerfWANConfig.MemberlistConfig.AdvertisePort
+	if serfWanPort != 1234 {
+		t.Fatalf("SerfWan is not properly set to '1234': %s", serfWanPort)
+	}
+	rpc := agent.consulConfig().RPCAdvertise
+	if rpc != c.AdvertiseAddrs.RPC {
+		t.Fatalf("RPC is not properly set to %v: %s", c.AdvertiseAddrs.RPC, rpc)
 	}
 }
 

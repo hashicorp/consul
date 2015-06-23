@@ -322,6 +322,16 @@ definitions support being updated during a reload.
 * <a name="advertise_addr"></a><a href="#advertise_addr">`advertise_addr`</a> Equivalent to
   the [`-advertise` command-line flag](#_advertise).
 
+* <a name="advertise_addrs"></a><a href="#advertise_addrs">`advertise_addrs`</a> Allows to set
+  the advertised addresses for SerfLan, SerfWan and RPC together with the port. This gives
+  you more control than (#_advertise) or (#_advertise-wan) while it serves the same purpose.
+  These settings might override (#_advertise) and (#_advertise-wan).
+  <br><br>
+  This is a nested setting that allows the following keys:
+  * `serf_lan` - The SerfLan address. Accepts values in the form of "host:port" like "10.23.31.101:8301".
+  * `serf_wan` - The SerfWan address. Accepts values in the form of "host:port" like "10.23.31.101:8302".
+  * `rpc` - The RPC address. Accepts values in the form of "host:port" like "10.23.31.101:8400".
+
 * <a name="advertise_addr_wan"></a><a href="#advertise_addr_wan">`advertise_addr_wan`</a> Equivalent to
   the [`-advertise-wan` command-line flag](#_advertise-wan).
 
