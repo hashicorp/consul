@@ -56,3 +56,5 @@ The list of available flags are:
   a matching tag. This must be used with `-service`. As an example, you may
   do "-service mysql -tag slave".
 
+* `-token` - The ACL token to use when firing the event. This token must have
+  write-level privileges for the event specified. Defaults to that of the agent.
