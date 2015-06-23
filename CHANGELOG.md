@@ -10,6 +10,10 @@ BUG FIXES:
 * Token hiding in HTTP logs bug fixed [GH-1020]
 * RFC6598 addresses are accepted as private IP's [GH-1050]
 
+IMPROVEMENTS:
+
+* Advertised gossip/rpc addresses can now be configured [GH-1004]
+
 MISC:
 
 * Protocol version bumped to 3 for serf protocol 5 [GH-996]
