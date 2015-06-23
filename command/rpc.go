@@ -47,16 +47,15 @@ func HTTPAddrFlag(f *flag.FlagSet) *string {
 
 // HTTPClient returns a new Consul HTTP client with the given address.
 func HTTPClient(addr string) (*consulapi.Client, error) {
-	return HTTPClientDC(addr, "")
+	return HTTPClientConfig(func(c *consulapi.Config) {
+		c.Address = addr
+	})
 }
 
-// HTTPClientDC returns a new Consul HTTP client with the given address and datacenter
-func HTTPClientDC(addr, dc string) (*consulapi.Client, error) {
+// HTTPClientConfig is used to return a new API client and modify its
+// configuration by passing in a config modifier function.
+func HTTPClientConfig(fn func(c *consulapi.Config)) (*consulapi.Client, error) {
 	conf := consulapi.DefaultConfig()
-	if envAddr := os.Getenv(HTTPAddrEnvName); addr == "" && envAddr != "" {
-		addr = envAddr
-	}
-	conf.Address = addr
-	conf.Datacenter = dc
+	fn(conf)
 	return consulapi.NewClient(conf)
 }
