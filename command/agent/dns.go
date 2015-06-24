@@ -627,8 +627,8 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	var err error
 	for _, recursor := range d.recursors {
 		r, rtt, err = c.Exchange(req, recursor)
-		r.Compress = true
 		if err == nil {
+			r.Compress = true
 			// Forward the response
 			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v)", q, rtt)
 			if err := resp.WriteMsg(r); err != nil {
