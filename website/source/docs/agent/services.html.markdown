@@ -123,3 +123,16 @@ Multiple services definitions can be provided at once using the `services`
   ]
 }
 ```
+
+## Service and Tag Names with DNS
+
+Consul exposes service definitions and tags over the [DNS](/docs/agent/dns.html)
+interface. DNS queries have a strict set of allowed characters and a
+well-defined format that Consul cannot override. While it is possible to
+register services or tags with names that don't match the conventions, those
+services and tags will not be discoverable via the DNS interface. It is
+recommended to always use DNS-compliant service and tag names.
+
+DNS-compliant service and tag names may contain any alpha-numeric characters, as
+well as dashes. Dots are not supported because Consul internally uses them to
+delimit service tags.
