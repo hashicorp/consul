@@ -1,6 +1,6 @@
 variable "platform" {
     default = "ubuntu"
-    description = "The region of AWS, for AMI lookups."
+    description = "The OS Platform"
 }
 
 variable "user" {
@@ -49,9 +49,4 @@ variable "instance_type" {
 variable "tagName" {
     default = "consul"
     description = "Name tag for the servers"
-}
-
-variable "platform" {
-    default = "ubuntu"
-    description = "The OS Platform"
 }
