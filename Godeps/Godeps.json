@@ -1,9 +1,9 @@
 {
 	"ImportPath": "github.com/hashicorp/consul",
 	"GoVersion": "go1.4",
-	"Packages": [
-		"./..."
-	],
+        "Packages": [
+                "./..."
+        ],
 	"Deps": [
 		{
 			"ImportPath": "github.com/armon/circbuf",
@@ -23,8 +23,8 @@
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",
-			"Comment": "v1.0-72-g8a2a9b2",
-			"Rev": "8a2a9b2eb7123c41ea752bab494ff046909e9473"
+			"Comment": "v1.0-79-g2c04100",
+			"Rev": "2c04100eb9793f2b8541d243494e2909d2112325"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/consul-migrate/migrator",
@@ -49,7 +49,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/golang-lru",
-			"Rev": "d85392d6bc30546d352f52f2632814cde4201d44"
+			"Rev": "995efda3e073b6946b175ed93901d729ad47466a"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/hcl",
@@ -61,7 +61,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/memberlist",
-			"Rev": "dad1009e26ac60199c094f2e91cdd7769a7f46cc"
+			"Rev": "6025015f2dc659ca2c735112d37e753bda6e329d"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/net-rpc-msgpackrpc",
@@ -69,7 +69,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/raft",
-			"Rev": "6c2c8a2375827c2cb41d0028e2fb5fe016b10619"
+			"Rev": "a8065f298505708bf60f518c09178149f3c06f21"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/raft-boltdb",
@@ -85,8 +85,8 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/serf/serf",
-			"Comment": "v0.6.4-9-g4bd6183",
-			"Rev": "4bd6183181bad5ae211029873279fb74ceace07c"
+			"Comment": "v0.6.4-13-g558a687",
+			"Rev": "558a6876882b2c5c61df29fd3990fb1765fd71d3"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/yamux",
@@ -98,11 +98,11 @@
 		},
 		{
 			"ImportPath": "github.com/miekg/dns",
-			"Rev": "5a357a6fc5e85268b929350aa6423e2d56dcc4ff"
+			"Rev": "bb1103f648f811d2018d4bedcb2d4b2bce34a0f1"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/cli",
-			"Rev": "afc399c273e70173826fb6f518a48edff23fe897"
+			"Rev": "6cc8bc522243675a2882b81662b0b0d2e04b99c9"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/mapstructure",
@@ -112,6 +112,10 @@
 			"ImportPath": "github.com/ryanuber/columnize",
 			"Comment": "v2.0.1-6-g44cb478",
 			"Rev": "44cb4788b2ec3c3d158dd3d1b50aba7d66f4b59a"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ssh/terminal",
+			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
 		}
 	]
 }
