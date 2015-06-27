@@ -79,39 +79,39 @@ func TestCoordinate_Update(t *testing.T) {
 	// Make sure the updates did not yet apply because the update period
 	// hasn't expired.
 	state := s1.fsm.State()
-	_, d, err := state.CoordinateGet("node1")
+	_, c, err := state.CoordinateGet("node1")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if d != nil {
+	if c != nil {
 		t.Fatalf("should be nil because the update should be batched")
 	}
-	_, d, err = state.CoordinateGet("node2")
+	_, c, err = state.CoordinateGet("node2")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if d != nil {
+	if c != nil {
 		t.Fatalf("should be nil because the update should be batched")
 	}
 
 	// Wait a while and the updates should get picked up.
 	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
-	_, d, err = state.CoordinateGet("node1")
+	_, c, err = state.CoordinateGet("node1")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if d == nil {
+	if c == nil {
 		t.Fatalf("should return a coordinate but it's nil")
 	}
-	verifyCoordinatesEqual(t, d.Coord, arg1.Coord)
-	_, d, err = state.CoordinateGet("node2")
+	verifyCoordinatesEqual(t, c, arg1.Coord)
+	_, c, err = state.CoordinateGet("node2")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if d == nil {
+	if c == nil {
 		t.Fatalf("should return a coordinate but it's nil")
 	}
-	verifyCoordinatesEqual(t, d.Coord, arg2.Coord)
+	verifyCoordinatesEqual(t, c, arg2.Coord)
 
 	// Now try spamming coordinates and make sure it starts dropping when
 	// the pipe is full.
@@ -132,14 +132,14 @@ func TestCoordinate_Update(t *testing.T) {
 	// Wait a little while for the batch routine to run, then make sure
 	// all but the last coordinate update made it in.
 	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
-	_, d, err = state.CoordinateGet("node1")
+	_, c, err = state.CoordinateGet("node1")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if d == nil {
+	if c == nil {
 		t.Fatalf("should return a coordinate but it's nil")
 	}
-	verifyCoordinatesEqual(t, d.Coord, arg1.Coord)
+	verifyCoordinatesEqual(t, c, arg1.Coord)
 }
 
 func TestCoordinate_Get(t *testing.T) {

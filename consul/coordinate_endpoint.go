@@ -91,13 +91,8 @@ func (c *Coordinate) Get(args *structs.NodeSpecificRequest, reply *structs.Index
 		&reply.QueryMeta,
 		state.QueryTables("Coordinates"),
 		func() error {
-			idx, coord, err := state.CoordinateGet(args.Node)
-			reply.Index = idx
-			if coord == nil {
-				reply.Coord = nil
-			} else {
-				reply.Coord = coord.Coord
-			}
+			var err error
+			reply.Index, reply.Coord, err = state.CoordinateGet(args.Node)
 			return err
 		})
 }

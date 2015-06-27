@@ -761,23 +761,23 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	}
 
 	// Read back the two coordinates to make sure they got updated.
-	_, d, err := fsm.state.CoordinateGet(updates[0].Node)
+	_, c, err := fsm.state.CoordinateGet(updates[0].Node)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if d == nil {
+	if c == nil {
 		t.Fatalf("missing")
 	}
-	verifyCoordinatesEqual(t, updates[0].Coord, d.Coord)
+	verifyCoordinatesEqual(t, c, updates[0].Coord)
 
-	_, d, err = fsm.state.CoordinateGet(updates[1].Node)
+	_, c, err = fsm.state.CoordinateGet(updates[1].Node)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if d == nil {
+	if c == nil {
 		t.Fatalf("missing")
 	}
-	verifyCoordinatesEqual(t, updates[1].Coord, d.Coord)
+	verifyCoordinatesEqual(t, c, updates[1].Coord)
 }
 
 func TestFSM_SessionCreate_Destroy(t *testing.T) {
