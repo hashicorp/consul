@@ -841,14 +841,15 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	conf.SyncCoordinateInterval = 10 * time.Millisecond
 	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
 
-	// Inject a random coordinate so we can confirm that the periodic process
+	// Inject a sentinel coordinate so we can confirm that the periodic process
 	// is still able to update it.
-	zeroCoord := &coordinate.Coordinate{}
+	sentinel := coordinate.NewCoordinate(coordinate.DefaultConfig())
+	sentinel.Vec[0] = 23.0
 	func() {
 		req := structs.CoordinateUpdateRequest{
 			Datacenter:   agent.config.Datacenter,
 			Node:         agent.config.NodeName,
-			Coord:        zeroCoord,
+			Coord:        sentinel,
 			WriteRequest: structs.WriteRequest{Token: agent.config.ACLToken},
 		}
 		var reply struct{}
@@ -861,7 +862,8 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	// to fire.
 	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
 
-	// Make sure the injected coordinate is not the one that's present.
+	// Make sure the injected coordinate is not the one that's present since
+	// there should have been some more periodic updates.
 	req = structs.NodeSpecificRequest{
 		Datacenter: agent.config.Datacenter,
 		Node:       agent.config.NodeName,
@@ -869,7 +871,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	if err := agent.RPC("Coordinate.Get", &req, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if reflect.DeepEqual(zeroCoord, reply.Coord) {
-		t.Fatalf("should not have gotten the zero coordinate")
+	if reflect.DeepEqual(sentinel, reply.Coord) {
+		t.Fatalf("should not have gotten the sentinel coordinate")
 	}
 }

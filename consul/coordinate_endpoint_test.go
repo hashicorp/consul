@@ -140,6 +140,14 @@ func TestCoordinate_Update(t *testing.T) {
 		t.Fatalf("should return a coordinate but it's nil")
 	}
 	verifyCoordinatesEqual(t, c, arg1.Coord)
+
+	// Finally, send a coordinate with the wrong dimensionality to make sure
+	// there are no panics, and that it gets rejected.
+	arg2.Coord.Vec = make([]float64, 2*len(arg2.Coord.Vec))
+	err = client.Call("Coordinate.Update", &arg2, &out)
+	if err == nil || !strings.Contains(err.Error(), "rejected bad coordinate") {
+		t.Fatalf("should have failed with an error, got %v", err)
+	}
 }
 
 func TestCoordinate_Get(t *testing.T) {

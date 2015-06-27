@@ -30,7 +30,9 @@ func NewCoordinate(srv *Server) *Coordinate {
 		for {
 			select {
 			case <-time.After(srv.config.CoordinateUpdatePeriod):
-				c.batchApplyUpdates()
+				if err := c.batchApplyUpdates(); err != nil {
+					c.srv.logger.Printf("[ERR] consul.coordinate: Batch update failed: %v", err)
+				}
 			case <-srv.shutdownCh:
 				return
 			}
@@ -42,7 +44,7 @@ func NewCoordinate(srv *Server) *Coordinate {
 
 // batchApplyUpdates is a non-blocking routine that applies all pending updates
 // to the Raft log.
-func (c *Coordinate) batchApplyUpdates() {
+func (c *Coordinate) batchApplyUpdates() error {
 	var updates []*structs.Coordinate
 	for done := false; !done; {
 		select {
@@ -54,17 +56,23 @@ func (c *Coordinate) batchApplyUpdates() {
 	}
 
 	if len(updates) > 0 {
-		_, err := c.srv.raftApply(structs.CoordinateBatchUpdateType, updates)
-		if err != nil {
-			c.srv.logger.Printf("[ERR] consul.coordinate: Batch update failed: %v", err)
+		if _, err := c.srv.raftApply(structs.CoordinateBatchUpdateType, updates); err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
 // Update inserts or updates the LAN coordinate of a node.
-func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct{}) error {
+func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct{}) (err error) {
 	if done, err := c.srv.forward("Coordinate.Update", args, args, reply); done {
 		return err
+	}
+
+	// Since this is a coordinate coming from some place else we harden this
+	// and look for dimensionality problems proactively.
+	if !c.srv.serfLAN.GetCoordinate().IsCompatibleWith(args.Coord) {
+		return fmt.Errorf("rejected bad coordinate: %v", args.Coord)
 	}
 
 	// Perform a non-blocking write to the channel. We'd rather spill updates
@@ -74,7 +82,7 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	case c.updateCh <- update:
 		// This is a noop - we are done if the write went through.
 	default:
-		return fmt.Errorf("Coordinate update rate limit exceeded, increase SyncCoordinateInterval")
+		return fmt.Errorf("coordinate update rate limit exceeded, increase SyncCoordinateInterval")
 	}
 
 	return nil
