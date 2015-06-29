@@ -382,6 +382,6 @@ func (c *Client) Stats() map[string]map[string]string {
 
 // GetCoordinate returns the network coordinate of the current node, as
 // maintained by Serf.
-func (c *Client) GetCoordinate() *coordinate.Coordinate {
+func (c *Client) GetCoordinate() (*coordinate.Coordinate, error) {
 	return c.serf.GetCoordinate()
 }

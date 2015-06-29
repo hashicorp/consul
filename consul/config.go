@@ -212,9 +212,14 @@ type Config struct {
 	// being more stale.
 	CoordinateUpdatePeriod time.Duration
 
-	// CoordinateUpdateMaxBatchSize controls the maximum number of updates a
+	// CoordinateUpdateBatchSize controls the maximum number of updates a
 	// server batches before applying them in a Raft transaction.
-	CoordinateUpdateMaxBatchSize int
+	CoordinateUpdateBatchSize int
+
+	// CoordinateUpdateMaxBatches controls the maximum number of batches we
+	// are willing to apply in one period. After this limit we will issue a
+	// warning and discard the remaining updates.
+	CoordinateUpdateMaxBatches int
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
@@ -274,10 +279,11 @@ func DefaultConfig() *Config {
 		// SyncCoordinateInterval defaults to 20 seconds, and scales up
 		// as the number of nodes in the cluster goes up. For 100k nodes,
 		// it will move up to 201 seconds, which gives an update rate of
-		// just under 500 updates per second. We will split this into 2
-		// batches.
-		CoordinateUpdatePeriod:       500 * time.Millisecond,
-		CoordinateUpdateMaxBatchSize: 250,
+		// just under 500 updates per second. With this tuning we will
+		// apply less than 5 batches per period.
+		CoordinateUpdatePeriod:       5 * time.Second,
+		CoordinateUpdateBatchSize:    512,
+		CoordinateUpdateMaxBatches:   5,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

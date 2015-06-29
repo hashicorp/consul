@@ -572,21 +572,27 @@ func (a *Agent) sendCoordinate() {
 		select {
 		case <-time.After(intv):
 			var c *coordinate.Coordinate
+			var err error
 			if a.config.Server {
-				c = a.server.GetLANCoordinate()
+				c, err = a.server.GetLANCoordinate()
 			} else {
-				c = a.client.GetCoordinate()
+				c, err = a.client.GetCoordinate()
 			}
+			if err != nil {
+				a.logger.Printf("[ERR] agent: failed to get coordinate: %s", err)
+				continue
+			}
+
 			req := structs.CoordinateUpdateRequest{
 				Datacenter:   a.config.Datacenter,
 				Node:         a.config.NodeName,
 				Coord:        c,
 				WriteRequest: structs.WriteRequest{Token: a.config.ACLToken},
 			}
-
 			var reply struct{}
 			if err := a.RPC("Coordinate.Update", &req, &reply); err != nil {
 				a.logger.Printf("[ERR] agent: coordinate update error: %s", err)
+				continue
 			}
 		case <-a.shutdownCh:
 			return

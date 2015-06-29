@@ -44,7 +44,8 @@ func TestCoordinate_Update(t *testing.T) {
 	defer os.RemoveAll(dir1)
 
 	config1.CoordinateUpdatePeriod = 500 * time.Millisecond
-	config1.CoordinateUpdateMaxBatchSize = 5
+	config1.CoordinateUpdateBatchSize = 5
+	config1.CoordinateUpdateMaxBatches = 2
 	s1, err := NewServer(config1)
 	if err != nil {
 		t.Fatal(err)
@@ -113,33 +114,34 @@ func TestCoordinate_Update(t *testing.T) {
 	}
 	verifyCoordinatesEqual(t, c, arg2.Coord)
 
-	// Now try spamming coordinates and make sure it starts dropping when
-	// the pipe is full.
-	for i := 0; i < s1.config.CoordinateUpdateMaxBatchSize; i++ {
+	// Now spam some coordinate updates and make sure it starts throwing
+	// them away if they exceed the batch allowance. Node we have to make
+	// unique names since these are held in map by node name.
+	spamLen := s1.config.CoordinateUpdateBatchSize * s1.config.CoordinateUpdateMaxBatches + 1
+	for i := 0; i < spamLen; i++ {
+		arg1.Node = fmt.Sprintf("bogusnode%d", i)
 		arg1.Coord = generateRandomCoordinate()
 		if err := client.Call("Coordinate.Update", &arg1, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
 
-	// This one should get dropped.
-	arg2.Coord = generateRandomCoordinate()
-	err = client.Call("Coordinate.Update", &arg2, &out)
-	if err == nil || !strings.Contains(err.Error(), "rate limit") {
-		t.Fatalf("should have failed with a rate limit error, got %v", err)
-	}
-
 	// Wait a little while for the batch routine to run, then make sure
-	// all but the last coordinate update made it in.
+	// exactly one of the updates got dropped (we won't know which one).
 	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
-	_, c, err = state.CoordinateGet("node1")
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	numDropped := 0
+	for i := 0; i < spamLen; i++ {
+		_, c, err = state.CoordinateGet(fmt.Sprintf("bogusnode%d", i))
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if c == nil {
+			numDropped++
+		}
 	}
-	if c == nil {
-		t.Fatalf("should return a coordinate but it's nil")
+	if numDropped != 1 {
+		t.Fatalf("wrong number of coordinates dropped, %d != 1", numDropped)
 	}
-	verifyCoordinatesEqual(t, c, arg1.Coord)
 
 	// Finally, send a coordinate with the wrong dimensionality to make sure
 	// there are no panics, and that it gets rejected.

@@ -313,7 +313,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	// number of nodes should be small, and where we serve these directly
 	// from Serf because they aren't managed in the catalog.
 	conf.DisableCoordinates = s.config.DisableCoordinates
-	conf.CacheCoordinates = (!s.config.DisableCoordinates) && wan
+	conf.CacheCoordinates = wan
 
 	return serf.Create(conf)
 }
@@ -703,11 +703,11 @@ func (s *Server) Stats() map[string]map[string]string {
 }
 
 // GetLANCoordinate returns the coordinate of the server in the LAN gossip pool.
-func (s *Server) GetLANCoordinate() *coordinate.Coordinate {
+func (s *Server) GetLANCoordinate() (*coordinate.Coordinate, error) {
 	return s.serfLAN.GetCoordinate()
 }
 
 // GetWANCoordinate returns the coordinate of the server in the WAN gossip pool.
-func (s *Server) GetWANCoordinate() *coordinate.Coordinate {
+func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
 	return s.serfWAN.GetCoordinate()
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/serf/coordinate"
 )
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
@@ -809,7 +808,8 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	conf := nextConfig()
 	conf.SyncCoordinateInterval = 10 * time.Millisecond
 	conf.ConsulConfig.CoordinateUpdatePeriod = 100 * time.Millisecond
-	conf.ConsulConfig.CoordinateUpdateMaxBatchSize = 20
+	conf.ConsulConfig.CoordinateUpdateBatchSize = 15
+	conf.ConsulConfig.CoordinateUpdateMaxBatches = 1
 	dir, agent := makeAgent(t, conf)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
@@ -830,48 +830,5 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	}
 	if reply.Coord == nil {
 		t.Fatalf("should get a coordinate")
-	}
-
-	// Start spamming for a little while to get rate limit errors back from
-	// the server.
-	conf.SyncCoordinateInterval = 1 * time.Millisecond
-	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
-
-	// Slow down and let the server catch up.
-	conf.SyncCoordinateInterval = 10 * time.Millisecond
-	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
-
-	// Inject a sentinel coordinate so we can confirm that the periodic process
-	// is still able to update it.
-	sentinel := coordinate.NewCoordinate(coordinate.DefaultConfig())
-	sentinel.Vec[0] = 23.0
-	func() {
-		req := structs.CoordinateUpdateRequest{
-			Datacenter:   agent.config.Datacenter,
-			Node:         agent.config.NodeName,
-			Coord:        sentinel,
-			WriteRequest: structs.WriteRequest{Token: agent.config.ACLToken},
-		}
-		var reply struct{}
-		if err := agent.RPC("Coordinate.Update", &req, &reply); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}()
-
-	// Wait a little while for the injected update, as well as periodic ones
-	// to fire.
-	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
-
-	// Make sure the injected coordinate is not the one that's present since
-	// there should have been some more periodic updates.
-	req = structs.NodeSpecificRequest{
-		Datacenter: agent.config.Datacenter,
-		Node:       agent.config.NodeName,
-	}
-	if err := agent.RPC("Coordinate.Get", &req, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if reflect.DeepEqual(sentinel, reply.Coord) {
-		t.Fatalf("should not have gotten the sentinel coordinate")
 	}
 }
