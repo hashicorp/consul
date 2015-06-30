@@ -253,7 +253,7 @@ func (c *consulFSM) applyTombstoneOperation(buf []byte, index uint64) interface{
 // update interface that the coordinate endpoint exposes, so we made it single
 // purpose and avoided the opcode convention.
 func (c *consulFSM) applyCoordinateBatchUpdate(buf []byte, index uint64) interface{} {
-	var updates []*structs.Coordinate
+	var updates []structs.Coordinate
 	if err := structs.Decode(buf, &updates); err != nil {
 		panic(fmt.Errorf("failed to decode batch updates: %v", err))
 	}
@@ -361,6 +361,15 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 
+		case structs.CoordinateBatchUpdateType:
+			var req []structs.Coordinate
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := c.state.CoordinateBatchUpdate(header.LastIndex, req); err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("Unrecognized msg type: %v", msgType)
 		}
@@ -462,6 +471,15 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 			}
 		}
 	}
+
+	// Save the coordinates separately so we can use the existing batch
+	// interface.
+	sink.Write([]byte{byte(structs.CoordinateBatchUpdateType)})
+	coords := s.state.Coordinates()
+	if err := encoder.Encode(&coords); err != nil {
+		return err
+	}
+
 	return nil
 }
 

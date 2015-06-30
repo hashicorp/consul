@@ -3,6 +3,7 @@ package consul
 import (
 	"bytes"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/consul/state"
@@ -382,6 +383,12 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
+	coord := generateRandomCoordinate()
+	coords := []structs.Coordinate {
+		structs.Coordinate{"foo", coord},
+	}
+	fsm.state.CoordinateBatchUpdate(13, coords)
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	if err != nil {
@@ -490,6 +497,15 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 			t.Fatalf("unexpected extra tombstones")
 		}
 	}()
+
+	// Verify coordinates are restored
+	_, c, err := fsm2.state.CoordinateGet("foo")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if c == nil || !reflect.DeepEqual(c, coord) {
+		t.Fatalf("coordinate is missing or doesn't match, %v != %v", c, coord)
+	}
 }
 
 func TestFSM_KVSSet(t *testing.T) {
