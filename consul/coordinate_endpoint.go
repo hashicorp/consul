@@ -60,7 +60,7 @@ func (c *Coordinate) batchApplyUpdates() error {
 	limit := c.srv.config.CoordinateUpdateBatchSize * c.srv.config.CoordinateUpdateMaxBatches
 	size := len(pending)
 	if size > limit {
-		c.srv.logger.Printf("[ERR] consul.coordinate: Discarded %d coordinate updates; increase SyncCoordinateInterval", size - limit)
+		c.srv.logger.Printf("[WARN] consul.coordinate: Discarded %d coordinate updates", size - limit)
 		size = limit
 	}
 

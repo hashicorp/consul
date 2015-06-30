@@ -39,6 +39,17 @@ func aeScale(interval time.Duration, n int) time.Duration {
 	return time.Duration(multiplier) * interval
 }
 
+// rateScaledInterval is used to choose an interval to perform an action in order
+// to target an aggregate number of actions per second across the whole cluster.
+func rateScaledInterval(rate float64, min time.Duration, n int) time.Duration {
+	interval := time.Duration(float64(time.Second) * float64(n) / rate)
+	if interval < min {
+		return min
+	}
+
+	return interval
+}
+
 // Returns a random stagger interval between 0 and the duration
 func randomStagger(intv time.Duration) time.Duration {
 	return time.Duration(uint64(rand.Int63()) % uint64(intv))

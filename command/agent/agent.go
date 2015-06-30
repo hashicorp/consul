@@ -566,7 +566,9 @@ func (a *Agent) ResumeSync() {
 // to the server. Closing the agent's shutdownChannel will cause this to exit.
 func (a *Agent) sendCoordinate() {
 	for {
-		intv := aeScale(a.config.SyncCoordinateInterval, len(a.LANMembers()))
+		rate := a.config.SyncCoordinateRateTarget
+		min := a.config.SyncCoordinateIntervalMin
+		intv := rateScaledInterval(rate, min, len(a.LANMembers()))
 		intv = intv + randomStagger(intv)
 
 		select {

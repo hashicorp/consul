@@ -375,12 +375,17 @@ type Config struct {
 	// DisableCoordinates controls features related to network coordinates.
 	DisableCoordinates bool `mapstructure:"disable_coordinates" json:"-"`
 
-	// SyncCoordinateInterval controls the interval for sending network
-	// coordinates to the server. Defaults to every 20s, but scales up as
-	// the number of nodes increases in the network, to prevent servers from
-	// being overwhelmed. If you update this, you may need to adjust the
-	// tuning of CoordinateUpdatePeriod and CoordinateUpdateMaxBatchSize.
-	SyncCoordinateInterval time.Duration `mapstructure:"-" json:"-"`
+	// SyncCoordinateRateTarget controls the rate for sending network
+	// coordinates to the server, in updates per second. This is the max rate
+	// that the server supports, so we scale our interval based on the size
+	// of the cluster to try to achieve this in aggregate at the server.
+	SyncCoordinateRateTarget float64 `mapstructure:"-" json:"-"`
+
+	// SyncCoordinateIntervalMin sets the minimum interval that coordinates
+	// will be sent to the server. We scale the interval based on the cluster
+	// size, but below a certain interval it doesn't make sense send them any
+	// faster.
+	SyncCoordinateIntervalMin time.Duration `mapstructure:"-" json:"-"`
 
 	// Checks holds the provided check definitions
 	Checks []*CheckDefinition `mapstructure:"-" json:"-"`
@@ -471,18 +476,25 @@ func DefaultConfig() *Config {
 		DNSConfig: DNSConfig{
 			MaxStale: 5 * time.Second,
 		},
-		StatsitePrefix:         "consul",
-		SyslogFacility:         "LOCAL0",
-		Protocol:               consul.ProtocolVersionMax,
-		CheckUpdateInterval:    5 * time.Minute,
-		AEInterval:             time.Minute,
-		DisableCoordinates:     false,
-		SyncCoordinateInterval: 20 * time.Second,
-		ACLTTL:                 30 * time.Second,
-		ACLDownPolicy:          "extend-cache",
-		ACLDefaultPolicy:       "allow",
-		RetryInterval:          30 * time.Second,
-		RetryIntervalWan:       30 * time.Second,
+		StatsitePrefix:            "consul",
+		SyslogFacility:            "LOCAL0",
+		Protocol:                  consul.ProtocolVersionMax,
+		CheckUpdateInterval:       5 * time.Minute,
+		AEInterval:                time.Minute,
+		DisableCoordinates:        false,
+
+		// SyncCoordinateRateTarget is set based on the rate that we want
+		// the server to handle as an aggregate across the entire cluster.
+		// If you update this, you'll need to adjust CoordinateUpdate* in
+		// the server-side config accordingly.
+		SyncCoordinateRateTarget:  100.0, // updates / second
+		SyncCoordinateIntervalMin: 5 * time.Second,
+
+		ACLTTL:                    30 * time.Second,
+		ACLDownPolicy:             "extend-cache",
+		ACLDefaultPolicy:          "allow",
+		RetryInterval:             30 * time.Second,
+		RetryIntervalWan:          30 * time.Second,
 	}
 }
 

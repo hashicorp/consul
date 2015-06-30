@@ -806,9 +806,10 @@ func TestAgent_nestedPauseResume(t *testing.T) {
 
 func TestAgent_sendCoordinate(t *testing.T) {
 	conf := nextConfig()
-	conf.SyncCoordinateInterval = 10 * time.Millisecond
+	conf.SyncCoordinateRateTarget = 10.0 // updates/sec
+	conf.SyncCoordinateIntervalMin = 1 * time.Millisecond
 	conf.ConsulConfig.CoordinateUpdatePeriod = 100 * time.Millisecond
-	conf.ConsulConfig.CoordinateUpdateBatchSize = 15
+	conf.ConsulConfig.CoordinateUpdateBatchSize = 10
 	conf.ConsulConfig.CoordinateUpdateMaxBatches = 1
 	dir, agent := makeAgent(t, conf)
 	defer os.RemoveAll(dir)
