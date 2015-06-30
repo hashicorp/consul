@@ -583,6 +583,9 @@ func (a *Agent) sendCoordinate() {
 				continue
 			}
 
+			// TODO - Consider adding a distance check so we don't send
+			// an update if the position hasn't changed by more than a
+			// threshold.
 			req := structs.CoordinateUpdateRequest{
 				Datacenter:   a.config.Datacenter,
 				Node:         a.config.NodeName,

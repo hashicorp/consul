@@ -279,8 +279,8 @@ func DefaultConfig() *Config {
 		// SyncCoordinateInterval defaults to 20 seconds, and scales up
 		// as the number of nodes in the cluster goes up. For 100k nodes,
 		// it will move up to 201 seconds, which gives an update rate of
-		// just under 500 updates per second. With this tuning we will
-		// apply less than 5 batches per period.
+		// just under 500 per second coming in from the clients. With this
+		// tuning we will be doing 1 transaction per second at this load.
 		CoordinateUpdatePeriod:       5 * time.Second,
 		CoordinateUpdateBatchSize:    512,
 		CoordinateUpdateMaxBatches:   5,
