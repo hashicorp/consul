@@ -279,9 +279,9 @@ func DefaultConfig() *Config {
 		// These are tuned to provide a total throughput of 128 updates
 		// per second. If you update these, you should update the client-
 		// side SyncCoordinateRateTarget parameter accordingly.
-		CoordinateUpdatePeriod:       5 * time.Second,
-		CoordinateUpdateBatchSize:    128,
-		CoordinateUpdateMaxBatches:   5,
+		CoordinateUpdatePeriod:     5 * time.Second,
+		CoordinateUpdateBatchSize:  128,
+		CoordinateUpdateMaxBatches: 5,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

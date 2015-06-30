@@ -24,7 +24,7 @@ type Coordinate struct {
 // NewCoordinate returns a new Coordinate endpoint.
 func NewCoordinate(srv *Server) *Coordinate {
 	c := &Coordinate{
-		srv:      srv,
+		srv:     srv,
 		updates: make(map[string]*coordinate.Coordinate),
 	}
 
@@ -60,7 +60,7 @@ func (c *Coordinate) batchApplyUpdates() error {
 	limit := c.srv.config.CoordinateUpdateBatchSize * c.srv.config.CoordinateUpdateMaxBatches
 	size := len(pending)
 	if size > limit {
-		c.srv.logger.Printf("[WARN] consul.coordinate: Discarded %d coordinate updates", size - limit)
+		c.srv.logger.Printf("[WARN] consul.coordinate: Discarded %d coordinate updates", size-limit)
 		size = limit
 	}
 
@@ -68,7 +68,7 @@ func (c *Coordinate) batchApplyUpdates() error {
 	// batches.
 	updates := make([]structs.Coordinate, size)
 	i := 0
-	for node, coord := range(pending) {
+	for node, coord := range pending {
 		if !(i < size) {
 			break
 		}

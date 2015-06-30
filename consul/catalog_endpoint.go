@@ -132,7 +132,7 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 			}
 
 			reply.Index, reply.Nodes = index, nodes
-			return nil
+			return c.srv.sortByDistanceFrom(args.Source, reply.Nodes)
 		})
 }
 
@@ -189,7 +189,10 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				return err
 			}
 			reply.Index, reply.ServiceNodes = index, services
-			return c.srv.filterACL(args.Token, reply)
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+			return c.srv.sortByDistanceFrom(args.Source, reply.ServiceNodes)
 		})
 
 	// Provide some metrics

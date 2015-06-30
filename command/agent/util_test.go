@@ -25,7 +25,7 @@ func TestAEScale(t *testing.T) {
 }
 
 func TestRateScaledInterval(t *testing.T) {
-	min := 1*time.Second
+	min := 1 * time.Second
 	rate := 200.0
 	if v := rateScaledInterval(rate, min, 0); v != min {
 		t.Fatalf("Bad: %v", v)

@@ -184,9 +184,18 @@ func (r *DeregisterRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
+// QuerySource is used to pass along information about the source node
+// in queries so that we can adjust the response based on its network
+// coordinates.
+type QuerySource struct {
+	Datacenter string
+	Node       string
+}
+
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
 	Datacenter string
+	Source     QuerySource
 	QueryOptions
 }
 
@@ -200,6 +209,7 @@ type ServiceSpecificRequest struct {
 	ServiceName string
 	ServiceTag  string
 	TagFilter   bool // Controls tag filtering
+	Source      QuerySource
 	QueryOptions
 }
 

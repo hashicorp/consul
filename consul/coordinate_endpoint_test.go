@@ -117,7 +117,7 @@ func TestCoordinate_Update(t *testing.T) {
 	// Now spam some coordinate updates and make sure it starts throwing
 	// them away if they exceed the batch allowance. Node we have to make
 	// unique names since these are held in map by node name.
-	spamLen := s1.config.CoordinateUpdateBatchSize * s1.config.CoordinateUpdateMaxBatches + 1
+	spamLen := s1.config.CoordinateUpdateBatchSize*s1.config.CoordinateUpdateMaxBatches + 1
 	for i := 0; i < spamLen; i++ {
 		arg1.Node = fmt.Sprintf("bogusnode%d", i)
 		arg1.Coord = generateRandomCoordinate()

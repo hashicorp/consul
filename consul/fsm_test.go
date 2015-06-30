@@ -384,7 +384,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	coord := generateRandomCoordinate()
-	coords := []structs.Coordinate {
+	coords := []structs.Coordinate{
 		structs.Coordinate{"foo", coord},
 	}
 	fsm.state.CoordinateBatchUpdate(13, coords)

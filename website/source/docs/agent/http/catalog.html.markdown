@@ -175,6 +175,10 @@ This endpoint is hit with a GET and returns the nodes registered
 in a given DC. By default, the datacenter of the agent is queried;
 however, the dc can be provided using the "?dc=" query parameter.
 
+Adding the optional "?near=" parameter with a node name will sort
+the node list in ascending order based on the estimated round trip
+time from that node.
+
 It returns a JSON body like this:
 
 ```javascript
@@ -225,6 +229,10 @@ however, the dc can be provided using the "?dc=" query parameter.
 The service being queried must be provided on the path. By default
 all nodes in that service are returned. However, the list can be filtered
 by tag using the "?tag=" query parameter.
+
+Adding the optional "?near=" parameter with a node name will sort
+the node list in ascending order based on the estimated round trip
+time from that node.
 
 It returns a JSON body like this:
 

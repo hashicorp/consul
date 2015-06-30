@@ -485,6 +485,16 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	*token = s.agent.config.ACLToken
 }
 
+// parseSource is used to parse the ?near=<node> query parameter, used for
+// sorting by RTT based on a source node. We set the source's DC to the target
+// DC in the request, if given, or else the agent's DC.
+func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource) {
+	s.parseDC(req, &source.Datacenter)
+	if node := req.URL.Query().Get("near"); node != "" {
+		source.Node = node
+	}
+}
+
 // parse is a convenience method for endpoints that need
 // to use both parseWait and parseDC.
 func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *string, b *structs.QueryOptions) bool {

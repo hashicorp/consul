@@ -476,12 +476,12 @@ func DefaultConfig() *Config {
 		DNSConfig: DNSConfig{
 			MaxStale: 5 * time.Second,
 		},
-		StatsitePrefix:            "consul",
-		SyslogFacility:            "LOCAL0",
-		Protocol:                  consul.ProtocolVersionMax,
-		CheckUpdateInterval:       5 * time.Minute,
-		AEInterval:                time.Minute,
-		DisableCoordinates:        false,
+		StatsitePrefix:      "consul",
+		SyslogFacility:      "LOCAL0",
+		Protocol:            consul.ProtocolVersionMax,
+		CheckUpdateInterval: 5 * time.Minute,
+		AEInterval:          time.Minute,
+		DisableCoordinates:  false,
 
 		// SyncCoordinateRateTarget is set based on the rate that we want
 		// the server to handle as an aggregate across the entire cluster.
@@ -490,11 +490,11 @@ func DefaultConfig() *Config {
 		SyncCoordinateRateTarget:  64.0, // updates / second
 		SyncCoordinateIntervalMin: 15 * time.Second,
 
-		ACLTTL:                    30 * time.Second,
-		ACLDownPolicy:             "extend-cache",
-		ACLDefaultPolicy:          "allow",
-		RetryInterval:             30 * time.Second,
-		RetryIntervalWan:          30 * time.Second,
+		ACLTTL:           30 * time.Second,
+		ACLDownPolicy:    "extend-cache",
+		ACLDefaultPolicy: "allow",
+		RetryInterval:    30 * time.Second,
+		RetryIntervalWan: 30 * time.Second,
 	}
 }
 
