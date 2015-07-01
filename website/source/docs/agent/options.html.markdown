@@ -285,7 +285,9 @@ definitions support being updated during a reload.
   Note that the `acl_master_token` is only installed when a server acquires cluster leadership. If
   you would like to install or change the `acl_master_token`, set the new value for `acl_master_token`
   in the configuration for all servers. Once this is done, restart the current leader to force a
-  leader election.
+  leader election. If the acl_master_token is not supplied, then the servers do not create a master
+  token. When you provide a value, it can be any string value. Using a UUID would ensure that it looks
+  the same as the other tokens, but isn't strictly necessary.
 
 * <a name="acl_token"></a><a href="#acl_token">`acl_token`</a> - When provided, the agent will use this
   token when making requests to the Consul servers. Clients can override this token on a per-request
