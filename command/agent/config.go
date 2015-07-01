@@ -487,8 +487,8 @@ func DefaultConfig() *Config {
 		// the server to handle as an aggregate across the entire cluster.
 		// If you update this, you'll need to adjust CoordinateUpdate* in
 		// the server-side config accordingly.
-		SyncCoordinateRateTarget:  100.0, // updates / second
-		SyncCoordinateIntervalMin: 5 * time.Second,
+		SyncCoordinateRateTarget:  64.0, // updates / second
+		SyncCoordinateIntervalMin: 15 * time.Second,
 
 		ACLTTL:                    30 * time.Second,
 		ACLDownPolicy:             "extend-cache",
