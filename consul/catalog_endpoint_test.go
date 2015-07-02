@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/rpc"
 	"os"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -234,9 +233,7 @@ func TestCatalogListDatacenters(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Sort the dcs
-	sort.Strings(out)
-
+	// The DCs should come out sorted by default.
 	if len(out) != 2 {
 		t.Fatalf("bad: %v", out)
 	}
@@ -244,6 +241,75 @@ func TestCatalogListDatacenters(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 	if out[1] != "dc2" {
+		t.Fatalf("bad: %v", out)
+	}
+}
+
+func TestCatalogListDatacenters_DistanceSort(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	dir2, s2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDC(t, "acdc")
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	var out []string
+	if err := client.Call("Catalog.ListDatacenters", struct{}{}, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// It's super hard to force the Serfs into a known configuration of
+	// coordinates, so the best we can do is make sure that the sorting
+	// function is getting called (it's tested extensively in rtt_test.go).
+	// Since this is relative to dc1, it will be listed first (proving we
+	// went into the sort fn) and the other two will be sorted by name since
+	// there are no known coordinates for them.
+	if len(out) != 3 {
+		t.Fatalf("bad: %v", out)
+	}
+	if out[0] != "dc1" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out[1] != "acdc" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out[2] != "dc2" {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Make sure we get the natural order if coordinates are disabled.
+	s1.config.DisableCoordinates = true
+	if err := client.Call("Catalog.ListDatacenters", struct{}{}, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(out) != 3 {
+		t.Fatalf("bad: %v", out)
+	}
+	if out[0] != "acdc" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out[1] != "dc1" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out[2] != "dc2" {
 		t.Fatalf("bad: %v", out)
 	}
 }
@@ -538,6 +604,34 @@ func TestCatalogListNodes_DistanceSort(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 	if out.Nodes[3].Node != "aaa" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[4].Node != s1.config.NodeName {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Make sure we get the natural order if coordinates are disabled.
+	s1.config.DisableCoordinates = true
+	args = structs.DCSpecificRequest{
+		Datacenter: "dc1",
+		Source:     structs.QuerySource{Datacenter: "dc1", Node: "foo"},
+	}
+	testutil.WaitForResult(func() (bool, error) {
+		client.Call("Catalog.ListNodes", &args, &out)
+		return len(out.Nodes) == 5, nil
+	}, func(err error) {
+		t.Fatalf("err: %v", err)
+	})
+	if out.Nodes[0].Node != "aaa" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[1].Node != "bar" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[2].Node != "baz" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[3].Node != "foo" {
 		t.Fatalf("bad: %v", out)
 	}
 	if out.Nodes[4].Node != s1.config.NodeName {
@@ -886,6 +980,32 @@ func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 	if out.ServiceNodes[3].Node != "aaa" {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Make sure we get the natural order if coordinates are disabled.
+	s1.config.DisableCoordinates = true
+	args = structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+		Source:      structs.QuerySource{Datacenter: "dc1", Node: "foo"},
+	}
+	if err := client.Call("Catalog.ServiceNodes", &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(out.ServiceNodes) != 4 {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.ServiceNodes[0].Node != "aaa" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.ServiceNodes[1].Node != "foo" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.ServiceNodes[2].Node != "bar" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.ServiceNodes[3].Node != "baz" {
 		t.Fatalf("bad: %v", out)
 	}
 }

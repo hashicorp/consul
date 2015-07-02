@@ -110,9 +110,11 @@ func (s *Server) newSorterByDistanceFrom(c *coordinate.Coordinate, subj interfac
 	}
 }
 
-// sortByDistanceFrom is used to sort results from our service catalog based on the
-// distance (RTT) from the given source node.
-func (s *Server) sortByDistanceFrom(source structs.QuerySource, subj interface{}) error {
+// sortNodesByDistanceFrom is used to sort results from our service catalog based
+// on the round trip time from the given source node. Nodes with missing coordinates
+// will get stable sorted at the end of the list.
+
+func (s *Server) sortNodesByDistanceFrom(source structs.QuerySource, subj interface{}) error {
 	// We can't compare coordinates across DCs.
 	if source.Datacenter != s.config.Datacenter {
 		return nil
@@ -134,6 +136,134 @@ func (s *Server) sortByDistanceFrom(source structs.QuerySource, subj interface{}
 	if err != nil {
 		return err
 	}
+	sort.Stable(sorter)
+	return nil
+}
+
+// serfer provides the coordinate information we need from the Server in an
+// interface that's easy to mock out for testing. Without this, we'd have to
+// do some really painful setup to get good unit test coverage of all the cases.
+type serfer interface {
+	GetDatacenter() string
+	GetCoordinate() (*coordinate.Coordinate, error)
+	GetCachedCoordinate(node string) (*coordinate.Coordinate, bool)
+	GetNodesForDatacenter(dc string) []string
+}
+
+// serverSerfer wraps a Server with the serfer interface.
+type serverSerfer struct {
+	server *Server
+}
+
+// See serfer.
+func (s *serverSerfer) GetDatacenter() string {
+	return s.server.config.Datacenter
+}
+
+// See serfer.
+func (s *serverSerfer) GetCoordinate() (*coordinate.Coordinate, error) {
+	return s.server.serfWAN.GetCoordinate()
+}
+
+// See serfer.
+func (s *serverSerfer) GetCachedCoordinate(node string) (*coordinate.Coordinate, bool) {
+	return s.server.serfWAN.GetCachedCoordinate(node)
+}
+
+// See serfer.
+func (s *serverSerfer) GetNodesForDatacenter(dc string) []string {
+	nodes := make([]string, 0)
+	for _, part := range s.server.remoteConsuls[dc] {
+		nodes = append(nodes, part.Name)
+	}
+	return nodes
+}
+
+// sortDatacentersByDistance will sort the given list of DCs based on the
+// median RTT to all nodes we know about from the WAN gossip pool). DCs with
+// missing coordinates will be stable sorted to the end of the list.
+func (s *Server) sortDatacentersByDistance(dcs []string) error {
+	serfer := serverSerfer{s}
+	return sortDatacentersByDistance(&serfer, dcs)
+}
+
+// getDatacenterDistance will return the median round trip time estimate for
+// the given DC from the given serfer, in seconds. This will return positive
+// infinity if no coordinates are available.
+func getDatacenterDistance(s serfer, dc string) (float64, error) {
+	// If this is the serfer's DC then just bail with zero RTT.
+	if dc == s.GetDatacenter() {
+		return 0.0, nil
+	}
+
+	// Otherwise measure from the serfer to the nodes in the other DC.
+	coord, err := s.GetCoordinate()
+	if err != nil {
+		return 0.0, err
+	}
+
+	// Fetch all the nodes in the DC.
+	nodes := s.GetNodesForDatacenter(dc)
+	subvec := make([]float64, len(nodes))
+	for j, node := range nodes {
+		if other, ok := s.GetCachedCoordinate(node); ok {
+			subvec[j] = computeDistance(coord, other)
+		} else {
+			subvec[j] = computeDistance(coord, nil)
+		}
+	}
+
+	// Compute the median by sorting and taking the middle item.
+	sort.Float64s(subvec)
+	fmt.Println("%v", subvec)
+	if len(subvec) > 0 {
+		return subvec[len(subvec)/2], nil
+	}
+
+	return computeDistance(coord, nil), nil
+}
+
+// datacenterSorter takes a list of DC names and a parallel vector of distances
+// and implements sort.Interface, keeping both structures coherent and sorting
+// by distance.
+type datacenterSorter struct {
+	Names []string
+	Vec   []float64
+}
+
+// See sort.Interface.
+func (n *datacenterSorter) Len() int {
+	return len(n.Names)
+}
+
+// See sort.Interface.
+func (n *datacenterSorter) Swap(i, j int) {
+	n.Names[i], n.Names[j] = n.Names[j], n.Names[i]
+	n.Vec[i], n.Vec[j] = n.Vec[j], n.Vec[i]
+}
+
+// See sort.Interface.
+func (n *datacenterSorter) Less(i, j int) bool {
+	return n.Vec[i] < n.Vec[j]
+}
+
+// sortDatacentersByDistance will sort the given list of DCs based on the
+// median RTT to all nodes the given serfer knows about from the WAN gossip
+// pool). DCs with missing coordinates will be stable sorted to the end of the
+// list.
+func sortDatacentersByDistance(s serfer, dcs []string) error {
+	// Build up a list of median distances to the other DCs.
+	vec := make([]float64, len(dcs))
+	for i, dc := range dcs {
+		rtt, err := getDatacenterDistance(s, dc)
+		if err != nil {
+			return err
+		}
+
+		vec[i] = rtt
+	}
+
+	sorter := &datacenterSorter{dcs, vec}
 	sort.Stable(sorter)
 	return nil
 }

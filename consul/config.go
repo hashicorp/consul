@@ -296,6 +296,10 @@ func DefaultConfig() *Config {
 	conf.SerfLANConfig.MemberlistConfig.BindPort = DefaultLANSerfPort
 	conf.SerfWANConfig.MemberlistConfig.BindPort = DefaultWANSerfPort
 
+	// Cache coordinates for the WAN since the number of servers is small,
+	// and because we don't store these in the database.
+	conf.SerfWANConfig.CacheCoordinates = true
+
 	// Disable shutdown on removal
 	conf.RaftConfig.ShutdownOnRemove = false
 

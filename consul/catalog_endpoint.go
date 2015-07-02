@@ -107,6 +107,11 @@ func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
 
 	// Sort the DCs
 	sort.Strings(dcs)
+	if !c.srv.config.DisableCoordinates {
+		if err := c.srv.sortDatacentersByDistance(dcs); err != nil {
+			return err
+		}
+	}
 
 	// Return
 	*reply = dcs
@@ -132,7 +137,10 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 			}
 
 			reply.Index, reply.Nodes = index, nodes
-			return c.srv.sortByDistanceFrom(args.Source, reply.Nodes)
+			if c.srv.config.DisableCoordinates {
+				return nil
+			}
+			return c.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
 		})
 }
 
@@ -192,7 +200,10 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 			if err := c.srv.filterACL(args.Token, reply); err != nil {
 				return err
 			}
-			return c.srv.sortByDistanceFrom(args.Source, reply.ServiceNodes)
+			if c.srv.config.DisableCoordinates {
+				return nil
+			}
+			return c.srv.sortNodesByDistanceFrom(args.Source, reply.ServiceNodes)
 		})
 
 	// Provide some metrics

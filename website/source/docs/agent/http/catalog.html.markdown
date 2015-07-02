@@ -159,6 +159,10 @@ If the API call succeeds a 200 status code is returned.
 This endpoint is hit with a GET and is used to return all the
 datacenters that are known by the Consul server.
 
+The datacenters will be sorted in ascending order based on the
+estimated median round trip time from the server to the servers
+in that datacenter.
+
 It returns a JSON body like this:
 
 ```javascript
