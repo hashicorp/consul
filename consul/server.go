@@ -616,11 +616,6 @@ func (s *Server) RemoveFailedNode(node string) error {
 	return nil
 }
 
-// UserEvent is used to fire an event via the Serf layer on the LAN
-func (s *Server) UserEvent(name string, payload []byte) error {
-	return s.serfLAN.UserEvent(userEventName(name), payload, false)
-}
-
 // IsLeader checks if this server is the cluster leader
 func (s *Server) IsLeader() bool {
 	return s.raft.State() == raft.Leader

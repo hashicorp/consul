@@ -72,7 +72,7 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	m.srv.setQueryMeta(&reply.QueryMeta)
 
 	// Fire the event
-	return m.srv.UserEvent(args.Name, args.Payload)
+	return m.srv.serfLAN.UserEvent(args.Name, args.Payload, false)
 }
 
 // KeyringOperation will query the WAN and LAN gossip keyrings of all nodes.
