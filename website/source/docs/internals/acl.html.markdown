@@ -19,7 +19,7 @@ on tokens to which fine grained rules can be applied. It is very similar to
 When the ACL system was launched in Consul 0.4, it was only possible to specify
 policies for the KV store.  In Consul 0.5, ACL policies were extended to service
 registrations. In Consul 0.6, ACL's were further extended to restrict the
-service discovery mechanisms.
+service discovery mechanisms and user events..
 
 ## ACL Design
 
@@ -126,6 +126,27 @@ The most secure way of handling service registration and discovery is to run
 Consul 0.6+ and issue tokens with explicit access for the services or service
 prefixes which are expected to run on each agent.
 
+### Blacklist mode and Events
+
+Similar to the above, if your
+[`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is set to
+`deny`, the `anonymous` token will have no access to allow firing user events.
+This deviates from pre-0.6.0 builds, where user events were completely
+unrestricted.
+
+Events have their own first-class expression in the ACL syntax. To restore
+access to user events from arbitrary agents, configure an ACL rule like the
+following for the `anonymous` token:
+
+```
+event "" {
+    policy = "write"
+}
+```
+
+As always, the more secure way to handle user events is to explicitly grant
+access to each API token based on the events they should be able to fire.
+
 ### Bootstrapping ACLs
 
 Bootstrapping the ACL system is done by providing an initial [`acl_master_token`
@@ -161,6 +182,12 @@ and ACLs can be found [below](#discovery_acls).
 
 The policy for the "consul" service is always "write" as it is managed internally by Consul.
 
+User event policies are defined by coupling an event name prefix with a policy.
+The rules are enforced using a longest-prefix match policy. The default rule,
+applied to any user event without a matching policy, is provided by an empty
+string. An event policy is one of "read", "write", or "deny". Currently, only
+the "write" level is enforced during event firing. Events can always be read.
+
 We make use of
 the [HashiCorp Configuration Language (HCL)](https://github.com/hashicorp/hcl/)
 to specify policy. This language is human readable and interoperable
@@ -192,6 +219,16 @@ service "" {
 service "secure-" {
     policy = "read"
 }
+
+# Allow firing any user event by default.
+event "" {
+    policy = "write"
+}
+
+# Deny firing events prefixed with "destroy-".
+event "destroy-" {
+    policy = "deny"
+}
 ```
 
 This is equivalent to the following JSON input:
@@ -216,6 +253,14 @@ This is equivalent to the following JSON input:
       "secure-": {
           "policy": "read"
       }
+  },
+  "event": {
+    "": {
+      "policy": "write"
+    },
+    "destroy-": {
+      "policy": "deny"
+    }
   }
 }
 ```

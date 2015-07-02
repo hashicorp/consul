@@ -25,6 +25,15 @@ service "" {
 service "foo" {
 	policy = "read"
 }
+event "" {
+	policy = "read"
+}
+event "foo" {
+	policy = "write"
+}
+event "bar" {
+	policy = "deny"
+}
 	`
 	exp := &Policy{
 		Keys: []*KeyPolicy{
@@ -53,6 +62,20 @@ service "foo" {
 			&ServicePolicy{
 				Name:   "foo",
 				Policy: ServicePolicyRead,
+			},
+		},
+		Events: []*EventPolicy{
+			&EventPolicy{
+				Event:  "",
+				Policy: EventPolicyRead,
+			},
+			&EventPolicy{
+				Event:  "foo",
+				Policy: EventPolicyWrite,
+			},
+			&EventPolicy{
+				Event:  "bar",
+				Policy: EventPolicyDeny,
 			},
 		},
 	}
@@ -90,6 +113,17 @@ func TestParse_JSON(t *testing.T) {
 		"foo": {
 			"policy": "read"
 		}
+	},
+	"event": {
+		"": {
+			"policy": "read"
+		},
+		"foo": {
+			"policy": "write"
+		},
+		"bar": {
+			"policy": "deny"
+		}
 	}
 }`
 	exp := &Policy{
@@ -119,6 +153,20 @@ func TestParse_JSON(t *testing.T) {
 			&ServicePolicy{
 				Name:   "foo",
 				Policy: ServicePolicyRead,
+			},
+		},
+		Events: []*EventPolicy{
+			&EventPolicy{
+				Event:  "",
+				Policy: EventPolicyRead,
+			},
+			&EventPolicy{
+				Event:  "foo",
+				Policy: EventPolicyWrite,
+			},
+			&EventPolicy{
+				Event:  "bar",
+				Policy: EventPolicyDeny,
 			},
 		},
 	}

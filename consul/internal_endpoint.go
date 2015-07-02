@@ -57,11 +57,22 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 		return err
 	}
 
+	// Check ACLs
+	acl, err := m.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
+	if acl != nil && !acl.EventWrite(args.Name) {
+		m.srv.logger.Printf("[WARN] consul: user event %q blocked by ACLs", args.Name)
+		return permissionDeniedErr
+	}
+
 	// Set the query meta data
 	m.srv.setQueryMeta(&reply.QueryMeta)
 
 	// Fire the event
-	return m.srv.UserEvent(args.Name, args.Payload)
+	return m.srv.serfLAN.UserEvent(args.Name, args.Payload, false)
 }
 
 // KeyringOperation will query the WAN and LAN gossip keyrings of all nodes.

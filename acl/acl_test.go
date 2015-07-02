@@ -66,11 +66,23 @@ func TestStaticACL(t *testing.T) {
 	if none.ServiceWrite("foobar") {
 		t.Fatalf("should not allow")
 	}
+	if none.EventRead("foobar") {
+		t.Fatalf("should not allow")
+	}
+	if none.EventRead("") {
+		t.Fatalf("should not allow")
+	}
+	if none.EventWrite("foobar") {
+		t.Fatalf("should not allow")
+	}
+	if none.EventWrite("") {
+		t.Fatalf("should not allow")
+	}
 	if none.ACLList() {
-		t.Fatalf("should not noneow")
+		t.Fatalf("should not allow")
 	}
 	if none.ACLModify() {
-		t.Fatalf("should not noneow")
+		t.Fatalf("should not allow")
 	}
 
 	if !manage.KeyRead("foobar") {
@@ -132,6 +144,20 @@ func TestPolicyACL(t *testing.T) {
 				Policy: ServicePolicyWrite,
 			},
 		},
+		Events: []*EventPolicy{
+			&EventPolicy{
+				Event:  "",
+				Policy: EventPolicyRead,
+			},
+			&EventPolicy{
+				Event:  "foo",
+				Policy: EventPolicyWrite,
+			},
+			&EventPolicy{
+				Event:  "bar",
+				Policy: EventPolicyDeny,
+			},
+		},
 	}
 	acl, err := New(all, policy)
 	if err != nil {
@@ -186,6 +212,27 @@ func TestPolicyACL(t *testing.T) {
 		}
 		if c.write != acl.ServiceWrite(c.inp) {
 			t.Fatalf("Write fail: %#v", c)
+		}
+	}
+
+	type eventcase struct {
+		inp   string
+		read  bool
+		write bool
+	}
+	eventcases := []eventcase{
+		{"foo", true, true},
+		{"foobar", true, true},
+		{"bar", false, false},
+		{"barbaz", false, false},
+		{"baz", true, false},
+	}
+	for _, c := range eventcases {
+		if c.read != acl.EventRead(c.inp) {
+			t.Fatalf("Event fail: %#v", c)
+		}
+		if c.write != acl.EventWrite(c.inp) {
+			t.Fatalf("Event fail: %#v", c)
 		}
 	}
 }

@@ -325,3 +325,37 @@ func TestInternal_NodeDump_FilterACL(t *testing.T) {
 		}
 	}
 }
+
+func TestInternal_EventFire_Token(t *testing.T) {
+	dir, srv := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDownPolicy = "deny"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+
+	client := rpcClient(t, srv)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// No token is rejected
+	event := structs.EventFireRequest{
+		Name:       "foo",
+		Datacenter: "dc1",
+		Payload:    []byte("nope"),
+	}
+	err := client.Call("Internal.EventFire", &event, nil)
+	if err == nil || err.Error() != permissionDenied {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Root token is allowed to fire
+	event.Token = "root"
+	err = client.Call("Internal.EventFire", &event, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}

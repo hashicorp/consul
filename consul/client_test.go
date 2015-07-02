@@ -276,26 +276,18 @@ func TestClientServer_UserEvent(t *testing.T) {
 	})
 
 	// Fire the user event
-	err := c1.UserEvent("foo", []byte("bar"))
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	err = s1.UserEvent("bar", []byte("baz"))
-	if err != nil {
+	if err := s1.UserEvent("foo", []byte("baz")); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Wait for all the events
-	var serverFoo, serverBar, clientFoo, clientBar bool
-	for i := 0; i < 4; i++ {
+	var clientReceived, serverReceived bool
+	for i := 0; i < 2; i++ {
 		select {
 		case e := <-clientOut:
 			switch e.Name {
 			case "foo":
-				clientFoo = true
-			case "bar":
-				clientBar = true
+				clientReceived = true
 			default:
 				t.Fatalf("Bad: %#v", e)
 			}
@@ -303,9 +295,7 @@ func TestClientServer_UserEvent(t *testing.T) {
 		case e := <-serverOut:
 			switch e.Name {
 			case "foo":
-				serverFoo = true
-			case "bar":
-				serverBar = true
+				serverReceived = true
 			default:
 				t.Fatalf("Bad: %#v", e)
 			}
@@ -315,7 +305,7 @@ func TestClientServer_UserEvent(t *testing.T) {
 		}
 	}
 
-	if !(serverFoo && serverBar && clientFoo && clientBar) {
+	if !serverReceived || !clientReceived {
 		t.Fatalf("missing events")
 	}
 }
