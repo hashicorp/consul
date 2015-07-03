@@ -215,7 +215,6 @@ func getDatacenterDistance(s serfer, dc string) (float64, error) {
 
 	// Compute the median by sorting and taking the middle item.
 	sort.Float64s(subvec)
-	fmt.Println("%v", subvec)
 	if len(subvec) > 0 {
 		return subvec[len(subvec)/2], nil
 	}

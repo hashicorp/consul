@@ -59,6 +59,8 @@ func nextConfig() *Config {
 	cons.RaftConfig.HeartbeatTimeout = 40 * time.Millisecond
 	cons.RaftConfig.ElectionTimeout = 40 * time.Millisecond
 
+	cons.DisableCoordinates = false
+	cons.CoordinateUpdatePeriod = 100 * time.Millisecond
 	return conf
 }
 
