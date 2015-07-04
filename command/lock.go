@@ -138,8 +138,12 @@ func (c *LockCommand) Run(args []string) int {
 		c.Ui.Info("Attempting lock acquisition")
 	}
 	lockCh, err := lu.lockFn(c.ShutdownCh)
-	if err != nil || lockCh == nil {
-		c.Ui.Error(fmt.Sprintf("Lock acquisition failed: %s", err))
+	if lockCh == nil {
+		if err == nil {
+			c.Ui.Error("Shutdown triggered during lock acquisition")
+		} else {
+			c.Ui.Error(fmt.Sprintf("Lock acquisition failed: %s", err))
+		}
 		return 1
 	}
 
