@@ -2,7 +2,7 @@
     text-transform: uppercase;
     font-weight: 600;
     font-size: 12px;
-    border-width: 2px;
+    /*border-width: 2px;*/
     color: $gray;
     @include transition(background-color .2s ease-in-out);
     @include transition(border-color .2s ease-in-out);
@@ -57,7 +57,7 @@
     &.btn-success {
         color: $green-dark;
         background-color: transparent;
-        border: 2px solid $green-dark;
+        border: 1px solid $green-dark;
 
         &:hover {
             background-color: lighten($green-faded, 24%);
@@ -78,9 +78,9 @@
 
 
     &.active {
-        color: $purple-dark;
-        background-color: transparent;
-        border: 2px solid $purple;
+        color: #fff;
+        background-color: $purple;
+        border: 1px solid $purple;
 
         &:hover {
             background-color: $light-purple;
@@ -97,7 +97,7 @@
 
     &.btn-mini {
         font-size: 10px;
-        padding: 8px;
+        padding: 7px;
     }
 
     &.btn-list {
