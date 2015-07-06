@@ -418,7 +418,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify key is set
-	_, d, err := fsm.state.KVSGet("/test")
+	_, d, err := fsm2.state.KVSGet("/test")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -427,7 +427,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify the index is restored
-	idx, _, err := fsm.state.KVSListKeys("/blah", "")
+	idx, _, err := fsm2.state.KVSListKeys("/blah", "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -436,7 +436,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify session is restored
-	idx, s, err := fsm.state.SessionGet(session.ID)
+	idx, s, err := fsm2.state.SessionGet(session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -448,7 +448,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify ACL is restored
-	idx, a, err := fsm.state.ACLGet(acl.ID)
+	idx, a, err := fsm2.state.ACLGet(acl.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -460,7 +460,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify tombstones are restored
-	_, res, err := fsm.state.tombstoneTable.Get("id", "/remove")
+	_, res, err := fsm2.state.tombstoneTable.Get("id", "/remove")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
