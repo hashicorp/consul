@@ -172,7 +172,7 @@ type PolicyACL struct {
 	// keyringRules contains the keyring policies. The keyring has
 	// a very simple yes/no without prefix mathing, so here we
 	// don't need to use a radix tree.
-	keyringRules map[string]struct{}
+	keyringRule string
 }
 
 // New is used to construct a policy based ACL from a set of policies
@@ -183,7 +183,6 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 		keyRules:     radix.New(),
 		serviceRules: radix.New(),
 		eventRules:   radix.New(),
-		keyringRules: make(map[string]struct{}),
 	}
 
 	// Load the key policy
@@ -202,9 +201,7 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 	}
 
 	// Load the keyring policy
-	for _, krp := range policy.Keyring {
-		p.keyringRules[krp.Policy] = struct{}{}
-	}
+	p.keyringRule = policy.Keyring
 
 	return p, nil
 }
@@ -350,29 +347,17 @@ func (p *PolicyACL) EventWrite(name string) bool {
 // KeyringRead is used to determine if the keyring can be
 // read by the current ACL token.
 func (p *PolicyACL) KeyringRead() bool {
-	// First check for an explicit deny
-	if _, ok := p.keyringRules[KeyringPolicyDeny]; ok {
+	switch p.keyringRule {
+	case KeyringPolicyRead, KeyringPolicyWrite:
+		return true
+	default:
 		return false
 	}
-
-	// Now check for read or write. Write implies read.
-	_, ok := p.keyringRules[KeyringPolicyRead]
-	if !ok {
-		_, ok = p.keyringRules[KeyringPolicyWrite]
-	}
-	return ok
 }
 
 // KeyringWrite determines if the keyring can be manipulated.
 func (p *PolicyACL) KeyringWrite() bool {
-	// First check for an explicit deny
-	if _, ok := p.keyringRules[KeyringPolicyDeny]; ok {
-		return false
-	}
-
-	// Check for read permission
-	_, ok := p.keyringRules[KeyringPolicyWrite]
-	return ok
+	return p.keyringRule == KeyringPolicyWrite
 }
 
 // ACLList checks if listing of ACLs is allowed
