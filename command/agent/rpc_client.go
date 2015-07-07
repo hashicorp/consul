@@ -188,10 +188,11 @@ func (c *RPCClient) WANMembers() ([]Member, error) {
 	return resp.Members, err
 }
 
-func (c *RPCClient) ListKeys() (keyringResponse, error) {
+func (c *RPCClient) ListKeys(token string) (keyringResponse, error) {
 	header := requestHeader{
 		Command: listKeysCommand,
 		Seq:     c.getSeq(),
+		Token:   token,
 	}
 	var resp keyringResponse
 	err := c.genericRPC(&header, nil, &resp)
