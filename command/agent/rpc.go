@@ -636,11 +636,11 @@ func (i *AgentRPC) handleKeyring(client *rpcClient, seq uint64, cmd, token strin
 	case listKeysCommand:
 		queryResp, err = i.agent.ListKeys(token)
 	case installKeyCommand:
-		queryResp, err = i.agent.InstallKey(req.Key)
+		queryResp, err = i.agent.InstallKey(req.Key, token)
 	case useKeyCommand:
-		queryResp, err = i.agent.UseKey(req.Key)
+		queryResp, err = i.agent.UseKey(req.Key, token)
 	case removeKeyCommand:
-		queryResp, err = i.agent.RemoveKey(req.Key)
+		queryResp, err = i.agent.RemoveKey(req.Key, token)
 	default:
 		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
 		client.Send(&respHeader, nil)

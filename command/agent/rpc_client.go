@@ -199,10 +199,11 @@ func (c *RPCClient) ListKeys(token string) (keyringResponse, error) {
 	return resp, err
 }
 
-func (c *RPCClient) InstallKey(key string) (keyringResponse, error) {
+func (c *RPCClient) InstallKey(key, token string) (keyringResponse, error) {
 	header := requestHeader{
 		Command: installKeyCommand,
 		Seq:     c.getSeq(),
+		Token:   token,
 	}
 	req := keyringRequest{key}
 	var resp keyringResponse
@@ -210,10 +211,11 @@ func (c *RPCClient) InstallKey(key string) (keyringResponse, error) {
 	return resp, err
 }
 
-func (c *RPCClient) UseKey(key string) (keyringResponse, error) {
+func (c *RPCClient) UseKey(key, token string) (keyringResponse, error) {
 	header := requestHeader{
 		Command: useKeyCommand,
 		Seq:     c.getSeq(),
+		Token:   token,
 	}
 	req := keyringRequest{key}
 	var resp keyringResponse
@@ -221,10 +223,11 @@ func (c *RPCClient) UseKey(key string) (keyringResponse, error) {
 	return resp, err
 }
 
-func (c *RPCClient) RemoveKey(key string) (keyringResponse, error) {
+func (c *RPCClient) RemoveKey(key, token string) (keyringResponse, error) {
 	header := requestHeader{
 		Command: removeKeyCommand,
 		Seq:     c.getSeq(),
+		Token:   token,
 	}
 	req := keyringRequest{key}
 	var resp keyringResponse

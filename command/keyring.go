@@ -80,7 +80,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if installKey != "" {
 		c.Ui.Info("Installing new gossip encryption key...")
-		r, err := client.InstallKey(installKey)
+		r, err := client.InstallKey(installKey, token)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -90,7 +90,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if useKey != "" {
 		c.Ui.Info("Changing primary gossip encryption key...")
-		r, err := client.UseKey(useKey)
+		r, err := client.UseKey(useKey, token)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -100,7 +100,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if removeKey != "" {
 		c.Ui.Info("Removing gossip encryption key...")
-		r, err := client.RemoveKey(removeKey)
+		r, err := client.RemoveKey(removeKey, token)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
