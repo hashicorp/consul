@@ -30,11 +30,11 @@ Create two definition files in the Consul configuration directory of
 the second node:
 
 ```text
-vagrant@n2:~$ echo '{"check": {"name": "ping", \
+vagrant@n2:~$ echo '{"check": {"name": "ping",
   "script": "ping -c1 google.com >/dev/null", "interval": "30s"}}' \
   >/etc/consul.d/ping.json
 
-vagrant@n2:~$ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80,\
+vagrant@n2:~$ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80,
   "check": {"script": "curl localhost >/dev/null 2>&1", "interval": "10s"}}}' \
   >/etc/consul.d/web.json
 ```
