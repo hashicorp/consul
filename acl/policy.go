@@ -114,6 +114,7 @@ func Parse(rules string) (*Policy, error) {
 	case KeyringPolicyRead:
 	case KeyringPolicyWrite:
 	case KeyringPolicyDeny:
+	case "": // Special case to allow omitting the keyring policy
 	default:
 		return nil, fmt.Errorf("Invalid keyring policy: %#v", p.Keyring)
 	}

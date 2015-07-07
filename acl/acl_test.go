@@ -47,6 +47,18 @@ func TestStaticACL(t *testing.T) {
 	if !all.ServiceWrite("foobar") {
 		t.Fatalf("should allow")
 	}
+	if !all.EventRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !all.EventWrite("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !all.KeyringRead() {
+		t.Fatalf("should allow")
+	}
+	if !all.KeyringWrite() {
+		t.Fatalf("should allow")
+	}
 	if all.ACLList() {
 		t.Fatalf("should not allow")
 	}
@@ -78,6 +90,12 @@ func TestStaticACL(t *testing.T) {
 	if none.EventWrite("") {
 		t.Fatalf("should not allow")
 	}
+	if none.KeyringRead() {
+		t.Fatalf("should now allow")
+	}
+	if none.KeyringWrite() {
+		t.Fatalf("should not allow")
+	}
 	if none.ACLList() {
 		t.Fatalf("should not allow")
 	}
@@ -95,6 +113,18 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("should allow")
 	}
 	if !manage.ServiceWrite("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.EventRead("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.EventWrite("foobar") {
+		t.Fatalf("should allow")
+	}
+	if !manage.KeyringRead() {
+		t.Fatalf("should allow")
+	}
+	if !manage.KeyringWrite() {
 		t.Fatalf("should allow")
 	}
 	if !manage.ACLList() {

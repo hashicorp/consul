@@ -34,6 +34,7 @@ event "foo" {
 event "bar" {
 	policy = "deny"
 }
+keyring = "deny"
 	`
 	exp := &Policy{
 		Keys: []*KeyPolicy{
@@ -78,6 +79,7 @@ event "bar" {
 				Policy: EventPolicyDeny,
 			},
 		},
+		Keyring: KeyringPolicyDeny,
 	}
 
 	out, err := Parse(inp)
@@ -124,7 +126,8 @@ func TestParse_JSON(t *testing.T) {
 		"bar": {
 			"policy": "deny"
 		}
-	}
+	},
+	"keyring": "deny"
 }`
 	exp := &Policy{
 		Keys: []*KeyPolicy{
@@ -169,6 +172,7 @@ func TestParse_JSON(t *testing.T) {
 				Policy: EventPolicyDeny,
 			},
 		},
+		Keyring: KeyringPolicyDeny,
 	}
 
 	out, err := Parse(inp)

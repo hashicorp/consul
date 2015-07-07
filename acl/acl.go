@@ -350,14 +350,19 @@ func (p *PolicyACL) KeyringRead() bool {
 	switch p.keyringRule {
 	case KeyringPolicyRead, KeyringPolicyWrite:
 		return true
-	default:
+	case KeyringPolicyDeny:
 		return false
+	default:
+		return p.parent.KeyringRead()
 	}
 }
 
 // KeyringWrite determines if the keyring can be manipulated.
 func (p *PolicyACL) KeyringWrite() bool {
-	return p.keyringRule == KeyringPolicyWrite
+	if p.keyringRule == KeyringPolicyWrite {
+		return true
+	}
+	return p.parent.KeyringWrite()
 }
 
 // ACLList checks if listing of ACLs is allowed
