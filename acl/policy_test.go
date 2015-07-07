@@ -2,6 +2,7 @@ package acl
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -182,5 +183,20 @@ func TestParse_JSON(t *testing.T) {
 
 	if !reflect.DeepEqual(out, exp) {
 		t.Fatalf("bad: %#v %#v", out, exp)
+	}
+}
+
+func TestACLPolicy_badPolicy(t *testing.T) {
+	cases := []string{
+		`key "" { policy = "nope" }`,
+		`service "" { policy = "nope" }`,
+		`event "" { policy = "nope" }`,
+		`keyring = "nope"`,
+	}
+	for _, c := range cases {
+		_, err := Parse(c)
+		if err == nil || !strings.Contains(err.Error(), "Invalid") {
+			t.Fatalf("expected policy error, got: %#v", err)
+		}
 	}
 }
