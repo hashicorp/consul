@@ -5,7 +5,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestAgent_LoadKeyrings(t *testing.T) {
@@ -111,5 +114,68 @@ func TestAgent_InitKeyring(t *testing.T) {
 	}
 	if string(content) != expected {
 		t.Fatalf("bad: %s", content)
+	}
+}
+
+func TestAgentKeyring_ACL(t *testing.T) {
+	key1 := "tbLJg26ZJyJ9pK3qhc9jig=="
+	key2 := "4leC33rgtXKIVUr9Nr0snQ=="
+
+	conf := nextConfig()
+	conf.ACLDatacenter = "dc1"
+	conf.ACLMasterToken = "root"
+	conf.ACLDefaultPolicy = "deny"
+	dir, agent := makeAgentKeyring(t, conf, key1)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	// List keys without access fails
+	_, err := agent.ListKeys("")
+	if err == nil || !strings.Contains(err.Error(), "denied") {
+		t.Fatalf("expected denied error, got: %#v", err)
+	}
+
+	// List keys with access works
+	_, err = agent.ListKeys("root")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Install without access fails
+	_, err = agent.InstallKey(key2, "")
+	if err == nil || !strings.Contains(err.Error(), "denied") {
+		t.Fatalf("expected denied error, got: %#v", err)
+	}
+
+	// Install with access works
+	_, err = agent.InstallKey(key2, "root")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Use without access fails
+	_, err = agent.UseKey(key2, "")
+	if err == nil || !strings.Contains(err.Error(), "denied") {
+		t.Fatalf("expected denied error, got: %#v", err)
+	}
+
+	// Use with access works
+	_, err = agent.UseKey(key2, "root")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Remove without access fails
+	_, err = agent.RemoveKey(key1, "")
+	if err == nil || !strings.Contains(err.Error(), "denied") {
+		t.Fatalf("expected denied error, got: %#v", err)
+	}
+
+	// Remove with access works
+	_, err = agent.RemoveKey(key1, "root")
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }
