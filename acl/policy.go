@@ -16,6 +16,9 @@ const (
 	EventPolicyRead    = "read"
 	EventPolicyWrite   = "write"
 	EventPolicyDeny    = "deny"
+	KeyringPolicyWrite = "write"
+	KeyringPolicyRead  = "read"
+	KeyringPolicyDeny  = "deny"
 )
 
 // Policy is used to represent the policy specified by
@@ -25,6 +28,7 @@ type Policy struct {
 	Keys     []*KeyPolicy     `hcl:"key,expand"`
 	Services []*ServicePolicy `hcl:"service,expand"`
 	Events   []*EventPolicy   `hcl:"event,expand"`
+	Keyring  []*KeyringPolicy `hcl:"keyring"`
 }
 
 // KeyPolicy represents a policy for a key
@@ -55,6 +59,17 @@ type EventPolicy struct {
 
 func (e *EventPolicy) GoString() string {
 	return fmt.Sprintf("%#v", *e)
+}
+
+// KeyringPolicy represents a policy for the encryption keyring.
+type KeyringPolicy struct {
+	// We only need a single field for the keyring, since access
+	// is binary (allowed or disallowed) and no prefix is respected.
+	Policy string
+}
+
+func (k *KeyringPolicy) GoString() string {
+	return fmt.Sprintf("%#v", *k)
 }
 
 // Parse is used to parse the specified ACL rules into an
@@ -102,6 +117,17 @@ func Parse(rules string) (*Policy, error) {
 		case EventPolicyDeny:
 		default:
 			return nil, fmt.Errorf("Invalid event policy: %#v", ep)
+		}
+	}
+
+	// Validate the keyring policy
+	for _, krp := range p.Keyring {
+		switch krp.Policy {
+		case KeyringPolicyRead:
+		case KeyringPolicyWrite:
+		case KeyringPolicyDeny:
+		default:
+			return nil, fmt.Errorf("Invalid keyring policy: %#v", krp)
 		}
 	}
 
