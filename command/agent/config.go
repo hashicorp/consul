@@ -395,6 +395,14 @@ type Config struct {
 	// Minimum Session TTL
 	SessionTTLMin    time.Duration `mapstructure:"-"`
 	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
+	
+	// DisableServiceSync when TRUE will completely inhibit a node
+	// from updating its own service registration.  This feature is
+	// useful if you want another node to maintain service registration
+	// for this node.  For example, when using Redis you want Sentinel
+	// (a monitoring agent for Redis) to authoritatively determine
+	// the state of a node's service registration.
+	DisableServiceSync bool `mapstructure:"disable_service_sync"`
 }
 
 // UnixSocketPermissions contains information about a unix socket, and
@@ -1067,6 +1075,9 @@ func MergeConfig(a, b *Config) *Config {
 		for field, value := range b.HTTPAPIResponseHeaders {
 			result.HTTPAPIResponseHeaders[field] = value
 		}
+	}
+	if b.DisableServiceSync {
+		result.DisableServiceSync = true
 	}
 
 	// Copy the start join addresses

@@ -203,6 +203,14 @@ type Config struct {
 	// UserEventHandler callback can be used to handle incoming
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
+
+	// DisableServiceSync when TRUE will completely inhibit a node
+	// from updating its own service registration.  This feature is
+	// useful if you want another node to maintain service registration
+	// for this node.  For example, when using Redis you want Sentinel
+	// (a monitoring agent for Redis) to authoritatively determine
+	// the state of a node's service registration.
+	DisableServiceSync bool
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid

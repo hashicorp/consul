@@ -554,6 +554,10 @@ func TestDecodeConfig(t *testing.T) {
 	if config.CheckUpdateInterval != 10*time.Minute {
 		t.Fatalf("bad: %#v", config)
 	}
+	
+	if !config.DisableServiceSync {
+		t.Fatalf("bad: %#v", config)
+	}
 
 	// ACLs
 	input = `{"acl_token": "1234", "acl_datacenter": "dc2",
@@ -1214,6 +1218,7 @@ func TestMergeConfig(t *testing.T) {
 			RPC:        &net.TCPAddr{},
 			RPCRaw:     "127.0.0.5:1233",
 		},
+		DisableServiceSync:       true,
 	}
 
 	c := MergeConfig(a, b)
