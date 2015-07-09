@@ -478,6 +478,11 @@ func (l *localState) deleteService(id string) error {
 	if id == "" {
 		return fmt.Errorf("ServiceID missing")
 	}
+	
+	if l.config.DisableServiceSync {
+		l.logger.Printf("[INFO] agent: Service sync is DISABLED.  Skipping deleteService '%s'", id)
+		return nil
+	}
 
 	req := structs.DeregisterRequest{
 		Datacenter:   l.config.Datacenter,
@@ -517,11 +522,11 @@ func (l *localState) deleteCheck(id string) error {
 
 // syncService is used to sync a service to the server
 func (l *localState) syncService(id string) error {
-    if l.config.DisableServiceSync {
-        l.logger.Printf("[INFO] agent: Service sync is DISABLED '%s'", id)
-        return nil
-    }
-    
+	if l.config.DisableServiceSync {
+		l.logger.Printf("[INFO] agent: Service sync is DISABLED. Skipping syncService '%s'", id)
+		return nil
+	}
+
 	req := structs.RegisterRequest{
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
