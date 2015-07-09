@@ -478,7 +478,7 @@ func (l *localState) deleteService(id string) error {
 	if id == "" {
 		return fmt.Errorf("ServiceID missing")
 	}
-	
+
 	if l.config.DisableServiceSync {
 		l.logger.Printf("[INFO] agent: Service sync is DISABLED.  Skipping deleteService '%s'", id)
 		return nil

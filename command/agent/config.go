@@ -395,7 +395,7 @@ type Config struct {
 	// Minimum Session TTL
 	SessionTTLMin    time.Duration `mapstructure:"-"`
 	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
-	
+
 	// DisableServiceSync when TRUE will completely inhibit a node
 	// from updating its own service registration.  This feature is
 	// useful if you want another node to maintain service registration
