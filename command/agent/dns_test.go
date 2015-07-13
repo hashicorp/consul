@@ -173,6 +173,28 @@ func TestDNS_NodeLookup(t *testing.T) {
 	if aRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
+
+	// lookup a non-existing node, we should receive a SOA
+	m = new(dns.Msg)
+	m.SetQuestion("nofoo.node.dc1.consul.", dns.TypeANY)
+
+	c = new(dns.Client)
+	in, _, err = c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Ns) != 1 {
+		t.Fatalf("Bad: %#v", in, len(in.Answer))
+	}
+
+	soaRec, ok := in.Ns[0].(*dns.SOA)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+	if soaRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
 }
 
 func TestDNS_CaseInsensitiveNodeLookup(t *testing.T) {
@@ -541,6 +563,29 @@ func TestDNS_ServiceLookup(t *testing.T) {
 	}
 	if aRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+
+	// lookup a non-existing service, we should receive a SOA
+	m = new(dns.Msg)
+	m.SetQuestion("nodb.service.consul.", dns.TypeSRV)
+
+	c = new(dns.Client)
+	addr, _ = srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err = c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Ns) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	soaRec, ok := in.Ns[0].(*dns.SOA)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+	if soaRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Ns[0])
 	}
 }
 
@@ -1770,4 +1815,35 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 	if len(in.Answer) != 0 {
 		t.Fatalf("Bad: %#v", in)
 	}
+}
+
+func TestDNS_NonExistingLookup(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+
+	// lookup a non-existing node, we should receive a SOA
+	m := new(dns.Msg)
+	m.SetQuestion("nonexisting.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Ns) != 1 {
+		t.Fatalf("Bad: %#v", in, len(in.Answer))
+	}
+
+	soaRec, ok := in.Ns[0].(*dns.SOA)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+	if soaRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+
 }
