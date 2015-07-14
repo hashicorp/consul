@@ -268,6 +268,9 @@ func TestClientServer_UserEvent(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Wait for the leader
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
 	// Check the members
 	testutil.WaitForResult(func() (bool, error) {
 		return len(c1.LANMembers()) == 2 && len(s1.LANMembers()) == 2, nil
@@ -276,7 +279,13 @@ func TestClientServer_UserEvent(t *testing.T) {
 	})
 
 	// Fire the user event
-	if err := s1.UserEvent("foo", []byte("baz")); err != nil {
+	client := rpcClient(t, s1)
+	event := structs.EventFireRequest{
+		Name:       "foo",
+		Datacenter: "dc1",
+		Payload:    []byte("baz"),
+	}
+	if err := client.Call("Internal.EventFire", &event, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

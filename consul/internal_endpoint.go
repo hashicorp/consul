@@ -71,8 +71,11 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 	// Set the query meta data
 	m.srv.setQueryMeta(&reply.QueryMeta)
 
+	// Add the consul prefix to the event name
+	eventName := userEventName(args.Name)
+
 	// Fire the event
-	return m.srv.serfLAN.UserEvent(args.Name, args.Payload, false)
+	return m.srv.serfLAN.UserEvent(eventName, args.Payload, false)
 }
 
 // KeyringOperation will query the WAN and LAN gossip keyrings of all nodes.
