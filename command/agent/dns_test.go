@@ -185,7 +185,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 	}
 
 	if len(in.Ns) != 1 {
-		t.Fatalf("Bad: %#v", in, len(in.Answer))
+		t.Fatalf("Bad: %#v %#v", in, len(in.Answer))
 	}
 
 	soaRec, ok := in.Ns[0].(*dns.SOA)
@@ -1835,7 +1835,7 @@ func TestDNS_NonExistingLookup(t *testing.T) {
 	}
 
 	if len(in.Ns) != 1 {
-		t.Fatalf("Bad: %#v", in, len(in.Answer))
+		t.Fatalf("Bad: %#v %#v", in, len(in.Answer))
 	}
 
 	soaRec, ok := in.Ns[0].(*dns.SOA)

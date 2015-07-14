@@ -150,7 +150,7 @@ func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
 	}
 	serfLanPort := agent.consulConfig().SerfLANConfig.MemberlistConfig.AdvertisePort
 	if serfLanPort != 1233 {
-		t.Fatalf("SerfLan is not properly set to '1233': %s", serfLanPort)
+		t.Fatalf("SerfLan is not properly set to '1233': %d", serfLanPort)
 	}
 	serfWanAddr := agent.consulConfig().SerfWANConfig.MemberlistConfig.AdvertiseAddr
 	if serfWanAddr != "127.0.0.43" {
@@ -158,7 +158,7 @@ func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
 	}
 	serfWanPort := agent.consulConfig().SerfWANConfig.MemberlistConfig.AdvertisePort
 	if serfWanPort != 1234 {
-		t.Fatalf("SerfWan is not properly set to '1234': %s", serfWanPort)
+		t.Fatalf("SerfWan is not properly set to '1234': %d", serfWanPort)
 	}
 	rpc := agent.consulConfig().RPCAdvertise
 	if rpc != c.AdvertiseAddrs.RPC {
