@@ -2,7 +2,7 @@
 
 This demo provides a very simple Vagrantfile that creates two nodes,
 one at "172.20.20.10" and another at "172.20.20.11". Both are running
-a standard Ubuntu 12.04 distribution, and Consul is pre-installed.
+a standard Debian 7 distribution, and Consul is pre-installed.
 
 To get started, you can start the cluster by just doing:
 
