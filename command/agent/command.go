@@ -109,6 +109,8 @@ func (c *Command) readConfig() *Config {
 		"number of retries for joining -wan")
 	cmdFlags.StringVar(&retryIntervalWan, "retry-interval-wan", "",
 		"interval between join -wan attempts")
+	cmdFlags.BoolVar(&cmdConfig.DisableServiceSync, "disable_service_sync", false,
+		"inhibit automatic node service sync")
 
 	if err := cmdFlags.Parse(c.args); err != nil {
 		return nil
