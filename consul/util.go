@@ -161,6 +161,8 @@ func GetPrivateIP() (net.IP, error) {
 		return nil, fmt.Errorf("Failed to get interface addresses: %v", err)
 	}
 
+	var candidates []net.IP
+
 	// Find private IPv4 address
 	for _, rawAddr := range addresses {
 		var ip net.IP
@@ -179,11 +181,17 @@ func GetPrivateIP() (net.IP, error) {
 		if !isPrivateIP(ip.String()) {
 			continue
 		}
-
-		return ip, nil
+		candidates = append(candidates, ip)
 	}
-
-	return nil, fmt.Errorf("No private IP address found")
+	numIps := len(candidates)
+	switch numIps {
+	case 0:
+		return nil, fmt.Errorf("No private IP address found")
+	case 1:
+		return candidates[0], nil
+	default:
+		return nil, fmt.Errorf("Multiple private IPs found. Please configure one.")
+	}
 }
 
 // Converts bytes to an integer
