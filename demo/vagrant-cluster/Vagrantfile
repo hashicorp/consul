@@ -14,6 +14,9 @@ unzip consul.zip
 sudo chmod +x consul
 sudo mv consul /usr/bin/consul
 
+sudo mkdir /etc/consul.d
+sudo chmod a+w /etc/consul.d
+
 SCRIPT
 
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
