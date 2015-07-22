@@ -47,7 +47,7 @@ Usage: consul lock [options] prefix child...
   disrupted the child process will be sent a SIGTERM signal and given
   time to gracefully exit. After the grace period expires the process
   will be hard terminated.
-  For Consul agents on Windows, the child process is always hard 
+  For Consul agents on Windows, the child process is always hard
   terminated with a SIGKILL, since Windows has no POSIX compatible
   notion for SIGTERM.
 
@@ -71,6 +71,7 @@ Options:
 }
 
 func (c *LockCommand) Run(args []string) int {
+	var childDone chan struct{}
 	var name, token string
 	var limit int
 	cmdFlags := flag.NewFlagSet("watch", flag.ContinueOnError)
@@ -147,8 +148,16 @@ func (c *LockCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Check if we were shutdown but managed to still acquire the lock
+	select {
+	case <-c.ShutdownCh:
+		c.Ui.Error("Shutdown triggered during lock acquisition")
+		goto RELEASE
+	default:
+	}
+
 	// Start the child process
-	childDone := make(chan struct{})
+	childDone = make(chan struct{})
 	go func() {
 		if err := c.startChild(script, childDone); err != nil {
 			c.Ui.Error(fmt.Sprintf("%s", err))
