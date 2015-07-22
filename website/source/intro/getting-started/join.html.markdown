@@ -53,14 +53,17 @@ multiple interfaces, so specifying a `bind` address assures that you will
 never bind Consul to the wrong interface.
 
 The first node will act as our sole server in this cluster, and we indicate
-this with the [`server` switch](/docs/agent/options.html#_server).
+this with the [`server` switch](/docs/agent/options.html#_server). Finally, we
+add the [`config-dir` flag](/docs/agent/options.html#_config_dir), marking
+where service and check definitions can be found.
 
 All together, these settings yield a
 [`consul agent`](/docs/commands/agent.html) command like this:
 
 ```text
 vagrant@n1:~$ consul agent -server -bootstrap-expect 1 \
-	-data-dir /tmp/consul -node=agent-one -bind=172.20.20.10
+	-data-dir /tmp/consul -node=agent-one -bind=172.20.20.10 \
+	-config-dir /etc/consul.d
 ...
 ```
 
@@ -81,7 +84,7 @@ All together, these settings yield a
 
 ```text
 vagrant@n2:~$ consul agent -data-dir /tmp/consul -node=agent-two \
-	-bind=172.20.20.11
+	-bind=172.20.20.11 -config-dir /etc/consul.d
 ...
 ```
 
