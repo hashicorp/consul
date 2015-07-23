@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="static/bootstrap.min.css">
   <link rel="stylesheet" href="static/base.css">
   <link rel="shortcut icon" href="static/favicon.png">
+  <script src="javascripts/libs/base64.min.js"></script>
 </head>
 <body>
 
@@ -743,6 +744,10 @@
   <script>
   // Enable query params, must be loaded before ember is
   EmberENV = {FEATURES: {'query-params-new': true}};
+  if (Base64.extendString) {
+      // you have to explicitly extend String.prototype
+      Base64.extendString();
+  }
   </script>
 
   <!-- ASSETS -->
