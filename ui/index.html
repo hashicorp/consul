@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="static/bootstrap.min.css">
   <link rel="stylesheet" href="static/base.css">
   <link rel="shortcut icon" href="static/favicon.png">
-  <script src="javascripts/libs/base64.min.js"></script>
+
 </head>
 <body>
 
@@ -744,15 +744,12 @@
   <script>
   // Enable query params, must be loaded before ember is
   EmberENV = {FEATURES: {'query-params-new': true}};
-  if (Base64.extendString) {
-      // you have to explicitly extend String.prototype
-      Base64.extendString();
-  }
   </script>
 
   <!-- ASSETS -->
   <script src="javascripts/libs/jquery-1.10.2.min.js"></script>
   <script src="javascripts/libs/handlebars-1.3.0.min.js"></script>
+  <script src="javascripts/libs/base64.min.js"></script>
   <script src="javascripts/libs/ember-debug.min.js"></script>
   <script src="javascripts/libs/ember-validations.min.js"></script>
   <script src="javascripts/libs/list-view.min.js"></script>

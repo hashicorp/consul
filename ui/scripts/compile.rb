@@ -6,6 +6,7 @@ libs = [
   "javascripts/libs/jquery-1.10.2.min.js",
   "javascripts/libs/handlebars-1.3.0.min.js",
   "javascripts/libs/ember.min.js",
+  "javascripts/libs/base64.min.js",
   "javascripts/libs/ember-validations.min.js",
   "javascripts/libs/list-view.min.js",
   "javascripts/libs/classie.js",
