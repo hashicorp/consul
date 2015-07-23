@@ -194,7 +194,10 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     if (this.get('Value') === null) {
       return "";
     }
-
+    if (Base64.extendString) {
+      // you have to explicitly extend String.prototype
+      Base64.extendString();
+    }
     // base64 decode the value
     return (this.get('Value').fromBase64());
   }.property('Value'),
