@@ -196,7 +196,7 @@ App.Key = Ember.Object.extend(Ember.Validations.Mixin, {
     }
 
     // base64 decode the value
-    return window.atob(this.get('Value'));
+    return (this.get('Value').fromBase64());
   }.property('Value'),
 
 
