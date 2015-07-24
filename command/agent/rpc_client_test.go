@@ -325,6 +325,7 @@ func TestRPCClientListKeys(t *testing.T) {
 	p1 := testRPCClientWithConfig(t, func(c *Config) {
 		c.EncryptKey = key1
 		c.Datacenter = "dc1"
+		c.ACLDatacenter = ""
 	})
 	defer p1.Close()
 
@@ -343,6 +344,7 @@ func TestRPCClientInstallKey(t *testing.T) {
 	key2 := "xAEZ3uVHRMZD9GcYMZaRQw=="
 	p1 := testRPCClientWithConfig(t, func(c *Config) {
 		c.EncryptKey = key1
+		c.ACLDatacenter = ""
 	})
 	defer p1.Close()
 
@@ -361,7 +363,7 @@ func TestRPCClientInstallKey(t *testing.T) {
 	})
 
 	// install key2
-	r, err := p1.client.InstallKey(key2)
+	r, err := p1.client.InstallKey(key2, "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -387,11 +389,12 @@ func TestRPCClientUseKey(t *testing.T) {
 	key2 := "xAEZ3uVHRMZD9GcYMZaRQw=="
 	p1 := testRPCClientWithConfig(t, func(c *Config) {
 		c.EncryptKey = key1
+		c.ACLDatacenter = ""
 	})
 	defer p1.Close()
 
 	// add a second key to the ring
-	r, err := p1.client.InstallKey(key2)
+	r, err := p1.client.InstallKey(key2, "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -412,21 +415,21 @@ func TestRPCClientUseKey(t *testing.T) {
 	})
 
 	// can't remove key1 yet
-	r, err = p1.client.RemoveKey(key1)
+	r, err = p1.client.RemoveKey(key1, "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	keyringError(t, r)
 
 	// change primary key
-	r, err = p1.client.UseKey(key2)
+	r, err = p1.client.UseKey(key2, "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	keyringSuccess(t, r)
 
 	// can remove key1 now
-	r, err = p1.client.RemoveKey(key1)
+	r, err = p1.client.RemoveKey(key1, "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -434,10 +437,12 @@ func TestRPCClientUseKey(t *testing.T) {
 }
 
 func TestRPCClientKeyOperation_encryptionDisabled(t *testing.T) {
-	p1 := testRPCClient(t)
+	p1 := testRPCClientWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = ""
+	})
 	defer p1.Close()
 
-	r, err := p1.client.ListKeys()
+	r, err := p1.client.ListKeys("")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -445,7 +450,7 @@ func TestRPCClientKeyOperation_encryptionDisabled(t *testing.T) {
 }
 
 func listKeys(t *testing.T, c *RPCClient) map[string]map[string]int {
-	resp, err := c.ListKeys()
+	resp, err := c.ListKeys("")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

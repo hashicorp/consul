@@ -16,6 +16,9 @@ const (
 	EventPolicyRead    = "read"
 	EventPolicyWrite   = "write"
 	EventPolicyDeny    = "deny"
+	KeyringPolicyWrite = "write"
+	KeyringPolicyRead  = "read"
+	KeyringPolicyDeny  = "deny"
 )
 
 // Policy is used to represent the policy specified by
@@ -25,6 +28,7 @@ type Policy struct {
 	Keys     []*KeyPolicy     `hcl:"key,expand"`
 	Services []*ServicePolicy `hcl:"service,expand"`
 	Events   []*EventPolicy   `hcl:"event,expand"`
+	Keyring  string           `hcl:"keyring"`
 }
 
 // KeyPolicy represents a policy for a key
@@ -103,6 +107,16 @@ func Parse(rules string) (*Policy, error) {
 		default:
 			return nil, fmt.Errorf("Invalid event policy: %#v", ep)
 		}
+	}
+
+	// Validate the keyring policy
+	switch p.Keyring {
+	case KeyringPolicyRead:
+	case KeyringPolicyWrite:
+	case KeyringPolicyDeny:
+	case "": // Special case to allow omitting the keyring policy
+	default:
+		return nil, fmt.Errorf("Invalid keyring policy: %#v", p.Keyring)
 	}
 
 	return p, nil

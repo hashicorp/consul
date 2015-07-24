@@ -58,6 +58,13 @@ type ACL interface {
 	// EventWrite determines if a specific event may be fired.
 	EventWrite(string) bool
 
+	// KeyringRead determines if the encryption keyring used in
+	// the gossip layer can be read.
+	KeyringRead() bool
+
+	// KeyringWrite determines if the keyring can be manipulated
+	KeyringWrite() bool
+
 	// ACLList checks for permission to list all the ACLs
 	ACLList() bool
 
@@ -98,6 +105,14 @@ func (s *StaticACL) EventRead(string) bool {
 }
 
 func (s *StaticACL) EventWrite(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) KeyringRead() bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) KeyringWrite() bool {
 	return s.defaultAllow
 }
 
@@ -153,6 +168,11 @@ type PolicyACL struct {
 
 	// eventRules contains the user event policies
 	eventRules *radix.Tree
+
+	// keyringRules contains the keyring policies. The keyring has
+	// a very simple yes/no without prefix mathing, so here we
+	// don't need to use a radix tree.
+	keyringRule string
 }
 
 // New is used to construct a policy based ACL from a set of policies
@@ -179,6 +199,9 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 	for _, ep := range policy.Events {
 		p.eventRules.Insert(ep.Event, ep.Policy)
 	}
+
+	// Load the keyring policy
+	p.keyringRule = policy.Keyring
 
 	return p, nil
 }
@@ -319,6 +342,27 @@ func (p *PolicyACL) EventWrite(name string) bool {
 
 	// No match, use parent
 	return p.parent.EventWrite(name)
+}
+
+// KeyringRead is used to determine if the keyring can be
+// read by the current ACL token.
+func (p *PolicyACL) KeyringRead() bool {
+	switch p.keyringRule {
+	case KeyringPolicyRead, KeyringPolicyWrite:
+		return true
+	case KeyringPolicyDeny:
+		return false
+	default:
+		return p.parent.KeyringRead()
+	}
+}
+
+// KeyringWrite determines if the keyring can be manipulated.
+func (p *PolicyACL) KeyringWrite() bool {
+	if p.keyringRule == KeyringPolicyWrite {
+		return true
+	}
+	return p.parent.KeyringWrite()
 }
 
 // ACLList checks if listing of ACLs is allowed

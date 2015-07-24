@@ -1,6 +1,8 @@
 package consul
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
 )
@@ -82,6 +84,30 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 func (m *Internal) KeyringOperation(
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses) error {
+
+	// Check ACLs
+	acl, err := m.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if acl != nil {
+		switch args.Operation {
+		case structs.KeyringList:
+			if !acl.KeyringRead() {
+				return fmt.Errorf("Reading keyring denied by ACLs")
+			}
+		case structs.KeyringInstall:
+			fallthrough
+		case structs.KeyringUse:
+			fallthrough
+		case structs.KeyringRemove:
+			if !acl.KeyringWrite() {
+				return fmt.Errorf("Modifying keyring denied due to ACLs")
+			}
+		default:
+			panic("Invalid keyring operation")
+		}
+	}
 
 	// Only perform WAN keyring querying and RPC forwarding once
 	if !args.Forwarded {

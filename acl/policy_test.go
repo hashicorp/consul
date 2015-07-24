@@ -2,6 +2,7 @@ package acl
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -34,6 +35,7 @@ event "foo" {
 event "bar" {
 	policy = "deny"
 }
+keyring = "deny"
 	`
 	exp := &Policy{
 		Keys: []*KeyPolicy{
@@ -78,6 +80,7 @@ event "bar" {
 				Policy: EventPolicyDeny,
 			},
 		},
+		Keyring: KeyringPolicyDeny,
 	}
 
 	out, err := Parse(inp)
@@ -124,7 +127,8 @@ func TestParse_JSON(t *testing.T) {
 		"bar": {
 			"policy": "deny"
 		}
-	}
+	},
+	"keyring": "deny"
 }`
 	exp := &Policy{
 		Keys: []*KeyPolicy{
@@ -169,6 +173,7 @@ func TestParse_JSON(t *testing.T) {
 				Policy: EventPolicyDeny,
 			},
 		},
+		Keyring: KeyringPolicyDeny,
 	}
 
 	out, err := Parse(inp)
@@ -178,5 +183,20 @@ func TestParse_JSON(t *testing.T) {
 
 	if !reflect.DeepEqual(out, exp) {
 		t.Fatalf("bad: %#v %#v", out, exp)
+	}
+}
+
+func TestACLPolicy_badPolicy(t *testing.T) {
+	cases := []string{
+		`key "" { policy = "nope" }`,
+		`service "" { policy = "nope" }`,
+		`event "" { policy = "nope" }`,
+		`keyring = "nope"`,
+	}
+	for _, c := range cases {
+		_, err := Parse(c)
+		if err == nil || !strings.Contains(err.Error(), "Invalid") {
+			t.Fatalf("expected policy error, got: %#v", err)
+		}
 	}
 }

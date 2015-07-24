@@ -18,8 +18,8 @@ on tokens to which fine grained rules can be applied. It is very similar to
 
 When the ACL system was launched in Consul 0.4, it was only possible to specify
 policies for the KV store.  In Consul 0.5, ACL policies were extended to service
-registrations. In Consul 0.6, ACL's were further extended to restrict the
-service discovery mechanisms and user events..
+registrations. In Consul 0.6, ACL's were further extended to restrict service
+discovery mechanisms, user events, and encryption keyring operations.
 
 ## ACL Design
 
@@ -147,6 +147,27 @@ event "" {
 As always, the more secure way to handle user events is to explicitly grant
 access to each API token based on the events they should be able to fire.
 
+### Blacklist mode and Keyring Operations
+
+Consul 0.6 and later supports securing the encryption keyring operations using
+ACL's. Encryption is an optional component of the gossip layer. More information
+about Consul's keyring operations can be found on the [keyring
+command](/docs/commands/keyring.html) documentation page.
+
+If your [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
+set to `deny`, then the `anonymous` token will not have access to read or write
+to the encryption keyring. The keyring policy is yet another first-class citizen
+in the ACL syntax. You can configure the anonymous token to have free reign over
+the keyring using a policy like the following:
+
+```
+keyring = "write"
+```
+
+Encryption keyring operations are sensitive and should be properly secured. It
+is recommended that instead of configuring a wide-open policy like above, a
+per-token policy is applied to maximize security.
+
 ### Bootstrapping ACLs
 
 Bootstrapping the ACL system is done by providing an initial [`acl_master_token`
@@ -229,6 +250,9 @@ event "" {
 event "destroy-" {
     policy = "deny"
 }
+
+# Read-only mode for the encryption keyring by default (list only)
+keyring = "read"
 ```
 
 This is equivalent to the following JSON input:
@@ -261,7 +285,8 @@ This is equivalent to the following JSON input:
     "destroy-": {
       "policy": "deny"
     }
-  }
+  },
+  "keyring": "read"
 }
 ```
 
