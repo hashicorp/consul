@@ -122,6 +122,11 @@ func (s *Server) sortNodesByDistanceFrom(source structs.QuerySource, subj interf
 		return nil
 	}
 
+	// We can't sort if there's no source node.
+	if source.Node == "" {
+		return nil
+	}
+
 	// We can't compare coordinates across DCs.
 	if source.Datacenter != s.config.Datacenter {
 		return nil
