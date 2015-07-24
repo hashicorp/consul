@@ -337,12 +337,13 @@ func TestRtt_getDatacenterDistance(t *testing.T) {
 	}
 
 	// Check the more interesting median case, note that there's a mystery
-	// node4 in there that should make the distances sort like this:
+	// node4 in there that should be excluded to make the distances sort
+	// like this:
 	//
-	// [0] node3 (0.005), [1] node1 (0.007), [2] node2 (0.008), [3] node4 (+Inf)
+	// [0] node3 (0.005), [1] node1 (0.007), [2] node2 (0.008)
 	//
-	// So the median should be at index 4 / 2 = 2 -> 0.008.
-	if dist, err := getDatacenterDistance(s, "dc1"); err != nil || dist != 0.008 {
+	// So the median should be at index 3 / 2 = 1 -> 0.007.
+	if dist, err := getDatacenterDistance(s, "dc1"); err != nil || dist != 0.007 {
 		t.Fatalf("bad: %v err: %v", dist, err)
 	}
 }

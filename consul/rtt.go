@@ -223,23 +223,22 @@ func getDatacenterDistance(s serfer, dc string) (float64, error) {
 		return 0.0, err
 	}
 
-	// Fetch all the nodes in the DC.
+	// Fetch all the nodes in the DC and record their distance, if available.
 	nodes := s.GetNodesForDatacenter(dc)
-	subvec := make([]float64, len(nodes))
-	for j, node := range nodes {
+	subvec := make([]float64, 0, len(nodes))
+	for _, node := range nodes {
 		if other, ok := s.GetCachedCoordinate(node); ok {
-			subvec[j] = computeDistance(coord, other)
-		} else {
-			subvec[j] = computeDistance(coord, nil)
+			subvec = append(subvec, computeDistance(coord, other))
 		}
 	}
 
 	// Compute the median by sorting and taking the middle item.
-	sort.Float64s(subvec)
 	if len(subvec) > 0 {
+		sort.Float64s(subvec)
 		return subvec[len(subvec)/2], nil
 	}
 
+	// Return the default infinity value.
 	return computeDistance(coord, nil), nil
 }
 
