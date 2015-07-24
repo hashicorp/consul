@@ -113,8 +113,15 @@ func (s *Server) newSorterByDistanceFrom(c *coordinate.Coordinate, subj interfac
 // sortNodesByDistanceFrom is used to sort results from our service catalog based
 // on the round trip time from the given source node. Nodes with missing coordinates
 // will get stable sorted at the end of the list.
-
+//
+// If coordinates are disabled this will be a no-op.
 func (s *Server) sortNodesByDistanceFrom(source structs.QuerySource, subj interface{}) error {
+	// Make it safe to call this without having to check if coordinates are
+	// disabled first.
+	if s.config.DisableCoordinates {
+		return nil
+	}
+
 	// We can't compare coordinates across DCs.
 	if source.Datacenter != s.config.Datacenter {
 		return nil
@@ -131,7 +138,7 @@ func (s *Server) sortNodesByDistanceFrom(source structs.QuerySource, subj interf
 		return nil
 	}
 
-	// Do the Dew!
+	// Do the sort!
 	sorter, err := s.newSorterByDistanceFrom(coord, subj)
 	if err != nil {
 		return err
@@ -182,7 +189,16 @@ func (s *serverSerfer) GetNodesForDatacenter(dc string) []string {
 // sortDatacentersByDistance will sort the given list of DCs based on the
 // median RTT to all nodes we know about from the WAN gossip pool). DCs with
 // missing coordinates will be stable sorted to the end of the list.
+//
+// If coordinates are disabled this will be a no-op.
 func (s *Server) sortDatacentersByDistance(dcs []string) error {
+	// Make it safe to call this without having to check if coordinates are
+	// disabled first.
+	if s.config.DisableCoordinates {
+		return nil
+	}
+
+	// Do the sort!
 	serfer := serverSerfer{s}
 	return sortDatacentersByDistance(&serfer, dcs)
 }
