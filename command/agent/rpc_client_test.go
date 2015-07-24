@@ -325,6 +325,7 @@ func TestRPCClientListKeys(t *testing.T) {
 	p1 := testRPCClientWithConfig(t, func(c *Config) {
 		c.EncryptKey = key1
 		c.Datacenter = "dc1"
+		c.ACLDatacenter = ""
 	})
 	defer p1.Close()
 
@@ -343,6 +344,7 @@ func TestRPCClientInstallKey(t *testing.T) {
 	key2 := "xAEZ3uVHRMZD9GcYMZaRQw=="
 	p1 := testRPCClientWithConfig(t, func(c *Config) {
 		c.EncryptKey = key1
+		c.ACLDatacenter = ""
 	})
 	defer p1.Close()
 
@@ -387,6 +389,7 @@ func TestRPCClientUseKey(t *testing.T) {
 	key2 := "xAEZ3uVHRMZD9GcYMZaRQw=="
 	p1 := testRPCClientWithConfig(t, func(c *Config) {
 		c.EncryptKey = key1
+		c.ACLDatacenter = ""
 	})
 	defer p1.Close()
 
@@ -434,7 +437,9 @@ func TestRPCClientUseKey(t *testing.T) {
 }
 
 func TestRPCClientKeyOperation_encryptionDisabled(t *testing.T) {
-	p1 := testRPCClient(t)
+	p1 := testRPCClientWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = ""
+	})
 	defer p1.Close()
 
 	r, err := p1.client.ListKeys("")
