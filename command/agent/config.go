@@ -395,6 +395,10 @@ type Config struct {
 	// Minimum Session TTL
 	SessionTTLMin    time.Duration `mapstructure:"-"`
 	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
+
+	// EnableTagDrift when true will inhibit comparison
+	// of service tags during anti-entropy
+	EnableTagDrift bool `mapstructure:"enable_tag_drift"`
 }
 
 // UnixSocketPermissions contains information about a unix socket, and
@@ -1067,6 +1071,9 @@ func MergeConfig(a, b *Config) *Config {
 		for field, value := range b.HTTPAPIResponseHeaders {
 			result.HTTPAPIResponseHeaders[field] = value
 		}
+	}
+	if b.EnableTagDrift {
+		result.EnableTagDrift = false
 	}
 
 	// Copy the start join addresses

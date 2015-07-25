@@ -290,6 +290,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.SessionTTLMinRaw != "" {
 		base.SessionTTLMin = a.config.SessionTTLMin
 	}
+	if a.config.EnableTagDrift {
+		base.EnableTagDrift = false
+	}
 
 	// Format the build string
 	revision := a.config.Revision

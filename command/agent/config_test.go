@@ -555,6 +555,10 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	if !config.EnableTagDrift {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// ACLs
 	input = `{"acl_token": "1234", "acl_datacenter": "dc2",
 	"acl_ttl": "60s", "acl_down_policy": "deny",
@@ -1214,6 +1218,7 @@ func TestMergeConfig(t *testing.T) {
 			RPC:        &net.TCPAddr{},
 			RPCRaw:     "127.0.0.5:1233",
 		},
+		EnableTagDrift: false,
 	}
 
 	c := MergeConfig(a, b)

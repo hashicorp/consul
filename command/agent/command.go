@@ -109,6 +109,8 @@ func (c *Command) readConfig() *Config {
 		"number of retries for joining -wan")
 	cmdFlags.StringVar(&retryIntervalWan, "retry-interval-wan", "",
 		"interval between join -wan attempts")
+	cmdFlags.BoolVar(&cmdConfig.EnableTagDrift, "enable_tag_drift", false,
+		"enable tag drift - ignore tags during anti-entropy")
 
 	if err := cmdFlags.Parse(c.args); err != nil {
 		return nil
