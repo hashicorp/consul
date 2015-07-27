@@ -316,3 +316,33 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 		t.Fatalf("bad: %#v", reply.Nodes)
 	}
 }
+
+func TestHealth_ChecksInState_FilterACL(t *testing.T) {
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	opt := structs.ChecksInStateRequest{
+		Datacenter:   "dc1",
+		State:        structs.HealthPassing,
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedHealthChecks{}
+	if err := client.Call("Health.ChecksInState", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	found := false
+	for _, chk := range reply.HealthChecks {
+		switch chk.ServiceName {
+		case "foo":
+			found = true
+		case "bar":
+			t.Fatalf("bad service 'bar': %#v", reply.HealthChecks)
+		}
+	}
+	if !found {
+		t.Fatalf("missing service 'foo': %#v", reply.HealthChecks)
+	}
+}

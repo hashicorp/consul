@@ -816,6 +816,7 @@ func testACLFilterServer(t *testing.T) (dir, token string, srv *Server, client *
 			CheckID:   "service:foo",
 			Name:      "service:foo",
 			ServiceID: "foo",
+			Status:    structs.HealthPassing,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
