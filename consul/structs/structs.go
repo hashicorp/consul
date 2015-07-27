@@ -203,7 +203,7 @@ func (r *DCSpecificRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// ServiceSpecificRequest is used to query about a specific node
+// ServiceSpecificRequest is used to query about a specific service
 type ServiceSpecificRequest struct {
 	Datacenter  string
 	ServiceName string
@@ -232,6 +232,7 @@ func (r *NodeSpecificRequest) RequestDatacenter() string {
 type ChecksInStateRequest struct {
 	Datacenter string
 	State      string
+	Source     QuerySource
 	QueryOptions
 }
 
@@ -356,7 +357,7 @@ type HealthCheck struct {
 type HealthChecks []*HealthCheck
 
 // CheckServiceNode is used to provide the node, its service
-// definition, as well as a HealthCheck that is associated
+// definition, as well as a HealthCheck that is associated.
 type CheckServiceNode struct {
 	Node    *Node
 	Service *NodeService

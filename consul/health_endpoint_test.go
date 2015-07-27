@@ -3,6 +3,7 @@ package consul
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
@@ -51,6 +52,83 @@ func TestHealth_ChecksInState(t *testing.T) {
 		t.Fatalf("Bad: %v", checks[0])
 	}
 	if checks[1].CheckID != SerfCheckID {
+		t.Fatalf("Bad: %v", checks[1])
+	}
+}
+
+func TestHealth_ChecksInState_DistanceSort(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+	if err := s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.2"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s1.fsm.State().EnsureNode(2, structs.Node{"bar", "127.0.0.3"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	updates := []structs.Coordinate{
+		{"foo", generateCoordinate(1 * time.Millisecond)},
+		{"bar", generateCoordinate(2 * time.Millisecond)},
+	}
+	if err := s1.fsm.State().CoordinateBatchUpdate(3, updates); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Check: &structs.HealthCheck{
+			Name:   "memory utilization",
+			Status: structs.HealthPassing,
+		},
+	}
+
+	var out struct{}
+	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	arg.Node = "bar"
+	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Query relative to foo to make sure it shows up first in the list.
+	var out2 structs.IndexedHealthChecks
+	inState := structs.ChecksInStateRequest{
+		Datacenter: "dc1",
+		State:      structs.HealthPassing,
+		Source:     structs.QuerySource{
+			Datacenter: "dc1",
+			Node: "foo",
+		},
+	}
+	if err := client.Call("Health.ChecksInState", &inState, &out2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	checks := out2.HealthChecks
+	if len(checks) != 3 {
+		t.Fatalf("Bad: %v", checks)
+	}
+	if checks[0].Node != "foo" {
+		t.Fatalf("Bad: %v", checks[1])
+	}
+
+	// Now query relative to bar to make sure it shows up first.
+	inState.Source.Node = "bar"
+	if err := client.Call("Health.ChecksInState", &inState, &out2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	checks = out2.HealthChecks
+	if len(checks) != 3 {
+		t.Fatalf("Bad: %v", checks)
+	}
+	if checks[0].Node != "bar" {
 		t.Fatalf("Bad: %v", checks[1])
 	}
 }
@@ -142,6 +220,94 @@ func TestHealth_ServiceChecks(t *testing.T) {
 	}
 }
 
+func TestHealth_ServiceChecks_DistanceSort(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+	if err := s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.2"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s1.fsm.State().EnsureNode(2, structs.Node{"bar", "127.0.0.3"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	updates := []structs.Coordinate{
+		{"foo", generateCoordinate(1 * time.Millisecond)},
+		{"bar", generateCoordinate(2 * time.Millisecond)},
+	}
+	if err := s1.fsm.State().CoordinateBatchUpdate(3, updates); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db",
+			Service: "db",
+		},
+		Check: &structs.HealthCheck{
+			Name:      "db connect",
+			Status:    structs.HealthPassing,
+			ServiceID: "db",
+		},
+	}
+
+	var out struct{}
+	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	arg.Node = "bar"
+	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Query relative to foo to make sure it shows up first in the list.
+	var out2 structs.IndexedHealthChecks
+	node := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+		Source:      structs.QuerySource{
+			Datacenter: "dc1",
+			Node: "foo",
+		},
+	}
+	if err := client.Call("Health.ServiceChecks", &node, &out2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	checks := out2.HealthChecks
+	if len(checks) != 2 {
+		t.Fatalf("Bad: %v", checks)
+	}
+	if checks[0].Node != "foo" {
+		t.Fatalf("Bad: %v", checks)
+	}
+	if checks[1].Node != "bar" {
+		t.Fatalf("Bad: %v", checks)
+	}
+
+	// Now query relative to bar to make sure it shows up first.
+	node.Source.Node = "bar"
+	if err := client.Call("Health.ServiceChecks", &node, &out2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	checks = out2.HealthChecks
+	if len(checks) != 2 {
+		t.Fatalf("Bad: %v", checks)
+	}
+	if checks[0].Node != "bar" {
+		t.Fatalf("Bad: %v", checks)
+	}
+	if checks[1].Node != "foo" {
+		t.Fatalf("Bad: %v", checks)
+	}
+}
+
 func TestHealth_ServiceNodes(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -221,6 +387,94 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
 	if nodes[1].Checks[0].Status != structs.HealthPassing {
+		t.Fatalf("Bad: %v", nodes[1])
+	}
+}
+
+func TestHealth_ServiceNodes_DistanceSort(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+	if err := s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.2"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s1.fsm.State().EnsureNode(2, structs.Node{"bar", "127.0.0.3"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	updates := []structs.Coordinate{
+		{"foo", generateCoordinate(1 * time.Millisecond)},
+		{"bar", generateCoordinate(2 * time.Millisecond)},
+	}
+	if err := s1.fsm.State().CoordinateBatchUpdate(3, updates); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	arg := structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			ID:      "db",
+			Service: "db",
+		},
+		Check: &structs.HealthCheck{
+			Name:      "db connect",
+			Status:    structs.HealthPassing,
+			ServiceID: "db",
+		},
+	}
+
+	var out struct{}
+	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	arg.Node = "bar"
+	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Query relative to foo to make sure it shows up first in the list.
+	var out2 structs.IndexedCheckServiceNodes
+	req := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+		Source:      structs.QuerySource{
+			Datacenter: "dc1",
+			Node: "foo",
+		},
+	}
+	if err := client.Call("Health.ServiceNodes", &req, &out2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	nodes := out2.Nodes
+	if len(nodes) != 2 {
+		t.Fatalf("Bad: %v", nodes)
+	}
+	if nodes[0].Node.Node != "foo" {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if nodes[1].Node.Node != "bar" {
+		t.Fatalf("Bad: %v", nodes[1])
+	}
+
+	// Now query relative to bar to make sure it shows up first.
+	req.Source.Node = "bar"
+	if err := client.Call("Health.ServiceNodes", &req, &out2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	nodes = out2.Nodes
+	if len(nodes) != 2 {
+		t.Fatalf("Bad: %v", nodes)
+	}
+	if nodes[0].Node.Node != "bar" {
+		t.Fatalf("Bad: %v", nodes[0])
+	}
+	if nodes[1].Node.Node != "foo" {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
 }

@@ -98,6 +98,84 @@ func (n *serviceNodeSorter) Less(i, j int) bool {
 	return n.Vec[i] < n.Vec[j]
 }
 
+// serviceNodeSorter takes a list of health checks and a parallel vector of
+// distances and implements sort.Interface, keeping both structures coherent and
+// sorting by distance.
+type healthCheckSorter struct {
+	Checks structs.HealthChecks
+	Vec   []float64
+}
+
+// newHealthCheckSorter returns a new sorter for the given source coordinate and
+// set of health checks with nodes.
+func (s *Server) newHealthCheckSorter(c *coordinate.Coordinate, checks structs.HealthChecks) (sort.Interface, error) {
+	state := s.fsm.State()
+	vec := make([]float64, len(checks))
+	for i, check := range checks {
+		_, coord, err := state.CoordinateGet(check.Node)
+		if err != nil {
+			return nil, err
+		}
+		vec[i] = computeDistance(c, coord)
+	}
+	return &healthCheckSorter{checks, vec}, nil
+}
+
+// See sort.Interface.
+func (n *healthCheckSorter) Len() int {
+	return len(n.Checks)
+}
+
+// See sort.Interface.
+func (n *healthCheckSorter) Swap(i, j int) {
+	n.Checks[i], n.Checks[j] = n.Checks[j], n.Checks[i]
+	n.Vec[i], n.Vec[j] = n.Vec[j], n.Vec[i]
+}
+
+// See sort.Interface.
+func (n *healthCheckSorter) Less(i, j int) bool {
+	return n.Vec[i] < n.Vec[j]
+}
+
+// checkServiceNodeSorter takes a list of service nodes and a parallel vector of
+// distances and implements sort.Interface, keeping both structures coherent and
+// sorting by distance.
+type checkServiceNodeSorter struct {
+	Nodes structs.CheckServiceNodes
+	Vec   []float64
+}
+
+// newCheckServiceNodeSorter returns a new sorter for the given source coordinate
+// and set of nodes with health checks.
+func (s *Server) newCheckServiceNodeSorter(c *coordinate.Coordinate, nodes structs.CheckServiceNodes) (sort.Interface, error) {
+	state := s.fsm.State()
+	vec := make([]float64, len(nodes))
+	for i, node := range nodes {
+		_, coord, err := state.CoordinateGet(node.Node.Node)
+		if err != nil {
+			return nil, err
+		}
+		vec[i] = computeDistance(c, coord)
+	}
+	return &checkServiceNodeSorter{nodes, vec}, nil
+}
+
+// See sort.Interface.
+func (n *checkServiceNodeSorter) Len() int {
+	return len(n.Nodes)
+}
+
+// See sort.Interface.
+func (n *checkServiceNodeSorter) Swap(i, j int) {
+	n.Nodes[i], n.Nodes[j] = n.Nodes[j], n.Nodes[i]
+	n.Vec[i], n.Vec[j] = n.Vec[j], n.Vec[i]
+}
+
+// See sort.Interface.
+func (n *checkServiceNodeSorter) Less(i, j int) bool {
+	return n.Vec[i] < n.Vec[j]
+}
+
 // newSorterByDistanceFrom returns a sorter for the given type.
 func (s *Server) newSorterByDistanceFrom(c *coordinate.Coordinate, subj interface{}) (sort.Interface, error) {
 	switch v := subj.(type) {
@@ -105,6 +183,10 @@ func (s *Server) newSorterByDistanceFrom(c *coordinate.Coordinate, subj interfac
 		return s.newNodeSorter(c, v)
 	case structs.ServiceNodes:
 		return s.newServiceNodeSorter(c, v)
+	case structs.HealthChecks:
+		return s.newHealthCheckSorter(c, v)
+	case structs.CheckServiceNodes:
+		return s.newCheckServiceNodeSorter(c, v)
 	default:
 		panic(fmt.Errorf("Unhandled type passed to newSorterByDistanceFrom: %#v", subj))
 	}

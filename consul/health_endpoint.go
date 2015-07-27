@@ -30,7 +30,10 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 				return err
 			}
 			reply.Index, reply.HealthChecks = index, checks
-			return h.srv.filterACL(args.Token, reply)
+			if err := h.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+			return h.srv.sortNodesByDistanceFrom(args.Source, reply.HealthChecks)
 		})
 }
 
@@ -82,7 +85,10 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 				return err
 			}
 			reply.Index, reply.HealthChecks = index, checks
-			return h.srv.filterACL(args.Token, reply)
+			if err := h.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+			return h.srv.sortNodesByDistanceFrom(args.Source, reply.HealthChecks)
 		})
 }
 
@@ -115,8 +121,12 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 			if err != nil {
 				return err
 			}
+
 			reply.Index, reply.Nodes = index, nodes
-			return h.srv.filterACL(args.Token, reply)
+			if err := h.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+			return h.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
 		})
 
 	// Provide some metrics

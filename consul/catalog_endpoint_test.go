@@ -294,24 +294,6 @@ func TestCatalogListDatacenters_DistanceSort(t *testing.T) {
 	if out[2] != "dc2" {
 		t.Fatalf("bad: %v", out)
 	}
-
-	// Make sure we get the natural order if coordinates are disabled.
-	s1.config.DisableCoordinates = true
-	if err := client.Call("Catalog.ListDatacenters", struct{}{}, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(out) != 3 {
-		t.Fatalf("bad: %v", out)
-	}
-	if out[0] != "acdc" {
-		t.Fatalf("bad: %v", out)
-	}
-	if out[1] != "dc1" {
-		t.Fatalf("bad: %v", out)
-	}
-	if out[2] != "dc2" {
-		t.Fatalf("bad: %v", out)
-	}
 }
 
 func TestCatalogListNodes(t *testing.T) {
@@ -529,7 +511,6 @@ func TestCatalogListNodes_DistanceSort(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	// Add three nodes.
 	testutil.WaitForLeader(t, client.Call, "dc1")
 	if err := s1.fsm.State().EnsureNode(1, structs.Node{"aaa", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
@@ -604,34 +585,6 @@ func TestCatalogListNodes_DistanceSort(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 	if out.Nodes[3].Node != "aaa" {
-		t.Fatalf("bad: %v", out)
-	}
-	if out.Nodes[4].Node != s1.config.NodeName {
-		t.Fatalf("bad: %v", out)
-	}
-
-	// Make sure we get the natural order if coordinates are disabled.
-	s1.config.DisableCoordinates = true
-	args = structs.DCSpecificRequest{
-		Datacenter: "dc1",
-		Source:     structs.QuerySource{Datacenter: "dc1", Node: "foo"},
-	}
-	testutil.WaitForResult(func() (bool, error) {
-		client.Call("Catalog.ListNodes", &args, &out)
-		return len(out.Nodes) == 5, nil
-	}, func(err error) {
-		t.Fatalf("err: %v", err)
-	})
-	if out.Nodes[0].Node != "aaa" {
-		t.Fatalf("bad: %v", out)
-	}
-	if out.Nodes[1].Node != "bar" {
-		t.Fatalf("bad: %v", out)
-	}
-	if out.Nodes[2].Node != "baz" {
-		t.Fatalf("bad: %v", out)
-	}
-	if out.Nodes[3].Node != "foo" {
 		t.Fatalf("bad: %v", out)
 	}
 	if out.Nodes[4].Node != s1.config.NodeName {
@@ -980,32 +933,6 @@ func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 	if out.ServiceNodes[3].Node != "aaa" {
-		t.Fatalf("bad: %v", out)
-	}
-
-	// Make sure we get the natural order if coordinates are disabled.
-	s1.config.DisableCoordinates = true
-	args = structs.ServiceSpecificRequest{
-		Datacenter:  "dc1",
-		ServiceName: "db",
-		Source:      structs.QuerySource{Datacenter: "dc1", Node: "foo"},
-	}
-	if err := client.Call("Catalog.ServiceNodes", &args, &out); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(out.ServiceNodes) != 4 {
-		t.Fatalf("bad: %v", out)
-	}
-	if out.ServiceNodes[0].Node != "aaa" {
-		t.Fatalf("bad: %v", out)
-	}
-	if out.ServiceNodes[1].Node != "foo" {
-		t.Fatalf("bad: %v", out)
-	}
-	if out.ServiceNodes[2].Node != "bar" {
-		t.Fatalf("bad: %v", out)
-	}
-	if out.ServiceNodes[3].Node != "baz" {
 		t.Fatalf("bad: %v", out)
 	}
 }
