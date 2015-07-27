@@ -224,8 +224,8 @@ The endpoint always returns 200.
 
 The register endpoint is used to add a new check to the local agent.
 There is more documentation on checks [here](/docs/agent/checks.html).
-Checks may be of script, HTTP, or TTL type. The agent is responsible for managing
-the status of the check and keeping the Catalog in sync.
+Checks may be of script, HTTP, TCP, or TTL type. The agent is responsible for
+managing the status of the check and keeping the Catalog in sync.
 
 The register endpoint expects a JSON request body to be PUT. The request
 body must look like:
@@ -237,13 +237,14 @@ body must look like:
   "Notes": "Ensure we don't oversubscribe memory",
   "Script": "/usr/local/bin/check_mem.py",
   "HTTP": "http://example.com",
+  "TCP": "example.com:22",
   "Interval": "10s",
   "TTL": "15s"
 }
 ```
 
-The `Name` field is mandatory, as is one of `Script`, `HTTP` or `TTL`.
-`Script` and `HTTP` also require that `Interval` be set.
+The `Name` field is mandatory, as is one of `Script`, `HTTP`, `TCP` or `TTL`.
+`Script`, `TCP` and `HTTP` also require that `Interval` be set.
 
 If an `ID` is not provided, it is set to `Name`. You cannot have duplicate
 `ID` entries per agent, so it may be necessary to provide an `ID`.
@@ -257,6 +258,14 @@ An `HTTP` check will perform an HTTP GET request against the value of `HTTP` (ex
 be a URL) every `Interval`. If the response is any `2xx` code, the check is `passing`.
 If the response is `429 Too Many Requests`, the check is `warning`. Otherwise, the check
 is `critical`.
+
+An `TCP` check will perform an TCP connection attempt against the value of `TCP`
+(expected to be an IP/hostname and port combination) every `Interval`.  If the
+connection attempt is successful, the check is `passing`.  If the connection
+attempt is unsuccessful, the check is `critical`.  In the case of a hostname
+that resolves to both IPv4 and IPv6 addresses, an attempt will be made to both
+addresses, and the first successful connection attempt will result in a
+successful check.
 
 If a `TTL` type is used, then the TTL update endpoint must be used periodically to update
 the state of the check.

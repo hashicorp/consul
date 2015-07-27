@@ -31,6 +31,20 @@ There are three different kinds of checks:
   It is possible to configure a custom HTTP check timeout value by specifying
   the `timeout` field in the check definition.
 
+* TCP + Interval - These checks make an TCP connection attempt every Interval
+  (e.g. every 30 seconds) to the specified IP/hostname and port. The status of
+  the service depends on whether the connection attempt is successful (ie - the
+  port is currently accepting connections). If the connection is accepted, the
+  status is `success`, otherwise the status is `critical`. In the case of a
+  hostname that resolves to both IPv4 and IPv6 addresses, an attempt will be
+  made to both addresses, and the first successful connection attempt will
+  result in a successful check. This type of check should be preferred over a
+  script that uses `netcat` or another external process to check a simple socket
+  operation. By default, TCP checks will be configured with a request timeout
+  equal to the check interval, with a max of 10 seconds. It is possible to
+  configure a custom TCP check timeout value by specifying the `timeout` field
+  in the check definition.
+
 * <a name="TTL"></a>Time to Live (TTL) - These checks retain their last known state for a given TTL.
   The state of the check must be updated periodically over the HTTP interface. If an
   external system fails to update the status within a given TTL, the check is
@@ -75,6 +89,20 @@ A HTTP check:
 }
 ```
 
+A TCP check:
+
+```javascript
+{
+  "check": {
+    "id": "ssh",
+    "name": "SSH TCP on port 22",
+    "tcp": "localhost:22",
+    "interval": "10s",
+    "timeout": "1s"
+  }
+}
+```
+
 A TTL check:
 
 ```javascript
@@ -102,7 +130,7 @@ Checks may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the check, including
 [anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
 
-Both script and HTTP checks must include an `interval` field. This field is
+Script, TCP and HTTP checks must include an `interval` field. This field is
 parsed by Go's `time` package, and has the following
 [formatting specification](http://golang.org/pkg/time/#ParseDuration):
 > A duration string is a possibly signed sequence of decimal numbers, each with

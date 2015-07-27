@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -320,4 +321,75 @@ func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 	if !check.httpClient.Transport.(*http.Transport).DisableKeepAlives {
 		t.Fatalf("should have disabled keepalives")
 	}
+}
+
+func mockTCPServer(network string) net.Listener {
+	var (
+		addr string
+	)
+
+	if network == `tcp6` {
+		addr = `[::1]:0`
+	} else {
+		addr = `127.0.0.1:0`
+	}
+
+	listener, err := net.Listen(network, addr)
+	if err != nil {
+		panic(err)
+	}
+
+	return listener
+}
+
+func expectTCPStatus(t *testing.T, tcp string, status string) {
+	mock := &MockNotify{
+		state:   make(map[string]string),
+		updates: make(map[string]int),
+		output:  make(map[string]string),
+	}
+	check := &CheckTCP{
+		Notify:   mock,
+		CheckID:  "foo",
+		TCP:      tcp,
+		Interval: 10 * time.Millisecond,
+		Logger:   log.New(os.Stderr, "", log.LstdFlags),
+	}
+	check.Start()
+	defer check.Stop()
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Should have at least 2 updates
+	if mock.updates["foo"] < 2 {
+		t.Fatalf("should have 2 updates %v", mock.updates)
+	}
+
+	if mock.state["foo"] != status {
+		t.Fatalf("should be %v %v", status, mock.state)
+	}
+}
+
+func TestCheckTCPCritical(t *testing.T) {
+	var (
+		tcpServer net.Listener
+	)
+
+	tcpServer = mockTCPServer(`tcp`)
+	expectTCPStatus(t, `127.0.0.1:0`, "critical")
+	tcpServer.Close()
+}
+
+func TestCheckTCPPassing(t *testing.T) {
+	var (
+		tcpServer net.Listener
+	)
+
+	tcpServer = mockTCPServer(`tcp`)
+	expectTCPStatus(t, tcpServer.Addr().String(), "passing")
+	tcpServer.Close()
+
+	tcpServer = mockTCPServer(`tcp6`)
+	expectTCPStatus(t, tcpServer.Addr().String(), "passing")
+	tcpServer.Close()
 }
