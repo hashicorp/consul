@@ -1,7 +1,7 @@
 language: go
 
 go:
-    - tip
+  - tip
 
 branches:
   only:
@@ -9,4 +9,6 @@ branches:
 
 install: make deps
 script:
-    - make test
+  - make test
+
+sudo: false
