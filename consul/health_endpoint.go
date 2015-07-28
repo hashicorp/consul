@@ -25,7 +25,7 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 		state.QueryTables("ChecksInState"),
 		func() error {
 			reply.Index, reply.HealthChecks = state.ChecksInState(args.State)
-			return nil
+			return h.srv.filterACL(args.Token, reply)
 		})
 }
 
