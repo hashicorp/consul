@@ -117,7 +117,7 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 
 // Get returns the coordinate of the given node in the LAN.
 func (c *Coordinate) Get(args *structs.NodeSpecificRequest, reply *structs.IndexedCoordinate) error {
-	if done, err := c.srv.forward("Coordinate.GetLAN", args, args, reply); done {
+	if done, err := c.srv.forward("Coordinate.Get", args, args, reply); done {
 		return err
 	}
 
