@@ -72,7 +72,7 @@ however, the dc can be provided using the "?dc=" query parameter.
 
 Adding the optional "?near=" parameter with a node name will sort
 the node list in ascending order based on the estimated round trip
-time from that node. Passing "?near=self" will use the agent's local
+time from that node. Passing "?near=_agent" will use the agent's
 node for the sort.
 
 It returns a JSON body like this:
@@ -102,7 +102,7 @@ however, the dc can be provided using the "?dc=" query parameter.
 
 Adding the optional "?near=" parameter with a node name will sort
 the node list in ascending order based on the estimated round trip
-time from that node. Passing "?near=self" will use the agent's local
+time from that node. Passing "?near=_agent" will use the agent's
 node for the sort.
 
 By default, all nodes matching the service are returned. The list can be filtered
@@ -171,7 +171,7 @@ however, the dc can be provided using the "?dc=" query parameter.
 
 Adding the optional "?near=" parameter with a node name will sort
 the node list in ascending order based on the estimated round trip
-time from that node. Passing "?near=self" will use the agent's local
+time from that node. Passing "?near=_agent" will use the agent's
 node for the sort.
 
 The supported states are `any`, `unknown`, `passing`, `warning`, or `critical`.

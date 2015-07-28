@@ -381,9 +381,9 @@ func TestParseSource(t *testing.T) {
 		t.Fatalf("bad: %v", source)
 	}
 
-	// The magic "self" node name will use the agent's local node name.
+	// The magic "_agent" node name will use the agent's local node name.
 	req, err = http.NewRequest("GET",
-		"/v1/catalog/nodes?near=self", nil)
+		"/v1/catalog/nodes?near=_agent", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

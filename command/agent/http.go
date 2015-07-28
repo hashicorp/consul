@@ -491,7 +491,7 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource) {
 	s.parseDC(req, &source.Datacenter)
 	if node := req.URL.Query().Get("near"); node != "" {
-		if node == "self" {
+		if node == "_agent" {
 			source.Node = s.agent.config.NodeName
 		} else {
 			source.Node = node
