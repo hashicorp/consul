@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"os"
 	"runtime"
 	"testing"
 
@@ -10,8 +11,12 @@ import (
 
 func TestSyslogFilter(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.SkipNow()
+		t.Skip("Syslog not supported on Windows")
 	}
+	if os.Getenv("TRAVIS") == "true" {
+		t.Skip("Syslog not supported on travis-ci")
+	}
+
 	l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, "LOCAL0", "consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)
