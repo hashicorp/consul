@@ -378,14 +378,19 @@ func (l *localState) setSyncState() error {
 			continue
 		}
 
+		var existingTags []string
 		if l.config.EnableTagDrift {
 			l.logger.Printf("[DEBUG] Tag drift enabled.")
+			existingTags = existing.Tags
 			existing.Tags = nil
 			service.Tags = nil
 		}
 
 		// If our definition is different, we need to update it
 		equal := reflect.DeepEqual(existing, service)
+		if l.config.EnableTagDrift {
+			existing.Tags = existingTags
+		}
 		l.serviceStatus[id] = syncStatus{inSync: equal}
 	}
 
