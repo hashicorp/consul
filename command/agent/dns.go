@@ -209,6 +209,12 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		}
 	}
 
+	// nothing found locally, recurse
+	if len(m.Answer) == 0 {
+		d.handleRecurse(resp, req)
+		return
+	}
+
 	// Write out the complete response
 	if err := resp.WriteMsg(m); err != nil {
 		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
