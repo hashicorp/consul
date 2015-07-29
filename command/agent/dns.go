@@ -484,13 +484,6 @@ RPC:
 		goto RPC
 	}
 
-	// If we have no nodes, return not found!
-	if len(out.Nodes) == 0 {
-		d.addSOA(d.domain, resp)
-		resp.SetRcode(req, dns.RcodeNameError)
-		return
-	}
-
 	// Determine the TTL
 	var ttl time.Duration
 	if d.config.ServiceTTL != nil {
@@ -503,6 +496,13 @@ RPC:
 
 	// Filter out any service nodes due to health checks
 	out.Nodes = d.filterServiceNodes(out.Nodes)
+
+	// If we have no nodes, return not found!
+	if len(out.Nodes) == 0 {
+		d.addSOA(d.domain, resp)
+		resp.SetRcode(req, dns.RcodeNameError)
+		return
+	}
 
 	// Perform a random shuffle
 	shuffleServiceNodes(out.Nodes)
