@@ -103,9 +103,9 @@ func TestHealth_ChecksInState_DistanceSort(t *testing.T) {
 	inState := structs.ChecksInStateRequest{
 		Datacenter: "dc1",
 		State:      structs.HealthPassing,
-		Source:     structs.QuerySource{
+		Source: structs.QuerySource{
 			Datacenter: "dc1",
-			Node: "foo",
+			Node:       "foo",
 		},
 	}
 	if err := client.Call("Health.ChecksInState", &inState, &out2); err != nil {
@@ -272,9 +272,9 @@ func TestHealth_ServiceChecks_DistanceSort(t *testing.T) {
 	node := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
-		Source:      structs.QuerySource{
+		Source: structs.QuerySource{
 			Datacenter: "dc1",
-			Node: "foo",
+			Node:       "foo",
 		},
 	}
 	if err := client.Call("Health.ServiceChecks", &node, &out2); err != nil {
@@ -443,9 +443,9 @@ func TestHealth_ServiceNodes_DistanceSort(t *testing.T) {
 	req := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
-		Source:      structs.QuerySource{
+		Source: structs.QuerySource{
 			Datacenter: "dc1",
-			Node: "foo",
+			Node:       "foo",
 		},
 	}
 	if err := client.Call("Health.ServiceNodes", &req, &out2); err != nil {

@@ -638,10 +638,24 @@ type Coordinate struct {
 }
 
 // IndexedCoordinate is used to represent a single node's coordinate from the state
-// store. This is used when querying LAN coordinates.
+// store.
 type IndexedCoordinate struct {
 	Coord *coordinate.Coordinate
 	QueryMeta
+}
+
+// IndexedCoordinates is used to represent a list of nodes and their
+// corresponding raw coordinates.
+type IndexedCoordinates struct {
+	Coordinates []Coordinate
+	QueryMeta
+}
+
+// DatacenterMap is used to represent a list of nodes with their raw coordinates,
+// associated with a datacenter.
+type DatacenterMap struct {
+	Datacenter  string
+	Coordinates []Coordinate
 }
 
 // CoordinateUpdateRequest is used to update the network coordinate of a given

@@ -105,6 +105,8 @@ func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
 		dcs = append(dcs, dc)
 	}
 
+	// TODO - do we want to control the sort behavior with an argument?
+
 	// Sort the DCs by name first, then apply a stable sort by distance.
 	sort.Strings(dcs)
 	if err := c.srv.sortDatacentersByDistance(dcs); err != nil {

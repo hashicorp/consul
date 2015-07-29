@@ -4,6 +4,7 @@ import (
 	"math"
 	"net/rpc"
 	"os"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -451,6 +452,7 @@ func (s *mockServer) GetNodesForDatacenter(dc string) []string {
 			nodes = append(nodes, name)
 		}
 	}
+	sort.Strings(nodes)
 	return nodes
 }
 
@@ -511,5 +513,51 @@ func TestRtt_sortDatacentersByDistance(t *testing.T) {
 	expected = "dc0,dc2,dc1,dcX,acdc"
 	if actual := strings.Join(dcs, ","); actual != expected {
 		t.Fatalf("bad sort: %s != %s", actual, expected)
+	}
+}
+
+func TestRtt_getDatacenterMaps(t *testing.T) {
+	s := newMockServer()
+
+	dcs := []string{"dc0", "acdc", "dc1", "dc2", "dcX"}
+	maps := getDatacenterMaps(s, dcs)
+
+	if len(maps) != 5 {
+		t.Fatalf("bad: %v", maps)
+	}
+
+	if maps[0].Datacenter != "dc0" || len(maps[0].Coordinates) != 1 ||
+		maps[0].Coordinates[0].Node != "dc0.node1" {
+		t.Fatalf("bad: %v", maps[0])
+	}
+	verifyCoordinatesEqual(t, maps[0].Coordinates[0].Coord,
+		generateCoordinate(10*time.Millisecond))
+
+	if maps[1].Datacenter != "acdc" || len(maps[1].Coordinates) != 0 {
+		t.Fatalf("bad: %v", maps[1])
+	}
+
+	if maps[2].Datacenter != "dc1" || len(maps[2].Coordinates) != 3 ||
+		maps[2].Coordinates[0].Node != "dc1.node1" ||
+		maps[2].Coordinates[1].Node != "dc1.node2" ||
+		maps[2].Coordinates[2].Node != "dc1.node3" {
+		t.Fatalf("bad: %v", maps[2])
+	}
+	verifyCoordinatesEqual(t, maps[2].Coordinates[0].Coord,
+		generateCoordinate(3*time.Millisecond))
+	verifyCoordinatesEqual(t, maps[2].Coordinates[1].Coord,
+		generateCoordinate(2*time.Millisecond))
+	verifyCoordinatesEqual(t, maps[2].Coordinates[2].Coord,
+		generateCoordinate(5*time.Millisecond))
+
+	if maps[3].Datacenter != "dc2" || len(maps[3].Coordinates) != 1 ||
+		maps[3].Coordinates[0].Node != "dc2.node1" {
+		t.Fatalf("bad: %v", maps[3])
+	}
+	verifyCoordinatesEqual(t, maps[3].Coordinates[0].Coord,
+		generateCoordinate(8*time.Millisecond))
+
+	if maps[4].Datacenter != "dcX" || len(maps[4].Coordinates) != 0 {
+		t.Fatalf("bad: %v", maps[4])
 	}
 }

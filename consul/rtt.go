@@ -103,7 +103,7 @@ func (n *serviceNodeSorter) Less(i, j int) bool {
 // sorting by distance.
 type healthCheckSorter struct {
 	Checks structs.HealthChecks
-	Vec   []float64
+	Vec    []float64
 }
 
 // newHealthCheckSorter returns a new sorter for the given source coordinate and
@@ -266,6 +266,9 @@ func (s *serverSerfer) GetCachedCoordinate(node string) (*coordinate.Coordinate,
 
 // See serfer.
 func (s *serverSerfer) GetNodesForDatacenter(dc string) []string {
+	s.server.remoteLock.RLock()
+	defer s.server.remoteLock.RUnlock()
+
 	nodes := make([]string, 0)
 	for _, part := range s.server.remoteConsuls[dc] {
 		nodes = append(nodes, part.Name)
@@ -367,4 +370,32 @@ func sortDatacentersByDistance(s serfer, dcs []string) error {
 	sorter := &datacenterSorter{dcs, vec}
 	sort.Stable(sorter)
 	return nil
+}
+
+// getDatacenterMaps returns the raw coordinates of all the nodes in the
+// given list of DCs (the output list will preserve the incoming order).
+func (s *Server) getDatacenterMaps(dcs []string) []structs.DatacenterMap {
+	serfer := serverSerfer{s}
+	return getDatacenterMaps(&serfer, dcs)
+}
+
+// getDatacenterMaps returns the raw coordinates of all the nodes in the
+// given list of DCs (the output list will preserve the incoming order).
+func getDatacenterMaps(s serfer, dcs []string) []structs.DatacenterMap {
+	maps := make([]structs.DatacenterMap, 0, len(dcs))
+	for _, dc := range dcs {
+		m := structs.DatacenterMap{Datacenter: dc}
+		nodes := s.GetNodesForDatacenter(dc)
+		for _, node := range nodes {
+			if coord, ok := s.GetCachedCoordinate(node); ok {
+				entry := structs.Coordinate{
+					Node:  node,
+					Coord: coord,
+				}
+				m.Coordinates = append(m.Coordinates, entry)
+			}
+		}
+		maps = append(maps, m)
+	}
+	return maps
 }

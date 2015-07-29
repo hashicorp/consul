@@ -54,9 +54,9 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 		Node:       "bar",
 		Address:    "127.0.0.1",
 		Check: &structs.HealthCheck{
-			Node:      "bar",
-			Name:      "node check",
-			Status:    structs.HealthCritical,
+			Node:   "bar",
+			Name:   "node check",
+			Status: structs.HealthCritical,
 		},
 	}
 
@@ -207,11 +207,11 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       "bar",
 		Address:    "127.0.0.1",
-		Service:     &structs.NodeService{
+		Service: &structs.NodeService{
 			ID:      "test",
 			Service: "test",
 		},
-		Check:       &structs.HealthCheck{
+		Check: &structs.HealthCheck{
 			Node:      "bar",
 			Name:      "test check",
 			ServiceID: "test",
@@ -321,11 +321,11 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       "bar",
 		Address:    "127.0.0.1",
-		Service:     &structs.NodeService{
+		Service: &structs.NodeService{
 			ID:      "test",
 			Service: "test",
 		},
-		Check:       &structs.HealthCheck{
+		Check: &structs.HealthCheck{
 			Node:      "bar",
 			Name:      "test check",
 			ServiceID: "test",

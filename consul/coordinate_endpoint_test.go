@@ -115,7 +115,7 @@ func TestCoordinate_Update(t *testing.T) {
 	verifyCoordinatesEqual(t, c, arg2.Coord)
 
 	// Now spam some coordinate updates and make sure it starts throwing
-	// them away if they exceed the batch allowance. Node we have to make
+	// them away if they exceed the batch allowance. Note we have to make
 	// unique names since these are held in map by node name.
 	spamLen := s1.config.CoordinateUpdateBatchSize*s1.config.CoordinateUpdateMaxBatches + 1
 	for i := 0; i < spamLen; i++ {
@@ -173,7 +173,7 @@ func TestCoordinate_Get(t *testing.T) {
 	if err := client.Call("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
 
 	// Query the coordinate via RPC.
 	arg2 := structs.NodeSpecificRequest{
@@ -191,11 +191,101 @@ func TestCoordinate_Get(t *testing.T) {
 	if err := client.Call("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
 
 	// Now re-query and make sure the results are fresh.
 	if err := client.Call("Coordinate.Get", &arg2, &coord); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	verifyCoordinatesEqual(t, coord.Coord, arg.Coord)
+}
+
+func TestCoordinate_ListDatacenters(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	client := rpcClient(t, s1)
+	defer client.Close()
+
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// It's super hard to force the Serfs into a known configuration of
+	// coordinates, so the best we can do is make sure our own DC shows
+	// up in the list with the proper coordinates. The guts of the algorithm
+	// are extensively tested in rtt_test.go using a mock database.
+	var out []structs.DatacenterMap
+	if err := client.Call("Coordinate.ListDatacenters", struct{}{}, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(out) != 1 ||
+		out[0].Datacenter != "dc1" ||
+		len(out[0].Coordinates) != 1 ||
+		out[0].Coordinates[0].Node != s1.config.NodeName {
+		t.Fatalf("bad: %v", out)
+	}
+	c, err := s1.serfWAN.GetCoordinate()
+	if err != nil {
+		t.Fatalf("bad: %v", err)
+	}
+	verifyCoordinatesEqual(t, c, out[0].Coordinates[0].Coord)
+}
+
+func TestCoordinate_ListNodes(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	client := rpcClient(t, s1)
+	defer client.Close()
+	testutil.WaitForLeader(t, client.Call, "dc1")
+
+	// Send coordinate updates for a few nodes, waiting a little while for
+	// the batch update to run.
+	arg1 := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Coord:      generateRandomCoordinate(),
+	}
+	var out struct{}
+	if err := client.Call("Coordinate.Update", &arg1, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	arg2 := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Coord:      generateRandomCoordinate(),
+	}
+	if err := client.Call("Coordinate.Update", &arg2, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	arg3 := structs.CoordinateUpdateRequest{
+		Datacenter: "dc1",
+		Node:       "baz",
+		Coord:      generateRandomCoordinate(),
+	}
+	if err := client.Call("Coordinate.Update", &arg3, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
+
+	// Now query back for all the nodes and make sure they are sorted
+	// properly.
+	arg := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	resp := structs.IndexedCoordinates{}
+	if err := client.Call("Coordinate.ListNodes", &arg, &resp); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(resp.Coordinates) != 3 ||
+		resp.Coordinates[0].Node != "bar" ||
+		resp.Coordinates[1].Node != "baz" ||
+		resp.Coordinates[2].Node != "foo" {
+		t.Fatalf("bad: %v", resp.Coordinates)
+	}
+	verifyCoordinatesEqual(t, resp.Coordinates[0].Coord, arg2.Coord) // bar
+	verifyCoordinatesEqual(t, resp.Coordinates[1].Coord, arg3.Coord) // baz
+	verifyCoordinatesEqual(t, resp.Coordinates[2].Coord, arg1.Coord) // foo
 }

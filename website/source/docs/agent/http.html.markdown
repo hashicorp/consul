@@ -14,17 +14,18 @@ to enable changes without breaking backwards compatibility.
 
 Each endpoint manages a different aspect of Consul:
 
-* [kv](http/kv.html) - Key/Value store
+* [acl](http/acl.html) - Access Control Lists
 * [agent](http/agent.html) - Consul Agent
 * [catalog](http/catalog.html) - Nodes and services
-* [health](http/health.html) - Health checks
-* [session](http/session.html) - Sessions
-* [acl](http/acl.html) - Access Control Lists
+* [coordinate](http/coordinate.html) - Network coordinates
 * [event](http/event.html) - User Events
+* [health](http/health.html) - Health checks
+* [kv](http/kv.html) - Key/Value store
+* [session](http/session.html) - Sessions
 * [status](http/status.html) - Consul system status
-* internal - Internal APIs. Purposely undocumented, subject to change.
 
-Each of these is documented in detail at the links above.
+Each of these is documented in detail at the links above. Consul also has a number
+of internal APIs which are purposely undocumented and subject to change.
 
 ## Blocking Queries
 

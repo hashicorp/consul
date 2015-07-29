@@ -2,6 +2,8 @@ package consul
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -115,8 +117,9 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	return nil
 }
 
-// Get returns the coordinate of the given node in the LAN.
-func (c *Coordinate) Get(args *structs.NodeSpecificRequest, reply *structs.IndexedCoordinate) error {
+// Get returns the coordinate of the given node.
+func (c *Coordinate) Get(args *structs.NodeSpecificRequest,
+	reply *structs.IndexedCoordinate) error {
 	if done, err := c.srv.forward("Coordinate.Get", args, args, reply); done {
 		return err
 	}
@@ -128,6 +131,78 @@ func (c *Coordinate) Get(args *structs.NodeSpecificRequest, reply *structs.Index
 		func() error {
 			var err error
 			reply.Index, reply.Coord, err = state.CoordinateGet(args.Node)
+			return err
+		})
+}
+
+// sorter wraps a coordinate list and implements the sort.Interface to sort by
+// node name.
+type sorter struct {
+	coordinates []structs.Coordinate
+}
+
+// See sort.Interface.
+func (s *sorter) Len() int {
+	return len(s.coordinates)
+}
+
+// See sort.Interface.
+func (s *sorter) Swap(i, j int) {
+	s.coordinates[i], s.coordinates[j] = s.coordinates[j], s.coordinates[i]
+}
+
+// See sort.Interface.
+func (s *sorter) Less(i, j int) bool {
+	return s.coordinates[i].Node < s.coordinates[j].Node
+}
+
+// ListDatacenters returns the list of datacenters and their respective nodes
+// and the raw coordinates of those nodes (if no coordinates are available for
+// any of the nodes, the node list may be empty).
+func (c *Coordinate) ListDatacenters(args *struct{}, reply *[]structs.DatacenterMap) error {
+	c.srv.remoteLock.RLock()
+	defer c.srv.remoteLock.RUnlock()
+
+	// Build up a map of all the DCs, sort it first since getDatacenterMaps
+	// will preserve the order of this list in the output.
+	dcs := make([]string, 0, len(c.srv.remoteConsuls))
+	for dc := range c.srv.remoteConsuls {
+		dcs = append(dcs, dc)
+	}
+	sort.Strings(dcs)
+	maps := c.srv.getDatacenterMaps(dcs)
+
+	// Strip the datacenter suffixes from all the node names and then sort
+	// the sub-lists.
+	for i := range maps {
+		suffix := fmt.Sprintf(".%s", maps[i].Datacenter)
+		for j := range maps[i].Coordinates {
+			node := maps[i].Coordinates[j].Node
+			maps[i].Coordinates[j].Node = strings.TrimSuffix(node, suffix)
+		}
+
+		sort.Sort(&sorter{maps[i].Coordinates})
+	}
+
+	*reply = maps
+	return nil
+}
+
+// ListNodes returns the list of nodes with their raw network coordinates (if no
+// coordinates are available for a node it won't appear in this list).
+func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.IndexedCoordinates) error {
+	if done, err := c.srv.forward("Coordinate.ListNodes", args, args, reply); done {
+		return err
+	}
+
+	state := c.srv.fsm.State()
+	return c.srv.blockingRPC(&args.QueryOptions,
+		&reply.QueryMeta,
+		state.QueryTables("Coordinates"),
+		func() error {
+			var err error
+			reply.Index, reply.Coordinates, err = state.Coordinates()
+			sort.Sort(&sorter{reply.Coordinates})
 			return err
 		})
 }
