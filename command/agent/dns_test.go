@@ -1098,6 +1098,94 @@ func TestDNS_ServiceLookup_FilterCritical(t *testing.T) {
 	}
 }
 
+func TestDNS_ServiceLookup_OnlyFailing(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register nodes
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    12345,
+		},
+		Check: &structs.HealthCheck{
+			CheckID: "serf",
+			Name:    "serf",
+			Status:  structs.HealthCritical,
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	args2 := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.2",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    12345,
+		},
+		Check: &structs.HealthCheck{
+			CheckID: "serf",
+			Name:    "serf",
+			Status:  structs.HealthCritical,
+		},
+	}
+	if err := srv.agent.RPC("Catalog.Register", args2, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	args3 := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "bar",
+		Address:    "127.0.0.2",
+		Service: &structs.NodeService{
+			Service: "db",
+			Tags:    []string{"master"},
+			Port:    12345,
+		},
+		Check: &structs.HealthCheck{
+			CheckID:   "db",
+			Name:      "db",
+			ServiceID: "db",
+			Status:    structs.HealthCritical,
+		},
+	}
+	if err := srv.agent.RPC("Catalog.Register", args3, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("db.service.consul.", dns.TypeANY)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// All 3 are failing, so we should get 0 answers and an NXDOMAIN response
+	if len(in.Answer) != 0 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	if in.Rcode != dns.RcodeNameError {
+		t.Fatalf("Bad: %#v", in)
+	}
+}
+
 func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 	dir, srv := makeDNSServerConfig(t, nil, func(c *DNSConfig) {
 		c.OnlyPassing = true
