@@ -5,6 +5,14 @@ import (
 	"net/http"
 )
 
+// coordinateDisabled handles all the endpoints when coordinates are not enabled,
+// returning an error message.
+func coordinateDisabled(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	resp.WriteHeader(401)
+	resp.Write([]byte("Coordinate support disabled"))
+	return nil, nil
+}
+
 // CoordinateDatacenters returns the WAN nodes in each datacenter, along with
 // raw network coordinates.
 func (s *HTTPServer) CoordinateDatacenters(resp http.ResponseWriter, req *http.Request) (interface{}, error) {

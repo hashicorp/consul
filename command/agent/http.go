@@ -209,6 +209,9 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	if !s.agent.config.DisableCoordinates {
 		s.mux.HandleFunc("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
 		s.mux.HandleFunc("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
+	} else {
+		s.mux.HandleFunc("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
+		s.mux.HandleFunc("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
 	}
 
 	s.mux.HandleFunc("/v1/health/node/", s.wrap(s.HealthNodeChecks))
