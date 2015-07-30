@@ -373,7 +373,7 @@ type Config struct {
 	AEInterval time.Duration `mapstructure:"-" json:"-"`
 
 	// DisableCoordinates controls features related to network coordinates.
-	DisableCoordinates bool `mapstructure:"disable_coordinates" json:"-"`
+	DisableCoordinates bool `mapstructure:"disable_coordinates"`
 
 	// SyncCoordinateRateTarget controls the rate for sending network
 	// coordinates to the server, in updates per second. This is the max rate
@@ -1086,6 +1086,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.AtlasEndpoint != "" {
 		result.AtlasEndpoint = b.AtlasEndpoint
+	}
+	if b.DisableCoordinates {
+		result.DisableCoordinates = true
 	}
 	if b.SessionTTLMinRaw != "" {
 		result.SessionTTLMin = b.SessionTTLMin
