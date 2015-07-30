@@ -135,27 +135,6 @@ func (c *Coordinate) Get(args *structs.NodeSpecificRequest,
 		})
 }
 
-// sorter wraps a coordinate list and implements the sort.Interface to sort by
-// node name.
-type sorter struct {
-	coordinates []structs.Coordinate
-}
-
-// See sort.Interface.
-func (s *sorter) Len() int {
-	return len(s.coordinates)
-}
-
-// See sort.Interface.
-func (s *sorter) Swap(i, j int) {
-	s.coordinates[i], s.coordinates[j] = s.coordinates[j], s.coordinates[i]
-}
-
-// See sort.Interface.
-func (s *sorter) Less(i, j int) bool {
-	return s.coordinates[i].Node < s.coordinates[j].Node
-}
-
 // ListDatacenters returns the list of datacenters and their respective nodes
 // and the raw coordinates of those nodes (if no coordinates are available for
 // any of the nodes, the node list may be empty).
@@ -172,16 +151,13 @@ func (c *Coordinate) ListDatacenters(args *struct{}, reply *[]structs.Datacenter
 	sort.Strings(dcs)
 	maps := c.srv.getDatacenterMaps(dcs)
 
-	// Strip the datacenter suffixes from all the node names and then sort
-	// the sub-lists.
+	// Strip the datacenter suffixes from all the node names.
 	for i := range maps {
 		suffix := fmt.Sprintf(".%s", maps[i].Datacenter)
 		for j := range maps[i].Coordinates {
 			node := maps[i].Coordinates[j].Node
 			maps[i].Coordinates[j].Node = strings.TrimSuffix(node, suffix)
 		}
-
-		sort.Sort(&sorter{maps[i].Coordinates})
 	}
 
 	*reply = maps
@@ -202,7 +178,6 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 		func() error {
 			var err error
 			reply.Index, reply.Coordinates, err = state.Coordinates()
-			sort.Sort(&sorter{reply.Coordinates})
 			return err
 		})
 }

@@ -270,8 +270,7 @@ func TestCoordinate_ListNodes(t *testing.T) {
 	}
 	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
 
-	// Now query back for all the nodes and make sure they are sorted
-	// properly.
+	// Now query back for all the nodes.
 	arg := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}

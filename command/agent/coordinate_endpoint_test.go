@@ -70,7 +70,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 	}
 	time.Sleep(200 * time.Millisecond)
 
-	// Query back and check the nodes are present.
+	// Query back and check the nodes are present and sorted correctly.
 	req, err := http.NewRequest("GET", "/v1/coordinate/nodes?dc=dc1", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
