@@ -100,6 +100,7 @@ func (c *LockCommand) Run(args []string) int {
 		return 1
 	}
 	prefix := extra[0]
+	prefix = strings.TrimPrefix(prefix, "/")
 	script := strings.Join(extra[1:], " ")
 
 	// Calculate a session name if none provided
