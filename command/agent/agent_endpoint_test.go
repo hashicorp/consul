@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -81,7 +82,7 @@ func TestHTTPAgentSelf(t *testing.T) {
 
 	obj, err := srv.AgentSelf(nil, req)
 	if err != nil {
-		t.Fatalf("Err: %v", err)
+		t.Fatalf("err: %v", err)
 	}
 
 	val := obj.(AgentSelf)
@@ -91,6 +92,24 @@ func TestHTTPAgentSelf(t *testing.T) {
 
 	if int(val.Config.Ports.SerfLan) != srv.agent.config.Ports.SerfLan {
 		t.Fatalf("incorrect port: %v", obj)
+	}
+
+	c, err := srv.agent.server.GetLANCoordinate()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !reflect.DeepEqual(c, val.Coord) {
+		t.Fatalf("coordinates are not equal: %v != %v", c, val.Coord)
+	}
+
+	srv.agent.config.DisableCoordinates = true
+	obj, err = srv.AgentSelf(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	val = obj.(AgentSelf)
+	if val.Coord != nil {
+		t.Fatalf("should have been nil: %v", val.Coord)
 	}
 }
 

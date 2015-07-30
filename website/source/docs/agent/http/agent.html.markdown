@@ -163,6 +163,11 @@ It returns a JSON body like this:
     "EnableSyslog": false,
     "RejoinAfterLeave": false
   },
+  "Coord": {
+    "Adjustment": 0,
+    "Error": 1.5,
+    "Vec": [0,0,0,0,0,0,0,0]
+  },
   "Member": {
     "Name": "foobar",
     "Addr": "10.1.10.12",
