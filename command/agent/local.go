@@ -379,7 +379,7 @@ func (l *localState) setSyncState() error {
 		}
 
 		if l.config.EnableTagDrift {
-			l.logger.Printf("[INFO] Tag drift enabled.")
+			l.logger.Printf("[DEBUG] Tag drift enabled.")
 			existing.Tags = service.Tags
 		} else {
 			l.logger.Printf("[DEBUG] Tag drift disabled.")
