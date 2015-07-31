@@ -747,6 +747,7 @@ AFTER_MIGRATE:
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
 		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
 	c.Ui.Info(fmt.Sprintf("         Atlas: %s", atlas))
+	c.Ui.Info(fmt.Sprintf("EnableTagDrift: %v", config.EnableTagDrift))
 
 	// Enable log streaming
 	c.Ui.Info("")

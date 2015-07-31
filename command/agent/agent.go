@@ -291,7 +291,7 @@ func (a *Agent) consulConfig() *consul.Config {
 		base.SessionTTLMin = a.config.SessionTTLMin
 	}
 	if a.config.EnableTagDrift {
-		base.EnableTagDrift = false
+		base.EnableTagDrift = true
 	}
 
 	// Format the build string

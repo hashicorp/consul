@@ -1073,7 +1073,7 @@ func MergeConfig(a, b *Config) *Config {
 		}
 	}
 	if b.EnableTagDrift {
-		result.EnableTagDrift = false
+		result.EnableTagDrift = true
 	}
 
 	// Copy the start join addresses
