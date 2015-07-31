@@ -378,12 +378,11 @@ func (l *localState) setSyncState() error {
 			continue
 		}
 
-		fmt.Printf("[INFO] EnableTagDrift: %+v\n", l.config.EnableTagDrift)
 		if l.config.EnableTagDrift {
-			l.logger.Printf("[INFO] Tag drift enabled.  Ignoring any tag modifications in service definition")
-			service.Tags = existing.Tags
+			l.logger.Printf("[INFO] Tag drift enabled.")
+			existing.Tags = service.Tags
 		} else {
-			l.logger.Printf("[INFO] Tag drift disabled.  Tags will be compared")
+			l.logger.Printf("[DEBUG] Tag drift disabled.")
 		}
 
 		// If our definition is different, we need to update it
