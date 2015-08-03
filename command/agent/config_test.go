@@ -555,8 +555,8 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
-	if !config.EnableTagDrift {
-		t.Fatalf("bad: %#v", config)
+	if config.EnableTagDrift {
+		t.Fatalf("EnableTagDrift should be false by default.  Actual config: %#v", config)
 	}
 
 	// ACLs
