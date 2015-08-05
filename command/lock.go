@@ -47,7 +47,7 @@ Usage: consul lock [options] prefix child...
   disrupted the child process will be sent a SIGTERM signal and given
   time to gracefully exit. After the grace period expires the process
   will be hard terminated.
-  For Consul agents on Windows, the child process is always hard 
+  For Consul agents on Windows, the child process is always hard
   terminated with a SIGKILL, since Windows has no POSIX compatible
   notion for SIGTERM.
 
@@ -268,13 +268,14 @@ func (c *LockCommand) startChild(script string, doneCh chan struct{}) error {
 	cmd.Stderr = os.Stderr
 
 	// Start the child process
+	c.childLock.Lock()
 	if err := cmd.Start(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error starting handler: %s", err))
+		c.childLock.Unlock()
 		return err
 	}
 
 	// Setup the child info
-	c.childLock.Lock()
 	c.child = cmd.Process
 	c.childLock.Unlock()
 
