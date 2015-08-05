@@ -282,13 +282,14 @@ func (c *LockCommand) startChild(script string, doneCh chan struct{}) error {
 	cmd.Stderr = os.Stderr
 
 	// Start the child process
+	c.childLock.Lock()
 	if err := cmd.Start(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error starting handler: %s", err))
+		c.childLock.Unlock()
 		return err
 	}
 
 	// Setup the child info
-	c.childLock.Lock()
 	c.child = cmd.Process
 	c.childLock.Unlock()
 
