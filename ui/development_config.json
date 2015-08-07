@@ -4,8 +4,7 @@
   "ui_dir": ".",
   "bootstrap": true,
   "server": true,
-  "acl_datacenter": "dc1",
-  "acl_master_token": "dev",
+  "advertise_addr": "127.0.0.1",
   "http_api_response_headers": {
     "Access-Control-Allow-Origin": "*"
   }
