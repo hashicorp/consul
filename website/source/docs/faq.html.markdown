@@ -67,12 +67,12 @@ interact with the service catalog and are strongly consistent. Updates to the
 catalog may come via the gossip protocol which is eventually consistent, meaning
 the current state of the catalog can lag behind until the state is reconciled.
 
-## Q: Are failed nodes ever removed?
+## Q: Are _failed_ or _left_ nodes ever removed?
 
-To prevent an accumulation of dead nodes, Consul will automatically reap failed
-nodes out of the catalog. This is currently done on a non-configurable interval
-of 72 hours. Reaping is similar to leaving, causing all associated services to
-be deregistered.
+To prevent an accumulation of dead nodes (nodes in either _failed_ or _left_ states),
+Consul will automatically remove dead nodes out of the catalog. This process is
+called _reaping_. This is currently done on a non-configurable interval of 72 hours.
+Reaping is similar to leaving, causing all associated services to be deregistered.
 
 ## Q: Does Consul support delta updates for watchers or blocking queries?
 
@@ -84,4 +84,3 @@ read and compute the delta client side.
 By design, Consul offloads this to clients instead of attempting to support
 the delta calculation. This avoids expensive state maintenance on the servers
 as well as race conditions between data updates and watch registrations.
-
