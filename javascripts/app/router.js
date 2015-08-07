@@ -41,6 +41,9 @@ App.Router.map(function() {
       this.route("show", { path: "/:id" });
     });
 
+    // Map
+    this.resource("map", { path: "/map" });
+
     // Shows a page explaining that ACLs haven't been set-up
     this.route("aclsdisabled", { path: "/aclsdisabled" });
     // Shows a page explaining that the ACL key being used isn't
