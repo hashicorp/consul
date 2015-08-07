@@ -19,6 +19,10 @@
     .btn {
         margin-top: 20px;
         min-width: 100px;
+
+        &.btn-small {
+            min-width: 70px;
+        }
     }
 
     .btn-dropdown {
