@@ -133,9 +133,9 @@ this.
 When a node _leaves_, it specifies its intent to do so, and the cluster
 marks that node as having _left_. Unlike the _failed_ case, all of the
 services provided by a node are immediately deregistered. If the agent was
-a server, replication to it will stop. To prevent an accumulation
-of dead nodes, Consul will automatically reap _failed_ nodes out of the
-catalog as well. This is currently done on a non-configurable interval of
-72 hours. Reaping is similar to leaving, causing all associated services
-to be deregistered.
+a server, replication to it will stop.
 
+To prevent an accumulation of dead nodes (nodes in either _failed_ or _left_ states),
+Consul will automatically remove dead nodes out of the catalog. This process is
+called _reaping_. This is currently done on a non-configurable interval of 72 hours.
+Reaping is similar to leaving, causing all associated services to be deregistered.
