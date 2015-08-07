@@ -143,15 +143,11 @@
           {{#link-to 'kv' class='btn btn-default col-xs-12'}}Key/Value{{/link-to}}
         </div>
 
-        <div class="col-md-1 col-sm-2 col-xs-8 col-md-offset-0 col-sm-offset-2 col-xs-offset-1">
-          {{#link-to 'acls' class='btn btn-small btn-default col-xs-12'}}ACL{{/link-to}}
+        <div class="col-md-2 col-sm-2 col-xs-8 col-md-offset-0 col-sm-offset-2 col-xs-offset-1">
+          {{#link-to 'acls' class='btn btn-default col-xs-12'}}ACL{{/link-to}}
         </div>
 
-        <div class="col-md-1 col-sm-2 col-xs-8 col-md-offset-0 col-sm-offset-0 col-xs-offset-1">
-          {{#link-to 'map' class='btn btn-small btn-default col-xs-12'}}Map{{/link-to}}
-        </div>
-
-        <div class="col-md-2 col-sm-2 col-xs-6 col-md-offset-0 col-sm-offset-2 col-xs-offset-1">
+        <div class="col-md-2 col-sm-2 col-xs-6 col-md-offset-0 col-sm-offset-4 col-xs-offset-1">
           <a {{bind-attr class=":col-xs-12 :btn hasFailingChecks:btn-warning:btn-success"}} {{action "toggle"}}> <span class="elip-overflow">{{model}} <span class="caret"></span></span> </a>
 
           {{#if isDropdownVisible}}
