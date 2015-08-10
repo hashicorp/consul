@@ -15,6 +15,7 @@ import (
 	"unicode"
 
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/mitchellh/cli"
 )
 
@@ -479,7 +480,7 @@ func (c *ExecCommand) createSessionLocal() (string, error) {
 func (c *ExecCommand) createSessionForeign() (string, error) {
 	// Look for a remote node to bind to
 	health := c.client.Health()
-	services, _, err := health.Service("consul", "", true, nil)
+	services, _, err := health.Service("consul", "", structs.HealthPassing, nil)
 	if err != nil {
 		return "", fmt.Errorf("Failed to find Consul server in remote datacenter: %v", err)
 	}
