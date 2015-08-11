@@ -165,7 +165,9 @@ START:
 func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
-		d.logger.Printf("[DEBUG] dns: request for %v (%v)", q, time.Now().Sub(s))
+		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
+			q, time.Now().Sub(s), resp.RemoteAddr().String(),
+			resp.RemoteAddr().Network())
 	}(time.Now())
 
 	// Setup the message response
@@ -225,7 +227,9 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
-		d.logger.Printf("[DEBUG] dns: request for %v (%v)", q, time.Now().Sub(s))
+		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
+			q, time.Now().Sub(s), resp.RemoteAddr().String(),
+			resp.RemoteAddr().Network())
 	}(time.Now())
 
 	// Switch to TCP if the client is
@@ -628,7 +632,9 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	network := "udp"
 	defer func(s time.Time) {
-		d.logger.Printf("[DEBUG] dns: request for %v (%s) (%v)", q, network, time.Now().Sub(s))
+		d.logger.Printf("[DEBUG] dns: request for %v (%s) (%v) from client %s (%s)",
+			q, network, time.Now().Sub(s), resp.RemoteAddr().String(),
+			resp.RemoteAddr().Network())
 	}(time.Now())
 
 	// Switch to TCP if the client is
@@ -655,7 +661,8 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	}
 
 	// If all resolvers fail, return a SERVFAIL message
-	d.logger.Printf("[ERR] dns: all resolvers failed for %v", q)
+	d.logger.Printf("[ERR] dns: all resolvers failed for %v from client %s (%s)",
+		q, resp.RemoteAddr().String(), resp.RemoteAddr().Network())
 	m := &dns.Msg{}
 	m.SetReply(req)
 	m.RecursionAvailable = true
