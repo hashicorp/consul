@@ -215,7 +215,7 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 	var wait chan struct{}
 	var ok bool
 	if wait, ok = p.limiter[addr.String()]; !ok {
-		wait = make(chan struct{}, 1)
+		wait = make(chan struct{})
 		p.limiter[addr.String()] = wait
 	}
 	isLeadThread := !ok
