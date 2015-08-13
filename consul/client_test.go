@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -187,6 +188,46 @@ func TestClient_RPC(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("err: %v", err)
 	})
+}
+
+func TestClient_RPC_Pool(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, c1 := testClient(t)
+	defer os.RemoveAll(dir2)
+	defer c1.Shutdown()
+
+	// Try to join.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfLANConfig.MemberlistConfig.BindPort)
+	if _, err := c1.JoinLAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(s1.LANMembers()) != 2 || len(c1.LANMembers()) != 2 {
+		t.Fatalf("bad len")
+	}
+
+	// Blast out a bunch of RPC requests at the same time to try to get
+	// contention opening new connections.
+	var wg sync.WaitGroup
+	for i := 0; i < 150; i++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			var out struct{}
+			testutil.WaitForResult(func() (bool, error) {
+				err := c1.RPC("Status.Ping", struct{}{}, &out)
+				return err == nil, err
+			}, func(err error) {
+				t.Fatalf("err: %v", err)
+			})
+		}()
+	}
+
+	wg.Wait()
 }
 
 func TestClient_RPC_TLS(t *testing.T) {
