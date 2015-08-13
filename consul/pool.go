@@ -190,14 +190,20 @@ func (p *ConnPool) Shutdown() error {
 // and will return that one if it succeeds. If all else fails, it will return a
 // newly-created connection and add it to the pool.
 func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error) {
+	// markforUse does all the bookkeeping for an existing connection we wish
+	// to use from the pool.
+	markForUse := func(c *Conn) {
+		c.lastUsed = time.Now()
+		atomic.AddInt32(&c.refCount, 1)
+	}
+
 	// Check to see if there's a pooled connection available. This is up
 	// here since it should the the vastly more common case than the rest
 	// of the code here.
 	p.Lock()
 	c := p.pool[addr.String()]
 	if c != nil {
-		c.lastUsed = time.Now()
-		atomic.AddInt32(&c.refCount, 1)
+		markForUse(c)
 		p.Unlock()
 		return c, nil
 	}
@@ -221,8 +227,7 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 	p.Lock()
 	c = p.pool[addr.String()]
 	if c != nil {
-		c.lastUsed = time.Now()
-		atomic.AddInt32(&c.refCount, 1)
+		markForUse(c)
 		p.Unlock()
 		return c, nil
 	}
@@ -236,10 +241,13 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 
 	// Return the new connection, adding it to the pool. If the connection
 	// the throttle was waiting for fails then all the threads will then try
-	// to connect, so we have to handle that potential race condition.
+	// to connect, so we have to handle that potential race condition and
+	// scuttle the connection we just made if someone else got there first.
 	p.Lock()
 	if existing := p.pool[addr.String()]; existing != nil {
 		c.Close()
+
+		markForUse(existing)
 		p.Unlock()
 		return existing, nil
 	}
