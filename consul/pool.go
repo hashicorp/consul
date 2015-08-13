@@ -134,6 +134,10 @@ type ConnPool struct {
 	// Pool maps an address to a open connection
 	pool map[string]*Conn
 
+	// limiter is used to throttle the number of connect attempts
+	// to a given address.
+	limiter map[string]chan int
+
 	// TLS wrapper
 	tlsWrap tlsutil.DCWrapper
 
@@ -153,6 +157,7 @@ func NewPool(logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap
 		maxTime:    maxTime,
 		maxStreams: maxStreams,
 		pool:       make(map[string]*Conn),
+		limiter:    make(map[string]chan int),
 		tlsWrap:    tlsWrap,
 		shutdownCh: make(chan struct{}),
 	}
@@ -180,28 +185,68 @@ func (p *ConnPool) Shutdown() error {
 	return nil
 }
 
-// Acquire is used to get a connection that is
-// pooled or to return a new connection
+// acquire will return a pooled connection, if available. Otherwise it will
+// wait for an existing connection attempt to finish, if one if in progress,
+// and will return that one if it succeeds. If all else fails, it will return a
+// newly-created connection and add it to the pool.
 func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error) {
-	// Check for a pooled ocnn
-	if conn := p.getPooled(addr, version); conn != nil {
-		return conn, nil
-	}
-
-	// Create a new connection
-	return p.getNewConn(dc, addr, version)
-}
-
-// getPooled is used to return a pooled connection
-func (p *ConnPool) getPooled(addr net.Addr, version int) *Conn {
+	// Check to see if there's a pooled connection available. This is up
+	// here since it should the the vastly more common case than the rest
+	// of the code here.
 	p.Lock()
 	c := p.pool[addr.String()]
 	if c != nil {
 		c.lastUsed = time.Now()
 		atomic.AddInt32(&c.refCount, 1)
+		p.Unlock()
+		return c, nil
+	}
+
+	// If not (while we are still locked), set up the throttling structure
+	// for this address.
+	var wait chan int
+	var ok bool
+	if wait, ok = p.limiter[addr.String()]; !ok {
+		wait = make(chan int, 1)
+		p.limiter[addr.String()] = wait
 	}
 	p.Unlock()
-	return c
+
+	// Now throttle so we don't pound on a server if there are a ton of
+	// outstanding requests to one server.
+	wait <- 1
+	defer func() { <- wait }()
+
+	// In case we got throttled, check the pool one more time.
+	p.Lock()
+	c = p.pool[addr.String()]
+	if c != nil {
+		c.lastUsed = time.Now()
+		atomic.AddInt32(&c.refCount, 1)
+		p.Unlock()
+		return c, nil
+	}
+	p.Unlock()
+
+	// Go ahead and make a new connection.
+	c, err := p.getNewConn(dc, addr, version)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the new connection, adding it to the pool. If the connection
+	// the throttle was waiting for fails then all the threads will then try
+	// to connect, so we have to handle that potential race condition.
+	p.Lock()
+	if existing := p.pool[addr.String()]; existing != nil {
+		c.Close()
+		p.Unlock()
+		return existing, nil
+	}
+
+	p.pool[addr.String()] = c
+	p.Unlock()
+	return c, nil
 }
 
 // getNewConn is used to return a new connection
@@ -272,18 +317,7 @@ func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, err
 		version:  version,
 		pool:     p,
 	}
-
-	// Track this connection, handle potential race condition
-	p.Lock()
-	if existing := p.pool[addr.String()]; existing != nil {
-		c.Close()
-		p.Unlock()
-		return existing, nil
-	} else {
-		p.pool[addr.String()] = c
-		p.Unlock()
-		return c, nil
-	}
+	return c, nil
 }
 
 // clearConn is used to clear any cached connection, potentially in response to an erro
