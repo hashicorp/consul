@@ -120,9 +120,10 @@ func TestServer_StartStop(t *testing.T) {
 	config := DefaultConfig()
 	config.DataDir = dir
 
-	private, err := GetPrivateIP()
+	// Advertise on localhost.
+	private, _, err := net.ParseCIDR("127.0.0.1/32")
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatalf("failed to parse 127.0.0.1 cidr: %v", err)
 	}
 
 	config.RPCAdvertise = &net.TCPAddr{

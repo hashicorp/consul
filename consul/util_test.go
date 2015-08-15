@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"errors"
 	"net"
 	"regexp"
 	"testing"
@@ -24,6 +25,74 @@ func TestToLowerList(t *testing.T) {
 	for _, value := range ToLowerList(l) {
 		if value != "abc" {
 			t.Fatalf("failed lowercasing")
+		}
+	}
+}
+
+func TestGetPrivateIP(t *testing.T) {
+	ip, _, err := net.ParseCIDR("10.1.2.3/32")
+	if err != nil {
+		t.Fatalf("failed to parse private cidr: %v", err)
+	}
+
+	pubIP, _, err := net.ParseCIDR("8.8.8.8/32")
+	if err != nil {
+		t.Fatalf("failed to parse public cidr: %v", err)
+	}
+
+	tests := []struct {
+		addrs    []net.Addr
+		expected net.IP
+		err      error
+	}{
+		{
+			addrs: []net.Addr{
+				&net.IPAddr{
+					IP: ip,
+				},
+				&net.IPAddr{
+					IP: pubIP,
+				},
+			},
+			expected: ip,
+		},
+		{
+			addrs: []net.Addr{
+				&net.IPAddr{
+					IP: pubIP,
+				},
+			},
+			err: errors.New("No private IP address found"),
+		},
+		{
+			addrs: []net.Addr{
+				&net.IPAddr{
+					IP: ip,
+				},
+				&net.IPAddr{
+					IP: ip,
+				},
+				&net.IPAddr{
+					IP: pubIP,
+				},
+			},
+			err: errors.New("Multiple private IPs found. Please configure one."),
+		},
+	}
+
+	for _, test := range tests {
+		ip, err := getPrivateIP(test.addrs)
+		switch {
+		case test.err != nil && err != nil:
+			if err.Error() != test.err.Error() {
+				t.Fatalf("unexpected error: %v != %v", test.err, err)
+			}
+		case (test.err == nil && err != nil) || (test.err != nil && err == nil):
+			t.Fatalf("unexpected error: %v != %v", test.err, err)
+		default:
+			if !test.expected.Equal(ip) {
+				t.Fatalf("unexpected ip: %v != %v", ip, test.expected)
+			}
 		}
 	}
 }
