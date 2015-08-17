@@ -40,7 +40,7 @@ and replace the respective values in your Consul configuration with
 your credentials.
 
 You can view a live demo
-[here](https://atlas.hashicorp.com/hashicorp/infrastructures/consul-demo).
+[here](http://demo.consul.io).
 
 ## Self-hosted Dashboard
 
