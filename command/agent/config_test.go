@@ -683,17 +683,7 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// EnableTagDrift
-	input = `{"enable_tag_drift": true}`
-	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	if !config.DisableUpdateCheck {
-		t.Fatalf("bad: %#v", config)
-	}
-	if !config.EnableTagDrift {
 		t.Fatalf("bad: %#v", config)
 	}
 	if !config.DisableAnonymousSignature {
@@ -1199,7 +1189,6 @@ func TestMergeConfig(t *testing.T) {
 		StatsitePrefix:            "stats_prefix",
 		StatsdAddr:                "127.0.0.1:7251",
 		DisableUpdateCheck:        true,
-		EnableTagDrift:            true,
 		DisableAnonymousSignature: true,
 		HTTPAPIResponseHeaders: map[string]string{
 			"Access-Control-Allow-Origin": "*",
