@@ -55,7 +55,6 @@ type TestServerConfig struct {
 	DataDir           string             `json:"data_dir,omitempty"`
 	Datacenter        string             `json:"datacenter,omitempty"`
 	DisableCheckpoint bool               `json:"disable_update_check"`
-	EnableTagDrift    bool               `json:"enable_tag_drift"`
 	LogLevel          string             `json:"log_level,omitempty"`
 	Bind              string             `json:"bind_addr,omitempty"`
 	Addresses         *TestAddressConfig `json:"addresses,omitempty"`
@@ -78,7 +77,6 @@ func defaultServerConfig() *TestServerConfig {
 	return &TestServerConfig{
 		NodeName:          fmt.Sprintf("node%d", idx),
 		DisableCheckpoint: true,
-		EnableTagDrift:    true,
 		Bootstrap:         true,
 		Server:            true,
 		LogLevel:          "debug",
