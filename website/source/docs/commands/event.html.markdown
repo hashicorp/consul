@@ -19,7 +19,7 @@ or perform any other orchestration action. Events can be handled by
 Under the hood, events are propagated using the [gossip protocol](/docs/internals/gossip.html).
 While the details are not important for using events, an understanding of
 the semantics is useful. The gossip layer will make a best-effort to deliver
-the event, but there is **no guarantee** delivery. Unlike most Consul data, which is
+the event, but there is **no guaranteed delivery**. Unlike most Consul data, which is
 replicated using [consensus](/docs/internals/consensus.html), event data
 is purely peer-to-peer over gossip. This means it is not persisted and does
 not have a total ordering. In practice, this means you cannot rely on the
