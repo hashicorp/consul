@@ -927,6 +927,7 @@ Options:
   -atlas-token=token       Provides the Atlas API token
   -bootstrap               Sets server to bootstrap mode
   -bind=0.0.0.0            Sets the bind address for cluster communication
+  -http-port=8500          Sets the HTTP API port to listen on
   -bootstrap-expect=0      Sets server to expect bootstrap mode.
   -client=127.0.0.1        Sets the address to bind for client access.
                            This includes RPC, DNS, HTTP and HTTPS (if configured)
