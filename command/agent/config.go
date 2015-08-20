@@ -849,9 +849,6 @@ func MergeConfig(a, b *Config) *Config {
 	if b.BindAddr != "" {
 		result.BindAddr = b.BindAddr
 	}
-	if b.Ports.HTTP != 0 {
-		result.Ports.HTTP = b.Ports.HTTP
-	}
 	if b.AdvertiseAddr != "" {
 		result.AdvertiseAddr = b.AdvertiseAddr
 	}
