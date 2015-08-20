@@ -141,11 +141,6 @@ type Config struct {
 	// client services (DNS, HTTP, HTTPS, RPC)
 	ClientAddr string `mapstructure:"client_addr"`
 
-	// HttpPort the HTTP port to listen on.
-	// This is useful e.g. when deploying to Cloud Foundry to make
-	// the HTTP API easily routable
-	HttpPort int `mapstructure:"http_port"`
-
 	// BindAddr is used to control the address we bind to.
 	// If not specified, the first private IP we find is used.
 	// This controls the address we use for cluster facing
@@ -854,8 +849,8 @@ func MergeConfig(a, b *Config) *Config {
 	if b.BindAddr != "" {
 		result.BindAddr = b.BindAddr
 	}
-	if b.HttpPort != 0 {
-		result.Ports.HTTP = b.HttpPort
+	if b.Ports.HTTP != 0 {
+		result.Ports.HTTP = b.Ports.HTTP
 	}
 	if b.AdvertiseAddr != "" {
 		result.AdvertiseAddr = b.AdvertiseAddr
