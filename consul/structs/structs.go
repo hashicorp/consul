@@ -17,6 +17,13 @@ var (
 
 type MessageType uint8
 
+// Index is used to track the index used while creating
+// or modifying a given struct type.
+type Index struct {
+	CreateIndex uint64
+	ModifyIndex uint64
+}
+
 const (
 	RegisterRequestType MessageType = iota
 	DeregisterRequestType
@@ -224,6 +231,8 @@ func (r *ChecksInStateRequest) RequestDatacenter() string {
 type Node struct {
 	Node    string
 	Address string
+
+	Index
 }
 type Nodes []Node
 
