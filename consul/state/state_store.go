@@ -85,7 +85,7 @@ func (s *StateStore) ensureNodeTxn(idx uint64, node *structs.Node, tx *memdb.Txn
 
 // GetNode is used to retrieve a node registration by node ID.
 func (s *StateStore) GetNode(id string) (*structs.Node, error) {
-	tx := s.db.Txn(true)
+	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Retrieve the node from the state store
