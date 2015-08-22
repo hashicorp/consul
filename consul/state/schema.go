@@ -68,6 +68,7 @@ func nodesTableSchema() *memdb.TableSchema {
 		Name: "nodes",
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": &memdb.IndexSchema{
+				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
@@ -86,6 +87,7 @@ func servicesTableSchema() *memdb.TableSchema {
 		Name: "services",
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": &memdb.IndexSchema{
+				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
@@ -94,6 +96,7 @@ func servicesTableSchema() *memdb.TableSchema {
 				},
 			},
 			"service": &memdb.IndexSchema{
+				Name:         "service",
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
@@ -114,6 +117,7 @@ func checksTableSchema() *memdb.TableSchema {
 		Name: "checks",
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": &memdb.IndexSchema{
+				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.CompoundIndex{
@@ -130,6 +134,7 @@ func checksTableSchema() *memdb.TableSchema {
 				},
 			},
 			"status": &memdb.IndexSchema{
+				Name:         "status",
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
@@ -138,6 +143,7 @@ func checksTableSchema() *memdb.TableSchema {
 				},
 			},
 			"service": &memdb.IndexSchema{
+				Name:         "service",
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
@@ -146,6 +152,7 @@ func checksTableSchema() *memdb.TableSchema {
 				},
 			},
 			"node": &memdb.IndexSchema{
+				Name:         "node",
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &memdb.CompoundIndex{
@@ -175,6 +182,7 @@ func kvsTableSchema() *memdb.TableSchema {
 		Name: "kvs",
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": &memdb.IndexSchema{
+				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
@@ -183,6 +191,7 @@ func kvsTableSchema() *memdb.TableSchema {
 				},
 			},
 			"session": &memdb.IndexSchema{
+				Name:         "session",
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
@@ -202,6 +211,7 @@ func tombstonesTableSchema() *memdb.TableSchema {
 		Name: "tombstones",
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": &memdb.IndexSchema{
+				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
@@ -220,6 +230,7 @@ func sessionsTableSchema() *memdb.TableSchema {
 		Name: "sessions",
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": &memdb.IndexSchema{
+				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
@@ -228,6 +239,7 @@ func sessionsTableSchema() *memdb.TableSchema {
 				},
 			},
 			"node": &memdb.IndexSchema{
+				Name:         "node",
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
@@ -246,6 +258,7 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 		Name: "session_checks",
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": &memdb.IndexSchema{
+				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.CompoundIndex{
@@ -276,6 +289,7 @@ func aclsTableSchema() *memdb.TableSchema {
 		Name: "acls",
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": &memdb.IndexSchema{
+				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
