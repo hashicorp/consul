@@ -65,3 +65,21 @@ func TestStateStore_EnsureNode(t *testing.T) {
 		t.Fatalf("bad: %#v", out)
 	}
 }
+
+func TestStateStore_EnsureService(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create the service registration
+	in := &structs.NodeService{
+		ID:      "service1",
+		Service: "redis",
+		Tags:    []string{"prod"},
+		Address: "1.1.1.1",
+		Port:    1111,
+	}
+
+	// Service successfully registers into the state store
+	if err := s.EnsureService(1, in); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}

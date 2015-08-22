@@ -260,7 +260,10 @@ type NodeService struct {
 	Address           string
 	Port              int
 	EnableTagOverride bool
+
+	RaftIndex
 }
+
 type NodeServices struct {
 	Node     Node
 	Services map[string]*NodeService

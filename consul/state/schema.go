@@ -91,7 +91,7 @@ func servicesTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.StringFieldIndex{
-					Field:     "ServiceID",
+					Field:     "ID",
 					Lowercase: true,
 				},
 			},
@@ -100,7 +100,7 @@ func servicesTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
-					Field:     "ServiceName",
+					Field:     "Service",
 					Lowercase: true,
 				},
 			},

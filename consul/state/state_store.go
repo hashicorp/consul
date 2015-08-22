@@ -98,3 +98,45 @@ func (s *StateStore) GetNode(id string) (*structs.Node, error) {
 	}
 	return nil, nil
 }
+
+// EnsureService is called to upsert creation of a given NodeService.
+func (s *StateStore) EnsureService(idx uint64, svc *structs.NodeService) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Call the service registration upsert
+	if err := s.ensureServiceTxn(idx, svc, tx); err != nil {
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// ensureServiceTxn is used to upsert a service registration within an
+// existing memdb transaction.
+func (s *StateStore) ensureServiceTxn(idx uint64, svc *structs.NodeService, tx *memdb.Txn) error {
+	// Check for existing service
+	existing, err := tx.First("services", "id", svc.Service)
+	if err != nil {
+		return fmt.Errorf("failed service lookup: %s", err)
+	}
+
+	// Populate the indexes
+	if existing != nil {
+		svc.CreateIndex = existing.(*structs.NodeService).CreateIndex
+		svc.ModifyIndex = idx
+	} else {
+		svc.CreateIndex = idx
+		svc.ModifyIndex = idx
+	}
+
+	// Insert the service and update the index
+	if err := tx.Insert("services", svc); err != nil {
+		return fmt.Errorf("failed inserting service: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+	return nil
+}
