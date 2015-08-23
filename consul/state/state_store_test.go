@@ -2,6 +2,7 @@ package state
 
 import (
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
@@ -83,11 +84,26 @@ func TestStateStore_EnsureNode_GetNode(t *testing.T) {
 	}
 }
 
-func TestStateStore_EnsureService(t *testing.T) {
+func TestStateStore_EnsureService_NodeServices(t *testing.T) {
 	s := testStateStore(t)
 
+	// Fetching services for a node with none returns nil
+	if res, err := s.NodeServices("node1"); err != nil || res != nil {
+		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", res, err)
+	}
+
+	// Register the nodes
+	for i, nr := range []*structs.Node{
+		&structs.Node{Node: "node1", Address: "1.1.1.1"},
+		&structs.Node{Node: "node2", Address: "1.1.1.2"},
+	} {
+		if err := s.EnsureNode(uint64(i), nr); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
 	// Create the service registration
-	in := &structs.NodeService{
+	ns1 := &structs.NodeService{
 		ID:      "service1",
 		Service: "redis",
 		Tags:    []string{"prod"},
@@ -96,7 +112,40 @@ func TestStateStore_EnsureService(t *testing.T) {
 	}
 
 	// Service successfully registers into the state store
-	if err := s.EnsureService(1, in); err != nil {
+	if err := s.EnsureService(10, "node1", ns1); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	// Register a similar service against both nodes
+	ns2 := *ns1
+	ns2.ID = "service2"
+	for _, n := range []string{"node1", "node2"} {
+		if err := s.EnsureService(20, n, &ns2); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Register a different service on the bad node
+	ns3 := *ns1
+	ns3.ID = "service3"
+	if err := s.EnsureService(30, "node2", &ns3); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the services
+	out, err := s.NodeServices("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Only the services for the requested node are returned
+	if out == nil || len(out.Services) != 2 {
+		t.Fatalf("bad services: %#v", out)
+	}
+	if svc := out.Services["service1"]; !reflect.DeepEqual(ns1, svc) {
+		t.Fatalf("bad: %#v", svc)
+	}
+	if svc := out.Services["service2"]; !reflect.DeepEqual(&ns2, svc) {
+		t.Fatalf("bad: %#v %#v", ns2, svc)
 	}
 }

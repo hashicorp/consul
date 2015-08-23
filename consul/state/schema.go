@@ -90,8 +90,25 @@ func servicesTableSchema() *memdb.TableSchema {
 				Name:         "id",
 				AllowMissing: false,
 				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "Node",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "ServiceID",
+							Lowercase: true,
+						},
+					},
+				},
+			},
+			"node": &memdb.IndexSchema{
+				Name:         "node",
+				AllowMissing: false,
+				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
-					Field:     "ID",
+					Field:     "Node",
 					Lowercase: true,
 				},
 			},
@@ -100,7 +117,7 @@ func servicesTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
-					Field:     "Service",
+					Field:     "ServiceName",
 					Lowercase: true,
 				},
 			},

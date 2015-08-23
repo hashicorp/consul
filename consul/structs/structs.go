@@ -249,6 +249,8 @@ type ServiceNode struct {
 	ServiceTags    []string
 	ServiceAddress string
 	ServicePort    int
+
+	Index
 }
 type ServiceNodes []ServiceNode
 
