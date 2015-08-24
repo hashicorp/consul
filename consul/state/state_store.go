@@ -157,13 +157,14 @@ func (s *StateStore) NodeServices(nodeID string) (*structs.NodeServices, error) 
 	defer tx.Abort()
 
 	// Query the node
-	node, err := tx.First("nodes", "id", nodeID)
+	n, err := tx.First("nodes", "id", nodeID)
 	if err != nil {
 		return nil, fmt.Errorf("node lookup failed: %s", err)
 	}
-	if node == nil {
+	if n == nil {
 		return nil, nil
 	}
+	node := n.(*structs.Node)
 
 	// Read all of the services
 	services, err := tx.Get("services", "node", nodeID)
@@ -173,13 +174,25 @@ func (s *StateStore) NodeServices(nodeID string) (*structs.NodeServices, error) 
 
 	// Initialize the node services struct
 	ns := &structs.NodeServices{
-		Node:     *node.(*structs.Node),
+		Node:     *node,
 		Services: make(map[string]*structs.NodeService),
 	}
+	ns.CreateIndex = node.CreateIndex
+	ns.CreateIndex = node.CreateIndex
 
 	// Add all of the services to the map
 	for service := services.Next(); service != nil; service = services.Next() {
 		sn := service.(*structs.ServiceNode)
+
+		// Track the highest index
+		if sn.CreateIndex > ns.CreateIndex {
+			ns.CreateIndex = sn.CreateIndex
+		}
+		if sn.ModifyIndex > ns.ModifyIndex {
+			ns.ModifyIndex = sn.ModifyIndex
+		}
+
+		// Create the NodeService
 		svc := &structs.NodeService{
 			ID:      sn.ServiceID,
 			Service: sn.ServiceName,
@@ -187,6 +200,10 @@ func (s *StateStore) NodeServices(nodeID string) (*structs.NodeServices, error) 
 			Address: sn.ServiceAddress,
 			Port:    sn.ServicePort,
 		}
+		svc.CreateIndex = sn.CreateIndex
+		svc.ModifyIndex = sn.ModifyIndex
+
+		// Add the service to the result
 		ns.Services[svc.ID] = svc
 	}
 

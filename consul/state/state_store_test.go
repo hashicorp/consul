@@ -142,10 +142,22 @@ func TestStateStore_EnsureService_NodeServices(t *testing.T) {
 	if out == nil || len(out.Services) != 2 {
 		t.Fatalf("bad services: %#v", out)
 	}
-	if svc := out.Services["service1"]; !reflect.DeepEqual(ns1, svc) {
+
+	// Results match the inserted services and have the proper indexes set
+	expect1 := *ns1
+	expect1.CreateIndex, expect1.ModifyIndex = 10, 10
+	if svc := out.Services["service1"]; !reflect.DeepEqual(&expect1, svc) {
 		t.Fatalf("bad: %#v", svc)
 	}
-	if svc := out.Services["service2"]; !reflect.DeepEqual(&ns2, svc) {
+
+	expect2 := ns2
+	expect2.CreateIndex, expect2.ModifyIndex = 20, 20
+	if svc := out.Services["service2"]; !reflect.DeepEqual(&expect2, svc) {
 		t.Fatalf("bad: %#v %#v", ns2, svc)
+	}
+
+	// Lastly, ensure that the highest index was preserved.
+	if out.CreateIndex != 20 || out.ModifyIndex != 20 {
+		t.Fatalf("bad index: %d, %d", out.CreateIndex, out.ModifyIndex)
 	}
 }
