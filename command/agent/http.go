@@ -41,7 +41,7 @@ type HTTPServer struct {
 
 // NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
-func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput io.Writer) ([]*HTTPServer, error) {
+func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPServer, error) {
 	var servers []*HTTPServer
 
 	if config.Ports.HTTPS > 0 {
@@ -142,27 +142,26 @@ func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput 
 		servers = append(servers, srv)
 	}
 
-	if scada != nil {
-		// Create the mux
-		mux := http.NewServeMux()
-
-		// Create the server
-		srv := &HTTPServer{
-			agent:    agent,
-			mux:      mux,
-			listener: scada,
-			logger:   log.New(logOutput, "", log.LstdFlags),
-			uiDir:    config.UiDir,
-			addr:     scadaHTTPAddr,
-		}
-		srv.registerHandlers(false) // Never allow debug for SCADA
-
-		// Start the server
-		go http.Serve(scada, mux)
-		servers = append(servers, srv)
-	}
-
 	return servers, nil
+}
+
+func newScadaHttp(agent *Agent, list net.Listener) *HTTPServer {
+	// Create the mux
+	mux := http.NewServeMux()
+
+	// Create the server
+	srv := &HTTPServer{
+		agent:    agent,
+		mux:      mux,
+		listener: list,
+		logger:   agent.logger,
+		addr:     scadaHTTPAddr,
+	}
+	srv.registerHandlers(false) // Never allow debug for SCADA
+
+	// Start the server
+	go http.Serve(list, mux)
+	return srv
 }
 
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted

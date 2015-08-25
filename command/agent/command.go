@@ -48,6 +48,7 @@ type Command struct {
 	httpServers       []*HTTPServer
 	dnsServer         *DNSServer
 	scadaProvider     *scada.Provider
+	scadaHttp         *HTTPServer
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -357,14 +358,18 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 		scadaList = list
 	}
 
-	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 || scadaList != nil {
-		servers, err := NewHTTPServers(agent, config, scadaList, logOutput)
+	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 {
+		servers, err := NewHTTPServers(agent, config, logOutput)
 		if err != nil {
 			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Error starting http servers: %s", err))
 			return err
 		}
 		c.httpServers = servers
+	}
+
+	if scadaList != nil {
+		c.scadaHttp = newScadaHttp(agent, scadaList)
 	}
 
 	if config.Ports.DNS > 0 {
@@ -684,9 +689,16 @@ AFTER_MIGRATE:
 	for _, server := range c.httpServers {
 		defer server.Shutdown()
 	}
-	if c.scadaProvider != nil {
-		defer c.scadaProvider.Shutdown()
-	}
+
+	// Check and shut down the SCADA listeners at the end
+	defer func() {
+		if c.scadaHttp != nil {
+			c.scadaHttp.Shutdown()
+		}
+		if c.scadaProvider != nil {
+			c.scadaProvider.Shutdown()
+		}
+	}()
 
 	// Join startup nodes if specified
 	if err := c.startupJoin(config); err != nil {
@@ -902,6 +914,24 @@ func (c *Command) handleReload(config *Config) *Config {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
 			}
 		}(wp)
+	}
+
+	// Reload the SCADA client
+	if c.scadaProvider != nil {
+		// Shut down the existing SCADA listeners
+		c.scadaProvider.Shutdown()
+		if c.scadaHttp != nil {
+			c.scadaHttp.Shutdown()
+		}
+
+		// Create the new provider and listener
+		provider, list, err := NewProvider(newConf, c.logOutput)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed reloading SCADA client: %s", err))
+			return nil
+		}
+		c.scadaProvider = provider
+		c.scadaHttp = newScadaHttp(c.agent, list)
 	}
 
 	return newConf
