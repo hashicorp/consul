@@ -1,12 +1,23 @@
 package state
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-memdb"
+)
+
+var (
+	// ErrMissingNode is the error returned when trying an operation
+	// which requires a node registration but none exists.
+	ErrMissingNode = errors.New("Missing node registration")
+
+	// ErrMissingService is the error we return if trying an
+	// operation which requires a service but none exists.
+	ErrMissingService = errors.New("Missing service registration")
 )
 
 // StateStore is where we store all of Consul's state, including
@@ -320,5 +331,67 @@ func (s *StateStore) deleteNodeServiceTxn(idx uint64, nodeID, serviceID string, 
 
 	// TODO: session invalidation
 	// TODO: watch trigger
+	return nil
+}
+
+// EnsureCheck is used to store a check registration in the db.
+func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Call the check registration
+	if err := s.ensureCheckTxn(idx, hc, tx); err != nil {
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// ensureCheckTransaction is used as the inner method to handle inserting
+// a health check into the state store. It ensures safety against inserting
+// checks with no matching node or service.
+func (s *StateStore) ensureCheckTxn(idx uint64, hc *structs.HealthCheck, tx *memdb.Txn) error {
+	// Use the default check status if none was provided
+	if hc.Status == "" {
+		hc.Status = structs.HealthCritical
+	}
+
+	// Get the node
+	node, err := tx.First("nodes", "id", hc.Node)
+	if err != nil {
+		return fmt.Errorf("failed node lookup: %s", err)
+	}
+	if node == nil {
+		return ErrMissingNode
+	}
+
+	// If the check is associated with a service, check that we have
+	// a registration for the service.
+	if hc.ServiceID != "" {
+		service, err := tx.First("services", "id", hc.Node, hc.ServiceID)
+		if err != nil {
+			return fmt.Errorf("failed service lookup: %s", err)
+		}
+		if service == nil {
+			return ErrMissingService
+		}
+
+		// Copy in the service name
+		hc.ServiceName = service.(*structs.ServiceNode).ServiceName
+	}
+
+	// TODO: invalidate sessions if status == critical
+
+	// Persist the check registration in the db
+	if err := tx.Insert("services", hc); err != nil {
+		return fmt.Errorf("failed inserting service: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{"checks", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// TODO: trigger watches
+
 	return nil
 }

@@ -274,3 +274,43 @@ func TestStateStore_DeleteNodeService(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
+
+func TestStateStore_EnsureCheck(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create a node and insert it
+	node := &structs.Node{
+		Node:    "node1",
+		Address: "1.1.1.1",
+	}
+	if err := s.EnsureNode(1, node); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Create a service and insert it
+	service := &structs.NodeService{
+		ID:      "service1",
+		Service: "redis",
+		Tags:    []string{"prod"},
+		Address: "1.1.1.1",
+		Port:    1111,
+	}
+	if err := s.EnsureService(2, "node1", service); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Create a check associated with the node and insert it
+	check := &structs.HealthCheck{
+		Node:        "node1",
+		CheckID:     "check1",
+		Name:        "redis check",
+		Status:      structs.HealthPassing,
+		Notes:       "test check",
+		Output:      "aaa",
+		ServiceID:   "service1",
+		ServiceName: "redis",
+	}
+	if err := s.EnsureCheck(3, check); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
