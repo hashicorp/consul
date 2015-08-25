@@ -330,7 +330,8 @@ The return code is 200 on success.
 
 The register endpoint is used to add a new service, with an optional health check,
 to the local agent. There is more documentation on services [here](/docs/agent/services.html).
-The agent is responsible for managing the status of the service and keeping the Catalog in sync.
+The agent is responsible for managing the status of its local services, and for sending updates
+about its local services to the servers to keep the global Catalog in sync.
 
 The register endpoint expects a JSON request body to be PUT. The request
 body must look like:
