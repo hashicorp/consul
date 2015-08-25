@@ -40,6 +40,26 @@ func NewStateStore(logOutput io.Writer) (*StateStore, error) {
 	return s, nil
 }
 
+// maxIndex is a helper used to retrieve the highest known index
+// amongst a set of tables in the db.
+func (s *StateStore) maxIndex(tables ...string) uint64 {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	var lindex uint64
+	for _, table := range tables {
+		ti, err := tx.First("index", "id", table)
+		if err != nil {
+			panic(fmt.Sprintf("unknown index: %s", table))
+		}
+		idx := ti.(*IndexEntry).Value
+		if idx > lindex {
+			lindex = idx
+		}
+	}
+	return lindex
+}
+
 // EnsureNode is used to upsert node registration or modification.
 func (s *StateStore) EnsureNode(idx uint64, node *structs.Node) error {
 	tx := s.db.Txn(true)

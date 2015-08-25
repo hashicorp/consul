@@ -143,9 +143,12 @@ func TestStateStore_DeleteNode(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// The node is now gone
+	// The node is now gone and the index was updated
 	if n, err := s.GetNode("node1"); err != nil || n != nil {
 		t.Fatalf("bad: %#v (err: %#v)", node, err)
+	}
+	if idx := s.maxIndex("nodes"); idx != 2 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -262,9 +265,12 @@ func TestStateStore_DeleteNodeService(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// The service doesn't exist.
+	// The service doesn't exist and the index was updated
 	ns, err = s.NodeServices("node1")
 	if err != nil || ns == nil || len(ns.Services) != 0 {
 		t.Fatalf("bad: %#v (err: %#v)", ns, err)
+	}
+	if idx := s.maxIndex("services"); idx != 3 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
