@@ -119,6 +119,40 @@ func (s *StateStore) Nodes() (structs.Nodes, error) {
 	return results, nil
 }
 
+// DeleteNode is used to delete a given node by its ID.
+func (s *StateStore) DeleteNode(idx uint64, nodeID string) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Call the node deletion.
+	if err := s.deleteNodeTxn(idx, nodeID, tx); err != nil {
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+func (s *StateStore) deleteNodeTxn(idx uint64, nodeID string, tx *memdb.Txn) error {
+	// Look up the node
+	node, err := tx.First("nodes", "id", nodeID)
+	if err != nil {
+		return fmt.Errorf("node lookup failed: %s", err)
+	}
+
+	// Delete the node and update the index
+	if err := tx.Delete("nodes", node); err != nil {
+		return fmt.Errorf("failed deleting node: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{"nodes", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// TODO: session invalidation
+	// TODO: watch trigger
+	return nil
+}
+
 // EnsureService is called to upsert creation of a given NodeService.
 func (s *StateStore) EnsureService(idx uint64, node string, svc *structs.NodeService) error {
 	tx := s.db.Txn(true)

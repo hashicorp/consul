@@ -124,6 +124,31 @@ func TestStateStore_GetNodes(t *testing.T) {
 	}
 }
 
+func TestStateStore_DeleteNode(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create a node
+	node := &structs.Node{Node: "node1", Address: "1.1.1.1"}
+	if err := s.EnsureNode(1, node); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// The node exists
+	if n, err := s.GetNode("node1"); err != nil || n == nil {
+		t.Fatalf("bad: %#v (%#v)", n, err)
+	}
+
+	// Delete the node
+	if err := s.DeleteNode(2, "node1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// The node is now gone
+	if n, err := s.GetNode("node1"); err != nil || n != nil {
+		t.Fatalf("bad: %#v (%#v)", node, err)
+	}
+}
+
 func TestStateStore_EnsureService_NodeServices(t *testing.T) {
 	s := testStateStore(t)
 
