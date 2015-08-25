@@ -352,6 +352,21 @@ func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 // a health check into the state store. It ensures safety against inserting
 // checks with no matching node or service.
 func (s *StateStore) ensureCheckTxn(idx uint64, hc *structs.HealthCheck, tx *memdb.Txn) error {
+	// Check if we have an existing health check
+	existing, err := tx.First("checks", "id", hc.Node, hc.CheckID)
+	if err != nil {
+		return fmt.Errorf("failed health check lookup: %s", err)
+	}
+
+	// Set the indexes
+	if existing != nil {
+		hc.CreateIndex = existing.(*structs.HealthCheck).CreateIndex
+		hc.ModifyIndex = idx
+	} else {
+		hc.CreateIndex = idx
+		hc.ModifyIndex = idx
+	}
+
 	// Use the default check status if none was provided
 	if hc.Status == "" {
 		hc.Status = structs.HealthCritical

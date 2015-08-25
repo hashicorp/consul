@@ -332,9 +332,30 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if len(checks) != 1 {
-		t.Fatalf("bad number of checks: %d", len(checks))
+		t.Fatalf("wrong number of checks: %d", len(checks))
 	}
 	if !reflect.DeepEqual(checks[0], check) {
 		t.Fatalf("bad: %#v", checks[0])
+	}
+
+	// Modify the health check
+	check.Output = "bbb"
+	if err := s.EnsureCheck(4, check); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check that we successfully updated
+	checks, err = s.NodeChecks("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(checks) != 1 {
+		t.Fatalf("wrong number of checks: %d", len(checks))
+	}
+	if checks[0].Output != "bbb" {
+		t.Fatalf("wrong check output: %#v", checks[0])
+	}
+	if checks[0].CreateIndex != 3 || checks[0].ModifyIndex != 4 {
+		t.Fatalf("bad index: %#v", checks[0])
 	}
 }

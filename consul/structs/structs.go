@@ -283,6 +283,8 @@ type HealthCheck struct {
 	Output      string // Holds output of script runs
 	ServiceID   string // optional associated service
 	ServiceName string // optional service name
+
+	RaftIndex
 }
 type HealthChecks []*HealthCheck
 
