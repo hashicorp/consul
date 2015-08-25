@@ -1933,5 +1933,86 @@ func TestDNS_NonExistingLookup(t *testing.T) {
 	if soaRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Ns[0])
 	}
+}
 
+func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// register v6 only service
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foov6",
+		Address:    "fe80::1",
+		Service: &structs.NodeService{
+			Service: "webv6",
+			Port:    8000,
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// register v4 only service
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foov4",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "webv4",
+			Port:    8000,
+		},
+	}
+
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// check for ipv6 records on ipv4 only service
+	m := new(dns.Msg)
+	m.SetQuestion("webv4.service.consul.", dns.TypeAAAA)
+
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Ns) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	soaRec, ok := in.Ns[0].(*dns.SOA)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+	if soaRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+
+	// check for ipv4 records on ipv6 only service
+	m.SetQuestion("webv6.service.consul.", dns.TypeA)
+
+	in, _, err = c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Ns) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	soaRec, ok = in.Ns[0].(*dns.SOA)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+	if soaRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
 }

@@ -528,6 +528,14 @@ RPC:
 	if qType == dns.TypeSRV {
 		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
+
+	// If the answer is empty, return not found
+	if len(resp.Answer) == 0 {
+		d.addSOA(d.domain, resp)
+		resp.SetRcode(req, dns.RcodeNameError)
+		return
+	}
+
 }
 
 // filterServiceNodes is used to filter out nodes that are failing
