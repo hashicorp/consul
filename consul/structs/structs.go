@@ -17,9 +17,9 @@ var (
 
 type MessageType uint8
 
-// Index is used to track the index used while creating
+// RaftIndex is used to track the index used while creating
 // or modifying a given struct type.
-type Index struct {
+type RaftIndex struct {
 	CreateIndex uint64
 	ModifyIndex uint64
 }
@@ -232,9 +232,9 @@ type Node struct {
 	Node    string
 	Address string
 
-	Index
+	RaftIndex
 }
-type Nodes []Node
+type Nodes []*Node
 
 // Used to return information about a provided services.
 // Maps service name to available tags
@@ -250,9 +250,9 @@ type ServiceNode struct {
 	ServiceAddress string
 	ServicePort    int
 
-	Index
+	RaftIndex
 }
-type ServiceNodes []ServiceNode
+type ServiceNodes []*ServiceNode
 
 // NodeService is a service provided by a node
 type NodeService struct {
@@ -267,10 +267,10 @@ type NodeService struct {
 }
 
 type NodeServices struct {
-	Node     Node
+	Node     *Node
 	Services map[string]*NodeService
 
-	Index
+	RaftIndex
 }
 
 // HealthCheck represents a single check on a given node

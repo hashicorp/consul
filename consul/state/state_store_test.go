@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -81,6 +82,45 @@ func TestStateStore_EnsureNode_GetNode(t *testing.T) {
 	}
 	if out.Address != "1.1.1.2" || out.CreateIndex != 1 || out.ModifyIndex != 2 {
 		t.Fatalf("node was modified: %#v", out)
+	}
+}
+
+func TestStateStore_GetNodes(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create some nodes in the state store
+	nodes := []*structs.Node{
+		&structs.Node{Node: "node0", Address: "1.1.1.0"},
+		&structs.Node{Node: "node1", Address: "1.1.1.1"},
+		&structs.Node{Node: "node2", Address: "1.1.1.2"},
+	}
+	for i, node := range nodes {
+		if err := s.EnsureNode(uint64(i), node); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Retrieve the nodes
+	out, err := s.Nodes()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// All nodes were returned
+	if n := len(out); n != 3 {
+		t.Fatalf("bad node count: %d", n)
+	}
+
+	// Make sure the nodes match
+	for i, node := range nodes {
+		if node.CreateIndex != uint64(i) || node.ModifyIndex != uint64(i) {
+			t.Fatalf("bad node index: %d, %d", node.CreateIndex, node.ModifyIndex)
+		}
+		name := fmt.Sprintf("node%d", i)
+		addr := fmt.Sprintf("1.1.1.%d", i)
+		if node.Node != name || node.Address != addr {
+			t.Fatalf("bad: %#v", node)
+		}
 	}
 }
 

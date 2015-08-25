@@ -99,6 +99,26 @@ func (s *StateStore) GetNode(id string) (*structs.Node, error) {
 	return nil, nil
 }
 
+// Nodes is used to return all of the known nodes.
+func (s *StateStore) Nodes() (structs.Nodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Retrieve all of the nodes
+	nodes, err := tx.Get("nodes", "id")
+	if err != nil {
+		return nil, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+
+	// Create and return the nodes list.
+	// TODO: Optimize by returning an iterator.
+	var results structs.Nodes
+	for node := nodes.Next(); node != nil; node = nodes.Next() {
+		results = append(results, node.(*structs.Node))
+	}
+	return results, nil
+}
+
 // EnsureService is called to upsert creation of a given NodeService.
 func (s *StateStore) EnsureService(idx uint64, node string, svc *structs.NodeService) error {
 	tx := s.db.Txn(true)
@@ -174,7 +194,7 @@ func (s *StateStore) NodeServices(nodeID string) (*structs.NodeServices, error) 
 
 	// Initialize the node services struct
 	ns := &structs.NodeServices{
-		Node:     *node,
+		Node:     node,
 		Services: make(map[string]*structs.NodeService),
 	}
 	ns.CreateIndex = node.CreateIndex
