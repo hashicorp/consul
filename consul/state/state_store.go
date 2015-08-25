@@ -133,6 +133,8 @@ func (s *StateStore) DeleteNode(idx uint64, nodeID string) error {
 	return nil
 }
 
+// deleteNodeTxn is the inner method used for removing a node from
+// the store within a given transaction.
 func (s *StateStore) deleteNodeTxn(idx uint64, nodeID string, tx *memdb.Txn) error {
 	// Look up the node
 	node, err := tx.First("nodes", "id", nodeID)
@@ -262,4 +264,41 @@ func (s *StateStore) NodeServices(nodeID string) (*structs.NodeServices, error) 
 	}
 
 	return ns, nil
+}
+
+// DeleteNodeService is used to delete a given service associated
+// with the given node.
+func (s *StateStore) DeleteNodeService(idx uint64, nodeID, serviceID string) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Call the service deletion
+	if err := s.deleteNodeServiceTxn(idx, nodeID, serviceID, tx); err != nil {
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// deleteNodeServiceTxn is the inner method called to remove a service
+// registration within an existing transaction.
+func (s *StateStore) deleteNodeServiceTxn(idx uint64, nodeID, serviceID string, tx *memdb.Txn) error {
+	// Look up the service
+	service, err := tx.First("services", "id", nodeID, serviceID)
+	if err != nil {
+		return fmt.Errorf("failed service lookup: %s", err)
+	}
+
+	// Delete the service and update the index
+	if err := tx.Delete("services", service); err != nil {
+		return fmt.Errorf("failed deleting service: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// TODO: session invalidation
+	// TODO: watch trigger
+	return nil
 }

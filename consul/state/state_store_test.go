@@ -145,7 +145,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 
 	// The node is now gone
 	if n, err := s.GetNode("node1"); err != nil || n != nil {
-		t.Fatalf("bad: %#v (%#v)", node, err)
+		t.Fatalf("bad: %#v (err: %#v)", node, err)
 	}
 }
 
@@ -224,5 +224,47 @@ func TestStateStore_EnsureService_NodeServices(t *testing.T) {
 	// Lastly, ensure that the highest index was preserved.
 	if out.CreateIndex != 20 || out.ModifyIndex != 20 {
 		t.Fatalf("bad index: %d, %d", out.CreateIndex, out.ModifyIndex)
+	}
+}
+
+func TestStateStore_DeleteNodeService(t *testing.T) {
+	s := testStateStore(t)
+
+	// Register a node
+	node := &structs.Node{
+		Node:    "node1",
+		Address: "1.1.1.1",
+	}
+	if err := s.EnsureNode(1, node); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Create a service
+	service := &structs.NodeService{
+		ID:      "service1",
+		Service: "redis",
+		Tags:    []string{"prod"},
+		Address: "1.1.1.1",
+		Port:    1111,
+	}
+	if err := s.EnsureService(2, "node1", service); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// The service exists
+	ns, err := s.NodeServices("node1")
+	if err != nil || ns == nil || len(ns.Services) != 1 {
+		t.Fatalf("bad: %#v (err: %#v)", ns, err)
+	}
+
+	// Delete the service
+	if err := s.DeleteNodeService(3, "node1", "service1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// The service doesn't exist.
+	ns, err = s.NodeServices("node1")
+	if err != nil || ns == nil || len(ns.Services) != 0 {
+		t.Fatalf("bad: %#v (err: %#v)", ns, err)
 	}
 }
