@@ -278,6 +278,23 @@ func TestStateStore_DeleteNodeService(t *testing.T) {
 func TestStateStore_EnsureCheck(t *testing.T) {
 	s := testStateStore(t)
 
+	// Create a check associated with the node
+	check := &structs.HealthCheck{
+		Node:        "node1",
+		CheckID:     "check1",
+		Name:        "redis check",
+		Status:      structs.HealthPassing,
+		Notes:       "test check",
+		Output:      "aaa",
+		ServiceID:   "service1",
+		ServiceName: "redis",
+	}
+
+	// Creating a check without a node returns error
+	if err := s.EnsureCheck(1, check); err != ErrMissingNode {
+		t.Fatalf("expected %#v, got: %#v", ErrMissingNode, err)
+	}
+
 	// Create a node and insert it
 	node := &structs.Node{
 		Node:    "node1",
@@ -285,6 +302,11 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	}
 	if err := s.EnsureNode(1, node); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	// Creating a check with a bad services returns error
+	if err := s.EnsureCheck(1, check); err != ErrMissingService {
+		t.Fatalf("expected: %#v, got: %#v", ErrMissingService, err)
 	}
 
 	// Create a service and insert it
@@ -299,17 +321,7 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Create a check associated with the node and insert it
-	check := &structs.HealthCheck{
-		Node:        "node1",
-		CheckID:     "check1",
-		Name:        "redis check",
-		Status:      structs.HealthPassing,
-		Notes:       "test check",
-		Output:      "aaa",
-		ServiceID:   "service1",
-		ServiceName: "redis",
-	}
+	// Inserting the check with the prerequisites succeeds
 	if err := s.EnsureCheck(3, check); err != nil {
 		t.Fatalf("err: %s", err)
 	}
