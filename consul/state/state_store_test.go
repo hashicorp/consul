@@ -313,4 +313,16 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	if err := s.EnsureCheck(3, check); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
+	// Retrieve the check and make sure it matches
+	checks, err := s.NodeChecks("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(checks) != 1 {
+		t.Fatalf("bad number of checks: %d", len(checks))
+	}
+	if !reflect.DeepEqual(checks[0], check) {
+		t.Fatalf("bad: %#v", checks[0])
+	}
 }

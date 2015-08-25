@@ -384,7 +384,7 @@ func (s *StateStore) ensureCheckTxn(idx uint64, hc *structs.HealthCheck, tx *mem
 	// TODO: invalidate sessions if status == critical
 
 	// Persist the check registration in the db
-	if err := tx.Insert("services", hc); err != nil {
+	if err := tx.Insert("checks", hc); err != nil {
 		return fmt.Errorf("failed inserting service: %s", err)
 	}
 	if err := tx.Insert("index", &IndexEntry{"checks", idx}); err != nil {
@@ -394,4 +394,27 @@ func (s *StateStore) ensureCheckTxn(idx uint64, hc *structs.HealthCheck, tx *mem
 	// TODO: trigger watches
 
 	return nil
+}
+
+// NodeChecks is used to retrieve checks associated with the
+// given node from the state store.
+func (s *StateStore) NodeChecks(nodeID string) (structs.HealthChecks, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	return s.parseChecks(tx.Get("checks", "node", nodeID))
+}
+
+// parseChecks is a helper function used to deduplicate some
+// repetitive code for returning health checks.
+func (s *StateStore) parseChecks(iter memdb.ResultIterator, err error) (structs.HealthChecks, error) {
+	if err != nil {
+		return nil, fmt.Errorf("failed health check lookup: %s", err)
+	}
+
+	// Gather the health checks and return them properly type casted
+	var results structs.HealthChecks
+	for hc := iter.Next(); hc != nil; hc = iter.Next() {
+		results = append(results, hc.(*structs.HealthCheck))
+	}
+	return results, nil
 }
