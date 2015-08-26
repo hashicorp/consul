@@ -25,6 +25,8 @@ func nextConfig() *Config {
 	idx := int(atomic.AddUint64(&offset, 1))
 	conf := DefaultConfig()
 
+	conf.Version = "a.b"
+	conf.VersionPrerelease = "c.d"
 	conf.AdvertiseAddr = "127.0.0.1"
 	conf.Bootstrap = true
 	conf.Datacenter = "dc1"
