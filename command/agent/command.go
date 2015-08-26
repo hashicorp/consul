@@ -935,6 +935,7 @@ func (c *Command) setupScadaConn(config *Config) error {
 	}
 
 	// Create the new provider and listener
+	c.Ui.Output("Connecting to Atlas: " + config.AtlasInfrastructure)
 	provider, list, err := NewProvider(config, c.logOutput)
 	if err != nil {
 		return err
