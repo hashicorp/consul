@@ -516,6 +516,39 @@ func TestACLResolution(t *testing.T) {
 	})
 }
 
+func TestScadaHTTP(t *testing.T) {
+	// Create the agent
+	dir, agent := makeAgent(t, nextConfig())
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	// Create a generic listener
+	list, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer list.Close()
+
+	// Create the SCADA HTTP server
+	scadaHttp := newScadaHttp(agent, list)
+
+	// Returned server uses the listener and scada addr
+	if scadaHttp.listener != list {
+		t.Fatalf("bad listener: %#v", scadaHttp)
+	}
+	if scadaHttp.addr != scadaHTTPAddr {
+		t.Fatalf("expected %v, got: %v", scadaHttp.addr, scadaHTTPAddr)
+	}
+
+	// Check that debug endpoints were not enabled. This will cause
+	// the serve mux to panic if the routes are already handled.
+	mockFn := func(w http.ResponseWriter, r *http.Request) {}
+	scadaHttp.mux.HandleFunc("/debug/pprof/", mockFn)
+	scadaHttp.mux.HandleFunc("/debug/pprof/cmdline", mockFn)
+	scadaHttp.mux.HandleFunc("/debug/pprof/profile", mockFn)
+	scadaHttp.mux.HandleFunc("/debug/pprof/symbol", mockFn)
+}
+
 // assertIndex tests that X-Consul-Index is set and non-zero
 func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
 	header := resp.Header().Get("X-Consul-Index")
