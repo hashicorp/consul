@@ -643,3 +643,5 @@ items which are reloaded include:
 * Services
 * Watches
 * HTTP Client Address
+* Atlas Token
+* Atlas Infrastructure
