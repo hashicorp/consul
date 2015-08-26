@@ -284,7 +284,7 @@ func TestSetupScadaConn(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if cmd.scadaHttp == http1 || cmd.scadaProvider == provider1 {
-		t.Fatalf("bad: %#v", cmd)
+		t.Fatalf("should change: %#v %#v", cmd.scadaHttp, cmd.scadaProvider)
 	}
 	list = cmd.scadaHttp.listener.(*scadaListener)
 	if list == nil || list.addr.infra != "hashicorp/test2" {

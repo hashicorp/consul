@@ -906,10 +906,13 @@ func (c *Command) handleReload(config *Config) *Config {
 		}(wp)
 	}
 
-	// Reload SCADA client
-	if err := c.setupScadaConn(newConf); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed reloading SCADA client: %s", err))
-		return nil
+	// Reload SCADA client if we have a change
+	if newConf.AtlasInfrastructure != config.AtlasInfrastructure ||
+		newConf.AtlasToken != config.AtlasToken {
+		if err := c.setupScadaConn(newConf); err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed reloading SCADA client: %s", err))
+			return nil
+		}
 	}
 
 	return newConf
