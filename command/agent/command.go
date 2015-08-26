@@ -346,16 +346,10 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	c.rpcServer = NewAgentRPC(agent, rpcListener, logOutput, logWriter)
 
 	// Enable the SCADA integration
-	var scadaList net.Listener
-	if config.AtlasInfrastructure != "" {
-		provider, list, err := NewProvider(config, logOutput)
-		if err != nil {
-			agent.Shutdown()
-			c.Ui.Error(fmt.Sprintf("Error starting SCADA connection: %s", err))
-			return err
-		}
-		c.scadaProvider = provider
-		scadaList = list
+	if err := c.setupScadaConn(config); err != nil {
+		agent.Shutdown()
+		c.Ui.Error(fmt.Sprintf("Error starting SCADA connection: %s", err))
+		return err
 	}
 
 	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 {
@@ -366,10 +360,6 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 			return err
 		}
 		c.httpServers = servers
-	}
-
-	if scadaList != nil {
-		c.scadaHttp = newScadaHttp(agent, scadaList)
 	}
 
 	if config.Ports.DNS > 0 {
@@ -916,25 +906,39 @@ func (c *Command) handleReload(config *Config) *Config {
 		}(wp)
 	}
 
-	// Reload the SCADA client
-	if c.scadaProvider != nil {
-		// Shut down the existing SCADA listeners
-		c.scadaProvider.Shutdown()
-		if c.scadaHttp != nil {
-			c.scadaHttp.Shutdown()
-		}
-
-		// Create the new provider and listener
-		provider, list, err := NewProvider(newConf, c.logOutput)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed reloading SCADA client: %s", err))
-			return nil
-		}
-		c.scadaProvider = provider
-		c.scadaHttp = newScadaHttp(c.agent, list)
+	// Reload SCADA client
+	if err := c.setupScadaConn(newConf); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed reloading SCADA client: %s", err))
+		return nil
 	}
 
 	return newConf
+}
+
+// startScadaClient is used to start a new SCADA provider and listener,
+// replacing any existing listeners.
+func (c *Command) setupScadaConn(config *Config) error {
+	// Shut down existing SCADA listeners
+	if c.scadaProvider != nil {
+		c.scadaProvider.Shutdown()
+	}
+	if c.scadaHttp != nil {
+		c.scadaHttp.Shutdown()
+	}
+
+	// No-op if we don't have an infrastructure
+	if config.AtlasInfrastructure == "" {
+		return nil
+	}
+
+	// Create the new provider and listener
+	provider, list, err := NewProvider(config, c.logOutput)
+	if err != nil {
+		return err
+	}
+	c.scadaProvider = provider
+	c.scadaHttp = newScadaHttp(c.agent, list)
+	return nil
 }
 
 func (c *Command) Synopsis() string {
