@@ -145,6 +145,8 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 	return servers, nil
 }
 
+// newScadaHttp creates a new HTTP server wrapping the SCADA
+// listener such that HTTP calls can be sent from the brokers.
 func newScadaHttp(agent *Agent, list net.Listener) *HTTPServer {
 	// Create the mux
 	mux := http.NewServeMux()
