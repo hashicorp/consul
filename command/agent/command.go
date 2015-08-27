@@ -909,7 +909,8 @@ func (c *Command) handleReload(config *Config) *Config {
 
 	// Reload SCADA client if we have a change
 	if newConf.AtlasInfrastructure != config.AtlasInfrastructure ||
-		newConf.AtlasToken != config.AtlasToken {
+		newConf.AtlasToken != config.AtlasToken ||
+		newConf.AtlasEndpoint != config.AtlasEndpoint {
 		if err := c.setupScadaConn(newConf); err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed reloading SCADA client: %s", err))
 			return nil
