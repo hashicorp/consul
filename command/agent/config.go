@@ -363,6 +363,10 @@ type Config struct {
 	// to it's cluster. Requires Atlas integration.
 	AtlasJoin bool `mapstructure:"atlas_join"`
 
+	// AtlasEndpoint is the SCADA endpoint used for Atlas integration. If
+	// empty, the defaults from the provider are used.
+	AtlasEndpoint string `mapstructure:"atlas_endpoint"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile it's local state with the server'
 	// representation of our state. Defaults to every 60s.
@@ -1055,6 +1059,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.AtlasJoin {
 		result.AtlasJoin = true
+	}
+	if b.AtlasEndpoint != "" {
+		result.AtlasEndpoint = b.AtlasEndpoint
 	}
 	if b.SessionTTLMinRaw != "" {
 		result.SessionTTLMin = b.SessionTTLMin

@@ -47,6 +47,7 @@ func ProviderConfig(c *Config) *client.ProviderConfig {
 		Handlers: map[string]client.CapabilityProvider{
 			"http": nil,
 		},
+		Endpoint:      c.AtlasEndpoint,
 		ResourceGroup: c.AtlasInfrastructure,
 		Token:         c.AtlasToken,
 	}
