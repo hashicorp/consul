@@ -63,6 +63,11 @@ The options below are all specified on the command-line.
   API authentication token. This can also be provided
   using the `ATLAS_TOKEN` environment variable. Required for use with Atlas.
 
+* <a name="_atlas_endpoint"></a><a href="#_atlas_endpoint">`-atlas-endpoint`</a> - The endpoint
+  address used for Atlas integration. Used only if the `-atlas` and
+  `-atlas-token` options are specified. This is optional, and defaults to the
+  public Atlas endpoints.
+
 * <a name="_bootstrap"></a><a href="#_bootstrap">`-bootstrap`</a> - This flag is used to control if a
   server is in "bootstrap" mode. It is important that
   no more than one server *per* datacenter be running in this mode. Technically, a server in bootstrap mode
@@ -350,6 +355,9 @@ definitions support being updated during a reload.
 
 * <a name="atlas_token"></a><a href="#atlas_token">`atlas_token`</a> Equivalent to the
   [`-atlas-token` command-line flag](#_atlas_token).
+
+* <a name="atlas_endpoint"></a><a href="#atlas_endpoint">`atlas_endpoint`</a> Equivalent to the
+  [`-atlas-endpoint` command-line flag](#_atlas_endpoint).
 
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).
@@ -645,3 +653,4 @@ items which are reloaded include:
 * HTTP Client Address
 * Atlas Token
 * Atlas Infrastructure
+* Atlas Endpoint
