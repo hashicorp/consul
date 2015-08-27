@@ -87,6 +87,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.AtlasInfrastructure, "atlas", "", "infrastructure name in Atlas")
 	cmdFlags.StringVar(&cmdConfig.AtlasToken, "atlas-token", "", "authentication token for Atlas")
 	cmdFlags.BoolVar(&cmdConfig.AtlasJoin, "atlas-join", false, "auto-join with Atlas")
+	cmdFlags.StringVar(&cmdConfig.AtlasEndpoint, "atlas-endpoint", "", "endpoint for Atlas integration")
 
 	cmdFlags.IntVar(&cmdConfig.Protocol, "protocol", -1, "protocol version")
 
@@ -962,6 +963,7 @@ Options:
   -atlas=org/name          Sets the Atlas infrastructure name, enables SCADA.
   -atlas-join              Enables auto-joining the Atlas cluster
   -atlas-token=token       Provides the Atlas API token
+  -atlas-endpoint=1.2.3.4  The address of the endpoint for Atlas integration.
   -bootstrap               Sets server to bootstrap mode
   -bind=0.0.0.0            Sets the bind address for cluster communication
   -bootstrap-expect=0      Sets server to expect bootstrap mode.
