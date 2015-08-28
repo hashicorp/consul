@@ -66,7 +66,9 @@ The options below are all specified on the command-line.
 * <a name="_atlas_endpoint"></a><a href="#_atlas_endpoint">`-atlas-endpoint`</a> - The endpoint
   address used for Atlas integration. Used only if the `-atlas` and
   `-atlas-token` options are specified. This is optional, and defaults to the
-  public Atlas endpoints.
+  public Atlas endpoints. This can also be specified using the `SCADA_ENDPOINT`
+  environment variable. The CLI option takes precedence, followed by the
+  configuration file directive, and lastly, the environment variable.
 
 * <a name="_bootstrap"></a><a href="#_bootstrap">`-bootstrap`</a> - This flag is used to control if a
   server is in "bootstrap" mode. It is important that
