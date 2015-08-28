@@ -260,17 +260,41 @@ func TestStateStore_DeleteNodeService(t *testing.T) {
 		t.Fatalf("bad: %#v (err: %#v)", ns, err)
 	}
 
-	// Delete the service
-	if err := s.DeleteNodeService(3, "node1", "service1"); err != nil {
+	// Register a check with the service
+	check := &structs.HealthCheck{
+		Node:        "node1",
+		CheckID:     "check1",
+		ServiceName: "redis",
+		ServiceID:   "service1",
+	}
+	if err := s.EnsureCheck(3, check); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	// The service doesn't exist and the index was updated
+	// Service check exists
+	checks, err := s.NodeChecks("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(checks) != 1 {
+		t.Fatalf("wrong number of checks: %d", len(checks))
+	}
+
+	// Delete the service
+	if err := s.DeleteNodeService(4, "node1", "service1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// The service and check don't exist and the index was updated
 	ns, err = s.NodeServices("node1")
 	if err != nil || ns == nil || len(ns.Services) != 0 {
 		t.Fatalf("bad: %#v (err: %#v)", ns, err)
 	}
-	if idx := s.maxIndex("services"); idx != 3 {
+	checks, err = s.NodeChecks("node1")
+	if err != nil || len(checks) != 0 {
+		t.Fatalf("bad: %#v (err: %s)", checks, err)
+	}
+	if idx := s.maxIndex("services"); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }

@@ -321,6 +321,20 @@ func (s *StateStore) deleteNodeServiceTxn(idx uint64, nodeID, serviceID string, 
 		return fmt.Errorf("failed service lookup: %s", err)
 	}
 
+	// Delete any checks associated with the service
+	checks, err := tx.Get("checks", "node_service", nodeID, serviceID)
+	if err != nil {
+		return fmt.Errorf("failed service check lookup: %s", err)
+	}
+	for check := checks.Next(); check != nil; check = checks.Next() {
+		if err := tx.Delete("checks", check); err != nil {
+			return fmt.Errorf("failed deleting service check: %s", err)
+		}
+	}
+	if err := tx.Insert("index", &IndexEntry{"checks", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
 	// Delete the service and update the index
 	if err := tx.Delete("services", service); err != nil {
 		return fmt.Errorf("failed deleting service: %s", err)
