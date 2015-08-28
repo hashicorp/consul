@@ -359,3 +359,55 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 		t.Fatalf("bad index: %#v", checks[0])
 	}
 }
+
+func TestStateStore_DeleteCheck(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create and register a node
+	node := &structs.Node{
+		Node:    "node1",
+		Address: "1.1.1.1",
+	}
+	if err := s.EnsureNode(1, node); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Create the health check struct
+	check := &structs.HealthCheck{
+		Node:    "node1",
+		CheckID: "check1",
+		Name:    "node1 check",
+		Status:  structs.HealthPassing,
+		Notes:   "test check",
+		Output:  "aaa",
+	}
+	if err := s.EnsureCheck(2, check); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check exists
+	checks, err := s.NodeChecks("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(checks) != 1 || checks[0].CheckID != "check1" {
+		t.Fatalf("bad: %#v", checks)
+	}
+
+	// Delete the check
+	if err := s.DeleteCheck(3, "node1", "check1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check is gone
+	checks, err = s.NodeChecks("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(checks) != 0 {
+		t.Fatalf("bad: %#v", checks)
+	}
+	if n := s.maxIndex("checks"); n != 3 {
+		t.Fatalf("bad index: %d", n)
+	}
+}

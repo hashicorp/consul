@@ -433,3 +433,39 @@ func (s *StateStore) parseChecks(iter memdb.ResultIterator, err error) (structs.
 	}
 	return results, nil
 }
+
+// DeleteCheck is used to delete a health check registration.
+func (s *StateStore) DeleteCheck(idx uint64, node, id string) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Call the check deletion
+	if err := s.deleteCheckTxn(idx, node, id, tx); err != nil {
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// deleteCheckTxn is the inner method used to call a health
+// check deletion within an existing transaction.
+func (s *StateStore) deleteCheckTxn(idx uint64, node, id string, tx *memdb.Txn) error {
+	// Try to retrieve the existing health check
+	check, err := tx.First("checks", "id", node, id)
+	if err != nil {
+		return fmt.Errorf("check lookup failed: %s", err)
+	}
+
+	// Delete the check from the DB and update the index
+	if err := tx.Delete("checks", check); err != nil {
+		return fmt.Errorf("failed removing check: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{"checks", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// TODO: invalidate sessions
+	// TODO: watch triggers
+	return nil
+}
