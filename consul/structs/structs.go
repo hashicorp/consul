@@ -269,8 +269,6 @@ type NodeService struct {
 type NodeServices struct {
 	Node     *Node
 	Services map[string]*NodeService
-
-	RaftIndex
 }
 
 // HealthCheck represents a single check on a given node

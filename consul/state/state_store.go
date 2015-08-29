@@ -131,23 +131,28 @@ func (s *StateStore) GetNode(id string) (*structs.Node, error) {
 }
 
 // Nodes is used to return all of the known nodes.
-func (s *StateStore) Nodes() (structs.Nodes, error) {
+func (s *StateStore) Nodes() (uint64, structs.Nodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Retrieve all of the nodes
 	nodes, err := tx.Get("nodes", "id")
 	if err != nil {
-		return nil, fmt.Errorf("failed nodes lookup: %s", err)
+		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
 
-	// Create and return the nodes list.
-	// TODO: Optimize by returning an iterator.
+	// Create and return the nodes list, tracking the highest
+	// index we see.
+	var lindex uint64
 	var results structs.Nodes
 	for node := nodes.Next(); node != nil; node = nodes.Next() {
+		n := node.(*structs.Node)
+		if n.ModifyIndex > lindex {
+			lindex = n.ModifyIndex
+		}
 		results = append(results, node.(*structs.Node))
 	}
-	return results, nil
+	return lindex, results, nil
 }
 
 // DeleteNode is used to delete a given node by its ID.
@@ -263,24 +268,24 @@ func (s *StateStore) ensureServiceTxn(idx uint64, node string, svc *structs.Node
 }
 
 // NodeServices is used to query service registrations by node ID.
-func (s *StateStore) NodeServices(nodeID string) (*structs.NodeServices, error) {
+func (s *StateStore) NodeServices(nodeID string) (uint64, *structs.NodeServices, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Query the node
 	n, err := tx.First("nodes", "id", nodeID)
 	if err != nil {
-		return nil, fmt.Errorf("node lookup failed: %s", err)
+		return 0, nil, fmt.Errorf("node lookup failed: %s", err)
 	}
 	if n == nil {
-		return nil, nil
+		return 0, nil, nil
 	}
 	node := n.(*structs.Node)
 
 	// Read all of the services
 	services, err := tx.Get("services", "node", nodeID)
 	if err != nil {
-		return nil, fmt.Errorf("failed querying services for node %q: %s", nodeID, err)
+		return 0, nil, fmt.Errorf("failed querying services for node %q: %s", nodeID, err)
 	}
 
 	// Initialize the node services struct
@@ -288,19 +293,15 @@ func (s *StateStore) NodeServices(nodeID string) (*structs.NodeServices, error) 
 		Node:     node,
 		Services: make(map[string]*structs.NodeService),
 	}
-	ns.CreateIndex = node.CreateIndex
-	ns.CreateIndex = node.CreateIndex
 
-	// Add all of the services to the map
+	// Add all of the services to the map, tracking the highest index
+	var lindex uint64
 	for service := services.Next(); service != nil; service = services.Next() {
 		sn := service.(*structs.ServiceNode)
 
 		// Track the highest index
-		if sn.CreateIndex > ns.CreateIndex {
-			ns.CreateIndex = sn.CreateIndex
-		}
-		if sn.ModifyIndex > ns.ModifyIndex {
-			ns.ModifyIndex = sn.ModifyIndex
+		if sn.CreateIndex > lindex {
+			lindex = sn.CreateIndex
 		}
 
 		// Create the NodeService
@@ -318,7 +319,7 @@ func (s *StateStore) NodeServices(nodeID string) (*structs.NodeServices, error) 
 		ns.Services[svc.ID] = svc
 	}
 
-	return ns, nil
+	return lindex, ns, nil
 }
 
 // DeleteService is used to delete a given service associated with a node.
@@ -450,7 +451,7 @@ func (s *StateStore) ensureCheckTxn(idx uint64, hc *structs.HealthCheck, tx *mem
 
 // NodeChecks is used to retrieve checks associated with the
 // given node from the state store.
-func (s *StateStore) NodeChecks(nodeID string) (structs.HealthChecks, error) {
+func (s *StateStore) NodeChecks(nodeID string) (uint64, structs.HealthChecks, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 	return s.parseChecks(tx.Get("checks", "node", nodeID))
@@ -458,17 +459,23 @@ func (s *StateStore) NodeChecks(nodeID string) (structs.HealthChecks, error) {
 
 // parseChecks is a helper function used to deduplicate some
 // repetitive code for returning health checks.
-func (s *StateStore) parseChecks(iter memdb.ResultIterator, err error) (structs.HealthChecks, error) {
+func (s *StateStore) parseChecks(iter memdb.ResultIterator, err error) (uint64, structs.HealthChecks, error) {
 	if err != nil {
-		return nil, fmt.Errorf("failed health check lookup: %s", err)
+		return 0, nil, fmt.Errorf("failed health check lookup: %s", err)
 	}
 
-	// Gather the health checks and return them properly type casted
+	// Gather the health checks and return them properly type casted.
+	// Track the highest index along the way.
 	var results structs.HealthChecks
+	var lindex uint64
 	for hc := iter.Next(); hc != nil; hc = iter.Next() {
-		results = append(results, hc.(*structs.HealthCheck))
+		check := hc.(*structs.HealthCheck)
+		if check.ModifyIndex > lindex {
+			lindex = check.ModifyIndex
+		}
+		results = append(results, check)
 	}
-	return results, nil
+	return lindex, results, nil
 }
 
 // DeleteCheck is used to delete a health check registration.

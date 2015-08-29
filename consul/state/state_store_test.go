@@ -158,9 +158,14 @@ func TestStateStore_GetNodes(t *testing.T) {
 	testRegisterNode(t, s, 2, "node2")
 
 	// Retrieve the nodes
-	nodes, err := s.Nodes()
+	idx, nodes, err := s.Nodes()
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	// Highest index was returned
+	if idx != 2 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// All nodes were returned
@@ -231,8 +236,8 @@ func TestStateStore_EnsureService_NodeServices(t *testing.T) {
 	s := testStateStore(t)
 
 	// Fetching services for a node with none returns nil
-	if res, err := s.NodeServices("node1"); err != nil || res != nil {
-		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", res, err)
+	if idx, res, err := s.NodeServices("node1"); err != nil || res != nil || idx != 0 {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
 
 	// Register the nodes
@@ -270,9 +275,14 @@ func TestStateStore_EnsureService_NodeServices(t *testing.T) {
 	}
 
 	// Retrieve the services
-	out, err := s.NodeServices("node1")
+	idx, out, err := s.NodeServices("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	// Highest index for the result set was returned
+	if idx != 20 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Only the services for the requested node are returned
@@ -293,11 +303,6 @@ func TestStateStore_EnsureService_NodeServices(t *testing.T) {
 		t.Fatalf("bad: %#v %#v", ns2, svc)
 	}
 
-	// Lastly, ensure that the highest index was preserved.
-	if out.CreateIndex != 20 || out.ModifyIndex != 20 {
-		t.Fatalf("bad index: %d, %d", out.CreateIndex, out.ModifyIndex)
-	}
-
 	// Index tables were updated
 	if idx := s.maxIndex("services"); idx != 30 {
 		t.Fatalf("bad index: %d", idx)
@@ -307,17 +312,9 @@ func TestStateStore_EnsureService_NodeServices(t *testing.T) {
 func TestStateStore_DeleteService(t *testing.T) {
 	s := testStateStore(t)
 
-	// Register a node with one service
+	// Register a node with one service and a check
 	testRegisterNode(t, s, 1, "node1")
 	testRegisterService(t, s, 2, "node1", "service1")
-
-	// The service exists
-	ns, err := s.NodeServices("node1")
-	if err != nil || ns == nil || len(ns.Services) != 1 {
-		t.Fatalf("bad: %#v (err: %#v)", ns, err)
-	}
-
-	// Register a check with the service
 	testRegisterCheck(t, s, 3, "node1", "service1", "check1")
 
 	// Delete the service
@@ -325,14 +322,19 @@ func TestStateStore_DeleteService(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// The service and check don't exist
-	ns, err = s.NodeServices("node1")
+	// Service doesn't exist.
+	_, ns, err := s.NodeServices("node1")
 	if err != nil || ns == nil || len(ns.Services) != 0 {
 		t.Fatalf("bad: %#v (err: %#v)", ns, err)
 	}
-	checks, err := s.NodeChecks("node1")
-	if err != nil || len(checks) != 0 {
-		t.Fatalf("bad: %#v (err: %s)", checks, err)
+
+	// Check doesn't exist. Check using the raw DB so we can test
+	// that it actually is removed in the state store.
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	check, err := tx.First("checks", "id", "node1", "check1")
+	if err != nil || check != nil {
+		t.Fatalf("bad: %#v (err: %s)", check, err)
 	}
 
 	// Index tables were updated
@@ -381,9 +383,12 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	}
 
 	// Retrieve the check and make sure it matches
-	checks, err := s.NodeChecks("node1")
+	idx, checks, err := s.NodeChecks("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
 	}
 	if len(checks) != 1 {
 		t.Fatalf("wrong number of checks: %d", len(checks))
@@ -399,9 +404,12 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	}
 
 	// Check that we successfully updated
-	checks, err = s.NodeChecks("node1")
+	idx, checks, err = s.NodeChecks("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	if idx != 4 {
+		t.Fatalf("bad index: %d", idx)
 	}
 	if len(checks) != 1 {
 		t.Fatalf("wrong number of checks: %d", len(checks))
@@ -432,7 +440,7 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	}
 
 	// Check is gone
-	checks, err := s.NodeChecks("node1")
+	_, checks, err := s.NodeChecks("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
