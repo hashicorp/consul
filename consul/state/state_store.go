@@ -457,6 +457,15 @@ func (s *StateStore) NodeChecks(nodeID string) (uint64, structs.HealthChecks, er
 	return s.parseChecks(tx.Get("checks", "node", nodeID))
 }
 
+// ServiceChecks is used to get all checks associated with a
+// given service ID. The query is performed against a service
+// _name_ instead of a service ID.
+func (s *StateStore) ServiceChecks(serviceName string) (uint64, structs.HealthChecks, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	return s.parseChecks(tx.Get("checks", "service", serviceName))
+}
+
 // parseChecks is a helper function used to deduplicate some
 // repetitive code for returning health checks.
 func (s *StateStore) parseChecks(iter memdb.ResultIterator, err error) (uint64, structs.HealthChecks, error) {

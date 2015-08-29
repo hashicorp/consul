@@ -40,6 +40,7 @@ func testRegisterNode(t *testing.T, s *StateStore, idx uint64, nodeID string) {
 func testRegisterService(t *testing.T, s *StateStore, idx uint64, nodeID, serviceID string) {
 	svc := &structs.NodeService{
 		ID:      serviceID,
+		Service: serviceID,
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -79,7 +80,7 @@ func testRegisterCheck(t *testing.T, s *StateStore, idx uint64, nodeID, serviceI
 	}
 }
 
-func TestStateStore_EnsureNode_GetNode(t *testing.T) {
+func TestStateStore_EnsureNode(t *testing.T) {
 	s := testStateStore(t)
 
 	// Fetching a non-existent node returns nil
@@ -232,7 +233,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 }
 
-func TestStateStore_EnsureService_NodeServices(t *testing.T) {
+func TestStateStore_EnsureService(t *testing.T) {
 	s := testStateStore(t)
 
 	// Fetching services for a node with none returns nil
@@ -424,6 +425,33 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	// Index tables were updated
 	if idx := s.maxIndex("checks"); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
+	}
+}
+
+func TestStateStore_ServiceChecks(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create the first node and service with some checks
+	testRegisterNode(t, s, 0, "node1")
+	testRegisterService(t, s, 1, "node1", "service1")
+	testRegisterCheck(t, s, 2, "node1", "service1", "check1")
+	testRegisterCheck(t, s, 3, "node1", "service1", "check2")
+
+	// Create a second node/service with a different set of checks
+	testRegisterNode(t, s, 4, "node2")
+	testRegisterService(t, s, 5, "node2", "service2")
+	testRegisterCheck(t, s, 6, "node2", "service2", "check3")
+
+	// Try querying for all checks associated with service1
+	idx, checks, err := s.ServiceChecks("service1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if len(checks) != 2 || checks[0].CheckID != "check1" || checks[1].CheckID != "check2" {
+		t.Fatalf("bad checks: %#v", checks)
 	}
 }
 
