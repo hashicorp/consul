@@ -138,17 +138,49 @@ func TestStateStore_DeleteNode(t *testing.T) {
 		t.Fatalf("bad: %#v (%#v)", n, err)
 	}
 
-	// Delete the node
-	if err := s.DeleteNode(2, "node1"); err != nil {
+	// Register a service with the node
+	svc := &structs.NodeService{
+		ID:      "service1",
+		Service: "redis",
+		Address: "1.1.1.1",
+		Port:    1111,
+	}
+	if err := s.EnsureService(2, "node1", svc); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	// The node is now gone and the index was updated
+	// Service exists
+	if services, err := s.NodeServices("node1"); err != nil || len(services.Services) != 1 {
+		t.Fatalf("bad: %#v (err: %s)", services.Services, err)
+	}
+
+	// Delete the node
+	if err := s.DeleteNode(3, "node1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// The node and service are gone and the index was updated
 	if n, err := s.GetNode("node1"); err != nil || n != nil {
 		t.Fatalf("bad: %#v (err: %#v)", node, err)
 	}
-	if idx := s.maxIndex("nodes"); idx != 2 {
-		t.Fatalf("bad index: %d", idx)
+
+	// Associated service was removed. Need to query this directly out of
+	// the DB to make sure it is actually gone.
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	services, err := tx.Get("services", "id", "node1", "service1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if s := services.Next(); s != nil {
+		t.Fatalf("bad: %#v", s)
+	}
+
+	// Indexes were updated.
+	for _, tbl := range []string{"nodes", "services"} {
+		if idx := s.maxIndex(tbl); idx != 3 {
+			t.Fatalf("bad index: %d (%s)", idx, tbl)
+		}
 	}
 }
 

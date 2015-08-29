@@ -173,6 +173,18 @@ func (s *StateStore) deleteNodeTxn(idx uint64, nodeID string, tx *memdb.Txn) err
 		return fmt.Errorf("node lookup failed: %s", err)
 	}
 
+	// Delete all services associated with the node
+	services, err := tx.Get("services", "node", nodeID)
+	if err != nil {
+		return fmt.Errorf("failed service lookup: %s", err)
+	}
+	for service := services.Next(); service != nil; service = services.Next() {
+		svc := service.(*structs.ServiceNode)
+		if err := s.deleteNodeServiceTxn(idx, nodeID, svc.ServiceID, tx); err != nil {
+			return fmt.Errorf("failed removing node service: %s", err)
+		}
+	}
+
 	// Delete the node and update the index
 	if err := tx.Delete("nodes", node); err != nil {
 		return fmt.Errorf("failed deleting node: %s", err)
