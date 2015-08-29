@@ -180,12 +180,9 @@ func (s *StateStore) deleteNodeTxn(idx uint64, nodeID string, tx *memdb.Txn) err
 	}
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode)
-		if err := s.deleteNodeServiceTxn(idx, nodeID, svc.ServiceID, tx); err != nil {
+		if err := s.deleteServiceTxn(idx, nodeID, svc.ServiceID, tx); err != nil {
 			return err
 		}
-	}
-	if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	// Delete all checks associated with the node and update the check index
@@ -198,9 +195,6 @@ func (s *StateStore) deleteNodeTxn(idx uint64, nodeID string, tx *memdb.Txn) err
 		if err := s.deleteCheckTxn(idx, nodeID, chk.CheckID, tx); err != nil {
 			return err
 		}
-	}
-	if err := tx.Insert("index", &IndexEntry{"checks", idx}); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	// Delete the node and update the index
@@ -327,14 +321,13 @@ func (s *StateStore) NodeServices(nodeID string) (*structs.NodeServices, error) 
 	return ns, nil
 }
 
-// DeleteNodeService is used to delete a given service associated
-// with the given node.
-func (s *StateStore) DeleteNodeService(idx uint64, nodeID, serviceID string) error {
+// DeleteService is used to delete a given service associated with a node.
+func (s *StateStore) DeleteService(idx uint64, nodeID, serviceID string) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
 	// Call the service deletion
-	if err := s.deleteNodeServiceTxn(idx, nodeID, serviceID, tx); err != nil {
+	if err := s.deleteServiceTxn(idx, nodeID, serviceID, tx); err != nil {
 		return err
 	}
 
@@ -342,9 +335,9 @@ func (s *StateStore) DeleteNodeService(idx uint64, nodeID, serviceID string) err
 	return nil
 }
 
-// deleteNodeServiceTxn is the inner method called to remove a service
+// deleteServiceTxn is the inner method called to remove a service
 // registration within an existing transaction.
-func (s *StateStore) deleteNodeServiceTxn(idx uint64, nodeID, serviceID string, tx *memdb.Txn) error {
+func (s *StateStore) deleteServiceTxn(idx uint64, nodeID, serviceID string, tx *memdb.Txn) error {
 	// Look up the service
 	service, err := tx.First("services", "id", nodeID, serviceID)
 	if err != nil {

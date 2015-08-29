@@ -304,7 +304,7 @@ func TestStateStore_EnsureService_NodeServices(t *testing.T) {
 	}
 }
 
-func TestStateStore_DeleteNodeService(t *testing.T) {
+func TestStateStore_DeleteService(t *testing.T) {
 	s := testStateStore(t)
 
 	// Register a node with one service
@@ -321,7 +321,7 @@ func TestStateStore_DeleteNodeService(t *testing.T) {
 	testRegisterCheck(t, s, 3, "node1", "service1", "check1")
 
 	// Delete the service
-	if err := s.DeleteNodeService(4, "node1", "service1"); err != nil {
+	if err := s.DeleteService(4, "node1", "service1"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
