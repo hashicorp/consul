@@ -18,9 +18,15 @@ as well as [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html).
 For the sake of simplicity, BIND and Consul are running on the same machine in this example,
 but this is not required.
 
-Additionally, by default, consul will not attempt to resolve CNAME records outside the `.consul.`
-zone, unless the [recursors](/docs/agent/options.html#recursors) configuration
-option is set.
+It is worth mentioning that, by default, consul does not resolve DNS
+records outside the `.consul.` zone, unless the
+[recursors](/docs/agent/options.html#recursors) configuration option
+has been set.  An example of how this changes consul's behavior is:
+When a consul DNS reply includes a CNAME record pointing outside
+`.consul.` the DNS reply includes only CNAME records.
+Contrastingly, when `recursors` is set and the upstream resolver is
+functioning correctly, consul will try to resolve CNAMEs and include
+any A/PTR records for them in its DNS reply.
 
 ### BIND Setup
 
