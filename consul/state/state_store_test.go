@@ -154,12 +154,26 @@ func TestStateStore_DeleteNode(t *testing.T) {
 		t.Fatalf("bad: %#v (err: %s)", services.Services, err)
 	}
 
+	// Register a check with the node service
+	chk := &structs.HealthCheck{
+		Node:    "node1",
+		CheckID: "check1",
+	}
+	if err := s.EnsureCheck(3, chk); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check exists
+	if checks, err := s.NodeChecks("node1"); err != nil || len(checks) != 1 {
+		t.Fatalf("bad: %#v (err: %s)", checks, err)
+	}
+
 	// Delete the node
 	if err := s.DeleteNode(3, "node1"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	// The node and service are gone and the index was updated
+	// The node was removed
 	if n, err := s.GetNode("node1"); err != nil || n != nil {
 		t.Fatalf("bad: %#v (err: %#v)", node, err)
 	}
@@ -174,6 +188,15 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 	if s := services.Next(); s != nil {
 		t.Fatalf("bad: %#v", s)
+	}
+
+	// Associated health check was removed.
+	checks, err := tx.Get("checks", "id", "node1", "check1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if c := checks.Next(); c != nil {
+		t.Fatalf("bad: %#v", c)
 	}
 
 	// Indexes were updated.

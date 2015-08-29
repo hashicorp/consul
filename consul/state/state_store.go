@@ -173,7 +173,7 @@ func (s *StateStore) deleteNodeTxn(idx uint64, nodeID string, tx *memdb.Txn) err
 		return fmt.Errorf("node lookup failed: %s", err)
 	}
 
-	// Delete all services associated with the node
+	// Delete all services associated with the node and update the service index
 	services, err := tx.Get("services", "node", nodeID)
 	if err != nil {
 		return fmt.Errorf("failed service lookup: %s", err)
@@ -181,8 +181,26 @@ func (s *StateStore) deleteNodeTxn(idx uint64, nodeID string, tx *memdb.Txn) err
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode)
 		if err := s.deleteNodeServiceTxn(idx, nodeID, svc.ServiceID, tx); err != nil {
-			return fmt.Errorf("failed removing node service: %s", err)
+			return err
 		}
+	}
+	if err := tx.Insert("index", &IndexEntry{"services", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// Delete all checks associated with the node and update the check index
+	checks, err := tx.Get("checks", "node", nodeID)
+	if err != nil {
+		return fmt.Errorf("failed check lookup: %s", err)
+	}
+	for check := checks.Next(); check != nil; check = checks.Next() {
+		chk := check.(*structs.HealthCheck)
+		if err := s.deleteCheckTxn(idx, nodeID, chk.CheckID, tx); err != nil {
+			return err
+		}
+	}
+	if err := tx.Insert("index", &IndexEntry{"checks", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
 	}
 
 	// Delete the node and update the index
