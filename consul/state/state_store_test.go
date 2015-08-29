@@ -20,6 +20,65 @@ func testStateStore(t *testing.T) *StateStore {
 	return s
 }
 
+func testRegisterNode(t *testing.T, s *StateStore, idx uint64, nodeID string) {
+	node := &structs.Node{Node: nodeID}
+	if err := s.EnsureNode(idx, node); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	n, err := tx.First("nodes", "id", nodeID)
+	if err != nil {
+		t.Fatalf("err: %s", err, n)
+	}
+	if result, ok := n.(*structs.Node); !ok || result.Node != nodeID {
+		t.Fatalf("bad node: %#v", result)
+	}
+}
+
+func testRegisterService(t *testing.T, s *StateStore, idx uint64, nodeID, serviceID string) {
+	svc := &structs.NodeService{
+		ID:      serviceID,
+		Address: "1.1.1.1",
+		Port:    1111,
+	}
+	if err := s.EnsureService(idx, nodeID, svc); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	service, err := tx.First("services", "id", nodeID, serviceID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result, ok := service.(*structs.ServiceNode); !ok || result.ServiceID != serviceID {
+		t.Fatalf("bad service: %#v", result)
+	}
+}
+
+func testRegisterCheck(t *testing.T, s *StateStore, idx uint64, nodeID, serviceID, checkID string) {
+	chk := &structs.HealthCheck{
+		Node:      nodeID,
+		CheckID:   checkID,
+		ServiceID: serviceID,
+	}
+	if err := s.EnsureCheck(idx, chk); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	c, err := tx.First("checks", "id", nodeID, checkID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result, ok := c.(*structs.HealthCheck); !ok || result.CheckID != checkID {
+		t.Fatalf("bad check: %#v", result)
+	}
+}
+
 func TestStateStore_EnsureNode_GetNode(t *testing.T) {
 	s := testStateStore(t)
 
@@ -89,25 +148,18 @@ func TestStateStore_GetNodes(t *testing.T) {
 	s := testStateStore(t)
 
 	// Create some nodes in the state store
-	nodes := []*structs.Node{
-		&structs.Node{Node: "node0", Address: "1.1.1.0"},
-		&structs.Node{Node: "node1", Address: "1.1.1.1"},
-		&structs.Node{Node: "node2", Address: "1.1.1.2"},
-	}
-	for i, node := range nodes {
-		if err := s.EnsureNode(uint64(i), node); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
+	testRegisterNode(t, s, 0, "node0")
+	testRegisterNode(t, s, 1, "node1")
+	testRegisterNode(t, s, 2, "node2")
 
 	// Retrieve the nodes
-	out, err := s.Nodes()
+	nodes, err := s.Nodes()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// All nodes were returned
-	if n := len(out); n != 3 {
+	if n := len(nodes); n != 3 {
 		t.Fatalf("bad node count: %d", n)
 	}
 
@@ -117,8 +169,7 @@ func TestStateStore_GetNodes(t *testing.T) {
 			t.Fatalf("bad node index: %d, %d", node.CreateIndex, node.ModifyIndex)
 		}
 		name := fmt.Sprintf("node%d", i)
-		addr := fmt.Sprintf("1.1.1.%d", i)
-		if node.Node != name || node.Address != addr {
+		if node.Node != name {
 			t.Fatalf("bad: %#v", node)
 		}
 	}
@@ -127,46 +178,10 @@ func TestStateStore_GetNodes(t *testing.T) {
 func TestStateStore_DeleteNode(t *testing.T) {
 	s := testStateStore(t)
 
-	// Create a node
-	node := &structs.Node{Node: "node1", Address: "1.1.1.1"}
-	if err := s.EnsureNode(1, node); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// The node exists
-	if n, err := s.GetNode("node1"); err != nil || n == nil {
-		t.Fatalf("bad: %#v (%#v)", n, err)
-	}
-
-	// Register a service with the node
-	svc := &structs.NodeService{
-		ID:      "service1",
-		Service: "redis",
-		Address: "1.1.1.1",
-		Port:    1111,
-	}
-	if err := s.EnsureService(2, "node1", svc); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Service exists
-	if services, err := s.NodeServices("node1"); err != nil || len(services.Services) != 1 {
-		t.Fatalf("bad: %#v (err: %s)", services.Services, err)
-	}
-
-	// Register a check with the node service
-	chk := &structs.HealthCheck{
-		Node:    "node1",
-		CheckID: "check1",
-	}
-	if err := s.EnsureCheck(3, chk); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Check exists
-	if checks, err := s.NodeChecks("node1"); err != nil || len(checks) != 1 {
-		t.Fatalf("bad: %#v (err: %s)", checks, err)
-	}
+	// Create a node and register a service and health check with it.
+	testRegisterNode(t, s, 0, "node1")
+	testRegisterService(t, s, 1, "node1", "service1")
+	testRegisterCheck(t, s, 2, "node1", "", "check1")
 
 	// Delete the node
 	if err := s.DeleteNode(3, "node1"); err != nil {
@@ -175,7 +190,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 
 	// The node was removed
 	if n, err := s.GetNode("node1"); err != nil || n != nil {
-		t.Fatalf("bad: %#v (err: %#v)", node, err)
+		t.Fatalf("bad: %#v (err: %#v)", n, err)
 	}
 
 	// Associated service was removed. Need to query this directly out of
@@ -216,14 +231,8 @@ func TestStateStore_EnsureService_NodeServices(t *testing.T) {
 	}
 
 	// Register the nodes
-	for i, nr := range []*structs.Node{
-		&structs.Node{Node: "node1", Address: "1.1.1.1"},
-		&structs.Node{Node: "node2", Address: "1.1.1.2"},
-	} {
-		if err := s.EnsureNode(uint64(i), nr); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
+	testRegisterNode(t, s, 0, "node1")
+	testRegisterNode(t, s, 1, "node2")
 
 	// Create the service registration
 	ns1 := &structs.NodeService{
@@ -288,26 +297,9 @@ func TestStateStore_EnsureService_NodeServices(t *testing.T) {
 func TestStateStore_DeleteNodeService(t *testing.T) {
 	s := testStateStore(t)
 
-	// Register a node
-	node := &structs.Node{
-		Node:    "node1",
-		Address: "1.1.1.1",
-	}
-	if err := s.EnsureNode(1, node); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Create a service
-	service := &structs.NodeService{
-		ID:      "service1",
-		Service: "redis",
-		Tags:    []string{"prod"},
-		Address: "1.1.1.1",
-		Port:    1111,
-	}
-	if err := s.EnsureService(2, "node1", service); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	// Register a node with one service
+	testRegisterNode(t, s, 1, "node1")
+	testRegisterService(t, s, 2, "node1", "service1")
 
 	// The service exists
 	ns, err := s.NodeServices("node1")
@@ -316,24 +308,7 @@ func TestStateStore_DeleteNodeService(t *testing.T) {
 	}
 
 	// Register a check with the service
-	check := &structs.HealthCheck{
-		Node:        "node1",
-		CheckID:     "check1",
-		ServiceName: "redis",
-		ServiceID:   "service1",
-	}
-	if err := s.EnsureCheck(3, check); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Service check exists
-	checks, err := s.NodeChecks("node1")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(checks) != 1 {
-		t.Fatalf("wrong number of checks: %d", len(checks))
-	}
+	testRegisterCheck(t, s, 3, "node1", "service1", "check1")
 
 	// Delete the service
 	if err := s.DeleteNodeService(4, "node1", "service1"); err != nil {
@@ -345,7 +320,7 @@ func TestStateStore_DeleteNodeService(t *testing.T) {
 	if err != nil || ns == nil || len(ns.Services) != 0 {
 		t.Fatalf("bad: %#v (err: %#v)", ns, err)
 	}
-	checks, err = s.NodeChecks("node1")
+	checks, err := s.NodeChecks("node1")
 	if err != nil || len(checks) != 0 {
 		t.Fatalf("bad: %#v (err: %s)", checks, err)
 	}
@@ -374,31 +349,16 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 		t.Fatalf("expected %#v, got: %#v", ErrMissingNode, err)
 	}
 
-	// Create a node and insert it
-	node := &structs.Node{
-		Node:    "node1",
-		Address: "1.1.1.1",
-	}
-	if err := s.EnsureNode(1, node); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	// Register the node
+	testRegisterNode(t, s, 1, "node1")
 
 	// Creating a check with a bad services returns error
 	if err := s.EnsureCheck(1, check); err != ErrMissingService {
 		t.Fatalf("expected: %#v, got: %#v", ErrMissingService, err)
 	}
 
-	// Create a service and insert it
-	service := &structs.NodeService{
-		ID:      "service1",
-		Service: "redis",
-		Tags:    []string{"prod"},
-		Address: "1.1.1.1",
-		Port:    1111,
-	}
-	if err := s.EnsureService(2, "node1", service); err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	// Register the service
+	testRegisterService(t, s, 2, "node1", "service1")
 
 	// Inserting the check with the prerequisites succeeds
 	if err := s.EnsureCheck(3, check); err != nil {
@@ -442,36 +402,9 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 func TestStateStore_DeleteCheck(t *testing.T) {
 	s := testStateStore(t)
 
-	// Create and register a node
-	node := &structs.Node{
-		Node:    "node1",
-		Address: "1.1.1.1",
-	}
-	if err := s.EnsureNode(1, node); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Create the health check struct
-	check := &structs.HealthCheck{
-		Node:    "node1",
-		CheckID: "check1",
-		Name:    "node1 check",
-		Status:  structs.HealthPassing,
-		Notes:   "test check",
-		Output:  "aaa",
-	}
-	if err := s.EnsureCheck(2, check); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Check exists
-	checks, err := s.NodeChecks("node1")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(checks) != 1 || checks[0].CheckID != "check1" {
-		t.Fatalf("bad: %#v", checks)
-	}
+	// Register a node and a node-level health check
+	testRegisterNode(t, s, 1, "node1")
+	testRegisterCheck(t, s, 2, "node1", "", "check1")
 
 	// Delete the check
 	if err := s.DeleteCheck(3, "node1", "check1"); err != nil {
@@ -479,7 +412,7 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	}
 
 	// Check is gone
-	checks, err = s.NodeChecks("node1")
+	checks, err := s.NodeChecks("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

@@ -14,6 +14,23 @@ func testStateStore() (*StateStore, error) {
 	return NewStateStore(nil, os.Stderr)
 }
 
+func testNodeRegister(t *testing.T, idx uint64, db *StateStore, nodeID string) {
+	node := &structs.Node{Node: nodeID}
+	if err := db.EnsureNode(idx, node); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	tx := db.Txn(false)
+	defer tx.Abort()
+	n, err := tx.First("nodes", "id", nodeID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result := n.(*structs.Node); result != node {
+		t.Fatalf("bad node: %#v", result)
+	}
+}
+
 func TestEnsureRegistration(t *testing.T) {
 	store, err := testStateStore()
 	if err != nil {
