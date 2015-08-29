@@ -142,6 +142,11 @@ func TestStateStore_EnsureNode_GetNode(t *testing.T) {
 	if out.Address != "1.1.1.2" || out.CreateIndex != 1 || out.ModifyIndex != 2 {
 		t.Fatalf("node was modified: %#v", out)
 	}
+
+	// Index tables were updated
+	if idx := s.maxIndex("nodes"); idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
 }
 
 func TestStateStore_GetNodes(t *testing.T) {
@@ -215,7 +220,7 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 
 	// Indexes were updated.
-	for _, tbl := range []string{"nodes", "services"} {
+	for _, tbl := range []string{"nodes", "services", "checks"} {
 		if idx := s.maxIndex(tbl); idx != 3 {
 			t.Fatalf("bad index: %d (%s)", idx, tbl)
 		}
@@ -292,6 +297,11 @@ func TestStateStore_EnsureService_NodeServices(t *testing.T) {
 	if out.CreateIndex != 20 || out.ModifyIndex != 20 {
 		t.Fatalf("bad index: %d, %d", out.CreateIndex, out.ModifyIndex)
 	}
+
+	// Index tables were updated
+	if idx := s.maxIndex("services"); idx != 30 {
+		t.Fatalf("bad index: %d", idx)
+	}
 }
 
 func TestStateStore_DeleteNodeService(t *testing.T) {
@@ -315,7 +325,7 @@ func TestStateStore_DeleteNodeService(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// The service and check don't exist and the index was updated
+	// The service and check don't exist
 	ns, err = s.NodeServices("node1")
 	if err != nil || ns == nil || len(ns.Services) != 0 {
 		t.Fatalf("bad: %#v (err: %#v)", ns, err)
@@ -324,7 +334,12 @@ func TestStateStore_DeleteNodeService(t *testing.T) {
 	if err != nil || len(checks) != 0 {
 		t.Fatalf("bad: %#v (err: %s)", checks, err)
 	}
+
+	// Index tables were updated
 	if idx := s.maxIndex("services"); idx != 4 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if idx := s.maxIndex("checks"); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -397,6 +412,11 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	if checks[0].CreateIndex != 3 || checks[0].ModifyIndex != 4 {
 		t.Fatalf("bad index: %#v", checks[0])
 	}
+
+	// Index tables were updated
+	if idx := s.maxIndex("checks"); idx != 4 {
+		t.Fatalf("bad index: %d", idx)
+	}
 }
 
 func TestStateStore_DeleteCheck(t *testing.T) {
@@ -419,7 +439,9 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 	if len(checks) != 0 {
 		t.Fatalf("bad: %#v", checks)
 	}
-	if n := s.maxIndex("checks"); n != 3 {
-		t.Fatalf("bad index: %d", n)
+
+	// Index tables were updated
+	if idx := s.maxIndex("checks"); idx != 3 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
