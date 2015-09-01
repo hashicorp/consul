@@ -250,7 +250,7 @@ func (s *StateStore) ensureServiceTxn(idx uint64, node string, svc *structs.Node
 
 	// Populate the indexes
 	if existing != nil {
-		entry.CreateIndex = existing.(*structs.NodeService).CreateIndex
+		entry.CreateIndex = existing.(*structs.ServiceNode).CreateIndex
 		entry.ModifyIndex = idx
 	} else {
 		entry.CreateIndex = idx
@@ -536,4 +536,78 @@ func (s *StateStore) deleteCheckTxn(idx uint64, node, id string, tx *memdb.Txn) 
 	// TODO: invalidate sessions
 	// TODO: watch triggers
 	return nil
+}
+
+// CheckServiceNodes is used to query all nodes and checks for a given service
+// ID. The results are compounded into a CheckServiceNodes, and the index
+// returned is the maximum index observed over any node, check, or service
+// in the result set.
+func (s *StateStore) CheckServiceNodes(serviceID string) (uint64, structs.CheckServiceNodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Query the state store for the service.
+	services, err := tx.Get("services", "service", serviceID)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
+	}
+	return s.parseCheckServiceNodes(tx, services, err)
+}
+
+// parseCheckServiceNodes is used to parse through a given set of services,
+// and query for an associated node and a set of checks. This is the inner
+// method used to return a rich set of results from a more simple query.
+func (s *StateStore) parseCheckServiceNodes(
+	tx *memdb.Txn, iter memdb.ResultIterator,
+	err error) (uint64, structs.CheckServiceNodes, error) {
+	if err != nil {
+		return 0, nil, err
+	}
+
+	var results structs.CheckServiceNodes
+	var lindex uint64
+	for service := iter.Next(); service != nil; service = iter.Next() {
+		// Compute the index
+		svc := service.(*structs.ServiceNode)
+		if svc.ModifyIndex > lindex {
+			lindex = svc.ModifyIndex
+		}
+
+		// Retrieve the node
+		n, err := tx.First("nodes", "id", svc.Node)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
+		}
+		if n == nil {
+			return 0, nil, ErrMissingNode
+		}
+		node := n.(*structs.Node)
+		if node.ModifyIndex > lindex {
+			lindex = node.ModifyIndex
+		}
+
+		// Get the checks
+		idx, checks, err := s.parseChecks(tx.Get("checks", "node_service", svc.Node, svc.ServiceID))
+		if err != nil {
+			return 0, nil, err
+		}
+		if idx > lindex {
+			lindex = idx
+		}
+
+		// Append to the results
+		results = append(results, structs.CheckServiceNode{
+			Node: node,
+			Service: &structs.NodeService{
+				ID:      svc.ServiceID,
+				Service: svc.ServiceName,
+				Address: svc.ServiceAddress,
+				Port:    svc.ServicePort,
+				Tags:    svc.ServiceTags,
+			},
+			Checks: checks,
+		})
+	}
+
+	return lindex, results, nil
 }

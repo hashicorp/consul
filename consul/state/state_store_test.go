@@ -516,3 +516,83 @@ func TestStateStore_ChecksInState(t *testing.T) {
 		t.Fatalf("expected 3 checks, got: %d", n)
 	}
 }
+
+func TestStateStore_CheckServiceNodes(t *testing.T) {
+	s := testStateStore(t)
+
+	// Querying with no matches gives an empty response
+	idx, results, err := s.CheckServiceNodes("service1")
+	if idx != 0 || results != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, results, err)
+	}
+
+	// Register some nodes
+	testRegisterNode(t, s, 0, "node1")
+	testRegisterNode(t, s, 1, "node2")
+
+	// Register node-level checks. These should not be returned
+	// in the final result.
+	testRegisterCheck(t, s, 2, "node1", "", "check1", structs.HealthPassing)
+	testRegisterCheck(t, s, 3, "node2", "", "check2", structs.HealthPassing)
+
+	// Register a service against the nodes
+	testRegisterService(t, s, 4, "node1", "service1")
+	testRegisterService(t, s, 5, "node2", "service2")
+
+	// Register checks against the services
+	testRegisterCheck(t, s, 6, "node1", "service1", "check3", structs.HealthPassing)
+	testRegisterCheck(t, s, 7, "node2", "service2", "check4", structs.HealthPassing)
+
+	// Query the state store for nodes and checks which
+	// have been registered with a specific service.
+	idx, results, err = s.CheckServiceNodes("service1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check the index returned matches the result set. The index
+	// should be the highest observed from the result, in this case
+	// this comes from the check registration.
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Make sure we get the expected result
+	if n := len(results); n != 1 {
+		t.Fatalf("expected 1 result, got: %d", n)
+	}
+	csn := results[0]
+	if csn.Node == nil || csn.Service == nil || len(csn.Checks) != 1 {
+		t.Fatalf("bad output: %#v", csn)
+	}
+
+	// Node updates alter the returned index
+	testRegisterNode(t, s, 8, "node1")
+	idx, results, err = s.CheckServiceNodes("service1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 8 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Service updates alter the returned index
+	testRegisterService(t, s, 9, "node1", "service1")
+	idx, results, err = s.CheckServiceNodes("service1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 9 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Check updates alter the returned index
+	testRegisterCheck(t, s, 10, "node1", "service1", "check1", structs.HealthCritical)
+	idx, results, err = s.CheckServiceNodes("service1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 10 {
+		t.Fatalf("bad index: %d", idx)
+	}
+}

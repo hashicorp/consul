@@ -289,8 +289,8 @@ type HealthChecks []*HealthCheck
 // CheckServiceNode is used to provide the node, it's service
 // definition, as well as a HealthCheck that is associated
 type CheckServiceNode struct {
-	Node    Node
-	Service NodeService
+	Node    *Node
+	Service *NodeService
 	Checks  HealthChecks
 }
 type CheckServiceNodes []CheckServiceNode
