@@ -310,6 +310,27 @@ func TestStateStore_EnsureService(t *testing.T) {
 	if idx := s.maxIndex("services"); idx != 30 {
 		t.Fatalf("bad index: %d", idx)
 	}
+
+	// Update a service registration
+	ns1.Address = "1.1.1.2"
+	if err := s.EnsureService(40, "node1", ns1); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the service again and ensure it matches
+	idx, out, err = s.NodeServices("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 40 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if out == nil || len(out.Services) == 0 {
+		t.Fatalf("bad: %#v", out)
+	}
+	if svc, ok := out.Services["service1"]; !ok || svc.Address != "1.1.1.2" {
+		t.Fatalf("bad: %#v", svc)
+	}
 }
 
 func TestStateStore_DeleteService(t *testing.T) {
