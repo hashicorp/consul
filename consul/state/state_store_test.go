@@ -775,3 +775,56 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 		t.Fatalf("bad: %#v", dump[0].Services[0])
 	}
 }
+
+func TestStateStore_KVSSet(t *testing.T) {
+	s := testStateStore(t)
+
+	// Write a new K/V entry to the store
+	entry := &structs.DirEntry{
+		Key:   "foo",
+		Value: []byte("bar"),
+	}
+	if err := s.KVSSet(1, entry); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the K/V entry again
+	result, err := s.KVSGet("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result == nil {
+		t.Fatalf("expected k/v pair, got nothing")
+	}
+
+	// Check that the index was injected into the result
+	if result.CreateIndex != 1 || result.ModifyIndex != 1 {
+		t.Fatalf("bad index: %d, %d", result.CreateIndex, result.ModifyIndex)
+	}
+
+	// Check that the value matches
+	if v := string(result.Value); v != "bar" {
+		t.Fatalf("expected 'bar', got: '%s'", v)
+	}
+
+	// Updating the entry works and changes the index
+	update := &structs.DirEntry{
+		Key:   "foo",
+		Value: []byte("baz"),
+	}
+	if err := s.KVSSet(2, update); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Fetch the kv pair and check
+	result, err = s.KVSGet("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.CreateIndex != 1 || result.ModifyIndex != 2 {
+		t.Fatalf("bad index: %d, %d", result.CreateIndex, result.ModifyIndex)
+	}
+	if v := string(result.Value); v != "baz" {
+		t.Fatalf("expected 'baz', got '%s'", v)
+	}
+}

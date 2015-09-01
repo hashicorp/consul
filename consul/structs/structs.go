@@ -348,13 +348,13 @@ type IndexedNodeDump struct {
 // DirEntry is used to represent a directory entry. This is
 // used for values in our Key-Value store.
 type DirEntry struct {
-	CreateIndex uint64
-	ModifyIndex uint64
-	LockIndex   uint64
-	Key         string
-	Flags       uint64
-	Value       []byte
-	Session     string `json:",omitempty"`
+	LockIndex uint64
+	Key       string
+	Flags     uint64
+	Value     []byte
+	Session   string `json:",omitempty"`
+
+	RaftIndex
 }
 type DirEntries []*DirEntry
 

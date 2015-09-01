@@ -702,3 +702,55 @@ func (s *StateStore) parseNodes(
 	}
 	return lindex, results, nil
 }
+
+// KVSSet is used to store a key/value pair.
+func (s *StateStore) KVSSet(idx uint64, entry *structs.DirEntry) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+	return s.kvsSetTxn(idx, entry, tx)
+}
+
+// kvsSetTxn is used to insert or update a key/value pair in the state
+// store. It is the inner method used and handles only the actual storage.
+func (s *StateStore) kvsSetTxn(
+	idx uint64, entry *structs.DirEntry,
+	tx *memdb.Txn) error {
+
+	// Retrieve an existing KV pair
+	existing, err := tx.First("kvs", "id", entry.Key)
+	if err != nil {
+		return fmt.Errorf("failed key lookup: %s", err)
+	}
+
+	// Set the indexes
+	if existing != nil {
+		entry.CreateIndex = existing.(*structs.DirEntry).CreateIndex
+		entry.ModifyIndex = idx
+	} else {
+		entry.CreateIndex = idx
+		entry.ModifyIndex = idx
+	}
+
+	// Store the kv pair in the state store and update the index
+	if err := tx.Insert("kvs", entry); err != nil {
+		return fmt.Errorf("failed inserting kv entry: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{"kvs", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// KVSGet is used to retrieve a key/value pair from the state store.
+func (s *StateStore) KVSGet(key string) (*structs.DirEntry, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	entry, err := tx.First("kvs", "id", key)
+	if err != nil {
+		return nil, fmt.Errorf("failed key lookup: %s", err)
+	}
+	return entry.(*structs.DirEntry), nil
+}
