@@ -466,6 +466,21 @@ func (s *StateStore) ServiceChecks(serviceName string) (uint64, structs.HealthCh
 	return s.parseChecks(tx.Get("checks", "service", serviceName))
 }
 
+// ChecksInState is used to query the state store for all checks
+// which are in the provided state.
+func (s *StateStore) ChecksInState(state string) (uint64, structs.HealthChecks, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Query all checks if HealthAny is passed
+	if state == structs.HealthAny {
+		return s.parseChecks(tx.Get("checks", "status"))
+	}
+
+	// Any other state we need to query for explicitly
+	return s.parseChecks(tx.Get("checks", "status", state))
+}
+
 // parseChecks is a helper function used to deduplicate some
 // repetitive code for returning health checks.
 func (s *StateStore) parseChecks(iter memdb.ResultIterator, err error) (uint64, structs.HealthChecks, error) {
