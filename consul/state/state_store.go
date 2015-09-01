@@ -719,7 +719,7 @@ func (s *StateStore) kvsSetTxn(
 	// Retrieve an existing KV pair
 	existing, err := tx.First("kvs", "id", entry.Key)
 	if err != nil {
-		return fmt.Errorf("failed key lookup: %s", err)
+		return fmt.Errorf("failed kvs lookup: %s", err)
 	}
 
 	// Set the indexes
@@ -733,7 +733,7 @@ func (s *StateStore) kvsSetTxn(
 
 	// Store the kv pair in the state store and update the index
 	if err := tx.Insert("kvs", entry); err != nil {
-		return fmt.Errorf("failed inserting kv entry: %s", err)
+		return fmt.Errorf("failed inserting kvs entry: %s", err)
 	}
 	if err := tx.Insert("index", &IndexEntry{"kvs", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
@@ -750,7 +750,41 @@ func (s *StateStore) KVSGet(key string) (*structs.DirEntry, error) {
 
 	entry, err := tx.First("kvs", "id", key)
 	if err != nil {
-		return nil, fmt.Errorf("failed key lookup: %s", err)
+		return nil, fmt.Errorf("failed kvs lookup: %s", err)
 	}
 	return entry.(*structs.DirEntry), nil
+}
+
+// KVSDelete is used to perform a shallow delete on a single key in the
+// the state store.
+func (s *StateStore) KVSDelete(idx uint64, key string) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Perform the actual delete
+	if err := s.kvsDeleteTxn(idx, key, tx); err != nil {
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// kvsDeleteTxn is the inner method used to perform the actual deletion
+// of a key/value pair within an existing transaction.
+func (s *StateStore) kvsDeleteTxn(idx uint64, key string, tx *memdb.Txn) error {
+	// Look up the entry in the state store
+	entry, err := tx.First("kvs", "id", key)
+	if err != nil {
+		return fmt.Errorf("failed key lookup: %s", err)
+	}
+
+	// Delete the entry and update the index
+	if err := tx.Delete("kvs", entry); err != nil {
+		return fmt.Errorf("failed deleting kvs entry: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{"kvs", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+	return nil
 }

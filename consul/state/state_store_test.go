@@ -82,6 +82,23 @@ func testRegisterCheck(t *testing.T, s *StateStore, idx uint64,
 	}
 }
 
+func testSetKey(t *testing.T, s *StateStore, idx uint64, key, value string) {
+	entry := &structs.DirEntry{Key: key, Value: []byte(value)}
+	if err := s.KVSSet(idx, entry); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	e, err := tx.First("kvs", "id", key)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result, ok := e.(*structs.DirEntry); !ok || result.Key != key {
+		t.Fatalf("bad kvs entry: %#v", result)
+	}
+}
+
 func TestStateStore_EnsureNode(t *testing.T) {
 	s := testStateStore(t)
 
@@ -826,5 +843,43 @@ func TestStateStore_KVSSet(t *testing.T) {
 	}
 	if v := string(result.Value); v != "baz" {
 		t.Fatalf("expected 'baz', got '%s'", v)
+	}
+}
+
+func TestStateStore_KVSDelete(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create some KV pairs
+	testSetKey(t, s, 1, "foo", "foo")
+	testSetKey(t, s, 2, "foo/bar", "bar")
+
+	// Call a delete on a specific key
+	if err := s.KVSDelete(3, "foo"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// The entry was removed from the state store
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	e, err := tx.First("kvs", "id", "foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if e != nil {
+		t.Fatalf("expected kvs entry to be deleted, got: %#v", e)
+	}
+
+	// Try fetching the other keys to ensure they still exist
+	e, err = tx.First("kvs", "id", "foo/bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if e == nil || string(e.(*structs.DirEntry).Value) != "bar" {
+		t.Fatalf("bad kvs entry: %#v", e)
+	}
+
+	// Check that the index table was updated
+	if idx := s.maxIndex("kvs"); idx != 3 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
