@@ -511,16 +511,6 @@ RPC:
 	// Perform a random shuffle
 	shuffleServiceNodes(out.Nodes)
 
-	// If the network is not TCP, restrict the number of responses
-	if network != "tcp" && len(out.Nodes) > maxServiceResponses {
-		out.Nodes = out.Nodes[:maxServiceResponses]
-
-		// Flag that there are more records to return in the UDP response
-		if d.config.EnableTruncate {
-			resp.Truncated = true
-		}
-	}
-
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
 	d.serviceNodeRecords(out.Nodes, req, resp, ttl)
@@ -529,13 +519,22 @@ RPC:
 		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
 
+	// If the network is not TCP, restrict the number of responses
+	if network != "tcp" && len(resp.Answer) > maxServiceResponses {
+		resp.Answer = resp.Answer[:maxServiceResponses]
+
+		// Flag that there are more records to return in the UDP response
+		if d.config.EnableTruncate {
+			resp.Truncated = true
+		}
+	}
+
 	// If the answer is empty, return not found
 	if len(resp.Answer) == 0 {
 		d.addSOA(d.domain, resp)
 		resp.SetRcode(req, dns.RcodeNameError)
 		return
 	}
-
 }
 
 // filterServiceNodes is used to filter out nodes that are failing
