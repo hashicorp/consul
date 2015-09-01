@@ -18,7 +18,6 @@ IMPROVEMENTS:
 
 MISC:
 
-* Protocol version bumped to 3 for serf protocol 5 [GH-996]
 * Vagrantfile fixed for VMware [GH-1042]
 
 ## 0.5.2 (May 18, 2015)
