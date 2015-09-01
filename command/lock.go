@@ -65,6 +65,7 @@ Options:
                              a semaphore is used.
   -name=""                   Optional name to associate with lock session.
   -token=""                  ACL token to use. Defaults to that of agent.
+  -pass-stdin                Pass stdin to child process.
   -verbose                   Enables verbose output
 `
 	return strings.TrimSpace(helpText)
@@ -74,11 +75,13 @@ func (c *LockCommand) Run(args []string) int {
 	var childDone chan struct{}
 	var name, token string
 	var limit int
+	var passStdin bool
 	cmdFlags := flag.NewFlagSet("watch", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 	cmdFlags.IntVar(&limit, "n", 1, "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	cmdFlags.StringVar(&token, "token", "", "")
+	cmdFlags.BoolVar(&passStdin, "pass-stdin", false, "")
 	cmdFlags.BoolVar(&c.verbose, "verbose", false, "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
@@ -160,7 +163,7 @@ func (c *LockCommand) Run(args []string) int {
 	// Start the child process
 	childDone = make(chan struct{})
 	go func() {
-		if err := c.startChild(script, childDone); err != nil {
+		if err := c.startChild(script, childDone, passStdin); err != nil {
 			c.Ui.Error(fmt.Sprintf("%s", err))
 		}
 	}()
@@ -261,7 +264,7 @@ func (c *LockCommand) setupSemaphore(client *api.Client, limit int, prefix, name
 
 // startChild is a long running routine used to start and
 // wait for the child process to exit.
-func (c *LockCommand) startChild(script string, doneCh chan struct{}) error {
+func (c *LockCommand) startChild(script string, doneCh chan struct{}, passStdin bool) error {
 	defer close(doneCh)
 	if c.verbose {
 		c.Ui.Info(fmt.Sprintf("Starting handler '%s'", script))
@@ -277,7 +280,14 @@ func (c *LockCommand) startChild(script string, doneCh chan struct{}) error {
 	cmd.Env = append(os.Environ(),
 		"CONSUL_LOCK_HELD=true",
 	)
-	cmd.Stdin = nil
+	if passStdin {
+		if c.verbose {
+			c.Ui.Info("Stdin passed to handler process")
+		}
+		cmd.Stdin = os.Stdin
+	} else {
+		cmd.Stdin = nil
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
