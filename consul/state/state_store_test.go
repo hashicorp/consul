@@ -617,3 +617,161 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
+
+func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
+	s := testStateStore(t)
+
+	// Generating a node dump that matches nothing returns empty
+	idx, dump, err := s.NodeInfo("node1")
+	if idx != 0 || dump != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, dump, err)
+	}
+	idx, dump, err = s.NodeDump()
+	if idx != 0 || dump != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, dump, err)
+	}
+
+	// Register some nodes
+	testRegisterNode(t, s, 0, "node1")
+	testRegisterNode(t, s, 1, "node2")
+
+	// Register services against them
+	testRegisterService(t, s, 2, "node1", "service1")
+	testRegisterService(t, s, 3, "node1", "service2")
+	testRegisterService(t, s, 4, "node2", "service1")
+	testRegisterService(t, s, 5, "node2", "service2")
+
+	// Register service-level checks
+	testRegisterCheck(t, s, 6, "node1", "service1", "check1", structs.HealthPassing)
+	testRegisterCheck(t, s, 7, "node2", "service1", "check1", structs.HealthPassing)
+
+	// Register node-level checks
+	testRegisterCheck(t, s, 8, "node1", "", "check2", structs.HealthPassing)
+	testRegisterCheck(t, s, 9, "node2", "", "check2", structs.HealthPassing)
+
+	// Check that our result matches what we expect.
+	expect := structs.NodeDump{
+		&structs.NodeInfo{
+			Node: "node1",
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "check1",
+					ServiceID:   "service1",
+					ServiceName: "service1",
+					Status:      structs.HealthPassing,
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 6,
+						ModifyIndex: 6,
+					},
+				},
+				&structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "check2",
+					ServiceID:   "",
+					ServiceName: "",
+					Status:      structs.HealthPassing,
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 8,
+						ModifyIndex: 8,
+					},
+				},
+			},
+			Services: []*structs.NodeService{
+				&structs.NodeService{
+					ID:      "service1",
+					Service: "service1",
+					Address: "1.1.1.1",
+					Port:    1111,
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 2,
+						ModifyIndex: 2,
+					},
+				},
+				&structs.NodeService{
+					ID:      "service2",
+					Service: "service2",
+					Address: "1.1.1.1",
+					Port:    1111,
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 3,
+						ModifyIndex: 3,
+					},
+				},
+			},
+		},
+		&structs.NodeInfo{
+			Node: "node2",
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "node2",
+					CheckID:     "check1",
+					ServiceID:   "service1",
+					ServiceName: "service1",
+					Status:      structs.HealthPassing,
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 7,
+						ModifyIndex: 7,
+					},
+				},
+				&structs.HealthCheck{
+					Node:        "node2",
+					CheckID:     "check2",
+					ServiceID:   "",
+					ServiceName: "",
+					Status:      structs.HealthPassing,
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 9,
+						ModifyIndex: 9,
+					},
+				},
+			},
+			Services: []*structs.NodeService{
+				&structs.NodeService{
+					ID:      "service1",
+					Service: "service1",
+					Address: "1.1.1.1",
+					Port:    1111,
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 4,
+						ModifyIndex: 4,
+					},
+				},
+				&structs.NodeService{
+					ID:      "service2",
+					Service: "service2",
+					Address: "1.1.1.1",
+					Port:    1111,
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 5,
+						ModifyIndex: 5,
+					},
+				},
+			},
+		},
+	}
+
+	// Get a dump of just a single node
+	idx, dump, err = s.NodeInfo("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 8 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if len(dump) != 1 || !reflect.DeepEqual(dump[0], expect[0]) {
+		t.Fatalf("bad: %#v", dump)
+	}
+
+	// Generate a dump of all the nodes
+	idx, dump, err = s.NodeDump()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 9 {
+		t.Fatalf("bad index: %d", 9)
+	}
+	if !reflect.DeepEqual(dump, expect) {
+		t.Fatalf("bad: %#v", dump[0].Services[0])
+	}
+}

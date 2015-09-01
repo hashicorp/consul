@@ -611,3 +611,94 @@ func (s *StateStore) parseCheckServiceNodes(
 
 	return lindex, results, nil
 }
+
+// NodeInfo is used to generate a dump of a single node. The dump includes
+// all services and checks which are registered against the node.
+func (s *StateStore) NodeInfo(nodeID string) (uint64, structs.NodeDump, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Query the node by the passed node ID
+	nodes, err := tx.Get("nodes", "id", nodeID)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed node lookup: %s", err)
+	}
+	return s.parseNodes(tx, nodes)
+}
+
+// NodeDump is used to generate a dump of all nodes. This call is expensive
+// as it has to query every node, service, and check. The response can also
+// be quite large since there is currently no filtering applied.
+func (s *StateStore) NodeDump() (uint64, structs.NodeDump, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Fetch all of the registered nodes
+	nodes, err := tx.Get("nodes", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed node lookup: %s", err)
+	}
+	return s.parseNodes(tx, nodes)
+}
+
+// parseNodes takes an iterator over a set of nodes and returns a struct
+// containing the nodes along with all of their associated services
+// and/or health checks.
+func (s *StateStore) parseNodes(
+	tx *memdb.Txn,
+	iter memdb.ResultIterator) (uint64, structs.NodeDump, error) {
+
+	var results structs.NodeDump
+	var lindex uint64
+	for n := iter.Next(); n != nil; n = iter.Next() {
+		node := n.(*structs.Node)
+		if node.ModifyIndex > lindex {
+			lindex = node.ModifyIndex
+		}
+
+		// Create the wrapped node
+		dump := &structs.NodeInfo{
+			Node:    node.Node,
+			Address: node.Address,
+		}
+
+		// Query the node services
+		services, err := tx.Get("services", "node", node.Node)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed services lookup: %s", err)
+		}
+		for service := services.Next(); service != nil; service = services.Next() {
+			svc := service.(*structs.ServiceNode)
+			if svc.ModifyIndex > lindex {
+				lindex = svc.ModifyIndex
+			}
+			ns := &structs.NodeService{
+				ID:      svc.ServiceID,
+				Service: svc.ServiceName,
+				Address: svc.ServiceAddress,
+				Port:    svc.ServicePort,
+				Tags:    svc.ServiceTags,
+			}
+			ns.CreateIndex = svc.CreateIndex
+			ns.ModifyIndex = svc.ModifyIndex
+			dump.Services = append(dump.Services, ns)
+		}
+
+		// Query the node checks
+		checks, err := tx.Get("checks", "node", node.Node)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
+		}
+		for check := checks.Next(); check != nil; check = checks.Next() {
+			chk := check.(*structs.HealthCheck)
+			if chk.ModifyIndex > lindex {
+				lindex = chk.ModifyIndex
+			}
+			dump.Checks = append(dump.Checks, chk)
+		}
+
+		// Add the result to the slice
+		results = append(results, dump)
+	}
+	return lindex, results, nil
+}
