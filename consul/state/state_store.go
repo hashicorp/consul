@@ -752,7 +752,10 @@ func (s *StateStore) KVSGet(key string) (*structs.DirEntry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed kvs lookup: %s", err)
 	}
-	return entry.(*structs.DirEntry), nil
+	if entry != nil {
+		return entry.(*structs.DirEntry), nil
+	}
+	return nil, nil
 }
 
 // KVSList is used to list out all keys under a given prefix. If the
@@ -802,7 +805,7 @@ func (s *StateStore) kvsDeleteTxn(idx uint64, key string, tx *memdb.Txn) error {
 	// Look up the entry in the state store
 	entry, err := tx.First("kvs", "id", key)
 	if err != nil {
-		return fmt.Errorf("failed key lookup: %s", err)
+		return fmt.Errorf("failed kvs lookup: %s", err)
 	}
 
 	// Delete the entry and update the index
@@ -813,4 +816,35 @@ func (s *StateStore) kvsDeleteTxn(idx uint64, key string, tx *memdb.Txn) error {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	return nil
+}
+
+// KVSDeleteCAS is used to try doing a KV delete operation with a given
+// raft index. If the CAS index specified is not equal to the last
+// observed index for the given key, then the call is a noop, otherwise
+// a normal KV delete is invoked.
+func (s *StateStore) KVSDeleteCAS(idx, cidx uint64, key string) (bool, error) {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Retrieve the existing kvs entry, if any exists
+	entry, err := tx.First("kvs", "id", key)
+	if err != nil {
+		return false, fmt.Errorf("failed kvs lookup: %s", err)
+	}
+
+	// If the existing index does not match  the provided CAS
+	// index arg, then we shouldn't update anything and can safely
+	// return early here.
+	e, ok := entry.(*structs.DirEntry)
+	if !ok || e.ModifyIndex != cidx {
+		return entry == nil, nil
+	}
+
+	// Call the actual deletion if the above passed
+	if err := s.kvsDeleteTxn(idx, key, tx); err != nil {
+		return false, err
+	}
+
+	tx.Commit()
+	return true, nil
 }

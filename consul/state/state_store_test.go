@@ -939,3 +939,50 @@ func TestStateStore_KVSList(t *testing.T) {
 		t.Fatalf("bad: %#v", keys)
 	}
 }
+
+func TestStateStore_KVSDeleteCAS(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create some KV entries
+	testSetKey(t, s, 1, "foo", "foo")
+	testSetKey(t, s, 2, "bar", "bar")
+	testSetKey(t, s, 3, "baz", "baz")
+
+	// Do a CAS delete with an index lower than the entry
+	ok, err := s.KVSDeleteCAS(4, 1, "bar")
+	if ok || err != nil {
+		t.Fatalf("expected (false, nil), got: (%v, %#v)", ok, err)
+	}
+
+	// Check that the index is untouched and the entry
+	// has not been deleted.
+	if idx := s.maxIndex("kvs"); idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	e, err := s.KVSGet("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if e == nil {
+		t.Fatalf("expected a kvs entry, got nil")
+	}
+
+	// Do another CAS delete, this time with the correct index
+	// which should cause the delete to take place.
+	ok, err = s.KVSDeleteCAS(4, 2, "bar")
+	if !ok || err != nil {
+		t.Fatalf("expected (true, nil), got: (%v, %#v)", ok, err)
+	}
+
+	// Entry was deleted and index was updated
+	if idx := s.maxIndex("kvs"); idx != 4 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	e, err = s.KVSGet("bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if e != nil {
+		t.Fatalf("entry should be deleted")
+	}
+}
