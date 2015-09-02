@@ -1,12 +1,12 @@
 GIT
   remote: git://github.com/hashicorp/middleman-hashicorp.git
-  revision: 76f0f284ad44cea0457484ea83467192f02daf87
+  revision: 93983af15fd8d480bec266b50c9211a48e495815
   specs:
     middleman-hashicorp (0.1.0)
       bootstrap-sass (~> 3.3)
       builder (~> 3.2)
       less (~> 2.6)
-      middleman (~> 3.3)
+      middleman (~> 3.4)
       middleman-livereload (~> 3.4)
       middleman-minify-html (~> 3.4)
       middleman-syntax (~> 2.0)
@@ -145,7 +145,7 @@ GEM
     rack-ssl-enforcer (0.2.9)
     rack-test (0.6.3)
       rack (>= 1.0)
-    rb-fsevent (0.9.5)
+    rb-fsevent (0.9.6)
     rb-inotify (0.9.5)
       ffi (>= 0.5.0)
     redcarpet (3.3.2)
@@ -174,7 +174,7 @@ GEM
     tilt (1.4.1)
     tzinfo (1.2.2)
       thread_safe (~> 0.1)
-    uber (0.0.14)
+    uber (0.0.15)
     uglifier (2.7.2)
       execjs (>= 0.3.0)
       json (>= 1.8.0)
