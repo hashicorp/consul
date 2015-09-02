@@ -2062,6 +2062,10 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 		t.Fatalf("Bad: %#v", in.Ns[0])
 	}
 
+	if in.Rcode != dns.RcodeSuccess {
+		t.Fatalf("Bad: %#v", in)
+	}
+
 	// check for ipv4 records on ipv6 only service
 	m.SetQuestion("webv6.service.consul.", dns.TypeA)
 
@@ -2081,4 +2085,9 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 	if soaRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Ns[0])
 	}
+
+	if in.Rcode != dns.RcodeSuccess {
+		t.Fatalf("Bad: %#v", in)
+	}
+
 }
