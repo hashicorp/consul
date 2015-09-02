@@ -175,10 +175,36 @@ func isPrivateIP(ip_str string) bool {
 	return false
 }
 
+// Returns addresses from interfaces that is up
+func activeInterfaceAddresses() ([]net.Addr, error) {
+	var upAddrs []net.Addr
+
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get interfaces: %v", err)
+	}
+
+	for _, iface := range interfaces {
+		// Require interface to be up
+		if iface.Flags&net.FlagUp == 0 {
+			continue
+		}
+
+		addresses, err := iface.Addrs()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get interface addresses: %v", err)
+		}
+
+		upAddrs = append(upAddrs, addresses...)
+	}
+
+	return upAddrs, nil
+}
+
 // GetPrivateIP is used to return the first private IP address
 // associated with an interface on the machine
 func GetPrivateIP() (net.IP, error) {
-	addresses, err := net.InterfaceAddrs()
+	addresses, err := activeInterfaceAddresses()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get interface addresses: %v", err)
 	}
