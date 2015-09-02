@@ -270,13 +270,10 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
 	}
 
-	// Enable the special endpoints for UI or SCADA
-	if s.uiDir != "" || s.agent.config.AtlasInfrastructure != "" {
-		// API's are under /internal/ui/ to avoid conflict
-		s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
-		s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
-		s.mux.HandleFunc("/v1/internal/ui/services", s.wrap(s.UIServices))
-	}
+	// API's are under /internal/ui/ to avoid conflict
+	s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
+	s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
+	s.mux.HandleFunc("/v1/internal/ui/services", s.wrap(s.UIServices))
 }
 
 // wrap is used to wrap functions to make them more convenient
