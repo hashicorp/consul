@@ -986,3 +986,78 @@ func TestStateStore_KVSDeleteCAS(t *testing.T) {
 		t.Fatalf("entry should be deleted")
 	}
 }
+
+func TestStateStore_KVSSetCAS(t *testing.T) {
+	s := testStateStore(t)
+
+	// Doing a CAS with ModifyIndex != 0 and no existing entry
+	// is a no-op.
+	entry := &structs.DirEntry{
+		Key:   "foo",
+		Value: []byte("foo"),
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 1,
+		},
+	}
+	ok, err := s.KVSSetCAS(2, entry)
+	if ok || err != nil {
+		t.Fatalf("expected (false, nil), got: (%#v, %#v)", ok, err)
+	}
+
+	// Check that nothing was actually stored
+	tx := s.db.Txn(false)
+	if e, err := tx.First("kvs", "id", "foo"); e != nil || err != nil {
+		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", e, err)
+	}
+	tx.Abort()
+
+	// Doing a CAS with a ModifyIndex of zero when no entry exists
+	// performs the set and saves into the state store.
+	entry = &structs.DirEntry{
+		Key:   "foo",
+		Value: []byte("foo"),
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 0,
+			ModifyIndex: 0,
+		},
+	}
+	ok, err = s.KVSSetCAS(2, entry)
+	if !ok || err != nil {
+		t.Fatalf("expected (true, nil), got: (%#v, %#v)", ok, err)
+	}
+
+	// Entry was inserted
+	tx = s.db.Txn(false)
+	if e, err := tx.First("kvs", "id", "foo"); e == nil || err != nil {
+		t.Fatalf("expected kvs to exist, got: (%#v, %#v)", e, err)
+	}
+	tx.Abort()
+
+	// Doing a CAS with a ModifyIndex which does not match the current
+	// index does not do anything.
+	entry = &structs.DirEntry{
+		Key:   "foo",
+		Value: []byte("bar"),
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 3,
+			ModifyIndex: 3,
+		},
+	}
+	ok, err = s.KVSSetCAS(3, entry)
+	if ok || err != nil {
+		t.Fatalf("expected (false, nil), got: (%#v, %#v)", ok, err)
+	}
+
+	// Entry was not updated in the store
+	tx = s.db.Txn(false)
+	e, err := tx.First("kvs", "id", "foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	result, ok := e.(*structs.DirEntry)
+	if !ok || result.CreateIndex != 2 ||
+		result.ModifyIndex != 2 || string(result.Value) != "foo" {
+		t.Fatalf("bad: %#v", result)
+	}
+}

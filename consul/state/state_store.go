@@ -848,3 +848,34 @@ func (s *StateStore) KVSDeleteCAS(idx, cidx uint64, key string) (bool, error) {
 	tx.Commit()
 	return true, nil
 }
+
+// KVSSetCAS is used to do a check-and-set operation on a KV entry. The
+// ModifyIndex in the provided entry is used to determine if we should
+// write the entry to the state store or bail. Returns a bool indicating
+// if a write happened and any error.
+func (s *StateStore) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error) {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Retrieve the existing entry
+	existing, err := tx.First("kvs", "id", entry.Key)
+	if err != nil {
+		return false, fmt.Errorf("failed kvs lookup: %s", err)
+	}
+
+	// Check if the we should do the set. A ModifyIndex of 0 means that
+	// we are doing a set-if-not-exists.
+	if entry.ModifyIndex == 0 && existing != nil {
+		return false, nil
+	}
+	if entry.ModifyIndex != 0 && existing == nil {
+		return false, nil
+	}
+	e, ok := existing.(*structs.DirEntry)
+	if ok && entry.ModifyIndex != 0 && entry.ModifyIndex != e.ModifyIndex {
+		return false, nil
+	}
+
+	// If we made it this far, we should perform the set.
+	return true, s.kvsSetTxn(idx, entry, tx)
+}
