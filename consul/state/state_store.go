@@ -63,9 +63,8 @@ func (s *StateStore) maxIndex(tables ...string) uint64 {
 		if err != nil {
 			panic(fmt.Sprintf("unknown index: %s", table))
 		}
-		idx := ti.(*IndexEntry).Value
-		if idx > lindex {
-			lindex = idx
+		if idx, ok := ti.(*IndexEntry); ok && idx.Value > lindex {
+			lindex = idx.Value
 		}
 	}
 	return lindex

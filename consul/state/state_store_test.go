@@ -1012,6 +1012,11 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	}
 	tx.Abort()
 
+	// Index was not updated
+	if idx := s.maxIndex("kvs"); idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
 	// Doing a CAS with a ModifyIndex of zero when no entry exists
 	// performs the set and saves into the state store.
 	entry = &structs.DirEntry{
@@ -1033,6 +1038,11 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 		t.Fatalf("expected kvs to exist, got: (%#v, %#v)", e, err)
 	}
 	tx.Abort()
+
+	// Index was updated
+	if idx := s.maxIndex("kvs"); idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
 
 	// Doing a CAS with a ModifyIndex which does not match the current
 	// index does not do anything.
@@ -1059,5 +1069,10 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	if !ok || result.CreateIndex != 2 ||
 		result.ModifyIndex != 2 || string(result.Value) != "foo" {
 		t.Fatalf("bad: %#v", result)
+	}
+
+	// Index was not modified
+	if idx := s.maxIndex("kvs"); idx != 2 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
