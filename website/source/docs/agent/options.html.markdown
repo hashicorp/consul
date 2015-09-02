@@ -84,6 +84,11 @@ The options below are all specified on the command-line.
   IP address. Consul uses both TCP and UDP and the same port for both. If you
   have any firewalls, be sure to allow both protocols.
 
+* <a name="_http_port"></a><a href="#_http_port">`-http-port`</a> - the HTTP API port to listen on.
+  This overrides the default port 8500. This option is very useful when deploying Consul
+  to an environment which communicates the HTTP port through the environment e.g. PaaS like CloudFoundry, allowing
+  you to set the port directly via a Procfile.
+
 * <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
   Consul will bind client interfaces,
   including the HTTP, DNS, and RPC servers. By default, this is "127.0.0.1",
