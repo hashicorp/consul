@@ -81,6 +81,7 @@ func (c *Command) readConfig() *Config {
 
 	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, HTTPS, RPC)")
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
+	cmdFlags.IntVar(&cmdConfig.Ports.HTTP, "http-port", 0, "http port to use")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "address to advertise instead of bind addr")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddrWan, "advertise-wan", "", "address to advertise on wan instead of bind or advertise addr")
 
@@ -967,6 +968,7 @@ Options:
   -atlas-endpoint=1.2.3.4  The address of the endpoint for Atlas integration.
   -bootstrap               Sets server to bootstrap mode
   -bind=0.0.0.0            Sets the bind address for cluster communication
+  -http-port=8500          Sets the HTTP API port to listen on
   -bootstrap-expect=0      Sets server to expect bootstrap mode.
   -client=127.0.0.1        Sets the address to bind for client access.
                            This includes RPC, DNS, HTTP and HTTPS (if configured)

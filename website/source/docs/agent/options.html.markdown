@@ -146,6 +146,11 @@ The options below are all specified on the command-line.
   initialized with an encryption key, then the provided key is ignored and
   a warning will be displayed.
 
+* <a name="_http_port"></a><a href="#_http_port">`-http-port`</a> - the HTTP API port to listen on.
+  This overrides the default port 8500. This option is very useful when deploying Consul
+  to an environment which communicates the HTTP port through the environment e.g. PaaS like CloudFoundry, allowing
+  you to set the port directly via a Procfile.
+
 * <a name="_join"></a><a href="#_join">`-join`</a> - Address of another agent
   to join upon starting up. This can be
   specified multiple times to specify multiple agents to join. If Consul is
