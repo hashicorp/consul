@@ -185,7 +185,10 @@ func (c *LockCommand) Run(args []string) int {
 		goto RELEASE
 	}
 
-	// Kill the child
+	// Prevent starting a new child.  The lock is never released
+	// after this point.
+	c.childLock.Lock()
+	// Kill any existing child
 	if err := c.killChild(childDone); err != nil {
 		c.Ui.Error(fmt.Sprintf("%s", err))
 	}
@@ -318,9 +321,7 @@ func (c *LockCommand) startChild(script string, doneCh chan struct{}, passStdin 
 // on the first attempt.
 func (c *LockCommand) killChild(childDone chan struct{}) error {
 	// Get the child process
-	c.childLock.Lock()
 	child := c.child
-	c.childLock.Unlock()
 
 	// If there is no child process (failed to start), we can quit early
 	if child == nil {
