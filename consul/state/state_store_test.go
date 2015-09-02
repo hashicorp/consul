@@ -883,3 +883,59 @@ func TestStateStore_KVSDelete(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
+
+func TestStateStore_KVSList(t *testing.T) {
+	s := testStateStore(t)
+
+	// Listing an empty KVS returns nothing
+	idx, keys, err := s.KVSList("")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if keys != nil {
+		t.Fatalf("expected nil, got: %#v", keys)
+	}
+
+	// Create some KVS entries
+	testSetKey(t, s, 1, "foo", "foo")
+	testSetKey(t, s, 2, "foo/bar", "bar")
+	testSetKey(t, s, 3, "foo/bar/zip", "zip")
+	testSetKey(t, s, 4, "foo/bar/zip/zorp", "zorp")
+	testSetKey(t, s, 5, "foo/bar/baz", "baz")
+
+	// List out all of the keys
+	idx, keys, err = s.KVSList("")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check the index
+	if idx != 5 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Check that all of the keys were returned
+	if n := len(keys); n != 5 {
+		t.Fatalf("expected 5 kvs entries, got: %d", n)
+	}
+
+	// Try listing with a provided prefix
+	idx, keys, err = s.KVSList("foo/bar/zip")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 4 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Check that only the keys in the prefix were returned
+	if n := len(keys); n != 2 {
+		t.Fatalf("expected 2 kvs entries, got: %d", n)
+	}
+	if keys[0] != "foo/bar/zip" || keys[1] != "foo/bar/zip/zorp" {
+		t.Fatalf("bad: %#v", keys)
+	}
+}

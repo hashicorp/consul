@@ -755,6 +755,32 @@ func (s *StateStore) KVSGet(key string) (*structs.DirEntry, error) {
 	return entry.(*structs.DirEntry), nil
 }
 
+// KVSList is used to list out all keys under a given prefix. If the
+// prefix is left empty, all keys in the KVS will be returned. The
+// returned index is the max index of the returned kvs entries.
+func (s *StateStore) KVSList(prefix string) (uint64, []string, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Query the prefix and list the available keys
+	entries, err := tx.Get("kvs", "id_prefix", prefix)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed kvs lookup: %s", err)
+	}
+
+	// Gather all of the keys found in the store
+	var keys []string
+	var lindex uint64
+	for entry := entries.Next(); entry != nil; entry = entries.Next() {
+		e := entry.(*structs.DirEntry)
+		keys = append(keys, e.Key)
+		if e.ModifyIndex > lindex {
+			lindex = e.ModifyIndex
+		}
+	}
+	return lindex, keys, nil
+}
+
 // KVSDelete is used to perform a shallow delete on a single key in the
 // the state store.
 func (s *StateStore) KVSDelete(idx uint64, key string) error {
