@@ -1114,3 +1114,53 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
+
+func TestStateStore_KVSDeleteTree(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create kvs entries in the state store
+	testSetKey(t, s, 1, "foo/bar", "bar")
+	testSetKey(t, s, 2, "foo/bar/baz", "baz")
+	testSetKey(t, s, 3, "foo/bar/zip", "zip")
+	testSetKey(t, s, 4, "foo/zorp", "zorp")
+
+	// Calling tree deletion which affects nothing does not
+	// modify the table index.
+	if err := s.KVSDeleteTree(9, "bar"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx := s.maxIndex("kvs"); idx != 4 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Call tree deletion with a nested prefix.
+	if err := s.KVSDeleteTree(5, "foo/bar"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check that all the matching keys were deleted
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	entries, err := tx.Get("kvs", "id")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	num := 0
+	for entry := entries.Next(); entry != nil; entry = entries.Next() {
+		if entry.(*structs.DirEntry).Key != "foo/zorp" {
+			t.Fatalf("unexpected kvs entry: %#v", entry)
+		}
+		num++
+	}
+
+	if num != 1 {
+		t.Fatalf("expected 1 key, got: %d", num)
+	}
+
+	// Index should be updated if modifications are made
+	if idx := s.maxIndex("kvs"); idx != 5 {
+		t.Fatalf("bad index: %d", idx)
+	}
+}

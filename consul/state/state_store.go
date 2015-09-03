@@ -930,3 +930,38 @@ func (s *StateStore) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error
 	// If we made it this far, we should perform the set.
 	return true, s.kvsSetTxn(idx, entry, tx)
 }
+
+// KVSDeleteTree is used to do a recursive delete on a key prefix
+// in the state store. If any keys are modified, the last index is
+// set, otherwise this is a no-op.
+func (s *StateStore) KVSDeleteTree(idx uint64, prefix string) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Get an iterator over all of the keys with the given prefix
+	entries, err := tx.Get("kvs", "id_prefix", prefix)
+	if err != nil {
+		return fmt.Errorf("failed kvs lookup: %s", err)
+	}
+
+	// Go over all of the keys and remove them. We call the delete
+	// directly so that we only update the index once.
+	var modified bool
+	for entry := entries.Next(); entry != nil; entry = entries.Next() {
+		err := tx.Delete("kvs", entry.(*structs.DirEntry))
+		if err != nil {
+			return fmt.Errorf("failed deleting kvs entry: %s", err)
+		}
+		modified = true
+	}
+
+	// Update the index
+	if modified {
+		if err := tx.Insert("index", &IndexEntry{"kvs", idx}); err != nil {
+			return fmt.Errorf("failed updating index: %s", err)
+		}
+	}
+
+	tx.Commit()
+	return nil
+}
