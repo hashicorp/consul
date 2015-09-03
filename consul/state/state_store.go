@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-memdb"
@@ -778,6 +779,57 @@ func (s *StateStore) KVSList(prefix string) (uint64, []string, error) {
 		keys = append(keys, e.Key)
 		if e.ModifyIndex > lindex {
 			lindex = e.ModifyIndex
+		}
+	}
+	return lindex, keys, nil
+}
+
+// KVSListKeys is used to query the KV store for keys matching the given prefix.
+// An optional separator may be specified, which can be used to slice off a part
+// of the response so that only a subset of the prefix is returned. In this
+// mode, the keys which are omitted are still counted in the returned index.
+func (s *StateStore) KVSListKeys(prefix, sep string) (uint64, []string, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Fetch keys using the specified prefix
+	entries, err := tx.Get("kvs", "id_prefix", prefix)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed kvs lookup: %s", err)
+	}
+
+	prefixLen := len(prefix)
+	sepLen := len(sep)
+
+	var keys []string
+	var lindex uint64
+	var last string
+	for entry := entries.Next(); entry != nil; entry = entries.Next() {
+		e := entry.(*structs.DirEntry)
+
+		// Accumulate the high index
+		if e.ModifyIndex > lindex {
+			lindex = e.ModifyIndex
+		}
+
+		// Always accumulate if no separator provided
+		if sepLen == 0 {
+			keys = append(keys, e.Key)
+			continue
+		}
+
+		// Parse and de-duplicate the returned keys based on the
+		// key separator, if provided.
+		after := e.Key[prefixLen:]
+		sepIdx := strings.Index(after, sep)
+		if sepIdx > -1 {
+			key := e.Key[:prefixLen+sepIdx+sepLen]
+			if key != last {
+				keys = append(keys, key)
+				last = key
+			}
+		} else {
+			keys = append(keys, e.Key)
 		}
 	}
 	return lindex, keys, nil

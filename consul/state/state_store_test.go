@@ -940,6 +940,44 @@ func TestStateStore_KVSList(t *testing.T) {
 	}
 }
 
+func TestStateStore_KVSListKeys(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create some keys
+	testSetKey(t, s, 1, "foo", "foo")
+	testSetKey(t, s, 2, "foo/bar", "bar")
+	testSetKey(t, s, 3, "foo/bar/baz", "baz")
+	testSetKey(t, s, 4, "foo/bar/zip", "zip")
+	testSetKey(t, s, 5, "foo/bar/zip/zam", "zam")
+	testSetKey(t, s, 6, "foo/bar/zip/zorp", "zorp")
+
+	// Query using a prefix and pass a separator
+	idx, keys, err := s.KVSListKeys("foo/bar/", "/")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Subset of the keys was returned
+	expect := []string{"foo/bar/baz", "foo/bar/zip", "foo/bar/zip/"}
+	if !reflect.DeepEqual(keys, expect) {
+		t.Fatalf("bad keys: %#v", keys)
+	}
+
+	// Listing keys with no separator returns everything.
+	idx, keys, err = s.KVSListKeys("foo", "")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	expect = []string{"foo", "foo/bar", "foo/bar/baz", "foo/bar/zip",
+		"foo/bar/zip/zam", "foo/bar/zip/zorp"}
+	if !reflect.DeepEqual(keys, expect) {
+		t.Fatalf("bad keys: %#v", keys)
+	}
+}
+
 func TestStateStore_KVSDeleteCAS(t *testing.T) {
 	s := testStateStore(t)
 
