@@ -430,14 +430,15 @@ const (
 // Session is used to represent an open session in the KV store.
 // This issued to associate node checks with acquired locks.
 type Session struct {
-	CreateIndex uint64
-	ID          string
-	Name        string
-	Node        string
-	Checks      []string
-	LockDelay   time.Duration
-	Behavior    SessionBehavior // What to do when session is invalidated
-	TTL         string
+	ID        string
+	Name      string
+	Node      string
+	Checks    []string
+	LockDelay time.Duration
+	Behavior  SessionBehavior // What to do when session is invalidated
+	TTL       string
+
+	RaftIndex
 }
 type Sessions []*Session
 

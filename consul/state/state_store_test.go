@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
@@ -1162,5 +1163,114 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 	// Index should be updated if modifications are made
 	if idx := s.maxIndex("kvs"); idx != 5 {
 		t.Fatalf("bad index: %d", idx)
+	}
+}
+
+func TestStateStore_SessionCreate(t *testing.T) {
+	s := testStateStore(t)
+
+	// Registering without a session ID is disallowed
+	err := s.SessionCreate(1, &structs.Session{})
+	if err != ErrMissingSessionID {
+		t.Fatalf("expected %#v, got: %#v", ErrMissingSessionID, err)
+	}
+
+	// Invalid session behavior throws error
+	sess := &structs.Session{
+		ID:       "foo",
+		Behavior: "nope",
+	}
+	err = s.SessionCreate(1, sess)
+	if err == nil || !strings.Contains(err.Error(), "session behavior") {
+		t.Fatalf("expected session behavior error, got: %#v", err)
+	}
+
+	// Registering with an unknown node is disallowed
+	sess = &structs.Session{ID: "foo"}
+	if err := s.SessionCreate(1, sess); err != ErrMissingNode {
+		t.Fatalf("expected %#v, got: %#v", ErrMissingNode, err)
+	}
+
+	// None of the errored operations modified the index
+	if idx := s.maxIndex("sessions"); idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Valid session is able to register
+	testRegisterNode(t, s, 1, "node1")
+	sess = &structs.Session{
+		ID:   "foo",
+		Node: "node1",
+	}
+	if err := s.SessionCreate(2, sess); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx := s.maxIndex("sessions"); idx != 2 {
+		t.Fatalf("bad index: %d", err)
+	}
+
+	// Retrieve the session again
+	session, err := s.GetSession("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the session looks correct and was assigned the
+	// proper default value for session behavior.
+	expect := &structs.Session{
+		ID:       "foo",
+		Behavior: structs.SessionKeysRelease,
+		Node:     "node1",
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 2,
+			ModifyIndex: 2,
+		},
+	}
+	if !reflect.DeepEqual(expect, session) {
+		t.Fatalf("bad session: %#v", session)
+	}
+
+	// Registering with a non-existent check is disallowed
+	sess = &structs.Session{
+		ID:     "bar",
+		Node:   "node1",
+		Checks: []string{"check1"},
+	}
+	err = s.SessionCreate(3, sess)
+	if err == nil || !strings.Contains(err.Error(), "Missing check") {
+		t.Fatalf("expected missing check error, got: %#v", err)
+	}
+
+	// Registering with a critical check is disallowed
+	testRegisterCheck(t, s, 3, "node1", "", "check1", structs.HealthCritical)
+	err = s.SessionCreate(4, sess)
+	if err == nil || !strings.Contains(err.Error(), structs.HealthCritical) {
+		t.Fatalf("expected critical state error, got: %#v", err)
+	}
+
+	// Registering with a healthy check succeeds
+	testRegisterCheck(t, s, 4, "node1", "", "check1", structs.HealthPassing)
+	if err := s.SessionCreate(5, sess); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Check mappings were inserted
+	check, err := tx.First("session_checks", "session", "bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if check == nil {
+		t.Fatalf("missing session check")
+	}
+	expectCheck := &sessionCheck{
+		Node:    "node1",
+		CheckID: "check1",
+		Session: "bar",
+	}
+	if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
+		t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
 	}
 }

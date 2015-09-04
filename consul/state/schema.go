@@ -304,6 +304,32 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
+			"session": &memdb.IndexSchema{
+				Name:         "session",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Session",
+					Lowercase: false,
+				},
+			},
+			"node": &memdb.IndexSchema{
+				Name:         "node",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.CompoundIndex{
+					Indexes: []memdb.Indexer{
+						&memdb.StringFieldIndex{
+							Field:     "Node",
+							Lowercase: true,
+						},
+						&memdb.StringFieldIndex{
+							Field:     "Session",
+							Lowercase: false,
+						},
+					},
+				},
+			},
 		},
 	}
 }
