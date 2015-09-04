@@ -1084,3 +1084,32 @@ func (s *StateStore) GetSession(sessionID string) (*structs.Session, error) {
 	}
 	return nil, nil
 }
+
+// SessionList returns a slice containing all of the active sessions.
+func (s *StateStore) SessionList() (uint64, []*structs.Session, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Query all of the active sessions
+	sessions, err := tx.Get("sessions", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
+	}
+
+	// Go over the sessions and create a slice of them
+	var result []*structs.Session
+	var lindex uint64
+	for session := sessions.Next(); session != nil; session = sessions.Next() {
+		sess := session.(*structs.Session)
+
+		// Compute the highest index
+		if sess.ModifyIndex > lindex {
+			lindex = sess.ModifyIndex
+		}
+
+		// Add the session to the result
+		result = append(result, sess)
+	}
+
+	return lindex, result, nil
+}

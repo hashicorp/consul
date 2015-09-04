@@ -1274,3 +1274,48 @@ func TestStateStore_SessionCreate(t *testing.T) {
 		t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
 	}
 }
+
+func TestStateStore_ListSessions(t *testing.T) {
+	s := testStateStore(t)
+
+	// Register some nodes
+	testRegisterNode(t, s, 1, "node1")
+	testRegisterNode(t, s, 2, "node2")
+	testRegisterNode(t, s, 3, "node3")
+
+	// Create some sessions in the state store
+	sessions := []*structs.Session{
+		&structs.Session{
+			ID:       "session1",
+			Node:     "node1",
+			Behavior: structs.SessionKeysDelete,
+		},
+		&structs.Session{
+			ID:       "session2",
+			Node:     "node2",
+			Behavior: structs.SessionKeysRelease,
+		},
+		&structs.Session{
+			ID:       "session3",
+			Node:     "node3",
+			Behavior: structs.SessionKeysDelete,
+		},
+	}
+	for i, session := range sessions {
+		if err := s.SessionCreate(uint64(4+i), session); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// List out all of the sessions
+	idx, sessionList, err := s.SessionList()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if !reflect.DeepEqual(sessionList, sessions) {
+		t.Fatalf("bad: %#v", sessions)
+	}
+}
