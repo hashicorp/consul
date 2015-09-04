@@ -1278,6 +1278,11 @@ func TestStateStore_SessionCreate(t *testing.T) {
 func TestStateStore_ListSessions(t *testing.T) {
 	s := testStateStore(t)
 
+	// Listing when no sessions exist returns nil
+	if idx, res, err := s.SessionList(); idx != 0 || res != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
+	}
+
 	// Register some nodes
 	testRegisterNode(t, s, 1, "node1")
 	testRegisterNode(t, s, 2, "node2")
@@ -1317,5 +1322,63 @@ func TestStateStore_ListSessions(t *testing.T) {
 	}
 	if !reflect.DeepEqual(sessionList, sessions) {
 		t.Fatalf("bad: %#v", sessions)
+	}
+}
+
+func TestStateStore_NodeSessions(t *testing.T) {
+	s := testStateStore(t)
+
+	// Listing sessions with no results returns nil
+	if idx, res, err := s.NodeSessions("node1"); idx != 0 || res != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
+	}
+
+	// Create the nodes
+	testRegisterNode(t, s, 1, "node1")
+	testRegisterNode(t, s, 2, "node2")
+
+	// Register some sessions with the nodes
+	sessions1 := []*structs.Session{
+		&structs.Session{
+			ID:   "session1",
+			Node: "node1",
+		},
+		&structs.Session{
+			ID:   "session2",
+			Node: "node1",
+		},
+	}
+	sessions2 := []*structs.Session{
+		&structs.Session{
+			ID:   "session3",
+			Node: "node2",
+		},
+		&structs.Session{
+			ID:   "session4",
+			Node: "node2",
+		},
+	}
+	for i, sess := range append(sessions1, sessions2...) {
+		if err := s.SessionCreate(uint64(3+i), sess); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Query all of the sessions associated with a specific
+	// node in the state store.
+	idx, result, err := s.NodeSessions("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check that the index was properly filtered based
+	// on the provided node ID.
+	if idx != 4 {
+		t.Fatalf("bad index: %s", err)
+	}
+
+	// Check that the returned sessions match.
+	if !reflect.DeepEqual(result, sessions1) {
+		t.Fatalf("bad: %#v", result)
 	}
 }

@@ -1101,15 +1101,40 @@ func (s *StateStore) SessionList() (uint64, []*structs.Session, error) {
 	var lindex uint64
 	for session := sessions.Next(); session != nil; session = sessions.Next() {
 		sess := session.(*structs.Session)
+		result = append(result, sess)
 
 		// Compute the highest index
 		if sess.ModifyIndex > lindex {
 			lindex = sess.ModifyIndex
 		}
+	}
+	return lindex, result, nil
+}
 
-		// Add the session to the result
-		result = append(result, sess)
+// NodeSessions returns a set of active sessions associated
+// with the given node ID. The returned index is the highest
+// index seen from the result set.
+func (s *StateStore) NodeSessions(nodeID string) (uint64, []*structs.Session, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get all of the sessions which belong to the node
+	sessions, err := tx.Get("sessions", "node", nodeID)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
 
+	// Go over all of the sessions and return them as a slice
+	var result []*structs.Session
+	var lindex uint64
+	for session := sessions.Next(); session != nil; session = sessions.Next() {
+		sess := session.(*structs.Session)
+		result = append(result, sess)
+
+		// Compute the highest index
+		if sess.ModifyIndex > lindex {
+			lindex = sess.ModifyIndex
+		}
+	}
 	return lindex, result, nil
 }
