@@ -476,6 +476,34 @@ func TestStateStore_EnsureCheck(t *testing.T) {
 	}
 }
 
+func TestStateStore_EnsureCheck_defaultStatus(t *testing.T) {
+	s := testStateStore(t)
+
+	// Register a node
+	testRegisterNode(t, s, 1, "node1")
+
+	// Create and register a check with no health status
+	check := &structs.HealthCheck{
+		Node:    "node1",
+		CheckID: "check1",
+		Status:  "",
+	}
+	if err := s.EnsureCheck(2, check); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Get the check again
+	_, result, err := s.NodeChecks("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check that the status was set to the proper default
+	if len(result) != 1 || result[0].Status != structs.HealthCritical {
+		t.Fatalf("bad: %#v", result)
+	}
+}
+
 func TestStateStore_ServiceChecks(t *testing.T) {
 	s := testStateStore(t)
 
@@ -1182,14 +1210,20 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 func TestStateStore_SessionCreate(t *testing.T) {
 	s := testStateStore(t)
 
+	// GetSession returns nil if the session doesn't exist
+	sess, err := s.GetSession("session1")
+	if sess != nil || err != nil {
+		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", sess, err)
+	}
+
 	// Registering without a session ID is disallowed
-	err := s.SessionCreate(1, &structs.Session{})
+	err = s.SessionCreate(1, &structs.Session{})
 	if err != ErrMissingSessionID {
 		t.Fatalf("expected %#v, got: %#v", ErrMissingSessionID, err)
 	}
 
 	// Invalid session behavior throws error
-	sess := &structs.Session{
+	sess = &structs.Session{
 		ID:       "foo",
 		Behavior: "nope",
 	}
