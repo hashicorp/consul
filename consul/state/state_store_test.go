@@ -173,6 +173,12 @@ func TestStateStore_EnsureNode(t *testing.T) {
 func TestStateStore_GetNodes(t *testing.T) {
 	s := testStateStore(t)
 
+	// Listing with no results returns nil
+	idx, res, err := s.Nodes()
+	if idx != 0 || res != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
+	}
+
 	// Create some nodes in the state store
 	testRegisterNode(t, s, 0, "node0")
 	testRegisterNode(t, s, 1, "node1")
@@ -257,7 +263,8 @@ func TestStateStore_EnsureService(t *testing.T) {
 	s := testStateStore(t)
 
 	// Fetching services for a node with none returns nil
-	if idx, res, err := s.NodeServices("node1"); err != nil || res != nil || idx != 0 {
+	idx, res, err := s.NodeServices("node1")
+	if err != nil || res != nil || idx != 0 {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
 
@@ -275,7 +282,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 	}
 
 	// Service successfully registers into the state store
-	if err := s.EnsureService(10, "node1", ns1); err != nil {
+	if err = s.EnsureService(10, "node1", ns1); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -526,6 +533,12 @@ func TestStateStore_DeleteCheck(t *testing.T) {
 func TestStateStore_ChecksInState(t *testing.T) {
 	s := testStateStore(t)
 
+	// Querying with no results returns nil
+	idx, res, err := s.ChecksInState(structs.HealthPassing)
+	if idx != 0 || res != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
+	}
+
 	// Register a node with checks in varied states
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterCheck(t, s, 1, "node1", "", "check1", structs.HealthPassing)
@@ -533,25 +546,25 @@ func TestStateStore_ChecksInState(t *testing.T) {
 	testRegisterCheck(t, s, 3, "node1", "", "check3", structs.HealthPassing)
 
 	// Query the state store for passing checks.
-	_, results, err := s.ChecksInState(structs.HealthPassing)
+	_, checks, err := s.ChecksInState(structs.HealthPassing)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Make sure we only get the checks which match the state
-	if n := len(results); n != 2 {
+	if n := len(checks); n != 2 {
 		t.Fatalf("expected 2 checks, got: %d", n)
 	}
-	if results[0].CheckID != "check1" || results[1].CheckID != "check3" {
-		t.Fatalf("bad: %#v", results)
+	if checks[0].CheckID != "check1" || checks[1].CheckID != "check3" {
+		t.Fatalf("bad: %#v", checks)
 	}
 
 	// HealthAny just returns everything.
-	_, results, err = s.ChecksInState(structs.HealthAny)
+	_, checks, err = s.ChecksInState(structs.HealthAny)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if n := len(results); n != 3 {
+	if n := len(checks); n != 3 {
 		t.Fatalf("expected 3 checks, got: %d", n)
 	}
 }
@@ -560,9 +573,9 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	s := testStateStore(t)
 
 	// Querying with no matches gives an empty response
-	idx, results, err := s.CheckServiceNodes("service1")
-	if idx != 0 || results != nil || err != nil {
-		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, results, err)
+	idx, res, err := s.CheckServiceNodes("service1")
+	if idx != 0 || res != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
 
 	// Register some nodes
@@ -584,7 +597,7 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 
 	// Query the state store for nodes and checks which
 	// have been registered with a specific service.
-	idx, results, err = s.CheckServiceNodes("service1")
+	idx, results, err := s.CheckServiceNodes("service1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -890,14 +903,8 @@ func TestStateStore_KVSList(t *testing.T) {
 
 	// Listing an empty KVS returns nothing
 	idx, keys, err := s.KVSList("")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 0 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if keys != nil {
-		t.Fatalf("expected nil, got: %#v", keys)
+	if idx != 0 || keys != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, keys, err)
 	}
 
 	// Create some KVS entries
@@ -944,6 +951,12 @@ func TestStateStore_KVSList(t *testing.T) {
 func TestStateStore_KVSListKeys(t *testing.T) {
 	s := testStateStore(t)
 
+	// Listing keys with no results returns nil
+	idx, keys, err := s.KVSListKeys("", "")
+	if idx != 0 || keys != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, keys, err)
+	}
+
 	// Create some keys
 	testSetKey(t, s, 1, "foo", "foo")
 	testSetKey(t, s, 2, "foo/bar", "bar")
@@ -953,7 +966,7 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 	testSetKey(t, s, 6, "foo/bar/zip/zorp", "zorp")
 
 	// Query using a prefix and pass a separator
-	idx, keys, err := s.KVSListKeys("foo/bar/", "/")
+	idx, keys, err = s.KVSListKeys("foo/bar/", "/")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1279,7 +1292,8 @@ func TestStateStore_ListSessions(t *testing.T) {
 	s := testStateStore(t)
 
 	// Listing when no sessions exist returns nil
-	if idx, res, err := s.SessionList(); idx != 0 || res != nil || err != nil {
+	idx, res, err := s.SessionList()
+	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
 
@@ -1329,7 +1343,8 @@ func TestStateStore_NodeSessions(t *testing.T) {
 	s := testStateStore(t)
 
 	// Listing sessions with no results returns nil
-	if idx, res, err := s.NodeSessions("node1"); idx != 0 || res != nil || err != nil {
+	idx, res, err := s.NodeSessions("node1")
+	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
 
@@ -1366,7 +1381,7 @@ func TestStateStore_NodeSessions(t *testing.T) {
 
 	// Query all of the sessions associated with a specific
 	// node in the state store.
-	idx, result, err := s.NodeSessions("node1")
+	idx, res, err = s.NodeSessions("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1378,7 +1393,7 @@ func TestStateStore_NodeSessions(t *testing.T) {
 	}
 
 	// Check that the returned sessions match.
-	if !reflect.DeepEqual(result, sessions1) {
-		t.Fatalf("bad: %#v", result)
+	if !reflect.DeepEqual(res, sessions1) {
+		t.Fatalf("bad: %#v", res)
 	}
 }
