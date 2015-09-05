@@ -275,3 +275,85 @@ func TestGenerateUUID(t *testing.T) {
 		}
 	}
 }
+
+func TestGetPublicIPv6(t *testing.T) {
+	ip, _, err := net.ParseCIDR("fe80::1/128")
+	if err != nil {
+		t.Fatalf("failed to parse link-local cidr: %v", err)
+	}
+
+	ip2, _, err := net.ParseCIDR("::1/128")
+	if err != nil {
+		t.Fatalf("failed to parse loopback cidr: %v", err)
+	}
+
+	pubIP, _, err := net.ParseCIDR("2001:0db8:85a3::8a2e:0370:7334/128")
+	if err != nil {
+		t.Fatalf("failed to parse public cidr: %v", err)
+	}
+
+	tests := []struct {
+		addrs    []net.Addr
+		expected net.IP
+		err      error
+	}{
+		{
+			addrs: []net.Addr{
+				&net.IPAddr{
+					IP: ip,
+				},
+				&net.IPAddr{
+					IP: ip2,
+				},
+				&net.IPAddr{
+					IP: pubIP,
+				},
+			},
+			expected: pubIP,
+		},
+		{
+			addrs: []net.Addr{
+				&net.IPAddr{
+					IP: ip,
+				},
+				&net.IPAddr{
+					IP: ip2,
+				},
+			},
+			err: errors.New("No public IPv6 address found"),
+		},
+		{
+			addrs: []net.Addr{
+				&net.IPAddr{
+					IP: ip,
+				},
+				&net.IPAddr{
+					IP: ip,
+				},
+				&net.IPAddr{
+					IP: pubIP,
+				},
+				&net.IPAddr{
+					IP: pubIP,
+				},
+			},
+			err: errors.New("Multiple public IPv6 addresses found. Please configure one."),
+		},
+	}
+
+	for _, test := range tests {
+		ip, err := getPublicIPv6(test.addrs)
+		switch {
+		case test.err != nil && err != nil:
+			if err.Error() != test.err.Error() {
+				t.Fatalf("unexpected error: %v != %v", test.err, err)
+			}
+		case (test.err == nil && err != nil) || (test.err != nil && err == nil):
+			t.Fatalf("unexpected error: %v != %v", test.err, err)
+		default:
+			if !test.expected.Equal(ip) {
+				t.Fatalf("unexpected ip: %v != %v", ip, test.expected)
+			}
+		}
+	}
+}

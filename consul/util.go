@@ -264,6 +264,52 @@ func getPrivateIP(addresses []net.Addr) (net.IP, error) {
 
 }
 
+// GetPublicIPv6 is used to return the first public IP address
+// associated with an interface on the machine
+func GetPublicIPv6() (net.IP, error) {
+	addresses, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get interface addresses: %v", err)
+	}
+
+	return getPublicIPv6(addresses)
+}
+
+func getPublicIPv6(addresses []net.Addr) (net.IP, error) {
+	var candidates []net.IP
+
+	// Find public IPv6 address
+	for _, rawAddr := range addresses {
+		var ip net.IP
+		switch addr := rawAddr.(type) {
+		case *net.IPAddr:
+			ip = addr.IP
+		case *net.IPNet:
+			ip = addr.IP
+		default:
+			continue
+		}
+
+		if ip.To4() != nil {
+			continue
+		}
+		// do not bind link-local (fe80::/10) / ULA (fc00::/7) / loopback (::1)
+		if ip[0]|0xf == 0xff || ip[0]|0 == 0 {
+			continue
+		}
+		candidates = append(candidates, ip)
+	}
+	numIps := len(candidates)
+	switch numIps {
+	case 0:
+		return nil, fmt.Errorf("No public IPv6 address found")
+	case 1:
+		return candidates[0], nil
+	default:
+		return nil, fmt.Errorf("Multiple public IPv6 addresses found. Please configure one.")
+	}
+}
+
 // Converts bytes to an integer
 func bytesToUint64(b []byte) uint64 {
 	return binary.BigEndian.Uint64(b)
