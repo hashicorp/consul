@@ -30,11 +30,12 @@ del /F "%_GIT_DESCRIBE_FILE%" 2>NUL
 
 :: Install dependencies
 echo --^> Installing dependencies to speed up builds...
-go get .\...
+go get github.com/tools/godep
+godep go get .\...
 
 :: Build!
 echo --^> Building...
-go build^
+godep go build^
  -ldflags "-X main.GitCommit %_GIT_COMMIT%%_GIT_DIRTY% -X main.GitDescribe %_GIT_DESCRIBE%"^
  -v^
  -o bin\consul.exe .

@@ -39,13 +39,14 @@ fi
 
 # Install dependencies
 echo "--> Installing dependencies to speed up builds..."
-go get \
+go get -u github.com/tools/godep
+godep go install \
   -ldflags "${CGO_LDFLAGS}" \
   ./...
 
 # Build!
 echo "--> Building..."
-go build \
+godep go build \
     -ldflags "${CGO_LDFLAGS} -X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY} -X main.GitDescribe ${GIT_DESCRIBE}" \
     -v \
     -o bin/consul${EXTENSION}
