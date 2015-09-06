@@ -1138,3 +1138,44 @@ func (s *StateStore) NodeSessions(nodeID string) (uint64, []*structs.Session, er
 	}
 	return lindex, result, nil
 }
+
+// SessionDestroy is used to remove an active session. This will
+// implicitly invalidate the session and invoke the specified
+// session destroy behavior.
+func (s *StateStore) SessionDestroy(idx uint64, sessionID string) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Call the session deletion
+	if err := s.sessionDestroyTxn(idx, sessionID, tx); err != nil {
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// sessionDestroyTxn is the inner method, which is used to do the actual
+// session deletion and handle session invalidation, watch triggers, etc.
+func (s *StateStore) sessionDestroyTxn(idx uint64, sessionID string, tx *memdb.Txn) error {
+	// Look up the session
+	sess, err := tx.First("sessions", "id", sessionID)
+	if err != nil {
+		return fmt.Errorf("failed session lookup: %s", err)
+	}
+	if sess == nil {
+		return nil
+	}
+
+	// Delete the session and write the new index
+	if err := tx.Delete("sessions", sess); err != nil {
+		return fmt.Errorf("failed deleting session: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{"sessions", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// TODO: invalidate session
+
+	return nil
+}

@@ -1431,3 +1431,49 @@ func TestStateStore_NodeSessions(t *testing.T) {
 		t.Fatalf("bad: %#v", res)
 	}
 }
+
+func TestStateStore_SessionDestroy(t *testing.T) {
+	s := testStateStore(t)
+
+	// Session destroy is idempotent and returns no error
+	// if the session doesn't exist.
+	if err := s.SessionDestroy(1, "nope"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the index was not updated if nothing was destroyed
+	if idx := s.maxIndex("sessions"); idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Register a node
+	testRegisterNode(t, s, 1, "node1")
+
+	// Register a new session
+	sess := &structs.Session{
+		ID:   "session1",
+		Node: "node1",
+	}
+	if err := s.SessionCreate(2, sess); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Destroy the session
+	if err := s.SessionDestroy(3, "session1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Make sure the session is really gone
+	sessions, err := tx.Get("sessions", "id")
+	if err != nil || sessions.Next() != nil {
+		t.Fatalf("session should not exist")
+	}
+
+	// Check that the index was updated
+	if idx := s.maxIndex("sessions"); idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+}
