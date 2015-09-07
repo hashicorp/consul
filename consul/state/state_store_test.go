@@ -1604,3 +1604,51 @@ func TestStateStore_ACLDelete(t *testing.T) {
 		t.Fatalf("expected nil, got: %#v", result)
 	}
 }
+
+func TestStateStore_ACLList(t *testing.T) {
+	s := testStateStore(t)
+
+	// Listing when no ACLs exist returns nil
+	idx, res, err := s.ACLList()
+	if idx != 0 || res != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
+	}
+
+	// Insert some ACLs
+	acls := []*structs.ACL{
+		&structs.ACL{
+			ID:    "acl1",
+			Type:  structs.ACLTypeClient,
+			Rules: "rules1",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 1,
+				ModifyIndex: 1,
+			},
+		},
+		&structs.ACL{
+			ID:    "acl2",
+			Type:  structs.ACLTypeClient,
+			Rules: "rules2",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 2,
+				ModifyIndex: 2,
+			},
+		},
+	}
+	for _, acl := range acls {
+		if err := s.ACLSet(acl.ModifyIndex, acl); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Query the ACLs
+	idx, res, err = s.ACLList()
+	if idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Check that the result matches
+	if !reflect.DeepEqual(res, acls) {
+		t.Fatalf("bad: %#v", res)
+	}
+}

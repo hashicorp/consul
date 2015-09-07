@@ -1283,3 +1283,29 @@ func (s *StateStore) aclDeleteTxn(idx uint64, aclID string, tx *memdb.Txn) error
 	}
 	return nil
 }
+
+// ACLList is used to list out all of the ACLs in the state store.
+func (s *StateStore) ACLList() (uint64, []*structs.ACL, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Query all of the ACLs in the state store
+	acls, err := tx.Get("acls", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed acl lookup: %s", err)
+	}
+
+	// Go over all of the ACLs and build the response
+	var result []*structs.ACL
+	var lindex uint64
+	for acl := acls.Next(); acl != nil; acl = acls.Next() {
+		a := acl.(*structs.ACL)
+		result = append(result, a)
+
+		// Accumulate the highest index
+		if a.ModifyIndex > lindex {
+			lindex = a.ModifyIndex
+		}
+	}
+	return lindex, result, nil
+}
