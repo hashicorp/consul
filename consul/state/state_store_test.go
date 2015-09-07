@@ -1565,3 +1565,42 @@ func TestStateStore_ACLSet(t *testing.T) {
 		t.Fatalf("bad: %#v", acl)
 	}
 }
+
+func TestStateStore_ACLDelete(t *testing.T) {
+	s := testStateStore(t)
+
+	// Calling delete on an ACL which doesn't exist returns nil
+	if err := s.ACLDelete(1, "nope"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Index isn't updated if nothing is deleted
+	if idx := s.maxIndex("acls"); idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Insert an ACL
+	if err := s.ACLSet(1, &structs.ACL{ID: "acl1"}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Delete the ACL and check that the index was updated
+	if err := s.ACLDelete(2, "acl1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx := s.maxIndex("acls"); idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Check that the ACL was really deleted
+	result, err := tx.First("acls", "id", "acl1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result != nil {
+		t.Fatalf("expected nil, got: %#v", result)
+	}
+}

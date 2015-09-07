@@ -1246,3 +1246,40 @@ func (s *StateStore) ACLGet(aclID string) (*structs.ACL, error) {
 	}
 	return nil, nil
 }
+
+// ACLDelete is used to remove an existing ACL from the state store. If
+// the ACL does not exist this is a no-op and no error is returned.
+func (s *StateStore) ACLDelete(idx uint64, aclID string) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Call the ACL delete
+	if err := s.aclDeleteTxn(idx, aclID, tx); err != nil {
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// aclDeleteTxn is used to delete an ACL from the state store within
+// an existing transaction.
+func (s *StateStore) aclDeleteTxn(idx uint64, aclID string, tx *memdb.Txn) error {
+	// Look up the existing ACL
+	acl, err := tx.First("acls", "id", aclID)
+	if err != nil {
+		return fmt.Errorf("failed acl lookup: %s", err)
+	}
+	if acl == nil {
+		return nil
+	}
+
+	// Delete the ACL from the state store and update indexes
+	if err := tx.Delete("acls", acl); err != nil {
+		return fmt.Errorf("failed deleting acl: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{"acls", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+	return nil
+}
