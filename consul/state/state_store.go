@@ -23,6 +23,10 @@ var (
 	// ErrMissingSessionID is returned when a session registration
 	// is attempted with an empty session ID.
 	ErrMissingSessionID = errors.New("Missing session ID")
+
+	// ErrMissingACLID is returned when a session set is called on
+	// a session with an empty ID.
+	ErrMissingACLID = errors.New("Missing ACL ID")
 )
 
 // StateStore is where we store all of Consul's state, including
@@ -897,7 +901,7 @@ func (s *StateStore) KVSDeleteCAS(idx, cidx uint64, key string) (bool, error) {
 		return false, fmt.Errorf("failed kvs lookup: %s", err)
 	}
 
-	// If the existing index does not match  the provided CAS
+	// If the existing index does not match the provided CAS
 	// index arg, then we shouldn't update anything and can safely
 	// return early here.
 	e, ok := entry.(*structs.DirEntry)
@@ -1178,4 +1182,67 @@ func (s *StateStore) sessionDestroyTxn(idx uint64, sessionID string, tx *memdb.T
 	// TODO: invalidate session
 
 	return nil
+}
+
+// ACLSet is used to insert an ACL rule into the state store.
+func (s *StateStore) ACLSet(idx uint64, acl *structs.ACL) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	// Call set on the ACL
+	if err := s.aclSetTxn(idx, acl, tx); err != nil {
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+// aclSetTxn is the inner method used to insert an ACL rule with the
+// proper indexes into the state store.
+func (s *StateStore) aclSetTxn(idx uint64, acl *structs.ACL, tx *memdb.Txn) error {
+	// Check that the ID is set
+	if acl.ID == "" {
+		return ErrMissingACLID
+	}
+
+	// Check for an existing ACL
+	existing, err := tx.First("acls", "id", acl.ID)
+	if err != nil {
+		return fmt.Errorf("failed acl lookup: %s", err)
+	}
+
+	// Set the indexes
+	if existing != nil {
+		acl.CreateIndex = existing.(*structs.ACL).CreateIndex
+		acl.ModifyIndex = idx
+	} else {
+		acl.CreateIndex = idx
+		acl.ModifyIndex = idx
+	}
+
+	// Insert the ACL
+	if err := tx.Insert("acls", acl); err != nil {
+		return fmt.Errorf("failed inserting acl: %s", err)
+	}
+	if err := tx.Insert("index", &IndexEntry{"acls", idx}); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+	return nil
+}
+
+// ACLGet is used to look up an existing ACL by ID.
+func (s *StateStore) ACLGet(aclID string) (*structs.ACL, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Query for the existing ACL
+	acl, err := tx.First("acls", "id", aclID)
+	if err != nil {
+		return nil, fmt.Errorf("failed acl lookup: %s", err)
+	}
+	if acl != nil {
+		return acl.(*structs.ACL), nil
+	}
+	return nil, nil
 }

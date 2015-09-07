@@ -1477,3 +1477,91 @@ func TestStateStore_SessionDestroy(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
+
+func TestStateStore_ACLSet(t *testing.T) {
+	s := testStateStore(t)
+
+	// Querying ACL's with no results returns nil
+	res, err := s.ACLGet("nope")
+	if res != nil || err != nil {
+		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", res, err)
+	}
+
+	// Inserting an ACL with empty ID is disallowed
+	if err := s.ACLSet(1, &structs.ACL{}); err == nil {
+		t.Fatalf("expected %#v, got: %#v", ErrMissingACLID, err)
+	}
+
+	// Index is not updated if nothing is saved
+	if idx := s.maxIndex("acls"); idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Inserting valid ACL works
+	acl := &structs.ACL{
+		ID:    "acl1",
+		Name:  "First ACL",
+		Type:  structs.ACLTypeClient,
+		Rules: "rules1",
+	}
+	if err := s.ACLSet(1, acl); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check that the index was updated
+	if idx := s.maxIndex("acls"); idx != 1 {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Retrieve the ACL again
+	result, err := s.ACLGet("acl1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check that the ACL matches the result
+	expect := &structs.ACL{
+		ID:    "acl1",
+		Name:  "First ACL",
+		Type:  structs.ACLTypeClient,
+		Rules: "rules1",
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 1,
+		},
+	}
+	if !reflect.DeepEqual(result, expect) {
+		t.Fatalf("bad: %#v", result)
+	}
+
+	// Update the ACL
+	acl = &structs.ACL{
+		ID:    "acl1",
+		Name:  "First ACL",
+		Type:  structs.ACLTypeClient,
+		Rules: "rules2",
+	}
+	if err := s.ACLSet(2, acl); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Index was updated
+	if idx := s.maxIndex("acls"); idx != 2 {
+		t.Fatalf("bad: %d", idx)
+	}
+
+	// ACL was updated and matches expected value
+	expect = &structs.ACL{
+		ID:    "acl1",
+		Name:  "First ACL",
+		Type:  structs.ACLTypeClient,
+		Rules: "rules2",
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 2,
+		},
+	}
+	if !reflect.DeepEqual(acl, expect) {
+		t.Fatalf("bad: %#v", acl)
+	}
+}

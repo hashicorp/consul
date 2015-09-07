@@ -479,12 +479,12 @@ type IndexedSessions struct {
 
 // ACL is used to represent a token and it's rules
 type ACL struct {
-	CreateIndex uint64
-	ModifyIndex uint64
-	ID          string
-	Name        string
-	Type        string
-	Rules       string
+	ID    string
+	Name  string
+	Type  string
+	Rules string
+
+	RaftIndex
 }
 type ACLs []*ACL
 
