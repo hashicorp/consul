@@ -293,7 +293,7 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	}
 
 	m := new(dns.Msg)
-	m.SetQuestion("bar.node.consul.", dns.TypeANY)
+	m.SetQuestion("bar.node.consul.", dns.TypeAAAA)
 
 	c := new(dns.Client)
 	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
