@@ -467,7 +467,7 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 		Datacenter:  datacenter,
 		ServiceName: service,
 		ServiceTag:  tag,
-		TagFilter:   tag != "",
+		TagFilter:   tag != "" && tag != "local",
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.config.ACLToken,
 			AllowStale: d.config.AllowStale,
@@ -500,6 +500,11 @@ RPC:
 
 	// Filter out any service nodes due to health checks
 	out.Nodes = d.filterServiceNodes(out.Nodes)
+
+	// Filter out any service nodes that are not local
+	if tag == "local" {
+		out.Nodes = d.filterLocalNode(out.Nodes)
+	}
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
@@ -554,6 +559,23 @@ OUTER:
 				continue OUTER
 			}
 		}
+	}
+	return nodes[:n]
+}
+
+// filterLocalNode is used to filter out all nodes except the local one
+// this is used with the special reserved tag 'local' to return only the local services to the agent
+func (d *DNSServer) filterLocalNode(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+	n := len(nodes)
+OUTER:
+	for i := 0; i < n; i++ {
+		node := nodes[i]
+		if node.Node.Address != d.agent.config.AdvertiseAddr {
+			nodes[i], nodes[n-1] = nodes[n-1], structs.CheckServiceNode{}
+			n--
+			i--
+		}
+		continue OUTER
 	}
 	return nodes[:n]
 }
