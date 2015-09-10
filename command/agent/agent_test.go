@@ -1207,7 +1207,7 @@ func TestAgent_ServiceMaintenanceMode(t *testing.T) {
 	}
 
 	// Enter maintenance mode for the service
-	if err := agent.EnableServiceMaintenance("redis", "broken"); err != nil {
+	if err := agent.EnableServiceMaintenance("redis", "broken", "mytoken"); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1216,6 +1216,11 @@ func TestAgent_ServiceMaintenanceMode(t *testing.T) {
 	check, ok := agent.state.Checks()[checkID]
 	if !ok {
 		t.Fatalf("should have registered critical maintenance check")
+	}
+
+	// Check that the token was used to register the check
+	if token := agent.state.CheckToken(checkID); token != "mytoken" {
+		t.Fatalf("expected 'mytoken', got: '%s'", token)
 	}
 
 	// Ensure the reason was set in notes
@@ -1234,7 +1239,7 @@ func TestAgent_ServiceMaintenanceMode(t *testing.T) {
 	}
 
 	// Enter service maintenance mode without providing a reason
-	if err := agent.EnableServiceMaintenance("redis", ""); err != nil {
+	if err := agent.EnableServiceMaintenance("redis", "", ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1299,12 +1304,17 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	defer agent.Shutdown()
 
 	// Enter maintenance mode for the node
-	agent.EnableNodeMaintenance("broken")
+	agent.EnableNodeMaintenance("broken", "mytoken")
 
 	// Make sure the critical health check was added
 	check, ok := agent.state.Checks()[nodeMaintCheckID]
 	if !ok {
 		t.Fatalf("should have registered critical node check")
+	}
+
+	// Check that the token was used to register the check
+	if token := agent.state.CheckToken(nodeMaintCheckID); token != "mytoken" {
+		t.Fatalf("expected 'mytoken', got: '%s'", token)
 	}
 
 	// Ensure the reason was set in notes
@@ -1321,7 +1331,7 @@ func TestAgent_NodeMaintenanceMode(t *testing.T) {
 	}
 
 	// Enter maintenance mode without passing a reason
-	agent.EnableNodeMaintenance("")
+	agent.EnableNodeMaintenance("", "")
 
 	// Make sure the check was registered with the default note
 	check, ok = agent.state.Checks()[nodeMaintCheckID]
