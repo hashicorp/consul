@@ -169,6 +169,102 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	}
 }
 
+func TestAgentAntiEntropy_EnableTagDrift(t *testing.T) {
+	conf := nextConfig()
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+	
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+		Address:    "127.0.0.1",
+	}
+	var out struct{}
+	
+	// EnableTagDrift = true
+	srv1 := &structs.NodeService{
+		ID:             "svc_id1",
+		Service:        "svc1",
+		Tags:           []string{"tag1"},
+		Port:           6100,
+		EnableTagDrift: true,
+	}
+	agent.state.AddService(srv1, "")
+	srv1_mod := new(structs.NodeService)
+	*srv1_mod = *srv1
+	srv1_mod.Port = 7100
+	srv1_mod.Tags = []string{"tag1_mod"}
+	args.Service = srv1_mod
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	
+	// EnableTagDrift = false
+	srv2 := &structs.NodeService{
+		ID:             "svc_id2",
+		Service:        "svc2",
+		Tags:           []string{"tag2"},
+		Port:           6200,
+		EnableTagDrift: false,
+	}
+	agent.state.AddService(srv2, "")
+	srv2_mod := new(structs.NodeService)
+	*srv2_mod = *srv2
+	srv2_mod.Port = 7200
+	srv2_mod.Tags = []string{"tag2_mod"}
+	args.Service = srv2_mod
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	
+	// Trigger anti-entropy run and wait
+	agent.StartSync()
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify that we are in sync
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+	}
+	var services structs.IndexedNodeServices
+	if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// All the services should match
+	for id, serv := range services.NodeServices.Services {
+		switch id {
+		case "svc_id1":
+			if serv.ID!="svc_id1" ||
+				serv.Service!="svc1" ||
+				serv.Port!=6100 ||
+				!reflect.DeepEqual(serv.Tags, []string{"tag1_mod"}) {
+					t.Fatalf("bad: %v %v", serv, srv1)
+			}
+		case "svc_id2":
+			if serv.ID!="svc_id2" ||
+				serv.Service!="svc2" ||
+				serv.Port!=6200 ||
+				!reflect.DeepEqual(serv.Tags, []string{"tag2"}) {
+					t.Fatalf("bad: %v %v", serv, srv2)
+			}
+		case "consul":
+			// ignore
+		default:
+			t.Fatalf("unexpected service: %v", id)
+		}
+	}
+
+	for name, status := range agent.state.serviceStatus {
+		if !status.inSync {
+			t.Fatalf("should be in sync: %v %v", name, status)
+		}
+	}
+}
+
 func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 	conf := nextConfig()
 	dir, agent := makeAgent(t, conf)
