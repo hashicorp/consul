@@ -9,14 +9,16 @@ BUG FIXES:
 * Allow services with `/` characters in the UI [GH-988]
 * Token hiding in HTTP logs bug fixed [GH-1020]
 * RFC6598 addresses are accepted as private IP's [GH-1050]
+* Tokens passed from the CLI or API work for maint mode [GH-1230]
 
 IMPROVEMENTS:
 
 * Advertised gossip/rpc addresses can now be configured [GH-1004]
+* Atlas integration options are reload-able via SIGHUP [GH-1199]
+* Atlas endpoint is a configurable option and CLI arg [GH-1201]
 
 MISC:
 
-* Protocol version bumped to 3 for serf protocol 5 [GH-996]
 * Vagrantfile fixed for VMware [GH-1042]
 
 ## 0.5.2 (May 18, 2015)

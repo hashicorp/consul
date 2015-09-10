@@ -22,7 +22,7 @@ getting a better view of what Consul is doing.
 Additionally, if the [`statsite_addr` configuration option](/docs/agent/options.html#statsite_addr)
 is provided, the telemetry information will be streamed to a
 [statsite](http://github.com/armon/statsite) server where it can be
-aggregate and flushed to Graphite or any other metrics store.
+aggregated and flushed to Graphite or any other metrics store.
 
 Below is sample output of a telemetry dump:
 

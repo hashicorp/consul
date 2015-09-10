@@ -706,7 +706,13 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Atlas configs
-	input = `{"atlas_infrastructure": "hashicorp/prod", "atlas_token": "abcdefg", "atlas_acl_token": "123456789", "atlas_join": true}`
+	input = `{
+		"atlas_infrastructure": "hashicorp/prod",
+		"atlas_token": "abcdefg",
+		"atlas_acl_token": "123456789",
+		"atlas_join": true,
+		"atlas_endpoint": "foo.bar:1111"
+}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -722,6 +728,9 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if !config.AtlasJoin {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.AtlasEndpoint != "foo.bar:1111" {
 		t.Fatalf("bad: %#v", config)
 	}
 

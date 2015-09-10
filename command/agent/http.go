@@ -41,7 +41,7 @@ type HTTPServer struct {
 
 // NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
-func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput io.Writer) ([]*HTTPServer, error) {
+func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPServer, error) {
 	var servers []*HTTPServer
 
 	if config.Ports.HTTPS > 0 {
@@ -142,27 +142,28 @@ func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput 
 		servers = append(servers, srv)
 	}
 
-	if scada != nil {
-		// Create the mux
-		mux := http.NewServeMux()
-
-		// Create the server
-		srv := &HTTPServer{
-			agent:    agent,
-			mux:      mux,
-			listener: scada,
-			logger:   log.New(logOutput, "", log.LstdFlags),
-			uiDir:    config.UiDir,
-			addr:     scadaHTTPAddr,
-		}
-		srv.registerHandlers(false) // Never allow debug for SCADA
-
-		// Start the server
-		go http.Serve(scada, mux)
-		servers = append(servers, srv)
-	}
-
 	return servers, nil
+}
+
+// newScadaHttp creates a new HTTP server wrapping the SCADA
+// listener such that HTTP calls can be sent from the brokers.
+func newScadaHttp(agent *Agent, list net.Listener) *HTTPServer {
+	// Create the mux
+	mux := http.NewServeMux()
+
+	// Create the server
+	srv := &HTTPServer{
+		agent:    agent,
+		mux:      mux,
+		listener: list,
+		logger:   agent.logger,
+		addr:     scadaHTTPAddr,
+	}
+	srv.registerHandlers(false) // Never allow debug for SCADA
+
+	// Start the server
+	go http.Serve(list, mux)
+	return srv
 }
 
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
@@ -269,13 +270,10 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
 	}
 
-	// Enable the special endpoints for UI or SCADA
-	if s.uiDir != "" || s.agent.config.AtlasInfrastructure != "" {
-		// API's are under /internal/ui/ to avoid conflict
-		s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
-		s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
-		s.mux.HandleFunc("/v1/internal/ui/services", s.wrap(s.UIServices))
-	}
+	// API's are under /internal/ui/ to avoid conflict
+	s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
+	s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
+	s.mux.HandleFunc("/v1/internal/ui/services", s.wrap(s.UIServices))
 }
 
 // wrap is used to wrap functions to make them more convenient

@@ -63,6 +63,13 @@ The options below are all specified on the command-line.
   API authentication token. This can also be provided
   using the `ATLAS_TOKEN` environment variable. Required for use with Atlas.
 
+* <a name="_atlas_endpoint"></a><a href="#_atlas_endpoint">`-atlas-endpoint`</a> - The endpoint
+  address used for Atlas integration. Used only if the `-atlas` and
+  `-atlas-token` options are specified. This is optional, and defaults to the
+  public Atlas endpoints. This can also be specified using the `SCADA_ENDPOINT`
+  environment variable. The CLI option takes precedence, followed by the
+  configuration file directive, and lastly, the environment variable.
+
 * <a name="_bootstrap"></a><a href="#_bootstrap">`-bootstrap`</a> - This flag is used to control if a
   server is in "bootstrap" mode. It is important that
   no more than one server *per* datacenter be running in this mode. Technically, a server in bootstrap mode
@@ -138,6 +145,11 @@ The options below are all specified on the command-line.
   agent's initial startup sequence. If it is provided after Consul has been
   initialized with an encryption key, then the provided key is ignored and
   a warning will be displayed.
+
+* <a name="_http_port"></a><a href="#_http_port">`-http-port`</a> - the HTTP API port to listen on.
+  This overrides the default port 8500. This option is very useful when deploying Consul
+  to an environment which communicates the HTTP port through the environment e.g. PaaS like CloudFoundry, allowing
+  you to set the port directly via a Procfile.
 
 * <a name="_join"></a><a href="#_join">`-join`</a> - Address of another agent
   to join upon starting up. This can be
@@ -350,6 +362,9 @@ definitions support being updated during a reload.
 
 * <a name="atlas_token"></a><a href="#atlas_token">`atlas_token`</a> Equivalent to the
   [`-atlas-token` command-line flag](#_atlas_token).
+
+* <a name="atlas_endpoint"></a><a href="#atlas_endpoint">`atlas_endpoint`</a> Equivalent to the
+  [`-atlas-endpoint` command-line flag](#_atlas_endpoint).
 
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).
@@ -643,3 +658,6 @@ items which are reloaded include:
 * Services
 * Watches
 * HTTP Client Address
+* Atlas Token
+* Atlas Infrastructure
+* Atlas Endpoint

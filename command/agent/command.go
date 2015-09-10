@@ -48,6 +48,7 @@ type Command struct {
 	httpServers       []*HTTPServer
 	dnsServer         *DNSServer
 	scadaProvider     *scada.Provider
+	scadaHttp         *HTTPServer
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -80,12 +81,14 @@ func (c *Command) readConfig() *Config {
 
 	cmdFlags.StringVar(&cmdConfig.ClientAddr, "client", "", "address to bind client listeners to (DNS, HTTP, HTTPS, RPC)")
 	cmdFlags.StringVar(&cmdConfig.BindAddr, "bind", "", "address to bind server listeners to")
+	cmdFlags.IntVar(&cmdConfig.Ports.HTTP, "http-port", 0, "http port to use")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddr, "advertise", "", "address to advertise instead of bind addr")
 	cmdFlags.StringVar(&cmdConfig.AdvertiseAddrWan, "advertise-wan", "", "address to advertise on wan instead of bind or advertise addr")
 
 	cmdFlags.StringVar(&cmdConfig.AtlasInfrastructure, "atlas", "", "infrastructure name in Atlas")
 	cmdFlags.StringVar(&cmdConfig.AtlasToken, "atlas-token", "", "authentication token for Atlas")
 	cmdFlags.BoolVar(&cmdConfig.AtlasJoin, "atlas-join", false, "auto-join with Atlas")
+	cmdFlags.StringVar(&cmdConfig.AtlasEndpoint, "atlas-endpoint", "", "endpoint for Atlas integration")
 
 	cmdFlags.IntVar(&cmdConfig.Protocol, "protocol", -1, "protocol version")
 
@@ -345,20 +348,14 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 	c.rpcServer = NewAgentRPC(agent, rpcListener, logOutput, logWriter)
 
 	// Enable the SCADA integration
-	var scadaList net.Listener
-	if config.AtlasInfrastructure != "" {
-		provider, list, err := NewProvider(config, logOutput)
-		if err != nil {
-			agent.Shutdown()
-			c.Ui.Error(fmt.Sprintf("Error starting SCADA connection: %s", err))
-			return err
-		}
-		c.scadaProvider = provider
-		scadaList = list
+	if err := c.setupScadaConn(config); err != nil {
+		agent.Shutdown()
+		c.Ui.Error(fmt.Sprintf("Error starting SCADA connection: %s", err))
+		return err
 	}
 
-	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 || scadaList != nil {
-		servers, err := NewHTTPServers(agent, config, scadaList, logOutput)
+	if config.Ports.HTTP > 0 || config.Ports.HTTPS > 0 {
+		servers, err := NewHTTPServers(agent, config, logOutput)
 		if err != nil {
 			agent.Shutdown()
 			c.Ui.Error(fmt.Sprintf("Error starting http servers: %s", err))
@@ -684,9 +681,16 @@ AFTER_MIGRATE:
 	for _, server := range c.httpServers {
 		defer server.Shutdown()
 	}
-	if c.scadaProvider != nil {
-		defer c.scadaProvider.Shutdown()
-	}
+
+	// Check and shut down the SCADA listeners at the end
+	defer func() {
+		if c.scadaHttp != nil {
+			c.scadaHttp.Shutdown()
+		}
+		if c.scadaProvider != nil {
+			c.scadaProvider.Shutdown()
+		}
+	}()
 
 	// Join startup nodes if specified
 	if err := c.startupJoin(config); err != nil {
@@ -904,7 +908,44 @@ func (c *Command) handleReload(config *Config) *Config {
 		}(wp)
 	}
 
+	// Reload SCADA client if we have a change
+	if newConf.AtlasInfrastructure != config.AtlasInfrastructure ||
+		newConf.AtlasToken != config.AtlasToken ||
+		newConf.AtlasEndpoint != config.AtlasEndpoint {
+		if err := c.setupScadaConn(newConf); err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed reloading SCADA client: %s", err))
+			return nil
+		}
+	}
+
 	return newConf
+}
+
+// startScadaClient is used to start a new SCADA provider and listener,
+// replacing any existing listeners.
+func (c *Command) setupScadaConn(config *Config) error {
+	// Shut down existing SCADA listeners
+	if c.scadaProvider != nil {
+		c.scadaProvider.Shutdown()
+	}
+	if c.scadaHttp != nil {
+		c.scadaHttp.Shutdown()
+	}
+
+	// No-op if we don't have an infrastructure
+	if config.AtlasInfrastructure == "" {
+		return nil
+	}
+
+	// Create the new provider and listener
+	c.Ui.Output("Connecting to Atlas: " + config.AtlasInfrastructure)
+	provider, list, err := NewProvider(config, c.logOutput)
+	if err != nil {
+		return err
+	}
+	c.scadaProvider = provider
+	c.scadaHttp = newScadaHttp(c.agent, list)
+	return nil
 }
 
 func (c *Command) Synopsis() string {
@@ -924,8 +965,10 @@ Options:
   -atlas=org/name          Sets the Atlas infrastructure name, enables SCADA.
   -atlas-join              Enables auto-joining the Atlas cluster
   -atlas-token=token       Provides the Atlas API token
+  -atlas-endpoint=1.2.3.4  The address of the endpoint for Atlas integration.
   -bootstrap               Sets server to bootstrap mode
   -bind=0.0.0.0            Sets the bind address for cluster communication
+  -http-port=8500          Sets the HTTP API port to listen on
   -bootstrap-expect=0      Sets server to expect bootstrap mode.
   -client=127.0.0.1        Sets the address to bind for client access.
                            This includes RPC, DNS, HTTP and HTTPS (if configured)

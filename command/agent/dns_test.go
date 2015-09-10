@@ -293,7 +293,7 @@ func TestDNS_NodeLookup_AAAA(t *testing.T) {
 	}
 
 	m := new(dns.Msg)
-	m.SetQuestion("bar.node.consul.", dns.TypeANY)
+	m.SetQuestion("bar.node.consul.", dns.TypeAAAA)
 
 	c := new(dns.Client)
 	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
@@ -1416,6 +1416,72 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	}
 }
 
+func TestDNS_ServiceLookup_MaxResponses(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register nodes
+	for i := 0; i < 6*maxServiceResponses; i++ {
+		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
+		if i > 3 {
+			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
+		}
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       fmt.Sprintf("foo%d", i),
+			Address:    nodeAddress,
+			Service: &structs.NodeService{
+				Service: "web",
+				Port:    8000,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Ensure the response is randomized each time.
+	m := new(dns.Msg)
+	m.SetQuestion("web.service.consul.", dns.TypeANY)
+
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 3 {
+		t.Fatalf("should receive 3 answers for ANY")
+	}
+
+	m.SetQuestion("web.service.consul.", dns.TypeA)
+	in, _, err = c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 3 {
+		t.Fatalf("should receive 3 answers for A")
+	}
+
+	m.SetQuestion("web.service.consul.", dns.TypeAAAA)
+	in, _, err = c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Answer) != 3 {
+		t.Fatalf("should receive 3 answers for AAAA")
+	}
+
+}
+
 func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	recursor := makeRecursor(t, []dns.RR{
 		dnsCNAME("www.google.com", "google.com"),
@@ -1932,6 +1998,96 @@ func TestDNS_NonExistingLookup(t *testing.T) {
 	}
 	if soaRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+}
+
+func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// register v6 only service
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foov6",
+		Address:    "fe80::1",
+		Service: &structs.NodeService{
+			Service: "webv6",
+			Port:    8000,
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// register v4 only service
+	args = &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foov4",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "webv4",
+			Port:    8000,
+		},
+	}
+
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// check for ipv6 records on ipv4 only service
+	m := new(dns.Msg)
+	m.SetQuestion("webv4.service.consul.", dns.TypeAAAA)
+
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	c := new(dns.Client)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Ns) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	soaRec, ok := in.Ns[0].(*dns.SOA)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+	if soaRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+
+	if in.Rcode != dns.RcodeSuccess {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	// check for ipv4 records on ipv6 only service
+	m.SetQuestion("webv6.service.consul.", dns.TypeA)
+
+	in, _, err = c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(in.Ns) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+
+	soaRec, ok = in.Ns[0].(*dns.SOA)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+	if soaRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+
+	if in.Rcode != dns.RcodeSuccess {
+		t.Fatalf("Bad: %#v", in)
 	}
 
 }

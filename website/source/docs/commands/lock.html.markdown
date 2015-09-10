@@ -60,5 +60,7 @@ The list of available flags are:
 
 * `-token` - ACL token to use. Defaults to that of agent.
 
+* `-pass-stdin` - Pass stdin to child process.
+
 * `-verbose` - Enables verbose output.
 

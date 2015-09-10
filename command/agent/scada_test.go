@@ -43,6 +43,7 @@ func TestProviderConfig(t *testing.T) {
 	conf.Server = true
 	conf.AtlasInfrastructure = "armon/test"
 	conf.AtlasToken = "foobarbaz"
+	conf.AtlasEndpoint = "foo.bar:1111"
 	pc := ProviderConfig(conf)
 
 	expect := &client.ProviderConfig{
@@ -62,6 +63,7 @@ func TestProviderConfig(t *testing.T) {
 		Handlers: map[string]client.CapabilityProvider{
 			"http": nil,
 		},
+		Endpoint:      "foo.bar:1111",
 		ResourceGroup: "armon/test",
 		Token:         "foobarbaz",
 	}

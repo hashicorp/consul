@@ -352,9 +352,9 @@ INVALID:
 
 // nodeLookup is used to handle a node query
 func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.Msg) {
-	// Only handle ANY and A type requests
+	// Only handle ANY, A and AAAA type requests
 	qType := req.Question[0].Qtype
-	if qType != dns.TypeANY && qType != dns.TypeA {
+	if qType != dns.TypeANY && qType != dns.TypeA && qType != dns.TypeAAAA {
 		return
 	}
 
@@ -511,9 +511,17 @@ RPC:
 	// Perform a random shuffle
 	shuffleServiceNodes(out.Nodes)
 
+	// Add various responses depending on the request
+	qType := req.Question[0].Qtype
+	d.serviceNodeRecords(out.Nodes, req, resp, ttl)
+
+	if qType == dns.TypeSRV {
+		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
+	}
+
 	// If the network is not TCP, restrict the number of responses
-	if network != "tcp" && len(out.Nodes) > maxServiceResponses {
-		out.Nodes = out.Nodes[:maxServiceResponses]
+	if network != "tcp" && len(resp.Answer) > maxServiceResponses {
+		resp.Answer = resp.Answer[:maxServiceResponses]
 
 		// Flag that there are more records to return in the UDP response
 		if d.config.EnableTruncate {
@@ -521,12 +529,10 @@ RPC:
 		}
 	}
 
-	// Add various responses depending on the request
-	qType := req.Question[0].Qtype
-	d.serviceNodeRecords(out.Nodes, req, resp, ttl)
-
-	if qType == dns.TypeSRV {
-		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
+	// If the answer is empty, return not found
+	if len(resp.Answer) == 0 {
+		d.addSOA(d.domain, resp)
+		return
 	}
 }
 
