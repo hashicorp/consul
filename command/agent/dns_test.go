@@ -1552,6 +1552,65 @@ func TestDNS_ServiceLookup_CNAME(t *testing.T) {
 	}
 }
 
+func TestDNS_ServiceLookup_LocalTag(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo",
+		Address:    "127.0.0.1",
+		Service: &structs.NodeService{
+			Service: "Db",
+			Tags:    []string{"Master"},
+			Port:    12345,
+		},
+	}
+	
+	args2 := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo1",
+		Address:    "127.0.1.1",
+		Service: &structs.NodeService{
+			Service: "Db",
+			Tags:    []string{"Master"},
+			Port:    12345,
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	var out2 struct{}
+	if err := srv.agent.RPC("Catalog.Register", args2, &out2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("local.db.service.consul.", dns.TypeA)
+
+	c := new(dns.Client)
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	aRec, ok := in.Answer[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if aRec.A.String() != "127.0.0.1" {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+}
+
 func TestDNS_NodeLookup_TTL(t *testing.T) {
 	recursor := makeRecursor(t, []dns.RR{
 		dnsCNAME("www.google.com", "google.com"),
