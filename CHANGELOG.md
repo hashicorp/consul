@@ -9,6 +9,7 @@ BUG FIXES:
 * Allow services with `/` characters in the UI [GH-988]
 * Token hiding in HTTP logs bug fixed [GH-1020]
 * RFC6598 addresses are accepted as private IP's [GH-1050]
+* Tokens passed from the CLI or API work for maint mode [GH-1230]
 
 IMPROVEMENTS:
 
