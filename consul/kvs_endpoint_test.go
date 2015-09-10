@@ -605,7 +605,7 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 
 	// Create and invalidate a session with a lock
 	state := s1.fsm.State()
-	if err := state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
+	if err := state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{

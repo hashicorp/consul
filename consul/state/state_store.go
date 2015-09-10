@@ -34,7 +34,7 @@ var (
 // pairs and more. The DB is entirely in-memory and is constructed
 // from the Raft log through the FSM.
 type StateStore struct {
-	logger *log.Logger
+	logger *log.Logger // TODO(slackpad) - Delete if unused!
 	db     *memdb.MemDB
 }
 
@@ -168,7 +168,7 @@ func (s *StateStore) Nodes() (uint64, structs.Nodes, error) {
 		if n.ModifyIndex > lindex {
 			lindex = n.ModifyIndex
 		}
-		results = append(results, node.(*structs.Node))
+		results = append(results, n)
 	}
 	return lindex, results, nil
 }
@@ -194,6 +194,9 @@ func (s *StateStore) deleteNodeTxn(idx uint64, nodeID string, tx *memdb.Txn) err
 	node, err := tx.First("nodes", "id", nodeID)
 	if err != nil {
 		return fmt.Errorf("node lookup failed: %s", err)
+	}
+	if node == nil {
+		return nil
 	}
 
 	// Delete all services associated with the node and update the service index
@@ -273,6 +276,15 @@ func (s *StateStore) ensureServiceTxn(idx uint64, node string, svc *structs.Node
 	} else {
 		entry.CreateIndex = idx
 		entry.ModifyIndex = idx
+	}
+
+	// Get the node
+	n, err := tx.First("nodes", "id", node)
+	if err != nil {
+		return fmt.Errorf("failed node lookup: %s", err)
+	}
+	if n == nil {
+		return ErrMissingNode
 	}
 
 	// Insert the service and update the index
@@ -361,6 +373,9 @@ func (s *StateStore) deleteServiceTxn(idx uint64, nodeID, serviceID string, tx *
 	service, err := tx.First("services", "id", nodeID, serviceID)
 	if err != nil {
 		return fmt.Errorf("failed service lookup: %s", err)
+	}
+	if service == nil {
+		return nil
 	}
 
 	// Delete any checks associated with the service
@@ -541,6 +556,9 @@ func (s *StateStore) deleteCheckTxn(idx uint64, node, id string, tx *memdb.Txn) 
 	check, err := tx.First("checks", "id", node, id)
 	if err != nil {
 		return fmt.Errorf("check lookup failed: %s", err)
+	}
+	if check == nil {
+		return nil
 	}
 
 	// Delete the check from the DB and update the index
@@ -876,6 +894,9 @@ func (s *StateStore) kvsDeleteTxn(idx uint64, key string, tx *memdb.Txn) error {
 	if err != nil {
 		return fmt.Errorf("failed kvs lookup: %s", err)
 	}
+	if entry == nil {
+		return nil
+	}
 
 	// Delete the entry and update the index
 	if err := tx.Delete("kvs", entry); err != nil {
@@ -1045,7 +1066,7 @@ func (s *StateStore) sessionCreateTxn(idx uint64, sess *structs.Session, tx *mem
 		// Check that the check is not in critical state
 		status := check.(*structs.HealthCheck).Status
 		if status == structs.HealthCritical {
-			return fmt.Errorf("Check '%s' is in %s state", status)
+			return fmt.Errorf("Check '%s' is in %s state", checkID, status)
 		}
 	}
 
@@ -1247,6 +1268,32 @@ func (s *StateStore) ACLGet(aclID string) (*structs.ACL, error) {
 	return nil, nil
 }
 
+// ACLList is used to list out all of the ACLs in the state store.
+func (s *StateStore) ACLList() (uint64, []*structs.ACL, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Query all of the ACLs in the state store
+	acls, err := tx.Get("acls", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed acl lookup: %s", err)
+	}
+
+	// Go over all of the ACLs and build the response
+	var result []*structs.ACL
+	var lindex uint64
+	for acl := acls.Next(); acl != nil; acl = acls.Next() {
+		a := acl.(*structs.ACL)
+		result = append(result, a)
+
+		// Accumulate the highest index
+		if a.ModifyIndex > lindex {
+			lindex = a.ModifyIndex
+		}
+	}
+	return lindex, result, nil
+}
+
 // ACLDelete is used to remove an existing ACL from the state store. If
 // the ACL does not exist this is a no-op and no error is returned.
 func (s *StateStore) ACLDelete(idx uint64, aclID string) error {
@@ -1282,30 +1329,4 @@ func (s *StateStore) aclDeleteTxn(idx uint64, aclID string, tx *memdb.Txn) error
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	return nil
-}
-
-// ACLList is used to list out all of the ACLs in the state store.
-func (s *StateStore) ACLList() (uint64, []*structs.ACL, error) {
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Query all of the ACLs in the state store
-	acls, err := tx.Get("acls", "id")
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed acl lookup: %s", err)
-	}
-
-	// Go over all of the ACLs and build the response
-	var result []*structs.ACL
-	var lindex uint64
-	for acl := acls.Next(); acl != nil; acl = acls.Next() {
-		a := acl.(*structs.ACL)
-		result = append(result, a)
-
-		// Accumulate the highest index
-		if a.ModifyIndex > lindex {
-			lindex = a.ModifyIndex
-		}
-	}
-	return lindex, result, nil
 }

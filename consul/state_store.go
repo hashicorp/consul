@@ -504,7 +504,7 @@ func (s *StateStore) EnsureRegistration(index uint64, req *structs.RegisterReque
 	defer tx.Abort()
 
 	// Ensure the node
-	node := structs.Node{req.Node, req.Address}
+	node := structs.Node{Node: req.Node, Address: req.Address}
 	if err := s.ensureNodeTxn(index, node, tx); err != nil {
 		return err
 	}
@@ -578,9 +578,9 @@ func (s *StateStore) Nodes() (uint64, structs.Nodes) {
 	if err != nil {
 		s.logger.Printf("[ERR] consul.state: Error getting nodes: %v", err)
 	}
-	results := make([]structs.Node, len(res))
+	results := make(structs.Nodes, len(res))
 	for i, r := range res {
-		results[i] = *r.(*structs.Node)
+		results[i] = r.(*structs.Node)
 	}
 	return idx, results
 }
@@ -665,7 +665,7 @@ func (s *StateStore) parseNodeServices(tables MDBTables, tx *MDBTxn, name string
 
 	// Set the address
 	node := res[0].(*structs.Node)
-	ns.Node = *node
+	ns.Node = node
 
 	// Get the services
 	res, err = s.serviceTable.GetTxn(tx, "id", name)
@@ -864,7 +864,7 @@ func (s *StateStore) parseServiceNodes(tx *MDBTxn, table *MDBTable, res []interf
 		}
 		srv.Address = nodeRes[0].(*structs.Node).Address
 
-		nodes[i] = *srv
+		nodes[i] = srv
 	}
 
 	return nodes
@@ -1060,8 +1060,8 @@ func (s *StateStore) parseCheckServiceNodes(tx *MDBTxn, res []interface{}, err e
 		checks = append(checks, nodeChecks...)
 
 		// Setup the node
-		nodes[i].Node = *nodeRes[0].(*structs.Node)
-		nodes[i].Service = structs.NodeService{
+		nodes[i].Node = nodeRes[0].(*structs.Node)
+		nodes[i].Service = &structs.NodeService{
 			ID:      srv.ServiceID,
 			Service: srv.ServiceName,
 			Tags:    srv.ServiceTags,
@@ -2085,9 +2085,9 @@ func (s *StateSnapshot) Nodes() structs.Nodes {
 		s.store.logger.Printf("[ERR] consul.state: Failed to get nodes: %v", err)
 		return nil
 	}
-	results := make([]structs.Node, len(res))
+	results := make(structs.Nodes, len(res))
 	for i, r := range res {
-		results[i] = *r.(*structs.Node)
+		results[i] = r.(*structs.Node)
 	}
 	return results
 }

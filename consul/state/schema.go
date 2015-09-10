@@ -177,6 +177,7 @@ func checksTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
+			// TODO(slackpad): This one is new, where is it used?
 			"node_service": &memdb.IndexSchema{
 				Name:         "node_service",
 				AllowMissing: true,
@@ -304,6 +305,7 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 					},
 				},
 			},
+			// TODO(slackpad): Where did these come from?
 			"session": &memdb.IndexSchema{
 				Name:         "session",
 				AllowMissing: false,
@@ -313,6 +315,7 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 					Lowercase: false,
 				},
 			},
+			// TODO(slackpad): Should this be called node_session?
 			"node": &memdb.IndexSchema{
 				Name:         "node",
 				AllowMissing: false,

@@ -55,7 +55,9 @@ func testRegisterService(t *testing.T, s *StateStore, idx uint64, nodeID, servic
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if result, ok := service.(*structs.ServiceNode); !ok || result.ServiceID != serviceID {
+	if result, ok := service.(*structs.ServiceNode); !ok ||
+		result.Node != nodeID ||
+		result.ServiceID != serviceID {
 		t.Fatalf("bad service: %#v", result)
 	}
 }
@@ -78,7 +80,10 @@ func testRegisterCheck(t *testing.T, s *StateStore, idx uint64,
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if result, ok := c.(*structs.HealthCheck); !ok || result.CheckID != checkID {
+	if result, ok := c.(*structs.HealthCheck); !ok ||
+		result.Node != nodeID ||
+		result.ServiceID != serviceID ||
+		result.CheckID != checkID {
 		t.Fatalf("bad check: %#v", result)
 	}
 }
@@ -97,6 +102,16 @@ func testSetKey(t *testing.T, s *StateStore, idx uint64, key, value string) {
 	}
 	if result, ok := e.(*structs.DirEntry); !ok || result.Key != key {
 		t.Fatalf("bad kvs entry: %#v", result)
+	}
+}
+
+func TestStateStore_maxIndex(t *testing.T) {
+	s := testStateStore(t)
+	testRegisterNode(t, s, 0, "foo")
+	testRegisterNode(t, s, 1, "bar")
+	testRegisterService(t, s, 2, "foo", "consul")
+	if max := s.maxIndex("nodes", "services"); max != 2 {
+		t.Fatalf("bad max: %d", max)
 	}
 }
 
@@ -257,6 +272,15 @@ func TestStateStore_DeleteNode(t *testing.T) {
 			t.Fatalf("bad index: %d (%s)", idx, tbl)
 		}
 	}
+
+	// Deleting a nonexistent node should be idempotent and not return
+	// an error
+	if err := s.DeleteNode(4, "node1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx := s.maxIndex("nodes"); idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
 }
 
 func TestStateStore_EnsureService(t *testing.T) {
@@ -268,10 +292,6 @@ func TestStateStore_EnsureService(t *testing.T) {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
 
-	// Register the nodes
-	testRegisterNode(t, s, 0, "node1")
-	testRegisterNode(t, s, 1, "node2")
-
 	// Create the service registration
 	ns1 := &structs.NodeService{
 		ID:      "service1",
@@ -280,6 +300,15 @@ func TestStateStore_EnsureService(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
+
+	// Creating a service without a node returns an error
+	if err := s.EnsureService(1, "node1", ns1); err != ErrMissingNode {
+		t.Fatalf("expected %#v, got: %#v", ErrMissingNode, err)
+	}
+
+	// Register the nodes
+	testRegisterNode(t, s, 0, "node1")
+	testRegisterNode(t, s, 1, "node2")
 
 	// Service successfully registers into the state store
 	if err = s.EnsureService(10, "node1", ns1); err != nil {
@@ -356,6 +385,11 @@ func TestStateStore_EnsureService(t *testing.T) {
 	if svc, ok := out.Services["service1"]; !ok || svc.Address != "1.1.1.2" {
 		t.Fatalf("bad: %#v", svc)
 	}
+
+	// Index tables were updated
+	if idx := s.maxIndex("services"); idx != 40 {
+		t.Fatalf("bad index: %d", idx)
+	}
 }
 
 func TestStateStore_DeleteService(t *testing.T) {
@@ -391,6 +425,15 @@ func TestStateStore_DeleteService(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 	if idx := s.maxIndex("checks"); idx != 4 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Deleting a nonexistent service should be idempotent and not return an
+	// error
+	if err := s.DeleteService(5, "node1", "service1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx := s.maxIndex("services"); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -504,6 +547,45 @@ func TestStateStore_EnsureCheck_defaultStatus(t *testing.T) {
 	}
 }
 
+func TestStateStore_NodeChecks(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create the first node and service with some checks
+	testRegisterNode(t, s, 0, "node1")
+	testRegisterService(t, s, 1, "node1", "service1")
+	testRegisterCheck(t, s, 2, "node1", "service1", "check1", structs.HealthPassing)
+	testRegisterCheck(t, s, 3, "node1", "service1", "check2", structs.HealthPassing)
+
+	// Create a second node/service with a different set of checks
+	testRegisterNode(t, s, 4, "node2")
+	testRegisterService(t, s, 5, "node2", "service2")
+	testRegisterCheck(t, s, 6, "node2", "service2", "check3", structs.HealthPassing)
+
+	// Try querying for all checks associated with node1
+	idx, checks, err := s.NodeChecks("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if len(checks) != 2 || checks[0].CheckID != "check1" || checks[1].CheckID != "check2" {
+		t.Fatalf("bad checks: %#v", checks)
+	}
+
+	// Try querying for all checks associated with node2
+	idx, checks, err = s.NodeChecks("node2")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if len(checks) != 1 || checks[0].CheckID != "check3" {
+		t.Fatalf("bad checks: %#v", checks)
+	}
+}
+
 func TestStateStore_ServiceChecks(t *testing.T) {
 	s := testStateStore(t)
 
@@ -528,33 +610,6 @@ func TestStateStore_ServiceChecks(t *testing.T) {
 	}
 	if len(checks) != 2 || checks[0].CheckID != "check1" || checks[1].CheckID != "check2" {
 		t.Fatalf("bad checks: %#v", checks)
-	}
-}
-
-func TestStateStore_DeleteCheck(t *testing.T) {
-	s := testStateStore(t)
-
-	// Register a node and a node-level health check
-	testRegisterNode(t, s, 1, "node1")
-	testRegisterCheck(t, s, 2, "node1", "", "check1", structs.HealthPassing)
-
-	// Delete the check
-	if err := s.DeleteCheck(3, "node1", "check1"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Check is gone
-	_, checks, err := s.NodeChecks("node1")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(checks) != 0 {
-		t.Fatalf("bad: %#v", checks)
-	}
-
-	// Index tables were updated
-	if idx := s.maxIndex("checks"); idx != 3 {
-		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -594,6 +649,42 @@ func TestStateStore_ChecksInState(t *testing.T) {
 	}
 	if n := len(checks); n != 3 {
 		t.Fatalf("expected 3 checks, got: %d", n)
+	}
+}
+
+func TestStateStore_DeleteCheck(t *testing.T) {
+	s := testStateStore(t)
+
+	// Register a node and a node-level health check
+	testRegisterNode(t, s, 1, "node1")
+	testRegisterCheck(t, s, 2, "node1", "", "check1", structs.HealthPassing)
+
+	// Delete the check
+	if err := s.DeleteCheck(3, "node1", "check1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Check is gone
+	_, checks, err := s.NodeChecks("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(checks) != 0 {
+		t.Fatalf("bad: %#v", checks)
+	}
+
+	// Index tables were updated
+	if idx := s.maxIndex("checks"); idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Deleting a nonexistent check should be idempotent and not return an
+	// error
+	if err := s.DeleteCheck(4, "node1", "check1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx := s.maxIndex("checks"); idx != 3 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -835,8 +926,14 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	}
 }
 
-func TestStateStore_KVSSet(t *testing.T) {
+func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 	s := testStateStore(t)
+
+	// Get on an nonexistent key returns nil
+	result, err := s.KVSGet("foo")
+	if result != nil || err != nil {
+		t.Fatalf("expected (nil, nil), got : (%#v, %#v)", result, err)
+	}
 
 	// Write a new K/V entry to the store
 	entry := &structs.DirEntry{
@@ -848,7 +945,7 @@ func TestStateStore_KVSSet(t *testing.T) {
 	}
 
 	// Retrieve the K/V entry again
-	result, err := s.KVSGet("foo")
+	result, err = s.KVSGet("foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -885,44 +982,6 @@ func TestStateStore_KVSSet(t *testing.T) {
 	}
 	if v := string(result.Value); v != "baz" {
 		t.Fatalf("expected 'baz', got '%s'", v)
-	}
-}
-
-func TestStateStore_KVSDelete(t *testing.T) {
-	s := testStateStore(t)
-
-	// Create some KV pairs
-	testSetKey(t, s, 1, "foo", "foo")
-	testSetKey(t, s, 2, "foo/bar", "bar")
-
-	// Call a delete on a specific key
-	if err := s.KVSDelete(3, "foo"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// The entry was removed from the state store
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-	e, err := tx.First("kvs", "id", "foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if e != nil {
-		t.Fatalf("expected kvs entry to be deleted, got: %#v", e)
-	}
-
-	// Try fetching the other keys to ensure they still exist
-	e, err = tx.First("kvs", "id", "foo/bar")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if e == nil || string(e.(*structs.DirEntry).Value) != "bar" {
-		t.Fatalf("bad kvs entry: %#v", e)
-	}
-
-	// Check that the index table was updated
-	if idx := s.maxIndex("kvs"); idx != 3 {
-		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -992,6 +1051,7 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 	testSetKey(t, s, 4, "foo/bar/zip", "zip")
 	testSetKey(t, s, 5, "foo/bar/zip/zam", "zam")
 	testSetKey(t, s, 6, "foo/bar/zip/zorp", "zorp")
+	testSetKey(t, s, 7, "some/other/prefix", "nack")
 
 	// Query using a prefix and pass a separator
 	idx, keys, err = s.KVSListKeys("foo/bar/", "/")
@@ -1013,10 +1073,60 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
+	}
 	expect = []string{"foo", "foo/bar", "foo/bar/baz", "foo/bar/zip",
 		"foo/bar/zip/zam", "foo/bar/zip/zorp"}
 	if !reflect.DeepEqual(keys, expect) {
 		t.Fatalf("bad keys: %#v", keys)
+	}
+}
+
+func TestStateStore_KVSDelete(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create some KV pairs
+	testSetKey(t, s, 1, "foo", "foo")
+	testSetKey(t, s, 2, "foo/bar", "bar")
+
+	// Call a delete on a specific key
+	if err := s.KVSDelete(3, "foo"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// The entry was removed from the state store
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+	e, err := tx.First("kvs", "id", "foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if e != nil {
+		t.Fatalf("expected kvs entry to be deleted, got: %#v", e)
+	}
+
+	// Try fetching the other keys to ensure they still exist
+	e, err = tx.First("kvs", "id", "foo/bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if e == nil || string(e.(*structs.DirEntry).Value) != "bar" {
+		t.Fatalf("bad kvs entry: %#v", e)
+	}
+
+	// Check that the index table was updated
+	if idx := s.maxIndex("kvs"); idx != 3 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Deleting a nonexistent key should be idempotent and note return an
+	// error
+	if err := s.KVSDelete(4, "foo"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx := s.maxIndex("kvs"); idx != 3 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -1064,6 +1174,16 @@ func TestStateStore_KVSDeleteCAS(t *testing.T) {
 	}
 	if e != nil {
 		t.Fatalf("entry should be deleted")
+	}
+
+	// A delete on a nonexistent key should be idempotent and not return an
+	// error
+	ok, err = s.KVSDeleteCAS(5, 2, "bar")
+	if !ok || err != nil {
+		t.Fatalf("expected (true, nil), got: (%v, %#v)", ok, err)
+	}
+	if idx := s.maxIndex("kvs"); idx != 4 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -1114,7 +1234,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 
 	// Entry was inserted
 	tx = s.db.Txn(false)
-	if e, err := tx.First("kvs", "id", "foo"); e == nil || err != nil {
+	if e, err := tx.First("kvs", "id", "foo"); e == nil || err != nil || string(e.(*structs.DirEntry).Value) != "foo" {
 		t.Fatalf("expected kvs to exist, got: (%#v, %#v)", e, err)
 	}
 	tx.Abort()
@@ -1122,6 +1242,21 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	// Index was updated
 	if idx := s.maxIndex("kvs"); idx != 2 {
 		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Doing a CAS with a ModifyIndex of zero when an entry exists does
+	// not do anything.
+	entry = &structs.DirEntry{
+		Key:   "foo",
+		Value: []byte("foo"),
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 0,
+			ModifyIndex: 0,
+		},
+	}
+	ok, err = s.KVSSetCAS(3, entry)
+	if ok || err != nil {
+		t.Fatalf("expected (false, nil), got: (%#v, %#v)", ok, err)
 	}
 
 	// Doing a CAS with a ModifyIndex which does not match the current
@@ -1153,6 +1288,33 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 
 	// Index was not modified
 	if idx := s.maxIndex("kvs"); idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Doing a CAS with the proper current index should make the
+	// modification.
+	entry = &structs.DirEntry{
+		Key:   "foo",
+		Value: []byte("bar"),
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 2,
+			ModifyIndex: 2,
+		},
+	}
+	ok, err = s.KVSSetCAS(3, entry)
+	if !ok || err != nil {
+		t.Fatalf("expected (true, nil), got: (%#v, %#v)", ok, err)
+	}
+
+	// Entry was updated
+	tx = s.db.Txn(false)
+	if e, err := tx.First("kvs", "id", "foo"); e == nil || err != nil || string(e.(*structs.DirEntry).Value) != "bar" {
+		t.Fatalf("expected kvs to exist, got: (%#v, %#v)", e, err)
+	}
+	tx.Abort()
+
+	// Index was updated
+	if idx := s.maxIndex("kvs"); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -1207,7 +1369,7 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 	}
 }
 
-func TestStateStore_SessionCreate(t *testing.T) {
+func TestStateStore_SessionCreate_GetSession(t *testing.T) {
 	s := testStateStore(t)
 
 	// GetSession returns nil if the session doesn't exist
@@ -1322,7 +1484,7 @@ func TestStateStore_SessionCreate(t *testing.T) {
 	}
 }
 
-func TestStateStore_ListSessions(t *testing.T) {
+func TestStateStore_SessionList(t *testing.T) {
 	s := testStateStore(t)
 
 	// Listing when no sessions exist returns nil
@@ -1478,7 +1640,7 @@ func TestStateStore_SessionDestroy(t *testing.T) {
 	}
 }
 
-func TestStateStore_ACLSet(t *testing.T) {
+func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	s := testStateStore(t)
 
 	// Querying ACL's with no results returns nil
@@ -1566,45 +1728,6 @@ func TestStateStore_ACLSet(t *testing.T) {
 	}
 }
 
-func TestStateStore_ACLDelete(t *testing.T) {
-	s := testStateStore(t)
-
-	// Calling delete on an ACL which doesn't exist returns nil
-	if err := s.ACLDelete(1, "nope"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Index isn't updated if nothing is deleted
-	if idx := s.maxIndex("acls"); idx != 0 {
-		t.Fatalf("bad index: %d", idx)
-	}
-
-	// Insert an ACL
-	if err := s.ACLSet(1, &structs.ACL{ID: "acl1"}); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Delete the ACL and check that the index was updated
-	if err := s.ACLDelete(2, "acl1"); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx := s.maxIndex("acls"); idx != 2 {
-		t.Fatalf("bad index: %d", idx)
-	}
-
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Check that the ACL was really deleted
-	result, err := tx.First("acls", "id", "acl1")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if result != nil {
-		t.Fatalf("expected nil, got: %#v", result)
-	}
-}
-
 func TestStateStore_ACLList(t *testing.T) {
 	s := testStateStore(t)
 
@@ -1650,5 +1773,44 @@ func TestStateStore_ACLList(t *testing.T) {
 	// Check that the result matches
 	if !reflect.DeepEqual(res, acls) {
 		t.Fatalf("bad: %#v", res)
+	}
+}
+
+func TestStateStore_ACLDelete(t *testing.T) {
+	s := testStateStore(t)
+
+	// Calling delete on an ACL which doesn't exist returns nil
+	if err := s.ACLDelete(1, "nope"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Index isn't updated if nothing is deleted
+	if idx := s.maxIndex("acls"); idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Insert an ACL
+	if err := s.ACLSet(1, &structs.ACL{ID: "acl1"}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Delete the ACL and check that the index was updated
+	if err := s.ACLDelete(2, "acl1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx := s.maxIndex("acls"); idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Check that the ACL was really deleted
+	result, err := tx.First("acls", "id", "acl1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result != nil {
+		t.Fatalf("expected nil, got: %#v", result)
 	}
 }
