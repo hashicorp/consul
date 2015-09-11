@@ -200,7 +200,7 @@ The options below are all specified on the command-line.
 
 * <a name="_pid_file"></a><a href="#_pid_file">`-pid-file`</a> - This flag provides the file
   path for the agent to store its PID. This is useful for sending signals (for example, `SIGINT`
-  to close the agent or `SIGHUP` to update check definit
+  to close the agent or `SIGHUP` to update check definite
 
 * <a name="_protocol"></a><a href="#_protocol">`-protocol`</a> - The Consul protocol version to
   use. This defaults to the latest version. This should be set only when [upgrading](/docs/upgrading.html).

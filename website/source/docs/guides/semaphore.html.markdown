@@ -117,7 +117,7 @@ This is done by:
 curl -X PUT -d <Updated Lock> http://localhost:8500/v1/kv/<lock>?cas=<lock-modify-index>
  ```
 
-If this suceeds with `true`, the contender now holds a slot in the semaphore. If this fails
+If this succeeds with `true`, the contender now holds a slot in the semaphore. If this fails
 with `false`, then likely there was a race with another contender to acquire the slot.
 Both code paths now go into an idle waiting state. In this state, we watch for changes
 on `<prefix>`. This is because a slot may be released, a node may fail, etc.

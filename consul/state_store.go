@@ -1221,7 +1221,7 @@ func (s *StateStore) KVSList(prefix string) (uint64, uint64, structs.DirEntries,
 		ents[idx] = r.(*structs.DirEntry)
 	}
 
-	// Check for the higest index in the tombstone table
+	// Check for the highest index in the tombstone table
 	var maxIndex uint64
 	res, err = s.tombstoneTable.GetTxn(tx, "id_prefix", prefix)
 	for _, r := range res {
@@ -1234,7 +1234,7 @@ func (s *StateStore) KVSList(prefix string) (uint64, uint64, structs.DirEntries,
 	return maxIndex, idx, ents, err
 }
 
-// KVSListKeys is used to list keys with a prefix, and up to a given seperator
+// KVSListKeys is used to list keys with a prefix, and up to a given separator
 func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, error) {
 	tables := MDBTables{s.kvsTable, s.tombstoneTable}
 	tx, err := tables.StartTxn(true)
@@ -1274,13 +1274,13 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 				maxIndex = ent.ModifyIndex
 			}
 
-			// If there is no seperator, always accumulate
+			// If there is no separator, always accumulate
 			if sepLen == 0 {
 				keys = append(keys, ent.Key)
 				continue
 			}
 
-			// Check for the seperator
+			// Check for the separator
 			if idx := strings.Index(after, seperator); idx >= 0 {
 				toSep := ent.Key[:prefixLen+idx+sepLen]
 				if last != toSep {
@@ -1344,7 +1344,7 @@ func (s *StateStore) KVSDeleteCheckAndSet(index uint64, key string, casIndex uin
 	}
 
 	// Use the casIndex as the constraint. A modify time of 0 means
-	// we are doign a delete-if-not-exists (odd...), while any other
+	// we are doing a delete-if-not-exists (odd...), while any other
 	// value means we expect that modify time.
 	if casIndex == 0 {
 		return exist == nil, nil

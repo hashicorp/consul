@@ -45,7 +45,7 @@ const (
 	serverMaxStreams = 64
 
 	// raftLogCacheSize is the maximum number of logs to cache in-memory.
-	// This is used to reduce disk I/O for the recently commited entries.
+	// This is used to reduce disk I/O for the recently committed entries.
 	raftLogCacheSize = 512
 
 	// raftRemoveGracePeriod is how long we wait to allow a RemovePeer
@@ -129,7 +129,7 @@ type Server struct {
 
 	// sessionTimers track the expiration time of each Session that has
 	// a TTL. On expiration, a SessionDestroy event will occur, and
-	// destroy the session via standard session destory processing
+	// destroy the session via standard session destroy processing
 	sessionTimers     map[string]*time.Timer
 	sessionTimersLock sync.Mutex
 

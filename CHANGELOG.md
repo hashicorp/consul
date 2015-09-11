@@ -67,12 +67,12 @@ IMPROVEMENTS:
  * HTTP health checks more reliable, avoid KeepAlives [GH-824]
  * Improved protection against a passive cluster merge
  * SIGTERM is properly handled for graceful shutdown [GH-827]
- * Better staggering of defered updates to checks [GH-884]
+ * Better staggering of deferred updates to checks [GH-884]
  * Configurable stats prefix [GH-902]
  * Raft uses BoltDB as the backend store. [GH-857]
  * API RenewPeriodic more resilient to transient errors [GH-912]
 
-## 0.5.0 (Febuary 19, 2015)
+## 0.5.0 (February 19, 2015)
 
 FEATURES:
 
@@ -116,7 +116,7 @@ BUG FIXES:
  * Fixed issue preventing node reaping [GH-371]
  * Fixed gossip stability at very large scale
  * Fixed string of rpc error: rpc error: ... no known leader. [GH-611]
- * Fixed panic in `exec` during cancelation
+ * Fixed panic in `exec` during cancellation
  * Fixed health check state reset caused by SIGHUP [GH-693]
  * Fixed bug in UI when multiple datacenters exist.
 
@@ -126,8 +126,8 @@ IMPROVEMENTS:
  * Improved K/V blocking query performance [GH-578]
  * CLI respects CONSUL_RPC_ADDR environment variable to load parameter [GH-542]
  * Added support for multiple DNS recursors [GH-448]
- * Added support for definining multiple services per configuration file [GH-433]
- * Added support for definining multiple checks per configuration file [GH-433]
+ * Added support for defining multiple services per configuration file [GH-433]
+ * Added support for defining multiple checks per configuration file [GH-433]
  * Allow mixing of service and check definitions in a configuration file [GH-433]
  * Allow notes for checks in service definition file [GH-449]
  * Random stagger for agent checks to prevent thundering herd [GH-546]
@@ -336,7 +336,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-  * Renaming "seperator" to "separator". This is the correct spelling,
+  * Renaming "separator" to "separator". This is the correct spelling,
       but both spellings are respected for backwards compatibility. [GH-101]
   * Private IP is properly found on Windows clients.
   * Windows agents won't show "failed to decode" errors on every RPC

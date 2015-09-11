@@ -179,7 +179,7 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 	return k.srv.blockingRPCOpt(&opts)
 }
 
-// ListKeys is used to list all keys with a given prefix to a seperator
+// ListKeys is used to list all keys with a given prefix to a separator
 func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyList) error {
 	if done, err := k.srv.forward("KVS.ListKeys", args, args, reply); done {
 		return err

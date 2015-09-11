@@ -11,7 +11,7 @@ description: |-
 The [upgrading page](/docs/upgrading.html) covers the details of doing
 a standard upgrade. However, specific versions of Consul may have more
 details provided for their upgrades as a result of new features or changed
-behavior. This page is used to document those details seperately from the
+behavior. This page is used to document those details separately from the
 standard upgrade flow.
 
 ## Consul 0.6

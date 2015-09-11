@@ -24,7 +24,7 @@ section.
 
 Usage: `consul configtest [options]`
 
-At least one `-config-file` or `-config-dir` paramater must be given. Returns 0
+At least one `-config-file` or `-config-dir` parameter must be given. Returns 0
 if the configuration is valid, or 1 if there are problems. The list of
 available flags are:
 
