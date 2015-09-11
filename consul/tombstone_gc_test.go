@@ -98,7 +98,7 @@ func TestTombstoneGC_Expire(t *testing.T) {
 
 	select {
 	case <-gc.ExpireCh():
-		t.Fatalf("shoudl be reset")
+		t.Fatalf("should be reset")
 	case <-time.After(20 * time.Millisecond):
 	}
 }

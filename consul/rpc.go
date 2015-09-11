@@ -310,7 +310,7 @@ func (s *Server) blockingRPC(b *structs.QueryOptions, m *structs.QueryMeta,
 }
 
 // blockingRPCOptions is used to parameterize blockingRPCOpt since
-// it takes so many options. It should be prefered over blockingRPC.
+// it takes so many options. It should be preferred over blockingRPC.
 type blockingRPCOptions struct {
 	queryOpts *structs.QueryOptions
 	queryMeta *structs.QueryMeta
@@ -321,7 +321,7 @@ type blockingRPCOptions struct {
 }
 
 // blockingRPCOpt is the replacement for blockingRPC as it allows
-// for more parameterization easily. It should be prefered over blockingRPC.
+// for more parameterization easily. It should be preferred over blockingRPC.
 func (s *Server) blockingRPCOpt(opts *blockingRPCOptions) error {
 	var timeout *time.Timer
 	var notifyCh chan struct{}

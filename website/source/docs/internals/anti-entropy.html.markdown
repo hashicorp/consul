@@ -63,7 +63,7 @@ state of the cluster ordered even through failures of its components.
 
 Consul has a clear separation between the global service catalog and the agent
 local state as discussed above. The anti-entropy mechanism reconciles these two
-views of the world: anti-entropy is a syncronization of the local agent state and
+views of the world: anti-entropy is a synchronization of the local agent state and
 the catalog. For example, when a user registers a new service or check with the
 agent, the agent in turn notifies the catalog that this new check exists.
 Similarly, when a check is deleted from the agent, it is consequently removed from
