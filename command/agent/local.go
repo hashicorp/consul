@@ -109,18 +109,18 @@ func (l *localState) ConsulServerUp() {
 // Pause is used to pause state synchronization, this can be
 // used to make batch changes
 func (l *localState) Pause() {
-	atomic.StoreInt32(&l.paused, 1)
+	atomic.AddInt32(&l.paused, 1)
 }
 
 // Resume is used to resume state synchronization
 func (l *localState) Resume() {
-	atomic.StoreInt32(&l.paused, 0)
+	atomic.AddInt32(&l.paused, -1)
 	l.changeMade()
 }
 
 // isPaused is used to check if we are paused
 func (l *localState) isPaused() bool {
-	return atomic.LoadInt32(&l.paused) == 1
+	return atomic.LoadInt32(&l.paused) > 0
 }
 
 // ServiceToken returns the configured ACL token for the given
