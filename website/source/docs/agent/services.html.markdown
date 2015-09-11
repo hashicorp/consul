@@ -90,7 +90,8 @@ the same service their `enableTagOverride` configuration and all other service
 configuration items are independant of one another. Updating the tags for
 the service registered on one node is independant of the same service (by name)
 registered on another node. If `enableTagOverride` is not specified the default 
-value is false.
+value is false.  See [anti-entropy syncs](/docs/internals/anti-entropy.html)
+for more info.
 
 To configure a service, either provide it as a `-config-file` option to the
 agent or place it inside the `-config-dir` of the agent. The file must
