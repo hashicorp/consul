@@ -379,7 +379,7 @@ func (l *localState) setSyncState() error {
 		}
 
 		// If our definition is different, we need to update it
-		if existing.EnableTagDrift {
+		if existing.EnableTagOverride {
 			existing.Tags = service.Tags
 		}
 		equal := reflect.DeepEqual(existing, service)

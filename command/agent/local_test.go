@@ -169,28 +169,28 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	}
 }
 
-func TestAgentAntiEntropy_EnableTagDrift(t *testing.T) {
+func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 	conf := nextConfig()
 	dir, agent := makeAgent(t, conf)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
 	testutil.WaitForLeader(t, agent.RPC, "dc1")
-	
+
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
 		Node:       agent.config.NodeName,
 		Address:    "127.0.0.1",
 	}
 	var out struct{}
-	
-	// EnableTagDrift = true
+
+	// EnableTagOverride = true
 	srv1 := &structs.NodeService{
-		ID:             "svc_id1",
-		Service:        "svc1",
-		Tags:           []string{"tag1"},
-		Port:           6100,
-		EnableTagDrift: true,
+		ID:                "svc_id1",
+		Service:           "svc1",
+		Tags:              []string{"tag1"},
+		Port:              6100,
+		EnableTagOverride: true,
 	}
 	agent.state.AddService(srv1, "")
 	srv1_mod := new(structs.NodeService)
@@ -201,14 +201,14 @@ func TestAgentAntiEntropy_EnableTagDrift(t *testing.T) {
 	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	
-	// EnableTagDrift = false
+
+	// EnableTagOverride = false
 	srv2 := &structs.NodeService{
-		ID:             "svc_id2",
-		Service:        "svc2",
-		Tags:           []string{"tag2"},
-		Port:           6200,
-		EnableTagDrift: false,
+		ID:                "svc_id2",
+		Service:           "svc2",
+		Tags:              []string{"tag2"},
+		Port:              6200,
+		EnableTagOverride: false,
 	}
 	agent.state.AddService(srv2, "")
 	srv2_mod := new(structs.NodeService)
@@ -219,7 +219,7 @@ func TestAgentAntiEntropy_EnableTagDrift(t *testing.T) {
 	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	
+
 	// Trigger anti-entropy run and wait
 	agent.StartSync()
 	time.Sleep(200 * time.Millisecond)
@@ -238,18 +238,18 @@ func TestAgentAntiEntropy_EnableTagDrift(t *testing.T) {
 	for id, serv := range services.NodeServices.Services {
 		switch id {
 		case "svc_id1":
-			if serv.ID!="svc_id1" ||
-				serv.Service!="svc1" ||
-				serv.Port!=6100 ||
+			if serv.ID != "svc_id1" ||
+				serv.Service != "svc1" ||
+				serv.Port != 6100 ||
 				!reflect.DeepEqual(serv.Tags, []string{"tag1_mod"}) {
-					t.Fatalf("bad: %v %v", serv, srv1)
+				t.Fatalf("bad: %v %v", serv, srv1)
 			}
 		case "svc_id2":
-			if serv.ID!="svc_id2" ||
-				serv.Service!="svc2" ||
-				serv.Port!=6200 ||
+			if serv.ID != "svc_id2" ||
+				serv.Service != "svc2" ||
+				serv.Port != 6200 ||
 				!reflect.DeepEqual(serv.Tags, []string{"tag2"}) {
-					t.Fatalf("bad: %v %v", serv, srv2)
+				t.Fatalf("bad: %v %v", serv, srv2)
 			}
 		case "consul":
 			// ignore
