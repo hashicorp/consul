@@ -245,11 +245,12 @@ type ServiceNodes []ServiceNode
 
 // NodeService is a service provided by a node
 type NodeService struct {
-	ID      string
-	Service string
-	Tags    []string
-	Address string
-	Port    int
+	ID                string
+	Service           string
+	Tags              []string
+	Address           string
+	Port              int
+	EnableTagOverride bool
 }
 type NodeServices struct {
 	Node     Node

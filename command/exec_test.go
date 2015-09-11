@@ -27,7 +27,7 @@ func TestExecCommandRun(t *testing.T) {
 
 	code := c.Run(args)
 	if code != 0 {
-		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d. Error:%#v  (std)Output:%#v", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
 	}
 
 	if !strings.Contains(ui.OutputWriter.String(), "load") {

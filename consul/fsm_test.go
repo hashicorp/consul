@@ -343,10 +343,10 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	// Add some state
 	fsm.state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"})
 	fsm.state.EnsureNode(2, structs.Node{"baz", "127.0.0.2"})
-	fsm.state.EnsureService(3, "foo", &structs.NodeService{"web", "web", nil, "127.0.0.1", 80})
-	fsm.state.EnsureService(4, "foo", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
-	fsm.state.EnsureService(5, "baz", &structs.NodeService{"web", "web", nil, "127.0.0.2", 80})
-	fsm.state.EnsureService(6, "baz", &structs.NodeService{"db", "db", []string{"secondary"}, "127.0.0.2", 5000})
+	fsm.state.EnsureService(3, "foo", &structs.NodeService{"web", "web", nil, "127.0.0.1", 80, false})
+	fsm.state.EnsureService(4, "foo", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.1", 5000, false})
+	fsm.state.EnsureService(5, "baz", &structs.NodeService{"web", "web", nil, "127.0.0.2", 80, false})
+	fsm.state.EnsureService(6, "baz", &structs.NodeService{"db", "db", []string{"secondary"}, "127.0.0.2", 5000, false})
 	fsm.state.EnsureCheck(7, &structs.HealthCheck{
 		Node:      "foo",
 		CheckID:   "web",
