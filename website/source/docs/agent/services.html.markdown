@@ -74,10 +74,10 @@ from `1`.
 
 Note: there is more information about [checks here](/docs/agent/checks.html). 
 
-The `enableTagOverride` can optionally specified to disable the antientropy feature for 
-this service. If `enableTagOverride` is set to TRUE then external agents can
-reregister this service and modify the tags. Subsequent local sync operations
-by this agent will ignore the updated tags. For instance: If an external agent
+The `enableTagOverride` can optionally be specified to disable the anti-entropy 
+feature for this service. If enableTagOverride is set to TRUE then external 
+agents can update this service in the [catalog](/docs/agent/http/catalog.html) and modify the tags. Subsequent
+local sync operations by this agent will ignore the updated tags. For instance: If an external agent
 modified both the tags and the port for this service and `enableTagOverride` 
 was set to TRUE then after the next sync cycle the service's port would revert 
 to the original value but the tags would maintain the updated value. As a 

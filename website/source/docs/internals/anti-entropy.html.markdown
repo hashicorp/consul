@@ -138,8 +138,8 @@ automatically recover from these types of transient failures.
 
 ### EnableTagOverride
 
-Synchronization of service registration can be partially modified to allow
-external agents change the tag value of a service.  This can be useful in
+Synchronization of service registration can be partially modified to allow 
+external agents to change the tags for a service.  This can be useful in
 situations where an external monitoring service needs to be the source of
 truth for tag information.  For instance: Redis DB and its monitoring service
 Redis Sentinel have this kind of relationship.  Redis instances are responsible 
