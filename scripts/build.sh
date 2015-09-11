@@ -9,7 +9,7 @@ while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
 DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
 
 # Change into that directory
-cd $DIR
+cd "$DIR"
 
 # Get the git commit
 GIT_COMMIT=$(git rev-parse HEAD)
@@ -49,4 +49,4 @@ go build \
     -ldflags "${CGO_LDFLAGS} -X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY} -X main.GitDescribe ${GIT_DESCRIBE}" \
     -v \
     -o bin/consul${EXTENSION}
-cp bin/consul${EXTENSION} ${GOPATHSINGLE}/bin
+cp bin/consul${EXTENSION} "${GOPATHSINGLE}/bin"
