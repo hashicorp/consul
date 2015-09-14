@@ -35,7 +35,7 @@ go get .\...
 :: Build!
 echo --^> Building...
 go build^
- -ldflags "-X main.GitCommit %_GIT_COMMIT%%_GIT_DIRTY% -X main.GitDescribe %_GIT_DESCRIBE%"^
+ -ldflags "-X main.GitCommit=%_GIT_COMMIT%%_GIT_DIRTY% -X main.GitDescribe=%_GIT_DESCRIBE%"^
  -v^
  -o bin\consul.exe .
 if errorlevel 1 exit /B 1
