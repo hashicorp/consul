@@ -180,7 +180,7 @@ type Config struct {
 	// is also monotonic. This prevents deletes from reducing the disk space
 	// used.
 	// In theory, neither of these are intrinsic limitations, however for the
-	// purposes of building a practical system, they are reaonable trade offs.
+	// purposes of building a practical system, they are reasonable trade offs.
 	//
 	// It is also possible to set this to an incredibly long time, thereby
 	// simulating infinite retention. This is not recommended however.

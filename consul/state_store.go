@@ -75,7 +75,7 @@ type StateStore struct {
 	// lockDelay is used to mark certain locks as unacquirable.
 	// When a lock is forcefully released (failing health
 	// check, destroyed session, etc), it is subject to the LockDelay
-	// impossed by the session. This prevents another session from
+	// imposed by the session. This prevents another session from
 	// acquiring the lock for some period of time as a protection against
 	// split-brains. This is inspired by the lock-delay in Chubby.
 	// Because this relies on wall-time, we cannot assume all peers
@@ -979,7 +979,7 @@ func (s *StateStore) ChecksInState(state string) (uint64, structs.HealthChecks) 
 	return s.parseHealthChecks(idx, res, err)
 }
 
-// parseHealthChecks is used to handle the resutls of a Get against
+// parseHealthChecks is used to handle the results of a Get against
 // the checkTable
 func (s *StateStore) parseHealthChecks(idx uint64, res []interface{}, err error) (uint64, structs.HealthChecks) {
 	results := make([]*structs.HealthCheck, len(res))
@@ -1054,7 +1054,7 @@ func (s *StateStore) parseCheckServiceNodes(tx *MDBTxn, res []interface{}, err e
 		res, err := s.checkTable.GetTxn(tx, "node", srv.Node, srv.ServiceID)
 		_, checks := s.parseHealthChecks(0, res, err)
 
-		// Get any checks of the node, not assciated with any service
+		// Get any checks of the node, not associated with any service
 		res, err = s.checkTable.GetTxn(tx, "node", srv.Node, "")
 		_, nodeChecks := s.parseHealthChecks(0, res, err)
 		checks = append(checks, nodeChecks...)
@@ -1093,7 +1093,7 @@ func (s *StateStore) NodeInfo(node string) (uint64, structs.NodeDump) {
 }
 
 // NodeDump is used to generate the NodeInfo for all nodes. This is very expensive,
-// and should generally be avoided for programatic access.
+// and should generally be avoided for programmatic access.
 func (s *StateStore) NodeDump() (uint64, structs.NodeDump) {
 	tables := s.queryTables["NodeDump"]
 	tx, err := tables.StartTxn(true)
@@ -1269,7 +1269,7 @@ func (s *StateStore) KVSListKeys(prefix, seperator string) (uint64, []string, er
 			ent := raw.(*structs.DirEntry)
 			after := ent.Key[prefixLen:]
 
-			// Update the hightest index we've seen
+			// Update the highest index we've seen
 			if ent.ModifyIndex > maxIndex {
 				maxIndex = ent.ModifyIndex
 			}
@@ -1571,7 +1571,7 @@ func (s *StateStore) ReapTombstones(index uint64) error {
 	defer tx.Abort()
 
 	// Scan the tombstone table for all the entries that are
-	// eligble for GC. This could be improved by indexing on
+	// eligible for GC. This could be improved by indexing on
 	// ModifyTime and doing a less-than-equals scan, however
 	// we don't currently support numeric indexes internally.
 	// Luckily, this is a low frequency operation.
@@ -1779,7 +1779,7 @@ func (s *StateStore) SessionDestroy(index uint64, id string) error {
 	return tx.Commit()
 }
 
-// invalideNode is used to invalide all sessions belonging to a node
+// invalidateNode is used to invalidate all sessions belonging to a node
 // All tables should be locked in the tx.
 func (s *StateStore) invalidateNode(index uint64, tx *MDBTxn, node string) error {
 	sessions, err := s.sessionTable.GetTxn(tx, "node", node)
@@ -1797,7 +1797,7 @@ func (s *StateStore) invalidateNode(index uint64, tx *MDBTxn, node string) error
 	return nil
 }
 
-// invalidateCheck is used to invalide all sessions belonging to a check
+// invalidateCheck is used to invalidate all sessions belonging to a check
 // All tables should be locked in the tx.
 func (s *StateStore) invalidateCheck(index uint64, tx *MDBTxn, node, check string) error {
 	sessionChecks, err := s.sessionCheckTable.GetTxn(tx, "id", node, check)
@@ -1815,7 +1815,7 @@ func (s *StateStore) invalidateCheck(index uint64, tx *MDBTxn, node, check strin
 	return nil
 }
 
-// invalidateSession is used to invalide a session within a given txn
+// invalidateSession is used to invalidate a session within a given txn
 // All tables should be locked in the tx.
 func (s *StateStore) invalidateSession(index uint64, tx *MDBTxn, id string) error {
 	// Get the session

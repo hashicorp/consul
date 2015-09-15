@@ -16,7 +16,7 @@ const (
 	// threshold. Users often send a value like 5, which they assume
 	// is seconds, but because Go uses nanosecond granularity, ends
 	// up being very small. If we see a value below this threshold,
-	// we multply by time.Second
+	// we multiply by time.Second
 	lockDelayMinThreshold = 1000
 )
 

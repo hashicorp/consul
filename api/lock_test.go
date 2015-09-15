@@ -237,7 +237,7 @@ func TestLock_Destroy(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Should relese
+	// Should release
 	err = l2.Unlock()
 	if err != nil {
 		t.Fatalf("err: %v", err)

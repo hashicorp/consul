@@ -271,7 +271,7 @@ func (s *TestServer) waitForLeader() {
 			return false, err
 		}
 
-		// Ensure we have a leader and a node registeration
+		// Ensure we have a leader and a node registration
 		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
 			fmt.Println(leader)
 			return false, fmt.Errorf("Consul leader status: %#v", leader)

@@ -48,7 +48,7 @@ func (s *Server) monitorLeadership() {
 }
 
 // leaderLoop runs as long as we are the leader to run various
-// maintence activities
+// maintenance activities
 func (s *Server) leaderLoop(stopCh chan struct{}) {
 	// Ensure we revoke leadership on stepdown
 	defer s.revokeLeadership()
@@ -256,7 +256,7 @@ func (s *Server) reconcile() (err error) {
 
 // reconcileReaped is used to reconcile nodes that have failed and been reaped
 // from Serf but remain in the catalog. This is done by looking for SerfCheckID
-// in a crticial state that does not correspond to a known Serf member. We generate
+// in a critical state that does not correspond to a known Serf member. We generate
 // a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	state := s.fsm.State()

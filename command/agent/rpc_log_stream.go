@@ -41,7 +41,7 @@ func (ls *logStream) HandleLog(l string) {
 	select {
 	case ls.logCh <- l:
 	default:
-		// We can't log syncronously, since we are already being invoked
+		// We can't log synchronously, since we are already being invoked
 		// from the logWriter, and a log will need to invoke Write() which
 		// already holds the lock. We must therefor do the log async, so
 		// as to not deadlock
