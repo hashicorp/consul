@@ -170,7 +170,7 @@ type PolicyACL struct {
 	eventRules *radix.Tree
 
 	// keyringRules contains the keyring policies. The keyring has
-	// a very simple yes/no without prefix mathing, so here we
+	// a very simple yes/no without prefix matching, so here we
 	// don't need to use a radix tree.
 	keyringRule string
 }

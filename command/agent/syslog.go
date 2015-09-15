@@ -17,7 +17,7 @@ var levelPriority = map[string]gsyslog.Priority{
 	"CRIT":  gsyslog.LOG_CRIT,
 }
 
-// SyslogWrapper is used to cleaup log messages before
+// SyslogWrapper is used to cleanup log messages before
 // writing them to a Syslogger. Implements the io.Writer
 // interface.
 type SyslogWrapper struct {

@@ -50,7 +50,7 @@ func FilterKeys(acl acl.ACL, keys []string) []string {
 	return keys[:FilterEntries(&kf)]
 }
 
-// Filter interfae is used with FilterEntries to do an
+// Filter interface is used with FilterEntries to do an
 // in-place filter of a slice.
 type Filter interface {
 	Len() int

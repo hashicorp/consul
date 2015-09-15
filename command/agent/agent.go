@@ -718,7 +718,7 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 		return fmt.Errorf("ServiceID missing")
 	}
 
-	// Remove service immeidately
+	// Remove service immediately
 	a.state.RemoveService(serviceID)
 
 	// Remove the service from the data dir

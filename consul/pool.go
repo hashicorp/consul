@@ -329,7 +329,7 @@ func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, err
 	return c, nil
 }
 
-// clearConn is used to clear any cached connection, potentially in response to an erro
+// clearConn is used to clear any cached connection, potentially in response to an error
 func (p *ConnPool) clearConn(conn *Conn) {
 	// Ensure returned streams are closed
 	atomic.StoreInt32(&conn.shouldClose, 1)

@@ -129,7 +129,7 @@ func (t *TombstoneGC) PendingExpiration() bool {
 	return len(t.expires) > 0
 }
 
-// nextExpires is used to calculate the next experation time
+// nextExpires is used to calculate the next expiration time
 func (t *TombstoneGC) nextExpires() time.Time {
 	expires := time.Now().Add(t.ttl)
 	remain := expires.UnixNano() % int64(t.granularity)

@@ -231,11 +231,11 @@ func (s *Server) maybeBootstrap() {
 		s.logger.Printf("[ERR] consul: failed to bootstrap peers: %v", err)
 	}
 
-	// Bootstrapping comlete, don't enter this again
+	// Bootstrapping complete, don't enter this again
 	s.config.BootstrapExpect = 0
 }
 
-// nodeFailed is used to handle fail events on both the serf clustes
+// nodeFailed is used to handle fail events on both the serf clusters
 func (s *Server) nodeFailed(me serf.MemberEvent, wan bool) {
 	for _, m := range me.Members {
 		ok, parts := isConsulServer(m)

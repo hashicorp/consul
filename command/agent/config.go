@@ -26,7 +26,7 @@ type PortConfig struct {
 	HTTPS   int // HTTPS API
 	RPC     int // CLI RPC
 	SerfLan int `mapstructure:"serf_lan"` // LAN gossip (Client + Server)
-	SerfWan int `mapstructure:"serf_wan"` // WAN gossip (Server onlyg)
+	SerfWan int `mapstructure:"serf_wan"` // WAN gossip (Server only)
 	Server  int // Server internal RPC
 }
 
@@ -99,7 +99,7 @@ type Config struct {
 	Bootstrap bool `mapstructure:"bootstrap"`
 
 	// BootstrapExpect tries to automatically bootstrap the Consul cluster,
-	// by witholding peers until enough servers join.
+	// by withholding peers until enough servers join.
 	BootstrapExpect int `mapstructure:"bootstrap_expect"`
 
 	// Server controls if this agent acts like a Consul server,
@@ -221,7 +221,7 @@ type Config struct {
 	KeyFile string `mapstructure:"key_file"`
 
 	// ServerName is used with the TLS certificates to ensure the name we
-	// provid ematches the certificate
+	// provide matches the certificate
 	ServerName string `mapstructure:"server_name"`
 
 	// StartJoin is a list of addresses to attempt to join when the

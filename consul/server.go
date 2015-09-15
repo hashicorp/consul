@@ -40,7 +40,7 @@ const (
 	// open to a server
 	serverRPCCache = 2 * time.Minute
 
-	// serverMaxStreams controsl how many idle streams we keep
+	// serverMaxStreams controls how many idle streams we keep
 	// open to a server
 	serverMaxStreams = 64
 
@@ -566,7 +566,7 @@ func (s *Server) Leave() error {
 }
 
 // numOtherPeers is used to check on the number of known peers
-// excluding the local ndoe
+// excluding the local node
 func (s *Server) numOtherPeers() (int, error) {
 	peers, err := s.raftPeers.Peers()
 	if err != nil {

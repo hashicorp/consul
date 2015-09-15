@@ -117,7 +117,7 @@ func (r *rexecWriter) Flush() {
 // handleRemoteExec is invoked when a new remote exec request is received
 func (a *Agent) handleRemoteExec(msg *UserEvent) {
 	a.logger.Printf("[DEBUG] agent: received remote exec event (ID: %s)", msg.ID)
-	// Decode the event paylaod
+	// Decode the event payload
 	var event remoteExecEvent
 	if err := json.Unmarshal(msg.Payload, &event); err != nil {
 		a.logger.Printf("[ERR] agent: failed to decode remote exec event: %v", err)

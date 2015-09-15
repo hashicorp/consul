@@ -118,7 +118,7 @@ func (s *scadaListener) PushRWC(conn io.ReadWriteCloser) error {
 	return s.Push(wrapped)
 }
 
-// Push is used to add a connection to the queu
+// Push is used to add a connection to the queue
 func (s *scadaListener) Push(conn net.Conn) error {
 	select {
 	case s.pending <- conn:

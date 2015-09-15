@@ -168,7 +168,7 @@ func TestCatalogRegister_ForwardDC(t *testing.T) {
 	testutil.WaitForLeader(t, client.Call, "dc2")
 
 	arg := structs.RegisterRequest{
-		Datacenter: "dc2", // SHould forward through s1
+		Datacenter: "dc2", // Should forward through s1
 		Node:       "foo",
 		Address:    "127.0.0.1",
 		Service: &structs.NodeService{
