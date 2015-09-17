@@ -114,7 +114,10 @@ func (l *localState) Pause() {
 
 // Resume is used to resume state synchronization
 func (l *localState) Resume() {
-	atomic.AddInt32(&l.paused, -1)
+	paused := atomic.AddInt32(&l.paused, -1)
+	if paused < 0 {
+		panic("unbalanced localState.Resume() detected")
+	}
 	l.changeMade()
 }
 

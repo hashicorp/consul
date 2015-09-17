@@ -685,6 +685,15 @@ func TestAgent_nestedPauseResume(t *testing.T) {
 	if l.isPaused() != false {
 		t.Fatal("localState should NOT be Paused after SECOND call to Resume()")
 	}
+
+	defer func() {
+		err := recover()
+		if err == nil {
+			t.Fatal("unbalanced Resume() should cause a panic()")
+		}
+	}()
+	l.Resume()
+
 }
 
 var testRegisterRules = `
