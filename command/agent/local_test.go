@@ -760,6 +760,38 @@ func TestAgent_checkTokens(t *testing.T) {
 	}
 }
 
+func TestAgent_nestedPauseResume(t *testing.T) {
+	l := new(localState)
+	if l.isPaused() != false {
+		t.Fatal("localState should be unPaused after init")
+	}
+	l.Pause()
+	if l.isPaused() != true {
+		t.Fatal("localState should be Paused after first call to Pause()")
+	}
+	l.Pause()
+	if l.isPaused() != true {
+		t.Fatal("localState should STILL be Paused after second call to Pause()")
+	}
+	l.Resume()
+	if l.isPaused() != true {
+		t.Fatal("localState should STILL be Paused after FIRST call to Resume()")
+	}
+	l.Resume()
+	if l.isPaused() != false {
+		t.Fatal("localState should NOT be Paused after SECOND call to Resume()")
+	}
+
+	defer func() {
+		err := recover()
+		if err == nil {
+			t.Fatal("unbalanced Resume() should cause a panic()")
+		}
+	}()
+	l.Resume()
+
+}
+
 var testRegisterRules = `
 service "api" {
 	policy = "write"
