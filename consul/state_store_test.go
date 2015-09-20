@@ -762,24 +762,6 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	a1 := &structs.ACL{
-		ID:   generateUUID(),
-		Name: "User token",
-		Type: structs.ACLTypeClient,
-	}
-	if err := store.ACLSet(21, a1); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	a2 := &structs.ACL{
-		ID:   generateUUID(),
-		Name: "User token",
-		Type: structs.ACLTypeClient,
-	}
-	if err := store.ACLSet(22, a2); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
 	// Take a snapshot
 	snap, err := store.Snapshot()
 	if err != nil {
@@ -884,15 +866,6 @@ func TestStoreSnapshot(t *testing.T) {
 		t.Fatalf("Wrong number of sessions with TTL")
 	}
 
-	// Check for an acl
-	acls, err := snap.ACLList()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(acls) != 2 {
-		t.Fatalf("missing acls")
-	}
-
 	// Make some changes!
 	if err := store.EnsureService(23, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"slave"}, Address: "", Port: 8000}); err != nil {
 		t.Fatalf("err: %v", err)
@@ -915,11 +888,6 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 
 	if err := store.KVSDelete(28, "/web/b"); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Nuke an ACL
-	if err := store.ACLDelete(29, a1.ID); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1002,15 +970,6 @@ func TestStoreSnapshot(t *testing.T) {
 	}
 	if len(sessions) != 3 {
 		t.Fatalf("missing sessions")
-	}
-
-	// Check for an acl
-	acls, err = snap.ACLList()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(acls) != 2 {
-		t.Fatalf("missing acls")
 	}
 }
 
@@ -2878,150 +2837,5 @@ func TestSessionInvalidate_KeyDelete(t *testing.T) {
 	expires := store.KVSLockDelay("/bar")
 	if expires.Before(time.Now().Add(30 * time.Millisecond)) {
 		t.Fatalf("Bad: %v", expires)
-	}
-}
-
-func TestACLSet_Get(t *testing.T) {
-	store, err := testStateStore()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer store.Close()
-
-	idx, out, err := store.ACLGet("1234")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if idx != 0 {
-		t.Fatalf("bad: %v", idx)
-	}
-	if out != nil {
-		t.Fatalf("bad: %v", out)
-	}
-
-	a := &structs.ACL{
-		ID:    generateUUID(),
-		Name:  "User token",
-		Type:  structs.ACLTypeClient,
-		Rules: "",
-	}
-	if err := store.ACLSet(50, a); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if a.CreateIndex != 50 {
-		t.Fatalf("Bad: %v", a)
-	}
-	if a.ModifyIndex != 50 {
-		t.Fatalf("Bad: %v", a)
-	}
-	if a.ID == "" {
-		t.Fatalf("Bad: %v", a)
-	}
-
-	idx, out, err = store.ACLGet(a.ID)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if idx != 50 {
-		t.Fatalf("bad: %v", idx)
-	}
-	if !reflect.DeepEqual(out, a) {
-		t.Fatalf("bad: %v", out)
-	}
-
-	// Update
-	a.Rules = "foo bar baz"
-	if err := store.ACLSet(52, a); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if a.CreateIndex != 50 {
-		t.Fatalf("Bad: %v", a)
-	}
-	if a.ModifyIndex != 52 {
-		t.Fatalf("Bad: %v", a)
-	}
-
-	idx, out, err = store.ACLGet(a.ID)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if idx != 52 {
-		t.Fatalf("bad: %v", idx)
-	}
-	if !reflect.DeepEqual(out, a) {
-		t.Fatalf("bad: %v", out)
-	}
-}
-
-func TestACLDelete(t *testing.T) {
-	store, err := testStateStore()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer store.Close()
-
-	a := &structs.ACL{
-		ID:    generateUUID(),
-		Name:  "User token",
-		Type:  structs.ACLTypeClient,
-		Rules: "",
-	}
-	if err := store.ACLSet(50, a); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if err := store.ACLDelete(52, a.ID); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if err := store.ACLDelete(53, a.ID); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	idx, out, err := store.ACLGet(a.ID)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if idx != 52 {
-		t.Fatalf("bad: %v", idx)
-	}
-	if out != nil {
-		t.Fatalf("bad: %v", out)
-	}
-}
-
-func TestACLList(t *testing.T) {
-	store, err := testStateStore()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer store.Close()
-
-	a1 := &structs.ACL{
-		ID:   generateUUID(),
-		Name: "User token",
-		Type: structs.ACLTypeClient,
-	}
-	if err := store.ACLSet(50, a1); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	a2 := &structs.ACL{
-		ID:   generateUUID(),
-		Name: "User token",
-		Type: structs.ACLTypeClient,
-	}
-	if err := store.ACLSet(51, a2); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	idx, out, err := store.ACLList()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if idx != 51 {
-		t.Fatalf("bad: %v", idx)
-	}
-	if len(out) != 2 {
-		t.Fatalf("bad: %v", out)
 	}
 }

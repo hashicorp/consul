@@ -60,10 +60,10 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 		// deterministic. Once the entry is in the log, the state update MUST
 		// be deterministic or the followers will not converge.
 		if args.ACL.ID == "" {
-			state := a.srv.fsm.State()
+			state := a.srv.fsm.StateNew()
 			for {
 				args.ACL.ID = generateUUID()
-				_, acl, err := state.ACLGet(args.ACL.ID)
+				acl, err := state.ACLGet(args.ACL.ID)
 				if err != nil {
 					a.srv.logger.Printf("[ERR] consul.acl: ACL lookup failed: %v", err)
 					return err
@@ -120,14 +120,14 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 	}
 
 	// Get the local state
-	state := a.srv.fsm.State()
-	return a.srv.blockingRPC(&args.QueryOptions,
+	state := a.srv.fsm.StateNew()
+	return a.srv.blockingRPCNew(&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("ACLGet"),
+		state.GetWatchManager("acls"),
 		func() error {
-			index, acl, err := state.ACLGet(args.ACL)
-			reply.Index = index
+			acl, err := state.ACLGet(args.ACL)
 			if acl != nil {
+				reply.Index = acl.ModifyIndex
 				reply.ACLs = structs.ACLs{acl}
 			} else {
 				reply.ACLs = nil
@@ -191,10 +191,10 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	}
 
 	// Get the local state
-	state := a.srv.fsm.State()
-	return a.srv.blockingRPC(&args.QueryOptions,
+	state := a.srv.fsm.StateNew()
+	return a.srv.blockingRPCNew(&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("ACLList"),
+		state.GetWatchManager("acls"),
 		func() error {
 			var err error
 			reply.Index, reply.ACLs, err = state.ACLList()

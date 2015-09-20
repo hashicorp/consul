@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
 )
@@ -31,7 +32,7 @@ func testRegisterNode(t *testing.T, s *StateStore, idx uint64, nodeID string) {
 	defer tx.Abort()
 	n, err := tx.First("nodes", "id", nodeID)
 	if err != nil {
-		t.Fatalf("err: %s", err, n)
+		t.Fatalf("err: %s", err)
 	}
 	if result, ok := n.(*structs.Node); !ok || result.Node != nodeID {
 		t.Fatalf("bad node: %#v", result)
@@ -107,10 +108,29 @@ func testSetKey(t *testing.T, s *StateStore, idx uint64, key, value string) {
 
 func TestStateStore_maxIndex(t *testing.T) {
 	s := testStateStore(t)
+
 	testRegisterNode(t, s, 0, "foo")
 	testRegisterNode(t, s, 1, "bar")
 	testRegisterService(t, s, 2, "foo", "consul")
+
 	if max := s.maxIndex("nodes", "services"); max != 2 {
+		t.Fatalf("bad max: %d", max)
+	}
+}
+
+func TestStateStore_indexUpdateMaxTxn(t *testing.T) {
+	s := testStateStore(t)
+
+	testRegisterNode(t, s, 0, "foo")
+	testRegisterNode(t, s, 1, "bar")
+
+	tx := s.db.Txn(true)
+	if err := indexUpdateMaxTxn(tx, 3, "nodes"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	tx.Commit()
+
+	if max := s.maxIndex("nodes"); max != 3 {
 		t.Fatalf("bad max: %d", max)
 	}
 }
@@ -1415,7 +1435,7 @@ func TestStateStore_SessionCreate_GetSession(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if idx := s.maxIndex("sessions"); idx != 2 {
-		t.Fatalf("bad index: %d", err)
+		t.Fatalf("bad index: %s", err)
 	}
 
 	// Retrieve the session again
@@ -1812,5 +1832,46 @@ func TestStateStore_ACLDelete(t *testing.T) {
 	}
 	if result != nil {
 		t.Fatalf("expected nil, got: %#v", result)
+	}
+}
+
+func TestStateStore_ACL_Watches(t *testing.T) {
+	s := testStateStore(t)
+	ch := make(chan struct{})
+
+	s.GetWatchManager("acls").Start(ch)
+	go func() {
+		if err := s.ACLSet(1, &structs.ACL{ID: "acl1"}); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}()
+	select {
+	case <-ch:
+	case <-time.After(1 * time.Second):
+		t.Fatalf("watch was not notified")
+	}
+
+	s.GetWatchManager("acls").Start(ch)
+	go func() {
+		if err := s.ACLDelete(2, "acl1"); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}()
+	select {
+	case <-ch:
+	case <-time.After(1 * time.Second):
+		t.Fatalf("watch was not notified")
+	}
+
+	s.GetWatchManager("acls").Start(ch)
+	go func() {
+		if err := s.ACLRestore(&structs.ACL{ID: "acl1"}); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}()
+	select {
+	case <-ch:
+	case <-time.After(1 * time.Second):
+		t.Fatalf("watch was not notified")
 	}
 }

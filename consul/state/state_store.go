@@ -34,8 +34,17 @@ var (
 // pairs and more. The DB is entirely in-memory and is constructed
 // from the Raft log through the FSM.
 type StateStore struct {
-	logger *log.Logger // TODO(slackpad) - Delete if unused!
-	db     *memdb.MemDB
+	logger  *log.Logger // TODO(slackpad) - Delete if unused!
+	schema  *memdb.DBSchema
+	db      *memdb.MemDB
+	watches map[string]WatchManager
+}
+
+// StateSnapshot is used to provide a point-in-time snapshot. It
+// works by starting a read transaction against the whole state store.
+type StateSnapshot struct {
+	tx        *memdb.Txn
+	lastIndex uint64
 }
 
 // IndexEntry keeps a record of the last index per-table.
@@ -56,18 +65,56 @@ type sessionCheck struct {
 
 // NewStateStore creates a new in-memory state storage layer.
 func NewStateStore(logOutput io.Writer) (*StateStore, error) {
-	// Create the in-memory DB
-	db, err := memdb.NewMemDB(stateStoreSchema())
+	// Create the in-memory DB.
+	schema := stateStoreSchema()
+	db, err := memdb.NewMemDB(schema)
 	if err != nil {
 		return nil, fmt.Errorf("Failed setting up state store: %s", err)
 	}
 
-	// Create and return the state store
+	// Build up the watch managers.
+	watches, err := newWatchManagers(schema)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to build watch managers: %s", err)
+	}
+
+	// Create and return the state store.
 	s := &StateStore{
-		logger: log.New(logOutput, "", log.LstdFlags),
-		db:     db,
+		logger:  log.New(logOutput, "", log.LstdFlags),
+		schema:  schema,
+		db:      db,
+		watches: watches,
 	}
 	return s, nil
+}
+
+// Snapshot is used to create a point-in-time snapshot of the entire db.
+func (s *StateStore) Snapshot() *StateSnapshot {
+	tx := s.db.Txn(false)
+
+	var tables []string
+	for table, _ := range s.schema.Tables {
+		tables = append(tables, table)
+	}
+	idx := maxIndexTxn(tx, tables...)
+
+	return &StateSnapshot{tx, idx}
+}
+
+// LastIndex returns that last index that affects the snapshotted data.
+func (s *StateSnapshot) LastIndex() uint64 {
+	return s.lastIndex
+}
+
+// Close performs cleanup of a state snapshot.
+func (s *StateSnapshot) Close() {
+	s.tx.Abort()
+}
+
+// ACLList is used to pull all the ACLs from the snapshot.
+func (s *StateSnapshot) ACLList() ([]*structs.ACL, error) {
+	_, ret, err := aclListTxn(s.tx)
+	return ret, err
 }
 
 // maxIndex is a helper used to retrieve the highest known index
@@ -75,7 +122,12 @@ func NewStateStore(logOutput io.Writer) (*StateStore, error) {
 func (s *StateStore) maxIndex(tables ...string) uint64 {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+	return maxIndexTxn(tx, tables...)
+}
 
+// maxIndexTxn is a helper used to retrieve the highest known index
+// amongst a set of tables in the db.
+func maxIndexTxn(tx *memdb.Txn, tables ...string) uint64 {
 	var lindex uint64
 	for _, table := range tables {
 		ti, err := tx.First("index", "id", table)
@@ -89,13 +141,51 @@ func (s *StateStore) maxIndex(tables ...string) uint64 {
 	return lindex
 }
 
+// indexUpdateMaxTxn is used when restoring entries and sets the table's index to
+// the given idx only if it's greater than the current index.
+func indexUpdateMaxTxn(tx *memdb.Txn, idx uint64, table string) error {
+	raw, err := tx.First("index", "id", table)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve existing index: %s", err)
+	}
+
+	if raw == nil {
+		return fmt.Errorf("missing index for table %s", table)
+	}
+
+	entry, ok := raw.(*IndexEntry)
+	if !ok {
+		return fmt.Errorf("unexpected index type for table %s", table)
+	}
+
+	if idx > entry.Value {
+		if err := tx.Insert("index", &IndexEntry{table, idx}); err != nil {
+			return fmt.Errorf("failed updating index %s", err)
+		}
+	}
+
+	return nil
+}
+
+// getWatchManager returns a watch manager for the given set of tables. The
+// order of the tables is not important.
+func (s *StateStore) GetWatchManager(tables ...string) WatchManager {
+	if len(tables) == 1 {
+		if manager, ok := s.watches[tables[0]]; ok {
+			return manager
+		}
+	}
+
+	panic(fmt.Sprintf("Unknown watch manager(s): %v", tables))
+}
+
 // EnsureNode is used to upsert node registration or modification.
 func (s *StateStore) EnsureNode(idx uint64, node *structs.Node) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
 	// Call the node upsert
-	if err := s.ensureNodeTxn(idx, node, tx); err != nil {
+	if err := ensureNodeTxn(tx, idx, node); err != nil {
 		return err
 	}
 
@@ -106,7 +196,7 @@ func (s *StateStore) EnsureNode(idx uint64, node *structs.Node) error {
 // ensureNodeTxn is the inner function called to actually create a node
 // registration or modify an existing one in the state store. It allows
 // passing in a memdb transaction so it may be part of a larger txn.
-func (s *StateStore) ensureNodeTxn(idx uint64, node *structs.Node, tx *memdb.Txn) error {
+func ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) error {
 	// Check for an existing node
 	existing, err := tx.First("nodes", "id", node.Node)
 	if err != nil {
@@ -179,7 +269,7 @@ func (s *StateStore) DeleteNode(idx uint64, nodeID string) error {
 	defer tx.Abort()
 
 	// Call the node deletion.
-	if err := s.deleteNodeTxn(idx, nodeID, tx); err != nil {
+	if err := deleteNodeTxn(tx, idx, nodeID); err != nil {
 		return err
 	}
 
@@ -189,7 +279,7 @@ func (s *StateStore) DeleteNode(idx uint64, nodeID string) error {
 
 // deleteNodeTxn is the inner method used for removing a node from
 // the store within a given transaction.
-func (s *StateStore) deleteNodeTxn(idx uint64, nodeID string, tx *memdb.Txn) error {
+func deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeID string) error {
 	// Look up the node
 	node, err := tx.First("nodes", "id", nodeID)
 	if err != nil {
@@ -206,7 +296,7 @@ func (s *StateStore) deleteNodeTxn(idx uint64, nodeID string, tx *memdb.Txn) err
 	}
 	for service := services.Next(); service != nil; service = services.Next() {
 		svc := service.(*structs.ServiceNode)
-		if err := s.deleteServiceTxn(idx, nodeID, svc.ServiceID, tx); err != nil {
+		if err := deleteServiceTxn(tx, idx, nodeID, svc.ServiceID); err != nil {
 			return err
 		}
 	}
@@ -218,7 +308,7 @@ func (s *StateStore) deleteNodeTxn(idx uint64, nodeID string, tx *memdb.Txn) err
 	}
 	for check := checks.Next(); check != nil; check = checks.Next() {
 		chk := check.(*structs.HealthCheck)
-		if err := s.deleteCheckTxn(idx, nodeID, chk.CheckID, tx); err != nil {
+		if err := deleteCheckTxn(tx, idx, nodeID, chk.CheckID); err != nil {
 			return err
 		}
 	}
@@ -242,7 +332,7 @@ func (s *StateStore) EnsureService(idx uint64, node string, svc *structs.NodeSer
 	defer tx.Abort()
 
 	// Call the service registration upsert
-	if err := s.ensureServiceTxn(idx, node, svc, tx); err != nil {
+	if err := ensureServiceTxn(tx, idx, node, svc); err != nil {
 		return err
 	}
 
@@ -252,7 +342,7 @@ func (s *StateStore) EnsureService(idx uint64, node string, svc *structs.NodeSer
 
 // ensureServiceTxn is used to upsert a service registration within an
 // existing memdb transaction.
-func (s *StateStore) ensureServiceTxn(idx uint64, node string, svc *structs.NodeService, tx *memdb.Txn) error {
+func ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
 	// Check for existing service
 	existing, err := tx.First("services", "id", node, svc.Service)
 	if err != nil {
@@ -358,7 +448,7 @@ func (s *StateStore) DeleteService(idx uint64, nodeID, serviceID string) error {
 	defer tx.Abort()
 
 	// Call the service deletion
-	if err := s.deleteServiceTxn(idx, nodeID, serviceID, tx); err != nil {
+	if err := deleteServiceTxn(tx, idx, nodeID, serviceID); err != nil {
 		return err
 	}
 
@@ -368,7 +458,7 @@ func (s *StateStore) DeleteService(idx uint64, nodeID, serviceID string) error {
 
 // deleteServiceTxn is the inner method called to remove a service
 // registration within an existing transaction.
-func (s *StateStore) deleteServiceTxn(idx uint64, nodeID, serviceID string, tx *memdb.Txn) error {
+func deleteServiceTxn(tx *memdb.Txn, idx uint64, nodeID, serviceID string) error {
 	// Look up the service
 	service, err := tx.First("services", "id", nodeID, serviceID)
 	if err != nil {
@@ -411,7 +501,7 @@ func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 	defer tx.Abort()
 
 	// Call the check registration
-	if err := s.ensureCheckTxn(idx, hc, tx); err != nil {
+	if err := ensureCheckTxn(tx, idx, hc); err != nil {
 		return err
 	}
 
@@ -422,7 +512,7 @@ func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 // ensureCheckTransaction is used as the inner method to handle inserting
 // a health check into the state store. It ensures safety against inserting
 // checks with no matching node or service.
-func (s *StateStore) ensureCheckTxn(idx uint64, hc *structs.HealthCheck, tx *memdb.Txn) error {
+func ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck) error {
 	// Check if we have an existing health check
 	existing, err := tx.First("checks", "id", hc.Node, hc.CheckID)
 	if err != nil {
@@ -541,7 +631,7 @@ func (s *StateStore) DeleteCheck(idx uint64, node, id string) error {
 	defer tx.Abort()
 
 	// Call the check deletion
-	if err := s.deleteCheckTxn(idx, node, id, tx); err != nil {
+	if err := deleteCheckTxn(tx, idx, node, id); err != nil {
 		return err
 	}
 
@@ -551,7 +641,7 @@ func (s *StateStore) DeleteCheck(idx uint64, node, id string) error {
 
 // deleteCheckTxn is the inner method used to call a health
 // check deletion within an existing transaction.
-func (s *StateStore) deleteCheckTxn(idx uint64, node, id string, tx *memdb.Txn) error {
+func deleteCheckTxn(tx *memdb.Txn, idx uint64, node, id string) error {
 	// Try to retrieve the existing health check
 	check, err := tx.First("checks", "id", node, id)
 	if err != nil {
@@ -743,14 +833,12 @@ func (s *StateStore) parseNodes(
 func (s *StateStore) KVSSet(idx uint64, entry *structs.DirEntry) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
-	return s.kvsSetTxn(idx, entry, tx)
+	return kvsSetTxn(tx, idx, entry)
 }
 
 // kvsSetTxn is used to insert or update a key/value pair in the state
 // store. It is the inner method used and handles only the actual storage.
-func (s *StateStore) kvsSetTxn(
-	idx uint64, entry *structs.DirEntry,
-	tx *memdb.Txn) error {
+func kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) error {
 
 	// Retrieve an existing KV pair
 	existing, err := tx.First("kvs", "id", entry.Key)
@@ -878,7 +966,7 @@ func (s *StateStore) KVSDelete(idx uint64, key string) error {
 	defer tx.Abort()
 
 	// Perform the actual delete
-	if err := s.kvsDeleteTxn(idx, key, tx); err != nil {
+	if err := kvsDeleteTxn(tx, idx, key); err != nil {
 		return err
 	}
 
@@ -888,7 +976,7 @@ func (s *StateStore) KVSDelete(idx uint64, key string) error {
 
 // kvsDeleteTxn is the inner method used to perform the actual deletion
 // of a key/value pair within an existing transaction.
-func (s *StateStore) kvsDeleteTxn(idx uint64, key string, tx *memdb.Txn) error {
+func kvsDeleteTxn(tx *memdb.Txn, idx uint64, key string) error {
 	// Look up the entry in the state store
 	entry, err := tx.First("kvs", "id", key)
 	if err != nil {
@@ -931,7 +1019,7 @@ func (s *StateStore) KVSDeleteCAS(idx, cidx uint64, key string) (bool, error) {
 	}
 
 	// Call the actual deletion if the above passed
-	if err := s.kvsDeleteTxn(idx, key, tx); err != nil {
+	if err := kvsDeleteTxn(tx, idx, key); err != nil {
 		return false, err
 	}
 
@@ -967,7 +1055,7 @@ func (s *StateStore) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error
 	}
 
 	// If we made it this far, we should perform the set.
-	return true, s.kvsSetTxn(idx, entry, tx)
+	return true, kvsSetTxn(tx, idx, entry)
 }
 
 // KVSDeleteTree is used to do a recursive delete on a key prefix
@@ -1011,7 +1099,7 @@ func (s *StateStore) SessionCreate(idx uint64, sess *structs.Session) error {
 	defer tx.Abort()
 
 	// Call the session creation
-	if err := s.sessionCreateTxn(idx, sess, tx); err != nil {
+	if err := sessionCreateTxn(tx, idx, sess); err != nil {
 		return err
 	}
 
@@ -1022,7 +1110,7 @@ func (s *StateStore) SessionCreate(idx uint64, sess *structs.Session) error {
 // sessionCreateTxn is the inner method used for creating session entries in
 // an open transaction. Any health checks registered with the session will be
 // checked for failing status. Returns any error encountered.
-func (s *StateStore) sessionCreateTxn(idx uint64, sess *structs.Session, tx *memdb.Txn) error {
+func sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.Session) error {
 	// Check that we have a session ID
 	if sess.ID == "" {
 		return ErrMissingSessionID
@@ -1172,7 +1260,7 @@ func (s *StateStore) SessionDestroy(idx uint64, sessionID string) error {
 	defer tx.Abort()
 
 	// Call the session deletion
-	if err := s.sessionDestroyTxn(idx, sessionID, tx); err != nil {
+	if err := sessionDestroyTxn(tx, idx, sessionID); err != nil {
 		return err
 	}
 
@@ -1182,7 +1270,7 @@ func (s *StateStore) SessionDestroy(idx uint64, sessionID string) error {
 
 // sessionDestroyTxn is the inner method, which is used to do the actual
 // session deletion and handle session invalidation, watch triggers, etc.
-func (s *StateStore) sessionDestroyTxn(idx uint64, sessionID string, tx *memdb.Txn) error {
+func sessionDestroyTxn(tx *memdb.Txn, idx uint64, sessionID string) error {
 	// Look up the session
 	sess, err := tx.First("sessions", "id", sessionID)
 	if err != nil {
@@ -1211,17 +1299,18 @@ func (s *StateStore) ACLSet(idx uint64, acl *structs.ACL) error {
 	defer tx.Abort()
 
 	// Call set on the ACL
-	if err := s.aclSetTxn(idx, acl, tx); err != nil {
+	if err := aclSetTxn(tx, idx, acl); err != nil {
 		return err
 	}
 
+	tx.Defer(func() { s.GetWatchManager("acls").Notify() })
 	tx.Commit()
 	return nil
 }
 
 // aclSetTxn is the inner method used to insert an ACL rule with the
 // proper indexes into the state store.
-func (s *StateStore) aclSetTxn(idx uint64, acl *structs.ACL, tx *memdb.Txn) error {
+func aclSetTxn(tx *memdb.Txn, idx uint64, acl *structs.ACL) error {
 	// Check that the ID is set
 	if acl.ID == "" {
 		return ErrMissingACLID
@@ -1272,7 +1361,11 @@ func (s *StateStore) ACLGet(aclID string) (*structs.ACL, error) {
 func (s *StateStore) ACLList() (uint64, []*structs.ACL, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+	return aclListTxn(tx)
+}
 
+// aclListTxn is used to list out all of the ACLs in the state store.
+func aclListTxn(tx *memdb.Txn) (uint64, []*structs.ACL, error) {
 	// Query all of the ACLs in the state store
 	acls, err := tx.Get("acls", "id")
 	if err != nil {
@@ -1301,17 +1394,18 @@ func (s *StateStore) ACLDelete(idx uint64, aclID string) error {
 	defer tx.Abort()
 
 	// Call the ACL delete
-	if err := s.aclDeleteTxn(idx, aclID, tx); err != nil {
+	if err := aclDeleteTxn(tx, idx, aclID); err != nil {
 		return err
 	}
 
+	tx.Defer(func() { s.GetWatchManager("acls").Notify() })
 	tx.Commit()
 	return nil
 }
 
 // aclDeleteTxn is used to delete an ACL from the state store within
 // an existing transaction.
-func (s *StateStore) aclDeleteTxn(idx uint64, aclID string, tx *memdb.Txn) error {
+func aclDeleteTxn(tx *memdb.Txn, idx uint64, aclID string) error {
 	// Look up the existing ACL
 	acl, err := tx.First("acls", "id", aclID)
 	if err != nil {
@@ -1328,5 +1422,24 @@ func (s *StateStore) aclDeleteTxn(idx uint64, aclID string, tx *memdb.Txn) error
 	if err := tx.Insert("index", &IndexEntry{"acls", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
+	return nil
+}
+
+// ACLRestore is used when restoring from a snapshot. For general inserts, use
+// ACLSet.
+func (s *StateStore) ACLRestore(acl *structs.ACL) error {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	if err := tx.Insert("acls", acl); err != nil {
+		return fmt.Errorf("failed restoring acl: %s", err)
+	}
+
+	if err := indexUpdateMaxTxn(tx, acl.ModifyIndex, "acls"); err != nil {
+		return err
+	}
+
+	tx.Defer(func() { s.GetWatchManager("acls").Notify() })
+	tx.Commit()
 	return nil
 }

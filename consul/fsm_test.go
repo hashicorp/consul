@@ -361,7 +361,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
 	fsm.state.SessionCreate(9, session)
 	acl := &structs.ACL{ID: generateUUID(), Name: "User Token"}
-	fsm.state.ACLSet(10, acl)
+	fsm.stateNew.ACLSet(10, acl)
 
 	fsm.state.KVSSet(11, &structs.DirEntry{
 		Key:   "/remove",
@@ -448,14 +448,14 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify ACL is restored
-	idx, a, err := fsm2.state.ACLGet(acl.ID)
+	a, err := fsm2.stateNew.ACLGet(acl.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if a.Name != "User Token" {
 		t.Fatalf("bad: %v", a)
 	}
-	if idx <= 1 {
+	if a.ModifyIndex <= 1 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -971,7 +971,7 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 
 	// Get the ACL
 	id := resp.(string)
-	_, acl, err := fsm.state.ACLGet(id)
+	acl, err := fsm.stateNew.ACLGet(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1007,7 +1007,7 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	_, acl, err = fsm.state.ACLGet(id)
+	acl, err = fsm.stateNew.ACLGet(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
@@ -388,6 +389,75 @@ RUN_QUERY:
 
 	// Check for minimum query time
 	if err == nil && opts.queryMeta.Index > 0 && opts.queryMeta.Index <= opts.queryOpts.MinQueryIndex {
+		select {
+		case <-notifyCh:
+			goto REGISTER_NOTIFY
+		case <-timeout.C:
+		}
+	}
+	return err
+}
+
+// TODO(slackpad)
+func (s *Server) blockingRPCNew(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
+	watch state.WatchManager, run func() error) error {
+	var timeout *time.Timer
+	var notifyCh chan struct{}
+
+	// Fast path right to the non-blocking query.
+	if queryOpts.MinQueryIndex == 0 {
+		goto RUN_QUERY
+	}
+
+	// Make sure a watch manager was given if we were asked to block.
+	if watch == nil {
+		panic("no watch manager given for blocking query")
+	}
+
+	// Restrict the max query time, and ensure there is always one.
+	if queryOpts.MaxQueryTime > maxQueryTime {
+		queryOpts.MaxQueryTime = maxQueryTime
+	} else if queryOpts.MaxQueryTime <= 0 {
+		queryOpts.MaxQueryTime = defaultQueryTime
+	}
+
+	// Apply a small amount of jitter to the request.
+	queryOpts.MaxQueryTime += randomStagger(queryOpts.MaxQueryTime / jitterFraction)
+
+	// Setup a query timeout.
+	timeout = time.NewTimer(queryOpts.MaxQueryTime)
+
+	// Setup the notify channel.
+	notifyCh = make(chan struct{}, 1)
+
+	// Ensure we tear down any watches on return.
+	defer func() {
+		timeout.Stop()
+		watch.Stop(notifyCh)
+	}()
+
+REGISTER_NOTIFY:
+	// Register the notification channel. This may be done multiple times if
+	// we haven't reached the target wait index.
+	watch.Start(notifyCh)
+
+RUN_QUERY:
+	// Update the query metadata.
+	s.setQueryMeta(queryMeta)
+
+	// If the read must be consistent we verify that we are still the leader.
+	if queryOpts.RequireConsistent {
+		if err := s.consistentRead(); err != nil {
+			return err
+		}
+	}
+
+	// Run the query.
+	metrics.IncrCounter([]string{"consul", "rpc", "query"}, 1)
+	err := run()
+
+	// Check for minimum query time.
+	if err == nil && queryMeta.Index > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
 		select {
 		case <-notifyCh:
 			goto REGISTER_NOTIFY

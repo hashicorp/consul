@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
@@ -24,6 +25,7 @@ type consulFSM struct {
 	logOutput io.Writer
 	logger    *log.Logger
 	path      string
+	stateNew  *state.StateStore
 	state     *StateStore
 	gc        *TombstoneGC
 }
@@ -32,7 +34,8 @@ type consulFSM struct {
 // state in a way that can be accessed concurrently with operations
 // that may modify the live state.
 type consulSnapshot struct {
-	state *StateSnapshot
+	state    *StateSnapshot
+	stateNew *state.StateSnapshot
 }
 
 // snapshotHeader is the first entry in our snapshot
@@ -44,6 +47,12 @@ type snapshotHeader struct {
 
 // NewFSMPath is used to construct a new FSM with a blank state
 func NewFSM(gc *TombstoneGC, path string, logOutput io.Writer) (*consulFSM, error) {
+	// Create the state store.
+	stateNew, err := state.NewStateStore(logOutput)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create a temporary path for the state store
 	tmpPath, err := ioutil.TempDir(path, "state")
 	if err != nil {
@@ -60,6 +69,7 @@ func NewFSM(gc *TombstoneGC, path string, logOutput io.Writer) (*consulFSM, erro
 		logOutput: logOutput,
 		logger:    log.New(logOutput, "", log.LstdFlags),
 		path:      path,
+		stateNew:  stateNew,
 		state:     state,
 		gc:        gc,
 	}
@@ -69,6 +79,11 @@ func NewFSM(gc *TombstoneGC, path string, logOutput io.Writer) (*consulFSM, erro
 // Close is used to cleanup resources associated with the FSM
 func (c *consulFSM) Close() error {
 	return c.state.Close()
+}
+
+// TODO(slackpad)
+func (c *consulFSM) StateNew() *state.StateStore {
+	return c.stateNew
 }
 
 // State is used to return a handle to the current state
@@ -234,13 +249,13 @@ func (c *consulFSM) applyACLOperation(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSince([]string{"consul", "fsm", "acl", string(req.Op)}, time.Now())
 	switch req.Op {
 	case structs.ACLForceSet, structs.ACLSet:
-		if err := c.state.ACLSet(index, &req.ACL); err != nil {
+		if err := c.stateNew.ACLSet(index, &req.ACL); err != nil {
 			return err
 		} else {
 			return req.ACL.ID
 		}
 	case structs.ACLDelete:
-		return c.state.ACLDelete(index, req.ACL.ID)
+		return c.stateNew.ACLDelete(index, req.ACL.ID)
 	default:
 		c.logger.Printf("[WARN] consul.fsm: Invalid ACL operation '%s'", req.Op)
 		return fmt.Errorf("Invalid ACL operation '%s'", req.Op)
@@ -272,7 +287,7 @@ func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &consulSnapshot{snap}, nil
+	return &consulSnapshot{snap, c.stateNew.Snapshot()}, nil
 }
 
 func (c *consulFSM) Restore(old io.ReadCloser) error {
@@ -344,7 +359,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 			if err := dec.Decode(&req); err != nil {
 				return err
 			}
-			if err := c.state.ACLRestore(&req); err != nil {
+			if err := c.stateNew.ACLRestore(&req); err != nil {
 				return err
 			}
 
@@ -467,7 +482,7 @@ func (s *consulSnapshot) persistSessions(sink raft.SnapshotSink,
 
 func (s *consulSnapshot) persistACLs(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	acls, err := s.state.ACLList()
+	acls, err := s.stateNew.ACLList()
 	if err != nil {
 		return err
 	}

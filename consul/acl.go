@@ -51,8 +51,8 @@ type aclCacheEntry struct {
 // aclFault is used to fault in the rules for an ACL if we take a miss
 func (s *Server) aclFault(id string) (string, string, error) {
 	defer metrics.MeasureSince([]string{"consul", "acl", "fault"}, time.Now())
-	state := s.fsm.State()
-	_, acl, err := state.ACLGet(id)
+	state := s.fsm.StateNew()
+	acl, err := state.ACLGet(id)
 	if err != nil {
 		return "", "", err
 	}

@@ -24,7 +24,6 @@ const (
 	dbTombstone              = "tombstones"
 	dbSessions               = "sessions"
 	dbSessionChecks          = "sessionChecks"
-	dbACLs                   = "acls"
 	dbMaxMapSize32bit uint64 = 128 * 1024 * 1024       // 128MB maximum size
 	dbMaxMapSize64bit uint64 = 32 * 1024 * 1024 * 1024 // 32GB maximum size
 	dbMaxReaders      uint   = 4096                    // 4K, default is 126
@@ -59,7 +58,6 @@ type StateStore struct {
 	tombstoneTable    *MDBTable
 	sessionTable      *MDBTable
 	sessionCheckTable *MDBTable
-	aclTable          *MDBTable
 	tables            MDBTables
 	watch             map[*MDBTable]*NotifyGroup
 	queryTables       map[string]MDBTables
@@ -361,27 +359,9 @@ func (s *StateStore) initialize() error {
 		},
 	}
 
-	s.aclTable = &MDBTable{
-		Name: dbACLs,
-		Indexes: map[string]*MDBIndex{
-			"id": &MDBIndex{
-				Unique: true,
-				Fields: []string{"ID"},
-			},
-		},
-		Decoder: func(buf []byte) interface{} {
-			out := new(structs.ACL)
-			if err := structs.Decode(buf, out); err != nil {
-				panic(err)
-			}
-			return out
-		},
-	}
-
 	// Store the set of tables
 	s.tables = []*MDBTable{s.nodeTable, s.serviceTable, s.checkTable,
-		s.kvsTable, s.tombstoneTable, s.sessionTable, s.sessionCheckTable,
-		s.aclTable}
+		s.kvsTable, s.tombstoneTable, s.sessionTable, s.sessionCheckTable}
 	for _, table := range s.tables {
 		table.Env = s.env
 		table.Encoder = encoder
@@ -408,8 +388,6 @@ func (s *StateStore) initialize() error {
 		"SessionGet":        MDBTables{s.sessionTable},
 		"SessionList":       MDBTables{s.sessionTable},
 		"NodeSessions":      MDBTables{s.sessionTable},
-		"ACLGet":            MDBTables{s.aclTable},
-		"ACLList":           MDBTables{s.aclTable},
 	}
 	return nil
 }
@@ -1945,109 +1923,6 @@ func (s *StateStore) deleteLocks(index uint64, tx *MDBTxn,
 	return nil
 }
 
-// ACLSet is used to create or update an ACL entry
-func (s *StateStore) ACLSet(index uint64, acl *structs.ACL) error {
-	// Check for an ID
-	if acl.ID == "" {
-		return fmt.Errorf("Missing ACL ID")
-	}
-
-	// Start a new txn
-	tx, err := s.tables.StartTxn(false)
-	if err != nil {
-		return err
-	}
-	defer tx.Abort()
-
-	// Look for the existing node
-	res, err := s.aclTable.GetTxn(tx, "id", acl.ID)
-	if err != nil {
-		return err
-	}
-
-	switch len(res) {
-	case 0:
-		acl.CreateIndex = index
-		acl.ModifyIndex = index
-	case 1:
-		exist := res[0].(*structs.ACL)
-		acl.CreateIndex = exist.CreateIndex
-		acl.ModifyIndex = index
-	default:
-		panic(fmt.Errorf("Duplicate ACL definition. Internal error"))
-	}
-
-	// Insert the ACL
-	if err := s.aclTable.InsertTxn(tx, acl); err != nil {
-		return err
-	}
-
-	// Trigger the update notifications
-	if err := s.aclTable.SetLastIndexTxn(tx, index); err != nil {
-		return err
-	}
-	tx.Defer(func() { s.watch[s.aclTable].Notify() })
-	return tx.Commit()
-}
-
-// ACLRestore is used to restore an ACL. It should only be used when
-// doing a restore, otherwise ACLSet should be used.
-func (s *StateStore) ACLRestore(acl *structs.ACL) error {
-	// Start a new txn
-	tx, err := s.aclTable.StartTxn(false, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Abort()
-
-	if err := s.aclTable.InsertTxn(tx, acl); err != nil {
-		return err
-	}
-	if err := s.aclTable.SetMaxLastIndexTxn(tx, acl.ModifyIndex); err != nil {
-		return err
-	}
-	return tx.Commit()
-}
-
-// ACLGet is used to get an ACL by ID
-func (s *StateStore) ACLGet(id string) (uint64, *structs.ACL, error) {
-	idx, res, err := s.aclTable.Get("id", id)
-	var d *structs.ACL
-	if len(res) > 0 {
-		d = res[0].(*structs.ACL)
-	}
-	return idx, d, err
-}
-
-// ACLList is used to list all the acls
-func (s *StateStore) ACLList() (uint64, []*structs.ACL, error) {
-	idx, res, err := s.aclTable.Get("id")
-	out := make([]*structs.ACL, len(res))
-	for i, raw := range res {
-		out[i] = raw.(*structs.ACL)
-	}
-	return idx, out, err
-}
-
-// ACLDelete is used to remove an ACL
-func (s *StateStore) ACLDelete(index uint64, id string) error {
-	tx, err := s.tables.StartTxn(false)
-	if err != nil {
-		panic(fmt.Errorf("Failed to start txn: %v", err))
-	}
-	defer tx.Abort()
-
-	if n, err := s.aclTable.DeleteTxn(tx, "id", id); err != nil {
-		return err
-	} else if n > 0 {
-		if err := s.aclTable.SetLastIndexTxn(tx, index); err != nil {
-			return err
-		}
-		tx.Defer(func() { s.watch[s.aclTable].Notify() })
-	}
-	return tx.Commit()
-}
-
 // Snapshot is used to create a point in time snapshot
 func (s *StateStore) Snapshot() (*StateSnapshot, error) {
 	// Begin a new txn on all tables
@@ -2125,16 +2000,6 @@ func (s *StateSnapshot) SessionList() ([]*structs.Session, error) {
 	out := make([]*structs.Session, len(res))
 	for i, raw := range res {
 		out[i] = raw.(*structs.Session)
-	}
-	return out, err
-}
-
-// ACLList is used to list all of the ACLs
-func (s *StateSnapshot) ACLList() ([]*structs.ACL, error) {
-	res, err := s.store.aclTable.GetTxn(s.tx, "id")
-	out := make([]*structs.ACL, len(res))
-	for i, raw := range res {
-		out[i] = raw.(*structs.ACL)
 	}
 	return out, err
 }
