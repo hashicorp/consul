@@ -48,7 +48,7 @@ To resolve names, Consul relies on a very specific format for queries.
 There are fundamentally two types of queries: node lookups and service lookups.
 A node lookup, a simple query for the address of a named node, looks like this:
 
-    <node>.node.<datacenter>.<domain>
+    <node>.node[.datacenter].<domain>
 
 For example, if we have a "foo" node with default settings, we could look for
 "foo.node.dc1.consul." The datacenter is an optional part of the FQDN: if not
@@ -90,7 +90,7 @@ two lookup methods: standard and strict [RFC 2782](https://tools.ietf.org/html/r
 
 The format of a standard service lookup is:
 
-    [tag.]<service>.service[.datacenter][.domain]
+    [tag.]<service>.service[.datacenter].<domain>
 
 The `tag` is optional, and, as with node lookups, the `datacenter` is as well. If no tag is
 provided, no filtering is done on tag. If no datacenter is provided, the datacenter of
