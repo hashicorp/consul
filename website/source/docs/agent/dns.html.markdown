@@ -90,7 +90,7 @@ two lookup methods: standard and strict [RFC 2782](https://tools.ietf.org/html/r
 
 The format of a standard service lookup is:
 
-    [tag.]<service>.service[.datacenter][.domain]
+    [tag.]<service>.service[.datacenter].<domain>
 
 The `tag` is optional, and, as with node lookups, the `datacenter` is as well. If no tag is
 provided, no filtering is done on tag. If no datacenter is provided, the datacenter of
