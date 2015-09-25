@@ -400,7 +400,7 @@ RUN_QUERY:
 
 // TODO(slackpad)
 func (s *Server) blockingRPCNew(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
-	watch state.WatchManager, run func() error) error {
+	watch state.Watch, run func() error) error {
 	var timeout *time.Timer
 	var notifyCh chan struct{}
 
@@ -409,9 +409,9 @@ func (s *Server) blockingRPCNew(queryOpts *structs.QueryOptions, queryMeta *stru
 		goto RUN_QUERY
 	}
 
-	// Make sure a watch manager was given if we were asked to block.
+	// Make sure a watch was given if we were asked to block.
 	if watch == nil {
-		panic("no watch manager given for blocking query")
+		panic("no watch given for blocking query")
 	}
 
 	// Restrict the max query time, and ensure there is always one.
@@ -433,13 +433,13 @@ func (s *Server) blockingRPCNew(queryOpts *structs.QueryOptions, queryMeta *stru
 	// Ensure we tear down any watches on return.
 	defer func() {
 		timeout.Stop()
-		watch.Stop(notifyCh)
+		watch.Clear(notifyCh)
 	}()
 
 REGISTER_NOTIFY:
 	// Register the notification channel. This may be done multiple times if
 	// we haven't reached the target wait index.
-	watch.Start(notifyCh)
+	watch.Wait(notifyCh)
 
 RUN_QUERY:
 	// Update the query metadata.

@@ -356,6 +356,22 @@ type DirEntry struct {
 
 	RaftIndex
 }
+
+// Returns a clone of the given directory entry.
+func (d *DirEntry) Clone() *DirEntry {
+	return &DirEntry{
+		LockIndex: d.LockIndex,
+		Key:       d.Key,
+		Flags:     d.Flags,
+		Value:     d.Value,
+		Session:   d.Session,
+		RaftIndex: RaftIndex{
+			CreateIndex: d.CreateIndex,
+			ModifyIndex: d.ModifyIndex,
+		},
+	}
+}
+
 type DirEntries []*DirEntry
 
 type KVSOp string

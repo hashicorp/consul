@@ -1140,7 +1140,7 @@ func TestStateStore_KVSDelete(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Deleting a nonexistent key should be idempotent and note return an
+	// Deleting a nonexistent key should be idempotent and not return an
 	// error
 	if err := s.KVSDelete(4, "foo"); err != nil {
 		t.Fatalf("err: %s", err)
@@ -1519,7 +1519,7 @@ func TestStateStore_SessionList(t *testing.T) {
 	testRegisterNode(t, s, 3, "node3")
 
 	// Create some sessions in the state store
-	sessions := []*structs.Session{
+	sessions := structs.Sessions{
 		&structs.Session{
 			ID:       "session1",
 			Node:     "node1",
@@ -1569,7 +1569,7 @@ func TestStateStore_NodeSessions(t *testing.T) {
 	testRegisterNode(t, s, 2, "node2")
 
 	// Register some sessions with the nodes
-	sessions1 := []*structs.Session{
+	sessions1 := structs.Sessions{
 		&structs.Session{
 			ID:   "session1",
 			Node: "node1",
@@ -1758,7 +1758,7 @@ func TestStateStore_ACLList(t *testing.T) {
 	}
 
 	// Insert some ACLs
-	acls := []*structs.ACL{
+	acls := structs.ACLs{
 		&structs.ACL{
 			ID:    "acl1",
 			Type:  structs.ACLTypeClient,
@@ -1839,7 +1839,7 @@ func TestStateStore_ACL_Watches(t *testing.T) {
 	s := testStateStore(t)
 	ch := make(chan struct{})
 
-	s.GetWatchManager("acls").Start(ch)
+	s.GetTableWatch("acls").Wait(ch)
 	go func() {
 		if err := s.ACLSet(1, &structs.ACL{ID: "acl1"}); err != nil {
 			t.Fatalf("err: %s", err)
@@ -1851,7 +1851,7 @@ func TestStateStore_ACL_Watches(t *testing.T) {
 		t.Fatalf("watch was not notified")
 	}
 
-	s.GetWatchManager("acls").Start(ch)
+	s.GetTableWatch("acls").Wait(ch)
 	go func() {
 		if err := s.ACLDelete(2, "acl1"); err != nil {
 			t.Fatalf("err: %s", err)
@@ -1863,7 +1863,7 @@ func TestStateStore_ACL_Watches(t *testing.T) {
 		t.Fatalf("watch was not notified")
 	}
 
-	s.GetWatchManager("acls").Start(ch)
+	s.GetTableWatch("acls").Wait(ch)
 	go func() {
 		if err := s.ACLRestore(&structs.ACL{ID: "acl1"}); err != nil {
 			t.Fatalf("err: %s", err)

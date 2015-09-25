@@ -123,7 +123,7 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 	state := a.srv.fsm.StateNew()
 	return a.srv.blockingRPCNew(&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetWatchManager("acls"),
+		state.GetTableWatch("acls"),
 		func() error {
 			acl, err := state.ACLGet(args.ACL)
 			if acl != nil {
@@ -194,7 +194,7 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	state := a.srv.fsm.StateNew()
 	return a.srv.blockingRPCNew(&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetWatchManager("acls"),
+		state.GetTableWatch("acls"),
 		func() error {
 			var err error
 			reply.Index, reply.ACLs, err = state.ACLList()
