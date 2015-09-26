@@ -112,6 +112,8 @@ func (c *Command) readConfig() *Config {
 		"number of retries for joining -wan")
 	cmdFlags.StringVar(&retryIntervalWan, "retry-interval-wan", "",
 		"interval between join -wan attempts")
+	cmdFlags.BoolVar(&cmdConfig.EnableTagDrift, "enable_tag_drift", false,
+		"enable tag drift - ignore tags during anti-entropy")
 
 	if err := cmdFlags.Parse(c.args); err != nil {
 		return nil
@@ -749,6 +751,7 @@ AFTER_MIGRATE:
 	c.Ui.Info(fmt.Sprintf("Gossip encrypt: %v, RPC-TLS: %v, TLS-Incoming: %v",
 		gossipEncrypted, config.VerifyOutgoing, config.VerifyIncoming))
 	c.Ui.Info(fmt.Sprintf("         Atlas: %s", atlas))
+	c.Ui.Info(fmt.Sprintf("EnableTagDrift: %v", config.EnableTagDrift))
 
 	// Enable log streaming
 	c.Ui.Info("")

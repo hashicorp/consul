@@ -202,6 +202,10 @@ type Config struct {
 	// UserEventHandler callback can be used to handle incoming
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
+
+	// EnableTagDrift when true will inhibit comparison
+	// of service tags during anti-entropy
+	EnableTagDrift bool
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
