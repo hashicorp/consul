@@ -302,14 +302,14 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		// Invoke the handler
 		start := time.Now()
 		defer func() {
-			s.logger.Printf("[DEBUG] http: Request %v (%v)", logURL, time.Now().Sub(start))
+			s.logger.Printf("[DEBUG] http: Request %s %v (%v)", req.Method, logURL, time.Now().Sub(start))
 		}()
 		obj, err := handler(resp, req)
 
 		// Check for an error
 	HAS_ERR:
 		if err != nil {
-			s.logger.Printf("[ERR] http: Request %v, error: %v", logURL, err)
+			s.logger.Printf("[ERR] http: Request %s %v, error: %v", req.Method, logURL, err)
 			code := 500
 			errMsg := err.Error()
 			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
