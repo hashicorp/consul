@@ -41,3 +41,6 @@ ui/dist/
 
 website/.bundle
 website/vendor
+
+# auto-generated.
+command/agent/bindata_assetfs.go

@@ -14,6 +14,7 @@ cov:
 deps:
 	@echo "--> Installing build dependencies"
 	@go get -d -v ./... $(DEPS)
+	@$(MAKE) -C ui deps dist
 
 updatedeps: deps
 	@echo "--> Updating build dependencies"

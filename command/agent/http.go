@@ -36,6 +36,7 @@ type HTTPServer struct {
 	listener net.Listener
 	logger   *log.Logger
 	uiDir    string
+	enableUi bool
 	addr     string
 }
 
@@ -81,6 +82,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			listener: list,
 			logger:   log.New(logOutput, "", log.LstdFlags),
 			uiDir:    config.UiDir,
+			enableUi: config.EnableUi,
 			addr:     httpAddr.String(),
 		}
 		srv.registerHandlers(config.EnableDebug)
@@ -133,6 +135,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			listener: list,
 			logger:   log.New(logOutput, "", log.LstdFlags),
 			uiDir:    config.UiDir,
+			enableUi: config.EnableUi,
 			addr:     httpAddr.String(),
 		}
 		srv.registerHandlers(config.EnableDebug)
@@ -265,9 +268,15 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	}
 
 	// Enable the UI + special endpoints
+	var uiFS http.FileSystem
 	if s.uiDir != "" {
+		uiFS = http.Dir(s.uiDir)
+	} else if s.enableUi {
+		uiFS = assetFS()
+	}
+	if uiFS != nil {
 		// Static file serving done from /ui/
-		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
+		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(uiFS)))
 	}
 
 	// API's are under /internal/ui/ to avoid conflict

@@ -266,6 +266,10 @@ type Config struct {
 	// If provided, the UI endpoints will be enabled.
 	UiDir string `mapstructure:"ui_dir"`
 
+	// Ui enables the built-in Web UI.
+	// If provided, the UI endpoints will be enabled.
+	EnableUi bool `mapstructure:"ui"`
+
 	// PidFile is the file to store our PID in
 	PidFile string `mapstructure:"pid_file"`
 
@@ -954,6 +958,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.UiDir != "" {
 		result.UiDir = b.UiDir
+	}
+	if b.EnableUi {
+		result.EnableUi = true
 	}
 	if b.PidFile != "" {
 		result.PidFile = b.PidFile
