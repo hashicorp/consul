@@ -108,6 +108,12 @@ func init() {
 			}, nil
 		},
 
+		"reachability": func() (cli.Command, error) {
+			return &command.ReachabilityCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"reload": func() (cli.Command, error) {
 			return &command.ReloadCommand{
 				Ui: ui,

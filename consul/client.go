@@ -384,3 +384,20 @@ func (c *Client) Stats() map[string]map[string]string {
 func (c *Client) GetCoordinate() (*coordinate.Coordinate, error) {
 	return c.serf.GetCoordinate()
 }
+
+func (c *Client) Query(name string, payload []byte, params *serf.QueryParam) (*serf.QueryResponse, error) {
+	// Prevent the use of the internal prefix
+	if strings.HasPrefix(name, serf.InternalQueryPrefix) {
+		// Allow the special "ping" query
+		if name != serf.InternalQueryPrefix+"ping" || payload != nil {
+			return nil, fmt.Errorf("Queries cannot contain the '%s' prefix", serf.InternalQueryPrefix)
+		}
+	}
+	c.logger.Printf("[DEBUG] client: Requesting query send: %s. Payload: %#v",
+		name, string(payload))
+	resp, err := c.serf.Query(name, payload, params)
+	if err != nil {
+		c.logger.Printf("[WARN] client: failed to start user query: %v", err)
+	}
+	return resp, err
+}
