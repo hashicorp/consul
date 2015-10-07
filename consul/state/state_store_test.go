@@ -106,6 +106,20 @@ func testSetKey(t *testing.T, s *StateStore, idx uint64, key, value string) {
 	}
 }
 
+// verifyWatch will set up a watch channel, call the given function, and then
+// make sure the watch fires within a fixed time period.
+func verifyWatch(t *testing.T, watch Watch, fn func()) {
+	ch := make(chan struct{})
+	watch.Wait(ch)
+	go fn()
+
+	select {
+	case <-ch:
+	case <-time.After(100 * time.Millisecond):
+		t.Fatalf("watch was not notified")
+	}
+}
+
 func TestStateStore_maxIndex(t *testing.T) {
 	s := testStateStore(t)
 
@@ -1837,41 +1851,22 @@ func TestStateStore_ACLDelete(t *testing.T) {
 
 func TestStateStore_ACL_Watches(t *testing.T) {
 	s := testStateStore(t)
-	ch := make(chan struct{})
 
-	s.GetTableWatch("acls").Wait(ch)
-	go func() {
+	verifyWatch(t, s.GetTableWatch("acls"), func() {
 		if err := s.ACLSet(1, &structs.ACL{ID: "acl1"}); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-	}()
-	select {
-	case <-ch:
-	case <-time.After(1 * time.Second):
-		t.Fatalf("watch was not notified")
-	}
+	})
 
-	s.GetTableWatch("acls").Wait(ch)
-	go func() {
+	verifyWatch(t, s.GetTableWatch("acls"), func() {
 		if err := s.ACLDelete(2, "acl1"); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-	}()
-	select {
-	case <-ch:
-	case <-time.After(1 * time.Second):
-		t.Fatalf("watch was not notified")
-	}
+	})
 
-	s.GetTableWatch("acls").Wait(ch)
-	go func() {
+	verifyWatch(t, s.GetTableWatch("acls"), func() {
 		if err := s.ACLRestore(&structs.ACL{ID: "acl1"}); err != nil {
 			t.Fatalf("err: %s", err)
 		}
-	}()
-	select {
-	case <-ch:
-	case <-time.After(1 * time.Second):
-		t.Fatalf("watch was not notified")
-	}
+	})
 }
