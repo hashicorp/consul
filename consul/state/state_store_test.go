@@ -206,6 +206,20 @@ func TestStateStore_ReapTombstones(t *testing.T) {
 	}
 }
 
+func TestStateStore_GetTableWatch(t *testing.T) {
+	s := testStateStore(t)
+
+	// This test does two things - it makes sure there's no full table
+	// watch for KVS, and it makes sure that asking for a watch that
+	// doesn't exist causes a panic.
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatalf("didn't get expected panic")
+		}
+	}()
+	s.GetTableWatch("kvs")
+}
+
 func TestStateStore_EnsureRegistration(t *testing.T) {
 	s := testStateStore(t)
 
@@ -502,6 +516,66 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	if idx := s.maxIndex("nodes"); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
+}
+
+func TestStateStore_Node_Snapshot(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create some nodes in the state store.
+	testRegisterNode(t, s, 0, "node0")
+	testRegisterNode(t, s, 1, "node1")
+	testRegisterNode(t, s, 2, "node2")
+
+	// Snapshot the nodes.
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	// Verify the snapshot.
+	if idx := snap.LastIndex(); idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	dump, err := snap.NodeDump()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if n := len(dump); n != 3 {
+		t.Fatalf("bad node count: %d", n)
+	}
+	for i, node := range dump {
+		if node.CreateIndex != uint64(i) || node.ModifyIndex != uint64(i) {
+			t.Fatalf("bad node index: %d, %d", node.CreateIndex, node.ModifyIndex)
+		}
+		name := fmt.Sprintf("node%d", i)
+		if node.Node != name {
+			t.Fatalf("bad: %#v", node)
+		}
+	}
+}
+
+func TestStateStore_Node_Watches(t *testing.T) {
+	s := testStateStore(t)
+
+	// Call functions that update the nodes table and make sure a watch fires
+	// each time.
+	verifyWatch(t, s.GetTableWatch("nodes"), func() {
+		req := &structs.RegisterRequest{
+			Node: "node1",
+		}
+		if err := s.EnsureRegistration(1, req); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	})
+	verifyWatch(t, s.GetTableWatch("nodes"), func() {
+		node := &structs.Node{Node: "node2"}
+		if err := s.EnsureNode(2, node); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	})
+	verifyWatch(t, s.GetTableWatch("nodes"), func() {
+		if err := s.DeleteNode(3, "node2"); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	})
 }
 
 func TestStateStore_EnsureService(t *testing.T) {
@@ -2113,7 +2187,7 @@ func TestStateStore_ACL_Snapshot_Restore(t *testing.T) {
 func TestStateStore_ACL_Watches(t *testing.T) {
 	s := testStateStore(t)
 
-	// Call functions that update the ACLs table and make sure a watch fires
+	// Call functions that update the acls table and make sure a watch fires
 	// each time.
 	verifyWatch(t, s.GetTableWatch("acls"), func() {
 		if err := s.ACLSet(1, &structs.ACL{ID: "acl1"}); err != nil {
