@@ -39,16 +39,16 @@ func (g *Graveyard) InsertTxn(tx *memdb.Txn, context string, idx uint64) error {
 // GetMaxIndexTxn returns the highest index tombstone whose key matches the
 // given context, using a prefix match.
 func (g *Graveyard) GetMaxIndexTxn(tx *memdb.Txn, context string) (uint64, error) {
-	stones, err := tx.Get(g.Table, "id", context)
+	stones, err := tx.Get(g.Table, "id_prefix", context)
 	if err != nil {
 		return 0, fmt.Errorf("failed querying tombstones: %s", err)
 	}
 
 	var lindex uint64
 	for stone := stones.Next(); stone != nil; stone = stones.Next() {
-		r := stone.(*Tombstone)
-		if r.Index > lindex {
-			lindex = r.Index
+		s := stone.(*Tombstone)
+		if s.Index > lindex {
+			lindex = s.Index
 		}
 	}
 	return lindex, nil
@@ -56,7 +56,7 @@ func (g *Graveyard) GetMaxIndexTxn(tx *memdb.Txn, context string) (uint64, error
 
 // DumpTxn returns all the tombstones.
 func (g *Graveyard) DumpTxn(tx *memdb.Txn) ([]*Tombstone, error) {
-	stones, err := tx.Get(g.Table, "id", "")
+	stones, err := tx.Get(g.Table, "id")
 	if err != nil {
 		return nil, fmt.Errorf("failed querying tombstones: %s", err)
 	}
@@ -87,7 +87,7 @@ func (g *Graveyard) ReapTxn(tx *memdb.Txn, idx uint64) error {
 	// This does a full table scan since we currently can't index on a
 	// numeric value. Since this is all in-memory and done infrequently
 	// this pretty reasonable.
-	stones, err := tx.Get(g.Table, "id", "")
+	stones, err := tx.Get(g.Table, "id")
 	if err != nil {
 		return fmt.Errorf("failed querying tombstones: %s", err)
 	}

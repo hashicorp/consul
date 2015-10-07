@@ -149,6 +149,63 @@ func TestStateStore_indexUpdateMaxTxn(t *testing.T) {
 	}
 }
 
+func TestStateStore_ReapTombstones(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create some KV pairs.
+	testSetKey(t, s, 1, "foo", "foo")
+	testSetKey(t, s, 2, "foo/bar", "bar")
+	testSetKey(t, s, 3, "foo/baz", "bar")
+	testSetKey(t, s, 4, "foo/moo", "bar")
+	testSetKey(t, s, 5, "foo/zoo", "bar")
+
+	// Call a delete on some specific keys.
+	if err := s.KVSDelete(6, "foo/baz"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := s.KVSDelete(7, "foo/moo"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Pull out the list and check the index, which should come from the
+	// tombstones.
+	idx, _, err := s.KVSList("foo/")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 7 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Reap the tombstones <= 6.
+	if err := s.ReapTombstones(6); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Should still be good because 7 is in there.
+	idx, _, err = s.KVSList("foo/")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 7 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Now reap them all.
+	if err := s.ReapTombstones(7); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// At this point the index will slide backwards.
+	idx, _, err = s.KVSList("foo/")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 5 {
+		t.Fatalf("bad index: %d", idx)
+	}
+}
+
 func TestStateStore_EnsureNode(t *testing.T) {
 	s := testStateStore(t)
 
