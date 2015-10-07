@@ -510,7 +510,7 @@ func (s *StateStore) EnsureService(idx uint64, node string, svc *structs.NodeSer
 // existing memdb transaction.
 func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
 	// Check for existing service
-	existing, err := tx.First("services", "id", node, svc.Service)
+	existing, err := tx.First("services", "id", node, svc.ID)
 	if err != nil {
 		return fmt.Errorf("failed service lookup: %s", err)
 	}
@@ -588,8 +588,8 @@ func (s *StateStore) NodeServices(nodeID string) (uint64, *structs.NodeServices,
 		sn := service.(*structs.ServiceNode)
 
 		// Track the highest index
-		if sn.CreateIndex > lindex {
-			lindex = sn.CreateIndex
+		if sn.ModifyIndex > lindex {
+			lindex = sn.ModifyIndex
 		}
 
 		// Create the NodeService
