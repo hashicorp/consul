@@ -115,8 +115,8 @@ func verifyWatch(t *testing.T, watch Watch, fn func()) {
 
 	select {
 	case <-ch:
-	case <-time.After(100 * time.Millisecond):
-		t.Fatalf("watch was not notified")
+	case <-time.After(1 * time.Second):
+		t.Fatalf("watch was not notified in time")
 	}
 }
 
@@ -1800,6 +1800,9 @@ func TestStateStore_ACLList(t *testing.T) {
 
 	// Query the ACLs
 	idx, res, err = s.ACLList()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if idx != 2 {
 		t.Fatalf("bad index: %d", idx)
 	}
@@ -1808,6 +1811,75 @@ func TestStateStore_ACLList(t *testing.T) {
 	if !reflect.DeepEqual(res, acls) {
 		t.Fatalf("bad: %#v", res)
 	}
+}
+
+func TestStateStore_ACL_Snapshot_Restore(t *testing.T) {
+	s := testStateStore(t)
+
+	// Insert some ACLs.
+	acls := structs.ACLs{
+		&structs.ACL{
+			ID:    "acl1",
+			Type:  structs.ACLTypeClient,
+			Rules: "rules1",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 1,
+				ModifyIndex: 1,
+			},
+		},
+		&structs.ACL{
+			ID:    "acl2",
+			Type:  structs.ACLTypeClient,
+			Rules: "rules2",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 2,
+				ModifyIndex: 2,
+			},
+		},
+	}
+	for _, acl := range acls {
+		if err := s.ACLSet(acl.ModifyIndex, acl); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Snapshot the ACLs.
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	// Verify the snapshot.
+	if idx := snap.LastIndex(); idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	dump, err := snap.ACLDump()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !reflect.DeepEqual(dump, acls) {
+		t.Fatalf("bad: %#v", dump)
+	}
+
+	// Restore the values into a new state store.
+	func() {
+		s := testStateStore(t)
+		for _, acl := range dump {
+			if err := s.ACLRestore(acl); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+		}
+
+		// Read the restored ACLs back out and verify that they match.
+		idx, res, err := s.ACLList()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != 2 {
+			t.Fatalf("bad index: %d", idx)
+		}
+		if !reflect.DeepEqual(res, acls) {
+			t.Fatalf("bad: %#v", res)
+		}
+	}()
 }
 
 func TestStateStore_ACLDelete(t *testing.T) {
@@ -1852,18 +1924,18 @@ func TestStateStore_ACLDelete(t *testing.T) {
 func TestStateStore_ACL_Watches(t *testing.T) {
 	s := testStateStore(t)
 
+	// Call functions that update the ACLs table and make sure a watch fires
+	// each time.
 	verifyWatch(t, s.GetTableWatch("acls"), func() {
 		if err := s.ACLSet(1, &structs.ACL{ID: "acl1"}); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	})
-
 	verifyWatch(t, s.GetTableWatch("acls"), func() {
 		if err := s.ACLDelete(2, "acl1"); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	})
-
 	verifyWatch(t, s.GetTableWatch("acls"), func() {
 		if err := s.ACLRestore(&structs.ACL{ID: "acl1"}); err != nil {
 			t.Fatalf("err: %s", err)
