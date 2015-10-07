@@ -102,7 +102,7 @@ func NewStateStore(logOutput io.Writer) (*StateStore, error) {
 		db:           db,
 		tableWatches: tableWatches,
 		kvsWatch:     NewPrefixWatch(),
-		kvsGraveyard: NewGraveyard("kvs"),
+		kvsGraveyard: NewGraveyard(),
 		lockDelay:    NewDelay(),
 	}
 	return s, nil

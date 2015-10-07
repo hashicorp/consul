@@ -6,31 +6,29 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
-// tombstone is the internal type used to track tombstones.
+// Tombstone is the internal type used to track tombstones.
 type Tombstone struct {
 	Key   string
 	Index uint64
 }
 
-// Graveyard manages a set of tombstones for a table. This is just used for
-// KVS right now but we've broken it out for other table types later.
+// Graveyard manages a set of tombstones.
 type Graveyard struct {
-	Table string
 }
 
 // NewGraveyard returns a new graveyard.
-func NewGraveyard(table string) *Graveyard {
-	return &Graveyard{Table: "tombstones_" + table}
+func NewGraveyard() *Graveyard {
+	return &Graveyard{}
 }
 
 // InsertTxn adds a new tombstone.
-func (g *Graveyard) InsertTxn(tx *memdb.Txn, context string, idx uint64) error {
-	stone := &Tombstone{Key: context, Index: idx}
-	if err := tx.Insert(g.Table, stone); err != nil {
+func (g *Graveyard) InsertTxn(tx *memdb.Txn, key string, idx uint64) error {
+	stone := &Tombstone{Key: key, Index: idx}
+	if err := tx.Insert("tombstones", stone); err != nil {
 		return fmt.Errorf("failed inserting tombstone: %s", err)
 	}
 
-	if err := tx.Insert("index", &IndexEntry{g.Table, idx}); err != nil {
+	if err := tx.Insert("index", &IndexEntry{"tombstones", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	return nil
@@ -38,8 +36,8 @@ func (g *Graveyard) InsertTxn(tx *memdb.Txn, context string, idx uint64) error {
 
 // GetMaxIndexTxn returns the highest index tombstone whose key matches the
 // given context, using a prefix match.
-func (g *Graveyard) GetMaxIndexTxn(tx *memdb.Txn, context string) (uint64, error) {
-	stones, err := tx.Get(g.Table, "id_prefix", context)
+func (g *Graveyard) GetMaxIndexTxn(tx *memdb.Txn, prefix string) (uint64, error) {
+	stones, err := tx.Get("tombstones", "id_prefix", prefix)
 	if err != nil {
 		return 0, fmt.Errorf("failed querying tombstones: %s", err)
 	}
@@ -56,7 +54,7 @@ func (g *Graveyard) GetMaxIndexTxn(tx *memdb.Txn, context string) (uint64, error
 
 // DumpTxn returns all the tombstones.
 func (g *Graveyard) DumpTxn(tx *memdb.Txn) ([]*Tombstone, error) {
-	stones, err := tx.Get(g.Table, "id")
+	stones, err := tx.Get("tombstones", "id")
 	if err != nil {
 		return nil, fmt.Errorf("failed querying tombstones: %s", err)
 	}
@@ -71,11 +69,11 @@ func (g *Graveyard) DumpTxn(tx *memdb.Txn) ([]*Tombstone, error) {
 // RestoreTxn is used when restoring from a snapshot. For general inserts, use
 // InsertTxn.
 func (g *Graveyard) RestoreTxn(tx *memdb.Txn, stone *Tombstone) error {
-	if err := tx.Insert(g.Table, stone); err != nil {
+	if err := tx.Insert("tombstones", stone); err != nil {
 		return fmt.Errorf("failed inserting tombstone: %s", err)
 	}
 
-	if err := indexUpdateMaxTxn(tx, stone.Index, g.Table); err != nil {
+	if err := indexUpdateMaxTxn(tx, stone.Index, "tombstones"); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 	return nil
@@ -87,14 +85,14 @@ func (g *Graveyard) ReapTxn(tx *memdb.Txn, idx uint64) error {
 	// This does a full table scan since we currently can't index on a
 	// numeric value. Since this is all in-memory and done infrequently
 	// this pretty reasonable.
-	stones, err := tx.Get(g.Table, "id")
+	stones, err := tx.Get("tombstones", "id")
 	if err != nil {
 		return fmt.Errorf("failed querying tombstones: %s", err)
 	}
 
 	for stone := stones.Next(); stone != nil; stone = stones.Next() {
 		if stone.(*Tombstone).Index <= idx {
-			if err := tx.Delete(g.Table, stone); err != nil {
+			if err := tx.Delete("tombstones", stone); err != nil {
 				return fmt.Errorf("failed deleting tombstone: %s", err)
 			}
 		}
