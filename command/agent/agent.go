@@ -1457,13 +1457,13 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }
 
-// Query sends a Query on Serf, see Serf.Query.
-func (a *Agent) Query(name string, payload []byte, params *serf.QueryParam) (*serf.QueryResponse, error) {
-	a.logger.Printf("[DEBUG] agent: Requesting query send: %s. Payload: %#v",
+// SerfQuery sends a Query on Serf, see Serf.Query.
+func (a *Agent) SerfQuery(name string, payload []byte, params *serf.QueryParam) (*serf.QueryResponse, error) {
+	a.logger.Printf("[DEBUG] agent: Requesting serf query send: %s. Payload: %#v",
 		name, string(payload))
-	resp, err := a.client.Query(name, payload, params)
+	resp, err := a.client.SerfQuery(name, payload, params)
 	if err != nil {
-		a.logger.Printf("[WARN] agent: failed to start user query: %v", err)
+		a.logger.Printf("[WARN] agent: failed to start user serf query: %v", err)
 	}
 	return resp, err
 }

@@ -57,7 +57,7 @@ const (
 	useKeyCommand     = "use-key"
 	removeKeyCommand  = "remove-key"
 	listKeysCommand   = "list-keys"
-	queryCommand      = "query"
+	serfQueryCommand  = "serf-query"
 )
 
 const (
@@ -411,8 +411,8 @@ func (i *AgentRPC) handleRequest(client *rpcClient, reqHeader *requestHeader) er
 	case installKeyCommand, useKeyCommand, removeKeyCommand, listKeysCommand:
 		return i.handleKeyring(client, seq, command, token)
 
-	case queryCommand:
-		return i.handleQuery(client, seq)
+	case serfQueryCommand:
+		return i.handleSerfQuery(client, seq)
 
 	default:
 		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
@@ -582,13 +582,13 @@ func (i *AgentRPC) handleStop(client *rpcClient, seq uint64) error {
 	return client.Send(&resp, nil)
 }
 
-func (i *AgentRPC) handleQuery(client *rpcClient, seq uint64) error {
-	var req queryRequest
+func (i *AgentRPC) handleSerfQuery(client *rpcClient, seq uint64) error {
+	var req serfQueryRequest
 	if err := client.dec.Decode(&req); err != nil {
 		return fmt.Errorf("decode failed: %v", err)
 	}
 
-	// Setup the query
+	// Setup the serf query
 	params := serf.QueryParam{
 		FilterNodes: req.FilterNodes,
 		FilterTags:  req.FilterTags,
@@ -596,14 +596,14 @@ func (i *AgentRPC) handleQuery(client *rpcClient, seq uint64) error {
 		Timeout:     req.Timeout,
 	}
 
-	// Start the query
-	queryResp, err := i.agent.Query(req.Name, req.Payload, &params)
+	// Start the serf query
+	serfQueryResp, err := i.agent.SerfQuery(req.Name, req.Payload, &params)
 
-	// Stream the query responses
+	// Stream the serf query responses
 	if err == nil {
-		qs := newQueryResponseStream(client, seq, i.logger)
+		qs := newSerfQueryResponseStream(client, seq, i.logger)
 		defer func() {
-			go qs.Stream(queryResp)
+			go qs.Stream(serfQueryResp)
 		}()
 	}
 

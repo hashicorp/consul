@@ -32,14 +32,14 @@ type ReachabilityCommand struct {
 
 func (c *ReachabilityCommand) Help() string {
 	helpText := `
-Usage: serf reachability [options]
+Usage: consul reachability [options]
 
   Tests the network reachability of this node
 
 Options:
 
-  -rpc-addr=127.0.0.1:8400  RPC address of the Serf agent.
-  -rpc-auth=""              RPC auth token of the Serf agent.
+  -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
+  -rpc-auth=""              RPC auth token of the Consul agent.
   -verbose                  Verbose mode
 `
 	return strings.TrimSpace(helpText)
@@ -57,7 +57,7 @@ func (c *ReachabilityCommand) Run(args []string) int {
 
 	cl, err := RPCClient(*rpcAddr)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error connecting to Serf agent: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
 	}
 	defer cl.Close()
@@ -71,10 +71,6 @@ func (c *ReachabilityCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error getting members: %s", err))
 		return 1
 	}
-	if members == nil {
-		c.Ui.Error(fmt.Sprintf("Well, crap."))
-		return 1
-	}
 
 	// Get only the live members
 	liveMembers := make(map[string]struct{})
@@ -86,13 +82,13 @@ func (c *ReachabilityCommand) Run(args []string) int {
 	c.Ui.Output(fmt.Sprintf("Total members: %d, live members: %d", len(members), len(liveMembers)))
 
 	// Start the query
-	params := agent.QueryParam{
+	params := agent.SerfQueryParam{
 		RequestAck: true,
 		Name:       serf.InternalQueryPrefix + "ping",
 		AckCh:      ackCh,
 	}
-	if err := cl.Query(&params); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error sending query: %s", err))
+	if err := cl.SerfQuery(&params); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error sending serf query: %s", err))
 		return 1
 	}
 	c.Ui.Output("Starting reachability test...")
@@ -157,7 +153,7 @@ OUTER:
 		return 1
 
 	} else if numAcks < n {
-		c.Ui.Output("Received less acks than live nodes! Missing acks from:")
+		c.Ui.Output("Received fewer acks than live nodes! Missing acks from:")
 		for m := range liveMembers {
 			if _, ok := acksFrom[m]; !ok {
 				c.Ui.Output(fmt.Sprintf("\t%s", m))

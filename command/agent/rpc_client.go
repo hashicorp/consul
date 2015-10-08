@@ -346,13 +346,13 @@ func (c *RPCClient) Monitor(level logutils.LogLevel, ch chan<- string) (StreamHa
 	}
 }
 
-// NodeResponse is used to return the response of a query
+// NodeResponse is used to return the response of a serf query
 type NodeResponse struct {
 	From    string
 	Payload []byte
 }
 
-type queryHandler struct {
+type serfQueryHandler struct {
 	client *RPCClient
 	closed bool
 	init   bool
@@ -362,7 +362,7 @@ type queryHandler struct {
 	seq    uint64
 }
 
-func (qh *queryHandler) Handle(resp *responseHeader) {
+func (qh *serfQueryHandler) Handle(resp *responseHeader) {
 	// Initialize on the first response
 	if !qh.init {
 		qh.init = true
@@ -371,38 +371,38 @@ func (qh *queryHandler) Handle(resp *responseHeader) {
 	}
 
 	// Decode the query response
-	var rec queryRecord
+	var rec serfQueryRecord
 	if err := qh.client.dec.Decode(&rec); err != nil {
-		log.Printf("[ERR] Failed to decode query response: %v", err)
+		log.Printf("[ERR] Failed to decode serf query response: %v", err)
 		qh.client.deregisterHandler(qh.seq)
 		return
 	}
 
 	switch rec.Type {
-	case queryRecordAck:
+	case serfQueryRecordAck:
 		select {
 		case qh.ackCh <- rec.From:
 		default:
-			log.Printf("[ERR] Dropping query ack, channel full")
+			log.Printf("[ERR] Dropping serf query ack, channel full")
 		}
 
-	case queryRecordResponse:
+	case serfQueryRecordResponse:
 		select {
 		case qh.respCh <- NodeResponse{rec.From, rec.Payload}:
 		default:
-			log.Printf("[ERR] Dropping query response, channel full")
+			log.Printf("[ERR] Dropping serf query response, channel full")
 		}
 
-	case queryRecordDone:
+	case serfQueryRecordDone:
 		// No further records coming
 		qh.client.deregisterHandler(qh.seq)
 
 	default:
-		log.Printf("[ERR] Unrecognized query record type: %s", rec.Type)
+		log.Printf("[ERR] Unrecognized serf query record type: %s", rec.Type)
 	}
 }
 
-func (qh *queryHandler) Cleanup() {
+func (qh *serfQueryHandler) Cleanup() {
 	if !qh.closed {
 		if !qh.init {
 			qh.init = true
@@ -419,18 +419,18 @@ func (qh *queryHandler) Cleanup() {
 }
 
 const (
-	queryRecordAck      = "ack"
-	queryRecordResponse = "response"
-	queryRecordDone     = "done"
+	serfQueryRecordAck      = "ack"
+	serfQueryRecordResponse = "response"
+	serfQueryRecordDone     = "done"
 )
 
-type queryRecord struct {
+type serfQueryRecord struct {
 	Type    string
 	From    string
 	Payload []byte
 }
 
-type queryRequest struct {
+type serfQueryRequest struct {
 	FilterNodes []string
 	FilterTags  map[string]string
 	RequestAck  bool
@@ -439,8 +439,9 @@ type queryRequest struct {
 	Payload     []byte
 }
 
-// QueryParam is provided to customize various query settings.
-type QueryParam struct {
+// SerfQueryParam is provided to customize various serf query
+// settings.
+type SerfQueryParam struct {
 	FilterNodes []string            // A list of node names to restrict query to
 	FilterTags  map[string]string   // A map of tag name to regex to filter on
 	RequestAck  bool                // Should nodes ack the query receipt
@@ -451,18 +452,18 @@ type QueryParam struct {
 	RespCh      chan<- NodeResponse // Channel to send responses on
 }
 
-// Query initiates a new query message using the given parameters, and streams
-// acks and responses over the given channels. The channels will not block on
-// sends and should be buffered. At the end of the query, the channels will be
-// closed.
-func (c *RPCClient) Query(params *QueryParam) error {
+// SerfQuery initiates a new query message using the given parameters,
+// and streams acks and responses over the given channels. The
+// channels will not block on sends and should be buffered. At the end
+// of the query, the channels will be closed.
+func (c *RPCClient) SerfQuery(params *SerfQueryParam) error {
 	// Setup the request
 	seq := c.getSeq()
 	header := requestHeader{
-		Command: queryCommand,
+		Command: serfQueryCommand,
 		Seq:     seq,
 	}
-	req := queryRequest{
+	req := serfQueryRequest{
 		FilterNodes: params.FilterNodes,
 		FilterTags:  params.FilterTags,
 		RequestAck:  params.RequestAck,
@@ -473,7 +474,7 @@ func (c *RPCClient) Query(params *QueryParam) error {
 
 	// Create a query handler
 	initCh := make(chan error, 1)
-	handler := &queryHandler{
+	handler := &serfQueryHandler{
 		client: c,
 		initCh: initCh,
 		ackCh:  params.AckCh,
