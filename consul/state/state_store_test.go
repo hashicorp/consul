@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
 )
@@ -107,16 +106,40 @@ func testSetKey(t *testing.T, s *StateStore, idx uint64, key, value string) {
 }
 
 // verifyWatch will set up a watch channel, call the given function, and then
-// make sure the watch fires within a fixed time period.
+// make sure the watch fires.
 func verifyWatch(t *testing.T, watch Watch, fn func()) {
 	ch := make(chan struct{})
 	watch.Wait(ch)
-	go fn()
+
+	done := make(chan struct{})
+	go func() {
+		fn()
+		close(done)
+	}()
 
 	select {
 	case <-ch:
-	case <-time.After(1 * time.Second):
-		t.Fatalf("watch was not notified in time")
+	case <-done:
+		t.Fatalf("watch was not notified")
+	}
+}
+
+// verifyNoWatch will set up a watch channel, call the given function, and then
+// make sure the watch never fires.
+func verifyNoWatch(t *testing.T, watch Watch, fn func()) {
+	ch := make(chan struct{})
+	watch.Wait(ch)
+
+	done := make(chan struct{})
+	go func() {
+		fn()
+		close(done)
+	}()
+
+	select {
+	case <-ch:
+		t.Fatalf("watch should not have been notified")
+	case <-done:
 	}
 }
 
@@ -313,9 +336,9 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 	// Add in another check via the slice.
 	req.Checks = structs.HealthChecks{
 		&structs.HealthCheck{
-			Node:      "node1",
-			CheckID:   "check2",
-			Name:      "check",
+			Node:    "node1",
+			CheckID: "check2",
+			Name:    "check",
 		},
 	}
 	if err := s.EnsureRegistration(4, req); err != nil {
@@ -348,6 +371,60 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			t.Fatalf("bad check returned: %#v", c2)
 		}
 	}()
+}
+
+func TestStateStore_EnsureRegistration_Watches(t *testing.T) {
+	s := testStateStore(t)
+
+	req := &structs.RegisterRequest{
+		Node:    "node1",
+		Address: "1.2.3.4",
+	}
+
+	// The nodes watch should fire for this one.
+	verifyWatch(t, s.GetTableWatch("nodes"), func() {
+		verifyNoWatch(t, s.GetTableWatch("services"), func() {
+			verifyNoWatch(t, s.GetTableWatch("checks"), func() {
+				if err := s.EnsureRegistration(1, req); err != nil {
+					t.Fatalf("err: %s", err)
+				}
+			})
+		})
+	})
+
+	// With a service definition added it should fire nodes and
+	// services.
+	req.Service = &structs.NodeService{
+		ID:      "redis1",
+		Service: "redis",
+		Address: "1.1.1.1",
+		Port:    8080,
+	}
+	verifyWatch(t, s.GetTableWatch("nodes"), func() {
+		verifyWatch(t, s.GetTableWatch("services"), func() {
+			verifyNoWatch(t, s.GetTableWatch("checks"), func() {
+				if err := s.EnsureRegistration(2, req); err != nil {
+					t.Fatalf("err: %s", err)
+				}
+			})
+		})
+	})
+
+	// Now with a check it should hit all three.
+	req.Check = &structs.HealthCheck{
+		Node:    "node1",
+		CheckID: "check1",
+		Name:    "check",
+	}
+	verifyWatch(t, s.GetTableWatch("nodes"), func() {
+		verifyWatch(t, s.GetTableWatch("services"), func() {
+			verifyWatch(t, s.GetTableWatch("checks"), func() {
+				if err := s.EnsureRegistration(3, req); err != nil {
+					t.Fatalf("err: %s", err)
+				}
+			})
+		})
+	})
 }
 
 func TestStateStore_EnsureNode(t *testing.T) {
@@ -735,6 +812,86 @@ func TestStateStore_DeleteService(t *testing.T) {
 	}
 }
 
+func TestStateStore_Service_Snapshot(t *testing.T) {
+	s := testStateStore(t)
+
+	// Register a node with two services.
+	testRegisterNode(t, s, 0, "node1")
+	ns := []*structs.NodeService{
+		&structs.NodeService{
+			ID:      "service1",
+			Service: "redis",
+			Tags:    []string{"prod"},
+			Address: "1.1.1.1",
+			Port:    1111,
+		},
+		&structs.NodeService{
+			ID:      "service2",
+			Service: "nomad",
+			Tags:    []string{"dev"},
+			Address: "1.1.1.2",
+			Port:    1112,
+		},
+	}
+	for i, svc := range ns {
+		if err := s.EnsureService(uint64(i+1), "node1", svc); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Create a second node/service to make sure node filtering works. This
+	// will affect the index but not the dump.
+	testRegisterNode(t, s, 3, "node2")
+	testRegisterService(t, s, 4, "node2", "service2")
+
+	// Snapshot the service.
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	// Verify the snapshot.
+	if idx := snap.LastIndex(); idx != 4 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	dump, err := snap.ServiceDump("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if n := len(dump); n != 2 {
+		t.Fatalf("bad service count: %d", n)
+	}
+	for i, svc := range dump {
+		ns[i].CreateIndex, ns[i].ModifyIndex = uint64(i+1), uint64(i+1)
+		if !reflect.DeepEqual(ns[i], svc) {
+			t.Fatalf("bad: %#v != %#v", svc, ns[i])
+		}
+	}
+}
+
+func TestStateStore_Service_Watches(t *testing.T) {
+	s := testStateStore(t)
+
+	testRegisterNode(t, s, 0, "node1")
+	ns := &structs.NodeService{
+		ID:      "service2",
+		Service: "nomad",
+		Address: "1.1.1.2",
+		Port:    8000,
+	}
+
+	// Call functions that update the services table and make sure a watch
+	// fires each time.
+	verifyWatch(t, s.GetTableWatch("services"), func() {
+		if err := s.EnsureService(2, "node1", ns); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	})
+	verifyWatch(t, s.GetTableWatch("services"), func() {
+		if err := s.DeleteService(3, "node1", "service2"); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	})
+}
+
 func TestStateStore_EnsureCheck(t *testing.T) {
 	s := testStateStore(t)
 
@@ -1063,6 +1220,89 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	if idx != 10 {
 		t.Fatalf("bad index: %d", idx)
 	}
+}
+
+func TestStateStore_Check_Snapshot(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create a node, a service, and a service check as well as a node check.
+	testRegisterNode(t, s, 0, "node1")
+	testRegisterService(t, s, 1, "node1", "service1")
+	checks := structs.HealthChecks{
+		&structs.HealthCheck{
+			Node:    "node1",
+			CheckID: "check1",
+			Name:    "node check",
+			Status:  structs.HealthPassing,
+		},
+		&structs.HealthCheck{
+			Node:      "node1",
+			CheckID:   "check2",
+			Name:      "service check",
+			Status:    structs.HealthCritical,
+			ServiceID: "service1",
+		},
+	}
+	for i, hc := range checks {
+		if err := s.EnsureCheck(uint64(i+1), hc); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Create a second node/service to make sure node filtering works. This
+	// will affect the index but not the dump.
+	testRegisterNode(t, s, 3, "node2")
+	testRegisterService(t, s, 4, "node2", "service2")
+	testRegisterCheck(t, s, 5, "node2", "service2", "check3", structs.HealthPassing)
+
+	// Snapshot the checks.
+	snap := s.Snapshot()
+	defer snap.Close()
+
+	// Verify the snapshot.
+	if idx := snap.LastIndex(); idx != 5 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	dump, err := snap.CheckDump("node1")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	checks[0].CreateIndex, checks[0].ModifyIndex = 1, 1
+	checks[1].CreateIndex, checks[1].ModifyIndex = 2, 2
+	if !reflect.DeepEqual(dump, checks) {
+		t.Fatalf("bad: %#v != %#v", dump, checks)
+	}
+
+}
+
+func TestStateStore_Check_Watches(t *testing.T) {
+	s := testStateStore(t)
+
+	testRegisterNode(t, s, 0, "node1")
+	hc := &structs.HealthCheck{
+		Node:    "node1",
+		CheckID: "check1",
+		Status:  structs.HealthPassing,
+	}
+
+	// Call functions that update the checks table and make sure a watch fires
+	// each time.
+	verifyWatch(t, s.GetTableWatch("checks"), func() {
+		if err := s.EnsureCheck(1, hc); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	})
+	verifyWatch(t, s.GetTableWatch("checks"), func() {
+		hc.Status = structs.HealthCritical
+		if err := s.EnsureCheck(2, hc); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	})
+	verifyWatch(t, s.GetTableWatch("checks"), func() {
+		if err := s.DeleteCheck(3, "node1", "check1"); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	})
 }
 
 func TestStateStore_NodeInfo_NodeDump(t *testing.T) {

@@ -162,6 +162,10 @@ func (s *StateSnapshot) ServiceDump(node string) ([]*structs.NodeService, error)
 			Tags:    s.ServiceTags,
 			Address: s.ServiceAddress,
 			Port:    s.ServicePort,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: s.CreateIndex,
+				ModifyIndex: s.ModifyIndex,
+			},
 		})
 	}
 	return dump, nil
