@@ -19,10 +19,10 @@ it will dump the current telemetry information to the agent's `stderr`.
 This telemetry information can be used for debugging or otherwise
 getting a better view of what Consul is doing.
 
-Additionally, if the [`statsite_addr` configuration option](/docs/agent/options.html#statsite_addr)
-is provided, the telemetry information will be streamed to a
-[statsite](http://github.com/armon/statsite) server where it can be
-aggregated and flushed to Graphite or any other metrics store.
+Additionally, if the [`telemetry` configuration options](/docs/agent/options.html#telemetry)
+are provided, the telemetry information will be streamed to a
+[statsite](http://github.com/armon/statsite) or [statsd](http://github.com/etsy/statsd) server where
+it can be aggregated and flushed to Graphite or any other metrics store.
 
 Below is sample output of a telemetry dump:
 

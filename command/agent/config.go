@@ -90,6 +90,32 @@ type DNSConfig struct {
 	OnlyPassing bool `mapstructure:"only_passing"`
 }
 
+// Telemetry is the telemetry configuration for the server
+type Telemetry struct {
+	// StatsiteAddr is the address of a statsite instance. If provided,
+	// metrics will be streamed to that instance.
+	StatsiteAddr string `mapstructure:"statsite_address"`
+
+	// StatsdAddr is the address of a statsd instance. If provided,
+	// metrics will be sent to that instance.
+	StatsdAddr string `mapstructure:"statsd_address"`
+
+	// StatsitePrefix is the prefix used to write stats values to. By
+	// default this is set to 'consul'.
+	StatsitePrefix string `mapstructure:"statsite_prefix"`
+
+	// DisableHostname will disable hostname prefixing for all metrics
+	DisableHostname bool `mapstructure:"disable_hostname"`
+
+	// DogStatsdAddr is the address of a dogstatsd instance. If provided,
+	// metrics will be sent to that instance
+	DogStatsdAddr string `mapstructure:"dogstatsd_addr"`
+
+	// DogStatsdTags are the global tags that should be sent with each packet to dogstatsd
+	// It is a list of strings, where each string looks like "my_tag_name:my_tag_value"
+	DogStatsdTags []string `mapstructure:"dogstatsd_tags"`
+}
+
 // Config is the configuration that can be set for an Agent.
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
@@ -176,25 +202,7 @@ type Config struct {
 	// the INT signal. Defaults false. This can be changed on reload.
 	SkipLeaveOnInt bool `mapstructure:"skip_leave_on_interrupt"`
 
-	// StatsiteAddr is the address of a statsite instance. If provided,
-	// metrics will be streamed to that instance.
-	StatsiteAddr string `mapstructure:"statsite_addr"`
-
-	// StatsitePrefix is the prefix used to write stats values to. By
-	// default this is set to 'consul'.
-	StatsitePrefix string `mapstructure:"statsite_prefix"`
-
-	// StatsdAddr is the address of a statsd instance. If provided,
-	// metrics will be sent to that instance.
-	StatsdAddr string `mapstructure:"statsd_addr"`
-
-	// DogStatsdAddr is the address of a dogstatsd instance. If provided,
-	// metrics will be sent to that instance
-	DogStatsdAddr string `mapstructure:"dogstatsd_addr"`
-
-	// DogStatsdTags are the global tags that should be sent with each packet to dogstatsd
-	// It is a list of strings, where each string looks like "my_tag_name:my_tag_value"
-	DogStatsdTags []string `mapstructure:"dogstatsd_tags"`
+	Telemetry Telemetry `mapstructure:"telemetry"`
 
 	// Protocol is the Consul protocol version to use.
 	Protocol int `mapstructure:"protocol"`
@@ -463,6 +471,10 @@ func (u UnixSocketPermissions) Mode() string {
 	return u.Perms
 }
 
+func (s *Telemetry) GoString() string {
+	return fmt.Sprintf("*%#v", *s)
+}
+
 // UnixSocketConfig stores information about various unix sockets which
 // Consul creates and uses for communication.
 type UnixSocketConfig struct {
@@ -503,7 +515,9 @@ func DefaultConfig() *Config {
 		DNSConfig: DNSConfig{
 			MaxStale: 5 * time.Second,
 		},
-		StatsitePrefix:      "consul",
+		Telemetry: Telemetry{
+			StatsitePrefix: "consul",
+		},
 		SyslogFacility:      "LOCAL0",
 		Protocol:            consul.ProtocolVersion2Compatible,
 		CheckUpdateInterval: 5 * time.Minute,
@@ -612,6 +626,30 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 			}
 			result.Checks = append(result.Checks, check)
 		}
+
+		// A little hacky but upgrades the old stats config directives to the new way
+		if sub, ok := obj["statsd_addr"]; ok && result.Telemetry.StatsdAddr == "" {
+			result.Telemetry.StatsdAddr = sub.(string)
+		}
+
+		if sub, ok := obj["statsite_addr"]; ok && result.Telemetry.StatsiteAddr == "" {
+			result.Telemetry.StatsiteAddr = sub.(string)
+		}
+
+		if sub, ok := obj["statsite_prefix"]; ok && result.Telemetry.StatsitePrefix == "" {
+			result.Telemetry.StatsitePrefix = sub.(string)
+		}
+
+		if sub, ok := obj["dogstatsd_addr"]; ok && result.Telemetry.DogStatsdAddr == "" {
+			result.Telemetry.DogStatsdAddr = sub.(string)
+		}
+
+		if sub, ok := obj["dogstatsd_tags"].([]interface{}); ok && len(result.Telemetry.DogStatsdTags) == 0 {
+			result.Telemetry.DogStatsdTags = make([]string, len(sub))
+			for i := range sub {
+				result.Telemetry.DogStatsdTags[i] = sub[i].(string)
+			}
+		}
 	}
 
 	// Decode
@@ -631,7 +669,11 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	// Check unused fields and verify that no bad configuration options were
 	// passed to Consul. There are a few additional fields which don't directly
 	// use mapstructure decoding, so we need to account for those as well.
-	allowedKeys := []string{"service", "services", "check", "checks"}
+	allowedKeys := []string{
+		"service", "services", "check", "checks", "statsd_addr", "statsite_addr", "statsite_prefix",
+		"dogstatsd_addr", "dogstatsd_tags",
+	}
+
 	var unused []string
 	for _, field := range md.Unused {
 		if !strContains(allowedKeys, field) {
@@ -946,20 +988,23 @@ func MergeConfig(a, b *Config) *Config {
 	if b.SkipLeaveOnInt == true {
 		result.SkipLeaveOnInt = true
 	}
-	if b.StatsiteAddr != "" {
-		result.StatsiteAddr = b.StatsiteAddr
+	if b.Telemetry.DisableHostname == true {
+		result.Telemetry.DisableHostname = true
 	}
-	if b.StatsitePrefix != "" {
-		result.StatsitePrefix = b.StatsitePrefix
+	if b.Telemetry.StatsdAddr != "" {
+		result.Telemetry.StatsdAddr = b.Telemetry.StatsdAddr
 	}
-	if b.StatsdAddr != "" {
-		result.StatsdAddr = b.StatsdAddr
+	if b.Telemetry.StatsiteAddr != "" {
+		result.Telemetry.StatsiteAddr = b.Telemetry.StatsiteAddr
 	}
-	if b.DogStatsdAddr != "" {
-		result.DogStatsdAddr = b.DogStatsdAddr
+	if b.Telemetry.StatsitePrefix != "" {
+		result.Telemetry.StatsitePrefix = b.Telemetry.StatsitePrefix
 	}
-	if b.DogStatsdTags != nil {
-		result.DogStatsdTags = b.DogStatsdTags
+	if b.Telemetry.DogStatsdAddr != "" {
+		result.Telemetry.DogStatsdAddr = b.Telemetry.DogStatsdAddr
+	}
+	if b.Telemetry.DogStatsdTags != nil {
+		result.Telemetry.DogStatsdTags = b.Telemetry.DogStatsdTags
 	}
 	if b.EnableDebug {
 		result.EnableDebug = true
