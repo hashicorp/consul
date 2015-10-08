@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
 )
@@ -1903,6 +1904,219 @@ func TestStateStore_KVSDeleteTree(t *testing.T) {
 	// Index should be updated if modifications are made
 	if idx := s.maxIndex("kvs"); idx != 5 {
 		t.Fatalf("bad index: %d", idx)
+	}
+}
+
+func TestStateStore_KVSLockDelay(t *testing.T) {
+	s := testStateStore(t)
+
+	// KVSLockDelay is exercised in the lock/unlock and session invalidation
+	// cases below, so we just do a basic check on a nonexistent key here.
+	expires := s.KVSLockDelay("/not/there")
+	if expires.After(time.Now()) {
+		t.Fatalf("bad: %v", expires)
+	}
+}
+
+func TestStateStore_KVSLock(t *testing.T) {
+	s := testStateStore(t)
+
+	// Lock with no session should fail.
+	ok, err := s.KVSLock(0, &structs.DirEntry{Key: "foo"})
+	if ok || err == nil || !strings.Contains(err.Error(), "missing session") {
+		t.Fatalf("didn't detect missing session: %v %s", ok, err)
+	}
+
+	// Now try with a bogus session.
+	ok, err = s.KVSLock(1, &structs.DirEntry{Key: "foo", Session: "nope"})
+	if ok || err == nil || !strings.Contains(err.Error(), "invalid session") {
+		t.Fatalf("didn't detect invalid session: %v %s", ok, err)
+	}
+
+	// Make a real session.
+	testRegisterNode(t, s, 2, "node1")
+	if err := s.SessionCreate(3, &structs.Session{ID: "session1", Node: "node1"}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Lock and make the key at the same time.
+	ok, err = s.KVSLock(4, &structs.DirEntry{Key: "foo", Session: "session1"})
+	if !ok || err != nil {
+		t.Fatalf("didn't get the lock: %v %s", ok, err)
+	}
+
+	// Make sure the indexes got set properly.
+	result, err := s.KVSGet("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.LockIndex != 1 || result.CreateIndex != 4 || result.ModifyIndex != 4 {
+		t.Fatalf("bad index: %d, %d, %d", result.LockIndex, result.CreateIndex, result.ModifyIndex)
+	}
+
+	// Re-locking should not return an error, but will report that it didn't
+	// get the lock.
+	ok, err = s.KVSLock(5, &structs.DirEntry{Key: "foo", Session: "session1"})
+	if ok || err != nil {
+		t.Fatalf("didn't handle locking an already-locked key: %v %s", ok, err)
+	}
+
+	// Make sure the indexes didn't update.
+	result, err = s.KVSGet("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.LockIndex != 1 || result.CreateIndex != 4 || result.ModifyIndex != 4 {
+		t.Fatalf("bad index: %d, %d, %d", result.LockIndex, result.CreateIndex, result.ModifyIndex)
+	}
+
+	// Unlock and the re-lock.
+	ok, err = s.KVSUnlock(6, &structs.DirEntry{Key: "foo", Session: "session1"})
+	if !ok || err != nil {
+		t.Fatalf("didn't handle unlocking a locked key: %v %s", ok, err)
+	}
+	ok, err = s.KVSLock(7, &structs.DirEntry{Key: "foo", Session: "session1"})
+	if !ok || err != nil {
+		t.Fatalf("didn't get the lock: %v %s", ok, err)
+	}
+
+	// Make sure the indexes got set properly.
+	result, err = s.KVSGet("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.LockIndex != 2 || result.CreateIndex != 4 || result.ModifyIndex != 7 {
+		t.Fatalf("bad index: %d, %d, %d", result.LockIndex, result.CreateIndex, result.ModifyIndex)
+	}
+
+	// Lock an existing key.
+	testSetKey(t, s, 8, "bar", "bar")
+	ok, err = s.KVSLock(9, &structs.DirEntry{Key: "bar", Session: "session1"})
+	if !ok || err != nil {
+		t.Fatalf("didn't get the lock: %v %s", ok, err)
+	}
+
+	// Make sure the indexes got set properly.
+	result, err = s.KVSGet("bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.LockIndex != 1 || result.CreateIndex != 8 || result.ModifyIndex != 9 {
+		t.Fatalf("bad index: %d, %d, %d", result.LockIndex, result.CreateIndex, result.ModifyIndex)
+	}
+
+	// Attempting a re-lock with a different session should also fail.
+	if err := s.SessionCreate(10, &structs.Session{ID: "session2", Node: "node1"}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Re-locking should not return an error, but will report that it didn't
+	// get the lock.
+	ok, err = s.KVSLock(11, &structs.DirEntry{Key: "bar", Session: "session2"})
+	if ok || err != nil {
+		t.Fatalf("didn't handle locking an already-locked key: %v %s", ok, err)
+	}
+
+	// Make sure the indexes didn't update.
+	result, err = s.KVSGet("bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.LockIndex != 1 || result.CreateIndex != 8 || result.ModifyIndex != 9 {
+		t.Fatalf("bad index: %d, %d, %d", result.LockIndex, result.CreateIndex, result.ModifyIndex)
+	}
+}
+
+func TestStateStore_KVSUnlock(t *testing.T) {
+	s := testStateStore(t)
+
+	// Unlock with no session should fail.
+	ok, err := s.KVSUnlock(0, &structs.DirEntry{Key: "foo"})
+	if ok || err == nil || !strings.Contains(err.Error(), "missing session") {
+		t.Fatalf("didn't detect missing session: %v %s", ok, err)
+	}
+
+	// Make a real session.
+	testRegisterNode(t, s, 1, "node1")
+	if err := s.SessionCreate(2, &structs.Session{ID: "session1", Node: "node1"}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Unlock with a real session but no key should not return an error, but
+	// will report it didn't unlock anything.
+	ok, err = s.KVSUnlock(3, &structs.DirEntry{Key: "foo", Session: "session1"})
+	if ok || err != nil {
+		t.Fatalf("didn't handle unlocking a missing key: %v %s", ok, err)
+	}
+
+	// Make a key and unlock it, without it being locked.
+	testSetKey(t, s, 4, "foo", "foo")
+	ok, err = s.KVSUnlock(5, &structs.DirEntry{Key: "foo", Session: "session1"})
+	if ok || err != nil {
+		t.Fatalf("didn't handle unlocking a non-locked key: %v %s", ok, err)
+	}
+
+	// Make sure the indexes didn't update.
+	result, err := s.KVSGet("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.LockIndex != 0 || result.CreateIndex != 4 || result.ModifyIndex != 4 {
+		t.Fatalf("bad index: %d, %d, %d", result.LockIndex, result.CreateIndex, result.ModifyIndex)
+	}
+
+	// Lock it with the first session.
+	ok, err = s.KVSLock(6, &structs.DirEntry{Key: "foo", Session: "session1"})
+	if !ok || err != nil {
+		t.Fatalf("didn't get the lock: %v %s", ok, err)
+	}
+
+	// Attempt an unlock with another session.
+	if err := s.SessionCreate(7, &structs.Session{ID: "session2", Node: "node1"}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	ok, err = s.KVSUnlock(8, &structs.DirEntry{Key: "foo", Session: "session2"})
+	if ok || err != nil {
+		t.Fatalf("didn't handle unlocking with the wrong session: %v %s", ok, err)
+	}
+
+	// Make sure the indexes didn't update.
+	result, err = s.KVSGet("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.LockIndex != 1 || result.CreateIndex != 4 || result.ModifyIndex != 6 {
+		t.Fatalf("bad index: %d, %d, %d", result.LockIndex, result.CreateIndex, result.ModifyIndex)
+	}
+
+	// Now do the unlock with the correct session.
+	ok, err = s.KVSUnlock(9, &structs.DirEntry{Key: "foo", Session: "session1"})
+	if !ok || err != nil {
+		t.Fatalf("didn't handle unlocking with the correct session: %v %s", ok, err)
+	}
+
+	// Make sure the indexes got set properly.
+	result, err = s.KVSGet("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.LockIndex != 1 || result.CreateIndex != 4 || result.ModifyIndex != 9 {
+		t.Fatalf("bad index: %d, %d, %d", result.LockIndex, result.CreateIndex, result.ModifyIndex)
+	}
+
+	// Unlocking again should fail and not change anything.
+	ok, err = s.KVSUnlock(10, &structs.DirEntry{Key: "foo", Session: "session1"})
+	if ok || err != nil {
+		t.Fatalf("didn't handle unlocking with the previous session: %v %s", ok, err)
+	}
+
+	// Make sure the indexes didn't update.
+	result, err = s.KVSGet("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if result.LockIndex != 1 || result.CreateIndex != 4 || result.ModifyIndex != 9 {
+		t.Fatalf("bad index: %d, %d, %d", result.LockIndex, result.CreateIndex, result.ModifyIndex)
 	}
 }
 

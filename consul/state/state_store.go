@@ -1350,7 +1350,7 @@ func (s *StateStore) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) 
 
 	// Verify that a session is present.
 	if entry.Session == "" {
-		return false, fmt.Errorf("Missing session")
+		return false, fmt.Errorf("missing session")
 	}
 
 	// Verify that the session exists.
@@ -1359,7 +1359,7 @@ func (s *StateStore) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) 
 		return false, fmt.Errorf("failed session lookup: %s", err)
 	}
 	if sess == nil {
-		return false, fmt.Errorf("Invalid session %#v", entry.Session)
+		return false, fmt.Errorf("invalid session %#v", entry.Session)
 	}
 
 	// Retrieve the existing entry.
@@ -1401,7 +1401,7 @@ func (s *StateStore) KVSUnlock(idx uint64, entry *structs.DirEntry) (bool, error
 
 	// Verify that a session is present.
 	if entry.Session == "" {
-		return false, fmt.Errorf("Missing session")
+		return false, fmt.Errorf("missing session")
 	}
 
 	// Retrieve the existing entry.
