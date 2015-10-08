@@ -1036,7 +1036,7 @@ func (s *StateStore) KVSSet(idx uint64, entry *structs.DirEntry) error {
 	defer tx.Abort()
 
 	// Perform the actual set.
-	if err := s.kvsSetTxn(tx, idx, entry); err != nil {
+	if err := s.kvsSetTxn(tx, idx, entry, false); err != nil {
 		return err
 	}
 
@@ -1046,23 +1046,35 @@ func (s *StateStore) KVSSet(idx uint64, entry *structs.DirEntry) error {
 
 // kvsSetTxn is used to insert or update a key/value pair in the state
 // store. It is the inner method used and handles only the actual storage.
-func (s *StateStore) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) error {
+// If updateSession is true, then the incoming entry will set the new
+// session (should be validated before calling this). Otherwise, we will keep
+// whatever the existing session is.
+func (s *StateStore) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry, updateSession bool) error {
 	// Retrieve an existing KV pair
 	existing, err := tx.First("kvs", "id", entry.Key)
 	if err != nil {
 		return fmt.Errorf("failed kvs lookup: %s", err)
 	}
 
-	// Set the indexes
+	// Set the indexes.
 	if existing != nil {
 		entry.CreateIndex = existing.(*structs.DirEntry).CreateIndex
-		entry.ModifyIndex = idx
 	} else {
 		entry.CreateIndex = idx
-		entry.ModifyIndex = idx
+	}
+	entry.ModifyIndex = idx
+
+	// Preserve the existing session unless told otherwise. The "existing"
+	// session for a new entry is "no session".
+	if !updateSession {
+		if existing != nil {
+			entry.Session = existing.(*structs.DirEntry).Session
+		} else {
+			entry.Session = ""
+		}
 	}
 
-	// Store the kv pair in the state store and update the index
+	// Store the kv pair in the state store and update the index.
 	if err := tx.Insert("kvs", entry); err != nil {
 		return fmt.Errorf("failed inserting kvs entry: %s", err)
 	}
@@ -1287,7 +1299,7 @@ func (s *StateStore) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error
 	}
 
 	// If we made it this far, we should perform the set.
-	if err := s.kvsSetTxn(tx, idx, entry); err != nil {
+	if err := s.kvsSetTxn(tx, idx, entry, false); err != nil {
 		return false, err
 	}
 
@@ -1370,14 +1382,19 @@ func (s *StateStore) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) 
 
 	// Set up the entry, using the existing entry if present.
 	if existing != nil {
-		// Bail if there's already a lock on this entry.
 		e := existing.(*structs.DirEntry)
-		if e.Session != "" {
+		if e.Session == entry.Session {
+			// We already hold this lock, good to go.
+			entry.CreateIndex = e.CreateIndex
+			entry.LockIndex = e.LockIndex
+		} else if e.Session != "" {
+			// Bail out, someone else holds this lock.
 			return false, nil
+		} else {
+			// Set up a new lock with this session.
+			entry.CreateIndex = e.CreateIndex
+			entry.LockIndex = e.LockIndex + 1
 		}
-
-		entry.CreateIndex = e.CreateIndex
-		entry.LockIndex = e.LockIndex + 1
 	} else {
 		entry.CreateIndex = idx
 		entry.LockIndex = 1
@@ -1385,7 +1402,7 @@ func (s *StateStore) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) 
 	entry.ModifyIndex = idx
 
 	// If we made it this far, we should perform the set.
-	if err := s.kvsSetTxn(tx, idx, entry); err != nil {
+	if err := s.kvsSetTxn(tx, idx, entry, true); err != nil {
 		return false, err
 	}
 
@@ -1428,7 +1445,7 @@ func (s *StateStore) KVSUnlock(idx uint64, entry *structs.DirEntry) (bool, error
 	entry.ModifyIndex = idx
 
 	// If we made it this far, we should perform the set.
-	if err := s.kvsSetTxn(tx, idx, entry); err != nil {
+	if err := s.kvsSetTxn(tx, idx, entry, true); err != nil {
 		return false, err
 	}
 
@@ -1696,7 +1713,7 @@ func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 		for entry := entries.Next(); entry != nil; entry = entries.Next() {
 			e := entry.(*structs.DirEntry).Clone()
 			e.Session = ""
-			if err := s.kvsSetTxn(tx, idx, e); err != nil {
+			if err := s.kvsSetTxn(tx, idx, e, true); err != nil {
 				return fmt.Errorf("failed kvs update: %s", err)
 			}
 
