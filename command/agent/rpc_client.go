@@ -439,7 +439,7 @@ type queryRequest struct {
 	Payload     []byte
 }
 
-// QueryParam is provided to query set various settings.
+// QueryParam is provided to customize various query settings.
 type QueryParam struct {
 	FilterNodes []string            // A list of node names to restrict query to
 	FilterTags  map[string]string   // A map of tag name to regex to filter on
