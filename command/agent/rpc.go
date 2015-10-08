@@ -583,7 +583,6 @@ func (i *AgentRPC) handleStop(client *rpcClient, seq uint64) error {
 }
 
 func (i *AgentRPC) handleQuery(client *rpcClient, seq uint64) error {
-	i.logger.Printf("[DEBUG] jfs: consul/command/agent/rpc.go handleQuery() invoked...")
 	var req queryRequest
 	if err := client.dec.Decode(&req); err != nil {
 		return fmt.Errorf("decode failed: %v", err)

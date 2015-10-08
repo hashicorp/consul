@@ -363,7 +363,6 @@ type queryHandler struct {
 }
 
 func (qh *queryHandler) Handle(resp *responseHeader) {
-	log.Printf("[DEBUG] jfs: consul/command/agent/rpc_client.go Handle() invoked...")
 	// Initialize on the first response
 	if !qh.init {
 		qh.init = true
@@ -404,7 +403,6 @@ func (qh *queryHandler) Handle(resp *responseHeader) {
 }
 
 func (qh *queryHandler) Cleanup() {
-	log.Printf("[DEBUG] jfs: consul/command/agent/rpc_client.go Cleanup() invoked...")
 	if !qh.closed {
 		if !qh.init {
 			qh.init = true
@@ -458,7 +456,6 @@ type QueryParam struct {
 // sends and should be buffered. At the end of the query, the channels will be
 // closed.
 func (c *RPCClient) Query(params *QueryParam) error {
-	log.Printf("[DEBUG] jfs: consul/command/agent/rpc_client.go Query() invoked...")
 	// Setup the request
 	seq := c.getSeq()
 	header := requestHeader{
