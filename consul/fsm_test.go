@@ -65,14 +65,22 @@ func TestFSM_RegisterNode(t *testing.T) {
 	}
 
 	// Verify we are registered
-	if idx, found, _ := fsm.state.GetNode("foo"); !found {
+	node, err := fsm.stateNew.GetNode("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if node == nil {
 		t.Fatalf("not found!")
-	} else if idx != 1 {
-		t.Fatalf("bad index: %d", idx)
+	}
+	if node.ModifyIndex != 1 {
+		t.Fatalf("bad index: %d", node.ModifyIndex)
 	}
 
 	// Verify service registered
-	_, services := fsm.state.NodeServices("foo")
+	_, services, err := fsm.stateNew.NodeServices("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if len(services.Services) != 0 {
 		t.Fatalf("Services: %v", services)
 	}
@@ -119,18 +127,28 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	}
 
 	// Verify we are registered
-	if _, found, _ := fsm.state.GetNode("foo"); !found {
+	node, err := fsm.stateNew.GetNode("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if node == nil {
 		t.Fatalf("not found!")
 	}
 
 	// Verify service registered
-	_, services := fsm.state.NodeServices("foo")
+	_, services, err := fsm.stateNew.NodeServices("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if _, ok := services.Services["db"]; !ok {
 		t.Fatalf("not registered!")
 	}
 
 	// Verify check
-	_, checks := fsm.state.NodeChecks("foo")
+	_, checks, err := fsm.stateNew.NodeChecks("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if checks[0].CheckID != "db" {
 		t.Fatalf("not registered!")
 	}
@@ -185,12 +203,19 @@ func TestFSM_DeregisterService(t *testing.T) {
 	}
 
 	// Verify we are registered
-	if _, found, _ := fsm.state.GetNode("foo"); !found {
+	node, err := fsm.stateNew.GetNode("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if node == nil {
 		t.Fatalf("not found!")
 	}
 
 	// Verify service not registered
-	_, services := fsm.state.NodeServices("foo")
+	_, services, err := fsm.stateNew.NodeServices("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if _, ok := services.Services["db"]; ok {
 		t.Fatalf("db registered!")
 	}
@@ -245,12 +270,19 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 	}
 
 	// Verify we are registered
-	if _, found, _ := fsm.state.GetNode("foo"); !found {
+	node, err := fsm.stateNew.GetNode("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if node == nil {
 		t.Fatalf("not found!")
 	}
 
 	// Verify check not registered
-	_, checks := fsm.state.NodeChecks("foo")
+	_, checks, err := fsm.stateNew.NodeChecks("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if len(checks) != 0 {
 		t.Fatalf("check registered!")
 	}
@@ -310,19 +342,29 @@ func TestFSM_DeregisterNode(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	// Verify we are registered
-	if _, found, _ := fsm.state.GetNode("foo"); found {
+	// Verify we are not registered
+	node, err := fsm.stateNew.GetNode("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if node != nil {
 		t.Fatalf("found!")
 	}
 
 	// Verify service not registered
-	_, services := fsm.state.NodeServices("foo")
+	_, services, err := fsm.stateNew.NodeServices("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if services != nil {
 		t.Fatalf("Services: %v", services)
 	}
 
 	// Verify checks not registered
-	_, checks := fsm.state.NodeChecks("foo")
+	_, checks, err := fsm.stateNew.NodeChecks("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if len(checks) != 0 {
 		t.Fatalf("Services: %v", services)
 	}
@@ -341,33 +383,40 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	defer fsm.Close()
 
 	// Add some state
-	fsm.state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"})
-	fsm.state.EnsureNode(2, structs.Node{Node: "baz", Address: "127.0.0.2"})
-	fsm.state.EnsureService(3, "foo", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.1", Port: 80})
-	fsm.state.EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000})
-	fsm.state.EnsureService(5, "baz", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.2", Port: 80})
-	fsm.state.EnsureService(6, "baz", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"secondary"}, Address: "127.0.0.2", Port: 5000})
-	fsm.state.EnsureCheck(7, &structs.HealthCheck{
+	fsm.stateNew.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	fsm.stateNew.EnsureNode(2, &structs.Node{Node: "baz", Address: "127.0.0.2"})
+	fsm.stateNew.EnsureService(3, "foo", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.1", Port: 80})
+	fsm.stateNew.EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000})
+	fsm.stateNew.EnsureService(5, "baz", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.2", Port: 80})
+	fsm.stateNew.EnsureService(6, "baz", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"secondary"}, Address: "127.0.0.2", Port: 5000})
+	fsm.stateNew.EnsureCheck(7, &structs.HealthCheck{
 		Node:      "foo",
 		CheckID:   "web",
 		Name:      "web connectivity",
 		Status:    structs.HealthPassing,
 		ServiceID: "web",
 	})
-	fsm.state.KVSSet(8, &structs.DirEntry{
+	fsm.stateNew.KVSSet(8, &structs.DirEntry{
 		Key:   "/test",
 		Value: []byte("foo"),
 	})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
-	fsm.state.SessionCreate(9, session)
+	fsm.stateNew.SessionCreate(9, session)
 	acl := &structs.ACL{ID: generateUUID(), Name: "User Token"}
 	fsm.stateNew.ACLSet(10, acl)
 
-	fsm.state.KVSSet(11, &structs.DirEntry{
+	fsm.stateNew.KVSSet(11, &structs.DirEntry{
 		Key:   "/remove",
 		Value: []byte("foo"),
 	})
-	fsm.state.KVSDelete(12, "/remove")
+	fsm.stateNew.KVSDelete(12, "/remove")
+	idx, _, err := fsm.stateNew.KVSList("/remove")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 12 {
+		t.Fatalf("bad index: %d", idx)
+	}
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -396,12 +445,18 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify the contents
-	_, nodes := fsm2.state.Nodes()
+	_, nodes, err := fsm2.stateNew.Nodes()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if len(nodes) != 2 {
 		t.Fatalf("Bad: %v", nodes)
 	}
 
-	_, fooSrv := fsm2.state.NodeServices("foo")
+	_, fooSrv, err := fsm2.stateNew.NodeServices("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if len(fooSrv.Services) != 2 {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
@@ -412,13 +467,16 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
 
-	_, checks := fsm2.state.NodeChecks("foo")
+	_, checks, err := fsm2.stateNew.NodeChecks("foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if len(checks) != 1 {
 		t.Fatalf("Bad: %v", checks)
 	}
 
 	// Verify key is set
-	_, d, err := fsm2.state.KVSGet("/test")
+	d, err := fsm2.stateNew.KVSGet("/test")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -426,25 +484,16 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("bad: %v", d)
 	}
 
-	// Verify the index is restored
-	idx, _, err := fsm2.state.KVSListKeys("/blah", "")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if idx <= 1 {
-		t.Fatalf("bad index: %d", idx)
-	}
-
 	// Verify session is restored
-	idx, s, err := fsm2.state.SessionGet(session.ID)
+	s, err := fsm2.stateNew.SessionGet(session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s.Node != "foo" {
 		t.Fatalf("bad: %v", s)
 	}
-	if idx <= 1 {
-		t.Fatalf("bad index: %d", idx)
+	if s.ModifyIndex <= 1 {
+		t.Fatalf("bad index: %d", s.ModifyIndex)
 	}
 
 	// Verify ACL is restored
@@ -460,12 +509,12 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify tombstones are restored
-	_, res, err := fsm2.state.tombstoneTable.Get("id", "/remove")
+	idx, _, err = fsm2.stateNew.KVSList("/remove")
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatalf("err: %s", err)
 	}
-	if len(res) != 1 {
-		t.Fatalf("bad: %v", res)
+	if idx != 12 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -500,7 +549,7 @@ func TestFSM_KVSSet(t *testing.T) {
 	}
 
 	// Verify key is set
-	_, d, err := fsm.state.KVSGet("/test/path")
+	d, err := fsm.stateNew.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -551,7 +600,7 @@ func TestFSM_KVSDelete(t *testing.T) {
 	}
 
 	// Verify key is not set
-	_, d, err := fsm.state.KVSGet("/test/path")
+	d, err := fsm.stateNew.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -603,7 +652,7 @@ func TestFSM_KVSDeleteTree(t *testing.T) {
 	}
 
 	// Verify key is not set
-	_, d, err := fsm.state.KVSGet("/test/path")
+	d, err := fsm.stateNew.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -643,7 +692,7 @@ func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 	}
 
 	// Verify key is set
-	_, d, err := fsm.state.KVSGet("/test/path")
+	d, err := fsm.stateNew.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -664,7 +713,7 @@ func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 	}
 
 	// Verify key is gone
-	_, d, err = fsm.state.KVSGet("/test/path")
+	d, err = fsm.stateNew.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -704,7 +753,7 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 	}
 
 	// Verify key is set
-	_, d, err := fsm.state.KVSGet("/test/path")
+	d, err := fsm.stateNew.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -726,7 +775,7 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 	}
 
 	// Verify key is updated
-	_, d, err = fsm.state.KVSGet("/test/path")
+	d, err = fsm.stateNew.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -747,8 +796,8 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 	}
 	defer fsm.Close()
 
-	fsm.state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"})
-	fsm.state.EnsureCheck(2, &structs.HealthCheck{
+	fsm.stateNew.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	fsm.stateNew.EnsureCheck(2, &structs.HealthCheck{
 		Node:    "foo",
 		CheckID: "web",
 		Status:  structs.HealthPassing,
@@ -775,7 +824,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 
 	// Get the session
 	id := resp.(string)
-	_, session, err := fsm.state.SessionGet(id)
+	session, err := fsm.stateNew.SessionGet(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -811,7 +860,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	_, session, err = fsm.state.SessionGet(id)
+	session, err = fsm.stateNew.SessionGet(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -832,9 +881,9 @@ func TestFSM_KVSLock(t *testing.T) {
 	}
 	defer fsm.Close()
 
-	fsm.state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"})
+	fsm.stateNew.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
-	fsm.state.SessionCreate(2, session)
+	fsm.stateNew.SessionCreate(2, session)
 
 	req := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -855,7 +904,7 @@ func TestFSM_KVSLock(t *testing.T) {
 	}
 
 	// Verify key is locked
-	_, d, err := fsm.state.KVSGet("/test/path")
+	d, err := fsm.stateNew.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -882,9 +931,9 @@ func TestFSM_KVSUnlock(t *testing.T) {
 	}
 	defer fsm.Close()
 
-	fsm.state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"})
+	fsm.stateNew.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
-	fsm.state.SessionCreate(2, session)
+	fsm.stateNew.SessionCreate(2, session)
 
 	req := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -923,7 +972,7 @@ func TestFSM_KVSUnlock(t *testing.T) {
 	}
 
 	// Verify key is unlocked
-	_, d, err := fsm.state.KVSGet("/test/path")
+	d, err := fsm.stateNew.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1028,12 +1077,19 @@ func TestFSM_TombstoneReap(t *testing.T) {
 	}
 	defer fsm.Close()
 
-	// Create some  tombstones
-	fsm.state.KVSSet(11, &structs.DirEntry{
+	// Create some tombstones
+	fsm.stateNew.KVSSet(11, &structs.DirEntry{
 		Key:   "/remove",
 		Value: []byte("foo"),
 	})
-	fsm.state.KVSDelete(12, "/remove")
+	fsm.stateNew.KVSDelete(12, "/remove")
+	idx, _, err := fsm.stateNew.KVSList("/remove")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 12 {
+		t.Fatalf("bad index: %d", idx)
+	}
 
 	// Create a new reap request
 	req := structs.TombstoneRequest{
@@ -1051,12 +1107,12 @@ func TestFSM_TombstoneReap(t *testing.T) {
 	}
 
 	// Verify the tombstones are gone
-	_, res, err := fsm.state.tombstoneTable.Get("id")
+	idx, _, err = fsm.stateNew.KVSList("/remove")
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatalf("err: %s", err)
 	}
-	if len(res) != 0 {
-		t.Fatalf("bad: %v", res)
+	if idx != 0 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 
