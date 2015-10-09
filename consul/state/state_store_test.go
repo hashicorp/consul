@@ -623,6 +623,9 @@ func TestStateStore_Node_Snapshot(t *testing.T) {
 	snap := s.Snapshot()
 	defer snap.Close()
 
+	// Alter the real state store.
+	testRegisterNode(t, s, 3, "node3")
+
 	// Verify the snapshot.
 	if idx := snap.LastIndex(); idx != 2 {
 		t.Fatalf("bad index: %d", idx)
@@ -878,6 +881,9 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 	// Snapshot the service.
 	snap := s.Snapshot()
 	defer snap.Close()
+
+	// Alter the real state store.
+	testRegisterService(t, s, 5, "node2", "service3")
 
 	// Verify the snapshot.
 	if idx := snap.LastIndex(); idx != 4 {
@@ -1301,6 +1307,9 @@ func TestStateStore_Check_Snapshot(t *testing.T) {
 	// Snapshot the checks.
 	snap := s.Snapshot()
 	defer snap.Close()
+
+	// Alter the real state store.
+	testRegisterCheck(t, s, 6, "node2", "service2", "check4", structs.HealthPassing)
 
 	// Verify the snapshot.
 	if idx := snap.LastIndex(); idx != 5 {
@@ -2547,6 +2556,11 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 	snap := s.Snapshot()
 	defer snap.Close()
 
+	// Alter the real state store.
+	if err := s.KVSSet(8, &structs.DirEntry{Key: "aaa", Value: []byte("nope")}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
 	// Verify the snapshot.
 	if idx := snap.LastIndex(); idx != 7 {
 		t.Fatalf("bad index: %d", idx)
@@ -2735,6 +2749,18 @@ func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
 	// Snapshot the Tombstones.
 	snap := s.Snapshot()
 	defer snap.Close()
+
+	// Alter the real state store.
+	if err := s.ReapTombstones(2); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	idx, _, err := s.KVSList("foo/bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
 
 	// Verify the snapshot.
 	dump, err := snap.TombstoneDump()
@@ -3091,6 +3117,11 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 	// Snapshot the sessions.
 	snap := s.Snapshot()
 	defer snap.Close()
+
+	// Alter the real state store.
+	if err := s.SessionDestroy(8, "session1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	// Verify the snapshot.
 	if idx := snap.LastIndex(); idx != 7 {
@@ -3722,6 +3753,11 @@ func TestStateStore_ACL_Snapshot_Restore(t *testing.T) {
 	// Snapshot the ACLs.
 	snap := s.Snapshot()
 	defer snap.Close()
+
+	// Alter the real state store.
+	if err := s.ACLDelete(3, "acl1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	// Verify the snapshot.
 	if idx := snap.LastIndex(); idx != 2 {
