@@ -3,8 +3,6 @@ package state
 import (
 	"errors"
 	"fmt"
-	"io"
-	"log"
 	"strings"
 	"time"
 
@@ -35,7 +33,6 @@ var (
 // pairs and more. The DB is entirely in-memory and is constructed
 // from the Raft log through the FSM.
 type StateStore struct {
-	logger *log.Logger // TODO(slackpad) - Delete if unused!
 	schema *memdb.DBSchema
 	db     *memdb.MemDB
 
@@ -77,7 +74,7 @@ type sessionCheck struct {
 }
 
 // NewStateStore creates a new in-memory state storage layer.
-func NewStateStore(logOutput io.Writer) (*StateStore, error) {
+func NewStateStore() (*StateStore, error) {
 	// Create the in-memory DB.
 	schema := stateStoreSchema()
 	db, err := memdb.NewMemDB(schema)
@@ -97,7 +94,6 @@ func NewStateStore(logOutput io.Writer) (*StateStore, error) {
 
 	// Create and return the state store.
 	s := &StateStore{
-		logger:       log.New(logOutput, "", log.LstdFlags),
 		schema:       schema,
 		db:           db,
 		tableWatches: tableWatches,
