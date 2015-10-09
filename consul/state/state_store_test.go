@@ -1585,8 +1585,8 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 
 	// Attempt to set the session during an update.
 	update = &structs.DirEntry{
-		Key:   "foo",
-		Value: []byte("zoo"),
+		Key:     "foo",
+		Value:   []byte("zoo"),
 		Session: "nope",
 	}
 	if err := s.KVSSet(3, update); err != nil {
@@ -1619,8 +1619,8 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	update = &structs.DirEntry{
-		Key:   "foo",
-		Value: []byte("locked"),
+		Key:     "foo",
+		Value:   []byte("locked"),
 		Session: "session1",
 	}
 	ok, err := s.KVSLock(6, update)
@@ -1683,9 +1683,9 @@ func TestStateStore_KVSList(t *testing.T) {
 	s := testStateStore(t)
 
 	// Listing an empty KVS returns nothing
-	idx, keys, err := s.KVSList("")
-	if idx != 0 || keys != nil || err != nil {
-		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, keys, err)
+	idx, entries, err := s.KVSList("")
+	if idx != 0 || entries != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, entries, err)
 	}
 
 	// Create some KVS entries
@@ -1696,7 +1696,7 @@ func TestStateStore_KVSList(t *testing.T) {
 	testSetKey(t, s, 5, "foo/bar/baz", "baz")
 
 	// List out all of the keys
-	idx, keys, err = s.KVSList("")
+	idx, entries, err = s.KVSList("")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1707,12 +1707,12 @@ func TestStateStore_KVSList(t *testing.T) {
 	}
 
 	// Check that all of the keys were returned
-	if n := len(keys); n != 5 {
+	if n := len(entries); n != 5 {
 		t.Fatalf("expected 5 kvs entries, got: %d", n)
 	}
 
 	// Try listing with a provided prefix
-	idx, keys, err = s.KVSList("foo/bar/zip")
+	idx, entries, err = s.KVSList("foo/bar/zip")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1721,11 +1721,11 @@ func TestStateStore_KVSList(t *testing.T) {
 	}
 
 	// Check that only the keys in the prefix were returned
-	if n := len(keys); n != 2 {
+	if n := len(entries); n != 2 {
 		t.Fatalf("expected 2 kvs entries, got: %d", n)
 	}
-	if keys[0] != "foo/bar/zip" || keys[1] != "foo/bar/zip/zorp" {
-		t.Fatalf("bad: %#v", keys)
+	if entries[0].Key != "foo/bar/zip" || entries[1].Key != "foo/bar/zip/zorp" {
+		t.Fatalf("bad: %#v", entries)
 	}
 
 	// Delete a key and make sure the index comes from the tombstone.
@@ -2027,7 +2027,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if string(entry.Value) != "foo"  || entry.CreateIndex != 2 || entry.ModifyIndex != 2 {
+	if string(entry.Value) != "foo" || entry.CreateIndex != 2 || entry.ModifyIndex != 2 {
 		t.Fatalf("bad entry: %#v", entry)
 	}
 
@@ -2071,7 +2071,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if string(entry.Value) != "foo"  || entry.CreateIndex != 2 || entry.ModifyIndex != 2 {
+	if string(entry.Value) != "foo" || entry.CreateIndex != 2 || entry.ModifyIndex != 2 {
 		t.Fatalf("bad entry: %#v", entry)
 	}
 
@@ -2100,7 +2100,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if string(entry.Value) != "bar"  || entry.CreateIndex != 2 || entry.ModifyIndex != 3 {
+	if string(entry.Value) != "bar" || entry.CreateIndex != 2 || entry.ModifyIndex != 3 {
 		t.Fatalf("bad entry: %#v", entry)
 	}
 
@@ -2111,8 +2111,8 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 
 	// Attempt to update the session during the CAS.
 	entry = &structs.DirEntry{
-		Key:    "foo",
-		Value:  []byte("zoo"),
+		Key:     "foo",
+		Value:   []byte("zoo"),
 		Session: "nope",
 		RaftIndex: structs.RaftIndex{
 			CreateIndex: 2,
@@ -2129,7 +2129,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if string(entry.Value) != "zoo"  || entry.CreateIndex != 2 || entry.ModifyIndex != 4 ||
+	if string(entry.Value) != "zoo" || entry.CreateIndex != 2 || entry.ModifyIndex != 4 ||
 		entry.Session != "" {
 		t.Fatalf("bad entry: %#v", entry)
 	}
@@ -2145,8 +2145,8 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	entry = &structs.DirEntry{
-		Key:    "foo",
-		Value:  []byte("locked"),
+		Key:     "foo",
+		Value:   []byte("locked"),
 		Session: "session1",
 		RaftIndex: structs.RaftIndex{
 			CreateIndex: 2,
@@ -2158,8 +2158,8 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 		t.Fatalf("didn't get the lock: %v %s", ok, err)
 	}
 	entry = &structs.DirEntry{
-		Key:    "foo",
-		Value:  []byte("locked"),
+		Key:   "foo",
+		Value: []byte("locked"),
 		RaftIndex: structs.RaftIndex{
 			CreateIndex: 2,
 			ModifyIndex: 6,
@@ -2175,7 +2175,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if string(entry.Value) != "locked"  || entry.CreateIndex != 2 || entry.ModifyIndex != 7 ||
+	if string(entry.Value) != "locked" || entry.CreateIndex != 2 || entry.ModifyIndex != 7 ||
 		entry.Session != "session1" {
 		t.Fatalf("bad entry: %#v", entry)
 	}
@@ -2516,25 +2516,25 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 	// Build up some entries to seed.
 	entries := structs.DirEntries{
 		&structs.DirEntry{
-			Key: "aaa",
+			Key:   "aaa",
 			Flags: 23,
 			Value: []byte("hello"),
 		},
 		&structs.DirEntry{
-			Key: "bar/a",
+			Key:   "bar/a",
 			Value: []byte("one"),
 		},
 		&structs.DirEntry{
-			Key: "bar/b",
+			Key:   "bar/b",
 			Value: []byte("two"),
 		},
 		&structs.DirEntry{
-			Key: "bar/c",
+			Key:   "bar/c",
 			Value: []byte("three"),
 		},
 	}
 	for i, entry := range entries {
-		if err := s.KVSSet(uint64(i + 1), entry); err != nil {
+		if err := s.KVSSet(uint64(i+1), entry); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -2583,19 +2583,14 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 		}
 
 		// Read the restored keys back out and verify they match.
-		idx, keys, err := s.KVSList("")
+		idx, res, err := s.KVSList("")
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
 		if idx != 7 {
 			t.Fatalf("bad index: %d", idx)
 		}
-		for i, key := range keys {
-			entry, err := s.KVSGet(key)
-			if err != nil {
-				t.Fatalf("err: %s", err)
-			}
-
+		for i, entry := range res {
 			if !reflect.DeepEqual(entry, entries[i]) {
 				t.Fatalf("bad: %#v", entry)
 			}
@@ -3174,7 +3169,7 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 			t.Fatalf("missing session check")
 		}
 		expectCheck := &sessionCheck{
-			Node:   "node1",
+			Node:    "node1",
 			CheckID: "check1",
 			Session: "session1",
 		}

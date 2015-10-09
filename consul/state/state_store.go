@@ -1104,10 +1104,15 @@ func (s *StateStore) KVSGet(key string) (*structs.DirEntry, error) {
 	return nil, nil
 }
 
+// TODO (slackpad) - We changed the behavior here to return 0 instead of the
+// max index for the cases where they are no matching keys. Need to make sure
+// this is sane. Seems ok from a watch perspective, as we integrate need to see
+// if there are other impacts.
+
 // KVSList is used to list out all keys under a given prefix. If the
 // prefix is left empty, all keys in the KVS will be returned. The
 // returned index is the max index of the returned kvs entries.
-func (s *StateStore) KVSList(prefix string) (uint64, []string, error) {
+func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1118,11 +1123,11 @@ func (s *StateStore) KVSList(prefix string) (uint64, []string, error) {
 	}
 
 	// Gather all of the keys found in the store
-	var keys []string
+	var ents structs.DirEntries
 	var lindex uint64
 	for entry := entries.Next(); entry != nil; entry = entries.Next() {
 		e := entry.(*structs.DirEntry)
-		keys = append(keys, e.Key)
+		ents = append(ents, e)
 		if e.ModifyIndex > lindex {
 			lindex = e.ModifyIndex
 		}
@@ -1136,7 +1141,7 @@ func (s *StateStore) KVSList(prefix string) (uint64, []string, error) {
 	if gindex > lindex {
 		lindex = gindex
 	}
-	return lindex, keys, nil
+	return lindex, ents, nil
 }
 
 // KVSListKeys is used to query the KV store for keys matching the given prefix.

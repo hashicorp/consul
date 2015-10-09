@@ -35,8 +35,8 @@ func TestKVS_Apply(t *testing.T) {
 	}
 
 	// Verify
-	state := s1.fsm.State()
-	_, d, err := state.KVSGet("test")
+	state := s1.fsm.StateNew()
+	d, err := state.KVSGet("test")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -58,7 +58,7 @@ func TestKVS_Apply(t *testing.T) {
 	}
 
 	// Verify
-	_, d, err = state.KVSGet("test")
+	d, err = state.KVSGet("test")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -604,8 +604,8 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create and invalidate a session with a lock
-	state := s1.fsm.State()
-	if err := state.EnsureNode(1, structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
+	state := s1.fsm.StateNew()
+	if err := state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{
