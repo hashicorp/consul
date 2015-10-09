@@ -1492,6 +1492,13 @@ func (s *StateStore) SessionCreate(idx uint64, sess *structs.Session) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	// This code is technically able to (incorrectly) update an existing
+	// session but we never do that in practice. The upstream endpoint code
+	// always adds a unique ID when doing a create operation so we never hit
+	// an existing session again. It isn't worth the overhead to verify
+	// that here, but it's worth noting that we should never do this in the
+	// future.
+
 	// Call the session creation
 	if err := s.sessionCreateTxn(tx, idx, sess); err != nil {
 		return err
