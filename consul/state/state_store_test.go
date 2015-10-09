@@ -240,12 +240,24 @@ func TestStateStore_GetTableWatch(t *testing.T) {
 	// This test does two things - it makes sure there's no full table
 	// watch for KVS, and it makes sure that asking for a watch that
 	// doesn't exist causes a panic.
-	defer func() {
-		if r := recover(); r == nil {
-			t.Fatalf("didn't get expected panic")
-		}
+	func() {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Fatalf("didn't get expected panic")
+			}
+		}()
+		s.GetTableWatch("kvs")
 	}()
-	s.GetTableWatch("kvs")
+
+	// Similar for tombstones; those don't support watches at all.
+	func() {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Fatalf("didn't get expected panic")
+			}
+		}()
+		s.GetTableWatch("tombstones")
+	}()
 }
 
 func TestStateStore_EnsureRegistration(t *testing.T) {

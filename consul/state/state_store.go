@@ -88,7 +88,7 @@ func NewStateStore(logOutput io.Writer) (*StateStore, error) {
 	// Build up the all-table watches.
 	tableWatches := make(map[string]*FullTableWatch)
 	for table, _ := range schema.Tables {
-		if table == "kvs" {
+		if table == "kvs" || table == "tombstones" {
 			continue
 		}
 
