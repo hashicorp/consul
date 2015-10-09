@@ -2782,11 +2782,11 @@ func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
 	}()
 }
 
-func TestStateStore_SessionCreate_GetSession(t *testing.T) {
+func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	s := testStateStore(t)
 
-	// GetSession returns nil if the session doesn't exist
-	sess, err := s.GetSession("session1")
+	// SessionGet returns nil if the session doesn't exist
+	sess, err := s.SessionGet("session1")
 	if sess != nil || err != nil {
 		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", sess, err)
 	}
@@ -2832,7 +2832,7 @@ func TestStateStore_SessionCreate_GetSession(t *testing.T) {
 	}
 
 	// Retrieve the session again
-	session, err := s.GetSession("foo")
+	session, err := s.SessionGet("foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -3016,12 +3016,12 @@ func TestStateStore_SessionDestroy(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Ensure the index was not updated if nothing was destroyed
+	// Ensure the index was not updated if nothing was destroyed.
 	if idx := s.maxIndex("sessions"); idx != 0 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Register a node
+	// Register a node.
 	testRegisterNode(t, s, 1, "node1")
 
 	// Register a new session
@@ -3033,24 +3033,23 @@ func TestStateStore_SessionDestroy(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Destroy the session
+	// Destroy the session.
 	if err := s.SessionDestroy(3, "session1"); err != nil {
 		t.Fatalf("err: %s", err)
-	}
-
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-
-	// Make sure the session is really gone
-	sessions, err := tx.Get("sessions", "id")
-	if err != nil || sessions.Next() != nil {
-		t.Fatalf("session should not exist")
 	}
 
 	// Check that the index was updated
 	if idx := s.maxIndex("sessions"); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
+
+	// Make sure the session is really gone.
+	tx := s.db.Txn(false)
+	sessions, err := tx.Get("sessions", "id")
+	if err != nil || sessions.Next() != nil {
+		t.Fatalf("session should not exist")
+	}
+	tx.Abort()
 }
 
 func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
@@ -3187,6 +3186,329 @@ func TestStateStore_Session_Watches(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 	})
+}
+
+func TestStateStore_Session_Invalidate_DeleteNode(t *testing.T) {
+	s := testStateStore(t)
+
+	// Set up our test environment.
+	if err := s.EnsureNode(3, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	session := &structs.Session{
+		ID:   "session1",
+		Node: "foo",
+	}
+	if err := s.SessionCreate(14, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Delete the node and make sure the watches fire.
+	verifyWatch(t, s.GetTableWatch("sessions"), func() {
+		verifyWatch(t, s.GetTableWatch("nodes"), func() {
+			if err := s.DeleteNode(15, "foo"); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		})
+	})
+
+	// Lookup by ID, should be nil.
+	s2, err := s.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+}
+
+func TestStateStore_Session_Invalidate_DeleteService(t *testing.T) {
+	s := testStateStore(t)
+
+	// Set up our test environment.
+	if err := s.EnsureNode(11, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s.EnsureService(12, "foo", &structs.NodeService{ID: "api", Service: "api", Tags: nil, Address: "", Port: 5000}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	check := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "api",
+		Name:      "Can connect",
+		Status:    structs.HealthPassing,
+		ServiceID: "api",
+	}
+	if err := s.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	session := &structs.Session{
+		ID:     "session1",
+		Node:   "foo",
+		Checks: []string{"api"},
+	}
+	if err := s.SessionCreate(14, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Delete the service and make sure the watches fire.
+	verifyWatch(t, s.GetTableWatch("sessions"), func() {
+		verifyWatch(t, s.GetTableWatch("services"), func() {
+			verifyWatch(t, s.GetTableWatch("checks"), func() {
+				if err := s.DeleteService(15, "foo", "api"); err != nil {
+					t.Fatalf("err: %v", err)
+				}
+			})
+		})
+	})
+
+	// Lookup by ID, should be nil.
+	s2, err := s.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+}
+
+func TestStateStore_Session_Invalidate_Critical_Check(t *testing.T) {
+	s := testStateStore(t)
+
+	// Set up our test environment.
+	if err := s.EnsureNode(3, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "bar",
+		Status:  structs.HealthPassing,
+	}
+	if err := s.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	session := &structs.Session{
+		ID:     "session1",
+		Node:   "foo",
+		Checks: []string{"bar"},
+	}
+	if err := s.SessionCreate(14, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Invalidate the check and make sure the watches fire.
+	verifyWatch(t, s.GetTableWatch("sessions"), func() {
+		verifyWatch(t, s.GetTableWatch("checks"), func() {
+			check.Status = structs.HealthCritical
+			if err := s.EnsureCheck(15, check); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		})
+	})
+
+	// Lookup by ID, should be nil.
+	s2, err := s.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+}
+
+func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
+	s := testStateStore(t)
+
+	// Set up our test environment.
+	if err := s.EnsureNode(3, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "bar",
+		Status:  structs.HealthPassing,
+	}
+	if err := s.EnsureCheck(13, check); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	session := &structs.Session{
+		ID:     "session1",
+		Node:   "foo",
+		Checks: []string{"bar"},
+	}
+	if err := s.SessionCreate(14, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Delete the check and make sure the watches fire.
+	verifyWatch(t, s.GetTableWatch("sessions"), func() {
+		verifyWatch(t, s.GetTableWatch("checks"), func() {
+			if err := s.DeleteCheck(15, "foo", "bar"); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		})
+	})
+
+	// Lookup by ID, should be nil.
+	s2, err := s.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+
+	// Manually make sure the session checks mapping is clear.
+	tx := s.db.Txn(false)
+	mapping, err := tx.First("session_checks", "session", session.ID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if mapping != nil {
+		t.Fatalf("unexpected session check")
+	}
+	tx.Abort()
+}
+
+func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
+	s := testStateStore(t)
+
+	// Set up our test environment.
+	if err := s.EnsureNode(3, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	session := &structs.Session{
+		ID:        "session1",
+		Node:      "foo",
+		LockDelay: 50 * time.Millisecond,
+	}
+	if err := s.SessionCreate(4, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lock a key with the session.
+	d := &structs.DirEntry{
+		Key:     "/foo",
+		Flags:   42,
+		Value:   []byte("test"),
+		Session: session.ID,
+	}
+	ok, err := s.KVSLock(5, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected fail")
+	}
+
+	// Delete the node and make sure the watches fire.
+	verifyWatch(t, s.GetTableWatch("sessions"), func() {
+		verifyWatch(t, s.GetTableWatch("nodes"), func() {
+			verifyWatch(t, s.GetKVSWatch("/f"), func() {
+				if err := s.DeleteNode(6, "foo"); err != nil {
+					t.Fatalf("err: %v", err)
+				}
+			})
+		})
+	})
+
+	// Lookup by ID, should be nil.
+	s2, err := s.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+
+	// Key should be unlocked.
+	d2, err := s.KVSGet("/foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if d2.ModifyIndex != 6 {
+		t.Fatalf("bad index: %v", d2.ModifyIndex)
+	}
+	if d2.LockIndex != 1 {
+		t.Fatalf("bad: %v", *d2)
+	}
+	if d2.Session != "" {
+		t.Fatalf("bad: %v", *d2)
+	}
+
+	// Key should have a lock delay.
+	expires := s.KVSLockDelay("/foo")
+	if expires.Before(time.Now().Add(30 * time.Millisecond)) {
+		t.Fatalf("Bad: %v", expires)
+	}
+}
+
+func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
+	s := testStateStore(t)
+
+	// Set up our test environment.
+	if err := s.EnsureNode(3, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	session := &structs.Session{
+		ID:        "session1",
+		Node:      "foo",
+		LockDelay: 50 * time.Millisecond,
+		Behavior:  structs.SessionKeysDelete,
+	}
+	if err := s.SessionCreate(4, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Lock a key with the session.
+	d := &structs.DirEntry{
+		Key:     "/bar",
+		Flags:   42,
+		Value:   []byte("test"),
+		Session: session.ID,
+	}
+	ok, err := s.KVSLock(5, d)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !ok {
+		t.Fatalf("unexpected fail")
+	}
+
+	// Delete the node and make sure the watches fire.
+	verifyWatch(t, s.GetTableWatch("sessions"), func() {
+		verifyWatch(t, s.GetTableWatch("nodes"), func() {
+			verifyWatch(t, s.GetKVSWatch("/b"), func() {
+				if err := s.DeleteNode(6, "foo"); err != nil {
+					t.Fatalf("err: %v", err)
+				}
+			})
+		})
+	})
+
+	// Lookup by ID, should be nil.
+	s2, err := s.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+
+	// Key should be deleted.
+	d2, err := s.KVSGet("/bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if d2 != nil {
+		t.Fatalf("unexpected undeleted key")
+	}
+
+	// Key should have a lock delay.
+	expires := s.KVSLockDelay("/bar")
+	if expires.Before(time.Now().Add(30 * time.Millisecond)) {
+		t.Fatalf("Bad: %v", expires)
+	}
 }
 
 func TestStateStore_ACLSet_ACLGet(t *testing.T) {

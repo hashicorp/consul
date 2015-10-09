@@ -461,7 +461,8 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeID string) err
 		}
 	}
 
-	// Delete all checks associated with the node and update the check index.
+	// Delete all checks associated with the node. This will invalidate
+	// sessions as necessary.
 	checks, err := tx.Get("checks", "node", nodeID)
 	if err != nil {
 		return fmt.Errorf("failed check lookup: %s", err)
@@ -634,7 +635,7 @@ func (s *StateStore) DeleteService(idx uint64, nodeID, serviceID string) error {
 // deleteServiceTxn is the inner method called to remove a service
 // registration within an existing transaction.
 func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager, nodeID, serviceID string) error {
-	// Look up the service
+	// Look up the service.
 	service, err := tx.First("services", "id", nodeID, serviceID)
 	if err != nil {
 		return fmt.Errorf("failed service lookup: %s", err)
@@ -643,16 +644,17 @@ func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 		return nil
 	}
 
-	// Delete any checks associated with the service
+	// Delete any checks associated with the service. This will invalidate
+	// sessions as necessary.
 	checks, err := tx.Get("checks", "node_service", nodeID, serviceID)
 	if err != nil {
 		return fmt.Errorf("failed service check lookup: %s", err)
 	}
 	for check := checks.Next(); check != nil; check = checks.Next() {
-		if err := tx.Delete("checks", check); err != nil {
-			return fmt.Errorf("failed deleting service check: %s", err)
+		hc := check.(*structs.HealthCheck)
+		if err := s.deleteCheckTxn(tx, idx, watches, nodeID, hc.CheckID); err != nil {
+			return err
 		}
-		watches.Arm("checks")
 	}
 	if err := tx.Insert("index", &IndexEntry{"checks", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
@@ -1585,8 +1587,8 @@ func (s *StateStore) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.S
 	return nil
 }
 
-// GetSession is used to retrieve an active session from the state store.
-func (s *StateStore) GetSession(sessionID string) (*structs.Session, error) {
+// SessionGet is used to retrieve an active session from the state store.
+func (s *StateStore) SessionGet(sessionID string) (*structs.Session, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
