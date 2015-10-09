@@ -669,6 +669,21 @@ func TestStateStore_Node_Watches(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 	})
+
+	// Check that a delete of a node + service + check triggers all three
+	// tables in one shot.
+	testRegisterNode(t, s, 4, "node1")
+	testRegisterService(t, s, 5, "node1", "service1")
+	testRegisterCheck(t, s, 6, "node1", "service1", "check3", structs.HealthPassing)
+	verifyWatch(t, s.GetTableWatch("nodes"), func() {
+		verifyWatch(t, s.GetTableWatch("services"), func() {
+			verifyWatch(t, s.GetTableWatch("checks"), func() {
+				if err := s.DeleteNode(7, "node1"); err != nil {
+					t.Fatalf("err: %s", err)
+				}
+			})
+		})
+	})
 }
 
 func TestStateStore_EnsureService(t *testing.T) {
@@ -905,6 +920,18 @@ func TestStateStore_Service_Watches(t *testing.T) {
 		if err := s.DeleteService(3, "node1", "service2"); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+	})
+
+	// Check that a delete of a service + check triggers both tables in one
+	// shot.
+	testRegisterService(t, s, 4, "node1", "service1")
+	testRegisterCheck(t, s, 5, "node1", "service1", "check3", structs.HealthPassing)
+	verifyWatch(t, s.GetTableWatch("services"), func() {
+		verifyWatch(t, s.GetTableWatch("checks"), func() {
+			if err := s.DeleteService(6, "node1", "service1"); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+		})
 	})
 }
 
