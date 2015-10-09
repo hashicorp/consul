@@ -253,7 +253,12 @@ func indexUpdateMaxTxn(tx *memdb.Txn, idx uint64, table string) error {
 		return fmt.Errorf("failed to retrieve existing index: %s", err)
 	}
 
-	if cur, ok := ti.(*IndexEntry); ok && idx > cur.Value {
+	// Always take the first update, otherwise do the > check.
+	if ti == nil {
+		if err := tx.Insert("index", &IndexEntry{table, idx}); err != nil {
+			return fmt.Errorf("failed updating index %s", err)
+		}
+	} else if cur, ok := ti.(*IndexEntry); ok && idx > cur.Value {
 		if err := tx.Insert("index", &IndexEntry{table, idx}); err != nil {
 			return fmt.Errorf("failed updating index %s", err)
 		}
@@ -1752,15 +1757,15 @@ func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 // SessionRestore is used when restoring from a snapshot. For general inserts,
 // use SessionCreate.
 func (s *StateStore) SessionRestore(sess *structs.Session) error {
-	tx := s.db.Txn(false)
+	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	// Insert the session
+	// Insert the session.
 	if err := tx.Insert("sessions", sess); err != nil {
 		return fmt.Errorf("failed inserting session: %s", err)
 	}
 
-	// Insert the check mappings
+	// Insert the check mappings.
 	for _, checkID := range sess.Checks {
 		mapping := &sessionCheck{
 			Node:    sess.Node,
@@ -1772,7 +1777,7 @@ func (s *StateStore) SessionRestore(sess *structs.Session) error {
 		}
 	}
 
-	// Update the index
+	// Update the index.
 	if err := indexUpdateMaxTxn(tx, sess.ModifyIndex, "sessions"); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
