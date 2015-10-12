@@ -14,15 +14,19 @@ type Tombstone struct {
 
 // Graveyard manages a set of tombstones.
 type Graveyard struct {
+	// GC is when we create tombstones to track their time-to-live.
+	// The GC is consumed upstream to manage clearing of tombstones.
+	gc *TombstoneGC
 }
 
 // NewGraveyard returns a new graveyard.
-func NewGraveyard() *Graveyard {
-	return &Graveyard{}
+func NewGraveyard(gc *TombstoneGC) *Graveyard {
+	return &Graveyard{gc: gc}
 }
 
 // InsertTxn adds a new tombstone.
 func (g *Graveyard) InsertTxn(tx *memdb.Txn, key string, idx uint64) error {
+	// Insert the tombstone.
 	stone := &Tombstone{Key: key, Index: idx}
 	if err := tx.Insert("tombstones", stone); err != nil {
 		return fmt.Errorf("failed inserting tombstone: %s", err)
@@ -30,6 +34,11 @@ func (g *Graveyard) InsertTxn(tx *memdb.Txn, key string, idx uint64) error {
 
 	if err := tx.Insert("index", &IndexEntry{"tombstones", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// If GC is configured, then we hint that this index requires reaping.
+	if g.gc != nil {
+		tx.Defer(func() { g.gc.Hint(idx) })
 	}
 	return nil
 }

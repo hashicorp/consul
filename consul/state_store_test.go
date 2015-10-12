@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	state_store "github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
@@ -1539,7 +1540,7 @@ func TestKVSDelete(t *testing.T) {
 
 	ttl := 10 * time.Millisecond
 	gran := 5 * time.Millisecond
-	gc, err := NewTombstoneGC(ttl, gran)
+	gc, err := state_store.NewTombstoneGC(ttl, gran)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2062,7 +2063,7 @@ func TestKVSDeleteTree(t *testing.T) {
 
 	ttl := 10 * time.Millisecond
 	gran := 5 * time.Millisecond
-	gc, err := NewTombstoneGC(ttl, gran)
+	gc, err := state_store.NewTombstoneGC(ttl, gran)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -2169,7 +2170,7 @@ func TestReapTombstones(t *testing.T) {
 
 	ttl := 10 * time.Millisecond
 	gran := 5 * time.Millisecond
-	gc, err := NewTombstoneGC(ttl, gran)
+	gc, err := state_store.NewTombstoneGC(ttl, gran)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

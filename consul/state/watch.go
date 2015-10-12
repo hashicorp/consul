@@ -130,3 +130,27 @@ func (w *PrefixWatch) Notify(prefix string, subtree bool) {
 		w.watches.Delete(cleanup[i])
 	}
 }
+
+// MultiWatch wraps several watches and allows any of them to trigger the
+// caller.
+type MultiWatch struct {
+	watches []Watch
+}
+
+func NewMultiWatch(watches ...Watch) *MultiWatch {
+	return &MultiWatch{watches: watches}
+}
+
+// See Watch.
+func (w *MultiWatch) Wait(notifyCh chan struct{}) {
+	for _, watch := range w.watches {
+		watch.Wait(notifyCh)
+	}
+}
+
+// See Watch.
+func (w *MultiWatch) Clear(notifyCh chan struct{}) {
+	for _, watch := range w.watches {
+		watch.Clear(notifyCh)
+	}
+}

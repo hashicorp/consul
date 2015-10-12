@@ -74,7 +74,7 @@ type sessionCheck struct {
 }
 
 // NewStateStore creates a new in-memory state storage layer.
-func NewStateStore() (*StateStore, error) {
+func NewStateStore(gc *TombstoneGC) (*StateStore, error) {
 	// Create the in-memory DB.
 	schema := stateStoreSchema()
 	db, err := memdb.NewMemDB(schema)
@@ -98,7 +98,7 @@ func NewStateStore() (*StateStore, error) {
 		db:           db,
 		tableWatches: tableWatches,
 		kvsWatch:     NewPrefixWatch(),
-		kvsGraveyard: NewGraveyard(),
+		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
 	}
 	return s, nil
@@ -561,6 +561,133 @@ func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, sv
 	return nil
 }
 
+// Services returns all services along with a list of associated tags.
+func (s *StateStore) Services() (uint64, structs.Services, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// List all the services.
+	services, err := tx.Get("services", "id")
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed querying services: %s", err)
+	}
+
+	// Rip through the services and enumerate them and their unique set of
+	// tags.
+	var lindex uint64
+	unique := make(map[string]map[string]struct{})
+	for service := services.Next(); service != nil; service = services.Next() {
+		sn := service.(*structs.ServiceNode)
+
+		// Track the highest index
+		if sn.ModifyIndex > lindex {
+			lindex = sn.ModifyIndex
+		}
+
+		// Capture the unique set of tags.
+		tags, ok := unique[sn.ServiceName]
+		if !ok {
+			unique[sn.ServiceName] = make(map[string]struct{})
+			tags = unique[sn.ServiceName]
+		}
+		for _, tag := range sn.ServiceTags {
+			tags[tag] = struct{}{}
+		}
+	}
+
+	// Generate the output structure.
+	var results = make(structs.Services)
+	for service, tags := range unique {
+		results[service] = make([]string, 0)
+		for tag, _ := range tags {
+			results[service] = append(results[service], tag)
+		}
+	}
+	return lindex, results, nil
+}
+
+// ServiceNodes returns the nodes associated with a given service.
+func (s *StateStore) ServiceNodes(service string) (uint64, structs.ServiceNodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	services, err := tx.Get("services", "service", service)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
+	}
+
+	var results structs.ServiceNodes
+	for s := services.Next(); s != nil; s = services.Next() {
+		sn := s.(*structs.ServiceNode)
+		results = append(results, sn)
+	}
+	return s.parseServiceNodes(tx, results)
+}
+
+// ServiceTagNodes returns the nodes associated with a given service, filtering
+// out services that don't contain the given tag.
+func (s *StateStore) ServiceTagNodes(service, tag string) (uint64, structs.ServiceNodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	services, err := tx.Get("services", "service", service)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
+	}
+
+	var results structs.ServiceNodes
+	for s := services.Next(); s != nil; s = services.Next() {
+		sn := s.(*structs.ServiceNode)
+		if !serviceTagFilter(sn, tag) {
+			results = append(results, sn)
+		}
+	}
+	return s.parseServiceNodes(tx, results)
+}
+
+// serviceTagFilter returns true (should filter) if the given service node
+// doesn't contain the given tag.
+func serviceTagFilter(sn *structs.ServiceNode, tag string) bool {
+	tag = strings.ToLower(tag)
+
+	// Look for the lower cased version of the tag.
+	for _, t := range sn.ServiceTags {
+		if strings.ToLower(t) == tag {
+			return false
+		}
+	}
+
+	// If we didn't hit the tag above then we should filter.
+	return true
+}
+
+// parseServiceNodes iterates over a services query and fills in the node details,
+// returning a ServiceNodes slice.
+func (s *StateStore) parseServiceNodes(tx *memdb.Txn, services structs.ServiceNodes) (uint64, structs.ServiceNodes, error) {
+	var results structs.ServiceNodes
+	var lindex uint64
+	for _, sn := range services {
+		// Track the highest index.
+		if sn.ModifyIndex > lindex {
+			lindex = sn.ModifyIndex
+		}
+
+		// TODO (slackpad) - This is sketchy because we are altering the
+		// structure from the database, but we are hitting a non-indexed
+		// field. Think about this a little and make sure it's really
+		// safe.
+
+		// Fill in the address of the node.
+		n, err := tx.First("nodes", "id", sn.Node)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
+		}
+		sn.Address = n.(*structs.Node).Address
+		results = append(results, sn)
+	}
+	return lindex, results, nil
+}
+
 // NodeServices is used to query service registrations by node ID.
 func (s *StateStore) NodeServices(nodeID string) (uint64, *structs.NodeServices, error) {
 	tx := s.db.Txn(false)
@@ -869,26 +996,56 @@ func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 }
 
 // CheckServiceNodes is used to query all nodes and checks for a given service
-// ID. The results are compounded into a CheckServiceNodes, and the index
-// returned is the maximum index observed over any node, check, or service
-// in the result set.
-func (s *StateStore) CheckServiceNodes(serviceID string) (uint64, structs.CheckServiceNodes, error) {
+// The results are compounded into a CheckServiceNodes, and the index returned
+// is the maximum index observed over any node, check, or service in the result
+// set.
+func (s *StateStore) CheckServiceNodes(service string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Query the state store for the service.
-	services, err := tx.Get("services", "service", serviceID)
+	services, err := tx.Get("services", "service", service)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
-	return s.parseCheckServiceNodes(tx, services, err)
+
+	var results structs.ServiceNodes
+	for s := services.Next(); s != nil; s = services.Next() {
+		sn := s.(*structs.ServiceNode)
+		results = append(results, sn)
+	}
+	return s.parseCheckServiceNodes(tx, results, err)
+}
+
+// CheckServiceTagNodes is used to query all nodes and checks for a given
+// service, filtering out services that don't contain the given tag. The results
+// are compounded into a CheckServiceNodes, and the index returned is the maximum
+// index observed over any node, check, or service in the result set.
+func (s *StateStore) CheckServiceTagNodes(service, tag string) (uint64, structs.CheckServiceNodes, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Query the state store for the service.
+	services, err := tx.Get("services", "service", service)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
+	}
+
+	var results structs.ServiceNodes
+	for s := services.Next(); s != nil; s = services.Next() {
+		sn := s.(*structs.ServiceNode)
+		if !serviceTagFilter(sn, tag) {
+			results = append(results, sn)
+		}
+	}
+	return s.parseCheckServiceNodes(tx, results, err)
 }
 
 // parseCheckServiceNodes is used to parse through a given set of services,
 // and query for an associated node and a set of checks. This is the inner
 // method used to return a rich set of results from a more simple query.
 func (s *StateStore) parseCheckServiceNodes(
-	tx *memdb.Txn, iter memdb.ResultIterator,
+	tx *memdb.Txn, services structs.ServiceNodes,
 	err error) (uint64, structs.CheckServiceNodes, error) {
 	if err != nil {
 		return 0, nil, err
@@ -896,15 +1053,14 @@ func (s *StateStore) parseCheckServiceNodes(
 
 	var results structs.CheckServiceNodes
 	var lindex uint64
-	for service := iter.Next(); service != nil; service = iter.Next() {
-		// Compute the index
-		svc := service.(*structs.ServiceNode)
-		if svc.ModifyIndex > lindex {
-			lindex = svc.ModifyIndex
+	for _, sn := range services {
+		// Compute the index.
+		if sn.ModifyIndex > lindex {
+			lindex = sn.ModifyIndex
 		}
 
-		// Retrieve the node
-		n, err := tx.First("nodes", "id", svc.Node)
+		// Retrieve the node.
+		n, err := tx.First("nodes", "id", sn.Node)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 		}
@@ -916,24 +1072,36 @@ func (s *StateStore) parseCheckServiceNodes(
 			lindex = node.ModifyIndex
 		}
 
-		// Get the checks
-		idx, checks, err := s.parseChecks(tx.Get("checks", "node_service", svc.Node, svc.ServiceID))
+		// TODO (slackpad) Make this work as an better indexed operation.
+
+		// We need to return the checks specific to the given service
+		// as well as the node itself. Unfortunately, memdb won't let
+		// us use the index to do the latter query so we have to pull
+		// them all and filter.
+		var checks structs.HealthChecks
+		iter, err := tx.Get("checks", "node", sn.Node)
 		if err != nil {
 			return 0, nil, err
 		}
-		if idx > lindex {
-			lindex = idx
+		for check := iter.Next(); check != nil; check = iter.Next() {
+			hc := check.(*structs.HealthCheck)
+			if hc.ServiceID == "" || hc.ServiceID == sn.ServiceID {
+				if hc.ModifyIndex > lindex {
+					lindex = hc.ModifyIndex
+				}
+				checks = append(checks, hc)
+			}
 		}
 
-		// Append to the results
+		// Append to the results.
 		results = append(results, structs.CheckServiceNode{
 			Node: node,
 			Service: &structs.NodeService{
-				ID:      svc.ServiceID,
-				Service: svc.ServiceName,
-				Address: svc.ServiceAddress,
-				Port:    svc.ServicePort,
-				Tags:    svc.ServiceTags,
+				ID:      sn.ServiceID,
+				Service: sn.ServiceName,
+				Address: sn.ServiceAddress,
+				Port:    sn.ServicePort,
+				Tags:    sn.ServiceTags,
 			},
 			Checks: checks,
 		})
@@ -944,12 +1112,12 @@ func (s *StateStore) parseCheckServiceNodes(
 
 // NodeInfo is used to generate a dump of a single node. The dump includes
 // all services and checks which are registered against the node.
-func (s *StateStore) NodeInfo(nodeID string) (uint64, structs.NodeDump, error) {
+func (s *StateStore) NodeInfo(node string) (uint64, structs.NodeDump, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
-	// Query the node by the passed node ID
-	nodes, err := tx.Get("nodes", "id", nodeID)
+	// Query the node by the passed node
+	nodes, err := tx.Get("nodes", "id", node)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed node lookup: %s", err)
 	}
@@ -1314,6 +1482,9 @@ func (s *StateStore) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error
 	tx.Commit()
 	return true, nil
 }
+
+// TODO (slackpad) Double check the old KV triggering behavior and make
+// sure we are covered here with tests.
 
 // KVSDeleteTree is used to do a recursive delete on a key prefix
 // in the state store. If any keys are modified, the last index is

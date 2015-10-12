@@ -32,16 +32,22 @@ func TestLeader_RegisterMember(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Client should be registered
-	state := s1.fsm.State()
+	state := s1.fsm.StateNew()
 	testutil.WaitForResult(func() (bool, error) {
-		_, found, _ := state.GetNode(c1.config.NodeName)
-		return found == true, nil
+		node, err := state.GetNode(c1.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		return node != nil, nil
 	}, func(err error) {
 		t.Fatalf("client not registered")
 	})
 
 	// Should have a check
-	_, checks := state.NodeChecks(c1.config.NodeName)
+	_, checks, err := state.NodeChecks(c1.config.NodeName)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	if len(checks) != 1 {
 		t.Fatalf("client missing check")
 	}
@@ -56,13 +62,19 @@ func TestLeader_RegisterMember(t *testing.T) {
 	}
 
 	// Server should be registered
-	_, found, _ := state.GetNode(s1.config.NodeName)
-	if !found {
+	node, err := state.GetNode(s1.config.NodeName)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if node == nil {
 		t.Fatalf("server not registered")
 	}
 
 	// Service should be registered
-	_, services := state.NodeServices(s1.config.NodeName)
+	_, services, err := state.NodeServices(s1.config.NodeName)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	if _, ok := services.Services["consul"]; !ok {
 		t.Fatalf("consul service not registered: %v", services)
 	}
@@ -90,16 +102,22 @@ func TestLeader_FailedMember(t *testing.T) {
 	c1.Shutdown()
 
 	// Should be registered
-	state := s1.fsm.State()
+	state := s1.fsm.StateNew()
 	testutil.WaitForResult(func() (bool, error) {
-		_, found, _ := state.GetNode(c1.config.NodeName)
-		return found == true, nil
+		node, err := state.GetNode(c1.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		return node != nil, nil
 	}, func(err error) {
 		t.Fatalf("client not registered")
 	})
 
 	// Should have a check
-	_, checks := state.NodeChecks(c1.config.NodeName)
+	_, checks, err := state.NodeChecks(c1.config.NodeName)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	if len(checks) != 1 {
 		t.Fatalf("client missing check")
 	}
@@ -111,7 +129,10 @@ func TestLeader_FailedMember(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		_, checks = state.NodeChecks(c1.config.NodeName)
+		_, checks, err = state.NodeChecks(c1.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
 		return checks[0].Status == structs.HealthCritical, errors.New(checks[0].Status)
 	}, func(err error) {
 		t.Fatalf("check status is %v, should be critical", err)
@@ -134,13 +155,15 @@ func TestLeader_LeftMember(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var found bool
-	state := s1.fsm.State()
+	state := s1.fsm.StateNew()
 
 	// Should be registered
 	testutil.WaitForResult(func() (bool, error) {
-		_, found, _ = state.GetNode(c1.config.NodeName)
-		return found == true, nil
+		node, err := state.GetNode(c1.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		return node != nil, nil
 	}, func(err error) {
 		t.Fatalf("client should be registered")
 	})
@@ -151,8 +174,11 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be deregistered
 	testutil.WaitForResult(func() (bool, error) {
-		_, found, _ = state.GetNode(c1.config.NodeName)
-		return found == false, nil
+		node, err := state.GetNode(c1.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		return node == nil, nil
 	}, func(err error) {
 		t.Fatalf("client should not be registered")
 	})
@@ -174,13 +200,15 @@ func TestLeader_ReapMember(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var found bool
-	state := s1.fsm.State()
+	state := s1.fsm.StateNew()
 
 	// Should be registered
 	testutil.WaitForResult(func() (bool, error) {
-		_, found, _ = state.GetNode(c1.config.NodeName)
-		return found == true, nil
+		node, err := state.GetNode(c1.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		return node != nil, nil
 	}, func(err error) {
 		t.Fatalf("client should be registered")
 	})
@@ -199,8 +227,11 @@ func TestLeader_ReapMember(t *testing.T) {
 
 	// Should be deregistered
 	testutil.WaitForResult(func() (bool, error) {
-		_, found, _ = state.GetNode(c1.config.NodeName)
-		return found == false, nil
+		node, err := state.GetNode(c1.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		return node == nil, nil
 	}, func(err error) {
 		t.Fatalf("client should not be registered")
 	})
@@ -236,9 +267,12 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 	}
 
 	// Node should be gone
-	state := s1.fsm.State()
-	_, found, _ := state.GetNode("no-longer-around")
-	if found {
+	state := s1.fsm.StateNew()
+	node, err := state.GetNode("no-longer-around")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if node != nil {
 		t.Fatalf("client registered")
 	}
 }
@@ -260,16 +294,22 @@ func TestLeader_Reconcile(t *testing.T) {
 	}
 
 	// Should not be registered
-	state := s1.fsm.State()
-	_, found, _ := state.GetNode(c1.config.NodeName)
-	if found {
+	state := s1.fsm.StateNew()
+	node, err := state.GetNode(c1.config.NodeName)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if node != nil {
 		t.Fatalf("client registered")
 	}
 
 	// Should be registered
 	testutil.WaitForResult(func() (bool, error) {
-		_, found, _ = state.GetNode(c1.config.NodeName)
-		return found == true, nil
+		node, err = state.GetNode(c1.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		return node != nil, nil
 	}, func(err error) {
 		t.Fatalf("client should be registered")
 	})
@@ -391,10 +431,13 @@ func TestLeader_LeftLeader(t *testing.T) {
 	}
 
 	// Verify the old leader is deregistered
-	state := remain.fsm.State()
+	state := remain.fsm.StateNew()
 	testutil.WaitForResult(func() (bool, error) {
-		_, found, _ := state.GetNode(leader.config.NodeName)
-		return !found, nil
+		node, err := state.GetNode(leader.config.NodeName)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		return node == nil, nil
 	}, func(err error) {
 		t.Fatalf("leader should be deregistered")
 	})
@@ -536,25 +579,39 @@ func TestLeader_ReapTombstones(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Delete the KV entry (tombstoned)
+	// Snag the pre-delete index that the tombstone should
+	// preserve.
+	state := s1.fsm.StateNew()
+	keyIdx, _, err := state.KVSList("test")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Delete the KV entry (tombstoned).
 	arg.Op = structs.KVSDelete
 	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Ensure we have a tombstone
-	_, res, err := s1.fsm.State().tombstoneTable.Get("id")
+	// Make sure the index advances to reflect the delete, instead of sliding
+	// backwards.
+	idx, _, err := state.KVSList("test")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(res) == 0 {
-		t.Fatalf("missing tombstones")
+	if idx <= keyIdx {
+		t.Fatalf("tombstone not working: %d <= %d", idx, keyIdx)
 	}
 
-	// Check that the new leader has a pending GC expiration
+	// Check that the new leader has a pending GC expiration by
+	// watching for the index to slide back.
 	testutil.WaitForResult(func() (bool, error) {
-		_, res, err := s1.fsm.State().tombstoneTable.Get("id")
-		return len(res) == 0, err
+		idx, _, err := state.KVSList("test")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		fmt.Printf("%d %d\n", idx, keyIdx)
+		return idx < keyIdx, err
 	}, func(err error) {
 		t.Fatalf("err: %v", err)
 	})

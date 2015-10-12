@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
@@ -135,7 +136,7 @@ type Server struct {
 
 	// tombstoneGC is used to track the pending GC invocations
 	// for the KV tombstones
-	tombstoneGC *TombstoneGC
+	tombstoneGC *state.TombstoneGC
 
 	shutdown     bool
 	shutdownCh   chan struct{}
@@ -193,7 +194,7 @@ func NewServer(config *Config) (*Server, error) {
 	logger := log.New(config.LogOutput, "", log.LstdFlags)
 
 	// Create the tombstone GC
-	gc, err := NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
+	gc, err := state.NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
 	if err != nil {
 		return nil, err
 	}

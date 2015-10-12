@@ -13,6 +13,7 @@ import (
 
 	"github.com/armon/go-radix"
 	"github.com/armon/gomdb"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
@@ -88,7 +89,7 @@ type StateStore struct {
 
 	// GC is when we create tombstones to track their time-to-live.
 	// The GC is consumed upstream to manage clearing of tombstones.
-	gc *TombstoneGC
+	gc *state.TombstoneGC
 }
 
 // StateSnapshot is used to provide a point-in-time snapshot
@@ -115,7 +116,7 @@ func (s *StateSnapshot) Close() error {
 }
 
 // NewStateStore is used to create a new state store
-func NewStateStore(gc *TombstoneGC, logOutput io.Writer) (*StateStore, error) {
+func NewStateStore(gc *state.TombstoneGC, logOutput io.Writer) (*StateStore, error) {
 	// Create a new temp dir
 	path, err := ioutil.TempDir("", "consul")
 	if err != nil {
@@ -126,7 +127,7 @@ func NewStateStore(gc *TombstoneGC, logOutput io.Writer) (*StateStore, error) {
 
 // NewStateStorePath is used to create a new state store at a given path
 // The path is cleared on closing.
-func NewStateStorePath(gc *TombstoneGC, path string, logOutput io.Writer) (*StateStore, error) {
+func NewStateStorePath(gc *state.TombstoneGC, path string, logOutput io.Writer) (*StateStore, error) {
 	// Open the env
 	env, err := mdb.NewEnv()
 	if err != nil {

@@ -46,11 +46,11 @@ func TestHealth_ChecksInState(t *testing.T) {
 		t.Fatalf("Bad: %v", checks)
 	}
 
-	// First check is automatically added for the server node
-	if checks[0].CheckID != SerfCheckID {
+	// Serf check is automatically added
+	if checks[0].Name != "memory utilization" {
 		t.Fatalf("Bad: %v", checks[0])
 	}
-	if checks[1].Name != "memory utilization" {
+	if checks[1].CheckID != SerfCheckID {
 		t.Fatalf("Bad: %v", checks[1])
 	}
 }
@@ -205,22 +205,22 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	if len(nodes) != 2 {
 		t.Fatalf("Bad: %v", nodes)
 	}
-	if nodes[0].Node.Node != "foo" {
+	if nodes[0].Node.Node != "bar" {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if nodes[1].Node.Node != "bar" {
+	if nodes[1].Node.Node != "foo" {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
-	if !strContains(nodes[0].Service.Tags, "master") {
+	if !strContains(nodes[0].Service.Tags, "slave") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if !strContains(nodes[1].Service.Tags, "slave") {
+	if !strContains(nodes[1].Service.Tags, "master") {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
-	if nodes[0].Checks[0].Status != structs.HealthPassing {
+	if nodes[0].Checks[0].Status != structs.HealthWarning {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if nodes[1].Checks[0].Status != structs.HealthWarning {
+	if nodes[1].Checks[0].Status != structs.HealthPassing {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
 }
