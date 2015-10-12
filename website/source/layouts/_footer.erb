@@ -4,8 +4,11 @@
 			<ul class="main-links nav navbar-nav rls-sb">
 				<li class="li-under"><a href="/intro/index.html">Intro</a></li>
 				<li class="active li-under"><a href="/docs/index.html">Docs</a></li>
-                <li class="li-under"><a href="/community.html">Community</a></li>
+				<li class="li-under"><a href="/community.html">Community</a></li>
 				<li class="li-under"><a href="http://demo.consul.io/">Demo</a></li>
+				<% if current_page.url != '/' %>
+					<li class="li-under"><a href="<%= github_url :current_page %>">Edit this page</a></li>
+				<% end %>
 			</ul>
 
 			<ul class="buttons nav navbar-nav rls-sb">
