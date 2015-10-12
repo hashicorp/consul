@@ -3146,9 +3146,12 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	s := testStateStore(t)
 
 	// SessionGet returns nil if the session doesn't exist
-	sess, err := s.SessionGet("session1")
-	if sess != nil || err != nil {
-		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", sess, err)
+	idx, session, err := s.SessionGet("session1")
+	if session != nil || err != nil {
+		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", session, err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Registering without a session ID is disallowed
@@ -3158,7 +3161,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	}
 
 	// Invalid session behavior throws error
-	sess = &structs.Session{
+	sess := &structs.Session{
 		ID:       "foo",
 		Behavior: "nope",
 	}
@@ -3192,9 +3195,12 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	}
 
 	// Retrieve the session again
-	session, err := s.SessionGet("foo")
+	idx, session, err = s.SessionGet("foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	if idx != 2 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Ensure the session looks correct and was assigned the
@@ -3254,6 +3260,18 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	}
 	if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
 		t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
+	}
+
+	// Pulling a nonexistent session gives the table index.
+	idx, session, err = s.SessionGet("nope")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if session != nil {
+		t.Fatalf("expected not to get a session: %v", session)
+	}
+	if idx != 5 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -3354,11 +3372,8 @@ func TestStateStore_NodeSessions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	// Check that the index was properly filtered based
-	// on the provided node ID.
-	if idx != 4 {
-		t.Fatalf("bad index: %s", err)
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Check that the returned sessions match.
@@ -3578,12 +3593,15 @@ func TestStateStore_Session_Invalidate_DeleteNode(t *testing.T) {
 	})
 
 	// Lookup by ID, should be nil.
-	s2, err := s.SessionGet(session.ID)
+	idx, s2, err := s.SessionGet(session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s2 != nil {
 		t.Fatalf("session should be invalidated")
+	}
+	if idx != 15 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -3628,12 +3646,15 @@ func TestStateStore_Session_Invalidate_DeleteService(t *testing.T) {
 	})
 
 	// Lookup by ID, should be nil.
-	s2, err := s.SessionGet(session.ID)
+	idx, s2, err := s.SessionGet(session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s2 != nil {
 		t.Fatalf("session should be invalidated")
+	}
+	if idx != 15 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -3672,12 +3693,15 @@ func TestStateStore_Session_Invalidate_Critical_Check(t *testing.T) {
 	})
 
 	// Lookup by ID, should be nil.
-	s2, err := s.SessionGet(session.ID)
+	idx, s2, err := s.SessionGet(session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s2 != nil {
 		t.Fatalf("session should be invalidated")
+	}
+	if idx != 15 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -3715,12 +3739,15 @@ func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
 	})
 
 	// Lookup by ID, should be nil.
-	s2, err := s.SessionGet(session.ID)
+	idx, s2, err := s.SessionGet(session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s2 != nil {
 		t.Fatalf("session should be invalidated")
+	}
+	if idx != 15 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Manually make sure the session checks mapping is clear.
@@ -3778,12 +3805,15 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 	})
 
 	// Lookup by ID, should be nil.
-	s2, err := s.SessionGet(session.ID)
+	idx, s2, err := s.SessionGet(session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s2 != nil {
 		t.Fatalf("session should be invalidated")
+	}
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Key should be unlocked.
@@ -3852,12 +3882,15 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 	})
 
 	// Lookup by ID, should be nil.
-	s2, err := s.SessionGet(session.ID)
+	idx, s2, err := s.SessionGet(session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s2 != nil {
 		t.Fatalf("session should be invalidated")
+	}
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Key should be deleted.

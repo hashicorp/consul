@@ -59,7 +59,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	// be deterministic or the followers will not converge.
 	if args.Op == structs.SessionCreate {
 		// Generate a new session ID, verify uniqueness
-		state := s.srv.fsm.State()
+		state := s.srv.fsm.StateNew()
 		for {
 			args.Session.ID = generateUUID()
 			_, sess, err := state.SessionGet(args.Session.ID)
@@ -108,19 +108,24 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 	}
 
 	// Get the local state
-	state := s.srv.fsm.State()
-	return s.srv.blockingRPC(&args.QueryOptions,
+	state := s.srv.fsm.StateNew()
+	return s.srv.blockingRPCNew(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("SessionGet"),
+		state.GetTableWatch("sessions"),
 		func() error {
 			index, session, err := state.SessionGet(args.Session)
+			if err != nil {
+				return err
+			}
+
 			reply.Index = index
 			if session != nil {
 				reply.Sessions = structs.Sessions{session}
 			} else {
 				reply.Sessions = nil
 			}
-			return err
+			return nil
 		})
 }
 
@@ -132,14 +137,19 @@ func (s *Session) List(args *structs.DCSpecificRequest,
 	}
 
 	// Get the local state
-	state := s.srv.fsm.State()
-	return s.srv.blockingRPC(&args.QueryOptions,
+	state := s.srv.fsm.StateNew()
+	return s.srv.blockingRPCNew(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("SessionList"),
+		state.GetTableWatch("sessions"),
 		func() error {
-			var err error
-			reply.Index, reply.Sessions, err = state.SessionList()
-			return err
+			index, sessions, err := state.SessionList()
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Sessions = index, sessions
+			return nil
 		})
 }
 
@@ -151,14 +161,19 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 	}
 
 	// Get the local state
-	state := s.srv.fsm.State()
-	return s.srv.blockingRPC(&args.QueryOptions,
+	state := s.srv.fsm.StateNew()
+	return s.srv.blockingRPCNew(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("NodeSessions"),
+		state.GetTableWatch("sessions"),
 		func() error {
-			var err error
-			reply.Index, reply.Sessions, err = state.NodeSessions(args.Node)
-			return err
+			index, sessions, err := state.NodeSessions(args.Node)
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Sessions = index, sessions
+			return nil
 		})
 }
 
@@ -171,7 +186,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	defer metrics.MeasureSince([]string{"consul", "session", "renew"}, time.Now())
 
 	// Get the session, from local state
-	state := s.srv.fsm.State()
+	state := s.srv.fsm.StateNew()
 	index, session, err := state.SessionGet(args.Session)
 	if err != nil {
 		return err

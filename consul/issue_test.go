@@ -20,7 +20,7 @@ func TestHealthCheckRace(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	defer fsm.Close()
-	state := fsm.State()
+	state := fsm.StateNew()
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -51,9 +51,12 @@ func TestHealthCheckRace(t *testing.T) {
 	}
 
 	// Verify the index
-	idx, out1 := state.CheckServiceNodes("db")
+	idx, out1, err := state.CheckServiceNodes("db")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if idx != 10 {
-		t.Fatalf("Bad index")
+		t.Fatalf("Bad index: %d", idx)
 	}
 
 	// Update the check state
@@ -71,9 +74,12 @@ func TestHealthCheckRace(t *testing.T) {
 	}
 
 	// Verify the index changed
-	idx, out2 := state.CheckServiceNodes("db")
+	idx, out2, err := state.CheckServiceNodes("db")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if idx != 20 {
-		t.Fatalf("Bad index")
+		t.Fatalf("Bad index: %d", idx)
 	}
 
 	if reflect.DeepEqual(out1, out2) {

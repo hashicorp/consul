@@ -13,7 +13,7 @@ import (
 // the previously known set of timers.
 func (s *Server) initializeSessionTimers() error {
 	// Scan all sessions and reset their timer
-	state := s.fsm.State()
+	state := s.fsm.StateNew()
 	_, sessions, err := state.SessionList()
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func (s *Server) initializeSessionTimers() error {
 func (s *Server) resetSessionTimer(id string, session *structs.Session) error {
 	// Fault the session in if not given
 	if session == nil {
-		state := s.fsm.State()
+		state := s.fsm.StateNew()
 		_, s, err := state.SessionGet(id)
 		if err != nil {
 			return err

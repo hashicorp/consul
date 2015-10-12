@@ -1764,25 +1764,31 @@ func (s *StateStore) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.S
 }
 
 // SessionGet is used to retrieve an active session from the state store.
-func (s *StateStore) SessionGet(sessionID string) (*structs.Session, error) {
+func (s *StateStore) SessionGet(sessionID string) (uint64, *structs.Session, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "sessions")
 
 	// Look up the session by its ID
 	session, err := tx.First("sessions", "id", sessionID)
 	if err != nil {
-		return nil, fmt.Errorf("failed session lookup: %s", err)
+		return 0, nil, fmt.Errorf("failed session lookup: %s", err)
 	}
 	if session != nil {
-		return session.(*structs.Session), nil
+		return idx, session.(*structs.Session), nil
 	}
-	return nil, nil
+	return idx, nil, nil
 }
 
 // SessionList returns a slice containing all of the active sessions.
 func (s *StateStore) SessionList() (uint64, structs.Sessions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, "sessions")
 
 	// Query all of the active sessions.
 	sessions, err := tx.Get("sessions", "id")
@@ -1792,17 +1798,10 @@ func (s *StateStore) SessionList() (uint64, structs.Sessions, error) {
 
 	// Go over the sessions and create a slice of them.
 	var result structs.Sessions
-	var lindex uint64
 	for session := sessions.Next(); session != nil; session = sessions.Next() {
-		sess := session.(*structs.Session)
-		result = append(result, sess)
-
-		// Compute the highest index
-		if sess.ModifyIndex > lindex {
-			lindex = sess.ModifyIndex
-		}
+		result = append(result, session.(*structs.Session))
 	}
-	return lindex, result, nil
+	return idx, result, nil
 }
 
 // NodeSessions returns a set of active sessions associated
@@ -1812,6 +1811,9 @@ func (s *StateStore) NodeSessions(nodeID string) (uint64, structs.Sessions, erro
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	// Get the table index.
+	idx := maxIndexTxn(tx, "sessions")
+
 	// Get all of the sessions which belong to the node
 	sessions, err := tx.Get("sessions", "node", nodeID)
 	if err != nil {
@@ -1820,17 +1822,10 @@ func (s *StateStore) NodeSessions(nodeID string) (uint64, structs.Sessions, erro
 
 	// Go over all of the sessions and return them as a slice
 	var result structs.Sessions
-	var lindex uint64
 	for session := sessions.Next(); session != nil; session = sessions.Next() {
-		sess := session.(*structs.Session)
-		result = append(result, sess)
-
-		// Compute the highest index
-		if sess.ModifyIndex > lindex {
-			lindex = sess.ModifyIndex
-		}
+		result = append(result, session.(*structs.Session))
 	}
-	return lindex, result, nil
+	return idx, result, nil
 }
 
 // SessionDestroy is used to remove an active session. This will
@@ -1887,11 +1882,6 @@ func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 	if err != nil {
 		return fmt.Errorf("failed kvs lookup: %s", err)
 	}
-
-	// TODO (slackpad) The operations below use the common inner functions
-	// that look up the entry by key; we could optimize this by splitting
-	// the inner functions and passing the entry we already have, though it
-	// makes the code a little more complex.
 
 	// Invalidate any held locks.
 	switch session.Behavior {

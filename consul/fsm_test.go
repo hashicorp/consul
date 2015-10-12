@@ -485,15 +485,15 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify session is restored
-	s, err := fsm2.stateNew.SessionGet(session.ID)
+	idx, s, err := fsm2.stateNew.SessionGet(session.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if s.Node != "foo" {
 		t.Fatalf("bad: %v", s)
 	}
-	if s.ModifyIndex <= 1 {
-		t.Fatalf("bad index: %d", s.ModifyIndex)
+	if idx <= 1 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Verify ACL is restored
@@ -824,7 +824,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 
 	// Get the session
 	id := resp.(string)
-	session, err := fsm.stateNew.SessionGet(id)
+	_, session, err := fsm.stateNew.SessionGet(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -860,7 +860,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	session, err = fsm.stateNew.SessionGet(id)
+	_, session, err = fsm.stateNew.SessionGet(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
