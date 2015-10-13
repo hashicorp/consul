@@ -1099,8 +1099,6 @@ func (s *StateStore) parseCheckServiceNodes(
 			lindex = node.ModifyIndex
 		}
 
-		// TODO (slackpad) Make this work as an better indexed operation.
-
 		// We need to return the checks specific to the given service
 		// as well as the node itself. Unfortunately, memdb won't let
 		// us use the index to do the latter query so we have to pull
