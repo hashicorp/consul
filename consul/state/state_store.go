@@ -282,13 +282,40 @@ func (s *StateStore) ReapTombstones(index uint64) error {
 	return nil
 }
 
-// GetTableWatch returns a watch for the given table.
-func (s *StateStore) GetTableWatch(table string) Watch {
+// getTableWatch returns a full table watch for the given table. This will panic
+// if the table doesn't have a full table watch.
+func (s *StateStore) getTableWatch(table string) Watch {
 	if watch, ok := s.tableWatches[table]; ok {
 		return watch
 	}
 
 	panic(fmt.Sprintf("Unknown watch for table %#s", table))
+}
+
+// GetQueryWatch returns a watch for the given query method. This is
+// used for all methods except for KV; you should call GetKVSWatch instead.
+func (s *StateStore) GetQueryWatch(method string) Watch {
+	switch method {
+	case "GetNode", "Nodes":
+		return s.getTableWatch("nodes")
+	case "Services":
+		return s.getTableWatch("services")
+	case "ServiceNodes", "NodeServices":
+		return NewMultiWatch(s.getTableWatch("nodes"),
+			s.getTableWatch("services"))
+	case "NodeChecks", "ServiceChecks", "ChecksInState":
+		return s.getTableWatch("checks")
+	case "CheckServiceNodes", "NodeInfo", "NodeDump":
+		return NewMultiWatch(s.getTableWatch("nodes"),
+			s.getTableWatch("services"),
+			s.getTableWatch("checks"))
+	case "SessionGet", "SessionList", "NodeSessions":
+		return s.getTableWatch("sessions")
+	case "ACLGet", "ACLList":
+		return s.getTableWatch("acls")
+	}
+
+	panic(fmt.Sprintf("Unknown method %#s", method))
 }
 
 // GetKVSWatch returns a watch for the given prefix in the key value store.

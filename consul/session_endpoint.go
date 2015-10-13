@@ -112,7 +112,7 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 	return s.srv.blockingRPCNew(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetTableWatch("sessions"),
+		state.GetQueryWatch("SessionGet"),
 		func() error {
 			index, session, err := state.SessionGet(args.Session)
 			if err != nil {
@@ -141,7 +141,7 @@ func (s *Session) List(args *structs.DCSpecificRequest,
 	return s.srv.blockingRPCNew(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetTableWatch("sessions"),
+		state.GetQueryWatch("SessionList"),
 		func() error {
 			index, sessions, err := state.SessionList()
 			if err != nil {
@@ -165,7 +165,7 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 	return s.srv.blockingRPCNew(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetTableWatch("sessions"),
+		state.GetQueryWatch("NodeSessions"),
 		func() error {
 			index, sessions, err := state.NodeSessions(args.Node)
 			if err != nil {

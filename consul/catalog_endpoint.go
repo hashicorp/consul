@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	state_store "github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
@@ -125,7 +124,7 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 	return c.srv.blockingRPCNew(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetTableWatch("nodes"),
+		state.GetQueryWatch("Nodes"),
 		func() error {
 			index, nodes, err := state.Nodes()
 			if err != nil {
@@ -148,7 +147,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 	return c.srv.blockingRPCNew(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetTableWatch("services"),
+		state.GetQueryWatch("Services"),
 		func() error {
 			index, services, err := state.Services()
 			if err != nil {
@@ -176,9 +175,7 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	err := c.srv.blockingRPCNew(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state_store.NewMultiWatch(
-			state.GetTableWatch("nodes"),
-			state.GetTableWatch("services")),
+		state.GetQueryWatch("ServiceNodes"),
 		func() error {
 			var index uint64
 			var services structs.ServiceNodes
@@ -224,9 +221,7 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 	return c.srv.blockingRPCNew(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state_store.NewMultiWatch(
-			state.GetTableWatch("nodes"),
-			state.GetTableWatch("services")),
+		state.GetQueryWatch("NodeServices"),
 		func() error {
 			index, services, err := state.NodeServices(args.Node)
 			if err != nil {

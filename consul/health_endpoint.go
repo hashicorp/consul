@@ -3,7 +3,6 @@ package consul
 import (
 	"fmt"
 	"github.com/armon/go-metrics"
-	state_store "github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
@@ -24,7 +23,7 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 	return h.srv.blockingRPCNew(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetTableWatch("checks"),
+		state.GetQueryWatch("ChecksInState"),
 		func() error {
 			index, checks, err := state.ChecksInState(args.State)
 			if err != nil {
@@ -47,7 +46,7 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 	return h.srv.blockingRPCNew(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetTableWatch("checks"),
+		state.GetQueryWatch("NodeChecks"),
 		func() error {
 			index, checks, err := state.NodeChecks(args.Node)
 			if err != nil {
@@ -76,7 +75,7 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 	return h.srv.blockingRPCNew(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetTableWatch("checks"),
+		state.GetQueryWatch("ServiceChecks"),
 		func() error {
 			index, checks, err := state.ServiceChecks(args.ServiceName)
 			if err != nil {
@@ -103,10 +102,7 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 	err := h.srv.blockingRPCNew(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state_store.NewMultiWatch(
-			state.GetTableWatch("nodes"),
-			state.GetTableWatch("services"),
-			state.GetTableWatch("checks")),
+		state.GetQueryWatch("CheckServiceNodes"),
 		func() error {
 			var index uint64
 			var nodes structs.CheckServiceNodes
