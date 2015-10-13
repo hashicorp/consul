@@ -1949,15 +1949,19 @@ func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 	if err != nil {
 		return fmt.Errorf("failed kvs lookup: %s", err)
 	}
+	var kvs []interface{}
+	for entry := entries.Next(); entry != nil; entry = entries.Next() {
+		kvs = append(kvs, entry)
+	}
 
 	// Invalidate any held locks.
 	switch session.Behavior {
 	case structs.SessionKeysRelease:
-		for entry := entries.Next(); entry != nil; entry = entries.Next() {
+		for _, obj := range kvs {
 			// Note that we clone here since we are modifying the
 			// returned object and want to make sure our set op
 			// respects the transaction we are in.
-			e := entry.(*structs.DirEntry).Clone()
+			e := obj.(*structs.DirEntry).Clone()
 			e.Session = ""
 			if err := s.kvsSetTxn(tx, idx, e, true); err != nil {
 				return fmt.Errorf("failed kvs update: %s", err)
@@ -1969,8 +1973,8 @@ func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 			}
 		}
 	case structs.SessionKeysDelete:
-		for entry := entries.Next(); entry != nil; entry = entries.Next() {
-			e := entry.(*structs.DirEntry)
+		for _, obj := range kvs {
+			e := obj.(*structs.DirEntry)
 			if err := s.kvsDeleteTxn(tx, idx, e.Key); err != nil {
 				return fmt.Errorf("failed kvs delete: %s", err)
 			}
