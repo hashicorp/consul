@@ -438,7 +438,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify key is set
-	d, err := fsm2.state.KVSGet("/test")
+	_, d, err := fsm2.state.KVSGet("/test")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -471,13 +471,17 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify tombstones are restored
-	idx, _, err = fsm2.state.KVSList("/remove")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 12 {
-		t.Fatalf("bad index: %d", idx)
-	}
+	func() {
+		snap := fsm2.state.Snapshot()
+		defer snap.Close()
+		dump, err := snap.TombstoneDump()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if len(dump) != 1 {
+			t.Fatalf("bad: %#v", dump)
+		}
+	}()
 }
 
 func TestFSM_KVSSet(t *testing.T) {
@@ -505,7 +509,7 @@ func TestFSM_KVSSet(t *testing.T) {
 	}
 
 	// Verify key is set
-	d, err := fsm.state.KVSGet("/test/path")
+	_, d, err := fsm.state.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -550,7 +554,7 @@ func TestFSM_KVSDelete(t *testing.T) {
 	}
 
 	// Verify key is not set
-	d, err := fsm.state.KVSGet("/test/path")
+	_, d, err := fsm.state.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -596,7 +600,7 @@ func TestFSM_KVSDeleteTree(t *testing.T) {
 	}
 
 	// Verify key is not set
-	d, err := fsm.state.KVSGet("/test/path")
+	_, d, err := fsm.state.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -630,7 +634,7 @@ func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 	}
 
 	// Verify key is set
-	d, err := fsm.state.KVSGet("/test/path")
+	_, d, err := fsm.state.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -651,7 +655,7 @@ func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 	}
 
 	// Verify key is gone
-	d, err = fsm.state.KVSGet("/test/path")
+	_, d, err = fsm.state.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -685,7 +689,7 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 	}
 
 	// Verify key is set
-	d, err := fsm.state.KVSGet("/test/path")
+	_, d, err := fsm.state.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -707,7 +711,7 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 	}
 
 	// Verify key is updated
-	d, err = fsm.state.KVSGet("/test/path")
+	_, d, err = fsm.state.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -824,7 +828,7 @@ func TestFSM_KVSLock(t *testing.T) {
 	}
 
 	// Verify key is locked
-	d, err := fsm.state.KVSGet("/test/path")
+	_, d, err := fsm.state.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -886,7 +890,7 @@ func TestFSM_KVSUnlock(t *testing.T) {
 	}
 
 	// Verify key is unlocked
-	d, err := fsm.state.KVSGet("/test/path")
+	_, d, err := fsm.state.KVSGet("/test/path")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1009,12 +1013,14 @@ func TestFSM_TombstoneReap(t *testing.T) {
 	}
 
 	// Verify the tombstones are gone
-	idx, _, err = fsm.state.KVSList("/remove")
+	snap := fsm.state.Snapshot()
+	defer snap.Close()
+	dump, err := snap.TombstoneDump()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 0 {
-		t.Fatalf("bad index: %d", idx)
+	if len(dump) != 0 {
+		t.Fatalf("bad: %#v", dump)
 	}
 }
 

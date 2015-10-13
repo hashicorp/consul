@@ -579,39 +579,36 @@ func TestLeader_ReapTombstones(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Snag the pre-delete index that the tombstone should
-	// preserve.
-	state := s1.fsm.State()
-	keyIdx, _, err := state.KVSList("test")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
 	// Delete the KV entry (tombstoned).
 	arg.Op = structs.KVSDelete
 	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Make sure the index advances to reflect the delete, instead of sliding
-	// backwards.
-	idx, _, err := state.KVSList("test")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if idx <= keyIdx {
-		t.Fatalf("tombstone not working: %d <= %d", idx, keyIdx)
-	}
+	// Make sure there's a tombstone.
+	state := s1.fsm.State()
+	func() {
+		snap := state.Snapshot()
+		defer snap.Close()
+		dump, err := snap.TombstoneDump()
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if len(dump) != 1 {
+			t.Fatalf("bad: %#v", dump)
+		}
+	}()
 
 	// Check that the new leader has a pending GC expiration by
-	// watching for the index to slide back.
+	// watching for the tombstone to get removed.
 	testutil.WaitForResult(func() (bool, error) {
-		idx, _, err := state.KVSList("test")
+		snap := state.Snapshot()
+		defer snap.Close()
+		dump, err := snap.TombstoneDump()
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			return false, err
 		}
-		fmt.Printf("%d %d\n", idx, keyIdx)
-		return idx < keyIdx, err
+		return len(dump) == 0, nil
 	}, func(err error) {
 		t.Fatalf("err: %v", err)
 	})

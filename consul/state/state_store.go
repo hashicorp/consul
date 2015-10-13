@@ -1319,31 +1319,34 @@ func (s *StateStore) kvsSetTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntr
 }
 
 // KVSGet is used to retrieve a key/value pair from the state store.
-func (s *StateStore) KVSGet(key string) (*structs.DirEntry, error) {
+func (s *StateStore) KVSGet(key string) (uint64, *structs.DirEntry, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	// Get the table index.
+	idx := maxIndexTxn(tx, "kvs")
+
+	// Retrieve the key.
 	entry, err := tx.First("kvs", "id", key)
 	if err != nil {
-		return nil, fmt.Errorf("failed kvs lookup: %s", err)
+		return 0, nil, fmt.Errorf("failed kvs lookup: %s", err)
 	}
 	if entry != nil {
-		return entry.(*structs.DirEntry), nil
+		return idx, entry.(*structs.DirEntry), nil
 	}
-	return nil, nil
+	return idx, nil, nil
 }
 
-// TODO (slackpad) - We changed the behavior here to return 0 instead of the
-// max index for the cases where they are no matching keys. Need to make sure
-// this is sane. Seems ok from a watch perspective, as we integrate need to see
-// if there are other impacts.
-
 // KVSList is used to list out all keys under a given prefix. If the
-// prefix is left empty, all keys in the KVS will be returned. The
-// returned index is the max index of the returned kvs entries.
+// prefix is left empty, all keys in the KVS will be returned. The returned
+// is the max index of the returned kvs entries or applicable tombstones, or
+// else it's the full table indexes for kvs and tombstones.
 func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+
+	// Get the table indexes.
+	idx := maxIndexTxn(tx, "kvs", "tombstones")
 
 	// Query the prefix and list the available keys
 	entries, err := tx.Get("kvs", "id_prefix", prefix)
@@ -1370,7 +1373,13 @@ func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) 
 	if gindex > lindex {
 		lindex = gindex
 	}
-	return lindex, ents, nil
+
+	// Use the sub index if it was set and there are entries, otherwise use
+	// the full table index from above.
+	if lindex != 0 {
+		idx = lindex
+	}
+	return idx, ents, nil
 }
 
 // KVSListKeys is used to query the KV store for keys matching the given prefix.
@@ -1380,6 +1389,9 @@ func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) 
 func (s *StateStore) KVSListKeys(prefix, sep string) (uint64, []string, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
+
+	// Get the table indexes.
+	idx := maxIndexTxn(tx, "kvs", "tombstones")
 
 	// Fetch keys using the specified prefix
 	entries, err := tx.Get("kvs", "id_prefix", prefix)
@@ -1430,7 +1442,13 @@ func (s *StateStore) KVSListKeys(prefix, sep string) (uint64, []string, error) {
 	if gindex > lindex {
 		lindex = gindex
 	}
-	return lindex, keys, nil
+
+	// Use the sub index if it was set and there are entries, otherwise use
+	// the full table index from above.
+	if lindex != 0 {
+		idx = lindex
+	}
+	return idx, keys, nil
 }
 
 // KVSDelete is used to perform a shallow delete on a single key in the

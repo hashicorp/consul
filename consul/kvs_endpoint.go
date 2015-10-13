@@ -95,7 +95,7 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 		&reply.QueryMeta,
 		state.GetKVSWatch(args.Key),
 		func() error {
-			ent, err := state.KVSGet(args.Key)
+			index, ent, err := state.KVSGet(args.Key)
 			if err != nil {
 				return err
 			}
@@ -105,7 +105,11 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 			if ent == nil {
 				// Must provide non-zero index to prevent blocking
 				// Index 1 is impossible anyways (due to Raft internals)
-				reply.Index = 1
+				if index == 0 {
+					reply.Index = 1
+				} else {
+					reply.Index = index
+				}
 				reply.Entries = nil
 			} else {
 				reply.Index = ent.ModifyIndex
