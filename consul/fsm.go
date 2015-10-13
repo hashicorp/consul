@@ -14,6 +14,8 @@ import (
 	"github.com/hashicorp/raft"
 )
 
+var msgpackHandle = &codec.MsgpackHandle{}
+
 // consulFSM implements a finite state machine that is used
 // along with Raft to provide strong consistency. We implement
 // this outside the Server to avoid exposing this outside the package.

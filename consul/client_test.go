@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -320,13 +321,13 @@ func TestClientServer_UserEvent(t *testing.T) {
 	})
 
 	// Fire the user event
-	client := rpcClient(t, s1)
+	codec := rpcClient(t, s1)
 	event := structs.EventFireRequest{
 		Name:       "foo",
 		Datacenter: "dc1",
 		Payload:    []byte("baz"),
 	}
-	if err := client.Call("Internal.EventFire", &event, nil); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.EventFire", &event, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

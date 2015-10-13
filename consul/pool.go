@@ -11,13 +11,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
 	"github.com/inconshreveable/muxado"
 )
-
-// msgpackHandle is a shared handle for encoding/decoding of RPC messages
-var msgpackHandle = &codec.MsgpackHandle{}
 
 // muxSession is used to provide an interface for either muxado or yamux
 type muxSession interface {
@@ -40,12 +37,12 @@ func (w *muxadoWrapper) Close() error {
 // streamClient is used to wrap a stream with an RPC client
 type StreamClient struct {
 	stream net.Conn
-	client *rpc.Client
+	codec  rpc.ClientCodec
 }
 
 func (sc *StreamClient) Close() {
 	sc.stream.Close()
-	sc.client.Close()
+	sc.codec.Close()
 }
 
 // Conn is a pooled connection to a Consul server
@@ -88,13 +85,12 @@ func (c *Conn) getClient() (*StreamClient, error) {
 	}
 
 	// Create the RPC client
-	cc := codec.GoRpc.ClientCodec(stream, msgpackHandle)
-	client := rpc.NewClientWithCodec(cc)
+	codec := msgpackrpc.NewClientCodec(stream)
 
 	// Return a new stream client
 	sc := &StreamClient{
 		stream: stream,
-		client: client,
+		codec:  codec,
 	}
 	return sc, nil
 }
@@ -390,7 +386,7 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, arg
 	}
 
 	// Make the RPC call
-	err = sc.client.Call(method, args, reply)
+	err = msgpackrpc.CallWithCodec(sc.codec, method, args, reply)
 	if err != nil {
 		sc.Close()
 		p.releaseConn(conn)
