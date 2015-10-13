@@ -297,9 +297,9 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 	return future.Response(), nil
 }
 
-// blockingRPCNew is used for queries that need to wait for a minimum index. This
+// blockingRPC is used for queries that need to wait for a minimum index. This
 // is used to block and wait for changes.
-func (s *Server) blockingRPCNew(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
+func (s *Server) blockingRPC(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
 	watch state.Watch, run func() error) error {
 	var timeout *time.Timer
 	var notifyCh chan struct{}

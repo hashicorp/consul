@@ -39,7 +39,7 @@ func TestACLEndpoint_Apply(t *testing.T) {
 	id := out
 
 	// Verify
-	state := s1.fsm.StateNew()
+	state := s1.fsm.State()
 	s, err := state.ACLGet(out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -180,7 +180,7 @@ func TestACLEndpoint_Apply_CustomID(t *testing.T) {
 	}
 
 	// Verify
-	state := s1.fsm.StateNew()
+	state := s1.fsm.State()
 	s, err := state.ACLGet(out)
 	if err != nil {
 		t.Fatalf("err: %v", err)

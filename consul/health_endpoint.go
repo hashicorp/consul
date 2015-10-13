@@ -19,8 +19,8 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 	}
 
 	// Get the state specific checks
-	state := h.srv.fsm.StateNew()
-	return h.srv.blockingRPCNew(
+	state := h.srv.fsm.State()
+	return h.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("ChecksInState"),
@@ -42,8 +42,8 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 	}
 
 	// Get the node checks
-	state := h.srv.fsm.StateNew()
-	return h.srv.blockingRPCNew(
+	state := h.srv.fsm.State()
+	return h.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("NodeChecks"),
@@ -71,8 +71,8 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 	}
 
 	// Get the service checks
-	state := h.srv.fsm.StateNew()
-	return h.srv.blockingRPCNew(
+	state := h.srv.fsm.State()
+	return h.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("ServiceChecks"),
@@ -98,8 +98,8 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 	}
 
 	// Get the nodes
-	state := h.srv.fsm.StateNew()
-	err := h.srv.blockingRPCNew(
+	state := h.srv.fsm.State()
+	err := h.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("CheckServiceNodes"),

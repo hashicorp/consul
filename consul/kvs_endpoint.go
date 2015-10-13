@@ -50,7 +50,7 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 	// Instead, the lock-delay must be enforced before commit. This means that
 	// only the wall-time of the leader node is used, preventing any inconsistencies.
 	if args.Op == structs.KVSLock {
-		state := k.srv.fsm.StateNew()
+		state := k.srv.fsm.State()
 		expires := state.KVSLockDelay(args.DirEnt.Key)
 		if expires.After(time.Now()) {
 			k.srv.logger.Printf("[WARN] consul.kvs: Rejecting lock of %s due to lock-delay until %v",
@@ -89,8 +89,8 @@ func (k *KVS) Get(args *structs.KeyRequest, reply *structs.IndexedDirEntries) er
 	}
 
 	// Get the local state
-	state := k.srv.fsm.StateNew()
-	return k.srv.blockingRPCNew(
+	state := k.srv.fsm.State()
+	return k.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetKVSWatch(args.Key),
@@ -127,8 +127,8 @@ func (k *KVS) List(args *structs.KeyRequest, reply *structs.IndexedDirEntries) e
 	}
 
 	// Get the local state
-	state := k.srv.fsm.StateNew()
-	return k.srv.blockingRPCNew(
+	state := k.srv.fsm.State()
+	return k.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetKVSWatch(args.Key),
@@ -170,8 +170,8 @@ func (k *KVS) ListKeys(args *structs.KeyListRequest, reply *structs.IndexedKeyLi
 	}
 
 	// Get the local state
-	state := k.srv.fsm.StateNew()
-	return k.srv.blockingRPCNew(
+	state := k.srv.fsm.State()
+	return k.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetKVSWatch(args.Prefix),

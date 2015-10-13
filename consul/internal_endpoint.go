@@ -22,8 +22,8 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 	}
 
 	// Get the node info
-	state := m.srv.fsm.StateNew()
-	return m.srv.blockingRPCNew(
+	state := m.srv.fsm.State()
+	return m.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("NodeInfo"),
@@ -46,8 +46,8 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 	}
 
 	// Get all the node info
-	state := m.srv.fsm.StateNew()
-	return m.srv.blockingRPCNew(
+	state := m.srv.fsm.State()
+	return m.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("NodeDump"),

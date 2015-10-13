@@ -20,7 +20,7 @@ func TestSessionEndpoint_Apply(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Just add a node
-	s1.fsm.StateNew().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 
 	arg := structs.SessionRequest{
 		Datacenter: "dc1",
@@ -37,7 +37,7 @@ func TestSessionEndpoint_Apply(t *testing.T) {
 	id := out
 
 	// Verify
-	state := s1.fsm.StateNew()
+	state := s1.fsm.State()
 	_, s, err := state.SessionGet(out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -79,7 +79,7 @@ func TestSessionEndpoint_DeleteApply(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Just add a node
-	s1.fsm.StateNew().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 
 	arg := structs.SessionRequest{
 		Datacenter: "dc1",
@@ -97,7 +97,7 @@ func TestSessionEndpoint_DeleteApply(t *testing.T) {
 	id := out
 
 	// Verify
-	state := s1.fsm.StateNew()
+	state := s1.fsm.State()
 	_, s, err := state.SessionGet(out)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -141,7 +141,7 @@ func TestSessionEndpoint_Get(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	s1.fsm.StateNew().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	arg := structs.SessionRequest{
 		Datacenter: "dc1",
 		Op:         structs.SessionCreate,
@@ -184,7 +184,7 @@ func TestSessionEndpoint_List(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	s1.fsm.StateNew().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	ids := []string{}
 	for i := 0; i < 5; i++ {
 		arg := structs.SessionRequest{
@@ -235,7 +235,7 @@ func TestSessionEndpoint_ApplyTimers(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	s1.fsm.StateNew().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	arg := structs.SessionRequest{
 		Datacenter: "dc1",
 		Op:         structs.SessionCreate,
@@ -278,7 +278,7 @@ func TestSessionEndpoint_Renew(t *testing.T) {
 	TTL := "10s" // the minimum allowed ttl
 	ttl := 10 * time.Second
 
-	s1.fsm.StateNew().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	ids := []string{}
 	for i := 0; i < 5; i++ {
 		arg := structs.SessionRequest{
@@ -436,8 +436,8 @@ func TestSessionEndpoint_NodeSessions(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	s1.fsm.StateNew().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
-	s1.fsm.StateNew().EnsureNode(1, &structs.Node{Node: "bar", Address: "127.0.0.1"})
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "bar", Address: "127.0.0.1"})
 	ids := []string{}
 	for i := 0; i < 10; i++ {
 		arg := structs.SessionRequest{

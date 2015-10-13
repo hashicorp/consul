@@ -14,7 +14,7 @@ func TestHealthCheckRace(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	state := fsm.StateNew()
+	state := fsm.State()
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",

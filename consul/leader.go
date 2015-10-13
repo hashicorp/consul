@@ -182,7 +182,7 @@ func (s *Server) initializeACL() error {
 	s.aclAuthCache.Purge()
 
 	// Look for the anonymous token
-	state := s.fsm.StateNew()
+	state := s.fsm.State()
 	acl, err := state.ACLGet(anonymousToken)
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
@@ -259,7 +259,7 @@ func (s *Server) reconcile() (err error) {
 // in a critical state that does not correspond to a known Serf member. We generate
 // a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
-	state := s.fsm.StateNew()
+	state := s.fsm.State()
 	_, checks, err := state.ChecksInState(structs.HealthAny)
 	if err != nil {
 		return err
@@ -374,7 +374,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 	}
 
 	// Check if the node exists
-	state := s.fsm.StateNew()
+	state := s.fsm.State()
 	node, err := state.GetNode(member.Name)
 	if err != nil {
 		return fmt.Errorf("failed to lookup node %s: %s", member.Name, err)
@@ -436,7 +436,7 @@ AFTER_CHECK:
 // as being critical, along with all checks as unknown.
 func (s *Server) handleFailedMember(member serf.Member) error {
 	// Check if the node exists
-	state := s.fsm.StateNew()
+	state := s.fsm.State()
 	node, err := state.GetNode(member.Name)
 	if err != nil {
 		return fmt.Errorf("failed to lookup node %s: %s", member.Name, err)
@@ -503,7 +503,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 	}
 
 	// Check if the node does not exist
-	state := s.fsm.StateNew()
+	state := s.fsm.State()
 	node, err := state.GetNode(member.Name)
 	if err != nil {
 		return fmt.Errorf("failed to lookup node %s: %s", member.Name, err)

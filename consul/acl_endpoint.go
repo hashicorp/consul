@@ -60,7 +60,7 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 		// deterministic. Once the entry is in the log, the state update MUST
 		// be deterministic or the followers will not converge.
 		if args.ACL.ID == "" {
-			state := a.srv.fsm.StateNew()
+			state := a.srv.fsm.State()
 			for {
 				args.ACL.ID = generateUUID()
 				acl, err := state.ACLGet(args.ACL.ID)
@@ -120,8 +120,8 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 	}
 
 	// Get the local state
-	state := a.srv.fsm.StateNew()
-	return a.srv.blockingRPCNew(&args.QueryOptions,
+	state := a.srv.fsm.State()
+	return a.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("ACLGet"),
 		func() error {
@@ -191,8 +191,8 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	}
 
 	// Get the local state
-	state := a.srv.fsm.StateNew()
-	return a.srv.blockingRPCNew(&args.QueryOptions,
+	state := a.srv.fsm.State()
+	return a.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("ACLList"),
 		func() error {

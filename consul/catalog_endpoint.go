@@ -120,8 +120,8 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 	}
 
 	// Get the list of nodes.
-	state := c.srv.fsm.StateNew()
-	return c.srv.blockingRPCNew(
+	state := c.srv.fsm.State()
+	return c.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("Nodes"),
@@ -143,8 +143,8 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 	}
 
 	// Get the list of services and their tags.
-	state := c.srv.fsm.StateNew()
-	return c.srv.blockingRPCNew(
+	state := c.srv.fsm.State()
+	return c.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("Services"),
@@ -171,8 +171,8 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 	}
 
 	// Get the nodes
-	state := c.srv.fsm.StateNew()
-	err := c.srv.blockingRPCNew(
+	state := c.srv.fsm.State()
+	err := c.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("ServiceNodes"),
@@ -217,8 +217,8 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 	}
 
 	// Get the node services
-	state := c.srv.fsm.StateNew()
-	return c.srv.blockingRPCNew(
+	state := c.srv.fsm.State()
+	return c.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("NodeServices"),

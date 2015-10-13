@@ -59,7 +59,7 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 	// be deterministic or the followers will not converge.
 	if args.Op == structs.SessionCreate {
 		// Generate a new session ID, verify uniqueness
-		state := s.srv.fsm.StateNew()
+		state := s.srv.fsm.State()
 		for {
 			args.Session.ID = generateUUID()
 			_, sess, err := state.SessionGet(args.Session.ID)
@@ -108,8 +108,8 @@ func (s *Session) Get(args *structs.SessionSpecificRequest,
 	}
 
 	// Get the local state
-	state := s.srv.fsm.StateNew()
-	return s.srv.blockingRPCNew(
+	state := s.srv.fsm.State()
+	return s.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("SessionGet"),
@@ -137,8 +137,8 @@ func (s *Session) List(args *structs.DCSpecificRequest,
 	}
 
 	// Get the local state
-	state := s.srv.fsm.StateNew()
-	return s.srv.blockingRPCNew(
+	state := s.srv.fsm.State()
+	return s.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("SessionList"),
@@ -161,8 +161,8 @@ func (s *Session) NodeSessions(args *structs.NodeSpecificRequest,
 	}
 
 	// Get the local state
-	state := s.srv.fsm.StateNew()
-	return s.srv.blockingRPCNew(
+	state := s.srv.fsm.State()
+	return s.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
 		state.GetQueryWatch("NodeSessions"),
@@ -186,7 +186,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	defer metrics.MeasureSince([]string{"consul", "session", "renew"}, time.Now())
 
 	// Get the session, from local state
-	state := s.srv.fsm.StateNew()
+	state := s.srv.fsm.State()
 	index, session, err := state.SessionGet(args.Session)
 	if err != nil {
 		return err

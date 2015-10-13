@@ -32,7 +32,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Client should be registered
-	state := s1.fsm.StateNew()
+	state := s1.fsm.State()
 	testutil.WaitForResult(func() (bool, error) {
 		node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
@@ -102,7 +102,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	c1.Shutdown()
 
 	// Should be registered
-	state := s1.fsm.StateNew()
+	state := s1.fsm.State()
 	testutil.WaitForResult(func() (bool, error) {
 		node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
@@ -155,7 +155,7 @@ func TestLeader_LeftMember(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	state := s1.fsm.StateNew()
+	state := s1.fsm.State()
 
 	// Should be registered
 	testutil.WaitForResult(func() (bool, error) {
@@ -200,7 +200,7 @@ func TestLeader_ReapMember(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	state := s1.fsm.StateNew()
+	state := s1.fsm.State()
 
 	// Should be registered
 	testutil.WaitForResult(func() (bool, error) {
@@ -267,7 +267,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 	}
 
 	// Node should be gone
-	state := s1.fsm.StateNew()
+	state := s1.fsm.State()
 	node, err := state.GetNode("no-longer-around")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -294,7 +294,7 @@ func TestLeader_Reconcile(t *testing.T) {
 	}
 
 	// Should not be registered
-	state := s1.fsm.StateNew()
+	state := s1.fsm.State()
 	node, err := state.GetNode(c1.config.NodeName)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -431,7 +431,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 	}
 
 	// Verify the old leader is deregistered
-	state := remain.fsm.StateNew()
+	state := remain.fsm.State()
 	testutil.WaitForResult(func() (bool, error) {
 		node, err := state.GetNode(leader.config.NodeName)
 		if err != nil {
@@ -581,7 +581,7 @@ func TestLeader_ReapTombstones(t *testing.T) {
 
 	// Snag the pre-delete index that the tombstone should
 	// preserve.
-	state := s1.fsm.StateNew()
+	state := s1.fsm.State()
 	keyIdx, _, err := state.KVSList("test")
 	if err != nil {
 		t.Fatalf("err: %v", err)
