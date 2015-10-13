@@ -6,7 +6,6 @@
   overflow: hidden;
   width: 100%;
   height: $jumbotron-total-height;
-  margin-top: $negative-hero-margin;
 }
 
 #jumbotron {
@@ -42,7 +41,7 @@
       height: 100%;
       margin-top: $header-height;
       -webkit-backface-visibility:hidden;
-      
+
       .jumbo-logo-wrap{
         margin-top: 135px;
 
