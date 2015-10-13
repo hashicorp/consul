@@ -289,7 +289,7 @@ func (s *StateStore) getTableWatch(table string) Watch {
 		return watch
 	}
 
-	panic(fmt.Sprintf("Unknown watch for table %#s", table))
+	panic(fmt.Sprintf("Unknown watch for table %s", table))
 }
 
 // GetQueryWatch returns a watch for the given query method. This is
@@ -315,7 +315,7 @@ func (s *StateStore) GetQueryWatch(method string) Watch {
 		return s.getTableWatch("acls")
 	}
 
-	panic(fmt.Sprintf("Unknown method %#s", method))
+	panic(fmt.Sprintf("Unknown method %s", method))
 }
 
 // GetKVSWatch returns a watch for the given prefix in the key value store.
