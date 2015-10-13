@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -11,15 +10,10 @@ import (
 
 // Testing for GH-300 and GH-279
 func TestHealthCheckRace(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 	state := fsm.StateNew()
 
 	req := structs.RegisterRequest{

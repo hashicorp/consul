@@ -2,7 +2,6 @@ package consul
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -38,16 +37,10 @@ func makeLog(buf []byte) *raft.Log {
 }
 
 func TestFSM_RegisterNode(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -87,16 +80,10 @@ func TestFSM_RegisterNode(t *testing.T) {
 }
 
 func TestFSM_RegisterNode_Service(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -155,16 +142,10 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 }
 
 func TestFSM_DeregisterService(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -222,16 +203,10 @@ func TestFSM_DeregisterService(t *testing.T) {
 }
 
 func TestFSM_DeregisterCheck(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -289,16 +264,10 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 }
 
 func TestFSM_DeregisterNode(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	req := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -371,16 +340,10 @@ func TestFSM_DeregisterNode(t *testing.T) {
 }
 
 func TestFSM_SnapshotRestore(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	// Add some state
 	fsm.stateNew.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
@@ -433,11 +396,10 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Try to restore on a new FSM
-	fsm2, err := NewFSM(nil, path, os.Stderr)
+	fsm2, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer fsm2.Close()
 
 	// Do a restore
 	if err := fsm2.Restore(sink); err != nil {
@@ -519,16 +481,10 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 }
 
 func TestFSM_KVSSet(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	req := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -559,16 +515,10 @@ func TestFSM_KVSSet(t *testing.T) {
 }
 
 func TestFSM_KVSDelete(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	req := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -610,16 +560,10 @@ func TestFSM_KVSDelete(t *testing.T) {
 }
 
 func TestFSM_KVSDeleteTree(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	req := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -662,16 +606,10 @@ func TestFSM_KVSDeleteTree(t *testing.T) {
 }
 
 func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	req := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -723,16 +661,10 @@ func TestFSM_KVSDeleteCheckAndSet(t *testing.T) {
 }
 
 func TestFSM_KVSCheckAndSet(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	req := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -785,16 +717,10 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 }
 
 func TestFSM_SessionCreate_Destroy(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	fsm.stateNew.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	fsm.stateNew.EnsureCheck(2, &structs.HealthCheck{
@@ -870,16 +796,10 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 }
 
 func TestFSM_KVSLock(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	fsm.stateNew.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
@@ -920,16 +840,10 @@ func TestFSM_KVSLock(t *testing.T) {
 }
 
 func TestFSM_KVSUnlock(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	fsm.stateNew.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	session := &structs.Session{ID: generateUUID(), Node: "foo"}
@@ -988,16 +902,10 @@ func TestFSM_KVSUnlock(t *testing.T) {
 }
 
 func TestFSM_ACL_Set_Delete(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	// Create a new ACL
 	req := structs.ACLRequest{
@@ -1066,16 +974,10 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 }
 
 func TestFSM_TombstoneReap(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	// Create some tombstones
 	fsm.stateNew.KVSSet(11, &structs.DirEntry{
@@ -1117,16 +1019,10 @@ func TestFSM_TombstoneReap(t *testing.T) {
 }
 
 func TestFSM_IgnoreUnknown(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 
 	// Create a new reap request
 	type UnknownRequest struct {

@@ -34,7 +34,6 @@ const (
 	serfLANSnapshot   = "serf/local.snapshot"
 	serfWANSnapshot   = "serf/remote.snapshot"
 	raftState         = "raft/"
-	tmpStatePath      = "tmp/"
 	snapshotsRetained = 2
 
 	// serverRPCCache controls how long we keep an idle connection
@@ -317,18 +316,9 @@ func (s *Server) setupRaft() error {
 		s.config.RaftConfig.EnableSingleNode = true
 	}
 
-	// Create the base state path
-	statePath := filepath.Join(s.config.DataDir, tmpStatePath)
-	if err := os.RemoveAll(statePath); err != nil {
-		return err
-	}
-	if err := ensurePath(statePath, true); err != nil {
-		return err
-	}
-
 	// Create the FSM
 	var err error
-	s.fsm, err = NewFSM(s.tombstoneGC, statePath, s.config.LogOutput)
+	s.fsm, err = NewFSM(s.tombstoneGC, s.config.LogOutput)
 	if err != nil {
 		return err
 	}
@@ -490,11 +480,6 @@ func (s *Server) Shutdown() error {
 
 	// Close the connection pool
 	s.connPool.Shutdown()
-
-	// Close the fsm
-	if s.fsm != nil {
-		s.fsm.Close()
-	}
 
 	return nil
 }

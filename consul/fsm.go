@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"time"
 
@@ -26,7 +25,6 @@ type consulFSM struct {
 	logger    *log.Logger
 	path      string
 	stateNew  *state.StateStore
-	state     *StateStore
 	gc        *state.TombstoneGC
 }
 
@@ -34,7 +32,6 @@ type consulFSM struct {
 // state in a way that can be accessed concurrently with operations
 // that may modify the live state.
 type consulSnapshot struct {
-	state    *StateSnapshot
 	stateNew *state.StateSnapshot
 }
 
@@ -46,21 +43,8 @@ type snapshotHeader struct {
 }
 
 // NewFSMPath is used to construct a new FSM with a blank state
-func NewFSM(gc *state.TombstoneGC, path string, logOutput io.Writer) (*consulFSM, error) {
-	// Create the state store.
+func NewFSM(gc *state.TombstoneGC, logOutput io.Writer) (*consulFSM, error) {
 	stateNew, err := state.NewStateStore(gc)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create a temporary path for the state store
-	tmpPath, err := ioutil.TempDir(path, "state")
-	if err != nil {
-		return nil, err
-	}
-
-	// Create a state store
-	state, err := NewStateStorePath(gc, tmpPath, logOutput)
 	if err != nil {
 		return nil, err
 	}
@@ -68,27 +52,15 @@ func NewFSM(gc *state.TombstoneGC, path string, logOutput io.Writer) (*consulFSM
 	fsm := &consulFSM{
 		logOutput: logOutput,
 		logger:    log.New(logOutput, "", log.LstdFlags),
-		path:      path,
 		stateNew:  stateNew,
-		state:     state,
 		gc:        gc,
 	}
 	return fsm, nil
 }
 
-// Close is used to cleanup resources associated with the FSM
-func (c *consulFSM) Close() error {
-	return c.state.Close()
-}
-
 // StateNew is used to return a handle to the current state
 func (c *consulFSM) StateNew() *state.StateStore {
 	return c.stateNew
-}
-
-// State is used to return a handle to the current state
-func (c *consulFSM) State() *StateStore {
-	return c.state
 }
 
 func (c *consulFSM) Apply(log *raft.Log) interface{} {
@@ -282,30 +254,18 @@ func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
 		c.logger.Printf("[INFO] consul.fsm: snapshot created in %v", time.Now().Sub(start))
 	}(time.Now())
 
-	// Create a new snapshot
-	snap, err := c.state.Snapshot()
-	if err != nil {
-		return nil, err
-	}
-	return &consulSnapshot{snap, c.stateNew.Snapshot()}, nil
+	return &consulSnapshot{c.stateNew.Snapshot()}, nil
 }
 
 func (c *consulFSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
-	// Create a temporary path for the state store
-	tmpPath, err := ioutil.TempDir(c.path, "state")
-	if err != nil {
-		return err
-	}
-
 	// Create a new state store
-	store, err := NewStateStorePath(c.gc, tmpPath, c.logOutput)
+	stateNew, err := state.NewStateStore(c.gc)
 	if err != nil {
 		return err
 	}
-	c.state.Close()
-	c.state = store
+	c.stateNew = stateNew
 
 	// Create a decoder
 	dec := codec.NewDecoder(old, msgpackHandle)
@@ -390,6 +350,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 
 func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 	defer metrics.MeasureSince([]string{"consul", "fsm", "persist"}, time.Now())
+
 	// Register the nodes
 	encoder := codec.NewEncoder(sink, msgpackHandle)
 
@@ -557,6 +518,5 @@ func (s *consulSnapshot) persistTombstones(sink raft.SnapshotSink,
 }
 
 func (s *consulSnapshot) Release() {
-	s.state.Close()
 	s.stateNew.Close()
 }
