@@ -99,11 +99,19 @@ func (g *Graveyard) ReapTxn(tx *memdb.Txn, idx uint64) error {
 		return fmt.Errorf("failed querying tombstones: %s", err)
 	}
 
+	// Find eligible tombstones.
+	var objs []interface{}
 	for stone := stones.Next(); stone != nil; stone = stones.Next() {
 		if stone.(*Tombstone).Index <= idx {
-			if err := tx.Delete("tombstones", stone); err != nil {
-				return fmt.Errorf("failed deleting tombstone: %s", err)
-			}
+			objs = append(objs, stone)
+		}
+	}
+
+	// Delete the tombstones in a separate loop so we don't trash the
+	// iterator.
+	for _, obj := range objs {
+		if err := tx.Delete("tombstones", obj); err != nil {
+			return fmt.Errorf("failed deleting tombstone: %s", err)
 		}
 	}
 	return nil
