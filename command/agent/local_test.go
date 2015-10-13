@@ -127,6 +127,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 
 	// All the services should match
 	for id, serv := range services.NodeServices.Services {
+		serv.CreateIndex, serv.ModifyIndex = 0, 0
 		switch id {
 		case "mysql":
 			if !reflect.DeepEqual(serv, srv1) {
@@ -236,6 +237,7 @@ func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
 
 	// All the services should match
 	for id, serv := range services.NodeServices.Services {
+		serv.CreateIndex, serv.ModifyIndex = 0, 0
 		switch id {
 		case "svc_id1":
 			if serv.ID != "svc_id1" ||
@@ -455,6 +457,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 	// All the services should match
 	for id, serv := range services.NodeServices.Services {
+		serv.CreateIndex, serv.ModifyIndex = 0, 0
 		switch id {
 		case "mysql":
 			t.Fatalf("should not be permitted")
@@ -581,6 +584,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 	// All the checks should match
 	for _, chk := range checks.HealthChecks {
+		chk.CreateIndex, chk.ModifyIndex = 0, 0
 		switch chk.CheckID {
 		case "mysql":
 			if !reflect.DeepEqual(chk, chk1) {
