@@ -264,7 +264,7 @@ func TestStateStore_GetWatches(t *testing.T) {
 	// Make sure requesting a bogus method causes a panic.
 	func() {
 		defer func() {
-			if r:= recover(); r == nil {
+			if r := recover(); r == nil {
 				t.Fatalf("didn't get expected panic")
 			}
 		}()

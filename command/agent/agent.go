@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
 )
@@ -94,7 +95,7 @@ type Agent struct {
 	eventBuf    []*UserEvent
 	eventIndex  int
 	eventLock   sync.RWMutex
-	eventNotify consul.NotifyGroup
+	eventNotify state.NotifyGroup
 
 	shutdown     bool
 	shutdownCh   chan struct{}
