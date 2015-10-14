@@ -200,9 +200,6 @@ func checksTableSchema() *memdb.TableSchema {
 
 // kvsTableSchema returns a new table schema used for storing
 // key/value data from consul's kv store.
-//
-// TODO(ryanuber): I don't *think* we need an id_prefix, since
-// StringFieldIndex implements PrefixIndexer.
 func kvsTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
 		Name: "kvs",
