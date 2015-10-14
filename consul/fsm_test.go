@@ -58,7 +58,7 @@ func TestFSM_RegisterNode(t *testing.T) {
 	}
 
 	// Verify we are registered
-	node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -114,7 +114,7 @@ func TestFSM_RegisterNode_Service(t *testing.T) {
 	}
 
 	// Verify we are registered
-	node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -184,7 +184,7 @@ func TestFSM_DeregisterService(t *testing.T) {
 	}
 
 	// Verify we are registered
-	node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -245,7 +245,7 @@ func TestFSM_DeregisterCheck(t *testing.T) {
 	}
 
 	// Verify we are registered
-	node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -312,7 +312,7 @@ func TestFSM_DeregisterNode(t *testing.T) {
 	}
 
 	// Verify we are not registered
-	node, err := fsm.state.GetNode("foo")
+	_, node, err := fsm.state.GetNode("foo")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -459,7 +459,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 
 	// Verify ACL is restored
-	a, err := fsm2.state.ACLGet(acl.ID)
+	_, a, err := fsm2.state.ACLGet(acl.ID)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -932,7 +932,7 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 
 	// Get the ACL
 	id := resp.(string)
-	acl, err := fsm.state.ACLGet(id)
+	_, acl, err := fsm.state.ACLGet(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -968,7 +968,7 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 		t.Fatalf("resp: %v", resp)
 	}
 
-	acl, err = fsm.state.ACLGet(id)
+	_, acl, err = fsm.state.ACLGet(id)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

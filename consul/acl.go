@@ -52,7 +52,7 @@ type aclCacheEntry struct {
 func (s *Server) aclFault(id string) (string, string, error) {
 	defer metrics.MeasureSince([]string{"consul", "acl", "fault"}, time.Now())
 	state := s.fsm.State()
-	acl, err := state.ACLGet(id)
+	_, acl, err := state.ACLGet(id)
 	if err != nil {
 		return "", "", err
 	}

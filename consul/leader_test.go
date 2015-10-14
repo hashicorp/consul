@@ -34,7 +34,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	// Client should be registered
 	state := s1.fsm.State()
 	testutil.WaitForResult(func() (bool, error) {
-		node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -62,7 +62,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 	}
 
 	// Server should be registered
-	node, err := state.GetNode(s1.config.NodeName)
+	_, node, err := state.GetNode(s1.config.NodeName)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	// Should be registered
 	state := s1.fsm.State()
 	testutil.WaitForResult(func() (bool, error) {
-		node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -159,7 +159,7 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be registered
 	testutil.WaitForResult(func() (bool, error) {
-		node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -174,7 +174,7 @@ func TestLeader_LeftMember(t *testing.T) {
 
 	// Should be deregistered
 	testutil.WaitForResult(func() (bool, error) {
-		node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -204,7 +204,7 @@ func TestLeader_ReapMember(t *testing.T) {
 
 	// Should be registered
 	testutil.WaitForResult(func() (bool, error) {
-		node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -227,7 +227,7 @@ func TestLeader_ReapMember(t *testing.T) {
 
 	// Should be deregistered
 	testutil.WaitForResult(func() (bool, error) {
-		node, err := state.GetNode(c1.config.NodeName)
+		_, node, err := state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -268,7 +268,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 
 	// Node should be gone
 	state := s1.fsm.State()
-	node, err := state.GetNode("no-longer-around")
+	_, node, err := state.GetNode("no-longer-around")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -295,7 +295,7 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should not be registered
 	state := s1.fsm.State()
-	node, err := state.GetNode(c1.config.NodeName)
+	_, node, err := state.GetNode(c1.config.NodeName)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -305,7 +305,7 @@ func TestLeader_Reconcile(t *testing.T) {
 
 	// Should be registered
 	testutil.WaitForResult(func() (bool, error) {
-		node, err = state.GetNode(c1.config.NodeName)
+		_, node, err = state.GetNode(c1.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -433,7 +433,7 @@ func TestLeader_LeftLeader(t *testing.T) {
 	// Verify the old leader is deregistered
 	state := remain.fsm.State()
 	testutil.WaitForResult(func() (bool, error) {
-		node, err := state.GetNode(leader.config.NodeName)
+		_, node, err := state.GetNode(leader.config.NodeName)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}

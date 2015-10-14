@@ -286,6 +286,9 @@ func TestStateStore_GetWatches(t *testing.T) {
 	if w := s.GetQueryWatch("Nodes"); w == nil {
 		t.Fatalf("didn't get a watch")
 	}
+	if w := s.GetQueryWatch("NodeDump"); w == nil {
+		t.Fatalf("didn't get a watch")
+	}
 	if w := s.GetKVSWatch("/dogs"); w == nil {
 		t.Fatalf("didn't get a watch")
 	}
@@ -305,7 +308,7 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 
 	// Retrieve the node and verify its contents.
 	verifyNode := func(created, modified uint64) {
-		out, err := s.GetNode("node1")
+		_, out, err := s.GetNode("node1")
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -479,7 +482,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	s := testStateStore(t)
 
 	// Fetching a non-existent node returns nil
-	if node, err := s.GetNode("node1"); node != nil || err != nil {
+	if _, node, err := s.GetNode("node1"); node != nil || err != nil {
 		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", node, err)
 	}
 
@@ -495,7 +498,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Retrieve the node again
-	out, err := s.GetNode("node1")
+	idx, out, err := s.GetNode("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -509,6 +512,9 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if out.CreateIndex != 1 || out.ModifyIndex != 1 {
 		t.Fatalf("bad node index: %#v", out)
 	}
+	if idx != 1 {
+		t.Fatalf("bad index: %d", idx)
+	}
 
 	// Update the node registration
 	in.Address = "1.1.1.2"
@@ -517,7 +523,7 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	}
 
 	// Retrieve the node
-	out, err = s.GetNode("node1")
+	idx, out, err = s.GetNode("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -526,21 +532,22 @@ func TestStateStore_EnsureNode(t *testing.T) {
 	if out.CreateIndex != 1 || out.ModifyIndex != 2 || out.Address != "1.1.1.2" {
 		t.Fatalf("bad: %#v", out)
 	}
+	if idx != 2 {
+		t.Fatalf("bad index: %d", idx)
+	}
 
 	// Node upsert preserves the create index
 	if err := s.EnsureNode(3, in); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	out, err = s.GetNode("node1")
+	idx, out, err = s.GetNode("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if out.CreateIndex != 1 || out.ModifyIndex != 3 || out.Address != "1.1.1.2" {
 		t.Fatalf("node was modified: %#v", out)
 	}
-
-	// Index tables were updated
-	if idx := s.maxIndex("nodes"); idx != 3 {
+	if idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }
@@ -601,8 +608,8 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	}
 
 	// The node was removed
-	if n, err := s.GetNode("node1"); err != nil || n != nil {
-		t.Fatalf("bad: %#v (err: %#v)", n, err)
+	if idx, n, err := s.GetNode("node1"); err != nil || n != nil || idx != 3 {
+		t.Fatalf("bad: %#v %d (err: %#v)", n, idx, err)
 	}
 
 	// Associated service was removed. Need to query this directly out of
@@ -774,9 +781,7 @@ func TestStateStore_EnsureService(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	// Highest index for the result set was returned
-	if idx != 20 {
+	if idx != 30 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -1011,7 +1016,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 17 {
+	if idx != 19 {
 		t.Fatalf("bad: %v", idx)
 	}
 	if len(nodes) != 1 {
@@ -1058,7 +1063,7 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 17 {
+	if idx != 19 {
 		t.Fatalf("bad: %v", idx)
 	}
 	if len(nodes) != 1 {
@@ -1092,7 +1097,7 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 18 {
+	if idx != 19 {
 		t.Fatalf("bad: %v", idx)
 	}
 	if len(nodes) != 1 {
@@ -1381,7 +1386,7 @@ func TestStateStore_NodeChecks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 3 {
+	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	if len(checks) != 2 || checks[0].CheckID != "check1" || checks[1].CheckID != "check2" {
@@ -1420,7 +1425,7 @@ func TestStateStore_ServiceChecks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 3 {
+	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	if len(checks) != 2 || checks[0].CheckID != "check1" || checks[1].CheckID != "check2" {
@@ -1535,11 +1540,7 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	// Check the index returned matches the result set. The index
-	// should be the highest observed from the result, in this case
-	// this comes from the check registration.
-	if idx != 6 {
+	if idx != 7 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -1863,7 +1864,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 8 {
+	if idx != 9 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	if len(dump) != 1 || !reflect.DeepEqual(dump[0], expect[0]) {
@@ -3973,10 +3974,10 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	s := testStateStore(t)
 
-	// Querying ACL's with no results returns nil
-	res, err := s.ACLGet("nope")
-	if res != nil || err != nil {
-		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", res, err)
+	// Querying ACLs with no results returns nil
+	idx, res, err := s.ACLGet("nope")
+	if idx != 0 || res != nil || err != nil {
+		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
 
 	// Inserting an ACL with empty ID is disallowed
@@ -4006,9 +4007,12 @@ func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	}
 
 	// Retrieve the ACL again
-	result, err := s.ACLGet("acl1")
+	idx, result, err := s.ACLGet("acl1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	if idx != 1 {
+		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Check that the ACL matches the result

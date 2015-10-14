@@ -63,7 +63,7 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 			state := a.srv.fsm.State()
 			for {
 				args.ACL.ID = generateUUID()
-				acl, err := state.ACLGet(args.ACL.ID)
+				_, acl, err := state.ACLGet(args.ACL.ID)
 				if err != nil {
 					a.srv.logger.Printf("[ERR] consul.acl: ACL lookup failed: %v", err)
 					return err
@@ -125,14 +125,18 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 		&reply.QueryMeta,
 		state.GetQueryWatch("ACLGet"),
 		func() error {
-			acl, err := state.ACLGet(args.ACL)
+			index, acl, err := state.ACLGet(args.ACL)
+			if err != nil {
+				return err
+			}
+
+			reply.Index = index
 			if acl != nil {
-				reply.Index = acl.ModifyIndex
 				reply.ACLs = structs.ACLs{acl}
 			} else {
 				reply.ACLs = nil
 			}
-			return err
+			return nil
 		})
 }
 
@@ -196,8 +200,12 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 		&reply.QueryMeta,
 		state.GetQueryWatch("ACLList"),
 		func() error {
-			var err error
-			reply.Index, reply.ACLs, err = state.ACLList()
-			return err
+			index, acls, err := state.ACLList()
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.ACLs = index, acls
+			return nil
 		})
 }

@@ -183,7 +183,7 @@ func (s *Server) initializeACL() error {
 
 	// Look for the anonymous token
 	state := s.fsm.State()
-	acl, err := state.ACLGet(anonymousToken)
+	_, acl, err := state.ACLGet(anonymousToken)
 	if err != nil {
 		return fmt.Errorf("failed to get anonymous token: %v", err)
 	}
@@ -212,7 +212,7 @@ func (s *Server) initializeACL() error {
 	}
 
 	// Look for the master token
-	acl, err = state.ACLGet(master)
+	_, acl, err = state.ACLGet(master)
 	if err != nil {
 		return fmt.Errorf("failed to get master token: %v", err)
 	}
@@ -375,7 +375,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 
 	// Check if the node exists
 	state := s.fsm.State()
-	node, err := state.GetNode(member.Name)
+	_, node, err := state.GetNode(member.Name)
 	if err != nil {
 		return fmt.Errorf("failed to lookup node %s: %s", member.Name, err)
 	}
@@ -437,7 +437,7 @@ AFTER_CHECK:
 func (s *Server) handleFailedMember(member serf.Member) error {
 	// Check if the node exists
 	state := s.fsm.State()
-	node, err := state.GetNode(member.Name)
+	_, node, err := state.GetNode(member.Name)
 	if err != nil {
 		return fmt.Errorf("failed to lookup node %s: %s", member.Name, err)
 	}
@@ -504,7 +504,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 
 	// Check if the node does not exist
 	state := s.fsm.State()
-	node, err := state.GetNode(member.Name)
+	_, node, err := state.GetNode(member.Name)
 	if err != nil {
 		return fmt.Errorf("failed to lookup node %s: %s", member.Name, err)
 	}
