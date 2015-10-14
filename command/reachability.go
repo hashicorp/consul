@@ -39,7 +39,6 @@ Usage: consul reachability [options]
 Options:
 
   -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
-  -rpc-auth=""              RPC auth token of the Consul agent.
   -verbose                  Verbose mode
 `
 	return strings.TrimSpace(helpText)

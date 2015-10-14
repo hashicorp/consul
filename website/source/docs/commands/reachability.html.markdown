@@ -39,9 +39,4 @@ Every option is optional:
   agent. This option can also be controlled using the `CONSUL_RPC_ADDR`
   environment variable.
 
-* `-rpc-auth` - Optional RPC auth token. If the agent is configured to use
-  an auth token, then this must be provided or the agent will refuse the
-  command. This option can also be controlled using the `CONSUL_RPC_AUTH`
-  environment variable.
-
 * `-verbose` - Enables verbose output
