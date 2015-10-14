@@ -11,8 +11,6 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 )
 
-// TODO (slackpad) Make sure the GC tests are complete.
-
 func testStateStore(t *testing.T) *StateStore {
 	s, err := NewStateStore(nil)
 	if err != nil {
@@ -176,6 +174,98 @@ func TestStateStore_indexUpdateMaxTxn(t *testing.T) {
 
 	if max := s.maxIndex("nodes"); max != 3 {
 		t.Fatalf("bad max: %d", max)
+	}
+}
+
+func TestStateStore_GC(t *testing.T) {
+	// Build up a fast GC.
+	ttl := 10 * time.Millisecond
+	gran := 5 * time.Millisecond
+	gc, err := NewTombstoneGC(ttl, gran)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Enable it and attach it to the state store.
+	gc.SetEnabled(true)
+	s, err := NewStateStore(gc)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Create some KV pairs.
+	testSetKey(t, s, 1, "foo", "foo")
+	testSetKey(t, s, 2, "foo/bar", "bar")
+	testSetKey(t, s, 3, "foo/baz", "bar")
+	testSetKey(t, s, 4, "foo/moo", "bar")
+	testSetKey(t, s, 5, "foo/zoo", "bar")
+
+	// Delete a key and make sure the GC sees it.
+	if err := s.KVSDelete(6, "foo/zoo"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	select {
+	case idx := <-gc.ExpireCh():
+		if idx != 6 {
+			t.Fatalf("bad index: %d", idx)
+		}
+	case <-time.After(2 * ttl):
+		t.Fatalf("GC never fired")
+	}
+
+	// Check for the same behavior with a tree delete.
+	if err := s.KVSDeleteTree(7, "foo/moo"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	select {
+	case idx := <-gc.ExpireCh():
+		if idx != 7 {
+			t.Fatalf("bad index: %d", idx)
+		}
+	case <-time.After(2 * ttl):
+		t.Fatalf("GC never fired")
+	}
+
+	// Check for the same behavior with a CAS delete.
+	if ok, err := s.KVSDeleteCAS(8, 3, "foo/baz"); !ok || err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	select {
+	case idx := <-gc.ExpireCh():
+		if idx != 8 {
+			t.Fatalf("bad index: %d", idx)
+		}
+	case <-time.After(2 * ttl):
+		t.Fatalf("GC never fired")
+	}
+
+	// Finally, try it with an expiring session.
+	testRegisterNode(t, s, 9, "node1")
+	session := &structs.Session{
+		ID:       "session1",
+		Node:     "node1",
+		Behavior: structs.SessionKeysDelete,
+	}
+	if err := s.SessionCreate(10, session); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	d := &structs.DirEntry{
+		Key:     "lock",
+		Session:  session.ID,
+	}
+	if ok, err := s.KVSLock(11, d); !ok || err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s.SessionDestroy(12, "session1"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	select {
+	case idx := <-gc.ExpireCh():
+		if idx != 12 {
+			t.Fatalf("bad index: %d", idx)
+		}
+	case <-time.After(2 * ttl):
+		t.Fatalf("GC never fired")
 	}
 }
 
