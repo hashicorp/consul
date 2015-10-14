@@ -63,7 +63,7 @@ func TestStructs_ServiceNode_Clone(t *testing.T) {
 		ServiceTags:    []string{"prod", "v1"},
 		ServiceAddress: "127.0.0.2",
 		ServicePort:    8080,
-		RaftIndex:      RaftIndex{
+		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
 		},
@@ -83,11 +83,11 @@ func TestStructs_ServiceNode_Clone(t *testing.T) {
 func TestStructs_DirEntry_Clone(t *testing.T) {
 	e := &DirEntry{
 		LockIndex: 5,
-		Key: "hello",
-		Flags: 23,
-		Value: []byte("this is a test"),
-		Session: "session1",
-		RaftIndex:      RaftIndex{
+		Key:       "hello",
+		Flags:     23,
+		Value:     []byte("this is a test"),
+		Session:   "session1",
+		RaftIndex: RaftIndex{
 			CreateIndex: 1,
 			ModifyIndex: 2,
 		},

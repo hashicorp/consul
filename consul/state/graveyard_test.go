@@ -103,7 +103,7 @@ func TestGraveyard_Lifecycle(t *testing.T) {
 
 func TestGraveyard_GC_Trigger(t *testing.T) {
 	// Set up a fast-expiring GC.
-	ttl, granularity := 100 * time.Millisecond, 20 * time.Millisecond
+	ttl, granularity := 100*time.Millisecond, 20*time.Millisecond
 	gc, err := NewTombstoneGC(ttl, granularity)
 	if err != nil {
 		t.Fatalf("err: %s", err)
