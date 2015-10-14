@@ -252,6 +252,27 @@ type ServiceNode struct {
 
 	RaftIndex
 }
+
+// Returns a clone of the given service node.
+func (s *ServiceNode) Clone() *ServiceNode {
+	tags := make([]string, len(s.ServiceTags))
+	copy(tags, s.ServiceTags)
+
+	return &ServiceNode{
+		Node: s.Node,
+		Address: s.Address,
+		ServiceID: s.ServiceID,
+		ServiceName: s.ServiceName,
+		ServiceTags: tags,
+		ServiceAddress: s.ServiceAddress,
+		ServicePort: s.ServicePort,
+		RaftIndex: RaftIndex{
+			CreateIndex: s.CreateIndex,
+			ModifyIndex: s.ModifyIndex,
+		},
+	}
+}
+
 type ServiceNodes []*ServiceNode
 
 // NodeService is a service provided by a node

@@ -737,18 +737,18 @@ func serviceTagFilter(sn *structs.ServiceNode, tag string) bool {
 func (s *StateStore) parseServiceNodes(tx *memdb.Txn, services structs.ServiceNodes) (structs.ServiceNodes, error) {
 	var results structs.ServiceNodes
 	for _, sn := range services {
-		// TODO (slackpad) - This is sketchy because we are altering the
-		// structure from the database, but we are hitting a non-indexed
-		// field. Think about this a little and make sure it's really
-		// safe.
+		// Note that we have to clone here because we don't want to
+		// modify the address field on the object in the database,
+		// which is what we are referencing.
+		s := sn.Clone()
 
 		// Fill in the address of the node.
 		n, err := tx.First("nodes", "id", sn.Node)
 		if err != nil {
 			return nil, fmt.Errorf("failed node lookup: %s", err)
 		}
-		sn.Address = n.(*structs.Node).Address
-		results = append(results, sn)
+		s.Address = n.(*structs.Node).Address
+		results = append(results, s)
 	}
 	return results, nil
 }
@@ -1588,9 +1588,6 @@ func (s *StateStore) KVSSetCAS(idx uint64, entry *structs.DirEntry) (bool, error
 	tx.Commit()
 	return true, nil
 }
-
-// TODO (slackpad) Double check the old KV triggering behavior and make
-// sure we are covered here with tests.
 
 // KVSDeleteTree is used to do a recursive delete on a key prefix
 // in the state store. If any keys are modified, the last index is
