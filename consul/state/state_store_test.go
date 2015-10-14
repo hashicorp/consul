@@ -106,48 +106,6 @@ func testSetKey(t *testing.T, s *StateStore, idx uint64, key, value string) {
 	}
 }
 
-// verifyWatch will set up a watch channel, call the given function, and then
-// make sure the watch fires.
-func verifyWatch(t *testing.T, watch Watch, fn func()) {
-	ch := make(chan struct{})
-	watch.Wait(ch)
-
-	done := make(chan struct{})
-	go func() {
-		fn()
-		close(done)
-	}()
-
-	select {
-	case <-ch:
-	case <-done:
-		t.Fatalf("watch was not notified")
-	case <-time.After(1 * time.Second):
-		t.Fatalf("timeout")
-	}
-}
-
-// verifyNoWatch will set up a watch channel, call the given function, and then
-// make sure the watch never fires.
-func verifyNoWatch(t *testing.T, watch Watch, fn func()) {
-	ch := make(chan struct{})
-	watch.Wait(ch)
-
-	done := make(chan struct{})
-	go func() {
-		fn()
-		close(done)
-	}()
-
-	select {
-	case <-ch:
-		t.Fatalf("watch should not have been notified")
-	case <-done:
-	case <-time.After(1 * time.Second):
-		t.Fatalf("timeout")
-	}
-}
-
 func TestStateStore_maxIndex(t *testing.T) {
 	s := testStateStore(t)
 

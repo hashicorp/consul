@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/armon/go-radix"
@@ -42,10 +43,15 @@ func (w *FullTableWatch) Notify() {
 }
 
 // DumbWatchManager is a wrapper that allows nested code to arm full table
-// watches multiple times but fire them only once.
+// watches multiple times but fire them only once. This doesn't have any
+// way to clear the state, and it's not thread-safe, so it should be used once
+// and thrown away inside the context of a single thread.
 type DumbWatchManager struct {
+	// tableWatches holds the full table watches.
 	tableWatches map[string]*FullTableWatch
-	armed        map[string]bool
+
+	// armed tracks whether the table should be notified.
+	armed map[string]bool
 }
 
 // NewDumbWatchManager returns a new dumb watch manager.
@@ -58,6 +64,10 @@ func NewDumbWatchManager(tableWatches map[string]*FullTableWatch) *DumbWatchMana
 
 // Arm arms the given table's watch.
 func (d *DumbWatchManager) Arm(table string) {
+	if _, ok := d.tableWatches[table]; !ok {
+		panic(fmt.Sprintf("unknown table: %s", table))
+	}
+
 	if _, ok := d.armed[table]; !ok {
 		d.armed[table] = true
 	}
@@ -82,7 +92,9 @@ type PrefixWatch struct {
 
 // NewPrefixWatch returns a new prefix watch.
 func NewPrefixWatch() *PrefixWatch {
-	return &PrefixWatch{watches: radix.New()}
+	return &PrefixWatch{
+		watches: radix.New(),
+	}
 }
 
 // GetSubwatch returns the notify group for the given prefix.
@@ -129,16 +141,25 @@ func (w *PrefixWatch) Notify(prefix string, subtree bool) {
 	for i := len(cleanup) - 1; i >= 0; i-- {
 		w.watches.Delete(cleanup[i])
 	}
+
+	// TODO (slackpad) If a watch never fires then we will never clear it
+	// out of the tree. The old state store had the same behavior, so this
+	// has been around for a while. We should probably add a prefix scan
+	// with a function that clears out any notify groups that are empty.
 }
 
 // MultiWatch wraps several watches and allows any of them to trigger the
 // caller.
 type MultiWatch struct {
+	// watches holds the list of subordinate watches to forward events to.
 	watches []Watch
 }
 
+// NewMultiWatch returns a new new multi watch over the given set of watches.
 func NewMultiWatch(watches ...Watch) *MultiWatch {
-	return &MultiWatch{watches: watches}
+	return &MultiWatch{
+		watches: watches,
+	}
 }
 
 // See Watch.
