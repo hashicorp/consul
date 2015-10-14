@@ -642,6 +642,24 @@ func TestStateStore_GetNodes(t *testing.T) {
 	}
 }
 
+func BenchmarkGetNodes(b *testing.B) {
+	s, err := NewStateStore(nil)
+	if err != nil {
+		b.Fatalf("err: %s", err)
+	}
+
+	if err := s.EnsureNode(100, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
+		b.Fatalf("err: %v", err)
+	}
+	if err := s.EnsureNode(101, &structs.Node{Node: "bar", Address: "127.0.0.2"}); err != nil {
+		b.Fatalf("err: %v", err)
+	}
+
+	for i := 0; i < b.N; i++ {
+		s.Nodes()
+	}
+}
+
 func TestStateStore_DeleteNode(t *testing.T) {
 	s := testStateStore(t)
 
@@ -1629,6 +1647,43 @@ func TestStateStore_CheckServiceNodes(t *testing.T) {
 	}
 	if idx != 10 {
 		t.Fatalf("bad index: %d", idx)
+	}
+}
+
+func BenchmarkCheckServiceNodes(b *testing.B) {
+	s, err := NewStateStore(nil)
+	if err != nil {
+		b.Fatalf("err: %s", err)
+	}
+
+	if err := s.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
+		b.Fatalf("err: %v", err)
+	}
+	if err := s.EnsureService(2, "foo", &structs.NodeService{ID: "db1", Service: "db", Tags: []string{"master"}, Address: "", Port: 8000}); err != nil {
+		b.Fatalf("err: %v", err)
+	}
+	check := &structs.HealthCheck{
+		Node:      "foo",
+		CheckID:   "db",
+		Name:      "can connect",
+		Status:    structs.HealthPassing,
+		ServiceID: "db1",
+	}
+	if err := s.EnsureCheck(3, check); err != nil {
+		b.Fatalf("err: %v", err)
+	}
+	check = &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "check1",
+		Name:    "check1",
+		Status:  structs.HealthPassing,
+	}
+	if err := s.EnsureCheck(4, check); err != nil {
+		b.Fatalf("err: %v", err)
+	}
+
+	for i := 0; i < b.N; i++ {
+		s.CheckServiceNodes("db")
 	}
 }
 
