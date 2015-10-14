@@ -209,7 +209,7 @@ func TestStateStore_GC(t *testing.T) {
 	}
 	d := &structs.DirEntry{
 		Key:     "lock",
-		Session:  session.ID,
+		Session: session.ID,
 	}
 	if ok, err := s.KVSLock(11, d); !ok || err != nil {
 		t.Fatalf("err: %v", err)

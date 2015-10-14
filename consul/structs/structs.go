@@ -259,13 +259,13 @@ func (s *ServiceNode) Clone() *ServiceNode {
 	copy(tags, s.ServiceTags)
 
 	return &ServiceNode{
-		Node: s.Node,
-		Address: s.Address,
-		ServiceID: s.ServiceID,
-		ServiceName: s.ServiceName,
-		ServiceTags: tags,
+		Node:           s.Node,
+		Address:        s.Address,
+		ServiceID:      s.ServiceID,
+		ServiceName:    s.ServiceName,
+		ServiceTags:    tags,
 		ServiceAddress: s.ServiceAddress,
-		ServicePort: s.ServicePort,
+		ServicePort:    s.ServicePort,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,

@@ -211,14 +211,14 @@ func TestWatch_PrefixWatch(t *testing.T) {
 }
 
 type MockWatch struct {
-	Waits map[chan struct{}] int
-	Clears map[chan struct{}] int
+	Waits  map[chan struct{}]int
+	Clears map[chan struct{}]int
 }
 
 func NewMockWatch() *MockWatch {
 	return &MockWatch{
-		Waits:  make(map[chan struct{}] int),
-		Clears: make(map[chan struct{}] int),
+		Waits:  make(map[chan struct{}]int),
+		Clears: make(map[chan struct{}]int),
 	}
 }
 
