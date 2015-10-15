@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -28,8 +29,7 @@ func TestLeader_RegisterMember(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	client := rpcClient(t, s1)
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Client should be registered
 	state := s1.fsm.State()
@@ -77,8 +77,7 @@ func TestLeader_FailedMember(t *testing.T) {
 	defer os.RemoveAll(dir2)
 	defer c1.Shutdown()
 
-	client := rpcClient(t, s1)
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Try to join
 	addr := fmt.Sprintf("127.0.0.1:%d",
@@ -212,8 +211,7 @@ func TestLeader_Reconcile_ReapMember(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	client := rpcClient(t, s1)
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Register a non-existing member
 	dead := structs.RegisterRequest{
@@ -520,9 +518,9 @@ func TestLeader_ReapTombstones(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
 
-	client := rpcClient(t, s1)
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a KV entry
 	arg := structs.KVSRequest{
@@ -534,13 +532,13 @@ func TestLeader_ReapTombstones(t *testing.T) {
 		},
 	}
 	var out bool
-	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Delete the KV entry (tombstoned)
 	arg.Op = structs.KVSDelete
-	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

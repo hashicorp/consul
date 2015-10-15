@@ -18,7 +18,7 @@ func TestACL_Disabled(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	acl, err := s1.resolveToken("does not exist")
 	if err != nil {
@@ -62,7 +62,7 @@ func TestACL_Authority_NotFound(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	acl, err := s1.resolveToken("does not exist")
 	if err == nil || err.Error() != aclNotFound {
@@ -83,7 +83,7 @@ func TestACL_Authority_Found(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -97,7 +97,7 @@ func TestACL_Authority_Found(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -128,7 +128,7 @@ func TestACL_Authority_Anonymous_Found(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Resolve the token
 	acl, err := s1.resolveToken("")
@@ -155,7 +155,7 @@ func TestACL_Authority_Master_Found(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Resolve the token
 	acl, err := s1.resolveToken("foobar")
@@ -183,7 +183,7 @@ func TestACL_Authority_Management(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Resolve the token
 	acl, err := s1.resolveToken("foobar")
@@ -230,7 +230,7 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 
 	client := rpcClient(t, s1)
 	defer client.Close()
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// find the non-authoritative server
 	var nonAuth *Server
@@ -279,7 +279,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -293,7 +293,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -355,7 +355,7 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// find the non-authoritative server
 	var nonAuth *Server
@@ -412,7 +412,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -426,7 +426,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -486,7 +486,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -500,7 +500,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -562,7 +562,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -576,7 +576,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -637,8 +637,8 @@ func TestACL_MultiDC_Found(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
-	testutil.WaitForLeader(t, client.Call, "dc2")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc2")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -652,7 +652,7 @@ func TestACL_MultiDC_Found(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 

@@ -11,7 +11,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
 	"github.com/inconshreveable/muxado"
 )
@@ -158,7 +158,7 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 // handleConsulConn is used to service a single Consul RPC connection
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
-	rpcCodec := codec.GoRpc.ServerCodec(conn, msgpackHandle)
+	rpcCodec := msgpackrpc.NewServerCodec(conn)
 	for {
 		select {
 		case <-s.shutdownCh:

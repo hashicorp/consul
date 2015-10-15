@@ -1,20 +1,22 @@
 package consul
 
 import (
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
 	"os"
 	"testing"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 func TestHealth_ChecksInState(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -26,7 +28,7 @@ func TestHealth_ChecksInState(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -35,7 +37,7 @@ func TestHealth_ChecksInState(t *testing.T) {
 		Datacenter: "dc1",
 		State:      structs.HealthPassing,
 	}
-	if err := client.Call("Health.ChecksInState", &inState, &out2); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &inState, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -57,10 +59,10 @@ func TestHealth_NodeChecks(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -72,7 +74,7 @@ func TestHealth_NodeChecks(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -81,7 +83,7 @@ func TestHealth_NodeChecks(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       "foo",
 	}
-	if err := client.Call("Health.NodeChecks", &node, &out2); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &node, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -98,10 +100,10 @@ func TestHealth_ServiceChecks(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -118,7 +120,7 @@ func TestHealth_ServiceChecks(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -127,7 +129,7 @@ func TestHealth_ServiceChecks(t *testing.T) {
 		Datacenter:  "dc1",
 		ServiceName: "db",
 	}
-	if err := client.Call("Health.ServiceChecks", &node, &out2); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &node, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -144,10 +146,10 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -165,7 +167,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -184,7 +186,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 			ServiceID: "db",
 		},
 	}
-	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -195,7 +197,7 @@ func TestHealth_ServiceNodes(t *testing.T) {
 		ServiceTag:  "master",
 		TagFilter:   false,
 	}
-	if err := client.Call("Health.ServiceNodes", &req, &out2); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &req, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -224,10 +226,10 @@ func TestHealth_ServiceNodes(t *testing.T) {
 }
 
 func TestHealth_NodeChecks_FilterACL(t *testing.T) {
-	dir, token, srv, client := testACLFilterServer(t)
+	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
-	defer client.Close()
+	defer codec.Close()
 
 	opt := structs.NodeSpecificRequest{
 		Datacenter:   "dc1",
@@ -235,7 +237,7 @@ func TestHealth_NodeChecks_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedHealthChecks{}
-	if err := client.Call("Health.NodeChecks", &opt, &reply); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &opt, &reply); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	found := false
@@ -253,10 +255,10 @@ func TestHealth_NodeChecks_FilterACL(t *testing.T) {
 }
 
 func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
-	dir, token, srv, client := testACLFilterServer(t)
+	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
-	defer client.Close()
+	defer codec.Close()
 
 	opt := structs.ServiceSpecificRequest{
 		Datacenter:   "dc1",
@@ -264,7 +266,7 @@ func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedHealthChecks{}
-	if err := client.Call("Health.ServiceChecks", &opt, &reply); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &opt, &reply); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	found := false
@@ -280,7 +282,7 @@ func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
 
 	opt.ServiceName = "bar"
 	reply = structs.IndexedHealthChecks{}
-	if err := client.Call("Health.ServiceChecks", &opt, &reply); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceChecks", &opt, &reply); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if len(reply.HealthChecks) != 0 {
@@ -289,10 +291,10 @@ func TestHealth_ServiceChecks_FilterACL(t *testing.T) {
 }
 
 func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
-	dir, token, srv, client := testACLFilterServer(t)
+	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
-	defer client.Close()
+	defer codec.Close()
 
 	opt := structs.ServiceSpecificRequest{
 		Datacenter:   "dc1",
@@ -300,7 +302,7 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedCheckServiceNodes{}
-	if err := client.Call("Health.ServiceNodes", &opt, &reply); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &opt, &reply); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if len(reply.Nodes) != 1 {
@@ -309,7 +311,7 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 
 	opt.ServiceName = "bar"
 	reply = structs.IndexedCheckServiceNodes{}
-	if err := client.Call("Health.ServiceNodes", &opt, &reply); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Health.ServiceNodes", &opt, &reply); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if len(reply.Nodes) != 0 {
@@ -318,10 +320,10 @@ func TestHealth_ServiceNodes_FilterACL(t *testing.T) {
 }
 
 func TestHealth_ChecksInState_FilterACL(t *testing.T) {
-	dir, token, srv, client := testACLFilterServer(t)
+	dir, token, srv, codec := testACLFilterServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
-	defer client.Close()
+	defer codec.Close()
 
 	opt := structs.ChecksInStateRequest{
 		Datacenter:   "dc1",
@@ -329,7 +331,7 @@ func TestHealth_ChecksInState_FilterACL(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: token},
 	}
 	reply := structs.IndexedHealthChecks{}
-	if err := client.Call("Health.ChecksInState", &opt, &reply); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Health.ChecksInState", &opt, &reply); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

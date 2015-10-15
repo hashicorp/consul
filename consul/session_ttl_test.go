@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 func TestInitializeSessionTimers(t *testing.T) {
@@ -310,8 +311,8 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 		t.Fatalf("Should have a leader")
 	}
 
-	client := rpcClient(t, leader)
-	defer client.Close()
+	codec := rpcClient(t, leader)
+	defer codec.Close()
 
 	// Register a node
 	node := structs.RegisterRequest{
@@ -334,7 +335,7 @@ func TestServer_SessionTTL_Failover(t *testing.T) {
 		},
 	}
 	var id1 string
-	if err := client.Call("Session.Apply", &arg, &id1); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &id1); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
