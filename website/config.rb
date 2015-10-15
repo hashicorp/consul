@@ -10,6 +10,7 @@ activate :hashicorp do |h|
   h.bintray_repo    = "mitchellh/consul"
   h.bintray_user    = "mitchellh"
   h.bintray_key     = ENV["BINTRAY_API_KEY"]
+  h.github_slug     = "hashicorp/consul"
 
   # Do not include the "web" in the default list of packages
   h.bintray_exclude_proc = Proc.new do |os, filename|

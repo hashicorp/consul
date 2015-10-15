@@ -11,12 +11,7 @@ If you find a typo or you feel like you can improve the HTML, CSS, or JavaScript
 Running the Site Locally
 ------------------------
 
-Running the site locally is simple. Clone this repo and run the following commands:
-
-```
-$ bundle
-$ bundle exec middleman server
-```
+Running the site locally is simple. Clone this repo and run `make dev`.
 
 Then open up `localhost:4567`. Note that some URLs you may need to append ".html" to make them work (in the navigation and such).
 
