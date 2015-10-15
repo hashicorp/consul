@@ -249,8 +249,8 @@ func TestCatalogListDatacenters_DistanceSort(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
 	dir2, s2 := testServerDC(t, "dc2")
 	defer os.RemoveAll(dir2)
@@ -269,10 +269,10 @@ func TestCatalogListDatacenters_DistanceSort(t *testing.T) {
 	if _, err := s3.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	var out []string
-	if err := client.Call("Catalog.ListDatacenters", struct{}{}, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListDatacenters", struct{}{}, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -508,10 +508,10 @@ func TestCatalogListNodes_DistanceSort(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 	if err := s1.fsm.State().EnsureNode(1, structs.Node{"aaa", "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -542,7 +542,7 @@ func TestCatalogListNodes_DistanceSort(t *testing.T) {
 	}
 	var out structs.IndexedNodes
 	testutil.WaitForResult(func() (bool, error) {
-		client.Call("Catalog.ListNodes", &args, &out)
+		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
 		return len(out.Nodes) == 5, nil
 	}, func(err error) {
 		t.Fatalf("err: %v", err)
@@ -570,7 +570,7 @@ func TestCatalogListNodes_DistanceSort(t *testing.T) {
 		Source:     structs.QuerySource{Datacenter: "dc1", Node: "foo"},
 	}
 	testutil.WaitForResult(func() (bool, error) {
-		client.Call("Catalog.ListNodes", &args, &out)
+		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
 		return len(out.Nodes) == 5, nil
 	}, func(err error) {
 		t.Fatalf("err: %v", err)
@@ -854,30 +854,30 @@ func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
 	args := structs.ServiceSpecificRequest{
 		Datacenter:  "dc1",
 		ServiceName: "db",
 	}
 	var out structs.IndexedServiceNodes
-	err := client.Call("Catalog.ServiceNodes", &args, &out)
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out)
 	if err == nil || err.Error() != "No cluster leader" {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Add a few nodes for the associated services.
 	s1.fsm.State().EnsureNode(1, structs.Node{"aaa", "127.0.0.1"})
-	s1.fsm.State().EnsureService(2, "aaa", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.1", 5000})
+	s1.fsm.State().EnsureService(2, "aaa", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.1", 5000, false})
 	s1.fsm.State().EnsureNode(3, structs.Node{"foo", "127.0.0.2"})
-	s1.fsm.State().EnsureService(4, "foo", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.2", 5000})
+	s1.fsm.State().EnsureService(4, "foo", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.2", 5000, false})
 	s1.fsm.State().EnsureNode(5, structs.Node{"bar", "127.0.0.3"})
-	s1.fsm.State().EnsureService(6, "bar", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.3", 5000})
+	s1.fsm.State().EnsureService(6, "bar", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.3", 5000, false})
 	s1.fsm.State().EnsureNode(7, structs.Node{"baz", "127.0.0.4"})
-	s1.fsm.State().EnsureService(8, "baz", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.4", 5000})
+	s1.fsm.State().EnsureService(8, "baz", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.4", 5000, false})
 
 	// Set all but one of the nodes to known coordinates.
 	updates := []structs.Coordinate{
@@ -891,7 +891,7 @@ func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
 
 	// Query with no given source node, should get the natural order from
 	// the index.
-	if err := client.Call("Catalog.ServiceNodes", &args, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if len(out.ServiceNodes) != 4 {
@@ -917,7 +917,7 @@ func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
 		ServiceName: "db",
 		Source:      structs.QuerySource{Datacenter: "dc1", Node: "foo"},
 	}
-	if err := client.Call("Catalog.ServiceNodes", &args, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if len(out.ServiceNodes) != 4 {

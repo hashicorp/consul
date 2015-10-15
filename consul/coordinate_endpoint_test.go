@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -52,9 +53,9 @@ func TestCoordinate_Update(t *testing.T) {
 	}
 	defer s1.Shutdown()
 
-	client := rpcClient(t, s1)
-	defer client.Close()
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Send an update for the first node.
 	arg1 := structs.CoordinateUpdateRequest{
@@ -63,7 +64,7 @@ func TestCoordinate_Update(t *testing.T) {
 		Coord:      generateRandomCoordinate(),
 	}
 	var out struct{}
-	if err := client.Call("Coordinate.Update", &arg1, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg1, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -73,7 +74,7 @@ func TestCoordinate_Update(t *testing.T) {
 		Node:       "node2",
 		Coord:      generateRandomCoordinate(),
 	}
-	if err := client.Call("Coordinate.Update", &arg2, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg2, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -121,7 +122,7 @@ func TestCoordinate_Update(t *testing.T) {
 	for i := 0; i < spamLen; i++ {
 		arg1.Node = fmt.Sprintf("bogusnode%d", i)
 		arg1.Coord = generateRandomCoordinate()
-		if err := client.Call("Coordinate.Update", &arg1, &out); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg1, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -146,7 +147,7 @@ func TestCoordinate_Update(t *testing.T) {
 	// Finally, send a coordinate with the wrong dimensionality to make sure
 	// there are no panics, and that it gets rejected.
 	arg2.Coord.Vec = make([]float64, 2*len(arg2.Coord.Vec))
-	err = client.Call("Coordinate.Update", &arg2, &out)
+	err = msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg2, &out)
 	if err == nil || !strings.Contains(err.Error(), "rejected bad coordinate") {
 		t.Fatalf("should have failed with an error, got %v", err)
 	}
@@ -157,9 +158,9 @@ func TestCoordinate_Get(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	client := rpcClient(t, s1)
-	defer client.Close()
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.CoordinateUpdateRequest{
 		Datacenter: "dc1",
@@ -170,7 +171,7 @@ func TestCoordinate_Get(t *testing.T) {
 	// Send an initial update, waiting a little while for the batch update
 	// to run.
 	var out struct{}
-	if err := client.Call("Coordinate.Update", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
@@ -181,20 +182,20 @@ func TestCoordinate_Get(t *testing.T) {
 		Node:       "node1",
 	}
 	coord := structs.IndexedCoordinate{}
-	if err := client.Call("Coordinate.Get", &arg2, &coord); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Get", &arg2, &coord); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	verifyCoordinatesEqual(t, coord.Coord, arg.Coord)
 
 	// Send another coordinate update, waiting after for the flush.
 	arg.Coord = generateRandomCoordinate()
-	if err := client.Call("Coordinate.Update", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
 
 	// Now re-query and make sure the results are fresh.
-	if err := client.Call("Coordinate.Get", &arg2, &coord); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Get", &arg2, &coord); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	verifyCoordinatesEqual(t, coord.Coord, arg.Coord)
@@ -204,17 +205,17 @@ func TestCoordinate_ListDatacenters(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// It's super hard to force the Serfs into a known configuration of
 	// coordinates, so the best we can do is make sure our own DC shows
 	// up in the list with the proper coordinates. The guts of the algorithm
 	// are extensively tested in rtt_test.go using a mock database.
 	var out []structs.DatacenterMap
-	if err := client.Call("Coordinate.ListDatacenters", struct{}{}, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.ListDatacenters", struct{}{}, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if len(out) != 1 ||
@@ -235,9 +236,9 @@ func TestCoordinate_ListNodes(t *testing.T) {
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
 
-	client := rpcClient(t, s1)
-	defer client.Close()
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Send coordinate updates for a few nodes, waiting a little while for
 	// the batch update to run.
@@ -247,7 +248,7 @@ func TestCoordinate_ListNodes(t *testing.T) {
 		Coord:      generateRandomCoordinate(),
 	}
 	var out struct{}
-	if err := client.Call("Coordinate.Update", &arg1, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg1, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -256,7 +257,7 @@ func TestCoordinate_ListNodes(t *testing.T) {
 		Node:       "bar",
 		Coord:      generateRandomCoordinate(),
 	}
-	if err := client.Call("Coordinate.Update", &arg2, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg2, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -265,7 +266,7 @@ func TestCoordinate_ListNodes(t *testing.T) {
 		Node:       "baz",
 		Coord:      generateRandomCoordinate(),
 	}
-	if err := client.Call("Coordinate.Update", &arg3, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg3, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
@@ -275,7 +276,7 @@ func TestCoordinate_ListNodes(t *testing.T) {
 		Datacenter: "dc1",
 	}
 	resp := structs.IndexedCoordinates{}
-	if err := client.Call("Coordinate.ListNodes", &arg, &resp); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.ListNodes", &arg, &resp); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if len(resp.Coordinates) != 3 ||

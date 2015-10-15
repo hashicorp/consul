@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -84,7 +85,7 @@ func verifyCheckServiceNodeSort(t *testing.T, nodes structs.CheckServiceNodes, e
 //   |     |     |     |     |     |     |     |     |     |     |
 //   0     1     2     3     4     5     6     7     8     9     10  (ms)
 //
-func seedCoordinates(t *testing.T, client *rpc.Client, server *Server) {
+func seedCoordinates(t *testing.T, codec rpc.ClientCodec, server *Server) {
 	updates := []structs.CoordinateUpdateRequest{
 		structs.CoordinateUpdateRequest{
 			Datacenter: "dc1",
@@ -117,7 +118,7 @@ func seedCoordinates(t *testing.T, client *rpc.Client, server *Server) {
 	// the Raft log.
 	for _, update := range updates {
 		var out struct{}
-		if err := client.Call("Coordinate.Update", &update, &out); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &update, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -129,11 +130,11 @@ func TestRtt_sortNodesByDistanceFrom(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
 
-	client := rpcClient(t, server)
-	defer client.Close()
-	testutil.WaitForLeader(t, client.Call, "dc1")
-	seedCoordinates(t, client, server)
+	codec := rpcClient(t, server)
+	defer codec.Close()
+	testutil.WaitForLeader(t, server.RPC, "dc1")
 
+	seedCoordinates(t, codec, server)
 	nodes := structs.Nodes{
 		structs.Node{Node: "apple"},
 		structs.Node{Node: "node1"},
@@ -190,11 +191,11 @@ func TestRtt_sortNodesByDistanceFrom_Nodes(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
 
-	client := rpcClient(t, server)
-	defer client.Close()
-	testutil.WaitForLeader(t, client.Call, "dc1")
-	seedCoordinates(t, client, server)
+	codec := rpcClient(t, server)
+	defer codec.Close()
+	testutil.WaitForLeader(t, server.RPC, "dc1")
 
+	seedCoordinates(t, codec, server)
 	nodes := structs.Nodes{
 		structs.Node{Node: "apple"},
 		structs.Node{Node: "node1"},
@@ -239,11 +240,11 @@ func TestRtt_sortNodesByDistanceFrom_ServiceNodes(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
 
-	client := rpcClient(t, server)
-	defer client.Close()
-	testutil.WaitForLeader(t, client.Call, "dc1")
-	seedCoordinates(t, client, server)
+	codec := rpcClient(t, server)
+	defer codec.Close()
+	testutil.WaitForLeader(t, server.RPC, "dc1")
 
+	seedCoordinates(t, codec, server)
 	nodes := structs.ServiceNodes{
 		structs.ServiceNode{Node: "apple"},
 		structs.ServiceNode{Node: "node1"},
@@ -288,11 +289,11 @@ func TestRtt_sortNodesByDistanceFrom_HealthChecks(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
 
-	client := rpcClient(t, server)
-	defer client.Close()
-	testutil.WaitForLeader(t, client.Call, "dc1")
-	seedCoordinates(t, client, server)
+	codec := rpcClient(t, server)
+	defer codec.Close()
+	testutil.WaitForLeader(t, server.RPC, "dc1")
 
+	seedCoordinates(t, codec, server)
 	checks := structs.HealthChecks{
 		&structs.HealthCheck{Node: "apple"},
 		&structs.HealthCheck{Node: "node1"},
@@ -337,11 +338,11 @@ func TestRtt_sortNodesByDistanceFrom_CheckServiceNodes(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
 
-	client := rpcClient(t, server)
-	defer client.Close()
-	testutil.WaitForLeader(t, client.Call, "dc1")
-	seedCoordinates(t, client, server)
+	codec := rpcClient(t, server)
+	defer codec.Close()
+	testutil.WaitForLeader(t, server.RPC, "dc1")
 
+	seedCoordinates(t, codec, server)
 	nodes := structs.CheckServiceNodes{
 		structs.CheckServiceNode{Node: structs.Node{Node: "apple"}},
 		structs.CheckServiceNode{Node: structs.Node{Node: "node1"}},
