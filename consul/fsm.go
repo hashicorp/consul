@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/raft"
 )
 
+// msgpackHandle is a shared handle for encoding/decoding msgpack payloads
 var msgpackHandle = &codec.MsgpackHandle{}
 
 // consulFSM implements a finite state machine that is used
