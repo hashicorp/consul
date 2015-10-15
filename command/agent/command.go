@@ -168,8 +168,9 @@ func (c *Command) readConfig() *Config {
 	// server. Consul refuses to start if this is present to protect a server
 	// with existing data from starting on a fresh data set.
 	if config.Server {
-		if err := checkDataFormat(config.DataDir); err != nil {
-			c.Ui.Error(fmt.Sprintf("CRITICAL: %v", err))
+		mdbPath := filepath.Join(config.DataDir, "mdb")
+		if _, err := os.Stat(mdbPath); !os.IsNotExist(err) {
+			c.Ui.Error(fmt.Sprintf("CRITICAL: Deprecated data folder found at %q!", mdbPath))
 			c.Ui.Error("Consul will refuse to boot with this directory present.")
 			c.Ui.Error("See https://consul.io/docs/upgrade-specific.html for more information.")
 			return nil
@@ -864,17 +865,6 @@ func (c *Command) handleReload(config *Config) *Config {
 	}
 
 	return newConf
-}
-
-// checkDataFormat checks the Consul data directory for the deprecated "mdb"
-// folder. If it exists, Consul will fail to boot, avoiding situations where
-// non-migrated servers start with a fresh data set.
-func checkDataFormat(dataDir string) error {
-	mdbPath := filepath.Join(dataDir, "mdb")
-	if _, err := os.Stat(mdbPath); !os.IsNotExist(err) {
-		return fmt.Errorf("Deprecated data folder found at %q!", mdbPath)
-	}
-	return nil
 }
 
 // startScadaClient is used to start a new SCADA provider and listener,
