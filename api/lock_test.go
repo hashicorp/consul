@@ -57,7 +57,7 @@ func TestLock_LockUnlock(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Should loose leadership
+	// Should lose leadership
 	select {
 	case <-leaderCh:
 	case <-time.After(time.Second):
