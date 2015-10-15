@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul-migrate/migrator"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-syslog"
@@ -163,6 +162,19 @@ func (c *Command) readConfig() *Config {
 	if config.DataDir == "" {
 		c.Ui.Error("Must specify data directory using -data-dir")
 		return nil
+	}
+
+	// Check the data dir for signs of an un-migrated Consul 0.5.x or older
+	// server. Consul refuses to start if this is present to protect a server
+	// with existing data from starting on a fresh data set.
+	if config.Server {
+		mdbPath := filepath.Join(config.DataDir, "mdb")
+		if _, err := os.Stat(mdbPath); !os.IsNotExist(err) {
+			c.Ui.Error(fmt.Sprintf("CRITICAL: Deprecated data folder found at %q!", mdbPath))
+			c.Ui.Error("Consul will refuse to boot with this directory present.")
+			c.Ui.Error("See https://consul.io/docs/upgrade-specific.html for more information.")
+			return nil
+		}
 	}
 
 	if config.EncryptKey != "" {
@@ -601,72 +613,6 @@ func (c *Command) Run(args []string) int {
 		metrics.NewGlobal(metricsConf, inm)
 	}
 
-	// If we are starting a consul 0.5.1+ server for the first time,
-	// and we have data from a previous Consul version, attempt to
-	// migrate the data from LMDB to BoltDB using the migrator utility.
-	if config.Server {
-		// If the data dir doesn't exist yet (first start), then don't
-		// attempt to migrate.
-		if _, err := os.Stat(config.DataDir); os.IsNotExist(err) {
-			goto AFTER_MIGRATE
-		}
-
-		m, err := migrator.New(config.DataDir)
-		if err != nil {
-			c.Ui.Error(err.Error())
-			return 1
-		}
-
-		// Handle progress info from the migrator utility. This will
-		// just dump out the current operation and progress every ~5
-		// percent progress.
-		doneCh := make(chan struct{})
-		go func() {
-			var lastOp string
-			var lastProgress float64
-			lastFlush := time.Now()
-			for {
-				select {
-				case update := <-m.ProgressCh:
-					switch {
-					case lastOp != update.Op:
-						lastProgress = update.Progress
-						lastOp = update.Op
-						c.Ui.Output(update.Op)
-						c.Ui.Info(fmt.Sprintf("%.2f%%", update.Progress))
-
-					case update.Progress-lastProgress >= 5:
-						fallthrough
-
-					case time.Now().Sub(lastFlush) > time.Second:
-						fallthrough
-
-					case update.Progress == 100:
-						lastFlush = time.Now()
-						lastProgress = update.Progress
-						c.Ui.Info(fmt.Sprintf("%.2f%%", update.Progress))
-					}
-				case <-doneCh:
-					return
-				}
-			}
-		}()
-
-		c.Ui.Output("Starting raft data migration...")
-		start := time.Now()
-		migrated, err := m.Migrate()
-		close(doneCh)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to migrate raft data: %s", err))
-			return 1
-		}
-		if migrated {
-			duration := time.Now().Sub(start)
-			c.Ui.Output(fmt.Sprintf("Successfully migrated raft data in %s", duration))
-		}
-	}
-
-AFTER_MIGRATE:
 	// Create the agent
 	if err := c.setupAgent(config, logOutput, logWriter); err != nil {
 		return 1

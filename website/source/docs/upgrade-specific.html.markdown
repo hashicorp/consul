@@ -16,6 +16,26 @@ standard upgrade flow.
 
 ## Consul 0.6
 
+Consul version 0.6 is a very large release with many enhancements and
+optimizations. Changes to be aware of during an upgrade are categorized below.
+
+#### Data store changes
+
+Consul changed the format used to store data on the server nodes in version 0.5
+(see 0.5.1 notes below for details). Previously, Consul would automatically
+detect data directories using the old LMDB format, and convert them to the newer
+BoltDB format. This automatic upgrade has been removed for Consul 0.6, and
+instead a safeguard has been put in place which will prevent Consul from booting
+if the old directory format is detected.
+
+It is still possible to migrate from a 0.5.x version of Consul to 0.6+ using the
+[consul-migrate](https://github.com/hashicorp/consul-migrate) CLI utility. This
+is the same tool that was previously embedded into Consul. See the
+[releases](https://github.com/hashicorp/consul-migrate/releases) page for
+downloadable versions of the tool.
+
+#### ACL Enhancements
+
 Consul 0.6 introduces enhancements to the ACL system which may require special
 handling:
 
