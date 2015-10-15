@@ -20,6 +20,7 @@ import (
 func generateCoordinate(rtt time.Duration) *coordinate.Coordinate {
 	coord := coordinate.NewCoordinate(coordinate.DefaultConfig())
 	coord.Vec[0] = rtt.Seconds()
+	coord.Height = 0
 	return coord
 }
 
