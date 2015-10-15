@@ -15,7 +15,7 @@ failure of any datacenter does not impact the availability of Consul in other
 datacenters. This means each datacenter runs independently, each having a dedicated
 group of servers and a private LAN [gossip pool](/docs/internals/gossip.html).
 
-To get started, follow the [bootstraping guide](/docs/guides/bootstrapping.html) to
+To get started, follow the [bootstrapping guide](/docs/guides/bootstrapping.html) to
 start each datacenter. After bootstrapping, we should have two datacenters now which
 we can refer to as `dc1` and `dc2`. Note that datacenter names are opaque to Consul;
 they are simply labels that help human operators reason about the Consul clusters.
