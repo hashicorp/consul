@@ -200,7 +200,7 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 		}
 	} else {
 		httpAddr = fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.HTTP)
-		client = http.DefaultClient
+		client = &http.Client{}
 	}
 
 	server := &TestServer{
