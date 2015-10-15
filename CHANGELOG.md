@@ -16,6 +16,7 @@ IMPROVEMENTS:
 * Advertised gossip/rpc addresses can now be configured [GH-1004]
 * Atlas integration options are reload-able via SIGHUP [GH-1199]
 * Atlas endpoint is a configurable option and CLI arg [GH-1201]
+* Switched to net-rpc-msgpackrpc to reduce RPC overhead [GH-1307]
 
 MISC:
 
