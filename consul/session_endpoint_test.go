@@ -2,7 +2,6 @@ package consul
 
 import (
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -512,7 +511,7 @@ func TestSessionEndpoint_Apply_BadTTL(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !strings.Contains(err.Error(), "Session TTL '10z' invalid: time: unknown unit z in duration 10z") {
+	if err.Error() != "Session TTL '10z' invalid: time: unknown unit z in duration 10z" {
 		t.Fatalf("incorrect error message: %s", err.Error())
 	}
 
