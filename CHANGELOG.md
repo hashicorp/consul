@@ -20,6 +20,7 @@ IMPROVEMENTS:
 MISC:
 
 * Vagrantfile fixed for VMware [GH-1042]
+* Data migrator utility removed to reduce cgo dependency. [GH-1309]
 
 ## 0.5.2 (May 18, 2015)
 
@@ -35,6 +36,13 @@ BUG FIXES:
 MISC:
 
 * Remove unused constant [GH-941]
+
+UPGRADE NOTES:
+
+* Consul will refuse to start if the data directory contains an "mdb" folder.
+  This folder was used in versions of Consul up to 0.5.1. Consul version 0.5.2
+  included a baked-in utility to automatically upgrade the data format, but
+  this has been removed in Consul 0.6 to reduce the dependency on cgo.
 
 ## 0.5.1 (May 13, 2015)
 
