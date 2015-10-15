@@ -802,8 +802,6 @@ func TestAgent_nestedPauseResume(t *testing.T) {
 
 }
 
-
-
 func TestAgent_sendCoordinate(t *testing.T) {
 	conf := nextConfig()
 	conf.SyncCoordinateRateTarget = 10.0 // updates/sec
