@@ -281,7 +281,7 @@ func TestKVSEndpoint_List(t *testing.T) {
 
 	// Try listing a nonexistent prefix
 	getR.Key = "/nope"
-	if err := client.Call("KVS.List", &getR, &dirent); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.List", &getR, &dirent); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if dirent.Index == 0 {
@@ -529,7 +529,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 
 	// Try listing a nonexistent prefix
 	getR.Prefix = "/nope"
-	if err := client.Call("KVS.ListKeys", &getR, &dirent); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.ListKeys", &getR, &dirent); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if dirent.Index == 0 {
