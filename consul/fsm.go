@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	state_store "github.com/hashicorp/consul/consul/state"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
@@ -24,15 +24,15 @@ type consulFSM struct {
 	logOutput io.Writer
 	logger    *log.Logger
 	path      string
-	state     *state_store.StateStore
-	gc        *state_store.TombstoneGC
+	state     *state.StateStore
+	gc        *state.TombstoneGC
 }
 
 // consulSnapshot is used to provide a snapshot of the current
 // state in a way that can be accessed concurrently with operations
 // that may modify the live state.
 type consulSnapshot struct {
-	state *state_store.StateSnapshot
+	state *state.StateSnapshot
 }
 
 // snapshotHeader is the first entry in our snapshot
@@ -43,8 +43,8 @@ type snapshotHeader struct {
 }
 
 // NewFSMPath is used to construct a new FSM with a blank state
-func NewFSM(gc *state_store.TombstoneGC, logOutput io.Writer) (*consulFSM, error) {
-	state, err := state_store.NewStateStore(gc)
+func NewFSM(gc *state.TombstoneGC, logOutput io.Writer) (*consulFSM, error) {
+	stateNew, err := state.NewStateStore(gc)
 	if err != nil {
 		return nil, err
 	}
@@ -52,14 +52,14 @@ func NewFSM(gc *state_store.TombstoneGC, logOutput io.Writer) (*consulFSM, error
 	fsm := &consulFSM{
 		logOutput: logOutput,
 		logger:    log.New(logOutput, "", log.LstdFlags),
-		state:     state,
+		state:     stateNew,
 		gc:        gc,
 	}
 	return fsm, nil
 }
 
 // State is used to return a handle to the current state
-func (c *consulFSM) State() *state_store.StateStore {
+func (c *consulFSM) State() *state.StateStore {
 	return c.state
 }
 
@@ -261,11 +261,11 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
 	// Create a new state store
-	state, err := state_store.NewStateStore(c.gc)
+	stateNew, err := state.NewStateStore(c.gc)
 	if err != nil {
 		return err
 	}
-	c.state = state
+	c.state = stateNew
 
 	// Create a decoder
 	dec := codec.NewDecoder(old, msgpackHandle)
@@ -332,7 +332,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 			// For historical reasons, these are serialized in the
 			// snapshots as KV entries. We want to keep the snapshot
 			// format compatible with pre-0.6 versions for now.
-			stone := &state_store.Tombstone{
+			stone := &state.Tombstone{
 				Key:   req.Key,
 				Index: req.ModifyIndex,
 			}
