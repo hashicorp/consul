@@ -1581,3 +1581,51 @@ func TestAgent_purgeCheckState(t *testing.T) {
 		t.Fatalf("should have removed file")
 	}
 }
+
+func TestAgent_GetCoordinate(t *testing.T) {
+	check := func(server bool) {
+		config := nextConfig()
+		config.Server = server
+		dir, agent := makeAgent(t, config)
+		defer os.RemoveAll(dir)
+		defer agent.Shutdown()
+
+		// This doesn't verify the returned coordinate, but it makes
+		// sure that the agent chooses the correct Serf instance,
+		// depending on how it's configured as a client or a server.
+		// If it chooses the wrong one, this will crash.
+		if _, err := agent.GetCoordinate(); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	check(true)
+	check(false)
+}
+
+func TestAgent_CanServersUnderstandProtocol(t *testing.T) {
+	config := nextConfig()
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	min := uint8(consul.ProtocolVersionMin)
+	if !agent.CanServersUnderstandProtocol(min) {
+		t.Fatalf("should grok %d", min)
+	}
+
+	max := uint8(consul.ProtocolVersionMax)
+	if !agent.CanServersUnderstandProtocol(max) {
+		t.Fatalf("should grok %d", max)
+	}
+
+	current := uint8(config.Protocol)
+	if !agent.CanServersUnderstandProtocol(current) {
+		t.Fatalf("should grok %d", current)
+	}
+
+	future := max + 1
+	if agent.CanServersUnderstandProtocol(future) {
+		t.Fatalf("should not grok %d", future)
+	}
+}

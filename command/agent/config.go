@@ -478,7 +478,7 @@ func DefaultConfig() *Config {
 		},
 		StatsitePrefix:      "consul",
 		SyslogFacility:      "LOCAL0",
-		Protocol:            consul.ProtocolVersionMax,
+		Protocol:            consul.ProtocolVersion2Compatible,
 		CheckUpdateInterval: 5 * time.Minute,
 		AEInterval:          time.Minute,
 		DisableCoordinates:  false,

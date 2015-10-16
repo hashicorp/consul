@@ -28,7 +28,15 @@ import (
 // protocol versions.
 const (
 	ProtocolVersionMin uint8 = 1
-	ProtocolVersionMax       = 2
+
+	// Version 3 added support for network coordinates but we kept the
+	// default protocol version at 2 to ease the transition to this new
+	// feature. A Consul agent speaking version 2 of the protocol will
+	// attempt to send its coordinates to a server who understands version
+	// 3 or greater.
+	ProtocolVersion2Compatible = 2
+
+	ProtocolVersionMax = 3
 )
 
 const (

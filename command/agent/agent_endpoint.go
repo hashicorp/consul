@@ -17,18 +17,17 @@ type AgentSelf struct {
 }
 
 func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	var coord *coordinate.Coordinate
+	var c *coordinate.Coordinate
 	if !s.agent.config.DisableCoordinates {
 		var err error
-		coord, err = s.agent.server.GetLANCoordinate()
-		if err != nil {
+		if c, err = s.agent.GetCoordinate(); err != nil {
 			return nil, err
 		}
 	}
 
 	return AgentSelf{
 		Config: s.agent.config,
-		Coord:  coord,
+		Coord:  c,
 		Member: s.agent.LocalMember(),
 	}, nil
 }

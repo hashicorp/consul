@@ -545,6 +545,22 @@ func (a *Agent) WANMembers() []serf.Member {
 	}
 }
 
+// CanServersUnderstandProtocol checks to see if all the servers understand the
+// given protocol version.
+func (a *Agent) CanServersUnderstandProtocol(version uint8) bool {
+	numServers, numWhoGrok := 0, 0
+	members := a.LANMembers()
+	for _, member := range members {
+		if member.Tags["role"] == "consul" {
+			numServers++
+			if member.ProtocolMax >= version {
+				numWhoGrok++
+			}
+		}
+	}
+	return (numServers > 0) && (numWhoGrok == numServers)
+}
+
 // StartSync is called once Services and Checks are registered.
 // This is called to prevent a race between clients and the anti-entropy routines
 func (a *Agent) StartSync() {
@@ -562,6 +578,16 @@ func (a *Agent) ResumeSync() {
 	a.state.Resume()
 }
 
+// Returns the coordinate of this node in the local pool (assumes coordinates
+// are enabled, so check that before calling).
+func (a *Agent) GetCoordinate() (*coordinate.Coordinate, error) {
+	if a.config.Server {
+		return a.server.GetLANCoordinate()
+	} else {
+		return a.client.GetCoordinate()
+	}
+}
+
 // sendCoordinate is a long-running loop that periodically sends our coordinate
 // to the server. Closing the agent's shutdownChannel will cause this to exit.
 func (a *Agent) sendCoordinate() {
@@ -573,14 +599,13 @@ func (a *Agent) sendCoordinate() {
 
 		select {
 		case <-time.After(intv):
+			if !a.CanServersUnderstandProtocol(3) {
+				continue
+			}
+
 			var c *coordinate.Coordinate
 			var err error
-			if a.config.Server {
-				c, err = a.server.GetLANCoordinate()
-			} else {
-				c, err = a.client.GetCoordinate()
-			}
-			if err != nil {
+			if c, err = a.GetCoordinate(); err != nil {
 				a.logger.Printf("[ERR] agent: failed to get coordinate: %s", err)
 				continue
 			}

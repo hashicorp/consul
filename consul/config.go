@@ -32,6 +32,7 @@ func init() {
 	protocolVersionMap = map[uint8]uint8{
 		1: 4,
 		2: 4,
+		3: 4,
 	}
 }
 
@@ -267,7 +268,7 @@ func DefaultConfig() *Config {
 		SerfLANConfig:           serf.DefaultConfig(),
 		SerfWANConfig:           serf.DefaultConfig(),
 		ReconcileInterval:       60 * time.Second,
-		ProtocolVersion:         ProtocolVersionMax,
+		ProtocolVersion:         ProtocolVersion2Compatible,
 		ACLTTL:                  30 * time.Second,
 		ACLDefaultPolicy:        "allow",
 		ACLDownPolicy:           "extend-cache",
