@@ -57,6 +57,7 @@ func TestRttCommand_Run_LAN(t *testing.T) {
 	c1 := coordinate.NewCoordinate(coordinate.DefaultConfig())
 	c2 := c1.Clone()
 	c2.Vec[0] = 0.123
+	dist_str := fmt.Sprintf("%.3f ms", c1.DistanceTo(c2).Seconds()*1000.0)
 
 	req1 := structs.CoordinateUpdateRequest{
 		Datacenter: a.config.Datacenter,
@@ -80,11 +81,10 @@ func TestRttCommand_Run_LAN(t *testing.T) {
 	// Wait for the updates to get flushed to the data store.
 	time.Sleep(2 * updatePeriod)
 
-	ui := new(cli.MockUi)
-	c := &RttCommand{Ui: ui}
-
 	// Try two known nodes.
-	func() {
+	{
+		ui := new(cli.MockUi)
+		c := &RttCommand{Ui: ui}
 		args := []string{
 			"-http-addr=" + a.httpAddr,
 			a.config.NodeName,
@@ -96,14 +96,38 @@ func TestRttCommand_Run_LAN(t *testing.T) {
 		}
 
 		// Make sure the proper RTT was reported in the output.
-		dist_str := fmt.Sprintf("%.3f ms", c1.DistanceTo(c2).Seconds()*1000.0)
-		if !strings.Contains(ui.OutputWriter.String(), dist_str) {
+		expected := fmt.Sprintf("rtt=%s", dist_str)
+		if !strings.Contains(ui.OutputWriter.String(), expected) {
 			t.Fatalf("bad: %#v", ui.OutputWriter.String())
 		}
-	}()
+	}
+
+	// Try the short mode.
+	{
+		ui := new(cli.MockUi)
+		c := &RttCommand{Ui: ui}
+		args := []string{
+			"-short",
+			"-http-addr=" + a.httpAddr,
+			a.config.NodeName,
+			"dogs",
+		}
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad: %d: %#v", code, ui.ErrorWriter.String())
+		}
+
+		// Make sure the proper RTT was reported in the output.
+		expected := fmt.Sprintf("%s\n", dist_str)
+		if ui.OutputWriter.String() != expected {
+			t.Fatalf("bad: %#v", ui.OutputWriter.String())
+		}
+	}
 
 	// Try an unknown node.
-	func() {
+	{
+		ui := new(cli.MockUi)
+		c := &RttCommand{Ui: ui}
 		args := []string{
 			"-http-addr=" + a.httpAddr,
 			a.config.NodeName,
@@ -113,7 +137,7 @@ func TestRttCommand_Run_LAN(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("bad: %d: %#v", code, ui.ErrorWriter.String())
 		}
-	}()
+	}
 }
 
 func TestRttCommand_Run_WAN(t *testing.T) {
@@ -121,17 +145,16 @@ func TestRttCommand_Run_WAN(t *testing.T) {
 	defer a.Shutdown()
 	waitForLeader(t, a.httpAddr)
 
-	ui := new(cli.MockUi)
-	c := &RttCommand{Ui: ui}
-
 	node := fmt.Sprintf("%s.%s", a.config.Datacenter, a.config.NodeName)
 
 	// We can't easily inject WAN coordinates, so we will just query the
 	// node with itself.
-	func() {
+	{
+		ui := new(cli.MockUi)
+		c := &RttCommand{Ui: ui}
 		args := []string{
-			"-http-addr=" + a.httpAddr,
 			"-wan",
+			"-http-addr=" + a.httpAddr,
 			node,
 			node,
 		}
@@ -144,13 +167,37 @@ func TestRttCommand_Run_WAN(t *testing.T) {
 		if !strings.Contains(ui.OutputWriter.String(), "rtt=") {
 			t.Fatalf("bad: %#v", ui.OutputWriter.String())
 		}
-	}()
+	}
+
+	// Try the short mode.
+	{
+		ui := new(cli.MockUi)
+		c := &RttCommand{Ui: ui}
+		args := []string{
+			"-wan",
+			"-short",
+			"-http-addr=" + a.httpAddr,
+			node,
+			node,
+		}
+		code := c.Run(args)
+		if code != 0 {
+			t.Fatalf("bad: %d: %#v", code, ui.ErrorWriter.String())
+		}
+
+		// Make sure there was some kind of RTT reported in the output.
+		if !strings.Contains(ui.OutputWriter.String(), " ms\n") {
+			t.Fatalf("bad: %#v", ui.OutputWriter.String())
+		}
+	}
 
 	// Try an unknown node.
-	func() {
+	{
+		ui := new(cli.MockUi)
+		c := &RttCommand{Ui: ui}
 		args := []string{
-			"-http-addr=" + a.httpAddr,
 			"-wan",
+			"-http-addr=" + a.httpAddr,
 			node,
 			"dc1.nope",
 		}
@@ -158,5 +205,5 @@ func TestRttCommand_Run_WAN(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("bad: %d: %#v", code, ui.ErrorWriter.String())
 		}
-	}()
+	}
 }

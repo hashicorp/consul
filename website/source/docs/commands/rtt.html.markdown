@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Commands: RTT"
 sidebar_current: "docs-commands-rtt"
 description: >
-  The `rtt` command estimates the netowrk round trip time between two nodes using Consul's network coordinate model of the cluster.
+  The rtt command estimates the network round trip time between two nodes.
 ---
 
 # Consul RTT
@@ -36,6 +36,8 @@ The list of available flags are:
   by the datacenter and a period (eg. "dc1.sever"). By default, the two nodes are
   assumed to be nodes in the local datacenter the LAN coordinates are used.
 
+* `-short` - Abbreviates the output to just the round trip time (eg. "1.234 ms").
+
 * `-http-addr` - Address to the HTTP server of the agent you want to contact
   to send this command. If this isn't specified, the command will contact
   "127.0.0.1:8500" which is the default HTTP address of a Consul agent.
@@ -43,11 +45,14 @@ The list of available flags are:
 ## Output
 
 If coordinates are available, the command will print the estimated round trip
-time beteeen the given nodes:
+time between the given nodes:
 
 ```
 $ consul rtt n1 n2
 Estimated n1 <-> n2 rtt=0.610 ms (using LAN coordinates)
+
+$ consul rtt -short n1 n2
+0.610 ms
 
 $ consul rtt -wan dc1.n1 dc2.n2
 Estimated dc1.n1 <-> dc2.n2 rtt=1.275 ms (using WAN coordinates)

@@ -39,7 +39,7 @@ Available commands are:
     members        Lists the members of a Consul cluster
     monitor        Stream logs from a Consul agent
     reload         Triggers the agent to reload configuration files
-    rtt            Estimates round trip times between nodes
+    rtt            Estimates network round trip time between nodes
     version        Prints the Consul version
     watch          Watch for changes in Consul
 ```

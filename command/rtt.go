@@ -38,6 +38,7 @@ Usage: consul rtt [options] node1 node2
 Options:
 
   -wan                       Use WAN coordinates instead of LAN coordinates.
+  -short                     Print just the round trip time (eg. "1.234 ms").
   -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
 `
 	return strings.TrimSpace(helpText)
@@ -45,11 +46,13 @@ Options:
 
 func (c *RttCommand) Run(args []string) int {
 	var wan bool
+	var short bool
 
 	cmdFlags := flag.NewFlagSet("rtt", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
 	cmdFlags.BoolVar(&wan, "wan", false, "wan")
+	cmdFlags.BoolVar(&short, "short", false, "short")
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -77,6 +80,8 @@ func (c *RttCommand) Run(args []string) int {
 	var source string
 	var coord1, coord2 *coordinate.Coordinate
 	if wan {
+		source = "WAN"
+
 		// Parse the input nodes.
 		parts1 := strings.Split(nodes[0], ".")
 		parts2 := strings.Split(nodes[1], ".")
@@ -103,10 +108,15 @@ func (c *RttCommand) Run(args []string) int {
 				if dc.Datacenter == dc2 && entry.Node == node2 {
 					coord2 = entry.Coord
 				}
+
+				if coord1 != nil && coord2 != nil {
+					goto SHOW_RTT
+				}
 			}
 		}
-		source = "WAN"
 	} else {
+		source = "LAN"
+
 		// Pull all the LAN coordinates.
 		entries, _, err := coordClient.Nodes(nil)
 		if err != nil {
@@ -122,8 +132,11 @@ func (c *RttCommand) Run(args []string) int {
 			if entry.Node == nodes[1] {
 				coord2 = entry.Coord
 			}
+
+			if coord1 != nil && coord2 != nil {
+				goto SHOW_RTT
+			}
 		}
-		source = "LAN"
 	}
 
 	// Make sure we found both coordinates.
@@ -136,12 +149,18 @@ func (c *RttCommand) Run(args []string) int {
 		return 1
 	}
 
+SHOW_RTT:
+
 	// Report the round trip time.
-	dist := coord1.DistanceTo(coord2).Seconds()
-	c.Ui.Output(fmt.Sprintf("Estimated %s <-> %s rtt=%.3f ms (using %s coordinates)", nodes[0], nodes[1], dist*1000.0, source))
+	dist := fmt.Sprintf("%.3f ms", coord1.DistanceTo(coord2).Seconds()*1000.0)
+	if short {
+		c.Ui.Output(dist)
+	} else {
+		c.Ui.Output(fmt.Sprintf("Estimated %s <-> %s rtt=%s (using %s coordinates)", nodes[0], nodes[1], dist, source))
+	}
 	return 0
 }
 
 func (c *RttCommand) Synopsis() string {
-	return "Estimates round trip times between nodes"
+	return "Estimates network round trip time between nodes"
 }
