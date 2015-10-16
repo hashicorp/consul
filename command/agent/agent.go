@@ -1461,7 +1461,13 @@ func (a *Agent) DisableNodeMaintenance() {
 func (a *Agent) SerfQuery(name string, payload []byte, params *serf.QueryParam) (*serf.QueryResponse, error) {
 	a.logger.Printf("[DEBUG] agent: Requesting serf query send: %s. Payload: %#v",
 		name, string(payload))
-	resp, err := a.client.SerfQuery(name, payload, params)
+	var resp *serf.QueryResponse
+	var err error
+	if a.server != nil {
+		resp, err = a.server.SerfQuery(name, payload, params)
+	} else {
+		resp, err = a.client.SerfQuery(name, payload, params)
+	}
 	if err != nil {
 		a.logger.Printf("[WARN] agent: failed to start user serf query: %v", err)
 	}

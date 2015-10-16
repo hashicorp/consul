@@ -3,6 +3,7 @@ package agent
 import (
 	"bufio"
 	"fmt"
+	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/logutils"
 	"log"
@@ -346,19 +347,13 @@ func (c *RPCClient) Monitor(level logutils.LogLevel, ch chan<- string) (StreamHa
 	}
 }
 
-// NodeResponse is used to return the response of a serf query
-type NodeResponse struct {
-	From    string
-	Payload []byte
-}
-
 type serfQueryHandler struct {
 	client *RPCClient
 	closed bool
 	init   bool
 	initCh chan<- error
 	ackCh  chan<- string
-	respCh chan<- NodeResponse
+	respCh chan<- consul.NodeResponse
 	seq    uint64
 }
 
@@ -388,7 +383,7 @@ func (qh *serfQueryHandler) Handle(resp *responseHeader) {
 
 	case serfQueryRecordResponse:
 		select {
-		case qh.respCh <- NodeResponse{rec.From, rec.Payload}:
+		case qh.respCh <- consul.NodeResponse{rec.From, rec.Payload}:
 		default:
 			log.Printf("[ERR] Dropping serf query response, channel full")
 		}
@@ -439,24 +434,11 @@ type serfQueryRequest struct {
 	Payload     []byte
 }
 
-// SerfQueryParam is provided to customize various serf query
-// settings.
-type SerfQueryParam struct {
-	FilterNodes []string            // A list of node names to restrict query to
-	FilterTags  map[string]string   // A map of tag name to regex to filter on
-	RequestAck  bool                // Should nodes ack the query receipt
-	Timeout     time.Duration       // Maximum query duration. Optional, will be set automatically.
-	Name        string              // Opaque query name
-	Payload     []byte              // Opaque query payload
-	AckCh       chan<- string       // Channel to send Ack replies on
-	RespCh      chan<- NodeResponse // Channel to send responses on
-}
-
 // SerfQuery initiates a new query message using the given parameters,
 // and streams acks and responses over the given channels. The
 // channels will not block on sends and should be buffered. At the end
 // of the query, the channels will be closed.
-func (c *RPCClient) SerfQuery(params *SerfQueryParam) error {
+func (c *RPCClient) SerfQuery(params *consul.SerfQueryParam) error {
 	// Setup the request
 	seq := c.getSeq()
 	header := requestHeader{

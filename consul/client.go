@@ -63,6 +63,9 @@ type Client struct {
 	// which contains all the DC nodes
 	serf *serf.Serf
 
+	// serfQuery is used to perform 'reachability' tests
+	serfQuery *SerfQuery
+
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
@@ -119,6 +122,14 @@ func NewClient(config *Config) (*Client, error) {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
+
+	// Initialize the SerfQuery object
+	c.serfQuery, err = NewSerfQuery(config, c.serf)
+	if err != nil {
+		c.Shutdown()
+		return nil, fmt.Errorf("Failed to initialize serfQuery: %v", err)
+	}
+
 	return c, nil
 }
 
@@ -386,18 +397,6 @@ func (c *Client) GetCoordinate() (*coordinate.Coordinate, error) {
 }
 
 func (c *Client) SerfQuery(name string, payload []byte, params *serf.QueryParam) (*serf.QueryResponse, error) {
-	// Prevent the use of the internal prefix
-	if strings.HasPrefix(name, serf.InternalQueryPrefix) {
-		// Allow the special "ping" query
-		if name != serf.InternalQueryPrefix+"ping" || payload != nil {
-			return nil, fmt.Errorf("Serf Queries cannot contain the '%s' prefix", serf.InternalQueryPrefix)
-		}
-	}
-	c.logger.Printf("[DEBUG] client: Requesting serf query send: %s. Payload: %#v",
-		name, string(payload))
-	resp, err := c.serf.Query(name, payload, params)
-	if err != nil {
-		c.logger.Printf("[WARN] client: failed to start user serf query: %v", err)
-	}
-	return resp, err
+	qr, err := c.serfQuery.Query(name, payload, params)
+	return qr, err
 }

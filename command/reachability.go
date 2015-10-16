@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/hashicorp/consul/command/agent"
+	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
 	"strings"
@@ -81,7 +82,7 @@ func (c *ReachabilityCommand) Run(args []string) int {
 	c.Ui.Output(fmt.Sprintf("Total members: %d, live members: %d", len(members), len(liveMembers)))
 
 	// Start the query
-	params := agent.SerfQueryParam{
+	params := consul.SerfQueryParam{
 		RequestAck: true,
 		Name:       serf.InternalQueryPrefix + "ping",
 		AckCh:      ackCh,
