@@ -24,19 +24,19 @@ not compatible.
 
 ## Usage
 
-Usage: `consul rtt [options] node1 node2`
+Usage: `consul rtt [options] node1 [node2]`
 
-The two node names are required. Note that these are node names as known to
+At least one node name is required. If the second node name isn't given, it
+is set to the agent's node name. Note that these are node names as known to
 Consul as `consul members` would show, not IP addresses.
 
 The list of available flags are:
 
 * `-wan` - Instructs the command to use WAN coordinates instead of LAN
-  coordinates. If the -wan option is given, then the node names must be prefixed
-  by the datacenter and a period (eg. "dc1.sever"). By default, the two nodes are
-  assumed to be nodes in the local datacenter the LAN coordinates are used.
-
-* `-short` - Abbreviates the output to just the round trip time (eg. "1.234 ms").
+  coordinates. By default, the two nodes are assumed to be nodes in the local
+  datacenter and the LAN coordinates are used. If the -wan option is given,
+  then the WAN coordinates are used, and the node names must be suffixed by a period
+  and the datacenter (eg. "myserver.dc1").
 
 * `-http-addr` - Address to the HTTP server of the agent you want to contact
   to send this command. If this isn't specified, the command will contact
@@ -49,11 +49,11 @@ time between the given nodes:
 
 ```
 $ consul rtt n1 n2
-Estimated n1 <-> n2 rtt=0.610 ms (using LAN coordinates)
+Estimated n1 <-> n2 rtt: 0.610 ms (using LAN coordinates)
 
-$ consul rtt -short n1 n2
-0.610 ms
+$ consul rtt n2 # Running from n1
+Estimated n1 <-> n2 rtt: 0.610 ms (using LAN coordinates)
 
-$ consul rtt -wan dc1.n1 dc2.n2
-Estimated dc1.n1 <-> dc2.n2 rtt=1.275 ms (using WAN coordinates)
+$ consul rtt -wan n1.dc1 n2.dc2
+Estimated n1.dc1 <-> n2.dc2 rtt: 1.275 ms (using WAN coordinates)
 ```

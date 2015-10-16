@@ -18,27 +18,27 @@ type RttCommand struct {
 
 func (c *RttCommand) Help() string {
 	helpText := `
-Usage: consul rtt [options] node1 node2
+Usage: consul rtt [options] node1 [node2]
 
   Estimates the round trip time between two nodes using Consul's network
   coordinate model of the cluster.
 
+  At least one node name is required. If the second node name isn't given, it
+  is set to the agent's node name. Note that these are node names as known to
+  Consul as "consul members" would show, not IP addresses.
+
   By default, the two nodes are assumed to be nodes in the local datacenter
   and the LAN coordinates are used. If the -wan option is given, then the WAN
-  coordinates are used, and the node names must be prefixed by the datacenter
-  and a period (eg. "dc1.sever").
+  coordinates are used, and the node names must be suffixed by a period and
+  the datacenter (eg. "myserver.dc1").
 
   It is not possible to measure between LAN coordinates and WAN coordinates
   because they are maintained by independent Serf gossip pools, so they are
   not compatible.
 
-  The two node names are required. Note that these are node names as known to
-  Consul as "consul members" would show, not IP addresses.
-
 Options:
 
   -wan                       Use WAN coordinates instead of LAN coordinates.
-  -short                     Print just the round trip time (eg. "1.234 ms").
   -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
 `
 	return strings.TrimSpace(helpText)
@@ -46,13 +46,11 @@ Options:
 
 func (c *RttCommand) Run(args []string) int {
 	var wan bool
-	var short bool
 
 	cmdFlags := flag.NewFlagSet("rtt", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
 	cmdFlags.BoolVar(&wan, "wan", false, "wan")
-	cmdFlags.BoolVar(&short, "short", false, "short")
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -60,8 +58,8 @@ func (c *RttCommand) Run(args []string) int {
 
 	// They must provide a pair of nodes.
 	nodes := cmdFlags.Args()
-	if len(nodes) != 2 {
-		c.Ui.Error("Two node names must be specified")
+	if len(nodes) < 1 || len(nodes) > 2 {
+		c.Ui.Error("One or two node names must be specified")
 		c.Ui.Error("")
 		c.Ui.Error(c.Help())
 		return 1
@@ -82,6 +80,19 @@ func (c *RttCommand) Run(args []string) int {
 	if wan {
 		source = "WAN"
 
+		// Default the second node to the agent if none was given.
+		if len(nodes) < 2 {
+			agent := client.Agent()
+			self, err := agent.Self()
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf("Unable to look up agent info: %s", err))
+				return 1
+			}
+
+			node, dc := self["Config"]["NodeName"], self["Config"]["Datacenter"]
+			nodes = append(nodes, fmt.Sprintf("%s.%s", node, dc))
+		}
+
 		// Parse the input nodes.
 		parts1 := strings.Split(nodes[0], ".")
 		parts2 := strings.Split(nodes[1], ".")
@@ -89,8 +100,8 @@ func (c *RttCommand) Run(args []string) int {
 			c.Ui.Error("Node names must be specified as <datacenter>.<node name> with -wan")
 			return 1
 		}
-		dc1, node1 := parts1[0], parts1[1]
-		dc2, node2 := parts2[0], parts2[1]
+		node1, dc1 := parts1[0], parts1[1]
+		node2, dc2 := parts2[0], parts2[1]
 
 		// Pull all the WAN coordinates.
 		dcs, err := coordClient.Datacenters()
@@ -116,6 +127,17 @@ func (c *RttCommand) Run(args []string) int {
 		}
 	} else {
 		source = "LAN"
+
+		// Default the second node to the agent if none was given.
+		if len(nodes) < 2 {
+			agent := client.Agent()
+			node, err := agent.NodeName()
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf("Unable to look up agent info: %s", err))
+				return 1
+			}
+			nodes = append(nodes, node)
+		}
 
 		// Pull all the LAN coordinates.
 		entries, _, err := coordClient.Nodes(nil)
@@ -153,11 +175,7 @@ SHOW_RTT:
 
 	// Report the round trip time.
 	dist := fmt.Sprintf("%.3f ms", coord1.DistanceTo(coord2).Seconds()*1000.0)
-	if short {
-		c.Ui.Output(dist)
-	} else {
-		c.Ui.Output(fmt.Sprintf("Estimated %s <-> %s rtt=%s (using %s coordinates)", nodes[0], nodes[1], dist, source))
-	}
+	c.Ui.Output(fmt.Sprintf("Estimated %s <-> %s rtt: %s (using %s coordinates)", nodes[0], nodes[1], dist, source))
 	return 0
 }
 
