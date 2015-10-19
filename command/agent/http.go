@@ -463,9 +463,14 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 	}
 }
 
-// parseToken is used to parse the ?token query param
+// parseToken is used to parse the ?token query param or the X-Consul-Token header
 func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	if other := req.URL.Query().Get("token"); other != "" {
+		*token = other
+		return
+	}
+
+	if other := req.Header.Get("X-Consul-Token"); other != "" {
 		*token = other
 		return
 	}
