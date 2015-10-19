@@ -378,7 +378,7 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 		return err
 	}
 
-	if err := s.persistKV(sink, encoder); err != nil {
+	if err := s.persistKVs(sink, encoder); err != nil {
 		sink.Cancel()
 		return err
 	}
@@ -475,16 +475,16 @@ func (s *consulSnapshot) persistACLs(sink raft.SnapshotSink,
 	return nil
 }
 
-func (s *consulSnapshot) persistKV(sink raft.SnapshotSink,
+func (s *consulSnapshot) persistKVs(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	entries, err := s.state.KVSDump()
+	iter, err := s.state.KVs()
 	if err != nil {
 		return err
 	}
 
-	for _, e := range entries {
+	for ki := iter.Next(); ki != nil; ki = iter.Next() {
 		sink.Write([]byte{byte(structs.KVSRequestType)})
-		if err := encoder.Encode(e); err != nil {
+		if err := encoder.Encode(ki.(*structs.DirEntry)); err != nil {
 			return err
 		}
 	}

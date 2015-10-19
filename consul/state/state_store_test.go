@@ -3065,9 +3065,13 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 	if idx := snap.LastIndex(); idx != 7 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	dump, err := snap.KVSDump()
+	iter, err := snap.KVs()
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	var dump structs.DirEntries
+	for ki := iter.Next(); ki != nil; ki = iter.Next() {
+		dump = append(dump, ki.(*structs.DirEntry))
 	}
 	if !reflect.DeepEqual(dump, entries) {
 		t.Fatalf("bad: %#v", dump)

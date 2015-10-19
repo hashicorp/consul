@@ -157,17 +157,12 @@ func (s *StateSnapshot) Checks(node string) (memdb.ResultIterator, error) {
 }
 
 // KVSDump is used to pull the full list of KVS entries for use during snapshots.
-func (s *StateSnapshot) KVSDump() (structs.DirEntries, error) {
-	entries, err := s.tx.Get("kvs", "id_prefix")
+func (s *StateSnapshot) KVs() (memdb.ResultIterator, error) {
+	iter, err := s.tx.Get("kvs", "id_prefix")
 	if err != nil {
-		return nil, fmt.Errorf("failed kvs lookup: %s", err)
+		return nil, err
 	}
-
-	var dump structs.DirEntries
-	for entry := entries.Next(); entry != nil; entry = entries.Next() {
-		dump = append(dump, entry.(*structs.DirEntry))
-	}
-	return dump, nil
+	return iter, nil
 }
 
 // TombstoneDump is used to pull all the tombstones from the graveyard.
