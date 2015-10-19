@@ -735,21 +735,25 @@ func TestStateStore_Node_Snapshot(t *testing.T) {
 	if idx := snap.LastIndex(); idx != 2 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	dump, err := snap.NodeDump()
+	iter, err := snap.Nodes()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if n := len(dump); n != 3 {
-		t.Fatalf("bad node count: %d", n)
-	}
-	for i, node := range dump {
+	for i := 0; i < 3; i++ {
+		node := iter.Next().(*structs.Node)
+		if node == nil {
+			t.Fatalf("unexpected end of nodes")
+		}
+
 		if node.CreateIndex != uint64(i) || node.ModifyIndex != uint64(i) {
 			t.Fatalf("bad node index: %d, %d", node.CreateIndex, node.ModifyIndex)
 		}
-		name := fmt.Sprintf("node%d", i)
-		if node.Node != name {
+		if node.Node != fmt.Sprintf("node%d", i) {
 			t.Fatalf("bad: %#v", node)
 		}
+	}
+	if iter.Next() != nil {
+		t.Fatalf("unexpected extra nodes")
 	}
 }
 
@@ -1272,18 +1276,23 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 	if idx := snap.LastIndex(); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	dump, err := snap.ServiceDump("node1")
+	iter, err := snap.Services("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if n := len(dump); n != 2 {
-		t.Fatalf("bad service count: %d", n)
-	}
-	for i, svc := range dump {
+	for i := 0; i < len(ns); i++ {
+		svc := iter.Next().(*structs.ServiceNode)
+		if svc == nil {
+			t.Fatalf("unexpected end of services")
+		}
+
 		ns[i].CreateIndex, ns[i].ModifyIndex = uint64(i+1), uint64(i+1)
-		if !reflect.DeepEqual(ns[i], svc) {
+		if !reflect.DeepEqual(ns[i], svc.ToNodeService()) {
 			t.Fatalf("bad: %#v != %#v", svc, ns[i])
 		}
+	}
+	if iter.Next() != nil {
+		t.Fatalf("unexpected extra services")
 	}
 }
 
@@ -1787,16 +1796,24 @@ func TestStateStore_Check_Snapshot(t *testing.T) {
 	if idx := snap.LastIndex(); idx != 5 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	dump, err := snap.CheckDump("node1")
+	iter, err := snap.Checks("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	checks[0].CreateIndex, checks[0].ModifyIndex = 1, 1
-	checks[1].CreateIndex, checks[1].ModifyIndex = 2, 2
-	if !reflect.DeepEqual(dump, checks) {
-		t.Fatalf("bad: %#v != %#v", dump, checks)
-	}
+	for i := 0; i < len(checks); i++ {
+		check := iter.Next().(*structs.HealthCheck)
+		if check == nil {
+			t.Fatalf("unexpected end of checks")
+		}
 
+		checks[i].CreateIndex, checks[i].ModifyIndex = uint64(i+1), uint64(i+1)
+		if !reflect.DeepEqual(check, checks[i]) {
+			t.Fatalf("bad: %#v != %#v", check, checks[i])
+		}
+	}
+	if iter.Next() != nil {
+		t.Fatalf("unexpected extra checks")
+	}
 }
 
 func TestStateStore_Check_Watches(t *testing.T) {

@@ -127,59 +127,33 @@ func (s *StateSnapshot) Close() {
 	s.tx.Abort()
 }
 
-// NodeDump is used to pull the full list of nodes for use during snapshots.
-func (s *StateSnapshot) NodeDump() (structs.Nodes, error) {
-	nodes, err := s.tx.Get("nodes", "id")
+// Nodes is used to pull the full list of nodes for use during snapshots.
+func (s *StateSnapshot) Nodes() (memdb.ResultIterator, error) {
+	iter, err := s.tx.Get("nodes", "id")
 	if err != nil {
-		return nil, fmt.Errorf("failed node lookup: %s", err)
+		return nil, err
 	}
-
-	var dump structs.Nodes
-	for node := nodes.Next(); node != nil; node = nodes.Next() {
-		dump = append(dump, node.(*structs.Node))
-	}
-	return dump, nil
+	return iter, nil
 }
 
-// ServiceDump is used to pull the full list of services for a given node for use
+// Services is used to pull the full list of services for a given node for use
 // during snapshots.
-func (s *StateSnapshot) ServiceDump(node string) ([]*structs.NodeService, error) {
-	services, err := s.tx.Get("services", "node", node)
+func (s *StateSnapshot) Services(node string) (memdb.ResultIterator, error) {
+	iter, err := s.tx.Get("services", "node", node)
 	if err != nil {
-		return nil, fmt.Errorf("failed service lookup: %s", err)
+		return nil, err
 	}
-
-	var dump []*structs.NodeService
-	for service := services.Next(); service != nil; service = services.Next() {
-		s := service.(*structs.ServiceNode)
-		dump = append(dump, &structs.NodeService{
-			ID:      s.ServiceID,
-			Service: s.ServiceName,
-			Tags:    s.ServiceTags,
-			Address: s.ServiceAddress,
-			Port:    s.ServicePort,
-			RaftIndex: structs.RaftIndex{
-				CreateIndex: s.CreateIndex,
-				ModifyIndex: s.ModifyIndex,
-			},
-		})
-	}
-	return dump, nil
+	return iter, nil
 }
 
-// CheckDump is used to pull the full list of checks for a given node for use
+// Checks is used to pull the full list of checks for a given node for use
 // during snapshots.
-func (s *StateSnapshot) CheckDump(node string) (structs.HealthChecks, error) {
-	checks, err := s.tx.Get("checks", "node", node)
+func (s *StateSnapshot) Checks(node string) (memdb.ResultIterator, error) {
+	iter, err := s.tx.Get("checks", "node", node)
 	if err != nil {
-		return nil, fmt.Errorf("failed check lookup: %s", err)
+		return nil, err
 	}
-
-	var dump structs.HealthChecks
-	for check := checks.Next(); check != nil; check = checks.Next() {
-		dump = append(dump, check.(*structs.HealthCheck))
-	}
-	return dump, nil
+	return iter, nil
 }
 
 // KVSDump is used to pull the full list of KVS entries for use during snapshots.
@@ -578,17 +552,9 @@ func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, sv
 		return fmt.Errorf("failed service lookup: %s", err)
 	}
 
-	// Create the service node entry
-	entry := &structs.ServiceNode{
-		Node:           node,
-		ServiceID:      svc.ID,
-		ServiceName:    svc.Service,
-		ServiceTags:    svc.Tags,
-		ServiceAddress: svc.Address,
-		ServicePort:    svc.Port,
-	}
-
-	// Populate the indexes
+	// Create the service node entry and populate the indexes. We leave the
+	// address blank and fill that in on the way out during queries.
+	entry := svc.ToServiceNode(node, "")
 	if existing != nil {
 		entry.CreateIndex = existing.(*structs.ServiceNode).CreateIndex
 		entry.ModifyIndex = idx
@@ -785,20 +751,7 @@ func (s *StateStore) NodeServices(nodeID string) (uint64, *structs.NodeServices,
 
 	// Add all of the services to the map.
 	for service := services.Next(); service != nil; service = services.Next() {
-		sn := service.(*structs.ServiceNode)
-
-		// Create the NodeService
-		svc := &structs.NodeService{
-			ID:      sn.ServiceID,
-			Service: sn.ServiceName,
-			Tags:    sn.ServiceTags,
-			Address: sn.ServiceAddress,
-			Port:    sn.ServicePort,
-		}
-		svc.CreateIndex = sn.CreateIndex
-		svc.ModifyIndex = sn.ModifyIndex
-
-		// Add the service to the result
+		svc := service.(*structs.ServiceNode).ToNodeService()
 		ns.Services[svc.ID] = svc
 	}
 
@@ -1188,15 +1141,9 @@ func (s *StateStore) parseCheckServiceNodes(
 
 		// Append to the results.
 		results = append(results, structs.CheckServiceNode{
-			Node: node,
-			Service: &structs.NodeService{
-				ID:      sn.ServiceID,
-				Service: sn.ServiceName,
-				Address: sn.ServiceAddress,
-				Port:    sn.ServicePort,
-				Tags:    sn.ServiceTags,
-			},
-			Checks: checks,
+			Node:    node,
+			Service: sn.ToNodeService(),
+			Checks:  checks,
 		})
 	}
 
@@ -1260,16 +1207,7 @@ func (s *StateStore) parseNodes(tx *memdb.Txn, idx uint64,
 			return 0, nil, fmt.Errorf("failed services lookup: %s", err)
 		}
 		for service := services.Next(); service != nil; service = services.Next() {
-			svc := service.(*structs.ServiceNode)
-			ns := &structs.NodeService{
-				ID:      svc.ServiceID,
-				Service: svc.ServiceName,
-				Address: svc.ServiceAddress,
-				Port:    svc.ServicePort,
-				Tags:    svc.ServiceTags,
-			}
-			ns.CreateIndex = svc.CreateIndex
-			ns.ModifyIndex = svc.ModifyIndex
+			ns := service.(*structs.ServiceNode).ToNodeService()
 			dump.Services = append(dump.Services, ns)
 		}
 

@@ -242,30 +242,48 @@ type Services map[string][]string
 
 // ServiceNode represents a node that is part of a service
 type ServiceNode struct {
-	Node           string
-	Address        string
-	ServiceID      string
-	ServiceName    string
-	ServiceTags    []string
-	ServiceAddress string
-	ServicePort    int
+	Node                     string
+	Address                  string
+	ServiceID                string
+	ServiceName              string
+	ServiceTags              []string
+	ServiceAddress           string
+	ServicePort              int
+	ServiceEnableTagOverride bool
 
 	RaftIndex
 }
 
-// Returns a clone of the given service node.
+// Clone returns a clone of the given service node.
 func (s *ServiceNode) Clone() *ServiceNode {
 	tags := make([]string, len(s.ServiceTags))
 	copy(tags, s.ServiceTags)
 
 	return &ServiceNode{
-		Node:           s.Node,
-		Address:        s.Address,
-		ServiceID:      s.ServiceID,
-		ServiceName:    s.ServiceName,
-		ServiceTags:    tags,
-		ServiceAddress: s.ServiceAddress,
-		ServicePort:    s.ServicePort,
+		Node:                     s.Node,
+		Address:                  s.Address,
+		ServiceID:                s.ServiceID,
+		ServiceName:              s.ServiceName,
+		ServiceTags:              tags,
+		ServiceAddress:           s.ServiceAddress,
+		ServicePort:              s.ServicePort,
+		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
+		RaftIndex: RaftIndex{
+			CreateIndex: s.CreateIndex,
+			ModifyIndex: s.ModifyIndex,
+		},
+	}
+}
+
+// ToNodeService converts the given service node to a node service.
+func (s *ServiceNode) ToNodeService() *NodeService {
+	return &NodeService{
+		ID:                s.ServiceID,
+		Service:           s.ServiceName,
+		Tags:              s.ServiceTags,
+		Address:           s.ServiceAddress,
+		Port:              s.ServicePort,
+		EnableTagOverride: s.ServiceEnableTagOverride,
 		RaftIndex: RaftIndex{
 			CreateIndex: s.CreateIndex,
 			ModifyIndex: s.ModifyIndex,
@@ -285,6 +303,24 @@ type NodeService struct {
 	EnableTagOverride bool
 
 	RaftIndex
+}
+
+// ToServiceNode converts the given node service to a service node.
+func (s *NodeService) ToServiceNode(node, address string) *ServiceNode {
+	return &ServiceNode{
+		Node:                     node,
+		Address:                  address,
+		ServiceID:                s.ID,
+		ServiceName:              s.Service,
+		ServiceTags:              s.Tags,
+		ServiceAddress:           s.Address,
+		ServicePort:              s.Port,
+		ServiceEnableTagOverride: s.EnableTagOverride,
+		RaftIndex: RaftIndex{
+			CreateIndex: s.CreateIndex,
+			ModifyIndex: s.ModifyIndex,
+		},
+	}
 }
 
 type NodeServices struct {

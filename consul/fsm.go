@@ -394,17 +394,17 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
 
 	// Get all the nodes
-	nodes, err := s.state.NodeDump()
+	nodes, err := s.state.Nodes()
 	if err != nil {
 		return err
 	}
 
 	// Register each node
-	var req structs.RegisterRequest
-	for i := 0; i < len(nodes); i++ {
-		req = structs.RegisterRequest{
-			Node:    nodes[i].Node,
-			Address: nodes[i].Address,
+	for ni := nodes.Next(); ni != nil; ni = nodes.Next() {
+		node := ni.(*structs.Node)
+		req := structs.RegisterRequest{
+			Node:    node.Node,
+			Address: node.Address,
 		}
 
 		// Register the node itself
@@ -414,12 +414,12 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 		}
 
 		// Register each service this node has
-		services, err := s.state.ServiceDump(nodes[i].Node)
+		services, err := s.state.Services(node.Node)
 		if err != nil {
 			return err
 		}
-		for _, srv := range services {
-			req.Service = srv
+		for si := services.Next(); si != nil; si = services.Next() {
+			req.Service = si.(*structs.ServiceNode).ToNodeService()
 			sink.Write([]byte{byte(structs.RegisterRequestType)})
 			if err := encoder.Encode(&req); err != nil {
 				return err
@@ -428,12 +428,12 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 
 		// Register each check this node has
 		req.Service = nil
-		checks, err := s.state.CheckDump(nodes[i].Node)
+		checks, err := s.state.Checks(node.Node)
 		if err != nil {
 			return err
 		}
-		for _, check := range checks {
-			req.Check = check
+		for ci := checks.Next(); ci != nil; ci = checks.Next() {
+			req.Check = ci.(*structs.HealthCheck)
 			sink.Write([]byte{byte(structs.RegisterRequestType)})
 			if err := encoder.Encode(&req); err != nil {
 				return err
