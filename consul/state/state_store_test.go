@@ -286,11 +286,11 @@ func TestStateStore_ReapTombstones(t *testing.T) {
 	// Make sure the tombstones are actually gone.
 	snap := s.Snapshot()
 	defer snap.Close()
-	iter, err := snap.Tombstones()
+	stones, err := snap.Tombstones()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if iter.Next() != nil {
+	if stones.Next() != nil {
 		t.Fatalf("unexpected extra tombstones")
 	}
 }
@@ -686,8 +686,8 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if s := services.Next(); s != nil {
-		t.Fatalf("bad: %#v", s)
+	if service := services.Next(); service != nil {
+		t.Fatalf("bad: %#v", service)
 	}
 
 	// Associated health check was removed.
@@ -695,8 +695,8 @@ func TestStateStore_DeleteNode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if c := checks.Next(); c != nil {
-		t.Fatalf("bad: %#v", c)
+	if check := checks.Next(); check != nil {
+		t.Fatalf("bad: %#v", check)
 	}
 
 	// Indexes were updated.
@@ -735,12 +735,12 @@ func TestStateStore_Node_Snapshot(t *testing.T) {
 	if idx := snap.LastIndex(); idx != 2 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	iter, err := snap.Nodes()
+	nodes, err := snap.Nodes()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	for i := 0; i < 3; i++ {
-		node := iter.Next().(*structs.Node)
+		node := nodes.Next().(*structs.Node)
 		if node == nil {
 			t.Fatalf("unexpected end of nodes")
 		}
@@ -752,7 +752,7 @@ func TestStateStore_Node_Snapshot(t *testing.T) {
 			t.Fatalf("bad: %#v", node)
 		}
 	}
-	if iter.Next() != nil {
+	if nodes.Next() != nil {
 		t.Fatalf("unexpected extra nodes")
 	}
 }
@@ -1276,12 +1276,12 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 	if idx := snap.LastIndex(); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	iter, err := snap.Services("node1")
+	services, err := snap.Services("node1")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	for i := 0; i < len(ns); i++ {
-		svc := iter.Next().(*structs.ServiceNode)
+		svc := services.Next().(*structs.ServiceNode)
 		if svc == nil {
 			t.Fatalf("unexpected end of services")
 		}
@@ -1291,7 +1291,7 @@ func TestStateStore_Service_Snapshot(t *testing.T) {
 			t.Fatalf("bad: %#v != %#v", svc, ns[i])
 		}
 	}
-	if iter.Next() != nil {
+	if services.Next() != nil {
 		t.Fatalf("unexpected extra services")
 	}
 }
@@ -3070,8 +3070,8 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	var dump structs.DirEntries
-	for ki := iter.Next(); ki != nil; ki = iter.Next() {
-		dump = append(dump, ki.(*structs.DirEntry))
+	for entry := iter.Next(); entry != nil; entry = iter.Next() {
+		dump = append(dump, entry.(*structs.DirEntry))
 	}
 	if !reflect.DeepEqual(dump, entries) {
 		t.Fatalf("bad: %#v", dump)
@@ -3094,10 +3094,8 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 		if idx != 7 {
 			t.Fatalf("bad index: %d", idx)
 		}
-		for i, entry := range res {
-			if !reflect.DeepEqual(entry, entries[i]) {
-				t.Fatalf("bad: %#v", entry)
-			}
+		if !reflect.DeepEqual(res, entries) {
+			t.Fatalf("bad: %#v", res)
 		}
 
 		// Check that the index was updated.
@@ -3264,13 +3262,13 @@ func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
 	}
 
 	// Verify the snapshot.
-	iter, err := snap.Tombstones()
+	stones, err := snap.Tombstones()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	var dump []*Tombstone
-	for ti := iter.Next(); ti != nil; ti = iter.Next() {
-		dump = append(dump, ti.(*Tombstone))
+	for stone := stones.Next(); stone != nil; stone = stones.Next() {
+		dump = append(dump, stone.(*Tombstone))
 	}
 	if len(dump) != 1 {
 		t.Fatalf("bad %#v", dump)
@@ -3316,11 +3314,11 @@ func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
 		// But make sure the tombstone is actually gone.
 		snap := s.Snapshot()
 		defer snap.Close()
-		iter, err := snap.Tombstones()
+		stones, err := snap.Tombstones()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if iter.Next() != nil {
+		if stones.Next() != nil {
 			t.Fatalf("unexpected extra tombstones")
 		}
 	}()
@@ -3665,8 +3663,8 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	var dump structs.Sessions
-	for si := iter.Next(); si != nil; si = iter.Next() {
-		dump = append(dump, si.(*structs.Session))
+	for session := iter.Next(); session != nil; session = iter.Next() {
+		dump = append(dump, session.(*structs.Session))
 	}
 	if !reflect.DeepEqual(dump, sessions) {
 		t.Fatalf("bad: %#v", dump)
@@ -4332,8 +4330,8 @@ func TestStateStore_ACL_Snapshot_Restore(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	var dump structs.ACLs
-	for ai := iter.Next(); ai != nil; ai = iter.Next() {
-		dump = append(dump, ai.(*structs.ACL))
+	for acl := iter.Next(); acl != nil; acl = iter.Next() {
+		dump = append(dump, acl.(*structs.ACL))
 	}
 	if !reflect.DeepEqual(dump, acls) {
 		t.Fatalf("bad: %#v", dump)

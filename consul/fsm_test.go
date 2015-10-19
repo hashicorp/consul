@@ -475,18 +475,18 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	func() {
 		snap := fsm2.state.Snapshot()
 		defer snap.Close()
-		iter, err := snap.Tombstones()
+		stones, err := snap.Tombstones()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		stone := iter.Next().(*state.Tombstone)
+		stone := stones.Next().(*state.Tombstone)
 		if stone == nil {
 			t.Fatalf("missing tombstone")
 		}
 		if stone.Key != "/remove" || stone.Index != 12 {
 			t.Fatalf("bad: %v", stone)
 		}
-		if iter.Next() != nil {
+		if stones.Next() != nil {
 			t.Fatalf("unexpected extra tombstones")
 		}
 	}()
@@ -1023,11 +1023,11 @@ func TestFSM_TombstoneReap(t *testing.T) {
 	// Verify the tombstones are gone
 	snap := fsm.state.Snapshot()
 	defer snap.Close()
-	iter, err := snap.Tombstones()
+	stones, err := snap.Tombstones()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if iter.Next() != nil {
+	if stones.Next() != nil {
 		t.Fatalf("unexpected extra tombstones")
 	}
 }

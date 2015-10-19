@@ -464,8 +464,7 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeID string) err
 	}
 	var sids []string
 	for service := services.Next(); service != nil; service = services.Next() {
-		svc := service.(*structs.ServiceNode)
-		sids = append(sids, svc.ServiceID)
+		sids = append(sids, service.(*structs.ServiceNode).ServiceID)
 	}
 
 	// Do the delete in a separate loop so we don't trash the iterator.
@@ -483,8 +482,7 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeID string) err
 	}
 	var cids []string
 	for check := checks.Next(); check != nil; check = checks.Next() {
-		hc := check.(*structs.HealthCheck)
-		cids = append(cids, hc.CheckID)
+		cids = append(cids, check.(*structs.HealthCheck).CheckID)
 	}
 
 	// Do the delete in a separate loop so we don't trash the iterator.
@@ -596,13 +594,13 @@ func (s *StateStore) Services() (uint64, structs.Services, error) {
 	// tags.
 	unique := make(map[string]map[string]struct{})
 	for service := services.Next(); service != nil; service = services.Next() {
-		sn := service.(*structs.ServiceNode)
-		tags, ok := unique[sn.ServiceName]
+		svc := service.(*structs.ServiceNode)
+		tags, ok := unique[svc.ServiceName]
 		if !ok {
-			unique[sn.ServiceName] = make(map[string]struct{})
-			tags = unique[sn.ServiceName]
+			unique[svc.ServiceName] = make(map[string]struct{})
+			tags = unique[svc.ServiceName]
 		}
-		for _, tag := range sn.ServiceTags {
+		for _, tag := range svc.ServiceTags {
 			tags[tag] = struct{}{}
 		}
 	}
@@ -618,8 +616,8 @@ func (s *StateStore) Services() (uint64, structs.Services, error) {
 	return idx, results, nil
 }
 
-// ServiceNodes returns the nodes associated with a given service.
-func (s *StateStore) ServiceNodes(service string) (uint64, structs.ServiceNodes, error) {
+// ServiceNodes returns the nodes associated with a given service name.
+func (s *StateStore) ServiceNodes(serviceName string) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -627,13 +625,13 @@ func (s *StateStore) ServiceNodes(service string) (uint64, structs.ServiceNodes,
 	idx := maxIndexTxn(tx, s.getWatchTables("ServiceNodes")...)
 
 	// List all the services.
-	services, err := tx.Get("services", "service", service)
+	services, err := tx.Get("services", "service", serviceName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
 	var results structs.ServiceNodes
-	for s := services.Next(); s != nil; s = services.Next() {
-		results = append(results, s.(*structs.ServiceNode))
+	for service := services.Next(); service != nil; service = services.Next() {
+		results = append(results, service.(*structs.ServiceNode))
 	}
 
 	// Fill in the address details.
@@ -661,10 +659,10 @@ func (s *StateStore) ServiceTagNodes(service, tag string) (uint64, structs.Servi
 
 	// Gather all the services and apply the tag filter.
 	var results structs.ServiceNodes
-	for s := services.Next(); s != nil; s = services.Next() {
-		sn := s.(*structs.ServiceNode)
-		if !serviceTagFilter(sn, tag) {
-			results = append(results, sn)
+	for service := services.Next(); service != nil; service = services.Next() {
+		svc := service.(*structs.ServiceNode)
+		if !serviceTagFilter(svc, tag) {
+			results = append(results, svc)
 		}
 	}
 
@@ -788,8 +786,7 @@ func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 	}
 	var cids []string
 	for check := checks.Next(); check != nil; check = checks.Next() {
-		hc := check.(*structs.HealthCheck)
-		cids = append(cids, hc.CheckID)
+		cids = append(cids, check.(*structs.HealthCheck).CheckID)
 	}
 
 	// Do the delete in a separate loop so we don't trash the iterator.
@@ -1046,7 +1043,7 @@ func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 // The results are compounded into a CheckServiceNodes, and the index returned
 // is the maximum index observed over any node, check, or service in the result
 // set.
-func (s *StateStore) CheckServiceNodes(service string) (uint64, structs.CheckServiceNodes, error) {
+func (s *StateStore) CheckServiceNodes(serviceName string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1054,15 +1051,15 @@ func (s *StateStore) CheckServiceNodes(service string) (uint64, structs.CheckSer
 	idx := maxIndexTxn(tx, s.getWatchTables("CheckServiceNodes")...)
 
 	// Query the state store for the service.
-	services, err := tx.Get("services", "service", service)
+	services, err := tx.Get("services", "service", serviceName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
 
 	// Return the results.
 	var results structs.ServiceNodes
-	for s := services.Next(); s != nil; s = services.Next() {
-		results = append(results, s.(*structs.ServiceNode))
+	for service := services.Next(); service != nil; service = services.Next() {
+		results = append(results, service.(*structs.ServiceNode))
 	}
 	return s.parseCheckServiceNodes(tx, idx, results, err)
 }
@@ -1071,7 +1068,7 @@ func (s *StateStore) CheckServiceNodes(service string) (uint64, structs.CheckSer
 // service, filtering out services that don't contain the given tag. The results
 // are compounded into a CheckServiceNodes, and the index returned is the maximum
 // index observed over any node, check, or service in the result set.
-func (s *StateStore) CheckServiceTagNodes(service, tag string) (uint64, structs.CheckServiceNodes, error) {
+func (s *StateStore) CheckServiceTagNodes(serviceName, tag string) (uint64, structs.CheckServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1079,17 +1076,17 @@ func (s *StateStore) CheckServiceTagNodes(service, tag string) (uint64, structs.
 	idx := maxIndexTxn(tx, s.getWatchTables("CheckServiceNodes")...)
 
 	// Query the state store for the service.
-	services, err := tx.Get("services", "service", service)
+	services, err := tx.Get("services", "service", serviceName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed service lookup: %s", err)
 	}
 
 	// Return the results, filtering by tag.
 	var results structs.ServiceNodes
-	for s := services.Next(); s != nil; s = services.Next() {
-		sn := s.(*structs.ServiceNode)
-		if !serviceTagFilter(sn, tag) {
-			results = append(results, sn)
+	for service := services.Next(); service != nil; service = services.Next() {
+		svc := service.(*structs.ServiceNode)
+		if !serviceTagFilter(svc, tag) {
+			results = append(results, svc)
 		}
 	}
 	return s.parseCheckServiceNodes(tx, idx, results, err)

@@ -400,11 +400,11 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 	}
 
 	// Register each node
-	for ni := nodes.Next(); ni != nil; ni = nodes.Next() {
-		node := ni.(*structs.Node)
+	for node := nodes.Next(); node != nil; node = nodes.Next() {
+		n := node.(*structs.Node)
 		req := structs.RegisterRequest{
-			Node:    node.Node,
-			Address: node.Address,
+			Node:    n.Node,
+			Address: n.Address,
 		}
 
 		// Register the node itself
@@ -414,13 +414,13 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 		}
 
 		// Register each service this node has
-		services, err := s.state.Services(node.Node)
+		services, err := s.state.Services(n.Node)
 		if err != nil {
 			return err
 		}
-		for si := services.Next(); si != nil; si = services.Next() {
-			req.Service = si.(*structs.ServiceNode).ToNodeService()
+		for service := services.Next(); service != nil; service = services.Next() {
 			sink.Write([]byte{byte(structs.RegisterRequestType)})
+			req.Service = service.(*structs.ServiceNode).ToNodeService()
 			if err := encoder.Encode(&req); err != nil {
 				return err
 			}
@@ -428,13 +428,13 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 
 		// Register each check this node has
 		req.Service = nil
-		checks, err := s.state.Checks(node.Node)
+		checks, err := s.state.Checks(n.Node)
 		if err != nil {
 			return err
 		}
-		for ci := checks.Next(); ci != nil; ci = checks.Next() {
-			req.Check = ci.(*structs.HealthCheck)
+		for check := checks.Next(); check != nil; check = checks.Next() {
 			sink.Write([]byte{byte(structs.RegisterRequestType)})
+			req.Check = check.(*structs.HealthCheck)
 			if err := encoder.Encode(&req); err != nil {
 				return err
 			}
@@ -445,14 +445,14 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 
 func (s *consulSnapshot) persistSessions(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	iter, err := s.state.Sessions()
+	sessions, err := s.state.Sessions()
 	if err != nil {
 		return err
 	}
 
-	for si := iter.Next(); si != nil; si = iter.Next() {
+	for session := sessions.Next(); session != nil; session = sessions.Next() {
 		sink.Write([]byte{byte(structs.SessionRequestType)})
-		if err := encoder.Encode(si.(*structs.Session)); err != nil {
+		if err := encoder.Encode(session.(*structs.Session)); err != nil {
 			return err
 		}
 	}
@@ -461,14 +461,14 @@ func (s *consulSnapshot) persistSessions(sink raft.SnapshotSink,
 
 func (s *consulSnapshot) persistACLs(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	iter, err := s.state.ACLs()
+	acls, err := s.state.ACLs()
 	if err != nil {
 		return err
 	}
 
-	for ai := iter.Next(); ai != nil; ai = iter.Next() {
+	for acl := acls.Next(); acl != nil; acl = acls.Next() {
 		sink.Write([]byte{byte(structs.ACLRequestType)})
-		if err := encoder.Encode(ai.(*structs.ACL)); err != nil {
+		if err := encoder.Encode(acl.(*structs.ACL)); err != nil {
 			return err
 		}
 	}
@@ -477,14 +477,14 @@ func (s *consulSnapshot) persistACLs(sink raft.SnapshotSink,
 
 func (s *consulSnapshot) persistKVs(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	iter, err := s.state.KVs()
+	entries, err := s.state.KVs()
 	if err != nil {
 		return err
 	}
 
-	for ki := iter.Next(); ki != nil; ki = iter.Next() {
+	for entry := entries.Next(); entry != nil; entry = entries.Next() {
 		sink.Write([]byte{byte(structs.KVSRequestType)})
-		if err := encoder.Encode(ki.(*structs.DirEntry)); err != nil {
+		if err := encoder.Encode(entry.(*structs.DirEntry)); err != nil {
 			return err
 		}
 	}
@@ -493,22 +493,22 @@ func (s *consulSnapshot) persistKVs(sink raft.SnapshotSink,
 
 func (s *consulSnapshot) persistTombstones(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	iter, err := s.state.Tombstones()
+	stones, err := s.state.Tombstones()
 	if err != nil {
 		return err
 	}
 
-	for ti := iter.Next(); ti != nil; ti = iter.Next() {
+	for stone := stones.Next(); stone != nil; stone = stones.Next() {
 		sink.Write([]byte{byte(structs.TombstoneRequestType)})
 
 		// For historical reasons, these are serialized in the snapshots
 		// as KV entries. We want to keep the snapshot format compatible
 		// with pre-0.6 versions for now.
-		stone := ti.(*state.Tombstone)
+		s := stone.(*state.Tombstone)
 		fake := &structs.DirEntry{
-			Key: stone.Key,
+			Key: s.Key,
 			RaftIndex: structs.RaftIndex{
-				ModifyIndex: stone.Index,
+				ModifyIndex: s.Index,
 			},
 		}
 		if err := encoder.Encode(fake); err != nil {
