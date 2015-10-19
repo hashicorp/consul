@@ -2248,18 +2248,27 @@ func TestStateStore_KVSList(t *testing.T) {
 	if idx != 7 {
 		t.Fatalf("bad index: %d", idx)
 	}
+
+	// List all the keys to make sure the index is also correct.
+	idx, _, err = s.KVSList("")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 7 {
+		t.Fatalf("bad index: %d", idx)
+	}
 }
 
 func TestStateStore_KVSListKeys(t *testing.T) {
 	s := testStateStore(t)
 
-	// Listing keys with no results returns nil
+	// Listing keys with no results returns nil.
 	idx, keys, err := s.KVSListKeys("", "")
 	if idx != 0 || keys != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, keys, err)
 	}
 
-	// Create some keys
+	// Create some keys.
 	testSetKey(t, s, 1, "foo", "foo")
 	testSetKey(t, s, 2, "foo/bar", "bar")
 	testSetKey(t, s, 3, "foo/bar/baz", "baz")
@@ -2268,16 +2277,31 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 	testSetKey(t, s, 6, "foo/bar/zip/zorp", "zorp")
 	testSetKey(t, s, 7, "some/other/prefix", "nack")
 
-	// Query using a prefix and pass a separator
+	// List all the keys.
+	idx, keys, err = s.KVSListKeys("", "")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(keys) != 7 {
+		t.Fatalf("bad keys: %#v", keys)
+	}
+	if idx != 7 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Query using a prefix and pass a separator.
 	idx, keys, err = s.KVSListKeys("foo/bar/", "/")
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	if len(keys) != 3 {
+		t.Fatalf("bad keys: %#v", keys)
 	}
 	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Subset of the keys was returned
+	// Subset of the keys was returned.
 	expect := []string{"foo/bar/baz", "foo/bar/zip", "foo/bar/zip/"}
 	if !reflect.DeepEqual(keys, expect) {
 		t.Fatalf("bad keys: %#v", keys)
@@ -2327,6 +2351,15 @@ func TestStateStore_KVSListKeys(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	idx, _, err = s.KVSListKeys("foo/bar/baz", "")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 9 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// List all the keys to make sure the index is also correct.
+	idx, _, err = s.KVSListKeys("", "")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

@@ -1321,13 +1321,18 @@ func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) 
 		}
 	}
 
-	// Check for the highest index in the graveyard.
-	gindex, err := s.kvsGraveyard.GetMaxIndexTxn(tx, prefix)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed graveyard lookup: %s", err)
-	}
-	if gindex > lindex {
-		lindex = gindex
+	// Check for the highest index in the graveyard. If the prefix is empty
+	// then just use the full table indexes since we are listing everything.
+	if prefix != "" {
+		gindex, err := s.kvsGraveyard.GetMaxIndexTxn(tx, prefix)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed graveyard lookup: %s", err)
+		}
+		if gindex > lindex {
+			lindex = gindex
+		}
+	} else {
+		lindex = idx
 	}
 
 	// Use the sub index if it was set and there are entries, otherwise use
@@ -1390,13 +1395,18 @@ func (s *StateStore) KVSListKeys(prefix, sep string) (uint64, []string, error) {
 		}
 	}
 
-	// Check for the highest index in the graveyard.
-	gindex, err := s.kvsGraveyard.GetMaxIndexTxn(tx, prefix)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed graveyard lookup: %s", err)
-	}
-	if gindex > lindex {
-		lindex = gindex
+	// Check for the highest index in the graveyard. If the prefix is empty
+	// then just use the full table indexes since we are listing everything.
+	if prefix != "" {
+		gindex, err := s.kvsGraveyard.GetMaxIndexTxn(tx, prefix)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed graveyard lookup: %s", err)
+		}
+		if gindex > lindex {
+			lindex = gindex
+		}
+	} else {
+		lindex = idx
 	}
 
 	// Use the sub index if it was set and there are entries, otherwise use
