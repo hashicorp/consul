@@ -445,14 +445,14 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 
 func (s *consulSnapshot) persistSessions(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	sessions, err := s.state.SessionDump()
+	iter, err := s.state.Sessions()
 	if err != nil {
 		return err
 	}
 
-	for _, s := range sessions {
+	for si := iter.Next(); si != nil; si = iter.Next() {
 		sink.Write([]byte{byte(structs.SessionRequestType)})
-		if err := encoder.Encode(s); err != nil {
+		if err := encoder.Encode(si.(*structs.Session)); err != nil {
 			return err
 		}
 	}
@@ -461,14 +461,14 @@ func (s *consulSnapshot) persistSessions(sink raft.SnapshotSink,
 
 func (s *consulSnapshot) persistACLs(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	acls, err := s.state.ACLDump()
+	iter, err := s.state.ACLs()
 	if err != nil {
 		return err
 	}
 
-	for _, s := range acls {
+	for ai := iter.Next(); ai != nil; ai = iter.Next() {
 		sink.Write([]byte{byte(structs.ACLRequestType)})
-		if err := encoder.Encode(s); err != nil {
+		if err := encoder.Encode(ai.(*structs.ACL)); err != nil {
 			return err
 		}
 	}
@@ -493,21 +493,22 @@ func (s *consulSnapshot) persistKVs(sink raft.SnapshotSink,
 
 func (s *consulSnapshot) persistTombstones(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	stones, err := s.state.TombstoneDump()
+	iter, err := s.state.Tombstones()
 	if err != nil {
 		return err
 	}
 
-	for _, s := range stones {
+	for ti := iter.Next(); ti != nil; ti = iter.Next() {
 		sink.Write([]byte{byte(structs.TombstoneRequestType)})
 
 		// For historical reasons, these are serialized in the snapshots
 		// as KV entries. We want to keep the snapshot format compatible
 		// with pre-0.6 versions for now.
+		stone := ti.(*state.Tombstone)
 		fake := &structs.DirEntry{
-			Key: s.Key,
+			Key: stone.Key,
 			RaftIndex: structs.RaftIndex{
-				ModifyIndex: s.Index,
+				ModifyIndex: stone.Index,
 			},
 		}
 		if err := encoder.Encode(fake); err != nil {

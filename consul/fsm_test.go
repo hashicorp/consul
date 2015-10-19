@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/raft"
 )
@@ -474,12 +475,19 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	func() {
 		snap := fsm2.state.Snapshot()
 		defer snap.Close()
-		dump, err := snap.TombstoneDump()
+		iter, err := snap.Tombstones()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if len(dump) != 1 {
-			t.Fatalf("bad: %#v", dump)
+		stone := iter.Next().(*state.Tombstone)
+		if stone == nil {
+			t.Fatalf("missing tombstone")
+		}
+		if stone.Key != "/remove" || stone.Index != 12 {
+			t.Fatalf("bad: %v", stone)
+		}
+		if iter.Next() != nil {
+			t.Fatalf("unexpected extra tombstones")
 		}
 	}()
 }
@@ -1015,12 +1023,12 @@ func TestFSM_TombstoneReap(t *testing.T) {
 	// Verify the tombstones are gone
 	snap := fsm.state.Snapshot()
 	defer snap.Close()
-	dump, err := snap.TombstoneDump()
+	iter, err := snap.Tombstones()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if len(dump) != 0 {
-		t.Fatalf("bad: %#v", dump)
+	if iter.Next() != nil {
+		t.Fatalf("unexpected extra tombstones")
 	}
 }
 

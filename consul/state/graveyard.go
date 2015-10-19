@@ -62,17 +62,13 @@ func (g *Graveyard) GetMaxIndexTxn(tx *memdb.Txn, prefix string) (uint64, error)
 }
 
 // DumpTxn returns all the tombstones.
-func (g *Graveyard) DumpTxn(tx *memdb.Txn) ([]*Tombstone, error) {
-	stones, err := tx.Get("tombstones", "id")
+func (g *Graveyard) DumpTxn(tx *memdb.Txn) (memdb.ResultIterator, error) {
+	iter, err := tx.Get("tombstones", "id")
 	if err != nil {
-		return nil, fmt.Errorf("failed querying tombstones: %s", err)
+		return nil, err
 	}
 
-	var dump []*Tombstone
-	for stone := stones.Next(); stone != nil; stone = stones.Next() {
-		dump = append(dump, stone.(*Tombstone))
-	}
-	return dump, nil
+	return iter, nil
 }
 
 // RestoreTxn is used when restoring from a snapshot. For general inserts, use

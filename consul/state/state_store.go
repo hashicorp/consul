@@ -156,7 +156,7 @@ func (s *StateSnapshot) Checks(node string) (memdb.ResultIterator, error) {
 	return iter, nil
 }
 
-// KVSDump is used to pull the full list of KVS entries for use during snapshots.
+// KVs is used to pull the full list of KVS entries for use during snapshots.
 func (s *StateSnapshot) KVs() (memdb.ResultIterator, error) {
 	iter, err := s.tx.Get("kvs", "id_prefix")
 	if err != nil {
@@ -165,28 +165,27 @@ func (s *StateSnapshot) KVs() (memdb.ResultIterator, error) {
 	return iter, nil
 }
 
-// TombstoneDump is used to pull all the tombstones from the graveyard.
-func (s *StateSnapshot) TombstoneDump() ([]*Tombstone, error) {
+// Tombstones is used to pull all the tombstones from the graveyard.
+func (s *StateSnapshot) Tombstones() (memdb.ResultIterator, error) {
 	return s.store.kvsGraveyard.DumpTxn(s.tx)
 }
 
-// SessionDump is used to pull the full list of sessions for use during snapshots.
-func (s *StateSnapshot) SessionDump() (structs.Sessions, error) {
-	sessions, err := s.tx.Get("sessions", "id")
+// Sessions is used to pull the full list of sessions for use during snapshots.
+func (s *StateSnapshot) Sessions() (memdb.ResultIterator, error) {
+	iter, err := s.tx.Get("sessions", "id")
 	if err != nil {
-		return nil, fmt.Errorf("failed session lookup: %s", err)
+		return nil, err
 	}
-
-	var dump structs.Sessions
-	for session := sessions.Next(); session != nil; session = sessions.Next() {
-		dump = append(dump, session.(*structs.Session))
-	}
-	return dump, nil
+	return iter, nil
 }
 
-// ACLDump is used to pull all the ACLs from the snapshot.
-func (s *StateSnapshot) ACLDump() (structs.ACLs, error) {
-	return aclListTxn(s.tx)
+// ACLs is used to pull all the ACLs from the snapshot.
+func (s *StateSnapshot) ACLs() (memdb.ResultIterator, error) {
+	iter, err := s.tx.Get("acls", "id")
+	if err != nil {
+		return nil, err
+	}
+	return iter, nil
 }
 
 // maxIndex is a helper used to retrieve the highest known index
@@ -2094,7 +2093,7 @@ func (s *StateStore) ACLList() (uint64, structs.ACLs, error) {
 	idx := maxIndexTxn(tx, s.getWatchTables("ACLList")...)
 
 	// Return the ACLs.
-	acls, err := aclListTxn(tx)
+	acls, err := s.aclListTxn(tx)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed acl lookup: %s", err)
 	}
@@ -2103,7 +2102,7 @@ func (s *StateStore) ACLList() (uint64, structs.ACLs, error) {
 
 // aclListTxn is used to list out all of the ACLs in the state store. This is a
 // function vs. a method so it can be called from the snapshotter.
-func aclListTxn(tx *memdb.Txn) (structs.ACLs, error) {
+func (s *StateStore) aclListTxn(tx *memdb.Txn) (structs.ACLs, error) {
 	// Query all of the ACLs in the state store
 	acls, err := tx.Get("acls", "id")
 	if err != nil {

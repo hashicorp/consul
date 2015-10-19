@@ -199,9 +199,13 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		dump, err := g.DumpTxn(tx)
+		iter, err := g.DumpTxn(tx)
 		if err != nil {
 			t.Fatalf("err: %s", err)
+		}
+		var dump []*Tombstone
+		for ti := iter.Next(); ti != nil; ti = iter.Next() {
+			dump = append(dump, ti.(*Tombstone))
 		}
 		return dump
 	}()
@@ -241,9 +245,13 @@ func TestGraveyard_Snapshot_Restore(t *testing.T) {
 			tx := s.db.Txn(false)
 			defer tx.Abort()
 
-			dump, err := g.DumpTxn(tx)
+			iter, err := g.DumpTxn(tx)
 			if err != nil {
 				t.Fatalf("err: %s", err)
+			}
+			var dump []*Tombstone
+			for ti := iter.Next(); ti != nil; ti = iter.Next() {
+				dump = append(dump, ti.(*Tombstone))
 			}
 			return dump
 		}()

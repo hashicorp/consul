@@ -286,12 +286,12 @@ func TestStateStore_ReapTombstones(t *testing.T) {
 	// Make sure the tombstones are actually gone.
 	snap := s.Snapshot()
 	defer snap.Close()
-	dump, err := snap.TombstoneDump()
+	iter, err := snap.Tombstones()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if len(dump) != 0 {
-		t.Fatalf("bad: %#v", dump)
+	if iter.Next() != nil {
+		t.Fatalf("unexpected extra tombstones")
 	}
 }
 
@@ -3264,9 +3264,13 @@ func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
 	}
 
 	// Verify the snapshot.
-	dump, err := snap.TombstoneDump()
+	iter, err := snap.Tombstones()
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	var dump []*Tombstone
+	for ti := iter.Next(); ti != nil; ti = iter.Next() {
+		dump = append(dump, ti.(*Tombstone))
 	}
 	if len(dump) != 1 {
 		t.Fatalf("bad %#v", dump)
@@ -3312,12 +3316,12 @@ func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
 		// But make sure the tombstone is actually gone.
 		snap := s.Snapshot()
 		defer snap.Close()
-		dump, err := snap.TombstoneDump()
+		iter, err := snap.Tombstones()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if len(dump) != 0 {
-			t.Fatalf("bad %#v", dump)
+		if iter.Next() != nil {
+			t.Fatalf("unexpected extra tombstones")
 		}
 	}()
 }
@@ -3656,9 +3660,13 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 	if idx := snap.LastIndex(); idx != 7 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	dump, err := snap.SessionDump()
+	iter, err := snap.Sessions()
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	var dump structs.Sessions
+	for si := iter.Next(); si != nil; si = iter.Next() {
+		dump = append(dump, si.(*structs.Session))
 	}
 	if !reflect.DeepEqual(dump, sessions) {
 		t.Fatalf("bad: %#v", dump)
@@ -4319,9 +4327,13 @@ func TestStateStore_ACL_Snapshot_Restore(t *testing.T) {
 	if idx := snap.LastIndex(); idx != 2 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	dump, err := snap.ACLDump()
+	iter, err := snap.ACLs()
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+	var dump structs.ACLs
+	for ai := iter.Next(); ai != nil; ai = iter.Next() {
+		dump = append(dump, ai.(*structs.ACL))
 	}
 	if !reflect.DeepEqual(dump, acls) {
 		t.Fatalf("bad: %#v", dump)

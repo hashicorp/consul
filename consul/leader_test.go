@@ -590,12 +590,15 @@ func TestLeader_ReapTombstones(t *testing.T) {
 	func() {
 		snap := state.Snapshot()
 		defer snap.Close()
-		dump, err := snap.TombstoneDump()
+		iter, err := snap.Tombstones()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		if len(dump) != 1 {
-			t.Fatalf("bad: %#v", dump)
+		if iter.Next() == nil {
+			t.Fatalf("missing tombstones")
+		}
+		if iter.Next() != nil {
+			t.Fatalf("unexpected extra tombstones")
 		}
 	}()
 
@@ -604,11 +607,11 @@ func TestLeader_ReapTombstones(t *testing.T) {
 	testutil.WaitForResult(func() (bool, error) {
 		snap := state.Snapshot()
 		defer snap.Close()
-		dump, err := snap.TombstoneDump()
+		iter, err := snap.Tombstones()
 		if err != nil {
 			return false, err
 		}
-		return len(dump) == 0, nil
+		return iter.Next() == nil, nil
 	}, func(err error) {
 		t.Fatalf("err: %v", err)
 	})
