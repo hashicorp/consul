@@ -1,6 +1,7 @@
 package state
 
 import (
+	crand "crypto/rand"
 	"fmt"
 	"reflect"
 	"sort"
@@ -10,6 +11,20 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 )
+
+func testUUID() string {
+	buf := make([]byte, 16)
+	if _, err := crand.Read(buf); err != nil {
+		panic(fmt.Errorf("failed to read random bytes: %v", err))
+	}
+
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
+		buf[0:4],
+		buf[4:6],
+		buf[6:8],
+		buf[8:10],
+		buf[10:16])
+}
 
 func testStateStore(t *testing.T) *StateStore {
 	s, err := NewStateStore(nil)
@@ -200,7 +215,7 @@ func TestStateStore_GC(t *testing.T) {
 	// Finally, try it with an expiring session.
 	testRegisterNode(t, s, 9, "node1")
 	session := &structs.Session{
-		ID:       "session1",
+		ID:       testUUID(),
 		Node:     "node1",
 		Behavior: structs.SessionKeysDelete,
 	}
@@ -214,7 +229,7 @@ func TestStateStore_GC(t *testing.T) {
 	if ok, err := s.KVSLock(11, d); !ok || err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s.SessionDestroy(12, "session1"); err != nil {
+	if err := s.SessionDestroy(12, session.ID); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	select {
@@ -2098,13 +2113,14 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 
 	// Make a real session and then lock the key to set the session.
 	testRegisterNode(t, s, 4, "node1")
-	if err := s.SessionCreate(5, &structs.Session{ID: "session1", Node: "node1"}); err != nil {
+	session := testUUID()
+	if err := s.SessionCreate(5, &structs.Session{ID: session, Node: "node1"}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	update = &structs.DirEntry{
 		Key:     "foo",
 		Value:   []byte("locked"),
-		Session: "session1",
+		Session: session,
 	}
 	ok, err := s.KVSLock(6, update)
 	if !ok || err != nil {
@@ -2122,7 +2138,7 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 	if v := string(result.Value); v != "locked" {
 		t.Fatalf("expected 'zoo', got '%s'", v)
 	}
-	if result.Session != "session1" {
+	if result.Session != session {
 		t.Fatalf("expected session, got '%s", result.Session)
 	}
 	if idx != 6 {
@@ -2150,7 +2166,7 @@ func TestStateStore_KVSSet_KVSGet(t *testing.T) {
 	if v := string(result.Value); v != "stoleit" {
 		t.Fatalf("expected 'zoo', got '%s'", v)
 	}
-	if result.Session != "session1" {
+	if result.Session != session {
 		t.Fatalf("expected session, got '%s", result.Session)
 	}
 	if idx != 7 {
@@ -2677,13 +2693,14 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 
 	// Now lock it and try the update, which should keep the session.
 	testRegisterNode(t, s, 5, "node1")
-	if err := s.SessionCreate(6, &structs.Session{ID: "session1", Node: "node1"}); err != nil {
+	session := testUUID()
+	if err := s.SessionCreate(6, &structs.Session{ID: session, Node: "node1"}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	entry = &structs.DirEntry{
 		Key:     "foo",
 		Value:   []byte("locked"),
-		Session: "session1",
+		Session: session,
 		RaftIndex: structs.RaftIndex{
 			CreateIndex: 2,
 			ModifyIndex: 4,
@@ -2712,7 +2729,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if string(entry.Value) != "locked" || entry.CreateIndex != 2 || entry.ModifyIndex != 7 ||
-		entry.Session != "session1" {
+		entry.Session != session {
 		t.Fatalf("bad entry: %#v", entry)
 	}
 	if idx != 7 {
@@ -2814,19 +2831,20 @@ func TestStateStore_KVSLock(t *testing.T) {
 	}
 
 	// Now try with a bogus session.
-	ok, err = s.KVSLock(1, &structs.DirEntry{Key: "foo", Value: []byte("foo"), Session: "nope"})
+	ok, err = s.KVSLock(1, &structs.DirEntry{Key: "foo", Value: []byte("foo"), Session: testUUID()})
 	if ok || err == nil || !strings.Contains(err.Error(), "invalid session") {
 		t.Fatalf("didn't detect invalid session: %v %s", ok, err)
 	}
 
 	// Make a real session.
 	testRegisterNode(t, s, 2, "node1")
-	if err := s.SessionCreate(3, &structs.Session{ID: "session1", Node: "node1"}); err != nil {
+	session1 := testUUID()
+	if err := s.SessionCreate(3, &structs.Session{ID: session1, Node: "node1"}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Lock and make the key at the same time.
-	ok, err = s.KVSLock(4, &structs.DirEntry{Key: "foo", Value: []byte("foo"), Session: "session1"})
+	ok, err = s.KVSLock(4, &structs.DirEntry{Key: "foo", Value: []byte("foo"), Session: session1})
 	if !ok || err != nil {
 		t.Fatalf("didn't get the lock: %v %s", ok, err)
 	}
@@ -2846,7 +2864,7 @@ func TestStateStore_KVSLock(t *testing.T) {
 
 	// Re-locking with the same session should update the value and report
 	// success.
-	ok, err = s.KVSLock(5, &structs.DirEntry{Key: "foo", Value: []byte("bar"), Session: "session1"})
+	ok, err = s.KVSLock(5, &structs.DirEntry{Key: "foo", Value: []byte("bar"), Session: session1})
 	if !ok || err != nil {
 		t.Fatalf("didn't handle locking an already-locked key: %v %s", ok, err)
 	}
@@ -2866,11 +2884,11 @@ func TestStateStore_KVSLock(t *testing.T) {
 	}
 
 	// Unlock and the re-lock.
-	ok, err = s.KVSUnlock(6, &structs.DirEntry{Key: "foo", Value: []byte("baz"), Session: "session1"})
+	ok, err = s.KVSUnlock(6, &structs.DirEntry{Key: "foo", Value: []byte("baz"), Session: session1})
 	if !ok || err != nil {
 		t.Fatalf("didn't handle unlocking a locked key: %v %s", ok, err)
 	}
-	ok, err = s.KVSLock(7, &structs.DirEntry{Key: "foo", Value: []byte("zoo"), Session: "session1"})
+	ok, err = s.KVSLock(7, &structs.DirEntry{Key: "foo", Value: []byte("zoo"), Session: session1})
 	if !ok || err != nil {
 		t.Fatalf("didn't get the lock: %v %s", ok, err)
 	}
@@ -2890,7 +2908,7 @@ func TestStateStore_KVSLock(t *testing.T) {
 
 	// Lock an existing key.
 	testSetKey(t, s, 8, "bar", "bar")
-	ok, err = s.KVSLock(9, &structs.DirEntry{Key: "bar", Value: []byte("xxx"), Session: "session1"})
+	ok, err = s.KVSLock(9, &structs.DirEntry{Key: "bar", Value: []byte("xxx"), Session: session1})
 	if !ok || err != nil {
 		t.Fatalf("didn't get the lock: %v %s", ok, err)
 	}
@@ -2909,13 +2927,14 @@ func TestStateStore_KVSLock(t *testing.T) {
 	}
 
 	// Attempting a re-lock with a different session should also fail.
-	if err := s.SessionCreate(10, &structs.Session{ID: "session2", Node: "node1"}); err != nil {
+	session2 := testUUID()
+	if err := s.SessionCreate(10, &structs.Session{ID: session2, Node: "node1"}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Re-locking should not return an error, but will report that it didn't
 	// get the lock.
-	ok, err = s.KVSLock(11, &structs.DirEntry{Key: "bar", Value: []byte("nope"), Session: "session2"})
+	ok, err = s.KVSLock(11, &structs.DirEntry{Key: "bar", Value: []byte("nope"), Session: session2})
 	if ok || err != nil {
 		t.Fatalf("didn't handle locking an already-locked key: %v %s", ok, err)
 	}
@@ -2945,20 +2964,21 @@ func TestStateStore_KVSUnlock(t *testing.T) {
 
 	// Make a real session.
 	testRegisterNode(t, s, 1, "node1")
-	if err := s.SessionCreate(2, &structs.Session{ID: "session1", Node: "node1"}); err != nil {
+	session1 := testUUID()
+	if err := s.SessionCreate(2, &structs.Session{ID: session1, Node: "node1"}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Unlock with a real session but no key should not return an error, but
 	// will report it didn't unlock anything.
-	ok, err = s.KVSUnlock(3, &structs.DirEntry{Key: "foo", Value: []byte("bar"), Session: "session1"})
+	ok, err = s.KVSUnlock(3, &structs.DirEntry{Key: "foo", Value: []byte("bar"), Session: session1})
 	if ok || err != nil {
 		t.Fatalf("didn't handle unlocking a missing key: %v %s", ok, err)
 	}
 
 	// Make a key and unlock it, without it being locked.
 	testSetKey(t, s, 4, "foo", "bar")
-	ok, err = s.KVSUnlock(5, &structs.DirEntry{Key: "foo", Value: []byte("baz"), Session: "session1"})
+	ok, err = s.KVSUnlock(5, &structs.DirEntry{Key: "foo", Value: []byte("baz"), Session: session1})
 	if ok || err != nil {
 		t.Fatalf("didn't handle unlocking a non-locked key: %v %s", ok, err)
 	}
@@ -2977,16 +2997,17 @@ func TestStateStore_KVSUnlock(t *testing.T) {
 	}
 
 	// Lock it with the first session.
-	ok, err = s.KVSLock(6, &structs.DirEntry{Key: "foo", Value: []byte("bar"), Session: "session1"})
+	ok, err = s.KVSLock(6, &structs.DirEntry{Key: "foo", Value: []byte("bar"), Session: session1})
 	if !ok || err != nil {
 		t.Fatalf("didn't get the lock: %v %s", ok, err)
 	}
 
 	// Attempt an unlock with another session.
-	if err := s.SessionCreate(7, &structs.Session{ID: "session2", Node: "node1"}); err != nil {
+	session2 := testUUID()
+	if err := s.SessionCreate(7, &structs.Session{ID: session2, Node: "node1"}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	ok, err = s.KVSUnlock(8, &structs.DirEntry{Key: "foo", Value: []byte("zoo"), Session: "session2"})
+	ok, err = s.KVSUnlock(8, &structs.DirEntry{Key: "foo", Value: []byte("zoo"), Session: session2})
 	if ok || err != nil {
 		t.Fatalf("didn't handle unlocking with the wrong session: %v %s", ok, err)
 	}
@@ -3005,7 +3026,7 @@ func TestStateStore_KVSUnlock(t *testing.T) {
 	}
 
 	// Now do the unlock with the correct session.
-	ok, err = s.KVSUnlock(9, &structs.DirEntry{Key: "foo", Value: []byte("zoo"), Session: "session1"})
+	ok, err = s.KVSUnlock(9, &structs.DirEntry{Key: "foo", Value: []byte("zoo"), Session: session1})
 	if !ok || err != nil {
 		t.Fatalf("didn't handle unlocking with the correct session: %v %s", ok, err)
 	}
@@ -3024,7 +3045,7 @@ func TestStateStore_KVSUnlock(t *testing.T) {
 	}
 
 	// Unlocking again should fail and not change anything.
-	ok, err = s.KVSUnlock(10, &structs.DirEntry{Key: "foo", Value: []byte("nope"), Session: "session1"})
+	ok, err = s.KVSUnlock(10, &structs.DirEntry{Key: "foo", Value: []byte("nope"), Session: session1})
 	if ok || err != nil {
 		t.Fatalf("didn't handle unlocking with the previous session: %v %s", ok, err)
 	}
@@ -3074,10 +3095,11 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 
 	// Make a node and session so we can test a locked key.
 	testRegisterNode(t, s, 5, "node1")
-	if err := s.SessionCreate(6, &structs.Session{ID: "session1", Node: "node1"}); err != nil {
+	session := testUUID()
+	if err := s.SessionCreate(6, &structs.Session{ID: session, Node: "node1"}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	entries[3].Session = "session1"
+	entries[3].Session = session
 	if ok, err := s.KVSLock(7, entries[3]); !ok || err != nil {
 		t.Fatalf("didn't get the lock: %v %s", ok, err)
 	}
@@ -3143,7 +3165,8 @@ func TestStateStore_KVS_Watches(t *testing.T) {
 
 	// This is used when locking down below.
 	testRegisterNode(t, s, 1, "node1")
-	if err := s.SessionCreate(2, &structs.Session{ID: "session1", Node: "node1"}); err != nil {
+	session := testUUID()
+	if err := s.SessionCreate(2, &structs.Session{ID: session, Node: "node1"}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3198,7 +3221,7 @@ func TestStateStore_KVS_Watches(t *testing.T) {
 	verifyWatch(t, s.GetKVSWatch(""), func() {
 		verifyWatch(t, s.GetKVSWatch("a"), func() {
 			verifyNoWatch(t, s.GetKVSWatch("/nope"), func() {
-				if ok, err := s.KVSLock(5, &structs.DirEntry{Key: "aaa", Session: "session1"}); !ok || err != nil {
+				if ok, err := s.KVSLock(5, &structs.DirEntry{Key: "aaa", Session: session}); !ok || err != nil {
 					t.Fatalf("ok: %v err: %s", ok, err)
 				}
 			})
@@ -3207,7 +3230,7 @@ func TestStateStore_KVS_Watches(t *testing.T) {
 	verifyWatch(t, s.GetKVSWatch(""), func() {
 		verifyWatch(t, s.GetKVSWatch("a"), func() {
 			verifyNoWatch(t, s.GetKVSWatch("/nope"), func() {
-				if ok, err := s.KVSUnlock(6, &structs.DirEntry{Key: "aaa", Session: "session1"}); !ok || err != nil {
+				if ok, err := s.KVSUnlock(6, &structs.DirEntry{Key: "aaa", Session: session}); !ok || err != nil {
 					t.Fatalf("ok: %v err: %s", ok, err)
 				}
 			})
@@ -3361,7 +3384,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	s := testStateStore(t)
 
 	// SessionGet returns nil if the session doesn't exist
-	idx, session, err := s.SessionGet("session1")
+	idx, session, err := s.SessionGet(testUUID())
 	if session != nil || err != nil {
 		t.Fatalf("expected (nil, nil), got: (%#v, %#v)", session, err)
 	}
@@ -3377,7 +3400,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 
 	// Invalid session behavior throws error
 	sess := &structs.Session{
-		ID:       "foo",
+		ID:       testUUID(),
 		Behavior: "nope",
 	}
 	err = s.SessionCreate(1, sess)
@@ -3386,7 +3409,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	}
 
 	// Registering with an unknown node is disallowed
-	sess = &structs.Session{ID: "foo"}
+	sess = &structs.Session{ID: testUUID()}
 	if err := s.SessionCreate(1, sess); err != ErrMissingNode {
 		t.Fatalf("expected %#v, got: %#v", ErrMissingNode, err)
 	}
@@ -3399,7 +3422,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	// Valid session is able to register
 	testRegisterNode(t, s, 1, "node1")
 	sess = &structs.Session{
-		ID:   "foo",
+		ID:   testUUID(),
 		Node: "node1",
 	}
 	if err := s.SessionCreate(2, sess); err != nil {
@@ -3410,7 +3433,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	}
 
 	// Retrieve the session again
-	idx, session, err = s.SessionGet("foo")
+	idx, session, err = s.SessionGet(sess.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -3421,7 +3444,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	// Ensure the session looks correct and was assigned the
 	// proper default value for session behavior.
 	expect := &structs.Session{
-		ID:       "foo",
+		ID:       sess.ID,
 		Behavior: structs.SessionKeysRelease,
 		Node:     "node1",
 		RaftIndex: structs.RaftIndex{
@@ -3435,7 +3458,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 
 	// Registering with a non-existent check is disallowed
 	sess = &structs.Session{
-		ID:     "bar",
+		ID:     testUUID(),
 		Node:   "node1",
 		Checks: []string{"check1"},
 	}
@@ -3461,7 +3484,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	defer tx.Abort()
 
 	// Check mappings were inserted
-	check, err := tx.First("session_checks", "session", "bar")
+	check, err := tx.First("session_checks", "session", sess.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -3471,14 +3494,14 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	expectCheck := &sessionCheck{
 		Node:    "node1",
 		CheckID: "check1",
-		Session: "bar",
+		Session: sess.ID,
 	}
 	if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
 		t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
 	}
 
 	// Pulling a nonexistent session gives the table index.
-	idx, session, err = s.SessionGet("nope")
+	idx, session, err = s.SessionGet(testUUID())
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -3507,17 +3530,17 @@ func TegstStateStore_SessionList(t *testing.T) {
 	// Create some sessions in the state store
 	sessions := structs.Sessions{
 		&structs.Session{
-			ID:       "session1",
+			ID:       testUUID(),
 			Node:     "node1",
 			Behavior: structs.SessionKeysDelete,
 		},
 		&structs.Session{
-			ID:       "session2",
+			ID:       testUUID(),
 			Node:     "node2",
 			Behavior: structs.SessionKeysRelease,
 		},
 		&structs.Session{
-			ID:       "session3",
+			ID:       testUUID(),
 			Node:     "node3",
 			Behavior: structs.SessionKeysDelete,
 		},
@@ -3557,21 +3580,21 @@ func TestStateStore_NodeSessions(t *testing.T) {
 	// Register some sessions with the nodes
 	sessions1 := structs.Sessions{
 		&structs.Session{
-			ID:   "session1",
+			ID:   testUUID(),
 			Node: "node1",
 		},
 		&structs.Session{
-			ID:   "session2",
+			ID:   testUUID(),
 			Node: "node1",
 		},
 	}
 	sessions2 := []*structs.Session{
 		&structs.Session{
-			ID:   "session3",
+			ID:   testUUID(),
 			Node: "node2",
 		},
 		&structs.Session{
-			ID:   "session4",
+			ID:   testUUID(),
 			Node: "node2",
 		},
 	}
@@ -3587,13 +3610,22 @@ func TestStateStore_NodeSessions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	if len(res) != len(sessions1) {
+		t.Fatalf("bad: %#v", res)
+	}
 	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Check that the returned sessions match.
-	if !reflect.DeepEqual(res, sessions1) {
+	idx, res, err = s.NodeSessions("node2")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(res) != len(sessions2) {
 		t.Fatalf("bad: %#v", res)
+	}
+	if idx != 6 {
+		t.Fatalf("bad index: %d", idx)
 	}
 }
 
@@ -3602,7 +3634,7 @@ func TestStateStore_SessionDestroy(t *testing.T) {
 
 	// Session destroy is idempotent and returns no error
 	// if the session doesn't exist.
-	if err := s.SessionDestroy(1, "nope"); err != nil {
+	if err := s.SessionDestroy(1, testUUID()); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3616,7 +3648,7 @@ func TestStateStore_SessionDestroy(t *testing.T) {
 
 	// Register a new session
 	sess := &structs.Session{
-		ID:   "session1",
+		ID:   testUUID(),
 		Node: "node1",
 	}
 	if err := s.SessionCreate(2, sess); err != nil {
@@ -3624,7 +3656,7 @@ func TestStateStore_SessionDestroy(t *testing.T) {
 	}
 
 	// Destroy the session.
-	if err := s.SessionDestroy(3, "session1"); err != nil {
+	if err := s.SessionDestroy(3, sess.ID); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3652,21 +3684,22 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 	testRegisterCheck(t, s, 4, "node1", "", "check1", structs.HealthPassing)
 
 	// Create some sessions in the state store.
+	session1 := testUUID()
 	sessions := structs.Sessions{
 		&structs.Session{
-			ID:       "session1",
+			ID:       session1,
 			Node:     "node1",
 			Behavior: structs.SessionKeysDelete,
 			Checks:   []string{"check1"},
 		},
 		&structs.Session{
-			ID:        "session2",
+			ID:        testUUID(),
 			Node:      "node2",
 			Behavior:  structs.SessionKeysRelease,
 			LockDelay: 10 * time.Second,
 		},
 		&structs.Session{
-			ID:       "session3",
+			ID:       testUUID(),
 			Node:     "node3",
 			Behavior: structs.SessionKeysDelete,
 			TTL:      "1.5s",
@@ -3683,7 +3716,7 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 	defer snap.Close()
 
 	// Alter the real state store.
-	if err := s.SessionDestroy(8, "session1"); err != nil {
+	if err := s.SessionDestroy(8, session1); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3697,10 +3730,21 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 	}
 	var dump structs.Sessions
 	for session := iter.Next(); session != nil; session = iter.Next() {
-		dump = append(dump, session.(*structs.Session))
-	}
-	if !reflect.DeepEqual(dump, sessions) {
-		t.Fatalf("bad: %#v", dump)
+		sess := session.(*structs.Session)
+		dump = append(dump, sess)
+
+		found := false
+		for i, _ := range sessions {
+			if sess.ID == sessions[i].ID {
+				if !reflect.DeepEqual(sess, sessions[i]) {
+					t.Fatalf("bad: %#v", sess)
+				}
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("bad: %#v", sess)
+		}
 	}
 
 	// Restore the sessions into a new state store.
@@ -3721,8 +3765,19 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 		if idx != 7 {
 			t.Fatalf("bad index: %d", idx)
 		}
-		if !reflect.DeepEqual(res, sessions) {
-			t.Fatalf("bad: %#v", res)
+		for _, sess := range res {
+			found := false
+			for i, _ := range sessions {
+				if sess.ID == sessions[i].ID {
+					if !reflect.DeepEqual(sess, sessions[i]) {
+						t.Fatalf("bad: %#v", sess)
+					}
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("bad: %#v", sess)
+			}
 		}
 
 		// Check that the index was updated.
@@ -3734,7 +3789,7 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 		tx := s.db.Txn(false)
 		defer tx.Abort()
 
-		check, err := tx.First("session_checks", "session", "session1")
+		check, err := tx.First("session_checks", "session", session1)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -3744,7 +3799,7 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 		expectCheck := &sessionCheck{
 			Node:    "node1",
 			CheckID: "check1",
-			Session: "session1",
+			Session: session1,
 		}
 		if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
 			t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
@@ -3760,28 +3815,29 @@ func TestStateStore_Session_Watches(t *testing.T) {
 
 	// This just covers the basics. The session invalidation tests above
 	// cover the more nuanced multiple table watches.
+	session := testUUID()
 	verifyWatch(t, s.getTableWatch("sessions"), func() {
-		session := &structs.Session{
-			ID:       "session1",
+		sess := &structs.Session{
+			ID:       session,
 			Node:     "node1",
 			Behavior: structs.SessionKeysDelete,
 		}
-		if err := s.SessionCreate(2, session); err != nil {
+		if err := s.SessionCreate(2, sess); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	})
 	verifyWatch(t, s.getTableWatch("sessions"), func() {
-		if err := s.SessionDestroy(3, "session1"); err != nil {
+		if err := s.SessionDestroy(3, session); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	})
 	verifyWatch(t, s.getTableWatch("sessions"), func() {
-		session := &structs.Session{
-			ID:       "session1",
+		sess := &structs.Session{
+			ID:       session,
 			Node:     "node1",
 			Behavior: structs.SessionKeysDelete,
 		}
-		if err := s.SessionRestore(session); err != nil {
+		if err := s.SessionRestore(sess); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	})
@@ -3795,7 +3851,7 @@ func TestStateStore_Session_Invalidate_DeleteNode(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{
-		ID:   "session1",
+		ID:   testUUID(),
 		Node: "foo",
 	}
 	if err := s.SessionCreate(14, session); err != nil {
@@ -3845,7 +3901,7 @@ func TestStateStore_Session_Invalidate_DeleteService(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{
-		ID:     "session1",
+		ID:     testUUID(),
 		Node:   "foo",
 		Checks: []string{"api"},
 	}
@@ -3893,7 +3949,7 @@ func TestStateStore_Session_Invalidate_Critical_Check(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{
-		ID:     "session1",
+		ID:     testUUID(),
 		Node:   "foo",
 		Checks: []string{"bar"},
 	}
@@ -3940,7 +3996,7 @@ func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{
-		ID:     "session1",
+		ID:     testUUID(),
 		Node:   "foo",
 		Checks: []string{"bar"},
 	}
@@ -3989,7 +4045,7 @@ func TestStateStore_Session_Invalidate_Key_Unlock_Behavior(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{
-		ID:        "session1",
+		ID:        testUUID(),
 		Node:      "foo",
 		LockDelay: 50 * time.Millisecond,
 	}
@@ -4068,7 +4124,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{
-		ID:        "session1",
+		ID:        testUUID(),
 		Node:      "foo",
 		LockDelay: 50 * time.Millisecond,
 		Behavior:  structs.SessionKeysDelete,

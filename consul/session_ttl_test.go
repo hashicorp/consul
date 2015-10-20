@@ -53,7 +53,7 @@ func TestResetSessionTimer_Fault(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Should not exist
-	err := s1.resetSessionTimer("nope", nil)
+	err := s1.resetSessionTimer(generateUUID(), nil)
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Fatalf("err: %v", err)
 	}
