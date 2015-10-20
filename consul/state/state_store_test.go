@@ -3480,24 +3480,51 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Register a session against two checks.
+	testRegisterCheck(t, s, 5, "node1", "", "check2", structs.HealthPassing)
+	sess2 := &structs.Session{
+		ID:     testUUID(),
+		Node:   "node1",
+		Checks: []string{"check1", "check2"},
+	}
+	if err := s.SessionCreate(6, sess2); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Check mappings were inserted
-	check, err := tx.First("session_checks", "session", sess.ID)
+	{
+		check, err := tx.First("session_checks", "session", sess.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if check == nil {
+			t.Fatalf("missing session check")
+		}
+		expectCheck := &sessionCheck{
+			Node:    "node1",
+			CheckID: "check1",
+			Session: sess.ID,
+		}
+		if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
+			t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
+		}
+	}
+	checks, err := tx.Get("session_checks", "session", sess2.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if check == nil {
-		t.Fatalf("missing session check")
-	}
-	expectCheck := &sessionCheck{
-		Node:    "node1",
-		CheckID: "check1",
-		Session: sess.ID,
-	}
-	if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
-		t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
+	for i, check := 0, checks.Next(); check != nil; i, check = i+1, checks.Next() {
+		expectCheck := &sessionCheck{
+			Node:    "node1",
+			CheckID: fmt.Sprintf("check%d", i+1),
+			Session: sess2.ID,
+		}
+		if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
+			t.Fatalf("expected %#v, got: %#v", expectCheck, actual)
+		}
 	}
 
 	// Pulling a nonexistent session gives the table index.
@@ -3508,7 +3535,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	if session != nil {
 		t.Fatalf("expected not to get a session: %v", session)
 	}
-	if idx != 5 {
+	if idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
 }

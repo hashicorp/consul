@@ -318,7 +318,7 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 			"session": &memdb.IndexSchema{
 				Name:         "session",
 				AllowMissing: false,
-				Unique:       true,
+				Unique:       false,
 				Indexer: &memdb.UUIDFieldIndex{
 					Field:     "Session",
 				},
