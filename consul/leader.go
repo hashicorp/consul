@@ -377,7 +377,7 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 	state := s.fsm.State()
 	_, node, err := state.GetNode(member.Name)
 	if err != nil {
-		return fmt.Errorf("failed to lookup node %s: %s", member.Name, err)
+		return err
 	}
 	if node != nil && node.Address == member.Addr.String() {
 		// Check if the associated service is available
@@ -439,7 +439,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 	state := s.fsm.State()
 	_, node, err := state.GetNode(member.Name)
 	if err != nil {
-		return fmt.Errorf("failed to lookup node %s: %s", member.Name, err)
+		return err
 	}
 	if node != nil && node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
@@ -506,7 +506,7 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 	state := s.fsm.State()
 	_, node, err := state.GetNode(member.Name)
 	if err != nil {
-		return fmt.Errorf("failed to lookup node %s: %s", member.Name, err)
+		return err
 	}
 	if node == nil {
 		return nil
