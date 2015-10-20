@@ -121,6 +121,36 @@ func testSetKey(t *testing.T, s *StateStore, idx uint64, key, value string) {
 	}
 }
 
+func TestStateStore_Restore_Abort(t *testing.T) {
+	s := testStateStore(t)
+
+	// The detailed restore functions are tested below, this just checks
+	// that abort works.
+	restore := s.Restore()
+	entry := &structs.DirEntry{
+		Key:       "foo",
+		Value:     []byte("bar"),
+		RaftIndex: structs.RaftIndex{
+			ModifyIndex: 5,
+		},
+	}
+	if err := restore.KVS(entry); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	restore.Abort()
+
+	idx, entries, err := s.KVSList("")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("bad: %#v", entries)
+	}
+}
+
 func TestStateStore_maxIndex(t *testing.T) {
 	s := testStateStore(t)
 
@@ -487,6 +517,144 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 	}()
 }
 
+func TestStateStore_EnsureRegistration_Restore(t *testing.T) {
+	s := testStateStore(t)
+
+	// Start with just a node.
+	req := &structs.RegisterRequest{
+		Node:    "node1",
+		Address: "1.2.3.4",
+	}
+	restore := s.Restore()
+	if err := restore.Registration(1, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	restore.Commit()
+
+	// Retrieve the node and verify its contents.
+	verifyNode := func(created, modified uint64) {
+		_, out, err := s.GetNode("node1")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if out.Node != "node1" || out.Address != "1.2.3.4" ||
+			out.CreateIndex != created || out.ModifyIndex != modified {
+			t.Fatalf("bad node returned: %#v", out)
+		}
+	}
+	verifyNode(1, 1)
+
+	// Add in a service definition.
+	req.Service = &structs.NodeService{
+		ID:      "redis1",
+		Service: "redis",
+		Address: "1.1.1.1",
+		Port:    8080,
+	}
+	restore = s.Restore()
+	if err := restore.Registration(2, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	restore.Commit()
+
+	// Verify that the service got registered.
+	verifyService := func(created, modified uint64) {
+		idx, out, err := s.NodeServices("node1")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != modified {
+			t.Fatalf("bad index: %d", idx)
+		}
+		if len(out.Services) != 1 {
+			t.Fatalf("bad: %#v", out.Services)
+		}
+		s := out.Services["redis1"]
+		if s.ID != "redis1" || s.Service != "redis" ||
+			s.Address != "1.1.1.1" || s.Port != 8080 ||
+			s.CreateIndex != created || s.ModifyIndex != modified {
+			t.Fatalf("bad service returned: %#v", s)
+		}
+	}
+	verifyNode(1, 2)
+	verifyService(2, 2)
+
+	// Add in a top-level check.
+	req.Check = &structs.HealthCheck{
+		Node:    "node1",
+		CheckID: "check1",
+		Name:    "check",
+	}
+	restore = s.Restore()
+	if err := restore.Registration(3, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	restore.Commit()
+
+	// Verify that the check got registered.
+	verifyCheck := func(created, modified uint64) {
+		idx, out, err := s.NodeChecks("node1")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != modified {
+			t.Fatalf("bad index: %d", idx)
+		}
+		if len(out) != 1 {
+			t.Fatalf("bad: %#v", out)
+		}
+		c := out[0]
+		if c.Node != "node1" || c.CheckID != "check1" || c.Name != "check" ||
+			c.CreateIndex != created || c.ModifyIndex != modified {
+			t.Fatalf("bad check returned: %#v", c)
+		}
+	}
+	verifyNode(1, 3)
+	verifyService(2, 3)
+	verifyCheck(3, 3)
+
+	// Add in another check via the slice.
+	req.Checks = structs.HealthChecks{
+		&structs.HealthCheck{
+			Node:    "node1",
+			CheckID: "check2",
+			Name:    "check",
+		},
+	}
+	restore = s.Restore()
+	if err := restore.Registration(4, req); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	restore.Commit()
+
+	// Verify that the additional check got registered.
+	verifyNode(1, 4)
+	verifyService(2, 4)
+	func() {
+		idx, out, err := s.NodeChecks("node1")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != 4 {
+			t.Fatalf("bad index: %d", idx)
+		}
+		if len(out) != 2 {
+			t.Fatalf("bad: %#v", out)
+		}
+		c1 := out[0]
+		if c1.Node != "node1" || c1.CheckID != "check1" || c1.Name != "check" ||
+			c1.CreateIndex != 3 || c1.ModifyIndex != 4 {
+			t.Fatalf("bad check returned: %#v", c1)
+		}
+
+		c2 := out[1]
+		if c2.Node != "node1" || c2.CheckID != "check2" || c2.Name != "check" ||
+			c2.CreateIndex != 4 || c2.ModifyIndex != 4 {
+			t.Fatalf("bad check returned: %#v", c2)
+		}
+	}()
+}
+
 func TestStateStore_EnsureRegistration_Watches(t *testing.T) {
 	s := testStateStore(t)
 
@@ -502,6 +670,18 @@ func TestStateStore_EnsureRegistration_Watches(t *testing.T) {
 				if err := s.EnsureRegistration(1, req); err != nil {
 					t.Fatalf("err: %s", err)
 				}
+			})
+		})
+	})
+	// The nodes watch should fire for this one.
+	verifyWatch(t, s.getTableWatch("nodes"), func() {
+		verifyNoWatch(t, s.getTableWatch("services"), func() {
+			verifyNoWatch(t, s.getTableWatch("checks"), func() {
+				restore := s.Restore()
+				if err := restore.Registration(1, req); err != nil {
+					t.Fatalf("err: %s", err)
+				}
+				restore.Commit()
 			})
 		})
 	})
@@ -523,6 +703,17 @@ func TestStateStore_EnsureRegistration_Watches(t *testing.T) {
 			})
 		})
 	})
+	verifyWatch(t, s.getTableWatch("nodes"), func() {
+		verifyWatch(t, s.getTableWatch("services"), func() {
+			verifyNoWatch(t, s.getTableWatch("checks"), func() {
+				restore := s.Restore()
+				if err := restore.Registration(2, req); err != nil {
+					t.Fatalf("err: %s", err)
+				}
+				restore.Commit()
+			})
+		})
+	})
 
 	// Now with a check it should hit all three.
 	req.Check = &structs.HealthCheck{
@@ -536,6 +727,17 @@ func TestStateStore_EnsureRegistration_Watches(t *testing.T) {
 				if err := s.EnsureRegistration(3, req); err != nil {
 					t.Fatalf("err: %s", err)
 				}
+			})
+		})
+	})
+	verifyWatch(t, s.getTableWatch("nodes"), func() {
+		verifyWatch(t, s.getTableWatch("services"), func() {
+			verifyWatch(t, s.getTableWatch("checks"), func() {
+				restore := s.Restore()
+				if err := restore.Registration(3, req); err != nil {
+					t.Fatalf("err: %s", err)
+				}
+				restore.Commit()
 			})
 		})
 	})
@@ -3135,11 +3337,13 @@ func TestStateStore_KVS_Snapshot_Restore(t *testing.T) {
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
+		restore := s.Restore()
 		for _, entry := range dump {
-			if err := s.KVSRestore(entry); err != nil {
+			if err := restore.KVS(entry); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 		}
+		restore.Commit()
 
 		// Read the restored keys back out and verify they match.
 		idx, res, err := s.KVSList("")
@@ -3191,15 +3395,21 @@ func TestStateStore_KVS_Watches(t *testing.T) {
 			})
 		})
 	})
+
+	// Restore just fires off a top-level watch, so we should get hits on
+	// any prefix, including ones for keys that aren't in there.
 	verifyWatch(t, s.GetKVSWatch(""), func() {
 		verifyWatch(t, s.GetKVSWatch("b"), func() {
-			verifyNoWatch(t, s.GetKVSWatch("/nope"), func() {
-				if err := s.KVSRestore(&structs.DirEntry{Key: "bbb"}); err != nil {
+			verifyWatch(t, s.GetKVSWatch("/nope"), func() {
+				restore := s.Restore()
+				if err := restore.KVS(&structs.DirEntry{Key: "bbb"}); err != nil {
 					t.Fatalf("err: %s", err)
 				}
+				restore.Commit()
 			})
 		})
 	})
+
 	verifyWatch(t, s.GetKVSWatch(""), func() {
 		verifyWatch(t, s.GetKVSWatch("a"), func() {
 			verifyNoWatch(t, s.GetKVSWatch("/nope"), func() {
@@ -3337,12 +3547,13 @@ func TestStateStore_Tombstone_Snapshot_Restore(t *testing.T) {
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
-
+		restore := s.Restore()
 		for _, stone := range dump {
-			if err := s.TombstoneRestore(stone); err != nil {
+			if err := restore.Tombstone(stone); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 		}
+		restore.Commit()
 
 		// See if the stone works properly in a list query.
 		idx, _, err := s.KVSList("foo/bar")
@@ -3777,11 +3988,13 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 	// Restore the sessions into a new state store.
 	func() {
 		s := testStateStore(t)
+		restore := s.Restore()
 		for _, session := range dump {
-			if err := s.SessionRestore(session); err != nil {
+			if err := restore.Session(session); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 		}
+		restore.Commit()
 
 		// Read the restored sessions back out and verify that they
 		// match.
@@ -3859,14 +4072,16 @@ func TestStateStore_Session_Watches(t *testing.T) {
 		}
 	})
 	verifyWatch(t, s.getTableWatch("sessions"), func() {
+		restore := s.Restore()
 		sess := &structs.Session{
 			ID:       session,
 			Node:     "node1",
 			Behavior: structs.SessionKeysDelete,
 		}
-		if err := s.SessionRestore(sess); err != nil {
+		if err := restore.Session(sess); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		restore.Commit()
 	})
 }
 
@@ -4456,11 +4671,13 @@ func TestStateStore_ACL_Snapshot_Restore(t *testing.T) {
 	// Restore the values into a new state store.
 	func() {
 		s := testStateStore(t)
+		restore := s.Restore()
 		for _, acl := range dump {
-			if err := s.ACLRestore(acl); err != nil {
+			if err := restore.ACL(acl); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 		}
+		restore.Commit()
 
 		// Read the restored ACLs back out and verify that they match.
 		idx, res, err := s.ACLList()
@@ -4497,8 +4714,10 @@ func TestStateStore_ACL_Watches(t *testing.T) {
 		}
 	})
 	verifyWatch(t, s.getTableWatch("acls"), func() {
-		if err := s.ACLRestore(&structs.ACL{ID: "acl1"}); err != nil {
+		restore := s.Restore()
+		if err := restore.ACL(&structs.ACL{ID: "acl1"}); err != nil {
 			t.Fatalf("err: %s", err)
 		}
+		restore.Commit()
 	})
 }

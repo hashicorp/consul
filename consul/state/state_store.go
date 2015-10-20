@@ -57,6 +57,14 @@ type StateSnapshot struct {
 	lastIndex uint64
 }
 
+// StateRestore is used to efficiently manage restoring a large amount of
+// data to a state store.
+type StateRestore struct {
+	store   *StateStore
+	tx      *memdb.Txn
+	watches *DumbWatchManager
+}
+
 // IndexEntry keeps a record of the last index per-table.
 type IndexEntry struct {
 	Key   string
@@ -188,6 +196,109 @@ func (s *StateSnapshot) ACLs() (memdb.ResultIterator, error) {
 	return iter, nil
 }
 
+// Restore is used to efficiently manage restoring a large amount of data into
+// the state store. It works by doing all the restores inside of a single
+// transaction.
+func (s *StateStore) Restore() *StateRestore {
+	tx := s.db.Txn(true)
+	watches := NewDumbWatchManager(s.tableWatches)
+	return &StateRestore{s, tx, watches}
+}
+
+// Abort abandons the changes made by a restore. This or Commit should always be
+// called.
+func (s *StateRestore) Abort() {
+	s.tx.Abort()
+}
+
+// Commit commits the changes made by a restore. This or Abort should always be
+// called.
+func (s *StateRestore) Commit() {
+	// Fire off a single KVS watch instead of a zillion prefix ones, and use
+	// a dumb watch manager to single-fire all the full table watches.
+	s.tx.Defer(func() { s.store.kvsWatch.Notify("", true) })
+	s.tx.Defer(func() { s.watches.Notify() })
+
+	s.tx.Commit()
+}
+
+// Registration is used to make sure a node, service, and check registration is
+// performed within a single transaction to avoid race conditions on state
+// updates.
+func (s *StateRestore) Registration(idx uint64, req *structs.RegisterRequest) error {
+	if err := s.store.ensureRegistrationTxn(s.tx, idx, s.watches, req); err != nil {
+		return err
+	}
+	return nil
+}
+
+// KVS is used when restoring from a snapshot. Use KVSSet for general inserts.
+func (s *StateRestore) KVS(entry *structs.DirEntry) error {
+	if err := s.tx.Insert("kvs", entry); err != nil {
+		return fmt.Errorf("failed inserting kvs entry: %s", err)
+	}
+
+	if err := indexUpdateMaxTxn(s.tx, entry.ModifyIndex, "kvs"); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	// We have a single top-level KVS watch trigger instead of doing
+	// tons of prefix watches.
+	return nil
+}
+
+// Tombstone is used when restoring from a snapshot. For general inserts, use
+// Graveyard.InsertTxn.
+func (s *StateRestore) Tombstone(stone *Tombstone) error {
+	if err := s.store.kvsGraveyard.RestoreTxn(s.tx, stone); err != nil {
+		return fmt.Errorf("failed restoring tombstone: %s", err)
+	}
+	return nil
+}
+
+// Session is used when restoring from a snapshot. For general inserts, use
+// SessionCreate.
+func (s *StateRestore) Session(sess *structs.Session) error {
+	// Insert the session.
+	if err := s.tx.Insert("sessions", sess); err != nil {
+		return fmt.Errorf("failed inserting session: %s", err)
+	}
+
+	// Insert the check mappings.
+	for _, checkID := range sess.Checks {
+		mapping := &sessionCheck{
+			Node:    sess.Node,
+			CheckID: checkID,
+			Session: sess.ID,
+		}
+		if err := s.tx.Insert("session_checks", mapping); err != nil {
+			return fmt.Errorf("failed inserting session check mapping: %s", err)
+		}
+	}
+
+	// Update the index.
+	if err := indexUpdateMaxTxn(s.tx, sess.ModifyIndex, "sessions"); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	s.watches.Arm("sessions")
+	return nil
+}
+
+// ACL is used when restoring from a snapshot. For general inserts, use ACLSet.
+func (s *StateRestore) ACL(acl *structs.ACL) error {
+	if err := s.tx.Insert("acls", acl); err != nil {
+		return fmt.Errorf("failed restoring acl: %s", err)
+	}
+
+	if err := indexUpdateMaxTxn(s.tx, acl.ModifyIndex, "acls"); err != nil {
+		return fmt.Errorf("failed updating index: %s", err)
+	}
+
+	s.watches.Arm("acls")
+	return nil
+}
+
 // maxIndex is a helper used to retrieve the highest known index
 // amongst a set of tables in the db.
 func (s *StateStore) maxIndex(tables ...string) uint64 {
@@ -311,32 +422,46 @@ func (s *StateStore) EnsureRegistration(idx uint64, req *structs.RegisterRequest
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
+	watches := NewDumbWatchManager(s.tableWatches)
+	if err := s.ensureRegistrationTxn(tx, idx, watches, req); err != nil {
+		return err
+	}
+
+	tx.Defer(func() { watches.Notify() })
+	tx.Commit()
+	return nil
+}
+
+// ensureRegistrationTxn is used to make sure a node, service, and check
+// registration is performed within a single transaction to avoid race
+// conditions on state updates.
+func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
+	req *structs.RegisterRequest) error {
 	// Add the node.
 	node := &structs.Node{Node: req.Node, Address: req.Address}
-	if err := s.ensureNodeTxn(tx, idx, node); err != nil {
+	if err := s.ensureNodeTxn(tx, idx, watches, node); err != nil {
 		return fmt.Errorf("failed inserting node: %s", err)
 	}
 
 	// Add the service, if any.
 	if req.Service != nil {
-		if err := s.ensureServiceTxn(tx, idx, req.Node, req.Service); err != nil {
+		if err := s.ensureServiceTxn(tx, idx, watches, req.Node, req.Service); err != nil {
 			return fmt.Errorf("failed inserting service: %s", err)
 		}
 	}
 
 	// Add the checks, if any.
 	if req.Check != nil {
-		if err := s.ensureCheckTxn(tx, idx, req.Check); err != nil {
+		if err := s.ensureCheckTxn(tx, idx, watches, req.Check); err != nil {
 			return fmt.Errorf("failed inserting check: %s", err)
 		}
 	}
 	for _, check := range req.Checks {
-		if err := s.ensureCheckTxn(tx, idx, check); err != nil {
+		if err := s.ensureCheckTxn(tx, idx, watches, check); err != nil {
 			return fmt.Errorf("failed inserting check: %s", err)
 		}
 	}
 
-	tx.Commit()
 	return nil
 }
 
@@ -346,10 +471,12 @@ func (s *StateStore) EnsureNode(idx uint64, node *structs.Node) error {
 	defer tx.Abort()
 
 	// Call the node upsert
-	if err := s.ensureNodeTxn(tx, idx, node); err != nil {
+	watches := NewDumbWatchManager(s.tableWatches)
+	if err := s.ensureNodeTxn(tx, idx, watches, node); err != nil {
 		return err
 	}
 
+	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
@@ -357,7 +484,8 @@ func (s *StateStore) EnsureNode(idx uint64, node *structs.Node) error {
 // ensureNodeTxn is the inner function called to actually create a node
 // registration or modify an existing one in the state store. It allows
 // passing in a memdb transaction so it may be part of a larger txn.
-func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node) error {
+func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
+	node *structs.Node) error {
 	// Check for an existing node
 	existing, err := tx.First("nodes", "id", node.Node)
 	if err != nil {
@@ -381,7 +509,7 @@ func (s *StateStore) ensureNodeTxn(tx *memdb.Txn, idx uint64, node *structs.Node
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["nodes"].Notify() })
+	watches.Arm("nodes")
 	return nil
 }
 
@@ -527,17 +655,20 @@ func (s *StateStore) EnsureService(idx uint64, node string, svc *structs.NodeSer
 	defer tx.Abort()
 
 	// Call the service registration upsert
-	if err := s.ensureServiceTxn(tx, idx, node, svc); err != nil {
+	watches := NewDumbWatchManager(s.tableWatches)
+	if err := s.ensureServiceTxn(tx, idx, watches, node, svc); err != nil {
 		return err
 	}
 
+	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
 
 // ensureServiceTxn is used to upsert a service registration within an
 // existing memdb transaction.
-func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, svc *structs.NodeService) error {
+func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
+	node string, svc *structs.NodeService) error {
 	// Check for existing service
 	existing, err := tx.First("services", "id", node, svc.ID)
 	if err != nil {
@@ -572,7 +703,7 @@ func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, node string, sv
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["services"].Notify() })
+	watches.Arm("services")
 	return nil
 }
 
@@ -819,10 +950,12 @@ func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 	defer tx.Abort()
 
 	// Call the check registration
-	if err := s.ensureCheckTxn(tx, idx, hc); err != nil {
+	watches := NewDumbWatchManager(s.tableWatches)
+	if err := s.ensureCheckTxn(tx, idx, watches, hc); err != nil {
 		return err
 	}
 
+	tx.Defer(func() { watches.Notify() })
 	tx.Commit()
 	return nil
 }
@@ -830,7 +963,8 @@ func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 // ensureCheckTransaction is used as the inner method to handle inserting
 // a health check into the state store. It ensures safety against inserting
 // checks with no matching node or service.
-func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.HealthCheck) error {
+func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
+	hc *structs.HealthCheck) error {
 	// Check if we have an existing health check
 	existing, err := tx.First("checks", "id", hc.Node, hc.CheckID)
 	if err != nil {
@@ -906,7 +1040,7 @@ func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, hc *structs.Healt
 		return fmt.Errorf("failed updating index: %s", err)
 	}
 
-	tx.Defer(func() { s.tableWatches["checks"].Notify() })
+	watches.Arm("checks")
 	return nil
 }
 
@@ -1680,39 +1814,6 @@ func (s *StateStore) KVSUnlock(idx uint64, entry *structs.DirEntry) (bool, error
 	return true, nil
 }
 
-// KVSRestore is used when restoring from a snapshot. Use KVSSet for general
-// inserts.
-func (s *StateStore) KVSRestore(entry *structs.DirEntry) error {
-	tx := s.db.Txn(true)
-	defer tx.Abort()
-
-	if err := tx.Insert("kvs", entry); err != nil {
-		return fmt.Errorf("failed inserting kvs entry: %s", err)
-	}
-
-	if err := indexUpdateMaxTxn(tx, entry.ModifyIndex, "kvs"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-
-	tx.Defer(func() { s.kvsWatch.Notify(entry.Key, false) })
-	tx.Commit()
-	return nil
-}
-
-// Tombstone is used when restoring from a snapshot. For general inserts, use
-// Graveyard.InsertTxn.
-func (s *StateStore) TombstoneRestore(stone *Tombstone) error {
-	tx := s.db.Txn(true)
-	defer tx.Abort()
-
-	if err := s.kvsGraveyard.RestoreTxn(tx, stone); err != nil {
-		return fmt.Errorf("failed restoring tombstone: %s", err)
-	}
-
-	tx.Commit()
-	return nil
-}
-
 // SessionCreate is used to register a new session in the state store.
 func (s *StateStore) SessionCreate(idx uint64, sess *structs.Session) error {
 	tx := s.db.Txn(true)
@@ -1990,39 +2091,6 @@ func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 	return nil
 }
 
-// SessionRestore is used when restoring from a snapshot. For general inserts,
-// use SessionCreate.
-func (s *StateStore) SessionRestore(sess *structs.Session) error {
-	tx := s.db.Txn(true)
-	defer tx.Abort()
-
-	// Insert the session.
-	if err := tx.Insert("sessions", sess); err != nil {
-		return fmt.Errorf("failed inserting session: %s", err)
-	}
-
-	// Insert the check mappings.
-	for _, checkID := range sess.Checks {
-		mapping := &sessionCheck{
-			Node:    sess.Node,
-			CheckID: checkID,
-			Session: sess.ID,
-		}
-		if err := tx.Insert("session_checks", mapping); err != nil {
-			return fmt.Errorf("failed inserting session check mapping: %s", err)
-		}
-	}
-
-	// Update the index.
-	if err := indexUpdateMaxTxn(tx, sess.ModifyIndex, "sessions"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-
-	tx.Defer(func() { s.tableWatches["sessions"].Notify() })
-	tx.Commit()
-	return nil
-}
-
 // ACLSet is used to insert an ACL rule into the state store.
 func (s *StateStore) ACLSet(idx uint64, acl *structs.ACL) error {
 	tx := s.db.Txn(true)
@@ -2161,24 +2229,5 @@ func (s *StateStore) aclDeleteTxn(tx *memdb.Txn, idx uint64, aclID string) error
 	}
 
 	tx.Defer(func() { s.tableWatches["acls"].Notify() })
-	return nil
-}
-
-// ACLRestore is used when restoring from a snapshot. For general inserts, use
-// ACLSet.
-func (s *StateStore) ACLRestore(acl *structs.ACL) error {
-	tx := s.db.Txn(true)
-	defer tx.Abort()
-
-	if err := tx.Insert("acls", acl); err != nil {
-		return fmt.Errorf("failed restoring acl: %s", err)
-	}
-
-	if err := indexUpdateMaxTxn(tx, acl.ModifyIndex, "acls"); err != nil {
-		return fmt.Errorf("failed updating index: %s", err)
-	}
-
-	tx.Defer(func() { s.tableWatches["acls"].Notify() })
-	tx.Commit()
 	return nil
 }

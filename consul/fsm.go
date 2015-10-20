@@ -78,7 +78,7 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 
 	switch msgType {
 	case structs.RegisterRequestType:
-		return c.decodeRegister(buf[1:], log.Index)
+		return c.applyRegister(buf[1:], log.Index)
 	case structs.DeregisterRequestType:
 		return c.applyDeregister(buf[1:], log.Index)
 	case structs.KVSRequestType:
@@ -99,18 +99,15 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 	}
 }
 
-func (c *consulFSM) decodeRegister(buf []byte, index uint64) interface{} {
+func (c *consulFSM) applyRegister(buf []byte, index uint64) interface{} {
+	defer metrics.MeasureSince([]string{"consul", "fsm", "register"}, time.Now())
 	var req structs.RegisterRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	return c.applyRegister(&req, index)
-}
 
-func (c *consulFSM) applyRegister(req *structs.RegisterRequest, index uint64) interface{} {
 	// Apply all updates in a single transaction
-	defer metrics.MeasureSince([]string{"consul", "fsm", "register"}, time.Now())
-	if err := c.state.EnsureRegistration(index, req); err != nil {
+	if err := c.state.EnsureRegistration(index, &req); err != nil {
 		c.logger.Printf("[INFO] consul.fsm: EnsureRegistration failed: %v", err)
 		return err
 	}
@@ -267,6 +264,10 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 	}
 	c.state = stateNew
 
+	// Set up a new restore transaction
+	restore := c.state.Restore()
+	defer restore.Abort()
+
 	// Create a decoder
 	dec := codec.NewDecoder(old, msgpackHandle)
 
@@ -294,32 +295,16 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 			if err := dec.Decode(&req); err != nil {
 				return err
 			}
-			c.applyRegister(&req, header.LastIndex)
+			if err := restore.Registration(header.LastIndex, &req); err != nil {
+				return err
+			}
 
 		case structs.KVSRequestType:
 			var req structs.DirEntry
 			if err := dec.Decode(&req); err != nil {
 				return err
 			}
-			if err := c.state.KVSRestore(&req); err != nil {
-				return err
-			}
-
-		case structs.SessionRequestType:
-			var req structs.Session
-			if err := dec.Decode(&req); err != nil {
-				return err
-			}
-			if err := c.state.SessionRestore(&req); err != nil {
-				return err
-			}
-
-		case structs.ACLRequestType:
-			var req structs.ACL
-			if err := dec.Decode(&req); err != nil {
-				return err
-			}
-			if err := c.state.ACLRestore(&req); err != nil {
+			if err := restore.KVS(&req); err != nil {
 				return err
 			}
 
@@ -336,7 +321,25 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 				Key:   req.Key,
 				Index: req.ModifyIndex,
 			}
-			if err := c.state.TombstoneRestore(stone); err != nil {
+			if err := restore.Tombstone(stone); err != nil {
+				return err
+			}
+
+		case structs.SessionRequestType:
+			var req structs.Session
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := restore.Session(&req); err != nil {
+				return err
+			}
+
+		case structs.ACLRequestType:
+			var req structs.ACL
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := restore.ACL(&req); err != nil {
 				return err
 			}
 
@@ -345,6 +348,7 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 		}
 	}
 
+	restore.Commit()
 	return nil
 }
 
