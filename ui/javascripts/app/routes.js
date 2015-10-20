@@ -379,6 +379,9 @@ App.SettingsRoute = App.BaseRoute.extend({
 
 // Adds any global parameters we need to set to a url/path
 function formatUrl(url, dc, token) {
+  if (token == null) {
+    token = "";
+  }
   if (url.indexOf("?") > 0) {
     // If our url has existing params
     url = url + "&dc=" + dc;
