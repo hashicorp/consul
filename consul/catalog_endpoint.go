@@ -119,13 +119,19 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		return err
 	}
 
-	// Get the local state
+	// Get the list of nodes.
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.QueryOptions,
+	return c.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("Nodes"),
+		state.GetQueryWatch("Nodes"),
 		func() error {
-			reply.Index, reply.Nodes = state.Nodes()
+			index, nodes, err := state.Nodes()
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Nodes = index, nodes
 			return nil
 		})
 }
@@ -136,13 +142,19 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
-	// Get the current nodes
+	// Get the list of services and their tags.
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.QueryOptions,
+	return c.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("Services"),
+		state.GetQueryWatch("Services"),
 		func() error {
-			reply.Index, reply.Services = state.Services()
+			index, services, err := state.Services()
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Services = index, services
 			return c.srv.filterACL(args.Token, reply)
 		})
 }
@@ -160,15 +172,23 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 	// Get the nodes
 	state := c.srv.fsm.State()
-	err := c.srv.blockingRPC(&args.QueryOptions,
+	err := c.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("ServiceNodes"),
+		state.GetQueryWatch("ServiceNodes"),
 		func() error {
+			var index uint64
+			var services structs.ServiceNodes
+			var err error
 			if args.TagFilter {
-				reply.Index, reply.ServiceNodes = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
+				index, services, err = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
 			} else {
-				reply.Index, reply.ServiceNodes = state.ServiceNodes(args.ServiceName)
+				index, services, err = state.ServiceNodes(args.ServiceName)
 			}
+			if err != nil {
+				return err
+			}
+			reply.Index, reply.ServiceNodes = index, services
 			return c.srv.filterACL(args.Token, reply)
 		})
 
@@ -198,11 +218,16 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 
 	// Get the node services
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.QueryOptions,
+	return c.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("NodeServices"),
+		state.GetQueryWatch("NodeServices"),
 		func() error {
-			reply.Index, reply.NodeServices = state.NodeServices(args.Node)
+			index, services, err := state.NodeServices(args.Node)
+			if err != nil {
+				return err
+			}
+			reply.Index, reply.NodeServices = index, services
 			return c.srv.filterACL(args.Token, reply)
 		})
 }

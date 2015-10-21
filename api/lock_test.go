@@ -57,7 +57,7 @@ func TestLock_LockUnlock(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Should loose leadership
+	// Should lose leadership
 	select {
 	case <-leaderCh:
 	case <-time.After(time.Second):
@@ -105,32 +105,40 @@ func TestLock_DeleteKey(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	lock, err := c.LockKey("test/lock")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// This uncovered some issues around special-case handling of low index
+	// numbers where it would work with a low number but fail for higher
+	// ones, so we loop this a bit to sweep the index up out of that
+	// territory.
+	for i := 0; i < 10; i++ {
+		func() {
+			lock, err := c.LockKey("test/lock")
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
 
-	// Should work
-	leaderCh, err := lock.Lock(nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if leaderCh == nil {
-		t.Fatalf("not leader")
-	}
-	defer lock.Unlock()
+			// Should work
+			leaderCh, err := lock.Lock(nil)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if leaderCh == nil {
+				t.Fatalf("not leader")
+			}
+			defer lock.Unlock()
 
-	go func() {
-		// Nuke the key, simulate an operator intervention
-		kv := c.KV()
-		kv.Delete("test/lock", nil)
-	}()
+			go func() {
+				// Nuke the key, simulate an operator intervention
+				kv := c.KV()
+				kv.Delete("test/lock", nil)
+			}()
 
-	// Should loose leadership
-	select {
-	case <-leaderCh:
-	case <-time.After(time.Second):
-		t.Fatalf("should not be leader")
+			// Should loose leadership
+			select {
+			case <-leaderCh:
+			case <-time.After(time.Second):
+				t.Fatalf("should not be leader")
+			}
+		}()
 	}
 }
 

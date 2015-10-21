@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
@@ -33,7 +34,6 @@ const (
 	serfLANSnapshot   = "serf/local.snapshot"
 	serfWANSnapshot   = "serf/remote.snapshot"
 	raftState         = "raft/"
-	tmpStatePath      = "tmp/"
 	snapshotsRetained = 2
 
 	// serverRPCCache controls how long we keep an idle connection
@@ -135,7 +135,7 @@ type Server struct {
 
 	// tombstoneGC is used to track the pending GC invocations
 	// for the KV tombstones
-	tombstoneGC *TombstoneGC
+	tombstoneGC *state.TombstoneGC
 
 	shutdown     bool
 	shutdownCh   chan struct{}
@@ -193,7 +193,7 @@ func NewServer(config *Config) (*Server, error) {
 	logger := log.New(config.LogOutput, "", log.LstdFlags)
 
 	// Create the tombstone GC
-	gc, err := NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
+	gc, err := state.NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
 	if err != nil {
 		return nil, err
 	}
@@ -316,18 +316,9 @@ func (s *Server) setupRaft() error {
 		s.config.RaftConfig.EnableSingleNode = true
 	}
 
-	// Create the base state path
-	statePath := filepath.Join(s.config.DataDir, tmpStatePath)
-	if err := os.RemoveAll(statePath); err != nil {
-		return err
-	}
-	if err := ensurePath(statePath, true); err != nil {
-		return err
-	}
-
 	// Create the FSM
 	var err error
-	s.fsm, err = NewFSM(s.tombstoneGC, statePath, s.config.LogOutput)
+	s.fsm, err = NewFSM(s.tombstoneGC, s.config.LogOutput)
 	if err != nil {
 		return err
 	}
@@ -489,11 +480,6 @@ func (s *Server) Shutdown() error {
 
 	// Close the connection pool
 	s.connPool.Shutdown()
-
-	// Close the fsm
-	if s.fsm != nil {
-		s.fsm.Close()
-	}
 
 	return nil
 }

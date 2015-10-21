@@ -278,6 +278,18 @@ func TestKVSEndpoint_List(t *testing.T) {
 			t.Fatalf("bad: %v", d)
 		}
 	}
+
+	// Try listing a nonexistent prefix
+	getR.Key = "/nope"
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.List", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Entries) != 0 {
+		t.Fatalf("Bad: %v", dirent.Entries)
+	}
 }
 
 func TestKVSEndpoint_List_Blocking(t *testing.T) {
@@ -514,6 +526,18 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	if dirent.Keys[2] != "/test/sub/" {
 		t.Fatalf("Bad: %v", dirent.Keys)
 	}
+
+	// Try listing a nonexistent prefix
+	getR.Prefix = "/nope"
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.ListKeys", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Keys) != 0 {
+		t.Fatalf("Bad: %v", dirent.Keys)
+	}
 }
 
 func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
@@ -605,7 +629,7 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 
 	// Create and invalidate a session with a lock
 	state := s1.fsm.State()
-	if err := state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
+	if err := state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{

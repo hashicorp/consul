@@ -260,7 +260,10 @@ func (s *Server) reconcile() (err error) {
 // a "reap" event to cause the node to be cleaned up.
 func (s *Server) reconcileReaped(known map[string]struct{}) error {
 	state := s.fsm.State()
-	_, checks := state.ChecksInState(structs.HealthAny)
+	_, checks, err := state.ChecksInState(structs.HealthAny)
+	if err != nil {
+		return err
+	}
 	for _, check := range checks {
 		// Ignore any non serf checks
 		if check.CheckID != SerfCheckID {
@@ -282,7 +285,10 @@ func (s *Server) reconcileReaped(known map[string]struct{}) error {
 		}
 
 		// Get the node services, look for ConsulServiceID
-		_, services := state.NodeServices(check.Node)
+		_, services, err := state.NodeServices(check.Node)
+		if err != nil {
+			return err
+		}
 		serverPort := 0
 		for _, service := range services.Services {
 			if service.ID == ConsulServiceID {
@@ -352,8 +358,6 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 // handleAliveMember is used to ensure the node
 // is registered, with a passing health check.
 func (s *Server) handleAliveMember(member serf.Member) error {
-	state := s.fsm.State()
-
 	// Register consul service if a server
 	var service *structs.NodeService
 	if valid, parts := isConsulServer(member); valid {
@@ -370,12 +374,19 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 	}
 
 	// Check if the node exists
-	_, found, addr := state.GetNode(member.Name)
-	if found && addr == member.Addr.String() {
+	state := s.fsm.State()
+	_, node, err := state.GetNode(member.Name)
+	if err != nil {
+		return err
+	}
+	if node != nil && node.Address == member.Addr.String() {
 		// Check if the associated service is available
 		if service != nil {
 			match := false
-			_, services := state.NodeServices(member.Name)
+			_, services, err := state.NodeServices(member.Name)
+			if err != nil {
+				return err
+			}
 			if services != nil {
 				for id, _ := range services.Services {
 					if id == service.ID {
@@ -389,7 +400,10 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		}
 
 		// Check if the serfCheck is in the passing state
-		_, checks := state.NodeChecks(member.Name)
+		_, checks, err := state.NodeChecks(member.Name)
+		if err != nil {
+			return err
+		}
 		for _, check := range checks {
 			if check.CheckID == SerfCheckID && check.Status == structs.HealthPassing {
 				return nil
@@ -421,13 +435,18 @@ AFTER_CHECK:
 // handleFailedMember is used to mark the node's status
 // as being critical, along with all checks as unknown.
 func (s *Server) handleFailedMember(member serf.Member) error {
-	state := s.fsm.State()
-
 	// Check if the node exists
-	_, found, addr := state.GetNode(member.Name)
-	if found && addr == member.Addr.String() {
+	state := s.fsm.State()
+	_, node, err := state.GetNode(member.Name)
+	if err != nil {
+		return err
+	}
+	if node != nil && node.Address == member.Addr.String() {
 		// Check if the serfCheck is in the critical state
-		_, checks := state.NodeChecks(member.Name)
+		_, checks, err := state.NodeChecks(member.Name)
+		if err != nil {
+			return err
+		}
 		for _, check := range checks {
 			if check.CheckID == SerfCheckID && check.Status == structs.HealthCritical {
 				return nil
@@ -468,7 +487,6 @@ func (s *Server) handleReapMember(member serf.Member) error {
 
 // handleDeregisterMember is used to deregister a member of a given reason
 func (s *Server) handleDeregisterMember(reason string, member serf.Member) error {
-	state := s.fsm.State()
 	// Do not deregister ourself. This can only happen if the current leader
 	// is leaving. Instead, we should allow a follower to take-over and
 	// deregister us later.
@@ -484,9 +502,13 @@ func (s *Server) handleDeregisterMember(reason string, member serf.Member) error
 		}
 	}
 
-	// Check if the node does not exists
-	_, found, _ := state.GetNode(member.Name)
-	if !found {
+	// Check if the node does not exist
+	state := s.fsm.State()
+	_, node, err := state.GetNode(member.Name)
+	if err != nil {
+		return err
+	}
+	if node == nil {
 		return nil
 	}
 

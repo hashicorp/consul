@@ -20,11 +20,16 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 
 	// Get the state specific checks
 	state := h.srv.fsm.State()
-	return h.srv.blockingRPC(&args.QueryOptions,
+	return h.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("ChecksInState"),
+		state.GetQueryWatch("ChecksInState"),
 		func() error {
-			reply.Index, reply.HealthChecks = state.ChecksInState(args.State)
+			index, checks, err := state.ChecksInState(args.State)
+			if err != nil {
+				return err
+			}
+			reply.Index, reply.HealthChecks = index, checks
 			return h.srv.filterACL(args.Token, reply)
 		})
 }
@@ -38,11 +43,16 @@ func (h *Health) NodeChecks(args *structs.NodeSpecificRequest,
 
 	// Get the node checks
 	state := h.srv.fsm.State()
-	return h.srv.blockingRPC(&args.QueryOptions,
+	return h.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("NodeChecks"),
+		state.GetQueryWatch("NodeChecks"),
 		func() error {
-			reply.Index, reply.HealthChecks = state.NodeChecks(args.Node)
+			index, checks, err := state.NodeChecks(args.Node)
+			if err != nil {
+				return err
+			}
+			reply.Index, reply.HealthChecks = index, checks
 			return h.srv.filterACL(args.Token, reply)
 		})
 }
@@ -62,11 +72,16 @@ func (h *Health) ServiceChecks(args *structs.ServiceSpecificRequest,
 
 	// Get the service checks
 	state := h.srv.fsm.State()
-	return h.srv.blockingRPC(&args.QueryOptions,
+	return h.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("ServiceChecks"),
+		state.GetQueryWatch("ServiceChecks"),
 		func() error {
-			reply.Index, reply.HealthChecks = state.ServiceChecks(args.ServiceName)
+			index, checks, err := state.ServiceChecks(args.ServiceName)
+			if err != nil {
+				return err
+			}
+			reply.Index, reply.HealthChecks = index, checks
 			return h.srv.filterACL(args.Token, reply)
 		})
 }
@@ -84,15 +99,23 @@ func (h *Health) ServiceNodes(args *structs.ServiceSpecificRequest, reply *struc
 
 	// Get the nodes
 	state := h.srv.fsm.State()
-	err := h.srv.blockingRPC(&args.QueryOptions,
+	err := h.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("CheckServiceNodes"),
+		state.GetQueryWatch("CheckServiceNodes"),
 		func() error {
+			var index uint64
+			var nodes structs.CheckServiceNodes
+			var err error
 			if args.TagFilter {
-				reply.Index, reply.Nodes = state.CheckServiceTagNodes(args.ServiceName, args.ServiceTag)
+				index, nodes, err = state.CheckServiceTagNodes(args.ServiceName, args.ServiceTag)
 			} else {
-				reply.Index, reply.Nodes = state.CheckServiceNodes(args.ServiceName)
+				index, nodes, err = state.CheckServiceNodes(args.ServiceName)
 			}
+			if err != nil {
+				return err
+			}
+			reply.Index, reply.Nodes = index, nodes
 			return h.srv.filterACL(args.Token, reply)
 		})
 

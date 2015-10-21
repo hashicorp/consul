@@ -23,11 +23,17 @@ func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 
 	// Get the node info
 	state := m.srv.fsm.State()
-	return m.srv.blockingRPC(&args.QueryOptions,
+	return m.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("NodeInfo"),
+		state.GetQueryWatch("NodeInfo"),
 		func() error {
-			reply.Index, reply.Dump = state.NodeInfo(args.Node)
+			index, dump, err := state.NodeInfo(args.Node)
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Dump = index, dump
 			return m.srv.filterACL(args.Token, reply)
 		})
 }
@@ -41,11 +47,17 @@ func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 
 	// Get all the node info
 	state := m.srv.fsm.State()
-	return m.srv.blockingRPC(&args.QueryOptions,
+	return m.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("NodeDump"),
+		state.GetQueryWatch("NodeDump"),
 		func() error {
-			reply.Index, reply.Dump = state.NodeDump()
+			index, dump, err := state.NodeDump()
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Dump = index, dump
 			return m.srv.filterACL(args.Token, reply)
 		})
 }

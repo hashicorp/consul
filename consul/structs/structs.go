@@ -17,6 +17,13 @@ var (
 
 type MessageType uint8
 
+// RaftIndex is used to track the index used while creating
+// or modifying a given struct type.
+type RaftIndex struct {
+	CreateIndex uint64
+	ModifyIndex uint64
+}
+
 const (
 	RegisterRequestType MessageType = iota
 	DeregisterRequestType
@@ -224,8 +231,10 @@ func (r *ChecksInStateRequest) RequestDatacenter() string {
 type Node struct {
 	Node    string
 	Address string
+
+	RaftIndex
 }
-type Nodes []Node
+type Nodes []*Node
 
 // Used to return information about a provided services.
 // Maps service name to available tags
@@ -233,15 +242,56 @@ type Services map[string][]string
 
 // ServiceNode represents a node that is part of a service
 type ServiceNode struct {
-	Node           string
-	Address        string
-	ServiceID      string
-	ServiceName    string
-	ServiceTags    []string
-	ServiceAddress string
-	ServicePort    int
+	Node                     string
+	Address                  string
+	ServiceID                string
+	ServiceName              string
+	ServiceTags              []string
+	ServiceAddress           string
+	ServicePort              int
+	ServiceEnableTagOverride bool
+
+	RaftIndex
 }
-type ServiceNodes []ServiceNode
+
+// Clone returns a clone of the given service node.
+func (s *ServiceNode) Clone() *ServiceNode {
+	tags := make([]string, len(s.ServiceTags))
+	copy(tags, s.ServiceTags)
+
+	return &ServiceNode{
+		Node:                     s.Node,
+		Address:                  s.Address,
+		ServiceID:                s.ServiceID,
+		ServiceName:              s.ServiceName,
+		ServiceTags:              tags,
+		ServiceAddress:           s.ServiceAddress,
+		ServicePort:              s.ServicePort,
+		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
+		RaftIndex: RaftIndex{
+			CreateIndex: s.CreateIndex,
+			ModifyIndex: s.ModifyIndex,
+		},
+	}
+}
+
+// ToNodeService converts the given service node to a node service.
+func (s *ServiceNode) ToNodeService() *NodeService {
+	return &NodeService{
+		ID:                s.ServiceID,
+		Service:           s.ServiceName,
+		Tags:              s.ServiceTags,
+		Address:           s.ServiceAddress,
+		Port:              s.ServicePort,
+		EnableTagOverride: s.ServiceEnableTagOverride,
+		RaftIndex: RaftIndex{
+			CreateIndex: s.CreateIndex,
+			ModifyIndex: s.ModifyIndex,
+		},
+	}
+}
+
+type ServiceNodes []*ServiceNode
 
 // NodeService is a service provided by a node
 type NodeService struct {
@@ -251,9 +301,30 @@ type NodeService struct {
 	Address           string
 	Port              int
 	EnableTagOverride bool
+
+	RaftIndex
 }
+
+// ToServiceNode converts the given node service to a service node.
+func (s *NodeService) ToServiceNode(node, address string) *ServiceNode {
+	return &ServiceNode{
+		Node:                     node,
+		Address:                  address,
+		ServiceID:                s.ID,
+		ServiceName:              s.Service,
+		ServiceTags:              s.Tags,
+		ServiceAddress:           s.Address,
+		ServicePort:              s.Port,
+		ServiceEnableTagOverride: s.EnableTagOverride,
+		RaftIndex: RaftIndex{
+			CreateIndex: s.CreateIndex,
+			ModifyIndex: s.ModifyIndex,
+		},
+	}
+}
+
 type NodeServices struct {
-	Node     Node
+	Node     *Node
 	Services map[string]*NodeService
 }
 
@@ -267,14 +338,16 @@ type HealthCheck struct {
 	Output      string // Holds output of script runs
 	ServiceID   string // optional associated service
 	ServiceName string // optional service name
+
+	RaftIndex
 }
 type HealthChecks []*HealthCheck
 
-// CheckServiceNode is used to provide the node, it's service
+// CheckServiceNode is used to provide the node, its service
 // definition, as well as a HealthCheck that is associated
 type CheckServiceNode struct {
-	Node    Node
-	Service NodeService
+	Node    *Node
+	Service *NodeService
 	Checks  HealthChecks
 }
 type CheckServiceNodes []CheckServiceNode
@@ -332,14 +405,30 @@ type IndexedNodeDump struct {
 // DirEntry is used to represent a directory entry. This is
 // used for values in our Key-Value store.
 type DirEntry struct {
-	CreateIndex uint64
-	ModifyIndex uint64
-	LockIndex   uint64
-	Key         string
-	Flags       uint64
-	Value       []byte
-	Session     string `json:",omitempty"`
+	LockIndex uint64
+	Key       string
+	Flags     uint64
+	Value     []byte
+	Session   string `json:",omitempty"`
+
+	RaftIndex
 }
+
+// Returns a clone of the given directory entry.
+func (d *DirEntry) Clone() *DirEntry {
+	return &DirEntry{
+		LockIndex: d.LockIndex,
+		Key:       d.Key,
+		Flags:     d.Flags,
+		Value:     d.Value,
+		Session:   d.Session,
+		RaftIndex: RaftIndex{
+			CreateIndex: d.CreateIndex,
+			ModifyIndex: d.ModifyIndex,
+		},
+	}
+}
+
 type DirEntries []*DirEntry
 
 type KVSOp string
@@ -414,14 +503,15 @@ const (
 // Session is used to represent an open session in the KV store.
 // This issued to associate node checks with acquired locks.
 type Session struct {
-	CreateIndex uint64
-	ID          string
-	Name        string
-	Node        string
-	Checks      []string
-	LockDelay   time.Duration
-	Behavior    SessionBehavior // What to do when session is invalidated
-	TTL         string
+	ID        string
+	Name      string
+	Node      string
+	Checks    []string
+	LockDelay time.Duration
+	Behavior  SessionBehavior // What to do when session is invalidated
+	TTL       string
+
+	RaftIndex
 }
 type Sessions []*Session
 
@@ -462,12 +552,12 @@ type IndexedSessions struct {
 
 // ACL is used to represent a token and it's rules
 type ACL struct {
-	CreateIndex uint64
-	ModifyIndex uint64
-	ID          string
-	Name        string
-	Type        string
-	Rules       string
+	ID    string
+	Name  string
+	Type  string
+	Rules string
+
+	RaftIndex
 }
 type ACLs []*ACL
 

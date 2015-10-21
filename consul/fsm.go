@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
@@ -24,15 +24,15 @@ type consulFSM struct {
 	logOutput io.Writer
 	logger    *log.Logger
 	path      string
-	state     *StateStore
-	gc        *TombstoneGC
+	state     *state.StateStore
+	gc        *state.TombstoneGC
 }
 
 // consulSnapshot is used to provide a snapshot of the current
 // state in a way that can be accessed concurrently with operations
 // that may modify the live state.
 type consulSnapshot struct {
-	state *StateSnapshot
+	state *state.StateSnapshot
 }
 
 // snapshotHeader is the first entry in our snapshot
@@ -43,15 +43,8 @@ type snapshotHeader struct {
 }
 
 // NewFSMPath is used to construct a new FSM with a blank state
-func NewFSM(gc *TombstoneGC, path string, logOutput io.Writer) (*consulFSM, error) {
-	// Create a temporary path for the state store
-	tmpPath, err := ioutil.TempDir(path, "state")
-	if err != nil {
-		return nil, err
-	}
-
-	// Create a state store
-	state, err := NewStateStorePath(gc, tmpPath, logOutput)
+func NewFSM(gc *state.TombstoneGC, logOutput io.Writer) (*consulFSM, error) {
+	stateNew, err := state.NewStateStore(gc)
 	if err != nil {
 		return nil, err
 	}
@@ -59,20 +52,14 @@ func NewFSM(gc *TombstoneGC, path string, logOutput io.Writer) (*consulFSM, erro
 	fsm := &consulFSM{
 		logOutput: logOutput,
 		logger:    log.New(logOutput, "", log.LstdFlags),
-		path:      path,
-		state:     state,
+		state:     stateNew,
 		gc:        gc,
 	}
 	return fsm, nil
 }
 
-// Close is used to cleanup resources associated with the FSM
-func (c *consulFSM) Close() error {
-	return c.state.Close()
-}
-
 // State is used to return a handle to the current state
-func (c *consulFSM) State() *StateStore {
+func (c *consulFSM) State() *state.StateStore {
 	return c.state
 }
 
@@ -91,7 +78,7 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 
 	switch msgType {
 	case structs.RegisterRequestType:
-		return c.decodeRegister(buf[1:], log.Index)
+		return c.applyRegister(buf[1:], log.Index)
 	case structs.DeregisterRequestType:
 		return c.applyDeregister(buf[1:], log.Index)
 	case structs.KVSRequestType:
@@ -112,18 +99,15 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 	}
 }
 
-func (c *consulFSM) decodeRegister(buf []byte, index uint64) interface{} {
+func (c *consulFSM) applyRegister(buf []byte, index uint64) interface{} {
+	defer metrics.MeasureSince([]string{"consul", "fsm", "register"}, time.Now())
 	var req structs.RegisterRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	return c.applyRegister(&req, index)
-}
 
-func (c *consulFSM) applyRegister(req *structs.RegisterRequest, index uint64) interface{} {
-	defer metrics.MeasureSince([]string{"consul", "fsm", "register"}, time.Now())
 	// Apply all updates in a single transaction
-	if err := c.state.EnsureRegistration(index, req); err != nil {
+	if err := c.state.EnsureRegistration(index, &req); err != nil {
 		c.logger.Printf("[INFO] consul.fsm: EnsureRegistration failed: %v", err)
 		return err
 	}
@@ -139,12 +123,12 @@ func (c *consulFSM) applyDeregister(buf []byte, index uint64) interface{} {
 
 	// Either remove the service entry or the whole node
 	if req.ServiceID != "" {
-		if err := c.state.DeleteNodeService(index, req.Node, req.ServiceID); err != nil {
+		if err := c.state.DeleteService(index, req.Node, req.ServiceID); err != nil {
 			c.logger.Printf("[INFO] consul.fsm: DeleteNodeService failed: %v", err)
 			return err
 		}
 	} else if req.CheckID != "" {
-		if err := c.state.DeleteNodeCheck(index, req.Node, req.CheckID); err != nil {
+		if err := c.state.DeleteCheck(index, req.Node, req.CheckID); err != nil {
 			c.logger.Printf("[INFO] consul.fsm: DeleteNodeCheck failed: %v", err)
 			return err
 		}
@@ -169,7 +153,7 @@ func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	case structs.KVSDelete:
 		return c.state.KVSDelete(index, req.DirEnt.Key)
 	case structs.KVSDeleteCAS:
-		act, err := c.state.KVSDeleteCheckAndSet(index, req.DirEnt.Key, req.DirEnt.ModifyIndex)
+		act, err := c.state.KVSDeleteCAS(index, req.DirEnt.ModifyIndex, req.DirEnt.Key)
 		if err != nil {
 			return err
 		} else {
@@ -178,7 +162,7 @@ func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	case structs.KVSDeleteTree:
 		return c.state.KVSDeleteTree(index, req.DirEnt.Key)
 	case structs.KVSCAS:
-		act, err := c.state.KVSCheckAndSet(index, &req.DirEnt)
+		act, err := c.state.KVSSetCAS(index, &req.DirEnt)
 		if err != nil {
 			return err
 		} else {
@@ -267,30 +251,22 @@ func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {
 		c.logger.Printf("[INFO] consul.fsm: snapshot created in %v", time.Now().Sub(start))
 	}(time.Now())
 
-	// Create a new snapshot
-	snap, err := c.state.Snapshot()
-	if err != nil {
-		return nil, err
-	}
-	return &consulSnapshot{snap}, nil
+	return &consulSnapshot{c.state.Snapshot()}, nil
 }
 
 func (c *consulFSM) Restore(old io.ReadCloser) error {
 	defer old.Close()
 
-	// Create a temporary path for the state store
-	tmpPath, err := ioutil.TempDir(c.path, "state")
-	if err != nil {
-		return err
-	}
-
 	// Create a new state store
-	state, err := NewStateStorePath(c.gc, tmpPath, c.logOutput)
+	stateNew, err := state.NewStateStore(c.gc)
 	if err != nil {
 		return err
 	}
-	c.state.Close()
-	c.state = state
+	c.state = stateNew
+
+	// Set up a new restore transaction
+	restore := c.state.Restore()
+	defer restore.Abort()
 
 	// Create a decoder
 	dec := codec.NewDecoder(old, msgpackHandle)
@@ -319,32 +295,16 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 			if err := dec.Decode(&req); err != nil {
 				return err
 			}
-			c.applyRegister(&req, header.LastIndex)
+			if err := restore.Registration(header.LastIndex, &req); err != nil {
+				return err
+			}
 
 		case structs.KVSRequestType:
 			var req structs.DirEntry
 			if err := dec.Decode(&req); err != nil {
 				return err
 			}
-			if err := c.state.KVSRestore(&req); err != nil {
-				return err
-			}
-
-		case structs.SessionRequestType:
-			var req structs.Session
-			if err := dec.Decode(&req); err != nil {
-				return err
-			}
-			if err := c.state.SessionRestore(&req); err != nil {
-				return err
-			}
-
-		case structs.ACLRequestType:
-			var req structs.ACL
-			if err := dec.Decode(&req); err != nil {
-				return err
-			}
-			if err := c.state.ACLRestore(&req); err != nil {
+			if err := restore.KVS(&req); err != nil {
 				return err
 			}
 
@@ -353,7 +313,33 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 			if err := dec.Decode(&req); err != nil {
 				return err
 			}
-			if err := c.state.TombstoneRestore(&req); err != nil {
+
+			// For historical reasons, these are serialized in the
+			// snapshots as KV entries. We want to keep the snapshot
+			// format compatible with pre-0.6 versions for now.
+			stone := &state.Tombstone{
+				Key:   req.Key,
+				Index: req.ModifyIndex,
+			}
+			if err := restore.Tombstone(stone); err != nil {
+				return err
+			}
+
+		case structs.SessionRequestType:
+			var req structs.Session
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := restore.Session(&req); err != nil {
+				return err
+			}
+
+		case structs.ACLRequestType:
+			var req structs.ACL
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := restore.ACL(&req); err != nil {
 				return err
 			}
 
@@ -362,11 +348,13 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 		}
 	}
 
+	restore.Commit()
 	return nil
 }
 
 func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 	defer metrics.MeasureSince([]string{"consul", "fsm", "persist"}, time.Now())
+
 	// Register the nodes
 	encoder := codec.NewEncoder(sink, msgpackHandle)
 
@@ -394,7 +382,7 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 		return err
 	}
 
-	if err := s.persistKV(sink, encoder); err != nil {
+	if err := s.persistKVs(sink, encoder); err != nil {
 		sink.Cancel()
 		return err
 	}
@@ -408,15 +396,19 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 
 func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
+
 	// Get all the nodes
-	nodes := s.state.Nodes()
+	nodes, err := s.state.Nodes()
+	if err != nil {
+		return err
+	}
 
 	// Register each node
-	var req structs.RegisterRequest
-	for i := 0; i < len(nodes); i++ {
-		req = structs.RegisterRequest{
-			Node:    nodes[i].Node,
-			Address: nodes[i].Address,
+	for node := nodes.Next(); node != nil; node = nodes.Next() {
+		n := node.(*structs.Node)
+		req := structs.RegisterRequest{
+			Node:    n.Node,
+			Address: n.Address,
 		}
 
 		// Register the node itself
@@ -426,10 +418,13 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 		}
 
 		// Register each service this node has
-		services := s.state.NodeServices(nodes[i].Node)
-		for _, srv := range services.Services {
-			req.Service = srv
+		services, err := s.state.Services(n.Node)
+		if err != nil {
+			return err
+		}
+		for service := services.Next(); service != nil; service = services.Next() {
 			sink.Write([]byte{byte(structs.RegisterRequestType)})
+			req.Service = service.(*structs.ServiceNode).ToNodeService()
 			if err := encoder.Encode(&req); err != nil {
 				return err
 			}
@@ -437,10 +432,13 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 
 		// Register each check this node has
 		req.Service = nil
-		checks := s.state.NodeChecks(nodes[i].Node)
-		for _, check := range checks {
-			req.Check = check
+		checks, err := s.state.Checks(n.Node)
+		if err != nil {
+			return err
+		}
+		for check := checks.Next(); check != nil; check = checks.Next() {
 			sink.Write([]byte{byte(structs.RegisterRequestType)})
+			req.Check = check.(*structs.HealthCheck)
 			if err := encoder.Encode(&req); err != nil {
 				return err
 			}
@@ -451,14 +449,14 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 
 func (s *consulSnapshot) persistSessions(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	sessions, err := s.state.SessionList()
+	sessions, err := s.state.Sessions()
 	if err != nil {
 		return err
 	}
 
-	for _, s := range sessions {
+	for session := sessions.Next(); session != nil; session = sessions.Next() {
 		sink.Write([]byte{byte(structs.SessionRequestType)})
-		if err := encoder.Encode(s); err != nil {
+		if err := encoder.Encode(session.(*structs.Session)); err != nil {
 			return err
 		}
 	}
@@ -467,72 +465,61 @@ func (s *consulSnapshot) persistSessions(sink raft.SnapshotSink,
 
 func (s *consulSnapshot) persistACLs(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	acls, err := s.state.ACLList()
+	acls, err := s.state.ACLs()
 	if err != nil {
 		return err
 	}
 
-	for _, s := range acls {
+	for acl := acls.Next(); acl != nil; acl = acls.Next() {
 		sink.Write([]byte{byte(structs.ACLRequestType)})
-		if err := encoder.Encode(s); err != nil {
+		if err := encoder.Encode(acl.(*structs.ACL)); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (s *consulSnapshot) persistKV(sink raft.SnapshotSink,
+func (s *consulSnapshot) persistKVs(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	streamCh := make(chan interface{}, 256)
-	errorCh := make(chan error)
-	go func() {
-		if err := s.state.KVSDump(streamCh); err != nil {
-			errorCh <- err
-		}
-	}()
+	entries, err := s.state.KVs()
+	if err != nil {
+		return err
+	}
 
-	for {
-		select {
-		case raw := <-streamCh:
-			if raw == nil {
-				return nil
-			}
-			sink.Write([]byte{byte(structs.KVSRequestType)})
-			if err := encoder.Encode(raw); err != nil {
-				return err
-			}
-
-		case err := <-errorCh:
+	for entry := entries.Next(); entry != nil; entry = entries.Next() {
+		sink.Write([]byte{byte(structs.KVSRequestType)})
+		if err := encoder.Encode(entry.(*structs.DirEntry)); err != nil {
 			return err
 		}
 	}
+	return nil
 }
 
 func (s *consulSnapshot) persistTombstones(sink raft.SnapshotSink,
 	encoder *codec.Encoder) error {
-	streamCh := make(chan interface{}, 256)
-	errorCh := make(chan error)
-	go func() {
-		if err := s.state.TombstoneDump(streamCh); err != nil {
-			errorCh <- err
+	stones, err := s.state.Tombstones()
+	if err != nil {
+		return err
+	}
+
+	for stone := stones.Next(); stone != nil; stone = stones.Next() {
+		sink.Write([]byte{byte(structs.TombstoneRequestType)})
+
+		// For historical reasons, these are serialized in the snapshots
+		// as KV entries. We want to keep the snapshot format compatible
+		// with pre-0.6 versions for now.
+		s := stone.(*state.Tombstone)
+		fake := &structs.DirEntry{
+			Key: s.Key,
+			RaftIndex: structs.RaftIndex{
+				ModifyIndex: s.Index,
+			},
 		}
-	}()
-
-	for {
-		select {
-		case raw := <-streamCh:
-			if raw == nil {
-				return nil
-			}
-			sink.Write([]byte{byte(structs.TombstoneRequestType)})
-			if err := encoder.Encode(raw); err != nil {
-				return err
-			}
-
-		case err := <-errorCh:
+		if err := encoder.Encode(fake); err != nil {
 			return err
 		}
 	}
+	return nil
 }
 
 func (s *consulSnapshot) Release() {

@@ -390,7 +390,7 @@ RPC:
 	}
 
 	// Add the node record
-	records := d.formatNodeRecord(&out.NodeServices.Node, out.NodeServices.Node.Address,
+	records := d.formatNodeRecord(out.NodeServices.Node, out.NodeServices.Node.Address,
 		req.Question[0].Name, qType, d.config.NodeTTL)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
@@ -585,7 +585,7 @@ func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, res
 		handled[addr] = struct{}{}
 
 		// Add the node record
-		records := d.formatNodeRecord(&node.Node, addr, qName, qType, ttl)
+		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl)
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
 		}
@@ -626,7 +626,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 
 		// Add the extra record
-		records := d.formatNodeRecord(&node.Node, addr, srvRec.Target, dns.TypeANY, ttl)
+		records := d.formatNodeRecord(node.Node, addr, srvRec.Target, dns.TypeANY, ttl)
 		if records != nil {
 			resp.Extra = append(resp.Extra, records...)
 		}

@@ -724,7 +724,7 @@ func TestACL_filterServices(t *testing.T) {
 func TestACL_filterServiceNodes(t *testing.T) {
 	// Create some service nodes
 	nodes := structs.ServiceNodes{
-		structs.ServiceNode{
+		&structs.ServiceNode{
 			Node:        "node1",
 			ServiceName: "foo",
 		},
@@ -748,7 +748,7 @@ func TestACL_filterServiceNodes(t *testing.T) {
 func TestACL_filterNodeServices(t *testing.T) {
 	// Create some node services
 	services := structs.NodeServices{
-		Node: structs.Node{
+		Node: &structs.Node{
 			Node: "node1",
 		},
 		Services: map[string]*structs.NodeService{
@@ -778,10 +778,10 @@ func TestACL_filterCheckServiceNodes(t *testing.T) {
 	// Create some nodes
 	nodes := structs.CheckServiceNodes{
 		structs.CheckServiceNode{
-			Node: structs.Node{
+			Node: &structs.Node{
 				Node: "node1",
 			},
-			Service: structs.NodeService{
+			Service: &structs.NodeService{
 				ID:      "foo",
 				Service: "foo",
 			},
