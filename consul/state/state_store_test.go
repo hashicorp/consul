@@ -128,8 +128,8 @@ func TestStateStore_Restore_Abort(t *testing.T) {
 	// that abort works.
 	restore := s.Restore()
 	entry := &structs.DirEntry{
-		Key:       "foo",
-		Value:     []byte("bar"),
+		Key:   "foo",
+		Value: []byte("bar"),
 		RaftIndex: structs.RaftIndex{
 			ModifyIndex: 5,
 		},

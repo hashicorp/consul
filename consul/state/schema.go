@@ -218,7 +218,7 @@ func kvsTableSchema() *memdb.TableSchema {
 				AllowMissing: true,
 				Unique:       false,
 				Indexer: &memdb.UUIDFieldIndex{
-					Field:     "Session",
+					Field: "Session",
 				},
 			},
 		},
@@ -256,7 +256,7 @@ func sessionsTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       true,
 				Indexer: &memdb.UUIDFieldIndex{
-					Field:     "ID",
+					Field: "ID",
 				},
 			},
 			"node": &memdb.IndexSchema{
@@ -293,7 +293,7 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 							Lowercase: true,
 						},
 						&memdb.UUIDFieldIndex{
-							Field:     "Session",
+							Field: "Session",
 						},
 					},
 				},
@@ -320,7 +320,7 @@ func sessionChecksTableSchema() *memdb.TableSchema {
 				AllowMissing: false,
 				Unique:       false,
 				Indexer: &memdb.UUIDFieldIndex{
-					Field:     "Session",
+					Field: "Session",
 				},
 			},
 		},
