@@ -12,7 +12,7 @@ all: deps format
 bin: generate
 	@sh -c "'$(CURDIR)/scripts/build.sh'"
 
-# dev creates binares for testing locally. There are put into ./bin and $GOPATH
+# dev creates binaries for testing locally - these are put into ./bin and $GOPATH
 dev: generate
 	@CONSUL_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 

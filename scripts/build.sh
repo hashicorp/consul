@@ -30,7 +30,7 @@ rm -f bin/*
 rm -rf pkg/*
 mkdir -p bin/
 
-# If its dev mode, only build for ourself
+# If it's dev mode, only build for ourself
 if [ "${CONSUL_DEV}x" != "x" ]; then
     XC_OS=$(go env GOOS)
     XC_ARCH=$(go env GOARCH)
