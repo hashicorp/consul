@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/armon/circbuf"
-	"github.com/hashicorp/cleanhttp"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
