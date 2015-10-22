@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	tooManyAcks        = `This could mean Serf is detecting false-failures due to a misconfiguration or network issue.`
-	tooFewAcks         = `This could mean Serf gossip packets are being lost due to a misconfiguration or network issue.`
-	duplicateResponses = `Duplicate responses means there is a misconfiguration. Verify that node names are unique.`
-	troubleshooting    = `
+	nonLiveNodeAcks     = `This could mean Serf is detecting false-failures due to a misconfiguration or network issue.`
+	liveNodeMissingAcks = `This could mean Serf gossip packets are being lost due to a misconfiguration or network issue.`
+	duplicateResponses  = `Duplicate responses means there is a misconfiguration. Verify that node names are unique.`
+	troubleshooting     = `
 Troubleshooting tips:
 * Ensure that the bind addr:port is accessible by all other nodes
 * If an advertise address is set, ensure it routes to the bind address
@@ -137,31 +137,44 @@ OUTER:
 		exit = 1
 	}
 
-	n := len(liveMembers)
-	if numAcks == n {
+	// Ensure all live members responded.
+	liveNotResponding := make(map[string]bool)
+	for m := range liveMembers {
+		if _, ok := acksFrom[m]; !ok {
+			c.Ui.Output(fmt.Sprintf("Missing ack from: %s", m))
+			liveNotResponding[m] = true
+		}
+	}
+
+	// Ensure that no responses came from non-live nodes.
+	nonliveResponding := make(map[string]bool)
+	for m := range acksFrom {
+		if _, ok := liveMembers[m]; !ok {
+			c.Ui.Output(fmt.Sprintf("Received ack from non-live node: %s", m))
+			nonliveResponding[m] = true
+		}
+	}
+
+	if (len(liveNotResponding) == 0) && (len(nonliveResponding) == 0) {
 		c.Ui.Output("Successfully contacted all live nodes")
 
-	} else if numAcks > n {
-		c.Ui.Output("Received more acks than live nodes! Acks from non-live nodes:")
-		for m := range acksFrom {
-			if _, ok := liveMembers[m]; !ok {
+	} else {
+		if len(nonliveResponding) != 0 {
+			c.Ui.Output("Acks from non-live nodes:")
+			for m := range nonliveResponding {
 				c.Ui.Output(fmt.Sprintf("\t%s", m))
 			}
+			c.Ui.Output(nonLiveNodeAcks)
 		}
-		c.Ui.Output(tooManyAcks)
-		c.Ui.Output(troubleshooting)
-		return 1
-
-	} else if numAcks < n {
-		c.Ui.Output("Received fewer acks than live nodes! Missing acks from:")
-		for m := range liveMembers {
-			if _, ok := acksFrom[m]; !ok {
+		if len(liveNotResponding) != 0 {
+			c.Ui.Output("Missing acks from:")
+			for m := range liveNotResponding {
 				c.Ui.Output(fmt.Sprintf("\t%s", m))
 			}
+			c.Ui.Output(liveNodeMissingAcks)
 		}
-		c.Ui.Output(tooFewAcks)
 		c.Ui.Output(troubleshooting)
-		return 1
+		exit = 1
 	}
 	return exit
 }
