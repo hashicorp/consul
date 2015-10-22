@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/cleanhttp"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
 )
@@ -95,12 +96,12 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 
 	// Ensure we can get a response from the socket.
 	path, _ := unixSocketAddr(srv.agent.config.Addresses.HTTP)
+	trans := cleanhttp.DefaultTransport()
+	trans.Dial = func(_, _ string) (net.Conn, error) {
+		return net.Dial("unix", path)
+	}
 	client := &http.Client{
-		Transport: &http.Transport{
-			Dial: func(_, _ string) (net.Conn, error) {
-				return net.Dial("unix", path)
-			},
-		},
+		Transport: trans,
 	}
 
 	// This URL doesn't look like it makes sense, but the scheme (http://) and

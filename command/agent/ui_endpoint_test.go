@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/cleanhttp"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
 )
@@ -37,7 +38,7 @@ func TestUiIndex(t *testing.T) {
 	req.URL.Host = srv.listener.Addr().String()
 
 	// Make the request
-	client := &http.Client{}
+	client := cleanhttp.DefaultClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("err: %v", err)

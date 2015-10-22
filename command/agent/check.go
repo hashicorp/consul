@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/armon/circbuf"
+	"github.com/hashicorp/cleanhttp"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
@@ -313,13 +314,13 @@ func (c *CheckHTTP) Start() {
 	if c.httpClient == nil {
 		// Create the transport. We disable HTTP Keep-Alive's to prevent
 		// failing checks due to the keepalive interval.
-		trans := *http.DefaultTransport.(*http.Transport)
+		trans := cleanhttp.DefaultTransport()
 		trans.DisableKeepAlives = true
 
 		// Create the HTTP client.
 		c.httpClient = &http.Client{
 			Timeout:   10 * time.Second,
-			Transport: &trans,
+			Transport: trans,
 		}
 
 		// For long (>10s) interval checks the http timeout is 10s, otherwise the
