@@ -2,10 +2,23 @@ DEPS = $(shell go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
 PACKAGES = $(shell go list ./...)
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
          -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
+VERSION?=$(shell awk -F\" '/^const Version/ { print $$2; exit }' version.go)
 
 all: deps format
 	@mkdir -p bin/
 	@bash --norc -i ./scripts/build.sh
+
+# bin generates the releasable binaries
+bin: generate
+	@sh -c "'$(CURDIR)/scripts/build.sh'"
+
+# dev creates binares for testing locally. There are put into ./bin and $GOPATH
+dev: generate
+	@CONSUL_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
+
+# dist creates the binaries for distibution
+dist: bin
+	@sh -c "'$(CURDIR)/scripts/dist.sh' $(VERSION)"
 
 cov:
 	gocov test ./... | gocov-html > /tmp/coverage.html
@@ -16,8 +29,14 @@ deps:
 	@go get -d -v ./... $(DEPS)
 
 updatedeps: deps
-	@echo "--> Updating build dependencies"
-	@go get -d -f -u ./... $(DEPS)
+	go get -u github.com/mitchellh/gox
+	go get -u golang.org/x/tools/cmd/stringer
+	go list ./... \
+		| xargs go list -f '{{join .Deps "\n"}}' \
+		| grep -v github.com/hashicorp/consul \
+		| grep -v '/internal/' \
+		| sort -u \
+		| xargs go get -f -u -v
 
 test: deps
 	@./scripts/verify_no_uuid.sh
@@ -46,10 +65,15 @@ vet:
 		echo "and fix them if necessary before submitting the code for reviewal."; \
 	fi
 
+# generate runs `go generate` to build the dynamically generated source files
+generate: deps
+	find . -type f -name '.DS_Store' -delete
+	go generate ./...
+
 web:
 	./scripts/website_run.sh
 
 web-push:
 	./scripts/website_push.sh
 
-.PHONY: all cov deps integ test vet web web-push test-nodep
+.PHONY: all bin dev dist cov deps integ test vet web web-push generate test-nodep
