@@ -473,6 +473,22 @@ func TestACLResolution(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Request with header token only
+	reqHeaderToken, err := http.NewRequest("GET",
+		"/v1/catalog/nodes", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	reqHeaderToken.Header.Add("X-Consul-Token", "bar")
+
+	// Request with header and querystring tokens
+	reqBothTokens, err := http.NewRequest("GET",
+		"/v1/catalog/nodes?token=baz", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	reqBothTokens.Header.Add("X-Consul-Token", "zap")
+
 	httpTest(t, func(srv *HTTPServer) {
 		// Check when no token is set
 		srv.agent.config.ACLToken = ""
@@ -512,6 +528,18 @@ func TestACLResolution(t *testing.T) {
 		// Explicit token has highest precedence
 		srv.parseToken(reqToken, &token)
 		if token != "foo" {
+			t.Fatalf("bad: %s", token)
+		}
+
+		// Header token has precedence over agent token
+		srv.parseToken(reqHeaderToken, &token)
+		if token != "bar" {
+			t.Fatalf("bad: %s", token)
+		}
+
+		// Querystring token has precendence over header and agent tokens
+		srv.parseToken(reqBothTokens, &token)
+		if token != "baz" {
 			t.Fatalf("bad: %s", token)
 		}
 	})
