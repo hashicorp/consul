@@ -83,6 +83,9 @@ type Agent struct {
 	// checkTTLs maps the check ID to an associated check TTL
 	checkTTLs map[string]*CheckTTL
 
+	// checkDockers maps the check ID to an associated Docker Exec based check
+	checkDockers map[string]*CheckDocker
+
 	// checkLock protects updates to the check* maps
 	checkLock sync.Mutex
 
@@ -151,6 +154,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		checkTTLs:     make(map[string]*CheckTTL),
 		checkHTTPs:    make(map[string]*CheckHTTP),
 		checkTCPs:     make(map[string]*CheckTCP),
+		checkDockers:  make(map[string]*CheckDocker),
 		eventCh:       make(chan serf.UserEvent, 1024),
 		eventBuf:      make([]*UserEvent, 256),
 		shutdownCh:    make(chan struct{}),
@@ -905,7 +909,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			tcp.Start()
 			a.checkTCPs[check.CheckID] = tcp
 
-		} else {
+		} else if chkType.IsMonitor() {
 			if existing, ok := a.checkMonitors[check.CheckID]; ok {
 				existing.Stop()
 			}
@@ -924,6 +928,27 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor
+		} else if chkType.IsDocker() {
+			if existing, ok := a.checkDockers[check.CheckID]; ok {
+				existing.Stop()
+			}
+			if chkType.Interval < MinInterval {
+				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
+					check.CheckID, MinInterval))
+				chkType.Interval = MinInterval
+			}
+
+			dockerCheck := &CheckDocker{
+				Notify:            &a.state,
+				CheckID:           check.CheckID,
+				DockerContainerId: chkType.DockerContainerId,
+				Shell:             chkType.Shell,
+				Script:            chkType.Script,
+				Interval:          chkType.Interval,
+				Logger:            a.logger,
+			}
+			dockerCheck.Start()
+			a.checkDockers[check.CheckID] = dockerCheck
 		}
 	}
 
