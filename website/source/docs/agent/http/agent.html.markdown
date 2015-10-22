@@ -159,6 +159,7 @@ It returns a JSON body like this:
     "KeyFile": "",
     "StartJoin": [],
     "UiDir": "",
+    "EnableUi": false,
     "PidFile": "",
     "EnableSyslog": false,
     "RejoinAfterLeave": false

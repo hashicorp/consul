@@ -3,6 +3,7 @@
 FEATURES:
 
 * Service ACL's apply to service discovery [GH-1024]
+* Include the Web UI in the consul binary. This is enabled by providing the `-ui` flag. [GH-1274]
 
 BUG FIXES:
 

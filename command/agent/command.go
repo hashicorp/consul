@@ -70,6 +70,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.Datacenter, "dc", "", "node datacenter")
 	cmdFlags.StringVar(&cmdConfig.DataDir, "data-dir", "", "path to the data directory")
 	cmdFlags.StringVar(&cmdConfig.UiDir, "ui-dir", "", "path to the web UI directory")
+	cmdFlags.BoolVar(&cmdConfig.EnableUi, "ui", false, "enable built-in UI")
 	cmdFlags.StringVar(&cmdConfig.PidFile, "pid-file", "", "path to file to store PID")
 	cmdFlags.StringVar(&cmdConfig.EncryptKey, "encrypt", "", "gossip encryption key")
 
@@ -950,6 +951,7 @@ Options:
   -server                  Switches agent to server mode.
   -syslog                  Enables logging to syslog
   -ui-dir=path             Path to directory containing the Web UI resources
+  -ui                      Enables the built-in Web UI
   -pid-file=path           Path to file to store agent PID
 
  `

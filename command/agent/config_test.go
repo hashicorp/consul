@@ -452,6 +452,17 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// UI
+	input = `{"ui": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !config.EnableUi {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// Pid File
 	input = `{"pid_file": "/tmp/consul/pid"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
