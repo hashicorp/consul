@@ -10,13 +10,13 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// RttCommand is a Command implementation that allows users to query the
+// RTTCommand is a Command implementation that allows users to query the
 // estimated round trip time between nodes using network coordinates.
-type RttCommand struct {
+type RTTCommand struct {
 	Ui cli.Ui
 }
 
-func (c *RttCommand) Help() string {
+func (c *RTTCommand) Help() string {
 	helpText := `
 Usage: consul rtt [options] node1 [node2]
 
@@ -44,7 +44,7 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func (c *RttCommand) Run(args []string) int {
+func (c *RTTCommand) Run(args []string) int {
 	var wan bool
 
 	cmdFlags := flag.NewFlagSet("rtt", flag.ContinueOnError)
@@ -56,7 +56,7 @@ func (c *RttCommand) Run(args []string) int {
 		return 1
 	}
 
-	// They must provide a pair of nodes.
+	// They must provide at least one node.
 	nodes := cmdFlags.Args()
 	if len(nodes) < 1 || len(nodes) > 2 {
 		c.Ui.Error("One or two node names must be specified")
@@ -179,6 +179,6 @@ SHOW_RTT:
 	return 0
 }
 
-func (c *RttCommand) Synopsis() string {
+func (c *RTTCommand) Synopsis() string {
 	return "Estimates network round trip time between nodes"
 }

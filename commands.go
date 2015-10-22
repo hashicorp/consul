@@ -115,7 +115,7 @@ func init() {
 		},
 
 		"rtt": func() (cli.Command, error) {
-			return &command.RttCommand{
+			return &command.RTTCommand{
 				Ui: ui,
 			}, nil
 		},
