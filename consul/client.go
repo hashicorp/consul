@@ -140,7 +140,6 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.RejoinAfterLeave = c.config.RejoinAfterLeave
 	conf.Merge = &lanMergeDelegate{dc: c.config.Datacenter}
 	conf.DisableCoordinates = c.config.DisableCoordinates
-	conf.CacheCoordinates = false
 	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
