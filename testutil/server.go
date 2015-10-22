@@ -25,6 +25,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+
+	"github.com/hashicorp/cleanhttp"
 )
 
 // offset is used to atomically increment the port numbers.
@@ -191,16 +193,16 @@ func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
 	var client *http.Client
 	if strings.HasPrefix(consulConfig.Addresses.HTTP, "unix://") {
 		httpAddr = consulConfig.Addresses.HTTP
+		trans := cleanhttp.DefaultTransport()
+		trans.Dial = func(_, _ string) (net.Conn, error) {
+			return net.Dial("unix", httpAddr[7:])
+		}
 		client = &http.Client{
-			Transport: &http.Transport{
-				Dial: func(_, _ string) (net.Conn, error) {
-					return net.Dial("unix", httpAddr[7:])
-				},
-			},
+			Transport: trans,
 		}
 	} else {
 		httpAddr = fmt.Sprintf("127.0.0.1:%d", consulConfig.Ports.HTTP)
-		client = &http.Client{}
+		client = cleanhttp.DefaultClient()
 	}
 
 	server := &TestServer{
