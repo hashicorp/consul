@@ -10,17 +10,11 @@ description: >
 
 Command: `consul rtt`
 
-The 'rtt' command estimates the network round trip time between two nodes using
-Consul's network coordinate model of the cluster. While contacting nodes as part
-of its normal gossip protocol, Consul builds up a set of network coordinates for
-all the nodes in the local datacenter (the LAN pool) and remote datacenters (the WAN
-pool). Agents forward these to the servers and once the coordinates for two nodes
-are known, it's possible to estimate the network round trip time between them using
-a simple calculation.
+The `rtt` command estimates the network round trip time between two nodes using
+Consul's network coordinate model of the cluster.
 
-It is not possible to measure between LAN coordinates and WAN coordinates
-because they are maintained by independent Serf gossip pools, so they are
-not compatible.
+See the [Network Coordinates](/docs/internals/coordinates.html) internals guide
+for more information on how these coordinates are computed.
 
 ## Usage
 
@@ -36,7 +30,9 @@ The list of available flags are:
   coordinates. By default, the two nodes are assumed to be nodes in the local
   datacenter and the LAN coordinates are used. If the -wan option is given,
   then the WAN coordinates are used, and the node names must be suffixed by a period
-  and the datacenter (eg. "myserver.dc1").
+  and the datacenter (eg. "myserver.dc1"). It is not possible to measure between
+  LAN coordinates and WAN coordinates, so both nodes must be in the same pool.
+
 
 * `-http-addr` - Address to the HTTP server of the agent you want to contact
   to send this command. If this isn't specified, the command will contact

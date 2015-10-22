@@ -14,6 +14,10 @@ The Coordinate endpoint is used to query for the nework coordinates for nodes
 in the local datacenter as well as Consul servers in the local datacenter and
 remote datacenters.
 
+See the [Network Coordinates](/docs/internals/coordinates.html) internals guide
+for more information on how these coordinates are computed, and for details on
+how to perform calculations with them.
+
 The following endpoints are supported:
 
 * [`/v1/coordinate/datacenters`](#coordinate_datacenters) : Queries for WAN coordinates of Consul servers
@@ -36,6 +40,7 @@ It returns a JSON body like this:
         "Coord": {
           "Adjustment": 0,
           "Error": 1.5,
+          "Height": 0,
           "Vec": [0,0,0,0,0,0,0,0]
         }
       }
@@ -46,7 +51,7 @@ It returns a JSON body like this:
 
 This endpoint serves data out of the server's local Serf data about the WAN, so
 its results may vary as requests are handled by different servers in the
-cluster.
+cluster. Also, it does not support blocking queries or any consistency modes.
 
 ### <a name=""coordinate_nodes></a> /v1/coordinate/nodes
 
@@ -63,6 +68,7 @@ It returns a JSON body like this:
     "Coord": {
       "Adjustment": 0,
       "Error": 1.5,
+      "Height": 0,
       "Vec": [0,0,0,0,0,0,0,0]
     }
   }
