@@ -48,6 +48,20 @@ func TestCoordinate_Nodes(t *testing.T) {
 
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
+	// Register the nodes.
+	nodes := []string{"foo", "bar"}
+	for _, node := range nodes {
+		req := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       node,
+			Address:    "127.0.0.1",
+		}
+		var reply struct{}
+		if err := srv.agent.RPC("Catalog.Register", &req, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
 	// Send some coordinates for a few nodes, waiting a little while for the
 	// batch update to run.
 	arg1 := structs.CoordinateUpdateRequest{
@@ -82,7 +96,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	coordinates := obj.([]structs.Coordinate)
+	coordinates := obj.(structs.Coordinates)
 	if len(coordinates) != 2 ||
 		coordinates[0].Node != "bar" ||
 		coordinates[1].Node != "foo" {

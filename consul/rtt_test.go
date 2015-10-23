@@ -1,6 +1,7 @@
 package consul
 
 import (
+	"fmt"
 	"math"
 	"net/rpc"
 	"os"
@@ -87,6 +88,20 @@ func verifyCheckServiceNodeSort(t *testing.T, nodes structs.CheckServiceNodes, e
 //   0     1     2     3     4     5     6     7     8     9     10  (ms)
 //
 func seedCoordinates(t *testing.T, codec rpc.ClientCodec, server *Server) {
+	// Register some nodes.
+	for i := 0; i < 5; i++ {
+		req := structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       fmt.Sprintf("node%d", i+1),
+			Address:    "127.0.0.1",
+		}
+		var reply struct{}
+		if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Seed the fixed setup of the nodes.
 	updates := []structs.CoordinateUpdateRequest{
 		structs.CoordinateUpdateRequest{
 			Datacenter: "dc1",
@@ -137,12 +152,12 @@ func TestRtt_sortNodesByDistanceFrom(t *testing.T) {
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.Nodes{
-		structs.Node{Node: "apple"},
-		structs.Node{Node: "node1"},
-		structs.Node{Node: "node2"},
-		structs.Node{Node: "node3"},
-		structs.Node{Node: "node4"},
-		structs.Node{Node: "node5"},
+		&structs.Node{Node: "apple"},
+		&structs.Node{Node: "node1"},
+		&structs.Node{Node: "node2"},
+		&structs.Node{Node: "node3"},
+		&structs.Node{Node: "node4"},
+		&structs.Node{Node: "node5"},
 	}
 
 	// The zero value for the source should not trigger any sorting.
@@ -198,12 +213,12 @@ func TestRtt_sortNodesByDistanceFrom_Nodes(t *testing.T) {
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.Nodes{
-		structs.Node{Node: "apple"},
-		structs.Node{Node: "node1"},
-		structs.Node{Node: "node2"},
-		structs.Node{Node: "node3"},
-		structs.Node{Node: "node4"},
-		structs.Node{Node: "node5"},
+		&structs.Node{Node: "apple"},
+		&structs.Node{Node: "node1"},
+		&structs.Node{Node: "node2"},
+		&structs.Node{Node: "node3"},
+		&structs.Node{Node: "node4"},
+		&structs.Node{Node: "node5"},
 	}
 
 	// Now sort relative to node1, note that apple doesn't have any
@@ -247,12 +262,12 @@ func TestRtt_sortNodesByDistanceFrom_ServiceNodes(t *testing.T) {
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.ServiceNodes{
-		structs.ServiceNode{Node: "apple"},
-		structs.ServiceNode{Node: "node1"},
-		structs.ServiceNode{Node: "node2"},
-		structs.ServiceNode{Node: "node3"},
-		structs.ServiceNode{Node: "node4"},
-		structs.ServiceNode{Node: "node5"},
+		&structs.ServiceNode{Node: "apple"},
+		&structs.ServiceNode{Node: "node1"},
+		&structs.ServiceNode{Node: "node2"},
+		&structs.ServiceNode{Node: "node3"},
+		&structs.ServiceNode{Node: "node4"},
+		&structs.ServiceNode{Node: "node5"},
 	}
 
 	// Now sort relative to node1, note that apple doesn't have any
@@ -345,12 +360,12 @@ func TestRtt_sortNodesByDistanceFrom_CheckServiceNodes(t *testing.T) {
 
 	seedCoordinates(t, codec, server)
 	nodes := structs.CheckServiceNodes{
-		structs.CheckServiceNode{Node: structs.Node{Node: "apple"}},
-		structs.CheckServiceNode{Node: structs.Node{Node: "node1"}},
-		structs.CheckServiceNode{Node: structs.Node{Node: "node2"}},
-		structs.CheckServiceNode{Node: structs.Node{Node: "node3"}},
-		structs.CheckServiceNode{Node: structs.Node{Node: "node4"}},
-		structs.CheckServiceNode{Node: structs.Node{Node: "node5"}},
+		structs.CheckServiceNode{Node: &structs.Node{Node: "apple"}},
+		structs.CheckServiceNode{Node: &structs.Node{Node: "node1"}},
+		structs.CheckServiceNode{Node: &structs.Node{Node: "node2"}},
+		structs.CheckServiceNode{Node: &structs.Node{Node: "node3"}},
+		structs.CheckServiceNode{Node: &structs.Node{Node: "node4"}},
+		structs.CheckServiceNode{Node: &structs.Node{Node: "node5"}},
 	}
 
 	// Now sort relative to node1, note that apple doesn't have any

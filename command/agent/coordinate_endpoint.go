@@ -17,7 +17,7 @@ func coordinateDisabled(resp http.ResponseWriter, req *http.Request) (interface{
 // sorter wraps a coordinate list and implements the sort.Interface to sort by
 // node name.
 type sorter struct {
-	coordinates []structs.Coordinate
+	coordinates structs.Coordinates
 }
 
 // See sort.Interface.

@@ -64,13 +64,13 @@ func TestHealth_ChecksInState_DistanceSort(t *testing.T) {
 	defer codec.Close()
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
-	if err := s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.2"}); err != nil {
+	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.2"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s1.fsm.State().EnsureNode(2, structs.Node{"bar", "127.0.0.3"}); err != nil {
+	if err := s1.fsm.State().EnsureNode(2, &structs.Node{Node: "bar", Address: "127.0.0.3"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	updates := []structs.Coordinate{
+	updates := structs.Coordinates{
 		{"foo", generateCoordinate(1 * time.Millisecond)},
 		{"bar", generateCoordinate(2 * time.Millisecond)},
 	}
@@ -228,13 +228,13 @@ func TestHealth_ServiceChecks_DistanceSort(t *testing.T) {
 	defer codec.Close()
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
-	if err := s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.2"}); err != nil {
+	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.2"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s1.fsm.State().EnsureNode(2, structs.Node{"bar", "127.0.0.3"}); err != nil {
+	if err := s1.fsm.State().EnsureNode(2, &structs.Node{Node: "bar", Address: "127.0.0.3"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	updates := []structs.Coordinate{
+	updates := structs.Coordinates{
 		{"foo", generateCoordinate(1 * time.Millisecond)},
 		{"bar", generateCoordinate(2 * time.Millisecond)},
 	}
@@ -399,13 +399,13 @@ func TestHealth_ServiceNodes_DistanceSort(t *testing.T) {
 	defer codec.Close()
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
-	if err := s1.fsm.State().EnsureNode(1, structs.Node{"foo", "127.0.0.2"}); err != nil {
+	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.2"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s1.fsm.State().EnsureNode(2, structs.Node{"bar", "127.0.0.3"}); err != nil {
+	if err := s1.fsm.State().EnsureNode(2, &structs.Node{Node: "bar", Address: "127.0.0.3"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	updates := []structs.Coordinate{
+	updates := structs.Coordinates{
 		{"foo", generateCoordinate(1 * time.Millisecond)},
 		{"bar", generateCoordinate(2 * time.Millisecond)},
 	}

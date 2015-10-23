@@ -54,24 +54,38 @@ func TestRTTCommand_Run_LAN(t *testing.T) {
 	c2 := c1.Clone()
 	c2.Vec[0] = 0.123
 	dist_str := fmt.Sprintf("%.3f ms", c1.DistanceTo(c2).Seconds()*1000.0)
-
-	req1 := structs.CoordinateUpdateRequest{
-		Datacenter: a.config.Datacenter,
-		Node:       a.config.NodeName,
-		Coord:      c1,
+	{
+		req := structs.CoordinateUpdateRequest{
+			Datacenter: a.config.Datacenter,
+			Node:       a.config.NodeName,
+			Coord:      c1,
+		}
+		var reply struct{}
+		if err := a.agent.RPC("Coordinate.Update", &req, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
 	}
-	var reply struct{}
-	if err := a.agent.RPC("Coordinate.Update", &req1, &reply); err != nil {
-		t.Fatalf("err: %s", err)
+	{
+		req := structs.RegisterRequest{
+			Datacenter: a.config.Datacenter,
+			Node:       "dogs",
+			Address:    "127.0.0.2",
+		}
+		var reply struct{}
+		if err := a.agent.RPC("Catalog.Register", &req, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
 	}
-
-	req2 := structs.CoordinateUpdateRequest{
-		Datacenter: a.config.Datacenter,
-		Node:       "dogs",
-		Coord:      c2,
-	}
-	if err := a.agent.RPC("Coordinate.Update", &req2, &reply); err != nil {
-		t.Fatalf("err: %s", err)
+	{
+		var reply struct{}
+		req := structs.CoordinateUpdateRequest{
+			Datacenter: a.config.Datacenter,
+			Node:       "dogs",
+			Coord:      c2,
+		}
+		if err := a.agent.RPC("Coordinate.Update", &req, &reply); err != nil {
+			t.Fatalf("err: %s", err)
+		}
 	}
 
 	// Wait for the updates to get flushed to the data store.

@@ -512,21 +512,21 @@ func TestCatalogListNodes_DistanceSort(t *testing.T) {
 	defer codec.Close()
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
-	if err := s1.fsm.State().EnsureNode(1, structs.Node{"aaa", "127.0.0.1"}); err != nil {
+	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "aaa", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s1.fsm.State().EnsureNode(2, structs.Node{"foo", "127.0.0.2"}); err != nil {
+	if err := s1.fsm.State().EnsureNode(2, &structs.Node{Node: "foo", Address: "127.0.0.2"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s1.fsm.State().EnsureNode(3, structs.Node{"bar", "127.0.0.3"}); err != nil {
+	if err := s1.fsm.State().EnsureNode(3, &structs.Node{Node: "bar", Address: "127.0.0.3"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if err := s1.fsm.State().EnsureNode(4, structs.Node{"baz", "127.0.0.4"}); err != nil {
+	if err := s1.fsm.State().EnsureNode(4, &structs.Node{Node: "baz", Address: "127.0.0.4"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Set all but one of the nodes to known coordinates.
-	updates := []structs.Coordinate{
+	updates := structs.Coordinates{
 		{"foo", generateCoordinate(2 * time.Millisecond)},
 		{"bar", generateCoordinate(5 * time.Millisecond)},
 		{"baz", generateCoordinate(1 * time.Millisecond)},
@@ -870,17 +870,17 @@ func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Add a few nodes for the associated services.
-	s1.fsm.State().EnsureNode(1, structs.Node{"aaa", "127.0.0.1"})
-	s1.fsm.State().EnsureService(2, "aaa", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.1", 5000, false})
-	s1.fsm.State().EnsureNode(3, structs.Node{"foo", "127.0.0.2"})
-	s1.fsm.State().EnsureService(4, "foo", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.2", 5000, false})
-	s1.fsm.State().EnsureNode(5, structs.Node{"bar", "127.0.0.3"})
-	s1.fsm.State().EnsureService(6, "bar", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.3", 5000, false})
-	s1.fsm.State().EnsureNode(7, structs.Node{"baz", "127.0.0.4"})
-	s1.fsm.State().EnsureService(8, "baz", &structs.NodeService{"db", "db", []string{"primary"}, "127.0.0.4", 5000, false})
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "aaa", Address: "127.0.0.1"})
+	s1.fsm.State().EnsureService(2, "aaa", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000})
+	s1.fsm.State().EnsureNode(3, &structs.Node{Node: "foo", Address: "127.0.0.2"})
+	s1.fsm.State().EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.2", Port: 5000})
+	s1.fsm.State().EnsureNode(5, &structs.Node{Node: "bar", Address: "127.0.0.3"})
+	s1.fsm.State().EnsureService(6, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.3", Port: 5000})
+	s1.fsm.State().EnsureNode(7, &structs.Node{Node: "baz", Address: "127.0.0.4"})
+	s1.fsm.State().EnsureService(8, "baz", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.4", Port: 5000})
 
 	// Set all but one of the nodes to known coordinates.
-	updates := []structs.Coordinate{
+	updates := structs.Coordinates{
 		{"foo", generateCoordinate(2 * time.Millisecond)},
 		{"bar", generateCoordinate(5 * time.Millisecond)},
 		{"baz", generateCoordinate(1 * time.Millisecond)},
@@ -900,13 +900,13 @@ func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
 	if out.ServiceNodes[0].Node != "aaa" {
 		t.Fatalf("bad: %v", out)
 	}
-	if out.ServiceNodes[1].Node != "foo" {
+	if out.ServiceNodes[1].Node != "bar" {
 		t.Fatalf("bad: %v", out)
 	}
-	if out.ServiceNodes[2].Node != "bar" {
+	if out.ServiceNodes[2].Node != "baz" {
 		t.Fatalf("bad: %v", out)
 	}
-	if out.ServiceNodes[3].Node != "baz" {
+	if out.ServiceNodes[3].Node != "foo" {
 		t.Fatalf("bad: %v", out)
 	}
 

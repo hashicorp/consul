@@ -34,7 +34,7 @@ func (s *Server) newNodeSorter(c *coordinate.Coordinate, nodes structs.Nodes) (s
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
-		_, coord, err := state.CoordinateGet(node.Node)
+		coord, err := state.CoordinateGetRaw(node.Node)
 		if err != nil {
 			return nil, err
 		}
@@ -73,7 +73,7 @@ func (s *Server) newServiceNodeSorter(c *coordinate.Coordinate, nodes structs.Se
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
-		_, coord, err := state.CoordinateGet(node.Node)
+		coord, err := state.CoordinateGetRaw(node.Node)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +112,7 @@ func (s *Server) newHealthCheckSorter(c *coordinate.Coordinate, checks structs.H
 	state := s.fsm.State()
 	vec := make([]float64, len(checks))
 	for i, check := range checks {
-		_, coord, err := state.CoordinateGet(check.Node)
+		coord, err := state.CoordinateGetRaw(check.Node)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +151,7 @@ func (s *Server) newCheckServiceNodeSorter(c *coordinate.Coordinate, nodes struc
 	state := s.fsm.State()
 	vec := make([]float64, len(nodes))
 	for i, node := range nodes {
-		_, coord, err := state.CoordinateGet(node.Node.Node)
+		coord, err := state.CoordinateGetRaw(node.Node.Node)
 		if err != nil {
 			return nil, err
 		}
@@ -217,7 +217,7 @@ func (s *Server) sortNodesByDistanceFrom(source structs.QuerySource, subj interf
 	// There won't always be a coordinate for the source node. If there's not
 	// one then we can bail out because there's no meaning for the sort.
 	state := s.fsm.State()
-	_, coord, err := state.CoordinateGet(source.Node)
+	coord, err := state.CoordinateGetRaw(source.Node)
 	if err != nil {
 		return err
 	}
@@ -388,10 +388,7 @@ func getDatacenterMaps(s serfer, dcs []string) []structs.DatacenterMap {
 		nodes := s.GetNodesForDatacenter(dc)
 		for _, node := range nodes {
 			if coord, ok := s.GetCachedCoordinate(node); ok {
-				entry := structs.Coordinate{
-					Node:  node,
-					Coord: coord,
-				}
+				entry := &structs.Coordinate{node, coord}
 				m.Coordinates = append(m.Coordinates, entry)
 			}
 		}

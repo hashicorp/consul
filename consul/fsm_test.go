@@ -383,11 +383,19 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	coord := generateRandomCoordinate()
-	coords := []structs.Coordinate{
-		structs.Coordinate{"foo", coord},
+	updates := structs.Coordinates{
+		&structs.Coordinate{
+			Node:  "baz",
+			Coord: generateRandomCoordinate(),
+		},
+		&structs.Coordinate{
+			Node:  "foo",
+			Coord: generateRandomCoordinate(),
+		},
 	}
-	fsm.state.CoordinateBatchUpdate(13, coords)
+	if err := fsm.state.CoordinateBatchUpdate(13, updates); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -499,12 +507,12 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}()
 
 	// Verify coordinates are restored
-	_, c, err := fsm2.state.CoordinateGet("foo")
+	_, coords, err := fsm2.state.Coordinates()
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatalf("err: %s", err)
 	}
-	if c == nil || !reflect.DeepEqual(c, coord) {
-		t.Fatalf("coordinate is missing or doesn't match, %v != %v", c, coord)
+	if !reflect.DeepEqual(coords, updates) {
+		t.Fatalf("bad: %#v", coords)
 	}
 }
 
@@ -745,19 +753,17 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 }
 
 func TestFSM_CoordinateUpdate(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	defer os.RemoveAll(path)
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
+
+	// Register some nodes.
+	fsm.state.EnsureNode(1, &structs.Node{Node: "node1", Address: "127.0.0.1"})
+	fsm.state.EnsureNode(2, &structs.Node{Node: "node2", Address: "127.0.0.1"})
 
 	// Write a batch of two coordinates.
-	updates := []*structs.Coordinate{
+	updates := structs.Coordinates{
 		&structs.Coordinate{
 			Node:  "node1",
 			Coord: generateRandomCoordinate(),
@@ -777,23 +783,13 @@ func TestFSM_CoordinateUpdate(t *testing.T) {
 	}
 
 	// Read back the two coordinates to make sure they got updated.
-	_, c, err := fsm.state.CoordinateGet(updates[0].Node)
+	_, coords, err := fsm.state.Coordinates()
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatalf("err: %s", err)
 	}
-	if c == nil {
-		t.Fatalf("missing")
+	if !reflect.DeepEqual(coords, updates) {
+		t.Fatalf("bad: %#v", coords)
 	}
-	verifyCoordinatesEqual(t, c, updates[0].Coord)
-
-	_, c, err = fsm.state.CoordinateGet(updates[1].Node)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if c == nil {
-		t.Fatalf("missing")
-	}
-	verifyCoordinatesEqual(t, c, updates[1].Coord)
 }
 
 func TestFSM_SessionCreate_Destroy(t *testing.T) {

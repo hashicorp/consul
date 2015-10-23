@@ -253,7 +253,7 @@ func (c *consulFSM) applyTombstoneOperation(buf []byte, index uint64) interface{
 // update interface that the coordinate endpoint exposes, so we made it single
 // purpose and avoided the opcode convention.
 func (c *consulFSM) applyCoordinateBatchUpdate(buf []byte, index uint64) interface{} {
-	var updates []structs.Coordinate
+	var updates structs.Coordinates
 	if err := structs.Decode(buf, &updates); err != nil {
 		panic(fmt.Errorf("failed to decode batch updates: %v", err))
 	}
@@ -362,11 +362,12 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 			}
 
 		case structs.CoordinateBatchUpdateType:
-			var req []structs.Coordinate
+			var req structs.Coordinates
 			if err := dec.Decode(&req); err != nil {
 				return err
+
 			}
-			if err := c.state.CoordinateBatchUpdate(header.LastIndex, req); err != nil {
+			if err := restore.Coordinates(header.LastIndex, req); err != nil {
 				return err
 			}
 
@@ -472,14 +473,20 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 		}
 	}
 
-	// Save the coordinates separately so we can use the existing batch
-	// interface.
-	sink.Write([]byte{byte(structs.CoordinateBatchUpdateType)})
-	coords := s.state.Coordinates()
-	if err := encoder.Encode(&coords); err != nil {
+	// Save the coordinates separately since they are not part of the
+	// register request interface. To avoid copying them out, we turn
+	// them into batches with a single coordinate each.
+	coords, err := s.state.Coordinates()
+	if err != nil {
 		return err
 	}
-
+	for coord := coords.Next(); coord != nil; coord = coords.Next() {
+		sink.Write([]byte{byte(structs.CoordinateBatchUpdateType)})
+		updates := structs.Coordinates{coord.(*structs.Coordinate)}
+		if err := encoder.Encode(&updates); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

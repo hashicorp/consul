@@ -819,15 +819,18 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
 
 	// Make sure the coordinate is present.
-	req := structs.NodeSpecificRequest{
+	req := structs.DCSpecificRequest{
 		Datacenter: agent.config.Datacenter,
-		Node:       agent.config.NodeName,
 	}
-	var reply structs.IndexedCoordinate
-	if err := agent.RPC("Coordinate.Get", &req, &reply); err != nil {
-		t.Fatalf("err: %v", err)
+	var reply structs.IndexedCoordinates
+	if err := agent.RPC("Coordinate.ListNodes", &req, &reply); err != nil {
+		t.Fatalf("err: %s", err)
 	}
-	if reply.Coord == nil {
-		t.Fatalf("should get a coordinate")
+	if len(reply.Coordinates) != 1 {
+		t.Fatalf("expected a coordinate: %v", reply)
+	}
+	coord := reply.Coordinates[0]
+	if coord.Node != agent.config.NodeName || coord.Coord == nil {
+		t.Fatalf("bad: %v", coord)
 	}
 }

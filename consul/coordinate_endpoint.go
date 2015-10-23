@@ -49,7 +49,8 @@ func (c *Coordinate) batchUpdate() {
 	}
 }
 
-// batchApplyUpdates applies all pending updates to the Raft log in a series of batches.
+// batchApplyUpdates applies all pending updates to the Raft log in a series of
+// batches.
 func (c *Coordinate) batchApplyUpdates() error {
 	// Grab the pending updates and release the lock so we can still handle
 	// incoming messages.
@@ -68,14 +69,14 @@ func (c *Coordinate) batchApplyUpdates() error {
 
 	// Transform the map into a slice that we can feed to the Raft log in
 	// batches.
-	updates := make([]structs.Coordinate, size)
 	i := 0
+	updates := make(structs.Coordinates, size)
 	for node, coord := range pending {
 		if !(i < size) {
 			break
 		}
 
-		updates[i] = structs.Coordinate{node, coord}
+		updates[i] = &structs.Coordinate{node, coord}
 		i++
 	}
 
@@ -117,24 +118,6 @@ func (c *Coordinate) Update(args *structs.CoordinateUpdateRequest, reply *struct
 	return nil
 }
 
-// Get returns the coordinate of the given node.
-func (c *Coordinate) Get(args *structs.NodeSpecificRequest,
-	reply *structs.IndexedCoordinate) error {
-	if done, err := c.srv.forward("Coordinate.Get", args, args, reply); done {
-		return err
-	}
-
-	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.QueryOptions,
-		&reply.QueryMeta,
-		state.QueryTables("Coordinates"),
-		func() error {
-			var err error
-			reply.Index, reply.Coord, err = state.CoordinateGet(args.Node)
-			return err
-		})
-}
-
 // ListDatacenters returns the list of datacenters and their respective nodes
 // and the raw coordinates of those nodes (if no coordinates are available for
 // any of the nodes, the node list may be empty).
@@ -174,10 +157,14 @@ func (c *Coordinate) ListNodes(args *structs.DCSpecificRequest, reply *structs.I
 	state := c.srv.fsm.State()
 	return c.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("Coordinates"),
+		state.GetQueryWatch("Coordinates"),
 		func() error {
-			var err error
-			reply.Index, reply.Coordinates, err = state.Coordinates()
-			return err
+			index, coords, err := state.Coordinates()
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Coordinates = index, coords
+			return nil
 		})
 }
