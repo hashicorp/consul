@@ -114,6 +114,12 @@ func init() {
 			}, nil
 		},
 
+		"rtt": func() (cli.Command, error) {
+			return &command.RTTCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"version": func() (cli.Command, error) {
 			ver := Version
 			rel := VersionPrerelease

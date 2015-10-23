@@ -29,6 +29,7 @@ func stateStoreSchema() *memdb.DBSchema {
 		sessionsTableSchema,
 		sessionChecksTableSchema,
 		aclsTableSchema,
+		coordinatesTableSchema,
 	}
 
 	// Add the tables to the root schema
@@ -340,6 +341,25 @@ func aclsTableSchema() *memdb.TableSchema {
 				Indexer: &memdb.StringFieldIndex{
 					Field:     "ID",
 					Lowercase: false,
+				},
+			},
+		},
+	}
+}
+
+// coordinatesTableSchema returns a new table schema used for storing
+// network coordinates.
+func coordinatesTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "coordinates",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Node",
+					Lowercase: true,
 				},
 			},
 		},

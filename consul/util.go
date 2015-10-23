@@ -141,7 +141,7 @@ func isConsulServer(m serf.Member) (bool, *serverParts) {
 	return true, parts
 }
 
-// Returns if a member is a consul node. Returns a boo,
+// Returns if a member is a consul node. Returns a bool,
 // and the datacenter.
 func isConsulNode(m serf.Member) (bool, string) {
 	if m.Tags["role"] != "node" {

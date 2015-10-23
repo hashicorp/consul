@@ -206,6 +206,14 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
 	s.mux.HandleFunc("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
 
+	if !s.agent.config.DisableCoordinates {
+		s.mux.HandleFunc("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
+		s.mux.HandleFunc("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
+	} else {
+		s.mux.HandleFunc("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
+		s.mux.HandleFunc("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
+	}
+
 	s.mux.HandleFunc("/v1/health/node/", s.wrap(s.HealthNodeChecks))
 	s.mux.HandleFunc("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
 	s.mux.HandleFunc("/v1/health/state/", s.wrap(s.HealthChecksInState))
@@ -483,6 +491,20 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 
 	// Set the default ACLToken
 	*token = s.agent.config.ACLToken
+}
+
+// parseSource is used to parse the ?near=<node> query parameter, used for
+// sorting by RTT based on a source node. We set the source's DC to the target
+// DC in the request, if given, or else the agent's DC.
+func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource) {
+	s.parseDC(req, &source.Datacenter)
+	if node := req.URL.Query().Get("near"); node != "" {
+		if node == "_agent" {
+			source.Node = s.agent.config.NodeName
+		} else {
+			source.Node = node
+		}
+	}
 }
 
 // parse is a convenience method for endpoints that need

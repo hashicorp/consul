@@ -368,9 +368,24 @@ type Config struct {
 	AtlasEndpoint string `mapstructure:"atlas_endpoint"`
 
 	// AEInterval controls the anti-entropy interval. This is how often
-	// the agent attempts to reconcile it's local state with the server'
+	// the agent attempts to reconcile its local state with the server's
 	// representation of our state. Defaults to every 60s.
 	AEInterval time.Duration `mapstructure:"-" json:"-"`
+
+	// DisableCoordinates controls features related to network coordinates.
+	DisableCoordinates bool `mapstructure:"disable_coordinates"`
+
+	// SyncCoordinateRateTarget controls the rate for sending network
+	// coordinates to the server, in updates per second. This is the max rate
+	// that the server supports, so we scale our interval based on the size
+	// of the cluster to try to achieve this in aggregate at the server.
+	SyncCoordinateRateTarget float64 `mapstructure:"-" json:"-"`
+
+	// SyncCoordinateIntervalMin sets the minimum interval that coordinates
+	// will be sent to the server. We scale the interval based on the cluster
+	// size, but below a certain interval it doesn't make sense send them any
+	// faster.
+	SyncCoordinateIntervalMin time.Duration `mapstructure:"-" json:"-"`
 
 	// Checks holds the provided check definitions
 	Checks []*CheckDefinition `mapstructure:"-" json:"-"`
@@ -463,14 +478,23 @@ func DefaultConfig() *Config {
 		},
 		StatsitePrefix:      "consul",
 		SyslogFacility:      "LOCAL0",
-		Protocol:            consul.ProtocolVersionMax,
+		Protocol:            consul.ProtocolVersion2Compatible,
 		CheckUpdateInterval: 5 * time.Minute,
 		AEInterval:          time.Minute,
-		ACLTTL:              30 * time.Second,
-		ACLDownPolicy:       "extend-cache",
-		ACLDefaultPolicy:    "allow",
-		RetryInterval:       30 * time.Second,
-		RetryIntervalWan:    30 * time.Second,
+		DisableCoordinates:  false,
+
+		// SyncCoordinateRateTarget is set based on the rate that we want
+		// the server to handle as an aggregate across the entire cluster.
+		// If you update this, you'll need to adjust CoordinateUpdate* in
+		// the server-side config accordingly.
+		SyncCoordinateRateTarget:  64.0, // updates / second
+		SyncCoordinateIntervalMin: 15 * time.Second,
+
+		ACLTTL:           30 * time.Second,
+		ACLDownPolicy:    "extend-cache",
+		ACLDefaultPolicy: "allow",
+		RetryInterval:    30 * time.Second,
+		RetryIntervalWan: 30 * time.Second,
 	}
 }
 
@@ -1062,6 +1086,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.AtlasEndpoint != "" {
 		result.AtlasEndpoint = b.AtlasEndpoint
+	}
+	if b.DisableCoordinates {
+		result.DisableCoordinates = true
 	}
 	if b.SessionTTLMinRaw != "" {
 		result.SessionTTLMin = b.SessionTTLMin

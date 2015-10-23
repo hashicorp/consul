@@ -32,6 +32,7 @@ func init() {
 	protocolVersionMap = map[uint8]uint8{
 		1: 4,
 		2: 4,
+		3: 4,
 	}
 }
 
@@ -202,6 +203,24 @@ type Config struct {
 	// UserEventHandler callback can be used to handle incoming
 	// user events. This function should not block.
 	UserEventHandler func(serf.UserEvent)
+
+	// DisableCoordinates controls features related to network coordinates.
+	DisableCoordinates bool
+
+	// CoordinateUpdatePeriod controls how long a server batches coordinate
+	// updates before applying them in a Raft transaction. A larger period
+	// leads to fewer Raft transactions, but also the stored coordinates
+	// being more stale.
+	CoordinateUpdatePeriod time.Duration
+
+	// CoordinateUpdateBatchSize controls the maximum number of updates a
+	// server batches before applying them in a Raft transaction.
+	CoordinateUpdateBatchSize int
+
+	// CoordinateUpdateMaxBatches controls the maximum number of batches we
+	// are willing to apply in one period. After this limit we will issue a
+	// warning and discard the remaining updates.
+	CoordinateUpdateMaxBatches int
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
@@ -249,13 +268,21 @@ func DefaultConfig() *Config {
 		SerfLANConfig:           serf.DefaultConfig(),
 		SerfWANConfig:           serf.DefaultConfig(),
 		ReconcileInterval:       60 * time.Second,
-		ProtocolVersion:         ProtocolVersionMax,
+		ProtocolVersion:         ProtocolVersion2Compatible,
 		ACLTTL:                  30 * time.Second,
 		ACLDefaultPolicy:        "allow",
 		ACLDownPolicy:           "extend-cache",
 		TombstoneTTL:            15 * time.Minute,
 		TombstoneTTLGranularity: 30 * time.Second,
 		SessionTTLMin:           10 * time.Second,
+		DisableCoordinates:      false,
+
+		// These are tuned to provide a total throughput of 128 updates
+		// per second. If you update these, you should update the client-
+		// side SyncCoordinateRateTarget parameter accordingly.
+		CoordinateUpdatePeriod:     5 * time.Second,
+		CoordinateUpdateBatchSize:  128,
+		CoordinateUpdateMaxBatches: 5,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

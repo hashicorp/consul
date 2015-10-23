@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -27,7 +28,15 @@ import (
 // protocol versions.
 const (
 	ProtocolVersionMin uint8 = 1
-	ProtocolVersionMax       = 2
+
+	// Version 3 added support for network coordinates but we kept the
+	// default protocol version at 2 to ease the transition to this new
+	// feature. A Consul agent speaking version 2 of the protocol will
+	// attempt to send its coordinates to a server who understands version
+	// 3 or greater.
+	ProtocolVersion2Compatible = 2
+
+	ProtocolVersionMax = 3
 )
 
 const (
@@ -144,13 +153,14 @@ type Server struct {
 
 // Holds the RPC endpoints
 type endpoints struct {
-	Catalog  *Catalog
-	Health   *Health
-	Status   *Status
-	KVS      *KVS
-	Session  *Session
-	Internal *Internal
-	ACL      *ACL
+	Catalog    *Catalog
+	Health     *Health
+	Status     *Status
+	KVS        *KVS
+	Session    *Session
+	Internal   *Internal
+	ACL        *ACL
+	Coordinate *Coordinate
 }
 
 // NewServer is used to construct a new Consul server from the
@@ -306,6 +316,10 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
+
+	// Plumb down the enable coordinates flag.
+	conf.DisableCoordinates = s.config.DisableCoordinates
+
 	return serf.Create(conf)
 }
 
@@ -396,6 +410,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.endpoints.Session = &Session{s}
 	s.endpoints.Internal = &Internal{s}
 	s.endpoints.ACL = &ACL{s}
+	s.endpoints.Coordinate = NewCoordinate(s)
 
 	// Register the handlers
 	s.rpcServer.Register(s.endpoints.Status)
@@ -405,6 +420,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.rpcServer.Register(s.endpoints.Session)
 	s.rpcServer.Register(s.endpoints.Internal)
 	s.rpcServer.Register(s.endpoints.ACL)
+	s.rpcServer.Register(s.endpoints.Coordinate)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
@@ -689,4 +705,14 @@ func (s *Server) Stats() map[string]map[string]string {
 		"runtime":  runtimeStats(),
 	}
 	return stats
+}
+
+// GetLANCoordinate returns the coordinate of the server in the LAN gossip pool.
+func (s *Server) GetLANCoordinate() (*coordinate.Coordinate, error) {
+	return s.serfLAN.GetCoordinate()
+}
+
+// GetWANCoordinate returns the coordinate of the server in the WAN gossip pool.
+func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
+	return s.serfWAN.GetCoordinate()
 }

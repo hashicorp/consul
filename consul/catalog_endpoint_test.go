@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/rpc"
 	"os"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -234,9 +233,7 @@ func TestCatalogListDatacenters(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Sort the dcs
-	sort.Strings(out)
-
+	// The DCs should come out sorted by default.
 	if len(out) != 2 {
 		t.Fatalf("bad: %v", out)
 	}
@@ -244,6 +241,57 @@ func TestCatalogListDatacenters(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 	if out[1] != "dc2" {
+		t.Fatalf("bad: %v", out)
+	}
+}
+
+func TestCatalogListDatacenters_DistanceSort(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	dir2, s2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDC(t, "acdc")
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	var out []string
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ListDatacenters", struct{}{}, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// It's super hard to force the Serfs into a known configuration of
+	// coordinates, so the best we can do is make sure that the sorting
+	// function is getting called (it's tested extensively in rtt_test.go).
+	// Since this is relative to dc1, it will be listed first (proving we
+	// went into the sort fn) and the other two will be sorted by name since
+	// there are no known coordinates for them.
+	if len(out) != 3 {
+		t.Fatalf("bad: %v", out)
+	}
+	if out[0] != "dc1" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out[1] != "acdc" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out[2] != "dc2" {
 		t.Fatalf("bad: %v", out)
 	}
 }
@@ -453,6 +501,94 @@ func TestCatalogListNodes_ConsistentRead(t *testing.T) {
 	}
 	if !out.QueryMeta.KnownLeader {
 		t.Fatalf("should have known leader")
+	}
+}
+
+func TestCatalogListNodes_DistanceSort(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	if err := s1.fsm.State().EnsureNode(1, &structs.Node{Node: "aaa", Address: "127.0.0.1"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s1.fsm.State().EnsureNode(2, &structs.Node{Node: "foo", Address: "127.0.0.2"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s1.fsm.State().EnsureNode(3, &structs.Node{Node: "bar", Address: "127.0.0.3"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := s1.fsm.State().EnsureNode(4, &structs.Node{Node: "baz", Address: "127.0.0.4"}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Set all but one of the nodes to known coordinates.
+	updates := structs.Coordinates{
+		{"foo", generateCoordinate(2 * time.Millisecond)},
+		{"bar", generateCoordinate(5 * time.Millisecond)},
+		{"baz", generateCoordinate(1 * time.Millisecond)},
+	}
+	if err := s1.fsm.State().CoordinateBatchUpdate(5, updates); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Query with no given source node, should get the natural order from
+	// the index.
+	args := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var out structs.IndexedNodes
+	testutil.WaitForResult(func() (bool, error) {
+		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+		return len(out.Nodes) == 5, nil
+	}, func(err error) {
+		t.Fatalf("err: %v", err)
+	})
+	if out.Nodes[0].Node != "aaa" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[1].Node != "bar" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[2].Node != "baz" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[3].Node != "foo" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[4].Node != s1.config.NodeName {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Query relative to foo, note that there's no known coordinate for the
+	// default-added Serf node nor "aaa" so they will go at the end.
+	args = structs.DCSpecificRequest{
+		Datacenter: "dc1",
+		Source:     structs.QuerySource{Datacenter: "dc1", Node: "foo"},
+	}
+	testutil.WaitForResult(func() (bool, error) {
+		msgpackrpc.CallWithCodec(codec, "Catalog.ListNodes", &args, &out)
+		return len(out.Nodes) == 5, nil
+	}, func(err error) {
+		t.Fatalf("err: %v", err)
+	})
+	if out.Nodes[0].Node != "foo" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[1].Node != "baz" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[2].Node != "bar" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[3].Node != "aaa" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.Nodes[4].Node != s1.config.NodeName {
+		t.Fatalf("bad: %v", out)
 	}
 }
 
@@ -710,6 +846,93 @@ func TestCatalogListServiceNodes(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if len(out.ServiceNodes) != 0 {
+		t.Fatalf("bad: %v", out)
+	}
+}
+
+func TestCatalogListServiceNodes_DistanceSort(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	args := structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+	}
+	var out structs.IndexedServiceNodes
+	err := msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out)
+	if err == nil || err.Error() != "No cluster leader" {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Add a few nodes for the associated services.
+	s1.fsm.State().EnsureNode(1, &structs.Node{Node: "aaa", Address: "127.0.0.1"})
+	s1.fsm.State().EnsureService(2, "aaa", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000})
+	s1.fsm.State().EnsureNode(3, &structs.Node{Node: "foo", Address: "127.0.0.2"})
+	s1.fsm.State().EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.2", Port: 5000})
+	s1.fsm.State().EnsureNode(5, &structs.Node{Node: "bar", Address: "127.0.0.3"})
+	s1.fsm.State().EnsureService(6, "bar", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.3", Port: 5000})
+	s1.fsm.State().EnsureNode(7, &structs.Node{Node: "baz", Address: "127.0.0.4"})
+	s1.fsm.State().EnsureService(8, "baz", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.4", Port: 5000})
+
+	// Set all but one of the nodes to known coordinates.
+	updates := structs.Coordinates{
+		{"foo", generateCoordinate(2 * time.Millisecond)},
+		{"bar", generateCoordinate(5 * time.Millisecond)},
+		{"baz", generateCoordinate(1 * time.Millisecond)},
+	}
+	if err := s1.fsm.State().CoordinateBatchUpdate(9, updates); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Query with no given source node, should get the natural order from
+	// the index.
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(out.ServiceNodes) != 4 {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.ServiceNodes[0].Node != "aaa" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.ServiceNodes[1].Node != "bar" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.ServiceNodes[2].Node != "baz" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.ServiceNodes[3].Node != "foo" {
+		t.Fatalf("bad: %v", out)
+	}
+
+	// Query relative to foo, note that there's no known coordinate for "aaa"
+	// so it will go at the end.
+	args = structs.ServiceSpecificRequest{
+		Datacenter:  "dc1",
+		ServiceName: "db",
+		Source:      structs.QuerySource{Datacenter: "dc1", Node: "foo"},
+	}
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.ServiceNodes", &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(out.ServiceNodes) != 4 {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.ServiceNodes[0].Node != "foo" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.ServiceNodes[1].Node != "baz" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.ServiceNodes[2].Node != "bar" {
+		t.Fatalf("bad: %v", out)
+	}
+	if out.ServiceNodes[3].Node != "aaa" {
 		t.Fatalf("bad: %v", out)
 	}
 }

@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"net/http"
 	"strconv"
@@ -11,12 +12,22 @@ import (
 
 type AgentSelf struct {
 	Config *Config
+	Coord  *coordinate.Coordinate
 	Member serf.Member
 }
 
 func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var c *coordinate.Coordinate
+	if !s.agent.config.DisableCoordinates {
+		var err error
+		if c, err = s.agent.GetCoordinate(); err != nil {
+			return nil, err
+		}
+	}
+
 	return AgentSelf{
 		Config: s.agent.config,
+		Coord:  c,
 		Member: s.agent.LocalMember(),
 	}, nil
 }

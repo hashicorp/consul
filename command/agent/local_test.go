@@ -387,6 +387,12 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 	}
 }
 
+var testRegisterRules = `
+service "api" {
+	policy = "write"
+}
+`
+
 func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	conf := nextConfig()
 	conf.ACLDatacenter = "dc1"
@@ -796,8 +802,35 @@ func TestAgent_nestedPauseResume(t *testing.T) {
 
 }
 
-var testRegisterRules = `
-service "api" {
-	policy = "write"
+func TestAgent_sendCoordinate(t *testing.T) {
+	conf := nextConfig()
+	conf.SyncCoordinateRateTarget = 10.0 // updates/sec
+	conf.SyncCoordinateIntervalMin = 1 * time.Millisecond
+	conf.ConsulConfig.CoordinateUpdatePeriod = 100 * time.Millisecond
+	conf.ConsulConfig.CoordinateUpdateBatchSize = 10
+	conf.ConsulConfig.CoordinateUpdateMaxBatches = 1
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	// Wait a little while for an update.
+	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
+
+	// Make sure the coordinate is present.
+	req := structs.DCSpecificRequest{
+		Datacenter: agent.config.Datacenter,
+	}
+	var reply structs.IndexedCoordinates
+	if err := agent.RPC("Coordinate.ListNodes", &req, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(reply.Coordinates) != 1 {
+		t.Fatalf("expected a coordinate: %v", reply)
+	}
+	coord := reply.Coordinates[0]
+	if coord.Node != agent.config.NodeName || coord.Coord == nil {
+		t.Fatalf("bad: %v", coord)
+	}
 }
-`

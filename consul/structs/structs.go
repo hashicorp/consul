@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/serf/coordinate"
 )
 
 var (
@@ -31,6 +32,7 @@ const (
 	SessionRequestType
 	ACLRequestType
 	TombstoneRequestType
+	CoordinateBatchUpdateType
 )
 
 const (
@@ -182,9 +184,18 @@ func (r *DeregisterRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
+// QuerySource is used to pass along information about the source node
+// in queries so that we can adjust the response based on its network
+// coordinates.
+type QuerySource struct {
+	Datacenter string
+	Node       string
+}
+
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
 	Datacenter string
+	Source     QuerySource
 	QueryOptions
 }
 
@@ -192,12 +203,13 @@ func (r *DCSpecificRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// ServiceSpecificRequest is used to query about a specific node
+// ServiceSpecificRequest is used to query about a specific service
 type ServiceSpecificRequest struct {
 	Datacenter  string
 	ServiceName string
 	ServiceTag  string
 	TagFilter   bool // Controls tag filtering
+	Source      QuerySource
 	QueryOptions
 }
 
@@ -220,6 +232,7 @@ func (r *NodeSpecificRequest) RequestDatacenter() string {
 type ChecksInStateRequest struct {
 	Datacenter string
 	State      string
+	Source     QuerySource
 	QueryOptions
 }
 
@@ -344,7 +357,7 @@ type HealthCheck struct {
 type HealthChecks []*HealthCheck
 
 // CheckServiceNode is used to provide the node, its service
-// definition, as well as a HealthCheck that is associated
+// definition, as well as a HealthCheck that is associated.
 type CheckServiceNode struct {
 	Node    *Node
 	Service *NodeService
@@ -616,6 +629,49 @@ type ACLPolicy struct {
 	Policy *acl.Policy
 	TTL    time.Duration
 	QueryMeta
+}
+
+// Coordinate stores a node name with its associated network coordinate.
+type Coordinate struct {
+	Node  string
+	Coord *coordinate.Coordinate
+}
+
+type Coordinates []*Coordinate
+
+// IndexedCoordinate is used to represent a single node's coordinate from the state
+// store.
+type IndexedCoordinate struct {
+	Coord *coordinate.Coordinate
+	QueryMeta
+}
+
+// IndexedCoordinates is used to represent a list of nodes and their
+// corresponding raw coordinates.
+type IndexedCoordinates struct {
+	Coordinates Coordinates
+	QueryMeta
+}
+
+// DatacenterMap is used to represent a list of nodes with their raw coordinates,
+// associated with a datacenter.
+type DatacenterMap struct {
+	Datacenter  string
+	Coordinates Coordinates
+}
+
+// CoordinateUpdateRequest is used to update the network coordinate of a given
+// node.
+type CoordinateUpdateRequest struct {
+	Datacenter string
+	Node       string
+	Coord      *coordinate.Coordinate
+	WriteRequest
+}
+
+// RequestDatacenter returns the datacenter for a given update request.
+func (c *CoordinateUpdateRequest) RequestDatacenter() string {
+	return c.Datacenter
 }
 
 // EventFireRequest is used to ask a server to fire

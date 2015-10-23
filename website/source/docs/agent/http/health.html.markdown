@@ -70,6 +70,11 @@ This endpoint is hit with a GET and returns the checks associated with
 the service provided on the path. By default, the datacenter of the agent is queried;
 however, the dc can be provided using the "?dc=" query parameter.
 
+Adding the optional "?near=" parameter with a node name will sort
+the node list in ascending order based on the estimated round trip
+time from that node. Passing "?near=_agent" will use the agent's
+node for the sort.
+
 It returns a JSON body like this:
 
 ```javascript
@@ -94,6 +99,11 @@ This endpoint supports blocking queries and all consistency modes.
 This endpoint is hit with a GET and returns the nodes providing
 the service indicated on the path. By default, the datacenter of the agent is queried;
 however, the dc can be provided using the "?dc=" query parameter.
+
+Adding the optional "?near=" parameter with a node name will sort
+the node list in ascending order based on the estimated round trip
+time from that node. Passing "?near=_agent" will use the agent's
+node for the sort.
 
 By default, all nodes matching the service are returned. The list can be filtered
 by tag using the "?tag=" query parameter.
@@ -158,6 +168,11 @@ This endpoint supports blocking queries and all consistency modes.
 This endpoint is hit with a GET and returns the checks in the
 state provided on the path. By default, the datacenter of the agent is queried;
 however, the dc can be provided using the "?dc=" query parameter.
+
+Adding the optional "?near=" parameter with a node name will sort
+the node list in ascending order based on the estimated round trip
+time from that node. Passing "?near=_agent" will use the agent's
+node for the sort.
 
 The supported states are `any`, `unknown`, `passing`, `warning`, or `critical`.
 The `any` state is a wildcard that can be used to return all checks.

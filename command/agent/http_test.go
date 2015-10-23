@@ -337,6 +337,63 @@ func testPrettyPrint(pretty string, t *testing.T) {
 	}
 }
 
+func TestParseSource(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	// Default is agent's DC and no node (since the user didn't care, then
+	// just give them the cheapest possible query).
+	req, err := http.NewRequest("GET",
+		"/v1/catalog/nodes", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	source := structs.QuerySource{}
+	srv.parseSource(req, &source)
+	if source.Datacenter != "dc1" || source.Node != "" {
+		t.Fatalf("bad: %v", source)
+	}
+
+	// Adding the source parameter should set that node.
+	req, err = http.NewRequest("GET",
+		"/v1/catalog/nodes?near=bob", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	source = structs.QuerySource{}
+	srv.parseSource(req, &source)
+	if source.Datacenter != "dc1" || source.Node != "bob" {
+		t.Fatalf("bad: %v", source)
+	}
+
+	// We should follow whatever dc parameter was given so that the node is
+	// looked up correctly on the receiving end.
+	req, err = http.NewRequest("GET",
+		"/v1/catalog/nodes?near=bob&dc=foo", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	source = structs.QuerySource{}
+	srv.parseSource(req, &source)
+	if source.Datacenter != "foo" || source.Node != "bob" {
+		t.Fatalf("bad: %v", source)
+	}
+
+	// The magic "_agent" node name will use the agent's local node name.
+	req, err = http.NewRequest("GET",
+		"/v1/catalog/nodes?near=_agent", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	source = structs.QuerySource{}
+	srv.parseSource(req, &source)
+	if source.Datacenter != "dc1" || source.Node != srv.agent.config.NodeName {
+		t.Fatalf("bad: %v", source)
+	}
+}
+
 func TestParseWait(t *testing.T) {
 	resp := httptest.NewRecorder()
 	var b structs.QueryOptions

@@ -105,8 +105,13 @@ func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
 		dcs = append(dcs, dc)
 	}
 
-	// Sort the DCs
+	// TODO - do we want to control the sort behavior with an argument?
+
+	// Sort the DCs by name first, then apply a stable sort by distance.
 	sort.Strings(dcs)
+	if err := c.srv.sortDatacentersByDistance(dcs); err != nil {
+		return err
+	}
 
 	// Return
 	*reply = dcs
@@ -132,7 +137,7 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 			}
 
 			reply.Index, reply.Nodes = index, nodes
-			return nil
+			return c.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
 		})
 }
 
@@ -189,7 +194,10 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 				return err
 			}
 			reply.Index, reply.ServiceNodes = index, services
-			return c.srv.filterACL(args.Token, reply)
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+			return c.srv.sortNodesByDistanceFrom(args.Source, reply.ServiceNodes)
 		})
 
 	// Provide some metrics

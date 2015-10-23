@@ -3,6 +3,7 @@ package consul
 import (
 	"bytes"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/consul/state"
@@ -382,6 +383,20 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
+	updates := structs.Coordinates{
+		&structs.Coordinate{
+			Node:  "baz",
+			Coord: generateRandomCoordinate(),
+		},
+		&structs.Coordinate{
+			Node:  "foo",
+			Coord: generateRandomCoordinate(),
+		},
+	}
+	if err := fsm.state.CoordinateBatchUpdate(13, updates); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	if err != nil {
@@ -490,6 +505,15 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 			t.Fatalf("unexpected extra tombstones")
 		}
 	}()
+
+	// Verify coordinates are restored
+	_, coords, err := fsm2.state.Coordinates()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !reflect.DeepEqual(coords, updates) {
+		t.Fatalf("bad: %#v", coords)
+	}
 }
 
 func TestFSM_KVSSet(t *testing.T) {
@@ -725,6 +749,46 @@ func TestFSM_KVSCheckAndSet(t *testing.T) {
 	}
 	if string(d.Value) != "zip" {
 		t.Fatalf("bad: %v", d)
+	}
+}
+
+func TestFSM_CoordinateUpdate(t *testing.T) {
+	fsm, err := NewFSM(nil, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register some nodes.
+	fsm.state.EnsureNode(1, &structs.Node{Node: "node1", Address: "127.0.0.1"})
+	fsm.state.EnsureNode(2, &structs.Node{Node: "node2", Address: "127.0.0.1"})
+
+	// Write a batch of two coordinates.
+	updates := structs.Coordinates{
+		&structs.Coordinate{
+			Node:  "node1",
+			Coord: generateRandomCoordinate(),
+		},
+		&structs.Coordinate{
+			Node:  "node2",
+			Coord: generateRandomCoordinate(),
+		},
+	}
+	buf, err := structs.Encode(structs.CoordinateBatchUpdateType, updates)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp := fsm.Apply(makeLog(buf))
+	if resp != nil {
+		t.Fatalf("resp: %v", resp)
+	}
+
+	// Read back the two coordinates to make sure they got updated.
+	_, coords, err := fsm.state.Coordinates()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !reflect.DeepEqual(coords, updates) {
+		t.Fatalf("bad: %#v", coords)
 	}
 }
 

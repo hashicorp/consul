@@ -66,6 +66,9 @@ func testServerConfig(t *testing.T, NodeName string) (string, *Config) {
 	config.RaftConfig.ElectionTimeout = 40 * time.Millisecond
 
 	config.ReconcileInterval = 100 * time.Millisecond
+
+	config.DisableCoordinates = false
+	config.CoordinateUpdatePeriod = 100 * time.Millisecond
 	return dir, config
 }
 

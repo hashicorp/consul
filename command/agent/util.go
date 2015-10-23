@@ -18,14 +18,17 @@ import (
 )
 
 const (
-	// This scale factor means we will add a minute after we
-	// cross 128 nodes, another at 256, another at 512, etc.
-	// By 8192 nodes, we will scale up by a factor of 8
+	// This scale factor means we will add a minute after we cross 128 nodes,
+	// another at 256, another at 512, etc. By 8192 nodes, we will scale up
+	// by a factor of 8.
+	//
+	// If you update this, you may need to adjust the tuning of
+	// CoordinateUpdatePeriod and CoordinateUpdateMaxBatchSize.
 	aeScaleThreshold = 128
 )
 
-// aeScale is used to scale the time interval at which anti-entropy
-// take place. It is used to prevent saturation as the cluster size grows
+// aeScale is used to scale the time interval at which anti-entropy updates take
+// place. It is used to prevent saturation as the cluster size grows.
 func aeScale(interval time.Duration, n int) time.Duration {
 	// Don't scale until we cross the threshold
 	if n <= aeScaleThreshold {
@@ -34,6 +37,17 @@ func aeScale(interval time.Duration, n int) time.Duration {
 
 	multiplier := math.Ceil(math.Log2(float64(n))-math.Log2(aeScaleThreshold)) + 1.0
 	return time.Duration(multiplier) * interval
+}
+
+// rateScaledInterval is used to choose an interval to perform an action in order
+// to target an aggregate number of actions per second across the whole cluster.
+func rateScaledInterval(rate float64, min time.Duration, n int) time.Duration {
+	interval := time.Duration(float64(time.Second) * float64(n) / rate)
+	if interval < min {
+		return min
+	}
+
+	return interval
 }
 
 // Returns a random stagger interval between 0 and the duration

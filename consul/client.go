@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -138,6 +139,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.ProtocolVersion = protocolVersionMap[c.config.ProtocolVersion]
 	conf.RejoinAfterLeave = c.config.RejoinAfterLeave
 	conf.Merge = &lanMergeDelegate{dc: c.config.Datacenter}
+	conf.DisableCoordinates = c.config.DisableCoordinates
 	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
@@ -375,4 +377,10 @@ func (c *Client) Stats() map[string]map[string]string {
 		"runtime":  runtimeStats(),
 	}
 	return stats
+}
+
+// GetCoordinate returns the network coordinate of the current node, as
+// maintained by Serf.
+func (c *Client) GetCoordinate() (*coordinate.Coordinate, error) {
+	return c.serf.GetCoordinate()
 }

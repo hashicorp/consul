@@ -734,6 +734,17 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Coordinate disable
+	input = `{"disable_coordinates": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.DisableCoordinates != true {
+		t.Fatalf("bad: coordinates not disabled: %#v", config)
+	}
+
 	// SessionTTLMin
 	input = `{"session_ttl_min": "5s"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))

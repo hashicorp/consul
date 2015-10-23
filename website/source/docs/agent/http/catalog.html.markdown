@@ -159,6 +159,10 @@ If the API call succeeds a 200 status code is returned.
 This endpoint is hit with a GET and is used to return all the
 datacenters that are known by the Consul server.
 
+The datacenters will be sorted in ascending order based on the
+estimated median round trip time from the server to the servers
+in that datacenter.
+
 It returns a JSON body like this:
 
 ```javascript
@@ -174,6 +178,11 @@ used as a simple check to see if any Consul servers are routable.
 This endpoint is hit with a GET and returns the nodes registered
 in a given DC. By default, the datacenter of the agent is queried;
 however, the dc can be provided using the "?dc=" query parameter.
+
+Adding the optional "?near=" parameter with a node name will sort
+the node list in ascending order based on the estimated round trip
+time from that node. Passing "?near=_agent" will use the agent's
+node for the sort.
 
 It returns a JSON body like this:
 
@@ -225,6 +234,11 @@ however, the dc can be provided using the "?dc=" query parameter.
 The service being queried must be provided on the path. By default
 all nodes in that service are returned. However, the list can be filtered
 by tag using the "?tag=" query parameter.
+
+Adding the optional "?near=" parameter with a node name will sort
+the node list in ascending order based on the estimated round trip
+time from that node. Passing "?near=_agent" will use the agent's
+node for the sort.
 
 It returns a JSON body like this:
 
