@@ -18,9 +18,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/go-cleanhttp"
 )
 
 func makeHTTPServer(t *testing.T) (string, *HTTPServer) {

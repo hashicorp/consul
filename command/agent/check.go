@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/armon/circbuf"
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-cleanhttp"
 )
 
 const (
