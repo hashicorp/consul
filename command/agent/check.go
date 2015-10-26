@@ -597,19 +597,21 @@ func (c *CheckDocker) check() {
 		exec = exec
 	} else {
 		c.Logger.Printf("[DEBUG] agent: Error while creating Exec: %s", err.Error())
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Unable to create Exec, error: %s", err.Error()))
+		return
 	}
 
 	err = c.dockerClient.StartExec(exec.ID, docker.StartExecOptions{Detach: false, Tty: false})
 	if err != nil {
 		c.Logger.Printf("[DEBUG] Error in executing health checks: %s", err.Error())
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Unable to start exec: %s", err.Error()))
 		return
 	}
 
 	execInfo, err := c.dockerClient.InspectExec(exec.ID)
 	if err != nil {
 		c.Logger.Printf("[DEBUG] Error in inspecting check result : %s", err.Error())
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Unable to inspect Exec: %s", err.Error()))
 		return
 	}
 
