@@ -46,15 +46,10 @@ if [ -z $NOSIGN ]; then
 fi
 popd
 
-# # Upload
-# for ARCHIVE in ./pkg/dist/*; do
-#     ARCHIVE_NAME=$(basename ${ARCHIVE})
+# Upload
+if [ -z $NORELEASE ]; then
+  echo "==> Uploading binaries..."
+  hc-releases -upload=./pkg/dist
+fi
 
-#     echo Uploading: $ARCHIVE_NAME
-#     curl \
-#         -T ${ARCHIVE} \
-#         -umitchellh:${BINTRAY_API_KEY} \
-#         "https://api.bintray.com/content/mitchellh/consul/consul/${VERSION}/${ARCHIVE_NAME}"
-# done
-
-# exit 0
+exit 0
