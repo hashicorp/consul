@@ -909,25 +909,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			tcp.Start()
 			a.checkTCPs[check.CheckID] = tcp
 
-		} else if chkType.IsMonitor() {
-			if existing, ok := a.checkMonitors[check.CheckID]; ok {
-				existing.Stop()
-			}
-			if chkType.Interval < MinInterval {
-				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
-					check.CheckID, MinInterval))
-				chkType.Interval = MinInterval
-			}
-
-			monitor := &CheckMonitor{
-				Notify:   &a.state,
-				CheckID:  check.CheckID,
-				Script:   chkType.Script,
-				Interval: chkType.Interval,
-				Logger:   a.logger,
-			}
-			monitor.Start()
-			a.checkMonitors[check.CheckID] = monitor
 		} else if chkType.IsDocker() {
 			if existing, ok := a.checkDockers[check.CheckID]; ok {
 				existing.Stop()
@@ -949,6 +930,25 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 			dockerCheck.Start()
 			a.checkDockers[check.CheckID] = dockerCheck
+		} else {
+			if existing, ok := a.checkMonitors[check.CheckID]; ok {
+				existing.Stop()
+			}
+			if chkType.Interval < MinInterval {
+				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
+					check.CheckID, MinInterval))
+				chkType.Interval = MinInterval
+			}
+
+			monitor := &CheckMonitor{
+				Notify:   &a.state,
+				CheckID:  check.CheckID,
+				Script:   chkType.Script,
+				Interval: chkType.Interval,
+				Logger:   a.logger,
+			}
+			monitor.Start()
+			a.checkMonitors[check.CheckID] = monitor
 		}
 	}
 
