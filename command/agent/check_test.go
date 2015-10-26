@@ -434,6 +434,25 @@ func (d *fakeDockerClientWithExecNonZeroExitCode) InspectExec(id string) (*docke
 	}, nil
 }
 
+// A fake docker client to test exit code which result into Warning
+type fakeDockerClientWithExecExitCodeOne struct {
+}
+
+func (d *fakeDockerClientWithExecExitCodeOne) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
+	return &docker.Exec{ID: "123"}, nil
+}
+
+func (d *fakeDockerClientWithExecExitCodeOne) StartExec(id string, opts docker.StartExecOptions) error {
+	return nil
+}
+
+func (d *fakeDockerClientWithExecExitCodeOne) InspectExec(id string) (*docker.ExecInspect, error) {
+	return &docker.ExecInspect{
+		ID:       "123",
+		ExitCode: 1,
+	}, nil
+}
+
 // A fake docker client to simulate create exec failing
 type fakeDockerClientWithCreateExecFailure struct {
 }
@@ -523,6 +542,10 @@ func TestDockerCheckWhenExecCreationFails(t *testing.T) {
 
 func TestDockerCheckWhenExitCodeIsNonZero(t *testing.T) {
 	expectDockerCheckStatus(t, &fakeDockerClientWithExecNonZeroExitCode{}, "critical")
+}
+
+func TestDockerCheckWhenExitCodeIsone(t *testing.T) {
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecExitCodeOne{}, "warning")
 }
 
 func TestDockerCheckWhenExecStartFails(t *testing.T) {
