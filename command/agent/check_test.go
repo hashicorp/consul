@@ -459,7 +459,7 @@ func (d *fakeDockerClientWithStartExecFailure) CreateExec(opts docker.CreateExec
 }
 
 func (d *fakeDockerClientWithStartExecFailure) StartExec(id string, opts docker.StartExecOptions) error {
-	return nil
+	return errors.New("Couldn't Start Exec")
 }
 
 func (d *fakeDockerClientWithStartExecFailure) InspectExec(id string) (*docker.ExecInspect, error) {
