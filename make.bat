@@ -23,10 +23,10 @@ if x%1==xdeps goto end
 goto args
 
 :args
-for %%a in (all,cover,integ,test,vet,updatedeps) do (if x%1==x%%a goto %%a)
+for %%a in (all,cover,test,vet,updatedeps) do (if x%1==x%%a goto %%a)
 echo.
 echo Unknown make target: %1
-echo Expected one of "all", "cover", "deps", "integ", "test", "vet", or "updatedeps".
+echo Expected one of "all", "cover", "deps", "test", "vet", or "updatedeps".
 set _EXITCODE=1
 goto end
 
@@ -43,10 +43,6 @@ goto end
 set _COVER=--cover
 go tool cover 2>NUL
 if %ERRORLEVEL% EQU 3 go get golang.org/x/tools/cmd/cover
-goto test
-
-:integ
-set INTEG_TESTS=yes
 goto test
 
 :test
