@@ -413,7 +413,7 @@
       {{#each node in model }}
 
         {{#link-to 'nodes.show' node.Node.Node tagName="div" href=false class="panel panel-link panel-list" }}
-          <div {{bind-attr class="hasFailingChecks:bg-orange:bg-green :panel-bar-horizontal"}}></div>
+          <div {{bind-attr class="node.hasFailingChecks:bg-orange:bg-green :panel-bar-horizontal"}}></div>
 
           <div class="panel-heading">
             <h3 class="panel-title">
