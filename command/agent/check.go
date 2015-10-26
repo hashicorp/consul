@@ -35,10 +35,10 @@ const (
 
 // CheckType is used to create either the CheckMonitor
 // or the CheckTTL.
-// Four types are supported: Script, HTTP, TCP and TTL
-// Script, HTTP and TCP all require Interval
+// Five types are supported: Script, HTTP, TCP, Docker and TTL
+// Script, HTTP, Docker and TCP all require Interval
 // Only one of the types needs to be provided
-//  TTL or Script/Interval or HTTP/Interval or TCP/Interval
+// TTL or Script/Interval or HTTP/Interval or TCP/Interval or Docker/Interval
 type CheckType struct {
 	Script            string
 	HTTP              string
