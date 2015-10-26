@@ -82,7 +82,7 @@ func (c *CheckType) IsTCP() bool {
 }
 
 func (c *CheckType) IsDocker() bool {
-	return c.DockerContainerId != "" && c.Interval != 0
+	return c.DockerContainerId != "" && c.Script != "" && c.Interval != 0
 }
 
 // CheckNotifier interface is used by the CheckMonitor
