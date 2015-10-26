@@ -124,7 +124,7 @@ In the case of a network failure, some nodes may be unreachable by other nodes.
 In this case, unreachable nodes are marked as _failed_. It is impossible to distinguish
 between a network failure and an agent crash, so both cases are handled the same.
 Once a node is marked as failed, this information is updated in the service catalog.
-Mote: there is some nuance here since this update is only possible if the servers can
+Note: there is some nuance here since this update is only possible if the servers can
 still [form a quorum](/docs/internals/consensus.html). Once the network recovers
 or a crashed agent restarts the cluster will repair itself and unmark
 a node as failed. The health check in the catalog will also be updated to reflect
