@@ -530,20 +530,23 @@ type CheckDocker struct {
 	stopLock     sync.Mutex
 }
 
+//Initializes the Docker Client
+func (c *CheckDocker) Init() error {
+	//create the docker client
+	var err error
+	c.dockerClient, err = docker.NewClientFromEnv()
+	if err != nil {
+		c.Logger.Println("[DEBUG] Error creating the Docker Client : %s", err.Error())
+		return err
+	}
+	return nil
+}
+
 // Start is used to start checks.
 // Docker Checks runs until stop is called
 func (c *CheckDocker) Start() {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
-
-	//create the docker client
-	if c.dockerClient == nil {
-		var err error
-		c.dockerClient, err = docker.NewClientFromEnv()
-		if err != nil {
-			c.Logger.Println("[DEBUG] Error creating the Docker Client : %s", err.Error())
-		}
-	}
 
 	//figure out the shell
 	if c.Shell == "" {

@@ -928,6 +928,9 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 				Interval:          chkType.Interval,
 				Logger:            a.logger,
 			}
+			if err := dockerCheck.Init(); err != nil {
+				return err
+			}
 			dockerCheck.Start()
 			a.checkDockers[check.CheckID] = dockerCheck
 		} else {
