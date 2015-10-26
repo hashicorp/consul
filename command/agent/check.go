@@ -616,6 +616,7 @@ func (c *CheckDocker) check() {
 	if execInfo.ExitCode == 0 {
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, fmt.Sprintf("Script execution %s: Success", c.Script))
 	} else {
+		c.Logger.Printf("[DEBUG] Check failed with exit code: %d", execInfo.ExitCode)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Script execution faied with exit code: %s", execInfo.ExitCode))
 	}
 
