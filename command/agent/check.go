@@ -82,7 +82,7 @@ func (c *CheckType) IsTCP() bool {
 }
 
 func (c *CheckType) IsDocker() bool {
-	return c.DockerContainerId != "" && c.Shell != "" && c.Interval != 0
+	return c.DockerContainerId != "" && c.Interval != 0
 }
 
 // CheckNotifier interface is used by the CheckMonitor
@@ -547,11 +547,7 @@ func (c *CheckDocker) Start() {
 
 	//figure out the shell
 	if c.Shell == "" {
-		if otherShell := os.Getenv("SHELL"); otherShell != "" {
-			c.Shell = otherShell
-		} else {
-			c.Shell = "/bin/sh"
-		}
+		c.Shell = shell()
 	}
 
 	c.cmd = []string{c.Shell, "-c", c.Script}
@@ -602,9 +598,7 @@ func (c *CheckDocker) check() {
 		exec *docker.Exec
 		err  error
 	)
-	if exec, err = c.dockerClient.CreateExec(execOpts); err == nil {
-		exec = exec
-	} else {
+	if exec, err = c.dockerClient.CreateExec(execOpts); err != nil {
 		c.Logger.Printf("[DEBUG] agent: Error while creating Exec: %s", err.Error())
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Unable to create Exec, error: %s", err.Error()))
 		return
@@ -613,7 +607,7 @@ func (c *CheckDocker) check() {
 	err = c.dockerClient.StartExec(exec.ID, docker.StartExecOptions{Detach: false, Tty: false})
 	if err != nil {
 		c.Logger.Printf("[DEBUG] Error in executing health checks: %s", err.Error())
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Unable to start exec: %s", err.Error()))
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Unable to start Exec: %s", err.Error()))
 		return
 	}
 
@@ -631,4 +625,12 @@ func (c *CheckDocker) check() {
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Script execution faied with exit code: %s", execInfo.ExitCode))
 	}
 
+}
+
+func shell() string {
+	if otherShell := os.Getenv("SHELL"); otherShell != "" {
+		return otherShell
+	} else {
+		return "/bin/sh"
+	}
 }
