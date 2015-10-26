@@ -1,3 +1,4 @@
+GOTOOLS = github.com/mitchellh/gox golang.org/x/tools/cmd/stringer
 DEPS = $(shell go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
 PACKAGES = $(shell go list ./...)
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -26,11 +27,11 @@ cov:
 
 deps:
 	@echo "--> Installing build dependencies"
+	@go get -v $(GOTOOLS)
 	@go get -d -v ./... $(DEPS)
 
 updatedeps: deps
-	go get -u github.com/mitchellh/gox
-	go get -u golang.org/x/tools/cmd/stringer
+	go get -u -v $(GOTOOLS)
 	go list ./... \
 		| xargs go list -f '{{join .Deps "\n"}}' \
 		| grep -v github.com/hashicorp/consul \
