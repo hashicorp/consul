@@ -502,6 +502,14 @@ func (c *CheckTCP) check() {
 	c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
 }
 
+// A custom interface since go-dockerclient doesn't have one
+// We will use this interface in our test to inject a fake client
+type DockerClient interface {
+	CreateExec(docker.CreateExecOptions) (*docker.Exec, error)
+	StartExec(string, docker.StartExecOptions) error
+	InspectExec(string) (*docker.ExecInspect, error)
+}
+
 // CheckDocker is used to periodically invoke a script to
 // determine the health of an application running inside a
 // Docker Container. We assume that the script is compatible
@@ -515,8 +523,7 @@ type CheckDocker struct {
 	Interval          time.Duration
 	Logger            *log.Logger
 
-	dockerClient *docker.Client
-	exec         *docker.Exec
+	dockerClient DockerClient
 	cmd          []string
 	stop         bool
 	stopCh       chan struct{}
@@ -530,10 +537,12 @@ func (c *CheckDocker) Start() {
 	defer c.stopLock.Unlock()
 
 	//create the docker client
-	var err error
-	c.dockerClient, err = docker.NewClientFromEnv()
-	if err != nil {
-		c.Logger.Println("[DEBUG] Error creating the Docker Client : %s", err.Error())
+	if c.dockerClient == nil {
+		var err error
+		c.dockerClient, err = docker.NewClientFromEnv()
+		if err != nil {
+			c.Logger.Println("[DEBUG] Error creating the Docker Client : %s", err.Error())
+		}
 	}
 
 	//figure out the shell

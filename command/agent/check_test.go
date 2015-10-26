@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -10,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	docker "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
 )
@@ -392,4 +394,141 @@ func TestCheckTCPPassing(t *testing.T) {
 	tcpServer = mockTCPServer(`tcp6`)
 	expectTCPStatus(t, tcpServer.Addr().String(), "passing")
 	tcpServer.Close()
+}
+
+// A fake docker client to test happy path scenario
+type fakeDockerClientWithNoErrors struct {
+}
+
+func (d *fakeDockerClientWithNoErrors) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
+	return &docker.Exec{ID: "123"}, nil
+}
+
+func (d *fakeDockerClientWithNoErrors) StartExec(id string, opts docker.StartExecOptions) error {
+	return nil
+}
+
+func (d *fakeDockerClientWithNoErrors) InspectExec(id string) (*docker.ExecInspect, error) {
+	return &docker.ExecInspect{
+		ID:       "123",
+		ExitCode: 0,
+	}, nil
+}
+
+// A fake docker client to test non-zero exit codes from exec invocation
+type fakeDockerClientWithExecNonZeroExitCode struct {
+}
+
+func (d *fakeDockerClientWithExecNonZeroExitCode) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
+	return &docker.Exec{ID: "123"}, nil
+}
+
+func (d *fakeDockerClientWithExecNonZeroExitCode) StartExec(id string, opts docker.StartExecOptions) error {
+	return nil
+}
+
+func (d *fakeDockerClientWithExecNonZeroExitCode) InspectExec(id string) (*docker.ExecInspect, error) {
+	return &docker.ExecInspect{
+		ID:       "123",
+		ExitCode: 127,
+	}, nil
+}
+
+// A fake docker client to simulate create exec failing
+type fakeDockerClientWithCreateExecFailure struct {
+}
+
+func (d *fakeDockerClientWithCreateExecFailure) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
+	return nil, errors.New("Exec Creation Failed")
+}
+
+func (d *fakeDockerClientWithCreateExecFailure) StartExec(id string, opts docker.StartExecOptions) error {
+	return errors.New("Exec doesn't exist")
+}
+
+func (d *fakeDockerClientWithCreateExecFailure) InspectExec(id string) (*docker.ExecInspect, error) {
+	return nil, errors.New("Exec doesn't exist")
+}
+
+// A fake docker client to simulate start exec failing
+type fakeDockerClientWithStartExecFailure struct {
+}
+
+func (d *fakeDockerClientWithStartExecFailure) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
+	return &docker.Exec{ID: "123"}, nil
+}
+
+func (d *fakeDockerClientWithStartExecFailure) StartExec(id string, opts docker.StartExecOptions) error {
+	return nil
+}
+
+func (d *fakeDockerClientWithStartExecFailure) InspectExec(id string) (*docker.ExecInspect, error) {
+	return nil, errors.New("Exec doesn't exist")
+}
+
+// A fake docker client to test exec info query failures
+type fakeDockerClientWithExecInfoErrors struct {
+}
+
+func (d *fakeDockerClientWithExecInfoErrors) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
+	return &docker.Exec{ID: "123"}, nil
+}
+
+func (d *fakeDockerClientWithExecInfoErrors) StartExec(id string, opts docker.StartExecOptions) error {
+	return nil
+}
+
+func (d *fakeDockerClientWithExecInfoErrors) InspectExec(id string) (*docker.ExecInspect, error) {
+	return nil, errors.New("Unable to query exec info")
+}
+
+func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status string) {
+	mock := &MockNotify{
+		state:   make(map[string]string),
+		updates: make(map[string]int),
+		output:  make(map[string]string),
+	}
+	check := &CheckDocker{
+		Notify:            mock,
+		CheckID:           "foo",
+		Script:            "/health.sh",
+		DockerContainerId: "54432bad1fc7",
+		Shell:             "/bin/sh",
+		Interval:          10 * time.Millisecond,
+		Logger:            log.New(os.Stderr, "", log.LstdFlags),
+		dockerClient:      dockerClient,
+	}
+	check.Start()
+	defer check.Stop()
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Should have at least 2 updates
+	if mock.updates["foo"] < 2 {
+		t.Fatalf("should have 2 updates %v", mock.updates)
+	}
+
+	if mock.state["foo"] != status {
+		t.Fatalf("should be %v %v", status, mock.state)
+	}
+}
+
+func TestDockerCheckWhenExecReturnsSuccessExitCode(t *testing.T) {
+	expectDockerCheckStatus(t, &fakeDockerClientWithNoErrors{}, "passing")
+}
+
+func TestDockerCheckWhenExecCreationFails(t *testing.T) {
+	expectDockerCheckStatus(t, &fakeDockerClientWithCreateExecFailure{}, "critical")
+}
+
+func TestDockerCheckWhenExitCodeIsNonZero(t *testing.T) {
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecNonZeroExitCode{}, "critical")
+}
+
+func TestDockerCheckWhenExecStartFails(t *testing.T) {
+	expectDockerCheckStatus(t, &fakeDockerClientWithStartExecFailure{}, "critical")
+}
+
+func TestDockerCheckWhenExecInfoFails(t *testing.T) {
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecInfoErrors{}, "critical")
 }
