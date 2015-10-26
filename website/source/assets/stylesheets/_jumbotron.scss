@@ -2,11 +2,20 @@
 // Jumbotron
 // --------------------------------------------------
 
-#jumbotron-mask{
+#jumbotron-mask,
+#jumbotron-mask-dummy{
   overflow: hidden;
   width: 100%;
   height: $jumbotron-total-height;
-  margin-top: $negative-hero-margin;
+}
+#jumbotron-mask {
+  position: absolute;
+  top: 0;
+}
+#jumbotron-mask-dummy{
+  visibility: hidden;
+  position:relative;
+  top: $negative-hero-margin;
 }
 
 #jumbotron {
@@ -42,7 +51,7 @@
       height: 100%;
       margin-top: $header-height;
       -webkit-backface-visibility:hidden;
-      
+
       .jumbo-logo-wrap{
         margin-top: 135px;
 
@@ -71,6 +80,9 @@
       text-align: center;
       margin-left: 0;
     }
+  }
+  #jumbotron-mask-dummy{
+    top: $large-negative-hero-margin;
   }
 }
 
