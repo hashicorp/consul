@@ -5,6 +5,7 @@
 VAGRANTFILE_API_VERSION = '2'
 
 @script = <<SCRIPT
+GOVERSION="1.5.1"
 SRCROOT="/opt/go"
 SRCPATH="/opt/gopath"
 
@@ -17,8 +18,8 @@ sudo apt-get install -y build-essential git-core
 
 # Install Go
 cd /tmp
-wget --quiet --no-check-certificate https://storage.googleapis.com/golang/go1.4.2.linux-${ARCH}.tar.gz
-tar -xvf go1.4.2.linux-${ARCH}.tar.gz
+wget --quiet --no-check-certificate https://storage.googleapis.com/golang/go${GOVERSION}.linux-${ARCH}.tar.gz
+tar -xvf go${GOVERSION}.linux-${ARCH}.tar.gz
 sudo mv go $SRCROOT
 sudo chmod 775 $SRCROOT
 sudo chown vagrant:vagrant $SRCROOT
@@ -56,14 +57,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   end
 
-  # Note we use older boxes here to avoid glibc version check problems with
-  # the built C dependencies.
   config.vm.define '64bit' do |n1|
-    n1.vm.box = 'chef/ubuntu-10.04'
-  end
-
-  config.vm.define '32bit' do |n2|
-    n2.vm.box = 'chef/ubuntu-10.04-i386'
+    n1.vm.box = 'hashicorp/precise64'
   end
 
   config.push.define "www", strategy: "local-exec" do |push|
