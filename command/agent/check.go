@@ -604,12 +604,25 @@ func (c *CheckDocker) check() {
 		return
 	}
 
-	err = c.dockerClient.StartExec(exec.ID, docker.StartExecOptions{Detach: false, Tty: false})
+	// Collect the output
+	output, _ := circbuf.NewBuffer(CheckBufSize)
+
+	err = c.dockerClient.StartExec(exec.ID, docker.StartExecOptions{Detach: false, Tty: false, OutputStream: output, ErrorStream: output})
 	if err != nil {
 		c.Logger.Printf("[DEBUG] Error in executing health checks: %s", err.Error())
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Unable to start Exec: %s", err.Error()))
 		return
 	}
+
+	// Get the output, add a message about truncation
+	outputStr := string(output.Bytes())
+	if output.TotalWritten() > output.Size() {
+		outputStr = fmt.Sprintf("Captured %d of %d bytes\n...\n%s",
+			output.Size(), output.TotalWritten(), outputStr)
+	}
+
+	c.Logger.Printf("[DEBUG] agent: check '%s' script '%s' output: %s",
+		c.CheckID, c.Script, outputStr)
 
 	execInfo, err := c.dockerClient.InspectExec(exec.ID)
 	if err != nil {
@@ -618,13 +631,22 @@ func (c *CheckDocker) check() {
 		return
 	}
 
+	// Sets the status of the check to healthy if exit code is 0
 	if execInfo.ExitCode == 0 {
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, fmt.Sprintf("Script execution %s: Success", c.Script))
-	} else {
-		c.Logger.Printf("[DEBUG] Check failed with exit code: %d", execInfo.ExitCode)
-		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Script execution faied with exit code: %s", execInfo.ExitCode))
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, outputStr)
+		return
 	}
 
+	// Set the status of the check to Warning if exit code is 1
+	if execInfo.ExitCode == 1 {
+		c.Logger.Printf("[DEBUG] Check failed with exit code: %d", execInfo.ExitCode)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthWarning, outputStr)
+		return
+	}
+
+	// Set the health as critical
+	c.Logger.Printf("[WARN] agent: Check '%v' is now critical", c.CheckID)
+	c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, outputStr)
 }
 
 func shell() string {
