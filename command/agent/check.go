@@ -515,12 +515,12 @@ type CheckDocker struct {
 	Interval          time.Duration
 	Logger            *log.Logger
 
-	dockerClient  *docker.Client
-	exec          *docker.Exec
-	startExecOpts docker.StartExecOptions
-	stop          bool
-	stopCh        chan struct{}
-	stopLock      sync.Mutex
+	dockerClient *docker.Client
+	exec         *docker.Exec
+	cmd          []string
+	stop         bool
+	stopCh       chan struct{}
+	stopLock     sync.Mutex
 }
 
 // Start is used to start checks.
@@ -528,6 +528,13 @@ type CheckDocker struct {
 func (c *CheckDocker) Start() {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
+
+	//create the docker client
+	var err error
+	c.dockerClient, err = docker.NewClientFromEnv()
+	if err != nil {
+		c.Logger.Println("[DEBUG] Error creating the Docker Client : %s", err.Error())
+	}
 
 	//figure out the shell
 	if c.Shell == "" {
@@ -538,27 +545,7 @@ func (c *CheckDocker) Start() {
 		}
 	}
 
-	cmd := []string{c.Shell, "-c", c.Script}
-
-	//Set up the Exec since
-	execOpts := docker.CreateExecOptions{
-		AttachStdin:  false,
-		AttachStdout: true,
-		AttachStderr: true,
-		Tty:          false,
-		Cmd:          cmd,
-		Container:    c.DockerContainerId,
-	}
-	if exec, err := c.dockerClient.CreateExec(execOpts); err != nil {
-		c.exec = exec
-	} else {
-		c.Logger.Printf("[DEBUG] agent: Error while creating Exec: %s", err.Error())
-	}
-
-	c.startExecOpts = docker.StartExecOptions{
-		Detach: false,
-		Tty:    false,
-	}
+	c.cmd = []string{c.Shell, "-c", c.Script}
 
 	c.stop = false
 	c.stopCh = make(chan struct{})
@@ -593,11 +580,43 @@ func (c *CheckDocker) run() {
 }
 
 func (c *CheckDocker) check() {
-	err := c.dockerClient.StartExec(c.exec.ID, c.startExecOpts)
+	//Set up the Exec since
+	execOpts := docker.CreateExecOptions{
+		AttachStdin:  false,
+		AttachStdout: true,
+		AttachStderr: true,
+		Tty:          false,
+		Cmd:          c.cmd,
+		Container:    c.DockerContainerId,
+	}
+	var (
+		exec *docker.Exec
+		err  error
+	)
+	if exec, err = c.dockerClient.CreateExec(execOpts); err == nil {
+		exec = exec
+	} else {
+		c.Logger.Printf("[DEBUG] agent: Error while creating Exec: %s", err.Error())
+	}
+
+	err = c.dockerClient.StartExec(exec.ID, docker.StartExecOptions{Detach: false, Tty: false})
 	if err != nil {
 		c.Logger.Printf("[DEBUG] Error in executing health checks: %s", err.Error())
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
 		return
 	}
-	c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, fmt.Sprintf("Script execution %s: Success", c.Script))
+
+	execInfo, err := c.dockerClient.InspectExec(exec.ID)
+	if err != nil {
+		c.Logger.Printf("[DEBUG] Error in inspecting check result : %s", err.Error())
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
+		return
+	}
+
+	if execInfo.ExitCode == 0 {
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, fmt.Sprintf("Script execution %s: Success", c.Script))
+	} else {
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, fmt.Sprintf("Script execution faied with exit code: %s", execInfo.ExitCode))
+	}
+
 }
