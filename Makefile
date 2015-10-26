@@ -1,3 +1,4 @@
+GOTOOLS = github.com/mitchellh/gox golang.org/x/tools/cmd/stringer
 DEPS = $(shell go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
 PACKAGES = $(shell go list ./...)
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -26,11 +27,11 @@ cov:
 
 deps:
 	@echo "--> Installing build dependencies"
+	@go get -v $(GOTOOLS)
 	@go get -d -v ./... $(DEPS)
 
 updatedeps: deps
-	go get -u github.com/mitchellh/gox
-	go get -u golang.org/x/tools/cmd/stringer
+	go get -u -v $(GOTOOLS)
 	go list ./... \
 		| xargs go list -f '{{join .Deps "\n"}}' \
 		| grep -v github.com/hashicorp/consul \
@@ -42,9 +43,6 @@ test: deps
 	@./scripts/verify_no_uuid.sh
 	@./scripts/test.sh
 	@$(MAKE) vet
-
-integ:
-	go list ./... | INTEG_TESTS=yes xargs -n1 go test
 
 cover: deps
 	./scripts/verify_no_uuid.sh
@@ -76,4 +74,4 @@ web:
 web-push:
 	./scripts/website_push.sh
 
-.PHONY: all bin dev dist cov deps integ test vet web web-push generate test-nodep
+.PHONY: all bin dev dist cov deps test vet web web-push generate test-nodep
