@@ -389,16 +389,15 @@ func (l *localState) setSyncState() error {
 		l.serviceStatus[id] = syncStatus{inSync: equal}
 	}
 
+	// Index the remote health checks to improve efficiency
+	checkIndex := make(map[string]*structs.HealthCheck, len(checks))
+	for _, check := range checks {
+		checkIndex[check.CheckID] = check
+	}
+
+	// Sync any check which doesn't exist on the remote side
 	for id, _ := range l.checks {
-		// Sync any check which doesn't exist on the remote side
-		found := false
-		for _, check := range checks {
-			if check.CheckID == id {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if _, ok := checkIndex[id]; !ok {
 			l.checkStatus[id] = syncStatus{inSync: false}
 		}
 	}
