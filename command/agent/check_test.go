@@ -525,7 +525,7 @@ func (d *fakeDockerClientWithExecInfoErrors) InspectExec(id string) (*docker.Exe
 	return nil, errors.New("Unable to query exec info")
 }
 
-func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status string, outputSize int) {
+func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status string, output string) {
 	mock := &MockNotify{
 		state:   make(map[string]string),
 		updates: make(map[string]int),
@@ -555,33 +555,33 @@ func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status str
 		t.Fatalf("should be %v %v", status, mock.state)
 	}
 
-	if len(mock.output["foo"]) != outputSize {
-		t.Fatalf("should be %v %v", outputSize, len(mock.output))
+	if mock.output["foo"] != output {
+		t.Fatalf("should be %v %v", output, mock.output)
 	}
 }
 
 func TestDockerCheckWhenExecReturnsSuccessExitCode(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithNoErrors{}, "passing", 6)
+	expectDockerCheckStatus(t, &fakeDockerClientWithNoErrors{}, "passing", "output")
 }
 
 func TestDockerCheckWhenExecCreationFails(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithCreateExecFailure{}, "critical", 0)
+	expectDockerCheckStatus(t, &fakeDockerClientWithCreateExecFailure{}, "critical", "Unable to create Exec, error: Exec Creation Failed")
 }
 
 func TestDockerCheckWhenExitCodeIsNonZero(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecNonZeroExitCode{}, "critical", 0)
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecNonZeroExitCode{}, "critical", "")
 }
 
 func TestDockerCheckWhenExitCodeIsone(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecExitCodeOne{}, "warning", 6)
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecExitCodeOne{}, "warning", "output")
 }
 
 func TestDockerCheckWhenExecStartFails(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithStartExecFailure{}, "critical", 0)
+	expectDockerCheckStatus(t, &fakeDockerClientWithStartExecFailure{}, "critical", "Unable to start Exec: Couldn't Start Exec")
 }
 
 func TestDockerCheckWhenExecInfoFails(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecInfoErrors{}, "critical", 0)
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecInfoErrors{}, "critical", "Unable to inspect Exec: Unable to query exec info")
 }
 
 func TestDockerCheckTruncateOutput(t *testing.T) {
