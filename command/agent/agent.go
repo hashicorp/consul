@@ -933,7 +933,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 			dockerCheck.Start()
 			a.checkDockers[check.CheckID] = dockerCheck
-		} else {
+		} else if chkType.IsMonitor() {
 			if existing, ok := a.checkMonitors[check.CheckID]; ok {
 				existing.Stop()
 			}
@@ -952,6 +952,8 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor
+		} else {
+			return fmt.Errorf("Check type is not valid")
 		}
 	}
 
