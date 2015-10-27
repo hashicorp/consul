@@ -95,6 +95,35 @@ func ensurePath(path string, dir bool) error {
 	return os.MkdirAll(path, 0755)
 }
 
+// CanServersUnderstandProtocol checks to see if all the servers in the given
+// list understand the given protocol version. If there are no servers in the
+// list then this will return false.
+func CanServersUnderstandProtocol(members []serf.Member, version uint8) (bool, error) {
+	numServers, numWhoGrok := 0, 0
+	for _, m := range members {
+		if m.Tags["role"] != "consul" {
+			continue
+		}
+		numServers++
+
+		vsn_min, err := strconv.Atoi(m.Tags["vsn_min"])
+		if err != nil {
+			return false, err
+		}
+
+		vsn_max, err := strconv.Atoi(m.Tags["vsn_max"])
+		if err != nil {
+			return false, err
+		}
+
+		v := int(version)
+		if (v >= vsn_min) && (v <= vsn_max) {
+			numWhoGrok++
+		}
+	}
+	return (numServers > 0) && (numWhoGrok == numServers), nil
+}
+
 // Returns if a member is a consul server. Returns a bool,
 // the datacenter, and the rpc port
 func isConsulServer(m serf.Member) (bool, *serverParts) {
