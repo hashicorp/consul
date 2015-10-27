@@ -549,22 +549,6 @@ func (a *Agent) WANMembers() []serf.Member {
 	}
 }
 
-// CanServersUnderstandProtocol checks to see if all the servers understand the
-// given protocol version.
-func (a *Agent) CanServersUnderstandProtocol(version uint8) bool {
-	numServers, numWhoGrok := 0, 0
-	members := a.LANMembers()
-	for _, member := range members {
-		if member.Tags["role"] == "consul" {
-			numServers++
-			if member.ProtocolMax >= version {
-				numWhoGrok++
-			}
-		}
-	}
-	return (numServers > 0) && (numWhoGrok == numServers)
-}
-
 // StartSync is called once Services and Checks are registered.
 // This is called to prevent a race between clients and the anti-entropy routines
 func (a *Agent) StartSync() {
@@ -603,13 +587,19 @@ func (a *Agent) sendCoordinate() {
 
 		select {
 		case <-time.After(intv):
-			if !a.CanServersUnderstandProtocol(3) {
+			members := a.LANMembers()
+			grok, err := consul.CanServersUnderstandProtocol(members, 3)
+			if err != nil {
+				a.logger.Printf("[ERR] agent: failed to check servers: %s", err)
+				continue
+			}
+			if !grok {
+				a.logger.Printf("[DEBUG] agent: skipping coordinate updates until servers are upgraded")
 				continue
 			}
 
-			var c *coordinate.Coordinate
-			var err error
-			if c, err = a.GetCoordinate(); err != nil {
+			c, err := a.GetCoordinate()
+			if err != nil {
 				a.logger.Printf("[ERR] agent: failed to get coordinate: %s", err)
 				continue
 			}

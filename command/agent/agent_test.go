@@ -1602,30 +1602,3 @@ func TestAgent_GetCoordinate(t *testing.T) {
 	check(true)
 	check(false)
 }
-
-func TestAgent_CanServersUnderstandProtocol(t *testing.T) {
-	config := nextConfig()
-	dir, agent := makeAgent(t, config)
-	defer os.RemoveAll(dir)
-	defer agent.Shutdown()
-
-	min := uint8(consul.ProtocolVersionMin)
-	if !agent.CanServersUnderstandProtocol(min) {
-		t.Fatalf("should grok %d", min)
-	}
-
-	max := uint8(consul.ProtocolVersionMax)
-	if !agent.CanServersUnderstandProtocol(max) {
-		t.Fatalf("should grok %d", max)
-	}
-
-	current := uint8(config.Protocol)
-	if !agent.CanServersUnderstandProtocol(current) {
-		t.Fatalf("should grok %d", current)
-	}
-
-	future := max + 1
-	if agent.CanServersUnderstandProtocol(future) {
-		t.Fatalf("should not grok %d", future)
-	}
-}
