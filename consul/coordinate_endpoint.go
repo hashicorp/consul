@@ -87,8 +87,12 @@ func (c *Coordinate) batchApplyUpdates() error {
 			end = size
 		}
 
+		// We set the "safe to ignore" flag on this update type so old
+		// servers don't crash if they see one of these.
+		t := structs.CoordinateBatchUpdateType | structs.IgnoreUnknownTypeFlag
+
 		slice := updates[start:end]
-		if _, err := c.srv.raftApply(structs.CoordinateBatchUpdateType, slice); err != nil {
+		if _, err := c.srv.raftApply(t, slice); err != nil {
 			return err
 		}
 	}
