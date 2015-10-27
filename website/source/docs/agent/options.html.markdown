@@ -51,8 +51,9 @@ The options below are all specified on the command-line.
 
 * <a name="_atlas"></a><a href="#_atlas">`-atlas`</a> - This flag
   enables [Atlas](https://atlas.hashicorp.com) integration.
-  It is used to provide the Atlas infrastructure name and the SCADA connection.
-  This enables Atlas features such as the dashboard and node auto joining.
+  It is used to provide the Atlas infrastructure name and the SCADA connection. The format of 
+  this is `username/environment`. This enables Atlas features such as the Monitoring UI 
+  and node auto joining.
 
 * <a name="_atlas_join"></a><a href="#_atlas_join">`-atlas-join`</a> - When set, enables auto-join
   via Atlas. Atlas will track the most
