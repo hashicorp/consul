@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -405,10 +406,32 @@ func (d *fakeDockerClientWithNoErrors) CreateExec(opts docker.CreateExecOptions)
 }
 
 func (d *fakeDockerClientWithNoErrors) StartExec(id string, opts docker.StartExecOptions) error {
+	fmt.Fprint(opts.OutputStream, "output")
 	return nil
 }
 
 func (d *fakeDockerClientWithNoErrors) InspectExec(id string) (*docker.ExecInspect, error) {
+	return &docker.ExecInspect{
+		ID:       "123",
+		ExitCode: 0,
+	}, nil
+}
+
+// A fake docker client to test truncation of output
+type fakeDockerClientWithLongOutput struct {
+}
+
+func (d *fakeDockerClientWithLongOutput) CreateExec(opts docker.CreateExecOptions) (*docker.Exec, error) {
+	return &docker.Exec{ID: "123"}, nil
+}
+
+func (d *fakeDockerClientWithLongOutput) StartExec(id string, opts docker.StartExecOptions) error {
+	b, _ := exec.Command("od", "-N", "81920", "/dev/urandom").Output()
+	fmt.Fprint(opts.OutputStream, string(b))
+	return nil
+}
+
+func (d *fakeDockerClientWithLongOutput) InspectExec(id string) (*docker.ExecInspect, error) {
 	return &docker.ExecInspect{
 		ID:       "123",
 		ExitCode: 0,
@@ -443,6 +466,7 @@ func (d *fakeDockerClientWithExecExitCodeOne) CreateExec(opts docker.CreateExecO
 }
 
 func (d *fakeDockerClientWithExecExitCodeOne) StartExec(id string, opts docker.StartExecOptions) error {
+	fmt.Fprint(opts.OutputStream, "output")
 	return nil
 }
 
@@ -501,7 +525,7 @@ func (d *fakeDockerClientWithExecInfoErrors) InspectExec(id string) (*docker.Exe
 	return nil, errors.New("Unable to query exec info")
 }
 
-func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status string) {
+func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status string, outputSize int) {
 	mock := &MockNotify{
 		state:   make(map[string]string),
 		updates: make(map[string]int),
@@ -530,28 +554,60 @@ func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status str
 	if mock.state["foo"] != status {
 		t.Fatalf("should be %v %v", status, mock.state)
 	}
+
+	if len(mock.output["foo"]) != outputSize {
+		t.Fatalf("should be %v %v", outputSize, len(mock.output))
+	}
 }
 
 func TestDockerCheckWhenExecReturnsSuccessExitCode(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithNoErrors{}, "passing")
+	expectDockerCheckStatus(t, &fakeDockerClientWithNoErrors{}, "passing", 6)
 }
 
 func TestDockerCheckWhenExecCreationFails(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithCreateExecFailure{}, "critical")
+	expectDockerCheckStatus(t, &fakeDockerClientWithCreateExecFailure{}, "critical", 0)
 }
 
 func TestDockerCheckWhenExitCodeIsNonZero(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecNonZeroExitCode{}, "critical")
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecNonZeroExitCode{}, "critical", 0)
 }
 
 func TestDockerCheckWhenExitCodeIsone(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecExitCodeOne{}, "warning")
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecExitCodeOne{}, "warning", 6)
 }
 
 func TestDockerCheckWhenExecStartFails(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithStartExecFailure{}, "critical")
+	expectDockerCheckStatus(t, &fakeDockerClientWithStartExecFailure{}, "critical", 0)
 }
 
 func TestDockerCheckWhenExecInfoFails(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecInfoErrors{}, "critical")
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecInfoErrors{}, "critical", 0)
+}
+
+func TestDockerCheckTruncateOutput(t *testing.T) {
+	mock := &MockNotify{
+		state:   make(map[string]string),
+		updates: make(map[string]int),
+		output:  make(map[string]string),
+	}
+	check := &CheckDocker{
+		Notify:            mock,
+		CheckID:           "foo",
+		Script:            "/health.sh",
+		DockerContainerId: "54432bad1fc7",
+		Shell:             "/bin/sh",
+		Interval:          10 * time.Millisecond,
+		Logger:            log.New(os.Stderr, "", log.LstdFlags),
+		dockerClient:      &fakeDockerClientWithLongOutput{},
+	}
+	check.Start()
+	defer check.Stop()
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Allow for extra bytes for the truncation message
+	if len(mock.output["foo"]) > CheckBufSize+100 {
+		t.Fatalf("output size is too long")
+	}
+
 }
