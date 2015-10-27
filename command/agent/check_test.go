@@ -584,6 +584,56 @@ func TestDockerCheckWhenExecInfoFails(t *testing.T) {
 	expectDockerCheckStatus(t, &fakeDockerClientWithExecInfoErrors{}, "critical", "Unable to inspect Exec: Unable to query exec info")
 }
 
+func TestDockerCheckDefaultToSh(t *testing.T) {
+	mock := &MockNotify{
+		state:   make(map[string]string),
+		updates: make(map[string]int),
+		output:  make(map[string]string),
+	}
+	check := &CheckDocker{
+		Notify:            mock,
+		CheckID:           "foo",
+		Script:            "/health.sh",
+		DockerContainerId: "54432bad1fc7",
+		Interval:          10 * time.Millisecond,
+		Logger:            log.New(os.Stderr, "", log.LstdFlags),
+		dockerClient:      &fakeDockerClientWithNoErrors{},
+	}
+	check.Start()
+	defer check.Stop()
+
+	time.Sleep(50 * time.Millisecond)
+	if check.Shell != "/bin/sh" {
+		t.Fatalf("Shell should be: %v , actual: %v", "/bin/sh", check.Shell)
+	}
+}
+
+func TestDockerCheckUseShellFromEnv(t *testing.T) {
+	mock := &MockNotify{
+		state:   make(map[string]string),
+		updates: make(map[string]int),
+		output:  make(map[string]string),
+	}
+	os.Setenv("SHELL", "/bin/bash")
+	check := &CheckDocker{
+		Notify:            mock,
+		CheckID:           "foo",
+		Script:            "/health.sh",
+		DockerContainerId: "54432bad1fc7",
+		Interval:          10 * time.Millisecond,
+		Logger:            log.New(os.Stderr, "", log.LstdFlags),
+		dockerClient:      &fakeDockerClientWithNoErrors{},
+	}
+	check.Start()
+	defer check.Stop()
+
+	time.Sleep(50 * time.Millisecond)
+	if check.Shell != "/bin/bash" {
+		t.Fatalf("Shell should be: %v , actual: %v", "/bin/bash", check.Shell)
+	}
+	os.Setenv("SHELL", "")
+}
+
 func TestDockerCheckTruncateOutput(t *testing.T) {
 	mock := &MockNotify{
 		state:   make(map[string]string),
