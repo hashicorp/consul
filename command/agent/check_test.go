@@ -585,6 +585,7 @@ func TestDockerCheckWhenExecInfoFails(t *testing.T) {
 }
 
 func TestDockerCheckDefaultToSh(t *testing.T) {
+	os.Setenv("SHELL", "")
 	mock := &MockNotify{
 		state:   make(map[string]string),
 		updates: make(map[string]int),
