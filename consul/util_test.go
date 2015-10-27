@@ -136,6 +136,7 @@ func TestUtil_CanServersUnderstandProtocol(t *testing.T) {
 	// Add a non-server member.
 	members = append(members, serf.Member{
 		Tags: map[string]string{
+			"vsn_min": fmt.Sprintf("%d", ProtocolVersionMin),
 			"vsn_max": fmt.Sprintf("%d", ProtocolVersionMax),
 		},
 	})
@@ -155,6 +156,7 @@ func TestUtil_CanServersUnderstandProtocol(t *testing.T) {
 	members = append(members, serf.Member{
 		Tags: map[string]string{
 			"role":    "consul",
+			"vsn_min": fmt.Sprintf("%d", ProtocolVersionMin),
 			"vsn_max": fmt.Sprintf("%d", ProtocolVersionMax),
 		},
 	})
@@ -185,6 +187,7 @@ func TestUtil_CanServersUnderstandProtocol(t *testing.T) {
 	members = append(members, serf.Member{
 		Tags: map[string]string{
 			"role":    "consul",
+			"vsn_min": fmt.Sprintf("%d", ProtocolVersionMin),
 			"vsn_max": fmt.Sprintf("%d", ProtocolVersionMax-1),
 		},
 	})
@@ -198,6 +201,17 @@ func TestUtil_CanServersUnderstandProtocol(t *testing.T) {
 		expected := v < ProtocolVersionMax
 		if grok != expected {
 			t.Fatalf("bad: %v != %v", grok, expected)
+		}
+	}
+
+	// Try a version that's too low for the minimum.
+	{
+		grok, err := CanServersUnderstandProtocol(members, 0)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if grok {
+			t.Fatalf("server should not grok")
 		}
 	}
 }
