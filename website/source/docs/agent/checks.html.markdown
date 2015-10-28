@@ -15,7 +15,7 @@ service. If not associated with a service, the check monitors the health of the 
 A check is defined in a configuration file or added at runtime over the HTTP interface.  Checks
 created via the HTTP interface persist with that node.
 
-There are three different kinds of checks:
+There are four different kinds of checks:
 
 * Script + Interval - These checks depend on invoking an external application
   that performs the health check, exits with an appropriate exit code, and potentially
@@ -59,6 +59,16 @@ There are three different kinds of checks:
   their last known status to disk. This allows the Consul agent to restore the
   last known status of the check across restarts. Persisted check status is
   valid through the end of the TTL from the time of the last check.
+
+* Docker + Interval - These checks depend on invoking an external application which 
+is packaged within a Docker Container. The application is triggered within the running 
+container via the Docker Exec API. We expect that the Consul agent user has access 
+to either the Docker HTTP API or the unix socket. Consul uses ```$DOCKER_HOST``` to 
+determine the Docker API endpoint. The application is expected to run, perform a health 
+check of the service running inside the container, and exit with an appropriate exit code. 
+The check should be paired with an invocation interval. The shell on which the check 
+has to be performed is configurable which makes it possible to run containers which 
+have different shells on the same host.  
 
 ## Check Definition
 
@@ -116,6 +126,20 @@ A TTL check:
 }
 ```
 
+A Docker check:
+```javascript
+{
+"check": {
+    "id": "mem-util",
+    "name": "Memory utilization",
+    "docker_container_id": "f972c95ebf0e",
+    "shell": "/bin/bash",
+    "script": "/usr/local/bin/check_mem.py",
+    "interval": "10s"
+  }
+}
+```
+
 Each type of definition must include a `name` and may optionally
 provide an `id` and `notes` field. The `id` is set to the `name` if not
 provided. It is required that all checks have a unique ID per node: if names
@@ -130,7 +154,7 @@ Checks may also contain a `token` field to provide an ACL token. This token is
 used for any interaction with the catalog for the check, including
 [anti-entropy syncs](/docs/internals/anti-entropy.html) and deregistration.
 
-Script, TCP and HTTP checks must include an `interval` field. This field is
+Script, TCP, Docker and HTTP checks must include an `interval` field. This field is
 parsed by Go's `time` package, and has the following
 [formatting specification](http://golang.org/pkg/time/#ParseDuration):
 > A duration string is a possibly signed sequence of decimal numbers, each with
