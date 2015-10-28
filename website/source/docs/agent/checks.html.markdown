@@ -60,7 +60,15 @@ There are four different kinds of checks:
   last known status of the check across restarts. Persisted check status is
   valid through the end of the TTL from the time of the last check.
 
-* Docker + Interval - These checks depend on invoking an external application which is packaged within a Docker Container. The application is triggered within the running container via the Docker Exec API. We expect that the Consul agent user has access to either the Docker HTTP API or the unix socket. Consul uses ```$DOCKER_HOST``` to determine the Docker API endpoint. The application is expected to run, perform health check of the service running inside the container, exit with an appropriate exit code. The check should be paired with an invocation interval. The shell on which the check has to be performed is configurable which makes it possible to run containers which has different shells on the same host.  
+* Docker + Interval - These checks depend on invoking an external application which 
+is packaged within a Docker Container. The application is triggered within the running 
+container via the Docker Exec API. We expect that the Consul agent user has access 
+to either the Docker HTTP API or the unix socket. Consul uses ```$DOCKER_HOST``` to 
+determine the Docker API endpoint. The application is expected to run, perform a health 
+check of the service running inside the container, and exit with an appropriate exit code. 
+The check should be paired with an invocation interval. The shell on which the check 
+has to be performed is configurable which makes it possible to run containers which 
+have different shells on the same host.  
 
 ## Check Definition
 
