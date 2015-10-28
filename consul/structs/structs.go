@@ -3,6 +3,7 @@ package structs
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
@@ -318,6 +319,23 @@ type NodeService struct {
 	RaftIndex
 }
 
+// IsSame checks if one NodeService is the same as another, without looking
+// at the Raft information (that's why we didn't call it IsEqual). This is
+// useful for seeing if an update would be idempotent for all the functional
+// parts of the structure.
+func (s *NodeService) IsSame(other *NodeService) bool {
+	if s.ID != other.ID ||
+		s.Service != other.Service ||
+		!reflect.DeepEqual(s.Tags, other.Tags) ||
+		s.Address != other.Address ||
+		s.Port != other.Port ||
+		s.EnableTagOverride != other.EnableTagOverride {
+		return false
+	}
+
+	return true
+}
+
 // ToServiceNode converts the given node service to a service node.
 func (s *NodeService) ToServiceNode(node, address string) *ServiceNode {
 	return &ServiceNode{
@@ -354,6 +372,26 @@ type HealthCheck struct {
 
 	RaftIndex
 }
+
+// IsSame checks if one HealthCheck is the same as another, without looking
+// at the Raft information (that's why we didn't call it IsEqual). This is
+// useful for seeing if an update would be idempotent for all the functional
+// parts of the structure.
+func (c *HealthCheck) IsSame(other *HealthCheck) bool {
+	if c.Node != other.Node ||
+		c.CheckID != other.CheckID ||
+		c.Name != other.Name ||
+		c.Status != other.Status ||
+		c.Notes != other.Notes ||
+		c.Output != other.Output ||
+		c.ServiceID != other.ServiceID ||
+		c.ServiceName != other.ServiceName {
+		return false
+	}
+
+	return true
+}
+
 type HealthChecks []*HealthCheck
 
 // CheckServiceNode is used to provide the node, its service

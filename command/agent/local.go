@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -385,7 +384,7 @@ func (l *localState) setSyncState() error {
 		if existing.EnableTagOverride {
 			existing.Tags = service.Tags
 		}
-		equal := reflect.DeepEqual(existing, service)
+		equal := existing.IsSame(service)
 		l.serviceStatus[id] = syncStatus{inSync: equal}
 	}
 
@@ -419,13 +418,13 @@ func (l *localState) setSyncState() error {
 		// If our definition is different, we need to update it
 		var equal bool
 		if l.config.CheckUpdateInterval == 0 {
-			equal = reflect.DeepEqual(existing, check)
+			equal = existing.IsSame(check)
 		} else {
 			eCopy := new(structs.HealthCheck)
 			*eCopy = *existing
 			eCopy.Output = ""
 			check.Output = ""
-			equal = reflect.DeepEqual(eCopy, check)
+			equal = eCopy.IsSame(check)
 		}
 
 		// Update the status
