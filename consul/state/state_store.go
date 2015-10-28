@@ -1079,7 +1079,7 @@ func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 
 	// Persist the check registration in the db.
 	if err := tx.Insert("checks", hc); err != nil {
-		return fmt.Errorf("failed inserting service: %s", err)
+		return fmt.Errorf("failed inserting check: %s", err)
 	}
 	if err := tx.Insert("index", &IndexEntry{"checks", idx}); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)

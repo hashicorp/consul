@@ -95,6 +95,120 @@ func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	}
 }
 
+func TestStructs_NodeService_IsSame(t *testing.T) {
+	ns := &NodeService{
+		ID:                "node1",
+		Service:           "theservice",
+		Tags:              []string{"foo", "bar"},
+		Address:           "127.0.0.1",
+		Port:              1234,
+		EnableTagOverride: true,
+	}
+	if !ns.IsSame(ns) {
+		t.Fatalf("should be equal to itself")
+	}
+
+	other := &NodeService{
+		ID:                "node1",
+		Service:           "theservice",
+		Tags:              []string{"foo", "bar"},
+		Address:           "127.0.0.1",
+		Port:              1234,
+		EnableTagOverride: true,
+		RaftIndex: RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 2,
+		},
+	}
+	if !ns.IsSame(other) || !other.IsSame(ns) {
+		t.Fatalf("should not care about Raft fields")
+	}
+
+	check := func(twiddle, restore func()) {
+		if !ns.IsSame(other) || !other.IsSame(ns) {
+			t.Fatalf("should be the same")
+		}
+
+		twiddle()
+		if ns.IsSame(other) || other.IsSame(ns) {
+			t.Fatalf("should not be the same")
+		}
+
+		restore()
+		if !ns.IsSame(other) || !other.IsSame(ns) {
+			t.Fatalf("should be the same")
+		}
+	}
+
+	check(func() { other.ID = "XXX" }, func() { other.ID = "node1" })
+	check(func() { other.Service = "XXX" }, func() { other.Service = "theservice" })
+	check(func() { other.Tags = nil }, func() { other.Tags = []string{"foo", "bar"} })
+	check(func() { other.Tags = []string{"foo"} }, func() { other.Tags = []string{"foo", "bar"} })
+	check(func() { other.Address = "XXX" }, func() { other.Address = "127.0.0.1" })
+	check(func() { other.Port = 9999 }, func() { other.Port = 1234 })
+	check(func() { other.EnableTagOverride = false }, func() { other.EnableTagOverride = true })
+}
+
+func TestStructs_HealthCheck_IsSame(t *testing.T) {
+	hc := &HealthCheck{
+		Node:        "node1",
+		CheckID:     "check1",
+		Name:        "thecheck",
+		Status:      HealthPassing,
+		Notes:       "it's all good",
+		Output:      "lgtm",
+		ServiceID:   "service1",
+		ServiceName: "theservice",
+	}
+	if !hc.IsSame(hc) {
+		t.Fatalf("should be equal to itself")
+	}
+
+	other := &HealthCheck{
+		Node:        "node1",
+		CheckID:     "check1",
+		Name:        "thecheck",
+		Status:      HealthPassing,
+		Notes:       "it's all good",
+		Output:      "lgtm",
+		ServiceID:   "service1",
+		ServiceName: "theservice",
+		RaftIndex: RaftIndex{
+			CreateIndex: 1,
+			ModifyIndex: 2,
+		},
+	}
+	if !hc.IsSame(other) || !other.IsSame(hc) {
+		t.Fatalf("should not care about Raft fields")
+	}
+
+	check := func(field *string) {
+		if !hc.IsSame(other) || !other.IsSame(hc) {
+			t.Fatalf("should be the same")
+		}
+
+		old := *field
+		*field = "XXX"
+		if hc.IsSame(other) || other.IsSame(hc) {
+			t.Fatalf("should not be the same")
+		}
+		*field = old
+
+		if !hc.IsSame(other) || !other.IsSame(hc) {
+			t.Fatalf("should be the same")
+		}
+	}
+
+	check(&other.Node)
+	check(&other.CheckID)
+	check(&other.Name)
+	check(&other.Status)
+	check(&other.Notes)
+	check(&other.Output)
+	check(&other.ServiceID)
+	check(&other.ServiceName)
+}
+
 func TestStructs_DirEntry_Clone(t *testing.T) {
 	e := &DirEntry{
 		LockIndex: 5,
