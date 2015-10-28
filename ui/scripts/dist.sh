@@ -22,7 +22,7 @@ bundle exec ruby scripts/compile.rb
 
 # Copy into deploy
 shopt -s dotglob
-cp -r $DIR/static/* $DEPLOY/
+cp -r $DIR/static $DEPLOY/
 cp index.html $DEPLOY/
 
 # Magic scripting
@@ -33,5 +33,5 @@ sed -E -e "s#<\/body>#<script src=\"static/application.min.js\"></script></body>
 rm $DEPLOY/index.htmlbak
 
 pushd $DEPLOY >/dev/null 2>&1
-zip ../web_ui.zip ./*
+zip -r ../web_ui.zip ./*
 popd >/dev/null 2>&1
