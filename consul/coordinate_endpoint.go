@@ -41,7 +41,7 @@ func (c *Coordinate) batchUpdate() {
 		select {
 		case <-time.After(c.srv.config.CoordinateUpdatePeriod):
 			if err := c.batchApplyUpdates(); err != nil {
-				c.srv.logger.Printf("[ERR] consul.coordinate: Batch update failed: %v", err)
+				c.srv.logger.Printf("[WARN] consul.coordinate: Batch update failed: %v", err)
 			}
 		case <-c.srv.shutdownCh:
 			return
