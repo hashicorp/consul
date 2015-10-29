@@ -72,7 +72,9 @@ func ExecScript(script string) (*exec.Cmd, error) {
 		shell = "cmd"
 		flag = "/C"
 	} else {
-		shell = "/bin/sh"
+		// We require bash because sh compatability mode means forking our
+		// command which prevents us from controlling the child process.
+		shell = "/bin/bash"
 		flag = "-c"
 	}
 	if other := os.Getenv("SHELL"); other != "" {
