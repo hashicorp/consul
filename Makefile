@@ -40,9 +40,9 @@ updatedeps: deps
 		| xargs go get -f -u -v
 
 test: deps
+	@$(MAKE) vet
 	@./scripts/verify_no_uuid.sh
 	@./scripts/test.sh
-	@$(MAKE) vet
 
 cover: deps
 	./scripts/verify_no_uuid.sh
