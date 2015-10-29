@@ -536,7 +536,7 @@ func (c *CheckDocker) Init() error {
 	var err error
 	c.dockerClient, err = docker.NewClientFromEnv()
 	if err != nil {
-		c.Logger.Println("[DEBUG] Error creating the Docker Client : %s", err.Error())
+		c.Logger.Printf("[DEBUG] Error creating the Docker client: %s", err.Error())
 		return err
 	}
 	return nil
