@@ -14,7 +14,7 @@ ARCH=`uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|'`
 
 # Install Go
 sudo apt-get update
-sudo apt-get install -y build-essential git-core
+sudo apt-get install -y build-essential git-core zip
 
 # Install Go
 cd /tmp
