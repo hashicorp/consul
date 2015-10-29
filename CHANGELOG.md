@@ -78,6 +78,10 @@ UPGRADE NOTES:
   This folder was used in versions of Consul up to 0.5.1. Consul version 0.5.2
   included a baked-in utility to automatically upgrade the data format, but
   this has been removed in Consul 0.6 to reduce the dependency on cgo.
+* Previously, service discovery was wide open, and any client could query
+  information about any service without providing a token. Consul now requires
+  read-level access at a minimum when ACLs are enabled to return service
+  information over the REST or DNS interfaces.
 
 ## 0.5.2 (May 18, 2015)
 
