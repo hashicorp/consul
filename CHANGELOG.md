@@ -2,25 +2,74 @@
 
 FEATURES:
 
-* Service ACL's apply to service discovery [GH-1024]
+* Service ACLs now apply to service discovery [GH-1024]
+* Added event ACLs to guard firing user events [GH-1046]
+* Added keyring ACLs for gossip encryption keyring operations [GH-1090]
+* Added a new socket check type that does a connect as a check [GH-1130]
+* Added new "tag override" feature that lets catalog updates to a
+  service's tags flow down to agents [GH-1187]
+* Ported in-memory database from LMDB to an immutable radix tree to improve
+  read throughput, reduce garbage collection pressure, and make Consul 100%
+  pure Go [GH-1291]
+* Added new network tomography sub system that estimates the network
+  round trip times between nodes and exposes that in raw APIs, as well
+  as in existing APIs (find the service node nearest node X); also
+  includes a new `consul rtt` command to query interactively [GH-1331]
+* Consul now builds under Go 1.5.1 by default [GH-1345]
+* Added built-in support for running health checks inside Docker containers
+  [GH-1343]
 
 BUG FIXES:
 
+* Fixes expired certificates in unit tests [GH-979]
 * Allow services with `/` characters in the UI [GH-988]
+* Added SOA/NXDOMAIN records to negative DNS responses per RFC2308 [GH-995]
+  [GH-1142] [GH-1195] [GH-1217]
 * Token hiding in HTTP logs bug fixed [GH-1020]
-* RFC6598 addresses are accepted as private IP's [GH-1050]
+* RFC6598 addresses are accepted as private IPs [GH-1050]
+* Fixed reverse DNS lookups to recursor [GH-1137]
+* Removes the trailing `/` added by the `consul lock` command [GH-1145]
+* Fixed bad lock handler execution during shutdown [GH-1080] [GH-1158] [GH-1214]
+* Added missing support for AAAA queries for nodes [GH-1222]
 * Tokens passed from the CLI or API work for maint mode [GH-1230]
+* Fixed service derigister/reregister flaps that could happen during
+  `consul reload` [GH-1235]
+* Fixed the Go API client to properly distinguish between expired sessions
+  and sessions that don't exist [GH-1041]
+* Fixed the KV section of the UI to work on Safari [GH-1321]
+* Cleaned up Javascript for built-in UI with bug fixes [GH-1338]
 
 IMPROVEMENTS:
 
+* Added sorting of `consul members` command output [GH-969]
+* Updated AWS templates for RHEL6, CentOS6 [GH-992] [GH-1002]
 * Advertised gossip/rpc addresses can now be configured [GH-1004]
+* Failed lock acquisition handling now responds based on type of failure
+  [GH-1006]
+* Agents now remember check state across restarts [GH-1009]
+* Always run ACL tests by default in API tests [GH-1030]
+* Consul now refuses to start if there are multiple private IPs [GH-1099]
+* Improved efficiency of servers managing incoming connections from agents
+  [GH-1170]
+* Added logging of the DNS client addresses in error messages [GH-1166]
+* Added `-http-port` option to change the HTTP API port number [GH-1167]
 * Atlas integration options are reload-able via SIGHUP [GH-1199]
 * Atlas endpoint is a configurable option and CLI arg [GH-1201]
+* Added `-pass-stdin` option to `consul lock` command [GH-1200]
+* Enables the `/v1/internal/ui/*` endpoints, even if `-ui-dir` isn't set
+  [GH-1215]
+* Added HTTP method to Consul's log output for better debugging [GH-1270]
+* Improved an O(n^2) algorithm in the agent's catalog sync code [GH-1296]
 * Switched to net-rpc-msgpackrpc to reduce RPC overhead [GH-1307]
+* Removes all uses of the http package's default client and transport in
+  Consul to avoid conflicts with other packages [GH-1310] [GH-1327]
+* Adds new `X-Consul-Token` HTTP header option to avoid passing tokens
+  in the query string [GH-1318]
 
 MISC:
 
-* Vagrantfile fixed for VMware [GH-1042]
+* Lots of docs fixes
+* Lots of Vagrantfile cleanup
 * Data migrator utility removed to reduce cgo dependency. [GH-1309]
 
 UPGRADE NOTES:
