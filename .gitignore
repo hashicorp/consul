@@ -43,4 +43,8 @@ website/.bundle
 website/vendor
 
 ui/.bundle
+
+# Intellij IDEA files
+.idea/
+*.iml
 ui/vendor
