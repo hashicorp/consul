@@ -11,7 +11,7 @@ Serf uses a network tomography system to compute network coordinates for nodes i
 Consul uses a [network tomography](https://en.wikipedia.org/wiki/Network_tomography)
 system to compute network coordinates for nodes in the cluster. These coordinates
 allow the network round trip time to be estimated between any two nodes using a
-a very simple calculation. This allows for many useful applications, such as finding
+very simple calculation. This allows for many useful applications, such as finding
 the service node nearest a requesting node, or failing over to services in the next
 closest datacenter.
 
