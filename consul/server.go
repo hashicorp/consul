@@ -696,6 +696,7 @@ func (s *Server) Stats() map[string]map[string]string {
 		"consul": map[string]string{
 			"server":            "true",
 			"leader":            fmt.Sprintf("%v", s.IsLeader()),
+			"leader_name":       s.raft.Leader(),
 			"bootstrap":         fmt.Sprintf("%v", s.config.Bootstrap),
 			"known_datacenters": toString(uint64(len(s.remoteConsuls))),
 		},
