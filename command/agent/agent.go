@@ -1473,3 +1473,28 @@ func (a *Agent) SerfQuery(name string, payload []byte, params *serf.QueryParam) 
 	}
 	return resp, err
 }
+
+// SerfPing sends a Memberlist Ping via Serf.
+func (a *Agent) SerfPing(name string) (*serfPingResponse, error) {
+	a.logger.Printf("[DEBUG] agent: Requesting serf ping send: %s", name)
+	var err error
+	var cresp *consul.SerfPingResponse
+	params := consul.SerfPingParam{
+		Name: name,
+	}
+	if a.server != nil {
+		cresp, err = a.server.SerfPing(&params)
+	} else {
+		cresp, err = a.client.SerfPing(&params)
+	}
+	if err != nil {
+		a.logger.Printf("[WARN] agent: failed to start user serf ping: %v", err)
+		return nil, err
+	}
+
+	resp := serfPingResponse{
+		Success: cresp.Success,
+		RTT:     cresp.RTT,
+	}
+	return &resp, err
+}

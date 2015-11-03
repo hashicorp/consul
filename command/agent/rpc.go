@@ -30,6 +30,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-msgpack/codec"
@@ -58,6 +59,7 @@ const (
 	removeKeyCommand  = "remove-key"
 	listKeysCommand   = "list-keys"
 	serfQueryCommand  = "serf-query"
+	serfPingCommand   = "serf-ping"
 )
 
 const (
@@ -187,6 +189,11 @@ type Member struct {
 type memberEventRecord struct {
 	Event   string
 	Members []Member
+}
+
+type serfPingResponse struct {
+	Success bool
+	RTT     time.Duration
 }
 
 type AgentRPC struct {
@@ -414,6 +421,9 @@ func (i *AgentRPC) handleRequest(client *rpcClient, reqHeader *requestHeader) er
 	case serfQueryCommand:
 		return i.handleSerfQuery(client, seq)
 
+	case serfPingCommand:
+		return i.handleSerfPing(client, seq)
+
 	default:
 		respHeader := responseHeader{Seq: seq, Error: unsupportedCommand}
 		client.Send(&respHeader, nil)
@@ -614,6 +624,25 @@ func (i *AgentRPC) handleSerfQuery(client *rpcClient, seq uint64) error {
 	}
 
 	return client.Send(&resp, nil)
+}
+
+func (i *AgentRPC) handleSerfPing(client *rpcClient, seq uint64) error {
+	var req serfPingRequest
+	if err := client.dec.Decode(&req); err != nil {
+		return fmt.Errorf("decode failed: %v", err)
+	}
+
+	i.logger.Printf("[DEBUG] agent.rpc: handling serf ping request")
+
+	// Start the serf query
+	resp, err := i.agent.SerfPing(req.Name)
+
+	header := responseHeader{
+		Seq:   seq,
+		Error: errToString(err),
+	}
+
+	return client.Send(&header, &resp)
 }
 
 func (i *AgentRPC) handleLeave(client *rpcClient, seq uint64) error {
