@@ -1496,5 +1496,5 @@ func (a *Agent) SerfPing(name string) (*serfPingResponse, error) {
 		Success: cresp.Success,
 		RTT:     cresp.RTT,
 	}
-	return &resp, err
+	return &resp, nil
 }
