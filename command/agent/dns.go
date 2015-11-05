@@ -546,7 +546,7 @@ OUTER:
 		for _, check := range node.Checks {
 			if check.Status == structs.HealthCritical ||
 				(d.config.OnlyPassing && check.Status != structs.HealthPassing) {
-				d.logger.Printf("[WARN] dns: node '%s' failing health check '%s: %s', dropping from service '%s'",
+				d.logger.Printf("[DEBUG] dns: node '%s' failing health check '%s: %s', dropping from service '%s'",
 					node.Node.Node, check.CheckID, check.Name, node.Service.Service)
 				nodes[i], nodes[n-1] = nodes[n-1], structs.CheckServiceNode{}
 				n--
