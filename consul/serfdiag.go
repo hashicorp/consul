@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/serf/serf"
 	"log"
 	"os"
@@ -91,10 +92,31 @@ type SerfPingResponse struct {
 
 func (c *SerfDiag) Ping(params *SerfPingParam) (*SerfPingResponse, error) {
 	c.logger.Printf("[DEBUG] client: Requesting serf ping send: %s", params.Name)
-	success, rtt, err := c.serf.Memberlist().Ping(params.Name)
-	resp := SerfPingResponse{
-		Success: success,
-		RTT:     rtt,
+	var node *serf.Member
+	node = nil
+	for _, m := range c.serf.Members() {
+		if m.Name == params.Name {
+			node = &m
+			break
+		}
 	}
-	return &resp, err
+	if node == nil {
+		return nil, fmt.Errorf("Member %s not found in data center.", params.Name)
+	}
+	if rtt, err := c.serf.Memberlist().Ping(node.Name, node.Addr, node.Port); err == nil {
+		return &SerfPingResponse{
+			Success: true,
+			RTT:     *rtt,
+		}, err
+	} else {
+		switch err.(type) {
+		case memberlist.NoPingResponseError:
+			return &SerfPingResponse{
+				Success: false,
+				RTT:     *rtt,
+			}, nil
+		default:
+			return nil, err
+		}
+	}
 }
