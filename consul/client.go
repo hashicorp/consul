@@ -63,8 +63,8 @@ type Client struct {
 	// which contains all the DC nodes
 	serf *serf.Serf
 
-	// serfQuery is used to perform 'reachability' tests
-	serfQuery *SerfQuery
+	// serfDiag is used to perform Serf-based diagnostic tests
+	serfDiag *SerfDiag
 
 	shutdown     bool
 	shutdownCh   chan struct{}
@@ -123,11 +123,11 @@ func NewClient(config *Config) (*Client, error) {
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
 
-	// Initialize the SerfQuery object
-	c.serfQuery, err = NewSerfQuery(config, c.serf)
+	// Initialize the SerfDiag object
+	c.serfDiag, err = NewSerfDiag(config, c.serf)
 	if err != nil {
 		c.Shutdown()
-		return nil, fmt.Errorf("Failed to initialize serfQuery: %v", err)
+		return nil, fmt.Errorf("Failed to initialize serfDiag: %v", err)
 	}
 
 	return c, nil
@@ -397,6 +397,11 @@ func (c *Client) GetCoordinate() (*coordinate.Coordinate, error) {
 }
 
 func (c *Client) SerfQuery(name string, payload []byte, params *serf.QueryParam) (*serf.QueryResponse, error) {
-	qr, err := c.serfQuery.Query(name, payload, params)
+	qr, err := c.serfDiag.Query(name, payload, params)
 	return qr, err
+}
+
+func (c *Client) SerfPing(param *SerfPingParam) (*SerfPingResponse, error) {
+	resp, err := c.serfDiag.Ping(param)
+	return resp, err
 }

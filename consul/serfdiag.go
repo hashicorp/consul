@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/serf/serf"
 	"log"
 	"os"
@@ -28,9 +29,9 @@ type SerfQueryParam struct {
 	RespCh      chan<- NodeResponse // Channel to send responses on
 }
 
-// SerfQuery handles 'reachability' Serf 'pings' for both the client
-// and server.
-type SerfQuery struct {
+// SerfDiag handles Serf-based diagnostics for both the Consul server
+// and the Consul client
+type SerfDiag struct {
 	// Logger uses the provided LogOutput
 	logger *log.Logger
 
@@ -39,7 +40,7 @@ type SerfQuery struct {
 	serf *serf.Serf
 }
 
-func NewSerfQuery(config *Config, serf *serf.Serf) (*SerfQuery, error) {
+func NewSerfDiag(config *Config, serf *serf.Serf) (*SerfDiag, error) {
 	// Check the protocol version
 	if err := config.CheckVersion(); err != nil {
 		return nil, err
@@ -53,16 +54,16 @@ func NewSerfQuery(config *Config, serf *serf.Serf) (*SerfQuery, error) {
 	// Create a logger
 	logger := log.New(config.LogOutput, "", log.LstdFlags)
 
-	// Create the SerfQuery object.
-	sq := &SerfQuery{
+	// Create the SerfDiag object.
+	sd := &SerfDiag{
 		logger: logger,
 		serf:   serf,
 	}
 
-	return sq, nil
+	return sd, nil
 }
 
-func (c *SerfQuery) Query(name string, payload []byte, params *serf.QueryParam) (*serf.QueryResponse, error) {
+func (c *SerfDiag) Query(name string, payload []byte, params *serf.QueryParam) (*serf.QueryResponse, error) {
 	// Prevent the use of the internal prefix
 	if strings.HasPrefix(name, serf.InternalQueryPrefix) {
 		// Allow the special "ping" query
@@ -77,4 +78,45 @@ func (c *SerfQuery) Query(name string, payload []byte, params *serf.QueryParam) 
 		c.logger.Printf("[WARN] client: failed to start user serf query: %v", err)
 	}
 	return resp, err
+}
+
+// SerfPingParam is provided to customize various Serf Ping settings.
+type SerfPingParam struct {
+	Name string // Name of node to ping
+}
+
+type SerfPingResponse struct {
+	Success bool
+	RTT     time.Duration
+}
+
+func (c *SerfDiag) Ping(params *SerfPingParam) (*SerfPingResponse, error) {
+	c.logger.Printf("[DEBUG] client: Requesting serf ping send: %s", params.Name)
+	var node *serf.Member
+	node = nil
+	for _, m := range c.serf.Members() {
+		if m.Name == params.Name {
+			node = &m
+			break
+		}
+	}
+	if node == nil {
+		return nil, fmt.Errorf("Member %s not found in data center.", params.Name)
+	}
+	if rtt, err := c.serf.Memberlist().Ping(node.Name, node.Addr, node.Port); err == nil {
+		return &SerfPingResponse{
+			Success: true,
+			RTT:     *rtt,
+		}, err
+	} else {
+		switch err.(type) {
+		case memberlist.NoPingResponseError:
+			return &SerfPingResponse{
+				Success: false,
+				RTT:     *rtt,
+			}, nil
+		default:
+			return nil, err
+		}
+	}
 }

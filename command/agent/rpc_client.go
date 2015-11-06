@@ -481,6 +481,29 @@ func (c *RPCClient) SerfQuery(params *consul.SerfQueryParam) error {
 	}
 }
 
+type serfPingRequest struct {
+	Name string
+}
+
+// SerfPing initiates a new ping message using the given parameters
+func (c *RPCClient) SerfPing(params *consul.SerfPingParam) (*serfPingResponse, error) {
+	// Setup the request
+	seq := c.getSeq()
+	header := requestHeader{
+		Command: serfPingCommand,
+		Seq:     seq,
+	}
+	req := serfPingRequest{
+		Name: params.Name,
+	}
+
+	var resp serfPingResponse
+	// Send the request
+	err := c.genericRPC(&header, &req, &resp)
+
+	return &resp, err
+}
+
 // Stop is used to unsubscribe from logs or event streams
 func (c *RPCClient) Stop(handle StreamHandle) error {
 	// Deregister locally first to stop delivery
