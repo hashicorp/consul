@@ -30,6 +30,7 @@ func stateStoreSchema() *memdb.DBSchema {
 		sessionChecksTableSchema,
 		aclsTableSchema,
 		coordinatesTableSchema,
+		queriesTableSchema,
 	}
 
 	// Add the tables to the root schema
@@ -360,6 +361,41 @@ func coordinatesTableSchema() *memdb.TableSchema {
 				Indexer: &memdb.StringFieldIndex{
 					Field:     "Node",
 					Lowercase: true,
+				},
+			},
+		},
+	}
+}
+
+// queriesTableSchema returns a new table schema used for storing
+// prepared queries.
+func queriesTableSchema() *memdb.TableSchema {
+	return &memdb.TableSchema{
+		Name: "queries",
+		Indexes: map[string]*memdb.IndexSchema{
+			"id": &memdb.IndexSchema{
+				Name:         "id",
+				AllowMissing: false,
+				Unique:       true,
+				Indexer: &memdb.UUIDFieldIndex{
+					Field: "ID",
+				},
+			},
+			"name": &memdb.IndexSchema{
+				Name:         "name",
+				AllowMissing: true,
+				Unique:       true,
+				Indexer: &memdb.StringFieldIndex{
+					Field:     "Name",
+					Lowercase: true,
+				},
+			},
+			"session": &memdb.IndexSchema{
+				Name:         "session",
+				AllowMissing: true,
+				Unique:       false,
+				Indexer: &memdb.UUIDFieldIndex{
+					Field: "Session",
 				},
 			},
 		},

@@ -4445,6 +4445,64 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 	}
 }
 
+func TestStateStore_Session_Invalidate_Query_Delete(t *testing.T) {
+	s := testStateStore(t)
+
+	// Set up our test environment.
+	testRegisterNode(t, s, 1, "foo")
+	testRegisterService(t, s, 2, "foo", "redis")
+	session := &structs.Session{
+		ID:   testUUID(),
+		Node: "foo",
+	}
+	if err := s.SessionCreate(3, session); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	query := &structs.PreparedQuery{
+		ID:      testUUID(),
+		Session: session.ID,
+		Service: structs.ServiceQuery{
+			Service: "redis",
+		},
+	}
+	if err := s.QuerySet(4, query); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Invalidate the session and make sure the watches fire.
+	verifyWatch(t, s.getTableWatch("sessions"), func() {
+		verifyWatch(t, s.getTableWatch("queries"), func() {
+			if err := s.SessionDestroy(5, session.ID); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+		})
+	})
+
+	// Make sure the session is gone.
+	idx, s2, err := s.SessionGet(session.ID)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s2 != nil {
+		t.Fatalf("session should be invalidated")
+	}
+	if idx != 5 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Make sure the query is gone and the index is updated.
+	idx, q2, err := s.QueryGet(query.ID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 5 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if q2 != nil {
+		t.Fatalf("bad: %v", q2)
+	}
+}
+
 func TestStateStore_ACLSet_ACLGet(t *testing.T) {
 	s := testStateStore(t)
 

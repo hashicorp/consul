@@ -24,9 +24,13 @@ var (
 	// is attempted with an empty session ID.
 	ErrMissingSessionID = errors.New("Missing session ID")
 
-	// ErrMissingACLID is returned when a session set is called on
-	// a session with an empty ID.
+	// ErrMissingACLID is returned when an ACL set is called on
+	// an ACL with an empty ID.
 	ErrMissingACLID = errors.New("Missing ACL ID")
+
+	// ErrMissingQueryID is returned when a Query set is called on
+	// a Query with an empty ID.
+	ErrMissingQueryID = errors.New("Missing Query ID")
 )
 
 // StateStore is where we store all of Consul's state, including
@@ -409,6 +413,8 @@ func (s *StateStore) getWatchTables(method string) []string {
 		return []string{"acls"}
 	case "Coordinates":
 		return []string{"coordinates"}
+	case "QueryGet", "QueryLookup", "QueryList":
+		return []string{"queries"}
 	}
 
 	panic(fmt.Sprintf("Unknown method %s", method))
@@ -2120,15 +2126,37 @@ func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 	if err != nil {
 		return fmt.Errorf("failed session checks lookup: %s", err)
 	}
-	var objs []interface{}
-	for mapping := mappings.Next(); mapping != nil; mapping = mappings.Next() {
-		objs = append(objs, mapping)
+	{
+		var objs []interface{}
+		for mapping := mappings.Next(); mapping != nil; mapping = mappings.Next() {
+			objs = append(objs, mapping)
+		}
+
+		// Do the delete in a separate loop so we don't trash the iterator.
+		for _, obj := range objs {
+			if err := tx.Delete("session_checks", obj); err != nil {
+				return fmt.Errorf("failed deleting session check: %s", err)
+			}
+		}
 	}
 
-	// Do the delete in a separate loop so we don't trash the iterator.
-	for _, obj := range objs {
-		if err := tx.Delete("session_checks", obj); err != nil {
-			return fmt.Errorf("failed deleting session check: %s", err)
+	// Delete any prepared queries.
+	queries, err := tx.Get("queries", "session", sessionID)
+	if err != nil {
+		return fmt.Errorf("failed query lookup: %s", err)
+	}
+	{
+		var objs []interface{}
+		for query := queries.Next(); query != nil; query = queries.Next() {
+			objs = append(objs, query)
+		}
+
+		// Do the delete in a separate loop so we don't trash the iterator.
+		for _, obj := range objs {
+			q := obj.(*structs.PreparedQuery)
+			if err := s.queryDeleteTxn(tx, idx, watches, q.ID); err != nil {
+				return fmt.Errorf("failed query delete: %s", err)
+			}
 		}
 	}
 

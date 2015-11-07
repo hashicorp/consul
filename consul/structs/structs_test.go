@@ -209,6 +209,117 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 	check(&other.ServiceName)
 }
 
+func TestStructs_CheckServiceNodes_Shuffle(t *testing.T) {
+	nodes := CheckServiceNodes{
+		CheckServiceNode{
+			Node: &Node{
+				Node:    "node1",
+				Address: "127.0.0.1",
+			},
+		},
+		CheckServiceNode{
+			Node: &Node{
+				Node:    "node2",
+				Address: "127.0.0.2",
+			},
+		},
+		CheckServiceNode{
+			Node: &Node{
+				Node:    "node3",
+				Address: "127.0.0.3",
+			},
+		},
+	}
+
+	// Make a copy to shuffle and make sure it matches initially.
+	twiddle := make(CheckServiceNodes, len(nodes))
+	if n := copy(twiddle, nodes); n != len(nodes) {
+		t.Fatalf("bad: %d", n)
+	}
+	if !reflect.DeepEqual(twiddle, nodes) {
+		t.Fatalf("bad: %v", twiddle)
+	}
+
+	// Give this lots of tries to randomize. If we find a case that's
+	// not equal we can end the test, otherwise we will call shenanigans.
+	for i := 0; i < 100; i++ {
+		twiddle.Shuffle()
+		if !reflect.DeepEqual(twiddle, nodes) {
+			return
+		}
+	}
+	t.Fatalf("shuffle is not working")
+}
+
+func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
+	nodes := CheckServiceNodes{
+		CheckServiceNode{
+			Node: &Node{
+				Node:    "node1",
+				Address: "127.0.0.1",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Status: HealthWarning,
+				},
+			},
+		},
+		CheckServiceNode{
+			Node: &Node{
+				Node:    "node2",
+				Address: "127.0.0.2",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Status: HealthPassing,
+				},
+			},
+		},
+		CheckServiceNode{
+			Node: &Node{
+				Node:    "node3",
+				Address: "127.0.0.3",
+			},
+			Checks: HealthChecks{
+				&HealthCheck{
+					Status: HealthCritical,
+				},
+			},
+		},
+	}
+
+	// Test the case where warnings are allowed.
+	{
+		twiddle := make(CheckServiceNodes, len(nodes))
+		if n := copy(twiddle, nodes); n != len(nodes) {
+			t.Fatalf("bad: %d", n)
+		}
+		filtered := twiddle.Filter(false)
+		expected := CheckServiceNodes{
+			nodes[0],
+			nodes[1],
+		}
+		if !reflect.DeepEqual(filtered, expected) {
+			t.Fatalf("bad: %v", filtered)
+		}
+	}
+
+	// Limit to only passing checks.
+	{
+		twiddle := make(CheckServiceNodes, len(nodes))
+		if n := copy(twiddle, nodes); n != len(nodes) {
+			t.Fatalf("bad: %d", n)
+		}
+		filtered := twiddle.Filter(true)
+		expected := CheckServiceNodes{
+			nodes[1],
+		}
+		if !reflect.DeepEqual(filtered, expected) {
+			t.Fatalf("bad: %v", filtered)
+		}
+	}
+}
+
 func TestStructs_DirEntry_Clone(t *testing.T) {
 	e := &DirEntry{
 		LockIndex: 5,
