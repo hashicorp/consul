@@ -276,23 +276,6 @@ func (s *serverSerfer) GetNodesForDatacenter(dc string) []string {
 	return nodes
 }
 
-// sortDatacentersByDistance will sort the given list of DCs based on the
-// median RTT to all nodes we know about from the WAN gossip pool). DCs with
-// missing coordinates will be stable sorted to the end of the list.
-//
-// If coordinates are disabled this will be a no-op.
-func (s *Server) sortDatacentersByDistance(dcs []string) error {
-	// Make it safe to call this without having to check if coordinates are
-	// disabled first.
-	if s.config.DisableCoordinates {
-		return nil
-	}
-
-	// Do the sort!
-	serfer := serverSerfer{s}
-	return sortDatacentersByDistance(&serfer, dcs)
-}
-
 // getDatacenterDistance will return the median round trip time estimate for
 // the given DC from the given serfer, in seconds. This will return positive
 // infinity if no coordinates are available.
@@ -395,4 +378,37 @@ func getDatacenterMaps(s serfer, dcs []string) []structs.DatacenterMap {
 		maps = append(maps, m)
 	}
 	return maps
+}
+
+// TODO (slackpad) - Add a unit test for this!
+
+// getDatacentersByDistance will return the list of DCs, sorted in order
+// of increasing distance based on the median distance to that DC from all
+// servers we know about in the WAN gossip pool. This will sort by name all
+// other things being equal (or if coordinates are disabled).
+func (s *Server) getDatacentersByDistance() ([]string, error) {
+	s.remoteLock.RLock()
+	defer s.remoteLock.RUnlock()
+
+	var dcs []string
+	for dc := range s.remoteConsuls {
+		dcs = append(dcs, dc)
+	}
+
+	// Sort by name first, since the coordinate sort is stable.
+	sort.Strings(dcs)
+
+	// Make it safe to call this without having to check if coordinates are
+	// disabled first.
+	if s.config.DisableCoordinates {
+		return dcs, nil
+	}
+
+	// Do the sort!
+	serfer := serverSerfer{s}
+	if err := sortDatacentersByDistance(&serfer, dcs); err != nil {
+		return nil, err
+	}
+
+	return dcs, nil
 }

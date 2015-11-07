@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -96,24 +95,11 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 
 // ListDatacenters is used to query for the list of known datacenters
 func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
-	c.srv.remoteLock.RLock()
-	defer c.srv.remoteLock.RUnlock()
-
-	// Read the known DCs
-	var dcs []string
-	for dc := range c.srv.remoteConsuls {
-		dcs = append(dcs, dc)
-	}
-
-	// TODO - do we want to control the sort behavior with an argument?
-
-	// Sort the DCs by name first, then apply a stable sort by distance.
-	sort.Strings(dcs)
-	if err := c.srv.sortDatacentersByDistance(dcs); err != nil {
+	dcs, err := c.srv.getDatacentersByDistance()
+	if err != nil {
 		return err
 	}
 
-	// Return
 	*reply = dcs
 	return nil
 }
