@@ -1,7 +1,9 @@
 package structs
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -210,45 +212,36 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 }
 
 func TestStructs_CheckServiceNodes_Shuffle(t *testing.T) {
-	nodes := CheckServiceNodes{
-		CheckServiceNode{
-			Node: &Node{
-				Node:    "node1",
-				Address: "127.0.0.1",
-			},
-		},
-		CheckServiceNode{
-			Node: &Node{
-				Node:    "node2",
-				Address: "127.0.0.2",
-			},
-		},
-		CheckServiceNode{
-			Node: &Node{
-				Node:    "node3",
-				Address: "127.0.0.3",
-			},
-		},
-	}
-
-	// Make a copy to shuffle and make sure it matches initially.
-	twiddle := make(CheckServiceNodes, len(nodes))
-	if n := copy(twiddle, nodes); n != len(nodes) {
-		t.Fatalf("bad: %d", n)
-	}
-	if !reflect.DeepEqual(twiddle, nodes) {
-		t.Fatalf("bad: %v", twiddle)
-	}
-
-	// Give this lots of tries to randomize. If we find a case that's
-	// not equal we can end the test, otherwise we will call shenanigans.
+	// Make a huge list of nodes.
+	var nodes CheckServiceNodes
 	for i := 0; i < 100; i++ {
-		twiddle.Shuffle()
-		if !reflect.DeepEqual(twiddle, nodes) {
-			return
-		}
+		nodes = append(nodes, CheckServiceNode{
+			Node: &Node{
+				Node:    fmt.Sprintf("node%d", i),
+				Address: fmt.Sprintf("127.0.0.%d", i+1),
+			},
+		})
 	}
-	t.Fatalf("shuffle is not working")
+
+	// Keep track of how many unique shuffles we get.
+	uniques := make(map[string]struct{})
+	for i := 0; i < 100; i++ {
+		nodes.Shuffle()
+
+		var names []string
+		for _, node := range nodes {
+			names = append(names, node.Node.Node)
+		}
+		key := strings.Join(names, "|")
+		uniques[key] = struct{}{}
+	}
+
+	// We have to allow for the fact that there won't always be a unique
+	// shuffle each pass, so we just look for smell here without the test
+	// being flaky.
+	if len(uniques) < 50 {
+		t.Fatalf("unique shuffle ratio too low: %d/100", len(uniques))
+	}
 }
 
 func TestStructs_CheckServiceNodes_Filter(t *testing.T) {
