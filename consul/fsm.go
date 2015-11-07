@@ -91,6 +91,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		return c.applyTombstoneOperation(buf[1:], log.Index)
 	case structs.CoordinateBatchUpdateType:
 		return c.applyCoordinateBatchUpdate(buf[1:], log.Index)
+	case structs.QueryRequestType:
+		return c.applyQueryOperation(buf[1:], log.Index)
 	default:
 		if ignoreUnknown {
 			c.logger.Printf("[WARN] consul.fsm: ignoring unknown message type (%d), upgrade to newer version", msgType)
@@ -262,6 +264,23 @@ func (c *consulFSM) applyCoordinateBatchUpdate(buf []byte, index uint64) interfa
 		return err
 	}
 	return nil
+}
+
+func (c *consulFSM) applyQueryOperation(buf []byte, index uint64) interface{} {
+	var req structs.QueryRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "query", string(req.Op)}, time.Now())
+	switch req.Op {
+	case structs.QueryCreate, structs.QueryUpdate:
+		return c.state.QuerySet(index, &req.Query)
+	case structs.QueryDelete:
+		return c.state.QueryDelete(index, req.Query.ID)
+	default:
+		c.logger.Printf("[WARN] consul.fsm: Invalid Query operation '%s'", req.Op)
+		return fmt.Errorf("Invalid Query operation '%s'", req.Op)
+	}
 }
 
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {

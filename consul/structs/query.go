@@ -70,12 +70,8 @@ type PreparedQuery struct {
 	// can be used to locate nodes with supplying any ACL.
 	Name string
 
-	// TTL is the time to live for the query itself. If this is omitted then
-	// the query will not expire (unless tied to a session).
-	TTL string
-
 	// Session is an optional session to tie this query's lifetime to. If
-	// this is omitted then the query will not expire (unless given a TTL).
+	// this is omitted then the query will not expire.
 	Session string
 
 	// Token is the ACL token used when the query was created, and it is
@@ -117,8 +113,13 @@ func (q *QueryRequest) RequestDatacenter() string {
 	return q.Datacenter
 }
 
-// QuerySpecificRequest is used to execute a prepared query.
-type QuerySpecificRequest struct {
+// QueryResponse is used to return the ID of an updated query.
+type QueryResponse struct {
+	ID string
+}
+
+// QueryExecuteRequest is used to execute a prepared query.
+type QueryExecuteRequest struct {
 	Datacenter    string
 	QueryIDOrName string
 	Source        QuerySource
@@ -126,26 +127,26 @@ type QuerySpecificRequest struct {
 }
 
 // RequestDatacenter returns the datacenter for a given request.
-func (q *QuerySpecificRequest) RequestDatacenter() string {
+func (q *QueryExecuteRequest) RequestDatacenter() string {
 	return q.Datacenter
 }
 
-// QueryRemoteRequest is used when running a local query in a remote
+// QueryExecuteRemoteRequest is used when running a local query in a remote
 // datacenter. We have to ship the entire query over since it won't be
 // present in the remote state store.
-type QueryRemoteRequest struct {
+type QueryExecuteRemoteRequest struct {
 	Datacenter string
 	Query      PreparedQuery
 	QueryOptions
 }
 
 // RequestDatacenter returns the datacenter for a given request.
-func (q *QueryRemoteRequest) RequestDatacenter() string {
+func (q *QueryExecuteRemoteRequest) RequestDatacenter() string {
 	return q.Datacenter
 }
 
-// QueryExecutionResponse has the results of executing a query.
-type QueryExecutionResponse struct {
+// QueryExecuteResponse has the results of executing a query.
+type QueryExecuteResponse struct {
 	Nodes CheckServiceNodes
 	DNS   QueryDNSOptions
 }
