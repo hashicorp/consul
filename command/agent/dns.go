@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"net"
 	"strings"
 	"sync"
@@ -499,7 +498,7 @@ RPC:
 	}
 
 	// Filter out any service nodes due to health checks
-	out.Nodes = d.filterServiceNodes(out.Nodes)
+	out.Nodes = out.Nodes.Filter(d.config.OnlyPassing)
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
@@ -509,7 +508,7 @@ RPC:
 	}
 
 	// Perform a random shuffle
-	shuffleServiceNodes(out.Nodes)
+	out.Nodes.Shuffle()
 
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
@@ -533,36 +532,6 @@ RPC:
 	if len(resp.Answer) == 0 {
 		d.addSOA(d.domain, resp)
 		return
-	}
-}
-
-// filterServiceNodes is used to filter out nodes that are failing
-// health checks to prevent routing to unhealthy nodes
-func (d *DNSServer) filterServiceNodes(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
-	n := len(nodes)
-OUTER:
-	for i := 0; i < n; i++ {
-		node := nodes[i]
-		for _, check := range node.Checks {
-			if check.Status == structs.HealthCritical ||
-				(d.config.OnlyPassing && check.Status != structs.HealthPassing) {
-				d.logger.Printf("[WARN] dns: node '%s' failing health check '%s: %s', dropping from service '%s'",
-					node.Node.Node, check.CheckID, check.Name, node.Service.Service)
-				nodes[i], nodes[n-1] = nodes[n-1], structs.CheckServiceNode{}
-				n--
-				i--
-				continue OUTER
-			}
-		}
-	}
-	return nodes[:n]
-}
-
-// shuffleServiceNodes does an in-place random shuffle using the Fisher-Yates algorithm
-func shuffleServiceNodes(nodes structs.CheckServiceNodes) {
-	for i := len(nodes) - 1; i > 0; i-- {
-		j := rand.Int31() % int32(i+1)
-		nodes[i], nodes[j] = nodes[j], nodes[i]
 	}
 }
 
