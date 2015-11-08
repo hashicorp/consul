@@ -122,6 +122,50 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	}
 }
 
+func TestHealthChecksInStateTags(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       srv.agent.config.NodeName,
+		Address:    "127.0.0.1",
+		Check: &structs.HealthCheck{
+			Node:      srv.agent.config.NodeName,
+			Name:      "consul check",
+			ServiceID: "consul",
+			Tags:      []string{"fun"},
+		},
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, err := http.NewRequest("GET", "/v1/health/checks/consul?tag=fun", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := srv.HealthServiceChecks(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	assertIndex(t, resp)
+
+	// Should be 1 health check for consul
+	nodes := obj.(structs.HealthChecks)
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", obj)
+	}
+}
+
 func TestHealthNodeChecks(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
