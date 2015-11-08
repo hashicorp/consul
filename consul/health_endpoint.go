@@ -25,7 +25,14 @@ func (h *Health) ChecksInState(args *structs.ChecksInStateRequest,
 		&reply.QueryMeta,
 		state.GetQueryWatch("ChecksInState"),
 		func() error {
-			index, checks, err := state.ChecksInState(args.State)
+			var index uint64
+			var checks structs.HealthChecks
+			var err error
+			if args.TagFilter {
+				index, checks, err = state.ChecksInStateTag(args.State, args.Tag)
+			} else {
+				index, checks, err = state.ChecksInState(args.State)
+			}
 			if err != nil {
 				return err
 			}

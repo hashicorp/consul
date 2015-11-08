@@ -12,6 +12,7 @@ type HealthCheck struct {
 	Status      string
 	Notes       string
 	Output      string
+	Tags        []string
 	ServiceID   string
 	ServiceName string
 }
@@ -55,9 +56,12 @@ func (h *Health) Node(node string, q *QueryOptions) ([]*HealthCheck, *QueryMeta,
 }
 
 // Checks is used to return the checks associated with a service
-func (h *Health) Checks(service string, q *QueryOptions) ([]*HealthCheck, *QueryMeta, error) {
+func (h *Health) Checks(service string, tag string, q *QueryOptions) ([]*HealthCheck, *QueryMeta, error) {
 	r := h.c.newRequest("GET", "/v1/health/checks/"+service)
 	r.setQueryOptions(q)
+	if tag != "" {
+		r.params.Set("tag", tag)
+	}
 	rtt, resp, err := requireOK(h.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err
@@ -106,7 +110,7 @@ func (h *Health) Service(service, tag string, passingOnly bool, q *QueryOptions)
 
 // State is used to retrieve all the checks in a given state.
 // The wildcard "any" state can also be used for all checks.
-func (h *Health) State(state string, q *QueryOptions) ([]*HealthCheck, *QueryMeta, error) {
+func (h *Health) State(state string, tag string, q *QueryOptions) ([]*HealthCheck, *QueryMeta, error) {
 	switch state {
 	case "any":
 	case "warning":
@@ -118,6 +122,9 @@ func (h *Health) State(state string, q *QueryOptions) ([]*HealthCheck, *QueryMet
 	}
 	r := h.c.newRequest("GET", "/v1/health/state/"+state)
 	r.setQueryOptions(q)
+	if tag != "" {
+		r.params.Set("tag", tag)
+	}
 	rtt, resp, err := requireOK(h.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err

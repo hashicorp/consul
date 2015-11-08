@@ -13,6 +13,11 @@ func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Req
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
+	params := req.URL.Query()
+	if _, ok := params["tag"]; ok {
+		args.TagFilter = true
+		args.Tag = params.Get("tag")
+	}
 
 	// Pull out the service name
 	args.State = strings.TrimPrefix(req.URL.Path, "/v1/health/state/")
