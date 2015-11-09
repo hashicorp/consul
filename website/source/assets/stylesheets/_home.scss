@@ -143,6 +143,17 @@ body.page-home{
 	}
 }
 
+@media (max-width: 768px){
+    #cta{
+      text-align: center;
+      .intro{
+        .left{
+          text-align: center !important;
+        }
+      }
+    }
+}
+
 @media (max-width: 480px) {
 	#features{
 		text-align: center;
