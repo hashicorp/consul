@@ -3,6 +3,7 @@ package command
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
@@ -58,12 +59,6 @@ func (c *RTTCommand) Run(args []string) int {
 
 	// They must provide at least one node.
 	nodes := cmdFlags.Args()
-	if len(nodes) < 1 || len(nodes) > 2 {
-		c.Ui.Error("One or two node names must be specified")
-		c.Ui.Error("")
-		c.Ui.Error(c.Help())
-		return 1
-	}
 
 	// Create and test the HTTP client.
 	conf := api.DefaultConfig()
@@ -129,7 +124,7 @@ func (c *RTTCommand) Run(args []string) int {
 		source = "LAN"
 
 		// Default the second node to the agent if none was given.
-		if len(nodes) < 2 {
+		if len(nodes) == 1 {
 			agent := client.Agent()
 			node, err := agent.NodeName()
 			if err != nil {
@@ -144,6 +139,18 @@ func (c *RTTCommand) Run(args []string) int {
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error getting coordinates: %s", err))
 			return 1
+		}
+
+		// Getting randomly two nodes if input nodes is empty
+		if len(nodes) == 0 {
+			lenentries := len(entries)
+			item1 := entries[rand.Intn(lenentries)]
+			item2 := entries[rand.Intn(lenentries)]
+			coord1 = item1.Coord
+			coord2 = item2.Coord
+			nodes = append(nodes, item1.Node)
+			nodes = append(nodes, item2.Node)
+			goto SHOW_RTT
 		}
 
 		// See if the requested nodes are in there.

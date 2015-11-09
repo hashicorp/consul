@@ -20,10 +20,6 @@ func TestRTTCommand_Run_BadArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &RTTCommand{Ui: ui}
 
-	if code := c.Run([]string{}); code != 1 {
-		t.Fatalf("expected return code 1, got %d", code)
-	}
-
 	if code := c.Run([]string{"node1", "node2", "node3"}); code != 1 {
 		t.Fatalf("expected return code 1, got %d", code)
 	}
