@@ -21,6 +21,7 @@ body.page-sub{
 #header {
   .navbar-brand {
     .logo{
+      padding-left: 50px;
       font-size: 0;
       text-transform: uppercase;
       background: image-url('../images/consul-hero-logo.png') 0 0 no-repeat;
@@ -75,9 +76,12 @@ body.page-sub{
     .navbar-brand {
       .logo{
         padding-left: 37px;
-        //font-size: 18px;
-        @include img-retina("../images/logo-header.png", "../images/logo-header@2x.png", $project-logo-width * .75, $project-logo-height * .75);
-        //background-position: 0 45%;
+        @include img-retina("../images/consul-hero-logo.png", "../images/consul-hero-logo@2x.png", $project-logo-width * .75, $project-logo-height * .75);
+
+        img{
+          width: 72px;
+          height: 14px;
+        }
       }
     }
   }

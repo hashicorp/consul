@@ -59,7 +59,6 @@
     .navbar-toggle{
       height: $header-height;
       margin: 0;
-      padding-right: 15px;
       border-radius: 0;
       .icon-bar{
         border: 1px solid $black;
@@ -193,6 +192,14 @@
     background-color: transparent;
     color: $black;
     @include transition( all 300ms ease-in );
+  }
+}
+
+@media (max-width: 992px) {
+  #header {
+    > .container{
+      width: 100%;
+    }
   }
 }
 

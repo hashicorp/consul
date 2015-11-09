@@ -4,9 +4,9 @@
 // --------------------------------------------------
 
 // Variables
-$project-logo-width: 50px;
-$project-logo-height: 50px;
-$project-logo-pad-left: 8px;
+$project-logo-width: 40px;
+$project-logo-height: 40px;
+$project-logo-pad-left: 0px;
 
 // Mixins
 @mixin project-a-style{
@@ -21,7 +21,7 @@ $project-logo-pad-left: 8px;
 
 @mixin project-footer-a-style{
   line-height: 30px;
-  
+
   &:hover{
     opacity: .5;
   }
