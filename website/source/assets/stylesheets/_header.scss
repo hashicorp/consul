@@ -6,7 +6,7 @@
 
 body.page-sub{
   #header{
-     @include consul-gradient-bg();
+    @include consul-gradient-bg();
 
     .navbar-brand {
       .logo{
