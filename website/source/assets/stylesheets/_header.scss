@@ -6,7 +6,7 @@
 
 body.page-sub{
   #header{
-    background-color: $purple;
+     @include consul-gradient-bg();
 
     .navbar-brand {
       .logo{
@@ -88,7 +88,7 @@ body.page-sub{
   #header {
     .navbar-brand {
       .logo{
-        
+
       }
     }
   }

@@ -127,37 +127,6 @@ body.page-home{
 	}
 }
 
-
-
-#footer{
-	background-color: $consul-footer-gray;
-    background: $consul-footer-gray image-url('consul-footer-logo.png') center center no-repeat;
-    @include img-retina("consul-footer-logo.png", "consul-footer-logo@2x.png", 446px, 443px);
-
-	.footer-links{
-		margin-bottom: 20px;
-	}
-
-	.footer-hashi{
-		letter-spacing: 2px;
-    	margin-bottom: 30px;
-
-    	a{
-    		font-weight: $font-weight-museo-xb;
-    	}
-
-	    span{
-	    	margin-right: 20px;
-	    }
-		img{
-			display: inline-block;
-       		width: 37px;
-       		height: 40px;
-		}
-	}
-}
-
-
 @media (max-width: 992px) {
 	#features{
     top: $large-negative-hero-margin;
