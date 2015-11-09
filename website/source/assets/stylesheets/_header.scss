@@ -33,8 +33,7 @@ body.page-sub{
       }
     }
 
-    .by{
-      color: $black;
+    .by-hashicorp{
       &:hover{
         svg{
           line{
@@ -47,27 +46,6 @@ body.page-sub{
 
   .buttons{
     margin-top: 2px; //baseline everything
-
-    ul.navbar-nav{
-      li {
-        // &:hover{
-        //     svg path{
-        //         fill: $purple;
-        //     }
-        // }
-
-        svg path{
-          fill: $white;
-        }
-      }
-    }
-  }
-
-  .main-links,
-  .external-links {
-    li > a {
-      @include project-a-style();
-    }
   }
 }
 

@@ -10,12 +10,12 @@ $project-logo-pad-left: 0px;
 
 // Mixins
 @mixin project-a-style{
-  color: $white;
   font-weight: 300;
   opacity: .75;
 
   &:hover{
     color: $white;
+    opacity: 1;
   }
 }
 

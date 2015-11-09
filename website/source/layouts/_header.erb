@@ -25,16 +25,16 @@
   </head>
 
   <body class="page-<%= current_page.data.page_title ? "#{current_page.data.page_title} layout-#{current_page.data.layout} page-sub" : "home layout-#{current_page.data.layout}" %>">
-    <div id="header" class="white <%= current_page.data.page_title == "home" ? "" : "navbar-static-top" %>">
+    <div id="header" class="navigation <%= current_page.data.page_title == "home" ? "" : "navbar-static-top" %>">
     	<div class="container">
     		<div class="row">
     			<div class="col-xs-12">
     				<div class="navbar-header">
     					<div class="navbar-brand">
     						<a class="logo" href="/"><img src="<%= image_path('wordtype@2x.png') %>" width="96px" height="18px">Consul</a>
-    						<a class="by" href="https://hashicorp.com/"><span class="svg-wrap">by</span><%= partial "layouts/svg/svg-by-hashicorp" %><%= partial "layouts/svg/svg-hashicorp-logo" %>Hashicorp</a>
+    						<a class="by-hashicorp white" href="https://hashicorp.com/"><span class="svg-wrap">by</span><%= partial "layouts/svg/svg-by-hashicorp" %><%= partial "layouts/svg/svg-hashicorp-logo" %>Hashicorp</a>
     					</div>
-    					<button class="navbar-toggle" type="button">
+    					<button class="navbar-toggle white" type="button">
     						<span class="sr-only">Toggle navigation</span>
     						<span class="icon-bar"></span>
     						<span class="icon-bar"></span>
@@ -42,8 +42,8 @@
     					</button>
     				</div>
     				<div class="buttons hidden-xs">
-    					<nav role="navigation">
-    						<ul class="external-links nav navbar-nav navbar-right">
+    					<nav class="navigation-links" role="navigation">
+    						<ul class="external-links white nav navbar-nav navbar-right">
     							<li class="first download">
     								<a href="/downloads.html"><%= partial "layouts/svg/svg-download" %>Download</a>
     							</li>
@@ -51,7 +51,7 @@
     								<a href="https://github.com/hashicorp/consul"><%= partial "layouts/svg/svg-github" %>GitHub</a>
     							</li>
     						</ul>
-    						<ul class="main-links nav navbar-nav navbar-right">
+    						<ul class="main-links white nav navbar-nav navbar-right">
     							<li class="first li-under"><a href="/intro/index.html">Intro</a></li>
     							<li class="li-under"><a href="/docs/index.html">Docs</a></li>
     							<li class="li-under"><a href="/community.html">Community</a></li>

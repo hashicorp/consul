@@ -1,25 +1,35 @@
-<div id="footer">
+<div id="footer" class="navigation">
   <div class="container">
     <div class="row">
-      <div class="col-sm-6 col-xs-12">
-        <ul class="footer-links nav navbar-nav">
-          <li><a href="/intro/index.html">Intro</a></li>
-          <li><a href="/docs/index.html">Docs</a></li>
-          <li><a href="/community.html">Community</a></li>
-  				<li><a href="http://demo.consul.io/">Demo</a></li>
-          <% if current_page.url != '/' %>
-            <li class="edit"><a href="<%= github_url :current_page %>">Edit this page</a></li>
-          <% end %>
-        </ul>
-      </div>
-      <div class="footer-hashi col-sm-6 col-xs-12">
-        <div class="pull-right">
-          <a class="hashicorp-project white" href="https://www.hashicorp.com">
-            <span class="project-text">A </span>
-            <%= partial "layouts/svg/svg-by-hashicorp" %>
-            <span class="project-text">Project</span>
-            <%= partial "layouts/svg/svg-hashicorp-logo" %>
-          </a>
+      <div class="col-xs-12">
+        <div>
+          <ul class="main-links white nav navbar-nav">
+            <li><a href="/intro/index.html">Intro</a></li>
+            <li><a href="/docs/index.html">Docs</a></li>
+            <li><a href="/community.html">Community</a></li>
+    				<li><a href="http://demo.consul.io/">Demo</a></li>
+            <% if current_page.url != '/' %>
+              <li class="edit"><a href="<%= github_url :current_page %>">Edit this page</a></li>
+            <% end %>
+          </ul>
+          <ul class="external-links white nav navbar-nav">
+            <li class="first download">
+              <a href="/downloads.html"><%= partial "layouts/svg/svg-download" %>Download</a>
+            </li>
+            <li class="github">
+              <a href="https://github.com/hashicorp/consul"><%= partial "layouts/svg/svg-github" %>GitHub</a>
+            </li>
+          </ul>
+        </  div>
+        <div class="footer-hashi pull-right">
+          <div class="">
+            <a class="hashicorp-project white" href="https://www.hashicorp.com">
+              <span class="project-text">A </span>
+              <%= partial "layouts/svg/svg-by-hashicorp" %>
+              <span class="project-text">Project</span>
+              <%= partial "layouts/svg/svg-hashicorp-logo" %>
+            </a>
+          </div>
         </div>
       </div>
     </div>

@@ -1,108 +1,13 @@
 #footer{
   padding: 64px 0;
-  // @include consul-gradient-bg();
   background-color: $black;
 
-  .footer-links{
-    li{
-      &.edit{
-        a{
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          font-size: 11px;
-          font-weight: 400;
-        }
-      }
-      a{
-        @include hashi-a-style();
-        @include project-a-style();
-        @include project-footer-a-style();
-      }
-    }
+  .hashicorp-project{
+    margin-top: 24px;
   }
 
   .pull-right{
     padding-right: 15px;
-  }
-
-  .footer-hashi{
-    font-size: 14px;
-    color: $black;
-
-    a{
-      color: $black;
-      font-weight: 600;
-    }
-
-    span{
-      margin-right: 4px;
-    }
-
-    .hashicorp-project{
-      display: inline-block;
-      height: 30px;
-      line-height: 30px;
-      text-decoration: none;
-
-      &.white{
-        color: white;
-        svg{
-          path,
-          polygon{
-            fill: white;
-          }
-          line{
-            stroke: white;
-          }
-        }
-      }
-
-      &:hover{
-        svg{
-          &.svg-by{
-            line{
-              stroke: $purple;
-            }
-          }
-        }
-      }
-
-      span{
-        font-family: $header-font-family;
-        font-weight: 500;
-      }
-
-      span,
-      svg{
-        display: inline-block;
-      }
-
-      svg{
-        &.svg-by{
-          width: $by-hashicorp-width;
-          height: $by-hashicorp-height;
-          margin-bottom: -4px;
-          margin-left: -3px;
-        }
-
-        &.svg-logo{
-          width: 30px;
-          height: 30px;
-          margin-bottom: -10px;
-          margin-left: -1px;
-        }
-
-        path,
-        line{
-          fill: $black;
-          @include transition(all 300ms ease-in);
-
-          &:hover{
-            @include transition(all 300ms ease-in);
-          }
-        }
-      }
-    }
   }
 }
 
@@ -110,30 +15,43 @@
   #footer{
     text-align: center;
 
-    .footer-links{
-      float: none;
-      display: inline-block;
-      margin-bottom: 36px;
-    }
-
     .footer-hashi {
-      float: none;
-      display: inline-block;
+      float: none !important;
+      display: block;
 
       .pull-right{
         float: none !important;
         padding-right: 0;
       }
     }
+
+    ul{
+      float: none;
+      display: inline-block;
+      margin-bottom: 36px;
+    }
   }
 }
 
 @media (max-width: 414px) {
   #footer{
-    .footer-links{
+    ul{
+      display: block;
       li{
         display: block;
         float: none;
+      }
+
+      &.external-links{
+        li{
+          svg{
+            position: relative;
+            left: 0;
+            top: 2px;
+            margin-top: 0;
+            margin-right: 4px;
+          }
+        }
       }
     }
   }
