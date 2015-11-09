@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -96,11 +97,12 @@ type CheckNotifier interface {
 // determine the health of a given check. It is compatible with
 // nagios plugins and expects the output in the same format.
 type CheckMonitor struct {
-	Notify   CheckNotifier
-	CheckID  string
-	Script   string
-	Interval time.Duration
-	Logger   *log.Logger
+	Notify      CheckNotifier
+	CheckID     string
+	Script      string
+	OutputRoute map[string]string
+	Interval    time.Duration
+	Logger      *log.Logger
 
 	stop     bool
 	stopCh   chan struct{}
@@ -179,16 +181,45 @@ func (c *CheckMonitor) check() {
 
 	// Get the output, add a message about truncation
 	outputStr := string(output.Bytes())
+	outputData := outputStr
 	if output.TotalWritten() > output.Size() {
 		outputStr = fmt.Sprintf("Captured %d of %d bytes\n...\n%s",
 			output.Size(), output.TotalWritten(), outputStr)
 	}
 
 	c.Logger.Printf("[DEBUG] agent: check '%s' script '%s' output: %s",
-		c.CheckID, c.Script, outputStr)
+		c.CheckID, c.Script, outputData, len(outputData))
 
 	// Check if the check passed
 	if err == nil {
+		userstatus, ok := c.OutputRoute[strings.TrimSpace(outputData)]
+		if ok {
+			var status string
+			var logout string
+			switch userstatus {
+			case "critical":
+				status = structs.HealthCritical
+				logout = "WARN"
+			case "warning":
+				status = structs.HealthWarning
+				logout = "WARN"
+			case "passing":
+				status = structs.HealthPassing
+				logout = "DEBUG"
+			case "unknown":
+				status = structs.HealthUnknown
+				logout = "WARN"
+			default:
+				c.Logger.Printf("[DEBUG] Unknown user state from check '%v'", c.CheckID)
+				goto PASSING
+
+			}
+			c.Logger.Printf("[%s] agent: Check '%v' is now %s", logout, c.CheckID, userstatus)
+			c.Notify.UpdateCheck(c.CheckID, status, outputStr)
+			return
+
+		}
+	PASSING:
 		c.Logger.Printf("[DEBUG] agent: Check '%v' is passing", c.CheckID)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, outputStr)
 		return
