@@ -6,6 +6,10 @@ body.layout-docs,
 body.layout-intro{
 	background: $light-purple image-url('sidebar-dots.jpg') left 62px no-repeat;
 
+  #main-content{
+    min-height: 600px;
+  }
+
 	>.container{
 		.col-md-8[role=main]{
 			min-height: 800px;
