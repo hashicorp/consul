@@ -83,11 +83,6 @@ type PreparedQuery struct {
 
 type PreparedQueries []*PreparedQuery
 
-type IndexedPreparedQuery struct {
-	Query *PreparedQuery
-	QueryMeta
-}
-
 type IndexedPreparedQueries struct {
 	Queries PreparedQueries
 	QueryMeta
@@ -105,7 +100,7 @@ const (
 type PreparedQueryRequest struct {
 	Datacenter string
 	Op         PreparedQueryOp
-	Query      PreparedQuery
+	Query      *PreparedQuery
 	WriteRequest
 }
 

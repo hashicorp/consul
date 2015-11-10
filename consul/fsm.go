@@ -276,7 +276,7 @@ func (c *consulFSM) applyPreparedQueryOperation(buf []byte, index uint64) interf
 	defer metrics.MeasureSince([]string{"consul", "fsm", "prepared-query", string(req.Op)}, time.Now())
 	switch req.Op {
 	case structs.PreparedQueryCreate, structs.PreparedQueryUpdate:
-		return c.state.PreparedQuerySet(index, &req.Query)
+		return c.state.PreparedQuerySet(index, req.Query)
 	case structs.PreparedQueryDelete:
 		return c.state.PreparedQueryDelete(index, req.Query.ID)
 	default:

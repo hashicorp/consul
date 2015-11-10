@@ -2,6 +2,7 @@ package consul
 
 import (
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -43,7 +44,7 @@ func TestPreparedQuery_Apply(t *testing.T) {
 	arg := structs.PreparedQueryRequest{
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
-		Query: structs.PreparedQuery{
+		Query: &structs.PreparedQuery{
 			Service: structs.ServiceQuery{
 				Service: "redis",
 			},
@@ -91,11 +92,60 @@ func TestPreparedQuery_Apply(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Capture the new ID and make the op an update. This should go through.
-	arg.Op = structs.PreparedQueryUpdate
+	// Capture the ID and read the query back to verify.
 	arg.Query.ID = reply
+	{
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: arg.Query.ID,
+		}
+		var resp structs.IndexedPreparedQueries
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Queries[0]
+		if resp.Index != actual.ModifyIndex {
+			t.Fatalf("bad index: %d", resp.Index)
+		}
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, arg.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Make the op an update. This should go through now that we have an ID.
+	arg.Op = structs.PreparedQueryUpdate
+	arg.Query.Service.Failover.NearestN = 2
 	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &arg, &reply); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+
+	// Read back again to verify the update worked.
+	{
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: arg.Query.ID,
+		}
+		var resp structs.IndexedPreparedQueries
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Queries[0]
+		if resp.Index != actual.ModifyIndex {
+			t.Fatalf("bad index: %d", resp.Index)
+		}
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, arg.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
 	}
 
 	// Give a bogus op and make sure it fails.
@@ -113,16 +163,6 @@ func TestPreparedQuery_Apply(t *testing.T) {
 		t.Fatalf("bad: %v", err)
 	}
 
-	// Sanity check - make sure there's one PQ in there.
-	var queries structs.IndexedPreparedQueries
-	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.List",
-		&structs.DCSpecificRequest{Datacenter: "dc1"}, &queries); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(queries.Queries) != 1 {
-		t.Fatalf("bad: %v", queries)
-	}
-
 	// Now change the op to delete; the bad query field should be ignored
 	// because all we care about for a delete op is the ID.
 	arg.Op = structs.PreparedQueryDelete
@@ -130,12 +170,19 @@ func TestPreparedQuery_Apply(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Make sure there are no longer any queries.
-	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.List",
-		&structs.DCSpecificRequest{Datacenter: "dc1"}, &queries); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if len(queries.Queries) != 0 {
-		t.Fatalf("bad: %v", queries)
+	// Verify that this query is deleted.
+	{
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: arg.Query.ID,
+		}
+		var resp structs.IndexedPreparedQueries
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 0 {
+			t.Fatalf("bad: %v", resp)
+		}
 	}
 }

@@ -79,7 +79,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// Parse the query and prep it for the state store.
 	switch args.Op {
 	case structs.PreparedQueryCreate, structs.PreparedQueryUpdate:
-		if err := parseQuery(&args.Query); err != nil {
+		if err := parseQuery(args.Query); err != nil {
 			return fmt.Errorf("Invalid prepared query: %v", err)
 		}
 
@@ -182,7 +182,7 @@ func parseDNS(dns *structs.QueryDNSOptions) error {
 }
 
 // Lookup returns a single prepared query by ID or name.
-func (p *PreparedQuery) Lookup(args *structs.PreparedQuerySpecificRequest, reply *structs.IndexedPreparedQuery) error {
+func (p *PreparedQuery) Lookup(args *structs.PreparedQuerySpecificRequest, reply *structs.IndexedPreparedQueries) error {
 	if done, err := p.srv.forward("PreparedQuery.Lookup", args, args, reply); done {
 		return err
 	}
@@ -206,12 +206,17 @@ func (p *PreparedQuery) Lookup(args *structs.PreparedQuerySpecificRequest, reply
 				return err
 			}
 
-			if (query.Token != args.Token) && (acl != nil && !acl.QueryModify()) {
+			if (query != nil) && (query.Token != args.Token) && (acl != nil && !acl.QueryModify()) {
 				p.srv.logger.Printf("[WARN] consul.prepared_query: Request to lookup prepared query '%s' denied because ACL didn't match ACL used to create the query, and a management token wasn't supplied", args.QueryIDOrName)
 				return permissionDeniedErr
 			}
 
-			reply.Index, reply.Query = index, query
+			reply.Index = index
+			if query != nil {
+				reply.Queries = structs.PreparedQueries{query}
+			} else {
+				reply.Queries = nil
+			}
 			return nil
 		})
 
