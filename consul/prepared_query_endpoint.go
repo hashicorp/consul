@@ -312,13 +312,13 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 }
 
 // tagFilter returns a list of nodes who satisfy the given tags. Nodes must have
-// ALL the given tags, and none of the forbidden tags (prefixed with ~).
+// ALL the given tags, and none of the forbidden tags (prefixed with !).
 func tagFilter(tags []string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
 	// Build up lists of required and disallowed tags.
 	must, not := make([]string, 0), make([]string, 0)
 	for _, tag := range tags {
 		tag = strings.ToLower(tag)
-		if strings.HasPrefix(tag, "~") {
+		if strings.HasPrefix(tag, "!") {
 			tag = tag[1:]
 			not = append(not, tag)
 		} else {
