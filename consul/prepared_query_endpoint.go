@@ -206,7 +206,7 @@ func (p *PreparedQuery) Lookup(args *structs.PreparedQuerySpecificRequest, reply
 				return err
 			}
 
-			if (query != nil) && (query.Token != args.Token) && (acl != nil && !acl.QueryModify()) {
+			if (query != nil) && (query.Token != args.Token) && (acl != nil && !acl.QueryList()) {
 				p.srv.logger.Printf("[WARN] consul.prepared_query: Request to lookup prepared query '%s' denied because ACL didn't match ACL used to create the query, and a management token wasn't supplied", args.QueryIDOrName)
 				return permissionDeniedErr
 			}
