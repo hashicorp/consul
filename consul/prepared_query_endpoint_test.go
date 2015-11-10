@@ -493,3 +493,45 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 		}
 	}
 }
+
+func TestPreparedQuery_parseQuery(t *testing.T) {
+	query := &structs.PreparedQuery{}
+
+	err := parseQuery(query)
+	if err == nil || !strings.Contains(err.Error(), "Must provide a service") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	query.Service.Service = "foo"
+	if err := parseQuery(query); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	query.Service.Failover.NearestN = -1
+	err = parseQuery(query)
+	if err == nil || !strings.Contains(err.Error(), "Bad NearestN") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	query.Service.Failover.NearestN = 3
+	if err := parseQuery(query); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	query.DNS.TTL = "two fortnights"
+	err = parseQuery(query)
+	if err == nil || !strings.Contains(err.Error(), "Bad DNS TTL") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	query.DNS.TTL = "-3s"
+	err = parseQuery(query)
+	if err == nil || !strings.Contains(err.Error(), "must be >=0") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	query.DNS.TTL = "3s"
+	if err := parseQuery(query); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
