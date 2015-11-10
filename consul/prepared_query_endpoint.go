@@ -160,17 +160,6 @@ func parseService(svc *structs.ServiceQuery) error {
 	// - OnlyPassing is just a boolean so doesn't need further validation.
 	// - Tags is a free-form list of tags and doesn't need further validation.
 
-	// Sort order must be one of the allowed values, or if not given we
-	// default to "shuffle" so there's load balancing.
-	switch svc.Sort {
-	case structs.QueryOrderShuffle:
-	case structs.QueryOrderSort:
-	case "":
-		svc.Sort = structs.QueryOrderShuffle
-	default:
-		return fmt.Errorf("Bad Sort '%s'", svc.Sort)
-	}
-
 	return nil
 }
 
@@ -226,10 +215,13 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// Shuffle the results in case coordinates are not available if they
 	// requested an RTT sort.
 	reply.Nodes.Shuffle()
-	if query.Service.Sort == structs.QueryOrderSort {
-		if err := p.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes); err != nil {
-			return err
-		}
+	if err := p.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes); err != nil {
+		return err
+	}
+
+	// Apply the limit if given.
+	if args.Limit > 0 && len(reply.Nodes) > args.Limit {
+		reply.Nodes = reply.Nodes[:args.Limit]
 	}
 
 	// In the happy path where we found some healthy nodes we go with that
@@ -237,7 +229,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// by the query setup.
 	if len(reply.Nodes) == 0 {
 		wrapper := &queryServerWrapper{p.srv}
-		if err := queryFailover(wrapper, query, args.QueryOptions, reply); err != nil {
+		if err := queryFailover(wrapper, query, args, reply); err != nil {
 			return err
 		}
 	}
@@ -273,6 +265,11 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 	// definition in another DC. We just shuffle to make sure that we
 	// balance the load across the results.
 	reply.Nodes.Shuffle()
+
+	// Apply the limit if given.
+	if args.Limit > 0 && len(reply.Nodes) > args.Limit {
+		reply.Nodes = reply.Nodes[:args.Limit]
+	}
 
 	return nil
 }
@@ -403,7 +400,7 @@ func (q *queryServerWrapper) GetOtherDatacentersByDistance() ([]string, error) {
 // queryFailover runs an algorithm to determine which DCs to try and then calls
 // them to try to locate alternative services.
 func queryFailover(q queryServer, query *structs.PreparedQuery,
-	options structs.QueryOptions,
+	args *structs.PreparedQueryExecuteRequest,
 	reply *structs.PreparedQueryExecuteResponse) error {
 
 	// Build a candidate list of DCs, starting with the nearest N from RTTs.
@@ -433,12 +430,16 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		}
 	}
 
-	// Now try the selected DCs in priority order.
+	// Now try the selected DCs in priority order. Note that we pass along
+	// the limit since it can be applied remotely to save bandwidth. We also
+	// pass along the consistency mode information we were given, so that
+	// applies to the remote query as well.
 	for _, dc := range dcs {
 		remote := &structs.PreparedQueryExecuteRemoteRequest{
 			Datacenter:   dc,
 			Query:        *query,
-			QueryOptions: options,
+			Limit:        args.Limit,
+			QueryOptions: args.QueryOptions,
 		}
 		if err := q.ForwardDC("PreparedQuery.ExecuteRemote", dc, remote, reply); err != nil {
 			return err

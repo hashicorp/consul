@@ -5,11 +5,6 @@ import (
 )
 
 const (
-	QueryOrderShuffle = "shuffle"
-	QueryOrderSort    = "near_agent"
-)
-
-const (
 	QueryTTLMax = 24 * time.Hour
 	QueryTTLMin = 10 * time.Second
 )
@@ -52,10 +47,6 @@ type ServiceQuery struct {
 	// this list it must be present. If the tag is preceded with "~" then
 	// it is disallowed.
 	Tags []string
-
-	// Sort has one of the QueryOrder* options which control how the output
-	// is sorted. If this is left blank we default to "shuffle".
-	Sort string
 }
 
 // PreparedQuery defines a complete prepared query, and is the structure we
@@ -115,9 +106,22 @@ func (q *PreparedQueryRequest) RequestDatacenter() string {
 
 // PreparedQueryExecuteRequest is used to execute a prepared query.
 type PreparedQueryExecuteRequest struct {
-	Datacenter    string
+	// Datacenter is the target this request is intended for.
+	Datacenter string
+
+	// QueryIDOrName is the ID of a query _or_ the name of one, either can
+	// be provided.
 	QueryIDOrName string
-	Source        QuerySource
+
+	// Limit will trim the resulting list down to the given limit.
+	Limit int
+
+	// Source is used to sort the results relative to a given node using
+	// network coordinates.
+	Source QuerySource
+
+	// QueryOptions (unfortunately named here) controls the consistency
+	// settings for the query lookup itself, as well as the service lookups.
 	QueryOptions
 }
 
@@ -127,11 +131,20 @@ func (q *PreparedQueryExecuteRequest) RequestDatacenter() string {
 }
 
 // PreparedQueryExecuteRemoteRequest is used when running a local query in a
-// remote datacenter. We have to ship the entire query over since it won't be
-// present in the remote state store.
+// remote datacenter.
 type PreparedQueryExecuteRemoteRequest struct {
+	// Datacenter is the target this request is intended for.
 	Datacenter string
-	Query      PreparedQuery
+
+	// Query is a copy of the query to execute.  We have to ship the entire
+	// query over since it won't be present in the remote state store.
+	Query PreparedQuery
+
+	// Limit will trim the resulting list down to the given limit.
+	Limit int
+
+	// QueryOptions (unfortunately named here) controls the consistency
+	// settings for the the service lookups.
 	QueryOptions
 }
 
