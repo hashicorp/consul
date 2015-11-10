@@ -92,34 +92,29 @@ type PreparedQuery struct {
 
 type PreparedQueries []*PreparedQuery
 
-type QueryOp string
+type PreparedQueryOp string
 
 const (
-	QueryCreate QueryOp = "create"
-	QueryUpdate         = "update"
-	QueryDelete         = "delete"
+	PreparedQueryCreate PreparedQueryOp = "create"
+	PreparedQueryUpdate                 = "update"
+	PreparedQueryDelete                 = "delete"
 )
 
 // QueryRequest is used to create or change prepared queries.
-type QueryRequest struct {
+type PreparedQueryRequest struct {
 	Datacenter string
-	Op         QueryOp
+	Op         PreparedQueryOp
 	Query      PreparedQuery
 	WriteRequest
 }
 
 // RequestDatacenter returns the datacenter for a given request.
-func (q *QueryRequest) RequestDatacenter() string {
+func (q *PreparedQueryRequest) RequestDatacenter() string {
 	return q.Datacenter
 }
 
-// QueryResponse is used to return the ID of an updated query.
-type QueryResponse struct {
-	ID string
-}
-
-// QueryExecuteRequest is used to execute a prepared query.
-type QueryExecuteRequest struct {
+// PreparedQueryExecuteRequest is used to execute a prepared query.
+type PreparedQueryExecuteRequest struct {
 	Datacenter    string
 	QueryIDOrName string
 	Source        QuerySource
@@ -127,26 +122,26 @@ type QueryExecuteRequest struct {
 }
 
 // RequestDatacenter returns the datacenter for a given request.
-func (q *QueryExecuteRequest) RequestDatacenter() string {
+func (q *PreparedQueryExecuteRequest) RequestDatacenter() string {
 	return q.Datacenter
 }
 
-// QueryExecuteRemoteRequest is used when running a local query in a remote
-// datacenter. We have to ship the entire query over since it won't be
+// PreparedQueryExecuteRemoteRequest is used when running a local query in a
+// remote datacenter. We have to ship the entire query over since it won't be
 // present in the remote state store.
-type QueryExecuteRemoteRequest struct {
+type PreparedQueryExecuteRemoteRequest struct {
 	Datacenter string
 	Query      PreparedQuery
 	QueryOptions
 }
 
 // RequestDatacenter returns the datacenter for a given request.
-func (q *QueryExecuteRemoteRequest) RequestDatacenter() string {
+func (q *PreparedQueryExecuteRemoteRequest) RequestDatacenter() string {
 	return q.Datacenter
 }
 
-// QueryExecuteResponse has the results of executing a query.
-type QueryExecuteResponse struct {
+// PreparedQueryExecuteResponse has the results of executing a query.
+type PreparedQueryExecuteResponse struct {
 	Nodes CheckServiceNodes
 	DNS   QueryDNSOptions
 }

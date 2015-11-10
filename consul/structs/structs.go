@@ -35,7 +35,7 @@ const (
 	ACLRequestType
 	TombstoneRequestType
 	CoordinateBatchUpdateType
-	QueryRequestType
+	PreparedQueryRequestType
 )
 
 const (

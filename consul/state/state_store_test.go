@@ -4445,7 +4445,7 @@ func TestStateStore_Session_Invalidate_Key_Delete_Behavior(t *testing.T) {
 	}
 }
 
-func TestStateStore_Session_Invalidate_Query_Delete(t *testing.T) {
+func TestStateStore_Session_Invalidate_PreparedQuery_Delete(t *testing.T) {
 	s := testStateStore(t)
 
 	// Set up our test environment.
@@ -4465,13 +4465,13 @@ func TestStateStore_Session_Invalidate_Query_Delete(t *testing.T) {
 			Service: "redis",
 		},
 	}
-	if err := s.QuerySet(4, query); err != nil {
+	if err := s.PreparedQuerySet(4, query); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Invalidate the session and make sure the watches fire.
 	verifyWatch(t, s.getTableWatch("sessions"), func() {
-		verifyWatch(t, s.getTableWatch("queries"), func() {
+		verifyWatch(t, s.getTableWatch("prepared-queries"), func() {
 			if err := s.SessionDestroy(5, session.ID); err != nil {
 				t.Fatalf("err: %v", err)
 			}
@@ -4491,7 +4491,7 @@ func TestStateStore_Session_Invalidate_Query_Delete(t *testing.T) {
 	}
 
 	// Make sure the query is gone and the index is updated.
-	idx, q2, err := s.QueryGet(query.ID)
+	idx, q2, err := s.PreparedQueryGet(query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

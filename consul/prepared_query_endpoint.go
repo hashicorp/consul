@@ -15,35 +15,35 @@ var (
 	ErrQueryNotFound = errors.New("Query not found")
 )
 
-// Query manages the prepared query endpoint.
-type Query struct {
+// PreparedQuery manages the prepared query endpoint.
+type PreparedQuery struct {
 	srv *Server
 }
 
 // Apply is used to apply a modifying request to the data store. This should
 // only be used for operations that modify the data. The ID of the session is
 // returned in the reply.
-func (q *Query) Apply(args *structs.QueryRequest, reply *string) (err error) {
-	if done, err := q.srv.forward("Query.Apply", args, args, reply); done {
+func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string) (err error) {
+	if done, err := p.srv.forward("PreparedQuery.Apply", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "query", "apply"}, time.Now())
+	defer metrics.MeasureSince([]string{"consul", "prepared-query", "apply"}, time.Now())
 
 	// Validate the ID. We must create new IDs before applying to the Raft
 	// log since it's not deterministic.
-	if args.Op == structs.QueryCreate {
+	if args.Op == structs.PreparedQueryCreate {
 		if args.Query.ID != "" {
-			return fmt.Errorf("ID must be empty when creating a new query")
+			return fmt.Errorf("ID must be empty when creating a new prepared query")
 		}
 
 		// We are relying on the fact that UUIDs are random and unlikely
 		// to collide since this isn't inside a write transaction.
-		state := q.srv.fsm.State()
+		state := p.srv.fsm.State()
 		for {
 			args.Query.ID = generateUUID()
-			_, query, err := state.QueryGet(args.Query.ID)
+			_, query, err := state.PreparedQueryGet(args.Query.ID)
 			if err != nil {
-				return fmt.Errorf("Query lookup failed: %v", err)
+				return fmt.Errorf("Prepared query lookup failed: %v", err)
 			}
 			if query == nil {
 				break
@@ -53,55 +53,55 @@ func (q *Query) Apply(args *structs.QueryRequest, reply *string) (err error) {
 	*reply = args.Query.ID
 
 	// Grab the ACL because we need it in several places below.
-	acl, err := q.srv.resolveToken(args.Token)
+	acl, err := p.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
 
 	// Enforce that any modify operation has the same token used when the
 	// query was created, or a management token with sufficient rights.
-	if args.Op != structs.QueryCreate {
-		state := q.srv.fsm.State()
-		_, query, err := state.QueryGet(args.Query.ID)
+	if args.Op != structs.PreparedQueryCreate {
+		state := p.srv.fsm.State()
+		_, query, err := state.PreparedQueryGet(args.Query.ID)
 		if err != nil {
-			return fmt.Errorf("Query lookup failed: %v", err)
+			return fmt.Errorf("Prepared Query lookup failed: %v", err)
 		}
 		if query == nil {
-			return fmt.Errorf("Cannot modify non-existent query: '%s'", args.Query.ID)
+			return fmt.Errorf("Cannot modify non-existent prepared query: '%s'", args.Query.ID)
 		}
 		if (query.Token != args.Token) && (acl != nil && !acl.QueryModify()) {
-			q.srv.logger.Printf("[WARN] consul.query: Operation on query '%s' denied because ACL didn't match ACL used to create the query, and a management token wasn't supplied", args.Query.ID)
+			p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied because ACL didn't match ACL used to create the query, and a management token wasn't supplied", args.Query.ID)
 			return permissionDeniedErr
 		}
 	}
 
 	// Parse the query and prep it for the state store.
 	switch args.Op {
-	case structs.QueryCreate, structs.QueryUpdate:
+	case structs.PreparedQueryCreate, structs.PreparedQueryUpdate:
 		if err := parseQuery(&args.Query); err != nil {
-			return fmt.Errorf("Invalid query: %v", err)
+			return fmt.Errorf("Invalid prepared query: %v", err)
 		}
 
 		if acl != nil && !acl.ServiceRead(args.Query.Service.Service) {
-			q.srv.logger.Printf("[WARN] consul.query: Operation on query for service '%s' denied due to ACLs", args.Query.Service.Service)
+			p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query for service '%s' denied due to ACLs", args.Query.Service.Service)
 			return permissionDeniedErr
 		}
 
-	case structs.QueryDelete:
+	case structs.PreparedQueryDelete:
 		// Nothing else to verify here, just do the delete (we only look
 		// at the ID field for this op).
 
 	default:
-		return fmt.Errorf("Unknown query operation: %s", args.Op)
+		return fmt.Errorf("Unknown prepared query operation: %s", args.Op)
 	}
 
 	// At this point the token has been vetted, so make sure the token that
 	// is stored in the state store matches what was supplied.
 	args.Query.Token = args.Token
 
-	resp, err := q.srv.raftApply(structs.QueryRequestType, args)
+	resp, err := p.srv.raftApply(structs.PreparedQueryRequestType, args)
 	if err != nil {
-		q.srv.logger.Printf("[ERR] consul.query: Apply failed %v", err)
+		p.srv.logger.Printf("[ERR] consul.prepared_query: Apply failed %v", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {
@@ -194,22 +194,23 @@ func parseDNS(dns *structs.QueryDNSOptions) error {
 // Execute runs a prepared query and returns the results. This will perform the
 // failover logic if no local results are available. This is typically called as
 // part of a DNS lookup, or when executing prepared queries from the HTTP API.
-func (q *Query) Execute(args *structs.QueryExecuteRequest, reply *structs.QueryExecuteResponse) error {
-	if done, err := q.srv.forward("Query.Execute", args, args, reply); done {
+func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
+	reply *structs.PreparedQueryExecuteResponse) error {
+	if done, err := p.srv.forward("PreparedQuery.Execute", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "query", "execute"}, time.Now())
+	defer metrics.MeasureSince([]string{"consul", "prepared-query", "execute"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
 	if args.RequireConsistent {
-		if err := q.srv.consistentRead(); err != nil {
+		if err := p.srv.consistentRead(); err != nil {
 			return err
 		}
 	}
 
 	// Try to locate the query.
-	state := q.srv.fsm.State()
-	_, query, err := state.QueryLookup(args.QueryIDOrName)
+	state := p.srv.fsm.State()
+	_, query, err := state.PreparedQueryLookup(args.QueryIDOrName)
 	if err != nil {
 		return err
 	}
@@ -218,7 +219,7 @@ func (q *Query) Execute(args *structs.QueryExecuteRequest, reply *structs.QueryE
 	}
 
 	// Execute the query for the local DC.
-	if err := q.execute(query, reply); err != nil {
+	if err := p.execute(query, reply); err != nil {
 		return err
 	}
 
@@ -226,7 +227,7 @@ func (q *Query) Execute(args *structs.QueryExecuteRequest, reply *structs.QueryE
 	// requested an RTT sort.
 	reply.Nodes.Shuffle()
 	if query.Service.Sort == structs.QueryOrderSort {
-		if err := q.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes); err != nil {
+		if err := p.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes); err != nil {
 			return err
 		}
 	}
@@ -235,8 +236,8 @@ func (q *Query) Execute(args *structs.QueryExecuteRequest, reply *structs.QueryE
 	// and bail out. Otherwise, we fail over and try remote DCs, as allowed
 	// by the query setup.
 	if len(reply.Nodes) == 0 {
-		wrapper := &queryServerWrapper{q.srv}
-		if err := queryFailover(wrapper, query, args, reply); err != nil {
+		wrapper := &queryServerWrapper{p.srv}
+		if err := queryFailover(wrapper, query, args.QueryOptions, reply); err != nil {
 			return err
 		}
 	}
@@ -249,22 +250,22 @@ func (q *Query) Execute(args *structs.QueryExecuteRequest, reply *structs.QueryE
 // over since the remote side won't have it in its state store, and this doesn't
 // do the failover logic since that's already being run on the originating DC.
 // We don't want things to fan out further than one level.
-func (q *Query) ExecuteRemote(args *structs.QueryExecuteRemoteRequest,
-	reply *structs.QueryExecuteResponse) error {
-	if done, err := q.srv.forward("Query.ExecuteRemote", args, args, reply); done {
+func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRequest,
+	reply *structs.PreparedQueryExecuteResponse) error {
+	if done, err := p.srv.forward("PreparedQuery.ExecuteRemote", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "query", "execute_remote"}, time.Now())
+	defer metrics.MeasureSince([]string{"consul", "prepared-query", "execute_remote"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
 	if args.RequireConsistent {
-		if err := q.srv.consistentRead(); err != nil {
+		if err := p.srv.consistentRead(); err != nil {
 			return err
 		}
 	}
 
 	// Run the query locally to see what we can find.
-	if err := q.execute(&args.Query, reply); err != nil {
+	if err := p.execute(&args.Query, reply); err != nil {
 		return err
 	}
 
@@ -278,8 +279,9 @@ func (q *Query) ExecuteRemote(args *structs.QueryExecuteRemoteRequest,
 
 // execute runs a prepared query in the local DC without any failover. We don't
 // apply any sorting options at this level - it should be done up above.
-func (q *Query) execute(query *structs.PreparedQuery, reply *structs.QueryExecuteResponse) error {
-	state := q.srv.fsm.State()
+func (p *PreparedQuery) execute(query *structs.PreparedQuery,
+	reply *structs.PreparedQueryExecuteResponse) error {
+	state := p.srv.fsm.State()
 	_, nodes, err := state.CheckServiceNodes(query.Service.Service)
 	if err != nil {
 		return err
@@ -290,7 +292,7 @@ func (q *Query) execute(query *structs.PreparedQuery, reply *structs.QueryExecut
 	// the token stored with the query, NOT the passed-in one, which is
 	// critical to how queries work (the query becomes a proxy for a lookup
 	// using the ACL it was created with).
-	if err := q.srv.filterACL(query.Token, nodes); err != nil {
+	if err := p.srv.filterACL(query.Token, nodes); err != nil {
 		return err
 	}
 
@@ -396,7 +398,8 @@ func (q *queryServerWrapper) GetOtherDatacentersByDistance() ([]string, error) {
 // queryFailover runs an algorithm to determine which DCs to try and then calls
 // them to try to locate alternative services.
 func queryFailover(q queryServer, query *structs.PreparedQuery,
-	args *structs.QueryExecuteRequest, reply *structs.QueryExecuteResponse) error {
+	options structs.QueryOptions,
+	reply *structs.PreparedQueryExecuteResponse) error {
 
 	// Build a candidate list of DCs, starting with the nearest N from RTTs.
 	var dcs []string
@@ -427,12 +430,12 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 
 	// Now try the selected DCs in priority order.
 	for _, dc := range dcs {
-		remote := &structs.QueryExecuteRemoteRequest{
+		remote := &structs.PreparedQueryExecuteRemoteRequest{
 			Datacenter:   dc,
 			Query:        *query,
-			QueryOptions: args.QueryOptions,
+			QueryOptions: options,
 		}
-		if err := q.ForwardDC("Query.ExecuteRemote", dc, remote, reply); err != nil {
+		if err := q.ForwardDC("PreparedQuery.ExecuteRemote", dc, remote, reply); err != nil {
 			return err
 		}
 

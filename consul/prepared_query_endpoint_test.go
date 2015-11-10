@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
-func TestQuery_Apply(t *testing.T) {
+func TestPreparedQuery_Apply(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
@@ -18,9 +18,9 @@ func TestQuery_Apply(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	arg := structs.QueryRequest{
+	arg := structs.PreparedQueryRequest{
 		Datacenter: "dc1",
-		Op:         structs.QueryCreate,
+		Op:         structs.PreparedQueryCreate,
 		Query: structs.PreparedQuery{
 			Service: structs.ServiceQuery{
 				Service: "redis",
@@ -28,7 +28,7 @@ func TestQuery_Apply(t *testing.T) {
 		},
 	}
 	var reply string
-	if err := msgpackrpc.CallWithCodec(codec, "Query.Apply", &arg, &reply); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &arg, &reply); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }

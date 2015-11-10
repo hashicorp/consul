@@ -30,7 +30,7 @@ func stateStoreSchema() *memdb.DBSchema {
 		sessionChecksTableSchema,
 		aclsTableSchema,
 		coordinatesTableSchema,
-		queriesTableSchema,
+		preparedQueriesTableSchema,
 	}
 
 	// Add the tables to the root schema
@@ -367,11 +367,11 @@ func coordinatesTableSchema() *memdb.TableSchema {
 	}
 }
 
-// queriesTableSchema returns a new table schema used for storing
+// preparedQueriesTableSchema returns a new table schema used for storing
 // prepared queries.
-func queriesTableSchema() *memdb.TableSchema {
+func preparedQueriesTableSchema() *memdb.TableSchema {
 	return &memdb.TableSchema{
-		Name: "queries",
+		Name: "prepared-queries",
 		Indexes: map[string]*memdb.IndexSchema{
 			"id": &memdb.IndexSchema{
 				Name:         "id",

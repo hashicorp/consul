@@ -91,8 +91,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		return c.applyTombstoneOperation(buf[1:], log.Index)
 	case structs.CoordinateBatchUpdateType:
 		return c.applyCoordinateBatchUpdate(buf[1:], log.Index)
-	case structs.QueryRequestType:
-		return c.applyQueryOperation(buf[1:], log.Index)
+	case structs.PreparedQueryRequestType:
+		return c.applyPreparedQueryOperation(buf[1:], log.Index)
 	default:
 		if ignoreUnknown {
 			c.logger.Printf("[WARN] consul.fsm: ignoring unknown message type (%d), upgrade to newer version", msgType)
@@ -266,20 +266,22 @@ func (c *consulFSM) applyCoordinateBatchUpdate(buf []byte, index uint64) interfa
 	return nil
 }
 
-func (c *consulFSM) applyQueryOperation(buf []byte, index uint64) interface{} {
-	var req structs.QueryRequest
+// applyPreparedQueryOperation applies the given prepared query operation to the
+// state store.
+func (c *consulFSM) applyPreparedQueryOperation(buf []byte, index uint64) interface{} {
+	var req structs.PreparedQueryRequest
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
-	defer metrics.MeasureSince([]string{"consul", "fsm", "query", string(req.Op)}, time.Now())
+	defer metrics.MeasureSince([]string{"consul", "fsm", "prepared-query", string(req.Op)}, time.Now())
 	switch req.Op {
-	case structs.QueryCreate, structs.QueryUpdate:
-		return c.state.QuerySet(index, &req.Query)
-	case structs.QueryDelete:
-		return c.state.QueryDelete(index, req.Query.ID)
+	case structs.PreparedQueryCreate, structs.PreparedQueryUpdate:
+		return c.state.PreparedQuerySet(index, &req.Query)
+	case structs.PreparedQueryDelete:
+		return c.state.PreparedQueryDelete(index, req.Query.ID)
 	default:
-		c.logger.Printf("[WARN] consul.fsm: Invalid Query operation '%s'", req.Op)
-		return fmt.Errorf("Invalid Query operation '%s'", req.Op)
+		c.logger.Printf("[WARN] consul.fsm: Invalid PreparedQuery operation '%s'", req.Op)
+		return fmt.Errorf("Invalid PreparedQuery operation '%s'", req.Op)
 	}
 }
 

@@ -8,22 +8,22 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 )
 
-func TestStateStore_Query_QuerySet_QueryGet(t *testing.T) {
+func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 	s := testStateStore(t)
 
 	// Querying with no results returns nil.
-	idx, res, err := s.QueryGet(testUUID())
+	idx, res, err := s.PreparedQueryGet(testUUID())
 	if idx != 0 || res != nil || err != nil {
 		t.Fatalf("expected (0, nil, nil), got: (%d, %#v, %#v)", idx, res, err)
 	}
 
 	// Inserting a query with empty ID is disallowed.
-	if err := s.QuerySet(1, &structs.PreparedQuery{}); err == nil {
+	if err := s.PreparedQuerySet(1, &structs.PreparedQuery{}); err == nil {
 		t.Fatalf("expected %#v, got: %#v", ErrMissingQueryID, err)
 	}
 
 	// Index is not updated if nothing is saved.
-	if idx := s.maxIndex("queries"); idx != 0 {
+	if idx := s.maxIndex("prepared-queries"); idx != 0 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -36,13 +36,13 @@ func TestStateStore_Query_QuerySet_QueryGet(t *testing.T) {
 	}
 
 	// The set will still fail because the service isn't registered yet.
-	err = s.QuerySet(1, query)
+	err = s.PreparedQuerySet(1, query)
 	if err == nil || !strings.Contains(err.Error(), "invalid service") {
 		t.Fatalf("bad: %v", err)
 	}
 
 	// Index is not updated if nothing is saved.
-	if idx := s.maxIndex("queries"); idx != 0 {
+	if idx := s.maxIndex("prepared-queries"); idx != 0 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -51,12 +51,12 @@ func TestStateStore_Query_QuerySet_QueryGet(t *testing.T) {
 	testRegisterService(t, s, 2, "foo", "redis")
 
 	// This should go through.
-	if err := s.QuerySet(3, query); err != nil {
+	if err := s.PreparedQuerySet(3, query); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Make sure the index got updated.
-	if idx := s.maxIndex("queries"); idx != 3 {
+	if idx := s.maxIndex("prepared-queries"); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -71,7 +71,7 @@ func TestStateStore_Query_QuerySet_QueryGet(t *testing.T) {
 			ModifyIndex: 3,
 		},
 	}
-	idx, actual, err := s.QueryGet(query.ID)
+	idx, actual, err := s.PreparedQueryGet(query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -84,19 +84,19 @@ func TestStateStore_Query_QuerySet_QueryGet(t *testing.T) {
 
 	// Give it a name and set it again.
 	query.Name = "test-query"
-	if err := s.QuerySet(4, query); err != nil {
+	if err := s.PreparedQuerySet(4, query); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Make sure the index got updated.
-	if idx := s.maxIndex("queries"); idx != 4 {
+	if idx := s.maxIndex("prepared-queries"); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Read it back and verify the data was updated as well as the index.
 	expected.Name = "test-query"
 	expected.ModifyIndex = 4
-	idx, actual, err = s.QueryGet(query.ID)
+	idx, actual, err = s.PreparedQueryGet(query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -109,13 +109,13 @@ func TestStateStore_Query_QuerySet_QueryGet(t *testing.T) {
 
 	// Try to tie it to a bogus session.
 	query.Session = testUUID()
-	err = s.QuerySet(5, query)
+	err = s.PreparedQuerySet(5, query)
 	if err == nil || !strings.Contains(err.Error(), "invalid session") {
 		t.Fatalf("bad: %v", err)
 	}
 
 	// Index is not updated if nothing is saved.
-	if idx := s.maxIndex("queries"); idx != 4 {
+	if idx := s.maxIndex("prepared-queries"); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -127,19 +127,19 @@ func TestStateStore_Query_QuerySet_QueryGet(t *testing.T) {
 	if err := s.SessionCreate(5, session); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := s.QuerySet(6, query); err != nil {
+	if err := s.PreparedQuerySet(6, query); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Make sure the index got updated.
-	if idx := s.maxIndex("queries"); idx != 6 {
+	if idx := s.maxIndex("prepared-queries"); idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Read it back and verify the data was updated as well as the index.
 	expected.Session = query.Session
 	expected.ModifyIndex = 6
-	idx, actual, err = s.QueryGet(query.ID)
+	idx, actual, err = s.PreparedQueryGet(query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -159,18 +159,18 @@ func TestStateStore_Query_QuerySet_QueryGet(t *testing.T) {
 			Service: "redis",
 		},
 	}
-	err = s.QuerySet(7, evil)
+	err = s.PreparedQuerySet(7, evil)
 	if err == nil || !strings.Contains(err.Error(), "aliases an existing query") {
 		t.Fatalf("bad: %v", err)
 	}
 
 	// Index is not updated if nothing is saved.
-	if idx := s.maxIndex("queries"); idx != 6 {
+	if idx := s.maxIndex("prepared-queries"); idx != 6 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Sanity check to make sure it's not there.
-	idx, actual, err = s.QueryGet(evil.ID)
+	idx, actual, err = s.PreparedQueryGet(evil.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -182,7 +182,7 @@ func TestStateStore_Query_QuerySet_QueryGet(t *testing.T) {
 	}
 }
 
-func TestStateStore_Query_QueryDelete(t *testing.T) {
+func TestStateStore_PreparedQueryDelete(t *testing.T) {
 	s := testStateStore(t)
 
 	// Set up our test environment.
@@ -198,22 +198,22 @@ func TestStateStore_Query_QueryDelete(t *testing.T) {
 	}
 
 	// Deleting a query that doesn't exist should be a no-op.
-	if err := s.QueryDelete(3, query.ID); err != nil {
+	if err := s.PreparedQueryDelete(3, query.ID); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Index is not updated if nothing is saved.
-	if idx := s.maxIndex("queries"); idx != 0 {
+	if idx := s.maxIndex("prepared-queries"); idx != 0 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Now add the query to the data store.
-	if err := s.QuerySet(3, query); err != nil {
+	if err := s.PreparedQuerySet(3, query); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Make sure the index got updated.
-	if idx := s.maxIndex("queries"); idx != 3 {
+	if idx := s.maxIndex("prepared-queries"); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -228,7 +228,7 @@ func TestStateStore_Query_QueryDelete(t *testing.T) {
 			ModifyIndex: 3,
 		},
 	}
-	idx, actual, err := s.QueryGet(query.ID)
+	idx, actual, err := s.PreparedQueryGet(query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -240,17 +240,17 @@ func TestStateStore_Query_QueryDelete(t *testing.T) {
 	}
 
 	// Now delete it.
-	if err := s.QueryDelete(4, query.ID); err != nil {
+	if err := s.PreparedQueryDelete(4, query.ID); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Make sure the index got updated.
-	if idx := s.maxIndex("queries"); idx != 4 {
+	if idx := s.maxIndex("prepared-queries"); idx != 4 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
 	// Sanity check to make sure it's not there.
-	idx, actual, err = s.QueryGet(query.ID)
+	idx, actual, err = s.PreparedQueryGet(query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -262,7 +262,7 @@ func TestStateStore_Query_QueryDelete(t *testing.T) {
 	}
 }
 
-func TestStateStore_Query_QueryLookup(t *testing.T) {
+func TestStateStore_PreparedQueryLookup(t *testing.T) {
 	s := testStateStore(t)
 
 	// Set up our test environment.
@@ -280,7 +280,7 @@ func TestStateStore_Query_QueryLookup(t *testing.T) {
 
 	// Try to lookup a query that's not there using something that looks
 	// like a real ID.
-	idx, actual, err := s.QueryLookup(query.ID)
+	idx, actual, err := s.PreparedQueryLookup(query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -293,7 +293,7 @@ func TestStateStore_Query_QueryLookup(t *testing.T) {
 
 	// Try to lookup a query that's not there using something that looks
 	// like a name
-	idx, actual, err = s.QueryLookup(query.Name)
+	idx, actual, err = s.PreparedQueryLookup(query.Name)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -305,12 +305,12 @@ func TestStateStore_Query_QueryLookup(t *testing.T) {
 	}
 
 	// Now actually insert the query.
-	if err := s.QuerySet(3, query); err != nil {
+	if err := s.PreparedQuerySet(3, query); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Make sure the index got updated.
-	if idx := s.maxIndex("queries"); idx != 3 {
+	if idx := s.maxIndex("prepared-queries"); idx != 3 {
 		t.Fatalf("bad index: %d", idx)
 	}
 
@@ -326,7 +326,7 @@ func TestStateStore_Query_QueryLookup(t *testing.T) {
 			ModifyIndex: 3,
 		},
 	}
-	idx, actual, err = s.QueryLookup(query.ID)
+	idx, actual, err = s.PreparedQueryLookup(query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -338,7 +338,7 @@ func TestStateStore_Query_QueryLookup(t *testing.T) {
 	}
 
 	// Read it back using the name and verify it again.
-	idx, actual, err = s.QueryLookup(query.Name)
+	idx, actual, err = s.PreparedQueryLookup(query.Name)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -351,12 +351,12 @@ func TestStateStore_Query_QueryLookup(t *testing.T) {
 
 	// Make sure an empty lookup is well-behaved if there are actual queries
 	// in the state store.
-	if _, _, err = s.QueryLookup(""); err != ErrMissingQueryID {
+	if _, _, err = s.PreparedQueryLookup(""); err != ErrMissingQueryID {
 		t.Fatalf("bad: %v", err)
 	}
 }
 
-func TestStateStore_Query_QueryList(t *testing.T) {
+func TestStateStore_PreparedQueryList(t *testing.T) {
 	s := testStateStore(t)
 
 	// Set up our test environment.
@@ -389,7 +389,7 @@ func TestStateStore_Query_QueryList(t *testing.T) {
 
 	// Now create the queries.
 	for i, query := range queries {
-		if err := s.QuerySet(uint64(4+i), query); err != nil {
+		if err := s.PreparedQuerySet(uint64(4+i), query); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -419,7 +419,7 @@ func TestStateStore_Query_QueryList(t *testing.T) {
 			},
 		},
 	}
-	idx, actual, err := s.QueryList()
+	idx, actual, err := s.PreparedQueryList()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -431,7 +431,7 @@ func TestStateStore_Query_QueryList(t *testing.T) {
 	}
 }
 
-func TestStateStore_Query_Snapshot_Restore(t *testing.T) {
+func TestStateStore_PreparedQuery_Snapshot_Restore(t *testing.T) {
 	s := testStateStore(t)
 
 	// Set up our test environment.
@@ -464,7 +464,7 @@ func TestStateStore_Query_Snapshot_Restore(t *testing.T) {
 
 	// Now create the queries.
 	for i, query := range queries {
-		if err := s.QuerySet(uint64(4+i), query); err != nil {
+		if err := s.PreparedQuerySet(uint64(4+i), query); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -474,7 +474,7 @@ func TestStateStore_Query_Snapshot_Restore(t *testing.T) {
 	defer snap.Close()
 
 	// Alter the real state store.
-	if err := s.QueryDelete(6, queries[0].ID); err != nil {
+	if err := s.PreparedQueryDelete(6, queries[0].ID); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -506,7 +506,7 @@ func TestStateStore_Query_Snapshot_Restore(t *testing.T) {
 			},
 		},
 	}
-	iter, err := snap.Queries()
+	iter, err := snap.PreparedQueries()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -523,7 +523,7 @@ func TestStateStore_Query_Snapshot_Restore(t *testing.T) {
 		s := testStateStore(t)
 		restore := s.Restore()
 		for _, query := range dump {
-			if err := restore.Query(query); err != nil {
+			if err := restore.PreparedQuery(query); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 		}
@@ -531,7 +531,7 @@ func TestStateStore_Query_Snapshot_Restore(t *testing.T) {
 
 		// Read the restored queries back out and verify that they
 		// match.
-		idx, actual, err := s.QueryList()
+		idx, actual, err := s.PreparedQueryList()
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -544,7 +544,7 @@ func TestStateStore_Query_Snapshot_Restore(t *testing.T) {
 	}()
 }
 
-func TestStateStore_Query_Watches(t *testing.T) {
+func TestStateStore_PreparedQuery_Watches(t *testing.T) {
 	s := testStateStore(t)
 
 	// Set up our test environment.
@@ -560,19 +560,19 @@ func TestStateStore_Query_Watches(t *testing.T) {
 
 	// Call functions that update the queries table and make sure a watch
 	// fires each time.
-	verifyWatch(t, s.getTableWatch("queries"), func() {
-		if err := s.QuerySet(3, query); err != nil {
+	verifyWatch(t, s.getTableWatch("prepared-queries"), func() {
+		if err := s.PreparedQuerySet(3, query); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	})
-	verifyWatch(t, s.getTableWatch("queries"), func() {
-		if err := s.QueryDelete(4, query.ID); err != nil {
+	verifyWatch(t, s.getTableWatch("prepared-queries"), func() {
+		if err := s.PreparedQueryDelete(4, query.ID); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	})
-	verifyWatch(t, s.getTableWatch("queries"), func() {
+	verifyWatch(t, s.getTableWatch("prepared-queries"), func() {
 		restore := s.Restore()
-		if err := restore.Query(query); err != nil {
+		if err := restore.PreparedQuery(query); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 		restore.Commit()

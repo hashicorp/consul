@@ -413,8 +413,8 @@ func (s *StateStore) getWatchTables(method string) []string {
 		return []string{"acls"}
 	case "Coordinates":
 		return []string{"coordinates"}
-	case "QueryGet", "QueryLookup", "QueryList":
-		return []string{"queries"}
+	case "PreparedQueryGet", "PreparedQueryLookup", "PreparedQueryList":
+		return []string{"prepared-queries"}
 	}
 
 	panic(fmt.Sprintf("Unknown method %s", method))
@@ -2141,9 +2141,9 @@ func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 	}
 
 	// Delete any prepared queries.
-	queries, err := tx.Get("queries", "session", sessionID)
+	queries, err := tx.Get("prepared-queries", "session", sessionID)
 	if err != nil {
-		return fmt.Errorf("failed query lookup: %s", err)
+		return fmt.Errorf("failed prepared query lookup: %s", err)
 	}
 	{
 		var objs []interface{}
@@ -2154,8 +2154,8 @@ func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 		// Do the delete in a separate loop so we don't trash the iterator.
 		for _, obj := range objs {
 			q := obj.(*structs.PreparedQuery)
-			if err := s.queryDeleteTxn(tx, idx, watches, q.ID); err != nil {
-				return fmt.Errorf("failed query delete: %s", err)
+			if err := s.preparedQueryDeleteTxn(tx, idx, watches, q.ID); err != nil {
+				return fmt.Errorf("failed prepared query delete: %s", err)
 			}
 		}
 	}
