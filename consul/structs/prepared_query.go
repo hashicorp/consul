@@ -83,6 +83,16 @@ type PreparedQuery struct {
 
 type PreparedQueries []*PreparedQuery
 
+type IndexedPreparedQuery struct {
+	Query *PreparedQuery
+	QueryMeta
+}
+
+type IndexedPreparedQueries struct {
+	Queries PreparedQueries
+	QueryMeta
+}
+
 type PreparedQueryOp string
 
 const (
@@ -101,6 +111,26 @@ type PreparedQueryRequest struct {
 
 // RequestDatacenter returns the datacenter for a given request.
 func (q *PreparedQueryRequest) RequestDatacenter() string {
+	return q.Datacenter
+}
+
+// PreparedQuerySpecificRequest is used to get information about a prepared
+// query.
+type PreparedQuerySpecificRequest struct {
+	// Datacenter is the target this request is intended for.
+	Datacenter string
+
+	// QueryIDOrName is the ID of a query _or_ the name of one, either can
+	// be provided.
+	QueryIDOrName string
+
+	// QueryOptions (unfortunately named here) controls the consistency
+	// settings for the query lookup itself, as well as the service lookups.
+	QueryOptions
+}
+
+// RequestDatacenter returns the datacenter for a given request.
+func (q *PreparedQuerySpecificRequest) RequestDatacenter() string {
 	return q.Datacenter
 }
 

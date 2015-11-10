@@ -181,6 +181,76 @@ func parseDNS(dns *structs.QueryDNSOptions) error {
 	return nil
 }
 
+// Lookup returns a single prepared query by ID or name.
+func (p *PreparedQuery) Lookup(args *structs.PreparedQuerySpecificRequest, reply *structs.IndexedPreparedQuery) error {
+	if done, err := p.srv.forward("PreparedQuery.Lookup", args, args, reply); done {
+		return err
+	}
+
+	// We will use this in the loop to see if the caller is allowed to see
+	// the query.
+	acl, err := p.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
+	// Get the requested query.
+	state := p.srv.fsm.State()
+	return p.srv.blockingRPC(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		state.GetQueryWatch("PreparedQueryLookup"),
+		func() error {
+			index, query, err := state.PreparedQueryLookup(args.QueryIDOrName)
+			if err != nil {
+				return err
+			}
+
+			if (query.Token != args.Token) && (acl != nil && !acl.QueryModify()) {
+				p.srv.logger.Printf("[WARN] consul.prepared_query: Request to lookup prepared query '%s' denied because ACL didn't match ACL used to create the query, and a management token wasn't supplied", args.QueryIDOrName)
+				return permissionDeniedErr
+			}
+
+			reply.Index, reply.Query = index, query
+			return nil
+		})
+
+	return nil
+}
+
+// List returns all the prepared queries.
+func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.IndexedPreparedQueries) error {
+	if done, err := p.srv.forward("PreparedQuery.List", args, args, reply); done {
+		return err
+	}
+
+	// This always requires a management token.
+	acl, err := p.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if acl != nil && !acl.QueryList() {
+		p.srv.logger.Printf("[WARN] consul.prepared_query: Request to list prepared queries denied due to ACLs")
+		return permissionDeniedErr
+	}
+
+	// Get the list of queries.
+	state := p.srv.fsm.State()
+	return p.srv.blockingRPC(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		state.GetQueryWatch("PreparedQueryList"),
+		func() error {
+			index, queries, err := state.PreparedQueryList()
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Queries = index, queries
+			return nil
+		})
+}
+
 // Execute runs a prepared query and returns the results. This will perform the
 // failover logic if no local results are available. This is typically called as
 // part of a DNS lookup, or when executing prepared queries from the HTTP API.
