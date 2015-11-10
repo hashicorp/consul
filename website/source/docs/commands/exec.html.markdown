@@ -65,3 +65,6 @@ The list of available flags are:
 * `-token` - The ACL token to use during requests. This token must have access
   to the prefix in the KV store as well as exec "write" access for the _rexec
   event. Defaults to that of the agent.
+
+~> **Verbose output warning:**  If the output of the
+commands is too length, it may become DoS against the servers , as those writes are flowing through the servers and Raft.
