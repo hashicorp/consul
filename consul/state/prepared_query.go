@@ -2,11 +2,19 @@ package state
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-memdb"
 )
+
+// validUUID is used to check if a given string looks like a UUID
+var validUUID = regexp.MustCompile(`^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$`)
+
+// isUUID returns true if the given string is a valid UUID.
+func isUUID(str string) bool {
+	return validUUID.MatchString(str)
+}
 
 // PreparedQueries is used to pull all the prepared queries from the snapshot.
 func (s *StateSnapshot) PreparedQueries() (memdb.ResultIterator, error) {
@@ -73,15 +81,14 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 	// register a query with a name equal to some other query's ID in an
 	// attempt to hijack it. We also look up by ID *then* name in order to
 	// prevent this, but it seems prudent to prevent these types of rogue
-	// queries from ever making it into the state store.
-	if query.Name != "" {
+	// queries from ever making it into the state store. Note that we have
+	// to see if the name looks like a UUID before checking since the UUID
+	// index will complain if we look up something that's not formatted
+	// like one.
+	if isUUID(query.Name) {
 		existing, err := tx.First("prepared-queries", "id", query.Name)
-
-		// This is a little unfortunate but the UUID index will complain
-		// if the name isn't formatted like a UUID, so we can safely
-		// ignore any UUID format-related errors.
-		if err != nil && !strings.Contains(err.Error(), "UUID") {
-			return fmt.Errorf("failed query lookup: %s", err)
+		if err != nil {
+			return fmt.Errorf("failed prepared query lookup: %s", err)
 		}
 		if existing != nil {
 			return fmt.Errorf("name '%s' aliases an existing query id", query.Name)
@@ -196,21 +203,21 @@ func (s *StateStore) PreparedQueryLookup(queryIDOrName string) (uint64, *structs
 		return idx, nil, ErrMissingQueryID
 	}
 
-	// Try first by ID.
-	query, err := tx.First("prepared-queries", "id", queryIDOrName)
-
-	// This is a little unfortunate but the UUID index will complain
-	// if the name isn't formatted like a UUID, so we can safely
-	// ignore any UUID format-related errors.
-	if err != nil && !strings.Contains(err.Error(), "UUID") {
-		return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
-	}
-	if query != nil {
-		return idx, query.(*structs.PreparedQuery), nil
+	// Try first by ID if it looks like they gave us an ID. We check the
+	// format before trying this because the UUID index will complain if
+	// we look up something that's not formatted like one.
+	if isUUID(queryIDOrName) {
+		query, err := tx.First("prepared-queries", "id", queryIDOrName)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
+		}
+		if query != nil {
+			return idx, query.(*structs.PreparedQuery), nil
+		}
 	}
 
 	// Then try by name.
-	query, err = tx.First("prepared-queries", "name", queryIDOrName)
+	query, err := tx.First("prepared-queries", "name", queryIDOrName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 	}

@@ -8,6 +8,26 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 )
 
+func TestStateStore_PreparedQuery_isUUID(t *testing.T) {
+	cases := map[string]bool{
+		"":     false,
+		"nope": false,
+		"f004177f-2c28-83b7-4229-eacc25fe55d1":  true,
+		" f004177f-2c28-83b7-4229-eacc25fe55d1": false, // Leading whitespace
+		"f004177f-2c28-83b7-4229-eacc25fe55d1 ": false, // Trailing whitespace
+		"f004177f-2c28-83B7-4229-eacc25fe55d1":  false, // Bad hex "83B7"
+	}
+	for i := 0; i < 100; i++ {
+		cases[testUUID()] = true
+	}
+
+	for str, expected := range cases {
+		if actual := isUUID(str); actual != expected {
+			t.Fatalf("bad: '%s'", str)
+		}
+	}
+}
+
 func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 	s := testStateStore(t)
 
