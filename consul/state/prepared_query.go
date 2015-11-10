@@ -68,9 +68,12 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 		query.ModifyIndex = idx
 	}
 
-	// Verify that the name doesn't alias any existing ID. If we didn't do
-	// this then a bad actor could steal traffic away from an existing DNS
-	// entry.
+	// Verify that the name doesn't alias any existing ID. We allow queries
+	// to be looked up by ID *or* name so we don't want anyone to try to
+	// register a query with a name equal to some other query's ID in an
+	// attempt to hijack it. We also look up by ID *then* name in order to
+	// prevent this, but it seems prudent to prevent these types of rogue
+	// queries from ever making it into the state store.
 	if query.Name != "" {
 		existing, err := tx.First("prepared-queries", "id", query.Name)
 
