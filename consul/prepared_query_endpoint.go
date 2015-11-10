@@ -292,8 +292,13 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	// the token stored with the query, NOT the passed-in one, which is
 	// critical to how queries work (the query becomes a proxy for a lookup
 	// using the ACL it was created with).
-	if err := p.srv.filterACL(query.Token, nodes); err != nil {
+	acl, err := p.srv.resolveToken(query.Token)
+	if err != nil {
 		return err
+	}
+	if acl != nil && !acl.ServiceRead(query.Service.Service) {
+		p.srv.logger.Printf("[WARN] consul.prepared_query: Execute of prepared query for service '%s' denied due to ACLs", query.Service.Service)
+		return permissionDeniedErr
 	}
 
 	// Filter out any unhealthy nodes.
