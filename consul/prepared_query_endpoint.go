@@ -535,11 +535,16 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		}
 	}
 
-	// Now try the selected DCs in priority order. Note that we pass along
-	// the limit since it can be applied remotely to save bandwidth. We also
-	// pass along the consistency mode information we were given, so that
-	// applies to the remote query as well.
-	for i, dc := range dcs {
+	// Now try the selected DCs in priority order.
+	failovers := 0
+	for _, dc := range dcs {
+		// This keeps track of how many iterations we actually run.
+		failovers++
+
+		// Note that we pass along the limit since it can be applied
+		// remotely to save bandwidth. We also pass along the consistency
+		// mode information we were given, so that applies to the remote
+		// query as well.
 		remote := &structs.PreparedQueryExecuteRemoteRequest{
 			Datacenter:   dc,
 			Query:        *query,
@@ -551,14 +556,15 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 			continue
 		}
 
-		// Keep track of the number of failovers.
-		reply.Failovers = i + 1
-
 		// We can stop if we found some nodes.
 		if len(reply.Nodes) > 0 {
 			break
 		}
 	}
+
+	// Set this at the end because the response from the remote doesn't have
+	// this information.
+	reply.Failovers = failovers
 
 	return nil
 }
