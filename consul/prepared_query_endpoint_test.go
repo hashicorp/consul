@@ -1744,3 +1744,59 @@ func TestPreparedQuery_tagFilter(t *testing.T) {
 		t.Fatalf("bad: %s", ret)
 	}
 }
+
+func TestPreparedQuery_Wrapper(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec1 := rpcClient(t, s1)
+	defer codec1.Close()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	codec2 := rpcClient(t, s2)
+	defer codec2.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testutil.WaitForLeader(t, s2.RPC, "dc2")
+
+	// Try to WAN join.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForResult(
+		func() (bool, error) {
+			return len(s1.WANMembers()) > 1, nil
+		},
+		func(err error) {
+			t.Fatalf("Failed waiting for WAN join: %v", err)
+		})
+
+	// Try all the operations on a real server via the wrapper.
+	wrapper := &queryServerWrapper{s1}
+	wrapper.GetLogger().Printf("[DEBUG] Test")
+
+	ret, err := wrapper.GetOtherDatacentersByDistance()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(ret) != 1 || ret[0] != "dc2" {
+		t.Fatalf("bad: %v", ret)
+	}
+
+	if err := wrapper.ForwardDC("Status.Ping", "dc2", &struct{}{}, &struct{}{}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
