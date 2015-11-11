@@ -399,10 +399,6 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 			filt.filterNodeServices(v.NodeServices)
 		}
 
-	case *structs.CheckServiceNodes:
-		// TODO (slackpad) - Add a test for this!
-		filt.filterCheckServiceNodes(v)
-
 	case *structs.IndexedCheckServiceNodes:
 		filt.filterCheckServiceNodes(&v.Nodes)
 
