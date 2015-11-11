@@ -5,6 +5,7 @@ import (
 	"net/rpc"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -1655,5 +1656,91 @@ func TestPreparedQuery_Execute_ForwardLeader(t *testing.T) {
 		if len(reply.Nodes) != 1 {
 			t.Fatalf("bad: %v", reply)
 		}
+	}
+}
+
+func TestPreparedQuery_tagFilter(t *testing.T) {
+	testNodes := func() structs.CheckServiceNodes {
+		return structs.CheckServiceNodes{
+			structs.CheckServiceNode{
+				Node:    &structs.Node{Node: "node1"},
+				Service: &structs.NodeService{Tags: []string{"foo"}},
+			},
+			structs.CheckServiceNode{
+				Node:    &structs.Node{Node: "node2"},
+				Service: &structs.NodeService{Tags: []string{"foo", "BAR"}},
+			},
+			structs.CheckServiceNode{
+				Node: &structs.Node{Node: "node3"},
+			},
+			structs.CheckServiceNode{
+				Node:    &structs.Node{Node: "node4"},
+				Service: &structs.NodeService{Tags: []string{"foo", "baz"}},
+			},
+			structs.CheckServiceNode{
+				Node:    &structs.Node{Node: "node5"},
+				Service: &structs.NodeService{Tags: []string{"foo", "zoo"}},
+			},
+			structs.CheckServiceNode{
+				Node:    &structs.Node{Node: "node6"},
+				Service: &structs.NodeService{Tags: []string{"bar"}},
+			},
+		}
+	}
+
+	// This always sorts so that it's not annoying to compare after the swap
+	// operations that the algorithm performs.
+	stringify := func(nodes structs.CheckServiceNodes) string {
+		var names []string
+		for _, node := range nodes {
+			names = append(names, node.Node.Node)
+		}
+		sort.Strings(names)
+		return strings.Join(names, "|")
+	}
+
+	ret := stringify(tagFilter([]string{}, testNodes()))
+	if ret != "node1|node2|node3|node4|node5|node6" {
+		t.Fatalf("bad: %s", ret)
+	}
+
+	ret = stringify(tagFilter([]string{"foo"}, testNodes()))
+	if ret != "node1|node2|node4|node5" {
+		t.Fatalf("bad: %s", ret)
+	}
+
+	ret = stringify(tagFilter([]string{"!foo"}, testNodes()))
+	if ret != "node3|node6" {
+		t.Fatalf("bad: %s", ret)
+	}
+
+	ret = stringify(tagFilter([]string{"!foo", "bar"}, testNodes()))
+	if ret != "node6" {
+		t.Fatalf("bad: %s", ret)
+	}
+
+	ret = stringify(tagFilter([]string{"!foo", "!bar"}, testNodes()))
+	if ret != "node3" {
+		t.Fatalf("bad: %s", ret)
+	}
+
+	ret = stringify(tagFilter([]string{"nope"}, testNodes()))
+	if ret != "" {
+		t.Fatalf("bad: %s", ret)
+	}
+
+	ret = stringify(tagFilter([]string{"bar"}, testNodes()))
+	if ret != "node2|node6" {
+		t.Fatalf("bad: %s", ret)
+	}
+
+	ret = stringify(tagFilter([]string{"BAR"}, testNodes()))
+	if ret != "node2|node6" {
+		t.Fatalf("bad: %s", ret)
+	}
+
+	ret = stringify(tagFilter([]string{"bAr"}, testNodes()))
+	if ret != "node2|node6" {
+		t.Fatalf("bad: %s", ret)
 	}
 }

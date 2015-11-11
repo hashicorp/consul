@@ -393,7 +393,8 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 }
 
 // tagFilter returns a list of nodes who satisfy the given tags. Nodes must have
-// ALL the given tags, and none of the forbidden tags (prefixed with !).
+// ALL the given tags, and NONE of the forbidden tags (prefixed with !). Note
+// for performance this modifies the original slice.
 func tagFilter(tags []string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
 	// Build up lists of required and disallowed tags.
 	must, not := make([]string, 0), make([]string, 0)
@@ -413,9 +414,11 @@ func tagFilter(tags []string, nodes structs.CheckServiceNodes) structs.CheckServ
 
 		// Index the tags so lookups this way are cheaper.
 		index := make(map[string]struct{})
-		for _, tag := range node.Service.Tags {
-			tag = strings.ToLower(tag)
-			index[tag] = struct{}{}
+		if node.Service != nil {
+			for _, tag := range node.Service.Tags {
+				tag = strings.ToLower(tag)
+				index[tag] = struct{}{}
+			}
 		}
 
 		// Bail if any of the required tags are missing.
