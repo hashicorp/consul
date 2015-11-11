@@ -305,7 +305,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// by the query setup.
 	if len(reply.Nodes) == 0 {
 		wrapper := &queryServerWrapper{p.srv}
-		if err := queryFailover(wrapper, query, args, reply); err != nil {
+		if err := queryFailover(wrapper, query, args.Limit, args.QueryOptions, reply); err != nil {
 			return err
 		}
 	}
@@ -488,7 +488,7 @@ func (q *queryServerWrapper) ForwardDC(method, dc string, args interface{}, repl
 // queryFailover runs an algorithm to determine which DCs to try and then calls
 // them to try to locate alternative services.
 func queryFailover(q queryServer, query *structs.PreparedQuery,
-	args *structs.PreparedQueryExecuteRequest,
+	limit int, options structs.QueryOptions,
 	reply *structs.PreparedQueryExecuteResponse) error {
 
 	// Pull the list of other DCs. This is sorted by RTT in case the user
@@ -543,10 +543,10 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		remote := &structs.PreparedQueryExecuteRemoteRequest{
 			Datacenter:   dc,
 			Query:        *query,
-			Limit:        args.Limit,
-			QueryOptions: args.QueryOptions,
+			Limit:        limit,
+			QueryOptions: options,
 		}
-		if err := q.ForwardDC("PreparedQuery.ExecuteRemote", dc, &remote, &reply); err != nil {
+		if err := q.ForwardDC("PreparedQuery.ExecuteRemote", dc, remote, reply); err != nil {
 			q.GetLogger().Printf("[WARN] consul.prepared_query: Failed querying for service '%s' in datacenter '%s': %s", query.Service.Service, dc, err)
 			continue
 		}
