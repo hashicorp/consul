@@ -180,6 +180,16 @@ func (q *PreparedQueryExecuteRemoteRequest) RequestDatacenter() string {
 
 // PreparedQueryExecuteResponse has the results of executing a query.
 type PreparedQueryExecuteResponse struct {
+	// Nodes has the nodes that were output by the query.
 	Nodes CheckServiceNodes
-	DNS   QueryDNSOptions
+
+	// DNS has the options for serving these results over DNS.
+	DNS QueryDNSOptions
+
+	// Datacenter is the datacenter that these results came from.
+	Datacenter string
+
+	// Failovers is a count of how many times we had to query a remote
+	// datacenter.
+	Failovers int
 }

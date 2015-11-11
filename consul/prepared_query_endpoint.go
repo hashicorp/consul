@@ -386,6 +386,9 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	reply.Nodes = nodes
 	reply.DNS = query.DNS
 
+	// Stamp the result for this datacenter.
+	reply.Datacenter = p.srv.config.Datacenter
+
 	return nil
 }
 
@@ -533,17 +536,20 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 	// the limit since it can be applied remotely to save bandwidth. We also
 	// pass along the consistency mode information we were given, so that
 	// applies to the remote query as well.
-	for _, dc := range dcs {
+	for i, dc := range dcs {
 		remote := &structs.PreparedQueryExecuteRemoteRequest{
 			Datacenter:   dc,
 			Query:        *query,
 			Limit:        args.Limit,
 			QueryOptions: args.QueryOptions,
 		}
-		if err := q.ForwardDC("PreparedQuery.ExecuteRemote", dc, remote, reply); err != nil {
+		if err := q.ForwardDC("PreparedQuery.ExecuteRemote", dc, &remote, &reply); err != nil {
 			q.GetLogger().Printf("[WARN] consul.prepared_query: Failed querying for service '%s' in datacenter '%s': %s", query.Service.Service, dc, err)
 			continue
 		}
+
+		// Keep track of the number of failovers.
+		reply.Failovers = i + 1
 
 		// We can stop if we found some nodes.
 		if len(reply.Nodes) > 0 {
