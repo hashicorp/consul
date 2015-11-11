@@ -181,9 +181,9 @@ func parseDNS(dns *structs.QueryDNSOptions) error {
 	return nil
 }
 
-// Lookup returns a single prepared query by ID or name.
-func (p *PreparedQuery) Lookup(args *structs.PreparedQuerySpecificRequest, reply *structs.IndexedPreparedQueries) error {
-	if done, err := p.srv.forward("PreparedQuery.Lookup", args, args, reply); done {
+// Get returns a single prepared query by ID.
+func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest, reply *structs.IndexedPreparedQueries) error {
+	if done, err := p.srv.forward("PreparedQuery.Get", args, args, reply); done {
 		return err
 	}
 
@@ -199,15 +199,15 @@ func (p *PreparedQuery) Lookup(args *structs.PreparedQuerySpecificRequest, reply
 	return p.srv.blockingRPC(
 		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.GetQueryWatch("PreparedQueryLookup"),
+		state.GetQueryWatch("PreparedQueryGet"),
 		func() error {
-			index, query, err := state.PreparedQueryLookup(args.QueryIDOrName)
+			index, query, err := state.PreparedQueryGet(args.QueryID)
 			if err != nil {
 				return err
 			}
 
 			if (query != nil) && (query.Token != args.Token) && (acl != nil && !acl.QueryList()) {
-				p.srv.logger.Printf("[WARN] consul.prepared_query: Request to lookup prepared query '%s' denied because ACL didn't match ACL used to create the query, and a management token wasn't supplied", args.QueryIDOrName)
+				p.srv.logger.Printf("[WARN] consul.prepared_query: Request to get prepared query '%s' denied because ACL didn't match ACL used to create the query, and a management token wasn't supplied", args.QueryID)
 				return permissionDeniedErr
 			}
 

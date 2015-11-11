@@ -102,11 +102,11 @@ func TestPreparedQuery_Apply(t *testing.T) {
 	query.Query.ID = reply
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
+			Datacenter: "dc1",
+			QueryID:    query.Query.ID,
 		}
 		var resp structs.IndexedPreparedQueries
-		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -133,11 +133,11 @@ func TestPreparedQuery_Apply(t *testing.T) {
 	// Read back again to verify the update worked.
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
+			Datacenter: "dc1",
+			QueryID:    query.Query.ID,
 		}
 		var resp structs.IndexedPreparedQueries
-		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -179,11 +179,11 @@ func TestPreparedQuery_Apply(t *testing.T) {
 	// Verify that this query is deleted.
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
+			Datacenter: "dc1",
+			QueryID:    query.Query.ID,
 		}
 		var resp structs.IndexedPreparedQueries
-		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -288,12 +288,12 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	query.Query.Token = token1
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: "root"},
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
 		var resp structs.IndexedPreparedQueries
-		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -357,12 +357,12 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	// Make sure the query got deleted.
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: "root"},
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
 		var resp structs.IndexedPreparedQueries
-		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -385,12 +385,12 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	query.Query.Token = token1
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: "root"},
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
 		var resp structs.IndexedPreparedQueries
-		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -418,12 +418,12 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	query.Query.Token = "root"
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: "root"},
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
 		var resp structs.IndexedPreparedQueries
-		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -454,12 +454,12 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	query.Query.Token = token1
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: "root"},
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
 		var resp structs.IndexedPreparedQueries
-		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -486,12 +486,12 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	// Make sure the query got deleted.
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: "root"},
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
 		var resp structs.IndexedPreparedQueries
-		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -611,7 +611,7 @@ func TestPreparedQuery_parseQuery(t *testing.T) {
 	}
 }
 
-func TestPreparedQuery_Lookup(t *testing.T) {
+func TestPreparedQuery_Get(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -698,12 +698,12 @@ func TestPreparedQuery_Lookup(t *testing.T) {
 	query.Query.Token = token1
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: token1},
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: token1},
 		}
 		var resp structs.IndexedPreparedQueries
-		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -725,12 +725,12 @@ func TestPreparedQuery_Lookup(t *testing.T) {
 	// be denied.
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: token2},
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: token2},
 		}
 		var resp structs.IndexedPreparedQueries
-		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp)
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp)
 		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("bad: %v", err)
 		}
@@ -743,12 +743,12 @@ func TestPreparedQuery_Lookup(t *testing.T) {
 	// Try again with no token, which should also be denied.
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: ""},
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: ""},
 		}
 		var resp structs.IndexedPreparedQueries
-		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp)
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp)
 		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("bad: %v", err)
 		}
@@ -761,12 +761,12 @@ func TestPreparedQuery_Lookup(t *testing.T) {
 	// A management token should be able to read no matter what.
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: "root"},
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
 		var resp structs.IndexedPreparedQueries
-		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -783,57 +783,15 @@ func TestPreparedQuery_Lookup(t *testing.T) {
 		}
 	}
 
-	// Try a lookup by name instead of ID.
+	// Try to get an unknown ID.
 	{
 		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.Name,
-			QueryOptions:  structs.QueryOptions{Token: token1},
+			Datacenter:   "dc1",
+			QueryID:      generateUUID(),
+			QueryOptions: structs.QueryOptions{Token: token1},
 		}
 		var resp structs.IndexedPreparedQueries
-		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(resp.Queries) != 1 {
-			t.Fatalf("bad: %v", resp)
-		}
-		actual := resp.Queries[0]
-		if resp.Index != actual.ModifyIndex {
-			t.Fatalf("bad index: %d", resp.Index)
-		}
-		actual.CreateIndex, actual.ModifyIndex = 0, 0
-		if !reflect.DeepEqual(actual, query.Query) {
-			t.Fatalf("bad: %v", actual)
-		}
-	}
-
-	// Try to lookup an unknown ID.
-	{
-		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: generateUUID(),
-			QueryOptions:  structs.QueryOptions{Token: token1},
-		}
-		var resp structs.IndexedPreparedQueries
-		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(resp.Queries) != 0 {
-			t.Fatalf("bad: %v", resp)
-		}
-	}
-
-	// Try to lookup an unknown name.
-	{
-		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:    "dc1",
-			QueryIDOrName: "nope",
-			QueryOptions:  structs.QueryOptions{Token: token1},
-		}
-		var resp structs.IndexedPreparedQueries
-		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Lookup", req, &resp); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 

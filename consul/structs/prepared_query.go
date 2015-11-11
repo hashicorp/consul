@@ -115,9 +115,8 @@ type PreparedQuerySpecificRequest struct {
 	// Datacenter is the target this request is intended for.
 	Datacenter string
 
-	// QueryIDOrName is the ID of a query _or_ the name of one, either can
-	// be provided.
-	QueryIDOrName string
+	// QueryID is the ID of a query.
+	QueryID string
 
 	// QueryOptions (unfortunately named here) controls the consistency
 	// settings for the query lookup itself, as well as the service lookups.
