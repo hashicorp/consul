@@ -380,8 +380,6 @@ func getDatacenterMaps(s serfer, dcs []string) []structs.DatacenterMap {
 	return maps
 }
 
-// TODO (slackpad) - Add a unit test for this!
-
 // getDatacentersByDistance will return the list of DCs, sorted in order
 // of increasing distance based on the median distance to that DC from all
 // servers we know about in the WAN gossip pool. This will sort by name all

@@ -141,7 +141,7 @@ func seedCoordinates(t *testing.T, codec rpc.ClientCodec, server *Server) {
 	time.Sleep(2 * server.config.CoordinateUpdatePeriod)
 }
 
-func TestRtt_sortNodesByDistanceFrom(t *testing.T) {
+func TestRTT_sortNodesByDistanceFrom(t *testing.T) {
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
@@ -202,7 +202,7 @@ func TestRtt_sortNodesByDistanceFrom(t *testing.T) {
 	verifyNodeSort(t, nodes, "node1,node4,node5,node2,node3,apple")
 }
 
-func TestRtt_sortNodesByDistanceFrom_Nodes(t *testing.T) {
+func TestRTT_sortNodesByDistanceFrom_Nodes(t *testing.T) {
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
@@ -251,7 +251,7 @@ func TestRtt_sortNodesByDistanceFrom_Nodes(t *testing.T) {
 	verifyNodeSort(t, nodes, "node2,node3,node5,node4,node1,apple")
 }
 
-func TestRtt_sortNodesByDistanceFrom_ServiceNodes(t *testing.T) {
+func TestRTT_sortNodesByDistanceFrom_ServiceNodes(t *testing.T) {
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
@@ -300,7 +300,7 @@ func TestRtt_sortNodesByDistanceFrom_ServiceNodes(t *testing.T) {
 	verifyServiceNodeSort(t, nodes, "node2,node3,node5,node4,node1,apple")
 }
 
-func TestRtt_sortNodesByDistanceFrom_HealthChecks(t *testing.T) {
+func TestRTT_sortNodesByDistanceFrom_HealthChecks(t *testing.T) {
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
@@ -349,7 +349,7 @@ func TestRtt_sortNodesByDistanceFrom_HealthChecks(t *testing.T) {
 	verifyHealthCheckSort(t, checks, "node2,node3,node5,node4,node1,apple")
 }
 
-func TestRtt_sortNodesByDistanceFrom_CheckServiceNodes(t *testing.T) {
+func TestRTT_sortNodesByDistanceFrom_CheckServiceNodes(t *testing.T) {
 	dir, server := testServer(t)
 	defer os.RemoveAll(dir)
 	defer server.Shutdown()
@@ -473,7 +473,7 @@ func (s *mockServer) GetNodesForDatacenter(dc string) []string {
 	return nodes
 }
 
-func TestRtt_getDatacenterDistance(t *testing.T) {
+func TestRTT_getDatacenterDistance(t *testing.T) {
 	s := newMockServer()
 
 	// The serfer's own DC is always 0 ms away.
@@ -508,7 +508,7 @@ func TestRtt_getDatacenterDistance(t *testing.T) {
 	}
 }
 
-func TestRtt_sortDatacentersByDistance(t *testing.T) {
+func TestRTT_sortDatacentersByDistance(t *testing.T) {
 	s := newMockServer()
 
 	dcs := []string{"acdc", "dc0", "dc1", "dc2", "dcX"}
@@ -533,7 +533,7 @@ func TestRtt_sortDatacentersByDistance(t *testing.T) {
 	}
 }
 
-func TestRtt_getDatacenterMaps(t *testing.T) {
+func TestRTT_getDatacenterMaps(t *testing.T) {
 	s := newMockServer()
 
 	dcs := []string{"dc0", "acdc", "dc1", "dc2", "dcX"}
@@ -576,5 +576,73 @@ func TestRtt_getDatacenterMaps(t *testing.T) {
 
 	if maps[4].Datacenter != "dcX" || len(maps[4].Coordinates) != 0 {
 		t.Fatalf("bad: %v", maps[4])
+	}
+}
+
+func TestRTT_getDatacentersByDistance(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "xxx"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec1 := rpcClient(t, s1)
+	defer codec1.Close()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+	})
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+	codec2 := rpcClient(t, s2)
+	defer codec2.Close()
+
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+	})
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+	codec3 := rpcClient(t, s3)
+	defer codec3.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "xxx")
+	testutil.WaitForLeader(t, s2.RPC, "dc1")
+	testutil.WaitForLeader(t, s3.RPC, "dc2")
+
+	// Do the WAN joins.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		s1.config.SerfWANConfig.MemberlistConfig.BindPort)
+	if _, err := s2.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := s3.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForResult(
+		func() (bool, error) {
+			return len(s1.WANMembers()) > 2, nil
+		},
+		func(err error) {
+			t.Fatalf("Failed waiting for WAN join: %v", err)
+		})
+
+	// Get the DCs by distance. We don't have coordinate updates yet, but
+	// having xxx show up first proves we are calling the distance sort,
+	// since it would normally do a string sort.
+	dcs, err := s1.getDatacentersByDistance()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(dcs) != 3 || dcs[0] != "xxx" {
+		t.Fatalf("bad: %v", dcs)
+	}
+
+	// Let's disable coordinates just to be sure.
+	s1.config.DisableCoordinates = true
+	dcs, err = s1.getDatacentersByDistance()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(dcs) != 3 || dcs[0] != "dc1" {
+		t.Fatalf("bad: %v", dcs)
 	}
 }
