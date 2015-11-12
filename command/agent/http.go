@@ -310,6 +310,15 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			}
 		}
 
+		// TODO (slackpad) We may want to consider redacting prepared
+		// query names/IDs here since they are proxies for tokens. But,
+		// knowing one only gives you read access to service listings
+		// which is pretty trivial, so it's probably not worth the code
+		// complexity and overhead of filtering them out. You can't
+		// recover the token it's a proxy for with just the query info;
+		// you'd need the actual token (or a management token) to read
+		// that back.
+
 		// Invoke the handler
 		start := time.Now()
 		defer func() {
