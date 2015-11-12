@@ -21,12 +21,7 @@ type preparedQueryCreateResponse struct {
 
 // PreparedQueryGeneral handles all the general prepared query requests.
 func (s *HTTPServer) PreparedQueryGeneral(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.preparedQueryGeneral(preparedQueryEndpoint, resp, req)
-}
-
-// preparedQueryGeneral is the internal method that does the work on behalf of
-// PreparedQueryGeneral. The RPC endpoint is parameterized to ease testing.
-func (s *HTTPServer) preparedQueryGeneral(endpoint string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
 	switch req.Method {
 	case "POST": // Create a new prepared query.
 		args := structs.PreparedQueryRequest{
@@ -82,12 +77,6 @@ func parseLimit(req *http.Request, limit *int) error {
 // PreparedQuerySpecifc handles all the prepared query requests specific to a
 // particular query.
 func (s *HTTPServer) PreparedQuerySpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	return s.preparedQuerySpecific(preparedQueryEndpoint, resp, req)
-}
-
-// preparedQuerySpecific is the internal method that does the work on behalf of
-// PreparedQuerySpecific. The RPC endpoint is parameterized to ease testing.
-func (s *HTTPServer) preparedQuerySpecific(endpoint string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	id := strings.TrimPrefix(req.URL.Path, "/v1/query/")
 	execute := false
 	if strings.HasSuffix(id, preparedQueryExecuteSuffix) {
@@ -95,6 +84,7 @@ func (s *HTTPServer) preparedQuerySpecific(endpoint string, resp http.ResponseWr
 		id = strings.TrimSuffix(id, preparedQueryExecuteSuffix)
 	}
 
+	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
 	switch req.Method {
 	case "GET": // Execute or retrieve a prepared query.
 		if execute {

@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"sync"
@@ -104,6 +105,11 @@ type Agent struct {
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
+
+	// endpoints lets you override RPC endpoints for testing. Not all
+	// agent methods use this, so use with care and never override
+	// outside of a unit test.
+	endpoints map[string]string
 }
 
 // Create is used to create a new Agent. Returns
@@ -158,6 +164,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		eventCh:       make(chan serf.UserEvent, 1024),
 		eventBuf:      make([]*UserEvent, 256),
 		shutdownCh:    make(chan struct{}),
+		endpoints:     make(map[string]string),
 	}
 
 	// Initialize the local state
@@ -1455,4 +1462,31 @@ func (a *Agent) DisableNodeMaintenance() {
 	}
 	a.RemoveCheck(nodeMaintCheckID, true)
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
+}
+
+// InjectEndpoint overrides the given endpoint with a substitute one. Note
+// that not all agent methods use this mechanism, and that is should only
+// be used for testing.
+func (a *Agent) InjectEndpoint(endpoint string, handler interface{}) error {
+	if a.server == nil {
+		return fmt.Errorf("agent must be a server")
+	}
+
+	if err := a.server.InjectEndpoint(handler); err != nil {
+		return err
+	}
+	name := reflect.Indirect(reflect.ValueOf(handler)).Type().Name()
+	a.endpoints[endpoint] = name
+
+	a.logger.Printf("[WARN] agent: endpoint injected; this should only be used for testing")
+	return nil
+}
+
+// getEndpoint returns the endpoint name to use for the given endpoint,
+// which may be overridden.
+func (a *Agent) getEndpoint(endpoint string) string {
+	if override, ok := a.endpoints[endpoint]; ok {
+		return override
+	}
+	return endpoint
 }

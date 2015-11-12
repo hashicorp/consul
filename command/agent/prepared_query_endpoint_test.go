@@ -62,7 +62,7 @@ func (m *MockPreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 func TestPreparedQuery_Create(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
-		if err := srv.agent.server.InjectEndpoint(&m); err != nil {
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -126,7 +126,7 @@ func TestPreparedQuery_Create(t *testing.T) {
 		}
 
 		resp := httptest.NewRecorder()
-		obj, err := srv.preparedQueryGeneral("MockPreparedQuery", resp, req)
+		obj, err := srv.PreparedQueryGeneral(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -146,7 +146,7 @@ func TestPreparedQuery_Create(t *testing.T) {
 func TestPreparedQuery_List(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
-		if err := srv.agent.server.InjectEndpoint(&m); err != nil {
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -176,7 +176,7 @@ func TestPreparedQuery_List(t *testing.T) {
 		}
 
 		resp := httptest.NewRecorder()
-		obj, err := srv.preparedQueryGeneral("MockPreparedQuery", resp, req)
+		obj, err := srv.PreparedQueryGeneral(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -196,7 +196,7 @@ func TestPreparedQuery_List(t *testing.T) {
 func TestPreparedQuery_Execute(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
-		if err := srv.agent.server.InjectEndpoint(&m); err != nil {
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -230,7 +230,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 
 		resp := httptest.NewRecorder()
-		obj, err := srv.preparedQuerySpecific("MockPreparedQuery", resp, req)
+		obj, err := srv.PreparedQuerySpecific(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -250,7 +250,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 func TestPreparedQuery_Get(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
-		if err := srv.agent.server.InjectEndpoint(&m); err != nil {
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -281,7 +281,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 		}
 
 		resp := httptest.NewRecorder()
-		obj, err := srv.preparedQuerySpecific("MockPreparedQuery", resp, req)
+		obj, err := srv.PreparedQuerySpecific(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -301,7 +301,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 func TestPreparedQuery_Update(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
-		if err := srv.agent.server.InjectEndpoint(&m); err != nil {
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -367,7 +367,7 @@ func TestPreparedQuery_Update(t *testing.T) {
 		}
 
 		resp := httptest.NewRecorder()
-		_, err = srv.preparedQuerySpecific("MockPreparedQuery", resp, req)
+		_, err = srv.PreparedQuerySpecific(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -380,7 +380,7 @@ func TestPreparedQuery_Update(t *testing.T) {
 func TestPreparedQuery_Delete(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
-		if err := srv.agent.server.InjectEndpoint(&m); err != nil {
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
@@ -418,7 +418,7 @@ func TestPreparedQuery_Delete(t *testing.T) {
 		}
 
 		resp := httptest.NewRecorder()
-		_, err = srv.preparedQuerySpecific("MockPreparedQuery", resp, req)
+		_, err = srv.PreparedQuerySpecific(resp, req)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
