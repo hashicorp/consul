@@ -689,6 +689,12 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 	return codec.err
 }
 
+// InjectEndpoint is used to substitute an endpoint for testing.
+func (s *Server) InjectEndpoint(endpoint interface{}) error {
+	s.logger.Printf("[WARN] consul: endpoint injected; this should only be used for testing")
+	return s.rpcServer.Register(endpoint)
+}
+
 // Stats is used to return statistics for debugging and insight
 // for various sub-systems
 func (s *Server) Stats() map[string]map[string]string {
