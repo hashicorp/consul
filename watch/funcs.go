@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 // watchFactory is a function that can create a new WatchFunc
@@ -114,15 +115,15 @@ func serviceWatch(params map[string]interface{}) (WatchFunc, error) {
 		return nil, err
 	}
 
-	passingOnly := false
-	if err := assignValueBool(params, "passingonly", &passingOnly); err != nil {
-		return nil, err
+	state := structs.HealthAny
+	if _, ok := params["passingonly"]; ok {
+		state = structs.HealthPassing
 	}
 
 	fn := func(p *WatchPlan) (uint64, interface{}, error) {
 		health := p.client.Health()
 		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
-		nodes, meta, err := health.Service(service, tag, passingOnly, &opts)
+		nodes, meta, err := health.Service(service, tag, state, &opts)
 		if err != nil {
 			return 0, nil, err
 		}

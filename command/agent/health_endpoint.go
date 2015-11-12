@@ -110,21 +110,28 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		return nil, err
 	}
 
-	// Filter to only passing if specified
-	if _, ok := params["passing"]; ok {
-		out.Nodes = filterNonPassing(out.Nodes)
+	// Filter by state if specified
+	if _, passing := params[structs.HealthPassing]; passing {
+		out.Nodes = filterByState(out.Nodes, structs.HealthPassing)
+	} else if _, warning := params[structs.HealthWarning]; warning {
+		out.Nodes = filterByState(out.Nodes, structs.HealthWarning)
+	} else if _, critical := params[structs.HealthCritical]; critical {
+		out.Nodes = filterByState(out.Nodes, structs.HealthCritical)
+	} else if _, unknown := params[structs.HealthUnknown]; unknown {
+		out.Nodes = filterByState(out.Nodes, structs.HealthUnknown)
 	}
+
 	return out.Nodes, nil
 }
 
 // filterNonPassing is used to filter out any nodes that have check that are not passing
-func filterNonPassing(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+func filterByState(nodes structs.CheckServiceNodes, state string) structs.CheckServiceNodes {
 	n := len(nodes)
 OUTER:
 	for i := 0; i < n; i++ {
 		node := nodes[i]
 		for _, check := range node.Checks {
-			if check.Status != structs.HealthPassing {
+			if check.Status != state {
 				nodes[i], nodes[n-1] = nodes[n-1], structs.CheckServiceNode{}
 				n--
 				i--

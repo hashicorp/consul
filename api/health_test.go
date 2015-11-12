@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
 )
 
@@ -84,7 +85,7 @@ func TestHealth_Service(t *testing.T) {
 
 	testutil.WaitForResult(func() (bool, error) {
 		// consul service should always exist...
-		checks, meta, err := health.Service("consul", "", true, nil)
+		checks, meta, err := health.Service("consul", "", structs.HealthPassing, nil)
 		if err != nil {
 			return false, err
 		}

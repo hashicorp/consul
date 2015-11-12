@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 // HealthCheck is used to represent a single check
@@ -78,15 +79,22 @@ func (h *Health) Checks(service string, q *QueryOptions) ([]*HealthCheck, *Query
 // Service is used to query health information along with service info
 // for a given service. It can optionally do server-side filtering on a tag
 // or nodes with passing health checks only.
-func (h *Health) Service(service, tag string, passingOnly bool, q *QueryOptions) ([]*ServiceEntry, *QueryMeta, error) {
+func (h *Health) Service(service, tag string, state string, q *QueryOptions) ([]*ServiceEntry, *QueryMeta, error) {
+	switch state {
+	case structs.HealthAny:
+	case structs.HealthWarning:
+	case structs.HealthCritical:
+	case structs.HealthPassing:
+	case structs.HealthUnknown:
+	default:
+		return nil, nil, fmt.Errorf("Unsupported state: %v", state)
+	}
 	r := h.c.newRequest("GET", "/v1/health/service/"+service)
 	r.setQueryOptions(q)
 	if tag != "" {
 		r.params.Set("tag", tag)
 	}
-	if passingOnly {
-		r.params.Set("passing", "1")
-	}
+	r.params.Set(state, "1")
 	rtt, resp, err := requireOK(h.c.doRequest(r))
 	if err != nil {
 		return nil, nil, err
@@ -108,11 +116,11 @@ func (h *Health) Service(service, tag string, passingOnly bool, q *QueryOptions)
 // The wildcard "any" state can also be used for all checks.
 func (h *Health) State(state string, q *QueryOptions) ([]*HealthCheck, *QueryMeta, error) {
 	switch state {
-	case "any":
-	case "warning":
-	case "critical":
-	case "passing":
-	case "unknown":
+	case structs.HealthAny:
+	case structs.HealthWarning:
+	case structs.HealthCritical:
+	case structs.HealthPassing:
+	case structs.HealthUnknown:
 	default:
 		return nil, nil, fmt.Errorf("Unsupported state: %v", state)
 	}
