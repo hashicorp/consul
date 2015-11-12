@@ -265,6 +265,9 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.HandleFunc("/v1/acl/list", s.wrap(aclDisabled))
 	}
 
+	s.mux.HandleFunc("/v1/query", s.wrap(s.PreparedQueryGeneral))
+	s.mux.HandleFunc("/v1/query/", s.wrap(s.PreparedQuerySpecific))
+
 	if enableDebug {
 		s.mux.HandleFunc("/debug/pprof/", pprof.Index)
 		s.mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)

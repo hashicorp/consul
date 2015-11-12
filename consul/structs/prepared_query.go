@@ -98,9 +98,16 @@ const (
 
 // QueryRequest is used to create or change prepared queries.
 type PreparedQueryRequest struct {
+	// Datacenter is the target this request is intended for.
 	Datacenter string
-	Op         PreparedQueryOp
-	Query      *PreparedQuery
+
+	// Op is the operation to apply.
+	Op PreparedQueryOp
+
+	// Query is the query itself.
+	Query *PreparedQuery
+
+	// WriteRequest holds the ACL token to go along with this request.
 	WriteRequest
 }
 

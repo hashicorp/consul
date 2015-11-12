@@ -182,7 +182,8 @@ func parseDNS(dns *structs.QueryDNSOptions) error {
 }
 
 // Get returns a single prepared query by ID.
-func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest, reply *structs.IndexedPreparedQueries) error {
+func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
+	reply *structs.IndexedPreparedQueries) error {
 	if done, err := p.srv.forward("PreparedQuery.Get", args, args, reply); done {
 		return err
 	}
