@@ -198,4 +198,7 @@ type PreparedQueryExecuteResponse struct {
 	// Failovers is a count of how many times we had to query a remote
 	// datacenter.
 	Failovers int
+
+	// QueryMeta has freshness information about the query.
+	QueryMeta
 }

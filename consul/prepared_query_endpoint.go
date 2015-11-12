@@ -268,6 +268,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	defer metrics.MeasureSince([]string{"consul", "prepared-query", "execute"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
+	p.srv.setQueryMeta(&reply.QueryMeta)
 	if args.RequireConsistent {
 		if err := p.srv.consistentRead(); err != nil {
 			return err
@@ -327,6 +328,7 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 	defer metrics.MeasureSince([]string{"consul", "prepared-query", "execute_remote"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
+	p.srv.setQueryMeta(&reply.QueryMeta)
 	if args.RequireConsistent {
 		if err := p.srv.consistentRead(); err != nil {
 			return err
