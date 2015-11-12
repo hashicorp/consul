@@ -243,7 +243,7 @@ func (s *StateStore) PreparedQueryList() (uint64, structs.PreparedQueries, error
 	}
 
 	// Go over all of the queries and build the response.
-	var result structs.PreparedQueries
+	result := make(structs.PreparedQueries, 0)
 	for query := queries.Next(); query != nil; query = queries.Next() {
 		result = append(result, query.(*structs.PreparedQuery))
 	}
