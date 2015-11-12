@@ -273,6 +273,7 @@ func (c *consulFSM) applyPreparedQueryOperation(buf []byte, index uint64) interf
 	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
+
 	defer metrics.MeasureSince([]string{"consul", "fsm", "prepared-query", string(req.Op)}, time.Now())
 	switch req.Op {
 	case structs.PreparedQueryCreate, structs.PreparedQueryUpdate:
@@ -392,6 +393,15 @@ func (c *consulFSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 
+		case structs.PreparedQueryRequestType:
+			var req structs.PreparedQuery
+			if err := dec.Decode(&req); err != nil {
+				return err
+			}
+			if err := restore.PreparedQuery(&req); err != nil {
+				return err
+			}
+
 		default:
 			return fmt.Errorf("Unrecognized msg type: %v", msgType)
 		}
@@ -440,6 +450,12 @@ func (s *consulSnapshot) Persist(sink raft.SnapshotSink) error {
 		sink.Cancel()
 		return err
 	}
+
+	if err := s.persistPreparedQueries(sink, encoder); err != nil {
+		sink.Cancel()
+		return err
+	}
+
 	return nil
 }
 
@@ -580,6 +596,22 @@ func (s *consulSnapshot) persistTombstones(sink raft.SnapshotSink,
 			},
 		}
 		if err := encoder.Encode(fake); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *consulSnapshot) persistPreparedQueries(sink raft.SnapshotSink,
+	encoder *codec.Encoder) error {
+	queries, err := s.state.PreparedQueries()
+	if err != nil {
+		return err
+	}
+
+	for query := queries.Next(); query != nil; query = queries.Next() {
+		sink.Write([]byte{byte(structs.PreparedQueryRequestType)})
+		if err := encoder.Encode(query.(*structs.PreparedQuery)); err != nil {
 			return err
 		}
 	}
