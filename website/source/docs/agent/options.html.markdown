@@ -562,6 +562,15 @@ definitions support being updated during a reload.
   This can be used to capture runtime information. This sends UDP packets only and can be used with statsd
   or statsite.
 
+* <a name="dogstatsd_addr"></a><a href="#dogstatsd_addr">`dogstatsd_addr`</a> This provides the
+  address of a DogStatsD instance. DogStatsD is a protocol-compatible flavor of statsd, with the added ability
+  to decorate metrics with tags and event information. If provided, Consul will send various telemetry information
+  to that instance for aggregation. This can be used to capture runtime information.
+
+* <a name="dogstatsd_tags"></a><a href="#dogstatsd_tags">`dogstatsd_tags`</a> This provides a list of global tags
+  that will be added to all telemetry packets sent to DogStatsD. It is a list of strings, where each string
+  looks like "my_tag_name:my_tag_value".
+
 * <a name="statsite_addr"></a><a href="#statsite_addr">`statsite_addr`</a> This provides the address of a
   statsite instance. If provided, Consul will stream various telemetry information to that instance for
   aggregation. This can be used to capture runtime information. This streams via
