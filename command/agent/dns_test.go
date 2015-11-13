@@ -1406,7 +1406,7 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
 	c := new(dns.Client)
 	in, _, err := c.Exchange(m, addr.String())
-	if err != nil {
+	if err != nil && err != dns.ErrTruncated {
 		t.Fatalf("err: %v", err)
 	}
 
