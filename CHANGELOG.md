@@ -11,7 +11,8 @@ FEATURES:
 * Ported in-memory database from LMDB to an immutable radix tree to improve
   read throughput, reduce garbage collection pressure, and make Consul 100%
   pure Go [GH-1291]
-* Added new network tomography sub system that estimates the network
+* Added support for sending telemetry to DogStatsD [GH-1293]
+* Added new network tomography subsystem that estimates the network
   round trip times between nodes and exposes that in raw APIs, as well
   as in existing APIs (find the service node nearest node X); also
   includes a new `consul rtt` command to query interactively [GH-1331]
