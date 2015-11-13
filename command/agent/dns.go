@@ -587,19 +587,22 @@ RPC:
 		goto RPC
 	}
 
-	// TODO (slackpad) Do we want to apply the DNS server's per-service TTL
-	// configs if the query's TTL is not set? That seems like it adds a lot
-	// of complexity (we'd have to plumb the service name back with the query
-	// results to do this), but is it what people would expect?
-
 	// Determine the TTL. The parse should never fail since we vet it when
-	// the query is created, but we check anyway.
+	// the query is created, but we check anyway. If the query didn't
+	// specify a TTL then we will try to use the agent's service-specific
+	// TTL configs.
 	var ttl time.Duration
 	if out.DNS.TTL != "" {
 		var err error
 		ttl, err = time.ParseDuration(out.DNS.TTL)
 		if err != nil {
 			d.logger.Printf("[WARN] dns: Failed to parse TTL '%s' for prepared query '%s', ignoring", out.DNS.TTL, query)
+		}
+	} else if d.config.ServiceTTL != nil {
+		var ok bool
+		ttl, ok = d.config.ServiceTTL[out.Service]
+		if !ok {
+			ttl = d.config.ServiceTTL["*"]
 		}
 	}
 

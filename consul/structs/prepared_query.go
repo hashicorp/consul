@@ -186,6 +186,9 @@ func (q *PreparedQueryExecuteRemoteRequest) RequestDatacenter() string {
 
 // PreparedQueryExecuteResponse has the results of executing a query.
 type PreparedQueryExecuteResponse struct {
+	// Service is the service that was queried.
+	Service string
+
 	// Nodes has the nodes that were output by the query.
 	Nodes CheckServiceNodes
 

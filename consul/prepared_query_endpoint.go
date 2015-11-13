@@ -386,6 +386,7 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	}
 
 	// Capture the nodes and pass the DNS information through to the reply.
+	reply.Service = query.Service.Service
 	reply.Nodes = nodes
 	reply.DNS = query.DNS
 

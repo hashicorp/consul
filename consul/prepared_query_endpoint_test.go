@@ -1077,7 +1077,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		var reply structs.PreparedQueryExecuteResponse
 		err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply)
-		if err == nil || err.Error() !=  ErrQueryNotFound.Error() {
+		if err == nil || err.Error() != ErrQueryNotFound.Error() {
 			t.Fatalf("bad: %v", err)
 		}
 
@@ -1100,6 +1100,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		if len(reply.Nodes) != 10 ||
 			reply.Datacenter != "dc1" || reply.Failovers != 0 ||
+			reply.Service != query.Query.Service.Service ||
 			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
 			!reply.QueryMeta.KnownLeader {
 			t.Fatalf("bad: %v", reply)
@@ -1121,6 +1122,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		if len(reply.Nodes) != 3 ||
 			reply.Datacenter != "dc1" || reply.Failovers != 0 ||
+			reply.Service != query.Query.Service.Service ||
 			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
 			!reply.QueryMeta.KnownLeader {
 			t.Fatalf("bad: %v", reply)
@@ -1162,6 +1164,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		if len(reply.Nodes) != 10 ||
 			reply.Datacenter != "dc1" || reply.Failovers != 0 ||
+			reply.Service != query.Query.Service.Service ||
 			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
 			!reply.QueryMeta.KnownLeader {
 			t.Fatalf("bad: %v", reply)
@@ -1186,6 +1189,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		if len(reply.Nodes) != 10 ||
 			reply.Datacenter != "dc1" || reply.Failovers != 0 ||
+			reply.Service != query.Query.Service.Service ||
 			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
 			!reply.QueryMeta.KnownLeader {
 			t.Fatalf("bad: %v", reply)
@@ -1244,6 +1248,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		if len(reply.Nodes) != 9 ||
 			reply.Datacenter != "dc1" || reply.Failovers != 0 ||
+			reply.Service != query.Query.Service.Service ||
 			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
 			!reply.QueryMeta.KnownLeader {
 			t.Fatalf("bad: %v", reply)
@@ -1270,6 +1275,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		if len(reply.Nodes) != 10 ||
 			reply.Datacenter != "dc1" || reply.Failovers != 0 ||
+			reply.Service != query.Query.Service.Service ||
 			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
 			!reply.QueryMeta.KnownLeader {
 			t.Fatalf("bad: %v", reply)
@@ -1297,6 +1303,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		if len(reply.Nodes) != 9 ||
 			reply.Datacenter != "dc1" || reply.Failovers != 0 ||
+			reply.Service != query.Query.Service.Service ||
 			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
 			!reply.QueryMeta.KnownLeader {
 			t.Fatalf("bad: %v", reply)
@@ -1331,6 +1338,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		if len(reply.Nodes) != 8 ||
 			reply.Datacenter != "dc1" || reply.Failovers != 0 ||
+			reply.Service != query.Query.Service.Service ||
 			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
 			!reply.QueryMeta.KnownLeader {
 			t.Fatalf("bad: %v", reply)
@@ -1359,6 +1367,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		if len(reply.Nodes) != 0 ||
 			reply.Datacenter != "dc1" || reply.Failovers != 0 ||
+			reply.Service != query.Query.Service.Service ||
 			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
 			!reply.QueryMeta.KnownLeader {
 			t.Fatalf("bad: %v", reply)
@@ -1385,6 +1394,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		if len(reply.Nodes) != 9 ||
 			reply.Datacenter != "dc2" || reply.Failovers != 1 ||
+			reply.Service != query.Query.Service.Service ||
 			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
 			!reply.QueryMeta.KnownLeader {
 			t.Fatalf("bad: %v", reply)
@@ -1412,6 +1422,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		if len(reply.Nodes) != 3 ||
 			reply.Datacenter != "dc2" || reply.Failovers != 1 ||
+			reply.Service != query.Query.Service.Service ||
 			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
 			!reply.QueryMeta.KnownLeader {
 			t.Fatalf("bad: %v", reply)
@@ -1438,6 +1449,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		if len(reply.Nodes) != 9 ||
 			reply.Datacenter != "dc2" || reply.Failovers != 1 ||
+			reply.Service != query.Query.Service.Service ||
 			!reflect.DeepEqual(reply.DNS, query.Query.DNS) ||
 			!reply.QueryMeta.KnownLeader {
 			t.Fatalf("bad: %v", reply)
