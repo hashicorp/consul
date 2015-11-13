@@ -206,18 +206,17 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 			if err != nil {
 				return err
 			}
+			if query == nil {
+				return ErrQueryNotFound
+			}
 
-			if (query != nil) && (query.Token != args.Token) && (acl != nil && !acl.QueryList()) {
+			if (query.Token != args.Token) && (acl != nil && !acl.QueryList()) {
 				p.srv.logger.Printf("[WARN] consul.prepared_query: Request to get prepared query '%s' denied because ACL didn't match ACL used to create the query, and a management token wasn't supplied", args.QueryID)
 				return permissionDeniedErr
 			}
 
 			reply.Index = index
-			if query != nil {
-				reply.Queries = structs.PreparedQueries{query}
-			} else {
-				reply.Queries = nil
-			}
+			reply.Queries = structs.PreparedQueries{query}
 			return nil
 		})
 

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 )
 
@@ -101,6 +102,13 @@ func (s *HTTPServer) PreparedQuerySpecific(resp http.ResponseWriter, req *http.R
 
 			var reply structs.PreparedQueryExecuteResponse
 			if err := s.agent.RPC(endpoint+".Execute", &args, &reply); err != nil {
+				// We have to check the string since the RPC sheds
+				// the specific error type.
+				if err.Error() == consul.ErrQueryNotFound.Error() {
+					resp.WriteHeader(404)
+					resp.Write([]byte(err.Error()))
+					return nil, nil
+				}
 				return nil, err
 			}
 			return reply, nil
@@ -114,6 +122,13 @@ func (s *HTTPServer) PreparedQuerySpecific(resp http.ResponseWriter, req *http.R
 
 			var reply structs.IndexedPreparedQueries
 			if err := s.agent.RPC(endpoint+".Get", &args, &reply); err != nil {
+				// We have to check the string since the RPC sheds
+				// the specific error type.
+				if err.Error() == consul.ErrQueryNotFound.Error() {
+					resp.WriteHeader(404)
+					resp.Write([]byte(err.Error()))
+					return nil, nil
+				}
 				return nil, err
 			}
 			return reply.Queries, nil

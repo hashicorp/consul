@@ -184,7 +184,9 @@ func TestPreparedQuery_Apply(t *testing.T) {
 		}
 		var resp structs.IndexedPreparedQueries
 		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
+			if err.Error() != ErrQueryNotFound.Error() {
+				t.Fatalf("err: %v", err)
+			}
 		}
 
 		if len(resp.Queries) != 0 {
@@ -363,7 +365,9 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 		}
 		var resp structs.IndexedPreparedQueries
 		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
+			if err.Error() != ErrQueryNotFound.Error() {
+				t.Fatalf("err: %v", err)
+			}
 		}
 
 		if len(resp.Queries) != 0 {
@@ -492,7 +496,9 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 		}
 		var resp structs.IndexedPreparedQueries
 		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
+			if err.Error() != ErrQueryNotFound.Error() {
+				t.Fatalf("err: %v", err)
+			}
 		}
 
 		if len(resp.Queries) != 0 {
@@ -792,7 +798,9 @@ func TestPreparedQuery_Get(t *testing.T) {
 		}
 		var resp structs.IndexedPreparedQueries
 		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
+			if err.Error() != ErrQueryNotFound.Error() {
+				t.Fatalf("err: %v", err)
+			}
 		}
 
 		if len(resp.Queries) != 0 {

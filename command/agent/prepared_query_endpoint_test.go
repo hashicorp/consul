@@ -245,6 +245,23 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			t.Fatalf("bad: %v", r)
 		}
 	})
+
+	httpTest(t, func(srv *HTTPServer) {
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/query/not-there/execute", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		_, err = srv.PreparedQuerySpecific(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 404 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+	})
 }
 
 func TestPreparedQuery_Get(t *testing.T) {
@@ -294,6 +311,23 @@ func TestPreparedQuery_Get(t *testing.T) {
 		}
 		if len(r) != 1 || r[0].ID != "my-id" {
 			t.Fatalf("bad: %v", r)
+		}
+	})
+
+	httpTest(t, func(srv *HTTPServer) {
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/query/f004177f-2c28-83b7-4229-eacc25fe55d1", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		_, err = srv.PreparedQuerySpecific(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 404 {
+			t.Fatalf("bad code: %d", resp.Code)
 		}
 	})
 }
