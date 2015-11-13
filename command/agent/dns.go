@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/miekg/dns"
 )
@@ -555,17 +556,25 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 		},
 	}
 
-	// If the network is not TCP then we just get enough responses to
-	// tell that things got truncated. This saves bandwidth since we
-	// will trim the list anyway.
-	if network != "tcp" {
-		args.Limit = maxServiceResponses + 1
-	}
+	// TODO (slackpad) - What's a safe limit we can set here? It seems like
+	// with dup filtering done at this level we need to get everything to
+	// match the previous behavior. We can optimize by pushing more filtering
+	// into the query execution, but for now I think we need to get the full
+	// response.
 
 	endpoint := d.agent.getEndpoint(preparedQueryEndpoint)
 	var out structs.PreparedQueryExecuteResponse
 RPC:
 	if err := d.agent.RPC(endpoint+".Execute", &args, &out); err != nil {
+		// If they give a bogus query name, treat that as a name error,
+		// not a full on server error. We have to use a string compare
+		// here since the RPC layer loses the type information.
+		if err.Error() == consul.ErrQueryNotFound.Error() {
+			d.addSOA(d.domain, resp)
+			resp.SetRcode(req, dns.RcodeNameError)
+			return
+		}
+
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
@@ -577,6 +586,11 @@ RPC:
 		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
 		goto RPC
 	}
+
+	// TODO (slackpad) Do we want to apply the DNS server's per-service TTL
+	// configs if the query's TTL is not set? That seems like it adds a lot
+	// of complexity (we'd have to plumb the service name back with the query
+	// results to do this), but is it what people would expect?
 
 	// Determine the TTL. The parse should never fail since we vet it when
 	// the query is created, but we check anyway.

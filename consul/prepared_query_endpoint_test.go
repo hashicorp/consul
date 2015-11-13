@@ -1077,7 +1077,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		var reply structs.PreparedQueryExecuteResponse
 		err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply)
-		if err == nil || !strings.Contains(err.Error(), ErrQueryNotFound.Error()) {
+		if err == nil || err.Error() !=  ErrQueryNotFound.Error() {
 			t.Fatalf("bad: %v", err)
 		}
 
