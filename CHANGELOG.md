@@ -1,5 +1,12 @@
 ## 0.6.0 (Unreleased)
 
+BACKWARDS INCOMPATIBILITIES:
+
+* A KV lock acquisition operation will now allow the lock holder to
+  update the key's value without giving up the lock by doing another
+  PUT with `?acquire=<session>` and providing the same session that
+  is holding the lock. Previously, this operation would fail.
+
 FEATURES:
 
 * Service ACLs now apply to service discovery [GH-1024]
@@ -73,7 +80,7 @@ MISC:
 
 * Lots of docs fixes
 * Lots of Vagrantfile cleanup
-* Data migrator utility removed to reduce cgo dependency. [GH-1309]
+* Data migrator utility removed to reduce cgo dependency [GH-1309]
 
 UPGRADE NOTES:
 
