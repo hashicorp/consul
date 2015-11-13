@@ -3,7 +3,7 @@
 BACKWARDS INCOMPATIBILITIES:
 
 * A KV lock acquisition operation will now allow the lock holder to
-  update the key's value without giving up the lock by doing another
+  update the key's contents without giving up the lock by doing another
   PUT with `?acquire=<session>` and providing the same session that
   is holding the lock. Previously, this operation would fail.
 
@@ -67,8 +67,9 @@ IMPROVEMENTS:
 * Enables the `/v1/internal/ui/*` endpoints, even if `-ui-dir` isn't set
   [GH-1215]
 * Added HTTP method to Consul's log output for better debugging [GH-1270]
-* Lock holders can "?acquire" a key again with the same session to update
-  its contents without releasing the lock [GH-1291]
+* Lock holders can `?acquire=<session>` a key again with the same session
+  that holds the lock to update a key's contents without releasing the
+  lock [GH-1291]
 * Improved an O(n^2) algorithm in the agent's catalog sync code [GH-1296]
 * Switched to net-rpc-msgpackrpc to reduce RPC overhead [GH-1307]
 * Removes all uses of the http package's default client and transport in
