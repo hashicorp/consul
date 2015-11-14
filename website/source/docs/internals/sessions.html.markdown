@@ -145,3 +145,8 @@ the goal of Consul to protect against misbehaving clients.
 The primitives provided by sessions and the locking mechanisms of the KV
 store can be used to build client-side leader election algorithms.
 These are covered in more detail in the [Leader Election guide](/docs/guides/leader-election.html).
+
+## Prepared Query Integration
+
+Prepared queries may be attached to a session in order to automatically delete
+the prepared query when the session is invalidated.
