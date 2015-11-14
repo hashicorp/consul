@@ -560,7 +560,9 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 	// with dup filtering done at this level we need to get everything to
 	// match the previous behavior. We can optimize by pushing more filtering
 	// into the query execution, but for now I think we need to get the full
-	// response.
+	// response. We could also choose a large arbitrary number that will
+	// likely work in practice, like 10*maxServiceResponses which should help
+	// reduce bandwidth if there are thousands of nodes available.
 
 	endpoint := d.agent.getEndpoint(preparedQueryEndpoint)
 	var out structs.PreparedQueryExecuteResponse

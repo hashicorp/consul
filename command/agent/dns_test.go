@@ -2734,3 +2734,52 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 		}
 	}
 }
+
+func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
+	confFn := func(c *DNSConfig) {
+		c.AllowStale = true
+		c.MaxStale = time.Second
+	}
+	dir, srv := makeDNSServerConfig(t, nil, confFn)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	m := MockPreparedQuery{}
+	if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m.executeFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+		// Return a response that's perpetually too stale.
+		reply.LastContact = 2 * time.Second
+		return nil
+	}
+
+	// Make sure that the lookup terminates and results in an SOA since
+	// the query doesn't exist.
+	{
+		m := new(dns.Msg)
+		m.SetQuestion("nope.query.consul.", dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Ns) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		soaRec, ok := in.Ns[0].(*dns.SOA)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+		if soaRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+	}
+}
