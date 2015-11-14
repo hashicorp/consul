@@ -1,14 +1,5 @@
 package structs
 
-import (
-	"time"
-)
-
-const (
-	QueryTTLMax = 24 * time.Hour
-	QueryTTLMin = 10 * time.Second
-)
-
 // QueryDatacenterOptions sets options about how we fail over if there are no
 // healthy nodes in the local datacenter.
 type QueryDatacenterOptions struct {
