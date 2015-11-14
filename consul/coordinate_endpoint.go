@@ -92,8 +92,12 @@ func (c *Coordinate) batchApplyUpdates() error {
 		t := structs.CoordinateBatchUpdateType | structs.IgnoreUnknownTypeFlag
 
 		slice := updates[start:end]
-		if _, err := c.srv.raftApply(t, slice); err != nil {
+		resp, err := c.srv.raftApply(t, slice)
+		if err != nil {
 			return err
+		}
+		if respErr, ok := resp.(error); ok {
+			return respErr
 		}
 	}
 	return nil
