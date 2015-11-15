@@ -379,7 +379,7 @@ func TestStateStore_PreparedQueryLookup(t *testing.T) {
 func TestStateStore_PreparedQueryList(t *testing.T) {
 	s := testStateStore(t)
 
-	// Make sure an empty (non-nil) slice is returned if there are no queries.
+	// Make sure nothing is returned for an empty query
 	idx, actual, err := s.PreparedQueryList()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -387,7 +387,7 @@ func TestStateStore_PreparedQueryList(t *testing.T) {
 	if idx != 0 {
 		t.Fatalf("bad index: %d", idx)
 	}
-	if actual == nil || len(actual) != 0 {
+	if len(actual) != 0 {
 		t.Fatalf("bad: %v", actual)
 	}
 

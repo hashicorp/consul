@@ -54,6 +54,11 @@ func (s *HTTPServer) PreparedQueryGeneral(resp http.ResponseWriter, req *http.Re
 		if err := s.agent.RPC(endpoint+".List", &args, &reply); err != nil {
 			return nil, err
 		}
+
+		// Use empty list instead of nil.
+		if reply.Queries == nil {
+			reply.Queries = make(structs.PreparedQueries, 0)
+		}
 		return reply.Queries, nil
 
 	default:
@@ -110,6 +115,11 @@ func (s *HTTPServer) PreparedQuerySpecific(resp http.ResponseWriter, req *http.R
 					return nil, nil
 				}
 				return nil, err
+			}
+
+			// Use empty list instead of nil.
+			if reply.Nodes == nil {
+				reply.Nodes = make(structs.CheckServiceNodes, 0)
 			}
 			return reply, nil
 		} else {

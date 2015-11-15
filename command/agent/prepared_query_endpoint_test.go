@@ -151,6 +151,40 @@ func TestPreparedQuery_List(t *testing.T) {
 		}
 
 		m.listFn = func(args *structs.DCSpecificRequest, reply *structs.IndexedPreparedQueries) error {
+			// Return an empty response.
+			return nil
+		}
+
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/query", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.PreparedQueryGeneral(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 200 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+		r, ok := obj.(structs.PreparedQueries)
+		if !ok {
+			t.Fatalf("unexpected: %T", obj)
+		}
+		if r == nil || len(r) != 0 {
+			t.Fatalf("bad: %v", r)
+		}
+	})
+
+	httpTest(t, func(srv *HTTPServer) {
+		m := MockPreparedQuery{}
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		m.listFn = func(args *structs.DCSpecificRequest, reply *structs.IndexedPreparedQueries) error {
 			expected := &structs.DCSpecificRequest{
 				Datacenter: "dc1",
 				QueryOptions: structs.QueryOptions{
@@ -194,6 +228,40 @@ func TestPreparedQuery_List(t *testing.T) {
 }
 
 func TestPreparedQuery_Execute(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		m := MockPreparedQuery{}
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		m.executeFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+			// Just return an empty response.
+			return nil
+		}
+
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/query/my-id/execute", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.PreparedQuerySpecific(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 200 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+		r, ok := obj.(structs.PreparedQueryExecuteResponse)
+		if !ok {
+			t.Fatalf("unexpected: %T", obj)
+		}
+		if r.Nodes == nil || len(r.Nodes) != 0 {
+			t.Fatalf("bad: %v", r)
+		}
+	})
+
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
 		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
