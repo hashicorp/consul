@@ -57,6 +57,12 @@ func (c *RTTCommand) Run(args []string) int {
 	}
 
 	nodes := cmdFlags.Args()
+	if wan && (len(nodes) < 1 || len(nodes) > 2) {
+		c.Ui.Error("One or two node names must be specified")
+		c.Ui.Error("")
+		c.Ui.Error(c.Help())
+		return 1
+	}
 
 	// Create and test the HTTP client.
 	conf := api.DefaultConfig()
