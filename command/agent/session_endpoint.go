@@ -185,6 +185,11 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 	if err := s.agent.RPC("Session.Get", &args, &out); err != nil {
 		return nil, err
 	}
+
+	// Use empty list instead of nil
+	if out.Sessions == nil {
+		out.Sessions = make(structs.Sessions, 0)
+	}
 	return out.Sessions, nil
 }
 
@@ -199,6 +204,11 @@ func (s *HTTPServer) SessionList(resp http.ResponseWriter, req *http.Request) (i
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Session.List", &args, &out); err != nil {
 		return nil, err
+	}
+
+	// Use empty list instead of nil
+	if out.Sessions == nil {
+		out.Sessions = make(structs.Sessions, 0)
 	}
 	return out.Sessions, nil
 }
@@ -222,6 +232,11 @@ func (s *HTTPServer) SessionsForNode(resp http.ResponseWriter, req *http.Request
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Session.NodeSessions", &args, &out); err != nil {
 		return nil, err
+	}
+
+	// Use empty list instead of nil
+	if out.Sessions == nil {
+		out.Sessions = make(structs.Sessions, 0)
 	}
 	return out.Sessions, nil
 }

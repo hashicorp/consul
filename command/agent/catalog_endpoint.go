@@ -70,6 +70,11 @@ func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (
 	if err := s.agent.RPC("Catalog.ListNodes", &args, &out); err != nil {
 		return nil, err
 	}
+
+	// Use empty list instead of nil
+	if out.Nodes == nil {
+		out.Nodes = make(structs.Nodes, 0)
+	}
 	return out.Nodes, nil
 }
 
@@ -116,6 +121,11 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Catalog.ServiceNodes", &args, &out); err != nil {
 		return nil, err
+	}
+
+	// Use empty list instead of nil
+	if out.ServiceNodes == nil {
+		out.ServiceNodes = make(structs.ServiceNodes, 0)
 	}
 	return out.ServiceNodes, nil
 }

@@ -45,6 +45,18 @@ func (s *HTTPServer) CoordinateDatacenters(resp http.ResponseWriter, req *http.R
 		}
 		return nil, err
 	}
+
+	// Use empty list instead of nil (these aren't really possible because
+	// Serf will give back a default coordinate and there's always one DC,
+	// but it's better to be explicit about what we want here).
+	for i, _ := range out {
+		if out[i].Coordinates == nil {
+			out[i].Coordinates = make(structs.Coordinates, 0)
+		}
+	}
+	if out == nil {
+		out = make([]structs.DatacenterMap, 0)
+	}
 	return out, nil
 }
 
@@ -61,6 +73,11 @@ func (s *HTTPServer) CoordinateNodes(resp http.ResponseWriter, req *http.Request
 	if err := s.agent.RPC("Coordinate.ListNodes", &args, &out); err != nil {
 		sort.Sort(&sorter{out.Coordinates})
 		return nil, err
+	}
+
+	// Use empty list instead of nil.
+	if out.Coordinates == nil {
+		out.Coordinates = make(structs.Coordinates, 0)
 	}
 	return out.Coordinates, nil
 }
