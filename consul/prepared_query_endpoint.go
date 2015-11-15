@@ -544,6 +544,14 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 		// This keeps track of how many iterations we actually run.
 		failovers++
 
+		// Be super paranoid and set the nodes slice to nil since it's
+		// the same slice we used before. We know there's nothing in
+		// there, but the underlying msgpack library has a policy of
+		// updating the slice when it's non-nil, and that feels dirty.
+		// Let's just set it to nil so there's no way to communicate
+		// through this slice across successive RPC calls.
+		reply.Nodes = nil
+
 		// Note that we pass along the limit since it can be applied
 		// remotely to save bandwidth. We also pass along the consistency
 		// mode information we were given, so that applies to the remote
