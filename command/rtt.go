@@ -56,14 +56,7 @@ func (c *RTTCommand) Run(args []string) int {
 		return 1
 	}
 
-	// They must provide at least one node.
 	nodes := cmdFlags.Args()
-	if len(nodes) < 1 || len(nodes) > 2 {
-		c.Ui.Error("One or two node names must be specified")
-		c.Ui.Error("")
-		c.Ui.Error(c.Help())
-		return 1
-	}
 
 	// Create and test the HTTP client.
 	conf := api.DefaultConfig()
@@ -128,15 +121,72 @@ func (c *RTTCommand) Run(args []string) int {
 	} else {
 		source = "LAN"
 
-		// Default the second node to the agent if none was given.
-		if len(nodes) < 2 {
-			agent := client.Agent()
-			node, err := agent.NodeName()
+		l := len(nodes)
+		if l <= 1 {
+			var sourcenode string
+			// If list of input nodes is empty, get source node
+			if l == 0 {
+				agent := client.Agent()
+				sourcenode, err = agent.NodeName()
+				if err != nil {
+					c.Ui.Error(fmt.Sprintf("Unable to look up agent info: %s", err))
+					return 1
+				}
+			}
+
+			if l == 1 {
+				sourcenode = nodes[0]
+			}
+
+			// Pull all the LAN coordinates.
+			entries, _, err := coordClient.Nodes(nil)
 			if err != nil {
-				c.Ui.Error(fmt.Sprintf("Unable to look up agent info: %s", err))
+				c.Ui.Error(fmt.Sprintf("Error getting coordinates: %s", err))
 				return 1
 			}
-			nodes = append(nodes, node)
+
+			// find source node
+			node := &api.CoordinateEntry{}
+			for _, entry := range entries {
+				if entry.Node == sourcenode {
+					node = entry
+					break
+				}
+			}
+
+			coordsource := node.Coord
+			mindist := coordsource.DistanceTo(entries[0].Coord).Seconds() * 1000.0
+			maxdist := mindist
+			worstnodefrom := node.Node
+			worstnodeto := entries[0].Node
+			bestnodefrom := node.Node
+			bestnodeto := worstnodeto
+			sumrtt := 0.0
+			for _, entry := range entries {
+				coord := entry.Coord
+				dist := coordsource.DistanceTo(coord).Seconds() * 1000.0
+				sumrtt += dist
+				if dist < mindist {
+					mindist = dist
+					bestnodefrom = node.Node
+					bestnodeto = entry.Node
+				}
+
+				if dist > maxdist {
+					maxdist = dist
+					worstnodefrom = node.Node
+					bestnodeto = entry.Node
+				}
+
+			}
+
+			c.Ui.Output("Using LAN coordinates")
+			c.Ui.Output(fmt.Sprintf("Best rtt from '%s' to '%s' is %.3f ms", bestnodefrom,
+				bestnodeto, mindist))
+			c.Ui.Output(fmt.Sprintf("Worst rtt from: '%s' to '%s' is %.3f ms", worstnodefrom,
+				worstnodeto, maxdist))
+			c.Ui.Output(fmt.Sprintf("Average rtt between nodes: %.3f ms", sumrtt/float64(len(entries))))
+			return 0
 		}
 
 		// Pull all the LAN coordinates.
