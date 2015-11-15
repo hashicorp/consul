@@ -379,6 +379,18 @@ func TestStateStore_PreparedQueryLookup(t *testing.T) {
 func TestStateStore_PreparedQueryList(t *testing.T) {
 	s := testStateStore(t)
 
+	// Make sure an empty (non-nil) slice is returned if there are no queries.
+	idx, actual, err := s.PreparedQueryList()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if actual == nil || len(actual) != 0 {
+		t.Fatalf("bad: %v", actual)
+	}
+
 	// Set up our test environment.
 	testRegisterNode(t, s, 1, "foo")
 	testRegisterService(t, s, 2, "foo", "redis")
@@ -439,7 +451,7 @@ func TestStateStore_PreparedQueryList(t *testing.T) {
 			},
 		},
 	}
-	idx, actual, err := s.PreparedQueryList()
+	idx, actual, err = s.PreparedQueryList()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
