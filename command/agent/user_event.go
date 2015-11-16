@@ -3,8 +3,10 @@ package agent
 import (
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/audit"
 )
 
 const (
@@ -81,7 +83,23 @@ func (a *Agent) UserEvent(dc, token string, params *UserEvent) error {
 	params.ID = generateUUID()
 	params.Version = userEventMaxVersion
 	payload, err := encodeMsgPack(&params)
+
+	//In addition information need to write ID of event
+	audititem := &audit.AuditItem{
+		API: "UserEvent",
+		Datacenter: dc,
+		ACLToken: token,
+		Name: params.Name,
+		Node: a.config.NodeName,
+		IP: a.config.ClientAddr,
+		Status: audit.Complete,
+		Time: time.Now().Format(time.RFC3339),
+	}
+
+	defer a.audit.Write(audititem)
 	if err != nil {
+		audititem.Status = audit.Failed
+		audititem.Error = fmt.Sprintf("UserEvent encoding failed: %v", err)
 		return fmt.Errorf("UserEvent encoding failed: %v", err)
 	}
 

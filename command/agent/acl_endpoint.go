@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/audit"
 )
 
 // aclCreateResponse is used to wrap the ACL ID
@@ -33,16 +35,25 @@ func (s *HTTPServer) ACLDestroy(resp http.ResponseWriter, req *http.Request) (in
 	}
 	s.parseToken(req, &args.Token)
 
+	item := createAuditItem(s.agent.config)
+	item.API = "ACL.Destroy"
+	defer s.agent.audit.Write(item)
+
 	// Pull out the acl id
 	args.ACL.ID = strings.TrimPrefix(req.URL.Path, "/v1/acl/destroy/")
 	if args.ACL.ID == "" {
 		resp.WriteHeader(400)
+		msg := "Missing ACL"
+		item.Error = msg
+		item.Status = audit.Failed
 		resp.Write([]byte("Missing ACL"))
 		return nil, nil
 	}
 
 	var out string
 	if err := s.agent.RPC("ACL.Apply", &args, &out); err != nil {
+		item.Error = fmt.Sprintf("%v", err)
+		item.Status = audit.Failed
 		return nil, err
 	}
 	return true, nil
@@ -72,10 +83,16 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 	}
 	s.parseToken(req, &args.Token)
 
+	item := createAuditItem(s.agent.config)
+	item.API = "ACL.Set"
+	defer s.agent.audit.Write(item)
+
 	// Handle optional request body
 	if req.ContentLength > 0 {
 		if err := decodeBody(req, &args.ACL, nil); err != nil {
 			resp.WriteHeader(400)
+			item.Error = fmt.Sprintf("Request decode failed: %v", err)
+			item.Status = audit.Failed
 			resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
 			return nil, nil
 		}
@@ -85,6 +102,8 @@ func (s *HTTPServer) aclSet(resp http.ResponseWriter, req *http.Request, update 
 	// create, as one will be generated if not provided.
 	if update && args.ACL.ID == "" {
 		resp.WriteHeader(400)
+		item.Error = fmt.Sprintf("ACL ID must be set")
+		item.Status = audit.Failed
 		resp.Write([]byte(fmt.Sprintf("ACL ID must be set")))
 		return nil, nil
 	}
@@ -113,6 +132,10 @@ func (s *HTTPServer) ACLClone(resp http.ResponseWriter, req *http.Request) (inte
 	if done := s.parse(resp, req, &dc, &args.QueryOptions); done {
 		return nil, nil
 	}
+
+	item := createAuditItem(s.agent.config)
+	item.API = "ACL.Clone"
+	defer s.agent.audit.Write(item)
 
 	// Pull out the acl id
 	args.ACL = strings.TrimPrefix(req.URL.Path, "/v1/acl/clone/")
@@ -158,8 +181,14 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 	args := structs.ACLSpecificRequest{
 		Datacenter: s.agent.config.ACLDatacenter,
 	}
+
+	item := createAuditItem(s.agent.config)
+	item.API = "ACL.Get"
+	defer s.agent.audit.Write(item)
+
 	var dc string
 	if done := s.parse(resp, req, &dc, &args.QueryOptions); done {
+		item.Status = audit.Failed
 		return nil, nil
 	}
 
@@ -167,6 +196,8 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 	args.ACL = strings.TrimPrefix(req.URL.Path, "/v1/acl/info/")
 	if args.ACL == "" {
 		resp.WriteHeader(400)
+		item.Error = "Missing ACL"
+		item.Status = audit.Failed
 		resp.Write([]byte("Missing ACL"))
 		return nil, nil
 	}
@@ -174,6 +205,8 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 	var out structs.IndexedACLs
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("ACL.Get", &args, &out); err != nil {
+		item.Error = fmt.Sprintf("%v", err)
+		item.Status = audit.Failed
 		return nil, err
 	}
 
@@ -188,14 +221,21 @@ func (s *HTTPServer) ACLList(resp http.ResponseWriter, req *http.Request) (inter
 	args := structs.DCSpecificRequest{
 		Datacenter: s.agent.config.ACLDatacenter,
 	}
+	item := createAuditItem(s.agent.config)
+	item.API = "ACL.List"
+	defer s.agent.audit.Write(item)
+
 	var dc string
 	if done := s.parse(resp, req, &dc, &args.QueryOptions); done {
+		item.Status = audit.Failed
 		return nil, nil
 	}
 
 	var out structs.IndexedACLs
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("ACL.List", &args, &out); err != nil {
+		item.Status = audit.Failed
+		item.Error = fmt.Sprintf("%v", err)
 		return nil, err
 	}
 
@@ -205,3 +245,16 @@ func (s *HTTPServer) ACLList(resp http.ResponseWriter, req *http.Request) (inter
 	}
 	return out.ACLs, nil
 }
+
+//createAuditItem returns default audit item
+func createAuditItem(config *Config)*audit.AuditItem {
+	return &audit.AuditItem {
+		Datacenter: config.ACLDatacenter,
+		ACLToken: config.ACLToken,
+		Node: config.NodeName,
+		Time: time.Now().Format(time.RFC3339),
+		IP: config.ClientAddr,
+		Status: audit.Complete,
+	}
+}
+

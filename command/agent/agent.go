@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
+	"github.com/hashicorp/consul/audit"
 )
 
 const (
@@ -104,6 +105,7 @@ type Agent struct {
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
+	audit        *audit.Audit
 }
 
 // Create is used to create a new Agent. Returns
@@ -158,6 +160,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		eventCh:       make(chan serf.UserEvent, 1024),
 		eventBuf:      make([]*UserEvent, 256),
 		shutdownCh:    make(chan struct{}),
+		audit:         audit.NewAudit(config.AuditPath),
 	}
 
 	// Initialize the local state
