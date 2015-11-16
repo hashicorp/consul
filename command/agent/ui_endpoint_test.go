@@ -65,6 +65,17 @@ func TestUiNodes(t *testing.T) {
 
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "test",
+		Address:    "127.0.0.1",
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	req, err := http.NewRequest("GET", "/v1/internal/ui/nodes/dc1", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -77,9 +88,15 @@ func TestUiNodes(t *testing.T) {
 	}
 	assertIndex(t, resp)
 
-	// Should be 1 node for the server
+	// Should be 2 nodes, and all the empty lists should be non-nil
 	nodes := obj.(structs.NodeDump)
-	if len(nodes) != 1 {
+	if len(nodes) != 2 ||
+		nodes[0].Node != srv.agent.config.NodeName ||
+		nodes[0].Services == nil || len(nodes[0].Services) != 1 ||
+		nodes[0].Checks == nil || len(nodes[0].Checks) != 1 ||
+		nodes[1].Node != "test" ||
+		nodes[1].Services == nil || len(nodes[1].Services) != 0 ||
+		nodes[1].Checks == nil || len(nodes[1].Checks) != 0 {
 		t.Fatalf("bad: %v", obj)
 	}
 }
@@ -109,6 +126,38 @@ func TestUiNodeInfo(t *testing.T) {
 	// Should be 1 node for the server
 	node := obj.(*structs.NodeInfo)
 	if node.Node != srv.agent.config.NodeName {
+		t.Fatalf("bad: %v", node)
+	}
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "test",
+		Address:    "127.0.0.1",
+	}
+
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	req, err = http.NewRequest("GET", "/v1/internal/ui/node/test", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp = httptest.NewRecorder()
+	obj, err = srv.UINodeInfo(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	assertIndex(t, resp)
+
+	// Should be non-nil empty lists for services and checks
+	node = obj.(*structs.NodeInfo)
+	if node.Node != "test" ||
+		node.Services == nil || len(node.Services) != 0 ||
+		node.Checks == nil || len(node.Checks) != 0 {
 		t.Fatalf("bad: %v", node)
 	}
 }
