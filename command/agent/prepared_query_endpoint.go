@@ -20,46 +20,57 @@ type preparedQueryCreateResponse struct {
 	ID string
 }
 
-// PreparedQueryGeneral handles all the general prepared query requests.
-func (s *HTTPServer) PreparedQueryGeneral(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
-	switch req.Method {
-	case "POST": // Create a new prepared query.
-		args := structs.PreparedQueryRequest{
-			Op: structs.PreparedQueryCreate,
-		}
-		s.parseDC(req, &args.Datacenter)
-		s.parseToken(req, &args.Token)
-		if req.ContentLength > 0 {
-			if err := decodeBody(req, &args.Query, nil); err != nil {
-				resp.WriteHeader(400)
-				resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
-				return nil, nil
-			}
-		}
-
-		var reply string
-		if err := s.agent.RPC(endpoint+".Apply", &args, &reply); err != nil {
-			return nil, err
-		}
-		return preparedQueryCreateResponse{reply}, nil
-
-	case "GET": // List all the prepared queries.
-		var args structs.DCSpecificRequest
-		if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+// preparedQueryCreate makes a new prepared query.
+func (s *HTTPServer) preparedQueryCreate(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	args := structs.PreparedQueryRequest{
+		Op: structs.PreparedQueryCreate,
+	}
+	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
+	if req.ContentLength > 0 {
+		if err := decodeBody(req, &args.Query, nil); err != nil {
+			resp.WriteHeader(400)
+			resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
 			return nil, nil
 		}
+	}
 
-		var reply structs.IndexedPreparedQueries
-		if err := s.agent.RPC(endpoint+".List", &args, &reply); err != nil {
-			return nil, err
-		}
+	var reply string
+	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
+	if err := s.agent.RPC(endpoint+".Apply", &args, &reply); err != nil {
+		return nil, err
+	}
+	return preparedQueryCreateResponse{reply}, nil
+}
 
-		// Use empty list instead of nil.
-		if reply.Queries == nil {
-			reply.Queries = make(structs.PreparedQueries, 0)
-		}
-		return reply.Queries, nil
+// preparedQueryList returns all the prepared queries.
+func (s *HTTPServer) preparedQueryList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var args structs.DCSpecificRequest
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var reply structs.IndexedPreparedQueries
+	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
+	if err := s.agent.RPC(endpoint+".List", &args, &reply); err != nil {
+		return nil, err
+	}
+
+	// Use empty list instead of nil.
+	if reply.Queries == nil {
+		reply.Queries = make(structs.PreparedQueries, 0)
+	}
+	return reply.Queries, nil
+}
+
+// PreparedQueryGeneral handles all the general prepared query requests.
+func (s *HTTPServer) PreparedQueryGeneral(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	switch req.Method {
+	case "POST":
+		return s.preparedQueryCreate(resp, req)
+
+	case "GET":
+		return s.preparedQueryList(resp, req)
 
 	default:
 		resp.WriteHeader(405)
@@ -80,7 +91,109 @@ func parseLimit(req *http.Request, limit *int) error {
 	return nil
 }
 
-// PreparedQuerySpecifc handles all the prepared query requests specific to a
+// preparedQueryExecute executes a prepared query.
+func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	args := structs.PreparedQueryExecuteRequest{
+		QueryIDOrName: id,
+	}
+	s.parseSource(req, &args.Source)
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+	if err := parseLimit(req, &args.Limit); err != nil {
+		return nil, fmt.Errorf("Bad limit: %s", err)
+	}
+
+	var reply structs.PreparedQueryExecuteResponse
+	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
+	if err := s.agent.RPC(endpoint+".Execute", &args, &reply); err != nil {
+		// We have to check the string since the RPC sheds
+		// the specific error type.
+		if err.Error() == consul.ErrQueryNotFound.Error() {
+			resp.WriteHeader(404)
+			resp.Write([]byte(err.Error()))
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	// Use empty list instead of nil.
+	if reply.Nodes == nil {
+		reply.Nodes = make(structs.CheckServiceNodes, 0)
+	}
+	return reply, nil
+}
+
+// preparedQueryGet returns a single prepared query.
+func (s *HTTPServer) preparedQueryGet(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	args := structs.PreparedQuerySpecificRequest{
+		QueryID: id,
+	}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var reply structs.IndexedPreparedQueries
+	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
+	if err := s.agent.RPC(endpoint+".Get", &args, &reply); err != nil {
+		// We have to check the string since the RPC sheds
+		// the specific error type.
+		if err.Error() == consul.ErrQueryNotFound.Error() {
+			resp.WriteHeader(404)
+			resp.Write([]byte(err.Error()))
+			return nil, nil
+		}
+		return nil, err
+	}
+	return reply.Queries, nil
+}
+
+// preparedQueryUpdate updates a prepared query.
+func (s *HTTPServer) preparedQueryUpdate(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	args := structs.PreparedQueryRequest{
+		Op: structs.PreparedQueryUpdate,
+	}
+	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
+	if req.ContentLength > 0 {
+		if err := decodeBody(req, &args.Query, nil); err != nil {
+			resp.WriteHeader(400)
+			resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
+			return nil, nil
+		}
+	}
+
+	// Take the ID from the URL, not the embedded one.
+	args.Query.ID = id
+
+	var reply string
+	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
+	if err := s.agent.RPC(endpoint+".Apply", &args, &reply); err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+// preparedQueryDelete deletes prepared query.
+func (s *HTTPServer) preparedQueryDelete(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	args := structs.PreparedQueryRequest{
+		Op: structs.PreparedQueryDelete,
+		Query: &structs.PreparedQuery{
+			ID: id,
+		},
+	}
+	s.parseDC(req, &args.Datacenter)
+	s.parseToken(req, &args.Token)
+
+	var reply string
+	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
+	if err := s.agent.RPC(endpoint+".Apply", &args, &reply); err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+// PreparedQuerySpecific handles all the prepared query requests specific to a
 // particular query.
 func (s *HTTPServer) PreparedQuerySpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	id := strings.TrimPrefix(req.URL.Path, "/v1/query/")
@@ -90,98 +203,19 @@ func (s *HTTPServer) PreparedQuerySpecific(resp http.ResponseWriter, req *http.R
 		id = strings.TrimSuffix(id, preparedQueryExecuteSuffix)
 	}
 
-	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
 	switch req.Method {
-	case "GET": // Execute or retrieve a prepared query.
+	case "GET":
 		if execute {
-			args := structs.PreparedQueryExecuteRequest{
-				QueryIDOrName: id,
-			}
-			s.parseSource(req, &args.Source)
-			if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-				return nil, nil
-			}
-			if err := parseLimit(req, &args.Limit); err != nil {
-				return nil, fmt.Errorf("Bad limit: %s", err)
-			}
-
-			var reply structs.PreparedQueryExecuteResponse
-			if err := s.agent.RPC(endpoint+".Execute", &args, &reply); err != nil {
-				// We have to check the string since the RPC sheds
-				// the specific error type.
-				if err.Error() == consul.ErrQueryNotFound.Error() {
-					resp.WriteHeader(404)
-					resp.Write([]byte(err.Error()))
-					return nil, nil
-				}
-				return nil, err
-			}
-
-			// Use empty list instead of nil.
-			if reply.Nodes == nil {
-				reply.Nodes = make(structs.CheckServiceNodes, 0)
-			}
-			return reply, nil
+			return s.preparedQueryExecute(id, resp, req)
 		} else {
-			args := structs.PreparedQuerySpecificRequest{
-				QueryID: id,
-			}
-			if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
-				return nil, nil
-			}
-
-			var reply structs.IndexedPreparedQueries
-			if err := s.agent.RPC(endpoint+".Get", &args, &reply); err != nil {
-				// We have to check the string since the RPC sheds
-				// the specific error type.
-				if err.Error() == consul.ErrQueryNotFound.Error() {
-					resp.WriteHeader(404)
-					resp.Write([]byte(err.Error()))
-					return nil, nil
-				}
-				return nil, err
-			}
-			return reply.Queries, nil
+			return s.preparedQueryGet(id, resp, req)
 		}
 
-	case "PUT": // Update an existing prepared query.
-		args := structs.PreparedQueryRequest{
-			Op: structs.PreparedQueryUpdate,
-		}
-		s.parseDC(req, &args.Datacenter)
-		s.parseToken(req, &args.Token)
-		if req.ContentLength > 0 {
-			if err := decodeBody(req, &args.Query, nil); err != nil {
-				resp.WriteHeader(400)
-				resp.Write([]byte(fmt.Sprintf("Request decode failed: %v", err)))
-				return nil, nil
-			}
-		}
+	case "PUT":
+		return s.preparedQueryUpdate(id, resp, req)
 
-		// Take the ID from the URL, not the embedded one.
-		args.Query.ID = id
-
-		var reply string
-		if err := s.agent.RPC(endpoint+".Apply", &args, &reply); err != nil {
-			return nil, err
-		}
-		return nil, nil
-
-	case "DELETE": // Delete a prepared query.
-		args := structs.PreparedQueryRequest{
-			Op: structs.PreparedQueryDelete,
-			Query: &structs.PreparedQuery{
-				ID: id,
-			},
-		}
-		s.parseDC(req, &args.Datacenter)
-		s.parseToken(req, &args.Token)
-
-		var reply string
-		if err := s.agent.RPC(endpoint+".Apply", &args, &reply); err != nil {
-			return nil, err
-		}
-		return nil, nil
+	case "DELETE":
+		return s.preparedQueryDelete(id, resp, req)
 
 	default:
 		resp.WriteHeader(405)
