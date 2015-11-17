@@ -26,6 +26,10 @@ FEATURES:
 * Consul now builds under Go 1.5.1 by default [GH-1345]
 * Added built-in support for running health checks inside Docker containers
   [GH-1343]
+* Added prepared queries which support service health queries with rich
+  features such as filters for multiple tags and failover to remote datacenters
+  based on network coordinates; these are available via HTTP as well as the
+  DNS interface [GH-1389]
 
 BUG FIXES:
 

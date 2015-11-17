@@ -397,6 +397,20 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	query := structs.PreparedQuery{
+		ID: generateUUID(),
+		Service: structs.ServiceQuery{
+			Service: "web",
+		},
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 14,
+			ModifyIndex: 14,
+		},
+	}
+	if err := fsm.state.PreparedQuerySet(14, &query); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	if err != nil {
@@ -513,6 +527,18 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	}
 	if !reflect.DeepEqual(coords, updates) {
 		t.Fatalf("bad: %#v", coords)
+	}
+
+	// Verify queries are restored.
+	_, queries, err := fsm2.state.PreparedQueryList()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(queries) != 1 {
+		t.Fatalf("bad: %#v", queries)
+	}
+	if !reflect.DeepEqual(queries[0], &query) {
+		t.Fatalf("bad: %#v", queries[0])
 	}
 }
 
@@ -1046,6 +1072,103 @@ func TestFSM_ACL_Set_Delete(t *testing.T) {
 	}
 	if acl != nil {
 		t.Fatalf("should be destroyed")
+	}
+}
+
+func TestFSM_PreparedQuery_CRUD(t *testing.T) {
+	fsm, err := NewFSM(nil, os.Stderr)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a service to query on.
+	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
+	fsm.state.EnsureService(2, "foo", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.1", Port: 80})
+
+	// Create a new query.
+	query := structs.PreparedQueryRequest{
+		Op: structs.PreparedQueryCreate,
+		Query: &structs.PreparedQuery{
+			ID: generateUUID(),
+			Service: structs.ServiceQuery{
+				Service: "web",
+			},
+		},
+	}
+	{
+		buf, err := structs.Encode(structs.PreparedQueryRequestType, query)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp := fsm.Apply(makeLog(buf))
+		if resp != nil {
+			t.Fatalf("resp: %v", resp)
+		}
+	}
+
+	// Verify it's in the state store.
+	{
+		_, actual, err := fsm.state.PreparedQueryGet(query.Query.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Make an update to the query.
+	query.Op = structs.PreparedQueryUpdate
+	query.Query.Name = "my-query"
+	{
+		buf, err := structs.Encode(structs.PreparedQueryRequestType, query)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp := fsm.Apply(makeLog(buf))
+		if resp != nil {
+			t.Fatalf("resp: %v", resp)
+		}
+	}
+
+	// Verify the update.
+	{
+		_, actual, err := fsm.state.PreparedQueryGet(query.Query.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Delete the query.
+	query.Op = structs.PreparedQueryDelete
+	{
+		buf, err := structs.Encode(structs.PreparedQueryRequestType, query)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		resp := fsm.Apply(makeLog(buf))
+		if resp != nil {
+			t.Fatalf("resp: %v", resp)
+		}
+	}
+
+	// Make sure it's gone.
+	{
+		_, actual, err := fsm.state.PreparedQueryGet(query.Query.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if actual != nil {
+			t.Fatalf("bad: %v", actual)
+		}
 	}
 }
 

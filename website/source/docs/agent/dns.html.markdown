@@ -174,6 +174,26 @@ rabbitmq.node1.dc1.consul.	0	IN	A	10.1.11.20
 
 Again, note that the SRV record returns the port of the service as well as its IP.
 
+### Prepared Query Lookups
+
+The format of a prepared query lookup is:
+
+    <query or name>.query[.datacenter].<domain>
+
+The `datacenter` is optional, and if not provided, the datacenter of this Consul
+agent is assumed.
+
+The `query or name` is the ID or given name of an existing
+[Prepared Query](/docs/agent/http/query.html). These behave like standard service
+queries but provide a much richer set of features, such as filtering by multiple
+tags and automatically failing over to look for services in remote datacenters if
+no healthy nodes are available in the local datacenter.
+
+To allow for simple load balancing, the set of nodes returned is randomized each time.
+Both A and SRV records are supported. SRV records provide the port that a service is
+registered on, enabling clients to avoid relying on well-known ports. SRV records are
+only served if the client specifically requests them.
+
 ### UDP Based DNS Queries
 
 When the DNS query is performed using UDP, Consul will truncate the results
