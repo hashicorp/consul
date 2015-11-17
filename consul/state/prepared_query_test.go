@@ -13,9 +13,14 @@ func TestStateStore_PreparedQuery_isUUID(t *testing.T) {
 		"":     false,
 		"nope": false,
 		"f004177f-2c28-83b7-4229-eacc25fe55d1":  true,
+		"F004177F-2C28-83B7-4229-EACC25FE55D1":  true,
+		"x004177f-2c28-83b7-4229-eacc25fe55d1":  false, // Bad hex
+		"f004177f-xc28-83b7-4229-eacc25fe55d1":  false, // Bad hex
+		"f004177f-2c28-x3b7-4229-eacc25fe55d1":  false, // Bad hex
+		"f004177f-2c28-83b7-x229-eacc25fe55d1":  false, // Bad hex
+		"f004177f-2c28-83b7-4229-xacc25fe55d1":  false, // Bad hex
 		" f004177f-2c28-83b7-4229-eacc25fe55d1": false, // Leading whitespace
 		"f004177f-2c28-83b7-4229-eacc25fe55d1 ": false, // Trailing whitespace
-		"f004177f-2c28-83B7-4229-eacc25fe55d1":  false, // Bad hex "83B7"
 	}
 	for i := 0; i < 100; i++ {
 		cases[testUUID()] = true

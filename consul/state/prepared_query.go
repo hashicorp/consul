@@ -9,7 +9,7 @@ import (
 )
 
 // validUUID is used to check if a given string looks like a UUID
-var validUUID = regexp.MustCompile(`^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$`)
+var validUUID = regexp.MustCompile(`(?i)^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$`)
 
 // isUUID returns true if the given string is a valid UUID.
 func isUUID(str string) bool {
