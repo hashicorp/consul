@@ -83,8 +83,8 @@ type PreparedQueryOp string
 
 const (
 	PreparedQueryCreate PreparedQueryOp = "create"
-	PreparedQueryUpdate                 = "update"
-	PreparedQueryDelete                 = "delete"
+	PreparedQueryUpdate PreparedQueryOp = "update"
+	PreparedQueryDelete PreparedQueryOp = "delete"
 )
 
 // QueryRequest is used to create or change prepared queries.
