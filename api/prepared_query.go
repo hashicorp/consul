@@ -1,7 +1,5 @@
 package api
 
-import ()
-
 // QueryDatacenterOptions sets options about how we fail over if there are no
 // healthy nodes in the local datacenter.
 type QueryDatacenterOptions struct {
@@ -37,7 +35,7 @@ type ServiceQuery struct {
 	OnlyPassing bool
 
 	// Tags are a set of required and/or disallowed tags. If a tag is in
-	// this list it must be present. If the tag is preceded with "~" then
+	// this list it must be present. If the tag is preceded with "!" then
 	// it is disallowed.
 	Tags []string
 }
