@@ -123,37 +123,15 @@ func (c *PreparedQuery) Create(query *PreparedQueryDefinition, q *WriteOptions) 
 
 // Update makes updates to an existing prepared query.
 func (c *PreparedQuery) Update(query *PreparedQueryDefinition, q *WriteOptions) (*WriteMeta, error) {
-	r := c.c.newRequest("PUT", "/v1/query/"+query.ID)
-	r.setWriteOptions(q)
-	r.obj = query
-	rtt, resp, err := requireOK(c.c.doRequest(r))
-	if err != nil {
-		return nil, err
-	}
-	resp.Body.Close()
-
-	wm := &WriteMeta{}
-	wm.RequestTime = rtt
-	return wm, nil
+	return c.c.write("/v1/query/"+query.ID, query, nil, q)
 }
 
 // List is used to fetch all the prepared queries (always requires a management
 // token).
 func (c *PreparedQuery) List(q *QueryOptions) ([]*PreparedQueryDefinition, *QueryMeta, error) {
-	r := c.c.newRequest("GET", "/v1/query")
-	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
 	var out []*PreparedQueryDefinition
-	if err := decodeBody(resp, &out); err != nil {
+	qm, err := c.c.query("/v1/query", &out, q)
+	if err != nil {
 		return nil, nil, err
 	}
 	return out, qm, nil
@@ -161,20 +139,9 @@ func (c *PreparedQuery) List(q *QueryOptions) ([]*PreparedQueryDefinition, *Quer
 
 // Get is used to fetch a specific prepared query.
 func (c *PreparedQuery) Get(queryID string, q *QueryOptions) ([]*PreparedQueryDefinition, *QueryMeta, error) {
-	r := c.c.newRequest("GET", "/v1/query/"+queryID)
-	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
 	var out []*PreparedQueryDefinition
-	if err := decodeBody(resp, &out); err != nil {
+	qm, err := c.c.query("/v1/query/"+queryID, &out, q)
+	if err != nil {
 		return nil, nil, err
 	}
 	return out, qm, nil
@@ -199,20 +166,9 @@ func (c *PreparedQuery) Delete(queryID string, q *QueryOptions) (*QueryMeta, err
 // Execute is used to execute a specific prepared query. You can execute using
 // a query ID or name.
 func (c *PreparedQuery) Execute(queryIDOrName string, q *QueryOptions) (*PreparedQueryExecuteResponse, *QueryMeta, error) {
-	r := c.c.newRequest("GET", "/v1/query/"+queryIDOrName+"/execute")
-	r.setQueryOptions(q)
-	rtt, resp, err := requireOK(c.c.doRequest(r))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer resp.Body.Close()
-
-	qm := &QueryMeta{}
-	parseQueryMeta(resp, qm)
-	qm.RequestTime = rtt
-
 	var out *PreparedQueryExecuteResponse
-	if err := decodeBody(resp, &out); err != nil {
+	qm, err := c.c.query("/v1/query/"+queryIDOrName+"/execute", &out, q)
+	if err != nil {
 		return nil, nil, err
 	}
 	return out, qm, nil
