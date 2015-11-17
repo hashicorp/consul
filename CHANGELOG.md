@@ -76,10 +76,12 @@ IMPROVEMENTS:
   lock [GH-1291]
 * Improved an O(n^2) algorithm in the agent's catalog sync code [GH-1296]
 * Switched to net-rpc-msgpackrpc to reduce RPC overhead [GH-1307]
-* Removes all uses of the http package's default client and transport in
+* Removed all uses of the http package's default client and transport in
   Consul to avoid conflicts with other packages [GH-1310] [GH-1327]
-* Adds new `X-Consul-Token` HTTP header option to avoid passing tokens
+* Added new `X-Consul-Token` HTTP header option to avoid passing tokens
   in the query string [GH-1318]
+* Increased session TTL max to 24 hours (use with caution, see note added
+  to the Session HTTP endpoint documentation) [GH-1412]
 
 MISC:
 
