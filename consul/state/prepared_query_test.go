@@ -376,8 +376,15 @@ func TestStateStore_PreparedQueryLookup(t *testing.T) {
 
 	// Make sure an empty lookup is well-behaved if there are actual queries
 	// in the state store.
-	if _, _, err = s.PreparedQueryLookup(""); err != ErrMissingQueryID {
-		t.Fatalf("bad: %v", err)
+	idx, actual, err = s.PreparedQueryLookup("")
+	if err != ErrMissingQueryID {
+		t.Fatalf("bad: %v ", err)
+	}
+	if idx != 0 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if actual != nil {
+		t.Fatalf("bad: %v", actual)
 	}
 }
 

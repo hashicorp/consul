@@ -200,7 +200,7 @@ func (s *StateStore) PreparedQueryLookup(queryIDOrName string) (uint64, *structs
 	// but we check it here to be explicit about it (we'd never want to
 	// return the results from the first query w/o a name).
 	if queryIDOrName == "" {
-		return idx, nil, ErrMissingQueryID
+		return 0, nil, ErrMissingQueryID
 	}
 
 	// Try first by ID if it looks like they gave us an ID. We check the
