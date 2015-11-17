@@ -330,17 +330,19 @@ PARSE:
 		}
 
 	case "node":
-		if len(labels) == 1 {
+		if n == 1 {
 			goto INVALID
 		}
+
 		// Allow a "." in the node name, just join all the parts
 		node := strings.Join(labels[:n-1], ".")
 		d.nodeLookup(network, datacenter, node, req, resp)
 
 	case "query":
-		if len(labels) == 1 {
+		if n == 1 {
 			goto INVALID
 		}
+
 		// Allow a "." in the query name, just join all the parts.
 		query := strings.Join(labels[:n-1], ".")
 		d.preparedQueryLookup(network, datacenter, query, req, resp)

@@ -2783,3 +2783,43 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 		}
 	}
 }
+
+func TestDNS_InvalidQueries(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Try invalid forms of queries that should hit the special invalid case
+	// of our query parser.
+	questions := []string{
+		"consul.",
+		"node.consul.",
+		"service.consul.",
+		"query.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Ns) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		soaRec, ok := in.Ns[0].(*dns.SOA)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+		if soaRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+	}
+}
