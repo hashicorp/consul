@@ -44,23 +44,28 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes) {
 
 // ChecKDefinition is used to JSON decode the Check definitions
 type CheckDefinition struct {
-	ID        string
-	Name      string
-	Notes     string
-	ServiceID string
-	Token     string
-	Status    string
-	CheckType `mapstructure:",squash"`
+	ID                string
+	Name              string
+	Notes             string
+	ServiceID         string
+	Token             string
+	Status            string
+	DeregisterService bool
+	FailuresTolerance int
+	CheckType         `mapstructure:",squash"`
 }
 
 func (c *CheckDefinition) HealthCheck(node string) *structs.HealthCheck {
 	health := &structs.HealthCheck{
-		Node:      node,
-		CheckID:   c.ID,
-		Name:      c.Name,
-		Status:    structs.HealthCritical,
-		Notes:     c.Notes,
-		ServiceID: c.ServiceID,
+		Node:                node,
+		CheckID:             c.ID,
+		Name:                c.Name,
+		Status:              structs.HealthCritical,
+		Notes:               c.Notes,
+		ServiceID:           c.ServiceID,
+		DeregisterService:   c.DeregisterService,
+		FailuresTolerance:   c.FailuresTolerance,
+		FailuresAllowedLeft: c.FailuresTolerance,
 	}
 	if c.Status != "" {
 		health.Status = c.Status

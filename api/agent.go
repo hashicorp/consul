@@ -53,10 +53,12 @@ type AgentServiceRegistration struct {
 
 // AgentCheckRegistration is used to register a new check
 type AgentCheckRegistration struct {
-	ID        string `json:",omitempty"`
-	Name      string `json:",omitempty"`
-	Notes     string `json:",omitempty"`
-	ServiceID string `json:",omitempty"`
+	ID                string `json:",omitempty"`
+	Name              string `json:",omitempty"`
+	Notes             string `json:",omitempty"`
+	ServiceID         string `json:",omitempty"`
+	DeregisterService bool   `json:",omitempty"`
+	FailuresTolerance int    `json:",omitempty"`
 	AgentServiceCheck
 }
 

@@ -761,13 +761,19 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 			checkID += fmt.Sprintf(":%d", i+1)
 		}
 		check := &structs.HealthCheck{
-			Node:        a.config.NodeName,
-			CheckID:     checkID,
-			Name:        fmt.Sprintf("Service '%s' check", service.Service),
-			Status:      structs.HealthCritical,
-			Notes:       chkType.Notes,
-			ServiceID:   service.ID,
-			ServiceName: service.Service,
+			Node:              a.config.NodeName,
+			CheckID:           checkID,
+			Name:              fmt.Sprintf("Service '%s' check", service.Service),
+			Status:            structs.HealthCritical,
+			Notes:             chkType.Notes,
+			ServiceID:         service.ID,
+			ServiceName:       service.Service,
+			DeregisterService: chkType.DeregisterService,
+		}
+		// TTL checks have no failure tolerance
+		if !chkType.IsTTL() {
+			check.FailuresTolerance = chkType.FailuresTolerance
+			check.FailuresAllowedLeft = chkType.FailuresTolerance
 		}
 		if chkType.Status != "" {
 			check.Status = chkType.Status
@@ -814,7 +820,7 @@ func (a *Agent) RemoveService(serviceID string, persist bool) error {
 		}
 	}
 
-	log.Printf("[DEBUG] agent: removed service %q", serviceID)
+	a.logger.Printf("[DEBUG] agent: removed service %q", serviceID)
 	return nil
 }
 
@@ -849,7 +855,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 
 			ttl := &CheckTTL{
-				Notify:  &a.state,
+				Notify:  a,
 				CheckID: check.CheckID,
 				TTL:     chkType.TTL,
 				Logger:  a.logger,
@@ -875,7 +881,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 
 			http := &CheckHTTP{
-				Notify:   &a.state,
+				Notify:   a,
 				CheckID:  check.CheckID,
 				HTTP:     chkType.HTTP,
 				Interval: chkType.Interval,
@@ -896,7 +902,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 
 			tcp := &CheckTCP{
-				Notify:   &a.state,
+				Notify:   a,
 				CheckID:  check.CheckID,
 				TCP:      chkType.TCP,
 				Interval: chkType.Interval,
@@ -917,7 +923,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 
 			dockerCheck := &CheckDocker{
-				Notify:            &a.state,
+				Notify:            a,
 				CheckID:           check.CheckID,
 				DockerContainerID: chkType.DockerContainerID,
 				Shell:             chkType.Shell,
@@ -941,7 +947,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 
 			monitor := &CheckMonitor{
-				Notify:   &a.state,
+				Notify:   a,
 				CheckID:  check.CheckID,
 				Script:   chkType.Script,
 				Interval: chkType.Interval,
@@ -1004,27 +1010,42 @@ func (a *Agent) RemoveCheck(checkID string, persist bool) error {
 			return err
 		}
 	}
-	log.Printf("[DEBUG] agent: removed check %q", checkID)
+	a.logger.Printf("[DEBUG] agent: removed check %q", checkID)
 	return nil
 }
 
-// UpdateCheck is used to update the status of a check.
-// This can only be used with checks of the TTL type.
-func (a *Agent) UpdateCheck(checkID, status, output string) error {
-	a.checkLock.Lock()
-	defer a.checkLock.Unlock()
+// UpdateCheck is the actual notification callback for all types of checks updates.
+func (a *Agent) UpdateCheck(checkID, status, output string) {
+	if check, ok := a.state.Checks()[checkID]; ok {
+		if status == structs.HealthCritical && check.NoMoreFailuresAllowed() {
+			a.RemoveService(check.ServiceID, true)
+		} else {
+			a.state.UpdateCheck(checkID, status, output)
+		}
+	}
+}
 
-	check, ok := a.checkTTLs[checkID]
+// UpdateTTLCheck is used to update the status of a TTL check only.
+func (a *Agent) UpdateTTLCheck(checkID, status, output string) error {
+	ttlCheck, ok := a.checkTTLs[checkID]
 	if !ok {
 		return fmt.Errorf("CheckID does not have associated TTL")
 	}
 
-	// Set the status through CheckTTL to reset the TTL
-	check.SetStatus(status, output)
+	check, ok := a.state.Checks()[checkID]
+	if !ok {
+		return fmt.Errorf("CheckID does not exist")
+	}
 
-	// Always persist the state for TTL checks
-	if err := a.persistCheckState(check, status, output); err != nil {
-		return fmt.Errorf("failed persisting state for check %q: %s", checkID, err)
+	if status == structs.HealthCritical && check.DeregisterService {
+		a.RemoveService(check.ServiceID, true)
+	} else {
+		ttlCheck.SetStatus(status, output)
+
+		// Always persist the state for TTL checks
+		if err := a.persistCheckState(ttlCheck, status, output); err != nil {
+			return fmt.Errorf("failed persisting state for check %q: %s", checkID, err)
+		}
 	}
 
 	return nil

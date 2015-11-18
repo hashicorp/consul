@@ -363,14 +363,17 @@ type NodeServices struct {
 
 // HealthCheck represents a single check on a given node
 type HealthCheck struct {
-	Node        string
-	CheckID     string // Unique per-node ID
-	Name        string // Check name
-	Status      string // The current check status
-	Notes       string // Additional notes with the status
-	Output      string // Holds output of script runs
-	ServiceID   string // optional associated service
-	ServiceName string // optional service name
+	Node                string
+	CheckID             string // Unique per-node ID
+	Name                string // Check name
+	Status              string // The current check status
+	Notes               string // Additional notes with the status
+	Output              string // Holds output of script runs
+	ServiceID           string // optional associated service
+	ServiceName         string // optional service name
+	DeregisterService   bool   // optional if the check should deregister service on failure
+	FailuresTolerance   int    // optional number of allowed failures
+	FailuresAllowedLeft int    // a decrementing counter for allowed failures
 
 	RaftIndex
 }
@@ -387,11 +390,32 @@ func (c *HealthCheck) IsSame(other *HealthCheck) bool {
 		c.Notes != other.Notes ||
 		c.Output != other.Output ||
 		c.ServiceID != other.ServiceID ||
-		c.ServiceName != other.ServiceName {
+		c.ServiceName != other.ServiceName ||
+		c.DeregisterService != other.DeregisterService ||
+		c.FailuresTolerance != other.FailuresTolerance ||
+		c.FailuresAllowedLeft != other.FailuresAllowedLeft {
 		return false
 	}
 
 	return true
+}
+
+// Does the check tolerate more failures
+func (c *HealthCheck) NoMoreFailuresAllowed() bool {
+	return c.DeregisterService && c.FailuresAllowedLeft < 1
+}
+
+// The allowed failures counter is decremented every time
+// a HealthCritical status is alerted.
+// It is being reset to default tolerance value otherwise.
+func (c *HealthCheck) UpdateFailureTolerance(status string) {
+	if c.DeregisterService {
+		if status == HealthCritical {
+			c.FailuresAllowedLeft--
+		} else {
+			c.FailuresAllowedLeft = c.FailuresTolerance
+		}
+	}
 }
 
 type HealthChecks []*HealthCheck
