@@ -44,7 +44,7 @@ type CheckType struct {
 	HTTP              string
 	TCP               string
 	Interval          time.Duration
-	DockerContainerId string
+	DockerContainerID string
 	Shell             string
 
 	Timeout time.Duration
@@ -68,7 +68,7 @@ func (c *CheckType) IsTTL() bool {
 
 // IsMonitor checks if this is a Monitor type
 func (c *CheckType) IsMonitor() bool {
-	return c.Script != "" && c.DockerContainerId == "" && c.Interval != 0
+	return c.Script != "" && c.DockerContainerID == "" && c.Interval != 0
 }
 
 // IsHTTP checks if this is a HTTP type
@@ -82,7 +82,7 @@ func (c *CheckType) IsTCP() bool {
 }
 
 func (c *CheckType) IsDocker() bool {
-	return c.DockerContainerId != "" && c.Script != "" && c.Interval != 0
+	return c.DockerContainerID != "" && c.Script != "" && c.Interval != 0
 }
 
 // CheckNotifier interface is used by the CheckMonitor
@@ -518,7 +518,7 @@ type CheckDocker struct {
 	Notify            CheckNotifier
 	CheckID           string
 	Script            string
-	DockerContainerId string
+	DockerContainerID string
 	Shell             string
 	Interval          time.Duration
 	Logger            *log.Logger
@@ -574,7 +574,7 @@ func (c *CheckDocker) Stop() {
 func (c *CheckDocker) run() {
 	// Get the randomized initial pause time
 	initialPauseTime := randomStagger(c.Interval)
-	c.Logger.Printf("[DEBUG] agent: pausing %v before first invocation of %s -c %s in container %s", initialPauseTime, c.Shell, c.Script, c.DockerContainerId)
+	c.Logger.Printf("[DEBUG] agent: pausing %v before first invocation of %s -c %s in container %s", initialPauseTime, c.Shell, c.Script, c.DockerContainerID)
 	next := time.After(initialPauseTime)
 	for {
 		select {
@@ -595,7 +595,7 @@ func (c *CheckDocker) check() {
 		AttachStderr: true,
 		Tty:          false,
 		Cmd:          c.cmd,
-		Container:    c.DockerContainerId,
+		Container:    c.DockerContainerID,
 	}
 	var (
 		exec *docker.Exec

@@ -387,6 +387,50 @@ func TestAgent_Checks_serviceBound(t *testing.T) {
 	}
 }
 
+func TestAgent_Checks_Docker(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	// First register a service
+	serviceReg := &AgentServiceRegistration{
+		Name: "redis",
+	}
+	if err := agent.ServiceRegister(serviceReg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Register a check bound to the service
+	reg := &AgentCheckRegistration{
+		Name:      "redischeck",
+		ServiceID: "redis",
+		AgentServiceCheck: AgentServiceCheck{
+			DockerContainerID: "f972c95ebf0e",
+			Script:            "/bin/true",
+			Shell:             "/bin/bash",
+			Interval:          "10s",
+		},
+	}
+	if err := agent.CheckRegister(reg); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	checks, err := agent.Checks()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	check, ok := checks["redischeck"]
+	if !ok {
+		t.Fatalf("missing check: %v", checks)
+	}
+	if check.ServiceID != "redis" {
+		t.Fatalf("missing service association for check: %v", check)
+	}
+}
+
 func TestAgent_Join(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)

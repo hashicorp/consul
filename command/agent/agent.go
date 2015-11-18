@@ -919,7 +919,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			dockerCheck := &CheckDocker{
 				Notify:            &a.state,
 				CheckID:           check.CheckID,
-				DockerContainerId: chkType.DockerContainerId,
+				DockerContainerID: chkType.DockerContainerID,
 				Shell:             chkType.Shell,
 				Script:            chkType.Script,
 				Interval:          chkType.Interval,

@@ -1133,7 +1133,7 @@ func TestDecodeConfig_Check(t *testing.T) {
 		t.Fatalf("bad: %v", chk)
 	}
 
-	if chk.DockerContainerId != "redis" {
+	if chk.DockerContainerID != "redis" {
 		t.Fatalf("bad: %v", chk)
 	}
 }
