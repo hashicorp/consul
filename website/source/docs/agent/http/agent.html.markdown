@@ -241,6 +241,8 @@ body must look like:
   "Name": "Memory utilization",
   "Notes": "Ensure we don't oversubscribe memory",
   "Script": "/usr/local/bin/check_mem.py",
+  "DockerContainerID": "f972c95ebf0e",
+  "Shell": "/bin/bash",
   "HTTP": "http://example.com",
   "TCP": "example.com:22",
   "Interval": "10s",
@@ -258,6 +260,10 @@ The `Notes` field is not used internally by Consul and is meant to be human-read
 
 If a `Script` is provided, the check type is a script, and Consul will
 evaluate the script every `Interval` to update the status.
+
+If a `DockerContainerID` is provided, the check is a Docker check, and Consul will
+evaluate the script every `Interval` in the given container using the specified
+`Shell`. Note that `Shell` is currently only supported for Docker checks.
 
 An `HTTP` check will perform an HTTP GET request against the value of `HTTP` (expected to
 be a URL) every `Interval`. If the response is any `2xx` code, the check is `passing`.

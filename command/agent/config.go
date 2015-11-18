@@ -782,7 +782,7 @@ func FixupCheckType(raw interface{}) error {
 			rawMap["serviceid"] = v
 			delete(rawMap, "service_id")
 		case "docker_container_id":
-			rawMap["DockerContainerId"] = v
+			rawMap["DockerContainerID"] = v
 			delete(rawMap, "docker_container_id")
 		}
 	}
