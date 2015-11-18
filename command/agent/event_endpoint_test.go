@@ -115,6 +115,121 @@ func TestEventFire_token(t *testing.T) {
 	})
 }
 
+func TestEventStream(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		testutil.WaitForResult(func() (bool, error) {
+			result := [][]byte{}
+			resp := testutil.NewClosableResponseWriter(&result)
+
+			go func() {
+				time.Sleep(20 * time.Millisecond)
+				first := &UserEvent{Name: "first"}
+				if err := srv.agent.UserEvent("dc1", "root", first); err != nil {
+					t.Fatalf("err: %v", err)
+				}
+				time.Sleep(20 * time.Microsecond)
+				second := &UserEvent{Name: "second"}
+				if err := srv.agent.UserEvent("dc1", "root", second); err != nil {
+					t.Fatalf("err: %v", err)
+				}
+				time.Sleep(60 * time.Millisecond)
+				resp.Notifier <- true
+			}()
+			req, err := http.NewRequest("GET", "/v1/event/stream", nil)
+			if err != nil {
+				return false, err
+			}
+			_, err = srv.EventStream(resp, req)
+			if err != nil {
+				if !strings.Contains(err.Error(), "Event streaming stopped") {
+					return false, err
+				}
+			}
+			header := resp.Header().Get("Connection")
+			if header != "keep-alive" {
+				return false, fmt.Errorf("bad: %#v", header)
+			}
+			header = resp.Header().Get("Content-Type")
+			if header != "text/event-stream" {
+				return false, fmt.Errorf("bad: %#v", header)
+			}
+			header = resp.Header().Get("Cache-Control")
+			if header != "no-cache" {
+				return false, fmt.Errorf("bad: %#v", header)
+			}
+			if !resp.Flushed {
+				return false, fmt.Errorf("Response should be flushed")
+			}
+			if len(result) != 2 {
+				return false, fmt.Errorf("Expected exactly 2 events over the stream")
+			}
+			return true, nil
+		}, func(err error) {
+			t.Fatalf("err: %v", err)
+		})
+	})
+}
+
+func TestEventStream_Filter(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		testutil.WaitForResult(func() (bool, error) {
+			result := [][]byte{}
+			resp := testutil.NewClosableResponseWriter(&result)
+
+			go func() {
+				time.Sleep(20 * time.Millisecond)
+				filter := &UserEvent{Name: "filter"}
+				if err := srv.agent.UserEvent("dc1", "root", filter); err != nil {
+					t.Fatalf("err: %v", err)
+				}
+				time.Sleep(20 * time.Microsecond)
+				first := &UserEvent{Name: "first"}
+				if err := srv.agent.UserEvent("dc1", "root", first); err != nil {
+					t.Fatalf("err: %v", err)
+				}
+				time.Sleep(20 * time.Microsecond)
+				second := &UserEvent{Name: "first"}
+				if err := srv.agent.UserEvent("dc1", "root", second); err != nil {
+					t.Fatalf("err: %v", err)
+				}
+				time.Sleep(60 * time.Millisecond)
+				resp.Notifier <- true
+			}()
+			req, err := http.NewRequest("GET", "/v1/event/stream?name=filter", nil)
+			if err != nil {
+				return false, err
+			}
+			_, err = srv.EventStream(resp, req)
+			if err != nil {
+				if !strings.Contains(err.Error(), "Event streaming stopped") {
+					return false, err
+				}
+			}
+			header := resp.Header().Get("Connection")
+			if header != "keep-alive" {
+				return false, fmt.Errorf("bad: %#v", header)
+			}
+			header = resp.Header().Get("Content-Type")
+			if header != "text/event-stream" {
+				return false, fmt.Errorf("bad: %#v", header)
+			}
+			header = resp.Header().Get("Cache-Control")
+			if header != "no-cache" {
+				return false, fmt.Errorf("bad: %#v", header)
+			}
+			if !resp.Flushed {
+				return false, fmt.Errorf("Response should be flushed")
+			}
+			if len(result) != 1 {
+				return false, fmt.Errorf("Expected exactly one event over the stream")
+			}
+			return true, nil
+		}, func(err error) {
+			t.Fatalf("err: %v", err)
+		})
+	})
+}
+
 func TestEventList(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		p := &UserEvent{Name: "test"}
