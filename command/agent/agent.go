@@ -879,10 +879,15 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 
 			ttl := &CheckTTL{
-				Notify:  &a.state,
-				CheckID: check.CheckID,
-				TTL:     chkType.TTL,
-				Logger:  a.logger,
+				Notify:            &a.state,
+				CheckID:           check.CheckID,
+				TTL:               chkType.TTL,
+				Logger:            a.logger,
+				UnregisterTimeout: chkType.UnregisterTimeout,
+				UnregisterService: func() {
+					a.RemoveCheck(check.CheckID, true)
+					a.state.RemoveService(check.ServiceID)
+				},
 			}
 
 			// Restore persisted state, if any

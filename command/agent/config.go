@@ -897,7 +897,7 @@ AFTER_FIX:
 }
 
 func FixupCheckType(raw interface{}) error {
-	var ttlKey, intervalKey, timeoutKey string
+	var ttlKey, intervalKey, timeoutKey, unregisterTimeoutKey string
 
 	// Handle decoding of time durations
 	rawMap, ok := raw.(map[string]interface{})
@@ -913,6 +913,8 @@ func FixupCheckType(raw interface{}) error {
 			intervalKey = k
 		case "timeout":
 			timeoutKey = k
+		case "unregistertimeout":
+			unregisterTimeoutKey = k
 		case "service_id":
 			rawMap["serviceid"] = v
 			delete(rawMap, "service_id")
@@ -922,35 +924,15 @@ func FixupCheckType(raw interface{}) error {
 		}
 	}
 
-	if ttl, ok := rawMap[ttlKey]; ok {
-		ttlS, ok := ttl.(string)
-		if ok {
-			if dur, err := time.ParseDuration(ttlS); err != nil {
-				return err
-			} else {
-				rawMap[ttlKey] = dur
-			}
-		}
-	}
-
-	if interval, ok := rawMap[intervalKey]; ok {
-		intervalS, ok := interval.(string)
-		if ok {
-			if dur, err := time.ParseDuration(intervalS); err != nil {
-				return err
-			} else {
-				rawMap[intervalKey] = dur
-			}
-		}
-	}
-
-	if timeout, ok := rawMap[timeoutKey]; ok {
-		timeoutS, ok := timeout.(string)
-		if ok {
-			if dur, err := time.ParseDuration(timeoutS); err != nil {
-				return err
-			} else {
-				rawMap[timeoutKey] = dur
+	for _, key := range []string{ttlKey, unregisterTimeoutKey, intervalKey, timeoutKey} {
+		if value, ok := rawMap[key]; ok {
+			stringValue, ok := value.(string)
+			if ok {
+				if dur, err := time.ParseDuration(stringValue); err != nil {
+					return err
+				} else {
+					rawMap[key] = dur
+				}
 			}
 		}
 	}

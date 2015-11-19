@@ -49,8 +49,9 @@ type CheckType struct {
 	DockerContainerID string
 	Shell             string
 
-	Timeout time.Duration
-	TTL     time.Duration
+	Timeout           time.Duration
+	TTL               time.Duration
+	UnregisterTimeout time.Duration
 
 	Status string
 
@@ -231,12 +232,15 @@ func (c *CheckMonitor) check() {
 // but upon the TTL expiring, the check status is
 // automatically set to critical.
 type CheckTTL struct {
-	Notify  CheckNotifier
-	CheckID types.CheckID
-	TTL     time.Duration
-	Logger  *log.Logger
+	Notify            CheckNotifier
+	CheckID           types.CheckID
+	TTL               time.Duration
+	Logger            *log.Logger
+	UnregisterService func()
+	UnregisterTimeout time.Duration
 
-	timer *time.Timer
+	timer           *time.Timer
+	unregisterTimer *time.Timer
 
 	lastOutput     string
 	lastOutputLock sync.RWMutex
@@ -254,6 +258,11 @@ func (c *CheckTTL) Start() {
 	c.stopCh = make(chan struct{})
 	c.timer = time.NewTimer(c.TTL)
 	go c.run()
+
+	if c.UnregisterTimeout != 0 {
+		c.unregisterTimer = time.NewTimer(c.TTL + c.UnregisterTimeout)
+		go c.unregisterOnTimeout()
+	}
 }
 
 // Stop is used to stop a check ttl.
@@ -307,7 +316,18 @@ func (c *CheckTTL) SetStatus(status, output string) {
 	c.lastOutput = output
 	c.lastOutputLock.Unlock()
 
+	if c.UnregisterTimeout != 0 {
+		// Reset timer, as we see that service is not dead
+		c.unregisterTimer.Reset(c.TTL + c.UnregisterTimeout)
+	}
 	c.timer.Reset(c.TTL)
+}
+
+// consider node as dead an remove it
+func (c *CheckTTL) unregisterOnTimeout() {
+	<-c.unregisterTimer.C
+	c.Logger.Printf("[INFO] deregistering dead service")
+	c.UnregisterService()
 }
 
 // persistedCheck is used to serialize a check and write it to disk

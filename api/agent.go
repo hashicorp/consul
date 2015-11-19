@@ -70,6 +70,7 @@ type AgentServiceCheck struct {
 	Shell             string `json:",omitempty"` // Only supported for Docker.
 	Interval          string `json:",omitempty"`
 	Timeout           string `json:",omitempty"`
+	UnregisterTimeout string `json:",omitempty"` // Only supported for TTL checks.
 	TTL               string `json:",omitempty"`
 	HTTP              string `json:",omitempty"`
 	TCP               string `json:",omitempty"`
