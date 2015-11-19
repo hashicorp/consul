@@ -944,6 +944,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 				Notify:   &a.state,
 				CheckID:  check.CheckID,
 				Script:   chkType.Script,
+				Shell:    chkType.Shell,
 				Interval: chkType.Interval,
 				Logger:   a.logger,
 			}

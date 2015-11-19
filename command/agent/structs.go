@@ -50,6 +50,7 @@ type CheckDefinition struct {
 	ServiceID string
 	Token     string
 	Status    string
+	Shell     string
 	CheckType `mapstructure:",squash"`
 }
 
@@ -60,6 +61,7 @@ func (c *CheckDefinition) HealthCheck(node string) *structs.HealthCheck {
 		Name:      c.Name,
 		Status:    structs.HealthCritical,
 		Notes:     c.Notes,
+		Shell:     c.Shell,
 		ServiceID: c.ServiceID,
 	}
 	if c.Status != "" {
