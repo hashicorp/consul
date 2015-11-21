@@ -313,7 +313,7 @@ for context in case an empty list of nodes is returned.
 copy of the structure given when the prepared query was created.
 
 `Datacenter` has the datacenter that ultimately provided the list of nodes
-and `Failvovers` has the number of remote datacenters that were queried
+and `Failovers` has the number of remote datacenters that were queried
 while executing the query. This provides some insight into where the data
 came from. This will be zero during non-failover operations where there
 were healthy nodes found in the local datacenter.
