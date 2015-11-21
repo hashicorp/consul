@@ -106,6 +106,37 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 	}
 }
 
+func TestCheckMonitor_OutputRoute(t *testing.T) {
+	mock := &MockNotify{
+		state:   make(map[string]string),
+		updates: make(map[string]int),
+		output:  make(map[string]string),
+	}
+	check := &CheckMonitor{
+		Notify:   mock,
+		CheckID:  "foo",
+		Script:   "echo 2",
+		OutputRoute: map[string]string {
+			"2": "warning",
+		},
+		Interval: 25 * time.Millisecond,
+		Logger:   log.New(os.Stderr, "", log.LstdFlags),
+	}
+	check.Start()
+	defer check.Stop()
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Should have at least 1 update
+	if mock.updates["foo"] < 1 {
+		t.Fatalf("should have 1 or more updates %v", mock.updates)
+	}
+
+	if mock.state["foo"] != structs.HealthWarning {
+		t.Fatalf("should be %v %v", structs.HealthWarning, mock.state)
+	}
+}
+
 func TestCheckMonitor_LimitOutput(t *testing.T) {
 	mock := &MockNotify{
 		state:   make(map[string]string),

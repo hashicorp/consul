@@ -364,13 +364,14 @@ type NodeServices struct {
 // HealthCheck represents a single check on a given node
 type HealthCheck struct {
 	Node        string
-	CheckID     string // Unique per-node ID
-	Name        string // Check name
-	Status      string // The current check status
-	Notes       string // Additional notes with the status
-	Output      string // Holds output of script runs
-	ServiceID   string // optional associated service
-	ServiceName string // optional service name
+	CheckID     string            // Unique per-node ID
+	Name        string            // Check name
+	Status      string            // The current check status
+	Notes       string            // Additional notes with the status
+	Output      string            // Holds output of script runs
+	OutputRoute map[string]string // Set state from output of the check
+	ServiceID   string            // optional associated service
+	ServiceName string            // optional service name
 
 	RaftIndex
 }

@@ -941,11 +941,12 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 
 			monitor := &CheckMonitor{
-				Notify:   &a.state,
-				CheckID:  check.CheckID,
-				Script:   chkType.Script,
-				Interval: chkType.Interval,
-				Logger:   a.logger,
+				Notify:      &a.state,
+				CheckID:     check.CheckID,
+				Script:      chkType.Script,
+				OutputRoute: check.OutputRoute,
+				Interval:    chkType.Interval,
+				Logger:      a.logger,
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor
