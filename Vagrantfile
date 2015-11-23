@@ -14,11 +14,11 @@ ARCH=`uname -m | sed 's|i686|386|' | sed 's|x86_64|amd64|'`
 
 # Install Go
 sudo apt-get update
-sudo apt-get install -y build-essential git-core zip
+sudo apt-get install -y build-essential git-core zip curl
 
 # Install Go
 cd /tmp
-wget --quiet --no-check-certificate https://storage.googleapis.com/golang/go${GOVERSION}.linux-${ARCH}.tar.gz
+curl -s -O https://storage.googleapis.com/golang/go${GOVERSION}.linux-${ARCH}.tar.gz
 tar -xvf go${GOVERSION}.linux-${ARCH}.tar.gz
 sudo mv go $SRCROOT
 sudo chmod 775 $SRCROOT
