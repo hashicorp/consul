@@ -133,6 +133,7 @@ It returns a JSON body like this:
       "ID": "redis",
       "Service": "redis",
       "Tags": null,
+      "Address": "10.1.10.12"
       "Port": 8000
     },
     "Checks": [
