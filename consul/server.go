@@ -153,14 +153,15 @@ type Server struct {
 
 // Holds the RPC endpoints
 type endpoints struct {
-	Catalog    *Catalog
-	Health     *Health
-	Status     *Status
-	KVS        *KVS
-	Session    *Session
-	Internal   *Internal
-	ACL        *ACL
-	Coordinate *Coordinate
+	Catalog       *Catalog
+	Health        *Health
+	Status        *Status
+	KVS           *KVS
+	Session       *Session
+	Internal      *Internal
+	ACL           *ACL
+	Coordinate    *Coordinate
+	PreparedQuery *PreparedQuery
 }
 
 // NewServer is used to construct a new Consul server from the
@@ -411,6 +412,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.endpoints.Internal = &Internal{s}
 	s.endpoints.ACL = &ACL{s}
 	s.endpoints.Coordinate = NewCoordinate(s)
+	s.endpoints.PreparedQuery = &PreparedQuery{s}
 
 	// Register the handlers
 	s.rpcServer.Register(s.endpoints.Status)
@@ -421,6 +423,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.rpcServer.Register(s.endpoints.Internal)
 	s.rpcServer.Register(s.endpoints.ACL)
 	s.rpcServer.Register(s.endpoints.Coordinate)
+	s.rpcServer.Register(s.endpoints.PreparedQuery)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
@@ -684,6 +687,12 @@ func (s *Server) RPC(method string, args interface{}, reply interface{}) error {
 		return err
 	}
 	return codec.err
+}
+
+// InjectEndpoint is used to substitute an endpoint for testing.
+func (s *Server) InjectEndpoint(endpoint interface{}) error {
+	s.logger.Printf("[WARN] consul: endpoint injected; this should only be used for testing")
+	return s.rpcServer.Register(endpoint)
 }
 
 // Stats is used to return statistics for debugging and insight

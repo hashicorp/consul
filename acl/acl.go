@@ -70,6 +70,12 @@ type ACL interface {
 
 	// ACLModify checks for permission to manipulate ACLs
 	ACLModify() bool
+
+	// QueryList checks for permission to list all the prepared queries.
+	QueryList() bool
+
+	// QueryModify checks for permission to modify any prepared query.
+	QueryModify() bool
 }
 
 // StaticACL is used to implement a base ACL policy. It either
@@ -121,6 +127,14 @@ func (s *StaticACL) ACLList() bool {
 }
 
 func (s *StaticACL) ACLModify() bool {
+	return s.allowManage
+}
+
+func (s *StaticACL) QueryList() bool {
+	return s.allowManage
+}
+
+func (s *StaticACL) QueryModify() bool {
 	return s.allowManage
 }
 
@@ -373,4 +387,14 @@ func (p *PolicyACL) ACLList() bool {
 // ACLModify checks if modification of ACLs is allowed
 func (p *PolicyACL) ACLModify() bool {
 	return p.parent.ACLModify()
+}
+
+// QueryList checks if listing of all prepared queries is allowed.
+func (p *PolicyACL) QueryList() bool {
+	return p.parent.QueryList()
+}
+
+// QueryModify checks if modifying of any prepared query is allowed.
+func (p *PolicyACL) QueryModify() bool {
+	return p.parent.QueryModify()
 }
