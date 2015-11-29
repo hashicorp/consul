@@ -124,7 +124,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	if config.Datacenter == "" {
 		return nil, fmt.Errorf("Must configure a Datacenter")
 	}
-	if config.DataDir == "" {
+	if config.DataDir == "" && !config.DevMode {
 		return nil, fmt.Errorf("Must configure a DataDir")
 	}
 
@@ -226,6 +226,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	} else {
 		base = consul.DefaultConfig()
 	}
+
+	// Apply dev mode
+	base.DevMode = a.config.DevMode
 
 	// Override with our config
 	if a.config.Datacenter != "" {
@@ -748,7 +751,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 	a.state.AddService(service, token)
 
 	// Persist the service to a file
-	if persist {
+	if persist && !a.config.DevMode {
 		if err := a.persistService(service); err != nil {
 			return err
 		}
@@ -958,7 +961,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 	a.state.AddCheck(check, token)
 
 	// Persist the check
-	if persist {
+	if persist && !a.config.DevMode {
 		return a.persistCheck(check, chkType)
 	}
 
@@ -1021,6 +1024,10 @@ func (a *Agent) UpdateCheck(checkID, status, output string) error {
 
 	// Set the status through CheckTTL to reset the TTL
 	check.SetStatus(status, output)
+
+	if a.config.DevMode {
+		return nil
+	}
 
 	// Always persist the state for TTL checks
 	if err := a.persistCheckState(check, status, output); err != nil {

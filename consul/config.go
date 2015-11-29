@@ -54,6 +54,9 @@ type Config struct {
 	// DataDir is the directory to store our state in
 	DataDir string
 
+	// DevMode is used to enable a development server mode.
+	DevMode bool
+
 	// Node name is the name we use to advertise. Defaults to hostname.
 	NodeName string
 

@@ -94,6 +94,10 @@ type DNSConfig struct {
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
 type Config struct {
+	// DevMode enables a fast-path mode of opertaion to bring up an in-memory
+	// server with minimal configuration. Useful for developing Consul.
+	DevMode bool `mapstructure:"-"`
+
 	// Bootstrap is used to bring up the first Consul server, and
 	// permits that node to elect itself leader
 	Bootstrap bool `mapstructure:"bootstrap"`
@@ -519,6 +523,17 @@ func DefaultConfig() *Config {
 		RetryInterval:    30 * time.Second,
 		RetryIntervalWan: 30 * time.Second,
 	}
+}
+
+// DevConfig is used to return a set of configuration to use for dev mode.
+func DevConfig() *Config {
+	conf := DefaultConfig()
+	conf.DevMode = true
+	conf.LogLevel = "DEBUG"
+	conf.Server = true
+	conf.EnableDebug = true
+	conf.DisableAnonymousSignature = true
+	return conf
 }
 
 // EncryptBytes returns the encryption key configured.

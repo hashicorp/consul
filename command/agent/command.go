@@ -60,12 +60,14 @@ func (c *Command) readConfig() *Config {
 	var retryInterval string
 	var retryIntervalWan string
 	var dnsRecursors []string
+	var dev bool
 	cmdFlags := flag.NewFlagSet("agent", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
 	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-file", "json file to read config from")
 	cmdFlags.Var((*AppendSliceValue)(&configFiles), "config-dir", "directory of json files to read")
 	cmdFlags.Var((*AppendSliceValue)(&dnsRecursors), "recursor", "address of an upstream DNS server")
+	cmdFlags.BoolVar(&dev, "dev", false, "development server mode")
 
 	cmdFlags.StringVar(&cmdConfig.LogLevel, "log-level", "", "log level")
 	cmdFlags.StringVar(&cmdConfig.NodeName, "node", "", "node name")
@@ -137,7 +139,13 @@ func (c *Command) readConfig() *Config {
 		cmdConfig.RetryIntervalWan = dur
 	}
 
-	config := DefaultConfig()
+	var config *Config
+	if dev {
+		config = DevConfig()
+	} else {
+		config = DefaultConfig()
+	}
+
 	if len(configFiles) > 0 {
 		fileConfig, err := ReadConfigPaths(configFiles)
 		if err != nil {
@@ -162,7 +170,7 @@ func (c *Command) readConfig() *Config {
 	}
 
 	// Ensure we have a data directory
-	if config.DataDir == "" {
+	if config.DataDir == "" && !dev {
 		c.Ui.Error("Must specify data directory using -data-dir")
 		return nil
 	}
