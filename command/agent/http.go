@@ -275,10 +275,11 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	}
 
-	// Enable the UI + special endpoints
+	// Use the custom UI dir if provided.
 	if s.uiDir != "" {
-		// Static file serving done from /ui/
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
+	} else {
+		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
 	}
 
 	// API's are under /internal/ui/ to avoid conflict
