@@ -34,11 +34,6 @@ func makeHTTPServerWithConfig(t *testing.T, cb func(c *Config)) (string, *HTTPSe
 	}
 
 	dir, agent := makeAgent(t, conf)
-	uiDir := filepath.Join(dir, "ui")
-	if err := os.Mkdir(uiDir, 755); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	conf.UiDir = uiDir
 	servers, err := NewHTTPServers(agent, conf, agent.logOutput)
 	if err != nil {
 		t.Fatalf("err: %v", err)
