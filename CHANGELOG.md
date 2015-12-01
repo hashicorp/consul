@@ -82,6 +82,10 @@ IMPROVEMENTS:
   in the query string [GH-1318]
 * Increased session TTL max to 24 hours (use with caution, see note added
   to the Session HTTP endpoint documentation) [GH-1412]
+* Added support to the API client for retrying lock monitoring when Consul
+  is unavailable, helping prevent false indications of lost locks (eg. apps
+  like Vault can avoid failing over when a Consul leader election occurs)
+  [GH-1457]
 
 MISC:
 
