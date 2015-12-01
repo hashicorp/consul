@@ -86,6 +86,8 @@ IMPROVEMENTS:
   is unavailable, helping prevent false indications of lost locks (eg. apps
   like Vault can avoid failing over when a Consul leader election occurs)
   [GH-1457]
+* Added reap of receive buffer space for idle streams in the connection
+  pool [GH-1452]
 
 MISC:
 
