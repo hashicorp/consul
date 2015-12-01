@@ -33,7 +33,7 @@ FEATURES:
 
 BUG FIXES:
 
-* Fixes expired certificates in unit tests [GH-979]
+* Fixed expired certificates in unit tests [GH-979]
 * Allow services with `/` characters in the UI [GH-988]
 * Added SOA/NXDOMAIN records to negative DNS responses per RFC2308 [GH-995]
   [GH-1142] [GH-1195] [GH-1217]
