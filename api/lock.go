@@ -69,12 +69,13 @@ type Lock struct {
 
 // LockOptions is used to parameterize the Lock behavior.
 type LockOptions struct {
-	Key            string // Must be set and have write permissions
-	Value          []byte // Optional, value to associate with the lock
-	Session        string // Optional, created if not specified
-	SessionName    string // Optional, defaults to DefaultLockSessionName
-	SessionTTL     string // Optional, defaults to DefaultLockSessionTTL
-	MonitorRetries int    // Optional, defaults to 0 which means no retries
+	Key              string        // Must be set and have write permissions
+	Value            []byte        // Optional, value to associate with the lock
+	Session          string        // Optional, created if not specified
+	SessionName      string        // Optional, defaults to DefaultLockSessionName
+	SessionTTL       string        // Optional, defaults to DefaultLockSessionTTL
+	MonitorRetries   int           // Optional, defaults to 0 which means no retries
+	MonitorRetryTime time.Duration // Optional, defaults to DefaultMonitorRetryTime
 }
 
 // LockKey returns a handle to a lock struct which can be used
@@ -103,6 +104,9 @@ func (c *Client) LockOpts(opts *LockOptions) (*Lock, error) {
 		if _, err := time.ParseDuration(opts.SessionTTL); err != nil {
 			return nil, fmt.Errorf("invalid SessionTTL: %v", err)
 		}
+	}
+	if opts.MonitorRetryTime == 0 {
+		opts.MonitorRetryTime = DefaultMonitorRetryTime
 	}
 	l := &Lock{
 		c:    c,
@@ -348,7 +352,7 @@ RETRY:
 		// blocking fashion so that we have a clean place to reset the retry
 		// counter if service is restored.
 		if retries > 0 && strings.Contains(err.Error(), serverError) {
-			time.Sleep(DefaultMonitorRetryTime)
+			time.Sleep(l.opts.MonitorRetryTime)
 			retries--
 			opts.WaitIndex = 0
 			goto RETRY
