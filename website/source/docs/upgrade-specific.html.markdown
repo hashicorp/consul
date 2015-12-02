@@ -39,11 +39,11 @@ downloadable versions of the tool.
 Consul 0.6 introduces enhancements to the ACL system which may require special
 handling:
 
-* Service ACL's are enforced during service discovery (REST + DNS)
+* Service ACLs are enforced during service discovery (REST + DNS)
 
 Previously, service discovery was wide open, and any client could query
 information about any service without providing a token. Consul now requires
-read-level access at a minimum when ACL's are enabled to return service
+read-level access at a minimum when ACLs are enabled to return service
 information over the REST or DNS interfaces. If clients depend on an open
 service discovery system, then the following should be added to all ACL tokens
 which require it:
@@ -56,6 +56,28 @@ which require it:
 Note that the agent's [`acl_token`](/docs/agent/options.html#acl_token) is used
 when the DNS interface is queried, so be sure that token has sufficient
 privileges to return the DNS records you expect to retrieve from it.
+
+* Event and keyring ACLs
+
+Similar to service discovery, the new event and keyring ACLs will block access
+to these operations if the `acl_default_policy` is set to `deny`. If clients depend
+on open access to these, then the following should be added to all ACL tokens which
+require them:
+
+    event "" {
+      policy = "write"
+    }
+
+    keyring = "write"
+
+Unfortunately, these are new ACLs for Consul 0.6, so they must be added after the
+upgrade is complete.
+
+#### Prepared Queries
+
+Prepared queries introduce a new Raft log entry type that isn't supported on older
+versions of Consul. It's important to not use the prepared query features of Consul
+until all servers in a cluster have been upgraded to version 0.6.0.
 
 ## Consul 0.5.1
 
