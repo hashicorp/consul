@@ -76,6 +76,19 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 		query.ModifyIndex = idx
 	}
 
+	// Verify that the query name doesn't already exist, or that we are
+	// updating the same instance that has this name.
+	if query.Name != "" {
+		alias, err := tx.First("prepared-queries", "name", query.Name)
+		if err != nil {
+			return fmt.Errorf("failed prepared query lookup: %s", err)
+		}
+		if alias != nil && (existing == nil ||
+			existing.(*structs.PreparedQuery).ID != alias.(*structs.PreparedQuery).ID) {
+			return fmt.Errorf("name '%s' aliases an existing query name", query.Name)
+		}
+	}
+
 	// Verify that the name doesn't alias any existing ID. We allow queries
 	// to be looked up by ID *or* name so we don't want anyone to try to
 	// register a query with a name equal to some other query's ID in an
@@ -86,12 +99,12 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 	// index will complain if we look up something that's not formatted
 	// like one.
 	if isUUID(query.Name) {
-		existing, err := tx.First("prepared-queries", "id", query.Name)
+		alias, err := tx.First("prepared-queries", "id", query.Name)
 		if err != nil {
 			return fmt.Errorf("failed prepared query lookup: %s", err)
 		}
-		if existing != nil {
-			return fmt.Errorf("name '%s' aliases an existing query id", query.Name)
+		if alias != nil {
+			return fmt.Errorf("name '%s' aliases an existing query ID", query.Name)
 		}
 	}
 

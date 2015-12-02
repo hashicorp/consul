@@ -175,35 +175,64 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 		t.Fatalf("bad: %v", actual)
 	}
 
-	// Finally, try to abuse the system by trying to register a query whose
-	// name aliases a real query ID.
-	evil := &structs.PreparedQuery{
-		ID:   testUUID(),
-		Name: query.ID,
-		Service: structs.ServiceQuery{
-			Service: "redis",
-		},
+	// Try to register a query with the same name and make sure it fails.
+	{
+		evil := &structs.PreparedQuery{
+			ID:   testUUID(),
+			Name: query.Name,
+			Service: structs.ServiceQuery{
+				Service: "redis",
+			},
+		}
+		err := s.PreparedQuerySet(7, evil)
+		if err == nil || !strings.Contains(err.Error(), "aliases an existing query name") {
+			t.Fatalf("bad: %v", err)
+		}
+
+		// Sanity check to make sure it's not there.
+		idx, actual, err := s.PreparedQueryGet(evil.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != 6 {
+			t.Fatalf("bad index: %d", idx)
+		}
+		if actual != nil {
+			t.Fatalf("bad: %v", actual)
+		}
 	}
-	err = s.PreparedQuerySet(7, evil)
-	if err == nil || !strings.Contains(err.Error(), "aliases an existing query") {
-		t.Fatalf("bad: %v", err)
+
+	// Try to abuse the system by trying to register a query whose name
+	// aliases a real query ID.
+	{
+		evil := &structs.PreparedQuery{
+			ID:   testUUID(),
+			Name: query.ID,
+			Service: structs.ServiceQuery{
+				Service: "redis",
+			},
+		}
+		err := s.PreparedQuerySet(8, evil)
+		if err == nil || !strings.Contains(err.Error(), "aliases an existing query ID") {
+			t.Fatalf("bad: %v", err)
+		}
+
+		// Sanity check to make sure it's not there.
+		idx, actual, err := s.PreparedQueryGet(evil.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != 6 {
+			t.Fatalf("bad index: %d", idx)
+		}
+		if actual != nil {
+			t.Fatalf("bad: %v", actual)
+		}
 	}
 
 	// Index is not updated if nothing is saved.
 	if idx := s.maxIndex("prepared-queries"); idx != 6 {
 		t.Fatalf("bad index: %d", idx)
-	}
-
-	// Sanity check to make sure it's not there.
-	idx, actual, err = s.PreparedQueryGet(evil.ID)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if idx != 6 {
-		t.Fatalf("bad index: %d", idx)
-	}
-	if actual != nil {
-		t.Fatalf("bad: %v", actual)
 	}
 }
 
