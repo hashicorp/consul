@@ -162,6 +162,7 @@ type RegisterRequest struct {
 	Datacenter string
 	Node       string
 	Address    string
+	WanAddress string
 	Service    *NodeService
 	Check      *HealthCheck
 	Checks     HealthChecks
@@ -245,8 +246,9 @@ func (r *ChecksInStateRequest) RequestDatacenter() string {
 
 // Used to return information about a node
 type Node struct {
-	Node    string
-	Address string
+	Node       string
+	Address    string
+	WanAddress string
 
 	RaftIndex
 }
@@ -438,10 +440,11 @@ OUTER:
 // a node. This is currently used for the UI only, as it is
 // rather expensive to generate.
 type NodeInfo struct {
-	Node     string
-	Address  string
-	Services []*NodeService
-	Checks   []*HealthCheck
+	Node       string
+	Address    string
+	WanAddress string
+	Services   []*NodeService
+	Checks     []*HealthCheck
 }
 
 // NodeDump is used to dump all the nodes with all their
