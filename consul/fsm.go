@@ -472,8 +472,9 @@ func (s *consulSnapshot) persistNodes(sink raft.SnapshotSink,
 	for node := nodes.Next(); node != nil; node = nodes.Next() {
 		n := node.(*structs.Node)
 		req := structs.RegisterRequest{
-			Node:    n.Node,
-			Address: n.Address,
+			Node:       n.Node,
+			Address:    n.Address,
+			WanAddress: n.WanAddress,
 		}
 
 		// Register the node itself

@@ -298,6 +298,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	if s.config.BootstrapExpect != 0 {
 		conf.Tags["expect"] = fmt.Sprintf("%d", s.config.BootstrapExpect)
 	}
+	if wanAddr := s.config.SerfWANConfig.MemberlistConfig.AdvertiseAddr; wanAddr != "" {
+		conf.Tags["WanAddr"] = wanAddr
+	}
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput
 	conf.EventCh = ch
