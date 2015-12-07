@@ -418,6 +418,7 @@ AFTER_CHECK:
 		Datacenter: s.config.Datacenter,
 		Node:       member.Name,
 		Address:    member.Addr.String(),
+		WanAddress: member.Tags["WanAddr"],
 		Service:    service,
 		Check: &structs.HealthCheck{
 			Node:    member.Name,
@@ -460,6 +461,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 		Datacenter: s.config.Datacenter,
 		Node:       member.Name,
 		Address:    member.Addr.String(),
+		WanAddress: member.Tags["WanAddr"],
 		Check: &structs.HealthCheck{
 			Node:    member.Name,
 			CheckID: SerfCheckID,
