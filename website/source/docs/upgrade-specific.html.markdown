@@ -79,6 +79,12 @@ Prepared queries introduce a new Raft log entry type that isn't supported on old
 versions of Consul. It's important to not use the prepared query features of Consul
 until all servers in a cluster have been upgraded to version 0.6.0.
 
+#### Single Private IP Enforcement
+
+Consul will refuse to start if there are multiple private IPs available, so
+if this is the case you will need to configure Consul's advertise or bind addresses
+before upgrading.
+
 ## Consul 0.5.1
 
 Consul version 0.5.1 uses a different backend store for persisting the Raft
