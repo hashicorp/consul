@@ -380,6 +380,11 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		return err
 	}
 	if node != nil && node.Address == member.Addr.String() {
+		// Check if the WAN address was updated
+		if node.WanAddress != member.Tags["WanAddr"] {
+			goto AFTER_CHECK
+		}
+
 		// Check if the associated service is available
 		if service != nil {
 			match := false
