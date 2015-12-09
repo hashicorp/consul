@@ -15,7 +15,7 @@ descriptions.
 
 When loading configuration, Consul loads the configuration from files
 and directories in lexical order. For example, configuration file `basic_config.json`
-will be processed before `extra_config.js`. Configuration specified later
+will be processed before `extra_config.json`. Configuration specified later
 will be merged into configuration specified earlier. In most cases,
 "merge" means that the later version will override the earlier. In
 some cases, such as event handlers, merging appends the handlers to the
