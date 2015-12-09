@@ -182,7 +182,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.Merge = &lanMergeDelegate{dc: c.config.Datacenter}
 	conf.DisableCoordinates = c.config.DisableCoordinates
 	if wanAddr := c.config.SerfWANConfig.MemberlistConfig.AdvertiseAddr; wanAddr != "" {
-		conf.Tags["WanAddr"] = wanAddr
+		conf.Tags["wan_addr"] = wanAddr
 	}
 	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
