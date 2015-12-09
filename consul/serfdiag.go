@@ -106,14 +106,14 @@ func (c *SerfDiag) Ping(params *SerfPingParam) (*SerfPingResponse, error) {
 	if rtt, err := c.serf.Memberlist().Ping(node.Name, node.Addr, node.Port); err == nil {
 		return &SerfPingResponse{
 			Success: true,
-			RTT:     *rtt,
+			RTT:     rtt,
 		}, err
 	} else {
 		switch err.(type) {
 		case memberlist.NoPingResponseError:
 			return &SerfPingResponse{
 				Success: false,
-				RTT:     *rtt,
+				RTT:     rtt,
 			}, nil
 		default:
 			return nil, err
