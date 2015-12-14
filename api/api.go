@@ -122,12 +122,14 @@ type Config struct {
 	Token string
 }
 
+var defaultHttpClient = cleanhttp.DefaultClient()
+
 // DefaultConfig returns a default configuration for the client
 func DefaultConfig() *Config {
 	config := &Config{
 		Address:    "127.0.0.1:8500",
 		Scheme:     "http",
-		HttpClient: cleanhttp.DefaultClient(),
+		HttpClient: defaultHttpClient,
 	}
 
 	if addr := os.Getenv("CONSUL_HTTP_ADDR"); addr != "" {
@@ -210,6 +212,7 @@ func NewClient(config *Config) (*Client, error) {
 		trans.Dial = func(_, _ string) (net.Conn, error) {
 			return net.Dial("unix", parts[1])
 		}
+		trans.DisableKeepAlives = true
 		config.HttpClient = &http.Client{
 			Transport: trans,
 		}
