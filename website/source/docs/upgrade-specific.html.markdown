@@ -85,6 +85,12 @@ Consul will refuse to start if there are multiple private IPs available, so
 if this is the case you will need to configure Consul's advertise or bind addresses
 before upgrading.
 
+#### New Web UI File Layout
+
+The release .zip file for Consul's web UI no longer contains a `dist` sub-folder;
+everything has been moved up one level. If you have any automated scripts that
+expect the old layout you may need to update them.
+
 ## Consul 0.5.1
 
 Consul version 0.5.1 uses a different backend store for persisting the Raft
