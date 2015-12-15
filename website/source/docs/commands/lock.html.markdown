@@ -62,5 +62,6 @@ The list of available flags are:
 
 * `-pass-stdin` - Pass stdin to child process.
 
-* `-verbose` - Enables verbose output.
+* `-child-exitcode` - Exit 1 if the child process exited with an error.
 
+* `-verbose` - Enables verbose output.
