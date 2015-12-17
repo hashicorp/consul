@@ -375,7 +375,6 @@ func TestLock_ReclaimLock(t *testing.T) {
 }
 
 func TestLock_MonitorRetry(t *testing.T) {
-	t.Parallel()
 	raw, s := makeClient(t)
 	defer s.Stop()
 
