@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -122,12 +123,20 @@ type Config struct {
 	Token string
 }
 
+var defaultHttpClient = cleanhttp.DefaultClient()
+
+var defaultInsecureTransport = &http.Transport{
+	TLSClientConfig: &tls.Config{
+		InsecureSkipVerify: true,
+	},
+}
+
 // DefaultConfig returns a default configuration for the client
 func DefaultConfig() *Config {
 	config := &Config{
 		Address:    "127.0.0.1:8500",
 		Scheme:     "http",
-		HttpClient: cleanhttp.DefaultClient(),
+		HttpClient: defaultHttpClient,
 	}
 
 	if addr := os.Getenv("CONSUL_HTTP_ADDR"); addr != "" {
@@ -172,11 +181,7 @@ func DefaultConfig() *Config {
 		}
 
 		if !doVerify {
-			config.HttpClient.Transport = &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			}
+			config.HttpClient.Transport = defaultInsecureTransport
 		}
 	}
 
@@ -187,6 +192,9 @@ func DefaultConfig() *Config {
 type Client struct {
 	config Config
 }
+
+var unixClients = make(map[string]*http.Client)
+var unixClientsLock sync.Mutex
 
 // NewClient returns a new client
 func NewClient(config *Config) (*Client, error) {
@@ -206,14 +214,22 @@ func NewClient(config *Config) (*Client, error) {
 	}
 
 	if parts := strings.SplitN(config.Address, "unix://", 2); len(parts) == 2 {
-		trans := cleanhttp.DefaultTransport()
-		trans.Dial = func(_, _ string) (net.Conn, error) {
-			return net.Dial("unix", parts[1])
-		}
-		config.HttpClient = &http.Client{
-			Transport: trans,
-		}
 		config.Address = parts[1]
+
+		unixClientsLock.Lock()
+		if client, ok := unixClients[config.Address]; ok {
+			config.HttpClient = client
+		} else {
+			trans := cleanhttp.DefaultTransport()
+			trans.Dial = func(_, _ string) (net.Conn, error) {
+				return net.Dial("unix", config.Address)
+			}
+			config.HttpClient = &http.Client{
+				Transport: trans,
+			}
+			unixClients[config.Address] = config.HttpClient
+		}
+		unixClientsLock.Unlock()
 	}
 
 	client := &Client{
