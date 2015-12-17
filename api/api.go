@@ -123,13 +123,21 @@ type Config struct {
 	Token string
 }
 
+// defaultHttpClient is a shared client instance that is used to prevent apps
+// that create multiple clients from opening multiple connections, which would
+// leak file descriptors.
 var defaultHttpClient = cleanhttp.DefaultClient()
 
-var defaultInsecureTransport = &http.Transport{
-	TLSClientConfig: &tls.Config{
+// defaultInsecureTransport is a shared transport that will get injected into
+// the defaultHttpClient if the CONSUL_HTTP_SSL_VERIFY environment variable is
+// set to true.
+var defaultInsecureTransport = func() *http.Transport {
+	trans := cleanhttp.DefaultTransport()
+	trans.TLSClientConfig = &tls.Config{
 		InsecureSkipVerify: true,
-	},
-}
+	}
+	return trans
+}()
 
 // DefaultConfig returns a default configuration for the client
 func DefaultConfig() *Config {
@@ -193,7 +201,13 @@ type Client struct {
 	config Config
 }
 
+// unixClients contains a set of shared UNIX socket clients, indexed by address.
+// These shared instances are used to prevent apps that create multiple clients
+// from opening multiple connections, which would leak file descriptors.
 var unixClients = make(map[string]*http.Client)
+
+// unixClientsLock serializes access to the unixClients map, since most users
+// would expect NewClient to be thread-safe.
 var unixClientsLock sync.Mutex
 
 // NewClient returns a new client
