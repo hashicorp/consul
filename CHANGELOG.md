@@ -1,3 +1,18 @@
+## 0.6.1 (UNRELEASED)
+
+IMPROVEMENTS:
+
+* Consul is now built with Go 1.5.2
+* Added source IP address and port information to RPC-related log error
+  messages [GH-1513]
+
+BUG FIXES:
+
+* Fixed broken settings icon in web UI [GH-1469]
+* Fixed a web UI bug where the supplied token wasn't being passed into
+  the internal endpoint, breaking some pages when multiple datacenters
+  were present [GH-1071]
+
 ## 0.6.0 (December 3, 2015)
 
 BACKWARDS INCOMPATIBILITIES:
