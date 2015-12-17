@@ -12,6 +12,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
 	"github.com/inconshreveable/muxado"
@@ -69,6 +70,12 @@ func (s *Server) listen() {
 	}
 }
 
+// logConn is a wrapper around memberlist's LogConn so that we format references
+// to "from" addresses in a consistent way. This is just a shorter name.
+func logConn(conn net.Conn) string {
+	return memberlist.LogConn(conn)
+}
+
 // handleConn is used to determine if this is a Raft or
 // Consul type RPC connection and invoke the correct handler
 func (s *Server) handleConn(conn net.Conn, isTLS bool) {
@@ -76,7 +83,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	buf := make([]byte, 1)
 	if _, err := conn.Read(buf); err != nil {
 		if err != io.EOF {
-			s.logger.Printf("[ERR] consul.rpc: failed to read byte: %v", err)
+			s.logger.Printf("[ERR] consul.rpc: failed to read byte: %v %s", err, logConn(conn))
 		}
 		conn.Close()
 		return
@@ -84,7 +91,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 
 	// Enforce TLS if VerifyIncoming is set
 	if s.config.VerifyIncoming && !isTLS && RPCType(buf[0]) != rpcTLS {
-		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set")
+		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set %s", logConn(conn))
 		conn.Close()
 		return
 	}
@@ -103,7 +110,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 
 	case rpcTLS:
 		if s.rpcTLS == nil {
-			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS")
+			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS %s", logConn(conn))
 			conn.Close()
 			return
 		}
@@ -114,7 +121,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleMultiplexV2(conn)
 
 	default:
-		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v", buf[0])
+		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", buf[0], logConn(conn))
 		conn.Close()
 		return
 	}
@@ -129,7 +136,7 @@ func (s *Server) handleMultiplex(conn net.Conn) {
 		sub, err := server.Accept()
 		if err != nil {
 			if !strings.Contains(err.Error(), "closed") {
-				s.logger.Printf("[ERR] consul.rpc: multiplex conn accept failed: %v", err)
+				s.logger.Printf("[ERR] consul.rpc: multiplex conn accept failed: %v %s", err, logConn(conn))
 			}
 			return
 		}
@@ -148,7 +155,7 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 		sub, err := server.Accept()
 		if err != nil {
 			if err != io.EOF {
-				s.logger.Printf("[ERR] consul.rpc: multiplex conn accept failed: %v", err)
+				s.logger.Printf("[ERR] consul.rpc: multiplex conn accept failed: %v %s", err, logConn(conn))
 			}
 			return
 		}
@@ -169,7 +176,7 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
-				s.logger.Printf("[ERR] consul.rpc: RPC error: %v (%v)", err, conn)
+				s.logger.Printf("[ERR] consul.rpc: RPC error: %v %s", err, logConn(conn))
 				metrics.IncrCounter([]string{"consul", "rpc", "request_error"}, 1)
 			}
 			return
