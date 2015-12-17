@@ -244,16 +244,13 @@ func TestAPI_UnixSocket(t *testing.T) {
 	})
 	defer s.Stop()
 
-	// Run a few iterations to test the path where we use the pooled
-	// connection.
-	for i := 0; i < 3; i++ {
-		agent := c.Agent()
-		info, err := agent.Self()
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if info["Config"]["NodeName"] == "" {
-			t.Fatalf("bad: %v", info)
-		}
+	agent := c.Agent()
+
+	info, err := agent.Self()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if info["Config"]["NodeName"] == "" {
+		t.Fatalf("bad: %v", info)
 	}
 }
