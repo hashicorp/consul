@@ -178,6 +178,7 @@ func DefaultConfig() *Config {
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: true,
 				},
+				DisableKeepAlives: true,
 			}
 		}
 	}
