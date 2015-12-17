@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -398,8 +399,10 @@ func TestLock_MonitorRetry(t *testing.T) {
 		if errors > 0 && req.Method == "GET" && strings.Contains(req.URL.Path, "/v1/kv/test/lock") {
 			req.URL.Host = outage.URL[7:] // Strip off "http://".
 			errors--
+			fmt.Printf("XXX scuttling %s %v %s\n", req.Method, req.URL, req.URL.Host)
 		} else {
 			req.URL.Host = raw.config.Address
+			fmt.Printf("XXX proxying %s %v %s\n", req.Method, req.URL, req.URL.Host)
 		}
 	}
 	proxy := httptest.NewServer(&httputil.ReverseProxy{Director: director})
