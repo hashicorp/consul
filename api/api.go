@@ -13,6 +13,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -122,12 +123,28 @@ type Config struct {
 	Token string
 }
 
+// defaultHttpClient is a shared client instance that is used to prevent apps
+// that create multiple clients from opening multiple connections, which would
+// leak file descriptors.
+var defaultHttpClient = cleanhttp.DefaultClient()
+
+// defaultInsecureTransport is a shared transport that will get injected into
+// the defaultHttpClient if the CONSUL_HTTP_SSL_VERIFY environment variable is
+// set to true.
+var defaultInsecureTransport = func() *http.Transport {
+	trans := cleanhttp.DefaultTransport()
+	trans.TLSClientConfig = &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	return trans
+}()
+
 // DefaultConfig returns a default configuration for the client
 func DefaultConfig() *Config {
 	config := &Config{
 		Address:    "127.0.0.1:8500",
 		Scheme:     "http",
-		HttpClient: cleanhttp.DefaultClient(),
+		HttpClient: defaultHttpClient,
 	}
 
 	if addr := os.Getenv("CONSUL_HTTP_ADDR"); addr != "" {
@@ -172,11 +189,7 @@ func DefaultConfig() *Config {
 		}
 
 		if !doVerify {
-			config.HttpClient.Transport = &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			}
+			config.HttpClient.Transport = defaultInsecureTransport
 		}
 	}
 
@@ -187,6 +200,15 @@ func DefaultConfig() *Config {
 type Client struct {
 	config Config
 }
+
+// unixClients contains a set of shared UNIX socket clients, indexed by address.
+// These shared instances are used to prevent apps that create multiple clients
+// from opening multiple connections, which would leak file descriptors.
+var unixClients = make(map[string]*http.Client)
+
+// unixClientsLock serializes access to the unixClients map, since most users
+// would expect NewClient to be thread-safe.
+var unixClientsLock sync.Mutex
 
 // NewClient returns a new client
 func NewClient(config *Config) (*Client, error) {
@@ -206,14 +228,22 @@ func NewClient(config *Config) (*Client, error) {
 	}
 
 	if parts := strings.SplitN(config.Address, "unix://", 2); len(parts) == 2 {
-		trans := cleanhttp.DefaultTransport()
-		trans.Dial = func(_, _ string) (net.Conn, error) {
-			return net.Dial("unix", parts[1])
-		}
-		config.HttpClient = &http.Client{
-			Transport: trans,
-		}
 		config.Address = parts[1]
+
+		unixClientsLock.Lock()
+		if client, ok := unixClients[config.Address]; ok {
+			config.HttpClient = client
+		} else {
+			trans := cleanhttp.DefaultTransport()
+			trans.Dial = func(_, _ string) (net.Conn, error) {
+				return net.Dial("unix", config.Address)
+			}
+			config.HttpClient = &http.Client{
+				Transport: trans,
+			}
+			unixClients[config.Address] = config.HttpClient
+		}
+		unixClientsLock.Unlock()
 	}
 
 	client := &Client{
