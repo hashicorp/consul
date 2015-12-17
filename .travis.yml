@@ -1,7 +1,7 @@
 language: go
 
 go:
-  - tip
+  - 1.5.2
 
 branches:
   only:
