@@ -76,7 +76,7 @@ func (c *Coordinate) batchApplyUpdates() error {
 			break
 		}
 
-		updates[i] = &structs.Coordinate{node, coord}
+		updates[i] = &structs.Coordinate{Node: node, Coord: coord}
 		i++
 	}
 
