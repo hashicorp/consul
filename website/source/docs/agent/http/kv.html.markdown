@@ -103,7 +103,7 @@ value corresponding to the key. There are a number of query parameters that can
 be used with a PUT request:
 
 * ?flags=\<num\> : This can be used to specify an unsigned value between
-  0 and 2^64-1. Clients can choose to use this however makes sense for their application.
+  0 and (2^64)-1. Clients can choose to use this however makes sense for their application.
 
 * ?cas=\<index\> : This flag is used to turn the `PUT` into a Check-And-Set
   operation. This is very useful as a building block for more complex

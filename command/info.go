@@ -48,21 +48,6 @@ func (i *InfoCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Check for specific warnings
-	didWarn := false
-	runtime, ok := stats["runtime"]
-	if ok {
-		if maxprocs := runtime["max_procs"]; maxprocs == "1" {
-			i.Ui.Output("WARNING: It is highly recommended to set GOMAXPROCS higher than 1")
-			didWarn = true
-		}
-	}
-
-	// Add a blank line if there are any warnings
-	if didWarn {
-		i.Ui.Output("")
-	}
-
 	// Get the keys in sorted order
 	keys := make([]string, 0, len(stats))
 	for key := range stats {

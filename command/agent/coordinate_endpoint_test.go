@@ -48,6 +48,23 @@ func TestCoordinate_Nodes(t *testing.T) {
 
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
+	// Make sure an empty list is non-nil.
+	req, err := http.NewRequest("GET", "/v1/coordinate/nodes?dc=dc1", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp := httptest.NewRecorder()
+	obj, err := srv.CoordinateNodes(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	coordinates := obj.(structs.Coordinates)
+	if coordinates == nil || len(coordinates) != 0 {
+		t.Fatalf("bad: %v", coordinates)
+	}
+
 	// Register the nodes.
 	nodes := []string{"foo", "bar"}
 	for _, node := range nodes {
@@ -85,18 +102,18 @@ func TestCoordinate_Nodes(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// Query back and check the nodes are present and sorted correctly.
-	req, err := http.NewRequest("GET", "/v1/coordinate/nodes?dc=dc1", nil)
+	req, err = http.NewRequest("GET", "/v1/coordinate/nodes?dc=dc1", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	resp := httptest.NewRecorder()
-	obj, err := srv.CoordinateNodes(resp, req)
+	resp = httptest.NewRecorder()
+	obj, err = srv.CoordinateNodes(resp, req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	coordinates := obj.(structs.Coordinates)
+	coordinates = obj.(structs.Coordinates)
 	if len(coordinates) != 2 ||
 		coordinates[0].Node != "bar" ||
 		coordinates[1].Node != "foo" {

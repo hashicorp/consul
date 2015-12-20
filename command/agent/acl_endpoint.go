@@ -176,6 +176,11 @@ func (s *HTTPServer) ACLGet(resp http.ResponseWriter, req *http.Request) (interf
 	if err := s.agent.RPC("ACL.Get", &args, &out); err != nil {
 		return nil, err
 	}
+
+	// Use empty list instead of nil
+	if out.ACLs == nil {
+		out.ACLs = make(structs.ACLs, 0)
+	}
 	return out.ACLs, nil
 }
 
@@ -192,6 +197,11 @@ func (s *HTTPServer) ACLList(resp http.ResponseWriter, req *http.Request) (inter
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("ACL.List", &args, &out); err != nil {
 		return nil, err
+	}
+
+	// Use empty list instead of nil
+	if out.ACLs == nil {
+		out.ACLs = make(structs.ACLs, 0)
 	}
 	return out.ACLs, nil
 }

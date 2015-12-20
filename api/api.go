@@ -172,11 +172,11 @@ func DefaultConfig() *Config {
 		}
 
 		if !doVerify {
-			config.HttpClient.Transport = &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
+			transport := cleanhttp.DefaultTransport()
+			transport.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true,
 			}
+			config.HttpClient.Transport = transport
 		}
 	}
 

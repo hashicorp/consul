@@ -2,6 +2,10 @@ package api
 
 import (
 	"log"
+	"net/http"
+	"net/http/httptest"
+	"net/http/httputil"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -363,6 +367,121 @@ func TestLock_ReclaimLock(t *testing.T) {
 		t.Fatalf("should not be leader")
 	}
 
+	select {
+	case <-leaderCh:
+	case <-time.After(time.Second):
+		t.Fatalf("should not be leader")
+	}
+}
+
+func TestLock_MonitorRetry(t *testing.T) {
+	t.Parallel()
+	raw, s := makeClient(t)
+	defer s.Stop()
+
+	// Set up a server that always responds with 500 errors.
+	failer := func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(500)
+	}
+	outage := httptest.NewServer(http.HandlerFunc(failer))
+	defer outage.Close()
+
+	// Set up a reverse proxy that will send some requests to the
+	// 500 server and pass everything else through to the real Consul
+	// server.
+	var mutex sync.Mutex
+	errors := 0
+	director := func(req *http.Request) {
+		mutex.Lock()
+		defer mutex.Unlock()
+
+		req.URL.Scheme = "http"
+		if errors > 0 && req.Method == "GET" && strings.Contains(req.URL.Path, "/v1/kv/test/lock") {
+			req.URL.Host = outage.URL[7:] // Strip off "http://".
+			errors--
+		} else {
+			req.URL.Host = raw.config.Address
+		}
+	}
+	proxy := httptest.NewServer(&httputil.ReverseProxy{Director: director})
+	defer proxy.Close()
+
+	// Make another client that points at the proxy instead of the real
+	// Consul server.
+	config := raw.config
+	config.Address = proxy.URL[7:] // Strip off "http://".
+	c, err := NewClient(&config)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Set up a lock with retries enabled.
+	opts := &LockOptions{
+		Key:            "test/lock",
+		SessionTTL:     "60s",
+		MonitorRetries: 3,
+	}
+	lock, err := c.LockOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the default got set.
+	if lock.opts.MonitorRetryTime != DefaultMonitorRetryTime {
+		t.Fatalf("bad: %d", lock.opts.MonitorRetryTime)
+	}
+
+	// Now set a custom time for the test.
+	opts.MonitorRetryTime = 250 * time.Millisecond
+	lock, err = c.LockOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if lock.opts.MonitorRetryTime != 250*time.Millisecond {
+		t.Fatalf("bad: %d", lock.opts.MonitorRetryTime)
+	}
+
+	// Should get the lock.
+	leaderCh, err := lock.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if leaderCh == nil {
+		t.Fatalf("not leader")
+	}
+
+	// Poke the key using the raw client to force the monitor to wake up
+	// and check the lock again. This time we will return errors for some
+	// of the responses.
+	mutex.Lock()
+	errors = 2
+	mutex.Unlock()
+	pair, _, err := raw.KV().Get("test/lock", &QueryOptions{})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := raw.KV().Put(pair, &WriteOptions{}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	time.Sleep(5 * opts.MonitorRetryTime)
+
+	// Should still be the leader.
+	select {
+	case <-leaderCh:
+		t.Fatalf("should be leader")
+	default:
+	}
+
+	// Now return an overwhelming number of errors.
+	mutex.Lock()
+	errors = 10
+	mutex.Unlock()
+	if _, err := raw.KV().Put(pair, &WriteOptions{}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	time.Sleep(5 * opts.MonitorRetryTime)
+
+	// Should lose leadership.
 	select {
 	case <-leaderCh:
 	case <-time.After(time.Second):

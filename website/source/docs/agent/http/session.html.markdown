@@ -65,10 +65,13 @@ causes any locks that are held to be deleted. `delete` is useful for creating ep
 key/value entries.
 
 The `TTL` field is a duration string, and like `LockDelay` it can use "s" as
-a suffix for seconds. If specified, it must be between 10s and 3600s currently.
+a suffix for seconds. If specified, it must be between 10s and 86400s currently.
 When provided, the session is invalidated if it is not renewed before the TTL
-expires. See the [session internals page](/docs/internals/sessions.html) for more
-documentation of this feature.
+expires. The lowest practical TTL should be used to keep the number of managed
+sessions low. When locks are forcibly expired, such as during a leader election,
+sessions may not be reaped for up to double this TTL, so long TTL values (>1 hour)
+should be avoided. See the [session internals page](/docs/internals/sessions.html)
+for more documentation of this feature.
 
 The return code is 200 on success and returns the ID of the created session:
 

@@ -15,7 +15,7 @@ descriptions.
 
 When loading configuration, Consul loads the configuration from files
 and directories in lexical order. For example, configuration file `basic_config.json`
-will be processed before `extra_config.js`. Configuration specified later
+will be processed before `extra_config.json`. Configuration specified later
 will be merged into configuration specified earlier. In most cases,
 "merge" means that the later version will override the earlier. In
 some cases, such as event handlers, merging appends the handlers to the
@@ -557,15 +557,25 @@ definitions support being updated during a reload.
 * <a name="start_join_wan"></a><a href="#start_join_wan">`start_join_wan`</a> An array of strings specifying
   addresses of WAN nodes to [`-join-wan`](#_join_wan) upon startup.
 
-* <a name="statsd_addr"></a><a href="#statsd_addr">`statsd_addr`</a> This provides the address of a statsd
-  instance.  If provided, Consul will send various telemetry information to that instance for aggregation.
-  This can be used to capture runtime information. This sends UDP packets only and can be used with statsd
-  or statsite.
+  * <a name="statsd_addr"></a><a href="#statsd_addr">`statsd_addr`</a> This provides the address of a
+  statsd instance in the format `host:port`.  If provided, Consul will send various telemetry information
+  to that instance for aggregation. This can be used to capture runtime information. This sends UDP packets
+  only and can be used with statsd or statsite.
+
+* <a name="dogstatsd_addr"></a><a href="#dogstatsd_addr">`dogstatsd_addr`</a> This provides the
+  address of a DogStatsD instance in the format `host:port`. DogStatsD is a protocol-compatible flavor of
+  statsd, with the added ability to decorate metrics with tags and event information. If provided, Consul will
+  send various telemetry information to that instance for aggregation. This can be used to capture runtime
+  information.
+
+* <a name="dogstatsd_tags"></a><a href="#dogstatsd_tags">`dogstatsd_tags`</a> This provides a list of global tags
+  that will be added to all telemetry packets sent to DogStatsD. It is a list of strings, where each string
+  looks like "my_tag_name:my_tag_value".
 
 * <a name="statsite_addr"></a><a href="#statsite_addr">`statsite_addr`</a> This provides the address of a
-  statsite instance. If provided, Consul will stream various telemetry information to that instance for
-  aggregation. This can be used to capture runtime information. This streams via
-  TCP and can only be used with statsite.
+  statsite instance in the format `host:port`. If provided, Consul will stream various telemetry information
+  to that instance for aggregation. This can be used to capture runtime information. This streams via TCP and
+  can only be used with statsite.
 
 * <a name="statsite_prefix"></a><a href="#statsite_prefix">`statsite_prefix`</a>
   The prefix used while writing all telemetry data to statsite. By default, this

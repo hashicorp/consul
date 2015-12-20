@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/datadog"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-syslog"
@@ -564,11 +565,6 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
-	// Check GOMAXPROCS
-	if runtime.GOMAXPROCS(0) == 1 {
-		c.Ui.Error("WARNING: It is highly recommended to set GOMAXPROCS higher than 1")
-	}
-
 	// Setup the log outputs
 	logGate, logWriter, logOutput := c.setupLoggers(config)
 	if logWriter == nil {
@@ -601,6 +597,23 @@ func (c *Command) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf("Failed to start statsd sink. Got: %s", err))
 			return 1
 		}
+		fanout = append(fanout, sink)
+	}
+
+	// Configure the DogStatsd sink
+	if config.DogStatsdAddr != "" {
+		var tags []string
+
+		if config.DogStatsdTags != nil {
+			tags = config.DogStatsdTags
+		}
+
+		sink, err := datadog.NewDogStatsdSink(config.DogStatsdAddr, metricsConf.HostName)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to start DogStatsd sink. Got: %s", err))
+			return 1
+		}
+		sink.SetTags(tags)
 		fanout = append(fanout, sink)
 	}
 

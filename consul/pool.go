@@ -103,6 +103,12 @@ func (c *Conn) returnClient(client *StreamClient) {
 	if c.clients.Len() < c.pool.maxStreams && atomic.LoadInt32(&c.shouldClose) == 0 {
 		c.clients.PushFront(client)
 		didSave = true
+
+		// If this is a Yamux stream, shrink the internal buffers so that
+		// we can GC the idle memory
+		if ys, ok := client.stream.(*yamux.Stream); ok {
+			ys.Shrink()
+		}
 	}
 	c.clientLock.Unlock()
 	if !didSave {

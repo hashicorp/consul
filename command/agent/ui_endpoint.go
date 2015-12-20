@@ -38,6 +38,19 @@ RPC:
 		}
 		return nil, err
 	}
+
+	// Use empty list instead of nil
+	for _, info := range out.Dump {
+		if info.Services == nil {
+			info.Services = make([]*structs.NodeService, 0)
+		}
+		if info.Checks == nil {
+			info.Checks = make([]*structs.HealthCheck, 0)
+		}
+	}
+	if out.Dump == nil {
+		out.Dump = make(structs.NodeDump, 0)
+	}
 	return out.Dump, nil
 }
 
@@ -73,7 +86,14 @@ RPC:
 
 	// Return only the first entry
 	if len(out.Dump) > 0 {
-		return out.Dump[0], nil
+		info := out.Dump[0]
+		if info.Services == nil {
+			info.Services = make([]*structs.NodeService, 0)
+		}
+		if info.Checks == nil {
+			info.Checks = make([]*structs.HealthCheck, 0)
+		}
+		return info, nil
 	}
 	return nil, nil
 }

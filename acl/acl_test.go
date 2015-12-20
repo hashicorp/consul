@@ -65,6 +65,12 @@ func TestStaticACL(t *testing.T) {
 	if all.ACLModify() {
 		t.Fatalf("should not allow")
 	}
+	if all.QueryList() {
+		t.Fatalf("should not allow")
+	}
+	if all.QueryModify() {
+		t.Fatalf("should not allow")
+	}
 
 	if none.KeyRead("foobar") {
 		t.Fatalf("should not allow")
@@ -102,6 +108,12 @@ func TestStaticACL(t *testing.T) {
 	if none.ACLModify() {
 		t.Fatalf("should not allow")
 	}
+	if none.QueryList() {
+		t.Fatalf("should not allow")
+	}
+	if none.QueryModify() {
+		t.Fatalf("should not allow")
+	}
 
 	if !manage.KeyRead("foobar") {
 		t.Fatalf("should allow")
@@ -131,6 +143,12 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("should allow")
 	}
 	if !manage.ACLModify() {
+		t.Fatalf("should allow")
+	}
+	if !manage.QueryList() {
+		t.Fatalf("should allow")
+	}
+	if !manage.QueryModify() {
 		t.Fatalf("should allow")
 	}
 }
@@ -368,6 +386,20 @@ func TestPolicyACL_Parent(t *testing.T) {
 		if c.write != acl.ServiceWrite(c.inp) {
 			t.Fatalf("Write fail: %#v", c)
 		}
+	}
+
+	// Check some management functions that chain up
+	if acl.ACLList() {
+		t.Fatalf("should not allow")
+	}
+	if acl.ACLModify() {
+		t.Fatalf("should not allow")
+	}
+	if acl.QueryList() {
+		t.Fatalf("should not allow")
+	}
+	if acl.QueryModify() {
+		t.Fatalf("should not allow")
 	}
 }
 

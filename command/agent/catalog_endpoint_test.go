@@ -351,6 +351,27 @@ func TestCatalogServiceNodes(t *testing.T) {
 
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
+	// Make sure an empty list is returned, not a nil
+	{
+		req, err := http.NewRequest("GET", "/v1/catalog/service/api?tag=a", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.CatalogServiceNodes(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		assertIndex(t, resp)
+
+		nodes := obj.(structs.ServiceNodes)
+		if nodes == nil || len(nodes) != 0 {
+			t.Fatalf("bad: %v", obj)
+		}
+	}
+
 	// Register node
 	args := &structs.RegisterRequest{
 		Datacenter: "dc1",
