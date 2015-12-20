@@ -6,9 +6,6 @@
 	<div id="main-content" class="col-md-8" role="main">
 		<div class="bs-docs-section">
 			<%= yield %>
-      <% if current_page.url != '/' %>
-        <div class="edit-this-page"><a href="<%= github_url :current_page %>">Edit this page</a></div>
-      <% end %>
 		</div>
 	</div>
 </div>

@@ -1,7 +1,10 @@
 <div id="footer" class="navigation">
-  <div class="container">    
+  <div class="container">
     <div class="row">
       <div class="col-xs-12">
+        <% if current_page.url != '/' %>
+          <div class="edit-page-link"><a href="<%= github_url :current_page %>">Edit this page</a></div>
+        <% end %>        
         <div>
           <ul class="main-links white nav navbar-nav">
             <li><a href="/intro/index.html">Intro</a></li>
