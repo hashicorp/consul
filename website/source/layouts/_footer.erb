@@ -1,29 +1,40 @@
-<div id="footer">
-	<div class="container">
-		<div class="footer-links">
-			<ul class="main-links nav navbar-nav rls-sb">
-				<li class="li-under"><a href="/intro/index.html">Intro</a></li>
-				<li class="active li-under"><a href="/docs/index.html">Docs</a></li>
-				<li class="li-under"><a href="/community.html">Community</a></li>
-				<li class="li-under"><a href="http://demo.consul.io/">Demo</a></li>
-				<% if current_page.url != '/' %>
-					<li class="li-under"><a href="<%= github_url :current_page %>">Edit this page</a></li>
-				<% end %>
-			</ul>
-
-			<ul class="buttons nav navbar-nav rls-sb">
-				<li class="first download outline-btn purple"><a href="/downloads.html">Download</a></li>
-				<li class="github outline-btn purple"><a href="https://github.com/hashicorp/consul">GitHub</a></li>
-			</ul>
-		</div>
-		<div class="footer-logo">
-			<span></span>
-		</div>
-		<div class="footer-hashi os">
-			<span>Copyright &copy; <%= Time.now.year %>. A <a href="https://www.hashicorp.com">HashiCorp</a> Project.</span>
-			<a class="hashi-logo" href="http://www.hashicorp.com"><%= image_tag 'footer-hashicorp-logo.png' %></a>
-		</div>
-	</div>
+<div id="footer" class="navigation">
+  <div class="container">
+    <div class="row">
+      <div class="col-xs-12">
+        <% if current_page.url != '/' %>
+          <div class="edit-page-link"><a href="<%= github_url :current_page %>">Edit this page</a></div>
+        <% end %>        
+        <div>
+          <ul class="main-links white nav navbar-nav">
+            <li><a href="/intro/index.html">Intro</a></li>
+            <li><a href="/docs/index.html">Docs</a></li>
+            <li><a href="/community.html">Community</a></li>
+    				<li><a href="http://demo.consul.io/">Demo</a></li>
+          </ul>
+          <ul class="external-links white nav navbar-nav">
+            <li class="first download">
+              <a href="/downloads.html"><%= partial "layouts/svg/svg-download" %>Download</a>
+            </li>
+            <li class="github">
+              <a href="https://github.com/hashicorp/consul"><%= partial "layouts/svg/svg-github" %>GitHub</a>
+            </li>
+          </ul>
+        </  div>
+        <div class="footer-hashi pull-right">
+          <div class="">
+            <a class="hashicorp-project white" href="https://www.hashicorp.com">
+              <span class="project-text">A </span>
+              <%= partial "layouts/svg/svg-by-hashicorp" %>
+              <span class="project-text">Project</span>
+              <%= partial "layouts/svg/svg-hashicorp-logo" %>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 </div>
 
 <script>

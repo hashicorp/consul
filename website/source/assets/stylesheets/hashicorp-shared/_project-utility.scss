@@ -1,0 +1,28 @@
+//
+// Mixins Specific to project
+//  - make edits to mixins here
+// --------------------------------------------------
+
+// Variables
+$project-logo-width: 40px;
+$project-logo-height: 40px;
+$project-logo-pad-left: 0px;
+
+// Mixins
+@mixin project-a-style{
+  font-weight: 300;
+  opacity: .75;
+
+  &:hover{
+    color: $white;
+    opacity: 1;
+  }
+}
+
+@mixin project-footer-a-style{
+  line-height: 30px;
+
+  &:hover{
+    opacity: .5;
+  }
+}

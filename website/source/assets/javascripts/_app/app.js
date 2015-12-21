@@ -4,17 +4,24 @@
 
 var APP = (function() {
 
-	function initialize (){
-		APP.Utils.runIfClassNamePresent('page-home', initHome);
-	}
+  function initializeSidebar() {
+    new Sidebar();
+  }
 
-	function initHome() {
-		APP.Homepage.init();
-	}
+  function initialize() {
+    APP.Utils.runIfClassNamePresent('page-home', initHome);
 
-  	//api
-	return {
-		initialize: initialize
-  	}
+    //always init sidebar
+    initializeSidebar();
+  }
+
+  function initHome() {
+    APP.Homepage.init();
+  }
+
+  //api
+  return {
+    initialize: initialize
+  }
 
 })();

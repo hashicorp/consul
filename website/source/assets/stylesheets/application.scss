@@ -3,11 +3,10 @@
 @import "bootstrap";
 
 // Remote fonts
-@import url("//fonts.googleapis.com/css?family=Source+Sans+Pro:400,700");
+@import url("//fonts.googleapis.com/css?family=Source+Sans+Pro:400,700|Open+Sans:300,600");
 
 // Core variables and mixins
 @import "_variables";
-@import "_mixins";
 
 // Utility classes
 @import "_utilities";
@@ -18,10 +17,18 @@
 //Global Site
 @import "_global";
 
+// Hashicorp Shared Project Styles
+@import 'hashicorp-shared/_hashicorp-utility';
+@import 'hashicorp-shared/_project-utility';
+@import 'hashicorp-shared/_hashicorp-header';
+@import 'hashicorp-shared/_hashicorp-sidebar';
+
 // Components
 @import "_header";
+@import '_footer';
 @import "_jumbotron";
 @import "_buttons";
+@import '_sidebar';
 
 // Pages
 @import "_home";

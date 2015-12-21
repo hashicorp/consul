@@ -1,322 +1,77 @@
 //
 // Header
+// - Project Specific
+// - edits should be made here
 // --------------------------------------------------
 
 body.page-sub{
-    #header{
-        @include consul-gradient-bg();
+  #header{
+    @include consul-gradient-bg();
+
+    .navbar-brand {
+      .logo{
+        &:hover{
+          color: $black;
+        }
+      }
     }
+  }
 }
 
-#footer,
 #header {
-    @include anti-alias();
-    position: relative;
-    color: $white;
-    text-rendering: optimizeLegibility;
-    margin-bottom: 0;
+  .navbar-brand {
+    .logo{
+      padding-left: 50px;
+      font-size: 0;
+      text-transform: uppercase;
+      background: image-url('../images/consul-hero-logo.png') 0 0 no-repeat;
+      @include img-retina("../images/consul-hero-logo.png", "../images/consul-hero-logo@2x.png", $project-logo-width, $project-logo-height);
+      background-position: 0 center;
 
-    .navbar-collapse{
-        box-shadow: none;
+      &:hover{
+        opacity: .4;
+      }
     }
 
-    &.navbar-static-top{
-        z-index: 1000;
-    }
-
-    a{
-        color: $white;
-    }
-
-    .navbar-toggle{
-        margin-top: 14px;
-        margin-bottom: 14px;
-        border: 2px solid $white;
-        .icon-bar{
-            border: 1px solid $white;
+    .by-hashicorp{
+      &:hover{
+        svg{
+          .svg-bg-line{
+            opacity: .4;
+          }
         }
+      }
     }
+  }
 
-    .brand {
-        padding: 13px 15px;
-        line-height: 0;
-
-        .logo{
-            display: block;
-            width: 179px;
-            height: 59px;
-            background: image-url('consul-header-logo.png') 0 0 no-repeat;
-            @include img-retina("consul-header-logo.png", "consul-header-logo@2x.png", 179px, 59px);
-        }
-    }
-
-    .navbar-nav{
-        -webkit-font-smoothing: antialiased;
-            li{
-              position: relative;
-
-              > a {
-                font-size: 12px;
-                text-transform: uppercase;
-                letter-spacing: 3px;
-                padding-left: 22px;
-            }
-
-            &.first{
-                >a{
-                  padding-left: 15px;
-                }
-            }
-        }
-    }
-
-    .nav.li-under a::after {
-
-    }
-
-    .nav > li > a:hover, .nav > li > a:focus {
-        background-color: transparent;
-        /*color: $p;
-        @include transition( color 0.3s ease );*/
-    }
-
-    .main-links.navbar-nav{
-        li + li::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 35px;
-            width: 4px;
-            height: 23px;
-            background: image-url('nav-dotpipes.png') 0 0 no-repeat;
-            @include img-retina("nav-dotpipes.png", "nav-dotpipes@2x.png", 4px, 23px);
-            padding-right: 15px;
-        }
-
-        /*li + li.li-under a::after{
-            left: 15px;
-        }*/
-
-        li > a {
-            line-height: 62px;
-        }
-
-    }
-
-    .buttons.navbar-nav{
-        margin-top: 26px;
-        margin-left: 30px;
-
-        li{
-            &.first{
-                margin-right: 12px;
-            }
-
-            &.download{
-                a{
-                  background: image-url('icon-download.png')  8px 6px no-repeat;
-                  @include img-retina("icon-download.png", "icon-download@2x.png", 20px, 20px);
-                }
-            }
-
-            &.github{
-                a{
-                  background: image-url('icon-github.png')  8px 6px no-repeat;
-                  @include img-retina("icon-github.png", "icon-github@2x.png", 20px, 20px);
-                }
-            }
-        }
-
-        li > a {
-            padding-top: 6px;
-            padding-bottom: 6px;
-            padding-left: 40px;
-        }
-    }
+  .buttons{
+    margin-top: 2px; //baseline everything
+  }
 }
 
-#footer{
-    height: 650px;
-    text-align: center;
-    color: $purple;
+@media (max-width: 414px) {
+  #header {
+    .navbar-brand {
+      .logo{
+        padding-left: 37px;
+        @include img-retina("../images/consul-hero-logo.png", "../images/consul-hero-logo@2x.png", $project-logo-width * .75, $project-logo-height * .75);
 
-    .main-links.navbar-nav{
-        float: none;
-        display: inline-block;
-        padding-top: 155px;
-
-        .li-under a::after {
-            background-color: $purple;
+        img{
+          width: 72px;
+          height: 14px;
         }
+      }
     }
-
-    .footer-hashi{
-        padding-top: 110px;
-    }
-
-    a{
-        color: $purple;
-    }
-
-    .buttons.navbar-nav{
-        float: none;
-        display: inline-block;
-        margin-bottom: 30px;
-        margin-top: 0px;
-
-        li{
-            &.first{
-                margin-right: 12px;
-            }
-
-            &.download{
-                a{
-                  background: image-url('icon-download-purple.png')  8px 6px no-repeat;
-                  @include img-retina("icon-download-purple.png", "icon-download-purple@2x.png", 20px, 20px);
-                }
-            }
-
-            &.github{
-                a{
-                  background: image-url('icon-github-purple.png')  8px 6px no-repeat;
-                  @include img-retina("icon-github-purple.png", "icon-github-purple@2x.png", 20px, 20px);
-                }
-            }
-        }
-
-        li > a {
-            padding-top: 6px;
-            padding-bottom: 6px;
-            padding-left: 40px;
-        }
-    }
+  }
 }
 
 
-@media (max-width: 992px) {
-    #header {
-        .brand {
-            .logo{
-                width: 120px;
-                height: 39px;
-                margin-top: 12px;
-                background-size: 120px 39px;
-            }
-        }
+@media (max-width: 320px) {
+  #header {
+    .navbar-brand {
+      .logo{
 
-        .buttons.navbar-nav{
-            li{
-                a{
-                    background: none !important;
-                    padding-left: 15px;
-                }
-            }
-        }
+      }
     }
-}
-
-@media (max-width: 768px) {
-
-    #footer,
-    #header{
-        .buttons.navbar-nav,
-        .main-links.navbar-nav{
-            display: block;
-            padding-bottom: 15px;
-            li{
-                display: block;
-                float: none;
-                margin-top: 15px;
-            }
-
-            .li-under a::after,
-            li + li::before {
-                display: none;
-            }
-        }
-    }
-
-    #header,
-    #footer{
-        .main-links.navbar-nav{
-            li > a {
-                padding: 0;
-                padding-left: 0;
-                line-height: 22px;
-            }
-        }
-    }
-
-    #footer{
-        .footer-hashi {
-            span{
-                margin-right: 0;
-            }
-
-            .hashi-logo{
-                display: block;
-                margin-top: 15px;
-                margin-bottom: 20px;
-            }
-        }
-
-        .buttons.navbar-nav{
-            margin-left: 0;
-
-            li.first {
-                margin-right: 0 !important;
-            }
-        }
-    }
-
-    #header{
-        @include consul-gradient-bg();
-
-        .navbar-right{
-            float: none !important;
-        }
-
-        .brand {
-            .logo{
-                margin-top: 0;
-            }
-        }
-
-        .navbar-nav > li{
-            float: none;
-        }
-
-        .buttons.navbar-nav{
-            margin-top: 15px;
-            margin-left: 0px;
-
-            li{
-                a{
-                    padding-left: 40px;
-                }
-                &.first{
-                    margin-right: 0;
-                    margin-bottom: 10px;
-                }
-
-                &.download{
-                    a{
-                        background: image-url('icon-download.png')  8px 6px no-repeat !important;;
-                        @include img-retina("icon-download.png", "icon-download@2x.png", 20px, 20px);
-                    }
-                }
-
-                &.github{
-                    a{
-                        background: image-url('icon-github.png')  8px 6px no-repeat !important;;
-                        @include img-retina("icon-github.png", "icon-github@2x.png", 20px, 20px);
-                    }
-                }
-            }
-        }
-    }
-}
-
-@media (max-width: 480px) {
-
+  }
 }
