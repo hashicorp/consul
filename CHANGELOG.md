@@ -27,7 +27,7 @@ FEATURES:
 * Service ACLs now apply to service discovery [GH-1024]
 * Added event ACLs to guard firing user events [GH-1046]
 * Added keyring ACLs for gossip encryption keyring operations [GH-1090]
-* Added a new socket check type that does a connect as a check [GH-1130]
+* Added a new TCP check type that does a connect as a check [GH-1130]
 * Added new "tag override" feature that lets catalog updates to a
   service's tags flow down to agents [GH-1187]
 * Ported in-memory database from LMDB to an immutable radix tree to improve
