@@ -1464,7 +1464,6 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }
 
-
 // SerfQuery sends a Query on Serf, see Serf.Query.
 func (a *Agent) SerfQuery(name string, payload []byte, params *serf.QueryParam) (*serf.QueryResponse, error) {
 	a.logger.Printf("[DEBUG] agent: Requesting serf query send: %s. Payload: %#v",
