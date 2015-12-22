@@ -18,6 +18,7 @@ import (
 	"github.com/armon/go-metrics/datadog"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
+	"github.com/hashicorp/go-reap"
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 	scada "github.com/hashicorp/scada-client"
@@ -639,6 +640,32 @@ func (c *Command) Run(args []string) int {
 	}
 	for _, server := range c.httpServers {
 		defer server.Shutdown()
+	}
+
+	// Enable child process reaping
+	if !config.DisableReap && (os.Getpid() == 1) {
+		logger := c.agent.logger
+		if !reap.IsSupported() {
+			logger.Printf("[WARN] Running as PID 1 but child process reaping is not supported on this platform, disabling")
+		} else {
+			logger.Printf("[DEBUG] Automatically reaping child processes")
+
+			pids := make(reap.PidCh, 1)
+			errors := make(reap.ErrorCh, 1)
+			go func() {
+				for {
+					select {
+					case pid := <-pids:
+						logger.Printf("[DEBUG] Reaped child process %d", pid)
+					case err := <-errors:
+						logger.Printf("[ERR] Error reaping child process: %v", err)
+					case <-c.agent.shutdownCh:
+						return
+					}
+				}
+			}()
+			go reap.ReapChildren(pids, errors, c.agent.shutdownCh)
+		}
 	}
 
 	// Check and shut down the SCADA listeners at the end

@@ -422,6 +422,12 @@ type Config struct {
 	// Minimum Session TTL
 	SessionTTLMin    time.Duration `mapstructure:"-"`
 	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
+
+	// DisableReap controls automatic reaping of child processes, useful if
+	// running as PID 1 in a Docker container. This defaults to false, and
+	// reaping will be automatically enabled if this is false and Consul's
+	// PID is 1.
+	DisableReap bool `mapstructure:"disable_reap"`
 }
 
 // UnixSocketPermissions contains information about a unix socket, and
@@ -1139,6 +1145,10 @@ func MergeConfig(a, b *Config) *Config {
 	result.RetryJoinWan = make([]string, 0, len(a.RetryJoinWan)+len(b.RetryJoinWan))
 	result.RetryJoinWan = append(result.RetryJoinWan, a.RetryJoinWan...)
 	result.RetryJoinWan = append(result.RetryJoinWan, b.RetryJoinWan...)
+
+	if b.DisableReap {
+		result.DisableReap = true
+	}
 
 	return &result
 }

@@ -407,6 +407,10 @@ definitions support being updated during a reload.
   `disable_anonymous_signature`</a> Disables providing an anonymous signature for de-duplication
   with the update check. See [`disable_update_check`](#disable_update_check).
 
+* <a name="disable_reap"></a><a href="#disable_reap">
+  `disable_reap`</a> will prevent Consul from automatically reaping child processes if it
+  detects it is running as PID 1, such as in a Docker container.
+
 * <a name="disable_remote_exec"></a><a href="#disable_remote_exec">`disable_remote_exec`</a>
   Disables support for remote execution. When set to true, the agent will ignore any incoming
   remote exec requests.

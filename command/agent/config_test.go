@@ -777,6 +777,17 @@ func TestDecodeConfig(t *testing.T) {
 	if config.SessionTTLMin != 5*time.Second {
 		t.Fatalf("bad: %s %#v", config.SessionTTLMin.String(), config)
 	}
+
+	// DisableReap
+	input = `{"disable_reap": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.DisableReap != true {
+		t.Fatalf("bad: reap not disabled: %#v", config)
+	}
 }
 
 func TestDecodeConfig_invalidKeys(t *testing.T) {
@@ -1157,6 +1168,7 @@ func TestMergeConfig(t *testing.T) {
 		CheckUpdateIntervalRaw: "8m",
 		RetryIntervalRaw:       "10s",
 		RetryIntervalWanRaw:    "10s",
+		DisableReap:            false,
 	}
 
 	b := &Config{
@@ -1266,6 +1278,7 @@ func TestMergeConfig(t *testing.T) {
 			RPC:        &net.TCPAddr{},
 			RPCRaw:     "127.0.0.5:1233",
 		},
+		DisableReap: true,
 	}
 
 	c := MergeConfig(a, b)
