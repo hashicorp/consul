@@ -423,11 +423,11 @@ type Config struct {
 	SessionTTLMin    time.Duration `mapstructure:"-"`
 	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
 
-	// DisableReap controls automatic reaping of child processes, useful if
-	// running as PID 1 in a Docker container. This defaults to false, and
-	// reaping will be automatically enabled if this is false and Consul's
-	// PID is 1.
-	DisableReap bool `mapstructure:"disable_reap"`
+	// Reap controls automatic reaping of child processes, useful if running
+	// as PID 1 in a Docker container. This defaults to nil which will make
+	// Consul reap only if it detects it's running as PID 1. If non-nil,
+	// then this will be used to decide if reaping is enabled.
+	Reap *bool `mapstructure:"reap"`
 }
 
 // UnixSocketPermissions contains information about a unix socket, and
@@ -1146,8 +1146,8 @@ func MergeConfig(a, b *Config) *Config {
 	result.RetryJoinWan = append(result.RetryJoinWan, a.RetryJoinWan...)
 	result.RetryJoinWan = append(result.RetryJoinWan, b.RetryJoinWan...)
 
-	if b.DisableReap {
-		result.DisableReap = true
+	if b.Reap != nil {
+		result.Reap = b.Reap
 	}
 
 	return &result

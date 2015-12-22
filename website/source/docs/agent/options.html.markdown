@@ -407,10 +407,6 @@ definitions support being updated during a reload.
   `disable_anonymous_signature`</a> Disables providing an anonymous signature for de-duplication
   with the update check. See [`disable_update_check`](#disable_update_check).
 
-* <a name="disable_reap"></a><a href="#disable_reap">
-  `disable_reap`</a> will prevent Consul from automatically reaping child processes if it
-  detects it is running as PID 1, such as in a Docker container.
-
 * <a name="disable_remote_exec"></a><a href="#disable_remote_exec">`disable_remote_exec`</a>
   Disables support for remote execution. When set to true, the agent will ignore any incoming
   remote exec requests.
@@ -507,6 +503,11 @@ definitions support being updated during a reload.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
   [`-protocol` command-line flag](#_protocol).
+
+* <a name="reap"></a><a href="#reap">`reap`</a> controls Consul's automatic reaping of child processes, which
+  is useful if Consul is running as PID 1 in a Docker container. If this isn't specified, then Consul will
+  automatically reap child processes if it detects it is running as PID 1. If this is specified, then it
+  controls reaping regardless of Consul's PID.
 
 * <a name="recursor"></a><a href="#recursor">`recursor`</a> Provides a single recursor address.
   This has been deprecated, and the value is appended to the [`recursors`](#recursors) list for

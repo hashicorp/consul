@@ -643,10 +643,11 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Enable child process reaping
-	if !config.DisableReap && (os.Getpid() == 1) {
+	if (config.Reap != nil && *config.Reap) || (config.Reap == nil && os.Getpid() == 1) {
 		logger := c.agent.logger
 		if !reap.IsSupported() {
-			logger.Printf("[WARN] Running as PID 1 but child process reaping is not supported on this platform, disabling")
+			c.Ui.Error("Child process reaping is not supported on this platform (set reap=false)")
+			return 1
 		} else {
 			logger.Printf("[DEBUG] Automatically reaping child processes")
 
