@@ -630,6 +630,26 @@ func TestScadaHTTP(t *testing.T) {
 	scadaHttp.mux.HandleFunc("/debug/pprof/symbol", mockFn)
 }
 
+func TestEnableWebUI(t *testing.T) {
+	httpTestWithConfig(t, func(s *HTTPServer) {
+		req, err := http.NewRequest("GET", "/ui/", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Perform the request
+		resp := httptest.NewRecorder()
+		s.mux.ServeHTTP(resp, req)
+
+		// Check the result
+		if resp.Code != 200 {
+			t.Fatalf("should handle ui")
+		}
+	}, func(c *Config) {
+		c.EnableUi = true
+	})
+}
+
 // assertIndex tests that X-Consul-Index is set and non-zero
 func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
 	header := resp.Header().Get("X-Consul-Index")

@@ -270,6 +270,10 @@ type Config struct {
 	RetryIntervalWan    time.Duration `mapstructure:"-" json:"-"`
 	RetryIntervalWanRaw string        `mapstructure:"retry_interval_wan"`
 
+	// EnableUi enables the statically-compiled assets for the Consul web UI and
+	// serves them at the default /ui/ endpoint automatically.
+	EnableUi bool `mapstructure:"ui"`
+
 	// UiDir is the directory containing the Web UI resources.
 	// If provided, the UI endpoints will be enabled.
 	UiDir string `mapstructure:"ui_dir"`
@@ -1003,6 +1007,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Addresses.RPC != "" {
 		result.Addresses.RPC = b.Addresses.RPC
+	}
+	if b.EnableUi {
+		result.EnableUi = true
 	}
 	if b.UiDir != "" {
 		result.UiDir = b.UiDir

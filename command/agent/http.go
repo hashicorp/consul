@@ -278,7 +278,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	// Use the custom UI dir if provided.
 	if s.uiDir != "" {
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
-	} else {
+	} else if s.agent.config.EnableUi {
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
 	}
 
