@@ -302,7 +302,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput
 	conf.EventCh = ch
-	conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
+	if !s.config.DevMode {
+		conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
+	}
 	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]
 	conf.RejoinAfterLeave = s.config.RejoinAfterLeave
 	if wan {
