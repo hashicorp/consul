@@ -5,7 +5,9 @@ import (
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/serf/serf"
 	"log"
+	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -103,7 +105,15 @@ func (c *SerfDiag) Ping(params *SerfPingParam) (*SerfPingResponse, error) {
 	if node == nil {
 		return nil, fmt.Errorf("Member %s not found in data center.", params.Name)
 	}
-	if rtt, err := c.serf.Memberlist().Ping(node.Name, node.Addr, node.Port); err == nil {
+
+	hostPort := net.JoinHostPort(node.Addr.String(),
+		strconv.FormatUint(uint64(node.Port), 10))
+	addr, err := net.ResolveUDPAddr("udp", hostPort)
+	if err != nil {
+		return nil, fmt.Errorf("[ERROR] client: Could not resolve address for member %s", params.Name)
+	}
+
+	if rtt, err := c.serf.Memberlist().Ping(node.Name, addr); err == nil {
 		return &SerfPingResponse{
 			Success: true,
 			RTT:     rtt,
