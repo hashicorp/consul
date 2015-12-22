@@ -422,6 +422,17 @@ type Config struct {
 	// Minimum Session TTL
 	SessionTTLMin    time.Duration `mapstructure:"-"`
 	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
+
+	// Reap controls automatic reaping of child processes, useful if running
+	// as PID 1 in a Docker container. This defaults to nil which will make
+	// Consul reap only if it detects it's running as PID 1. If non-nil,
+	// then this will be used to decide if reaping is enabled.
+	Reap *bool `mapstructure:"reap"`
+}
+
+// Bool is used to initialize bool pointers in struct literals.
+func Bool(b bool) *bool {
+	return &b
 }
 
 // UnixSocketPermissions contains information about a unix socket, and
@@ -1139,6 +1150,10 @@ func MergeConfig(a, b *Config) *Config {
 	result.RetryJoinWan = make([]string, 0, len(a.RetryJoinWan)+len(b.RetryJoinWan))
 	result.RetryJoinWan = append(result.RetryJoinWan, a.RetryJoinWan...)
 	result.RetryJoinWan = append(result.RetryJoinWan, b.RetryJoinWan...)
+
+	if b.Reap != nil {
+		result.Reap = b.Reap
+	}
 
 	return &result
 }

@@ -777,6 +777,27 @@ func TestDecodeConfig(t *testing.T) {
 	if config.SessionTTLMin != 5*time.Second {
 		t.Fatalf("bad: %s %#v", config.SessionTTLMin.String(), config)
 	}
+
+	// Reap
+	input = `{"reap": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.Reap == nil || *config.Reap != true {
+		t.Fatalf("bad: reap not enabled: %#v", config)
+	}
+
+	input = `{}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.Reap != nil {
+		t.Fatalf("bad: reap not tri-stated: %#v", config)
+	}
 }
 
 func TestDecodeConfig_invalidKeys(t *testing.T) {
@@ -1266,6 +1287,7 @@ func TestMergeConfig(t *testing.T) {
 			RPC:        &net.TCPAddr{},
 			RPCRaw:     "127.0.0.5:1233",
 		},
+		Reap: Bool(true),
 	}
 
 	c := MergeConfig(a, b)
