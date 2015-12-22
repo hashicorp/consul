@@ -524,9 +524,15 @@ RPC:
 	// Perform a random shuffle
 	out.Nodes.Shuffle()
 
+	// Determine whether we should use the WAN address or not
+	var useWan bool
+	if d.agent.config.TranslateWanAddrs && datacenter != d.agent.config.Datacenter {
+		useWan = true
+	}
+
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
-	d.serviceNodeRecords(out.Nodes, req, resp, ttl)
+	d.serviceNodeRecords(out.Nodes, req, resp, ttl, useWan)
 
 	if qType == dns.TypeSRV {
 		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
@@ -620,9 +626,15 @@ RPC:
 		return
 	}
 
+	// Determine whether we should use the WAN address or not
+	var useWan bool
+	if d.agent.config.TranslateWanAddrs && datacenter != d.agent.config.Datacenter {
+		useWan = true
+	}
+
 	// Add various responses depending on the request.
 	qType := req.Question[0].Qtype
-	d.serviceNodeRecords(out.Nodes, req, resp, ttl)
+	d.serviceNodeRecords(out.Nodes, req, resp, ttl, useWan)
 	if qType == dns.TypeSRV {
 		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
@@ -646,18 +658,22 @@ RPC:
 }
 
 // serviceNodeRecords is used to add the node records for a service lookup
-func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration) {
+func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration, useWan bool) {
 	qName := req.Question[0].Name
 	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
 	for _, node := range nodes {
-		// Avoid duplicate entries, possible if a node has
-		// the same service on multiple ports, etc.
+		// Prefer the Service Address or WAN Address over the
+		// Node Address when configured
 		addr := node.Node.Address
 		if node.Service.Address != "" {
 			addr = node.Service.Address
+		} else if useWan == true && node.Node.WanAddress != "" {
+			addr = node.Node.WanAddress
 		}
 
+		// Avoid duplicate entries, possible if a node has
+		// the same service on multiple ports, etc.
 		if _, ok := handled[addr]; ok {
 			continue
 		}
