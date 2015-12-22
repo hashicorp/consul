@@ -38,6 +38,11 @@ The list of available flags are:
   to send this command. If this isn't specified, the command will contact
   "127.0.0.1:8500" which is the default HTTP address of a Consul agent.
 
+The following environment variables control accessing the HTTP server via SSL:
+
+* `CONSUL_HTTP_SSL` Set this to enable SSL
+* `CONSUL_HTTP_SSL_VERIFY` Set this to disable certificate checking (not recommended)
+
 ## Output
 
 If coordinates are available, the command will print the estimated round trip

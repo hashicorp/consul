@@ -36,41 +36,41 @@
 
 
   .jumbotron-dots{
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 632px;
-      width: 100%;
-      margin-top: $negative-hero-margin;
-      background: transparent image-url('hero-dots.png') center $header-height no-repeat;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 632px;
+    width: 100%;
+    margin-top: $negative-hero-margin;
+    background: transparent image-url('hero-dots.png') center $header-height no-repeat;
   }
 
 
   .container{
-      position: relative;
-      height: 100%;
-      margin-top: $header-height;
-      -webkit-backface-visibility:hidden;
+    position: relative;
+    height: 100%;
+    margin-top: $header-height;
+    -webkit-backface-visibility:hidden;
 
-      .jumbo-logo-wrap{
-        margin-top: 135px;
+    .jumbo-logo-wrap{
+      margin-top: 135px;
 
-        .jumbo-logo{
-            width: 318px;
-            height: 316px;
-            background:  transparent image-url('consul-hero-logo@2x.png') 0 0 no-repeat;
-            background-size: 318px 316px;
-            z-index: 20;
-        }
+      .jumbo-logo{
+        width: 318px;
+        height: 316px;
+        background:  transparent image-url('consul-hero-logo@2x.png') 0 0 no-repeat;
+        background-size: 318px 316px;
+        z-index: 20;
       }
+    }
 
-      h2{
-          margin-top: 175px;
-          font-size: 40px;
-          line-height: 48px;
-          letter-spacing: 1px;
-          margin-left: 40px;
-      }
+    h2{
+      margin-top: 175px;
+      font-size: 40px;
+      line-height: 48px;
+      letter-spacing: 1px;
+      margin-left: 40px;
+    }
   }
 }
 

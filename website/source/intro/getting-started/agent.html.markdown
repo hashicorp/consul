@@ -28,7 +28,6 @@ For simplicity, we'll run a single Consul agent in server mode:
 $ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul
 ==> WARNING: BootstrapExpect Mode is specified as 1; this is the same as Bootstrap mode.
 ==> WARNING: Bootstrap mode enabled! Do not enable unless necessary
-==> WARNING: It is highly recommended to set GOMAXPROCS higher than 1
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...
 ==> Consul agent running!

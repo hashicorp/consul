@@ -219,8 +219,6 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 			reply.Queries = structs.PreparedQueries{query}
 			return nil
 		})
-
-	return nil
 }
 
 // List returns all the prepared queries.

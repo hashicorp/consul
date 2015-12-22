@@ -371,7 +371,7 @@ func getDatacenterMaps(s serfer, dcs []string) []structs.DatacenterMap {
 		nodes := s.GetNodesForDatacenter(dc)
 		for _, node := range nodes {
 			if coord, ok := s.GetCachedCoordinate(node); ok {
-				entry := &structs.Coordinate{node, coord}
+				entry := &structs.Coordinate{Node: node, Coord: coord}
 				m.Coordinates = append(m.Coordinates, entry)
 			}
 		}

@@ -127,6 +127,7 @@ A TTL check:
 ```
 
 A Docker check:
+
 ```javascript
 {
 "check": {
