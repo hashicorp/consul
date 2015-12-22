@@ -166,6 +166,7 @@ START:
 func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
+		metrics.MeasureSince([]string{"consul", "dns", "ptr_query", d.agent.config.NodeName}, s)
 		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
 			q, time.Now().Sub(s), resp.RemoteAddr().String(),
 			resp.RemoteAddr().Network())
@@ -222,14 +223,13 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	if err := resp.WriteMsg(m); err != nil {
 		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
 	}
-
-	metrics.IncrCounter([]string{"consul", "dns", "query", d.agent.config.NodeName}, 1)
 }
 
 // handleQuery is used to handle DNS queries in the configured domain
 func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
 	defer func(s time.Time) {
+		metrics.MeasureSince([]string{"consul", "dns", "domain_query", d.agent.config.NodeName}, s)
 		d.logger.Printf("[DEBUG] dns: request for %v (%v) from client %s (%s)",
 			q, time.Now().Sub(s), resp.RemoteAddr().String(),
 			resp.RemoteAddr().Network())
@@ -259,8 +259,6 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	if err := resp.WriteMsg(m); err != nil {
 		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
 	}
-
-	metrics.IncrCounter([]string{"consul", "dns", "query", d.agent.config.NodeName}, 1)
 }
 
 // addSOA is used to add an SOA record to a message for the given domain
