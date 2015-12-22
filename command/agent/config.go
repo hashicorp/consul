@@ -533,6 +533,7 @@ func DevConfig() *Config {
 	conf.Server = true
 	conf.EnableDebug = true
 	conf.DisableAnonymousSignature = true
+	conf.EnableUi = true
 	return conf
 }
 
