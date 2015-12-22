@@ -522,18 +522,18 @@ func TestSessionEndpoint_Apply_BadTTL(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if err.Error() != "Invalid Session TTL '5000000000', must be between [10s=1h0m0s]" {
+	if err.Error() != "Invalid Session TTL '5000000000', must be between [10s=24h0m0s]" {
 		t.Fatalf("incorrect error message: %s", err.Error())
 	}
 
 	// more than SessionTTLMax
-	arg.Session.TTL = "4000s"
+	arg.Session.TTL = "100000s"
 
 	err = msgpackrpc.CallWithCodec(codec, "Session.Apply", &arg, &out)
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if err.Error() != "Invalid Session TTL '4000000000000', must be between [10s=1h0m0s]" {
+	if err.Error() != "Invalid Session TTL '100000000000000', must be between [10s=24h0m0s]" {
 		t.Fatalf("incorrect error message: %s", err.Error())
 	}
 }

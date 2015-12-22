@@ -184,6 +184,14 @@ type Config struct {
 	// metrics will be sent to that instance.
 	StatsdAddr string `mapstructure:"statsd_addr"`
 
+	// DogStatsdAddr is the address of a dogstatsd instance. If provided,
+	// metrics will be sent to that instance
+	DogStatsdAddr string `mapstructure:"dogstatsd_addr"`
+
+	// DogStatsdTags are the global tags that should be sent with each packet to dogstatsd
+	// It is a list of strings, where each string looks like "my_tag_name:my_tag_value"
+	DogStatsdTags []string `mapstructure:"dogstatsd_tags"`
+
 	// Protocol is the Consul protocol version to use.
 	Protocol int `mapstructure:"protocol"`
 
@@ -774,7 +782,7 @@ func FixupCheckType(raw interface{}) error {
 			rawMap["serviceid"] = v
 			delete(rawMap, "service_id")
 		case "docker_container_id":
-			rawMap["DockerContainerId"] = v
+			rawMap["DockerContainerID"] = v
 			delete(rawMap, "docker_container_id")
 		}
 	}
@@ -915,6 +923,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.StatsdAddr != "" {
 		result.StatsdAddr = b.StatsdAddr
+	}
+	if b.DogStatsdAddr != "" {
+		result.DogStatsdAddr = b.DogStatsdAddr
+	}
+	if b.DogStatsdTags != nil {
+		result.DogStatsdTags = b.DogStatsdTags
 	}
 	if b.EnableDebug {
 		result.EnableDebug = true

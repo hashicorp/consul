@@ -265,6 +265,9 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.HandleFunc("/v1/acl/list", s.wrap(aclDisabled))
 	}
 
+	s.mux.HandleFunc("/v1/query", s.wrap(s.PreparedQueryGeneral))
+	s.mux.HandleFunc("/v1/query/", s.wrap(s.PreparedQuerySpecific))
+
 	if enableDebug {
 		s.mux.HandleFunc("/debug/pprof/", pprof.Index)
 		s.mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -306,6 +309,15 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
 		}
+
+		// TODO (slackpad) We may want to consider redacting prepared
+		// query names/IDs here since they are proxies for tokens. But,
+		// knowing one only gives you read access to service listings
+		// which is pretty trivial, so it's probably not worth the code
+		// complexity and overhead of filtering them out. You can't
+		// recover the token it's a proxy for with just the query info;
+		// you'd need the actual token (or a management token) to read
+		// that back.
 
 		// Invoke the handler
 		start := time.Now()

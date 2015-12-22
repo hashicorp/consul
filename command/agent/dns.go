@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/miekg/dns"
 )
@@ -290,7 +290,7 @@ func (d *DNSServer) dispatch(network string, req, resp *dns.Msg) {
 	// Split into the label parts
 	labels := dns.SplitDomainName(qName)
 
-	// The last label is either "node", "service" or a datacenter name
+	// The last label is either "node", "service", "query", or a datacenter name
 PARSE:
 	n := len(labels)
 	if n == 0 {
@@ -330,12 +330,22 @@ PARSE:
 		}
 
 	case "node":
-		if len(labels) == 1 {
+		if n == 1 {
 			goto INVALID
 		}
+
 		// Allow a "." in the node name, just join all the parts
 		node := strings.Join(labels[:n-1], ".")
 		d.nodeLookup(network, datacenter, node, req, resp)
+
+	case "query":
+		if n == 1 {
+			goto INVALID
+		}
+
+		// Allow a "." in the query name, just join all the parts.
+		query := strings.Join(labels[:n-1], ".")
+		d.preparedQueryLookup(network, datacenter, query, req, resp)
 
 	default:
 		// Store the DC, and re-parse
@@ -499,7 +509,7 @@ RPC:
 	}
 
 	// Filter out any service nodes due to health checks
-	out.Nodes = d.filterServiceNodes(out.Nodes)
+	out.Nodes = out.Nodes.Filter(d.config.OnlyPassing)
 
 	// If we have no nodes, return not found!
 	if len(out.Nodes) == 0 {
@@ -509,7 +519,7 @@ RPC:
 	}
 
 	// Perform a random shuffle
-	shuffleServiceNodes(out.Nodes)
+	out.Nodes.Shuffle()
 
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
@@ -536,33 +546,99 @@ RPC:
 	}
 }
 
-// filterServiceNodes is used to filter out nodes that are failing
-// health checks to prevent routing to unhealthy nodes
-func (d *DNSServer) filterServiceNodes(nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
-	n := len(nodes)
-OUTER:
-	for i := 0; i < n; i++ {
-		node := nodes[i]
-		for _, check := range node.Checks {
-			if check.Status == structs.HealthCritical ||
-				(d.config.OnlyPassing && check.Status != structs.HealthPassing) {
-				d.logger.Printf("[WARN] dns: node '%s' failing health check '%s: %s', dropping from service '%s'",
-					node.Node.Node, check.CheckID, check.Name, node.Service.Service)
-				nodes[i], nodes[n-1] = nodes[n-1], structs.CheckServiceNode{}
-				n--
-				i--
-				continue OUTER
-			}
+// preparedQueryLookup is used to handle a prepared query.
+func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, resp *dns.Msg) {
+	// Execute the prepared query.
+	args := structs.PreparedQueryExecuteRequest{
+		Datacenter:    datacenter,
+		QueryIDOrName: query,
+		QueryOptions: structs.QueryOptions{
+			Token:      d.agent.config.ACLToken,
+			AllowStale: d.config.AllowStale,
+		},
+	}
+
+	// TODO (slackpad) - What's a safe limit we can set here? It seems like
+	// with dup filtering done at this level we need to get everything to
+	// match the previous behavior. We can optimize by pushing more filtering
+	// into the query execution, but for now I think we need to get the full
+	// response. We could also choose a large arbitrary number that will
+	// likely work in practice, like 10*maxServiceResponses which should help
+	// reduce bandwidth if there are thousands of nodes available.
+
+	endpoint := d.agent.getEndpoint(preparedQueryEndpoint)
+	var out structs.PreparedQueryExecuteResponse
+RPC:
+	if err := d.agent.RPC(endpoint+".Execute", &args, &out); err != nil {
+		// If they give a bogus query name, treat that as a name error,
+		// not a full on server error. We have to use a string compare
+		// here since the RPC layer loses the type information.
+		if err.Error() == consul.ErrQueryNotFound.Error() {
+			d.addSOA(d.domain, resp)
+			resp.SetRcode(req, dns.RcodeNameError)
+			return
+		}
+
+		d.logger.Printf("[ERR] dns: rpc error: %v", err)
+		resp.SetRcode(req, dns.RcodeServerFailure)
+		return
+	}
+
+	// Verify that request is not too stale, redo the request.
+	if args.AllowStale && out.LastContact > d.config.MaxStale {
+		args.AllowStale = false
+		d.logger.Printf("[WARN] dns: Query results too stale, re-requesting")
+		goto RPC
+	}
+
+	// Determine the TTL. The parse should never fail since we vet it when
+	// the query is created, but we check anyway. If the query didn't
+	// specify a TTL then we will try to use the agent's service-specific
+	// TTL configs.
+	var ttl time.Duration
+	if out.DNS.TTL != "" {
+		var err error
+		ttl, err = time.ParseDuration(out.DNS.TTL)
+		if err != nil {
+			d.logger.Printf("[WARN] dns: Failed to parse TTL '%s' for prepared query '%s', ignoring", out.DNS.TTL, query)
+		}
+	} else if d.config.ServiceTTL != nil {
+		var ok bool
+		ttl, ok = d.config.ServiceTTL[out.Service]
+		if !ok {
+			ttl = d.config.ServiceTTL["*"]
 		}
 	}
-	return nodes[:n]
-}
 
-// shuffleServiceNodes does an in-place random shuffle using the Fisher-Yates algorithm
-func shuffleServiceNodes(nodes structs.CheckServiceNodes) {
-	for i := len(nodes) - 1; i > 0; i-- {
-		j := rand.Int31() % int32(i+1)
-		nodes[i], nodes[j] = nodes[j], nodes[i]
+	// If we have no nodes, return not found!
+	if len(out.Nodes) == 0 {
+		d.addSOA(d.domain, resp)
+		resp.SetRcode(req, dns.RcodeNameError)
+		return
+	}
+
+	// Add various responses depending on the request.
+	qType := req.Question[0].Qtype
+	d.serviceNodeRecords(out.Nodes, req, resp, ttl)
+	if qType == dns.TypeSRV {
+		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
+	}
+
+	// If the network is not TCP, restrict the number of responses.
+	if network != "tcp" && len(resp.Answer) > maxServiceResponses {
+		resp.Answer = resp.Answer[:maxServiceResponses]
+
+		// Flag that there are more records to return in the UDP
+		// response.
+		if d.config.EnableTruncate {
+			resp.Truncated = true
+		}
+	}
+
+	// If the answer is empty, return not found.
+	if len(resp.Answer) == 0 {
+		d.addSOA(d.domain, resp)
+		return
 	}
 }
 

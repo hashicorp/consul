@@ -567,7 +567,7 @@ func (l *localState) syncService(id string) error {
 	return err
 }
 
-// syncCheck is used to sync a service to the server
+// syncCheck is used to sync a check to the server
 func (l *localState) syncCheck(id string) error {
 	// Pull in the associated service if any
 	check := l.checks[id]

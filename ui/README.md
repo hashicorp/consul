@@ -57,3 +57,6 @@ development configuration.
 `make dist`
 
 The `dist` folder will contain the files you should use for deployment.
+
+###Acknowledgements
+cog icon by useiconic.com from the [Noun Project](https://thenounproject.com/term/setting/45865/)

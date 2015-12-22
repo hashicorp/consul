@@ -1,4 +1,26 @@
-## 0.6.0 (Unreleased)
+## 0.6.1 (UNRELEASED)
+
+IMPROVEMENTS:
+
+* Consul is now built with Go 1.5.2
+* Added source IP address and port information to RPC-related log error
+  messages [GH-1513]
+
+BUG FIXES:
+
+* Fixed broken settings icon in web UI [GH-1469]
+* Fixed a web UI bug where the supplied token wasn't being passed into
+  the internal endpoint, breaking some pages when multiple datacenters
+  were present [GH-1071]
+
+## 0.6.0 (December 3, 2015)
+
+BACKWARDS INCOMPATIBILITIES:
+
+* A KV lock acquisition operation will now allow the lock holder to
+  update the key's contents without giving up the lock by doing another
+  PUT with `?acquire=<session>` and providing the same session that
+  is holding the lock. Previously, this operation would fail.
 
 FEATURES:
 
@@ -11,17 +33,22 @@ FEATURES:
 * Ported in-memory database from LMDB to an immutable radix tree to improve
   read throughput, reduce garbage collection pressure, and make Consul 100%
   pure Go [GH-1291]
-* Added new network tomography sub system that estimates the network
+* Added support for sending telemetry to DogStatsD [GH-1293]
+* Added new network tomography subsystem that estimates the network
   round trip times between nodes and exposes that in raw APIs, as well
   as in existing APIs (find the service node nearest node X); also
   includes a new `consul rtt` command to query interactively [GH-1331]
 * Consul now builds under Go 1.5.1 by default [GH-1345]
 * Added built-in support for running health checks inside Docker containers
   [GH-1343]
+* Added prepared queries which support service health queries with rich
+  features such as filters for multiple tags and failover to remote datacenters
+  based on network coordinates; these are available via HTTP as well as the
+  DNS interface [GH-1389]
 
 BUG FIXES:
 
-* Fixes expired certificates in unit tests [GH-979]
+* Fixed expired certificates in unit tests [GH-979]
 * Allow services with `/` characters in the UI [GH-988]
 * Added SOA/NXDOMAIN records to negative DNS responses per RFC2308 [GH-995]
   [GH-1142] [GH-1195] [GH-1217]
@@ -59,29 +86,44 @@ IMPROVEMENTS:
 * Enables the `/v1/internal/ui/*` endpoints, even if `-ui-dir` isn't set
   [GH-1215]
 * Added HTTP method to Consul's log output for better debugging [GH-1270]
+* Lock holders can `?acquire=<session>` a key again with the same session
+  that holds the lock to update a key's contents without releasing the
+  lock [GH-1291]
 * Improved an O(n^2) algorithm in the agent's catalog sync code [GH-1296]
 * Switched to net-rpc-msgpackrpc to reduce RPC overhead [GH-1307]
-* Removes all uses of the http package's default client and transport in
+* Removed all uses of the http package's default client and transport in
   Consul to avoid conflicts with other packages [GH-1310] [GH-1327]
-* Adds new `X-Consul-Token` HTTP header option to avoid passing tokens
+* Added new `X-Consul-Token` HTTP header option to avoid passing tokens
   in the query string [GH-1318]
+* Increased session TTL max to 24 hours (use with caution, see note added
+  to the Session HTTP endpoint documentation) [GH-1412]
+* Added support to the API client for retrying lock monitoring when Consul
+  is unavailable, helping prevent false indications of lost locks (eg. apps
+  like Vault can avoid failing over when a Consul leader election occurs)
+  [GH-1457]
+* Added reap of receive buffer space for idle streams in the connection
+  pool [GH-1452]
 
 MISC:
 
 * Lots of docs fixes
 * Lots of Vagrantfile cleanup
-* Data migrator utility removed to reduce cgo dependency. [GH-1309]
+* Data migrator utility removed to eliminate cgo dependency [GH-1309]
 
 UPGRADE NOTES:
 
 * Consul will refuse to start if the data directory contains an "mdb" folder.
   This folder was used in versions of Consul up to 0.5.1. Consul version 0.5.2
   included a baked-in utility to automatically upgrade the data format, but
-  this has been removed in Consul 0.6 to reduce the dependency on cgo.
-* Previously, service discovery was wide open, and any client could query
-  information about any service without providing a token. Consul now requires
-  read-level access at a minimum when ACLs are enabled to return service
-  information over the REST or DNS interfaces.
+  this has been removed in Consul 0.6 to eliminate the dependency on cgo.
+* New service read, event firing, and keyring ACLs may require special steps to
+  perform during an upgrade if ACLs are enabled and set to deny by default.
+* Consul will refuse to start if there are multiple private IPs available, so
+  if this is the case you will need to configure Consul's advertise or bind
+  addresses before upgrading.
+
+See https://www.consul.io/docs/upgrade-specific.html for detailed upgrade
+instructions.
 
 ## 0.5.2 (May 18, 2015)
 

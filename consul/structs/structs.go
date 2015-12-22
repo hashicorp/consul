@@ -3,6 +3,7 @@ package structs
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"time"
 
@@ -34,6 +35,7 @@ const (
 	ACLRequestType
 	TombstoneRequestType
 	CoordinateBatchUpdateType
+	PreparedQueryRequestType
 )
 
 const (
@@ -403,6 +405,35 @@ type CheckServiceNode struct {
 }
 type CheckServiceNodes []CheckServiceNode
 
+// Shuffle does an in-place random shuffle using the Fisher-Yates algorithm.
+func (nodes CheckServiceNodes) Shuffle() {
+	for i := len(nodes) - 1; i > 0; i-- {
+		j := rand.Int31() % int32(i+1)
+		nodes[i], nodes[j] = nodes[j], nodes[i]
+	}
+}
+
+// Filter removes nodes that are failing health checks (and any non-passing
+// check if that option is selected). Note that this returns the filtered
+// results AND modifies the receiver for performance.
+func (nodes CheckServiceNodes) Filter(onlyPassing bool) CheckServiceNodes {
+	n := len(nodes)
+OUTER:
+	for i := 0; i < n; i++ {
+		node := nodes[i]
+		for _, check := range node.Checks {
+			if check.Status == HealthCritical ||
+				(onlyPassing && check.Status != HealthPassing) {
+				nodes[i], nodes[n-1] = nodes[n-1], CheckServiceNode{}
+				n--
+				i--
+				continue OUTER
+			}
+		}
+	}
+	return nodes[:n]
+}
+
 // NodeInfo is used to dump all associated information about
 // a node. This is currently used for the UI only, as it is
 // rather expensive to generate.
@@ -547,7 +578,7 @@ const (
 )
 
 const (
-	SessionTTLMax        = 3600 * time.Second
+	SessionTTLMax        = 24 * time.Hour
 	SessionTTLMultiplier = 2
 )
 
