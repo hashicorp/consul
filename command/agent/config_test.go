@@ -1287,9 +1287,8 @@ func TestMergeConfig(t *testing.T) {
 			RPC:        &net.TCPAddr{},
 			RPCRaw:     "127.0.0.5:1233",
 		},
-		Reap: new(bool),
+		Reap: Bool(true),
 	}
-	*b.Reap = true
 
 	c := MergeConfig(a, b)
 

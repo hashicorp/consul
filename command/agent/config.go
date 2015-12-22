@@ -430,6 +430,11 @@ type Config struct {
 	Reap *bool `mapstructure:"reap"`
 }
 
+// Bool is used to initialize bool pointers in struct literals.
+func Bool(b bool) *bool {
+	return &b
+}
+
 // UnixSocketPermissions contains information about a unix socket, and
 // implements the FilePermissions interface.
 type UnixSocketPermissions struct {
