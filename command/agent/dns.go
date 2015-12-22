@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/miekg/dns"
@@ -221,6 +222,8 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	if err := resp.WriteMsg(m); err != nil {
 		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
 	}
+
+	metrics.IncrCounter([]string{"consul", "dns", "query", d.agent.config.NodeName}, 1)
 }
 
 // handleQuery is used to handle DNS queries in the configured domain
@@ -256,6 +259,8 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	if err := resp.WriteMsg(m); err != nil {
 		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
 	}
+
+	metrics.IncrCounter([]string{"consul", "dns", "query", d.agent.config.NodeName}, 1)
 }
 
 // addSOA is used to add an SOA record to a message for the given domain
