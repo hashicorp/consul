@@ -191,6 +191,14 @@ func (s *HTTPServer) Shutdown() {
 	}
 }
 
+// Wrap http.Handler with cache headers; Needed to cache UI assets
+func maxAgeHandler(seconds int, h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Cache-Control", fmt.Sprintf("max-age=%d, public, must-revalidate, proxy-revalidate", seconds))
+		h.ServeHTTP(w, r)
+	})
+}
+
 // registerHandlers is used to attach our handlers to the mux
 func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/", s.Index)
@@ -278,7 +286,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	// Enable the UI + special endpoints
 	if s.uiDir != "" {
 		// Static file serving done from /ui/
-		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
+		s.mux.Handle("/ui/", http.StripPrefix("/ui/", maxAgeHandler(3600, http.FileServer(http.Dir(s.uiDir)))))
 	}
 
 	// API's are under /internal/ui/ to avoid conflict
