@@ -402,8 +402,14 @@ RPC:
 		return
 	}
 
+	// Determine whether we should use the WAN address or not
+	addr := out.NodeServices.Node.Address
+	if d.agent.config.TranslateWanAddrs && datacenter != d.agent.config.Datacenter {
+		addr = out.NodeServices.Node.WanAddress
+	}
+
 	// Add the node record
-	records := d.formatNodeRecord(out.NodeServices.Node, out.NodeServices.Node.Address,
+	records := d.formatNodeRecord(out.NodeServices.Node, addr,
 		req.Question[0].Name, qType, d.config.NodeTTL)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
@@ -535,7 +541,7 @@ RPC:
 	d.serviceNodeRecords(out.Nodes, req, resp, ttl, useWan)
 
 	if qType == dns.TypeSRV {
-		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
+		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl, useWan)
 	}
 
 	// If the network is not TCP, restrict the number of responses
@@ -636,7 +642,7 @@ RPC:
 	qType := req.Question[0].Qtype
 	d.serviceNodeRecords(out.Nodes, req, resp, ttl, useWan)
 	if qType == dns.TypeSRV {
-		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
+		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl, useWan)
 	}
 
 	// If the network is not TCP, restrict the number of responses.
@@ -688,7 +694,7 @@ func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, res
 }
 
 // serviceARecords is used to add the SRV records for a service lookup
-func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration) {
+func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration, useWan bool) {
 	handled := make(map[string]struct{})
 	for _, node := range nodes {
 		// Avoid duplicate entries, possible if a node has
@@ -718,6 +724,8 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		addr := node.Node.Address
 		if node.Service.Address != "" {
 			addr = node.Service.Address
+		} else if useWan == true && node.Node.WanAddress != "" {
+			addr = node.Node.WanAddress
 		}
 
 		// Add the extra record
