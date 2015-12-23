@@ -80,6 +80,7 @@ func TestRetryJoin(t *testing.T) {
 		"-server",
 		"-data-dir", tmpDir,
 		"-node", fmt.Sprintf(`"%s"`, conf2.NodeName),
+		"-advertise", agent.config.BindAddr,
 		"-retry-join", serfAddr,
 		"-retry-interval", "1s",
 		"-retry-join-wan", serfWanAddr,
