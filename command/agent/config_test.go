@@ -251,6 +251,25 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// WAN address translation disabled by default
+	config, err = DecodeConfig(bytes.NewReader([]byte(`{}`)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.TranslateWanAddrs != false {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// WAN address translation
+	input = `{"translate_wan_addrs": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.TranslateWanAddrs != true {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// leave_on_terminate
 	input = `{"leave_on_terminate": true}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
