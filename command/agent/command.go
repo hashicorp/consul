@@ -71,6 +71,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.NodeName, "node", "", "node name")
 	cmdFlags.StringVar(&cmdConfig.Datacenter, "dc", "", "node datacenter")
 	cmdFlags.StringVar(&cmdConfig.DataDir, "data-dir", "", "path to the data directory")
+	cmdFlags.BoolVar(&cmdConfig.EnableUi, "ui", false, "enable the built-in web UI")
 	cmdFlags.StringVar(&cmdConfig.UiDir, "ui-dir", "", "path to the web UI directory")
 	cmdFlags.StringVar(&cmdConfig.PidFile, "pid-file", "", "path to file to store PID")
 	cmdFlags.StringVar(&cmdConfig.EncryptKey, "encrypt", "", "gossip encryption key")
@@ -990,6 +991,7 @@ Options:
   -rejoin                  Ignores a previous leave and attempts to rejoin the cluster.
   -server                  Switches agent to server mode.
   -syslog                  Enables logging to syslog
+  -ui                      Enables the built-in static web UI server
   -ui-dir=path             Path to directory containing the Web UI resources
   -pid-file=path           Path to file to store agent PID
 

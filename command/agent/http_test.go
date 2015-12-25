@@ -34,11 +34,6 @@ func makeHTTPServerWithConfig(t *testing.T, cb func(c *Config)) (string, *HTTPSe
 	}
 
 	dir, agent := makeAgent(t, conf)
-	uiDir := filepath.Join(dir, "ui")
-	if err := os.Mkdir(uiDir, 755); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	conf.UiDir = uiDir
 	servers, err := NewHTTPServers(agent, conf, agent.logOutput)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -633,6 +628,26 @@ func TestScadaHTTP(t *testing.T) {
 	scadaHttp.mux.HandleFunc("/debug/pprof/cmdline", mockFn)
 	scadaHttp.mux.HandleFunc("/debug/pprof/profile", mockFn)
 	scadaHttp.mux.HandleFunc("/debug/pprof/symbol", mockFn)
+}
+
+func TestEnableWebUI(t *testing.T) {
+	httpTestWithConfig(t, func(s *HTTPServer) {
+		req, err := http.NewRequest("GET", "/ui/", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Perform the request
+		resp := httptest.NewRecorder()
+		s.mux.ServeHTTP(resp, req)
+
+		// Check the result
+		if resp.Code != 200 {
+			t.Fatalf("should handle ui")
+		}
+	}, func(c *Config) {
+		c.EnableUi = true
+	})
 }
 
 // assertIndex tests that X-Consul-Index is set and non-zero
