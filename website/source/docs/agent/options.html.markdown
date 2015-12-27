@@ -124,6 +124,12 @@ The options below are all specified on the command-line.
   the use of filesystem locking, meaning some types of mounted folders (e.g. VirtualBox
   shared folders) may not be suitable.
 
+* <a name="_dev"></a><a href="#_dev">`-dev`</a> - Enable development server
+  mode. This is useful for quickly starting a Consul agent with all persistence
+  options turned off, enabling an in-memory server which can be used for rapid
+  prototyping or developing against the API. This mode is **not** intended for
+  production use as it does not write any data to disk.
+
 * <a name="_dc"></a><a href="#_dc">`-dc`</a> - This flag controls the datacenter in
   which the agent is running. If not provided,
   it defaults to "dc1". Consul has first-class support for multiple datacenters, but
