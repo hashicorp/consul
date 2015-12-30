@@ -296,7 +296,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		// Obfuscate any tokens from appearing in the logs
 		formVals, err := url.ParseQuery(req.URL.RawQuery)
 		if err != nil {
-			s.logger.Printf("[ERR] http: [%s] Failed to decode query: %s", strings.Split(req.RemoteAddr, ":")[0], err)
+			s.logger.Printf("[ERR] http: Failed to decode query: %s from=%s", err, strings.Split(req.RemoteAddr, ":")[0])
 			resp.WriteHeader(500)
 			return
 		}
@@ -323,14 +323,14 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		// Invoke the handler
 		start := time.Now()
 		defer func() {
-			s.logger.Printf("[DEBUG] http: [%s] Request %s %v (%v)", strings.Split(req.RemoteAddr, ":")[0], req.Method, logURL, time.Now().Sub(start))
+			s.logger.Printf("[DEBUG] http: Request %s %v (%v) from=%s", req.Method, logURL, time.Now().Sub(start), strings.Split(req.RemoteAddr, ":")[0])
 		}()
 		obj, err := handler(resp, req)
 
 		// Check for an error
 	HAS_ERR:
 		if err != nil {
-			s.logger.Printf("[ERR] http: [%s] Request %s %v, error: %v", strings.Split(req.RemoteAddr, ":")[0], req.Method, logURL, err)
+			s.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, strings.Split(req.RemoteAddr, ":")[0])
 			code := 500
 			errMsg := err.Error()
 			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
