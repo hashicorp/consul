@@ -3,14 +3,14 @@ layout: "docs"
 page_title: "Coordinate (HTTP)"
 sidebar_current: "docs-agent-http-coordinate"
 description: >
-  The Coordinate endpoint is used to query for the nework coordinates for
+  The Coordinate endpoint is used to query for the network coordinates for
   nodes in the local datacenter as well as Consul servers in the local
   datacenter and remote datacenters.
 ---
 
 # Coordinate HTTP Endpoint
 
-The Coordinate endpoint is used to query for the nework coordinates for nodes
+The Coordinate endpoint is used to query for the network coordinates for nodes
 in the local datacenter as well as Consul servers in the local datacenter and
 remote datacenters.
 

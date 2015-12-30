@@ -1,4 +1,5 @@
-GOTOOLS = github.com/mitchellh/gox golang.org/x/tools/cmd/stringer
+GOTOOLS = github.com/mitchellh/gox golang.org/x/tools/cmd/stringer \
+	github.com/jteeuwen/go-bindata/... github.com/elazarl/go-bindata-assetfs/...
 DEPS = $(shell go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
 PACKAGES = $(shell go list ./...)
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
@@ -68,10 +69,17 @@ generate: deps
 	find . -type f -name '.DS_Store' -delete
 	go generate ./...
 
+# generates the static web ui
+static-assets: deps
+	@echo "--> Generating static assets"
+	@go-bindata-assetfs -pkg agent -prefix ui ./ui/dist/...
+	@mv bindata_assetfs.go command/agent
+	$(MAKE) format
+
 web:
 	./scripts/website_run.sh
 
 web-push:
 	./scripts/website_push.sh
 
-.PHONY: all bin dev dist cov deps test vet web web-push generate test-nodep
+.PHONY: all bin dev dist cov deps test vet web web-push generate test-nodep static-assets

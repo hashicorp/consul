@@ -228,8 +228,12 @@ The options below are all specified on the command-line.
 * <a name="_syslog"></a><a href="#_syslog">`-syslog`</a> - This flag enables logging to syslog. This
   is only supported on Linux and OSX. It will result in an error if provided on Windows.
 
+* <a name="_ui"></a><a href="#_ui">`-ui`</a> - Enables the built-in web UI
+  server and the required HTTP routes. This eliminates the need to maintain the
+  Consul web UI files separately from the binary.
+
 * <a name="_ui_dir"></a><a href="#_ui_dir">`-ui-dir`</a> - This flag provides the directory containing
-  the Web UI resources for Consul. This must be provided to enable the Web UI. The directory must be
+  the Web UI resources for Consul. This will automatically enable the Web UI. The directory must be
   readable to the agent.
 
 ## <a name="configuration_files"></a>Configuration Files
@@ -589,6 +593,9 @@ definitions support being updated during a reload.
 * <a name="syslog_facility"></a><a href="#syslog_facility">`syslog_facility`</a> When
   [`enable_syslog`](#enable_syslog) is provided, this controls to which
   facility messages are sent. By default, `LOCAL0` will be used.
+
+* <a name="ui"></a><a href="#ui">`ui`</a> - Equivalent to the [`-ui`](#_ui)
+  command-line flag.
 
 * <a name="ui_dir"></a><a href="#ui_dir">`ui_dir`</a> - Equivalent to the
   [`-ui-dir`](#_ui_dir) command-line flag.

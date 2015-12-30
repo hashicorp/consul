@@ -18,7 +18,17 @@ import (
 )
 
 func TestUiIndex(t *testing.T) {
-	dir, srv := makeHTTPServer(t)
+	// Make a test dir to serve UI files
+	uiDir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(uiDir)
+
+	// Make the server
+	dir, srv := makeHTTPServerWithConfig(t, func(c *Config) {
+		c.UiDir = uiDir
+	})
 	defer os.RemoveAll(dir)
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
