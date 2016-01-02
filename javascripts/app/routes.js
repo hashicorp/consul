@@ -92,8 +92,6 @@ App.DcRoute = App.BaseRoute.extend({
 
     // Return a promise hash to retreieve the
     // dcs and nodes used in the header
-    var token = App.get('settings.token');
-
     return Ember.RSVP.hash({
       dc: params.dc,
       dcs: Ember.$.getJSON('/v1/catalog/datacenters'),
