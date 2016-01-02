@@ -138,7 +138,7 @@ func (s *HTTPServer) AgentDeregisterCheck(resp http.ResponseWriter, req *http.Re
 func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/pass/")
 	note := req.URL.Query().Get("note")
-	if err := s.agent.UpdateCheck(checkID, structs.HealthPassing, note); err != nil {
+	if err := s.agent.UpdateTTLCheck(checkID, structs.HealthPassing, note); err != nil {
 		return nil, err
 	}
 	s.syncChanges()
@@ -148,7 +148,7 @@ func (s *HTTPServer) AgentCheckPass(resp http.ResponseWriter, req *http.Request)
 func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/warn/")
 	note := req.URL.Query().Get("note")
-	if err := s.agent.UpdateCheck(checkID, structs.HealthWarning, note); err != nil {
+	if err := s.agent.UpdateTTLCheck(checkID, structs.HealthWarning, note); err != nil {
 		return nil, err
 	}
 	s.syncChanges()
@@ -158,7 +158,7 @@ func (s *HTTPServer) AgentCheckWarn(resp http.ResponseWriter, req *http.Request)
 func (s *HTTPServer) AgentCheckFail(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	checkID := strings.TrimPrefix(req.URL.Path, "/v1/agent/check/fail/")
 	note := req.URL.Query().Get("note")
-	if err := s.agent.UpdateCheck(checkID, structs.HealthCritical, note); err != nil {
+	if err := s.agent.UpdateTTLCheck(checkID, structs.HealthCritical, note); err != nil {
 		return nil, err
 	}
 	s.syncChanges()

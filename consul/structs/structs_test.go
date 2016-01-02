@@ -211,6 +211,41 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 	check(&other.ServiceName)
 }
 
+func TestStructs_HealthCheck_FailureTolerance(t *testing.T) {
+	// Create HealthCheck that has a failure tolerance
+	check := &HealthCheck{
+		Node:                "node1",
+		CheckID:             "check1",
+		Name:                "thecheck",
+		Status:              HealthPassing,
+		Notes:               "it's all good",
+		Output:              "lgtm",
+		ServiceID:           "service1",
+		ServiceName:         "theservice",
+		DeregisterService:   true,
+		FailuresTolerance:   1,
+		FailuresAllowedLeft: 1,
+	}
+
+	if check.NoMoreFailuresAllowed() {
+		t.Fatal("should allow 1 failure")
+	}
+
+	// A failure occurrence
+	check.UpdateFailureTolerance(HealthCritical)
+
+	if !check.NoMoreFailuresAllowed() {
+		t.Fatal("should not allow any more failures")
+	}
+
+	// Reset HealthCheck state to initial
+	check.UpdateFailureTolerance(HealthPassing)
+
+	if check.NoMoreFailuresAllowed() {
+		t.Fatal("should allow a single failure after passing check")
+	}
+}
+
 func TestStructs_CheckServiceNodes_Shuffle(t *testing.T) {
 	// Make a huge list of nodes.
 	var nodes CheckServiceNodes

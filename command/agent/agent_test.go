@@ -584,7 +584,7 @@ func TestAgent_RemoveCheck(t *testing.T) {
 	}
 }
 
-func TestAgent_UpdateCheck(t *testing.T) {
+func TestAgent_UpdateTTLCheck(t *testing.T) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
@@ -604,7 +604,7 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	}
 
 	// Remove check
-	if err := agent.UpdateCheck("mem", structs.HealthPassing, "foo"); err != nil {
+	if err := agent.UpdateTTLCheck("mem", structs.HealthPassing, "foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -615,6 +615,82 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	}
 	if status.Output != "foo" {
 		t.Fatalf("bad: %v", status)
+	}
+}
+
+func TestAgent_UpdateTTLCheck_RemovingService(t *testing.T) {
+	dir, agent := makeAgent(t, nextConfig())
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "foo",
+		Service: "foo",
+		Port:    8000,
+	}
+
+	// create TTL check that is set to deregister service on failure
+	chkTypes := CheckTypes{&CheckType{TTL: 30 * time.Second, DeregisterService: true}}
+	if err := agent.AddService(svc, chkTypes, false, ""); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Set TTL check to critical
+	if err := agent.UpdateTTLCheck("service:foo", structs.HealthCritical, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Service should be removed
+	if _, ok := agent.state.Services()["foo"]; ok {
+		t.Fatal("err: service should be removed")
+	}
+
+	// Check should be removed
+	if _, ok := agent.state.Checks()["service:foo"]; ok {
+		t.Fatal("err: check should be removed")
+	}
+}
+
+func TestAgent_UpdateCheck_RemovingServiceWithFailureTolerance(t *testing.T) {
+	dir, agent := makeAgent(t, nextConfig())
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "foo",
+		Service: "foo",
+		Port:    8000,
+	}
+
+	// create TTL check that is set to deregister service after 3 failures
+	chkTypes := CheckTypes{&CheckType{HTTP: "http://example.com", Interval: 30, DeregisterService: true, FailuresTolerance: 2}}
+	if err := agent.AddService(svc, chkTypes, false, ""); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, ok := agent.state.Services()["foo"]; !ok {
+		t.Fatal("err: service should be created")
+	}
+
+	// Send 2 critical check updates
+	agent.UpdateCheck("service:foo", structs.HealthCritical, "")
+	agent.UpdateCheck("service:foo", structs.HealthCritical, "")
+
+	if _, ok := agent.state.Services()["foo"]; !ok {
+		t.Fatal("err: service should exist after 2 failures")
+	}
+
+	// Send 3rd critical check update
+	agent.UpdateCheck("service:foo", structs.HealthCritical, "")
+
+	// Service should be removed
+	if _, ok := agent.state.Services()["foo"]; ok {
+		t.Fatal("err: service should be removed")
+	}
+
+	// Check should be removed
+	if _, ok := agent.state.Checks()["service:foo"]; ok {
+		t.Fatal("err: check should be removed")
 	}
 }
 

@@ -240,6 +240,10 @@ func (l *localState) UpdateCheck(checkID, status, output string) {
 		return
 	}
 
+	// for a check that is set to deregister a service after n-failures
+	// we update its state
+	check.UpdateFailureTolerance(status)
+
 	// Do nothing if update is idempotent
 	if check.Status == status && check.Output == output {
 		return

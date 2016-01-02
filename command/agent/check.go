@@ -53,6 +53,9 @@ type CheckType struct {
 	Status string
 
 	Notes string
+
+	DeregisterService bool
+	FailuresTolerance int
 }
 type CheckTypes []*CheckType
 
