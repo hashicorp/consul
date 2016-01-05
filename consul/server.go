@@ -415,7 +415,9 @@ func (s *Server) setupRaft() error {
 	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, log, stable,
 		snap, s.raftPeers, trans)
 	if err != nil {
-		s.raftStore.Close()
+		if s.raftStore != nil {
+			s.raftStore.Close()
+		}
 		trans.Close()
 		return err
 	}
