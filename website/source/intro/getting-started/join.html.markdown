@@ -4,7 +4,7 @@ page_title: "Consul Cluster"
 sidebar_current: "gettingstarted-join"
 description: >
   When a Consul agent is started, it begins as an isolated cluster of its own.
-  To learn about other cluster members, the agent just join one or more other
+  To learn about other cluster members, the agent must join one or more other
   nodes using a provided join address. In this step, we will set up a two-node
   cluster and join the nodes together.
 ---

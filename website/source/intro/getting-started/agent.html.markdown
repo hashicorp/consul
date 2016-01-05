@@ -31,6 +31,7 @@ easily. It is **not** intended to be used in production as it does not persist
 any state.
 
 ```text
+$ consul agent -dev
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...
 ==> Consul agent running!
