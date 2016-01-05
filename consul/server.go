@@ -110,6 +110,7 @@ type Server struct {
 	raftPeers     raft.PeerStore
 	raftStore     *raftboltdb.BoltStore
 	raftTransport *raft.NetworkTransport
+	raftInmem     *raft.InmemStore
 
 	// reconcileCh is used to pass events from the serf handler
 	// into the leader manager, so that the strong state can be
@@ -173,7 +174,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Check for a data directory!
-	if config.DataDir == "" {
+	if config.DataDir == "" && !config.DevMode {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
 
@@ -301,7 +302,9 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 	conf.MemberlistConfig.LogOutput = s.config.LogOutput
 	conf.LogOutput = s.config.LogOutput
 	conf.EventCh = ch
-	conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
+	if !s.config.DevMode {
+		conf.SnapshotPath = filepath.Join(s.config.DataDir, path)
+	}
 	conf.ProtocolVersion = protocolVersionMap[s.config.ProtocolVersion]
 	conf.RejoinAfterLeave = s.config.RejoinAfterLeave
 	if wan {
@@ -327,7 +330,7 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 // setupRaft is used to setup and initialize Raft
 func (s *Server) setupRaft() error {
 	// If we are in bootstrap mode, enable a single node cluster
-	if s.config.Bootstrap {
+	if s.config.Bootstrap || s.config.DevMode {
 		s.config.RaftConfig.EnableSingleNode = true
 	}
 
@@ -338,45 +341,66 @@ func (s *Server) setupRaft() error {
 		return err
 	}
 
-	// Create the base raft path
-	path := filepath.Join(s.config.DataDir, raftState)
-	if err := ensurePath(path, true); err != nil {
-		return err
-	}
-
-	// Create the backend raft store for logs and stable storage
-	store, err := raftboltdb.NewBoltStore(filepath.Join(path, "raft.db"))
-	if err != nil {
-		return err
-	}
-	s.raftStore = store
-
-	// Wrap the store in a LogCache to improve performance
-	cacheStore, err := raft.NewLogCache(raftLogCacheSize, store)
-	if err != nil {
-		store.Close()
-		return err
-	}
-
-	// Create the snapshot store
-	snapshots, err := raft.NewFileSnapshotStore(path, snapshotsRetained, s.config.LogOutput)
-	if err != nil {
-		store.Close()
-		return err
-	}
-
 	// Create a transport layer
 	trans := raft.NewNetworkTransport(s.raftLayer, 3, 10*time.Second, s.config.LogOutput)
 	s.raftTransport = trans
 
-	// Setup the peer store
-	s.raftPeers = raft.NewJSONPeers(path, trans)
+	var log raft.LogStore
+	var stable raft.StableStore
+	var snap raft.SnapshotStore
+	var peers raft.PeerStore
+
+	if s.config.DevMode {
+		store := raft.NewInmemStore()
+		s.raftInmem = store
+		stable = store
+		log = store
+		snap = raft.NewDiscardSnapshotStore()
+		peers = &raft.StaticPeers{}
+		s.raftPeers = peers
+	} else {
+		// Create the base raft path
+		path := filepath.Join(s.config.DataDir, raftState)
+		if err := ensurePath(path, true); err != nil {
+			return err
+		}
+
+		// Create the backend raft store for logs and stable storage
+		store, err := raftboltdb.NewBoltStore(filepath.Join(path, "raft.db"))
+		if err != nil {
+			return err
+		}
+		s.raftStore = store
+		stable = store
+
+		// Wrap the store in a LogCache to improve performance
+		cacheStore, err := raft.NewLogCache(raftLogCacheSize, store)
+		if err != nil {
+			store.Close()
+			return err
+		}
+		log = cacheStore
+
+		// Create the snapshot store
+		snapshots, err := raft.NewFileSnapshotStore(path, snapshotsRetained, s.config.LogOutput)
+		if err != nil {
+			store.Close()
+			return err
+		}
+		snap = snapshots
+
+		// Setup the peer store
+		s.raftPeers = raft.NewJSONPeers(path, trans)
+		peers = s.raftPeers
+	}
 
 	// Ensure local host is always included if we are in bootstrap mode
 	if s.config.Bootstrap {
 		peers, err := s.raftPeers.Peers()
 		if err != nil {
-			store.Close()
+			if s.raftStore != nil {
+				s.raftStore.Close()
+			}
 			return err
 		}
 		if !raft.PeerContained(peers, trans.LocalAddr()) {
@@ -388,10 +412,12 @@ func (s *Server) setupRaft() error {
 	s.config.RaftConfig.LogOutput = s.config.LogOutput
 
 	// Setup the Raft store
-	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, cacheStore, store,
-		snapshots, s.raftPeers, trans)
+	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, log, stable,
+		snap, s.raftPeers, trans)
 	if err != nil {
-		store.Close()
+		if s.raftStore != nil {
+			s.raftStore.Close()
+		}
 		trans.Close()
 		return err
 	}
@@ -484,7 +510,9 @@ func (s *Server) Shutdown() error {
 		if err := future.Error(); err != nil {
 			s.logger.Printf("[WARN] consul: Error shutting down raft: %s", err)
 		}
-		s.raftStore.Close()
+		if s.raftStore != nil {
+			s.raftStore.Close()
+		}
 
 		// Clear the peer set on a graceful leave to avoid
 		// triggering elections on a rejoin.

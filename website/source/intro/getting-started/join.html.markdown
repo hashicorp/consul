@@ -2,8 +2,11 @@
 layout: "intro"
 page_title: "Consul Cluster"
 sidebar_current: "gettingstarted-join"
-description: |-
-  We've started our first agent and registered and queried a service on that agent. This showed how easy it is to use Consul but didn't show how this could be extended to a scalable, production-grade service discovery infrastructure. In this step, we'll create our first real cluster with multiple members.
+description: >
+  When a Consul agent is started, it begins as an isolated cluster of its own.
+  To learn about other cluster members, the agent must join one or more other
+  nodes using a provided join address. In this step, we will set up a two-node
+  cluster and join the nodes together.
 ---
 
 # Consul Cluster
@@ -40,6 +43,12 @@ of our cluster. We start by logging in to the first node:
 $ vagrant ssh n1
 ```
 
+In our previous examples, we used the [`-dev`
+flag](/docs/agent/options.html#_dev) to quickly set up a development server.
+However, this is not sufficient for use in a clustered environment. We will
+omit the `-dev` flag from here on, and instead specify our clustering flags as
+outlined below.
+
 Each node in a cluster must have a unique name. By default, Consul uses the
 hostname of the machine, but we'll manually override it using the [`-node`
 command-line option](/docs/agent/options.html#_node).
@@ -53,9 +62,17 @@ multiple interfaces, so specifying a `bind` address assures that you will
 never bind Consul to the wrong interface.
 
 The first node will act as our sole server in this cluster, and we indicate
-this with the [`server` switch](/docs/agent/options.html#_server). Finally, we
-add the [`config-dir` flag](/docs/agent/options.html#_config_dir), marking
-where service and check definitions can be found.
+this with the [`server` switch](/docs/agent/options.html#_server).
+
+The [`-bootstrap-expect` flag](/docs/agent/options.html#_bootstrap_expect)
+hints to the Consul server the number of additional server nodes we are
+expecting to join. The purpose of this flag is to delay the bootstrapping of
+the replicated log until the expected number of servers has successfully joined.
+You can read more about this in the [bootstrapping
+guide](/docs/guides/bootstrapping.html).
+
+Finally, we add the [`config-dir` flag](/docs/agent/options.html#_config_dir),
+marking where service and check definitions can be found.
 
 All together, these settings yield a
 [`consul agent`](/docs/commands/agent.html) command like this:

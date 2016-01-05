@@ -2,8 +2,11 @@
 layout: "intro"
 page_title: "Run the Agent"
 sidebar_current: "gettingstarted-agent"
-description: |-
-  After Consul is installed, the agent must be run. The agent can either run in server or client mode. Each datacenter must have at least one server, though a cluster of 3 or 5 servers is recommended. A single server deployment is highly discouraged as data loss is inevitable in a failure scenario.
+description: >
+  The Consul agent can run in either server or client mode. Each datacenter
+  must have at least one server, though a cluster of 3 or 5 servers is
+  recommended. A single server deployment is highly discouraged in production
+  as data loss is inevitable in a failure scenario.
 ---
 
 # Run the Consul Agent
@@ -22,34 +25,45 @@ For more detail on bootstrapping a datacenter, see
 
 ## Starting the Agent
 
-For simplicity, we'll run a single Consul agent in server mode:
+For simplicity, we'll start the Consul agent in development mode for now. This
+mode is useful for bringing up a single-node Consul environment quickly and
+easily. It is **not** intended to be used in production as it does not persist
+any state.
 
 ```text
-$ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul
-==> WARNING: BootstrapExpect Mode is specified as 1; this is the same as Bootstrap mode.
-==> WARNING: Bootstrap mode enabled! Do not enable unless necessary
+$ consul agent -dev
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...
 ==> Consul agent running!
-       Node name: 'Armons-MacBook-Air'
-      Datacenter: 'dc1'
-          Server: true (bootstrap: true)
-     Client Addr: 127.0.0.1 (HTTP: 8500, DNS: 8600, RPC: 8400)
-    Cluster Addr: 10.1.10.38 (LAN: 8301, WAN: 8302)
+         Node name: 'Armons-MacBook-Air'
+        Datacenter: 'dc1'
+            Server: true (bootstrap: false)
+       Client Addr: 127.0.0.1 (HTTP: 8500, HTTPS: -1, DNS: 8600, RPC: 8400)
+      Cluster Addr: 172.20.20.11 (LAN: 8301, WAN: 8302)
+    Gossip encrypt: false, RPC-TLS: false, TLS-Incoming: false
+             Atlas: <disabled>
 
 ==> Log data will now stream in as it occurs:
 
-[INFO] serf: EventMemberJoin: Armons-MacBook-Air.local 10.1.10.38
-[INFO] raft: Node at 10.1.10.38:8300 [Follower] entering Follower state
-[INFO] consul: adding server for datacenter: dc1, addr: 10.1.10.38:8300
-[ERR] agent: failed to sync remote state: rpc error: No cluster leader
+[INFO] raft: Node at 172.20.20.11:8300 [Follower] entering Follower state
+[INFO] serf: EventMemberJoin: Armons-MacBook-Air 172.20.20.11
+[INFO] consul: adding LAN server Armons-MacBook-Air (Addr: 172.20.20.11:8300) (DC: dc1)
+[INFO] serf: EventMemberJoin: Armons-MacBook-Air.dc1 172.20.20.11
+[INFO] consul: adding WAN server Armons-MacBook-Air.dc1 (Addr: 172.20.20.11:8300) (DC: dc1)
+[ERR] agent: failed to sync remote state: No cluster leader
 [WARN] raft: Heartbeat timeout reached, starting election
-[INFO] raft: Node at 10.1.10.38:8300 [Candidate] entering Candidate state
+[INFO] raft: Node at 172.20.20.11:8300 [Candidate] entering Candidate state
+[DEBUG] raft: Votes needed: 1
+[DEBUG] raft: Vote granted. Tally: 1
 [INFO] raft: Election won. Tally: 1
-[INFO] raft: Node at 10.1.10.38:8300 [Leader] entering Leader state
+[INFO] raft: Node at 172.20.20.11:8300 [Leader] entering Leader state
+[INFO] raft: Disabling EnableSingleNode (bootstrap)
 [INFO] consul: cluster leadership acquired
+[DEBUG] raft: Node 172.20.20.11:8300 updated peer set (2): [172.20.20.11:8300]
+[DEBUG] consul: reset tombstone GC to index 2
 [INFO] consul: New leader elected: Armons-MacBook-Air
 [INFO] consul: member 'Armons-MacBook-Air' joined, marking health alive
+[INFO] agent: Synced service 'consul'
 ```
 
 As you can see, the Consul agent has started and has output some log
@@ -70,8 +84,8 @@ section, but for now, you should only see one member (yourself):
 
 ```text
 $ consul members
-Node                    Address             Status  Type    Build  Protocol
-Armons-MacBook-Air      10.1.10.38:8301     alive   server  0.5.1  2
+Node                Address            Status  Type    Build     Protocol  DC
+Armons-MacBook-Air  172.20.20.11:8301  alive   server  0.6.1dev  2         dc1
 ```
 
 The output shows our own node, the address it is running on, its
@@ -87,7 +101,7 @@ request to the Consul servers:
 
 ```text
 $ curl localhost:8500/v1/catalog/nodes
-[{"Node":"Armons-MacBook-Air","Address":"10.1.10.38"}]
+[{"Node":"Armons-MacBook-Air","Address":"172.20.20.11","CreateIndex":3,"ModifyIndex":4}]
 ```
 
 In addition to the HTTP API, the [DNS interface](/docs/agent/dns.html) can
@@ -104,7 +118,7 @@ $ dig @127.0.0.1 -p 8600 Armons-MacBook-Air.node.consul
 ;Armons-MacBook-Air.node.consul.	IN	A
 
 ;; ANSWER SECTION:
-Armons-MacBook-Air.node.consul.	0 IN	A	10.1.10.38
+Armons-MacBook-Air.node.consul.	0 IN	A	172.20.20.11
 ```
 
 ## <a name="stopping"></a>Stopping the Agent
