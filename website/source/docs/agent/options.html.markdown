@@ -566,7 +566,7 @@ definitions support being updated during a reload.
 * <a name="start_join_wan"></a><a href="#start_join_wan">`start_join_wan`</a> An array of strings specifying
   addresses of WAN nodes to [`-join-wan`](#_join_wan) upon startup.
 
-  * <a name="statsd_addr"></a><a href="#statsd_addr">`statsd_addr`</a> This provides the address of a
+* <a name="statsd_addr"></a><a href="#statsd_addr">`statsd_addr`</a> This provides the address of a
   statsd instance in the format `host:port`.  If provided, Consul will send various telemetry information
   to that instance for aggregation. This can be used to capture runtime information. This sends UDP packets
   only and can be used with statsd or statsite.
