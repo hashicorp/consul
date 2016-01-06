@@ -261,9 +261,16 @@ func (r *request) setQueryOptions(q *QueryOptions) {
 	}
 }
 
-// durToMsec converts a duration to a millisecond specified string
+// durToMsec converts a duration to a millisecond specified string. If the
+// user selected a positive value that rounds to 0 ms, then we will use 1 ms
+// so they get a short delay, otherwise Consul will translate the 0 ms into
+// a huge default delay.
 func durToMsec(dur time.Duration) string {
-	return fmt.Sprintf("%dms", dur/time.Millisecond)
+	ms := dur / time.Millisecond
+	if dur > 0 && ms == 0 {
+		ms = 1
+	}
+	return fmt.Sprintf("%dms", ms)
 }
 
 // setWriteOptions is used to annotate the request with

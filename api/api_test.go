@@ -254,3 +254,21 @@ func TestAPI_UnixSocket(t *testing.T) {
 		t.Fatalf("bad: %v", info)
 	}
 }
+
+func TestAPI_durToMsec(t *testing.T) {
+	if ms := durToMsec(0); ms != "0ms" {
+		t.Fatalf("bad: %s", ms)
+	}
+
+	if ms := durToMsec(time.Millisecond); ms != "1ms" {
+		t.Fatalf("bad: %s", ms)
+	}
+
+	if ms := durToMsec(time.Microsecond); ms != "1ms" {
+		t.Fatalf("bad: %s", ms)
+	}
+
+	if ms := durToMsec(5 * time.Millisecond); ms != "5ms" {
+		t.Fatalf("bad: %s", ms)
+	}
+}
