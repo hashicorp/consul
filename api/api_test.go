@@ -272,3 +272,17 @@ func TestAPI_durToMsec(t *testing.T) {
 		t.Fatalf("bad: %s", ms)
 	}
 }
+
+func TestAPI_IsServerError(t *testing.T) {
+	if IsServerError(nil) {
+		t.Fatalf("should not be a server error")
+	}
+
+	if IsServerError(fmt.Errorf("not the error you are looking for")) {
+		t.Fatalf("should not be a server error")
+	}
+
+	if !IsServerError(fmt.Errorf(serverError)) {
+		t.Fatalf("should be a server error")
+	}
+}

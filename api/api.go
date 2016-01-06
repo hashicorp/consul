@@ -273,6 +273,21 @@ func durToMsec(dur time.Duration) string {
 	return fmt.Sprintf("%dms", ms)
 }
 
+// serverError is a string we look for to detect 500 errors.
+const serverError = "Unexpected response code: 500"
+
+// IsServerError returns true for 500 errors from the Consul servers, these are
+// usually retryable at a later time.
+func IsServerError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// TODO (slackpad) - Make a real error type here instead of using
+	// a string check.
+	return strings.Contains(err.Error(), serverError)
+}
+
 // setWriteOptions is used to annotate the request with
 // additional write options
 func (r *request) setWriteOptions(q *WriteOptions) {

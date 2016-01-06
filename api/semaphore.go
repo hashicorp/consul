@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
-	"strings"
 	"sync"
 	"time"
 )
@@ -488,15 +487,11 @@ WAIT:
 RETRY:
 	pairs, meta, err := kv.List(s.opts.Prefix, opts)
 	if err != nil {
-		// TODO (slackpad) - Make a real error type here instead of using
-		// a string check.
-		const serverError = "Unexpected response code: 500"
-
 		// If configured we can try to ride out a brief Consul unavailability
 		// by doing retries. Note that we have to attempt the retry in a non-
 		// blocking fashion so that we have a clean place to reset the retry
 		// counter if service is restored.
-		if retries > 0 && strings.Contains(err.Error(), serverError) {
+		if retries > 0 && IsServerError(err) {
 			time.Sleep(s.opts.MonitorRetryTime)
 			retries--
 			opts.WaitIndex = 0
