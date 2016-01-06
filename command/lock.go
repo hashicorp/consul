@@ -24,6 +24,14 @@ const (
 	// lock-delay value of 15 seconds. This only affects locks and not
 	// semaphores.
 	lockKillGracePeriod = 5 * time.Second
+
+	// defaultMonitorRetry is the number of 500 errors we will tolerate
+	// before declaring the lock gone.
+	defaultMonitorRetry = 3
+
+	// defaultMonitorRetryTime is the amount of time to wait between
+	// retries.
+	defaultMonitorRetryTime = 1 * time.Second
 )
 
 // LockCommand is a Command implementation that is used to setup
@@ -73,7 +81,8 @@ Options:
                              while monitoring the lock. This allows riding out brief
                              periods of unavailability without causing leader
                              elections, but increases the amount of time required
-                             to detect a lost lock in some cases. Defaults to 0.
+                             to detect a lost lock in some cases. Defaults to 3,
+                             with a 1s wait between retries. Set to 0 to disable.
   -verbose                   Enables verbose output
 `
 	return strings.TrimSpace(helpText)
@@ -99,7 +108,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	cmdFlags.StringVar(&token, "token", "", "")
 	cmdFlags.BoolVar(&passStdin, "pass-stdin", false, "")
 	cmdFlags.StringVar(&try, "try", "", "")
-	cmdFlags.IntVar(&retry, "monitor-retry", 0, "")
+	cmdFlags.IntVar(&retry, "monitor-retry", defaultMonitorRetry, "")
 	cmdFlags.BoolVar(&c.verbose, "verbose", false, "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
@@ -271,9 +280,10 @@ func (c *LockCommand) setupLock(client *api.Client, prefix, name string,
 		c.Ui.Info(fmt.Sprintf("Setting up lock at path: %s", key))
 	}
 	opts := api.LockOptions{
-		Key:            key,
-		SessionName:    name,
-		MonitorRetries: retry,
+		Key:              key,
+		SessionName:      name,
+		MonitorRetries:   retry,
+		MonitorRetryTime: defaultMonitorRetryTime,
 	}
 	if oneshot {
 		opts.LockTryOnce = true
@@ -304,10 +314,11 @@ func (c *LockCommand) setupSemaphore(client *api.Client, limit int, prefix, name
 		c.Ui.Info(fmt.Sprintf("Setting up semaphore (limit %d) at prefix: %s", limit, prefix))
 	}
 	opts := api.SemaphoreOptions{
-		Prefix:         prefix,
-		Limit:          limit,
-		SessionName:    name,
-		MonitorRetries: retry,
+		Prefix:           prefix,
+		Limit:            limit,
+		SessionName:      name,
+		MonitorRetries:   retry,
+		MonitorRetryTime: defaultMonitorRetryTime,
 	}
 	if oneshot {
 		opts.SemaphoreTryOnce = true
