@@ -1,5 +1,15 @@
 ## 0.6.1 (UNRELEASED)
 
+BACKWARDS INCOMPATIBILITIES:
+
+* The new `-monitor-retry` option to `consul lock` defaults to 3. This
+  will cause the lock monitor to retry up to 3 times, waiting 1s between
+  each attempt if it gets a 500 error from the Consul servers. For the
+  vast majority of use cases this is desirable to prevent the lock from
+  being given up during a brief period of Consul unavailability. If you
+  want to get the previous default behavior you will need to set the
+  `monitor-retry=0` option.
+
 IMPROVEMENTS:
 
 * Consul is now built with Go 1.5.2
@@ -16,6 +26,10 @@ IMPROVEMENTS:
   standalone Consul server for development
 * Added a Solaris build, now that dependencies have been updated to support
   it [GH-1568]
+* Added new `-try` option to `consul lock` to allow it to timeout with an error
+  if it doesn't acquire the lock [GH-1567]
+* Added a new `-monitor-retry` option to `consul lock` to help ride out brief
+  periods of Consul unavailabily without causing the lock to be given up [GH-1567]
 
 BUG FIXES:
 
