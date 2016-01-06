@@ -488,3 +488,73 @@ func TestLock_MonitorRetry(t *testing.T) {
 		t.Fatalf("should not be leader")
 	}
 }
+
+func TestLock_OneShot(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// Set up a lock as a one-shot.
+	opts := &LockOptions{
+		Key:         "test/lock",
+		LockTryOnce: true,
+	}
+	lock, err := c.LockOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the default got set.
+	if lock.opts.LockWaitTime != DefaultLockWaitTime {
+		t.Fatalf("bad: %d", lock.opts.LockWaitTime)
+	}
+
+	// Now set a custom time for the test.
+	opts.LockWaitTime = 250 * time.Millisecond
+	lock, err = c.LockOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if lock.opts.LockWaitTime != 250*time.Millisecond {
+		t.Fatalf("bad: %d", lock.opts.LockWaitTime)
+	}
+
+	// Should get the lock.
+	ch, err := lock.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ch == nil {
+		t.Fatalf("not leader")
+	}
+
+	// Now try with another session.
+	contender, err := c.LockOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	start := time.Now()
+	ch, err = contender.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ch != nil {
+		t.Fatalf("should not be leader")
+	}
+	diff := time.Now().Sub(start)
+	if diff < contender.opts.LockWaitTime || diff > 2*contender.opts.LockWaitTime {
+		t.Fatalf("time out of bounds: %9.6f", diff.Seconds())
+	}
+
+	// Unlock and then make sure the contender can get it.
+	if err := lock.Unlock(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	ch, err = contender.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ch == nil {
+		t.Fatalf("should be leader")
+	}
+}

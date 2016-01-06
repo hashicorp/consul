@@ -254,3 +254,35 @@ func TestAPI_UnixSocket(t *testing.T) {
 		t.Fatalf("bad: %v", info)
 	}
 }
+
+func TestAPI_durToMsec(t *testing.T) {
+	if ms := durToMsec(0); ms != "0ms" {
+		t.Fatalf("bad: %s", ms)
+	}
+
+	if ms := durToMsec(time.Millisecond); ms != "1ms" {
+		t.Fatalf("bad: %s", ms)
+	}
+
+	if ms := durToMsec(time.Microsecond); ms != "1ms" {
+		t.Fatalf("bad: %s", ms)
+	}
+
+	if ms := durToMsec(5 * time.Millisecond); ms != "5ms" {
+		t.Fatalf("bad: %s", ms)
+	}
+}
+
+func TestAPI_IsServerError(t *testing.T) {
+	if IsServerError(nil) {
+		t.Fatalf("should not be a server error")
+	}
+
+	if IsServerError(fmt.Errorf("not the error you are looking for")) {
+		t.Fatalf("should not be a server error")
+	}
+
+	if !IsServerError(fmt.Errorf(serverError)) {
+		t.Fatalf("should be a server error")
+	}
+}
