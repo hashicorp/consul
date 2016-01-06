@@ -62,10 +62,9 @@ The list of available flags are:
 
 * `-pass-stdin` - Pass stdin to child process.
 
-* `-try` - Make a single attempt to acquire the lock, waiting up to the given
-  duration supplied as the argument. The duration is a decimal number, with
-  unit suffix, such as "500ms". Valid time units are "ns", "us" (or "µs"), "ms",
-  "s", "m", "h".
+* `-try` - Attempt to acquire the lock up to the given timeout. The timeout is a
+  positive decimal number, with unit suffix, such as "500ms". Valid time units
+  are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 
 * `-monitor-retry` - Retry up to this number of times if Consul returns a 500 error
    while monitoring the lock. This allows riding out brief periods of unavailability

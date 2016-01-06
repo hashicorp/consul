@@ -186,6 +186,7 @@ func (s *Semaphore) Acquire(stopCh <-chan struct{}) (<-chan struct{}, error) {
 		WaitTime: s.opts.SemaphoreWaitTime,
 	}
 
+	start := time.Now()
 	attempts := 0
 WAIT:
 	// Check if we should quit
@@ -195,9 +196,14 @@ WAIT:
 	default:
 	}
 
-	// See if we completed a one-shot.
-	if attempts > 0 && s.opts.SemaphoreTryOnce {
-		return nil, nil
+	// Handle the one-shot mode.
+	if s.opts.SemaphoreTryOnce && attempts > 0 {
+		elapsed := time.Now().Sub(start)
+		if elapsed > qOpts.WaitTime {
+			return nil, nil
+		}
+
+		qOpts.WaitTime -= elapsed
 	}
 	attempts++
 

@@ -75,8 +75,8 @@ Options:
   -name=""                   Optional name to associate with lock session.
   -token=""                  ACL token to use. Defaults to that of agent.
   -pass-stdin                Pass stdin to child process.
-  -try=duration              Make a single attempt to acquire the lock, waiting
-                             up to the given duration (eg. "15s").
+  -try=timeout               Attempt to acquire the lock up to the given
+                             timeout (eg. "15s").
   -monitor-retry=n           Retry up to n times if Consul returns a 500 error
                              while monitoring the lock. This allows riding out brief
                              periods of unavailability without causing leader
@@ -145,12 +145,12 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 		var err error
 		wait, err = time.ParseDuration(try)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error parsing duration for 'try' option: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error parsing try timeout: %s", err))
 			return 1
 		}
 
-		if wait < 0 {
-			c.Ui.Error("Duration for 'try' option must be positive")
+		if wait <= 0 {
+			c.Ui.Error("Try timeout must be positive")
 			return 1
 		}
 

@@ -167,6 +167,7 @@ func (l *Lock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 		WaitTime: l.opts.LockWaitTime,
 	}
 
+	start := time.Now()
 	attempts := 0
 WAIT:
 	// Check if we should quit
@@ -176,9 +177,14 @@ WAIT:
 	default:
 	}
 
-	// See if we completed a one-shot.
-	if attempts > 0 && l.opts.LockTryOnce {
-		return nil, nil
+	// Handle the one-shot mode.
+	if l.opts.LockTryOnce && attempts > 0 {
+		elapsed := time.Now().Sub(start)
+		if elapsed > qOpts.WaitTime {
+			return nil, nil
+		}
+
+		qOpts.WaitTime -= elapsed
 	}
 	attempts++
 

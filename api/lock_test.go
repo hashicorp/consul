@@ -541,8 +541,9 @@ func TestLock_OneShot(t *testing.T) {
 	if ch != nil {
 		t.Fatalf("should not be leader")
 	}
-	if diff := time.Now().Sub(start); diff > 2*contender.opts.LockWaitTime {
-		t.Fatalf("took too long: %9.6f", diff.Seconds())
+	diff := time.Now().Sub(start)
+	if diff < contender.opts.LockWaitTime || diff > 2*contender.opts.LockWaitTime {
+		t.Fatalf("time out of bounds: %9.6f", diff.Seconds())
 	}
 
 	// Unlock and then make sure the contender can get it.

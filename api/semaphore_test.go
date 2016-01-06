@@ -499,8 +499,9 @@ func TestSemaphore_OneShot(t *testing.T) {
 	if ch != nil {
 		t.Fatalf("should not have acquired the semaphore")
 	}
-	if diff := time.Now().Sub(start); diff > 2*contender.opts.SemaphoreWaitTime {
-		t.Fatalf("took too long: %9.6f", diff.Seconds())
+	diff := time.Now().Sub(start)
+	if diff < contender.opts.SemaphoreWaitTime || diff > 2*contender.opts.SemaphoreWaitTime {
+		t.Fatalf("time out of bounds: %9.6f", diff.Seconds())
 	}
 
 	// Give up a slot and make sure the third one can get it.
