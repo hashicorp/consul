@@ -69,17 +69,29 @@ Options:
   -pass-stdin                Pass stdin to child process.
   -try=duration              Make a single attempt to acquire the lock, waiting
                              up to the given duration (eg. "15s").
+  -monitor-retry=n           Retry up to n times if Consul returns a 500 error
+                             while monitoring the lock. This allows riding out brief
+                             periods of unavailability without causing leader
+                             elections, but increases the amount of time required
+                             to detect a lost lock in some cases. Defaults to 0.
   -verbose                   Enables verbose output
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *LockCommand) Run(args []string) int {
+	var lu *LockUnlock
+	return c.run(args, &lu)
+}
+
+// run exposes the underlying lock for testing.
+func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	var childDone chan struct{}
 	var name, token string
 	var limit int
 	var passStdin bool
 	var try string
+	var retry int
 	cmdFlags := flag.NewFlagSet("watch", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 	cmdFlags.IntVar(&limit, "n", 1, "")
@@ -87,6 +99,7 @@ func (c *LockCommand) Run(args []string) int {
 	cmdFlags.StringVar(&token, "token", "", "")
 	cmdFlags.BoolVar(&passStdin, "pass-stdin", false, "")
 	cmdFlags.StringVar(&try, "try", "", "")
+	cmdFlags.IntVar(&retry, "monitor-retry", 0, "")
 	cmdFlags.BoolVar(&c.verbose, "verbose", false, "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
@@ -135,6 +148,12 @@ func (c *LockCommand) Run(args []string) int {
 		oneshot = true
 	}
 
+	// Check the retry parameter
+	if retry < 0 {
+		c.Ui.Error("Number for 'monitor-retry' must be >= 0")
+		return 1
+	}
+
 	// Create and test the HTTP client
 	conf := api.DefaultConfig()
 	conf.Address = *httpAddr
@@ -151,11 +170,10 @@ func (c *LockCommand) Run(args []string) int {
 	}
 
 	// Setup the lock or semaphore
-	var lu *LockUnlock
 	if limit == 1 {
-		lu, err = c.setupLock(client, prefix, name, oneshot, wait)
+		*lu, err = c.setupLock(client, prefix, name, oneshot, wait, retry)
 	} else {
-		lu, err = c.setupSemaphore(client, limit, prefix, name, oneshot, wait)
+		*lu, err = c.setupSemaphore(client, limit, prefix, name, oneshot, wait, retry)
 	}
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Lock setup failed: %s", err))
@@ -166,7 +184,7 @@ func (c *LockCommand) Run(args []string) int {
 	if c.verbose {
 		c.Ui.Info("Attempting lock acquisition")
 	}
-	lockCh, err := lu.lockFn(c.ShutdownCh)
+	lockCh, err := (*lu).lockFn(c.ShutdownCh)
 	if lockCh == nil {
 		if err == nil {
 			c.Ui.Error("Shutdown triggered or timeout during lock acquisition")
@@ -219,14 +237,14 @@ func (c *LockCommand) Run(args []string) int {
 
 RELEASE:
 	// Release the lock before termination
-	if err := lu.unlockFn(); err != nil {
+	if err := (*lu).unlockFn(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Lock release failed: %s", err))
 		return 1
 	}
 
 	// Cleanup the lock if no longer in use
-	if err := lu.cleanupFn(); err != nil {
-		if err != lu.inUseErr {
+	if err := (*lu).cleanupFn(); err != nil {
+		if err != (*lu).inUseErr {
 			c.Ui.Error(fmt.Sprintf("Lock cleanup failed: %s", err))
 			return 1
 		} else if c.verbose {
@@ -240,8 +258,11 @@ RELEASE:
 
 // setupLock is used to setup a new Lock given the API client, the key prefix to
 // operate on, and an optional session name. If oneshot is true then we will set
-// up for a single attempt at acquisition, using the given wait time.
-func (c *LockCommand) setupLock(client *api.Client, prefix, name string, oneshot bool, wait time.Duration) (*LockUnlock, error) {
+// up for a single attempt at acquisition, using the given wait time. The retry
+// parameter sets how many 500 errors the lock monitor will tolerate before
+// giving up the lock.
+func (c *LockCommand) setupLock(client *api.Client, prefix, name string,
+	oneshot bool, wait time.Duration, retry int) (*LockUnlock, error) {
 	// Use the DefaultSemaphoreKey extension, this way if a lock and
 	// semaphore are both used at the same prefix, we will get a conflict
 	// which we can report to the user.
@@ -250,8 +271,9 @@ func (c *LockCommand) setupLock(client *api.Client, prefix, name string, oneshot
 		c.Ui.Info(fmt.Sprintf("Setting up lock at path: %s", key))
 	}
 	opts := api.LockOptions{
-		Key:         key,
-		SessionName: name,
+		Key:            key,
+		SessionName:    name,
+		MonitorRetries: retry,
 	}
 	if oneshot {
 		opts.LockTryOnce = true
@@ -266,21 +288,26 @@ func (c *LockCommand) setupLock(client *api.Client, prefix, name string, oneshot
 		unlockFn:  l.Unlock,
 		cleanupFn: l.Destroy,
 		inUseErr:  api.ErrLockInUse,
+		rawOpts:   &opts,
 	}
 	return lu, nil
 }
 
 // setupSemaphore is used to setup a new Semaphore given the API client, key
 // prefix, session name, and slot holder limit. If oneshot is true then we will
-// set up for a single attempt at acquisition, using the given wait time.
-func (c *LockCommand) setupSemaphore(client *api.Client, limit int, prefix, name string, oneshot bool, wait time.Duration) (*LockUnlock, error) {
+// set up for a single attempt at acquisition, using the given wait time. The
+// retry parameter sets how many 500 errors the lock monitor will tolerate
+// before giving up the semaphore.
+func (c *LockCommand) setupSemaphore(client *api.Client, limit int, prefix, name string,
+	oneshot bool, wait time.Duration, retry int) (*LockUnlock, error) {
 	if c.verbose {
 		c.Ui.Info(fmt.Sprintf("Setting up semaphore (limit %d) at prefix: %s", limit, prefix))
 	}
 	opts := api.SemaphoreOptions{
-		Prefix:      prefix,
-		Limit:       limit,
-		SessionName: name,
+		Prefix:         prefix,
+		Limit:          limit,
+		SessionName:    name,
+		MonitorRetries: retry,
 	}
 	if oneshot {
 		opts.SemaphoreTryOnce = true
@@ -295,6 +322,7 @@ func (c *LockCommand) setupSemaphore(client *api.Client, limit int, prefix, name
 		unlockFn:  s.Release,
 		cleanupFn: s.Destroy,
 		inUseErr:  api.ErrSemaphoreInUse,
+		rawOpts:   &opts,
 	}
 	return lu, nil
 }
@@ -408,4 +436,5 @@ type LockUnlock struct {
 	unlockFn  func() error
 	cleanupFn func() error
 	inUseErr  error
+	rawOpts   interface{}
 }

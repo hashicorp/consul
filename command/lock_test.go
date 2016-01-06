@@ -5,9 +5,10 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/cli"
 )
 
@@ -15,17 +16,22 @@ func TestLockCommand_implements(t *testing.T) {
 	var _ cli.Command = &LockCommand{}
 }
 
-func TestLockCommand_BadArgs(t *testing.T) {
+func argFail(t *testing.T, args []string, expected string) {
 	ui := new(cli.MockUi)
 	c := &LockCommand{Ui: ui}
-
-	if code := c.Run([]string{"-try=blah"}); code != 1 {
+	if code := c.Run(args); code != 1 {
 		t.Fatalf("expected return code 1, got %d", code)
 	}
-
-	if code := c.Run([]string{"-try=-10s"}); code != 1 {
-		t.Fatalf("expected return code 1, got %d", code)
+	if reason := ui.ErrorWriter.String(); !strings.Contains(reason, expected) {
+		t.Fatalf("bad reason: got='%s', expected='%s'", reason, expected)
 	}
+
+}
+
+func TestLockCommand_BadArgs(t *testing.T) {
+	argFail(t, []string{"-try=blah", "test/prefix", "date"}, "parsing duration")
+	argFail(t, []string{"-try=-10s", "test/prefix", "date"}, "must be positive")
+	argFail(t, []string{"-monitor-retry=-5", "test/prefix", "date"}, "must be >= 0")
 }
 
 func TestLockCommand_Run(t *testing.T) {
@@ -51,68 +57,130 @@ func TestLockCommand_Run(t *testing.T) {
 	}
 }
 
-func runTry(t *testing.T, n int) {
+func TestLockCommand_Try_Lock(t *testing.T) {
 	a1 := testAgent(t)
 	defer a1.Shutdown()
 	waitForLeader(t, a1.httpAddr)
 
-	// Define a long-running command.
-	nArg := fmt.Sprintf("-n=%d", n)
-	args := []string{"-http-addr=" + a1.httpAddr, nArg, "-try=250ms", "test/prefix", "sleep 2"}
+	ui := new(cli.MockUi)
+	c := &LockCommand{Ui: ui}
+	filePath := filepath.Join(a1.dir, "test_touch")
+	touchCmd := fmt.Sprintf("touch '%s'", filePath)
+	args := []string{"-http-addr=" + a1.httpAddr, "-try=10s", "test/prefix", touchCmd}
 
-	// Run several commands at once.
-	var wg sync.WaitGroup
-	locked := make([]bool, n+1)
-	tried := make([]bool, n+1)
-	for i := 0; i < n+1; i++ {
-		wg.Add(1)
-		go func(index int) {
-			ui := new(cli.MockUi)
-			c := &LockCommand{Ui: ui}
-
-			code := c.Run(append([]string{"-try=250ms"}, args...))
-			if code == 0 {
-				locked[index] = true
-			} else {
-				reason := ui.ErrorWriter.String()
-				if !strings.Contains(reason, "Shutdown triggered or timeout during lock acquisition") {
-					t.Fatalf("bad reason: %s", reason)
-				}
-				tried[index] = true
-			}
-			wg.Done()
-		}(i)
+	// Run the command.
+	var lu *LockUnlock
+	code := c.run(args, &lu)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
 	}
-	wg.Wait()
-
-	// Tally up the outcomes.
-	totalLocked := 0
-	totalTried := 0
-	for i := 0; i < n+1; i++ {
-		if locked[i] == tried[i] {
-			t.Fatalf("command %d didn't lock or try, or did both", i+1)
-		}
-		if locked[i] {
-			totalLocked++
-		}
-		if tried[i] {
-			totalTried++
-		}
+	_, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
-	// We can't check exact counts because sometimes the try attempts may
-	// fail because they get woken up but need to do another try, but we
-	// should get one of each outcome.
-	if totalLocked == 0 || totalTried == 0 {
-		t.Fatalf("unexpected outcome: locked=%d, tried=%d", totalLocked, totalTried)
+	// Make sure the try options were set correctly.
+	opts, ok := lu.rawOpts.(*api.LockOptions)
+	if !ok {
+		t.Fatalf("bad type")
 	}
-}
-
-func TestLockCommand_Try_Lock(t *testing.T) {
-	runTry(t, 1)
+	if !opts.LockTryOnce || opts.LockWaitTime != 10*time.Second {
+		t.Fatalf("bad: %#v", opts)
+	}
 }
 
 func TestLockCommand_Try_Semaphore(t *testing.T) {
-	runTry(t, 2)
-	runTry(t, 3)
+	a1 := testAgent(t)
+	defer a1.Shutdown()
+	waitForLeader(t, a1.httpAddr)
+
+	ui := new(cli.MockUi)
+	c := &LockCommand{Ui: ui}
+	filePath := filepath.Join(a1.dir, "test_touch")
+	touchCmd := fmt.Sprintf("touch '%s'", filePath)
+	args := []string{"-http-addr=" + a1.httpAddr, "-n=3", "-try=10s", "test/prefix", touchCmd}
+
+	// Run the command.
+	var lu *LockUnlock
+	code := c.run(args, &lu)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+	_, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the try options were set correctly.
+	opts, ok := lu.rawOpts.(*api.SemaphoreOptions)
+	if !ok {
+		t.Fatalf("bad type")
+	}
+	if !opts.SemaphoreTryOnce || opts.SemaphoreWaitTime != 10*time.Second {
+		t.Fatalf("bad: %#v", opts)
+	}
+}
+
+func TestLockCommand_MonitorRetry_Lock(t *testing.T) {
+	a1 := testAgent(t)
+	defer a1.Shutdown()
+	waitForLeader(t, a1.httpAddr)
+
+	ui := new(cli.MockUi)
+	c := &LockCommand{Ui: ui}
+	filePath := filepath.Join(a1.dir, "test_touch")
+	touchCmd := fmt.Sprintf("touch '%s'", filePath)
+	args := []string{"-http-addr=" + a1.httpAddr, "-monitor-retry=3", "test/prefix", touchCmd}
+
+	// Run the command.
+	var lu *LockUnlock
+	code := c.run(args, &lu)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+	_, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the monitor options were set correctly.
+	opts, ok := lu.rawOpts.(*api.LockOptions)
+	if !ok {
+		t.Fatalf("bad type")
+	}
+	if opts.MonitorRetries != 3 {
+		t.Fatalf("bad: %d", opts.MonitorRetries)
+	}
+}
+
+func TestLockCommand_MonitorRetry_Semaphore(t *testing.T) {
+	a1 := testAgent(t)
+	defer a1.Shutdown()
+	waitForLeader(t, a1.httpAddr)
+
+	ui := new(cli.MockUi)
+	c := &LockCommand{Ui: ui}
+	filePath := filepath.Join(a1.dir, "test_touch")
+	touchCmd := fmt.Sprintf("touch '%s'", filePath)
+	args := []string{"-http-addr=" + a1.httpAddr, "-n=3", "-monitor-retry=3", "test/prefix", touchCmd}
+
+	// Run the command.
+	var lu *LockUnlock
+	code := c.run(args, &lu)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+	_, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the monitor options were set correctly.
+	opts, ok := lu.rawOpts.(*api.SemaphoreOptions)
+	if !ok {
+		t.Fatalf("bad type")
+	}
+	if opts.MonitorRetries != 3 {
+		t.Fatalf("bad: %d", opts.MonitorRetries)
+	}
 }

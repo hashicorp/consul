@@ -67,5 +67,10 @@ The list of available flags are:
   unit suffix, such as "500ms". Valid time units are "ns", "us" (or "µs"), "ms",
   "s", "m", "h".
 
+* `-monitor-retry` - Retry up to this number of times if Consul returns a 500 error
+   while monitoring the lock. This allows riding out brief periods of unavailability
+   without causing leader elections, but increases the amount of time required
+   to detect a lost lock in some cases. Defaults to 0.
+
 * `-verbose` - Enables verbose output.
 
