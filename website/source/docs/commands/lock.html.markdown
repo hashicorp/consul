@@ -62,5 +62,10 @@ The list of available flags are:
 
 * `-pass-stdin` - Pass stdin to child process.
 
+* `-try` - Make a single attempt to acquire the lock, waiting up to the given
+  duration supplied as the argument. The duration is a decimal number, with
+  unit suffix, such as "500ms". Valid time units are "ns", "us" (or "µs"), "ms",
+  "s", "m", "h".
+
 * `-verbose` - Enables verbose output.
 

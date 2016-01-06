@@ -63,12 +63,14 @@ type Semaphore struct {
 
 // SemaphoreOptions is used to parameterize the Semaphore
 type SemaphoreOptions struct {
-	Prefix      string // Must be set and have write permissions
-	Limit       int    // Must be set, and be positive
-	Value       []byte // Optional, value to associate with the contender entry
-	Session     string // Optional, created if not specified
-	SessionName string // Optional, defaults to DefaultLockSessionName
-	SessionTTL  string // Optional, defaults to DefaultLockSessionTTL
+	Prefix            string        // Must be set and have write permissions
+	Limit             int           // Must be set, and be positive
+	Value             []byte        // Optional, value to associate with the contender entry
+	Session           string        // Optional, created if not specified
+	SessionName       string        // Optional, defaults to DefaultLockSessionName
+	SessionTTL        string        // Optional, defaults to DefaultLockSessionTTL
+	SemaphoreWaitTime time.Duration // Optional, defaults to DefaultSemaphoreWaitTime
+	SemaphoreTryOnce  bool          // Optional, defaults to false which means try forever
 }
 
 // semaphoreLock is written under the DefaultSemaphoreKey and
@@ -114,6 +116,9 @@ func (c *Client) SemaphoreOpts(opts *SemaphoreOptions) (*Semaphore, error) {
 		if _, err := time.ParseDuration(opts.SessionTTL); err != nil {
 			return nil, fmt.Errorf("invalid SessionTTL: %v", err)
 		}
+	}
+	if opts.SemaphoreWaitTime == 0 {
+		opts.SemaphoreWaitTime = DefaultSemaphoreWaitTime
 	}
 	s := &Semaphore{
 		c:    c,
@@ -172,9 +177,10 @@ func (s *Semaphore) Acquire(stopCh <-chan struct{}) (<-chan struct{}, error) {
 
 	// Setup the query options
 	qOpts := &QueryOptions{
-		WaitTime: DefaultSemaphoreWaitTime,
+		WaitTime: s.opts.SemaphoreWaitTime,
 	}
 
+	attempts := 0
 WAIT:
 	// Check if we should quit
 	select {
@@ -182,6 +188,12 @@ WAIT:
 		return nil, nil
 	default:
 	}
+
+	// See if we completed a one-shot.
+	if attempts > 0 && s.opts.SemaphoreTryOnce {
+		return nil, nil
+	}
+	attempts++
 
 	// Read the prefix
 	pairs, meta, err := kv.List(s.opts.Prefix, qOpts)

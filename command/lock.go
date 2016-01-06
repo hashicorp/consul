@@ -47,6 +47,7 @@ Usage: consul lock [options] prefix child...
   disrupted the child process will be sent a SIGTERM signal and given
   time to gracefully exit. After the grace period expires the process
   will be hard terminated.
+
   For Consul agents on Windows, the child process is always hard
   terminated with a SIGKILL, since Windows has no POSIX compatible
   notion for SIGTERM.
@@ -66,6 +67,8 @@ Options:
   -name=""                   Optional name to associate with lock session.
   -token=""                  ACL token to use. Defaults to that of agent.
   -pass-stdin                Pass stdin to child process.
+  -try=duration              Make a single attempt to acquire the lock, waiting
+                             up to the given duration (eg. "15s").
   -verbose                   Enables verbose output
 `
 	return strings.TrimSpace(helpText)
@@ -76,12 +79,14 @@ func (c *LockCommand) Run(args []string) int {
 	var name, token string
 	var limit int
 	var passStdin bool
+	var try string
 	cmdFlags := flag.NewFlagSet("watch", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 	cmdFlags.IntVar(&limit, "n", 1, "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	cmdFlags.StringVar(&token, "token", "", "")
 	cmdFlags.BoolVar(&passStdin, "pass-stdin", false, "")
+	cmdFlags.StringVar(&try, "try", "", "")
 	cmdFlags.BoolVar(&c.verbose, "verbose", false, "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
@@ -111,6 +116,25 @@ func (c *LockCommand) Run(args []string) int {
 		name = fmt.Sprintf("Consul lock for '%s' at '%s'", script, prefix)
 	}
 
+	// Verify the duration if given.
+	oneshot := false
+	var wait time.Duration
+	if try != "" {
+		var err error
+		wait, err = time.ParseDuration(try)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error parsing duration for 'try' option: %s", err))
+			return 1
+		}
+
+		if wait < 0 {
+			c.Ui.Error("Duration for 'try' option must be positive")
+			return 1
+		}
+
+		oneshot = true
+	}
+
 	// Create and test the HTTP client
 	conf := api.DefaultConfig()
 	conf.Address = *httpAddr
@@ -129,9 +153,9 @@ func (c *LockCommand) Run(args []string) int {
 	// Setup the lock or semaphore
 	var lu *LockUnlock
 	if limit == 1 {
-		lu, err = c.setupLock(client, prefix, name)
+		lu, err = c.setupLock(client, prefix, name, oneshot, wait)
 	} else {
-		lu, err = c.setupSemaphore(client, limit, prefix, name)
+		lu, err = c.setupSemaphore(client, limit, prefix, name, oneshot, wait)
 	}
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Lock setup failed: %s", err))
@@ -145,7 +169,7 @@ func (c *LockCommand) Run(args []string) int {
 	lockCh, err := lu.lockFn(c.ShutdownCh)
 	if lockCh == nil {
 		if err == nil {
-			c.Ui.Error("Shutdown triggered during lock acquisition")
+			c.Ui.Error("Shutdown triggered or timeout during lock acquisition")
 		} else {
 			c.Ui.Error(fmt.Sprintf("Lock acquisition failed: %s", err))
 		}
@@ -214,9 +238,10 @@ RELEASE:
 	return 0
 }
 
-// setupLock is used to setup a new Lock given the API client,
-// the key prefix to operate on, and an optional session name.
-func (c *LockCommand) setupLock(client *api.Client, prefix, name string) (*LockUnlock, error) {
+// setupLock is used to setup a new Lock given the API client, the key prefix to
+// operate on, and an optional session name. If oneshot is true then we will set
+// up for a single attempt at acquisition, using the given wait time.
+func (c *LockCommand) setupLock(client *api.Client, prefix, name string, oneshot bool, wait time.Duration) (*LockUnlock, error) {
 	// Use the DefaultSemaphoreKey extension, this way if a lock and
 	// semaphore are both used at the same prefix, we will get a conflict
 	// which we can report to the user.
@@ -227,6 +252,10 @@ func (c *LockCommand) setupLock(client *api.Client, prefix, name string) (*LockU
 	opts := api.LockOptions{
 		Key:         key,
 		SessionName: name,
+	}
+	if oneshot {
+		opts.LockTryOnce = true
+		opts.LockWaitTime = wait
 	}
 	l, err := client.LockOpts(&opts)
 	if err != nil {
@@ -241,9 +270,10 @@ func (c *LockCommand) setupLock(client *api.Client, prefix, name string) (*LockU
 	return lu, nil
 }
 
-// setupSemaphore is used to setup a new Semaphore given the
-// API client, key prefix, session name, and slot holder limit.
-func (c *LockCommand) setupSemaphore(client *api.Client, limit int, prefix, name string) (*LockUnlock, error) {
+// setupSemaphore is used to setup a new Semaphore given the API client, key
+// prefix, session name, and slot holder limit. If oneshot is true then we will
+// set up for a single attempt at acquisition, using the given wait time.
+func (c *LockCommand) setupSemaphore(client *api.Client, limit int, prefix, name string, oneshot bool, wait time.Duration) (*LockUnlock, error) {
 	if c.verbose {
 		c.Ui.Info(fmt.Sprintf("Setting up semaphore (limit %d) at prefix: %s", limit, prefix))
 	}
@@ -251,6 +281,10 @@ func (c *LockCommand) setupSemaphore(client *api.Client, limit int, prefix, name
 		Prefix:      prefix,
 		Limit:       limit,
 		SessionName: name,
+	}
+	if oneshot {
+		opts.SemaphoreTryOnce = true
+		opts.SemaphoreWaitTime = wait
 	}
 	s, err := client.SemaphoreOpts(&opts)
 	if err != nil {

@@ -311,3 +311,86 @@ func TestSemaphore_Conflict(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 }
+
+func TestSemaphore_OneShot(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// Set up a semaphore as a one-shot.
+	opts := &SemaphoreOptions{
+		Prefix:           "test/sema/.lock",
+		Limit:            2,
+		SemaphoreTryOnce: true,
+	}
+	sema, err := c.SemaphoreOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the default got set.
+	if sema.opts.SemaphoreWaitTime != DefaultSemaphoreWaitTime {
+		t.Fatalf("bad: %d", sema.opts.SemaphoreWaitTime)
+	}
+
+	// Now set a custom time for the test.
+	opts.SemaphoreWaitTime = 250 * time.Millisecond
+	sema, err = c.SemaphoreOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if sema.opts.SemaphoreWaitTime != 250*time.Millisecond {
+		t.Fatalf("bad: %d", sema.opts.SemaphoreWaitTime)
+	}
+
+	// Should acquire the semaphore.
+	ch, err := sema.Acquire(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ch == nil {
+		t.Fatalf("should have acquired the semaphore")
+	}
+
+	// Try with another session.
+	another, err := c.SemaphoreOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	ch, err = another.Acquire(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ch == nil {
+		t.Fatalf("should have acquired the semaphore")
+	}
+
+	// Try with a third one that shouldn't get it.
+	contender, err := c.SemaphoreOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	start := time.Now()
+	ch, err = contender.Acquire(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ch != nil {
+		t.Fatalf("should not have acquired the semaphore")
+	}
+	if diff := time.Now().Sub(start); diff > 2*contender.opts.SemaphoreWaitTime {
+		t.Fatalf("took too long: %9.6f", diff.Seconds())
+	}
+
+	// Give up a slot and make sure the third one can get it.
+	if err := another.Release(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	ch, err = contender.Acquire(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ch == nil {
+		t.Fatalf("should have acquired the semaphore")
+	}
+}

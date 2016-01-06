@@ -76,6 +76,8 @@ type LockOptions struct {
 	SessionTTL       string        // Optional, defaults to DefaultLockSessionTTL
 	MonitorRetries   int           // Optional, defaults to 0 which means no retries
 	MonitorRetryTime time.Duration // Optional, defaults to DefaultMonitorRetryTime
+	LockWaitTime     time.Duration // Optional, defaults to DefaultLockWaitTime
+	LockTryOnce      bool          // Optional, defaults to false which means try forever
 }
 
 // LockKey returns a handle to a lock struct which can be used
@@ -107,6 +109,9 @@ func (c *Client) LockOpts(opts *LockOptions) (*Lock, error) {
 	}
 	if opts.MonitorRetryTime == 0 {
 		opts.MonitorRetryTime = DefaultMonitorRetryTime
+	}
+	if opts.LockWaitTime == 0 {
+		opts.LockWaitTime = DefaultLockWaitTime
 	}
 	l := &Lock{
 		c:    c,
@@ -158,9 +163,10 @@ func (l *Lock) Lock(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	// Setup the query options
 	kv := l.c.KV()
 	qOpts := &QueryOptions{
-		WaitTime: DefaultLockWaitTime,
+		WaitTime: l.opts.LockWaitTime,
 	}
 
+	attempts := 0
 WAIT:
 	// Check if we should quit
 	select {
@@ -168,6 +174,12 @@ WAIT:
 		return nil, nil
 	default:
 	}
+
+	// See if we completed a one-shot.
+	if attempts > 0 && l.opts.LockTryOnce {
+		return nil, nil
+	}
+	attempts++
 
 	// Look for an existing lock, blocking until not taken
 	pair, meta, err := kv.Get(l.opts.Key, qOpts)
