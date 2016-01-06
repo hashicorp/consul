@@ -4,7 +4,18 @@ IMPROVEMENTS:
 
 * Consul is now built with Go 1.5.2
 * Added source IP address and port information to RPC-related log error
-  messages [GH-1513]
+  messages and HTTP access logs [GH-1513] [GH-1448]
+* API clients configured for insecure SSL now use an HTTP transport that's
+  set up the same way as the Go default transport [GH-1526]
+* Added new per-host telemery on DNS requests [GH-1537]
+* Added support for reaping child processes which is useful when running
+  Consul as PID 1 in Docker containers [GH-1539]
+* Added new `-ui` command line and `ui` config option that enables a built-in
+  Consul web UI, making deployment much simpler [GH-1543]
+* Added new `-dev` command line option that creates a completely in-memory
+  standalone Consul server for development
+* Added a Solaris build, now that dependencies have been updated to support
+  it [GH-1568]
 
 BUG FIXES:
 
