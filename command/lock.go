@@ -35,6 +35,9 @@ type LockCommand struct {
 	child     *os.Process
 	childLock sync.Mutex
 	verbose   bool
+
+	childExitCode      bool
+	childReturnedError bool
 }
 
 func (c *LockCommand) Help() string {
@@ -66,7 +69,8 @@ Options:
   -name=""                   Optional name to associate with lock session.
   -token=""                  ACL token to use. Defaults to that of agent.
   -pass-stdin                Pass stdin to child process.
-  -verbose                   Enables verbose output
+  -child-exitcode            Exit 1 if the child process exited with an error.
+  -verbose                   Enables verbose output.
 `
 	return strings.TrimSpace(helpText)
 }
@@ -83,6 +87,7 @@ func (c *LockCommand) Run(args []string) int {
 	cmdFlags.StringVar(&token, "token", "", "")
 	cmdFlags.BoolVar(&passStdin, "pass-stdin", false, "")
 	cmdFlags.BoolVar(&c.verbose, "verbose", false, "")
+	cmdFlags.BoolVar(&c.childExitCode, "child-exitcode", false, "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -165,6 +170,10 @@ func (c *LockCommand) Run(args []string) int {
 	go func() {
 		if err := c.startChild(script, childDone, passStdin); err != nil {
 			c.Ui.Error(fmt.Sprintf("%s", err))
+
+			if c.childExitCode {
+				c.childReturnedError = true
+			}
 		}
 	}()
 
@@ -211,6 +220,11 @@ RELEASE:
 	} else if c.verbose {
 		c.Ui.Info("Cleanup succeeded")
 	}
+
+	if c.childExitCode && c.childReturnedError {
+		return 1
+	}
+
 	return 0
 }
 

@@ -35,3 +35,35 @@ func TestLockCommandRun(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 }
+
+func TestLockCommandExitCodeZero(t *testing.T) {
+	a1 := testAgent(t)
+	defer a1.Shutdown()
+	waitForLeader(t, a1.httpAddr)
+
+	ui := new(cli.MockUi)
+	c := &LockCommand{Ui: ui, childExitCode: true}
+	cmd := fmt.Sprintf("exit 0")
+	args := []string{"-http-addr=" + a1.httpAddr, "-child-exitcode", "test/prefix", cmd}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestLockCommandExitCodeOne(t *testing.T) {
+	a1 := testAgent(t)
+	defer a1.Shutdown()
+	waitForLeader(t, a1.httpAddr)
+
+	ui := new(cli.MockUi)
+	c := &LockCommand{Ui: ui}
+	cmd := fmt.Sprintf("exit 2")
+	args := []string{"-http-addr=" + a1.httpAddr, "-child-exitcode", "test/prefix", cmd}
+
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+}
