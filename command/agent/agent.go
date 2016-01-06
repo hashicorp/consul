@@ -134,6 +134,9 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 			return nil, fmt.Errorf("Failed to parse advertise address: %v", config.AdvertiseAddr)
 		}
 	} else if config.BindAddr != "0.0.0.0" && config.BindAddr != "" {
+		if ip := consul.GetSubnetIP(config.BindAddr); ip != nil {
+			config.BindAddr = ip.String()
+		}
 		config.AdvertiseAddr = config.BindAddr
 	} else {
 		ip, err := consul.GetPrivateIP()
