@@ -2,6 +2,10 @@ package api
 
 import (
 	"log"
+	"net/http"
+	"net/http/httptest"
+	"net/http/httputil"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -309,6 +313,123 @@ func TestSemaphore_Conflict(t *testing.T) {
 	err = sema.Destroy()
 	if err != ErrSemaphoreConflict {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestSemaphore_MonitorRetry(t *testing.T) {
+	t.Parallel()
+	raw, s := makeClient(t)
+	defer s.Stop()
+
+	// Set up a server that always responds with 500 errors.
+	failer := func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(500)
+	}
+	outage := httptest.NewServer(http.HandlerFunc(failer))
+	defer outage.Close()
+
+	// Set up a reverse proxy that will send some requests to the
+	// 500 server and pass everything else through to the real Consul
+	// server.
+	var mutex sync.Mutex
+	errors := 0
+	director := func(req *http.Request) {
+		mutex.Lock()
+		defer mutex.Unlock()
+
+		req.URL.Scheme = "http"
+		if errors > 0 && req.Method == "GET" && strings.Contains(req.URL.Path, "/v1/kv/test/sema/.lock") {
+			req.URL.Host = outage.URL[7:] // Strip off "http://".
+			errors--
+		} else {
+			req.URL.Host = raw.config.Address
+		}
+	}
+	proxy := httptest.NewServer(&httputil.ReverseProxy{Director: director})
+	defer proxy.Close()
+
+	// Make another client that points at the proxy instead of the real
+	// Consul server.
+	config := raw.config
+	config.Address = proxy.URL[7:] // Strip off "http://".
+	c, err := NewClient(&config)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Set up a lock with retries enabled.
+	opts := &SemaphoreOptions{
+		Prefix:         "test/sema/.lock",
+		Limit:          2,
+		SessionTTL:     "60s",
+		MonitorRetries: 3,
+	}
+	sema, err := c.SemaphoreOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the default got set.
+	if sema.opts.MonitorRetryTime != DefaultMonitorRetryTime {
+		t.Fatalf("bad: %d", sema.opts.MonitorRetryTime)
+	}
+
+	// Now set a custom time for the test.
+	opts.MonitorRetryTime = 250 * time.Millisecond
+	sema, err = c.SemaphoreOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if sema.opts.MonitorRetryTime != 250*time.Millisecond {
+		t.Fatalf("bad: %d", sema.opts.MonitorRetryTime)
+	}
+
+	// Should get the lock.
+	ch, err := sema.Acquire(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ch == nil {
+		t.Fatalf("didn't acquire")
+	}
+
+	// Take the semaphore using the raw client to force the monitor to wake
+	// up and check the lock again. This time we will return errors for some
+	// of the responses.
+	mutex.Lock()
+	errors = 2
+	mutex.Unlock()
+	another, err := raw.SemaphoreOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := another.Acquire(nil); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	time.Sleep(5 * opts.MonitorRetryTime)
+
+	// Should still have the semaphore.
+	select {
+	case <-ch:
+		t.Fatalf("lost the semaphore")
+	default:
+	}
+
+	// Now return an overwhelming number of errors, using the raw client to
+	// poke the key and get the monitor to run again.
+	mutex.Lock()
+	errors = 10
+	mutex.Unlock()
+	if err := another.Release(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	time.Sleep(5 * opts.MonitorRetryTime)
+
+	// Should lose the semaphore.
+	select {
+	case <-ch:
+	case <-time.After(time.Second):
+		t.Fatalf("should not have the semaphore")
 	}
 }
 

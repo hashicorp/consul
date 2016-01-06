@@ -29,7 +29,8 @@ const (
 	// DefaultMonitorRetryTime is how long we wait after a failed monitor check
 	// of a lock (500 response code). This allows the monitor to ride out brief
 	// periods of unavailability, subject to the MonitorRetries setting in the
-	// lock options which is by default set to 0, disabling this feature.
+	// lock options which is by default set to 0, disabling this feature. This
+	// affects locks and semaphores.
 	DefaultMonitorRetryTime = 2 * time.Second
 
 	// LockFlagValue is a magic flag we set to indicate a key
