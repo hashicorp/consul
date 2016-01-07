@@ -1,6 +1,6 @@
 GIT
   remote: git://github.com/hashicorp/middleman-hashicorp.git
-  revision: 15cbda0cf1d963fa71292dee921229e7ee618272
+  revision: 872fc5bd7a3bb2b7bb45c7521cae8b22dbef7e28
   specs:
     middleman-hashicorp (0.2.0)
       bootstrap-sass (~> 3.3)
