@@ -514,10 +514,10 @@ definitions support being updated during a reload.
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
   [`-protocol` command-line flag](#_protocol).
 
-* <a name="reap"></a><a href="#reap">`reap`</a> controls Consul's automatic reaping of child processes, which
-  is useful if Consul is running as PID 1 in a Docker container. If this isn't specified, then Consul will
-  automatically reap child processes if it detects it is running as PID 1. If this is specified, then it
-  controls reaping regardless of Consul's PID.
+* <a name="reap"></a><a href="#reap">`reap`</a> This controls Consul's automatic reaping of child processes,
+  which is useful if Consul is running as PID 1 in a Docker container. If this isn't specified, then Consul will
+  automatically reap child processes if it detects it is running as PID 1. If this is set to true or false, then
+  it controls reaping regardless of Consul's PID (forces reaping on or off, respectively).
 
 * <a name="recursor"></a><a href="#recursor">`recursor`</a> Provides a single recursor address.
   This has been deprecated, and the value is appended to the [`recursors`](#recursors) list for
