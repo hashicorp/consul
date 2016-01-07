@@ -8,7 +8,7 @@ BACKWARDS INCOMPATIBILITIES:
   vast majority of use cases this is desirable to prevent the lock from
   being given up during a brief period of Consul unavailability. If you
   want to get the previous default behavior you will need to set the
-  `monitor-retry=0` option.
+  `-monitor-retry=0` option.
 
 IMPROVEMENTS:
 
