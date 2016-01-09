@@ -668,6 +668,9 @@ func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, res
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
 		}
+		if d.config.EnableSingleton {
+			break
+		}
 	}
 }
 
