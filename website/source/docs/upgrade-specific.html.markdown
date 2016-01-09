@@ -34,6 +34,12 @@ is the same tool that was previously embedded into Consul. See the
 [releases](https://github.com/hashicorp/consul-migrate/releases) page for
 downloadable versions of the tool.
 
+Also, in this release Consul switched from LMDB to a fully in-memory database for
+the state store. Because LMDB is a disk-based backing store, it was able to store
+more data than could fit in RAM in some cases (though this is not a recommended
+configuration for Consul). If you have an extremely large data set that won't fit
+into RAM, you may encounter issues upgrading to Consul 0.6.0 and later.
+
 #### ACL Enhancements
 
 Consul 0.6 introduces enhancements to the ACL system which may require special
