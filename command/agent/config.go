@@ -77,6 +77,14 @@ type DNSConfig struct {
 	// returned by default for UDP.
 	EnableTruncate bool `mapstructure:"enable_truncate"`
 
+	// EnableSingleton is used to override default behavior
+	// of DNS and return only a single host in a round robin
+	// DNS service request rather than all healthy service
+	// members. This is a work around for systems using
+	// getaddrinfo using rule 9 sorting from RFC3484 which
+	// breaks round robin DNS.
+	EnableSingleton bool `mapstructure:"enable_singleton"`
+
 	// MaxStale is used to bound how stale of a result is
 	// accepted for a DNS lookup. This can be used with
 	// AllowStale to limit how old of a value is served up.
@@ -1129,6 +1137,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.DNSConfig.EnableTruncate {
 		result.DNSConfig.EnableTruncate = true
+	}
+	if b.DNSConfig.EnableSingleton {
+		result.DNSConfig.EnableSingleton = true
 	}
 	if b.DNSConfig.MaxStale != 0 {
 		result.DNSConfig.MaxStale = b.DNSConfig.MaxStale
