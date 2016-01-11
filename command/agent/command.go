@@ -958,6 +958,7 @@ Usage: consul agent [options]
 Options:
 
   -advertise=addr          Sets the advertise address to use
+  -advertise-wan=addr      Sets address to advertise on wan instead of advertise addr
   -atlas=org/name          Sets the Atlas infrastructure name, enables SCADA.
   -atlas-join              Enables auto-joining the Atlas cluster
   -atlas-token=token       Provides the Atlas API token
