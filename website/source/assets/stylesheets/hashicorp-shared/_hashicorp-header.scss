@@ -92,7 +92,7 @@
     }
     li > a {
       @include hashi-a-style();
-      margin: 0 10px;
+      margin: 0 8px;
       padding-top: 1px;
       line-height: $header-height;
       @include project-a-style();
