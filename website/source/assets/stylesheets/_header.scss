@@ -21,11 +21,13 @@ body.page-sub{
 #header {
   .navbar-brand {
     .logo{
-      padding-left: 50px;
+      width: $project-logo-width;
+      padding: 0;
+      line-height: $header-height;
+      background-position: 0 center;
       font-size: 0;
       text-transform: uppercase;
-      background: image-url('../images/consul-hero-logo.png') 0 0 no-repeat;
-      @include img-retina("../images/consul-hero-logo.png", "../images/consul-hero-logo@2x.png", $project-logo-width, $project-logo-height);
+      @include img-retina("../images/consul-header-lockup.png", "../images/consul-header-lockup@2x.png", $project-logo-width, $project-logo-height);
       background-position: 0 center;
 
       &:hover{
@@ -53,13 +55,8 @@ body.page-sub{
   #header {
     .navbar-brand {
       .logo{
-        padding-left: 37px;
-        @include img-retina("../images/consul-hero-logo.png", "../images/consul-hero-logo@2x.png", $project-logo-width * .75, $project-logo-height * .75);
-
-        img{
-          width: 72px;
-          height: 14px;
-        }
+        width: $project-logo-width * .75;
+        @include img-retina("../images/consul-header-lockup.png", "../images/consul-header-lockup@2x.png", $project-logo-width * .75, $project-logo-height * .75);
       }
     }
   }
