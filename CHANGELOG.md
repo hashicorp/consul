@@ -1,3 +1,11 @@
+## 0.6.2 (UNRELEASED)
+
+BUG FIXES:
+
+* Fixed an issue when running Consul as PID 1 in a Docker container where
+  it could consume CPU and show spurious failures for health checks, watch
+  handlers, and `consul exec` commands [GH-1592]
+
 ## 0.6.1 (January 6, 2015)
 
 BACKWARDS INCOMPATIBILITIES:
