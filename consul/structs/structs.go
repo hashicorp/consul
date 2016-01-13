@@ -369,6 +369,7 @@ type HealthCheck struct {
 	Status      string // The current check status
 	Notes       string // Additional notes with the status
 	Output      string // Holds output of script runs
+	Shell       string
 	ServiceID   string // optional associated service
 	ServiceName string // optional service name
 

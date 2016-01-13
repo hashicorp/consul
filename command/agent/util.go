@@ -82,6 +82,18 @@ func ExecScript(script string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
+// ExecScriptShell returns a command to execute a script on specific shell
+func ExecScriptShell(script, shell string) (*exec.Cmd, error) {
+	var flag string
+	if runtime.GOOS == "windows" {
+		flag = "/C"
+	} else {
+		flag = "-c"
+	}
+	cmd := exec.Command(shell, flag, script)
+	return cmd, nil
+}
+
 // generateUUID is used to generate a random UUID
 func generateUUID() string {
 	buf := make([]byte, 16)

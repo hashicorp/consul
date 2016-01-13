@@ -99,6 +99,7 @@ type CheckMonitor struct {
 	Notify   CheckNotifier
 	CheckID  string
 	Script   string
+	Shell    string
 	Interval time.Duration
 	Logger   *log.Logger
 
@@ -146,8 +147,14 @@ func (c *CheckMonitor) run() {
 
 // check is invoked periodically to perform the script check
 func (c *CheckMonitor) check() {
+	var cmd *exec.Cmd
+	var err error
 	// Create the command
-	cmd, err := ExecScript(c.Script)
+	if c.Shell != "" {
+		cmd, err = ExecScriptShell(c.Script, c.Shell)
+	} else {
+		cmd, err = ExecScript(c.Script)
+	}
 	if err != nil {
 		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", c.Script, err)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
