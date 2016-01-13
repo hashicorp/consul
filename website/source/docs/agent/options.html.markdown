@@ -479,7 +479,7 @@ definitions support being updated during a reload.
 * <a name="http_api_response_headers"></a><a href="#http_api_response_headers">`http_api_response_headers`</a>
   This object allows adding headers to the HTTP API
   responses. For example, the following config can be used to enable
-  [CORS](http://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on
+  [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on
   the HTTP API endpoints:
 
     ```javascript

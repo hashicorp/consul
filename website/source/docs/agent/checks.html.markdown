@@ -53,8 +53,8 @@ There are four different kinds of checks:
   can periodically `PUT` a status update to the HTTP endpoint; if the app fails, the TTL will
   expire and the health check enters a critical state. The endpoints used to
   update health information for a given check are the
-  [pass endpoint](https://consul.io/docs/agent/http/agent.html#agent_check_pass)
-  and the [fail endpoint](https://consul.io/docs/agent/http/agent.html#agent_check_fail).
+  [pass endpoint](https://www.consul.io/docs/agent/http/agent.html#agent_check_pass)
+  and the [fail endpoint](https://www.consul.io/docs/agent/http/agent.html#agent_check_fail).
   TTL checks also persist
   their last known status to disk. This allows the Consul agent to restore the
   last known status of the check across restarts. Persisted check status is
@@ -157,7 +157,7 @@ used for any interaction with the catalog for the check, including
 
 Script, TCP, Docker and HTTP checks must include an `interval` field. This field is
 parsed by Go's `time` package, and has the following
-[formatting specification](http://golang.org/pkg/time/#ParseDuration):
+[formatting specification](https://golang.org/pkg/time/#ParseDuration):
 > A duration string is a possibly signed sequence of decimal numbers, each with
 > optional fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m".
 > Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".

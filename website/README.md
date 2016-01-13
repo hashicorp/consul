@@ -1,7 +1,7 @@
 Consul Website
 ==============
 
-This subdirectory contains the entire source for the [Consul Website](http://www.consul.io). This is a [Middleman](http://middlemanapp.com) project, which builds a static site from these source files.
+This subdirectory contains the entire source for the [Consul Website](https://www.consul.io). This is a [Middleman](http://middlemanapp.com) project, which builds a static site from these source files.
 
 Contributions Welcome!
 ----------------------

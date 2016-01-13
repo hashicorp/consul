@@ -8,8 +8,8 @@ description: |-
 
 # Consensus Protocol
 
-Consul uses a [consensus protocol](http://en.wikipedia.org/wiki/Consensus_(computer_science))
-to provide [Consistency (as defined by CAP)](http://en.wikipedia.org/wiki/CAP_theorem).
+Consul uses a [consensus protocol](https://en.wikipedia.org/wiki/Consensus_(computer_science))
+to provide [Consistency (as defined by CAP)](https://en.wikipedia.org/wiki/CAP_theorem).
 The consensus protocol is based on
 ["Raft: In search of an Understandable Consensus Algorithm"](https://ramcloud.stanford.edu/wiki/download/attachments/11370504/raft.pdf).
 For a visual explanation of Raft, see [The Secret Lives of Data](http://thesecretlivesofdata.com/raft).
@@ -22,7 +22,7 @@ to learn about them without having to go spelunking through the source code.
 ## Raft Protocol Overview
 
 Raft is a consensus algorithm that is based on
-[Paxos](http://en.wikipedia.org/wiki/Paxos_%28computer_science%29). Compared
+[Paxos](https://en.wikipedia.org/wiki/Paxos_%28computer_science%29). Compared
 to Paxos, Raft is designed to have fewer states and a simpler, more
 understandable algorithm.
 
@@ -33,7 +33,7 @@ of consistency can be decomposed into a *replicated log*. A log is an ordered
 sequence of entries. We consider the log consistent if all members agree on
 the entries and their order.
 
-* FSM - [Finite State Machine](http://en.wikipedia.org/wiki/Finite-state_machine).
+* FSM - [Finite State Machine](https://en.wikipedia.org/wiki/Finite-state_machine).
 An FSM is a collection of finite states with transitions between them. As new logs
 are applied, the FSM is allowed to transition between states. Application of the
 same sequence of logs must result in the same state, meaning behavior must be deterministic.

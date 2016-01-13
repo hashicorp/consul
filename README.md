@@ -1,6 +1,6 @@
 # Consul [![Build Status](https://travis-ci.org/hashicorp/consul.png)](https://travis-ci.org/hashicorp/consul)
 
-* Website: http://www.consul.io
+* Website: https://www.consul.io
 * IRC: `#consul` on Freenode
 * Mailing list: [Google Groups](https://groups.google.com/group/consul-tool/)
 
@@ -32,13 +32,13 @@ Consul servers only on Linux, however.
 
 An extensive quick quick start is viewable on the Consul website:
 
-http://www.consul.io/intro/getting-started/install.html
+https://www.consul.io/intro/getting-started/install.html
 
 ## Documentation
 
 Full, comprehensive documentation is viewable on the Consul website:
 
-http://www.consul.io/docs
+https://www.consul.io/docs
 
 ## Developing Consul
 

@@ -160,8 +160,8 @@ will automatically join your Consul cluster without any hardcoded
 configuration.
 
 Alternatively, you can join a cluster at startup using the
-[`-join` flag](http://www.consul.io/docs/agent/options.html#_join) or
-[`start_join` setting](http://www.consul.io/docs/agent/options.html#start_join)
+[`-join` flag](https://www.consul.io/docs/agent/options.html#_join) or
+[`start_join` setting](https://www.consul.io/docs/agent/options.html#start_join)
 with hardcoded addresses of other known Consul agents.
 
 ## Querying Nodes
