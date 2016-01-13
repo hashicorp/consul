@@ -49,13 +49,13 @@ region would be considered part of a single datacenter.
 * Consensus - When used in our documentation we use consensus to mean agreement upon
 the elected leader as well as agreement on the ordering of transactions. Since these
 transactions are applied to a
-[finite-state machine](http://en.wikipedia.org/wiki/Finite-state_machine), our definition
+[finite-state machine](https://en.wikipedia.org/wiki/Finite-state_machine), our definition
 of consensus implies the consistency of a replicated state machine. Consensus is described
-in more detail on [Wikipedia](http://en.wikipedia.org/wiki/Consensus_(computer_science)),
+in more detail on [Wikipedia](https://en.wikipedia.org/wiki/Consensus_(computer_science)),
 and our implementation is described [here](/docs/internals/consensus.html).
 
 * Gossip - Consul is built on top of [Serf](https://www.serfdom.io/) which provides a full
-[gossip protocol](http://en.wikipedia.org/wiki/Gossip_protocol) that is used for multiple purposes.
+[gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol) that is used for multiple purposes.
 Serf provides membership, failure detection, and event broadcast. Our use of these
 is described more in the [gossip documentation](/docs/internals/gossip.html). It is enough to know
 that gossip involves random node-to-node communication, primarily over UDP.

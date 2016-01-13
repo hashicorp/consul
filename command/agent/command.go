@@ -183,7 +183,7 @@ func (c *Command) readConfig() *Config {
 		if _, err := os.Stat(mdbPath); !os.IsNotExist(err) {
 			c.Ui.Error(fmt.Sprintf("CRITICAL: Deprecated data folder found at %q!", mdbPath))
 			c.Ui.Error("Consul will refuse to boot with this directory present.")
-			c.Ui.Error("See https://consul.io/docs/upgrade-specific.html for more information.")
+			c.Ui.Error("See https://www.consul.io/docs/upgrade-specific.html for more information.")
 			return nil
 		}
 	}

@@ -35,7 +35,7 @@ See the [Atlas integration guide](/docs/guides/atlas.html) for more details.
 
 ## Q: Does Consul rely on UDP Broadcast or Multicast?
 
-Consul uses the [Serf](https://serfdom.io) gossip protocol which relies on
+Consul uses the [Serf](https://www.serfdom.io) gossip protocol which relies on
 TCP and UDP unicast. Broadcast and Multicast are rarely available in a multi-tenant
 or cloud network environment. For that reason, Consul and Serf were both
 designed to avoid any dependence on those capabilities.
