@@ -62,7 +62,7 @@
           <p>The default agent token does not
           have the appropriate permissions to perform the expected action.</p>
           {{/if}}
-          <p>Learn more in the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation</a>.</p>
+          <p>Learn more in the <a href="https://www.consul.io/docs/internals/acl.html">ACL documentation</a>.</p>
         </div>
       </div>
     </div>
@@ -74,7 +74,7 @@
         <div class="text-center vertical-center">
           <p class="bold">ACLs Disabled</p>
           <p>ACLs are disabled in this Consul cluster. This is the default behavior, as you have to explicitly enable them.</p>
-          </p>Learn more in the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation</a>.</p>
+          </p>Learn more in the <a href="https://www.consul.io/docs/internals/acl.html">ACL documentation</a>.</p>
         </div>
       </div>
     </div>
@@ -645,7 +645,7 @@
                     <div class="form-group">
                       <label>Rules</label>
                       {{ textarea value=newAcl.Rules class="form-control" }}
-                      <span class="help-block">For more information on rules, visit the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation.</a></span>
+                      <span class="help-block">For more information on rules, visit the <a href="https://www.consul.io/docs/internals/acl.html">ACL documentation.</a></span>
                     </div>
 
                     <button {{ action "createAcl"}} {{ bind-attr class=":btn :btn-success" }}>Create</button>
@@ -691,7 +691,7 @@
                 <div class="form-group">
                   <label>Rules</label>
                   {{ textarea value=model.Rules class="form-control" }}
-                  <span class="help-block">For more information on rules, visit the <a href="http://www.consul.io/docs/internals/acl.html">ACL documentation.</a></span>
+                  <span class="help-block">For more information on rules, visit the <a href="https://www.consul.io/docs/internals/acl.html">ACL documentation.</a></span>
                 </div>
 
                 <button {{ action "updateAcl"}} {{ bind-attr class=":btn :btn-success" }}>Update</button>
