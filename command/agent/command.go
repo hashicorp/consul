@@ -674,7 +674,7 @@ func (c *Command) Run(args []string) int {
 					}
 				}
 			}()
-			go reap.ReapChildren(pids, errors, c.agent.shutdownCh)
+			go reap.ReapChildren(pids, errors, c.agent.shutdownCh, &c.agent.reapLock)
 		}
 	}
 
@@ -709,7 +709,7 @@ func (c *Command) Run(args []string) int {
 	// Register the watches
 	for _, wp := range config.WatchPlans {
 		go func(wp *watch.WatchPlan) {
-			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"])
+			wp.Handler = makeWatchHandler(logOutput, wp.Exempt["handler"], &c.agent.reapLock)
 			wp.LogOutput = c.logOutput
 			if err := wp.Run(httpAddr.String()); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
@@ -896,7 +896,7 @@ func (c *Command) handleReload(config *Config) *Config {
 	// Register the new watches
 	for _, wp := range newConf.WatchPlans {
 		go func(wp *watch.WatchPlan) {
-			wp.Handler = makeWatchHandler(c.logOutput, wp.Exempt["handler"])
+			wp.Handler = makeWatchHandler(c.logOutput, wp.Exempt["handler"], &c.agent.reapLock)
 			wp.LogOutput = c.logOutput
 			if err := wp.Run(httpAddr.String()); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error running watch: %v", err))
