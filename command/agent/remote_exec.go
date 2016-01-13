@@ -135,6 +135,12 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 		return
 	}
 
+	// Disable child process reaping so that we can get this command's
+	// return value. Note that we take the read lock here since we are
+	// waiting on a specific PID and don't need to serialize all waits.
+	a.reapLock.RLock()
+	defer a.reapLock.RUnlock()
+
 	// Ensure we write out an exit code
 	exitCode := 0
 	defer a.remoteExecWriteExitCode(&event, &exitCode)

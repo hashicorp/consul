@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"os/exec"
+	"sync"
 	"testing"
 	"time"
 
@@ -42,6 +43,7 @@ func expectStatus(t *testing.T, script, status string) {
 		Script:   script,
 		Interval: 10 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
+		ReapLock: &sync.RWMutex{},
 	}
 	check.Start()
 	defer check.Stop()
@@ -90,6 +92,7 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 		Script:   "exit 0",
 		Interval: 25 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
+		ReapLock: &sync.RWMutex{},
 	}
 	check.Start()
 	defer check.Stop()
@@ -118,6 +121,7 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 		Script:   "od -N 81920 /dev/urandom",
 		Interval: 25 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
+		ReapLock: &sync.RWMutex{},
 	}
 	check.Start()
 	defer check.Stop()

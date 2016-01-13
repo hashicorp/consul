@@ -101,6 +101,7 @@ type CheckMonitor struct {
 	Script   string
 	Interval time.Duration
 	Logger   *log.Logger
+	ReapLock *sync.RWMutex
 
 	stop     bool
 	stopCh   chan struct{}
@@ -146,6 +147,12 @@ func (c *CheckMonitor) run() {
 
 // check is invoked periodically to perform the script check
 func (c *CheckMonitor) check() {
+	// Disable child process reaping so that we can get this command's
+	// return value. Note that we take the read lock here since we are
+	// waiting on a specific PID and don't need to serialize all waits.
+	c.ReapLock.RLock()
+	defer c.ReapLock.RUnlock()
+
 	// Create the command
 	cmd, err := ExecScript(c.Script)
 	if err != nil {

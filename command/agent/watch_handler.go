@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"sync"
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/watch"
@@ -33,10 +34,16 @@ func verifyWatchHandler(params interface{}) error {
 }
 
 // makeWatchHandler returns a handler for the given watch
-func makeWatchHandler(logOutput io.Writer, params interface{}) watch.HandlerFunc {
+func makeWatchHandler(logOutput io.Writer, params interface{}, reapLock *sync.RWMutex) watch.HandlerFunc {
 	script := params.(string)
 	logger := log.New(logOutput, "", log.LstdFlags)
 	fn := func(idx uint64, data interface{}) {
+		// Disable child process reaping so that we can get this command's
+		// return value. Note that we take the read lock here since we are
+		// waiting on a specific PID and don't need to serialize all waits.
+		reapLock.RLock()
+		defer reapLock.RUnlock()
+
 		// Create the command
 		cmd, err := ExecScript(script)
 		if err != nil {

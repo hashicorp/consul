@@ -110,6 +110,14 @@ type Agent struct {
 	// agent methods use this, so use with care and never override
 	// outside of a unit test.
 	endpoints map[string]string
+
+	// reapLock is used to prevent child process reaping from interfering
+	// with normal waiting for subprocesses to complete. Any time you exec
+	// and wait, you should take a read lock on this mutex. Only the reaper
+	// takes the write lock. This setup prevents us from serializing all the
+	// child process management with each other, it just serializes them
+	// with the child process reaper.
+	reapLock sync.RWMutex
 }
 
 // Create is used to create a new Agent. Returns
@@ -949,6 +957,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 				Script:   chkType.Script,
 				Interval: chkType.Interval,
 				Logger:   a.logger,
+				ReapLock: &a.reapLock,
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor
