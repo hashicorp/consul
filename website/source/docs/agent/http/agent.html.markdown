@@ -291,7 +291,7 @@ This endpoint supports [ACL tokens](/docs/internals/acl.html). If the query
 string includes a `?token=<token-id>`, the registration will use the provided
 token to authorize the request. The token is also persisted in the agent's
 local configuration to enable periodic
-[anti-entropy](/docs/internal/anti-entropy.html) syncs and seamless agent
+[anti-entropy](/docs/internals/anti-entropy.html) syncs and seamless agent
 restarts.
 
 The return code is 200 on success.
@@ -382,7 +382,7 @@ This endpoint supports [ACL tokens](/docs/internals/acl.html). If the query
 string includes a `?token=<token-id>`, the registration will use the provided
 token to authorize the request. The token is also persisted in the agent's
 local configuration to enable periodic
-[anti-entropy](/docs/internal/anti-entropy.html) syncs and seamless agent
+[anti-entropy](/docs/internals/anti-entropy.html) syncs and seamless agent
 restarts.
 
 The return code is 200 on success.
