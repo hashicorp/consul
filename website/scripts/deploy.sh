@@ -60,7 +60,7 @@ if [ -z "$NO_UPLOAD" ]; then
     --recursive \
     --add-header="Cache-Control: max-age=31536000" \
     --add-header="x-amz-meta-surrogate-key: site-$PROJECT" \
-    put "$DIR/build/" "s3://hc-sites/$PROJECT/latest/"
+    sync "$DIR/build/" "s3://hc-sites/$PROJECT/latest/"
 fi
 
 # Perform a soft-purge of the surrogate key.
