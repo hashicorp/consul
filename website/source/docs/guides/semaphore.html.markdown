@@ -28,7 +28,7 @@ reading.  Actual values returned from the API will not be formatted.
 
 Let's imagine we have a set of nodes who are attempting to acquire a slot in the
 semaphore. All nodes that are participating should agree on three decisions: the
-prefix in the Key/Value store used to coordinate, a single key to use as a lock, 
+prefix in the Key/Value store used to coordinate, a single key to use as a lock,
 and a limit on the number of slot holders.
 
 For the prefix we will be using for coordination, a good pattern is simply:
@@ -73,7 +73,7 @@ The `<session>` value is the ID returned by the call to
 to Consul but can be useful for human operators.
 
 The call will either return `true` or `false`. If `true`, the contender entry has been
-created. If `false`, the contender node was not created; it'slikely that this indicates
+created. If `false`, the contender node was not created; it's likely that this indicates
 a session invalidation.
 
 The next step is to use a single key to coordinate which holders are currently
