@@ -1,0 +1,150 @@
+{
+	"ImportPath": "github.com/hashicorp/consul",
+	"GoVersion": "go1.5",
+	"Deps": [
+		{
+			"ImportPath": "github.com/DataDog/datadog-go/statsd",
+			"Rev": "b050cd8f4d7c394545fd7d966c8e2909ce89d552"
+		},
+		{
+			"ImportPath": "github.com/armon/circbuf",
+			"Rev": "bbbad097214e2918d8543d5201d12bfd7bca254d"
+		},
+		{
+			"ImportPath": "github.com/armon/go-metrics",
+			"Rev": "345426c77237ece5dab0e1605c3e4b35c3f54757"
+		},
+		{
+			"ImportPath": "github.com/armon/go-radix",
+			"Rev": "fbd82e84e2b13651f3abc5ffd26b65ba71bc8f93"
+		},
+		{
+			"ImportPath": "github.com/bgentry/speakeasy",
+			"Rev": "36e9cfdd690967f4f690c6edcc9ffacd006014a0"
+		},
+		{
+			"ImportPath": "github.com/boltdb/bolt",
+			"Comment": "v1.1.0-40-g34a0fa5",
+			"Rev": "34a0fa5307f7562980fb8e7ff4723f7987edf49b"
+		},
+		{
+			"ImportPath": "github.com/elazarl/go-bindata-assetfs",
+			"Rev": "57eb5e1fc594ad4b0b1dbea7b286d299e0cb43c2"
+		},
+		{
+			"ImportPath": "github.com/fsouza/go-dockerclient",
+			"Rev": "299d728486342c894e7fafd68e3a4b89623bef1d"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/errwrap",
+			"Rev": "7554cd9344cec97297fa6649b055a8c98c2a1e55"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-checkpoint",
+			"Rev": "e4b2dc34c0f698ee04750bf2035d8b9384233e1b"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-cleanhttp",
+			"Rev": "ce617e79981a8fff618bb643d155133a8f38db96"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-immutable-radix",
+			"Rev": "12e90058b2897552deea141eff51bb7a07a09e63"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-memdb",
+			"Rev": "31949d523ade8a236956c6f1761e9dcf902d1638"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-msgpack/codec",
+			"Rev": "fa3f63826f7c23912c15263591e65d54d080b458"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-multierror",
+			"Rev": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-reap",
+			"Rev": "e300e334a8de28a7931fc05331345f9e985128de"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-syslog",
+			"Rev": "42a2b573b664dbf281bd48c3cc12c086b17a39ba"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/golang-lru",
+			"Rev": "5c7531c003d8bf158b0fe5063649a2f41a822146"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl",
+			"Rev": "197e8d3cf42199cfd53cd775deb37f3637234635"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/logutils",
+			"Rev": "0dc08b1671f34c4250ce212759ebd880f743d883"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/memberlist",
+			"Rev": "9888dc523910e5d22c5be4f6e34520943df21809"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/net-rpc-msgpackrpc",
+			"Rev": "a14192a58a694c123d8fe5481d4a4727d6ae82f3"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/raft",
+			"Rev": "d136cd15dfb7876fd7c89cad1995bc4f19ceb294"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/raft-boltdb",
+			"Rev": "d1e82c1ec3f15ee991f7cc7ffd5b67ff6f5bbaee"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/scada-client",
+			"Rev": "84989fd23ad4cc0e7ad44d6a871fd793eb9beb0a"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/serf/coordinate",
+			"Comment": "v0.7.0-1-g39c7c06",
+			"Rev": "39c7c06298b480560202bec00c2c77e974e88792"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/serf/serf",
+			"Comment": "v0.7.0-1-g39c7c06",
+			"Rev": "39c7c06298b480560202bec00c2c77e974e88792"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/yamux",
+			"Rev": "df949784da9ed028ee76df44652e42d37a09d7e4"
+		},
+		{
+			"ImportPath": "github.com/inconshreveable/muxado",
+			"Rev": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-isatty",
+			"Rev": "56b76bdf51f7708750eac80fa38b952bb9f32639"
+		},
+		{
+			"ImportPath": "github.com/miekg/dns",
+			"Rev": "1756430e42a7b2ecded216a9fdd37d002c116df5"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/cli",
+			"Rev": "43a4bc367e0d53f561d3d985b9dca84e15bd0554"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/mapstructure",
+			"Rev": "281073eb9eb092240d33ef253c404f1cca550309"
+		},
+		{
+			"ImportPath": "github.com/ryanuber/columnize",
+			"Comment": "v2.0.1-8-g983d3a5",
+			"Rev": "983d3a5fab1bf04d1b412465d2d9f8430e2e917e"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "833a04a10549a95dc34458c195cbad61bbb6cb4d"
+		}
+	]
+}
