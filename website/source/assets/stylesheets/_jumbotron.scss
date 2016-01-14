@@ -28,13 +28,6 @@
   -webkit-backface-visibility:hidden;
   @include consul-gradient-bg();
 
-  &.mobile-hero{
-    background:  transparent image-url('node-hero-pattern.jpg') center center;
-    background-size: 320px 320px;
-    background: -webkit-image-set( image-url('node-hero-pattern.jpg') 1x, image-url('node-hero-pattern$2x.jpg') 2x );
-  }
-
-
   .jumbotron-dots{
     position: absolute;
     top: 0;
