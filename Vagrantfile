@@ -57,6 +57,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   end
 
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 2048
+    v.cpus = 2
+  end
+
   config.vm.define '64bit' do |n1|
     n1.vm.box = 'hashicorp/precise64'
   end
