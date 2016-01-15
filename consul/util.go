@@ -20,8 +20,10 @@ import (
  * Contains an entry for each private block:
  * 10.0.0.0/8
  * 100.64.0.0/10
+ * 127.0.0.0/8
+ * 169.254.0.0/16
  * 172.16.0.0/12
- * 192.168/16
+ * 192.168.0.0/16
  */
 var privateBlocks []*net.IPNet
 
@@ -42,7 +44,7 @@ func (s *serverParts) String() string {
 
 func init() {
 	// Add each private block
-	privateBlocks = make([]*net.IPNet, 4)
+	privateBlocks = make([]*net.IPNet, 6)
 
 	_, block, err := net.ParseCIDR("10.0.0.0/8")
 	if err != nil {
@@ -50,23 +52,35 @@ func init() {
 	}
 	privateBlocks[0] = block
 
-	_, block, err = net.ParseCIDR("172.16.0.0/12")
+	_, block, err = net.ParseCIDR("100.64.0.0/10")
 	if err != nil {
 		panic(fmt.Sprintf("Bad cidr. Got %v", err))
 	}
 	privateBlocks[1] = block
 
-	_, block, err = net.ParseCIDR("192.168.0.0/16")
+	_, block, err = net.ParseCIDR("127.0.0.0/8")
 	if err != nil {
 		panic(fmt.Sprintf("Bad cidr. Got %v", err))
 	}
 	privateBlocks[2] = block
 
-	_, block, err = net.ParseCIDR("100.64.0.0/10")
+	_, block, err = net.ParseCIDR("169.254.0.0/16")
 	if err != nil {
 		panic(fmt.Sprintf("Bad cidr. Got %v", err))
 	}
 	privateBlocks[3] = block
+
+	_, block, err = net.ParseCIDR("172.16.0.0/12")
+	if err != nil {
+		panic(fmt.Sprintf("Bad cidr. Got %v", err))
+	}
+	privateBlocks[4] = block
+
+	_, block, err = net.ParseCIDR("192.168.0.0/16")
+	if err != nil {
+		panic(fmt.Sprintf("Bad cidr. Got %v", err))
+	}
+	privateBlocks[5] = block
 }
 
 // strContains checks if a list contains a string
@@ -190,10 +204,46 @@ func isPrivateIP(ip_str string) bool {
 	return false
 }
 
+// Returns addresses from interfaces that is up
+func activeInterfaceAddresses() ([]net.Addr, error) {
+	var upAddrs []net.Addr
+	var loAddrs []net.Addr
+
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get interfaces: %v", err)
+	}
+
+	for _, iface := range interfaces {
+		// Require interface to be up
+		if iface.Flags&net.FlagUp == 0 {
+			continue
+		}
+
+		addresses, err := iface.Addrs()
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get interface addresses: %v", err)
+		}
+
+		if iface.Flags&net.FlagLoopback != 0 {
+			loAddrs = append(loAddrs, addresses...)
+			continue
+		}
+
+		upAddrs = append(upAddrs, addresses...)
+	}
+
+	if len(upAddrs) == 0 {
+		return loAddrs, nil
+	}
+
+	return upAddrs, nil
+}
+
 // GetPrivateIP is used to return the first private IP address
 // associated with an interface on the machine
 func GetPrivateIP() (net.IP, error) {
-	addresses, err := net.InterfaceAddrs()
+	addresses, err := activeInterfaceAddresses()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get interface addresses: %v", err)
 	}

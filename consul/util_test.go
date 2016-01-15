@@ -114,7 +114,7 @@ func TestIsPrivateIP(t *testing.T) {
 	if isPrivateIP("8.8.8.8") {
 		t.Fatalf("bad")
 	}
-	if isPrivateIP("127.0.0.1") {
+	if !isPrivateIP("127.0.0.1") {
 		t.Fatalf("bad")
 	}
 }
