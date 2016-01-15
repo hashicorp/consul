@@ -56,7 +56,7 @@ development configuration.
 
 `make dist`
 
-The `dist` folder will contain the files you should use for deployment.
+The `../pkg/web_ui` folder will contain the files you should use for deployment.
 
 ###Acknowledgements
 cog icon by useiconic.com from the [Noun Project](https://thenounproject.com/term/setting/45865/)
@@ -67,7 +67,7 @@ The UI is compiled and shipped with the Consul go binary. The generated bindata
 file lives in the `command/agent/bindata_assetfs.go` file and is checked into
 source control. This is useful so that not every Consul developer needs to set
 up bundler etc. To re-generate the file, first follow the compilation steps
-above to build the UI assets into the `dist/` folder. With that done, from the
+above to build the UI assets into the `pkg/web_ui` folder. With that done, from the
 root of the Consul repo, run:
 
 ```
