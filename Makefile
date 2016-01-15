@@ -72,7 +72,7 @@ generate: deps
 # generates the static web ui
 static-assets: deps
 	@echo "--> Generating static assets"
-	@go-bindata-assetfs -pkg agent -prefix ui ./ui/dist/...
+	@go-bindata-assetfs -pkg agent -prefix pkg ./pkg/web_ui/...
 	@mv bindata_assetfs.go command/agent
 	$(MAKE) format
 
