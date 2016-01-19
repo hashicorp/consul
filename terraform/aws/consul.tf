@@ -16,14 +16,10 @@ resource "aws_instance" "server" {
     }
 
     provisioner "file" {
-        source = "${path.module}/scripts/${var.platform}/upstart.conf"
-        destination = "/tmp/upstart.conf"
+        source = "${path.module}/scripts/${lookup(var.service_conf, var.platform)}"
+        destination = "/tmp/${lookup(var.service_conf_dest, var.platform)}"
     }
 
-    provisioner "file" {
-        source = "${path.module}/scripts/${var.platform}/upstart-join.conf"
-        destination = "/tmp/upstart-join.conf"
-    }
 
     provisioner "remote-exec" {
         inline = [
@@ -34,15 +30,15 @@ resource "aws_instance" "server" {
 
     provisioner "remote-exec" {
         scripts = [
-            "${path.module}/scripts/${var.platform}/install.sh",
-            "${path.module}/scripts/${var.platform}/server.sh",
-            "${path.module}/scripts/${var.platform}/service.sh",
+            "${path.module}/scripts/install.sh",
+            "${path.module}/scripts/service.sh",
+            "${path.module}/scripts/ip_tables.sh",
         ]
     }
 }
 
 resource "aws_security_group" "consul" {
-    name = "consul"
+    name = "consul_${var.platform}"
     description = "Consul internal traffic + maintenance."
 
     // These are for internal traffic
