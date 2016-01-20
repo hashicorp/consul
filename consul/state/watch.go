@@ -80,9 +80,29 @@ func (d *DumbWatchManager) Notify() {
 	}
 }
 
-// PrefixWatch maintains a notify group for each prefix, allowing for much more
-// fine-grained watches.
+// PrefixWatch provides a Watch-compatible interface for a PrefixWatchManager,
+// bound to a specific prefix.
 type PrefixWatch struct {
+	// manager is the underlying watch manager.
+	manager *PrefixWatchManager
+
+	// prefix is the prefix we are watching.
+	prefix string
+}
+
+// Wait registers the given channel with the notify group for our prefix.
+func (w *PrefixWatch) Wait(notifyCh chan struct{}) {
+	w.manager.Wait(w.prefix, notifyCh)
+}
+
+// Clear deregisters the given channel from the the notify group for our prefix.
+func (w *PrefixWatch) Clear(notifyCh chan struct{}) {
+	w.manager.Clear(w.prefix, notifyCh)
+}
+
+// PrefixWatchManager maintains a notify group for each prefix, allowing for
+// much more fine-grained watches.
+type PrefixWatchManager struct {
 	// watches has the set of notify groups, organized by prefix.
 	watches *radix.Tree
 
@@ -90,37 +110,59 @@ type PrefixWatch struct {
 	lock sync.Mutex
 }
 
-// NewPrefixWatch returns a new prefix watch.
-func NewPrefixWatch() *PrefixWatch {
-	return &PrefixWatch{
+// NewPrefixWatchManager returns a new prefix watch manager.
+func NewPrefixWatchManager() *PrefixWatchManager {
+	return &PrefixWatchManager{
 		watches: radix.New(),
 	}
 }
 
-// GetSubwatch returns the notify group for the given prefix.
-func (w *PrefixWatch) GetSubwatch(prefix string) *NotifyGroup {
+// NewPrefixWatch returns a Watch-compatible interface for watching the given
+// prefix.
+func (w *PrefixWatchManager) NewPrefixWatch(prefix string) Watch {
+	return &PrefixWatch{
+		manager: w,
+		prefix:  prefix,
+	}
+}
+
+// Wait registers the given channel on a prefix.
+func (w *PrefixWatchManager) Wait(prefix string, notifyCh chan struct{}) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	var group *NotifyGroup
+	if raw, ok := w.watches.Get(prefix); ok {
+		group = raw.(*NotifyGroup)
+	} else {
+		group = &NotifyGroup{}
+		w.watches.Insert(prefix, group)
+	}
+	group.Wait(notifyCh)
+}
+
+// Clear deregisters the given channel from the notify group for a prefix (if
+// one exists).
+func (w *PrefixWatchManager) Clear(prefix string, notifyCh chan struct{}) {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 
 	if raw, ok := w.watches.Get(prefix); ok {
-		return raw.(*NotifyGroup)
+		group := raw.(*NotifyGroup)
+		group.Clear(notifyCh)
 	}
-
-	group := &NotifyGroup{}
-	w.watches.Insert(prefix, group)
-	return group
 }
 
 // Notify wakes up all the watchers associated with the given prefix. If subtree
 // is true then we will also notify all the tree under the prefix, such as when
 // a key is being deleted.
-func (w *PrefixWatch) Notify(prefix string, subtree bool) {
+func (w *PrefixWatchManager) Notify(prefix string, subtree bool) {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 
 	var cleanup []string
-	fn := func(k string, v interface{}) bool {
-		group := v.(*NotifyGroup)
+	fn := func(k string, raw interface{}) bool {
+		group := raw.(*NotifyGroup)
 		group.Notify()
 		if k != "" {
 			cleanup = append(cleanup, k)

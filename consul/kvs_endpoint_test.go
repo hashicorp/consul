@@ -687,6 +687,135 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 	}
 }
 
+func TestKVS_Issue_1626(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Set up the first key.
+	{
+		arg := structs.KVSRequest{
+			Datacenter: "dc1",
+			Op:         structs.KVSSet,
+			DirEnt: structs.DirEntry{
+				Key:   "foo/test",
+				Value: []byte("test"),
+			},
+		}
+		var out bool
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Retrieve the base key and snag the index.
+	var index uint64
+	{
+		getR := structs.KeyRequest{
+			Datacenter: "dc1",
+			Key:        "foo/test",
+		}
+		var dirent structs.IndexedDirEntries
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if dirent.Index == 0 {
+			t.Fatalf("Bad: %v", dirent)
+		}
+		if len(dirent.Entries) != 1 {
+			t.Fatalf("Bad: %v", dirent)
+		}
+		d := dirent.Entries[0]
+		if string(d.Value) != "test" {
+			t.Fatalf("bad: %v", d)
+		}
+
+		index = dirent.Index
+	}
+
+	// Set up a blocking query on the base key.
+	doneCh := make(chan *structs.IndexedDirEntries, 1)
+	go func() {
+		codec := rpcClient(t, s1)
+		defer codec.Close()
+
+		getR := structs.KeyRequest{
+			Datacenter: "dc1",
+			Key:        "foo/test",
+			QueryOptions: structs.QueryOptions{
+				MinQueryIndex: index,
+				MaxQueryTime:  3 * time.Second,
+			},
+		}
+		var dirent structs.IndexedDirEntries
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		doneCh <- &dirent
+	}()
+
+	// Now update a second key with a prefix that has the first key name
+	// as part of it.
+	{
+		arg := structs.KVSRequest{
+			Datacenter: "dc1",
+			Op:         structs.KVSSet,
+			DirEnt: structs.DirEntry{
+				Key:   "foo/test2",
+				Value: []byte("test"),
+			},
+		}
+		var out bool
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Make sure the blocking query didn't wake up for this update.
+	select {
+	case <-doneCh:
+		t.Fatalf("Blocking query should not have completed")
+	case <-time.After(1 * time.Second):
+	}
+
+	// Now update the first key's payload.
+	{
+		arg := structs.KVSRequest{
+			Datacenter: "dc1",
+			Op:         structs.KVSSet,
+			DirEnt: structs.DirEntry{
+				Key:   "foo/test",
+				Value: []byte("updated"),
+			},
+		}
+		var out bool
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Make sure the blocking query wakes up for the final update.
+	select {
+	case dirent := <-doneCh:
+		if dirent.Index <= index {
+			t.Fatalf("Bad: %v", dirent)
+		}
+		if len(dirent.Entries) != 1 {
+			t.Fatalf("Bad: %v", dirent)
+		}
+		d := dirent.Entries[0]
+		if string(d.Value) != "updated" {
+			t.Fatalf("bad: %v", d)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("Blocking query should have completed")
+	}
+}
+
 var testListRules = `
 key "" {
 	policy = "deny"

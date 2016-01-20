@@ -1,6 +1,8 @@
 package state
 
 import (
+	"sort"
+	"strings"
 	"testing"
 )
 
@@ -163,14 +165,106 @@ func TestWatch_DumbWatchManager(t *testing.T) {
 	}()
 }
 
+func verifyWatches(t *testing.T, w *PrefixWatchManager, expected string) {
+	var found []string
+	fn := func(k string, v interface{}) bool {
+		if k == "" {
+			k = "(full)"
+		}
+		found = append(found, k)
+		return false
+	}
+	w.watches.WalkPrefix("", fn)
+
+	sort.Strings(found)
+	actual := strings.Join(found, "|")
+	if expected != actual {
+		t.Fatalf("bad: %s != %s", expected, actual)
+	}
+}
+
+func TestWatch_PrefixWatchManager(t *testing.T) {
+	w := NewPrefixWatchManager()
+	verifyWatches(t, w, "")
+
+	// This will create the watch group.
+	ch1 := make(chan struct{}, 1)
+	w.Wait("hello", ch1)
+	verifyWatches(t, w, "hello")
+
+	// This will add to the existing one.
+	ch2 := make(chan struct{}, 1)
+	w.Wait("hello", ch2)
+	verifyWatches(t, w, "hello")
+
+	// This will add to the existing as well.
+	ch3 := make(chan struct{}, 1)
+	w.Wait("hello", ch3)
+	verifyWatches(t, w, "hello")
+
+	// Remove one of the watches.
+	w.Clear("hello", ch2)
+	verifyWatches(t, w, "hello")
+
+	// Do "clear" for one that was never added.
+	ch4 := make(chan struct{}, 1)
+	w.Clear("hello", ch4)
+	verifyWatches(t, w, "hello")
+
+	// Add a full table watch.
+	full := make(chan struct{}, 1)
+	w.Wait("", full)
+	verifyWatches(t, w, "(full)|hello")
+
+	// Add another channel for a different prefix.
+	nope := make(chan struct{}, 1)
+	w.Wait("nope", nope)
+	verifyWatches(t, w, "(full)|hello|nope")
+
+	// Fire off the notification and make sure channels were pinged (or not)
+	// as expected.
+	w.Notify("hello", false)
+	verifyWatches(t, w, "(full)|nope")
+	select {
+	case <-ch1:
+	default:
+		t.Fatalf("ch1 should have been notified")
+	}
+	select {
+	case <-ch2:
+		t.Fatalf("ch2 should not have been notified")
+	default:
+	}
+	select {
+	case <-ch3:
+	default:
+		t.Fatalf("ch3 should have been notified")
+	}
+	select {
+	case <-ch4:
+		t.Fatalf("ch4 should not have been notified")
+	default:
+	}
+	select {
+	case <-nope:
+		t.Fatalf("nope should not have been notified")
+	default:
+	}
+	select {
+	case <-full:
+	default:
+		t.Fatalf("full should have been notified")
+	}
+}
+
 func TestWatch_PrefixWatch(t *testing.T) {
-	w := NewPrefixWatch()
+	w := NewPrefixWatchManager()
 
 	// Hit a specific key.
-	verifyWatch(t, w.GetSubwatch(""), func() {
-		verifyWatch(t, w.GetSubwatch("foo/bar/baz"), func() {
-			verifyNoWatch(t, w.GetSubwatch("foo/bar/zoo"), func() {
-				verifyNoWatch(t, w.GetSubwatch("nope"), func() {
+	verifyWatch(t, w.NewPrefixWatch(""), func() {
+		verifyWatch(t, w.NewPrefixWatch("foo/bar/baz"), func() {
+			verifyNoWatch(t, w.NewPrefixWatch("foo/bar/zoo"), func() {
+				verifyNoWatch(t, w.NewPrefixWatch("nope"), func() {
 					w.Notify("foo/bar/baz", false)
 				})
 			})
@@ -179,35 +273,39 @@ func TestWatch_PrefixWatch(t *testing.T) {
 
 	// Make sure cleanup is happening. All that should be left is the
 	// full-table watch and the un-fired watches.
-	fn := func(k string, v interface{}) bool {
-		if k != "" && k != "foo/bar/zoo" && k != "nope" {
-			t.Fatalf("unexpected watch: %s", k)
-		}
-		return false
-	}
-	w.watches.WalkPrefix("", fn)
+	verifyWatches(t, w, "(full)|foo/bar/zoo|nope")
 
 	// Delete a subtree.
-	verifyWatch(t, w.GetSubwatch(""), func() {
-		verifyWatch(t, w.GetSubwatch("foo/bar/baz"), func() {
-			verifyWatch(t, w.GetSubwatch("foo/bar/zoo"), func() {
-				verifyNoWatch(t, w.GetSubwatch("nope"), func() {
+	verifyWatch(t, w.NewPrefixWatch(""), func() {
+		verifyWatch(t, w.NewPrefixWatch("foo/bar/baz"), func() {
+			verifyWatch(t, w.NewPrefixWatch("foo/bar/zoo"), func() {
+				verifyNoWatch(t, w.NewPrefixWatch("nope"), func() {
 					w.Notify("foo/", true)
 				})
 			})
 		})
 	})
+	verifyWatches(t, w, "(full)|nope")
 
 	// Hit an unknown key.
-	verifyWatch(t, w.GetSubwatch(""), func() {
-		verifyNoWatch(t, w.GetSubwatch("foo/bar/baz"), func() {
-			verifyNoWatch(t, w.GetSubwatch("foo/bar/zoo"), func() {
-				verifyNoWatch(t, w.GetSubwatch("nope"), func() {
+	verifyWatch(t, w.NewPrefixWatch(""), func() {
+		verifyNoWatch(t, w.NewPrefixWatch("foo/bar/baz"), func() {
+			verifyNoWatch(t, w.NewPrefixWatch("foo/bar/zoo"), func() {
+				verifyNoWatch(t, w.NewPrefixWatch("nope"), func() {
 					w.Notify("not/in/there", false)
 				})
 			})
 		})
 	})
+	verifyWatches(t, w, "(full)|foo/bar/baz|foo/bar/zoo|nope")
+
+	// Make sure a watch can be reused.
+	watch := w.NewPrefixWatch("over/and/over")
+	for i := 0; i < 10; i++ {
+		verifyWatch(t, watch, func() {
+			w.Notify("over/and/over", false)
+		})
+	}
 }
 
 type MockWatch struct {
