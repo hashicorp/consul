@@ -15,7 +15,7 @@ service. If not associated with a service, the check monitors the health of the 
 A check is defined in a configuration file or added at runtime over the HTTP interface.  Checks
 created via the HTTP interface persist with that node.
 
-There are four different kinds of checks:
+There are five different kinds of checks:
 
 * Script + Interval - These checks depend on invoking an external application
   that performs the health check, exits with an appropriate exit code, and potentially
