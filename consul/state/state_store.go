@@ -45,7 +45,7 @@ type StateStore struct {
 	tableWatches map[string]*FullTableWatch
 
 	// kvsWatch holds the special prefix watch for the key value store.
-	kvsWatch *PrefixWatch
+	kvsWatch *PrefixWatchManager
 
 	// kvsGraveyard manages tombstones for the key value store.
 	kvsGraveyard *Graveyard
@@ -110,7 +110,7 @@ func NewStateStore(gc *TombstoneGC) (*StateStore, error) {
 		schema:       schema,
 		db:           db,
 		tableWatches: tableWatches,
-		kvsWatch:     NewPrefixWatch(),
+		kvsWatch:     NewPrefixWatchManager(),
 		kvsGraveyard: NewGraveyard(gc),
 		lockDelay:    NewDelay(),
 	}
@@ -448,7 +448,7 @@ func (s *StateStore) GetQueryWatch(method string) Watch {
 
 // GetKVSWatch returns a watch for the given prefix in the key value store.
 func (s *StateStore) GetKVSWatch(prefix string) Watch {
-	return s.kvsWatch.GetSubwatch(prefix)
+	return s.kvsWatch.NewPrefixWatch(prefix)
 }
 
 // EnsureRegistration is used to make sure a node, service, and check
