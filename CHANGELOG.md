@@ -4,6 +4,11 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* Updated the internal web ui (`-ui` option) to latest released build, fixing
+  and ACL-related issue and a broken settings icon [GH-1619]
+* Fixed an issue where blocking KV reads could miss updates and return stale data
+  when another key whose name is a prefix of the watched key was updated [GH-1632]
+
 ## 0.6.3 (January 15, 2016)
 
 BUG FIXES:
