@@ -38,7 +38,7 @@ fi
 
 # Build!
 echo "==> Building..."
-gox \
+$GOPATH/bin/gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
     -ldflags "-X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY} -X main.GitDescribe ${GIT_DESCRIBE}" \
