@@ -1,0 +1,15 @@
+<service>
+  <id>consul_wrapper</id>
+  <name>Consul</name>
+  <description>HashiCorp Consul is a tool for discovering and configuring services in your infrastructure. It provides Service Discovery, Health Checking, a Key/Value Store, and is Multi Datacenter aware.</description>
+  <executable>%BASE%\consul.exe</executable>
+  <arguments>agent -data-dir "%BASE%\data" -config-dir "%BASE%\consul.d"</arguments>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+  <logpath>%BASE%\logs</logpath>
+  <onfailure action="restart" delay="5 sec"/>
+  <onfailure action="restart" delay="5 sec"/>
+  <onfailure action="none" delay="5 sec"/>
+</service>
