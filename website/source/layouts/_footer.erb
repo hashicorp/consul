@@ -4,7 +4,7 @@
       <div class="col-xs-12">
         <% if current_page.url != '/' %>
           <div class="edit-page-link"><a href="<%= github_url :current_page %>">Edit this page</a></div>
-        <% end %>        
+        <% end %>
         <div>
           <ul class="main-links white nav navbar-nav">
             <li><a href="/intro/index.html">Intro</a></li>
@@ -74,6 +74,21 @@ window.onload = function(){
 
 <script>
 	APP.initialize();
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "Product",
+  "name": "Consul",
+  "alternateName": "Consul by HashiCorp",
+  "manufacturer": "HashiCorp",
+  "url": "https://www.consul.io",
+  "logo": "<%= File.join(base_url, image_path("logo_large.png")) %>",
+  "sameAs": [
+    "https://github.com/hashicorp/consul"
+  ]
+}
 </script>
 
 </body>
