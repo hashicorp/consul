@@ -57,12 +57,11 @@ Watch Specification:
 }
 
 func (c *WatchCommand) Run(args []string) int {
-	var watchType, datacenter, token, key, prefix, service, tag, passingOnly, state, name string
+	var watchType, datacenter, key, prefix, service, tag, passingOnly, state, name string
 	cmdFlags := flag.NewFlagSet("watch", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 	cmdFlags.StringVar(&watchType, "type", "", "")
 	cmdFlags.StringVar(&datacenter, "datacenter", "", "")
-	cmdFlags.StringVar(&token, "token", "", "")
 	cmdFlags.StringVar(&key, "key", "", "")
 	cmdFlags.StringVar(&prefix, "prefix", "", "")
 	cmdFlags.StringVar(&service, "service", "", "")
@@ -70,6 +69,7 @@ func (c *WatchCommand) Run(args []string) int {
 	cmdFlags.StringVar(&passingOnly, "passingonly", "", "")
 	cmdFlags.StringVar(&state, "state", "", "")
 	cmdFlags.StringVar(&name, "name", "", "")
+	token := TokenFlag(cmdFlags)
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -94,8 +94,8 @@ func (c *WatchCommand) Run(args []string) int {
 	if datacenter != "" {
 		params["datacenter"] = datacenter
 	}
-	if token != "" {
-		params["token"] = token
+	if *token != "" {
+		params["token"] = *token
 	}
 	if key != "" {
 		params["key"] = key
