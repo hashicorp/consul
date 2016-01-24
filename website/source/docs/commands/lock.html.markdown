@@ -58,7 +58,8 @@ The list of available flags are:
 * `-name` - Optional name to associate with the underlying session.
   If not provided, one is generated based on the child command.
 
-* `-token` - ACL token to use. Defaults to that of agent.
+* `-token` - ACL token to use. You can also place the desired value in `CONSUL_TOKEN`
+  environment variable. Defaults to that of the agent.
 
 * `-pass-stdin` - Pass stdin to child process.
 

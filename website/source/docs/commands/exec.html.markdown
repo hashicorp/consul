@@ -64,4 +64,5 @@ The list of available flags are:
 
 * `-token` - The ACL token to use during requests. This token must have access
   to the prefix in the KV store as well as exec "write" access for the _rexec
-  event. Defaults to that of the agent.
+  event. You can also place the desired value in `CONSUL_TOKEN` environment variable.
+  Defaults to that of the agent.

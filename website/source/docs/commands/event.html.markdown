@@ -57,4 +57,5 @@ The list of available flags are:
   do "-service mysql -tag slave".
 
 * `-token` - The ACL token to use when firing the event. This token must have
-  write-level privileges for the event specified. Defaults to that of the agent.
+  write-level privileges for the event specified. You can also place the desired
+  value in `CONSUL_TOKEN` environment variable.  Defaults to that of the agent.
