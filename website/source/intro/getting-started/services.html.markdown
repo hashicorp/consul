@@ -2,8 +2,11 @@
 layout: "intro"
 page_title: "Registering Services"
 sidebar_current: "gettingstarted-services"
-description: |-
-  In the previous step, we ran our first agent, saw the cluster members (well, our cluster member), and queried that node. Now, we'll register our first service and query that service.
+description: >
+  A service can be registered either by providing a service definition or by
+  making the appropriate calls to the HTTP API. A configuration file is the
+  most common, so we will use this approach to register a service, and then
+  query that service using the REST API and DNS interfaces.
 ---
 
 # Registering Services
@@ -44,8 +47,7 @@ $ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80}}' \
 Now, restart the agent, providing the configuration directory:
 
 ```text
-$ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul \
-    -config-dir /etc/consul.d
+$ consul agent -dev -config-dir /etc/consul.d
 ==> Starting Consul agent...
 ...
     [INFO] agent: Synced service 'web'
@@ -53,7 +55,8 @@ $ consul agent -server -bootstrap-expect 1 -data-dir /tmp/consul \
 ```
 
 You'll notice in the output that it "synced" the web service. This means
-that it loaded the information from the configuration.
+that the agent loaded the service definition from the configuration file,
+and has successfully registered it in the service catalog.
 
 If you wanted to register multiple services, you could create multiple
 service definition files in the Consul configuration directory.
@@ -97,13 +100,13 @@ $ dig @127.0.0.1 -p 8600 web.service.consul SRV
 ...
 
 ;; QUESTION SECTION:
-;web.service.consul.	IN	SRV
+;web.service.consul.		IN	SRV
 
 ;; ANSWER SECTION:
-web.service.consul. 0	IN	SRV	1 1 80 agent-one.node.dc1.consul.
+web.service.consul.	0	IN	SRV	1 1 80 Armons-MacBook-Air.node.dc1.consul.
 
 ;; ADDITIONAL SECTION:
-agent-one.node.dc1.consul. 0	IN	A	172.20.20.11
+Armons-MacBook-Air.node.dc1.consul. 0 IN A	172.20.20.11
 ```
 
 The `SRV` record says that the web service is running on port 80 and exists on

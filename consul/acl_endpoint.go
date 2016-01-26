@@ -123,16 +123,20 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 	state := a.srv.fsm.State()
 	return a.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("ACLGet"),
+		state.GetQueryWatch("ACLGet"),
 		func() error {
 			index, acl, err := state.ACLGet(args.ACL)
+			if err != nil {
+				return err
+			}
+
 			reply.Index = index
 			if acl != nil {
 				reply.ACLs = structs.ACLs{acl}
 			} else {
 				reply.ACLs = nil
 			}
-			return err
+			return nil
 		})
 }
 
@@ -194,10 +198,14 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 	state := a.srv.fsm.State()
 	return a.srv.blockingRPC(&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("ACLList"),
+		state.GetQueryWatch("ACLList"),
 		func() error {
-			var err error
-			reply.Index, reply.ACLs, err = state.ACLList()
-			return err
+			index, acls, err := state.ACLList()
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.ACLs = index, acls
+			return nil
 		})
 }

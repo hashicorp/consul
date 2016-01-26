@@ -1,6 +1,6 @@
 # Consul [![Build Status](https://travis-ci.org/hashicorp/consul.png)](https://travis-ci.org/hashicorp/consul)
 
-* Website: http://www.consul.io
+* Website: https://www.consul.io
 * IRC: `#consul` on Freenode
 * Mailing list: [Google Groups](https://groups.google.com/group/consul-tool/)
 
@@ -32,18 +32,18 @@ Consul servers only on Linux, however.
 
 An extensive quick quick start is viewable on the Consul website:
 
-http://www.consul.io/intro/getting-started/install.html
+https://www.consul.io/intro/getting-started/install.html
 
 ## Documentation
 
 Full, comprehensive documentation is viewable on the Consul website:
 
-http://www.consul.io/docs
+https://www.consul.io/docs
 
 ## Developing Consul
 
 If you wish to work on Consul itself, you'll first need [Go](https://golang.org)
-installed (version 1.4+ is _required_). Make sure you have Go properly installed,
+installed (version 1.5.1+ is _required_). Make sure you have Go properly installed,
 including setting up your [GOPATH](https://golang.org/doc/code.html#GOPATH).
 
 Next, clone this repository into `$GOPATH/src/github.com/hashicorp/consul` and
@@ -66,7 +66,7 @@ format the code according to Go standards.
 
 ### Building Consul on Windows
 
-Make sure Go 1.4+ is installed on your system and that the Go command is in your
+Make sure Go 1.5.1+ is installed on your system and that the Go command is in your
 %PATH%.
 
 For building Consul on Windows, you also need to have MinGW installed.

@@ -2,6 +2,10 @@ package api
 
 import (
 	"log"
+	"net/http"
+	"net/http/httptest"
+	"net/http/httputil"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -57,7 +61,7 @@ func TestLock_LockUnlock(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Should loose leadership
+	// Should lose leadership
 	select {
 	case <-leaderCh:
 	case <-time.After(time.Second):
@@ -105,32 +109,40 @@ func TestLock_DeleteKey(t *testing.T) {
 	c, s := makeClient(t)
 	defer s.Stop()
 
-	lock, err := c.LockKey("test/lock")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	// This uncovered some issues around special-case handling of low index
+	// numbers where it would work with a low number but fail for higher
+	// ones, so we loop this a bit to sweep the index up out of that
+	// territory.
+	for i := 0; i < 10; i++ {
+		func() {
+			lock, err := c.LockKey("test/lock")
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
 
-	// Should work
-	leaderCh, err := lock.Lock(nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if leaderCh == nil {
-		t.Fatalf("not leader")
-	}
-	defer lock.Unlock()
+			// Should work
+			leaderCh, err := lock.Lock(nil)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if leaderCh == nil {
+				t.Fatalf("not leader")
+			}
+			defer lock.Unlock()
 
-	go func() {
-		// Nuke the key, simulate an operator intervention
-		kv := c.KV()
-		kv.Delete("test/lock", nil)
-	}()
+			go func() {
+				// Nuke the key, simulate an operator intervention
+				kv := c.KV()
+				kv.Delete("test/lock", nil)
+			}()
 
-	// Should loose leadership
-	select {
-	case <-leaderCh:
-	case <-time.After(time.Second):
-		t.Fatalf("should not be leader")
+			// Should loose leadership
+			select {
+			case <-leaderCh:
+			case <-time.After(time.Second):
+				t.Fatalf("should not be leader")
+			}
+		}()
 	}
 }
 
@@ -237,7 +249,7 @@ func TestLock_Destroy(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Should relese
+	// Should release
 	err = l2.Unlock()
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -359,5 +371,190 @@ func TestLock_ReclaimLock(t *testing.T) {
 	case <-leaderCh:
 	case <-time.After(time.Second):
 		t.Fatalf("should not be leader")
+	}
+}
+
+func TestLock_MonitorRetry(t *testing.T) {
+	t.Parallel()
+	raw, s := makeClient(t)
+	defer s.Stop()
+
+	// Set up a server that always responds with 500 errors.
+	failer := func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(500)
+	}
+	outage := httptest.NewServer(http.HandlerFunc(failer))
+	defer outage.Close()
+
+	// Set up a reverse proxy that will send some requests to the
+	// 500 server and pass everything else through to the real Consul
+	// server.
+	var mutex sync.Mutex
+	errors := 0
+	director := func(req *http.Request) {
+		mutex.Lock()
+		defer mutex.Unlock()
+
+		req.URL.Scheme = "http"
+		if errors > 0 && req.Method == "GET" && strings.Contains(req.URL.Path, "/v1/kv/test/lock") {
+			req.URL.Host = outage.URL[7:] // Strip off "http://".
+			errors--
+		} else {
+			req.URL.Host = raw.config.Address
+		}
+	}
+	proxy := httptest.NewServer(&httputil.ReverseProxy{Director: director})
+	defer proxy.Close()
+
+	// Make another client that points at the proxy instead of the real
+	// Consul server.
+	config := raw.config
+	config.Address = proxy.URL[7:] // Strip off "http://".
+	c, err := NewClient(&config)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Set up a lock with retries enabled.
+	opts := &LockOptions{
+		Key:            "test/lock",
+		SessionTTL:     "60s",
+		MonitorRetries: 3,
+	}
+	lock, err := c.LockOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the default got set.
+	if lock.opts.MonitorRetryTime != DefaultMonitorRetryTime {
+		t.Fatalf("bad: %d", lock.opts.MonitorRetryTime)
+	}
+
+	// Now set a custom time for the test.
+	opts.MonitorRetryTime = 250 * time.Millisecond
+	lock, err = c.LockOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if lock.opts.MonitorRetryTime != 250*time.Millisecond {
+		t.Fatalf("bad: %d", lock.opts.MonitorRetryTime)
+	}
+
+	// Should get the lock.
+	leaderCh, err := lock.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if leaderCh == nil {
+		t.Fatalf("not leader")
+	}
+
+	// Poke the key using the raw client to force the monitor to wake up
+	// and check the lock again. This time we will return errors for some
+	// of the responses.
+	mutex.Lock()
+	errors = 2
+	mutex.Unlock()
+	pair, _, err := raw.KV().Get("test/lock", &QueryOptions{})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, err := raw.KV().Put(pair, &WriteOptions{}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	time.Sleep(5 * opts.MonitorRetryTime)
+
+	// Should still be the leader.
+	select {
+	case <-leaderCh:
+		t.Fatalf("should be leader")
+	default:
+	}
+
+	// Now return an overwhelming number of errors.
+	mutex.Lock()
+	errors = 10
+	mutex.Unlock()
+	if _, err := raw.KV().Put(pair, &WriteOptions{}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	time.Sleep(5 * opts.MonitorRetryTime)
+
+	// Should lose leadership.
+	select {
+	case <-leaderCh:
+	case <-time.After(time.Second):
+		t.Fatalf("should not be leader")
+	}
+}
+
+func TestLock_OneShot(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	// Set up a lock as a one-shot.
+	opts := &LockOptions{
+		Key:         "test/lock",
+		LockTryOnce: true,
+	}
+	lock, err := c.LockOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure the default got set.
+	if lock.opts.LockWaitTime != DefaultLockWaitTime {
+		t.Fatalf("bad: %d", lock.opts.LockWaitTime)
+	}
+
+	// Now set a custom time for the test.
+	opts.LockWaitTime = 250 * time.Millisecond
+	lock, err = c.LockOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if lock.opts.LockWaitTime != 250*time.Millisecond {
+		t.Fatalf("bad: %d", lock.opts.LockWaitTime)
+	}
+
+	// Should get the lock.
+	ch, err := lock.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ch == nil {
+		t.Fatalf("not leader")
+	}
+
+	// Now try with another session.
+	contender, err := c.LockOpts(opts)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	start := time.Now()
+	ch, err = contender.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ch != nil {
+		t.Fatalf("should not be leader")
+	}
+	diff := time.Now().Sub(start)
+	if diff < contender.opts.LockWaitTime || diff > 2*contender.opts.LockWaitTime {
+		t.Fatalf("time out of bounds: %9.6f", diff.Seconds())
+	}
+
+	// Unlock and then make sure the contender can get it.
+	if err := lock.Unlock(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	ch, err = contender.Lock(nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if ch == nil {
+		t.Fatalf("should be leader")
 	}
 }

@@ -16,7 +16,7 @@ const (
 	// threshold. Users often send a value like 5, which they assume
 	// is seconds, but because Go uses nanosecond granularity, ends
 	// up being very small. If we see a value below this threshold,
-	// we multply by time.Second
+	// we multiply by time.Second
 	lockDelayMinThreshold = 1000
 )
 
@@ -185,6 +185,11 @@ func (s *HTTPServer) SessionGet(resp http.ResponseWriter, req *http.Request) (in
 	if err := s.agent.RPC("Session.Get", &args, &out); err != nil {
 		return nil, err
 	}
+
+	// Use empty list instead of nil
+	if out.Sessions == nil {
+		out.Sessions = make(structs.Sessions, 0)
+	}
 	return out.Sessions, nil
 }
 
@@ -199,6 +204,11 @@ func (s *HTTPServer) SessionList(resp http.ResponseWriter, req *http.Request) (i
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Session.List", &args, &out); err != nil {
 		return nil, err
+	}
+
+	// Use empty list instead of nil
+	if out.Sessions == nil {
+		out.Sessions = make(structs.Sessions, 0)
 	}
 	return out.Sessions, nil
 }
@@ -222,6 +232,11 @@ func (s *HTTPServer) SessionsForNode(resp http.ResponseWriter, req *http.Request
 	defer setMeta(resp, &out.QueryMeta)
 	if err := s.agent.RPC("Session.NodeSessions", &args, &out); err != nil {
 		return nil, err
+	}
+
+	// Use empty list instead of nil
+	if out.Sessions == nil {
+		out.Sessions = make(structs.Sessions, 0)
 	}
 	return out.Sessions, nil
 }

@@ -11,13 +11,10 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
 	"github.com/inconshreveable/muxado"
 )
-
-// msgpackHandle is a shared handle for encoding/decoding of RPC messages
-var msgpackHandle = &codec.MsgpackHandle{}
 
 // muxSession is used to provide an interface for either muxado or yamux
 type muxSession interface {
@@ -40,12 +37,12 @@ func (w *muxadoWrapper) Close() error {
 // streamClient is used to wrap a stream with an RPC client
 type StreamClient struct {
 	stream net.Conn
-	client *rpc.Client
+	codec  rpc.ClientCodec
 }
 
 func (sc *StreamClient) Close() {
 	sc.stream.Close()
-	sc.client.Close()
+	sc.codec.Close()
 }
 
 // Conn is a pooled connection to a Consul server
@@ -88,13 +85,12 @@ func (c *Conn) getClient() (*StreamClient, error) {
 	}
 
 	// Create the RPC client
-	cc := codec.GoRpc.ClientCodec(stream, msgpackHandle)
-	client := rpc.NewClientWithCodec(cc)
+	codec := msgpackrpc.NewClientCodec(stream)
 
 	// Return a new stream client
 	sc := &StreamClient{
 		stream: stream,
-		client: client,
+		codec:  codec,
 	}
 	return sc, nil
 }
@@ -107,11 +103,23 @@ func (c *Conn) returnClient(client *StreamClient) {
 	if c.clients.Len() < c.pool.maxStreams && atomic.LoadInt32(&c.shouldClose) == 0 {
 		c.clients.PushFront(client)
 		didSave = true
+
+		// If this is a Yamux stream, shrink the internal buffers so that
+		// we can GC the idle memory
+		if ys, ok := client.stream.(*yamux.Stream); ok {
+			ys.Shrink()
+		}
 	}
 	c.clientLock.Unlock()
 	if !didSave {
 		client.Close()
 	}
+}
+
+// markForUse does all the bookkeeping required to ready a connection for use.
+func (c *Conn) markForUse() {
+	c.lastUsed = time.Now()
+	atomic.AddInt32(&c.refCount, 1)
 }
 
 // ConnPool is used to maintain a connection pool to other
@@ -134,6 +142,12 @@ type ConnPool struct {
 	// Pool maps an address to a open connection
 	pool map[string]*Conn
 
+	// limiter is used to throttle the number of connect attempts
+	// to a given address. The first thread will attempt a connection
+	// and put a channel in here, which all other threads will wait
+	// on to close.
+	limiter map[string]chan struct{}
+
 	// TLS wrapper
 	tlsWrap tlsutil.DCWrapper
 
@@ -153,6 +167,7 @@ func NewPool(logOutput io.Writer, maxTime time.Duration, maxStreams int, tlsWrap
 		maxTime:    maxTime,
 		maxStreams: maxStreams,
 		pool:       make(map[string]*Conn),
+		limiter:    make(map[string]chan struct{}),
 		tlsWrap:    tlsWrap,
 		shutdownCh: make(chan struct{}),
 	}
@@ -180,28 +195,69 @@ func (p *ConnPool) Shutdown() error {
 	return nil
 }
 
-// Acquire is used to get a connection that is
-// pooled or to return a new connection
+// acquire will return a pooled connection, if available. Otherwise it will
+// wait for an existing connection attempt to finish, if one if in progress,
+// and will return that one if it succeeds. If all else fails, it will return a
+// newly-created connection and add it to the pool.
 func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error) {
-	// Check for a pooled ocnn
-	if conn := p.getPooled(addr, version); conn != nil {
-		return conn, nil
-	}
-
-	// Create a new connection
-	return p.getNewConn(dc, addr, version)
-}
-
-// getPooled is used to return a pooled connection
-func (p *ConnPool) getPooled(addr net.Addr, version int) *Conn {
+	// Check to see if there's a pooled connection available. This is up
+	// here since it should the the vastly more common case than the rest
+	// of the code here.
 	p.Lock()
 	c := p.pool[addr.String()]
 	if c != nil {
-		c.lastUsed = time.Now()
-		atomic.AddInt32(&c.refCount, 1)
+		c.markForUse()
+		p.Unlock()
+		return c, nil
 	}
+
+	// If not (while we are still locked), set up the throttling structure
+	// for this address, which will make everyone else wait until our
+	// attempt is done.
+	var wait chan struct{}
+	var ok bool
+	if wait, ok = p.limiter[addr.String()]; !ok {
+		wait = make(chan struct{})
+		p.limiter[addr.String()] = wait
+	}
+	isLeadThread := !ok
 	p.Unlock()
-	return c
+
+	// If we are the lead thread, make the new connection and then wake
+	// everybody else up to see if we got it.
+	if isLeadThread {
+		c, err := p.getNewConn(dc, addr, version)
+		p.Lock()
+		delete(p.limiter, addr.String())
+		close(wait)
+		if err != nil {
+			p.Unlock()
+			return nil, err
+		}
+
+		p.pool[addr.String()] = c
+		p.Unlock()
+		return c, nil
+	}
+
+	// Otherwise, wait for the lead thread to attempt the connection
+	// and use what's in the pool at that point.
+	select {
+	case <-p.shutdownCh:
+		return nil, fmt.Errorf("rpc error: shutdown")
+	case <-wait:
+	}
+
+	// See if the lead thread was able to get us a connection.
+	p.Lock()
+	if c := p.pool[addr.String()]; c != nil {
+		c.markForUse()
+		p.Unlock()
+		return c, nil
+	}
+
+	p.Unlock()
+	return nil, fmt.Errorf("rpc error: lead thread didn't get connection")
 }
 
 // getNewConn is used to return a new connection
@@ -272,21 +328,10 @@ func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, err
 		version:  version,
 		pool:     p,
 	}
-
-	// Track this connection, handle potential race condition
-	p.Lock()
-	if existing := p.pool[addr.String()]; existing != nil {
-		c.Close()
-		p.Unlock()
-		return existing, nil
-	} else {
-		p.pool[addr.String()] = c
-		p.Unlock()
-		return c, nil
-	}
+	return c, nil
 }
 
-// clearConn is used to clear any cached connection, potentially in response to an erro
+// clearConn is used to clear any cached connection, potentially in response to an error
 func (p *ConnPool) clearConn(conn *Conn) {
 	// Ensure returned streams are closed
 	atomic.StoreInt32(&conn.shouldClose, 1)
@@ -347,7 +392,7 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, arg
 	}
 
 	// Make the RPC call
-	err = sc.client.Call(method, args, reply)
+	err = msgpackrpc.CallWithCodec(sc.codec, method, args, reply)
 	if err != nil {
 		sc.Close()
 		p.releaseConn(conn)

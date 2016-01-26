@@ -36,6 +36,10 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 		return nil, nil
 	}
 
+	// Get the ACL token
+	var token string
+	s.parseToken(req, &token)
+
 	// Get the filters
 	if filt := req.URL.Query().Get("node"); filt != "" {
 		event.NodeFilter = filt
@@ -57,7 +61,13 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 	}
 
 	// Try to fire the event
-	if err := s.agent.UserEvent(dc, event); err != nil {
+	if err := s.agent.UserEvent(dc, token, event); err != nil {
+		if strings.Contains(err.Error(), permissionDenied) {
+			resp.WriteHeader(403)
+			resp.Write([]byte(permissionDenied))
+			return nil, nil
+		}
+		resp.WriteHeader(500)
 		return nil, err
 	}
 

@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 	"net/http"
 	"strconv"
@@ -11,12 +12,22 @@ import (
 
 type AgentSelf struct {
 	Config *Config
+	Coord  *coordinate.Coordinate
 	Member serf.Member
 }
 
 func (s *HTTPServer) AgentSelf(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var c *coordinate.Coordinate
+	if !s.agent.config.DisableCoordinates {
+		var err error
+		if c, err = s.agent.GetCoordinate(); err != nil {
+			return nil, err
+		}
+	}
+
 	return AgentSelf{
 		Config: s.agent.config,
+		Coord:  c,
 		Member: s.agent.LocalMember(),
 	}, nil
 }
@@ -266,9 +277,13 @@ func (s *HTTPServer) AgentServiceMaintenance(resp http.ResponseWriter, req *http
 		return nil, nil
 	}
 
+	// Get the provided token, if any
+	var token string
+	s.parseToken(req, &token)
+
 	if enable {
 		reason := params.Get("reason")
-		if err = s.agent.EnableServiceMaintenance(serviceID, reason); err != nil {
+		if err = s.agent.EnableServiceMaintenance(serviceID, reason, token); err != nil {
 			resp.WriteHeader(404)
 			resp.Write([]byte(err.Error()))
 			return nil, nil
@@ -307,8 +322,12 @@ func (s *HTTPServer) AgentNodeMaintenance(resp http.ResponseWriter, req *http.Re
 		return nil, nil
 	}
 
+	// Get the provided token, if any
+	var token string
+	s.parseToken(req, &token)
+
 	if enable {
-		s.agent.EnableNodeMaintenance(params.Get("reason"))
+		s.agent.EnableNodeMaintenance(params.Get("reason"), token)
 	} else {
 		s.agent.DisableNodeMaintenance()
 	}

@@ -15,7 +15,7 @@ descriptions.
 
 When loading configuration, Consul loads the configuration from files
 and directories in lexical order. For example, configuration file `basic_config.json`
-will be processed before `extra_config.js`. Configuration specified later
+will be processed before `extra_config.json`. Configuration specified later
 will be merged into configuration specified earlier. In most cases,
 "merge" means that the later version will override the earlier. In
 some cases, such as event handlers, merging appends the handlers to the
@@ -51,8 +51,9 @@ The options below are all specified on the command-line.
 
 * <a name="_atlas"></a><a href="#_atlas">`-atlas`</a> - This flag
   enables [Atlas](https://atlas.hashicorp.com) integration.
-  It is used to provide the Atlas infrastructure name and the SCADA connection.
-  This enables Atlas features such as the dashboard and node auto joining.
+  It is used to provide the Atlas infrastructure name and the SCADA connection. The format of 
+  this is `username/environment`. This enables Atlas features such as the Monitoring UI 
+  and node auto joining.
 
 * <a name="_atlas_join"></a><a href="#_atlas_join">`-atlas-join`</a> - When set, enables auto-join
   via Atlas. Atlas will track the most
@@ -62,6 +63,13 @@ The options below are all specified on the command-line.
 * <a name="_atlas_token"></a><a href="#_atlas_token">`-atlas-token`</a> - Provides the Atlas
   API authentication token. This can also be provided
   using the `ATLAS_TOKEN` environment variable. Required for use with Atlas.
+
+* <a name="_atlas_endpoint"></a><a href="#_atlas_endpoint">`-atlas-endpoint`</a> - The endpoint
+  address used for Atlas integration. Used only if the `-atlas` and
+  `-atlas-token` options are specified. This is optional, and defaults to the
+  public Atlas endpoints. This can also be specified using the `SCADA_ENDPOINT`
+  environment variable. The CLI option takes precedence, followed by the
+  configuration file directive, and lastly, the environment variable.
 
 * <a name="_bootstrap"></a><a href="#_bootstrap">`-bootstrap`</a> - This flag is used to control if a
   server is in "bootstrap" mode. It is important that
@@ -116,6 +124,12 @@ The options below are all specified on the command-line.
   the use of filesystem locking, meaning some types of mounted folders (e.g. VirtualBox
   shared folders) may not be suitable.
 
+* <a name="_dev"></a><a href="#_dev">`-dev`</a> - Enable development server
+  mode. This is useful for quickly starting a Consul agent with all persistence
+  options turned off, enabling an in-memory server which can be used for rapid
+  prototyping or developing against the API. This mode is **not** intended for
+  production use as it does not write any data to disk.
+
 * <a name="_dc"></a><a href="#_dc">`-dc`</a> - This flag controls the datacenter in
   which the agent is running. If not provided,
   it defaults to "dc1". Consul has first-class support for multiple datacenters, but
@@ -138,6 +152,11 @@ The options below are all specified on the command-line.
   agent's initial startup sequence. If it is provided after Consul has been
   initialized with an encryption key, then the provided key is ignored and
   a warning will be displayed.
+
+* <a name="_http_port"></a><a href="#_http_port">`-http-port`</a> - the HTTP API port to listen on.
+  This overrides the default port 8500. This option is very useful when deploying Consul
+  to an environment which communicates the HTTP port through the environment e.g. PaaS like CloudFoundry, allowing
+  you to set the port directly via a Procfile.
 
 * <a name="_join"></a><a href="#_join">`-join`</a> - Address of another agent
   to join upon starting up. This can be
@@ -188,7 +207,7 @@ The options below are all specified on the command-line.
 
 * <a name="_pid_file"></a><a href="#_pid_file">`-pid-file`</a> - This flag provides the file
   path for the agent to store its PID. This is useful for sending signals (for example, `SIGINT`
-  to close the agent or `SIGHUP` to update check definit
+  to close the agent or `SIGHUP` to update check definite
 
 * <a name="_protocol"></a><a href="#_protocol">`-protocol`</a> - The Consul protocol version to
   use. This defaults to the latest version. This should be set only when [upgrading](/docs/upgrading.html).
@@ -215,8 +234,12 @@ The options below are all specified on the command-line.
 * <a name="_syslog"></a><a href="#_syslog">`-syslog`</a> - This flag enables logging to syslog. This
   is only supported on Linux and OSX. It will result in an error if provided on Windows.
 
+* <a name="_ui"></a><a href="#_ui">`-ui`</a> - Enables the built-in web UI
+  server and the required HTTP routes. This eliminates the need to maintain the
+  Consul web UI files separately from the binary.
+
 * <a name="_ui_dir"></a><a href="#_ui_dir">`-ui-dir`</a> - This flag provides the directory containing
-  the Web UI resources for Consul. This must be provided to enable the Web UI. The directory must be
+  the Web UI resources for Consul. This will automatically enable the Web UI. The directory must be
   readable to the agent.
 
 ## <a name="configuration_files"></a>Configuration Files
@@ -285,7 +308,9 @@ definitions support being updated during a reload.
   Note that the `acl_master_token` is only installed when a server acquires cluster leadership. If
   you would like to install or change the `acl_master_token`, set the new value for `acl_master_token`
   in the configuration for all servers. Once this is done, restart the current leader to force a
-  leader election.
+  leader election. If the acl_master_token is not supplied, then the servers do not create a master
+  token. When you provide a value, it can be any string value. Using a UUID would ensure that it looks
+  the same as the other tokens, but isn't strictly necessary.
 
 * <a name="acl_token"></a><a href="#acl_token">`acl_token`</a> - When provided, the agent will use this
   token when making requests to the Consul servers. Clients can override this token on a per-request
@@ -322,6 +347,16 @@ definitions support being updated during a reload.
 * <a name="advertise_addr"></a><a href="#advertise_addr">`advertise_addr`</a> Equivalent to
   the [`-advertise` command-line flag](#_advertise).
 
+* <a name="advertise_addrs"></a><a href="#advertise_addrs">`advertise_addrs`</a> Allows to set
+  the advertised addresses for SerfLan, SerfWan and RPC together with the port. This gives
+  you more control than (#_advertise) or (#_advertise-wan) while it serves the same purpose.
+  These settings might override (#_advertise) and (#_advertise-wan).
+  <br><br>
+  This is a nested setting that allows the following keys:
+  * `serf_lan` - The SerfLan address. Accepts values in the form of "host:port" like "10.23.31.101:8301".
+  * `serf_wan` - The SerfWan address. Accepts values in the form of "host:port" like "10.23.31.101:8302".
+  * `rpc` - The RPC address. Accepts values in the form of "host:port" like "10.23.31.101:8400".
+
 * <a name="advertise_addr_wan"></a><a href="#advertise_addr_wan">`advertise_addr_wan`</a> Equivalent to
   the [`-advertise-wan` command-line flag](#_advertise-wan).
 
@@ -338,6 +373,9 @@ definitions support being updated during a reload.
 
 * <a name="atlas_token"></a><a href="#atlas_token">`atlas_token`</a> Equivalent to the
   [`-atlas-token` command-line flag](#_atlas_token).
+
+* <a name="atlas_endpoint"></a><a href="#atlas_endpoint">`atlas_endpoint`</a> Equivalent to the
+  [`-atlas-endpoint` command-line flag](#_atlas_endpoint).
 
 * <a name="bootstrap"></a><a href="#bootstrap">`bootstrap`</a> Equivalent to the
   [`-bootstrap` command-line flag](#_bootstrap).
@@ -441,7 +479,7 @@ definitions support being updated during a reload.
 * <a name="http_api_response_headers"></a><a href="#http_api_response_headers">`http_api_response_headers`</a>
   This object allows adding headers to the HTTP API
   responses. For example, the following config can be used to enable
-  [CORS](http://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on
+  [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing) on
   the HTTP API endpoints:
 
     ```javascript
@@ -475,6 +513,11 @@ definitions support being updated during a reload.
 
 * <a name="protocol"></a><a href="#protocol">`protocol`</a> Equivalent to the
   [`-protocol` command-line flag](#_protocol).
+
+* <a name="reap"></a><a href="#reap">`reap`</a> This controls Consul's automatic reaping of child processes,
+  which is useful if Consul is running as PID 1 in a Docker container. If this isn't specified, then Consul will
+  automatically reap child processes if it detects it is running as PID 1. If this is set to true or false, then
+  it controls reaping regardless of Consul's PID (forces reaping on or off, respectively).
 
 * <a name="recursor"></a><a href="#recursor">`recursor`</a> Provides a single recursor address.
   This has been deprecated, and the value is appended to the [`recursors`](#recursors) list for
@@ -529,15 +572,25 @@ definitions support being updated during a reload.
 * <a name="start_join_wan"></a><a href="#start_join_wan">`start_join_wan`</a> An array of strings specifying
   addresses of WAN nodes to [`-join-wan`](#_join_wan) upon startup.
 
-* <a name="statsd_addr"></a><a href="#statsd_addr">`statsd_addr`</a> This provides the address of a statsd
-  instance.  If provided, Consul will send various telemetry information to that instance for aggregation.
-  This can be used to capture runtime information. This sends UDP packets only and can be used with statsd
-  or statsite.
+* <a name="statsd_addr"></a><a href="#statsd_addr">`statsd_addr`</a> This provides the address of a
+  statsd instance in the format `host:port`.  If provided, Consul will send various telemetry information
+  to that instance for aggregation. This can be used to capture runtime information. This sends UDP packets
+  only and can be used with statsd or statsite.
+
+* <a name="dogstatsd_addr"></a><a href="#dogstatsd_addr">`dogstatsd_addr`</a> This provides the
+  address of a DogStatsD instance in the format `host:port`. DogStatsD is a protocol-compatible flavor of
+  statsd, with the added ability to decorate metrics with tags and event information. If provided, Consul will
+  send various telemetry information to that instance for aggregation. This can be used to capture runtime
+  information.
+
+* <a name="dogstatsd_tags"></a><a href="#dogstatsd_tags">`dogstatsd_tags`</a> This provides a list of global tags
+  that will be added to all telemetry packets sent to DogStatsD. It is a list of strings, where each string
+  looks like "my_tag_name:my_tag_value".
 
 * <a name="statsite_addr"></a><a href="#statsite_addr">`statsite_addr`</a> This provides the address of a
-  statsite instance. If provided, Consul will stream various telemetry information to that instance for
-  aggregation. This can be used to capture runtime information. This streams via
-  TCP and can only be used with statsite.
+  statsite instance in the format `host:port`. If provided, Consul will stream various telemetry information
+  to that instance for aggregation. This can be used to capture runtime information. This streams via TCP and
+  can only be used with statsite.
 
 * <a name="statsite_prefix"></a><a href="#statsite_prefix">`statsite_prefix`</a>
   The prefix used while writing all telemetry data to statsite. By default, this
@@ -546,6 +599,9 @@ definitions support being updated during a reload.
 * <a name="syslog_facility"></a><a href="#syslog_facility">`syslog_facility`</a> When
   [`enable_syslog`](#enable_syslog) is provided, this controls to which
   facility messages are sent. By default, `LOCAL0` will be used.
+
+* <a name="ui"></a><a href="#ui">`ui`</a> - Equivalent to the [`-ui`](#_ui)
+  command-line flag.
 
 * <a name="ui_dir"></a><a href="#ui_dir">`ui_dir`</a> - Equivalent to the
   [`-ui-dir`](#_ui_dir) command-line flag.
@@ -631,3 +687,6 @@ items which are reloaded include:
 * Services
 * Watches
 * HTTP Client Address
+* Atlas Token
+* Atlas Infrastructure
+* Atlas Endpoint

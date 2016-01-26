@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -20,7 +21,7 @@ const (
 	// open to a server
 	clientRPCCache = 30 * time.Second
 
-	// clientMaxStreams controsl how many idle streams we keep
+	// clientMaxStreams controls how many idle streams we keep
 	// open to a server
 	clientMaxStreams = 32
 )
@@ -138,6 +139,7 @@ func (c *Client) setupSerf(conf *serf.Config, ch chan serf.Event, path string) (
 	conf.ProtocolVersion = protocolVersionMap[c.config.ProtocolVersion]
 	conf.RejoinAfterLeave = c.config.RejoinAfterLeave
 	conf.Merge = &lanMergeDelegate{dc: c.config.Datacenter}
+	conf.DisableCoordinates = c.config.DisableCoordinates
 	if err := ensurePath(conf.SnapshotPath, false); err != nil {
 		return nil, err
 	}
@@ -201,11 +203,6 @@ func (c *Client) RemoveFailedNode(node string) error {
 	return c.serf.RemoveFailedNode(node)
 }
 
-// UserEvent is used to fire an event via the Serf layer
-func (c *Client) UserEvent(name string, payload []byte) error {
-	return c.serf.UserEvent(userEventName(name), payload, false)
-}
-
 // KeyManagerLAN returns the LAN Serf keyring manager
 func (c *Client) KeyManagerLAN() *serf.KeyManager {
 	return c.serf.KeyManager()
@@ -224,9 +221,7 @@ func (c *Client) lanEventHandler() {
 			switch e.EventType() {
 			case serf.EventMemberJoin:
 				c.nodeJoin(e.(serf.MemberEvent))
-			case serf.EventMemberLeave:
-				fallthrough
-			case serf.EventMemberFailed:
+			case serf.EventMemberLeave, serf.EventMemberFailed:
 				c.nodeFail(e.(serf.MemberEvent))
 			case serf.EventUser:
 				c.localEvent(e.(serf.UserEvent))
@@ -382,4 +377,10 @@ func (c *Client) Stats() map[string]map[string]string {
 		"runtime":  runtimeStats(),
 	}
 	return stats
+}
+
+// GetCoordinate returns the network coordinate of the current node, as
+// maintained by Serf.
+func (c *Client) GetCoordinate() (*coordinate.Coordinate, error) {
+	return c.serf.GetCoordinate()
 }

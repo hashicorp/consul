@@ -3,7 +3,6 @@ package agent
 import (
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -109,18 +108,21 @@ func (l *localState) ConsulServerUp() {
 // Pause is used to pause state synchronization, this can be
 // used to make batch changes
 func (l *localState) Pause() {
-	atomic.StoreInt32(&l.paused, 1)
+	atomic.AddInt32(&l.paused, 1)
 }
 
 // Resume is used to resume state synchronization
 func (l *localState) Resume() {
-	atomic.StoreInt32(&l.paused, 0)
+	paused := atomic.AddInt32(&l.paused, -1)
+	if paused < 0 {
+		panic("unbalanced localState.Resume() detected")
+	}
 	l.changeMade()
 }
 
 // isPaused is used to check if we are paused
 func (l *localState) isPaused() bool {
-	return atomic.LoadInt32(&l.paused) == 1
+	return atomic.LoadInt32(&l.paused) > 0
 }
 
 // ServiceToken returns the configured ACL token for the given
@@ -379,20 +381,22 @@ func (l *localState) setSyncState() error {
 		}
 
 		// If our definition is different, we need to update it
-		equal := reflect.DeepEqual(existing, service)
+		if existing.EnableTagOverride {
+			existing.Tags = service.Tags
+		}
+		equal := existing.IsSame(service)
 		l.serviceStatus[id] = syncStatus{inSync: equal}
 	}
 
+	// Index the remote health checks to improve efficiency
+	checkIndex := make(map[string]*structs.HealthCheck, len(checks))
+	for _, check := range checks {
+		checkIndex[check.CheckID] = check
+	}
+
+	// Sync any check which doesn't exist on the remote side
 	for id, _ := range l.checks {
-		// Sync any check which doesn't exist on the remote side
-		found := false
-		for _, check := range checks {
-			if check.CheckID == id {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if _, ok := checkIndex[id]; !ok {
 			l.checkStatus[id] = syncStatus{inSync: false}
 		}
 	}
@@ -414,13 +418,13 @@ func (l *localState) setSyncState() error {
 		// If our definition is different, we need to update it
 		var equal bool
 		if l.config.CheckUpdateInterval == 0 {
-			equal = reflect.DeepEqual(existing, check)
+			equal = existing.IsSame(check)
 		} else {
 			eCopy := new(structs.HealthCheck)
 			*eCopy = *existing
 			eCopy.Output = ""
 			check.Output = ""
-			equal = reflect.DeepEqual(eCopy, check)
+			equal = eCopy.IsSame(check)
 		}
 
 		// Update the status
@@ -563,7 +567,7 @@ func (l *localState) syncService(id string) error {
 	return err
 }
 
-// syncCheck is used to sync a service to the server
+// syncCheck is used to sync a check to the server
 func (l *localState) syncCheck(id string) error {
 	// Pull in the associated service if any
 	check := l.checks[id]

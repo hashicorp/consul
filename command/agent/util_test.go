@@ -3,6 +3,7 @@ package agent
 import (
 	"io/ioutil"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -19,6 +20,29 @@ func TestAEScale(t *testing.T) {
 		t.Fatalf("Bad: %v", v)
 	}
 	if v := aeScale(intv, 10000); v != 8*intv {
+		t.Fatalf("Bad: %v", v)
+	}
+}
+
+func TestRateScaledInterval(t *testing.T) {
+	min := 1 * time.Second
+	rate := 200.0
+	if v := rateScaledInterval(rate, min, 0); v != min {
+		t.Fatalf("Bad: %v", v)
+	}
+	if v := rateScaledInterval(rate, min, 100); v != min {
+		t.Fatalf("Bad: %v", v)
+	}
+	if v := rateScaledInterval(rate, min, 200); v != 1*time.Second {
+		t.Fatalf("Bad: %v", v)
+	}
+	if v := rateScaledInterval(rate, min, 1000); v != 5*time.Second {
+		t.Fatalf("Bad: %v", v)
+	}
+	if v := rateScaledInterval(rate, min, 5000); v != 25*time.Second {
+		t.Fatalf("Bad: %v", v)
+	}
+	if v := rateScaledInterval(rate, min, 10000); v != 50*time.Second {
 		t.Fatalf("Bad: %v", v)
 	}
 }
@@ -43,6 +67,9 @@ func TestStringHash(t *testing.T) {
 }
 
 func TestSetFilePermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.SkipNow()
+	}
 	tempFile, err := ioutil.TempFile("", "consul")
 	if err != nil {
 		t.Fatalf("err: %s", err)

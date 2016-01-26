@@ -9,40 +9,30 @@ App.DcController = Ember.Controller.extend({
   // Whether or not the dropdown menu can be seen
   isDropdownVisible: false,
 
-  datacenter: function() {
-    return this.get('content');
-  }.property('content'),
-
-  checks: function() {
-    var nodes = this.get('nodes');
-    var checks = Ember.A();
-
-    // Combine the checks from all of our nodes
-    // into one.
-    nodes.forEach(function(item) {
-      checks = checks.concat(item.Checks);
-    });
-
-    return checks;
-  }.property('nodes'),
+  datacenter: Ember.computed.alias('content'),
 
   // Returns the total number of failing checks.
   //
   // We treat any non-passing checks as failing
   //
   totalChecksFailing: function() {
-    var checks = this.get('checks');
-    return (checks.filterBy('Status', 'critical').get('length') +
-      checks.filterBy('Status', 'warning').get('length'));
+    return this.get('nodes').reduce(function(sum, node) {
+      return sum + node.get('failingChecks');
+    }, 0);
+  }.property('nodes'),
+
+  totalChecksPassing: function() {
+    return this.get('nodes').reduce(function(sum, node) {
+      return sum + node.get('passingChecks');
+    }, 0);
   }.property('nodes'),
 
   //
   // Returns the human formatted message for the button state
   //
   checkMessage: function() {
-    var checks = this.get('checks');
     var failingChecks = this.get('totalChecksFailing');
-    var passingChecks = checks.filterBy('Status', 'passing').get('length');
+    var passingChecks = this.get('totalChecksPassing');
 
     if (this.get('hasFailingChecks') === true) {
       return  failingChecks + ' failing';
@@ -67,10 +57,7 @@ App.DcController = Ember.Controller.extend({
   //
   // Boolean if the datacenter has any failing checks.
   //
-  hasFailingChecks: function() {
-    var failingChecks = this.get('totalChecksFailing');
-    return (failingChecks > 0);
-  }.property('nodes'),
+  hasFailingChecks: Ember.computed.gt('totalChecksFailing', 0),
 
   actions: {
     // Hide and show the dropdown menu
@@ -89,7 +76,7 @@ KvBaseController = Ember.ObjectController.extend({
     if (this.get('isRoot')) {
       return this.get('rootKey');
     }
-    return this.get("parentKey");
+    return this.get('parentKey');
   },
 
   transitionToNearestParent: function(parent) {
@@ -113,10 +100,7 @@ KvBaseController = Ember.ObjectController.extend({
   }
 });
 
-// Add mixins
-App.KvShowController = KvBaseController.extend(Ember.Validations.Mixin);
-
-App.KvShowController.reopen({
+App.KvShowController = KvBaseController.extend(Ember.Validations.Mixin, {
   needs: ["dc"],
   dc: Ember.computed.alias("controllers.dc"),
   isLoading: false,
@@ -264,7 +248,7 @@ ItemBaseController = Ember.ArrayController.extend({
     var filter = this.get('filter');
     var status = this.get('status');
 
-    var items = this.get('items').filter(function(item, index, enumerable){
+    var items = this.get('items').filter(function(item){
       return item.get('filterKey').toLowerCase().match(filter.toLowerCase());
     });
 
@@ -281,7 +265,7 @@ ItemBaseController = Ember.ArrayController.extend({
 
   actions: {
     toggleCondensed: function() {
-      this.set('condensed', !this.get('condensed'));
+      this.toggleProperty('condensed');
     }
   }
 });

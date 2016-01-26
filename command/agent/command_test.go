@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/testutil"
@@ -244,5 +246,93 @@ func TestSetupAgent_RPCUnixSocket_FileExists(t *testing.T) {
 	// Ensure permissions were applied to the socket file
 	if fi.Mode().String() != "Srwxrwxrwx" {
 		t.Fatalf("bad permissions: %s", fi.Mode())
+	}
+}
+
+func TestSetupScadaConn(t *testing.T) {
+	// Create a config and assign an infra name
+	conf1 := nextConfig()
+	conf1.AtlasInfrastructure = "hashicorp/test1"
+	conf1.AtlasToken = "abc"
+
+	dir, agent := makeAgent(t, conf1)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	cmd := &Command{
+		ShutdownCh: make(chan struct{}),
+		Ui:         new(cli.MockUi),
+		agent:      agent,
+	}
+
+	// First start creates the scada conn
+	if err := cmd.setupScadaConn(conf1); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	list := cmd.scadaHttp.listener.(*scadaListener)
+	if list == nil || list.addr.infra != "hashicorp/test1" {
+		t.Fatalf("bad: %#v", list)
+	}
+	http1 := cmd.scadaHttp
+	provider1 := cmd.scadaProvider
+
+	// Performing setup again tears down original and replaces
+	// with a new SCADA client.
+	conf2 := nextConfig()
+	conf2.AtlasInfrastructure = "hashicorp/test2"
+	conf2.AtlasToken = "123"
+	if err := cmd.setupScadaConn(conf2); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if cmd.scadaHttp == http1 || cmd.scadaProvider == provider1 {
+		t.Fatalf("should change: %#v %#v", cmd.scadaHttp, cmd.scadaProvider)
+	}
+	list = cmd.scadaHttp.listener.(*scadaListener)
+	if list == nil || list.addr.infra != "hashicorp/test2" {
+		t.Fatalf("bad: %#v", list)
+	}
+
+	// Original provider and listener must be closed
+	if !provider1.IsShutdown() {
+		t.Fatalf("should be shutdown")
+	}
+	if _, err := http1.listener.Accept(); !strings.Contains(err.Error(), "closed") {
+		t.Fatalf("should be closed")
+	}
+}
+
+func TestProtectDataDir(t *testing.T) {
+	dir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir)
+
+	if err := os.MkdirAll(filepath.Join(dir, "mdb"), 0700); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	cfgFile, err := ioutil.TempFile("", "consul")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.Remove(cfgFile.Name())
+
+	content := fmt.Sprintf(`{"server": true, "data_dir": "%s"}`, dir)
+	_, err = cfgFile.Write([]byte(content))
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	ui := new(cli.MockUi)
+	cmd := &Command{
+		Ui:   ui,
+		args: []string{"-config-file=" + cfgFile.Name()},
+	}
+	if conf := cmd.readConfig(); conf != nil {
+		t.Fatalf("should fail")
+	}
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, dir) {
+		t.Fatalf("expected mdb dir error, got: %s", out)
 	}
 }

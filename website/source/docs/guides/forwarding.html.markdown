@@ -13,9 +13,20 @@ requires elevated privileges. Instead of running Consul with an administrative
 or root account, it is possible to instead forward appropriate queries to Consul,
 running on an unprivileged port, from another DNS server.
 
-In this guide, we will demonstrate forwarding from [BIND](https://www.isc.org/downloads/bind/).
+In this guide, we will demonstrate forwarding from [BIND](https://www.isc.org/downloads/bind/)
+as well as [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html).
 For the sake of simplicity, BIND and Consul are running on the same machine in this example,
 but this is not required.
+
+It is worth mentioning that, by default, Consul does not resolve DNS
+records outside the `.consul.` zone unless the
+[recursors](/docs/agent/options.html#recursors) configuration option
+has been set.  As an example of how this changes Consul's behavior,
+suppose a Consul DNS reply includes a CNAME record pointing outside
+the `.consul` TLD. The DNS reply will only include CNAME records by
+default. By contrast, when `recursors` is set and the upstream resolver is
+functioning correctly, Consul will try to resolve CNAMEs and include
+any records (e.g. A, AAAA, PTR) for them in its DNS reply.
 
 ### BIND Setup
 
@@ -59,6 +70,16 @@ zone "consul" IN {
 
 Here we assume Consul is running with default settings and is serving
 DNS on port 8600.
+
+### Dnsmasq Setup
+
+Dnsmasq is typically configured via files in the `/etc/dnsmasq.d` directory.  To configure Consul, create the file `/etc/dnsmasq.d/10-consul` with the following contents:
+
+```text
+server=/consul/127.0.0.1#8600
+```
+
+Once that configuration is created, restart the dnsmasq service.
 
 ### Testing
 

@@ -30,19 +30,20 @@ Create two definition files in the Consul configuration directory of
 the second node:
 
 ```text
-vagrant@n2:~$ echo '{"check": {"name": "ping", \
+vagrant@n2:~$ echo '{"check": {"name": "ping",
   "script": "ping -c1 google.com >/dev/null", "interval": "30s"}}' \
   >/etc/consul.d/ping.json
 
-vagrant@n2:~$ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80,\
+vagrant@n2:~$ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80,
   "check": {"script": "curl localhost >/dev/null 2>&1", "interval": "10s"}}}' \
   >/etc/consul.d/web.json
 ```
 
 The first definition adds a host-level check named "ping". This check runs
-on a 30 second interval, invoking `ping -c1 google.com`. If the command
-exits with a non-zero exit code, then the node will be flagged unhealthy.
-This is the contract for any `script`-based health check.
+on a 30 second interval, invoking `ping -c1 google.com`. On a `script`-based
+health check, the check runs as the same user that started the Consul process.
+If the command exits with a non-zero exit code, then the node will be flagged
+unhealthy.  This is the contract for any `script`-based health check.
 
 The second command modifies the service named `web`, adding a check that sends a
 request every 10 seconds via curl to verify that the web server is accessible.

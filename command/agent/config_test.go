@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -211,6 +212,45 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Advertise addresses for serflan
+	input = `{"advertise_addrs": {"serf_lan": "127.0.0.5:1234"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.AdvertiseAddrs.SerfLanRaw != "127.0.0.5:1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.AdvertiseAddrs.SerfLan.String() != "127.0.0.5:1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Advertise addresses for serfwan
+	input = `{"advertise_addrs": {"serf_wan": "127.0.0.5:1234"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.AdvertiseAddrs.SerfWanRaw != "127.0.0.5:1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.AdvertiseAddrs.SerfWan.String() != "127.0.0.5:1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Advertise addresses for rpc
+	input = `{"advertise_addrs": {"rpc": "127.0.0.5:1234"}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.AdvertiseAddrs.RPCRaw != "127.0.0.5:1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.AdvertiseAddrs.RPC.String() != "127.0.0.5:1234" {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// leave_on_terminate
 	input = `{"leave_on_terminate": true}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -398,6 +438,17 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	if config.RetryMaxAttemptsWan != 3 {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Static UI server
+	input = `{"ui": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !config.EnableUi {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -589,6 +640,28 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// dogstatsd
+	input = `{"dogstatsd_addr": "127.0.0.1:7254", "dogstatsd_tags":["tag_1:val_1", "tag_2:val_2"]}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.DogStatsdAddr != "127.0.0.1:7254" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if len(config.DogStatsdTags) != 2 {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.DogStatsdTags[0] != "tag_1:val_1" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.DogStatsdTags[1] != "tag_2:val_2" {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// Statsite prefix
 	input = `{"statsite_prefix": "my_prefix"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -666,7 +739,13 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Atlas configs
-	input = `{"atlas_infrastructure": "hashicorp/prod", "atlas_token": "abcdefg", "atlas_acl_token": "123456789", "atlas_join": true}`
+	input = `{
+		"atlas_infrastructure": "hashicorp/prod",
+		"atlas_token": "abcdefg",
+		"atlas_acl_token": "123456789",
+		"atlas_join": true,
+		"atlas_endpoint": "foo.bar:1111"
+}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -684,6 +763,20 @@ func TestDecodeConfig(t *testing.T) {
 	if !config.AtlasJoin {
 		t.Fatalf("bad: %#v", config)
 	}
+	if config.AtlasEndpoint != "foo.bar:1111" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	// Coordinate disable
+	input = `{"disable_coordinates": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.DisableCoordinates != true {
+		t.Fatalf("bad: coordinates not disabled: %#v", config)
+	}
 
 	// SessionTTLMin
 	input = `{"session_ttl_min": "5s"}`
@@ -694,6 +787,27 @@ func TestDecodeConfig(t *testing.T) {
 
 	if config.SessionTTLMin != 5*time.Second {
 		t.Fatalf("bad: %s %#v", config.SessionTTLMin.String(), config)
+	}
+
+	// Reap
+	input = `{"reap": true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.Reap == nil || *config.Reap != true {
+		t.Fatalf("bad: reap not enabled: %#v", config)
+	}
+
+	input = `{}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.Reap != nil {
+		t.Fatalf("bad: reap not tri-stated: %#v", config)
 	}
 }
 
@@ -1012,7 +1126,7 @@ func TestDecodeConfig_Service(t *testing.T) {
 
 func TestDecodeConfig_Check(t *testing.T) {
 	// Basics
-	input := `{"check": {"id": "chk1", "name": "mem", "notes": "foobar", "script": "/bin/check_redis", "interval": "10s", "ttl": "15s" }}`
+	input := `{"check": {"id": "chk1", "name": "mem", "notes": "foobar", "script": "/bin/check_redis", "interval": "10s", "ttl": "15s", "shell": "/bin/bash", "docker_container_id": "redis" }}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -1044,6 +1158,14 @@ func TestDecodeConfig_Check(t *testing.T) {
 	}
 
 	if chk.TTL != 15*time.Second {
+		t.Fatalf("bad: %v", chk)
+	}
+
+	if chk.Shell != "/bin/bash" {
+		t.Fatalf("bad: %v", chk)
+	}
+
+	if chk.DockerContainerID != "redis" {
 		t.Fatalf("bad: %v", chk)
 	}
 }
@@ -1119,6 +1241,7 @@ func TestMergeConfig(t *testing.T) {
 		Services:               []*ServiceDefinition{nil},
 		StartJoin:              []string{"1.1.1.1"},
 		StartJoinWan:           []string{"1.1.1.1"},
+		EnableUi:               true,
 		UiDir:                  "/opt/consul-ui",
 		EnableSyslog:           true,
 		RejoinAfterLeave:       true,
@@ -1148,6 +1271,8 @@ func TestMergeConfig(t *testing.T) {
 		StatsiteAddr:              "127.0.0.1:7250",
 		StatsitePrefix:            "stats_prefix",
 		StatsdAddr:                "127.0.0.1:7251",
+		DogStatsdAddr:             "127.0.0.1:7254",
+		DogStatsdTags:             []string{"tag_1:val_1", "tag_2:val_2"},
 		DisableUpdateCheck:        true,
 		DisableAnonymousSignature: true,
 		HTTPAPIResponseHeaders: map[string]string{
@@ -1166,6 +1291,15 @@ func TestMergeConfig(t *testing.T) {
 		AtlasJoin:           true,
 		SessionTTLMinRaw:    "1000s",
 		SessionTTLMin:       1000 * time.Second,
+		AdvertiseAddrs: AdvertiseAddrsConfig{
+			SerfLan:    &net.TCPAddr{},
+			SerfLanRaw: "127.0.0.5:1231",
+			SerfWan:    &net.TCPAddr{},
+			SerfWanRaw: "127.0.0.5:1232",
+			RPC:        &net.TCPAddr{},
+			RPCRaw:     "127.0.0.5:1233",
+		},
+		Reap: Bool(true),
 	}
 
 	c := MergeConfig(a, b)

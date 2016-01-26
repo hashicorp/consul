@@ -163,6 +163,11 @@ It returns a JSON body like this:
     "EnableSyslog": false,
     "RejoinAfterLeave": false
   },
+  "Coord": {
+    "Adjustment": 0,
+    "Error": 1.5,
+    "Vec": [0,0,0,0,0,0,0,0]
+  },
   "Member": {
     "Name": "foobar",
     "Addr": "10.1.10.12",
@@ -224,8 +229,8 @@ The endpoint always returns 200.
 
 The register endpoint is used to add a new check to the local agent.
 There is more documentation on checks [here](/docs/agent/checks.html).
-Checks may be of script, HTTP, or TTL type. The agent is responsible for managing
-the status of the check and keeping the Catalog in sync.
+Checks may be of script, HTTP, TCP, or TTL type. The agent is responsible for
+managing the status of the check and keeping the Catalog in sync.
 
 The register endpoint expects a JSON request body to be PUT. The request
 body must look like:
@@ -236,14 +241,17 @@ body must look like:
   "Name": "Memory utilization",
   "Notes": "Ensure we don't oversubscribe memory",
   "Script": "/usr/local/bin/check_mem.py",
+  "DockerContainerID": "f972c95ebf0e",
+  "Shell": "/bin/bash",
   "HTTP": "http://example.com",
+  "TCP": "example.com:22",
   "Interval": "10s",
   "TTL": "15s"
 }
 ```
 
-The `Name` field is mandatory, as is one of `Script`, `HTTP` or `TTL`.
-`Script` and `HTTP` also require that `Interval` be set.
+The `Name` field is mandatory, as is one of `Script`, `HTTP`, `TCP` or `TTL`.
+`Script`, `TCP` and `HTTP` also require that `Interval` be set.
 
 If an `ID` is not provided, it is set to `Name`. You cannot have duplicate
 `ID` entries per agent, so it may be necessary to provide an `ID`.
@@ -253,21 +261,37 @@ The `Notes` field is not used internally by Consul and is meant to be human-read
 If a `Script` is provided, the check type is a script, and Consul will
 evaluate the script every `Interval` to update the status.
 
+If a `DockerContainerID` is provided, the check is a Docker check, and Consul will
+evaluate the script every `Interval` in the given container using the specified
+`Shell`. Note that `Shell` is currently only supported for Docker checks.
+
 An `HTTP` check will perform an HTTP GET request against the value of `HTTP` (expected to
 be a URL) every `Interval`. If the response is any `2xx` code, the check is `passing`.
 If the response is `429 Too Many Requests`, the check is `warning`. Otherwise, the check
 is `critical`.
 
+An `TCP` check will perform an TCP connection attempt against the value of `TCP`
+(expected to be an IP/hostname and port combination) every `Interval`.  If the
+connection attempt is successful, the check is `passing`.  If the connection
+attempt is unsuccessful, the check is `critical`.  In the case of a hostname
+that resolves to both IPv4 and IPv6 addresses, an attempt will be made to both
+addresses, and the first successful connection attempt will result in a
+successful check.
+
 If a `TTL` type is used, then the TTL update endpoint must be used periodically to update
 the state of the check.
 
-Optionally, a `ServiceID` can be provided to associate the registered check with an existing service provided by the agent.
+The `ServiceID` field can be provided to associate the registered check with an
+existing service provided by the agent.
+
+The `Status` field can be provided to specify the initial state of the health
+check.
 
 This endpoint supports [ACL tokens](/docs/internals/acl.html). If the query
 string includes a `?token=<token-id>`, the registration will use the provided
 token to authorize the request. The token is also persisted in the agent's
 local configuration to enable periodic
-[anti-entropy](/docs/internal/anti-entropy.html) syncs and seamless agent
+[anti-entropy](/docs/internals/anti-entropy.html) syncs and seamless agent
 restarts.
 
 The return code is 200 on success.
@@ -317,7 +341,8 @@ The return code is 200 on success.
 
 The register endpoint is used to add a new service, with an optional health check,
 to the local agent. There is more documentation on services [here](/docs/agent/services.html).
-The agent is responsible for managing the status of the service and keeping the Catalog in sync.
+The agent is responsible for managing the status of its local services, and for sending updates
+about its local services to the servers to keep the global Catalog in sync.
 
 The register endpoint expects a JSON request body to be PUT. The request
 body must look like:
@@ -357,7 +382,7 @@ This endpoint supports [ACL tokens](/docs/internals/acl.html). If the query
 string includes a `?token=<token-id>`, the registration will use the provided
 token to authorize the request. The token is also persisted in the agent's
 local configuration to enable periodic
-[anti-entropy](/docs/internal/anti-entropy.html) syncs and seamless agent
+[anti-entropy](/docs/internals/anti-entropy.html) syncs and seamless agent
 restarts.
 
 The return code is 200 on success.

@@ -62,3 +62,6 @@ The list of available flags are:
 
 * `-verbose` - Enables verbose output.
 
+* `-token` - The ACL token to use during requests. This token must have access
+  to the prefix in the KV store as well as exec "write" access for the _rexec
+  event. Defaults to that of the agent.

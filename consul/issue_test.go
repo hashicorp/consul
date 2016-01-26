@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -11,15 +10,10 @@ import (
 
 // Testing for GH-300 and GH-279
 func TestHealthCheckRace(t *testing.T) {
-	path, err := ioutil.TempDir("", "fsm")
+	fsm, err := NewFSM(nil, os.Stderr)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	fsm, err := NewFSM(nil, path, os.Stderr)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer fsm.Close()
 	state := fsm.State()
 
 	req := structs.RegisterRequest{
@@ -51,9 +45,12 @@ func TestHealthCheckRace(t *testing.T) {
 	}
 
 	// Verify the index
-	idx, out1 := state.CheckServiceNodes("db")
+	idx, out1, err := state.CheckServiceNodes("db")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if idx != 10 {
-		t.Fatalf("Bad index")
+		t.Fatalf("Bad index: %d", idx)
 	}
 
 	// Update the check state
@@ -71,9 +68,12 @@ func TestHealthCheckRace(t *testing.T) {
 	}
 
 	// Verify the index changed
-	idx, out2 := state.CheckServiceNodes("db")
+	idx, out2, err := state.CheckServiceNodes("db")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 	if idx != 20 {
-		t.Fatalf("Bad index")
+		t.Fatalf("Bad index: %d", idx)
 	}
 
 	if reflect.DeepEqual(out1, out2) {

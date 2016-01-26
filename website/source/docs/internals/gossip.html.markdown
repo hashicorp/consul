@@ -8,7 +8,7 @@ description: |-
 
 # Gossip Protocol
 
-Consul uses a [gossip protocol](http://en.wikipedia.org/wiki/Gossip_protocol)
+Consul uses a [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol)
 to manage membership and broadcast messages to the cluster. All of this is provided
 through the use of the [Serf library](https://www.serfdom.io/). The gossip protocol
 used by Serf is based on

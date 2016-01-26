@@ -15,7 +15,7 @@
 
 					<li<%= sidebar_current("docs-upgrading-compat") %>>
 					<a href="/docs/compatibility.html">Compatibility Promise</a>
-                    </li>
+                                        </li>
 
 					<li<%= sidebar_current("docs-upgrading-specific") %>>
 					<a href="/docs/upgrade-specific.html">Specific Version Details</a>
@@ -36,6 +36,10 @@
 
 					<li<%= sidebar_current("docs-internals-gossip") %>>
 					<a href="/docs/internals/gossip.html">Gossip Protocol</a>
+					</li>
+
+					<li<%= sidebar_current("docs-internals-coordinates") %>>
+					<a href="/docs/internals/coordinates.html">Network Coordinates</a>
 					</li>
 
 					<li<%= sidebar_current("docs-internals-sessions") %>>
@@ -96,8 +100,7 @@
 					</li>
 
 					<li<%= sidebar_current("docs-commands-leave") %>>
-					<a href="/docs/commands/leave.html">leave</a>
-                    </li>
+					<a href="/docs/commands/leave.html">leave</a></li>
 
 					<li<%= sidebar_current("docs-commands-lock") %>>
 					<a href="/docs/commands/lock.html">lock</a>
@@ -123,6 +126,10 @@
 					<a href="/docs/commands/reload.html">reload</a>
 					</li>
 
+					<li<%= sidebar_current("docs-commands-rtt") %>>
+					<a href="/docs/commands/rtt.html">rtt</a>
+					</li>
+
 					<li<%= sidebar_current("docs-commands-watch") %>>
 					<a href="/docs/commands/watch.html">watch</a>
 					</li>
@@ -143,8 +150,8 @@
 					<li<%= sidebar_current("docs-agent-http") %>>
 					<a href="/docs/agent/http.html">HTTP API</a>
 					<ul class="subnav">
-						<li<%= sidebar_current("docs-agent-http-kv") %>>
-						<a href="/docs/agent/http/kv.html">Key/Value store</a>
+						<li<%= sidebar_current("docs-agent-http-acl") %>>
+						<a href="/docs/agent/http/acl.html">ACLs</a>
 						</li>
 
 						<li<%= sidebar_current("docs-agent-http-agent") %>>
@@ -155,20 +162,28 @@
 						<a href="/docs/agent/http/catalog.html">Catalog</a>
 						</li>
 
-						<li<%= sidebar_current("docs-agent-http-session") %>>
-						<a href="/docs/agent/http/session.html">Sessions</a>
+						<li<%= sidebar_current("docs-agent-http-event") %>>
+						<a href="/docs/agent/http/event.html">Events</a>
 						</li>
 
 						<li<%= sidebar_current("docs-agent-http-health") %>>
 						<a href="/docs/agent/http/health.html">Health Checks</a>
 						</li>
 
-						<li<%= sidebar_current("docs-agent-http-acl") %>>
-						<a href="/docs/agent/http/acl.html">ACLs</a>
+						<li<%= sidebar_current("docs-agent-http-kv") %>>
+						<a href="/docs/agent/http/kv.html">Key/Value store</a>
 						</li>
 
-						<li<%= sidebar_current("docs-agent-http-event") %>>
-						<a href="/docs/agent/http/event.html">Events</a>
+						<li<%= sidebar_current("docs-agent-http-coordinate") %>>
+						<a href="/docs/agent/http/coordinate.html">Network Coordinates</a>
+						</li>
+
+						<li<%= sidebar_current("docs-agent-http-query") %>>
+						<a href="/docs/agent/http/query.html">Prepared Queries</a>
+						</li>
+
+						<li<%= sidebar_current("docs-agent-http-session") %>>
+						<a href="/docs/agent/http/session.html">Sessions</a>
 						</li>
 
 						<li<%= sidebar_current("docs-agent-http-status") %>>

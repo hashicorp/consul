@@ -52,11 +52,30 @@ type ACL interface {
 	// ServiceRead checks for permission to read a given service
 	ServiceRead(string) bool
 
+	// EventRead determines if a specific event can be queried.
+	EventRead(string) bool
+
+	// EventWrite determines if a specific event may be fired.
+	EventWrite(string) bool
+
+	// KeyringRead determines if the encryption keyring used in
+	// the gossip layer can be read.
+	KeyringRead() bool
+
+	// KeyringWrite determines if the keyring can be manipulated
+	KeyringWrite() bool
+
 	// ACLList checks for permission to list all the ACLs
 	ACLList() bool
 
 	// ACLModify checks for permission to manipulate ACLs
 	ACLModify() bool
+
+	// QueryList checks for permission to list all the prepared queries.
+	QueryList() bool
+
+	// QueryModify checks for permission to modify any prepared query.
+	QueryModify() bool
 }
 
 // StaticACL is used to implement a base ACL policy. It either
@@ -87,11 +106,35 @@ func (s *StaticACL) ServiceWrite(string) bool {
 	return s.defaultAllow
 }
 
+func (s *StaticACL) EventRead(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) EventWrite(string) bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) KeyringRead() bool {
+	return s.defaultAllow
+}
+
+func (s *StaticACL) KeyringWrite() bool {
+	return s.defaultAllow
+}
+
 func (s *StaticACL) ACLList() bool {
 	return s.allowManage
 }
 
 func (s *StaticACL) ACLModify() bool {
+	return s.allowManage
+}
+
+func (s *StaticACL) QueryList() bool {
+	return s.allowManage
+}
+
+func (s *StaticACL) QueryModify() bool {
 	return s.allowManage
 }
 
@@ -136,6 +179,14 @@ type PolicyACL struct {
 
 	// serviceRules contains the service policies
 	serviceRules *radix.Tree
+
+	// eventRules contains the user event policies
+	eventRules *radix.Tree
+
+	// keyringRules contains the keyring policies. The keyring has
+	// a very simple yes/no without prefix matching, so here we
+	// don't need to use a radix tree.
+	keyringRule string
 }
 
 // New is used to construct a policy based ACL from a set of policies
@@ -145,6 +196,7 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 		parent:       parent,
 		keyRules:     radix.New(),
 		serviceRules: radix.New(),
+		eventRules:   radix.New(),
 	}
 
 	// Load the key policy
@@ -156,6 +208,15 @@ func New(parent ACL, policy *Policy) (*PolicyACL, error) {
 	for _, sp := range policy.Services {
 		p.serviceRules.Insert(sp.Name, sp.Policy)
 	}
+
+	// Load the event policy
+	for _, ep := range policy.Events {
+		p.eventRules.Insert(ep.Event, ep.Policy)
+	}
+
+	// Load the keyring policy
+	p.keyringRule = policy.Keyring
+
 	return p, nil
 }
 
@@ -266,6 +327,58 @@ func (p *PolicyACL) ServiceWrite(name string) bool {
 	return p.parent.ServiceWrite(name)
 }
 
+// EventRead is used to determine if the policy allows for a
+// specific user event to be read.
+func (p *PolicyACL) EventRead(name string) bool {
+	// Longest-prefix match on event names
+	if _, rule, ok := p.eventRules.LongestPrefix(name); ok {
+		switch rule {
+		case EventPolicyRead:
+			return true
+		case EventPolicyWrite:
+			return true
+		default:
+			return false
+		}
+	}
+
+	// Nothing matched, use parent
+	return p.parent.EventRead(name)
+}
+
+// EventWrite is used to determine if new events can be created
+// (fired) by the policy.
+func (p *PolicyACL) EventWrite(name string) bool {
+	// Longest-prefix match event names
+	if _, rule, ok := p.eventRules.LongestPrefix(name); ok {
+		return rule == EventPolicyWrite
+	}
+
+	// No match, use parent
+	return p.parent.EventWrite(name)
+}
+
+// KeyringRead is used to determine if the keyring can be
+// read by the current ACL token.
+func (p *PolicyACL) KeyringRead() bool {
+	switch p.keyringRule {
+	case KeyringPolicyRead, KeyringPolicyWrite:
+		return true
+	case KeyringPolicyDeny:
+		return false
+	default:
+		return p.parent.KeyringRead()
+	}
+}
+
+// KeyringWrite determines if the keyring can be manipulated.
+func (p *PolicyACL) KeyringWrite() bool {
+	if p.keyringRule == KeyringPolicyWrite {
+		return true
+	}
+	return p.parent.KeyringWrite()
+}
+
 // ACLList checks if listing of ACLs is allowed
 func (p *PolicyACL) ACLList() bool {
 	return p.parent.ACLList()
@@ -274,4 +387,14 @@ func (p *PolicyACL) ACLList() bool {
 // ACLModify checks if modification of ACLs is allowed
 func (p *PolicyACL) ACLModify() bool {
 	return p.parent.ACLModify()
+}
+
+// QueryList checks if listing of all prepared queries is allowed.
+func (p *PolicyACL) QueryList() bool {
+	return p.parent.QueryList()
+}
+
+// QueryModify checks if modifying of any prepared query is allowed.
+func (p *PolicyACL) QueryModify() bool {
+	return p.parent.QueryModify()
 }

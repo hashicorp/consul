@@ -1,22 +1,27 @@
 resource "aws_instance" "server" {
-    ami = "${lookup(var.ami, var.region)}"
+    ami = "${lookup(var.ami, concat(var.region, "-", var.platform))}"
     instance_type = "${var.instance_type}"
     key_name = "${var.key_name}"
     count = "${var.servers}"
     security_groups = ["${aws_security_group.consul.name}"]
 
     connection {
-        user = "ubuntu"
+        user = "${lookup(var.user, var.platform)}"
         key_file = "${var.key_path}"
     }
 
+    #Instance tags
+    tags {
+        Name = "${var.tagName}-${count.index}"
+    }
+
     provisioner "file" {
-        source = "${path.module}/scripts/upstart.conf"
+        source = "${path.module}/scripts/${var.platform}/upstart.conf"
         destination = "/tmp/upstart.conf"
     }
 
     provisioner "file" {
-        source = "${path.module}/scripts/upstart-join.conf"
+        source = "${path.module}/scripts/${var.platform}/upstart-join.conf"
         destination = "/tmp/upstart-join.conf"
     }
 
@@ -29,9 +34,9 @@ resource "aws_instance" "server" {
 
     provisioner "remote-exec" {
         scripts = [
-            "${path.module}/scripts/install.sh",
-            "${path.module}/scripts/server.sh",
-            "${path.module}/scripts/service.sh",
+            "${path.module}/scripts/${var.platform}/install.sh",
+            "${path.module}/scripts/${var.platform}/server.sh",
+            "${path.module}/scripts/${var.platform}/service.sh",
         ]
     }
 }

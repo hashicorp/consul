@@ -1,3 +1,173 @@
+## 0.6.3 (January 15, 2015)
+
+BUG FIXES:
+
+* Fixed an issue when running Consul as PID 1 in a Docker container where
+  it could consume CPU and show spurious failures for health checks, watch
+  handlers, and `consul exec` commands [GH-1592]
+
+## 0.6.2 (January 13, 2015)
+
+SECURITY:
+
+* Build against Go 1.5.3 to mitigate a security vulnerability introduced
+  in Go 1.5. For more information, please see https://groups.google.com/forum/#!topic/golang-dev/MEATuOi_ei4
+
+This is a security-only release; other than the version number and building
+against Go 1.5.3, there are no changes from 0.6.1.
+
+## 0.6.1 (January 6, 2015)
+
+BACKWARDS INCOMPATIBILITIES:
+
+* The new `-monitor-retry` option to `consul lock` defaults to 3. This
+  will cause the lock monitor to retry up to 3 times, waiting 1s between
+  each attempt if it gets a 500 error from the Consul servers. For the
+  vast majority of use cases this is desirable to prevent the lock from
+  being given up during a brief period of Consul unavailability. If you
+  want to get the previous default behavior you will need to set the
+  `-monitor-retry=0` option.
+
+IMPROVEMENTS:
+
+* Consul is now built with Go 1.5.2
+* Added source IP address and port information to RPC-related log error
+  messages and HTTP access logs [GH-1513] [GH-1448]
+* API clients configured for insecure SSL now use an HTTP transport that's
+  set up the same way as the Go default transport [GH-1526]
+* Added new per-host telemery on DNS requests [GH-1537]
+* Added support for reaping child processes which is useful when running
+  Consul as PID 1 in Docker containers [GH-1539]
+* Added new `-ui` command line and `ui` config option that enables a built-in
+  Consul web UI, making deployment much simpler [GH-1543]
+* Added new `-dev` command line option that creates a completely in-memory
+  standalone Consul server for development
+* Added a Solaris build, now that dependencies have been updated to support
+  it [GH-1568]
+* Added new `-try` option to `consul lock` to allow it to timeout with an error
+  if it doesn't acquire the lock [GH-1567]
+* Added a new `-monitor-retry` option to `consul lock` to help ride out brief
+  periods of Consul unavailabily without causing the lock to be given up [GH-1567]
+
+BUG FIXES:
+
+* Fixed broken settings icon in web UI [GH-1469]
+* Fixed a web UI bug where the supplied token wasn't being passed into
+  the internal endpoint, breaking some pages when multiple datacenters
+  were present [GH-1071]
+
+## 0.6.0 (December 3, 2015)
+
+BACKWARDS INCOMPATIBILITIES:
+
+* A KV lock acquisition operation will now allow the lock holder to
+  update the key's contents without giving up the lock by doing another
+  PUT with `?acquire=<session>` and providing the same session that
+  is holding the lock. Previously, this operation would fail.
+
+FEATURES:
+
+* Service ACLs now apply to service discovery [GH-1024]
+* Added event ACLs to guard firing user events [GH-1046]
+* Added keyring ACLs for gossip encryption keyring operations [GH-1090]
+* Added a new TCP check type that does a connect as a check [GH-1130]
+* Added new "tag override" feature that lets catalog updates to a
+  service's tags flow down to agents [GH-1187]
+* Ported in-memory database from LMDB to an immutable radix tree to improve
+  read throughput, reduce garbage collection pressure, and make Consul 100%
+  pure Go [GH-1291]
+* Added support for sending telemetry to DogStatsD [GH-1293]
+* Added new network tomography subsystem that estimates the network
+  round trip times between nodes and exposes that in raw APIs, as well
+  as in existing APIs (find the service node nearest node X); also
+  includes a new `consul rtt` command to query interactively [GH-1331]
+* Consul now builds under Go 1.5.1 by default [GH-1345]
+* Added built-in support for running health checks inside Docker containers
+  [GH-1343]
+* Added prepared queries which support service health queries with rich
+  features such as filters for multiple tags and failover to remote datacenters
+  based on network coordinates; these are available via HTTP as well as the
+  DNS interface [GH-1389]
+
+BUG FIXES:
+
+* Fixed expired certificates in unit tests [GH-979]
+* Allow services with `/` characters in the UI [GH-988]
+* Added SOA/NXDOMAIN records to negative DNS responses per RFC2308 [GH-995]
+  [GH-1142] [GH-1195] [GH-1217]
+* Token hiding in HTTP logs bug fixed [GH-1020]
+* RFC6598 addresses are accepted as private IPs [GH-1050]
+* Fixed reverse DNS lookups to recursor [GH-1137]
+* Removes the trailing `/` added by the `consul lock` command [GH-1145]
+* Fixed bad lock handler execution during shutdown [GH-1080] [GH-1158] [GH-1214]
+* Added missing support for AAAA queries for nodes [GH-1222]
+* Tokens passed from the CLI or API work for maint mode [GH-1230]
+* Fixed service derigister/reregister flaps that could happen during
+  `consul reload` [GH-1235]
+* Fixed the Go API client to properly distinguish between expired sessions
+  and sessions that don't exist [GH-1041]
+* Fixed the KV section of the UI to work on Safari [GH-1321]
+* Cleaned up Javascript for built-in UI with bug fixes [GH-1338]
+
+IMPROVEMENTS:
+
+* Added sorting of `consul members` command output [GH-969]
+* Updated AWS templates for RHEL6, CentOS6 [GH-992] [GH-1002]
+* Advertised gossip/rpc addresses can now be configured [GH-1004]
+* Failed lock acquisition handling now responds based on type of failure
+  [GH-1006]
+* Agents now remember check state across restarts [GH-1009]
+* Always run ACL tests by default in API tests [GH-1030]
+* Consul now refuses to start if there are multiple private IPs [GH-1099]
+* Improved efficiency of servers managing incoming connections from agents
+  [GH-1170]
+* Added logging of the DNS client addresses in error messages [GH-1166]
+* Added `-http-port` option to change the HTTP API port number [GH-1167]
+* Atlas integration options are reload-able via SIGHUP [GH-1199]
+* Atlas endpoint is a configurable option and CLI arg [GH-1201]
+* Added `-pass-stdin` option to `consul lock` command [GH-1200]
+* Enables the `/v1/internal/ui/*` endpoints, even if `-ui-dir` isn't set
+  [GH-1215]
+* Added HTTP method to Consul's log output for better debugging [GH-1270]
+* Lock holders can `?acquire=<session>` a key again with the same session
+  that holds the lock to update a key's contents without releasing the
+  lock [GH-1291]
+* Improved an O(n^2) algorithm in the agent's catalog sync code [GH-1296]
+* Switched to net-rpc-msgpackrpc to reduce RPC overhead [GH-1307]
+* Removed all uses of the http package's default client and transport in
+  Consul to avoid conflicts with other packages [GH-1310] [GH-1327]
+* Added new `X-Consul-Token` HTTP header option to avoid passing tokens
+  in the query string [GH-1318]
+* Increased session TTL max to 24 hours (use with caution, see note added
+  to the Session HTTP endpoint documentation) [GH-1412]
+* Added support to the API client for retrying lock monitoring when Consul
+  is unavailable, helping prevent false indications of lost locks (eg. apps
+  like Vault can avoid failing over when a Consul leader election occurs)
+  [GH-1457]
+* Added reap of receive buffer space for idle streams in the connection
+  pool [GH-1452]
+
+MISC:
+
+* Lots of docs fixes
+* Lots of Vagrantfile cleanup
+* Data migrator utility removed to eliminate cgo dependency [GH-1309]
+
+UPGRADE NOTES:
+
+* Consul will refuse to start if the data directory contains an "mdb" folder.
+  This folder was used in versions of Consul up to 0.5.1. Consul version 0.5.2
+  included a baked-in utility to automatically upgrade the data format, but
+  this has been removed in Consul 0.6 to eliminate the dependency on cgo.
+* New service read, event firing, and keyring ACLs may require special steps to
+  perform during an upgrade if ACLs are enabled and set to deny by default.
+* Consul will refuse to start if there are multiple private IPs available, so
+  if this is the case you will need to configure Consul's advertise or bind
+  addresses before upgrading.
+
+See https://www.consul.io/docs/upgrade-specific.html for detailed upgrade
+instructions.
+
 ## 0.5.2 (May 18, 2015)
 
 FEATURES:
@@ -44,12 +214,12 @@ IMPROVEMENTS:
  * HTTP health checks more reliable, avoid KeepAlives [GH-824]
  * Improved protection against a passive cluster merge
  * SIGTERM is properly handled for graceful shutdown [GH-827]
- * Better staggering of defered updates to checks [GH-884]
+ * Better staggering of deferred updates to checks [GH-884]
  * Configurable stats prefix [GH-902]
  * Raft uses BoltDB as the backend store. [GH-857]
  * API RenewPeriodic more resilient to transient errors [GH-912]
 
-## 0.5.0 (Febuary 19, 2015)
+## 0.5.0 (February 19, 2015)
 
 FEATURES:
 
@@ -93,7 +263,7 @@ BUG FIXES:
  * Fixed issue preventing node reaping [GH-371]
  * Fixed gossip stability at very large scale
  * Fixed string of rpc error: rpc error: ... no known leader. [GH-611]
- * Fixed panic in `exec` during cancelation
+ * Fixed panic in `exec` during cancellation
  * Fixed health check state reset caused by SIGHUP [GH-693]
  * Fixed bug in UI when multiple datacenters exist.
 
@@ -103,8 +273,8 @@ IMPROVEMENTS:
  * Improved K/V blocking query performance [GH-578]
  * CLI respects CONSUL_RPC_ADDR environment variable to load parameter [GH-542]
  * Added support for multiple DNS recursors [GH-448]
- * Added support for definining multiple services per configuration file [GH-433]
- * Added support for definining multiple checks per configuration file [GH-433]
+ * Added support for defining multiple services per configuration file [GH-433]
+ * Added support for defining multiple checks per configuration file [GH-433]
  * Allow mixing of service and check definitions in a configuration file [GH-433]
  * Allow notes for checks in service definition file [GH-449]
  * Random stagger for agent checks to prevent thundering herd [GH-546]
@@ -313,7 +483,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-  * Renaming "seperator" to "separator". This is the correct spelling,
+  * Renaming "separator" to "separator". This is the correct spelling,
       but both spellings are respected for backwards compatibility. [GH-101]
   * Private IP is properly found on Windows clients.
   * Windows agents won't show "failed to decode" errors on every RPC

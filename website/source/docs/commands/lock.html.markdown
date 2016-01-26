@@ -20,7 +20,7 @@ a single holder is allowed, and a lock is used for mutual exclusion. This
 uses the [leader election algorithm](/docs/guides/leader-election.html).
 
 If the lock holder count is more than one, then a semaphore is used instead.
-A semaphore allows more than a single holder, but the is less efficient than
+A semaphore allows more than a single holder, but this is less efficient than
 a simple lock. This follows the [semaphore algorithm](/docs/guides/semaphore.html).
 
 All locks using the same prefix must agree on the value of `-n`. If conflicting
@@ -40,10 +40,10 @@ The prefix must be writable. The child is invoked only when the lock is held,
 and the `CONSUL_LOCK_HELD` environment variable will be set to `true`.
 
 If the lock is lost, communication is disrupted, or the parent process
-interrupted, the child process will receive a `SIGTERM`. After a grace period,
-a `SIGKILL` will be used to force termination.  
-For Consul agents on Windows, the child process is always terminated with a
-`SIGKILL`, since Windows has no POSIX compatible notion for `SIGTERM`.
+interrupted, the child process will receive a `SIGTERM`. After a grace period
+of 5 seconds, a `SIGKILL` will be used to force termination. For Consul agents
+on Windows, the child process is always terminated with a `SIGKILL`, since
+Windows has no POSIX compatible notion for `SIGTERM`.
 
 The list of available flags are:
 
@@ -59,6 +59,18 @@ The list of available flags are:
   If not provided, one is generated based on the child command.
 
 * `-token` - ACL token to use. Defaults to that of agent.
+
+* `-pass-stdin` - Pass stdin to child process.
+
+* `-try` - Attempt to acquire the lock up to the given timeout. The timeout is a
+  positive decimal number, with unit suffix, such as "500ms". Valid time units
+  are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+
+* `-monitor-retry` - Retry up to this number of times if Consul returns a 500 error
+   while monitoring the lock. This allows riding out brief periods of unavailability
+   without causing leader elections, but increases the amount of time required
+   to detect a lost lock in some cases. Defaults to 3, with a 1s wait between retries.
+   Set to 0 to disable.
 
 * `-verbose` - Enables verbose output.
 

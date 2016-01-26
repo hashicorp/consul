@@ -21,6 +21,25 @@ description: Service discovery and configuration made easy. Distributed, highly 
 			<div class="jumbotron-dots"></div>
 	</div>
 </div>
+<!-- Make sure that any changes made to jumbotron are reproduced here as this takes up the space in the layout -->
+<div id="jumbotron-mask-dummy" aria-hidden="true">
+	<div id="jumbotron">
+			<div class="container">
+				<div class="col-lg-6 col-md-6">
+					<h2 class="rls-l">
+					Service discovery and configuration made easy.
+					Distributed, highly available, and
+					datacenter-aware.
+					</h2>
+				</div>
+				<div class="jumbo-logo-wrap col-lg-offset-1 col-lg-5 col-md-6 hidden-xs hidden-sm">
+					<div class="jumbo-logo"></div>
+				</div>
+				<!-- <p><a class="btn btn-primary btn-lg">Learn more &raquo;</a></p> -->
+			</div>
+			<div class="jumbotron-dots"></div>
+	</div>
+</div>
 
 <div id="features">
 	<div class="container">
@@ -159,6 +178,8 @@ description: Service discovery and configuration made easy. Distributed, highly 
 									<p>       "Value": <span class="txt-p">"YmFy"</span></p>
 									<p>    }</p>
 									<p>]</p>
+									<p class="command"><span class="txt-r">admin@hashicorp</span>: echo "YmFy" | base64 --decode</p>
+                                                                        <p>bar</p>
 									<p class="command"><span class="txt-r">admin@hashicorp</span>: <span class="cursor">&nbsp;</span></p>
 								</div>
 							</div>
@@ -177,7 +198,7 @@ description: Service discovery and configuration made easy. Distributed, highly 
 					<p>The intro and getting started guide contain
 						a simple and approachable walkthrough for running Consul locally.</p>
 				</div>
-				<div class="col-xs-offset-5 col-xs-12 col-sm-6 col-sm-offset-0 right">
+				<div class="col-xs-12 col-sm-6 col-sm-offset-0 right">
 					<a class="outline-btn purple" href="/intro/index.html">Read the intro &#187;</a>
 				</div>
 			</div>

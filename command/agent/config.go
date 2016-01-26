@@ -26,7 +26,7 @@ type PortConfig struct {
 	HTTPS   int // HTTPS API
 	RPC     int // CLI RPC
 	SerfLan int `mapstructure:"serf_lan"` // LAN gossip (Client + Server)
-	SerfWan int `mapstructure:"serf_wan"` // WAN gossip (Server onlyg)
+	SerfWan int `mapstructure:"serf_wan"` // WAN gossip (Server only)
 	Server  int // Server internal RPC
 }
 
@@ -38,6 +38,15 @@ type AddressConfig struct {
 	HTTP  string // HTTP API
 	HTTPS string // HTTPS API
 	RPC   string // CLI RPC
+}
+
+type AdvertiseAddrsConfig struct {
+	SerfLan    *net.TCPAddr `mapstructure:"-"`
+	SerfLanRaw string       `mapstructure:"serf_lan"`
+	SerfWan    *net.TCPAddr `mapstructure:"-"`
+	SerfWanRaw string       `mapstructure:"serf_wan"`
+	RPC        *net.TCPAddr `mapstructure:"-"`
+	RPCRaw     string       `mapstructure:"rpc"`
 }
 
 // DNSConfig is used to fine tune the DNS sub-system.
@@ -85,12 +94,16 @@ type DNSConfig struct {
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
 type Config struct {
+	// DevMode enables a fast-path mode of opertaion to bring up an in-memory
+	// server with minimal configuration. Useful for developing Consul.
+	DevMode bool `mapstructure:"-"`
+
 	// Bootstrap is used to bring up the first Consul server, and
 	// permits that node to elect itself leader
 	Bootstrap bool `mapstructure:"bootstrap"`
 
 	// BootstrapExpect tries to automatically bootstrap the Consul cluster,
-	// by witholding peers until enough servers join.
+	// by withholding peers until enough servers join.
 	BootstrapExpect int `mapstructure:"bootstrap_expect"`
 
 	// Server controls if this agent acts like a Consul server,
@@ -142,6 +155,9 @@ type Config struct {
 	// and Consul RPC IP. If not specified, bind address is used.
 	AdvertiseAddr string `mapstructure:"advertise_addr"`
 
+	// AdvertiseAddrs configuration
+	AdvertiseAddrs AdvertiseAddrsConfig `mapstructure:"advertise_addrs"`
+
 	// AdvertiseAddrWan is the address we use for advertising our
 	// Serf WAN IP. If not specified, the general advertise address is used.
 	AdvertiseAddrWan string `mapstructure:"advertise_addr_wan"`
@@ -171,6 +187,14 @@ type Config struct {
 	// StatsdAddr is the address of a statsd instance. If provided,
 	// metrics will be sent to that instance.
 	StatsdAddr string `mapstructure:"statsd_addr"`
+
+	// DogStatsdAddr is the address of a dogstatsd instance. If provided,
+	// metrics will be sent to that instance
+	DogStatsdAddr string `mapstructure:"dogstatsd_addr"`
+
+	// DogStatsdTags are the global tags that should be sent with each packet to dogstatsd
+	// It is a list of strings, where each string looks like "my_tag_name:my_tag_value"
+	DogStatsdTags []string `mapstructure:"dogstatsd_tags"`
 
 	// Protocol is the Consul protocol version to use.
 	Protocol int `mapstructure:"protocol"`
@@ -209,7 +233,7 @@ type Config struct {
 	KeyFile string `mapstructure:"key_file"`
 
 	// ServerName is used with the TLS certificates to ensure the name we
-	// provid ematches the certificate
+	// provide matches the certificate
 	ServerName string `mapstructure:"server_name"`
 
 	// StartJoin is a list of addresses to attempt to join when the
@@ -249,6 +273,10 @@ type Config struct {
 	// the default is 30s.
 	RetryIntervalWan    time.Duration `mapstructure:"-" json:"-"`
 	RetryIntervalWanRaw string        `mapstructure:"retry_interval_wan"`
+
+	// EnableUi enables the statically-compiled assets for the Consul web UI and
+	// serves them at the default /ui/ endpoint automatically.
+	EnableUi bool `mapstructure:"ui"`
 
 	// UiDir is the directory containing the Web UI resources.
 	// If provided, the UI endpoints will be enabled.
@@ -351,10 +379,29 @@ type Config struct {
 	// to it's cluster. Requires Atlas integration.
 	AtlasJoin bool `mapstructure:"atlas_join"`
 
+	// AtlasEndpoint is the SCADA endpoint used for Atlas integration. If
+	// empty, the defaults from the provider are used.
+	AtlasEndpoint string `mapstructure:"atlas_endpoint"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
-	// the agent attempts to reconcile it's local state with the server'
+	// the agent attempts to reconcile its local state with the server's
 	// representation of our state. Defaults to every 60s.
 	AEInterval time.Duration `mapstructure:"-" json:"-"`
+
+	// DisableCoordinates controls features related to network coordinates.
+	DisableCoordinates bool `mapstructure:"disable_coordinates"`
+
+	// SyncCoordinateRateTarget controls the rate for sending network
+	// coordinates to the server, in updates per second. This is the max rate
+	// that the server supports, so we scale our interval based on the size
+	// of the cluster to try to achieve this in aggregate at the server.
+	SyncCoordinateRateTarget float64 `mapstructure:"-" json:"-"`
+
+	// SyncCoordinateIntervalMin sets the minimum interval that coordinates
+	// will be sent to the server. We scale the interval based on the cluster
+	// size, but below a certain interval it doesn't make sense send them any
+	// faster.
+	SyncCoordinateIntervalMin time.Duration `mapstructure:"-" json:"-"`
 
 	// Checks holds the provided check definitions
 	Checks []*CheckDefinition `mapstructure:"-" json:"-"`
@@ -383,6 +430,17 @@ type Config struct {
 	// Minimum Session TTL
 	SessionTTLMin    time.Duration `mapstructure:"-"`
 	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
+
+	// Reap controls automatic reaping of child processes, useful if running
+	// as PID 1 in a Docker container. This defaults to nil which will make
+	// Consul reap only if it detects it's running as PID 1. If non-nil,
+	// then this will be used to decide if reaping is enabled.
+	Reap *bool `mapstructure:"reap"`
+}
+
+// Bool is used to initialize bool pointers in struct literals.
+func Bool(b bool) *bool {
+	return &b
 }
 
 // UnixSocketPermissions contains information about a unix socket, and
@@ -447,15 +505,36 @@ func DefaultConfig() *Config {
 		},
 		StatsitePrefix:      "consul",
 		SyslogFacility:      "LOCAL0",
-		Protocol:            consul.ProtocolVersionMax,
+		Protocol:            consul.ProtocolVersion2Compatible,
 		CheckUpdateInterval: 5 * time.Minute,
 		AEInterval:          time.Minute,
-		ACLTTL:              30 * time.Second,
-		ACLDownPolicy:       "extend-cache",
-		ACLDefaultPolicy:    "allow",
-		RetryInterval:       30 * time.Second,
-		RetryIntervalWan:    30 * time.Second,
+		DisableCoordinates:  false,
+
+		// SyncCoordinateRateTarget is set based on the rate that we want
+		// the server to handle as an aggregate across the entire cluster.
+		// If you update this, you'll need to adjust CoordinateUpdate* in
+		// the server-side config accordingly.
+		SyncCoordinateRateTarget:  64.0, // updates / second
+		SyncCoordinateIntervalMin: 15 * time.Second,
+
+		ACLTTL:           30 * time.Second,
+		ACLDownPolicy:    "extend-cache",
+		ACLDefaultPolicy: "allow",
+		RetryInterval:    30 * time.Second,
+		RetryIntervalWan: 30 * time.Second,
 	}
+}
+
+// DevConfig is used to return a set of configuration to use for dev mode.
+func DevConfig() *Config {
+	conf := DefaultConfig()
+	conf.DevMode = true
+	conf.LogLevel = "DEBUG"
+	conf.Server = true
+	conf.EnableDebug = true
+	conf.DisableAnonymousSignature = true
+	conf.EnableUi = true
+	return conf
 }
 
 // EncryptBytes returns the encryption key configured.
@@ -638,6 +717,30 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.SessionTTLMin = dur
 	}
 
+	if result.AdvertiseAddrs.SerfLanRaw != "" {
+		addr, err := net.ResolveTCPAddr("tcp", result.AdvertiseAddrs.SerfLanRaw)
+		if err != nil {
+			return nil, fmt.Errorf("AdvertiseAddrs.SerfLan is invalid: %v", err)
+		}
+		result.AdvertiseAddrs.SerfLan = addr
+	}
+
+	if result.AdvertiseAddrs.SerfWanRaw != "" {
+		addr, err := net.ResolveTCPAddr("tcp", result.AdvertiseAddrs.SerfWanRaw)
+		if err != nil {
+			return nil, fmt.Errorf("AdvertiseAddrs.SerfWan is invalid: %v", err)
+		}
+		result.AdvertiseAddrs.SerfWan = addr
+	}
+
+	if result.AdvertiseAddrs.RPCRaw != "" {
+		addr, err := net.ResolveTCPAddr("tcp", result.AdvertiseAddrs.RPCRaw)
+		if err != nil {
+			return nil, fmt.Errorf("AdvertiseAddrs.RPC is invalid: %v", err)
+		}
+		result.AdvertiseAddrs.RPC = addr
+	}
+
 	return &result, nil
 }
 
@@ -709,6 +812,9 @@ func FixupCheckType(raw interface{}) error {
 		case "service_id":
 			rawMap["serviceid"] = v
 			delete(rawMap, "service_id")
+		case "docker_container_id":
+			rawMap["DockerContainerID"] = v
+			delete(rawMap, "docker_container_id")
 		}
 	}
 
@@ -819,6 +925,18 @@ func MergeConfig(a, b *Config) *Config {
 	if b.AdvertiseAddrWan != "" {
 		result.AdvertiseAddrWan = b.AdvertiseAddrWan
 	}
+	if b.AdvertiseAddrs.SerfLan != nil {
+		result.AdvertiseAddrs.SerfLan = b.AdvertiseAddrs.SerfLan
+		result.AdvertiseAddrs.SerfLanRaw = b.AdvertiseAddrs.SerfLanRaw
+	}
+	if b.AdvertiseAddrs.SerfWan != nil {
+		result.AdvertiseAddrs.SerfWan = b.AdvertiseAddrs.SerfWan
+		result.AdvertiseAddrs.SerfWanRaw = b.AdvertiseAddrs.SerfWanRaw
+	}
+	if b.AdvertiseAddrs.RPC != nil {
+		result.AdvertiseAddrs.RPC = b.AdvertiseAddrs.RPC
+		result.AdvertiseAddrs.RPCRaw = b.AdvertiseAddrs.RPCRaw
+	}
 	if b.Server == true {
 		result.Server = b.Server
 	}
@@ -836,6 +954,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.StatsdAddr != "" {
 		result.StatsdAddr = b.StatsdAddr
+	}
+	if b.DogStatsdAddr != "" {
+		result.DogStatsdAddr = b.DogStatsdAddr
+	}
+	if b.DogStatsdTags != nil {
+		result.DogStatsdTags = b.DogStatsdTags
 	}
 	if b.EnableDebug {
 		result.EnableDebug = true
@@ -899,6 +1023,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Addresses.RPC != "" {
 		result.Addresses.RPC = b.Addresses.RPC
+	}
+	if b.EnableUi {
+		result.EnableUi = true
 	}
 	if b.UiDir != "" {
 		result.UiDir = b.UiDir
@@ -1008,6 +1135,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.AtlasJoin {
 		result.AtlasJoin = true
 	}
+	if b.AtlasEndpoint != "" {
+		result.AtlasEndpoint = b.AtlasEndpoint
+	}
+	if b.DisableCoordinates {
+		result.DisableCoordinates = true
+	}
 	if b.SessionTTLMinRaw != "" {
 		result.SessionTTLMin = b.SessionTTLMin
 		result.SessionTTLMinRaw = b.SessionTTLMinRaw
@@ -1040,6 +1173,10 @@ func MergeConfig(a, b *Config) *Config {
 	result.RetryJoinWan = make([]string, 0, len(a.RetryJoinWan)+len(b.RetryJoinWan))
 	result.RetryJoinWan = append(result.RetryJoinWan, a.RetryJoinWan...)
 	result.RetryJoinWan = append(result.RetryJoinWan, b.RetryJoinWan...)
+
+	if b.Reap != nil {
+		result.Reap = b.Reap
+	}
 
 	return &result
 }

@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/memberlist"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
 	"github.com/inconshreveable/muxado"
 )
@@ -68,6 +70,12 @@ func (s *Server) listen() {
 	}
 }
 
+// logConn is a wrapper around memberlist's LogConn so that we format references
+// to "from" addresses in a consistent way. This is just a shorter name.
+func logConn(conn net.Conn) string {
+	return memberlist.LogConn(conn)
+}
+
 // handleConn is used to determine if this is a Raft or
 // Consul type RPC connection and invoke the correct handler
 func (s *Server) handleConn(conn net.Conn, isTLS bool) {
@@ -75,7 +83,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	buf := make([]byte, 1)
 	if _, err := conn.Read(buf); err != nil {
 		if err != io.EOF {
-			s.logger.Printf("[ERR] consul.rpc: failed to read byte: %v", err)
+			s.logger.Printf("[ERR] consul.rpc: failed to read byte: %v %s", err, logConn(conn))
 		}
 		conn.Close()
 		return
@@ -83,7 +91,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 
 	// Enforce TLS if VerifyIncoming is set
 	if s.config.VerifyIncoming && !isTLS && RPCType(buf[0]) != rpcTLS {
-		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set")
+		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set %s", logConn(conn))
 		conn.Close()
 		return
 	}
@@ -102,7 +110,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 
 	case rpcTLS:
 		if s.rpcTLS == nil {
-			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS")
+			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS %s", logConn(conn))
 			conn.Close()
 			return
 		}
@@ -113,7 +121,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.handleMultiplexV2(conn)
 
 	default:
-		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v", buf[0])
+		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", buf[0], logConn(conn))
 		conn.Close()
 		return
 	}
@@ -128,7 +136,7 @@ func (s *Server) handleMultiplex(conn net.Conn) {
 		sub, err := server.Accept()
 		if err != nil {
 			if !strings.Contains(err.Error(), "closed") {
-				s.logger.Printf("[ERR] consul.rpc: multiplex conn accept failed: %v", err)
+				s.logger.Printf("[ERR] consul.rpc: multiplex conn accept failed: %v %s", err, logConn(conn))
 			}
 			return
 		}
@@ -147,7 +155,7 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 		sub, err := server.Accept()
 		if err != nil {
 			if err != io.EOF {
-				s.logger.Printf("[ERR] consul.rpc: multiplex conn accept failed: %v", err)
+				s.logger.Printf("[ERR] consul.rpc: multiplex conn accept failed: %v %s", err, logConn(conn))
 			}
 			return
 		}
@@ -158,7 +166,7 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 // handleConsulConn is used to service a single Consul RPC connection
 func (s *Server) handleConsulConn(conn net.Conn) {
 	defer conn.Close()
-	rpcCodec := codec.GoRpc.ServerCodec(conn, msgpackHandle)
+	rpcCodec := msgpackrpc.NewServerCodec(conn)
 	for {
 		select {
 		case <-s.shutdownCh:
@@ -168,7 +176,7 @@ func (s *Server) handleConsulConn(conn net.Conn) {
 
 		if err := s.rpcServer.ServeRequest(rpcCodec); err != nil {
 			if err != io.EOF && !strings.Contains(err.Error(), "closed") {
-				s.logger.Printf("[ERR] consul.rpc: RPC error: %v (%v)", err, conn)
+				s.logger.Printf("[ERR] consul.rpc: RPC error: %v %s", err, logConn(conn))
 				metrics.IncrCounter([]string{"consul", "rpc", "request_error"}, 1)
 			}
 			return
@@ -296,98 +304,67 @@ func (s *Server) raftApply(t structs.MessageType, msg interface{}) (interface{},
 	return future.Response(), nil
 }
 
-// blockingRPC is used for queries that need to wait for a
-// minimum index. This is used to block and wait for changes.
-func (s *Server) blockingRPC(b *structs.QueryOptions, m *structs.QueryMeta,
-	tables MDBTables, run func() error) error {
-	opts := blockingRPCOptions{
-		queryOpts: b,
-		queryMeta: m,
-		tables:    tables,
-		run:       run,
-	}
-	return s.blockingRPCOpt(&opts)
-}
-
-// blockingRPCOptions is used to parameterize blockingRPCOpt since
-// it takes so many options. It should be prefered over blockingRPC.
-type blockingRPCOptions struct {
-	queryOpts *structs.QueryOptions
-	queryMeta *structs.QueryMeta
-	tables    MDBTables
-	kvWatch   bool
-	kvPrefix  string
-	run       func() error
-}
-
-// blockingRPCOpt is the replacement for blockingRPC as it allows
-// for more parameterization easily. It should be prefered over blockingRPC.
-func (s *Server) blockingRPCOpt(opts *blockingRPCOptions) error {
+// blockingRPC is used for queries that need to wait for a minimum index. This
+// is used to block and wait for changes.
+func (s *Server) blockingRPC(queryOpts *structs.QueryOptions, queryMeta *structs.QueryMeta,
+	watch state.Watch, run func() error) error {
 	var timeout *time.Timer
 	var notifyCh chan struct{}
-	var state *StateStore
 
-	// Fast path non-blocking
-	if opts.queryOpts.MinQueryIndex == 0 {
+	// Fast path right to the non-blocking query.
+	if queryOpts.MinQueryIndex == 0 {
 		goto RUN_QUERY
 	}
 
-	// Sanity check that we have tables to block on
-	if len(opts.tables) == 0 && !opts.kvWatch {
-		panic("no tables to block on")
+	// Make sure a watch was given if we were asked to block.
+	if watch == nil {
+		panic("no watch given for blocking query")
 	}
 
-	// Restrict the max query time, and ensure there is always one
-	if opts.queryOpts.MaxQueryTime > maxQueryTime {
-		opts.queryOpts.MaxQueryTime = maxQueryTime
-	} else if opts.queryOpts.MaxQueryTime <= 0 {
-		opts.queryOpts.MaxQueryTime = defaultQueryTime
+	// Restrict the max query time, and ensure there is always one.
+	if queryOpts.MaxQueryTime > maxQueryTime {
+		queryOpts.MaxQueryTime = maxQueryTime
+	} else if queryOpts.MaxQueryTime <= 0 {
+		queryOpts.MaxQueryTime = defaultQueryTime
 	}
 
-	// Apply a small amount of jitter to the request
-	opts.queryOpts.MaxQueryTime += randomStagger(opts.queryOpts.MaxQueryTime / jitterFraction)
+	// Apply a small amount of jitter to the request.
+	queryOpts.MaxQueryTime += randomStagger(queryOpts.MaxQueryTime / jitterFraction)
 
-	// Setup a query timeout
-	timeout = time.NewTimer(opts.queryOpts.MaxQueryTime)
+	// Setup a query timeout.
+	timeout = time.NewTimer(queryOpts.MaxQueryTime)
 
-	// Setup the notify channel
+	// Setup the notify channel.
 	notifyCh = make(chan struct{}, 1)
 
-	// Ensure we tear down any watchers on return
-	state = s.fsm.State()
+	// Ensure we tear down any watches on return.
 	defer func() {
 		timeout.Stop()
-		state.StopWatch(opts.tables, notifyCh)
-		if opts.kvWatch {
-			state.StopWatchKV(opts.kvPrefix, notifyCh)
-		}
+		watch.Clear(notifyCh)
 	}()
 
 REGISTER_NOTIFY:
-	// Register the notification channel. This may be done
-	// multiple times if we have not reached the target wait index.
-	state.Watch(opts.tables, notifyCh)
-	if opts.kvWatch {
-		state.WatchKV(opts.kvPrefix, notifyCh)
-	}
+	// Register the notification channel. This may be done multiple times if
+	// we haven't reached the target wait index.
+	watch.Wait(notifyCh)
 
 RUN_QUERY:
-	// Update the query meta data
-	s.setQueryMeta(opts.queryMeta)
+	// Update the query metadata.
+	s.setQueryMeta(queryMeta)
 
-	// Check if query must be consistent
-	if opts.queryOpts.RequireConsistent {
+	// If the read must be consistent we verify that we are still the leader.
+	if queryOpts.RequireConsistent {
 		if err := s.consistentRead(); err != nil {
 			return err
 		}
 	}
 
-	// Run the query function
+	// Run the query.
 	metrics.IncrCounter([]string{"consul", "rpc", "query"}, 1)
-	err := opts.run()
+	err := run()
 
-	// Check for minimum query time
-	if err == nil && opts.queryMeta.Index > 0 && opts.queryMeta.Index <= opts.queryOpts.MinQueryIndex {
+	// Check for minimum query time.
+	if err == nil && queryMeta.Index > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
 		select {
 		case <-notifyCh:
 			goto REGISTER_NOTIFY

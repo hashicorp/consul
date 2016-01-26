@@ -16,7 +16,7 @@ type KeyringCommand struct {
 }
 
 func (c *KeyringCommand) Run(args []string) int {
-	var installKey, useKey, removeKey string
+	var installKey, useKey, removeKey, token string
 	var listKeys bool
 
 	cmdFlags := flag.NewFlagSet("keys", flag.ContinueOnError)
@@ -26,6 +26,7 @@ func (c *KeyringCommand) Run(args []string) int {
 	cmdFlags.StringVar(&useKey, "use", "", "use key")
 	cmdFlags.StringVar(&removeKey, "remove", "", "remove key")
 	cmdFlags.BoolVar(&listKeys, "list", false, "list keys")
+	cmdFlags.StringVar(&token, "token", "", "acl token")
 
 	rpcAddr := RPCAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
@@ -65,7 +66,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if listKeys {
 		c.Ui.Info("Gathering installed encryption keys...")
-		r, err := client.ListKeys()
+		r, err := client.ListKeys(token)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -79,7 +80,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if installKey != "" {
 		c.Ui.Info("Installing new gossip encryption key...")
-		r, err := client.InstallKey(installKey)
+		r, err := client.InstallKey(installKey, token)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -89,7 +90,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if useKey != "" {
 		c.Ui.Info("Changing primary gossip encryption key...")
-		r, err := client.UseKey(useKey)
+		r, err := client.UseKey(useKey, token)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -99,7 +100,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if removeKey != "" {
 		c.Ui.Info("Removing gossip encryption key...")
-		r, err := client.RemoveKey(removeKey)
+		r, err := client.RemoveKey(removeKey, token)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -199,13 +200,15 @@ Options:
 
   -install=<key>            Install a new encryption key. This will broadcast
                             the new key to all members in the cluster.
-  -use=<key>                Change the primary encryption key, which is used to
-                            encrypt messages. The key must already be installed
-                            before this operation can succeed.
+  -list                     List all keys currently in use within the cluster.
   -remove=<key>             Remove the given key from the cluster. This
                             operation may only be performed on keys which are
                             not currently the primary key.
-  -list                     List all keys currently in use within the cluster.
+  -token=""                 ACL token to use during requests. Defaults to that
+                            of the agent.
+  -use=<key>                Change the primary encryption key, which is used to
+                            encrypt messages. The key must already be installed
+                            before this operation can succeed.
   -rpc-addr=127.0.0.1:8400  RPC address of the Consul agent.
 `
 	return strings.TrimSpace(helpText)

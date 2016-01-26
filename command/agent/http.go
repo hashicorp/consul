@@ -41,7 +41,7 @@ type HTTPServer struct {
 
 // NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
-func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput io.Writer) ([]*HTTPServer, error) {
+func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPServer, error) {
 	var servers []*HTTPServer
 
 	if config.Ports.HTTPS > 0 {
@@ -142,27 +142,28 @@ func NewHTTPServers(agent *Agent, config *Config, scada net.Listener, logOutput 
 		servers = append(servers, srv)
 	}
 
-	if scada != nil {
-		// Create the mux
-		mux := http.NewServeMux()
-
-		// Create the server
-		srv := &HTTPServer{
-			agent:    agent,
-			mux:      mux,
-			listener: scada,
-			logger:   log.New(logOutput, "", log.LstdFlags),
-			uiDir:    config.UiDir,
-			addr:     scadaHTTPAddr,
-		}
-		srv.registerHandlers(false) // Never allow debug for SCADA
-
-		// Start the server
-		go http.Serve(scada, mux)
-		servers = append(servers, srv)
-	}
-
 	return servers, nil
+}
+
+// newScadaHttp creates a new HTTP server wrapping the SCADA
+// listener such that HTTP calls can be sent from the brokers.
+func newScadaHttp(agent *Agent, list net.Listener) *HTTPServer {
+	// Create the mux
+	mux := http.NewServeMux()
+
+	// Create the server
+	srv := &HTTPServer{
+		agent:    agent,
+		mux:      mux,
+		listener: list,
+		logger:   agent.logger,
+		addr:     scadaHTTPAddr,
+	}
+	srv.registerHandlers(false) // Never allow debug for SCADA
+
+	// Start the server
+	go http.Serve(list, mux)
+	return srv
 }
 
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
@@ -204,6 +205,14 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/catalog/services", s.wrap(s.CatalogServices))
 	s.mux.HandleFunc("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
 	s.mux.HandleFunc("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
+
+	if !s.agent.config.DisableCoordinates {
+		s.mux.HandleFunc("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
+		s.mux.HandleFunc("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
+	} else {
+		s.mux.HandleFunc("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
+		s.mux.HandleFunc("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
+	}
 
 	s.mux.HandleFunc("/v1/health/node/", s.wrap(s.HealthNodeChecks))
 	s.mux.HandleFunc("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
@@ -256,6 +265,9 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.HandleFunc("/v1/acl/list", s.wrap(aclDisabled))
 	}
 
+	s.mux.HandleFunc("/v1/query", s.wrap(s.PreparedQueryGeneral))
+	s.mux.HandleFunc("/v1/query/", s.wrap(s.PreparedQuerySpecific))
+
 	if enableDebug {
 		s.mux.HandleFunc("/debug/pprof/", pprof.Index)
 		s.mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -263,19 +275,17 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	}
 
-	// Enable the UI + special endpoints
+	// Use the custom UI dir if provided.
 	if s.uiDir != "" {
-		// Static file serving done from /ui/
 		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
+	} else if s.agent.config.EnableUi {
+		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
 	}
 
-	// Enable the special endpoints for UI or SCADA
-	if s.uiDir != "" || s.agent.config.AtlasInfrastructure != "" {
-		// API's are under /internal/ui/ to avoid conflict
-		s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
-		s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
-		s.mux.HandleFunc("/v1/internal/ui/services", s.wrap(s.UIServices))
-	}
+	// API's are under /internal/ui/ to avoid conflict
+	s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
+	s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
+	s.mux.HandleFunc("/v1/internal/ui/services", s.wrap(s.UIServices))
 }
 
 // wrap is used to wrap functions to make them more convenient
@@ -286,28 +296,41 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		// Obfuscate any tokens from appearing in the logs
 		formVals, err := url.ParseQuery(req.URL.RawQuery)
 		if err != nil {
-			s.logger.Printf("[ERR] http: Failed to decode query: %s", err)
+			s.logger.Printf("[ERR] http: Failed to decode query: %s from=%s", err, req.RemoteAddr)
 			resp.WriteHeader(500)
 			return
 		}
 		logURL := req.URL.String()
 		if tokens, ok := formVals["token"]; ok {
 			for _, token := range tokens {
+				if token == "" {
+					logURL += "<hidden>"
+					continue
+				}
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
 		}
 
+		// TODO (slackpad) We may want to consider redacting prepared
+		// query names/IDs here since they are proxies for tokens. But,
+		// knowing one only gives you read access to service listings
+		// which is pretty trivial, so it's probably not worth the code
+		// complexity and overhead of filtering them out. You can't
+		// recover the token it's a proxy for with just the query info;
+		// you'd need the actual token (or a management token) to read
+		// that back.
+
 		// Invoke the handler
 		start := time.Now()
 		defer func() {
-			s.logger.Printf("[DEBUG] http: Request %v (%v)", logURL, time.Now().Sub(start))
+			s.logger.Printf("[DEBUG] http: Request %s %v (%v) from=%s", req.Method, logURL, time.Now().Sub(start), req.RemoteAddr)
 		}()
 		obj, err := handler(resp, req)
 
 		// Check for an error
 	HAS_ERR:
 		if err != nil {
-			s.logger.Printf("[ERR] http: Request %v, error: %v", logURL, err)
+			s.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
 			code := 500
 			errMsg := err.Error()
 			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
@@ -461,9 +484,14 @@ func (s *HTTPServer) parseDC(req *http.Request, dc *string) {
 	}
 }
 
-// parseToken is used to parse the ?token query param
+// parseToken is used to parse the ?token query param or the X-Consul-Token header
 func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 	if other := req.URL.Query().Get("token"); other != "" {
+		*token = other
+		return
+	}
+
+	if other := req.Header.Get("X-Consul-Token"); other != "" {
 		*token = other
 		return
 	}
@@ -476,6 +504,20 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 
 	// Set the default ACLToken
 	*token = s.agent.config.ACLToken
+}
+
+// parseSource is used to parse the ?near=<node> query parameter, used for
+// sorting by RTT based on a source node. We set the source's DC to the target
+// DC in the request, if given, or else the agent's DC.
+func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource) {
+	s.parseDC(req, &source.Datacenter)
+	if node := req.URL.Query().Get("near"); node != "" {
+		if node == "_agent" {
+			source.Node = s.agent.config.NodeName
+		} else {
+			source.Node = node
+		}
+	}
 }
 
 // parse is a convenience method for endpoints that need

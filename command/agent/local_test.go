@@ -127,6 +127,7 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 
 	// All the services should match
 	for id, serv := range services.NodeServices.Services {
+		serv.CreateIndex, serv.ModifyIndex = 0, 0
 		switch id {
 		case "mysql":
 			if !reflect.DeepEqual(serv, srv1) {
@@ -162,6 +163,103 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 	if len(agent.state.serviceStatus) != 6 {
 		t.Fatalf("bad: %v", agent.state.serviceStatus)
 	}
+	for name, status := range agent.state.serviceStatus {
+		if !status.inSync {
+			t.Fatalf("should be in sync: %v %v", name, status)
+		}
+	}
+}
+
+func TestAgentAntiEntropy_EnableTagOverride(t *testing.T) {
+	conf := nextConfig()
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+		Address:    "127.0.0.1",
+	}
+	var out struct{}
+
+	// EnableTagOverride = true
+	srv1 := &structs.NodeService{
+		ID:                "svc_id1",
+		Service:           "svc1",
+		Tags:              []string{"tag1"},
+		Port:              6100,
+		EnableTagOverride: true,
+	}
+	agent.state.AddService(srv1, "")
+	srv1_mod := new(structs.NodeService)
+	*srv1_mod = *srv1
+	srv1_mod.Port = 7100
+	srv1_mod.Tags = []string{"tag1_mod"}
+	args.Service = srv1_mod
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// EnableTagOverride = false
+	srv2 := &structs.NodeService{
+		ID:                "svc_id2",
+		Service:           "svc2",
+		Tags:              []string{"tag2"},
+		Port:              6200,
+		EnableTagOverride: false,
+	}
+	agent.state.AddService(srv2, "")
+	srv2_mod := new(structs.NodeService)
+	*srv2_mod = *srv2
+	srv2_mod.Port = 7200
+	srv2_mod.Tags = []string{"tag2_mod"}
+	args.Service = srv2_mod
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Trigger anti-entropy run and wait
+	agent.StartSync()
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify that we are in sync
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+	}
+	var services structs.IndexedNodeServices
+	if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// All the services should match
+	for id, serv := range services.NodeServices.Services {
+		serv.CreateIndex, serv.ModifyIndex = 0, 0
+		switch id {
+		case "svc_id1":
+			if serv.ID != "svc_id1" ||
+				serv.Service != "svc1" ||
+				serv.Port != 6100 ||
+				!reflect.DeepEqual(serv.Tags, []string{"tag1_mod"}) {
+				t.Fatalf("bad: %v %v", serv, srv1)
+			}
+		case "svc_id2":
+			if serv.ID != "svc_id2" ||
+				serv.Service != "svc2" ||
+				serv.Port != 6200 ||
+				!reflect.DeepEqual(serv.Tags, []string{"tag2"}) {
+				t.Fatalf("bad: %v %v", serv, srv2)
+			}
+		case "consul":
+			// ignore
+		default:
+			t.Fatalf("unexpected service: %v", id)
+		}
+	}
+
 	for name, status := range agent.state.serviceStatus {
 		if !status.inSync {
 			t.Fatalf("should be in sync: %v %v", name, status)
@@ -289,6 +387,12 @@ func TestAgentAntiEntropy_Services_WithChecks(t *testing.T) {
 	}
 }
 
+var testRegisterRules = `
+service "api" {
+	policy = "write"
+}
+`
+
 func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 	conf := nextConfig()
 	conf.ACLDatacenter = "dc1"
@@ -343,8 +447,9 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 	// Verify that we are in sync
 	req := structs.NodeSpecificRequest{
-		Datacenter: "dc1",
-		Node:       agent.config.NodeName,
+		Datacenter:   "dc1",
+		Node:         agent.config.NodeName,
+		QueryOptions: structs.QueryOptions{Token: out},
 	}
 	var services structs.IndexedNodeServices
 	if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
@@ -358,6 +463,7 @@ func TestAgentAntiEntropy_Services_ACLDeny(t *testing.T) {
 
 	// All the services should match
 	for id, serv := range services.NodeServices.Services {
+		serv.CreateIndex, serv.ModifyIndex = 0, 0
 		switch id {
 		case "mysql":
 			t.Fatalf("should not be permitted")
@@ -484,6 +590,7 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 
 	// All the checks should match
 	for _, chk := range checks.HealthChecks {
+		chk.CreateIndex, chk.ModifyIndex = 0, 0
 		switch chk.CheckID {
 		case "mysql":
 			if !reflect.DeepEqual(chk, chk1) {
@@ -663,8 +770,67 @@ func TestAgent_checkTokens(t *testing.T) {
 	}
 }
 
-var testRegisterRules = `
-service "api" {
-	policy = "write"
+func TestAgent_nestedPauseResume(t *testing.T) {
+	l := new(localState)
+	if l.isPaused() != false {
+		t.Fatal("localState should be unPaused after init")
+	}
+	l.Pause()
+	if l.isPaused() != true {
+		t.Fatal("localState should be Paused after first call to Pause()")
+	}
+	l.Pause()
+	if l.isPaused() != true {
+		t.Fatal("localState should STILL be Paused after second call to Pause()")
+	}
+	l.Resume()
+	if l.isPaused() != true {
+		t.Fatal("localState should STILL be Paused after FIRST call to Resume()")
+	}
+	l.Resume()
+	if l.isPaused() != false {
+		t.Fatal("localState should NOT be Paused after SECOND call to Resume()")
+	}
+
+	defer func() {
+		err := recover()
+		if err == nil {
+			t.Fatal("unbalanced Resume() should cause a panic()")
+		}
+	}()
+	l.Resume()
+
 }
-`
+
+func TestAgent_sendCoordinate(t *testing.T) {
+	conf := nextConfig()
+	conf.SyncCoordinateRateTarget = 10.0 // updates/sec
+	conf.SyncCoordinateIntervalMin = 1 * time.Millisecond
+	conf.ConsulConfig.CoordinateUpdatePeriod = 100 * time.Millisecond
+	conf.ConsulConfig.CoordinateUpdateBatchSize = 10
+	conf.ConsulConfig.CoordinateUpdateMaxBatches = 1
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	// Wait a little while for an update.
+	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
+
+	// Make sure the coordinate is present.
+	req := structs.DCSpecificRequest{
+		Datacenter: agent.config.Datacenter,
+	}
+	var reply structs.IndexedCoordinates
+	if err := agent.RPC("Coordinate.ListNodes", &req, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(reply.Coordinates) != 1 {
+		t.Fatalf("expected a coordinate: %v", reply)
+	}
+	coord := reply.Coordinates[0]
+	if coord.Node != agent.config.NodeName || coord.Coord == nil {
+		t.Fatalf("bad: %v", coord)
+	}
+}

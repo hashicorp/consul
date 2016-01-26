@@ -117,7 +117,7 @@ func (r *rexecWriter) Flush() {
 // handleRemoteExec is invoked when a new remote exec request is received
 func (a *Agent) handleRemoteExec(msg *UserEvent) {
 	a.logger.Printf("[DEBUG] agent: received remote exec event (ID: %s)", msg.ID)
-	// Decode the event paylaod
+	// Decode the event payload
 	var event remoteExecEvent
 	if err := json.Unmarshal(msg.Payload, &event); err != nil {
 		a.logger.Printf("[ERR] agent: failed to decode remote exec event: %v", err)
@@ -134,6 +134,12 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 	if !a.remoteExecWriteAck(&event) {
 		return
 	}
+
+	// Disable child process reaping so that we can get this command's
+	// return value. Note that we take the read lock here since we are
+	// waiting on a specific PID and don't need to serialize all waits.
+	a.reapLock.RLock()
+	defer a.reapLock.RUnlock()
 
 	// Ensure we write out an exit code
 	exitCode := 0

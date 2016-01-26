@@ -5,7 +5,7 @@ HTTP server that serves this directory, but any common HTTP server
 is capable of serving it.
 
 It uses JavaScript and [Ember](http://emberjs.com) to communicate with
-the [Consul API](http://www.consul.io/docs/agent/http.html). The basic
+the [Consul API](https://www.consul.io/docs/agent/http.html). The basic
 features it provides are:
 
 - Service view. A list of your registered services, their
@@ -57,3 +57,23 @@ development configuration.
 `make dist`
 
 The `dist` folder will contain the files you should use for deployment.
+
+###Acknowledgements
+cog icon by useiconic.com from the [Noun Project](https://thenounproject.com/term/setting/45865/)
+
+### Compiling the UI into the Go binary
+
+The UI is compiled and shipped with the Consul go binary. The generated bindata
+file lives in the `command/agent/bindata_assetfs.go` file and is checked into
+source control. This is useful so that not every Consul developer needs to set
+up bundler etc. To re-generate the file, first follow the compilation steps
+above to build the UI assets into the `dist/` folder. With that done, from the
+root of the Consul repo, run:
+
+```
+$ make static-assets
+```
+
+The file will now be refreshed with the current UI data. You can now rebuild the
+Consul binary normally with `make bin` or `make dev`, and see the updated UI
+after re-launching Consul.

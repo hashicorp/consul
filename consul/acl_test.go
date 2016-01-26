@@ -18,7 +18,7 @@ func TestACL_Disabled(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	acl, err := s1.resolveToken("does not exist")
 	if err != nil {
@@ -62,7 +62,7 @@ func TestACL_Authority_NotFound(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	acl, err := s1.resolveToken("does not exist")
 	if err == nil || err.Error() != aclNotFound {
@@ -83,7 +83,7 @@ func TestACL_Authority_Found(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -97,7 +97,7 @@ func TestACL_Authority_Found(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -128,7 +128,7 @@ func TestACL_Authority_Anonymous_Found(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Resolve the token
 	acl, err := s1.resolveToken("")
@@ -155,7 +155,7 @@ func TestACL_Authority_Master_Found(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Resolve the token
 	acl, err := s1.resolveToken("foobar")
@@ -183,7 +183,7 @@ func TestACL_Authority_Management(t *testing.T) {
 	client := rpcClient(t, s1)
 	defer client.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Resolve the token
 	acl, err := s1.resolveToken("foobar")
@@ -230,7 +230,7 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 
 	client := rpcClient(t, s1)
 	defer client.Close()
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// find the non-authoritative server
 	var nonAuth *Server
@@ -279,7 +279,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -293,7 +293,7 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -355,7 +355,7 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// find the non-authoritative server
 	var nonAuth *Server
@@ -412,7 +412,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -426,7 +426,7 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -486,7 +486,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -500,7 +500,7 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -562,7 +562,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -576,7 +576,7 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -637,8 +637,8 @@ func TestACL_MultiDC_Found(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
-	testutil.WaitForLeader(t, client.Call, "dc2")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc2")
 
 	// Create a new token
 	arg := structs.ACLRequest{
@@ -652,7 +652,7 @@ func TestACL_MultiDC_Found(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var id string
-	if err := client.Call("ACL.Apply", &arg, &id); err != nil {
+	if err := s1.RPC("ACL.Apply", &arg, &id); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -672,6 +672,210 @@ func TestACL_MultiDC_Found(t *testing.T) {
 	if !acl.KeyRead("foo/test") {
 		t.Fatalf("unexpected failed read")
 	}
+}
+
+func TestACL_filterHealthChecks(t *testing.T) {
+	// Create some health checks
+	hc := structs.HealthChecks{
+		&structs.HealthCheck{
+			Node:        "node1",
+			CheckID:     "check1",
+			ServiceName: "foo",
+		},
+	}
+
+	// Try permissive filtering
+	filt := newAclFilter(acl.AllowAll(), nil)
+	filt.filterHealthChecks(&hc)
+	if len(hc) != 1 {
+		t.Fatalf("bad: %#v", hc)
+	}
+
+	// Try restrictive filtering
+	filt = newAclFilter(acl.DenyAll(), nil)
+	filt.filterHealthChecks(&hc)
+	if len(hc) != 0 {
+		t.Fatalf("bad: %#v", hc)
+	}
+}
+
+func TestACL_filterServices(t *testing.T) {
+	// Create some services
+	services := structs.Services{
+		"service1": []string{},
+		"service2": []string{},
+	}
+
+	// Try permissive filtering
+	filt := newAclFilter(acl.AllowAll(), nil)
+	filt.filterServices(services)
+	if len(services) != 2 {
+		t.Fatalf("bad: %#v", services)
+	}
+
+	// Try restrictive filtering
+	filt = newAclFilter(acl.DenyAll(), nil)
+	filt.filterServices(services)
+	if len(services) != 0 {
+		t.Fatalf("bad: %#v", services)
+	}
+}
+
+func TestACL_filterServiceNodes(t *testing.T) {
+	// Create some service nodes
+	nodes := structs.ServiceNodes{
+		&structs.ServiceNode{
+			Node:        "node1",
+			ServiceName: "foo",
+		},
+	}
+
+	// Try permissive filtering
+	filt := newAclFilter(acl.AllowAll(), nil)
+	filt.filterServiceNodes(&nodes)
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %#v", nodes)
+	}
+
+	// Try restrictive filtering
+	filt = newAclFilter(acl.DenyAll(), nil)
+	filt.filterServiceNodes(&nodes)
+	if len(nodes) != 0 {
+		t.Fatalf("bad: %#v", nodes)
+	}
+}
+
+func TestACL_filterNodeServices(t *testing.T) {
+	// Create some node services
+	services := structs.NodeServices{
+		Node: &structs.Node{
+			Node: "node1",
+		},
+		Services: map[string]*structs.NodeService{
+			"foo": &structs.NodeService{
+				ID:      "foo",
+				Service: "foo",
+			},
+		},
+	}
+
+	// Try permissive filtering
+	filt := newAclFilter(acl.AllowAll(), nil)
+	filt.filterNodeServices(&services)
+	if len(services.Services) != 1 {
+		t.Fatalf("bad: %#v", services.Services)
+	}
+
+	// Try restrictive filtering
+	filt = newAclFilter(acl.DenyAll(), nil)
+	filt.filterNodeServices(&services)
+	if len(services.Services) != 0 {
+		t.Fatalf("bad: %#v", services.Services)
+	}
+}
+
+func TestACL_filterCheckServiceNodes(t *testing.T) {
+	// Create some nodes
+	nodes := structs.CheckServiceNodes{
+		structs.CheckServiceNode{
+			Node: &structs.Node{
+				Node: "node1",
+			},
+			Service: &structs.NodeService{
+				ID:      "foo",
+				Service: "foo",
+			},
+			Checks: structs.HealthChecks{
+				&structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "check1",
+					ServiceName: "foo",
+				},
+			},
+		},
+	}
+
+	// Try permissive filtering
+	filt := newAclFilter(acl.AllowAll(), nil)
+	filt.filterCheckServiceNodes(&nodes)
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %#v", nodes)
+	}
+	if len(nodes[0].Checks) != 1 {
+		t.Fatalf("bad: %#v", nodes[0].Checks)
+	}
+
+	// Try restrictive filtering
+	filt = newAclFilter(acl.DenyAll(), nil)
+	filt.filterCheckServiceNodes(&nodes)
+	if len(nodes) != 0 {
+		t.Fatalf("bad: %#v", nodes)
+	}
+}
+
+func TestACL_filterNodeDump(t *testing.T) {
+	// Create a node dump
+	dump := structs.NodeDump{
+		&structs.NodeInfo{
+			Node: "node1",
+			Services: []*structs.NodeService{
+				&structs.NodeService{
+					ID:      "foo",
+					Service: "foo",
+				},
+			},
+			Checks: []*structs.HealthCheck{
+				&structs.HealthCheck{
+					Node:        "node1",
+					CheckID:     "check1",
+					ServiceName: "foo",
+				},
+			},
+		},
+	}
+
+	// Try permissive filtering
+	filt := newAclFilter(acl.AllowAll(), nil)
+	filt.filterNodeDump(&dump)
+	if len(dump) != 1 {
+		t.Fatalf("bad: %#v", dump)
+	}
+	if len(dump[0].Services) != 1 {
+		t.Fatalf("bad: %#v", dump[0].Services)
+	}
+	if len(dump[0].Checks) != 1 {
+		t.Fatalf("bad: %#v", dump[0].Checks)
+	}
+
+	// Try restrictive filtering
+	filt = newAclFilter(acl.DenyAll(), nil)
+	filt.filterNodeDump(&dump)
+	if len(dump) != 1 {
+		t.Fatalf("bad: %#v", dump)
+	}
+	if len(dump[0].Services) != 0 {
+		t.Fatalf("bad: %#v", dump[0].Services)
+	}
+	if len(dump[0].Checks) != 0 {
+		t.Fatalf("bad: %#v", dump[0].Checks)
+	}
+}
+
+func TestACL_unhandledFilterType(t *testing.T) {
+	defer func(t *testing.T) {
+		if recover() == nil {
+			t.Fatalf("should panic")
+		}
+	}(t)
+
+	// Create the server
+	dir, token, srv, client := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer client.Close()
+
+	// Pass an unhandled type into the ACL filter.
+	srv.filterACL(token, &structs.HealthCheck{})
 }
 
 var testACLPolicy = `

@@ -2,7 +2,7 @@
 
 This demo provides a very simple Vagrantfile that creates two nodes,
 one at "172.20.20.10" and another at "172.20.20.11". Both are running
-a standard Ubuntu 12.04 distribution, and Consul is pre-installed.
+a standard Debian 7 distribution, and Consul is pre-installed.
 
 To get started, you can start the cluster by just doing:
 
@@ -23,5 +23,5 @@ At this point the two nodes are running and you can SSH in to play with them:
     ...
 
 To learn more about starting Consul, joining nodes and interacting with the agent,
-checkout the [getting started guide](http://www.consul.io/intro/getting-started/install.html).
+checkout the [getting started guide](https://www.consul.io/intro/getting-started/install.html).
 

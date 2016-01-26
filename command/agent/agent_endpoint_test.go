@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -81,7 +82,7 @@ func TestHTTPAgentSelf(t *testing.T) {
 
 	obj, err := srv.AgentSelf(nil, req)
 	if err != nil {
-		t.Fatalf("Err: %v", err)
+		t.Fatalf("err: %v", err)
 	}
 
 	val := obj.(AgentSelf)
@@ -91,6 +92,24 @@ func TestHTTPAgentSelf(t *testing.T) {
 
 	if int(val.Config.Ports.SerfLan) != srv.agent.config.Ports.SerfLan {
 		t.Fatalf("incorrect port: %v", obj)
+	}
+
+	c, err := srv.agent.server.GetLANCoordinate()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if !reflect.DeepEqual(c, val.Coord) {
+		t.Fatalf("coordinates are not equal: %v != %v", c, val.Coord)
+	}
+
+	srv.agent.config.DisableCoordinates = true
+	obj, err = srv.AgentSelf(nil, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	val = obj.(AgentSelf)
+	if val.Coord != nil {
+		t.Fatalf("should have been nil: %v", val.Coord)
 	}
 }
 
@@ -655,7 +674,7 @@ func TestHTTPAgent_EnableServiceMaintenance(t *testing.T) {
 	}
 
 	// Force the service into maintenance mode
-	req, _ := http.NewRequest("PUT", "/v1/agent/service/maintenance/test?enable=true&reason=broken", nil)
+	req, _ := http.NewRequest("PUT", "/v1/agent/service/maintenance/test?enable=true&reason=broken&token=mytoken", nil)
 	resp := httptest.NewRecorder()
 	if _, err := srv.AgentServiceMaintenance(resp, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -669,6 +688,11 @@ func TestHTTPAgent_EnableServiceMaintenance(t *testing.T) {
 	check, ok := srv.agent.state.Checks()[checkID]
 	if !ok {
 		t.Fatalf("should have registered maintenance check")
+	}
+
+	// Ensure the token was added
+	if token := srv.agent.state.CheckToken(checkID); token != "mytoken" {
+		t.Fatalf("expected 'mytoken', got '%s'", token)
 	}
 
 	// Ensure the reason was set in notes
@@ -693,7 +717,7 @@ func TestHTTPAgent_DisableServiceMaintenance(t *testing.T) {
 	}
 
 	// Force the service into maintenance mode
-	if err := srv.agent.EnableServiceMaintenance("test", ""); err != nil {
+	if err := srv.agent.EnableServiceMaintenance("test", "", ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -749,7 +773,7 @@ func TestHTTPAgent_EnableNodeMaintenance(t *testing.T) {
 
 	// Force the node into maintenance mode
 	req, _ := http.NewRequest(
-		"PUT", "/v1/agent/self/maintenance?enable=true&reason=broken", nil)
+		"PUT", "/v1/agent/self/maintenance?enable=true&reason=broken&token=mytoken", nil)
 	resp := httptest.NewRecorder()
 	if _, err := srv.AgentNodeMaintenance(resp, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -762,6 +786,11 @@ func TestHTTPAgent_EnableNodeMaintenance(t *testing.T) {
 	check, ok := srv.agent.state.Checks()[nodeMaintCheckID]
 	if !ok {
 		t.Fatalf("should have registered maintenance check")
+	}
+
+	// Check that the token was used
+	if token := srv.agent.state.CheckToken(nodeMaintCheckID); token != "mytoken" {
+		t.Fatalf("expected 'mytoken', got '%s'", token)
 	}
 
 	// Ensure the reason was set in notes
@@ -777,7 +806,7 @@ func TestHTTPAgent_DisableNodeMaintenance(t *testing.T) {
 	defer srv.agent.Shutdown()
 
 	// Force the node into maintenance mode
-	srv.agent.EnableNodeMaintenance("")
+	srv.agent.EnableNodeMaintenance("", "")
 
 	// Leave maintenance mode
 	req, _ := http.NewRequest("PUT", "/v1/agent/self/maintenance?enable=false", nil)

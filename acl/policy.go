@@ -13,6 +13,12 @@ const (
 	ServicePolicyDeny  = "deny"
 	ServicePolicyRead  = "read"
 	ServicePolicyWrite = "write"
+	EventPolicyRead    = "read"
+	EventPolicyWrite   = "write"
+	EventPolicyDeny    = "deny"
+	KeyringPolicyWrite = "write"
+	KeyringPolicyRead  = "read"
+	KeyringPolicyDeny  = "deny"
 )
 
 // Policy is used to represent the policy specified by
@@ -21,6 +27,8 @@ type Policy struct {
 	ID       string           `hcl:"-"`
 	Keys     []*KeyPolicy     `hcl:"key,expand"`
 	Services []*ServicePolicy `hcl:"service,expand"`
+	Events   []*EventPolicy   `hcl:"event,expand"`
+	Keyring  string           `hcl:"keyring"`
 }
 
 // KeyPolicy represents a policy for a key
@@ -41,6 +49,16 @@ type ServicePolicy struct {
 
 func (k *ServicePolicy) GoString() string {
 	return fmt.Sprintf("%#v", *k)
+}
+
+// EventPolicy represents a user event policy.
+type EventPolicy struct {
+	Event  string `hcl:",key"`
+	Policy string
+}
+
+func (e *EventPolicy) GoString() string {
+	return fmt.Sprintf("%#v", *e)
 }
 
 // Parse is used to parse the specified ACL rules into an
@@ -78,6 +96,27 @@ func Parse(rules string) (*Policy, error) {
 		default:
 			return nil, fmt.Errorf("Invalid service policy: %#v", sp)
 		}
+	}
+
+	// Validate the user event policies
+	for _, ep := range p.Events {
+		switch ep.Policy {
+		case EventPolicyRead:
+		case EventPolicyWrite:
+		case EventPolicyDeny:
+		default:
+			return nil, fmt.Errorf("Invalid event policy: %#v", ep)
+		}
+	}
+
+	// Validate the keyring policy
+	switch p.Keyring {
+	case KeyringPolicyRead:
+	case KeyringPolicyWrite:
+	case KeyringPolicyDeny:
+	case "": // Special case to allow omitting the keyring policy
+	default:
+		return nil, fmt.Errorf("Invalid keyring policy: %#v", p.Keyring)
 	}
 
 	return p, nil

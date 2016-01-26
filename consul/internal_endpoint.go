@@ -1,6 +1,8 @@
 package consul
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/serf"
 )
@@ -12,39 +14,51 @@ type Internal struct {
 	srv *Server
 }
 
-// ChecksInState is used to get all the checks in a given state
+// NodeInfo is used to retrieve information about a specific node.
 func (m *Internal) NodeInfo(args *structs.NodeSpecificRequest,
 	reply *structs.IndexedNodeDump) error {
 	if done, err := m.srv.forward("Internal.NodeInfo", args, args, reply); done {
 		return err
 	}
 
-	// Get the state specific checks
+	// Get the node info
 	state := m.srv.fsm.State()
-	return m.srv.blockingRPC(&args.QueryOptions,
+	return m.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("NodeInfo"),
+		state.GetQueryWatch("NodeInfo"),
 		func() error {
-			reply.Index, reply.Dump = state.NodeInfo(args.Node)
-			return nil
+			index, dump, err := state.NodeInfo(args.Node)
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Dump = index, dump
+			return m.srv.filterACL(args.Token, reply)
 		})
 }
 
-// ChecksInState is used to get all the checks in a given state
+// NodeDump is used to generate information about all of the nodes.
 func (m *Internal) NodeDump(args *structs.DCSpecificRequest,
 	reply *structs.IndexedNodeDump) error {
 	if done, err := m.srv.forward("Internal.NodeDump", args, args, reply); done {
 		return err
 	}
 
-	// Get the state specific checks
+	// Get all the node info
 	state := m.srv.fsm.State()
-	return m.srv.blockingRPC(&args.QueryOptions,
+	return m.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("NodeDump"),
+		state.GetQueryWatch("NodeDump"),
 		func() error {
-			reply.Index, reply.Dump = state.NodeDump()
-			return nil
+			index, dump, err := state.NodeDump()
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Dump = index, dump
+			return m.srv.filterACL(args.Token, reply)
 		})
 }
 
@@ -57,17 +71,55 @@ func (m *Internal) EventFire(args *structs.EventFireRequest,
 		return err
 	}
 
+	// Check ACLs
+	acl, err := m.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+
+	if acl != nil && !acl.EventWrite(args.Name) {
+		m.srv.logger.Printf("[WARN] consul: user event %q blocked by ACLs", args.Name)
+		return permissionDeniedErr
+	}
+
 	// Set the query meta data
 	m.srv.setQueryMeta(&reply.QueryMeta)
 
+	// Add the consul prefix to the event name
+	eventName := userEventName(args.Name)
+
 	// Fire the event
-	return m.srv.UserEvent(args.Name, args.Payload)
+	return m.srv.serfLAN.UserEvent(eventName, args.Payload, false)
 }
 
 // KeyringOperation will query the WAN and LAN gossip keyrings of all nodes.
 func (m *Internal) KeyringOperation(
 	args *structs.KeyringRequest,
 	reply *structs.KeyringResponses) error {
+
+	// Check ACLs
+	acl, err := m.srv.resolveToken(args.Token)
+	if err != nil {
+		return err
+	}
+	if acl != nil {
+		switch args.Operation {
+		case structs.KeyringList:
+			if !acl.KeyringRead() {
+				return fmt.Errorf("Reading keyring denied by ACLs")
+			}
+		case structs.KeyringInstall:
+			fallthrough
+		case structs.KeyringUse:
+			fallthrough
+		case structs.KeyringRemove:
+			if !acl.KeyringWrite() {
+				return fmt.Errorf("Modifying keyring denied due to ACLs")
+			}
+		default:
+			panic("Invalid keyring operation")
+		}
+	}
 
 	// Only perform WAN keyring querying and RPC forwarding once
 	if !args.Forwarded {

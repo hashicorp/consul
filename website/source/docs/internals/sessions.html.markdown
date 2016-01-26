@@ -109,9 +109,15 @@ and is then referred to by its ID.
 
 The Key/Value API is extended to support an `acquire` and `release` operation.
 The `acquire` operation acts like a Check-And-Set operation except it
-can only succeed if there is no existing lock holder. On success, there
-is a normal key update, but there is also an increment to the `LockIndex`,
-and the `Session` value is updated to reflect the session holding the lock.
+can only succeed if there is no existing lock holder (the current lock holder
+can re-`acquire`, see below). On success, there is a normal key update, but
+there is also an increment to the `LockIndex`, and the `Session` value is
+updated to reflect the session holding the lock.
+
+If the lock is already held by the given session during an `acquire`, then
+the `LockIndex` is not incremented but the key contents are updated. This
+lets the current lock holder update the key contents without having to give
+up the lock and reacquire it.
 
 Once held, the lock can be released using a corresponding `release` operation,
 providing the same session. Again, this acts like a Check-And-Set operations
@@ -139,3 +145,8 @@ the goal of Consul to protect against misbehaving clients.
 The primitives provided by sessions and the locking mechanisms of the KV
 store can be used to build client-side leader election algorithms.
 These are covered in more detail in the [Leader Election guide](/docs/guides/leader-election.html).
+
+## Prepared Query Integration
+
+Prepared queries may be attached to a session in order to automatically delete
+the prepared query when the session is invalidated.

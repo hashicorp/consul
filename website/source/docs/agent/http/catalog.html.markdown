@@ -88,6 +88,17 @@ to indicate that the initial check has not been performed yet.
 It is important to note that `Check` does not have to be provided with `Service`
 and vice versa. A catalog entry can have either, neither, or both.
 
+An optional ACL token may be provided to perform the registration by including a
+`WriteRequest` block in the query payload, like this:
+
+```javascript
+{
+  "WriteRequest": {
+    "Token": "foo"
+  }
+}
+```
+
 If the API call succeeds, a 200 status code is returned.
 
 ### <a name="catalog_deregister"></a> /v1/catalog/deregister
@@ -130,12 +141,27 @@ all associated services and checks are deleted. If `CheckID` is provided, only
 that check is removed. If `ServiceID` is provided, the
 service and its associated health check (if any) are removed.
 
+An optional ACL token may be provided to perform the deregister action by adding
+a `WriteRequest` block to the payload, like this:
+
+```javascript
+{
+  "WriteRequest": {
+    "Token": "foo"
+  }
+}
+```
+
 If the API call succeeds a 200 status code is returned.
 
 ### <a name="catalog_datacenters"></a> /v1/catalog/datacenters
 
 This endpoint is hit with a GET and is used to return all the
 datacenters that are known by the Consul server.
+
+The datacenters will be sorted in ascending order based on the
+estimated median round trip time from the server to the servers
+in that datacenter.
 
 It returns a JSON body like this:
 
@@ -152,6 +178,11 @@ used as a simple check to see if any Consul servers are routable.
 This endpoint is hit with a GET and returns the nodes registered
 in a given DC. By default, the datacenter of the agent is queried;
 however, the dc can be provided using the "?dc=" query parameter.
+
+Adding the optional "?near=" parameter with a node name will sort
+the node list in ascending order based on the estimated round trip
+time from that node. Passing "?near=_agent" will use the agent's
+node for the sort.
 
 It returns a JSON body like this:
 
@@ -203,6 +234,11 @@ however, the dc can be provided using the "?dc=" query parameter.
 The service being queried must be provided on the path. By default
 all nodes in that service are returned. However, the list can be filtered
 by tag using the "?tag=" query parameter.
+
+Adding the optional "?near=" parameter with a node name will sort
+the node list in ascending order based on the estimated round trip
+time from that node. Passing "?near=_agent" will use the agent's
+node for the sort.
 
 It returns a JSON body like this:
 

@@ -61,8 +61,9 @@ if "?recurse" is provided, the returned `X-Consul-Index` corresponds
 to the latest `ModifyIndex` within the prefix, and a blocking query using that
 "?index" will wait until any key within that prefix is updated.
 
-`LockIndex` is the last index of a successful lock acquisition. If the lock is
-held, the `Session` key provides the session that owns the lock.
+`LockIndex` is the number of times this key has successfully been acquired in
+a lock. If the lock is held, the `Session` key provides the session that owns
+the lock.
 
 `Key` is simply the full path of the entry.
 
@@ -102,7 +103,7 @@ value corresponding to the key. There are a number of query parameters that can
 be used with a PUT request:
 
 * ?flags=\<num\> : This can be used to specify an unsigned value between
-  0 and 2^64-1. Clients can choose to use this however makes sense for their application.
+  0 and (2^64)-1. Clients can choose to use this however makes sense for their application.
 
 * ?cas=\<index\> : This flag is used to turn the `PUT` into a Check-And-Set
   operation. This is very useful as a building block for more complex
@@ -114,7 +115,10 @@ be used with a PUT request:
   operation. This is useful as it allows leader election to be built on top
   of Consul. If the lock is not held and the session is valid, this increments
   the `LockIndex` and sets the `Session` value of the key in addition to updating
-  the key contents. A key does not need to exist to be acquired.
+  the key contents. A key does not need to exist to be acquired. If the lock is
+  already held by the given session, then the `LockIndex` is not incremented but
+  the key contents are updated. This lets the current lock holder update the key
+  contents without having to give up the lock and reacquire it.
 
 * ?release=\<session\> : This flag is used to turn the `PUT` into a lock release
   operation. This is useful when paired with "?acquire=" as it allows clients to

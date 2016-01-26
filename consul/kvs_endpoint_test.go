@@ -8,16 +8,17 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 func TestKVS_Apply(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -29,7 +30,7 @@ func TestKVS_Apply(t *testing.T) {
 		},
 	}
 	var out bool
-	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -47,7 +48,7 @@ func TestKVS_Apply(t *testing.T) {
 	arg.Op = structs.KVSCAS
 	arg.DirEnt.ModifyIndex = d.ModifyIndex
 	arg.DirEnt.Flags = 43
-	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -74,10 +75,10 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create the ACL
 	arg := structs.ACLRequest{
@@ -91,7 +92,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var out string
-	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	id := out
@@ -108,7 +109,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: id},
 	}
 	var outR bool
-	err := client.Call("KVS.Apply", &argR, &outR)
+	err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &argR, &outR)
 	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 		t.Fatalf("err: %v", err)
 	}
@@ -122,7 +123,7 @@ func TestKVS_Apply_ACLDeny(t *testing.T) {
 		},
 		WriteRequest: structs.WriteRequest{Token: id},
 	}
-	err = client.Call("KVS.Apply", &argR, &outR)
+	err = msgpackrpc.CallWithCodec(codec, "KVS.Apply", &argR, &outR)
 	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 		t.Fatalf("err: %v", err)
 	}
@@ -132,10 +133,10 @@ func TestKVS_Get(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -147,7 +148,7 @@ func TestKVS_Get(t *testing.T) {
 		},
 	}
 	var out bool
-	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -156,7 +157,7 @@ func TestKVS_Get(t *testing.T) {
 		Key:        "test",
 	}
 	var dirent structs.IndexedDirEntries
-	if err := client.Call("KVS.Get", &getR, &dirent); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -183,10 +184,10 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
@@ -199,7 +200,7 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var out bool
-	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -208,7 +209,7 @@ func TestKVS_Get_ACLDeny(t *testing.T) {
 		Key:        "zip",
 	}
 	var dirent structs.IndexedDirEntries
-	if err := client.Call("KVS.Get", &getR, &dirent); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Get", &getR, &dirent); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -224,10 +225,10 @@ func TestKVSEndpoint_List(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"/test/key1",
@@ -245,7 +246,7 @@ func TestKVSEndpoint_List(t *testing.T) {
 			},
 		}
 		var out bool
-		if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -255,7 +256,7 @@ func TestKVSEndpoint_List(t *testing.T) {
 		Key:        "/test",
 	}
 	var dirent structs.IndexedDirEntries
-	if err := client.Call("KVS.List", &getR, &dirent); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.List", &getR, &dirent); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -277,16 +278,28 @@ func TestKVSEndpoint_List(t *testing.T) {
 			t.Fatalf("bad: %v", d)
 		}
 	}
+
+	// Try listing a nonexistent prefix
+	getR.Key = "/nope"
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.List", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Entries) != 0 {
+		t.Fatalf("Bad: %v", dirent.Entries)
+	}
 }
 
 func TestKVSEndpoint_List_Blocking(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"/test/key1",
@@ -304,7 +317,7 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 			},
 		}
 		var out bool
-		if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -314,7 +327,7 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 		Key:        "/test",
 	}
 	var dirent structs.IndexedDirEntries
-	if err := client.Call("KVS.List", &getR, &dirent); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.List", &getR, &dirent); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -326,8 +339,8 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 	start := time.Now()
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		client := rpcClient(t, s1)
-		defer client.Close()
+		codec := rpcClient(t, s1)
+		defer codec.Close()
 		arg := structs.KVSRequest{
 			Datacenter: "dc1",
 			Op:         structs.KVSDelete,
@@ -336,14 +349,14 @@ func TestKVSEndpoint_List_Blocking(t *testing.T) {
 			},
 		}
 		var out bool
-		if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}()
 
 	// Re-run the query
 	dirent = structs.IndexedDirEntries{}
-	if err := client.Call("KVS.List", &getR, &dirent); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.List", &getR, &dirent); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -382,10 +395,10 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"abe",
@@ -406,7 +419,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out bool
-		if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -422,7 +435,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var out string
-	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	id := out
@@ -433,7 +446,7 @@ func TestKVSEndpoint_List_ACLDeny(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: id},
 	}
 	var dirent structs.IndexedDirEntries
-	if err := client.Call("KVS.List", &getR, &dirent); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.List", &getR, &dirent); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -462,10 +475,10 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"/test/key1",
@@ -483,7 +496,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 			},
 		}
 		var out bool
-		if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -494,7 +507,7 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 		Seperator:  "/",
 	}
 	var dirent structs.IndexedKeyList
-	if err := client.Call("KVS.ListKeys", &getR, &dirent); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.ListKeys", &getR, &dirent); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -513,6 +526,18 @@ func TestKVSEndpoint_ListKeys(t *testing.T) {
 	if dirent.Keys[2] != "/test/sub/" {
 		t.Fatalf("Bad: %v", dirent.Keys)
 	}
+
+	// Try listing a nonexistent prefix
+	getR.Prefix = "/nope"
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.ListKeys", &getR, &dirent); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if dirent.Index == 0 {
+		t.Fatalf("Bad: %v", dirent)
+	}
+	if len(dirent.Keys) != 0 {
+		t.Fatalf("Bad: %v", dirent.Keys)
+	}
 }
 
 func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
@@ -523,10 +548,10 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	keys := []string{
 		"abe",
@@ -547,7 +572,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 			WriteRequest: structs.WriteRequest{Token: "root"},
 		}
 		var out bool
-		if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
@@ -563,7 +588,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	var out string
-	if err := client.Call("ACL.Apply", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	id := out
@@ -575,7 +600,7 @@ func TestKVSEndpoint_ListKeys_ACLDeny(t *testing.T) {
 		QueryOptions: structs.QueryOptions{Token: id},
 	}
 	var dirent structs.IndexedKeyList
-	if err := client.Call("KVS.ListKeys", &getR, &dirent); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.ListKeys", &getR, &dirent); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -597,14 +622,14 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	// Create and invalidate a session with a lock
 	state := s1.fsm.State()
-	if err := state.EnsureNode(1, structs.Node{"foo", "127.0.0.1"}); err != nil {
+	if err := state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	session := &structs.Session{
@@ -643,7 +668,7 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 		},
 	}
 	var out bool
-	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if out != false {
@@ -654,7 +679,7 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// Should acquire
-	if err := client.Call("KVS.Apply", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if out != true {

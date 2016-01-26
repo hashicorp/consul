@@ -11,8 +11,93 @@ description: |-
 The [upgrading page](/docs/upgrading.html) covers the details of doing
 a standard upgrade. However, specific versions of Consul may have more
 details provided for their upgrades as a result of new features or changed
-behavior. This page is used to document those details seperately from the
+behavior. This page is used to document those details separately from the
 standard upgrade flow.
+
+## Consul 0.6
+
+Consul version 0.6 is a very large release with many enhancements and
+optimizations. Changes to be aware of during an upgrade are categorized below.
+
+#### Data store changes
+
+Consul changed the format used to store data on the server nodes in version 0.5
+(see 0.5.1 notes below for details). Previously, Consul would automatically
+detect data directories using the old LMDB format, and convert them to the newer
+BoltDB format. This automatic upgrade has been removed for Consul 0.6, and
+instead a safeguard has been put in place which will prevent Consul from booting
+if the old directory format is detected.
+
+It is still possible to migrate from a 0.5.x version of Consul to 0.6+ using the
+[consul-migrate](https://github.com/hashicorp/consul-migrate) CLI utility. This
+is the same tool that was previously embedded into Consul. See the
+[releases](https://github.com/hashicorp/consul-migrate/releases) page for
+downloadable versions of the tool.
+
+Also, in this release Consul switched from LMDB to a fully in-memory database for
+the state store. Because LMDB is a disk-based backing store, it was able to store
+more data than could fit in RAM in some cases (though this is not a recommended
+configuration for Consul). If you have an extremely large data set that won't fit
+into RAM, you may encounter issues upgrading to Consul 0.6.0 and later. Consul
+should be provisioned with physical memory approximately 2X the data set size to
+allow for bursty allocations and subsequent garbage collection.
+
+#### ACL Enhancements
+
+Consul 0.6 introduces enhancements to the ACL system which may require special
+handling:
+
+* Service ACLs are enforced during service discovery (REST + DNS)
+
+Previously, service discovery was wide open, and any client could query
+information about any service without providing a token. Consul now requires
+read-level access at a minimum when ACLs are enabled to return service
+information over the REST or DNS interfaces. If clients depend on an open
+service discovery system, then the following should be added to all ACL tokens
+which require it:
+
+    # Enable discovery of all services
+    service "" {
+        policy = "read"
+    }
+
+Note that the agent's [`acl_token`](/docs/agent/options.html#acl_token) is used
+when the DNS interface is queried, so be sure that token has sufficient
+privileges to return the DNS records you expect to retrieve from it.
+
+* Event and keyring ACLs
+
+Similar to service discovery, the new event and keyring ACLs will block access
+to these operations if the `acl_default_policy` is set to `deny`. If clients depend
+on open access to these, then the following should be added to all ACL tokens which
+require them:
+
+    event "" {
+      policy = "write"
+    }
+
+    keyring = "write"
+
+Unfortunately, these are new ACLs for Consul 0.6, so they must be added after the
+upgrade is complete.
+
+#### Prepared Queries
+
+Prepared queries introduce a new Raft log entry type that isn't supported on older
+versions of Consul. It's important to not use the prepared query features of Consul
+until all servers in a cluster have been upgraded to version 0.6.0.
+
+#### Single Private IP Enforcement
+
+Consul will refuse to start if there are multiple private IPs available, so
+if this is the case you will need to configure Consul's advertise or bind addresses
+before upgrading.
+
+#### New Web UI File Layout
+
+The release .zip file for Consul's web UI no longer contains a `dist` sub-folder;
+everything has been moved up one level. If you have any automated scripts that
+expect the old layout you may need to update them.
 
 ## Consul 0.5.1
 
@@ -20,8 +105,8 @@ Consul version 0.5.1 uses a different backend store for persisting the Raft
 log. Because of this change, a data migration is necessary to move the log
 entries out of LMDB and into the newer backend, BoltDB.
 
-Consul version 0.5.1 makes this transition seamless and easy. As a user, there
-are no special steps you need to take. When Consul 0.5.1 starts, it checks
+Consul version 0.5.1+ makes this transition seamless and easy. As a user, there
+are no special steps you need to take. When Consul starts, it checks
 for presence of the legacy LMDB data files, and migrates them automatically
 if any are found. You will see a log emitted when Raft data is migrated, like
 this:
@@ -30,10 +115,9 @@ this:
 ==> Successfully migrated raft data in 5.839642ms
 ```
 
-The automatic upgrade will only exist in Consul 0.5.1. In later versions
-(0.6.0+), the migration code will not be included in the Consul binary. It
-is still possible to upgrade directly from pre-0.5.1 versions by using the
-consul-migrate utility, which is available on the
+This automatic upgrade will only exist in Consul 0.5.1+ and it will
+be removed starting with Consul 0.6.0+. It will still be possible to upgrade directly 
+from pre-0.5.1 versions by using the consul-migrate utility, which is available on the
 [Consul Tools page](/downloads_tools.html).
 
 ## Consul 0.5

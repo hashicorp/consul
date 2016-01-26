@@ -40,7 +40,7 @@ and replace the respective values in your Consul configuration with
 your credentials.
 
 You can view a live demo
-[here](https://atlas.hashicorp.com/hashicorp/infrastructures/consul-demo).
+[here](https://atlas.hashicorp.com/hashicorp/environments/consul-demo).
 
 ## Self-hosted Dashboard
 
@@ -48,15 +48,11 @@ You can view a live demo
 ![Consul Web UI](consul_web_ui.png)
 </div>
 
-To set up the self-hosted UI, [download the web UI package](/downloads.html)
-and unzip it to a directory somewhere on a system with a Consul agent
-install. Restart the Consul agent, and append a
-[`-ui-dir` parameter](/docs/agent/options.html#_ui_dir)
-pointing to the directory where you unzipped the UI (that is, the
-directory containing the `index.html` file):
+To set up the self-hosted UI, start the Consul agent with the
+[`-ui` parameter](/docs/agent/options.html#_ui):
 
 ```text
-$ consul agent -ui-dir /path/to/ui
+$ consul agent -ui
 ...
 ```
 

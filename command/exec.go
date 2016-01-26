@@ -55,6 +55,7 @@ const (
 type rExecConf struct {
 	datacenter string
 	prefix     string
+	token      string
 
 	foreignDC bool
 	localDC   string
@@ -136,6 +137,7 @@ func (c *ExecCommand) Run(args []string) int {
 	cmdFlags.DurationVar(&c.conf.replWait, "wait-repl", rExecReplicationWait, "")
 	cmdFlags.DurationVar(&c.conf.wait, "wait", rExecQuietWait, "")
 	cmdFlags.BoolVar(&c.conf.verbose, "verbose", false, "")
+	cmdFlags.StringVar(&c.conf.token, "token", "", "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -173,7 +175,11 @@ func (c *ExecCommand) Run(args []string) int {
 	}
 
 	// Create and test the HTTP client
-	client, err := HTTPClientDC(*httpAddr, c.conf.datacenter)
+	client, err := HTTPClientConfig(func(clientConf *consulapi.Config) {
+		clientConf.Address = *httpAddr
+		clientConf.Datacenter = c.conf.datacenter
+		clientConf.Token = c.conf.token
+	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))
 		return 1
@@ -625,6 +631,8 @@ Options:
   -wait-repl=200ms           Period to wait for replication before firing event. This is an
                              optimization to allow stale reads to be performed.
   -verbose                   Enables verbose output
+  -token=""                  ACL token to use during requests. Defaults to that
+                             of the agent.
 `
 	return strings.TrimSpace(helpText)
 }

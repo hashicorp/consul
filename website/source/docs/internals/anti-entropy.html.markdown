@@ -63,7 +63,7 @@ state of the cluster ordered even through failures of its components.
 
 Consul has a clear separation between the global service catalog and the agent
 local state as discussed above. The anti-entropy mechanism reconciles these two
-views of the world: anti-entropy is a syncronization of the local agent state and
+views of the world: anti-entropy is a synchronization of the local agent state and
 the catalog. For example, when a user registers a new service or check with the
 agent, the agent in turn notifies the catalog that this new check exists.
 Similarly, when a check is deleted from the agent, it is consequently removed from
@@ -135,3 +135,17 @@ fashion.
 If an error is encountered during an anti-entropy run, the error is logged and
 the agent continues to run. The anti-entropy mechanism is run periodically to
 automatically recover from these types of transient failures.
+
+### EnableTagOverride
+
+Synchronization of service registration can be partially modified to allow 
+external agents to change the tags for a service.  This can be useful in
+situations where an external monitoring service needs to be the source of
+truth for tag information.  For instance: Redis DB and its monitoring service
+Redis Sentinel have this kind of relationship.  Redis instances are responsible 
+for much of their configuration, but Sentinels determine whether the Redis
+instance is a master or a slave.  Using the Consul service configuration item
+[EnableTagOverride](/docs/agent/services.html) you can instruct the Consul
+agent on which the Redis DB is running to NOT update the tags during anti-entropy
+synchronization.  For more information see [Services](/docs/agent/services.html)
+page.

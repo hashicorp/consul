@@ -3,20 +3,22 @@ package consul
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/testutil"
 	"os"
 	"testing"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
 
 func TestInternal_NodeInfo(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -34,7 +36,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -43,7 +45,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       "foo",
 	}
-	if err := client.Call("Internal.NodeInfo", &req, &out2); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.NodeInfo", &req, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -66,10 +68,10 @@ func TestInternal_NodeDump(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	arg := structs.RegisterRequest{
 		Datacenter: "dc1",
@@ -87,7 +89,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		},
 	}
 	var out struct{}
-	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -106,7 +108,7 @@ func TestInternal_NodeDump(t *testing.T) {
 			ServiceID: "db",
 		},
 	}
-	if err := client.Call("Catalog.Register", &arg, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -114,7 +116,7 @@ func TestInternal_NodeDump(t *testing.T) {
 	req := structs.DCSpecificRequest{
 		Datacenter: "dc1",
 	}
-	if err := client.Call("Internal.NodeDump", &req, &out2); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.NodeDump", &req, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -165,17 +167,17 @@ func TestInternal_KeyringOperation(t *testing.T) {
 	})
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
-	client := rpcClient(t, s1)
-	defer client.Close()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
 
-	testutil.WaitForLeader(t, client.Call, "dc1")
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
 	var out structs.KeyringResponses
 	req := structs.KeyringRequest{
 		Operation:  structs.KeyringList,
 		Datacenter: "dc1",
 	}
-	if err := client.Call("Internal.KeyringOperation", &req, &out); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.KeyringOperation", &req, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -218,7 +220,7 @@ func TestInternal_KeyringOperation(t *testing.T) {
 	req2 := structs.KeyringRequest{
 		Operation: structs.KeyringList,
 	}
-	if err := client.Call("Internal.KeyringOperation", &req2, &out2); err != nil {
+	if err := msgpackrpc.CallWithCodec(codec, "Internal.KeyringOperation", &req2, &out2); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -236,5 +238,126 @@ func TestInternal_KeyringOperation(t *testing.T) {
 	}
 	if lanResp != 2 || wanResp != 1 {
 		t.Fatalf("should have two lan and one wan response")
+	}
+}
+
+func TestInternal_NodeInfo_FilterACL(t *testing.T) {
+	dir, token, srv, codec := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer codec.Close()
+
+	opt := structs.NodeSpecificRequest{
+		Datacenter:   "dc1",
+		Node:         srv.config.NodeName,
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedNodeDump{}
+	if err := msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	for _, info := range reply.Dump {
+		found := false
+		for _, chk := range info.Checks {
+			if chk.ServiceName == "foo" {
+				found = true
+			}
+			if chk.ServiceName == "bar" {
+				t.Fatalf("bad: %#v", info.Checks)
+			}
+		}
+		if !found {
+			t.Fatalf("bad: %#v", info.Checks)
+		}
+
+		found = false
+		for _, svc := range info.Services {
+			if svc.Service == "foo" {
+				found = true
+			}
+			if svc.Service == "bar" {
+				t.Fatalf("bad: %#v", info.Services)
+			}
+		}
+		if !found {
+			t.Fatalf("bad: %#v", info.Services)
+		}
+	}
+}
+
+func TestInternal_NodeDump_FilterACL(t *testing.T) {
+	dir, token, srv, codec := testACLFilterServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer codec.Close()
+
+	opt := structs.DCSpecificRequest{
+		Datacenter:   "dc1",
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+	reply := structs.IndexedNodeDump{}
+	if err := msgpackrpc.CallWithCodec(codec, "Health.NodeChecks", &opt, &reply); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	for _, info := range reply.Dump {
+		found := false
+		for _, chk := range info.Checks {
+			if chk.ServiceName == "foo" {
+				found = true
+			}
+			if chk.ServiceName == "bar" {
+				t.Fatalf("bad: %#v", info.Checks)
+			}
+		}
+		if !found {
+			t.Fatalf("bad: %#v", info.Checks)
+		}
+
+		found = false
+		for _, svc := range info.Services {
+			if svc.Service == "foo" {
+				found = true
+			}
+			if svc.Service == "bar" {
+				t.Fatalf("bad: %#v", info.Services)
+			}
+		}
+		if !found {
+			t.Fatalf("bad: %#v", info.Services)
+		}
+	}
+}
+
+func TestInternal_EventFire_Token(t *testing.T) {
+	dir, srv := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDownPolicy = "deny"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+
+	codec := rpcClient(t, srv)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, srv.RPC, "dc1")
+
+	// No token is rejected
+	event := structs.EventFireRequest{
+		Name:       "foo",
+		Datacenter: "dc1",
+		Payload:    []byte("nope"),
+	}
+	err := msgpackrpc.CallWithCodec(codec, "Internal.EventFire", &event, nil)
+	if err == nil || err.Error() != permissionDenied {
+		t.Fatalf("bad: %s", err)
+	}
+
+	// Root token is allowed to fire
+	event.Token = "root"
+	err = msgpackrpc.CallWithCodec(codec, "Internal.EventFire", &event, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }

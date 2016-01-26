@@ -38,13 +38,11 @@ func (s *Server) lanEventHandler() {
 		case e := <-s.eventChLAN:
 			switch e.EventType() {
 			case serf.EventMemberJoin:
-				s.nodeJoin(e.(serf.MemberEvent), false)
+				s.lanNodeJoin(e.(serf.MemberEvent))
 				s.localMemberEvent(e.(serf.MemberEvent))
 
-			case serf.EventMemberLeave:
-				fallthrough
-			case serf.EventMemberFailed:
-				s.nodeFailed(e.(serf.MemberEvent), false)
+			case serf.EventMemberLeave, serf.EventMemberFailed:
+				s.lanNodeFailed(e.(serf.MemberEvent))
 				s.localMemberEvent(e.(serf.MemberEvent))
 
 			case serf.EventMemberReap:
@@ -70,11 +68,9 @@ func (s *Server) wanEventHandler() {
 		case e := <-s.eventChWAN:
 			switch e.EventType() {
 			case serf.EventMemberJoin:
-				s.nodeJoin(e.(serf.MemberEvent), true)
-			case serf.EventMemberLeave:
-				fallthrough
-			case serf.EventMemberFailed:
-				s.nodeFailed(e.(serf.MemberEvent), true)
+				s.wanNodeJoin(e.(serf.MemberEvent))
+			case serf.EventMemberLeave, serf.EventMemberFailed:
+				s.wanNodeFailed(e.(serf.MemberEvent))
 			case serf.EventMemberUpdate: // Ignore
 			case serf.EventMemberReap: // Ignore
 			case serf.EventUser:
@@ -141,19 +137,40 @@ func (s *Server) localEvent(event serf.UserEvent) {
 	}
 }
 
-// nodeJoin is used to handle join events on the both serf clusters
-func (s *Server) nodeJoin(me serf.MemberEvent, wan bool) {
+// lanNodeJoin is used to handle join events on the LAN pool.
+func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
 		ok, parts := isConsulServer(m)
 		if !ok {
-			if wan {
-				s.logger.Printf("[WARN] consul: non-server in WAN pool: %s", m.Name)
-			}
 			continue
 		}
-		s.logger.Printf("[INFO] consul: adding server %s", parts)
+		s.logger.Printf("[INFO] consul: adding LAN server %s", parts)
 
-		// Check if this server is known
+		// See if it's configured as part of our DC.
+		if parts.Datacenter == s.config.Datacenter {
+			s.localLock.Lock()
+			s.localConsuls[parts.Addr.String()] = parts
+			s.localLock.Unlock()
+		}
+
+		// If we still expecting to bootstrap, may need to handle this.
+		if s.config.BootstrapExpect != 0 {
+			s.maybeBootstrap()
+		}
+	}
+}
+
+// wanNodeJoin is used to handle join events on the WAN pool.
+func (s *Server) wanNodeJoin(me serf.MemberEvent) {
+	for _, m := range me.Members {
+		ok, parts := isConsulServer(m)
+		if !ok {
+			s.logger.Printf("[WARN] consul: non-server in WAN pool: %s", m.Name)
+			continue
+		}
+		s.logger.Printf("[INFO] consul: adding WAN server %s", parts)
+
+		// Search for this node in our existing remotes.
 		found := false
 		s.remoteLock.Lock()
 		existing := s.remoteConsuls[parts.Datacenter]
@@ -165,23 +182,11 @@ func (s *Server) nodeJoin(me serf.MemberEvent, wan bool) {
 			}
 		}
 
-		// Add ot the list if not known
+		// Add to the list if not known.
 		if !found {
 			s.remoteConsuls[parts.Datacenter] = append(existing, parts)
 		}
 		s.remoteLock.Unlock()
-
-		// Add to the local list as well
-		if !wan && parts.Datacenter == s.config.Datacenter {
-			s.localLock.Lock()
-			s.localConsuls[parts.Addr.String()] = parts
-			s.localLock.Unlock()
-		}
-
-		// If we still expecting to bootstrap, may need to handle this
-		if s.config.BootstrapExpect != 0 {
-			s.maybeBootstrap()
-		}
 	}
 }
 
@@ -235,18 +240,33 @@ func (s *Server) maybeBootstrap() {
 		s.logger.Printf("[ERR] consul: failed to bootstrap peers: %v", err)
 	}
 
-	// Bootstrapping comlete, don't enter this again
+	// Bootstrapping complete, don't enter this again
 	s.config.BootstrapExpect = 0
 }
 
-// nodeFailed is used to handle fail events on both the serf clustes
-func (s *Server) nodeFailed(me serf.MemberEvent, wan bool) {
+// lanNodeFailed is used to handle fail events on the LAN pool.
+func (s *Server) lanNodeFailed(me serf.MemberEvent) {
 	for _, m := range me.Members {
 		ok, parts := isConsulServer(m)
 		if !ok {
 			continue
 		}
-		s.logger.Printf("[INFO] consul: removing server %s", parts)
+		s.logger.Printf("[INFO] consul: removing LAN server %s", parts)
+
+		s.localLock.Lock()
+		delete(s.localConsuls, parts.Addr.String())
+		s.localLock.Unlock()
+	}
+}
+
+// wanNodeFailed is used to handle fail events on the WAN pool.
+func (s *Server) wanNodeFailed(me serf.MemberEvent) {
+	for _, m := range me.Members {
+		ok, parts := isConsulServer(m)
+		if !ok {
+			continue
+		}
+		s.logger.Printf("[INFO] consul: removing WAN server %s", parts)
 
 		// Remove the server if known
 		s.remoteLock.Lock()
@@ -268,12 +288,5 @@ func (s *Server) nodeFailed(me serf.MemberEvent, wan bool) {
 			s.remoteConsuls[parts.Datacenter] = existing
 		}
 		s.remoteLock.Unlock()
-
-		// Remove from the local list as well
-		if !wan {
-			s.localLock.Lock()
-			delete(s.localConsuls, parts.Addr.String())
-			s.localLock.Unlock()
-		}
 	}
 }

@@ -3,10 +3,13 @@ package structs
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
+	"reflect"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/serf/coordinate"
 )
 
 var (
@@ -17,6 +20,13 @@ var (
 
 type MessageType uint8
 
+// RaftIndex is used to track the index used while creating
+// or modifying a given struct type.
+type RaftIndex struct {
+	CreateIndex uint64
+	ModifyIndex uint64
+}
+
 const (
 	RegisterRequestType MessageType = iota
 	DeregisterRequestType
@@ -24,6 +34,8 @@ const (
 	SessionRequestType
 	ACLRequestType
 	TombstoneRequestType
+	CoordinateBatchUpdateType
+	PreparedQueryRequestType
 )
 
 const (
@@ -175,9 +187,18 @@ func (r *DeregisterRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
+// QuerySource is used to pass along information about the source node
+// in queries so that we can adjust the response based on its network
+// coordinates.
+type QuerySource struct {
+	Datacenter string
+	Node       string
+}
+
 // DCSpecificRequest is used to query about a specific DC
 type DCSpecificRequest struct {
 	Datacenter string
+	Source     QuerySource
 	QueryOptions
 }
 
@@ -185,12 +206,13 @@ func (r *DCSpecificRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// ServiceSpecificRequest is used to query about a specific node
+// ServiceSpecificRequest is used to query about a specific service
 type ServiceSpecificRequest struct {
 	Datacenter  string
 	ServiceName string
 	ServiceTag  string
 	TagFilter   bool // Controls tag filtering
+	Source      QuerySource
 	QueryOptions
 }
 
@@ -213,6 +235,7 @@ func (r *NodeSpecificRequest) RequestDatacenter() string {
 type ChecksInStateRequest struct {
 	Datacenter string
 	State      string
+	Source     QuerySource
 	QueryOptions
 }
 
@@ -224,8 +247,10 @@ func (r *ChecksInStateRequest) RequestDatacenter() string {
 type Node struct {
 	Node    string
 	Address string
+
+	RaftIndex
 }
-type Nodes []Node
+type Nodes []*Node
 
 // Used to return information about a provided services.
 // Maps service name to available tags
@@ -233,26 +258,106 @@ type Services map[string][]string
 
 // ServiceNode represents a node that is part of a service
 type ServiceNode struct {
-	Node           string
-	Address        string
-	ServiceID      string
-	ServiceName    string
-	ServiceTags    []string
-	ServiceAddress string
-	ServicePort    int
+	Node                     string
+	Address                  string
+	ServiceID                string
+	ServiceName              string
+	ServiceTags              []string
+	ServiceAddress           string
+	ServicePort              int
+	ServiceEnableTagOverride bool
+
+	RaftIndex
 }
-type ServiceNodes []ServiceNode
+
+// Clone returns a clone of the given service node.
+func (s *ServiceNode) Clone() *ServiceNode {
+	tags := make([]string, len(s.ServiceTags))
+	copy(tags, s.ServiceTags)
+
+	return &ServiceNode{
+		Node:                     s.Node,
+		Address:                  s.Address,
+		ServiceID:                s.ServiceID,
+		ServiceName:              s.ServiceName,
+		ServiceTags:              tags,
+		ServiceAddress:           s.ServiceAddress,
+		ServicePort:              s.ServicePort,
+		ServiceEnableTagOverride: s.ServiceEnableTagOverride,
+		RaftIndex: RaftIndex{
+			CreateIndex: s.CreateIndex,
+			ModifyIndex: s.ModifyIndex,
+		},
+	}
+}
+
+// ToNodeService converts the given service node to a node service.
+func (s *ServiceNode) ToNodeService() *NodeService {
+	return &NodeService{
+		ID:                s.ServiceID,
+		Service:           s.ServiceName,
+		Tags:              s.ServiceTags,
+		Address:           s.ServiceAddress,
+		Port:              s.ServicePort,
+		EnableTagOverride: s.ServiceEnableTagOverride,
+		RaftIndex: RaftIndex{
+			CreateIndex: s.CreateIndex,
+			ModifyIndex: s.ModifyIndex,
+		},
+	}
+}
+
+type ServiceNodes []*ServiceNode
 
 // NodeService is a service provided by a node
 type NodeService struct {
-	ID      string
-	Service string
-	Tags    []string
-	Address string
-	Port    int
+	ID                string
+	Service           string
+	Tags              []string
+	Address           string
+	Port              int
+	EnableTagOverride bool
+
+	RaftIndex
 }
+
+// IsSame checks if one NodeService is the same as another, without looking
+// at the Raft information (that's why we didn't call it IsEqual). This is
+// useful for seeing if an update would be idempotent for all the functional
+// parts of the structure.
+func (s *NodeService) IsSame(other *NodeService) bool {
+	if s.ID != other.ID ||
+		s.Service != other.Service ||
+		!reflect.DeepEqual(s.Tags, other.Tags) ||
+		s.Address != other.Address ||
+		s.Port != other.Port ||
+		s.EnableTagOverride != other.EnableTagOverride {
+		return false
+	}
+
+	return true
+}
+
+// ToServiceNode converts the given node service to a service node.
+func (s *NodeService) ToServiceNode(node, address string) *ServiceNode {
+	return &ServiceNode{
+		Node:                     node,
+		Address:                  address,
+		ServiceID:                s.ID,
+		ServiceName:              s.Service,
+		ServiceTags:              s.Tags,
+		ServiceAddress:           s.Address,
+		ServicePort:              s.Port,
+		ServiceEnableTagOverride: s.EnableTagOverride,
+		RaftIndex: RaftIndex{
+			CreateIndex: s.CreateIndex,
+			ModifyIndex: s.ModifyIndex,
+		},
+	}
+}
+
 type NodeServices struct {
-	Node     Node
+	Node     *Node
 	Services map[string]*NodeService
 }
 
@@ -266,17 +371,68 @@ type HealthCheck struct {
 	Output      string // Holds output of script runs
 	ServiceID   string // optional associated service
 	ServiceName string // optional service name
+
+	RaftIndex
 }
+
+// IsSame checks if one HealthCheck is the same as another, without looking
+// at the Raft information (that's why we didn't call it IsEqual). This is
+// useful for seeing if an update would be idempotent for all the functional
+// parts of the structure.
+func (c *HealthCheck) IsSame(other *HealthCheck) bool {
+	if c.Node != other.Node ||
+		c.CheckID != other.CheckID ||
+		c.Name != other.Name ||
+		c.Status != other.Status ||
+		c.Notes != other.Notes ||
+		c.Output != other.Output ||
+		c.ServiceID != other.ServiceID ||
+		c.ServiceName != other.ServiceName {
+		return false
+	}
+
+	return true
+}
+
 type HealthChecks []*HealthCheck
 
-// CheckServiceNode is used to provide the node, it's service
-// definition, as well as a HealthCheck that is associated
+// CheckServiceNode is used to provide the node, its service
+// definition, as well as a HealthCheck that is associated.
 type CheckServiceNode struct {
-	Node    Node
-	Service NodeService
+	Node    *Node
+	Service *NodeService
 	Checks  HealthChecks
 }
 type CheckServiceNodes []CheckServiceNode
+
+// Shuffle does an in-place random shuffle using the Fisher-Yates algorithm.
+func (nodes CheckServiceNodes) Shuffle() {
+	for i := len(nodes) - 1; i > 0; i-- {
+		j := rand.Int31() % int32(i+1)
+		nodes[i], nodes[j] = nodes[j], nodes[i]
+	}
+}
+
+// Filter removes nodes that are failing health checks (and any non-passing
+// check if that option is selected). Note that this returns the filtered
+// results AND modifies the receiver for performance.
+func (nodes CheckServiceNodes) Filter(onlyPassing bool) CheckServiceNodes {
+	n := len(nodes)
+OUTER:
+	for i := 0; i < n; i++ {
+		node := nodes[i]
+		for _, check := range node.Checks {
+			if check.Status == HealthCritical ||
+				(onlyPassing && check.Status != HealthPassing) {
+				nodes[i], nodes[n-1] = nodes[n-1], CheckServiceNode{}
+				n--
+				i--
+				continue OUTER
+			}
+		}
+	}
+	return nodes[:n]
+}
 
 // NodeInfo is used to dump all associated information about
 // a node. This is currently used for the UI only, as it is
@@ -331,14 +487,30 @@ type IndexedNodeDump struct {
 // DirEntry is used to represent a directory entry. This is
 // used for values in our Key-Value store.
 type DirEntry struct {
-	CreateIndex uint64
-	ModifyIndex uint64
-	LockIndex   uint64
-	Key         string
-	Flags       uint64
-	Value       []byte
-	Session     string `json:",omitempty"`
+	LockIndex uint64
+	Key       string
+	Flags     uint64
+	Value     []byte
+	Session   string `json:",omitempty"`
+
+	RaftIndex
 }
+
+// Returns a clone of the given directory entry.
+func (d *DirEntry) Clone() *DirEntry {
+	return &DirEntry{
+		LockIndex: d.LockIndex,
+		Key:       d.Key,
+		Flags:     d.Flags,
+		Value:     d.Value,
+		Session:   d.Session,
+		RaftIndex: RaftIndex{
+			CreateIndex: d.CreateIndex,
+			ModifyIndex: d.ModifyIndex,
+		},
+	}
+}
+
 type DirEntries []*DirEntry
 
 type KVSOp string
@@ -406,21 +578,22 @@ const (
 )
 
 const (
-	SessionTTLMax        = 3600 * time.Second
+	SessionTTLMax        = 24 * time.Hour
 	SessionTTLMultiplier = 2
 )
 
 // Session is used to represent an open session in the KV store.
 // This issued to associate node checks with acquired locks.
 type Session struct {
-	CreateIndex uint64
-	ID          string
-	Name        string
-	Node        string
-	Checks      []string
-	LockDelay   time.Duration
-	Behavior    SessionBehavior // What to do when session is invalidated
-	TTL         string
+	ID        string
+	Name      string
+	Node      string
+	Checks    []string
+	LockDelay time.Duration
+	Behavior  SessionBehavior // What to do when session is invalidated
+	TTL       string
+
+	RaftIndex
 }
 type Sessions []*Session
 
@@ -461,12 +634,12 @@ type IndexedSessions struct {
 
 // ACL is used to represent a token and it's rules
 type ACL struct {
-	CreateIndex uint64
-	ModifyIndex uint64
-	ID          string
-	Name        string
-	Type        string
-	Rules       string
+	ID    string
+	Name  string
+	Type  string
+	Rules string
+
+	RaftIndex
 }
 type ACLs []*ACL
 
@@ -525,6 +698,49 @@ type ACLPolicy struct {
 	Policy *acl.Policy
 	TTL    time.Duration
 	QueryMeta
+}
+
+// Coordinate stores a node name with its associated network coordinate.
+type Coordinate struct {
+	Node  string
+	Coord *coordinate.Coordinate
+}
+
+type Coordinates []*Coordinate
+
+// IndexedCoordinate is used to represent a single node's coordinate from the state
+// store.
+type IndexedCoordinate struct {
+	Coord *coordinate.Coordinate
+	QueryMeta
+}
+
+// IndexedCoordinates is used to represent a list of nodes and their
+// corresponding raw coordinates.
+type IndexedCoordinates struct {
+	Coordinates Coordinates
+	QueryMeta
+}
+
+// DatacenterMap is used to represent a list of nodes with their raw coordinates,
+// associated with a datacenter.
+type DatacenterMap struct {
+	Datacenter  string
+	Coordinates Coordinates
+}
+
+// CoordinateUpdateRequest is used to update the network coordinate of a given
+// node.
+type CoordinateUpdateRequest struct {
+	Datacenter string
+	Node       string
+	Coord      *coordinate.Coordinate
+	WriteRequest
+}
+
+// RequestDatacenter returns the datacenter for a given update request.
+func (c *CoordinateUpdateRequest) RequestDatacenter() string {
+	return c.Datacenter
 }
 
 // EventFireRequest is used to ask a server to fire

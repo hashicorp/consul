@@ -2,7 +2,6 @@ package consul
 
 import (
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -96,19 +95,11 @@ func (c *Catalog) Deregister(args *structs.DeregisterRequest, reply *struct{}) e
 
 // ListDatacenters is used to query for the list of known datacenters
 func (c *Catalog) ListDatacenters(args *struct{}, reply *[]string) error {
-	c.srv.remoteLock.RLock()
-	defer c.srv.remoteLock.RUnlock()
-
-	// Read the known DCs
-	var dcs []string
-	for dc := range c.srv.remoteConsuls {
-		dcs = append(dcs, dc)
+	dcs, err := c.srv.getDatacentersByDistance()
+	if err != nil {
+		return err
 	}
 
-	// Sort the DCs
-	sort.Strings(dcs)
-
-	// Return
 	*reply = dcs
 	return nil
 }
@@ -119,14 +110,20 @@ func (c *Catalog) ListNodes(args *structs.DCSpecificRequest, reply *structs.Inde
 		return err
 	}
 
-	// Get the local state
+	// Get the list of nodes.
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.QueryOptions,
+	return c.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("Nodes"),
+		state.GetQueryWatch("Nodes"),
 		func() error {
-			reply.Index, reply.Nodes = state.Nodes()
-			return nil
+			index, nodes, err := state.Nodes()
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Nodes = index, nodes
+			return c.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
 		})
 }
 
@@ -136,14 +133,20 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
-	// Get the current nodes
+	// Get the list of services and their tags.
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.QueryOptions,
+	return c.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("Services"),
+		state.GetQueryWatch("Services"),
 		func() error {
-			reply.Index, reply.Services = state.Services()
-			return nil
+			index, services, err := state.Services()
+			if err != nil {
+				return err
+			}
+
+			reply.Index, reply.Services = index, services
+			return c.srv.filterACL(args.Token, reply)
 		})
 }
 
@@ -160,16 +163,27 @@ func (c *Catalog) ServiceNodes(args *structs.ServiceSpecificRequest, reply *stru
 
 	// Get the nodes
 	state := c.srv.fsm.State()
-	err := c.srv.blockingRPC(&args.QueryOptions,
+	err := c.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("ServiceNodes"),
+		state.GetQueryWatch("ServiceNodes"),
 		func() error {
+			var index uint64
+			var services structs.ServiceNodes
+			var err error
 			if args.TagFilter {
-				reply.Index, reply.ServiceNodes = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
+				index, services, err = state.ServiceTagNodes(args.ServiceName, args.ServiceTag)
 			} else {
-				reply.Index, reply.ServiceNodes = state.ServiceNodes(args.ServiceName)
+				index, services, err = state.ServiceNodes(args.ServiceName)
 			}
-			return nil
+			if err != nil {
+				return err
+			}
+			reply.Index, reply.ServiceNodes = index, services
+			if err := c.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+			return c.srv.sortNodesByDistanceFrom(args.Source, reply.ServiceNodes)
 		})
 
 	// Provide some metrics
@@ -198,11 +212,16 @@ func (c *Catalog) NodeServices(args *structs.NodeSpecificRequest, reply *structs
 
 	// Get the node services
 	state := c.srv.fsm.State()
-	return c.srv.blockingRPC(&args.QueryOptions,
+	return c.srv.blockingRPC(
+		&args.QueryOptions,
 		&reply.QueryMeta,
-		state.QueryTables("NodeServices"),
+		state.GetQueryWatch("NodeServices"),
 		func() error {
-			reply.Index, reply.NodeServices = state.NodeServices(args.Node)
-			return nil
+			index, services, err := state.NodeServices(args.Node)
+			if err != nil {
+				return err
+			}
+			reply.Index, reply.NodeServices = index, services
+			return c.srv.filterACL(args.Token, reply)
 		})
 }

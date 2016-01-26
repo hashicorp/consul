@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 )
 
-// initializeSessionTimers is used when a leader is newly electd to create
+// initializeSessionTimers is used when a leader is newly elected to create
 // a new map to track session expiration and to reset all the timers from
 // the previously known set of timers.
 func (s *Server) initializeSessionTimers() error {

@@ -20,6 +20,16 @@ func makeClient(t *testing.T) (*Client, *testutil.TestServer) {
 	return makeClientWithConfig(t, nil, nil)
 }
 
+func makeACLClient(t *testing.T) (*Client, *testutil.TestServer) {
+	return makeClientWithConfig(t, func(clientConfig *Config) {
+		clientConfig.Token = "root"
+	}, func(serverConfig *testutil.TestServerConfig) {
+		serverConfig.ACLMasterToken = "root"
+		serverConfig.ACLDatacenter = "dc1"
+		serverConfig.ACLDefaultPolicy = "deny"
+	})
+}
+
 func makeClientWithConfig(
 	t *testing.T,
 	cb1 configCallback,
@@ -117,6 +127,7 @@ func TestSetQueryOptions(t *testing.T) {
 		WaitIndex:         1000,
 		WaitTime:          100 * time.Second,
 		Token:             "12345",
+		Near:              "nodex",
 	}
 	r.setQueryOptions(q)
 
@@ -136,6 +147,9 @@ func TestSetQueryOptions(t *testing.T) {
 		t.Fatalf("bad: %v", r.params)
 	}
 	if r.params.Get("token") != "12345" {
+		t.Fatalf("bad: %v", r.params)
+	}
+	if r.params.Get("near") != "nodex" {
 		t.Fatalf("bad: %v", r.params)
 	}
 }
@@ -238,5 +252,37 @@ func TestAPI_UnixSocket(t *testing.T) {
 	}
 	if info["Config"]["NodeName"] == "" {
 		t.Fatalf("bad: %v", info)
+	}
+}
+
+func TestAPI_durToMsec(t *testing.T) {
+	if ms := durToMsec(0); ms != "0ms" {
+		t.Fatalf("bad: %s", ms)
+	}
+
+	if ms := durToMsec(time.Millisecond); ms != "1ms" {
+		t.Fatalf("bad: %s", ms)
+	}
+
+	if ms := durToMsec(time.Microsecond); ms != "1ms" {
+		t.Fatalf("bad: %s", ms)
+	}
+
+	if ms := durToMsec(5 * time.Millisecond); ms != "5ms" {
+		t.Fatalf("bad: %s", ms)
+	}
+}
+
+func TestAPI_IsServerError(t *testing.T) {
+	if IsServerError(nil) {
+		t.Fatalf("should not be a server error")
+	}
+
+	if IsServerError(fmt.Errorf("not the error you are looking for")) {
+		t.Fatalf("should not be a server error")
+	}
+
+	if !IsServerError(fmt.Errorf(serverError)) {
+		t.Fatalf("should be a server error")
 	}
 }

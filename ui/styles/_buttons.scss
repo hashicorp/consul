@@ -112,13 +112,11 @@
 .topbar {
   .btn.icon {
     min-width: 50px;
-    font-size: 30px;
     height: 33px;
-    padding: 0;
-    .wrap {
-      position: absolute;
-      top: -8px;
-      left: 14px;
+    padding: 6px 0;
+    svg {
+      height: 20px;
+      fill: currentColor;
     }
   }
 }

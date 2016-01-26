@@ -19,6 +19,7 @@ import (
 /*
  * Contains an entry for each private block:
  * 10.0.0.0/8
+ * 100.64.0.0/10
  * 172.16.0.0/12
  * 192.168/16
  */
@@ -41,7 +42,8 @@ func (s *serverParts) String() string {
 
 func init() {
 	// Add each private block
-	privateBlocks = make([]*net.IPNet, 3)
+	privateBlocks = make([]*net.IPNet, 4)
+
 	_, block, err := net.ParseCIDR("10.0.0.0/8")
 	if err != nil {
 		panic(fmt.Sprintf("Bad cidr. Got %v", err))
@@ -59,6 +61,12 @@ func init() {
 		panic(fmt.Sprintf("Bad cidr. Got %v", err))
 	}
 	privateBlocks[2] = block
+
+	_, block, err = net.ParseCIDR("100.64.0.0/10")
+	if err != nil {
+		panic(fmt.Sprintf("Bad cidr. Got %v", err))
+	}
+	privateBlocks[3] = block
 }
 
 // strContains checks if a list contains a string
@@ -85,6 +93,35 @@ func ensurePath(path string, dir bool) error {
 		path = filepath.Dir(path)
 	}
 	return os.MkdirAll(path, 0755)
+}
+
+// CanServersUnderstandProtocol checks to see if all the servers in the given
+// list understand the given protocol version. If there are no servers in the
+// list then this will return false.
+func CanServersUnderstandProtocol(members []serf.Member, version uint8) (bool, error) {
+	numServers, numWhoGrok := 0, 0
+	for _, m := range members {
+		if m.Tags["role"] != "consul" {
+			continue
+		}
+		numServers++
+
+		vsn_min, err := strconv.Atoi(m.Tags["vsn_min"])
+		if err != nil {
+			return false, err
+		}
+
+		vsn_max, err := strconv.Atoi(m.Tags["vsn_max"])
+		if err != nil {
+			return false, err
+		}
+
+		v := int(version)
+		if (v >= vsn_min) && (v <= vsn_max) {
+			numWhoGrok++
+		}
+	}
+	return (numServers > 0) && (numWhoGrok == numServers), nil
 }
 
 // Returns if a member is a consul server. Returns a bool,
@@ -133,7 +170,7 @@ func isConsulServer(m serf.Member) (bool, *serverParts) {
 	return true, parts
 }
 
-// Returns if a member is a consul node. Returns a boo,
+// Returns if a member is a consul node. Returns a bool,
 // and the datacenter.
 func isConsulNode(m serf.Member) (bool, string) {
 	if m.Tags["role"] != "node" {
@@ -161,6 +198,12 @@ func GetPrivateIP() (net.IP, error) {
 		return nil, fmt.Errorf("Failed to get interface addresses: %v", err)
 	}
 
+	return getPrivateIP(addresses)
+}
+
+func getPrivateIP(addresses []net.Addr) (net.IP, error) {
+	var candidates []net.IP
+
 	// Find private IPv4 address
 	for _, rawAddr := range addresses {
 		var ip net.IP
@@ -179,11 +222,18 @@ func GetPrivateIP() (net.IP, error) {
 		if !isPrivateIP(ip.String()) {
 			continue
 		}
-
-		return ip, nil
+		candidates = append(candidates, ip)
+	}
+	numIps := len(candidates)
+	switch numIps {
+	case 0:
+		return nil, fmt.Errorf("No private IP address found")
+	case 1:
+		return candidates[0], nil
+	default:
+		return nil, fmt.Errorf("Multiple private IPs found. Please configure one.")
 	}
 
-	return nil, fmt.Errorf("No private IP address found")
 }
 
 // Converts bytes to an integer

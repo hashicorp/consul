@@ -48,7 +48,7 @@ To resolve names, Consul relies on a very specific format for queries.
 There are fundamentally two types of queries: node lookups and service lookups.
 A node lookup, a simple query for the address of a named node, looks like this:
 
-    <node>.node.<datacenter>.<domain>
+    <node>.node[.datacenter].<domain>
 
 For example, if we have a "foo" node with default settings, we could look for
 "foo.node.dc1.consul." The datacenter is an optional part of the FQDN: if not
@@ -90,7 +90,7 @@ two lookup methods: standard and strict [RFC 2782](https://tools.ietf.org/html/r
 
 The format of a standard service lookup is:
 
-    [tag.]<service>.service[.datacenter][.domain]
+    [tag.]<service>.service[.datacenter].<domain>
 
 The `tag` is optional, and, as with node lookups, the `datacenter` is as well. If no tag is
 provided, no filtering is done on tag. If no datacenter is provided, the datacenter of
@@ -173,6 +173,26 @@ rabbitmq.node1.dc1.consul.	0	IN	A	10.1.11.20
 ```
 
 Again, note that the SRV record returns the port of the service as well as its IP.
+
+### Prepared Query Lookups
+
+The format of a prepared query lookup is:
+
+    <query or name>.query[.datacenter].<domain>
+
+The `datacenter` is optional, and if not provided, the datacenter of this Consul
+agent is assumed.
+
+The `query or name` is the ID or given name of an existing
+[Prepared Query](/docs/agent/http/query.html). These behave like standard service
+queries but provide a much richer set of features, such as filtering by multiple
+tags and automatically failing over to look for services in remote datacenters if
+no healthy nodes are available in the local datacenter.
+
+To allow for simple load balancing, the set of nodes returned is randomized each time.
+Both A and SRV records are supported. SRV records provide the port that a service is
+registered on, enabling clients to avoid relying on well-known ports. SRV records are
+only served if the client specifically requests them.
 
 ### UDP Based DNS Queries
 

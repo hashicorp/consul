@@ -6,14 +6,16 @@ VAGRANTFILE_API_VERSION = "2"
 
 $script = <<SCRIPT
 sudo apt-get -y update
-sudo apt-get -y install curl
+sudo apt-get -y install curl git
+gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
 curl -sSL https://get.rvm.io | bash -s stable
 . ~/.bashrc
 . ~/.bash_profile
-rvm install 2.0.0
-rvm --default use 2.0.0
+rvm install 2.2.2
+rvm --default use 2.2.2
 cd /vagrant
-bundle
+gem install bundler
+bundle update
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|

@@ -88,12 +88,14 @@ App.IndexRoute = App.BaseRoute.extend({
 // functioning, as well as the per-dc requests.
 App.DcRoute = App.BaseRoute.extend({
   model: function(params) {
+    var token = App.get('settings.token');
+
     // Return a promise hash to retreieve the
     // dcs and nodes used in the header
     return Ember.RSVP.hash({
       dc: params.dc,
       dcs: Ember.$.getJSON('/v1/catalog/datacenters'),
-      nodes: Ember.$.getJSON(formatUrl('/v1/internal/ui/nodes', params.dc)).then(function(data) {
+      nodes: Ember.$.getJSON(formatUrl('/v1/internal/ui/nodes', params.dc, token)).then(function(data) {
         var objs = [];
 
         // Merge the nodes into a list and create objects out of them
@@ -379,6 +381,9 @@ App.SettingsRoute = App.BaseRoute.extend({
 
 // Adds any global parameters we need to set to a url/path
 function formatUrl(url, dc, token) {
+  if (token == null) {
+    token = "";
+  }
   if (url.indexOf("?") > 0) {
     // If our url has existing params
     url = url + "&dc=" + dc;
