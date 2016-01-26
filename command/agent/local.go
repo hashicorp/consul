@@ -526,7 +526,9 @@ func (l *localState) syncService(id string) error {
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
 		Address:      l.config.AdvertiseAddr,
-		WanAddress:   l.config.AdvertiseAddrWan,
+		Addresses:   	map[string]string {
+			"wan": l.config.AdvertiseAddrWan,
+		},
 		Service:      l.services[id],
 		WriteRequest: structs.WriteRequest{Token: l.serviceToken(id)},
 	}
@@ -584,7 +586,9 @@ func (l *localState) syncCheck(id string) error {
 		Datacenter:   l.config.Datacenter,
 		Node:         l.config.NodeName,
 		Address:      l.config.AdvertiseAddr,
-		WanAddress:   l.config.AdvertiseAddrWan,
+		Addresses:   	map[string]string {
+			"wan": l.config.AdvertiseAddrWan,
+		},
 		Service:      service,
 		Check:        l.checks[id],
 		WriteRequest: structs.WriteRequest{Token: l.checkToken(id)},
