@@ -162,7 +162,7 @@ type RegisterRequest struct {
 	Datacenter string
 	Node       string
 	Address    string
-	WanAddress string
+	Addresses  map[string]string
 	Service    *NodeService
 	Check      *HealthCheck
 	Checks     HealthChecks
@@ -248,7 +248,7 @@ func (r *ChecksInStateRequest) RequestDatacenter() string {
 type Node struct {
 	Node       string
 	Address    string
-	WanAddress string
+	Addresses  map[string]string
 
 	RaftIndex
 }
@@ -442,7 +442,7 @@ OUTER:
 type NodeInfo struct {
 	Node       string
 	Address    string
-	WanAddress string
+	Addresses  map[string]string
 	Services   []*NodeService
 	Checks     []*HealthCheck
 }
