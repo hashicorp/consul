@@ -110,7 +110,7 @@ Armons-MacBook-Air.node.dc1.consul. 0 IN A	172.20.20.11
 ```
 
 The `SRV` record says that the web service is running on port 80 and exists on
-the node `agent-one.node.dc1.consul.`. An additional section is returned by the
+the node `Armons-MacBook-Air.node.dc1.consul.`. An additional section is returned by the
 DNS with the `A` record for that node.
 
 Finally, we can also use the DNS API to filter services by tags. The
