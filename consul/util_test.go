@@ -6,29 +6,9 @@ import (
 	"net"
 	"regexp"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/serf/serf"
 )
-
-func TestStrContains(t *testing.T) {
-	l := []string{"a", "b", "c"}
-	if !strContains(l, "b") {
-		t.Fatalf("should contain")
-	}
-	if strContains(l, "d") {
-		t.Fatalf("should not contain")
-	}
-}
-
-func TestToLowerList(t *testing.T) {
-	l := []string{"ABC", "Abc", "abc"}
-	for _, value := range ToLowerList(l) {
-		if value != "abc" {
-			t.Fatalf("failed lowercasing")
-		}
-	}
-}
 
 func TestGetPrivateIP(t *testing.T) {
 	ip, _, err := net.ParseCIDR("10.1.2.3/32")
@@ -292,16 +272,6 @@ func TestGenerateUUID(t *testing.T) {
 			"[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}", id)
 		if !matched || err != nil {
 			t.Fatalf("expected match %s %v %s", id, matched, err)
-		}
-	}
-}
-
-func TestRandomStagger(t *testing.T) {
-	intv := time.Minute
-	for i := 0; i < 10; i++ {
-		stagger := randomStagger(intv)
-		if stagger < 0 || stagger >= intv {
-			t.Fatalf("Bad: %v", stagger)
 		}
 	}
 }

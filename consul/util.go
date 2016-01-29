@@ -1,17 +1,13 @@
 package consul
 
 import (
-	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"math/rand"
 	"net"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/hashicorp/serf/serf"
 )
@@ -81,24 +77,6 @@ func init() {
 		panic(fmt.Sprintf("Bad cidr. Got %v", err))
 	}
 	privateBlocks[5] = block
-}
-
-// strContains checks if a list contains a string
-func strContains(l []string, s string) bool {
-	for _, v := range l {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
-func ToLowerList(l []string) []string {
-	var out []string
-	for _, value := range l {
-		out = append(out, strings.ToLower(value))
-	}
-	return out
 }
 
 // ensurePath is used to make sure a path exists
@@ -308,24 +286,4 @@ func runtimeStats() map[string]string {
 		"goroutines": strconv.FormatInt(int64(runtime.NumGoroutine()), 10),
 		"cpu_count":  strconv.FormatInt(int64(runtime.NumCPU()), 10),
 	}
-}
-
-// generateUUID is used to generate a random UUID
-func generateUUID() string {
-	buf := make([]byte, 16)
-	if _, err := crand.Read(buf); err != nil {
-		panic(fmt.Errorf("failed to read random bytes: %v", err))
-	}
-
-	return fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
-		buf[0:4],
-		buf[4:6],
-		buf[6:8],
-		buf[8:10],
-		buf[10:16])
-}
-
-// Returns a random stagger interval between 0 and the duration
-func randomStagger(intv time.Duration) time.Duration {
-	return time.Duration(uint64(rand.Int63()) % uint64(intv))
 }

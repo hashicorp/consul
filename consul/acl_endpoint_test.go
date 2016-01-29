@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
@@ -436,7 +437,7 @@ func TestACLEndpoint_List(t *testing.T) {
 		if s.ID == anonymousToken || s.ID == "root" {
 			continue
 		}
-		if !strContains(ids, s.ID) {
+		if !lib.StrContains(ids, s.ID) {
 			t.Fatalf("bad: %v", s)
 		}
 		if s.Name != "User token" {

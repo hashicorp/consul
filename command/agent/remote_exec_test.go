@@ -10,7 +10,16 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/go-uuid"
 )
+
+func generateUUID() (ret string) {
+	var err error
+	if ret, err = uuid.GenerateUUID(); err != nil {
+		return "DEADC0DE-BADD-CAFE-D00D-FEEDFACECAFE"
+	}
+	return ret
+}
 
 func TestRexecWriter(t *testing.T) {
 	writer := &rexecWriter{

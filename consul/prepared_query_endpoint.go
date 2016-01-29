@@ -9,6 +9,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-uuid"
 )
 
 var (
@@ -41,7 +42,9 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 		// to collide since this isn't inside a write transaction.
 		state := p.srv.fsm.State()
 		for {
-			args.Query.ID = generateUUID()
+			if args.Query.ID, err = uuid.GenerateUUID(); err != nil {
+				return fmt.Errorf("UUID generation for prepared query failed: %v", err)
+			}
 			_, query, err := state.PreparedQueryGet(args.Query.ID)
 			if err != nil {
 				return fmt.Errorf("Prepared query lookup failed: %v", err)

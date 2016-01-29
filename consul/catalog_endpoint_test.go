@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
@@ -978,7 +979,7 @@ func TestCatalogNodeServices(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 	services := out.NodeServices.Services
-	if !strContains(services["db"].Tags, "primary") || services["db"].Port != 5000 {
+	if !lib.StrContains(services["db"].Tags, "primary") || services["db"].Port != 5000 {
 		t.Fatalf("bad: %v", out)
 	}
 	if len(services["web"].Tags) != 0 || services["web"].Port != 80 {

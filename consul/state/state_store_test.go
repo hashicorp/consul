@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -1189,16 +1190,6 @@ func TestStateStore_Services(t *testing.T) {
 	}
 }
 
-// strContains checks if a list contains a string
-func strContains(l []string, s string) bool {
-	for _, v := range l {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 func TestStateStore_ServiceNodes(t *testing.T) {
 	s := testStateStore(t)
 
@@ -1249,7 +1240,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[0].ServiceID != "db" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !strContains(nodes[0].ServiceTags, "slave") {
+	if !lib.StrContains(nodes[0].ServiceTags, "slave") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8000 {
@@ -1265,7 +1256,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[1].ServiceID != "db2" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !strContains(nodes[1].ServiceTags, "slave") {
+	if !lib.StrContains(nodes[1].ServiceTags, "slave") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[1].ServicePort != 8001 {
@@ -1281,7 +1272,7 @@ func TestStateStore_ServiceNodes(t *testing.T) {
 	if nodes[2].ServiceID != "db" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !strContains(nodes[2].ServiceTags, "master") {
+	if !lib.StrContains(nodes[2].ServiceTags, "master") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[2].ServicePort != 8000 {
@@ -1328,7 +1319,7 @@ func TestStateStore_ServiceTagNodes(t *testing.T) {
 	if nodes[0].Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !strContains(nodes[0].ServiceTags, "master") {
+	if !lib.StrContains(nodes[0].ServiceTags, "master") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8000 {
@@ -1375,7 +1366,7 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 	if nodes[0].Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !strContains(nodes[0].ServiceTags, "master") {
+	if !lib.StrContains(nodes[0].ServiceTags, "master") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8000 {
@@ -1409,7 +1400,7 @@ func TestStateStore_ServiceTagNodes_MultipleTags(t *testing.T) {
 	if nodes[0].Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", nodes)
 	}
-	if !strContains(nodes[0].ServiceTags, "dev") {
+	if !lib.StrContains(nodes[0].ServiceTags, "dev") {
 		t.Fatalf("bad: %v", nodes)
 	}
 	if nodes[0].ServicePort != 8001 {
