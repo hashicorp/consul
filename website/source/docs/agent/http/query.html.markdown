@@ -299,7 +299,7 @@ a JSON body will be returned like this:
     },
     "Datacenter": "dc3",
     "Failovers": 2
-  }
+  }]
 }
 ```
 
