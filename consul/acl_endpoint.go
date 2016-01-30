@@ -7,6 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-uuid"
 )
 
 // ACL endpoint is used to manipulate ACLs
@@ -62,7 +63,11 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 		if args.ACL.ID == "" {
 			state := a.srv.fsm.State()
 			for {
-				args.ACL.ID = generateUUID()
+				if args.ACL.ID, err = uuid.GenerateUUID(); err != nil {
+					a.srv.logger.Printf("[ERR] consul.acl: UUID generation failed: %v", err)
+					return err
+				}
+
 				_, acl, err := state.ACLGet(args.ACL.ID)
 				if err != nil {
 					a.srv.logger.Printf("[ERR] consul.acl: ACL lookup failed: %v", err)

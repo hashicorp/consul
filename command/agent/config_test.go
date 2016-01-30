@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/lib"
 )
 
 func TestConfigEncryptBytes(t *testing.T) {
@@ -1103,7 +1105,7 @@ func TestDecodeConfig_Service(t *testing.T) {
 		t.Fatalf("bad: %v", serv)
 	}
 
-	if !strContains(serv.Tags, "master") {
+	if !lib.StrContains(serv.Tags, "master") {
 		t.Fatalf("bad: %v", serv)
 	}
 

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/watch"
 	"github.com/mitchellh/mapstructure"
 )
@@ -634,7 +635,7 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	allowedKeys := []string{"service", "services", "check", "checks"}
 	var unused []string
 	for _, field := range md.Unused {
-		if !strContains(allowedKeys, field) {
+		if !lib.StrContains(allowedKeys, field) {
 			unused = append(unused, field)
 		}
 	}
