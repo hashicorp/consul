@@ -334,6 +334,7 @@ func (c *Client) localEvent(event serf.UserEvent) {
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	// Check the last rpc time
 	now := time.Now()
+	var numConsulServers int
 	lastRPCTime := now.Sub(c.lastRPCTime)
 	var server *serverParts
 	if c.lastServer != nil && lastRPCTime < clientRPCConnMaxIdle {
@@ -345,13 +346,14 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 
 	// Bail if we can't find any servers
 	c.consulLock.RLock()
-	if len(c.consuls) == 0 {
+	numConsulServers = len(c.consuls)
+	if numConsulServers == 0 {
 		c.consulLock.RUnlock()
 		return structs.ErrNoServers
 	}
 
 	// Select a random addr
-	server = c.consuls[rand.Int31()%int32(len(c.consuls))]
+	server = c.consuls[rand.Int31n(int32(numConsulServers))]
 	c.consulLock.RUnlock()
 
 	// Forward to remote Consul
