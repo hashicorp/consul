@@ -17,9 +17,13 @@ import (
 )
 
 const (
-	// clientRPCCache controls how long we keep an idle connection
-	// open to a server
-	clientRPCCache = 30 * time.Second
+	// clientRPCConnMaxIdle controls how long we keep an idle connection
+	// open to a server.  127s was chosen as the first prime above 120s
+	// (arbitrarily chose to use a prime) with the intent of reusing
+	// connections who are used by once-a-minute cron(8) jobs *and* who
+	// use a 60s jitter window (e.g. in vixie cron job execution can
+	// drift by up to 59s per job, or 119s for a once-a-minute cron job).
+	clientRPCConnMaxIdle = 127 * time.Second
 
 	// clientMaxStreams controls how many idle streams we keep
 	// open to a server
@@ -103,7 +107,7 @@ func NewClient(config *Config) (*Client, error) {
 	// Create server
 	c := &Client{
 		config:     config,
-		connPool:   NewPool(config.LogOutput, clientRPCCache, clientMaxStreams, tlsWrap),
+		connPool:   NewPool(config.LogOutput, clientRPCConnMaxIdle, clientMaxStreams, tlsWrap),
 		eventCh:    make(chan serf.Event, 256),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
