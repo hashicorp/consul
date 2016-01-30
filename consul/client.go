@@ -329,8 +329,10 @@ func (c *Client) localEvent(event serf.UserEvent) {
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	// Check the last rpc time
+	now := time.Now()
+	lastRPCTime := now.Sub(c.lastRPCTime)
 	var server *serverParts
-	if time.Now().Sub(c.lastRPCTime) < clientRPCCache {
+	if c.lastServer != nil && lastRPCTime < clientRPCConnMaxIdle {
 		server = c.lastServer
 		if server != nil {
 			goto TRY_RPC
@@ -358,7 +360,7 @@ TRY_RPC:
 
 	// Cache the last server
 	c.lastServer = server
-	c.lastRPCTime = time.Now()
+	c.lastRPCTime = now
 	return nil
 }
 
