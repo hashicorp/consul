@@ -622,9 +622,23 @@ func (a *Agent) sendCoordinate() {
 				continue
 			}
 
-			// TODO - Consider adding a distance check so we don't send
-			// an update if the position hasn't changed by more than a
-			// threshold.
+			lReq := structs.DCSpecificRequest{
+				Datacenter: a.config.Datacenter,
+			}
+			var lReply structs.IndexedCoordinates
+			if err := a.RPC("Coordinate.ListNodes", &lReq, &lReply); err != nil {
+				a.logger.Printf("[ERR] %s", err)
+			}
+
+			dcs := len(lReply.Coordinates)
+			for i := 0; i < dcs; i++ {
+				coord := lReply.Coordinates[i]
+				if c.DistanceTo(coord.Coord) < intv {
+					a.logger.Printf("[DEBUG] agent: skipping coordinate updates until passed threshold time.")
+					return
+				}
+			}
+			
 			req := structs.CoordinateUpdateRequest{
 				Datacenter:   a.config.Datacenter,
 				Node:         a.config.NodeName,
