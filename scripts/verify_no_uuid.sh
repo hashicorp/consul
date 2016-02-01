@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 grep GenerateUUID consul/state/state_store.go
 RESULT=$?

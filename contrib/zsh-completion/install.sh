@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 ZSH_FUNC_DIR="/usr/share/zsh/site-functions"
