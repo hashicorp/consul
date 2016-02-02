@@ -13,12 +13,3 @@ func TestStrContains(t *testing.T) {
 		t.Fatalf("should not contain")
 	}
 }
-
-func TestToLowerList(t *testing.T) {
-	l := []string{"ABC", "Abc", "abc"}
-	for _, value := range ToLowerList(l) {
-		if value != "abc" {
-			t.Fatalf("failed lowercasing")
-		}
-	}
-}
