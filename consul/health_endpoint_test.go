@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
@@ -377,10 +378,10 @@ func TestHealth_ServiceNodes(t *testing.T) {
 	if nodes[1].Node.Node != "foo" {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
-	if !strContains(nodes[0].Service.Tags, "slave") {
+	if !lib.StrContains(nodes[0].Service.Tags, "slave") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if !strContains(nodes[1].Service.Tags, "master") {
+	if !lib.StrContains(nodes[1].Service.Tags, "master") {
 		t.Fatalf("Bad: %v", nodes[1])
 	}
 	if nodes[0].Checks[0].Status != structs.HealthWarning {

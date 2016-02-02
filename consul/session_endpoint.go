@@ -6,6 +6,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-uuid"
 )
 
 // Session endpoint is used to manipulate sessions for KV
@@ -61,7 +62,11 @@ func (s *Session) Apply(args *structs.SessionRequest, reply *string) error {
 		// Generate a new session ID, verify uniqueness
 		state := s.srv.fsm.State()
 		for {
-			args.Session.ID = generateUUID()
+			var err error
+			if args.Session.ID, err = uuid.GenerateUUID(); err != nil {
+				s.srv.logger.Printf("[ERR] consul.session: UUID generation failed: %v", err)
+				return err
+			}
 			_, sess, err := state.SessionGet(args.Session.ID)
 			if err != nil {
 				s.srv.logger.Printf("[ERR] consul.session: Session lookup failed: %v", err)

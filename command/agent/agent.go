@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
@@ -600,8 +601,8 @@ func (a *Agent) sendCoordinate() {
 	for {
 		rate := a.config.SyncCoordinateRateTarget
 		min := a.config.SyncCoordinateIntervalMin
-		intv := rateScaledInterval(rate, min, len(a.LANMembers()))
-		intv = intv + randomStagger(intv)
+		intv := lib.RateScaledInterval(rate, min, len(a.LANMembers()))
+		intv = intv + lib.RandomStagger(intv)
 
 		select {
 		case <-time.After(intv):

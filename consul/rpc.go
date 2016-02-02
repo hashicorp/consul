@@ -12,6 +12,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
@@ -329,7 +330,7 @@ func (s *Server) blockingRPC(queryOpts *structs.QueryOptions, queryMeta *structs
 	}
 
 	// Apply a small amount of jitter to the request.
-	queryOpts.MaxQueryTime += randomStagger(queryOpts.MaxQueryTime / jitterFraction)
+	queryOpts.MaxQueryTime += lib.RandomStagger(queryOpts.MaxQueryTime / jitterFraction)
 
 	// Setup a query timeout.
 	timeout = time.NewTimer(queryOpts.MaxQueryTime)

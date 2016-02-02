@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 )
@@ -56,7 +57,7 @@ func TestInternal_NodeInfo(t *testing.T) {
 	if nodes[0].Node != "foo" {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
-	if !strContains(nodes[0].Services[0].Tags, "master") {
+	if !lib.StrContains(nodes[0].Services[0].Tags, "master") {
 		t.Fatalf("Bad: %v", nodes[0])
 	}
 	if nodes[0].Checks[0].Status != structs.HealthPassing {
@@ -130,7 +131,7 @@ func TestInternal_NodeDump(t *testing.T) {
 		switch node.Node {
 		case "foo":
 			foundFoo = true
-			if !strContains(node.Services[0].Tags, "master") {
+			if !lib.StrContains(node.Services[0].Tags, "master") {
 				t.Fatalf("Bad: %v", nodes[0])
 			}
 			if node.Checks[0].Status != structs.HealthPassing {
@@ -139,7 +140,7 @@ func TestInternal_NodeDump(t *testing.T) {
 
 		case "bar":
 			foundBar = true
-			if !strContains(node.Services[0].Tags, "slave") {
+			if !lib.StrContains(node.Services[0].Tags, "slave") {
 				t.Fatalf("Bad: %v", nodes[1])
 			}
 			if node.Checks[0].Status != structs.HealthWarning {

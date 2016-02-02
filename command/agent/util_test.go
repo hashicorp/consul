@@ -24,39 +24,6 @@ func TestAEScale(t *testing.T) {
 	}
 }
 
-func TestRateScaledInterval(t *testing.T) {
-	min := 1 * time.Second
-	rate := 200.0
-	if v := rateScaledInterval(rate, min, 0); v != min {
-		t.Fatalf("Bad: %v", v)
-	}
-	if v := rateScaledInterval(rate, min, 100); v != min {
-		t.Fatalf("Bad: %v", v)
-	}
-	if v := rateScaledInterval(rate, min, 200); v != 1*time.Second {
-		t.Fatalf("Bad: %v", v)
-	}
-	if v := rateScaledInterval(rate, min, 1000); v != 5*time.Second {
-		t.Fatalf("Bad: %v", v)
-	}
-	if v := rateScaledInterval(rate, min, 5000); v != 25*time.Second {
-		t.Fatalf("Bad: %v", v)
-	}
-	if v := rateScaledInterval(rate, min, 10000); v != 50*time.Second {
-		t.Fatalf("Bad: %v", v)
-	}
-}
-
-func TestRandomStagger(t *testing.T) {
-	intv := time.Minute
-	for i := 0; i < 10; i++ {
-		stagger := randomStagger(intv)
-		if stagger < 0 || stagger >= intv {
-			t.Fatalf("Bad: %v", stagger)
-		}
-	}
-}
-
 func TestStringHash(t *testing.T) {
 	in := "hello world"
 	expected := "5eb63bbbe01eeed093cb22bb8f5acdc3"

@@ -15,6 +15,7 @@ import (
 	"github.com/armon/circbuf"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
@@ -131,7 +132,7 @@ func (c *CheckMonitor) Stop() {
 // run is invoked by a goroutine to run until Stop() is called
 func (c *CheckMonitor) run() {
 	// Get the randomized initial pause time
-	initialPauseTime := randomStagger(c.Interval)
+	initialPauseTime := lib.RandomStagger(c.Interval)
 	c.Logger.Printf("[DEBUG] agent: pausing %v before first invocation of %s", initialPauseTime, c.Script)
 	next := time.After(initialPauseTime)
 	for {
@@ -366,7 +367,7 @@ func (c *CheckHTTP) Stop() {
 // run is invoked by a goroutine to run until Stop() is called
 func (c *CheckHTTP) run() {
 	// Get the randomized initial pause time
-	initialPauseTime := randomStagger(c.Interval)
+	initialPauseTime := lib.RandomStagger(c.Interval)
 	c.Logger.Printf("[DEBUG] agent: pausing %v before first HTTP request of %s", initialPauseTime, c.HTTP)
 	next := time.After(initialPauseTime)
 	for {
@@ -482,7 +483,7 @@ func (c *CheckTCP) Stop() {
 // run is invoked by a goroutine to run until Stop() is called
 func (c *CheckTCP) run() {
 	// Get the randomized initial pause time
-	initialPauseTime := randomStagger(c.Interval)
+	initialPauseTime := lib.RandomStagger(c.Interval)
 	c.Logger.Printf("[DEBUG] agent: pausing %v before first socket connection of %s", initialPauseTime, c.TCP)
 	next := time.After(initialPauseTime)
 	for {
@@ -580,7 +581,7 @@ func (c *CheckDocker) Stop() {
 // run is invoked by a goroutine to run until Stop() is called
 func (c *CheckDocker) run() {
 	// Get the randomized initial pause time
-	initialPauseTime := randomStagger(c.Interval)
+	initialPauseTime := lib.RandomStagger(c.Interval)
 	c.Logger.Printf("[DEBUG] agent: pausing %v before first invocation of %s -c %s in container %s", initialPauseTime, c.Shell, c.Script, c.DockerContainerID)
 	next := time.After(initialPauseTime)
 	for {
