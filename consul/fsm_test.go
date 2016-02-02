@@ -2,6 +2,7 @@ package consul
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -43,7 +44,7 @@ func makeLog(buf []byte) *raft.Log {
 func generateUUID() (ret string) {
 	var err error
 	if ret, err = uuid.GenerateUUID(); err != nil {
-		return "DEADC0DE-BADD-CAFE-D00D-FEEDFACECAFE"
+		panic(fmt.Sprintf("Unable to generate a UUID, %v", err))
 	}
 	return ret
 }
