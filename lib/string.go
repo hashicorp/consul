@@ -13,11 +13,3 @@ func StrContains(l []string, s string) bool {
 	}
 	return false
 }
-
-func ToLowerList(l []string) []string {
-	var out []string
-	for _, value := range l {
-		out = append(out, strings.ToLower(value))
-	}
-	return out
-}
