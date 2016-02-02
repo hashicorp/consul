@@ -3,6 +3,7 @@ package agent
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -16,7 +17,7 @@ import (
 func generateUUID() (ret string) {
 	var err error
 	if ret, err = uuid.GenerateUUID(); err != nil {
-		return "DEADC0DE-BADD-CAFE-D00D-FEEDFACECAFE"
+		panic(fmt.Sprintf("Unable to generate a UUID, %v", err))
 	}
 	return ret
 }
