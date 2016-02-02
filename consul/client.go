@@ -390,9 +390,7 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	var server *serverParts
 	if c.lastServer != nil && lastRPCTime < clientRPCConnMaxIdle {
 		server = c.lastServer
-		if server != nil {
-			goto TRY_RPC
-		}
+		goto TRY_RPC
 	}
 
 	// Bail if we can't find any servers
