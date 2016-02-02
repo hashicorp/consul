@@ -2,6 +2,16 @@
 
 IMPROVEMENTS:
 
+* Consul agents will now periodically reconnect to available Consul servers
+  in order to redistribute their RPC query load.  Consul clients will, by
+  default, attempt to establish a new connection every 120s to 180s, however
+  the rate at which agents begin to query new servers is proportional to the
+  size of the Consul cluster (servers should never receive more than 64 new
+  connections per second per Consul server as a result of rebalancing).
+  Clusters in stable environments who use `allow_stale` should see a more
+  even distribution of query load across all of their Consul
+  servers. [GH-1667]
+
 BUG FIXES:
 
 * Updated the internal web ui (`-ui` option) to latest released build, fixing
