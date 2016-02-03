@@ -433,7 +433,7 @@ type Config struct {
 	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
 
 	//maximum value for a given key
-	MaxKVSize int64 `mapstructure:"max_kv_size"`
+	MaxKVSize int64 `mapstructure:"max_kv_size" json:"max_kv_size"`
 
 	// Reap controls automatic reaping of child processes, useful if running
 	// as PID 1 in a Docker container. This defaults to nil which will make
