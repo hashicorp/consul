@@ -413,7 +413,7 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	connReuseLowWaterMark = clientRPCMinReuseDuration + lib.RandomStagger(clientRPCMinReuseDuration/clientRPCJitterFraction)
 	numLANMembers = len(c.LANMembers())
 	c.connRebalanceTime = now.Add(lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWaterMark, numLANMembers))
-	c.logger.Printf("[DEBUG] consul: connection to server %s will expire at %v", c.lastServer.Addr, c.connRebalanceTime)
+	c.logger.Printf("[DEBUG] consul: connection to server %s will expire at %v", server.Addr, c.connRebalanceTime)
 
 	// Forward to remote Consul
 TRY_RPC:
