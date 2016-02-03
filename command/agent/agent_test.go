@@ -41,6 +41,7 @@ func nextConfig() *Config {
 	conf.Server = true
 	conf.ACLDatacenter = "dc1"
 	conf.ACLMasterToken = "root"
+	conf.MaxKVSize = 512 * 1024
 
 	cons := consul.DefaultConfig()
 	conf.ConsulConfig = cons
