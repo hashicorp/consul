@@ -685,6 +685,7 @@ func httpTest(t *testing.T, f func(srv *HTTPServer)) {
 	httpTestWithConfig(t, f, nil)
 }
 
+//httpTestWithConfig
 func httpTestWithConfig(t *testing.T, f func(srv *HTTPServer), cb func(c *Config)) {
 	dir, srv := makeHTTPServerWithConfig(t, cb)
 	defer os.RemoveAll(dir)
