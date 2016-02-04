@@ -432,6 +432,9 @@ type Config struct {
 	SessionTTLMin    time.Duration `mapstructure:"-"`
 	SessionTTLMinRaw string        `mapstructure:"session_ttl_min"`
 
+	//maximum value for a given key
+	MaxKVSize int64 `mapstructure:"max_kv_size" json:"max_kv_size"`
+
 	// Reap controls automatic reaping of child processes, useful if running
 	// as PID 1 in a Docker container. This defaults to nil which will make
 	// Consul reap only if it detects it's running as PID 1. If non-nil,
@@ -716,6 +719,11 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 			return nil, fmt.Errorf("Session TTL Min invalid: %v", err)
 		}
 		result.SessionTTLMin = dur
+	}
+
+	//default max size is 512kb
+	if result.MaxKVSize == 0 {
+		result.MaxKVSize = 512 * 1024
 	}
 
 	if result.AdvertiseAddrs.SerfLanRaw != "" {
@@ -1145,6 +1153,12 @@ func MergeConfig(a, b *Config) *Config {
 	if b.SessionTTLMinRaw != "" {
 		result.SessionTTLMin = b.SessionTTLMin
 		result.SessionTTLMinRaw = b.SessionTTLMinRaw
+	}
+	//max default value is 512kb
+	if b.MaxKVSize == 0 {
+		result.MaxKVSize = 512 * 1024
+	} else {
+		result.MaxKVSize = b.MaxKVSize
 	}
 	if len(b.HTTPAPIResponseHeaders) != 0 {
 		if result.HTTPAPIResponseHeaders == nil {

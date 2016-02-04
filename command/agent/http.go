@@ -31,12 +31,13 @@ var (
 // HTTPServer is used to wrap an Agent and expose various API's
 // in a RESTful manner
 type HTTPServer struct {
-	agent    *Agent
-	mux      *http.ServeMux
-	listener net.Listener
-	logger   *log.Logger
-	uiDir    string
-	addr     string
+	agent     *Agent
+	mux       *http.ServeMux
+	listener  net.Listener
+	logger    *log.Logger
+	uiDir     string
+	addr      string
+	maxKVSize int64
 }
 
 // NewHTTPServers starts new HTTP servers to provide an interface to
@@ -73,15 +74,15 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 
 		// Create the mux
 		mux := http.NewServeMux()
-
 		// Create the server
 		srv := &HTTPServer{
-			agent:    agent,
-			mux:      mux,
-			listener: list,
-			logger:   log.New(logOutput, "", log.LstdFlags),
-			uiDir:    config.UiDir,
-			addr:     httpAddr.String(),
+			agent:     agent,
+			mux:       mux,
+			listener:  list,
+			logger:    log.New(logOutput, "", log.LstdFlags),
+			uiDir:     config.UiDir,
+			addr:      httpAddr.String(),
+			maxKVSize: config.MaxKVSize,
 		}
 		srv.registerHandlers(config.EnableDebug)
 
@@ -128,12 +129,13 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 
 		// Create the server
 		srv := &HTTPServer{
-			agent:    agent,
-			mux:      mux,
-			listener: list,
-			logger:   log.New(logOutput, "", log.LstdFlags),
-			uiDir:    config.UiDir,
-			addr:     httpAddr.String(),
+			agent:     agent,
+			mux:       mux,
+			listener:  list,
+			logger:    log.New(logOutput, "", log.LstdFlags),
+			uiDir:     config.UiDir,
+			addr:      httpAddr.String(),
+			maxKVSize: config.MaxKVSize,
 		}
 		srv.registerHandlers(config.EnableDebug)
 
@@ -147,17 +149,17 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 
 // newScadaHttp creates a new HTTP server wrapping the SCADA
 // listener such that HTTP calls can be sent from the brokers.
-func newScadaHttp(agent *Agent, list net.Listener) *HTTPServer {
+func newScadaHttp(agent *Agent, list net.Listener, config *Config) *HTTPServer {
 	// Create the mux
 	mux := http.NewServeMux()
-
 	// Create the server
 	srv := &HTTPServer{
-		agent:    agent,
-		mux:      mux,
-		listener: list,
-		logger:   agent.logger,
-		addr:     scadaHTTPAddr,
+		agent:     agent,
+		mux:       mux,
+		listener:  list,
+		logger:    agent.logger,
+		addr:      scadaHTTPAddr,
+		maxKVSize: config.MaxKVSize,
 	}
 	srv.registerHandlers(false) // Never allow debug for SCADA
 

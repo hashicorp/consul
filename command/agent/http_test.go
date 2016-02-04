@@ -599,7 +599,8 @@ func TestACLResolution(t *testing.T) {
 
 func TestScadaHTTP(t *testing.T) {
 	// Create the agent
-	dir, agent := makeAgent(t, nextConfig())
+	conf := nextConfig()
+	dir, agent := makeAgent(t, conf)
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
 
@@ -611,7 +612,7 @@ func TestScadaHTTP(t *testing.T) {
 	defer list.Close()
 
 	// Create the SCADA HTTP server
-	scadaHttp := newScadaHttp(agent, list)
+	scadaHttp := newScadaHttp(agent, list, conf)
 
 	// Returned server uses the listener and scada addr
 	if scadaHttp.listener != list {
@@ -684,6 +685,7 @@ func httpTest(t *testing.T, f func(srv *HTTPServer)) {
 	httpTestWithConfig(t, f, nil)
 }
 
+//httpTestWithConfig
 func httpTestWithConfig(t *testing.T, f func(srv *HTTPServer), cb func(c *Config)) {
 	dir, srv := makeHTTPServerWithConfig(t, cb)
 	defer os.RemoveAll(dir)

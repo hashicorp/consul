@@ -791,6 +791,17 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %s %#v", config.SessionTTLMin.String(), config)
 	}
 
+	// MaxKVSize
+	input = `{"max_kv_size": "5242880"}` //5mebibytes in bytes
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.MaxKVSize != 5242880 {
+		t.Fatalf("bad: %v %#v", config.MaxKVSize, config)
+	}
+
 	// Reap
 	input = `{"reap": true}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -1293,6 +1304,7 @@ func TestMergeConfig(t *testing.T) {
 		AtlasJoin:           true,
 		SessionTTLMinRaw:    "1000s",
 		SessionTTLMin:       1000 * time.Second,
+		MaxKVSize:           5 * 1024 * 1024, //5 mebibytes
 		AdvertiseAddrs: AdvertiseAddrsConfig{
 			SerfLan:    &net.TCPAddr{},
 			SerfLanRaw: "127.0.0.5:1231",

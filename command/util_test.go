@@ -101,6 +101,7 @@ func nextConfig() *agent.Config {
 	conf.NodeName = fmt.Sprintf("Node %d", idx)
 	conf.BindAddr = "127.0.0.1"
 	conf.Server = true
+	conf.MaxKVSize = 512 * 1024
 
 	conf.Ports.HTTP = 10000 + 10*idx
 	conf.Ports.HTTPS = 10401 + 10*idx
