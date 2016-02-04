@@ -941,7 +941,7 @@ func (c *Command) setupScadaConn(config *Config) error {
 		return err
 	}
 	c.scadaProvider = provider
-	c.scadaHttp = newScadaHttp(c.agent, list)
+	c.scadaHttp = newScadaHttp(c.agent, list, config)
 	return nil
 }
 

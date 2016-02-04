@@ -149,7 +149,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 
 // newScadaHttp creates a new HTTP server wrapping the SCADA
 // listener such that HTTP calls can be sent from the brokers.
-func newScadaHttp(agent *Agent, list net.Listener) *HTTPServer {
+func newScadaHttp(agent *Agent, list net.Listener, config *Config) *HTTPServer {
 	// Create the mux
 	mux := http.NewServeMux()
 	// Create the server
@@ -159,7 +159,7 @@ func newScadaHttp(agent *Agent, list net.Listener) *HTTPServer {
 		listener:  list,
 		logger:    agent.logger,
 		addr:      scadaHTTPAddr,
-		maxKVSize: 512 * 1024,
+		maxKVSize: config.MaxKVSize,
 	}
 	srv.registerHandlers(false) // Never allow debug for SCADA
 
