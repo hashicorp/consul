@@ -1156,7 +1156,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	//max default value is 512kb
 	if b.MaxKVSize == 0 {
-		b.MaxKVSize = 512 * 1024
+		result.MaxKVSize = 512 * 1024
+	} else {
+		result.MaxKVSize = b.MaxKVSize
 	}
 	if len(b.HTTPAPIResponseHeaders) != 0 {
 		if result.HTTPAPIResponseHeaders == nil {

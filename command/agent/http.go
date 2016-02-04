@@ -152,14 +152,14 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 func newScadaHttp(agent *Agent, list net.Listener) *HTTPServer {
 	// Create the mux
 	mux := http.NewServeMux()
-
 	// Create the server
 	srv := &HTTPServer{
-		agent:    agent,
-		mux:      mux,
-		listener: list,
-		logger:   agent.logger,
-		addr:     scadaHTTPAddr,
+		agent:     agent,
+		mux:       mux,
+		listener:  list,
+		logger:    agent.logger,
+		addr:      scadaHTTPAddr,
+		maxKVSize: 512 * 1024,
 	}
 	srv.registerHandlers(false) // Never allow debug for SCADA
 
