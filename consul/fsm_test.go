@@ -2,12 +2,15 @@ package consul
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
 )
 
@@ -36,6 +39,14 @@ func makeLog(buf []byte) *raft.Log {
 		Type:  raft.LogCommand,
 		Data:  buf,
 	}
+}
+
+func generateUUID() (ret string) {
+	var err error
+	if ret, err = uuid.GenerateUUID(); err != nil {
+		panic(fmt.Sprintf("Unable to generate a UUID, %v", err))
+	}
+	return ret
 }
 
 func TestFSM_RegisterNode(t *testing.T) {
@@ -452,7 +463,7 @@ func TestFSM_SnapshotRestore(t *testing.T) {
 	if len(fooSrv.Services) != 2 {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
-	if !strContains(fooSrv.Services["db"].Tags, "primary") {
+	if !lib.StrContains(fooSrv.Services["db"].Tags, "primary") {
 		t.Fatalf("Bad: %v", fooSrv)
 	}
 	if fooSrv.Services["db"].Port != 5000 {

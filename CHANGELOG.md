@@ -2,6 +2,16 @@
 
 IMPROVEMENTS:
 
+* Consul agents will now periodically reconnect to available Consul servers
+  in order to redistribute their RPC query load.  Consul clients will, by
+  default, attempt to establish a new connection every 120s to 180s, however
+  the rate at which agents begin to query new servers is proportional to the
+  size of the Consul cluster (servers should never receive more than 64 new
+  connections per second per Consul server as a result of rebalancing).
+  Clusters in stable environments who use `allow_stale` should see a more
+  even distribution of query load across all of their Consul
+  servers. [GH-1667]
+
 BUG FIXES:
 
 * Updated the internal web ui (`-ui` option) to latest released build, fixing
@@ -46,7 +56,7 @@ IMPROVEMENTS:
   messages and HTTP access logs [GH-1513] [GH-1448]
 * API clients configured for insecure SSL now use an HTTP transport that's
   set up the same way as the Go default transport [GH-1526]
-* Added new per-host telemery on DNS requests [GH-1537]
+* Added new per-host telemetry on DNS requests [GH-1537]
 * Added support for reaping child processes which is useful when running
   Consul as PID 1 in Docker containers [GH-1539]
 * Added new `-ui` command line and `ui` config option that enables a built-in
@@ -113,12 +123,12 @@ BUG FIXES:
 * Fixed bad lock handler execution during shutdown [GH-1080] [GH-1158] [GH-1214]
 * Added missing support for AAAA queries for nodes [GH-1222]
 * Tokens passed from the CLI or API work for maint mode [GH-1230]
-* Fixed service derigister/reregister flaps that could happen during
+* Fixed service deregister/reregister flaps that could happen during
   `consul reload` [GH-1235]
 * Fixed the Go API client to properly distinguish between expired sessions
   and sessions that don't exist [GH-1041]
 * Fixed the KV section of the UI to work on Safari [GH-1321]
-* Cleaned up Javascript for built-in UI with bug fixes [GH-1338]
+* Cleaned up JavaScript for built-in UI with bug fixes [GH-1338]
 
 IMPROVEMENTS:
 
@@ -255,8 +265,8 @@ FEATURES:
  * Merge `armon/consul-api` into `api` as official Go client.
  * Support for distributed locks and semaphores in API client [GH-594] [GH-600]
  * Support for native HTTP health checks [GH-592]
- * Support for node and service maintanence modes [GH-606]
- * Added new "consul maint" command to easily toggle maintanence modes [GH-625]
+ * Support for node and service maintenance modes [GH-606]
+ * Added new "consul maint" command to easily toggle maintenance modes [GH-625]
  * Added new "consul lock" command for simple highly-available deployments.
    This lets Consul manage the leader election and easily handle N+1 deployments
    without the applications being Consul aware. [GH-619]
@@ -336,7 +346,7 @@ BUG FIXES:
  * Fixing issue with Session ID and ACL ID generation. [GH-391]
  * Fixing multiple headers for /v1/event/list endpoint [GH-361]
  * Fixing graceful leave of leader causing invalid Raft peers [GH-360]
- * Fixing bug with closing TLS connction on error
+ * Fixing bug with closing TLS connection on error
  * Fixing issue with node reaping [GH-371]
  * Fixing aggressive deadlock time [GH-389]
  * Fixing syslog filter level [GH-272]
@@ -348,7 +358,7 @@ BUG FIXES:
 IMPROVEMENTS:
 
  * Use "critical" health state instead of "unknown" [GH-341]
- * Consul service can be targed for exec [GH-344]
+ * Consul service can be targeted for exec [GH-344]
  * Provide debug logging for session invalidation [GH-390]
  * Added "Deregister" button to UI [GH-364]
  * Added `enable_truncate` DNS configuration flag [GH-376]
@@ -417,7 +427,7 @@ BUG FIXES:
   * Fixed handling of `-rejoin` flag
   * Restored 0.2 TLS behavior, thanks to @nelhage [GH-233]
   * Fix the statsite flags, thanks to @nelhage [GH-243]
-  * Fixed filters on criticial / non-passing checks [GH-241]
+  * Fixed filters on critical / non-passing checks [GH-241]
   * Fixed initial log compaction crash [GH-297]
 
 IMPROVEMENTS:
@@ -448,7 +458,7 @@ IMPROVEMENTS:
   * `info` includes build version information
   * Sorted results for datacneter list [GH-198]
   * Switch multiplexing to yamux
-  * Allow multiple CA certis in ca_file [GH-174]
+  * Allow multiple CA certs in ca_file [GH-174]
   * Enable logging to syslog. [GH-105]
   * Allow raw key value lookup [GH-150]
   * Log encryption enabled [GH-151]
@@ -500,7 +510,7 @@ BUG FIXES:
   * Windows agents won't show "failed to decode" errors on every RPC
       request.
   * Fixed memory leak with RPC clients. [GH-149]
-  * Serf name conflict resoultion disabled. [GH-97]
+  * Serf name conflict resolution disabled. [GH-97]
   * Raft deadlock possibility fixed. [GH-141]
 
 MISC:
@@ -523,7 +533,7 @@ FEATURES:
       allow for higher throughput and read scalability. [GH-68]
   * /v1/health/service/ endpoint can take an optional `?passing` flag
       to filter to only nodes with passing results. [GH-57]
-  * The KV endpoint suports listing keys with the `?keys` query parameter,
+  * The KV endpoint supports listing keys with the `?keys` query parameter,
       and limited up to a separator using `?separator=`.
 
 IMPROVEMENTS:

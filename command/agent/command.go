@@ -16,6 +16,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/datadog"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/watch"
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-reap"
@@ -424,7 +425,7 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 
 		// Do an immediate check within the next 30 seconds
 		go func() {
-			time.Sleep(randomStagger(30 * time.Second))
+			time.Sleep(lib.RandomStagger(30 * time.Second))
 			c.checkpointResults(checkpoint.Check(updateParams))
 		}()
 	}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 )
 
 const (
@@ -252,7 +253,7 @@ func (l *localState) UpdateCheck(checkID, status, output string) {
 	if l.config.CheckUpdateInterval > 0 && check.Status == status {
 		check.Output = output
 		if _, ok := l.deferCheck[checkID]; !ok {
-			intv := time.Duration(uint64(l.config.CheckUpdateInterval)/2) + randomStagger(l.config.CheckUpdateInterval)
+			intv := time.Duration(uint64(l.config.CheckUpdateInterval)/2) + lib.RandomStagger(l.config.CheckUpdateInterval)
 			deferSync := time.AfterFunc(intv, func() {
 				l.Lock()
 				if _, ok := l.checkStatus[checkID]; ok {
@@ -302,11 +303,11 @@ SYNC:
 		case <-l.consulCh:
 			// Stagger the retry on leader election, avoid a thundering heard
 			select {
-			case <-time.After(randomStagger(aeScale(syncStaggerIntv, len(l.iface.LANMembers())))):
+			case <-time.After(lib.RandomStagger(aeScale(syncStaggerIntv, len(l.iface.LANMembers())))):
 			case <-shutdownCh:
 				return
 			}
-		case <-time.After(syncRetryIntv + randomStagger(aeScale(syncRetryIntv, len(l.iface.LANMembers())))):
+		case <-time.After(syncRetryIntv + lib.RandomStagger(aeScale(syncRetryIntv, len(l.iface.LANMembers())))):
 		case <-shutdownCh:
 			return
 		}
@@ -317,7 +318,7 @@ SYNC:
 
 	// Schedule the next full sync, with a random stagger
 	aeIntv := aeScale(l.config.AEInterval, len(l.iface.LANMembers()))
-	aeIntv = aeIntv + randomStagger(aeIntv)
+	aeIntv = aeIntv + lib.RandomStagger(aeIntv)
 	aeTimer := time.After(aeIntv)
 
 	// Wait for sync events

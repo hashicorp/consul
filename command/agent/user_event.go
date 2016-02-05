@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/go-uuid"
 )
 
 const (
@@ -78,7 +79,10 @@ func (a *Agent) UserEvent(dc, token string, params *UserEvent) error {
 	}
 
 	// Format message
-	params.ID = generateUUID()
+	var err error
+	if params.ID, err = uuid.GenerateUUID(); err != nil {
+		return fmt.Errorf("UUID generation failed: %v", err)
+	}
 	params.Version = userEventMaxVersion
 	payload, err := encodeMsgPack(&params)
 	if err != nil {

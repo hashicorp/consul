@@ -6,7 +6,13 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/hashicorp/consul/lib"
 )
+
+func init() {
+	lib.SeedMathRand()
+}
 
 func main() {
 	os.Exit(realMain())
