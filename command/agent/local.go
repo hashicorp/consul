@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
@@ -235,6 +236,8 @@ func (l *localState) RemoveCheck(checkID string) {
 func (l *localState) UpdateCheck(checkID, status, output string) {
 	l.Lock()
 	defer l.Unlock()
+
+	metrics.IncrCounter([]string{"consul", "agent", "health", checkID, status}, 1)
 
 	check, ok := l.checks[checkID]
 	if !ok {

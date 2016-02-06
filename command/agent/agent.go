@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
@@ -1026,6 +1027,8 @@ func (a *Agent) RemoveCheck(checkID string, persist bool) error {
 func (a *Agent) UpdateCheck(checkID, status, output string) error {
 	a.checkLock.Lock()
 	defer a.checkLock.Unlock()
+
+	metrics.IncrCounter([]string{"consul", "agent", "ttl", checkID, status}, 1)
 
 	check, ok := a.checkTTLs[checkID]
 	if !ok {
