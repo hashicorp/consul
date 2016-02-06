@@ -623,7 +623,7 @@ Options:
   -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
   -datacenter=""             Datacenter to dispatch in. Defaults to that of agent.
   -prefix="_rexec"           Prefix in the KV store to use for request data
-  -node=""					 Regular expression to filter on node names
+  -node=""                   Regular expression to filter on node names
   -service=""                Regular expression to filter on service instances
   -tag=""                    Regular expression to filter on service tags. Must be used
                              with -service.
