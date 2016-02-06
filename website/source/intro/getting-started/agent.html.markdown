@@ -90,7 +90,7 @@ Armons-MacBook-Air  172.20.20.11:8301  alive   server  0.6.1dev  2         dc1
 
 The output shows our own node, the address it is running on, its
 health state, its role in the cluster, and some version information.
-Additional metadata can be viewed by providing the `-detailed` flag.
+Additional metadata can be viewed by providing the `--detailed` flag.
 
 The output of the [`members`](/docs/commands/members.html) command is based on
 the [gossip protocol](/docs/internals/gossip.html) and is eventually consistent.
