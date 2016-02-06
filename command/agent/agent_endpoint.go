@@ -78,6 +78,8 @@ func (s *HTTPServer) AgentForceLeave(resp http.ResponseWriter, req *http.Request
 	return nil, s.agent.ForceLeave(addr)
 }
 
+const invalidCheckMessage = "Must provide TTL or Script/DockerContainerID/HTTP/TCP and Interval"
+
 func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var args CheckDefinition
 	// Fixup the type decode of TTL or Interval
@@ -110,7 +112,7 @@ func (s *HTTPServer) AgentRegisterCheck(resp http.ResponseWriter, req *http.Requ
 	chkType := &args.CheckType
 	if !chkType.Valid() {
 		resp.WriteHeader(400)
-		resp.Write([]byte("Must provide TTL or Script and Interval!"))
+		resp.Write([]byte(invalidCheckMessage))
 		return nil, nil
 	}
 
@@ -220,7 +222,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 		}
 		if !check.Valid() {
 			resp.WriteHeader(400)
-			resp.Write([]byte("Must provide TTL or Script and Interval!"))
+			resp.Write([]byte(invalidCheckMessage))
 			return nil, nil
 		}
 	}
