@@ -23,6 +23,12 @@ While events are purely gossip driven, remote execution relies on the KV store
 as a message broker. As a result, the `exec` command will not be able to
 properly function during a Consul outage.
 
+**Verbose output warning:** use care to make sure that your command does not
+produce a large volume of output. Writes to the KV store for this output go
+through the Consul servers and the Raft consesnus algorithm, so having a large
+number of nodes in the cluster flow a large amount of data through the KV store
+could make the cluster unavailable.
+
 ## Usage
 
 Usage: `consul exec [options] [-|command...]`
