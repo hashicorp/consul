@@ -363,6 +363,19 @@ INVALID:
 	resp.SetRcode(req, dns.RcodeNameError)
 }
 
+// translateAddr is used to provide the final, translated address for a node,
+// depending on how this agent and the other node are configured.
+func (d *DNSServer) translateAddr(dc string, node *structs.Node) string {
+	addr := node.Address
+	if d.agent.config.TranslateWanAddrs && (d.agent.config.Datacenter != dc) {
+		wanAddr := node.TaggedAddresses["wan"]
+		if wanAddr != "" {
+			addr = wanAddr
+		}
+	}
+	return addr
+}
+
 // nodeLookup is used to handle a node query
 func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.Msg) {
 	// Only handle ANY, A and AAAA type requests
@@ -402,13 +415,8 @@ RPC:
 		return
 	}
 
-	// Determine whether we should use the WAN address or not
-	addr := out.NodeServices.Node.Address
-	if d.agent.config.TranslateWanAddrs && datacenter != d.agent.config.Datacenter {
-		addr = out.NodeServices.Node.TaggedAddresses["wan"]
-	}
-
 	// Add the node record
+	addr := d.translateAddr(datacenter, out.NodeServices.Node)
 	records := d.formatNodeRecord(out.NodeServices.Node, addr,
 		req.Question[0].Name, qType, d.config.NodeTTL)
 	if records != nil {
@@ -530,18 +538,12 @@ RPC:
 	// Perform a random shuffle
 	out.Nodes.Shuffle()
 
-	// Determine whether we should use the WAN address or not
-	var useWan bool
-	if d.agent.config.TranslateWanAddrs && datacenter != d.agent.config.Datacenter {
-		useWan = true
-	}
-
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
-	d.serviceNodeRecords(out.Nodes, req, resp, ttl, useWan)
+	d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
 
 	if qType == dns.TypeSRV {
-		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl, useWan)
+		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
 
 	// If the network is not TCP, restrict the number of responses
@@ -632,17 +634,11 @@ RPC:
 		return
 	}
 
-	// Determine whether we should use the WAN address or not
-	var useWan bool
-	if d.agent.config.TranslateWanAddrs && datacenter != d.agent.config.Datacenter {
-		useWan = true
-	}
-
 	// Add various responses depending on the request.
 	qType := req.Question[0].Qtype
-	d.serviceNodeRecords(out.Nodes, req, resp, ttl, useWan)
+	d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
 	if qType == dns.TypeSRV {
-		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl, useWan)
+		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
 
 	// If the network is not TCP, restrict the number of responses.
@@ -664,18 +660,16 @@ RPC:
 }
 
 // serviceNodeRecords is used to add the node records for a service lookup
-func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration, useWan bool) {
+func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration) {
 	qName := req.Question[0].Name
 	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
 	for _, node := range nodes {
-		// Prefer the Service Address or WAN Address over the
-		// Node Address when configured
-		addr := node.Node.Address
+		// Start with the translated address but use the service address,
+		// if specified.
+		addr := d.translateAddr(dc, node.Node)
 		if node.Service.Address != "" {
 			addr = node.Service.Address
-		} else if useWan == true && node.Node.TaggedAddresses["wan"] != "" {
-			addr = node.Node.TaggedAddresses["wan"]
 		}
 
 		// Avoid duplicate entries, possible if a node has
@@ -694,7 +688,7 @@ func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, res
 }
 
 // serviceARecords is used to add the SRV records for a service lookup
-func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration, useWan bool) {
+func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration) {
 	handled := make(map[string]struct{})
 	for _, node := range nodes {
 		// Avoid duplicate entries, possible if a node has
@@ -720,12 +714,11 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 		resp.Answer = append(resp.Answer, srvRec)
 
-		// Determine advertised address
-		addr := node.Node.Address
+		// Start with the translated address but use the service address,
+		// if specified.
+		addr := d.translateAddr(dc, node.Node)
 		if node.Service.Address != "" {
 			addr = node.Service.Address
-		} else if useWan == true && node.Node.TaggedAddresses["wan"] != "" {
-			addr = node.Node.TaggedAddresses["wan"]
 		}
 
 		// Add the extra record
