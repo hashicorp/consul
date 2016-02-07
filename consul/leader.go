@@ -380,11 +380,6 @@ func (s *Server) handleAliveMember(member serf.Member) error {
 		return err
 	}
 	if node != nil && node.Address == member.Addr.String() {
-		// Check if the WAN address was updated
-		if node.TaggedAddresses["wan"] != member.Tags["wan_addr"] {
-			goto AFTER_CHECK
-		}
-
 		// Check if the associated service is available
 		if service != nil {
 			match := false
@@ -423,10 +418,7 @@ AFTER_CHECK:
 		Datacenter: s.config.Datacenter,
 		Node:       member.Name,
 		Address:    member.Addr.String(),
-		TaggedAddresses: map[string]string{
-			"wan": member.Tags["wan_addr"],
-		},
-		Service: service,
+		Service:    service,
 		Check: &structs.HealthCheck{
 			Node:    member.Name,
 			CheckID: SerfCheckID,
@@ -468,9 +460,6 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 		Datacenter: s.config.Datacenter,
 		Node:       member.Name,
 		Address:    member.Addr.String(),
-		TaggedAddresses: map[string]string{
-			"wan": member.Tags["wan_addr"],
-		},
 		Check: &structs.HealthCheck{
 			Node:    member.Name,
 			CheckID: SerfCheckID,

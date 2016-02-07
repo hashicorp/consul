@@ -731,6 +731,66 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	})
 }
 
+func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
+	conf := nextConfig()
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	// Register info
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+		Address:    "127.0.0.1",
+	}
+	var out struct{}
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Trigger anti-entropy run and wait
+	agent.StartSync()
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify that we are in sync
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+	}
+	var services structs.IndexedNodeServices
+	if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure we synced our node info - this should have ridden on the
+	// "consul" service sync
+	addrs := services.NodeServices.Node.TaggedAddresses
+	if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) {
+		t.Fatalf("bad: %v", addrs)
+	}
+
+	// Blow away the catalog version of the node info
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Trigger anti-entropy run and wait
+	agent.StartSync()
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify that we are in sync - this should have been a sync of just the
+	// node info
+	if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	addrs = services.NodeServices.Node.TaggedAddresses
+	if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) {
+		t.Fatalf("bad: %v", addrs)
+	}
+}
+
 func TestAgentAntiEntropy_deleteService_fails(t *testing.T) {
 	l := new(localState)
 	if err := l.deleteService(""); err == nil {
