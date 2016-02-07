@@ -297,7 +297,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		formVals, err := url.ParseQuery(req.URL.RawQuery)
 		if err != nil {
 			s.logger.Printf("[ERR] http: Failed to decode query: %s from=%s", err, req.RemoteAddr)
-			resp.WriteHeader(500)
+			resp.WriteHeader(http.StatusInternalServerError) // 500
 			return
 		}
 		logURL := req.URL.String()
@@ -331,10 +331,10 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 	HAS_ERR:
 		if err != nil {
 			s.logger.Printf("[ERR] http: Request %s %v, error: %v from=%s", req.Method, logURL, err, req.RemoteAddr)
-			code := 500
+			code := http.StatusInternalServerError // 500
 			errMsg := err.Error()
 			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
-				code = 403
+				code = http.StatusForbidden // 403
 			}
 			resp.WriteHeader(code)
 			resp.Write([]byte(err.Error()))
@@ -367,7 +367,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	// Check if this is a non-index path
 	if req.URL.Path != "/" {
-		resp.WriteHeader(404)
+		resp.WriteHeader(http.StatusNotFound) // 404
 		return
 	}
 
@@ -378,7 +378,7 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	// Redirect to the UI endpoint
-	http.Redirect(resp, req, "/ui/", 301)
+	http.Redirect(resp, req, "/ui/", http.StatusMovedPermanently) // 301
 }
 
 // decodeBody is used to decode a JSON request body
@@ -439,7 +439,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 	if wait := query.Get("wait"); wait != "" {
 		dur, err := time.ParseDuration(wait)
 		if err != nil {
-			resp.WriteHeader(400)
+			resp.WriteHeader(http.StatusBadRequest) // 400
 			resp.Write([]byte("Invalid wait time"))
 			return true
 		}
@@ -448,7 +448,7 @@ func parseWait(resp http.ResponseWriter, req *http.Request, b *structs.QueryOpti
 	if idx := query.Get("index"); idx != "" {
 		index, err := strconv.ParseUint(idx, 10, 64)
 		if err != nil {
-			resp.WriteHeader(400)
+			resp.WriteHeader(http.StatusBadRequest) // 400
 			resp.Write([]byte("Invalid index"))
 			return true
 		}
@@ -468,7 +468,7 @@ func parseConsistency(resp http.ResponseWriter, req *http.Request, b *structs.Qu
 		b.RequireConsistent = true
 	}
 	if b.AllowStale && b.RequireConsistent {
-		resp.WriteHeader(400)
+		resp.WriteHeader(http.StatusBadRequest) // 400
 		resp.Write([]byte("Cannot specify ?stale with ?consistent, conflicting semantics."))
 		return true
 	}
