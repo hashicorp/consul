@@ -159,13 +159,13 @@ type QueryMeta struct {
 // to register a node as providing a service. If no service
 // is provided, the node is registered.
 type RegisterRequest struct {
-	Datacenter string
-	Node       string
-	Address    string
-	Addresses  map[string]string
-	Service    *NodeService
-	Check      *HealthCheck
-	Checks     HealthChecks
+	Datacenter      string
+	Node            string
+	Address         string
+	TaggedAddresses map[string]string
+	Service         *NodeService
+	Check           *HealthCheck
+	Checks          HealthChecks
 	WriteRequest
 }
 
@@ -246,9 +246,9 @@ func (r *ChecksInStateRequest) RequestDatacenter() string {
 
 // Used to return information about a node
 type Node struct {
-	Node       string
-	Address    string
-	Addresses  map[string]string
+	Node            string
+	Address         string
+	TaggedAddresses map[string]string
 
 	RaftIndex
 }
@@ -440,11 +440,11 @@ OUTER:
 // a node. This is currently used for the UI only, as it is
 // rather expensive to generate.
 type NodeInfo struct {
-	Node       string
-	Address    string
-	Addresses  map[string]string
-	Services   []*NodeService
-	Checks     []*HealthCheck
+	Node            string
+	Address         string
+	TaggedAddresses map[string]string
+	Services        []*NodeService
+	Checks          []*HealthCheck
 }
 
 // NodeDump is used to dump all the nodes with all their

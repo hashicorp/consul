@@ -117,7 +117,7 @@ func TestDNS_NodeLookup(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       "foo",
 		Address:    "127.0.0.1",
-		Addresses: 	map[string]string {
+		TaggedAddresses: map[string]string{
 			"wan": "127.0.0.2",
 		},
 	}
@@ -758,7 +758,7 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 			Datacenter: "dc2",
 			Node:       "foo",
 			Address:    "127.0.0.1",
-			Addresses:  map[string]string {
+			TaggedAddresses: map[string]string{
 				"wan": "127.0.0.2",
 			},
 			Service: &structs.NodeService{

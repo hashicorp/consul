@@ -523,14 +523,12 @@ func (l *localState) deleteCheck(id string) error {
 // syncService is used to sync a service to the server
 func (l *localState) syncService(id string) error {
 	req := structs.RegisterRequest{
-		Datacenter:   l.config.Datacenter,
-		Node:         l.config.NodeName,
-		Address:      l.config.AdvertiseAddr,
-		Addresses:   	map[string]string {
-			"wan": l.config.AdvertiseAddrWan,
-		},
-		Service:      l.services[id],
-		WriteRequest: structs.WriteRequest{Token: l.serviceToken(id)},
+		Datacenter:      l.config.Datacenter,
+		Node:            l.config.NodeName,
+		Address:         l.config.AdvertiseAddr,
+		TaggedAddresses: l.config.TaggedAddresses,
+		Service:         l.services[id],
+		WriteRequest:    structs.WriteRequest{Token: l.serviceToken(id)},
 	}
 
 	// If the service has associated checks that are out of sync,
@@ -583,15 +581,13 @@ func (l *localState) syncCheck(id string) error {
 	}
 
 	req := structs.RegisterRequest{
-		Datacenter:   l.config.Datacenter,
-		Node:         l.config.NodeName,
-		Address:      l.config.AdvertiseAddr,
-		Addresses:   	map[string]string {
-			"wan": l.config.AdvertiseAddrWan,
-		},
-		Service:      service,
-		Check:        l.checks[id],
-		WriteRequest: structs.WriteRequest{Token: l.checkToken(id)},
+		Datacenter:      l.config.Datacenter,
+		Node:            l.config.NodeName,
+		Address:         l.config.AdvertiseAddr,
+		TaggedAddresses: l.config.TaggedAddresses,
+		Service:         service,
+		Check:           l.checks[id],
+		WriteRequest:    structs.WriteRequest{Token: l.checkToken(id)},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Register", &req, &out)

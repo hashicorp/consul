@@ -405,7 +405,7 @@ RPC:
 	// Determine whether we should use the WAN address or not
 	addr := out.NodeServices.Node.Address
 	if d.agent.config.TranslateWanAddrs && datacenter != d.agent.config.Datacenter {
-		addr = out.NodeServices.Node.Addresses["wan"]
+		addr = out.NodeServices.Node.TaggedAddresses["wan"]
 	}
 
 	// Add the node record
@@ -674,8 +674,8 @@ func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, res
 		addr := node.Node.Address
 		if node.Service.Address != "" {
 			addr = node.Service.Address
-		} else if useWan == true && node.Node.Addresses["wan"] != "" {
-			addr = node.Node.Addresses["wan"]
+		} else if useWan == true && node.Node.TaggedAddresses["wan"] != "" {
+			addr = node.Node.TaggedAddresses["wan"]
 		}
 
 		// Avoid duplicate entries, possible if a node has
@@ -724,8 +724,8 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		addr := node.Node.Address
 		if node.Service.Address != "" {
 			addr = node.Service.Address
-		} else if useWan == true && node.Node.Addresses["wan"] != "" {
-			addr = node.Node.Addresses["wan"]
+		} else if useWan == true && node.Node.TaggedAddresses["wan"] != "" {
+			addr = node.Node.TaggedAddresses["wan"]
 		}
 
 		// Add the extra record

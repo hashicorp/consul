@@ -161,6 +161,11 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		config.AdvertiseAddrWan = config.AdvertiseAddr
 	}
 
+	// Create the default set of tagged addresses.
+	config.TaggedAddresses = map[string]string{
+		"wan": config.AdvertiseAddrWan,
+	}
+
 	agent := &Agent{
 		config:        config,
 		logger:        log.New(logOutput, "", log.LstdFlags),
@@ -287,7 +292,6 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.AdvertiseAddrs.SerfWan != nil {
 		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddrs.SerfWan.IP.String()
 		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.AdvertiseAddrs.SerfWan.Port
-		a.config.AdvertiseAddrWan = a.config.AdvertiseAddrs.SerfWan.IP.String()
 	}
 	if a.config.AdvertiseAddrs.RPC != nil {
 		base.RPCAdvertise = a.config.AdvertiseAddrs.RPC
