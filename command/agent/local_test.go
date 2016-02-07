@@ -899,7 +899,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	testutil.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Wait a little while for an update.
-	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
+	time.Sleep(3 * conf.ConsulConfig.CoordinateUpdatePeriod)
 
 	// Make sure the coordinate is present.
 	req := structs.DCSpecificRequest{
