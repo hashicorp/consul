@@ -474,7 +474,7 @@ func (s *StateStore) EnsureRegistration(idx uint64, req *structs.RegisterRequest
 func (s *StateStore) ensureRegistrationTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
 	req *structs.RegisterRequest) error {
 	// Add the node.
-	node := &structs.Node{Node: req.Node, Address: req.Address}
+	node := &structs.Node{Node: req.Node, Address: req.Address, Addresses: req.Addresses}
 	if err := s.ensureNodeTxn(tx, idx, watches, node); err != nil {
 		return fmt.Errorf("failed inserting node: %s", err)
 	}
@@ -1373,8 +1373,9 @@ func (s *StateStore) parseNodes(tx *memdb.Txn, idx uint64,
 
 		// Create the wrapped node
 		dump := &structs.NodeInfo{
-			Node:    node.Node,
-			Address: node.Address,
+			Node:       node.Node,
+			Address:    node.Address,
+			Addresses:  node.Addresses,
 		}
 
 		// Query the node services

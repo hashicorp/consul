@@ -189,6 +189,10 @@ type Config struct {
 	// Serf WAN IP. If not specified, the general advertise address is used.
 	AdvertiseAddrWan string `mapstructure:"advertise_addr_wan"`
 
+	// TranslateWanAddrs controls whether or not Consul should prefer
+	// the AdvertiseAddrWan address when doing lookups in remote datacenters.
+	TranslateWanAddrs bool `mapstructure:"translate_wan_addrs"`
+
 	// Port configurations
 	Ports PortConfig
 
@@ -967,6 +971,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.AdvertiseAddrWan != "" {
 		result.AdvertiseAddrWan = b.AdvertiseAddrWan
+	}
+	if b.TranslateWanAddrs == true {
+		result.TranslateWanAddrs = true
 	}
 	if b.AdvertiseAddrs.SerfLan != nil {
 		result.AdvertiseAddrs.SerfLan = b.AdvertiseAddrs.SerfLan

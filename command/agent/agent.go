@@ -287,6 +287,7 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.AdvertiseAddrs.SerfWan != nil {
 		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddrs.SerfWan.IP.String()
 		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.AdvertiseAddrs.SerfWan.Port
+		a.config.AdvertiseAddrWan = a.config.AdvertiseAddrs.SerfWan.IP.String()
 	}
 	if a.config.AdvertiseAddrs.RPC != nil {
 		base.RPCAdvertise = a.config.AdvertiseAddrs.RPC
