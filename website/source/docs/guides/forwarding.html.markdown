@@ -28,6 +28,8 @@ default. By contrast, when `recursors` is set and the upstream resolver is
 functioning correctly, Consul will try to resolve CNAMEs and include
 any records (e.g. A, AAAA, PTR) for them in its DNS reply.
 
+You can either do one of the following:
+
 ### BIND Setup
 
 First, you have to disable DNSSEC so that Consul and BIND can communicate.
