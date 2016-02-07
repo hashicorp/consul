@@ -41,18 +41,22 @@ The options below are all specified on the command-line.
   If this address is not routable, the node will be in a constant flapping state
   as other nodes will treat the non-routability as a failure.
 
-* <a name="_advertise-wan"></a><a href="#_advertise-wan">`-advertise-wan`</a> - The advertise wan
-  address is used to change the address that we advertise to server nodes joining
-  through the WAN. By default, the [`-advertise`](#_advertise) address is advertised.
-  However, in some cases all members of all datacenters cannot be on the same
-  physical or virtual network, especially on hybrid setups mixing cloud and private datacenters.
-  This flag enables server nodes gossiping through the public network for the WAN while using
-  private VLANs for gossiping to each other and their client agents.
+* <a name="_advertise-wan"></a><a href="#_advertise-wan">`-advertise-wan`</a> - The
+  advertise WAN address is used to change the address that we advertise to server nodes
+  joining through the WAN. This can also be set on client agents when used in combination
+  with the <a href="#translate_wan_addrs">`translate_wan_addrs`</a> configuration
+  option. By default, the [`-advertise`](#_advertise) address is advertised. However, in some
+  cases all members of all datacenters cannot be on the same physical or virtual network,
+  especially on hybrid setups mixing cloud and private datacenters. This flag enables server
+  nodes gossiping through the public network for the WAN while using private VLANs for gossiping
+  to each other and their client agents, and it allows client agents to be reached at this
+  address when being accessed from a remote datacenter if the remote datacenter is configured
+  with <a href="#translate_wan_addrs">`translate_wan_addrs`</a>.
 
 * <a name="_atlas"></a><a href="#_atlas">`-atlas`</a> - This flag
   enables [Atlas](https://atlas.hashicorp.com) integration.
-  It is used to provide the Atlas infrastructure name and the SCADA connection. The format of 
-  this is `username/environment`. This enables Atlas features such as the Monitoring UI 
+  It is used to provide the Atlas infrastructure name and the SCADA connection. The format of
+  this is `username/environment`. This enables Atlas features such as the Monitoring UI
   and node auto joining.
 
 * <a name="_atlas_join"></a><a href="#_atlas_join">`-atlas-join`</a> - When set, enables auto-join
@@ -622,6 +626,13 @@ definitions support being updated during a reload.
 * <a name="syslog_facility"></a><a href="#syslog_facility">`syslog_facility`</a> When
   [`enable_syslog`](#enable_syslog) is provided, this controls to which
   facility messages are sent. By default, `LOCAL0` will be used.
+
+* <a name="translate_wan_addrs"</a><a href="#translate_wan_addrs">`translate_wan_addrs`</a> If
+  set to true, Consul will prefer a node's configured <a href="#_advertise-wan">WAN address</a>
+  when servicing DNS requests for a node in a remote datacenter. This allows the node to be
+  reached within its own datacenter using its local address, and reached from other datacenters
+  using its WAN address, which is useful in hybrid setups with mixed networks. This is disabled
+  by default.
 
 * <a name="ui"></a><a href="#ui">`ui`</a> - Equivalent to the [`-ui`](#_ui)
   command-line flag.

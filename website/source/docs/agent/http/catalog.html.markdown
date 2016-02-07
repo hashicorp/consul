@@ -48,6 +48,9 @@ body must look something like:
       "v1"
     ],
     "Address": "127.0.0.1",
+    "TaggedAddresses": {
+      "wan": "127.0.0.1"
+    },
     "Port": 8000
   },
   "Check": {
@@ -64,7 +67,9 @@ body must look something like:
 The behavior of the endpoint depends on what keys are provided. The endpoint
 requires `Node` and `Address` to be provided while `Datacenter` will be defaulted
 to match that of the agent. If only those are provided, the endpoint will register
-the node with the catalog.
+the node with the catalog. `TaggedAddresses` can be used in conjunction with the
+[`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
+option. Currently only the "wan" tag is supported.
 
 If the `Service` key is provided, the service will also be registered. If
 `ID` is not provided, it will be defaulted to the value of the `Service.Service` property.
@@ -191,10 +196,16 @@ It returns a JSON body like this:
   {
     "Node": "baz",
     "Address": "10.1.10.11"
+    "TaggedAddresses": {
+      "wan": "10.1.10.11"
+    }
   },
   {
     "Node": "foobar",
-    "Address": "10.1.10.12"
+    "Address": "10.1.10.12",
+    "TaggedAddresses": {
+      "wan": "10.1.10.12"
+    }
   }
 ]
 ```
@@ -271,7 +282,10 @@ It returns a JSON body like this:
 {
   "Node": {
     "Node": "foobar",
-    "Address": "10.1.10.12"
+    "Address": "10.1.10.12",
+    "TaggedAddresses": {
+      "wan": "10.1.10.12"
+    }
   },
   "Services": {
     "consul": {

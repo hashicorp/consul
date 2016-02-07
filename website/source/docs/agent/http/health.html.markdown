@@ -127,7 +127,10 @@ It returns a JSON body like this:
   {
     "Node": {
       "Node": "foobar",
-      "Address": "10.1.10.12"
+      "Address": "10.1.10.12",
+      "TaggedAddresses": {
+        "wan": "10.1.10.12"
+      }
     },
     "Service": {
       "ID": "redis",

@@ -207,3 +207,12 @@ By default, all DNS results served by Consul set a 0 TTL value. This disables
 caching of DNS results. However, there are many situations in which caching is
 desirable for performance and scalability. This is discussed more in the guide
 for [DNS Caching](/docs/guides/dns-cache.html).
+
+## WAN Address Translation
+
+Be default, Consul DNS queries will return a node's local address, even when
+being queried from a remote datacenter. If you need to use a different address
+to reach a node from outside its datacenter, you can configure this behavior
+using the [`advertise-wan`](/docs/agent/options.html#_advertise-wan) and
+[`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
+options.
