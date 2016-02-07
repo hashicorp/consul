@@ -120,6 +120,12 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Make sure we sent along our tagged addresses when we synced.
+	addrs := services.NodeServices.Node.TaggedAddresses
+	if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) {
+		t.Fatalf("bad: %v", addrs)
+	}
+
 	// We should have 6 services (consul included)
 	if len(services.NodeServices.Services) != 6 {
 		t.Fatalf("bad: %v", services.NodeServices.Services)
@@ -625,6 +631,23 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 	for name, status := range agent.state.checkStatus {
 		if !status.inSync {
 			t.Fatalf("should be in sync: %v %v", name, status)
+		}
+	}
+
+	// Make sure we sent along our tagged addresses when we synced.
+	{
+		req := structs.NodeSpecificRequest{
+			Datacenter: "dc1",
+			Node:       agent.config.NodeName,
+		}
+		var services structs.IndexedNodeServices
+		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		addrs := services.NodeServices.Node.TaggedAddresses
+		if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) {
+			t.Fatalf("bad: %v", addrs)
 		}
 	}
 }
