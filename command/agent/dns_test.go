@@ -848,6 +848,62 @@ func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
 			t.Fatalf("Bad: %#v", in.Answer[0])
 		}
 	}
+
+	// Now query from the same DC and make sure we get the local address
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv2.agent.config.ClientListener("", srv2.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		aRec, ok := in.Extra[0].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.Hdr.Name != "foo.node.dc2.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.A.String() != "127.0.0.1" {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+	}
+
+	// Also check the A record directly from DC2
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeA)
+
+		c := new(dns.Client)
+		addr, _ := srv2.agent.config.ClientListener("", srv2.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		aRec, ok := in.Answer[0].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if aRec.Hdr.Name != question {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if aRec.A.String() != "127.0.0.1" {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+	}
 }
 
 func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
