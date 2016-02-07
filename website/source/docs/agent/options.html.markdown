@@ -575,48 +575,49 @@ definitions support being updated during a reload.
 * <a name="start_join_wan"></a><a href="#start_join_wan">`start_join_wan`</a> An array of strings specifying
   addresses of WAN nodes to [`-join-wan`](#_join_wan) upon startup.
 
-* <a name="telemetry"></a><a href="#telemetry">`telemetry`</a> An object describing where to send telemetry to
+* <a name="telemetry"></a><a href="#telemetry">`telemetry`</a> This is a nested object that configures where Consul
+  sends its runtime telemetry, and contains the following keys:
 
   * <a name="telemetry-statsd_address"></a><a href="#telemetry-statsd_address">`statsd_address`</a> This provides the
     address of a statsd instance.  If provided, Consul will send various telemetry information to that instance for
     aggregation. This can be used to capture runtime information. This sends UDP packets only and can be used with
     statsd or statsite.
-  
+
   * <a name="telemetry-statsite_address"></a><a href="#telemetry-statsite_address">`statsite_address`</a> This provides
     the address of a statsite instance. If provided, Consul will stream various telemetry information to that instance
     for aggregation. This can be used to capture runtime information. This streams via TCP and can only be used with
     statsite.
-  
+
   * <a name="telemetry-statsite_prefix"></a><a href="#telemetry-statsite_prefix">`statsite_prefix`</a>
     The prefix used while writing all telemetry data to statsite. By default, this is set to "consul".
-    
+
   * <a name="telemetry-dogstatsd_addr"></a><a href="#telemetry-dogstatsd_addr">`dogstatsd_addr`</a> This provides the
     address of a DogStatsD instance in the format `host:port`. DogStatsD is a protocol-compatible flavor of
     statsd, with the added ability to decorate metrics with tags and event information. If provided, Consul will
     send various telemetry information to that instance for aggregation. This can be used to capture runtime
     information.
-  
+
   * <a name="telemetry-dogstatsd_tags"></a><a href="#telemetry-dogstatsd_tags">`dogstatsd_tags`</a> This provides a list of global tags
     that will be added to all telemetry packets sent to DogStatsD. It is a list of strings, where each string
     looks like "my_tag_name:my_tag_value".
-    
+
   * <a name="telemetry-disable_hostname"></a><a href="#telemetry-disable_hostname">`disable_hostname`</a>
-    Whether or not to prepend runtime telemetry with the machines hostname, defaults to false.
-  
+    This controls whether or not to prepend runtime telemetry with the machine's hostname, defaults to false.
+
 * <a name="statsd_addr"></a><a href="#statsd_addr">`statsd_addr`</a> Deprecated, see
-  <a href="#telemetry-statsd_address">`statsd_address`</a>
+  the <a href="#telemetry">telemetry</a> structure
 
 * <a name="statsite_addr"></a><a href="#statsite_addr">`statsite_addr`</a> Deprecated, see
-  <a href="#telemetry-statsite_address">`statsite_address`</a>
+  the <a href="#telemetry">telemetry</a> structure
 
 * <a name="statsite_prefix"></a><a href="#statsite_prefix">`statsite_prefix`</a> Deprecated, see
-  <a href="#telemetry-statsite_prefix">`statsite_prefix`</a>
+  the <a href="#telemetry">telemetry</a> structure
 
 * <a name="dogstatsd_addr"></a><a href="#dogstatsd_addr">`dogstatsd_addr`</a> Deprecated, see
-  <a href="#telemetry-dogstatsd_addr">`dogstatsd_addr`</a>
+  he <a href="#telemetry">telemetry</a> structure
 
 * <a name="dogstatsd_tags"></a><a href="#dogstatsd_tags">`dogstatsd_tags`</a> Deprecated, see
-  <a href="#telemetry-dogstatsd_tags">`dogstatsd_tags`</a>
+  the <a href="#telemetry">telemetry</a> structure
 
 * <a name="syslog_facility"></a><a href="#syslog_facility">`syslog_facility`</a> When
   [`enable_syslog`](#enable_syslog) is provided, this controls to which
