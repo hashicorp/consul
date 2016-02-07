@@ -14,6 +14,11 @@ IMPROVEMENTS:
   runtime telemetry gets prepended with the host name. All of the telemetry
   configuration has also been moved to a `telemetry` nested structure, but the old
   format is currently still supported. [GH-1284]
+* Added a new ability to translate address lookups when doing queries of nodes in
+  remote datacenters via DNS using a new `translate_wan_addrs` configuration
+  option. This allows the node to be reached within its own datacenter using its
+  local address, and reached from other datacenters using its WAN address, which is
+  useful in hybrid setups with mixed networks. [GH-1698]
 
 BUG FIXES:
 
