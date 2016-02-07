@@ -368,7 +368,8 @@ func (l *localState) setSyncState() error {
 
 	// Check the node info (currently limited to tagged addresses since
 	// everything else is managed by the Serf layer)
-	if !reflect.DeepEqual(out1.NodeServices.Node.TaggedAddresses, l.config.TaggedAddresses) {
+	if out1.NodeServices == nil || out1.NodeServices.Node == nil ||
+		!reflect.DeepEqual(out1.NodeServices.Node.TaggedAddresses, l.config.TaggedAddresses) {
 		l.nodeInfoInSync = false
 	}
 
