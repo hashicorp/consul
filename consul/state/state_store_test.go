@@ -397,6 +397,9 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 	req := &structs.RegisterRequest{
 		Node:    "node1",
 		Address: "1.2.3.4",
+		TaggedAddresses: map[string]string{
+			"hello": "world",
+		},
 	}
 	if err := s.EnsureRegistration(1, req); err != nil {
 		t.Fatalf("err: %s", err)
@@ -409,6 +412,8 @@ func TestStateStore_EnsureRegistration(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 		if out.Node != "node1" || out.Address != "1.2.3.4" ||
+			len(out.TaggedAddresses) != 1 ||
+			out.TaggedAddresses["hello"] != "world" ||
 			out.CreateIndex != created || out.ModifyIndex != modified {
 			t.Fatalf("bad node returned: %#v", out)
 		}

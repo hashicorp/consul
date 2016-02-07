@@ -117,6 +117,9 @@ func TestDNS_NodeLookup(t *testing.T) {
 		Datacenter: "dc1",
 		Node:       "foo",
 		Address:    "127.0.0.1",
+		TaggedAddresses: map[string]string{
+			"wan": "127.0.0.2",
+		},
 	}
 
 	var out struct{}
@@ -711,6 +714,194 @@ func TestDNS_ServiceLookup_ServiceAddress(t *testing.T) {
 		}
 		if aRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+	}
+}
+
+func TestDNS_ServiceLookup_WanAddress(t *testing.T) {
+	dir1, srv1 := makeDNSServerConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc1"
+			c.TranslateWanAddrs = true
+		}, nil)
+	defer os.RemoveAll(dir1)
+	defer srv1.Shutdown()
+
+	dir2, srv2 := makeDNSServerConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.TranslateWanAddrs = true
+	}, nil)
+	defer os.RemoveAll(dir2)
+	defer srv2.Shutdown()
+
+	testutil.WaitForLeader(t, srv1.agent.RPC, "dc1")
+	testutil.WaitForLeader(t, srv2.agent.RPC, "dc2")
+
+	// Join WAN cluster
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		srv1.agent.config.Ports.SerfWan)
+	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForResult(
+		func() (bool, error) {
+			return len(srv1.agent.WANMembers()) > 1, nil
+		},
+		func(err error) {
+			t.Fatalf("Failed waiting for WAN join: %v", err)
+		})
+
+	// Register a remote node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc2",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			TaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			Service: &structs.NodeService{
+				Service: "db",
+			},
+		}
+
+		var out struct{}
+		if err := srv2.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register an equivalent prepared query.
+	var id string
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc2",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Service: structs.ServiceQuery{
+					Service: "db",
+				},
+			},
+		}
+		if err := srv2.agent.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the SRV record via service and prepared query.
+	questions := []string{
+		"db.service.dc2.consul.",
+		id + ".query.dc2.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv1.agent.config.ClientListener("", srv1.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		aRec, ok := in.Extra[0].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.Hdr.Name != "foo.node.dc2.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.A.String() != "127.0.0.2" {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+	}
+
+	// Also check the A record directly
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeA)
+
+		c := new(dns.Client)
+		addr, _ := srv1.agent.config.ClientListener("", srv1.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		aRec, ok := in.Answer[0].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if aRec.Hdr.Name != question {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if aRec.A.String() != "127.0.0.2" {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+	}
+
+	// Now query from the same DC and make sure we get the local address
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv2.agent.config.ClientListener("", srv2.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		aRec, ok := in.Extra[0].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.Hdr.Name != "foo.node.dc2.consul." {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+		if aRec.A.String() != "127.0.0.1" {
+			t.Fatalf("Bad: %#v", in.Extra[0])
+		}
+	}
+
+	// Also check the A record directly from DC2
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeA)
+
+		c := new(dns.Client)
+		addr, _ := srv2.agent.config.ClientListener("", srv2.agent.config.Ports.DNS)
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != 1 {
+			t.Fatalf("Bad: %#v", in)
+		}
+
+		aRec, ok := in.Answer[0].(*dns.A)
+		if !ok {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if aRec.Hdr.Name != question {
+			t.Fatalf("Bad: %#v", in.Answer[0])
+		}
+		if aRec.A.String() != "127.0.0.1" {
+			t.Fatalf("Bad: %#v", in.Answer[0])
 		}
 	}
 }

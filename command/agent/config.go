@@ -189,11 +189,24 @@ type Config struct {
 	// Serf WAN IP. If not specified, the general advertise address is used.
 	AdvertiseAddrWan string `mapstructure:"advertise_addr_wan"`
 
+	// TranslateWanAddrs controls whether or not Consul should prefer
+	// the "wan" tagged address when doing lookups in remote datacenters.
+	// See TaggedAddresses below for more details.
+	TranslateWanAddrs bool `mapstructure:"translate_wan_addrs"`
+
 	// Port configurations
 	Ports PortConfig
 
 	// Address configurations
 	Addresses AddressConfig
+
+	// Tagged addresses. These are used to publish a set of addresses for
+	// for a node, which can be used by the remote agent. We currently
+	// populate only the "wan" tag based on the SerfWan advertise address,
+	// but this structure is here for possible future features with other
+	// user-defined tags. The "wan" tag will be used by remote agents if
+	// they are configured with TranslateWanAddrs set to true.
+	TaggedAddresses map[string]string
 
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving
 	// the TERM signal. Defaults false. This can be changed on reload.
@@ -967,6 +980,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.AdvertiseAddrWan != "" {
 		result.AdvertiseAddrWan = b.AdvertiseAddrWan
+	}
+	if b.TranslateWanAddrs == true {
+		result.TranslateWanAddrs = true
 	}
 	if b.AdvertiseAddrs.SerfLan != nil {
 		result.AdvertiseAddrs.SerfLan = b.AdvertiseAddrs.SerfLan

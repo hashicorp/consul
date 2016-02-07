@@ -120,6 +120,12 @@ func TestAgentAntiEntropy_Services(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Make sure we sent along our tagged addresses when we synced.
+	addrs := services.NodeServices.Node.TaggedAddresses
+	if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) {
+		t.Fatalf("bad: %v", addrs)
+	}
+
 	// We should have 6 services (consul included)
 	if len(services.NodeServices.Services) != 6 {
 		t.Fatalf("bad: %v", services.NodeServices.Services)
@@ -627,6 +633,23 @@ func TestAgentAntiEntropy_Checks(t *testing.T) {
 			t.Fatalf("should be in sync: %v %v", name, status)
 		}
 	}
+
+	// Make sure we sent along our tagged addresses when we synced.
+	{
+		req := structs.NodeSpecificRequest{
+			Datacenter: "dc1",
+			Node:       agent.config.NodeName,
+		}
+		var services structs.IndexedNodeServices
+		if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		addrs := services.NodeServices.Node.TaggedAddresses
+		if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) {
+			t.Fatalf("bad: %v", addrs)
+		}
+	}
 }
 
 func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
@@ -706,6 +729,66 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	}, func(err error) {
 		t.Fatalf("err: %s", err)
 	})
+}
+
+func TestAgentAntiEntropy_NodeInfo(t *testing.T) {
+	conf := nextConfig()
+	dir, agent := makeAgent(t, conf)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	testutil.WaitForLeader(t, agent.RPC, "dc1")
+
+	// Register info
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+		Address:    "127.0.0.1",
+	}
+	var out struct{}
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Trigger anti-entropy run and wait
+	agent.StartSync()
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify that we are in sync
+	req := structs.NodeSpecificRequest{
+		Datacenter: "dc1",
+		Node:       agent.config.NodeName,
+	}
+	var services structs.IndexedNodeServices
+	if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure we synced our node info - this should have ridden on the
+	// "consul" service sync
+	addrs := services.NodeServices.Node.TaggedAddresses
+	if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) {
+		t.Fatalf("bad: %v", addrs)
+	}
+
+	// Blow away the catalog version of the node info
+	if err := agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Trigger anti-entropy run and wait
+	agent.StartSync()
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify that we are in sync - this should have been a sync of just the
+	// node info
+	if err := agent.RPC("Catalog.NodeServices", &req, &services); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	addrs = services.NodeServices.Node.TaggedAddresses
+	if len(addrs) == 0 || !reflect.DeepEqual(addrs, conf.TaggedAddresses) {
+		t.Fatalf("bad: %v", addrs)
+	}
 }
 
 func TestAgentAntiEntropy_deleteService_fails(t *testing.T) {
@@ -816,7 +899,7 @@ func TestAgent_sendCoordinate(t *testing.T) {
 	testutil.WaitForLeader(t, agent.RPC, "dc1")
 
 	// Wait a little while for an update.
-	time.Sleep(2 * conf.ConsulConfig.CoordinateUpdatePeriod)
+	time.Sleep(3 * conf.ConsulConfig.CoordinateUpdatePeriod)
 
 	// Make sure the coordinate is present.
 	req := structs.DCSpecificRequest{

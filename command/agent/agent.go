@@ -161,6 +161,11 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		config.AdvertiseAddrWan = config.AdvertiseAddr
 	}
 
+	// Create the default set of tagged addresses.
+	config.TaggedAddresses = map[string]string{
+		"wan": config.AdvertiseAddrWan,
+	}
+
 	agent := &Agent{
 		config:        config,
 		logger:        log.New(logOutput, "", log.LstdFlags),

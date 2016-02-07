@@ -363,6 +363,19 @@ INVALID:
 	resp.SetRcode(req, dns.RcodeNameError)
 }
 
+// translateAddr is used to provide the final, translated address for a node,
+// depending on how this agent and the other node are configured.
+func (d *DNSServer) translateAddr(dc string, node *structs.Node) string {
+	addr := node.Address
+	if d.agent.config.TranslateWanAddrs && (d.agent.config.Datacenter != dc) {
+		wanAddr := node.TaggedAddresses["wan"]
+		if wanAddr != "" {
+			addr = wanAddr
+		}
+	}
+	return addr
+}
+
 // nodeLookup is used to handle a node query
 func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.Msg) {
 	// Only handle ANY, A and AAAA type requests
@@ -403,7 +416,8 @@ RPC:
 	}
 
 	// Add the node record
-	records := d.formatNodeRecord(out.NodeServices.Node, out.NodeServices.Node.Address,
+	addr := d.translateAddr(datacenter, out.NodeServices.Node)
+	records := d.formatNodeRecord(out.NodeServices.Node, addr,
 		req.Question[0].Name, qType, d.config.NodeTTL)
 	if records != nil {
 		resp.Answer = append(resp.Answer, records...)
@@ -526,7 +540,7 @@ RPC:
 
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
-	d.serviceNodeRecords(out.Nodes, req, resp, ttl)
+	d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
 
 	if qType == dns.TypeSRV {
 		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
@@ -622,7 +636,7 @@ RPC:
 
 	// Add various responses depending on the request.
 	qType := req.Question[0].Qtype
-	d.serviceNodeRecords(out.Nodes, req, resp, ttl)
+	d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
 	if qType == dns.TypeSRV {
 		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
@@ -646,18 +660,20 @@ RPC:
 }
 
 // serviceNodeRecords is used to add the node records for a service lookup
-func (d *DNSServer) serviceNodeRecords(nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration) {
+func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNodes, req, resp *dns.Msg, ttl time.Duration) {
 	qName := req.Question[0].Name
 	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
 	for _, node := range nodes {
-		// Avoid duplicate entries, possible if a node has
-		// the same service on multiple ports, etc.
-		addr := node.Node.Address
+		// Start with the translated address but use the service address,
+		// if specified.
+		addr := d.translateAddr(dc, node.Node)
 		if node.Service.Address != "" {
 			addr = node.Service.Address
 		}
 
+		// Avoid duplicate entries, possible if a node has
+		// the same service on multiple ports, etc.
 		if _, ok := handled[addr]; ok {
 			continue
 		}
@@ -698,8 +714,9 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 		}
 		resp.Answer = append(resp.Answer, srvRec)
 
-		// Determine advertised address
-		addr := node.Node.Address
+		// Start with the translated address but use the service address,
+		// if specified.
+		addr := d.translateAddr(dc, node.Node)
 		if node.Service.Address != "" {
 			addr = node.Service.Address
 		}

@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -44,6 +45,10 @@ type localState struct {
 
 	// iface is the consul interface to use for keeping in sync
 	iface consul.Interface
+
+	// nodeInfoInSync tracks whether the server has our correct top-level
+	// node information in sync (currently only used for tagged addresses)
+	nodeInfoInSync bool
 
 	// Services tracks the local services
 	services      map[string]*structs.NodeService
@@ -361,6 +366,13 @@ func (l *localState) setSyncState() error {
 	l.Lock()
 	defer l.Unlock()
 
+	// Check the node info (currently limited to tagged addresses since
+	// everything else is managed by the Serf layer)
+	if !reflect.DeepEqual(out1.NodeServices.Node.TaggedAddresses, l.config.TaggedAddresses) {
+		l.nodeInfoInSync = false
+	}
+
+	// Check all our services
 	services := make(map[string]*structs.NodeService)
 	if out1.NodeServices != nil {
 		services = out1.NodeServices.Services
@@ -440,6 +452,10 @@ func (l *localState) syncChanges() error {
 	l.Lock()
 	defer l.Unlock()
 
+	// We will do node-level info syncing at the end, since it will get
+	// updated by a service or check sync anyway, given how the register
+	// API works.
+
 	// Sync the services
 	for id, status := range l.serviceStatus {
 		if status.remoteDelete {
@@ -475,6 +491,15 @@ func (l *localState) syncChanges() error {
 			l.logger.Printf("[DEBUG] agent: Check '%s' in sync", id)
 		}
 	}
+
+	// Now sync the node level info if we need to, and didn't do any of
+	// the other sync operations.
+	if !l.nodeInfoInSync {
+		if err := l.syncNodeInfo(); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -523,11 +548,12 @@ func (l *localState) deleteCheck(id string) error {
 // syncService is used to sync a service to the server
 func (l *localState) syncService(id string) error {
 	req := structs.RegisterRequest{
-		Datacenter:   l.config.Datacenter,
-		Node:         l.config.NodeName,
-		Address:      l.config.AdvertiseAddr,
-		Service:      l.services[id],
-		WriteRequest: structs.WriteRequest{Token: l.serviceToken(id)},
+		Datacenter:      l.config.Datacenter,
+		Node:            l.config.NodeName,
+		Address:         l.config.AdvertiseAddr,
+		TaggedAddresses: l.config.TaggedAddresses,
+		Service:         l.services[id],
+		WriteRequest:    structs.WriteRequest{Token: l.serviceToken(id)},
 	}
 
 	// If the service has associated checks that are out of sync,
@@ -553,6 +579,9 @@ func (l *localState) syncService(id string) error {
 	err := l.iface.RPC("Catalog.Register", &req, &out)
 	if err == nil {
 		l.serviceStatus[id] = syncStatus{inSync: true}
+		// Given how the register API works, this info is also updated
+		// every time we sync a service.
+		l.nodeInfoInSync = true
 		l.logger.Printf("[INFO] agent: Synced service '%s'", id)
 		for _, check := range checks {
 			l.checkStatus[check.CheckID] = syncStatus{inSync: true}
@@ -580,21 +609,46 @@ func (l *localState) syncCheck(id string) error {
 	}
 
 	req := structs.RegisterRequest{
-		Datacenter:   l.config.Datacenter,
-		Node:         l.config.NodeName,
-		Address:      l.config.AdvertiseAddr,
-		Service:      service,
-		Check:        l.checks[id],
-		WriteRequest: structs.WriteRequest{Token: l.checkToken(id)},
+		Datacenter:      l.config.Datacenter,
+		Node:            l.config.NodeName,
+		Address:         l.config.AdvertiseAddr,
+		TaggedAddresses: l.config.TaggedAddresses,
+		Service:         service,
+		Check:           l.checks[id],
+		WriteRequest:    structs.WriteRequest{Token: l.checkToken(id)},
 	}
 	var out struct{}
 	err := l.iface.RPC("Catalog.Register", &req, &out)
 	if err == nil {
 		l.checkStatus[id] = syncStatus{inSync: true}
+		// Given how the register API works, this info is also updated
+		// every time we sync a service.
+		l.nodeInfoInSync = true
 		l.logger.Printf("[INFO] agent: Synced check '%s'", id)
 	} else if strings.Contains(err.Error(), permissionDenied) {
 		l.checkStatus[id] = syncStatus{inSync: true}
 		l.logger.Printf("[WARN] agent: Check '%s' registration blocked by ACLs", id)
+		return nil
+	}
+	return err
+}
+
+func (l *localState) syncNodeInfo() error {
+	req := structs.RegisterRequest{
+		Datacenter:      l.config.Datacenter,
+		Node:            l.config.NodeName,
+		Address:         l.config.AdvertiseAddr,
+		TaggedAddresses: l.config.TaggedAddresses,
+		WriteRequest:    structs.WriteRequest{Token: l.config.ACLToken},
+	}
+	var out struct{}
+	err := l.iface.RPC("Catalog.Register", &req, &out)
+	if err == nil {
+		l.nodeInfoInSync = true
+		l.logger.Printf("[INFO] agent: Synced node info")
+	} else if strings.Contains(err.Error(), permissionDenied) {
+		l.nodeInfoInSync = true
+		l.logger.Printf("[WARN] agent: Node info update blocked by ACLs")
 		return nil
 	}
 	return err
