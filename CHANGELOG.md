@@ -9,13 +9,16 @@ IMPROVEMENTS:
   size of the Consul cluster (servers should never receive more than 64 new
   connections per second per Consul server as a result of rebalancing).
   Clusters in stable environments who use `allow_stale` should see a more
-  even distribution of query load across all of their Consul
-  servers. [GH-1667]
+  even distribution of query load across all of their Consul servers. [GH-1667]
+* Added a new `disable_hostname` configuration option to control whether Consul's
+  runtime telemetry gets prepended with the host name. All of the telemetry
+  configuration has also been moved to a `telemetry` nested structure, but the old
+  format is currently still supported. [GH-1284]
 
 BUG FIXES:
 
 * Updated the internal web ui (`-ui` option) to latest released build, fixing
-  and ACL-related issue and a broken settings icon [GH-1619]
+  an ACL-related issue and the broken settings icon [GH-1619]
 * Fixed an issue where blocking KV reads could miss updates and return stale data
   when another key whose name is a prefix of the watched key was updated [GH-1632]
 
