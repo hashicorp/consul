@@ -1292,6 +1292,10 @@ func ReadConfigPaths(paths []string) (*Config, error) {
 			if !strings.HasSuffix(fi.Name(), ".json") {
 				continue
 			}
+			// If the config file is empty, ignore it
+			if fi.Size() == 0 {
+				continue
+			}
 
 			subpath := filepath.Join(path, fi.Name())
 			f, err := os.Open(subpath)
