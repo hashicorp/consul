@@ -1418,6 +1418,13 @@ func TestReadConfigPaths_dir(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// An empty file shouldn't be read
+	err = ioutil.WriteFile(filepath.Join(td, "d.json"),
+		[]byte{}, 0664)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
 	config, err := ReadConfigPaths([]string{td})
 	if err != nil {
 		t.Fatalf("err: %s", err)
