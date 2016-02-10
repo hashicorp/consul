@@ -25,7 +25,7 @@ properly function during a Consul outage.
 
 **Verbose output warning:** use care to make sure that your command does not
 produce a large volume of output. Writes to the KV store for this output go
-through the Consul servers and the Raft consesnus algorithm, so having a large
+through the Consul servers and the Raft consensus algorithm, so having a large
 number of nodes in the cluster flow a large amount of data through the KV store
 could make the cluster unavailable.
 
