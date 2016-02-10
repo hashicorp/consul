@@ -4,13 +4,16 @@ set -e
 # Read the address to join from the file we provisioned
 JOIN_ADDRS=$(cat /tmp/consul-server-addr | tr -d '\n')
 
+# consul version to install
+CONSUL_VERSION=0.5.2
+
 echo "Installing dependencies..."
 sudo yum update -y
 sudo yum install -y unzip wget
 
 echo "Fetching Consul..."
 cd /tmp
-wget https://dl.bintray.com/mitchellh/consul/0.5.2_linux_amd64.zip -O consul.zip
+wget "https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip" -O consul.zip
 
 echo "Installing Consul..."
 unzip consul.zip >/dev/null
@@ -28,7 +31,7 @@ sudo mv /tmp/consul-join /etc/service/consul-join
 chmod 0644 /etc/service/consul-join
 
 echo "Installing Upstart service..."
-sudo chown root:root /tmp/upstart.conf 
+sudo chown root:root /tmp/upstart.conf
 sudo chown root:root /tmp/upstart-join.conf
 sudo mv /tmp/upstart.conf /etc/init/consul.conf
 sudo mv /tmp/upstart-join.conf /etc/init/consul-join.conf
