@@ -77,13 +77,16 @@ type DNSConfig struct {
 	// returned by default for UDP.
 	EnableTruncate bool `mapstructure:"enable_truncate"`
 
-	// EnableSingleton is used to override default behavior
-	// of DNS and return only a single host in a round robin
-	// DNS service request rather than all healthy service
-	// members. This is a work around for systems using
-	// getaddrinfo using rule 9 sorting from RFC3484 which
-	// breaks round robin DNS.
-	EnableSingleton bool `mapstructure:"enable_singleton"`
+	// UDPAnswerLimit is used to limit the maximum number of DNS Resource
+	// Records returned in the ANSWER section of a DNS response. This is
+	// not normally useful and will be limited based on the querying
+	// protocol, however systems that implemented §6 Rule 9 in RFC3484
+	// may want to set this to 1 in order to achieve round-robin DNS.
+	// RFC3484 sorts answers in a deterministic order, which defeats the
+	// purpose of round-robin DNS.  This RFC has been obsoleted by
+	// RFC6724, however a large number of Linux hosts using glibc(3)
+	// implemented §6 Rule 9 (e.g. CentOS 5-6, Debian Squeeze, etc).
+	UDPAnswerLimit int `mapstructure:"udp_answer_limit"`
 
 	// MaxStale is used to bound how stale of a result is
 	// accepted for a DNS lookup. This can be used with
@@ -535,7 +538,8 @@ func DefaultConfig() *Config {
 			Server:  8300,
 		},
 		DNSConfig: DNSConfig{
-			MaxStale: 5 * time.Second,
+			UDPAnswerLimit: 3,
+			MaxStale:       5 * time.Second,
 		},
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
@@ -1135,11 +1139,11 @@ func MergeConfig(a, b *Config) *Config {
 	if b.DNSConfig.AllowStale {
 		result.DNSConfig.AllowStale = true
 	}
+	if b.DNSConfig.UDPAnswerLimit != 0 {
+		result.DNSConfig.UDPAnswerLimit = b.DNSConfig.UDPAnswerLimit
+	}
 	if b.DNSConfig.EnableTruncate {
 		result.DNSConfig.EnableTruncate = true
-	}
-	if b.DNSConfig.EnableSingleton {
-		result.DNSConfig.EnableSingleton = true
 	}
 	if b.DNSConfig.MaxStale != 0 {
 		result.DNSConfig.MaxStale = b.DNSConfig.MaxStale

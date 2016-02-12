@@ -12,12 +12,13 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/miekg/dns"
 )
 
 const (
-	maxServiceResponses = 3 // For UDP only
-	maxRecurseRecords   = 5
+	maxUDPAnswerLimit = 8 // For UDP only
+	maxRecurseRecords = 5
 )
 
 // DNSServer is used to wrap an Agent and expose various
@@ -599,7 +600,7 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 	// match the previous behavior. We can optimize by pushing more filtering
 	// into the query execution, but for now I think we need to get the full
 	// response. We could also choose a large arbitrary number that will
-	// likely work in practice, like 10*maxServiceResponses which should help
+	// likely work in practice, like 10*maxUDPAnswerLimit which should help
 	// reduce bandwidth if there are thousands of nodes available.
 
 	endpoint := d.agent.getEndpoint(preparedQueryEndpoint)
@@ -682,6 +683,9 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	qName := req.Question[0].Name
 	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
+
+	// Post-shuffle: limit the number of nodes we return to the client
+	effectiveRecordLimit := lib.MinInt(d.config.UDPAnswerLimit, maxUDPAnswerLimit)
 	for _, node := range nodes {
 		// Start with the translated address but use the service address,
 		// if specified.
@@ -702,7 +706,11 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
 		}
-		if d.config.EnableSingleton {
+
+		if len(resp.Answer) >= effectiveRecordLimit {
+			if d.config.EnableTruncate {
+				resp.Truncated = true
+			}
 			break
 		}
 	}
