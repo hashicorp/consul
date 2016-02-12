@@ -189,6 +189,11 @@ func (c *Command) readConfig() *Config {
 		}
 	}
 
+	// Verify DNS settings
+	if config.DNSConfig.UDPAnswerLimit < 1 {
+		c.Ui.Error(fmt.Sprintf("dns_config.udp_answer_limit %d too low, must always be greater than zero", config.DNSConfig.UDPAnswerLimit))
+	}
+
 	if config.EncryptKey != "" {
 		if _, err := config.EncryptBytes(); err != nil {
 			c.Ui.Error(fmt.Sprintf("Invalid encryption key: %s", err))

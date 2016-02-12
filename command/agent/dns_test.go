@@ -13,6 +13,13 @@ import (
 	"github.com/miekg/dns"
 )
 
+const (
+	testUDPAnswerLimit     = 4
+	testMaxUDPDNSResponses = 3
+	testGenerateNumNodes   = 12
+	testUDPTruncateLimit   = 8
+)
+
 func makeDNSServer(t *testing.T) (string, *DNSServer) {
 	return makeDNSServerConfig(t, nil, nil)
 }
@@ -26,7 +33,7 @@ func makeDNSServerConfig(
 	if agentFn != nil {
 		agentFn(agentConf)
 	}
-	dnsConf := &DNSConfig{}
+	dnsConf := &DefaultConfig().DNSConfig
 	if dnsFn != nil {
 		dnsFn(dnsConf)
 	}
@@ -1809,7 +1816,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a large set of nodes.
-	for i := 0; i < 3*maxServiceResponses; i++ {
+	for i := 0; i < 2*testMaxUDPDNSResponses; i++ {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       fmt.Sprintf("foo%d", i),
@@ -1856,7 +1863,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 			m := new(dns.Msg)
 			m.SetQuestion(question, dns.TypeANY)
 
-			c := new(dns.Client)
+			c := &dns.Client{Net: "udp"}
 			in, _, err := c.Exchange(m, addr.String())
 			if err != nil {
 				t.Fatalf("err: %v", err)
@@ -1864,7 +1871,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 
 			// Response length should be truncated and we should get
 			// an A record for each response.
-			if len(in.Answer) != maxServiceResponses {
+			if len(in.Answer) != testMaxUDPDNSResponses {
 				t.Fatalf("Bad: %#v", len(in.Answer))
 			}
 
@@ -1903,7 +1910,7 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register nodes a large number of nodes.
-	for i := 0; i < 3*maxServiceResponses; i++ {
+	for i := 0; i < 2*testUDPTruncateLimit; i++ {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       fmt.Sprintf("foo%d", i),
@@ -1962,16 +1969,18 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 }
 
 func TestDNS_ServiceLookup_MaxResponses(t *testing.T) {
-	dir, srv := makeDNSServer(t)
+	dir, srv := makeDNSServerConfig(t, nil, func(c *DNSConfig) {
+		c.UDPAnswerLimit = testUDPAnswerLimit
+	})
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a large number of nodes.
-	for i := 0; i < 6*maxServiceResponses; i++ {
+	for i := 0; i < testUDPAnswerLimit*testMaxUDPDNSResponses; i++ {
 		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
-		if i > 3 {
+		if i > (testUDPAnswerLimit * testMaxUDPDNSResponses / 2) {
 			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
 		}
 		args := &structs.RegisterRequest{
@@ -2012,7 +2021,7 @@ func TestDNS_ServiceLookup_MaxResponses(t *testing.T) {
 		"web.service.consul.",
 		id + ".query.consul.",
 	}
-	for _, question := range questions {
+	for i, question := range questions {
 		m := new(dns.Msg)
 		m.SetQuestion(question, dns.TypeANY)
 
@@ -2023,8 +2032,8 @@ func TestDNS_ServiceLookup_MaxResponses(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Answer) != 3 {
-			t.Fatalf("should receive 3 answers for ANY")
+		if len(in.Answer) != testUDPAnswerLimit {
+			t.Fatalf("should receive %d answers for ANY, received: %d", testUDPAnswerLimit, len(in.Answer))
 		}
 
 		m.SetQuestion(question, dns.TypeA)
@@ -2033,8 +2042,8 @@ func TestDNS_ServiceLookup_MaxResponses(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Answer) != 3 {
-			t.Fatalf("should receive 3 answers for A")
+		if len(in.Answer) != testUDPAnswerLimit {
+			t.Fatalf("%d: should receive %d answers for A, received: %d", i, testUDPAnswerLimit, len(in.Answer))
 		}
 
 		m.SetQuestion(question, dns.TypeAAAA)
@@ -2043,8 +2052,79 @@ func TestDNS_ServiceLookup_MaxResponses(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Answer) != 3 {
-			t.Fatalf("should receive 3 answers for AAAA")
+		if len(in.Answer) != testUDPAnswerLimit {
+			t.Fatalf("should receive %d answers for AAAA, received: %d", testUDPAnswerLimit, len(in.Answer))
+		}
+	}
+}
+
+func TestDNS_ServiceLookup_UDPAnswerLimit(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register a large number of nodes.
+	for i := 0; i < testGenerateNumNodes*testMaxUDPDNSResponses; i++ {
+		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
+		// Mix-in a few IPv6 addresses
+		if i > testGenerateNumNodes/2 {
+			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
+		}
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       fmt.Sprintf("foo%d", i),
+			Address:    nodeAddress,
+			Service: &structs.NodeService{
+				Service: "web",
+				Port:    8000,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the service directly and via prepared query.
+	questions := []string{
+		"web.service.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeANY)
+
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		c := &dns.Client{Net: "udp"}
+		in, _, err := c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != srv.agent.config.DNSConfig.UDPAnswerLimit {
+			t.Fatalf("%d/%d answers received for ANY", len(in.Answer), srv.agent.config.DNSConfig.UDPAnswerLimit)
+		}
+
+		m.SetQuestion(question, dns.TypeA)
+		in, _, err = c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != srv.agent.config.DNSConfig.UDPAnswerLimit {
+			t.Fatalf("%d/%d answers for A", len(in.Answer), srv.agent.config.DNSConfig.UDPAnswerLimit)
+		}
+
+		m.SetQuestion(question, dns.TypeAAAA)
+		in, _, err = c.Exchange(m, addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(in.Answer) != srv.agent.config.DNSConfig.UDPAnswerLimit {
+			t.Fatalf("%d/%d answers for AAAA", len(in.Answer), srv.agent.config.DNSConfig.UDPAnswerLimit)
 		}
 	}
 }

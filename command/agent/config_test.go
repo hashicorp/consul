@@ -1252,13 +1252,14 @@ func TestMergeConfig(t *testing.T) {
 		DataDir:         "/tmp/bar",
 		DNSRecursors:    []string{"127.0.0.2:1001"},
 		DNSConfig: DNSConfig{
-			NodeTTL: 10 * time.Second,
+			AllowStale:     false,
+			EnableTruncate: true,
+			MaxStale:       30 * time.Second,
+			NodeTTL:        10 * time.Second,
 			ServiceTTL: map[string]time.Duration{
 				"api": 10 * time.Second,
 			},
-			AllowStale:     true,
-			MaxStale:       30 * time.Second,
-			EnableTruncate: true,
+			UDPAnswerLimit: 3,
 		},
 		Domain:           "other",
 		LogLevel:         "info",
