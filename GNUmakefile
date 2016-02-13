@@ -1,12 +1,9 @@
-GOTOOLS = github.com/mitchellh/gox golang.org/x/tools/cmd/stringer \
-	github.com/jteeuwen/go-bindata/... github.com/elazarl/go-bindata-assetfs/...
-DEPS = $(shell go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
-PACKAGES = $(shell go list ./...)
+PACKAGES=$(shell go list ./... | grep -v '^github.com/hashicorp/consul/vendor/')
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
          -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
 VERSION?=$(shell awk -F\" '/^const Version/ { print $$2; exit }' version.go)
 
-all: deps format
+all: format
 	@mkdir -p bin/
 	@bash --norc -i ./scripts/build.sh
 
@@ -26,30 +23,16 @@ cov:
 	gocov test ./... | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-deps:
-	@echo "--> Installing build dependencies"
-	@go get -v $(GOTOOLS)
-	@go get -d -v ./... $(DEPS)
-
-updatedeps: deps
-	go get -u -v $(GOTOOLS)
-	go list ./... \
-		| xargs go list -f '{{join .Deps "\n"}}' \
-		| grep -v github.com/hashicorp/consul \
-		| grep -v '/internal/' \
-		| sort -u \
-		| xargs go get -f -u -v
-
-test: deps
+test:
 	@$(MAKE) vet
 	@./scripts/verify_no_uuid.sh
 	@./scripts/test.sh
 
-cover: deps
+cover:
 	./scripts/verify_no_uuid.sh
 	go list ./... | xargs -n1 go test --cover
 
-format: deps
+format:
 	@echo "--> Running go fmt"
 	@go fmt $(PACKAGES)
 
@@ -65,12 +48,12 @@ vet:
 	fi
 
 # generate runs `go generate` to build the dynamically generated source files
-generate: deps
+generate:
 	find . -type f -name '.DS_Store' -delete
 	go generate ./...
 
 # generates the static web ui
-static-assets: deps
+static-assets:
 	@echo "--> Generating static assets"
 	@go-bindata-assetfs -pkg agent -prefix pkg ./pkg/web_ui/...
 	@mv bindata_assetfs.go command/agent
@@ -82,4 +65,4 @@ web:
 web-push:
 	./scripts/website_push.sh
 
-.PHONY: all bin dev dist cov deps test vet web web-push generate test-nodep static-assets
+.PHONY: all bin dev dist cov test vet web web-push generate static-assets
