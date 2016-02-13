@@ -363,6 +363,11 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 	return f
 }
 
+// Returns true if the UI is enabled.
+func (s *HTTPServer) IsUIEnabled() bool {
+	return s.uiDir != "" || s.agent.config.EnableUi
+}
+
 // Renders a simple index page
 func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 	// Check if this is a non-index path
@@ -371,8 +376,9 @@ func (s *HTTPServer) Index(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Check if we have no UI configured
-	if s.uiDir == "" {
+	// Give them something helpful if there's no UI so they at least know
+	// what this server is.
+	if !s.IsUIEnabled() {
 		resp.Write([]byte("Consul Agent"))
 		return
 	}
