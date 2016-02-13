@@ -1,9 +1,11 @@
+GOTOOLS = github.com/mitchellh/gox golang.org/x/tools/cmd/stringer \
+	github.com/jteeuwen/go-bindata/... github.com/elazarl/go-bindata-assetfs/...
 PACKAGES=$(shell go list ./... | grep -v '^github.com/hashicorp/consul/vendor/')
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
          -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
 VERSION?=$(shell awk -F\" '/^const Version/ { print $$2; exit }' version.go)
 
-all: format
+all: format tools
 	@mkdir -p bin/
 	@bash --norc -i ./scripts/build.sh
 
@@ -59,10 +61,13 @@ static-assets:
 	@mv bindata_assetfs.go command/agent
 	$(MAKE) format
 
+tools:
+	go get -u -v $(GOTOOLS)
+
 web:
 	./scripts/website_run.sh
 
 web-push:
 	./scripts/website_push.sh
 
-.PHONY: all bin dev dist cov test vet web web-push generate static-assets
+.PHONY: all bin dev dist cov test vet web web-push generate static-assets tools
