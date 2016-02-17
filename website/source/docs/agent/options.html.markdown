@@ -284,6 +284,37 @@ definitions support being updated during a reload.
 }
 ```
 
+#### Example Configuration File, with TLS
+
+```javascript
+{
+  "datacenter": "us-cenrtal1",
+  "data_dir": "/opt/consul",
+  "log_level": "INFO",
+  "node_name": "barfoo",
+  "server": true,
+  "addresses": {
+    "https": "0.0.0.0"
+  },
+  "ports": {
+    "https": 8080
+  },
+  "key_file": "/etc/pki/tls/private/my.key",
+  "cert_file": "/etc/pki/tls/certs/my.crt",
+  "ca_file": "/etc/pki/tls/certs/ca-bundle.crt"
+}
+```
+
+Note that the use of `port`:
+
+```javascript
+"ports": {
+  "https": 8080
+}
+```
+
+Consul will not enable TLS for the HTTP API unless the `https` port has been assigned a port number `> 0`.
+
 #### Configuration Key Reference
 
 * <a name="acl_datacenter"></a><a href="#acl_datacenter">`acl_datacenter`</a> - Only
@@ -343,14 +374,15 @@ definitions support being updated during a reload.
   When running Consul agent commands against Unix socket interfaces, use the
   `-rpc-addr` or `-http-addr` arguments to specify the path to the socket. You
   can also place the desired values in `CONSUL_RPC_ADDR` and `CONSUL_HTTP_ADDR`
-  environment variables. For TCP addresses, these should be in the form ip:port.
+  environment variables. For TCP addresses, these should simply be an IP address
+  without the port. For example: `10.0.0.1`, not `10.0.0.1:8500`.
   <br><br>
   The following keys are valid:
   * `dns` - The DNS server. Defaults to `client_addr`
   * `http` - The HTTP API. Defaults to `client_addr`
   * `https` - The HTTPS API. Defaults to `client_addr`
   * `rpc` - The RPC endpoint. Defaults to `client_addr`
-
+  
 * <a name="advertise_addr"></a><a href="#advertise_addr">`advertise_addr`</a> Equivalent to
   the [`-advertise` command-line flag](#_advertise).
 
