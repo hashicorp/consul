@@ -9,15 +9,15 @@ all: format tools
 	@mkdir -p bin/
 	@bash --norc -i ./scripts/build.sh
 
-# bin generates the releasable binaries
-bin: generate
+# bin generates binaries for all platforms
+bin:
 	@sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
-dev: generate
+dev:
 	@CONSUL_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
-# dist creates the binaries for distibution
+# dist packages the binaries for distibution
 dist: bin
 	@sh -c "'$(CURDIR)/scripts/dist.sh' $(VERSION)"
 
@@ -31,7 +31,6 @@ test:
 	@./scripts/test.sh
 
 cover:
-	./scripts/verify_no_uuid.sh
 	go list ./... | xargs -n1 go test --cover
 
 format:
@@ -54,12 +53,7 @@ vet:
 		echo "and fix them if necessary before submitting the code for reviewal."; \
 	fi
 
-# generate runs `go generate` to build the dynamically generated source files
-generate:
-	find . -type f -name '.DS_Store' -delete
-	go generate ./...
-
-# generates the static web ui
+# generates the static web ui that's compiled into the binary
 static-assets:
 	@echo "--> Generating static assets"
 	@go-bindata-assetfs -pkg agent -prefix pkg ./pkg/web_ui/...
@@ -69,10 +63,4 @@ static-assets:
 tools:
 	go get -u -v $(GOTOOLS)
 
-web:
-	./scripts/website_run.sh
-
-web-push:
-	./scripts/website_push.sh
-
-.PHONY: all bin dev dist cov test vet web web-push generate static-assets tools
+.PHONY: all bin dev dist cov test cover format vet static-assets tools
