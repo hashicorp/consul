@@ -53,8 +53,7 @@ type Client struct {
 
 	// lastServer is the last server we made an RPC call to,
 	// this is used to re-use the last connection
-	lastServer  *serverParts
-	lastRPCTime time.Time
+	lastServer *serverParts
 
 	// Logger uses the provided LogOutput
 	logger *log.Logger
@@ -328,9 +327,22 @@ func (c *Client) localEvent(event serf.UserEvent) {
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
-	// Check the last rpc time
+	// Check to make sure we haven't spent too much time querying a
+	// single server
+	now := time.Now()
+	if !c.connRebalanceTime.IsZero() && now.After(c.connRebalanceTime) {
+		c.logger.Printf("[DEBUG] consul: connection time to server %s exceeded, rotating server connection", c.lastServer.Addr)
+		c.lastServer = nil
+	}
+
+	// Allocate these vars on the stack before the goto
+	var numConsulServers int
+	var clusterWideRebalanceConnsPerSec float64
+	var connReuseLowWaterMark time.Duration
+	var numLANMembers int
+
 	var server *serverParts
-	if time.Now().Sub(c.lastRPCTime) < clientRPCCache {
+	if c.lastServer != nil {
 		server = c.lastServer
 		if server != nil {
 			goto TRY_RPC
@@ -352,6 +364,7 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	// Forward to remote Consul
 TRY_RPC:
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, args, reply); err != nil {
+		c.connRebalanceTime = time.Time{}
 		c.lastServer = nil
 		c.lastRPCTime = time.Time{}
 		return err
@@ -359,7 +372,6 @@ TRY_RPC:
 
 	// Cache the last server
 	c.lastServer = server
-	c.lastRPCTime = time.Now()
 	return nil
 }
 
