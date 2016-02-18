@@ -5,33 +5,29 @@ VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
          -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
 VERSION?=$(shell awk -F\" '/^const Version/ { print $$2; exit }' version.go)
 
-all: format tools
+# all builds binaries for all targets
+all: tools
 	@mkdir -p bin/
-	@bash --norc -i ./scripts/build.sh
-
-# bin generates the releasable binaries
-bin: generate
 	@sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
-dev: generate
+dev: format
 	@CONSUL_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
-# dist creates the binaries for distibution
-dist: bin
+# dist builds binaries for all platforms and packages them for distribution
+dist:
 	@sh -c "'$(CURDIR)/scripts/dist.sh' $(VERSION)"
 
 cov:
 	gocov test ./... | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-test:
+test: format
 	@$(MAKE) vet
 	@./scripts/verify_no_uuid.sh
 	@./scripts/test.sh
 
 cover:
-	./scripts/verify_no_uuid.sh
 	go list ./... | xargs -n1 go test --cover
 
 format:
@@ -54,12 +50,7 @@ vet:
 		echo "and fix them if necessary before submitting the code for reviewal."; \
 	fi
 
-# generate runs `go generate` to build the dynamically generated source files
-generate:
-	find . -type f -name '.DS_Store' -delete
-	go generate ./...
-
-# generates the static web ui
+# generates the static web ui that's compiled into the binary
 static-assets:
 	@echo "--> Generating static assets"
 	@go-bindata-assetfs -pkg agent -prefix pkg ./pkg/web_ui/...
@@ -69,10 +60,4 @@ static-assets:
 tools:
 	go get -u -v $(GOTOOLS)
 
-web:
-	./scripts/website_run.sh
-
-web-push:
-	./scripts/website_push.sh
-
-.PHONY: all bin dev dist cov test vet web web-push generate static-assets tools
+.PHONY: all bin dev dist cov test cover format vet static-assets tools
