@@ -4,6 +4,7 @@
 set -e
 
 export GO15VENDOREXPERIMENT=1
+export CGO_ENABLED=0
 
 # Get the parent directory of where this script is.
 SOURCE="${BASH_SOURCE[0]}"

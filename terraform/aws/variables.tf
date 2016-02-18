@@ -16,6 +16,8 @@ variable "ami" {
     default = {
         us-east-1-ubuntu = "ami-83c525e8"
         us-west-2-ubuntu = "ami-57e8d767"
+        eu-west-1-ubuntu = "ami-47a23a30"
+        eu-central-1-ubuntu = "ami-accff2b1"
         us-east-1-rhel6 = "ami-b0fed2d8"
         us-west-2-rhel6 = "ami-2faa861f"
         us-east-1-centos6 = "ami-c2a818aa"
