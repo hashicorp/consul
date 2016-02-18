@@ -43,7 +43,12 @@ vet:
 		go get golang.org/x/tools/cmd/vet; \
 	fi
 	@echo "--> Running go tool vet $(VETARGS) ."
-	@go tool vet $(VETARGS) . ; if [ $$? -eq 1 ]; then \
+	@go list ./... \
+		| grep -v ^github.com/hashicorp/consul/vendor/ \
+		| cut -d '/' -f 4- \
+		| xargs -n1 \
+			go tool vet $(VETARGS) ;\
+	if [ $$? -ne 0 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for reviewal."; \
