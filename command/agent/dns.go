@@ -547,11 +547,26 @@ RPC:
 	}
 
 	// If the network is not TCP, restrict the number of responses
-	if network != "tcp" && len(resp.Answer) > maxServiceResponses {
-		resp.Answer = resp.Answer[:maxServiceResponses]
+	if network != "tcp" {
+		numAnswers := len(resp.Answer)
+
+		if numAnswers > maxServiceResponses {
+			resp.Answer = resp.Answer[:maxServiceResponses]
+		}
+
+		// Check that the UDP response isn't more than 512 bytes for
+		// RFC 1035-compliance; If it is, send fewer answers
+		for respBytes := resp.Len(); respBytes > 512; respBytes = resp.Len() {
+			resp.Answer = resp.Answer[:len(resp.Answer)-1]
+
+			if len(resp.Answer) == 0 {
+				// We've done all we can
+				break
+			}
+		}
 
 		// Flag that there are more records to return in the UDP response
-		if d.config.EnableTruncate {
+		if len(resp.Answer) < numAnswers && d.config.EnableTruncate {
 			resp.Truncated = true
 		}
 	}
