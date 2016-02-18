@@ -90,8 +90,7 @@ type Client struct {
 
 	// lastServer is the last server we made an RPC call to,
 	// this is used to re-use the last connection
-	lastServer  *serverParts
-	lastRPCTime time.Time
+	lastServer *serverParts
 
 	// connRebalanceTime is the time at which we should change the server
 	// we query for RPC requests.
@@ -383,12 +382,8 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	var connReuseLowWaterMark time.Duration
 	var numLANMembers int
 
-	// Check the last RPC time, continue to reuse cached connection for
-	// up to clientRPCMinReuseDuration unless exceeded
-	// clientRPCConnMaxIdle
-	lastRPCTime := now.Sub(c.lastRPCTime)
 	var server *serverParts
-	if c.lastServer != nil && lastRPCTime < clientRPCConnMaxIdle {
+	if c.lastServer != nil {
 		server = c.lastServer
 		goto TRY_RPC
 	}
@@ -419,14 +414,12 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 TRY_RPC:
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, args, reply); err != nil {
 		c.connRebalanceTime = time.Time{}
-		c.lastRPCTime = time.Time{}
 		c.lastServer = nil
 		return err
 	}
 
 	// Cache the last server
 	c.lastServer = server
-	c.lastRPCTime = now
 	return nil
 }
 
