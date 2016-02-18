@@ -5,27 +5,24 @@ VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
          -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
 VERSION?=$(shell awk -F\" '/^const Version/ { print $$2; exit }' version.go)
 
-all: format tools
+# all builds binaries for all targets
+all: tools
 	@mkdir -p bin/
-	@bash --norc -i ./scripts/build.sh
-
-# bin generates binaries for all platforms
-bin:
 	@sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
-dev:
+dev: format
 	@CONSUL_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
-# dist packages the binaries for distibution
-dist: bin
+# dist builds binaries for all platforms and packages them for distribution
+dist:
 	@sh -c "'$(CURDIR)/scripts/dist.sh' $(VERSION)"
 
 cov:
 	gocov test ./... | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-test:
+test: format
 	@$(MAKE) vet
 	@./scripts/verify_no_uuid.sh
 	@./scripts/test.sh
