@@ -95,7 +95,7 @@ func TestClient_JoinLAN(t *testing.T) {
 
 	// Check we have a new consul
 	testutil.WaitForResult(func() (bool, error) {
-		return len(c1.consuls) == 1, nil
+		return len(c1.consulServers) == 1, nil
 	}, func(err error) {
 		t.Fatalf("expected consul server")
 	})
