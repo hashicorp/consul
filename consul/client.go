@@ -80,9 +80,9 @@ type Client struct {
 	// Connection pool to consul servers
 	connPool *ConnPool
 
-	// consuls tracks the locally known servers
-	consuls    []*serverParts
-	consulLock sync.RWMutex
+	// consulServers tracks the locally known servers
+	consulServers []*serverParts
+	consulLock    sync.RWMutex
 
 	// eventCh is used to receive events from the
 	// serf cluster in the datacenter
@@ -295,9 +295,9 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 		// Check if this server is known
 		found := false
 		c.consulLock.Lock()
-		for idx, existing := range c.consuls {
+		for idx, existing := range c.consulServers {
 			if existing.Name == parts.Name {
-				c.consuls[idx] = parts
+				c.consulServers[idx] = parts
 				found = true
 				break
 			}
@@ -305,7 +305,7 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 
 		// Add to the list if not known
 		if !found {
-			c.consuls = append(c.consuls, parts)
+			c.consulServers = append(c.consulServers, parts)
 		}
 		c.consulLock.Unlock()
 
@@ -327,11 +327,11 @@ func (c *Client) nodeFail(me serf.MemberEvent) {
 
 		// Remove the server if known
 		c.consulLock.Lock()
-		n := len(c.consuls)
+		n := len(c.consulServers)
 		for i := 0; i < n; i++ {
-			if c.consuls[i].Name == parts.Name {
-				c.consuls[i], c.consuls[n-1] = c.consuls[n-1], nil
-				c.consuls = c.consuls[:n-1]
+			if c.consulServers[i].Name == parts.Name {
+				c.consulServers[i], c.consulServers[n-1] = c.consulServers[n-1], nil
+				c.consulServers = c.consulServers[:n-1]
 				break
 			}
 		}
@@ -395,14 +395,14 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 
 	// Bail if we can't find any servers
 	c.consulLock.RLock()
-	numConsulServers = len(c.consuls)
+	numConsulServers = len(c.consulServers)
 	if numConsulServers == 0 {
 		c.consulLock.RUnlock()
 		return structs.ErrNoServers
 	}
 
 	// Select a random addr
-	server = c.consuls[rand.Int31n(int32(numConsulServers))]
+	server = c.consulServers[rand.Int31n(int32(numConsulServers))]
 	c.consulLock.RUnlock()
 
 	// Limit this connection's life based on the size (and health) of the
@@ -439,7 +439,7 @@ func (c *Client) Stats() map[string]map[string]string {
 	stats := map[string]map[string]string{
 		"consul": map[string]string{
 			"server":        "false",
-			"known_servers": toString(uint64(len(c.consuls))),
+			"known_servers": toString(uint64(len(c.consulServers))),
 		},
 		"serf_lan": c.serf.Stats(),
 		"runtime":  runtimeStats(),
