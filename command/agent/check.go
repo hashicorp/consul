@@ -391,6 +391,7 @@ func (c *CheckHTTP) check() {
 	}
 
 	req.Header.Set("User-Agent", HttpUserAgent)
+	req.Header.Set("Accept", "*/*")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
