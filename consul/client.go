@@ -24,6 +24,16 @@ const (
 	// clientMaxStreams controls how many idle streams we keep
 	// open to a server
 	clientMaxStreams = 32
+
+	// serfEventBacklog is the maximum number of unprocessed Serf Events
+	// that will be held in queue before new serf events block.  A
+	// blocking serf event queue is a bad thing.
+	serfEventBacklog = 256
+
+	// serfEventBacklogWarning is the threshold at which point log
+	// warnings will be emitted indicating a problem when processing serf
+	// events.
+	serfEventBacklogWarning = 200
 )
 
 // Interface is used to provide either a Client or Server,
@@ -102,8 +112,8 @@ func NewClient(config *Config) (*Client, error) {
 	// Create server
 	c := &Client{
 		config:     config,
-		connPool:   NewPool(config.LogOutput, clientRPCCache, clientMaxStreams, tlsWrap),
-		eventCh:    make(chan serf.Event, 256),
+		connPool:   NewPool(config.LogOutput, clientRPCConnMaxIdle, clientMaxStreams, tlsWrap),
+		eventCh:    make(chan serf.Event, serfEventBacklog),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
 	}
@@ -214,7 +224,13 @@ func (c *Client) Encrypted() bool {
 
 // lanEventHandler is used to handle events from the lan Serf cluster
 func (c *Client) lanEventHandler() {
+	var numQueuedEvents int
 	for {
+		numQueuedEvents = len(c.eventCh)
+		if numQueuedEvents > serfEventBacklogWarning {
+			c.logger.Printf("[WARN] consul: number of queued serf events above warning threshold: %d/%d", numQueuedEvents, serfEventBacklogWarning)
+		}
+
 		select {
 		case e := <-c.eventCh:
 			switch e.EventType() {
