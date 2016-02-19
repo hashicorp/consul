@@ -350,6 +350,11 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 		}
 	}
 
+	if server == nil {
+		c.logger.Printf("[ERR] consul: No healthy servers found in the server config")
+		return structs.ErrNoServers
+	}
+
 	// Forward to remote Consul
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, args, reply); err != nil {
 		atomic.AddUint64(&server.Disabled, 1)
