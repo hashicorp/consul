@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
@@ -98,9 +99,9 @@ type Client struct {
 	// serf cluster in the datacenter
 	eventCh chan serf.Event
 
-	// lastServer is the last server we made an RPC call to,
+	// preferredServer is the last server we made an RPC call to,
 	// this is used to re-use the last connection
-	lastServer *serverParts
+	preferredServer *serverParts
 
 	// connRebalanceTime is the time at which we should change the server
 	// we query for RPC requests.
@@ -388,8 +389,8 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	// single server
 	now := time.Now()
 	if !c.connRebalanceTime.IsZero() && now.After(c.connRebalanceTime) {
-		c.logger.Printf("[DEBUG] consul: connection time to server %s exceeded, rotating server connection", c.lastServer.Addr)
-		c.lastServer = nil
+		c.logger.Printf("[DEBUG] consul: connection time to server %s exceeded, rotating server connection", c.preferredServer.Addr)
+		c.preferredServer = nil
 	}
 
 	// Allocate these vars on the stack before the goto
@@ -399,8 +400,8 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	var numLANMembers int
 
 	var server *serverParts
-	if c.lastServer != nil {
-		server = c.lastServer
+	if c.preferredServer != nil {
+		server = c.preferredServer
 		goto TRY_RPC
 	}
 
@@ -430,12 +431,12 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 TRY_RPC:
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, args, reply); err != nil {
 		c.connRebalanceTime = time.Time{}
-		c.lastServer = nil
+		c.preferredServer = nil
 		return err
 	}
 
-	// Cache the last server
-	c.lastServer = server
+	// Cache the last server as our preferred server
+	_ = atomic.StorePointer(&c.preferredServer, server)
 	return nil
 }
 
