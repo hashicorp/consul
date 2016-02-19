@@ -217,13 +217,23 @@ func TestIsConsulServer(t *testing.T) {
 	if parts.Bootstrap {
 		t.Fatalf("unexpected bootstrap")
 	}
+	if parts.Disabled > 0 {
+		t.Fatalf("unexpected disabled")
+	}
 	if parts.Expect != 0 {
 		t.Fatalf("bad: %v", parts.Expect)
 	}
 	m.Tags["bootstrap"] = "1"
+	m.Tags["disabled"] = "1"
 	valid, parts = isConsulServer(m)
-	if !valid || !parts.Bootstrap {
+	if !valid {
+		t.Fatalf("expected a valid consul server")
+	}
+	if !parts.Bootstrap {
 		t.Fatalf("expected bootstrap")
+	}
+	if parts.Disabled == 0 {
+		t.Fatalf("expected disabled")
 	}
 	if parts.Addr.String() != "127.0.0.1:10000" {
 		t.Fatalf("bad addr: %v", parts.Addr)
@@ -233,6 +243,7 @@ func TestIsConsulServer(t *testing.T) {
 	}
 	m.Tags["expect"] = "3"
 	delete(m.Tags, "bootstrap")
+	delete(m.Tags, "disabled")
 	valid, parts = isConsulServer(m)
 	if !valid || parts.Expect != 3 {
 		t.Fatalf("bad: %v", parts.Expect)
