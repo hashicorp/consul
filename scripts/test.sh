@@ -12,4 +12,4 @@ go build -o $TEMPDIR/consul || exit 1
 
 # Run the tests
 echo "--> Running tests"
-go list ./... | grep -v ^github.com/hashicorp/consul/vendor/ | PATH=$TEMPDIR:$PATH xargs -n1 go test
+go list ./... | grep -v ^github.com/hashicorp/consul/vendor/ | PATH=$TEMPDIR:$PATH xargs -n1 go test ${GOTEST_FLAGS:-}
