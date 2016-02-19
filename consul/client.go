@@ -3,7 +3,6 @@ package consul
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -54,17 +53,18 @@ type Client struct {
 	// Connection pool to consul servers
 	connPool *ConnPool
 
-	// consulServers tracks the locally known servers
-	consulServers []*serverParts
-	consulLock    sync.RWMutex
+	// serverConfig provides the necessary load/store semantics to
+	// serverConfig
+	serverConfigValue atomic.Value
+	serverConfigMtx   sync.Mutex
+
+	// consulServersCh is used to receive events related to the
+	// maintenance of the list of consulServers
+	consulServersCh chan consulServerEventTypes
 
 	// eventCh is used to receive events from the
 	// serf cluster in the datacenter
 	eventCh chan serf.Event
-
-	// preferredServer is the last server we made an RPC call to,
-	// this is used to re-use the last connection
-	preferredServer *serverParts
 
 	// Logger uses the provided LogOutput
 	logger *log.Logger
@@ -118,6 +118,13 @@ func NewClient(config *Config) (*Client, error) {
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
 	}
+
+	// Create the initial serverConfig
+	serverCfg := serverConfig{}
+	c.serverConfigValue.Store(serverCfg)
+
+	// Start consulServers maintenance
+	go c.consulServersManager()
 
 	// Start the Serf listeners to prevent a deadlock
 	go c.lanEventHandler()
@@ -266,23 +273,7 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Printf("[INFO] consul: adding server %s", parts)
-
-		// Check if this server is known
-		found := false
-		c.consulLock.Lock()
-		for idx, existing := range c.consulServers {
-			if existing.Name == parts.Name {
-				c.consulServers[idx] = parts
-				found = true
-				break
-			}
-		}
-
-		// Add to the list if not known
-		if !found {
-			c.consulServers = append(c.consulServers, parts)
-		}
-		c.consulLock.Unlock()
+		c.AddServer(parts)
 
 		// Trigger the callback
 		if c.config.ServerUp != nil {
@@ -299,18 +290,7 @@ func (c *Client) nodeFail(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Printf("[INFO] consul: removing server %s", parts)
-
-		// Remove the server if known
-		c.consulLock.Lock()
-		n := len(c.consulServers)
-		for i := 0; i < n; i++ {
-			if c.consulServers[i].Name == parts.Name {
-				c.consulServers[i], c.consulServers[n-1] = c.consulServers[n-1], nil
-				c.consulServers = c.consulServers[:n-1]
-				break
-			}
-		}
-		c.consulLock.Unlock()
+		c.RemoveServer(parts)
 	}
 }
 
@@ -344,61 +324,55 @@ func (c *Client) localEvent(event serf.UserEvent) {
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
-	// Check to make sure we haven't spent too much time querying a
-	// single server
-	now := time.Now()
-	if !c.connRebalanceTime.IsZero() && now.After(c.connRebalanceTime) {
-		c.logger.Printf("[DEBUG] consul: connection time to server %s exceeded, rotating server connection", c.preferredServer.Addr)
-		c.preferredServer = nil
+	serverCfgPtr := c.serverConfigValue.Load()
+	if serverCfgPtr == nil {
+		c.logger.Printf("[ERR] consul: Failed to load a server config")
+		return structs.ErrNoServers
 	}
+	serverCfg := serverCfgPtr.(serverConfig)
 
-	// Allocate these vars on the stack before the goto
-	var numConsulServers int
-	var clusterWideRebalanceConnsPerSec float64
-	var connReuseLowWaterMark time.Duration
-	var numLANMembers int
-
-	var server *serverParts
-	if c.preferredServer != nil {
-		server = c.preferredServer
-		goto TRY_RPC
-	}
-
-	// Bail if we can't find any servers
-	c.consulLock.RLock()
-	numConsulServers = len(c.consulServers)
-	if numConsulServers == 0 {
-		c.consulLock.RUnlock()
+	numServers := len(serverCfg.servers)
+	if numServers == 0 {
+		c.logger.Printf("[ERR] consul: No servers found in the server config")
 		return structs.ErrNoServers
 	}
 
-	// Select a random addr
-	server = c.consulServers[rand.Int31n(int32(numConsulServers))]
-	c.consulLock.RUnlock()
+	// Find the first non-failing server in the server list.  If this is
+	// not the first server a prior RPC call marked the first server as
+	// failed and we're waiting for the server management task to reorder
+	// a working server to the front of the list.
+	var server *serverParts
+	for i := range serverCfg.servers {
+		failCount := atomic.LoadUint64(&(serverCfg.servers[i].Disabled))
+		if failCount == 0 {
+			server = serverCfg.servers[i]
+			break
+		}
+	}
 
 	// Forward to remote Consul
-TRY_RPC:
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, args, reply); err != nil {
-		c.connRebalanceTime = time.Time{}
-		c.preferredServer = nil
+		atomic.AddUint64(&server.Disabled, 1)
+		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
+		c.consulServersCh <- consulServersRPCError
 		return err
 	}
 
-	// Cache the last server as our preferred server
-	_ = atomic.StorePointer(&c.preferredServer, server)
 	return nil
 }
 
 // Stats is used to return statistics for debugging and insight
 // for various sub-systems
 func (c *Client) Stats() map[string]map[string]string {
+	serverCfg := c.serverConfigValue.Load().(serverConfig)
+
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)
 	}
 	stats := map[string]map[string]string{
 		"consul": map[string]string{
 			"server":        "false",
-			"known_servers": toString(uint64(len(c.consulServers))),
+			"known_servers": toString(uint64(len(serverCfg.servers))),
 		},
 		"serf_lan": c.serf.Stats(),
 		"runtime":  runtimeStats(),
