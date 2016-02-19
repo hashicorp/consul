@@ -46,8 +46,8 @@ func (c *Client) consulServersManager() {
 	defaultTimeout := 5 * time.Second // FIXME(sean@): This is a bullshit value
 	var rebalanceTimer *time.Timer
 	func(c *Client) {
-		c.serverConfigMtx.Lock()
-		defer c.serverConfigMtx.Unlock()
+		c.serverConfigLock.Lock()
+		defer c.serverConfigLock.Unlock()
 
 		serverCfgPtr := c.serverConfigValue.Load()
 		if serverCfgPtr == nil {
@@ -97,8 +97,8 @@ func (c *Client) consulServersManager() {
 }
 
 func (c *Client) AddServer(server *serverParts) {
-	c.serverConfigMtx.Lock()
-	defer c.serverConfigMtx.Unlock()
+	c.serverConfigLock.Lock()
+	defer c.serverConfigLock.Unlock()
 	serverCfg := c.serverConfigValue.Load().(serverConfig)
 
 	// Check if this server is known
@@ -126,8 +126,8 @@ func (c *Client) AddServer(server *serverParts) {
 }
 
 func (c *Client) CycleFailedServers() {
-	c.serverConfigMtx.Lock()
-	defer c.serverConfigMtx.Unlock()
+	c.serverConfigLock.Lock()
+	defer c.serverConfigLock.Unlock()
 	serverCfg := c.serverConfigValue.Load().(serverConfig)
 
 	for i := range serverCfg.servers {
@@ -157,8 +157,8 @@ func (sc *serverConfig) cycleServer() (servers []*serverParts) {
 }
 
 func (c *Client) RebalanceServers() {
-	c.serverConfigMtx.Lock()
-	defer c.serverConfigMtx.Unlock()
+	c.serverConfigLock.Lock()
+	defer c.serverConfigLock.Unlock()
 	serverCfg := c.serverConfigValue.Load().(serverConfig)
 
 	// Shuffle the server list on server join.  Servers are selected from
@@ -174,8 +174,8 @@ func (c *Client) RebalanceServers() {
 }
 
 func (c *Client) RemoveServer(server *serverParts) {
-	c.serverConfigMtx.Lock()
-	defer c.serverConfigMtx.Unlock()
+	c.serverConfigLock.Lock()
+	defer c.serverConfigLock.Unlock()
 	serverCfg := c.serverConfigValue.Load().(serverConfig)
 
 	// Remove the server if known
@@ -194,7 +194,7 @@ func (c *Client) RemoveServer(server *serverParts) {
 
 // resetRebalanceTimer assumes:
 //
-// 1) the serverConfigMtx is already held by the caller.
+// 1) the serverConfigLock is already held by the caller.
 // 2) the caller will call serverConfigValue.Store()
 func (sc *serverConfig) resetRebalanceTimer(c *Client) {
 	numConsulServers := len(sc.servers)
