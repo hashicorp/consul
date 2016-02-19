@@ -23,7 +23,7 @@ import (
  */
 var privateBlocks []*net.IPNet
 
-// serverparts is used to return the parts of a server role
+// serverParts is used to return the parts of a server role
 type serverParts struct {
 	Name       string
 	Datacenter string
@@ -32,6 +32,11 @@ type serverParts struct {
 	Expect     int
 	Version    int
 	Addr       net.Addr
+
+	// Disabled is a uint64 in order to support atomic integer
+	// operations.  Zero means enabled, non-zero is the number of times
+	// this server has failed without being marked healthy.
+	Disabled uint64
 }
 
 func (s *serverParts) String() string {
@@ -116,8 +121,8 @@ func CanServersUnderstandProtocol(members []serf.Member, version uint8) (bool, e
 	return (numServers > 0) && (numWhoGrok == numServers), nil
 }
 
-// Returns if a member is a consul server. Returns a bool,
-// the datacenter, and the rpc port
+// Returns true if a serf member is a consul server. Returns a bool and a
+// pointer to the serverParts.
 func isConsulServer(m serf.Member) (bool, *serverParts) {
 	if m.Tags["role"] != "consul" {
 		return false, nil
@@ -125,6 +130,11 @@ func isConsulServer(m serf.Member) (bool, *serverParts) {
 
 	datacenter := m.Tags["dc"]
 	_, bootstrap := m.Tags["bootstrap"]
+	var disabled uint64 = 0
+	_, disabledStr := m.Tags["disabled"]
+	if disabledStr {
+		disabled = 1
+	}
 
 	expect := 0
 	expect_str, ok := m.Tags["expect"]
@@ -158,6 +168,7 @@ func isConsulServer(m serf.Member) (bool, *serverParts) {
 		Expect:     expect,
 		Addr:       addr,
 		Version:    vsn,
+		Disabled:   disabled,
 	}
 	return true, parts
 }
