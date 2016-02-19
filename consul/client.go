@@ -56,7 +56,7 @@ type Client struct {
 	// serverConfig provides the necessary load/store semantics to
 	// serverConfig
 	serverConfigValue atomic.Value
-	serverConfigMtx   sync.Mutex
+	serverConfigLock  sync.Mutex
 
 	// consulServersCh is used to receive events related to the
 	// maintenance of the list of consulServers
