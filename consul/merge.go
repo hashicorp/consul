@@ -3,6 +3,7 @@ package consul
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/consul/server_details"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -24,7 +25,7 @@ func (md *lanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 			continue
 		}
 
-		ok, parts := isConsulServer(*m)
+		ok, parts := server_details.IsConsulServer(*m)
 		if ok && parts.Datacenter != md.dc {
 			return fmt.Errorf("Member '%s' part of wrong datacenter '%s'",
 				m.Name, parts.Datacenter)
@@ -41,7 +42,7 @@ type wanMergeDelegate struct {
 
 func (md *wanMergeDelegate) NotifyMerge(members []*serf.Member) error {
 	for _, m := range members {
-		ok, _ := isConsulServer(*m)
+		ok, _ := server_details.IsConsulServer(*m)
 		if !ok {
 			return fmt.Errorf("Member '%s' is not a server", m.Name)
 		}
