@@ -8,19 +8,23 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/consul/server_details"
+	"github.com/hashicorp/consul/consul/server_manager"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
 
 const (
-	// clientRPCCache controls how long we keep an idle connection
-	// open to a server
-	clientRPCCache = 30 * time.Second
+	// clientRPCConnMaxIdle controls how long we keep an idle connection
+	// open to a server.  127s was chosen as the first prime above 120s
+	// (arbitrarily chose to use a prime) with the intent of reusing
+	// connections who are used by once-a-minute cron(8) jobs *and* who
+	// use a 60s jitter window (e.g. in vixie cron job execution can
+	// drift by up to 59s per job, or 119s for a once-a-minute cron job).
+	clientRPCConnMaxIdle = 127 * time.Second
 
 	// clientMaxStreams controls how many idle streams we keep
 	// open to a server
@@ -54,14 +58,8 @@ type Client struct {
 	// Connection pool to consul servers
 	connPool *ConnPool
 
-	// serverConfig provides the necessary load/store semantics to
-	// serverConfig
-	serverConfigValue atomic.Value
-	serverConfigLock  sync.Mutex
-
-	// consulServersCh is used to receive events related to the
-	// maintenance of the list of consulServers
-	consulServersCh chan consulServerEventTypes
+	// serverManager
+	serverMgr *server_manager.ServerManager
 
 	// eventCh is used to receive events from the
 	// serf cluster in the datacenter
@@ -120,12 +118,10 @@ func NewClient(config *Config) (*Client, error) {
 		shutdownCh: make(chan struct{}),
 	}
 
-	// Create the initial serverConfig
-	serverCfg := serverConfig{}
-	c.serverConfigValue.Store(serverCfg)
+	c.serverMgr = server_manager.NewServerManager(c.logger, c.shutdownCh)
 
 	// Start consulServers maintenance
-	go c.consulServersManager()
+	go c.serverMgr.StartServerManager()
 
 	// Start the Serf listeners to prevent a deadlock
 	go c.lanEventHandler()
@@ -274,7 +270,7 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Printf("[INFO] consul: adding server %s", parts)
-		c.AddServer(parts)
+		c.serverMgr.AddServer(parts)
 
 		// Trigger the callback
 		if c.config.ServerUp != nil {
@@ -291,7 +287,7 @@ func (c *Client) nodeFail(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Printf("[INFO] consul: removing server %s", parts)
-		c.RemoveServer(parts)
+		c.serverMgr.RemoveServer(parts)
 	}
 }
 
@@ -325,32 +321,7 @@ func (c *Client) localEvent(event serf.UserEvent) {
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
-	serverCfgPtr := c.serverConfigValue.Load()
-	if serverCfgPtr == nil {
-		c.logger.Printf("[ERR] consul: Failed to load a server config")
-		return structs.ErrNoServers
-	}
-	serverCfg := serverCfgPtr.(serverConfig)
-
-	numServers := len(serverCfg.servers)
-	if numServers == 0 {
-		c.logger.Printf("[ERR] consul: No servers found in the server config")
-		return structs.ErrNoServers
-	}
-
-	// Find the first non-failing server in the server list.  If this is
-	// not the first server a prior RPC call marked the first server as
-	// failed and we're waiting for the server management task to reorder
-	// a working server to the front of the list.
-	var server *serverParts
-	for i := range serverCfg.servers {
-		failCount := atomic.LoadUint64(&(serverCfg.servers[i].Disabled))
-		if failCount == 0 {
-			server = serverCfg.servers[i]
-			break
-		}
-	}
-
+	server := c.serverMgr.FindHealthyServer()
 	if server == nil {
 		c.logger.Printf("[ERR] consul: No healthy servers found in the server config")
 		return structs.ErrNoServers
@@ -358,9 +329,8 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 
 	// Forward to remote Consul
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, args, reply); err != nil {
-		atomic.AddUint64(&server.Disabled, 1)
+		c.serverMgr.NotifyFailedServer(server)
 		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
-		c.consulServersCh <- consulServersRPCError
 		return err
 	}
 
@@ -370,7 +340,7 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 // Stats is used to return statistics for debugging and insight
 // for various sub-systems
 func (c *Client) Stats() map[string]map[string]string {
-	serverCfg := c.serverConfigValue.Load().(serverConfig)
+	numServers := c.serverMgr.GetNumServers()
 
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)
@@ -378,7 +348,7 @@ func (c *Client) Stats() map[string]map[string]string {
 	stats := map[string]map[string]string{
 		"consul": map[string]string{
 			"server":        "false",
-			"known_servers": toString(uint64(len(serverCfg.servers))),
+			"known_servers": toString(uint64(numServers)),
 		},
 		"serf_lan": c.serf.Stats(),
 		"runtime":  runtimeStats(),
