@@ -105,9 +105,14 @@ func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
 	found := false
 	for idx, existing := range serverCfg.servers {
 		if existing.Name == server.Name {
-			// Overwrite the existing server parts in order to
-			// possibly update metadata (i.e. server version)
-			serverCfg.servers[idx] = server
+			newServers := make([]*server_details.ServerDetails, len(serverCfg.servers))
+			copy(newServers, serverCfg.servers)
+
+			// Overwrite the existing server details in order to
+			// possibly update metadata (e.g. server version)
+			newServers[idx] = server
+
+			serverCfg.servers = newServers
 			found = true
 			break
 		}
@@ -240,13 +245,17 @@ func (sm *ServerManager) RebalanceServers() {
 	defer sm.serverConfigLock.Unlock()
 	serverCfg := sm.getServerConfig()
 
+	newServers := make([]*server_details.ServerDetails, len(serverCfg.servers)+1)
+	copy(newServers, serverCfg.servers)
+
 	// Shuffle the server list on server join.  Servers are selected from
 	// the head of the list and are moved to the end of the list on
 	// failure.
 	for i := len(serverCfg.servers) - 1; i > 0; i-- {
 		j := rand.Int31n(int32(i + 1))
-		serverCfg.servers[i], serverCfg.servers[j] = serverCfg.servers[j], serverCfg.servers[i]
+		newServers[i], newServers[j] = newServers[j], newServers[i]
 	}
+	serverCfg.servers = newServers
 
 	serverCfg.resetRebalanceTimer(sm)
 	sm.serverConfigValue.Store(serverCfg)
@@ -267,13 +276,17 @@ func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 	n := len(serverCfg.servers)
 	for i := 0; i < n; i++ {
 		if serverCfg.servers[i].Name == server.Name {
-			serverCfg.servers[i], serverCfg.servers[n-1] = serverCfg.servers[n-1], nil
-			serverCfg.servers = serverCfg.servers[:n-1]
-			break
+			newServers := make([]*server_details.ServerDetails, len(serverCfg.servers)-1)
+			copy(newServers, serverCfg.servers)
+
+			newServers[i], newServers[n-1] = newServers[n-1], nil
+			newServers = newServers[:n-1]
+			serverCfg.servers = newServers
+
+			sm.serverConfigValue.Store(serverCfg)
+			return
 		}
 	}
-
-	sm.serverConfigValue.Store(serverCfg)
 }
 
 // resetRebalanceTimer assumes:
