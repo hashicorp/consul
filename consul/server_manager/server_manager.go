@@ -300,7 +300,6 @@ func (sc *serverConfig) resetRebalanceTimer(sm *ServerManager) {
 // happens either when a new server is added or when a duration has been
 // exceed.
 func (sm *ServerManager) StartServerManager() {
-	defaultTimeout := 5 * time.Second // FIXME(sean@): This is a bullshit value
 	var rebalanceTimer *time.Timer
 	func() {
 		sm.serverConfigLock.Lock()
@@ -312,8 +311,9 @@ func (sm *ServerManager) StartServerManager() {
 		}
 		var serverCfg serverConfig
 		serverCfg = serverCfgPtr.(serverConfig)
-		rebalanceTimer = time.NewTimer(defaultTimeout)
-		serverCfg.rebalanceTimer = rebalanceTimer
+		serverCfg.resetRebalanceTimer(sm)
+		rebalanceTimer = serverCfg.rebalanceTimer
+		sm.serverConfigValue.Store(serverCfg)
 	}()
 
 	for {
