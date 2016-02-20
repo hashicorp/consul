@@ -8,48 +8,16 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/consul/consul/server_details"
+	"github.com/hashicorp/consul/consul/server_manager"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
 
 const (
-	// clientRPCMinReuseDuration controls the minimum amount of time RPC
-	// queries are sent over an established connection to a single server
-	clientRPCMinReuseDuration = 120 * time.Second
-
-	// clientRPCJitterFraction determines the amount of jitter added to
-	// clientRPCMinReuseDuration before a connection is expired and a new
-	// connection is established in order to rebalance load across consul
-	// servers.  The cluster-wide number of connections per second from
-	// rebalancing is applied after this jitter to ensure the CPU impact
-	// is always finite.  See newRebalanceConnsPerSecPerServer's comment
-	// for additional commentary.
-	//
-	// For example, in a 10K consul cluster with 5x servers, this default
-	// averages out to ~13 new connections from rebalancing per server
-	// per second (each connection is reused for 120s to 180s).
-	clientRPCJitterFraction = 2
-
-	// Limit the number of new connections a server receives per second
-	// for connection rebalancing.  This limit caps the load caused by
-	// continual rebalancing efforts when a cluster is in equilibrium.  A
-	// lower value comes at the cost of increased recovery time after a
-	// partition.  This parameter begins to take effect when there are
-	// more than ~48K clients querying 5x servers or at lower server
-	// values when there is a partition.
-	//
-	// For example, in a 100K consul cluster with 5x servers, it will
-	// take ~5min for all servers to rebalance their connections.  If
-	// 99,995 agents are in the minority talking to only one server, it
-	// will take ~26min for all servers to rebalance.  A 10K cluster in
-	// the same scenario will take ~2.6min to rebalance.
-	newRebalanceConnsPerSecPerServer = 64
-
 	// clientRPCConnMaxIdle controls how long we keep an idle connection
 	// open to a server.  127s was chosen as the first prime above 120s
 	// (arbitrarily chose to use a prime) with the intent of reusing
@@ -90,14 +58,8 @@ type Client struct {
 	// Connection pool to consul servers
 	connPool *ConnPool
 
-	// serverConfig provides the necessary load/store semantics to
-	// serverConfig
-	serverConfigValue atomic.Value
-	serverConfigLock  sync.Mutex
-
-	// consulServersCh is used to receive events related to the
-	// maintenance of the list of consulServers
-	consulServersCh chan consulServerEventTypes
+	// serverManager
+	serverMgr *server_manager.ServerManager
 
 	// eventCh is used to receive events from the
 	// serf cluster in the datacenter
@@ -156,12 +118,10 @@ func NewClient(config *Config) (*Client, error) {
 		shutdownCh: make(chan struct{}),
 	}
 
-	// Create the initial serverConfig
-	serverCfg := serverConfig{}
-	c.serverConfigValue.Store(serverCfg)
+	c.serverMgr = server_manager.NewServerManager(c.logger, c.shutdownCh)
 
 	// Start consulServers maintenance
-	go c.consulServersManager()
+	go c.serverMgr.StartServerManager()
 
 	// Start the Serf listeners to prevent a deadlock
 	go c.lanEventHandler()
@@ -310,7 +270,7 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Printf("[INFO] consul: adding server %s", parts)
-		c.AddServer(parts)
+		c.serverMgr.AddServer(parts)
 
 		// Trigger the callback
 		if c.config.ServerUp != nil {
@@ -327,7 +287,7 @@ func (c *Client) nodeFail(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Printf("[INFO] consul: removing server %s", parts)
-		c.RemoveServer(parts)
+		c.serverMgr.RemoveServer(parts)
 	}
 }
 
@@ -361,32 +321,7 @@ func (c *Client) localEvent(event serf.UserEvent) {
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
-	serverCfgPtr := c.serverConfigValue.Load()
-	if serverCfgPtr == nil {
-		c.logger.Printf("[ERR] consul: Failed to load a server config")
-		return structs.ErrNoServers
-	}
-	serverCfg := serverCfgPtr.(serverConfig)
-
-	numServers := len(serverCfg.servers)
-	if numServers == 0 {
-		c.logger.Printf("[ERR] consul: No servers found in the server config")
-		return structs.ErrNoServers
-	}
-
-	// Find the first non-failing server in the server list.  If this is
-	// not the first server a prior RPC call marked the first server as
-	// failed and we're waiting for the server management task to reorder
-	// a working server to the front of the list.
-	var server *serverParts
-	for i := range serverCfg.servers {
-		failCount := atomic.LoadUint64(&(serverCfg.servers[i].Disabled))
-		if failCount == 0 {
-			server = serverCfg.servers[i]
-			break
-		}
-	}
-
+	server := c.serverMgr.FindHealthyServer()
 	if server == nil {
 		c.logger.Printf("[ERR] consul: No healthy servers found in the server config")
 		return structs.ErrNoServers
@@ -394,9 +329,8 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 
 	// Forward to remote Consul
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, args, reply); err != nil {
-		atomic.AddUint64(&server.Disabled, 1)
+		c.serverMgr.NotifyFailedServer(server)
 		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
-		c.consulServersCh <- consulServersRPCError
 		return err
 	}
 
@@ -406,7 +340,7 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 // Stats is used to return statistics for debugging and insight
 // for various sub-systems
 func (c *Client) Stats() map[string]map[string]string {
-	serverCfg := c.serverConfigValue.Load().(serverConfig)
+	numServers := c.serverMgr.GetNumServers()
 
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)
@@ -414,7 +348,7 @@ func (c *Client) Stats() map[string]map[string]string {
 	stats := map[string]map[string]string{
 		"consul": map[string]string{
 			"server":        "false",
-			"known_servers": toString(uint64(len(serverCfg.servers))),
+			"known_servers": toString(uint64(numServers)),
 		},
 		"serf_lan": c.serf.Stats(),
 		"runtime":  runtimeStats(),
