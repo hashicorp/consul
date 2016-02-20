@@ -154,12 +154,12 @@ func (sm *ServerManager) CycleFailedServers() {
 func (sc *serverConfig) cycleServer() (servers []*server_details.ServerDetails) {
 	numServers := len(servers)
 	if numServers < 2 {
-		// No action required for zero or one server situations
+		// No action required
 		return servers
 	}
 
-	newServers := make([]*server_details.ServerDetails, len(servers)+1)
 	var dequeuedServer *server_details.ServerDetails
+	newServers := make([]*server_details.ServerDetails, len(servers)+1)
 	dequeuedServer, newServers = servers[0], servers[1:]
 	servers = append(newServers, dequeuedServer)
 	return servers
@@ -198,8 +198,8 @@ func (sm *ServerManager) GetNumServers() (numServers int) {
 	return numServers
 }
 
-// getServerConfig shorthand method to hide the locking semantics of
-// atomic.Value
+// getServerConfig is a convenience method to hide the locking semantics of
+// atomic.Value from the caller.
 func (sm *ServerManager) getServerConfig() serverConfig {
 	return sm.serverConfigValue.Load().(serverConfig)
 }
@@ -207,8 +207,7 @@ func (sm *ServerManager) getServerConfig() serverConfig {
 // NewServerManager is the only way to safely create a new ServerManager
 // struct.
 //
-// NOTE(sean@): We don't simply pass in a consul.Client struct to avoid a
-// cyclic import
+// NOTE(sean@): We can not pass in *consul.Client due to an import cycle
 func NewServerManager(logger *log.Logger, shutdownCh chan struct{}) (sm *ServerManager) {
 	sm = new(ServerManager)
 	// Create the initial serverConfig
