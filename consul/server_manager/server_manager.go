@@ -96,7 +96,7 @@ type ServerManager struct {
 func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
 	sm.serverConfigLock.Lock()
 	defer sm.serverConfigLock.Unlock()
-	serverCfg := sm.serverConfigValue.Load().(serverConfig)
+	serverCfg := sm.getServerConfig()
 
 	// Check if this server is known
 	found := false
@@ -126,7 +126,7 @@ func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
 func (sm *ServerManager) CycleFailedServers() {
 	sm.serverConfigLock.Lock()
 	defer sm.serverConfigLock.Unlock()
-	serverCfg := sm.serverConfigValue.Load().(serverConfig)
+	serverCfg := sm.getServerConfig()
 
 	for i := range serverCfg.servers {
 		failCount := atomic.LoadUint64(&(serverCfg.servers[i].Disabled))
@@ -213,7 +213,7 @@ func (sm *ServerManager) NotifyFailedServer(server *server_details.ServerDetails
 func (sm *ServerManager) RebalanceServers() {
 	sm.serverConfigLock.Lock()
 	defer sm.serverConfigLock.Unlock()
-	serverCfg := sm.serverConfigValue.Load().(serverConfig)
+	serverCfg := sm.getServerConfig()
 
 	// Shuffle the server list on server join.  Servers are selected from
 	// the head of the list and are moved to the end of the list on
@@ -230,7 +230,7 @@ func (sm *ServerManager) RebalanceServers() {
 func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 	sm.serverConfigLock.Lock()
 	defer sm.serverConfigLock.Unlock()
-	serverCfg := sm.serverConfigValue.Load().(serverConfig)
+	serverCfg := sm.getServerConfig()
 
 	// Remove the server if known
 	n := len(serverCfg.servers)
