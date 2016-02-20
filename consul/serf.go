@@ -4,6 +4,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/hashicorp/consul/consul/server_details"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -140,7 +141,7 @@ func (s *Server) localEvent(event serf.UserEvent) {
 // lanNodeJoin is used to handle join events on the LAN pool.
 func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := isConsulServer(m)
+		ok, parts := server_details.IsConsulServer(m)
 		if !ok {
 			continue
 		}
@@ -163,7 +164,7 @@ func (s *Server) lanNodeJoin(me serf.MemberEvent) {
 // wanNodeJoin is used to handle join events on the WAN pool.
 func (s *Server) wanNodeJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := isConsulServer(m)
+		ok, parts := server_details.IsConsulServer(m)
 		if !ok {
 			s.logger.Printf("[WARN] consul: non-server in WAN pool: %s", m.Name)
 			continue
@@ -209,7 +210,7 @@ func (s *Server) maybeBootstrap() {
 	members := s.serfLAN.Members()
 	addrs := make([]string, 0)
 	for _, member := range members {
-		valid, p := isConsulServer(member)
+		valid, p := server_details.IsConsulServer(member)
 		if !valid {
 			continue
 		}
@@ -247,7 +248,7 @@ func (s *Server) maybeBootstrap() {
 // lanNodeFailed is used to handle fail events on the LAN pool.
 func (s *Server) lanNodeFailed(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := isConsulServer(m)
+		ok, parts := server_details.IsConsulServer(m)
 		if !ok {
 			continue
 		}
@@ -262,7 +263,7 @@ func (s *Server) lanNodeFailed(me serf.MemberEvent) {
 // wanNodeFailed is used to handle fail events on the WAN pool.
 func (s *Server) wanNodeFailed(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := isConsulServer(m)
+		ok, parts := server_details.IsConsulServer(m)
 		if !ok {
 			continue
 		}
