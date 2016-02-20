@@ -292,7 +292,11 @@ func (sc *serverConfig) resetRebalanceTimer(sm *ServerManager) {
 	connRebalanceTimeout := lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
 	sm.logger.Printf("[DEBUG] consul: connection will be rebalanced in %v", connRebalanceTimeout)
 
-	sc.rebalanceTimer.Reset(connRebalanceTimeout)
+	if sc.rebalanceTimer == nil {
+		sc.rebalanceTimer = time.NewTimer(connRebalanceTimeout)
+	} else {
+		sc.rebalanceTimer.Reset(connRebalanceTimeout)
+	}
 }
 
 // StartServerManager is used to start and manage the task of automatically
