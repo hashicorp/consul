@@ -93,6 +93,7 @@ type ServerManager struct {
 	logger *log.Logger
 }
 
+<<<<<<< HEAD
 // AddServer takes out an internal write lock and adds a new server.  If the
 // server is not known, it adds the new server and schedules a rebalance.  If
 // it is known, we merge the new server details.
@@ -100,11 +101,18 @@ func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
 	sm.serverConfigLock.Lock()
 	defer sm.serverConfigLock.Unlock()
 	serverCfg := sm.getServerConfig()
+=======
+func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
+	sm.serverConfigLock.Lock()
+	defer sm.serverConfigLock.Unlock()
+	serverCfg := sm.serverConfigValue.Load().(serverConfig)
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 
 	// Check if this server is known
 	found := false
 	for idx, existing := range serverCfg.servers {
 		if existing.Name == server.Name {
+<<<<<<< HEAD
 			newServers := make([]*server_details.ServerDetails, len(serverCfg.servers))
 			copy(newServers, serverCfg.servers)
 
@@ -113,6 +121,11 @@ func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
 			newServers[idx] = server
 
 			serverCfg.servers = newServers
+=======
+			// Overwrite the existing server parts in order to
+			// possibly update metadata (i.e. server version)
+			serverCfg.servers[idx] = server
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 			found = true
 			break
 		}
@@ -131,6 +144,7 @@ func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
 	sm.serverConfigValue.Store(serverCfg)
 }
 
+<<<<<<< HEAD
 // CycleFailedServers takes out an internal write lock and dequeues all
 // failed servers and re-enqueues them.  This method does not reshuffle the
 // server list.  Because this changed the order of servers, we push out the
@@ -139,6 +153,12 @@ func (sm *ServerManager) CycleFailedServers() {
 	sm.serverConfigLock.Lock()
 	defer sm.serverConfigLock.Unlock()
 	serverCfg := sm.getServerConfig()
+=======
+func (sm *ServerManager) CycleFailedServers() {
+	sm.serverConfigLock.Lock()
+	defer sm.serverConfigLock.Unlock()
+	serverCfg := sm.serverConfigValue.Load().(serverConfig)
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 
 	for i := range serverCfg.servers {
 		failCount := atomic.LoadUint64(&(serverCfg.servers[i].Disabled))
@@ -153,6 +173,7 @@ func (sm *ServerManager) CycleFailedServers() {
 	sm.serverConfigValue.Store(serverCfg)
 }
 
+<<<<<<< HEAD
 // cycleServers returns a new list of servers that has dequeued the first
 // server and enqueued it at the end of the list.  cycleServers assumes the
 // caller is holding the serverConfigLock.
@@ -165,13 +186,27 @@ func (sc *serverConfig) cycleServer() (servers []*server_details.ServerDetails) 
 
 	var dequeuedServer *server_details.ServerDetails
 	newServers := make([]*server_details.ServerDetails, len(servers)+1)
+=======
+func (sc *serverConfig) cycleServer() (servers []*server_details.ServerDetails) {
+	numServers := len(servers)
+	if numServers < 2 {
+		// No action required for zero or one server situations
+		return servers
+	}
+
+	newServers := make([]*server_details.ServerDetails, len(servers)+1)
+	var dequeuedServer *server_details.ServerDetails
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 	dequeuedServer, newServers = servers[0], servers[1:]
 	servers = append(newServers, dequeuedServer)
 	return servers
 }
 
+<<<<<<< HEAD
 // FindHealthyServer takes out an internal "read lock" and searches through
 // the list of servers to find a healthy server.
+=======
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 func (sm *ServerManager) FindHealthyServer() (server *server_details.ServerDetails) {
 	serverCfg := sm.getServerConfig()
 	numServers := len(serverCfg.servers)
@@ -195,16 +230,24 @@ func (sm *ServerManager) FindHealthyServer() (server *server_details.ServerDetai
 	return server
 }
 
+<<<<<<< HEAD
 // GetNumServers takes out an internal "read lock" and returns the number of
 // servers.  numServers includes both healthy and unhealthy servers.
+=======
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 func (sm *ServerManager) GetNumServers() (numServers int) {
 	serverCfg := sm.getServerConfig()
 	numServers = len(serverCfg.servers)
 	return numServers
 }
 
+<<<<<<< HEAD
 // getServerConfig is a convenience method to hide the locking semantics of
 // atomic.Value from the caller.
+=======
+// getServerConfig shorthand method to hide the locking semantics of
+// atomic.Value
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 func (sm *ServerManager) getServerConfig() serverConfig {
 	return sm.serverConfigValue.Load().(serverConfig)
 }
@@ -212,7 +255,12 @@ func (sm *ServerManager) getServerConfig() serverConfig {
 // NewServerManager is the only way to safely create a new ServerManager
 // struct.
 //
+<<<<<<< HEAD
 // NOTE(sean@): We can not pass in *consul.Client due to an import cycle
+=======
+// NOTE(sean@): We don't simply pass in a consul.Client struct to avoid a
+// cyclic import
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 func NewServerManager(logger *log.Logger, shutdownCh chan struct{}) (sm *ServerManager) {
 	sm = new(ServerManager)
 	// Create the initial serverConfig
@@ -223,17 +271,21 @@ func NewServerManager(logger *log.Logger, shutdownCh chan struct{}) (sm *ServerM
 	return sm
 }
 
+<<<<<<< HEAD
 // NotifyFailedServer is an exported convenience function that allows callers
 // to pass in a server that has failed an RPC request and mark it as failed.
 // This will initiate a background task that will optimize the failed server
 // to the end of the serer list.  No locks are required here because we are
 // bypassing the serverConfig and sending a message to ServerManager's
 // channel.
+=======
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 func (sm *ServerManager) NotifyFailedServer(server *server_details.ServerDetails) {
 	atomic.AddUint64(&server.Disabled, 1)
 	sm.consulServersCh <- consulServersRPCError
 }
 
+<<<<<<< HEAD
 // RebalanceServers takes out an internal write lock and shuffles the list of
 // servers on this agent.  This allows for a redistribution of work across
 // consul servers and provides a guarantee that the order list of
@@ -247,20 +299,32 @@ func (sm *ServerManager) RebalanceServers() {
 
 	newServers := make([]*server_details.ServerDetails, len(serverCfg.servers)+1)
 	copy(newServers, serverCfg.servers)
+=======
+func (sm *ServerManager) RebalanceServers() {
+	sm.serverConfigLock.Lock()
+	defer sm.serverConfigLock.Unlock()
+	serverCfg := sm.serverConfigValue.Load().(serverConfig)
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 
 	// Shuffle the server list on server join.  Servers are selected from
 	// the head of the list and are moved to the end of the list on
 	// failure.
 	for i := len(serverCfg.servers) - 1; i > 0; i-- {
 		j := rand.Int31n(int32(i + 1))
+<<<<<<< HEAD
 		newServers[i], newServers[j] = newServers[j], newServers[i]
 	}
 	serverCfg.servers = newServers
+=======
+		serverCfg.servers[i], serverCfg.servers[j] = serverCfg.servers[j], serverCfg.servers[i]
+	}
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 
 	serverCfg.resetRebalanceTimer(sm)
 	sm.serverConfigValue.Store(serverCfg)
 }
 
+<<<<<<< HEAD
 // RemoveServer takes out an internal write lock and removes a server from
 // the server list.  No rebalancing happens as a result of the removed server
 // because we do not want a network partition which separated a server from
@@ -271,11 +335,18 @@ func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 	sm.serverConfigLock.Lock()
 	defer sm.serverConfigLock.Unlock()
 	serverCfg := sm.getServerConfig()
+=======
+func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
+	sm.serverConfigLock.Lock()
+	defer sm.serverConfigLock.Unlock()
+	serverCfg := sm.serverConfigValue.Load().(serverConfig)
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 
 	// Remove the server if known
 	n := len(serverCfg.servers)
 	for i := 0; i < n; i++ {
 		if serverCfg.servers[i].Name == server.Name {
+<<<<<<< HEAD
 			newServers := make([]*server_details.ServerDetails, len(serverCfg.servers)-1)
 			copy(newServers, serverCfg.servers)
 
@@ -287,6 +358,15 @@ func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 			return
 		}
 	}
+=======
+			serverCfg.servers[i], serverCfg.servers[n-1] = serverCfg.servers[n-1], nil
+			serverCfg.servers = serverCfg.servers[:n-1]
+			break
+		}
+	}
+
+	sm.serverConfigValue.Store(serverCfg)
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 }
 
 // resetRebalanceTimer assumes:
@@ -305,11 +385,15 @@ func (sc *serverConfig) resetRebalanceTimer(sm *ServerManager) {
 	connRebalanceTimeout := lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
 	sm.logger.Printf("[DEBUG] consul: connection will be rebalanced in %v", connRebalanceTimeout)
 
+<<<<<<< HEAD
 	if sc.rebalanceTimer == nil {
 		sc.rebalanceTimer = time.NewTimer(connRebalanceTimeout)
 	} else {
 		sc.rebalanceTimer.Reset(connRebalanceTimeout)
 	}
+=======
+	sc.rebalanceTimer.Reset(connRebalanceTimeout)
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 }
 
 // StartServerManager is used to start and manage the task of automatically
@@ -317,6 +401,10 @@ func (sc *serverConfig) resetRebalanceTimer(sm *ServerManager) {
 // happens either when a new server is added or when a duration has been
 // exceed.
 func (sm *ServerManager) StartServerManager() {
+<<<<<<< HEAD
+=======
+	defaultTimeout := 5 * time.Second // FIXME(sean@): This is a bullshit value
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 	var rebalanceTimer *time.Timer
 	func() {
 		sm.serverConfigLock.Lock()
@@ -328,9 +416,14 @@ func (sm *ServerManager) StartServerManager() {
 		}
 		var serverCfg serverConfig
 		serverCfg = serverCfgPtr.(serverConfig)
+<<<<<<< HEAD
 		serverCfg.resetRebalanceTimer(sm)
 		rebalanceTimer = serverCfg.rebalanceTimer
 		sm.serverConfigValue.Store(serverCfg)
+=======
+		rebalanceTimer = time.NewTimer(defaultTimeout)
+		serverCfg.rebalanceTimer = rebalanceTimer
+>>>>>>> ca6220381f4164ca8317fd9f1658befacd7310c0
 	}()
 
 	for {
