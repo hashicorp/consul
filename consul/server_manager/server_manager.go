@@ -129,7 +129,7 @@ func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
 		sm.consulServersCh <- consulServersNodeJoin
 	}
 
-	sm.serverConfigValue.Store(serverCfg)
+	sm.saveServerConfig(serverCfg)
 }
 
 // CycleFailedServers takes out an internal write lock and dequeues all
@@ -151,7 +151,7 @@ func (sm *ServerManager) CycleFailedServers() {
 	}
 
 	serverCfg.resetRebalanceTimer(sm)
-	sm.serverConfigValue.Store(serverCfg)
+	sm.saveServerConfig(serverCfg)
 }
 
 // cycleServers returns a new list of servers that has dequeued the first
@@ -260,7 +260,7 @@ func (sm *ServerManager) RebalanceServers() {
 	serverCfg.servers = newServers
 
 	serverCfg.resetRebalanceTimer(sm)
-	sm.serverConfigValue.Store(serverCfg)
+	sm.saveServerConfig(serverCfg)
 }
 
 // RemoveServer takes out an internal write lock and removes a server from
@@ -285,7 +285,7 @@ func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 			newServers = newServers[:n-1]
 			serverCfg.servers = newServers
 
-			sm.serverConfigValue.Store(serverCfg)
+			sm.saveServerConfig(serverCfg)
 			return
 		}
 	}
@@ -332,7 +332,7 @@ func (sm *ServerManager) StartServerManager() {
 		serverCfg = serverCfgPtr.(serverConfig)
 		serverCfg.resetRebalanceTimer(sm)
 		rebalanceTimer = serverCfg.rebalanceTimer
-		sm.serverConfigValue.Store(serverCfg)
+		sm.saveServerConfig(serverCfg)
 	}()
 
 	for {
