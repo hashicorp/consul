@@ -120,8 +120,9 @@ func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
 
 	// Add to the list if not known
 	if !found {
-		newServers := make([]*server_details.ServerDetails, len(serverCfg.servers)+1)
+		newServers := make([]*server_details.ServerDetails, len(serverCfg.servers), len(serverCfg.servers)+1)
 		copy(newServers, serverCfg.servers)
+		newServers = append(newServers, server)
 		serverCfg.servers = newServers
 
 		// Notify the server maintenance task of a new server
@@ -157,17 +158,16 @@ func (sm *ServerManager) CycleFailedServers() {
 // server and enqueued it at the end of the list.  cycleServers assumes the
 // caller is holding the serverConfigLock.
 func (sc *serverConfig) cycleServer() (servers []*server_details.ServerDetails) {
-	numServers := len(servers)
+	numServers := len(sc.servers)
 	if numServers < 2 {
 		// No action required
 		return servers
 	}
 
-	var dequeuedServer *server_details.ServerDetails
-	newServers := make([]*server_details.ServerDetails, len(servers)+1)
-	dequeuedServer, newServers = servers[0], servers[1:]
-	servers = append(newServers, dequeuedServer)
-	return servers
+	newServers := make([]*server_details.ServerDetails, 0, numServers)
+	newServers = append(newServers, sc.servers[1:]...)
+	newServers = append(newServers, sc.servers[0])
+	return newServers
 }
 
 // FindHealthyServer takes out an internal "read lock" and searches through
@@ -203,23 +203,25 @@ func (sm *ServerManager) GetNumServers() (numServers int) {
 	return numServers
 }
 
-// getServerConfig is a convenience method to hide the locking semantics of
-// atomic.Value from the caller.
+// getServerConfig is a convenience method which hides the locking semantics
+// of atomic.Value from the caller.
 func (sm *ServerManager) getServerConfig() serverConfig {
 	return sm.serverConfigValue.Load().(serverConfig)
 }
 
 // NewServerManager is the only way to safely create a new ServerManager
 // struct.
-//
-// NOTE(sean@): We can not pass in *consul.Client due to an import cycle
 func NewServerManager(logger *log.Logger, shutdownCh chan struct{}) (sm *ServerManager) {
+	// NOTE(sean@): Can't pass *consul.Client due to an import cycle
 	sm = new(ServerManager)
-	// Create the initial serverConfig
-	serverCfg := serverConfig{}
 	sm.logger = logger
+	sm.consulServersCh = make(chan consulServerEventTypes, maxConsulServerManagerEvents)
 	sm.shutdownCh = shutdownCh
-	sm.serverConfigValue.Store(serverCfg)
+
+	sc := serverConfig{}
+	sc.servers = make([]*server_details.ServerDetails, 0)
+	sc.rebalanceTimer = time.NewTimer(time.Duration(initialRebalanceTimeoutHours * time.Hour))
+	sm.serverConfigValue.Store(sc)
 	return sm
 }
 
@@ -245,7 +247,7 @@ func (sm *ServerManager) RebalanceServers() {
 	defer sm.serverConfigLock.Unlock()
 	serverCfg := sm.getServerConfig()
 
-	newServers := make([]*server_details.ServerDetails, len(serverCfg.servers)+1)
+	newServers := make([]*server_details.ServerDetails, len(serverCfg.servers))
 	copy(newServers, serverCfg.servers)
 
 	// Shuffle the server list on server join.  Servers are selected from
