@@ -32,6 +32,10 @@ const (
 	// is no token ID provided
 	anonymousToken = "anonymous"
 
+	// redactedToken is shown in structures with embedded tokens when they
+	// are not allowed to be displayed
+	redactedToken = "<hidden>"
+
 	// Maximum number of cached ACL entries
 	aclCacheSize = 256
 )
@@ -366,6 +370,42 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 	*dump = nd
 }
 
+// filterPreparedQueries is used to filter prepared queries based on ACL rules.
+// We prune entries the user doesn't have access to, and we redact any tokens
+// unless the client has a management token. This eases the transition to
+// delegated authority over prepared queries, since it was easy to capture
+// management tokens in Consul 0.6.3 and earlier, and we don't want to
+// willy-nilly show those. This does have the limitation of preventing delegated
+// non-management users from seeing captured tokens, but they can at least see
+// that they are set and we want to discourage using them going forward.
+func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
+	isManagementToken := f.acl.ACLList()
+	ret := make(structs.PreparedQueries, 0, len(*queries))
+	for _, query := range *queries {
+		if !f.acl.PreparedQueryRead(query.GetACLPrefix()) {
+			f.logger.Printf("[DEBUG] consul: dropping prepared query %q from result due to ACLs", query.ID)
+			continue
+		}
+
+		// Secure tokens unless there's a management token doing the
+		// query.
+		if isManagementToken || query.Token == "" {
+			ret = append(ret, query)
+		} else {
+			// Redact the token, using a copy of the query structure
+			// since we could be pointed at a live instance from the
+			// state store so it's not safe to modify it. Note that
+			// this clone will still point to things like underlying
+			// arrays in the original, but for modifying just the
+			// token it will be safe to use.
+			clone := *query
+			clone.Token = redactedToken
+			ret = append(ret, &clone)
+		}
+	}
+	*queries = ret
+}
+
 // filterACL is used to filter results from our service catalog based on the
 // rules configured for the provided token. The subject is scrubbed and
 // modified in-place, leaving only resources the token can access.
@@ -402,8 +442,14 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 	case *structs.IndexedCheckServiceNodes:
 		filt.filterCheckServiceNodes(&v.Nodes)
 
+	case *structs.CheckServiceNodes:
+		filt.filterCheckServiceNodes(v)
+
 	case *structs.IndexedNodeDump:
 		filt.filterNodeDump(&v.Dump)
+
+	case *structs.IndexedPreparedQueries:
+		filt.filterPreparedQueries(&v.Queries)
 
 	default:
 		panic(fmt.Errorf("Unhandled type passed to ACL filter: %#v", subj))

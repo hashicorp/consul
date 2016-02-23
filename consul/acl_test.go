@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/acl"
@@ -858,6 +859,73 @@ func TestACL_filterNodeDump(t *testing.T) {
 	}
 	if len(dump[0].Checks) != 0 {
 		t.Fatalf("bad: %#v", dump[0].Checks)
+	}
+}
+
+func TestACL_filterPreparedQueries(t *testing.T) {
+	queries := structs.PreparedQueries{
+		&structs.PreparedQuery{
+			ID: "f004177f-2c28-83b7-4229-eacc25fe55d1",
+			Service: structs.ServiceQuery{
+				Service: "foo",
+			},
+		},
+		&structs.PreparedQuery{
+			ID:    "f004177f-2c28-83b7-4229-eacc25fe55d2",
+			Token: "root",
+			Service: structs.ServiceQuery{
+				Service: "bar",
+			},
+		},
+	}
+
+	expected := structs.PreparedQueries{
+		&structs.PreparedQuery{
+			ID: "f004177f-2c28-83b7-4229-eacc25fe55d1",
+			Service: structs.ServiceQuery{
+				Service: "foo",
+			},
+		},
+		&structs.PreparedQuery{
+			ID:    "f004177f-2c28-83b7-4229-eacc25fe55d2",
+			Token: "root",
+			Service: structs.ServiceQuery{
+				Service: "bar",
+			},
+		},
+	}
+
+	// Try permissive filtering with a management token. This will allow the
+	// embedded tokens to be seen.
+	filt := newAclFilter(acl.ManageAll(), nil)
+	filt.filterPreparedQueries(&queries)
+	if !reflect.DeepEqual(queries, expected) {
+		t.Fatalf("bad: %#v", queries)
+	}
+
+	// Hang on to the entry with a token, which needs to survive the next
+	// operation.
+	original := queries[1]
+
+	// Now try permissive filtering with a client token, which should cause
+	// the embedded tokens to get redacted.
+	filt = newAclFilter(acl.AllowAll(), nil)
+	filt.filterPreparedQueries(&queries)
+	expected[1].Token = redactedToken
+	if !reflect.DeepEqual(queries, expected) {
+		t.Fatalf("bad: %#v", queries)
+	}
+
+	// Make sure that the original object didn't lose its token.
+	if original.Token != "root" {
+		t.Fatalf("bad token: %s", original.Token)
+	}
+
+	// Now try restrictive filtering.
+	filt = newAclFilter(acl.DenyAll(), nil)
+	filt.filterPreparedQueries(&queries)
+	if len(queries) != 0 {
+		t.Fatalf("bad: %#v", queries)
 	}
 }
 

@@ -147,6 +147,19 @@ event "" {
 As always, the more secure way to handle user events is to explicitly grant
 access to each API token based on the events they should be able to fire.
 
+### Blacklist mode and Prepared Queries
+
+Versions of Consul after 0.6.3 use a new [`prepared_query` ACL](#prepared_query_acls)
+policy to control creating, updating, and deleting prepared queries. If you are
+upgrading from a previous version of Consul, you will need to add this policy to
+your ACL tokens if you want them to be able to manage prepared queries.
+
+It is not recommended to open up this policy for "write" by default, since clients
+will be able to change any prepared query. Versions 0.6.3 and prior would enforce
+that only the token that created a query (or a management token) could update it,
+but this behavior has been removed in favor of the new
+[`prepared_query` ACL](#prepared_query_acls).
+
 ### Blacklist mode and Keyring Operations
 
 Consul 0.6 and later supports securing the encryption keyring operations using
@@ -209,6 +222,10 @@ applied to any user event without a matching policy, is provided by an empty
 string. An event policy is one of "read", "write", or "deny". Currently, only
 the "write" level is enforced during event firing. Events can always be read.
 
+Prepared query policies control access to create, update, and delete prepared
+queries. Service policies are used when executing prepared queries. See
+[below](#prepared_query_acls) for more details.
+
 We make use of
 the [HashiCorp Configuration Language (HCL)](https://github.com/hashicorp/hcl/)
 to specify policy. This language is human readable and interoperable
@@ -251,6 +268,11 @@ event "destroy-" {
     policy = "deny"
 }
 
+# Default prepared queries to read-only.
+prepared_query "" {
+    policy = "read"
+}
+
 # Read-only mode for the encryption keyring by default (list only)
 keyring = "read"
 ```
@@ -284,6 +306,11 @@ This is equivalent to the following JSON input:
     },
     "destroy-": {
       "policy": "deny"
+    }
+  },
+  "prepared_query": {
+    "": {
+      "policy": "read"
     }
   },
   "keyring": "read"
@@ -325,3 +352,30 @@ making it appear as though the restricted services do not exist.
 Consul's DNS interface is also affected by restrictions to service
 registrations. If the token used by the agent does not have access to a given
 service, then the DNS interface will return no records when queried for it.
+
+<a name="prepared_query_acls"></a>
+## Prepared Query ACLs
+
+In Consul 0.6, a new [Prepared Query](/docs/agent/http/query.html) feature was
+added that allows complex service queries to be defined and then executed later
+via an ID or name.
+
+Consul 0.6.3 and earlier would use the client's service policy to determine if
+the client could register a prepared query (the client would need at least "read"
+permission to the service). This was easy to use, but it did not allow for very
+good control of the prepared query namespace.
+
+After 0.6.3, we introduced a new `prepared_query` ACL policy type that is used
+to control the prepared query namespace. Having "write" access to a given prefix
+allows a client to create, update, or delete only prepared queries for services
+matching that prefix and with prepared query `Name` fields matching that prefix.
+
+It is not recommended to open up this policy for "write" by default, since clients
+will be able to change any prepared query. Versions 0.6.3 and prior would enforce
+that only the token that created a query (or a management token) could update it,
+but this behavior has been removed in favor of this new ACL policy.
+
+Execution of prepared queries is governed by the `Token` captured in the query,
+or by the client's ACL Token. See the
+[`Token` field documentation](/docs/agent/http/query.html#token) for more
+details.
