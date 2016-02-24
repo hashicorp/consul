@@ -72,4 +72,4 @@ func TestServerManager_NewServerManager(t *testing.T) {
 
 // func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 
-// func (sm *ServerManager) StartServerManager() {
+// func (sm *ServerManager) Start() {
