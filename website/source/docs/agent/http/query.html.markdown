@@ -15,7 +15,7 @@ Prepared queries allow you to register a complex service query and then execute
 it later via its ID or name to get a set of healthy nodes that provide a given
 service. This is particularly useful in combination with Consul's
 [DNS Interface](/docs/agent/dns.html) as it allows for much richer queries than
-would be possible given the limited interface DNS provides.
+would be possible given the limited syntax DNS provides.
 
 The following endpoints are supported:
 
@@ -30,7 +30,11 @@ Not all endpoints support blocking queries and all consistency modes,
 see details in the sections below.
 
 The query endpoints support the use of ACL Tokens. Prepared queries have some
-special handling of ACL Tokens that are highlighted in the sections below.
+special handling of ACL Tokens that are called out where applicable with the
+details of each endpoint.
+
+See the [Prepared Query ACLs](/docs/internals/acl.html#prepared_query_acls)
+internals guide for more details about how prepared query policies work.
 
 ### <a name="general"></a> /v1/query
 
@@ -45,7 +49,7 @@ By default, the datacenter of the agent is queried; however, the dc can be
 provided using the "?dc=" query parameter.
 
 If ACLs are enabled, then the client will need to supply a token with `prepared_query`
-write priveliges sufficient to match the service name being queried and the `Name`
+write privileges sufficient to match the service name being queried and the `Name`
 given to the query, if any. See also the note about the `Token` field below.
 
 The create operation expects a JSON request body that defines the prepared query,
@@ -208,7 +212,7 @@ By default, the datacenter of the agent is queried; however, the dc can be
 provided using the "?dc=" query parameter.
 
 If ACLs are enabled, then the client will need to supply a token with `prepared_query`
-write priveliges sufficient to match the service name being queried and the `Name`
+write privileges sufficient to match the service name being queried and the `Name`
 given to the query, if any.
 
 The body is the same as is used to create a prepared query, as described above.
@@ -240,7 +244,7 @@ By default, the datacenter of the agent is queried; however, the dc can be
 provided using the "?dc=" query parameter.
 
 If ACLs are enabled, then the client will need to supply a token with `prepared_query`
-write priveliges sufficient to match the service name being queried and the `Name`
+write privileges sufficient to match the service name being queried and the `Name`
 given to the query, if any.
 
 No body is required as part of this request.
