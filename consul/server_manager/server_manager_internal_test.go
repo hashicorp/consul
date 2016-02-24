@@ -22,10 +22,17 @@ func GetBufferedLogger() *log.Logger {
 	return localLogger
 }
 
+type fauxSerf struct {
+}
+
+func (s *fauxSerf) NumNodes() int {
+	return 16384
+}
+
 func testServerManager() (sm *ServerManager) {
 	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	sm = NewServerManager(logger, shutdownCh, nil)
+	sm = NewServerManager(logger, shutdownCh, &fauxSerf{})
 	return sm
 }
 
