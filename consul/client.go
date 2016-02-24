@@ -118,7 +118,7 @@ func NewClient(config *Config) (*Client, error) {
 		shutdownCh: make(chan struct{}),
 	}
 
-	c.serverMgr = server_manager.NewServerManager(c.logger, c.shutdownCh)
+	c.serverMgr = server_manager.NewServerManager(c.logger, c.shutdownCh, c.serf)
 
 	// Start consulServers maintenance
 	go c.serverMgr.StartServerManager()
