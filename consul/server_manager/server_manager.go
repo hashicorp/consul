@@ -89,7 +89,7 @@ type ServerManager struct {
 	// shutdownCh is a copy of the channel in consul.Client
 	shutdownCh chan struct{}
 
-	// Logger uses the provided LogOutput
+	// logger uses the provided LogOutput
 	logger *log.Logger
 }
 
@@ -134,8 +134,8 @@ func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
 
 // CycleFailedServers takes out an internal write lock and dequeues all
 // failed servers and re-enqueues them.  This method does not reshuffle the
-// server list.  Because this changed the order of servers, we push out the
-// time at which a rebalance occurs.
+// server list, instead it requests the rebalance duration be refreshed/reset
+// further into the future.
 func (sm *ServerManager) CycleFailedServers() {
 	sm.serverConfigLock.Lock()
 	defer sm.serverConfigLock.Unlock()
