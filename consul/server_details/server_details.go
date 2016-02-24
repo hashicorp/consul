@@ -17,11 +17,6 @@ type ServerDetails struct {
 	Expect     int
 	Version    int
 	Addr       net.Addr
-
-	// Disabled is a uint64 in order to support atomic integer
-	// operations.  Zero means enabled, non-zero is the number of times
-	// this server has failed without being marked healthy.
-	Disabled uint64
 }
 
 func (s *ServerDetails) String() string {
@@ -37,11 +32,6 @@ func IsConsulServer(m serf.Member) (bool, *ServerDetails) {
 
 	datacenter := m.Tags["dc"]
 	_, bootstrap := m.Tags["bootstrap"]
-	var disabled uint64 = 0
-	_, disabledStr := m.Tags["disabled"]
-	if disabledStr {
-		disabled = 1
-	}
 
 	expect := 0
 	expect_str, ok := m.Tags["expect"]
@@ -75,7 +65,6 @@ func IsConsulServer(m serf.Member) (bool, *ServerDetails) {
 		Expect:     expect,
 		Addr:       addr,
 		Version:    vsn,
-		Disabled:   disabled,
 	}
 	return true, parts
 }
