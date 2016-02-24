@@ -8,7 +8,7 @@ BACKWARDS INCOMPATIBILITIES:
   and their lifetime was managed by a finalizer, but this wasn't reliable in certain
   situations. If you don't reuse your API client object, then there's nothing to do.
   If you have a long-lived API client object, you may want to configure it using the
-  `DefaultPooledTransport` so it will reuse a single connecetion to Consul. Here's an
+  `DefaultPooledTransport` so it will reuse a single connection to Consul. Here's an
   [example from Vault](https://github.com/hashicorp/vault) showing how to do this.
   [GH-1731]
 
