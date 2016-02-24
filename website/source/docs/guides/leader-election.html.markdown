@@ -94,7 +94,7 @@ curl -X PUT http://localhost:8500/v1/kv/<key>?release=<session>
 Another common practice regarding leader election is for nodes to wish to identify the
 leader for a given service.
 
-As with leader leader election, all nodes that are participating should agree on the key
+As with leader election, all nodes that are participating should agree on the key
 being used to coordinate. This key will be referred to as just `key`.
 
 Clients have a very simple role, they simply read `<key>` to discover who the current

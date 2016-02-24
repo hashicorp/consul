@@ -103,3 +103,28 @@ func TestConfigTestCommandSucceedOnMinimalConfigDir(t *testing.T) {
 		t.Fatalf("bad: %d", code)
 	}
 }
+
+func TestConfigTestCommandSucceedOnConfigDirWithEmptyFile(t *testing.T) {
+	td, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(td)
+
+	err = ioutil.WriteFile(filepath.Join(td, "config.json"), []byte{}, 0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	cmd := &ConfigTestCommand{
+		Ui: new(cli.MockUi),
+	}
+
+	args := []string{
+		"-config-dir", td,
+	}
+
+	if code := cmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d", code)
+	}
+}

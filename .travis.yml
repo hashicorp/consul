@@ -1,13 +1,13 @@
 language: go
 
 go:
-  - tip
+  - 1.6
 
 branches:
   only:
     - master
 
-install: make deps
+install: make
 script:
   - make test
 

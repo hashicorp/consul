@@ -196,6 +196,49 @@ func TestAgent_ServiceAddress(t *testing.T) {
 	}
 }
 
+func TestAgent_EnableTagOverride(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	reg1 := &AgentServiceRegistration{
+		Name:              "foo1",
+		Port:              8000,
+		Address:           "192.168.0.42",
+		EnableTagOverride: true,
+	}
+	reg2 := &AgentServiceRegistration{
+		Name: "foo2",
+		Port: 8000,
+	}
+	if err := agent.ServiceRegister(reg1); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := agent.ServiceRegister(reg2); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	services, err := agent.Services()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if _, ok := services["foo1"]; !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+	if services["foo1"].EnableTagOverride != true {
+		t.Fatalf("tag override not set on service foo1: %v", services)
+	}
+	if _, ok := services["foo2"]; !ok {
+		t.Fatalf("missing service: %v", services)
+	}
+	if services["foo2"].EnableTagOverride != false {
+		t.Fatalf("tag override set on service foo2: %v", services)
+	}
+}
+
 func TestAgent_Services_MultipleChecks(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
