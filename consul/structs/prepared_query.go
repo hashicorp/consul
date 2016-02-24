@@ -72,9 +72,14 @@ type PreparedQuery struct {
 	RaftIndex
 }
 
-// GetACLPrefix returns the prefix of this query for ACL purposes.
-func (pq *PreparedQuery) GetACLPrefix() string {
-	return pq.Service.Service
+// GetACLPrefix returns the prefix to look up the prepared_query ACL policy for
+// this query, or nil if such a policy doesn't apply.
+func (pq *PreparedQuery) GetACLPrefix() *string {
+	if pq.Name != "" {
+		return &pq.Name
+	}
+
+	return nil
 }
 
 type PreparedQueries []*PreparedQuery

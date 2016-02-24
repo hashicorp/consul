@@ -377,19 +377,29 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 // management tokens in Consul 0.6.3 and earlier, and we don't want to
 // willy-nilly show those. This does have the limitation of preventing delegated
 // non-management users from seeing captured tokens, but they can at least see
-// that they are set and we want to discourage using them going forward.
+// that they are set.
 func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
-	isManagementToken := f.acl.ACLList()
+	// Management tokens can see everything with no filtering.
+	if f.acl.ACLList() {
+		return
+	}
+
+	// Otherwise, we need to see what the token has access to.
 	ret := make(structs.PreparedQueries, 0, len(*queries))
 	for _, query := range *queries {
-		if !f.acl.PreparedQueryRead(query.GetACLPrefix()) {
+		// If no prefix ACL applies to this query then filter it, since
+		// we know at this point the user doesn't have a management
+		// token.
+		prefix := query.GetACLPrefix()
+		if prefix == nil || !f.acl.PreparedQueryRead(*prefix) {
 			f.logger.Printf("[DEBUG] consul: dropping prepared query %q from result due to ACLs", query.ID)
 			continue
 		}
 
-		// Secure tokens unless there's a management token doing the
-		// query.
-		if isManagementToken || query.Token == "" {
+		// Let the user see if there's a blank token, otherwise we need
+		// to redact it, since we know they don't have a management
+		// token.
+		if query.Token == "" {
 			ret = append(ret, query)
 		} else {
 			// Redact the token, using a copy of the query structure

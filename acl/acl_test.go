@@ -352,6 +352,16 @@ func TestPolicyACL_Parent(t *testing.T) {
 				Policy: PolicyRead,
 			},
 		},
+		PreparedQueries: []*PreparedQueryPolicy{
+			&PreparedQueryPolicy{
+				Prefix: "other",
+				Policy: PolicyWrite,
+			},
+			&PreparedQueryPolicy{
+				Prefix: "foo",
+				Policy: PolicyRead,
+			},
+		},
 	}
 	root, err := New(deny, policyRoot)
 	if err != nil {
@@ -376,6 +386,12 @@ func TestPolicyACL_Parent(t *testing.T) {
 		Services: []*ServicePolicy{
 			&ServicePolicy{
 				Name:   "bar",
+				Policy: PolicyDeny,
+			},
+		},
+		PreparedQueries: []*PreparedQueryPolicy{
+			&PreparedQueryPolicy{
+				Prefix: "bar",
 				Policy: PolicyDeny,
 			},
 		},
@@ -428,6 +444,29 @@ func TestPolicyACL_Parent(t *testing.T) {
 		}
 		if c.write != acl.ServiceWrite(c.inp) {
 			t.Fatalf("Write fail: %#v", c)
+		}
+	}
+
+	// Test prepared queries
+	type querycase struct {
+		inp   string
+		read  bool
+		write bool
+	}
+	querycases := []querycase{
+		{"foo", true, false},
+		{"foobar", true, false},
+		{"bar", false, false},
+		{"barbaz", false, false},
+		{"baz", false, false},
+		{"nope", false, false},
+	}
+	for _, c := range querycases {
+		if c.read != acl.PreparedQueryRead(c.inp) {
+			t.Fatalf("Prepared query fail: %#v", c)
+		}
+		if c.write != acl.PreparedQueryWrite(c.inp) {
+			t.Fatalf("Prepared query fail: %#v", c)
 		}
 	}
 

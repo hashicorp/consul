@@ -866,37 +866,35 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 	queries := structs.PreparedQueries{
 		&structs.PreparedQuery{
 			ID: "f004177f-2c28-83b7-4229-eacc25fe55d1",
-			Service: structs.ServiceQuery{
-				Service: "foo",
-			},
 		},
 		&structs.PreparedQuery{
-			ID:    "f004177f-2c28-83b7-4229-eacc25fe55d2",
+			ID:   "f004177f-2c28-83b7-4229-eacc25fe55d2",
+			Name: "query-with-no-token",
+		},
+		&structs.PreparedQuery{
+			ID:    "f004177f-2c28-83b7-4229-eacc25fe55d3",
+			Name:  "query-with-a-token",
 			Token: "root",
-			Service: structs.ServiceQuery{
-				Service: "bar",
-			},
 		},
 	}
 
 	expected := structs.PreparedQueries{
 		&structs.PreparedQuery{
 			ID: "f004177f-2c28-83b7-4229-eacc25fe55d1",
-			Service: structs.ServiceQuery{
-				Service: "foo",
-			},
 		},
 		&structs.PreparedQuery{
-			ID:    "f004177f-2c28-83b7-4229-eacc25fe55d2",
+			ID:   "f004177f-2c28-83b7-4229-eacc25fe55d2",
+			Name: "query-with-no-token",
+		},
+		&structs.PreparedQuery{
+			ID:    "f004177f-2c28-83b7-4229-eacc25fe55d3",
+			Name:  "query-with-a-token",
 			Token: "root",
-			Service: structs.ServiceQuery{
-				Service: "bar",
-			},
 		},
 	}
 
 	// Try permissive filtering with a management token. This will allow the
-	// embedded tokens to be seen.
+	// embedded token to be seen.
 	filt := newAclFilter(acl.ManageAll(), nil)
 	filt.filterPreparedQueries(&queries)
 	if !reflect.DeepEqual(queries, expected) {
@@ -905,13 +903,15 @@ func TestACL_filterPreparedQueries(t *testing.T) {
 
 	// Hang on to the entry with a token, which needs to survive the next
 	// operation.
-	original := queries[1]
+	original := queries[2]
 
 	// Now try permissive filtering with a client token, which should cause
-	// the embedded tokens to get redacted.
+	// the embedded token to get redacted, and the query with no name to get
+	// filtered out.
 	filt = newAclFilter(acl.AllowAll(), nil)
 	filt.filterPreparedQueries(&queries)
-	expected[1].Token = redactedToken
+	expected[2].Token = redactedToken
+	expected = append(structs.PreparedQueries{}, expected[1], expected[2])
 	if !reflect.DeepEqual(queries, expected) {
 		t.Fatalf("bad: %#v", queries)
 	}

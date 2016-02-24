@@ -27,25 +27,6 @@ func TestPreparedQuery_Apply(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Set up a node and service in the catalog.
-	{
-		req := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       "foo",
-			Address:    "127.0.0.1",
-			Service: &structs.NodeService{
-				Service: "redis",
-				Tags:    []string{"master"},
-				Port:    8000,
-			},
-		}
-		var reply struct{}
-		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
-
 	// Set up a bare bones query.
 	query := structs.PreparedQueryRequest{
 		Datacenter: "dc1",
@@ -233,33 +214,14 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 		}
 	}
 
-	// Set up a node and service in the catalog.
-	{
-		req := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       "foo",
-			Address:    "127.0.0.1",
-			Service: &structs.NodeService{
-				Service: "redis",
-				Tags:    []string{"master"},
-				Port:    8000,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		var reply struct{}
-		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
-
 	// Set up a bare bones query.
 	query := structs.PreparedQueryRequest{
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
+			Name: "redis-master",
 			Service: structs.ServiceQuery{
-				Service: "redis",
+				Service: "the-redis",
 			},
 		},
 	}
@@ -423,41 +385,6 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 		}
 	}
 
-	// Make another query.
-	query.Op = structs.PreparedQueryCreate
-	query.Query.ID = ""
-	query.WriteRequest.Token = token
-	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Check that it's there and that the token did not get captured.
-	query.Query.ID = reply
-	query.Query.Token = ""
-	{
-		req := &structs.PreparedQuerySpecificRequest{
-			Datacenter:   "dc1",
-			QueryID:      query.Query.ID,
-			QueryOptions: structs.QueryOptions{Token: "root"},
-		}
-		var resp structs.IndexedPreparedQueries
-		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(resp.Queries) != 1 {
-			t.Fatalf("bad: %v", resp)
-		}
-		actual := resp.Queries[0]
-		if resp.Index != actual.ModifyIndex {
-			t.Fatalf("bad index: %d", resp.Index)
-		}
-		actual.CreateIndex, actual.ModifyIndex = 0, 0
-		if !reflect.DeepEqual(actual, query.Query) {
-			t.Fatalf("bad: %v", actual)
-		}
-	}
-
 	// A management token should be able to delete the query no matter what.
 	query.Op = structs.PreparedQueryDelete
 	query.WriteRequest.Token = "root"
@@ -484,10 +411,10 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 		}
 	}
 
-	// Use the root token to make a query for a different service.
+	// Use the root token to make a query under a different name.
 	query.Op = structs.PreparedQueryCreate
 	query.Query.ID = ""
-	query.Query.Service.Service = "cassandra"
+	query.Query.Name = "cassandra"
 	query.WriteRequest.Token = "root"
 	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
 		t.Fatalf("err: %v", err)
@@ -523,7 +450,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	// Now try to change that to redis with the valid redis token. This will
 	// fail because that token can't change cassandra queries.
 	query.Op = structs.PreparedQueryUpdate
-	query.Query.Service.Service = "redis"
+	query.Query.Name = "redis"
 	query.WriteRequest.Token = token
 	err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
 	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
@@ -678,34 +605,14 @@ func TestPreparedQuery_Get(t *testing.T) {
 		}
 	}
 
-	// Set up a node and service in the catalog.
-	{
-		req := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       "foo",
-			Address:    "127.0.0.1",
-			Service: &structs.NodeService{
-				Service: "redis",
-				Tags:    []string{"master"},
-				Port:    8000,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		var reply struct{}
-		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
-
 	// Set up a bare bones query.
 	query := structs.PreparedQueryRequest{
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
-			Name: "my-query",
+			Name: "redis-master",
 			Service: structs.ServiceQuery{
-				Service: "redis",
+				Service: "the-redis",
 			},
 		},
 		WriteRequest: structs.WriteRequest{Token: token},
@@ -784,6 +691,40 @@ func TestPreparedQuery_Get(t *testing.T) {
 		}
 	}
 
+	// Now update the query to take away its name.
+	query.Op = structs.PreparedQueryUpdate
+	query.Query.Name = ""
+	if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try again with no token, this should work since this query is only
+	// managed by an ID (no name) so no ACLs apply to it.
+	query.Query.ID = reply
+	{
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: ""},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Queries[0]
+		if resp.Index != actual.ModifyIndex {
+			t.Fatalf("bad index: %d", resp.Index)
+		}
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
 	// Try to get an unknown ID.
 	{
 		req := &structs.PreparedQuerySpecificRequest{
@@ -841,26 +782,6 @@ func TestPreparedQuery_List(t *testing.T) {
 		}
 	}
 
-	// Set up a node and service in the catalog.
-	{
-		req := structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       "foo",
-			Address:    "127.0.0.1",
-			Service: &structs.NodeService{
-				Service: "redis",
-				Tags:    []string{"master"},
-				Port:    8000,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		var reply struct{}
-		err := msgpackrpc.CallWithCodec(codec, "Catalog.Register", &req, &reply)
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
-
 	// Query with a legit token but no queries.
 	{
 		req := &structs.DCSpecificRequest{
@@ -882,9 +803,9 @@ func TestPreparedQuery_List(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
-			Name: "my-query",
+			Name: "redis-master",
 			Service: structs.ServiceQuery{
-				Service: "redis",
+				Service: "the-redis",
 			},
 		},
 		WriteRequest: structs.WriteRequest{Token: token},
@@ -925,6 +846,54 @@ func TestPreparedQuery_List(t *testing.T) {
 		req := &structs.DCSpecificRequest{
 			Datacenter:   "dc1",
 			QueryOptions: structs.QueryOptions{Token: ""},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.List", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 0 {
+			t.Fatalf("bad: %v", resp)
+		}
+	}
+
+	// But a management token should work.
+	{
+		req := &structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.List", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Queries[0]
+		if resp.Index != actual.ModifyIndex {
+			t.Fatalf("bad index: %d", resp.Index)
+		}
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Now take away the query name.
+	query.Op = structs.PreparedQueryUpdate
+	query.Query.Name = ""
+	if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// A query with the redis token shouldn't show anything since it doesn't
+	// match any un-named queries.
+	{
+		req := &structs.DCSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: token},
 		}
 		var resp structs.IndexedPreparedQueries
 		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.List", req, &resp); err != nil {
@@ -1025,30 +994,6 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 	}
 
-	// Create an ACL with write permission to make queries for the service.
-	var queryCRUDToken string
-	{
-		var rules = `
-                    prepared_query "foo" {
-                        policy = "write"
-                    }
-                `
-
-		req := structs.ACLRequest{
-			Datacenter: "dc1",
-			Op:         structs.ACLSet,
-			ACL: structs.ACL{
-				Name:  "User token",
-				Type:  structs.ACLTypeClient,
-				Rules: rules,
-			},
-			WriteRequest: structs.WriteRequest{Token: "root"},
-		}
-		if err := msgpackrpc.CallWithCodec(codec1, "ACL.Apply", &req, &queryCRUDToken); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
-
 	// Set up some nodes in each DC that host the service.
 	{
 		for i := 0; i < 10; i++ {
@@ -1092,7 +1037,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				TTL: "10s",
 			},
 		},
-		WriteRequest: structs.WriteRequest{Token: queryCRUDToken},
+		WriteRequest: structs.WriteRequest{Token: "root"},
 	}
 	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
 		t.Fatalf("err: %v", err)

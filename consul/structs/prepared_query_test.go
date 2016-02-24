@@ -4,13 +4,14 @@ import (
 	"testing"
 )
 
-func TestStructs_PreparedQuery_GetACLPrefix(t *testing.T) {
-	query := &PreparedQuery{
-		Service: ServiceQuery{
-			Service: "foo",
-		},
+func TestStructs_PreparedQuery_GetACLInfo(t *testing.T) {
+	ephemeral := &PreparedQuery{}
+	if prefix := ephemeral.GetACLPrefix(); prefix != nil {
+		t.Fatalf("bad: %#v", prefix)
 	}
-	if prefix := query.GetACLPrefix(); prefix != "foo" {
-		t.Fatalf("bad: %s", prefix)
+
+	named := &PreparedQuery{Name: "hello"}
+	if prefix := named.GetACLPrefix(); prefix == nil || *prefix != "hello" {
+		t.Fatalf("bad: %#v", prefix)
 	}
 }
