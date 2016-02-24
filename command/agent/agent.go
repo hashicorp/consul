@@ -24,26 +24,26 @@ import (
 )
 
 const (
-	// Path to save agent service definitions
+// Path to save agent service definitions
 	servicesDir = "services"
 
-	// Path to save local agent checks
+// Path to save local agent checks
 	checksDir     = "checks"
 	checkStateDir = "checks/state"
 
-	// The ID of the faux health checks for maintenance mode
+// The ID of the faux health checks for maintenance mode
 	serviceMaintCheckPrefix = "_service_maintenance"
 	nodeMaintCheckID        = "_node_maintenance"
 
-	// Default reasons for node/service maintenance mode
+// Default reasons for node/service maintenance mode
 	defaultNodeMaintReason = "Maintenance mode is enabled for this node, " +
-		"but no reason was provided. This is a default message."
+	"but no reason was provided. This is a default message."
 	defaultServiceMaintReason = "Maintenance mode is enabled for this " +
-		"service, but no reason was provided. This is a default message."
+	"service, but no reason was provided. This is a default message."
 )
 
 var (
-	// dnsNameRe checks if a name or tag is dns-compatible.
+// dnsNameRe checks if a name or tag is dns-compatible.
 	dnsNameRe = regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)
 )
 
@@ -417,7 +417,7 @@ func (a *Agent) setupKeyrings(config *consul.Config) error {
 		}
 	}
 
-LOAD:
+	LOAD:
 	if _, err := os.Stat(fileLAN); err == nil {
 		config.SerfLANConfig.KeyringFile = fileLAN
 	}
@@ -628,9 +628,9 @@ func (a *Agent) sendCoordinate() {
 				continue
 			}
 
-			// TODO - Consider adding a distance check so we don't send
-			// an update if the position hasn't changed by more than a
-			// threshold.
+		// TODO - Consider adding a distance check so we don't send
+		// an update if the position hasn't changed by more than a
+		// threshold.
 			req := structs.CoordinateUpdateRequest{
 				Datacenter:   a.config.Datacenter,
 				Node:         a.config.NodeName,
@@ -739,16 +739,16 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 	// Warn if the service name is incompatible with DNS
 	if !dnsNameRe.MatchString(service.Service) {
 		a.logger.Printf("[WARN] Service name %q will not be discoverable "+
-			"via DNS due to invalid characters. Valid characters include "+
-			"all alpha-numerics and dashes.", service.Service)
+		"via DNS due to invalid characters. Valid characters include "+
+		"all alpha-numerics and dashes.", service.Service)
 	}
 
 	// Warn if any tags are incompatible with DNS
 	for _, tag := range service.Tags {
 		if !dnsNameRe.MatchString(tag) {
 			a.logger.Printf("[WARN] Service tag %q will not be discoverable "+
-				"via DNS due to invalid characters. Valid characters include "+
-				"all alpha-numerics and dashes.", tag)
+			"via DNS due to invalid characters. Valid characters include "+
+			"all alpha-numerics and dashes.", tag)
 		}
 	}
 
@@ -1078,7 +1078,7 @@ func (a *Agent) persistCheckState(check *CheckTTL, status, output string) error 
 
 	// Write the state to the file
 	file := filepath.Join(dir, stringHash(check.CheckID))
-	if err := ioutil.WriteFile(file, buf, 0600); err != nil {
+	if err := writeFileAtomic(file, buf, 0600); err != nil {
 		return fmt.Errorf("failed writing file %q: %s", file, err)
 	}
 

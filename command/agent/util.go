@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"os/exec"
 	"os/user"
+	"path"
 	"runtime"
 	"strconv"
 	"time"
@@ -16,12 +18,12 @@ import (
 )
 
 const (
-	// This scale factor means we will add a minute after we cross 128 nodes,
-	// another at 256, another at 512, etc. By 8192 nodes, we will scale up
-	// by a factor of 8.
-	//
-	// If you update this, you may need to adjust the tuning of
-	// CoordinateUpdatePeriod and CoordinateUpdateMaxBatchSize.
+// This scale factor means we will add a minute after we cross 128 nodes,
+// another at 256, another at 512, etc. By 8192 nodes, we will scale up
+// by a factor of 8.
+//
+// If you update this, you may need to adjust the tuning of
+// CoordinateUpdatePeriod and CoordinateUpdateMaxBatchSize.
 	aeScaleThreshold = 128
 )
 
@@ -108,7 +110,7 @@ func setFilePermissions(path string, p FilePermissions) error {
 		return fmt.Errorf("invalid user specified: %v", p.User())
 	}
 
-GROUP:
+	GROUP:
 	if p.Group() != "" {
 		if gid, err = strconv.Atoi(p.Group()); err != nil {
 			return fmt.Errorf("invalid group specified: %v", p.Group())
@@ -131,4 +133,35 @@ GROUP:
 	}
 
 	return nil
+}
+
+// writeFileAtomic writes to a temporary file and swaps temp with the real file path
+// as long as everything else succeeds
+func writeFileAtomic(filename string, data []byte, perm os.FileMode) error {
+	dir, name := path.Split(filename)
+	f, err := ioutil.TempFile(dir, name)
+	if err != nil {
+		return err
+	}
+	// Remove the file after swapping atomically. If we can create the file
+	// we should have the permissions to remove it
+	defer os.Remove(f.Name())
+	// write data
+	if _, err = f.Write(data); err != nil {
+		return err
+	}
+	// flush data to disk
+	if err = f.Sync(); err != nil {
+		return err
+	}
+	// close the file
+	if err = f.Close(); err != nil {
+		return err
+	}
+	// set permissions
+	if err = os.Chmod(f.Name(), perm); err != nil {
+		return err
+	}
+	// swap temp file with actual file location
+	return os.Rename(f.Name(), filename)
 }
