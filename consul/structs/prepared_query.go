@@ -73,13 +73,14 @@ type PreparedQuery struct {
 }
 
 // GetACLPrefix returns the prefix to look up the prepared_query ACL policy for
-// this query, or nil if such a policy doesn't apply.
-func (pq *PreparedQuery) GetACLPrefix() *string {
+// this query, and whether the prefix applies to this query. You always need to
+// check the ok value before using the prefix.
+func (pq *PreparedQuery) GetACLPrefix() (string, bool) {
 	if pq.Name != "" {
-		return &pq.Name
+		return pq.Name, true
 	}
 
-	return nil
+	return "", false
 }
 
 type PreparedQueries []*PreparedQuery

@@ -6,12 +6,12 @@ import (
 
 func TestStructs_PreparedQuery_GetACLPrefix(t *testing.T) {
 	ephemeral := &PreparedQuery{}
-	if prefix := ephemeral.GetACLPrefix(); prefix != nil {
-		t.Fatalf("bad: %#v", prefix)
+	if prefix, ok := ephemeral.GetACLPrefix(); ok {
+		t.Fatalf("bad: %s", prefix)
 	}
 
 	named := &PreparedQuery{Name: "hello"}
-	if prefix := named.GetACLPrefix(); prefix == nil || *prefix != "hello" {
+	if prefix, ok := named.GetACLPrefix(); !ok || prefix != "hello" {
 		t.Fatalf("bad: %#v", prefix)
 	}
 }

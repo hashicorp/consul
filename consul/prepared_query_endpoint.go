@@ -65,8 +65,8 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	// If prefix ACLs apply to the incoming query, then do an ACL check. We
 	// need to make sure they have write access for whatever they are
 	// proposing.
-	if prefix := args.Query.GetACLPrefix(); prefix != nil {
-		if acl != nil && !acl.PreparedQueryWrite(*prefix) {
+	if prefix, ok := args.Query.GetACLPrefix(); ok {
+		if acl != nil && !acl.PreparedQueryWrite(prefix) {
 			p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
 			return permissionDeniedErr
 		}
@@ -85,8 +85,8 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 			return fmt.Errorf("Cannot modify non-existent prepared query: '%s'", args.Query.ID)
 		}
 
-		if prefix := query.GetACLPrefix(); prefix != nil {
-			if acl != nil && !acl.PreparedQueryWrite(*prefix) {
+		if prefix, ok := query.GetACLPrefix(); ok {
+			if acl != nil && !acl.PreparedQueryWrite(prefix) {
 				p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
 				return permissionDeniedErr
 			}
@@ -216,7 +216,7 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 			// always allowed to see it if they have the ID.
 			reply.Index = index
 			reply.Queries = structs.PreparedQueries{query}
-			if prefix := query.GetACLPrefix(); prefix == nil {
+			if _, ok := query.GetACLPrefix(); !ok {
 				return nil
 			}
 

@@ -389,9 +389,9 @@ func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
 	for _, query := range *queries {
 		// If no prefix ACL applies to this query then filter it, since
 		// we know at this point the user doesn't have a management
-		// token.
-		prefix := query.GetACLPrefix()
-		if prefix == nil || !f.acl.PreparedQueryRead(*prefix) {
+		// token, otherwise see what the policy says.
+		prefix, ok := query.GetACLPrefix()
+		if !ok || !f.acl.PreparedQueryRead(prefix) {
 			f.logger.Printf("[DEBUG] consul: dropping prepared query %q from result due to ACLs", query.ID)
 			continue
 		}
