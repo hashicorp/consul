@@ -99,6 +99,7 @@ func TestAtomicWrite(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	defer os.Remove(f.Name())
 	err = writeFileAtomic(f.Name(), data, 0644)
 	if err != nil {
 		t.Fatalf("err: %s", err)
