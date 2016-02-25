@@ -50,14 +50,6 @@ const (
 	// will take ~26min for all servers to rebalance.  A 10K cluster in
 	// the same scenario will take ~2.6min to rebalance.
 	newRebalanceConnsPerSecPerServer = 64
-
-	// maxConsulServerManagerEvents is the size of the consulServersCh
-	// buffer.
-	maxConsulServerManagerEvents = 16
-
-	// defaultClusterSize is the assumed cluster size if no serf cluster
-	// is available.
-	defaultClusterSize = 1024
 )
 
 type ConsulClusterInfo interface {
@@ -79,14 +71,6 @@ type ServerManager struct {
 	// serverConfig
 	serverConfigValue atomic.Value
 	serverConfigLock  sync.Mutex
-
-	// consulServersCh is used to receive events related to the
-	// maintenance of the list of consulServers
-	consulServersCh chan consulServerEventTypes
-
-	// refreshRebalanceDurationCh is used to signal that a refresh should
-	// occur
-	refreshRebalanceDurationCh chan bool
 
 	// shutdownCh is a copy of the channel in consul.Client
 	shutdownCh chan struct{}
@@ -191,10 +175,7 @@ func NewServerManager(logger *log.Logger, shutdownCh chan struct{}, cci ConsulCl
 	sm = new(ServerManager)
 	sm.logger = logger
 	sm.clusterInfo = cci
-	sm.consulServersCh = make(chan consulServerEventTypes, maxConsulServerManagerEvents)
 	sm.shutdownCh = shutdownCh
-
-	sm.refreshRebalanceDurationCh = make(chan bool, maxConsulServerManagerEvents)
 
 	sc := serverConfig{}
 	sc.servers = make([]*server_details.ServerDetails, 0)
@@ -281,12 +262,6 @@ func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 			return
 		}
 	}
-}
-
-// requestRefreshRebalanceDuration sends a message to which causes a background
-// thread to recalc the duration
-func (sm *ServerManager) requestRefreshRebalanceDuration() {
-	sm.refreshRebalanceDurationCh <- true
 }
 
 // refreshServerRebalanceTimer is called
