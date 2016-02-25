@@ -213,7 +213,7 @@ func (sm *ServerManager) NotifyFailedServer(server *server_details.ServerDetails
 		serverCfg = sm.getServerConfig()
 
 		if len(serverCfg.servers) > 0 && serverCfg.servers[0] == server {
-			serverCfg.cycleServer()
+			serverCfg.servers = serverCfg.cycleServer()
 			sm.saveServerConfig(serverCfg)
 		}
 	}
