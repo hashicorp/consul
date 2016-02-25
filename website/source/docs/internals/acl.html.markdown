@@ -147,6 +147,11 @@ event "" {
 As always, the more secure way to handle user events is to explicitly grant
 access to each API token based on the events they should be able to fire.
 
+### Blacklist mode and Prepared Queries
+
+After Consul 0.6.3, significant changes were made to ACLs for prepared queries,
+incuding a new `query` ACL policy. See [Prepared Query ACLs](#prepared_query_acls) below for more details.
+
 ### Blacklist mode and Keyring Operations
 
 Consul 0.6 and later supports securing the encryption keyring operations using
@@ -209,6 +214,10 @@ applied to any user event without a matching policy, is provided by an empty
 string. An event policy is one of "read", "write", or "deny". Currently, only
 the "write" level is enforced during event firing. Events can always be read.
 
+Prepared query policies control access to create, update, and delete prepared
+queries. Service policies are used when executing prepared queries. See
+[below](#prepared_query_acls) for more details.
+
 We make use of
 the [HashiCorp Configuration Language (HCL)](https://github.com/hashicorp/hcl/)
 to specify policy. This language is human readable and interoperable
@@ -251,6 +260,11 @@ event "destroy-" {
     policy = "deny"
 }
 
+# Default prepared queries to read-only.
+query "" {
+    policy = "read"
+}
+
 # Read-only mode for the encryption keyring by default (list only)
 keyring = "read"
 ```
@@ -284,6 +298,11 @@ This is equivalent to the following JSON input:
     },
     "destroy-": {
       "policy": "deny"
+    }
+  },
+  "query": {
+    "": {
+      "policy": "read"
     }
   },
   "keyring": "read"
@@ -325,3 +344,112 @@ making it appear as though the restricted services do not exist.
 Consul's DNS interface is also affected by restrictions to service
 registrations. If the token used by the agent does not have access to a given
 service, then the DNS interface will return no records when queried for it.
+
+<a name="prepared_query_acls"></a>
+## Prepared Query ACLs
+
+As we've gotten feedback from Consul users, we've evolved how prepared queries
+use ACLs. In this section we first cover the current implementation, and then we
+follow that with details about what's changed between specific versions of Consul.
+
+#### Managing Prepared Queries
+
+Managing prepared queries includes creating, reading, updating, and deleting
+queries. There are a few variations, each of which uses ACLs in one of two
+ways: open, protected by unguessable IDs or closed, managed by ACL policies.
+These variations are covered here, with examples:
+
+* Static queries with no `Name` defined are not controlled by any ACL policies.
+  These types of queries are meant to be ephemeral and not shared to untrusted
+  clients, and they are only reachable if the prepared query ID is known. Since
+  these IDs are generated using the same random ID scheme as ACL Tokens, it is
+  infeasible to guess them. When listing all prepared queries, only a management
+  token will be able to see these types, though clients can read instances for
+  which they have an ID. An example use for this type is a query built by a
+  startup script, tied to a session, and written to a configuration file for a
+  process to use via DNS.
+
+* Static queries with a `Name` defined are controlled by the
+  [`query`](/docs/internals/acl.html#prepared_query_acls) ACL policy.
+  Clients are required to have an ACL token with a prefix sufficient to cover
+  the name they are trying to manage, with a longest prefix match providing a
+  way to define more specific policies. Clients can list or read queries for
+  which they have "read" access based on their prefix, and similar they can
+  update any queries for which they have "write" access. An example use for
+  this type is a query with a well-known name (eg. `prod-master-customer-db`)
+  that is used and known by many clients to provide geo-failover behavior for
+  a database.
+
+#### Executing Pepared Queries
+
+When prepared queries are executed via DNS lookups or HTTP requests, the ACL
+checks are run against the service being queried, similar to how ACLs work with
+other service lookups. There are several ways the ACL token is selected for this
+check:
+
+* If an ACL Token was captured when the prepared query was defined, it will be
+  used to perform the service lookup. This allows queries to be executed by
+  clients with lesser or even no ACL Token, so this should be used with care.
+
+* If no ACL Token was captured, then the client's ACL Token will be used to
+  perform the service lookup.
+
+* If no ACL Token was captured and the client has no ACL Token, then the
+  anonymous token will be used to perform the service lookup.
+
+In the common case, the ACL Token of the invoker is used
+to test the ability to look up a service. If a `Token` was specified when the
+prepared query was created, the behavior changes and now the captured
+ACL Token set by the definer of the query is used when lookup up a service.
+
+Capturing ACL Tokens is analogous to
+[PostgreSQL’s](http://www.postgresql.org/docs/current/static/sql-createfunction.html)
+`SECURITY DEFINER` attribute which can be set on functions, and using the client's ACL
+Token is similar to the complementary `SECURITY INVOKER` attribute.
+
+<a name="prepared_query_acl_changes"></a>
+#### ACL Implementation Changes
+
+Prepared queries were originally introduced in Consul 0.6.0, and ACL behavior remained
+unchanged through version 0.6.3, but was then changed to allow better management of the
+prepared query namespace.
+
+These differences are outlined in the table below:
+
+<table class="table table-bordered table-striped">
+  <tr>
+    <th>Operation</th>
+    <th>Version <= 0.6.3 </th>
+    <th>Version > 0.6.3 </th>
+  </tr>
+  <tr>
+    <td>Create static query without `Name`</td>
+    <td>The ACL Token used to create the prepared query is checked to make sure it can access the service being queried. This token is captured as the `Token` to use when executing the prepared query.</td>
+    <td>No ACL policies are used as long as no `Name` is defined. No `Token` is captured by default unless specifically supplied by the client when creating the query.</td>
+  </tr>
+  <tr>
+    <td>Create static query with `Name`</td>
+    <td>The ACL Token used to create the prepared query is checked to make sure it can access the service being queried. This token is captured as the `Token` to use when executing the prepared query.</td>
+    <td>The client token's `query` ACL policy is used to determine if the client is allowed to register a query for the given `Name`. No `Token` is captured by default unless specifically supplied by the client when creating the query.</td>
+  </tr>
+  <tr>
+    <td>Manage static query without `Name`</td>
+    <td>The ACL Token used to create the query, or a management token must be supplied in order to perform these operations.</td>
+    <td>Any client with the ID of the query can perform these operations.</td>
+  </tr>
+  <tr>
+    <td>Manage static query with a `Name`</td>
+    <td>The ACL token used to create the query, or a management token must be supplied in order to perform these operations.</td>
+    <td>Similar to create, the client token's `query` ACL policy is used to determine if these operations are allowed.</td>
+  </tr>
+  <tr>
+    <td>List queries</td>
+    <td>A management token is required to list any queries.</td>
+    <td>The client token's `query` ACL policy is used to determine which queries they can see. Only management tokens can see prepared queries without `Name`.</td>
+  </tr>
+  <tr>
+    <td>Execute query</td>
+    <td>Since a `Token` is always captured when a query is created, that is used to check access to the service being queried. Any token supplied by the client is ignored.</td>
+    <td>The captured token, client's token, or anonymous token is used to filter the results, as described above.</td>
+  </tr>
+</table>

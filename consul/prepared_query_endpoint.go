@@ -56,14 +56,25 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	}
 	*reply = args.Query.ID
 
-	// Grab the ACL because we need it in several places below.
+	// Get the ACL token for the request for the checks below.
 	acl, err := p.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
 
-	// Enforce that any modify operation has the same token used when the
-	// query was created, or a management token with sufficient rights.
+	// If prefix ACLs apply to the incoming query, then do an ACL check. We
+	// need to make sure they have write access for whatever they are
+	// proposing.
+	if prefix, ok := args.Query.GetACLPrefix(); ok {
+		if acl != nil && !acl.PreparedQueryWrite(prefix) {
+			p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
+			return permissionDeniedErr
+		}
+	}
+
+	// This is the second part of the check above. If they are referencing
+	// an existing query then make sure it exists and that they have write
+	// access to whatever they are changing, if prefix ACLs apply to it.
 	if args.Op != structs.PreparedQueryCreate {
 		state := p.srv.fsm.State()
 		_, query, err := state.PreparedQueryGet(args.Query.ID)
@@ -73,9 +84,12 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 		if query == nil {
 			return fmt.Errorf("Cannot modify non-existent prepared query: '%s'", args.Query.ID)
 		}
-		if (query.Token != args.Token) && (acl != nil && !acl.QueryModify()) {
-			p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied because ACL didn't match ACL used to create the query, and a management token wasn't supplied", args.Query.ID)
-			return permissionDeniedErr
+
+		if prefix, ok := query.GetACLPrefix(); ok {
+			if acl != nil && !acl.PreparedQueryWrite(prefix) {
+				p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query '%s' denied due to ACLs", args.Query.ID)
+				return permissionDeniedErr
+			}
 		}
 	}
 
@@ -86,11 +100,6 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 			return fmt.Errorf("Invalid prepared query: %v", err)
 		}
 
-		if acl != nil && !acl.ServiceRead(args.Query.Service.Service) {
-			p.srv.logger.Printf("[WARN] consul.prepared_query: Operation on prepared query for service '%s' denied due to ACLs", args.Query.Service.Service)
-			return permissionDeniedErr
-		}
-
 	case structs.PreparedQueryDelete:
 		// Nothing else to verify here, just do the delete (we only look
 		// at the ID field for this op).
@@ -99,10 +108,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 		return fmt.Errorf("Unknown prepared query operation: %s", args.Op)
 	}
 
-	// At this point the token has been vetted, so make sure the token that
-	// is stored in the state store matches what was supplied.
-	args.Query.Token = args.Token
-
+	// Commit the query to the state store.
 	resp, err := p.srv.raftApply(structs.PreparedQueryRequestType, args)
 	if err != nil {
 		p.srv.logger.Printf("[ERR] consul.prepared_query: Apply failed %v", err)
@@ -128,7 +134,13 @@ func parseQuery(query *structs.PreparedQuery) error {
 	//   transaction. Otherwise, people could "steal" queries that they don't
 	//   have proper ACL rights to change.
 	// - Session is optional and checked for integrity during the transaction.
-	// - Token is checked outside this fn.
+
+	// Token is checked when the query is executed, but we do make sure the
+	// user hasn't accidentally pasted-in the special redacted token name,
+	// which if we allowed in would be super hard to debug and understand.
+	if query.Token == redactedToken {
+		return fmt.Errorf("Bad Token '%s', it looks like a query definition with a redacted token was submitted", query.Token)
+	}
 
 	// Parse the service query sub-structure.
 	if err := parseService(&query.Service); err != nil {
@@ -148,7 +160,7 @@ func parseQuery(query *structs.PreparedQuery) error {
 // checked, as noted in the comments below. This also updates all the parsed
 // fields of the query.
 func parseService(svc *structs.ServiceQuery) error {
-	// Service is required. We check integrity during the transaction.
+	// Service is required.
 	if svc.Service == "" {
 		return fmt.Errorf("Must provide a service name to query")
 	}
@@ -191,13 +203,6 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 		return err
 	}
 
-	// We will use this in the loop to see if the caller is allowed to see
-	// the query.
-	acl, err := p.srv.resolveToken(args.Token)
-	if err != nil {
-		return err
-	}
-
 	// Get the requested query.
 	state := p.srv.fsm.State()
 	return p.srv.blockingRPC(
@@ -213,13 +218,27 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 				return ErrQueryNotFound
 			}
 
-			if (query.Token != args.Token) && (acl != nil && !acl.QueryList()) {
-				p.srv.logger.Printf("[WARN] consul.prepared_query: Request to get prepared query '%s' denied because ACL didn't match ACL used to create the query, and a management token wasn't supplied", args.QueryID)
+			// If no prefix ACL applies to this query, then they are
+			// always allowed to see it if they have the ID.
+			reply.Index = index
+			reply.Queries = structs.PreparedQueries{query}
+			if _, ok := query.GetACLPrefix(); !ok {
+				return nil
+			}
+
+			// Otherwise, attempt to filter it the usual way.
+			if err := p.srv.filterACL(args.Token, reply); err != nil {
+				return err
+			}
+
+			// Since this is a GET of a specific query, if ACLs have
+			// prevented us from returning something that exists,
+			// then alert the user with a permission denied error.
+			if len(reply.Queries) == 0 {
+				p.srv.logger.Printf("[WARN] consul.prepared_query: Request to get prepared query '%s' denied due to ACLs", args.QueryID)
 				return permissionDeniedErr
 			}
 
-			reply.Index = index
-			reply.Queries = structs.PreparedQueries{query}
 			return nil
 		})
 }
@@ -228,16 +247,6 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.IndexedPreparedQueries) error {
 	if done, err := p.srv.forward("PreparedQuery.List", args, args, reply); done {
 		return err
-	}
-
-	// This always requires a management token.
-	acl, err := p.srv.resolveToken(args.Token)
-	if err != nil {
-		return err
-	}
-	if acl != nil && !acl.QueryList() {
-		p.srv.logger.Printf("[WARN] consul.prepared_query: Request to list prepared queries denied due to ACLs")
-		return permissionDeniedErr
 	}
 
 	// Get the list of queries.
@@ -253,7 +262,7 @@ func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.Ind
 			}
 
 			reply.Index, reply.Queries = index, queries
-			return nil
+			return p.srv.filterACL(args.Token, reply)
 		})
 }
 
@@ -289,6 +298,21 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	if err := p.execute(query, reply); err != nil {
 		return err
 	}
+
+	// If they supplied a token with the query, use that, otherwise use the
+	// token passed in with the request.
+	token := args.QueryOptions.Token
+	if query.Token != "" {
+		token = query.Token
+	}
+	if err := p.srv.filterACL(token, &reply.Nodes); err != nil {
+		return err
+	}
+
+	// TODO (slackpad) We could add a special case here that will avoid the
+	// fail over if we filtered everything due to ACLs. This seems like it
+	// might not be worth the code complexity and behavior differences,
+	// though, since this is essentially a misconfiguration.
 
 	// Shuffle the results in case coordinates are not available if they
 	// requested an RTT sort.
@@ -340,6 +364,16 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 		return err
 	}
 
+	// If they supplied a token with the query, use that, otherwise use the
+	// token passed in with the request.
+	token := args.QueryOptions.Token
+	if args.Query.Token != "" {
+		token = args.Query.Token
+	}
+	if err := p.srv.filterACL(token, &reply.Nodes); err != nil {
+		return err
+	}
+
 	// We don't bother trying to do an RTT sort here since we are by
 	// definition in another DC. We just shuffle to make sure that we
 	// balance the load across the results.
@@ -354,27 +388,13 @@ func (p *PreparedQuery) ExecuteRemote(args *structs.PreparedQueryExecuteRemoteRe
 }
 
 // execute runs a prepared query in the local DC without any failover. We don't
-// apply any sorting options at this level - it should be done up above.
+// apply any sorting options or ACL checks at this level - it should be done up above.
 func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 	reply *structs.PreparedQueryExecuteResponse) error {
 	state := p.srv.fsm.State()
 	_, nodes, err := state.CheckServiceNodes(query.Service.Service)
 	if err != nil {
 		return err
-	}
-
-	// This is kind of a paranoia ACL check, in case something changed with
-	// the token from the time the query was registered. Note that we use
-	// the token stored with the query, NOT the passed-in one, which is
-	// critical to how queries work (the query becomes a proxy for a lookup
-	// using the ACL it was created with).
-	acl, err := p.srv.resolveToken(query.Token)
-	if err != nil {
-		return err
-	}
-	if acl != nil && !acl.ServiceRead(query.Service.Service) {
-		p.srv.logger.Printf("[WARN] consul.prepared_query: Execute of prepared query for service '%s' denied due to ACLs", query.Service.Service)
-		return permissionDeniedErr
 	}
 
 	// Filter out any unhealthy nodes.
@@ -555,8 +575,8 @@ func queryFailover(q queryServer, query *structs.PreparedQuery,
 
 		// Note that we pass along the limit since it can be applied
 		// remotely to save bandwidth. We also pass along the consistency
-		// mode information we were given, so that applies to the remote
-		// query as well.
+		// mode information and token we were given, so that applies to
+		// the remote query as well.
 		remote := &structs.PreparedQueryExecuteRemoteRequest{
 			Datacenter:   dc,
 			Query:        *query,

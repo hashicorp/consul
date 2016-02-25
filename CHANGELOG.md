@@ -8,20 +8,12 @@ BACKWARDS INCOMPATIBILITIES:
   and their lifetime was managed by a finalizer, but this wasn't reliable in certain
   situations. If you don't reuse your API client object, then there's nothing to do.
   If you have a long-lived API client object, you may want to configure it using the
-  `DefaultPooledTransport` so it will reuse a single connecetion to Consul. Here's an
+  `DefaultPooledTransport` so it will reuse a single connection to Consul. Here's an
   [example from Vault](https://github.com/hashicorp/vault) showing how to do this.
   [GH-1731]
 
 IMPROVEMENTS:
 
-* Consul agents will now periodically reconnect to available Consul servers
-  in order to redistribute their RPC query load.  Consul clients will, by
-  default, attempt to establish a new connection every 120s to 180s, however
-  the rate at which agents begin to query new servers is proportional to the
-  size of the Consul cluster (servers should never receive more than 64 new
-  connections per second per Consul server as a result of rebalancing).
-  Clusters in stable environments who use `allow_stale` should see a more
-  even distribution of query load across all of their Consul servers. [GH-1667]
 * Added a new `disable_hostname` configuration option to control whether Consul's
   runtime telemetry gets prepended with the host name. All of the telemetry
   configuration has also been moved to a `telemetry` nested structure, but the old

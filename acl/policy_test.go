@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestParse(t *testing.T) {
+func TestACLPolicy_Parse_HCL(t *testing.T) {
 	inp := `
 key "" {
 	policy = "read"
@@ -35,52 +35,75 @@ event "foo" {
 event "bar" {
 	policy = "deny"
 }
+query "" {
+	policy = "read"
+}
+query "foo" {
+	policy = "write"
+}
+query "bar" {
+	policy = "deny"
+}
 keyring = "deny"
 	`
 	exp := &Policy{
 		Keys: []*KeyPolicy{
 			&KeyPolicy{
 				Prefix: "",
-				Policy: KeyPolicyRead,
+				Policy: PolicyRead,
 			},
 			&KeyPolicy{
 				Prefix: "foo/",
-				Policy: KeyPolicyWrite,
+				Policy: PolicyWrite,
 			},
 			&KeyPolicy{
 				Prefix: "foo/bar/",
-				Policy: KeyPolicyRead,
+				Policy: PolicyRead,
 			},
 			&KeyPolicy{
 				Prefix: "foo/bar/baz",
-				Policy: KeyPolicyDeny,
+				Policy: PolicyDeny,
 			},
 		},
 		Services: []*ServicePolicy{
 			&ServicePolicy{
 				Name:   "",
-				Policy: ServicePolicyWrite,
+				Policy: PolicyWrite,
 			},
 			&ServicePolicy{
 				Name:   "foo",
-				Policy: ServicePolicyRead,
+				Policy: PolicyRead,
 			},
 		},
 		Events: []*EventPolicy{
 			&EventPolicy{
 				Event:  "",
-				Policy: EventPolicyRead,
+				Policy: PolicyRead,
 			},
 			&EventPolicy{
 				Event:  "foo",
-				Policy: EventPolicyWrite,
+				Policy: PolicyWrite,
 			},
 			&EventPolicy{
 				Event:  "bar",
-				Policy: EventPolicyDeny,
+				Policy: PolicyDeny,
 			},
 		},
-		Keyring: KeyringPolicyDeny,
+		PreparedQueries: []*PreparedQueryPolicy{
+			&PreparedQueryPolicy{
+				Prefix: "",
+				Policy: PolicyRead,
+			},
+			&PreparedQueryPolicy{
+				Prefix: "foo",
+				Policy: PolicyWrite,
+			},
+			&PreparedQueryPolicy{
+				Prefix: "bar",
+				Policy: PolicyDeny,
+			},
+		},
+		Keyring: PolicyDeny,
 	}
 
 	out, err := Parse(inp)
@@ -93,7 +116,7 @@ keyring = "deny"
 	}
 }
 
-func TestParse_JSON(t *testing.T) {
+func TestACLPolicy_Parse_JSON(t *testing.T) {
 	inp := `{
 	"key": {
 		"": {
@@ -128,52 +151,77 @@ func TestParse_JSON(t *testing.T) {
 			"policy": "deny"
 		}
 	},
+	"query": {
+		"": {
+			"policy": "read"
+		},
+		"foo": {
+			"policy": "write"
+		},
+		"bar": {
+			"policy": "deny"
+		}
+	},
 	"keyring": "deny"
 }`
 	exp := &Policy{
 		Keys: []*KeyPolicy{
 			&KeyPolicy{
 				Prefix: "",
-				Policy: KeyPolicyRead,
+				Policy: PolicyRead,
 			},
 			&KeyPolicy{
 				Prefix: "foo/",
-				Policy: KeyPolicyWrite,
+				Policy: PolicyWrite,
 			},
 			&KeyPolicy{
 				Prefix: "foo/bar/",
-				Policy: KeyPolicyRead,
+				Policy: PolicyRead,
 			},
 			&KeyPolicy{
 				Prefix: "foo/bar/baz",
-				Policy: KeyPolicyDeny,
+				Policy: PolicyDeny,
 			},
 		},
 		Services: []*ServicePolicy{
 			&ServicePolicy{
 				Name:   "",
-				Policy: ServicePolicyWrite,
+				Policy: PolicyWrite,
 			},
 			&ServicePolicy{
 				Name:   "foo",
-				Policy: ServicePolicyRead,
+				Policy: PolicyRead,
 			},
 		},
 		Events: []*EventPolicy{
 			&EventPolicy{
 				Event:  "",
-				Policy: EventPolicyRead,
+				Policy: PolicyRead,
 			},
 			&EventPolicy{
 				Event:  "foo",
-				Policy: EventPolicyWrite,
+				Policy: PolicyWrite,
 			},
 			&EventPolicy{
 				Event:  "bar",
-				Policy: EventPolicyDeny,
+				Policy: PolicyDeny,
 			},
 		},
-		Keyring: KeyringPolicyDeny,
+		PreparedQueries: []*PreparedQueryPolicy{
+			&PreparedQueryPolicy{
+				Prefix: "",
+				Policy: PolicyRead,
+			},
+			&PreparedQueryPolicy{
+				Prefix: "foo",
+				Policy: PolicyWrite,
+			},
+			&PreparedQueryPolicy{
+				Prefix: "bar",
+				Policy: PolicyDeny,
+			},
+		},
+		Keyring: PolicyDeny,
 	}
 
 	out, err := Parse(inp)
@@ -186,11 +234,30 @@ func TestParse_JSON(t *testing.T) {
 	}
 }
 
-func TestACLPolicy_badPolicy(t *testing.T) {
+func TestACLPolicy_Keyring_Empty(t *testing.T) {
+	inp := `
+keyring = ""
+	`
+	exp := &Policy{
+		Keyring: "",
+	}
+
+	out, err := Parse(inp)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if !reflect.DeepEqual(out, exp) {
+		t.Fatalf("bad: %#v %#v", out, exp)
+	}
+}
+
+func TestACLPolicy_Bad_Policy(t *testing.T) {
 	cases := []string{
 		`key "" { policy = "nope" }`,
 		`service "" { policy = "nope" }`,
 		`event "" { policy = "nope" }`,
+		`query "" { policy = "nope" }`,
 		`keyring = "nope"`,
 	}
 	for _, c := range cases {

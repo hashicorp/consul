@@ -7,28 +7,20 @@ import (
 )
 
 const (
-	KeyPolicyDeny      = "deny"
-	KeyPolicyRead      = "read"
-	KeyPolicyWrite     = "write"
-	ServicePolicyDeny  = "deny"
-	ServicePolicyRead  = "read"
-	ServicePolicyWrite = "write"
-	EventPolicyRead    = "read"
-	EventPolicyWrite   = "write"
-	EventPolicyDeny    = "deny"
-	KeyringPolicyWrite = "write"
-	KeyringPolicyRead  = "read"
-	KeyringPolicyDeny  = "deny"
+	PolicyDeny  = "deny"
+	PolicyRead  = "read"
+	PolicyWrite = "write"
 )
 
 // Policy is used to represent the policy specified by
 // an ACL configuration.
 type Policy struct {
-	ID       string           `hcl:"-"`
-	Keys     []*KeyPolicy     `hcl:"key,expand"`
-	Services []*ServicePolicy `hcl:"service,expand"`
-	Events   []*EventPolicy   `hcl:"event,expand"`
-	Keyring  string           `hcl:"keyring"`
+	ID              string                 `hcl:"-"`
+	Keys            []*KeyPolicy           `hcl:"key,expand"`
+	Services        []*ServicePolicy       `hcl:"service,expand"`
+	Events          []*EventPolicy         `hcl:"event,expand"`
+	PreparedQueries []*PreparedQueryPolicy `hcl:"query,expand"`
+	Keyring         string                 `hcl:"keyring"`
 }
 
 // KeyPolicy represents a policy for a key
@@ -61,6 +53,30 @@ func (e *EventPolicy) GoString() string {
 	return fmt.Sprintf("%#v", *e)
 }
 
+// PreparedQueryPolicy represents a prepared query policy.
+type PreparedQueryPolicy struct {
+	Prefix string `hcl:",key"`
+	Policy string
+}
+
+func (e *PreparedQueryPolicy) GoString() string {
+	return fmt.Sprintf("%#v", *e)
+}
+
+// isPolicyValid makes sure the given string matches one of the valid policies.
+func isPolicyValid(policy string) bool {
+	switch policy {
+	case PolicyDeny:
+		return true
+	case PolicyRead:
+		return true
+	case PolicyWrite:
+		return true
+	default:
+		return false
+	}
+}
+
 // Parse is used to parse the specified ACL rules into an
 // intermediary set of policies, before being compiled into
 // the ACL
@@ -78,44 +94,34 @@ func Parse(rules string) (*Policy, error) {
 
 	// Validate the key policy
 	for _, kp := range p.Keys {
-		switch kp.Policy {
-		case KeyPolicyDeny:
-		case KeyPolicyRead:
-		case KeyPolicyWrite:
-		default:
+		if !isPolicyValid(kp.Policy) {
 			return nil, fmt.Errorf("Invalid key policy: %#v", kp)
 		}
 	}
 
 	// Validate the service policy
 	for _, sp := range p.Services {
-		switch sp.Policy {
-		case ServicePolicyDeny:
-		case ServicePolicyRead:
-		case ServicePolicyWrite:
-		default:
+		if !isPolicyValid(sp.Policy) {
 			return nil, fmt.Errorf("Invalid service policy: %#v", sp)
 		}
 	}
 
 	// Validate the user event policies
 	for _, ep := range p.Events {
-		switch ep.Policy {
-		case EventPolicyRead:
-		case EventPolicyWrite:
-		case EventPolicyDeny:
-		default:
+		if !isPolicyValid(ep.Policy) {
 			return nil, fmt.Errorf("Invalid event policy: %#v", ep)
 		}
 	}
 
-	// Validate the keyring policy
-	switch p.Keyring {
-	case KeyringPolicyRead:
-	case KeyringPolicyWrite:
-	case KeyringPolicyDeny:
-	case "": // Special case to allow omitting the keyring policy
-	default:
+	// Validate the prepared query policies
+	for _, pq := range p.PreparedQueries {
+		if !isPolicyValid(pq.Policy) {
+			return nil, fmt.Errorf("Invalid query policy: %#v", pq)
+		}
+	}
+
+	// Validate the keyring policy - this one is allowed to be empty
+	if p.Keyring != "" && !isPolicyValid(p.Keyring) {
 		return nil, fmt.Errorf("Invalid keyring policy: %#v", p.Keyring)
 	}
 

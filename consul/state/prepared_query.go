@@ -119,14 +119,9 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 		}
 	}
 
-	// Verify that the service exists.
-	service, err := tx.First("services", "service", query.Service.Service)
-	if err != nil {
-		return fmt.Errorf("failed service lookup: %s", err)
-	}
-	if service == nil {
-		return fmt.Errorf("invalid service %#v", query.Service.Service)
-	}
+	// We do not verify the service here, nor the token, if any. These are
+	// checked at execute time and not doing integrity checking on them
+	// helps avoid bootstrapping chicken and egg problems.
 
 	// Insert the query.
 	if err := tx.Insert("prepared-queries", query); err != nil {
