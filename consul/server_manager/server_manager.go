@@ -151,7 +151,7 @@ func (sm *ServerManager) FindServer() *server_details.ServerDetails {
 	serverCfg := sm.getServerConfig()
 	numServers := len(serverCfg.servers)
 	if numServers == 0 {
-		sm.logger.Printf("[ERR] consul: No servers found in the server config")
+		sm.logger.Printf("[WARN] consul: No servers found in the server config")
 		return nil
 	} else {
 		// Return whatever is at the front of the list because it is
@@ -257,11 +257,9 @@ func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 	n := len(serverCfg.servers)
 	for i := 0; i < n; i++ {
 		if serverCfg.servers[i].Name == server.Name {
-			newServers := make([]*server_details.ServerDetails, len(serverCfg.servers)-1)
-			copy(newServers, serverCfg.servers)
-
-			newServers[i], newServers[n-1] = newServers[n-1], nil
-			newServers = newServers[:n-1]
+			newServers := make([]*server_details.ServerDetails, 0, len(serverCfg.servers)-1)
+			newServers = append(newServers, serverCfg.servers[:i]...)
+			newServers = append(newServers, serverCfg.servers[i+1:]...)
 			serverCfg.servers = newServers
 
 			sm.saveServerConfig(serverCfg)
