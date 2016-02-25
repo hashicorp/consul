@@ -162,14 +162,6 @@ func (sm *ServerManager) FindServer() *server_details.ServerDetails {
 	}
 }
 
-// GetNumServers takes out an internal "read lock" and returns the number of
-// servers.  numServers includes both healthy and unhealthy servers.
-func (sm *ServerManager) GetNumServers() (numServers int) {
-	serverCfg := sm.getServerConfig()
-	numServers = len(serverCfg.servers)
-	return numServers
-}
-
 // getServerConfig is a convenience method which hides the locking semantics
 // of atomic.Value from the caller.
 func (sm *ServerManager) getServerConfig() serverConfig {
@@ -216,6 +208,14 @@ func (sm *ServerManager) NotifyFailedServer(server *server_details.ServerDetails
 			sm.saveServerConfig(serverCfg)
 		}
 	}
+}
+
+// NumServers takes out an internal "read lock" and returns the number of
+// servers.  numServers includes both healthy and unhealthy servers.
+func (sm *ServerManager) NumServers() (numServers int) {
+	serverCfg := sm.getServerConfig()
+	numServers = len(serverCfg.servers)
+	return numServers
 }
 
 // RebalanceServers takes out an internal write lock and shuffles the list of
