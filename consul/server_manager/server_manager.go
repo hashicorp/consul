@@ -271,7 +271,7 @@ func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 // refreshServerRebalanceTimer is only called once the rebalanceTimer
 // expires.  Historically this was an expensive routine and is intended to be
 // run in isolation in a dedicated, non-concurrent task.
-func (sm *ServerManager) refreshServerRebalanceTimer(timer *time.Timer) {
+func (sm *ServerManager) refreshServerRebalanceTimer(timer *time.Timer) time.Duration {
 	serverCfg := sm.getServerConfig()
 	numConsulServers := len(serverCfg.servers)
 	// Limit this connection's life based on the size (and health) of the
@@ -280,12 +280,11 @@ func (sm *ServerManager) refreshServerRebalanceTimer(timer *time.Timer) {
 	// clusterWideRebalanceConnsPerSec operations/s across numLANMembers.
 	clusterWideRebalanceConnsPerSec := float64(numConsulServers * newRebalanceConnsPerSecPerServer)
 	connReuseLowWatermarkDuration := clientRPCMinReuseDuration + lib.RandomStagger(clientRPCMinReuseDuration/clientRPCJitterFraction)
-
 	numLANMembers := sm.clusterInfo.NumNodes()
 	connRebalanceTimeout := lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
-	sm.logger.Printf("[DEBUG] consul: connection will be rebalanced in %v", connRebalanceTimeout)
 
 	timer.Reset(connRebalanceTimeout)
+	return connRebalanceTimeout
 }
 
 // saveServerConfig is a convenience method which hides the locking semantics
