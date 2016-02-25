@@ -340,7 +340,7 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 // Stats is used to return statistics for debugging and insight
 // for various sub-systems
 func (c *Client) Stats() map[string]map[string]string {
-	numServers := c.serverMgr.GetNumServers()
+	numServers := c.serverMgr.NumServers()
 
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)

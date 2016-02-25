@@ -84,14 +84,14 @@ func TestServerManager_FindServer(t *testing.T) {
 func TestServerManager_GetNumServers(t *testing.T) {
 	sm := makeMockServerManager()
 	var num int
-	num = sm.GetNumServers()
+	num = sm.NumServers()
 	if num != 0 {
 		t.Fatalf("Expected zero servers to start")
 	}
 
 	s := &server_details.ServerDetails{}
 	sm.AddServer(s)
-	num = sm.GetNumServers()
+	num = sm.NumServers()
 	if num != 1 {
 		t.Fatalf("Expected one server after AddServer")
 	}
