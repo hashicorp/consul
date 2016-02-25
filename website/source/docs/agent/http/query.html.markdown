@@ -15,7 +15,7 @@ Prepared queries allow you to register a complex service query and then execute
 it later via its ID or name to get a set of healthy nodes that provide a given
 service. This is particularly useful in combination with Consul's
 [DNS Interface](/docs/agent/dns.html) as it allows for much richer queries than
-would be possible given the limited syntax DNS provides.
+would be possible given the limited entry points exposed by DNS.
 
 The following endpoints are supported:
 
@@ -45,12 +45,11 @@ The general query endpoint supports the `POST` and `GET` methods.
 When using the `POST` method, Consul will create a new prepared query and return
 its ID if it is created successfully.
 
-By default, the datacenter of the agent is queried; however, the dc can be
+By default, the datacenter of the agent is queried; however, the `dc` can be
 provided using the "?dc=" query parameter.
 
-If ACLs are enabled, then the client will need to supply a token with `query`
-write privileges sufficient to match the service name being queried and the `Name`
-given to the query, if any. See also the note about the `Token` field below.
+If ACLs are enabled, the client will need to supply an ACL Token with `query`
+write privileges for the `Name` of the query being created.
 
 The create operation expects a JSON request body that defines the prepared query,
 like this example:
@@ -86,12 +85,13 @@ given session is invalidated. This is optional, and if not given the prepared
 query must be manually removed when no longer needed.
 
 <a name="token"></a>
-`Token` is a captured ACL Token to use when the query is executed. This allows
-queries to be executed by clients with lesser or even no ACL Token, so this
-should be used with care. The token itself can only be seen by clients with a
-management token. If the `Token` field is left blank, the client's ACL Token
-will be used to determine if they have access to the service being queried. If
-the client does not supply an ACL Token, the anonymous token will be used.
+`Token`, if specified, is a captured ACL Token that is reused as the ACL Token
+every time the query is executed. This allows queries to be executed by clients
+with lesser or even no ACL Token, so this should be used with care. The token
+itself can only be seen by clients with a management token. If the `Token`
+field is left blank or omitted, the client's ACL Token will be used to determine
+if they have access to the service being queried. If the client does not supply
+an ACL Token, the anonymous token will be used.
 
 Note that Consul version 0.6.3 and earlier would automatically capture the ACL
 Token for use in the future when prepared queries were executed and would
@@ -161,7 +161,7 @@ a JSON body:
 
 When using the GET method, Consul will provide a listing of all prepared queries.
 
-By default, the datacenter of the agent is queried; however, the dc can be
+By default, the datacenter of the agent is queried; however, the `dc` can be
 provided using the "?dc=" query parameter. This endpoint supports blocking
 queries and all consistency modes.
 
@@ -208,12 +208,11 @@ The query-specific endpoint supports the `GET`, `PUT`, and `DELETE` methods. The
 
 The `PUT` method allows an existing prepared query to be updated.
 
-By default, the datacenter of the agent is queried; however, the dc can be
+By default, the datacenter of the agent is queried; however, the `dc` can be
 provided using the "?dc=" query parameter.
 
-If ACLs are enabled, then the client will need to supply a token with `query`
-write privileges sufficient to match the service name being queried and the `Name`
-given to the query, if any.
+If ACLs are enabled, the client will need to supply an ACL Token with `query`
+write privileges for the `Name` of the query being updated.
 
 The body is the same as is used to create a prepared query, as described above.
 
@@ -223,7 +222,7 @@ If the API call succeeds, a 200 status code is returned.
 
 The `GET` method allows an existing prepared query to be fetched.
 
-By default, the datacenter of the agent is queried; however, the dc can be
+By default, the datacenter of the agent is queried; however, the `dc` can be
 provided using the "?dc=" query parameter. This endpoint supports blocking
 queries and all consistency modes.
 
@@ -240,12 +239,11 @@ management token is used.
 
 The `DELETE` method is used to delete a prepared query.
 
-By default, the datacenter of the agent is queried; however, the dc can be
+By default, the datacenter of the agent is queried; however, the `dc` can be
 provided using the "?dc=" query parameter.
 
-If ACLs are enabled, then the client will need to supply a token with `query`
-write privileges sufficient to match the service name being queried and the `Name`
-given to the query, if any.
+If ACLs are enabled, the client will need to supply an ACL Token with `query`
+write privileges for the `Name` of the query being deleted.
 
 No body is required as part of this request.
 
@@ -257,7 +255,7 @@ The query execute endpoint supports only the `GET` method and is used to
 execute a prepared query. The \<query or name\> argument is the ID or name
 of an existing prepared query.
 
-By default, the datacenter of the agent is queried; however, the dc can be
+By default, the datacenter of the agent is queried; however, the `dc` can be
 provided using the "?dc=" query parameter. This endpoint does not support
 blocking queries, but it does support all consistency modes.
 

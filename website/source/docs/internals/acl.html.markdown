@@ -348,11 +348,6 @@ service, then the DNS interface will return no records when queried for it.
 <a name="prepared_query_acls"></a>
 ## Prepared Query ACLs
 
-Prepared queries have a more complicated relationship with ACLs than most other
-Consul resources because they have a lifecycle related to creating, reading,
-updating, and deleting queries, and then a separate lifecycle related to
-executing queries.
-
 As we've gotten feedback from Consul users, we've evolved how prepared queries
 use ACLs. In this section we first cover the current implementation, and then we
 follow that with details about what's changed between specific versions of Consul.
@@ -381,17 +376,16 @@ These variations are covered here, with examples:
   way to define more specific policies. Clients can list or read queries for
   which they have "read" access based on their prefix, and similar they can
   update any queries for which they have "write" access. An example use for
-  this type is a query with a well-known name (eg. prod-master-customer-db)
+  this type is a query with a well-known name (eg. `prod-master-customer-db`)
   that is used and known by many clients to provide geo-failover behavior for
   a database.
 
 #### Executing Pepared Queries
 
-When prepared queries are executed via DNS lookups or HTTP requests, the
-management ACL isn't used in any way. Instead, ACLs are applied to the service
-being queried, similar to how other service lookups work, except that prepared
-queries have some special behavior related to where the ACL Token comes
-from:
+When prepared queries are executed via DNS lookups or HTTP requests, the ACL
+checks are run against the service being queried, similar to how ACLs work with
+other service lookups. There are several ways the ACL token is selected for this
+check:
 
 * If an ACL Token was captured when the prepared query was defined, it will be
   used to perform the service lookup. This allows queries to be executed by
@@ -400,8 +394,13 @@ from:
 * If no ACL Token was captured, then the client's ACL Token will be used to
   perform the service lookup.
 
-* If no ACL Token was captured, and the client has no ACL Token, then the
+* If no ACL Token was captured and the client has no ACL Token, then the
   anonymous token will be used to perform the service lookup.
+
+In the common case, the ACL Token of the invoker is used
+to test the ability to look up a service. If a `Token` was specified when the
+prepared query was created, the behavior changes and now the captured
+ACL Token set by the definer of the query is used when lookup up a service.
 
 Capturing ACL Tokens is analogous to
 [PostgreSQL’s](http://www.postgresql.org/docs/current/static/sql-createfunction.html)
