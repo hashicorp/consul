@@ -112,10 +112,6 @@ func TestServerManagerInternal_NewServerManager(t *testing.T) {
 		t.Fatalf("ServerManager.logger nil")
 	}
 
-	if sm.consulServersCh == nil {
-		t.Fatalf("ServerManager.consulServersCh nil")
-	}
-
 	if sm.shutdownCh == nil {
 		t.Fatalf("ServerManager.shutdownCh nil")
 	}
