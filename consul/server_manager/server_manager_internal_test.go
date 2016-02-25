@@ -32,7 +32,7 @@ func (s *fauxSerf) NumNodes() int {
 func testServerManager() (sm *ServerManager) {
 	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	sm = NewServerManager(logger, shutdownCh, &fauxSerf{})
+	sm = New(logger, shutdownCh, &fauxSerf{})
 	return sm
 }
 
@@ -101,8 +101,8 @@ func TestServerManagerInternal_getServerConfig(t *testing.T) {
 	}
 }
 
-// func NewServerManager(logger *log.Logger, shutdownCh chan struct{}) (sm *ServerManager) {
-func TestServerManagerInternal_NewServerManager(t *testing.T) {
+// func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulClusterInfo) (sm *ServerManager) {
+func TestServerManagerInternal_New(t *testing.T) {
 	sm := testServerManager()
 	if sm == nil {
 		t.Fatalf("ServerManager nil")
