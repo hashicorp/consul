@@ -321,7 +321,7 @@ func (c *Client) localEvent(event serf.UserEvent) {
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
-	server := c.serverMgr.FindHealthyServer()
+	server := c.serverMgr.FindServer()
 	if server == nil {
 		c.logger.Printf("[ERR] consul: No healthy servers found in the server config")
 		return structs.ErrNoServers

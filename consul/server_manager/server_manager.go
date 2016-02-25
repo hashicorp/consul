@@ -141,13 +141,13 @@ func (sc *serverConfig) cycleServer() (servers []*server_details.ServerDetails) 
 	return newServers
 }
 
-// FindHealthyServer takes out an internal "read lock" and searches through
-// the list of servers to find a "healthy" server.  If the server is actually
+// FindServer takes out an internal "read lock" and searches through the list
+// of servers to find a "healthy" server.  If the server is actually
 // unhealthy, we rely on Serf to detect this and remove the node from the
 // server list.  If the server at the front of the list has failed or fails
 // during an RPC call, it is rotated to the end of the list.  If there are no
 // servers available, return nil.
-func (sm *ServerManager) FindHealthyServer() *server_details.ServerDetails {
+func (sm *ServerManager) FindServer() *server_details.ServerDetails {
 	serverCfg := sm.getServerConfig()
 	numServers := len(serverCfg.servers)
 	if numServers == 0 {
