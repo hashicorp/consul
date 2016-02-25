@@ -35,13 +35,13 @@ event "foo" {
 event "bar" {
 	policy = "deny"
 }
-prepared_query "" {
+query "" {
 	policy = "read"
 }
-prepared_query "foo" {
+query "foo" {
 	policy = "write"
 }
-prepared_query "bar" {
+query "bar" {
 	policy = "deny"
 }
 keyring = "deny"
@@ -151,7 +151,7 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 			"policy": "deny"
 		}
 	},
-	"prepared_query": {
+	"query": {
 		"": {
 			"policy": "read"
 		},
@@ -257,7 +257,7 @@ func TestACLPolicy_Bad_Policy(t *testing.T) {
 		`key "" { policy = "nope" }`,
 		`service "" { policy = "nope" }`,
 		`event "" { policy = "nope" }`,
-		`prepared_query "" { policy = "nope" }`,
+		`query "" { policy = "nope" }`,
 		`keyring = "nope"`,
 	}
 	for _, c := range cases {

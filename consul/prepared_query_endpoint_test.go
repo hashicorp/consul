@@ -194,7 +194,7 @@ func TestPreparedQuery_Apply_ACLDeny(t *testing.T) {
 	var token string
 	{
 		var rules = `
-                    prepared_query "redis" {
+                    query "redis" {
                         policy = "write"
                     }
                 `
@@ -585,7 +585,7 @@ func TestPreparedQuery_Get(t *testing.T) {
 	var token string
 	{
 		var rules = `
-                    prepared_query "redis" {
+                    query "redis" {
                         policy = "write"
                     }
                 `
@@ -762,7 +762,7 @@ func TestPreparedQuery_List(t *testing.T) {
 	var token string
 	{
 		var rules = `
-                    prepared_query "redis" {
+                    query "redis" {
                         policy = "write"
                     }
                 `

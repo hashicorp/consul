@@ -48,7 +48,7 @@ its ID if it is created successfully.
 By default, the datacenter of the agent is queried; however, the dc can be
 provided using the "?dc=" query parameter.
 
-If ACLs are enabled, then the client will need to supply a token with `prepared_query`
+If ACLs are enabled, then the client will need to supply a token with `query`
 write privileges sufficient to match the service name being queried and the `Name`
 given to the query, if any. See also the note about the `Token` field below.
 
@@ -166,7 +166,7 @@ provided using the "?dc=" query parameter. This endpoint supports blocking
 queries and all consistency modes.
 
 If ACLs are enabled, then the client will only see prepared queries for which their
-token has `prepared_query` read privileges. A management token will be able to see all
+token has `query` read privileges. A management token will be able to see all
 prepared queries. Tokens will be displayed as `<hidden>` unless a management token is
 used.
 
@@ -211,7 +211,7 @@ The `PUT` method allows an existing prepared query to be updated.
 By default, the datacenter of the agent is queried; however, the dc can be
 provided using the "?dc=" query parameter.
 
-If ACLs are enabled, then the client will need to supply a token with `prepared_query`
+If ACLs are enabled, then the client will need to supply a token with `query`
 write privileges sufficient to match the service name being queried and the `Name`
 given to the query, if any.
 
@@ -232,7 +232,7 @@ only with a single item present. If the query does not exist then a 404
 status code will be returned.
 
 If ACLs are enabled, then the client will only see prepared queries for which their
-token has `prepared_query` read privileges. A management token will be able to see all
+token has `query` read privileges. A management token will be able to see all
 prepared queries. Tokens will be displayed as `<hidden>` unless a management token is
 used.
 
@@ -243,7 +243,7 @@ The `DELETE` method is used to delete a prepared query.
 By default, the datacenter of the agent is queried; however, the dc can be
 provided using the "?dc=" query parameter.
 
-If ACLs are enabled, then the client will need to supply a token with `prepared_query`
+If ACLs are enabled, then the client will need to supply a token with `query`
 write privileges sufficient to match the service name being queried and the `Name`
 given to the query, if any.
 

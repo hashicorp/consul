@@ -150,7 +150,7 @@ access to each API token based on the events they should be able to fire.
 ### Blacklist mode and Prepared Queries
 
 After Consul 0.6.3, significant changes were made to ACLs for prepared queries,
-incuding a new `prepared_query` ACL policy. See [Prepared Query ACLs](#prepared_query_acls) below for more details.
+incuding a new `query` ACL policy. See [Prepared Query ACLs](#prepared_query_acls) below for more details.
 
 ### Blacklist mode and Keyring Operations
 
@@ -261,7 +261,7 @@ event "destroy-" {
 }
 
 # Default prepared queries to read-only.
-prepared_query "" {
+query "" {
     policy = "read"
 }
 
@@ -300,7 +300,7 @@ This is equivalent to the following JSON input:
       "policy": "deny"
     }
   },
-  "prepared_query": {
+  "query": {
     "": {
       "policy": "read"
     }
@@ -375,7 +375,7 @@ These variations are covered here, with examples:
   process to use via DNS.
 
 * Static queries with a `Name` defined are controlled by the
-  [`prepared_query`](/docs/internals/acl.html#prepared_query_acls) ACL policy.
+  [`query`](/docs/internals/acl.html#prepared_query_acls) ACL policy.
   Clients are required to have an ACL token with a prefix sufficient to cover
   the name they are trying to manage, with a longest prefix match providing a
   way to define more specific policies. Clients can list or read queries for
@@ -431,7 +431,7 @@ These differences are outlined in the table below:
   <tr>
     <td>Create static query with `Name`</td>
     <td>The ACL Token used to create the prepared query is checked to make sure it can access the service being queried. This token is captured as the `Token` to use when executing the prepared query.</td>
-    <td>The client token's `prepared_query` ACL policy is used to determine if the client is allowed to register a query for the given `Name`. No `Token` is captured by default unless specifically supplied by the client when creating the query.</td>
+    <td>The client token's `query` ACL policy is used to determine if the client is allowed to register a query for the given `Name`. No `Token` is captured by default unless specifically supplied by the client when creating the query.</td>
   </tr>
   <tr>
     <td>Manage static query without `Name`</td>
@@ -441,12 +441,12 @@ These differences are outlined in the table below:
   <tr>
     <td>Manage static query with a `Name`</td>
     <td>The ACL token used to create the query, or a management token must be supplied in order to perform these operations.</td>
-    <td>Similar to create, the client token's `prepared_query` ACL policy is used to determine if these operations are allowed.</td>
+    <td>Similar to create, the client token's `query` ACL policy is used to determine if these operations are allowed.</td>
   </tr>
   <tr>
     <td>List queries</td>
     <td>A management token is required to list any queries.</td>
-    <td>The client token's `prepared_query` ACL policy is used to determine which queries they can see. Only management tokens can see prepared queries without `Name`.</td>
+    <td>The client token's `query` ACL policy is used to determine which queries they can see. Only management tokens can see prepared queries without `Name`.</td>
   </tr>
   <tr>
     <td>Execute query</td>

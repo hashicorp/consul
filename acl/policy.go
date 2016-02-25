@@ -19,7 +19,7 @@ type Policy struct {
 	Keys            []*KeyPolicy           `hcl:"key,expand"`
 	Services        []*ServicePolicy       `hcl:"service,expand"`
 	Events          []*EventPolicy         `hcl:"event,expand"`
-	PreparedQueries []*PreparedQueryPolicy `hcl:"prepared_query,expand"`
+	PreparedQueries []*PreparedQueryPolicy `hcl:"query,expand"`
 	Keyring         string                 `hcl:"keyring"`
 }
 
@@ -116,7 +116,7 @@ func Parse(rules string) (*Policy, error) {
 	// Validate the prepared query policies
 	for _, pq := range p.PreparedQueries {
 		if !isPolicyValid(pq.Policy) {
-			return nil, fmt.Errorf("Invalid prepared_query policy: %#v", pq)
+			return nil, fmt.Errorf("Invalid query policy: %#v", pq)
 		}
 	}
 
