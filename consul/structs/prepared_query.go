@@ -72,6 +72,17 @@ type PreparedQuery struct {
 	RaftIndex
 }
 
+// GetACLPrefix returns the prefix to look up the prepared_query ACL policy for
+// this query, and whether the prefix applies to this query. You always need to
+// check the ok value before using the prefix.
+func (pq *PreparedQuery) GetACLPrefix() (string, bool) {
+	if pq.Name != "" {
+		return pq.Name, true
+	}
+
+	return "", false
+}
+
 type PreparedQueries []*PreparedQuery
 
 type IndexedPreparedQueries struct {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/consul/acl"
@@ -858,6 +859,73 @@ func TestACL_filterNodeDump(t *testing.T) {
 	}
 	if len(dump[0].Checks) != 0 {
 		t.Fatalf("bad: %#v", dump[0].Checks)
+	}
+}
+
+func TestACL_filterPreparedQueries(t *testing.T) {
+	queries := structs.PreparedQueries{
+		&structs.PreparedQuery{
+			ID: "f004177f-2c28-83b7-4229-eacc25fe55d1",
+		},
+		&structs.PreparedQuery{
+			ID:   "f004177f-2c28-83b7-4229-eacc25fe55d2",
+			Name: "query-with-no-token",
+		},
+		&structs.PreparedQuery{
+			ID:    "f004177f-2c28-83b7-4229-eacc25fe55d3",
+			Name:  "query-with-a-token",
+			Token: "root",
+		},
+	}
+
+	expected := structs.PreparedQueries{
+		&structs.PreparedQuery{
+			ID: "f004177f-2c28-83b7-4229-eacc25fe55d1",
+		},
+		&structs.PreparedQuery{
+			ID:   "f004177f-2c28-83b7-4229-eacc25fe55d2",
+			Name: "query-with-no-token",
+		},
+		&structs.PreparedQuery{
+			ID:    "f004177f-2c28-83b7-4229-eacc25fe55d3",
+			Name:  "query-with-a-token",
+			Token: "root",
+		},
+	}
+
+	// Try permissive filtering with a management token. This will allow the
+	// embedded token to be seen.
+	filt := newAclFilter(acl.ManageAll(), nil)
+	filt.filterPreparedQueries(&queries)
+	if !reflect.DeepEqual(queries, expected) {
+		t.Fatalf("bad: %#v", queries)
+	}
+
+	// Hang on to the entry with a token, which needs to survive the next
+	// operation.
+	original := queries[2]
+
+	// Now try permissive filtering with a client token, which should cause
+	// the embedded token to get redacted, and the query with no name to get
+	// filtered out.
+	filt = newAclFilter(acl.AllowAll(), nil)
+	filt.filterPreparedQueries(&queries)
+	expected[2].Token = redactedToken
+	expected = append(structs.PreparedQueries{}, expected[1], expected[2])
+	if !reflect.DeepEqual(queries, expected) {
+		t.Fatalf("bad: %#v", queries)
+	}
+
+	// Make sure that the original object didn't lose its token.
+	if original.Token != "root" {
+		t.Fatalf("bad token: %s", original.Token)
+	}
+
+	// Now try restrictive filtering.
+	filt = newAclFilter(acl.DenyAll(), nil)
+	filt.filterPreparedQueries(&queries)
+	if len(queries) != 0 {
+		t.Fatalf("bad: %#v", queries)
 	}
 }
 

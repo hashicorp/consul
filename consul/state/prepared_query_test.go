@@ -54,15 +54,16 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 
 	// Build a legit-looking query with the most basic options.
 	query := &structs.PreparedQuery{
-		ID: testUUID(),
+		ID:      testUUID(),
+		Session: "nope",
 		Service: structs.ServiceQuery{
 			Service: "redis",
 		},
 	}
 
-	// The set will still fail because the service isn't registered yet.
+	// The set will still fail because the session is bogus.
 	err = s.PreparedQuerySet(1, query)
-	if err == nil || !strings.Contains(err.Error(), "invalid service") {
+	if err == nil || !strings.Contains(err.Error(), "failed session lookup") {
 		t.Fatalf("bad: %v", err)
 	}
 
@@ -71,9 +72,10 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 		t.Fatalf("bad index: %d", idx)
 	}
 
-	// Now register the service.
+	// Now register the service and remove the bogus session.
 	testRegisterNode(t, s, 1, "foo")
 	testRegisterService(t, s, 2, "foo", "redis")
+	query.Session = ""
 
 	// This should go through.
 	if err := s.PreparedQuerySet(3, query); err != nil {
