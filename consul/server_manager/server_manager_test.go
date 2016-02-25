@@ -23,16 +23,19 @@ func GetBufferedLogger() *log.Logger {
 	return localLogger
 }
 
-func makeMockServerManager() (sm *server_manager.ServerManager) {
-	logger, shutdownCh := mockServerManager()
-	sm = server_manager.NewServerManager(logger, shutdownCh, nil)
-	return sm
+type fauxSerf struct {
 }
 
-func mockServerManager() (logger *log.Logger, shutdownCh chan struct{}) {
-	logger = GetBufferedLogger()
-	shutdownCh = make(chan struct{})
-	return logger, shutdownCh
+func (s *fauxSerf) NumNodes() int {
+	return 16384
+}
+
+func testServerManager() (sm *server_manager.ServerManager) {
+	logger := GetBufferedLogger()
+	logger = log.New(os.Stderr, "", log.LstdFlags)
+	shutdownCh := make(chan struct{})
+	sm = server_manager.New(logger, shutdownCh, &fauxSerf{})
+	return sm
 }
 
 // func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {

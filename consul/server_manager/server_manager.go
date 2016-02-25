@@ -176,9 +176,8 @@ func (sm *ServerManager) getServerConfig() serverConfig {
 	return sm.serverConfigValue.Load().(serverConfig)
 }
 
-// NewServerManager is the only way to safely create a new ServerManager
-// struct.
-func NewServerManager(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulClusterInfo) (sm *ServerManager) {
+// New is the only way to safely create a new ServerManager struct.
+func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulClusterInfo) (sm *ServerManager) {
 	// NOTE(sean@): Can't pass *consul.Client due to an import cycle
 	sm = new(ServerManager)
 	sm.logger = logger
