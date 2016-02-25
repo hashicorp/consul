@@ -134,7 +134,13 @@ func parseQuery(query *structs.PreparedQuery) error {
 	//   transaction. Otherwise, people could "steal" queries that they don't
 	//   have proper ACL rights to change.
 	// - Session is optional and checked for integrity during the transaction.
-	// - Token is checked when a query is executed.
+
+	// Token is checked when the query is executed, but we do make sure the
+	// user hasn't accidentally pasted-in the special redacted token name,
+	// which if we allowed in would be super hard to debug and understand.
+	if query.Token == redactedToken {
+		return fmt.Errorf("Bad Token '%s', it looks like a query definition with a redacted token was submitted", query.Token)
+	}
 
 	// Parse the service query sub-structure.
 	if err := parseService(&query.Service); err != nil {

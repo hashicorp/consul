@@ -539,6 +539,17 @@ func TestPreparedQuery_parseQuery(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	query.Token = redactedToken
+	err = parseQuery(query)
+	if err == nil || !strings.Contains(err.Error(), "Bad Token") {
+		t.Fatalf("bad: %v", err)
+	}
+
+	query.Token = "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+	if err := parseQuery(query); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	query.Service.Failover.NearestN = -1
 	err = parseQuery(query)
 	if err == nil || !strings.Contains(err.Error(), "Bad NearestN") {

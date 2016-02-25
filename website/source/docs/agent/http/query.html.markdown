@@ -167,8 +167,8 @@ queries and all consistency modes.
 
 If ACLs are enabled, then the client will only see prepared queries for which their
 token has `query` read privileges. A management token will be able to see all
-prepared queries. Tokens will be displayed as `<hidden>` unless a management token is
-used.
+prepared queries. Tokens will be redacted and displayed as `<hidden>` unless a
+management token is used.
 
 This returns a JSON list of prepared queries, which looks like:
 
@@ -233,8 +233,8 @@ status code will be returned.
 
 If ACLs are enabled, then the client will only see prepared queries for which their
 token has `query` read privileges. A management token will be able to see all
-prepared queries. Tokens will be displayed as `<hidden>` unless a management token is
-used.
+prepared queries. Tokens will be redacted and displayed as `<hidden>` unless a
+management token is used.
 
 #### DELETE Method
 
