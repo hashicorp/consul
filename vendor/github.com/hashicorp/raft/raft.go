@@ -648,7 +648,7 @@ func (r *Raft) runFollower() {
 			} else {
 				r.logger.Printf("[WARN] raft: Heartbeat timeout reached, starting election")
 
-				metrics.IncrCounter([]string{"raft", "transition", "heartbeat_timout"}, 1)
+				metrics.IncrCounter([]string{"raft", "transition", "heartbeat_timeout"}, 1)
 				r.setState(Candidate)
 				return
 			}
