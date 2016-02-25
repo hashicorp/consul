@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestStructs_PreparedQuery_GetACLInfo(t *testing.T) {
+func TestStructs_PreparedQuery_GetACLPrefix(t *testing.T) {
 	ephemeral := &PreparedQuery{}
 	if prefix := ephemeral.GetACLPrefix(); prefix != nil {
 		t.Fatalf("bad: %#v", prefix)
