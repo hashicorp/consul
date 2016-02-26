@@ -134,6 +134,8 @@ func parseQuery(query *structs.PreparedQuery) error {
 	//   transaction. Otherwise, people could "steal" queries that they don't
 	//   have proper ACL rights to change.
 	// - Session is optional and checked for integrity during the transaction.
+	// - Template is checked during the transaction since that's where we
+	//   compile it.
 
 	// Token is checked when the query is executed, but we do make sure the
 	// user hasn't accidentally pasted-in the special redacted token name,
@@ -162,7 +164,7 @@ func parseQuery(query *structs.PreparedQuery) error {
 func parseService(svc *structs.ServiceQuery) error {
 	// Service is required.
 	if svc.Service == "" {
-		return fmt.Errorf("Must provide a service name to query")
+		return fmt.Errorf("Must provide a Service name to query")
 	}
 
 	// NearestN can be 0 which means "don't fail over by RTT".

@@ -40,6 +40,25 @@ type ServiceQuery struct {
 	Tags []string
 }
 
+const (
+	// QueryTemplateTypeNamePrefixMatch uses the Name field of the query as
+	// a prefix to select the template.
+	QueryTemplateTypeNamePrefixMatch = "name_prefix_match"
+)
+
+// QueryTemplateOptions controls settings if this query is a template.
+type QueryTemplateOptions struct {
+	// Type, if non-empty, means that this query is a template. This is
+	// set to one of the QueryTemplateType* constants above.
+	Type string
+
+	// Regexp is an optional regular expression to use to parse the full
+	// name, once the prefix match has selected a template. This can be
+	// used to extract parts of the name and choose a service name, set
+	// tags, etc.
+	Regexp string
+}
+
 // PreparedQuery defines a complete prepared query, and is the structure we
 // maintain in the state store.
 type PreparedQuery struct {
@@ -60,6 +79,11 @@ type PreparedQuery struct {
 	// used when a query is subsequently executed. This token, or a token
 	// with management privileges, must be used to change the query later.
 	Token string
+
+	// Template is used to configure this query as a template, which will
+	// respond to queries based on the Name, and then will be rendered
+	// before it is executed.
+	Template QueryTemplateOptions
 
 	// Service defines a service query (leaving things open for other types
 	// later).

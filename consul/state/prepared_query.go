@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/hashicorp/consul/consul/prepared_query"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-memdb"
 )
@@ -16,22 +17,54 @@ func isUUID(str string) bool {
 	return validUUID.MatchString(str)
 }
 
+// queryWrapper is an internal structure that is used to store a query alongside
+// its compiled template, which can be nil.
+type queryWrapper struct {
+	*structs.PreparedQuery
+	ct *prepared_query.CompiledTemplate
+}
+
+// toPreparedQuery unwraps the internal form of a prepared query and returns
+// the regular struct.
+func toPreparedQuery(wrapped interface{}) *structs.PreparedQuery {
+	if wrapped == nil {
+		return nil
+	}
+	return wrapped.(*queryWrapper).PreparedQuery
+}
+
 // PreparedQueries is used to pull all the prepared queries from the snapshot.
-func (s *StateSnapshot) PreparedQueries() (memdb.ResultIterator, error) {
-	iter, err := s.tx.Get("prepared-queries", "id")
+func (s *StateSnapshot) PreparedQueries() (structs.PreparedQueries, error) {
+	queries, err := s.tx.Get("prepared-queries", "id")
 	if err != nil {
 		return nil, err
 	}
-	return iter, nil
+
+	var ret structs.PreparedQueries
+	for wrapped := queries.Next(); wrapped != nil; wrapped = queries.Next() {
+		ret = append(ret, toPreparedQuery(wrapped))
+	}
+	return ret, nil
 }
 
 // PrepparedQuery is used when restoring from a snapshot. For general inserts,
 // use PreparedQuerySet.
 func (s *StateRestore) PreparedQuery(query *structs.PreparedQuery) error {
-	if err := s.tx.Insert("prepared-queries", query); err != nil {
-		return fmt.Errorf("failed restoring prepared query: %s", err)
+	// If this is a template, compile it, otherwise leave the compiled
+	// template field nil.
+	var ct *prepared_query.CompiledTemplate
+	if prepared_query.IsTemplate(query) {
+		var err error
+		ct, err = prepared_query.Compile(query)
+		if err != nil {
+			return fmt.Errorf("failed compiling template: %s", err)
+		}
 	}
 
+	// Insert the wrapped query.
+	if err := s.tx.Insert("prepared-queries", &queryWrapper{query, ct}); err != nil {
+		return fmt.Errorf("failed restoring prepared query: %s", err)
+	}
 	if err := indexUpdateMaxTxn(s.tx, query.ModifyIndex, "prepared-queries"); err != nil {
 		return fmt.Errorf("failed updating index: %s", err)
 	}
@@ -62,14 +95,15 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 	}
 
 	// Check for an existing query.
-	existing, err := tx.First("prepared-queries", "id", query.ID)
+	wrapped, err := tx.First("prepared-queries", "id", query.ID)
 	if err != nil {
 		return fmt.Errorf("failed prepared query lookup: %s", err)
 	}
+	existing := toPreparedQuery(wrapped)
 
 	// Set the indexes.
 	if existing != nil {
-		query.CreateIndex = existing.(*structs.PreparedQuery).CreateIndex
+		query.CreateIndex = existing.CreateIndex
 		query.ModifyIndex = idx
 	} else {
 		query.CreateIndex = idx
@@ -79,12 +113,12 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 	// Verify that the query name doesn't already exist, or that we are
 	// updating the same instance that has this name.
 	if query.Name != "" {
-		alias, err := tx.First("prepared-queries", "name", query.Name)
+		wrapped, err := tx.First("prepared-queries", "name", query.Name)
 		if err != nil {
 			return fmt.Errorf("failed prepared query lookup: %s", err)
 		}
-		if alias != nil && (existing == nil ||
-			existing.(*structs.PreparedQuery).ID != alias.(*structs.PreparedQuery).ID) {
+		other := toPreparedQuery(wrapped)
+		if other != nil && (existing == nil || existing.ID != other.ID) {
 			return fmt.Errorf("name '%s' aliases an existing query name", query.Name)
 		}
 	}
@@ -99,11 +133,11 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 	// index will complain if we look up something that's not formatted
 	// like one.
 	if isUUID(query.Name) {
-		alias, err := tx.First("prepared-queries", "id", query.Name)
+		wrapped, err := tx.First("prepared-queries", "id", query.Name)
 		if err != nil {
 			return fmt.Errorf("failed prepared query lookup: %s", err)
 		}
-		if alias != nil {
+		if wrapped != nil {
 			return fmt.Errorf("name '%s' aliases an existing query ID", query.Name)
 		}
 	}
@@ -123,8 +157,19 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 	// checked at execute time and not doing integrity checking on them
 	// helps avoid bootstrapping chicken and egg problems.
 
-	// Insert the query.
-	if err := tx.Insert("prepared-queries", query); err != nil {
+	// If this is a template, compile it, otherwise leave the compiled
+	// template field nil.
+	var ct *prepared_query.CompiledTemplate
+	if prepared_query.IsTemplate(query) {
+		var err error
+		ct, err = prepared_query.Compile(query)
+		if err != nil {
+			return fmt.Errorf("failed compiling template: %s", err)
+		}
+	}
+
+	// Insert the wrapped query.
+	if err := tx.Insert("prepared-queries", &queryWrapper{query, ct}); err != nil {
 		return fmt.Errorf("failed inserting prepared query: %s", err)
 	}
 	if err := tx.Insert("index", &IndexEntry{"prepared-queries", idx}); err != nil {
@@ -155,16 +200,16 @@ func (s *StateStore) PreparedQueryDelete(idx uint64, queryID string) error {
 func (s *StateStore) preparedQueryDeleteTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
 	queryID string) error {
 	// Pull the query.
-	query, err := tx.First("prepared-queries", "id", queryID)
+	wrapped, err := tx.First("prepared-queries", "id", queryID)
 	if err != nil {
 		return fmt.Errorf("failed prepared query lookup: %s", err)
 	}
-	if query == nil {
+	if wrapped == nil {
 		return nil
 	}
 
 	// Delete the query and update the index.
-	if err := tx.Delete("prepared-queries", query); err != nil {
+	if err := tx.Delete("prepared-queries", wrapped); err != nil {
 		return fmt.Errorf("failed prepared query delete: %s", err)
 	}
 	if err := tx.Insert("index", &IndexEntry{"prepared-queries", idx}); err != nil {
@@ -184,14 +229,11 @@ func (s *StateStore) PreparedQueryGet(queryID string) (uint64, *structs.Prepared
 	idx := maxIndexTxn(tx, s.getWatchTables("PreparedQueryGet")...)
 
 	// Look up the query by its ID.
-	query, err := tx.First("prepared-queries", "id", queryID)
+	wrapped, err := tx.First("prepared-queries", "id", queryID)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 	}
-	if query != nil {
-		return idx, query.(*structs.PreparedQuery), nil
-	}
-	return idx, nil, nil
+	return idx, toPreparedQuery(wrapped), nil
 }
 
 // PreparedQueryLookup returns the given prepared query by looking up an ID or
@@ -215,22 +257,22 @@ func (s *StateStore) PreparedQueryLookup(queryIDOrName string) (uint64, *structs
 	// format before trying this because the UUID index will complain if
 	// we look up something that's not formatted like one.
 	if isUUID(queryIDOrName) {
-		query, err := tx.First("prepared-queries", "id", queryIDOrName)
+		wrapped, err := tx.First("prepared-queries", "id", queryIDOrName)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 		}
-		if query != nil {
-			return idx, query.(*structs.PreparedQuery), nil
+		if wrapped != nil {
+			return idx, toPreparedQuery(wrapped), nil
 		}
 	}
 
 	// Then try by name.
-	query, err := tx.First("prepared-queries", "name", queryIDOrName)
+	wrapped, err := tx.First("prepared-queries", "name", queryIDOrName)
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 	}
-	if query != nil {
-		return idx, query.(*structs.PreparedQuery), nil
+	if wrapped != nil {
+		return idx, toPreparedQuery(wrapped), nil
 	}
 
 	return idx, nil, nil
@@ -252,8 +294,8 @@ func (s *StateStore) PreparedQueryList() (uint64, structs.PreparedQueries, error
 
 	// Go over all of the queries and build the response.
 	var result structs.PreparedQueries
-	for query := queries.Next(); query != nil; query = queries.Next() {
-		result = append(result, query.(*structs.PreparedQuery))
+	for wrapped := queries.Next(); wrapped != nil; wrapped = queries.Next() {
+		result = append(result, toPreparedQuery(wrapped))
 	}
 	return idx, result, nil
 }

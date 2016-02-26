@@ -610,9 +610,9 @@ func (s *consulSnapshot) persistPreparedQueries(sink raft.SnapshotSink,
 		return err
 	}
 
-	for query := queries.Next(); query != nil; query = queries.Next() {
+	for _, query := range queries {
 		sink.Write([]byte{byte(structs.PreparedQueryRequestType)})
-		if err := encoder.Encode(query.(*structs.PreparedQuery)); err != nil {
+		if err := encoder.Encode(query); err != nil {
 			return err
 		}
 	}

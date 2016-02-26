@@ -2151,15 +2151,14 @@ func (s *StateStore) deleteSessionTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 		return fmt.Errorf("failed prepared query lookup: %s", err)
 	}
 	{
-		var objs []interface{}
-		for query := queries.Next(); query != nil; query = queries.Next() {
-			objs = append(objs, query)
+		var ids []string
+		for wrapped := queries.Next(); wrapped != nil; wrapped = queries.Next() {
+			ids = append(ids, toPreparedQuery(wrapped).ID)
 		}
 
 		// Do the delete in a separate loop so we don't trash the iterator.
-		for _, obj := range objs {
-			q := obj.(*structs.PreparedQuery)
-			if err := s.preparedQueryDeleteTxn(tx, idx, watches, q.ID); err != nil {
+		for _, id := range ids {
+			if err := s.preparedQueryDeleteTxn(tx, idx, watches, id); err != nil {
 				return fmt.Errorf("failed prepared query delete: %s", err)
 			}
 		}

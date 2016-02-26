@@ -530,7 +530,7 @@ func TestPreparedQuery_parseQuery(t *testing.T) {
 	query := &structs.PreparedQuery{}
 
 	err := parseQuery(query)
-	if err == nil || !strings.Contains(err.Error(), "Must provide a service") {
+	if err == nil || !strings.Contains(err.Error(), "Must provide a Service") {
 		t.Fatalf("bad: %v", err)
 	}
 
@@ -1908,6 +1908,11 @@ func TestPreparedQuery_tagFilter(t *testing.T) {
 
 	ret = stringify(tagFilter([]string{"bAr"}, testNodes()))
 	if ret != "node2|node6" {
+		t.Fatalf("bad: %s", ret)
+	}
+
+	ret = stringify(tagFilter([]string{""}, testNodes()))
+	if ret != "" {
 		t.Fatalf("bad: %s", ret)
 	}
 }

@@ -581,13 +581,9 @@ func TestStateStore_PreparedQuery_Snapshot_Restore(t *testing.T) {
 			},
 		},
 	}
-	iter, err := snap.PreparedQueries()
+	dump, err := snap.PreparedQueries()
 	if err != nil {
 		t.Fatalf("err: %s", err)
-	}
-	var dump structs.PreparedQueries
-	for query := iter.Next(); query != nil; query = iter.Next() {
-		dump = append(dump, query.(*structs.PreparedQuery))
 	}
 	if !reflect.DeepEqual(dump, expected) {
 		t.Fatalf("bad: %v", dump)
