@@ -711,12 +711,70 @@ func TestPreparedQuery_Get(t *testing.T) {
 
 	// Try again with no token, this should work since this query is only
 	// managed by an ID (no name) so no ACLs apply to it.
-	query.Query.ID = reply
 	{
 		req := &structs.PreparedQuerySpecificRequest{
 			Datacenter:   "dc1",
 			QueryID:      query.Query.ID,
 			QueryOptions: structs.QueryOptions{Token: ""},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Queries[0]
+		if resp.Index != actual.ModifyIndex {
+			t.Fatalf("bad index: %d", resp.Index)
+		}
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Capture a token.
+	query.Op = structs.PreparedQueryUpdate
+	query.Query.Token = "le-token"
+	if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// This should get redacted when we read it back without a token.
+	query.Query.Token = redactedToken
+	{
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: ""},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Queries[0]
+		if resp.Index != actual.ModifyIndex {
+			t.Fatalf("bad index: %d", resp.Index)
+		}
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// But a management token should be able to see it.
+	query.Query.Token = "le-token"
+	{
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: "root"},
 		}
 		var resp structs.IndexedPreparedQueries
 		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
@@ -814,7 +872,8 @@ func TestPreparedQuery_List(t *testing.T) {
 		Datacenter: "dc1",
 		Op:         structs.PreparedQueryCreate,
 		Query: &structs.PreparedQuery{
-			Name: "redis-master",
+			Name:  "redis-master",
+			Token: "le-token",
 			Service: structs.ServiceQuery{
 				Service: "the-redis",
 			},
@@ -826,8 +885,10 @@ func TestPreparedQuery_List(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Capture the ID and read back the query to verify.
+	// Capture the ID and read back the query to verify. We also make sure
+	// the captured token gets redacted.
 	query.Query.ID = reply
+	query.Query.Token = redactedToken
 	{
 		req := &structs.DCSpecificRequest{
 			Datacenter:   "dc1",
@@ -868,7 +929,9 @@ func TestPreparedQuery_List(t *testing.T) {
 		}
 	}
 
-	// But a management token should work.
+	// But a management token should work, and be able to see the captured
+	// token.
+	query.Query.Token = "le-token"
 	{
 		req := &structs.DCSpecificRequest{
 			Datacenter:   "dc1",

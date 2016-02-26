@@ -862,6 +862,44 @@ func TestACL_filterNodeDump(t *testing.T) {
 	}
 }
 
+func TestACL_redactPreparedQueryTokens(t *testing.T) {
+	query := &structs.PreparedQuery{
+		ID:    "f004177f-2c28-83b7-4229-eacc25fe55d1",
+		Token: "root",
+	}
+
+	expected := &structs.PreparedQuery{
+		ID:    "f004177f-2c28-83b7-4229-eacc25fe55d1",
+		Token: "root",
+	}
+
+	// Try permissive filtering with a management token. This will allow the
+	// embedded token to be seen.
+	filt := newAclFilter(acl.ManageAll(), nil)
+	filt.redactPreparedQueryTokens(&query)
+	if !reflect.DeepEqual(query, expected) {
+		t.Fatalf("bad: %#v", &query)
+	}
+
+	// Hang on to the entry with a token, which needs to survive the next
+	// operation.
+	original := query
+
+	// Now try permissive filtering with a client token, which should cause
+	// the embedded token to get redacted.
+	filt = newAclFilter(acl.AllowAll(), nil)
+	filt.redactPreparedQueryTokens(&query)
+	expected.Token = redactedToken
+	if !reflect.DeepEqual(query, expected) {
+		t.Fatalf("bad: %#v", *query)
+	}
+
+	// Make sure that the original object didn't lose its token.
+	if original.Token != "root" {
+		t.Fatalf("bad token: %s", original.Token)
+	}
+}
+
 func TestACL_filterPreparedQueries(t *testing.T) {
 	queries := structs.PreparedQueries{
 		&structs.PreparedQuery{

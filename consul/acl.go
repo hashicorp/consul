@@ -370,14 +370,37 @@ func (f *aclFilter) filterNodeDump(dump *structs.NodeDump) {
 	*dump = nd
 }
 
+// redactPreparedQueryTokens will redact any tokens unless the client has a
+// management token. This eases the transition to delegated authority over
+// prepared queries, since it was easy to capture management tokens in Consul
+// 0.6.3 and earlier, and we don't want to willy-nilly show those. This does
+// have the limitation of preventing delegated non-management users from seeing
+// captured tokens, but they can at least see whether or not a token is set.
+func (f *aclFilter) redactPreparedQueryTokens(query **structs.PreparedQuery) {
+	// Management tokens can see everything with no filtering.
+	if f.acl.ACLList() {
+		return
+	}
+
+	// Let the user see if there's a blank token, otherwise we need
+	// to redact it, since we know they don't have a management
+	// token.
+	if (*query).Token != "" {
+		// Redact the token, using a copy of the query structure
+		// since we could be pointed at a live instance from the
+		// state store so it's not safe to modify it. Note that
+		// this clone will still point to things like underlying
+		// arrays in the original, but for modifying just the
+		// token it will be safe to use.
+		clone := *(*query)
+		clone.Token = redactedToken
+		*query = &clone
+	}
+}
+
 // filterPreparedQueries is used to filter prepared queries based on ACL rules.
 // We prune entries the user doesn't have access to, and we redact any tokens
-// unless the client has a management token. This eases the transition to
-// delegated authority over prepared queries, since it was easy to capture
-// management tokens in Consul 0.6.3 and earlier, and we don't want to
-// willy-nilly show those. This does have the limitation of preventing delegated
-// non-management users from seeing captured tokens, but they can at least see
-// that they are set.
+// if the user doesn't have a management token.
 func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
 	// Management tokens can see everything with no filtering.
 	if f.acl.ACLList() {
@@ -396,22 +419,11 @@ func (f *aclFilter) filterPreparedQueries(queries *structs.PreparedQueries) {
 			continue
 		}
 
-		// Let the user see if there's a blank token, otherwise we need
-		// to redact it, since we know they don't have a management
-		// token.
-		if query.Token == "" {
-			ret = append(ret, query)
-		} else {
-			// Redact the token, using a copy of the query structure
-			// since we could be pointed at a live instance from the
-			// state store so it's not safe to modify it. Note that
-			// this clone will still point to things like underlying
-			// arrays in the original, but for modifying just the
-			// token it will be safe to use.
-			clone := *query
-			clone.Token = redactedToken
-			ret = append(ret, &clone)
-		}
+		// Redact any tokens if necessary. We make a copy of just the
+		// pointer so we don't mess with the caller's slice.
+		final := query
+		f.redactPreparedQueryTokens(&final)
+		ret = append(ret, final)
 	}
 	*queries = ret
 }
@@ -460,6 +472,9 @@ func (s *Server) filterACL(token string, subj interface{}) error {
 
 	case *structs.IndexedPreparedQueries:
 		filt.filterPreparedQueries(&v.Queries)
+
+	case **structs.PreparedQuery:
+		filt.redactPreparedQueryTokens(v)
 
 	default:
 		panic(fmt.Errorf("Unhandled type passed to ACL filter: %#v", subj))
