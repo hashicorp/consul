@@ -33,6 +33,18 @@ func toPreparedQuery(wrapped interface{}) *structs.PreparedQuery {
 	return wrapped.(*queryWrapper).PreparedQuery
 }
 
+// isQueryWild returns the wild-ness of a query. See isWild for details.
+func isQueryWild(query *structs.PreparedQuery) bool {
+	return query != nil && prepared_query.IsTemplate(query) && query.Name == ""
+}
+
+// isWrappedWild is used to determine if the given wrapped query is a wild one,
+// which means it has an empty Name and it's a template. See the comments for
+// "wild" in schema.go for more details and to see where this is used.
+func isWrappedWild(obj interface{}) (bool, error) {
+	return isQueryWild(toPreparedQuery(obj)), nil
+}
+
 // PreparedQueries is used to pull all the prepared queries from the snapshot.
 func (s *StateSnapshot) PreparedQueries() (structs.PreparedQueries, error) {
 	queries, err := s.tx.Get("prepared-queries", "id")
@@ -120,6 +132,19 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 		other := toPreparedQuery(wrapped)
 		if other != nil && (existing == nil || existing.ID != other.ID) {
 			return fmt.Errorf("name '%s' aliases an existing query name", query.Name)
+		}
+	}
+
+	// Similarly, if this is the wild query make sure there isn't another
+	// one, or that we are updating the same one.
+	if isQueryWild(query) {
+		wrapped, err := tx.First("prepared-queries", "wild", true)
+		if err != nil {
+			return fmt.Errorf("failed prepared query lookup: %s", err)
+		}
+		other := toPreparedQuery(wrapped)
+		if other != nil && (existing == nil || existing.ID != other.ID) {
+			return fmt.Errorf("a prepared query template already exists with an empty name")
 		}
 	}
 
@@ -238,7 +263,7 @@ func (s *StateStore) PreparedQueryGet(queryID string) (uint64, *structs.Prepared
 
 // PreparedQueryLookup returns the given prepared query by looking up an ID or
 // Name.
-func (s *StateStore) PreparedQueryLookup(queryIDOrName string) (uint64, *structs.PreparedQuery, error) {
+func (s *StateStore) PreparedQueryLookup(queryIDOrName string) (uint64, *structs.PreparedQuery, *prepared_query.CompiledTemplate, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -250,7 +275,7 @@ func (s *StateStore) PreparedQueryLookup(queryIDOrName string) (uint64, *structs
 	// but we check it here to be explicit about it (we'd never want to
 	// return the results from the first query w/o a name).
 	if queryIDOrName == "" {
-		return 0, nil, ErrMissingQueryID
+		return 0, nil, nil, ErrMissingQueryID
 	}
 
 	// Try first by ID if it looks like they gave us an ID. We check the
@@ -259,23 +284,46 @@ func (s *StateStore) PreparedQueryLookup(queryIDOrName string) (uint64, *structs
 	if isUUID(queryIDOrName) {
 		wrapped, err := tx.First("prepared-queries", "id", queryIDOrName)
 		if err != nil {
-			return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
+			return 0, nil, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 		}
 		if wrapped != nil {
-			return idx, toPreparedQuery(wrapped), nil
+			wrapper := wrapped.(*queryWrapper)
+			return idx, wrapper.PreparedQuery, wrapper.ct, nil
 		}
 	}
 
-	// Then try by name.
-	wrapped, err := tx.First("prepared-queries", "name", queryIDOrName)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
-	}
-	if wrapped != nil {
-		return idx, toPreparedQuery(wrapped), nil
+	// Then try by name. We use a prefix match but check to make sure that
+	// the query's name matches the whole prefix for a non-template query.
+	// Templates are allowed to use the partial match. It's more efficient
+	// to combine the two lookups here, even though the logic is a little
+	// less clear.
+	{
+		wrapped, err := tx.First("prepared-queries", "name_prefix", queryIDOrName)
+		if err != nil {
+			return 0, nil, nil, fmt.Errorf("failed prepared query lookup: %s", err)
+		}
+		if wrapped != nil {
+			wrapper := wrapped.(*queryWrapper)
+			query, ct := wrapper.PreparedQuery, wrapper.ct
+			if query.Name == queryIDOrName || prepared_query.IsTemplate(query) {
+				return idx, query, ct, nil
+			}
+		}
 	}
 
-	return idx, nil, nil
+	// Finally, see if there's a wild template we can use.
+	{
+		wrapped, err := tx.First("prepared-queries", "wild", true)
+		if err != nil {
+			return 0, nil, nil, fmt.Errorf("failed prepared query lookup: %s", err)
+		}
+		if wrapped != nil {
+			wrapper := wrapped.(*queryWrapper)
+			return idx, wrapper.PreparedQuery, wrapper.ct, nil
+		}
+	}
+
+	return idx, nil, nil, nil
 }
 
 // PreparedQueryList returns all the prepared queries.

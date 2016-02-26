@@ -336,7 +336,7 @@ func TestStateStore_PreparedQueryLookup(t *testing.T) {
 
 	// Try to lookup a query that's not there using something that looks
 	// like a real ID.
-	idx, actual, err := s.PreparedQueryLookup(query.ID)
+	idx, actual, _, err := s.PreparedQueryLookup(query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -349,7 +349,7 @@ func TestStateStore_PreparedQueryLookup(t *testing.T) {
 
 	// Try to lookup a query that's not there using something that looks
 	// like a name
-	idx, actual, err = s.PreparedQueryLookup(query.Name)
+	idx, actual, _, err = s.PreparedQueryLookup(query.Name)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -382,7 +382,7 @@ func TestStateStore_PreparedQueryLookup(t *testing.T) {
 			ModifyIndex: 3,
 		},
 	}
-	idx, actual, err = s.PreparedQueryLookup(query.ID)
+	idx, actual, _, err = s.PreparedQueryLookup(query.ID)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -394,7 +394,7 @@ func TestStateStore_PreparedQueryLookup(t *testing.T) {
 	}
 
 	// Read it back using the name and verify it again.
-	idx, actual, err = s.PreparedQueryLookup(query.Name)
+	idx, actual, _, err = s.PreparedQueryLookup(query.Name)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -407,7 +407,7 @@ func TestStateStore_PreparedQueryLookup(t *testing.T) {
 
 	// Make sure an empty lookup is well-behaved if there are actual queries
 	// in the state store.
-	idx, actual, err = s.PreparedQueryLookup("")
+	idx, actual, _, err = s.PreparedQueryLookup("")
 	if err != ErrMissingQueryID {
 		t.Fatalf("bad: %v ", err)
 	}

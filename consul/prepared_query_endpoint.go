@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/consul/prepared_query"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-uuid"
 )
@@ -289,12 +290,24 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 
 	// Try to locate the query.
 	state := p.srv.fsm.State()
-	_, query, err := state.PreparedQueryLookup(args.QueryIDOrName)
+	_, query, ct, err := state.PreparedQueryLookup(args.QueryIDOrName)
 	if err != nil {
 		return err
 	}
 	if query == nil {
 		return ErrQueryNotFound
+	}
+
+	// If this is a template then render the query first.
+	if prepared_query.IsTemplate(query) {
+		if ct == nil {
+			return fmt.Errorf("Missing compiled template")
+		}
+		render, err := ct.Render(args.QueryIDOrName)
+		if err != nil {
+			return err
+		}
+		query = render
 	}
 
 	// Execute the query for the local DC.
