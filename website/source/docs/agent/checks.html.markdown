@@ -22,6 +22,9 @@ There are five different kinds of checks:
   generates some output. A script is paired with an invocation interval (e.g.
   every 30 seconds). This is similar to the Nagios plugin system. The output of
   a script check is limited to 4K. Output larger than this will be truncated.
+  By default, Script checks will be configured with a timeout equal to 30 seconds.
+  It is possible to configure a custom Script check timeout value by specifying the 
+  `timeout` field in the check definition.
 
 * HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
   every 30 seconds) to the specified URL. The status of the service depends on the HTTP response code:
@@ -83,7 +86,8 @@ A script check:
     "id": "mem-util",
     "name": "Memory utilization",
     "script": "/usr/local/bin/check_mem.py",
-    "interval": "10s"
+    "interval": "10s",
+    "timeout": "1s"
   }
 }
 ```
