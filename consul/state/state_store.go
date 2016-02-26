@@ -413,7 +413,7 @@ func (s *StateStore) getWatchTables(method string) []string {
 		return []string{"acls"}
 	case "Coordinates":
 		return []string{"coordinates"}
-	case "PreparedQueryGet", "PreparedQueryLookup", "PreparedQueryList":
+	case "PreparedQueryGet", "PreparedQueryResolve", "PreparedQueryList":
 		return []string{"prepared-queries"}
 	}
 

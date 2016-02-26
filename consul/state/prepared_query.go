@@ -261,21 +261,22 @@ func (s *StateStore) PreparedQueryGet(queryID string) (uint64, *structs.Prepared
 	return idx, toPreparedQuery(wrapped), nil
 }
 
-// PreparedQueryLookup returns the given prepared query by looking up an ID or
-// Name.
-func (s *StateStore) PreparedQueryLookup(queryIDOrName string) (uint64, *structs.PreparedQuery, *prepared_query.CompiledTemplate, error) {
+// PreparedQueryResolve returns the given prepared query by looking up an ID or
+// Name. If the query was looked up by name and it's a template, then the
+// template will be rendered before it is returned.
+func (s *StateStore) PreparedQueryResolve(queryIDOrName string) (uint64, *structs.PreparedQuery, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
 	// Get the table index.
-	idx := maxIndexTxn(tx, s.getWatchTables("PreparedQueryLookup")...)
+	idx := maxIndexTxn(tx, s.getWatchTables("PreparedQueryResolve")...)
 
 	// Explicitly ban an empty query. This will never match an ID and the
 	// schema is set up so it will never match a query with an empty name,
 	// but we check it here to be explicit about it (we'd never want to
 	// return the results from the first query w/o a name).
 	if queryIDOrName == "" {
-		return 0, nil, nil, ErrMissingQueryID
+		return 0, nil, ErrMissingQueryID
 	}
 
 	// Try first by ID if it looks like they gave us an ID. We check the
@@ -284,11 +285,29 @@ func (s *StateStore) PreparedQueryLookup(queryIDOrName string) (uint64, *structs
 	if isUUID(queryIDOrName) {
 		wrapped, err := tx.First("prepared-queries", "id", queryIDOrName)
 		if err != nil {
-			return 0, nil, nil, fmt.Errorf("failed prepared query lookup: %s", err)
+			return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 		}
 		if wrapped != nil {
-			wrapper := wrapped.(*queryWrapper)
-			return idx, wrapper.PreparedQuery, wrapper.ct, nil
+			query := toPreparedQuery(wrapped)
+			if prepared_query.IsTemplate(query) {
+				return idx, nil, fmt.Errorf("prepared query templates can only be resolved up by name, not by ID")
+			}
+			return idx, query, nil
+		}
+	}
+
+	// prep will check to see if the query is a template and render it
+	// first, otherwise it will just return a regular query.
+	prep := func(wrapped interface{}) (uint64, *structs.PreparedQuery, error) {
+		wrapper := wrapped.(*queryWrapper)
+		if prepared_query.IsTemplate(wrapper.PreparedQuery) {
+			render, err := wrapper.ct.Render(queryIDOrName)
+			if err != nil {
+				return idx, nil, err
+			}
+			return idx, render, nil
+		} else {
+			return idx, wrapper.PreparedQuery, nil
 		}
 	}
 
@@ -300,13 +319,12 @@ func (s *StateStore) PreparedQueryLookup(queryIDOrName string) (uint64, *structs
 	{
 		wrapped, err := tx.First("prepared-queries", "name_prefix", queryIDOrName)
 		if err != nil {
-			return 0, nil, nil, fmt.Errorf("failed prepared query lookup: %s", err)
+			return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 		}
 		if wrapped != nil {
-			wrapper := wrapped.(*queryWrapper)
-			query, ct := wrapper.PreparedQuery, wrapper.ct
+			query := toPreparedQuery(wrapped)
 			if query.Name == queryIDOrName || prepared_query.IsTemplate(query) {
-				return idx, query, ct, nil
+				return prep(wrapped)
 			}
 		}
 	}
@@ -315,15 +333,14 @@ func (s *StateStore) PreparedQueryLookup(queryIDOrName string) (uint64, *structs
 	{
 		wrapped, err := tx.First("prepared-queries", "wild", true)
 		if err != nil {
-			return 0, nil, nil, fmt.Errorf("failed prepared query lookup: %s", err)
+			return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 		}
 		if wrapped != nil {
-			wrapper := wrapped.(*queryWrapper)
-			return idx, wrapper.PreparedQuery, wrapper.ct, nil
+			return prep(wrapped)
 		}
 	}
 
-	return idx, nil, nil, nil
+	return idx, nil, nil
 }
 
 // PreparedQueryList returns all the prepared queries.

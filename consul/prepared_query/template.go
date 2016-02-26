@@ -86,6 +86,11 @@ func Compile(query *structs.PreparedQuery) (*CompiledTemplate, error) {
 // example, if the user looks up foobar.query.consul via DNS then we will call
 // this function with "foobar" on the compiled template.
 func (ct *CompiledTemplate) Render(name string) (*structs.PreparedQuery, error) {
+	// Make it "safe" to render a default structure.
+	if ct == nil {
+		return nil, fmt.Errorf("Cannot render an uncompiled template")
+	}
+
 	// Start with a fresh, detached copy of the original so we don't disturb
 	// the prototype.
 	dup, err := copystructure.Copy(ct.query)
