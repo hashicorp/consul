@@ -968,6 +968,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 				CheckID:  check.CheckID,
 				Script:   chkType.Script,
 				Interval: chkType.Interval,
+				Timeout:  chkType.Timeout,
 				Logger:   a.logger,
 				ReapLock: &a.reapLock,
 			}
