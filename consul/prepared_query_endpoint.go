@@ -219,11 +219,12 @@ func (p *PreparedQuery) Get(args *structs.PreparedQuerySpecificRequest,
 			}
 
 			// If no prefix ACL applies to this query, then they are
-			// always allowed to see it if they have the ID.
+			// always allowed to see it if they have the ID. We still
+			// have to filter the remaining object for tokens.
 			reply.Index = index
 			reply.Queries = structs.PreparedQueries{query}
 			if _, ok := query.GetACLPrefix(); !ok {
-				return nil
+				return p.srv.filterACL(args.Token, &reply.Queries[0])
 			}
 
 			// Otherwise, attempt to filter it the usual way.
