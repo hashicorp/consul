@@ -60,7 +60,7 @@ func Compile(query *structs.PreparedQuery) (*CompiledTemplate, error) {
 	parse := func(path string, v reflect.Value) error {
 		tree, err := hil.Parse(v.String())
 		if err != nil {
-			return fmt.Errorf("Bad Service%s field with contents '%s': %s", path, v.String(), err)
+			return fmt.Errorf("Bad format '%s' in Service%s: %s", v.String(), path, err)
 		}
 
 		ct.trees[path] = tree
@@ -77,6 +77,15 @@ func Compile(query *structs.PreparedQuery) (*CompiledTemplate, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Bad Regexp: %s", err)
 		}
+	}
+
+	// Finally do a test render with the supplied name prefix. This will
+	// help catch errors before run time, and this is the most minimal
+	// prefix it will be expected to run with. The results might not make
+	// sense and create a valid service to lookup, but it should render
+	// without any errors.
+	if _, err = ct.Render(ct.query.Name); err != nil {
+		return nil, err
 	}
 
 	return ct, nil
@@ -107,7 +116,8 @@ func (ct *CompiledTemplate) Render(name string) (*structs.PreparedQuery, error) 
 	// from multiple goroutines.
 	var matches []string
 	if ct.re != nil {
-		matches = ct.re.Copy().FindStringSubmatch(name)
+		re := ct.re.Copy()
+		matches = re.FindStringSubmatch(name)
 	}
 
 	// Create a safe match function that can't fail at run time. It will
@@ -159,10 +169,10 @@ func (ct *CompiledTemplate) Render(name string) (*structs.PreparedQuery, error) 
 
 		hv, ht, err := hil.Eval(tree, config)
 		if err != nil {
-			return err
+			return fmt.Errorf("Bad evaluation for '%s' in Service%s: %s", v.String(), path, err)
 		}
 		if ht != ast.TypeString {
-			return fmt.Errorf("Expected Service%s filed to be a string, got %s", path, ht)
+			return fmt.Errorf("Expected Service%s field to be a string, got %s", path, ht)
 		}
 
 		v.SetString(hv.(string))
