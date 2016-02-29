@@ -346,7 +346,7 @@ func (c *LockCommand) startChild(script string, doneCh chan struct{}, passStdin 
 		c.Ui.Info(fmt.Sprintf("Starting handler '%s'", script))
 	}
 	// Create the command
-	cmd, err := agent.ExecScript(script)
+	cmd, err := agent.ExecScript(script, "")
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error executing handler: %s", err))
 		return err
