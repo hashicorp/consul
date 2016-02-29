@@ -737,12 +737,6 @@ func makeChroot(rootDir string, entries map[string]string) error {
 				continue
 			}
 
-			// Check if entry exists. This can happen if restarting a failed
-			// task.
-			if _, err := os.Lstat(taskEntry); err == nil {
-				continue
-			}
-
 			if !entry.Mode().IsRegular() {
 				// If it is a symlink we can create it, otherwise we skip it.
 				if entry.Mode()&os.ModeSymlink == 0 {
