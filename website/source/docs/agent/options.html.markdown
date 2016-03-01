@@ -288,10 +288,10 @@ definitions support being updated during a reload.
 
 ```javascript
 {
-  "datacenter": "us-cenrtal1",
+  "datacenter": "east-aws",
   "data_dir": "/opt/consul",
   "log_level": "INFO",
-  "node_name": "barfoo",
+  "node_name": "foobar",
   "server": true,
   "addresses": {
     "https": "0.0.0.0"
@@ -366,30 +366,31 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   Both `rpc` and `http` support binding to Unix domain sockets. A socket can be
   specified in the form `unix:///path/to/socket`. A new domain socket will be
   created at the given path. If the specified file path already exists, Consul
-  will attempt to clear the file and create the domain socket in its place.
-  <br><br>
-  The permissions of the socket file are tunable via the [`unix_sockets` config
-  construct](#unix_sockets).
+  will attempt to clear the file and create the domain socket in its place. The
+  permissions of the socket file are tunable via the [`unix_sockets` config construct](#unix_sockets).
   <br><br>
   When running Consul agent commands against Unix socket interfaces, use the
   `-rpc-addr` or `-http-addr` arguments to specify the path to the socket. You
   can also place the desired values in `CONSUL_RPC_ADDR` and `CONSUL_HTTP_ADDR`
-  environment variables. For TCP addresses, these should simply be an IP address
-  without the port. For example: `10.0.0.1`, not `10.0.0.1:8500`.
+  environment variables.
+  <br><br>
+  For TCP addresses, these should simply be an IP address without the port. For
+  example: `10.0.0.1`, not `10.0.0.1:8500`. Ports are set separately in the
+  <a href="#ports">`ports`</a> structure.
   <br><br>
   The following keys are valid:
   * `dns` - The DNS server. Defaults to `client_addr`
   * `http` - The HTTP API. Defaults to `client_addr`
   * `https` - The HTTPS API. Defaults to `client_addr`
   * `rpc` - The RPC endpoint. Defaults to `client_addr`
-  
 * <a name="advertise_addr"></a><a href="#advertise_addr">`advertise_addr`</a> Equivalent to
   the [`-advertise` command-line flag](#_advertise).
 
 * <a name="advertise_addrs"></a><a href="#advertise_addrs">`advertise_addrs`</a> Allows to set
   the advertised addresses for SerfLan, SerfWan and RPC together with the port. This gives
-  you more control than (#_advertise) or (#_advertise-wan) while it serves the same purpose.
-  These settings might override (#_advertise) and (#_advertise-wan).
+  you more control than <a href="#_advertise">`-advertise`</a> or <a href="#_advertise-wan">`-advertise-wan`</a>
+  while it serves the same purpose. These settings might override <a href="#_advertise">`-advertise`</a> or
+  <a href="#_advertise-wan">`-advertise-wan`</a>
   <br><br>
   This is a nested setting that allows the following keys:
   * `serf_lan` - The SerfLan address. Accepts values in the form of "host:port" like "10.23.31.101:8301".
