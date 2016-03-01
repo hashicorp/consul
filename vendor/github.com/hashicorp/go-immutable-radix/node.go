@@ -41,8 +41,15 @@ func (n *Node) isLeaf() bool {
 }
 
 func (n *Node) addEdge(e edge) {
+	num := len(n.edges)
+	idx := sort.Search(num, func(i int) bool {
+		return n.edges[i].label >= e.label
+	})
 	n.edges = append(n.edges, e)
-	n.edges.Sort()
+	if idx != num {
+		copy(n.edges[idx+1:], n.edges[idx:num])
+		n.edges[idx] = e
+	}
 }
 
 func (n *Node) replaceEdge(e edge) {

@@ -1,8 +1,11 @@
 package memdb
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
+	"sync/atomic"
+	"unsafe"
 
 	"github.com/hashicorp/go-immutable-radix"
 )
@@ -10,6 +13,7 @@ import (
 const (
 	id = "id"
 )
+
 // tableIndex is a tuple of (Table, Index) used for lookups
 type tableIndex struct {
 	Table string
@@ -113,7 +117,8 @@ func (txn *Txn) Commit() {
 	}
 
 	// Update the root of the DB
-	txn.db.root = txn.rootTxn.Commit()
+	newRoot := txn.rootTxn.Commit()
+	atomic.StorePointer(&txn.db.root, unsafe.Pointer(newRoot))
 
 	// Clear the txn
 	txn.rootTxn = nil
@@ -161,28 +166,44 @@ func (txn *Txn) Insert(table string, obj interface{}) error {
 	for name, indexSchema := range tableSchema.Indexes {
 		indexTxn := txn.writableIndex(table, name)
 
-		// Handle the update by deleting from the index first
-		if update {
-			ok, val, err := indexSchema.Indexer.FromObject(existing)
-			if err != nil {
-				return fmt.Errorf("failed to build index '%s': %v", name, err)
-			}
-			if ok {
-				// Handle non-unique index by computing a unique index.
-				// This is done by appending the primary key which must
-				// be unique anyways.
-				if !indexSchema.Unique {
-					val = append(val, idVal...)
-				}
-				indexTxn.Delete(val)
-			}
-		}
-
-		// Handle the insert after the update
+		// Determine the new index value
 		ok, val, err := indexSchema.Indexer.FromObject(obj)
 		if err != nil {
 			return fmt.Errorf("failed to build index '%s': %v", name, err)
 		}
+
+		// Handle non-unique index by computing a unique index.
+		// This is done by appending the primary key which must
+		// be unique anyways.
+		if ok && !indexSchema.Unique {
+			val = append(val, idVal...)
+		}
+
+		// Handle the update by deleting from the index first
+		if update {
+			okExist, valExist, err := indexSchema.Indexer.FromObject(existing)
+			if err != nil {
+				return fmt.Errorf("failed to build index '%s': %v", name, err)
+			}
+			if okExist {
+				// Handle non-unique index by computing a unique index.
+				// This is done by appending the primary key which must
+				// be unique anyways.
+				if !indexSchema.Unique {
+					valExist = append(valExist, idVal...)
+				}
+
+				// If we are writing to the same index with the same value,
+				// we can avoid the delete as the insert will overwrite the
+				// value anyways.
+				if !bytes.Equal(valExist, val) {
+					indexTxn.Delete(valExist)
+				}
+			}
+		}
+
+		// If there is no index value, either this is an error or an expected
+		// case and we can skip updating
 		if !ok {
 			if indexSchema.AllowMissing {
 				continue
@@ -191,12 +212,7 @@ func (txn *Txn) Insert(table string, obj interface{}) error {
 			}
 		}
 
-		// Handle non-unique index by computing a unique index.
-		// This is done by appending the primary key which must
-		// be unique anyways.
-		if !indexSchema.Unique {
-			val = append(val, idVal...)
-		}
+		// Update the value of the index
 		indexTxn.Insert(val, obj)
 	}
 	return nil
@@ -281,7 +297,7 @@ func (txn *Txn) DeleteAll(table, index string, args ...interface{}) (int, error)
 
 	// Do the deletes
 	num := 0
-	for _, obj := range(objs) {
+	for _, obj := range objs {
 		if err := txn.Delete(table, obj); err != nil {
 			return num, err
 		}
@@ -316,6 +332,39 @@ func (txn *Txn) First(table, index string, args ...interface{}) (interface{}, er
 	iter.SeekPrefix(val)
 	_, value, _ := iter.Next()
 	return value, nil
+}
+
+// LongestPrefix is used to fetch the longest prefix match for the given
+// constraints on the index. Note that this will not work with the memdb
+// StringFieldIndex because it adds null terminators which prevent the
+// algorithm from correctly finding a match (it will get to right before the
+// null and fail to find a leaf node). This should only be used where the prefix
+// given is capable of matching indexed entries directly, which typically only
+// applies to a custom indexer. See the unit test for an example.
+func (txn *Txn) LongestPrefix(table, index string, args ...interface{}) (interface{}, error) {
+	// Enforce that this only works on prefix indexes.
+	if !strings.HasSuffix(index, "_prefix") {
+		return nil, fmt.Errorf("must use '%s_prefix' on index", index)
+	}
+
+	// Get the index value.
+	indexSchema, val, err := txn.getIndexValue(table, index, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	// This algorithm only makes sense against a unique index, otherwise the
+	// index keys will have the IDs appended to them.
+	if !indexSchema.Unique {
+		return nil, fmt.Errorf("index '%s' is not unique", index)
+	}
+
+	// Find the longest prefix match with the given index.
+	indexTxn := txn.readableIndex(table, indexSchema.Name)
+	if _, value, ok := indexTxn.Root().LongestPrefix(val); ok {
+		return value, nil
+	}
+	return nil, nil
 }
 
 // getIndexValue is used to get the IndexSchema and the value

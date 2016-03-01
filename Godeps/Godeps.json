@@ -121,11 +121,11 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-immutable-radix",
-			"Rev": "12e90058b2897552deea141eff51bb7a07a09e63"
+			"Rev": "8e8ed81f8f0bf1bdd829593fdd5c29922c1ea990"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-memdb",
-			"Rev": "31949d523ade8a236956c6f1761e9dcf902d1638"
+			"Rev": "98f52f52d7a476958fa9da671354d270c50661a7"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-msgpack/codec",

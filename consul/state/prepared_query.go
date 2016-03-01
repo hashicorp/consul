@@ -33,18 +33,6 @@ func toPreparedQuery(wrapped interface{}) *structs.PreparedQuery {
 	return wrapped.(*queryWrapper).PreparedQuery
 }
 
-// isQueryWild returns the wild-ness of a query. See isWild for details.
-func isQueryWild(query *structs.PreparedQuery) bool {
-	return query != nil && prepared_query.IsTemplate(query) && query.Name == ""
-}
-
-// isWrappedWild is used to determine if the given wrapped query is a wild one,
-// which means it has an empty Name and it's a template. See the comments for
-// "wild" in schema.go for more details and to see where this is used.
-func isWrappedWild(obj interface{}) (bool, error) {
-	return isQueryWild(toPreparedQuery(obj)), nil
-}
-
 // PreparedQueries is used to pull all the prepared queries from the snapshot.
 func (s *StateSnapshot) PreparedQueries() (structs.PreparedQueries, error) {
 	queries, err := s.tx.Get("prepared-queries", "id")
@@ -123,7 +111,9 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 	}
 
 	// Verify that the query name doesn't already exist, or that we are
-	// updating the same instance that has this name.
+	// updating the same instance that has this name. If this is a template
+	// and the name is empty then we make sure there's not an empty template
+	// already registered.
 	if query.Name != "" {
 		wrapped, err := tx.First("prepared-queries", "name", query.Name)
 		if err != nil {
@@ -133,18 +123,14 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 		if other != nil && (existing == nil || existing.ID != other.ID) {
 			return fmt.Errorf("name '%s' aliases an existing query name", query.Name)
 		}
-	}
-
-	// Similarly, if this is the wild query make sure there isn't another
-	// one, or that we are updating the same one.
-	if isQueryWild(query) {
-		wrapped, err := tx.First("prepared-queries", "wild", true)
+	} else if prepared_query.IsTemplate(query) {
+		wrapped, err := tx.First("prepared-queries", "template", query.Name)
 		if err != nil {
 			return fmt.Errorf("failed prepared query lookup: %s", err)
 		}
 		other := toPreparedQuery(wrapped)
 		if other != nil && (existing == nil || existing.ID != other.ID) {
-			return fmt.Errorf("a prepared query template already exists with an empty name")
+			return fmt.Errorf("name '%s' aliases an existing query template name", query.Name)
 		}
 	}
 
@@ -311,27 +297,22 @@ func (s *StateStore) PreparedQueryResolve(queryIDOrName string) (uint64, *struct
 		}
 	}
 
-	// Then try by name. We use a prefix match but check to make sure that
-	// the query's name matches the whole prefix for a non-template query.
-	// Templates are allowed to use the partial match. It's more efficient
-	// to combine the two lookups here, even though the logic is a little
-	// less clear.
+	// Next, look for an exact name match. This is the common case for static
+	// prepared queries, and could also apply to templates.
 	{
-		wrapped, err := tx.First("prepared-queries", "name_prefix", queryIDOrName)
+		wrapped, err := tx.First("prepared-queries", "name", queryIDOrName)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 		}
 		if wrapped != nil {
-			query := toPreparedQuery(wrapped)
-			if query.Name == queryIDOrName || prepared_query.IsTemplate(query) {
-				return prep(wrapped)
-			}
+			return prep(wrapped)
 		}
 	}
 
-	// Finally, see if there's a wild template we can use.
+	// Next, look for the longest prefix match among the prepared query
+	// templates.
 	{
-		wrapped, err := tx.First("prepared-queries", "wild", true)
+		wrapped, err := tx.LongestPrefix("prepared-queries", "template_prefix", queryIDOrName)
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed prepared query lookup: %s", err)
 		}

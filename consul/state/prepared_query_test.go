@@ -525,9 +525,12 @@ func TestStateStore_PreparedQuery_Snapshot_Restore(t *testing.T) {
 		},
 		&structs.PreparedQuery{
 			ID:   testUUID(),
-			Name: "bob",
+			Name: "bob-",
+			Template: structs.QueryTemplateOptions{
+				Type: structs.QueryTemplateTypeNamePrefixMatch,
+			},
 			Service: structs.ServiceQuery{
-				Service: "mongodb",
+				Service: "${name.suffix}",
 			},
 		},
 	}
@@ -571,9 +574,12 @@ func TestStateStore_PreparedQuery_Snapshot_Restore(t *testing.T) {
 		},
 		&structs.PreparedQuery{
 			ID:   queries[1].ID,
-			Name: "bob",
+			Name: "bob-",
+			Template: structs.QueryTemplateOptions{
+				Type: structs.QueryTemplateTypeNamePrefixMatch,
+			},
 			Service: structs.ServiceQuery{
-				Service: "mongodb",
+				Service: "${name.suffix}",
 			},
 			RaftIndex: structs.RaftIndex{
 				CreateIndex: 5,
@@ -611,6 +617,19 @@ func TestStateStore_PreparedQuery_Snapshot_Restore(t *testing.T) {
 		}
 		if !reflect.DeepEqual(actual, expected) {
 			t.Fatalf("bad: %v", actual)
+		}
+
+		// Make sure the second query, which is a template, was compiled
+		// and can be resolved.
+		_, query, err := s.PreparedQueryResolve("bob-backwards-is-bob")
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if query == nil {
+			t.Fatalf("should have resolved the query")
+		}
+		if query.Service.Service != "backwards-is-bob" {
+			t.Fatalf("bad: %s", query.Service.Service)
 		}
 	}()
 }

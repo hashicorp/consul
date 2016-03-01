@@ -390,20 +390,11 @@ func preparedQueriesTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
-			// This is a bit of an oddball. It's an important feature
-			// of prepared query templates to be able to define a
-			// single template that matches any query. Unfortunately,
-			// we can't index an empty Name field. This index lets us
-			// keep track of whether there is any wild template in
-			// existence, so there will be one "true" in here if that
-			// exists, and everything else will be "false".
-			"wild": &memdb.IndexSchema{
-				Name:         "wild",
-				AllowMissing: false,
-				Unique:       false,
-				Indexer: &memdb.ConditionalIndex{
-					Conditional: isWrappedWild,
-				},
+			"template": &memdb.IndexSchema{
+				Name:         "template",
+				AllowMissing: true,
+				Unique:       true,
+				Indexer:      &PreparedQueryIndex{},
 			},
 			"session": &memdb.IndexSchema{
 				Name:         "session",
