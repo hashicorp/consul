@@ -165,7 +165,7 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 
 	// Create the exec.Cmd
 	a.logger.Printf("[INFO] agent: remote exec '%s'", script)
-	cmd, err := ExecScript(script)
+	cmd, err := ExecScript(script, "")
 	if err != nil {
 		a.logger.Printf("[DEBUG] agent: failed to start remote exec: %v", err)
 		exitCode = 255

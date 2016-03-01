@@ -3,13 +3,18 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -31,7 +36,7 @@ func (m *MockNotify) UpdateCheck(id, status, output string) {
 	m.output[id] = output
 }
 
-func expectStatus(t *testing.T, script, status string) {
+func expectStatus(t *testing.T, script, chroot string, status string) {
 	mock := &MockNotify{
 		state:   make(map[string]string),
 		updates: make(map[string]int),
@@ -41,6 +46,7 @@ func expectStatus(t *testing.T, script, status string) {
 		Notify:   mock,
 		CheckID:  "foo",
 		Script:   script,
+		Chroot:   chroot,
 		Interval: 10 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
 		ReapLock: &sync.RWMutex{},
@@ -65,19 +71,38 @@ func expectStatus(t *testing.T, script, status string) {
 }
 
 func TestCheckMonitor_Passing(t *testing.T) {
-	expectStatus(t, "exit 0", structs.HealthPassing)
+	expectStatus(t, "exit 0", "", structs.HealthPassing)
+}
+
+func TestCheckMonitor_Chroot(t *testing.T) {
+	// running this test only on linux and if the uid is root
+	if runtime.GOOS != "linux" || syscall.Getuid() != 0 {
+		return
+	}
+	// Creating the chroot
+	chroot, err := ioutil.TempDir("", "consulchroot")
+	defer os.RemoveAll(chroot)
+	if err != nil {
+		t.Fatalf("error creating chroot: %v", err)
+	}
+	if err = makeChroot(chroot, map[string]string{"/bin": "/bin", "/lib": "/lib",
+		"/lib32": "/lib32", "/lib64": "/lib64"}); err != nil {
+		t.Fatalf("error creating chroot: %v", err)
+	}
+
+	expectStatus(t, "/bin/date", chroot, structs.HealthPassing)
 }
 
 func TestCheckMonitor_Warning(t *testing.T) {
-	expectStatus(t, "exit 1", structs.HealthWarning)
+	expectStatus(t, "exit 1", "", structs.HealthWarning)
 }
 
 func TestCheckMonitor_Critical(t *testing.T) {
-	expectStatus(t, "exit 2", structs.HealthCritical)
+	expectStatus(t, "exit 2", "", structs.HealthCritical)
 }
 
 func TestCheckMonitor_BadCmd(t *testing.T) {
-	expectStatus(t, "foobarbaz", structs.HealthCritical)
+	expectStatus(t, "foobarbaz", "", structs.HealthCritical)
 }
 
 func TestCheckMonitor_RandomStagger(t *testing.T) {
@@ -665,4 +690,109 @@ func TestDockerCheckTruncateOutput(t *testing.T) {
 		t.Fatalf("output size is too long")
 	}
 
+}
+
+func makeChroot(rootDir string, entries map[string]string) error {
+	subdirs := make(map[string]string)
+	for source, dest := range entries {
+		// Check to see if directory exists on host.
+		s, err := os.Stat(source)
+		if os.IsNotExist(err) {
+			continue
+		}
+
+		// Embedding a single file
+		if !s.IsDir() {
+			destDir := filepath.Join(rootDir, filepath.Dir(dest))
+			if err := os.MkdirAll(destDir, s.Mode().Perm()); err != nil {
+				return fmt.Errorf("Couldn't create destination directory %v: %v", destDir, err)
+			}
+
+			// Copy the file.
+			taskEntry := filepath.Join(destDir, filepath.Base(dest))
+			if err := linkOrCopy(source, taskEntry, s.Mode().Perm()); err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		// Create destination directory.
+		destDir := filepath.Join(rootDir, dest)
+		if err := os.MkdirAll(destDir, s.Mode().Perm()); err != nil {
+			return fmt.Errorf("Couldn't create destination directory %v: %v", destDir, err)
+		}
+
+		// Enumerate the files in source.
+		dirEntries, err := ioutil.ReadDir(source)
+		if err != nil {
+			return fmt.Errorf("Couldn't read directory %v: %v", source, err)
+		}
+
+		for _, entry := range dirEntries {
+			hostEntry := filepath.Join(source, entry.Name())
+			taskEntry := filepath.Join(destDir, filepath.Base(hostEntry))
+			if entry.IsDir() {
+				subdirs[hostEntry] = filepath.Join(dest, filepath.Base(hostEntry))
+				continue
+			}
+
+			if !entry.Mode().IsRegular() {
+				// If it is a symlink we can create it, otherwise we skip it.
+				if entry.Mode()&os.ModeSymlink == 0 {
+					continue
+				}
+
+				link, err := os.Readlink(hostEntry)
+				if err != nil {
+					return fmt.Errorf("Couldn't resolve symlink for %v: %v", source, err)
+				}
+
+				if err := os.Symlink(link, taskEntry); err != nil {
+					// Symlinking twice
+					if err.(*os.LinkError).Err.Error() != "file exists" {
+						return fmt.Errorf("Couldn't create symlink: %v", err)
+					}
+				}
+				continue
+			}
+
+			if err := linkOrCopy(hostEntry, taskEntry, entry.Mode().Perm()); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Recurse on self to copy subdirectories.
+	if len(subdirs) != 0 {
+		return makeChroot(rootDir, subdirs)
+	}
+
+	return nil
+}
+
+func linkOrCopy(src, dst string, perm os.FileMode) error {
+	if err := os.Link(src, dst); err == nil {
+		return nil
+	}
+	return fileCopy(src, dst, perm)
+}
+
+func fileCopy(src, dst string, perm os.FileMode) error {
+	// Do a simple copy.
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("Couldn't open src file %v: %v", src, err)
+	}
+
+	dstFile, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE, perm)
+	if err != nil {
+		return fmt.Errorf("Couldn't create destination file %v: %v", dst, err)
+	}
+
+	if _, err := io.Copy(dstFile, srcFile); err != nil {
+		return fmt.Errorf("Couldn't copy %v to %v: %v", src, dst, err)
+	}
+
+	return nil
 }

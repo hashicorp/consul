@@ -164,7 +164,7 @@ func (c *WatchCommand) Run(args []string) int {
 			// Create the command
 			var buf bytes.Buffer
 			var err error
-			cmd, err := agent.ExecScript(script)
+			cmd, err := agent.ExecScript(script, "")
 			if err != nil {
 				c.Ui.Error(fmt.Sprintf("Error executing handler: %s", err))
 				goto ERR

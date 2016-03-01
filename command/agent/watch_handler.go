@@ -45,7 +45,7 @@ func makeWatchHandler(logOutput io.Writer, params interface{}, reapLock *sync.RW
 		defer reapLock.RUnlock()
 
 		// Create the command
-		cmd, err := ExecScript(script)
+		cmd, err := ExecScript(script, "")
 		if err != nil {
 			logger.Printf("[ERR] agent: Failed to setup watch: %v", err)
 			return

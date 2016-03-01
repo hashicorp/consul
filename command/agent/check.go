@@ -47,6 +47,7 @@ type CheckType struct {
 	Interval          time.Duration
 	DockerContainerID string
 	Shell             string
+	Chroot            string
 
 	Timeout time.Duration
 	TTL     time.Duration
@@ -100,6 +101,7 @@ type CheckMonitor struct {
 	Notify   CheckNotifier
 	CheckID  string
 	Script   string
+	Chroot   string
 	Interval time.Duration
 	Logger   *log.Logger
 	ReapLock *sync.RWMutex
@@ -155,7 +157,7 @@ func (c *CheckMonitor) check() {
 	defer c.ReapLock.RUnlock()
 
 	// Create the command
-	cmd, err := ExecScript(c.Script)
+	cmd, err := ExecScript(c.Script, c.Chroot)
 	if err != nil {
 		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", c.Script, err)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())

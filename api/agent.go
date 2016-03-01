@@ -66,6 +66,7 @@ type AgentCheckRegistration struct {
 // check for a service
 type AgentServiceCheck struct {
 	Script            string `json:",omitempty"`
+	Chroot            string `json:",omitempty"`
 	DockerContainerID string `json:",omitempty"`
 	Shell             string `json:",omitempty"` // Only supported for Docker.
 	Interval          string `json:",omitempty"`
