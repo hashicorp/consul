@@ -263,7 +263,7 @@ func sessionsTableSchema() *memdb.TableSchema {
 			},
 			"node": &memdb.IndexSchema{
 				Name:         "node",
-				AllowMissing: true,
+				AllowMissing: false,
 				Unique:       false,
 				Indexer: &memdb.StringFieldIndex{
 					Field:     "Node",
