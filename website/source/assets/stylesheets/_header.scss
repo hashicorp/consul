@@ -19,6 +19,16 @@ body.page-sub{
 }
 
 #header {
+  // when _announcment-bnr.erb (ie. Consul Enterprise Announcment) is being used in layout we need to push down content to accomodate
+  // add this class
+  &.-displaying-bnr{
+    > .container{
+      -webkit-transform: translateY(32px);
+          -ms-transform: translateY(32px);
+              transform: translateY(32px);
+    }
+  }
+
   .navbar-brand {
     .logo{
       width: $project-logo-width;
