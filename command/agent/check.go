@@ -232,6 +232,9 @@ type CheckTTL struct {
 
 	timer *time.Timer
 
+	lastOutput     string
+	lastOutputLock sync.RWMutex
+
 	stop     bool
 	stopCh   chan struct{}
 	stopLock sync.Mutex
@@ -265,12 +268,25 @@ func (c *CheckTTL) run() {
 		case <-c.timer.C:
 			c.Logger.Printf("[WARN] agent: Check '%v' missed TTL, is now critical",
 				c.CheckID)
-			c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, "TTL expired")
+			c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, c.getExpiredOutput())
 
 		case <-c.stopCh:
 			return
 		}
 	}
+}
+
+// getExpiredOutput formats the output for the case when the TTL is expired.
+func (c *CheckTTL) getExpiredOutput() string {
+	c.lastOutputLock.RLock()
+	defer c.lastOutputLock.RUnlock()
+
+	const prefix = "TTL expired"
+	if c.lastOutput == "" {
+		return prefix
+	}
+
+	return fmt.Sprintf("%s (last output before timeout follows): %s", prefix, c.lastOutput)
 }
 
 // SetStatus is used to update the status of the check,
@@ -279,6 +295,12 @@ func (c *CheckTTL) SetStatus(status, output string) {
 	c.Logger.Printf("[DEBUG] agent: Check '%v' status is now %v",
 		c.CheckID, status)
 	c.Notify.UpdateCheck(c.CheckID, status, output)
+
+	// Store the last output so we can retain it if the TTL expires.
+	c.lastOutputLock.Lock()
+	c.lastOutput = output
+	c.lastOutputLock.Unlock()
+
 	c.timer.Reset(c.TTL)
 }
 

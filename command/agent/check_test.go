@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -150,7 +151,7 @@ func TestCheckTTL(t *testing.T) {
 	defer check.Stop()
 
 	time.Sleep(50 * time.Millisecond)
-	check.SetStatus(structs.HealthPassing, "")
+	check.SetStatus(structs.HealthPassing, "test-output")
 
 	if mock.updates["foo"] != 1 {
 		t.Fatalf("should have 1 updates %v", mock.updates)
@@ -175,6 +176,10 @@ func TestCheckTTL(t *testing.T) {
 
 	if mock.state["foo"] != structs.HealthCritical {
 		t.Fatalf("should be critical %v", mock.state)
+	}
+
+	if !strings.Contains(mock.output["foo"], "test-output") {
+		t.Fatalf("should have retained output %v", mock.output)
 	}
 }
 
