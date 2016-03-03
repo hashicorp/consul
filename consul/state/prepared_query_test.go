@@ -232,9 +232,185 @@ func TestStateStore_PreparedQuerySet_PreparedQueryGet(t *testing.T) {
 		}
 	}
 
+	// Try to register a template that squats on the existing query's name.
+	{
+		evil := &structs.PreparedQuery{
+			ID:   testUUID(),
+			Name: query.Name,
+			Template: structs.QueryTemplateOptions{
+				Type: structs.QueryTemplateTypeNamePrefixMatch,
+			},
+			Service: structs.ServiceQuery{
+				Service: "redis",
+			},
+		}
+		err := s.PreparedQuerySet(8, evil)
+		if err == nil || !strings.Contains(err.Error(), "aliases an existing query name") {
+			t.Fatalf("bad: %v", err)
+		}
+
+		// Sanity check to make sure it's not there.
+		idx, actual, err := s.PreparedQueryGet(evil.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != 6 {
+			t.Fatalf("bad index: %d", idx)
+		}
+		if actual != nil {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
 	// Index is not updated if nothing is saved.
 	if idx := s.maxIndex("prepared-queries"); idx != 6 {
 		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Turn the query into a template with an empty name.
+	query.Name = ""
+	query.Template = structs.QueryTemplateOptions{
+		Type: structs.QueryTemplateTypeNamePrefixMatch,
+	}
+	if err := s.PreparedQuerySet(9, query); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Make sure the index got updated.
+	if idx := s.maxIndex("prepared-queries"); idx != 9 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Read it back and verify the data was updated as well as the index.
+	expected.Name = ""
+	expected.Template = structs.QueryTemplateOptions{
+		Type: structs.QueryTemplateTypeNamePrefixMatch,
+	}
+	expected.ModifyIndex = 9
+	idx, actual, err = s.PreparedQueryGet(query.ID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 9 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %v", actual)
+	}
+
+	// Try to register a template that squats on the empty prefix.
+	{
+		evil := &structs.PreparedQuery{
+			ID:   testUUID(),
+			Name: "",
+			Template: structs.QueryTemplateOptions{
+				Type: structs.QueryTemplateTypeNamePrefixMatch,
+			},
+			Service: structs.ServiceQuery{
+				Service: "redis",
+			},
+		}
+		err := s.PreparedQuerySet(10, evil)
+		if err == nil || !strings.Contains(err.Error(), "query template with an empty name already exists") {
+			t.Fatalf("bad: %v", err)
+		}
+
+		// Sanity check to make sure it's not there.
+		idx, actual, err := s.PreparedQueryGet(evil.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != 9 {
+			t.Fatalf("bad index: %d", idx)
+		}
+		if actual != nil {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Give the query template a name.
+	query.Name = "prefix"
+	if err := s.PreparedQuerySet(11, query); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Make sure the index got updated.
+	if idx := s.maxIndex("prepared-queries"); idx != 11 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Read it back and verify the data was updated as well as the index.
+	expected.Name = "prefix"
+	expected.ModifyIndex = 11
+	idx, actual, err = s.PreparedQueryGet(query.ID)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 11 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %v", actual)
+	}
+
+	// Try to register a template that squats on the prefix.
+	{
+		evil := &structs.PreparedQuery{
+			ID:   testUUID(),
+			Name: "prefix",
+			Template: structs.QueryTemplateOptions{
+				Type: structs.QueryTemplateTypeNamePrefixMatch,
+			},
+			Service: structs.ServiceQuery{
+				Service: "redis",
+			},
+		}
+		err := s.PreparedQuerySet(12, evil)
+		if err == nil || !strings.Contains(err.Error(), "aliases an existing query name") {
+			t.Fatalf("bad: %v", err)
+		}
+
+		// Sanity check to make sure it's not there.
+		idx, actual, err := s.PreparedQueryGet(evil.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != 11 {
+			t.Fatalf("bad index: %d", idx)
+		}
+		if actual != nil {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Try to register a template that doesn't compile.
+	{
+		evil := &structs.PreparedQuery{
+			ID:   testUUID(),
+			Name: "legit-prefix",
+			Template: structs.QueryTemplateOptions{
+				Type: structs.QueryTemplateTypeNamePrefixMatch,
+			},
+			Service: structs.ServiceQuery{
+				Service: "${nope",
+			},
+		}
+		err := s.PreparedQuerySet(13, evil)
+		if err == nil || !strings.Contains(err.Error(), "failed compiling template") {
+			t.Fatalf("bad: %v", err)
+		}
+
+		// Sanity check to make sure it's not there.
+		idx, actual, err := s.PreparedQueryGet(evil.ID)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if idx != 11 {
+			t.Fatalf("bad index: %d", idx)
+		}
+		if actual != nil {
+			t.Fatalf("bad: %v", actual)
+		}
 	}
 }
 
@@ -416,6 +592,123 @@ func TestStateStore_PreparedQueryResolve(t *testing.T) {
 	}
 	if actual != nil {
 		t.Fatalf("bad: %v", actual)
+	}
+
+	// Create two prepared query templates, one a longer prefix of the
+	// other.
+	tmpl1 := &structs.PreparedQuery{
+		ID:   testUUID(),
+		Name: "prod-",
+		Template: structs.QueryTemplateOptions{
+			Type: structs.QueryTemplateTypeNamePrefixMatch,
+		},
+		Service: structs.ServiceQuery{
+			Service: "${name.suffix}",
+		},
+	}
+	if err := s.PreparedQuerySet(4, tmpl1); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	tmpl2 := &structs.PreparedQuery{
+		ID:   testUUID(),
+		Name: "prod-redis",
+		Template: structs.QueryTemplateOptions{
+			Type:   structs.QueryTemplateTypeNamePrefixMatch,
+			Regexp: "^prod-(.*)$",
+		},
+		Service: structs.ServiceQuery{
+			Service: "${match(1)}-master",
+		},
+	}
+	if err := s.PreparedQuerySet(5, tmpl2); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Resolve the less-specific prefix.
+	expected = &structs.PreparedQuery{
+		ID:   tmpl1.ID,
+		Name: "prod-",
+		Template: structs.QueryTemplateOptions{
+			Type: structs.QueryTemplateTypeNamePrefixMatch,
+		},
+		Service: structs.ServiceQuery{
+			Service: "mongodb",
+		},
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 4,
+			ModifyIndex: 4,
+		},
+	}
+	idx, actual, err = s.PreparedQueryResolve("prod-mongodb")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 5 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %v", actual)
+	}
+
+	// Now resolve the more specific prefix.
+	expected = &structs.PreparedQuery{
+		ID:   tmpl2.ID,
+		Name: "prod-redis",
+		Template: structs.QueryTemplateOptions{
+			Type:   structs.QueryTemplateTypeNamePrefixMatch,
+			Regexp: "^prod-(.*)$",
+		},
+		Service: structs.ServiceQuery{
+			Service: "redis-foobar-master",
+		},
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 5,
+			ModifyIndex: 5,
+		},
+	}
+	idx, actual, err = s.PreparedQueryResolve("prod-redis-foobar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 5 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %v", actual)
+	}
+
+	// Resolve an exact-match prefix. The output of this one doesn't match a
+	// sensical service name, but it still renders.
+	expected = &structs.PreparedQuery{
+		ID:   tmpl1.ID,
+		Name: "prod-",
+		Template: structs.QueryTemplateOptions{
+			Type: structs.QueryTemplateTypeNamePrefixMatch,
+		},
+		Service: structs.ServiceQuery{
+			Service: "",
+		},
+		RaftIndex: structs.RaftIndex{
+			CreateIndex: 4,
+			ModifyIndex: 4,
+		},
+	}
+	idx, actual, err = s.PreparedQueryResolve("prod-")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 5 {
+		t.Fatalf("bad index: %d", idx)
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %v", actual)
+	}
+
+	// Make sure you can't run a prepared query template by ID, since that
+	// makes no sense.
+	_, _, err = s.PreparedQueryResolve(tmpl1.ID)
+	if err == nil || !strings.Contains(err.Error(), "prepared query templates can only be resolved up by name") {
+		t.Fatalf("bad: %v", err)
 	}
 }
 

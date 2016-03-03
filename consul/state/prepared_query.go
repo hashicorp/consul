@@ -130,7 +130,7 @@ func (s *StateStore) preparedQuerySetTxn(tx *memdb.Txn, idx uint64, query *struc
 		}
 		other := toPreparedQuery(wrapped)
 		if other != nil && (existing == nil || existing.ID != other.ID) {
-			return fmt.Errorf("name '%s' aliases an existing query template name", query.Name)
+			return fmt.Errorf("a query template with an empty name already exists")
 		}
 	}
 
