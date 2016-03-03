@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -428,7 +429,6 @@ func TestHTTPAgentPassCheck(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Register node
 	req, err := http.NewRequest("GET", "/v1/agent/check/pass/test", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -461,7 +461,6 @@ func TestHTTPAgentWarnCheck(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Register node
 	req, err := http.NewRequest("GET", "/v1/agent/check/warn/test", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -494,7 +493,6 @@ func TestHTTPAgentFailCheck(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Register node
 	req, err := http.NewRequest("GET", "/v1/agent/check/fail/test", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -512,6 +510,134 @@ func TestHTTPAgentFailCheck(t *testing.T) {
 	state := srv.agent.state.Checks()["test"]
 	if state.Status != structs.HealthCritical {
 		t.Fatalf("bad: %v", state)
+	}
+}
+
+func TestHTTPAgentUpdateCheck(t *testing.T) {
+	dir, srv := makeHTTPServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.Shutdown()
+	defer srv.agent.Shutdown()
+
+	chk := &structs.HealthCheck{Name: "test", CheckID: "test"}
+	chkType := &CheckType{TTL: 15 * time.Second}
+	if err := srv.agent.AddCheck(chk, chkType, false, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	cases := []checkUpdate{
+		checkUpdate{"passing", "hello-passing"},
+		checkUpdate{"critical", "hello-critical"},
+		checkUpdate{"warning", "hello-warning"},
+	}
+
+	for _, c := range cases {
+		req, err := http.NewRequest("PUT", "/v1/agent/check/update/test", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		req.Body = encodeReq(c)
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.AgentCheckUpdate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if obj != nil {
+			t.Fatalf("bad: %v", obj)
+		}
+		if resp.Code != 200 {
+			t.Fatalf("expected 200, got %d", resp.Code)
+		}
+
+		state := srv.agent.state.Checks()["test"]
+		if state.Status != c.Status || state.Output != c.Output {
+			t.Fatalf("bad: %v", state)
+		}
+	}
+
+	// Make sure abusive levels of output are capped.
+	{
+		req, err := http.NewRequest("PUT", "/v1/agent/check/update/test", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		update := checkUpdate{
+			Status: "passing",
+			Output: strings.Repeat("-= bad -=", 5*CheckBufSize),
+		}
+		req.Body = encodeReq(update)
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.AgentCheckUpdate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if obj != nil {
+			t.Fatalf("bad: %v", obj)
+		}
+		if resp.Code != 200 {
+			t.Fatalf("expected 200, got %d", resp.Code)
+		}
+
+		// Since we append some notes about truncating, we just do a
+		// rough check that the output buffer was cut down so this test
+		// isn't super brittle.
+		state := srv.agent.state.Checks()["test"]
+		if state.Status != structs.HealthPassing || len(state.Output) > 2*CheckBufSize {
+			t.Fatalf("bad: %v", state)
+		}
+	}
+
+	// Check a bogus status.
+	{
+		req, err := http.NewRequest("PUT", "/v1/agent/check/update/test", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		update := checkUpdate{
+			Status: "itscomplicated",
+		}
+		req.Body = encodeReq(update)
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.AgentCheckUpdate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if obj != nil {
+			t.Fatalf("bad: %v", obj)
+		}
+		if resp.Code != 400 {
+			t.Fatalf("expected 400, got %d", resp.Code)
+		}
+	}
+
+	// Check a bogus verb.
+	{
+		req, err := http.NewRequest("POST", "/v1/agent/check/update/test", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		update := checkUpdate{
+			Status: "passing",
+		}
+		req.Body = encodeReq(update)
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.AgentCheckUpdate(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if obj != nil {
+			t.Fatalf("bad: %v", obj)
+		}
+		if resp.Code != 405 {
+			t.Fatalf("expected 405, got %d", resp.Code)
+		}
 	}
 }
 

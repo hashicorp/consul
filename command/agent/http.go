@@ -232,6 +232,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
 	s.mux.HandleFunc("/v1/agent/check/warn/", s.wrap(s.AgentCheckWarn))
 	s.mux.HandleFunc("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
+	s.mux.HandleFunc("/v1/agent/check/update/", s.wrap(s.AgentCheckUpdate))
 
 	s.mux.HandleFunc("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
 	s.mux.HandleFunc("/v1/agent/service/deregister/", s.wrap(s.AgentDeregisterService))

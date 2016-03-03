@@ -25,9 +25,10 @@ The following endpoints are supported:
 * [`/v1/agent/force-leave/<node>`](#agent_force_leave)>: Forces removal of a node
 * [`/v1/agent/check/register`](#agent_check_register) : Registers a new local check
 * [`/v1/agent/check/deregister/<checkID>`](#agent_check_deregister) : Deregisters a local check
-* [`/v1/agent/check/pass/<checkID>`](#agent_check_pass) : Marks a local test as passing
-* [`/v1/agent/check/warn/<checkID>`](#agent_check_warn) : Marks a local test as warning
-* [`/v1/agent/check/fail/<checkID>`](#agent_check_fail) : Marks a local test as critical
+* [`/v1/agent/check/pass/<checkID>`](#agent_check_pass) : Marks a local check as passing
+* [`/v1/agent/check/warn/<checkID>`](#agent_check_warn) : Marks a local check as warning
+* [`/v1/agent/check/fail/<checkID>`](#agent_check_fail) : Marks a local check as critical
+* [`/v1/agent/check/update/<checkID>`](#agent_check_update) : Updates a local check
 * [`/v1/agent/service/register`](#agent_service_register) : Registers a new local service
 * [`/v1/agent/service/deregister/<serviceID>`](#agent_service_deregister) : Deregisters a local service
 * [`/v1/agent/service/maintenance/<serviceID>`](#agent_service_maintenance) : Manages service maintenance mode
@@ -310,8 +311,9 @@ This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.
 When this endpoint is accessed via a GET, the status of the check is set to `passing`
 and the TTL clock is reset.
 
-The optional "?note=" query parameter can be used to associate a human-readable message 
-with the status of the check.
+The optional "?note=" query parameter can be used to associate a human-readable message
+with the status of the check. This will be passed through to the check's `Output` field
+in the check endpoints.
 
 The return code is 200 on success.
 
@@ -321,8 +323,9 @@ This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.
 When this endpoint is accessed via a GET, the status of the check is set to `warning`,
 and the TTL clock is reset.
 
-The optional "?note=" query parameter can be used to associate a human-readable message 
-with the status of the check.
+The optional "?note=" query parameter can be used to associate a human-readable message
+with the status of the check. This will be passed through to the check's `Output` field
+in the check endpoints.
 
 The return code is 200 on success.
 
@@ -332,8 +335,33 @@ This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.
 When this endpoint is accessed via a GET, the status of the check is set to `critical`,
 and the TTL clock is reset.
 
-The optional "?note=" query parameter can be used to associate a human-readable message 
-with the status of the check.
+The optional "?note=" query parameter can be used to associate a human-readable message
+with the status of the check. This will be passed through to the check's `Output` field
+in the check endpoints.
+
+The return code is 200 on success.
+
+### <a name="agent_check_update"></a> /v1/agent/check/update/\<checkId\>
+
+This endpoint is used with a check that is of the [TTL type](/docs/agent/checks.html).
+When this endpoint is accessed with a PUT, the status and output of the check are
+updated and the TTL clock is reset.
+
+This endpoint expects a JSON request body to be put. The request body must look like:
+
+```javascript
+{
+  "Status": "passing",
+  "Output": "curl reported a failure:\n\n..."
+}
+```
+
+The `Status` field is mandatory, and must be set to "passing", "warning", or "critical".
+
+`Output` is an optional field that will associate a human-readable message with the status
+of the check, such as the output of the checking script or process. This will be truncated
+if it exceeds 4KB in size. This will be passed through to the check's `Output` field in the
+check endpoints.
 
 The return code is 200 on success.
 
