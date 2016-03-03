@@ -100,7 +100,7 @@ type PreparedQuery struct {
 // this query, and whether the prefix applies to this query. You always need to
 // check the ok value before using the prefix.
 func (pq *PreparedQuery) GetACLPrefix() (string, bool) {
-	if pq.Name != "" {
+	if pq.Name != "" || pq.Template.Type != "" {
 		return pq.Name, true
 	}
 
