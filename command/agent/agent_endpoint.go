@@ -207,7 +207,7 @@ func (s *HTTPServer) AgentCheckUpdate(resp http.ResponseWriter, req *http.Reques
 
 	total := len(update.Output)
 	if total > CheckBufSize {
-		update.Output = fmt.Sprintf("%s\n...\nCaptured %d of %d bytes",
+		update.Output = fmt.Sprintf("%s ... (captured %d of %d bytes)",
 			update.Output[:CheckBufSize], CheckBufSize, total)
 	}
 

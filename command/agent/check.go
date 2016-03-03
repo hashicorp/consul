@@ -283,10 +283,10 @@ func (c *CheckTTL) getExpiredOutput() string {
 
 	const prefix = "TTL expired"
 	if c.lastOutput == "" {
-		return fmt.Sprintf("%s (no output was available before timeout)", prefix)
+		return prefix
 	}
 
-	return fmt.Sprintf("%s (last output before timeout follows)\n\n%s", prefix, c.lastOutput)
+	return fmt.Sprintf("%s (last output before timeout follows): %s", prefix, c.lastOutput)
 }
 
 // SetStatus is used to update the status of the check,
