@@ -231,3 +231,12 @@ type PreparedQueryExecuteResponse struct {
 	// QueryMeta has freshness information about the query.
 	QueryMeta
 }
+
+// PreparedQueryDebugResponse has the results when debugging a query.
+type PreparedQueryDebugResponse struct {
+	// Query has the fully-rendered query.
+	Query PreparedQuery
+
+	// QueryMeta has freshness information about the query.
+	QueryMeta
+}

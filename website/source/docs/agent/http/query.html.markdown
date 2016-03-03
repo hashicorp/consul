@@ -34,6 +34,8 @@ The following endpoints are supported:
   a prepared query
 * [`/v1/query/<query or name>/execute`](#execute): Executes a
   prepared query by its ID or optional name
+* [`/v1/query/<query or name>/debug`](#debug): Debugs a
+  prepared query by its ID or optional name
 
 Not all endpoints support blocking queries and all consistency modes,
 see details in the sections below.
@@ -228,6 +230,9 @@ above with a `Regexp` field set to `^geo-db-(.*?)-([^\-]+?)$` would return
 "geo-db-customer-master" for `${match(0)}`, "customer" for `${match(1)}`, and
 "master" for `${match(2)}`. If the regular expression doesn't match, or an invalid
 index is given, then `${match(N)}` will return an empty string.
+
+See the [query debug](#debug) endpoint which is useful for testing interpolations
+and determining which query is handling a given name.
 
 Using templates it's possible to apply prepared query behaviors to many services
 with a single template. Here's an example template that matches any query and
@@ -433,3 +438,49 @@ and `Failovers` has the number of remote datacenters that were queried
 while executing the query. This provides some insight into where the data
 came from. This will be zero during non-failover operations where there
 were healthy nodes found in the local datacenter.
+
+### <a name="debug"></a> /v1/query/\<query or name\>/debug
+
+The query debug endpoint supports only the `GET` method and is used to see
+a fully-rendered query for a given name. This is especially useful for finding
+which [prepared query template](#templates) matches a given name, and what the
+final query looks like after interpolation.
+
+By default, the datacenter of the agent is queried; however, the `dc` can be
+provided using the "?dc=" query parameter. This endpoint does not support
+blocking queries, but it does support all consistency modes.
+
+If ACLs are enabled, then the client will only see prepared queries for which their
+token has `query` read privileges. A management token will be able to see all
+prepared queries. Tokens will be redacted and displayed as `<hidden>` unless a
+management token is used.
+
+If the query does not exist then a 404 status code will be returned. Otherwise,
+a JSON body will be returned like this:
+
+```javascript
+{
+  "Query": {
+    "ID": "8f246b77-f3e1-ff88-5b48-8ec93abf3e05",
+    "Name": "my-query",
+    "Session": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+    "Token": "<hidden>",
+    "Name": "geo-db",
+    "Template" {
+      "Type": "name_prefix_match",
+      "Regexp": "^geo-db-(.*?)-([^\-]+?)$"
+    },
+    "Service": {
+      "Service": "mysql-customer",
+      "Failover": {
+        "NearestN": 3,
+        "Datacenters": ["dc1", "dc2"]
+      },
+      "OnlyPassing": true,
+      "Tags": ["master"]
+    }
+}
+```
+
+Note that even though this query is a template, it is shown with its `Service`
+fields interpolated based on the example query name "geo-db-customer-master".

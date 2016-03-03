@@ -269,6 +269,53 @@ func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.Ind
 		})
 }
 
+// Debug resolves a prepared query and returns the (possibly rendered template)
+// to the caller. This is useful for letting operators figure out which query is
+// picking up a given name.
+func (p *PreparedQuery) Debug(args *structs.PreparedQueryExecuteRequest,
+	reply *structs.PreparedQueryDebugResponse) error {
+	if done, err := p.srv.forward("PreparedQuery.Debug", args, args, reply); done {
+		return err
+	}
+	defer metrics.MeasureSince([]string{"consul", "prepared-query", "debug"}, time.Now())
+
+	// We have to do this ourselves since we are not doing a blocking RPC.
+	p.srv.setQueryMeta(&reply.QueryMeta)
+	if args.RequireConsistent {
+		if err := p.srv.consistentRead(); err != nil {
+			return err
+		}
+	}
+
+	// Try to locate the query.
+	state := p.srv.fsm.State()
+	_, query, err := state.PreparedQueryResolve(args.QueryIDOrName)
+	if err != nil {
+		return err
+	}
+	if query == nil {
+		return ErrQueryNotFound
+	}
+
+	// Place the query into a list so we can run the standard ACL filter on
+	// it.
+	queries := &structs.IndexedPreparedQueries{
+		Queries: structs.PreparedQueries{query},
+	}
+	if err := p.srv.filterACL(args.Token, queries); err != nil {
+		return err
+	}
+
+	// If the query was filtered out, return an error.
+	if len(queries.Queries) == 0 {
+		p.srv.logger.Printf("[WARN] consul.prepared_query: Debug on prepared query '%s' denied due to ACLs", query.ID)
+		return permissionDeniedErr
+	}
+
+	reply.Query = *(queries.Queries[0])
+	return nil
+}
+
 // Execute runs a prepared query and returns the results. This will perform the
 // failover logic if no local results are available. This is typically called as
 // part of a DNS lookup, or when executing prepared queries from the HTTP API.

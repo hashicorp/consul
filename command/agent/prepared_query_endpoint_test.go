@@ -25,6 +25,7 @@ type MockPreparedQuery struct {
 	getFn     func(*structs.PreparedQuerySpecificRequest, *structs.IndexedPreparedQueries) error
 	listFn    func(*structs.DCSpecificRequest, *structs.IndexedPreparedQueries) error
 	executeFn func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse) error
+	debugFn   func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryDebugResponse) error
 }
 
 func (m *MockPreparedQuery) Apply(args *structs.PreparedQueryRequest,
@@ -57,6 +58,14 @@ func (m *MockPreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		return m.executeFn(args, reply)
 	}
 	return fmt.Errorf("should not have called Execute")
+}
+
+func (m *MockPreparedQuery) Debug(args *structs.PreparedQueryExecuteRequest,
+	reply *structs.PreparedQueryDebugResponse) error {
+	if m.debugFn != nil {
+		return m.debugFn(args, reply)
+	}
+	return fmt.Errorf("should not have called Debug")
 }
 
 func TestPreparedQuery_Create(t *testing.T) {
@@ -317,6 +326,72 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
 		req, err := http.NewRequest("GET", "/v1/query/not-there/execute", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		_, err = srv.PreparedQuerySpecific(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 404 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+	})
+}
+
+func TestPreparedQuery_Debug(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		m := MockPreparedQuery{}
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		m.debugFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryDebugResponse) error {
+			expected := &structs.PreparedQueryExecuteRequest{
+				Datacenter:    "dc1",
+				QueryIDOrName: "my-id",
+				QueryOptions: structs.QueryOptions{
+					Token:             "my-token",
+					RequireConsistent: true,
+				},
+			}
+			if !reflect.DeepEqual(args, expected) {
+				t.Fatalf("bad: %v", args)
+			}
+
+			// Just set something so we can tell this is returned.
+			reply.Query.Name = "hello"
+			return nil
+		}
+
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/query/my-id/debug?token=my-token&consistent=true", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.PreparedQuerySpecific(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 200 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+		r, ok := obj.(structs.PreparedQueryDebugResponse)
+		if !ok {
+			t.Fatalf("unexpected: %T", obj)
+		}
+		if r.Query.Name != "hello" {
+			t.Fatalf("bad: %v", r)
+		}
+	})
+
+	httpTest(t, func(srv *HTTPServer) {
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/query/not-there/debug", body)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}

@@ -13,6 +13,7 @@ import (
 const (
 	preparedQueryEndpoint      = "PreparedQuery"
 	preparedQueryExecuteSuffix = "/execute"
+	preparedQueryDebugSuffix   = "/debug"
 )
 
 // preparedQueryCreateResponse is used to wrap the query ID.
@@ -124,6 +125,31 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	return reply, nil
 }
 
+// preparedQueryDebug shows what a given name resolves to, which is useful for
+// operators in a world with templates.
+func (s *HTTPServer) preparedQueryDebug(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	args := structs.PreparedQueryExecuteRequest{
+		QueryIDOrName: id,
+	}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	var reply structs.PreparedQueryDebugResponse
+	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
+	if err := s.agent.RPC(endpoint+".Debug", &args, &reply); err != nil {
+		// We have to check the string since the RPC sheds
+		// the specific error type.
+		if err.Error() == consul.ErrQueryNotFound.Error() {
+			resp.WriteHeader(404)
+			resp.Write([]byte(err.Error()))
+			return nil, nil
+		}
+		return nil, err
+	}
+	return reply, nil
+}
+
 // preparedQueryGet returns a single prepared query.
 func (s *HTTPServer) preparedQueryGet(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.PreparedQuerySpecificRequest{
@@ -197,16 +223,22 @@ func (s *HTTPServer) preparedQueryDelete(id string, resp http.ResponseWriter, re
 // particular query.
 func (s *HTTPServer) PreparedQuerySpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	id := strings.TrimPrefix(req.URL.Path, "/v1/query/")
-	execute := false
+
+	execute, debug := false, false
 	if strings.HasSuffix(id, preparedQueryExecuteSuffix) {
 		execute = true
 		id = strings.TrimSuffix(id, preparedQueryExecuteSuffix)
+	} else if strings.HasSuffix(id, preparedQueryDebugSuffix) {
+		debug = true
+		id = strings.TrimSuffix(id, preparedQueryDebugSuffix)
 	}
 
 	switch req.Method {
 	case "GET":
 		if execute {
 			return s.preparedQueryExecute(id, resp, req)
+		} else if debug {
+			return s.preparedQueryDebug(id, resp, req)
 		} else {
 			return s.preparedQueryGet(id, resp, req)
 		}
