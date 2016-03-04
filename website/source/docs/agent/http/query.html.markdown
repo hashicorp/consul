@@ -175,18 +175,18 @@ to static templates, except with some additional fields and features. Here's an 
 ```javascript
 {
   "Name": "geo-db",
-  "Template" {
+  "Template": {
     "Type": "name_prefix_match",
-    "Regexp": "^geo-db-(.*?)-([^\-]+?)$"
+    "Regexp": "^geo-db-(.*?)-([^\\-]+?)$"
   },
   "Service": {
-    "Service": "mysql-${regexp.match(1)}",
+    "Service": "mysql-${match(1)}",
     "Failover": {
       "NearestN": 3,
       "Datacenters": ["dc1", "dc2"]
     },
     "OnlyPassing": true,
-    "Tags": ["${regexp.match(2)}"]
+    "Tags": ["${match(2)}"]
   }
 }
 ```
@@ -466,9 +466,9 @@ a JSON body will be returned like this:
     "Session": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
     "Token": "<hidden>",
     "Name": "geo-db",
-    "Template" {
+    "Template": {
       "Type": "name_prefix_match",
-      "Regexp": "^geo-db-(.*?)-([^\-]+?)$"
+      "Regexp": "^geo-db-(.*?)-([^\\-]+?)$"
     },
     "Service": {
       "Service": "mysql-customer",
