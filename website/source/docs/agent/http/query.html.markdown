@@ -34,8 +34,8 @@ The following endpoints are supported:
   a prepared query
 * [`/v1/query/<query or name>/execute`](#execute): Executes a
   prepared query by its ID or optional name
-* [`/v1/query/<query or name>/debug`](#debug): Debugs a
-  prepared query by its ID or optional name
+* [`/v1/query/<query or name>/explain`](#explain): Provides information about
+  how a prepared query will be executed by its ID or optional name
 
 Not all endpoints support blocking queries and all consistency modes,
 see details in the sections below.
@@ -231,7 +231,7 @@ above with a `Regexp` field set to `^geo-db-(.*?)-([^\-]+?)$` would return
 "master" for `${match(2)}`. If the regular expression doesn't match, or an invalid
 index is given, then `${match(N)}` will return an empty string.
 
-See the [query debug](#debug) endpoint which is useful for testing interpolations
+See the [query explain](#explain) endpoint which is useful for testing interpolations
 and determining which query is handling a given name.
 
 Using templates it's possible to apply prepared query behaviors to many services
@@ -439,9 +439,9 @@ while executing the query. This provides some insight into where the data
 came from. This will be zero during non-failover operations where there
 were healthy nodes found in the local datacenter.
 
-### <a name="debug"></a> /v1/query/\<query or name\>/debug
+### <a name="explain"></a> /v1/query/\<query or name\>/explain
 
-The query debug endpoint supports only the `GET` method and is used to see
+The query explain endpoint supports only the `GET` method and is used to see
 a fully-rendered query for a given name. This is especially useful for finding
 which [prepared query template](#templates) matches a given name, and what the
 final query looks like after interpolation.

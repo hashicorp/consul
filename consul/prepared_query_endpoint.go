@@ -269,15 +269,16 @@ func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.Ind
 		})
 }
 
-// Debug resolves a prepared query and returns the (possibly rendered template)
+// Explain resolves a prepared query and returns the (possibly rendered template)
 // to the caller. This is useful for letting operators figure out which query is
-// picking up a given name.
-func (p *PreparedQuery) Debug(args *structs.PreparedQueryExecuteRequest,
-	reply *structs.PreparedQueryDebugResponse) error {
-	if done, err := p.srv.forward("PreparedQuery.Debug", args, args, reply); done {
+// picking up a given name. We can also add additional info about how the query
+// will be executed here.
+func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
+	reply *structs.PreparedQueryExplainResponse) error {
+	if done, err := p.srv.forward("PreparedQuery.Explain", args, args, reply); done {
 		return err
 	}
-	defer metrics.MeasureSince([]string{"consul", "prepared-query", "debug"}, time.Now())
+	defer metrics.MeasureSince([]string{"consul", "prepared-query", "explain"}, time.Now())
 
 	// We have to do this ourselves since we are not doing a blocking RPC.
 	p.srv.setQueryMeta(&reply.QueryMeta)
@@ -308,7 +309,7 @@ func (p *PreparedQuery) Debug(args *structs.PreparedQueryExecuteRequest,
 
 	// If the query was filtered out, return an error.
 	if len(queries.Queries) == 0 {
-		p.srv.logger.Printf("[WARN] consul.prepared_query: Debug on prepared query '%s' denied due to ACLs", query.ID)
+		p.srv.logger.Printf("[WARN] consul.prepared_query: Explain on prepared query '%s' denied due to ACLs", query.ID)
 		return permissionDeniedErr
 	}
 

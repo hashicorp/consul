@@ -25,7 +25,7 @@ type MockPreparedQuery struct {
 	getFn     func(*structs.PreparedQuerySpecificRequest, *structs.IndexedPreparedQueries) error
 	listFn    func(*structs.DCSpecificRequest, *structs.IndexedPreparedQueries) error
 	executeFn func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse) error
-	debugFn   func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryDebugResponse) error
+	explainFn func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExplainResponse) error
 }
 
 func (m *MockPreparedQuery) Apply(args *structs.PreparedQueryRequest,
@@ -60,12 +60,12 @@ func (m *MockPreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	return fmt.Errorf("should not have called Execute")
 }
 
-func (m *MockPreparedQuery) Debug(args *structs.PreparedQueryExecuteRequest,
-	reply *structs.PreparedQueryDebugResponse) error {
-	if m.debugFn != nil {
-		return m.debugFn(args, reply)
+func (m *MockPreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
+	reply *structs.PreparedQueryExplainResponse) error {
+	if m.explainFn != nil {
+		return m.explainFn(args, reply)
 	}
-	return fmt.Errorf("should not have called Debug")
+	return fmt.Errorf("should not have called Explain")
 }
 
 func TestPreparedQuery_Create(t *testing.T) {
@@ -341,17 +341,22 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	})
 }
 
-func TestPreparedQuery_Debug(t *testing.T) {
+func TestPreparedQuery_Explain(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		m := MockPreparedQuery{}
 		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 
-		m.debugFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryDebugResponse) error {
+		m.explainFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExplainResponse) error {
 			expected := &structs.PreparedQueryExecuteRequest{
 				Datacenter:    "dc1",
 				QueryIDOrName: "my-id",
+				Limit:         5,
+				Source: structs.QuerySource{
+					Datacenter: "dc1",
+					Node:       "my-node",
+				},
 				QueryOptions: structs.QueryOptions{
 					Token:             "my-token",
 					RequireConsistent: true,
@@ -367,7 +372,7 @@ func TestPreparedQuery_Debug(t *testing.T) {
 		}
 
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query/my-id/debug?token=my-token&consistent=true", body)
+		req, err := http.NewRequest("GET", "/v1/query/my-id/explain?token=my-token&consistent=true&near=my-node&limit=5", body)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -380,7 +385,7 @@ func TestPreparedQuery_Debug(t *testing.T) {
 		if resp.Code != 200 {
 			t.Fatalf("bad code: %d", resp.Code)
 		}
-		r, ok := obj.(structs.PreparedQueryDebugResponse)
+		r, ok := obj.(structs.PreparedQueryExplainResponse)
 		if !ok {
 			t.Fatalf("unexpected: %T", obj)
 		}
@@ -391,7 +396,7 @@ func TestPreparedQuery_Debug(t *testing.T) {
 
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
-		req, err := http.NewRequest("GET", "/v1/query/not-there/debug", body)
+		req, err := http.NewRequest("GET", "/v1/query/not-there/explain", body)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}

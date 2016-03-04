@@ -232,8 +232,8 @@ type PreparedQueryExecuteResponse struct {
 	QueryMeta
 }
 
-// PreparedQueryDebugResponse has the results when debugging a query.
-type PreparedQueryDebugResponse struct {
+// PreparedQueryExplainResponse has the results when explaining a query/
+type PreparedQueryExplainResponse struct {
 	// Query has the fully-rendered query.
 	Query PreparedQuery
 

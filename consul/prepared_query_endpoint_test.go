@@ -734,20 +734,20 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 		}
 	}
 
-	// Debugging should also be denied without a token.
+	// Explaining should also be denied without a token.
 	{
 		req := &structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: "anything",
 		}
-		var resp structs.PreparedQueryDebugResponse
-		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Debug", req, &resp)
+		var resp structs.PreparedQueryExplainResponse
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
 		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("bad: %v", err)
 		}
 	}
 
-	// The user can debug and see the redacted token.
+	// The user can explain and see the redacted token.
 	query.Query.Token = redactedToken
 	query.Query.Service.Service = "anything"
 	{
@@ -756,8 +756,8 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 			QueryIDOrName: "anything",
 			QueryOptions:  structs.QueryOptions{Token: token},
 		}
-		var resp structs.PreparedQueryDebugResponse
-		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Debug", req, &resp)
+		var resp structs.PreparedQueryExplainResponse
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -769,7 +769,7 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 		}
 	}
 
-	// Make sure the management token can also debug and see the token.
+	// Make sure the management token can also explain and see the token.
 	query.Query.Token = "5e1e24e5-1329-f86f-18c6-3d3734edb2cd"
 	query.Query.Service.Service = "anything"
 	{
@@ -778,8 +778,8 @@ func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
 			QueryIDOrName: "anything",
 			QueryOptions:  structs.QueryOptions{Token: "root"},
 		}
-		var resp structs.PreparedQueryDebugResponse
-		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Debug", req, &resp)
+		var resp structs.PreparedQueryExplainResponse
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1217,7 +1217,7 @@ func TestPreparedQuery_List(t *testing.T) {
 	}
 }
 
-func TestPreparedQuery_Debug(t *testing.T) {
+func TestPreparedQuery_Explain(t *testing.T) {
 	dir1, s1 := testServerWithConfig(t, func(c *Config) {
 		c.ACLDatacenter = "dc1"
 		c.ACLMasterToken = "root"
@@ -1275,7 +1275,7 @@ func TestPreparedQuery_Debug(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Debug via the management token.
+	// Explain via the management token.
 	query.Query.ID = reply
 	query.Query.Service.Service = "prod-redis"
 	{
@@ -1284,8 +1284,8 @@ func TestPreparedQuery_Debug(t *testing.T) {
 			QueryIDOrName: "prod-redis",
 			QueryOptions:  structs.QueryOptions{Token: "root"},
 		}
-		var resp structs.PreparedQueryDebugResponse
-		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Debug", req, &resp)
+		var resp structs.PreparedQueryExplainResponse
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1297,7 +1297,7 @@ func TestPreparedQuery_Debug(t *testing.T) {
 		}
 	}
 
-	// Debug via the user token, which will redact the captured token.
+	// Explain via the user token, which will redact the captured token.
 	query.Query.Token = redactedToken
 	query.Query.Service.Service = "prod-redis"
 	{
@@ -1306,8 +1306,8 @@ func TestPreparedQuery_Debug(t *testing.T) {
 			QueryIDOrName: "prod-redis",
 			QueryOptions:  structs.QueryOptions{Token: token},
 		}
-		var resp structs.PreparedQueryDebugResponse
-		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Debug", req, &resp)
+		var resp structs.PreparedQueryExplainResponse
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1319,21 +1319,21 @@ func TestPreparedQuery_Debug(t *testing.T) {
 		}
 	}
 
-	// Debugging should be denied without a token, since the user isn't
+	// Explaining should be denied without a token, since the user isn't
 	// allowed to see the query.
 	{
 		req := &structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
 			QueryIDOrName: "prod-redis",
 		}
-		var resp structs.PreparedQueryDebugResponse
-		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Debug", req, &resp)
+		var resp structs.PreparedQueryExplainResponse
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
 		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
 			t.Fatalf("bad: %v", err)
 		}
 	}
 
-	// Try to debug a bogus ID.
+	// Try to explain a bogus ID.
 	{
 		req := &structs.PreparedQueryExecuteRequest{
 			Datacenter:    "dc1",
@@ -1341,7 +1341,7 @@ func TestPreparedQuery_Debug(t *testing.T) {
 			QueryOptions:  structs.QueryOptions{Token: "root"},
 		}
 		var resp structs.IndexedPreparedQueries
-		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Debug", req, &resp); err != nil {
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp); err != nil {
 			if err.Error() != ErrQueryNotFound.Error() {
 				t.Fatalf("err: %v", err)
 			}
