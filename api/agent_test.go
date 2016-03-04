@@ -300,24 +300,67 @@ func TestAgent_SetTTLStatus(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if err := agent.WarnTTL("service:foo", "test"); err != nil {
-		t.Fatalf("err: %v", err)
+	verify := func(status, output string) {
+		checks, err := agent.Checks()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		chk, ok := checks["service:foo"]
+		if !ok {
+			t.Fatalf("missing check: %v", checks)
+		}
+		if chk.Status != status {
+			t.Fatalf("Bad: %#v", chk)
+		}
+		if chk.Output != output {
+			t.Fatalf("Bad: %#v", chk)
+		}
 	}
 
-	checks, err := agent.Checks()
-	if err != nil {
+	if err := agent.WarnTTL("service:foo", "foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	chk, ok := checks["service:foo"]
-	if !ok {
-		t.Fatalf("missing check: %v", checks)
+	verify("warning", "foo")
+
+	if err := agent.PassTTL("service:foo", "bar"); err != nil {
+		t.Fatalf("err: %v", err)
 	}
-	if chk.Status != "warning" {
-		t.Fatalf("Bad: %#v", chk)
+	verify("passing", "bar")
+
+	if err := agent.FailTTL("service:foo", "baz"); err != nil {
+		t.Fatalf("err: %v", err)
 	}
-	if chk.Output != "test" {
-		t.Fatalf("Bad: %#v", chk)
+	verify("critical", "baz")
+
+	if err := agent.UpdateTTL("service:foo", "foo", "warn"); err != nil {
+		t.Fatalf("err: %v", err)
 	}
+	verify("warning", "foo")
+
+	if err := agent.UpdateTTL("service:foo", "bar", "pass"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify("passing", "bar")
+
+	if err := agent.UpdateTTL("service:foo", "baz", "fail"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify("critical", "baz")
+
+	if err := agent.UpdateTTL("service:foo", "foo", "warning"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify("warning", "foo")
+
+	if err := agent.UpdateTTL("service:foo", "bar", "passing"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify("passing", "bar")
+
+	if err := agent.UpdateTTL("service:foo", "baz", "critical"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	verify("critical", "baz")
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
