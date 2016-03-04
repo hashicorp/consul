@@ -97,7 +97,7 @@ func (c *RTTCommand) Run(args []string) int {
 		parts1 := strings.Split(nodes[0], ".")
 		parts2 := strings.Split(nodes[1], ".")
 		if len(parts1) != 2 || len(parts2) != 2 {
-			c.Ui.Error("Node names must be specified as <datacenter>.<node name> with -wan")
+			c.Ui.Error("Node names must be specified as <node name>.<datacenter> with -wan")
 			return 1
 		}
 		node1, dc1 := parts1[0], parts1[1]
