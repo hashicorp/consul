@@ -2,7 +2,14 @@
 
 BACKWARDS INCOMPATIBILITIES:
 
-* The Consul API client is now configured to disable connection reuse and idle
+* Added a new `query` ACL type to manage prepared query names, and stopped capturing
+  ACL tokens by default when prepared queries are created. This won't affect existing
+  queries and how they are executed, but this will affect how they are managed. Now
+  management of prepared queries can be delegated within an organization. If you use
+  prepared queries, you'll need to read the
+  [Consul 0.6.4 upgrade instructions](https://www.consul.io/docs/upgrade-specific.html)
+  before upgrading to this version of Consul. [GH-1748]
+* Consul's Go API client is now configured to disable connection reuse and idle
   connections to the Consul server, meaning it can potentially make a new connection
   for every API method that's called. Previously, idle connections were supported
   and their lifetime was managed by a finalizer, but this wasn't reliable in certain
@@ -11,6 +18,10 @@ BACKWARDS INCOMPATIBILITIES:
   `DefaultPooledTransport` so it will reuse a single connection to Consul. Here's an
   [example from Vault](https://github.com/hashicorp/vault) showing how to do this.
   [GH-1731]
+* Consul's Go API client's `agent.UpdateTTL()` function was updated in a way that will
+  only work with Consul 0.6.4 and later. The `agent.PassTTL()`, `agent.WarnTTL()`, and
+  `agent.FailTTL()` functions were not affected and will continue work with older
+  versions of Consul. [GH-1794]
 
 IMPROVEMENTS:
 
@@ -23,13 +34,21 @@ IMPROVEMENTS:
   option. This allows the node to be reached within its own datacenter using its
   local address, and reached from other datacenters using its WAN address, which is
   useful in hybrid setups with mixed networks. [GH-1698]
+* Consul's Go dependencies are now vendored using Godep. [GH-1714]
+* Added support for `EnableTagOverride` for the catalog in the Go API client. [GH-1726]
+* Consul now ships built from Go 1.6. [GH-1735]
+* Added a new `/v1/agent/check/update/<check id>` API for updating TTL checks which
+  makes it easier to send large check output as part of a PUT body and not a query
+  parameter. [GH-1785].
 
 BUG FIXES:
 
-* Updated the internal web ui (`-ui` option) to latest released build, fixing
-  an ACL-related issue and the broken settings icon [GH-1619]
+* Updated the internal web UI (`-ui` option) to latest released build, fixing
+  an ACL-related issue and the broken settings icon. [GH-1619]
 * Fixed an issue where blocking KV reads could miss updates and return stale data
-  when another key whose name is a prefix of the watched key was updated [GH-1632]
+  when another key whose name is a prefix of the watched key was updated. [GH-1632]
+* Fixed the redirect from `/` to `/ui` when the internal web UI (`-ui` option) is
+  enabled. [GH-1713]
 
 ## 0.6.3 (January 15, 2016)
 
