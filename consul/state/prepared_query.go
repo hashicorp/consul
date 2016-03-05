@@ -20,7 +20,13 @@ func isUUID(str string) bool {
 // queryWrapper is an internal structure that is used to store a query alongside
 // its compiled template, which can be nil.
 type queryWrapper struct {
+	// We embed the PreparedQuery structure so that the UUID field indexer
+	// can see the ID directly.
 	*structs.PreparedQuery
+
+	// ct is the compiled template, or nil if the query isn't a template. The
+	// state store manages this and keeps it up to date every time the query
+	// changes.
 	ct *prepared_query.CompiledTemplate
 }
 
