@@ -21,7 +21,7 @@ queries. Existing queries will execute with no changes, but there are important
 differences to understand about how prepared queries are managed before you
 upgrade. In particular, prepared queries with no `Name` defined will no longer
 require any ACL to manage them, and prepared queries with a `Name` defined are
-now governed by a new `prepared_query` ACL policy that will need to be configured
+now governed by a new `query` ACL policy that will need to be configured
 after the upgrade.
 
 See the [Prepared Query ACLs](/docs/internals/acl.html#prepared_query_acls)
