@@ -82,6 +82,9 @@ type Agent struct {
 	// checkTCPs maps the check ID to an associated TCP check
 	checkTCPs map[string]*CheckTCP
 
+	// checkUDPs maps the check ID to an associated UDP check
+	checkUDPs map[string]*CheckTCP
+
 	// checkTTLs maps the check ID to an associated check TTL
 	checkTTLs map[string]*CheckTTL
 
@@ -174,6 +177,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		checkTTLs:     make(map[string]*CheckTTL),
 		checkHTTPs:    make(map[string]*CheckHTTP),
 		checkTCPs:     make(map[string]*CheckTCP),
+		checkUDPs:     make(map[string]*CheckTCP),
 		checkDockers:  make(map[string]*CheckDocker),
 		eventCh:       make(chan serf.UserEvent, 1024),
 		eventBuf:      make([]*UserEvent, 256),
@@ -480,6 +484,10 @@ func (a *Agent) Shutdown() error {
 	}
 
 	for _, chk := range a.checkTCPs {
+		chk.Stop()
+	}
+
+	for _, chk := range a.checkUDPs {
 		chk.Stop()
 	}
 
@@ -923,6 +931,27 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			tcp.Start()
 			a.checkTCPs[check.CheckID] = tcp
 
+		} else if chkType.IsUDP() {
+			if existing, ok := a.checkUDPs[check.CheckID]; ok {
+				existing.Stop()
+			}
+			if chkType.Interval < MinInterval {
+				a.logger.Println(fmt.Sprintf("[WARN] agent: check '%s' has interval below minimum of %v",
+					check.CheckID, MinInterval))
+				chkType.Interval = MinInterval
+			}
+
+			udp := &CheckTCP{
+				Notify:   &a.state,
+				CheckID:  check.CheckID,
+				UDP:      chkType.UDP,
+				Interval: chkType.Interval,
+				Timeout:  chkType.Timeout,
+				Logger:   a.logger,
+			}
+			udp.Start()
+			a.checkUDPs[check.CheckID] = udp
+
 		} else if chkType.IsDocker() {
 			if existing, ok := a.checkDockers[check.CheckID]; ok {
 				existing.Stop()
@@ -1009,6 +1038,10 @@ func (a *Agent) RemoveCheck(checkID string, persist bool) error {
 	if check, ok := a.checkTCPs[checkID]; ok {
 		check.Stop()
 		delete(a.checkTCPs, checkID)
+	}
+	if check, ok := a.checkUDPs[checkID]; ok {
+		check.Stop()
+		delete(a.checkUDPs, checkID)
 	}
 	if check, ok := a.checkTTLs[checkID]; ok {
 		check.Stop()
