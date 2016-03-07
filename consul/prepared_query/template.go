@@ -128,7 +128,7 @@ func (ct *CompiledTemplate) Render(name string) (*structs.PreparedQuery, error) 
 		Variadic:   false,
 		Callback: func(inputs []interface{}) (interface{}, error) {
 			i, ok := inputs[0].(int)
-			if ok && i < len(matches) {
+			if ok && i >= 0 && i < len(matches) {
 				return matches[i], nil
 			} else {
 				return "", nil

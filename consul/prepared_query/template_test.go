@@ -214,6 +214,7 @@ func TestTemplate_Render(t *testing.T) {
 		Service: structs.ServiceQuery{
 			Service: "${name.prefix} xxx ${name.full} xxx ${name.suffix}",
 			Tags: []string{
+				"${match(-1)}",
 				"${match(0)}",
 				"${match(1)}",
 				"${match(2)}",
@@ -243,6 +244,7 @@ func TestTemplate_Render(t *testing.T) {
 			Service: structs.ServiceQuery{
 				Service: "hello- xxx hello-foo-bar-none xxx foo-bar-none",
 				Tags: []string{
+					"",
 					"hello-foo-bar-none",
 					"hello",
 					"foo",
@@ -272,6 +274,7 @@ func TestTemplate_Render(t *testing.T) {
 			Service: structs.ServiceQuery{
 				Service: "hello- xxx hello-nope xxx nope",
 				Tags: []string{
+					"",
 					"",
 					"",
 					"",
