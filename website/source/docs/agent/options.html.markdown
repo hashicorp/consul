@@ -500,6 +500,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   nodes whose healthchecks are not passing will be excluded from DNS results. By default (or
   if set to false), only nodes whose healthchecks are failing as critical will be excluded.
 
+  * <a name="soa"></a><a href="#soa">`soa`</a> Allows to configure NS and MBOX fields of SOA reply.
+  If set, should be an object with "ns" and "mbox" keys as per RFC 1035.
+
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
 
