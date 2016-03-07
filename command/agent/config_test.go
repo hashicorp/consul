@@ -576,6 +576,21 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// DNS SOA
+	input = `{"dns_config": {"soa": {"ns": "ns.acme.co.", "mbox": "mbox.acme.co."}}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if config.DNSConfig.SOARecord.Ns != "ns.acme.co." {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.DNSConfig.SOARecord.Mbox != "mbox.acme.co." {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// CheckUpdateInterval
 	input = `{"check_update_interval": "10m"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -1259,6 +1274,10 @@ func TestMergeConfig(t *testing.T) {
 			AllowStale:     true,
 			MaxStale:       30 * time.Second,
 			EnableTruncate: true,
+			SOARecord: SOAConfig{
+				Ns:   "ns.acme.co.",
+				Mbox: "mbox.acme.co.",
+			},
 		},
 		Domain:           "other",
 		LogLevel:         "info",
