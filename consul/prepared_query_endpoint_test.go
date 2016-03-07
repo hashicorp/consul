@@ -530,7 +530,7 @@ func TestPreparedQuery_parseQuery(t *testing.T) {
 	query := &structs.PreparedQuery{}
 
 	err := parseQuery(query)
-	if err == nil || !strings.Contains(err.Error(), "Must provide a service") {
+	if err == nil || !strings.Contains(err.Error(), "Must provide a Service") {
 		t.Fatalf("bad: %v", err)
 	}
 
@@ -576,6 +576,219 @@ func TestPreparedQuery_parseQuery(t *testing.T) {
 	query.DNS.TTL = "3s"
 	if err := parseQuery(query); err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestPreparedQuery_ACLDeny_Catchall_Template(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create an ACL with write permissions for any prefix.
+	var token string
+	{
+		var rules = `
+                    query "" {
+                        policy = "write"
+                    }
+                `
+
+		req := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: rules,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Set up a catch-all template.
+	query := structs.PreparedQueryRequest{
+		Datacenter: "dc1",
+		Op:         structs.PreparedQueryCreate,
+		Query: &structs.PreparedQuery{
+			Name:  "",
+			Token: "5e1e24e5-1329-f86f-18c6-3d3734edb2cd",
+			Template: structs.QueryTemplateOptions{
+				Type: structs.QueryTemplateTypeNamePrefixMatch,
+			},
+			Service: structs.ServiceQuery{
+				Service: "${name.full}",
+			},
+		},
+	}
+	var reply string
+
+	// Creating without a token should fail since the default policy is to
+	// deny.
+	err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply)
+	if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+		t.Fatalf("bad: %v", err)
+	}
+
+	// Now add the token and try again.
+	query.WriteRequest.Token = token
+	if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Capture the ID and read back the query to verify. Note that the token
+	// will be redacted since this isn't a management token.
+	query.Query.ID = reply
+	query.Query.Token = redactedToken
+	{
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: token},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Queries[0]
+		if resp.Index != actual.ModifyIndex {
+			t.Fatalf("bad index: %d", resp.Index)
+		}
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Try to query by ID without a token and make sure it gets denied, even
+	// though this has an empty name and would normally be shown.
+	{
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter: "dc1",
+			QueryID:    query.Query.ID,
+		}
+		var resp structs.IndexedPreparedQueries
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp)
+		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+			t.Fatalf("bad: %v", err)
+		}
+
+		if len(resp.Queries) != 0 {
+			t.Fatalf("bad: %v", resp)
+		}
+	}
+
+	// We should get the same result listing all the queries without a
+	// token.
+	{
+		req := &structs.DCSpecificRequest{
+			Datacenter: "dc1",
+		}
+		var resp structs.IndexedPreparedQueries
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.List", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 0 {
+			t.Fatalf("bad: %v", resp)
+		}
+	}
+
+	// But a management token should be able to see it, and the real token.
+	query.Query.Token = "5e1e24e5-1329-f86f-18c6-3d3734edb2cd"
+	{
+		req := &structs.PreparedQuerySpecificRequest{
+			Datacenter:   "dc1",
+			QueryID:      query.Query.ID,
+			QueryOptions: structs.QueryOptions{Token: "root"},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err = msgpackrpc.CallWithCodec(codec, "PreparedQuery.Get", req, &resp); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if len(resp.Queries) != 1 {
+			t.Fatalf("bad: %v", resp)
+		}
+		actual := resp.Queries[0]
+		if resp.Index != actual.ModifyIndex {
+			t.Fatalf("bad index: %d", resp.Index)
+		}
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Explaining should also be denied without a token.
+	{
+		req := &structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: "anything",
+		}
+		var resp structs.PreparedQueryExplainResponse
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
+		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+			t.Fatalf("bad: %v", err)
+		}
+	}
+
+	// The user can explain and see the redacted token.
+	query.Query.Token = redactedToken
+	query.Query.Service.Service = "anything"
+	{
+		req := &structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: "anything",
+			QueryOptions:  structs.QueryOptions{Token: token},
+		}
+		var resp structs.PreparedQueryExplainResponse
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		actual := &resp.Query
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Make sure the management token can also explain and see the token.
+	query.Query.Token = "5e1e24e5-1329-f86f-18c6-3d3734edb2cd"
+	query.Query.Service.Service = "anything"
+	{
+		req := &structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: "anything",
+			QueryOptions:  structs.QueryOptions{Token: "root"},
+		}
+		var resp structs.PreparedQueryExplainResponse
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		actual := &resp.Query
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
 	}
 }
 
@@ -1000,6 +1213,138 @@ func TestPreparedQuery_List(t *testing.T) {
 		actual.CreateIndex, actual.ModifyIndex = 0, 0
 		if !reflect.DeepEqual(actual, query.Query) {
 			t.Fatalf("bad: %v", actual)
+		}
+	}
+}
+
+func TestPreparedQuery_Explain(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create an ACL with write permissions for prod- queries.
+	var token string
+	{
+		var rules = `
+                    query "prod-" {
+                        policy = "write"
+                    }
+                `
+
+		req := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: rules,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &req, &token); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Set up a template.
+	query := structs.PreparedQueryRequest{
+		Datacenter: "dc1",
+		Op:         structs.PreparedQueryCreate,
+		Query: &structs.PreparedQuery{
+			Name:  "prod-",
+			Token: "5e1e24e5-1329-f86f-18c6-3d3734edb2cd",
+			Template: structs.QueryTemplateOptions{
+				Type: structs.QueryTemplateTypeNamePrefixMatch,
+			},
+			Service: structs.ServiceQuery{
+				Service: "${name.full}",
+			},
+		},
+		WriteRequest: structs.WriteRequest{Token: token},
+	}
+	var reply string
+	if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Apply", &query, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Explain via the management token.
+	query.Query.ID = reply
+	query.Query.Service.Service = "prod-redis"
+	{
+		req := &structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: "prod-redis",
+			QueryOptions:  structs.QueryOptions{Token: "root"},
+		}
+		var resp structs.PreparedQueryExplainResponse
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		actual := &resp.Query
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Explain via the user token, which will redact the captured token.
+	query.Query.Token = redactedToken
+	query.Query.Service.Service = "prod-redis"
+	{
+		req := &structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: "prod-redis",
+			QueryOptions:  structs.QueryOptions{Token: token},
+		}
+		var resp structs.PreparedQueryExplainResponse
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		actual := &resp.Query
+		actual.CreateIndex, actual.ModifyIndex = 0, 0
+		if !reflect.DeepEqual(actual, query.Query) {
+			t.Fatalf("bad: %v", actual)
+		}
+	}
+
+	// Explaining should be denied without a token, since the user isn't
+	// allowed to see the query.
+	{
+		req := &structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: "prod-redis",
+		}
+		var resp structs.PreparedQueryExplainResponse
+		err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp)
+		if err == nil || !strings.Contains(err.Error(), permissionDenied) {
+			t.Fatalf("bad: %v", err)
+		}
+	}
+
+	// Try to explain a bogus ID.
+	{
+		req := &structs.PreparedQueryExecuteRequest{
+			Datacenter:    "dc1",
+			QueryIDOrName: generateUUID(),
+			QueryOptions:  structs.QueryOptions{Token: "root"},
+		}
+		var resp structs.IndexedPreparedQueries
+		if err := msgpackrpc.CallWithCodec(codec, "PreparedQuery.Explain", req, &resp); err != nil {
+			if err.Error() != ErrQueryNotFound.Error() {
+				t.Fatalf("err: %v", err)
+			}
 		}
 	}
 }
@@ -1908,6 +2253,11 @@ func TestPreparedQuery_tagFilter(t *testing.T) {
 
 	ret = stringify(tagFilter([]string{"bAr"}, testNodes()))
 	if ret != "node2|node6" {
+		t.Fatalf("bad: %s", ret)
+	}
+
+	ret = stringify(tagFilter([]string{""}, testNodes()))
+	if ret != "" {
 		t.Fatalf("bad: %s", ret)
 	}
 }

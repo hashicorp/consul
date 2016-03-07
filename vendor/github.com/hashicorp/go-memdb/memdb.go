@@ -2,6 +2,8 @@ package memdb
 
 import (
 	"sync"
+	"sync/atomic"
+	"unsafe"
 
 	"github.com/hashicorp/go-immutable-radix"
 )
@@ -12,7 +14,7 @@ import (
 // transactions and MVCC.
 type MemDB struct {
 	schema *DBSchema
-	root   *iradix.Tree
+	root   unsafe.Pointer // *iradix.Tree underneath
 
 	// There can only be a single writter at once
 	writer sync.Mutex
@@ -28,12 +30,18 @@ func NewMemDB(schema *DBSchema) (*MemDB, error) {
 	// Create the MemDB
 	db := &MemDB{
 		schema: schema,
-		root:   iradix.New(),
+		root:   unsafe.Pointer(iradix.New()),
 	}
 	if err := db.initialize(); err != nil {
 		return nil, err
 	}
 	return db, nil
+}
+
+// getRoot is used to do an atomic load of the root pointer
+func (db *MemDB) getRoot() *iradix.Tree {
+	root := (*iradix.Tree)(atomic.LoadPointer(&db.root))
+	return root
 }
 
 // Txn is used to start a new transaction, in either read or write mode.
@@ -45,7 +53,7 @@ func (db *MemDB) Txn(write bool) *Txn {
 	txn := &Txn{
 		db:      db,
 		write:   write,
-		rootTxn: db.root.Txn(),
+		rootTxn: db.getRoot().Txn(),
 	}
 	return txn
 }
@@ -56,20 +64,22 @@ func (db *MemDB) Txn(write bool) *Txn {
 func (db *MemDB) Snapshot() *MemDB {
 	clone := &MemDB{
 		schema: db.schema,
-		root:   db.root,
+		root:   unsafe.Pointer(db.getRoot()),
 	}
 	return clone
 }
 
 // initialize is used to setup the DB for use after creation
 func (db *MemDB) initialize() error {
+	root := db.getRoot()
 	for tName, tableSchema := range db.schema.Tables {
 		for iName, _ := range tableSchema.Indexes {
 			index := iradix.New()
 			path := indexPath(tName, iName)
-			db.root, _, _ = db.root.Insert(path, index)
+			root, _, _ = root.Insert(path, index)
 		}
 	}
+	db.root = unsafe.Pointer(root)
 	return nil
 }
 

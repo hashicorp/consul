@@ -13,6 +13,7 @@ import (
 const (
 	preparedQueryEndpoint      = "PreparedQuery"
 	preparedQueryExecuteSuffix = "/execute"
+	preparedQueryExplainSuffix = "/explain"
 )
 
 // preparedQueryCreateResponse is used to wrap the query ID.
@@ -124,6 +125,36 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	return reply, nil
 }
 
+// preparedQueryExplain shows which query a name resolves to, the fully
+// interpolated template (if it's a template), as well as additional info
+// about the execution of a query.
+func (s *HTTPServer) preparedQueryExplain(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	args := structs.PreparedQueryExecuteRequest{
+		QueryIDOrName: id,
+	}
+	s.parseSource(req, &args.Source)
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+	if err := parseLimit(req, &args.Limit); err != nil {
+		return nil, fmt.Errorf("Bad limit: %s", err)
+	}
+
+	var reply structs.PreparedQueryExplainResponse
+	endpoint := s.agent.getEndpoint(preparedQueryEndpoint)
+	if err := s.agent.RPC(endpoint+".Explain", &args, &reply); err != nil {
+		// We have to check the string since the RPC sheds
+		// the specific error type.
+		if err.Error() == consul.ErrQueryNotFound.Error() {
+			resp.WriteHeader(404)
+			resp.Write([]byte(err.Error()))
+			return nil, nil
+		}
+		return nil, err
+	}
+	return reply, nil
+}
+
 // preparedQueryGet returns a single prepared query.
 func (s *HTTPServer) preparedQueryGet(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.PreparedQuerySpecificRequest{
@@ -197,16 +228,22 @@ func (s *HTTPServer) preparedQueryDelete(id string, resp http.ResponseWriter, re
 // particular query.
 func (s *HTTPServer) PreparedQuerySpecific(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	id := strings.TrimPrefix(req.URL.Path, "/v1/query/")
-	execute := false
+
+	execute, explain := false, false
 	if strings.HasSuffix(id, preparedQueryExecuteSuffix) {
 		execute = true
 		id = strings.TrimSuffix(id, preparedQueryExecuteSuffix)
+	} else if strings.HasSuffix(id, preparedQueryExplainSuffix) {
+		explain = true
+		id = strings.TrimSuffix(id, preparedQueryExplainSuffix)
 	}
 
 	switch req.Method {
 	case "GET":
 		if execute {
 			return s.preparedQueryExecute(id, resp, req)
+		} else if explain {
+			return s.preparedQueryExplain(id, resp, req)
 		} else {
 			return s.preparedQueryGet(id, resp, req)
 		}

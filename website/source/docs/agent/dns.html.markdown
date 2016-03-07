@@ -187,7 +187,10 @@ The `query or name` is the ID or given name of an existing
 [Prepared Query](/docs/agent/http/query.html). These behave like standard service
 queries but provide a much richer set of features, such as filtering by multiple
 tags and automatically failing over to look for services in remote datacenters if
-no healthy nodes are available in the local datacenter.
+no healthy nodes are available in the local datacenter. Consul 0.6.4 and later also
+added support for [prepared query templates](/docs/agent/http/query.html#templates)
+which can match names using a prefix match, allowing one template to apply to
+potentially many services.
 
 To allow for simple load balancing, the set of nodes returned is randomized each time.
 Both A and SRV records are supported. SRV records provide the port that a service is

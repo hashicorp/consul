@@ -134,6 +134,8 @@ func parseQuery(query *structs.PreparedQuery) error {
 	//   transaction. Otherwise, people could "steal" queries that they don't
 	//   have proper ACL rights to change.
 	// - Session is optional and checked for integrity during the transaction.
+	// - Template is checked during the transaction since that's where we
+	//   compile it.
 
 	// Token is checked when the query is executed, but we do make sure the
 	// user hasn't accidentally pasted-in the special redacted token name,
@@ -162,7 +164,7 @@ func parseQuery(query *structs.PreparedQuery) error {
 func parseService(svc *structs.ServiceQuery) error {
 	// Service is required.
 	if svc.Service == "" {
-		return fmt.Errorf("Must provide a service name to query")
+		return fmt.Errorf("Must provide a Service name to query")
 	}
 
 	// NearestN can be 0 which means "don't fail over by RTT".
@@ -267,6 +269,54 @@ func (p *PreparedQuery) List(args *structs.DCSpecificRequest, reply *structs.Ind
 		})
 }
 
+// Explain resolves a prepared query and returns the (possibly rendered template)
+// to the caller. This is useful for letting operators figure out which query is
+// picking up a given name. We can also add additional info about how the query
+// will be executed here.
+func (p *PreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
+	reply *structs.PreparedQueryExplainResponse) error {
+	if done, err := p.srv.forward("PreparedQuery.Explain", args, args, reply); done {
+		return err
+	}
+	defer metrics.MeasureSince([]string{"consul", "prepared-query", "explain"}, time.Now())
+
+	// We have to do this ourselves since we are not doing a blocking RPC.
+	p.srv.setQueryMeta(&reply.QueryMeta)
+	if args.RequireConsistent {
+		if err := p.srv.consistentRead(); err != nil {
+			return err
+		}
+	}
+
+	// Try to locate the query.
+	state := p.srv.fsm.State()
+	_, query, err := state.PreparedQueryResolve(args.QueryIDOrName)
+	if err != nil {
+		return err
+	}
+	if query == nil {
+		return ErrQueryNotFound
+	}
+
+	// Place the query into a list so we can run the standard ACL filter on
+	// it.
+	queries := &structs.IndexedPreparedQueries{
+		Queries: structs.PreparedQueries{query},
+	}
+	if err := p.srv.filterACL(args.Token, queries); err != nil {
+		return err
+	}
+
+	// If the query was filtered out, return an error.
+	if len(queries.Queries) == 0 {
+		p.srv.logger.Printf("[WARN] consul.prepared_query: Explain on prepared query '%s' denied due to ACLs", query.ID)
+		return permissionDeniedErr
+	}
+
+	reply.Query = *(queries.Queries[0])
+	return nil
+}
+
 // Execute runs a prepared query and returns the results. This will perform the
 // failover logic if no local results are available. This is typically called as
 // part of a DNS lookup, or when executing prepared queries from the HTTP API.
@@ -287,7 +337,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 
 	// Try to locate the query.
 	state := p.srv.fsm.State()
-	_, query, err := state.PreparedQueryLookup(args.QueryIDOrName)
+	_, query, err := state.PreparedQueryResolve(args.QueryIDOrName)
 	if err != nil {
 		return err
 	}

@@ -390,6 +390,12 @@ func preparedQueriesTableSchema() *memdb.TableSchema {
 					Lowercase: true,
 				},
 			},
+			"template": &memdb.IndexSchema{
+				Name:         "template",
+				AllowMissing: true,
+				Unique:       true,
+				Indexer:      &PreparedQueryIndex{},
+			},
 			"session": &memdb.IndexSchema{
 				Name:         "session",
 				AllowMissing: true,

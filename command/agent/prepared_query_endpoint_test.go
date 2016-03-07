@@ -25,6 +25,7 @@ type MockPreparedQuery struct {
 	getFn     func(*structs.PreparedQuerySpecificRequest, *structs.IndexedPreparedQueries) error
 	listFn    func(*structs.DCSpecificRequest, *structs.IndexedPreparedQueries) error
 	executeFn func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse) error
+	explainFn func(*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExplainResponse) error
 }
 
 func (m *MockPreparedQuery) Apply(args *structs.PreparedQueryRequest,
@@ -57,6 +58,14 @@ func (m *MockPreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		return m.executeFn(args, reply)
 	}
 	return fmt.Errorf("should not have called Execute")
+}
+
+func (m *MockPreparedQuery) Explain(args *structs.PreparedQueryExecuteRequest,
+	reply *structs.PreparedQueryExplainResponse) error {
+	if m.explainFn != nil {
+		return m.explainFn(args, reply)
+	}
+	return fmt.Errorf("should not have called Explain")
 }
 
 func TestPreparedQuery_Create(t *testing.T) {
@@ -317,6 +326,77 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
 		req, err := http.NewRequest("GET", "/v1/query/not-there/execute", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		_, err = srv.PreparedQuerySpecific(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 404 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+	})
+}
+
+func TestPreparedQuery_Explain(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		m := MockPreparedQuery{}
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		m.explainFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExplainResponse) error {
+			expected := &structs.PreparedQueryExecuteRequest{
+				Datacenter:    "dc1",
+				QueryIDOrName: "my-id",
+				Limit:         5,
+				Source: structs.QuerySource{
+					Datacenter: "dc1",
+					Node:       "my-node",
+				},
+				QueryOptions: structs.QueryOptions{
+					Token:             "my-token",
+					RequireConsistent: true,
+				},
+			}
+			if !reflect.DeepEqual(args, expected) {
+				t.Fatalf("bad: %v", args)
+			}
+
+			// Just set something so we can tell this is returned.
+			reply.Query.Name = "hello"
+			return nil
+		}
+
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/query/my-id/explain?token=my-token&consistent=true&near=my-node&limit=5", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.PreparedQuerySpecific(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 200 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+		r, ok := obj.(structs.PreparedQueryExplainResponse)
+		if !ok {
+			t.Fatalf("unexpected: %T", obj)
+		}
+		if r.Query.Name != "hello" {
+			t.Fatalf("bad: %v", r)
+		}
+	})
+
+	httpTest(t, func(srv *HTTPServer) {
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/query/not-there/explain", body)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
