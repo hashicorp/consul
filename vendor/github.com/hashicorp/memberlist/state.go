@@ -282,7 +282,7 @@ func (m *Memberlist) probeNode(node *nodeState) {
 	// member who understands version 3 of the protocol, regardless of
 	// which protocol version we are speaking. That's why we've included a
 	// config option to turn this off if desired.
-	fallbackCh := make(chan bool)
+	fallbackCh := make(chan bool, 1)
 	if (!m.config.DisableTcpPings) && (node.PMax >= 3) {
 		destAddr := &net.TCPAddr{IP: node.Addr, Port: int(node.Port)}
 		go func() {

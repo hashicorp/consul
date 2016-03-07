@@ -280,7 +280,7 @@ func (m *Memberlist) setAlive() error {
 				if ip.To4() == nil {
 					continue
 				}
-				if !isPrivateIP(ip.String()) {
+				if !IsPrivateIP(ip.String()) {
 					continue
 				}
 
@@ -305,7 +305,7 @@ func (m *Memberlist) setAlive() error {
 
 	// Check if this is a public address without encryption
 	addrStr := net.IP(advertiseAddr).String()
-	if !isPrivateIP(addrStr) && !isLoopbackIP(addrStr) && !m.config.EncryptionEnabled() {
+	if !IsPrivateIP(addrStr) && !isLoopbackIP(addrStr) && !m.config.EncryptionEnabled() {
 		m.logger.Printf("[WARN] memberlist: Binding to public address without encryption!")
 	}
 

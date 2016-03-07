@@ -100,7 +100,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/memberlist",
-			"Rev": "9888dc523910e5d22c5be4f6e34520943df21809"
+			"Rev": "cef12ad58224d55cf26caa9e3d239c2fcb3432a2"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/net-rpc-msgpackrpc",
