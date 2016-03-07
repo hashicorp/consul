@@ -487,22 +487,20 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 	return records
 }
 
-// trimAnswers makes sure a UDP response is not longer than allowed by RFC 1035
+// trimAnswers makes sure a UDP response is not longer than allowed by RFC 1035.
+// We first enforce an arbitrary limit, and then make sure the response doesn't
+// exceed 512 bytes.
 func trimAnswers(resp *dns.Msg) (trimmed bool) {
 	numAnswers := len(resp.Answer)
 
+	// This cuts UDP responses to a useful but limited number of responses.
 	if numAnswers > maxServiceResponses {
 		resp.Answer = resp.Answer[:maxServiceResponses]
 	}
 
-	// Check that the response isn't more than 512 bytes
-	for respBytes := resp.Len(); respBytes > 512; respBytes = resp.Len() {
+	// This enforces the hard limit of 512 bytes per the RFC.
+	for len(resp.Answer) > 0 && resp.Len() > 512 {
 		resp.Answer = resp.Answer[:len(resp.Answer)-1]
-
-		if len(resp.Answer) == 0 {
-			// We've done all we can
-			break
-		}
 	}
 
 	return len(resp.Answer) < numAnswers
