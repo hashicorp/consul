@@ -26,7 +26,12 @@ func makeDNSServerConfig(
 	if agentFn != nil {
 		agentFn(agentConf)
 	}
-	dnsConf := &DNSConfig{}
+	dnsConf := &DNSConfig{
+		SOARecord: SOAConfig{
+			Ns:   "ns.consul.",
+			Mbox: "mbox.consul.",
+		},
+	}
 	if dnsFn != nil {
 		dnsFn(dnsConf)
 	}
@@ -196,6 +201,12 @@ func TestDNS_NodeLookup(t *testing.T) {
 		t.Fatalf("Bad: %#v", in.Ns[0])
 	}
 	if soaRec.Hdr.Ttl != 0 {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+	if soaRec.Ns != "ns.consul." {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+	if soaRec.Mbox != "mbox.consul." {
 		t.Fatalf("Bad: %#v", in.Ns[0])
 	}
 }
@@ -619,6 +630,12 @@ func TestDNS_ServiceLookup(t *testing.T) {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
 		if soaRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+		if soaRec.Ns != "ns.consul." {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+		if soaRec.Mbox != "mbox.consul." {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
 	}
@@ -2782,6 +2799,12 @@ func TestDNS_NonExistingLookup(t *testing.T) {
 	if soaRec.Hdr.Ttl != 0 {
 		t.Fatalf("Bad: %#v", in.Ns[0])
 	}
+	if soaRec.Ns != "ns.consul." {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
+	if soaRec.Mbox != "mbox.consul." {
+		t.Fatalf("Bad: %#v", in.Ns[0])
+	}
 }
 
 func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
@@ -2885,6 +2908,12 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 		if soaRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
+		if soaRec.Ns != "ns.consul." {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+		if soaRec.Mbox != "mbox.consul." {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
 
 		if in.Rcode != dns.RcodeSuccess {
 			t.Fatalf("Bad: %#v", in)
@@ -2917,6 +2946,12 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
 		if soaRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+		if soaRec.Ns != "ns.consul." {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+		if soaRec.Mbox != "mbox.consul." {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
 
@@ -2972,6 +3007,12 @@ func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 		if soaRec.Hdr.Ttl != 0 {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
+		if soaRec.Ns != "ns.consul." {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+		if soaRec.Mbox != "mbox.consul." {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
 	}
 }
 
@@ -3010,6 +3051,12 @@ func TestDNS_InvalidQueries(t *testing.T) {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
 		if soaRec.Hdr.Ttl != 0 {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+		if soaRec.Ns != "ns.consul." {
+			t.Fatalf("Bad: %#v", in.Ns[0])
+		}
+		if soaRec.Mbox != "mbox.consul." {
 			t.Fatalf("Bad: %#v", in.Ns[0])
 		}
 	}
