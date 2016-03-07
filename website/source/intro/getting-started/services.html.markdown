@@ -136,7 +136,7 @@ In addition to the DNS API, the HTTP API can be used to query services:
 
 ```text
 $ curl http://localhost:8500/v1/catalog/service/web
-[{"Node":"agent-one","Address":"172.20.20.11","ServiceID":"web", \
+[{"Node":"Armons-MacBook-Air","Address":"172.20.20.11","ServiceID":"web", \
 	"ServiceName":"web","ServiceTags":["rails"],"ServicePort":80}]
 ```
 
