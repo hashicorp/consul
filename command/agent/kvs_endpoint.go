@@ -37,6 +37,8 @@ func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (i
 
 	// Switch on the method
 	switch req.Method {
+	case "OPTIONS":
+		return s.KVSOptions(resp, req, &args)
 	case "GET":
 		if keyList {
 			return s.KVSGetKeys(resp, req, &args)
@@ -51,6 +53,10 @@ func (s *HTTPServer) KVSEndpoint(resp http.ResponseWriter, req *http.Request) (i
 		resp.WriteHeader(405)
 		return nil, nil
 	}
+}
+
+func (s *HTTPServer) KVSOptions(resp http.ResponseWriter, req *http.Request, args *structs.KeyRequest) (interface{}, error) {
+	return true, nil
 }
 
 // KVSGet handles a GET request
