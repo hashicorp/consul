@@ -8,11 +8,6 @@ body.page-sub{
   #header{
     @include consul-gradient-bg();
 
-    &.-displaying-bnr{
-      > .container{
-        padding-bottom: 32px;
-      }
-    }
     .navbar-brand {
       .logo{
         &:hover{
@@ -24,17 +19,6 @@ body.page-sub{
 }
 
 #header {
-  // when _announcment-bnr.erb (ie. Consul Enterprise Announcment) is being used in layout we need to push down content to accomodate
-  // add this class
-  &.-displaying-bnr{
-    > .container{
-      padding-top: 8px;
-      -webkit-transform: translateY(32px);
-          -ms-transform: translateY(32px);
-              transform: translateY(32px);
-    }
-  }
-
   .navbar-brand {
     .logo{
       width: $project-logo-width;

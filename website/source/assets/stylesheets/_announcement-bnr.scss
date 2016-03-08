@@ -6,6 +6,38 @@ $enterprise-bnr-font-weight: 300;
 $enterprise-bnr-consul-color: #B52A55;
 $enterprise-color-dark-white: #A9B1B5;
 
+body{
+  // when _announcment-bnr.erb (ie. Consul Enterprise Announcment) is being used in layout we need to push down content to accomodate
+  // add this class to body
+  &.-displaying-bnr{
+    #header{
+      > .container{
+        padding-top: 8px;
+        -webkit-transform: translateY(32px);
+            -ms-transform: translateY(32px);
+                transform: translateY(32px);
+      }
+    }
+
+    #jumbotron {
+      .container{
+        .jumbo-logo-wrap{
+          margin-top: 160px;
+        }
+      }
+    }
+
+    &.page-sub{
+      #header{
+        > .container{
+          padding-bottom: 32px;
+        }
+      }
+    }
+  }
+}
+
+
 #announcement-bnr {
   height: 40px;
   flex-shrink: 0;

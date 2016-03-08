@@ -24,8 +24,8 @@
     <%= yield_content :head %>
   </head>
 
-  <body class="page-<%= current_page.data.page_title ? "#{current_page.data.page_title} layout-#{current_page.data.layout} page-sub" : "home layout-#{current_page.data.layout}" %>">
-    <div id="header" class="-displaying-bnr navigation <%= current_page.data.page_title == "home" ? "" : "navbar-static-top" %>">
+  <body class="page-<%= current_page.data.page_title ? "#{current_page.data.page_title} layout-#{current_page.data.layout} page-sub" : "home layout-#{current_page.data.layout}" %> -displaying-bnr">
+    <div id="header" class="navigation <%= current_page.data.page_title == "home" ? "" : "navbar-static-top" %>">
       <%= partial "layouts/announcement-bnr" %>
       <div class="container">
     		<div class="row">
