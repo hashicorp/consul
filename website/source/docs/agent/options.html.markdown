@@ -493,7 +493,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   setting this value.
 
   * <a name="enable_truncate"></a><a href="#enable_truncate">`enable_truncate`</a> If set to
-  true, a UDP DNS query that would return more 3 records, or more than would fit into a valid
+  true, a UDP DNS query that would return more than 3 records, or more than would fit into a valid
   UDP response, will set the truncated flag, indicating to clients that they should re-query
   using TCP to get the full set of records.
 
