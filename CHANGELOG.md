@@ -55,6 +55,7 @@ BUG FIXES:
   when another key whose name is a prefix of the watched key was updated. [GH-1632]
 * Fixed the redirect from `/` to `/ui` when the internal web UI (`-ui` option) is
   enabled. [GH-1713]
+* Added a fix to trim UDP DNS responses so they don't exceed 512 bytes. [GH-1813]
 
 ## 0.6.3 (January 15, 2016)
 
