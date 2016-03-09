@@ -56,6 +56,7 @@ BUG FIXES:
 * Fixed the redirect from `/` to `/ui` when the internal web UI (`-ui` option) is
   enabled. [GH-1713]
 * Added a fix to trim UDP DNS responses so they don't exceed 512 bytes. [GH-1813]
+* Updated go-dockerclient to fix Docker health checks with Docker 1.10. [GH-1706]
 
 ## 0.6.3 (January 15, 2016)
 
