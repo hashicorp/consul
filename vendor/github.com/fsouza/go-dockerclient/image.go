@@ -421,6 +421,7 @@ type BuildImageOptions struct {
 	AuthConfigs         AuthConfigurations `qs:"-"` // for newer docker X-Registry-Config header
 	ContextDir          string             `qs:"-"`
 	Ulimits             []ULimit           `qs:"-"`
+	BuildArgs           []BuildArg         `qs:"-"`
 }
 
 // BuildImage builds an image from a tarball's url or a Dockerfile in the input
@@ -459,6 +460,18 @@ func (c *Client) BuildImage(opts BuildImageOptions) error {
 		if b, err := json.Marshal(opts.Ulimits); err == nil {
 			item := url.Values(map[string][]string{})
 			item.Add("ulimits", string(b))
+			qs = fmt.Sprintf("%s&%s", qs, item.Encode())
+		}
+	}
+
+	if len(opts.BuildArgs) > 0 {
+		v := make(map[string]string)
+		for _, arg := range opts.BuildArgs {
+			v[arg.Name] = arg.Value
+		}
+		if b, err := json.Marshal(v); err == nil {
+			item := url.Values(map[string][]string{})
+			item.Add("buildargs", string(b))
 			qs = fmt.Sprintf("%s&%s", qs, item.Encode())
 		}
 	}

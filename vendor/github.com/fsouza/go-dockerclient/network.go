@@ -5,6 +5,7 @@
 package docker
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -26,6 +27,7 @@ type Network struct {
 	IPAM       IPAMOptions
 	Containers map[string]Endpoint
 	Options    map[string]string
+	Internal   bool
 }
 
 // Endpoint contains network resources allocated and used for a container in a network
@@ -44,6 +46,31 @@ type Endpoint struct {
 // See https://goo.gl/6GugX3 for more details.
 func (c *Client) ListNetworks() ([]Network, error) {
 	resp, err := c.do("GET", "/networks", doOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var networks []Network
+	if err := json.NewDecoder(resp.Body).Decode(&networks); err != nil {
+		return nil, err
+	}
+	return networks, nil
+}
+
+// NetworkFilterOpts is an aggregation of key=value that Docker
+// uses to filter networks
+type NetworkFilterOpts map[string]map[string]bool
+
+// FilteredListNetworks returns all networks with the filters applied
+//
+// See goo.gl/zd2mx4 for more details.
+func (c *Client) FilteredListNetworks(opts NetworkFilterOpts) ([]Network, error) {
+	params := bytes.NewBuffer(nil)
+	if err := json.NewEncoder(params).Encode(&opts); err != nil {
+		return nil, err
+	}
+	path := "/networks?filters=" + params.String()
+	resp, err := c.do("GET", path, doOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -163,6 +190,7 @@ func (c *Client) RemoveNetwork(id string) error {
 // See https://goo.gl/6GugX3 for more details.
 type NetworkConnectionOptions struct {
 	Container string
+	Force     bool
 }
 
 // ConnectNetwork adds a container to a network or returns an error in case of failure.
