@@ -487,6 +487,25 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 	return records
 }
 
+// trimAnswers makes sure a UDP response is not longer than allowed by RFC 1035.
+// We first enforce an arbitrary limit, and then make sure the response doesn't
+// exceed 512 bytes.
+func trimAnswers(resp *dns.Msg) (trimmed bool) {
+	numAnswers := len(resp.Answer)
+
+	// This cuts UDP responses to a useful but limited number of responses.
+	if numAnswers > maxServiceResponses {
+		resp.Answer = resp.Answer[:maxServiceResponses]
+	}
+
+	// This enforces the hard limit of 512 bytes per the RFC.
+	for len(resp.Answer) > 0 && resp.Len() > 512 {
+		resp.Answer = resp.Answer[:len(resp.Answer)-1]
+	}
+
+	return len(resp.Answer) < numAnswers
+}
+
 // serviceLookup is used to handle a service query
 func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req, resp *dns.Msg) {
 	// Make an RPC request
@@ -547,17 +566,17 @@ RPC:
 	}
 
 	// If the network is not TCP, restrict the number of responses
-	if network != "tcp" && len(resp.Answer) > maxServiceResponses {
-		resp.Answer = resp.Answer[:maxServiceResponses]
+	if network != "tcp" {
+		wasTrimmed := trimAnswers(resp)
 
 		// Flag that there are more records to return in the UDP response
-		if d.config.EnableTruncate {
+		if wasTrimmed && d.config.EnableTruncate {
 			resp.Truncated = true
 		}
 	}
 
-	// If the answer is empty, return not found
-	if len(resp.Answer) == 0 {
+	// If the answer is empty and the response isn't truncated, return not found
+	if len(resp.Answer) == 0 && !resp.Truncated {
 		d.addSOA(d.domain, resp)
 		return
 	}
@@ -642,18 +661,17 @@ RPC:
 	}
 
 	// If the network is not TCP, restrict the number of responses.
-	if network != "tcp" && len(resp.Answer) > maxServiceResponses {
-		resp.Answer = resp.Answer[:maxServiceResponses]
+	if network != "tcp" {
+		wasTrimmed := trimAnswers(resp)
 
-		// Flag that there are more records to return in the UDP
-		// response.
-		if d.config.EnableTruncate {
+		// Flag that there are more records to return in the UDP response
+		if wasTrimmed && d.config.EnableTruncate {
 			resp.Truncated = true
 		}
 	}
 
-	// If the answer is empty, return not found.
-	if len(resp.Answer) == 0 {
+	// If the answer is empty and the response isn't truncated, return not found
+	if len(resp.Answer) == 0 && !resp.Truncated {
 		d.addSOA(d.domain, resp)
 		return
 	}
