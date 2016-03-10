@@ -56,8 +56,6 @@ amount of resources to defeat.
 
 ## Network Ports
 
-Consul uses the following ports on the network:
-* TCP 8300 (RPC - LAN & WAN)
-* TCP & UDP 8301 (LAN GOSSIP)
-* TCP & UDP 8302 (WAN GOSSIP)
-* TCP 8500 (WEBUI - not enabled by default)
+For configuring network rules to support Consul, please see [Ports Used](/docs/agent/options.html#ports)
+for a listing of network ports used by Consul and details about which features
+they are used for.
