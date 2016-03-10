@@ -46,6 +46,7 @@ IMPROVEMENTS:
 * Added a new `/v1/agent/check/update/<check id>` API for updating TTL checks which
   makes it easier to send large check output as part of a PUT body and not a query
   parameter. [GH-1785].
+* Added a default set of `Accept` headers for HTTP checks. [GH-1819]
 
 BUG FIXES:
 
