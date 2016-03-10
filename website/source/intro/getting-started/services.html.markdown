@@ -140,6 +140,17 @@ $ curl http://localhost:8500/v1/catalog/service/web
 	"ServiceName":"web","ServiceTags":["rails"],"ServicePort":80}]
 ```
 
+The catalog API gives all nodes hosting a given service. As we will see later
+with [health checks](/intro/getting-started/checks.html) you'll typically want
+to query just for healthy instances where the checks are passing. This is what
+DNS is doing under the hood. Here's a query to look for only healthy instances:
+
+```text
+$ curl 'http://localhost:8500/v1/health/service/web?passing'
+[{"Node":"Armons-MacBook-Air","Address":"172.20.20.11","Service":{ \
+	"ID":"web", "Service":"web", "Tags":["rails"],"Port":80}, "Checks": ...}]
+```
+
 ## Updating Services
 
 Service definitions can be updated by changing configuration files and
