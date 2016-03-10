@@ -722,7 +722,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
    [watch documentation](/docs/agent/watches.html) for more detail. Watches can be
    modified when the configuration is reloaded.
 
-## Ports Used
+## <a id="ports"></a>Ports Used
 
 Consul requires up to 5 different ports to work properly, some on
 TCP, UDP, or both protocols. Below we document the requirements for each
@@ -745,7 +745,11 @@ port.
 
 * DNS Interface (Default 8600). Used to resolve DNS queries. TCP and UDP.
 
-## <a id="reloadable-configuration"></a>Reloadable Configuration</a>
+Consul will also make an outgoing connection to HashiCorp's servers for
+Atlas-related features and to check for the availability of newer versions
+of Consul. This will be a TLS-secured TCP connection to `scada.hashicorp.com:7223`.
+
+## <a id="reloadable-configuration"></a>Reloadable Configuration
 
 Reloading configuration does not reload all configuration items. The
 items which are reloaded include:

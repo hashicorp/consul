@@ -53,3 +53,9 @@ When designing security into a system you design it to fit the threat model.
 Our goal is not to protect top secret data but to provide a "reasonable"
 level of security that would require an attacker to commit a considerable
 amount of resources to defeat.
+
+## Network Ports
+
+For configuring network rules to support Consul, please see [Ports Used](/docs/agent/options.html#ports)
+for a listing of network ports used by Consul and details about which features
+they are used for.
