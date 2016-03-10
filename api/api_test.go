@@ -85,32 +85,39 @@ func TestDefaultConfig_env(t *testing.T) {
 	os.Setenv("CONSUL_HTTP_SSL_VERIFY", "0")
 	defer os.Setenv("CONSUL_HTTP_SSL_VERIFY", "")
 
-	config := DefaultConfig()
+	for i, config := range []*Config{DefaultConfig(), DefaultNonPooledConfig()} {
+		if config.Address != addr {
+			t.Errorf("expected %q to be %q", config.Address, addr)
+		}
+		if config.Token != token {
+			t.Errorf("expected %q to be %q", config.Token, token)
+		}
+		if config.HttpAuth == nil {
+			t.Fatalf("expected HttpAuth to be enabled")
+		}
+		if config.HttpAuth.Username != "username" {
+			t.Errorf("expected %q to be %q", config.HttpAuth.Username, "username")
+		}
+		if config.HttpAuth.Password != "password" {
+			t.Errorf("expected %q to be %q", config.HttpAuth.Password, "password")
+		}
+		if config.Scheme != "https" {
+			t.Errorf("expected %q to be %q", config.Scheme, "https")
+		}
+		if !config.HttpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
+			t.Errorf("expected SSL verification to be off")
+		}
 
-	if config.Address != addr {
-		t.Errorf("expected %q to be %q", config.Address, addr)
-	}
-
-	if config.Token != token {
-		t.Errorf("expected %q to be %q", config.Token, token)
-	}
-
-	if config.HttpAuth == nil {
-		t.Fatalf("expected HttpAuth to be enabled")
-	}
-	if config.HttpAuth.Username != "username" {
-		t.Errorf("expected %q to be %q", config.HttpAuth.Username, "username")
-	}
-	if config.HttpAuth.Password != "password" {
-		t.Errorf("expected %q to be %q", config.HttpAuth.Password, "password")
-	}
-
-	if config.Scheme != "https" {
-		t.Errorf("expected %q to be %q", config.Scheme, "https")
-	}
-
-	if !config.HttpClient.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify {
-		t.Errorf("expected SSL verification to be off")
+		// Use keep alives as a check for whether pooling is on or off.
+		if pooled := i == 0; pooled {
+			if config.HttpClient.Transport.(*http.Transport).DisableKeepAlives != false {
+				t.Errorf("expected keep alives to be enabled")
+			}
+		} else {
+			if config.HttpClient.Transport.(*http.Transport).DisableKeepAlives != true {
+				t.Errorf("expected keep alives to be disabled")
+			}
+		}
 	}
 }
 
