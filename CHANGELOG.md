@@ -9,15 +9,12 @@ BACKWARDS INCOMPATIBILITIES:
   prepared queries, you'll need to read the
   [Consul 0.6.4 upgrade instructions](https://www.consul.io/docs/upgrade-specific.html)
   before upgrading to this version of Consul. [GH-1748]
-* Consul's Go API client is now configured to disable connection reuse and idle
-  connections to the Consul server, meaning it can potentially make a new connection
-  for every API method that's called. Previously, idle connections were supported
-  and their lifetime was managed by a finalizer, but this wasn't reliable in certain
-  situations. If you don't reuse your API client object, then there's nothing to do.
-  If you have a long-lived API client object, you may want to configure it using the
-  `DefaultPooledTransport` so it will reuse a single connection to Consul. Here's an
-  [example from consul-template](https://github.com/hashicorp/consul-template/pull/546/files)
-  showing how to do this. [GH-1731]
+* Consul's Go API client now pools connections by default, and requires you to manually
+  opt-out of this behavior. Previously, idle connections were supported and their
+  lifetime was managed by a finalizer, but this wasn't reliable in certain situations.
+  If you reuse an API client object during the lifetime of your application, then there's
+  nothing to do. If you have short-lived API client objects, you may need to configure them
+  using the new `api.DefaultNonPooledConfig()` method to avoid leaking idle connections. [GH-1825]
 * Consul's Go API client's `agent.UpdateTTL()` function was updated in a way that will
   only work with Consul 0.6.4 and later. The `agent.PassTTL()`, `agent.WarnTTL()`, and
   `agent.FailTTL()` functions were not affected and will continue work with older
