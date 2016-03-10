@@ -18,8 +18,8 @@ BACKWARDS INCOMPATIBILITIES:
   situations. If you don't reuse your API client object, then there's nothing to do.
   If you have a long-lived API client object, you may want to configure it using the
   `DefaultPooledTransport` so it will reuse a single connection to Consul. Here's an
-  [example from Vault](https://github.com/hashicorp/vault) showing how to do this.
-  [GH-1731]
+  [example from consul-template](https://github.com/hashicorp/consul-template/pull/546/files)
+  showing how to do this. [GH-1731]
 * Consul's Go API client's `agent.UpdateTTL()` function was updated in a way that will
   only work with Consul 0.6.4 and later. The `agent.PassTTL()`, `agent.WarnTTL()`, and
   `agent.FailTTL()` functions were not affected and will continue work with older
