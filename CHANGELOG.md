@@ -47,6 +47,7 @@ IMPROVEMENTS:
   makes it easier to send large check output as part of a PUT body and not a query
   parameter. [GH-1785].
 * Added a default set of `Accept` headers for HTTP checks. [GH-1819]
+* Added support for RHEL7/Systemd in Terraform example. [GH-1629]
 
 BUG FIXES:
 
