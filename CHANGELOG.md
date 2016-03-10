@@ -25,7 +25,9 @@ IMPROVEMENTS:
 * Added new template prepared queries which allow you to define a prefix (possibly even
   an empty prefix) to apply prepared query features like datacenter failover to multiple
   services with a single query definition. This makes it easy to apply a common policy to
-  multiple services without having to manage many prepared queries. [GH-1764]
+  multiple services without having to manage many prepared queries. See
+  [Prepared Query Templates](https://www.consul.io/docs/agent/http/query.html#templates)
+  for more details. [GH-1764]
 * Added a new `disable_hostname` configuration option to control whether Consul's
   runtime telemetry gets prepended with the host name. All of the telemetry
   configuration has also been moved to a `telemetry` nested structure, but the old
