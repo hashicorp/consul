@@ -34,18 +34,19 @@ the output of [`consul agent`](/docs/commands/agent.html) will include "Encrypte
 $ cat encrypt.json
 {"encrypt": "cg8StVXbQJ0gPvMd9o7yrg=="}
 
-$ consul agent -data=/tmp/consul -config-file encrypt.json
+$ consul agent -data-dir=/tmp/consul -config-file encrypt.json
+==> WARNING: LAN keyring exists but -encrypt given, using keyring
+==> WARNING: WAN keyring exists but -encrypt given, using keyring
 ==> Starting Consul agent...
 ==> Starting Consul agent RPC...
 ==> Consul agent running!
          Node name: 'Armons-MacBook-Air.local'
         Datacenter: 'dc1'
-    Advertise addr: '10.1.10.12'
-          RPC addr: '127.0.0.1:8400'
-         HTTP addr: '127.0.0.1:8500'
-          DNS addr: '127.0.0.1:8600'
-         Encrypted: true
             Server: false (bootstrap: false)
+       Client Addr: 127.0.0.1 (HTTP: 8500, HTTPS: -1, DNS: 8600, RPC: 8400)
+      Cluster Addr: 10.1.10.12 (LAN: 8301, WAN: 8302)
+    Gossip encrypt: true, RPC-TLS: false, TLS-Incoming: false
+             Atlas: <disabled>
 ...
 ```
 
