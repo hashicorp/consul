@@ -46,6 +46,14 @@ IMPROVEMENTS:
 * Added a new `/v1/agent/check/update/<check id>` API for updating TTL checks which
   makes it easier to send large check output as part of a PUT body and not a query
   parameter. [GH-1785].
+* Warn early about a possible incompatability: service names must be valid
+  per RFC-1123 and RFC-2782.  For environments using Consul DNS it is
+  unlikely to be an issue because invalid names would not have worked,
+  however for environments that were using only the HTTP interface, this
+  could be a problematic change.  Start warning now in prep for the 0.8
+  release where it will be an error to use invalid service names.  Valid
+  service names must begin and end with an alphanumeric, may contain hyphens,
+  and must be less than 64 characters. [GH-1830].
 
 BUG FIXES:
 
