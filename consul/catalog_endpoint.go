@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -34,6 +35,17 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 		// Verify ServiceName provided if ID
 		if args.Service.ID != "" && args.Service.Service == "" {
 			return fmt.Errorf("Must provide service name with ID")
+		}
+
+		// Verify that the service name is valid per RFC-1123 and
+		// RFC-2782.
+		//
+		// FIXME(sean@): After 0.7 has been branched, change from a
+		// warning to an error for the 0.8 release.
+		re := regexp.MustCompile(`^(?i:[a-z0-9]|[a-z0-9][a-z0-9\-]{0,61}[a-z0-9])$`)
+		if args.Service.Service != "" && !re.MatchString(args.Service.Service) {
+			c.srv.logger.Printf("[WARN] consul.catalog: Service name '%s' invalid per either RFC-1123 or RFC-2782.  Names may only contain alphanumeric characters or hyphens and be shorter than 64 characters.  Starting with Consul 0.8 this will be an error",
+				args.Service.Service)
 		}
 
 		// Apply the ACL policy if any
