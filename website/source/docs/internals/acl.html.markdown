@@ -380,6 +380,11 @@ These variations are covered here, with examples:
   that is used and known by many clients to provide geo-failover behavior for
   a database.
 
+* [Template queries](https://www.consul.io/docs/agent/http/query.html#templates)
+  queries work like static queries with a `Name` defined, except that a catch-all
+  template with an empty `Name` requires an ACL token that can write to any query
+  prefix.
+
 #### Executing Pepared Queries
 
 When prepared queries are executed via DNS lookups or HTTP requests, the ACL
