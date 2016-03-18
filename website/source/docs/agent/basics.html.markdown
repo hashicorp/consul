@@ -55,8 +55,8 @@ There are several important messages that [`consul agent`](/docs/commands/agent.
 
 * **Datacenter**: This is the datacenter in which the agent is configured to run.
  Consul has first-class support for multiple datacenters; however, to work efficiently,
- each node must be configured to report its datacenter. The [`-dc`](/docs/agent/options.html#_dc) flag
- can be used to set the datacenter. For single-DC configurations, the agent
+ each node must be configured to report its datacenter. The [`-datacenter`](/docs/agent/options.html#_datacenter)
+ flag can be used to set the datacenter. For single-DC configurations, the agent
  will default to "dc1".
 
 * **Server**: This indicates whether the agent is running in server or client mode.
