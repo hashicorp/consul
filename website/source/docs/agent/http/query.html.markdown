@@ -212,20 +212,20 @@ that several interpolation variables are available to dynamically populate the q
 before it is executed. All of the string fields inside the `Service` structure are
 interpolated, with the following variables available:
 
-`${name.full}` has the entire name that was queried. For example, a lookup for
-"geo-db-customer-master.consul" in the example above would set this variable to
+`${name.full}` has the entire name that was queried. For example, a DNS lookup for
+"geo-db-customer-master.query.consul" in the example above would set this variable to
 "geo-db-customer-master".
 
 `${name.prefix}` has the prefix that matched. This would always be "geo-db" for
 the example above.
 
-`${name.suffix}` has the suffix after the prefix. For example, a lookup for
-"geo-db-customer-master.consul" in the example above would set this variable to
+`${name.suffix}` has the suffix after the prefix. For example, a DNS lookup for
+"geo-db-customer-master.query.consul" in the example above would set this variable to
 "-customer-master".
 
 `${match(N)}` returns the regular expression match at the given index N. The
 0 index will have the entire match, and >0 will have the results of each match
-group. For example, a lookup for "geo-db-customer-master.consul" in the example
+group. For example, a DNS lookup for "geo-db-customer-master.query.consul" in the example
 above with a `Regexp` field set to `^geo-db-(.*?)-([^\-]+?)$` would return
 "geo-db-customer-master" for `${match(0)}`, "customer" for `${match(1)}`, and
 "master" for `${match(2)}`. If the regular expression doesn't match, or an invalid
@@ -255,7 +255,9 @@ applies a failover policy to it:
 
 This will match any lookup for `*.query.consul` and will attempt to find the
 service locally, and otherwise attempt to find that service in the next three
-closest datacenters.
+closest datacenters. If ACLs are enabled, a catch-all template like this with
+an empty `Name` requires an ACL token that can write to any query prefix. Also,
+only a single catch-all template can be registered at any time.
 
 #### GET Method
 
