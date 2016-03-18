@@ -1,9 +1,3 @@
 .:1053 {
-    file db.miek.nl miek.nl
     proxy . 8.8.8.8:53
-}
-
-dns.miek.nl:1053 {
-    file db.dns.miek.nl
-    reflect
 }
