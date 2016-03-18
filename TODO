@@ -1,0 +1,35 @@
+* Fix file middleware to use a proper zone implementation
+    * Zone parsing (better zone impl.)
+* Zones file parsing is done twice on startup??
+* Might need global middleware state between middlewares
+* Cleanup/make middlewares
+    * Fix complex rewrite to be useful
+    * Healthcheck middleware
+    * Slave zone middleware
+    * SkyDNS middleware, or call it etcd?
+* Fix graceful restart
+* TESTS; don't compile, need cleanups
+* http.FileSystem is half used, half not used. It's a nice abstraction
+    for finding (zone) files, maybe we should just use it.
+* prometheus:
+    * track the query type
+    * track the correct zone
+
+When there is already something running.
+
+BUG: server/server.go ListenAndServe
+Activating privacy features...
+.:1053
+panic: close of closed channel
+
+goroutine 40 [running]:
+panic(0x8e5b60, 0xc8201b60b0)
+	/home/miek/upstream/go/src/runtime/panic.go:464 +0x3e6
+github.com/miekg/daddy/server.(*Server).ListenAndServe.func1.1()
+	/home/miek/g/src/github.com/miekg/daddy/server/server.go:147 +0x24
+sync.(*Once).Do(0xc82011b830, 0xc8201d3f38)
+	/home/miek/upstream/go/src/sync/once.go:44 +0xe4
+github.com/miekg/daddy/server.(*Server).ListenAndServe.func1(0xc82011b4c0, 0xc820090800, 0xc82011b830)
+	/home/miek/g/src/github.com/miekg/daddy/server/server.go:148 +0x1e3
+created by github.com/miekg/daddy/server.(*Server).ListenAndServe
+	/home/miek/g/src/github.com/miekg/daddy/server/server.go:150 +0xfe

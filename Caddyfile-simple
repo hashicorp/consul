@@ -1,0 +1,7 @@
+.:1053 {
+    prometheus
+    rewrite ANY HINFO
+
+    file db.miek.nl miek.nl
+    reflect
+}

@@ -1,0 +1,16 @@
+.DS_Store
+Thumbs.db
+_gitignore/
+Vagrantfile
+.vagrant/
+
+dist/builds/
+dist/release/
+
+error.log
+access.log
+
+/*.conf
+Caddyfile
+
+og_static/
