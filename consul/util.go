@@ -229,6 +229,29 @@ func GetPrivateIP() (net.IP, error) {
 	return getPrivateIP(addresses)
 }
 
+// GetSubnetIP is used to return the first matching IP address
+// associated with a given broadcast address
+func GetSubnetIP(ip_str string) net.IP {
+	ip := net.ParseIP(ip_str)
+	if ip.To4() == nil || ip[3] != 0 {
+		return nil
+	}
+
+	// Find matching IPv4 address
+	if addresses, err := net.InterfaceAddrs(); err == nil {
+		for _, addr := range addresses {
+			subnet := addr.(*net.IPNet)
+			if subnet.IP.To4() == nil {
+				continue
+			}
+			if ip.Equal(subnet.IP.Mask(subnet.Mask)) {
+				return subnet.IP
+			}
+		}
+	}
+	return nil
+}
+
 func getPrivateIP(addresses []net.Addr) (net.IP, error) {
 	var candidates []net.IP
 
