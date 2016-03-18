@@ -108,7 +108,7 @@ func (c *MembersCommand) Run(args []string) int {
 
 	// Generate the columnized version
 	output := columnize.SimpleFormat(result)
-	c.Ui.Output(string(output))
+	c.Ui.Output(output)
 
 	return 0
 }

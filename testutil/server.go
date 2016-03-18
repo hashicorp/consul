@@ -384,7 +384,7 @@ func (s *TestServer) GetKV(key string) []byte {
 		s.t.Fatalf("err: %s", err)
 	}
 
-	return []byte(v)
+	return v
 }
 
 // PopulateKV fills the Consul KV with data from a generic map.
