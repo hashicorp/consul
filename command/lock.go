@@ -131,7 +131,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	}
 	prefix := extra[0]
 	prefix = strings.TrimPrefix(prefix, "/")
-	script := strings.Join(extra[1:], " ")
+	script := strings.Join(escapeScript(extra[1:]), " ")
 
 	// Calculate a session name if none provided
 	if name == "" {
@@ -438,6 +438,19 @@ func (c *LockCommand) killChild(childDone chan struct{}) error {
 
 func (c *LockCommand) Synopsis() string {
 	return "Execute a command holding a lock"
+}
+
+// escapeScript escapes the given script so it can be safely used afterwards.
+func escapeScript(script []string) []string {
+	for k, v := range script {
+		// If the script argument is itself composed of multiple strings,
+		// escape it with double quotes.
+		parts := strings.SplitN(v, " ", 2)
+		if len(parts) > 1 {
+			script[k] = "\"" + v + "\""
+		}
+	}
+	return script
 }
 
 // LockUnlock is used to abstract over the differences between
