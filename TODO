@@ -1,7 +1,6 @@
 * Fix file middleware to use a proper zone implementation
     * Zone parsing (better zone impl.)
 * Zones file parsing is done twice on startup??
-* Might need global middleware state between middlewares
 * Cleanup/make middlewares
     * Fix complex rewrite to be useful
     * Healthcheck middleware
