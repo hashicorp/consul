@@ -1,6 +1,0 @@
-.:1053 {
-    log stdout
-    rewrite ANY HINFO
-#    proxy . 8.8.8.8:53
-    proxy miek.nl linode.atoom.net:53
-}
