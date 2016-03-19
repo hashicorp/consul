@@ -33,7 +33,7 @@ func init() {
 	flag.StringVar(&core.Port, "port", core.DefaultPort, "Default port")
 	flag.BoolVar(&core.Quiet, "quiet", false, "Quiet mode (no initialization output)")
 	flag.StringVar(&revoke, "revoke", "", "Hostname for which to revoke the certificate")
-	flag.StringVar(&core.Root, "root", core.DefaultRoot, "Root path to default site")
+	flag.StringVar(&core.Root, "root", core.DefaultRoot, "Root path to default zone files")
 	flag.BoolVar(&version, "version", false, "Show version")
 }
 
