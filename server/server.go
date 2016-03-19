@@ -260,7 +260,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		// In case the user doesn't enable error middleware, we still
 		// need to make sure that we stay alive up here
 		if rec := recover(); rec != nil {
-			DefaultErrorFunc(w, r, rcode)
+			DefaultErrorFunc(w, r, dns.RcodeServerFailure)
 		}
 	}()
 
@@ -286,7 +286,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		if h, ok := s.zones[string(b[:l])]; ok {
 			if r.Question[0].Qtype != dns.TypeDS {
 				rcode, _ := h.stack.ServeDNS(ctx, w, r)
-				if rcode == dns.RcodeServerFailure {
+				if RcodeNoClientWrite(rcode) {
 					DefaultErrorFunc(w, r, rcode)
 				}
 				return
@@ -300,7 +300,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	// Wildcard match, if we have found nothing try the root zone as a last resort.
 	if h, ok := s.zones["."]; ok {
 		rcode, _ := h.stack.ServeDNS(ctx, w, r)
-		if rcode == dns.RcodeServerFailure {
+		if RcodeNoClientWrite(rcode) {
 			DefaultErrorFunc(w, r, rcode)
 		}
 		return
@@ -414,4 +414,18 @@ func ShutdownCallbacks(servers []*Server) []error {
 		}
 	}
 	return errs
+}
+
+func RcodeNoClientWrite(rcode int) bool {
+	switch rcode {
+	case dns.RcodeServerFailure:
+		fallthrough
+	case dns.RcodeRefused:
+		fallthrough
+	case dns.RcodeFormatError:
+		fallthrough
+	case dns.RcodeNotImplemented:
+		return true
+	}
+	return false
 }

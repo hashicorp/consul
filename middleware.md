@@ -17,6 +17,12 @@ From the Caddy docs:
 In the DNS status codes are called rcodes and it's slightly harder to return the correct
 answer in case of failure.
 
-So CoreDNS treats only SERVFAIL (dns.RcodeServerFailure) as special and will then assume
-nothing has written to the client. In all other cases it is assume something has been written
-to the client.
+So CoreDNS treats
+
+* SERVFAIL (dns.RcodeServerFailure)
+* REFUSED (dns.RecodeRefused)
+* FORMERR (dns.RcodeFormatError)
+* NOTIMP (dns.RcodeNotImplemented)
+
+as special and will then assume nothing has written to the client. In all other cases it is assume
+something has been written to the client.
