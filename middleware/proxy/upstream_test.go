@@ -54,28 +54,21 @@ func TestRegisterPolicy(t *testing.T) {
 
 func TestAllowedPaths(t *testing.T) {
 	upstream := &staticUpstream{
-		from:            "/proxy",
-		IgnoredSubPaths: []string{"/download", "/static"},
+		from:              "miek.nl.",
+		IgnoredSubDomains: []string{"download.", "static."}, // closing dot mandatory
 	}
 	tests := []struct {
-		url      string
+		name     string
 		expected bool
 	}{
-		{"/proxy", true},
-		{"/proxy/dl", true},
-		{"/proxy/download", false},
-		{"/proxy/download/static", false},
-		{"/proxy/static", false},
-		{"/proxy/static/download", false},
-		{"/proxy/something/download", true},
-		{"/proxy/something/static", true},
-		{"/proxy//static", false},
-		{"/proxy//static//download", false},
-		{"/proxy//download", false},
+		{"miek.nl.", true},
+		{"download.miek.nl.", false},
+		{"static.miek.nl.", false},
+		{"blaat.miek.nl.", true},
 	}
 
 	for i, test := range tests {
-		isAllowed := upstream.IsAllowedPath(test.url)
+		isAllowed := upstream.IsAllowedPath(test.name)
 		if test.expected != isAllowed {
 			t.Errorf("Test %d: expected %v found %v", i+1, test.expected, isAllowed)
 		}
