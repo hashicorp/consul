@@ -287,6 +287,11 @@ func TestGetPublicIPv6(t *testing.T) {
 		t.Fatalf("failed to parse loopback cidr: %v", err)
 	}
 
+	ip3, _, err := net.ParseCIDR("fc00::1/128")
+	if err != nil {
+		t.Fatalf("failed to parse ULA cidr: %v", err)
+	}
+
 	pubIP, _, err := net.ParseCIDR("2001:0db8:85a3::8a2e:0370:7334/128")
 	if err != nil {
 		t.Fatalf("failed to parse public cidr: %v", err)
@@ -306,6 +311,9 @@ func TestGetPublicIPv6(t *testing.T) {
 					IP: ip2,
 				},
 				&net.IPAddr{
+					IP: ip3,
+				},
+				&net.IPAddr{
 					IP: pubIP,
 				},
 			},
@@ -318,6 +326,9 @@ func TestGetPublicIPv6(t *testing.T) {
 				},
 				&net.IPAddr{
 					IP: ip2,
+				},
+				&net.IPAddr{
+					IP: ip3,
 				},
 			},
 			err: errors.New("No public IPv6 address found"),

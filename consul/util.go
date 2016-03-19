@@ -275,6 +275,10 @@ func GetPublicIPv6() (net.IP, error) {
 	return getPublicIPv6(addresses)
 }
 
+func isUniqueLocalAddress(ip net.IP) bool {
+	return len(ip) == net.IPv6len && ip[0] == 0xfc && ip[1] == 0x00
+}
+
 func getPublicIPv6(addresses []net.Addr) (net.IP, error) {
 	var candidates []net.IP
 
@@ -293,8 +297,8 @@ func getPublicIPv6(addresses []net.Addr) (net.IP, error) {
 		if ip.To4() != nil {
 			continue
 		}
-		// do not bind link-local (fe80::/10) / ULA (fc00::/7) / loopback (::1)
-		if ip[0]|0xf == 0xff || ip[0]|0 == 0 {
+
+		if ip.IsLinkLocalUnicast() || isUniqueLocalAddress(ip) || ip.IsLoopback() {
 			continue
 		}
 		candidates = append(candidates, ip)
