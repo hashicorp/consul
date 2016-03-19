@@ -93,7 +93,8 @@ The options below are all specified on the command-line.
   for internal cluster communications.
   This is an IP address that should be reachable by all other nodes in the cluster.
   By default, this is "0.0.0.0", meaning Consul will use the first available private
-  IP address. Consul uses both TCP and UDP and the same port for both. If you
+  IPv4 address. If you specify "[::]", Consul will use the first available public IPv6 address.
+  Consul uses both TCP and UDP and the same port for both. If you
   have any firewalls, be sure to allow both protocols.
 
 * <a name="_client"></a><a href="#_client">`-client`</a> - The address to which
