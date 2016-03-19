@@ -1,6 +1,6 @@
-# Log
+# log
 
-log enables request logging. The request log is also known from some vernaculars as an access log.
+`log` enables request logging. The request log is also known from some vernaculars as an access log.
 
 ## Syntax
 

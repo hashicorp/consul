@@ -30,7 +30,7 @@ func Errors(c *Controller) (middleware.Middleware, error) {
 		case "stderr":
 			writer = os.Stderr
 		case "syslog":
-			writer, err = gsyslog.NewLogger(gsyslog.LOG_ERR, "LOCAL0", "caddy")
+			writer, err = gsyslog.NewLogger(gsyslog.LOG_ERR, "LOCAL0", "coredns")
 			if err != nil {
 				return err
 			}
