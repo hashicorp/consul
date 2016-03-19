@@ -134,36 +134,21 @@ func (s *Server) Serve(ln ListenerFile) error {
 // ListenAndServe starts the server with a new listener. It blocks until the server stops.
 func (s *Server) ListenAndServe() error {
 	err := s.setup()
-	once := sync.Once{}
-
 	if err != nil {
 		close(s.startChan)
 		return err
 	}
 
-	// TODO(miek): redo to make it more like caddy
-	// - error handling, re-introduce what Caddy did.
+	// TODO(miek): going out on a limb here, let's assume that listening
+	// on the part for tcp and udp results in the same error. We can only
+	// return the error from the udp listener, disregarding whatever
+	// happenend to the tcp one.
 	go func() {
-		if err := dns.ListenAndServe(s.Addr, "tcp", s.mux); err != nil {
-			log.Printf("[ERROR] %v\n", err)
-			defer once.Do(func() { close(s.startChan) })
-			return
-		}
+		dns.ListenAndServe(s.Addr, "tcp", s.mux)
 	}()
 
-	go func() {
-		if err := dns.ListenAndServe(s.Addr, "udp", s.mux); err != nil {
-			log.Printf("[ERROR] %v\n", err)
-			defer once.Do(func() { close(s.startChan) })
-			return
-		}
-	}()
-	once.Do(func() { close(s.startChan) }) // unblock anyone waiting for this to start listening
-	// but block here, as this is what caddy expects
-	for {
-		select {}
-	}
-	return nil
+	close(s.startChan) // unblock anyone waiting for this to start listening
+	return dns.ListenAndServe(s.Addr, "udp", s.mux)
 }
 
 // setup prepares the server s to begin listening; it should be
@@ -315,6 +300,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	// Wildcard match, if we have found nothing try the root zone as a last resort.
 	if h, ok := s.zones["."]; ok {
 		rcode, _ := h.stack.ServeDNS(ctx, w, r)
+		// TODO(miek): Double check if we have written something.
 		if rcode > 0 {
 			DefaultErrorFunc(w, r, rcode)
 		}
