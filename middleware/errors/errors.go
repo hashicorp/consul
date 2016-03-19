@@ -24,12 +24,13 @@ type ErrorHandler struct {
 }
 
 func (h ErrorHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	defer h.recovery(w, r)
+	defer h.recovery(ctx, w, r)
 
 	rcode, err := h.Next.ServeDNS(ctx, w, r)
 
 	if err != nil {
-		errMsg := fmt.Sprintf("%s [ERROR %d %s %s] %v", time.Now().Format(timeFormat), rcode, r.Question[0].Name, dns.Type(r.Question[0].Qclass), err)
+		state := middleware.State{W: w, Req: r}
+		errMsg := fmt.Sprintf("%s [ERROR %d %s %s] %v", time.Now().Format(timeFormat), rcode, state.Name(), state.Type(), err)
 
 		if h.Debug {
 			// Write error to response as a txt message instead of to log
@@ -45,7 +46,7 @@ func (h ErrorHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns
 	return rcode, err
 }
 
-func (h ErrorHandler) recovery(w dns.ResponseWriter, r *dns.Msg) {
+func (h ErrorHandler) recovery(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
 	rec := recover()
 	if rec == nil {
 		return

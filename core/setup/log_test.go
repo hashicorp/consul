@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
-	caddylog "github.com/miekg/coredns/middleware/log"
+	corednslog "github.com/miekg/coredns/middleware/log"
 )
 
 func TestLog(t *testing.T) {
@@ -22,20 +22,20 @@ func TestLog(t *testing.T) {
 	}
 
 	handler := mid(EmptyNext)
-	myHandler, ok := handler.(caddylog.Logger)
+	myHandler, ok := handler.(corednslog.Logger)
 
 	if !ok {
 		t.Fatalf("Expected handler to be type Logger, got: %#v", handler)
 	}
 
-	if myHandler.Rules[0].PathScope != "/" {
-		t.Errorf("Expected / as the default PathScope")
+	if myHandler.Rules[0].NameScope != "." {
+		t.Errorf("Expected . as the default NameScope")
 	}
-	if myHandler.Rules[0].OutputFile != caddylog.DefaultLogFilename {
-		t.Errorf("Expected %s as the default OutputFile", caddylog.DefaultLogFilename)
+	if myHandler.Rules[0].OutputFile != corednslog.DefaultLogFilename {
+		t.Errorf("Expected %s as the default OutputFile", corednslog.DefaultLogFilename)
 	}
-	if myHandler.Rules[0].Format != caddylog.DefaultLogFormat {
-		t.Errorf("Expected %s as the default Log Format", caddylog.DefaultLogFormat)
+	if myHandler.Rules[0].Format != corednslog.DefaultLogFormat {
+		t.Errorf("Expected %s as the default Log Format", corednslog.DefaultLogFormat)
 	}
 	if myHandler.Rules[0].Roller != nil {
 		t.Errorf("Expected Roller to be nil, got: %v", *myHandler.Rules[0].Roller)
@@ -50,62 +50,62 @@ func TestLogParse(t *testing.T) {
 	tests := []struct {
 		inputLogRules    string
 		shouldErr        bool
-		expectedLogRules []caddylog.Rule
+		expectedLogRules []corednslog.Rule
 	}{
-		{`log`, false, []caddylog.Rule{{
-			PathScope:  "/",
-			OutputFile: caddylog.DefaultLogFilename,
-			Format:     caddylog.DefaultLogFormat,
+		{`log`, false, []corednslog.Rule{{
+			NameScope:  ".",
+			OutputFile: corednslog.DefaultLogFilename,
+			Format:     corednslog.DefaultLogFormat,
 		}}},
-		{`log log.txt`, false, []caddylog.Rule{{
-			PathScope:  "/",
+		{`log log.txt`, false, []corednslog.Rule{{
+			NameScope:  ".",
 			OutputFile: "log.txt",
-			Format:     caddylog.DefaultLogFormat,
+			Format:     corednslog.DefaultLogFormat,
 		}}},
-		{`log /api log.txt`, false, []caddylog.Rule{{
-			PathScope:  "/api",
+		{`log example.org log.txt`, false, []corednslog.Rule{{
+			NameScope:  "example.org.",
 			OutputFile: "log.txt",
-			Format:     caddylog.DefaultLogFormat,
+			Format:     corednslog.DefaultLogFormat,
 		}}},
-		{`log /serve stdout`, false, []caddylog.Rule{{
-			PathScope:  "/serve",
+		{`log example.org. stdout`, false, []corednslog.Rule{{
+			NameScope:  "example.org.",
 			OutputFile: "stdout",
-			Format:     caddylog.DefaultLogFormat,
+			Format:     corednslog.DefaultLogFormat,
 		}}},
-		{`log /myapi log.txt {common}`, false, []caddylog.Rule{{
-			PathScope:  "/myapi",
+		{`log example.org log.txt {common}`, false, []corednslog.Rule{{
+			NameScope:  "example.org.",
 			OutputFile: "log.txt",
-			Format:     caddylog.CommonLogFormat,
+			Format:     corednslog.CommonLogFormat,
 		}}},
-		{`log /test accesslog.txt {combined}`, false, []caddylog.Rule{{
-			PathScope:  "/test",
+		{`log example.org accesslog.txt {combined}`, false, []corednslog.Rule{{
+			NameScope:  "example.org.",
 			OutputFile: "accesslog.txt",
-			Format:     caddylog.CombinedLogFormat,
+			Format:     corednslog.CombinedLogFormat,
 		}}},
-		{`log /api1 log.txt
-		  log /api2 accesslog.txt {combined}`, false, []caddylog.Rule{{
-			PathScope:  "/api1",
+		{`log example.org. log.txt
+		  log example.net accesslog.txt {combined}`, false, []corednslog.Rule{{
+			NameScope:  "example.org.",
 			OutputFile: "log.txt",
-			Format:     caddylog.DefaultLogFormat,
+			Format:     corednslog.DefaultLogFormat,
 		}, {
-			PathScope:  "/api2",
+			NameScope:  "example.net.",
 			OutputFile: "accesslog.txt",
-			Format:     caddylog.CombinedLogFormat,
+			Format:     corednslog.CombinedLogFormat,
 		}}},
-		{`log /api3 stdout {host}
-		  log /api4 log.txt {when}`, false, []caddylog.Rule{{
-			PathScope:  "/api3",
+		{`log example.org stdout {host}
+		  log example.org log.txt {when}`, false, []corednslog.Rule{{
+			NameScope:  "example.org.",
 			OutputFile: "stdout",
 			Format:     "{host}",
 		}, {
-			PathScope:  "/api4",
+			NameScope:  "example.org.",
 			OutputFile: "log.txt",
 			Format:     "{when}",
 		}}},
-		{`log access.log { rotate { size 2 age 10 keep 3 } }`, false, []caddylog.Rule{{
-			PathScope:  "/",
+		{`log access.log { rotate { size 2 age 10 keep 3 } }`, false, []corednslog.Rule{{
+			NameScope:  ".",
 			OutputFile: "access.log",
-			Format:     caddylog.DefaultLogFormat,
+			Format:     corednslog.DefaultLogFormat,
 			Roller: &middleware.LogRoller{
 				MaxSize:    2,
 				MaxAge:     10,
@@ -129,9 +129,9 @@ func TestLogParse(t *testing.T) {
 		}
 		for j, actualLogRule := range actualLogRules {
 
-			if actualLogRule.PathScope != test.expectedLogRules[j].PathScope {
-				t.Errorf("Test %d expected %dth LogRule PathScope to be  %s  , but got %s",
-					i, j, test.expectedLogRules[j].PathScope, actualLogRule.PathScope)
+			if actualLogRule.NameScope != test.expectedLogRules[j].NameScope {
+				t.Errorf("Test %d expected %dth LogRule NameScope to be  %s  , but got %s",
+					i, j, test.expectedLogRules[j].NameScope, actualLogRule.NameScope)
 			}
 
 			if actualLogRule.OutputFile != test.expectedLogRules[j].OutputFile {

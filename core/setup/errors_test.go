@@ -1,6 +1,12 @@
 package setup
 
-/*
+import (
+	"testing"
+
+	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/errors"
+)
+
 func TestErrors(t *testing.T) {
 	c := NewTestController(`errors`)
 	mid, err := Errors(c)
@@ -60,16 +66,6 @@ func TestErrorsParse(t *testing.T) {
 			LogFile: "",
 			Debug:   true,
 		}},
-		{`errors { log errors.txt
-        404 404.html
-        500 500.html
-}`, false, errors.ErrorHandler{
-			LogFile: "errors.txt",
-			ErrorPages: map[int]string{
-				404: "404.html",
-				500: "500.html",
-			},
-		}},
 		{`errors { log errors.txt { size 2 age 10 keep 3 } }`, false, errors.ErrorHandler{
 			LogFile: "errors.txt",
 			LogRoller: &middleware.LogRoller{
@@ -84,14 +80,8 @@ func TestErrorsParse(t *testing.T) {
             age 11
             keep 5
         }
-        404 404.html
-        503 503.html
 }`, false, errors.ErrorHandler{
 			LogFile: "errors.txt",
-			ErrorPages: map[int]string{
-				404: "404.html",
-				503: "503.html",
-			},
 			LogRoller: &middleware.LogRoller{
 				MaxSize:    3,
 				MaxAge:     11,
@@ -121,10 +111,6 @@ func TestErrorsParse(t *testing.T) {
 			t.Fatalf("Test %d expected LogRoller to be %v, but got %v",
 				i, test.expectedErrorHandler.LogRoller, actualErrorsRule.LogRoller)
 		}
-		if len(actualErrorsRule.ErrorPages) != len(test.expectedErrorHandler.ErrorPages) {
-			t.Fatalf("Test %d expected %d no of Error pages, but got %d ",
-				i, len(test.expectedErrorHandler.ErrorPages), len(actualErrorsRule.ErrorPages))
-		}
 		if actualErrorsRule.LogRoller != nil && test.expectedErrorHandler.LogRoller != nil {
 			if actualErrorsRule.LogRoller.Filename != test.expectedErrorHandler.LogRoller.Filename {
 				t.Fatalf("Test %d expected LogRoller Filename to be %s, but got %s",
@@ -149,4 +135,3 @@ func TestErrorsParse(t *testing.T) {
 		}
 	}
 }
-*/
