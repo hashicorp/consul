@@ -24,7 +24,6 @@ import (
 	"os/exec"
 	"strings"
 	"sync/atomic"
-	"testing"
 
 	"github.com/hashicorp/go-cleanhttp"
 )
@@ -112,6 +111,15 @@ type TestCheck struct {
 	TTL       string `json:",omitempty"`
 }
 
+// TestingT is an interface wrapper around TestingT
+type TestingT interface {
+	Logf(format string, args ...interface{})
+	Errorf(format string, args ...interface{})
+	Fatalf(format string, args ...interface{})
+	Fatal(args ...interface{})
+	Skip(args ...interface{})
+}
+
 // TestKVResponse is what we use to decode KV data.
 type TestKVResponse struct {
 	Value string
@@ -121,7 +129,7 @@ type TestKVResponse struct {
 type TestServer struct {
 	PID    int
 	Config *TestServerConfig
-	t      *testing.T
+	t      TestingT
 
 	HTTPAddr string
 	LANAddr  string
@@ -132,13 +140,13 @@ type TestServer struct {
 
 // NewTestServer is an easy helper method to create a new Consul
 // test server with the most basic configuration.
-func NewTestServer(t *testing.T) *TestServer {
+func NewTestServer(t TestingT) *TestServer {
 	return NewTestServerConfig(t, nil)
 }
 
 // NewTestServerConfig creates a new TestServer, and makes a call to
 // an optional callback function to modify the configuration.
-func NewTestServerConfig(t *testing.T, cb ServerConfigCallback) *TestServer {
+func NewTestServerConfig(t TestingT, cb ServerConfigCallback) *TestServer {
 	if path, err := exec.LookPath("consul"); err != nil || path == "" {
 		t.Skip("consul not found on $PATH, skipping")
 	}
