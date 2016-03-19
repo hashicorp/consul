@@ -1,16 +1,8 @@
 language: go
-
+sudo: false
 go:
+  - 1.5
   - 1.6
   - tip
-
-env:
-- CGO_ENABLED=0
-
-install:
-  - go get -t ./...
-  - go get golang.org/x/tools/cmd/vet
-
 script:
-  - go vet ./...
-  - go test ./...
+  - go test -race -v -bench=.
