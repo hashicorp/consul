@@ -54,13 +54,13 @@ proxy example.org localhost:9005
 Load-balance all requests between three backends (using random policy):
 
 ~~~
-proxy / web1.local:80 web2.local:90 web3.local:100
+proxy . web1.local:53 web2.local:1053 web3.local
 ~~~
 
 Same as above, but round-robin style:
 
 ~~~
-proxy / web1.local:80 web2.local:90 web3.local:100 {
+proxy . web1.local:53 web2.local:1053 web3.local {
 	policy round_robin
 }
 ~~~
@@ -74,10 +74,10 @@ proxy / web1.local:80 web2.local:90 web3.local:100 {
 }
 ~~~
 
-Proxy everything except requests to /static or /robots.txt:
+Proxy everything except requests to miek.nl or example.org
 
 ~~~
-proxy / backend:1234 {
-	except /static /robots.txt
+proxy . backend:1234 {
+	except miek.nl example.org
 }
 ~~~
