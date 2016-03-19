@@ -3,6 +3,8 @@
 package rewrite
 
 import (
+	"strings"
+
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -64,7 +66,15 @@ type SimpleRule struct {
 func NewSimpleRule(from, to string) SimpleRule {
 	tpf := dns.StringToType[from]
 	tpt := dns.StringToType[to]
+	// It's only a type if uppercase is used.
+	if from != strings.ToUpper(from) {
+		tpf = 0
+	}
+	if to != strings.ToUpper(to) {
+		tpt = 0
+	}
 
+	// lowercase and fully qualify the others here? TODO(miek)
 	return SimpleRule{From: from, To: to, fromType: tpf, toType: tpt}
 }
 

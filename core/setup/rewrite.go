@@ -30,7 +30,7 @@ func rewriteParse(c *Controller) ([]rewrite.Rule, error) {
 	for c.Next() {
 		var rule rewrite.Rule
 		var err error
-		var base = "/"
+		var base = "."
 		var pattern, to string
 		var status int
 		var ext []string
@@ -57,7 +57,7 @@ func rewriteParse(c *Controller) ([]rewrite.Rule, error) {
 						return nil, c.ArgErr()
 					}
 					to = strings.Join(args1, " ")
-				case "ext":
+				case "ext": // TODO(miek): fix or remove
 					args1 := c.RemainingArgs()
 					if len(args1) == 0 {
 						return nil, c.ArgErr()
@@ -73,7 +73,7 @@ func rewriteParse(c *Controller) ([]rewrite.Rule, error) {
 						return nil, err
 					}
 					ifs = append(ifs, ifCond)
-				case "status":
+				case "status": // TODO(miek): fix or remove
 					if !c.NextArg() {
 						return nil, c.ArgErr()
 					}
