@@ -1,17 +1,27 @@
 package log
 
-/*
+import (
+	"bytes"
+	"log"
+	"strings"
+	"testing"
+
+	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/dns"
+	"golang.org/x/net/context"
+)
+
 type erroringMiddleware struct{}
 
-func (erroringMiddleware) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	return http.StatusNotFound, nil
+func (erroringMiddleware) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	return dns.RcodeServerFailure, nil
 }
 
 func TestLoggedStatus(t *testing.T) {
 	var f bytes.Buffer
 	var next erroringMiddleware
 	rule := Rule{
-		PathScope: "/",
+		NameScope: ".",
 		Format:    DefaultLogFormat,
 		Log:       log.New(&f, "", 0),
 	}
@@ -21,21 +31,19 @@ func TestLoggedStatus(t *testing.T) {
 		Next:  next,
 	}
 
-	r, err := http.NewRequest("GET", "/", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	ctx := context.TODO()
+	r := new(dns.Msg)
+	r.SetQuestion("example.org.", dns.TypeA)
 
-	rec := httptest.NewRecorder()
+	rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
 
-	status, err := logger.ServeHTTP(rec, r)
-	if status != 0 {
-		t.Error("Expected status to be 0 - was", status)
+	rcode, _ := logger.ServeDNS(ctx, rec, r)
+	if rcode != 0 {
+		t.Error("Expected rcode to be 0 - was", rcode)
 	}
 
 	logged := f.String()
-	if !strings.Contains(logged, "404 13") {
-		t.Error("Expected 404 to be logged. Logged string -", logged)
+	if !strings.Contains(logged, "A example.org. udp") {
+		t.Error("Expected it to be logged. Logged string -", logged)
 	}
 }
-*/

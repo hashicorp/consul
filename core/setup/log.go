@@ -9,6 +9,7 @@ import (
 	"github.com/miekg/coredns/middleware"
 	caddylog "github.com/miekg/coredns/middleware/log"
 	"github.com/miekg/coredns/server"
+	"github.com/miekg/dns"
 )
 
 // Log sets up the logging middleware.
@@ -88,7 +89,7 @@ func logParse(c *Controller) ([]caddylog.Rule, error) {
 		if len(args) == 0 {
 			// Nothing specified; use defaults
 			rules = append(rules, caddylog.Rule{
-				PathScope:  "/",
+				NameScope:  ".",
 				OutputFile: caddylog.DefaultLogFilename,
 				Format:     caddylog.DefaultLogFormat,
 				Roller:     logRoller,
@@ -96,13 +97,13 @@ func logParse(c *Controller) ([]caddylog.Rule, error) {
 		} else if len(args) == 1 {
 			// Only an output file specified
 			rules = append(rules, caddylog.Rule{
-				PathScope:  "/",
+				NameScope:  ".",
 				OutputFile: args[0],
 				Format:     caddylog.DefaultLogFormat,
 				Roller:     logRoller,
 			})
 		} else {
-			// Path scope, output file, and maybe a format specified
+			// Name scope, output file, and maybe a format specified
 
 			format := caddylog.DefaultLogFormat
 
@@ -118,7 +119,7 @@ func logParse(c *Controller) ([]caddylog.Rule, error) {
 			}
 
 			rules = append(rules, caddylog.Rule{
-				PathScope:  args[0],
+				NameScope:  dns.Fqdn(args[0]),
 				OutputFile: args[1],
 				Format:     format,
 				Roller:     logRoller,

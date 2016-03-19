@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"net"
 	"time"
 
 	"github.com/miekg/dns"
@@ -68,3 +69,24 @@ func (r *ResponseRecorder) Hijack() {
 	r.ResponseWriter.Hijack()
 	return
 }
+
+type TestResponseWriter struct{}
+
+func (t *TestResponseWriter) LocalAddr() net.Addr {
+	ip := net.ParseIP("127.0.0.1")
+	port := 53
+	return &net.UDPAddr{IP: ip, Port: port, Zone: ""}
+}
+
+func (t *TestResponseWriter) RemoteAddr() net.Addr {
+	ip := net.ParseIP("10.240.0.1")
+	port := 40212
+	return &net.UDPAddr{IP: ip, Port: port, Zone: ""}
+}
+
+func (t *TestResponseWriter) WriteMsg(m *dns.Msg) error     { return nil }
+func (t *TestResponseWriter) Write(buf []byte) (int, error) { return len(buf), nil }
+func (t *TestResponseWriter) Close() error                  { return nil }
+func (t *TestResponseWriter) TsigStatus() error             { return nil }
+func (t *TestResponseWriter) TsigTimersOnly(bool)           { return }
+func (t *TestResponseWriter) Hijack()                       { return }

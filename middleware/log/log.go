@@ -18,36 +18,36 @@ type Logger struct {
 }
 
 func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	state := middleware.State{W: w, Req: r}
 	for _, rule := range l.Rules {
-		/*
-			if middleware.Path(r.URL.Path).Matches(rule.PathScope) {
-				responseRecorder := middleware.NewResponseRecorder(w)
-				status, err := l.Next.ServeHTTP(responseRecorder, r)
-				if status >= 400 {
-					// There was an error up the chain, but no response has been written yet.
-					// The error must be handled here so the log entry will record the response size.
-					if l.ErrorFunc != nil {
-						l.ErrorFunc(responseRecorder, r, status)
-					} else {
-						// Default failover error handler
-						responseRecorder.WriteHeader(status)
-						fmt.Fprintf(responseRecorder, "%d %s", status, http.StatusText(status))
-					}
-					status = 0
+		if middleware.Name(state.Name()).Matches(rule.NameScope) {
+			responseRecorder := middleware.NewResponseRecorder(w)
+			rcode, err := l.Next.ServeDNS(ctx, responseRecorder, r)
+			if rcode > 0 {
+				// There was an error up the chain, but no response has been written yet.
+				// The error must be handled here so the log entry will record the response size.
+				if l.ErrorFunc != nil {
+					l.ErrorFunc(responseRecorder, r, rcode)
+				} else {
+					// Default failover error handler
+					answer := new(dns.Msg)
+					answer.SetRcode(r, rcode)
+					w.WriteMsg(answer)
 				}
-				rep := middleware.NewReplacer(r, responseRecorder, CommonLogEmptyValue)
-				rule.Log.Println(rep.Replace(rule.Format))
-				return status, err
+				rcode = 0
 			}
-		*/
-		rule = rule
+			rep := middleware.NewReplacer(r, responseRecorder, CommonLogEmptyValue)
+			rule.Log.Println(rep.Replace(rule.Format))
+			return rcode, err
+
+		}
 	}
 	return l.Next.ServeDNS(ctx, w, r)
 }
 
 // Rule configures the logging middleware.
 type Rule struct {
-	PathScope  string
+	NameScope  string
 	OutputFile string
 	Format     string
 	Log        *log.Logger
@@ -56,13 +56,13 @@ type Rule struct {
 
 const (
 	// DefaultLogFilename is the default log filename.
-	DefaultLogFilename = "access.log"
+	DefaultLogFilename = "query.log"
 	// CommonLogFormat is the common log format.
 	CommonLogFormat = `{remote} ` + CommonLogEmptyValue + ` [{when}] "{type} {name} {proto}" {rcode} {size}`
 	// CommonLogEmptyValue is the common empty log value.
 	CommonLogEmptyValue = "-"
 	// CombinedLogFormat is the combined log format.
-	CombinedLogFormat = CommonLogFormat + ` "{>Referer}" "{>User-Agent}"` // Something here as well
+	CombinedLogFormat = CommonLogFormat + ` "{>opcode}"`
 	// DefaultLogFormat is the default log format.
 	DefaultLogFormat = CommonLogFormat
 )
