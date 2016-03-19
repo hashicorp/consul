@@ -5,9 +5,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/miekg/coredns/core/parse"
+	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/dns"
 )
 
 var (
@@ -17,7 +20,7 @@ var (
 type staticUpstream struct {
 	from string
 	// TODO(miek): allows use to added headers
-	proxyHeaders http.Header // TODO(miek): kill
+	proxyHeaders http.Header // TODO(miek): kill these
 	Hosts        HostPool
 	Policy       Policy
 
@@ -28,7 +31,7 @@ type staticUpstream struct {
 		Interval time.Duration
 	}
 	WithoutPathPrefix string
-	IgnoredSubPaths   []string
+	IgnoredSubDomains []string
 }
 
 // NewStaticUpstreams parses the configuration input and sets up
@@ -150,20 +153,20 @@ func parseBlock(c *parse.Dispenser, u *staticUpstream) error {
 			return c.ArgErr()
 		}
 		u.proxyHeaders.Add(header, value)
-	case "websocket":
-		u.proxyHeaders.Add("Connection", "{>Connection}")
-		u.proxyHeaders.Add("Upgrade", "{>Upgrade}")
 	case "without":
 		if !c.NextArg() {
 			return c.ArgErr()
 		}
 		u.WithoutPathPrefix = c.Val()
 	case "except":
-		ignoredPaths := c.RemainingArgs()
-		if len(ignoredPaths) == 0 {
+		ignoredDomains := c.RemainingArgs()
+		if len(ignoredDomains) == 0 {
 			return c.ArgErr()
 		}
-		u.IgnoredSubPaths = ignoredPaths
+		for i := 0; i < len(ignoredDomains); i++ {
+			ignoredDomains[i] = strings.ToLower(dns.Fqdn(ignoredDomains[i]))
+		}
+		u.IgnoredSubDomains = ignoredDomains
 	default:
 		return c.Errf("unknown property '%s'", c.Val())
 	}
@@ -223,14 +226,11 @@ func (u *staticUpstream) Select() *UpstreamHost {
 	return u.Policy.Select(pool)
 }
 
-func (u *staticUpstream) IsAllowedPath(requestPath string) bool {
-	/*
-		TODO(miek): fix to use Name
-		for _, ignoredSubPath := range u.IgnoredSubPaths {
-			if middleware.Path(path.Clean(requestPath)).Matches(path.Join(u.From(), ignoredSubPath)) {
-				return false
-			}
+func (u *staticUpstream) IsAllowedPath(name string) bool {
+	for _, ignoredSubDomain := range u.IgnoredSubDomains {
+		if middleware.Name(name).Matches(ignoredSubDomain + u.From()) {
+			return false
 		}
-	*/
+	}
 	return true
 }
