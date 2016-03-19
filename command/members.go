@@ -67,11 +67,6 @@ func (c *MembersCommand) Run(args []string) int {
 	}
 	defer client.Close()
 
-	leader, err := client.Stats()
-	if err == nil {
-		c.Ui.Output(fmt.Sprintf("Leader: %s", leader["consul"]["leader_name"]))
-	}
-
 	var members []agent.Member
 	if wan {
 		members, err = client.WANMembers()
