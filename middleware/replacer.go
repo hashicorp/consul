@@ -48,13 +48,17 @@ func NewReplacer(r *dns.Msg, rr *ResponseRecorder, emptyValue string) Replacer {
 		emptyValue: emptyValue,
 	}
 	if rr != nil {
-		rep.replacements["{rcode}"] = strconv.Itoa(rr.rcode)
+		rcode := dns.RcodeToString[rr.rcode]
+		if rcode == "" {
+			rcode = strconv.Itoa(rr.rcode)
+		}
+		rep.replacements["{rcode}"] = rcode
 		rep.replacements["{size}"] = strconv.Itoa(rr.size)
 		rep.replacements["{latency}"] = time.Since(rr.start).String()
 	}
 
 	// Header placeholders (case-insensitive)
-	// TODO(miek): syntax for flags
+	// TODO(miek): syntax for flags and document it
 	rep.replacements[headerReplacer+"id}"] = strconv.Itoa(int(r.Id))
 	rep.replacements[headerReplacer+"opcode}"] = strconv.Itoa(int(r.Opcode))
 

@@ -260,7 +260,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		// In case the user doesn't enable error middleware, we still
 		// need to make sure that we stay alive up here
 		if rec := recover(); rec != nil {
-			// TODO(miek): serverfailure return?
+			DefaultErrorFunc(w, r, rcode)
 		}
 	}()
 
@@ -286,7 +286,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		if h, ok := s.zones[string(b[:l])]; ok {
 			if r.Question[0].Qtype != dns.TypeDS {
 				rcode, _ := h.stack.ServeDNS(ctx, w, r)
-				if rcode > 0 {
+				if rcode == dns.RcodeServerFailure {
 					DefaultErrorFunc(w, r, rcode)
 				}
 				return
@@ -300,8 +300,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	// Wildcard match, if we have found nothing try the root zone as a last resort.
 	if h, ok := s.zones["."]; ok {
 		rcode, _ := h.stack.ServeDNS(ctx, w, r)
-		// TODO(miek): Double check if we have written something.
-		if rcode > 0 {
+		if rcode == dns.RcodeServerFailure {
 			DefaultErrorFunc(w, r, rcode)
 		}
 		return
@@ -310,8 +309,6 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	// Still here? Error out with SERVFAIL and some logging
 	remoteHost := w.RemoteAddr().String()
 	DefaultErrorFunc(w, r, dns.RcodeServerFailure)
-
-	fmt.Fprintf(w, "No such zone at %s", s.Addr)
 	log.Printf("[INFO] %s - No such zone at %s (Remote: %s)", q, s.Addr, remoteHost)
 }
 
