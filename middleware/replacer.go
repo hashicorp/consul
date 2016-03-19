@@ -53,6 +53,11 @@ func NewReplacer(r *dns.Msg, rr *ResponseRecorder, emptyValue string) Replacer {
 		rep.replacements["{latency}"] = time.Since(rr.start).String()
 	}
 
+	// Header placeholders (case-insensitive)
+	// TODO(miek): syntax for flags
+	rep.replacements[headerReplacer+"id}"] = strconv.Itoa(int(r.Id))
+	rep.replacements[headerReplacer+"opcode}"] = strconv.Itoa(int(r.Opcode))
+
 	return rep
 }
 

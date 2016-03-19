@@ -4,12 +4,10 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"path"
 	"strconv"
 	"time"
 
 	"github.com/miekg/coredns/core/parse"
-	"github.com/miekg/coredns/middleware"
 )
 
 var (
@@ -226,10 +224,13 @@ func (u *staticUpstream) Select() *UpstreamHost {
 }
 
 func (u *staticUpstream) IsAllowedPath(requestPath string) bool {
-	for _, ignoredSubPath := range u.IgnoredSubPaths {
-		if middleware.Path(path.Clean(requestPath)).Matches(path.Join(u.From(), ignoredSubPath)) {
-			return false
+	/*
+		TODO(miek): fix to use Name
+		for _, ignoredSubPath := range u.IgnoredSubPaths {
+			if middleware.Path(path.Clean(requestPath)).Matches(path.Join(u.From(), ignoredSubPath)) {
+				return false
+			}
 		}
-	}
+	*/
 	return true
 }
