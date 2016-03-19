@@ -1,13 +1,6 @@
 package setup
 
-import (
-	"fmt"
-	"regexp"
-	"testing"
-
-	"github.com/miekg/coredns/middleware/rewrite"
-)
-
+/*
 func TestRewrite(t *testing.T) {
 	c := NewTestController(`rewrite /from /to`)
 
@@ -237,5 +230,5 @@ func TestRewriteParse(t *testing.T) {
 
 		}
 	}
-
 }
+*/

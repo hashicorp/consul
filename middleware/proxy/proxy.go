@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/dns"
 )
@@ -67,7 +69,7 @@ func (uh *UpstreamHost) Down() bool {
 var tryDuration = 60 * time.Second
 
 // ServeDNS satisfies the middleware.Handler interface.
-func (p Proxy) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	for _, upstream := range p.Upstreams {
 		// allowed bla bla bla TODO(miek): fix full proxy spec from caddy
 		start := time.Now()
@@ -100,7 +102,7 @@ func (p Proxy) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
 		}
 		return dns.RcodeServerFailure, errUnreachable
 	}
-	return p.Next.ServeDNS(w, r)
+	return p.Next.ServeDNS(ctx, w, r)
 }
 
 func Clients() Client {

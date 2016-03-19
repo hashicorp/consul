@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 type (
@@ -32,18 +33,18 @@ type (
 	// Otherwise, return values should be propagated down the middleware
 	// chain by returning them unchanged.
 	Handler interface {
-		ServeDNS(dns.ResponseWriter, *dns.Msg) (int, error)
+		ServeDNS(context.Context, dns.ResponseWriter, *dns.Msg) (int, error)
 	}
 
 	// HandlerFunc is a convenience type like dns.HandlerFunc, except
 	// ServeDNS returns an rcode and an error. See Handler
 	// documentation for more information.
-	HandlerFunc func(dns.ResponseWriter, *dns.Msg) (int, error)
+	HandlerFunc func(context.Context, dns.ResponseWriter, *dns.Msg) (int, error)
 )
 
 // ServeDNS implements the Handler interface.
-func (f HandlerFunc) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	return f(w, r)
+func (f HandlerFunc) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	return f(ctx, w, r)
 }
 
 // IndexFile looks for a file in /root/fpath/indexFile for each string

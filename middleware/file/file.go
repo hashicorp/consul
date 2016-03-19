@@ -8,6 +8,8 @@ package file
 import (
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/dns"
 )
@@ -26,29 +28,29 @@ type (
 	}
 )
 
-func (f File) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	context := middleware.Context{W: w, Req: r}
-	qname := context.Name()
+func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	state := middleware.State{W: w, Req: r}
+	qname := state.Name()
 	zone := middleware.Zones(f.Zones.Names).Matches(qname)
 	if zone == "" {
-		return f.Next.ServeDNS(w, r)
+		return f.Next.ServeDNS(ctx, w, r)
 	}
 
-	names, nodata := f.Zones.Z[zone].lookup(qname, context.QType())
+	names, nodata := f.Zones.Z[zone].lookup(qname, state.QType())
 	var answer *dns.Msg
 	switch {
 	case nodata:
-		answer = context.AnswerMessage()
+		answer = state.AnswerMessage()
 		answer.Ns = names
 	case len(names) == 0:
-		answer = context.AnswerMessage()
+		answer = state.AnswerMessage()
 		answer.Ns = names
 		answer.Rcode = dns.RcodeNameError
 	case len(names) > 0:
-		answer = context.AnswerMessage()
+		answer = state.AnswerMessage()
 		answer.Answer = names
 	default:
-		answer = context.ErrorMessage(dns.RcodeServerFailure)
+		answer = state.ErrorMessage(dns.RcodeServerFailure)
 	}
 	// Check return size, etc. TODO(miek)
 	w.WriteMsg(answer)

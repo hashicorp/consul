@@ -4,6 +4,8 @@ package log
 import (
 	"log"
 
+	"golang.org/x/net/context"
+
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/dns"
 )
@@ -15,7 +17,7 @@ type Logger struct {
 	ErrorFunc func(dns.ResponseWriter, *dns.Msg, int) // failover error handler
 }
 
-func (l Logger) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	for _, rule := range l.Rules {
 		/*
 			if middleware.Path(r.URL.Path).Matches(rule.PathScope) {
@@ -40,7 +42,7 @@ func (l Logger) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
 		*/
 		rule = rule
 	}
-	return l.Next.ServeDNS(w, r)
+	return l.Next.ServeDNS(ctx, w, r)
 }
 
 // Rule configures the logging middleware.

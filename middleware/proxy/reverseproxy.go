@@ -12,15 +12,15 @@ type ReverseProxy struct {
 }
 
 func (p ReverseProxy) ServeDNS(w dns.ResponseWriter, r *dns.Msg, extra []dns.RR) error {
-	// TODO(miek): use extra!
+	// TODO(miek): use extra to EDNS0.
 	var (
 		reply *dns.Msg
 		err   error
 	)
-	context := middleware.Context{W: w, Req: r}
+	state := middleware.State{W: w, Req: r}
 
 	// tls+tcp ?
-	if context.Proto() == "tcp" {
+	if state.Proto() == "tcp" {
 		reply, err = middleware.Exchange(p.Client.TCP, r, p.Host)
 	} else {
 		reply, err = middleware.Exchange(p.Client.UDP, r, p.Host)

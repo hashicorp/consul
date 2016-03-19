@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"github.com/miekg/coredns/core/parse"
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/server"
@@ -70,7 +72,7 @@ func NewTestController(input string) *Controller {
 //
 // Used primarily for testing but needs to be exported so
 // add-ons can use this as a convenience.
-var EmptyNext = middleware.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) (int, error) {
+var EmptyNext = middleware.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	return 0, nil
 })
 

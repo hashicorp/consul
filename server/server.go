@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/miekg/dns"
 )
 
@@ -285,6 +287,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	q := r.Question[0].Name
 	b := make([]byte, len(q))
 	off, end := 0, false
+	ctx := context.Background()
 	for {
 		l := len(q[off:])
 		for i := 0; i < l; i++ {
@@ -297,7 +300,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 		if h, ok := s.zones[string(b[:l])]; ok {
 			if r.Question[0].Qtype != dns.TypeDS {
-				rcode, _ := h.stack.ServeDNS(w, r)
+				rcode, _ := h.stack.ServeDNS(ctx, w, r)
 				if rcode > 0 {
 					DefaultErrorFunc(w, r, rcode)
 				}
@@ -311,7 +314,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	}
 	// Wildcard match, if we have found nothing try the root zone as a last resort.
 	if h, ok := s.zones["."]; ok {
-		rcode, _ := h.stack.ServeDNS(w, r)
+		rcode, _ := h.stack.ServeDNS(ctx, w, r)
 		if rcode > 0 {
 			DefaultErrorFunc(w, r, rcode)
 		}

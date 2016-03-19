@@ -29,19 +29,19 @@ type replacer struct {
 // available. emptyValue should be the string that is used
 // in place of empty string (can still be empty string).
 func NewReplacer(r *dns.Msg, rr *ResponseRecorder, emptyValue string) Replacer {
-	context := Context{W: rr, Req: r}
+	state := State{W: rr, Req: r}
 	rep := replacer{
 		replacements: map[string]string{
-			"{type}":  context.Type(),
-			"{name}":  context.Name(),
-			"{class}": context.Class(),
-			"{proto}": context.Proto(),
+			"{type}":  state.Type(),
+			"{name}":  state.Name(),
+			"{class}": state.Class(),
+			"{proto}": state.Proto(),
 			"{when}": func() string {
 				return time.Now().Format(timeFormat)
 			}(),
-			"{remote}": context.IP(),
+			"{remote}": state.IP(),
 			"{port}": func() string {
-				p, _ := context.Port()
+				p, _ := state.Port()
 				return p
 			}(),
 		},
