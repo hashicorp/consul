@@ -9,24 +9,24 @@ import (
 )
 
 func TestDefaultInput(t *testing.T) {
-	if actual, expected := string(DefaultInput().Body()), ":2015\nroot ."; actual != expected {
+	if actual, expected := string(DefaultInput().Body()), ":53\nroot ."; actual != expected {
 		t.Errorf("Host=%s; Port=%s; Root=%s;\nEXPECTED: '%s'\n  ACTUAL: '%s'", Host, Port, Root, expected, actual)
 	}
 
 	// next few tests simulate user providing -host and/or -port flags
 
 	Host = "not-localhost.com"
-	if actual, expected := string(DefaultInput().Body()), "not-localhost.com:443\nroot ."; actual != expected {
+	if actual, expected := string(DefaultInput().Body()), "not-localhost.com:53\nroot ."; actual != expected {
 		t.Errorf("Host=%s; Port=%s; Root=%s;\nEXPECTED: '%s'\n  ACTUAL: '%s'", Host, Port, Root, expected, actual)
 	}
 
 	Host = "[::1]"
-	if actual, expected := string(DefaultInput().Body()), "[::1]:2015\nroot ."; actual != expected {
+	if actual, expected := string(DefaultInput().Body()), "[::1]:53\nroot ."; actual != expected {
 		t.Errorf("Host=%s; Port=%s; Root=%s;\nEXPECTED: '%s'\n  ACTUAL: '%s'", Host, Port, Root, expected, actual)
 	}
 
 	Host = "127.0.1.1"
-	if actual, expected := string(DefaultInput().Body()), "127.0.1.1:2015\nroot ."; actual != expected {
+	if actual, expected := string(DefaultInput().Body()), "127.0.1.1:53\nroot ."; actual != expected {
 		t.Errorf("Host=%s; Port=%s; Root=%s;\nEXPECTED: '%s'\n  ACTUAL: '%s'", Host, Port, Root, expected, actual)
 	}
 

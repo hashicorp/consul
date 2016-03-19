@@ -61,9 +61,9 @@ baz"
 		json: `[{"hosts":["host"],"body":[["dir","123","4.56","true"]]}]`, // NOTE: I guess we assume numbers and booleans should be encoded as strings...?
 	},
 	{ // 8
-		caddyfile: `http://host, https://host {
+		caddyfile: `host, host {
 }`,
-		json: `[{"hosts":["http://host","https://host"],"body":[]}]`, // hosts in JSON are always host:port format (if port is specified), for consistency
+		json: `[{"hosts":["host","host"],"body":[]}]`, // hosts in JSON are always host:port format (if port is specified), for consistency
 	},
 	{ // 9
 		caddyfile: `host {

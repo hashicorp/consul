@@ -76,11 +76,7 @@ func getCertDuringHandshake(name string, loadIfNecessary, obtainIfNecessary bool
 				return Certificate{}, err
 			}
 
-			// Name has to qualify for a certificate
-			if !HostQualifies(name) {
-				return cert, errors.New("hostname '" + name + "' does not qualify for certificate")
-			}
-
+			// TODO(miek): deleted, tls will be enabled when a keyword is specified.
 			// Obtain certificate from the CA
 			return obtainOnDemandCertificate(name)
 		}

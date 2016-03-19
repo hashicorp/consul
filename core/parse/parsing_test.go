@@ -8,39 +8,25 @@ import (
 
 func TestStandardAddress(t *testing.T) {
 	for i, test := range []struct {
-		input              string
-		scheme, host, port string
-		shouldErr          bool
+		input      string
+		host, port string
+		shouldErr  bool
 	}{
-		{`localhost`, "", "localhost", "", false},
-		{`localhost:1234`, "", "localhost", "1234", false},
-		{`localhost:`, "", "localhost", "", false},
-		{`0.0.0.0`, "", "0.0.0.0", "", false},
-		{`127.0.0.1:1234`, "", "127.0.0.1", "1234", false},
-		{`:1234`, "", "", "1234", false},
-		{`[::1]`, "", "::1", "", false},
-		{`[::1]:1234`, "", "::1", "1234", false},
-		{`:`, "", "", "", false},
-		{`localhost:http`, "http", "localhost", "80", false},
-		{`localhost:https`, "https", "localhost", "443", false},
-		{`:http`, "http", "", "80", false},
-		{`:https`, "https", "", "443", false},
-		{`http://localhost:https`, "", "", "", true}, // conflict
-		{`http://localhost:http`, "", "", "", true},  // repeated scheme
-		{`http://localhost:443`, "", "", "", true},   // not conventional
-		{`https://localhost:80`, "", "", "", true},   // not conventional
-		{`http://localhost`, "http", "localhost", "80", false},
-		{`https://localhost`, "https", "localhost", "443", false},
-		{`http://127.0.0.1`, "http", "127.0.0.1", "80", false},
-		{`https://127.0.0.1`, "https", "127.0.0.1", "443", false},
-		{`http://[::1]`, "http", "::1", "80", false},
-		{`http://localhost:1234`, "http", "localhost", "1234", false},
-		{`https://127.0.0.1:1234`, "https", "127.0.0.1", "1234", false},
-		{`http://[::1]:1234`, "http", "::1", "1234", false},
-		{``, "", "", "", false},
-		{`::1`, "", "::1", "", true},
-		{`localhost::`, "", "localhost::", "", true},
-		{`#$%@`, "", "#$%@", "", true},
+		{`localhost`, "localhost.", "53", false},
+		{`localhost:1234`, "localhost.", "1234", false},
+		{`localhost:`, "localhost.", "53", false},
+		{`0.0.0.0`, "0.0.0.0.", "53", false},
+		{`127.0.0.1:1234`, "127.0.0.1.", "1234", false},
+		{`:1234`, ".", "1234", false},
+		{`[::1]`, "::1.", "53", false},
+		{`[::1]:1234`, "::1.", "1234", false},
+		{`:`, ".", "53", false},
+		{`localhost:http`, "localhost.", "http", false},
+		{`localhost:https`, "localhost.", "https", false},
+		{``, ".", "53", false},
+		{`::1`, "::1.", "53", true},
+		{`localhost::`, "localhost::.", "53", true},
+		{`#$%@`, "#$%@.", "53", true},
 	} {
 		actual, err := standardAddress(test.input)
 
@@ -51,9 +37,6 @@ func TestStandardAddress(t *testing.T) {
 			t.Errorf("Test %d (%s): Expected error, but had none", i, test.input)
 		}
 
-		if actual.Scheme != test.scheme {
-			t.Errorf("Test %d (%s): Expected scheme '%s', got '%s'", i, test.input, test.scheme, actual.Scheme)
-		}
 		if actual.Host != test.host {
 			t.Errorf("Test %d (%s): Expected host '%s', got '%s'", i, test.input, test.host, actual.Host)
 		}
@@ -80,19 +63,19 @@ func TestParseOneAndImport(t *testing.T) {
 		tokens    map[string]int // map of directive name to number of tokens expected
 	}{
 		{`localhost`, false, []address{
-			{"localhost", "", "localhost", ""},
+			{"localhost", "localhost.", "53"},
 		}, map[string]int{}},
 
 		{`localhost
 		  dir1`, false, []address{
-			{"localhost", "", "localhost", ""},
+			{"localhost", "localhost.", "53"},
 		}, map[string]int{
 			"dir1": 1,
 		}},
 
 		{`localhost:1234
 		  dir1 foo bar`, false, []address{
-			{"localhost:1234", "", "localhost", "1234"},
+			{"localhost:1234", "localhost.", "1234"},
 		}, map[string]int{
 			"dir1": 3,
 		}},
@@ -100,7 +83,7 @@ func TestParseOneAndImport(t *testing.T) {
 		{`localhost {
 		    dir1
 		  }`, false, []address{
-			{"localhost", "", "localhost", ""},
+			{"localhost", "localhost.", "53"},
 		}, map[string]int{
 			"dir1": 1,
 		}},
@@ -109,71 +92,20 @@ func TestParseOneAndImport(t *testing.T) {
 		    dir1 foo bar
 		    dir2
 		  }`, false, []address{
-			{"localhost:1234", "", "localhost", "1234"},
+			{"localhost:1234", "localhost.", "1234"},
 		}, map[string]int{
 			"dir1": 3,
 			"dir2": 1,
 		}},
 
-		{`http://localhost https://localhost
-		  dir1 foo bar`, false, []address{
-			{"http://localhost", "http", "localhost", "80"},
-			{"https://localhost", "https", "localhost", "443"},
-		}, map[string]int{
-			"dir1": 3,
-		}},
-
-		{`http://localhost https://localhost {
-		    dir1 foo bar
-		  }`, false, []address{
-			{"http://localhost", "http", "localhost", "80"},
-			{"https://localhost", "https", "localhost", "443"},
-		}, map[string]int{
-			"dir1": 3,
-		}},
-
-		{`http://localhost, https://localhost {
-		    dir1 foo bar
-		  }`, false, []address{
-			{"http://localhost", "http", "localhost", "80"},
-			{"https://localhost", "https", "localhost", "443"},
-		}, map[string]int{
-			"dir1": 3,
-		}},
-
-		{`http://localhost, {
-		  }`, true, []address{
-			{"http://localhost", "http", "localhost", "80"},
-		}, map[string]int{}},
-
-		{`host1:80, http://host2.com
+		{`host1:80, host2.com
 		  dir1 foo bar
 		  dir2 baz`, false, []address{
-			{"host1:80", "", "host1", "80"},
-			{"http://host2.com", "http", "host2.com", "80"},
+			{"host1:80", "host1.", "80"},
+			{"host2.com", "host2.com.", "53"},
 		}, map[string]int{
 			"dir1": 3,
 			"dir2": 2,
-		}},
-
-		{`http://host1.com,
-		  http://host2.com,
-		  https://host3.com`, false, []address{
-			{"http://host1.com", "http", "host1.com", "80"},
-			{"http://host2.com", "http", "host2.com", "80"},
-			{"https://host3.com", "https", "host3.com", "443"},
-		}, map[string]int{}},
-
-		{`http://host1.com:1234, https://host2.com
-		  dir1 foo {
-		    bar baz
-		  }
-		  dir2`, false, []address{
-			{"http://host1.com:1234", "http", "host1.com", "1234"},
-			{"https://host2.com", "https", "host2.com", "443"},
-		}, map[string]int{
-			"dir1": 6,
-			"dir2": 1,
 		}},
 
 		{`127.0.0.1
@@ -183,7 +115,7 @@ func TestParseOneAndImport(t *testing.T) {
 		  dir2 {
 		    foo bar
 		  }`, false, []address{
-			{"127.0.0.1", "", "127.0.0.1", ""},
+			{"127.0.0.1", "127.0.0.1.", "53"},
 		}, map[string]int{
 			"dir1": 5,
 			"dir2": 5,
@@ -191,13 +123,13 @@ func TestParseOneAndImport(t *testing.T) {
 
 		{`127.0.0.1
 		  unknown_directive`, true, []address{
-			{"127.0.0.1", "", "127.0.0.1", ""},
+			{"127.0.0.1", "127.0.0.1.", "53"},
 		}, map[string]int{}},
 
 		{`localhost
 		  dir1 {
 		    foo`, true, []address{
-			{"localhost", "", "localhost", ""},
+			{"localhost", "localhost.", "53"},
 		}, map[string]int{
 			"dir1": 3,
 		}},
@@ -205,7 +137,7 @@ func TestParseOneAndImport(t *testing.T) {
 		{`localhost
 		  dir1 {
 		  }`, false, []address{
-			{"localhost", "", "localhost", ""},
+			{"localhost", "localhost.", "53"},
 		}, map[string]int{
 			"dir1": 3,
 		}},
@@ -213,7 +145,7 @@ func TestParseOneAndImport(t *testing.T) {
 		{`localhost
 		  dir1 {
 		  } }`, true, []address{
-			{"localhost", "", "localhost", ""},
+			{"localhost", "localhost.", "53"},
 		}, map[string]int{
 			"dir1": 3,
 		}},
@@ -225,7 +157,7 @@ func TestParseOneAndImport(t *testing.T) {
 		    }
 		  }
 		  dir2 foo bar`, false, []address{
-			{"localhost", "", "localhost", ""},
+			{"localhost", "localhost.", "53"},
 		}, map[string]int{
 			"dir1": 7,
 			"dir2": 3,
@@ -236,7 +168,7 @@ func TestParseOneAndImport(t *testing.T) {
 		{`localhost
 		  dir1 arg1
 		  import import_test1.txt`, false, []address{
-			{"localhost", "", "localhost", ""},
+			{"localhost", "localhost.", "53"},
 		}, map[string]int{
 			"dir1": 2,
 			"dir2": 3,
@@ -244,7 +176,7 @@ func TestParseOneAndImport(t *testing.T) {
 		}},
 
 		{`import import_test2.txt`, false, []address{
-			{"host1", "", "host1", ""},
+			{"host1", "host1.", "53"},
 		}, map[string]int{
 			"dir1": 1,
 			"dir2": 2,
@@ -307,40 +239,32 @@ func TestParseAll(t *testing.T) {
 		addresses [][]address // addresses per server block, in order
 	}{
 		{`localhost`, false, [][]address{
-			{{"localhost", "", "localhost", ""}},
+			{{"localhost", "localhost.", "53"}},
 		}},
 
 		{`localhost:1234`, false, [][]address{
-			{{"localhost:1234", "", "localhost", "1234"}},
+			{{"localhost:1234", "localhost.", "1234"}},
 		}},
 
 		{`localhost:1234 {
 		  }
 		  localhost:2015 {
 		  }`, false, [][]address{
-			{{"localhost:1234", "", "localhost", "1234"}},
-			{{"localhost:2015", "", "localhost", "2015"}},
+			{{"localhost:1234", "localhost.", "1234"}},
+			{{"localhost:2015", "localhost.", "2015"}},
 		}},
 
-		{`localhost:1234, http://host2`, false, [][]address{
-			{{"localhost:1234", "", "localhost", "1234"}, {"http://host2", "http", "host2", "80"}},
+		{`localhost:1234, host2`, false, [][]address{
+			{{"localhost:1234", "localhost.", "1234"}, {"host2", "host2.", "53"}},
 		}},
 
 		{`localhost:1234, http://host2,`, true, [][]address{}},
 
-		{`http://host1.com, http://host2.com {
-		  }
-		  https://host3.com, https://host4.com {
-		  }`, false, [][]address{
-			{{"http://host1.com", "http", "host1.com", "80"}, {"http://host2.com", "http", "host2.com", "80"}},
-			{{"https://host3.com", "https", "host3.com", "443"}, {"https://host4.com", "https", "host4.com", "443"}},
-		}},
-
 		{`import import_glob*.txt`, false, [][]address{
-			{{"glob0.host0", "", "glob0.host0", ""}},
-			{{"glob0.host1", "", "glob0.host1", ""}},
-			{{"glob1.host0", "", "glob1.host0", ""}},
-			{{"glob2.host0", "", "glob2.host0", ""}},
+			{{"glob0.host0", "glob0.host0.", "53"}},
+			{{"glob0.host1", "glob0.host1.", "53"}},
+			{{"glob1.host0", "glob1.host0.", "53"}},
+			{{"glob2.host0", "glob2.host0.", "53"}},
 		}},
 	} {
 		p := testParser(test.input)
@@ -388,14 +312,14 @@ func TestEnvironmentReplacement(t *testing.T) {
 	// basic test; unix-style env vars
 	p := testParser(`{$ADDRESS}`)
 	blocks, _ := p.parseAll()
-	if actual, expected := blocks[0].Addresses[0].Host, "servername.com"; expected != actual {
+	if actual, expected := blocks[0].Addresses[0].Host, "servername.com."; expected != actual {
 		t.Errorf("Expected host to be '%s' but was '%s'", expected, actual)
 	}
 
 	// multiple vars per token
 	p = testParser(`{$ADDRESS}:{$PORT}`)
 	blocks, _ = p.parseAll()
-	if actual, expected := blocks[0].Addresses[0].Host, "servername.com"; expected != actual {
+	if actual, expected := blocks[0].Addresses[0].Host, "servername.com."; expected != actual {
 		t.Errorf("Expected host to be '%s' but was '%s'", expected, actual)
 	}
 	if actual, expected := blocks[0].Addresses[0].Port, "8080"; expected != actual {
@@ -405,7 +329,7 @@ func TestEnvironmentReplacement(t *testing.T) {
 	// windows-style var and unix style in same token
 	p = testParser(`{%ADDRESS%}:{$PORT}`)
 	blocks, _ = p.parseAll()
-	if actual, expected := blocks[0].Addresses[0].Host, "servername.com"; expected != actual {
+	if actual, expected := blocks[0].Addresses[0].Host, "servername.com."; expected != actual {
 		t.Errorf("Expected host to be '%s' but was '%s'", expected, actual)
 	}
 	if actual, expected := blocks[0].Addresses[0].Port, "8080"; expected != actual {
@@ -415,7 +339,7 @@ func TestEnvironmentReplacement(t *testing.T) {
 	// reverse order
 	p = testParser(`{$ADDRESS}:{%PORT%}`)
 	blocks, _ = p.parseAll()
-	if actual, expected := blocks[0].Addresses[0].Host, "servername.com"; expected != actual {
+	if actual, expected := blocks[0].Addresses[0].Host, "servername.com."; expected != actual {
 		t.Errorf("Expected host to be '%s' but was '%s'", expected, actual)
 	}
 	if actual, expected := blocks[0].Addresses[0].Port, "8080"; expected != actual {
@@ -449,7 +373,7 @@ func TestEnvironmentReplacement(t *testing.T) {
 	// malformed (non-existent) env var (unix)
 	p = testParser(`:{$PORT$}`)
 	blocks, _ = p.parseAll()
-	if actual, expected := blocks[0].Addresses[0].Port, ""; expected != actual {
+	if actual, expected := blocks[0].Addresses[0].Port, "53"; expected != actual {
 		t.Errorf("Expected port to be '%s' but was '%s'", expected, actual)
 	}
 

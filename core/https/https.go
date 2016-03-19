@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"strings"
 
 	"github.com/miekg/coredns/server"
 	"github.com/xenolf/lego/acme"
@@ -118,7 +117,7 @@ func ObtainCerts(configs []server.Config, allowPrompts, proxyACME bool) error {
 		var client *ACMEClient
 
 		for _, cfg := range group {
-			if !HostQualifies(cfg.Host) || existingCertAndKey(cfg.Host) {
+			if existingCertAndKey(cfg.Host) {
 				continue
 			}
 
@@ -184,7 +183,7 @@ func EnableTLS(configs []server.Config, loadCertificates bool) error {
 			continue
 		}
 		configs[i].TLS.Enabled = true
-		if loadCertificates && HostQualifies(configs[i].Host) {
+		if loadCertificates {
 			_, err := cacheManagedCertificate(configs[i].Host, false)
 			if err != nil {
 				return err
@@ -227,25 +226,7 @@ func ConfigQualifies(cfg server.Config) bool {
 
 		// we get can't certs for some kinds of hostnames, but
 		// on-demand TLS allows empty hostnames at startup
-		(HostQualifies(cfg.Host) || cfg.TLS.OnDemand)
-}
-
-// HostQualifies returns true if the hostname alone
-// appears eligible for automatic HTTPS. For example,
-// localhost, empty hostname, and IP addresses are
-// not eligible because we cannot obtain certificates
-// for those names.
-func HostQualifies(hostname string) bool {
-	return hostname != "localhost" && // localhost is ineligible
-
-		// hostname must not be empty
-		strings.TrimSpace(hostname) != "" &&
-
-		// cannot be an IP address, see
-		// https://community.letsencrypt.org/t/certificate-for-static-ip/84/2?u=mholt
-		// (also trim [] from either end, since that special case can sneak through
-		// for IPv6 addresses using the -host flag and with empty/no Caddyfile)
-		net.ParseIP(strings.Trim(hostname, "[]")) == nil
+		cfg.TLS.OnDemand
 }
 
 // existingCertAndKey returns true if the host has a certificate

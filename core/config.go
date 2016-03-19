@@ -8,7 +8,6 @@ import (
 	"net"
 	"sync"
 
-	"github.com/miekg/coredns/core/https"
 	"github.com/miekg/coredns/core/parse"
 	"github.com/miekg/coredns/core/setup"
 	"github.com/miekg/coredns/server"
@@ -307,14 +306,9 @@ func validDirective(d string) bool {
 
 // DefaultInput returns the default Caddyfile input
 // to use when it is otherwise empty or missing.
-// It uses the default host and port (depends on
-// host, e.g. localhost is 2015, otherwise 443) and
-// root.
+// It uses the default host and port and root.
 func DefaultInput() CaddyfileInput {
 	port := Port
-	if https.HostQualifies(Host) && port == DefaultPort {
-		port = "443"
-	}
 	return CaddyfileInput{
 		Contents: []byte(fmt.Sprintf("%s:%s\nroot %s", Host, port, Root)),
 	}
