@@ -1,26 +1,6 @@
 package proxy
 
-import (
-	"bufio"
-	"bytes"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"log"
-	"net"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
-	"testing"
-	"time"
-
-	"golang.org/x/net/websocket"
-)
-
+/*
 func init() {
 	tryDuration = 50 * time.Millisecond // prevent tests from hanging
 }
@@ -315,3 +295,4 @@ func (c *fakeConn) SetWriteDeadline(t time.Time) error { return nil }
 func (c *fakeConn) Close() error                       { return nil }
 func (c *fakeConn) Read(b []byte) (int, error)         { return c.readBuf.Read(b) }
 func (c *fakeConn) Write(b []byte) (int, error)        { return c.writeBuf.Write(b) }
+*/

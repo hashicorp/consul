@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/dns"
 )
@@ -21,10 +23,10 @@ type ErrorHandler struct {
 	Debug     bool // if true, errors are written out to client rather than to a log
 }
 
-func (h ErrorHandler) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (h ErrorHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	defer h.recovery(w, r)
 
-	rcode, err := h.Next.ServeDNS(w, r)
+	rcode, err := h.Next.ServeDNS(ctx, w, r)
 
 	if err != nil {
 		errMsg := fmt.Sprintf("%s [ERROR %d %s %s] %v", time.Now().Format(timeFormat), rcode, r.Question[0].Name, dns.Type(r.Question[0].Qclass), err)

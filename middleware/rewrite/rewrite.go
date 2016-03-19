@@ -5,6 +5,7 @@ package rewrite
 import (
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 // Result is the result of a rewrite
@@ -27,12 +28,12 @@ type Rewrite struct {
 }
 
 // ServeHTTP implements the middleware.Handler interface.
-func (rw Rewrite) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	wr := NewResponseReverter(w, r)
 	for _, rule := range rw.Rules {
 		switch result := rule.Rewrite(r); result {
 		case RewriteDone:
-			return rw.Next.ServeDNS(wr, r)
+			return rw.Next.ServeDNS(ctx, wr, r)
 		case RewriteIgnored:
 			break
 		case RewriteStatus:
@@ -42,7 +43,7 @@ func (rw Rewrite) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
 			// }
 		}
 	}
-	return rw.Next.ServeDNS(w, r)
+	return rw.Next.ServeDNS(ctx, w, r)
 }
 
 // Rule describes an internal location rewrite rule.

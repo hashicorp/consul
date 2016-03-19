@@ -1,15 +1,6 @@
 package file
 
-import (
-	"errors"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"path/filepath"
-	"strings"
-	"testing"
-)
-
+/*
 var testDir = filepath.Join(os.TempDir(), "caddy_testdir")
 var ErrCustom = errors.New("Custom Error")
 
@@ -323,3 +314,4 @@ func TestServeHTTPFailingStat(t *testing.T) {
 		}
 	}
 }
+*/

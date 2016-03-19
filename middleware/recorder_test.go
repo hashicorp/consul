@@ -1,11 +1,6 @@
 package middleware
 
-import (
-	"net/http"
-	"net/http/httptest"
-	"testing"
-)
-
+/*
 func TestNewResponseRecorder(t *testing.T) {
 	w := httptest.NewRecorder()
 	recordRequest := NewResponseRecorder(w)
@@ -30,3 +25,4 @@ func TestWrite(t *testing.T) {
 		t.Fatalf("Expected Response Body to be %s , but found %s\n", responseTestString, w.Body.String())
 	}
 }
+*/

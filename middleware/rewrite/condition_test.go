@@ -1,11 +1,6 @@
 package rewrite
 
-import (
-	"net/http"
-	"strings"
-	"testing"
-)
-
+/*
 func TestConditions(t *testing.T) {
 	tests := []struct {
 		condition string
@@ -104,3 +99,4 @@ func TestConditions(t *testing.T) {
 		}
 	}
 }
+*/

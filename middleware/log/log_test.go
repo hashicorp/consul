@@ -1,17 +1,9 @@
 package log
 
-import (
-	"bytes"
-	"log"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-)
-
+/*
 type erroringMiddleware struct{}
 
-func (erroringMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) (int, error) {
+func (erroringMiddleware) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	return http.StatusNotFound, nil
 }
 
@@ -46,3 +38,4 @@ func TestLoggedStatus(t *testing.T) {
 		t.Error("Expected 404 to be logged. Logged string -", logged)
 	}
 }
+*/

@@ -1,12 +1,6 @@
 package setup
 
-import (
-	"testing"
-
-	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/errors"
-)
-
+/*
 func TestErrors(t *testing.T) {
 	c := NewTestController(`errors`)
 	mid, err := Errors(c)
@@ -154,5 +148,5 @@ func TestErrorsParse(t *testing.T) {
 			}
 		}
 	}
-
 }
+*/

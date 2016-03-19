@@ -20,6 +20,8 @@ import (
 	"net"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/dns"
 )
@@ -28,15 +30,15 @@ type Reflect struct {
 	Next middleware.Handler
 }
 
-func (rl Reflect) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	context := middleware.Context{Req: r, W: w}
+func (rl Reflect) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	state := middleware.State{Req: r, W: w}
 
 	class := r.Question[0].Qclass
 	qname := r.Question[0].Name
 	i, ok := dns.NextLabel(qname, 0)
 
 	if strings.ToLower(qname[:i]) != who || ok {
-		err := context.ErrorMessage(dns.RcodeFormatError)
+		err := state.ErrorMessage(dns.RcodeFormatError)
 		w.WriteMsg(err)
 		return dns.RcodeFormatError, errors.New(dns.RcodeToString[dns.RcodeFormatError])
 	}
@@ -46,10 +48,10 @@ func (rl Reflect) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	answer.Compress = true
 	answer.Authoritative = true
 
-	ip := context.IP()
-	proto := context.Proto()
-	port, _ := context.Port()
-	family := context.Family()
+	ip := state.IP()
+	proto := state.Proto()
+	port, _ := state.Port()
+	family := state.Family()
 	var rr dns.RR
 
 	switch family {
@@ -67,7 +69,7 @@ func (rl Reflect) ServeDNS(w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	t.Hdr = dns.RR_Header{Name: qname, Rrtype: dns.TypeTXT, Class: class, Ttl: 0}
 	t.Txt = []string{"Port: " + port + " (" + proto + ")"}
 
-	switch context.Type() {
+	switch state.Type() {
 	case "TXT":
 		answer.Answer = append(answer.Answer, t)
 		answer.Extra = append(answer.Extra, rr)

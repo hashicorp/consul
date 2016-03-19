@@ -1,21 +1,6 @@
 package errors
 
-import (
-	"bytes"
-	"errors"
-	"fmt"
-	"log"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"testing"
-
-	"github.com/miekg/coredns/middleware"
-)
-
+/*
 func TestErrors(t *testing.T) {
 	// create a temporary page
 	path := filepath.Join(os.TempDir(), "errors_test.html")
@@ -166,3 +151,4 @@ func genErrorHandler(status int, err error, body string) middleware.Handler {
 		return status, err
 	})
 }
+*/
