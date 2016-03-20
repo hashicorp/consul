@@ -7,10 +7,10 @@ like SkyDNS.
 ## Syntax
 
 ~~~
-etcd [address...]
+etcd [endpoint...]
 ~~~
 
-* `address` is the endpoint of etcd.
+* `endpoint` is the endpoint of etcd.
 
 The will default to `/skydns` as the path and the local etcd proxy (http://127.0.0.1:2379).
 
@@ -18,9 +18,14 @@ The will default to `/skydns` as the path and the local etcd proxy (http://127.0
 etcd {
     round_robin
     path /skydns
-    address address...
+    endpoint address...
     stubzones
 }
 ~~~
+
+* `round_robin`
+* `path` /skydns
+* `endpoint` address...
+* `stubzones`
 
 ## Examples

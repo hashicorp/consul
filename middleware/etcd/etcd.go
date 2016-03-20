@@ -3,9 +3,10 @@ package etcd
 
 import (
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/dns"
 	"github.com/skynetservices/skydns/singleflight"
 
-	etcd "github.com/coreos/etcd/client"
+	etcdc "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 )
 
@@ -19,10 +20,15 @@ type (
 	}
 )
 
-func NewEtcd(client etcd.KeysAPI, ctx context.Context) Etcd {
+func NewEtcd(client etcdc.KeysAPI, next middleware.Handler) Etcd {
 	return Etcd{
+		Next:     next,
 		client:   client,
-		ctx:      ctx,
+		ctx:      context.Background(),
 		inflight: &singleflight.Group{},
 	}
+}
+
+func (e Etcd) ServerDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	return 0, nil
 }

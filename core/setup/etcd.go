@@ -1,36 +1,42 @@
 package setup
 
 import (
-	"log"
-	"os"
+	"crypto/tls"
+	"crypto/x509"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"time"
 
+	etcdc "github.com/coreos/etcd/client"
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/file"
-	"github.com/miekg/dns"
 )
 
-// File sets up the file middleware.
-func File(c *Controller) (middleware.Middleware, error) {
-	zones, err := fileParse(c)
+const defaultAddress = "http://127.0.0.1:2379"
+
+// Etcd sets up the etcd middleware.
+func Etcd(c *Controller) (middleware.Middleware, error) {
+	keysapi, err := etcdParse(c)
 	if err != nil {
 		return nil, err
 	}
+
 	return func(next middleware.Handler) middleware.Handler {
 		return file.File{Next: next, Zones: zones}
 	}, nil
 
 }
 
-func fileParse(c *Controller) (file.Zones, error) {
-	// Maybe multiple, each for each zone.
-	z := make(map[string]file.Zone)
-	names := []string{}
+func etcdParse(c *Controller) (etcdc.KeysAPI, error) {
 	for c.Next() {
-		if c.Val() == "file" {
-			// file db.file [origin]
+		if c.Val() == "etcd" {
+			// etcd [address...]
 			if !c.NextArg() {
+
 				return file.Zones{}, c.ArgErr()
 			}
+			args1 := c.RemainingArgs()
 			fileName := c.Val()
 
 			origin := c.ServerBlockHosts[c.ServerBlockHostIndex]
@@ -51,23 +57,48 @@ func fileParse(c *Controller) (file.Zones, error) {
 	return file.Zones{Z: z, Names: names}, nil
 }
 
-//
-// parsrZone parses the zone in filename and returns a []RR or an error.
-func parseZone(origin, fileName string) (file.Zone, error) {
-	f, err := os.Open(fileName)
+func newEtcdClient(machines []string, tlsCert, tlsKey, tlsCACert string) (etcd.KeysAPI, error) {
+	etcdCfg := etcd.Config{
+		Endpoints: machines,
+		Transport: newHTTPSTransport(tlsCert, tlsKey, tlsCACert),
+	}
+	cli, err := etcd.New(etcdCfg)
 	if err != nil {
 		return nil, err
 	}
-	tokens := dns.ParseZone(f, origin, fileName)
-	zone := make([]dns.RR, 0, defaultZoneSize)
-	for x := range tokens {
-		if x.Error != nil {
-			log.Printf("[ERROR] failed to parse %s: %v", origin, x.Error)
-			return nil, x.Error
-		}
-		zone = append(zone, x.RR)
-	}
-	return file.Zone(zone), nil
+	return etcd.NewKeysAPI(cli), nil
 }
 
-const defaultZoneSize = 20 // A made up number.
+func newHTTPSTransport(tlsCertFile, tlsKeyFile, tlsCACertFile string) etcd.CancelableTransport {
+	var cc *tls.Config = nil
+
+	if tlsCertFile != "" && tlsKeyFile != "" {
+		var rpool *x509.CertPool
+		if tlsCACertFile != "" {
+			if pemBytes, err := ioutil.ReadFile(tlsCACertFile); err == nil {
+				rpool = x509.NewCertPool()
+				rpool.AppendCertsFromPEM(pemBytes)
+			}
+		}
+
+		if tlsCert, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile); err == nil {
+			cc = &tls.Config{
+				RootCAs:            rpool,
+				Certificates:       []tls.Certificate{tlsCert},
+				InsecureSkipVerify: true,
+			}
+		}
+	}
+
+	tr := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 10 * time.Second,
+		TLSClientConfig:     cc,
+	}
+
+	return tr
+}
