@@ -8,24 +8,24 @@ import (
 	"net/http"
 	"time"
 
-	etcdc "github.com/coreos/etcd/client"
 	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/file"
+	"github.com/miekg/coredns/middleware/etcd"
+
+	etcdc "github.com/coreos/etcd/client"
 )
 
-const defaultAddress = "http://127.0.0.1:2379"
+const defaultEndpoint = "http://127.0.0.1:2379"
 
 // Etcd sets up the etcd middleware.
 func Etcd(c *Controller) (middleware.Middleware, error) {
-	keysapi, err := etcdParse(c)
+	client, err := etcdParse(c)
 	if err != nil {
 		return nil, err
 	}
 
 	return func(next middleware.Handler) middleware.Handler {
-		return file.File{Next: next, Zones: zones}
+		return etcd.NewEtcd(client, next, c.ServerBlockHosts)
 	}, nil
-
 }
 
 func etcdParse(c *Controller) (etcdc.KeysAPI, error) {
@@ -33,43 +33,30 @@ func etcdParse(c *Controller) (etcdc.KeysAPI, error) {
 		if c.Val() == "etcd" {
 			// etcd [address...]
 			if !c.NextArg() {
-
-				return file.Zones{}, c.ArgErr()
+				// TODO(certs) and friends, this is client side
+				client, err := newEtcdClient([]string{defaultEndpoint}, "", "", "")
+				return client, err
 			}
-			args1 := c.RemainingArgs()
-			fileName := c.Val()
-
-			origin := c.ServerBlockHosts[c.ServerBlockHostIndex]
-			if c.NextArg() {
-				c.Next()
-				origin = c.Val()
-			}
-			// normalize this origin
-			origin = middleware.Host(origin).StandardHost()
-
-			zone, err := parseZone(origin, fileName)
-			if err == nil {
-				z[origin] = zone
-			}
-			names = append(names, origin)
+			client, err := newEtcdClient(c.RemainingArgs(), "", "", "")
+			return client, err
 		}
 	}
-	return file.Zones{Z: z, Names: names}, nil
+	return nil, nil
 }
 
-func newEtcdClient(machines []string, tlsCert, tlsKey, tlsCACert string) (etcd.KeysAPI, error) {
-	etcdCfg := etcd.Config{
-		Endpoints: machines,
+func newEtcdClient(endpoints []string, tlsCert, tlsKey, tlsCACert string) (etcdc.KeysAPI, error) {
+	etcdCfg := etcdc.Config{
+		Endpoints: endpoints,
 		Transport: newHTTPSTransport(tlsCert, tlsKey, tlsCACert),
 	}
-	cli, err := etcd.New(etcdCfg)
+	cli, err := etcdc.New(etcdCfg)
 	if err != nil {
 		return nil, err
 	}
-	return etcd.NewKeysAPI(cli), nil
+	return etcdc.NewKeysAPI(cli), nil
 }
 
-func newHTTPSTransport(tlsCertFile, tlsKeyFile, tlsCACertFile string) etcd.CancelableTransport {
+func newHTTPSTransport(tlsCertFile, tlsKeyFile, tlsCACertFile string) etcdc.CancelableTransport {
 	var cc *tls.Config = nil
 
 	if tlsCertFile != "" && tlsKeyFile != "" {

@@ -83,6 +83,30 @@ func (s State) Family() int {
 	return 2
 }
 
+// Do returns if the request has the DO (DNSSEC OK) bit set.
+func (s State) Do() bool {
+	if o := s.Req.IsEdns0(); o != nil {
+		return o.Do()
+	}
+	return false
+}
+
+// UDPSize returns if UDP buffer size advertised in the requests OPT record.
+// Or when the request was over TCP, we return the maximum allowed size of 64K.
+func (s State) Size() int {
+	if s.Proto() == "tcp" {
+		return dns.MaxMsgSize
+	}
+	if o := s.Req.IsEdns0(); o != nil {
+		s := o.UDPSize()
+		if s < dns.MinMsgSize {
+			s = dns.MinMsgSize
+		}
+		return int(s)
+	}
+	return dns.MinMsgSize
+}
+
 // Type returns the type of the question as a string.
 func (s State) Type() string {
 	return dns.Type(s.Req.Question[0].Qtype).String()

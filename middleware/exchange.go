@@ -8,3 +8,7 @@ func Exchange(c *dns.Client, m *dns.Msg, server string) (*dns.Msg, error) {
 	r, _, err := c.Exchange(m, server)
 	return r, err
 }
+
+// Lookup functions, ala
+// LookupHost
+// LookupCNAME

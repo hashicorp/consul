@@ -6,6 +6,7 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/file"
+
 	"github.com/miekg/dns"
 )
 
