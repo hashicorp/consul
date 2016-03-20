@@ -25,3 +25,7 @@ Start a simple resolver (proxy):
 Just start CoreDNS: `./coredns`.
 And then just query on that port (1053), the query should be forwarded to 8.8.8.8 and the response
 will be returned.
+
+# Blog
+
+<https://miek.nl/tags/coredns/>
