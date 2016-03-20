@@ -11,6 +11,11 @@ import (
 	etcdc "github.com/coreos/etcd/client"
 )
 
+const (
+	priority = 10   // default priority when nothing is set
+	ttl      = 3600 // default ttl when nothing is set
+)
+
 func (g *Backend) Records(name string, exact bool) ([]msg.Service, error) {
 	path, star := msg.PathWithWildcard(name)
 	r, err := g.get(path, true)
@@ -125,7 +130,7 @@ Nodes:
 		serv.Key = n.Key
 		serv.Ttl = g.calculateTtl(n, serv)
 		if serv.Priority == 0 {
-			serv.Priority = int(g.config.Priority)
+			serv.Priority = priority
 		}
 		sx = append(sx, *serv)
 	}
@@ -139,7 +144,7 @@ func (g *Backend) calculateTtl(node *etcdc.Node, serv *msg.Service) uint32 {
 	etcdTtl := uint32(node.TTL)
 
 	if etcdTtl == 0 && serv.Ttl == 0 {
-		return g.config.Ttl
+		return ttl
 	}
 	if etcdTtl == 0 {
 		return serv.Ttl

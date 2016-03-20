@@ -2,6 +2,7 @@
 package etcd
 
 import (
+	"github.com/miekg/coredns/middleware"
 	"github.com/skynetservices/skydns/singleflight"
 
 	etcd "github.com/coreos/etcd/client"
@@ -10,25 +11,18 @@ import (
 
 type (
 	Etcd struct {
-		Ttl      uint32
-		Priority uint16
-		Backend  *Backend
+		Next middleware.Handler
+
+		client   etcd.KeysAPI
+		ctx      context.Context
+		inflight *singleflight.Group
 	}
 )
 
-type Backend struct {
-	client   etcd.KeysAPI
-	ctx      context.Context
-	config   *Config
-	inflight *singleflight.Group
-}
-
-// NewBackend returns a new Backend.
-func NewBackend(client etcd.KeysAPI, ctx context.Context, config *Config) *Backend {
-	return &Backend{
+func NewEtcd(client etcd.KeysAPI, ctx context.Context) Etcd {
+	return Etcd{
 		client:   client,
 		ctx:      ctx,
-		config:   config,
 		inflight: &singleflight.Group{},
 	}
 }
