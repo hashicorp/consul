@@ -49,7 +49,7 @@ func New(hosts []string) Proxy {
 		upstream.Hosts[i] = uh
 	}
 	p.Upstreams = []Upstream{upstream}
-	return p, nil
+	return p
 }
 
 func (p Proxy) Lookup(state middleware.State, name string, tpe uint16) (*dns.Msg, error) {
