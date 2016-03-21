@@ -396,7 +396,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   This is a nested setting that allows the following keys:
   * `serf_lan` - The SerfLan address. Accepts values in the form of "host:port" like "10.23.31.101:8301".
   * `serf_wan` - The SerfWan address. Accepts values in the form of "host:port" like "10.23.31.101:8302".
-  * `rpc` - The RPC address. Accepts values in the form of "host:port" like "10.23.31.101:8400".
+  * `rpc` - The server RPC address. Accepts values in the form of "host:port" like "10.23.31.101:8300".
 
 * <a name="advertise_addr_wan"></a><a href="#advertise_addr_wan">`advertise_addr_wan`</a> Equivalent to
   the [`-advertise-wan` command-line flag](#_advertise-wan).
