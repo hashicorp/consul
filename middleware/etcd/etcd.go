@@ -15,31 +15,33 @@ import (
 
 type (
 	Etcd struct {
-		Next     middleware.Handler
-		Zones    []string
-		client   etcdc.KeysAPI
-		ctx      context.Context
-		inflight *singleflight.Group
+		Next       middleware.Handler
+		Zones      []string
+		client     etcdc.KeysAPI
+		ctx        context.Context
+		inflight   *singleflight.Group
+		PathPrefix string
 	}
 )
 
 func NewEtcd(client etcdc.KeysAPI, next middleware.Handler, zones []string) Etcd {
 	return Etcd{
-		Next:     next,
-		Zones:    zones,
-		client:   client,
-		ctx:      context.Background(),
-		inflight: &singleflight.Group{},
+		Next:       next,
+		Zones:      zones,
+		client:     client,
+		ctx:        context.Background(),
+		inflight:   &singleflight.Group{},
+		PathPrefix: "skydns", // TODO(miek): configurable
 	}
 }
 
 func (g Etcd) Records(name string, exact bool) ([]msg.Service, error) {
-	path, star := msg.PathWithWildcard(name)
+	path, star := g.PathWithWildcard(name)
 	r, err := g.Get(path, true)
 	if err != nil {
 		return nil, err
 	}
-	segments := strings.Split(msg.Path(name), "/")
+	segments := strings.Split(g.Path(name), "/")
 	switch {
 	case exact && r.Node.Dir:
 		return nil, nil

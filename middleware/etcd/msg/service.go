@@ -2,14 +2,10 @@ package msg
 
 import (
 	"net"
-	"path"
 	"strings"
 
 	"github.com/miekg/dns"
 )
-
-// PathPrefix is the prefix used to store CoreDNS data in etcd.
-var PathPrefix string = "skydns"
 
 // This *is* the rdata from a SRV record, but with a twist.
 // Host (Target in SRV) must be a domain name, but if it looks like an IP
@@ -83,44 +79,6 @@ func (s *Service) NewTXT(name string) *dns.TXT {
 // NewPTR returns a new PTR record based on the Service.
 func (s *Service) NewPTR(name string, ttl uint32) *dns.PTR {
 	return &dns.PTR{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: ttl}, Ptr: dns.Fqdn(s.Host)}
-}
-
-// As Path, but if a name contains wildcards (* or any), the name will be
-// chopped of before the (first) wildcard, and we do a highler evel search and
-// later find the matching names.  So service.*.skydns.local, will look for all
-// services under skydns.local and will later check for names that match
-// service.*.skydns.local.  If a wildcard is found the returned bool is true.
-func PathWithWildcard(s string) (string, bool) {
-	l := dns.SplitDomainName(s)
-	for i, j := 0, len(l)-1; i < j; i, j = i+1, j-1 {
-		l[i], l[j] = l[j], l[i]
-	}
-	for i, k := range l {
-		if k == "*" || k == "any" {
-			return path.Join(append([]string{"/" + PathPrefix + "/"}, l[:i]...)...), true
-		}
-	}
-	return path.Join(append([]string{"/" + PathPrefix + "/"}, l...)...), false
-}
-
-// Path converts a domainname to an etcd path. If s looks like service.staging.skydns.local.,
-// the resulting key will be /skydns/local/skydns/staging/service .
-func Path(s string) string {
-	l := dns.SplitDomainName(s)
-	for i, j := 0, len(l)-1; i < j; i, j = i+1, j-1 {
-		l[i], l[j] = l[j], l[i]
-	}
-	return path.Join(append([]string{"/" + PathPrefix + "/"}, l...)...)
-}
-
-// Domain is the opposite of Path.
-func Domain(s string) string {
-	l := strings.Split(s, "/")
-	// start with 1, to strip /skydns
-	for i, j := 1, len(l)-1; i < j; i, j = i+1, j-1 {
-		l[i], l[j] = l[j], l[i]
-	}
-	return dns.Fqdn(strings.Join(l[1:len(l)-1], "."))
 }
 
 // Group checks the services in sx, it looks for a Group attribute on the shortest
