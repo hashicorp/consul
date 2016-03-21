@@ -118,7 +118,7 @@ func TestCoordinate_Update(t *testing.T) {
 	}
 
 	// Wait a while and the updates should get picked up.
-	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
+	time.Sleep(3 * s1.config.CoordinateUpdatePeriod)
 	c, err = state.CoordinateGetRaw("node1")
 	if err != nil {
 		t.Fatalf("err: %v", err)
@@ -163,7 +163,7 @@ func TestCoordinate_Update(t *testing.T) {
 
 	// Wait a little while for the batch routine to run, then make sure
 	// exactly one of the updates got dropped (we won't know which one).
-	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
+	time.Sleep(3 * s1.config.CoordinateUpdatePeriod)
 	numDropped := 0
 	for i := 0; i < spamLen; i++ {
 		c, err = state.CoordinateGetRaw(fmt.Sprintf("bogusnode%d", i))
@@ -269,7 +269,7 @@ func TestCoordinate_ListNodes(t *testing.T) {
 	if err := msgpackrpc.CallWithCodec(codec, "Coordinate.Update", &arg3, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
+	time.Sleep(3 * s1.config.CoordinateUpdatePeriod)
 
 	// Now query back for all the nodes.
 	arg := structs.DCSpecificRequest{
