@@ -1,8 +1,18 @@
 package etcd
 
-/*
-func (s *server) AddressRecords(q dns.Question, name string, previousRecords []dns.RR, state middleware.State) (records []dns.RR, err error) {
-	services, err := s.backend.Records(name, false)
+import (
+	"math"
+	"net"
+
+	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/etcd/msg"
+	"github.com/miekg/dns"
+)
+
+// need current zone argument.
+
+func (e Etcd) AddressRecords(zone string, state middleware.State, previousRecords []dns.RR) (records []dns.RR, err error) {
+	services, err := e.Records(state.Name(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -14,24 +24,25 @@ func (s *server) AddressRecords(q dns.Question, name string, previousRecords []d
 		switch {
 		case ip == nil:
 			// Try to resolve as CNAME if it's not an IP, but only if we don't create loops.
-			if q.Name == dns.Fqdn(serv.Host) {
+			// TODO(miek): lowercasing, use Match in middleware/
+			if state.Name() == dns.Fqdn(serv.Host) {
 				// x CNAME x is a direct loop, don't add those
 				continue
 			}
 
-			newRecord := serv.NewCNAME(q.Name, dns.Fqdn(serv.Host))
+			newRecord := serv.NewCNAME(state.QName(), dns.Fqdn(serv.Host))
 			if len(previousRecords) > 7 {
-				logf("CNAME lookup limit of 8 exceeded for %s", newRecord)
 				// don't add it, and just continue
 				continue
 			}
-			if s.isDuplicateCNAME(newRecord, previousRecords) {
-				logf("CNAME loop detected for record %s", newRecord)
+			if isDuplicateCNAME(newRecord, previousRecords) {
 				continue
 			}
 
-			nextRecords, err := s.AddressRecords(dns.Question{Name: dns.Fqdn(serv.Host), Qtype: q.Qtype, Qclass: q.Qclass},
-				strings.ToLower(dns.Fqdn(serv.Host)), append(previousRecords, newRecord), state)
+			// Fucks up recursion, need to define this in the function
+			// are use another var
+			state.Req.Question[0] = dns.Question{Name: dns.Fqdn(serv.Host), Qtype: state.QType(), Qclass: state.QClass()}
+			nextRecords, err := e.AddressRecords(zone, state, append(previousRecords, newRecord))
 			if err == nil {
 				// Only have we found something we should add the CNAME and the IP addresses.
 				if len(nextRecords) > 0 {
@@ -42,59 +53,31 @@ func (s *server) AddressRecords(q dns.Question, name string, previousRecords []d
 			}
 			// This means we can not complete the CNAME, try to look else where.
 			target := newRecord.Target
-			if dns.IsSubDomain(s.config.Domain, target) {
+			if dns.IsSubDomain(zone, target) {
 				// We should already have found it
 				continue
 			}
-			m1, e1 := s.Lookup(target, q.Qtype, bufsize, dnssec)
+			m1, e1 := e.Proxy.Lookup(state, target, state.QType())
 			if e1 != nil {
-				logf("incomplete CNAME chain: %s", e1)
 				continue
 			}
 			// Len(m1.Answer) > 0 here is well?
 			records = append(records, newRecord)
 			records = append(records, m1.Answer...)
 			continue
-		case ip.To4() != nil && (q.Qtype == dns.TypeA || both):
-			records = append(records, serv.NewA(q.Name, ip.To4()))
-		case ip.To4() == nil && (q.Qtype == dns.TypeAAAA || both):
-			records = append(records, serv.NewAAAA(q.Name, ip.To16()))
+		case ip.To4() != nil && (state.QType() == dns.TypeA):
+			records = append(records, serv.NewA(state.QName(), ip.To4()))
+		case ip.To4() == nil && (state.QType() == dns.TypeAAAA):
+			records = append(records, serv.NewAAAA(state.QName(), ip.To16()))
 		}
 	}
 	return records, nil
 }
 
-// NSRecords returns NS records from etcd.
-func (s *server) NSRecords(q dns.Question, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
-	services, err := s.backend.Records(name, false)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	services = msg.Group(services)
-
-	for _, serv := range services {
-		ip := net.ParseIP(serv.Host)
-		switch {
-		case ip == nil:
-			return nil, nil, fmt.Errorf("NS record must be an IP address")
-		case ip.To4() != nil:
-			serv.Host = msg.Domain(serv.Key)
-			records = append(records, serv.NewNS(q.Name, serv.Host))
-			extra = append(extra, serv.NewA(serv.Host, ip.To4()))
-		case ip.To4() == nil:
-			serv.Host = msg.Domain(serv.Key)
-			records = append(records, serv.NewNS(q.Name, serv.Host))
-			extra = append(extra, serv.NewAAAA(serv.Host, ip.To16()))
-		}
-	}
-	return records, extra, nil
-}
-
 // SRVRecords returns SRV records from etcd.
-// If the Target is not a name but an IP address, a name is created.
-func (s *server) SRVRecords(s middleware.State) (records []dns.RR, extra []dns.RR, err error) {
-	services, err := s.backend.Records(name, false)
+// If the Target is not a name but an IP address, a name is created on the fly.
+func (e Etcd) SRVRecords(zone string, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
+	services, err := e.Records(name, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -126,7 +109,7 @@ func (s *server) SRVRecords(s middleware.State) (records []dns.RR, extra []dns.R
 		ip := net.ParseIP(serv.Host)
 		switch {
 		case ip == nil:
-			srv := serv.NewSRV(q.Name, weight)
+			srv := serv.NewSRV(state.QName(), weight)
 			records = append(records, srv)
 
 			if _, ok := lookup[srv.Target]; ok {
@@ -135,12 +118,12 @@ func (s *server) SRVRecords(s middleware.State) (records []dns.RR, extra []dns.R
 
 			lookup[srv.Target] = true
 
-			if !dns.IsSubDomain(s.config.Domain, srv.Target) {
-				m1, e1 := s.Lookup(srv.Target, dns.TypeA, bufsize, dnssec)
+			if !dns.IsSubDomain(zone, srv.Target) {
+				m1, e1 := e.Proxy.Lookup(state, srv.Target, dns.TypeA)
 				if e1 == nil {
 					extra = append(extra, m1.Answer...)
 				}
-				m1, e1 = s.Lookup(srv.Target, dns.TypeAAAA, bufsize, dnssec)
+				m1, e1 = e.Proxy.Lookup(state, srv.Target, dns.TypeAAAA)
 				if e1 == nil {
 					// If we have seen CNAME's we *assume* that they are already added.
 					for _, a := range m1.Answer {
@@ -154,7 +137,7 @@ func (s *server) SRVRecords(s middleware.State) (records []dns.RR, extra []dns.R
 			// Internal name, we should have some info on them, either v4 or v6
 			// Clients expect a complete answer, because we are a recursor in their
 			// view.
-			addr, e1 := s.AddressRecords(dns.Question{srv.Target, dns.ClassINET, dns.TypeA},
+			addr, e1 := e.AddressRecords(dns.Question{srv.Target, dns.ClassINET, dns.TypeA},
 				srv.Target, nil, bufsize, dnssec, true)
 			if e1 == nil {
 				extra = append(extra, addr...)
@@ -177,9 +160,9 @@ func (s *server) SRVRecords(s middleware.State) (records []dns.RR, extra []dns.R
 }
 
 // MXRecords returns MX records from etcd.
-// If the Target is not a name but an IP address, a name is created.
-func (s *server) MXRecords(q dns.Question, name string, s middleware.State) (records []dns.RR, extra []dns.RR, err error) {
-	services, err := s.backend.Records(name, false)
+// If the Target is not a name but an IP address, a name is created on the fly.
+func (e Etcd) MXRecords(zone string, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
+	services, err := e.Records(name, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -201,11 +184,11 @@ func (s *server) MXRecords(q dns.Question, name string, s middleware.State) (rec
 			lookup[mx.Mx] = true
 
 			if !dns.IsSubDomain(s.config.Domain, mx.Mx) {
-				m1, e1 := s.Lookup(mx.Mx, dns.TypeA, bufsize, dnssec)
+				m1, e1 := e.Proxy.Lookup(state, mx.Mx, dns.TypeA)
 				if e1 == nil {
 					extra = append(extra, m1.Answer...)
 				}
-				m1, e1 = s.Lookup(mx.Mx, dns.TypeAAAA, bufsize, dnssec)
+				m1, e1 = e.Proxy.Lookup(state, mx.Mx, dns.TypeAAAA)
 				if e1 == nil {
 					// If we have seen CNAME's we *assume* that they are already added.
 					for _, a := range m1.Answer {
@@ -235,8 +218,8 @@ func (s *server) MXRecords(q dns.Question, name string, s middleware.State) (rec
 	return records, extra, nil
 }
 
-func (s *server) CNAMERecords(q dns.Question, state middleware.State) (records []dns.RR, err error) {
-	services, err := s.backend.Records(name, true)
+func (e Etcd) CNAMERecords(zone string, state middleware.State) (records []dns.RR, err error) {
+	services, err := e.Records(name, true)
 	if err != nil {
 		return nil, err
 	}
@@ -252,8 +235,8 @@ func (s *server) CNAMERecords(q dns.Question, state middleware.State) (records [
 	return records, nil
 }
 
-func (s *server) TXTRecords(q dns.Question, state middleware.State) (records []dns.RR, err error) {
-	services, err := s.backend.Records(name, false)
+func (e Etcd) TXTRecords(zone string, state middleware.State) (records []dns.RR, err error) {
+	services, err := e.Records(state.Name(), false)
 	if err != nil {
 		return nil, err
 	}
@@ -280,6 +263,7 @@ func isDuplicateCNAME(r *dns.CNAME, records []dns.RR) bool {
 	return false
 }
 
+/*
 // Move to state.go somehow?
 func (s *server) NameError(req *dns.Msg) *dns.Msg {
 	m := new(dns.Msg)
@@ -287,30 +271,6 @@ func (s *server) NameError(req *dns.Msg) *dns.Msg {
 	m.Ns = []dns.RR{s.NewSOA()}
 	m.Ns[0].Header().Ttl = s.config.MinTtl
 	return m
-}
-
-// overflowOrTruncated writes back an error to the client if the message does not fit.
-// It updates prometheus metrics. If something has been written to the client, true
-// will be returned.
-func (s *server) overflowOrTruncated(w dns.ResponseWriter, m *dns.Msg, bufsize int, sy metrics.System) bool {
-	switch isTCP(w) {
-	case true:
-		if _, overflow := Fit(m, dns.MaxMsgSize, true); overflow {
-			metrics.ReportErrorCount(m, sy)
-			msgFail := s.ServerFailure(m)
-			w.WriteMsg(msgFail)
-			return true
-		}
-	case false:
-		// Overflow with udp always results in TC.
-		Fit(m, bufsize, false)
-		metrics.ReportErrorCount(m, sy)
-		if m.Truncated {
-			w.WriteMsg(m)
-			return true
-		}
-	}
-	return false
 }
 
 // etcNameError return a NameError to the client if the error

@@ -8,6 +8,7 @@ import (
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
 	"github.com/miekg/coredns/middleware/etcd/singleflight"
+	"github.com/miekg/coredns/middleware/proxy"
 
 	etcdc "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
@@ -17,6 +18,7 @@ type (
 	Etcd struct {
 		Next       middleware.Handler
 		Zones      []string
+		Proxy      proxy.Proxy
 		client     etcdc.KeysAPI
 		ctx        context.Context
 		inflight   *singleflight.Group
@@ -28,6 +30,7 @@ func NewEtcd(client etcdc.KeysAPI, next middleware.Handler, zones []string) Etcd
 	return Etcd{
 		Next:       next,
 		Zones:      zones,
+		Proxy:      proxy.New([]string{"8.8.8.8:53"}),
 		client:     client,
 		ctx:        context.Background(),
 		inflight:   &singleflight.Group{},

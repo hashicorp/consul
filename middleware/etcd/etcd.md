@@ -4,9 +4,6 @@
 a [message](https://github.com/skynetservices/skydns/blob/2fcff74cdc9f9a7dd64189a447ef27ac354b725f/msg/service.go#L26)
 like [SkyDNS](https//github.com/skynetservices/skydns).
 
-If you need replies to SOA and NS queries you should add a little zone after etcd directive that has
-these resource records.
-
 ## Syntax
 
 ~~~
