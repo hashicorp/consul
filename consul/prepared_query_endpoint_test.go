@@ -1537,7 +1537,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		if err := msgpackrpc.CallWithCodec(codec1, "Coordinate.Update", &req, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-		time.Sleep(2 * s1.config.CoordinateUpdatePeriod)
+		time.Sleep(3 * s1.config.CoordinateUpdatePeriod)
 	}
 
 	// Try an RTT sort. We don't have any other coordinates in there but
