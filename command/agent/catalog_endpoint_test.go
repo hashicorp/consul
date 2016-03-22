@@ -271,7 +271,7 @@ func TestCatalogNodes_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
 	// Query again and now foo should have moved to the front of the line.
 	req, err = http.NewRequest("GET", "/v1/catalog/nodes?dc=dc1&near=foo", nil)
@@ -482,7 +482,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
 	// Query again and now foo should have moved to the front of the line.
 	req, err = http.NewRequest("GET", "/v1/catalog/service/api?tag=a&near=foo", nil)

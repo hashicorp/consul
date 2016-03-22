@@ -126,7 +126,7 @@ func TestHealthChecksInState_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
 	// Query again and now foo should have moved to the front of the line.
 	resp = httptest.NewRecorder()
@@ -320,7 +320,7 @@ func TestHealthServiceChecks_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
 	// Query again and now foo should have moved to the front of the line.
 	resp = httptest.NewRecorder()
@@ -487,7 +487,7 @@ func TestHealthServiceNodes_DistanceSort(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
 	// Query again and now foo should have moved to the front of the line.
 	resp = httptest.NewRecorder()
