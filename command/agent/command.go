@@ -978,6 +978,7 @@ Options:
                            as configuration in this directory in alphabetical
                            order. This can be specified multiple times.
   -data-dir=path           Path to a data directory to store agent state
+  -dev                     Starts the agent in development mode.
   -recursor=1.2.3.4        Address of an upstream DNS server.
                            Can be specified multiple times.
   -dc=east-aws             Datacenter of the agent
