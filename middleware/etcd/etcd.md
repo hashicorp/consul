@@ -7,14 +7,16 @@ like [SkyDNS](https//github.com/skynetservices/skydns).
 ## Syntax
 
 ~~~
-etcd [endpoint...]
+etcd [zones...]
 ~~~
 
-* `endpoint` is the endpoint of etcd.
+* `zones` zones it should be authoritative for.
 
 The will default to `/skydns` as the path and the local etcd proxy (http://127.0.0.1:2379).
+If no zones are specified the block's zone will be used as the zone.
 
-If you want to `round robin` A and AAAA responses look at the `round_robin` middleware.
+If you want to `round robin` A and AAAA responses look at the `round_robin` middleware. optimize
+middleware?
 
 ~~~
 etcd {
