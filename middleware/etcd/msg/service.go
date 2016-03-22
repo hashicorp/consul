@@ -40,7 +40,7 @@ func (s *Service) NewSRV(name string, weight uint16) *dns.SRV {
 	host := targetStrip(dns.Fqdn(s.Host), s.TargetStrip)
 
 	return &dns.SRV{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeSRV, Class: dns.ClassINET, Ttl: s.Ttl},
-		Priority: uint16(s.Priority), Weight: weight, Port: uint16(s.Port), Target: host}
+		Priority: uint16(s.Priority), Weight: weight, Port: uint16(s.Port), Target: dns.Fqdn(host)}
 }
 
 // NewMX returns a new MX record based on the Service.
@@ -63,7 +63,7 @@ func (s *Service) NewAAAA(name string, ip net.IP) *dns.AAAA {
 
 // NewCNAME returns a new CNAME record based on the Service.
 func (s *Service) NewCNAME(name string, target string) *dns.CNAME {
-	return &dns.CNAME{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: s.Ttl}, Target: target}
+	return &dns.CNAME{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: s.Ttl}, Target: dns.Fqdn(target)}
 }
 
 // NewTXT returns a new TXT record based on the Service.

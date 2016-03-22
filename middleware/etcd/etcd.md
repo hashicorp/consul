@@ -19,13 +19,13 @@ If you want to `round robin` A and AAAA responses look at the `round_robin` midd
 ~~~
 etcd {
     path /skydns
-    endpoint address...
+    endpoint endpoint...
     stubzones
 }
 ~~~
 
 * `path` /skydns
-* `endpoint` address...
+* `endpoint` endpoints...
 * `stubzones`
 
 ## Examples

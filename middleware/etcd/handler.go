@@ -8,63 +8,61 @@ import (
 
 func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	println("ETCD MIDDLEWARE HIT")
-
 	state := middleware.State{W: w, Req: r}
+	zone := middleware.Zones(e.Zones).Matches(state.Name())
+	if zone == "" {
+		return e.Next.ServeDNS(ctx, w, r)
+	}
 
 	m := state.AnswerMessage()
-	m.Authoritative = true
-	m.RecursionAvailable = true
-	m.Compress = true
+	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
 
-	// TODO(miek): get current zone when serving multiple
-	zone := "."
-
+	var (
+		records, extra []dns.RR
+		err            error
+	)
 	switch state.Type() {
 	case "A":
-		records, err := e.A(zone, state, nil)
+		records, err = e.A(zone, state, nil)
 	case "AAAA":
-		records, err := e.AAAA(zone, state, nil)
-		fallthrough
+		records, err = e.AAAA(zone, state, nil)
 	case "TXT":
-		records, err := e.TXT(zone, state)
-		fallthrough
+		records, err = e.TXT(zone, state)
 	case "CNAME":
-		records, err := e.CNAME(zone, state)
-		fallthrough
+		records, err = e.CNAME(zone, state)
 	case "MX":
-		records, extra, err := e.MX(zone, state)
-		fallthrough
+		records, extra, err = e.MX(zone, state)
 	case "SRV":
-		records, extra, err := e.SRV(zone, state)
-		if isEtcdNameError(err) {
-			NameError(zone, state)
-			return dns.RcodeNameError, nil
-		}
-		if err != nil {
-			// TODO(miek): err or nil in this case?
-			return dns.RcodeServerFailure, err
-		}
-		if len(records) > 0 {
-			m.Answer = append(m.Answer, records...)
-		}
-		if len(extra) > 0 {
-			m.Extra = append(m.Extra, extra...)
-		}
+		records, extra, err = e.SRV(zone, state)
 	default:
+		// rwrite and return
 		// Nodata response
 		// also catch other types, so that they return NODATA
+		return 0, nil
 	}
-	return e.Next.ServeDNS(ctx, w, r)
+	if isEtcdNameError(err) {
+		NameError(zone, state)
+		return dns.RcodeNameError, nil
+	}
+	if err != nil {
+		// TODO(miek): err or nil in this case?
+		return dns.RcodeServerFailure, err
+	}
+	if len(records) > 0 {
+		m.Answer = append(m.Answer, records...)
+	}
+	if len(extra) > 0 {
+		m.Extra = append(m.Extra, extra...)
+	}
+	state.W.WriteMsg(m)
+	return 0, nil
 }
 
 // NameError writes a name error to the client.
 func NameError(zone string, state middleware.State) {
 	m := new(dns.Msg)
 	m.SetRcode(state.Req, dns.RcodeNameError)
-
-	m.Ns = []dns.RR{NewSOA()}
-	m.Ns[0].Header().Ttl = minTtl
-
+	m.Ns = []dns.RR{SOA(zone)}
 	state.W.WriteMsg(m)
 }
 

@@ -10,7 +10,8 @@ import (
 	"github.com/miekg/dns"
 )
 
-// need current zone argument.
+// TODO(miek): factor out common code a bit
+
 func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (records []dns.RR, err error) {
 	services, err := e.Records(state.Name(), false)
 	if err != nil {
@@ -24,13 +25,13 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (
 		switch {
 		case ip == nil:
 			// Try to resolve as CNAME if it's not an IP, but only if we don't create loops.
-			// TODO(miek): lowercasing, use Match in middleware/
+			// TODO(miek): lowercasing, use Match in middleware?
 			if state.Name() == dns.Fqdn(serv.Host) {
 				// x CNAME x is a direct loop, don't add those
 				continue
 			}
 
-			newRecord := serv.NewCNAME(state.QName(), dns.Fqdn(serv.Host))
+			newRecord := serv.NewCNAME(state.QName(), serv.Host)
 			if len(previousRecords) > 7 {
 				// don't add it, and just continue
 				continue
@@ -93,7 +94,7 @@ func (e Etcd) AAAA(zone string, state middleware.State, previousRecords []dns.RR
 				continue
 			}
 
-			newRecord := serv.NewCNAME(state.QName(), dns.Fqdn(serv.Host))
+			newRecord := serv.NewCNAME(state.QName(), serv.Host)
 			if len(previousRecords) > 7 {
 				// don't add it, and just continue
 				continue
@@ -297,7 +298,7 @@ func (e Etcd) CNAME(zone string, state middleware.State) (records []dns.RR, err 
 	if len(services) > 0 {
 		serv := services[0]
 		if ip := net.ParseIP(serv.Host); ip == nil {
-			records = append(records, serv.NewCNAME(state.QName(), dns.Fqdn(serv.Host)))
+			records = append(records, serv.NewCNAME(state.QName(), serv.Host))
 		}
 	}
 	return records, nil
@@ -320,7 +321,8 @@ func (e Etcd) TXT(zone string, state middleware.State) (records []dns.RR, err er
 	return records, nil
 }
 
-func (e Etcd) SOA(zone string, state middleware.State) *dns.SOA {
+// synthesis a SOA Record.
+func SOA(zone string) *dns.SOA {
 	return nil
 }
 

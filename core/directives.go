@@ -58,6 +58,7 @@ var directiveOrder = []directive{
 	{"log", setup.Log},
 	{"errors", setup.Errors},
 	{"proxy", setup.Proxy},
+	{"etcd", setup.Etcd},
 }
 
 // RegisterDirective adds the given directive to caddy's list of directives.
