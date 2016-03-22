@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"github.com/miekg/coredns/middleware"
+
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
@@ -35,6 +36,9 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	case "SRV":
 		records, extra, err = e.SRV(zone, state)
 	default:
+		// For SOA and NS we might still want this
+		// and use dns.<zones> as the name to put these
+		// also for stub
 		// rwrite and return
 		// Nodata response
 		// also catch other types, so that they return NODATA

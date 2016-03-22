@@ -1,6 +1,10 @@
 package middleware
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/miekg/dns"
+)
 
 type Zones []string
 
@@ -11,6 +15,7 @@ func (z Zones) Matches(qname string) string {
 	zone := ""
 	// TODO(miek): use IsSubDomain here?
 	for _, zname := range z {
+		println(zname, qname)
 		if strings.HasSuffix(qname, zname) {
 			if len(zname) > len(zone) {
 				zone = zname
@@ -18,4 +23,12 @@ func (z Zones) Matches(qname string) string {
 		}
 	}
 	return zone
+}
+
+// Fully qualify all zones in z
+func (z Zones) FullyQualify() {
+	for i, _ := range z {
+		z[i] = dns.Fqdn(z[i])
+	}
+
 }

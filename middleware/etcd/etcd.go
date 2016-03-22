@@ -14,28 +14,14 @@ import (
 	"golang.org/x/net/context"
 )
 
-type (
-	Etcd struct {
-		Next       middleware.Handler
-		Zones      []string
-		Proxy      proxy.Proxy
-		client     etcdc.KeysAPI
-		ctx        context.Context
-		inflight   *singleflight.Group
-		PathPrefix string
-	}
-)
-
-func NewEtcd(client etcdc.KeysAPI, next middleware.Handler, zones []string) Etcd {
-	return Etcd{
-		Next:       next,
-		Zones:      zones,
-		Proxy:      proxy.New([]string{"8.8.8.8:53"}),
-		client:     client,
-		ctx:        context.Background(),
-		inflight:   &singleflight.Group{},
-		PathPrefix: "skydns", // TODO(miek): configurable
-	}
+type Etcd struct {
+	Next       middleware.Handler
+	Zones      []string
+	Proxy      proxy.Proxy
+	Client     etcdc.KeysAPI
+	Ctx        context.Context
+	Inflight   *singleflight.Group
+	PathPrefix string
 }
 
 func (g Etcd) Records(name string, exact bool) ([]msg.Service, error) {
@@ -57,8 +43,8 @@ func (g Etcd) Records(name string, exact bool) ([]msg.Service, error) {
 
 // Get is a wrapper for client.Get that uses SingleInflight to suppress multiple outstanding queries.
 func (g Etcd) Get(path string, recursive bool) (*etcdc.Response, error) {
-	resp, err := g.inflight.Do(path, func() (interface{}, error) {
-		r, e := g.client.Get(g.ctx, path, &etcdc.GetOptions{Sort: false, Recursive: recursive})
+	resp, err := g.Inflight.Do(path, func() (interface{}, error) {
+		r, e := g.Client.Get(g.Ctx, path, &etcdc.GetOptions{Sort: false, Recursive: recursive})
 		if e != nil {
 			return nil, e
 		}
