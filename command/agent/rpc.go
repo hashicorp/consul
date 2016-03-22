@@ -188,9 +188,24 @@ type memberEventRecord struct {
 	Members []Member
 }
 
+type AgentBackend interface {
+	ForceLeave(string) error
+	JoinWAN([]string) (int, error)
+	JoinLAN([]string) (int, error)
+	LANMembers() []serf.Member
+	WANMembers() []serf.Member
+	Leave() error
+	Shutdown() error
+	Stats() map[string]map[string]string
+	ListKeys(string) (*structs.KeyringResponses, error)
+	InstallKey(string, string) (*structs.KeyringResponses, error)
+	UseKey(string, string) (*structs.KeyringResponses, error)
+	RemoveKey(string, string) (*structs.KeyringResponses, error)
+}
+
 type AgentRPC struct {
 	sync.Mutex
-	agent     *Agent
+	agent     AgentBackend
 	clients   map[string]*rpcClient
 	listener  net.Listener
 	logger    *log.Logger
@@ -240,7 +255,7 @@ func (c *rpcClient) String() string {
 }
 
 // NewAgentRPC is used to create a new Agent RPC handler
-func NewAgentRPC(agent *Agent, listener net.Listener,
+func NewAgentRPC(agent AgentBackend, listener net.Listener,
 	logOutput io.Writer, logWriter *logWriter) *AgentRPC {
 	if logOutput == nil {
 		logOutput = os.Stderr
