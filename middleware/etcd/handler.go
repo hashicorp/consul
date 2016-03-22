@@ -8,7 +8,6 @@ import (
 )
 
 func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	println("ETCD MIDDLEWARE HIT")
 	state := middleware.State{W: w, Req: r}
 	zone := middleware.Zones(e.Zones).Matches(state.Name())
 	if zone == "" {
@@ -49,8 +48,6 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		return dns.RcodeNameError, nil
 	}
 	if err != nil {
-		println(err.Error())
-		// TODO(miek): err or nil in this case?
 		return dns.RcodeServerFailure, err
 	}
 	if len(records) > 0 {

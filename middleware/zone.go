@@ -15,7 +15,6 @@ func (z Zones) Matches(qname string) string {
 	zone := ""
 	// TODO(miek): use IsSubDomain here?
 	for _, zname := range z {
-		println(zname, qname)
 		if strings.HasSuffix(qname, zname) {
 			if len(zname) > len(zone) {
 				zone = zname
