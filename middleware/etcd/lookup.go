@@ -11,8 +11,7 @@ import (
 )
 
 // need current zone argument.
-
-func (e Etcd) AddressRecords(zone string, state middleware.State, previousRecords []dns.RR) (records []dns.RR, err error) {
+func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (records []dns.RR, err error) {
 	services, err := e.Records(state.Name(), false)
 	if err != nil {
 		return nil, err
@@ -41,11 +40,75 @@ func (e Etcd) AddressRecords(zone string, state middleware.State, previousRecord
 			}
 
 			state1 := copyState(state, serv.Host, state.QType())
-			nextRecords, err := e.AddressRecords(zone, state1, append(previousRecords, newRecord))
+			nextRecords, err := e.A(zone, state1, append(previousRecords, newRecord))
 
 			if err == nil {
-				// Only have we found something we should add the CNAME and the IP addresses.
+				// Not only have we found something we should add the CNAME and the IP addresses.
 				if len(nextRecords) > 0 {
+					// TODO(miek): sorting here?
+					records = append(records, newRecord)
+					records = append(records, nextRecords...)
+				}
+				continue
+			}
+			// This means we can not complete the CNAME, try to look else where.
+			target := newRecord.Target
+			if dns.IsSubDomain(zone, target) {
+				// We should already have found it
+				continue
+			}
+			m1, e1 := e.Proxy.Lookup(state, target, state.QType())
+			if e1 != nil {
+				continue
+			}
+			// Len(m1.Answer) > 0 here is well?
+			records = append(records, newRecord)
+			records = append(records, m1.Answer...)
+			continue
+		case ip.To4() != nil:
+			records = append(records, serv.NewA(state.QName(), ip.To4()))
+		case ip.To4() == nil:
+			// noda?
+		}
+	}
+	return records, nil
+}
+
+func (e Etcd) AAAA(zone string, state middleware.State, previousRecords []dns.RR) (records []dns.RR, err error) {
+	services, err := e.Records(state.Name(), false)
+	if err != nil {
+		return nil, err
+	}
+
+	services = msg.Group(services)
+
+	for _, serv := range services {
+		ip := net.ParseIP(serv.Host)
+		switch {
+		case ip == nil:
+			// Try to resolve as CNAME if it's not an IP, but only if we don't create loops.
+			// TODO(miek): lowercasing, use Match in middleware/
+			if state.Name() == dns.Fqdn(serv.Host) {
+				// x CNAME x is a direct loop, don't add those
+				continue
+			}
+
+			newRecord := serv.NewCNAME(state.QName(), dns.Fqdn(serv.Host))
+			if len(previousRecords) > 7 {
+				// don't add it, and just continue
+				continue
+			}
+			if isDuplicateCNAME(newRecord, previousRecords) {
+				continue
+			}
+
+			state1 := copyState(state, serv.Host, state.QType())
+			nextRecords, err := e.AAAA(zone, state1, append(previousRecords, newRecord))
+
+			if err == nil {
+				// Not only have we found something we should add the CNAME and the IP addresses.
+				if len(nextRecords) > 0 {
+					// TODO(miek): sorting here?
 					records = append(records, newRecord)
 					records = append(records, nextRecords...)
 				}
@@ -66,18 +129,18 @@ func (e Etcd) AddressRecords(zone string, state middleware.State, previousRecord
 			records = append(records, m1.Answer...)
 			continue
 			// both here again
-		case ip.To4() != nil && (state.QType() == dns.TypeA):
-			records = append(records, serv.NewA(state.QName(), ip.To4()))
-		case ip.To4() == nil && (state.QType() == dns.TypeAAAA):
+		case ip.To4() != nil:
+			// nada?
+		case ip.To4() == nil:
 			records = append(records, serv.NewAAAA(state.QName(), ip.To16()))
 		}
 	}
 	return records, nil
 }
 
-// SRVRecords returns SRV records from etcd.
+// SRV returns SRV records from etcd.
 // If the Target is not a name but an IP address, a name is created on the fly.
-func (e Etcd) SRVRecords(zone string, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
+func (e Etcd) SRV(zone string, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
 	services, err := e.Records(state.Name(), false)
 	if err != nil {
 		return nil, nil, err
@@ -140,10 +203,11 @@ func (e Etcd) SRVRecords(zone string, state middleware.State) (records []dns.RR,
 			// view.
 			state1 := copyState(state, srv.Target, dns.TypeA)
 			// TODO(both is true here!
-			addr, e1 := e.AddressRecords(zone, state1, nil)
+			addr, e1 := e.A(zone, state1, nil)
 			if e1 == nil {
 				extra = append(extra, addr...)
 			}
+			// e.AAA(zone, state1, nil) as well...
 		case ip.To4() != nil:
 			serv.Host = e.Domain(serv.Key)
 			srv := serv.NewSRV(state.QName(), weight)
@@ -161,9 +225,9 @@ func (e Etcd) SRVRecords(zone string, state middleware.State) (records []dns.RR,
 	return records, extra, nil
 }
 
-// MXRecords returns MX records from etcd.
+// MX returns MX records from etcd.
 // If the Target is not a name but an IP address, a name is created on the fly.
-func (e Etcd) MXRecords(zone string, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
+func (e Etcd) MX(zone string, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
 	services, err := e.Records(state.Name(), false)
 	if err != nil {
 		return nil, nil, err
@@ -204,10 +268,11 @@ func (e Etcd) MXRecords(zone string, state middleware.State) (records []dns.RR, 
 			// Internal name
 			// both is true here as well
 			state1 := copyState(state, mx.Mx, dns.TypeA)
-			addr, e1 := e.AddressRecords(zone, state1, nil)
+			addr, e1 := e.A(zone, state1, nil)
 			if e1 == nil {
 				extra = append(extra, addr...)
 			}
+			// e.AAAA as well
 		case ip.To4() != nil:
 			serv.Host = e.Domain(serv.Key)
 			records = append(records, serv.NewMX(state.QName()))
@@ -221,7 +286,7 @@ func (e Etcd) MXRecords(zone string, state middleware.State) (records []dns.RR, 
 	return records, extra, nil
 }
 
-func (e Etcd) CNAMERecords(zone string, state middleware.State) (records []dns.RR, err error) {
+func (e Etcd) CNAME(zone string, state middleware.State) (records []dns.RR, err error) {
 	services, err := e.Records(state.Name(), true)
 	if err != nil {
 		return nil, err
@@ -238,7 +303,7 @@ func (e Etcd) CNAMERecords(zone string, state middleware.State) (records []dns.R
 	return records, nil
 }
 
-func (e Etcd) TXTRecords(zone string, state middleware.State) (records []dns.RR, err error) {
+func (e Etcd) TXT(zone string, state middleware.State) (records []dns.RR, err error) {
 	services, err := e.Records(state.Name(), false)
 	if err != nil {
 		return nil, err
@@ -253,6 +318,10 @@ func (e Etcd) TXTRecords(zone string, state middleware.State) (records []dns.RR,
 		records = append(records, serv.NewTXT(state.QName()))
 	}
 	return records, nil
+}
+
+func (e Etcd) SOA(zone string, state middleware.State) *dns.SOA {
+	return nil
 }
 
 func isDuplicateCNAME(r *dns.CNAME, records []dns.RR) bool {
@@ -271,14 +340,3 @@ func copyState(state middleware.State, target string, typ uint16) middleware.Sta
 	state1.Req.Question[0] = dns.Question{dns.Fqdn(target), dns.ClassINET, typ}
 	return state1
 }
-
-/*
-// Move to state.go somehow?
-func (s *server) NameError(req *dns.Msg) *dns.Msg {
-	m := new(dns.Msg)
-	m.SetRcode(req, dns.RcodeNameError)
-	m.Ns = []dns.RR{s.NewSOA()}
-	m.Ns[0].Header().Ttl = s.config.MinTtl
-	return m
-}
-*/

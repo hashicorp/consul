@@ -66,19 +66,9 @@ func (s *Service) NewCNAME(name string, target string) *dns.CNAME {
 	return &dns.CNAME{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: s.Ttl}, Target: target}
 }
 
-// NewNS returns a new NS record based on the Service.
-func (s *Service) NewNS(name string, target string) *dns.NS {
-	return &dns.NS{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: s.Ttl}, Ns: target}
-}
-
 // NewTXT returns a new TXT record based on the Service.
 func (s *Service) NewTXT(name string) *dns.TXT {
 	return &dns.TXT{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: s.Ttl}, Txt: split255(s.Text)}
-}
-
-// NewPTR returns a new PTR record based on the Service.
-func (s *Service) NewPTR(name string, ttl uint32) *dns.PTR {
-	return &dns.PTR{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: ttl}, Ptr: dns.Fqdn(s.Host)}
 }
 
 // Group checks the services in sx, it looks for a Group attribute on the shortest

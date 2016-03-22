@@ -16,8 +16,7 @@ func TestLookupProxy(t *testing.T) {
 	defer log.SetOutput(os.Stderr)
 
 	p := New([]string{"8.8.8.8:53"})
-	fakestate := fakeState()
-	resp, err := p.Lookup(fakestate, "example.org.", dns.TypeA)
+	resp, err := p.Lookup(fakeState(), "example.org.", dns.TypeA)
 	if err != nil {
 		t.Error("Expected to receive reply, but didn't")
 	}

@@ -147,6 +147,14 @@ func (g Etcd) Ttl(node *etcdc.Node, serv *msg.Service) uint32 {
 	return serv.Ttl
 }
 
+// etcNameError checks if the error is ErrorCodeKeyNotFound from etcd.
+func isEtcdNameError(err error) bool {
+	if e, ok := err.(etcdc.Error); ok && e.Code == etcdc.ErrorCodeKeyNotFound {
+		return true
+	}
+	return false
+}
+
 const (
 	priority   = 10  // default priority when nothing is set
 	ttl        = 300 // default ttl when nothing is set
