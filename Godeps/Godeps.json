@@ -28,8 +28,8 @@
 		},
 		{
 			"ImportPath": "github.com/boltdb/bolt",
-			"Comment": "v1.1.0-65-gee4a088",
-			"Rev": "ee4a0888a9abe7eefe5a0992ca4cb06864839873"
+			"Comment": "v1.2.0",
+			"Rev": "c6ba97b89e0454fec9aa92e1d33a4e2c5fc1f631"
 		},
 		{
 			"ImportPath": "github.com/elazarl/go-bindata-assetfs",
