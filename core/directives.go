@@ -53,12 +53,14 @@ var directiveOrder = []directive{
 	// Directives that inject handlers (middleware)
 	{"prometheus", setup.Prometheus},
 	{"rewrite", setup.Rewrite},
-	{"file", setup.File},
-	{"reflect", setup.Reflect},
 	{"log", setup.Log},
 	{"errors", setup.Errors},
-	{"proxy", setup.Proxy},
+
 	{"etcd", setup.Etcd},
+	{"file", setup.File},
+	{"reflect", setup.Reflect},
+
+	{"proxy", setup.Proxy},
 }
 
 // RegisterDirective adds the given directive to caddy's list of directives.
