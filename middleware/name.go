@@ -1,6 +1,10 @@
 package middleware
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/miekg/dns"
+)
 
 // Name represents a domain name.
 type Name string
@@ -12,4 +16,9 @@ type Name string
 // easily and consistently matched.
 func (n Name) Matches(other string) bool {
 	return strings.HasSuffix(string(n), other)
+}
+
+// Normalize lowercases and makes n fully qualified.
+func (n Name) Normalize() string {
+	return strings.ToLower(dns.Fqdn(string(n)))
 }
