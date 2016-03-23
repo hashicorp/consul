@@ -10,8 +10,6 @@ import (
 	"github.com/miekg/dns"
 )
 
-// TODO(miek): factor out common code a bit
-
 func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (records []dns.RR, err error) {
 	services, err := e.Records(state.Name(), false)
 	if err != nil {
@@ -30,6 +28,7 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (
 				// x CNAME x is a direct loop, don't add those
 				continue
 			}
+			println("TRYING TO ADD CNAME", len(previousRecords))
 
 			newRecord := serv.NewCNAME(state.QName(), serv.Host)
 			if len(previousRecords) > 7 {
@@ -46,7 +45,6 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (
 			if err == nil {
 				// Not only have we found something we should add the CNAME and the IP addresses.
 				if len(nextRecords) > 0 {
-					// TODO(miek): sorting here?
 					records = append(records, newRecord)
 					records = append(records, nextRecords...)
 				}
@@ -56,6 +54,7 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (
 			target := newRecord.Target
 			if dns.IsSubDomain(zone, target) {
 				// We should already have found it
+				println("DIDN'T FOUND IT")
 				continue
 			}
 			m1, e1 := e.Proxy.Lookup(state, target, state.QType())
@@ -322,8 +321,9 @@ func (e Etcd) TXT(zone string, state middleware.State) (records []dns.RR, err er
 }
 
 // synthesis a SOA Record.
-func SOA(zone string) *dns.SOA {
-	return &dns.SOA{}
+func (e Etcd) SOA(zone string, state middleware.State) *dns.SOA {
+	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: 300, Class: dns.ClassINET}
+	return &dns.SOA{Hdr: header, Mbox: "hostmaster." + zone, Ns: "ns.dns." + zone}
 }
 
 func isDuplicateCNAME(r *dns.CNAME, records []dns.RR) bool {

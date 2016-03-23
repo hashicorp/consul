@@ -83,18 +83,18 @@ func TestLookup(t *testing.T) {
 		m.SetQuestion(dns.Fqdn(tc.Qname), tc.Qtype)
 
 		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
-		code, err := etc.ServeDNS(ctx, rec, m)
+		_, err := etc.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
 			return
 		}
 		resp := rec.Reply()
-		code = code // TODO(miek): test
-		// if nil then?
 
 		sort.Sort(rrSet(resp.Answer))
 		sort.Sort(rrSet(resp.Ns))
 		sort.Sort(rrSet(resp.Extra))
+
+		t.Logf("%v\n", resp)
 
 		if resp.Rcode != tc.Rcode {
 			t.Errorf("rcode is %q, expected %q", dns.RcodeToString[resp.Rcode], dns.RcodeToString[tc.Rcode])
@@ -139,6 +139,9 @@ var services = []*msg.Service{
 	// CNAME dedup Test
 	{Host: "www.miek.nl", Key: "a.miek.nl.skydns.test."},
 	{Host: "www.miek.nl", Key: "b.miek.nl.skydns.test."},
+
+	// Unresolvable internal name
+	{Host: "unresolvable.skydns.test", Key: "cname.prod.region1.skydns.test."},
 }
 
 var dnsTestCases = []dnsTestCase{
@@ -185,13 +188,12 @@ var dnsTestCases = []dnsTestCase{
 			newCNAME("www.miek.nl. 303 IN CNAME a.miek.nl."),
 		},
 	},
+	// CNAME (unresolvable internal name)
+	{
+		Qname: "cname.prod.region1.skydns.test.", Qtype: dns.TypeA,
+		Ns: []dns.RR{newSOA("skydns.test. 300 SOA ns.dns.skydns.test. hostmaster.skydns.test. 1407441600 28800 7200 604800 60")},
+	},
 	/*
-		// CNAME (unresolvable internal name)
-		{
-			Qname: "2.cname.skydns.test.", Qtype: dns.TypeA,
-			Answer: []dns.RR{},
-			Ns:     []dns.RR{newSOA("skydns.test. 60 SOA ns.dns.skydns.test. hostmaster.skydns.test. 1407441600 28800 7200 604800 60")},
-		},
 		// CNAME loop detection
 		{
 			Qname: "3.cname.skydns.test.", Qtype: dns.TypeA,
@@ -330,7 +332,7 @@ func checkSection(t *testing.T, tc dnsTestCase, sect Section, rr []dns.RR) {
 			continue
 		}
 		if a.Header().Rrtype != section[i].Header().Rrtype {
-			t.Errorf("answer %d should have a header rr type of %d, but has %dn", i, section[i].Header().Rrtype, a.Header().Rrtype)
+			t.Errorf("answer %d should have a header rr type of %d, but has %d", i, section[i].Header().Rrtype, a.Header().Rrtype)
 			continue
 		}
 

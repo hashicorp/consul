@@ -44,11 +44,23 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		return 0, nil
 	}
 	if isEtcdNameError(err) {
-		NameError(zone, state)
+		m := new(dns.Msg)
+		m.SetRcode(state.Req, dns.RcodeNameError)
+		m.Ns = []dns.RR{e.SOA(zone, state)}
+		state.W.WriteMsg(m)
 		return dns.RcodeNameError, nil
 	}
 	if err != nil {
 		return dns.RcodeServerFailure, err
+	}
+
+	if len(records) == 0 {
+		m := new(dns.Msg)
+		m.SetReply(state.Req)
+		m.Ns = []dns.RR{e.SOA(zone, state)}
+		state.W.WriteMsg(m)
+		return dns.RcodeNameError, nil
+
 	}
 	if len(records) > 0 {
 		m.Answer = append(m.Answer, records...)
@@ -60,15 +72,7 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	return 0, nil
 }
 
-// NameError writes a name error to the client.
-func NameError(zone string, state middleware.State) {
-	m := new(dns.Msg)
-	m.SetRcode(state.Req, dns.RcodeNameError)
-	m.Ns = []dns.RR{SOA(zone)}
-	state.W.WriteMsg(m)
-}
-
 // NoData write a nodata response to the client.
-func NoData(zone string, state middleware.State) {
+func (e Etcd) NoData(zone string, state middleware.State) {
 	// TODO(miek): write it
 }
