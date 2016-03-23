@@ -1,10 +1,6 @@
-// Copyright (c) 2014 The SkyDNS Authors. All rights reserved.
-// Use of this source code is governed by The MIT License (MIT) that can be
-// found in the LICENSE file.
+package etcd
 
-package server
-
-// etcd needs to be running on http://127.0.0.1:4001
+// etcd needs to be running on http://127.0.0.1:2379
 
 import (
 	"encoding/json"
@@ -12,26 +8,51 @@ import (
 	"testing"
 	"time"
 
-	backendetcd "github.com/skynetservices/skydns/backends/etcd"
-	"github.com/skynetservices/skydns/msg"
-
-	etcd "github.com/coreos/etcd/client"
+	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/etcd/msg"
+	"github.com/miekg/coredns/middleware/etcd/singleflight"
+	"github.com/miekg/coredns/middleware/proxy"
 	"github.com/miekg/dns"
+
+	etcdc "github.com/coreos/etcd/client"
+	"golang.org/x/net/context"
 )
 
-func addService(t *testing.T, s *server, k string, ttl time.Duration, m *msg.Service) {
+var (
+	etc    Etcd
+	client etcdc.KeysAPI
+	ctx    context.Context
+)
+
+func init() {
+	etc = Etcd{
+		Proxy:      proxy.New([]string{"8.8.8.8:53"}),
+		PathPrefix: "skydns",
+		Ctx:        context.Background(),
+		Inflight:   &singleflight.Group{},
+		Zones:      []string{"skydns.test."},
+	}
+
+	etcdCfg := etcdc.Config{
+		Endpoints: []string{"http://localhost:2379"},
+	}
+	cli, _ := etcdc.New(etcdCfg)
+	client = etcdc.NewKeysAPI(cli)
+	ctx = context.TODO()
+}
+
+func set(t *testing.T, e Etcd, k string, ttl time.Duration, m *msg.Service) {
 	b, err := json.Marshal(m)
 	if err != nil {
 		t.Fatal(err)
 	}
-	path, _ := msg.PathWithWildcard(k)
-
-	s.backend.(*backendetcd.Backend).Client().Set(ctx, path, string(b), &etcd.SetOptions{TTL: ttl})
+	path, _ := e.PathWithWildcard(k)
+	e.Client.Set(ctx, path, string(b), &etcdc.SetOptions{TTL: ttl})
 }
 
-func delService(t *testing.T, s *server, k string) {
-	path, _ := msg.PathWithWildcard(k)
-	backend.(*backendetcd.Backend).Client().Delete(ctx, path, &etcd.DeleteOptions{Recursive: false})
+func delete(t *testing.T, e Etcd, k string) {
+	path, _ := e.PathWithWildcard(k)
+	e.Client.Delete(ctx, path, &etcdc.DeleteOptions{Recursive: false})
 }
 
 type rrSet []dns.RR
@@ -41,161 +62,130 @@ func (p rrSet) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p rrSet) Less(i, j int) bool { return p[i].String() < p[j].String() }
 
 func TestDNS(t *testing.T) {
-	s := newTestServerDNSSEC(t, false)
-	defer s.Stop()
-
 	for _, serv := range services {
-		addService(t, s, serv.Key, 0, serv)
-		defer delService(t, s, serv.Key)
+		set(t, etc, serv.Key, 0, serv)
+		defer delete(t, etc, serv.Key)
 	}
-	c := new(dns.Client)
 	for _, tc := range dnsTestCases {
 		m := new(dns.Msg)
-		m.SetQuestion(tc.Qname, tc.Qtype)
-		if tc.dnssec {
-			m.SetEdns0(4096, true)
-		}
-		if tc.chaos {
-			m.Question[0].Qclass = dns.ClassCHAOS
-		}
-		resp, _, err := c.Exchange(m, "127.0.0.1:"+StrPort)
+		m.SetQuestion(dns.Fqdn(tc.Qname), tc.Qtype)
+
+		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+		code, err := etc.ServeDNS(ctx, rec, m)
 		if err != nil {
-			// try twice, be more resilent against remote lookups
-			// timing out.
-			resp, _, err = c.Exchange(m, "127.0.0.1:"+StrPort)
-			if err != nil {
-				t.Fatalf("failing: %s: %s\n", m.String(), err.Error())
-			}
+			t.Errorf("expected no error, got %v\n", err)
 		}
+		resp := rec.Reply()
+		code = code // TODO(miek): test
+		// if nil then?
+
 		sort.Sort(rrSet(resp.Answer))
 		sort.Sort(rrSet(resp.Ns))
 		sort.Sort(rrSet(resp.Extra))
-		fatal := false
-		defer func() {
-			if fatal {
-				t.Logf("question: %s\n", m.Question[0].String())
-				t.Logf("%s\n", resp)
-			}
-		}()
+
 		if resp.Rcode != tc.Rcode {
-			fatal = true
-			t.Fatalf("rcode is %q, expected %q", dns.RcodeToString[resp.Rcode], dns.RcodeToString[tc.Rcode])
+			t.Errorf("rcode is %q, expected %q", dns.RcodeToString[resp.Rcode], dns.RcodeToString[tc.Rcode])
 		}
+
 		if len(resp.Answer) != len(tc.Answer) {
-			fatal = true
-			t.Fatalf("answer for %q contained %d results, %d expected", tc.Qname, len(resp.Answer), len(tc.Answer))
+			t.Errorf("answer for %q contained %d results, %d expected", tc.Qname, len(resp.Answer), len(tc.Answer))
 		}
+		if len(resp.Ns) != len(tc.Ns) {
+			t.Errorf("authority for %q contained %d results, %d expected", tc.Qname, len(resp.Ns), len(tc.Ns))
+		}
+		if len(resp.Extra) != len(tc.Extra) {
+			t.Errorf("additional for %q contained %d results, %d expected", tc.Qname, len(resp.Extra), len(tc.Extra))
+		}
+
 		for i, a := range resp.Answer {
 			if a.Header().Name != tc.Answer[i].Header().Name {
-				fatal = true
-				t.Fatalf("answer %d should have a Header Name of %q, but has %q", i, tc.Answer[i].Header().Name, a.Header().Name)
+				t.Errorf("answer %d should have a Header Name of %q, but has %q", i, tc.Answer[i].Header().Name, a.Header().Name)
 			}
 			if a.Header().Ttl != tc.Answer[i].Header().Ttl {
-				fatal = true
-				t.Fatalf("Answer %d should have a Header TTL of %d, but has %d", i, tc.Answer[i].Header().Ttl, a.Header().Ttl)
+				t.Errorf("Answer %d should have a Header TTL of %d, but has %d", i, tc.Answer[i].Header().Ttl, a.Header().Ttl)
 			}
 			if a.Header().Rrtype != tc.Answer[i].Header().Rrtype {
-				fatal = true
-				t.Fatalf("answer %d should have a header response type of %d, but has %d", i, tc.Answer[i].Header().Rrtype, a.Header().Rrtype)
+				t.Errorf("answer %d should have a header response type of %d, but has %d", i, tc.Answer[i].Header().Rrtype, a.Header().Rrtype)
 			}
+
 			switch x := a.(type) {
 			case *dns.SRV:
 				if x.Priority != tc.Answer[i].(*dns.SRV).Priority {
-					fatal = true
-					t.Fatalf("answer %d should have a Priority of %d, but has %d", i, tc.Answer[i].(*dns.SRV).Priority, x.Priority)
+					t.Errorf("answer %d should have a Priority of %d, but has %d", i, tc.Answer[i].(*dns.SRV).Priority, x.Priority)
 				}
 				if x.Weight != tc.Answer[i].(*dns.SRV).Weight {
-					fatal = true
-					t.Fatalf("answer %d should have a Weight of %d, but has %d", i, tc.Answer[i].(*dns.SRV).Weight, x.Weight)
+					t.Errorf("answer %d should have a Weight of %d, but has %d", i, tc.Answer[i].(*dns.SRV).Weight, x.Weight)
 				}
 				if x.Port != tc.Answer[i].(*dns.SRV).Port {
-					fatal = true
-					t.Fatalf("answer %d should have a Port of %d, but has %d", i, tc.Answer[i].(*dns.SRV).Port, x.Port)
+					t.Errorf("answer %d should have a Port of %d, but has %d", i, tc.Answer[i].(*dns.SRV).Port, x.Port)
 				}
 				if x.Target != tc.Answer[i].(*dns.SRV).Target {
-					fatal = true
-					t.Fatalf("answer %d should have a Target of %q, but has %q", i, tc.Answer[i].(*dns.SRV).Target, x.Target)
+					t.Errorf("answer %d should have a Target of %q, but has %q", i, tc.Answer[i].(*dns.SRV).Target, x.Target)
 				}
 			case *dns.A:
 				if x.A.String() != tc.Answer[i].(*dns.A).A.String() {
-					fatal = true
-					t.Fatalf("answer %d should have a Address of %q, but has %q", i, tc.Answer[i].(*dns.A).A.String(), x.A.String())
+					t.Errorf("answer %d should have a Address of %q, but has %q", i, tc.Answer[i].(*dns.A).A.String(), x.A.String())
 				}
 			case *dns.AAAA:
 				if x.AAAA.String() != tc.Answer[i].(*dns.AAAA).AAAA.String() {
-					fatal = true
-					t.Fatalf("answer %d should have a Address of %q, but has %q", i, tc.Answer[i].(*dns.AAAA).AAAA.String(), x.AAAA.String())
+					t.Errorf("answer %d should have a Address of %q, but has %q", i, tc.Answer[i].(*dns.AAAA).AAAA.String(), x.AAAA.String())
 				}
 			case *dns.TXT:
 				for j, txt := range x.Txt {
 					if txt != tc.Answer[i].(*dns.TXT).Txt[j] {
-						fatal = true
-						t.Fatalf("answer %d should have a Txt of %q, but has %q", i, tc.Answer[i].(*dns.TXT).Txt[j], txt)
+						t.Errorf("answer %d should have a Txt of %q, but has %q", i, tc.Answer[i].(*dns.TXT).Txt[j], txt)
 					}
 				}
 			case *dns.SOA:
 				tt := tc.Answer[i].(*dns.SOA)
 				if x.Ns != tt.Ns {
-					fatal = true
-					t.Fatalf("SOA nameserver should be %q, but is %q", x.Ns, tt.Ns)
+					t.Errorf("SOA nameserver should be %q, but is %q", x.Ns, tt.Ns)
 				}
 			case *dns.PTR:
 				tt := tc.Answer[i].(*dns.PTR)
 				if x.Ptr != tt.Ptr {
-					fatal = true
-					t.Fatalf("PTR ptr should be %q, but is %q", x.Ptr, tt.Ptr)
+					t.Errorf("PTR ptr should be %q, but is %q", x.Ptr, tt.Ptr)
 				}
 			case *dns.CNAME:
 				tt := tc.Answer[i].(*dns.CNAME)
 				if x.Target != tt.Target {
-					fatal = true
-					t.Fatalf("CNAME target should be %q, but is %q", x.Target, tt.Target)
+					t.Errorf("CNAME target should be %q, but is %q", x.Target, tt.Target)
 				}
 			case *dns.MX:
 				tt := tc.Answer[i].(*dns.MX)
 				if x.Mx != tt.Mx {
-					t.Fatalf("MX Mx should be %q, but is %q", x.Mx, tt.Mx)
+					t.Errorf("MX Mx should be %q, but is %q", x.Mx, tt.Mx)
 				}
 				if x.Preference != tt.Preference {
-					t.Fatalf("MX Preference should be %q, but is %q", x.Preference, tt.Preference)
+					t.Errorf("MX Preference should be %q, but is %q", x.Preference, tt.Preference)
 				}
 			}
 		}
-		if len(resp.Ns) != len(tc.Ns) {
-			fatal = true
-			t.Fatalf("authority for %q contained %d results, %d expected", tc.Qname, len(resp.Ns), len(tc.Ns))
-		}
+
 		for i, n := range resp.Ns {
 			switch x := n.(type) {
 			case *dns.SOA:
 				tt := tc.Ns[i].(*dns.SOA)
 				if x.Ns != tt.Ns {
-					fatal = true
-					t.Fatalf("SOA nameserver should be %q, but is %q", x.Ns, tt.Ns)
+					t.Errorf("SOA nameserver should be %q, but is %q", x.Ns, tt.Ns)
 				}
 			case *dns.NS:
 				tt := tc.Ns[i].(*dns.NS)
 				if x.Ns != tt.Ns {
-					fatal = true
-					t.Fatalf("NS nameserver should be %q, but is %q", x.Ns, tt.Ns)
+					t.Errorf("NS nameserver should be %q, but is %q", x.Ns, tt.Ns)
 				}
 			}
 		}
-		if len(resp.Extra) != len(tc.Extra) {
-			fatal = true
-			t.Fatalf("additional for %q contained %d results, %d expected", tc.Qname, len(resp.Extra), len(tc.Extra))
-		}
+
 		for i, e := range resp.Extra {
 			switch x := e.(type) {
 			case *dns.A:
 				if x.A.String() != tc.Extra[i].(*dns.A).A.String() {
-					fatal = true
-					t.Fatalf("extra %d should have a address of %q, but has %q", i, tc.Extra[i].(*dns.A).A.String(), x.A.String())
+					t.Errorf("extra %d should have a address of %q, but has %q", i, tc.Extra[i].(*dns.A).A.String(), x.A.String())
 				}
 			case *dns.AAAA:
 				if x.AAAA.String() != tc.Extra[i].(*dns.AAAA).AAAA.String() {
-					fatal = true
-					t.Fatalf("extra %d should have a address of %q, but has %q", i, tc.Extra[i].(*dns.AAAA).AAAA.String(), x.AAAA.String())
+					t.Errorf("extra %d should have a address of %q, but has %q", i, tc.Extra[i].(*dns.AAAA).AAAA.String(), x.AAAA.String())
 				}
 			case *dns.CNAME:
 				tt := tc.Extra[i].(*dns.CNAME)
@@ -205,8 +195,7 @@ func TestDNS(t *testing.T) {
 						// These records are randomly choosen, either one is OK.
 						continue
 					}
-					fatal = true
-					t.Fatalf("CNAME target should be %q, but is %q", x.Target, tt.Target)
+					t.Errorf("CNAME target should be %q, but is %q", x.Target, tt.Target)
 				}
 			}
 		}
@@ -216,7 +205,6 @@ func TestDNS(t *testing.T) {
 type dnsTestCase struct {
 	Qname  string
 	Qtype  uint16
-	chaos  bool
 	Rcode  int
 	Answer []dns.RR
 	Ns     []dns.RR

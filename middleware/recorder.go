@@ -17,6 +17,7 @@ type ResponseRecorder struct {
 	dns.ResponseWriter
 	rcode int
 	size  int
+	msg   *dns.Msg
 	start time.Time
 }
 
@@ -27,6 +28,7 @@ func NewResponseRecorder(w dns.ResponseWriter) *ResponseRecorder {
 	return &ResponseRecorder{
 		ResponseWriter: w,
 		rcode:          0,
+		msg:            nil,
 		start:          time.Now(),
 	}
 }
@@ -36,6 +38,7 @@ func NewResponseRecorder(w dns.ResponseWriter) *ResponseRecorder {
 func (r *ResponseRecorder) WriteMsg(res *dns.Msg) error {
 	r.rcode = res.Rcode
 	r.size = res.Len()
+	r.msg = res
 	return r.ResponseWriter.WriteMsg(res)
 }
 
@@ -61,6 +64,11 @@ func (r *ResponseRecorder) Rcode() int {
 // Start returns the start time of the ResponseRecorder.
 func (r *ResponseRecorder) Start() time.Time {
 	return r.start
+}
+
+// Reply returns the written message from the ResponseRecorder.
+func (r *ResponseRecorder) Reply() *dns.Msg {
+	return r.msg
 }
 
 // Hijack implements dns.Hijacker. It simply wraps the underlying
