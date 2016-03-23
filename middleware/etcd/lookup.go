@@ -323,7 +323,7 @@ func (e Etcd) TXT(zone string, state middleware.State) (records []dns.RR, err er
 
 // synthesis a SOA Record.
 func SOA(zone string) *dns.SOA {
-	return nil
+	return &dns.SOA{}
 }
 
 func isDuplicateCNAME(r *dns.CNAME, records []dns.RR) bool {
