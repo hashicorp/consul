@@ -1,3 +1,5 @@
+// +build net
+
 package etcd
 
 // etcd needs to be running on http://127.0.0.1:2379
