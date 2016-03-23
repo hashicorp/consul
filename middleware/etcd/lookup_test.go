@@ -150,6 +150,14 @@ var dnsTestCases = []dnsTestCase{
 		Qname: "a.server1.dev.region1.skydns.test.", Qtype: dns.TypeSRV,
 		Answer: []dns.RR{newSRV("a.server1.dev.region1.skydns.test. 300 SRV 10 100 8080 server1.")},
 	},
+	// NXDOMAIN Test
+	{
+		Qname: "doesnotexist.skydns.test.", Qtype: dns.TypeA,
+		Rcode: dns.RcodeNameError,
+		Ns: []dns.RR{
+			newSOA("skydns.test. 300 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0"),
+		},
+	},
 	// A Test
 	{
 		Qname: "a.server1.prod.region1.skydns.test.", Qtype: dns.TypeA,
@@ -191,15 +199,9 @@ var dnsTestCases = []dnsTestCase{
 	// CNAME (unresolvable internal name)
 	{
 		Qname: "cname.prod.region1.skydns.test.", Qtype: dns.TypeA,
-		Ns: []dns.RR{newSOA("skydns.test. 300 SOA ns.dns.skydns.test. hostmaster.skydns.test. 1407441600 28800 7200 604800 60")},
+		Ns: []dns.RR{newSOA("skydns.test. 300 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0")},
 	},
 	/*
-		// CNAME loop detection
-		{
-			Qname: "3.cname.skydns.test.", Qtype: dns.TypeA,
-			Answer: []dns.RR{},
-			Ns:     []dns.RR{newSOA("skydns.test. 60 SOA ns.dns.skydns.test. hostmaster.skydns.test. 1407441600 28800 7200 604800 60")},
-		},
 		// CNAME (resolvable external name)
 		{
 			Qname: "external1.cname.skydns.test.", Qtype: dns.TypeA,
@@ -212,6 +214,12 @@ var dnsTestCases = []dnsTestCase{
 		// CNAME (unresolvable external name)
 		{
 			Qname: "external2.cname.skydns.test.", Qtype: dns.TypeA,
+			Answer: []dns.RR{},
+			Ns:     []dns.RR{newSOA("skydns.test. 60 SOA ns.dns.skydns.test. hostmaster.skydns.test. 1407441600 28800 7200 604800 60")},
+		},
+		// CNAME loop detection
+		{
+			Qname: "3.cname.skydns.test.", Qtype: dns.TypeA,
 			Answer: []dns.RR{},
 			Ns:     []dns.RR{newSOA("skydns.test. 60 SOA ns.dns.skydns.test. hostmaster.skydns.test. 1407441600 28800 7200 604800 60")},
 		},
@@ -262,14 +270,6 @@ var dnsTestCases = []dnsTestCase{
 				newSRV("prod.any.skydns.test. 300 IN SRV 10 50 0 105.server3.prod.region2.skydns.test."),
 				newSRV("prod.any.skydns.test. 300 IN SRV 10 50 80 server2.")},
 			Extra: []dns.RR{newAAAA("105.server3.prod.region2.skydns.test. 300 IN AAAA 2001::8:8:8:8")},
-		},
-		// NXDOMAIN Test
-		{
-			Qname: "doesnotexist.skydns.test.", Qtype: dns.TypeA,
-			Rcode: dns.RcodeNameError,
-			Ns: []dns.RR{
-				newSOA("skydns.test. 300 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0"),
-			},
 		},
 		// NODATA Test
 		{
