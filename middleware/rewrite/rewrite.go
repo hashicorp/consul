@@ -69,27 +69,31 @@ func NewSimpleRule(from, to string) SimpleRule {
 	// It's only a type if uppercase is used.
 	if from != strings.ToUpper(from) {
 		tpf = 0
+		from = middleware.Name(from).Normalize()
 	}
 	if to != strings.ToUpper(to) {
 		tpt = 0
+		to = middleware.Name(to).Normalize()
 	}
-
-	// lowercase and fully qualify the others here? TODO(miek)
 	return SimpleRule{From: from, To: to, fromType: tpf, toType: tpt}
 }
 
 // Rewrite rewrites the the current request.
 func (s SimpleRule) Rewrite(r *dns.Msg) Result {
+	// type rewrite
 	if s.fromType > 0 && s.toType > 0 {
 		if r.Question[0].Qtype == s.fromType {
 			r.Question[0].Qtype = s.toType
 			return RewriteDone
 		}
-
+		return RewriteIgnored
 	}
 
-	// if the question name matches the full name, or subset rewrite that
-	// s.Question[0].Name
+	// name rewite
+	if s.From == r.Question[0].Name {
+		r.Question[0].Name = s.To
+		return RewriteDone
+	}
 	return RewriteIgnored
 }
 
