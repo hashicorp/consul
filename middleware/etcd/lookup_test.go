@@ -1,6 +1,10 @@
+// +build net
+
 package etcd
 
 // etcd needs to be running on http://127.0.0.1:2379
+// *and* needs connectivity to the internet for remotely resolving
+// names.
 
 import (
 	"encoding/json"
@@ -22,6 +26,14 @@ var (
 	etc    Etcd
 	client etcdc.KeysAPI
 	ctx    context.Context
+)
+
+type Section int
+
+const (
+	Answer Section = iota
+	Ns
+	Extra
 )
 
 func init() {
@@ -74,6 +86,7 @@ func TestLookup(t *testing.T) {
 		code, err := etc.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
+			return
 		}
 		resp := rec.Reply()
 		code = code // TODO(miek): test
@@ -85,21 +98,25 @@ func TestLookup(t *testing.T) {
 
 		if resp.Rcode != tc.Rcode {
 			t.Errorf("rcode is %q, expected %q", dns.RcodeToString[resp.Rcode], dns.RcodeToString[tc.Rcode])
+			continue
 		}
 
 		if len(resp.Answer) != len(tc.Answer) {
 			t.Errorf("answer for %q contained %d results, %d expected", tc.Qname, len(resp.Answer), len(tc.Answer))
+			continue
 		}
 		if len(resp.Ns) != len(tc.Ns) {
 			t.Errorf("authority for %q contained %d results, %d expected", tc.Qname, len(resp.Ns), len(tc.Ns))
+			continue
 		}
 		if len(resp.Extra) != len(tc.Extra) {
 			t.Errorf("additional for %q contained %d results, %d expected", tc.Qname, len(resp.Extra), len(tc.Extra))
+			continue
 		}
 
-		checkSection(t, tc, resp.Answer)
-		checkSection(t, tc, resp.Ns)
-		checkSection(t, tc, resp.Extra)
+		checkSection(t, tc, Answer, resp.Answer)
+		checkSection(t, tc, Ns, resp.Ns)
+		checkSection(t, tc, Extra, resp.Extra)
 	}
 }
 
@@ -118,7 +135,10 @@ var services = []*msg.Service{
 	{Host: "10.0.0.1", Port: 8080, Key: "a.server1.prod.region1.skydns.test."},
 	{Host: "10.0.0.2", Port: 8080, Key: "b.server1.prod.region1.skydns.test."},
 	{Host: "::1", Port: 8080, Key: "b.server6.prod.region1.skydns.test."},
-	{Host: "server1", Port: 80, Priority: 333, Key: "102.server4.dev.region6.skydns.test."},
+
+	// CNAME dedup Test
+	{Host: "www.miek.nl", Key: "a.miek.nl.skydns.test."},
+	{Host: "www.miek.nl", Key: "b.miek.nl.skydns.test."},
 }
 
 var dnsTestCases = []dnsTestCase{
@@ -151,19 +171,21 @@ var dnsTestCases = []dnsTestCase{
 			newA("server1.prod.region1.skydns.test. 300 A 10.0.0.2"),
 		},
 	},
-	/*
-		// Multi SRV with the same target, should be dedupped.
-		{
-			Qname: "*.cname2.skydns.test.", Qtype: dns.TypeSRV,
-			Answer: []dns.RR{
-				newSRV("*.cname2.skydns.test. 300 IN SRV 10 100 0 www.miek.nl."),
-			},
-			Extra: []dns.RR{
-				newA("a.miek.nl. 300 IN A 139.162.196.78"),
-				newAAAA("a.miek.nl. 300 IN AAAA 2a01:7e00::f03c:91ff:fef1:6735"),
-				newCNAME("www.miek.nl. 300 IN CNAME a.miek.nl."),
-			},
+	// Multi SRV with the same target, should be dedupped.
+	{
+		Qname: "*.miek.nl.skydns.test.", Qtype: dns.TypeSRV,
+		Answer: []dns.RR{
+			newSRV("*.miek.nl.skydns.test. 300 IN SRV 10 100 0 www.miek.nl."),
 		},
+		// TODO(miek): bit stupid to rely on my home DNS setup for this...
+		Extra: []dns.RR{
+			// 303 ttl: don't care for the ttl on these RRs.
+			newA("a.miek.nl. 303 IN A 139.162.196.78"),
+			newAAAA("a.miek.nl. 303 IN AAAA 2a01:7e00::f03c:91ff:fef1:6735"),
+			newCNAME("www.miek.nl. 303 IN CNAME a.miek.nl."),
+		},
+	},
+	/*
 		// CNAME (unresolvable internal name)
 		{
 			Qname: "2.cname.skydns.test.", Qtype: dns.TypeA,
@@ -286,66 +308,77 @@ func newPTR(rr string) *dns.PTR     { r, _ := dns.NewRR(rr); return r.(*dns.PTR)
 func newTXT(rr string) *dns.TXT     { r, _ := dns.NewRR(rr); return r.(*dns.TXT) }
 func newMX(rr string) *dns.MX       { r, _ := dns.NewRR(rr); return r.(*dns.MX) }
 
-func checkSection(t *testing.T, tc dnsTestCase, rr []dns.RR) {
+func checkSection(t *testing.T, tc dnsTestCase, sect Section, rr []dns.RR) {
+	section := []dns.RR{}
+	switch sect {
+	case 0:
+		section = tc.Answer
+	case 1:
+		section = tc.Ns
+	case 2:
+		section = tc.Extra
+	}
+
 	for i, a := range rr {
-		if a.Header().Name != tc.Answer[i].Header().Name {
-			t.Errorf("answer %d should have a Header Name of %q, but has %q", i, tc.Answer[i].Header().Name, a.Header().Name)
+		if a.Header().Name != section[i].Header().Name {
+			t.Errorf("answer %d should have a Header Name of %q, but has %q", i, section[i].Header().Name, a.Header().Name)
 			continue
 		}
-		if a.Header().Ttl != tc.Answer[i].Header().Ttl {
-			t.Errorf("Answer %d should have a Header TTL of %d, but has %d", i, tc.Answer[i].Header().Ttl, a.Header().Ttl)
+		// 303 signals: don't care what the ttl is.
+		if section[i].Header().Ttl != 303 && a.Header().Ttl != section[i].Header().Ttl {
+			t.Errorf("Answer %d should have a Header TTL of %d, but has %d", i, section[i].Header().Ttl, a.Header().Ttl)
 			continue
 		}
-		if a.Header().Rrtype != tc.Answer[i].Header().Rrtype {
-			t.Errorf("answer %d should have a header rr type of %d, but has %d", i, tc.Answer[i].Header().Rrtype, a.Header().Rrtype)
+		if a.Header().Rrtype != section[i].Header().Rrtype {
+			t.Errorf("answer %d should have a header rr type of %d, but has %dn", i, section[i].Header().Rrtype, a.Header().Rrtype)
 			continue
 		}
 
 		switch x := a.(type) {
 		case *dns.SRV:
-			if x.Priority != tc.Answer[i].(*dns.SRV).Priority {
-				t.Errorf("answer %d should have a Priority of %d, but has %d", i, tc.Answer[i].(*dns.SRV).Priority, x.Priority)
+			if x.Priority != section[i].(*dns.SRV).Priority {
+				t.Errorf("answer %d should have a Priority of %d, but has %d", i, section[i].(*dns.SRV).Priority, x.Priority)
 			}
-			if x.Weight != tc.Answer[i].(*dns.SRV).Weight {
-				t.Errorf("answer %d should have a Weight of %d, but has %d", i, tc.Answer[i].(*dns.SRV).Weight, x.Weight)
+			if x.Weight != section[i].(*dns.SRV).Weight {
+				t.Errorf("answer %d should have a Weight of %d, but has %d", i, section[i].(*dns.SRV).Weight, x.Weight)
 			}
-			if x.Port != tc.Answer[i].(*dns.SRV).Port {
-				t.Errorf("answer %d should have a Port of %d, but has %d", i, tc.Answer[i].(*dns.SRV).Port, x.Port)
+			if x.Port != section[i].(*dns.SRV).Port {
+				t.Errorf("answer %d should have a Port of %d, but has %d", i, section[i].(*dns.SRV).Port, x.Port)
 			}
-			if x.Target != tc.Answer[i].(*dns.SRV).Target {
-				t.Errorf("answer %d should have a Target of %q, but has %q", i, tc.Answer[i].(*dns.SRV).Target, x.Target)
+			if x.Target != section[i].(*dns.SRV).Target {
+				t.Errorf("answer %d should have a Target of %q, but has %q", i, section[i].(*dns.SRV).Target, x.Target)
 			}
 		case *dns.A:
-			if x.A.String() != tc.Answer[i].(*dns.A).A.String() {
-				t.Errorf("answer %d should have a Address of %q, but has %q", i, tc.Answer[i].(*dns.A).A.String(), x.A.String())
+			if x.A.String() != section[i].(*dns.A).A.String() {
+				t.Errorf("answer %d should have a Address of %q, but has %q", i, section[i].(*dns.A).A.String(), x.A.String())
 			}
 		case *dns.AAAA:
-			if x.AAAA.String() != tc.Answer[i].(*dns.AAAA).AAAA.String() {
-				t.Errorf("answer %d should have a Address of %q, but has %q", i, tc.Answer[i].(*dns.AAAA).AAAA.String(), x.AAAA.String())
+			if x.AAAA.String() != section[i].(*dns.AAAA).AAAA.String() {
+				t.Errorf("answer %d should have a Address of %q, but has %q", i, section[i].(*dns.AAAA).AAAA.String(), x.AAAA.String())
 			}
 		case *dns.TXT:
 			for j, txt := range x.Txt {
-				if txt != tc.Answer[i].(*dns.TXT).Txt[j] {
-					t.Errorf("answer %d should have a Txt of %q, but has %q", i, tc.Answer[i].(*dns.TXT).Txt[j], txt)
+				if txt != section[i].(*dns.TXT).Txt[j] {
+					t.Errorf("answer %d should have a Txt of %q, but has %q", i, section[i].(*dns.TXT).Txt[j], txt)
 				}
 			}
 		case *dns.SOA:
-			tt := tc.Answer[i].(*dns.SOA)
+			tt := section[i].(*dns.SOA)
 			if x.Ns != tt.Ns {
 				t.Errorf("SOA nameserver should be %q, but is %q", x.Ns, tt.Ns)
 			}
 		case *dns.PTR:
-			tt := tc.Answer[i].(*dns.PTR)
+			tt := section[i].(*dns.PTR)
 			if x.Ptr != tt.Ptr {
 				t.Errorf("PTR ptr should be %q, but is %q", x.Ptr, tt.Ptr)
 			}
 		case *dns.CNAME:
-			tt := tc.Answer[i].(*dns.CNAME)
+			tt := section[i].(*dns.CNAME)
 			if x.Target != tt.Target {
 				t.Errorf("CNAME target should be %q, but is %q", x.Target, tt.Target)
 			}
 		case *dns.MX:
-			tt := tc.Answer[i].(*dns.MX)
+			tt := section[i].(*dns.MX)
 			if x.Mx != tt.Mx {
 				t.Errorf("MX Mx should be %q, but is %q", x.Mx, tt.Mx)
 			}
@@ -353,7 +386,7 @@ func checkSection(t *testing.T, tc dnsTestCase, rr []dns.RR) {
 				t.Errorf("MX Preference should be %q, but is %q", x.Preference, tt.Preference)
 			}
 		case *dns.NS:
-			tt := tc.Ns[i].(*dns.NS)
+			tt := section[i].(*dns.NS)
 			if x.Ns != tt.Ns {
 				t.Errorf("NS nameserver should be %q, but is %q", x.Ns, tt.Ns)
 			}
