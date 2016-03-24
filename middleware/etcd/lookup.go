@@ -28,7 +28,6 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (
 				// x CNAME x is a direct loop, don't add those
 				continue
 			}
-			println("TRYING TO ADD CNAME", len(previousRecords))
 
 			newRecord := serv.NewCNAME(state.QName(), serv.Host)
 			if len(previousRecords) > 7 {
@@ -54,7 +53,6 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (
 			target := newRecord.Target
 			if dns.IsSubDomain(zone, target) {
 				// We should already have found it
-				println("DIDN'T FOUND IT")
 				continue
 			}
 			m1, e1 := e.Proxy.Lookup(state, target, state.QType())
