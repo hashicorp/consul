@@ -4,6 +4,7 @@ package etcd
 import (
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
@@ -47,7 +48,9 @@ func (g Etcd) Records(name string, exact bool) ([]msg.Service, error) {
 // Get is a wrapper for client.Get that uses SingleInflight to suppress multiple outstanding queries.
 func (g Etcd) Get(path string, recursive bool) (*etcdc.Response, error) {
 	resp, err := g.Inflight.Do(path, func() (interface{}, error) {
-		r, e := g.Client.Get(g.Ctx, path, &etcdc.GetOptions{Sort: false, Recursive: recursive})
+		ctx, cancel := context.WithTimeout(g.Ctx, etcdTimeout)
+		defer cancel()
+		r, e := g.Client.Get(ctx, path, &etcdc.GetOptions{Sort: false, Recursive: recursive})
 		if e != nil {
 			return nil, e
 		}
@@ -145,8 +148,9 @@ func isEtcdNameError(err error) bool {
 }
 
 const (
-	priority   = 10  // default priority when nothing is set
-	ttl        = 300 // default ttl when nothing is set
-	minTtl     = 60
-	hostmaster = "hostmaster"
+	priority    = 10  // default priority when nothing is set
+	ttl         = 300 // default ttl when nothing is set
+	minTtl      = 60
+	hostmaster  = "hostmaster"
+	etcdTimeout = 5 * time.Second
 )

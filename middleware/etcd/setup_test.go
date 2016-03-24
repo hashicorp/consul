@@ -37,7 +37,7 @@ const (
 )
 
 func init() {
-	ctx = context.TODO()
+	ctx, _ = context.WithTimeout(ctx.Background(), etcdTimeout)
 
 	etcdCfg := etcdc.Config{
 		Endpoints: []string{"http://localhost:2379"},
