@@ -197,15 +197,13 @@ func (e Etcd) SRV(zone string, state middleware.State) (records []dns.RR, extra 
 				break
 			}
 			// Internal name, we should have some info on them, either v4 or v6
-			// Clients expect a complete answer, because we are a recursor in their
-			// view.
+			// Clients expect a complete answer, because we are a recursor in their view.
 			state1 := copyState(state, srv.Target, dns.TypeA)
-			// TODO(both is true here!
 			addr, e1 := e.A(zone, state1, nil)
 			if e1 == nil {
 				extra = append(extra, addr...)
 			}
-			// e.AAA(zone, state1, nil) as well...
+			// e.AAA(zone, state1, nil) as well...?
 		case ip.To4() != nil:
 			serv.Host = e.Domain(serv.Key)
 			srv := serv.NewSRV(state.QName(), weight)
@@ -264,7 +262,6 @@ func (e Etcd) MX(zone string, state middleware.State) (records []dns.RR, extra [
 				break
 			}
 			// Internal name
-			// both is true here as well
 			state1 := copyState(state, mx.Mx, dns.TypeA)
 			addr, e1 := e.A(zone, state1, nil)
 			if e1 == nil {
@@ -319,10 +316,14 @@ func (e Etcd) TXT(zone string, state middleware.State) (records []dns.RR, err er
 }
 
 // synthesis a SOA Record.
+// TODO(miek): finish
 func (e Etcd) SOA(zone string, state middleware.State) *dns.SOA {
 	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: 300, Class: dns.ClassINET}
 	return &dns.SOA{Hdr: header, Mbox: "hostmaster." + zone, Ns: "ns.dns." + zone}
 }
+
+// TODO(miek): NS records, DS and DNSKEY ones...? prolly so that the signing will
+// work...
 
 func isDuplicateCNAME(r *dns.CNAME, records []dns.RR) bool {
 	for _, rec := range records {
@@ -336,7 +337,7 @@ func isDuplicateCNAME(r *dns.CNAME, records []dns.RR) bool {
 }
 
 func copyState(state middleware.State, target string, typ uint16) middleware.State {
-	state1 := state
+	state1 := middleware.State{W: state.W, Req: state.Req.Copy()}
 	state1.Req.Question[0] = dns.Question{dns.Fqdn(target), dns.ClassINET, typ}
 	return state1
 }

@@ -24,6 +24,9 @@ type Etcd struct {
 	PathPrefix string
 }
 
+// Records looks up records in etcd. If exact is true, it will lookup just
+// this name. This is used when find matches when completing SRV lookups
+// for instance.
 func (g Etcd) Records(name string, exact bool) ([]msg.Service, error) {
 	path, star := g.PathWithWildcard(name)
 	r, err := g.Get(path, true)
