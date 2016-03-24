@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"golang.org/x/net/context"
-
 	"github.com/miekg/coredns/middleware"
+
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 func TestErrors(t *testing.T) {
