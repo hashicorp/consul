@@ -14,7 +14,7 @@ func (r *RoundRobinResponseWriter) WriteMsg(res *dns.Msg) error {
 	if res.Rcode != dns.RcodeSuccess {
 		return r.ResponseWriter.WriteMsg(res)
 	}
-	if len(res.Answer) == 1 {
+	if len(res.Answer) < 2 { // don't even bother
 		return r.ResponseWriter.WriteMsg(res)
 	}
 
@@ -56,8 +56,8 @@ func (r *RoundRobinResponseWriter) WriteMsg(res *dns.Msg) error {
 	return r.ResponseWriter.WriteMsg(res)
 }
 
+// Should we pack and unpack here to fiddle with the packet... Not likely.
 func (r *RoundRobinResponseWriter) Write(buf []byte) (int, error) {
-	// pack and unpack? Not likely
 	n, err := r.ResponseWriter.Write(buf)
 	return n, err
 }
