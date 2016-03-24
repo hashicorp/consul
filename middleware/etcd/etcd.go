@@ -17,7 +17,7 @@ import (
 type Etcd struct {
 	Next       middleware.Handler
 	Zones      []string
-	Proxy      proxy.Proxy
+	Proxy      proxy.Proxy // Proxy for looking up names during the resolution process
 	Client     etcdc.KeysAPI
 	Ctx        context.Context
 	Inflight   *singleflight.Group

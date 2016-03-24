@@ -4,6 +4,9 @@
 a [message](https://github.com/skynetservices/skydns/blob/2fcff74cdc9f9a7dd64189a447ef27ac354b725f/msg/service.go#L26)
 like [SkyDNS](https//github.com/skynetservices/skydns).
 
+The etcd middleware makes extensive use of the proxy middleware to forward and query
+other servers in the network.
+
 ## Syntax
 
 ~~~
