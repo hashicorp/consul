@@ -127,7 +127,9 @@ type Config struct {
 // TLSConfig is used to generate a TLSClientConfig that's useful for talking to
 // Consul using TLS.
 type TLSConfig struct {
-	// Address is the optional address of the Consul server.
+	// Address is the optional address of the Consul server. The port, if any
+	// will be removed from here and this will be set to the ServerName of the
+	// resulting config.
 	Address string
 
 	// CAFile is the optional path to the CA certificate used for Consul
