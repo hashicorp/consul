@@ -137,6 +137,10 @@ type Server struct {
 	// which SHOULD only consist of Consul servers
 	serfWAN *serf.Serf
 
+	// lanSerfDiag is used to perform Serf-based diagnostic tests on
+	// the LAN
+	lanSerfDiag *SerfDiag
+
 	// sessionTimers track the expiration time of each Session that has
 	// a TTL. On expiration, a SessionDestroy event will occur, and
 	// destroy the session via standard session destroy processing
@@ -259,6 +263,13 @@ func NewServer(config *Config) (*Server, error) {
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
 	go s.lanEventHandler()
+
+	// Initialize the SerfDiag object
+	s.lanSerfDiag, err = NewSerfDiag(config, s.serfLAN)
+	if err != nil {
+		s.Shutdown()
+		return nil, fmt.Errorf("Failed to initialize lanSerfDiag: %v", err)
+	}
 
 	// Initialize the wan Serf
 	s.serfWAN, err = s.setupSerf(config.SerfWANConfig,
@@ -753,4 +764,14 @@ func (s *Server) GetLANCoordinate() (*coordinate.Coordinate, error) {
 // GetWANCoordinate returns the coordinate of the server in the WAN gossip pool.
 func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
 	return s.serfWAN.GetCoordinate()
+}
+
+func (s *Server) SerfQuery(name string, payload []byte, params *serf.QueryParam) (*serf.QueryResponse, error) {
+	qr, err := s.lanSerfDiag.Query(name, payload, params)
+	return qr, err
+}
+
+func (s *Server) SerfPing(param *SerfPingParam) (*SerfPingResponse, error) {
+	resp, err := s.lanSerfDiag.Ping(param)
+	return resp, err
 }

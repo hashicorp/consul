@@ -1492,6 +1492,48 @@ func (a *Agent) DisableNodeMaintenance() {
 	a.logger.Printf("[INFO] agent: Node left maintenance mode")
 }
 
+// SerfQuery sends a Query on Serf, see Serf.Query.
+func (a *Agent) SerfQuery(name string, payload []byte, params *serf.QueryParam) (*serf.QueryResponse, error) {
+	a.logger.Printf("[DEBUG] agent: Requesting serf query send: %s. Payload: %#v",
+		name, string(payload))
+	var resp *serf.QueryResponse
+	var err error
+	if a.server != nil {
+		resp, err = a.server.SerfQuery(name, payload, params)
+	} else {
+		resp, err = a.client.SerfQuery(name, payload, params)
+	}
+	if err != nil {
+		a.logger.Printf("[WARN] agent: failed to start user serf query: %v", err)
+	}
+	return resp, err
+}
+
+// SerfPing sends a Memberlist Ping via Serf.
+func (a *Agent) SerfPing(name string) (*serfPingResponse, error) {
+	a.logger.Printf("[DEBUG] agent: Requesting serf ping send: %s", name)
+	var err error
+	var cresp *consul.SerfPingResponse
+	params := consul.SerfPingParam{
+		Name: name,
+	}
+	if a.server != nil {
+		cresp, err = a.server.SerfPing(&params)
+	} else {
+		cresp, err = a.client.SerfPing(&params)
+	}
+	if err != nil {
+		a.logger.Printf("[WARN] agent: failed to start user serf ping: %v", err)
+		return nil, err
+	}
+
+	resp := serfPingResponse{
+		Success: cresp.Success,
+		RTT:     cresp.RTT,
+	}
+	return &resp, nil
+}
+
 // InjectEndpoint overrides the given endpoint with a substitute one. Note
 // that not all agent methods use this mechanism, and that is should only
 // be used for testing.

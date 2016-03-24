@@ -108,6 +108,18 @@ func init() {
 			}, nil
 		},
 
+		"ping": func() (cli.Command, error) {
+			return &command.PingCommand{
+				Ui: ui,
+			}, nil
+		},
+
+		"reachability": func() (cli.Command, error) {
+			return &command.ReachabilityCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"reload": func() (cli.Command, error) {
 			return &command.ReloadCommand{
 				Ui: ui,

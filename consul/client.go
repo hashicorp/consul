@@ -63,6 +63,9 @@ type Client struct {
 	// which contains all the DC nodes
 	serf *serf.Serf
 
+	// serfDiag is used to perform Serf-based diagnostic tests
+	serfDiag *SerfDiag
+
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
@@ -119,6 +122,14 @@ func NewClient(config *Config) (*Client, error) {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
+
+	// Initialize the SerfDiag object
+	c.serfDiag, err = NewSerfDiag(config, c.serf)
+	if err != nil {
+		c.Shutdown()
+		return nil, fmt.Errorf("Failed to initialize serfDiag: %v", err)
+	}
+
 	return c, nil
 }
 
@@ -383,4 +394,14 @@ func (c *Client) Stats() map[string]map[string]string {
 // maintained by Serf.
 func (c *Client) GetCoordinate() (*coordinate.Coordinate, error) {
 	return c.serf.GetCoordinate()
+}
+
+func (c *Client) SerfQuery(name string, payload []byte, params *serf.QueryParam) (*serf.QueryResponse, error) {
+	qr, err := c.serfDiag.Query(name, payload, params)
+	return qr, err
+}
+
+func (c *Client) SerfPing(param *SerfPingParam) (*SerfPingResponse, error) {
+	resp, err := c.serfDiag.Ping(param)
+	return resp, err
 }

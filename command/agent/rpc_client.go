@@ -3,6 +3,7 @@ package agent
 import (
 	"bufio"
 	"fmt"
+	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/logutils"
 	"log"
@@ -11,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 var (
@@ -343,6 +345,163 @@ func (c *RPCClient) Monitor(level logutils.LogLevel, ch chan<- string) (StreamHa
 		c.deregisterHandler(seq)
 		return 0, clientClosed
 	}
+}
+
+type serfQueryHandler struct {
+	client *RPCClient
+	closed bool
+	init   bool
+	initCh chan<- error
+	ackCh  chan<- string
+	respCh chan<- consul.NodeResponse
+	seq    uint64
+}
+
+func (qh *serfQueryHandler) Handle(resp *responseHeader) {
+	// Initialize on the first response
+	if !qh.init {
+		qh.init = true
+		qh.initCh <- strToError(resp.Error)
+		return
+	}
+
+	// Decode the query response
+	var rec serfQueryRecord
+	if err := qh.client.dec.Decode(&rec); err != nil {
+		log.Printf("[ERR] Failed to decode serf query response: %v", err)
+		qh.client.deregisterHandler(qh.seq)
+		return
+	}
+
+	switch rec.Type {
+	case serfQueryRecordAck:
+		select {
+		case qh.ackCh <- rec.From:
+		default:
+			log.Printf("[ERR] Dropping serf query ack, channel full")
+		}
+
+	case serfQueryRecordResponse:
+		select {
+		case qh.respCh <- consul.NodeResponse{rec.From, rec.Payload}:
+		default:
+			log.Printf("[ERR] Dropping serf query response, channel full")
+		}
+
+	case serfQueryRecordDone:
+		// No further records coming
+		qh.client.deregisterHandler(qh.seq)
+
+	default:
+		log.Printf("[ERR] Unrecognized serf query record type: %s", rec.Type)
+	}
+}
+
+func (qh *serfQueryHandler) Cleanup() {
+	if !qh.closed {
+		if !qh.init {
+			qh.init = true
+			qh.initCh <- fmt.Errorf("Stream closed")
+		}
+		if qh.ackCh != nil {
+			close(qh.ackCh)
+		}
+		if qh.respCh != nil {
+			close(qh.respCh)
+		}
+		qh.closed = true
+	}
+}
+
+const (
+	serfQueryRecordAck      = "ack"
+	serfQueryRecordResponse = "response"
+	serfQueryRecordDone     = "done"
+)
+
+type serfQueryRecord struct {
+	Type    string
+	From    string
+	Payload []byte
+}
+
+type serfQueryRequest struct {
+	FilterNodes []string
+	FilterTags  map[string]string
+	RequestAck  bool
+	Timeout     time.Duration
+	Name        string
+	Payload     []byte
+}
+
+// SerfQuery initiates a new query message using the given parameters,
+// and streams acks and responses over the given channels. The
+// channels will not block on sends and should be buffered. At the end
+// of the query, the channels will be closed.
+func (c *RPCClient) SerfQuery(params *consul.SerfQueryParam) error {
+	// Setup the request
+	seq := c.getSeq()
+	header := requestHeader{
+		Command: serfQueryCommand,
+		Seq:     seq,
+	}
+	req := serfQueryRequest{
+		FilterNodes: params.FilterNodes,
+		FilterTags:  params.FilterTags,
+		RequestAck:  params.RequestAck,
+		Timeout:     params.Timeout,
+		Name:        params.Name,
+		Payload:     params.Payload,
+	}
+
+	// Create a query handler
+	initCh := make(chan error, 1)
+	handler := &serfQueryHandler{
+		client: c,
+		initCh: initCh,
+		ackCh:  params.AckCh,
+		respCh: params.RespCh,
+		seq:    seq,
+	}
+	c.handleSeq(seq, handler)
+
+	// Send the request
+	if err := c.send(&header, &req); err != nil {
+		c.deregisterHandler(seq)
+		return err
+	}
+
+	// Wait for a response
+	select {
+	case err := <-initCh:
+		return err
+	case <-c.shutdownCh:
+		c.deregisterHandler(seq)
+		return clientClosed
+	}
+}
+
+type serfPingRequest struct {
+	Name string
+}
+
+// SerfPing initiates a new ping message using the given parameters
+func (c *RPCClient) SerfPing(params *consul.SerfPingParam) (*serfPingResponse, error) {
+	// Setup the request
+	seq := c.getSeq()
+	header := requestHeader{
+		Command: serfPingCommand,
+		Seq:     seq,
+	}
+	req := serfPingRequest{
+		Name: params.Name,
+	}
+
+	var resp serfPingResponse
+	// Send the request
+	err := c.genericRPC(&header, &req, &resp)
+
+	return &resp, err
 }
 
 // Stop is used to unsubscribe from logs or event streams
