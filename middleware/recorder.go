@@ -66,8 +66,8 @@ func (r *ResponseRecorder) Start() time.Time {
 	return r.start
 }
 
-// Reply returns the written message from the ResponseRecorder.
-func (r *ResponseRecorder) Reply() *dns.Msg {
+// Msg returns the written message from the ResponseRecorder.
+func (r *ResponseRecorder) Msg() *dns.Msg {
 	return r.msg
 }
 
