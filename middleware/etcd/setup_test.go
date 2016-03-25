@@ -118,13 +118,16 @@ func TestLookup(t *testing.T) {
 
 		if !checkSection(t, tc, Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
+			t.Fatal()
 		}
 		if !checkSection(t, tc, Ns, resp.Ns) {
 			t.Logf("%v\n", resp)
+			t.Fatal()
 
 		}
 		if !checkSection(t, tc, Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
+			t.Fatal()
 		}
 	}
 }
@@ -161,51 +164,51 @@ func checkSection(t *testing.T, tc dnsTestCase, sect Section, rr []dns.RR) bool 
 
 	for i, a := range rr {
 		if a.Header().Name != section[i].Header().Name {
-			t.Errorf("answer %d should have a Header Name of %q, but has %q", i, section[i].Header().Name, a.Header().Name)
+			t.Errorf("rr %d should have a Header Name of %q, but has %q", i, section[i].Header().Name, a.Header().Name)
 			return false
 		}
 		// 303 signals: don't care what the ttl is.
 		if section[i].Header().Ttl != 303 && a.Header().Ttl != section[i].Header().Ttl {
-			t.Errorf("Answer %d should have a Header TTL of %d, but has %d", i, section[i].Header().Ttl, a.Header().Ttl)
+			t.Errorf("rr %d should have a Header TTL of %d, but has %d", i, section[i].Header().Ttl, a.Header().Ttl)
 			return false
 		}
 		if a.Header().Rrtype != section[i].Header().Rrtype {
-			t.Errorf("answer %d should have a header rr type of %d, but has %d", i, section[i].Header().Rrtype, a.Header().Rrtype)
+			t.Errorf("rr %d should have a header rr type of %d, but has %d", i, section[i].Header().Rrtype, a.Header().Rrtype)
 			return false
 		}
 
 		switch x := a.(type) {
 		case *dns.SRV:
 			if x.Priority != section[i].(*dns.SRV).Priority {
-				t.Errorf("answer %d should have a Priority of %d, but has %d", i, section[i].(*dns.SRV).Priority, x.Priority)
+				t.Errorf("rr %d should have a Priority of %d, but has %d", i, section[i].(*dns.SRV).Priority, x.Priority)
 				return false
 			}
 			if x.Weight != section[i].(*dns.SRV).Weight {
-				t.Errorf("answer %d should have a Weight of %d, but has %d", i, section[i].(*dns.SRV).Weight, x.Weight)
+				t.Errorf("rr %d should have a Weight of %d, but has %d", i, section[i].(*dns.SRV).Weight, x.Weight)
 				return false
 			}
 			if x.Port != section[i].(*dns.SRV).Port {
-				t.Errorf("answer %d should have a Port of %d, but has %d", i, section[i].(*dns.SRV).Port, x.Port)
+				t.Errorf("rr %d should have a Port of %d, but has %d", i, section[i].(*dns.SRV).Port, x.Port)
 				return false
 			}
 			if x.Target != section[i].(*dns.SRV).Target {
-				t.Errorf("answer %d should have a Target of %q, but has %q", i, section[i].(*dns.SRV).Target, x.Target)
+				t.Errorf("rr %d should have a Target of %q, but has %q", i, section[i].(*dns.SRV).Target, x.Target)
 				return false
 			}
 		case *dns.A:
 			if x.A.String() != section[i].(*dns.A).A.String() {
-				t.Errorf("answer %d should have a Address of %q, but has %q", i, section[i].(*dns.A).A.String(), x.A.String())
+				t.Errorf("rr %d should have a Address of %q, but has %q", i, section[i].(*dns.A).A.String(), x.A.String())
 				return false
 			}
 		case *dns.AAAA:
 			if x.AAAA.String() != section[i].(*dns.AAAA).AAAA.String() {
-				t.Errorf("answer %d should have a Address of %q, but has %q", i, section[i].(*dns.AAAA).AAAA.String(), x.AAAA.String())
+				t.Errorf("rr %d should have a Address of %q, but has %q", i, section[i].(*dns.AAAA).AAAA.String(), x.AAAA.String())
 				return false
 			}
 		case *dns.TXT:
 			for j, txt := range x.Txt {
 				if txt != section[i].(*dns.TXT).Txt[j] {
-					t.Errorf("answer %d should have a Txt of %q, but has %q", i, section[i].(*dns.TXT).Txt[j], txt)
+					t.Errorf("rr %d should have a Txt of %q, but has %q", i, section[i].(*dns.TXT).Txt[j], txt)
 					return false
 				}
 			}

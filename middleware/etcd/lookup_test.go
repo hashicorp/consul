@@ -97,18 +97,20 @@ var dnsTestCases = []dnsTestCase{
 	{
 		Qname: "*.region1.skydns.test.", Qtype: dns.TypeSRV,
 		Answer: []dns.RR{
-			newSRV("*.region1.skydns.test.	300	IN	SRV	10 14 0 sub.server1."),
-			newSRV("*.region1.skydns.test.	300	IN	SRV	10 14 0 unresolvable.skydns.test."),
-			newSRV("*.region1.skydns.test.	300	IN	SRV	10 14 80 sub.server2."),
-			newSRV("*.region1.skydns.test.	300	IN	SRV	10 14 8080 a.server1.prod.region1.skydns.test."),
-			newSRV("*.region1.skydns.test.	300	IN	SRV	10 14 8080 b.server1.prod.region1.skydns.test."),
-			newSRV("*.region1.skydns.test.	300	IN	SRV	10 14 8080 b.server6.prod.region1.skydns.test."),
-			newSRV("*.region1.skydns.test.	300	IN	SRV	10 14 8080 dev.server1."),
+			newSRV("*.region1.skydns.test.	300	IN	SRV	10 12 0 sub.server1."),
+			newSRV("*.region1.skydns.test.	300	IN	SRV	10 12 0 unresolvable.skydns.test."),
+			newSRV("*.region1.skydns.test.	300	IN	SRV	10 12 80 sub.server2."),
+			newSRV("*.region1.skydns.test.	300	IN	SRV	10 12 8080 a.server1.prod.region1.skydns.test."),
+			newSRV("*.region1.skydns.test.	300	IN	SRV	10 12 8080 b.server1.prod.region1.skydns.test."),
+			newSRV("*.region1.skydns.test.	300	IN	SRV	10 12 8080 b.server6.prod.region1.skydns.test."),
+			newSRV("*.region1.skydns.test.	300	IN	SRV	10 12 8080 c.sub.region1.skydns.test."),
+			newSRV("*.region1.skydns.test.	300	IN	SRV	10 12 8080 dev.server1."),
 		},
 		Extra: []dns.RR{
 			newA("a.server1.prod.region1.skydns.test.	300	IN	A	10.0.0.1"),
 			newA("b.server1.prod.region1.skydns.test.	300	IN	A	10.0.0.2"),
 			newAAAA("b.server6.prod.region1.skydns.test.	300	IN	AAAA	::1"),
+			newA("c.sub.region1.skydns.test.	300	IN	A	10.0.0.1"),
 		},
 	},
 	// Wildcard Test

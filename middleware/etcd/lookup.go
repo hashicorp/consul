@@ -10,13 +10,20 @@ import (
 	"github.com/miekg/dns"
 )
 
-func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (records []dns.RR, err error) {
-	services, err := e.Records(state.Name(), false)
+func (e Etcd) records(state middleware.State, exact bool) ([]msg.Service, error) {
+	services, err := e.Records(state.Name(), exact)
 	if err != nil {
 		return nil, err
 	}
-
 	services = msg.Group(services)
+	return services, nil
+}
+
+func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (records []dns.RR, err error) {
+	services, err := e.records(state, false)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, serv := range services {
 		ip := net.ParseIP(serv.Host)
@@ -73,12 +80,10 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (
 }
 
 func (e Etcd) AAAA(zone string, state middleware.State, previousRecords []dns.RR) (records []dns.RR, err error) {
-	services, err := e.Records(state.Name(), false)
+	services, err := e.records(state, false)
 	if err != nil {
 		return nil, err
 	}
-
-	services = msg.Group(services)
 
 	for _, serv := range services {
 		ip := net.ParseIP(serv.Host)
@@ -139,12 +144,10 @@ func (e Etcd) AAAA(zone string, state middleware.State, previousRecords []dns.RR
 // SRV returns SRV records from etcd.
 // If the Target is not a name but an IP address, a name is created on the fly.
 func (e Etcd) SRV(zone string, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
-	services, err := e.Records(state.Name(), false)
+	services, err := e.records(state, false)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	services = msg.Group(services)
 
 	// Looping twice to get the right weight vs priority
 	w := make(map[int]int)
@@ -224,7 +227,7 @@ func (e Etcd) SRV(zone string, state middleware.State) (records []dns.RR, extra 
 // MX returns MX records from etcd.
 // If the Target is not a name but an IP address, a name is created on the fly.
 func (e Etcd) MX(zone string, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
-	services, err := e.Records(state.Name(), false)
+	services, err := e.records(state, false)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -282,12 +285,10 @@ func (e Etcd) MX(zone string, state middleware.State) (records []dns.RR, extra [
 }
 
 func (e Etcd) CNAME(zone string, state middleware.State) (records []dns.RR, err error) {
-	services, err := e.Records(state.Name(), true)
+	services, err := e.records(state, true)
 	if err != nil {
 		return nil, err
 	}
-
-	services = msg.Group(services)
 
 	if len(services) > 0 {
 		serv := services[0]
@@ -299,12 +300,10 @@ func (e Etcd) CNAME(zone string, state middleware.State) (records []dns.RR, err 
 }
 
 func (e Etcd) TXT(zone string, state middleware.State) (records []dns.RR, err error) {
-	services, err := e.Records(state.Name(), false)
+	services, err := e.records(state, false)
 	if err != nil {
 		return nil, err
 	}
-
-	services = msg.Group(services)
 
 	for _, serv := range services {
 		if serv.Text == "" {
