@@ -19,9 +19,9 @@ func TestIsConsulServer(t *testing.T) {
 			"vsn":  "1",
 		},
 	}
-	valid, parts := server_details.IsConsulServer(m)
-	if !valid || parts.Datacenter != "east-aws" || parts.Port != 10000 {
-		t.Fatalf("bad: %v %v", valid, parts)
+	ok, parts := server_details.IsConsulServer(m)
+	if !ok || parts.Datacenter != "east-aws" || parts.Port != 10000 {
+		t.Fatalf("bad: %v %v", ok, parts)
 	}
 	if parts.Name != "foo" {
 		t.Fatalf("bad: %v", parts)
@@ -34,8 +34,8 @@ func TestIsConsulServer(t *testing.T) {
 	}
 	m.Tags["bootstrap"] = "1"
 	m.Tags["disabled"] = "1"
-	valid, parts = server_details.IsConsulServer(m)
-	if !valid {
+	ok, parts = server_details.IsConsulServer(m)
+	if !ok {
 		t.Fatalf("expected a valid consul server")
 	}
 	if !parts.Bootstrap {
@@ -50,8 +50,8 @@ func TestIsConsulServer(t *testing.T) {
 	m.Tags["expect"] = "3"
 	delete(m.Tags, "bootstrap")
 	delete(m.Tags, "disabled")
-	valid, parts = server_details.IsConsulServer(m)
-	if !valid || parts.Expect != 3 {
+	ok, parts = server_details.IsConsulServer(m)
+	if !ok || parts.Expect != 3 {
 		t.Fatalf("bad: %v", parts.Expect)
 	}
 }
