@@ -260,8 +260,7 @@ func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 	serverCfg := sm.getServerConfig()
 
 	// Remove the server if known
-	n := len(serverCfg.servers)
-	for i := 0; i < n; i++ {
+	for i, _ := range serverCfg.servers {
 		if serverCfg.servers[i].Name == server.Name {
 			newServers := make([]*server_details.ServerDetails, 0, len(serverCfg.servers)-1)
 			newServers = append(newServers, serverCfg.servers[:i]...)
