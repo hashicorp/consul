@@ -295,36 +295,13 @@ func (sm *ServerManager) refreshServerRebalanceTimer(timer *time.Timer) time.Dur
 // distribute load across all known and available consul servers.
 func (sm *ServerManager) Start() {
 	var rebalanceTimer *time.Timer = time.NewTimer(clientRPCMinReuseDuration)
-	var rebalanceTaskDispatched int32
-
-	func() {
-		sm.serverConfigLock.Lock()
-		defer sm.serverConfigLock.Unlock()
-
-		serverCfgPtr := sm.serverConfigValue.Load()
-		if serverCfgPtr == nil {
-			panic("server config has not been initialized")
-		}
-		var serverCfg serverConfig
-		serverCfg = serverCfgPtr.(serverConfig)
-		sm.saveServerConfig(serverCfg)
-	}()
 
 	for {
 		select {
 		case <-rebalanceTimer.C:
-			sm.logger.Printf("[INFO] server manager: server rebalance timeout")
+			sm.logger.Printf("[INFO] server manager: Rebalancing server connections")
 			sm.RebalanceServers()
-
-			// Only run one rebalance task at a time, but do
-			// allow for the channel to be drained
-			if atomic.CompareAndSwapInt32(&rebalanceTaskDispatched, 0, 1) {
-				sm.logger.Printf("[INFO] server manager: Launching rebalance duration task")
-				go func() {
-					defer atomic.StoreInt32(&rebalanceTaskDispatched, 0)
-					sm.refreshServerRebalanceTimer(rebalanceTimer)
-				}()
-			}
+			sm.refreshServerRebalanceTimer(rebalanceTimer)
 
 		case <-sm.shutdownCh:
 			sm.logger.Printf("[INFO] server manager: shutting down")
