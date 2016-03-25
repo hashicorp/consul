@@ -78,9 +78,9 @@ type ServerManager struct {
 
 	logger *log.Logger
 
-	// serf is used to estimate the approximate number of nodes in a
-	// cluster and limit the rate at which it rebalances server
-	// connections
+	// clusterInfo is used to estimate the approximate number of nodes in
+	// a cluster and limit the rate at which it rebalances server
+	// connections.  ConsulClusterInfo is an interface that wraps serf.
 	clusterInfo ConsulClusterInfo
 
 	// notifyFailedServersBarrier is acts as a barrier to prevent
