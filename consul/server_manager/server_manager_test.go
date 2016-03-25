@@ -140,7 +140,20 @@ func TestServerManager_NotifyFailedServer(t *testing.T) {
 
 	s1 := &server_details.ServerDetails{Name: "s1"}
 	s2 := &server_details.ServerDetails{Name: "s2"}
+
+	// Try notifying for a server that is not part of the server manager
+	sm.NotifyFailedServer(s1)
+	if sm.NumServers() != 0 {
+		t.Fatalf("Expected zero servers to start")
+	}
 	sm.AddServer(s1)
+
+	// Test again w/ a server not in the list
+	sm.NotifyFailedServer(s2)
+	if sm.NumServers() != 1 {
+		t.Fatalf("Expected one server")
+	}
+
 	sm.AddServer(s2)
 	if sm.NumServers() != 2 {
 		t.Fatalf("Expected two servers")
@@ -225,16 +238,29 @@ func TestServerManager_RebalanceServers(t *testing.T) {
 
 // func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 func TestServerManager_RemoveServer(t *testing.T) {
+	const nodeNameFmt = "s%02d"
 	sm := testServerManager()
 
 	if sm.NumServers() != 0 {
 		t.Fatalf("Expected zero servers to start")
 	}
 
+	// Test removing server before its added
+	nodeName := fmt.Sprintf(nodeNameFmt, 1)
+	s1 := &server_details.ServerDetails{Name: nodeName}
+	sm.RemoveServer(s1)
+	sm.AddServer(s1)
+
+	nodeName = fmt.Sprintf(nodeNameFmt, 2)
+	s2 := &server_details.ServerDetails{Name: nodeName}
+	sm.RemoveServer(s2)
+	sm.AddServer(s2)
+
 	const maxServers = 19
 	servers := make([]*server_details.ServerDetails, maxServers)
-	for i := maxServers; i > 0; i-- {
-		nodeName := fmt.Sprintf("s%02d", i)
+	// Already added two servers above
+	for i := maxServers; i > 2; i-- {
+		nodeName := fmt.Sprintf(nodeNameFmt, i)
 		server := &server_details.ServerDetails{Name: nodeName}
 		servers = append(servers, server)
 		sm.AddServer(server)
@@ -242,7 +268,7 @@ func TestServerManager_RemoveServer(t *testing.T) {
 	sm.RebalanceServers()
 
 	if sm.NumServers() != maxServers {
-		t.Fatalf("Expected %d servers", maxServers)
+		t.Fatalf("Expected %d servers, received %d", maxServers, sm.NumServers())
 	}
 
 	findServer := func(server *server_details.ServerDetails) bool {
