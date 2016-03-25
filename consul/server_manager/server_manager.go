@@ -232,7 +232,8 @@ func (sm *ServerManager) NumServers() (numServers int) {
 // Elsewhere we rely on the position in the server list as a hint regarding
 // the stability of a server relative to its position in the server list.
 // Servers at or near the front of the list are more stable than servers near
-// the end of the list.
+// the end of the list.  Unhealthy servers are removed when serf notices the
+// server has been deregistered.
 func (sm *ServerManager) RebalanceServers() {
 	sm.serverConfigLock.Lock()
 	defer sm.serverConfigLock.Unlock()
@@ -241,9 +242,7 @@ func (sm *ServerManager) RebalanceServers() {
 	newServers := make([]*server_details.ServerDetails, len(serverCfg.servers))
 	copy(newServers, serverCfg.servers)
 
-	// Shuffle the server list on server join.  Servers are selected from
-	// the head of the list and are moved to the end of the list on
-	// failure.
+	// Shuffle the server list
 	for i := len(serverCfg.servers) - 1; i > 0; i-- {
 		j := rand.Int31n(int32(i + 1))
 		newServers[i], newServers[j] = newServers[j], newServers[i]
