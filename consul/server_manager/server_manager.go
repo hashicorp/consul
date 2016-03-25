@@ -168,6 +168,12 @@ func (sm *ServerManager) getServerConfig() serverConfig {
 	return sm.serverConfigValue.Load().(serverConfig)
 }
 
+// saveServerConfig is a convenience method which hides the locking semantics
+// of atomic.Value from the caller.
+func (sm *ServerManager) saveServerConfig(sc serverConfig) {
+	sm.serverConfigValue.Store(sc)
+}
+
 // New is the only way to safely create a new ServerManager struct.
 func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulClusterInfo) (sm *ServerManager) {
 	// NOTE(sean@): Can't pass *consul.Client due to an import cycle
@@ -285,12 +291,6 @@ func (sm *ServerManager) refreshServerRebalanceTimer(timer *time.Timer) time.Dur
 
 	timer.Reset(connRebalanceTimeout)
 	return connRebalanceTimeout
-}
-
-// saveServerConfig is a convenience method which hides the locking semantics
-// of atomic.Value from the caller.
-func (sm *ServerManager) saveServerConfig(sc serverConfig) {
-	sm.serverConfigValue.Store(sc)
 }
 
 // Start is used to start and manage the task of automatically shuffling and
