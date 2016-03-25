@@ -58,7 +58,8 @@ type Client struct {
 	// Connection pool to consul servers
 	connPool *ConnPool
 
-	// serverManager
+	// serverMgr is responsible for the selection and maintenance of
+	// Consul servers this agent uses for RPC requests
 	serverMgr *server_manager.ServerManager
 
 	// eventCh is used to receive events from the
