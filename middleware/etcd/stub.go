@@ -4,104 +4,68 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/miekg/coredns/middleware/proxy"
 
 	"github.com/miekg/dns"
 )
 
-// hasStubEdns0 checks if the message is carrying our special
-// edns0 zero option.
-func hasStubEdns0(m *dns.Msg) bool {
-	option := m.IsEdns0()
-	if option == nil {
-		return false
-	}
-	for _, o := range option.Option {
-		if o.Option() == ednsStubCode && len(o.(*dns.EDNS0_LOCAL).Data) == 1 &&
-			o.(*dns.EDNS0_LOCAL).Data[0] == 1 {
-			return true
+func (e Etcd) UpdateStubZones() {
+	go func() {
+		for {
+			e.updateStubZones()
+			time.Sleep(15 * time.Second)
 		}
-	}
-	return false
-}
-
-// addStubEdns0 adds our special option to the message's OPT record.
-func addStubEdns0(m *dns.Msg) *dns.Msg {
-	option := m.IsEdns0()
-	// Add a custom EDNS0 option to the packet, so we can detect loops
-	// when 2 stubs are forwarding to each other.
-	if option != nil {
-		option.Option = append(option.Option, &dns.EDNS0_LOCAL{ednsStubCode, []byte{1}})
-	} else {
-		m.Extra = append(m.Extra, ednsStub)
-	}
-	return m
+	}()
 }
 
 // Look in .../dns/stub/<zone>/xx for msg.Services. Loop through them
 // extract <zone> and add them as forwarders (ip:port-combos) for
 // the stub zones. Only numeric (i.e. IP address) hosts are used.
-// TODO(miek): makes this Startup Function.
-func (e Etcd) UpdateStubZones(zone string) error {
-	stubmap := make(map[string][]string)
-
-	services, err := e.Records("stub.dns."+zone, false)
-	if err != nil {
-		return err
-	}
-	for _, serv := range services {
-		if serv.Port == 0 {
-			serv.Port = 53
-		}
-		ip := net.ParseIP(serv.Host)
-		if ip == nil {
-			//logf("stub zone non-address %s seen for: %s", serv.Key, serv.Host)
+func (e Etcd) updateStubZones() {
+	stubmap := make(map[string]proxy.Proxy)
+	for _, zone := range e.Zones {
+		services, err := e.Records(stubDomain+"."+zone, false)
+		if err != nil {
 			continue
 		}
 
-		domain := e.Domain(serv.Key)
-		labels := dns.SplitDomainName(domain)
+		// track the nameservers on a per domain basis, but allow a list on the domain.
+		nameservers := map[string][]string{}
 
-		// If the remaining name equals any of the zones we have, we ignore it.
-		for _, z := range e.Zones {
-			// Chop of left most label, because that is used as the nameserver place holder
-			// and drop the right most labels that belong to zone.
-			domain = dns.Fqdn(strings.Join(labels[1:len(labels)-dns.CountLabel(z)], "."))
-			if domain == z {
+		for _, serv := range services {
+			if serv.Port == 0 {
+				serv.Port = 53
+			}
+			ip := net.ParseIP(serv.Host)
+			if ip == nil {
 				continue
 			}
-			stubmap[domain] = append(stubmap[domain], net.JoinHostPort(serv.Host, strconv.Itoa(serv.Port)))
+
+			domain := e.Domain(serv.Key)
+			labels := dns.SplitDomainName(domain)
+			// nameserver need to be tracked by domain and *then* added
+
+			// If the remaining name equals any of the zones we have, we ignore it.
+			for _, z := range e.Zones {
+				// Chop of left most label, because that is used as the nameserver place holder
+				// and drop the right most labels that belong to zone.
+				domain = dns.Fqdn(strings.Join(labels[1:len(labels)-dns.CountLabel(z)], "."))
+				if domain == z {
+					continue
+				}
+				nameservers[domain] = append(nameservers[domain], net.JoinHostPort(serv.Host, strconv.Itoa(serv.Port)))
+			}
+		}
+		for domain, nss := range nameservers {
+			stubmap[domain] = proxy.New(nss)
 		}
 	}
 
-	// TODO(miek): add to etcd structure and startup with a StartFunction
-	//	e.stub = &stubmap
-	// stubmap contains proxy is best way forward... I think.
-	// TODO(miek): setup a proxy that forward to these
-	// StubProxy type?
-	return nil
-}
-
-func ServeDNSStubForward(w dns.ResponseWriter, req *dns.Msg) *dns.Msg {
-	if !hasStubEdns0(req) {
-		return nil
+	// atomic swap (at least that's what we hope it is)
+	if len(stubmap) > 0 {
+		e.Stubmap = &stubmap
 	}
-	req = addStubEdns0(req)
-	// proxy woxy
-	return nil
+	return
 }
-
-// ednsStub is the EDNS0 record we add to stub queries. Queries which have this record are
-// not forwarded again.
-var ednsStub = func() *dns.OPT {
-	o := new(dns.OPT)
-	o.Hdr.Name = "."
-	o.Hdr.Rrtype = dns.TypeOPT
-
-	e := new(dns.EDNS0_LOCAL)
-	e.Code = ednsStubCode
-	e.Data = []byte{1}
-	o.Option = append(o.Option, e)
-	return o
-}()
-
-const ednsStubCode = dns.EDNS0LOCALSTART + 10

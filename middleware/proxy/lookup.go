@@ -52,6 +52,9 @@ func New(hosts []string) Proxy {
 	return p
 }
 
+// Lookup will use name and tpe to forge a new message and will send that upstream. It will
+// set any EDNS0 options correctly so that downstream will be able to process the reply.
+// Lookup is not suitable for forwarding request. So Forward for that.
 func (p Proxy) Lookup(state middleware.State, name string, tpe uint16) (*dns.Msg, error) {
 	req := new(dns.Msg)
 	req.SetQuestion(name, tpe)
@@ -62,13 +65,17 @@ func (p Proxy) Lookup(state middleware.State, name string, tpe uint16) (*dns.Msg
 	return p.lookup(state, req)
 }
 
+func (p Proxy) Forward(state middleware.State) (*dns.Msg, error) {
+	return p.lookup(state, state.Req)
+}
+
 func (p Proxy) lookup(state middleware.State, r *dns.Msg) (*dns.Msg, error) {
 	var (
 		reply *dns.Msg
 		err   error
 	)
 	for _, upstream := range p.Upstreams {
-		// allowed bla bla bla TODO(miek): fix full proxy spec from caddy
+		// allowed bla bla bla TODO(miek): fix full proxy spec from caddy?
 		start := time.Now()
 
 		// Since Select() should give us "up" hosts, keep retrying
