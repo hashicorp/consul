@@ -245,7 +245,7 @@ func TestServerManager_RemoveServer(t *testing.T) {
 		t.Fatalf("Expected %d servers", maxServers)
 	}
 
-	findServer := func(sm *server_manager.ServerManager, server *server_details.ServerDetails) bool {
+	findServer := func(server *server_details.ServerDetails) bool {
 		for i := sm.NumServers(); i > 0; i-- {
 			s := sm.FindServer()
 			if s == server {
@@ -269,7 +269,7 @@ func TestServerManager_RemoveServer(t *testing.T) {
 		if sm.NumServers() != expectedNumServers {
 			t.Fatalf("Expected %d servers (got %d)", expectedNumServers, sm.NumServers())
 		}
-		if findServer(sm, server) == true {
+		if findServer(server) == true {
 			t.Fatalf("Did not expect to find server %s after removal from the front", server.Name)
 		}
 		removedServers = append(removedServers, server)
@@ -284,7 +284,7 @@ func TestServerManager_RemoveServer(t *testing.T) {
 		if sm.NumServers() != expectedNumServers {
 			t.Fatalf("Expected %d servers (got %d)", expectedNumServers, sm.NumServers())
 		}
-		if findServer(sm, server) == true {
+		if findServer(server) == true {
 			t.Fatalf("Did not expect to find server %s", server.Name)
 		}
 		removedServers = append(removedServers, server)
@@ -302,7 +302,7 @@ func TestServerManager_RemoveServer(t *testing.T) {
 		if sm.NumServers() != expectedNumServers {
 			t.Fatalf("Expected %d servers (got %d)", expectedNumServers, sm.NumServers())
 		}
-		if findServer(sm, server) == true {
+		if findServer(server) == true {
 			t.Fatalf("Did not expect to find server %s", server.Name)
 		}
 		removedServers = append(removedServers, server)
