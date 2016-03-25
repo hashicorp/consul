@@ -54,4 +54,7 @@ func TestIsConsulServer(t *testing.T) {
 	if !ok || parts.Expect != 3 {
 		t.Fatalf("bad: %v", parts.Expect)
 	}
+	if parts.Bootstrap {
+		t.Fatalf("unexpected bootstrap")
+	}
 }
