@@ -19,17 +19,12 @@ type State struct {
 }
 
 // Now returns the current timestamp in the specified format.
-func (s State) Now(format string) string {
-	return time.Now().Format(format)
-}
+func (s State) Now(format string) string { return time.Now().Format(format) }
 
-// NowDate returns the current date/time that can be used
-// in other time functions.
-func (s State) NowDate() time.Time {
-	return time.Now()
-}
+// NowDate returns the current date/time that can be used in other time functions.
+func (s State) NowDate() time.Time { return time.Now() }
 
-// Header gets the value of a header.
+// Header gets the heaser of the request in State.
 func (s State) Header() *dns.RR_Header {
 	// TODO(miek)
 	return nil
@@ -107,36 +102,41 @@ func (s State) Size() int {
 	return dns.MinMsgSize
 }
 
-// Type returns the type of the question as a string.
-func (s State) Type() string {
-	return dns.Type(s.Req.Question[0].Qtype).String()
+// SizeAndDo returns a ready made OPT record that the reflects the intent
+// from the state. This can be added to upstream requests that will then
+// hopefully return a message that is understandable by the original client.
+func (s State) SizeAndDo() *dns.OPT {
+	size := s.Size()
+	Do := s.Do()
+
+	o := new(dns.OPT)
+	o.Hdr.Name = "."
+	o.Hdr.Rrtype = dns.TypeOPT
+	o.SetUDPSize(uint16(size))
+	if Do {
+		o.SetDo()
+	}
+	return o
 }
 
+// Type returns the type of the question as a string.
+func (s State) Type() string { return dns.Type(s.Req.Question[0].Qtype).String() }
+
 // QType returns the type of the question as a uint16.
-func (s State) QType() uint16 {
-	return s.Req.Question[0].Qtype
-}
+func (s State) QType() uint16 { return s.Req.Question[0].Qtype }
 
 // Name returns the name of the question in the request. Note
 // this name will always have a closing dot and will be lower cased.
-func (s State) Name() string {
-	return strings.ToLower(dns.Name(s.Req.Question[0].Name).String())
-}
+func (s State) Name() string { return strings.ToLower(dns.Name(s.Req.Question[0].Name).String()) }
 
 // QName returns the name of the question in the request.
-func (s State) QName() string {
-	return dns.Name(s.Req.Question[0].Name).String()
-}
+func (s State) QName() string { return dns.Name(s.Req.Question[0].Name).String() }
 
 // Class returns the class of the question in the request.
-func (s State) Class() string {
-	return dns.Class(s.Req.Question[0].Qclass).String()
-}
+func (s State) Class() string { return dns.Class(s.Req.Question[0].Qclass).String() }
 
 // QClass returns the class of the question in the request.
-func (s State) QClass() uint16 {
-	return s.Req.Question[0].Qclass
-}
+func (s State) QClass() uint16 { return s.Req.Question[0].Qclass }
 
 // ErrorMessage returns an error message suitable for sending
 // back to the client.

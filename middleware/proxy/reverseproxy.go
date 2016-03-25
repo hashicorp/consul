@@ -12,7 +12,6 @@ type ReverseProxy struct {
 }
 
 func (p ReverseProxy) ServeDNS(w dns.ResponseWriter, r *dns.Msg, extra []dns.RR) error {
-	// TODO(miek): use extra to EDNS0.
 	var (
 		reply *dns.Msg
 		err   error
