@@ -14,6 +14,10 @@ func RandomStagger(intv time.Duration) time.Duration {
 // order to target an aggregate number of actions per second across the whole
 // cluster.
 func RateScaledInterval(rate float64, min time.Duration, n int) time.Duration {
+	const minRate = 1 / 86400 // 1/(1 * time.Day)
+	if rate <= minRate {
+		return min
+	}
 	interval := time.Duration(float64(time.Second) * float64(n) / rate)
 	if interval < min {
 		return min
