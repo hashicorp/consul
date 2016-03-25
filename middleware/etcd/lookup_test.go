@@ -36,6 +36,11 @@ var dnsTestCases = []dnsTestCase{
 		Qname: "a.server1.dev.region1.skydns.test.", Qtype: dns.TypeSRV,
 		Answer: []dns.RR{newSRV("a.server1.dev.region1.skydns.test. 300 SRV 10 100 8080 dev.server1.")},
 	},
+	// SRV Test (case test)
+	{
+		Qname: "a.SERVer1.dEv.region1.skydns.tEst.", Qtype: dns.TypeSRV,
+		Answer: []dns.RR{newSRV("a.SERVer1.dEv.region1.skydns.tEst. 300 SRV 10 100 8080 dev.server1.")},
+	},
 	// NXDOMAIN Test
 	{
 		Qname: "doesnotexist.skydns.test.", Qtype: dns.TypeA,

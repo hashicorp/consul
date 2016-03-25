@@ -41,6 +41,7 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		// rwrite and return
 		// Nodata response
 		// also catch other types, so that they return NODATA
+		// TODO(miek) nodata function see below
 		return 0, nil
 	}
 	if isEtcdNameError(err) {
@@ -55,11 +56,12 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	}
 
 	if len(records) == 0 {
+		// NODATE function, see below
 		m := new(dns.Msg)
 		m.SetReply(state.Req)
 		m.Ns = []dns.RR{e.SOA(zone, state)}
 		state.W.WriteMsg(m)
-		return dns.RcodeNameError, nil
+		return dns.RcodeSuccess, nil
 
 	}
 	if len(records) > 0 {
@@ -68,6 +70,9 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	if len(extra) > 0 {
 		m.Extra = append(m.Extra, extra...)
 	}
+
+	m = dedup(m)
+
 	state.W.WriteMsg(m)
 	return 0, nil
 }
@@ -75,4 +80,12 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 // NoData write a nodata response to the client.
 func (e Etcd) NoData(zone string, state middleware.State) {
 	// TODO(miek): write it
+}
+
+func dedup(m *dns.Msg) *dns.Msg {
+	ma := make(map[string]dns.RR)
+	m.Answer = dns.Dedup(m.Answer, ma)
+	m.Ns = dns.Dedup(m.Ns, ma)
+	m.Extra = dns.Dedup(m.Extra, ma)
+	return m
 }

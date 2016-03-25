@@ -37,8 +37,8 @@ func addStubEdns0(m *dns.Msg) *dns.Msg {
 	return m
 }
 
-// Look in .../dns/stub/<domain>/xx for msg.Services. Loop through them
-// extract <domain> and add them as forwarders (ip:port-combos) for
+// Look in .../dns/stub/<zone>/xx for msg.Services. Loop through them
+// extract <zone> and add them as forwarders (ip:port-combos) for
 // the stub zones. Only numeric (i.e. IP address) hosts are used.
 // TODO(miek): makes this Startup Function.
 func (e Etcd) UpdateStubZones(zone string) error {

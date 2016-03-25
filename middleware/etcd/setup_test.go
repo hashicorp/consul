@@ -37,7 +37,7 @@ const (
 )
 
 func init() {
-	ctx, _ = context.WithTimeout(ctx.Background(), etcdTimeout)
+	ctx, _ = context.WithTimeout(context.Background(), etcdTimeout)
 
 	etcdCfg := etcdc.Config{
 		Endpoints: []string{"http://localhost:2379"},
@@ -88,7 +88,7 @@ func TestLookup(t *testing.T) {
 			t.Errorf("expected no error, got %v\n", err)
 			return
 		}
-		resp := rec.Reply()
+		resp := rec.Msg()
 
 		sort.Sort(rrSet(resp.Answer))
 		sort.Sort(rrSet(resp.Ns))
