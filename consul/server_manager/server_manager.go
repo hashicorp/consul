@@ -56,8 +56,8 @@ type ConsulClusterInfo interface {
 	NumNodes() int
 }
 
-// serverCfg is the thread-safe configuration structure that is used to
-// maintain the list of consul servers in Client.
+// serverCfg is the thread-safe configuration struct used to maintain the
+// list of Consul servers in ServerManager.
 //
 // NOTE(sean@): We are explicitly relying on the fact that serverConfig will
 // be copied onto the stack.  Please keep this structure light.
