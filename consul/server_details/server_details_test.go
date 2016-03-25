@@ -58,7 +58,7 @@ func TestIsConsulServer(t *testing.T) {
 		t.Fatalf("unexpected bootstrap")
 	}
 
-	delete(m.Tags, "consul")
+	delete(m.Tags, "role")
 	ok, parts = server_details.IsConsulServer(m)
 	if ok {
 		t.Fatalf("unexpected ok server")
