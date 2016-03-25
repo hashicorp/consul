@@ -198,8 +198,9 @@ func (sm *ServerManager) NotifyFailedServer(server *server_details.ServerDetails
 	// the list, acquire the lock, retest, and take the penalty of moving
 	// the server to the end of the list.
 
-	// Use atomic.CAS to emulate a TryLock().
-	if len(serverCfg.servers) > 0 && serverCfg.servers[0] == server &&
+	// Only rotate the server list when there is more than one server
+	if len(serverCfg.servers) > 1 && serverCfg.servers[0] == server &&
+		// Use atomic.CAS to emulate a TryLock().
 		atomic.CompareAndSwapInt32(&sm.notifyFailedBarrier, 0, 1) {
 		defer atomic.StoreInt32(&sm.notifyFailedBarrier, 0)
 
@@ -209,7 +210,7 @@ func (sm *ServerManager) NotifyFailedServer(server *server_details.ServerDetails
 		defer sm.serverConfigLock.Unlock()
 		serverCfg = sm.getServerConfig()
 
-		if len(serverCfg.servers) > 0 && serverCfg.servers[0] == server {
+		if len(serverCfg.servers) > 1 && serverCfg.servers[0] == server {
 			serverCfg.servers = serverCfg.cycleServer()
 			sm.saveServerConfig(serverCfg)
 		}
