@@ -15,6 +15,7 @@ import (
 
 const (
 	DefaultDC          = "dc1"
+	DefaultDomain      = "consul."
 	DefaultLANSerfPort = 8301
 	DefaultWANSerfPort = 8302
 )

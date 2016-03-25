@@ -506,6 +506,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     critical). Set to false to have the querying agent include all node and
     service addresses regardless of the health of the service.
 
+  * <a name="soa"></a><a href="#soa">`soa`</a> Allows to configure NS and MBOX fields of SOA reply.
+  If set, should be an object with "ns" and "mbox" keys as per RFC 1035.
+
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
 

@@ -50,6 +50,11 @@ type AdvertiseAddrsConfig struct {
 	RPCRaw     string       `mapstructure:"rpc"`
 }
 
+type SOAConfig struct {
+	Ns   string `mapstructure:"ns"`
+	Mbox string `mapstructure:"mbox"`
+}
+
 // DNSConfig is used to fine tune the DNS sub-system.
 // It can be used to control cache values, and stale
 // reads
@@ -89,6 +94,8 @@ type DNSConfig struct {
 	// whose health checks are in any non-passing state. By
 	// default, only nodes in a critical state are excluded.
 	OnlyPassing bool `mapstructure:"only_passing"`
+
+	SOARecord SOAConfig `mapstructure:"soa"`
 }
 
 // Telemetry is the telemetry configuration for the server
@@ -513,7 +520,7 @@ func DefaultConfig() *Config {
 		BootstrapExpect: 0,
 		Server:          false,
 		Datacenter:      consul.DefaultDC,
-		Domain:          "consul.",
+		Domain:          consul.DefaultDomain,
 		LogLevel:        "INFO",
 		ClientAddr:      "127.0.0.1",
 		BindAddr:        "0.0.0.0",
@@ -528,6 +535,10 @@ func DefaultConfig() *Config {
 		},
 		DNSConfig: DNSConfig{
 			MaxStale: 5 * time.Second,
+			SOARecord: SOAConfig{
+				Ns:   "ns." + consul.DefaultDomain,
+				Mbox: "postmaster." + consul.DefaultDomain,
+			},
 		},
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
@@ -1135,6 +1146,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.DNSConfig.OnlyPassing {
 		result.DNSConfig.OnlyPassing = true
+	}
+	if b.DNSConfig.SOARecord.Ns != "" {
+		result.DNSConfig.SOARecord.Ns = b.DNSConfig.SOARecord.Ns
+	}
+	if b.DNSConfig.SOARecord.Mbox != "" {
+		result.DNSConfig.SOARecord.Mbox = b.DNSConfig.SOARecord.Mbox
 	}
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval
