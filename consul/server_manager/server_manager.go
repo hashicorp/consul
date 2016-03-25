@@ -31,10 +31,10 @@ const (
 	// queries are sent over an established connection to a single server
 	clientRPCMinReuseDuration = 120 * time.Second
 
-	// initialRebalanceTimeoutHours is the initial value for the
+	// initialRebalanceTimeout is the initial value for the
 	// rebalanceTimer.  This value is discarded immediately after the
 	// client becomes aware of the first server.
-	initialRebalanceTimeoutHours = 24
+	initialRebalanceTimeout = 24 * time.Hour
 
 	// Limit the number of new connections a server receives per second
 	// for connection rebalancing.  This limit caps the load caused by
@@ -300,7 +300,7 @@ func (sm *ServerManager) saveServerConfig(sc serverConfig) {
 // the list.  The order of the server list must be shuffled periodically to
 // distribute load across all known and available consul servers.
 func (sm *ServerManager) Start() {
-	var rebalanceTimer *time.Timer = time.NewTimer(time.Duration(initialRebalanceTimeoutHours * time.Hour))
+	var rebalanceTimer *time.Timer = time.NewTimer(initialRebalanceTimeout)
 	var rebalanceTaskDispatched int32
 
 	func() {
