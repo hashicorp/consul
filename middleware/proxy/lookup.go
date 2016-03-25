@@ -55,8 +55,10 @@ func New(hosts []string) Proxy {
 func (p Proxy) Lookup(state middleware.State, name string, tpe uint16) (*dns.Msg, error) {
 	req := new(dns.Msg)
 	req.SetQuestion(name, tpe)
-	// TODO(miek):
-	// USE STATE FOR DNSSEC ETCD BUFSIZE BLA BLA
+
+	opt := state.SizeAndDo()
+	req.Extra = []dns.RR{opt}
+
 	return p.lookup(state, req)
 }
 
