@@ -54,6 +54,7 @@ func TestChaos(t *testing.T) {
 			test.qtype = dns.TypeTXT
 		}
 		req.SetQuestion(dns.Fqdn(test.qname), test.qtype)
+		req.Question[0].Qclass = dns.ClassCHAOS
 		em.Next = test.next
 
 		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
