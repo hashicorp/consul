@@ -118,16 +118,13 @@ func TestLookup(t *testing.T) {
 
 		if !checkSection(t, tc, Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
-			t.Fatal()
 		}
 		if !checkSection(t, tc, Ns, resp.Ns) {
 			t.Logf("%v\n", resp)
-			t.Fatal()
 
 		}
 		if !checkSection(t, tc, Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
-			t.Fatal()
 		}
 	}
 }
