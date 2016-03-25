@@ -16,7 +16,7 @@ func TestRandomStagger(t *testing.T) {
 }
 
 func TestRateScaledInterval(t *testing.T) {
-	min := 1 * time.Second
+	const min = 1 * time.Second
 	rate := 200.0
 	if v := RateScaledInterval(rate, min, 0); v != min {
 		t.Fatalf("Bad: %v", v)
@@ -34,6 +34,15 @@ func TestRateScaledInterval(t *testing.T) {
 		t.Fatalf("Bad: %v", v)
 	}
 	if v := RateScaledInterval(rate, min, 10000); v != 50*time.Second {
+		t.Fatalf("Bad: %v", v)
+	}
+	if v := RateScaledInterval(0, min, 10000); v != min {
+		t.Fatalf("Bad: %v", v)
+	}
+	if v := RateScaledInterval(0.0, min, 10000); v != min {
+		t.Fatalf("Bad: %v", v)
+	}
+	if v := RateScaledInterval(-1, min, 10000); v != min {
 		t.Fatalf("Bad: %v", v)
 	}
 }

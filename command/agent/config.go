@@ -360,7 +360,7 @@ type Config struct {
 	//   * deny - Deny all requests
 	//   * extend-cache - Ignore the cache expiration, and allow cached
 	//                    ACL's to be used to service requests. This
-	//	                  is the default. If the ACL is not in the cache,
+	//                    is the default. If the ACL is not in the cache,
 	//                    this acts like deny.
 	ACLDownPolicy string `mapstructure:"acl_down_policy"`
 

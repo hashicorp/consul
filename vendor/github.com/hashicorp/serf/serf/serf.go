@@ -214,8 +214,8 @@ type queries struct {
 }
 
 const (
-	UserEventSizeLimit     = 512        // Maximum byte size for event name and payload
-	snapshotSizeLimit      = 128 * 1024 // Maximum 128 KB snapshot
+	UserEventSizeLimit = 512        // Maximum byte size for event name and payload
+	snapshotSizeLimit  = 128 * 1024 // Maximum 128 KB snapshot
 )
 
 // Create creates a new Serf instance, starting all the background tasks
@@ -1679,4 +1679,14 @@ func (s *Serf) GetCachedCoordinate(name string) (coord *coordinate.Coordinate, o
 	}
 
 	return nil, false
+}
+
+// NumNodes returns the number of nodes in the serf cluster, regardless of
+// their health or status.
+func (s *Serf) NumNodes() (numNodes int) {
+	s.memberLock.RLock()
+	numNodes = len(s.members)
+	s.memberLock.RUnlock()
+
+	return numNodes
 }

@@ -83,6 +83,11 @@ func TestClient_JoinLAN(t *testing.T) {
 	if _, err := c1.JoinLAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	testutil.WaitForResult(func() (bool, error) {
+		return c1.serverMgr.NumServers() == 1, nil
+	}, func(err error) {
+		t.Fatalf("expected consul server")
+	})
 
 	// Check the members
 	testutil.WaitForResult(func() (bool, error) {
@@ -95,7 +100,7 @@ func TestClient_JoinLAN(t *testing.T) {
 
 	// Check we have a new consul
 	testutil.WaitForResult(func() (bool, error) {
-		return len(c1.consuls) == 1, nil
+		return c1.serverMgr.NumServers() == 1, nil
 	}, func(err error) {
 		t.Fatalf("expected consul server")
 	})
