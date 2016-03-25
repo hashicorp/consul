@@ -121,7 +121,7 @@ func NewClient(config *Config) (*Client, error) {
 
 	c.serverMgr = server_manager.New(c.logger, c.shutdownCh, c.serf)
 
-	// Start consulServers maintenance
+	// Start maintenance task for serverMgr
 	go c.serverMgr.Start()
 
 	// Start the Serf listeners to prevent a deadlock
