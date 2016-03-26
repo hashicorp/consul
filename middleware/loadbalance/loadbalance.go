@@ -14,18 +14,21 @@ func (r *RoundRobinResponseWriter) WriteMsg(res *dns.Msg) error {
 	if res.Rcode != dns.RcodeSuccess {
 		return r.ResponseWriter.WriteMsg(res)
 	}
-	if len(res.Answer) < 2 { // don't even bother
-		return r.ResponseWriter.WriteMsg(res)
-	}
 
-	// put CNAMEs first, randomize a/aaaa's and put packet back together.
-	// TODO(miek): check family and give v6 more prio?
+	res.Answer = roundRobin(res.Answer)
+	res.Extra = roundRobin(res.Extra)
+
+	return r.ResponseWriter.WriteMsg(res)
+}
+
+func roundRobin(in []dns.RR) []dns.RR {
 	cname := []dns.RR{}
 	address := []dns.RR{}
 	rest := []dns.RR{}
-	for _, r := range res.Answer {
+	for _, r := range in {
 		switch r.Header().Rrtype {
 		case dns.TypeCNAME:
+			// d d d d DNAME and friends here as well?
 			cname = append(cname, r)
 		case dns.TypeA, dns.TypeAAAA:
 			address = append(address, r)
@@ -36,7 +39,7 @@ func (r *RoundRobinResponseWriter) WriteMsg(res *dns.Msg) error {
 
 	switch l := len(address); l {
 	case 0, 1:
-		return r.ResponseWriter.WriteMsg(res)
+		break
 	case 2:
 		if dns.Id()%2 == 0 {
 			address[0], address[1] = address[1], address[0]
@@ -51,9 +54,9 @@ func (r *RoundRobinResponseWriter) WriteMsg(res *dns.Msg) error {
 			address[q], address[p] = address[p], address[q]
 		}
 	}
-	res.Answer = append(cname, rest...)
-	res.Answer = append(res.Answer, address...)
-	return r.ResponseWriter.WriteMsg(res)
+	out := append(cname, rest...)
+	out = append(out, address...)
+	return out
 }
 
 // Should we pack and unpack here to fiddle with the packet... Not likely.

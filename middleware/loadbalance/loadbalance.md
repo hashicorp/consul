@@ -4,13 +4,15 @@
 message. See [Wikipedia](https://en.wikipedia.org/wiki/Round-robin_DNS) about the pros and cons
 on this setup.
 
+It will take care to sort any CNAMEs before any address records.
+
 ## Syntax
 
 ~~~
 loadbalance [policy]
 ~~~
 
-* policy is how to balance, the default is "round_robin"
+* `policy` is how to balance, the default is "round_robin"
 
 ## Examples
 
