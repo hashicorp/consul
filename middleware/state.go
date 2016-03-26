@@ -102,9 +102,9 @@ func (s State) Size() int {
 	return dns.MinMsgSize
 }
 
-// SizeAndDo returns a ready made OPT record that the reflects the intent
-// from the state. This can be added to upstream requests that will then
-// hopefully return a message that is understandable by the original client.
+// SizeAndDo returns a ready made OPT record that the reflects the intent from
+// state. This can be added to upstream requests that will then hopefully
+// return a message that is fits the buffer in the client.
 func (s State) SizeAndDo() *dns.OPT {
 	size := s.Size()
 	Do := s.Do()
@@ -117,6 +117,40 @@ func (s State) SizeAndDo() *dns.OPT {
 		o.SetDo()
 	}
 	return o
+}
+
+// Result is the result of Fit.
+type Result int
+
+const (
+	// ScrubIgnored is returned when Scrub did nothing to the message.
+	ScrubIgnored Result = iota
+	// ScrubDone is returned when the reply has been scrubbed.
+	ScrubDone
+)
+
+// Scrub scrubs the reply message so that it will fit the client's buffer. If even after dropping
+// the additional section, it still does not fit the TC bit will be set on the message. Note,
+// the TC bit will be set regardless of protocol, even TCP message will get the bit, the client
+// should then retry with pigeons.
+// TODO(referral).
+func (s State) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
+	size := s.Size()
+	l := reply.Len()
+	if size >= l {
+		return reply, ScrubIgnored
+	}
+	// If not delegation, drop additional section.
+	// TODO(miek): check for delegation
+	reply.Extra = nil
+	l = reply.Len()
+	if size >= l {
+		return reply, ScrubDone
+	}
+	// Still?!! does not fit.
+	reply.Truncated = true
+	return reply, ScrubDone
+
 }
 
 // Type returns the type of the question as a string.
