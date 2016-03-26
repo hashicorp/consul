@@ -3,6 +3,7 @@ package proxy
 
 import (
 	"github.com/miekg/coredns/middleware"
+
 	"github.com/miekg/dns"
 )
 
@@ -18,7 +19,7 @@ func (p ReverseProxy) ServeDNS(w dns.ResponseWriter, r *dns.Msg, extra []dns.RR)
 	)
 	state := middleware.State{W: w, Req: r}
 
-	// tls+tcp ?
+	// We forward the original request, no need to fiddle with EDNS0 opt sizes.
 	if state.Proto() == "tcp" {
 		reply, err = middleware.Exchange(p.Client.TCP, r, p.Host)
 	} else {

@@ -72,7 +72,7 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	}
 
 	m = dedup(m)
-
+	m, _ = state.Scrub(m)
 	state.W.WriteMsg(m)
 	return 0, nil
 }
