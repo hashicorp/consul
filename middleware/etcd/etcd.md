@@ -34,8 +34,6 @@ etcd [zones...] {
 * `path` the path inside etcd, defaults to "/skydns".
 * `endpoint` the etcd endpoints, default to "http://localhost:2397".
 * `upstream` upstream resolvers to be used resolve external names found in etcd.
-* `tls` followed the cert,  key and the CA's cert
-
-TODO: TLS params!
+* `tls` followed the cert, key and the CA's cert filenames.
 
 ## Examples
