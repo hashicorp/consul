@@ -146,6 +146,19 @@ func (sc *serverConfig) cycleServer() (servers []*server_details.ServerDetails) 
 	return newServers
 }
 
+// shuffleServers shuffles the server list in place
+func (sc *serverConfig) shuffleServers() {
+	newServers := make([]*server_details.ServerDetails, len(sc.servers))
+	copy(newServers, sc.servers)
+
+	// Shuffle server list
+	for i := len(sc.servers) - 1; i > 0; i-- {
+		j := rand.Int31n(int32(i + 1))
+		newServers[i], newServers[j] = newServers[j], newServers[i]
+	}
+	sc.servers = newServers
+}
+
 // FindServer takes out an internal "read lock" and searches through the list
 // of servers to find a "healthy" server.  If the server is actually
 // unhealthy, we rely on Serf to detect this and remove the node from the
@@ -239,20 +252,16 @@ func (sm *ServerManager) NumServers() (numServers int) {
 // Servers at or near the front of the list are more stable than servers near
 // the end of the list.  Unhealthy servers are removed when serf notices the
 // server has been deregistered.
+	serverCfg.servers = newServers
+	serverCfg.servers = newServers
 func (sm *ServerManager) RebalanceServers() {
 	sm.serverConfigLock.Lock()
 	defer sm.serverConfigLock.Unlock()
 	serverCfg := sm.getServerConfig()
 
-	newServers := make([]*server_details.ServerDetails, len(serverCfg.servers))
-	copy(newServers, serverCfg.servers)
 
-	// Shuffle the server list
-	for i := len(serverCfg.servers) - 1; i > 0; i-- {
-		j := rand.Int31n(int32(i + 1))
-		newServers[i], newServers[j] = newServers[j], newServers[i]
+	serverCfg.shuffleServers()
 	}
-	serverCfg.servers = newServers
 
 	sm.saveServerConfig(serverCfg)
 }
