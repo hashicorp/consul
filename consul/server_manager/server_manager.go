@@ -225,6 +225,7 @@ func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulCluster
 	sm.logger = logger
 	sm.clusterInfo = clusterInfo       // can't pass *consul.Client: import cycle
 	sm.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
+	sm.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
 	sm.shutdownCh = shutdownCh
 
 	sc := serverConfig{}
@@ -440,8 +441,6 @@ func (sm *ServerManager) ResetRebalanceTimer() {
 // the list.  The order of the server list must be shuffled periodically to
 // distribute load across all known and available consul servers.
 func (sm *ServerManager) Start() {
-	sm.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
-
 	for {
 		select {
 		case <-sm.rebalanceTimer.C:
