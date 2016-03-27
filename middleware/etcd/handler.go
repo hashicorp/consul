@@ -14,7 +14,8 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		return e.Next.ServeDNS(ctx, w, r)
 	}
 
-	m := state.AnswerMessage()
+	m := new(dns.Msg)
+	m.SetReply(r)
 	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
 
 	var (
