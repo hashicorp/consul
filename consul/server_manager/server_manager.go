@@ -76,6 +76,9 @@ type ServerManager struct {
 	serverConfigValue atomic.Value
 	serverConfigLock  sync.Mutex
 
+	// rebalanceTimer controls the duration of the rebalance interval
+	rebalanceTimer *time.Timer
+
 	// shutdownCh is a copy of the channel in consul.Client
 	shutdownCh chan struct{}
 
@@ -405,10 +408,8 @@ func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 	}
 }
 
-// refreshServerRebalanceTimer is only called once the rebalanceTimer
-// expires.  Historically this was an expensive routine and is intended to be
-// run in isolation in a dedicated, non-concurrent task.
-func (sm *ServerManager) refreshServerRebalanceTimer(timer *time.Timer) time.Duration {
+// refreshServerRebalanceTimer is only called once sm.rebalanceTimer expires.
+func (sm *ServerManager) refreshServerRebalanceTimer() time.Duration {
 	serverCfg := sm.getServerConfig()
 	numConsulServers := len(serverCfg.servers)
 	// Limit this connection's life based on the size (and health) of the
@@ -420,8 +421,16 @@ func (sm *ServerManager) refreshServerRebalanceTimer(timer *time.Timer) time.Dur
 	numLANMembers := sm.clusterInfo.NumNodes()
 	connRebalanceTimeout := lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
 
-	timer.Reset(connRebalanceTimeout)
+	sm.rebalanceTimer.Reset(connRebalanceTimeout)
 	return connRebalanceTimeout
+}
+
+// ResetRebalanceTimer resets the rebalance timer.  This method primarily
+// exists for testing and should not be used directly.
+func (sm *ServerManager) ResetRebalanceTimer() {
+	sm.serverConfigLock.Lock()
+	defer sm.serverConfigLock.Unlock()
+	sm.rebalanceTimer.Reset(clientRPCMinReuseDuration)
 }
 
 // Start is used to start and manage the task of automatically shuffling and
@@ -431,14 +440,14 @@ func (sm *ServerManager) refreshServerRebalanceTimer(timer *time.Timer) time.Dur
 // the list.  The order of the server list must be shuffled periodically to
 // distribute load across all known and available consul servers.
 func (sm *ServerManager) Start() {
-	var rebalanceTimer *time.Timer = time.NewTimer(clientRPCMinReuseDuration)
+	sm.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
 
 	for {
 		select {
-		case <-rebalanceTimer.C:
+		case <-sm.rebalanceTimer.C:
 			sm.logger.Printf("[INFO] server manager: Rebalancing server connections")
 			sm.RebalanceServers()
-			sm.refreshServerRebalanceTimer(rebalanceTimer)
+			sm.refreshServerRebalanceTimer()
 
 		case <-sm.shutdownCh:
 			sm.logger.Printf("[INFO] server manager: shutting down")
