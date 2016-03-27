@@ -25,6 +25,13 @@ func GetBufferedLogger() *log.Logger {
 	return localLogger
 }
 
+type fauxConnPool struct {
+}
+
+func (s *fauxConnPool) TestConsulServer(server *server_details.ServerDetails) bool {
+	return true
+}
+
 type fauxSerf struct {
 	numNodes int
 }
@@ -36,7 +43,7 @@ func (s *fauxSerf) NumNodes() int {
 func testServerManager() (sm *ServerManager) {
 	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
-	sm = New(logger, shutdownCh, &fauxSerf{numNodes: 16384})
+	sm = New(logger, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{})
 	return sm
 }
 
@@ -171,7 +178,7 @@ func TestServerManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 	}
 
 	for _, s := range clusters {
-		sm := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes})
+		sm := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{})
 
 		for i := 0; i < s.numServers; i++ {
 			nodeName := fmt.Sprintf("s%02d", i)

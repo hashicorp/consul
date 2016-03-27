@@ -119,7 +119,7 @@ func NewClient(config *Config) (*Client, error) {
 		shutdownCh: make(chan struct{}),
 	}
 
-	c.serverMgr = server_manager.New(c.logger, c.shutdownCh, c.serf)
+	c.serverMgr = server_manager.New(c.logger, c.shutdownCh, c.serf, c.connPool)
 
 	// Start maintenance task for serverMgr
 	go c.serverMgr.Start()

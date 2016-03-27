@@ -26,6 +26,13 @@ func GetBufferedLogger() *log.Logger {
 	return localLogger
 }
 
+type fauxConnPool struct {
+}
+
+func (s *fauxConnPool) TestConsulServer(server *server_details.ServerDetails) bool {
+	return true
+}
+
 type fauxSerf struct {
 }
 
@@ -37,7 +44,7 @@ func testServerManager() (sm *server_manager.ServerManager) {
 	logger := GetBufferedLogger()
 	logger = log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	sm = server_manager.New(logger, shutdownCh, &fauxSerf{})
+	sm = server_manager.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
 	return sm
 }
 
@@ -124,7 +131,7 @@ func TestServerManager_New(t *testing.T) {
 	logger := GetBufferedLogger()
 	logger = log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	sm := server_manager.New(logger, shutdownCh, &fauxSerf{})
+	sm := server_manager.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
 	if sm == nil {
 		t.Fatalf("ServerManager nil")
 	}
