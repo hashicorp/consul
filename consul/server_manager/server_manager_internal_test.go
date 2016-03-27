@@ -187,7 +187,7 @@ func TestServerManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 
 		d := sm.refreshServerRebalanceTimer(timer)
 		if d < s.minRebalance {
-			t.Fatalf("duration too short for cluster of size %d and %d servers (%s < %s)", s.numNodes, s.numServers, d, s.minRebalance)
+			t.Errorf("duration too short for cluster of size %d and %d servers (%s < %s)", s.numNodes, s.numServers, d, s.minRebalance)
 		}
 	}
 }
