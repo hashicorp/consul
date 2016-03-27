@@ -48,12 +48,13 @@ func (s *ServerDetails) Key() *Key {
 
 // String returns a string representation of ServerDetails
 func (s *ServerDetails) String() string {
-	var serverAddr string
+	var addrStr, networkStr string
 	if s.Addr != nil {
-		serverAddr = s.Addr.String() + s.Addr.Network()
+		addrStr = s.Addr.String()
+		networkStr = s.Addr.Network()
 	}
 
-	return fmt.Sprintf("%s (Addr: %s) (DC: %s)", s.Name, serverAddr, s.Datacenter)
+	return fmt.Sprintf("%s (Addr: %s/%s) (DC: %s)", s.Name, addrStr, networkStr, s.Datacenter)
 }
 
 // IsConsulServer returns true if a serf member is a consul server. Returns a

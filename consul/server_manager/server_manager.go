@@ -384,7 +384,7 @@ FAILED_SERVER_DURING_REBALANCE:
 		goto FAILED_SERVER_DURING_REBALANCE
 	}
 
-	sm.logger.Printf("[INFO] server manager: Rebalanced %d servers, next active server is %s", len(serverCfg.servers), serverCfg.servers[0].String())
+	sm.logger.Printf("[DEBUG] server manager: Rebalanced %d servers, next active server is %s", len(serverCfg.servers), serverCfg.servers[0].String())
 	return
 }
 
@@ -444,7 +444,7 @@ func (sm *ServerManager) Start() {
 	for {
 		select {
 		case <-sm.rebalanceTimer.C:
-			sm.logger.Printf("[INFO] server manager: Rebalancing server connections")
+			//sm.logger.Printf("[INFO] server manager: Rebalancing server connections")
 			sm.RebalanceServers()
 			sm.refreshServerRebalanceTimer()
 
