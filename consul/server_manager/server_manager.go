@@ -286,6 +286,7 @@ FAILED_SERVER_DURING_REBALANCE:
 
 	// Early abort if there is no value to shuffling
 	if len(serverCfg.servers) < 2 {
+		// sm.logger.Printf("[INFO] server manager: can't rebalance with only %d servers", len(serverCfg.servers))
 		return
 	}
 
@@ -300,7 +301,7 @@ FAILED_SERVER_DURING_REBALANCE:
 		// while Serf detects the node has failed.
 		selectedServer := serverCfg.servers[0]
 
-		sm.logger.Printf("[INFO] server manager: Preemptively testing server %s before rebalance", selectedServer.String())
+		// sm.logger.Printf("[INFO] server manager: Preemptively testing server %s before rebalance", selectedServer.String())
 		ok := sm.connPoolPinger.PingConsulServer(selectedServer)
 		if ok {
 			foundHealthyServer = true
@@ -313,7 +314,7 @@ FAILED_SERVER_DURING_REBALANCE:
 	// the world a happy place again.
 	if !foundHealthyServer {
 		const backoffDuration = 1 * time.Second
-		sm.logger.Printf("[INFO] server manager: No servers available, sleeping for %v", backoffDuration)
+		// sm.logger.Printf("[INFO] server manager: No servers available, sleeping for %v", backoffDuration)
 
 		// Sleep with no locks
 		time.Sleep(backoffDuration)
@@ -379,7 +380,7 @@ FAILED_SERVER_DURING_REBALANCE:
 		goto FAILED_SERVER_DURING_REBALANCE
 	}
 
-	sm.logger.Printf("[INFO] server manager: Rebalancing server connections complete")
+	sm.logger.Printf("[INFO] server manager: Rebalanced %d servers, next active server is %s", len(serverCfg.servers), serverCfg.servers[0].String())
 	return
 }
 
