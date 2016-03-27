@@ -132,17 +132,8 @@ func TestServerManagerInternal_New(t *testing.T) {
 	}
 }
 
-// func (sc *serverConfig) refreshServerRebalanceTimer(timer *time.Timer) {
+// func (sc *serverConfig) refreshServerRebalanceTimer() {
 func TestServerManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
-	sm := testServerManager()
-
-	timer := time.NewTimer(time.Duration(1 * time.Nanosecond))
-	time.Sleep(1 * time.Millisecond)
-	sm.refreshServerRebalanceTimer(timer)
-
-	logger := log.New(os.Stderr, "", log.LstdFlags)
-	shutdownCh := make(chan struct{})
-
 	type clusterSizes struct {
 		numNodes     int
 		numServers   int
@@ -177,15 +168,17 @@ func TestServerManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 		{1000000, 19, 10 * time.Minute},
 	}
 
+	logger := log.New(os.Stderr, "", log.LstdFlags)
+	shutdownCh := make(chan struct{})
+
 	for _, s := range clusters {
 		sm := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{})
-
 		for i := 0; i < s.numServers; i++ {
 			nodeName := fmt.Sprintf("s%02d", i)
 			sm.AddServer(&server_details.ServerDetails{Name: nodeName})
 		}
 
-		d := sm.refreshServerRebalanceTimer(timer)
+		d := sm.refreshServerRebalanceTimer()
 		if d < s.minRebalance {
 			t.Errorf("duration too short for cluster of size %d and %d servers (%s < %s)", s.numNodes, s.numServers, d, s.minRebalance)
 		}
