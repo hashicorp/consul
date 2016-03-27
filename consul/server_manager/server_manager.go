@@ -47,6 +47,8 @@ const (
 	newRebalanceConnsPerSecPerServer = 64
 )
 
+// ConsulClusterInfo is an interface wrapper around serf and prevents a
+// cyclic import dependency
 type ConsulClusterInfo interface {
 	NumNodes() int
 }
