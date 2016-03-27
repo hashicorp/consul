@@ -35,10 +35,14 @@ type ServerDetails struct {
 
 // Key returns the corresponding Key
 func (s *ServerDetails) Key() *Key {
+	var serverAddr string
+	if s.Addr != nil {
+		serverAddr = s.Addr.String() + s.Addr.Network()
+	}
 	return &Key{
 		Datacenter: s.Datacenter,
 		Port:       s.Port,
-		AddrString: s.Addr.String() + s.Addr.Network(),
+		AddrString: serverAddr,
 	}
 }
 
