@@ -125,7 +125,12 @@ func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
 
 // cycleServers returns a new list of servers that has dequeued the first
 // server and enqueued it at the end of the list.  cycleServers assumes the
-// caller is holding the serverConfigLock.
+// caller is holding the serverConfigLock.  cycleServer does not test or ping
+// the next server inline.  cycleServer may be called when the environment
+// has just entered an unhealthy situation and blocking on a server test is
+// less desirable than just returning the next server in the firing line.  If
+// the next server fails, it will fail fast enough and cycleServer will be
+// called again.
 func (sc *serverConfig) cycleServer() (servers []*server_details.ServerDetails) {
 	numServers := len(sc.servers)
 	if numServers < 2 {
@@ -135,6 +140,9 @@ func (sc *serverConfig) cycleServer() (servers []*server_details.ServerDetails) 
 	newServers := make([]*server_details.ServerDetails, 0, numServers)
 	newServers = append(newServers, sc.servers[1:]...)
 	newServers = append(newServers, sc.servers[0])
+
+	// FIXME(sean@): Is it worth it to fire off a go routine and
+	// TestConsulServer?
 	return newServers
 }
 
