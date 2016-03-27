@@ -223,6 +223,9 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 	// Start handling events
 	go agent.handleEvents()
 
+	// Emit metrics for services managed by this node
+	go agent.instrumentServices()
+
 	// Start sending network coordinate to the server.
 	if !config.DisableCoordinates {
 		go agent.sendCoordinate()
