@@ -193,7 +193,7 @@ func (sm *ServerManager) FindServer() *server_details.ServerDetails {
 	serverCfg := sm.getServerConfig()
 	numServers := len(serverCfg.servers)
 	if numServers == 0 {
-		sm.logger.Printf("[WARN] consul: No servers available")
+		sm.logger.Printf("[WARN] server manager: No servers available")
 		return nil
 	} else {
 		// Return whatever is at the front of the list because it is
