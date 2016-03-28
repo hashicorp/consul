@@ -272,6 +272,10 @@ func TestServerManager_RemoveServer(t *testing.T) {
 		servers = append(servers, server)
 		sm.AddServer(server)
 	}
+	if sm.NumServers() != maxServers {
+		t.Fatalf("Expected %d servers, received %d", maxServers, sm.NumServers())
+	}
+
 	sm.RebalanceServers()
 
 	if sm.NumServers() != maxServers {
