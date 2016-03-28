@@ -61,7 +61,7 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	default:
 		// TODO
 	}
-	// sizing and Do bit RRSIG
+	m, _ = state.Scrub(m)
 	w.WriteMsg(m)
 	return dns.RcodeSuccess, nil
 }
