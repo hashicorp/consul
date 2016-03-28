@@ -37,7 +37,9 @@ func NewResponseRecorder(w dns.ResponseWriter) *ResponseRecorder {
 // underlying ResponseWriter's WriteMsg method.
 func (r *ResponseRecorder) WriteMsg(res *dns.Msg) error {
 	r.rcode = res.Rcode
-	r.size = res.Len()
+	// We may get called multiple times (axfr for instance).
+	// Save the last message, but add the sizes.
+	r.size += res.Len()
 	r.msg = res
 	return r.ResponseWriter.WriteMsg(res)
 }

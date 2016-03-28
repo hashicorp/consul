@@ -15,26 +15,15 @@ file dbfile [zones...]
 * `zones` zones it should be authoritative for. If empty the zones from the configuration block
     are used.
 
-If you want to `round robin` A and AAAA responses look at the `loadbalance` middleware.
+If you want to round robin A and AAAA responses look at the `loadbalance` middleware.
 
 ~~~
-file {
-    db <dsds>
-    masters [...masters...]
+file dbfile [zones... ] {
+    transfer in|out
 }
 ~~~
 
-
-
-
-
-* `path` /skydns
-* `endpoint` endpoints...
-* `stubzones`
+* `transfer` enable zone transfers, for now only `transfer out` does something. It enables outgoing
+  zone transfers when defined.
 
 ## Examples
-
-dnssec {
-    file blaat, transparant allow already signed responses
-    ksk bliep.dsdsk
-}
