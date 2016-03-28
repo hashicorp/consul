@@ -94,8 +94,8 @@ type ServerManager struct {
 	// client.ConnPool.
 	connPoolPinger ConnPoolPinger
 
-	// notifyFailedServersBarrier is acts as a barrier to prevent
-	// queueing behind serverConfigLog and acts as a TryLock().
+	// notifyFailedBarrier is acts as a barrier to prevent queuing behind
+	// serverConfigLog and acts as a TryLock().
 	notifyFailedBarrier int32
 }
 
