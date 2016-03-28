@@ -29,8 +29,8 @@ func GetBufferedLogger() *log.Logger {
 type fauxConnPool struct {
 }
 
-func (s *fauxConnPool) PingConsulServer(server *server_details.ServerDetails) bool {
-	return true
+func (s *fauxConnPool) PingConsulServer(server *server_details.ServerDetails) (bool, error) {
+	return true, nil
 }
 
 type fauxSerf struct {

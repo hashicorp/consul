@@ -408,11 +408,11 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, arg
 
 // PingConsulServer sends a Status.Ping message to the specified server and
 // returns true if healthy, false if an error occurred
-func (p *ConnPool) PingConsulServer(s *server_details.ServerDetails) bool {
+func (p *ConnPool) PingConsulServer(s *server_details.ServerDetails) (bool, error) {
 	// Get a usable client
 	conn, sc, err := p.getClient(s.Datacenter, s.Addr, s.Version)
 	if err != nil {
-		return false
+		return false, err
 	}
 
 	// Make the RPC call
@@ -421,13 +421,13 @@ func (p *ConnPool) PingConsulServer(s *server_details.ServerDetails) bool {
 	if err != nil {
 		sc.Close()
 		p.releaseConn(conn)
-		return false
+		return false, err
 	}
 
 	// Done with the connection
 	conn.returnClient(sc)
 	p.releaseConn(conn)
-	return true
+	return true, nil
 }
 
 // Reap is used to close conns open over maxTime

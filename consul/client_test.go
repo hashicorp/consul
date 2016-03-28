@@ -287,8 +287,9 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 	for range servers {
 		time.Sleep(1 * time.Second)
 		s := c.serverMgr.FindServer()
-		if !c.connPool.PingConsulServer(s) {
-			t.Errorf("Unable to ping server %v", s.String())
+		ok, err := c.connPool.PingConsulServer(s)
+		if !ok {
+			t.Errorf("Unable to ping server %v: %s", s.String(), err)
 		}
 		pingCount += 1
 	}

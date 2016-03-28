@@ -56,7 +56,7 @@ type ConsulClusterInfo interface {
 // ConnPoolTester is an interface wrapping client.ConnPool to prevent a
 // cyclic import dependency
 type ConnPoolPinger interface {
-	PingConsulServer(server *server_details.ServerDetails) bool
+	PingConsulServer(server *server_details.ServerDetails) (bool, error)
 }
 
 // serverConfig is the thread-safe configuration struct used to maintain the
@@ -306,11 +306,13 @@ FAILED_SERVER_DURING_REBALANCE:
 		selectedServer := sc.servers[0]
 
 		// sm.logger.Printf("[INFO] server manager: Preemptively testing server %s before rebalance", selectedServer.String())
-		ok := sm.connPoolPinger.PingConsulServer(selectedServer)
+		ok, err := sm.connPoolPinger.PingConsulServer(selectedServer)
 		if ok {
 			foundHealthyServer = true
 			break
 		}
+		sm.logger.Printf("[DEBUG] server manager: pinging server %s failed: %s", selectedServer.String(), err)
+
 		sc.cycleServer()
 	}
 
