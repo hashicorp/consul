@@ -179,11 +179,3 @@ func (s State) ErrorMessage(rcode int) *dns.Msg {
 	m.SetRcode(s.Req, rcode)
 	return m
 }
-
-// AnswerMessage returns an error message suitable for sending
-// back to the client.
-func (s State) AnswerMessage() *dns.Msg {
-	m := new(dns.Msg)
-	m.SetReply(s.Req)
-	return m
-}

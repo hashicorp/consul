@@ -6,12 +6,13 @@ package file
 // have some fluff for DNSSEC (and be memory efficient).
 
 import (
-	"strings"
-
-	"golang.org/x/net/context"
+	"io"
+	"log"
 
 	"github.com/miekg/coredns/middleware"
+
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 type (
@@ -21,9 +22,8 @@ type (
 		// Maybe a list of all zones as well, as a []string?
 	}
 
-	Zone  []dns.RR
 	Zones struct {
-		Z     map[string]Zone // utterly braindead impl. TODO(miek): fix
+		Z     map[string]*Zone
 		Names []string
 	}
 )
@@ -35,57 +35,51 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	if zone == "" {
 		return f.Next.ServeDNS(ctx, w, r)
 	}
-
-	names, nodata := f.Zones.Z[zone].lookup(qname, state.QType())
-	var answer *dns.Msg
-	switch {
-	case nodata:
-		answer = state.AnswerMessage()
-		answer.Ns = names
-	case len(names) == 0:
-		answer = state.AnswerMessage()
-		answer.Ns = names
-		answer.Rcode = dns.RcodeNameError
-	case len(names) > 0:
-		answer = state.AnswerMessage()
-		answer.Answer = names
-	default:
-		answer = state.ErrorMessage(dns.RcodeServerFailure)
+	z, ok := f.Zones.Z[zone]
+	if !ok {
+		return f.Next.ServeDNS(ctx, w, r)
 	}
-	// Check return size, etc. TODO(miek)
-	w.WriteMsg(answer)
-	return 0, nil
+
+	rrs, extra, result := z.Lookup(qname, state.QType(), state.Do())
+
+	m := new(dns.Msg)
+	m.SetReply(r)
+	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
+
+	switch result {
+	case Success:
+		// case?
+		m.Answer = rrs
+		m.Extra = extra
+		// Ns section
+	case NameError:
+		m.Rcode = dns.RcodeNameError
+		fallthrough
+	case NoData:
+		// case?
+		m.Ns = rrs
+	default:
+		// TODO
+	}
+	// sizing and Do bit RRSIG
+	w.WriteMsg(m)
+	return dns.RcodeSuccess, nil
 }
 
-// Lookup will try to find qname and qtype in z. It returns the
-// records found *or* a boolean saying NODATA. If the answer
-// is NODATA then the RR returned is the SOA record.
-//
-// TODO(miek): EXTREMELY STUPID IMPLEMENTATION.
-// Doesn't do much, no delegation, no cname, nothing really, etc.
-// TODO(miek): even NODATA looks broken
-func (z Zone) lookup(qname string, qtype uint16) ([]dns.RR, bool) {
-	var (
-		nodata bool
-		rep    []dns.RR
-		soa    dns.RR
-	)
-
-	for _, rr := range z {
-		if rr.Header().Rrtype == dns.TypeSOA {
-			soa = rr
+// Parse parses the zone in filename and returns a new Zone or an error.
+func Parse(f io.Reader, origin, fileName string) (*Zone, error) {
+	tokens := dns.ParseZone(f, dns.Fqdn(origin), fileName)
+	z := NewZone(origin)
+	for x := range tokens {
+		if x.Error != nil {
+			log.Printf("[ERROR] failed to parse %s: %v", origin, x.Error)
+			return nil, x.Error
 		}
-		// Match function in Go DNS?
-		if strings.ToLower(rr.Header().Name) == qname {
-			if rr.Header().Rrtype == qtype {
-				rep = append(rep, rr)
-				nodata = false
-			}
-
+		if x.RR.Header().Rrtype == dns.TypeSOA {
+			z.SOA = x.RR.(*dns.SOA)
+			continue
 		}
+		z.Insert(x.RR)
 	}
-	if nodata {
-		return []dns.RR{soa}, true
-	}
-	return rep, false
+	return z, nil
 }

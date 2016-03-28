@@ -1,13 +1,10 @@
 package setup
 
 import (
-	"log"
 	"os"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/file"
-
-	"github.com/miekg/dns"
 )
 
 // File sets up the file middleware.
@@ -23,8 +20,7 @@ func File(c *Controller) (middleware.Middleware, error) {
 }
 
 func fileParse(c *Controller) (file.Zones, error) {
-	// Maybe multiple, each for each zone.
-	z := make(map[string]file.Zone)
+	z := make(map[string]*file.Zone)
 	names := []string{}
 	for c.Next() {
 		if c.Val() == "file" {
@@ -42,7 +38,12 @@ func fileParse(c *Controller) (file.Zones, error) {
 			// normalize this origin
 			origin = middleware.Host(origin).StandardHost()
 
-			zone, err := parseZone(origin, fileName)
+			reader, err := os.Open(fileName)
+			if err != nil {
+				return file.Zones{}, err
+			}
+
+			zone, err := file.Parse(reader, origin, fileName)
 			if err == nil {
 				z[origin] = zone
 			}
@@ -51,24 +52,3 @@ func fileParse(c *Controller) (file.Zones, error) {
 	}
 	return file.Zones{Z: z, Names: names}, nil
 }
-
-//
-// parsrZone parses the zone in filename and returns a []RR or an error.
-func parseZone(origin, fileName string) (file.Zone, error) {
-	f, err := os.Open(fileName)
-	if err != nil {
-		return nil, err
-	}
-	tokens := dns.ParseZone(f, origin, fileName)
-	zone := make([]dns.RR, 0, defaultZoneSize)
-	for x := range tokens {
-		if x.Error != nil {
-			log.Printf("[ERROR] failed to parse %s: %v", origin, x.Error)
-			return nil, x.Error
-		}
-		zone = append(zone, x.RR)
-	}
-	return file.Zone(zone), nil
-}
-
-const defaultZoneSize = 20 // A made up number.
