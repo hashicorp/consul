@@ -16,7 +16,7 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	// are not auth. for *but* do have a stubzone forward for. If we do the stubzone
 	// handler will handle the request.
 	name := state.Name()
-	if len(*e.Stubmap) > 0 {
+	if e.Stubmap != nil && len(*e.Stubmap) > 0 {
 		for zone, _ := range *e.Stubmap {
 			if strings.HasSuffix(name, zone) {
 				stub := Stub{Etcd: e, Zone: zone}

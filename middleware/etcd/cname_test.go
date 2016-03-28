@@ -9,6 +9,7 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
+	coretest "github.com/miekg/coredns/middleware/testing"
 
 	"github.com/miekg/dns"
 )
@@ -53,14 +54,14 @@ func TestCnameLookup(t *testing.T) {
 			continue
 		}
 
-		if !checkSection(t, tc, Answer, resp.Answer) {
+		if !coretest.CheckSection(t, tc, coretest.Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
 		}
-		if !checkSection(t, tc, Ns, resp.Ns) {
+		if !coretest.CheckSection(t, tc, coretest.Ns, resp.Ns) {
 			t.Logf("%v\n", resp)
 
 		}
-		if !checkSection(t, tc, Extra, resp.Extra) {
+		if !coretest.CheckSection(t, tc, coretest.Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
 		}
 	}
@@ -77,20 +78,20 @@ var servicesCname = []*msg.Service{
 	{Host: "10.240.0.1", Key: "endpoint.region2.skydns.test."},
 }
 
-var dnsTestCasesCname = []dnsTestCase{
+var dnsTestCasesCname = []coretest.Case{
 	{
 		Qname: "a.server1.dev.region1.skydns.test.", Qtype: dns.TypeSRV,
 		Answer: []dns.RR{
-			newSRV("a.server1.dev.region1.skydns.test.	300	IN	SRV	10 100 0 cname1.region2.skydns.test."),
+			coretest.SRV("a.server1.dev.region1.skydns.test.	300	IN	SRV	10 100 0 cname1.region2.skydns.test."),
 		},
 		Extra: []dns.RR{
-			newCNAME("cname1.region2.skydns.test.	300	IN	CNAME	cname2.region2.skydns.test."),
-			newCNAME("cname2.region2.skydns.test.	300	IN	CNAME	cname3.region2.skydns.test."),
-			newCNAME("cname3.region2.skydns.test.	300	IN	CNAME	cname4.region2.skydns.test."),
-			newCNAME("cname4.region2.skydns.test.	300	IN	CNAME	cname5.region2.skydns.test."),
-			newCNAME("cname5.region2.skydns.test.	300	IN	CNAME	cname6.region2.skydns.test."),
-			newCNAME("cname6.region2.skydns.test.	300	IN	CNAME	endpoint.region2.skydns.test."),
-			newA("endpoint.region2.skydns.test.	300	IN	A	10.240.0.1"),
+			coretest.CNAME("cname1.region2.skydns.test.	300	IN	CNAME	cname2.region2.skydns.test."),
+			coretest.CNAME("cname2.region2.skydns.test.	300	IN	CNAME	cname3.region2.skydns.test."),
+			coretest.CNAME("cname3.region2.skydns.test.	300	IN	CNAME	cname4.region2.skydns.test."),
+			coretest.CNAME("cname4.region2.skydns.test.	300	IN	CNAME	cname5.region2.skydns.test."),
+			coretest.CNAME("cname5.region2.skydns.test.	300	IN	CNAME	cname6.region2.skydns.test."),
+			coretest.CNAME("cname6.region2.skydns.test.	300	IN	CNAME	endpoint.region2.skydns.test."),
+			coretest.A("endpoint.region2.skydns.test.	300	IN	A	10.240.0.1"),
 		},
 	},
 }
