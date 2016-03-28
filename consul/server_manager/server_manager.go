@@ -284,7 +284,6 @@ FAILED_SERVER_DURING_REBALANCE:
 
 	// Early abort if there is no value to shuffling
 	if len(sc.servers) < 2 {
-		// sm.logger.Printf("[INFO] server manager: can't rebalance with only %d servers", len(sc.servers))
 		return
 	}
 
@@ -299,7 +298,6 @@ FAILED_SERVER_DURING_REBALANCE:
 		// while Serf detects the node has failed.
 		selectedServer := sc.servers[0]
 
-		// sm.logger.Printf("[INFO] server manager: Preemptively testing server %s before rebalance", selectedServer.String())
 		ok, err := sm.connPoolPinger.PingConsulServer(selectedServer)
 		if ok {
 			foundHealthyServer = true
