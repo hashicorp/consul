@@ -25,8 +25,7 @@ func TestOtherLookup(t *testing.T) {
 		defer delete(t, etc, serv.Key)
 	}
 	for _, tc := range dnsTestCasesOther {
-		m := new(dns.Msg)
-		m.SetQuestion(dns.Fqdn(tc.Qname), tc.Qtype)
+		m := tc.Msg()
 
 		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
 		_, err := etc.ServeDNS(ctx, rec, m)

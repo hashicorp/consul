@@ -78,6 +78,11 @@ func Parse(f io.Reader, origin, fileName string) (*Zone, error) {
 			z.SOA = x.RR.(*dns.SOA)
 			continue
 		}
+		if x.RR.Header().Rrtype == dns.TypeRRSIG {
+			if x, ok := x.RR.(*dns.RRSIG); ok && x.TypeCovered == dns.TypeSOA {
+				z.SIG = append(z.SIG, x)
+			}
+		}
 		z.Insert(x.RR)
 	}
 	return z, nil
