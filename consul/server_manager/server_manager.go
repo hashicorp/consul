@@ -256,8 +256,6 @@ func (sm *ServerManager) NotifyFailedServer(server *server_details.ServerDetails
 
 		if len(sc.servers) > 1 && sc.servers[0] == server {
 			sc.servers = sc.cycleServer()
-			// FIXME(sean@): Is it worth it to fire off a go routine and
-			// PingConsulServer?
 			sm.saveServerConfig(sc)
 		}
 	}
