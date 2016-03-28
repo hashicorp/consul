@@ -43,7 +43,6 @@ var dnsTestCases = []coretest.Case{
 
 		Extra: []dns.RR{
 			coretest.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
-			coretest.AAAA("a.miek.nl.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fef1:6735"),
 		},
 	},
 	{
@@ -73,8 +72,7 @@ func TestLookup(t *testing.T) {
 	ctx := context.TODO()
 
 	for _, tc := range dnsTestCases {
-		m := new(dns.Msg)
-		m.SetQuestion(dns.Fqdn(tc.Qname), tc.Qtype)
+		m := tc.Msg()
 
 		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)

@@ -26,8 +26,7 @@ func TestMultiLookup(t *testing.T) {
 		defer delete(t, etcMulti, serv.Key)
 	}
 	for _, tc := range dnsTestCasesMulti {
-		m := new(dns.Msg)
-		m.SetQuestion(dns.Fqdn(tc.Qname), tc.Qtype)
+		m := tc.Msg()
 
 		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
 		_, err := etcMulti.ServeDNS(ctx, rec, m)

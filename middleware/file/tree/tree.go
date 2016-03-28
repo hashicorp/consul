@@ -47,7 +47,7 @@ func newElem(rr dns.RR) *Elem {
 	return &e
 }
 
-// Types returns the types from with type qtype from e.
+// Types returns the RRs with type qtype from e.
 func (e *Elem) Types(qtype uint16) []dns.RR {
 	if rrs, ok := e.m[qtype]; ok {
 		// TODO(miek): length should never be zero here.
@@ -56,6 +56,7 @@ func (e *Elem) Types(qtype uint16) []dns.RR {
 	return nil
 }
 
+// All returns all RRs from e, regardless of type.
 func (e *Elem) All() []dns.RR {
 	list := []dns.RR{}
 	for _, rrs := range e.m {
@@ -64,6 +65,7 @@ func (e *Elem) All() []dns.RR {
 	return list
 }
 
+// Insert inserts rr into e. If rr is equal to existing rrs this is a noop.
 func (e *Elem) Insert(rr dns.RR) {
 	t := rr.Header().Rrtype
 	if e.m == nil {
@@ -130,6 +132,7 @@ func Less(a *Elem, rr dns.RR) int {
 // Assuming the same type and name this will check if the rdata is equal as well.
 func equalRdata(a, b dns.RR) bool {
 	switch x := a.(type) {
+	// TODO(miek): more types, i.e. all types.
 	case *dns.A:
 		return x.A.Equal(b.(*dns.A).A)
 	case *dns.AAAA:
@@ -259,8 +262,7 @@ func (t *Tree) Len() int {
 	return t.Count
 }
 
-// Get returns the first match of q in the Tree. If insertion without
-// replacement is used, this is probably not what you want.
+// Get returns the first match of rr in the Tree.
 func (t *Tree) Get(rr dns.RR) *Elem {
 	if t.Root == nil {
 		return nil
@@ -287,11 +289,8 @@ func (n *Node) search(rr dns.RR) *Node {
 	return n
 }
 
-// Insert inserts the Comparable e into the Tree at the first match found
-// with e or when a nil node is reached. Insertion without replacement can
-// specified by ensuring that e.Compare() never returns 0. If insert without
-// replacement is performed, a distinct query Comparable must be used that
-// can return 0 with a Compare() call.
+// Insert inserts rr into the Tree at the first match found
+// with e or when a nil node is reached.
 func (t *Tree) Insert(rr dns.RR) {
 	var d int
 	t.Root, d = t.Root.insert(rr)
@@ -340,8 +339,7 @@ func (n *Node) insert(rr dns.RR) (root *Node, d int) {
 	return
 }
 
-// DeleteMin deletes the node with the minimum value in the tree. If insertion without
-// replacement has been used, the left-most minimum will be deleted.
+// DeleteMin deletes the node with the minimum value in the tree.
 func (t *Tree) DeleteMin() {
 	if t.Root == nil {
 		return
@@ -369,8 +367,7 @@ func (n *Node) deleteMin() (root *Node, d int) {
 	return
 }
 
-// DeleteMax deletes the node with the maximum value in the tree. If insertion without
-// replacement has been used, the right-most maximum will be deleted.
+// DeleteMax deletes the node with the maximum value in the tree.
 func (t *Tree) DeleteMax() {
 	if t.Root == nil {
 		return
@@ -401,7 +398,7 @@ func (n *Node) deleteMax() (root *Node, d int) {
 	return
 }
 
-// Delete removes rr from the tree, is the node turns empty, that node is return with DeleteNode.
+// Delete removes rr from the tree, is the node turns empty, that node is deleted with DeleteNode.
 func (t *Tree) Delete(rr dns.RR) {
 	if t.Root == nil {
 		return
@@ -420,9 +417,7 @@ func (t *Tree) Delete(rr dns.RR) {
 	}
 }
 
-// DeleteNode deletes the node that matches e according to Compare(). Note that Compare must
-// identify the target node uniquely and in cases where non-unique keys are used,
-// attributes used to break ties must be used to determine tree ordering during insertion.
+// DeleteNode deletes the node that matches rr according to Less().
 func (t *Tree) DeleteNode(rr dns.RR) {
 	if t.Root == nil {
 		return
@@ -469,8 +464,7 @@ func (n *Node) delete(rr dns.RR) (root *Node, d int) {
 	return
 }
 
-// Return the minimum value stored in the tree. This will be the left-most minimum value if
-// insertion without replacement has been used.
+// Min returns the minimum value stored in the tree.
 func (t *Tree) Min() *Elem {
 	if t.Root == nil {
 		return nil
@@ -484,8 +478,7 @@ func (n *Node) min() *Node {
 	return n
 }
 
-// Return the maximum value stored in the tree. This will be the right-most maximum value if
-// insertion without replacement has been used.
+// Max returns the maximum value stored in the tree.
 func (t *Tree) Max() *Elem {
 	if t.Root == nil {
 		return nil
@@ -499,7 +492,7 @@ func (n *Node) max() *Node {
 	return n
 }
 
-// Floor returns the greatest value equal to or less than the query q according to q.Compare().
+// Floor returns the greatest value equal to or less than the rr according to Less().
 func (t *Tree) Floor(rr dns.RR) *Elem {
 	if t.Root == nil {
 		return nil
@@ -528,9 +521,7 @@ func (n *Node) floor(rr dns.RR) *Node {
 	return n
 }
 
-// TODO(successor, predecessor)
-
-// Ceil returns the smallest value equal to or greater than the query q according to q.Compare().
+// Ceil returns the smallest value equal to or greater than the rr according to Less().
 func (t *Tree) Ceil(rr dns.RR) *Elem {
 	if t.Root == nil {
 		return nil
