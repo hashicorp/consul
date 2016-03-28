@@ -1,10 +1,5 @@
 package file
 
-// TODO(miek): the zone's implementation is basically non-existent
-// we return a list and when searching for an answer we iterate
-// over the list. This must be moved to a tree-like structure and
-// have some fluff for DNSSEC (and be memory efficient).
-
 import (
 	"io"
 	"log"
@@ -19,7 +14,6 @@ type (
 	File struct {
 		Next  middleware.Handler
 		Zones Zones
-		// Maybe a list of all zones as well, as a []string?
 	}
 
 	Zones struct {
@@ -38,6 +32,11 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	z, ok := f.Zones.Z[zone]
 	if !ok {
 		return f.Next.ServeDNS(ctx, w, r)
+	}
+
+	if state.Proto() != "udp" && state.QType() == dns.TypeAXFR {
+		xfr := Xfr{z}
+		return xfr.ServeDNS(ctx, w, r)
 	}
 
 	rrs, extra, result := z.Lookup(qname, state.QType(), state.Do())

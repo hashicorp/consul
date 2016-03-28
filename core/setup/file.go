@@ -32,7 +32,6 @@ func fileParse(c *Controller) (file.Zones, error) {
 
 			origin := c.ServerBlockHosts[c.ServerBlockHostIndex]
 			if c.NextArg() {
-				c.Next()
 				origin = c.Val()
 			}
 			// normalize this origin
@@ -42,12 +41,31 @@ func fileParse(c *Controller) (file.Zones, error) {
 			if err != nil {
 				return file.Zones{}, err
 			}
-
 			zone, err := file.Parse(reader, origin, fileName)
 			if err == nil {
 				z[origin] = zone
 			}
 			names = append(names, origin)
+			if c.NextBlock() {
+				what := c.Val()
+				if !c.NextArg() {
+					return file.Zones{}, c.ArgErr()
+				}
+				value := c.Val()
+				var err error
+				switch what {
+				case "transfer":
+					if value == "out" {
+						z[origin].Transfer.Out = true
+					}
+					if value == "in" {
+						z[origin].Transfer.In = true
+					}
+				}
+				if err != nil {
+					return file.Zones{}, err
+				}
+			}
 		}
 	}
 	return file.Zones{Z: z, Names: names}, nil

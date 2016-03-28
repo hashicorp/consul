@@ -528,6 +528,8 @@ func (n *Node) floor(rr dns.RR) *Node {
 	return n
 }
 
+// TODO(successor, predecessor)
+
 // Ceil returns the smallest value equal to or greater than the query q according to q.Compare().
 func (t *Tree) Ceil(rr dns.RR) *Elem {
 	if t.Root == nil {
