@@ -53,9 +53,9 @@ type ConsulClusterInfo interface {
 	NumNodes() int
 }
 
-// ConnPoolTester is an interface wrapping client.ConnPool to prevent a
+// Pinger is an interface wrapping client.ConnPool to prevent a
 // cyclic import dependency
-type ConnPoolPinger interface {
+type Pinger interface {
 	PingConsulServer(server *server_details.ServerDetails) (bool, error)
 }
 
@@ -90,9 +90,9 @@ type ServerManager struct {
 	clusterInfo ConsulClusterInfo
 
 	// connPoolPinger is used to test the health of a server in the
-	// connection pool.  ConnPoolPinger is an interface that wraps
+	// connection pool.  Pinger is an interface that wraps
 	// client.ConnPool.
-	connPoolPinger ConnPoolPinger
+	connPoolPinger Pinger
 
 	// notifyFailedBarrier is acts as a barrier to prevent queuing behind
 	// serverConfigLog and acts as a TryLock().
@@ -220,7 +220,7 @@ func (sm *ServerManager) saveServerConfig(sc serverConfig) {
 }
 
 // New is the only way to safely create a new ServerManager struct.
-func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulClusterInfo, connPoolPinger ConnPoolPinger) (sm *ServerManager) {
+func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulClusterInfo, connPoolPinger Pinger) (sm *ServerManager) {
 	sm = new(ServerManager)
 	sm.logger = logger
 	sm.clusterInfo = clusterInfo       // can't pass *consul.Client: import cycle

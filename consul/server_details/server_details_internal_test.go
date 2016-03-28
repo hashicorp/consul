@@ -12,7 +12,7 @@ func TestServerDetails_Key_Equal(t *testing.T) {
 		equal bool
 	}{
 		{
-			name: "IPv4 equality",
+			name: "Key equality",
 			k1: &Key{
 				name: "s1",
 			},
@@ -22,7 +22,7 @@ func TestServerDetails_Key_Equal(t *testing.T) {
 			equal: true,
 		},
 		{
-			name: "IPv4 Inequality",
+			name: "Key Inequality",
 			k1: &Key{
 				name: "s1",
 			},
