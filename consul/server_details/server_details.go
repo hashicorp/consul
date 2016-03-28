@@ -54,7 +54,7 @@ func (s *ServerDetails) String() string {
 		networkStr = s.Addr.Network()
 	}
 
-	return fmt.Sprintf("%s (Addr: %s/%s) (DC: %s)", s.Name, addrStr, networkStr, s.Datacenter)
+	return fmt.Sprintf("%s (Addr: %s/%s) (DC: %s)", s.Name, networkStr, addrStr, s.Datacenter)
 }
 
 // IsConsulServer returns true if a serf member is a consul server. Returns a
