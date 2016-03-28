@@ -18,11 +18,12 @@ import (
 type Etcd struct {
 	Next       middleware.Handler
 	Zones      []string
+	PathPrefix string
 	Proxy      proxy.Proxy // Proxy for looking up names during the resolution process
 	Client     etcdc.KeysAPI
 	Ctx        context.Context
 	Inflight   *singleflight.Group
-	PathPrefix string
+	Stubmap    *map[string]proxy.Proxy // List of proxies for stub resolving.
 }
 
 // Records looks up records in etcd. If exact is true, it will lookup just

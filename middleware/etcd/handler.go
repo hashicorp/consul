@@ -1,6 +1,8 @@
 package etcd
 
 import (
+	"strings"
+
 	"github.com/miekg/coredns/middleware"
 
 	"github.com/miekg/dns"
@@ -9,6 +11,20 @@ import (
 
 func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := middleware.State{W: w, Req: r}
+
+	// We need to check stubzones first, because we may get a request for a zone we
+	// are not auth. for *but* do have a stubzone forward for. If we do the stubzone
+	// handler will handle the request.
+	name := state.Name()
+	if len(*e.Stubmap) > 0 {
+		for zone, _ := range *e.Stubmap {
+			if strings.HasSuffix(name, zone) {
+				stub := Stub{Etcd: e, Zone: zone}
+				return stub.ServeDNS(ctx, w, r)
+			}
+		}
+	}
+
 	zone := middleware.Zones(e.Zones).Matches(state.Name())
 	if zone == "" {
 		return e.Next.ServeDNS(ctx, w, r)

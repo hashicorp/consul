@@ -13,7 +13,7 @@ other servers in the network.
 etcd [zones...]
 ~~~
 
-* `zones` zones it should be authoritative for.
+* `zones` zones etcd should be authoritative for.
 
 The will default to `/skydns` as the path and the local etcd proxy (http://127.0.0.1:2379).
 If no zones are specified the block's zone will be used as the zone.
@@ -21,15 +21,19 @@ If no zones are specified the block's zone will be used as the zone.
 If you want to `round robin` A and AAAA responses look at the `loadbalance` middleware.
 
 ~~~
-etcd {
+etcd [zones...] {
+    stubzones
     path /skydns
     endpoint endpoint...
-    stubzones
+    upstream address...
+    tls cert key cacert
 }
 ~~~
 
-* `path` /skydns
-* `endpoint` endpoints...
-* `stubzones`
+* `stubzones` enable the stub zones feature.
+* `path` the path inside etcd, defaults to "/skydns".
+* `endpoint` the etcd endpoints, default to "http://localhost:2397".
+* `upstream` upstream resolvers to be used resolve external names found in etcd.
+* `tls` followed the cert, key and the CA's cert filenames.
 
 ## Examples
