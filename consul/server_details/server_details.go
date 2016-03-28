@@ -10,16 +10,12 @@ import (
 
 // Key is used in maps and for equality tests.  A key is based on endpoints.
 type Key struct {
-	Datacenter string
-	Port       int
-	AddrString string
+	name string
 }
 
 // Equal compares two Key objects
 func (k *Key) Equal(x *Key) bool {
-	return k.Datacenter == x.Datacenter &&
-		k.Port == x.Port &&
-		k.AddrString == x.AddrString
+	return k.name == x.name
 }
 
 // ServerDetails is used to return details of a consul server
@@ -35,14 +31,8 @@ type ServerDetails struct {
 
 // Key returns the corresponding Key
 func (s *ServerDetails) Key() *Key {
-	var serverAddr string
-	if s.Addr != nil {
-		serverAddr = s.Addr.String() + s.Addr.Network()
-	}
 	return &Key{
-		Datacenter: s.Datacenter,
-		Port:       s.Port,
-		AddrString: serverAddr,
+		name: s.Name,
 	}
 }
 
