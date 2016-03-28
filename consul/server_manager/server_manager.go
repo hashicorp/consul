@@ -173,15 +173,11 @@ func (sc *serverConfig) removeServerByKey(targetKey *server_details.Key) {
 
 // shuffleServers shuffles the server list in place
 func (sc *serverConfig) shuffleServers() {
-	newServers := make([]*server_details.ServerDetails, len(sc.servers))
-	copy(newServers, sc.servers)
-
 	// Shuffle server list
 	for i := len(sc.servers) - 1; i > 0; i-- {
 		j := rand.Int31n(int32(i + 1))
-		newServers[i], newServers[j] = newServers[j], newServers[i]
+		sc.servers[i], sc.servers[j] = sc.servers[j], sc.servers[i]
 	}
-	sc.servers = newServers
 }
 
 // FindServer takes out an internal "read lock" and searches through the list
