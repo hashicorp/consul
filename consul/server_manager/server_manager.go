@@ -312,7 +312,7 @@ FAILED_SERVER_DURING_REBALANCE:
 	// the world a happy place again.
 	if !foundHealthyServer {
 		const backoffDuration = 1 * time.Second
-		// sm.logger.Printf("[INFO] server manager: No servers available, sleeping for %v", backoffDuration)
+		sm.logger.Printf("[DEBUG] server manager: No servers available, sleeping for %v", backoffDuration)
 
 		// Sleep with no locks
 		time.Sleep(backoffDuration)
