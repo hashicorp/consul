@@ -403,3 +403,29 @@ func TestProtectDataDir(t *testing.T) {
 		t.Fatalf("expected mdb dir error, got: %s", out)
 	}
 }
+
+func TestBadDataDirPermissions(t *testing.T) {
+	dir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dir)
+
+	dataDir := filepath.Join(dir, "mdb")
+	if err := os.MkdirAll(dataDir, 0400); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer os.RemoveAll(dataDir)
+
+	ui := new(cli.MockUi)
+	cmd := &Command{
+		Ui:   ui,
+		args: []string{"-data-dir=" + dataDir, "-server=true"},
+	}
+	if conf := cmd.readConfig(); conf != nil {
+		t.Fatalf("Should fail with bad data directory permissions")
+	}
+	if out := ui.ErrorWriter.String(); !strings.Contains(out, "Permission denied") {
+		t.Fatalf("expected permission denied error, got: %s", out)
+	}
+}

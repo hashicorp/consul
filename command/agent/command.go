@@ -204,6 +204,12 @@ func (c *Command) readConfig() *Config {
 	if config.Server {
 		mdbPath := filepath.Join(config.DataDir, "mdb")
 		if _, err := os.Stat(mdbPath); !os.IsNotExist(err) {
+			if os.IsPermission(err) {
+				c.Ui.Error(fmt.Sprintf("CRITICAL: Permission denied for data folder at %q!", mdbPath))
+				c.Ui.Error("Consul will refuse to boot without access to this directory.")
+				c.Ui.Error("Please correct permissions and try starting again.")
+				return nil
+			}
 			c.Ui.Error(fmt.Sprintf("CRITICAL: Deprecated data folder found at %q!", mdbPath))
 			c.Ui.Error("Consul will refuse to boot with this directory present.")
 			c.Ui.Error("See https://www.consul.io/docs/upgrade-specific.html for more information.")
