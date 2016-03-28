@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"strings"
 	"testing"
@@ -27,10 +28,17 @@ func GetBufferedLogger() *log.Logger {
 }
 
 type fauxConnPool struct {
+	// failPct between 0.0 and 1.0 == pct of time a Ping should fail
+	failPct float64
 }
 
-func (s *fauxConnPool) PingConsulServer(server *server_details.ServerDetails) (bool, error) {
-	return true, nil
+func (cp *fauxConnPool) PingConsulServer(server *server_details.ServerDetails) (bool, error) {
+	var success bool
+	successProb := rand.Float64()
+	if successProb > cp.failPct {
+		success = true
+	}
+	return success, nil
 }
 
 type fauxSerf struct {
@@ -45,6 +53,14 @@ func testServerManager() (sm *server_manager.ServerManager) {
 	logger = log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
 	sm = server_manager.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
+	return sm
+}
+
+func testServerManagerFailProb(failPct float64) (sm *server_manager.ServerManager) {
+	logger := GetBufferedLogger()
+	logger = log.New(os.Stderr, "", log.LstdFlags)
+	shutdownCh := make(chan struct{})
+	sm = server_manager.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
 	return sm
 }
 
@@ -209,7 +225,8 @@ func TestServerManager_NumServers(t *testing.T) {
 
 // func (sm *ServerManager) RebalanceServers() {
 func TestServerManager_RebalanceServers(t *testing.T) {
-	sm := testServerManager()
+	const failPct = 0.5
+	sm := testServerManagerFailProb(failPct)
 	const maxServers = 100
 	const numShuffleTests = 100
 	const uniquePassRate = 0.5
