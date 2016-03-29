@@ -35,8 +35,9 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 
 	elem := z.Tree.Get(rr)
 	if elem == nil {
-		// wildcard lookup
-		return z.nameError(elem, rr, do)
+		if elem == nil {
+			return z.nameError(elem, rr, do)
+		}
 	}
 
 	rrs := elem.Types(dns.TypeCNAME)
@@ -71,10 +72,7 @@ func (z *Zone) nameError(elem *tree.Elem, rr dns.RR, do bool) ([]dns.RR, []dns.R
 	if do {
 		ret = append(ret, z.SIG...)
 		// Now we need two NSEC, one to deny the wildcard and one to deny the name.
-		elem := z.Tree.Prev(rr)
-		ret = append(ret, z.lookupNSEC(elem, do))
-		elem = z.Tree.Prev(wildcard(rr))
-		ret = append(ret, z.lookupNSEC(elem, do))
+		// Needs closest encloser!!
 	}
 	return nil, ret, nil, NameError
 }
@@ -141,13 +139,4 @@ func signatureForSubType(rrs []dns.RR, subtype uint16) []dns.RR {
 		}
 	}
 	return sigs
-}
-
-// wildcard returns rr with the first label exchanged for a wildcard '*'.
-func wildcard(rr dns.RR) dns.RR {
-	// root label, TODO(miek)
-	s := rr.Header().Name
-	i, _ := dns.NextLabel(s, 0)
-	rr.Header().Name = "*" + s[i:]
-	return rr
 }
