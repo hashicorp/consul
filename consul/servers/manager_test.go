@@ -1,4 +1,4 @@
-package server_manager_test
+package servers_test
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/consul/server_details"
-	"github.com/hashicorp/consul/consul/server_manager"
+	"github.com/hashicorp/consul/consul/servers"
 )
 
 var (
@@ -48,66 +48,66 @@ func (s *fauxSerf) NumNodes() int {
 	return 16384
 }
 
-func testServerManager() (sm *server_manager.ServerManager) {
+func testManager() (m *servers.Manager) {
 	logger := GetBufferedLogger()
 	logger = log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	sm = server_manager.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
-	return sm
+	m = servers.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
+	return m
 }
 
-func testServerManagerFailProb(failPct float64) (sm *server_manager.ServerManager) {
+func testManagerFailProb(failPct float64) (m *servers.Manager) {
 	logger := GetBufferedLogger()
 	logger = log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	sm = server_manager.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
-	return sm
+	m = servers.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
+	return m
 }
 
-// func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
-func TestServerManager_AddServer(t *testing.T) {
-	sm := testServerManager()
+// func (m *Manager) AddServer(server *server_details.ServerDetails) {
+func TestServers_AddServer(t *testing.T) {
+	m := testManager()
 	var num int
-	num = sm.NumServers()
+	num = m.NumServers()
 	if num != 0 {
 		t.Fatalf("Expected zero servers to start")
 	}
 
 	s1 := &server_details.ServerDetails{Name: "s1"}
-	sm.AddServer(s1)
-	num = sm.NumServers()
+	m.AddServer(s1)
+	num = m.NumServers()
 	if num != 1 {
 		t.Fatalf("Expected one server")
 	}
 
-	sm.AddServer(s1)
-	num = sm.NumServers()
+	m.AddServer(s1)
+	num = m.NumServers()
 	if num != 1 {
 		t.Fatalf("Expected one server (still)")
 	}
 
 	s2 := &server_details.ServerDetails{Name: "s2"}
-	sm.AddServer(s2)
-	num = sm.NumServers()
+	m.AddServer(s2)
+	num = m.NumServers()
 	if num != 2 {
 		t.Fatalf("Expected two servers")
 	}
 }
 
-// func (sm *ServerManager) FindServer() (server *server_details.ServerDetails) {
-func TestServerManager_FindServer(t *testing.T) {
-	sm := testServerManager()
+// func (m *Manager) FindServer() (server *server_details.ServerDetails) {
+func TestServers_FindServer(t *testing.T) {
+	m := testManager()
 
-	if sm.FindServer() != nil {
+	if m.FindServer() != nil {
 		t.Fatalf("Expected nil return")
 	}
 
-	sm.AddServer(&server_details.ServerDetails{Name: "s1"})
-	if sm.NumServers() != 1 {
+	m.AddServer(&server_details.ServerDetails{Name: "s1"})
+	if m.NumServers() != 1 {
 		t.Fatalf("Expected one server")
 	}
 
-	s1 := sm.FindServer()
+	s1 := m.FindServer()
 	if s1 == nil {
 		t.Fatalf("Expected non-nil server")
 	}
@@ -115,118 +115,118 @@ func TestServerManager_FindServer(t *testing.T) {
 		t.Fatalf("Expected s1 server")
 	}
 
-	s1 = sm.FindServer()
+	s1 = m.FindServer()
 	if s1 == nil || s1.Name != "s1" {
 		t.Fatalf("Expected s1 server (still)")
 	}
 
-	sm.AddServer(&server_details.ServerDetails{Name: "s2"})
-	if sm.NumServers() != 2 {
+	m.AddServer(&server_details.ServerDetails{Name: "s2"})
+	if m.NumServers() != 2 {
 		t.Fatalf("Expected two servers")
 	}
-	s1 = sm.FindServer()
+	s1 = m.FindServer()
 	if s1 == nil || s1.Name != "s1" {
 		t.Fatalf("Expected s1 server (still)")
 	}
 
-	sm.NotifyFailedServer(s1)
-	s2 := sm.FindServer()
+	m.NotifyFailedServer(s1)
+	s2 := m.FindServer()
 	if s2 == nil || s2.Name != "s2" {
 		t.Fatalf("Expected s2 server")
 	}
 
-	sm.NotifyFailedServer(s2)
-	s1 = sm.FindServer()
+	m.NotifyFailedServer(s2)
+	s1 = m.FindServer()
 	if s1 == nil || s1.Name != "s1" {
 		t.Fatalf("Expected s1 server")
 	}
 }
 
-// func New(logger *log.Logger, shutdownCh chan struct{}) (sm *ServerManager) {
-func TestServerManager_New(t *testing.T) {
+// func New(logger *log.Logger, shutdownCh chan struct{}) (m *Manager) {
+func TestServers_New(t *testing.T) {
 	logger := GetBufferedLogger()
 	logger = log.New(os.Stderr, "", log.LstdFlags)
 	shutdownCh := make(chan struct{})
-	sm := server_manager.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
-	if sm == nil {
-		t.Fatalf("ServerManager nil")
+	m := servers.New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{})
+	if m == nil {
+		t.Fatalf("Manager nil")
 	}
 }
 
-// func (sm *ServerManager) NotifyFailedServer(server *server_details.ServerDetails) {
-func TestServerManager_NotifyFailedServer(t *testing.T) {
-	sm := testServerManager()
+// func (m *Manager) NotifyFailedServer(server *server_details.ServerDetails) {
+func TestServers_NotifyFailedServer(t *testing.T) {
+	m := testManager()
 
-	if sm.NumServers() != 0 {
+	if m.NumServers() != 0 {
 		t.Fatalf("Expected zero servers to start")
 	}
 
 	s1 := &server_details.ServerDetails{Name: "s1"}
 	s2 := &server_details.ServerDetails{Name: "s2"}
 
-	// Try notifying for a server that is not part of the server manager
-	sm.NotifyFailedServer(s1)
-	if sm.NumServers() != 0 {
+	// Try notifying for a server that is not managed by Manager
+	m.NotifyFailedServer(s1)
+	if m.NumServers() != 0 {
 		t.Fatalf("Expected zero servers to start")
 	}
-	sm.AddServer(s1)
+	m.AddServer(s1)
 
 	// Test again w/ a server not in the list
-	sm.NotifyFailedServer(s2)
-	if sm.NumServers() != 1 {
+	m.NotifyFailedServer(s2)
+	if m.NumServers() != 1 {
 		t.Fatalf("Expected one server")
 	}
 
-	sm.AddServer(s2)
-	if sm.NumServers() != 2 {
+	m.AddServer(s2)
+	if m.NumServers() != 2 {
 		t.Fatalf("Expected two servers")
 	}
 
-	s1 = sm.FindServer()
+	s1 = m.FindServer()
 	if s1 == nil || s1.Name != "s1" {
 		t.Fatalf("Expected s1 server")
 	}
 
-	sm.NotifyFailedServer(s2)
-	s1 = sm.FindServer()
+	m.NotifyFailedServer(s2)
+	s1 = m.FindServer()
 	if s1 == nil || s1.Name != "s1" {
 		t.Fatalf("Expected s1 server (still)")
 	}
 
-	sm.NotifyFailedServer(s1)
-	s2 = sm.FindServer()
+	m.NotifyFailedServer(s1)
+	s2 = m.FindServer()
 	if s2 == nil || s2.Name != "s2" {
 		t.Fatalf("Expected s2 server")
 	}
 
-	sm.NotifyFailedServer(s2)
-	s1 = sm.FindServer()
+	m.NotifyFailedServer(s2)
+	s1 = m.FindServer()
 	if s1 == nil || s1.Name != "s1" {
 		t.Fatalf("Expected s1 server")
 	}
 }
 
-// func (sm *ServerManager) NumServers() (numServers int) {
-func TestServerManager_NumServers(t *testing.T) {
-	sm := testServerManager()
+// func (m *Manager) NumServers() (numServers int) {
+func TestServers_NumServers(t *testing.T) {
+	m := testManager()
 	var num int
-	num = sm.NumServers()
+	num = m.NumServers()
 	if num != 0 {
 		t.Fatalf("Expected zero servers to start")
 	}
 
 	s := &server_details.ServerDetails{}
-	sm.AddServer(s)
-	num = sm.NumServers()
+	m.AddServer(s)
+	num = m.NumServers()
 	if num != 1 {
 		t.Fatalf("Expected one server after AddServer")
 	}
 }
 
-// func (sm *ServerManager) RebalanceServers() {
-func TestServerManager_RebalanceServers(t *testing.T) {
+// func (m *Manager) RebalanceServers() {
+func TestServers_RebalanceServers(t *testing.T) {
 	const failPct = 0.5
-	sm := testServerManagerFailProb(failPct)
+	m := testManagerFailProb(failPct)
 	const maxServers = 100
 	const numShuffleTests = 100
 	const uniquePassRate = 0.5
@@ -234,18 +234,18 @@ func TestServerManager_RebalanceServers(t *testing.T) {
 	// Make a huge list of nodes.
 	for i := 0; i < maxServers; i++ {
 		nodeName := fmt.Sprintf("s%02d", i)
-		sm.AddServer(&server_details.ServerDetails{Name: nodeName})
+		m.AddServer(&server_details.ServerDetails{Name: nodeName})
 	}
 
 	// Keep track of how many unique shuffles we get.
 	uniques := make(map[string]struct{}, maxServers)
 	for i := 0; i < numShuffleTests; i++ {
-		sm.RebalanceServers()
+		m.RebalanceServers()
 
 		var names []string
 		for j := 0; j < maxServers; j++ {
-			server := sm.FindServer()
-			sm.NotifyFailedServer(server)
+			server := m.FindServer()
+			m.NotifyFailedServer(server)
 			names = append(names, server.Name)
 		}
 		key := strings.Join(names, "|")
@@ -260,25 +260,25 @@ func TestServerManager_RebalanceServers(t *testing.T) {
 	}
 }
 
-// func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
-func TestServerManager_RemoveServer(t *testing.T) {
+// func (m *Manager) RemoveServer(server *server_details.ServerDetails) {
+func TestManager_RemoveServer(t *testing.T) {
 	const nodeNameFmt = "s%02d"
-	sm := testServerManager()
+	m := testManager()
 
-	if sm.NumServers() != 0 {
+	if m.NumServers() != 0 {
 		t.Fatalf("Expected zero servers to start")
 	}
 
 	// Test removing server before its added
 	nodeName := fmt.Sprintf(nodeNameFmt, 1)
 	s1 := &server_details.ServerDetails{Name: nodeName}
-	sm.RemoveServer(s1)
-	sm.AddServer(s1)
+	m.RemoveServer(s1)
+	m.AddServer(s1)
 
 	nodeName = fmt.Sprintf(nodeNameFmt, 2)
 	s2 := &server_details.ServerDetails{Name: nodeName}
-	sm.RemoveServer(s2)
-	sm.AddServer(s2)
+	m.RemoveServer(s2)
+	m.AddServer(s2)
 
 	const maxServers = 19
 	servers := make([]*server_details.ServerDetails, maxServers)
@@ -287,21 +287,21 @@ func TestServerManager_RemoveServer(t *testing.T) {
 		nodeName := fmt.Sprintf(nodeNameFmt, i)
 		server := &server_details.ServerDetails{Name: nodeName}
 		servers = append(servers, server)
-		sm.AddServer(server)
+		m.AddServer(server)
 	}
-	if sm.NumServers() != maxServers {
-		t.Fatalf("Expected %d servers, received %d", maxServers, sm.NumServers())
+	if m.NumServers() != maxServers {
+		t.Fatalf("Expected %d servers, received %d", maxServers, m.NumServers())
 	}
 
-	sm.RebalanceServers()
+	m.RebalanceServers()
 
-	if sm.NumServers() != maxServers {
-		t.Fatalf("Expected %d servers, received %d", maxServers, sm.NumServers())
+	if m.NumServers() != maxServers {
+		t.Fatalf("Expected %d servers, received %d", maxServers, m.NumServers())
 	}
 
 	findServer := func(server *server_details.ServerDetails) bool {
-		for i := sm.NumServers(); i > 0; i-- {
-			s := sm.FindServer()
+		for i := m.NumServers(); i > 0; i-- {
+			s := m.FindServer()
 			if s == server {
 				return true
 			}
@@ -314,14 +314,14 @@ func TestServerManager_RemoveServer(t *testing.T) {
 
 	// Remove servers from the front of the list
 	for i := 3; i > 0; i-- {
-		server := sm.FindServer()
+		server := m.FindServer()
 		if server == nil {
 			t.Fatalf("FindServer returned nil")
 		}
-		sm.RemoveServer(server)
+		m.RemoveServer(server)
 		expectedNumServers--
-		if sm.NumServers() != expectedNumServers {
-			t.Fatalf("Expected %d servers (got %d)", expectedNumServers, sm.NumServers())
+		if m.NumServers() != expectedNumServers {
+			t.Fatalf("Expected %d servers (got %d)", expectedNumServers, m.NumServers())
 		}
 		if findServer(server) == true {
 			t.Fatalf("Did not expect to find server %s after removal from the front", server.Name)
@@ -331,12 +331,12 @@ func TestServerManager_RemoveServer(t *testing.T) {
 
 	// Remove server from the end of the list
 	for i := 3; i > 0; i-- {
-		server := sm.FindServer()
-		sm.NotifyFailedServer(server)
-		sm.RemoveServer(server)
+		server := m.FindServer()
+		m.NotifyFailedServer(server)
+		m.RemoveServer(server)
 		expectedNumServers--
-		if sm.NumServers() != expectedNumServers {
-			t.Fatalf("Expected %d servers (got %d)", expectedNumServers, sm.NumServers())
+		if m.NumServers() != expectedNumServers {
+			t.Fatalf("Expected %d servers (got %d)", expectedNumServers, m.NumServers())
 		}
 		if findServer(server) == true {
 			t.Fatalf("Did not expect to find server %s", server.Name)
@@ -346,15 +346,15 @@ func TestServerManager_RemoveServer(t *testing.T) {
 
 	// Remove server from the middle of the list
 	for i := 3; i > 0; i-- {
-		server := sm.FindServer()
-		sm.NotifyFailedServer(server)
-		server2 := sm.FindServer()
-		sm.NotifyFailedServer(server2) // server2 now at end of the list
+		server := m.FindServer()
+		m.NotifyFailedServer(server)
+		server2 := m.FindServer()
+		m.NotifyFailedServer(server2) // server2 now at end of the list
 
-		sm.RemoveServer(server)
+		m.RemoveServer(server)
 		expectedNumServers--
-		if sm.NumServers() != expectedNumServers {
-			t.Fatalf("Expected %d servers (got %d)", expectedNumServers, sm.NumServers())
+		if m.NumServers() != expectedNumServers {
+			t.Fatalf("Expected %d servers (got %d)", expectedNumServers, m.NumServers())
 		}
 		if findServer(server) == true {
 			t.Fatalf("Did not expect to find server %s", server.Name)
@@ -362,21 +362,21 @@ func TestServerManager_RemoveServer(t *testing.T) {
 		removedServers = append(removedServers, server)
 	}
 
-	if sm.NumServers()+len(removedServers) != maxServers {
-		t.Fatalf("Expected %d+%d=%d servers", sm.NumServers(), len(removedServers), maxServers)
+	if m.NumServers()+len(removedServers) != maxServers {
+		t.Fatalf("Expected %d+%d=%d servers", m.NumServers(), len(removedServers), maxServers)
 	}
 
 	// Drain the remaining servers from the middle
-	for i := sm.NumServers(); i > 0; i-- {
-		server := sm.FindServer()
-		sm.NotifyFailedServer(server)
-		server2 := sm.FindServer()
-		sm.NotifyFailedServer(server2) // server2 now at end of the list
-		sm.RemoveServer(server)
+	for i := m.NumServers(); i > 0; i-- {
+		server := m.FindServer()
+		m.NotifyFailedServer(server)
+		server2 := m.FindServer()
+		m.NotifyFailedServer(server2) // server2 now at end of the list
+		m.RemoveServer(server)
 		removedServers = append(removedServers, server)
 	}
 
-	if sm.NumServers() != 0 {
+	if m.NumServers() != 0 {
 		t.Fatalf("Expected an empty server list")
 	}
 	if len(removedServers) != maxServers {
@@ -384,4 +384,4 @@ func TestServerManager_RemoveServer(t *testing.T) {
 	}
 }
 
-// func (sm *ServerManager) Start() {
+// func (m *Manager) Start() {

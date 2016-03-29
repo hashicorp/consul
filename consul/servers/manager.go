@@ -1,4 +1,4 @@
-package server_manager
+package servers
 
 import (
 	"log"
@@ -60,7 +60,7 @@ type Pinger interface {
 }
 
 // serverConfig is the thread-safe configuration struct used to maintain the
-// list of Consul servers in ServerManager.
+// list of Consul servers in Manager.
 //
 // NOTE(sean@): We are explicitly relying on the fact that serverConfig will
 // be copied onto the stack.  Please keep this structure light.
@@ -70,7 +70,7 @@ type serverConfig struct {
 	servers []*server_details.ServerDetails
 }
 
-type ServerManager struct {
+type Manager struct {
 	// serverConfig provides the necessary load/store semantics for the
 	// server list.
 	serverConfigValue atomic.Value
@@ -104,10 +104,10 @@ type ServerManager struct {
 // begin seeing use after the rebalance timer fires or enough servers fail
 // organically.  If the server is already known, merge the new server
 // details.
-func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
-	sm.serverConfigLock.Lock()
-	defer sm.serverConfigLock.Unlock()
-	sc := sm.getServerConfig()
+func (m *Manager) AddServer(server *server_details.ServerDetails) {
+	m.serverConfigLock.Lock()
+	defer m.serverConfigLock.Unlock()
+	sc := m.getServerConfig()
 
 	// Check if this server is known
 	found := false
@@ -134,7 +134,7 @@ func (sm *ServerManager) AddServer(server *server_details.ServerDetails) {
 		sc.servers = newServers
 	}
 
-	sm.saveServerConfig(sc)
+	m.saveServerConfig(sc)
 }
 
 // cycleServers returns a new list of servers that has dequeued the first
@@ -184,11 +184,11 @@ func (sc *serverConfig) shuffleServers() {
 // server list.  If the server at the front of the list has failed or fails
 // during an RPC call, it is rotated to the end of the list.  If there are no
 // servers available, return nil.
-func (sm *ServerManager) FindServer() *server_details.ServerDetails {
-	sc := sm.getServerConfig()
+func (m *Manager) FindServer() *server_details.ServerDetails {
+	sc := m.getServerConfig()
 	numServers := len(sc.servers)
 	if numServers == 0 {
-		sm.logger.Printf("[WARN] server manager: No servers available")
+		m.logger.Printf("[WARN] manager: No servers available")
 		return nil
 	} else {
 		// Return whatever is at the front of the list because it is
@@ -201,35 +201,35 @@ func (sm *ServerManager) FindServer() *server_details.ServerDetails {
 
 // getServerConfig is a convenience method which hides the locking semantics
 // of atomic.Value from the caller.
-func (sm *ServerManager) getServerConfig() serverConfig {
-	return sm.serverConfigValue.Load().(serverConfig)
+func (m *Manager) getServerConfig() serverConfig {
+	return m.serverConfigValue.Load().(serverConfig)
 }
 
 // saveServerConfig is a convenience method which hides the locking semantics
 // of atomic.Value from the caller.
-func (sm *ServerManager) saveServerConfig(sc serverConfig) {
-	sm.serverConfigValue.Store(sc)
+func (m *Manager) saveServerConfig(sc serverConfig) {
+	m.serverConfigValue.Store(sc)
 }
 
-// New is the only way to safely create a new ServerManager struct.
-func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulClusterInfo, connPoolPinger Pinger) (sm *ServerManager) {
-	sm = new(ServerManager)
-	sm.logger = logger
-	sm.clusterInfo = clusterInfo       // can't pass *consul.Client: import cycle
-	sm.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
-	sm.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
-	sm.shutdownCh = shutdownCh
+// New is the only way to safely create a new Manager struct.
+func New(logger *log.Logger, shutdownCh chan struct{}, clusterInfo ConsulClusterInfo, connPoolPinger Pinger) (m *Manager) {
+	m = new(Manager)
+	m.logger = logger
+	m.clusterInfo = clusterInfo       // can't pass *consul.Client: import cycle
+	m.connPoolPinger = connPoolPinger // can't pass *consul.ConnPool: import cycle
+	m.rebalanceTimer = time.NewTimer(clientRPCMinReuseDuration)
+	m.shutdownCh = shutdownCh
 
 	sc := serverConfig{}
 	sc.servers = make([]*server_details.ServerDetails, 0)
-	sm.saveServerConfig(sc)
-	return sm
+	m.saveServerConfig(sc)
+	return m
 }
 
 // NotifyFailedServer marks the passed in server as "failed" by rotating it
 // to the end of the server list.
-func (sm *ServerManager) NotifyFailedServer(server *server_details.ServerDetails) {
-	sc := sm.getServerConfig()
+func (m *Manager) NotifyFailedServer(server *server_details.ServerDetails) {
+	sc := m.getServerConfig()
 
 	// If the server being failed is not the first server on the list,
 	// this is a noop.  If, however, the server is failed and first on
@@ -239,26 +239,26 @@ func (sm *ServerManager) NotifyFailedServer(server *server_details.ServerDetails
 	// Only rotate the server list when there is more than one server
 	if len(sc.servers) > 1 && sc.servers[0] == server &&
 		// Use atomic.CAS to emulate a TryLock().
-		atomic.CompareAndSwapInt32(&sm.notifyFailedBarrier, 0, 1) {
-		defer atomic.StoreInt32(&sm.notifyFailedBarrier, 0)
+		atomic.CompareAndSwapInt32(&m.notifyFailedBarrier, 0, 1) {
+		defer atomic.StoreInt32(&m.notifyFailedBarrier, 0)
 
 		// Grab a lock, retest, and take the hit of cycling the first
 		// server to the end.
-		sm.serverConfigLock.Lock()
-		defer sm.serverConfigLock.Unlock()
-		sc = sm.getServerConfig()
+		m.serverConfigLock.Lock()
+		defer m.serverConfigLock.Unlock()
+		sc = m.getServerConfig()
 
 		if len(sc.servers) > 1 && sc.servers[0] == server {
 			sc.servers = sc.cycleServer()
-			sm.saveServerConfig(sc)
+			m.saveServerConfig(sc)
 		}
 	}
 }
 
 // NumServers takes out an internal "read lock" and returns the number of
 // servers.  numServers includes both healthy and unhealthy servers.
-func (sm *ServerManager) NumServers() (numServers int) {
-	sc := sm.getServerConfig()
+func (m *Manager) NumServers() (numServers int) {
+	sc := m.getServerConfig()
 	numServers = len(sc.servers)
 	return numServers
 }
@@ -275,9 +275,9 @@ func (sm *ServerManager) NumServers() (numServers int) {
 // Unhealthy servers are removed when serf notices the server has been
 // deregistered.  Before the newly shuffled server list is saved, the new
 // remote endpoint is tested to ensure its responsive.
-func (sm *ServerManager) RebalanceServers() {
+func (m *Manager) RebalanceServers() {
 	// Obtain a copy of the current serverConfig
-	sc := sm.getServerConfig()
+	sc := m.getServerConfig()
 
 	// Early abort if there is no value to shuffling
 	if len(sc.servers) < 2 {
@@ -295,12 +295,12 @@ func (sm *ServerManager) RebalanceServers() {
 		// while Serf detects the node has failed.
 		selectedServer := sc.servers[0]
 
-		ok, err := sm.connPoolPinger.PingConsulServer(selectedServer)
+		ok, err := m.connPoolPinger.PingConsulServer(selectedServer)
 		if ok {
 			foundHealthyServer = true
 			break
 		}
-		sm.logger.Printf(`[DEBUG] server manager: pinging server "%s" failed: %s`, selectedServer.String(), err)
+		m.logger.Printf(`[DEBUG] manager: pinging server "%s" failed: %s`, selectedServer.String(), err)
 
 		sc.cycleServer()
 	}
@@ -308,13 +308,13 @@ func (sm *ServerManager) RebalanceServers() {
 	// If no healthy servers were found, sleep and wait for Serf to make
 	// the world a happy place again.
 	if !foundHealthyServer {
-		sm.logger.Printf("[DEBUG] server manager: No healthy servers during rebalance, aborting")
+		m.logger.Printf("[DEBUG] manager: No healthy servers during rebalance, aborting")
 		return
 	}
 
 	// Verify that all servers are present
-	if sm.reconcileServerList(&sc) {
-		sm.logger.Printf("[DEBUG] server manager: Rebalanced %d servers, next active server is %s", len(sc.servers), sc.servers[0].String())
+	if m.reconcileServerList(&sc) {
+		m.logger.Printf("[DEBUG] manager: Rebalanced %d servers, next active server is %s", len(sc.servers), sc.servers[0].String())
 	} else {
 		// reconcileServerList failed because Serf removed the server
 		// that was at the front of the list that had successfully
@@ -336,13 +336,13 @@ func (sm *ServerManager) RebalanceServers() {
 // server does not exist in the list (i.e. was removed by Serf during a
 // PingConsulServer() call.  Newly added servers are appended to the list and
 // other missing servers are removed from the list.
-func (sm *ServerManager) reconcileServerList(sc *serverConfig) bool {
-	sm.serverConfigLock.Lock()
-	defer sm.serverConfigLock.Unlock()
+func (m *Manager) reconcileServerList(sc *serverConfig) bool {
+	m.serverConfigLock.Lock()
+	defer m.serverConfigLock.Unlock()
 
 	// newServerCfg is a serverConfig that has been kept up to date with
 	// Serf node join and node leave events.
-	newServerCfg := sm.getServerConfig()
+	newServerCfg := m.getServerConfig()
 
 	// If Serf has removed all nodes, or there is no selected server
 	// (zero nodes in sc), abort early.
@@ -394,16 +394,16 @@ func (sm *ServerManager) reconcileServerList(sc *serverConfig) bool {
 		}
 	}
 
-	sm.saveServerConfig(*sc)
+	m.saveServerConfig(*sc)
 	return true
 }
 
 // RemoveServer takes out an internal write lock and removes a server from
 // the server list.
-func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
-	sm.serverConfigLock.Lock()
-	defer sm.serverConfigLock.Unlock()
-	sc := sm.getServerConfig()
+func (m *Manager) RemoveServer(server *server_details.ServerDetails) {
+	m.serverConfigLock.Lock()
+	defer m.serverConfigLock.Unlock()
+	sc := m.getServerConfig()
 
 	// Remove the server if known
 	for i, _ := range sc.servers {
@@ -413,15 +413,15 @@ func (sm *ServerManager) RemoveServer(server *server_details.ServerDetails) {
 			newServers = append(newServers, sc.servers[i+1:]...)
 			sc.servers = newServers
 
-			sm.saveServerConfig(sc)
+			m.saveServerConfig(sc)
 			return
 		}
 	}
 }
 
-// refreshServerRebalanceTimer is only called once sm.rebalanceTimer expires.
-func (sm *ServerManager) refreshServerRebalanceTimer() time.Duration {
-	sc := sm.getServerConfig()
+// refreshServerRebalanceTimer is only called once m.rebalanceTimer expires.
+func (m *Manager) refreshServerRebalanceTimer() time.Duration {
+	sc := m.getServerConfig()
 	numConsulServers := len(sc.servers)
 	// Limit this connection's life based on the size (and health) of the
 	// cluster.  Never rebalance a connection more frequently than
@@ -429,19 +429,19 @@ func (sm *ServerManager) refreshServerRebalanceTimer() time.Duration {
 	// clusterWideRebalanceConnsPerSec operations/s across numLANMembers.
 	clusterWideRebalanceConnsPerSec := float64(numConsulServers * newRebalanceConnsPerSecPerServer)
 	connReuseLowWatermarkDuration := clientRPCMinReuseDuration + lib.RandomStagger(clientRPCMinReuseDuration/clientRPCJitterFraction)
-	numLANMembers := sm.clusterInfo.NumNodes()
+	numLANMembers := m.clusterInfo.NumNodes()
 	connRebalanceTimeout := lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
 
-	sm.rebalanceTimer.Reset(connRebalanceTimeout)
+	m.rebalanceTimer.Reset(connRebalanceTimeout)
 	return connRebalanceTimeout
 }
 
 // ResetRebalanceTimer resets the rebalance timer.  This method primarily
 // exists for testing and should not be used directly.
-func (sm *ServerManager) ResetRebalanceTimer() {
-	sm.serverConfigLock.Lock()
-	defer sm.serverConfigLock.Unlock()
-	sm.rebalanceTimer.Reset(clientRPCMinReuseDuration)
+func (m *Manager) ResetRebalanceTimer() {
+	m.serverConfigLock.Lock()
+	defer m.serverConfigLock.Unlock()
+	m.rebalanceTimer.Reset(clientRPCMinReuseDuration)
 }
 
 // Start is used to start and manage the task of automatically shuffling and
@@ -450,15 +450,15 @@ func (sm *ServerManager) ResetRebalanceTimer() {
 // automatically cycled to the end of the list.  New servers are appended to
 // the list.  The order of the server list must be shuffled periodically to
 // distribute load across all known and available consul servers.
-func (sm *ServerManager) Start() {
+func (m *Manager) Start() {
 	for {
 		select {
-		case <-sm.rebalanceTimer.C:
-			sm.RebalanceServers()
-			sm.refreshServerRebalanceTimer()
+		case <-m.rebalanceTimer.C:
+			m.RebalanceServers()
+			m.refreshServerRebalanceTimer()
 
-		case <-sm.shutdownCh:
-			sm.logger.Printf("[INFO] server manager: shutting down")
+		case <-m.shutdownCh:
+			m.logger.Printf("[INFO] manager: shutting down")
 			return
 		}
 	}

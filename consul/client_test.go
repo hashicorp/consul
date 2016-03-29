@@ -84,7 +84,7 @@ func TestClient_JoinLAN(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	testutil.WaitForResult(func() (bool, error) {
-		return c1.serverMgr.NumServers() == 1, nil
+		return c1.servers.NumServers() == 1, nil
 	}, func(err error) {
 		t.Fatalf("expected consul server")
 	})
@@ -100,7 +100,7 @@ func TestClient_JoinLAN(t *testing.T) {
 
 	// Check we have a new consul
 	testutil.WaitForResult(func() (bool, error) {
-		return c1.serverMgr.NumServers() == 1, nil
+		return c1.servers.NumServers() == 1, nil
 	}, func(err error) {
 		t.Fatalf("expected consul server")
 	})
@@ -270,7 +270,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 
 	// Sleep to allow Serf to sync, shuffle, and let the shuffle complete
 	time.Sleep(1 * time.Second)
-	c.serverMgr.ResetRebalanceTimer()
+	c.servers.ResetRebalanceTimer()
 	time.Sleep(1 * time.Second)
 
 	if len(c.LANMembers()) != numServers+numClients {
@@ -286,7 +286,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 	var pingCount int
 	for range servers {
 		time.Sleep(1 * time.Second)
-		s := c.serverMgr.FindServer()
+		s := c.servers.FindServer()
 		ok, err := c.connPool.PingConsulServer(s)
 		if !ok {
 			t.Errorf("Unable to ping server %v: %s", s.String(), err)
@@ -295,7 +295,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 
 		// Artificially fail the server in order to rotate the server
 		// list
-		c.serverMgr.NotifyFailedServer(s)
+		c.servers.NotifyFailedServer(s)
 	}
 
 	if pingCount != numServers {
