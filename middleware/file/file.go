@@ -39,7 +39,7 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		return xfr.ServeDNS(ctx, w, r)
 	}
 
-	rrs, extra, result := z.Lookup(qname, state.QType(), state.Do())
+	an, ns, extra, result := z.Lookup(qname, state.QType(), state.Do())
 
 	m := new(dns.Msg)
 	m.SetReply(r)
@@ -48,17 +48,17 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	switch result {
 	case Success:
 		// case?
-		m.Answer = rrs
+		m.Answer = an
 		m.Extra = extra
 		// Ns section
 	case NameError:
+		m.Ns = ns
 		m.Rcode = dns.RcodeNameError
 		fallthrough
 	case NoData:
-		// case?
-		m.Ns = rrs
-	default:
-		// TODO
+		m.Ns = ns
+	case ServerFailure:
+		return dns.RcodeServerFailure, nil
 	}
 	m, _ = state.Scrub(m)
 	w.WriteMsg(m)
