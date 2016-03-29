@@ -27,13 +27,14 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 	} else {
 		rr = mk()
 	}
-	rr.Header().Rrtype = qtype // this is pretty nonobvious
-
 	if qtype == dns.TypeSOA {
 		return z.lookupSOA(do)
 	}
 
+	// Misuse rr to be a question.
+	rr.Header().Rrtype = qtype
 	rr.Header().Name = qname
+
 	elem := z.Tree.Get(rr)
 	if elem == nil {
 		// wildcard lookup
@@ -50,6 +51,7 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 	if len(rrs) == 0 {
 		return z.noData(elem, do)
 	}
+
 	if do {
 		sigs := elem.Types(dns.TypeRRSIG)
 		sigs = signatureForSubType(sigs, qtype)
@@ -76,8 +78,7 @@ func (z *Zone) nameError(elem *tree.Elem, rr dns.RR, do bool) ([]dns.RR, []dns.R
 		elem = z.Tree.Prev(wildcard(rr))
 		fmt.Printf("%+v\n", elem.All())
 	}
-
-	return nil, ret, nil, Success
+	return nil, ret, nil, NameError
 }
 
 func (z *Zone) lookupSOA(do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
@@ -102,7 +103,6 @@ func (z *Zone) lookupNSEC(elem *tree.Elem, do bool) []dns.RR {
 		}
 	}
 	return nsec
-
 }
 
 func (z *Zone) lookupCNAME(rrs []dns.RR, rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
