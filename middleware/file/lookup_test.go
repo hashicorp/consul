@@ -60,7 +60,10 @@ var dnsTestCases = []coretest.Case{
 	},
 }
 
-const testzone = "miek.nl."
+const (
+	testzone  = "miek.nl."
+	testzone1 = "dnssex.nl."
+)
 
 func TestLookup(t *testing.T) {
 	zone, err := Parse(strings.NewReader(dbMiekNL), testzone, "stdin")
