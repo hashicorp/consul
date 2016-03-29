@@ -60,16 +60,13 @@ var dnssecTestCases = []coretest.Case{
 			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
 	},
-	/* HAHA nsec... shit.
-	// disprove *.miek.nl and that b.miek.nl does not exist
 	{
-		Qname: "b.miek.nl.", Qtype: dns.TypeA,
+		Qname: "b.miek.nl.", Qtype: dns.TypeA, // Do: true, // need sorting first
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
 	},
-	*/
 }
 
 func TestLookupDNSSEC(t *testing.T) {
