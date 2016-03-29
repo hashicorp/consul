@@ -492,8 +492,8 @@ func (n *Node) max() *Node {
 	return n
 }
 
-// Floor returns the greatest value equal to or less than the rr according to Less().
-func (t *Tree) Floor(rr dns.RR) *Elem {
+// Prev returns the greatest value equal to or less than the rr according to Less().
+func (t *Tree) Prev(rr dns.RR) *Elem {
 	if t.Root == nil {
 		return nil
 	}
@@ -521,8 +521,8 @@ func (n *Node) floor(rr dns.RR) *Node {
 	return n
 }
 
-// Ceil returns the smallest value equal to or greater than the rr according to Less().
-func (t *Tree) Ceil(rr dns.RR) *Elem {
+// Next returns the smallest value equal to or greater than the rr according to Less().
+func (t *Tree) Next(rr dns.RR) *Elem {
 	if t.Root == nil {
 		return nil
 	}

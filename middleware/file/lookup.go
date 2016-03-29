@@ -1,6 +1,8 @@
 package file
 
 import (
+	"fmt"
+
 	"github.com/miekg/coredns/middleware/file/tree"
 	"github.com/miekg/dns"
 )
@@ -34,6 +36,7 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 	rr.Header().Name = qname
 	elem := z.Tree.Get(rr)
 	if elem == nil {
+		// wildcard lookup
 		return z.nameError(elem, rr, do)
 	}
 
@@ -64,12 +67,17 @@ func (z *Zone) noData(elem *tree.Elem, do bool) ([]dns.RR, []dns.RR, []dns.RR, R
 }
 
 func (z *Zone) nameError(elem *tree.Elem, rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+	ret := []dns.RR{}
 	if do {
-		ret := append([]dns.RR{z.SOA}, z.SIG...)
-		return nil, ret, nil, Success
+		ret = append(ret, z.SIG...)
+		// Now we need two NSEC, one to deny the wildcard and one to deny the name.
+		elem := z.Tree.Prev(rr)
+		fmt.Printf("%+v\n", elem.All())
+		elem = z.Tree.Prev(wildcard(rr))
+		fmt.Printf("%+v\n", elem.All())
 	}
-	// NSECs!
-	return nil, []dns.RR{z.SOA}, nil, Success
+
+	return nil, ret, nil, Success
 }
 
 func (z *Zone) lookupSOA(do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
@@ -135,4 +143,13 @@ func signatureForSubType(rrs []dns.RR, subtype uint16) []dns.RR {
 		}
 	}
 	return sigs
+}
+
+// wildcard returns rr with the first label exchanged for a wildcard '*'.
+func wildcard(rr dns.RR) dns.RR {
+	// root label, TODO(miek)
+	s := rr.Header().Name
+	i, _ := dns.NextLabel(s, 0)
+	rr.Header().Name = "*" + s[i:]
+	return rr
 }
