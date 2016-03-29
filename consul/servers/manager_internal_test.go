@@ -63,68 +63,68 @@ func testManagerFailProb(failPct float64) (m *Manager) {
 	return m
 }
 
-// func (sc *serverConfig) cycleServer() (servers []*server_details.ServerDetails) {
+// func (l *serverList) cycleServer() (servers []*server_details.ServerDetails) {
 func TestManagerInternal_cycleServer(t *testing.T) {
 	m := testManager()
-	sc := m.getServerConfig()
+	l := m.getServerList()
 
 	server0 := &server_details.ServerDetails{Name: "server1"}
 	server1 := &server_details.ServerDetails{Name: "server2"}
 	server2 := &server_details.ServerDetails{Name: "server3"}
-	sc.servers = append(sc.servers, server0, server1, server2)
-	m.saveServerConfig(sc)
+	l.servers = append(l.servers, server0, server1, server2)
+	m.saveServerList(l)
 
-	sc = m.getServerConfig()
-	if len(sc.servers) != 3 {
-		t.Fatalf("server length incorrect: %d/3", len(sc.servers))
+	l = m.getServerList()
+	if len(l.servers) != 3 {
+		t.Fatalf("server length incorrect: %d/3", len(l.servers))
 	}
-	if sc.servers[0] != server0 &&
-		sc.servers[1] != server1 &&
-		sc.servers[2] != server2 {
+	if l.servers[0] != server0 &&
+		l.servers[1] != server1 &&
+		l.servers[2] != server2 {
 		t.Fatalf("initial server ordering not correct")
 	}
 
-	sc.servers = sc.cycleServer()
-	if len(sc.servers) != 3 {
-		t.Fatalf("server length incorrect: %d/3", len(sc.servers))
+	l.servers = l.cycleServer()
+	if len(l.servers) != 3 {
+		t.Fatalf("server length incorrect: %d/3", len(l.servers))
 	}
-	if sc.servers[0] != server1 &&
-		sc.servers[1] != server2 &&
-		sc.servers[2] != server0 {
+	if l.servers[0] != server1 &&
+		l.servers[1] != server2 &&
+		l.servers[2] != server0 {
 		t.Fatalf("server ordering after one cycle not correct")
 	}
 
-	sc.servers = sc.cycleServer()
-	if len(sc.servers) != 3 {
-		t.Fatalf("server length incorrect: %d/3", len(sc.servers))
+	l.servers = l.cycleServer()
+	if len(l.servers) != 3 {
+		t.Fatalf("server length incorrect: %d/3", len(l.servers))
 	}
-	if sc.servers[0] != server2 &&
-		sc.servers[1] != server0 &&
-		sc.servers[2] != server1 {
+	if l.servers[0] != server2 &&
+		l.servers[1] != server0 &&
+		l.servers[2] != server1 {
 		t.Fatalf("server ordering after two cycles not correct")
 	}
 
-	sc.servers = sc.cycleServer()
-	if len(sc.servers) != 3 {
-		t.Fatalf("server length incorrect: %d/3", len(sc.servers))
+	l.servers = l.cycleServer()
+	if len(l.servers) != 3 {
+		t.Fatalf("server length incorrect: %d/3", len(l.servers))
 	}
-	if sc.servers[0] != server0 &&
-		sc.servers[1] != server1 &&
-		sc.servers[2] != server2 {
+	if l.servers[0] != server0 &&
+		l.servers[1] != server1 &&
+		l.servers[2] != server2 {
 		t.Fatalf("server ordering after three cycles not correct")
 	}
 }
 
-// func (m *Manager) getServerConfig() serverConfig {
-func TestManagerInternal_getServerConfig(t *testing.T) {
+// func (m *Manager) getServerList() serverList {
+func TestManagerInternal_getServerList(t *testing.T) {
 	m := testManager()
-	sc := m.getServerConfig()
-	if sc.servers == nil {
-		t.Fatalf("serverConfig.servers nil")
+	l := m.getServerList()
+	if l.servers == nil {
+		t.Fatalf("serverList.servers nil")
 	}
 
-	if len(sc.servers) != 0 {
-		t.Fatalf("serverConfig.servers length not zero")
+	if len(l.servers) != 0 {
+		t.Fatalf("serverList.servers length not zero")
 	}
 }
 
@@ -148,7 +148,7 @@ func TestManagerInternal_New(t *testing.T) {
 	}
 }
 
-// func (m *Manager) reconcileServerList(sc *serverConfig) bool {
+// func (m *Manager) reconcileServerList(l *serverList) bool {
 func TestManagerInternal_reconcileServerList(t *testing.T) {
 	tests := []int{0, 1, 2, 3, 4, 5, 10, 100}
 	for _, n := range tests {
@@ -207,36 +207,36 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 	// Update Manager's server list to be "healthy" based on Serf.
 	// Reconcile this with origServers, which is shuffled and has a live
 	// connection, but possibly out of date.
-	origServers := m.getServerConfig()
-	m.saveServerConfig(serverConfig{servers: healthyServers})
+	origServers := m.getServerList()
+	m.saveServerList(serverList{servers: healthyServers})
 
 	// This should always succeed with non-zero server lists
 	if !selectedServerFailed && !m.reconcileServerList(&origServers) &&
-		len(m.getServerConfig().servers) != 0 &&
+		len(m.getServerList().servers) != 0 &&
 		len(origServers.servers) != 0 {
 		// If the random gods are unfavorable and we end up with zero
 		// length lists, expect things to fail and retry the test.
 		return false, fmt.Errorf("Expected reconcile to succeed: %v %d %d",
 			selectedServerFailed,
-			len(m.getServerConfig().servers),
+			len(m.getServerList().servers),
 			len(origServers.servers))
 	}
 
 	// If we have zero-length server lists, test succeeded in degenerate
 	// case.
-	if len(m.getServerConfig().servers) == 0 &&
+	if len(m.getServerList().servers) == 0 &&
 		len(origServers.servers) == 0 {
 		// Failed as expected w/ zero length list
 		return true, nil
 	}
 
 	resultingServerMap := make(map[server_details.Key]bool)
-	for _, s := range m.getServerConfig().servers {
+	for _, s := range m.getServerList().servers {
 		resultingServerMap[*s.Key()] = true
 	}
 
 	// Test to make sure no failed servers are in the Manager's
-	// list.  Error if there are any failedServers in sc.servers
+	// list.  Error if there are any failedServers in l.servers
 	for _, s := range failedServers {
 		_, ok := resultingServerMap[*s.Key()]
 		if ok {
@@ -245,7 +245,7 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 	}
 
 	// Test to make sure all healthy servers are in the healthy list.
-	if len(healthyServers) != len(m.getServerConfig().servers) {
+	if len(healthyServers) != len(m.getServerList().servers) {
 		return false, fmt.Errorf("Expected healthy map and servers to match: %d/%d", len(healthyServers), len(healthyServers))
 	}
 
@@ -259,7 +259,7 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 	return true, nil
 }
 
-// func (sc *serverConfig) refreshServerRebalanceTimer() {
+// func (l *serverList) refreshServerRebalanceTimer() {
 func TestManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 	type clusterSizes struct {
 		numNodes     int
@@ -312,41 +312,41 @@ func TestManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 	}
 }
 
-// func (m *Manager) saveServerConfig(sc serverConfig) {
-func TestManagerInternal_saveServerConfig(t *testing.T) {
+// func (m *Manager) saveServerList(l serverList) {
+func TestManagerInternal_saveServerList(t *testing.T) {
 	m := testManager()
 
 	// Initial condition
 	func() {
-		sc := m.getServerConfig()
-		if len(sc.servers) != 0 {
-			t.Fatalf("Manager.saveServerConfig failed to load init config")
+		l := m.getServerList()
+		if len(l.servers) != 0 {
+			t.Fatalf("Manager.saveServerList failed to load init config")
 		}
 
 		newServer := new(server_details.ServerDetails)
-		sc.servers = append(sc.servers, newServer)
-		m.saveServerConfig(sc)
+		l.servers = append(l.servers, newServer)
+		m.saveServerList(l)
 	}()
 
 	// Test that save works
 	func() {
-		sc1 := m.getServerConfig()
-		t1NumServers := len(sc1.servers)
+		l1 := m.getServerList()
+		t1NumServers := len(l1.servers)
 		if t1NumServers != 1 {
-			t.Fatalf("Manager.saveServerConfig failed to save mutated config")
+			t.Fatalf("Manager.saveServerList failed to save mutated config")
 		}
 	}()
 
 	// Verify mutation w/o a save doesn't alter the original
 	func() {
 		newServer := new(server_details.ServerDetails)
-		sc := m.getServerConfig()
-		sc.servers = append(sc.servers, newServer)
+		l := m.getServerList()
+		l.servers = append(l.servers, newServer)
 
-		sc_orig := m.getServerConfig()
-		origNumServers := len(sc_orig.servers)
-		if origNumServers >= len(sc.servers) {
-			t.Fatalf("Manager.saveServerConfig unsaved config overwrote original")
+		l_orig := m.getServerList()
+		origNumServers := len(l_orig.servers)
+		if origNumServers >= len(l.servers) {
+			t.Fatalf("Manager.saveServerList unsaved config overwrote original")
 		}
 	}()
 }
