@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/consul/server_details"
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/raft"
@@ -97,7 +98,7 @@ type Server struct {
 
 	// localConsuls is used to track the known consuls
 	// in the local datacenter. Used to do leader forwarding.
-	localConsuls map[string]*serverParts
+	localConsuls map[string]*server_details.ServerDetails
 	localLock    sync.RWMutex
 
 	// Logger uses the provided LogOutput
@@ -119,7 +120,7 @@ type Server struct {
 
 	// remoteConsuls is used to track the known consuls in
 	// remote datacenters. Used to do DC forwarding.
-	remoteConsuls map[string][]*serverParts
+	remoteConsuls map[string][]*server_details.ServerDetails
 	remoteLock    sync.RWMutex
 
 	// rpcListener is used to listen for incoming connections
@@ -216,10 +217,10 @@ func NewServer(config *Config) (*Server, error) {
 		connPool:      NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap),
 		eventChLAN:    make(chan serf.Event, 256),
 		eventChWAN:    make(chan serf.Event, 256),
-		localConsuls:  make(map[string]*serverParts),
+		localConsuls:  make(map[string]*server_details.ServerDetails),
 		logger:        logger,
 		reconcileCh:   make(chan serf.Member, 32),
-		remoteConsuls: make(map[string][]*serverParts),
+		remoteConsuls: make(map[string][]*server_details.ServerDetails),
 		rpcServer:     rpc.NewServer(),
 		rpcTLS:        incomingTLS,
 		tombstoneGC:   gc,

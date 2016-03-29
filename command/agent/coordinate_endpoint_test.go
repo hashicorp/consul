@@ -99,7 +99,7 @@ func TestCoordinate_Nodes(t *testing.T) {
 	if err := srv.agent.RPC("Coordinate.Update", &arg2, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
 	// Query back and check the nodes are present and sorted correctly.
 	req, err = http.NewRequest("GET", "/v1/coordinate/nodes?dc=dc1", nil)

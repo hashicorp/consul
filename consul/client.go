@@ -3,7 +3,6 @@ package consul
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,19 +10,35 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/consul/server_details"
+	"github.com/hashicorp/consul/consul/server_manager"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
 
 const (
-	// clientRPCCache controls how long we keep an idle connection
-	// open to a server
-	clientRPCCache = 30 * time.Second
+	// clientRPCConnMaxIdle controls how long we keep an idle connection
+	// open to a server.  127s was chosen as the first prime above 120s
+	// (arbitrarily chose to use a prime) with the intent of reusing
+	// connections who are used by once-a-minute cron(8) jobs *and* who
+	// use a 60s jitter window (e.g. in vixie cron job execution can
+	// drift by up to 59s per job, or 119s for a once-a-minute cron job).
+	clientRPCConnMaxIdle = 127 * time.Second
 
 	// clientMaxStreams controls how many idle streams we keep
 	// open to a server
 	clientMaxStreams = 32
+
+	// serfEventBacklog is the maximum number of unprocessed Serf Events
+	// that will be held in queue before new serf events block.  A
+	// blocking serf event queue is a bad thing.
+	serfEventBacklog = 256
+
+	// serfEventBacklogWarning is the threshold at which point log
+	// warnings will be emitted indicating a problem when processing serf
+	// events.
+	serfEventBacklogWarning = 200
 )
 
 // Interface is used to provide either a Client or Server,
@@ -43,18 +58,13 @@ type Client struct {
 	// Connection pool to consul servers
 	connPool *ConnPool
 
-	// consuls tracks the locally known servers
-	consuls    []*serverParts
-	consulLock sync.RWMutex
+	// serverMgr is responsible for the selection and maintenance of
+	// Consul servers this agent uses for RPC requests
+	serverMgr *server_manager.ServerManager
 
 	// eventCh is used to receive events from the
 	// serf cluster in the datacenter
 	eventCh chan serf.Event
-
-	// lastServer is the last server we made an RPC call to,
-	// this is used to re-use the last connection
-	lastServer  *serverParts
-	lastRPCTime time.Time
 
 	// Logger uses the provided LogOutput
 	logger *log.Logger
@@ -103,11 +113,16 @@ func NewClient(config *Config) (*Client, error) {
 	// Create server
 	c := &Client{
 		config:     config,
-		connPool:   NewPool(config.LogOutput, clientRPCCache, clientMaxStreams, tlsWrap),
-		eventCh:    make(chan serf.Event, 256),
+		connPool:   NewPool(config.LogOutput, clientRPCConnMaxIdle, clientMaxStreams, tlsWrap),
+		eventCh:    make(chan serf.Event, serfEventBacklog),
 		logger:     logger,
 		shutdownCh: make(chan struct{}),
 	}
+
+	c.serverMgr = server_manager.New(c.logger, c.shutdownCh, c.serf)
+
+	// Start maintenance task for serverMgr
+	go c.serverMgr.Start()
 
 	// Start the Serf listeners to prevent a deadlock
 	go c.lanEventHandler()
@@ -215,7 +230,13 @@ func (c *Client) Encrypted() bool {
 
 // lanEventHandler is used to handle events from the lan Serf cluster
 func (c *Client) lanEventHandler() {
+	var numQueuedEvents int
 	for {
+		numQueuedEvents = len(c.eventCh)
+		if numQueuedEvents > serfEventBacklogWarning {
+			c.logger.Printf("[WARN] consul: number of queued serf events above warning threshold: %d/%d", numQueuedEvents, serfEventBacklogWarning)
+		}
+
 		select {
 		case e := <-c.eventCh:
 			switch e.EventType() {
@@ -240,7 +261,7 @@ func (c *Client) lanEventHandler() {
 // nodeJoin is used to handle join events on the serf cluster
 func (c *Client) nodeJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := isConsulServer(m)
+		ok, parts := server_details.IsConsulServer(m)
 		if !ok {
 			continue
 		}
@@ -250,23 +271,7 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Printf("[INFO] consul: adding server %s", parts)
-
-		// Check if this server is known
-		found := false
-		c.consulLock.Lock()
-		for idx, existing := range c.consuls {
-			if existing.Name == parts.Name {
-				c.consuls[idx] = parts
-				found = true
-				break
-			}
-		}
-
-		// Add to the list if not known
-		if !found {
-			c.consuls = append(c.consuls, parts)
-		}
-		c.consulLock.Unlock()
+		c.serverMgr.AddServer(parts)
 
 		// Trigger the callback
 		if c.config.ServerUp != nil {
@@ -278,23 +283,12 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 // nodeFail is used to handle fail events on the serf cluster
 func (c *Client) nodeFail(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := isConsulServer(m)
+		ok, parts := server_details.IsConsulServer(m)
 		if !ok {
 			continue
 		}
 		c.logger.Printf("[INFO] consul: removing server %s", parts)
-
-		// Remove the server if known
-		c.consulLock.Lock()
-		n := len(c.consuls)
-		for i := 0; i < n; i++ {
-			if c.consuls[i].Name == parts.Name {
-				c.consuls[i], c.consuls[n-1] = c.consuls[n-1], nil
-				c.consuls = c.consuls[:n-1]
-				break
-			}
-		}
-		c.consulLock.Unlock()
+		c.serverMgr.RemoveServer(parts)
 	}
 }
 
@@ -328,50 +322,33 @@ func (c *Client) localEvent(event serf.UserEvent) {
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
-	// Check the last rpc time
-	var server *serverParts
-	if time.Now().Sub(c.lastRPCTime) < clientRPCCache {
-		server = c.lastServer
-		if server != nil {
-			goto TRY_RPC
-		}
-	}
-
-	// Bail if we can't find any servers
-	c.consulLock.RLock()
-	if len(c.consuls) == 0 {
-		c.consulLock.RUnlock()
+	server := c.serverMgr.FindServer()
+	if server == nil {
 		return structs.ErrNoServers
 	}
 
-	// Select a random addr
-	server = c.consuls[rand.Int31()%int32(len(c.consuls))]
-	c.consulLock.RUnlock()
-
 	// Forward to remote Consul
-TRY_RPC:
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, args, reply); err != nil {
-		c.lastServer = nil
-		c.lastRPCTime = time.Time{}
+		c.serverMgr.NotifyFailedServer(server)
+		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
 		return err
 	}
 
-	// Cache the last server
-	c.lastServer = server
-	c.lastRPCTime = time.Now()
 	return nil
 }
 
 // Stats is used to return statistics for debugging and insight
 // for various sub-systems
 func (c *Client) Stats() map[string]map[string]string {
+	numServers := c.serverMgr.NumServers()
+
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)
 	}
 	stats := map[string]map[string]string{
 		"consul": map[string]string{
 			"server":        "false",
-			"known_servers": toString(uint64(len(c.consuls))),
+			"known_servers": toString(uint64(numServers)),
 		},
 		"serf_lan": c.serf.Stats(),
 		"runtime":  runtimeStats(),

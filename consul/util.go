@@ -23,21 +23,6 @@ import (
  */
 var privateBlocks []*net.IPNet
 
-// serverparts is used to return the parts of a server role
-type serverParts struct {
-	Name       string
-	Datacenter string
-	Port       int
-	Bootstrap  bool
-	Expect     int
-	Version    int
-	Addr       net.Addr
-}
-
-func (s *serverParts) String() string {
-	return fmt.Sprintf("%s (Addr: %s) (DC: %s)", s.Name, s.Addr, s.Datacenter)
-}
-
 func init() {
 	// Add each private block
 	privateBlocks = make([]*net.IPNet, 6)
@@ -114,52 +99,6 @@ func CanServersUnderstandProtocol(members []serf.Member, version uint8) (bool, e
 		}
 	}
 	return (numServers > 0) && (numWhoGrok == numServers), nil
-}
-
-// Returns if a member is a consul server. Returns a bool,
-// the datacenter, and the rpc port
-func isConsulServer(m serf.Member) (bool, *serverParts) {
-	if m.Tags["role"] != "consul" {
-		return false, nil
-	}
-
-	datacenter := m.Tags["dc"]
-	_, bootstrap := m.Tags["bootstrap"]
-
-	expect := 0
-	expect_str, ok := m.Tags["expect"]
-	var err error
-	if ok {
-		expect, err = strconv.Atoi(expect_str)
-		if err != nil {
-			return false, nil
-		}
-	}
-
-	port_str := m.Tags["port"]
-	port, err := strconv.Atoi(port_str)
-	if err != nil {
-		return false, nil
-	}
-
-	vsn_str := m.Tags["vsn"]
-	vsn, err := strconv.Atoi(vsn_str)
-	if err != nil {
-		return false, nil
-	}
-
-	addr := &net.TCPAddr{IP: m.Addr, Port: port}
-
-	parts := &serverParts{
-		Name:       m.Name,
-		Datacenter: datacenter,
-		Port:       port,
-		Bootstrap:  bootstrap,
-		Expect:     expect,
-		Addr:       addr,
-		Version:    vsn,
-	}
-	return true, parts
 }
 
 // Returns if a member is a consul node. Returns a bool,

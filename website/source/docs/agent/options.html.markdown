@@ -396,7 +396,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   This is a nested setting that allows the following keys:
   * `serf_lan` - The SerfLan address. Accepts values in the form of "host:port" like "10.23.31.101:8301".
   * `serf_wan` - The SerfWan address. Accepts values in the form of "host:port" like "10.23.31.101:8302".
-  * `rpc` - The RPC address. Accepts values in the form of "host:port" like "10.23.31.101:8400".
+  * `rpc` - The server RPC address. Accepts values in the form of "host:port" like "10.23.31.101:8300".
 
 * <a name="advertise_addr_wan"></a><a href="#advertise_addr_wan">`advertise_addr_wan`</a> Equivalent to
   the [`-advertise-wan` command-line flag](#_advertise-wan).
@@ -498,9 +498,13 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   UDP response, will set the truncated flag, indicating to clients that they should re-query
   using TCP to get the full set of records.
 
-  * <a name="only_passing"></a><a href="#only_passing">`only_passing`</a> If set to true, any
-  nodes whose healthchecks are not passing will be excluded from DNS results. By default (or
-  if set to false), only nodes whose healthchecks are failing as critical will be excluded.
+  * <a name="only_passing"></a><a href="#only_passing">`only_passing`</a>
+    When set to true, the default, the querying agent will only receive node
+    or service addresses for healthy services.  A healthy service is defined
+    as a service with one or more healthchecks and all defined healthchecks
+    for the service are in a passing or warning state (i.e. not
+    critical). Set to false to have the querying agent include all node and
+    service addresses regardless of the health of the service.
 
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).

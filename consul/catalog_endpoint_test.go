@@ -281,18 +281,11 @@ func TestCatalogListDatacenters_DistanceSort(t *testing.T) {
 	// coordinates, so the best we can do is make sure that the sorting
 	// function is getting called (it's tested extensively in rtt_test.go).
 	// Since this is relative to dc1, it will be listed first (proving we
-	// went into the sort fn) and the other two will be sorted by name since
-	// there are no known coordinates for them.
+	// went into the sort fn).
 	if len(out) != 3 {
 		t.Fatalf("bad: %v", out)
 	}
 	if out[0] != "dc1" {
-		t.Fatalf("bad: %v", out)
-	}
-	if out[1] != "acdc" {
-		t.Fatalf("bad: %v", out)
-	}
-	if out[2] != "dc2" {
 		t.Fatalf("bad: %v", out)
 	}
 }

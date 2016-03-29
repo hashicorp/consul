@@ -257,12 +257,12 @@ type checkUpdate struct {
 // required to use this API).
 func (a *Agent) UpdateTTL(checkID, output, status string) error {
 	switch status {
-	case "pass", "passing":
-		status = "passing"
-	case "warn", "warning":
-		status = "warning"
-	case "fail", "critical":
-		status = "critical"
+	case "pass", HealthPassing:
+		status = HealthPassing
+	case "warn", HealthWarning:
+		status = HealthWarning
+	case "fail", HealthCritical:
+		status = HealthCritical
 	default:
 		return fmt.Errorf("Invalid status: %s", status)
 	}

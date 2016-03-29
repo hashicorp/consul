@@ -240,16 +240,16 @@ applies a failover policy to it:
 
 ```javascript
 {
-  "Name": "",
-  "Template" {
-    "Type": "name_prefix_match",
-  },
-  "Service": {
-    "Service": "${name.full}",
-    "Failover": {
-      "NearestN": 3,
-    }
-  }
+	"Name": "",
+	"Template": {
+		"Type": "name_prefix_match"
+	},
+	"Service": {
+		"Service": "${name.full}",
+		"Failover": {
+			"NearestN": 3
+		}
+	}
 }
 ```
 
