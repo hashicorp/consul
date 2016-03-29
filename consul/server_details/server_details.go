@@ -8,6 +8,16 @@ import (
 	"github.com/hashicorp/serf/serf"
 )
 
+// Key is used in maps and for equality tests.  A key is based on endpoints.
+type Key struct {
+	name string
+}
+
+// Equal compares two Key objects
+func (k *Key) Equal(x *Key) bool {
+	return k.name == x.name
+}
+
 // ServerDetails is used to return details of a consul server
 type ServerDetails struct {
 	Name       string
@@ -19,8 +29,22 @@ type ServerDetails struct {
 	Addr       net.Addr
 }
 
+// Key returns the corresponding Key
+func (s *ServerDetails) Key() *Key {
+	return &Key{
+		name: s.Name,
+	}
+}
+
+// String returns a string representation of ServerDetails
 func (s *ServerDetails) String() string {
-	return fmt.Sprintf("%s (Addr: %s) (DC: %s)", s.Name, s.Addr, s.Datacenter)
+	var addrStr, networkStr string
+	if s.Addr != nil {
+		addrStr = s.Addr.String()
+		networkStr = s.Addr.Network()
+	}
+
+	return fmt.Sprintf("%s (Addr: %s/%s) (DC: %s)", s.Name, networkStr, addrStr, s.Datacenter)
 }
 
 // IsConsulServer returns true if a serf member is a consul server. Returns a

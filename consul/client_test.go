@@ -236,6 +236,73 @@ func TestClient_RPC_Pool(t *testing.T) {
 	wg.Wait()
 }
 
+func TestClient_RPC_ConsulServerPing(t *testing.T) {
+	var servers []*Server
+	var serverDirs []string
+	const numServers = 5
+
+	for n := numServers; n > 0; n-- {
+		var bootstrap bool
+		if n == numServers {
+			bootstrap = true
+		}
+		dir, s := testServerDCBootstrap(t, "dc1", bootstrap)
+		defer os.RemoveAll(dir)
+		defer s.Shutdown()
+
+		servers = append(servers, s)
+		serverDirs = append(serverDirs, dir)
+	}
+
+	const numClients = 1
+	clientDir, c := testClient(t)
+	defer os.RemoveAll(clientDir)
+	defer c.Shutdown()
+
+	// Join all servers.
+	for _, s := range servers {
+		addr := fmt.Sprintf("127.0.0.1:%d",
+			s.config.SerfLANConfig.MemberlistConfig.BindPort)
+		if _, err := c.JoinLAN([]string{addr}); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Sleep to allow Serf to sync, shuffle, and let the shuffle complete
+	time.Sleep(1 * time.Second)
+	c.serverMgr.ResetRebalanceTimer()
+	time.Sleep(1 * time.Second)
+
+	if len(c.LANMembers()) != numServers+numClients {
+		t.Errorf("bad len: %d", len(c.LANMembers()))
+	}
+	for _, s := range servers {
+		if len(s.LANMembers()) != numServers+numClients {
+			t.Errorf("bad len: %d", len(s.LANMembers()))
+		}
+	}
+
+	// Ping each server in the list
+	var pingCount int
+	for range servers {
+		time.Sleep(1 * time.Second)
+		s := c.serverMgr.FindServer()
+		ok, err := c.connPool.PingConsulServer(s)
+		if !ok {
+			t.Errorf("Unable to ping server %v: %s", s.String(), err)
+		}
+		pingCount += 1
+
+		// Artificially fail the server in order to rotate the server
+		// list
+		c.serverMgr.NotifyFailedServer(s)
+	}
+
+	if pingCount != numServers {
+		t.Errorf("bad len: %d/%d", pingCount, numServers)
+	}
+}
+
 func TestClient_RPC_TLS(t *testing.T) {
 	dir1, conf1 := testServerConfig(t, "a.testco.internal")
 	conf1.VerifyIncoming = true

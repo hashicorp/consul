@@ -119,12 +119,7 @@ func NewClient(config *Config) (*Client, error) {
 		shutdownCh: make(chan struct{}),
 	}
 
-	c.serverMgr = server_manager.New(c.logger, c.shutdownCh, c.serf)
-
-	// Start maintenance task for serverMgr
-	go c.serverMgr.Start()
-
-	// Start the Serf listeners to prevent a deadlock
+	// Start lan event handlers before lan Serf setup to prevent deadlock
 	go c.lanEventHandler()
 
 	// Initialize the lan Serf
@@ -134,6 +129,11 @@ func NewClient(config *Config) (*Client, error) {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
+
+	// Start maintenance task for server_manager
+	c.serverMgr = server_manager.New(c.logger, c.shutdownCh, c.serf, c.connPool)
+	go c.serverMgr.Start()
+
 	return c, nil
 }
 

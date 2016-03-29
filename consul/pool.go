@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/consul/server_details"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
@@ -403,6 +404,30 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, arg
 	conn.returnClient(sc)
 	p.releaseConn(conn)
 	return nil
+}
+
+// PingConsulServer sends a Status.Ping message to the specified server and
+// returns true if healthy, false if an error occurred
+func (p *ConnPool) PingConsulServer(s *server_details.ServerDetails) (bool, error) {
+	// Get a usable client
+	conn, sc, err := p.getClient(s.Datacenter, s.Addr, s.Version)
+	if err != nil {
+		return false, err
+	}
+
+	// Make the RPC call
+	var out struct{}
+	err = msgpackrpc.CallWithCodec(sc.codec, "Status.Ping", struct{}{}, &out)
+	if err != nil {
+		sc.Close()
+		p.releaseConn(conn)
+		return false, err
+	}
+
+	// Done with the connection
+	conn.returnClient(sc)
+	p.releaseConn(conn)
+	return true, nil
 }
 
 // Reap is used to close conns open over maxTime
