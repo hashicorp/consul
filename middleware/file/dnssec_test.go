@@ -51,6 +51,7 @@ var dnssecTestCases = []coretest.Case{
 		},
 	},
 	{
+		// NoData
 		Qname: "a.miek.nl.", Qtype: dns.TypeSRV, Do: true,
 		Ns: []dns.RR{
 			coretest.NSEC("a.miek.nl.	14400	IN	NSEC	archive.miek.nl. A AAAA RRSIG NSEC"),
@@ -60,6 +61,7 @@ var dnssecTestCases = []coretest.Case{
 		},
 	},
 	/* HAHA nsec... shit.
+	// disprove *.miek.nl and that b.miek.nl does not exist
 	{
 		Qname: "b.miek.nl.", Qtype: dns.TypeA,
 		Rcode: dns.RcodeNameError,
