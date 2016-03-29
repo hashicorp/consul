@@ -1,8 +1,6 @@
 package file
 
 import (
-	"fmt"
-
 	"github.com/miekg/coredns/middleware/file/tree"
 	"github.com/miekg/dns"
 )
@@ -69,14 +67,14 @@ func (z *Zone) noData(elem *tree.Elem, do bool) ([]dns.RR, []dns.RR, []dns.RR, R
 }
 
 func (z *Zone) nameError(elem *tree.Elem, rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
-	ret := []dns.RR{}
+	ret := []dns.RR{z.SOA}
 	if do {
 		ret = append(ret, z.SIG...)
 		// Now we need two NSEC, one to deny the wildcard and one to deny the name.
 		elem := z.Tree.Prev(rr)
-		fmt.Printf("%+v\n", elem.All())
+		ret = append(ret, z.lookupNSEC(elem, do))
 		elem = z.Tree.Prev(wildcard(rr))
-		fmt.Printf("%+v\n", elem.All())
+		ret = append(ret, z.lookupNSEC(elem, do))
 	}
 	return nil, ret, nil, NameError
 }
