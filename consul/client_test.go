@@ -295,7 +295,7 @@ func TestClient_RPC_ConsulServerPing(t *testing.T) {
 
 		// Artificially fail the server in order to rotate the server
 		// list
-		sm.NotifyFailedServer(s)
+		c.serverMgr.NotifyFailedServer(s)
 	}
 
 	if pingCount != numServers {

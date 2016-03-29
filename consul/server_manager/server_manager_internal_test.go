@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -26,10 +27,17 @@ func GetBufferedLogger() *log.Logger {
 }
 
 type fauxConnPool struct {
+	// failPct between 0.0 and 1.0 == pct of time a Ping should fail
+	failPct float64
 }
 
-func (s *fauxConnPool) PingConsulServer(server *server_details.ServerDetails) (bool, error) {
-	return true, nil
+func (cp *fauxConnPool) PingConsulServer(server *server_details.ServerDetails) (bool, error) {
+	var success bool
+	successProb := rand.Float64()
+	if successProb > cp.failPct {
+		success = true
+	}
+	return success, nil
 }
 
 type fauxSerf struct {
@@ -44,6 +52,14 @@ func testServerManager() (sm *ServerManager) {
 	logger := GetBufferedLogger()
 	shutdownCh := make(chan struct{})
 	sm = New(logger, shutdownCh, &fauxSerf{numNodes: 16384}, &fauxConnPool{})
+	return sm
+}
+
+func testServerManagerFailProb(failPct float64) (sm *ServerManager) {
+	logger := GetBufferedLogger()
+	logger = log.New(os.Stderr, "", log.LstdFlags)
+	shutdownCh := make(chan struct{})
+	sm = New(logger, shutdownCh, &fauxSerf{}, &fauxConnPool{failPct: failPct})
 	return sm
 }
 
@@ -130,6 +146,119 @@ func TestServerManagerInternal_New(t *testing.T) {
 	if sm.shutdownCh == nil {
 		t.Fatalf("ServerManager.shutdownCh nil")
 	}
+}
+
+// func (sm *ServerManager) reconcileServerList(sc *serverConfig) bool {
+func TestServerManagerInternal_reconcileServerList(t *testing.T) {
+	tests := []int{0, 1, 2, 3, 4, 5, 10, 100}
+	for _, n := range tests {
+		ok, err := test_reconcileServerList(n)
+		if !ok {
+			t.Errorf("Expected %d to pass: %v", n, err)
+		}
+	}
+}
+
+func test_reconcileServerList(maxServers int) (bool, error) {
+	// Build a server list, reconcile, verify the missing servers are
+	// missing, the added have been added, and the original server is
+	// present.
+	const failPct = 0.5
+	sm := testServerManagerFailProb(failPct)
+	const numShuffleTests = 100
+	const uniquePassRate = 0.5
+
+	var failedServers, healthyServers []*server_details.ServerDetails
+	for i := 0; i < maxServers; i++ {
+		nodeName := fmt.Sprintf("s%02d", i)
+
+		node := &server_details.ServerDetails{Name: nodeName}
+		// Add 66% of servers to ServerManager
+		if rand.Float64() > 0.33 {
+			sm.AddServer(node)
+
+			// Of healthy servers, (ab)use connPoolPinger to
+			// failPct of the servers for the reconcile.  This
+			// allows for the selected server to no longer be
+			// healthy for the reconcile below.
+			if ok, _ := sm.connPoolPinger.PingConsulServer(node); ok {
+				// Will still be present
+				healthyServers = append(healthyServers, node)
+			} else {
+				// Will be missing
+				failedServers = append(failedServers, node)
+			}
+		} else {
+			// Will be added from the call to reconcile
+			healthyServers = append(healthyServers, node)
+		}
+	}
+
+	// Randomize ServerManager's server list
+	sm.RebalanceServers()
+	selectedServer := sm.FindServer()
+
+	var selectedServerFailed bool
+	for _, s := range failedServers {
+		if selectedServer.Key().Equal(s.Key()) {
+			selectedServerFailed = true
+			break
+		}
+	}
+
+	// Update ServerManager's server list to be "healthy" based on Serf.
+	// Reconcile this with origServers, which is shuffled and has a live
+	// connection, but possibly out of date.
+	origServers := sm.getServerConfig()
+	sm.saveServerConfig(serverConfig{servers: healthyServers})
+
+	// This should always succeed with non-zero server lists
+	if !selectedServerFailed && !sm.reconcileServerList(&origServers) &&
+		len(sm.getServerConfig().servers) != 0 &&
+		len(origServers.servers) != 0 {
+		// If the random gods are unfavorable and we end up with zero
+		// length lists, expect things to fail and retry the test.
+		return false, fmt.Errorf("Expected reconcile to succeed: %v %d %d",
+			selectedServerFailed,
+			len(sm.getServerConfig().servers),
+			len(origServers.servers))
+	}
+
+	// If we have zero-length server lists, test succeeded in degenerate
+	// case.
+	if len(sm.getServerConfig().servers) == 0 &&
+		len(origServers.servers) == 0 {
+		// Failed as expected w/ zero length list
+		return true, nil
+	}
+
+	resultingServerMap := make(map[server_details.Key]bool)
+	for _, s := range sm.getServerConfig().servers {
+		resultingServerMap[*s.Key()] = true
+	}
+
+	// Test to make sure no failed servers are in the ServerManager's
+	// list.  Error if there are any failedServers in sc.servers
+	for _, s := range failedServers {
+		_, ok := resultingServerMap[*s.Key()]
+		if ok {
+			return false, fmt.Errorf("Found failed server %v in merged list %v", s, resultingServerMap)
+		}
+	}
+
+	// Test to make sure all healthy servers are in the healthy list.
+	if len(healthyServers) != len(sm.getServerConfig().servers) {
+		return false, fmt.Errorf("Expected healthy map and servers to match: %d/%d", len(healthyServers), len(healthyServers))
+	}
+
+	// Test to make sure all healthy servers are in the resultingServerMap list.
+	for _, s := range healthyServers {
+		_, ok := resultingServerMap[*s.Key()]
+		if !ok {
+			return false, fmt.Errorf("Server %v missing from healthy map after merged lists", s)
+		}
+	}
+	return true, nil
 }
 
 // func (sc *serverConfig) refreshServerRebalanceTimer() {

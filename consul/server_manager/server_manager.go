@@ -278,8 +278,7 @@ func (sm *ServerManager) NumServers() (numServers int) {
 // deregistered.  Before the newly shuffled server list is saved, the new
 // remote endpoint is tested to ensure its responsive.
 func (sm *ServerManager) RebalanceServers() {
-FAILED_SERVER_DURING_REBALANCE:
-	// Obtain a copy of the server config
+	// Obtain a copy of the current serverConfig
 	sc := sm.getServerConfig()
 
 	// Early abort if there is no value to shuffling
@@ -293,7 +292,7 @@ FAILED_SERVER_DURING_REBALANCE:
 	// Don't iterate on the list directly, this loop mutates server the
 	// list.
 	var foundHealthyServer bool
-	for n := len(sc.servers); n > 0; n-- {
+	for i := 0; i < len(sc.servers); i++ {
 		// Always test the first server.  Failed servers are cycled
 		// while Serf detects the node has failed.
 		selectedServer := sc.servers[0]
@@ -303,7 +302,7 @@ FAILED_SERVER_DURING_REBALANCE:
 			foundHealthyServer = true
 			break
 		}
-		sm.logger.Printf("[DEBUG] server manager: pinging server %s failed: %s", selectedServer.String(), err)
+		sm.logger.Printf(`[DEBUG] server manager: pinging server "%s" failed: %s`, selectedServer.String(), err)
 
 		sc.cycleServer()
 	}
@@ -311,75 +310,94 @@ FAILED_SERVER_DURING_REBALANCE:
 	// If no healthy servers were found, sleep and wait for Serf to make
 	// the world a happy place again.
 	if !foundHealthyServer {
-		const backoffDuration = 1 * time.Second
-		sm.logger.Printf("[DEBUG] server manager: No servers available, sleeping for %v", backoffDuration)
-
-		// Sleep with no locks
-		time.Sleep(backoffDuration)
-		goto FAILED_SERVER_DURING_REBALANCE
+		sm.logger.Printf("[DEBUG] server manager: No healthy servers during rebalance, aborting")
+		return
 	}
 
-	// Verify that all servers are present. Use an anonymous func to
-	// ensure lock is released when exiting the critical section.
-	reconcileServerLists := func() bool {
-		sm.serverConfigLock.Lock()
-		defer sm.serverConfigLock.Unlock()
-		tmpServerCfg := sm.getServerConfig()
-
-		type targetServer struct {
-			server *server_details.ServerDetails
-
-			//   'b' == both
-			//   'o' == original
-			//   'n' == new
-			state byte
-		}
-		mergedList := make(map[server_details.Key]*targetServer)
-		for _, s := range sc.servers {
-			mergedList[*s.Key()] = &targetServer{server: s, state: 'o'}
-		}
-		for _, s := range tmpServerCfg.servers {
-			k := s.Key()
-			_, found := mergedList[*k]
-			if found {
-				mergedList[*k].state = 'b'
-			} else {
-				mergedList[*k] = &targetServer{server: s, state: 'n'}
-			}
-		}
-
-		// Ensure the selected server has not been removed by Serf
-		selectedServerKey := sc.servers[0].Key()
-		if v, found := mergedList[*selectedServerKey]; found && v.state == 'o' {
-			return false
-		}
-
-		// Add any new servers and remove any old servers
-		for k, v := range mergedList {
-			switch v.state {
-			case 'b':
-				// Do nothing, server exists in both
-			case 'o':
-				// Server has been removed
-				sc.removeServerByKey(&k)
-			case 'n':
-				// Server added
-				sc.servers = append(sc.servers, v.server)
-			default:
-				panic("not implemented")
-			}
-		}
-
-		sm.saveServerConfig(sc)
-		return true
+	// Verify that all servers are present
+	if sm.reconcileServerList(&sc) {
+		sm.logger.Printf("[DEBUG] server manager: Rebalanced %d servers, next active server is %s", len(sc.servers), sc.servers[0].String())
+	} else {
+		// reconcileServerList failed because Serf removed the server
+		// that was at the front of the list that had successfully
+		// been Ping'ed.  Between the Ping and reconcile, a Serf
+		// event had shown up removing the node.  Prevent an RPC
+		// timeout by retrying RebalanceServers().
+		//
+		// Instead of doing any heroics, "freeze in place" and
+		// continue to use the existing connection until the next
+		// rebalance occurs.
 	}
 
-	if !reconcileServerLists() {
-		goto FAILED_SERVER_DURING_REBALANCE
-	}
-
-	sm.logger.Printf("[DEBUG] server manager: Rebalanced %d servers, next active server is %s", len(sc.servers), sc.servers[0].String())
 	return
+}
+
+// reconcileServerList returns true when the first server in serverConfig
+// exists in the receiver's serverConfig.  If true, the merged serverConfig
+// is stored as the receiver's serverConfig.  Returns false if the first
+// server does not exist in the list (i.e. was removed by Serf during a
+// PingConsulServer() call.  Newly added servers are appended to the list and
+// other missing servers are removed from the list.
+func (sm *ServerManager) reconcileServerList(sc *serverConfig) bool {
+	sm.serverConfigLock.Lock()
+	defer sm.serverConfigLock.Unlock()
+
+	// newServerCfg is a serverConfig that has been kept up to date with
+	// Serf node join and node leave events.
+	newServerCfg := sm.getServerConfig()
+
+	// If Serf has removed all nodes, or there is no selected server
+	// (zero nodes in sc), abort early.
+	if len(newServerCfg.servers) == 0 || len(sc.servers) == 0 {
+		return false
+	}
+
+	type targetServer struct {
+		server *server_details.ServerDetails
+
+		//   'b' == both
+		//   'o' == original
+		//   'n' == new
+		state byte
+	}
+	mergedList := make(map[server_details.Key]*targetServer, len(sc.servers))
+	for _, s := range sc.servers {
+		mergedList[*s.Key()] = &targetServer{server: s, state: 'o'}
+	}
+	for _, s := range newServerCfg.servers {
+		k := s.Key()
+		_, found := mergedList[*k]
+		if found {
+			mergedList[*k].state = 'b'
+		} else {
+			mergedList[*k] = &targetServer{server: s, state: 'n'}
+		}
+	}
+
+	// Ensure the selected server has not been removed by Serf
+	selectedServerKey := sc.servers[0].Key()
+	if v, found := mergedList[*selectedServerKey]; found && v.state == 'o' {
+		return false
+	}
+
+	// Append any new servers and remove any old servers
+	for k, v := range mergedList {
+		switch v.state {
+		case 'b':
+			// Do nothing, server exists in both
+		case 'o':
+			// Server has been removed
+			sc.removeServerByKey(&k)
+		case 'n':
+			// Server added
+			sc.servers = append(sc.servers, v.server)
+		default:
+			panic("unknown merge list state")
+		}
+	}
+
+	sm.saveServerConfig(*sc)
+	return true
 }
 
 // RemoveServer takes out an internal write lock and removes a server from
