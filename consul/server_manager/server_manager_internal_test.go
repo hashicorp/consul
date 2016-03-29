@@ -165,8 +165,6 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 	// present.
 	const failPct = 0.5
 	sm := testServerManagerFailProb(failPct)
-	const numShuffleTests = 100
-	const uniquePassRate = 0.5
 
 	var failedServers, healthyServers []*server_details.ServerDetails
 	for i := 0; i < maxServers; i++ {
