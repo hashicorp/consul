@@ -162,7 +162,6 @@ func (sc *serverConfig) cycleServer() (servers []*server_details.ServerDetails) 
 func (sc *serverConfig) removeServerByKey(targetKey *server_details.Key) {
 	for i, s := range sc.servers {
 		if targetKey.Equal(s.Key()) {
-			// Delete the target server
 			copy(sc.servers[i:], sc.servers[i+1:])
 			sc.servers[len(sc.servers)-1] = nil
 			sc.servers = sc.servers[:len(sc.servers)-1]
@@ -173,7 +172,6 @@ func (sc *serverConfig) removeServerByKey(targetKey *server_details.Key) {
 
 // shuffleServers shuffles the server list in place
 func (sc *serverConfig) shuffleServers() {
-	// Shuffle server list
 	for i := len(sc.servers) - 1; i > 0; i-- {
 		j := rand.Int31n(int32(i + 1))
 		sc.servers[i], sc.servers[j] = sc.servers[j], sc.servers[i]
@@ -456,7 +454,6 @@ func (sm *ServerManager) Start() {
 	for {
 		select {
 		case <-sm.rebalanceTimer.C:
-			//sm.logger.Printf("[INFO] server manager: Rebalancing server connections")
 			sm.RebalanceServers()
 			sm.refreshServerRebalanceTimer()
 
