@@ -212,7 +212,7 @@ func TestClient_RPC_Pool(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if len(s1.LANMembers()) != 2 || len(c1.LANMembers()) != 2 {
-		t.Fatalf("bad len")
+		t.Fatalf("Server has %v of %v expected members; Client has %v of %v expected members.", len(s1.LANMembers()), 2, len(c1.LANMembers()), 2)
 	}
 
 	// Blast out a bunch of RPC requests at the same time to try to get
