@@ -289,7 +289,7 @@ func (sm *ServerManager) RebalanceServers() {
 	sc.shuffleServers()
 
 	// Iterate through the shuffled server list to find a healthy server.
-	// Don't iterate on the list directly, this loop mutates server the
+	// Don't iterate on the list directly, this loop mutates the server
 	// list.
 	var foundHealthyServer bool
 	for i := 0; i < len(sc.servers); i++ {
