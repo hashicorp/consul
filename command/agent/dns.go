@@ -509,7 +509,7 @@ func trimUDPAnswers(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
 		resp.Answer = resp.Answer[:len(resp.Answer)-1]
 	}
 
-	return len(resp.Answer) < maxAnswers
+	return len(resp.Answer) < numAnswers
 }
 
 // serviceLookup is used to handle a service query
