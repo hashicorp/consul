@@ -1,5 +1,12 @@
 package lib
 
+func AbsInt(a int) int {
+	if a > 0 {
+		return a
+	}
+	return a * -1
+}
+
 func MaxInt(a, b int) int {
 	if a > b {
 		return a

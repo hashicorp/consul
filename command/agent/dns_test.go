@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/miekg/dns"
 )
@@ -2123,16 +2124,19 @@ func testDNS_ServiceLookup_responseLimits(t *testing.T, answerLimit int, qType u
 
 		switch idx {
 		case 0:
-			if len(in.Answer) != expectedService {
-				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, question)
+			if (expectedService > 0 && len(in.Answer) != expectedService) ||
+				(expectedService < -1 && len(in.Answer) < lib.AbsInt(expectedService)) {
+				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, qType, question)
 			}
 		case 1:
-			if len(in.Answer) != expectedQuery {
-				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, question)
+			if (expectedQuery > 0 && len(in.Answer) != expectedQuery) ||
+				(expectedQuery < -1 && len(in.Answer) < lib.AbsInt(expectedQuery)) {
+				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, qType, question)
 			}
 		case 2:
-			if len(in.Answer) != expectedQueryID {
-				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, question)
+			if (expectedQueryID > 0 && len(in.Answer) != expectedQueryID) ||
+				(expectedQueryID < -1 && len(in.Answer) < lib.AbsInt(expectedQueryID)) {
+				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, qType, question)
 			}
 		default:
 			panic("abort")
@@ -2144,7 +2148,15 @@ func testDNS_ServiceLookup_responseLimits(t *testing.T, answerLimit int, qType u
 
 func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 	// Build a matrix of config parameters (udpAnswerLimit), and the
-	// length of the response per query type and question.
+	// length of the response per query type and question.  Negative
+	// values imply the test must return at least the abs(value) number
+	// of records in the answer section.  This is required because, for
+	// example, on OS-X and Linux, the number of answers returned in a
+	// 512B response is different even though both platforms are x86_64
+	// and using the same version of Go.
+	//
+	// TODO(sean@): Why is it not identical everywhere when using the
+	// same compiler?
 	tests := []struct {
 		name                string
 		udpAnswerLimit      int
@@ -2164,27 +2176,27 @@ func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 		{"3", 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
 		{"4", 4, 4, 4, 4, 4, 4, 4, 4, 4, 4},
 		{"5", 5, 5, 5, 5, 5, 5, 5, 5, 5, 5},
-		{"6", 6, 6, 6, 6, 6, 6, 5, 6, 6, 6},
-		{"7", 7, 7, 7, 6, 7, 7, 5, 7, 7, 6},
-		{"8", 8, 8, 8, 6, 8, 8, 5, 8, 8, 6},
-		{"9", 9, 8, 8, 6, 8, 8, 5, 8, 8, 6},
-		{"20", 20, 8, 8, 6, 8, 8, 5, 8, 8, 6},
-		{"30", 30, 8, 8, 6, 8, 8, 5, 8, 8, 6},
+		{"6", 6, 6, 6, 6, 6, 6, 5, 6, 6, -5},
+		{"7", 7, 7, 7, 6, 7, 7, 5, 7, 7, -5},
+		{"8", 8, 8, 8, 6, 8, 8, 5, 8, 8, -5},
+		{"9", 9, 8, 8, 6, 8, 8, 5, 8, 8, -5},
+		{"20", 20, 8, 8, 6, 8, 8, 5, 8, -5, -5},
+		{"30", 30, 8, 8, 6, 8, 8, 5, 8, -5, -5},
 	}
 	for _, test := range tests {
 		ok, err := testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeA, test.expectedAService, test.expectedAQuery, test.expectedAQueryID)
 		if !ok {
-			t.Errorf("Expected service A lookup %d to pass: %v", test.name, err)
+			t.Errorf("Expected service A lookup %s to pass: %v", test.name, err)
 		}
 
 		ok, err = testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeAAAA, test.expectedAAAAService, test.expectedAAAAQuery, test.expectedAAAAQueryID)
 		if !ok {
-			t.Errorf("Expected service AAAA lookup %d to pass: %v", test.name, err)
+			t.Errorf("Expected service AAAA lookup %s to pass: %v", test.name, err)
 		}
 
 		ok, err = testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeANY, test.expectedANYService, test.expectedANYQuery, test.expectedANYQueryID)
 		if !ok {
-			t.Errorf("Expected service ANY lookup %d to %v: %v", test.name, err)
+			t.Errorf("Expected service ANY lookup %s to pass: %v", test.name, err)
 		}
 	}
 }
