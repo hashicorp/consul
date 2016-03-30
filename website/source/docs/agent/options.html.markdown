@@ -499,12 +499,12 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   using TCP to get the full set of records.
 
   * <a name="only_passing"></a><a href="#only_passing">`only_passing`</a>
-    When set to true, the default, the querying agent will only receive node
-    or service addresses for healthy services.  A healthy service is defined
-    as a service with one or more healthchecks and all defined healthchecks
-    for the service are in a passing or warning state (i.e. not
-    critical). Set to false to have the querying agent include all node and
-    service addresses regardless of the health of the service.
+  When set to true, the default, the querying agent will only receive node
+  or service addresses for healthy services.  A healthy service is defined
+  as a service with one or more healthchecks and all defined healthchecks
+  for the service are in a passing or warning state (i.e. not
+  critical). Set to false to have the querying agent include all node and
+  service addresses regardless of the health of the service.
 
   * <a name="udp_answer_limit"></a><a
   href="#udp_answer_limit">`udp_answer_limit`</a> - Limit the number of
