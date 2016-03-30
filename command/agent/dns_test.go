@@ -2124,15 +2124,15 @@ func testDNS_ServiceLookup_responseLimits(t *testing.T, answerLimit int, qType u
 		switch idx {
 		case 0:
 			if len(in.Answer) != expectedService {
-				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, question)
+				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, qType, question)
 			}
 		case 1:
 			if len(in.Answer) != expectedQuery {
-				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, question)
+				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, qType, question)
 			}
 		case 2:
 			if len(in.Answer) != expectedQueryID {
-				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, question)
+				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, qType, question)
 			}
 		default:
 			panic("abort")
@@ -2174,17 +2174,17 @@ func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
 	for _, test := range tests {
 		ok, err := testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeA, test.expectedAService, test.expectedAQuery, test.expectedAQueryID)
 		if !ok {
-			t.Errorf("Expected service A lookup %d to pass: %v", test.name, err)
+			t.Errorf("Expected service A lookup %s to pass: %v", test.name, err)
 		}
 
 		ok, err = testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeAAAA, test.expectedAAAAService, test.expectedAAAAQuery, test.expectedAAAAQueryID)
 		if !ok {
-			t.Errorf("Expected service AAAA lookup %d to pass: %v", test.name, err)
+			t.Errorf("Expected service AAAA lookup %s to pass: %v", test.name, err)
 		}
 
 		ok, err = testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeANY, test.expectedANYService, test.expectedANYQuery, test.expectedANYQueryID)
 		if !ok {
-			t.Errorf("Expected service ANY lookup %d to %v: %v", test.name, err)
+			t.Errorf("Expected service ANY lookup %s to pass: %v", test.name, err)
 		}
 	}
 }
