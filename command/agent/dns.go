@@ -12,12 +12,17 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/miekg/dns"
 )
 
 const (
-	maxServiceResponses = 3 // For UDP only
-	maxRecurseRecords   = 5
+	// UDP can fit ~25 A records in a 512B response, and ~14 AAAA
+	// records.  Limit further to prevent unintentional configuration
+	// abuse that would have a negative effect on application response
+	// times.
+	maxUDPAnswerLimit = 8
+	maxRecurseRecords = 5
 )
 
 // DNSServer is used to wrap an Agent and expose various
@@ -487,15 +492,16 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 	return records
 }
 
-// trimAnswers makes sure a UDP response is not longer than allowed by RFC 1035.
-// We first enforce an arbitrary limit, and then make sure the response doesn't
-// exceed 512 bytes.
-func trimAnswers(resp *dns.Msg) (trimmed bool) {
+// trimUDPAnswers makes sure a UDP response is not longer than allowed by RFC
+// 1035.  Enforce an arbitrary limit that can be further ratcheted down by
+// config, and then make sure the response doesn't exceed 512 bytes.
+func trimUDPAnswers(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
 	numAnswers := len(resp.Answer)
 
 	// This cuts UDP responses to a useful but limited number of responses.
-	if numAnswers > maxServiceResponses {
-		resp.Answer = resp.Answer[:maxServiceResponses]
+	maxAnswers := lib.MinInt(maxUDPAnswerLimit, config.UDPAnswerLimit)
+	if numAnswers > maxAnswers {
+		resp.Answer = resp.Answer[:maxAnswers]
 	}
 
 	// This enforces the hard limit of 512 bytes per the RFC.
@@ -567,7 +573,7 @@ RPC:
 
 	// If the network is not TCP, restrict the number of responses
 	if network != "tcp" {
-		wasTrimmed := trimAnswers(resp)
+		wasTrimmed := trimUDPAnswers(d.config, resp)
 
 		// Flag that there are more records to return in the UDP response
 		if wasTrimmed && d.config.EnableTruncate {
@@ -599,7 +605,7 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 	// match the previous behavior. We can optimize by pushing more filtering
 	// into the query execution, but for now I think we need to get the full
 	// response. We could also choose a large arbitrary number that will
-	// likely work in practice, like 10*maxServiceResponses which should help
+	// likely work in practice, like 10*maxUDPAnswerLimit which should help
 	// reduce bandwidth if there are thousands of nodes available.
 
 	endpoint := d.agent.getEndpoint(preparedQueryEndpoint)
@@ -662,7 +668,7 @@ RPC:
 
 	// If the network is not TCP, restrict the number of responses.
 	if network != "tcp" {
-		wasTrimmed := trimAnswers(resp)
+		wasTrimmed := trimUDPAnswers(d.config, resp)
 
 		// Flag that there are more records to return in the UDP response
 		if wasTrimmed && d.config.EnableTruncate {
@@ -682,6 +688,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	qName := req.Question[0].Name
 	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
+
 	for _, node := range nodes {
 		// Start with the translated address but use the service address,
 		// if specified.
