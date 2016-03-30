@@ -72,8 +72,7 @@ func (z *Zone) nameError(elem *tree.Elem, rr dns.RR, do bool) ([]dns.RR, []dns.R
 	ret := []dns.RR{z.SOA}
 	if do {
 		ret = append(ret, z.SIG...)
-		// Now we need two NSEC, one to deny the wildcard and one to deny the name.
-		// Needs closest encloser!!
+		ret = append(ret, z.nameErrorProof(rr)...)
 	}
 	return nil, ret, nil, NameError
 }
