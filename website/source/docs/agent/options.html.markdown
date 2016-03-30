@@ -514,11 +514,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   [RFC 3484 Section 6](https://tools.ietf.org/html/rfc3484#section-6) Rule 9
   is implemented and enforced (i.e. DNS answers are always sorted and
   therefore never random), clients may need to set this value to `1` to
-  preserve randomized DNS round-robin (note:
-  [https://tools.ietf.org/html/rfc3484](RFC 3484) has been obsoleted by
-  [RFC 6724](https://tools.ietf.org/html/rfc6724) and as a result it should
-  be increasingly uncommon to need to change this value with modern
-  resolvers).
+  preserve round-robin DNS (note: [https://tools.ietf.org/html/rfc3484](RFC
+  3484) has been obsoleted by [RFC 6724](https://tools.ietf.org/html/rfc6724)
+  and as a result it should be increasingly uncommon to need to change this
+  value with modern resolvers).
 
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
