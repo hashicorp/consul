@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/consul/server_details"
+	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/servers"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/coordinate"
@@ -261,7 +261,7 @@ func (c *Client) lanEventHandler() {
 // nodeJoin is used to handle join events on the serf cluster
 func (c *Client) nodeJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := server_details.IsConsulServer(m)
+		ok, parts := agent.IsConsulServer(m)
 		if !ok {
 			continue
 		}
@@ -283,7 +283,7 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 // nodeFail is used to handle fail events on the serf cluster
 func (c *Client) nodeFail(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := server_details.IsConsulServer(m)
+		ok, parts := agent.IsConsulServer(m)
 		if !ok {
 			continue
 		}

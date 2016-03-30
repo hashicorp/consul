@@ -1,32 +1,32 @@
-package server_details_test
+package agent_test
 
 import (
 	"net"
 	"testing"
 
-	"github.com/hashicorp/consul/consul/server_details"
+	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/serf/serf"
 )
 
-func TestServerDetails_Key_params(t *testing.T) {
+func TestServer_Key_params(t *testing.T) {
 	ipv4a := net.ParseIP("127.0.0.1")
 	ipv4b := net.ParseIP("1.2.3.4")
 
 	tests := []struct {
 		name  string
-		sd1   *server_details.ServerDetails
-		sd2   *server_details.ServerDetails
+		sd1   *agent.Server
+		sd2   *agent.Server
 		equal bool
 	}{
 		{
 			name: "Addr inequality",
-			sd1: &server_details.ServerDetails{
+			sd1: &agent.Server{
 				Name:       "s1",
 				Datacenter: "dc1",
 				Port:       8300,
 				Addr:       &net.IPAddr{IP: ipv4a},
 			},
-			sd2: &server_details.ServerDetails{
+			sd2: &agent.Server{
 				Name:       "s1",
 				Datacenter: "dc1",
 				Port:       8300,
@@ -42,7 +42,7 @@ func TestServerDetails_Key_params(t *testing.T) {
 		}
 
 		// Test Key to make sure it actually works as a key
-		m := make(map[server_details.Key]bool)
+		m := make(map[agent.Key]bool)
 		m[*test.sd1.Key()] = true
 		if _, found := m[*test.sd2.Key()]; found != test.equal {
 			t.Errorf("Expected a %v result from map test %s", test.equal, test.name)
@@ -61,7 +61,7 @@ func TestIsConsulServer(t *testing.T) {
 			"vsn":  "1",
 		},
 	}
-	ok, parts := server_details.IsConsulServer(m)
+	ok, parts := agent.IsConsulServer(m)
 	if !ok || parts.Datacenter != "east-aws" || parts.Port != 10000 {
 		t.Fatalf("bad: %v %v", ok, parts)
 	}
@@ -76,7 +76,7 @@ func TestIsConsulServer(t *testing.T) {
 	}
 	m.Tags["bootstrap"] = "1"
 	m.Tags["disabled"] = "1"
-	ok, parts = server_details.IsConsulServer(m)
+	ok, parts = agent.IsConsulServer(m)
 	if !ok {
 		t.Fatalf("expected a valid consul server")
 	}
@@ -92,7 +92,7 @@ func TestIsConsulServer(t *testing.T) {
 	m.Tags["expect"] = "3"
 	delete(m.Tags, "bootstrap")
 	delete(m.Tags, "disabled")
-	ok, parts = server_details.IsConsulServer(m)
+	ok, parts = agent.IsConsulServer(m)
 	if !ok || parts.Expect != 3 {
 		t.Fatalf("bad: %v", parts.Expect)
 	}
@@ -101,7 +101,7 @@ func TestIsConsulServer(t *testing.T) {
 	}
 
 	delete(m.Tags, "role")
-	ok, parts = server_details.IsConsulServer(m)
+	ok, parts = agent.IsConsulServer(m)
 	if ok {
 		t.Fatalf("unexpected ok server")
 	}

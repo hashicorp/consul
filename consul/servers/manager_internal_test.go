@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/consul/server_details"
+	"github.com/hashicorp/consul/consul/agent"
 )
 
 var (
@@ -31,7 +31,7 @@ type fauxConnPool struct {
 	failPct float64
 }
 
-func (cp *fauxConnPool) PingConsulServer(server *server_details.ServerDetails) (bool, error) {
+func (cp *fauxConnPool) PingConsulServer(server *agent.Server) (bool, error) {
 	var success bool
 	successProb := rand.Float64()
 	if successProb > cp.failPct {
@@ -63,14 +63,14 @@ func testManagerFailProb(failPct float64) (m *Manager) {
 	return m
 }
 
-// func (l *serverList) cycleServer() (servers []*server_details.ServerDetails) {
+// func (l *serverList) cycleServer() (servers []*agent.Server) {
 func TestManagerInternal_cycleServer(t *testing.T) {
 	m := testManager()
 	l := m.getServerList()
 
-	server0 := &server_details.ServerDetails{Name: "server1"}
-	server1 := &server_details.ServerDetails{Name: "server2"}
-	server2 := &server_details.ServerDetails{Name: "server3"}
+	server0 := &agent.Server{Name: "server1"}
+	server1 := &agent.Server{Name: "server2"}
+	server2 := &agent.Server{Name: "server3"}
 	l.servers = append(l.servers, server0, server1, server2)
 	m.saveServerList(l)
 
@@ -166,11 +166,11 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 	const failPct = 0.5
 	m := testManagerFailProb(failPct)
 
-	var failedServers, healthyServers []*server_details.ServerDetails
+	var failedServers, healthyServers []*agent.Server
 	for i := 0; i < maxServers; i++ {
 		nodeName := fmt.Sprintf("s%02d", i)
 
-		node := &server_details.ServerDetails{Name: nodeName}
+		node := &agent.Server{Name: nodeName}
 		// Add 66% of servers to Manager
 		if rand.Float64() > 0.33 {
 			m.AddServer(node)
@@ -230,7 +230,7 @@ func test_reconcileServerList(maxServers int) (bool, error) {
 		return true, nil
 	}
 
-	resultingServerMap := make(map[server_details.Key]bool)
+	resultingServerMap := make(map[agent.Key]bool)
 	for _, s := range m.getServerList().servers {
 		resultingServerMap[*s.Key()] = true
 	}
@@ -302,7 +302,7 @@ func TestManagerInternal_refreshServerRebalanceTimer(t *testing.T) {
 		m := New(logger, shutdownCh, &fauxSerf{numNodes: s.numNodes}, &fauxConnPool{})
 		for i := 0; i < s.numServers; i++ {
 			nodeName := fmt.Sprintf("s%02d", i)
-			m.AddServer(&server_details.ServerDetails{Name: nodeName})
+			m.AddServer(&agent.Server{Name: nodeName})
 		}
 
 		d := m.refreshServerRebalanceTimer()
@@ -323,7 +323,7 @@ func TestManagerInternal_saveServerList(t *testing.T) {
 			t.Fatalf("Manager.saveServerList failed to load init config")
 		}
 
-		newServer := new(server_details.ServerDetails)
+		newServer := new(agent.Server)
 		l.servers = append(l.servers, newServer)
 		m.saveServerList(l)
 	}()
@@ -339,7 +339,7 @@ func TestManagerInternal_saveServerList(t *testing.T) {
 
 	// Verify mutation w/o a save doesn't alter the original
 	func() {
-		newServer := new(server_details.ServerDetails)
+		newServer := new(agent.Server)
 		l := m.getServerList()
 		l.servers = append(l.servers, newServer)
 

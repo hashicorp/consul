@@ -1,10 +1,10 @@
-package server_details
+package agent
 
 import (
 	"testing"
 )
 
-func TestServerDetails_Key_Equal(t *testing.T) {
+func TestServer_Key_Equal(t *testing.T) {
 	tests := []struct {
 		name  string
 		k1    *Key
@@ -47,16 +47,16 @@ func TestServerDetails_Key_Equal(t *testing.T) {
 	}
 }
 
-func TestServerDetails_Key(t *testing.T) {
+func TestServer_Key(t *testing.T) {
 	tests := []struct {
 		name  string
-		sd    *ServerDetails
+		sd    *Server
 		k     *Key
 		equal bool
 	}{
 		{
 			name: "Key equality",
-			sd: &ServerDetails{
+			sd: &Server{
 				Name: "s1",
 			},
 			k: &Key{
@@ -66,7 +66,7 @@ func TestServerDetails_Key(t *testing.T) {
 		},
 		{
 			name: "Key inequality",
-			sd: &ServerDetails{
+			sd: &Server{
 				Name: "s1",
 			},
 			k: &Key{
