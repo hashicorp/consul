@@ -518,6 +518,18 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   [RFC 6724](https://tools.ietf.org/html/rfc6724) so it should be uncommon to
   need to change this value).
 
+  * <a name="udp_answer_limit"></a><a
+  href="#udp_answer_limit">`udp_answer_limit`</a> - Artificially limit the
+  number of resource records contained in the answer section of a UDP-based
+  DNS response.  The default number of resource records returned is `3`.  In
+  environments where
+  [RFC 3484 Section 6](https://tools.ietf.org/html/rfc3484#section-6) Rule 9
+  is implemented and enforced, clients may need to set this value to `1` to
+  preserve randomized DNS round-robin (note:
+  [https://tools.ietf.org/html/rfc3484](RFC 3484) has been obsoleted by
+  [RFC 6724](https://tools.ietf.org/html/rfc6724) so it should be uncommon to
+  need to change this value).
+
 * <a name="domain"></a><a href="#domain">`domain`</a> Equivalent to the
   [`-domain` command-line flag](#_domain).
 
