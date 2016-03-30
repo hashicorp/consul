@@ -17,8 +17,7 @@ package tree
 // TODO(miek): fix docs
 
 import (
-	"strings"
-
+	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/dns"
 )
 
@@ -112,21 +111,11 @@ func (e *Elem) Delete(rr dns.RR) (empty bool) {
 	return
 }
 
-// TODO(miek): need case ignore compare that is more efficient.
 func Less(a *Elem, rr dns.RR) int {
-	aname := ""
-	for _, ar := range a.m {
-		aname = strings.ToLower(ar[0].Header().Name)
-		break
+	for _, ar := range a.m { // Get first element in a
+		return middleware.Less(ar[0].Header().Name, rr.Header().Name)
 	}
-	rname := strings.ToLower(rr.Header().Name)
-	if aname == rname {
-		return 0
-	}
-	if aname < rname {
-		return -1
-	}
-	return 1
+	return 0
 }
 
 // Assuming the same type and name this will check if the rdata is equal as well.

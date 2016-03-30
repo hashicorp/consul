@@ -61,9 +61,10 @@ var dnssecTestCases = []coretest.Case{
 		},
 	},
 	{
-		Qname: "b.miek.nl.", Qtype: dns.TypeA, // Do: true, // need sorting first
+		Qname: "b.miek.nl.", Qtype: dns.TypeA, Do: true,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
+			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
 			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
 	},

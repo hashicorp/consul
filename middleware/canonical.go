@@ -17,8 +17,11 @@ func Less(a, b string) int {
 	aj := len(a)
 	bj := len(b)
 	for {
-		ai, _ := dns.PrevLabel(a, i)
-		bi, _ := dns.PrevLabel(b, i)
+		ai, oka := dns.PrevLabel(a, i)
+		bi, okb := dns.PrevLabel(b, i)
+		if oka && okb {
+			return 0
+		}
 		// sadly this []byte will allocate...
 		ab := []byte(a[ai:aj])
 		toLowerAndDDD(ab)
