@@ -17,7 +17,11 @@ import (
 )
 
 const (
-	maxUDPAnswerLimit = 8 // For UDP only
+	// UDP can fit ~25 A records in a 512B response, and ~14 AAAA
+	// records.  Limit further to prevent unintentional configuration
+	// abuse that would have a negative effect on application response
+	// times.
+	maxUDPAnswerLimit = 8
 	maxRecurseRecords = 5
 )
 
@@ -488,15 +492,16 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 	return records
 }
 
-// trimAnswers makes sure a UDP response is not longer than allowed by RFC 1035.
-// We first enforce an arbitrary limit, and then make sure the response doesn't
-// exceed 512 bytes.
-func trimAnswers(resp *dns.Msg) (trimmed bool) {
+// trimUDPAnswers makes sure a UDP response is not longer than allowed by RFC
+// 1035.  Enforce an arbitrary limit that can be further ratcheted down by
+// config, and then make sure the response doesn't exceed 512 bytes.
+func trimUDPAnswers(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
 	numAnswers := len(resp.Answer)
 
 	// This cuts UDP responses to a useful but limited number of responses.
-	if numAnswers > maxServiceResponses {
-		resp.Answer = resp.Answer[:maxServiceResponses]
+	maxAnswers := lib.MinInt(maxUDPAnswerLimit, config.UDPAnswerLimit)
+	if numAnswers > maxAnswers {
+		resp.Answer = resp.Answer[:maxAnswers]
 	}
 
 	// This enforces the hard limit of 512 bytes per the RFC.
@@ -504,7 +509,7 @@ func trimAnswers(resp *dns.Msg) (trimmed bool) {
 		resp.Answer = resp.Answer[:len(resp.Answer)-1]
 	}
 
-	return len(resp.Answer) < numAnswers
+	return len(resp.Answer) < maxAnswers
 }
 
 // serviceLookup is used to handle a service query
@@ -568,7 +573,7 @@ RPC:
 
 	// If the network is not TCP, restrict the number of responses
 	if network != "tcp" {
-		wasTrimmed := trimAnswers(resp)
+		wasTrimmed := trimUDPAnswers(d.config, resp)
 
 		// Flag that there are more records to return in the UDP response
 		if wasTrimmed && d.config.EnableTruncate {
@@ -663,7 +668,7 @@ RPC:
 
 	// If the network is not TCP, restrict the number of responses.
 	if network != "tcp" {
-		wasTrimmed := trimAnswers(resp)
+		wasTrimmed := trimUDPAnswers(d.config, resp)
 
 		// Flag that there are more records to return in the UDP response
 		if wasTrimmed && d.config.EnableTruncate {
