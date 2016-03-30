@@ -2153,28 +2153,6 @@ func TestDNS_ServiceLookup_UDPAnswerLimit(t *testing.T) {
 
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
-	// Register a large number of nodes.
-	for i := 0; i < generateNumNodes; i++ {
-		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
-		if rand.Float64() < pctNodesWithIPv6 {
-			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
-		}
-		args := &structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       fmt.Sprintf("foo%d", i),
-			Address:    nodeAddress,
-			Service: &structs.NodeService{
-				Service: "web",
-				Port:    8000,
-			},
-		}
-
-		var out struct{}
-		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
-
 	for i := 0; i < generateNumNodes; i++ {
 		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
 		if rand.Float64() < pctNodesWithIPv6 {
