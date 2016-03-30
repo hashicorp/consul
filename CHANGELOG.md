@@ -11,6 +11,17 @@ IMPROVEMENTS:
   second per Consul server as a result of rebalancing).  Clusters in stable
   environments who use `allow_stale` should see a more even distribution of
   query load across all of their Consul servers. [GH-1743]
+* Consul agents can now limit the number of UDP answers returned via the DNS
+  interface. The default number of UDP answers is `3`, however by adjusting
+  the `dns_config.udp_answer_limit` configuration parameter, it is now
+  possible to limit the results down to `1`.  This tunable provides
+  environments where RFC3484 section 6, rule 9 is enforced with an important
+  workaround in order to preserve the desired behavior of randomized DNS
+  results.  Most modern environments will not need to adjust this setting as
+  this RFC was made obsolete by RFC 6724.  See the
+  [agent options](https://www.consul.io/docs/agent/options.html#udp_answer_limit)
+  documentation for additional details for when this should be
+  used. [GH-1712]
 
 ## 0.6.4 (March 16, 2016)
 
