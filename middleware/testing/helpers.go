@@ -27,9 +27,24 @@ type Case struct {
 	Qname  string
 	Qtype  uint16
 	Rcode  int
+	Do     bool
 	Answer []dns.RR
 	Ns     []dns.RR
 	Extra  []dns.RR
+}
+
+func (c Case) Msg() *dns.Msg {
+	m := new(dns.Msg)
+	m.SetQuestion(dns.Fqdn(c.Qname), c.Qtype)
+	if c.Do {
+		o := new(dns.OPT)
+		o.Hdr.Name = "."
+		o.Hdr.Rrtype = dns.TypeOPT
+		o.SetDo()
+		o.SetUDPSize(4096)
+		m.Extra = []dns.RR{o}
+	}
+	return m
 }
 
 func A(rr string) *dns.A         { r, _ := dns.NewRR(rr); return r.(*dns.A) }
@@ -41,6 +56,8 @@ func NS(rr string) *dns.NS       { r, _ := dns.NewRR(rr); return r.(*dns.NS) }
 func PTR(rr string) *dns.PTR     { r, _ := dns.NewRR(rr); return r.(*dns.PTR) }
 func TXT(rr string) *dns.TXT     { r, _ := dns.NewRR(rr); return r.(*dns.TXT) }
 func MX(rr string) *dns.MX       { r, _ := dns.NewRR(rr); return r.(*dns.MX) }
+func RRSIG(rr string) *dns.RRSIG { r, _ := dns.NewRR(rr); return r.(*dns.RRSIG) }
+func NSEC(rr string) *dns.NSEC   { r, _ := dns.NewRR(rr); return r.(*dns.NSEC) }
 
 func CheckSection(t *testing.T, tc Case, sect Section, rr []dns.RR) bool {
 	section := []dns.RR{}
@@ -86,6 +103,25 @@ func CheckSection(t *testing.T, tc Case, sect Section, rr []dns.RR) bool {
 				t.Errorf("rr %d should have a Target of %q, but has %q", i, section[i].(*dns.SRV).Target, x.Target)
 				return false
 			}
+		case *dns.RRSIG:
+			if x.TypeCovered != section[i].(*dns.RRSIG).TypeCovered {
+				t.Errorf("rr %d should have a TypeCovered of %d, but has %d", i, section[i].(*dns.RRSIG).TypeCovered, x.TypeCovered)
+				return false
+			}
+			if x.Labels != section[i].(*dns.RRSIG).Labels {
+				t.Errorf("rr %d should have a Labels of %d, but has %d", i, section[i].(*dns.RRSIG).Labels, x.Labels)
+				return false
+			}
+			if x.SignerName != section[i].(*dns.RRSIG).SignerName {
+				t.Errorf("rr %d should have a SignerName of %d, but has %d", i, section[i].(*dns.RRSIG).SignerName, x.SignerName)
+				return false
+			}
+		case *dns.NSEC:
+			if x.NextDomain != section[i].(*dns.NSEC).NextDomain {
+				t.Errorf("rr %d should have a NextDomain of %d, but has %d", i, section[i].(*dns.NSEC).NextDomain, x.NextDomain)
+				return false
+			}
+			// TypeBitMap
 		case *dns.A:
 			if x.A.String() != section[i].(*dns.A).A.String() {
 				t.Errorf("rr %d should have a Address of %q, but has %q", i, section[i].(*dns.A).A.String(), x.A.String())

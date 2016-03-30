@@ -1,6 +1,10 @@
 package file
 
-import "github.com/miekg/dns"
+import (
+	"github.com/miekg/coredns/middleware/file/tree"
+
+	"github.com/miekg/dns"
+)
 
 // Result is the result of a Lookup
 type Result int
@@ -8,19 +12,17 @@ type Result int
 const (
 	Success Result = iota
 	NameError
-	NoData // aint no offical NoData return code.
+	NoData
+	ServerFailure
 )
 
 // Lookup looks up qname and qtype in the zone, when do is true DNSSEC are included as well.
-// Two sets of records are returned, one for the answer and one for the additional section.
-func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, Result) {
-	// TODO(miek): implement DNSSEC
+// Three sets of records are returned, one for the answer, one for authority  and one for the additional section.
+func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
 	var rr dns.RR
 	mk, known := dns.TypeToRR[qtype]
 	if !known {
-		return nil, nil, NameError
-		// Uhm...?
-		// rr = new(RFC3597)
+		return nil, nil, nil, ServerFailure
 	} else {
 		rr = mk()
 	}
@@ -28,41 +30,106 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 		return z.lookupSOA(do)
 	}
 
+	// Misuse rr to be a question.
+	rr.Header().Rrtype = qtype
 	rr.Header().Name = qname
+
 	elem := z.Tree.Get(rr)
 	if elem == nil {
-		return []dns.RR{z.SOA}, nil, NameError
+		if elem == nil {
+			return z.nameError(elem, rr, do)
+		}
 	}
+
 	rrs := elem.Types(dns.TypeCNAME)
 	if len(rrs) > 0 { // should only ever be 1 actually; TODO(miek) check for this?
-		// lookup target from the cname
 		rr.Header().Name = rrs[0].(*dns.CNAME).Target
-		elem := z.Tree.Get(rr)
-		if elem == nil {
-			return rrs, nil, Success
-		}
-		return rrs, elem.All(), Success
+		return z.lookupCNAME(rrs, rr, do)
 	}
 
 	rrs = elem.Types(qtype)
 	if len(rrs) == 0 {
-		return []dns.RR{z.SOA}, nil, NoData
+		return z.noData(elem, do)
 	}
-	// Need to check sub-type on RRSIG records to only include the correctly
-	// typed ones.
-	return rrs, nil, Success
+
+	if do {
+		sigs := elem.Types(dns.TypeRRSIG)
+		sigs = signatureForSubType(sigs, qtype)
+		if len(sigs) > 0 {
+			rrs = append(rrs, sigs...)
+		}
+	}
+	return rrs, nil, nil, Success
 }
 
-func (z *Zone) lookupSOA(do bool) ([]dns.RR, []dns.RR, Result) {
-	return []dns.RR{z.SOA}, nil, Success
+func (z *Zone) noData(elem *tree.Elem, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+	soa, _, _, _ := z.lookupSOA(do)
+	nsec := z.lookupNSEC(elem, do)
+	return nil, append(soa, nsec...), nil, Success
+}
+
+func (z *Zone) nameError(elem *tree.Elem, rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+	ret := []dns.RR{z.SOA}
+	if do {
+		ret = append(ret, z.SIG...)
+		ret = append(ret, z.nameErrorProof(rr)...)
+	}
+	return nil, ret, nil, NameError
+}
+
+func (z *Zone) lookupSOA(do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+	if do {
+		ret := append([]dns.RR{z.SOA}, z.SIG...)
+		return ret, nil, nil, Success
+	}
+	return []dns.RR{z.SOA}, nil, nil, Success
+}
+
+// lookupNSEC looks up nsec and sigs.
+func (z *Zone) lookupNSEC(elem *tree.Elem, do bool) []dns.RR {
+	if !do {
+		return nil
+	}
+	nsec := elem.Types(dns.TypeNSEC)
+	if do {
+		sigs := elem.Types(dns.TypeRRSIG)
+		sigs = signatureForSubType(sigs, dns.TypeNSEC)
+		if len(sigs) > 0 {
+			nsec = append(nsec, sigs...)
+		}
+	}
+	return nsec
+}
+
+func (z *Zone) lookupCNAME(rrs []dns.RR, rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+	elem := z.Tree.Get(rr)
+	if elem == nil {
+		return rrs, nil, nil, Success
+	}
+	extra := cnameForType(elem.All(), rr.Header().Rrtype)
+	if do {
+		sigs := elem.Types(dns.TypeRRSIG)
+		sigs = signatureForSubType(sigs, rr.Header().Rrtype)
+		if len(sigs) > 0 {
+			extra = append(extra, sigs...)
+		}
+	}
+	return rrs, nil, extra, Success
+}
+
+func cnameForType(targets []dns.RR, origQtype uint16) []dns.RR {
+	ret := []dns.RR{}
+	for _, target := range targets {
+		if target.Header().Rrtype == origQtype {
+			ret = append(ret, target)
+		}
+	}
+	return ret
 }
 
 // signatureForSubType range through the signature and return the correct
 // ones for the subtype.
-func (z *Zone) signatureForSubType(rrs []dns.RR, subtype uint16, do bool) []dns.RR {
-	if !do {
-		return nil
-	}
+func signatureForSubType(rrs []dns.RR, subtype uint16) []dns.RR {
 	sigs := []dns.RR{}
 	for _, sig := range rrs {
 		if s, ok := sig.(*dns.RRSIG); ok {

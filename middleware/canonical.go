@@ -8,17 +8,20 @@ import (
 
 // Less returns <0 when a is less than b, 0 when they are equal and
 // >0 when a is larger than b.
-// The function order names in DNSSEC canonical order.
+// The function orders names in DNSSEC canonical order: RFC 4034s section-6.1
 //
 // See http://bert-hubert.blogspot.co.uk/2015/10/how-to-do-fast-canonical-ordering-of.html
-// for a blog article on how we do this. And https://tools.ietf.org/html/rfc4034#section-6.1 .
+// for a blog article on this implementation:
 func Less(a, b string) int {
 	i := 1
 	aj := len(a)
 	bj := len(b)
 	for {
-		ai, _ := dns.PrevLabel(a, i)
-		bi, _ := dns.PrevLabel(b, i)
+		ai, oka := dns.PrevLabel(a, i)
+		bi, okb := dns.PrevLabel(b, i)
+		if oka && okb {
+			return 0
+		}
 		// sadly this []byte will allocate...
 		ab := []byte(a[ai:aj])
 		toLowerAndDDD(ab)
