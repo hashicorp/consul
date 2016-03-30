@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/consul/server_details"
+	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
@@ -408,7 +408,7 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, arg
 
 // PingConsulServer sends a Status.Ping message to the specified server and
 // returns true if healthy, false if an error occurred
-func (p *ConnPool) PingConsulServer(s *server_details.ServerDetails) (bool, error) {
+func (p *ConnPool) PingConsulServer(s *agent.Server) (bool, error) {
 	// Get a usable client
 	conn, sc, err := p.getClient(s.Datacenter, s.Addr, s.Version)
 	if err != nil {

@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul/consul/server_details"
-	"github.com/hashicorp/consul/consul/server_manager"
+	"github.com/hashicorp/consul/consul/agent"
+	"github.com/hashicorp/consul/consul/servers"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
@@ -58,9 +58,9 @@ type Client struct {
 	// Connection pool to consul servers
 	connPool *ConnPool
 
-	// serverMgr is responsible for the selection and maintenance of
+	// servers is responsible for the selection and maintenance of
 	// Consul servers this agent uses for RPC requests
-	serverMgr *server_manager.ServerManager
+	servers *servers.Manager
 
 	// eventCh is used to receive events from the
 	// serf cluster in the datacenter
@@ -130,9 +130,9 @@ func NewClient(config *Config) (*Client, error) {
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
 	}
 
-	// Start maintenance task for server_manager
-	c.serverMgr = server_manager.New(c.logger, c.shutdownCh, c.serf, c.connPool)
-	go c.serverMgr.Start()
+	// Start maintenance task for servers
+	c.servers = servers.New(c.logger, c.shutdownCh, c.serf, c.connPool)
+	go c.servers.Start()
 
 	return c, nil
 }
@@ -261,7 +261,7 @@ func (c *Client) lanEventHandler() {
 // nodeJoin is used to handle join events on the serf cluster
 func (c *Client) nodeJoin(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := server_details.IsConsulServer(m)
+		ok, parts := agent.IsConsulServer(m)
 		if !ok {
 			continue
 		}
@@ -271,7 +271,7 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 			continue
 		}
 		c.logger.Printf("[INFO] consul: adding server %s", parts)
-		c.serverMgr.AddServer(parts)
+		c.servers.AddServer(parts)
 
 		// Trigger the callback
 		if c.config.ServerUp != nil {
@@ -283,12 +283,12 @@ func (c *Client) nodeJoin(me serf.MemberEvent) {
 // nodeFail is used to handle fail events on the serf cluster
 func (c *Client) nodeFail(me serf.MemberEvent) {
 	for _, m := range me.Members {
-		ok, parts := server_details.IsConsulServer(m)
+		ok, parts := agent.IsConsulServer(m)
 		if !ok {
 			continue
 		}
 		c.logger.Printf("[INFO] consul: removing server %s", parts)
-		c.serverMgr.RemoveServer(parts)
+		c.servers.RemoveServer(parts)
 	}
 }
 
@@ -322,14 +322,14 @@ func (c *Client) localEvent(event serf.UserEvent) {
 
 // RPC is used to forward an RPC call to a consul server, or fail if no servers
 func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
-	server := c.serverMgr.FindServer()
+	server := c.servers.FindServer()
 	if server == nil {
 		return structs.ErrNoServers
 	}
 
 	// Forward to remote Consul
 	if err := c.connPool.RPC(c.config.Datacenter, server.Addr, server.Version, method, args, reply); err != nil {
-		c.serverMgr.NotifyFailedServer(server)
+		c.servers.NotifyFailedServer(server)
 		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
 		return err
 	}
@@ -340,7 +340,7 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 // Stats is used to return statistics for debugging and insight
 // for various sub-systems
 func (c *Client) Stats() map[string]map[string]string {
-	numServers := c.serverMgr.NumServers()
+	numServers := c.servers.NumServers()
 
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)

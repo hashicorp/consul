@@ -1,4 +1,9 @@
-package server_details
+// Package agent provides a logical endpoint for Consul agents in the
+// network.  agent data originates from Serf gossip and is primarily used to
+// communicate Consul server information.  Gossiped information that ends up
+// in Server contains the necessary metadata required for servers.Manager to
+// select which server an RPC request should be routed to.
+package agent
 
 import (
 	"fmt"
@@ -18,8 +23,8 @@ func (k *Key) Equal(x *Key) bool {
 	return k.name == x.name
 }
 
-// ServerDetails is used to return details of a consul server
-type ServerDetails struct {
+// Server is used to return details of a consul server
+type Server struct {
 	Name       string
 	Datacenter string
 	Port       int
@@ -30,14 +35,14 @@ type ServerDetails struct {
 }
 
 // Key returns the corresponding Key
-func (s *ServerDetails) Key() *Key {
+func (s *Server) Key() *Key {
 	return &Key{
 		name: s.Name,
 	}
 }
 
-// String returns a string representation of ServerDetails
-func (s *ServerDetails) String() string {
+// String returns a string representation of Server
+func (s *Server) String() string {
 	var addrStr, networkStr string
 	if s.Addr != nil {
 		addrStr = s.Addr.String()
@@ -47,9 +52,9 @@ func (s *ServerDetails) String() string {
 	return fmt.Sprintf("%s (Addr: %s/%s) (DC: %s)", s.Name, networkStr, addrStr, s.Datacenter)
 }
 
-// IsConsulServer returns true if a serf member is a consul server. Returns a
-// bool and a pointer to the ServerDetails.
-func IsConsulServer(m serf.Member) (bool, *ServerDetails) {
+// IsConsulServer returns true if a serf member is a consul server
+// agent. Returns a bool and a pointer to the Server.
+func IsConsulServer(m serf.Member) (bool, *Server) {
 	if m.Tags["role"] != "consul" {
 		return false, nil
 	}
@@ -81,7 +86,7 @@ func IsConsulServer(m serf.Member) (bool, *ServerDetails) {
 
 	addr := &net.TCPAddr{IP: m.Addr, Port: port}
 
-	parts := &ServerDetails{
+	parts := &Server{
 		Name:       m.Name,
 		Datacenter: datacenter,
 		Port:       port,
