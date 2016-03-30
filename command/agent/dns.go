@@ -689,8 +689,6 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	qType := req.Question[0].Qtype
 	handled := make(map[string]struct{})
 
-	// Post-shuffle: limit the number of nodes we return to the client
-	effectiveRecordLimit := lib.MinInt(d.config.UDPAnswerLimit, maxUDPAnswerLimit)
 	for _, node := range nodes {
 		// Start with the translated address but use the service address,
 		// if specified.
@@ -710,13 +708,6 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 		records := d.formatNodeRecord(node.Node, addr, qName, qType, ttl)
 		if records != nil {
 			resp.Answer = append(resp.Answer, records...)
-		}
-
-		if len(resp.Answer) >= effectiveRecordLimit {
-			if d.config.EnableTruncate {
-				resp.Truncated = true
-			}
-			break
 		}
 	}
 }
