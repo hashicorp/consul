@@ -17,9 +17,12 @@ func TestClosestEncloser(t *testing.T) {
 		in, out string
 	}{
 		{"miek.nl.", "miek.nl."},
+		{"www.miek.nl.", "www.miek.nl."},
+
 		{"blaat.miek.nl.", "miek.nl."},
-		{"blaat.blaat.miek.nl.", "miek.nl."},
-		{"blaat.a.miek.nl.", "archive.miek.nl."},
+		{"blaat.www.miek.nl.", "www.miek.nl."},
+		{"www.blaat.miek.nl.", "miek.nl."},
+		{"blaat.a.miek.nl.", "a.miek.nl."},
 	}
 
 	mk, _ := dns.TypeToRR[dns.TypeA]

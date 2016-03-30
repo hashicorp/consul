@@ -13,7 +13,7 @@
 // Heavily modified by Miek Gieben for use in DNS zones.
 package tree
 
-// TODO(miek): locking? lockfree
+// TODO(miek): locking? lockfree would be nice. Will probably go for fine grained locking on the name level.
 // TODO(miek): fix docs
 
 import (
@@ -64,6 +64,14 @@ func (e *Elem) All() []dns.RR {
 	return list
 }
 
+// Return the domain name for this element.
+func (e *Elem) Name() string {
+	for _, rrs := range e.m {
+		return rrs[0].Header().Name
+	}
+	return ""
+}
+
 // Insert inserts rr into e. If rr is equal to existing rrs this is a noop.
 func (e *Elem) Insert(rr dns.RR) {
 	t := rr.Header().Rrtype
@@ -112,10 +120,7 @@ func (e *Elem) Delete(rr dns.RR) (empty bool) {
 }
 
 func Less(a *Elem, rr dns.RR) int {
-	for _, ar := range a.m { // Get first element in a
-		return middleware.Less(ar[0].Header().Name, rr.Header().Name)
-	}
-	return 0
+	return middleware.Less(rr.Header().Name, a.Name())
 }
 
 // Assuming the same type and name this will check if the rdata is equal as well.
@@ -537,6 +542,33 @@ func (n *Node) ceil(rr dns.RR) *Node {
 		}
 	}
 	return n
+}
+
+// Do performs fn on all values stored in the tree. A boolean is returned indicating whether the
+// Do traversal was interrupted by an Operation returning true. If fn alters stored values' sort
+// relationships, future tree operation behaviors are undefined.
+func (t *Tree) Do(fn func(e *Elem) bool) bool {
+	if t.Root == nil {
+		return false
+	}
+	return t.Root.do(fn)
+}
+
+func (n *Node) do(fn func(e *Elem) bool) (done bool) {
+	if n.Left != nil {
+		done = n.Left.do(fn)
+		if done {
+			return
+		}
+	}
+	done = fn(n.Elem)
+	if done {
+		return
+	}
+	if n.Right != nil {
+		done = n.Right.do(fn)
+	}
+	return
 }
 
 /*
