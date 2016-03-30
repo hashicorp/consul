@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"strings"
@@ -14,10 +15,15 @@ import (
 )
 
 const (
-	testUDPAnswerLimit     = 4
-	testMaxUDPDNSResponses = 3
-	testGenerateNumNodes   = 12
+	configUDPAnswerLimit   = 4
+	defaultNumUDPResponses = 3
 	testUDPTruncateLimit   = 8
+
+	pctNodesWithIPv6 = 0.5
+
+	// generateNumNodes is the upper bounds for the number of hosts used
+	// in testing below.  Generate an arbitrarily large number of hosts.
+	generateNumNodes = testUDPTruncateLimit * defaultNumUDPResponses * configUDPAnswerLimit
 )
 
 func makeDNSServer(t *testing.T) (string, *DNSServer) {
@@ -1815,8 +1821,8 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
-	// Register a large set of nodes.
-	for i := 0; i < 2*testMaxUDPDNSResponses; i++ {
+	// Register a large number of nodes.
+	for i := 0; i < generateNumNodes; i++ {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       fmt.Sprintf("foo%d", i),
@@ -1871,7 +1877,7 @@ func TestDNS_ServiceLookup_Randomize(t *testing.T) {
 
 			// Response length should be truncated and we should get
 			// an A record for each response.
-			if len(in.Answer) != testMaxUDPDNSResponses {
+			if len(in.Answer) != defaultNumUDPResponses {
 				t.Fatalf("Bad: %#v", len(in.Answer))
 			}
 
@@ -1909,8 +1915,8 @@ func TestDNS_ServiceLookup_Truncate(t *testing.T) {
 
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
-	// Register nodes a large number of nodes.
-	for i := 0; i < 2*testUDPTruncateLimit; i++ {
+	// Register a large number of nodes.
+	for i := 0; i < generateNumNodes; i++ {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       fmt.Sprintf("foo%d", i),
@@ -2052,7 +2058,7 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 
 func TestDNS_ServiceLookup_MaxResponses(t *testing.T) {
 	dir, srv := makeDNSServerConfig(t, nil, func(c *DNSConfig) {
-		c.UDPAnswerLimit = testUDPAnswerLimit
+		c.UDPAnswerLimit = configUDPAnswerLimit
 	})
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
@@ -2060,9 +2066,9 @@ func TestDNS_ServiceLookup_MaxResponses(t *testing.T) {
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a large number of nodes.
-	for i := 0; i < testUDPAnswerLimit*testMaxUDPDNSResponses; i++ {
+	for i := 0; i < generateNumNodes; i++ {
 		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
-		if i > (testUDPAnswerLimit * testMaxUDPDNSResponses / 2) {
+		if rand.Float64() < pctNodesWithIPv6 {
 			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
 		}
 		args := &structs.RegisterRequest{
@@ -2114,8 +2120,8 @@ func TestDNS_ServiceLookup_MaxResponses(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Answer) != testUDPAnswerLimit {
-			t.Fatalf("should receive %d answers for ANY, received: %d", testUDPAnswerLimit, len(in.Answer))
+		if len(in.Answer) != configUDPAnswerLimit {
+			t.Fatalf("should receive %d answers for ANY, received: %d", configUDPAnswerLimit, len(in.Answer))
 		}
 
 		m.SetQuestion(question, dns.TypeA)
@@ -2124,8 +2130,8 @@ func TestDNS_ServiceLookup_MaxResponses(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Answer) != testUDPAnswerLimit {
-			t.Fatalf("%d: should receive %d answers for A, received: %d", i, testUDPAnswerLimit, len(in.Answer))
+		if len(in.Answer) != configUDPAnswerLimit {
+			t.Fatalf("%d: should receive %d answers for A, received: %d", i, configUDPAnswerLimit, len(in.Answer))
 		}
 
 		m.SetQuestion(question, dns.TypeAAAA)
@@ -2134,8 +2140,8 @@ func TestDNS_ServiceLookup_MaxResponses(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if len(in.Answer) != testUDPAnswerLimit {
-			t.Fatalf("should receive %d answers for AAAA, received: %d", testUDPAnswerLimit, len(in.Answer))
+		if len(in.Answer) != configUDPAnswerLimit {
+			t.Fatalf("should receive %d answers for AAAA, received: %d", configUDPAnswerLimit, len(in.Answer))
 		}
 	}
 }
@@ -2148,10 +2154,9 @@ func TestDNS_ServiceLookup_UDPAnswerLimit(t *testing.T) {
 	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
 
 	// Register a large number of nodes.
-	for i := 0; i < testGenerateNumNodes*testMaxUDPDNSResponses; i++ {
+	for i := 0; i < generateNumNodes; i++ {
 		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
-		// Mix-in a few IPv6 addresses
-		if i > testGenerateNumNodes/2 {
+		if rand.Float64() < pctNodesWithIPv6 {
 			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
 		}
 		args := &structs.RegisterRequest{
