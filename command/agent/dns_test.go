@@ -2175,9 +2175,49 @@ func TestDNS_ServiceLookup_UDPAnswerLimit(t *testing.T) {
 		}
 	}
 
+	for i := 0; i < generateNumNodes; i++ {
+		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
+		if rand.Float64() < pctNodesWithIPv6 {
+			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
+		}
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       fmt.Sprintf("foo%d", i),
+			Address:    nodeAddress,
+			Service: &structs.NodeService{
+				Service: "api-tier",
+				Port:    8080,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "api-tier",
+				Service: structs.ServiceQuery{
+					Service: "api-tier",
+				},
+			},
+		}
+
+		var id string
+		if err := srv.agent.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
 	// Look up the service directly and via prepared query.
 	questions := []string{
-		"web.service.consul.",
+		"api-tier.service.consul.",
+		"api-tier.query.consul.",
 	}
 	for _, question := range questions {
 		m := new(dns.Msg)
@@ -2191,7 +2231,7 @@ func TestDNS_ServiceLookup_UDPAnswerLimit(t *testing.T) {
 		}
 
 		if len(in.Answer) != srv.agent.config.DNSConfig.UDPAnswerLimit {
-			t.Fatalf("%d/%d answers received for ANY", len(in.Answer), srv.agent.config.DNSConfig.UDPAnswerLimit)
+			t.Fatalf("%d/%d answers received for ANY for %s", len(in.Answer), srv.agent.config.DNSConfig.UDPAnswerLimit, question)
 		}
 
 		m.SetQuestion(question, dns.TypeA)
