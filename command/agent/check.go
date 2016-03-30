@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -354,6 +355,11 @@ func (c *CheckHTTP) Start() {
 		// failing checks due to the keepalive interval.
 		trans := cleanhttp.DefaultTransport()
 		trans.DisableKeepAlives = true
+		if os.Getenv("CONSUL_CHECK_HTTP_SSL_SKIP_VERIFY") != "" {
+			trans.TLSClientConfig = &tls.Config{
+				InsecureSkipVerify: true,
+			}
+		}
 
 		// Create the HTTP client.
 		c.httpClient = &http.Client{
