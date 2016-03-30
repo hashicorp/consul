@@ -2056,98 +2056,11 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 	}
 }
 
-func TestDNS_ServiceLookup_MaxResponses(t *testing.T) {
+func testDNS_ServiceLookup_responseLimits(t *testing.T, answerLimit int, qType uint16,
+	expectedService, expectedQuery, expectedQueryID int) (bool, error) {
 	dir, srv := makeDNSServerConfig(t, nil, func(c *DNSConfig) {
-		c.UDPAnswerLimit = configUDPAnswerLimit
+		c.UDPAnswerLimit = answerLimit
 	})
-	defer os.RemoveAll(dir)
-	defer srv.agent.Shutdown()
-
-	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
-
-	// Register a large number of nodes.
-	for i := 0; i < generateNumNodes; i++ {
-		nodeAddress := fmt.Sprintf("127.0.0.%d", i+1)
-		if rand.Float64() < pctNodesWithIPv6 {
-			nodeAddress = fmt.Sprintf("fe80::%d", i+1)
-		}
-		args := &structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       fmt.Sprintf("foo%d", i),
-			Address:    nodeAddress,
-			Service: &structs.NodeService{
-				Service: "web",
-				Port:    8000,
-			},
-		}
-
-		var out struct{}
-		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
-
-	// Register an equivalent prepared query.
-	var id string
-	{
-		args := &structs.PreparedQueryRequest{
-			Datacenter: "dc1",
-			Op:         structs.PreparedQueryCreate,
-			Query: &structs.PreparedQuery{
-				Service: structs.ServiceQuery{
-					Service: "web",
-				},
-			},
-		}
-		if err := srv.agent.RPC("PreparedQuery.Apply", args, &id); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
-
-	// Look up the service directly and via prepared query.
-	questions := []string{
-		"web.service.consul.",
-		id + ".query.consul.",
-	}
-	for i, question := range questions {
-		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeANY)
-
-		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
-		c := new(dns.Client)
-		in, _, err := c.Exchange(m, addr.String())
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(in.Answer) != configUDPAnswerLimit {
-			t.Fatalf("should receive %d answers for ANY, received: %d", configUDPAnswerLimit, len(in.Answer))
-		}
-
-		m.SetQuestion(question, dns.TypeA)
-		in, _, err = c.Exchange(m, addr.String())
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(in.Answer) != configUDPAnswerLimit {
-			t.Fatalf("%d: should receive %d answers for A, received: %d", i, configUDPAnswerLimit, len(in.Answer))
-		}
-
-		m.SetQuestion(question, dns.TypeAAAA)
-		in, _, err = c.Exchange(m, addr.String())
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(in.Answer) != configUDPAnswerLimit {
-			t.Fatalf("should receive %d answers for AAAA, received: %d", configUDPAnswerLimit, len(in.Answer))
-		}
-	}
-}
-
-func TestDNS_ServiceLookup_UDPAnswerLimit(t *testing.T) {
-	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)
 	defer srv.agent.Shutdown()
 
@@ -2170,10 +2083,10 @@ func TestDNS_ServiceLookup_UDPAnswerLimit(t *testing.T) {
 
 		var out struct{}
 		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
-			t.Fatalf("err: %v", err)
+			return false, fmt.Errorf("err: %v", err)
 		}
 	}
-
+	var id string
 	{
 		args := &structs.PreparedQueryRequest{
 			Datacenter: "dc1",
@@ -2186,9 +2099,8 @@ func TestDNS_ServiceLookup_UDPAnswerLimit(t *testing.T) {
 			},
 		}
 
-		var id string
 		if err := srv.agent.RPC("PreparedQuery.Apply", args, &id); err != nil {
-			t.Fatalf("err: %v", err)
+			return false, fmt.Errorf("err: %v", err)
 		}
 	}
 
@@ -2196,40 +2108,83 @@ func TestDNS_ServiceLookup_UDPAnswerLimit(t *testing.T) {
 	questions := []string{
 		"api-tier.service.consul.",
 		"api-tier.query.consul.",
+		id + ".query.consul.",
 	}
-	for _, question := range questions {
+	for idx, question := range questions {
 		m := new(dns.Msg)
-		m.SetQuestion(question, dns.TypeANY)
+		m.SetQuestion(question, qType)
 
 		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
 		c := &dns.Client{Net: "udp"}
 		in, _, err := c.Exchange(m, addr.String())
 		if err != nil {
-			t.Fatalf("err: %v", err)
+			return false, fmt.Errorf("err: %v", err)
 		}
 
-		if len(in.Answer) != srv.agent.config.DNSConfig.UDPAnswerLimit {
-			t.Fatalf("%d/%d answers received for ANY for %s", len(in.Answer), srv.agent.config.DNSConfig.UDPAnswerLimit, question)
+		switch idx {
+		case 0:
+			if len(in.Answer) != expectedService {
+				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, question)
+			}
+		case 1:
+			if len(in.Answer) != expectedQuery {
+				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, question)
+			}
+		case 2:
+			if len(in.Answer) != expectedQueryID {
+				return false, fmt.Errorf("%d/%d answers received for type %v for %s", len(in.Answer), answerLimit, question)
+			}
+		default:
+			panic("abort")
+		}
+	}
+
+	return true, nil
+}
+
+func TestDNS_ServiceLookup_AnswerLimits(t *testing.T) {
+	// Build a matrix of config parameters (udpAnswerLimit), and the
+	// length of the response per query type and question.
+	tests := []struct {
+		name                string
+		udpAnswerLimit      int
+		expectedAService    int
+		expectedAQuery      int
+		expectedAQueryID    int
+		expectedAAAAService int
+		expectedAAAAQuery   int
+		expectedAAAAQueryID int
+		expectedANYService  int
+		expectedANYQuery    int
+		expectedANYQueryID  int
+	}{
+		{"0", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{"1", 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+		{"2", 2, 2, 2, 2, 2, 2, 2, 2, 2, 2},
+		{"3", 3, 3, 3, 3, 3, 3, 3, 3, 3, 3},
+		{"4", 4, 4, 4, 4, 4, 4, 4, 4, 4, 4},
+		{"5", 5, 5, 5, 5, 5, 5, 5, 5, 5, 5},
+		{"6", 6, 6, 6, 6, 6, 6, 5, 6, 6, 6},
+		{"7", 7, 7, 7, 6, 7, 7, 5, 7, 7, 6},
+		{"8", 8, 8, 8, 6, 8, 8, 5, 8, 8, 6},
+		{"9", 9, 8, 8, 6, 8, 8, 5, 8, 8, 6},
+		{"20", 20, 8, 8, 6, 8, 8, 5, 8, 8, 6},
+		{"30", 30, 8, 8, 6, 8, 8, 5, 8, 8, 6},
+	}
+	for _, test := range tests {
+		ok, err := testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeA, test.expectedAService, test.expectedAQuery, test.expectedAQueryID)
+		if !ok {
+			t.Errorf("Expected service A lookup %d to pass: %v", test.name, err)
 		}
 
-		m.SetQuestion(question, dns.TypeA)
-		in, _, err = c.Exchange(m, addr.String())
-		if err != nil {
-			t.Fatalf("err: %v", err)
+		ok, err = testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeAAAA, test.expectedAAAAService, test.expectedAAAAQuery, test.expectedAAAAQueryID)
+		if !ok {
+			t.Errorf("Expected service AAAA lookup %d to pass: %v", test.name, err)
 		}
 
-		if len(in.Answer) != srv.agent.config.DNSConfig.UDPAnswerLimit {
-			t.Fatalf("%d/%d answers for A", len(in.Answer), srv.agent.config.DNSConfig.UDPAnswerLimit)
-		}
-
-		m.SetQuestion(question, dns.TypeAAAA)
-		in, _, err = c.Exchange(m, addr.String())
-		if err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
-		if len(in.Answer) != srv.agent.config.DNSConfig.UDPAnswerLimit {
-			t.Fatalf("%d/%d answers for AAAA", len(in.Answer), srv.agent.config.DNSConfig.UDPAnswerLimit)
+		ok, err = testDNS_ServiceLookup_responseLimits(t, test.udpAnswerLimit, dns.TypeANY, test.expectedANYService, test.expectedANYQuery, test.expectedANYQueryID)
+		if !ok {
+			t.Errorf("Expected service ANY lookup %d to %v: %v", test.name, err)
 		}
 	}
 }
