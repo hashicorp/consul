@@ -42,7 +42,7 @@ type snapshotHeader struct {
 	LastIndex uint64
 }
 
-// NewFSMPath is used to construct a new FSM with a blank state
+// NewFSM is used to construct a new FSM with a blank state
 func NewFSM(gc *state.TombstoneGC, logOutput io.Writer) (*consulFSM, error) {
 	stateNew, err := state.NewStateStore(gc)
 	if err != nil {
