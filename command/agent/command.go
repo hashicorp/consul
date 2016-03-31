@@ -167,13 +167,12 @@ func (c *Command) readConfig() *Config {
 			c.Ui.Error(fmt.Sprintf("Error determining node name: %s", err))
 			return nil
 		}
-
-		hostname = strings.TrimSpace(hostname)
-		if hostname == "" {
-			c.Ui.Error("Node name can not be empty")
-			return nil
-		}
 		config.NodeName = hostname
+	}
+	hostname = strings.TrimSpace(hostname)
+	if hostname == "" {
+		c.Ui.Error("Node name can not be empty")
+		return nil
 	}
 
 	// Ensure we have a data directory
