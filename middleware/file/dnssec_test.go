@@ -156,6 +156,38 @@ func TestLookupDNSSEC(t *testing.T) {
 	}
 }
 
+func BenchmarkLookupDNSSEC(b *testing.B) {
+	zone, err := Parse(strings.NewReader(dbMiekNL_signed), testzone, "stdin")
+	if err != nil {
+		return
+	}
+
+	fm := File{Next: coretest.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}
+	ctx := context.TODO()
+	rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+
+	tc := coretest.Case{
+		Qname: "b.miek.nl.", Qtype: dns.TypeA, Do: true,
+		Rcode: dns.RcodeNameError,
+		Ns: []dns.RR{
+			coretest.NSEC("archive.miek.nl.	14400	IN	NSEC	go.dns.miek.nl. CNAME RRSIG NSEC"),
+			coretest.RRSIG("archive.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160426031301 20160327031301 12051 miek.nl. jEpx8lcp4do5fWXg="),
+			coretest.NSEC("miek.nl.	14400	IN	NSEC	a.miek.nl. A NS SOA MX AAAA RRSIG NSEC DNSKEY"),
+			coretest.RRSIG("miek.nl.	14400	IN	RRSIG	NSEC 8 2 14400 20160426031301 20160327031301 12051 miek.nl. mFfc3r/9PSC1H6oSpdC"),
+			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
+			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+		},
+	}
+
+	m := tc.Msg()
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		fm.ServeDNS(ctx, rec, m)
+	}
+}
+
 const dbMiekNL_signed = `
 ; File written on Sun Mar 27 04:13:01 2016
 ; dnssec_signzone version 9.10.3-P4-Ubuntu

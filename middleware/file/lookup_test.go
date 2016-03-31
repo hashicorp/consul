@@ -14,6 +14,16 @@ import (
 
 var dnsTestCases = []coretest.Case{
 	{
+		Qname: "www.miek.nl.", Qtype: dns.TypeA,
+		Answer: []dns.RR{
+			coretest.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
+		},
+
+		Extra: []dns.RR{
+			coretest.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
+		},
+	},
+	{
 		Qname: "miek.nl.", Qtype: dns.TypeSOA,
 		Answer: []dns.RR{
 			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
@@ -33,16 +43,6 @@ var dnsTestCases = []coretest.Case{
 			coretest.MX("miek.nl.	1800	IN	MX	10 aspmx3.googlemail.com."),
 			coretest.MX("miek.nl.	1800	IN	MX	5 alt1.aspmx.l.google.com."),
 			coretest.MX("miek.nl.	1800	IN	MX	5 alt2.aspmx.l.google.com."),
-		},
-	},
-	{
-		Qname: "www.miek.nl.", Qtype: dns.TypeA,
-		Answer: []dns.RR{
-			coretest.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
-		},
-
-		Extra: []dns.RR{
-			coretest.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
 		},
 	},
 	{
@@ -121,6 +121,36 @@ func TestLookup(t *testing.T) {
 		if !coretest.CheckSection(t, tc, coretest.Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
 		}
+	}
+}
+
+func BenchmarkLookup(b *testing.B) {
+	zone, err := Parse(strings.NewReader(dbMiekNL), testzone, "stdin")
+	if err != nil {
+		return
+	}
+
+	fm := File{Next: coretest.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}
+	ctx := context.TODO()
+	rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+
+	tc := coretest.Case{
+		Qname: "www.miek.nl.", Qtype: dns.TypeA,
+		Answer: []dns.RR{
+			coretest.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
+		},
+
+		Extra: []dns.RR{
+			coretest.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
+		},
+	}
+
+	m := tc.Msg()
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		fm.ServeDNS(ctx, rec, m)
 	}
 }
 
