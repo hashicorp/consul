@@ -169,8 +169,8 @@ func (c *Command) readConfig() *Config {
 		}
 		config.NodeName = hostname
 	}
-	hostname = strings.TrimSpace(hostname)
-	if hostname == "" {
+	config.NodeName = strings.TrimSpace(config.NodeName)
+	if config.NodeName == "" {
 		c.Ui.Error("Node name can not be empty")
 		return nil
 	}
