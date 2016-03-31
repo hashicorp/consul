@@ -164,7 +164,13 @@ func (c *Command) readConfig() *Config {
 	if config.NodeName == "" {
 		hostname, err := os.Hostname()
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error determining hostname: %s", err))
+			c.Ui.Error(fmt.Sprintf("Error determining node name: %s", err))
+			return nil
+		}
+
+		hostname = strings.TrimSpace(hostname)
+		if hostname == "" {
+			c.Ui.Error("Node name can not be empty")
 			return nil
 		}
 		config.NodeName = hostname
