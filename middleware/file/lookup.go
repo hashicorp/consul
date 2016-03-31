@@ -37,7 +37,7 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 	elem := z.Tree.Get(rr)
 	if elem == nil {
 		if elem == nil {
-			return z.nameError(elem, rr, do)
+			return z.nameError(rr, do)
 		}
 	}
 
@@ -55,9 +55,7 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 	if do {
 		sigs := elem.Types(dns.TypeRRSIG)
 		sigs = signatureForSubType(sigs, qtype)
-		if len(sigs) > 0 {
-			rrs = append(rrs, sigs...)
-		}
+		rrs = append(rrs, sigs...)
 	}
 	return rrs, nil, nil, Success
 }
@@ -68,7 +66,34 @@ func (z *Zone) noData(elem *tree.Elem, do bool) ([]dns.RR, []dns.RR, []dns.RR, R
 	return nil, append(soa, nsec...), nil, Success
 }
 
-func (z *Zone) nameError(elem *tree.Elem, rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+func (z *Zone) nameError(rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+	// Is there a wildcard?
+	rr1 := dns.Copy(rr)
+	rr1.Header().Name = rr.Header().Name
+	rr1.Header().Rrtype = rr.Header().Rrtype
+	ce := z.ClosestEncloser(rr1)
+	rr1.Header().Name = "*." + ce
+	elem := z.Tree.Get(rr1)
+
+	if elem != nil {
+		ret := elem.Types(rr1.Header().Rrtype) // there can only be one of these (or zero)
+		switch {
+		case ret != nil:
+			if do {
+				sigs := elem.Types(dns.TypeRRSIG)
+				sigs = signatureForSubType(sigs, rr.Header().Rrtype)
+				ret = append(ret, sigs...)
+			}
+			ret = wildcardReplace(rr, ce, ret)
+			return ret, nil, nil, Success
+		case ret == nil:
+			// nodata, nsec from the wildcard - type does not exist
+			// nsec proof that name does not exist
+			// TODO(miek)
+		}
+	}
+
+	// name error
 	ret := []dns.RR{z.SOA}
 	if do {
 		ret = append(ret, z.SIG...)
@@ -139,4 +164,27 @@ func signatureForSubType(rrs []dns.RR, subtype uint16) []dns.RR {
 		}
 	}
 	return sigs
+}
+
+// wildcardReplace replaces the first wildcard with label.
+func wildcardReplace(rr dns.RR, ce string, rrs []dns.RR) []dns.RR {
+	// Get how many labels the ce is off from the fullname, this is how much of the
+	// original rr's '*' we must replace.
+	labels := dns.CountLabel(rr.Header().Name) - dns.CountLabel(ce) // can not be 0, TODO(miek): check
+
+	indexes := dns.Split(rr.Header().Name)
+	if labels >= len(indexes) {
+		// TODO(miek): yes then what?
+		// Is the == right here?
+		return nil
+	}
+	replacement := rr.Header().Name[:indexes[labels]]
+
+	// need to copy here, otherwise we change in zone stuff
+	ret := make([]dns.RR, len(rrs))
+	for i, r := range rrs {
+		ret[i] = dns.Copy(r)
+		ret[i].Header().Name = replacement + r.Header().Name[2:]
+	}
+	return ret
 }

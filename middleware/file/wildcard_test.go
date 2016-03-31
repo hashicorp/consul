@@ -12,15 +12,40 @@ import (
 	"golang.org/x/net/context"
 )
 
-var dnssecWildcardTestCases = []coretest.Case{
+var wildcardTestCases = []coretest.Case{
 	{
-		Qname: "blaat.dnssex.nl.", Qtype: dns.TypeTXT, Do: true,
-		Answer: []dns.RR{},
+		Qname: "wild.dnssex.nl.", Qtype: dns.TypeTXT,
+		Answer: []dns.RR{
+			coretest.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
+		},
 	},
+	{
+		Qname: "wild.dnssex.nl.", Qtype: dns.TypeTXT, Do: true,
+		Answer: []dns.RR{
+			coretest.RRSIG("wild.dnssex.nl.	1800	IN	RRSIG	TXT 8 2 1800 20160428190224 20160329190224 14460 dnssex.nl. FUZSTyvZfeuuOpCm"),
+			coretest.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
+		},
+	},
+	// nodata reponse
+	/*
+		{
+			Qname: "wild.dnssex.nl.", Qtype: dns.TypeSRV,
+			Answer: []dns.RR{
+				coretest.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
+			},
+		},
+		{
+			Qname: "wild.dnssex.nl.", Qtype: dns.TypeSRV, Do: true,
+			Answer: []dns.RR{
+				coretest.RRSIG("wild.dnssex.nl.	1800	IN	RRSIG	TXT 8 2 1800 20160428190224 20160329190224 14460 dnssex.nl. FUZSTyvZfeuuOpCm"),
+				coretest.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
+			},
+		},
+	*/
 }
 
-func testLookupDNSSECWildcard(t *testing.T) {
-	zone, err := Parse(strings.NewReader(dbMiekNL_signed), testzone1, "stdin")
+func TestLookupWildcard(t *testing.T) {
+	zone, err := Parse(strings.NewReader(dbDnssexNl_signed), testzone1, "stdin")
 	if err != nil {
 		t.Fatalf("expect no error when reading zone, got %q", err)
 	}
@@ -28,7 +53,7 @@ func testLookupDNSSECWildcard(t *testing.T) {
 	fm := File{Next: coretest.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone1: zone}, Names: []string{testzone1}}}
 	ctx := context.TODO()
 
-	for _, tc := range dnssecWildcardTestCases {
+	for _, tc := range wildcardTestCases {
 		m := tc.Msg()
 
 		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
@@ -77,7 +102,7 @@ func testLookupDNSSECWildcard(t *testing.T) {
 	}
 }
 
-const dbMiekNL_wildcard_signed = `
+const dbDnssexNl_signed = `
 ; File written on Tue Mar 29 21:02:24 2016
 ; dnssec_signzone version 9.10.3-P4-Ubuntu
 dnssex.nl.		1800	IN SOA	linode.atoom.net. miek.miek.nl. (

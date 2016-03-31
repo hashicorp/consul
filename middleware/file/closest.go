@@ -37,6 +37,7 @@ func (z *Zone) nameErrorProof(rr dns.RR) []dns.RR {
 		}
 	}
 
+	// We do this lookup twice, once for wildcard and once for the name proof. TODO(miek): fix
 	ce := z.ClosestEncloser(rr)
 	wildcard := "*." + ce
 	rr.Header().Name = wildcard
