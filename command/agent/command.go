@@ -175,6 +175,17 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
+	// Make sure SkipLeaveOnInt is set to the right default based on the
+	// agent's mode (client or server)
+	if config.SkipLeaveOnInt == nil {
+		config.SkipLeaveOnInt = new(bool)
+		if config.Server {
+			*config.SkipLeaveOnInt = true
+		} else {
+			*config.SkipLeaveOnInt = false
+		}
+	}
+
 	// Ensure we have a data directory
 	if config.DataDir == "" && !dev {
 		c.Ui.Error("Must specify data directory using -data-dir")
@@ -810,7 +821,7 @@ WAIT:
 
 	// Check if we should do a graceful leave
 	graceful := false
-	if sig == os.Interrupt && !config.SkipLeaveOnInt {
+	if sig == os.Interrupt && !(*config.SkipLeaveOnInt) {
 		graceful = true
 	} else if sig == syscall.SIGTERM && config.LeaveOnTerm {
 		graceful = true

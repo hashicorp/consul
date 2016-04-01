@@ -621,11 +621,17 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   at or above the default to encourage clients to send infrequent heartbeats.
   Defaults to 10s.
 
-* <a name="skip_leave_on_interrupt"></a><a href="#skip_leave_on_interrupt">`skip_leave_on_interrupt`</a>
-  This is similar to [`leave_on_terminate`](#leave_on_terminate) but
-  only affects interrupt handling. By default, an interrupt (such as hitting
-  Control-C in a shell) causes Consul to gracefully leave. Setting this to true
-  disables that. Defaults to false.
+* <a name="skip_leave_on_interrupt"></a><a
+  href="#skip_leave_on_interrupt">`skip_leave_on_interrupt`</a> This is
+  similar to [`leave_on_terminate`](#leave_on_terminate) but only affects
+  interrupt handling.  When Consul receives an interrupt signal (such as
+  hitting Control-C in a terminal), Consul will gracefully leave the cluster.
+  Setting this to `true` disables that behavior.  The default behavior for
+  this feature varies based on whether or not the agent is running as a
+  client or a server.  On agents in client-mode, this defaults to `false` and
+  for agents in server-mode, this defaults to `true` (i.e. Ctrl-C on a server
+  will keep the server in the cluster and therefore quorum, and Ctrl-C on a
+  client will gracefully leave).
 
 * <a name="start_join"></a><a href="#start_join">`start_join`</a> An array of strings specifying addresses
   of nodes to [`-join`](#_join) upon startup.

@@ -227,9 +227,10 @@ type Config struct {
 	// the TERM signal. Defaults false. This can be changed on reload.
 	LeaveOnTerm bool `mapstructure:"leave_on_terminate"`
 
-	// SkipLeaveOnInt controls if Serf skips a graceful leave when receiving
-	// the INT signal. Defaults false. This can be changed on reload.
-	SkipLeaveOnInt bool `mapstructure:"skip_leave_on_interrupt"`
+	// SkipLeaveOnInt controls if Serf skips a graceful leave when
+	// receiving the INT signal. Defaults false on clients, true on
+	// servers. This can be changed on reload.
+	SkipLeaveOnInt *bool `mapstructure:"skip_leave_on_interrupt"`
 
 	Telemetry Telemetry `mapstructure:"telemetry"`
 
@@ -1018,8 +1019,8 @@ func MergeConfig(a, b *Config) *Config {
 	if b.LeaveOnTerm == true {
 		result.LeaveOnTerm = true
 	}
-	if b.SkipLeaveOnInt == true {
-		result.SkipLeaveOnInt = true
+	if b.SkipLeaveOnInt != nil {
+		result.SkipLeaveOnInt = b.SkipLeaveOnInt
 	}
 	if b.Telemetry.DisableHostname == true {
 		result.Telemetry.DisableHostname = true
