@@ -628,10 +628,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   hitting Control-C in a terminal), Consul will gracefully leave the cluster.
   Setting this to `true` disables that behavior.  The default behavior for
   this feature varies based on whether or not the agent is running as a
-  client or a server.  On agents in client-mode, this defaults to `false` and
-  for agents in server-mode, this defaults to `true` (i.e. Ctrl-C on a server
-  will keep the server in the cluster and therefore quorum, and Ctrl-C on a
-  client will gracefully leave).
+  client or a server (prior to Consul 0.7 the default value was
+  unconditionally set to `false`).  On agents in client-mode, this defaults
+  to `false` and for agents in server-mode, this defaults to `true`
+  (i.e. Ctrl-C on a server will keep the server in the cluster and therefore
+  quorum, and Ctrl-C on a client will gracefully leave).
 
 * <a name="start_join"></a><a href="#start_join">`start_join`</a> An array of strings specifying addresses
   of nodes to [`-join`](#_join) upon startup.
