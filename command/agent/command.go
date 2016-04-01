@@ -192,6 +192,12 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
+	// Ensure all endpoints are unique
+	if err := config.verifyUniqueListeners(); err != nil {
+		c.Ui.Error(fmt.Sprintf("All listening endpoints must be unique: %s", err))
+		return nil
+	}
+
 	// Check the data dir for signs of an un-migrated Consul 0.5.x or older
 	// server. Consul refuses to start if this is present to protect a server
 	// with existing data from starting on a fresh data set.
@@ -299,6 +305,67 @@ func (c *Command) readConfig() *Config {
 	config.VersionPrerelease = c.VersionPrerelease
 
 	return config
+}
+
+// verifyUniqueListeners checks to see if an address was used more than once in
+// the config
+func (config *Config) verifyUniqueListeners() error {
+	type key struct {
+		host string
+		port int
+	}
+	const numUniqueAddrs = 7
+	m := make(map[key]string, numUniqueAddrs)
+
+	testFunc := func(k key, descr string) error {
+		if k.host == "" {
+			k.host = "0.0.0.0"
+		} else if strings.HasPrefix(k.host, "unix") {
+			// Don't compare ports on unix sockets
+			k.port = 0
+		}
+		if k.host == "0.0.0.0" && k.port <= 0 {
+			return nil
+		}
+
+		v, ok := m[k]
+		if ok {
+			return fmt.Errorf("%s address already configured for %s", descr, v)
+		}
+		m[k] = descr
+
+		return nil
+	}
+
+	if err := testFunc(key{config.Addresses.RPC, config.Ports.RPC}, "RPC"); err != nil {
+		return err
+	}
+
+	if err := testFunc(key{config.Addresses.DNS, config.Ports.DNS}, "DNS"); err != nil {
+		return err
+	}
+
+	if err := testFunc(key{config.Addresses.HTTP, config.Ports.HTTP}, "HTTP"); err != nil {
+		return err
+	}
+
+	if err := testFunc(key{config.Addresses.HTTPS, config.Ports.HTTPS}, "HTTPS"); err != nil {
+		return err
+	}
+
+	if err := testFunc(key{config.AdvertiseAddr, config.Ports.Server}, "Server RPC"); err != nil {
+		return err
+	}
+
+	if err := testFunc(key{config.AdvertiseAddr, config.Ports.SerfLan}, "Serf LAN"); err != nil {
+		return err
+	}
+
+	if err := testFunc(key{config.AdvertiseAddr, config.Ports.SerfWan}, "Serf WAN"); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // setupLoggers is used to setup the logGate, logWriter, and our logOutput

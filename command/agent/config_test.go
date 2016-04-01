@@ -989,6 +989,42 @@ func TestDecodeConfig_Services(t *testing.T) {
 	}
 }
 
+func TestDecodeConfig_verifyUniqueListeners(t *testing.T) {
+	tests := []struct {
+		name string
+		cfg  string
+		pass bool
+	}{
+		{
+			"http_rpc1",
+			`{"addresses": {"http": "0.0.0.0", "rpc": "127.0.0.1"}, "ports": {"rpc": 8000, "dns": 8000}}`,
+			true,
+		},
+		{
+			"http_rpc IP identical",
+			`{"addresses": {"http": "0.0.0.0", "rpc": "0.0.0.0"}, "ports": {"rpc": 8000, "dns": 8000}}`,
+			false,
+		},
+		{
+			"http_rpc unix identical (diff ports)",
+			`{"addresses": {"http": "unix:///tmp/.consul.sock", "rpc": "unix:///tmp/.consul.sock"}, "ports": {"rpc": 8000, "dns": 8001}}`,
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		config, err := DecodeConfig(bytes.NewReader([]byte(test.cfg)))
+		if err != nil {
+			t.Fatalf("err: %s %s", test.name, err)
+		}
+
+		err = config.verifyUniqueListeners()
+		if (err != nil && test.pass) || (err == nil && !test.pass) {
+			t.Errorf("err: %s should have %v: %v: %v", test.name, test.pass, test.cfg, err)
+		}
+	}
+}
+
 func TestDecodeConfig_Checks(t *testing.T) {
 	input := `{
 		"checks": [
