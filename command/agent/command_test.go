@@ -110,17 +110,17 @@ func TestRetryJoin(t *testing.T) {
 }
 
 func TestReadCliConfig(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "consul")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.RemoveAll(tmpDir)
 
 	shutdownCh := make(chan struct{})
 	defer close(shutdownCh)
 
 	// Test config parse
 	{
-		tmpDir, err := ioutil.TempDir("", "consul")
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
 		cmd := &Command{
 			args: []string{
 				"-data-dir", tmpDir,
@@ -137,12 +137,59 @@ func TestReadCliConfig(t *testing.T) {
 		}
 	}
 
+	// Test SkipLeaveOnInt default for server mode
+	{
+		ui := new(cli.MockUi)
+		cmd := &Command{
+			args: []string{
+				"-node", `"server1"`,
+				"-server",
+				"-data-dir", tmpDir,
+			},
+			ShutdownCh: shutdownCh,
+			Ui:         ui,
+		}
+
+		config := cmd.readConfig()
+		if config == nil {
+			t.Fatalf(`Expected non-nil config object: %s`, ui.ErrorWriter.String())
+		}
+		if config.Server != true {
+			t.Errorf(`Expected -server to be true`)
+		}
+		if (*config.SkipLeaveOnInt) != true {
+			t.Errorf(`Expected SkipLeaveOnInt to be true in server mode`)
+		}
+	}
+
+	// Test SkipLeaveOnInt default for client mode
+	{
+		ui := new(cli.MockUi)
+		cmd := &Command{
+			args: []string{
+				"-data-dir", tmpDir,
+				"-node", `"client"`,
+			},
+			ShutdownCh: shutdownCh,
+			Ui:         ui,
+		}
+
+		config := cmd.readConfig()
+		if config == nil {
+			t.Fatalf(`Expected non-nil config object: %s`, ui.ErrorWriter.String())
+		}
+		if config.Server != false {
+			t.Errorf(`Expected server to be false`)
+		}
+		if *config.SkipLeaveOnInt != false {
+			t.Errorf(`Expected SkipLeaveOnInt to be false in client mode`)
+		}
+	}
+
 	// Test empty node name
 	{
 		cmd := &Command{
-			args: []string{
-				"-node", `""`,
-			},
+			args:       []string{"-node", `""`},
 			ShutdownCh: shutdownCh,
 			Ui:         new(cli.MockUi),
 		}

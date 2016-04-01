@@ -22,6 +22,9 @@ IMPROVEMENTS:
   [agent options](https://www.consul.io/docs/agent/options.html#udp_answer_limit)
   documentation for additional details for when this should be
   used. [GH-1712]
+* `skip_leave_on_interrupt`'s default behavior is now dependent on whether or
+  not the agent is acting as a server or client.  When Consul is started as a
+  server the default is `true` and `false` when a client. [GH-1909]
 
 ## 0.6.4 (March 16, 2016)
 

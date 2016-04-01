@@ -74,8 +74,8 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
-	if config.SkipLeaveOnInt != DefaultConfig().SkipLeaveOnInt {
-		t.Fatalf("bad: %#v", config)
+	if config.SkipLeaveOnInt != nil {
+		t.Fatalf("bad: expected nil SkipLeaveOnInt")
 	}
 
 	if config.LeaveOnTerm != DefaultConfig().LeaveOnTerm {
@@ -290,7 +290,7 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.SkipLeaveOnInt != true {
+	if *config.SkipLeaveOnInt != true {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -1239,7 +1239,7 @@ func TestMergeConfig(t *testing.T) {
 		AdvertiseAddr:          "127.0.0.1",
 		Server:                 false,
 		LeaveOnTerm:            false,
-		SkipLeaveOnInt:         false,
+		SkipLeaveOnInt:         new(bool),
 		EnableDebug:            false,
 		CheckUpdateIntervalRaw: "8m",
 		RetryIntervalRaw:       "10s",
@@ -1294,7 +1294,7 @@ func TestMergeConfig(t *testing.T) {
 		},
 		Server:                 true,
 		LeaveOnTerm:            true,
-		SkipLeaveOnInt:         true,
+		SkipLeaveOnInt:         new(bool),
 		EnableDebug:            true,
 		VerifyIncoming:         true,
 		VerifyOutgoing:         true,
@@ -1368,6 +1368,7 @@ func TestMergeConfig(t *testing.T) {
 		},
 		Reap: Bool(true),
 	}
+	*b.SkipLeaveOnInt = true
 
 	c := MergeConfig(a, b)
 
