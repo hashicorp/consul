@@ -1018,8 +1018,8 @@ func TestDecodeConfig_verifyUniqueListeners(t *testing.T) {
 			t.Fatalf("err: %s %s", test.name, err)
 		}
 
-		ok, err := config.verifyUniqueListeners()
-		if ok != test.pass {
+		err = config.verifyUniqueListeners()
+		if (err != nil && test.pass) || (err == nil && !test.pass) {
 			t.Errorf("err: %s should have %v: %v: %v", test.name, test.pass, test.cfg, err)
 		}
 	}

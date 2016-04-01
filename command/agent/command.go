@@ -193,7 +193,7 @@ func (c *Command) readConfig() *Config {
 	}
 
 	// Ensure all endpoints are unique
-	if ok, err := config.verifyUniqueListeners(); !ok {
+	if err := config.verifyUniqueListeners(); err != nil {
 		c.Ui.Error(fmt.Sprintf("All listening endpoints must be unique: %s", err))
 		return nil
 	}
@@ -309,7 +309,7 @@ func (c *Command) readConfig() *Config {
 
 // verifyUniqueListeners checks to see if an address was used more than once in
 // the config
-func (config *Config) verifyUniqueListeners() (bool, error) {
+func (config *Config) verifyUniqueListeners() error {
 	type key struct {
 		host string
 		port int
@@ -317,7 +317,7 @@ func (config *Config) verifyUniqueListeners() (bool, error) {
 	const numUniqueAddrs = 7
 	m := make(map[key]string, numUniqueAddrs)
 
-	testFunc := func(k key, descr string) (bool, error) {
+	testFunc := func(k key, descr string) error {
 		if k.host == "" {
 			k.host = "0.0.0.0"
 		} else if strings.HasPrefix(k.host, "unix") {
@@ -325,47 +325,47 @@ func (config *Config) verifyUniqueListeners() (bool, error) {
 			k.port = 0
 		}
 		if k.host == "0.0.0.0" && k.port <= 0 {
-			return true, nil
+			return nil
 		}
 
 		v, ok := m[k]
 		if ok {
-			return false, fmt.Errorf("%s address already configured for %s", descr, v)
+			return fmt.Errorf("%s address already configured for %s", descr, v)
 		}
 		m[k] = descr
 
-		return true, nil
+		return nil
 	}
 
-	if ok, err := testFunc(key{config.Addresses.RPC, config.Ports.RPC}, "RPC"); !ok {
-		return false, err
+	if err := testFunc(key{config.Addresses.RPC, config.Ports.RPC}, "RPC"); err != nil {
+		return err
 	}
 
-	if ok, err := testFunc(key{config.Addresses.DNS, config.Ports.DNS}, "DNS"); !ok {
-		return false, err
+	if err := testFunc(key{config.Addresses.DNS, config.Ports.DNS}, "DNS"); err != nil {
+		return err
 	}
 
-	if ok, err := testFunc(key{config.Addresses.HTTP, config.Ports.HTTP}, "HTTP"); !ok {
-		return false, err
+	if err := testFunc(key{config.Addresses.HTTP, config.Ports.HTTP}, "HTTP"); err != nil {
+		return err
 	}
 
-	if ok, err := testFunc(key{config.Addresses.HTTPS, config.Ports.HTTPS}, "HTTPS"); !ok {
-		return false, err
+	if err := testFunc(key{config.Addresses.HTTPS, config.Ports.HTTPS}, "HTTPS"); err != nil {
+		return err
 	}
 
-	if ok, err := testFunc(key{config.AdvertiseAddr, config.Ports.Server}, "Server RPC"); !ok {
-		return false, err
+	if err := testFunc(key{config.AdvertiseAddr, config.Ports.Server}, "Server RPC"); err != nil {
+		return err
 	}
 
-	if ok, err := testFunc(key{config.AdvertiseAddr, config.Ports.SerfLan}, "Serf LAN"); !ok {
-		return false, err
+	if err := testFunc(key{config.AdvertiseAddr, config.Ports.SerfLan}, "Serf LAN"); err != nil {
+		return err
 	}
 
-	if ok, err := testFunc(key{config.AdvertiseAddr, config.Ports.SerfWan}, "Serf WAN"); !ok {
-		return false, err
+	if err := testFunc(key{config.AdvertiseAddr, config.Ports.SerfWan}, "Serf WAN"); err != nil {
+		return err
 	}
 
-	return true, nil
+	return nil
 }
 
 // setupLoggers is used to setup the logGate, logWriter, and our logOutput
