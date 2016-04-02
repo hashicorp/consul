@@ -10,7 +10,7 @@ import (
 type Transfer struct {
 	Out bool
 	In  bool
-	// more later
+	// more later?
 }
 
 type Zone struct {
@@ -22,17 +22,16 @@ type Zone struct {
 	Transfer *Transfer
 }
 
+// NewZone returns a new zone.
 func NewZone(name string) *Zone {
 	return &Zone{name: dns.Fqdn(name), Tree: &tree.Tree{}, Transfer: &Transfer{}}
 }
 
-func (z *Zone) Insert(r dns.RR) {
-	z.Tree.Insert(r)
-}
+// Insert inserts r into z.
+func (z *Zone) Insert(r dns.RR) { z.Tree.Insert(r) }
 
-func (z *Zone) Delete(r dns.RR) {
-	z.Tree.Delete(r)
-}
+// Delete deletes r from z.
+func (z *Zone) Delete(r dns.RR) { z.Tree.Delete(r) }
 
 // It the transfer request allowed.
 func (z *Zone) TransferAllowed(state middleware.State) bool {

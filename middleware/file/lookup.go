@@ -16,7 +16,7 @@ const (
 	ServerFailure
 )
 
-// Lookup looks up qname and qtype in the zone, when do is true DNSSEC are included as well.
+// Lookup looks up qname and qtype in the zone. When do is true DNSSEC records are included.
 // Three sets of records are returned, one for the answer, one for authority  and one for the additional section.
 func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
 	var rr dns.RR
@@ -34,11 +34,12 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 	rr.Header().Rrtype = qtype
 	rr.Header().Name = qname
 
-	elem := z.Tree.Get(rr)
+	elem, res := z.Tree.Get(rr)
 	if elem == nil {
-		if elem == nil {
-			return z.nameError(rr, do)
+		if res == tree.EmptyNonTerminal {
+			return z.emptyNonTerminal(rr, do)
 		}
+		return z.nameError(rr, do)
 	}
 
 	rrs := elem.Types(dns.TypeCNAME)
@@ -66,6 +67,14 @@ func (z *Zone) noData(elem *tree.Elem, do bool) ([]dns.RR, []dns.RR, []dns.RR, R
 	return nil, append(soa, nsec...), nil, Success
 }
 
+func (z *Zone) emptyNonTerminal(rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+	soa, _, _, _ := z.lookupSOA(do)
+
+	elem := z.Tree.Prev(rr)
+	nsec := z.lookupNSEC(elem, do)
+	return nil, append(soa, nsec...), nil, Success
+}
+
 func (z *Zone) nameError(rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
 	// Is there a wildcard?
 	rr1 := dns.Copy(rr)
@@ -73,7 +82,7 @@ func (z *Zone) nameError(rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Resu
 	rr1.Header().Rrtype = rr.Header().Rrtype
 	ce := z.ClosestEncloser(rr1)
 	rr1.Header().Name = "*." + ce
-	elem := z.Tree.Get(rr1)
+	elem, _ := z.Tree.Get(rr1) // use result here?
 
 	if elem != nil {
 		ret := elem.Types(rr1.Header().Rrtype) // there can only be one of these (or zero)
@@ -127,7 +136,7 @@ func (z *Zone) lookupNSEC(elem *tree.Elem, do bool) []dns.RR {
 }
 
 func (z *Zone) lookupCNAME(rrs []dns.RR, rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
-	elem := z.Tree.Get(rr)
+	elem, _ := z.Tree.Get(rr)
 	if elem == nil {
 		return rrs, nil, nil, Success
 	}

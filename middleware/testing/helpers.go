@@ -9,10 +9,10 @@ import (
 	"golang.org/x/net/context"
 )
 
-type Section int
+type Sect int
 
 const (
-	Answer Section = iota
+	Answer Sect = iota
 	Ns
 	Extra
 )
@@ -59,7 +59,28 @@ func MX(rr string) *dns.MX       { r, _ := dns.NewRR(rr); return r.(*dns.MX) }
 func RRSIG(rr string) *dns.RRSIG { r, _ := dns.NewRR(rr); return r.(*dns.RRSIG) }
 func NSEC(rr string) *dns.NSEC   { r, _ := dns.NewRR(rr); return r.(*dns.NSEC) }
 
-func CheckSection(t *testing.T, tc Case, sect Section, rr []dns.RR) bool {
+func Header(t *testing.T, tc Case, resp *dns.Msg) bool {
+	if resp.Rcode != tc.Rcode {
+		t.Errorf("rcode is %q, expected %q", dns.RcodeToString[resp.Rcode], dns.RcodeToString[tc.Rcode])
+		return false
+	}
+
+	if len(resp.Answer) != len(tc.Answer) {
+		t.Errorf("answer for %q contained %d results, %d expected", tc.Qname, len(resp.Answer), len(tc.Answer))
+		return false
+	}
+	if len(resp.Ns) != len(tc.Ns) {
+		t.Errorf("authority for %q contained %d results, %d expected", tc.Qname, len(resp.Ns), len(tc.Ns))
+		return false
+	}
+	if len(resp.Extra) != len(tc.Extra) {
+		t.Errorf("additional for %q contained %d results, %d expected", tc.Qname, len(resp.Extra), len(tc.Extra))
+		return false
+	}
+	return true
+}
+
+func Section(t *testing.T, tc Case, sect Sect, rr []dns.RR) bool {
 	section := []dns.RR{}
 	switch sect {
 	case 0:

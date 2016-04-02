@@ -45,7 +45,7 @@ var wildcardTestCases = []coretest.Case{
 }
 
 func TestLookupWildcard(t *testing.T) {
-	zone, err := Parse(strings.NewReader(dbDnssexNl_signed), testzone1, "stdin")
+	zone, err := Parse(strings.NewReader(dbDnssexNL_signed), testzone1, "stdin")
 	if err != nil {
 		t.Fatalf("expect no error when reading zone, got %q", err)
 	}
@@ -68,41 +68,24 @@ func TestLookupWildcard(t *testing.T) {
 		sort.Sort(coretest.RRSet(resp.Ns))
 		sort.Sort(coretest.RRSet(resp.Extra))
 
-		if resp.Rcode != tc.Rcode {
-			t.Errorf("rcode is %q, expected %q", dns.RcodeToString[resp.Rcode], dns.RcodeToString[tc.Rcode])
+		if !coretest.Header(t, tc, resp) {
 			t.Logf("%v\n", resp)
 			continue
 		}
 
-		if len(resp.Answer) != len(tc.Answer) {
-			t.Errorf("answer for %q contained %d results, %d expected", tc.Qname, len(resp.Answer), len(tc.Answer))
-			t.Logf("%v\n", resp)
-			continue
-		}
-		if len(resp.Ns) != len(tc.Ns) {
-			t.Errorf("authority for %q contained %d results, %d expected", tc.Qname, len(resp.Ns), len(tc.Ns))
-			t.Logf("%v\n", resp)
-			continue
-		}
-		if len(resp.Extra) != len(tc.Extra) {
-			t.Errorf("additional for %q contained %d results, %d expected", tc.Qname, len(resp.Extra), len(tc.Extra))
-			t.Logf("%v\n", resp)
-			continue
-		}
-
-		if !coretest.CheckSection(t, tc, coretest.Answer, resp.Answer) {
+		if !coretest.Section(t, tc, coretest.Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.CheckSection(t, tc, coretest.Ns, resp.Ns) {
+		if !coretest.Section(t, tc, coretest.Ns, resp.Ns) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.CheckSection(t, tc, coretest.Extra, resp.Extra) {
+		if !coretest.Section(t, tc, coretest.Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
 		}
 	}
 }
 
-const dbDnssexNl_signed = `
+const dbDnssexNL_signed = `
 ; File written on Tue Mar 29 21:02:24 2016
 ; dnssec_signzone version 9.10.3-P4-Ubuntu
 dnssex.nl.		1800	IN SOA	linode.atoom.net. miek.miek.nl. (

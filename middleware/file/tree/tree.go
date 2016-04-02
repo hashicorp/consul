@@ -16,14 +16,20 @@ package tree
 // TODO(miek): locking? lockfree would be nice. Will probably go for fine grained locking on the name level.
 // TODO(miek): fix docs
 
-import (
-	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/dns"
-)
+import "github.com/miekg/dns"
 
 const (
 	TD234 = iota
 	BU23
+)
+
+// Result is a result of a Get lookup.
+type Result int
+
+const (
+	Found Result = iota
+	NameError
+	EmptyNonTerminal
 )
 
 // Operation mode of the LLRB tree.
@@ -33,119 +39,6 @@ func init() {
 	if Mode != TD234 && Mode != BU23 {
 		panic("tree: unknown mode")
 	}
-}
-
-type Elem struct {
-	m map[uint16][]dns.RR
-}
-
-// newElem returns a new elem
-func newElem(rr dns.RR) *Elem {
-	e := Elem{m: make(map[uint16][]dns.RR)}
-	e.m[rr.Header().Rrtype] = []dns.RR{rr}
-	return &e
-}
-
-// Types returns the RRs with type qtype from e.
-func (e *Elem) Types(qtype uint16) []dns.RR {
-	if rrs, ok := e.m[qtype]; ok {
-		// TODO(miek): length should never be zero here.
-		return rrs
-	}
-	return nil
-}
-
-// All returns all RRs from e, regardless of type.
-func (e *Elem) All() []dns.RR {
-	list := []dns.RR{}
-	for _, rrs := range e.m {
-		list = append(list, rrs...)
-	}
-	return list
-}
-
-// Return the domain name for this element.
-func (e *Elem) Name() string {
-	for _, rrs := range e.m {
-		return rrs[0].Header().Name
-	}
-	return ""
-}
-
-// Insert inserts rr into e. If rr is equal to existing rrs this is a noop.
-func (e *Elem) Insert(rr dns.RR) {
-	t := rr.Header().Rrtype
-	if e.m == nil {
-		e.m = make(map[uint16][]dns.RR)
-		e.m[t] = []dns.RR{rr}
-		return
-	}
-	rrs, ok := e.m[t]
-	if !ok {
-		e.m[t] = []dns.RR{rr}
-		return
-	}
-	for _, er := range rrs {
-		if equalRdata(er, rr) {
-			return
-		}
-	}
-
-	rrs = append(rrs, rr)
-	e.m[t] = rrs
-}
-
-// Delete removes rr from e. When e is empty after the removal the returned bool is true.
-func (e *Elem) Delete(rr dns.RR) (empty bool) {
-	t := rr.Header().Rrtype
-	if e.m == nil {
-		return
-	}
-	rrs, ok := e.m[t]
-	if !ok {
-		return
-	}
-	for i, er := range rrs {
-		if equalRdata(er, rr) {
-			rrs = removeFromSlice(rrs, i)
-			e.m[t] = rrs
-			empty = len(rrs) == 0
-			if empty {
-				delete(e.m, t)
-			}
-			return
-		}
-	}
-	return
-}
-
-func Less(a *Elem, rr dns.RR) int {
-	return middleware.Less(rr.Header().Name, a.Name())
-}
-
-// Assuming the same type and name this will check if the rdata is equal as well.
-func equalRdata(a, b dns.RR) bool {
-	switch x := a.(type) {
-	// TODO(miek): more types, i.e. all types.
-	case *dns.A:
-		return x.A.Equal(b.(*dns.A).A)
-	case *dns.AAAA:
-		return x.AAAA.Equal(b.(*dns.AAAA).AAAA)
-	case *dns.MX:
-		if x.Mx == b.(*dns.MX).Mx && x.Preference == b.(*dns.MX).Preference {
-			return true
-		}
-	}
-	return false
-}
-
-// removeFromSlice removes index i from the slice.
-func removeFromSlice(rrs []dns.RR, i int) []dns.RR {
-	if i >= len(rrs) {
-		return rrs
-	}
-	rrs = append(rrs[:i], rrs[i+1:]...)
-	return rrs
 }
 
 // A Color represents the color of a Node.
@@ -257,30 +150,36 @@ func (t *Tree) Len() int {
 }
 
 // Get returns the first match of rr in the Tree.
-func (t *Tree) Get(rr dns.RR) *Elem {
+func (t *Tree) Get(rr dns.RR) (*Elem, Result) {
 	if t.Root == nil {
-		return nil
+		return nil, NameError
 	}
-	n := t.Root.search(rr)
+	n, res := t.Root.search(rr)
 	if n == nil {
-		return nil
+		return nil, res
 	}
-	return n.Elem
+	return n.Elem, res
 }
 
-func (n *Node) search(rr dns.RR) *Node {
+func (n *Node) search(rr dns.RR) (*Node, Result) {
+	old := n
 	for n != nil {
 		switch c := Less(n.Elem, rr); {
 		case c == 0:
-			return n
+			return n, Found
 		case c < 0:
+			old = n
 			n = n.Left
 		default:
+			old = n
 			n = n.Right
 		}
 	}
+	if dns.CountLabel(rr.Header().Name) < dns.CountLabel(old.Elem.Name()) {
+		return n, EmptyNonTerminal
+	}
 
-	return n
+	return n, NameError
 }
 
 // Insert inserts rr into the Tree at the first match found
@@ -397,13 +296,13 @@ func (t *Tree) Delete(rr dns.RR) {
 	if t.Root == nil {
 		return
 	}
-	// If there is an element, remove the rr from it
-	el := t.Get(rr)
+
+	el, _ := t.Get(rr)
 	if el == nil {
 		t.DeleteNode(rr)
 		return
 	}
-	// delete from this element
+	// Delete from this element.
 	empty := el.Delete(rr)
 	if empty {
 		t.DeleteNode(rr)
@@ -454,7 +353,6 @@ func (n *Node) delete(rr dns.RR) (root *Node, d int) {
 	}
 
 	root = n.fixUp()
-
 	return
 }
 
@@ -542,33 +440,6 @@ func (n *Node) ceil(rr dns.RR) *Node {
 		}
 	}
 	return n
-}
-
-// Do performs fn on all values stored in the tree. A boolean is returned indicating whether the
-// Do traversal was interrupted by an Operation returning true. If fn alters stored values' sort
-// relationships, future tree operation behaviors are undefined.
-func (t *Tree) Do(fn func(e *Elem) bool) bool {
-	if t.Root == nil {
-		return false
-	}
-	return t.Root.do(fn)
-}
-
-func (n *Node) do(fn func(e *Elem) bool) (done bool) {
-	if n.Left != nil {
-		done = n.Left.do(fn)
-		if done {
-			return
-		}
-	}
-	done = fn(n.Elem)
-	if done {
-		return
-	}
-	if n.Right != nil {
-		done = n.Right.do(fn)
-	}
-	return
 }
 
 /*

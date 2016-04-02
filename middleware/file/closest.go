@@ -6,10 +6,9 @@ import "github.com/miekg/dns"
 func (z *Zone) ClosestEncloser(rr dns.RR) string {
 	// tree/tree.go does not store a parent *Node pointer, so we can't
 	// just follow up the tree. TODO(miek): fix.
-
 	offset, end := dns.NextLabel(rr.Header().Name, 0)
 	for !end {
-		elem := z.Tree.Get(rr)
+		elem, _ := z.Tree.Get(rr)
 		if elem != nil {
 			return elem.Name()
 		}
