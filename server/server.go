@@ -306,9 +306,9 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
-	// Still here? Error out with SERVFAIL and some logging
+	// Still here? Error out with REFUSED and some logging
 	remoteHost := w.RemoteAddr().String()
-	DefaultErrorFunc(w, r, dns.RcodeServerFailure)
+	DefaultErrorFunc(w, r, dns.RcodeRefused)
 	log.Printf("[INFO] %s - No such zone at %s (Remote: %s)", q, s.Addr, remoteHost)
 }
 
