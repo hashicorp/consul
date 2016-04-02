@@ -91,9 +91,8 @@ func (e *Elem) Delete(rr dns.RR) (empty bool) {
 	return
 }
 
-func Less(a *Elem, rr dns.RR) int {
-	return middleware.Less(rr.Header().Name, a.Name())
-}
+// Less is a tree helper function that calles middleware.Less.
+func Less(a *Elem, name string) int { return middleware.Less(name, a.Name()) }
 
 // Assuming the same type and name this will check if the rdata is equal as well.
 func equalRdata(a, b dns.RR) bool {

@@ -3,18 +3,18 @@ package file
 import "github.com/miekg/dns"
 
 // ClosestEncloser returns the closest encloser for rr.
-func (z *Zone) ClosestEncloser(rr dns.RR) string {
+func (z *Zone) ClosestEncloser(qname string, qtype uint16) string {
 	// tree/tree.go does not store a parent *Node pointer, so we can't
 	// just follow up the tree. TODO(miek): fix.
-	offset, end := dns.NextLabel(rr.Header().Name, 0)
+	offset, end := dns.NextLabel(qname, 0)
 	for !end {
-		elem, _ := z.Tree.Get(rr)
+		elem, _ := z.Tree.Search(qname, qtype)
 		if elem != nil {
 			return elem.Name()
 		}
-		rr.Header().Name = rr.Header().Name[offset:]
+		qname = qname[offset:]
 
-		offset, end = dns.NextLabel(rr.Header().Name, offset)
+		offset, end = dns.NextLabel(qname, offset)
 	}
 
 	return z.SOA.Header().Name
@@ -22,8 +22,8 @@ func (z *Zone) ClosestEncloser(rr dns.RR) string {
 
 // nameErrorProof finds the closest encloser and return an NSEC that proofs
 // the wildcard does not exist and an NSEC that proofs the name does no exist.
-func (z *Zone) nameErrorProof(rr dns.RR) []dns.RR {
-	elem := z.Tree.Prev(rr)
+func (z *Zone) nameErrorProof(qname string, qtype uint16) []dns.RR {
+	elem := z.Tree.Prev(qname)
 	if elem == nil {
 		return nil
 	}
@@ -37,10 +37,8 @@ func (z *Zone) nameErrorProof(rr dns.RR) []dns.RR {
 	}
 
 	// We do this lookup twice, once for wildcard and once for the name proof. TODO(miek): fix
-	ce := z.ClosestEncloser(rr)
-	wildcard := "*." + ce
-	rr.Header().Name = wildcard
-	elem = z.Tree.Prev(rr)
+	ce := z.ClosestEncloser(qname, qtype)
+	elem = z.Tree.Prev("*." + ce)
 	if elem == nil {
 		// Root?
 		return nil

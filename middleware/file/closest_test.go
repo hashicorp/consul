@@ -25,11 +25,8 @@ func TestClosestEncloser(t *testing.T) {
 		{"blaat.a.miek.nl.", "a.miek.nl."},
 	}
 
-	mk, _ := dns.TypeToRR[dns.TypeA]
-	rr := mk()
 	for _, tc := range tests {
-		rr.Header().Name = tc.in
-		ce := z.ClosestEncloser(rr)
+		ce := z.ClosestEncloser(tc.in, dns.TypeA)
 		if ce != tc.out {
 			t.Errorf("expected ce to be %s for %s, got %s", tc.out, tc.in, ce)
 		}

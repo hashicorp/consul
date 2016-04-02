@@ -23,7 +23,7 @@ const (
 	BU23
 )
 
-// Result is a result of a Get lookup.
+// Result is a result of a Search.
 type Result int
 
 const (
@@ -149,22 +149,22 @@ func (t *Tree) Len() int {
 	return t.Count
 }
 
-// Get returns the first match of rr in the Tree.
-func (t *Tree) Get(rr dns.RR) (*Elem, Result) {
+// Search returns the first match of qname/qtype in the Tree.
+func (t *Tree) Search(qname string, qtype uint16) (*Elem, Result) {
 	if t.Root == nil {
 		return nil, NameError
 	}
-	n, res := t.Root.search(rr)
+	n, res := t.Root.search(qname, qtype)
 	if n == nil {
 		return nil, res
 	}
 	return n.Elem, res
 }
 
-func (n *Node) search(rr dns.RR) (*Node, Result) {
+func (n *Node) search(qname string, qtype uint16) (*Node, Result) {
 	old := n
 	for n != nil {
-		switch c := Less(n.Elem, rr); {
+		switch c := Less(n.Elem, qname); {
 		case c == 0:
 			return n, Found
 		case c < 0:
@@ -175,7 +175,7 @@ func (n *Node) search(rr dns.RR) (*Node, Result) {
 			n = n.Right
 		}
 	}
-	if dns.CountLabel(rr.Header().Name) < dns.CountLabel(old.Elem.Name()) {
+	if dns.CountLabel(qname) < dns.CountLabel(old.Elem.Name()) {
 		return n, EmptyNonTerminal
 	}
 
@@ -205,7 +205,7 @@ func (n *Node) insert(rr dns.RR) (root *Node, d int) {
 		}
 	}
 
-	switch c := Less(n.Elem, rr); {
+	switch c := Less(n.Elem, rr.Header().Name); {
 	case c == 0:
 		n.Elem.Insert(rr)
 	case c < 0:
@@ -297,7 +297,7 @@ func (t *Tree) Delete(rr dns.RR) {
 		return
 	}
 
-	el, _ := t.Get(rr)
+	el, _ := t.Search(rr.Header().Name, rr.Header().Rrtype)
 	if el == nil {
 		t.DeleteNode(rr)
 		return
@@ -325,7 +325,7 @@ func (t *Tree) DeleteNode(rr dns.RR) {
 }
 
 func (n *Node) delete(rr dns.RR) (root *Node, d int) {
-	if Less(n.Elem, rr) < 0 {
+	if Less(n.Elem, rr.Header().Name) < 0 {
 		if n.Left != nil {
 			if n.Left.color() == Black && n.Left.Left.color() == Black {
 				n = n.moveRedLeft()
@@ -336,14 +336,14 @@ func (n *Node) delete(rr dns.RR) (root *Node, d int) {
 		if n.Left.color() == Red {
 			n = n.rotateRight()
 		}
-		if n.Right == nil && Less(n.Elem, rr) == 0 {
+		if n.Right == nil && Less(n.Elem, rr.Header().Name) == 0 {
 			return nil, -1
 		}
 		if n.Right != nil {
 			if n.Right.color() == Black && n.Right.Left.color() == Black {
 				n = n.moveRedRight()
 			}
-			if Less(n.Elem, rr) == 0 {
+			if Less(n.Elem, rr.Header().Name) == 0 {
 				n.Elem = n.Right.min().Elem
 				n.Right, d = n.Right.deleteMin()
 			} else {
@@ -384,58 +384,58 @@ func (n *Node) max() *Node {
 	return n
 }
 
-// Prev returns the greatest value equal to or less than the rr according to Less().
-func (t *Tree) Prev(rr dns.RR) *Elem {
+// Prev returns the greatest value equal to or less than the qname according to Less().
+func (t *Tree) Prev(qname string) *Elem {
 	if t.Root == nil {
 		return nil
 	}
-	n := t.Root.floor(rr)
+	n := t.Root.floor(qname)
 	if n == nil {
 		return nil
 	}
 	return n.Elem
 }
 
-func (n *Node) floor(rr dns.RR) *Node {
+func (n *Node) floor(qname string) *Node {
 	if n == nil {
 		return nil
 	}
-	switch c := Less(n.Elem, rr); {
+	switch c := Less(n.Elem, qname); {
 	case c == 0:
 		return n
 	case c < 0:
-		return n.Left.floor(rr)
+		return n.Left.floor(qname)
 	default:
-		if r := n.Right.floor(rr); r != nil {
+		if r := n.Right.floor(qname); r != nil {
 			return r
 		}
 	}
 	return n
 }
 
-// Next returns the smallest value equal to or greater than the rr according to Less().
-func (t *Tree) Next(rr dns.RR) *Elem {
+// Next returns the smallest value equal to or greater than the qname according to Less().
+func (t *Tree) Next(qname string) *Elem {
 	if t.Root == nil {
 		return nil
 	}
-	n := t.Root.ceil(rr)
+	n := t.Root.ceil(qname)
 	if n == nil {
 		return nil
 	}
 	return n.Elem
 }
 
-func (n *Node) ceil(rr dns.RR) *Node {
+func (n *Node) ceil(qname string) *Node {
 	if n == nil {
 		return nil
 	}
-	switch c := Less(n.Elem, rr); {
+	switch c := Less(n.Elem, qname); {
 	case c == 0:
 		return n
 	case c > 0:
-		return n.Right.ceil(rr)
+		return n.Right.ceil(qname)
 	default:
-		if l := n.Left.ceil(rr); l != nil {
+		if l := n.Left.ceil(qname); l != nil {
 			return l
 		}
 	}

@@ -19,33 +19,21 @@ const (
 // Lookup looks up qname and qtype in the zone. When do is true DNSSEC records are included.
 // Three sets of records are returned, one for the answer, one for authority  and one for the additional section.
 func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
-	var rr dns.RR
-	mk, known := dns.TypeToRR[qtype]
-	if !known {
-		return nil, nil, nil, ServerFailure
-	} else {
-		rr = mk()
-	}
 	if qtype == dns.TypeSOA {
 		return z.lookupSOA(do)
 	}
 
-	// Misuse rr to be a question.
-	rr.Header().Rrtype = qtype
-	rr.Header().Name = qname
-
-	elem, res := z.Tree.Get(rr)
+	elem, res := z.Tree.Search(qname, qtype)
 	if elem == nil {
 		if res == tree.EmptyNonTerminal {
-			return z.emptyNonTerminal(rr, do)
+			return z.emptyNonTerminal(qname, do)
 		}
-		return z.nameError(rr, do)
+		return z.nameError(qname, qtype, do)
 	}
 
 	rrs := elem.Types(dns.TypeCNAME)
 	if len(rrs) > 0 { // should only ever be 1 actually; TODO(miek) check for this?
-		rr.Header().Name = rrs[0].(*dns.CNAME).Target
-		return z.lookupCNAME(rrs, rr, do)
+		return z.lookupCNAME(rrs, qtype, do)
 	}
 
 	rrs = elem.Types(qtype)
@@ -67,33 +55,29 @@ func (z *Zone) noData(elem *tree.Elem, do bool) ([]dns.RR, []dns.RR, []dns.RR, R
 	return nil, append(soa, nsec...), nil, Success
 }
 
-func (z *Zone) emptyNonTerminal(rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+func (z *Zone) emptyNonTerminal(qname string, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
 	soa, _, _, _ := z.lookupSOA(do)
 
-	elem := z.Tree.Prev(rr)
+	elem := z.Tree.Prev(qname)
 	nsec := z.lookupNSEC(elem, do)
 	return nil, append(soa, nsec...), nil, Success
 }
 
-func (z *Zone) nameError(rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+func (z *Zone) nameError(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
 	// Is there a wildcard?
-	rr1 := dns.Copy(rr)
-	rr1.Header().Name = rr.Header().Name
-	rr1.Header().Rrtype = rr.Header().Rrtype
-	ce := z.ClosestEncloser(rr1)
-	rr1.Header().Name = "*." + ce
-	elem, _ := z.Tree.Get(rr1) // use result here?
+	ce := z.ClosestEncloser(qname, qtype)
+	elem, _ := z.Tree.Search("*."+ce, qtype) // use result here?
 
 	if elem != nil {
-		ret := elem.Types(rr1.Header().Rrtype) // there can only be one of these (or zero)
+		ret := elem.Types(qtype) // there can only be one of these (or zero)
 		switch {
 		case ret != nil:
 			if do {
 				sigs := elem.Types(dns.TypeRRSIG)
-				sigs = signatureForSubType(sigs, rr.Header().Rrtype)
+				sigs = signatureForSubType(sigs, qtype)
 				ret = append(ret, sigs...)
 			}
-			ret = wildcardReplace(rr, ce, ret)
+			ret = wildcardReplace(qname, ce, ret)
 			return ret, nil, nil, Success
 		case ret == nil:
 			// nodata, nsec from the wildcard - type does not exist
@@ -106,7 +90,7 @@ func (z *Zone) nameError(rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Resu
 	ret := []dns.RR{z.SOA}
 	if do {
 		ret = append(ret, z.SIG...)
-		ret = append(ret, z.nameErrorProof(rr)...)
+		ret = append(ret, z.nameErrorProof(qname, qtype)...)
 	}
 	return nil, ret, nil, NameError
 }
@@ -135,15 +119,15 @@ func (z *Zone) lookupNSEC(elem *tree.Elem, do bool) []dns.RR {
 	return nsec
 }
 
-func (z *Zone) lookupCNAME(rrs []dns.RR, rr dns.RR, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
-	elem, _ := z.Tree.Get(rr)
+func (z *Zone) lookupCNAME(rrs []dns.RR, qtype uint16, do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+	elem, _ := z.Tree.Search(rrs[0].(*dns.CNAME).Target, qtype)
 	if elem == nil {
 		return rrs, nil, nil, Success
 	}
-	extra := cnameForType(elem.All(), rr.Header().Rrtype)
+	extra := cnameForType(elem.All(), qtype)
 	if do {
 		sigs := elem.Types(dns.TypeRRSIG)
-		sigs = signatureForSubType(sigs, rr.Header().Rrtype)
+		sigs = signatureForSubType(sigs, qtype)
 		if len(sigs) > 0 {
 			extra = append(extra, sigs...)
 		}
@@ -175,25 +159,13 @@ func signatureForSubType(rrs []dns.RR, subtype uint16) []dns.RR {
 	return sigs
 }
 
-// wildcardReplace replaces the first wildcard with label.
-func wildcardReplace(rr dns.RR, ce string, rrs []dns.RR) []dns.RR {
-	// Get how many labels the ce is off from the fullname, this is how much of the
-	// original rr's '*' we must replace.
-	labels := dns.CountLabel(rr.Header().Name) - dns.CountLabel(ce) // can not be 0, TODO(miek): check
-
-	indexes := dns.Split(rr.Header().Name)
-	if labels >= len(indexes) {
-		// TODO(miek): yes then what?
-		// Is the == right here?
-		return nil
-	}
-	replacement := rr.Header().Name[:indexes[labels]]
-
+// wildcardReplace replaces the ownername with the original query name.
+func wildcardReplace(qname, ce string, rrs []dns.RR) []dns.RR {
 	// need to copy here, otherwise we change in zone stuff
 	ret := make([]dns.RR, len(rrs))
 	for i, r := range rrs {
 		ret[i] = dns.Copy(r)
-		ret[i].Header().Name = replacement + r.Header().Name[2:]
+		ret[i].Header().Name = qname
 	}
 	return ret
 }
