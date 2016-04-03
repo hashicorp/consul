@@ -10,7 +10,6 @@ import (
 type Transfer struct {
 	Out bool
 	In  bool
-	// more later?
 }
 
 type Zone struct {
@@ -18,7 +17,7 @@ type Zone struct {
 	SIG  []dns.RR
 	name string
 	*tree.Tree
-	Masters  []string
+	Peers    []string
 	Transfer *Transfer
 }
 

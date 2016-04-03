@@ -13,6 +13,8 @@ func File(c *Controller) (middleware.Middleware, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Set start function is transfer is specified
+
 	return func(next middleware.Handler) middleware.Handler {
 		return file.File{Next: next, Zones: zones}
 	}, nil
@@ -35,7 +37,7 @@ func fileParse(c *Controller) (file.Zones, error) {
 				origin = c.Val()
 			}
 			// normalize this origin
-			origin = middleware.Host(origin).StandardHost()
+			origin = middleware.Host(origin).Standard()
 
 			reader, err := os.Open(fileName)
 			if err != nil {
