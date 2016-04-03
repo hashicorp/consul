@@ -21,6 +21,11 @@ There are corner cases not implement and some blatantly missing functionality; i
 implementation *does not* requery the primary -- *ever*, leading to stale data if the server is
 not restarted.
 
+> CoreDNS is running on port 1053 on `linode.atoom.net`. This is one step from being run on port 53.
+> See [this blog article](https://miek.nl/2016/April/03/running-coredns/) on this, or this
+> [bug](https://github.com/miekg/coredns/issues/15) on the progress of running CoreDNS as my
+> production nameserver.
+
 But all in all, CoreDNS should already be able to provide you with enough functionality to replace
 parts of BIND9, Knot, NSD or PowerDNS.
 
