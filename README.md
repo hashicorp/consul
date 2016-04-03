@@ -3,16 +3,37 @@
 CoreDNS is DNS server that started as a fork of [Caddy](https://github.com/mholt/caddy/). It has the
 same model: it chains middleware.
 
-It is in the early stages of development and should **not** be used on production servers yet. For now most
-documentation is in the source and some blog articles can be [found
-here](https://miek.nl/tags/coredns/).
+## Status
+
+Currently CoreDNS is able to:
+
+* Serve zone data from a file, both DNSSEC (NSEC only atm) and DNS is supported.
+* Retrieve zone data from primaries, i.e. act as a secondary server.
+* Allow for zone transfers, i.e. act as a primary server.
+* Use Etcd as a backend, i.e. a 90% replacement for
+  [SkyDNS](https://github.com/skynetservices/skydns).
+* Serve as a proxy to forward queries to some other (recursive) nameserver.
+* Prove metrics (by using Prometheus)
+* Rewrite queries (both qtype and qname).
+* Provide Logging.
+
+There are corner cases not implement and some blatantly missing functionality; i.e. the secondary
+implement *does not* requery the primary -- *ever*.
+
+But all in all, CoreDNS should already be able to provide you with enough functionality to replace
+parts of BIND9, Knot, NSD or PowerDNS.
+
+CoreDNS is still in the early stages of development and should **not** be used on production servers
+yet. For now most documentation is in the source and some blog articles can be [found
+here](https://miek.nl/tags/coredns/). If you do want to use CoreDNS in production, please let us
+know and how we can help.
 
 <https://caddyserver.com/> is also full of examples on how to structure a Corefile (renamed from
 Caddyfile when I forked it).
 
-# Resolver
+## Proxy
 
-Start a simple resolver (proxy):
+Start a simple proxy:
 
 `Corefile` contains:
 
