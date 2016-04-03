@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -54,13 +55,15 @@ func NewReplacer(r *dns.Msg, rr *ResponseRecorder, emptyValue string) Replacer {
 		}
 		rep.replacements["{rcode}"] = rcode
 		rep.replacements["{size}"] = strconv.Itoa(rr.size)
-		rep.replacements["{latency}"] = time.Since(rr.start).String()
+		rep.replacements["{duration}"] = time.Since(rr.start).String()
 	}
 
 	// Header placeholders (case-insensitive)
 	// TODO(miek): syntax for flags and document it
 	rep.replacements[headerReplacer+"id}"] = strconv.Itoa(int(r.Id))
 	rep.replacements[headerReplacer+"opcode}"] = strconv.Itoa(int(r.Opcode))
+	rep.replacements[headerReplacer+"do}"] = fmt.Sprintf("%b", state.Do())
+	rep.replacements[headerReplacer+"bufsize}"] = strconv.Itoa(state.Size())
 
 	return rep
 }

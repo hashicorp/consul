@@ -33,7 +33,26 @@ CoreDNS will create it before appending to it.
 
 ## Log Format
 
-You can specify a custom log format with any placeholder values. Log supports both request and response placeholders.
+You can specify a custom log format with any placeholder values. Log supports both request and
+response placeholders.
+
+The following place holders are supported:
+
+* `{type}`: qtype of the request.
+* `{name}`: qname of the request.
+* `{class}`: class of the request.
+* `{proto}`: protocol used (tcp or udp).
+* `{when}`: time of the query.
+* `{remote}`: client's IP address.
+* `{port}`: client's port.
+* `{rcode}`: response RCODE.
+* `{size}`: response size.
+* `{duration}`: response duration (in seconds).
+* `{>bufsize}`: the EDNS0 buffer size advertized by the client.
+* `{>do}`: is the EDNS0 DO (DNSSEC OK) bit set.
+* `{>id}`: query ID
+* `{>opcode}`: query OPCODE
+
 
 ## Log Rotation
 
