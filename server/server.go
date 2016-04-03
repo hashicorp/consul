@@ -273,6 +273,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	b := make([]byte, len(q))
 	off, end := 0, false
 	ctx := context.Background()
+
 	for {
 		l := len(q[off:])
 		for i := 0; i < l; i++ {

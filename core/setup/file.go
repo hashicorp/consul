@@ -13,7 +13,6 @@ func File(c *Controller) (middleware.Middleware, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Set start function is transfer is specified
 
 	return func(next middleware.Handler) middleware.Handler {
 		return file.File{Next: next, Zones: zones}
@@ -32,22 +31,25 @@ func fileParse(c *Controller) (file.Zones, error) {
 			}
 			fileName := c.Val()
 
-			origin := c.ServerBlockHosts[c.ServerBlockHostIndex]
-			if c.NextArg() {
-				origin = c.Val()
+			origins := []string{c.ServerBlockHosts[c.ServerBlockHostIndex]}
+			args := c.RemainingArgs()
+			if len(args) > 0 {
+				origins = args
 			}
-			origin = middleware.Host(origin).Normalize()
 
-			// TODO(miek): we should allow more. Issue #54.
 			reader, err := os.Open(fileName)
 			if err != nil {
 				return file.Zones{}, err
 			}
-			zone, err := file.Parse(reader, origin, fileName)
-			if err == nil {
-				z[origin] = zone
+
+			for i, _ := range origins {
+				origins[i] = middleware.Host(origins[i]).Normalize()
+				zone, err := file.Parse(reader, origins[i], fileName)
+				if err == nil {
+					z[origins[i]] = zone
+				}
+				names = append(names, origins[i])
 			}
-			names = append(names, origin)
 
 			for c.NextBlock() {
 				t, _, e := parseTransfer(c)
@@ -55,7 +57,9 @@ func fileParse(c *Controller) (file.Zones, error) {
 					return file.Zones{}, e
 				}
 				// discard from, here, maybe check and show log when we do?
-				z[origin].TransferTo = append(z[origin].TransferTo, t)
+				for _, origin := range origins {
+					z[origin].TransferTo = append(z[origin].TransferTo, t)
+				}
 			}
 		}
 	}

@@ -14,10 +14,6 @@ func (z *Zone) TransferIn() error {
 	t := new(dns.Transfer)
 	m := new(dns.Msg)
 	m.SetAxfr(z.name)
-	/*
-	   t.TsigSecret = map[string]string{"axfr.": "so6ZGir4GPAqINNh9U5c3A=="}
-	   m.SetTsig("axfr.", dns.HmacMD5, 300, time.Now().Unix())
-	*/
 
 	var Err error
 Transfer:
@@ -48,16 +44,6 @@ Transfer:
 			}
 		}
 	}
-	return Err
+	return nil
+	return Err // ignore errors for now. TODO(miek)
 }
-
-/*
-
-				28800      ; refresh (8 hours)
-				7200       ; retry (2 hours)
-				604800     ; expire (1 week)
-				3600       ; minimum (1 hour)
-// Check SOA
-// Just check every refresh hours, if fail set to retry until succeeds
-// expire is need: to give SERVFAIL.
-*/

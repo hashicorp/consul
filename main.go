@@ -207,7 +207,7 @@ func setVersion() {
 	}
 }
 
-const appName = "Caddy"
+const appName = "CoreDNS"
 
 // Flags that control program flow or startup
 var (

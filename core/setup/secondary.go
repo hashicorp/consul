@@ -35,23 +35,26 @@ func secondaryParse(c *Controller) (file.Zones, error) {
 	for c.Next() {
 		if c.Val() == "secondary" {
 			// secondary [origin]
-			origin := c.ServerBlockHosts[c.ServerBlockHostIndex]
-			if c.NextArg() {
-				origin = c.Val()
+			origins := []string{c.ServerBlockHosts[c.ServerBlockHostIndex]}
+			args := c.RemainingArgs()
+			if len(args) > 0 {
+				origins = args
 			}
-			// TODO(miek): we should allow more. Issue #54.
-			origin = middleware.Host(origin).Normalize()
-
-			z[origin] = file.NewZone(origin)
-			names = append(names, origin)
+			for i, _ := range origins {
+				origins[i] = middleware.Host(origins[i]).Normalize()
+				z[origins[i]] = file.NewZone(origins[i])
+				names = append(names, origins[i])
+			}
 
 			for c.NextBlock() {
 				t, f, e := parseTransfer(c)
 				if e != nil {
 					return file.Zones{}, e
 				}
-				z[origin].TransferTo = append(z[origin].TransferTo, t)
-				z[origin].TransferFrom = append(z[origin].TransferFrom, f)
+				for _, origin := range origins {
+					z[origin].TransferTo = append(z[origin].TransferTo, t)
+					z[origin].TransferFrom = append(z[origin].TransferFrom, f)
+				}
 			}
 		}
 	}
