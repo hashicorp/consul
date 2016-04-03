@@ -37,13 +37,13 @@ know and how we can help.
 <https://caddyserver.com/> is also full of examples on how to structure a Corefile (renamed from
 Caddyfile when I forked it).
 
-## Proxy
+## Examples
 
 Start a simple proxy:
 
 `Corefile` contains:
 
-~~~
+~~~ txt
 .:1053 {
     proxy . 8.8.8.8:53
 }
@@ -53,6 +53,47 @@ Just start CoreDNS: `./coredns`.
 And then just query on that port (1053), the query should be forwarded to 8.8.8.8 and the response
 will be returned.
 
-# Blog
+Serve the (NSEC) DNSSEC signed `miek.nl` on port 1053, errors and logging to stdout. Allow zone
+transfers to everybody.
+
+~~~ txt
+miek.nl:1053 {
+    file /var/lib/bind/miek.nl.signed {
+        transfer to *
+    }
+    errors stdout
+    log stdout
+}
+~~~
+
+Serve `miek.nl` on port 1053, but forward everything that does *not* match `miek.nl` to a recursive
+nameserver *and* rewrite ANY queries to HINFO.
+
+~~~ txt
+.:1053 {
+    rewrite ANY HINFO
+
+    proxy . 8.8.8.8:53
+
+    file /var/lib/bind/miek.nl.signed miek.nl {
+        transfer to *
+    }
+    errors stdout
+    log stdout
+}
+~~~
+
+All the above examples are possible with the *current* CoreDNS.
+
+## What remains to be done
+
+* Website?
+* Logo?
+* Code simplifications/refactors.
+* Optimizations.
+* Load testing.
+* All the [issues](https://github.com/miekg/coredns/issues).
+
+## Blog
 
 <https://miek.nl/tags/coredns/>
