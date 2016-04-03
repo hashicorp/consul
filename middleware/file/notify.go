@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/miekg/coredns/middleware"
+
 	"github.com/miekg/dns"
 )
 

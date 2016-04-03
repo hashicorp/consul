@@ -13,9 +13,9 @@ type (
 	Addr string
 )
 
-// Standard will return the host portion of host, stripping
+// Normalize will return the host portion of host, stripping
 // of any port. The host will also be fully qualified and lowercased.
-func (h Host) Standard() string {
+func (h Host) Normalize() string {
 	// separate host and port
 	host, _, err := net.SplitHostPort(string(h))
 	if err != nil {
@@ -24,9 +24,9 @@ func (h Host) Standard() string {
 	return strings.ToLower(dns.Fqdn(host))
 }
 
-// Standard will return a normalized address, if not port is specified
+// Normalize will return a normalized address, if not port is specified
 // port 53 is added, otherwise the port will be left as is.
-func (a Addr) Standard() string {
+func (a Addr) Normalize() string {
 	// separate host and port
 	addr, port, err := net.SplitHostPort(string(a))
 	if err != nil {

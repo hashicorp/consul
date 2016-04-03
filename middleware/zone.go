@@ -24,7 +24,7 @@ func (z Zones) Matches(qname string) string {
 	return zone
 }
 
-// Fully qualify all zones in z
+// FullyQualify fully qualifies all zones in z.
 func (z Zones) FullyQualify() {
 	for i, _ := range z {
 		z[i] = dns.Fqdn(z[i])
