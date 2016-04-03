@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -62,7 +61,7 @@ func NewReplacer(r *dns.Msg, rr *ResponseRecorder, emptyValue string) Replacer {
 	// TODO(miek): syntax for flags and document it
 	rep.replacements[headerReplacer+"id}"] = strconv.Itoa(int(r.Id))
 	rep.replacements[headerReplacer+"opcode}"] = strconv.Itoa(int(r.Opcode))
-	rep.replacements[headerReplacer+"do}"] = fmt.Sprintf("%b", state.Do())
+	rep.replacements[headerReplacer+"do}"] = boolToString(state.Do())
 	rep.replacements[headerReplacer+"bufsize}"] = strconv.Itoa(state.Size())
 
 	return rep
@@ -102,6 +101,13 @@ func (r replacer) Replace(s string) string {
 // Set sets key to value in the replacements map.
 func (r replacer) Set(key, value string) {
 	r.replacements["{"+key+"}"] = value
+}
+
+func boolToString(b bool) string {
+	if b {
+		return "true"
+	}
+	return "false"
 }
 
 const (

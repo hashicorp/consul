@@ -47,7 +47,7 @@ The following place holders are supported:
 * `{port}`: client's port.
 * `{rcode}`: response RCODE.
 * `{size}`: response size.
-* `{duration}`: response duration (in seconds).
+* `{duration}`: response duration.
 * `{>bufsize}`: the EDNS0 buffer size advertized by the client.
 * `{>do}`: is the EDNS0 DO (DNSSEC OK) bit set.
 * `{>id}`: query ID
