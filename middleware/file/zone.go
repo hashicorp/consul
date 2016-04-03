@@ -7,23 +7,22 @@ import (
 	"github.com/miekg/dns"
 )
 
-type Transfer struct {
-	Out bool
-	In  bool
-}
-
 type Zone struct {
 	SOA  *dns.SOA
 	SIG  []dns.RR
 	name string
 	*tree.Tree
-	Peers    []string
-	Transfer *Transfer
+
+	TransferTo   []string
+	TransferFrom []string
+	Expired      *bool
 }
 
 // NewZone returns a new zone.
 func NewZone(name string) *Zone {
-	return &Zone{name: dns.Fqdn(name), Tree: &tree.Tree{}, Transfer: &Transfer{}}
+	z := &Zone{name: dns.Fqdn(name), Tree: &tree.Tree{}, Expired: new(bool)}
+	*z.Expired = false
+	return z
 }
 
 // Insert inserts r into z.
@@ -32,12 +31,14 @@ func (z *Zone) Insert(r dns.RR) { z.Tree.Insert(r) }
 // Delete deletes r from z.
 func (z *Zone) Delete(r dns.RR) { z.Tree.Delete(r) }
 
-// It the transfer request allowed.
+// TransferAllowed checks if incoming request for transferring the zone is allowed according to the ACLs.
 func (z *Zone) TransferAllowed(state middleware.State) bool {
-	if z.Transfer == nil {
-		return false
+	for _, t := range z.TransferTo {
+		if t == "*" {
+			return true
+		}
 	}
-	return z.Transfer.Out
+	return false
 }
 
 // All returns all records from the zone, the first record will be the SOA record,
@@ -54,5 +55,3 @@ func (z *Zone) All() []dns.RR {
 	}
 	return append([]dns.RR{z.SOA}, records...)
 }
-
-// Apex function?

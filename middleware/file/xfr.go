@@ -22,7 +22,7 @@ func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (in
 		return dns.RcodeServerFailure, nil
 	}
 	if state.QType() != dns.TypeAXFR {
-		return 0, fmt.Errorf("file: xfr called with non xfr type: %d", state.QType())
+		return 0, fmt.Errorf("file: xfr called with non transfer type: %d", state.QType())
 	}
 	if state.Proto() == "udp" {
 		return 0, fmt.Errorf("file: xfr called with udp")
@@ -39,7 +39,7 @@ func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (in
 	go tr.Out(w, r, ch)
 
 	j, l := 0, 0
-	records = append(records, records[0])
+	records = append(records, records[0]) // add closing SOA to the end
 	for i, r := range records {
 		l += dns.Len(r)
 		if l > transferLength {

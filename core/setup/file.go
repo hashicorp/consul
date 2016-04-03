@@ -36,9 +36,9 @@ func fileParse(c *Controller) (file.Zones, error) {
 			if c.NextArg() {
 				origin = c.Val()
 			}
-			// normalize this origin
-			origin = middleware.Host(origin).Standard()
+			origin = middleware.Host(origin).Normalize()
 
+			// TODO(miek): we should allow more. Issue #54.
 			reader, err := os.Open(fileName)
 			if err != nil {
 				return file.Zones{}, err
@@ -48,27 +48,40 @@ func fileParse(c *Controller) (file.Zones, error) {
 				z[origin] = zone
 			}
 			names = append(names, origin)
-			if c.NextBlock() {
-				what := c.Val()
-				if !c.NextArg() {
-					return file.Zones{}, c.ArgErr()
+
+			for c.NextBlock() {
+				t, _, e := parseTransfer(c)
+				if e != nil {
+					return file.Zones{}, e
 				}
-				value := c.Val()
-				var err error
-				switch what {
-				case "transfer":
-					if value == "out" {
-						z[origin].Transfer.Out = true
-					}
-					if value == "in" {
-						z[origin].Transfer.In = true
-					}
-				}
-				if err != nil {
-					return file.Zones{}, err
-				}
+				// discard from, here, maybe check and show log when we do?
+				z[origin].TransferTo = append(z[origin].TransferTo, t)
 			}
 		}
 	}
 	return file.Zones{Z: z, Names: names}, nil
+}
+
+// transfer to [address]
+func parseTransfer(c *Controller) (to, from string, err error) {
+	what := c.Val()
+	if !c.NextArg() {
+		return "", "", c.ArgErr()
+	}
+	value := c.Val()
+	switch what {
+	case "transfer":
+		if !c.NextArg() {
+			return "", "", c.ArgErr()
+		}
+		if value == "to" {
+			to = c.Val()
+			to = middleware.Addr(to).Normalize()
+		}
+		if value == "from" {
+			from = c.Val()
+			from = middleware.Addr(from).Normalize()
+		}
+	}
+	return
 }

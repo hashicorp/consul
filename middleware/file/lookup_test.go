@@ -107,6 +107,15 @@ func TestLookup(t *testing.T) {
 	}
 }
 
+func TestLookupNil(t *testing.T) {
+	fm := File{Next: coretest.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: nil}, Names: []string{testzone}}}
+	ctx := context.TODO()
+
+	m := dnsTestCases[0].Msg()
+	rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+	fm.ServeDNS(ctx, rec, m)
+}
+
 func BenchmarkLookup(b *testing.B) {
 	zone, err := Parse(strings.NewReader(dbMiekNL), testzone, "stdin")
 	if err != nil {

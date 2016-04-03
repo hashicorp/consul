@@ -1,9 +1,9 @@
 # file
 
-`file` enabled reading zone data from a RFC-1035 styled file.
+`file` enables serving zone data from a RFC-1035 styled file.
 
-The etcd middleware makes extensive use of the proxy middleware to forward and query
-other servers in the network.
+The file middleware is used for "old-style" DNS server. It serves from a preloaded file that exists
+on disk.
 
 ## Syntax
 
@@ -17,15 +17,26 @@ file dbfile [zones...]
 
 If you want to round robin A and AAAA responses look at the `loadbalance` middleware.
 
-TSIG key configuration is TODO; directive format will change.
+TSIG key configuration is TODO; directive format for transfer will probably be extended with
+TSIG key information, something like `transfer out [address] key [name] [base64]`
 
 ~~~
 file dbfile [zones... ] {
     transfer out [address...]
+    transfer to [address]
 }
 ~~~
 
-* `transfer` enable zone transfers, for now only `transfer out` does something. It enables outgoing
-  zone transfers when defined.
+* `transfer` enables zone transfers. It may be specified multiples times. *To* or *from* signals
+    the direction. Address must be denoted in CIDR notation (127.0.0.1/32 etc.). The special
+    wildcard "*" means: the entire internet.
 
 ## Examples
+
+Load the `miek.nl` zone from `miek.nl.signed` and allow transfers to the internet.
+
+~~~
+file miek.nl.signed miek.nl {
+    transfer to *
+}
+~~~

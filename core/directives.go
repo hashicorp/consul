@@ -59,6 +59,7 @@ var directiveOrder = []directive{
 	{"errors", setup.Errors},
 
 	{"file", setup.File},
+	{"secondary", setup.Secondary},
 	{"etcd", setup.Etcd},
 	{"proxy", setup.Proxy},
 }

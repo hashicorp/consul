@@ -33,6 +33,12 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	if !ok {
 		return f.Next.ServeDNS(ctx, w, r)
 	}
+	if z == nil {
+		return dns.RcodeServerFailure, nil
+	}
+	if z.Expired != nil && *z.Expired {
+		return dns.RcodeServerFailure, nil
+	}
 
 	if state.Proto() != "udp" && state.QType() == dns.TypeAXFR {
 		xfr := Xfr{z}
