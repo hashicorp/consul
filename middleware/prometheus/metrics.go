@@ -9,7 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const namespace = "daddy"
+const namespace = "coredns"
 
 var (
 	requestCount    *prometheus.CounterVec
@@ -74,7 +74,7 @@ func define(subsystem string) {
 	responseRcode = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Subsystem: subsystem,
-		Name:      "rcode_code_count_total",
+		Name:      "response_rcode_count_total",
 		Help:      "Counter of response status codes.",
 	}, []string{"zone", "rcode"})
 }
