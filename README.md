@@ -18,7 +18,8 @@ Currently CoreDNS is able to:
 * Provide Logging.
 
 There are corner cases not implement and some blatantly missing functionality; i.e. the secondary
-implement *does not* requery the primary -- *ever*.
+implementation *does not* requery the primary -- *ever*, leading to stale data if the server is
+not restarted.
 
 But all in all, CoreDNS should already be able to provide you with enough functionality to replace
 parts of BIND9, Knot, NSD or PowerDNS.
