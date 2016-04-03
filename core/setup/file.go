@@ -80,10 +80,15 @@ func parseTransfer(c *Controller) (to, from string, err error) {
 		}
 		if value == "to" {
 			to = c.Val()
-			to = middleware.Addr(to).Normalize()
+			if to != "*" {
+				to = middleware.Addr(to).Normalize()
+			}
 		}
 		if value == "from" {
 			from = c.Val()
+			if from == "*" {
+				// print some kind of error? TODO(miek)
+			}
 			from = middleware.Addr(from).Normalize()
 		}
 	}
