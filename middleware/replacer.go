@@ -10,7 +10,7 @@ import (
 
 // Replacer is a type which can replace placeholder
 // substrings in a string with actual values from a
-// http.Request and responseRecorder. Always use
+// dns.Msg and responseRecorder. Always use
 // NewReplacer to get one of these.
 type Replacer interface {
 	Replace(string) string

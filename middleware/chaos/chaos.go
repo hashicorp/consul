@@ -9,10 +9,12 @@ import (
 	"golang.org/x/net/context"
 )
 
+// Chaos allows CoreDNS to reply to CH TXT queries and return author or
+// version information.
 type Chaos struct {
 	Next    middleware.Handler
 	Version string
-	Authors map[string]bool // get randomization for free \o/
+	Authors map[string]bool
 }
 
 func (c Chaos) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {

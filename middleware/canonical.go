@@ -11,7 +11,7 @@ import (
 // The function orders names in DNSSEC canonical order: RFC 4034s section-6.1
 //
 // See http://bert-hubert.blogspot.co.uk/2015/10/how-to-do-fast-canonical-ordering-of.html
-// for a blog article on this implementation:
+// for a blog article on this implementation.
 func Less(a, b string) int {
 	i := 1
 	aj := len(a)

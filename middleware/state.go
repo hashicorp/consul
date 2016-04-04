@@ -144,7 +144,7 @@ func (s *State) SizeAndDo() *dns.OPT {
 	return o
 }
 
-// Result is the result of Fit.
+// Result is the result of Scrub.
 type Result int
 
 const (
@@ -180,7 +180,7 @@ func (s *State) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
 // Type returns the type of the question as a string.
 func (s *State) Type() string { return dns.Type(s.Req.Question[0].Qtype).String() }
 
-// QType returns the type of the question as a uint16.
+// QType returns the type of the question as an uint16.
 func (s *State) QType() uint16 { return s.Req.Question[0].Qtype }
 
 // Name returns the name of the question in the request. Note
