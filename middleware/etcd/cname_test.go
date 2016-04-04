@@ -23,7 +23,7 @@ func TestCnameLookup(t *testing.T) {
 	for _, tc := range dnsTestCasesCname {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
 		_, err := etc.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)

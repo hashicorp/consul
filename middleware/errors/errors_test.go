@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
+	coretest "github.com/miekg/coredns/middleware/testing"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -46,7 +47,7 @@ func TestErrors(t *testing.T) {
 	for i, test := range tests {
 		em.Next = test.next
 		buf.Reset()
-		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
 		code, err := em.ServeDNS(ctx, rec, req)
 
 		if err != test.expectedErr {
@@ -77,7 +78,7 @@ func TestVisibleErrorWithPanic(t *testing.T) {
 	req := new(dns.Msg)
 	req.SetQuestion("example.org.", dns.TypeA)
 
-	rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+	rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
 
 	code, err := eh.ServeDNS(ctx, rec, req)
 	if code != 0 {

@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
+	coretest "github.com/miekg/coredns/middleware/testing"
+
 	"github.com/miekg/dns"
 )
 
@@ -30,5 +32,5 @@ func TestLookupProxy(t *testing.T) {
 }
 
 func fakeState() middleware.State {
-	return middleware.State{W: &middleware.TestResponseWriter{}, Req: new(dns.Msg)}
+	return middleware.State{W: &coretest.ResponseWriter{}, Req: new(dns.Msg)}
 }

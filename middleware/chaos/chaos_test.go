@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
+	coretest "github.com/miekg/coredns/middleware/testing"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -57,7 +58,7 @@ func TestChaos(t *testing.T) {
 		req.Question[0].Qclass = dns.ClassCHAOS
 		em.Next = test.next
 
-		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
 		code, err := em.ServeDNS(ctx, rec, req)
 
 		if err != test.expectedErr {

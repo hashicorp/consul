@@ -77,7 +77,7 @@ func TestLookup(t *testing.T) {
 	for _, tc := range dnsTestCases {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
@@ -112,7 +112,7 @@ func TestLookupNil(t *testing.T) {
 	ctx := context.TODO()
 
 	m := dnsTestCases[0].Msg()
-	rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+	rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
 	fm.ServeDNS(ctx, rec, m)
 }
 
@@ -124,7 +124,7 @@ func BenchmarkLookup(b *testing.B) {
 
 	fm := File{Next: coretest.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}
 	ctx := context.TODO()
-	rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+	rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
 
 	tc := coretest.Case{
 		Qname: "www.miek.nl.", Qtype: dns.TypeA,

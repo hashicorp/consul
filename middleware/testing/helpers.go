@@ -3,8 +3,6 @@ package testing
 import (
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
-
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
@@ -199,11 +197,27 @@ func Section(t *testing.T, tc Case, sect Sect, rr []dns.RR) bool {
 	return true
 }
 
-func ErrorHandler() middleware.Handler {
-	return middleware.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func ErrorHandler() Handler {
+	return HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 		m := new(dns.Msg)
 		m.SetRcode(r, dns.RcodeServerFailure)
 		w.WriteMsg(m)
 		return dns.RcodeServerFailure, nil
 	})
+}
+
+// Copied here to prevent an import cycle.
+type (
+	// HandlerFunc is a convenience type like dns.HandlerFunc, except
+	// ServeDNS returns an rcode and an error.
+	HandlerFunc func(context.Context, dns.ResponseWriter, *dns.Msg) (int, error)
+
+	Handler interface {
+		ServeDNS(context.Context, dns.ResponseWriter, *dns.Msg) (int, error)
+	}
+)
+
+// ServeDNS implements the Handler interface.
+func (f HandlerFunc) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	return f(ctx, w, r)
 }

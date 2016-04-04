@@ -56,7 +56,7 @@ func TestLookupWildcard(t *testing.T) {
 	for _, tc := range wildcardTestCases {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)

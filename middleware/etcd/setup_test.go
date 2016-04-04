@@ -16,9 +16,9 @@ import (
 	"github.com/miekg/coredns/middleware/etcd/singleflight"
 	"github.com/miekg/coredns/middleware/proxy"
 	coretest "github.com/miekg/coredns/middleware/testing"
-	"github.com/miekg/dns"
 
 	etcdc "github.com/coreos/etcd/client"
+	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
 
@@ -67,7 +67,7 @@ func TestLookup(t *testing.T) {
 	for _, tc := range dnsTestCases {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&middleware.TestResponseWriter{})
+		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
 		_, err := etc.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)

@@ -1,5 +1,46 @@
 package middleware
 
+import (
+	"testing"
+
+	coretest "github.com/miekg/coredns/middleware/testing"
+
+	"github.com/miekg/dns"
+)
+
+func TestStateDo(t *testing.T) {
+	st := testState()
+
+	st.Do()
+	if st.do == 0 {
+		t.Fatalf("expected st.do to be set")
+	}
+}
+
+func BenchmarkStateDo(b *testing.B) {
+	st := testState()
+
+	for i := 0; i < b.N; i++ {
+		st.Do()
+	}
+}
+
+func BenchmarkStateSize(b *testing.B) {
+	st := testState()
+
+	for i := 0; i < b.N; i++ {
+		st.Size()
+	}
+}
+
+func testState() State {
+	m := new(dns.Msg)
+	m.SetQuestion("example.com.", dns.TypeA)
+	m.SetEdns0(4097, true)
+
+	return State{W: &coretest.ResponseWriter{}, Req: m}
+}
+
 /*
 func TestHeader(t *testing.T) {
 	state := getContextOrFail(t)
