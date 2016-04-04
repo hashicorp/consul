@@ -58,24 +58,29 @@ type Rule interface {
 // the type of the request is rewritten, otherwise the name is.
 // Note: TSIG signed requests will be invalid.
 type SimpleRule struct {
-	From, To         string
-	fromType, toType uint16
+	From, To           string
+	fromType, toType   uint16
+	fromClass, toClass uint16
 }
 
 // NewSimpleRule creates a new Simple Rule
 func NewSimpleRule(from, to string) SimpleRule {
 	tpf := dns.StringToType[from]
 	tpt := dns.StringToType[to]
-	// It's only a type if uppercase is used.
+	clf := dns.StringToClass[from]
+	clt := dns.StringToClass[to]
+	// It's only a type/class if uppercase is used.
 	if from != strings.ToUpper(from) {
 		tpf = 0
+		clf = 0
 		from = middleware.Name(from).Normalize()
 	}
 	if to != strings.ToUpper(to) {
 		tpt = 0
+		clt = 0
 		to = middleware.Name(to).Normalize()
 	}
-	return SimpleRule{From: from, To: to, fromType: tpf, toType: tpt}
+	return SimpleRule{From: from, To: to, fromType: tpf, toType: tpt, fromClass: clf, toClass: clt}
 }
 
 // Rewrite rewrites the the current request.
@@ -84,6 +89,15 @@ func (s SimpleRule) Rewrite(r *dns.Msg) Result {
 	if s.fromType > 0 && s.toType > 0 {
 		if r.Question[0].Qtype == s.fromType {
 			r.Question[0].Qtype = s.toType
+			return RewriteDone
+		}
+		return RewriteIgnored
+	}
+
+	// class rewrite
+	if s.fromClass > 0 && s.toClass > 0 {
+		if r.Question[0].Qclass == s.fromClass {
+			r.Question[0].Qclass = s.toClass
 			return RewriteDone
 		}
 		return RewriteIgnored

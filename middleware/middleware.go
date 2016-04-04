@@ -20,6 +20,7 @@ type (
 	// If ServeDNS writes to the response body, it should return a status
 	// code of 0. This signals to other handlers above it that the response
 	// body is already written, and that they should not write to it also.
+	// TODO(miek): explain return codes better.
 	//
 	// If ServeDNS encounters an error, it should return the error value
 	// so it can be logged by designated error-handling middleware.

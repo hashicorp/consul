@@ -23,6 +23,7 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		if middleware.Name(state.Name()).Matches(rule.NameScope) {
 			responseRecorder := middleware.NewResponseRecorder(w)
 			rcode, err := l.Next.ServeDNS(ctx, responseRecorder, r)
+
 			if rcode > 0 {
 				// There was an error up the chain, but no response has been written yet.
 				// The error must be handled here so the log entry will record the response size.
@@ -58,7 +59,7 @@ const (
 	// DefaultLogFilename is the default log filename.
 	DefaultLogFilename = "query.log"
 	// CommonLogFormat is the common log format.
-	CommonLogFormat = `{remote} ` + CommonLogEmptyValue + ` [{when}] "{type} {name} {proto} {>do} {>bufsize}" {rcode} {size} {duration}`
+	CommonLogFormat = `{remote} ` + CommonLogEmptyValue + ` [{when}] "{type} {class} {name} {proto} {>do} {>bufsize}" {rcode} {size} {duration}`
 	// CommonLogEmptyValue is the common empty log value.
 	CommonLogEmptyValue = "-"
 	// CombinedLogFormat is the combined log format.

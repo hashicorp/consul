@@ -17,6 +17,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/miekg/coredns/middleware/chaos"
 	"github.com/miekg/dns"
 )
 
@@ -97,7 +98,6 @@ func New(addr string, configs []Config, gracefulTimeout time.Duration) (*Server,
 
 	// Set up each zone
 	for _, conf := range configs {
-		// TODO(miek): something better here?
 		if _, exists := s.zones[conf.Host]; exists {
 			return nil, fmt.Errorf("cannot serve %s - host already defined for address %s", conf.Address(), s.Addr)
 		}
@@ -111,6 +111,19 @@ func New(addr string, configs []Config, gracefulTimeout time.Duration) (*Server,
 		}
 
 		s.zones[conf.Host] = z
+
+		// A bit of a hack. Loop through the middlewares of this zone and check if
+		// they have enabled the chaos middleware. If so add the special chaos zones.
+	Middleware:
+		for _, mid := range z.config.Middleware {
+			fn := mid(nil)
+			if _, ok := fn.(chaos.Chaos); ok {
+				for _, ch := range []string{"authors.bind.", "version.bind.", "version.server.", "hostname.bind.", "id.server."} {
+					s.zones[ch] = z
+				}
+				break Middleware
+			}
+		}
 	}
 
 	return s, nil

@@ -22,7 +22,10 @@ func (c Chaos) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	if state.QClass() != dns.ClassCHAOS || state.QType() != dns.TypeTXT {
 		return c.Next.ServeDNS(ctx, w, r)
 	}
+
 	m := new(dns.Msg)
+	m.SetReply(r)
+
 	hdr := dns.RR_Header{Name: state.QName(), Rrtype: dns.TypeTXT, Class: dns.ClassCHAOS, Ttl: 0}
 	switch state.Name() {
 	default:
