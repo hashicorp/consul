@@ -310,61 +310,44 @@ func (c *Command) readConfig() *Config {
 // verifyUniqueListeners checks to see if an address was used more than once in
 // the config
 func (config *Config) verifyUniqueListeners() error {
+	listeners := []struct {
+		host  string
+		port  int
+		descr string
+	}{
+		{config.Addresses.RPC, config.Ports.RPC, "RPC"},
+		{config.Addresses.DNS, config.Ports.DNS, "DNS"},
+		{config.Addresses.HTTP, config.Ports.HTTP, "HTTP"},
+		{config.Addresses.HTTPS, config.Ports.HTTPS, "HTTPS"},
+		{config.AdvertiseAddr, config.Ports.Server, "Server RPC"},
+		{config.AdvertiseAddr, config.Ports.SerfLan, "Serf LAN"},
+		{config.AdvertiseAddr, config.Ports.SerfWan, "Serf WAN"},
+	}
+
 	type key struct {
 		host string
 		port int
 	}
-	const numUniqueAddrs = 7
-	m := make(map[key]string, numUniqueAddrs)
+	m := make(map[key]string, len(listeners))
 
-	testFunc := func(k key, descr string) error {
-		if k.host == "" {
-			k.host = "0.0.0.0"
-		} else if strings.HasPrefix(k.host, "unix") {
+	for _, l := range listeners {
+		if l.host == "" {
+			l.host = "0.0.0.0"
+		} else if strings.HasPrefix(l.host, "unix") {
 			// Don't compare ports on unix sockets
-			k.port = 0
+			l.port = 0
 		}
-		if k.host == "0.0.0.0" && k.port <= 0 {
-			return nil
+		if l.host == "0.0.0.0" && l.port <= 0 {
+			continue
 		}
 
+		k := key{l.host, l.port}
 		v, ok := m[k]
 		if ok {
-			return fmt.Errorf("%s address already configured for %s", descr, v)
+			return fmt.Errorf("%s address already configured for %s", l.descr, v)
 		}
-		m[k] = descr
-
-		return nil
+		m[k] = l.descr
 	}
-
-	if err := testFunc(key{config.Addresses.RPC, config.Ports.RPC}, "RPC"); err != nil {
-		return err
-	}
-
-	if err := testFunc(key{config.Addresses.DNS, config.Ports.DNS}, "DNS"); err != nil {
-		return err
-	}
-
-	if err := testFunc(key{config.Addresses.HTTP, config.Ports.HTTP}, "HTTP"); err != nil {
-		return err
-	}
-
-	if err := testFunc(key{config.Addresses.HTTPS, config.Ports.HTTPS}, "HTTPS"); err != nil {
-		return err
-	}
-
-	if err := testFunc(key{config.AdvertiseAddr, config.Ports.Server}, "Server RPC"); err != nil {
-		return err
-	}
-
-	if err := testFunc(key{config.AdvertiseAddr, config.Ports.SerfLan}, "Serf LAN"); err != nil {
-		return err
-	}
-
-	if err := testFunc(key{config.AdvertiseAddr, config.Ports.SerfWan}, "Serf WAN"); err != nil {
-		return err
-	}
-
 	return nil
 }
 
