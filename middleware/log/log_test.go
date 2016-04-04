@@ -45,7 +45,7 @@ func TestLoggedStatus(t *testing.T) {
 	}
 
 	logged := f.String()
-	if !strings.Contains(logged, "A example.org. udp") {
+	if !strings.Contains(logged, "A IN example.org. udp false 512") {
 		t.Error("Expected it to be logged. Logged string -", logged)
 	}
 }
