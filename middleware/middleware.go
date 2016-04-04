@@ -18,9 +18,15 @@ type (
 	// and/or error.
 	//
 	// If ServeDNS writes to the response body, it should return a status
-	// code of 0. This signals to other handlers above it that the response
-	// body is already written, and that they should not write to it also.
-	// TODO(miek): explain return codes better.
+	// code. If the status code is not one of the following:
+	// * SERVFAIL (dns.RcodeServerFailure)
+	// * REFUSED (dns.RecodeRefused)
+	// * FORMERR (dns.RcodeFormatError)
+	// * NOTIMP (dns.RcodeNotImplemented)
+	//
+	// CoreDNS assumes *no* reply has yet been written. All other response
+	// codes signal other handlers above it that the response message is
+	// already written, and that they should not write to it also.
 	//
 	// If ServeDNS encounters an error, it should return the error value
 	// so it can be logged by designated error-handling middleware.
