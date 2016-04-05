@@ -29,5 +29,4 @@ func (z Zones) FullyQualify() {
 	for i, _ := range z {
 		z[i] = dns.Fqdn(z[i])
 	}
-
 }

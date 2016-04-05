@@ -2,6 +2,7 @@ package file
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/miekg/coredns/middleware"
 
@@ -21,9 +22,12 @@ func notify(zone string, to []string) error {
 	m.SetNotify(zone)
 	c := new(dns.Client)
 
-	// TODO(miek): error handling? Run this in a goroutine?
 	for _, t := range to {
-		notifyAddr(c, m, t)
+		if err := notifyAddr(c, m, t); err != nil {
+			log.Printf("[ERROR] " + err.Error())
+		} else {
+			log.Printf("[INFO] Sent notify for zone %s to %s", zone, t)
+		}
 	}
 	return nil
 }
@@ -34,7 +38,6 @@ func notifyAddr(c *dns.Client, m *dns.Msg, s string) error {
 		if err == nil && ret.Rcode == dns.RcodeSuccess || ret.Rcode == dns.RcodeNotImplemented {
 			return nil
 		}
-		// timeout? mean don't want it. should stop sending as well?
 	}
-	return fmt.Errorf("failed to send notify for zone '%s' to '%s'", m.Question[0].Name, s)
+	return fmt.Errorf("Failed to send notify for zone '%s' to '%s'", m.Question[0].Name, s)
 }

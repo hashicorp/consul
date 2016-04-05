@@ -73,7 +73,7 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (
 		case ip.To4() != nil:
 			records = append(records, serv.NewA(state.QName(), ip.To4()))
 		case ip.To4() == nil:
-			// noda?
+			// nodata?
 		}
 	}
 	return records, nil

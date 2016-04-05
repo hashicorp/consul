@@ -22,10 +22,10 @@ func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (in
 		return dns.RcodeServerFailure, nil
 	}
 	if state.QType() != dns.TypeAXFR {
-		return 0, fmt.Errorf("file: xfr called with non transfer type: %d", state.QType())
+		return 0, fmt.Errorf("xfr called with non transfer type: %d", state.QType())
 	}
 	if state.Proto() == "udp" {
-		return 0, fmt.Errorf("file: xfr called with udp")
+		return 0, fmt.Errorf("xfr called with udp")
 	}
 
 	records := x.All()
@@ -57,5 +57,4 @@ func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (in
 	return dns.RcodeSuccess, nil
 }
 
-//const transferLength = 10e3 // Start a new envelop after message reaches this size.
-const transferLength = 100 // Start a new envelop after message reaches this size.
+const transferLength = 100 // Start a new envelop after message reaches this size. Intentionally small to test multi envelope parsing

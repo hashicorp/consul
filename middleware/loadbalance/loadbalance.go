@@ -1,6 +1,10 @@
 package loadbalance
 
-import "github.com/miekg/dns"
+import (
+	"log"
+
+	"github.com/miekg/dns"
+)
 
 type RoundRobinResponseWriter struct {
 	dns.ResponseWriter
@@ -16,6 +20,7 @@ func (r *RoundRobinResponseWriter) WriteMsg(res *dns.Msg) error {
 	}
 
 	res.Answer = roundRobin(res.Answer)
+	res.Ns = roundRobin(res.Ns)
 	res.Extra = roundRobin(res.Extra)
 
 	return r.ResponseWriter.WriteMsg(res)
@@ -61,6 +66,7 @@ func roundRobin(in []dns.RR) []dns.RR {
 
 // Should we pack and unpack here to fiddle with the packet... Not likely.
 func (r *RoundRobinResponseWriter) Write(buf []byte) (int, error) {
+	log.Printf("[WARNING] RoundRobin called with Write: no shuffling records")
 	n, err := r.ResponseWriter.Write(buf)
 	return n, err
 }

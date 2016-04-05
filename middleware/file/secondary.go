@@ -20,13 +20,13 @@ Transfer:
 	for _, tr := range z.TransferFrom {
 		c, err := t.In(m, tr)
 		if err != nil {
-			log.Printf("[ERROR] failed to setup transfer %s with %s: %v", z.name, z.TransferFrom[0], err)
+			log.Printf("[ERROR] Failed to setup transfer %s with %s: %v", z.name, z.TransferFrom[0], err)
 			Err = err
 			continue Transfer
 		}
 		for env := range c {
 			if env.Error != nil {
-				log.Printf("[ERROR] failed to parse transfer %s: %v", z.name, env.Error)
+				log.Printf("[ERROR] Failed to parse transfer %s: %v", z.name, env.Error)
 				Err = env.Error
 				continue Transfer
 			}
@@ -43,6 +43,9 @@ Transfer:
 				z.Insert(rr)
 			}
 		}
+	}
+	if Err != nil {
+		log.Printf("[ERROR] Failed to transfer %s", z.name)
 	}
 	return nil
 	return Err // ignore errors for now. TODO(miek)

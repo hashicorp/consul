@@ -38,6 +38,7 @@ func (z *Zone) TransferAllowed(state middleware.State) bool {
 			return true
 		}
 	}
+	// TODO(miek): future matching against IP/CIDR notations
 	return false
 }
 

@@ -83,7 +83,6 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		m.Ns = []dns.RR{e.SOA(zone, state)}
 		state.W.WriteMsg(m)
 		return dns.RcodeSuccess, nil
-
 	}
 	if len(records) > 0 {
 		m.Answer = append(m.Answer, records...)
