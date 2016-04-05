@@ -19,9 +19,7 @@ func Prometheus(c *Controller) (middleware.Middleware, error) {
 	if err != nil {
 		return nil, err
 	}
-	if metrics.Addr == "" {
-		metrics.Addr = addr
-	}
+
 	once.Do(func() {
 		c.Startup = append(c.Startup, metrics.Start)
 	})
@@ -39,10 +37,13 @@ func parsePrometheus(c *Controller) (prom.Metrics, error) {
 	)
 
 	for c.Next() {
-		if metrics.Addr != "" {
+		if len(metrics.ZoneNames) > 0 {
 			return prom.Metrics{}, c.Err("prometheus: can only have one metrics module per server")
 		}
 		metrics = prom.Metrics{ZoneNames: c.ServerBlockHosts}
+		for i, _ := range metrics.ZoneNames {
+			metrics.ZoneNames[i] = middleware.Host(metrics.ZoneNames[i]).Normalize()
+		}
 		args := c.RemainingArgs()
 
 		switch len(args) {
@@ -65,6 +66,9 @@ func parsePrometheus(c *Controller) (prom.Metrics, error) {
 			}
 
 		}
+	}
+	if metrics.Addr == "" {
+		metrics.Addr = addr
 	}
 	return metrics, err
 }
