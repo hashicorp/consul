@@ -9,7 +9,26 @@ import (
 	"github.com/miekg/dns"
 )
 
-// Notify will send notifies to all configured IP addresses.
+// isNotify checks if state is a notify message and if so, will *also* check if it
+// is from one of the configured masters. If not it will not be a valid notify
+// message. If the zone z is not a secondary zone the message will also be ignored.
+func (z *Zone) isNotify(state middleware.State) bool {
+	if state.Req.Opcode != dns.OpcodeNotify {
+		return false
+	}
+	if len(z.TransferFrom) == 0 {
+		return false
+	}
+	remote := middleware.Addr(state.IP()).Normalize()
+	for _, from := range z.TransferFrom {
+		if from == remote {
+			return true
+		}
+	}
+	return false
+}
+
+// Notify will send notifies to all configured TransferTo IP addresses.
 func (z *Zone) Notify() {
 	go notify(z.name, z.TransferTo)
 }
@@ -23,6 +42,10 @@ func notify(zone string, to []string) error {
 	c := new(dns.Client)
 
 	for _, t := range to {
+		// TODO(miek): these ACLs thingies not to be formalized.
+		if t == "*" {
+			continue
+		}
 		if err := notifyAddr(c, m, t); err != nil {
 			log.Printf("[ERROR] " + err.Error())
 		} else {
@@ -35,7 +58,10 @@ func notify(zone string, to []string) error {
 func notifyAddr(c *dns.Client, m *dns.Msg, s string) error {
 	for i := 0; i < 3; i++ {
 		ret, err := middleware.Exchange(c, m, s)
-		if err == nil && ret.Rcode == dns.RcodeSuccess || ret.Rcode == dns.RcodeNotImplemented {
+		if err != nil {
+			continue
+		}
+		if ret.Rcode == dns.RcodeSuccess || ret.Rcode == dns.RcodeNotImplemented {
 			return nil
 		}
 	}

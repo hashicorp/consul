@@ -28,7 +28,6 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	if state.QClass() != dns.ClassINET {
 		return dns.RcodeServerFailure, fmt.Errorf("file: can only deal with ClassINET")
 	}
-
 	qname := state.Name()
 	zone := middleware.Zones(f.Zones.Names).Matches(qname)
 	if zone == "" {
@@ -41,7 +40,26 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	if z == nil {
 		return dns.RcodeServerFailure, nil
 	}
+	if r.Opcode == dns.OpcodeNotify {
+		if z.isNotify(state) {
+			m := new(dns.Msg)
+			m.SetReply(r)
+			m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
+			w.WriteMsg(m)
+
+			if ok, _ := z.shouldTransfer(); ok {
+				log.Printf("[INFO] Valid notify from %s for %s: initiating transfer", state.IP(), zone)
+				z.TransferIn()
+			}
+
+			return dns.RcodeSuccess, nil
+		}
+		log.Printf("[INFO] Dropping notify from %s for %s", state.IP(), zone)
+		return dns.RcodeSuccess, nil
+	}
+
 	if z.Expired != nil && *z.Expired {
+		log.Printf("[ERROR] Zone %s is expired", zone)
 		return dns.RcodeServerFailure, nil
 	}
 
@@ -81,7 +99,7 @@ func Parse(f io.Reader, origin, fileName string) (*Zone, error) {
 	z := NewZone(origin)
 	for x := range tokens {
 		if x.Error != nil {
-			log.Printf("[ERROR] failed to parse %s: %v", origin, x.Error)
+			log.Printf("[ERROR] Failed to parse %s: %v", origin, x.Error)
 			return nil, x.Error
 		}
 		if x.RR.Header().Rrtype == dns.TypeSOA {

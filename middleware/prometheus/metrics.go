@@ -53,7 +53,7 @@ func define(subsystem string) {
 		Namespace: namespace,
 		Subsystem: subsystem,
 		Name:      "request_count_total",
-		Help:      "Counter of DNS requests made per zone and type.",
+		Help:      "Counter of DNS requests made per zone and type and opcode.",
 	}, []string{"zone", "qtype"})
 
 	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -61,7 +61,7 @@ func define(subsystem string) {
 		Subsystem: subsystem,
 		Name:      "request_duration_seconds",
 		Help:      "Histogram of the time (in seconds) each request took.",
-	}, []string{"zone"})
+	}, []string{"zone", "qtype"})
 
 	responseSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: namespace,
@@ -69,12 +69,12 @@ func define(subsystem string) {
 		Name:      "response_size_bytes",
 		Help:      "Size of the returns response in bytes.",
 		Buckets:   []float64{0, 100, 200, 300, 400, 511, 1023, 2047, 4095, 8291, 16e3, 32e3, 48e3, 64e3},
-	}, []string{"zone"})
+	}, []string{"zone", "qtype"})
 
 	responseRcode = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Subsystem: subsystem,
 		Name:      "response_rcode_count_total",
 		Help:      "Counter of response status codes.",
-	}, []string{"zone", "rcode"})
+	}, []string{"zone", "rcode", "qtype"})
 }

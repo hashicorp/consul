@@ -13,12 +13,18 @@ func Secondary(c *Controller) (middleware.Middleware, error) {
 		return nil, err
 	}
 
-	// Setup retrieve the zone.
+	// Add startup functions to retrieve the zone and keep it up to date.
 	for _, n := range zones.Names {
 		if len(zones.Z[n].TransferFrom) > 0 {
 			c.Startup = append(c.Startup, func() error {
 				err := zones.Z[n].TransferIn()
 				return err
+			})
+			c.Startup = append(c.Startup, func() error {
+				go func() {
+					zones.Z[n].Update()
+				}()
+				return nil
 			})
 		}
 	}
@@ -52,8 +58,12 @@ func secondaryParse(c *Controller) (file.Zones, error) {
 					return file.Zones{}, e
 				}
 				for _, origin := range origins {
-					z[origin].TransferTo = append(z[origin].TransferTo, t)
-					z[origin].TransferFrom = append(z[origin].TransferFrom, f)
+					if t != "" {
+						z[origin].TransferTo = append(z[origin].TransferTo, t)
+					}
+					if f != "" {
+						z[origin].TransferFrom = append(z[origin].TransferFrom, f)
+					}
 				}
 			}
 		}

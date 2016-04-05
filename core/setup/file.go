@@ -14,6 +14,16 @@ func File(c *Controller) (middleware.Middleware, error) {
 		return nil, err
 	}
 
+	// Add startup functions to notify the master.
+	for _, n := range zones.Names {
+		if len(zones.Z[n].TransferTo) > 0 {
+			c.Startup = append(c.Startup, func() error {
+				zones.Z[n].Notify()
+				return err
+			})
+		}
+	}
+
 	return func(next middleware.Handler) middleware.Handler {
 		return file.File{Next: next, Zones: zones}
 	}, nil
@@ -58,7 +68,9 @@ func fileParse(c *Controller) (file.Zones, error) {
 				}
 				// discard from, here, maybe check and show log when we do?
 				for _, origin := range origins {
-					z[origin].TransferTo = append(z[origin].TransferTo, t)
+					if t != "" {
+						z[origin].TransferTo = append(z[origin].TransferTo, t)
+					}
 				}
 			}
 		}

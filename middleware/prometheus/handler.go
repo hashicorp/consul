@@ -25,9 +25,9 @@ func (m *Metrics) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg
 	status, err := m.Next.ServeDNS(ctx, rw, r)
 
 	requestCount.WithLabelValues(zone, qtype).Inc()
-	requestDuration.WithLabelValues(zone).Observe(float64(time.Since(rw.Start()) / time.Second))
-	responseSize.WithLabelValues(zone).Observe(float64(rw.Size()))
-	responseRcode.WithLabelValues(zone, strconv.Itoa(rw.Rcode())).Inc()
+	requestDuration.WithLabelValues(zone, qtype).Observe(float64(time.Since(rw.Start()) / time.Second))
+	responseSize.WithLabelValues(zone, qtype).Observe(float64(rw.Size()))
+	responseRcode.WithLabelValues(zone, strconv.Itoa(rw.Rcode()), qtype).Inc()
 
 	return status, err
 }
