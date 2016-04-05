@@ -32,17 +32,17 @@ func Prometheus(c *Controller) (middleware.Middleware, error) {
 	}, nil
 }
 
-func parsePrometheus(c *Controller) (*prom.Metrics, error) {
+func parsePrometheus(c *Controller) (prom.Metrics, error) {
 	var (
-		metrics *prom.Metrics
+		metrics prom.Metrics
 		err     error
 	)
 
 	for c.Next() {
-		if metrics != nil {
-			return nil, c.Err("prometheus: can only have one metrics module per server")
+		if metrics.Addr != "" {
+			return prom.Metrics{}, c.Err("prometheus: can only have one metrics module per server")
 		}
-		metrics = &prom.Metrics{ZoneNames: c.ServerBlockHosts}
+		metrics = prom.Metrics{ZoneNames: c.ServerBlockHosts}
 		args := c.RemainingArgs()
 
 		switch len(args) {
@@ -50,18 +50,18 @@ func parsePrometheus(c *Controller) (*prom.Metrics, error) {
 		case 1:
 			metrics.Addr = args[0]
 		default:
-			return nil, c.ArgErr()
+			return prom.Metrics{}, c.ArgErr()
 		}
 		for c.NextBlock() {
 			switch c.Val() {
 			case "address":
 				args = c.RemainingArgs()
 				if len(args) != 1 {
-					return nil, c.ArgErr()
+					return prom.Metrics{}, c.ArgErr()
 				}
 				metrics.Addr = args[0]
 			default:
-				return nil, c.Errf("prometheus: unknown item: %s", c.Val())
+				return prom.Metrics{}, c.Errf("prometheus: unknown item: %s", c.Val())
 			}
 
 		}

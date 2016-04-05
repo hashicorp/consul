@@ -1,7 +1,6 @@
 package file
 
 import (
-	"fmt"
 	"io"
 	"log"
 
@@ -26,7 +25,7 @@ type (
 func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := middleware.State{W: w, Req: r}
 	if state.QClass() != dns.ClassINET {
-		return dns.RcodeServerFailure, fmt.Errorf("file: can only deal with ClassINET")
+		return f.Next.ServeDNS(ctx, w, r)
 	}
 	qname := state.Name()
 	zone := middleware.Zones(f.Zones.Names).Matches(qname)
@@ -63,7 +62,7 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		return dns.RcodeServerFailure, nil
 	}
 
-	if state.Proto() != "udp" && state.QType() == dns.TypeAXFR {
+	if state.QType() == dns.TypeAXFR || state.QType() == dns.TypeIXFR {
 		xfr := Xfr{z}
 		return xfr.ServeDNS(ctx, w, r)
 	}

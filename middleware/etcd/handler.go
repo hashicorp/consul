@@ -1,7 +1,6 @@
 package etcd
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/miekg/coredns/middleware"
@@ -13,7 +12,7 @@ import (
 func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := middleware.State{W: w, Req: r}
 	if state.QClass() != dns.ClassINET {
-		return dns.RcodeServerFailure, fmt.Errorf("etcd: can only deal with ClassINET")
+		return e.Next.ServeDNS(ctx, w, r)
 	}
 
 	// We need to check stubzones first, because we may get a request for a zone we

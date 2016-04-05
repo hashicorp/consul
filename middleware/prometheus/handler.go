@@ -10,7 +10,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func (m *Metrics) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (m Metrics) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := middleware.State{W: w, Req: r}
 
 	qname := state.Name()

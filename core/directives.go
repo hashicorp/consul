@@ -51,8 +51,8 @@ var directiveOrder = []directive{
 	{"shutdown", setup.Shutdown},
 
 	// Directives that inject handlers (middleware)
-	{"log", setup.Log},
 	{"prometheus", setup.Prometheus},
+	{"log", setup.Log},
 	{"rewrite", setup.Rewrite},
 	{"loadbalance", setup.Loadbalance},
 	{"file", setup.File},
