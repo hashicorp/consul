@@ -39,6 +39,7 @@ func (m *Metrics) Start() error {
 
 		http.Handle(path, prometheus.Handler())
 		go func() {
+			// TODO(miek): Logging here?
 			fmt.Errorf("%s", http.ListenAndServe(m.Addr, nil))
 		}()
 	})

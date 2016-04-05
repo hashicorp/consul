@@ -9,7 +9,7 @@ import (
 
 const (
 	path = "/metrics"
-	addr = "localhost:9153"
+	addr = "localhost:9135" // 9153 is occopied by bind_exporter
 )
 
 var once sync.Once

@@ -58,7 +58,7 @@ Transfer:
 
 	z.Tree = z1.Tree
 	*z.Expired = false
-	log.Printf("[INFO] Transfered: %s", z.name)
+	log.Printf("[INFO] Transferred: %s", z.name)
 	return nil
 }
 
