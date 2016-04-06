@@ -47,11 +47,16 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 			m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
 			w.WriteMsg(m)
 
-			if ok, _ := z.shouldTransfer(); ok {
-				log.Printf("[INFO] Valid notify from %s for %s: initiating transfer", state.IP(), zone)
+			log.Printf("[INFO] Notify from %s for %s: checking transfer", state.IP(), zone)
+			ok, err := z.shouldTransfer()
+			if ok {
 				z.TransferIn()
+			} else {
+				log.Printf("[INFO] Notify from %s for %s: no serial increase seen", state.IP(), zone)
 			}
-
+			if err != nil {
+				log.Printf("[WARNING] Notify from %s for %s: failed primary check: %s", state.IP(), zone, err)
+			}
 			return dns.RcodeSuccess, nil
 		}
 		log.Printf("[INFO] Dropping notify from %s for %s", state.IP(), zone)

@@ -16,12 +16,11 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/net/context"
-
-	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/chaos"
 	"github.com/miekg/coredns/middleware/prometheus"
+
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 // Server represents an instance of a server, which serves
@@ -332,17 +331,18 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 // DefaultErrorFunc responds to an HTTP request with a simple description
 // of the specified HTTP status code.
 func DefaultErrorFunc(w dns.ResponseWriter, r *dns.Msg, rcode int) {
+	qtype := dns.Type(r.Question[0].Qtype).String()
+
 	// this code is duplicated a few times, TODO(miek)
 	rc := dns.RcodeToString[rcode]
 	if rc == "" {
 		rc = "RCODE" + strconv.Itoa(rcode)
 	}
+
 	answer := new(dns.Msg)
 	answer.SetRcode(r, rcode)
-
-	state := middleware.State{W: w, Req: r}
 	// Default zone to dropped (without closing dot, so no zone) here to not blow up this metric.
-	metrics.Report(dropped, state.Type(), rc, answer.Len(), time.Now())
+	metrics.Report(dropped, qtype, rc, answer.Len(), time.Now())
 
 	w.WriteMsg(answer)
 }

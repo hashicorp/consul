@@ -57,6 +57,8 @@ Transfer:
 	}
 
 	z.Tree = z1.Tree
+	z.SOA = z1.SOA
+	z.SIG = z1.SIG
 	*z.Expired = false
 	log.Printf("[INFO] Transferred: %s", z.name)
 	return nil
@@ -73,6 +75,7 @@ func (z *Zone) shouldTransfer() (bool, error) {
 	var Err error
 	serial := -1
 
+Transfer:
 	for _, tr := range z.TransferFrom {
 		Err = nil
 		ret, err := middleware.Exchange(c, m, tr)
@@ -83,6 +86,7 @@ func (z *Zone) shouldTransfer() (bool, error) {
 		for _, a := range ret.Answer {
 			if a.Header().Rrtype == dns.TypeSOA {
 				serial = int(a.(*dns.SOA).Serial)
+				break Transfer
 			}
 		}
 	}
@@ -94,8 +98,10 @@ func (z *Zone) shouldTransfer() (bool, error) {
 
 // less return true of a is smaller than b when taking RFC 1982 serial arithmetic into account.
 func less(a, b uint32) bool {
-	// TODO(miek): implement!
-	return a < b
+	if a < b {
+		return (b - a) <= MaxSerialIncrement
+	}
+	return (a - b) > MaxSerialIncrement
 }
 
 // Update updates the secondary zone according to its SOA. It will run for the life time of the server
@@ -103,23 +109,28 @@ func less(a, b uint32) bool {
 // server) it wil retry every retry interval. If the zone failed to transfer before the expire, the zone
 // will be marked expired.
 func (z *Zone) Update() error {
-	// TODO(miek): if SOA changes we need to redo this with possible different timer values.
-	// TODO(miek): yeah...
+	// If we don't have a SOA, we don't have a zone, wait for it to appear.
 	for z.SOA == nil {
 		time.Sleep(1 * time.Second)
 	}
+	retryActive := false
 
+Restart:
 	refresh := time.Second * time.Duration(z.SOA.Refresh)
 	retry := time.Second * time.Duration(z.SOA.Retry)
 	expire := time.Second * time.Duration(z.SOA.Expire)
-	retryActive := false
 
-	// TODO(miek): check max as well?
 	if refresh < time.Hour {
 		refresh = time.Hour
 	}
 	if retry < time.Hour {
 		retry = time.Hour
+	}
+	if refresh > 24*time.Hour {
+		refresh = 24 * time.Hour
+	}
+	if retry > 12*time.Hour {
+		retry = 12 * time.Hour
 	}
 
 	refreshTicker := time.NewTicker(refresh)
@@ -132,7 +143,6 @@ func (z *Zone) Update() error {
 			if !retryActive {
 				break
 			}
-			// TODO(miek): should actually keep track of last succesfull transfer
 			*z.Expired = true
 
 		case <-retryTicker.C:
@@ -141,23 +151,40 @@ func (z *Zone) Update() error {
 			}
 			ok, err := z.shouldTransfer()
 			if err != nil && ok {
-				log.Printf("[INFO] Refreshing zone: %s: initiating transfer", z.name)
-				z.TransferIn()
+				if err := z.TransferIn(); err != nil {
+					// transfer failed, leave retryActive true
+					break
+				}
 				retryActive = false
+				// transfer OK, possible new SOA, stop timers and redo
+				refreshTicker.Stop()
+				retryTicker.Stop()
+				expireTicker.Stop()
+				goto Restart
 			}
 
 		case <-refreshTicker.C:
 			ok, err := z.shouldTransfer()
 			retryActive = err != nil
 			if err != nil && ok {
-				log.Printf("[INFO] Refreshing zone: %s: initiating transfer", z.name)
-				z.TransferIn()
+				if err := z.TransferIn(); err != nil {
+					// transfer failed
+					retryActive = true
+					break
+				}
+				retryActive = false
+				// transfer OK, possible new SOA, stop timers and redo
+				refreshTicker.Stop()
+				retryTicker.Stop()
+				expireTicker.Stop()
+				goto Restart
 			}
 		}
 	}
-
-	refreshTicker.Stop()
-	retryTicker.Stop()
-	expireTicker.Stop()
 	return nil
 }
+
+// The maximum difference between two serial numbers. If the difference between
+// two serials is greater than this number, the smaller one is considered
+// greater.
+const MaxSerialIncrement uint32 = 2147483647

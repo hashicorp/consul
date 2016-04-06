@@ -42,7 +42,6 @@ func notify(zone string, to []string) error {
 	c := new(dns.Client)
 
 	for _, t := range to {
-		// TODO(miek): these ACLs thingies not to be formalized.
 		if t == "*" {
 			continue
 		}
