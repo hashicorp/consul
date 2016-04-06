@@ -12,12 +12,15 @@ import (
 	"net"
 	"os"
 	"runtime"
+	"strconv"
 	"sync"
 	"time"
 
 	"golang.org/x/net/context"
 
+	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/chaos"
+	"github.com/miekg/coredns/middleware/prometheus"
 	"github.com/miekg/dns"
 )
 
@@ -329,8 +332,18 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 // DefaultErrorFunc responds to an HTTP request with a simple description
 // of the specified HTTP status code.
 func DefaultErrorFunc(w dns.ResponseWriter, r *dns.Msg, rcode int) {
+	// this code is duplicated a few times, TODO(miek)
+	rc := dns.RcodeToString[rcode]
+	if rc == "" {
+		rc = "RCODE" + strconv.Itoa(rcode)
+	}
 	answer := new(dns.Msg)
 	answer.SetRcode(r, rcode)
+
+	state := middleware.State{W: w, Req: r}
+	// Default zone to "." here to not blow up this metric
+	metrics.Report(".", state.Type(), rc, answer.Len(), time.Now())
+
 	w.WriteMsg(answer)
 }
 
