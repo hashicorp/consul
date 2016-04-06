@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/miekg/dns"
@@ -58,8 +59,11 @@ func (r *ResponseRecorder) Size() int {
 }
 
 // Rcode returns the rcode.
-func (r *ResponseRecorder) Rcode() int {
-	return r.rcode
+func (r *ResponseRecorder) Rcode() string {
+	if rcode, ok := dns.RcodeToString[r.rcode]; ok {
+		return rcode
+	}
+	return "RCODE" + strconv.Itoa(r.rcode)
 }
 
 // Start returns the start time of the ResponseRecorder.
