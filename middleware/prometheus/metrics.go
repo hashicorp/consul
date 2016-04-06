@@ -1,7 +1,7 @@
 package metrics
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"sync"
 
@@ -39,8 +39,9 @@ func (m *Metrics) Start() error {
 
 		http.Handle(path, prometheus.Handler())
 		go func() {
-			// TODO(miek): Logging here?
-			fmt.Errorf("%s", http.ListenAndServe(m.Addr, nil))
+			if err := http.ListenAndServe(m.Addr, nil); err != nil {
+				log.Printf("[ERROR] Failed to start prometheus handler: %s", err)
+			}
 		}()
 	})
 	return nil

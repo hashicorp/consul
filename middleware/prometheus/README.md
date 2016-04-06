@@ -9,9 +9,10 @@ The following metrics are exported:
 * coredns_dns_response_size_bytes
 * coredns_dns_response_rcode_count_total
 
-Each counter has a label `zone` which is the zonename used for the request/response.
-The `request_count` metrics has an extra label `qtype` which holds the qtype. And
-`rcode_count` has an extra label which has the rcode.
+Each counter has a label `zone` which is the zonename used for the request/response,
+and a label `qtype` which old the query type.
+The `response_rcode_count_total` has an extra label `rcode` which holds the rcode
+of the response.
 
 Restarting CoreDNS will stop the monitoring. This is a bug. Also [this upstream
 Caddy bug](https://github.com/mholt/caddy/issues/675).
@@ -25,6 +26,6 @@ prometheus
 For each zone that you want to see metrics for.
 
 It optionally takes an address where the metrics are exported, the default
-is `localhost:9154`. The metrics path is fixed to `/metrics`.
+is `localhost:9135`. The metrics path is fixed to `/metrics`.
 
 ## Examples
