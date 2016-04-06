@@ -62,6 +62,7 @@ func define(subsystem string) {
 		Namespace: namespace,
 		Subsystem: subsystem,
 		Name:      "request_duration_seconds",
+		Buckets:   append([]float64{0, 0001, 0.0005, 0.001, 0.0025}, DefBuckets...),
 		Help:      "Histogram of the time (in seconds) each request took.",
 	}, []string{"zone", "qtype"})
 
