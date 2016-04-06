@@ -341,8 +341,8 @@ func DefaultErrorFunc(w dns.ResponseWriter, r *dns.Msg, rcode int) {
 	answer.SetRcode(r, rcode)
 
 	state := middleware.State{W: w, Req: r}
-	// Default zone to "." here to not blow up this metric
-	metrics.Report(".", state.Type(), rc, answer.Len(), time.Now())
+	// Default zone to dropped (without closing dot, so no zone) here to not blow up this metric.
+	metrics.Report(dropped, state.Type(), rc, answer.Len(), time.Now())
 
 	w.WriteMsg(answer)
 }
@@ -456,3 +456,5 @@ func RcodeNoClientWrite(rcode int) bool {
 	}
 	return false
 }
+
+const dropped = "dropped"
