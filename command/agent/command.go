@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -292,11 +291,6 @@ func (c *Command) readConfig() *Config {
 	// Warn if we are in bootstrap mode
 	if config.Bootstrap {
 		c.Ui.Error("WARNING: Bootstrap mode enabled! Do not enable unless necessary")
-	}
-
-	// Warn if using windows as a server
-	if config.Server && runtime.GOOS == "windows" {
-		c.Ui.Error("WARNING: Windows is not recommended as a Consul server. Do not use in production.")
 	}
 
 	// Set the version info
