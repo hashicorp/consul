@@ -19,7 +19,7 @@ func (z *Zone) isNotify(state middleware.State) bool {
 	if len(z.TransferFrom) == 0 {
 		return false
 	}
-	remote := state.RemoteAddr()
+	remote := middleware.Addr(state.IP()).Normalize()
 	for _, from := range z.TransferFrom {
 		if from == remote {
 			return true
