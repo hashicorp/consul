@@ -1,11 +1,11 @@
-// Package rewrite is middleware for rewriting requests internally to
-// something different.
+// Package rewrite is middleware for rewriting requests internally to something different.
 package rewrite
 
 import (
 	"strings"
 
 	"github.com/miekg/coredns/middleware"
+
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
@@ -25,16 +25,20 @@ const (
 
 // Rewrite is middleware to rewrite requests internally before being handled.
 type Rewrite struct {
-	Next  middleware.Handler
-	Rules []Rule
+	Next     middleware.Handler
+	Rules    []Rule
+	noRevert bool
 }
 
 // ServeHTTP implements the middleware.Handler interface.
 func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	wr := NewResponseReverter(w, r)
 	for _, rule := range rw.Rules {
 		switch result := rule.Rewrite(r); result {
 		case RewriteDone:
+			if rw.noRevert {
+				return rw.Next.ServeDNS(ctx, w, r)
+			}
+			wr := NewResponseReverter(w, r)
 			return rw.Next.ServeDNS(ctx, wr, r)
 		case RewriteIgnored:
 			break
@@ -67,8 +71,16 @@ type SimpleRule struct {
 func NewSimpleRule(from, to string) SimpleRule {
 	tpf := dns.StringToType[from]
 	tpt := dns.StringToType[to]
+
+	// ANY is both a type and class, ANY class rewritting is way more less frequent
+	// so we default to ANY as a type.
 	clf := dns.StringToClass[from]
 	clt := dns.StringToClass[to]
+	if from == "ANY" {
+		clf = 0
+		clt = 0
+	}
+
 	// It's only a type/class if uppercase is used.
 	if from != strings.ToUpper(from) {
 		tpf = 0
@@ -85,25 +97,20 @@ func NewSimpleRule(from, to string) SimpleRule {
 
 // Rewrite rewrites the the current request.
 func (s SimpleRule) Rewrite(r *dns.Msg) Result {
-	// type rewrite
 	if s.fromType > 0 && s.toType > 0 {
 		if r.Question[0].Qtype == s.fromType {
 			r.Question[0].Qtype = s.toType
 			return RewriteDone
 		}
-		return RewriteIgnored
 	}
 
-	// class rewrite
 	if s.fromClass > 0 && s.toClass > 0 {
 		if r.Question[0].Qclass == s.fromClass {
 			r.Question[0].Qclass = s.toClass
 			return RewriteDone
 		}
-		return RewriteIgnored
 	}
 
-	// name rewite
 	if s.From == r.Question[0].Name {
 		r.Question[0].Name = s.To
 		return RewriteDone

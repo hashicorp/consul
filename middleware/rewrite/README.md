@@ -22,8 +22,8 @@ rewritten. I.e. to rewrite CH queries to IN use `rewrite CH IN`.
 If it does not look like a type a name is assumed and the qname in the message is rewritten, this
 needs to be a full match of the name `rewrite miek.nl example.org`.
 
-Advanced users may open a block and make a complex rewrite rule:
-TODO(miek): this has not yet been implemented.
+If you specify multiple rules and an incoming query matches on multiple (simple) rules only one
+the first rewrite is applied.
 
 > Everything below this line has not been implemented, yet.
 

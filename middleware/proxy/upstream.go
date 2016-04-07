@@ -3,6 +3,7 @@ package proxy
 import (
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,6 +29,7 @@ type staticUpstream struct {
 	MaxFails    int32
 	HealthCheck struct {
 		Path     string
+		Port     string
 		Interval time.Duration
 	}
 	WithoutPathPrefix string
@@ -138,7 +140,11 @@ func parseBlock(c *parse.Dispenser, u *staticUpstream) error {
 		if !c.NextArg() {
 			return c.ArgErr()
 		}
-		u.HealthCheck.Path = c.Val()
+		var err error
+		u.HealthCheck.Path, u.HealthCheck.Port, err = net.SplitHostPort(c.Val())
+		if err != nil {
+			return err
+		}
 		u.HealthCheck.Interval = 30 * time.Second
 		if c.NextArg() {
 			dur, err := time.ParseDuration(c.Val())
@@ -175,7 +181,11 @@ func parseBlock(c *parse.Dispenser, u *staticUpstream) error {
 
 func (u *staticUpstream) healthCheck() {
 	for _, host := range u.Hosts {
-		hostURL := host.Name + u.HealthCheck.Path
+		port := ""
+		if u.HealthCheck.Port != "" {
+			port = ":" + u.HealthCheck.Port
+		}
+		hostURL := host.Name + port + u.HealthCheck.Path
 		if r, err := http.Get(hostURL); err == nil {
 			io.Copy(ioutil.Discard, r.Body)
 			r.Body.Close()

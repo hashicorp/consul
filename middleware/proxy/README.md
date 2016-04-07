@@ -22,9 +22,9 @@ proxy from to... {
 	policy random | least_conn | round_robin
 	fail_timeout duration
 	max_fails integer
-	health_check path [duration]
+	health_check path:port [duration]
 	except ignored_names...
-	preset
+    tcp
 }
 ~~~
 
@@ -33,8 +33,10 @@ proxy from to... {
 * `policy` is the load balancing policy to use; applies only with multiple backends. May be one of random, least_conn, or round_robin. Default is random.
 * `fail_timeout` specifies how long to consider a backend as down after it has failed. While it is down, requests will not be routed to that backend. A backend is "down" if Caddy fails to communicate with it. The default value is 10 seconds ("10s").
 * `max_fails` is the number of failures within fail_timeout that are needed before considering a backend to be down. If 0, the backend will never be marked as down. Default is 1.
-* `health_check` will check path on each backend. If a backend returns a status code of 200-399, then that backend is healthy. If it doesn't, the backend is marked as unhealthy for duration and no requests are routed to it. If this option is not provided then health checks are disabled. The default duration is 10 seconds ("10s").
+* `health_check` will check path (on port) on each backend. If a backend returns a status code of 200-399, then that backend is healthy. If it doesn't, the backend is marked as unhealthy for duration and no requests are routed to it. If this option is not provided then health checks are disabled. The default duration is 10 seconds ("10s").
 * `ignored_names...` is a space-separated list of paths to exclude from proxying. Requests that match any of these paths will be passed thru.
+* `tcp` use TCP for all upstream queries, otherwise it depends on the transport of the incoming
+  query. TODO(miek): implement.
 
 ## Policies
 
@@ -68,9 +70,9 @@ proxy . web1.local:53 web2.local:1053 web3.local {
 With health checks and proxy headers to pass hostname, IP, and scheme upstream:
 
 ~~~
-proxy / web1.local:80 web2.local:90 web3.local:100 {
+proxy . web1.local:53 web2.local:53 web3.local:53 {
 	policy round_robin
-	health_check /health
+	health_check /health:8080
 }
 ~~~
 
