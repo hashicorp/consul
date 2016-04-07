@@ -31,6 +31,8 @@ func (z *Zone) Copy() *Zone {
 	z1.TransferTo = z.TransferTo
 	z1.TransferFrom = z.TransferFrom
 	z1.Expired = z.Expired
+	z1.SOA = z.SOA
+	z1.SIG = z.SIG
 	return z1
 }
 

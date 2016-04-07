@@ -50,6 +50,11 @@ func (s *State) Port() (string, error) {
 	return port, nil
 }
 
+// RemoteAddr returns the net.Addr of the client that sent the current request.
+func (s *State) RemoteAddr() string {
+	return s.W.RemoteAddr().String()
+}
+
 // Proto gets the protocol used as the transport. This
 // will be udp or tcp.
 func (s *State) Proto() string {

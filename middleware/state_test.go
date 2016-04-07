@@ -17,6 +17,20 @@ func TestStateDo(t *testing.T) {
 	}
 }
 
+func TestStateRemote(t *testing.T) {
+	st := testState()
+	if st.IP() != "10.240.0.1" {
+		t.Fatalf("wrong IP from state")
+	}
+	p, err := st.Port()
+	if err != nil {
+		t.Fatalf("failed to get Port from state")
+	}
+	if p != "40212" {
+		t.Fatalf("wrong port from state")
+	}
+}
+
 func BenchmarkStateDo(b *testing.B) {
 	st := testState()
 
@@ -37,7 +51,6 @@ func testState() State {
 	m := new(dns.Msg)
 	m.SetQuestion("example.com.", dns.TypeA)
 	m.SetEdns0(4097, true)
-
 	return State{W: &coretest.ResponseWriter{}, Req: m}
 }
 
