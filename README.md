@@ -13,24 +13,16 @@ Currently CoreDNS is able to:
 * Use Etcd as a backend, i.e. a 90% replacement for
   [SkyDNS](https://github.com/skynetservices/skydns).
 * Serve as a proxy to forward queries to some other (recursive) nameserver.
-* Prove metrics (by using Prometheus)
-* Rewrite queries (both qtype and qname).
+* Rewrite queries (both qtype, qclass and qname).
+* Provide metrics (by using Prometheus)
 * Provide Logging.
 
-There are corner cases not implement and some blatantly missing functionality; i.e. the secondary
-implementation *does not* requery the primary -- *ever*, leading to stale data if the server is
-not restarted.
-
-> CoreDNS is running on port 1053 on `linode.atoom.net`. This is one step from being run on port 53.
-> See [this blog article](https://miek.nl/2016/April/03/running-coredns/) on this, or this
-> [bug](https://github.com/miekg/coredns/issues/15) on the progress of running CoreDNS as my
-> production nameserver.
+There are corner cases not implemented and a few [issues](https://github.com/miekg/coredns/issues).
 
 But all in all, CoreDNS should already be able to provide you with enough functionality to replace
 parts of BIND9, Knot, NSD or PowerDNS.
-
-CoreDNS is still in the early stages of development and should **not** be used on production servers
-yet. For now most documentation is in the source and some blog articles can be [found
+However CoreDNS is still in the early stages of development and should **not** be used on production
+servers yet. For now most documentation is in the source and some blog articles can be [found
 here](https://miek.nl/tags/coredns/). If you do want to use CoreDNS in production, please let us
 know and how we can help.
 
