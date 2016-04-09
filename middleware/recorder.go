@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/miekg/dns"
@@ -54,27 +53,16 @@ func (r *ResponseRecorder) Write(buf []byte) (int, error) {
 }
 
 // Size returns the size.
-func (r *ResponseRecorder) Size() int {
-	return r.size
-}
+func (r *ResponseRecorder) Size() int { return r.size }
 
 // Rcode returns the rcode.
-func (r *ResponseRecorder) Rcode() string {
-	if rcode, ok := dns.RcodeToString[r.rcode]; ok {
-		return rcode
-	}
-	return "RCODE" + strconv.Itoa(r.rcode)
-}
+func (r *ResponseRecorder) Rcode() string { return RcodeToString(r.rcode) }
 
 // Start returns the start time of the ResponseRecorder.
-func (r *ResponseRecorder) Start() time.Time {
-	return r.start
-}
+func (r *ResponseRecorder) Start() time.Time { return r.start }
 
 // Msg returns the written message from the ResponseRecorder.
-func (r *ResponseRecorder) Msg() *dns.Msg {
-	return r.msg
-}
+func (r *ResponseRecorder) Msg() *dns.Msg { return r.msg }
 
 // Hijack implements dns.Hijacker. It simply wraps the underlying
 // ResponseWriter's Hijack method if there is one, or returns an error.
