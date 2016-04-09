@@ -53,7 +53,7 @@ func trapSignalsPosix() {
 				caddyfileMu.Lock()
 				if caddyfile == nil {
 					// Hmm, did spawing process forget to close stdin? Anyhow, this is unusual.
-					log.Println("[ERROR] SIGUSR1: no Caddyfile to reload (was stdin left open?)")
+					log.Println("[ERROR] SIGUSR1: no Corefile to reload (was stdin left open?)")
 					caddyfileMu.Unlock()
 					continue
 				}

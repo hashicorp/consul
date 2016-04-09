@@ -31,6 +31,7 @@ import (
 type Server struct {
 	Addr        string // Address we listen on
 	mux         *dns.ServeMux
+	server      [2]*dns.Server
 	tls         bool // whether this server is serving all HTTPS hosts or not
 	TLSConfig   *tls.Config
 	OnDemandTLS bool             // whether this server supports on-demand TLS (load certs at handshake-time)
@@ -159,11 +160,13 @@ func (s *Server) ListenAndServe() error {
 	// return the error from the udp listener, disregarding whatever
 	// happenend to the tcp one.
 	go func() {
-		dns.ListenAndServe(s.Addr, "tcp", s.mux)
+		s.server[0] = &dns.Server{Addr: s.Addr, Net: "tcp", Handler: s.mux}
+		s.server[0].ListenAndServe()
 	}()
 
 	close(s.startChan) // unblock anyone waiting for this to start listening
-	return dns.ListenAndServe(s.Addr, "udp", s.mux)
+	s.server[1] = &dns.Server{Addr: s.Addr, Net: "udp", Handler: s.mux}
+	return s.server[1].ListenAndServe()
 }
 
 // setup prepares the server s to begin listening; it should be
@@ -242,6 +245,13 @@ func (s *Server) Stop() (err error) {
 		err = s.listener.Close()
 	}
 	s.listenerMu.Unlock()
+	// Don't know if the above is still valid.
+
+	for _, s1 := range s.server {
+		if err := s1.Shutdown(); err != nil {
+			return err
+		}
+	}
 
 	return
 }
