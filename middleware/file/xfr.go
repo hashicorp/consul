@@ -16,13 +16,13 @@ type (
 	}
 )
 
-// Serve an AXFR (or maybe later an IXFR) as well.
+// Serve an AXFR (and fallback of IXFR) as well.
 func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := middleware.State{W: w, Req: r}
 	if !x.TransferAllowed(state) {
 		return dns.RcodeServerFailure, nil
 	}
-	if state.QType() != dns.TypeAXFR {
+	if state.QType() != dns.TypeAXFR && state.QType() != dns.TypeIXFR {
 		return 0, fmt.Errorf("xfr called with non transfer type: %d", state.QType())
 	}
 
