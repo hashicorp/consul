@@ -110,43 +110,41 @@ func (s *State) Size() int {
 		return s.size
 	}
 
-	if s.Proto() == "tcp" {
-		s.size = dns.MaxMsgSize
-		return dns.MaxMsgSize
-	}
+	size := 0
 	if o := s.Req.IsEdns0(); o != nil {
 		if o.Do() == true {
 			s.do = doTrue
 		} else {
 			s.do = doFalse
 		}
-
-		size := o.UDPSize()
-		if size < dns.MinMsgSize {
-			size = dns.MinMsgSize
-		}
-		s.size = int(size)
-		return int(size)
+		size = int(o.UDPSize())
 	}
-	s.size = dns.MinMsgSize
-	return dns.MinMsgSize
+	size = edns0Size(s.Proto(), size)
+	s.size = size
+	return size
 }
 
-// SizeAndDo returns a ready made OPT record that the reflects the intent from
-// state. This can be added to upstream requests that will then hopefully
-// return a message that is fits the buffer in the client.
-func (s *State) SizeAndDo() *dns.OPT {
+// SizeAndDo adds an OPT record that the reflects the intent from state.
+// The returned bool indicated if an record was added.
+func (s *State) SizeAndDo(m *dns.Msg) bool {
+	o := s.Req.IsEdns0() // TODO(miek): speed this up
+	if o == nil {
+		return false
+	}
+
 	size := s.Size()
 	Do := s.Do()
 
-	o := new(dns.OPT)
 	o.Hdr.Name = "."
 	o.Hdr.Rrtype = dns.TypeOPT
+	o.SetVersion(0)
 	o.SetUDPSize(uint16(size))
 	if Do {
 		o.SetDo()
 	}
-	return o
+	// TODO(miek): test how this works with stub forwarding in etcd middleware.
+	m.Extra = append(m.Extra, o)
+	return true
 }
 
 // Result is the result of Scrub.
@@ -170,9 +168,11 @@ func (s *State) Scrub(reply *dns.Msg) (*dns.Msg, Result) {
 	if size >= l {
 		return reply, ScrubIgnored
 	}
-	// If not delegation, drop additional section.
 	// TODO(miek): check for delegation
+
+	// If not delegation, drop additional section.
 	reply.Extra = nil
+	s.SizeAndDo(reply)
 	l = reply.Len()
 	if size >= l {
 		return reply, ScrubDone

@@ -3,11 +3,13 @@ package log
 
 import (
 	"log"
-
-	"golang.org/x/net/context"
+	"time"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/metrics"
+
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 // Logger is a basic request logging middleware.
@@ -30,9 +32,13 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 				if l.ErrorFunc != nil {
 					l.ErrorFunc(responseRecorder, r, rcode)
 				} else {
-					// Default failover error handler
+					rc := middleware.RcodeToString(rcode)
+
 					answer := new(dns.Msg)
 					answer.SetRcode(r, rcode)
+					state.SizeAndDo(answer)
+
+					metrics.Report(metrics.Dropped, state.Type(), rc, answer.Len(), time.Now())
 					w.WriteMsg(answer)
 				}
 				rcode = 0

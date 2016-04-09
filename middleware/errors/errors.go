@@ -37,6 +37,7 @@ func (h ErrorHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns
 			answer := debugMsg(rcode, r)
 			txt, _ := dns.NewRR(". IN 0 TXT " + errMsg)
 			answer.Answer = append(answer.Answer, txt)
+			state.SizeAndDo(answer)
 			w.WriteMsg(answer)
 			return 0, err
 		}
@@ -52,6 +53,7 @@ func (h ErrorHandler) recovery(ctx context.Context, w dns.ResponseWriter, r *dns
 		return
 	}
 
+	state := middleware.State{W: w, Req: r}
 	// Obtain source of panic
 	// From: https://gist.github.com/swdunlop/9629168
 	var name, file string // function name, file name
@@ -86,6 +88,7 @@ func (h ErrorHandler) recovery(ctx context.Context, w dns.ResponseWriter, r *dns
 		// add stack buf in TXT, limited to 255 chars for now.
 		txt, _ := dns.NewRR(". IN 0 TXT " + string(stack[:255]))
 		answer.Answer = append(answer.Answer, txt)
+		state.SizeAndDo(answer)
 		w.WriteMsg(answer)
 	} else {
 		// Currently we don't use the function name, since file:line is more conventional

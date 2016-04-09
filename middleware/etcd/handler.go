@@ -66,46 +66,40 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		return 0, nil
 	}
 	if isEtcdNameError(err) {
-		m := new(dns.Msg)
-		m.SetRcode(state.Req, dns.RcodeNameError)
-		m.Ns = []dns.RR{e.SOA(zone, state)}
-		state.W.WriteMsg(m)
-		return dns.RcodeNameError, nil
+		return e.Err(zone, dns.RcodeNameError, state)
 	}
 	if err != nil {
 		return dns.RcodeServerFailure, err
 	}
 
 	if len(records) == 0 {
-		// NODATE function, see below
-		m := new(dns.Msg)
-		m.SetReply(state.Req)
-		m.Ns = []dns.RR{e.SOA(zone, state)}
-		state.W.WriteMsg(m)
-		return dns.RcodeSuccess, nil
-	}
-	if len(records) > 0 {
-		m.Answer = append(m.Answer, records...)
-	}
-	if len(extra) > 0 {
-		m.Extra = append(m.Extra, extra...)
+		return e.Err(zone, dns.RcodeSuccess, state)
 	}
 
+	m.Answer = append(m.Answer, records...)
+	m.Extra = append(m.Extra, extra...)
+
 	m = dedup(m)
+	state.SizeAndDo(m)
 	m, _ = state.Scrub(m)
-	state.W.WriteMsg(m)
-	return 0, nil
+	w.WriteMsg(m)
+	return dns.RcodeSuccess, nil
 }
 
 // NoData write a nodata response to the client.
-func (e Etcd) NoData(zone string, state middleware.State) {
-	// TODO(miek): write it
+func (e Etcd) Err(zone string, rcode int, state middleware.State) (int, error) {
+	m := new(dns.Msg)
+	m.SetRcode(state.Req, rcode)
+	m.Ns = []dns.RR{e.SOA(zone, state)}
+	state.SizeAndDo(m)
+	state.W.WriteMsg(m)
+	return rcode, nil
 }
 
 func dedup(m *dns.Msg) *dns.Msg {
-	ma := make(map[string]dns.RR)
-	m.Answer = dns.Dedup(m.Answer, ma)
-	m.Ns = dns.Dedup(m.Ns, ma)
-	m.Extra = dns.Dedup(m.Extra, ma)
+	// TODO(miek): expensive!
+	m.Answer = dns.Dedup(m.Answer, nil)
+	m.Ns = dns.Dedup(m.Ns, nil)
+	m.Extra = dns.Dedup(m.Extra, nil)
 	return m
 }

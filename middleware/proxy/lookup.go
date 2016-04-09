@@ -52,16 +52,13 @@ func New(hosts []string) Proxy {
 	return p
 }
 
-// Lookup will use name and tpe to forge a new message and will send that upstream. It will
+// Lookup will use name and type to forge a new message and will send that upstream. It will
 // set any EDNS0 options correctly so that downstream will be able to process the reply.
-// Lookup is not suitable for forwarding request. So Forward for that.
+// Lookup is not suitable for forwarding request. Ssee for that.
 func (p Proxy) Lookup(state middleware.State, name string, tpe uint16) (*dns.Msg, error) {
 	req := new(dns.Msg)
 	req.SetQuestion(name, tpe)
-
-	opt := state.SizeAndDo()
-	req.Extra = []dns.RR{opt}
-
+	state.SizeAndDo(req)
 	return p.lookup(state, req)
 }
 

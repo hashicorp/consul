@@ -81,3 +81,6 @@ func define(subsystem string) {
 		Help:      "Counter of response status codes.",
 	}, []string{"zone", "rcode", "qtype"})
 }
+
+// Dropped indicates we dropped the query before any handling. It has no closing dot, so it can not be a valid zone.
+const Dropped = "dropped"

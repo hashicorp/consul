@@ -25,6 +25,7 @@ type (
 
 func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := middleware.State{W: w, Req: r}
+
 	if state.QClass() != dns.ClassINET {
 		return dns.RcodeServerFailure, fmt.Errorf("can only deal with ClassINET")
 	}
@@ -45,6 +46,7 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 			m := new(dns.Msg)
 			m.SetReply(r)
 			m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
+			state.SizeAndDo(m)
 			w.WriteMsg(m)
 
 			log.Printf("[INFO] Notify from %s for %s: checking transfer", state.IP(), zone)
@@ -93,6 +95,8 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	case ServerFailure:
 		return dns.RcodeServerFailure, nil
 	}
+
+	state.SizeAndDo(m)
 	m, _ = state.Scrub(m)
 	w.WriteMsg(m)
 	return dns.RcodeSuccess, nil

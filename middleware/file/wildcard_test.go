@@ -25,6 +25,7 @@ var wildcardTestCases = []coretest.Case{
 			coretest.RRSIG("wild.dnssex.nl.	1800	IN	RRSIG	TXT 8 2 1800 20160428190224 20160329190224 14460 dnssex.nl. FUZSTyvZfeuuOpCm"),
 			coretest.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
 		},
+		Extra: []dns.RR{coretest.OPT(4096, true)},
 	},
 	// nodata reponse
 	/*

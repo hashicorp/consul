@@ -22,14 +22,15 @@ func (s Stub) ServeDNS(ctx context.Context, w dns.ResponseWriter, req *dns.Msg) 
 	if !ok { // somebody made a mistake..
 		return dns.RcodeServerFailure, nil
 	}
-	state := middleware.State{W: w, Req: req}
 
-	m1, e1 := proxy.Forward(state)
-	if e1 != nil {
-		return dns.RcodeServerFailure, e1
+	state := middleware.State{W: w, Req: req}
+	m, e := proxy.Forward(state)
+	if e != nil {
+		return dns.RcodeServerFailure, e
 	}
-	m1.RecursionAvailable, m1.Compress = true, true
-	state.W.WriteMsg(m1)
+	m.RecursionAvailable, m.Compress = true, true
+	state.SizeAndDo(m)
+	w.WriteMsg(m)
 	return dns.RcodeSuccess, nil
 }
 

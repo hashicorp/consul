@@ -57,6 +57,18 @@ func MX(rr string) *dns.MX       { r, _ := dns.NewRR(rr); return r.(*dns.MX) }
 func RRSIG(rr string) *dns.RRSIG { r, _ := dns.NewRR(rr); return r.(*dns.RRSIG) }
 func NSEC(rr string) *dns.NSEC   { r, _ := dns.NewRR(rr); return r.(*dns.NSEC) }
 
+func OPT(bufsize int, do bool) *dns.OPT {
+	o := new(dns.OPT)
+	o.Hdr.Name = "."
+	o.Hdr.Rrtype = dns.TypeOPT
+	o.SetVersion(0)
+	o.SetUDPSize(uint16(bufsize))
+	if do {
+		o.SetDo()
+	}
+	return o
+}
+
 func Header(t *testing.T, tc Case, resp *dns.Msg) bool {
 	if resp.Rcode != tc.Rcode {
 		t.Errorf("rcode is %q, expected %q", dns.RcodeToString[resp.Rcode], dns.RcodeToString[tc.Rcode])
@@ -190,6 +202,16 @@ func Section(t *testing.T, tc Case, sect Sect, rr []dns.RR) bool {
 			tt := section[i].(*dns.NS)
 			if x.Ns != tt.Ns {
 				t.Errorf("NS nameserver should be %q, but is %q", x.Ns, tt.Ns)
+				return false
+			}
+		case *dns.OPT:
+			tt := section[i].(*dns.OPT)
+			if x.Do() != tt.Do() {
+				t.Errorf("OPT DO should be %q, but is %q", x.Do(), tt.Do())
+				return false
+			}
+			if x.UDPSize() != tt.UDPSize() {
+				t.Errorf("OPT UDPSize should be %q, but is %q", x.UDPSize(), tt.UDPSize())
 				return false
 			}
 		}

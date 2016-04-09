@@ -32,3 +32,14 @@ func Edns0Version(req *dns.Msg) (*dns.Msg, error) {
 
 	return m, errors.New("EDNS0 BADVERS")
 }
+
+// edns0Size returns a normalized size based on proto.
+func edns0Size(proto string, size int) int {
+	if proto == "tcp" {
+		return dns.MaxMsgSize
+	}
+	if size < dns.MinMsgSize {
+		return dns.MinMsgSize
+	}
+	return size
+}

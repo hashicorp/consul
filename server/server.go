@@ -17,7 +17,7 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/chaos"
-	"github.com/miekg/coredns/middleware/prometheus"
+	"github.com/miekg/coredns/middleware/metrics"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -282,7 +282,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	if m, err := middleware.Edns0Version(r); err != nil { // Wrong EDNS version, return at once.
 		qtype := dns.Type(r.Question[0].Qtype).String()
 		rc := middleware.RcodeToString(dns.RcodeBadVers)
-		metrics.Report(dropped, qtype, rc, m.Len(), time.Now())
+		metrics.Report(metrics.Dropped, qtype, rc, m.Len(), time.Now())
 		w.WriteMsg(m)
 		return
 	}
@@ -336,17 +336,16 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	log.Printf("[INFO] %s - No such zone at %s (Remote: %s)", q, s.Addr, remoteHost)
 }
 
-// DefaultErrorFunc responds to an HTTP request with a simple description
-// of the specified HTTP status code.
+// DefaultErrorFunc responds to an DNS request with an error.
 func DefaultErrorFunc(w dns.ResponseWriter, r *dns.Msg, rcode int) {
-	qtype := dns.Type(r.Question[0].Qtype).String()
+	state := middleware.State{W: w, Req: r}
 	rc := middleware.RcodeToString(rcode)
 
 	answer := new(dns.Msg)
 	answer.SetRcode(r, rcode)
-	// Default zone to dropped (without closing dot, so no zone) here to not blow up this metric.
-	metrics.Report(dropped, qtype, rc, answer.Len(), time.Now())
+	state.SizeAndDo(answer)
 
+	metrics.Report(metrics.Dropped, state.Type(), rc, answer.Len(), time.Now())
 	w.WriteMsg(answer)
 }
 
@@ -459,5 +458,3 @@ func RcodeNoClientWrite(rcode int) bool {
 	}
 	return false
 }
-
-const dropped = "dropped"

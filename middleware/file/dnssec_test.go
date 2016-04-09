@@ -20,6 +20,7 @@ var dnssecTestCases = []coretest.Case{
 			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
 			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
+		Extra: []dns.RR{coretest.OPT(4096, true)},
 	},
 	{
 		Qname: "miek.nl.", Qtype: dns.TypeAAAA, Do: true,
@@ -27,6 +28,7 @@ var dnssecTestCases = []coretest.Case{
 			coretest.AAAA("miek.nl.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fef1:6735"),
 			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	AAAA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. SsRT="),
 		},
+		Extra: []dns.RR{coretest.OPT(4096, true)},
 	},
 	{
 		Qname: "miek.nl.", Qtype: dns.TypeMX, Do: true,
@@ -38,6 +40,7 @@ var dnssecTestCases = []coretest.Case{
 			coretest.MX("miek.nl.	1800	IN	MX	5 alt2.aspmx.l.google.com."),
 			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	MX 8 2 1800 20160426031301 20160327031301 12051 miek.nl. kLqG+iOr="),
 		},
+		Extra: []dns.RR{coretest.OPT(4096, true)},
 	},
 	{
 		Qname: "www.miek.nl.", Qtype: dns.TypeA, Do: true,
@@ -46,6 +49,7 @@ var dnssecTestCases = []coretest.Case{
 		},
 
 		Extra: []dns.RR{
+			coretest.OPT(4096, true),
 			coretest.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
 			coretest.RRSIG("a.miek.nl.	1800	IN	RRSIG	A 8 3 1800 20160426031301 20160327031301 12051 miek.nl. lxLotCjWZ3kihTxk="),
 		},
@@ -59,6 +63,7 @@ var dnssecTestCases = []coretest.Case{
 			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
 			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
+		Extra: []dns.RR{coretest.OPT(4096, true)},
 	},
 	{
 		Qname: "b.miek.nl.", Qtype: dns.TypeA, Do: true,
@@ -71,6 +76,7 @@ var dnssecTestCases = []coretest.Case{
 			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
 			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
+		Extra: []dns.RR{coretest.OPT(4096, true)},
 	},
 	{
 		Qname: "b.blaat.miek.nl.", Qtype: dns.TypeA, Do: true,
@@ -83,6 +89,7 @@ var dnssecTestCases = []coretest.Case{
 			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
 			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
+		Extra: []dns.RR{coretest.OPT(4096, true)},
 	},
 	{
 		Qname: "b.a.miek.nl.", Qtype: dns.TypeA, Do: true,
@@ -94,6 +101,7 @@ var dnssecTestCases = []coretest.Case{
 			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
 			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
+		Extra: []dns.RR{coretest.OPT(4096, true)},
 	},
 }
 
