@@ -38,7 +38,7 @@ func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 					answer.SetRcode(r, rcode)
 					state.SizeAndDo(answer)
 
-					metrics.Report(metrics.Dropped, state.Type(), rc, answer.Len(), time.Now())
+					metrics.Report(metrics.Dropped, state.Proto(), rc, answer.Len(), time.Now())
 					w.WriteMsg(answer)
 				}
 				rcode = 0

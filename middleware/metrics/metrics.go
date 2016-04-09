@@ -55,8 +55,8 @@ func define(subsystem string) {
 		Namespace: namespace,
 		Subsystem: subsystem,
 		Name:      "request_count_total",
-		Help:      "Counter of DNS requests made per zone and type and opcode.",
-	}, []string{"zone", "qtype"})
+		Help:      "Counter of DNS requests made per zone and protocol.",
+	}, []string{"zone", "proto"})
 
 	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: namespace,
@@ -64,7 +64,7 @@ func define(subsystem string) {
 		Name:      "request_duration_seconds",
 		Buckets:   append([]float64{.0001, .0005, .001, .0025}, prometheus.DefBuckets...),
 		Help:      "Histogram of the time (in seconds) each request took.",
-	}, []string{"zone", "qtype"})
+	}, []string{"zone"})
 
 	responseSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: namespace,
@@ -72,14 +72,14 @@ func define(subsystem string) {
 		Name:      "response_size_bytes",
 		Help:      "Size of the returns response in bytes.",
 		Buckets:   []float64{0, 100, 200, 300, 400, 511, 1023, 2047, 4095, 8291, 16e3, 32e3, 48e3, 64e3},
-	}, []string{"zone", "qtype"})
+	}, []string{"zone"})
 
 	responseRcode = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: namespace,
 		Subsystem: subsystem,
 		Name:      "response_rcode_count_total",
 		Help:      "Counter of response status codes.",
-	}, []string{"zone", "rcode", "qtype"})
+	}, []string{"zone", "rcode"})
 }
 
 // Dropped indicates we dropped the query before any handling. It has no closing dot, so it can not be a valid zone.
