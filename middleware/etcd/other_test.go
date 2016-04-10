@@ -39,36 +39,17 @@ func TestOtherLookup(t *testing.T) {
 		sort.Sort(coretest.RRSet(resp.Ns))
 		sort.Sort(coretest.RRSet(resp.Extra))
 
-		if resp.Rcode != tc.Rcode {
-			t.Errorf("rcode is %q, expected %q", dns.RcodeToString[resp.Rcode], dns.RcodeToString[tc.Rcode])
+		if !coretest.Header(t, tc, resp) {
 			t.Logf("%v\n", resp)
 			continue
 		}
-
-		if len(resp.Answer) != len(tc.Answer) {
-			t.Errorf("answer for %q contained %d results, %d expected", tc.Qname, len(resp.Answer), len(tc.Answer))
-			t.Logf("%v\n", resp)
-			continue
-		}
-		if len(resp.Ns) != len(tc.Ns) {
-			t.Errorf("authority for %q contained %d results, %d expected", tc.Qname, len(resp.Ns), len(tc.Ns))
-			t.Logf("%v\n", resp)
-			continue
-		}
-		if len(resp.Extra) != len(tc.Extra) {
-			t.Errorf("additional for %q contained %d results, %d expected", tc.Qname, len(resp.Extra), len(tc.Extra))
-			t.Logf("%v\n", resp)
-			continue
-		}
-
-		if !coretest.CheckSection(t, tc, coretest.Answer, resp.Answer) {
+		if !coretest.Section(t, tc, coretest.Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.CheckSection(t, tc, coretest.Ns, resp.Ns) {
+		if !coretest.Section(t, tc, coretest.Ns, resp.Ns) {
 			t.Logf("%v\n", resp)
-
 		}
-		if !coretest.CheckSection(t, tc, coretest.Extra, resp.Extra) {
+		if !coretest.Section(t, tc, coretest.Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
 		}
 	}

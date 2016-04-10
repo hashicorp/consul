@@ -26,6 +26,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"testing"
 	"time"
 
 	"github.com/miekg/coredns/core/https"
@@ -236,6 +237,7 @@ func startServers(groupings bindingGroup) error {
 
 			// start the server
 			// TODO(miek): for now will always be nil, so we will run ListenAndServe()
+			// TODO(miek): this is also why graceful restarts don't work.
 			if ln != nil {
 				//errChan <- s.Serve(ln)
 			} else {
@@ -385,4 +387,25 @@ type Input interface {
 	// IsFile returns true if the original input was a file on the file system
 	// that could be loaded again later if requested.
 	IsFile() bool
+}
+
+// TestServer returns a test server.
+// The port can be retreived with ... . The testserver itself can be stopped
+// with Stop(). It just takes a normal Corefile input, but doesn't use the port.
+func TestServer(t *testing.T, corefile string) (*server.Server, error) {
+
+	cdyfile := CaddyfileInput{Contents: []byte(corefile)}
+	configs, err := loadConfigs(path.Base(cdyfile.Path()), bytes.NewReader(cdyfile.Body()))
+	if err != nil {
+		return nil, err
+	}
+	groupings, err := arrangeBindings(configs)
+	if err != nil {
+		return nil, err
+	}
+	t.Logf("Starting %d servers", len(groupings))
+
+	group := groupings[0]
+	s, err := server.New(group.BindAddr.String(), group.Configs, time.Second)
+	return s, err
 }

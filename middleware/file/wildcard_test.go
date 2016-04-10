@@ -73,7 +73,6 @@ func TestLookupWildcard(t *testing.T) {
 			t.Logf("%v\n", resp)
 			continue
 		}
-
 		if !coretest.Section(t, tc, coretest.Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
 		}

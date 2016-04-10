@@ -5,6 +5,7 @@ package etcd
 import "testing"
 
 func TestStubLookup(t *testing.T) {
+	// MOVE THIS TO etcd_Test.go in the main directory
 	// e.updateStubZones()
 }
 

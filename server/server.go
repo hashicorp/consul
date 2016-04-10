@@ -29,9 +29,12 @@ import (
 // the same address and the listener may be stopped for
 // graceful termination (POSIX only).
 type Server struct {
-	Addr        string // Address we listen on
-	mux         *dns.ServeMux
-	server      [2]*dns.Server
+	Addr   string // Address we listen on
+	mux    *dns.ServeMux
+	server [2]*dns.Server // by convention 0 is tcp and 1 is udp
+	tcp    net.Listener
+	udp    net.PacketConn
+
 	tls         bool // whether this server is serving all HTTPS hosts or not
 	TLSConfig   *tls.Config
 	OnDemandTLS bool             // whether this server supports on-demand TLS (load certs at handshake-time)
@@ -132,6 +135,16 @@ func New(addr string, configs []Config, gracefulTimeout time.Duration) (*Server,
 	return s, nil
 }
 
+// LocalAddr return the addresses where the server is bound to. The TCP listener
+// address is the first returned, the UDP conn address the second.
+func (s *Server) LocalAddr() (net.Addr, net.Addr) {
+	s.listenerMu.Lock()
+	tcp := s.tcp.Addr()
+	udp := s.udp.LocalAddr()
+	s.listenerMu.Unlock()
+	return tcp, udp
+}
+
 // Serve starts the server with an existing listener. It blocks until the
 // server stops.
 /*
@@ -155,18 +168,28 @@ func (s *Server) ListenAndServe() error {
 		return err
 	}
 
-	// TODO(miek): going out on a limb here, let's assume that listening
-	// on the part for tcp and udp results in the same error. We can only
-	// return the error from the udp listener, disregarding whatever
-	// happenend to the tcp one.
+	l, err := net.Listen("tcp", s.Addr)
+	if err != nil {
+		return err
+	}
+	pc, err := net.ListenPacket("udp", s.Addr)
+	if err != nil {
+		return err
+	}
+
+	s.listenerMu.Lock()
+	s.server[0] = &dns.Server{Listener: l, Net: "tcp", Handler: s.mux}
+	s.tcp = l
+	s.server[1] = &dns.Server{PacketConn: pc, Net: "udp", Handler: s.mux}
+	s.udp = pc
+	s.listenerMu.Unlock()
+
 	go func() {
-		s.server[0] = &dns.Server{Addr: s.Addr, Net: "tcp", Handler: s.mux}
-		s.server[0].ListenAndServe()
+		s.server[0].ActivateAndServe()
 	}()
 
 	close(s.startChan) // unblock anyone waiting for this to start listening
-	s.server[1] = &dns.Server{Addr: s.Addr, Net: "udp", Handler: s.mux}
-	return s.server[1].ListenAndServe()
+	return s.server[1].ActivateAndServe()
 }
 
 // setup prepares the server s to begin listening; it should be
@@ -244,14 +267,11 @@ func (s *Server) Stop() (err error) {
 	if s.listener != nil {
 		err = s.listener.Close()
 	}
-	s.listenerMu.Unlock()
-	// Don't know if the above is still valid.
 
 	for _, s1 := range s.server {
-		if err := s1.Shutdown(); err != nil {
-			return err
-		}
+		err = s1.Shutdown()
 	}
+	s.listenerMu.Unlock()
 
 	return
 }
