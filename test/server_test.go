@@ -12,7 +12,7 @@ func TestProxyToChaosServer(t *testing.T) {
 	chaos CoreDNS-001 miek@miek.nl
 }
 `
-	chaos, tcpCH, udpCH, err := testServer(t, corefile)
+	chaos, tcpCH, udpCH, err := Server(t, corefile)
 	if err != nil {
 		t.Fatalf("Could get server: %s", err)
 	}
@@ -22,7 +22,7 @@ func TestProxyToChaosServer(t *testing.T) {
 		proxy . ` + udpCH + `
 }
 `
-	proxy, _, udp, err := testServer(t, corefileProxy)
+	proxy, _, udp, err := Server(t, corefileProxy)
 	if err != nil {
 		t.Fatalf("Could get server: %s", err)
 	}
@@ -37,10 +37,10 @@ func TestProxyToChaosServer(t *testing.T) {
 }
 
 func chaosTest(t *testing.T, server, net string) {
-	m := testMsg("version.bind.", dns.TypeTXT, nil)
+	m := Msg("version.bind.", dns.TypeTXT, nil)
 	m.Question[0].Qclass = dns.ClassCHAOS
 
-	r, err := testExchange(m, server, net)
+	r, err := Exchange(m, server, net)
 	if err != nil {
 		t.Fatalf("Could not send message: %s", err)
 	}

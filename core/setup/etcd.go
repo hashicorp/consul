@@ -41,7 +41,7 @@ func Etcd(c *Controller) (middleware.Middleware, error) {
 func etcdParse(c *Controller) (etcd.Etcd, bool, error) {
 	stub := make(map[string]proxy.Proxy)
 	etc := etcd.Etcd{
-		Proxy:      proxy.New([]string{"8.8.8.8:53"}),
+		Proxy:      proxy.New([]string{"8.8.8.8:53", "8.8.4.4:53"}),
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
 		Inflight:   &singleflight.Group{},
