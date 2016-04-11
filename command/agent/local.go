@@ -394,9 +394,12 @@ func (l *localState) setSyncState() error {
 			continue
 		}
 
-		// If our definition is different, we need to update it
+		// If our definition is different, we need to update it. Make a
+		// copy so that we don't retain a pointer to any actual state
+		// store info for in-memory RPCs.
 		if existing.EnableTagOverride {
-			existing.Tags = service.Tags
+			existing.Tags = make([]string, len(service.Tags))
+			copy(existing.Tags, service.Tags)
 		}
 		equal := existing.IsSame(service)
 		l.serviceStatus[id] = syncStatus{inSync: equal}
