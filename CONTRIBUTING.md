@@ -1,6 +1,6 @@
 ## Contributing to CoreDNS
 
-Welcome! Our community focuses on helping others and making Caddy the best it
+Welcome! Our community focuses on helping others and making CoreDNS the best it
 can be. We gladly accept contributions and encourage you to get involved!
 
 ### Bug reports
@@ -56,5 +56,4 @@ If it's not a big deal, a pull request will probably be faster.
 
 ## Thank you
 
-Thanks for your help! CoreDNS would not be what it is today without your
-contributions.
+Thanks for your help! CoreDNS would not be what it is today without your contributions.

@@ -17,7 +17,7 @@ From the Caddy docs:
 In the DNS status codes are called rcodes and it's slightly harder to return the correct
 answer in case of failure.
 
-So CoreDNS treats
+So CoreDNS treats:
 
 * SERVFAIL (dns.RcodeServerFailure)
 * REFUSED (dns.RecodeRefused)
