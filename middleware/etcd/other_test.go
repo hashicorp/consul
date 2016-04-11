@@ -43,13 +43,13 @@ func TestOtherLookup(t *testing.T) {
 			t.Logf("%v\n", resp)
 			continue
 		}
-		if !test.Section(t, tc, coretest.Answer, resp.Answer) {
+		if !test.Section(t, tc, test.Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
 		}
-		if !test.Section(t, tc, coretest.Ns, resp.Ns) {
+		if !test.Section(t, tc, test.Ns, resp.Ns) {
 			t.Logf("%v\n", resp)
 		}
-		if !test.Section(t, tc, coretest.Extra, resp.Extra) {
+		if !test.Section(t, tc, test.Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
 		}
 	}
