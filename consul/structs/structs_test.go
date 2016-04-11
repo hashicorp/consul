@@ -211,6 +211,28 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 	check(&other.ServiceName)
 }
 
+func TestStructs_HealthCheck_Clone(t *testing.T) {
+	hc := &HealthCheck{
+		Node:        "node1",
+		CheckID:     "check1",
+		Name:        "thecheck",
+		Status:      HealthPassing,
+		Notes:       "it's all good",
+		Output:      "lgtm",
+		ServiceID:   "service1",
+		ServiceName: "theservice",
+	}
+	clone := hc.Clone()
+	if !hc.IsSame(clone) {
+		t.Fatalf("should be equal to its clone")
+	}
+
+	clone.Output = "different"
+	if hc.IsSame(clone) {
+		t.Fatalf("should not longer be equal to its clone")
+	}
+}
+
 func TestStructs_CheckServiceNodes_Shuffle(t *testing.T) {
 	// Make a huge list of nodes.
 	var nodes CheckServiceNodes

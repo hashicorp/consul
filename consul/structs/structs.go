@@ -396,6 +396,13 @@ func (c *HealthCheck) IsSame(other *HealthCheck) bool {
 	return true
 }
 
+// Clone returns a distinct clone of the HealthCheck.
+func (c *HealthCheck) Clone() *HealthCheck {
+	clone := new(HealthCheck)
+	*clone = *c
+	return clone
+}
+
 type HealthChecks []*HealthCheck
 
 // CheckServiceNode is used to provide the node, its service
