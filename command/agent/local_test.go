@@ -731,8 +731,7 @@ func TestAgentAntiEntropy_Check_DeferSync(t *testing.T) {
 	})
 
 	// Change the output in the catalog to force it out of sync.
-	eCopy := new(structs.HealthCheck)
-	*eCopy = *check
+	eCopy := check.Clone()
 	eCopy.Output = "changed"
 	reg := structs.RegisterRequest{
 		Datacenter:      agent.config.Datacenter,
