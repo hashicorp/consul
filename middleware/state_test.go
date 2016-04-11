@@ -3,7 +3,7 @@ package middleware
 import (
 	"testing"
 
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 )
@@ -51,7 +51,7 @@ func testState() State {
 	m := new(dns.Msg)
 	m.SetQuestion("example.com.", dns.TypeA)
 	m.SetEdns0(4097, true)
-	return State{W: &coretest.ResponseWriter{}, Req: m}
+	return State{W: &test.ResponseWriter{}, Req: m}
 }
 
 /*

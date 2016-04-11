@@ -6,40 +6,40 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
 
-var wildcardTestCases = []coretest.Case{
+var wildcardTestCases = []test.Case{
 	{
 		Qname: "wild.dnssex.nl.", Qtype: dns.TypeTXT,
 		Answer: []dns.RR{
-			coretest.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
+			test.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
 		},
 	},
 	{
 		Qname: "wild.dnssex.nl.", Qtype: dns.TypeTXT, Do: true,
 		Answer: []dns.RR{
-			coretest.RRSIG("wild.dnssex.nl.	1800	IN	RRSIG	TXT 8 2 1800 20160428190224 20160329190224 14460 dnssex.nl. FUZSTyvZfeuuOpCm"),
-			coretest.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
+			test.RRSIG("wild.dnssex.nl.	1800	IN	RRSIG	TXT 8 2 1800 20160428190224 20160329190224 14460 dnssex.nl. FUZSTyvZfeuuOpCm"),
+			test.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
 		},
-		Extra: []dns.RR{coretest.OPT(4096, true)},
+		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	// nodata reponse
 	/*
 		{
 			Qname: "wild.dnssex.nl.", Qtype: dns.TypeSRV,
 			Answer: []dns.RR{
-				coretest.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
+				test.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
 			},
 		},
 		{
 			Qname: "wild.dnssex.nl.", Qtype: dns.TypeSRV, Do: true,
 			Answer: []dns.RR{
-				coretest.RRSIG("wild.dnssex.nl.	1800	IN	RRSIG	TXT 8 2 1800 20160428190224 20160329190224 14460 dnssex.nl. FUZSTyvZfeuuOpCm"),
-				coretest.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
+				test.RRSIG("wild.dnssex.nl.	1800	IN	RRSIG	TXT 8 2 1800 20160428190224 20160329190224 14460 dnssex.nl. FUZSTyvZfeuuOpCm"),
+				test.TXT(`wild.dnssex.nl.	1800	IN	TXT	"Doing It Safe Is Better"`),
 			},
 		},
 	*/
@@ -51,13 +51,13 @@ func TestLookupWildcard(t *testing.T) {
 		t.Fatalf("expect no error when reading zone, got %q", err)
 	}
 
-	fm := File{Next: coretest.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone1: zone}, Names: []string{testzone1}}}
+	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone1: zone}, Names: []string{testzone1}}}
 	ctx := context.TODO()
 
 	for _, tc := range wildcardTestCases {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
@@ -65,21 +65,21 @@ func TestLookupWildcard(t *testing.T) {
 		}
 		resp := rec.Msg()
 
-		sort.Sort(coretest.RRSet(resp.Answer))
-		sort.Sort(coretest.RRSet(resp.Ns))
-		sort.Sort(coretest.RRSet(resp.Extra))
+		sort.Sort(test.RRSet(resp.Answer))
+		sort.Sort(test.RRSet(resp.Ns))
+		sort.Sort(test.RRSet(resp.Extra))
 
-		if !coretest.Header(t, tc, resp) {
+		if !test.Header(t, tc, resp) {
 			t.Logf("%v\n", resp)
 			continue
 		}
-		if !coretest.Section(t, tc, coretest.Answer, resp.Answer) {
+		if !test.Section(t, tc, test.Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.Section(t, tc, coretest.Ns, resp.Ns) {
+		if !test.Section(t, tc, test.Ns, resp.Ns) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.Section(t, tc, coretest.Extra, resp.Extra) {
+		if !test.Section(t, tc, test.Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
 		}
 	}

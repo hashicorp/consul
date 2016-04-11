@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -37,7 +37,7 @@ func TestLoggedStatus(t *testing.T) {
 	r := new(dns.Msg)
 	r.SetQuestion("example.org.", dns.TypeA)
 
-	rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+	rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 
 	rcode, _ := logger.ServeDNS(ctx, rec, r)
 	if rcode != 0 {

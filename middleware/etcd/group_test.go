@@ -12,7 +12,7 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 )
@@ -25,7 +25,7 @@ func TestGroupLookup(t *testing.T) {
 	for _, tc := range dnsTestCasesGroup {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 		_, err := etc.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
@@ -33,21 +33,21 @@ func TestGroupLookup(t *testing.T) {
 		}
 		resp := rec.Msg()
 
-		sort.Sort(coretest.RRSet(resp.Answer))
-		sort.Sort(coretest.RRSet(resp.Ns))
-		sort.Sort(coretest.RRSet(resp.Extra))
+		sort.Sort(test.RRSet(resp.Answer))
+		sort.Sort(test.RRSet(resp.Ns))
+		sort.Sort(test.RRSet(resp.Extra))
 
-		if !coretest.Header(t, tc, resp) {
+		if !test.Header(t, tc, resp) {
 			t.Logf("%v\n", resp)
 			continue
 		}
-		if !coretest.Section(t, tc, coretest.Answer, resp.Answer) {
+		if !test.Section(t, tc, coretest.Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.Section(t, tc, coretest.Ns, resp.Ns) {
+		if !test.Section(t, tc, coretest.Ns, resp.Ns) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.Section(t, tc, coretest.Extra, resp.Extra) {
+		if !test.Section(t, tc, coretest.Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
 		}
 	}
@@ -65,29 +65,29 @@ var servicesGroup = []*msg.Service{
 	{Host: "127.0.0.2", Key: "b.sub.dom1.skydns.test.", Group: "g2"},
 }
 
-var dnsTestCasesGroup = []coretest.Case{
+var dnsTestCasesGroup = []test.Case{
 	// Groups
 	{
 		// hits the group 'g1' and only includes those records
 		Qname: "dom.skydns.test.", Qtype: dns.TypeA,
 		Answer: []dns.RR{
-			coretest.A("dom.skydns.test. 300 IN A 127.0.0.1"),
-			coretest.A("dom.skydns.test. 300 IN A 127.0.0.2"),
+			test.A("dom.skydns.test. 300 IN A 127.0.0.1"),
+			test.A("dom.skydns.test. 300 IN A 127.0.0.2"),
 		},
 	},
 	{
 		// One has group, the other has not...  Include the non-group always.
 		Qname: "dom2.skydns.test.", Qtype: dns.TypeA,
 		Answer: []dns.RR{
-			coretest.A("dom2.skydns.test. 300 IN A 127.0.0.1"),
-			coretest.A("dom2.skydns.test. 300 IN A 127.0.0.2"),
+			test.A("dom2.skydns.test. 300 IN A 127.0.0.1"),
+			test.A("dom2.skydns.test. 300 IN A 127.0.0.2"),
 		},
 	},
 	{
 		// The groups differ.
 		Qname: "dom1.skydns.test.", Qtype: dns.TypeA,
 		Answer: []dns.RR{
-			coretest.A("dom1.skydns.test. 300 IN A 127.0.0.1"),
+			test.A("dom1.skydns.test. 300 IN A 127.0.0.1"),
 		},
 	},
 }

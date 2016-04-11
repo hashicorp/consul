@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -49,28 +49,28 @@ func TestChaos(t *testing.T) {
 
 	ctx := context.TODO()
 
-	for i, test := range tests {
+	for i, tc := range tests {
 		req := new(dns.Msg)
-		if test.qtype == 0 {
-			test.qtype = dns.TypeTXT
+		if tc.qtype == 0 {
+			tc.qtype = dns.TypeTXT
 		}
-		req.SetQuestion(dns.Fqdn(test.qname), test.qtype)
+		req.SetQuestion(dns.Fqdn(tc.qname), tc.qtype)
 		req.Question[0].Qclass = dns.ClassCHAOS
-		em.Next = test.next
+		em.Next = tc.next
 
-		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 		code, err := em.ServeDNS(ctx, rec, req)
 
-		if err != test.expectedErr {
-			t.Errorf("Test %d: Expected error %v, but got %v", i, test.expectedErr, err)
+		if err != tc.expectedErr {
+			t.Errorf("Test %d: Expected error %v, but got %v", i, tc.expectedErr, err)
 		}
-		if code != int(test.expectedCode) {
-			t.Errorf("Test %d: Expected status code %d, but got %d", i, test.expectedCode, code)
+		if code != int(tc.expectedCode) {
+			t.Errorf("Test %d: Expected status code %d, but got %d", i, tc.expectedCode, code)
 		}
-		if test.expectedReply != "" {
+		if tc.expectedReply != "" {
 			answer := rec.Msg().Answer[0].(*dns.TXT).Txt[0]
-			if answer != test.expectedReply {
-				t.Errorf("Test %d: Expected answer %s, but got %s", i, test.expectedReply, answer)
+			if answer != tc.expectedReply {
+				t.Errorf("Test %d: Expected answer %s, but got %s", i, tc.expectedReply, answer)
 			}
 		}
 	}

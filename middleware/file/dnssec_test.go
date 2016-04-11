@@ -6,102 +6,102 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
 
-var dnssecTestCases = []coretest.Case{
+var dnssecTestCases = []test.Case{
 	{
 		Qname: "miek.nl.", Qtype: dns.TypeSOA, Do: true,
 		Answer: []dns.RR{
 			// because we sort, this look fishy, but it is OK.
-			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
-			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
+			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
-		Extra: []dns.RR{coretest.OPT(4096, true)},
+		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
 		Qname: "miek.nl.", Qtype: dns.TypeAAAA, Do: true,
 		Answer: []dns.RR{
-			coretest.AAAA("miek.nl.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fef1:6735"),
-			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	AAAA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. SsRT="),
+			test.AAAA("miek.nl.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fef1:6735"),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	AAAA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. SsRT="),
 		},
-		Extra: []dns.RR{coretest.OPT(4096, true)},
+		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
 		Qname: "miek.nl.", Qtype: dns.TypeMX, Do: true,
 		Answer: []dns.RR{
-			coretest.MX("miek.nl.	1800	IN	MX	1 aspmx.l.google.com."),
-			coretest.MX("miek.nl.	1800	IN	MX	10 aspmx2.googlemail.com."),
-			coretest.MX("miek.nl.	1800	IN	MX	10 aspmx3.googlemail.com."),
-			coretest.MX("miek.nl.	1800	IN	MX	5 alt1.aspmx.l.google.com."),
-			coretest.MX("miek.nl.	1800	IN	MX	5 alt2.aspmx.l.google.com."),
-			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	MX 8 2 1800 20160426031301 20160327031301 12051 miek.nl. kLqG+iOr="),
+			test.MX("miek.nl.	1800	IN	MX	1 aspmx.l.google.com."),
+			test.MX("miek.nl.	1800	IN	MX	10 aspmx2.googlemail.com."),
+			test.MX("miek.nl.	1800	IN	MX	10 aspmx3.googlemail.com."),
+			test.MX("miek.nl.	1800	IN	MX	5 alt1.aspmx.l.google.com."),
+			test.MX("miek.nl.	1800	IN	MX	5 alt2.aspmx.l.google.com."),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	MX 8 2 1800 20160426031301 20160327031301 12051 miek.nl. kLqG+iOr="),
 		},
-		Extra: []dns.RR{coretest.OPT(4096, true)},
+		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
 		Qname: "www.miek.nl.", Qtype: dns.TypeA, Do: true,
 		Answer: []dns.RR{
-			coretest.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
+			test.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
 		},
 
 		Extra: []dns.RR{
-			coretest.OPT(4096, true),
-			coretest.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
-			coretest.RRSIG("a.miek.nl.	1800	IN	RRSIG	A 8 3 1800 20160426031301 20160327031301 12051 miek.nl. lxLotCjWZ3kihTxk="),
+			test.OPT(4096, true),
+			test.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
+			test.RRSIG("a.miek.nl.	1800	IN	RRSIG	A 8 3 1800 20160426031301 20160327031301 12051 miek.nl. lxLotCjWZ3kihTxk="),
 		},
 	},
 	{
 		// NoData
 		Qname: "a.miek.nl.", Qtype: dns.TypeSRV, Do: true,
 		Ns: []dns.RR{
-			coretest.NSEC("a.miek.nl.	14400	IN	NSEC	archive.miek.nl. A AAAA RRSIG NSEC"),
-			coretest.RRSIG("a.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160426031301 20160327031301 12051 miek.nl. GqnF6cutipmSHEao="),
-			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
-			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+			test.NSEC("a.miek.nl.	14400	IN	NSEC	archive.miek.nl. A AAAA RRSIG NSEC"),
+			test.RRSIG("a.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160426031301 20160327031301 12051 miek.nl. GqnF6cutipmSHEao="),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
+			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
-		Extra: []dns.RR{coretest.OPT(4096, true)},
+		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
 		Qname: "b.miek.nl.", Qtype: dns.TypeA, Do: true,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
-			coretest.NSEC("archive.miek.nl.	14400	IN	NSEC	go.dns.miek.nl. CNAME RRSIG NSEC"),
-			coretest.RRSIG("archive.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160426031301 20160327031301 12051 miek.nl. jEpx8lcp4do5fWXg="),
-			coretest.NSEC("miek.nl.	14400	IN	NSEC	a.miek.nl. A NS SOA MX AAAA RRSIG NSEC DNSKEY"),
-			coretest.RRSIG("miek.nl.	14400	IN	RRSIG	NSEC 8 2 14400 20160426031301 20160327031301 12051 miek.nl. mFfc3r/9PSC1H6oSpdC"),
-			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
-			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+			test.NSEC("archive.miek.nl.	14400	IN	NSEC	go.dns.miek.nl. CNAME RRSIG NSEC"),
+			test.RRSIG("archive.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160426031301 20160327031301 12051 miek.nl. jEpx8lcp4do5fWXg="),
+			test.NSEC("miek.nl.	14400	IN	NSEC	a.miek.nl. A NS SOA MX AAAA RRSIG NSEC DNSKEY"),
+			test.RRSIG("miek.nl.	14400	IN	RRSIG	NSEC 8 2 14400 20160426031301 20160327031301 12051 miek.nl. mFfc3r/9PSC1H6oSpdC"),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
+			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
-		Extra: []dns.RR{coretest.OPT(4096, true)},
+		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
 		Qname: "b.blaat.miek.nl.", Qtype: dns.TypeA, Do: true,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
-			coretest.NSEC("archive.miek.nl.	14400	IN	NSEC	go.dns.miek.nl. CNAME RRSIG NSEC"),
-			coretest.RRSIG("archive.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160426031301 20160327031301 12051 miek.nl. jEpx8lcp4do5fWXg="),
-			coretest.NSEC("miek.nl.	14400	IN	NSEC	a.miek.nl. A NS SOA MX AAAA RRSIG NSEC DNSKEY"),
-			coretest.RRSIG("miek.nl.	14400	IN	RRSIG	NSEC 8 2 14400 20160426031301 20160327031301 12051 miek.nl. mFfc3r/9PSC1H6oSpdC"),
-			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
-			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+			test.NSEC("archive.miek.nl.	14400	IN	NSEC	go.dns.miek.nl. CNAME RRSIG NSEC"),
+			test.RRSIG("archive.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160426031301 20160327031301 12051 miek.nl. jEpx8lcp4do5fWXg="),
+			test.NSEC("miek.nl.	14400	IN	NSEC	a.miek.nl. A NS SOA MX AAAA RRSIG NSEC DNSKEY"),
+			test.RRSIG("miek.nl.	14400	IN	RRSIG	NSEC 8 2 14400 20160426031301 20160327031301 12051 miek.nl. mFfc3r/9PSC1H6oSpdC"),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
+			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
-		Extra: []dns.RR{coretest.OPT(4096, true)},
+		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 	{
 		Qname: "b.a.miek.nl.", Qtype: dns.TypeA, Do: true,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
 			// dedupped NSEC, because 1 nsec tells all
-			coretest.NSEC("a.miek.nl.	14400	IN	NSEC	archive.miek.nl. A AAAA RRSIG NSEC"),
-			coretest.RRSIG("a.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160426031301 20160327031301 12051 miek.nl. GqnF6cut/RRGPQ1QGQE1ipmSHEao="),
-			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
-			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+			test.NSEC("a.miek.nl.	14400	IN	NSEC	archive.miek.nl. A AAAA RRSIG NSEC"),
+			test.RRSIG("a.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160426031301 20160327031301 12051 miek.nl. GqnF6cut/RRGPQ1QGQE1ipmSHEao="),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
+			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
-		Extra: []dns.RR{coretest.OPT(4096, true)},
+		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 }
 
@@ -111,13 +111,13 @@ func TestLookupDNSSEC(t *testing.T) {
 		t.Fatalf("expect no error when reading zone, got %q", err)
 	}
 
-	fm := File{Next: coretest.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}
+	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}
 	ctx := context.TODO()
 
 	for _, tc := range dnssecTestCases {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
@@ -125,23 +125,23 @@ func TestLookupDNSSEC(t *testing.T) {
 		}
 		resp := rec.Msg()
 
-		sort.Sort(coretest.RRSet(resp.Answer))
-		sort.Sort(coretest.RRSet(resp.Ns))
-		sort.Sort(coretest.RRSet(resp.Extra))
+		sort.Sort(test.RRSet(resp.Answer))
+		sort.Sort(test.RRSet(resp.Ns))
+		sort.Sort(test.RRSet(resp.Extra))
 
-		if !coretest.Header(t, tc, resp) {
+		if !test.Header(t, tc, resp) {
 			t.Logf("%v\n", resp)
 			continue
 		}
 
-		if !coretest.Section(t, tc, coretest.Answer, resp.Answer) {
+		if !test.Section(t, tc, test.Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.Section(t, tc, coretest.Ns, resp.Ns) {
+		if !test.Section(t, tc, test.Ns, resp.Ns) {
 			t.Logf("%v\n", resp)
 
 		}
-		if !coretest.Section(t, tc, coretest.Extra, resp.Extra) {
+		if !test.Section(t, tc, test.Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
 		}
 	}
@@ -153,20 +153,20 @@ func BenchmarkLookupDNSSEC(b *testing.B) {
 		return
 	}
 
-	fm := File{Next: coretest.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}
+	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}
 	ctx := context.TODO()
-	rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+	rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 
-	tc := coretest.Case{
+	tc := test.Case{
 		Qname: "b.miek.nl.", Qtype: dns.TypeA, Do: true,
 		Rcode: dns.RcodeNameError,
 		Ns: []dns.RR{
-			coretest.NSEC("archive.miek.nl.	14400	IN	NSEC	go.dns.miek.nl. CNAME RRSIG NSEC"),
-			coretest.RRSIG("archive.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160426031301 20160327031301 12051 miek.nl. jEpx8lcp4do5fWXg="),
-			coretest.NSEC("miek.nl.	14400	IN	NSEC	a.miek.nl. A NS SOA MX AAAA RRSIG NSEC DNSKEY"),
-			coretest.RRSIG("miek.nl.	14400	IN	RRSIG	NSEC 8 2 14400 20160426031301 20160327031301 12051 miek.nl. mFfc3r/9PSC1H6oSpdC"),
-			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
-			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+			test.NSEC("archive.miek.nl.	14400	IN	NSEC	go.dns.miek.nl. CNAME RRSIG NSEC"),
+			test.RRSIG("archive.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160426031301 20160327031301 12051 miek.nl. jEpx8lcp4do5fWXg="),
+			test.NSEC("miek.nl.	14400	IN	NSEC	a.miek.nl. A NS SOA MX AAAA RRSIG NSEC DNSKEY"),
+			test.RRSIG("miek.nl.	14400	IN	RRSIG	NSEC 8 2 14400 20160426031301 20160327031301 12051 miek.nl. mFfc3r/9PSC1H6oSpdC"),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
+			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
 	}
 

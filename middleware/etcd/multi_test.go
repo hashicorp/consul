@@ -11,7 +11,7 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 )
@@ -19,7 +19,7 @@ import (
 func TestMultiLookup(t *testing.T) {
 	etcMulti := etc
 	etcMulti.Zones = []string{"skydns.test.", "miek.nl."}
-	etcMulti.Next = coretest.ErrorHandler()
+	etcMulti.Next = test.ErrorHandler()
 
 	for _, serv := range servicesMulti {
 		set(t, etcMulti, serv.Key, 0, serv)
@@ -28,7 +28,7 @@ func TestMultiLookup(t *testing.T) {
 	for _, tc := range dnsTestCasesMulti {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 		_, err := etcMulti.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
@@ -36,21 +36,21 @@ func TestMultiLookup(t *testing.T) {
 		}
 		resp := rec.Msg()
 
-		sort.Sort(coretest.RRSet(resp.Answer))
-		sort.Sort(coretest.RRSet(resp.Ns))
-		sort.Sort(coretest.RRSet(resp.Extra))
+		sort.Sort(test.RRSet(resp.Answer))
+		sort.Sort(test.RRSet(resp.Ns))
+		sort.Sort(test.RRSet(resp.Extra))
 
-		if !coretest.Header(t, tc, resp) {
+		if !test.Header(t, tc, resp) {
 			t.Logf("%v\n", resp)
 			continue
 		}
-		if !coretest.Section(t, tc, coretest.Answer, resp.Answer) {
+		if !test.Section(t, tc, coretest.Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.Section(t, tc, coretest.Ns, resp.Ns) {
+		if !test.Section(t, tc, coretest.Ns, resp.Ns) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.Section(t, tc, coretest.Extra, resp.Extra) {
+		if !test.Section(t, tc, coretest.Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
 		}
 	}
@@ -63,14 +63,14 @@ var servicesMulti = []*msg.Service{
 	{Host: "dev.server1", Port: 8080, Key: "a.server1.dev.region1.example.org."},
 }
 
-var dnsTestCasesMulti = []coretest.Case{
+var dnsTestCasesMulti = []test.Case{
 	{
 		Qname: "a.server1.dev.region1.skydns.test.", Qtype: dns.TypeSRV,
-		Answer: []dns.RR{coretest.SRV("a.server1.dev.region1.skydns.test. 300 SRV 10 100 8080 dev.server1.")},
+		Answer: []dns.RR{test.SRV("a.server1.dev.region1.skydns.test. 300 SRV 10 100 8080 dev.server1.")},
 	},
 	{
 		Qname: "a.server1.dev.region1.miek.nl.", Qtype: dns.TypeSRV,
-		Answer: []dns.RR{coretest.SRV("a.server1.dev.region1.miek.nl. 300 SRV 10 100 8080 dev.server1.")},
+		Answer: []dns.RR{test.SRV("a.server1.dev.region1.miek.nl. 300 SRV 10 100 8080 dev.server1.")},
 	},
 	{
 		Qname: "a.server1.dev.region1.example.org.", Qtype: dns.TypeSRV, Rcode: dns.RcodeServerFailure,

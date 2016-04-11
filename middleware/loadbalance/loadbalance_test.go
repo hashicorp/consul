@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -56,7 +56,7 @@ func TestLoadBalance(t *testing.T) {
 		},
 	}
 
-	rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+	rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 
 	for i, test := range tests {
 		req := new(dns.Msg)

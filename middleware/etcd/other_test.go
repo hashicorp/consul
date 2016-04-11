@@ -14,7 +14,7 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 )
@@ -27,7 +27,7 @@ func TestOtherLookup(t *testing.T) {
 	for _, tc := range dnsTestCasesOther {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 		_, err := etc.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
@@ -35,21 +35,21 @@ func TestOtherLookup(t *testing.T) {
 		}
 		resp := rec.Msg()
 
-		sort.Sort(coretest.RRSet(resp.Answer))
-		sort.Sort(coretest.RRSet(resp.Ns))
-		sort.Sort(coretest.RRSet(resp.Extra))
+		sort.Sort(test.RRSet(resp.Answer))
+		sort.Sort(test.RRSet(resp.Ns))
+		sort.Sort(test.RRSet(resp.Extra))
 
-		if !coretest.Header(t, tc, resp) {
+		if !test.Header(t, tc, resp) {
 			t.Logf("%v\n", resp)
 			continue
 		}
-		if !coretest.Section(t, tc, coretest.Answer, resp.Answer) {
+		if !test.Section(t, tc, coretest.Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.Section(t, tc, coretest.Ns, resp.Ns) {
+		if !test.Section(t, tc, coretest.Ns, resp.Ns) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.Section(t, tc, coretest.Extra, resp.Extra) {
+		if !test.Section(t, tc, coretest.Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
 		}
 	}
@@ -79,57 +79,57 @@ var servicesOther = []*msg.Service{
 	{Host: "10.11.11.10", Key: "https.multiport.http.skydns.test.", Port: 443},
 }
 
-var dnsTestCasesOther = []coretest.Case{
+var dnsTestCasesOther = []test.Case{
 	// MX Tests
 	{
 		// NODATA as this is not an Mail: true record.
 		Qname: "a.server1.dev.region1.skydns.test.", Qtype: dns.TypeMX,
 		Ns: []dns.RR{
-			coretest.SOA("skydns.test. 300 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0"),
+			test.SOA("skydns.test. 300 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0"),
 		},
 	},
 	{
 		Qname: "a.mail.skydns.test.", Qtype: dns.TypeMX,
-		Answer: []dns.RR{coretest.MX("a.mail.skydns.test. 300 IN MX 50 mx.skydns.test.")},
+		Answer: []dns.RR{test.MX("a.mail.skydns.test. 300 IN MX 50 mx.skydns.test.")},
 		Extra: []dns.RR{
-			coretest.A("a.ipaddr.skydns.test.	300	IN	A	172.16.1.1"),
-			coretest.CNAME("mx.skydns.test.	300	IN	CNAME	a.ipaddr.skydns.test."),
+			test.A("a.ipaddr.skydns.test.	300	IN	A	172.16.1.1"),
+			test.CNAME("mx.skydns.test.	300	IN	CNAME	a.ipaddr.skydns.test."),
 		},
 	},
 	{
 		Qname: "mx2.skydns.test.", Qtype: dns.TypeMX,
 		Answer: []dns.RR{
-			coretest.MX("mx2.skydns.test. 300 IN MX 10 a.ipaddr.skydns.test."),
-			coretest.MX("mx2.skydns.test. 300 IN MX 10 b.ipaddr.skydns.test."),
+			test.MX("mx2.skydns.test. 300 IN MX 10 a.ipaddr.skydns.test."),
+			test.MX("mx2.skydns.test. 300 IN MX 10 b.ipaddr.skydns.test."),
 		},
 		Extra: []dns.RR{
-			coretest.A("a.ipaddr.skydns.test. 300 A 172.16.1.1"),
-			coretest.A("b.ipaddr.skydns.test. 300 A 172.16.1.2"),
+			test.A("a.ipaddr.skydns.test. 300 A 172.16.1.1"),
+			test.A("b.ipaddr.skydns.test. 300 A 172.16.1.2"),
 		},
 	},
 	// Txt
 	{
 		Qname: "a1.txt.skydns.test.", Qtype: dns.TypeTXT,
 		Answer: []dns.RR{
-			coretest.TXT("a1.txt.skydns.test. 300 IN TXT \"abc\""),
+			test.TXT("a1.txt.skydns.test. 300 IN TXT \"abc\""),
 		},
 	},
 	{
 		Qname: "a2.txt.skydns.test.", Qtype: dns.TypeTXT,
 		Answer: []dns.RR{
-			coretest.TXT("a2.txt.skydns.test. 300 IN TXT \"abc abc\""),
+			test.TXT("a2.txt.skydns.test. 300 IN TXT \"abc abc\""),
 		},
 	},
 	{
 		Qname: "txt.skydns.test.", Qtype: dns.TypeTXT,
 		Answer: []dns.RR{
-			coretest.TXT("txt.skydns.test. 300 IN TXT \"abc abc\""),
-			coretest.TXT("txt.skydns.test. 300 IN TXT \"abc\""),
+			test.TXT("txt.skydns.test. 300 IN TXT \"abc abc\""),
+			test.TXT("txt.skydns.test. 300 IN TXT \"abc\""),
 		},
 	},
 	// Duplicate IP address test
 	{
 		Qname: "multiport.http.skydns.test.", Qtype: dns.TypeA,
-		Answer: []dns.RR{coretest.A("multiport.http.skydns.test. 300 IN A 10.11.11.10")},
+		Answer: []dns.RR{test.A("multiport.http.skydns.test. 300 IN A 10.11.11.10")},
 	},
 }

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/miekg/coredns/middleware"
+
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 // ErrorHandler handles DNS errors (and errors from other middleware).

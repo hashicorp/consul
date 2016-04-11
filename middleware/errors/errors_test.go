@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -44,23 +44,23 @@ func TestErrors(t *testing.T) {
 	req := new(dns.Msg)
 	req.SetQuestion("example.org.", dns.TypeA)
 
-	for i, test := range tests {
-		em.Next = test.next
+	for i, tc := range tests {
+		em.Next = tc.next
 		buf.Reset()
-		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 		code, err := em.ServeDNS(ctx, rec, req)
 
-		if err != test.expectedErr {
+		if err != tc.expectedErr {
 			t.Errorf("Test %d: Expected error %v, but got %v",
-				i, test.expectedErr, err)
+				i, tc.expectedErr, err)
 		}
-		if code != test.expectedCode {
+		if code != tc.expectedCode {
 			t.Errorf("Test %d: Expected status code %d, but got %d",
-				i, test.expectedCode, code)
+				i, tc.expectedCode, code)
 		}
-		if log := buf.String(); !strings.Contains(log, test.expectedLog) {
+		if log := buf.String(); !strings.Contains(log, tc.expectedLog) {
 			t.Errorf("Test %d: Expected log %q, but got %q",
-				i, test.expectedLog, log)
+				i, tc.expectedLog, log)
 		}
 	}
 }
@@ -78,7 +78,7 @@ func TestVisibleErrorWithPanic(t *testing.T) {
 	req := new(dns.Msg)
 	req.SetQuestion("example.org.", dns.TypeA)
 
-	rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+	rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 
 	code, err := eh.ServeDNS(ctx, rec, req)
 	if code != 0 {

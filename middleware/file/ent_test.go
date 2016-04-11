@@ -6,28 +6,28 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
 
-var entTestCases = []coretest.Case{
+var entTestCases = []test.Case{
 	{
 		Qname: "b.c.miek.nl.", Qtype: dns.TypeA,
 		Ns: []dns.RR{
-			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
 	},
 	{
 		Qname: "b.c.miek.nl.", Qtype: dns.TypeA, Do: true,
 		Ns: []dns.RR{
-			coretest.NSEC("a.miek.nl.	14400	IN	NSEC	a.b.c.miek.nl. A RRSIG NSEC"),
-			coretest.RRSIG("a.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160502144311 20160402144311 12051 miek.nl. d5XZEy6SUpq98ZKUlzqhAfkLI9pQPc="),
-			coretest.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160502144311 20160402144311 12051 miek.nl. KegoBxA3Tbrhlc4cEdkRiteIkOfsq"),
-			coretest.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+			test.NSEC("a.miek.nl.	14400	IN	NSEC	a.b.c.miek.nl. A RRSIG NSEC"),
+			test.RRSIG("a.miek.nl.	14400	IN	RRSIG	NSEC 8 3 14400 20160502144311 20160402144311 12051 miek.nl. d5XZEy6SUpq98ZKUlzqhAfkLI9pQPc="),
+			test.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160502144311 20160402144311 12051 miek.nl. KegoBxA3Tbrhlc4cEdkRiteIkOfsq"),
+			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
-		Extra: []dns.RR{coretest.OPT(4096, true)},
+		Extra: []dns.RR{test.OPT(4096, true)},
 	},
 }
 
@@ -37,13 +37,13 @@ func TestLookupENT(t *testing.T) {
 		t.Fatalf("expect no error when reading zone, got %q", err)
 	}
 
-	fm := File{Next: coretest.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}
+	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}
 	ctx := context.TODO()
 
 	for _, tc := range entTestCases {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
@@ -51,23 +51,23 @@ func TestLookupENT(t *testing.T) {
 		}
 		resp := rec.Msg()
 
-		sort.Sort(coretest.RRSet(resp.Answer))
-		sort.Sort(coretest.RRSet(resp.Ns))
-		sort.Sort(coretest.RRSet(resp.Extra))
+		sort.Sort(test.RRSet(resp.Answer))
+		sort.Sort(test.RRSet(resp.Ns))
+		sort.Sort(test.RRSet(resp.Extra))
 
-		if !coretest.Header(t, tc, resp) {
+		if !test.Header(t, tc, resp) {
 			t.Logf("%v\n", resp)
 			continue
 		}
 
-		if !coretest.Section(t, tc, coretest.Answer, resp.Answer) {
+		if !test.Section(t, tc, test.Answer, resp.Answer) {
 			t.Logf("%v\n", resp)
 		}
-		if !coretest.Section(t, tc, coretest.Ns, resp.Ns) {
+		if !test.Section(t, tc, test.Ns, resp.Ns) {
 			t.Logf("%v\n", resp)
 
 		}
-		if !coretest.Section(t, tc, coretest.Extra, resp.Extra) {
+		if !test.Section(t, tc, test.Extra, resp.Extra) {
 			t.Logf("%v\n", resp)
 		}
 	}

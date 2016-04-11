@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 )
@@ -46,14 +46,14 @@ func (s *soa) Handler(w dns.ResponseWriter, req *dns.Msg) {
 	switch req.Question[0].Qtype {
 	case dns.TypeSOA:
 		m.Answer = make([]dns.RR, 1)
-		m.Answer[0] = coretest.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, s.serial))
+		m.Answer[0] = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, s.serial))
 		w.WriteMsg(m)
 	case dns.TypeAXFR:
 		m.Answer = make([]dns.RR, 4)
-		m.Answer[0] = coretest.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, s.serial))
-		m.Answer[1] = coretest.A(fmt.Sprintf("%s IN A 127.0.0.1", testZone))
-		m.Answer[2] = coretest.A(fmt.Sprintf("%s IN A 127.0.0.1", testZone))
-		m.Answer[3] = coretest.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, s.serial))
+		m.Answer[0] = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, s.serial))
+		m.Answer[1] = test.A(fmt.Sprintf("%s IN A 127.0.0.1", testZone))
+		m.Answer[2] = test.A(fmt.Sprintf("%s IN A 127.0.0.1", testZone))
+		m.Answer[3] = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, s.serial))
 		w.WriteMsg(m)
 	}
 }
@@ -62,7 +62,7 @@ func (s *soa) TransferHandler(w dns.ResponseWriter, req *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(req)
 	m.Answer = make([]dns.RR, 1)
-	m.Answer[0] = coretest.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, s.serial))
+	m.Answer[0] = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, s.serial))
 	w.WriteMsg(m)
 }
 
@@ -74,7 +74,7 @@ func TestShouldTransfer(t *testing.T) {
 	dns.HandleFunc(testZone, soa.Handler)
 	defer dns.HandleRemove(testZone)
 
-	s, addrstr, err := coretest.TCPServer("127.0.0.1:0")
+	s, addrstr, err := test.TCPServer("127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestShouldTransfer(t *testing.T) {
 	z.TransferFrom = []string{addrstr}
 
 	// Serial smaller
-	z.SOA = coretest.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, soa.serial-1))
+	z.SOA = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, soa.serial-1))
 	should, err := z.shouldTransfer()
 	if err != nil {
 		t.Fatalf("unable to run shouldTransfer: %v", err)
@@ -94,7 +94,7 @@ func TestShouldTransfer(t *testing.T) {
 		t.Fatalf("shouldTransfer should return true for serial: %q", soa.serial-1)
 	}
 	// Serial equal
-	z.SOA = coretest.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, soa.serial))
+	z.SOA = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, soa.serial))
 	should, err = z.shouldTransfer()
 	if err != nil {
 		t.Fatalf("unable to run shouldTransfer: %v", err)
@@ -110,7 +110,7 @@ func TestTransferIn(t *testing.T) {
 	dns.HandleFunc(testZone, soa.Handler)
 	defer dns.HandleRemove(testZone)
 
-	s, addrstr, err := coretest.TCPServer("127.0.0.1:0")
+	s, addrstr, err := test.TCPServer("127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
 	}
@@ -152,5 +152,5 @@ func NewState(zone string, qtype uint16) middleware.State {
 	m := new(dns.Msg)
 	m.SetQuestion("example.com.", dns.TypeA)
 	m.SetEdns0(4097, true)
-	return middleware.State{W: &coretest.ResponseWriter{}, Req: m}
+	return middleware.State{W: &test.ResponseWriter{}, Req: m}
 }

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
-	coretest "github.com/miekg/coredns/middleware/testing"
+	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -45,23 +45,23 @@ func TestRewrite(t *testing.T) {
 	}
 
 	ctx := context.TODO()
-	for i, test := range tests {
+	for i, tc := range tests {
 		m := new(dns.Msg)
-		m.SetQuestion(test.from, test.fromT)
-		m.Question[0].Qclass = test.fromC
+		m.SetQuestion(tc.from, tc.fromT)
+		m.Question[0].Qclass = tc.fromC
 
-		rec := middleware.NewResponseRecorder(&coretest.ResponseWriter{})
+		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 		rw.ServeDNS(ctx, rec, m)
 		resp := rec.Msg()
 
-		if resp.Question[0].Name != test.to {
-			t.Errorf("Test %d: Expected Name to be '%s' but was '%s'", i, test.to, resp.Question[0].Name)
+		if resp.Question[0].Name != tc.to {
+			t.Errorf("Test %d: Expected Name to be '%s' but was '%s'", i, tc.to, resp.Question[0].Name)
 		}
-		if resp.Question[0].Qtype != test.toT {
-			t.Errorf("Test %d: Expected Type to be '%d' but was '%d'", i, test.toT, resp.Question[0].Qtype)
+		if resp.Question[0].Qtype != tc.toT {
+			t.Errorf("Test %d: Expected Type to be '%d' but was '%d'", i, tc.toT, resp.Question[0].Qtype)
 		}
-		if resp.Question[0].Qclass != test.toC {
-			t.Errorf("Test %d: Expected Class to be '%d' but was '%d'", i, test.toC, resp.Question[0].Qclass)
+		if resp.Question[0].Qclass != tc.toC {
+			t.Errorf("Test %d: Expected Class to be '%d' but was '%d'", i, tc.toC, resp.Question[0].Qclass)
 		}
 	}
 
