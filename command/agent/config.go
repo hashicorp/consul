@@ -312,6 +312,14 @@ type Config struct {
 	RetryIntervalWan    time.Duration `mapstructure:"-" json:"-"`
 	RetryIntervalWanRaw string        `mapstructure:"retry_interval_wan"`
 
+	// ReconnectTimeout* specify the amount of time to wait to reconnect with
+	// another agent before deciding it's permanently gone. This can be used to
+	// control the time it takes to reap failed nodes from the cluster.
+	ReconnectTimeoutLan    time.Duration `mapstructure:"-"`
+	ReconnectTimeoutLanRaw string        `mapstructure:"reconnect_timeout"`
+	ReconnectTimeoutWan    time.Duration `mapstructure:"-"`
+	ReconnectTimeoutWanRaw string        `mapstructure:"reconnect_timeout_wan"`
+
 	// EnableUi enables the statically-compiled assets for the Consul web UI and
 	// serves them at the default /ui/ endpoint automatically.
 	EnableUi bool `mapstructure:"ui"`
@@ -778,6 +786,22 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.RetryIntervalWan = dur
 	}
 
+	if raw := result.ReconnectTimeoutLanRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("ReconnectTimeoutLan invalid: %v", err)
+		}
+		result.ReconnectTimeoutLan = dur
+	}
+
+	if raw := result.ReconnectTimeoutWanRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("ReconnectTimeoutWan invalid: %v", err)
+		}
+		result.ReconnectTimeoutWan = dur
+	}
+
 	// Merge the single recursor
 	if result.DNSRecursor != "" {
 		result.DNSRecursors = append(result.DNSRecursors, result.DNSRecursor)
@@ -1130,6 +1154,14 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.RetryIntervalWan != 0 {
 		result.RetryIntervalWan = b.RetryIntervalWan
+	}
+	if b.ReconnectTimeoutLan != 0 {
+		result.ReconnectTimeoutLan = b.ReconnectTimeoutLan
+		result.ReconnectTimeoutLanRaw = b.ReconnectTimeoutLanRaw
+	}
+	if b.ReconnectTimeoutWan != 0 {
+		result.ReconnectTimeoutWan = b.ReconnectTimeoutWan
+		result.ReconnectTimeoutWanRaw = b.ReconnectTimeoutWanRaw
 	}
 	if b.DNSConfig.NodeTTL != 0 {
 		result.DNSConfig.NodeTTL = b.DNSConfig.NodeTTL

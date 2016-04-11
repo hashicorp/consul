@@ -580,6 +580,17 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   automatically reap child processes if it detects it is running as PID 1. If this is set to true or false, then
   it controls reaping regardless of Consul's PID (forces reaping on or off, respectively).
 
+* <a name="reconnect_timeout"></a><a href="#reconnect_timeout">`reconnect_timeout`</a> This controls
+  how long it takes for a failed node to be completely removed from the cluster. This defaults to
+  72 hours and it is recommended that this is set to at least double the maximum expected recoverable
+  outage time for a node or network partition. The value is a time with a unit suffix, which can be
+  "s", "m", "h" for seconds, minutes, or hours.
+
+* <a name="reconnect_timeout_wan"></a><a href="#reconnect_timeout_wan">`reconnect_timeout_wan`</a> This
+  is the WAN equivalent of the <a href="#reconnect_timeout">`reconnect_timeout`</a> parameter, which
+  controls how long it takes for a failed server to be completely removed from the WAN pool. This also
+  defaults to 72 hours.
+
 * <a name="recursor"></a><a href="#recursor">`recursor`</a> Provides a single recursor address.
   This has been deprecated, and the value is appended to the [`recursors`](#recursors) list for
   backwards compatibility.

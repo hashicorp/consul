@@ -299,6 +299,12 @@ func (a *Agent) consulConfig() *consul.Config {
 		base.SerfWANConfig.MemberlistConfig.AdvertiseAddr = a.config.AdvertiseAddrs.SerfWan.IP.String()
 		base.SerfWANConfig.MemberlistConfig.AdvertisePort = a.config.AdvertiseAddrs.SerfWan.Port
 	}
+	if a.config.ReconnectTimeoutLan != 0 {
+		base.SerfLANConfig.ReconnectTimeout = a.config.ReconnectTimeoutLan
+	}
+	if a.config.ReconnectTimeoutWan != 0 {
+		base.SerfWANConfig.ReconnectTimeout = a.config.ReconnectTimeoutWan
+	}
 	if a.config.AdvertiseAddrs.RPC != nil {
 		base.RPCAdvertise = a.config.AdvertiseAddrs.RPC
 	}

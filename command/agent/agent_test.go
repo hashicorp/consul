@@ -176,6 +176,43 @@ func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
 	}
 }
 
+func TestAgent_ReconnectConfigSettings(t *testing.T) {
+	c := nextConfig()
+	func() {
+		dir, agent := makeAgent(t, c)
+		defer os.RemoveAll(dir)
+		defer agent.Shutdown()
+
+		lan := agent.consulConfig().SerfLANConfig.ReconnectTimeout
+		if lan != 3*24*time.Hour {
+			t.Fatalf("bad: %s", lan.String())
+		}
+
+		wan := agent.consulConfig().SerfWANConfig.ReconnectTimeout
+		if wan != 3*24*time.Hour {
+			t.Fatalf("bad: %s", wan.String())
+		}
+	}()
+
+	c.ReconnectTimeoutLan = 2 * time.Hour
+	c.ReconnectTimeoutWan = 3 * time.Hour
+	func() {
+		dir, agent := makeAgent(t, c)
+		defer os.RemoveAll(dir)
+		defer agent.Shutdown()
+
+		lan := agent.consulConfig().SerfLANConfig.ReconnectTimeout
+		if lan != 2*time.Hour {
+			t.Fatalf("bad: %s", lan.String())
+		}
+
+		wan := agent.consulConfig().SerfWANConfig.ReconnectTimeout
+		if wan != 3*time.Hour {
+			t.Fatalf("bad: %s", wan.String())
+		}
+	}()
+}
+
 func TestAgent_AddService(t *testing.T) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
