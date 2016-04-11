@@ -439,7 +439,7 @@ func (l *localState) setSyncState() error {
 			eCopy := existing.Clone()
 
 			// Copy the server's check before modifying, otherwise
-			// in-memory RPC-based unit tests will have side effects.
+			// in-memory RPCs will have side effects.
 			cCopy := check.Clone()
 
 			// If there's a defer timer active then we've got a
