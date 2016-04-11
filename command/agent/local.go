@@ -436,13 +436,11 @@ func (l *localState) setSyncState() error {
 		} else {
 			// Copy the existing check before potentially modifying
 			// it before the compare operation.
-			eCopy := new(structs.HealthCheck)
-			*eCopy = *existing
+			eCopy := existing.Clone()
 
 			// Copy the server's check before modifying, otherwise
 			// in-memory RPC-based unit tests will have side effects.
-			cCopy := new(structs.HealthCheck)
-			*cCopy = *check
+			cCopy := check.Clone()
 
 			// If there's a defer timer active then we've got a
 			// potentially spammy check so we don't sync the output
