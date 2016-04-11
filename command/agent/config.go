@@ -786,18 +786,24 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.RetryIntervalWan = dur
 	}
 
+	const reconnectTimeoutMin = 8 * time.Hour
 	if raw := result.ReconnectTimeoutLanRaw; raw != "" {
 		dur, err := time.ParseDuration(raw)
 		if err != nil {
 			return nil, fmt.Errorf("ReconnectTimeoutLan invalid: %v", err)
 		}
+		if dur < reconnectTimeoutMin {
+			return nil, fmt.Errorf("ReconnectTimeoutLan must be >= %s", reconnectTimeoutMin.String())
+		}
 		result.ReconnectTimeoutLan = dur
 	}
-
 	if raw := result.ReconnectTimeoutWanRaw; raw != "" {
 		dur, err := time.ParseDuration(raw)
 		if err != nil {
 			return nil, fmt.Errorf("ReconnectTimeoutWan invalid: %v", err)
+		}
+		if dur < reconnectTimeoutMin {
+			return nil, fmt.Errorf("ReconnectTimeoutWan must be >= %s", reconnectTimeoutMin.String())
 		}
 		result.ReconnectTimeoutWan = dur
 	}

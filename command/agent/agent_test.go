@@ -194,20 +194,20 @@ func TestAgent_ReconnectConfigSettings(t *testing.T) {
 		}
 	}()
 
-	c.ReconnectTimeoutLan = 2 * time.Hour
-	c.ReconnectTimeoutWan = 3 * time.Hour
+	c.ReconnectTimeoutLan = 24 * time.Hour
+	c.ReconnectTimeoutWan = 36 * time.Hour
 	func() {
 		dir, agent := makeAgent(t, c)
 		defer os.RemoveAll(dir)
 		defer agent.Shutdown()
 
 		lan := agent.consulConfig().SerfLANConfig.ReconnectTimeout
-		if lan != 2*time.Hour {
+		if lan != 24*time.Hour {
 			t.Fatalf("bad: %s", lan.String())
 		}
 
 		wan := agent.consulConfig().SerfWANConfig.ReconnectTimeout
-		if wan != 3*time.Hour {
+		if wan != 36*time.Hour {
 			t.Fatalf("bad: %s", wan.String())
 		}
 	}()

@@ -583,13 +583,15 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="reconnect_timeout"></a><a href="#reconnect_timeout">`reconnect_timeout`</a> This controls
   how long it takes for a failed node to be completely removed from the cluster. This defaults to
   72 hours and it is recommended that this is set to at least double the maximum expected recoverable
-  outage time for a node or network partition. The value is a time with a unit suffix, which can be
-  "s", "m", "h" for seconds, minutes, or hours.
+  outage time for a node or network partition. WARNING: Setting this time too low could cause Consul
+  servers to be removed from quorum during an extended node failure or partition, which could complicate
+  recovery of the cluster. The value is a time with a unit suffix, which can be "s", "m", "h" for seconds,
+  minutes, or hours. The value must be >= 8 hours.
 
 * <a name="reconnect_timeout_wan"></a><a href="#reconnect_timeout_wan">`reconnect_timeout_wan`</a> This
   is the WAN equivalent of the <a href="#reconnect_timeout">`reconnect_timeout`</a> parameter, which
   controls how long it takes for a failed server to be completely removed from the WAN pool. This also
-  defaults to 72 hours.
+  defaults to 72 hours, and must be >= 8 hours.
 
 * <a name="recursor"></a><a href="#recursor">`recursor`</a> Provides a single recursor address.
   This has been deprecated, and the value is appended to the [`recursors`](#recursors) list for

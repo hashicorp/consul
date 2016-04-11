@@ -463,16 +463,26 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Reconnect timeout LAN and WAN
-	input = `{"reconnect_timeout": "1m", "reconnect_timeout_wan": "2m"}`
+	input = `{"reconnect_timeout": "8h", "reconnect_timeout_wan": "10h"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if config.ReconnectTimeoutLanRaw != "1m" ||
-		config.ReconnectTimeoutLan.String() != "1m0s" ||
-		config.ReconnectTimeoutWanRaw != "2m" ||
-		config.ReconnectTimeoutWan.String() != "2m0s" {
+	if config.ReconnectTimeoutLanRaw != "8h" ||
+		config.ReconnectTimeoutLan.String() != "8h0m0s" ||
+		config.ReconnectTimeoutWanRaw != "10h" ||
+		config.ReconnectTimeoutWan.String() != "10h0m0s" {
 		t.Fatalf("bad: %#v", config)
+	}
+	input = `{"reconnect_timeout": "7h"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err == nil {
+		t.Fatalf("decode should have failed")
+	}
+	input = `{"reconnect_timeout_wan": "7h"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err == nil {
+		t.Fatalf("decode should have failed")
 	}
 
 	// Static UI server
@@ -1364,10 +1374,10 @@ func TestMergeConfig(t *testing.T) {
 		RetryJoinWan:           []string{"1.1.1.1"},
 		RetryIntervalWanRaw:    "10s",
 		RetryIntervalWan:       10 * time.Second,
-		ReconnectTimeoutLanRaw: "1s",
-		ReconnectTimeoutLan:    1 * time.Second,
-		ReconnectTimeoutWanRaw: "2s",
-		ReconnectTimeoutWan:    2 * time.Second,
+		ReconnectTimeoutLanRaw: "24h",
+		ReconnectTimeoutLan:    24 * time.Hour,
+		ReconnectTimeoutWanRaw: "36h",
+		ReconnectTimeoutWan:    36 * time.Hour,
 		CheckUpdateInterval:    8 * time.Minute,
 		CheckUpdateIntervalRaw: "8m",
 		ACLToken:               "1234",
