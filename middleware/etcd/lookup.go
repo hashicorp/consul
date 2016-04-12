@@ -3,6 +3,7 @@ package etcd
 import (
 	"math"
 	"net"
+	"time"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
@@ -29,9 +30,8 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR) (
 		ip := net.ParseIP(serv.Host)
 		switch {
 		case ip == nil:
-			// Try to resolve as CNAME if it's not an IP, but only if we don't create loops.
-			// TODO(miek): lowercasing, use Match in middleware?
-			if state.Name() == dns.Fqdn(serv.Host) {
+			// TODO(miek): lowercasing? Should lowercase in everything see #85
+			if middleware.Name(state.Name()).Matches(dns.Fqdn(serv.Host)) {
 				// x CNAME x is a direct loop, don't add those
 				continue
 			}
@@ -90,8 +90,7 @@ func (e Etcd) AAAA(zone string, state middleware.State, previousRecords []dns.RR
 		switch {
 		case ip == nil:
 			// Try to resolve as CNAME if it's not an IP, but only if we don't create loops.
-			// TODO(miek): lowercasing, use Match in middleware/
-			if state.Name() == dns.Fqdn(serv.Host) {
+			if middleware.Name(state.Name()).Matches(dns.Fqdn(serv.Host)) {
 				// x CNAME x is a direct loop, don't add those
 				continue
 			}
@@ -111,7 +110,6 @@ func (e Etcd) AAAA(zone string, state middleware.State, previousRecords []dns.RR
 			if err == nil {
 				// Not only have we found something we should add the CNAME and the IP addresses.
 				if len(nextRecords) > 0 {
-					// TODO(miek): sorting here?
 					records = append(records, newRecord)
 					records = append(records, nextRecords...)
 				}
@@ -314,15 +312,21 @@ func (e Etcd) TXT(zone string, state middleware.State) (records []dns.RR, err er
 	return records, nil
 }
 
-// synthesis a SOA Record.
-// TODO(miek): finish
+// SOA Record returns a SOA record.
 func (e Etcd) SOA(zone string, state middleware.State) *dns.SOA {
 	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: 300, Class: dns.ClassINET}
-	return &dns.SOA{Hdr: header, Mbox: "hostmaster." + zone, Ns: "ns.dns." + zone}
+	return &dns.SOA{Hdr: header,
+		Mbox:    "hostmaster." + zone,
+		Ns:      "ns.dns." + zone,
+		Serial:  uint32(time.Now().Unix()),
+		Refresh: 14400,
+		Retry:   3600,
+		Expire:  604800,
+		Minttl:  60,
+	}
 }
 
-// TODO(miek): NS records, DS and DNSKEY ones...? prolly so that the signing will
-// work...
+// TODO(miek): DNSKEY and friends... intercepted by the DNSSEC middleware?
 
 func isDuplicateCNAME(r *dns.CNAME, records []dns.RR) bool {
 	for _, rec := range records {

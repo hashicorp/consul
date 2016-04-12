@@ -58,7 +58,6 @@ func NewReplacer(r *dns.Msg, rr *ResponseRecorder, emptyValue string) Replacer {
 	}
 
 	// Header placeholders (case-insensitive)
-	// TODO(miek): syntax for flags and document it
 	rep.replacements[headerReplacer+"id}"] = strconv.Itoa(int(r.Id))
 	rep.replacements[headerReplacer+"opcode}"] = strconv.Itoa(int(r.Opcode))
 	rep.replacements[headerReplacer+"do}"] = boolToString(state.Do())

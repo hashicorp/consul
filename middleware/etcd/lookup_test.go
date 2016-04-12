@@ -156,4 +156,26 @@ var dnsTestCases = []test.Case{
 		Qname: "a.server1.dev.region1.skydns.test.", Qtype: dns.TypeTXT,
 		Ns: []dns.RR{test.SOA("skydns.test. 300 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0")},
 	},
+	// NODATA Test
+	{
+		Qname: "a.server1.dev.region1.skydns.test.", Qtype: dns.TypeHINFO,
+		Ns: []dns.RR{test.SOA("skydns.test. 300 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0")},
+	},
+	// NXDOMAIN Test
+	{
+		Qname: "a.server1.nonexistent.region1.skydns.test.", Qtype: dns.TypeHINFO, Rcode: dns.RcodeNameError,
+		Ns: []dns.RR{test.SOA("skydns.test. 300 SOA ns.dns.skydns.test. hostmaster.skydns.test. 0 0 0 0 0")},
+	},
+	{
+		Qname: "skydns.test.", Qtype: dns.TypeSOA,
+		Answer: []dns.RR{test.SOA("skydns.test.	300	IN	SOA	ns.dns.skydns.test. hostmaster.skydns.test. 1460498836 14400 3600 604800 60")},
+	},
+	// TODO(miek)
+	// {
+	// Qname: "skydns.test.", Qtype: dns.TypeNS,
+	// },
+	{
+		Qname: "skydns_extra.test.", Qtype: dns.TypeSOA,
+		Answer: []dns.RR{test.SOA("skydns_extra.test. 300 IN SOA ns.dns.skydns_extra.test. hostmaster.skydns_extra.test. 1460498836 14400 3600 604800 60")},
+	},
 }
