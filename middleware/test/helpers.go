@@ -108,8 +108,11 @@ func Section(t *testing.T, tc Case, sect Sect, rr []dns.RR) bool {
 		}
 		// 303 signals: don't care what the ttl is.
 		if section[i].Header().Ttl != 303 && a.Header().Ttl != section[i].Header().Ttl {
-			t.Errorf("rr %d should have a Header TTL of %d, but has %d", i, section[i].Header().Ttl, a.Header().Ttl)
-			return false
+			if _, ok := section[i].(*dns.OPT); !ok {
+				// we check edns0 bufize on this one
+				t.Errorf("rr %d should have a Header TTL of %d, but has %d", i, section[i].Header().Ttl, a.Header().Ttl)
+				return false
+			}
 		}
 		if a.Header().Rrtype != section[i].Header().Rrtype {
 			t.Errorf("rr %d should have a header rr type of %d, but has %d", i, section[i].Header().Rrtype, a.Header().Rrtype)
@@ -206,12 +209,12 @@ func Section(t *testing.T, tc Case, sect Sect, rr []dns.RR) bool {
 			}
 		case *dns.OPT:
 			tt := section[i].(*dns.OPT)
-			if x.Do() != tt.Do() {
-				t.Errorf("OPT DO should be %q, but is %q", x.Do(), tt.Do())
+			if x.UDPSize() != tt.UDPSize() {
+				t.Errorf("OPT UDPSize should be %d, but is %d", tt.UDPSize(), x.UDPSize())
 				return false
 			}
-			if x.UDPSize() != tt.UDPSize() {
-				t.Errorf("OPT UDPSize should be %q, but is %q", x.UDPSize(), tt.UDPSize())
+			if x.Do() != tt.Do() {
+				t.Errorf("OPT DO should be %t, but is %t", tt.Do(), x.Do())
 				return false
 			}
 		}

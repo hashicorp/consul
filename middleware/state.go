@@ -125,24 +125,25 @@ func (s *State) Size() int {
 }
 
 // SizeAndDo adds an OPT record that the reflects the intent from state.
-// The returned bool indicated if an record was added.
+// The returned bool indicated if an record was found and normalised.
 func (s *State) SizeAndDo(m *dns.Msg) bool {
 	o := s.Req.IsEdns0() // TODO(miek): speed this up
 	if o == nil {
 		return false
 	}
-
-	size := s.Size()
-	Do := s.Do()
-
 	o.Hdr.Name = "."
 	o.Hdr.Rrtype = dns.TypeOPT
 	o.SetVersion(0)
-	o.SetUDPSize(uint16(size))
-	if Do {
-		o.SetDo()
+	if mo := m.IsEdns0(); mo != nil {
+		mo.Hdr.Name = "."
+		mo.Hdr.Rrtype = dns.TypeOPT
+		mo.SetVersion(0)
+		mo.SetUDPSize(o.UDPSize())
+		if o.Do() {
+			mo.SetDo()
+		}
+		return true
 	}
-	// TODO(miek): test how this works with stub forwarding in etcd middleware.
 	m.Extra = append(m.Extra, o)
 	return true
 }

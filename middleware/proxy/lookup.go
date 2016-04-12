@@ -12,6 +12,7 @@ import (
 	"github.com/miekg/dns"
 )
 
+// New create a new proxy with the hosts in host and a Random policy.
 func New(hosts []string) Proxy {
 	p := Proxy{Next: nil, Client: Clients()}
 
@@ -31,7 +32,7 @@ func New(hosts []string) Proxy {
 			Fails:        0,
 			FailTimeout:  upstream.FailTimeout,
 			Unhealthy:    false,
-			ExtraHeaders: upstream.proxyHeaders,
+			ExtraHeaders: upstream.proxyHeaders, // TODO(miek): fixer the fix
 			CheckDown: func(upstream *staticUpstream) UpstreamHostDownFunc {
 				return func(uh *UpstreamHost) bool {
 					if uh.Unhealthy {
@@ -80,6 +81,7 @@ func (p Proxy) lookup(state middleware.State, r *dns.Msg) (*dns.Msg, error) {
 		for time.Now().Sub(start) < tryDuration {
 			host := upstream.Select()
 			if host == nil {
+				// TODO(miek): if all HC fail, spray the targets.
 				return nil, errUnreachable
 			}
 

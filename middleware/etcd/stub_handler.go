@@ -1,7 +1,10 @@
 package etcd
 
 import (
+	"log"
+
 	"github.com/miekg/coredns/middleware"
+
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
@@ -14,8 +17,8 @@ type Stub struct {
 
 func (s Stub) ServeDNS(ctx context.Context, w dns.ResponseWriter, req *dns.Msg) (int, error) {
 	if hasStubEdns0(req) {
-		// TODO(miek): actual error here
-		return dns.RcodeServerFailure, nil
+		log.Printf("[WARNING] Forwarding cycle detected, refusing msg: %s", req.Question[0].Name)
+		return dns.RcodeRefused, nil
 	}
 	req = addStubEdns0(req)
 	proxy, ok := (*s.Etcd.Stubmap)[s.Zone]
@@ -55,9 +58,10 @@ func addStubEdns0(m *dns.Msg) *dns.Msg {
 	// Add a custom EDNS0 option to the packet, so we can detect loops when 2 stubs are forwarding to each other.
 	if option != nil {
 		option.Option = append(option.Option, &dns.EDNS0_LOCAL{ednsStubCode, []byte{1}})
-	} else {
-		m.Extra = append(m.Extra, ednsStub)
+		return m
 	}
+
+	m.Extra = append(m.Extra, ednsStub)
 	return m
 }
 
@@ -70,6 +74,7 @@ var ednsStub = func() *dns.OPT {
 	o := new(dns.OPT)
 	o.Hdr.Name = "."
 	o.Hdr.Rrtype = dns.TypeOPT
+	o.SetUDPSize(4096)
 
 	e := new(dns.EDNS0_LOCAL)
 	e.Code = ednsStubCode

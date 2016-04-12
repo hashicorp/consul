@@ -2,145 +2,89 @@
 
 package etcd
 
-import "testing"
+import (
+	"sort"
+	"testing"
+
+	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/etcd/msg"
+	"github.com/miekg/coredns/middleware/test"
+	"github.com/miekg/dns"
+)
 
 func TestStubLookup(t *testing.T) {
-	// MOVE THIS TO etcd_Test.go in the main directory
-	// e.updateStubZones()
-}
-
-/*
-func TestDNSStubForward(t *testing.T) {
-	s := newTestServer(t, false)
-	defer s.Stop()
-
-	c := new(dns.Client)
-	m := new(dns.Msg)
-
-	stubEx := &msg.Service{
-		// IP address of a.iana-servers.net.
-		Host: "199.43.132.53", Key: "a.example.com.stub.dns.skydns.test.",
+	for _, serv := range servicesStub {
+		set(t, etc, serv.Key, 0, serv)
+		defer delete(t, etc, serv.Key)
 	}
-	stubBroken := &msg.Service{
-		Host: "127.0.0.1", Port: 5454, Key: "b.example.org.stub.dns.skydns.test.",
-	}
-	stubLoop := &msg.Service{
-		Host: "127.0.0.1", Port: Port, Key: "b.example.net.stub.dns.skydns.test.",
-	}
-	addService(t, s, stubEx.Key, 0, stubEx)
-	defer delService(t, s, stubEx.Key)
-	addService(t, s, stubBroken.Key, 0, stubBroken)
-	defer delService(t, s, stubBroken.Key)
-	addService(t, s, stubLoop.Key, 0, stubLoop)
-	defer delService(t, s, stubLoop.Key)
+	etc.updateStubZones()
 
-	s.UpdateStubZones()
+	for _, tc := range dnsTestCasesStub {
+		m := tc.Msg()
 
-	m.SetQuestion("www.example.com.", dns.TypeA)
-	resp, _, err := c.Exchange(m, "127.0.0.1:"+StrPort)
-	if err != nil {
-		// try twice
-		resp, _, err = c.Exchange(m, "127.0.0.1:"+StrPort)
+		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+		_, err := etc.ServeDNS(ctx, rec, m)
 		if err != nil {
-			t.Fatal(err)
+			if tc.Rcode != dns.RcodeServerFailure {
+				t.Errorf("expected no error, got %v\n", err)
+			}
+			// This is OK, we expect this backend to *not* work.
+			continue
+		}
+		resp := rec.Msg()
+
+		sort.Sort(test.RRSet(resp.Answer))
+		sort.Sort(test.RRSet(resp.Ns))
+		sort.Sort(test.RRSet(resp.Extra))
+
+		if !test.Header(t, tc, resp) {
+			t.Logf("%v\n", resp)
+			continue
+		}
+		if !test.Section(t, tc, test.Answer, resp.Answer) {
+			t.Logf("%v\n", resp)
+		}
+		if !test.Section(t, tc, test.Ns, resp.Ns) {
+			t.Logf("%v\n", resp)
+		}
+		if !test.Section(t, tc, test.Extra, resp.Extra) {
+			t.Logf("%v\n", resp)
 		}
 	}
-	if len(resp.Answer) == 0 || resp.Rcode != dns.RcodeSuccess {
-		t.Fatal("answer expected to have A records or rcode not equal to RcodeSuccess")
-	}
-	// The main diff. here is that we expect the AA bit to be set, because we directly
-	// queried the authoritative servers.
-	if resp.Authoritative != true {
-		t.Fatal("answer expected to have AA bit set")
-	}
-
-	// This should fail.
-	m.SetQuestion("www.example.org.", dns.TypeA)
-	resp, _, err = c.Exchange(m, "127.0.0.1:"+StrPort)
-	if len(resp.Answer) != 0 || resp.Rcode != dns.RcodeServerFailure {
-		t.Fatal("answer expected to fail for example.org")
-	}
-
-	// This should really fail with a timeout.
-	m.SetQuestion("www.example.net.", dns.TypeA)
-	resp, _, err = c.Exchange(m, "127.0.0.1:"+StrPort)
-	if err == nil {
-		t.Fatal("answer expected to fail for example.net")
-	} else {
-		t.Logf("succesfully failing %s", err)
-	}
-
-	// Packet with EDNS0
-	m.SetEdns0(4096, true)
-	resp, _, err = c.Exchange(m, "127.0.0.1:"+StrPort)
-	if err == nil {
-		t.Fatal("answer expected to fail for example.net")
-	} else {
-		t.Logf("succesfully failing %s", err)
-	}
-
-	// Now start another SkyDNS instance on a different port,
-	// add a stubservice for it and check if the forwarding is
-	// actually working.
-	oldStrPort := StrPort
-
-	s1 := newTestServer(t, false)
-	defer s1.Stop()
-	s1.config.Domain = "skydns.com."
-
-	// Add forwarding IP for internal.skydns.com. Use Port to point to server s.
-	stubForward := &msg.Service{
-		Host: "127.0.0.1", Port: Port, Key: "b.internal.skydns.com.stub.dns.skydns.test.",
-	}
-	addService(t, s, stubForward.Key, 0, stubForward)
-	defer delService(t, s, stubForward.Key)
-	s.UpdateStubZones()
-
-	// Add an answer for this in our "new" server.
-	stubReply := &msg.Service{
-		Host: "127.1.1.1", Key: "www.internal.skydns.com.",
-	}
-	addService(t, s1, stubReply.Key, 0, stubReply)
-	defer delService(t, s1, stubReply.Key)
-
-	m = new(dns.Msg)
-	m.SetQuestion("www.internal.skydns.com.", dns.TypeA)
-	resp, _, err = c.Exchange(m, "127.0.0.1:"+oldStrPort)
-	if err != nil {
-		t.Fatalf("failed to forward %s", err)
-	}
-	if resp.Answer[0].(*dns.A).A.String() != "127.1.1.1" {
-		t.Fatalf("failed to get correct reply")
-	}
-
-	// Adding an in baliwick internal domain forward.
-	s2 := newTestServer(t, false)
-	defer s2.Stop()
-	s2.config.Domain = "internal.skydns.net."
-
-	// Add forwarding IP for internal.skydns.net. Use Port to point to server s.
-	stubForward1 := &msg.Service{
-		Host: "127.0.0.1", Port: Port, Key: "b.internal.skydns.net.stub.dns.skydns.test.",
-	}
-	addService(t, s, stubForward1.Key, 0, stubForward1)
-	defer delService(t, s, stubForward1.Key)
-	s.UpdateStubZones()
-
-	// Add an answer for this in our "new" server.
-	stubReply1 := &msg.Service{
-		Host: "127.10.10.10", Key: "www.internal.skydns.net.",
-	}
-	addService(t, s2, stubReply1.Key, 0, stubReply1)
-	defer delService(t, s2, stubReply1.Key)
-
-	m = new(dns.Msg)
-	m.SetQuestion("www.internal.skydns.net.", dns.TypeA)
-	resp, _, err = c.Exchange(m, "127.0.0.1:"+oldStrPort)
-	if err != nil {
-		t.Fatalf("failed to forward %s", err)
-	}
-	if resp.Answer[0].(*dns.A).A.String() != "127.10.10.10" {
-		t.Fatalf("failed to get correct reply")
-	}
 }
-*/
+
+var servicesStub = []*msg.Service{
+	// Two tests, ask a question that should return servfail because remote it no accessible
+	// and one with edns0 option added, that should return refused.
+	{Host: "127.0.0.1", Port: 666, Key: "b.example.org.stub.dns.skydns.test."},
+	// Actual test that goes out to the internet.
+	{Host: "199.43.132.53", Key: "a.example.net.stub.dns.skydns.test."},
+}
+
+var dnsTestCasesStub = []test.Case{
+	{
+		Qname: "example.org.", Qtype: dns.TypeA, Rcode: dns.RcodeServerFailure,
+	},
+	{
+		Qname: "example.net.", Qtype: dns.TypeA,
+		Answer: []dns.RR{test.A("example.net.	86400	IN	A	93.184.216.34")},
+		Ns: []dns.RR{
+			test.NS("example.net.	86400	IN	NS	a.iana-servers.net."),
+			test.NS("example.net.	86400	IN	NS	b.iana-servers.net."),
+		},
+		Extra: []dns.RR{test.OPT(4096, false)}, // This will have an EDNS0 section, because *we* added our local stub forward to detect loops.
+	},
+	{
+		Qname: "example.net.", Qtype: dns.TypeA, Do: true,
+		Answer: []dns.RR{
+			test.A("example.net.	86400	IN	A	93.184.216.34"),
+			test.RRSIG("example.net.	86400	IN	RRSIG	A 8 2 86400 20160428060557 20160406182909 40948 example.net. Vm+rH5KN"),
+		},
+		Ns: []dns.RR{
+			test.NS("example.net.	86400	IN	NS	a.iana-servers.net."),
+			test.NS("example.net.	86400	IN	NS	b.iana-servers.net."),
+			test.RRSIG("example.net.	86400	IN	RRSIG	NS 8 2 86400 20160428110538 20160407002909 40948 example.net. z74YR2"),
+		},
+		Extra: []dns.RR{test.OPT(4096, true)},
+	},
+}

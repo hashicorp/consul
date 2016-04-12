@@ -22,6 +22,7 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	name := state.Name()
 	if e.Stubmap != nil && len(*e.Stubmap) > 0 {
 		for zone, _ := range *e.Stubmap {
+			// TODO(miek): use the Match function.
 			if strings.HasSuffix(name, zone) {
 				stub := Stub{Etcd: e, Zone: zone}
 				return stub.ServeDNS(ctx, w, r)

@@ -31,7 +31,7 @@ func TestOtherLookup(t *testing.T) {
 		_, err := etc.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
-			return
+			continue
 		}
 		resp := rec.Msg()
 
