@@ -41,6 +41,7 @@ __agent() {
     '-config-file=[(foo) Path to a JSON file to read configuration from]' \
     '-data-dir=[(path) Path to a data directory to store agent state]' \
     '-dc=[(east-aws) Datacenter of the agent]' \
+    '-dev[Starts the agent in development mode]' \
     '-encrypt=[(key) Provides the gossip encryption key]' \
     '-join=[(1.2.3.4) Address of an agent to join at start time]' \
     '-log-level=[(info) Log level of the agent]' \
