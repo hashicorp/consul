@@ -9,13 +9,14 @@ import (
 // Name represents a domain name.
 type Name string
 
-// Matches checks to see if other matches n.
-//
-// Name matching will probably not always be a direct
-// comparison; this method assures that names can be
-// easily and consistently matched.
-func (n Name) Matches(other string) bool {
-	return strings.HasSuffix(string(n), other)
+// Matches checks to see if other is a subdomain (or the same domain) of n.
+// This method assures that names can be easily and consistently matched.
+func (n Name) Matches(child string) bool {
+	if dns.Name(n) == dns.Name(child) {
+		return true
+	}
+
+	return dns.IsSubDomain(string(n), child)
 }
 
 // Normalize lowercases and makes n fully qualified.

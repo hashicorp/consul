@@ -8,9 +8,9 @@ import (
 
 // Path returns the path to the folder
 // where the application may store data. This
-// currently resolves to ~/.caddy
+// currently resolves to ~/.coredns
 func Path() string {
-	return filepath.Join(userHomeDir(), ".caddy")
+	return filepath.Join(userHomeDir(), ".coredns")
 }
 
 // userHomeDir returns the user's home directory according to

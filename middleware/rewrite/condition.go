@@ -76,6 +76,7 @@ func startsWithFunc(a, b string) bool {
 // endsWithFunc is condition for EndsWith operator.
 // It checks if b is a suffix of a.
 func endsWithFunc(a, b string) bool {
+	// TODO(miek): IsSubDomain
 	return strings.HasSuffix(a, b)
 }
 

@@ -238,6 +238,9 @@ func (u *staticUpstream) Select() *UpstreamHost {
 
 func (u *staticUpstream) IsAllowedPath(name string) bool {
 	for _, ignoredSubDomain := range u.IgnoredSubDomains {
+		if dns.Name(name) == dns.Name(u.From()) {
+			return true
+		}
 		if middleware.Name(name).Matches(ignoredSubDomain + u.From()) {
 			return false
 		}

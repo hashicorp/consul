@@ -22,7 +22,7 @@ type Logger struct {
 func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := middleware.State{W: w, Req: r}
 	for _, rule := range l.Rules {
-		if middleware.Name(state.Name()).Matches(rule.NameScope) {
+		if middleware.Name(rule.NameScope).Matches(state.Name()) {
 			responseRecorder := middleware.NewResponseRecorder(w)
 			rcode, err := l.Next.ServeDNS(ctx, responseRecorder, r)
 

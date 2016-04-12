@@ -1,21 +1,16 @@
 package middleware
 
-import (
-	"strings"
-
-	"github.com/miekg/dns"
-)
+import "github.com/miekg/dns"
 
 type Zones []string
 
-// Matches checks to see if other matches p.  The match will return the most
-// specific zones that matches other. The empty string signals a not found
-// condition.
+// Matches checks is qname is a subdomain of any of the zones in z.  The match
+// will return the most specific zones that matches other. The empty string
+// signals a not found condition.
 func (z Zones) Matches(qname string) string {
 	zone := ""
-	// TODO(miek): use IsSubDomain here?
 	for _, zname := range z {
-		if strings.HasSuffix(qname, zname) {
+		if dns.IsSubDomain(zname, qname) {
 			if len(zname) > len(zone) {
 				zone = zname
 			}
