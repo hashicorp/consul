@@ -3,7 +3,6 @@
 package etcd
 
 import (
-	"sort"
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
@@ -11,7 +10,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func TestStubLookup(t *testing.T) {
+func TestStubCycle(t *testing.T) {
 	// reuse servics from stub_test.go
 	for _, serv := range servicesStub {
 		set(t, etc, serv.Key, 0, serv)
@@ -28,34 +27,13 @@ func TestStubLookup(t *testing.T) {
 
 		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
 		_, err := etc.ServeDNS(ctx, rec, m)
-		if err != nil {
-			t.Errorf("expected no error, got %v\n", err)
+		if err == nil {
+			t.Errorf("expected error, got none")
 			continue
 		}
-		resp := rec.Msg()
-
-		sort.Sort(test.RRSet(resp.Answer))
-		sort.Sort(test.RRSet(resp.Ns))
-		sort.Sort(test.RRSet(resp.Extra))
-
-		if !test.Header(t, tc, resp) {
-			t.Logf("%v\n", resp)
-			continue
-		}
-		if !test.Section(t, tc, test.Answer, resp.Answer) {
-			t.Logf("%v\n", resp)
-		}
-		if !test.Section(t, tc, test.Ns, resp.Ns) {
-			t.Logf("%v\n", resp)
-		}
-		if !test.Section(t, tc, test.Extra, resp.Extra) {
-			t.Logf("%v\n", resp)
-		}
+		// err should have been, set msg is nil, CoreDNS middlware handling takes
+		// care of proper error to client.
 	}
 }
 
-var dnsTestCasesCycleStub = []test.Case{
-	{
-		Qname: "example.org.", Qtype: dns.TypeA, Rcode: dns.RcodeRefused, Do: true,
-	},
-}
+var dnsTestCasesCycleStub = []test.Case{{Qname: "example.org.", Qtype: dns.TypeA, Rcode: dns.RcodeRefused, Do: true}}

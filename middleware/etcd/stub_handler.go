@@ -1,6 +1,7 @@
 package etcd
 
 import (
+	"errors"
 	"log"
 
 	"github.com/miekg/coredns/middleware"
@@ -18,7 +19,7 @@ type Stub struct {
 func (s Stub) ServeDNS(ctx context.Context, w dns.ResponseWriter, req *dns.Msg) (int, error) {
 	if hasStubEdns0(req) {
 		log.Printf("[WARNING] Forwarding cycle detected, refusing msg: %s", req.Question[0].Name)
-		return dns.RcodeRefused, nil
+		return dns.RcodeRefused, errors.New("stub forward cycle")
 	}
 	req = addStubEdns0(req)
 	proxy, ok := (*s.Etcd.Stubmap)[s.Zone]
