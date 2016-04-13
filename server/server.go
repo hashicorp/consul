@@ -163,8 +163,8 @@ func (s *Server) Serve(ln ListenerFile) error {
 // ListenAndServe starts the server with a new listener. It blocks until the server stops.
 func (s *Server) ListenAndServe() error {
 	err := s.setup()
+	defer close(s.startChan)
 	if err != nil {
-		close(s.startChan)
 		return err
 	}
 
@@ -187,8 +187,6 @@ func (s *Server) ListenAndServe() error {
 	go func() {
 		s.server[0].ActivateAndServe()
 	}()
-
-	close(s.startChan) // unblock anyone waiting for this to start listening
 	return s.server[1].ActivateAndServe()
 }
 

@@ -34,7 +34,7 @@ func Server(t *testing.T, corefile string) (*server.Server, string, string, erro
 	}
 	go srv.ListenAndServe()
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(1 * time.Second) // yeah... I regret nothing
 	tcp, udp := srv.LocalAddr()
 	return srv, tcp.String(), udp.String(), nil
 }
