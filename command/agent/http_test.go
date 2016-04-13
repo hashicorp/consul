@@ -28,6 +28,9 @@ func makeHTTPServer(t *testing.T) (string, *HTTPServer) {
 }
 
 func makeHTTPServerWithConfig(t *testing.T, cb func(c *Config)) (string, *HTTPServer) {
+	configTry := 0
+RECONF:
+	configTry += 1
 	conf := nextConfig()
 	if cb != nil {
 		cb(conf)
@@ -36,6 +39,9 @@ func makeHTTPServerWithConfig(t *testing.T, cb func(c *Config)) (string, *HTTPSe
 	dir, agent := makeAgent(t, conf)
 	servers, err := NewHTTPServers(agent, conf, agent.logOutput)
 	if err != nil {
+		if configTry < 3 {
+			goto RECONF
+		}
 		t.Fatalf("err: %v", err)
 	}
 	if len(servers) == 0 {
