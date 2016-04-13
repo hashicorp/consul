@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -318,6 +319,14 @@ func standardAddress(str string) (address, error) {
 	if err != nil {
 		host, port, err = net.SplitHostPort(str + ":")
 		// no error check here; return err at end of function
+	}
+
+	if len(host) > 255 {
+		return address{}, fmt.Errorf("specified address is too long: %d > 255", len(host))
+	}
+	_, d := dns.IsDomainName(host)
+	if !d {
+		return address{}, fmt.Errorf("host is not a valid domain: %s", host)
 	}
 
 	// see if we can set port based off scheme

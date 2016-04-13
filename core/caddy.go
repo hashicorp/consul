@@ -390,8 +390,8 @@ type Input interface {
 }
 
 // TestServer returns a test server.
-// The port can be retreived with ... . The testserver itself can be stopped
-// with Stop(). It just takes a normal Corefile input, but doesn't use the port.
+// The ports can be retreived with server.LocalAddr(). The testserver itself can be stopped
+// with Stop(). It just takes a normal Corefile as input.
 func TestServer(t *testing.T, corefile string) (*server.Server, error) {
 
 	cdyfile := CaddyfileInput{Contents: []byte(corefile)}

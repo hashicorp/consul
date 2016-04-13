@@ -3,6 +3,7 @@ go:
   - 1.5
   - 1.6
 before_script:
+  - go get
   - go get github.com/coreos/etcd
   - go get github.com/coreos/go-etcd/etcd
   - go build -o $HOME/gopath/src/github.com/coreos/etcd/etcd.run github.com/coreos/etcd
