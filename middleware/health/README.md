@@ -2,7 +2,7 @@
 
 This module enables a simple health check.
 
-By default it will listen on port 9180.
+By default it will listen on port 8080.
 
 Restarting CoreDNS will stop the health checking. This is a bug. Also [this upstream
 Caddy bug](https://github.com/mholt/caddy/issues/675).
