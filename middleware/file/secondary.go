@@ -18,10 +18,13 @@ func (z *Zone) TransferIn() error {
 	m.SetAxfr(z.name)
 
 	z1 := z.Copy()
-	var Err error
+	var (
+		Err error
+		tr  string
+	)
 
 Transfer:
-	for _, tr := range z.TransferFrom {
+	for _, tr = range z.TransferFrom {
 		t := new(dns.Transfer)
 		c, err := t.In(m, tr)
 		if err != nil {
@@ -52,15 +55,15 @@ Transfer:
 		break
 	}
 	if Err != nil {
-		log.Printf("[ERROR] Failed to transfer %s", z.name)
-		return nil
+		log.Printf("[ERROR] Failed to transfer %s: %s", z.name, Err)
+		return Err
 	}
 
 	z.Tree = z1.Tree
 	z.SOA = z1.SOA
 	z.SIG = z1.SIG
 	*z.Expired = false
-	log.Printf("[INFO] Transferred: %s", z.name)
+	log.Printf("[INFO] Transferred: %s from %s", z.name, tr)
 	return nil
 }
 

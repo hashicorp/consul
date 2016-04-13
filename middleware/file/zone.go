@@ -1,6 +1,8 @@
 package file
 
 import (
+	"sync"
+
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/file/tree"
 
@@ -14,6 +16,7 @@ type Zone struct {
 	*tree.Tree
 
 	TransferTo   []string
+	StartupOnce  sync.Once
 	TransferFrom []string
 	Expired      *bool
 }

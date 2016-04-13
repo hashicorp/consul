@@ -17,13 +17,12 @@ func Secondary(c *Controller) (middleware.Middleware, error) {
 	for _, n := range zones.Names {
 		if len(zones.Z[n].TransferFrom) > 0 {
 			c.Startup = append(c.Startup, func() error {
-				err := zones.Z[n].TransferIn()
-				return err
-			})
-			c.Startup = append(c.Startup, func() error {
-				go func() {
-					zones.Z[n].Update()
-				}()
+				zones.Z[n].StartupOnce.Do(func() {
+					zones.Z[n].TransferIn()
+					go func() {
+						zones.Z[n].Update()
+					}()
+				})
 				return nil
 			})
 		}
