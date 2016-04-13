@@ -1,5 +1,11 @@
 ## 0.7.0 (UNRELEASED)
 
+BACKWARDS INCOMPATIBILITIES:
+
+* `skip_leave_on_interrupt`'s default behavior is now dependent on whether or
+  not the agent is acting as a server or client.  When Consul is started as a
+  server the default is `true` and `false` when a client. [GH-1909]
+
 IMPROVEMENTS:
 
 * Consul agents will now periodically reconnect to available Consul servers
@@ -22,9 +28,16 @@ IMPROVEMENTS:
   [agent options](https://www.consul.io/docs/agent/options.html#udp_answer_limit)
   documentation for additional details for when this should be
   used. [GH-1712]
-* `skip_leave_on_interrupt`'s default behavior is now dependent on whether or
-  not the agent is acting as a server or client.  When Consul is started as a
-  server the default is `true` and `false` when a client. [GH-1909]
+* Consul will now refuse to start with a helpful message if the same UNIX
+  socket is used for more than one listening endpoint. [GH-1910]
+* Removed an obsolete warning message when Consul starts on Windows. [GH-1920]
+* Defaults bind address to 127.0.0.1 when running in `-dev` mode. [GH-1878]
+* Builds Consul releases with Go 1.6.1. [GH-1948]
+
+BUG FIXES:
+
+* Fixed an issue where a health check's output never updates if the check
+  status doesn't change after the Consul agent starts. [GH-1934]
 
 ## 0.6.4 (March 16, 2016)
 
