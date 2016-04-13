@@ -30,6 +30,9 @@ var services = []*msg.Service{
 	// Cname loop
 	{Host: "a.cname.skydns.test", Key: "b.cname.skydns.test."},
 	{Host: "b.cname.skydns.test", Key: "a.cname.skydns.test."},
+	// Nameservers.
+	{Host: "10.0.0.2", Key: "a.ns.dns.skydns.test."},
+	{Host: "10.0.0.3", Key: "b.ns.dns.skydns.test."},
 }
 
 var dnsTestCases = []test.Case{
@@ -170,10 +173,31 @@ var dnsTestCases = []test.Case{
 		Qname: "skydns.test.", Qtype: dns.TypeSOA,
 		Answer: []dns.RR{test.SOA("skydns.test.	300	IN	SOA	ns.dns.skydns.test. hostmaster.skydns.test. 1460498836 14400 3600 604800 60")},
 	},
-	// TODO(miek)
-	// {
-	// Qname: "skydns.test.", Qtype: dns.TypeNS,
-	// },
+	// NS Record Test
+	{
+		Qname: "skydns.test.", Qtype: dns.TypeNS,
+		Answer: []dns.RR{
+			test.NS("skydns.test. 300 NS a.ns.dns.skydns.test."),
+			test.NS("skydns.test. 300 NS b.ns.dns.skydns.test."),
+		},
+		Extra: []dns.RR{
+			test.A("a.ns.dns.skydns.test. 300 A 10.0.0.2"),
+			test.A("b.ns.dns.skydns.test. 300 A 10.0.0.3"),
+		},
+	},
+	// NS Record Test
+	{
+		Qname: "a.skydns.test.", Qtype: dns.TypeNS, Rcode: dns.RcodeNameError,
+		Ns: []dns.RR{test.SOA("skydns.test.	300	IN	SOA	ns.dns.skydns.test. hostmaster.skydns.test. 1460498836 14400 3600 604800 60")},
+	},
+	// A Record For NS Record Test
+	{
+		Qname: "ns.dns.skydns.test.", Qtype: dns.TypeA,
+		Answer: []dns.RR{
+			test.A("ns.dns.skydns.test. 300 A 10.0.0.2"),
+			test.A("ns.dns.skydns.test. 300 A 10.0.0.3"),
+		},
+	},
 	{
 		Qname: "skydns_extra.test.", Qtype: dns.TypeSOA,
 		Answer: []dns.RR{test.SOA("skydns_extra.test. 300 IN SOA ns.dns.skydns_extra.test. hostmaster.skydns_extra.test. 1460498836 14400 3600 604800 60")},

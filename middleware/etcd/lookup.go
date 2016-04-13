@@ -1,6 +1,7 @@
 package etcd
 
 import (
+	"fmt"
 	"math"
 	"net"
 	"time"
@@ -312,6 +313,35 @@ func (e Etcd) TXT(zone string, state middleware.State) (records []dns.RR, err er
 	return records, nil
 }
 
+func (e Etcd) NS(zone string, state middleware.State) (records, extra []dns.RR, err error) {
+	// NS record for this zone live in a special place, ns.dns.<zone>. Fake our lookup.
+	// only a tad bit fishy...
+	old := state.QName()
+	state.Req.Question[0].Name = "ns.dns." + zone
+	services, err := e.records(state, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	state.Req.Question[0].Name = old
+
+	for _, serv := range services {
+		ip := net.ParseIP(serv.Host)
+		switch {
+		case ip == nil:
+			return nil, nil, fmt.Errorf("NS record must be an IP address: %s", serv.Host)
+		case ip.To4() != nil:
+			serv.Host = e.Domain(serv.Key)
+			records = append(records, serv.NewNS(state.QName()))
+			extra = append(extra, serv.NewA(serv.Host, ip.To4()))
+		case ip.To4() == nil:
+			serv.Host = e.Domain(serv.Key)
+			records = append(records, serv.NewNS(state.QName()))
+			extra = append(extra, serv.NewAAAA(serv.Host, ip.To16()))
+		}
+	}
+	return records, extra, nil
+}
+
 // SOA Record returns a SOA record.
 func (e Etcd) SOA(zone string, state middleware.State) *dns.SOA {
 	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: 300, Class: dns.ClassINET}
@@ -325,6 +355,8 @@ func (e Etcd) SOA(zone string, state middleware.State) *dns.SOA {
 		Minttl:  60,
 	}
 }
+
+// NS returns the NS records from etcd.
 
 // TODO(miek): DNSKEY and friends... intercepted by the DNSSEC middleware?
 

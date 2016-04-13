@@ -57,9 +57,11 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	case "SOA":
 		records = []dns.RR{e.SOA(zone, state)}
 	case "NS":
-		//TODO(miek): skydns had a thing that you specify this, should look for
-		//records otherwise synthesise them.
-		//records = e.NS(zone, state)
+		if state.Name() == zone {
+			records, extra, err = e.NS(zone, state)
+			break
+		}
+		fallthrough
 	default:
 		// Do a fake A lookup, so we can distinguish betwen NODATA and NXDOMAIN
 		_, err = e.A(zone, state, nil)

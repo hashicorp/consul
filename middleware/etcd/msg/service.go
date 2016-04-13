@@ -71,6 +71,12 @@ func (s *Service) NewTXT(name string) *dns.TXT {
 	return &dns.TXT{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: s.Ttl}, Txt: split255(s.Text)}
 }
 
+// NewNS returns a new NS record based on the Service.
+func (s *Service) NewNS(name string) *dns.NS {
+	host := targetStrip(dns.Fqdn(s.Host), s.TargetStrip)
+	return &dns.NS{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: s.Ttl}, Ns: host}
+}
+
 // Group checks the services in sx, it looks for a Group attribute on the shortest
 // keys. If there are multiple shortest keys *and* the group attribute disagrees (and
 // is not empty), we don't consider it a group.
