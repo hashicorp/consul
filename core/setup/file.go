@@ -20,8 +20,11 @@ func File(c *Controller) (middleware.Middleware, error) {
 	for _, n := range zones.Names {
 		if len(zones.Z[n].TransferTo) > 0 {
 			c.Startup = append(c.Startup, func() error {
-				zones.Z[n].Notify()
-				return err
+				zones.Z[n].StartupOnce.Do(func() {
+					if len(zones.Z[n].TransferTo) > 0 {
+						zones.Z[n].Notify()
+					}
+				})
 			})
 		}
 	}
