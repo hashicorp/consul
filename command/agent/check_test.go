@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -186,7 +187,10 @@ func TestCheckTTL(t *testing.T) {
 func mockHTTPServer(responseCode int) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Body larger than 4k limit
+		body := bytes.Repeat([]byte{'a'}, 2*CheckBufSize)
 		w.WriteHeader(responseCode)
+		w.Write(body)
 		return
 	})
 
@@ -218,6 +222,11 @@ func expectHTTPStatus(t *testing.T, url string, status string) {
 
 	if mock.state["foo"] != status {
 		t.Fatalf("should be %v %v", status, mock.state)
+	}
+
+	// Allow slightly more data than CheckBufSize, for the header
+	if n := len(mock.output["foo"]); n > (CheckBufSize + 256) {
+		t.Fatalf("output too long: %d (%d-byte limit)", n, CheckBufSize)
 	}
 }
 
