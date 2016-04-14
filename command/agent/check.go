@@ -2,7 +2,7 @@ package agent
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -423,13 +423,14 @@ func (c *CheckHTTP) check() {
 	}
 	defer resp.Body.Close()
 
-	// Format the response body
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
+	// Read the response into a circular buffer to limit the size
+	output, _ := circbuf.NewBuffer(CheckBufSize)
+	if _, err := io.Copy(output, resp.Body); err != nil {
 		c.Logger.Printf("[WARN] agent: check '%v': Get error while reading body: %s", c.CheckID, err)
-		body = []byte{}
 	}
-	result := fmt.Sprintf("HTTP GET %s: %s Output: %s", c.HTTP, resp.Status, body)
+
+	// Format the response body
+	result := fmt.Sprintf("HTTP GET %s: %s Output: %s", c.HTTP, resp.Status, output.String())
 
 	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 		// PASSING (2xx)
