@@ -20,7 +20,8 @@ There are five different kinds of checks:
 * Script + Interval - These checks depend on invoking an external application
   that performs the health check, exits with an appropriate exit code, and potentially
   generates some output. A script is paired with an invocation interval (e.g.
-  every 30 seconds). This is similar to the Nagios plugin system.
+  every 30 seconds). This is similar to the Nagios plugin system. The output of
+  a script check is limited to 4K. Output larger than this will be truncated.
 
 * HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
   every 30 seconds) to the specified URL. The status of the service depends on the HTTP response code:
@@ -29,7 +30,8 @@ There are five different kinds of checks:
   to check a simple HTTP operation. By default, HTTP checks will be configured
   with a request timeout equal to the check interval, with a max of 10 seconds.
   It is possible to configure a custom HTTP check timeout value by specifying
-  the `timeout` field in the check definition.
+  the `timeout` field in the check definition. The output of the check is
+  limited to roughly 4K. Responses larger than this will be truncated.
 
 * TCP + Interval - These checks make an TCP connection attempt every Interval
   (e.g. every 30 seconds) to the specified IP/hostname and port. The status of
@@ -68,7 +70,8 @@ determine the Docker API endpoint. The application is expected to run, perform a
 check of the service running inside the container, and exit with an appropriate exit code. 
 The check should be paired with an invocation interval. The shell on which the check 
 has to be performed is configurable which makes it possible to run containers which 
-have different shells on the same host.  
+have different shells on the same host. Check output for Docker is limited to
+4K. Any output larger than this will be truncated.
 
 ## Check Definition
 
