@@ -108,19 +108,25 @@ func Parse(f io.Reader, origin, fileName string) (*Zone, error) {
 	z := NewZone(origin)
 	for x := range tokens {
 		if x.Error != nil {
-			log.Printf("[ERROR] Failed to parse %s: %v", origin, x.Error)
+			log.Printf("[ERROR] Failed to parse `%s': %v", origin, x.Error)
 			return nil, x.Error
 		}
-		if x.RR.Header().Rrtype == dns.TypeSOA {
+		switch h := x.RR.Header().Rrtype; h {
+		case dns.TypeSOA:
 			z.SOA = x.RR.(*dns.SOA)
-			continue
-		}
-		if x.RR.Header().Rrtype == dns.TypeRRSIG {
+		case dns.TypeNSEC3, dns.TypeNSEC3PARAM:
+			err := fmt.Errorf("NSEC3 zone is not supported, dropping")
+			log.Printf("[ERROR] Failed to parse `%s': %v", origin, err)
+			return nil, err
+		case dns.TypeRRSIG:
 			if x, ok := x.RR.(*dns.RRSIG); ok && x.TypeCovered == dns.TypeSOA {
 				z.SIG = append(z.SIG, x)
+				continue
 			}
+			fallthrough
+		default:
+			z.Insert(x.RR)
 		}
-		z.Insert(x.RR)
 	}
 	return z, nil
 }

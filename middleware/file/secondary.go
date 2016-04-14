@@ -1,6 +1,7 @@
 package file
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -28,27 +29,33 @@ Transfer:
 		t := new(dns.Transfer)
 		c, err := t.In(m, tr)
 		if err != nil {
-			log.Printf("[ERROR] Failed to setup transfer %s with %s: %v", z.name, tr, err)
+			log.Printf("[ERROR] Failed to setup transfer `%s' with `%s': %v", z.name, tr, err)
 			Err = err
 			continue Transfer
 		}
 		for env := range c {
 			if env.Error != nil {
-				log.Printf("[ERROR] Failed to parse transfer %s: %v", z.name, env.Error)
+				log.Printf("[ERROR] Failed to parse transfer `%s': %v", z.name, env.Error)
 				Err = env.Error
 				continue Transfer
 			}
 			for _, rr := range env.RR {
-				if rr.Header().Rrtype == dns.TypeSOA {
+				switch h := rr.Header().Rrtype; h {
+				case dns.TypeSOA:
 					z1.SOA = rr.(*dns.SOA)
-					continue
-				}
-				if rr.Header().Rrtype == dns.TypeRRSIG {
+				case dns.TypeNSEC3, dns.TypeNSEC3PARAM:
+					err := fmt.Errorf("NSEC3 zone is not supported, dropping")
+					log.Printf("[ERROR] Failed to parse transfer `%s': %v", z.name, err)
+					return err
+				case dns.TypeRRSIG:
 					if x, ok := rr.(*dns.RRSIG); ok && x.TypeCovered == dns.TypeSOA {
 						z1.SIG = append(z1.SIG, x)
+						continue
 					}
+					fallthrough
+				default:
+					z1.Insert(rr)
 				}
-				z1.Insert(rr)
 			}
 		}
 		Err = nil
