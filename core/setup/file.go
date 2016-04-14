@@ -25,6 +25,7 @@ func File(c *Controller) (middleware.Middleware, error) {
 						zones.Z[n].Notify()
 					}
 				})
+				return nil
 			})
 		}
 	}
