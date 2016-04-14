@@ -1,6 +1,7 @@
 # prometheus
 
-This module enables prometheus metrics for CoreDNS.
+This module enables prometheus metrics for CoreDNS. The default location for the metrics is
+`localhost:9135`. The metrics path is fixed to `/metrics`.
 
 The following metrics are exported:
 
@@ -9,13 +10,13 @@ The following metrics are exported:
 * coredns_dns_response_size_bytes
 * coredns_dns_response_rcode_count_total
 
-Each counter has a label `zone` which is the zonename used for the request/response,
-and a label `qtype` which old the query type.
-The `response_rcode_count_total` has an extra label `rcode` which holds the rcode
-of the response.
+Each counter has a label `zone` which is the zonename used for the request/response. and a label
+`qtype` which old the query type. The `dns_request_count_total` has an extra label `proto` which
+holds the transport of the response ("udp" or "tcp"). The `response_rcode_count_total` has an extra
+label `rcode` which holds the rcode of the response.
 
-If monitoring is enabled queries that do not enter the middleware chain are exported
-under the fake domain "dropped" (without a closing dot).
+If monitoring is enabled queries that do not enter the middleware chain are exported under the fake
+domain "dropped" (without a closing dot).
 
 Restarting CoreDNS will stop the monitoring. This is a bug. Also [this upstream
 Caddy bug](https://github.com/mholt/caddy/issues/675).
