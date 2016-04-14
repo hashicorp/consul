@@ -1,6 +1,8 @@
 package setup
 
 import (
+	"fmt"
+	"net"
 	"os"
 
 	"github.com/miekg/coredns/middleware"
@@ -68,8 +70,8 @@ func fileParse(c *Controller) (file.Zones, error) {
 				}
 				// discard from, here, maybe check and show log when we do?
 				for _, origin := range origins {
-					if t != "" {
-						z[origin].TransferTo = append(z[origin].TransferTo, t)
+					if t != nil {
+						z[origin].TransferTo = append(z[origin].TransferTo, t...)
 					}
 				}
 			}
@@ -78,30 +80,41 @@ func fileParse(c *Controller) (file.Zones, error) {
 	return file.Zones{Z: z, Names: names}, nil
 }
 
-// transfer to [address]
-func parseTransfer(c *Controller) (to, from string, err error) {
+// transfer to [address...]
+func parseTransfer(c *Controller) (tos, froms []string, err error) {
 	what := c.Val()
 	if !c.NextArg() {
-		return "", "", c.ArgErr()
+		return nil, nil, c.ArgErr()
 	}
 	value := c.Val()
 	switch what {
 	case "transfer":
 		if !c.NextArg() {
-			return "", "", c.ArgErr()
+			return nil, nil, c.ArgErr()
 		}
 		if value == "to" {
-			to = c.Val()
-			if to != "*" {
-				to = middleware.Addr(to).Normalize()
+			tos := c.RemainingArgs()
+			for i, _ := range tos {
+				if x := net.ParseIP(tos[i]); x == nil {
+					return nil, nil, fmt.Errorf("must specify an IP addres: `%s'", tos[i])
+				}
+				if tos[i] != "*" {
+					tos[i] = middleware.Addr(tos[i]).Normalize()
+				}
 			}
 		}
 		if value == "from" {
-			from = c.Val()
-			if from == "*" {
-				// print some kind of error? TODO(miek)
+			froms := c.RemainingArgs()
+			for i, _ := range froms {
+				if x := net.ParseIP(froms[i]); x == nil {
+					return nil, nil, fmt.Errorf("must specify an IP addres: `%s'", froms[i])
+				}
+				if froms[i] != "*" {
+					froms[i] = middleware.Addr(froms[i]).Normalize()
+				} else {
+					return nil, nil, fmt.Errorf("can't use '*' in transfer from")
+				}
 			}
-			from = middleware.Addr(from).Normalize()
 		}
 	}
 	return

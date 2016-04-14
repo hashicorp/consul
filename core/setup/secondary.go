@@ -57,11 +57,11 @@ func secondaryParse(c *Controller) (file.Zones, error) {
 					return file.Zones{}, e
 				}
 				for _, origin := range origins {
-					if t != "" {
-						z[origin].TransferTo = append(z[origin].TransferTo, t)
+					if t != nil {
+						z[origin].TransferTo = append(z[origin].TransferTo, t...)
 					}
-					if f != "" {
-						z[origin].TransferFrom = append(z[origin].TransferFrom, f)
+					if f != nil {
+						z[origin].TransferFrom = append(z[origin].TransferFrom, f...)
 					}
 				}
 			}

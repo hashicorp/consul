@@ -163,17 +163,20 @@ func (s *Server) Serve(ln ListenerFile) error {
 // ListenAndServe starts the server with a new listener. It blocks until the server stops.
 func (s *Server) ListenAndServe() error {
 	err := s.setup()
-	defer close(s.startChan)
+	// defer close(s.startChan) // Don't understand why defer wouldn't actually work in this method.
 	if err != nil {
+		close(s.startChan)
 		return err
 	}
 
 	l, err := net.Listen("tcp", s.Addr)
 	if err != nil {
+		close(s.startChan)
 		return err
 	}
 	pc, err := net.ListenPacket("udp", s.Addr)
 	if err != nil {
+		close(s.startChan)
 		return err
 	}
 
@@ -187,6 +190,7 @@ func (s *Server) ListenAndServe() error {
 	go func() {
 		s.server[0].ActivateAndServe()
 	}()
+	close(s.startChan)
 	return s.server[1].ActivateAndServe()
 }
 

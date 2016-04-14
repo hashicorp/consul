@@ -18,18 +18,19 @@ file dbfile [zones...]
 If you want to round robin A and AAAA responses look at the `loadbalance` middleware.
 
 TSIG key configuration is TODO; directive format for transfer will probably be extended with
-TSIG key information, something like `transfer out [address] key [name] [base64]`
+TSIG key information, something like `transfer out [address...] key [name] [base64]`
 
 ~~~
 file dbfile [zones... ] {
-    transfer out [address...]
-    transfer to [address]
+    transfer from [address...]
+    transfer to [address...]
+
 }
 ~~~
 
 * `transfer` enables zone transfers. It may be specified multiples times. *To* or *from* signals
-    the direction. Address must be denoted in CIDR notation (127.0.0.1/32 etc.). The special
-    wildcard "*" means: the entire internet.
+    the direction. Addresses must be denoted in CIDR notation (127.0.0.1/32 etc.) or just as plain
+    address. The special wildcard "*" means: the entire internet (only valid for 'transfer to').
 
 ## Examples
 
