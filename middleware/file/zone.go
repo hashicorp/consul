@@ -33,7 +33,7 @@ type Zone struct {
 
 // NewZone returns a new zone.
 func NewZone(name, file string) *Zone {
-	z := &Zone{origin: dns.Fqdn(name), file: file, Tree: &tree.Tree{}, Expired: new(bool)}
+	z := &Zone{origin: dns.Fqdn(name), file: path.Clean(file), Tree: &tree.Tree{}, Expired: new(bool)}
 	*z.Expired = false
 	return z
 }
@@ -118,7 +118,7 @@ func (z *Zone) Reload(shutdown chan bool) error {
 		for {
 			select {
 			case event := <-watcher.Events:
-				if event.Name == z.file {
+				if path.Clean(event.Name) == z.file {
 					reader, err := os.Open(z.file)
 					if err != nil {
 						log.Printf("[ERROR] Failed to open `%s' for `%s': %v", z.file, z.origin, err)
