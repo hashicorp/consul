@@ -105,27 +105,14 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 // Parse parses the zone in filename and returns a new Zone or an error.
 func Parse(f io.Reader, origin, fileName string) (*Zone, error) {
 	tokens := dns.ParseZone(f, dns.Fqdn(origin), fileName)
-	z := NewZone(origin)
+	z := NewZone(origin, fileName)
 	for x := range tokens {
 		if x.Error != nil {
 			log.Printf("[ERROR] Failed to parse `%s': %v", origin, x.Error)
 			return nil, x.Error
 		}
-		switch h := x.RR.Header().Rrtype; h {
-		case dns.TypeSOA:
-			z.SOA = x.RR.(*dns.SOA)
-		case dns.TypeNSEC3, dns.TypeNSEC3PARAM:
-			err := fmt.Errorf("NSEC3 zone is not supported, dropping")
-			log.Printf("[ERROR] Failed to parse `%s': %v", origin, err)
+		if err := z.Insert(x.RR); err != nil {
 			return nil, err
-		case dns.TypeRRSIG:
-			if x, ok := x.RR.(*dns.RRSIG); ok && x.TypeCovered == dns.TypeSOA {
-				z.SIG = append(z.SIG, x)
-				continue
-			}
-			fallthrough
-		default:
-			z.Insert(x.RR)
 		}
 	}
 	return z, nil

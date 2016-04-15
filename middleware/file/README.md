@@ -24,13 +24,15 @@ TSIG key information, something like `transfer out [address...] key [name] [base
 file dbfile [zones... ] {
     transfer from [address...]
     transfer to [address...]
-
+    no_reload
 }
 ~~~
 
 * `transfer` enables zone transfers. It may be specified multiples times. *To* or *from* signals
     the direction. Addresses must be denoted in CIDR notation (127.0.0.1/32 etc.) or just as plain
     address. The special wildcard "*" means: the entire internet (only valid for 'transfer to').
+* `no_reload` by default CoreDNS will reload a zone from disk whenever it detects a change to the
+  file. This option disables that behavior.
 
 ## Examples
 

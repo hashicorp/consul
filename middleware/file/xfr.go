@@ -38,7 +38,7 @@ func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (in
 
 	j, l := 0, 0
 	records = append(records, records[0]) // add closing SOA to the end
-	log.Printf("[INFO] Outgoing transfer of %d records of zone %s to %s started", len(records), x.name, state.IP())
+	log.Printf("[INFO] Outgoing transfer of %d records of zone %s to %s started", len(records), x.origin, state.IP())
 	for i, r := range records {
 		l += dns.Len(r)
 		if l > transferLength {

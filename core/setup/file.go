@@ -16,18 +16,17 @@ func File(c *Controller) (middleware.Middleware, error) {
 		return nil, err
 	}
 
-	// Add startup functions to notify the master.
+	// Add startup functions to notify the master(s).
 	for _, n := range zones.Names {
-		if len(zones.Z[n].TransferTo) > 0 {
-			c.Startup = append(c.Startup, func() error {
-				zones.Z[n].StartupOnce.Do(func() {
-					if len(zones.Z[n].TransferTo) > 0 {
-						zones.Z[n].Notify()
-					}
-				})
-				return nil
+		c.Startup = append(c.Startup, func() error {
+			zones.Z[n].StartupOnce.Do(func() {
+				if len(zones.Z[n].TransferTo) > 0 {
+					zones.Z[n].Notify()
+				}
+				zones.Z[n].Reload(nil)
 			})
-		}
+			return nil
+		})
 	}
 
 	return func(next middleware.Handler) middleware.Handler {
@@ -67,17 +66,24 @@ func fileParse(c *Controller) (file.Zones, error) {
 				names = append(names, origins[i])
 			}
 
+			noReload := false
 			for c.NextBlock() {
 				t, _, e := parseTransfer(c)
 				if e != nil {
 					return file.Zones{}, e
+				}
+				switch c.Val() {
+				case "no_reload":
+					noReload = true
 				}
 				// discard from, here, maybe check and show log when we do?
 				for _, origin := range origins {
 					if t != nil {
 						z[origin].TransferTo = append(z[origin].TransferTo, t...)
 					}
+					z[origin].NoReload = noReload
 				}
+
 			}
 		}
 	}

@@ -1,7 +1,6 @@
 package file
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -16,7 +15,7 @@ func (z *Zone) TransferIn() error {
 		return nil
 	}
 	m := new(dns.Msg)
-	m.SetAxfr(z.name)
+	m.SetAxfr(z.origin)
 
 	z1 := z.Copy()
 	var (
@@ -29,32 +28,20 @@ Transfer:
 		t := new(dns.Transfer)
 		c, err := t.In(m, tr)
 		if err != nil {
-			log.Printf("[ERROR] Failed to setup transfer `%s' with `%s': %v", z.name, tr, err)
+			log.Printf("[ERROR] Failed to setup transfer `%s' with `%s': %v", z.origin, tr, err)
 			Err = err
 			continue Transfer
 		}
 		for env := range c {
 			if env.Error != nil {
-				log.Printf("[ERROR] Failed to parse transfer `%s': %v", z.name, env.Error)
+				log.Printf("[ERROR] Failed to parse transfer `%s': %v", z.origin, env.Error)
 				Err = env.Error
 				continue Transfer
 			}
 			for _, rr := range env.RR {
-				switch h := rr.Header().Rrtype; h {
-				case dns.TypeSOA:
-					z1.SOA = rr.(*dns.SOA)
-				case dns.TypeNSEC3, dns.TypeNSEC3PARAM:
-					err := fmt.Errorf("NSEC3 zone is not supported, dropping")
-					log.Printf("[ERROR] Failed to parse transfer `%s': %v", z.name, err)
+				if err := z1.Insert(rr); err != nil {
+					log.Printf("[ERROR] Failed to parse transfer `%s': %v", z.origin, err)
 					return err
-				case dns.TypeRRSIG:
-					if x, ok := rr.(*dns.RRSIG); ok && x.TypeCovered == dns.TypeSOA {
-						z1.SIG = append(z1.SIG, x)
-						continue
-					}
-					fallthrough
-				default:
-					z1.Insert(rr)
 				}
 			}
 		}
@@ -62,7 +49,7 @@ Transfer:
 		break
 	}
 	if Err != nil {
-		log.Printf("[ERROR] Failed to transfer %s: %s", z.name, Err)
+		log.Printf("[ERROR] Failed to transfer %s: %s", z.origin, Err)
 		return Err
 	}
 
@@ -70,7 +57,7 @@ Transfer:
 	z.SOA = z1.SOA
 	z.SIG = z1.SIG
 	*z.Expired = false
-	log.Printf("[INFO] Transferred: %s from %s", z.name, tr)
+	log.Printf("[INFO] Transferred: %s from %s", z.origin, tr)
 	return nil
 }
 
@@ -80,7 +67,7 @@ func (z *Zone) shouldTransfer() (bool, error) {
 	c := new(dns.Client)
 	c.Net = "tcp" // do this query over TCP to minimize spoofing
 	m := new(dns.Msg)
-	m.SetQuestion(z.name, dns.TypeSOA)
+	m.SetQuestion(z.origin, dns.TypeSOA)
 
 	var Err error
 	serial := -1

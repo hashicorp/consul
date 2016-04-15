@@ -81,7 +81,7 @@ func TestShouldTransfer(t *testing.T) {
 	defer s.Shutdown()
 
 	z := new(Zone)
-	z.name = testZone
+	z.origin = testZone
 	z.TransferFrom = []string{addrstr}
 
 	// Serial smaller
@@ -118,7 +118,7 @@ func TestTransferIn(t *testing.T) {
 
 	z := new(Zone)
 	z.Expired = new(bool)
-	z.name = testZone
+	z.origin = testZone
 	z.TransferFrom = []string{addrstr}
 
 	err = z.TransferIn()
@@ -133,7 +133,7 @@ func TestTransferIn(t *testing.T) {
 func TestIsNotify(t *testing.T) {
 	z := new(Zone)
 	z.Expired = new(bool)
-	z.name = testZone
+	z.origin = testZone
 	state := NewState(testZone, dns.TypeSOA)
 	// need to set opcode
 	state.Req.Opcode = dns.OpcodeNotify

@@ -47,7 +47,7 @@ func secondaryParse(c *Controller) (file.Zones, error) {
 			}
 			for i, _ := range origins {
 				origins[i] = middleware.Host(origins[i]).Normalize()
-				z[origins[i]] = file.NewZone(origins[i])
+				z[origins[i]] = file.NewZone(origins[i], "stdin")
 				names = append(names, origins[i])
 			}
 

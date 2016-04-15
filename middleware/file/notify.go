@@ -30,7 +30,7 @@ func (z *Zone) isNotify(state middleware.State) bool {
 
 // Notify will send notifies to all configured TransferTo IP addresses.
 func (z *Zone) Notify() {
-	go notify(z.name, z.TransferTo)
+	go notify(z.origin, z.TransferTo)
 }
 
 // notify sends notifies to the configured remote servers. It will try up to three times
