@@ -137,6 +137,7 @@ func (z *Zone) Reload(shutdown chan bool) error {
 					z.Tree = zone.Tree
 					z.reloadMu.Unlock()
 					log.Printf("[INFO] Successfully reloaded zone `%s'", z.origin)
+					z.Notify()
 				}
 			case <-shutdown:
 				watcher.Close()
