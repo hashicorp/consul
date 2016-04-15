@@ -118,6 +118,10 @@ func (z *Zone) Reload(shutdown chan bool) error {
 			select {
 			case event := <-watcher.Events:
 				if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Rename == fsnotify.Rename {
+					if err := watcher.Add(z.file); err != nil {
+						log.Printf("[ERROR] Failed to open `%s' for `%s': %v", z.file, z.origin, err)
+					}
+
 					reader, err := os.Open(z.file)
 					if err != nil {
 						log.Printf("[ERROR] Failed to open `%s' for `%s': %v", z.file, z.origin, err)
