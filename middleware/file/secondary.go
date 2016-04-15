@@ -41,7 +41,8 @@ Transfer:
 			for _, rr := range env.RR {
 				if err := z1.Insert(rr); err != nil {
 					log.Printf("[ERROR] Failed to parse transfer `%s': %v", z.origin, err)
-					return err
+					Err = err
+					continue Transfer
 				}
 			}
 		}

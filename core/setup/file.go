@@ -99,27 +99,24 @@ func parseTransfer(c *Controller) (tos, froms []string, err error) {
 	value := c.Val()
 	switch what {
 	case "transfer":
-		if !c.NextArg() {
-			return nil, nil, c.ArgErr()
-		}
 		if value == "to" {
-			tos := c.RemainingArgs()
+			tos = c.RemainingArgs()
 			for i, _ := range tos {
-				if x := net.ParseIP(tos[i]); x == nil {
-					return nil, nil, fmt.Errorf("must specify an IP addres: `%s'", tos[i])
-				}
 				if tos[i] != "*" {
+					if x := net.ParseIP(tos[i]); x == nil {
+						return nil, nil, fmt.Errorf("must specify an IP addres: `%s'", tos[i])
+					}
 					tos[i] = middleware.Addr(tos[i]).Normalize()
 				}
 			}
 		}
 		if value == "from" {
-			froms := c.RemainingArgs()
+			froms = c.RemainingArgs()
 			for i, _ := range froms {
-				if x := net.ParseIP(froms[i]); x == nil {
-					return nil, nil, fmt.Errorf("must specify an IP addres: `%s'", froms[i])
-				}
 				if froms[i] != "*" {
+					if x := net.ParseIP(froms[i]); x == nil {
+						return nil, nil, fmt.Errorf("must specify an IP addres: `%s'", froms[i])
+					}
 					froms[i] = middleware.Addr(froms[i]).Normalize()
 				} else {
 					return nil, nil, fmt.Errorf("can't use '*' in transfer from")
