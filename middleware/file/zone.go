@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"sync"
 
 	"github.com/miekg/coredns/middleware"
@@ -107,7 +108,7 @@ func (z *Zone) Reload(shutdown chan bool) error {
 	if err != nil {
 		return err
 	}
-	err = watcher.Add(z.file)
+	err = watcher.Add(path.Dir(z.file))
 	if err != nil {
 		return err
 	}
@@ -117,11 +118,7 @@ func (z *Zone) Reload(shutdown chan bool) error {
 		for {
 			select {
 			case event := <-watcher.Events:
-				if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Rename == fsnotify.Rename {
-					if err := watcher.Add(z.file); err != nil {
-						log.Printf("[ERROR] Failed to open `%s' for `%s': %v", z.file, z.origin, err)
-					}
-
+				if event.Name == z.file {
 					reader, err := os.Open(z.file)
 					if err != nil {
 						log.Printf("[ERROR] Failed to open `%s' for `%s': %v", z.file, z.origin, err)
@@ -139,7 +136,7 @@ func (z *Zone) Reload(shutdown chan bool) error {
 					z.SIG = zone.SIG
 					z.Tree = zone.Tree
 					z.reloadMu.Unlock()
-					log.Printf("[INFO] Successfully reload zone `%s'", z.origin)
+					log.Printf("[INFO] Successfully reloaded zone `%s'", z.origin)
 				}
 			case <-shutdown:
 				watcher.Close()
