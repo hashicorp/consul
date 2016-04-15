@@ -30,6 +30,9 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 
 	zone := middleware.Zones(e.Zones).Matches(state.Name())
 	if zone == "" {
+		if e.Next == nil {
+			return dns.RcodeServerFailure, nil
+		}
 		return e.Next.ServeDNS(ctx, w, r)
 	}
 

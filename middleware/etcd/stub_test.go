@@ -32,6 +32,10 @@ func TestStubLookup(t *testing.T) {
 			continue
 		}
 		resp := rec.Msg()
+		if resp == nil {
+			// etcd not running?
+			continue
+		}
 
 		sort.Sort(test.RRSet(resp.Answer))
 		sort.Sort(test.RRSet(resp.Ns))
