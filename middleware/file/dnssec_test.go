@@ -16,7 +16,6 @@ var dnssecTestCases = []test.Case{
 	{
 		Qname: "miek.nl.", Qtype: dns.TypeSOA, Do: true,
 		Answer: []dns.RR{
-			// because we sort, this look fishy, but it is OK.
 			test.RRSIG("miek.nl.	1800	IN	RRSIG	SOA 8 2 1800 20160426031301 20160327031301 12051 miek.nl. FIrzy07acBbtyQczy1dc="),
 			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
 		},
@@ -45,13 +44,13 @@ var dnssecTestCases = []test.Case{
 	{
 		Qname: "www.miek.nl.", Qtype: dns.TypeA, Do: true,
 		Answer: []dns.RR{
+			test.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
+			test.RRSIG("a.miek.nl.	1800	IN	RRSIG	A 8 3 1800 20160426031301 20160327031301 12051 miek.nl. lxLotCjWZ3kihTxk="),
 			test.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
 		},
 
 		Extra: []dns.RR{
 			test.OPT(4096, true),
-			test.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
-			test.RRSIG("a.miek.nl.	1800	IN	RRSIG	A 8 3 1800 20160426031301 20160327031301 12051 miek.nl. lxLotCjWZ3kihTxk="),
 		},
 	},
 	{

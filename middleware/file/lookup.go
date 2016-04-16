@@ -151,15 +151,15 @@ func (z *Zone) lookupCNAME(rrs []dns.RR, qtype uint16, do bool) ([]dns.RR, []dns
 	if elem == nil {
 		return rrs, nil, nil, Success
 	}
-	extra := cnameForType(elem.All(), qtype)
+	targets := cnameForType(elem.All(), qtype)
 	if do {
 		sigs := elem.Types(dns.TypeRRSIG)
 		sigs = signatureForSubType(sigs, qtype)
 		if len(sigs) > 0 {
-			extra = append(extra, sigs...)
+			targets = append(targets, sigs...)
 		}
 	}
-	return rrs, nil, extra, Success
+	return append(rrs, targets...), nil, nil, Success
 }
 
 func cnameForType(targets []dns.RR, origQtype uint16) []dns.RR {

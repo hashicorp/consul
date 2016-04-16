@@ -16,11 +16,15 @@ var dnsTestCases = []test.Case{
 	{
 		Qname: "www.miek.nl.", Qtype: dns.TypeA,
 		Answer: []dns.RR{
+			test.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
 			test.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
 		},
-
-		Extra: []dns.RR{
-			test.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
+	},
+	{
+		Qname: "www.miek.nl.", Qtype: dns.TypeAAAA,
+		Answer: []dns.RR{
+			test.AAAA("a.miek.nl.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fef1:6735"),
+			test.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
 		},
 	},
 	{
@@ -136,9 +140,6 @@ func BenchmarkLookup(b *testing.B) {
 		Qname: "www.miek.nl.", Qtype: dns.TypeA,
 		Answer: []dns.RR{
 			test.CNAME("www.miek.nl.	1800	IN	CNAME	a.miek.nl."),
-		},
-
-		Extra: []dns.RR{
 			test.A("a.miek.nl.	1800	IN	A	139.162.196.78"),
 		},
 	}
