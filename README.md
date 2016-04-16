@@ -10,27 +10,27 @@ and a few others). CoreDNS should be stable enough to provide you with a good DN
 
 Currently CoreDNS is able to:
 
-* Serve zone data from a file, both DNSSEC (NSEC only atm) and DNS is supported. Delegation are
-    *not* supported as yet.
+* Serve zone data from a file, both DNSSEC (NSEC only) and DNS is supported.
 * Retrieve zone data from primaries, i.e. act as a secondary server.
+* Loadbalancing of responses.
 * Allow for zone transfers, i.e. act as a primary server.
-* Use Etcd as a backend, i.e. a 92% replacement for
+* Use etcd as a backend, i.e. a 94.5% replacement for
   [SkyDNS](https://github.com/skynetservices/skydns).
 * Serve as a proxy to forward queries to some other (recursive) nameserver.
 * Rewrite queries (both qtype, qclass and qname).
 * Provide metrics (by using Prometheus).
 * Provide Logging.
-* Provide load-balancing of returned responses.
+* Provide load-balancing (A/AAAA shuffling) of returned responses.
 * Has support for the CH class: `version.bind` and friends.
 
-There are corner cases not implemented and a few [issues](https://github.com/miekg/coredns/issues).
+There are still few [issues](https://github.com/miekg/coredns/issues), and work is ongoing on making
+things fast and reduce the memory usage.
 
-But all in all, CoreDNS should already be able to provide you with enough functionality to replace
-parts of BIND9, Knot, NSD or PowerDNS.
-
-However CoreDNS is still in the early stages of development. For now most documentation is in the
-source and some blog articles can be [found here](https://miek.nl/tags/coredns/). If you do want to
-use CoreDNS in production, please let us know and how we can help.
+All in all, CoreDNS should be able to provide you with enough functionality to replace parts of
+BIND9, Knot, NSD or PowerDNS.
+Most documentation is in the source and some blog articles can be [found
+here](https://miek.nl/tags/coredns/). If you do want to use CoreDNS in production, please let us
+know and how we can help.
 
 <https://caddyserver.com/> is also full of examples on how to structure a Corefile (renamed from
 Caddyfile when I forked it).
@@ -86,10 +86,9 @@ All the above examples are possible with the *current* CoreDNS.
 
 * Website?
 * Logo?
-* Code simplifications/refactors.
 * Optimizations.
 * Load testing.
-* All the [issues](https://github.com/miekg/coredns/issues).
+* The [issues](https://github.com/miekg/coredns/issues).
 
 ## Blog
 

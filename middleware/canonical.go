@@ -12,6 +12,8 @@ import (
 //
 // See http://bert-hubert.blogspot.co.uk/2015/10/how-to-do-fast-canonical-ordering-of.html
 // for a blog article on this implementation.
+//
+// The values of a and b are *not* lowercased before the comparison!
 func Less(a, b string) int {
 	i := 1
 	aj := len(a)
@@ -22,11 +24,12 @@ func Less(a, b string) int {
 		if oka && okb {
 			return 0
 		}
-		// sadly this []byte will allocate...
+		// sadly this []byte will allocate... TODO(miek): check if this is needed
+		// for a name, otherwise compare the strings.
 		ab := []byte(a[ai:aj])
-		toLowerAndDDD(ab)
 		bb := []byte(b[bi:bj])
-		toLowerAndDDD(bb)
+		doDDD(ab)
+		doDDD(bb)
 
 		res := bytes.Compare(ab, bb)
 		if res != 0 {
@@ -39,13 +42,9 @@ func Less(a, b string) int {
 	return 0
 }
 
-func toLowerAndDDD(b []byte) {
+func doDDD(b []byte) {
 	lb := len(b)
 	for i := 0; i < lb; i++ {
-		if b[i] >= 'A' && b[i] <= 'Z' {
-			b[i] += 32
-			continue
-		}
 		if i+3 < lb && b[i] == '\\' && isDigit(b[i+1]) && isDigit(b[i+2]) && isDigit(b[i+3]) {
 			b[i] = dddToByte(b[i:])
 			for j := i + 1; j < lb-3; j++ {

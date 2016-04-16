@@ -17,7 +17,7 @@ func (z *Zone) ClosestEncloser(qname string, qtype uint16) string {
 		offset, end = dns.NextLabel(qname, offset)
 	}
 
-	return z.SOA.Header().Name
+	return z.Apex.SOA.Header().Name
 }
 
 // nameErrorProof finds the closest encloser and return an NSEC that proofs

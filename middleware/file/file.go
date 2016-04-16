@@ -80,18 +80,15 @@ func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	m := new(dns.Msg)
 	m.SetReply(r)
 	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
+	m.Answer, m.Ns, m.Extra = answer, ns, extra
 
 	switch result {
 	case Success:
-		m.Answer = answer
-		m.Ns = ns
-		m.Extra = extra
-	case NameError:
-		m.Ns = ns
-		m.Rcode = dns.RcodeNameError
-		fallthrough
 	case NoData:
-		m.Ns = ns
+	case NameError:
+		m.Rcode = dns.RcodeNameError
+	case Delegation:
+		m.Authoritative = false
 	case ServerFailure:
 		return dns.RcodeServerFailure, nil
 	}

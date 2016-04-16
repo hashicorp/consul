@@ -12,6 +12,7 @@ type Result int
 const (
 	Success Result = iota
 	NameError
+	Delegation
 	NoData
 	ServerFailure
 )
@@ -22,6 +23,9 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 	if qtype == dns.TypeSOA {
 		return z.lookupSOA(do)
 	}
+	if qtype == dns.TypeNS && qname == z.origin {
+		return z.lookupNS(do)
+	}
 
 	elem, res := z.Tree.Search(qname, qtype)
 	if elem == nil {
@@ -29,6 +33,21 @@ func (z *Zone) Lookup(qname string, qtype uint16, do bool) ([]dns.RR, []dns.RR, 
 			return z.emptyNonTerminal(qname, do)
 		}
 		return z.nameError(qname, qtype, do)
+	}
+	if res == tree.Delegation {
+		rrs := elem.Types(dns.TypeNS)
+		glue := []dns.RR{}
+		for _, ns := range rrs {
+			if dns.IsSubDomain(ns.Header().Name, ns.(*dns.NS).Ns) {
+				// even with Do, this should be unsigned.
+				elem, res := z.Tree.SearchGlue(ns.(*dns.NS).Ns)
+				if res == tree.Found {
+					glue = append(glue, elem.Types(dns.TypeAAAA)...)
+					glue = append(glue, elem.Types(dns.TypeA)...)
+				}
+			}
+		}
+		return nil, rrs, glue, Delegation
 	}
 
 	rrs := elem.Types(dns.TypeCNAME)
@@ -87,9 +106,9 @@ func (z *Zone) nameError(qname string, qtype uint16, do bool) ([]dns.RR, []dns.R
 	}
 
 	// name error
-	ret := []dns.RR{z.SOA}
+	ret := []dns.RR{z.Apex.SOA}
 	if do {
-		ret = append(ret, z.SIG...)
+		ret = append(ret, z.Apex.SIGSOA...)
 		ret = append(ret, z.nameErrorProof(qname, qtype)...)
 	}
 	return nil, ret, nil, NameError
@@ -97,10 +116,18 @@ func (z *Zone) nameError(qname string, qtype uint16, do bool) ([]dns.RR, []dns.R
 
 func (z *Zone) lookupSOA(do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
 	if do {
-		ret := append([]dns.RR{z.SOA}, z.SIG...)
+		ret := append([]dns.RR{z.Apex.SOA}, z.Apex.SIGSOA...)
 		return ret, nil, nil, Success
 	}
-	return []dns.RR{z.SOA}, nil, nil, Success
+	return []dns.RR{z.Apex.SOA}, nil, nil, Success
+}
+
+func (z *Zone) lookupNS(do bool) ([]dns.RR, []dns.RR, []dns.RR, Result) {
+	if do {
+		ret := append(z.Apex.NS, z.Apex.SIGNS...)
+		return ret, nil, nil, Success
+	}
+	return z.Apex.NS, nil, nil, Success
 }
 
 // lookupNSEC looks up nsec and sigs.

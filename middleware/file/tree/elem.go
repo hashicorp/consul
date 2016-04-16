@@ -91,7 +91,7 @@ func (e *Elem) Delete(rr dns.RR) (empty bool) {
 	return
 }
 
-// Less is a tree helper function that calles middleware.Less.
+// Less is a tree helper function that calls middleware.Less.
 func Less(a *Elem, name string) int { return middleware.Less(name, a.Name()) }
 
 // Assuming the same type and name this will check if the rdata is equal as well.

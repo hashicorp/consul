@@ -85,7 +85,7 @@ func TestShouldTransfer(t *testing.T) {
 	z.TransferFrom = []string{addrstr}
 
 	// Serial smaller
-	z.SOA = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, soa.serial-1))
+	z.Apex.SOA = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, soa.serial-1))
 	should, err := z.shouldTransfer()
 	if err != nil {
 		t.Fatalf("unable to run shouldTransfer: %v", err)
@@ -94,7 +94,7 @@ func TestShouldTransfer(t *testing.T) {
 		t.Fatalf("shouldTransfer should return true for serial: %q", soa.serial-1)
 	}
 	// Serial equal
-	z.SOA = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, soa.serial))
+	z.Apex.SOA = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, soa.serial))
 	should, err = z.shouldTransfer()
 	if err != nil {
 		t.Fatalf("unable to run shouldTransfer: %v", err)
@@ -125,7 +125,7 @@ func TestTransferIn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to run TransferIn: %v", err)
 	}
-	if z.SOA.String() != fmt.Sprintf("%s	3600	IN	SOA	bla. bla. 250 0 0 0 0", testZone) {
+	if z.Apex.SOA.String() != fmt.Sprintf("%s	3600	IN	SOA	bla. bla. 250 0 0 0 0", testZone) {
 		t.Fatalf("unknown SOA transferred")
 	}
 }

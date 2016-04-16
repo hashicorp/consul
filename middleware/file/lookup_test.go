@@ -36,6 +36,12 @@ var dnsTestCases = []test.Case{
 		},
 	},
 	{
+		Qname: "mIeK.NL.", Qtype: dns.TypeAAAA,
+		Answer: []dns.RR{
+			test.AAAA("miek.nl.	1800	IN	AAAA	2a01:7e00::f03c:91ff:fef1:6735"),
+		},
+	},
+	{
 		Qname: "miek.nl.", Qtype: dns.TypeMX,
 		Answer: []dns.RR{
 			test.MX("miek.nl.	1800	IN	MX	1 aspmx.l.google.com."),
@@ -166,8 +172,8 @@ $ORIGIN miek.nl.
                 IN      MX      10 aspmx2.googlemail.com.
                 IN      MX      10 aspmx3.googlemail.com.
 
-                IN      A       139.162.196.78
-                IN      AAAA    2a01:7e00::f03c:91ff:fef1:6735
+		IN      A       139.162.196.78
+		IN      AAAA    2a01:7e00::f03c:91ff:fef1:6735
 
 a               IN      A       139.162.196.78
                 IN      AAAA    2a01:7e00::f03c:91ff:fef1:6735

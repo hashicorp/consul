@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -53,6 +54,14 @@ func TestLess(t *testing.T) {
 
 Tests:
 	for j, test := range tests {
+		// Need to lowercase these example as the Less function does lowercase for us anymore.
+		for i, b := range test.in {
+			test.in[i] = strings.ToLower(b)
+		}
+		for i, b := range test.out {
+			test.out[i] = strings.ToLower(b)
+		}
+
 		sort.Sort(set(test.in))
 		for i := 0; i < len(test.in); i++ {
 			if test.in[i] != test.out[i] {

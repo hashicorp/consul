@@ -30,6 +30,7 @@ const (
 	Found Result = iota
 	NameError
 	EmptyNonTerminal
+	Delegation
 )
 
 // Operation mode of the LLRB tree.
@@ -154,16 +155,35 @@ func (t *Tree) Search(qname string, qtype uint16) (*Elem, Result) {
 	if t.Root == nil {
 		return nil, NameError
 	}
-	n, res := t.Root.search(qname, qtype)
+	n, res := t.Root.search(qname, qtype, false)
 	if n == nil {
 		return nil, res
 	}
 	return n.Elem, res
 }
 
-func (n *Node) search(qname string, qtype uint16) (*Node, Result) {
+// SearchGlue returns the first match of qname/(A/AAAA) in the Tree.
+func (t *Tree) SearchGlue(qname string) (*Elem, Result) {
+	// TODO(miek): shouldn't need this, because when we *find* the delegation, we
+	// know for sure that any glue is under it. Should change the return values
+	// to return the node, so we can resume from those.
+	if t.Root == nil {
+		return nil, NameError
+	}
+	n, res := t.Root.search(qname, dns.TypeA, true)
+	if n == nil {
+		return nil, res
+	}
+	return n.Elem, res
+}
+
+// search searches the tree for qname and type. If glue is true the search *does* not
+// spot when hitting NS records, but descends in search of glue. The qtype for this
+// kind of search can only be AAAA or A.
+func (n *Node) search(qname string, qtype uint16, glue bool) (*Node, Result) {
 	old := n
 	for n != nil {
+
 		switch c := Less(n.Elem, qname); {
 		case c == 0:
 			return n, Found
@@ -171,6 +191,10 @@ func (n *Node) search(qname string, qtype uint16) (*Node, Result) {
 			old = n
 			n = n.Left
 		default:
+			if !glue && n.Elem.Types(dns.TypeNS) != nil {
+				return n, Delegation
+
+			}
 			old = n
 			n = n.Right
 		}

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 	"sync"
 
 	"github.com/miekg/coredns/middleware"
@@ -15,11 +16,10 @@ import (
 )
 
 type Zone struct {
-	SOA    *dns.SOA
-	SIG    []dns.RR
 	origin string
 	file   string
 	*tree.Tree
+	Apex Apex
 
 	TransferTo   []string
 	StartupOnce  sync.Once
@@ -29,6 +29,13 @@ type Zone struct {
 	NoReload bool
 	reloadMu sync.RWMutex
 	// TODO: shutdown watcher channel
+}
+
+type Apex struct {
+	SOA    *dns.SOA
+	NS     []dns.RR
+	SIGSOA []dns.RR
+	SIGNS  []dns.RR
 }
 
 // NewZone returns a new zone.
@@ -44,28 +51,50 @@ func (z *Zone) Copy() *Zone {
 	z1.TransferTo = z.TransferTo
 	z1.TransferFrom = z.TransferFrom
 	z1.Expired = z.Expired
-	z1.SOA = z.SOA
-	z1.SIG = z.SIG
+	z1.Apex = z.Apex
 	return z1
 }
 
 // Insert inserts r into z.
 func (z *Zone) Insert(r dns.RR) error {
+	r.Header().Name = strings.ToLower(r.Header().Name)
+
 	switch h := r.Header().Rrtype; h {
+	case dns.TypeNS:
+		r.(*dns.NS).Ns = strings.ToLower(r.(*dns.NS).Ns)
+
+		if r.Header().Name == z.origin {
+			z.Apex.NS = append(z.Apex.NS, r)
+			return nil
+		}
 	case dns.TypeSOA:
-		z.SOA = r.(*dns.SOA)
+		r.(*dns.SOA).Ns = strings.ToLower(r.(*dns.SOA).Ns)
+		r.(*dns.SOA).Mbox = strings.ToLower(r.(*dns.SOA).Mbox)
+
+		z.Apex.SOA = r.(*dns.SOA)
 		return nil
 	case dns.TypeNSEC3, dns.TypeNSEC3PARAM:
 		return fmt.Errorf("NSEC3 zone is not supported, dropping")
 	case dns.TypeRRSIG:
-		if x, ok := r.(*dns.RRSIG); ok && x.TypeCovered == dns.TypeSOA {
-			z.SIG = append(z.SIG, x)
+		x := r.(*dns.RRSIG)
+		switch x.TypeCovered {
+		case dns.TypeSOA:
+			z.Apex.SIGSOA = append(z.Apex.SIGSOA, x)
 			return nil
+		case dns.TypeNS:
+			if r.Header().Name == z.origin {
+				z.Apex.SIGNS = append(z.Apex.SIGNS, x)
+				return nil
+			}
 		}
-		fallthrough
-	default:
-		z.Tree.Insert(r)
+	case dns.TypeCNAME:
+		r.(*dns.CNAME).Target = strings.ToLower(r.(*dns.CNAME).Target)
+	case dns.TypeMX:
+		r.(*dns.MX).Mx = strings.ToLower(r.(*dns.MX).Mx)
+	case dns.TypeSRV:
+		r.(*dns.SRV).Target = strings.ToLower(r.(*dns.SRV).Target)
 	}
+	z.Tree.Insert(r)
 	return nil
 }
 
@@ -88,16 +117,22 @@ func (z *Zone) TransferAllowed(state middleware.State) bool {
 func (z *Zone) All() []dns.RR {
 	z.reloadMu.RLock()
 	defer z.reloadMu.RUnlock()
+
 	records := []dns.RR{}
 	allNodes := z.Tree.All()
 	for _, a := range allNodes {
 		records = append(records, a.All()...)
 	}
 
-	if len(z.SIG) > 0 {
-		records = append(z.SIG, records...)
+	if len(z.Apex.SIGNS) > 0 {
+		records = append(z.Apex.SIGNS, records...)
 	}
-	return append([]dns.RR{z.SOA}, records...)
+	records = append(z.Apex.NS, records...)
+
+	if len(z.Apex.SIGSOA) > 0 {
+		records = append(z.Apex.SIGSOA, records...)
+	}
+	return append([]dns.RR{z.Apex.SOA}, records...)
 }
 
 func (z *Zone) Reload(shutdown chan bool) error {
@@ -132,8 +167,7 @@ func (z *Zone) Reload(shutdown chan bool) error {
 						continue
 					}
 					// copy elements we need
-					z.SOA = zone.SOA
-					z.SIG = zone.SIG
+					z.Apex = zone.Apex
 					z.Tree = zone.Tree
 					z.reloadMu.Unlock()
 					log.Printf("[INFO] Successfully reloaded zone `%s'", z.origin)

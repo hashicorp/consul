@@ -55,8 +55,7 @@ Transfer:
 	}
 
 	z.Tree = z1.Tree
-	z.SOA = z1.SOA
-	z.SIG = z1.SIG
+	z.Apex = z1.Apex
 	*z.Expired = false
 	log.Printf("[INFO] Transferred: %s from %s", z.origin, tr)
 	return nil
@@ -91,7 +90,7 @@ Transfer:
 	if serial == -1 {
 		return false, Err
 	}
-	return less(z.SOA.Serial, uint32(serial)), Err
+	return less(z.Apex.SOA.Serial, uint32(serial)), Err
 }
 
 // less return true of a is smaller than b when taking RFC 1982 serial arithmetic into account.
@@ -108,15 +107,15 @@ func less(a, b uint32) bool {
 // will be marked expired.
 func (z *Zone) Update() error {
 	// If we don't have a SOA, we don't have a zone, wait for it to appear.
-	for z.SOA == nil {
+	for z.Apex.SOA == nil {
 		time.Sleep(1 * time.Second)
 	}
 	retryActive := false
 
 Restart:
-	refresh := time.Second * time.Duration(z.SOA.Refresh)
-	retry := time.Second * time.Duration(z.SOA.Retry)
-	expire := time.Second * time.Duration(z.SOA.Expire)
+	refresh := time.Second * time.Duration(z.Apex.SOA.Refresh)
+	retry := time.Second * time.Duration(z.Apex.SOA.Retry)
+	expire := time.Second * time.Duration(z.Apex.SOA.Expire)
 
 	if refresh < time.Hour {
 		refresh = time.Hour
