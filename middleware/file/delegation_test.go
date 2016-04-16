@@ -31,6 +31,18 @@ var delegationTestCases = []test.Case{
 			test.NS("delegated.miek.nl.	1800	IN	NS	ns-ext.nlnetlabs.nl."),
 		},
 	},
+	{
+		Qname: "miek.nl.", Qtype: dns.TypeSOA,
+		Answer: []dns.RR{
+			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+		},
+	},
+	{
+		Qname: "miek.nl.", Qtype: dns.TypeAAAA,
+		Ns: []dns.RR{
+			test.SOA("miek.nl.	1800	IN	SOA	linode.atoom.net. miek.miek.nl. 1282630057 14400 3600 604800 14400"),
+		},
+	},
 }
 
 func TestLookupDelegation(t *testing.T) {
