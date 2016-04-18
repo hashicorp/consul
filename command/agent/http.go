@@ -323,12 +323,24 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		// you'd need the actual token (or a management token) to read
 		// that back.
 
-		// Invoke the handler
 		start := time.Now()
 		defer func() {
 			s.logger.Printf("[DEBUG] http: Request %s %v (%v) from=%s", req.Method, logURL, time.Now().Sub(start), req.RemoteAddr)
 		}()
-		obj, err := handler(resp, req)
+
+		var obj interface{}
+		// respond appropriately to OPTIONS requests
+		if req.Method == "OPTIONS" {
+			if allowed := allowedMethods(req.URL.Path); allowed != "" {
+				resp.Header().Set("Allow", allowed)
+				obj, err = nil, nil
+			} else {
+				resp.WriteHeader(http.StatusNotFound) // 404
+				return
+			}
+		} else { // Invoke the handler
+			obj, err = handler(resp, req)
+		}
 
 		// Check for an error
 	HAS_ERR:
@@ -549,4 +561,40 @@ func (s *HTTPServer) parse(resp http.ResponseWriter, req *http.Request, dc *stri
 		return true
 	}
 	return parseWait(resp, req, b)
+}
+
+// allowedMethods returns an HTTP Allowed header value that lists the valid HTTP
+// methods for various API endpoints. If the endpoint is unknown, it returns "".
+func allowedMethods(path string) string {
+	for prefix, methods := range map[string]string{
+		"/v1/acl/create":             "PUT",
+		"/v1/acl/update":             "PUT",
+		"/v1/acl/destroy":            "PUT",
+		"/v1/acl/clone":              "PUT",
+		"/v1/acl":                    "GET",
+		"/v1/agent/check/register":   "PUT",
+		"/v1/agent/check/update":     "PUT",
+		"/v1/agent/service/register": "PUT",
+		"/v1/agent":                  "GET",
+		"/v1/catalog/register":       "PUT",
+		"/v1/catalog/deregister":     "PUT",
+		"/v1/catalog":                "GET",
+		"/v1/event/fire":             "PUT",
+		"/v1/event":                  "GET",
+		"/v1/health":                 "GET",
+		"/v1/kv":                     "GET,PUT,DELETE",
+		"/v1/coordinate":             "GET",
+		"/v1/query":                  "GET,POST",
+		"/v1/query/":                 "GET,PUT,DELETE",
+		"/v1/session/create":         "PUT",
+		"/v1/session/destroy":        "PUT",
+		"/v1/session/renew":          "PUT",
+		"/v1/session":                "GET",
+		"/v1/status":                 "GET",
+	} {
+		if strings.HasPrefix(path, prefix) {
+			return "OPTIONS," + methods
+		}
+	}
+	return ""
 }
