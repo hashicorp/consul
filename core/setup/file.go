@@ -40,7 +40,7 @@ func fileParse(c *Controller) (file.Zones, error) {
 	names := []string{}
 	for c.Next() {
 		if c.Val() == "file" {
-			// file db.file [origin]
+			// file db.file [zones...]
 			if !c.NextArg() {
 				return file.Zones{}, c.ArgErr()
 			}
@@ -83,7 +83,6 @@ func fileParse(c *Controller) (file.Zones, error) {
 					}
 					z[origin].NoReload = noReload
 				}
-
 			}
 		}
 	}

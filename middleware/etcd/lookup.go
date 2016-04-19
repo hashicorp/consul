@@ -349,14 +349,12 @@ func (e Etcd) SOA(zone string, state middleware.State) *dns.SOA {
 		Mbox:    "hostmaster." + zone,
 		Ns:      "ns.dns." + zone,
 		Serial:  uint32(time.Now().Unix()),
-		Refresh: 14400,
-		Retry:   3600,
-		Expire:  604800,
+		Refresh: 7200,
+		Retry:   1800,
+		Expire:  86400,
 		Minttl:  60,
 	}
 }
-
-// NS returns the NS records from etcd.
 
 // TODO(miek): DNSKEY and friends... intercepted by the DNSSEC middleware?
 

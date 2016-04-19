@@ -57,6 +57,7 @@ var directiveOrder = []directive{
 	{"chaos", setup.Chaos},
 	{"rewrite", setup.Rewrite},
 	{"loadbalance", setup.Loadbalance},
+	{"cache", setup.Cache},
 	{"file", setup.File},
 	{"secondary", setup.Secondary},
 	{"etcd", setup.Etcd},
