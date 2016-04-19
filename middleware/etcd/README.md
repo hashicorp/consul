@@ -15,7 +15,7 @@ etcd [zones...]
 
 * `zones` zones etcd should be authoritative for.
 
-The path will default to `/skydns` the local etcd proxy (http://127.0.0.1:2379).
+The path will default to `/skydns` the local etcd proxy (http://localhost:2379).
 If no zones are specified the block's zone will be used as the zone.
 
 If you want to `round robin` A and AAAA responses look at the `loadbalance` middleware.
@@ -45,12 +45,14 @@ This is the default SkyDNS setup, with everying specified in full:
 
 ~~~
 .:53 {
-    etcd {
+    etcd skydns.local {
         stubzones
         path /skydns
-        endpoint http://localhost:2397
+        endpoint http://localhost:2379
         upstream 8.8.8.8:53 8.8.4.4:53
     }
+    prometheus
+    cache 160 skydns.local
     loadbalance
     proxy . 8.8.8.8:53 8.8.4.4:53
 }

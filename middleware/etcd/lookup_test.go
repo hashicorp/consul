@@ -2,10 +2,6 @@
 
 package etcd
 
-// etcd needs to be running on http://127.0.0.1:2379
-// *and* needs connectivity to the internet for remotely resolving
-// names.
-
 import (
 	"github.com/miekg/coredns/middleware/etcd/msg"
 	"github.com/miekg/coredns/middleware/test"

@@ -17,7 +17,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-const defaultEndpoint = "http://127.0.0.1:2379"
+const defaultEndpoint = "http://localhost:2379"
 
 // Etcd sets up the etcd middleware.
 func Etcd(c *Controller) (middleware.Middleware, error) {
@@ -125,7 +125,6 @@ func etcdParse(c *Controller) (etcd.Etcd, bool, error) {
 								args[i] = h + ":53"
 							}
 						}
-						endpoints = args
 						etc.Proxy = proxy.New(args)
 					case "tls": // cert key cacertfile
 						args := c.RemainingArgs()
