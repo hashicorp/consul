@@ -53,7 +53,9 @@ var directiveOrder = []directive{
 
 	// Directives that inject handlers (middleware)
 	{"prometheus", setup.Prometheus},
+	{"errors", setup.Errors},
 	{"log", setup.Log},
+
 	{"chaos", setup.Chaos},
 	{"rewrite", setup.Rewrite},
 	{"loadbalance", setup.Loadbalance},
@@ -62,7 +64,6 @@ var directiveOrder = []directive{
 	{"secondary", setup.Secondary},
 	{"etcd", setup.Etcd},
 	{"proxy", setup.Proxy},
-	{"errors", setup.Errors},
 }
 
 // RegisterDirective adds the given directive to caddy's list of directives.
@@ -90,5 +91,5 @@ type directive struct {
 
 // SetupFunc takes a controller and may optionally return a middleware.
 // If the resulting middleware is not nil, it will be chained into
-// the HTTP handlers in the order specified in this package.
+// the DNS handlers in the order specified in this package.
 type SetupFunc func(c *setup.Controller) (middleware.Middleware, error)

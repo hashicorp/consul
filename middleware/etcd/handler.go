@@ -73,7 +73,6 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		return e.Err(zone, dns.RcodeNameError, state)
 	}
 	if err != nil {
-		println("returning error", err.Error())
 		return dns.RcodeServerFailure, err
 	}
 

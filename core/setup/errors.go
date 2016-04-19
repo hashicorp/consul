@@ -5,9 +5,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/hashicorp/go-syslog"
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/errors"
+
+	"github.com/hashicorp/go-syslog"
 )
 
 // Errors configures a new errors middleware instance.
@@ -17,48 +18,42 @@ func Errors(c *Controller) (middleware.Middleware, error) {
 		return nil, err
 	}
 
-	// Open the log file for writing when the server starts
-	c.Startup = append(c.Startup, func() error {
-		var err error
-		var writer io.Writer
+	var writer io.Writer
 
-		switch handler.LogFile {
-		case "visible":
-			handler.Debug = true
-		case "stdout":
-			writer = os.Stdout
-		case "stderr":
-			writer = os.Stderr
-		case "syslog":
-			writer, err = gsyslog.NewLogger(gsyslog.LOG_ERR, "LOCAL0", "coredns")
-			if err != nil {
-				return err
-			}
-		default:
-			if handler.LogFile == "" {
-				writer = os.Stderr // default
-				break
-			}
-
-			var file *os.File
-			file, err = os.OpenFile(handler.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
-			if err != nil {
-				return err
-			}
-			if handler.LogRoller != nil {
-				file.Close()
-
-				handler.LogRoller.Filename = handler.LogFile
-
-				writer = handler.LogRoller.GetLogWriter()
-			} else {
-				writer = file
-			}
+	switch handler.LogFile {
+	case "visible":
+		handler.Debug = true
+	case "stdout":
+		writer = os.Stdout
+	case "stderr":
+		writer = os.Stderr
+	case "syslog":
+		writer, err = gsyslog.NewLogger(gsyslog.LOG_ERR, "LOCAL0", "coredns")
+		if err != nil {
+			return nil, err
+		}
+	default:
+		if handler.LogFile == "" {
+			writer = os.Stderr // default
+			break
 		}
 
-		handler.Log = log.New(writer, "", 0)
-		return nil
-	})
+		var file *os.File
+		file, err = os.OpenFile(handler.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+		if err != nil {
+			return nil, err
+		}
+		if handler.LogRoller != nil {
+			file.Close()
+
+			handler.LogRoller.Filename = handler.LogFile
+
+			writer = handler.LogRoller.GetLogWriter()
+		} else {
+			writer = file
+		}
+	}
+	handler.Log = log.New(writer, "", 0)
 
 	return func(next middleware.Handler) middleware.Handler {
 		handler.Next = next
@@ -66,11 +61,8 @@ func Errors(c *Controller) (middleware.Middleware, error) {
 	}, nil
 }
 
-func errorsParse(c *Controller) (*errors.ErrorHandler, error) {
-	// Very important that we make a pointer because the Startup
-	// function that opens the log file must have access to the
-	// same instance of the handler, not a copy.
-	handler := &errors.ErrorHandler{}
+func errorsParse(c *Controller) (errors.ErrorHandler, error) {
+	handler := errors.ErrorHandler{}
 
 	optionalBlock := func() (bool, error) {
 		var hadBlock bool
