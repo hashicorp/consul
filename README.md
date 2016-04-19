@@ -14,7 +14,8 @@ Currently CoreDNS is able to:
 * Retrieve zone data from primaries, i.e. act as a secondary server.
 * Loadbalancing of responses.
 * Allow for zone transfers, i.e. act as a primary server.
-* Use etcd as a backend, i.e. a 94.5% replacement for
+* Caching
+* Use etcd as a backend, i.e. a 98.5% replacement for
   [SkyDNS](https://github.com/skynetservices/skydns).
 * Serve as a proxy to forward queries to some other (recursive) nameserver.
 * Rewrite queries (both qtype, qclass and qname).
