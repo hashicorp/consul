@@ -3,26 +3,25 @@
 CoreDNS is DNS server that started as a fork of [Caddy](https://github.com/mholt/caddy/). It has the
 same model: it chains middleware.
 
+Currently CoreDNS is able to:
+
+* Serve zone data from a file, both DNSSEC (NSEC only) and DNS is supported (middleware/file).
+* Retrieve zone data from primaries, i.e. act as a secondary server (middleware/file).
+* Loadbalancing of responses (middleware/loadbalance).
+* Allow for zone transfers, i.e. act as a primary server (middleware/file).
+* Caching (middleware/cache).
+* Use etcd as a backend, i.e. a 98.5% replacement for
+  [SkyDNS](https://github.com/skynetservices/skydns) (middleware/etcd).
+* Serve as a proxy to forward queries to some other (recursive) nameserver (middleware/proxy).
+* Rewrite queries (both qtype, qclass and qname) (middleware/rewrite).
+* Provide metrics (by using Prometheus) (middleware/metrics).
+* Provide Logging (middleware/log).
+* Has support for the CH class: `version.bind` and friends (middleware/chaos).
+
 ## Status
 
 I'm using CoreDNS is my primary, authoritative, nameserver for my domains (`miek.nl`, `atoom.net`
-and a few others). CoreDNS should be stable enough to provide you with a good DNS service.
-
-Currently CoreDNS is able to:
-
-* Serve zone data from a file, both DNSSEC (NSEC only) and DNS is supported.
-* Retrieve zone data from primaries, i.e. act as a secondary server.
-* Loadbalancing of responses.
-* Allow for zone transfers, i.e. act as a primary server.
-* Caching
-* Use etcd as a backend, i.e. a 98.5% replacement for
-  [SkyDNS](https://github.com/skynetservices/skydns).
-* Serve as a proxy to forward queries to some other (recursive) nameserver.
-* Rewrite queries (both qtype, qclass and qname).
-* Provide metrics (by using Prometheus).
-* Provide Logging.
-* Provide load-balancing (A/AAAA shuffling) of returned responses.
-* Has support for the CH class: `version.bind` and friends.
+and a few others). CoreDNS should be stable enough to provide you with a good DNS(SEC) service.
 
 There are still few [issues](https://github.com/miekg/coredns/issues), and work is ongoing on making
 things fast and reduce the memory usage.
