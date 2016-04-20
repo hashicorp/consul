@@ -34,7 +34,9 @@ IMPROVEMENTS:
 * Removed an obsolete warning message when Consul starts on Windows. [GH-1920]
 * Defaults bind address to 127.0.0.1 when running in `-dev` mode. [GH-1878]
 * Builds Consul releases with Go 1.6.1. [GH-1948]
-* HTTP health checks limit saved output to 4K to avoid performance issues [GH-1952]
+* HTTP health checks limit saved output to 4K to avoid performance issues. [GH-1952]
+* Reap time for failed nodes is now configurable via new `reconnect_timeout` and
+  `reconnect_timeout_wan` config options ([use with caution](https://www.consul.io/docs/agent/options.html#reconnect_timeout)). [GH-1935]
 
 BUG FIXES:
 
