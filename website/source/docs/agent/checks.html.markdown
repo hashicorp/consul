@@ -15,13 +15,25 @@ service. If not associated with a service, the check monitors the health of the 
 A check is defined in a configuration file or added at runtime over the HTTP interface.  Checks
 created via the HTTP interface persist with that node.
 
-There are five different kinds of checks:
+There are six different kinds of checks:
 
 * Script + Interval - These checks depend on invoking an external application
   that performs the health check, exits with an appropriate exit code, and potentially
   generates some output. A script is paired with an invocation interval (e.g.
   every 30 seconds). This is similar to the Nagios plugin system. The output of
   a script check is limited to 4K. Output larger than this will be truncated.
+
+* Metric/Hybrid + Interval - These checks are similar to the Script check and invokes
+  external scripts to run metrics scripts and handlers. Hybrid scripts both check status
+  and return an appropriate exit code as well as metrics data.  
+  Metric checks require the MetricHandler option to be set. Setting the MetricHandler on a
+  Script check makes it a Hybrid check. It will split the check output and route the metrics data 
+  to the handler. The default hybrid field separator is the pipe sign(|) to be compatible with
+  [Nagios Performance Data](https://assets.nagios.com/downloads/nagioscore/docs/nagioscore/4/en/perfdata.html)
+  format. The separator can be set with the MetricSeparator option. Consul acts as a metrics bus and output is 
+  piped to the handler locally on the agent for processing and emitting directly to a backend. Handler 
+  scripts may want to make use of the KV to make selections about metrics routing that are 
+  centrally controlled.
 
 * HTTP + Interval - These checks make an HTTP `GET` request every Interval (e.g.
   every 30 seconds) to the specified URL. The status of the service depends on the HTTP response code:
@@ -83,6 +95,33 @@ A script check:
     "id": "mem-util",
     "name": "Memory utilization",
     "script": "/usr/local/bin/check_mem.py",
+    "interval": "10s"
+  }
+}
+```
+A metrics check:
+
+```javascript
+{
+  "check": {
+    "id": "mem-metrics",
+    "name": "Memory Metrics",
+    "metric": "/usr/local/bin/metrics_mem.py",
+    "metric_handler": "/usr/local/bin/mutator.rb | /usr/local/bin/metrichandler.sh",
+    "interval": "10s"
+  }
+}
+```
+
+A hybrid check:
+
+```javascript
+{
+  "check": {
+    "id": "cpu-hybrid",
+    "name": "CPU Check",
+    "script": "/usr/lib/nagios/plugins/check_load -w 5,5,5 -c 10,10,10 ",
+    "metric_handler": "/usr/local/bin/mutator.rb | /usr/local/bin/metrichandler.sh influx",
     "interval": "10s"
   }
 }

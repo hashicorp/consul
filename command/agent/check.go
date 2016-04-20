@@ -11,6 +11,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"strings"
 
 	"github.com/armon/circbuf"
 	docker "github.com/fsouza/go-dockerclient"
@@ -36,13 +37,16 @@ const (
 
 // CheckType is used to create either the CheckMonitor
 // or the CheckTTL.
-// Five types are supported: Script, HTTP, TCP, Docker and TTL
-// Script, HTTP, Docker and TCP all require Interval
+// Seven types are supported: Script, Metric/Hybrid, HTTP, TCP, Docker and TTL
+// Script, Metric/Hybrid, HTTP, Docker and TCP all require Interval
 // Only one of the types needs to be provided
 // TTL or Script/Interval or HTTP/Interval or TCP/Interval or Docker/Interval
 type CheckType struct {
 	Script            string
 	HTTP              string
+	Metric            string
+	MetricHandler     string
+	MetricSeparator   string
 	TCP               string
 	Interval          time.Duration
 	DockerContainerID string
@@ -59,7 +63,7 @@ type CheckTypes []*CheckType
 
 // Valid checks if the CheckType is valid
 func (c *CheckType) Valid() bool {
-	return c.IsTTL() || c.IsMonitor() || c.IsHTTP() || c.IsTCP() || c.IsDocker()
+	return c.IsTTL() || c.IsMonitor() || c.IsHTTP() || c.IsTCP() || c.IsDocker() || c.IsMetric()
 }
 
 // IsTTL checks if this is a TTL type
@@ -69,7 +73,12 @@ func (c *CheckType) IsTTL() bool {
 
 // IsMonitor checks if this is a Monitor type
 func (c *CheckType) IsMonitor() bool {
-	return c.Script != "" && c.DockerContainerID == "" && c.Interval != 0
+	return c.Script != "" && c.DockerContainerID == "" && c.Metric == "" && c.Interval != 0
+}
+
+// IsMonitor checks if this is a Metric type
+func (c *CheckType) IsMetric() bool {
+	return c.Metric != "" && c.MetricHandler != "" && c.Script == "" && c.Interval != 0
 }
 
 // IsHTTP checks if this is a HTTP type
@@ -97,12 +106,15 @@ type CheckNotifier interface {
 // determine the health of a given check. It is compatible with
 // nagios plugins and expects the output in the same format.
 type CheckMonitor struct {
-	Notify   CheckNotifier
-	CheckID  string
-	Script   string
-	Interval time.Duration
-	Logger   *log.Logger
-	ReapLock *sync.RWMutex
+	Notify          CheckNotifier
+	CheckID         string
+	Script          string
+	Metric          string
+	MetricHandler   string
+	MetricSeparator string
+	Interval        time.Duration
+	Logger          *log.Logger
+	ReapLock        *sync.RWMutex
 
 	stop     bool
 	stopCh   chan struct{}
@@ -154,10 +166,16 @@ func (c *CheckMonitor) check() {
 	c.ReapLock.RLock()
 	defer c.ReapLock.RUnlock()
 
-	// Create the command
-	cmd, err := ExecScript(c.Script)
+	// Create the command and select check script or metric script
+	var scriptPath string
+	if c.Script != "" {
+		scriptPath = c.Script
+	} else {
+		scriptPath = c.Metric
+	}
+	cmd, err := ExecScript(scriptPath)
 	if err != nil {
-		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", c.Script, err)
+		c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", scriptPath, err)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
 		return
 	}
@@ -169,7 +187,7 @@ func (c *CheckMonitor) check() {
 
 	// Start the check
 	if err := cmd.Start(); err != nil {
-		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", c.Script, err)
+		c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", scriptPath, err)
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
 		return
 	}
@@ -181,12 +199,63 @@ func (c *CheckMonitor) check() {
 	}()
 	go func() {
 		time.Sleep(30 * time.Second)
-		errCh <- fmt.Errorf("Timed out running check '%s'", c.Script)
+		errCh <- fmt.Errorf("Timed out running check '%s'", scriptPath)
 	}()
 	err = <-errCh
 
-	// Get the output, add a message about truncation
+	// Get the output 
 	outputStr := string(output.Bytes())
+
+	// Triggers if this is a metric or hybrid check
+	if c.Metric != "" || c.MetricHandler != "" {
+		// Create the command for the metric handler
+		cmd, err := ExecScript(c.MetricHandler)
+		if err != nil {
+			c.Logger.Printf("[ERR] agent: failed to setup invoke '%s': %s", c.MetricHandler, err)
+			return
+		}
+		if c.Metric != "" {
+			// Check is just metrics so send all output to handler
+			cmd.Stdin = strings.NewReader(outputStr)
+		} else if  c.MetricHandler != "" {
+			// If it is a hybrid separate and send metrics to metric handler
+			var separator string
+			if c.MetricSeparator == "" {
+				// Default separator is pipe for compatibility with Nagios Performance Data
+				// https://assets.nagios.com/downloads/nagioscore/docs/nagioscore/4/en/perfdata.html
+				separator = "|"
+			} else {
+				separator = c.MetricSeparator
+			}
+			checkParts := strings.Split(outputStr, separator)
+			outputPart, metricsOut := checkParts[0], checkParts[1]
+			outputStr = outputPart
+			cmd.Stdin = strings.NewReader(metricsOut)
+		}
+		if err := cmd.Start(); err != nil {
+			c.Logger.Printf("[ERR] agent: failed to invoke '%s': %s", c.MetricHandler, err)
+			return
+		}
+
+		// Wait for the handler to complete
+		errCh := make(chan error, 2)
+		go func() {
+			errCh <- cmd.Wait()
+		}()
+		go func() {
+			time.Sleep(30 * time.Second)
+			errCh <- fmt.Errorf("Timed out running check '%s'", c.MetricHandler)
+		}()
+		err = <-errCh
+
+		// Metrics only checks always return healthy
+		if c.Metric != "" {
+			c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, "Metric script processed.")
+			return
+		}
+	}
+
+	// Add a message about truncation
 	if output.TotalWritten() > output.Size() {
 		outputStr = fmt.Sprintf("Captured %d of %d bytes\n...\n%s",
 			output.Size(), output.TotalWritten(), outputStr)

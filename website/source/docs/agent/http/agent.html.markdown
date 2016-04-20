@@ -242,6 +242,8 @@ body must look like:
   "Name": "Memory utilization",
   "Notes": "Ensure we don't oversubscribe memory",
   "Script": "/usr/local/bin/check_mem.py",
+  "Metrics": "/usr/local/bin/metrics_mem.py",
+  "MetricHandler": "/usr/local/bin/metricshandler.pl",
   "DockerContainerID": "f972c95ebf0e",
   "Shell": "/bin/bash",
   "HTTP": "http://example.com",
@@ -261,6 +263,9 @@ The `Notes` field is not used internally by Consul and is meant to be human-read
 
 If a `Script` is provided, the check type is a script, and Consul will
 evaluate the script every `Interval` to update the status.
+
+If a `Metric` and `MetricHandler` is provided, the check type is a metric and consul
+will evaluate the metric script and pass the output to the handler script every `Interval`.
 
 If a `DockerContainerID` is provided, the check is a Docker check, and Consul will
 evaluate the script every `Interval` in the given container using the specified

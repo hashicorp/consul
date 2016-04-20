@@ -907,7 +907,6 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 			http.Start()
 			a.checkHTTPs[check.CheckID] = http
-
 		} else if chkType.IsTCP() {
 			if existing, ok := a.checkTCPs[check.CheckID]; ok {
 				existing.Stop()
@@ -953,7 +952,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 			dockerCheck.Start()
 			a.checkDockers[check.CheckID] = dockerCheck
-		} else if chkType.IsMonitor() {
+		} else if chkType.IsMonitor() || chkType.IsMetric() {
 			if existing, ok := a.checkMonitors[check.CheckID]; ok {
 				existing.Stop()
 			}
@@ -964,12 +963,15 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 			}
 
 			monitor := &CheckMonitor{
-				Notify:   &a.state,
-				CheckID:  check.CheckID,
-				Script:   chkType.Script,
-				Interval: chkType.Interval,
-				Logger:   a.logger,
-				ReapLock: &a.reapLock,
+				Notify:          &a.state,
+				CheckID:         check.CheckID,
+				Script:          chkType.Script,
+				Metric:          chkType.Metric,
+				MetricHandler:   chkType.MetricHandler,
+				MetricSeparator: chkType.MetricSeparator,
+				Interval:        chkType.Interval,
+				Logger:          a.logger,
+				ReapLock:        &a.reapLock,
 			}
 			monitor.Start()
 			a.checkMonitors[check.CheckID] = monitor
