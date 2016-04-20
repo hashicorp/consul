@@ -61,7 +61,7 @@ the current state of the catalog can lag behind until the state is reconciled.
 
 To prevent an accumulation of dead nodes (nodes in either _failed_ or _left_ states),
 Consul will automatically remove dead nodes out of the catalog. This process is
-called _reaping_. This is currently done on a non-configurable interval of 72 hours.
+called _reaping_. This is currently done on a configurable interval of 72 hours.
 Reaping is similar to leaving, causing all associated services to be deregistered.
 
 ## Q: Does Consul support delta updates for watchers or blocking queries?
