@@ -400,7 +400,13 @@ in the case of a collision.
 
 `Tags`, `Address`, `Port` and `Check` are optional.
 
-`Address` will default to that of the agent if not provided.
+If `Address` is not provided or left empty, then the agent's address will be used
+as the address for the service during DNS queries. When querying for services using
+HTTP endpoints such as [service health](/docs/agent/http/health.html#health_service)
+or [service catalog](/docs/agent/http/catalog.html#catalog_service) and encountering
+an empty `Address` field for a service, use the `Address` field of the agent node
+associated with that instance of the service, which is returned alongside the service
+information.
 
 If `Check` is provided, only one of `Script`, `HTTP`, or `TTL` should be specified.
 `Script` and `HTTP` also require `Interval`. The created check will be named "service:\<ServiceId\>".
