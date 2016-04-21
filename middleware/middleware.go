@@ -54,6 +54,8 @@ func (f HandlerFunc) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 	return f(ctx, w, r)
 }
 
+const Namespace = "coredns"
+
 // IndexFile looks for a file in /root/fpath/indexFile for each string
 // in indexFiles. If an index file is found, it returns the root-relative
 // path to the file and true. If no index file is found, empty string
