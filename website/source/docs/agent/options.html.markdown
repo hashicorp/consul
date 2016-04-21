@@ -516,7 +516,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   is implemented and enforced (i.e. DNS answers are always sorted and
   therefore never random), clients may need to set this value to `1` to
   preserve the expected randomized distribution behavior (note:
-  [https://tools.ietf.org/html/rfc3484](RFC 3484) has been obsoleted by
+  [RFC 3484](https://tools.ietf.org/html/rfc3484) has been obsoleted by
   [RFC 6724](https://tools.ietf.org/html/rfc6724) and as a result it should
   be increasingly uncommon to need to change this value with modern
   resolvers).
