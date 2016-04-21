@@ -20,8 +20,7 @@ func TestErrors(t *testing.T) {
 	}
 
 	handler := mid(EmptyNext)
-	myHandler, ok := handler.(*errors.ErrorHandler)
-
+	myHandler, ok := handler.(errors.ErrorHandler)
 	if !ok {
 		t.Fatalf("Expected handler to be type ErrorHandler, got: %#v", handler)
 	}
@@ -34,15 +33,6 @@ func TestErrors(t *testing.T) {
 	}
 	if !SameNext(myHandler.Next, EmptyNext) {
 		t.Error("'Next' field of handler was not set properly")
-	}
-
-	// Test Startup function
-	if len(c.Startup) == 0 {
-		t.Fatal("Expected 1 startup function, had 0")
-	}
-	err = c.Startup[0]()
-	if myHandler.Log == nil {
-		t.Error("Expected Log to be non-nil after startup because Debug is not enabled")
 	}
 }
 

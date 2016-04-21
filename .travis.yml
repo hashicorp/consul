@@ -3,12 +3,10 @@ go:
   - 1.5
   - 1.6
 before_script:
+  - curl -L  https://github.com/coreos/etcd/releases/download/v2.3.1/etcd-v2.3.1-linux-amd64.tar.gz -o etcd-v2.3.1-linux-amd64.tar.gz
+  - tar xzvf etcd-v2.3.1-linux-amd64.tar.gz
+  - ./etcd-v2.3.1-linux-amd64/etcd &
   - go get
   - go get github.com/coreos/go-etcd/etcd
-    # - go get github.com/coreos/etcd
-    #- go build -o $HOME/gopath/src/github.com/coreos/etcd/etcd.run github.com/coreos/etcd
-    #- $HOME/gopath/src/github.com/coreos/etcd/etcd.run &
-    #- sleep 2
 script:
-    #- go test -tags etcd -race -bench=. ./...
-  - go test -race -bench=. ./...
+  - go test -tags etcd -race -bench=. ./...
