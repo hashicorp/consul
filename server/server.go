@@ -365,7 +365,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	// Still here? Error out with REFUSED and some logging
 	remoteHost := w.RemoteAddr().String()
 	DefaultErrorFunc(w, r, dns.RcodeRefused)
-	log.Printf("[INFO] %s - No such zone at %s (Remote: %s)", q, s.Addr, remoteHost)
+	log.Printf("[INFO] \"%s %s %s\" - No such zone at %s (Remote: %s)", dns.Type(r.Question[0].Qtype), dns.Class(r.Question[0].Qclass), q, s.Addr, remoteHost)
 }
 
 // DefaultErrorFunc responds to an DNS request with an error.
