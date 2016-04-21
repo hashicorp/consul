@@ -32,13 +32,13 @@ type Rewrite struct {
 
 // ServeHTTP implements the middleware.Handler interface.
 func (rw Rewrite) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	wr := NewResponseReverter(w, r)
 	for _, rule := range rw.Rules {
 		switch result := rule.Rewrite(r); result {
 		case RewriteDone:
 			if rw.noRevert {
 				return rw.Next.ServeDNS(ctx, w, r)
 			}
-			wr := NewResponseReverter(w, r)
 			return rw.Next.ServeDNS(ctx, wr, r)
 		case RewriteIgnored:
 			break
