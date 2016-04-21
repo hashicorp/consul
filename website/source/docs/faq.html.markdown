@@ -59,10 +59,14 @@ the current state of the catalog can lag behind until the state is reconciled.
 
 ## Q: Are _failed_ or _left_ nodes ever removed?
 
-To prevent an accumulation of dead nodes (nodes in either _failed_ or _left_ states),
-Consul will automatically remove dead nodes out of the catalog. This process is
-called _reaping_. This is currently done on a configurable interval of 72 hours.
-Reaping is similar to leaving, causing all associated services to be deregistered.
+To prevent an accumulation of dead nodes (nodes in either _failed_ or _left_
+states), Consul will automatically remove dead nodes out of the catalog. This
+process is called _reaping_. This is currently done on a configurable
+interval of 72 hours.  Reaping is similar to leaving, causing all associated
+services to be deregistered.  Changing the reap interval for aesthetic
+reasons to trim the number of _failed_ or _left_ nodes is not advised (nodes
+in the _failed_ or _left_ state do not cause any additional burden on
+Consul).
 
 ## Q: Does Consul support delta updates for watchers or blocking queries?
 
