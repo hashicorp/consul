@@ -29,7 +29,7 @@ type Metrics struct {
 
 func (m *Metrics) Start() error {
 	m.Once.Do(func() {
-		define("")
+		define()
 
 		prometheus.MustRegister(requestCount)
 		prometheus.MustRegister(requestDuration)
@@ -46,7 +46,7 @@ func (m *Metrics) Start() error {
 	return nil
 }
 
-func define(subsystem string) {
+func define() {
 	requestCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: middleware.Namespace,
 		Subsystem: subsystem,
