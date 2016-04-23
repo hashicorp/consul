@@ -157,7 +157,7 @@ func TestCatalog_Registration(t *testing.T) {
 		CheckID:   "service:redis1",
 		Name:      "Redis health check",
 		Notes:     "Script based health check",
-		Status:    "passing",
+		Status:    HealthPassing,
 		ServiceID: "redis1",
 	}
 

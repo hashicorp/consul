@@ -235,25 +235,25 @@ func TestCheckHTTPCritical(t *testing.T) {
 
 	server := mockHTTPServer(150)
 	fmt.Println(server.URL)
-	expectHTTPStatus(t, server.URL, "critical")
+	expectHTTPStatus(t, server.URL, structs.HealthCritical)
 	server.Close()
 
 	// 2xx - 1
 	server = mockHTTPServer(199)
-	expectHTTPStatus(t, server.URL, "critical")
+	expectHTTPStatus(t, server.URL, structs.HealthCritical)
 	server.Close()
 
 	// 2xx + 1
 	server = mockHTTPServer(300)
-	expectHTTPStatus(t, server.URL, "critical")
+	expectHTTPStatus(t, server.URL, structs.HealthCritical)
 	server.Close()
 
 	server = mockHTTPServer(400)
-	expectHTTPStatus(t, server.URL, "critical")
+	expectHTTPStatus(t, server.URL, structs.HealthCritical)
 	server.Close()
 
 	server = mockHTTPServer(500)
-	expectHTTPStatus(t, server.URL, "critical")
+	expectHTTPStatus(t, server.URL, structs.HealthCritical)
 	server.Close()
 }
 
@@ -261,25 +261,25 @@ func TestCheckHTTPPassing(t *testing.T) {
 	var server *httptest.Server
 
 	server = mockHTTPServer(200)
-	expectHTTPStatus(t, server.URL, "passing")
+	expectHTTPStatus(t, server.URL, structs.HealthPassing)
 	server.Close()
 
 	server = mockHTTPServer(201)
-	expectHTTPStatus(t, server.URL, "passing")
+	expectHTTPStatus(t, server.URL, structs.HealthPassing)
 	server.Close()
 
 	server = mockHTTPServer(250)
-	expectHTTPStatus(t, server.URL, "passing")
+	expectHTTPStatus(t, server.URL, structs.HealthPassing)
 	server.Close()
 
 	server = mockHTTPServer(299)
-	expectHTTPStatus(t, server.URL, "passing")
+	expectHTTPStatus(t, server.URL, structs.HealthPassing)
 	server.Close()
 }
 
 func TestCheckHTTPWarning(t *testing.T) {
 	server := mockHTTPServer(429)
-	expectHTTPStatus(t, server.URL, "warning")
+	expectHTTPStatus(t, server.URL, structs.HealthWarning)
 	server.Close()
 }
 
@@ -323,7 +323,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 		t.Fatalf("should have at least 2 updates %v", mock.updates)
 	}
 
-	if mock.state["bar"] != "critical" {
+	if mock.state["bar"] != structs.HealthCritical {
 		t.Fatalf("should be critical %v", mock.state)
 	}
 }
@@ -397,7 +397,7 @@ func TestCheckTCPCritical(t *testing.T) {
 	)
 
 	tcpServer = mockTCPServer(`tcp`)
-	expectTCPStatus(t, `127.0.0.1:0`, "critical")
+	expectTCPStatus(t, `127.0.0.1:0`, structs.HealthCritical)
 	tcpServer.Close()
 }
 
@@ -407,11 +407,11 @@ func TestCheckTCPPassing(t *testing.T) {
 	)
 
 	tcpServer = mockTCPServer(`tcp`)
-	expectTCPStatus(t, tcpServer.Addr().String(), "passing")
+	expectTCPStatus(t, tcpServer.Addr().String(), structs.HealthPassing)
 	tcpServer.Close()
 
 	tcpServer = mockTCPServer(`tcp6`)
-	expectTCPStatus(t, tcpServer.Addr().String(), "passing")
+	expectTCPStatus(t, tcpServer.Addr().String(), structs.HealthPassing)
 	tcpServer.Close()
 }
 
@@ -579,27 +579,27 @@ func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status str
 }
 
 func TestDockerCheckWhenExecReturnsSuccessExitCode(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithNoErrors{}, "passing", "output")
+	expectDockerCheckStatus(t, &fakeDockerClientWithNoErrors{}, structs.HealthPassing, "output")
 }
 
 func TestDockerCheckWhenExecCreationFails(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithCreateExecFailure{}, "critical", "Unable to create Exec, error: Exec Creation Failed")
+	expectDockerCheckStatus(t, &fakeDockerClientWithCreateExecFailure{}, structs.HealthCritical, "Unable to create Exec, error: Exec Creation Failed")
 }
 
 func TestDockerCheckWhenExitCodeIsNonZero(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecNonZeroExitCode{}, "critical", "")
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecNonZeroExitCode{}, structs.HealthCritical, "")
 }
 
 func TestDockerCheckWhenExitCodeIsone(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecExitCodeOne{}, "warning", "output")
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecExitCodeOne{}, structs.HealthWarning, "output")
 }
 
 func TestDockerCheckWhenExecStartFails(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithStartExecFailure{}, "critical", "Unable to start Exec: Couldn't Start Exec")
+	expectDockerCheckStatus(t, &fakeDockerClientWithStartExecFailure{}, structs.HealthCritical, "Unable to start Exec: Couldn't Start Exec")
 }
 
 func TestDockerCheckWhenExecInfoFails(t *testing.T) {
-	expectDockerCheckStatus(t, &fakeDockerClientWithExecInfoErrors{}, "critical", "Unable to inspect Exec: Unable to query exec info")
+	expectDockerCheckStatus(t, &fakeDockerClientWithExecInfoErrors{}, structs.HealthCritical, "Unable to inspect Exec: Unable to query exec info")
 }
 
 func TestDockerCheckDefaultToSh(t *testing.T) {

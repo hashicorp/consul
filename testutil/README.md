@@ -48,13 +48,13 @@ func TestMain(t *testing.T) {
 	})
 
 	// Create a service
-	srv1.AddService("redis", "passing", []string{"master"})
+	srv1.AddService("redis", structs.HealthPassing, []string{"master"})
 
 	// Create a service check
-	srv1.AddCheck("service:redis", "redis", "passing")
+	srv1.AddCheck("service:redis", "redis", structs.HealthPassing)
 
 	// Create a node check
-	srv1.AddCheck("mem", "", "critical")
+	srv1.AddCheck("mem", "", structs.HealthCritical)
 
 	// The HTTPAddr field contains the address of the Consul
 	// API on the new test server instance.
