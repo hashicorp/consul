@@ -5,6 +5,22 @@ import (
 	"time"
 )
 
+func TestDurationMinusBuffer(t *testing.T) {
+	const (
+		buffer = 10 * time.Second
+		jitter = 16
+	)
+	intv := 1 * time.Minute
+	minValue := (intv - buffer) - ((intv - buffer) / jitter)
+	maxValue := intv - buffer
+	for i := 0; i < 10; i++ {
+		d := DurationMinusBuffer(intv, buffer, jitter)
+		if d < minValue || d > maxValue {
+			t.Fatalf("Bad: %v", d)
+		}
+	}
+}
+
 func TestRandomStagger(t *testing.T) {
 	intv := time.Minute
 	for i := 0; i < 10; i++ {

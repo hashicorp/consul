@@ -5,6 +5,15 @@ import (
 	"time"
 )
 
+// DurationMinusBuffer returns a duration, minus a buffer and jitter
+// subtracted from the duration.  This function is used primarily for
+// servicing Consul TTL Checks in advance of the TTL.
+func DurationMinusBuffer(intv time.Duration, buffer time.Duration, jitter int64) time.Duration {
+	d := intv - buffer
+	d -= RandomStagger(time.Duration(int64(d) / jitter))
+	return d
+}
+
 // Returns a random stagger interval between 0 and the duration
 func RandomStagger(intv time.Duration) time.Duration {
 	return time.Duration(uint64(rand.Int63()) % uint64(intv))
