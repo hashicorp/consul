@@ -13,14 +13,16 @@ from Consul's core and API client, meaning it can be easily imported and used in
 external unit tests for various applications. It works by invoking the Consul
 CLI, which means it is a requirement to have Consul installed in the `$PATH`.
 
-Following is some example usage:
+Following is an example usage:
 
 ```go
-package main
+package my_program
 
 import (
-	"github.com/hashicorp/consul/testutil"
 	"testing"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestMain(t *testing.T) {
