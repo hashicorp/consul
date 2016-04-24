@@ -1,9 +1,10 @@
 package agent
 
 import (
-	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"strings"
+
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 func (s *HTTPServer) HealthChecksInState(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -126,7 +127,7 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	}
 
 	// Filter to only passing if specified
-	if _, ok := params["passing"]; ok {
+	if _, ok := params[structs.HealthPassing]; ok {
 		out.Nodes = filterNonPassing(out.Nodes)
 	}
 

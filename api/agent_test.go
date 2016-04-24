@@ -76,7 +76,7 @@ func TestAgent_Services(t *testing.T) {
 	}
 
 	// Checks should default to critical
-	if chk.Status != "critical" {
+	if chk.Status != HealthCritical {
 		t.Fatalf("Bad: %#v", chk)
 	}
 
@@ -97,7 +97,7 @@ func TestAgent_Services_CheckPassing(t *testing.T) {
 		Port: 8000,
 		Check: &AgentServiceCheck{
 			TTL:    "15s",
-			Status: "passing",
+			Status: HealthPassing,
 		},
 	}
 	if err := agent.ServiceRegister(reg); err != nil {
@@ -121,7 +121,7 @@ func TestAgent_Services_CheckPassing(t *testing.T) {
 		t.Fatalf("missing check: %v", checks)
 	}
 
-	if chk.Status != "passing" {
+	if chk.Status != HealthPassing {
 		t.Fatalf("Bad: %#v", chk)
 	}
 	if err := agent.ServiceDeregister("foo"); err != nil {
@@ -320,47 +320,47 @@ func TestAgent_SetTTLStatus(t *testing.T) {
 	if err := agent.WarnTTL("service:foo", "foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	verify("warning", "foo")
+	verify(HealthWarning, "foo")
 
 	if err := agent.PassTTL("service:foo", "bar"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	verify("passing", "bar")
+	verify(HealthPassing, "bar")
 
 	if err := agent.FailTTL("service:foo", "baz"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	verify("critical", "baz")
+	verify(HealthCritical, "baz")
 
 	if err := agent.UpdateTTL("service:foo", "foo", "warn"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	verify("warning", "foo")
+	verify(HealthWarning, "foo")
 
 	if err := agent.UpdateTTL("service:foo", "bar", "pass"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	verify("passing", "bar")
+	verify(HealthPassing, "bar")
 
 	if err := agent.UpdateTTL("service:foo", "baz", "fail"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	verify("critical", "baz")
+	verify(HealthCritical, "baz")
 
-	if err := agent.UpdateTTL("service:foo", "foo", "warning"); err != nil {
+	if err := agent.UpdateTTL("service:foo", "foo", HealthWarning); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	verify("warning", "foo")
+	verify(HealthWarning, "foo")
 
-	if err := agent.UpdateTTL("service:foo", "bar", "passing"); err != nil {
+	if err := agent.UpdateTTL("service:foo", "bar", HealthPassing); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	verify("passing", "bar")
+	verify(HealthPassing, "bar")
 
-	if err := agent.UpdateTTL("service:foo", "baz", "critical"); err != nil {
+	if err := agent.UpdateTTL("service:foo", "baz", HealthCritical); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	verify("critical", "baz")
+	verify(HealthCritical, "baz")
 
 	if err := agent.ServiceDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
@@ -390,7 +390,7 @@ func TestAgent_Checks(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing check: %v", checks)
 	}
-	if chk.Status != "critical" {
+	if chk.Status != HealthCritical {
 		t.Fatalf("check not critical: %v", chk)
 	}
 
@@ -409,7 +409,7 @@ func TestAgent_CheckStartPassing(t *testing.T) {
 	reg := &AgentCheckRegistration{
 		Name: "foo",
 		AgentServiceCheck: AgentServiceCheck{
-			Status: "passing",
+			Status: HealthPassing,
 		},
 	}
 	reg.TTL = "15s"
@@ -425,7 +425,7 @@ func TestAgent_CheckStartPassing(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing check: %v", checks)
 	}
-	if chk.Status != "passing" {
+	if chk.Status != HealthPassing {
 		t.Fatalf("check not passing: %v", chk)
 	}
 
@@ -580,7 +580,7 @@ func TestServiceMaintenance(t *testing.T) {
 	for _, check := range checks {
 		if strings.Contains(check.CheckID, "maintenance") {
 			found = true
-			if check.Status != "critical" || check.Notes != "broken" {
+			if check.Status != HealthCritical || check.Notes != "broken" {
 				t.Fatalf("bad: %#v", checks)
 			}
 		}
@@ -627,7 +627,7 @@ func TestNodeMaintenance(t *testing.T) {
 	for _, check := range checks {
 		if strings.Contains(check.CheckID, "maintenance") {
 			found = true
-			if check.Status != "critical" || check.Notes != "broken" {
+			if check.Status != HealthCritical || check.Notes != "broken" {
 				t.Fatalf("bad: %#v", checks)
 			}
 		}

@@ -526,9 +526,9 @@ func TestHTTPAgentUpdateCheck(t *testing.T) {
 	}
 
 	cases := []checkUpdate{
-		checkUpdate{"passing", "hello-passing"},
-		checkUpdate{"critical", "hello-critical"},
-		checkUpdate{"warning", "hello-warning"},
+		checkUpdate{structs.HealthPassing, "hello-passing"},
+		checkUpdate{structs.HealthCritical, "hello-critical"},
+		checkUpdate{structs.HealthWarning, "hello-warning"},
 	}
 
 	for _, c := range cases {
@@ -564,7 +564,7 @@ func TestHTTPAgentUpdateCheck(t *testing.T) {
 		}
 
 		update := checkUpdate{
-			Status: "passing",
+			Status: structs.HealthPassing,
 			Output: strings.Repeat("-= bad -=", 5*CheckBufSize),
 		}
 		req.Body = encodeReq(update)
@@ -623,7 +623,7 @@ func TestHTTPAgentUpdateCheck(t *testing.T) {
 		}
 
 		update := checkUpdate{
-			Status: "passing",
+			Status: structs.HealthPassing,
 		}
 		req.Body = encodeReq(update)
 

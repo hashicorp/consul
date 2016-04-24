@@ -25,6 +25,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
@@ -444,11 +445,11 @@ func (s *TestServer) AddService(name, status string, tags []string) {
 	s.put("/v1/agent/check/register", payload)
 
 	switch status {
-	case "passing":
+	case structs.HealthPassing:
 		s.put("/v1/agent/check/pass/"+chkName, nil)
-	case "warning":
+	case structs.HealthWarning:
 		s.put("/v1/agent/check/warn/"+chkName, nil)
-	case "critical":
+	case structs.HealthCritical:
 		s.put("/v1/agent/check/fail/"+chkName, nil)
 	default:
 		s.t.Fatalf("Unrecognized status: %s", status)
@@ -472,11 +473,11 @@ func (s *TestServer) AddCheck(name, serviceID, status string) {
 	s.put("/v1/agent/check/register", payload)
 
 	switch status {
-	case "passing":
+	case structs.HealthPassing:
 		s.put("/v1/agent/check/pass/"+name, nil)
-	case "warning":
+	case structs.HealthWarning:
 		s.put("/v1/agent/check/warn/"+name, nil)
-	case "critical":
+	case structs.HealthCritical:
 		s.put("/v1/agent/check/fail/"+name, nil)
 	default:
 		s.t.Fatalf("Unrecognized status: %s", status)

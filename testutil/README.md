@@ -13,14 +13,16 @@ from Consul's core and API client, meaning it can be easily imported and used in
 external unit tests for various applications. It works by invoking the Consul
 CLI, which means it is a requirement to have Consul installed in the `$PATH`.
 
-Following is some example usage:
+Following is an example usage:
 
 ```go
-package main
+package my_program
 
 import (
-	"github.com/hashicorp/consul/testutil"
 	"testing"
+
+	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestMain(t *testing.T) {
@@ -48,13 +50,13 @@ func TestMain(t *testing.T) {
 	})
 
 	// Create a service
-	srv1.AddService("redis", "passing", []string{"master"})
+	srv1.AddService("redis", structs.HealthPassing, []string{"master"})
 
 	// Create a service check
-	srv1.AddCheck("service:redis", "redis", "passing")
+	srv1.AddCheck("service:redis", "redis", structs.HealthPassing)
 
 	// Create a node check
-	srv1.AddCheck("mem", "", "critical")
+	srv1.AddCheck("mem", "", structs.HealthCritical)
 
 	// The HTTPAddr field contains the address of the Consul
 	// API on the new test server instance.
