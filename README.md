@@ -50,7 +50,6 @@ Next, clone this repository into `$GOPATH/src/github.com/hashicorp/consul` and
 then just type `make`. In a few moments, you'll have a working `consul` executable:
 
 ```
-$ go get -u ./...
 $ make
 ...
 $ bin/consul
