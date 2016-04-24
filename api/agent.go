@@ -255,7 +255,7 @@ func (a *Agent) updateTTL(checkID, note, status string) error {
 
 // checkUpdate is the payload for a PUT for a check update.
 type checkUpdate struct {
-	// Status us one of the api.Health* states: HealthPassing
+	// Status is one of the api.Health* states: HealthPassing
 	// ("passing"), HealthWarning ("warning"), or HealthCritical
 	// ("critical").
 	Status string
