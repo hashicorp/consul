@@ -3,6 +3,9 @@
 CoreDNS is DNS server that started as a fork of [Caddy](https://github.com/mholt/caddy/). It has the
 same model: it chains middleware.
 
+CoreDNS aims to be a fast and flexible DNS server. The keyword here is *flexible*, with CoreDNS you
+are able to do what you want with your DNS data. And if not: write a middleware!
+
 Currently CoreDNS is able to:
 
 * Serve zone data from a file, both DNSSEC (NSEC only) and DNS is supported (middleware/file).
