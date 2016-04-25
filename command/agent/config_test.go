@@ -1240,7 +1240,7 @@ func TestDecodeConfig_Service(t *testing.T) {
 
 func TestDecodeConfig_Check(t *testing.T) {
 	// Basics
-	input := `{"check": {"id": "chk1", "name": "mem", "notes": "foobar", "script": "/bin/check_redis", "interval": "10s", "ttl": "15s", "shell": "/bin/bash", "docker_container_id": "redis" }}`
+	input := `{"check": {"id": "chk1", "name": "mem", "notes": "foobar", "script": "/bin/check_redis", "interval": "10s", "ttl": "15s", "shell": "/bin/bash", "docker_container_id": "redis", "metric": "/bin/metrics_redis", "metric_handler": "/bin/metrichandler", "metric_separator":"\n\n" }}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -1280,6 +1280,18 @@ func TestDecodeConfig_Check(t *testing.T) {
 	}
 
 	if chk.DockerContainerID != "redis" {
+		t.Fatalf("bad: %v", chk)
+	}
+
+	if chk.Metric != "/bin/metrics_redis" {
+		t.Fatalf("bad: %v", chk)
+	}
+
+	if chk.MetricHandler != "/bin/metrichandler" {
+		t.Fatalf("bad: %v", chk)
+	}
+
+	if chk.MetricSeparator != "\n\n" {
 		t.Fatalf("bad: %v", chk)
 	}
 }
