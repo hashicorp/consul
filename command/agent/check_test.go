@@ -82,6 +82,36 @@ func TestCheckMonitor_BadCmd(t *testing.T) {
 	expectStatus(t, "foobarbaz", structs.HealthCritical)
 }
 
+func TestCheckMonitor_Timeout(t *testing.T) {
+	mock := &MockNotify{
+		state:   make(map[string]string),
+		updates: make(map[string]int),
+		output:  make(map[string]string),
+	}
+	check := &CheckMonitor{
+		Notify:   mock,
+		CheckID:  "foo",
+		Script:   "sleep 1 && exit 0",
+		Interval: 10 * time.Millisecond,
+		Timeout:  5 * time.Millisecond,
+		Logger:   log.New(os.Stderr, "", log.LstdFlags),
+		ReapLock: &sync.RWMutex{},
+	}
+	check.Start()
+	defer check.Stop()
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Should have at least 2 updates
+	if mock.updates["foo"] < 2 {
+		t.Fatalf("should have at least 2 updates %v", mock.updates)
+	}
+
+	if mock.state["foo"] != "critical" {
+		t.Fatalf("should be critical %v", mock.state)
+	}
+}
+
 func TestCheckMonitor_RandomStagger(t *testing.T) {
 	mock := &MockNotify{
 		state:   make(map[string]string),

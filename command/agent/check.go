@@ -101,6 +101,7 @@ type CheckMonitor struct {
 	CheckID  string
 	Script   string
 	Interval time.Duration
+	Timeout  time.Duration
 	Logger   *log.Logger
 	ReapLock *sync.RWMutex
 
@@ -180,7 +181,11 @@ func (c *CheckMonitor) check() {
 		errCh <- cmd.Wait()
 	}()
 	go func() {
-		time.Sleep(30 * time.Second)
+		if c.Timeout > 0 {
+			time.Sleep(c.Timeout)
+		} else {
+			time.Sleep(30 * time.Second)
+		}
 		errCh <- fmt.Errorf("Timed out running check '%s'", c.Script)
 	}()
 	err = <-errCh
