@@ -37,6 +37,7 @@ IMPROVEMENTS:
 * HTTP health checks limit saved output to 4K to avoid performance issues. [GH-1952]
 * Reap time for failed nodes is now configurable via new `reconnect_timeout` and
   `reconnect_timeout_wan` config options ([use with caution](https://www.consul.io/docs/agent/options.html#reconnect_timeout)). [GH-1935]
+* Script checks now support an optional `timeout` parameter. [GH-1762]
 
 BUG FIXES:
 
