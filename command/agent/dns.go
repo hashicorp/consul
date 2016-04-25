@@ -188,10 +188,6 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		d.addSOA(d.domain, m)
 	}
 
-	if opt := req.IsEdns0(); opt != nil {
-		m.SetEdns0(opt.UDPSize(), false)
-	}
-
 	datacenter := d.agent.config.Datacenter
 
 	// Get the QName without the domain suffix
@@ -226,6 +222,10 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	if len(m.Answer) == 0 {
 		d.handleRecurse(resp, req)
 		return
+	}
+
+	if opt := req.IsEdns0(); opt != nil {
+		m.SetEdns0(opt.UDPSize(), false)
 	}
 
 	// Write out the complete response
@@ -808,11 +808,11 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 		q, resp.RemoteAddr().String(), resp.RemoteAddr().Network())
 	m := &dns.Msg{}
 	m.SetReply(req)
+	m.RecursionAvailable = true
+	m.SetRcode(req, dns.RcodeServerFailure)
 	if opt := req.IsEdns0(); opt != nil {
 		m.SetEdns0(opt.UDPSize(), false)
 	}
-	m.RecursionAvailable = true
-	m.SetRcode(req, dns.RcodeServerFailure)
 	resp.WriteMsg(m)
 }
 
