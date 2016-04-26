@@ -3,7 +3,6 @@ package test
 import (
 	"io/ioutil"
 	"log"
-	"os"
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
@@ -18,6 +17,7 @@ example.org.		IN	SOA	sns.dns.icann.org. noc.dns.icann.org. 2015082541 7200 3600 
 example.org.		IN	NS	b.iana-servers.net.
 example.org.		IN	NS	a.iana-servers.net.
 example.org.		IN	A	127.0.0.1
+example.org.		IN	A	127.0.0.2
 `
 
 func TestLookupProxy(t *testing.T) {
@@ -38,7 +38,6 @@ func TestLookupProxy(t *testing.T) {
 	defer ex.Stop()
 
 	log.SetOutput(ioutil.Discard)
-	defer log.SetOutput(os.Stderr)
 
 	p := proxy.New([]string{udp})
 	state := middleware.State{W: &test.ResponseWriter{}, Req: new(dns.Msg)}

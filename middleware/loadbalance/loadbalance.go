@@ -33,7 +33,6 @@ func roundRobin(in []dns.RR) []dns.RR {
 	for _, r := range in {
 		switch r.Header().Rrtype {
 		case dns.TypeCNAME:
-			// d d d d DNAME and friends here as well?
 			cname = append(cname, r)
 		case dns.TypeA, dns.TypeAAAA:
 			address = append(address, r)

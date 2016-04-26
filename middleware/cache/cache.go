@@ -2,6 +2,7 @@ package cache
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"github.com/miekg/coredns/middleware"
@@ -28,7 +29,7 @@ func cacheKey(m *dns.Msg, t middleware.MsgType, do bool) string {
 	}
 
 	qtype := m.Question[0].Qtype
-	qname := middleware.Name(m.Question[0].Name).Normalize()
+	qname := strings.ToLower(m.Question[0].Name)
 	switch t {
 	case middleware.Success:
 		fallthrough
