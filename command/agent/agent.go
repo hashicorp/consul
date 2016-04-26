@@ -669,7 +669,7 @@ func (a *Agent) persistService(service *structs.NodeService) error {
 	}
 	encoded, err := json.Marshal(wrapped)
 	if err != nil {
-		return nil
+		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(svcPath), 0700); err != nil {
 		return err
@@ -707,7 +707,7 @@ func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType) err
 
 	encoded, err := json.Marshal(wrapped)
 	if err != nil {
-		return nil
+		return err
 	}
 	if err := os.MkdirAll(filepath.Dir(checkPath), 0700); err != nil {
 		return err
