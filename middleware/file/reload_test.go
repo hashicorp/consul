@@ -11,7 +11,7 @@ import (
 )
 
 func TestZoneReload(t *testing.T) {
-	fileName, rm, err := test.Zone(t, ".", reloadZoneTest)
+	fileName, rm, err := test.TempFile(t, ".", reloadZoneTest)
 	if err != nil {
 		t.Fatalf("failed to create zone: %s", err)
 	}

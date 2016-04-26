@@ -1,33 +1,5 @@
 package cache
 
-/*
-The idea behind this implementation is as follows. We have a cache that is index
-by a couple different keys, which allows use to have:
-
-- negative cache: qname only for NXDOMAIN responses
-- negative cache: qname + qtype for NODATA responses
-- positive cache: qname + qtype for succesful responses.
-
-We track DNSSEC responses separately, i.e. under a different cache key.
-Each Item stored contains the message split up in the different sections
-and a few bits of the msg header.
-
-For instance an NXDOMAIN for blaat.miek.nl will create the
-following negative cache entry (do signal state of DO (do off, DO on)).
-
-	ncache: do <blaat.miek.nl>
-	Item:
-		Ns: <miek.nl> SOA RR
-
-If found a return packet is assembled and returned to the client. Taking size and EDNS0
-constraints into account.
-
-We also need to track if the answer received was an authoritative answer, ad bit and other
-setting, for this we also store a few header bits.
-
-For the positive cache we use the same idea. Truncated responses are never stored.
-*/
-
 import (
 	"log"
 	"time"
@@ -50,41 +22,7 @@ func NewCache(ttl int, zones []string, next middleware.Handler) Cache {
 	return Cache{Next: next, Zones: zones, cache: gcache.New(defaultDuration, purgeDuration), cap: time.Duration(ttl) * time.Second}
 }
 
-type messageType int
-
-const (
-	success    messageType = iota
-	nameError              // NXDOMAIN in header, SOA in auth.
-	noData                 // NOERROR in header, SOA in auth.
-	otherError             // Don't cache these.
-)
-
-// classify classifies a message, it returns the MessageType.
-func classify(m *dns.Msg) (messageType, *dns.OPT) {
-	opt := m.IsEdns0()
-	soa := false
-	if m.Rcode == dns.RcodeSuccess {
-		return success, opt
-	}
-	for _, r := range m.Ns {
-		if r.Header().Rrtype == dns.TypeSOA {
-			soa = true
-			break
-		}
-	}
-
-	// Check length of different section, and drop stuff that is just to large.
-	if soa && m.Rcode == dns.RcodeSuccess {
-		return noData, opt
-	}
-	if soa && m.Rcode == dns.RcodeNameError {
-		return nameError, opt
-	}
-
-	return otherError, opt
-}
-
-func cacheKey(m *dns.Msg, t messageType, do bool) string {
+func cacheKey(m *dns.Msg, t middleware.MsgType, do bool) string {
 	if m.Truncated {
 		return ""
 	}
@@ -92,13 +30,15 @@ func cacheKey(m *dns.Msg, t messageType, do bool) string {
 	qtype := m.Question[0].Qtype
 	qname := middleware.Name(m.Question[0].Name).Normalize()
 	switch t {
-	case success:
+	case middleware.Success:
+		fallthrough
+	case middleware.Delegation:
 		return successKey(qname, qtype, do)
-	case nameError:
+	case middleware.NameError:
 		return nameErrorKey(qname, do)
-	case noData:
+	case middleware.NoData:
 		return noDataKey(qname, qtype, do)
-	case otherError:
+	case middleware.OtherError:
 		return ""
 	}
 	return ""
@@ -116,13 +56,13 @@ func NewCachingResponseWriter(w dns.ResponseWriter, cache *gcache.Cache, cap tim
 
 func (c *CachingResponseWriter) WriteMsg(res *dns.Msg) error {
 	do := false
-	mt, opt := classify(res)
+	mt, opt := middleware.Classify(res)
 	if opt != nil {
 		do = opt.Do()
 	}
 
 	key := cacheKey(res, mt, do)
-	c.Set(res, key, mt)
+	c.set(res, key, mt)
 
 	if c.cap != 0 {
 		setCap(res, uint32(c.cap.Seconds()))
@@ -131,7 +71,7 @@ func (c *CachingResponseWriter) WriteMsg(res *dns.Msg) error {
 	return c.ResponseWriter.WriteMsg(res)
 }
 
-func (c *CachingResponseWriter) Set(m *dns.Msg, key string, mt messageType) {
+func (c *CachingResponseWriter) set(m *dns.Msg, key string, mt middleware.MsgType) {
 	if key == "" {
 		// logger the log? TODO(miek)
 		return
@@ -139,14 +79,14 @@ func (c *CachingResponseWriter) Set(m *dns.Msg, key string, mt messageType) {
 
 	duration := c.cap
 	switch mt {
-	case success:
+	case middleware.Success, middleware.Delegation:
 		if c.cap == 0 {
 			duration = minTtl(m.Answer, mt)
 		}
 		i := newItem(m, duration)
 
 		c.cache.Set(key, i, duration)
-	case nameError, noData:
+	case middleware.NameError, middleware.NoData:
 		if c.cap == 0 {
 			duration = minTtl(m.Ns, mt)
 		}
@@ -167,19 +107,19 @@ func (c *CachingResponseWriter) Hijack() {
 	return
 }
 
-func minTtl(rrs []dns.RR, mt messageType) time.Duration {
-	if mt != success && mt != nameError && mt != noData {
+func minTtl(rrs []dns.RR, mt middleware.MsgType) time.Duration {
+	if mt != middleware.Success && mt != middleware.NameError && mt != middleware.NoData {
 		return 0
 	}
 
 	minTtl := maxTtl
 	for _, r := range rrs {
 		switch mt {
-		case nameError, noData:
+		case middleware.NameError, middleware.NoData:
 			if r.Header().Rrtype == dns.TypeSOA {
 				return time.Duration(r.(*dns.SOA).Minttl) * time.Second
 			}
-		case success:
+		case middleware.Success, middleware.Delegation:
 			if r.Header().Ttl < minTtl {
 				minTtl = r.Header().Ttl
 			}

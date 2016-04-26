@@ -78,13 +78,13 @@ func TestCache(t *testing.T) {
 		m = cacheMsg(m, tc)
 		do := tc.in.Do
 
-		mt, _ := classify(m)
+		mt, _ := middleware.Classify(m)
 		key := cacheKey(m, mt, do)
-		crr.Set(m, key, mt)
+		crr.set(m, key, mt)
 
 		name := middleware.Name(m.Question[0].Name).Normalize()
 		qtype := m.Question[0].Qtype
-		i, ok := c.Get(name, qtype, do)
+		i, ok := c.get(name, qtype, do)
 		if !ok && !m.Truncated {
 			t.Errorf("Truncated message should not have been cached")
 		}

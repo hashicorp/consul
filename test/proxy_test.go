@@ -21,7 +21,7 @@ example.org.		IN	A	127.0.0.1
 `
 
 func TestLookupProxy(t *testing.T) {
-	name, rm, err := test.Zone(t, ".", exampleOrg)
+	name, rm, err := test.TempFile(t, ".", exampleOrg)
 	if err != nil {
 		t.Fatalf("failed to created zone: %s", err)
 	}

@@ -40,7 +40,7 @@ func secondaryParse(c *Controller) (file.Zones, error) {
 	for c.Next() {
 		if c.Val() == "secondary" {
 			// secondary [origin]
-			origins := []string{c.ServerBlockHosts[c.ServerBlockHostIndex]}
+			origins := c.ServerBlockHosts
 			args := c.RemainingArgs()
 			if len(args) > 0 {
 				origins = args
@@ -52,7 +52,7 @@ func secondaryParse(c *Controller) (file.Zones, error) {
 			}
 
 			for c.NextBlock() {
-				t, f, e := parseTransfer(c)
+				t, f, e := transferParse(c)
 				if e != nil {
 					return file.Zones{}, e
 				}

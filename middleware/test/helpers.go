@@ -45,17 +45,18 @@ func (c Case) Msg() *dns.Msg {
 	return m
 }
 
-func A(rr string) *dns.A         { r, _ := dns.NewRR(rr); return r.(*dns.A) }
-func AAAA(rr string) *dns.AAAA   { r, _ := dns.NewRR(rr); return r.(*dns.AAAA) }
-func CNAME(rr string) *dns.CNAME { r, _ := dns.NewRR(rr); return r.(*dns.CNAME) }
-func SRV(rr string) *dns.SRV     { r, _ := dns.NewRR(rr); return r.(*dns.SRV) }
-func SOA(rr string) *dns.SOA     { r, _ := dns.NewRR(rr); return r.(*dns.SOA) }
-func NS(rr string) *dns.NS       { r, _ := dns.NewRR(rr); return r.(*dns.NS) }
-func PTR(rr string) *dns.PTR     { r, _ := dns.NewRR(rr); return r.(*dns.PTR) }
-func TXT(rr string) *dns.TXT     { r, _ := dns.NewRR(rr); return r.(*dns.TXT) }
-func MX(rr string) *dns.MX       { r, _ := dns.NewRR(rr); return r.(*dns.MX) }
-func RRSIG(rr string) *dns.RRSIG { r, _ := dns.NewRR(rr); return r.(*dns.RRSIG) }
-func NSEC(rr string) *dns.NSEC   { r, _ := dns.NewRR(rr); return r.(*dns.NSEC) }
+func A(rr string) *dns.A           { r, _ := dns.NewRR(rr); return r.(*dns.A) }
+func AAAA(rr string) *dns.AAAA     { r, _ := dns.NewRR(rr); return r.(*dns.AAAA) }
+func CNAME(rr string) *dns.CNAME   { r, _ := dns.NewRR(rr); return r.(*dns.CNAME) }
+func SRV(rr string) *dns.SRV       { r, _ := dns.NewRR(rr); return r.(*dns.SRV) }
+func SOA(rr string) *dns.SOA       { r, _ := dns.NewRR(rr); return r.(*dns.SOA) }
+func NS(rr string) *dns.NS         { r, _ := dns.NewRR(rr); return r.(*dns.NS) }
+func PTR(rr string) *dns.PTR       { r, _ := dns.NewRR(rr); return r.(*dns.PTR) }
+func TXT(rr string) *dns.TXT       { r, _ := dns.NewRR(rr); return r.(*dns.TXT) }
+func MX(rr string) *dns.MX         { r, _ := dns.NewRR(rr); return r.(*dns.MX) }
+func RRSIG(rr string) *dns.RRSIG   { r, _ := dns.NewRR(rr); return r.(*dns.RRSIG) }
+func NSEC(rr string) *dns.NSEC     { r, _ := dns.NewRR(rr); return r.(*dns.NSEC) }
+func DNSKEY(rr string) *dns.DNSKEY { r, _ := dns.NewRR(rr); return r.(*dns.DNSKEY) }
 
 func OPT(bufsize int, do bool) *dns.OPT {
 	o := new(dns.OPT)

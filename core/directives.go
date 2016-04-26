@@ -60,6 +60,7 @@ var directiveOrder = []directive{
 	{"rewrite", setup.Rewrite},
 	{"loadbalance", setup.Loadbalance},
 	{"cache", setup.Cache},
+	{"dnssec", setup.Dnssec},
 	{"file", setup.File},
 	{"secondary", setup.Secondary},
 	{"etcd", setup.Etcd},

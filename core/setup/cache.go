@@ -27,8 +27,7 @@ func cacheParse(c *Controller) (int, []string, error) {
 	for c.Next() {
 		if c.Val() == "cache" {
 			// cache [ttl] [zones..]
-
-			origins := []string{c.ServerBlockHosts[c.ServerBlockHostIndex]}
+			origins := c.ServerBlockHosts
 			args := c.RemainingArgs()
 			if len(args) > 0 {
 				origins = args
@@ -39,7 +38,7 @@ func cacheParse(c *Controller) (int, []string, error) {
 					origins = origins[1:]
 					if len(origins) == 0 {
 						// There was *only* the ttl, revert back to server block
-						origins = []string{c.ServerBlockHosts[c.ServerBlockHostIndex]}
+						origins = c.ServerBlockHosts
 					}
 				}
 			}

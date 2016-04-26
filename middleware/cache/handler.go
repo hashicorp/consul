@@ -21,7 +21,7 @@ func (c Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 
 	do := state.Do() // might need more from OPT record?
 
-	if i, ok := c.Get(qname, qtype, do); ok {
+	if i, ok := c.get(qname, qtype, do); ok {
 		resp := i.toMsg(r)
 		state.SizeAndDo(resp)
 		w.WriteMsg(resp)
@@ -35,12 +35,13 @@ func (c Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	return c.Next.ServeDNS(ctx, crr, r)
 }
 
-func (c Cache) Get(qname string, qtype uint16, do bool) (*item, bool) {
+func (c Cache) get(qname string, qtype uint16, do bool) (*item, bool) {
 	nxdomain := nameErrorKey(qname, do)
 	if i, ok := c.cache.Get(nxdomain); ok {
 		return i.(*item), true
 	}
 
+	// TODO(miek): delegation was added double check
 	successOrNoData := successKey(qname, qtype, do)
 	if i, ok := c.cache.Get(successOrNoData); ok {
 		return i.(*item), true

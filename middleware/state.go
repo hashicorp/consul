@@ -15,9 +15,13 @@ type State struct {
 	Req *dns.Msg
 	W   dns.ResponseWriter
 
-	// Cache size after first call to Size or Do
+	// Cache size after first call to Size or Do.
 	size int
 	do   int // 0: not, 1: true: 2: false
+	// TODO(miek): opt record itself as well.
+
+	// Cache name as (lowercase) well
+	name string
 }
 
 // Now returns the current timestamp in the specified format.
@@ -25,12 +29,6 @@ func (s *State) Now(format string) string { return time.Now().Format(format) }
 
 // NowDate returns the current date/time that can be used in other time functions.
 func (s *State) NowDate() time.Time { return time.Now() }
-
-// Header gets the heaser of the request in State.
-func (s *State) Header() *dns.RR_Header {
-	// TODO(miek)
-	return nil
-}
 
 // IP gets the (remote) IP address of the client making the request.
 func (s *State) IP() string {
@@ -191,7 +189,13 @@ func (s *State) QType() uint16 { return s.Req.Question[0].Qtype }
 
 // Name returns the name of the question in the request. Note
 // this name will always have a closing dot and will be lower cased.
-func (s *State) Name() string { return strings.ToLower(dns.Name(s.Req.Question[0].Name).String()) }
+func (s *State) Name() string {
+	if s.name != "" {
+		return s.name
+	}
+	s.name = strings.ToLower(dns.Name(s.Req.Question[0].Name).String())
+	return s.name
+}
 
 // QName returns the name of the question in the request.
 func (s *State) QName() string { return dns.Name(s.Req.Question[0].Name).String() }
@@ -208,6 +212,11 @@ func (s *State) ErrorMessage(rcode int) *dns.Msg {
 	m := new(dns.Msg)
 	m.SetRcode(s.Req, rcode)
 	return m
+}
+
+// Clear clears all caching from State s.
+func (s *State) Clear() {
+	s.name = ""
 }
 
 const (

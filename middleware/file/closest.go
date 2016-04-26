@@ -52,6 +52,10 @@ func (z *Zone) nameErrorProof(qname string, qtype uint16) []dns.RR {
 		}
 	}
 
+	if len(nsec) == 0 || len(nsec1) == 0 {
+		return nsec
+	}
+
 	// Check for duplicate NSEC.
 	if nsec[nsecIndex].Header().Name == nsec1[nsec1Index].Header().Name &&
 		nsec[nsecIndex].(*dns.NSEC).NextDomain == nsec1[nsec1Index].(*dns.NSEC).NextDomain {

@@ -46,7 +46,7 @@ func fileParse(c *Controller) (file.Zones, error) {
 			}
 			fileName := c.Val()
 
-			origins := []string{c.ServerBlockHosts[c.ServerBlockHostIndex]}
+			origins := c.ServerBlockHosts
 			args := c.RemainingArgs()
 			if len(args) > 0 {
 				origins = args
@@ -54,7 +54,7 @@ func fileParse(c *Controller) (file.Zones, error) {
 
 			reader, err := os.Open(fileName)
 			if err != nil {
-				return file.Zones{}, err
+				continue
 			}
 
 			for i, _ := range origins {
@@ -68,7 +68,7 @@ func fileParse(c *Controller) (file.Zones, error) {
 
 			noReload := false
 			for c.NextBlock() {
-				t, _, e := parseTransfer(c)
+				t, _, e := transferParse(c)
 				if e != nil {
 					return file.Zones{}, e
 				}
@@ -89,8 +89,8 @@ func fileParse(c *Controller) (file.Zones, error) {
 	return file.Zones{Z: z, Names: names}, nil
 }
 
-// transfer to [address...]
-func parseTransfer(c *Controller) (tos, froms []string, err error) {
+// transferParse parses transfer statements: 'transfer to [address...]'.
+func transferParse(c *Controller) (tos, froms []string, err error) {
 	what := c.Val()
 	if !c.NextArg() {
 		return nil, nil, c.ArgErr()

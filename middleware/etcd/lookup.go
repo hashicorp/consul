@@ -317,11 +317,14 @@ func (e Etcd) NS(zone string, state middleware.State) (records, extra []dns.RR, 
 	// NS record for this zone live in a special place, ns.dns.<zone>. Fake our lookup.
 	// only a tad bit fishy...
 	old := state.QName()
+
+	state.Clear()
 	state.Req.Question[0].Name = "ns.dns." + zone
 	services, err := e.records(state, false)
 	if err != nil {
 		return nil, nil, err
 	}
+	// ... and reset
 	state.Req.Question[0].Name = old
 
 	for _, serv := range services {

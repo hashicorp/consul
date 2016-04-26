@@ -8,8 +8,8 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
-	"github.com/miekg/coredns/middleware/etcd/singleflight"
 	"github.com/miekg/coredns/middleware/proxy"
+	"github.com/miekg/coredns/middleware/singleflight"
 
 	etcdc "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"

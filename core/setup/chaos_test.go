@@ -10,7 +10,7 @@ func TestChaos(t *testing.T) {
 	tests := []struct {
 		input              string
 		shouldErr          bool
-		expectedVersion    string // expected veresion.
+		expectedVersion    string // expected version.
 		expectedAuthor     string // expected author (string, although we get a map).
 		expectedErrContent string // substring from the expected error. Empty for positive cases.
 	}{
