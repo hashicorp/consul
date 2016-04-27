@@ -498,13 +498,12 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   UDP response, will set the truncated flag, indicating to clients that they should re-query
   using TCP to get the full set of records.
 
-  * <a name="only_passing"></a><a href="#only_passing">`only_passing`</a>
-  When set to true, the default, the querying agent will only receive node
-  or service addresses for healthy services.  A healthy service is defined
-  as a service with one or more healthchecks and all defined healthchecks
-  for the service are in a passing or warning state (i.e. not
-  critical). Set to false to have the querying agent include all node and
-  service addresses regardless of the health of the service.
+  * <a name="only_passing"></a><a href="#only_passing">`only_passing`</a> If set to true, any
+  nodes whose health checks are warning or critical will be excluded from DNS results. If false,
+  the default, only nodes whose healthchecks are failing as critical will be excluded. For
+  service lookups, the health checks of the node itself, as well as the service-specific checks
+  are considered. For example, if a node has a health check that is critical then all services on
+  that node will be excluded because they are also considered critical.
 
   * <a name="udp_answer_limit"></a><a
   href="#udp_answer_limit">`udp_answer_limit`</a> - Limit the number of
