@@ -54,7 +54,8 @@ func fileParse(c *Controller) (file.Zones, error) {
 
 			reader, err := os.Open(fileName)
 			if err != nil {
-				continue
+				// bail out
+				return file.Zones{}, err
 			}
 
 			for i, _ := range origins {
@@ -62,6 +63,8 @@ func fileParse(c *Controller) (file.Zones, error) {
 				zone, err := file.Parse(reader, origins[i], fileName)
 				if err == nil {
 					z[origins[i]] = zone
+				} else {
+					return file.Zones{}, err
 				}
 				names = append(names, origins[i])
 			}

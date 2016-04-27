@@ -74,7 +74,7 @@ func (d Dnssec) Sign(state middleware.State, zone string, now time.Time) *dns.Ms
 	for _, r := range rrSets(req.Extra) {
 		ttl := r[0].Header().Ttl
 		if sigs, err := d.sign(r, zone, ttl, incep, expir); err == nil {
-			req.Extra = append(req.Extra, sigs...)
+			req.Extra = append(sigs, req.Extra...) // prepend to leave OPT alone
 		}
 	}
 	return req

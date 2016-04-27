@@ -1,7 +1,7 @@
 package setup
 
 import (
-	"path"
+	"strings"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/dnssec"
@@ -35,8 +35,7 @@ func dnssecParse(c *Controller) ([]string, []*dnssec.DNSKEY, error) {
 			for c.NextBlock() {
 				k, e := keyParse(c)
 				if e != nil {
-					// TODO(miek): Log and drop or something? stop startup?
-					continue
+					return nil, nil, e
 				}
 				keys = append(keys, k...)
 			}
@@ -61,11 +60,13 @@ func keyParse(c *Controller) ([]*dnssec.DNSKEY, error) {
 		if value == "file" {
 			ks := c.RemainingArgs()
 			for _, k := range ks {
-				// Kmiek.nl.+013+26205.key, handle .private or without extension: Kmiek.nl.+013+26205
-				ext := path.Ext(k) // TODO(miek): test things like .key
 				base := k
-				if len(ext) > 0 {
-					base = k[:len(k)-len(ext)]
+				// Kmiek.nl.+013+26205.key, handle .private or without extension: Kmiek.nl.+013+26205
+				if strings.HasSuffix(k, ".key") {
+					base = k[:len(k)-4]
+				}
+				if strings.HasSuffix(k, ".private") {
+					base = k[:len(k)-8]
 				}
 				k, err := dnssec.ParseKeyFile(base+".key", base+".private")
 				if err != nil {
