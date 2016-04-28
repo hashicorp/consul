@@ -7,7 +7,7 @@ import (
 	"github.com/miekg/coredns/middleware/metrics"
 )
 
-const addr = "localhost:9135" // 9153 is occupied by bind_exporter
+const addr = "localhost:9153"
 
 var metricsOnce sync.Once
 
