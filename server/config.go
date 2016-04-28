@@ -42,7 +42,8 @@ type Config struct {
 	FirstStartup []func() error
 
 	// Functions (or methods) to execute when the server quits;
-	// these are executed in response to SIGINT and are blocking
+	// these are executed in response to SIGINT and are blocking. These
+	// function are *also* called when we are restarting.
 	Shutdown []func() error
 
 	// The path to the configuration file from which this was loaded

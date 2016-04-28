@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"path"
 	"strings"
@@ -197,36 +198,52 @@ func startServers(groupings bindingGroup) error {
 			s.TLSConfig.GetCertificate = https.GetCertificate
 		}
 
-		var ln server.ListenerFile
-		/*
-			if IsRestart() {
-				// Look up this server's listener in the map of inherited file descriptors;
-				// if we don't have one, we must make a new one (later).
-				if fdIndex, ok := loadedGob.ListenerFds[s.Addr]; ok {
-					file := os.NewFile(fdIndex, "")
+		var (
+			ln net.Listener
+			pc net.PacketConn
+		)
 
-					fln, err := net.FileListener(file)
-					if err != nil {
-						return err
-					}
+		if IsRestart() {
+			// Look up this server's listener in the map of inherited file descriptors; if we don't have one, we must make a new one (later).
+			if fdIndex, ok := loadedGob.ListenerFds["tcp"+s.Addr]; ok {
+				file := os.NewFile(fdIndex, "")
 
-					ln, ok = fln.(server.ListenerFile)
-					if !ok {
-						return errors.New("listener for " + s.Addr + " was not a ListenerFile")
-					}
-
-					file.Close()
-					delete(loadedGob.ListenerFds, s.Addr)
+				fln, err := net.FileListener(file)
+				if err != nil {
+					return err
 				}
+
+				ln, ok = fln.(*net.TCPListener)
+				if !ok {
+					return errors.New("listener for " + s.Addr + " was not a *net.TCPListener")
+				}
+
+				file.Close()
+				delete(loadedGob.ListenerFds, "tcp"+s.Addr)
 			}
-		*/
+			if fdIndex, ok := loadedGob.ListenerFds["udp"+s.Addr]; ok {
+				file := os.NewFile(fdIndex, "")
+
+				fpc, err := net.FilePacketConn(file)
+				if err != nil {
+					return err
+				}
+
+				pc, ok = fpc.(*net.UDPConn)
+				if !ok {
+					return errors.New("packetConn for " + s.Addr + " was not a *net.PacketConn")
+				}
+
+				file.Close()
+				delete(loadedGob.ListenerFds, "udp"+s.Addr)
+			}
+		}
 
 		wg.Add(1)
-		go func(s *server.Server, ln server.ListenerFile) {
+		go func(s *server.Server, ln net.Listener, pc net.PacketConn) {
 			defer wg.Done()
 
-			// run startup functions that should only execute when
-			// the original parent process is starting.
+			// run startup functions that should only execute when the original parent process is starting.
 			if !IsRestart() && !startedBefore {
 				err := s.RunFirstStartupFuncs()
 				if err != nil {
@@ -236,14 +253,12 @@ func startServers(groupings bindingGroup) error {
 			}
 
 			// start the server
-			// TODO(miek): for now will always be nil, so we will run ListenAndServe()
-			// TODO(miek): this is also why graceful restarts don't work.
-			if ln != nil {
-				//errChan <- s.Serve(ln)
+			if ln != nil && pc != nil {
+				errChan <- s.Serve(ln, pc)
 			} else {
 				errChan <- s.ListenAndServe()
 			}
-		}(s, ln)
+		}(s, ln, pc)
 
 		startupWg.Add(1)
 		go func(s *server.Server) {

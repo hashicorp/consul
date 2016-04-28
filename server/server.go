@@ -32,26 +32,20 @@ type Server struct {
 	Addr   string // Address we listen on
 	mux    *dns.ServeMux
 	server [2]*dns.Server // by convention 0 is tcp and 1 is udp
-	tcp    net.Listener
-	udp    net.PacketConn
+
+	tcp        net.Listener
+	udp        net.PacketConn
+	listenerMu sync.Mutex // protects listener and packetconn
 
 	tls         bool // whether this server is serving all HTTPS hosts or not
 	TLSConfig   *tls.Config
 	OnDemandTLS bool             // whether this server supports on-demand TLS (load certs at handshake-time)
 	zones       map[string]zone  // zones keyed by their address
-	listener    ListenerFile     // the listener which is bound to the socket
-	listenerMu  sync.Mutex       // protects listener
 	dnsWg       sync.WaitGroup   // used to wait on outstanding connections
 	startChan   chan struct{}    // used to block until server is finished starting
 	connTimeout time.Duration    // the maximum duration of a graceful shutdown
 	ReqCallback OptionalCallback // if non-nil, is executed at the beginning of every request
 	SNICallback func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error)
-}
-
-// ListenerFile represents a listener.
-type ListenerFile interface {
-	net.Listener
-	File() (*os.File, error)
 }
 
 // OptionalCallback is a function that may or may not handle a request.
@@ -145,25 +139,31 @@ func (s *Server) LocalAddr() (net.Addr, net.Addr) {
 	return tcp, udp
 }
 
-// Serve starts the server with an existing listener. It blocks until the
-// server stops.
-/*
-func (s *Server) Serve(ln ListenerFile) error {
-	// TODO(miek): Go DNS has no server stuff that allows you to give it a listener
-	// and use that.
+// Serve starts the server with an existing listener. It blocks until the server stops.
+func (s *Server) Serve(ln net.Listener, pc net.PacketConn) error {
 	err := s.setup()
 	if err != nil {
-		defer close(s.startChan) // MUST defer so error is properly reported, same with all cases in this file
+		close(s.startChan) // MUST defer so error is properly reported, same with all cases in this file
 		return err
 	}
-	return s.serve(ln)
+	s.listenerMu.Lock()
+	s.server[0] = &dns.Server{Listener: ln, Net: "tcp", Handler: s.mux}
+	s.tcp = ln
+	s.server[1] = &dns.Server{PacketConn: pc, Net: "udp", Handler: s.mux}
+	s.udp = pc
+	s.listenerMu.Unlock()
+
+	go func() {
+		s.server[0].ActivateAndServe()
+	}()
+	close(s.startChan)
+	return s.server[1].ActivateAndServe()
 }
-*/
 
 // ListenAndServe starts the server with a new listener. It blocks until the server stops.
 func (s *Server) ListenAndServe() error {
 	err := s.setup()
-	// defer close(s.startChan) // Don't understand why defer wouldn't actually work in this method.
+	// defer close(s.startChan) // Don't understand why defer wouldn't actually work in this method (prolly cause the last ActivateAndServe does not actually return?
 	if err != nil {
 		close(s.startChan)
 		return err
@@ -266,8 +266,11 @@ func (s *Server) Stop() (err error) {
 
 	// Close the listener now; this stops the server without delay
 	s.listenerMu.Lock()
-	if s.listener != nil {
-		err = s.listener.Close()
+	if s.tcp != nil {
+		err = s.tcp.Close()
+	}
+	if s.udp != nil {
+		err = s.udp.Close()
 	}
 
 	for _, s1 := range s.server {
@@ -291,8 +294,21 @@ func (s *Server) WaitUntilStarted() {
 func (s *Server) ListenerFd() *os.File {
 	s.listenerMu.Lock()
 	defer s.listenerMu.Unlock()
-	if s.listener != nil {
-		file, _ := s.listener.File()
+	if s.tcp != nil {
+		file, _ := s.tcp.(*net.TCPListener).File()
+		return file
+	}
+	return nil
+}
+
+// PacketConnFd gets a dup'ed file of the packetconn. If there
+// is no underlying file, the return value will be nil. It
+// is the caller's responsibility to close the file.
+func (s *Server) PacketConnFd() *os.File {
+	s.listenerMu.Lock()
+	defer s.listenerMu.Unlock()
+	if s.udp != nil {
+		file, _ := s.udp.(*net.UDPConn).File()
 		return file
 	}
 	return nil

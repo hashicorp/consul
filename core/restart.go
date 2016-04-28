@@ -81,9 +81,14 @@ func Restart(newCorefile Input) error {
 
 	// Add file descriptors of all the sockets
 	serversMu.Lock()
-	for i, s := range servers {
+	j := 0
+	for _, s := range servers {
 		extraFiles = append(extraFiles, s.ListenerFd())
-		crfileGob.ListenerFds[s.Addr] = uintptr(4 + i) // 4 fds come before any of the listeners
+		extraFiles = append(extraFiles, s.PacketConnFd())
+		// So this will be 0 1 2 3 TCP UDP TCP UDP ... etc.
+		crfileGob.ListenerFds["tcp"+s.Addr] = uintptr(4 + j)     // 4 fds come before any of the listeners
+		crfileGob.ListenerFds["udp"+s.Addr] = uintptr(4 + j + 1) // add udp after that
+		j += 2
 	}
 	serversMu.Unlock()
 
