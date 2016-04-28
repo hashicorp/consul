@@ -9,7 +9,7 @@ import (
 
 const addr = "localhost:9135" // 9153 is occupied by bind_exporter
 
-var once sync.Once
+var metricsOnce sync.Once
 
 func Prometheus(c *Controller) (middleware.Middleware, error) {
 	met, err := parsePrometheus(c)
@@ -17,7 +17,7 @@ func Prometheus(c *Controller) (middleware.Middleware, error) {
 		return nil, err
 	}
 
-	once.Do(func() {
+	metricsOnce.Do(func() {
 		c.Startup = append(c.Startup, met.Start)
 	})
 

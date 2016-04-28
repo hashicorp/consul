@@ -3,10 +3,10 @@ package metrics
 import (
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/miekg/coredns/middleware"
+
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 func (m Metrics) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {

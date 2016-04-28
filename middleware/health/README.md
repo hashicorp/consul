@@ -19,3 +19,7 @@ will just return "OK", when CoreDNS is healthy.
 This middleware only needs to be enabled once.
 
 ## Examples
+
+~~~
+health localhost:8091
+~~~

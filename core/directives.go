@@ -46,6 +46,7 @@ var directiveOrder = []directive{
 	{"bind", setup.BindHost},
 	{"tls", https.Setup},
 	{"health", setup.Health},
+	{"pprof", setup.PProf},
 
 	// Other directives that don't create HTTP handlers
 	{"startup", setup.Startup},
