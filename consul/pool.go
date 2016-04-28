@@ -17,6 +17,12 @@ import (
 	"github.com/inconshreveable/muxado"
 )
 
+const (
+	// defaultConnDialTimeout is the timeout value passed to
+	// net.DialTimeout() when establishing a new connection.
+	defaultConnDialTimeout = 10 * time.Second
+)
+
 // muxSession is used to provide an interface for either muxado or yamux
 type muxSession interface {
 	Open() (net.Conn, error)
@@ -67,7 +73,7 @@ func (c *Conn) Close() error {
 }
 
 // getClient is used to get a cached or new client
-func (c *Conn) getClient() (*StreamClient, error) {
+func (c *Conn) getClient(deadline time.Time) (*StreamClient, error) {
 	// Check for cached client
 	c.clientLock.Lock()
 	front := c.clients.Front()
@@ -83,6 +89,9 @@ func (c *Conn) getClient() (*StreamClient, error) {
 	stream, err := c.session.Open()
 	if err != nil {
 		return nil, err
+	}
+	if !deadline.IsZero() {
+		stream.SetDeadline(deadline)
 	}
 
 	// Create the RPC client
@@ -198,9 +207,9 @@ func (p *ConnPool) Shutdown() error {
 
 // acquire will return a pooled connection, if available. Otherwise it will
 // wait for an existing connection attempt to finish, if one if in progress,
-// and will return that one if it succeeds. If all else fails, it will return a
-// newly-created connection and add it to the pool.
-func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error) {
+// and will return that one if it succeeds. If all else fails, it will return
+// a newly-created connection and add it to the pool.
+func (p *ConnPool) acquire(dc string, addr net.Addr, version int, deadline time.Time) (*Conn, error) {
 	// Check to see if there's a pooled connection available. This is up
 	// here since it should the the vastly more common case than the rest
 	// of the code here.
@@ -227,7 +236,7 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 	// If we are the lead thread, make the new connection and then wake
 	// everybody else up to see if we got it.
 	if isLeadThread {
-		c, err := p.getNewConn(dc, addr, version)
+		c, err := p.getNewConn(dc, addr, version, deadline)
 		p.Lock()
 		delete(p.limiter, addr.String())
 		close(wait)
@@ -241,11 +250,13 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 		return c, nil
 	}
 
-	// Otherwise, wait for the lead thread to attempt the connection
-	// and use what's in the pool at that point.
+	// Otherwise, wait for the lead thread to attempt the connection and
+	// use what's in the pool at that point.
 	select {
 	case <-p.shutdownCh:
 		return nil, fmt.Errorf("rpc error: shutdown")
+	case <-time.After(deadline.Sub(time.Now())):
+		return nil, fmt.Errorf("rpc error: timeout")
 	case <-wait:
 	}
 
@@ -262,9 +273,16 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 }
 
 // getNewConn is used to return a new connection
-func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, error) {
+func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int, deadline time.Time) (*Conn, error) {
+	var timeout time.Duration
+	if deadline.IsZero() {
+		timeout = defaultConnDialTimeout
+	} else {
+		timeout = deadline.Sub(time.Now())
+	}
+
 	// Try to dial the conn
-	conn, err := net.DialTimeout("tcp", addr.String(), 10*time.Second)
+	conn, err := net.DialTimeout("tcp", addr.String(), timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -358,18 +376,19 @@ func (p *ConnPool) releaseConn(conn *Conn) {
 	}
 }
 
-// getClient is used to get a usable client for an address and protocol version
-func (p *ConnPool) getClient(dc string, addr net.Addr, version int) (*Conn, *StreamClient, error) {
+// getClient is used to get a usable client for an address and
+// protocol version
+func (p *ConnPool) getClient(dc string, addr net.Addr, version int, deadline time.Time) (*Conn, *StreamClient, error) {
 	retries := 0
 START:
 	// Try to get a conn first
-	conn, err := p.acquire(dc, addr, version)
+	conn, err := p.acquire(dc, addr, version, deadline)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get conn: %v", err)
 	}
 
 	// Get a client
-	client, err := conn.getClient()
+	client, err := conn.getClient(deadline)
 	if err != nil {
 		p.clearConn(conn)
 		p.releaseConn(conn)
@@ -386,10 +405,20 @@ START:
 
 // RPC is used to make an RPC call to a remote host
 func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, args interface{}, reply interface{}) error {
+	return p.RPCDeadline(dc, addr, version, method, args, reply, time.Time{})
+}
+
+// RPCDeadline is used to make an RPC call to a remote host with a
+// deadline timer.
+func (p *ConnPool) RPCDeadline(dc string, addr net.Addr, version int, method string, args interface{}, reply interface{}, deadline time.Time) error {
 	// Get a usable client
-	conn, sc, err := p.getClient(dc, addr, version)
+	conn, sc, err := p.getClient(dc, addr, version, deadline)
 	if err != nil {
 		return fmt.Errorf("rpc error: %v", err)
+	}
+
+	if err := sc.stream.SetDeadline(deadline); err != nil {
+		return err
 	}
 
 	// Make the RPC call
@@ -410,7 +439,7 @@ func (p *ConnPool) RPC(dc string, addr net.Addr, version int, method string, arg
 // returns true if healthy, false if an error occurred
 func (p *ConnPool) PingConsulServer(s *agent.Server) (bool, error) {
 	// Get a usable client
-	conn, sc, err := p.getClient(s.Datacenter, s.Addr, s.Version)
+	conn, sc, err := p.getClient(s.Datacenter, s.Addr, s.Version, time.Time{})
 	if err != nil {
 		return false, err
 	}

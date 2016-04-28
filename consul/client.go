@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/servers"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
@@ -29,6 +30,17 @@ const (
 	// clientMaxStreams controls how many idle streams we keep
 	// open to a server
 	clientMaxStreams = 32
+
+	// rpcNumRetriesPerServer is the number of times an RPC request will
+	// be retried for a given server.
+	rpcNumRetriesPerServer = 2
+
+	// rpcMinRetryDuration is the floor for the a single RPC timeout
+	rpcMinRetryDuration = 10 * time.Millisecond
+
+	// By default don't consider querying more than rpcQueryMaxServers in
+	// order to not have timeouts that are too small.
+	rpcQueryMaxServers = 3
 
 	// serfEventBacklog is the maximum number of unprocessed Serf Events
 	// that will be held in queue before new serf events block.  A
@@ -335,6 +347,60 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 	}
 
 	return nil
+}
+
+// RPCDeadline is used to forward an RPC call to a consul server and abort on
+// timeout.
+func (c *Client) RPCDeadline(method string, args interface{}, reply interface{}, deadline time.Time) error {
+	server := c.servers.FindServer()
+	if server == nil {
+		return structs.ErrNoServers
+	}
+
+	// Forward to remote Consul
+	if err := c.connPool.RPCDeadline(c.config.Datacenter, server.Addr, server.Version, method, args, reply, deadline); err != nil {
+		c.servers.NotifyFailedServer(server)
+		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
+		return err
+	}
+
+	return nil
+}
+
+// RPCRetry retries a given RPC until the function has exceeded the deadline
+// timer or returned a successful reply.  The number of retries is determined
+// based on the number of Consul servers at the start of the RPC.
+func (c *Client) RPCRetry(method string, args interface{}, reply interface{}, slaDeadline time.Time) (err error) {
+	// If an RPC fails to return in the per-server RPC timeout, the
+	// server is marked as failed (rotated it to the end of the server
+	// list and we try with the next available server hoping it meets our
+	// SLA).
+	now := time.Now()
+	numRetries := lib.MaxInt(c.servers.NumServers(), rpcQueryMaxServers) * rpcNumRetriesPerServer
+	perServerTimeout := time.Duration(slaDeadline.Sub(now).Nanoseconds() / int64(numRetries))
+
+	// Bound the per-server timeout.
+	//
+	// FIXME(sean@): Do these timeouts need to be adjusted based on
+	// whether or not the RPC is destined to the local datacenter or a
+	// remote datacenter?  Based on command/agent/rpc_client.go, it
+	// doesn't look like it.
+	if perServerTimeout < rpcMinRetryDuration {
+		perServerTimeout = rpcMinRetryDuration
+	} else if perServerTimeout > clientRPCConnMaxIdle {
+		// Clamp the max timeout to our max idle
+		perServerTimeout = clientRPCConnMaxIdle
+	}
+
+	// Loop until success or the SLA has been exceeded
+	for i := numRetries; now.Before(slaDeadline) && i > 0; i-- {
+		if err = c.RPCDeadline(method, args, reply, now.Add(perServerTimeout)); err == nil {
+			return
+		}
+		now = time.Now()
+	}
+
+	return err
 }
 
 // Stats is used to return statistics for debugging and insight

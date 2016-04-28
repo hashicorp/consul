@@ -458,6 +458,15 @@ func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 	return a.client.RPC(method, args, reply)
 }
 
+// RPCRetry is used to make an RPC call to the Consul servers.  This allows
+// the agent to implement the Consul.Interface.
+func (a *Agent) RPCRetry(method string, args interface{}, reply interface{}, timeout time.Duration) error {
+	if a.server != nil {
+		return a.server.RPC(method, args, reply)
+	}
+	return a.client.RPCRetry(method, args, reply, time.Now().Add(timeout))
+}
+
 // Leave is used to prepare the agent for a graceful shutdown
 func (a *Agent) Leave() error {
 	if a.server != nil {
