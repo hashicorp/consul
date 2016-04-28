@@ -7,6 +7,6 @@ import (
 
 func TestPath(t *testing.T) {
 	if actual := Path(); !strings.HasSuffix(actual, ".coredns") {
-		t.Errorf("Expected path to be a .caddy folder, got: %v", actual)
+		t.Errorf("Expected path to be a .coredns folder, got: %v", actual)
 	}
 }

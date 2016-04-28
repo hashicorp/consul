@@ -2,15 +2,15 @@ package core
 
 import "log"
 
-// Restart restarts Caddy forcefully using newCaddyfile,
-// or, if nil, the current/existing Caddyfile is reused.
-func Restart(newCaddyfile Input) error {
+// Restart restarts CoreDNS forcefully using newCorefile,
+// or, if nil, the current/existing Corefile is reused.
+func Restart(newCorefile Input) error {
 	log.Println("[INFO] Restarting")
 
-	if newCaddyfile == nil {
-		caddyfileMu.Lock()
-		newCaddyfile = caddyfile
-		caddyfileMu.Unlock()
+	if newCorefile == nil {
+		corefileMu.Lock()
+		newCorefile = corefile
+		corefileMu.Unlock()
 	}
 
 	wg.Add(1) // barrier so Wait() doesn't unblock
@@ -20,7 +20,7 @@ func Restart(newCaddyfile Input) error {
 		return err
 	}
 
-	err = Start(newCaddyfile)
+	err = Start(newCorefile)
 	if err != nil {
 		return err
 	}

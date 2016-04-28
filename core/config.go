@@ -23,7 +23,7 @@ func loadConfigsUpToIncludingTLS(filename string, input io.Reader) ([]server.Con
 	var configs []server.Config
 
 	// Each server block represents similar hosts/addresses, since they
-	// were grouped together in the Caddyfile.
+	// were grouped together in the Corefile.
 	serverBlocks, err := parse.ServerBlocks(filename, input, true)
 	if err != nil {
 		return nil, nil, 0, err
@@ -304,12 +304,12 @@ func validDirective(d string) bool {
 	return false
 }
 
-// DefaultInput returns the default Caddyfile input
+// DefaultInput returns the default Corefile input
 // to use when it is otherwise empty or missing.
 // It uses the default host and port and root.
-func DefaultInput() CaddyfileInput {
+func DefaultInput() CorefileInput {
 	port := Port
-	return CaddyfileInput{
+	return CorefileInput{
 		Contents: []byte(fmt.Sprintf("%s:%s\nroot %s", Host, port, Root)),
 	}
 }

@@ -84,13 +84,13 @@ func main() {
 	}
 
 	// Get Corefile input
-	caddyfile, err := core.LoadCaddyfile(loadCaddyfile)
+	corefile, err := core.LoadCorefile(loadCorefile)
 	if err != nil {
 		mustLogFatal(err)
 	}
 
 	// Start your engines
-	err = core.Start(caddyfile)
+	err = core.Start(corefile)
 	if err != nil {
 		mustLogFatal(err)
 	}
@@ -112,11 +112,11 @@ func mustLogFatal(args ...interface{}) {
 	log.Fatal(args...)
 }
 
-func loadCaddyfile() (core.Input, error) {
+func loadCorefile() (core.Input, error) {
 	// Try -conf flag
 	if conf != "" {
 		if conf == "stdin" {
-			return core.CaddyfileFromPipe(os.Stdin)
+			return core.CorefileFromPipe(os.Stdin)
 		}
 
 		contents, err := ioutil.ReadFile(conf)
@@ -124,7 +124,7 @@ func loadCaddyfile() (core.Input, error) {
 			return nil, err
 		}
 
-		return core.CaddyfileInput{
+		return core.CorefileInput{
 			Contents: contents,
 			Filepath: conf,
 			RealFile: true,
@@ -134,13 +134,13 @@ func loadCaddyfile() (core.Input, error) {
 	// command line args
 	if flag.NArg() > 0 {
 		confBody := core.Host + ":" + core.Port + "\n" + strings.Join(flag.Args(), "\n")
-		return core.CaddyfileInput{
+		return core.CorefileInput{
 			Contents: []byte(confBody),
 			Filepath: "args",
 		}, nil
 	}
 
-	// Caddyfile in cwd
+	// Corefile in cwd
 	contents, err := ioutil.ReadFile(core.DefaultConfigFile)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -148,7 +148,7 @@ func loadCaddyfile() (core.Input, error) {
 		}
 		return nil, err
 	}
-	return core.CaddyfileInput{
+	return core.CorefileInput{
 		Contents: contents,
 		Filepath: core.DefaultConfigFile,
 		RealFile: true,

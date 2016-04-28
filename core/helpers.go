@@ -57,24 +57,24 @@ func signalSuccessToParent() {
 // signaled once; doing so more than once breaks whatever socket is
 // at fd 4 (the reason for this is still unclear - to reproduce,
 // call Stop() and Start() in succession at least once after a
-// restart, then try loading first host of Caddyfile in the browser).
+// restart, then try loading first host of Corefile in the browser).
 // Do not use this directly - call signalSuccessToParent instead.
 var signalParentOnce sync.Once
 
-// caddyfileGob maps bind address to index of the file descriptor
+// corefileGob maps bind address to index of the file descriptor
 // in the Files array passed to the child process. It also contains
-// the caddyfile contents and other state needed by the new process.
+// the corefile contents and other state needed by the new process.
 // Used only during graceful restarts where a new process is spawned.
-type caddyfileGob struct {
+type corefileGob struct {
 	ListenerFds            map[string]uintptr
-	Caddyfile              Input
+	Corefile               Input
 	OnDemandTLSCertsIssued int32
 }
 
 // IsRestart returns whether this process is, according
 // to env variables, a fork as part of a graceful restart.
 func IsRestart() bool {
-	return os.Getenv("CADDY_RESTART") == "true"
+	return os.Getenv("COREDNS_RESTART") == "true"
 }
 
 // writePidFile writes the process ID to the file at PidFile, if specified.
@@ -83,20 +83,20 @@ func writePidFile() error {
 	return ioutil.WriteFile(PidFile, pid, 0644)
 }
 
-// CaddyfileInput represents a Caddyfile as input
+// CorefileInput represents a Corefile as input
 // and is simply a convenient way to implement
 // the Input interface.
-type CaddyfileInput struct {
+type CorefileInput struct {
 	Filepath string
 	Contents []byte
 	RealFile bool
 }
 
 // Body returns c.Contents.
-func (c CaddyfileInput) Body() []byte { return c.Contents }
+func (c CorefileInput) Body() []byte { return c.Contents }
 
 // Path returns c.Filepath.
-func (c CaddyfileInput) Path() string { return c.Filepath }
+func (c CorefileInput) Path() string { return c.Filepath }
 
 // IsFile returns true if the original input was a real file on the file system.
-func (c CaddyfileInput) IsFile() bool { return c.RealFile }
+func (c CorefileInput) IsFile() bool { return c.RealFile }

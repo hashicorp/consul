@@ -12,12 +12,12 @@ func BenchmarkParseInsert(b *testing.B) {
 }
 
 /*
-var testDir = filepath.Join(os.TempDir(), "caddy_testdir")
+var testDir = filepath.Join(os.TempDir(), "coredns_testdir")
 var ErrCustom = errors.New("Custom Error")
 
 // testFiles is a map with relative paths to test files as keys and file content as values.
 // The map represents the following structure:
-// - $TEMP/caddy_testdir/
+// - $TEMP/coredns_testdir/
 // '-- file1.html
 // '-- dirwithindex/
 // '---- index.html

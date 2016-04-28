@@ -2,10 +2,10 @@ package core
 
 /*
 func TestCaddyStartStop(t *testing.T) {
-	caddyfile := "localhost:1984"
+	corefile := "localhost:1984"
 
 	for i := 0; i < 2; i++ {
-		err := Start(CaddyfileInput{Contents: []byte(caddyfile)})
+		err := Start(CorefileInput{Contents: []byte(corefile)})
 		if err != nil {
 			t.Fatalf("Error starting, iteration %d: %v", i, err)
 		}

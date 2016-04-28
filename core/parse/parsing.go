@@ -55,7 +55,7 @@ func (p *parser) begin() error {
 	}
 
 	if p.eof {
-		// this happens if the Caddyfile consists of only
+		// this happens if the Corefile consists of only
 		// a line of addresses and nothing else
 		return nil
 	}
@@ -91,7 +91,7 @@ func (p *parser) addresses() error {
 			break
 		}
 
-		if tkn != "" { // empty token possible if user typed "" in Caddyfile
+		if tkn != "" { // empty token possible if user typed "" in Corefile
 			// Trailing comma indicates another address will follow, which
 			// may possibly be on the next line
 			if tkn[len(tkn)-1] == ',' {

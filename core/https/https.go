@@ -1,5 +1,5 @@
 // Package https facilitates the management of TLS assets and integrates
-// Let's Encrypt functionality into Caddy with first-class support for
+// Let's Encrypt functionality into CoreDNS with first-class support for
 // creating and renewing certificates automatically. It is designed to
 // configure sites for HTTPS by default.
 package https

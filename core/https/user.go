@@ -121,14 +121,14 @@ func newUser(email string) (User, error) {
 // input. If userPresent is false, the operator will
 // NOT be prompted and an empty email may be returned.
 func getEmail(cfg server.Config, userPresent bool) string {
-	// First try the tls directive from the Caddyfile
+	// First try the tls directive from the Corefile
 	leEmail := cfg.TLS.LetsEncryptEmail
 	if leEmail == "" {
 		// Then try memory (command line flag or typed by user previously)
 		leEmail = DefaultEmail
 	}
 	if leEmail == "" {
-		// Then try to get most recent user email ~/.caddy/users file
+		// Then try to get most recent user email ~/.coredns/users file
 		userDirs, err := ioutil.ReadDir(storage.Users())
 		if err == nil {
 			var mostRecent os.FileInfo

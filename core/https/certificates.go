@@ -33,7 +33,7 @@ type Certificate struct {
 	// NotAfter is when the certificate expires.
 	NotAfter time.Time
 
-	// Managed certificates are certificates that Caddy is managing,
+	// Managed certificates are certificates that CoreDNS is managing,
 	// as opposed to the user specifying a certificate and key file
 	// or directory and managing the certificate resources themselves.
 	Managed bool

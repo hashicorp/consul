@@ -18,32 +18,32 @@ import (
 )
 
 func init() {
-	gob.Register(CaddyfileInput{})
+	gob.Register(CorefileInput{})
 }
 
 // Restart restarts the entire application; gracefully with zero
 // downtime if on a POSIX-compatible system, or forcefully if on
 // Windows but with imperceptibly-short downtime.
 //
-// The restarted application will use newCaddyfile as its input
-// configuration. If newCaddyfile is nil, the current (existing)
-// Caddyfile configuration will be used.
+// The restarted application will use newCorefile as its input
+// configuration. If newCorefile is nil, the current (existing)
+// Corefile configuration will be used.
 //
 // Note: The process must exist in the same place on the disk in
 // order for this to work. Thus, multiple graceful restarts don't
 // work if executing with `go run`, since the binary is cleaned up
 // when `go run` sees the initial parent process exit.
-func Restart(newCaddyfile Input) error {
+func Restart(newCorefile Input) error {
 	log.Println("[INFO] Restarting")
 
-	if newCaddyfile == nil {
-		caddyfileMu.Lock()
-		newCaddyfile = caddyfile
-		caddyfileMu.Unlock()
+	if newCorefile == nil {
+		corefileMu.Lock()
+		newCorefile = corefile
+		corefileMu.Unlock()
 	}
 
-	// Get certificates for any new hosts in the new Caddyfile without causing downtime
-	err := getCertsForNewCaddyfile(newCaddyfile)
+	// Get certificates for any new hosts in the new Corefile without causing downtime
+	err := getCertsForNewCorefile(newCorefile)
 	if err != nil {
 		return errors.New("TLS preload: " + err.Error())
 	}
@@ -53,16 +53,16 @@ func Restart(newCaddyfile Input) error {
 	}
 
 	// Tell the child that it's a restart
-	os.Setenv("CADDY_RESTART", "true")
+	os.Setenv("COREDNS_RESTART", "true")
 
 	// Prepare our payload to the child process
-	cdyfileGob := caddyfileGob{
+	crfileGob := corefileGob{
 		ListenerFds:            make(map[string]uintptr),
-		Caddyfile:              newCaddyfile,
+		Corefile:               newCorefile,
 		OnDemandTLSCertsIssued: atomic.LoadInt32(https.OnDemandIssuedCount),
 	}
 
-	// Prepare a pipe to the fork's stdin so it can get the Caddyfile
+	// Prepare a pipe to the fork's stdin so it can get the Corefile
 	rpipe, wpipe, err := os.Pipe()
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func Restart(newCaddyfile Input) error {
 	serversMu.Lock()
 	for i, s := range servers {
 		extraFiles = append(extraFiles, s.ListenerFd())
-		cdyfileGob.ListenerFds[s.Addr] = uintptr(4 + i) // 4 fds come before any of the listeners
+		crfileGob.ListenerFds[s.Addr] = uintptr(4 + i) // 4 fds come before any of the listeners
 	}
 	serversMu.Unlock()
 
@@ -105,8 +105,8 @@ func Restart(newCaddyfile Input) error {
 		f.Close()
 	}
 
-	// Feed Caddyfile to the child
-	err = gob.NewEncoder(wpipe).Encode(cdyfileGob)
+	// Feed Corefile to the child
+	err = gob.NewEncoder(wpipe).Encode(crfileGob)
 	if err != nil {
 		return err
 	}
@@ -127,12 +127,12 @@ func Restart(newCaddyfile Input) error {
 	return Stop()
 }
 
-func getCertsForNewCaddyfile(newCaddyfile Input) error {
-	// parse the new caddyfile only up to (and including) TLS
+func getCertsForNewCorefile(newCorefile Input) error {
+	// parse the new corefile only up to (and including) TLS
 	// so we can know what we need to get certs for.
-	configs, _, _, err := loadConfigsUpToIncludingTLS(path.Base(newCaddyfile.Path()), bytes.NewReader(newCaddyfile.Body()))
+	configs, _, _, err := loadConfigsUpToIncludingTLS(path.Base(newCorefile.Path()), bytes.NewReader(newCorefile.Body()))
 	if err != nil {
-		return errors.New("loading Caddyfile: " + err.Error())
+		return errors.New("loading Corefile: " + err.Error())
 	}
 
 	// first mark the configs that are qualified for managed TLS

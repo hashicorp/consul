@@ -301,7 +301,7 @@ var OnDemandIssuedCount = new(int32)
 // maximum number of certificates that can be issued.
 // TODO: This applies globally, but we should probably make a server-specific
 // way to keep track of these limits and counts, since it's specified in the
-// Caddyfile...
+// Corefile...
 var onDemandMaxIssue int32
 
 // failedIssuance is a set of names that we recently failed to get a

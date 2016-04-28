@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/go-syslog"
 	"github.com/miekg/coredns/middleware"
-	caddylog "github.com/miekg/coredns/middleware/log"
+	corednslog "github.com/miekg/coredns/middleware/log"
 	"github.com/miekg/coredns/server"
 	"github.com/miekg/dns"
 )
@@ -30,7 +30,7 @@ func Log(c *Controller) (middleware.Middleware, error) {
 			} else if rules[i].OutputFile == "stderr" {
 				writer = os.Stderr
 			} else if rules[i].OutputFile == "syslog" {
-				writer, err = gsyslog.NewLogger(gsyslog.LOG_INFO, "LOCAL0", "caddy")
+				writer, err = gsyslog.NewLogger(gsyslog.LOG_INFO, "LOCAL0", "coredns")
 				if err != nil {
 					return err
 				}
@@ -56,12 +56,12 @@ func Log(c *Controller) (middleware.Middleware, error) {
 	})
 
 	return func(next middleware.Handler) middleware.Handler {
-		return caddylog.Logger{Next: next, Rules: rules, ErrorFunc: server.DefaultErrorFunc}
+		return corednslog.Logger{Next: next, Rules: rules, ErrorFunc: server.DefaultErrorFunc}
 	}, nil
 }
 
-func logParse(c *Controller) ([]caddylog.Rule, error) {
-	var rules []caddylog.Rule
+func logParse(c *Controller) ([]corednslog.Rule, error) {
+	var rules []corednslog.Rule
 
 	for c.Next() {
 		args := c.RemainingArgs()
@@ -88,37 +88,37 @@ func logParse(c *Controller) ([]caddylog.Rule, error) {
 		}
 		if len(args) == 0 {
 			// Nothing specified; use defaults
-			rules = append(rules, caddylog.Rule{
+			rules = append(rules, corednslog.Rule{
 				NameScope:  ".",
-				OutputFile: caddylog.DefaultLogFilename,
-				Format:     caddylog.DefaultLogFormat,
+				OutputFile: corednslog.DefaultLogFilename,
+				Format:     corednslog.DefaultLogFormat,
 				Roller:     logRoller,
 			})
 		} else if len(args) == 1 {
 			// Only an output file specified
-			rules = append(rules, caddylog.Rule{
+			rules = append(rules, corednslog.Rule{
 				NameScope:  ".",
 				OutputFile: args[0],
-				Format:     caddylog.DefaultLogFormat,
+				Format:     corednslog.DefaultLogFormat,
 				Roller:     logRoller,
 			})
 		} else {
 			// Name scope, output file, and maybe a format specified
 
-			format := caddylog.DefaultLogFormat
+			format := corednslog.DefaultLogFormat
 
 			if len(args) > 2 {
 				switch args[2] {
 				case "{common}":
-					format = caddylog.CommonLogFormat
+					format = corednslog.CommonLogFormat
 				case "{combined}":
-					format = caddylog.CombinedLogFormat
+					format = corednslog.CombinedLogFormat
 				default:
 					format = args[2]
 				}
 			}
 
-			rules = append(rules, caddylog.Rule{
+			rules = append(rules, corednslog.Rule{
 				NameScope:  dns.Fqdn(args[0]),
 				OutputFile: args[1],
 				Format:     format,

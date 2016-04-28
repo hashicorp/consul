@@ -1,16 +1,16 @@
-// Package caddy implements the Caddy web server as a service
+// Package caddy implements the CoreDNS web server as a service
 // in your own Go programs.
 //
 // To use this package, follow a few simple steps:
 //
 //   1. Set the AppName and AppVersion variables.
-//   2. Call LoadCaddyfile() to get the Caddyfile (it
+//   2. Call LoadCorefile() to get the Corefile (it
 //      might have been piped in as part of a restart).
-//      You should pass in your own Caddyfile loader.
-//   3. Call caddy.Start() to start Caddy, caddy.Stop()
+//      You should pass in your own Corefile loader.
+//   3. Call caddy.Start() to start CoreDNS, caddy.Stop()
 //      to stop it, or caddy.Restart() to restart it.
 //
-// You should use caddy.Wait() to wait for all Caddy servers
+// You should use caddy.Wait() to wait for all CoreDNS servers
 // to quit before your process exits.
 package core
 
@@ -52,14 +52,14 @@ var (
 )
 
 var (
-	// caddyfile is the input configuration text used for this process
-	caddyfile Input
+	// corefile is the input configuration text used for this process
+	corefile Input
 
-	// caddyfileMu protects caddyfile during changes
-	caddyfileMu sync.Mutex
+	// corefileMu protects corefile during changes
+	corefileMu sync.Mutex
 
 	// errIncompleteRestart occurs if this process is a fork
-	// of the parent but no Caddyfile was piped in
+	// of the parent but no Corefile was piped in
 	errIncompleteRestart = errors.New("incomplete restart")
 
 	// servers is a list of all the currently-listening servers
@@ -75,9 +75,9 @@ var (
 	// a graceful restart; it is used to map listeners to their
 	// index in the list of inherited file descriptors. This
 	// variable is not safe for concurrent access.
-	loadedGob caddyfileGob
+	loadedGob corefileGob
 
-	// startedBefore should be set to true if caddy has been started
+	// startedBefore should be set to true if CoreDNS has been started
 	// at least once (does not indicate whether currently running).
 	startedBefore bool
 )
@@ -91,8 +91,8 @@ const (
 	DefaultRoot = "."
 )
 
-// Start starts Caddy with the given Caddyfile. If cdyfile
-// is nil, the LoadCaddyfile function will be called to get
+// Start starts CoreDNS with the given Corefile. If crfile
+// is nil, the LoadCorefile function will be called to get
 // one.
 //
 // This function blocks until all the servers are listening.
@@ -101,12 +101,12 @@ const (
 // restart more than once within the duration of the graceful
 // cutoff (i.e. the child process called Start a first time,
 // then called Stop, then Start again within the first 5 seconds
-// or however long GracefulTimeout is) and the Caddyfiles have
+// or however long GracefulTimeout is) and the Corefiles have
 // at least one listener address in common, the second Start
 // may fail with "address already in use" as there's no
 // guarantee that the parent process has relinquished the
 // address before the grace period ends.
-func Start(cdyfile Input) (err error) {
+func Start(crfile Input) (err error) {
 	// If we return with no errors, we must do two things: tell the
 	// parent that we succeeded and write to the pidfile.
 	defer func() {
@@ -122,19 +122,19 @@ func Start(cdyfile Input) (err error) {
 	}()
 
 	// Input must never be nil; try to load something
-	if cdyfile == nil {
-		cdyfile, err = LoadCaddyfile(nil)
+	if crfile == nil {
+		crfile, err = LoadCorefile(nil)
 		if err != nil {
 			return err
 		}
 	}
 
-	caddyfileMu.Lock()
-	caddyfile = cdyfile
-	caddyfileMu.Unlock()
+	corefileMu.Lock()
+	corefile = crfile
+	corefileMu.Unlock()
 
 	// load the server configs (activates Let's Encrypt)
-	configs, err := loadConfigs(path.Base(cdyfile.Path()), bytes.NewReader(cdyfile.Body()))
+	configs, err := loadConfigs(path.Base(crfile.Path()), bytes.NewReader(crfile.Body()))
 	if err != nil {
 		return err
 	}
@@ -303,14 +303,14 @@ func Wait() {
 	wg.Wait()
 }
 
-// LoadCaddyfile loads a Caddyfile, prioritizing a Caddyfile
+// LoadCorefile loads a Corefile, prioritizing a Corefile
 // piped from stdin as part of a restart (only happens on first call
-// to LoadCaddyfile). If it is not a restart, this function tries
+// to LoadCorefile). If it is not a restart, this function tries
 // calling the user's loader function, and if that returns nil, then
 // this function resorts to the default configuration. Thus, if there
 // are no other errors, this function always returns at least the
-// default Caddyfile.
-func LoadCaddyfile(loader func() (Input, error)) (cdyfile Input, err error) {
+// default Corefile.
+func LoadCorefile(loader func() (Input, error)) (crfile Input, err error) {
 	// If we are a fork, finishing the restart is highest priority;
 	// piped input is required in this case.
 	if IsRestart() {
@@ -318,30 +318,30 @@ func LoadCaddyfile(loader func() (Input, error)) (cdyfile Input, err error) {
 		if err != nil {
 			return nil, err
 		}
-		cdyfile = loadedGob.Caddyfile
+		crfile = loadedGob.Corefile
 		atomic.StoreInt32(https.OnDemandIssuedCount, loadedGob.OnDemandTLSCertsIssued)
 	}
 
 	// Try user's loader
-	if cdyfile == nil && loader != nil {
-		cdyfile, err = loader()
+	if crfile == nil && loader != nil {
+		crfile, err = loader()
 	}
 
 	// Otherwise revert to default
-	if cdyfile == nil {
-		cdyfile = DefaultInput()
+	if crfile == nil {
+		crfile = DefaultInput()
 	}
 
 	return
 }
 
-// CaddyfileFromPipe loads the Caddyfile input from f if f is
+// CorefileFromPipe loads the Corefile input from f if f is
 // not interactive input. f is assumed to be a pipe or stream,
 // such as os.Stdin. If f is not a pipe, no error is returned
 // but the Input value will be nil. An error is only returned
 // if there was an error reading the pipe, even if the length
 // of what was read is 0.
-func CaddyfileFromPipe(f *os.File) (Input, error) {
+func CorefileFromPipe(f *os.File) (Input, error) {
 	fi, err := f.Stat()
 	if err == nil && fi.Mode()&os.ModeCharDevice == 0 {
 		// Note that a non-nil error is not a problem. Windows
@@ -354,7 +354,7 @@ func CaddyfileFromPipe(f *os.File) (Input, error) {
 		if err != nil {
 			return nil, err
 		}
-		return CaddyfileInput{
+		return CorefileInput{
 			Contents: confBody,
 			Filepath: f.Name(),
 		}, nil
@@ -365,20 +365,20 @@ func CaddyfileFromPipe(f *os.File) (Input, error) {
 	return nil, nil
 }
 
-// Caddyfile returns the current Caddyfile
-func Caddyfile() Input {
-	caddyfileMu.Lock()
-	defer caddyfileMu.Unlock()
-	return caddyfile
+// Corefile returns the current Corefile
+func Corefile() Input {
+	corefileMu.Lock()
+	defer corefileMu.Unlock()
+	return corefile
 }
 
-// Input represents a Caddyfile; its contents and file path
+// Input represents a Corefile; its contents and file path
 // (which should include the file name at the end of the path).
 // If path does not apply (e.g. piped input) you may use
 // any understandable value. The path is mainly used for logging,
 // error messages, and debugging.
 type Input interface {
-	// Gets the Caddyfile contents
+	// Gets the Corefile contents
 	Body() []byte
 
 	// Gets the path to the origin file
@@ -394,8 +394,8 @@ type Input interface {
 // with Stop(). It just takes a normal Corefile as input.
 func TestServer(t *testing.T, corefile string) (*server.Server, error) {
 
-	cdyfile := CaddyfileInput{Contents: []byte(corefile)}
-	configs, err := loadConfigs(path.Base(cdyfile.Path()), bytes.NewReader(cdyfile.Body()))
+	crfile := CorefileInput{Contents: []byte(corefile)}
+	configs, err := loadConfigs(path.Base(crfile.Path()), bytes.NewReader(crfile.Body()))
 	if err != nil {
 		return nil, err
 	}

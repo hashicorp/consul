@@ -48,28 +48,28 @@ func trapSignalsPosix() {
 			case syscall.SIGUSR1:
 				log.Println("[INFO] SIGUSR1: Reloading")
 
-				var updatedCaddyfile Input
+				var updatedCorefile Input
 
-				caddyfileMu.Lock()
-				if caddyfile == nil {
+				corefileMu.Lock()
+				if corefile == nil {
 					// Hmm, did spawing process forget to close stdin? Anyhow, this is unusual.
 					log.Println("[ERROR] SIGUSR1: no Corefile to reload (was stdin left open?)")
-					caddyfileMu.Unlock()
+					corefileMu.Unlock()
 					continue
 				}
-				if caddyfile.IsFile() {
-					body, err := ioutil.ReadFile(caddyfile.Path())
+				if corefile.IsFile() {
+					body, err := ioutil.ReadFile(corefile.Path())
 					if err == nil {
-						updatedCaddyfile = CaddyfileInput{
-							Filepath: caddyfile.Path(),
+						updatedCorefile = CorefileInput{
+							Filepath: corefile.Path(),
 							Contents: body,
 							RealFile: true,
 						}
 					}
 				}
-				caddyfileMu.Unlock()
+				corefileMu.Unlock()
 
-				err := Restart(updatedCaddyfile)
+				err := Restart(updatedCorefile)
 				if err != nil {
 					log.Printf("[ERROR] SIGUSR1: %v", err)
 				}
