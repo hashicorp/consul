@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -742,6 +743,11 @@ func (s *Server) Stats() map[string]map[string]string {
 		"serf_lan": s.serfLAN.Stats(),
 		"serf_wan": s.serfWAN.Stats(),
 		"runtime":  runtimeStats(),
+	}
+	if peers, err := s.raftPeers.Peers(); err == nil {
+		stats["raft"]["raft_peers"] = strings.Join(peers, ",")
+	} else {
+		s.logger.Printf("[DEBUG] server: error getting raft peers: %v", err)
 	}
 	return stats
 }
