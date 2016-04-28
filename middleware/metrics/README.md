@@ -1,7 +1,7 @@
 # prometheus
 
 This module enables prometheus metrics for CoreDNS. The default location for the metrics is
-`localhost:9135`. The metrics path is fixed to `/metrics`.
+`localhost:9153`. The metrics path is fixed to `/metrics`.
 
 The following metrics are exported:
 
@@ -30,6 +30,6 @@ prometheus
 For each zone that you want to see metrics for.
 
 It optionally takes an address where the metrics are exported, the default
-is `localhost:9135`. The metrics path is fixed to `/metrics`.
+is `localhost:9153`. The metrics path is fixed to `/metrics`.
 
 ## Examples
