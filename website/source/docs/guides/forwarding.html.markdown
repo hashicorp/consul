@@ -14,9 +14,9 @@ or root account, it is possible to instead forward appropriate queries to Consul
 running on an unprivileged port, from another DNS server.
 
 In this guide, we will demonstrate forwarding from [BIND](https://www.isc.org/downloads/bind/)
-as well as [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html).
+as well as [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) and [iptables](http://www.netfilter.org/).
 For the sake of simplicity, BIND and Consul are running on the same machine in this example,
-but this is not required.
+but this is only required for iptables.
 
 It is worth mentioning that, by default, Consul does not resolve DNS
 records outside the `.consul.` zone unless the
@@ -124,6 +124,18 @@ for additional details):
 # Set the size of dnsmasq's cache. The default is 150 names. Setting the
 # cache size to zero disables caching.
 #cache-size=65536
+```
+
+### iptables Setup
+
+On Linux systems that support it, incoming requests and requests to localhost can use iptables
+to forward ports on the same machine without a secondary service.
+
+```
+iptables -t nat -A PREROUTING -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
+iptables -t nat -A PREROUTING -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
+iptables -t nat -A OUTPUT -d localhost -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
+iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
 ```
 
 ### Testing
