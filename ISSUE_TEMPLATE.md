@@ -15,7 +15,7 @@ Client:
 [Client `consul info` here]
 ```
 
-Server: 
+Server:
 ```
 [Server `consul info` here]
 ```
@@ -26,8 +26,10 @@ Server:
 
 ### Reproduction steps
 
-### Consul Server logs (if appropriate)
+### Log Fragments or Link to [gist](https://gist.github.com/)
 
-### Consul Client logs (if appropriate)
+Include appropriate Client or Server log fragments.  If the log is longer
+than a few dozen lines, please include the URL to the
+[gist](https://gist.github.com/).
 
 TIP: Use `-log-level=TRACE` on the client and server to capture the maximum log detail.
