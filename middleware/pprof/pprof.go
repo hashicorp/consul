@@ -5,22 +5,11 @@ import (
 	"net"
 	"net/http"
 	pp "net/http/pprof"
-
-	"github.com/miekg/coredns/middleware"
-
-	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 type Handler struct {
-	Next middleware.Handler
-	ln   net.Listener
-	mux  *http.ServeMux
-}
-
-// ServeDNS passes all other requests up the chain.
-func (h *Handler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	return h.Next.ServeDNS(ctx, w, r)
+	ln  net.Listener
+	mux *http.ServeMux
 }
 
 func (h *Handler) Start() error {

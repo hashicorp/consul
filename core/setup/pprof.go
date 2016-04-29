@@ -29,9 +29,5 @@ func PProf(c *Controller) (middleware.Middleware, error) {
 		c.Startup = append(c.Startup, handler.Start)
 		c.Shutdown = append(c.Shutdown, handler.Shutdown)
 	})
-
-	return func(next middleware.Handler) middleware.Handler {
-		handler.Next = next
-		return handler
-	}, nil
+	return nil, nil
 }
