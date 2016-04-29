@@ -117,6 +117,9 @@ func Restart(newCorefile Input) error {
 	}
 	wpipe.Close()
 
+	// Run all shutdown functions for the middleware, if child start fails, restart them all...
+	executeShutdownCallbacks("SIGUSR1")
+
 	// Determine whether child startup succeeded
 	answer, readErr := ioutil.ReadAll(sigrpipe)
 	if answer == nil || len(answer) == 0 {
@@ -125,6 +128,9 @@ func Restart(newCorefile Input) error {
 		if readErr != nil {
 			log.Printf("[ERROR] Restart: additionally, error communicating with child process: %v", readErr)
 		}
+		// re-call all startup functions.
+		// TODO(miek): this needs to be tested, somehow.
+		executeStartupCallbacks("SIGUSR1")
 		return errIncompleteRestart
 	}
 

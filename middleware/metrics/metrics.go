@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"sync"
 
@@ -17,12 +18,12 @@ var (
 	responseRcode   *prometheus.CounterVec
 )
 
-const path = "/metrics"
-
 // Metrics holds the prometheus configuration. The metrics' path is fixed to be /metrics
 type Metrics struct {
 	Next      middleware.Handler
-	Addr      string // where to we listen
+	Addr      string
+	ln        net.Listener
+	mux       *http.ServeMux
 	Once      sync.Once
 	ZoneNames []string
 }
@@ -31,18 +32,32 @@ func (m *Metrics) Start() error {
 	m.Once.Do(func() {
 		define()
 
+		if ln, err := net.Listen("tcp", m.Addr); err != nil {
+			log.Printf("[ERROR] Failed to start metrics handler: %s", err)
+			return
+		} else {
+			m.ln = ln
+		}
+		m.mux = http.NewServeMux()
+
 		prometheus.MustRegister(requestCount)
 		prometheus.MustRegister(requestDuration)
 		prometheus.MustRegister(responseSize)
 		prometheus.MustRegister(responseRcode)
 
-		http.Handle(path, prometheus.Handler())
+		m.mux.Handle(path, prometheus.Handler())
+
 		go func() {
-			if err := http.ListenAndServe(m.Addr, nil); err != nil {
-				log.Printf("[ERROR] Failed to start prometheus handler: %s", err)
-			}
+			http.Serve(m.ln, m.mux)
 		}()
 	})
+	return nil
+}
+
+func (m *Metrics) Shutdown() error {
+	if m.ln != nil {
+		return m.ln.Close()
+	}
 	return nil
 }
 
@@ -80,7 +95,7 @@ func define() {
 
 const (
 	// Dropped indicates we dropped the query before any handling. It has no closing dot, so it can not be a valid zone.
-	Dropped = "dropped"
-
+	Dropped   = "dropped"
 	subsystem = "dns"
+	path      = "/metrics"
 )

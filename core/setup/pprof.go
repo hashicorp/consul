@@ -27,6 +27,7 @@ func PProf(c *Controller) (middleware.Middleware, error) {
 	handler := &pprof.Handler{}
 	pprofOnce.Do(func() {
 		c.Startup = append(c.Startup, handler.Start)
+		c.Shutdown = append(c.Shutdown, handler.Shutdown)
 	})
 
 	return func(next middleware.Handler) middleware.Handler {

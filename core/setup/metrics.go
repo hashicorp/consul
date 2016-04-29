@@ -12,18 +12,19 @@ const addr = "localhost:9153"
 var metricsOnce sync.Once
 
 func Prometheus(c *Controller) (middleware.Middleware, error) {
-	met, err := parsePrometheus(c)
+	m, err := parsePrometheus(c)
 	if err != nil {
 		return nil, err
 	}
 
 	metricsOnce.Do(func() {
-		c.Startup = append(c.Startup, met.Start)
+		c.Startup = append(c.Startup, m.Start)
+		c.Shutdown = append(c.Shutdown, m.Shutdown)
 	})
 
 	return func(next middleware.Handler) middleware.Handler {
-		met.Next = next
-		return met
+		m.Next = next
+		return m
 	}, nil
 }
 

@@ -11,8 +11,9 @@ func Health(c *Controller) (middleware.Middleware, error) {
 		return nil, err
 	}
 
-	h := health.Health{Addr: addr}
-	c.Startup = append(c.Startup, h.ListenAndServe)
+	h := &health.Health{Addr: addr}
+	c.Startup = append(c.Startup, h.Start)
+	c.Shutdown = append(c.Shutdown, h.Shutdown)
 	return nil, nil
 }
 

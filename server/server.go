@@ -445,32 +445,6 @@ func (s *Server) RunFirstStartupFuncs() error {
 	return nil
 }
 
-// tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
-// connections. It's used by ListenAndServe and ListenAndServeTLS so
-// dead TCP connections (e.g. closing laptop mid-download) eventually
-// go away.
-//
-// Borrowed from the Go standard library.
-type tcpKeepAliveListener struct {
-	*net.TCPListener
-}
-
-// Accept accepts the connection with a keep-alive enabled.
-func (ln tcpKeepAliveListener) Accept() (c net.Conn, err error) {
-	tc, err := ln.AcceptTCP()
-	if err != nil {
-		return
-	}
-	tc.SetKeepAlive(true)
-	tc.SetKeepAlivePeriod(3 * time.Minute)
-	return tc, nil
-}
-
-// File implements ListenerFile; returns the underlying file of the listener.
-func (ln tcpKeepAliveListener) File() (*os.File, error) {
-	return ln.TCPListener.File()
-}
-
 // ShutdownCallbacks executes all the shutdown callbacks
 // for all the virtualhosts in servers, and returns all the
 // errors generated during their execution. In other words,
@@ -484,6 +458,21 @@ func ShutdownCallbacks(servers []*Server) []error {
 		for _, zone := range s.zones {
 			for _, shutdownFunc := range zone.config.Shutdown {
 				err := shutdownFunc()
+				if err != nil {
+					errs = append(errs, err)
+				}
+			}
+		}
+	}
+	return errs
+}
+
+func StartupCallbacks(servers []*Server) []error {
+	var errs []error
+	for _, s := range servers {
+		for _, zone := range s.zones {
+			for _, startupFunc := range zone.config.Startup {
+				err := startupFunc()
 				if err != nil {
 					errs = append(errs, err)
 				}

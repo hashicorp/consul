@@ -68,4 +68,26 @@ func executeShutdownCallbacks(signame string) (exitCode int) {
 	return
 }
 
-var shutdownCallbacksOnce sync.Once
+// executeStartupCallbacks executes the startup callbacks as initiated
+// by signame. This is used when on restart when the child failed to start and
+// all middleware executed their shutdown functions
+func executeStartupCallbacks(signame string) (exitCode int) {
+	startupCallbacksOnce.Do(func() {
+		serversMu.Lock()
+		errs := server.StartupCallbacks(servers)
+		serversMu.Unlock()
+
+		if len(errs) > 0 {
+			for _, err := range errs {
+				log.Printf("[ERROR] %s shutdown: %v", signame, err)
+			}
+			exitCode = 1
+		}
+	})
+	return
+}
+
+var (
+	shutdownCallbacksOnce sync.Once
+	startupCallbacksOnce  sync.Once
+)
