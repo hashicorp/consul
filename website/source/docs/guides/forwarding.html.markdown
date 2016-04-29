@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Forwarding"
 sidebar_current: "docs-guides-forwarding"
 description: |-
-  By default, DNS is served from port 53.  On most operating systems, this requires elevated privileges. Instead of running Consul with an administrative or root account, it is possible to instead forward appropriate queries to Consul, running on an unprivileged port, from another DNS server.
+  By default, DNS is served from port 53.  On most operating systems, this requires elevated privileges. Instead of running Consul with an administrative or root account, it is possible to instead forward appropriate queries to Consul, running on an unprivileged port, from another DNS server or port redirect.
 ---
 
 # Forwarding DNS
@@ -26,7 +26,7 @@ suppose a Consul DNS reply includes a CNAME record pointing outside
 the `.consul` TLD. The DNS reply will only include CNAME records by
 default. By contrast, when `recursors` is set and the upstream resolver is
 functioning correctly, Consul will try to resolve CNAMEs and include
-any records (e.g. A, AAAA, PTR) for them in its DNS reply.
+any records (e.g. A, AAAA, PTR) for them in its DNS reply. 
 
 You can either do one of the following:
 
@@ -128,14 +128,16 @@ for additional details):
 
 ### iptables Setup
 
-On Linux systems that support it, incoming requests and requests to localhost can use iptables
-to forward ports on the same machine without a secondary service.
+On Linux systems that support it, incoming requests and requests to localhost can use `iptables`
+to forward ports on the same machine without a secondary service.  Since Consul, by default, only
+resolves the `.consul` TDL, it is especially important to use the `recursors` option if you wish the
+`iptables` setup to resolve for other domains.
 
 ```
-iptables -t nat -A PREROUTING -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
-iptables -t nat -A PREROUTING -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
-iptables -t nat -A OUTPUT -d localhost -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
-iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
+[root@localhost ~]# iptables -t nat -A PREROUTING -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
+[root@localhost ~]# iptables -t nat -A PREROUTING -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
+[root@localhost ~]# iptables -t nat -A OUTPUT -d localhost -p udp -m udp --dport 53 -j REDIRECT --to-ports 8600
+[root@localhost ~]# iptables -t nat -A OUTPUT -d localhost -p tcp -m tcp --dport 53 -j REDIRECT --to-ports 8600
 ```
 
 ### Testing
