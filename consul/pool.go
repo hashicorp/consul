@@ -279,6 +279,9 @@ func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int, deadline ti
 		timeout = defaultConnDialTimeout
 	} else {
 		timeout = deadline.Sub(time.Now())
+		if timeout < 0 {
+			return nil, fmt.Errorf("deadline exceeded: unable to acquire pooled connection")
+		}
 	}
 
 	// Try to dial the conn
