@@ -19,12 +19,12 @@ However, advanced features including load balancing can be utilized with an expa
 
 ~~~
 proxy from to... {
-	policy random | least_conn | round_robin
-	fail_timeout duration
-	max_fails integer
-	health_check path:port [duration]
-	except ignored_names...
-    tcp
+    policy random | least_conn | round_robin
+    fail_timeout duration
+    max_fails integer
+    health_check path:port [duration]
+    except ignored_names...
+    ecs [v4 address/mask] [v6 address/mask] (TODO)
 }
 ~~~
 
@@ -35,8 +35,8 @@ proxy from to... {
 * `max_fails` is the number of failures within fail_timeout that are needed before considering a backend to be down. If 0, the backend will never be marked as down. Default is 1.
 * `health_check` will check path (on port) on each backend. If a backend returns a status code of 200-399, then that backend is healthy. If it doesn't, the backend is marked as unhealthy for duration and no requests are routed to it. If this option is not provided then health checks are disabled. The default duration is 10 seconds ("10s").
 * `ignored_names...` is a space-separated list of paths to exclude from proxying. Requests that match any of these paths will be passed thru.
-* `tcp` use TCP for all upstream queries, otherwise it depends on the transport of the incoming
-  query. TODO(miek): implement.
+* `ecs` add EDNS0 client submit metadata to the outgoing query. This can be optionally be followed
+  by an IPv4 and/or IPv6 address. If none is specified the server's addresses are used.
 
 ## Policies
 

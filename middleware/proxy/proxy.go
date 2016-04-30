@@ -3,14 +3,13 @@ package proxy
 
 import (
 	"errors"
-	"net/http"
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/miekg/coredns/middleware"
+
 	"github.com/miekg/dns"
+	"golang.org/x/net/context"
 )
 
 var errUnreachable = errors.New("unreachable backend")
@@ -36,6 +35,8 @@ type Upstream interface {
 	Select() *UpstreamHost
 	// Checks if subpdomain is not an ignored.
 	IsAllowedPath(string) bool
+	// Options returns the options set for this upstream
+	Options() Options
 }
 
 // UpstreamHostDownFunc can be used to customize how Down behaves.
@@ -48,7 +49,6 @@ type UpstreamHost struct {
 	Fails             int32
 	FailTimeout       time.Duration
 	Unhealthy         bool
-	ExtraHeaders      http.Header
 	CheckDown         UpstreamHostDownFunc
 	WithoutPathPrefix string
 }
@@ -71,7 +71,6 @@ var tryDuration = 60 * time.Second
 // ServeDNS satisfies the middleware.Handler interface.
 func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	for _, upstream := range p.Upstreams {
-		// allowed bla bla bla TODO(miek): fix full proxy spec from caddy
 		start := time.Now()
 
 		// Since Select() should give us "up" hosts, keep retrying
@@ -81,8 +80,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 			if host == nil {
 				return dns.RcodeServerFailure, errUnreachable
 			}
-			// TODO(miek): PORT!
-			reverseproxy := ReverseProxy{Host: host.Name, Client: p.Client}
+			reverseproxy := ReverseProxy{Host: host.Name, Client: p.Client, Options: upstream.Options()}
 
 			atomic.AddInt64(&host.Conns, 1)
 			backendErr := reverseproxy.ServeDNS(w, r, nil)

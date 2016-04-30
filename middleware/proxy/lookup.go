@@ -4,7 +4,6 @@ package proxy
 // style as the proxy.
 
 import (
-	"net/http"
 	"sync/atomic"
 	"time"
 
@@ -17,22 +16,20 @@ func New(hosts []string) Proxy {
 	p := Proxy{Next: nil, Client: Clients()}
 
 	upstream := &staticUpstream{
-		from:         "",
-		proxyHeaders: make(http.Header),
-		Hosts:        make([]*UpstreamHost, len(hosts)),
-		Policy:       &Random{},
-		FailTimeout:  10 * time.Second,
-		MaxFails:     1,
+		from:        "",
+		Hosts:       make([]*UpstreamHost, len(hosts)),
+		Policy:      &Random{},
+		FailTimeout: 10 * time.Second,
+		MaxFails:    1,
 	}
 
 	for i, host := range hosts {
 		uh := &UpstreamHost{
-			Name:         host,
-			Conns:        0,
-			Fails:        0,
-			FailTimeout:  upstream.FailTimeout,
-			Unhealthy:    false,
-			ExtraHeaders: upstream.proxyHeaders, // TODO(miek): fixer the fix
+			Name:        host,
+			Conns:       0,
+			Fails:       0,
+			FailTimeout: upstream.FailTimeout,
+			Unhealthy:   false,
 			CheckDown: func(upstream *staticUpstream) UpstreamHostDownFunc {
 				return func(uh *UpstreamHost) bool {
 					if uh.Unhealthy {

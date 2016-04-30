@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -19,11 +20,9 @@ var (
 )
 
 type staticUpstream struct {
-	from string
-	// TODO(miek): allows use to added headers
-	proxyHeaders http.Header // TODO(miek): kill these
-	Hosts        HostPool
-	Policy       Policy
+	from   string
+	Hosts  HostPool
+	Policy Policy
 
 	FailTimeout time.Duration
 	MaxFails    int32
@@ -34,6 +33,10 @@ type staticUpstream struct {
 	}
 	WithoutPathPrefix string
 	IgnoredSubDomains []string
+	options           Options
+}
+type Options struct {
+	Ecs []*net.IPNet // EDNS0 CLIENT SUBNET address (v4/v6) to add in CIDR notaton.
 }
 
 // NewStaticUpstreams parses the configuration input and sets up
@@ -42,12 +45,11 @@ func NewStaticUpstreams(c parse.Dispenser) ([]Upstream, error) {
 	var upstreams []Upstream
 	for c.Next() {
 		upstream := &staticUpstream{
-			from:         "",
-			proxyHeaders: make(http.Header),
-			Hosts:        nil,
-			Policy:       &Random{},
-			FailTimeout:  10 * time.Second,
-			MaxFails:     1,
+			from:        "",
+			Hosts:       nil,
+			Policy:      &Random{},
+			FailTimeout: 10 * time.Second,
+			MaxFails:    1,
 		}
 
 		if !c.Args(&upstream.from) {
@@ -56,6 +58,15 @@ func NewStaticUpstreams(c parse.Dispenser) ([]Upstream, error) {
 		to := c.RemainingArgs()
 		if len(to) == 0 {
 			return upstreams, c.ArgErr()
+		}
+		for _, host := range to {
+			h, _, err := net.SplitHostPort(host)
+			if err != nil {
+				h = host
+			}
+			if x := net.ParseIP(h); x == nil {
+				return upstreams, fmt.Errorf("not an IP address: `%s'", h)
+			}
 		}
 
 		for c.NextBlock() {
@@ -67,12 +78,11 @@ func NewStaticUpstreams(c parse.Dispenser) ([]Upstream, error) {
 		upstream.Hosts = make([]*UpstreamHost, len(to))
 		for i, host := range to {
 			uh := &UpstreamHost{
-				Name:         host,
-				Conns:        0,
-				Fails:        0,
-				FailTimeout:  upstream.FailTimeout,
-				Unhealthy:    false,
-				ExtraHeaders: upstream.proxyHeaders,
+				Name:        defaultHostPort(host),
+				Conns:       0,
+				Fails:       0,
+				FailTimeout: upstream.FailTimeout,
+				Unhealthy:   false,
 				CheckDown: func(upstream *staticUpstream) UpstreamHostDownFunc {
 					return func(uh *UpstreamHost) bool {
 						if uh.Unhealthy {
@@ -105,6 +115,10 @@ func RegisterPolicy(name string, policy func() Policy) {
 
 func (u *staticUpstream) From() string {
 	return u.from
+}
+
+func (u *staticUpstream) Options() Options {
+	return u.options
 }
 
 func parseBlock(c *parse.Dispenser, u *staticUpstream) error {
@@ -153,12 +167,6 @@ func parseBlock(c *parse.Dispenser, u *staticUpstream) error {
 			}
 			u.HealthCheck.Interval = dur
 		}
-	case "proxy_header":
-		var header, value string
-		if !c.Args(&header, &value) {
-			return c.ArgErr()
-		}
-		u.proxyHeaders.Add(header, value)
 	case "without":
 		if !c.NextArg() {
 			return c.ArgErr()
@@ -173,6 +181,12 @@ func parseBlock(c *parse.Dispenser, u *staticUpstream) error {
 			ignoredDomains[i] = strings.ToLower(dns.Fqdn(ignoredDomains[i]))
 		}
 		u.IgnoredSubDomains = ignoredDomains
+	case "ecs":
+		ips := c.RemainingArgs()
+		if len(ips) > 0 {
+
+		}
+
 	default:
 		return c.Errf("unknown property '%s'", c.Val())
 	}
@@ -246,4 +260,12 @@ func (u *staticUpstream) IsAllowedPath(name string) bool {
 		}
 	}
 	return true
+}
+
+func defaultHostPort(s string) string {
+	_, _, e := net.SplitHostPort(s)
+	if e == nil {
+		return s
+	}
+	return net.JoinHostPort(s, "53")
 }

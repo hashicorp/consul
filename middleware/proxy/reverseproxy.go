@@ -8,8 +8,9 @@ import (
 )
 
 type ReverseProxy struct {
-	Host   string
-	Client Client
+	Host    string
+	Client  Client
+	Options Options
 }
 
 func (p ReverseProxy) ServeDNS(w dns.ResponseWriter, r *dns.Msg, extra []dns.RR) error {
@@ -17,12 +18,11 @@ func (p ReverseProxy) ServeDNS(w dns.ResponseWriter, r *dns.Msg, extra []dns.RR)
 		reply *dns.Msg
 		err   error
 	)
-	state := middleware.State{W: w, Req: r}
 
-	// We forward the original request, no need to fiddle with EDNS0 opt sizes.
-	if state.Proto() == "tcp" {
+	switch {
+	case middleware.Proto(w) == "tcp":
 		reply, err = middleware.Exchange(p.Client.TCP, r, p.Host)
-	} else {
+	default:
 		reply, err = middleware.Exchange(p.Client.UDP, r, p.Host)
 	}
 

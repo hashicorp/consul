@@ -1,5 +1,10 @@
 package proxy
 
+// Also test these inputs:
+//.:1053 {
+//proxy . ::1 2001:4860:4860::8844 8.8.8.8:54 [2001:4860:4860::8845]:53
+//}
+
 /*
 func init() {
 	tryDuration = 50 * time.Millisecond // prevent tests from hanging

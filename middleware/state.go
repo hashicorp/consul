@@ -53,13 +53,15 @@ func (s *State) RemoteAddr() string {
 	return s.W.RemoteAddr().String()
 }
 
-// Proto gets the protocol used as the transport. This
-// will be udp or tcp.
-func (s *State) Proto() string {
-	if _, ok := s.W.RemoteAddr().(*net.UDPAddr); ok {
+// Proto gets the protocol used as the transport. This will be udp or tcp.
+func (s *State) Proto() string { return Proto(s.W) }
+
+// Proto gets the protocol used as the transport. This will be udp or tcp.
+func Proto(w dns.ResponseWriter) string {
+	if _, ok := w.RemoteAddr().(*net.UDPAddr); ok {
 		return "udp"
 	}
-	if _, ok := s.W.RemoteAddr().(*net.TCPAddr); ok {
+	if _, ok := w.RemoteAddr().(*net.TCPAddr); ok {
 		return "tcp"
 	}
 	return "udp"
