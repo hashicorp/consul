@@ -393,9 +393,9 @@ func (c *Client) RPCRetry(method string, args interface{}, reply interface{}, sl
 	}
 
 	// Loop until success or the SLA has been exceeded
-	for i := numRetries; now.Before(slaDeadline) && i > 0; i-- {
+	for i := numRetries; now.Add(-perServerTimeout).Before(slaDeadline) && i > 0; i-- {
 		if err = c.RPCDeadline(method, args, reply, now.Add(perServerTimeout)); err == nil {
-			return
+			return nil
 		}
 		now = time.Now()
 	}
