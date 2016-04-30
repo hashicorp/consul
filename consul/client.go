@@ -367,10 +367,10 @@ func (c *Client) RPCDeadline(method string, args interface{}, reply interface{},
 	return nil
 }
 
-// RPCRetry retries a given RPC until the function has exceeded the deadline
-// timer or returned a successful reply.  The number of retries is determined
-// based on the number of Consul servers at the start of the RPC.
-func (c *Client) RPCRetry(method string, args interface{}, reply interface{}, slaDeadline time.Time) (err error) {
+// RPCDeadlineRetry retries a given RPC until the function has exceeded the
+// deadline timer or returned a successful reply.  The number of retries is
+// determined based on the number of Consul servers at the start of the RPC.
+func (c *Client) RPCDeadlineRetry(method string, args interface{}, reply interface{}, slaDeadline time.Time) (err error) {
 	// If an RPC fails to return in the per-server RPC timeout, the
 	// server is marked as failed (rotated it to the end of the server
 	// list and we try with the next available server hoping it meets our

@@ -209,7 +209,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// TODO: Replace ListNodes with an internal RPC that can do the filter
 	// server side to avoid transferring the entire node list.
-	if err := d.agent.RPCRetry("Catalog.ListNodes", &args, &out, defaultDNSTimeout); err == nil {
+	if err := d.agent.RPCTimeout("Catalog.ListNodes", &args, &out, defaultDNSTimeout); err == nil {
 		for _, n := range out.Nodes {
 			arpa, _ := dns.ReverseAddr(n.Address)
 			if arpa == qName {
@@ -405,7 +405,7 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 	}
 	var out structs.IndexedNodeServices
 RPC:
-	if err := d.agent.RPCRetry("Catalog.NodeServices", &args, &out, defaultDNSTimeout); err != nil {
+	if err := d.agent.RPCTimeout("Catalog.NodeServices", &args, &out, defaultDNSTimeout); err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
@@ -532,7 +532,7 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 	}
 	var out structs.IndexedCheckServiceNodes
 RPC:
-	if err := d.agent.RPCRetry("Health.ServiceNodes", &args, &out, defaultDNSTimeout); err != nil {
+	if err := d.agent.RPCTimeout("Health.ServiceNodes", &args, &out, defaultDNSTimeout); err != nil {
 		d.logger.Printf("[ERR] dns: rpc error: %v", err)
 		resp.SetRcode(req, dns.RcodeServerFailure)
 		return
@@ -616,7 +616,7 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 	endpoint := d.agent.getEndpoint(preparedQueryEndpoint)
 	var out structs.PreparedQueryExecuteResponse
 RPC:
-	if err := d.agent.RPCRetry(endpoint+".Execute", &args, &out, defaultDNSTimeout); err != nil {
+	if err := d.agent.RPCTimeout(endpoint+".Execute", &args, &out, defaultDNSTimeout); err != nil {
 		// If they give a bogus query name, treat that as a name error,
 		// not a full on server error. We have to use a string compare
 		// here since the RPC layer loses the type information.

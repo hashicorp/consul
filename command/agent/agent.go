@@ -449,8 +449,9 @@ LOAD:
 	return nil
 }
 
-// RPC is used to make an RPC call to the Consul servers
-// This allows the agent to implement the Consul.Interface
+// RPC is used to make a single RPC call to the appropriate Consul server
+// (leader or one of the followers).  This allows the agent to implement the
+// Consul.Interface
 func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 	if a.server != nil {
 		return a.server.RPC(method, args, reply)
@@ -458,13 +459,34 @@ func (a *Agent) RPC(method string, args interface{}, reply interface{}) error {
 	return a.client.RPC(method, args, reply)
 }
 
-// RPCRetry is used to make an RPC call to the Consul servers.  This allows
-// the agent to implement the Consul.Interface.
-func (a *Agent) RPCRetry(method string, args interface{}, reply interface{}, timeout time.Duration) error {
+// RPCDeadline is used to make a single RPC call to the appropriate Consul
+// server (leader or one of the followers).  This allows the agent to
+// implement the Consul.Interface.
+func (a *Agent) RPCDeadline(method string, args interface{}, reply interface{}, deadline time.Time) error {
 	if a.server != nil {
 		return a.server.RPC(method, args, reply)
 	}
-	return a.client.RPCRetry(method, args, reply, time.Now().Add(timeout))
+	return a.client.RPCDeadline(method, args, reply, deadline)
+}
+
+// RPCDeadlineRetry attempts to make an RPC call, however if a timeout or
+// error occurs against the selected Consul Server, this call will attempt to
+// relay the RPC to a different Consul server if enough time is provided.
+// This allows the agent to implement the Consul.Interface.
+func (a *Agent) RPCDeadlineRetry(method string, args interface{}, reply interface{}, deadline time.Time) error {
+	if a.server != nil {
+		return a.server.RPC(method, args, reply)
+	}
+	return a.client.RPCDeadlineRetry(method, args, reply, deadline)
+}
+
+// RPCTimeout is a wrapper around RPCDeadlineRetry, but accepts a
+// time.Duration as its timeout instead of a time.Time deadline.
+func (a *Agent) RPCTimeout(method string, args interface{}, reply interface{}, timeout time.Duration) error {
+	if a.server != nil {
+		return a.server.RPC(method, args, reply)
+	}
+	return a.client.RPCDeadlineRetry(method, args, reply, time.Now().Add(timeout))
 }
 
 // Leave is used to prepare the agent for a graceful shutdown
