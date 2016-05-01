@@ -9,10 +9,12 @@ are able to do what you want with your DNS data. And if not: write a middleware!
 Currently CoreDNS is able to:
 
 * Serve zone data from a file, both DNSSEC (NSEC only) and DNS is supported (middleware/file).
-* Retrieve zone data from primaries, i.e. act as a secondary server (middleware/file).
+* Retrieve zone data from primaries, i.e. act as a secondary server (AXFR only) (middleware/secondary).
+* Sign zone data on-the-fly (middleware/dnssec).
 * Loadbalancing of responses (middleware/loadbalance).
 * Allow for zone transfers, i.e. act as a primary server (middleware/file).
 * Caching (middleware/cache).
+* Health checking (middleware/health).
 * Use etcd as a backend, i.e. a 98.5% replacement for
   [SkyDNS](https://github.com/skynetservices/skydns) (middleware/etcd).
 * Serve as a proxy to forward queries to some other (recursive) nameserver (middleware/proxy).
@@ -20,6 +22,7 @@ Currently CoreDNS is able to:
 * Provide metrics (by using Prometheus) (middleware/metrics).
 * Provide Logging (middleware/log).
 * Has support for the CH class: `version.bind` and friends (middleware/chaos).
+* Profiling support (middleware/pprof).
 
 ## Status
 
