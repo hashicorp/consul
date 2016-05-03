@@ -99,3 +99,29 @@ All the above examples are possible with the *current* CoreDNS.
 ## Blog
 
 <https://miek.nl/tags/coredns/>
+
+## Systemd service file
+
+Use this as a systemd service file. It defaults to a coredns wich a homedir of /home/coredns
+and the binary lives in /opt/bin:
+
+~~~ txt
+Unit]
+Description=CoreDNS DNS server
+Documentation=https://miek.nl/tags/coredns
+After=network.target
+
+[Service]
+PermissionsStartOnly=true
+PIDFile=/home/coredns/coredns.pid
+LimitNOFILE=8192
+User=coredns
+WorkingDirectory=/home/coredns
+ExecStartPre=/sbin/setcap cap_net_bind_service=+ep /opt/bin/coredns
+ExecStart=/opt/bin/coredns -pidfile /home/coredns/coredns.pid -conf=/etc/coredns
+/Corefile
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+~~~
