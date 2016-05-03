@@ -456,6 +456,29 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 	}
 	s.logger.Printf("[INFO] consul: member '%s' failed, marking health critical", member.Name)
 
+	// Since the SerfCheck has failed we should mark all checks on this node as failed too.
+	_, checks, err := state.NodeChecks(member.Name)
+	if err != nil {
+		return err
+	}
+	for _, check := range checks {
+		req := structs.RegisterRequest{
+			Datacenter: s.config.Datacenter,
+			Node:       member.Name,
+			Address:    member.Addr.String(),
+			Check: &structs.HealthCheck{
+				Node:    member.Name,
+				CheckID: check.CheckID,
+				Name:    check.Name,
+				Status:  structs.HealthCritical,
+				Output:  SerfCheckFailedOutput,
+			},
+			WriteRequest: structs.WriteRequest{Token: s.config.ACLToken},
+		}
+		var out struct{}
+		s.endpoints.Catalog.Register(&req, &out) // error handling ?
+	}
+
 	// Register with the catalog
 	req := structs.RegisterRequest{
 		Datacenter: s.config.Datacenter,
@@ -470,6 +493,7 @@ func (s *Server) handleFailedMember(member serf.Member) error {
 		},
 		WriteRequest: structs.WriteRequest{Token: s.config.ACLToken},
 	}
+
 	var out struct{}
 	return s.endpoints.Catalog.Register(&req, &out)
 }
