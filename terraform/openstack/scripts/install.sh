@@ -5,7 +5,7 @@ set -e
 JOIN_ADDRS=$(cat /tmp/consul-server-addr | tr -d '\n')
 
 # consul version to install
-CONSUL_VERSION=0.5.2
+CONSUL_VERSION=0.6.4
 
 sudo sh -c 'echo "127.0.0.1 consul-node-'$(cat /tmp/consul-server-index)'" >> /etc/hosts'
 
