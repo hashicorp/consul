@@ -510,7 +510,12 @@ func (c *Command) checkpointResults(results *checkpoint.CheckResponse, err error
 		return
 	}
 	if results.Outdated {
-		c.Ui.Error(fmt.Sprintf("Newer Consul version available: %s", results.CurrentVersion))
+		versionStr := c.Version
+		if c.VersionPrerelease != "" {
+			versionStr += fmt.Sprintf("-%s", c.VersionPrerelease)
+		}
+
+		c.Ui.Error(fmt.Sprintf("Newer Consul version available: %s (currently running: %s)", results.CurrentVersion, versionStr))
 	}
 	for _, alert := range results.Alerts {
 		switch alert.Level {
