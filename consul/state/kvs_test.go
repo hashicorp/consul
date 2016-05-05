@@ -890,7 +890,7 @@ func TestStateStore_KVSSetCAS(t *testing.T) {
 func TestStateStore_KVSDeleteTree(t *testing.T) {
 	s := testStateStore(t)
 
-	// Create kvs entries in the state store
+	// Create kvs entries in the state store.
 	testSetKey(t, s, 1, "foo/bar", "bar")
 	testSetKey(t, s, 2, "foo/bar/baz", "baz")
 	testSetKey(t, s, 3, "foo/bar/zip", "zip")
@@ -1211,6 +1211,446 @@ func TestStateStore_KVSUnlock(t *testing.T) {
 	}
 	if idx != 9 {
 		t.Fatalf("bad index: %d", idx)
+	}
+}
+
+func TestStateStore_KVS_Atomic(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create kvs entries in the state store.
+	testSetKey(t, s, 1, "foo/delete", "bar")
+	testSetKey(t, s, 2, "foo/bar/baz", "baz")
+	testSetKey(t, s, 3, "foo/bar/zip", "zip")
+	testSetKey(t, s, 4, "foo/zorp", "zorp")
+	testSetKey(t, s, 5, "foo/update", "stale")
+
+	// Make a real session.
+	testRegisterNode(t, s, 6, "node1")
+	session := testUUID()
+	if err := s.SessionCreate(7, &structs.Session{ID: session, Node: "node1"}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Set up a transaction that hits every operation.
+	ops := structs.KVSAtomicOps{
+		&structs.KVSAtomicOp{
+			Op: structs.KVSSet,
+			DirEnt: structs.DirEntry{
+				Key:   "foo/new",
+				Value: []byte("one"),
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSDelete,
+			DirEnt: structs.DirEntry{
+				Key: "foo/zorp",
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSDeleteCAS,
+			DirEnt: structs.DirEntry{
+				Key: "foo/delete",
+				RaftIndex: structs.RaftIndex{
+					ModifyIndex: 1,
+				},
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSDeleteTree,
+			DirEnt: structs.DirEntry{
+				Key: "foo/bar",
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSAtomicGet,
+			DirEnt: structs.DirEntry{
+				Key: "foo/update",
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSAtomicCheckIndex,
+			DirEnt: structs.DirEntry{
+				Key: "foo/update",
+				RaftIndex: structs.RaftIndex{
+					ModifyIndex: 5,
+				},
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSCAS,
+			DirEnt: structs.DirEntry{
+				Key:   "foo/update",
+				Value: []byte("new"),
+				RaftIndex: structs.RaftIndex{
+					ModifyIndex: 5,
+				},
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSAtomicGet,
+			DirEnt: structs.DirEntry{
+				Key: "foo/update",
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSAtomicCheckIndex,
+			DirEnt: structs.DirEntry{
+				Key: "foo/update",
+				RaftIndex: structs.RaftIndex{
+					ModifyIndex: 8,
+				},
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSAtomicGet,
+			DirEnt: structs.DirEntry{
+				Key: "foo/lock",
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSLock,
+			DirEnt: structs.DirEntry{
+				Key:     "foo/lock",
+				Session: session,
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSAtomicCheckSession,
+			DirEnt: structs.DirEntry{
+				Key:     "foo/lock",
+				Session: session,
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSUnlock,
+			DirEnt: structs.DirEntry{
+				Key:     "foo/lock",
+				Session: session,
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSAtomicCheckSession,
+			DirEnt: structs.DirEntry{
+				Key:     "foo/lock",
+				Session: "",
+			},
+		},
+	}
+	entries, errors := s.KVSAtomicUpdate(8, ops)
+	if len(errors) > 0 {
+		t.Fatalf("err: %v", errors)
+	}
+	if len(entries) != len(ops) {
+		t.Fatalf("bad len: %d != %d", len(entries), len(ops))
+	}
+
+	// Make sure the response looks as expected.
+	expected := structs.DirEntries{
+		&structs.DirEntry{
+			Key: "foo/new",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 8,
+				ModifyIndex: 8,
+			},
+		},
+		nil, // delete
+		nil, // delete tree
+		nil, // delete CAS
+		&structs.DirEntry{
+			Key:   "foo/update",
+			Value: []byte("stale"),
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 5,
+				ModifyIndex: 5,
+			},
+		},
+		&structs.DirEntry{
+			Key: "foo/update",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 5,
+				ModifyIndex: 5,
+			},
+		},
+		&structs.DirEntry{
+			Key: "foo/update",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 5,
+				ModifyIndex: 8,
+			},
+		},
+		&structs.DirEntry{
+			Key:   "foo/update",
+			Value: []byte("new"),
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 5,
+				ModifyIndex: 8,
+			},
+		},
+		&structs.DirEntry{
+			Key: "foo/update",
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 5,
+				ModifyIndex: 8,
+			},
+		},
+		nil, // get on foo/lock before it's created
+		&structs.DirEntry{
+			Key:       "foo/lock",
+			Session:   session,
+			LockIndex: 1,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 8,
+				ModifyIndex: 8,
+			},
+		},
+		&structs.DirEntry{
+			Key:       "foo/lock",
+			Session:   session,
+			LockIndex: 1,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 8,
+				ModifyIndex: 8,
+			},
+		},
+		&structs.DirEntry{
+			Key:       "foo/lock",
+			LockIndex: 1,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 8,
+				ModifyIndex: 8,
+			},
+		},
+		&structs.DirEntry{
+			Key:       "foo/lock",
+			LockIndex: 1,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 8,
+				ModifyIndex: 8,
+			},
+		},
+	}
+	if len(entries) != len(expected) {
+		t.Fatalf("bad: %v", entries)
+	}
+	for i, _ := range entries {
+		if !reflect.DeepEqual(entries[i], expected[i]) {
+			t.Fatalf("bad %d: %v != %v", i, *(entries[i]), *(expected[i]))
+		}
+	}
+
+	// Pull the resulting state store contents.
+	idx, actual, err := s.KVSList("")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if idx != 8 {
+		t.Fatalf("bad index: %d", idx)
+	}
+
+	// Make sure it looks as expected.
+	expected = structs.DirEntries{
+		&structs.DirEntry{
+			Key:       "foo/lock",
+			LockIndex: 1,
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 8,
+				ModifyIndex: 8,
+			},
+		},
+		&structs.DirEntry{
+			Key:   "foo/new",
+			Value: []byte("one"),
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 8,
+				ModifyIndex: 8,
+			},
+		},
+		&structs.DirEntry{
+			Key:   "foo/update",
+			Value: []byte("new"),
+			RaftIndex: structs.RaftIndex{
+				CreateIndex: 5,
+				ModifyIndex: 8,
+			},
+		},
+	}
+	if len(actual) != len(expected) {
+		t.Fatalf("bad len: %d != %d", len(actual), len(expected))
+	}
+	for i, _ := range actual {
+		if !reflect.DeepEqual(actual[i], expected[i]) {
+			t.Fatalf("bad %d: %v != %v", i, *(actual[i]), *(expected[i]))
+		}
+	}
+}
+
+func TestStateStore_KVS_Atomic_Rollback(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create kvs entries in the state store.
+	testSetKey(t, s, 1, "foo/delete", "bar")
+	testSetKey(t, s, 2, "foo/update", "stale")
+
+	testRegisterNode(t, s, 3, "node1")
+	session := testUUID()
+	if err := s.SessionCreate(4, &structs.Session{ID: session, Node: "node1"}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	ok, err := s.KVSLock(5, &structs.DirEntry{Key: "foo/lock", Value: []byte("foo"), Session: session})
+	if !ok || err != nil {
+		t.Fatalf("didn't get the lock: %v %s", ok, err)
+	}
+
+	bogus := testUUID()
+	if err := s.SessionCreate(6, &structs.Session{ID: bogus, Node: "node1"}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// This function verifies that the state store wasn't changed.
+	verifyStateStore := func(desc string) {
+		idx, actual, err := s.KVSList("")
+		if err != nil {
+			t.Fatalf("err (%s): %s", desc, err)
+		}
+		if idx != 5 {
+			t.Fatalf("bad index (%s): %d", desc, idx)
+		}
+
+		// Make sure it looks as expected.
+		expected := structs.DirEntries{
+			&structs.DirEntry{
+				Key:   "foo/delete",
+				Value: []byte("bar"),
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 1,
+					ModifyIndex: 1,
+				},
+			},
+			&structs.DirEntry{
+				Key:       "foo/lock",
+				Value:     []byte("foo"),
+				LockIndex: 1,
+				Session:   session,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 5,
+					ModifyIndex: 5,
+				},
+			},
+			&structs.DirEntry{
+				Key:   "foo/update",
+				Value: []byte("stale"),
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 2,
+					ModifyIndex: 2,
+				},
+			},
+		}
+		if len(actual) != len(expected) {
+			t.Fatalf("bad len (%s): %d != %d", desc, len(actual), len(expected))
+		}
+		for i, _ := range actual {
+			if !reflect.DeepEqual(actual[i], expected[i]) {
+				t.Fatalf("bad %d (%s): %v != %v", desc, i, *(actual[i]), *(expected[i]))
+			}
+		}
+	}
+	verifyStateStore("initial")
+
+	// Set up a transaction that fails every operation.
+	ops := structs.KVSAtomicOps{
+		&structs.KVSAtomicOp{
+			Op: structs.KVSCAS,
+			DirEnt: structs.DirEntry{
+				Key:   "foo/update",
+				Value: []byte("new"),
+				RaftIndex: structs.RaftIndex{
+					ModifyIndex: 1,
+				},
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSLock,
+			DirEnt: structs.DirEntry{
+				Key:     "foo/lock",
+				Session: bogus,
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSUnlock,
+			DirEnt: structs.DirEntry{
+				Key:     "foo/lock",
+				Session: bogus,
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSAtomicCheckSession,
+			DirEnt: structs.DirEntry{
+				Key:     "foo/lock",
+				Session: bogus,
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSAtomicCheckSession,
+			DirEnt: structs.DirEntry{
+				Key:     "nope",
+				Session: bogus,
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSAtomicCheckIndex,
+			DirEnt: structs.DirEntry{
+				Key: "foo/lock",
+				RaftIndex: structs.RaftIndex{
+					ModifyIndex: 6,
+				},
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: structs.KVSAtomicCheckIndex,
+			DirEnt: structs.DirEntry{
+				Key: "nope",
+				RaftIndex: structs.RaftIndex{
+					ModifyIndex: 6,
+				},
+			},
+		},
+		&structs.KVSAtomicOp{
+			Op: "nope",
+			DirEnt: structs.DirEntry{
+				Key: "foo/delete",
+			},
+		},
+	}
+	entries, errors := s.KVSAtomicUpdate(7, ops)
+	if len(errors) != len(ops) {
+		t.Fatalf("bad len: %d != %d", len(errors), len(ops))
+	}
+	if len(entries) != 0 {
+		t.Fatalf("bad len: %d != 0", len(entries), 0)
+	}
+	verifyStateStore("after")
+
+	// Make sure the errors look reasonable.
+	expected := []string{
+		"index is stale",
+		"lock is already held",
+		"lock isn't held, or is held by another session",
+		"current session",
+		`key "nope" doesn't exist`,
+		"current modify index",
+		`key "nope" doesn't exist`,
+		"unknown operation",
+	}
+	if len(errors) != len(expected) {
+		t.Fatalf("bad len: %d != %d", len(errors), len(expected))
+	}
+	for i, msg := range expected {
+		if errors[i].OpIndex != i {
+			t.Fatalf("bad index: %d != %d", i, errors[i].OpIndex)
+		}
+		if !strings.Contains(errors[i].Error.Error(), msg) {
+			t.Fatalf("bad %i: %v", i, errors[i].Error.Error())
+		}
 	}
 }
 

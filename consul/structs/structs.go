@@ -36,6 +36,7 @@ const (
 	TombstoneRequestType
 	CoordinateBatchUpdateType
 	PreparedQueryRequestType
+	KVSAtomicRequestType
 )
 
 const (
@@ -533,6 +534,12 @@ const (
 	KVSCAS              = "cas"    // Check-and-set
 	KVSLock             = "lock"   // Lock a key
 	KVSUnlock           = "unlock" // Unlock a key
+
+	// KVSAtomic* operations are only available in KVSAtomicRequest
+	// transactions.
+	KVSAtomicGet          = "get"           // Read the key during the transaction.
+	KVSAtomicCheckSession = "check-session" // Check the session holds the key.
+	KVSAtomicCheckIndex   = "check-index"   // Check the modify index of the key.
 )
 
 // KVSRequest is used to operate on the Key-Value store
@@ -545,6 +552,43 @@ type KVSRequest struct {
 
 func (r *KVSRequest) RequestDatacenter() string {
 	return r.Datacenter
+}
+
+// KVSAtomicOp is used to define a single operation within an multi-key
+// transaction.
+type KVSAtomicOp struct {
+	Op     KVSOp
+	DirEnt DirEntry
+}
+
+// KVSAtomicOps is a list of atomic operations.
+type KVSAtomicOps []*KVSAtomicOp
+
+// KVSAtomicRequest is used to perform atomic multi-key operations on the
+// Key-Value store.
+type KVSAtomicRequest struct {
+	Datacenter string
+	Ops        KVSAtomicOps
+}
+
+func (r *KVSAtomicRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
+// IndexedError is used to return information about an error for a specific
+// operation.
+type IndexedError struct {
+	OpIndex int
+	Error   error
+}
+
+// IndexedErrors is a list of IndexedError entries.
+type IndexedErrors []*IndexedError
+
+// KVSAtomicResponse is the structure returned by a KVSAtomicRequest.
+type KVSAtomicResponse struct {
+	Errors  IndexedErrors
+	Results DirEntries
 }
 
 // KeyRequest is used to request a key, or key prefix
