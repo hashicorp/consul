@@ -40,6 +40,7 @@ echo "==> Building..."
 $GOPATH/bin/gox \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
+    -osarch="!darwin/arm" \
     -ldflags "-X main.GitCommit='${GIT_COMMIT}${GIT_DIRTY}' -X main.GitDescribe='${GIT_DESCRIBE}'" \
     -output "pkg/{{.OS}}_{{.Arch}}/consul" \
     .
