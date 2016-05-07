@@ -35,9 +35,6 @@ format:
 	@go fmt $(PACKAGES)
 
 vet:
-	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
-		go get golang.org/x/tools/cmd/vet; \
-	fi
 	@echo "--> Running go tool vet $(VETARGS) ."
 	@go list ./... \
 		| grep -v ^github.com/hashicorp/consul/vendor/ \
