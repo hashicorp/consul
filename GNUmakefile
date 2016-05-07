@@ -1,5 +1,9 @@
-GOTOOLS = github.com/mitchellh/gox golang.org/x/tools/cmd/stringer \
-	github.com/jteeuwen/go-bindata/... github.com/elazarl/go-bindata-assetfs/...
+GOTOOLS = \
+	github.com/elazarl/go-bindata-assetfs/... \
+	github.com/jteeuwen/go-bindata/... \
+	github.com/mitchellh/gox \
+	golang.org/x/tools/cmd/cover \
+	golang.org/x/tools/cmd/stringer
 PACKAGES=$(shell go list ./... | grep -v '^github.com/hashicorp/consul/vendor/')
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods \
          -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
