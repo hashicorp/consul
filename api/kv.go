@@ -23,6 +23,48 @@ type KVPair struct {
 // KVPairs is a list of KVPair objects
 type KVPairs []*KVPair
 
+const (
+	KVSet          = "set"
+	KVDelete       = "delete"
+	KVDeleteCAS    = "delete-cas"
+	KVDeleteTree   = "delete-tree"
+	KVCAS          = "cas"
+	KVLock         = "lock"
+	KVUnlock       = "unlock"
+	KVGet          = "get"
+	KVCheckSession = "check-session"
+	KVCheckIndex   = "check-index"
+)
+
+// KVTxnOp defines a single operation inside a transaction.
+type KVTxnOp struct {
+	Op      string
+	Key     string
+	Value   []byte
+	Flags   uint64
+	Index   uint64
+	Session string
+}
+
+// KVTxn defines a set of operations to be performed inside a single transaction.
+type KVTxn []KVTxnOp
+
+// KVTxnError is used to return information about an operation in a
+// transaction.
+type KVTxnError struct {
+	OpIndex int
+	What    string
+}
+
+// KVTxnErrors is a list of KVTxnError objects.
+type KVTxnErrors []KVTxnError
+
+// KVTxnResult is used to return the results of a transaction.
+type KVTxnResult struct {
+	Errors  KVTxnErrors
+	Results KVPairs
+}
+
 // KV is used to manipulate the K/V API
 type KV struct {
 	c *Client
@@ -237,4 +279,36 @@ func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOption
 	}
 	res := strings.Contains(string(buf.Bytes()), "true")
 	return res, qm, nil
+}
+
+// Txn is used to apply multiple KV operations in a single, atomic transaction.
+// Note that Go will perform the required base64 encoding on the values
+// automatically because the type is a byte slice.
+func (k *KV) Txn(txn *KVTxn, q *WriteOptions) (bool, *KVTxnResult, *WriteMeta, error) {
+	r := k.c.newRequest("PUT", "/v1/kv-txn")
+	r.setWriteOptions(q)
+
+	r.obj = txn
+	rtt, resp, err := k.c.doRequest(r)
+	if err != nil {
+		return false, nil, nil, err
+	}
+	defer resp.Body.Close()
+
+	wm := &WriteMeta{}
+	wm.RequestTime = rtt
+
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusConflict {
+		var result KVTxnResult
+		if err := decodeBody(resp, &result); err != nil {
+			return false, nil, nil, err
+		}
+		return resp.StatusCode == http.StatusOK, &result, wm, nil
+	}
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, resp.Body); err != nil {
+		return false, nil, nil, fmt.Errorf("Failed to read response: %v", err)
+	}
+	return false, nil, nil, fmt.Errorf("Failed request: %s", buf.String())
 }

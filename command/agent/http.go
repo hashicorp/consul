@@ -242,6 +242,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/event/list", s.wrap(s.EventList))
 
 	s.mux.HandleFunc("/v1/kv/", s.wrap(s.KVSEndpoint))
+	s.mux.HandleFunc("/v1/kv-txn", s.wrap(s.KVSTxn))
 
 	s.mux.HandleFunc("/v1/session/create", s.wrap(s.SessionCreate))
 	s.mux.HandleFunc("/v1/session/destroy/", s.wrap(s.SessionDestroy))
@@ -342,26 +343,30 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			return
 		}
 
-		prettyPrint := false
-		if _, ok := req.URL.Query()["pretty"]; ok {
-			prettyPrint = true
-		}
-		// Write out the JSON object
 		if obj != nil {
 			var buf []byte
-			if prettyPrint {
-				buf, err = json.MarshalIndent(obj, "", "    ")
-			} else {
-				buf, err = json.Marshal(obj)
-			}
+			buf, err = s.marshalJSON(req, obj)
 			if err != nil {
 				goto HAS_ERR
 			}
+
 			resp.Header().Set("Content-Type", "application/json")
 			resp.Write(buf)
 		}
 	}
 	return f
+}
+
+// marshalJSON marshals the object into JSON, respecting the user's pretty-ness
+// configuration.
+func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
+	if _, ok := req.URL.Query()["pretty"]; ok {
+		buf, err := json.MarshalIndent(obj, "", "    ")
+		return buf, err
+	}
+
+	buf, err := json.Marshal(obj)
+	return buf, err
 }
 
 // Returns true if the UI is enabled.

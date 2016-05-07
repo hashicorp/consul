@@ -581,13 +581,13 @@ func (s *StateStore) kvsUnlockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirE
 
 // KVSAtomicUpdate performs a series of updates atomically, all inside a single
 // transaction that only succeeds if all the operations succeed.
-func (s *StateStore) KVSAtomicUpdate(idx uint64, ops structs.KVSAtomicOps) (structs.DirEntries, structs.IndexedErrors) {
+func (s *StateStore) KVSAtomicUpdate(idx uint64, ops structs.KVSAtomicOps) (structs.DirEntries, structs.KVSAtomicErrors) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
 	// Dispatch all of the operations inside the transaction.
 	entries := make(structs.DirEntries, 0, len(ops))
-	errors := make(structs.IndexedErrors, 0, len(ops))
+	errors := make(structs.KVSAtomicErrors, 0, len(ops))
 	for i, op := range ops {
 		var entry *structs.DirEntry
 		var err error
@@ -665,7 +665,7 @@ func (s *StateStore) KVSAtomicUpdate(idx uint64, ops structs.KVSAtomicOps) (stru
 		// Capture any error along with the index of the operation that
 		// failed.
 		if err != nil {
-			errors = append(errors, &structs.IndexedError{i, err})
+			errors = append(errors, &structs.KVSAtomicError{i, err.Error()})
 		}
 	}
 	if len(errors) > 0 {

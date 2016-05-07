@@ -1626,7 +1626,7 @@ func TestStateStore_KVS_Atomic_Rollback(t *testing.T) {
 		t.Fatalf("bad len: %d != %d", len(errors), len(ops))
 	}
 	if len(entries) != 0 {
-		t.Fatalf("bad len: %d != 0", len(entries), 0)
+		t.Fatalf("bad len: %d != 0", len(entries))
 	}
 	verifyStateStore("after")
 
@@ -1648,8 +1648,8 @@ func TestStateStore_KVS_Atomic_Rollback(t *testing.T) {
 		if errors[i].OpIndex != i {
 			t.Fatalf("bad index: %d != %d", i, errors[i].OpIndex)
 		}
-		if !strings.Contains(errors[i].Error.Error(), msg) {
-			t.Fatalf("bad %i: %v", i, errors[i].Error.Error())
+		if !strings.Contains(errors[i].Error(), msg) {
+			t.Fatalf("bad %i: %v", i, errors[i].Error())
 		}
 	}
 }
@@ -1884,6 +1884,73 @@ func TestStateStore_KVS_Watches(t *testing.T) {
 					}
 				})
 			})
+		})
+	})
+
+	// Verify that a basic transaction triggers multiple watches. We call
+	// the same underlying methods that are called above so this is more
+	// of a sanity check.
+	verifyWatch(t, s.GetKVSWatch("multi/one"), func() {
+		verifyWatch(t, s.GetKVSWatch("multi/two"), func() {
+			ops := structs.KVSAtomicOps{
+				&structs.KVSAtomicOp{
+					Op: structs.KVSSet,
+					DirEnt: structs.DirEntry{
+						Key:   "multi/one",
+						Value: []byte("one"),
+					},
+				},
+				&structs.KVSAtomicOp{
+					Op: structs.KVSSet,
+					DirEnt: structs.DirEntry{
+						Key:   "multi/two",
+						Value: []byte("two"),
+					},
+				},
+			}
+			entries, errors := s.KVSAtomicUpdate(15, ops)
+			if len(entries) != len(ops) {
+				t.Fatalf("bad len: %d != %d", len(entries), len(ops))
+			}
+			if len(errors) != 0 {
+				t.Fatalf("bad len: %d != 0", len(errors))
+			}
+		})
+	})
+
+	// Verify that a rolled back transaction doesn't trigger any watches.
+	verifyNoWatch(t, s.GetKVSWatch("multi/one"), func() {
+		verifyNoWatch(t, s.GetKVSWatch("multi/two"), func() {
+			ops := structs.KVSAtomicOps{
+				&structs.KVSAtomicOp{
+					Op: structs.KVSSet,
+					DirEnt: structs.DirEntry{
+						Key:   "multi/one",
+						Value: []byte("one-updated"),
+					},
+				},
+				&structs.KVSAtomicOp{
+					Op: structs.KVSSet,
+					DirEnt: structs.DirEntry{
+						Key:   "multi/two",
+						Value: []byte("two-updated"),
+					},
+				},
+				&structs.KVSAtomicOp{
+					Op: structs.KVSLock,
+					DirEnt: structs.DirEntry{
+						Key:   "multi/nope",
+						Value: []byte("nope"),
+					},
+				},
+			}
+			entries, errors := s.KVSAtomicUpdate(16, ops)
+			if len(errors) != 1 {
+				t.Fatalf("bad len: %d != 1", len(errors))
+			}
+			if len(entries) != 0 {
+				t.Fatalf("bad len: %d != 0", len(entries))
+			}
 		})
 	})
 }

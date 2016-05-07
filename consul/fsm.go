@@ -83,6 +83,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		return c.applyDeregister(buf[1:], log.Index)
 	case structs.KVSRequestType:
 		return c.applyKVSOperation(buf[1:], log.Index)
+	case structs.KVSAtomicRequestType:
+		return c.applyKVSAtomicOperation(buf[1:], log.Index)
 	case structs.SessionRequestType:
 		return c.applySessionOperation(buf[1:], log.Index)
 	case structs.ACLRequestType:
@@ -191,6 +193,16 @@ func (c *consulFSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 		c.logger.Printf("[WARN] consul.fsm: %v", err)
 		return err
 	}
+}
+
+func (c *consulFSM) applyKVSAtomicOperation(buf []byte, index uint64) interface{} {
+	var req structs.KVSAtomicRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "kvs-atomic"}, time.Now())
+	entries, errors := c.state.KVSAtomicUpdate(index, req.Ops)
+	return structs.KVSAtomicResponse{errors, entries}
 }
 
 func (c *consulFSM) applySessionOperation(buf []byte, index uint64) interface{} {

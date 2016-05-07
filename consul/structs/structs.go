@@ -569,25 +569,31 @@ type KVSAtomicOps []*KVSAtomicOp
 type KVSAtomicRequest struct {
 	Datacenter string
 	Ops        KVSAtomicOps
+	WriteRequest
 }
 
 func (r *KVSAtomicRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
-// IndexedError is used to return information about an error for a specific
+// KVSAtomicError is used to return information about an error for a specific
 // operation.
-type IndexedError struct {
+type KVSAtomicError struct {
 	OpIndex int
-	Error   error
+	What    string
 }
 
-// IndexedErrors is a list of IndexedError entries.
-type IndexedErrors []*IndexedError
+// Error returns the string representation of an atomic error.
+func (e KVSAtomicError) Error() string {
+	return fmt.Sprintf("op %d: %s", e.OpIndex, e.What)
+}
+
+// KVSAtomicErrors is a list of KVSAtomicError entries.
+type KVSAtomicErrors []*KVSAtomicError
 
 // KVSAtomicResponse is the structure returned by a KVSAtomicRequest.
 type KVSAtomicResponse struct {
-	Errors  IndexedErrors
+	Errors  KVSAtomicErrors
 	Results DirEntries
 }
 
