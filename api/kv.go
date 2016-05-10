@@ -23,17 +23,20 @@ type KVPair struct {
 // KVPairs is a list of KVPair objects
 type KVPairs []*KVPair
 
+// KVOp constants give possible operations available in a KVTxn.
+type KVOp string
+
 const (
-	KVSet          = "set"
-	KVDelete       = "delete"
-	KVDeleteCAS    = "delete-cas"
-	KVDeleteTree   = "delete-tree"
-	KVCAS          = "cas"
-	KVLock         = "lock"
-	KVUnlock       = "unlock"
-	KVGet          = "get"
-	KVCheckSession = "check-session"
-	KVCheckIndex   = "check-index"
+	KVSet          KVOp = "set"
+	KVDelete            = "delete"
+	KVDeleteCAS         = "delete-cas"
+	KVDeleteTree        = "delete-tree"
+	KVCAS               = "cas"
+	KVLock              = "lock"
+	KVUnlock            = "unlock"
+	KVGet               = "get"
+	KVCheckSession      = "check-session"
+	KVCheckIndex        = "check-index"
 )
 
 // KVTxnOp defines a single operation inside a transaction.
@@ -283,7 +286,36 @@ func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOption
 
 // Txn is used to apply multiple KV operations in a single, atomic transaction.
 // Note that Go will perform the required base64 encoding on the values
-// automatically because the type is a byte slice.
+// automatically because the type is a byte slice. Transactions are defined as a
+// list of operations to perform, using the KVOp constants and KVTxnOp structure
+// to define operations. If any operation fails, none of the changes are applied
+// to the state store.
+//
+// Here's an example:
+//
+// txn := KVTxn{
+//     KVTxnOp{
+//         Op:    KVLock,
+//         Key:   "test/lock",
+//         Session: "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
+//         Value: []byte("hello"),
+//     },
+//     KVTxnOp{
+//         Op:    KVGet,
+//         Key:   "another/key",
+//     },
+// }
+// ok, result, _, err := kv.Txn(&txn, nil)
+//
+// If there is a problem making the transaction request then an error will be
+// returned. Otherwise, the ok value will be true if the transaction succeeded
+// or false if it was rolled back. The result is a structured return value which
+// will have the outcome of the transaction. Its Results member will have entries
+// for each operation. Deleted keys will have a nil entry in the, and to save
+// space, the Value of each key in the Results will be nil unless the operation
+// is a KVGet. If the transaction was rolled back, the Errors member will have
+// entries referencing the index of the operation that failed along with an error
+// message.
 func (k *KV) Txn(txn *KVTxn, q *WriteOptions) (bool, *KVTxnResult, *WriteMeta, error) {
 	r := k.c.newRequest("PUT", "/v1/kv-txn")
 	r.setWriteOptions(q)
