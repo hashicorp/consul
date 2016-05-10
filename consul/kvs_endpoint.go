@@ -30,6 +30,14 @@ func (k *KVS) preApply(acl acl.ACL, op structs.KVSOp, dirEnt *structs.DirEntry) 
 			if !acl.KeyWritePrefix(dirEnt.Key) {
 				return false, permissionDeniedErr
 			}
+
+		case structs.KVSAtomicGet,
+			structs.KVSAtomicCheckSession,
+			structs.KVSAtomicCheckIndex:
+			if !acl.KeyRead(dirEnt.Key) {
+				return false, permissionDeniedErr
+			}
+
 		default:
 			if !acl.KeyWrite(dirEnt.Key) {
 				return false, permissionDeniedErr
