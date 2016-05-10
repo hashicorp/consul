@@ -348,11 +348,13 @@ func (s *HTTPServer) KVSTxn(resp http.ResponseWriter, req *http.Request) (interf
 	s.parseToken(req, &args.Token)
 
 	// Note the body is in API format, and not the RPC format. If we can't
-	// decode it, we will return a 500 since we don't have enough context to
+	// decode it, we will return a 400 since we don't have enough context to
 	// associate the error with a given operation.
 	var txn api.KVTxn
 	if err := decodeBody(req, &txn, fixupValues); err != nil {
-		return nil, fmt.Errorf("failed to parse body: %v", err)
+		resp.WriteHeader(http.StatusBadRequest)
+		resp.Write([]byte(fmt.Sprintf("Failed to parse body: %v", err)))
+		return nil, nil
 	}
 
 	// Convert the API format into the RPC format. Note that fixupValues
