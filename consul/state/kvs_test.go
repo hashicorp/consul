@@ -1293,6 +1293,12 @@ func TestStateStore_KVS_Atomic(t *testing.T) {
 			},
 		},
 		&structs.KVSAtomicOp{
+			Op: structs.KVSAtomicGet,
+			DirEnt: structs.DirEntry{
+				Key: "not/there",
+			},
+		},
+		&structs.KVSAtomicOp{
 			Op: structs.KVSAtomicCheckIndex,
 			DirEnt: structs.DirEntry{
 				Key: "foo/update",
@@ -1386,6 +1392,7 @@ func TestStateStore_KVS_Atomic(t *testing.T) {
 				ModifyIndex: 8,
 			},
 		},
+		nil, // get on not/there
 		&structs.DirEntry{
 			Key: "foo/update",
 			RaftIndex: structs.RaftIndex{
