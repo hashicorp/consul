@@ -47,6 +47,8 @@ Watch Specification:
   -prefix=val                Specifies the key prefix to watch. Only for 'keyprefix' type.
   -service=val               Specifies the service to watch. Required for 'service' type,
                              optional for 'checks' type.
+  -stale=[true|false]        Specefies if watch data is permitted to be stale. Defaults
+                             false.
   -state=val                 Specifies the states to watch. Optional for 'checks' type.
   -tag=val                   Specifies the service tag to filter on. Optional for 'service'
                              type.
@@ -57,7 +59,7 @@ Watch Specification:
 }
 
 func (c *WatchCommand) Run(args []string) int {
-	var watchType, datacenter, token, key, prefix, service, tag, passingOnly, state, name string
+	var watchType, datacenter, token, key, prefix, service, tag, passingOnly, stale, state, name string
 	cmdFlags := flag.NewFlagSet("watch", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 	cmdFlags.StringVar(&watchType, "type", "", "")
@@ -68,6 +70,7 @@ func (c *WatchCommand) Run(args []string) int {
 	cmdFlags.StringVar(&service, "service", "", "")
 	cmdFlags.StringVar(&tag, "tag", "", "")
 	cmdFlags.StringVar(&passingOnly, "passingonly", "", "")
+	cmdFlags.StringVar(&stale, "stale", "", "")
 	cmdFlags.StringVar(&state, "state", "", "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
@@ -108,6 +111,14 @@ func (c *WatchCommand) Run(args []string) int {
 	}
 	if tag != "" {
 		params["tag"] = tag
+	}
+	if stale != "" {
+		b, err := strconv.ParseBool(stale)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to parse stale flag: %s", err))
+			return 1
+		}
+		params["stale"] = b
 	}
 	if state != "" {
 		params["state"] = state

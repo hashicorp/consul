@@ -35,9 +35,14 @@ func keyWatch(params map[string]interface{}) (WatchFunc, error) {
 		return nil, fmt.Errorf("Must specify a single key to watch")
 	}
 
+	stale := false
+	if err := assignValueBool(params, "stale", &stale); err != nil {
+		return nil, err
+	}
+
 	fn := func(p *WatchPlan) (uint64, interface{}, error) {
 		kv := p.client.KV()
-		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
+		opts := consulapi.QueryOptions{AllowStale: stale, WaitIndex: p.lastIndex}
 		pair, meta, err := kv.Get(key, &opts)
 		if err != nil {
 			return 0, nil, err
@@ -60,9 +65,14 @@ func keyPrefixWatch(params map[string]interface{}) (WatchFunc, error) {
 		return nil, fmt.Errorf("Must specify a single prefix to watch")
 	}
 
+	stale := false
+	if err := assignValueBool(params, "stale", &stale); err != nil {
+		return nil, err
+	}
+
 	fn := func(p *WatchPlan) (uint64, interface{}, error) {
 		kv := p.client.KV()
-		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
+		opts := consulapi.QueryOptions{AllowStale: stale, WaitIndex: p.lastIndex}
 		pairs, meta, err := kv.List(prefix, &opts)
 		if err != nil {
 			return 0, nil, err
@@ -74,9 +84,14 @@ func keyPrefixWatch(params map[string]interface{}) (WatchFunc, error) {
 
 // servicesWatch is used to watch the list of available services
 func servicesWatch(params map[string]interface{}) (WatchFunc, error) {
+	stale := false
+	if err := assignValueBool(params, "stale", &stale); err != nil {
+		return nil, err
+	}
+
 	fn := func(p *WatchPlan) (uint64, interface{}, error) {
 		catalog := p.client.Catalog()
-		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
+		opts := consulapi.QueryOptions{AllowStale: stale, WaitIndex: p.lastIndex}
 		services, meta, err := catalog.Services(&opts)
 		if err != nil {
 			return 0, nil, err
@@ -88,9 +103,14 @@ func servicesWatch(params map[string]interface{}) (WatchFunc, error) {
 
 // nodesWatch is used to watch the list of available nodes
 func nodesWatch(params map[string]interface{}) (WatchFunc, error) {
+	stale := false
+	if err := assignValueBool(params, "stale", &stale); err != nil {
+		return nil, err
+	}
+
 	fn := func(p *WatchPlan) (uint64, interface{}, error) {
 		catalog := p.client.Catalog()
-		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
+		opts := consulapi.QueryOptions{AllowStale: stale, WaitIndex: p.lastIndex}
 		nodes, meta, err := catalog.Nodes(&opts)
 		if err != nil {
 			return 0, nil, err
@@ -119,9 +139,14 @@ func serviceWatch(params map[string]interface{}) (WatchFunc, error) {
 		return nil, err
 	}
 
+	stale := false
+	if err := assignValueBool(params, "stale", &stale); err != nil {
+		return nil, err
+	}
+
 	fn := func(p *WatchPlan) (uint64, interface{}, error) {
 		health := p.client.Health()
-		opts := consulapi.QueryOptions{WaitIndex: p.lastIndex}
+		opts := consulapi.QueryOptions{AllowStale: stale, WaitIndex: p.lastIndex}
 		nodes, meta, err := health.Service(service, tag, passingOnly, &opts)
 		if err != nil {
 			return 0, nil, err
