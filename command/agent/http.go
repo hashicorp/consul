@@ -362,10 +362,17 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
 	if _, ok := req.URL.Query()["pretty"]; ok {
 		buf, err := json.MarshalIndent(obj, "", "    ")
-		return buf, err
+		if err != nil {
+			return nil, err
+		}
+		buf = append(buf, "\n"...)
+		return buf, nil
 	}
 
 	buf, err := json.Marshal(obj)
+	if err != nil {
+		return nil, err
+	}
 	return buf, err
 }
 

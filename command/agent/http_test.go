@@ -328,6 +328,7 @@ func testPrettyPrint(pretty string, t *testing.T) {
 	srv.wrap(handler)(resp, req)
 
 	expected, _ := json.MarshalIndent(r, "", "    ")
+	expected = append(expected, "\n"...)
 	actual, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("err: %s", err)
