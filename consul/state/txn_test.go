@@ -104,28 +104,12 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 		},
 		&structs.TxnOp{
 			KV: &structs.TxnKVOp{
-				Verb: structs.KVSGet,
-				DirEnt: structs.DirEntry{
-					Key: "not/there",
-				},
-			},
-		},
-		&structs.TxnOp{
-			KV: &structs.TxnKVOp{
 				Verb: structs.KVSCheckIndex,
 				DirEnt: structs.DirEntry{
 					Key: "foo/update",
 					RaftIndex: structs.RaftIndex{
 						ModifyIndex: 8,
 					},
-				},
-			},
-		},
-		&structs.TxnOp{
-			KV: &structs.TxnKVOp{
-				Verb: structs.KVSGet,
-				DirEnt: structs.DirEntry{
-					Key: "foo/lock",
 				},
 			},
 		},
@@ -227,7 +211,6 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 				},
 			},
 		},
-		&structs.TxnResult{}, // get on not/there
 		&structs.TxnResult{
 			KV: &structs.DirEntry{
 				Key: "foo/update",
@@ -237,7 +220,6 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 				},
 			},
 		},
-		&structs.TxnResult{}, // get on foo/lock before it's created
 		&structs.TxnResult{
 			KV: &structs.DirEntry{
 				Key:       "foo/lock",
@@ -451,6 +433,14 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 		},
 		&structs.TxnOp{
 			KV: &structs.TxnKVOp{
+				Verb: structs.KVSGet,
+				DirEnt: structs.DirEntry{
+					Key: "nope",
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
 				Verb: structs.KVSCheckSession,
 				DirEnt: structs.DirEntry{
 					Key:     "nope",
@@ -504,6 +494,7 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 		"lock is already held",
 		"lock isn't held, or is held by another session",
 		"current session",
+		`key "nope" doesn't exist`,
 		`key "nope" doesn't exist`,
 		"current modify index",
 		`key "nope" doesn't exist`,

@@ -55,6 +55,9 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (str
 
 	case structs.KVSGet:
 		_, entry, err = s.kvsGetTxn(tx, op.DirEnt.Key)
+		if entry == nil && err == nil {
+			err = fmt.Errorf("key %q doesn't exist", op.DirEnt.Key)
+		}
 
 	case structs.KVSCheckSession:
 		entry, err = s.kvsCheckSessionTxn(tx, op.DirEnt.Key, op.DirEnt.Session)

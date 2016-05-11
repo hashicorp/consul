@@ -484,11 +484,12 @@ func TestClient_Txn(t *testing.T) {
 		t.Fatalf("transaction should have failed")
 	}
 
-	if ret == nil || len(ret.Errors) != 1 || len(ret.Results) != 0 {
+	if ret == nil || len(ret.Errors) != 2 || len(ret.Results) != 0 {
 		t.Fatalf("bad: %v", ret)
 	}
 	if ret.Errors[0].OpIndex != 0 ||
-		!strings.Contains(ret.Errors[0].What, "missing session") {
+		!strings.Contains(ret.Errors[0].What, "missing session") ||
+		!strings.Contains(ret.Errors[1].What, "doesn't exist") {
 		t.Fatalf("bad: %v", ret.Errors[0])
 	}
 
