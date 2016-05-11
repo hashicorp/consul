@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
-func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVSOp) (*structs.TxnKVSResult, error) {
+func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (*structs.TxnKVResult, error) {
 	var entry *structs.DirEntry
 	var err error
 
@@ -63,7 +63,7 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVSOp) (*s
 		entry, err = s.kvsCheckIndexTxn(tx, op.DirEnt.Key, op.DirEnt.ModifyIndex)
 
 	default:
-		err = fmt.Errorf("unknown KVS verb %q", op.Verb)
+		err = fmt.Errorf("unknown KV verb %q", op.Verb)
 	}
 	if err != nil {
 		return nil, err
@@ -74,12 +74,12 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVSOp) (*s
 	// the state store).
 	if entry != nil {
 		if op.Verb == structs.KVSGet {
-			return &structs.TxnKVSResult{entry}, nil
+			return &structs.TxnKVResult{entry}, nil
 		}
 
 		clone := entry.Clone()
 		clone.Value = nil
-		return &structs.TxnKVSResult{clone}, nil
+		return &structs.TxnKVResult{clone}, nil
 	}
 
 	return nil, nil
@@ -99,8 +99,8 @@ func (s *StateStore) TxnRun(idx uint64, ops structs.TxnOps) (structs.TxnResults,
 		var err error
 
 		// Dispatch based on the type of operation.
-		if op.KVS != nil {
-			result.KVS, err = s.txnKVS(tx, idx, op.KVS)
+		if op.KV != nil {
+			result.KV, err = s.txnKVS(tx, idx, op.KV)
 		} else {
 			err = fmt.Errorf("no operation specified")
 		}

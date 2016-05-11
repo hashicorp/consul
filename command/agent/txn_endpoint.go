@@ -10,14 +10,14 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 )
 
-// fixupKVSOps takes the raw decoded JSON and base64 decodes all the KVS values,
-// replacing them with byte arrays with the data.
-func fixupKVSOps(raw interface{}) error {
+// fixupKVOps takes the raw decoded JSON and base64 decodes values in KV ops,
+// replacing them with byte arrays.
+func fixupKVOps(raw interface{}) error {
 	// decodeValue decodes the value member of the given operation.
-	decodeValue := func(rawKVS interface{}) error {
-		rawMap, ok := rawKVS.(map[string]interface{})
+	decodeValue := func(rawKV interface{}) error {
+		rawMap, ok := rawKV.(map[string]interface{})
 		if !ok {
-			return fmt.Errorf("unexpected raw KVS type: %T", rawKVS)
+			return fmt.Errorf("unexpected raw KV type: %T", rawKV)
 		}
 		for k, v := range rawMap {
 			switch strings.ToLower(k) {
@@ -44,16 +44,16 @@ func fixupKVSOps(raw interface{}) error {
 		return nil
 	}
 
-	// fixupKVSOp looks for non-nil KVS operations and passes them on for
+	// fixupKVOp looks for non-nil KV operations and passes them on for
 	// value conversion.
-	fixupKVSOp := func(rawOp interface{}) error {
+	fixupKVOp := func(rawOp interface{}) error {
 		rawMap, ok := rawOp.(map[string]interface{})
 		if !ok {
 			return fmt.Errorf("unexpected raw op type: %T", rawOp)
 		}
 		for k, v := range rawMap {
 			switch strings.ToLower(k) {
-			case "kvs":
+			case "kv":
 				if v == nil {
 					return nil
 				}
@@ -68,7 +68,7 @@ func fixupKVSOps(raw interface{}) error {
 		return fmt.Errorf("unexpected raw type: %t", raw)
 	}
 	for _, rawOp := range rawSlice {
-		if err := fixupKVSOp(rawOp); err != nil {
+		if err := fixupKVOp(rawOp); err != nil {
 			return err
 		}
 	}
@@ -91,34 +91,34 @@ func (s *HTTPServer) Txn(resp http.ResponseWriter, req *http.Request) (interface
 	// decode it, we will return a 400 since we don't have enough context to
 	// associate the error with a given operation.
 	var ops api.TxnOps
-	if err := decodeBody(req, &ops, fixupKVSOps); err != nil {
+	if err := decodeBody(req, &ops, fixupKVOps); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		resp.Write([]byte(fmt.Sprintf("Failed to parse body: %v", err)))
 		return nil, nil
 	}
 
-	// Convert the KVS API format into the RPC format. Note that fixupKVSOps
+	// Convert the KV API format into the RPC format. Note that fixupKVOps
 	// above will have already converted the base64 encoded strings into
 	// byte arrays so we can assign right over.
 	for _, in := range ops {
-		if in.KVS != nil {
-			if size := len(in.KVS.Value); size > maxKVSize {
+		if in.KV != nil {
+			if size := len(in.KV.Value); size > maxKVSize {
 				resp.WriteHeader(http.StatusRequestEntityTooLarge)
 				resp.Write([]byte(fmt.Sprintf("Value for key %q is too large (%d > %d bytes)",
-					in.KVS.Key, size, maxKVSize)))
+					in.KV.Key, size, maxKVSize)))
 				return nil, nil
 			}
 
 			out := &structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
-					Verb: structs.KVSOp(in.KVS.Verb),
+				KV: &structs.TxnKVOp{
+					Verb: structs.KVSOp(in.KV.Verb),
 					DirEnt: structs.DirEntry{
-						Key:     in.KVS.Key,
-						Value:   in.KVS.Value,
-						Flags:   in.KVS.Flags,
-						Session: in.KVS.Session,
+						Key:     in.KV.Key,
+						Value:   in.KV.Value,
+						Flags:   in.KV.Flags,
+						Session: in.KV.Session,
 						RaftIndex: structs.RaftIndex{
-							ModifyIndex: in.KVS.Index,
+							ModifyIndex: in.KV.Index,
 						},
 					},
 				},

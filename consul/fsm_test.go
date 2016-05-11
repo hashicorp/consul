@@ -1252,7 +1252,7 @@ func TestFSM_Txn(t *testing.T) {
 		Datacenter: "dc1",
 		Ops: structs.TxnOps{
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSSet,
 					DirEnt: structs.DirEntry{
 						Key:   "/test/path",

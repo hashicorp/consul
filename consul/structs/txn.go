@@ -4,23 +4,23 @@ import (
 	"fmt"
 )
 
-// TxnKVSOp is used to define a single operation on the KVS inside a
+// TxnKVOp is used to define a single operation on the KVS inside a
 // transaction
-type TxnKVSOp struct {
+type TxnKVOp struct {
 	Verb   KVSOp
 	DirEnt DirEntry
 }
 
-// TxnKVSResult is used to define the result of a single operation on the KVS
+// TxnKVResult is used to define the result of a single operation on the KVS
 // inside a transaction.
-type TxnKVSResult struct {
+type TxnKVResult struct {
 	DirEnt *DirEntry
 }
 
 // TxnOp is used to define a single operation inside a transaction. Only one
 // of the types should be filled out per entry.
 type TxnOp struct {
-	KVS *TxnKVSOp
+	KV *TxnKVOp
 }
 
 // TxnOps is a list of operations within a transaction.
@@ -56,7 +56,7 @@ type TxnErrors []*TxnError
 // TxnResult is used to define the result of a given operation inside a
 // transaction. Only one of the types should be filled out per entry.
 type TxnResult struct {
-	KVS *TxnKVSResult
+	KV *TxnKVResult
 }
 
 // TxnResults is a list of TxnResult entries.

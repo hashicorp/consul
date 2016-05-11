@@ -20,18 +20,18 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	}
 	defer metrics.MeasureSince([]string{"consul", "txn", "apply"}, time.Now())
 
-	// Perform the pre-apply checks for any KVS operations.
+	// Perform the pre-apply checks for any KV operations.
 	acl, err := t.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
 	for i, op := range args.Ops {
-		if op.KVS != nil {
-			ok, err := kvsPreApply(t.srv, acl, op.KVS.Verb, &op.KVS.DirEnt)
+		if op.KV != nil {
+			ok, err := kvsPreApply(t.srv, acl, op.KV.Verb, &op.KV.DirEnt)
 			if err != nil {
 				reply.Errors = append(reply.Errors, &structs.TxnError{i, err.Error()})
 			} else if !ok {
-				err = fmt.Errorf("failed to lock key %q due to lock delay", op.KVS.DirEnt.Key)
+				err = fmt.Errorf("failed to lock key %q due to lock delay", op.KV.DirEnt.Key)
 				reply.Errors = append(reply.Errors, &structs.TxnError{i, err.Error()})
 			}
 		}

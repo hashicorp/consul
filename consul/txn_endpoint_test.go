@@ -29,7 +29,7 @@ func TestTxn_Apply(t *testing.T) {
 		Datacenter: "dc1",
 		Ops: structs.TxnOps{
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSSet,
 					DirEnt: structs.DirEntry{
 						Key:   "test",
@@ -39,7 +39,7 @@ func TestTxn_Apply(t *testing.T) {
 				},
 			},
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSGet,
 					DirEnt: structs.DirEntry{
 						Key: "test",
@@ -71,7 +71,7 @@ func TestTxn_Apply(t *testing.T) {
 	expected := structs.TxnResponse{
 		Results: structs.TxnResults{
 			&structs.TxnResult{
-				KVS: &structs.TxnKVSResult{
+				KV: &structs.TxnKVResult{
 					DirEnt: &structs.DirEntry{
 						Key:   "test",
 						Flags: 42,
@@ -84,7 +84,7 @@ func TestTxn_Apply(t *testing.T) {
 				},
 			},
 			&structs.TxnResult{
-				KVS: &structs.TxnKVSResult{
+				KV: &structs.TxnKVResult{
 					DirEnt: &structs.DirEntry{
 						Key:   "test",
 						Flags: 42,
@@ -140,7 +140,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		Datacenter: "dc1",
 		Ops: structs.TxnOps{
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSSet,
 					DirEnt: structs.DirEntry{
 						Key: "foo",
@@ -148,7 +148,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				},
 			},
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSDelete,
 					DirEnt: structs.DirEntry{
 						Key: "foo",
@@ -156,7 +156,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				},
 			},
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSDeleteCAS,
 					DirEnt: structs.DirEntry{
 						Key: "foo",
@@ -164,7 +164,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				},
 			},
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSDeleteTree,
 					DirEnt: structs.DirEntry{
 						Key: "foo",
@@ -172,7 +172,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				},
 			},
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSCAS,
 					DirEnt: structs.DirEntry{
 						Key: "foo",
@@ -180,7 +180,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				},
 			},
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSLock,
 					DirEnt: structs.DirEntry{
 						Key: "foo",
@@ -188,7 +188,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				},
 			},
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSUnlock,
 					DirEnt: structs.DirEntry{
 						Key: "foo",
@@ -196,7 +196,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				},
 			},
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSGet,
 					DirEnt: structs.DirEntry{
 						Key: "nope",
@@ -204,7 +204,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				},
 			},
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSCheckSession,
 					DirEnt: structs.DirEntry{
 						Key: "nope",
@@ -212,7 +212,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				},
 			},
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSCheckIndex,
 					DirEnt: structs.DirEntry{
 						Key: "nope",
@@ -281,7 +281,7 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 		Datacenter: "dc1",
 		Ops: structs.TxnOps{
 			&structs.TxnOp{
-				KVS: &structs.TxnKVSOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSLock,
 					DirEnt: structs.DirEntry{
 						Key:     "test",
@@ -315,7 +315,7 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 		}
 		if len(out.Results) != 1 ||
 			len(out.Errors) != 0 ||
-			out.Results[0].KVS.DirEnt.LockIndex != 2 {
+			out.Results[0].KV.DirEnt.LockIndex != 2 {
 			t.Fatalf("bad: %v", out)
 		}
 	}

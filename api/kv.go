@@ -278,7 +278,7 @@ func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOption
 // TxnOp is the internal format we send to Consul. It's not specific to KV,
 // though currently only KV operations are supported.
 type TxnOp struct {
-	KVS *KVTxnOp
+	KV *KVTxnOp
 }
 
 // TxnOps is a list of transaction operations.
@@ -286,7 +286,7 @@ type TxnOps []*TxnOp
 
 // TxnResult is the internal format we receive from Consul.
 type TxnResult struct {
-	KVS *struct{ DirEnt *KVPair }
+	KV *struct{ DirEnt *KVPair }
 }
 
 // TxnResults is a list of TxnResult objects.
@@ -349,8 +349,8 @@ func (k *KV) Txn(txn KVTxnOps, q *WriteOptions) (bool, *KVTxnResponse, *WriteMet
 
 	// Convert into the internal format since this is an all-KV txn.
 	ops := make(TxnOps, 0, len(txn))
-	for _, kvsOp := range txn {
-		ops = append(ops, &TxnOp{KVS: kvsOp})
+	for _, kvOp := range txn {
+		ops = append(ops, &TxnOp{KV: kvOp})
 	}
 	r.obj = ops
 	rtt, resp, err := k.c.doRequest(r)
@@ -374,8 +374,8 @@ func (k *KV) Txn(txn KVTxnOps, q *WriteOptions) (bool, *KVTxnResponse, *WriteMet
 		}
 		for _, result := range txnResp.Results {
 			var entry *KVPair
-			if result.KVS != nil {
-				entry = result.KVS.DirEnt
+			if result.KV != nil {
+				entry = result.KV.DirEnt
 			}
 			kvResp.Results = append(kvResp.Results, entry)
 		}

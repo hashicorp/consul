@@ -56,7 +56,7 @@ func TestTxnEndpoint_Bad_Size(t *testing.T) {
 		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
 [
     {
-        "KVS": {
+        "KV": {
             "Verb": "set",
             "Key": "key",
             "Value": %q
@@ -79,7 +79,7 @@ func TestTxnEndpoint_Bad_Size(t *testing.T) {
 	})
 }
 
-func TestTxnEndpoint_KVS_Actions(t *testing.T) {
+func TestTxnEndpoint_KV_Actions(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		// Make sure all incoming fields get converted properly to the internal
 		// RPC format.
@@ -89,7 +89,7 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 			buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
 [
     {
-        "KVS": {
+        "KV": {
             "Verb": "lock",
             "Key": "key",
             "Value": "aGVsbG8gd29ybGQ=",
@@ -98,7 +98,7 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
         }
     },
     {
-        "KVS": {
+        "KV": {
             "Verb": "get",
             "Key": "key"
         }
@@ -126,11 +126,11 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 			if len(txnResp.Results) != 2 {
 				t.Fatalf("bad: %v", txnResp)
 			}
-			index = txnResp.Results[0].KVS.DirEnt.ModifyIndex
+			index = txnResp.Results[0].KV.DirEnt.ModifyIndex
 			expected := structs.TxnResponse{
 				Results: structs.TxnResults{
 					&structs.TxnResult{
-						KVS: &structs.TxnKVSResult{
+						KV: &structs.TxnKVResult{
 							DirEnt: &structs.DirEntry{
 								Key:       "key",
 								Value:     nil,
@@ -145,7 +145,7 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 						},
 					},
 					&structs.TxnResult{
-						KVS: &structs.TxnKVSResult{
+						KV: &structs.TxnKVResult{
 							DirEnt: &structs.DirEntry{
 								Key:       "key",
 								Value:     []byte("hello world"),
@@ -172,7 +172,7 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 			buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
 [
     {
-        "KVS": {
+        "KV": {
             "Verb": "cas",
             "Key": "key",
             "Value": "Z29vZGJ5ZSB3b3JsZA==",
@@ -180,7 +180,7 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
         }
     },
     {
-        "KVS": {
+        "KV": {
             "Verb": "get",
             "Key": "key"
         }
@@ -208,11 +208,11 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 			if len(txnResp.Results) != 2 {
 				t.Fatalf("bad: %v", txnResp)
 			}
-			modIndex := txnResp.Results[0].KVS.DirEnt.ModifyIndex
+			modIndex := txnResp.Results[0].KV.DirEnt.ModifyIndex
 			expected := structs.TxnResponse{
 				Results: structs.TxnResults{
 					&structs.TxnResult{
-						KVS: &structs.TxnKVSResult{
+						KV: &structs.TxnKVResult{
 							DirEnt: &structs.DirEntry{
 								Key:     "key",
 								Value:   nil,
@@ -225,7 +225,7 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 						},
 					},
 					&structs.TxnResult{
-						KVS: &structs.TxnKVSResult{
+						KV: &structs.TxnKVResult{
 							DirEnt: &structs.DirEntry{
 								Key:     "key",
 								Value:   []byte("goodbye world"),
@@ -250,7 +250,7 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 		buf := bytes.NewBuffer([]byte(`
 [
     {
-        "KVS": {
+        "KV": {
             "Verb": "lock",
             "Key": "key",
             "Value": "aGVsbG8gd29ybGQ=",
@@ -258,7 +258,7 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
         }
     },
     {
-        "KVS": {
+        "KV": {
             "Verb": "get",
             "Key": "key"
         }
