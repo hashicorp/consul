@@ -242,7 +242,6 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/event/list", s.wrap(s.EventList))
 
 	s.mux.HandleFunc("/v1/kv/", s.wrap(s.KVSEndpoint))
-	s.mux.HandleFunc("/v1/kv-txn", s.wrap(s.KVSTxn))
 
 	s.mux.HandleFunc("/v1/session/create", s.wrap(s.SessionCreate))
 	s.mux.HandleFunc("/v1/session/destroy/", s.wrap(s.SessionDestroy))
@@ -269,6 +268,8 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 
 	s.mux.HandleFunc("/v1/query", s.wrap(s.PreparedQueryGeneral))
 	s.mux.HandleFunc("/v1/query/", s.wrap(s.PreparedQuerySpecific))
+
+	s.mux.HandleFunc("/v1/txn", s.wrap(s.Txn))
 
 	if enableDebug {
 		s.mux.HandleFunc("/debug/pprof/", pprof.Index)

@@ -317,7 +317,7 @@ func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOption
 // entries referencing the index of the operation that failed along with an error
 // message.
 func (k *KV) Txn(txn *KVTxn, q *WriteOptions) (bool, *KVTxnResult, *WriteMeta, error) {
-	r := k.c.newRequest("PUT", "/v1/kv-txn")
+	r := k.c.newRequest("PUT", "/v1/txn")
 	r.setWriteOptions(q)
 
 	r.obj = txn

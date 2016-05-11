@@ -17,7 +17,7 @@ type KVS struct {
 // preApply does all the verification of a KVS update that is performed BEFORE
 // we submit as a Raft log entry. This includes enforcing the lock delay which
 // must only be done on the leader.
-func (k *KVS) preApply(acl acl.ACL, op structs.KVSOp, dirEnt *structs.DirEntry) (bool, error) {
+func kvsPreApply(srv *Server, acl acl.ACL, op structs.KVSOp, dirEnt *structs.DirEntry) (bool, error) {
 	// Verify the entry.
 	if dirEnt.Key == "" && op != structs.KVSDeleteTree {
 		return false, fmt.Errorf("Must provide key")
@@ -52,10 +52,10 @@ func (k *KVS) preApply(acl acl.ACL, op structs.KVSOp, dirEnt *structs.DirEntry) 
 	// Instead, the lock-delay must be enforced before commit. This means that
 	// only the wall-time of the leader node is used, preventing any inconsistencies.
 	if op == structs.KVSLock {
-		state := k.srv.fsm.State()
+		state := srv.fsm.State()
 		expires := state.KVSLockDelay(dirEnt.Key)
 		if expires.After(time.Now()) {
-			k.srv.logger.Printf("[WARN] consul.kvs: Rejecting lock of %s due to lock-delay until %v",
+			srv.logger.Printf("[WARN] consul.kvs: Rejecting lock of %s due to lock-delay until %v",
 				dirEnt.Key, expires)
 			return false, nil
 		}
@@ -76,7 +76,7 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 	if err != nil {
 		return err
 	}
-	ok, err := k.preApply(acl, args.Op, &args.DirEnt)
+	ok, err := kvsPreApply(k.srv, acl, args.Op, &args.DirEnt)
 	if err != nil {
 		return err
 	}
@@ -98,52 +98,6 @@ func (k *KVS) Apply(args *structs.KVSRequest, reply *bool) error {
 	// Check if the return type is a bool.
 	if respBool, ok := resp.(bool); ok {
 		*reply = respBool
-	}
-	return nil
-}
-
-// AtomicApply is used to apply multiple KVS operations in a single, atomic
-// transaction.
-func (k *KVS) AtomicApply(args *structs.KVSAtomicRequest, reply *structs.KVSAtomicResponse) error {
-	if done, err := k.srv.forward("KVS.AtomicApply", args, args, reply); done {
-		return err
-	}
-	defer metrics.MeasureSince([]string{"consul", "kvs", "apply-atomic"}, time.Now())
-
-	// Perform the pre-apply checks on each of the operations.
-	acl, err := k.srv.resolveToken(args.Token)
-	if err != nil {
-		return err
-	}
-	for i, op := range args.Ops {
-		ok, err := k.preApply(acl, op.Op, &op.DirEnt)
-		if err != nil {
-			reply.Errors = append(reply.Errors, &structs.KVSAtomicError{i, err.Error()})
-		} else if !ok {
-			err = fmt.Errorf("failed to lock key %q due to lock delay", op.DirEnt.Key)
-			reply.Errors = append(reply.Errors, &structs.KVSAtomicError{i, err.Error()})
-		}
-	}
-	if len(reply.Errors) > 0 {
-		return nil
-	}
-
-	// Apply the update.
-	resp, err := k.srv.raftApply(structs.KVSAtomicRequestType, args)
-	if err != nil {
-		k.srv.logger.Printf("[ERR] consul.kvs: ApplyAtomic failed: %v", err)
-		return err
-	}
-	if respErr, ok := resp.(error); ok {
-		return respErr
-	}
-
-	// Convert the return type. This should be a cheap copy since we are
-	// just taking the two slices.
-	if respAtomic, ok := resp.(structs.KVSAtomicResponse); ok {
-		*reply = respAtomic
-	} else {
-		return fmt.Errorf("unexpected return type %T", resp)
 	}
 	return nil
 }
