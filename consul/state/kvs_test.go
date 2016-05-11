@@ -1557,7 +1557,7 @@ func TestStateStore_KVS_Atomic_Rollback(t *testing.T) {
 		}
 		for i, _ := range actual {
 			if !reflect.DeepEqual(actual[i], expected[i]) {
-				t.Fatalf("bad %d (%s): %v != %v", desc, i, *(actual[i]), *(expected[i]))
+				t.Fatalf("bad (%s): op %d: %v != %v", desc, i, *(actual[i]), *(expected[i]))
 			}
 		}
 	}
@@ -1656,7 +1656,7 @@ func TestStateStore_KVS_Atomic_Rollback(t *testing.T) {
 			t.Fatalf("bad index: %d != %d", i, errors[i].OpIndex)
 		}
 		if !strings.Contains(errors[i].Error(), msg) {
-			t.Fatalf("bad %i: %v", i, errors[i].Error())
+			t.Fatalf("bad %d: %v", i, errors[i].Error())
 		}
 	}
 }
