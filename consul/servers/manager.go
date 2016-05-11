@@ -16,8 +16,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 )
 
-type consulServerEventTypes int
-
 const (
 	// clientRPCJitterFraction determines the amount of jitter added to
 	// clientRPCMinReuseDuration before a connection is expired and a new
