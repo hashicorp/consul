@@ -41,7 +41,7 @@ const (
 
 // KVTxnOp defines a single operation inside a transaction.
 type KVTxnOp struct {
-	Op      string
+	Verb    string
 	Key     string
 	Value   []byte
 	Flags   uint64
@@ -49,23 +49,14 @@ type KVTxnOp struct {
 	Session string
 }
 
-// KVTxn defines a set of operations to be performed inside a single transaction.
-type KVTxn []KVTxnOp
-
-// KVTxnError is used to return information about an operation in a
+// KVTxnOps defines a set of operations to be performed inside a single
 // transaction.
-type KVTxnError struct {
-	OpIndex int
-	What    string
-}
+type KVTxnOps []*KVTxnOp
 
-// KVTxnErrors is a list of KVTxnError objects.
-type KVTxnErrors []KVTxnError
-
-// KVTxnResult is used to return the results of a transaction.
-type KVTxnResult struct {
-	Errors  KVTxnErrors
-	Results KVPairs
+// KVTxnResponse has the outcome of a transaction.
+type KVTxnResponse struct {
+	Results []*KVPair
+	Errors  TxnErrors
 }
 
 // KV is used to manipulate the K/V API
@@ -284,43 +275,84 @@ func (k *KV) deleteInternal(key string, params map[string]string, q *WriteOption
 	return res, qm, nil
 }
 
+// TxnOp is the internal format we send to Consul. It's not specific to KV,
+// though currently only KV operations are supported.
+type TxnOp struct {
+	KVS *KVTxnOp
+}
+
+// TxnOps is a list of transaction operations.
+type TxnOps []*TxnOp
+
+// TxnResult is the internal format we receive from Consul.
+type TxnResult struct {
+	KVS *struct{ DirEnt *KVPair }
+}
+
+// TxnResults is a list of TxnResult objects.
+type TxnResults []*TxnResult
+
+// TxnError is used to return information about an operation in a transaction.
+type TxnError struct {
+	OpIndex int
+	What    string
+}
+
+// TxnErrors is a list of TxnError objects.
+type TxnErrors []*TxnError
+
+// TxnResponse is the internal format we receive from Consul.
+type TxnResponse struct {
+	Results TxnResults
+	Errors  TxnErrors
+}
+
 // Txn is used to apply multiple KV operations in a single, atomic transaction.
 // Note that Go will perform the required base64 encoding on the values
 // automatically because the type is a byte slice. Transactions are defined as a
 // list of operations to perform, using the KVOp constants and KVTxnOp structure
 // to define operations. If any operation fails, none of the changes are applied
-// to the state store.
+// to the state store. Note that this hides the internal raw transaction interface
+// and munges the input and output types into KV-specific ones for ease of use.
+// If there are more non-KV operations in the future we may break out a new
+// transaction API client, but it will be easy to keep this KV-specific variant
+// supported.
 //
 // Here's an example:
 //
-// txn := KVTxn{
-//     KVTxnOp{
-//         Op:    KVLock,
-//         Key:   "test/lock",
+// ops := KVTxnOps{
+//     &KVTxnOp{
+//         Verb:    KVLock,
+//         Key:     "test/lock",
 //         Session: "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
-//         Value: []byte("hello"),
+//         Value:   []byte("hello"),
 //     },
-//     KVTxnOp{
-//         Op:    KVGet,
-//         Key:   "another/key",
+//     &KVTxnOp{
+//         Verb:    KVGet,
+//         Key:     "another/key",
 //     },
 // }
-// ok, result, _, err := kv.Txn(&txn, nil)
+// ok, response, _, err := kv.Txn(&ops, nil)
 //
 // If there is a problem making the transaction request then an error will be
 // returned. Otherwise, the ok value will be true if the transaction succeeded
-// or false if it was rolled back. The result is a structured return value which
+// or false if it was rolled back. The response is a structured return value which
 // will have the outcome of the transaction. Its Results member will have entries
 // for each operation. Deleted keys will have a nil entry in the, and to save
 // space, the Value of each key in the Results will be nil unless the operation
 // is a KVGet. If the transaction was rolled back, the Errors member will have
 // entries referencing the index of the operation that failed along with an error
 // message.
-func (k *KV) Txn(txn *KVTxn, q *WriteOptions) (bool, *KVTxnResult, *WriteMeta, error) {
+func (k *KV) Txn(txn KVTxnOps, q *WriteOptions) (bool, *KVTxnResponse, *WriteMeta, error) {
 	r := k.c.newRequest("PUT", "/v1/txn")
 	r.setWriteOptions(q)
 
-	r.obj = txn
+	// Convert into the internal format since this is an all-KV txn.
+	ops := make(TxnOps, 0, len(txn))
+	for _, kvsOp := range txn {
+		ops = append(ops, &TxnOp{KVS: kvsOp})
+	}
+	r.obj = ops
 	rtt, resp, err := k.c.doRequest(r)
 	if err != nil {
 		return false, nil, nil, err
@@ -331,11 +363,23 @@ func (k *KV) Txn(txn *KVTxn, q *WriteOptions) (bool, *KVTxnResult, *WriteMeta, e
 	wm.RequestTime = rtt
 
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusConflict {
-		var result KVTxnResult
-		if err := decodeBody(resp, &result); err != nil {
+		var txnResp TxnResponse
+		if err := decodeBody(resp, &txnResp); err != nil {
 			return false, nil, nil, err
 		}
-		return resp.StatusCode == http.StatusOK, &result, wm, nil
+
+		// Convert from the internal format.
+		kvResp := KVTxnResponse{
+			Errors: txnResp.Errors,
+		}
+		for _, result := range txnResp.Results {
+			var entry *KVPair
+			if result.KVS != nil {
+				entry = result.KVS.DirEnt
+			}
+			kvResp.Results = append(kvResp.Results, entry)
+		}
+		return resp.StatusCode == http.StatusOK, &kvResp, wm, nil
 	}
 
 	var buf bytes.Buffer

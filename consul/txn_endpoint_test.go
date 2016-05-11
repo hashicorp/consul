@@ -25,26 +25,30 @@ func TestTxn_Apply(t *testing.T) {
 	// Do a super basic request. The state store test covers the details so
 	// we just need to be sure that the transaction is sent correctly and
 	// the results are converted appropriately.
-	arg := structs.KVSAtomicRequest{
+	arg := structs.TxnRequest{
 		Datacenter: "dc1",
-		Ops: structs.KVSAtomicOps{
-			&structs.KVSAtomicOp{
-				Op: structs.KVSSet,
-				DirEnt: structs.DirEntry{
-					Key:   "test",
-					Flags: 42,
-					Value: []byte("test"),
+		Ops: structs.TxnOps{
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSSet,
+					DirEnt: structs.DirEntry{
+						Key:   "test",
+						Flags: 42,
+						Value: []byte("test"),
+					},
 				},
 			},
-			&structs.KVSAtomicOp{
-				Op: structs.KVSAtomicGet,
-				DirEnt: structs.DirEntry{
-					Key: "test",
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSGet,
+					DirEnt: structs.DirEntry{
+						Key: "test",
+					},
 				},
 			},
 		},
 	}
-	var out structs.KVSAtomicResponse
+	var out structs.TxnResponse
 	if err := msgpackrpc.CallWithCodec(codec, "Txn.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -64,24 +68,32 @@ func TestTxn_Apply(t *testing.T) {
 	}
 
 	// Verify the transaction's return value.
-	expected := structs.KVSAtomicResponse{
-		Results: structs.DirEntries{
-			&structs.DirEntry{
-				Key:   "test",
-				Flags: 42,
-				Value: nil,
-				RaftIndex: structs.RaftIndex{
-					CreateIndex: d.CreateIndex,
-					ModifyIndex: d.ModifyIndex,
+	expected := structs.TxnResponse{
+		Results: structs.TxnResults{
+			&structs.TxnResult{
+				KVS: &structs.TxnKVSResult{
+					DirEnt: &structs.DirEntry{
+						Key:   "test",
+						Flags: 42,
+						Value: nil,
+						RaftIndex: structs.RaftIndex{
+							CreateIndex: d.CreateIndex,
+							ModifyIndex: d.ModifyIndex,
+						},
+					},
 				},
 			},
-			&structs.DirEntry{
-				Key:   "test",
-				Flags: 42,
-				Value: []byte("test"),
-				RaftIndex: structs.RaftIndex{
-					CreateIndex: d.CreateIndex,
-					ModifyIndex: d.ModifyIndex,
+			&structs.TxnResult{
+				KVS: &structs.TxnKVSResult{
+					DirEnt: &structs.DirEntry{
+						Key:   "test",
+						Flags: 42,
+						Value: []byte("test"),
+						RaftIndex: structs.RaftIndex{
+							CreateIndex: d.CreateIndex,
+							ModifyIndex: d.ModifyIndex,
+						},
+					},
 				},
 			},
 		},
@@ -124,81 +136,101 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 
 	// Set up a transaction where every operation should get blocked due to
 	// ACLs.
-	arg := structs.KVSAtomicRequest{
+	arg := structs.TxnRequest{
 		Datacenter: "dc1",
-		Ops: structs.KVSAtomicOps{
-			&structs.KVSAtomicOp{
-				Op: structs.KVSSet,
-				DirEnt: structs.DirEntry{
-					Key: "foo",
+		Ops: structs.TxnOps{
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSSet,
+					DirEnt: structs.DirEntry{
+						Key: "foo",
+					},
 				},
 			},
-			&structs.KVSAtomicOp{
-				Op: structs.KVSDelete,
-				DirEnt: structs.DirEntry{
-					Key: "foo",
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSDelete,
+					DirEnt: structs.DirEntry{
+						Key: "foo",
+					},
 				},
 			},
-			&structs.KVSAtomicOp{
-				Op: structs.KVSDeleteCAS,
-				DirEnt: structs.DirEntry{
-					Key: "foo",
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSDeleteCAS,
+					DirEnt: structs.DirEntry{
+						Key: "foo",
+					},
 				},
 			},
-			&structs.KVSAtomicOp{
-				Op: structs.KVSDeleteTree,
-				DirEnt: structs.DirEntry{
-					Key: "foo",
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSDeleteTree,
+					DirEnt: structs.DirEntry{
+						Key: "foo",
+					},
 				},
 			},
-			&structs.KVSAtomicOp{
-				Op: structs.KVSCAS,
-				DirEnt: structs.DirEntry{
-					Key: "foo",
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSCAS,
+					DirEnt: structs.DirEntry{
+						Key: "foo",
+					},
 				},
 			},
-			&structs.KVSAtomicOp{
-				Op: structs.KVSLock,
-				DirEnt: structs.DirEntry{
-					Key: "foo",
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSLock,
+					DirEnt: structs.DirEntry{
+						Key: "foo",
+					},
 				},
 			},
-			&structs.KVSAtomicOp{
-				Op: structs.KVSUnlock,
-				DirEnt: structs.DirEntry{
-					Key: "foo",
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSUnlock,
+					DirEnt: structs.DirEntry{
+						Key: "foo",
+					},
 				},
 			},
-			&structs.KVSAtomicOp{
-				Op: structs.KVSAtomicGet,
-				DirEnt: structs.DirEntry{
-					Key: "nope",
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSGet,
+					DirEnt: structs.DirEntry{
+						Key: "nope",
+					},
 				},
 			},
-			&structs.KVSAtomicOp{
-				Op: structs.KVSAtomicCheckSession,
-				DirEnt: structs.DirEntry{
-					Key: "nope",
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSCheckSession,
+					DirEnt: structs.DirEntry{
+						Key: "nope",
+					},
 				},
 			},
-			&structs.KVSAtomicOp{
-				Op: structs.KVSAtomicCheckIndex,
-				DirEnt: structs.DirEntry{
-					Key: "nope",
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSCheckIndex,
+					DirEnt: structs.DirEntry{
+						Key: "nope",
+					},
 				},
 			},
 		},
 		WriteRequest: structs.WriteRequest{Token: id},
 	}
-	var out structs.KVSAtomicResponse
+	var out structs.TxnResponse
 	if err := msgpackrpc.CallWithCodec(codec, "Txn.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
 	// Verify the transaction's return value.
-	var expected structs.KVSAtomicResponse
+	var expected structs.TxnResponse
 	for i, _ := range arg.Ops {
-		expected.Errors = append(expected.Errors, &structs.KVSAtomicError{i, permissionDeniedErr.Error()})
+		expected.Errors = append(expected.Errors, &structs.TxnError{i, permissionDeniedErr.Error()})
 	}
 	if !reflect.DeepEqual(out, expected) {
 		t.Fatalf("bad %v", out)
@@ -245,20 +277,22 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 	validId := session.ID
 
 	// Make a lock request via an atomic transaction.
-	arg := structs.KVSAtomicRequest{
+	arg := structs.TxnRequest{
 		Datacenter: "dc1",
-		Ops: structs.KVSAtomicOps{
-			&structs.KVSAtomicOp{
-				Op: structs.KVSLock,
-				DirEnt: structs.DirEntry{
-					Key:     "test",
-					Session: validId,
+		Ops: structs.TxnOps{
+			&structs.TxnOp{
+				KVS: &structs.TxnKVSOp{
+					Verb: structs.KVSLock,
+					DirEnt: structs.DirEntry{
+						Key:     "test",
+						Session: validId,
+					},
 				},
 			},
 		},
 	}
 	{
-		var out structs.KVSAtomicResponse
+		var out structs.TxnResponse
 		if err := msgpackrpc.CallWithCodec(codec, "Txn.Apply", &arg, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -275,13 +309,13 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 
 	// Should acquire.
 	{
-		var out structs.KVSAtomicResponse
+		var out structs.TxnResponse
 		if err := msgpackrpc.CallWithCodec(codec, "Txn.Apply", &arg, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 		if len(out.Results) != 1 ||
 			len(out.Errors) != 0 ||
-			out.Results[0].LockIndex != 2 {
+			out.Results[0].KVS.DirEnt.LockIndex != 2 {
 			t.Fatalf("bad: %v", out)
 		}
 	}

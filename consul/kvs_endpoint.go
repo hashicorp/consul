@@ -31,9 +31,9 @@ func kvsPreApply(srv *Server, acl acl.ACL, op structs.KVSOp, dirEnt *structs.Dir
 				return false, permissionDeniedErr
 			}
 
-		case structs.KVSAtomicGet,
-			structs.KVSAtomicCheckSession,
-			structs.KVSAtomicCheckIndex:
+		case structs.KVSGet,
+			structs.KVSCheckSession,
+			structs.KVSCheckIndex:
 			if !acl.KeyRead(dirEnt.Key) {
 				return false, permissionDeniedErr
 			}

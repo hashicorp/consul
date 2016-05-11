@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/consul/structs"
@@ -50,6 +51,34 @@ func TestTxnEndpoint_Bad_Method(t *testing.T) {
 	})
 }
 
+func TestTxnEndpoint_Bad_Size(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
+[
+    {
+        "KVS": {
+            "Verb": "set",
+            "Key": "key",
+            "Value": %q
+        }
+    }
+]
+`, strings.Repeat("bad", 2*maxKVSize))))
+		req, err := http.NewRequest("PUT", "/v1/txn", buf)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		if _, err := srv.Txn(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 413 {
+			t.Fatalf("expected 413, got %d", resp.Code)
+		}
+	})
+}
+
 func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		// Make sure all incoming fields get converted properly to the internal
@@ -60,15 +89,19 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 			buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
 [
     {
-        "Op": "lock",
-        "Key": "key",
-        "Value": "aGVsbG8gd29ybGQ=",
-        "Flags": 23,
-        "Session": %q
+        "KVS": {
+            "Verb": "lock",
+            "Key": "key",
+            "Value": "aGVsbG8gd29ybGQ=",
+            "Flags": 23,
+            "Session": %q
+        }
     },
     {
-        "Op": "get",
-        "Key": "key"
+        "KVS": {
+            "Verb": "get",
+            "Key": "key"
+        }
     }
 ]
 `, id)))
@@ -86,42 +119,50 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 				t.Fatalf("expected 200, got %d", resp.Code)
 			}
 
-			atomic, ok := obj.(structs.KVSAtomicResponse)
+			txnResp, ok := obj.(structs.TxnResponse)
 			if !ok {
 				t.Fatalf("bad type: %T", obj)
 			}
-			if len(atomic.Results) != 2 {
-				t.Fatalf("bad: %v", atomic)
+			if len(txnResp.Results) != 2 {
+				t.Fatalf("bad: %v", txnResp)
 			}
-			index = atomic.Results[0].ModifyIndex
-			expected := structs.KVSAtomicResponse{
-				Results: structs.DirEntries{
-					&structs.DirEntry{
-						Key:       "key",
-						Value:     nil,
-						Flags:     23,
-						Session:   id,
-						LockIndex: 1,
-						RaftIndex: structs.RaftIndex{
-							CreateIndex: index,
-							ModifyIndex: index,
+			index = txnResp.Results[0].KVS.DirEnt.ModifyIndex
+			expected := structs.TxnResponse{
+				Results: structs.TxnResults{
+					&structs.TxnResult{
+						KVS: &structs.TxnKVSResult{
+							DirEnt: &structs.DirEntry{
+								Key:       "key",
+								Value:     nil,
+								Flags:     23,
+								Session:   id,
+								LockIndex: 1,
+								RaftIndex: structs.RaftIndex{
+									CreateIndex: index,
+									ModifyIndex: index,
+								},
+							},
 						},
 					},
-					&structs.DirEntry{
-						Key:       "key",
-						Value:     []byte("hello world"),
-						Flags:     23,
-						Session:   id,
-						LockIndex: 1,
-						RaftIndex: structs.RaftIndex{
-							CreateIndex: index,
-							ModifyIndex: index,
+					&structs.TxnResult{
+						KVS: &structs.TxnKVSResult{
+							DirEnt: &structs.DirEntry{
+								Key:       "key",
+								Value:     []byte("hello world"),
+								Flags:     23,
+								Session:   id,
+								LockIndex: 1,
+								RaftIndex: structs.RaftIndex{
+									CreateIndex: index,
+									ModifyIndex: index,
+								},
+							},
 						},
 					},
 				},
 			}
-			if !reflect.DeepEqual(atomic, expected) {
-				t.Fatalf("bad: %v", atomic)
+			if !reflect.DeepEqual(txnResp, expected) {
+				t.Fatalf("bad: %v", txnResp)
 			}
 		}
 
@@ -131,14 +172,18 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 			buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
 [
     {
-        "Op": "cas",
-        "Key": "key",
-        "Value": "Z29vZGJ5ZSB3b3JsZA==",
-        "Index": %d
+        "KVS": {
+            "Verb": "cas",
+            "Key": "key",
+            "Value": "Z29vZGJ5ZSB3b3JsZA==",
+            "Index": %d
+        }
     },
     {
-        "Op": "get",
-        "Key": "key"
+        "KVS": {
+            "Verb": "get",
+            "Key": "key"
+        }
     }
 ]
 `, index)))
@@ -156,38 +201,46 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 				t.Fatalf("expected 200, got %d", resp.Code)
 			}
 
-			atomic, ok := obj.(structs.KVSAtomicResponse)
+			txnResp, ok := obj.(structs.TxnResponse)
 			if !ok {
 				t.Fatalf("bad type: %T", obj)
 			}
-			if len(atomic.Results) != 2 {
-				t.Fatalf("bad: %v", atomic)
+			if len(txnResp.Results) != 2 {
+				t.Fatalf("bad: %v", txnResp)
 			}
-			modIndex := atomic.Results[0].ModifyIndex
-			expected := structs.KVSAtomicResponse{
-				Results: structs.DirEntries{
-					&structs.DirEntry{
-						Key:     "key",
-						Value:   nil,
-						Session: id,
-						RaftIndex: structs.RaftIndex{
-							CreateIndex: index,
-							ModifyIndex: modIndex,
+			modIndex := txnResp.Results[0].KVS.DirEnt.ModifyIndex
+			expected := structs.TxnResponse{
+				Results: structs.TxnResults{
+					&structs.TxnResult{
+						KVS: &structs.TxnKVSResult{
+							DirEnt: &structs.DirEntry{
+								Key:     "key",
+								Value:   nil,
+								Session: id,
+								RaftIndex: structs.RaftIndex{
+									CreateIndex: index,
+									ModifyIndex: modIndex,
+								},
+							},
 						},
 					},
-					&structs.DirEntry{
-						Key:     "key",
-						Value:   []byte("goodbye world"),
-						Session: id,
-						RaftIndex: structs.RaftIndex{
-							CreateIndex: index,
-							ModifyIndex: modIndex,
+					&structs.TxnResult{
+						KVS: &structs.TxnKVSResult{
+							DirEnt: &structs.DirEntry{
+								Key:     "key",
+								Value:   []byte("goodbye world"),
+								Session: id,
+								RaftIndex: structs.RaftIndex{
+									CreateIndex: index,
+									ModifyIndex: modIndex,
+								},
+							},
 						},
 					},
 				},
 			}
-			if !reflect.DeepEqual(atomic, expected) {
-				t.Fatalf("bad: %v", atomic)
+			if !reflect.DeepEqual(txnResp, expected) {
+				t.Fatalf("bad: %v", txnResp)
 			}
 		}
 	})
@@ -197,14 +250,18 @@ func TestTxnEndpoint_KVS_Actions(t *testing.T) {
 		buf := bytes.NewBuffer([]byte(`
 [
     {
-        "Op": "lock",
-        "Key": "key",
-        "Value": "aGVsbG8gd29ybGQ=",
-        "Session": "nope"
+        "KVS": {
+            "Verb": "lock",
+            "Key": "key",
+            "Value": "aGVsbG8gd29ybGQ=",
+            "Session": "nope"
+        }
     },
     {
-        "Op": "get",
-        "Key": "key"
+        "KVS": {
+            "Verb": "get",
+            "Key": "key"
+        }
     }
 ]
 `))

@@ -14,24 +14,26 @@ type Txn struct {
 }
 
 // Apply is used to apply multiple operations in a single, atomic transaction.
-func (t *Txn) Apply(args *structs.KVSAtomicRequest, reply *structs.KVSAtomicResponse) error {
+func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error {
 	if done, err := t.srv.forward("Txn.Apply", args, args, reply); done {
 		return err
 	}
 	defer metrics.MeasureSince([]string{"consul", "txn", "apply"}, time.Now())
 
-	// Perform the pre-apply checks on each of the operations.
+	// Perform the pre-apply checks for any KVS operations.
 	acl, err := t.srv.resolveToken(args.Token)
 	if err != nil {
 		return err
 	}
 	for i, op := range args.Ops {
-		ok, err := kvsPreApply(t.srv, acl, op.Op, &op.DirEnt)
-		if err != nil {
-			reply.Errors = append(reply.Errors, &structs.KVSAtomicError{i, err.Error()})
-		} else if !ok {
-			err = fmt.Errorf("failed to lock key %q due to lock delay", op.DirEnt.Key)
-			reply.Errors = append(reply.Errors, &structs.KVSAtomicError{i, err.Error()})
+		if op.KVS != nil {
+			ok, err := kvsPreApply(t.srv, acl, op.KVS.Verb, &op.KVS.DirEnt)
+			if err != nil {
+				reply.Errors = append(reply.Errors, &structs.TxnError{i, err.Error()})
+			} else if !ok {
+				err = fmt.Errorf("failed to lock key %q due to lock delay", op.KVS.DirEnt.Key)
+				reply.Errors = append(reply.Errors, &structs.TxnError{i, err.Error()})
+			}
 		}
 	}
 	if len(reply.Errors) > 0 {
@@ -39,9 +41,9 @@ func (t *Txn) Apply(args *structs.KVSAtomicRequest, reply *structs.KVSAtomicResp
 	}
 
 	// Apply the update.
-	resp, err := t.srv.raftApply(structs.KVSAtomicRequestType, args)
+	resp, err := t.srv.raftApply(structs.TxnRequestType, args)
 	if err != nil {
-		t.srv.logger.Printf("[ERR] consul.kvs: ApplyAtomic failed: %v", err)
+		t.srv.logger.Printf("[ERR] consul.txn: Apply failed: %v", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {
@@ -50,8 +52,8 @@ func (t *Txn) Apply(args *structs.KVSAtomicRequest, reply *structs.KVSAtomicResp
 
 	// Convert the return type. This should be a cheap copy since we are
 	// just taking the two slices.
-	if respAtomic, ok := resp.(structs.KVSAtomicResponse); ok {
-		*reply = respAtomic
+	if txnResp, ok := resp.(structs.TxnResponse); ok {
+		*reply = txnResp
 	} else {
 		return fmt.Errorf("unexpected return type %T", resp)
 	}

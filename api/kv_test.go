@@ -466,18 +466,18 @@ func TestClient_Txn(t *testing.T) {
 	// session.
 	key := testKey()
 	value := []byte("test")
-	txn := KVTxn{
-		KVTxnOp{
-			Op:    KVLock,
+	txn := KVTxnOps{
+		&KVTxnOp{
+			Verb:  KVLock,
 			Key:   key,
 			Value: value,
 		},
-		KVTxnOp{
-			Op:  KVGet,
-			Key: key,
+		&KVTxnOp{
+			Verb: KVGet,
+			Key:  key,
 		},
 	}
-	ok, ret, _, err := kv.Txn(&txn, nil)
+	ok, ret, _, err := kv.Txn(txn, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	} else if ok {
@@ -494,7 +494,7 @@ func TestClient_Txn(t *testing.T) {
 
 	// Now poke in a real session and try again.
 	txn[0].Session = id
-	ok, ret, _, err = kv.Txn(&txn, nil)
+	ok, ret, _, err = kv.Txn(txn, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	} else if !ok {

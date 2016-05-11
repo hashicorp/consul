@@ -36,7 +36,7 @@ const (
 	TombstoneRequestType
 	CoordinateBatchUpdateType
 	PreparedQueryRequestType
-	KVSAtomicRequestType
+	TxnRequestType
 )
 
 const (
@@ -535,11 +535,11 @@ const (
 	KVSLock             = "lock"   // Lock a key
 	KVSUnlock           = "unlock" // Unlock a key
 
-	// KVSAtomic* operations are only available in KVSAtomicRequest
-	// transactions.
-	KVSAtomicGet          = "get"           // Read the key during the transaction.
-	KVSAtomicCheckSession = "check-session" // Check the session holds the key.
-	KVSAtomicCheckIndex   = "check-index"   // Check the modify index of the key.
+	// The following operations are only available inside of atomic
+	// transactions via the Txn request.
+	KVSGet          = "get"           // Read the key during the transaction.
+	KVSCheckSession = "check-session" // Check the session holds the key.
+	KVSCheckIndex   = "check-index"   // Check the modify index of the key.
 )
 
 // KVSRequest is used to operate on the Key-Value store
@@ -552,49 +552,6 @@ type KVSRequest struct {
 
 func (r *KVSRequest) RequestDatacenter() string {
 	return r.Datacenter
-}
-
-// KVSAtomicOp is used to define a single operation within an multi-key
-// transaction.
-type KVSAtomicOp struct {
-	Op     KVSOp
-	DirEnt DirEntry
-}
-
-// KVSAtomicOps is a list of atomic operations.
-type KVSAtomicOps []*KVSAtomicOp
-
-// KVSAtomicRequest is used to perform atomic multi-key operations on the
-// Key-Value store.
-type KVSAtomicRequest struct {
-	Datacenter string
-	Ops        KVSAtomicOps
-	WriteRequest
-}
-
-func (r *KVSAtomicRequest) RequestDatacenter() string {
-	return r.Datacenter
-}
-
-// KVSAtomicError is used to return information about an error for a specific
-// operation.
-type KVSAtomicError struct {
-	OpIndex int
-	What    string
-}
-
-// Error returns the string representation of an atomic error.
-func (e KVSAtomicError) Error() string {
-	return fmt.Sprintf("op %d: %s", e.OpIndex, e.What)
-}
-
-// KVSAtomicErrors is a list of KVSAtomicError entries.
-type KVSAtomicErrors []*KVSAtomicError
-
-// KVSAtomicResponse is the structure returned by a KVSAtomicRequest.
-type KVSAtomicResponse struct {
-	Errors  KVSAtomicErrors
-	Results DirEntries
 }
 
 // KeyRequest is used to request a key, or key prefix
