@@ -286,7 +286,7 @@ type TxnOps []*TxnOp
 
 // TxnResult is the internal format we receive from Consul.
 type TxnResult struct {
-	KV *struct{ DirEnt *KVPair }
+	KV *KVPair
 }
 
 // TxnResults is a list of TxnResult objects.
@@ -373,11 +373,7 @@ func (k *KV) Txn(txn KVTxnOps, q *WriteOptions) (bool, *KVTxnResponse, *WriteMet
 			Errors: txnResp.Errors,
 		}
 		for _, result := range txnResp.Results {
-			var entry *KVPair
-			if result.KV != nil {
-				entry = result.KV.DirEnt
-			}
-			kvResp.Results = append(kvResp.Results, entry)
+			kvResp.Results = append(kvResp.Results, result.KV)
 		}
 		return resp.StatusCode == http.StatusOK, &kvResp, wm, nil
 	}

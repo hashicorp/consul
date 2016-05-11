@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
-func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (*structs.TxnKVResult, error) {
+func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.TxnKVResult, error) {
 	var entry *structs.DirEntry
 	var err error
 
@@ -74,12 +74,12 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (*st
 	// the state store).
 	if entry != nil {
 		if op.Verb == structs.KVSGet {
-			return &structs.TxnKVResult{entry}, nil
+			return entry, nil
 		}
 
 		clone := entry.Clone()
 		clone.Value = nil
-		return &structs.TxnKVResult{clone}, nil
+		return clone, nil
 	}
 
 	return nil, nil

@@ -177,13 +177,11 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 	// Make sure the response looks as expected.
 	expected := structs.TxnResults{
 		&structs.TxnResult{
-			KV: &structs.TxnKVResult{
-				DirEnt: &structs.DirEntry{
-					Key: "foo/new",
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 8,
-						ModifyIndex: 8,
-					},
+			KV: &structs.DirEntry{
+				Key: "foo/new",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 8,
+					ModifyIndex: 8,
 				},
 			},
 		},
@@ -191,112 +189,94 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 		&structs.TxnResult{}, // delete tree
 		&structs.TxnResult{}, // delete CAS
 		&structs.TxnResult{
-			KV: &structs.TxnKVResult{
-				DirEnt: &structs.DirEntry{
-					Key:   "foo/update",
-					Value: []byte("stale"),
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 5,
-						ModifyIndex: 5,
-					},
+			KV: &structs.DirEntry{
+				Key:   "foo/update",
+				Value: []byte("stale"),
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 5,
+					ModifyIndex: 5,
 				},
 			},
 		},
 		&structs.TxnResult{
-			KV: &structs.TxnKVResult{
-				DirEnt: &structs.DirEntry{
+			KV: &structs.DirEntry{
 
-					Key: "foo/update",
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 5,
-						ModifyIndex: 5,
-					},
+				Key: "foo/update",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 5,
+					ModifyIndex: 5,
 				},
 			},
 		},
 		&structs.TxnResult{
-			KV: &structs.TxnKVResult{
-				DirEnt: &structs.DirEntry{
-					Key: "foo/update",
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 5,
-						ModifyIndex: 8,
-					},
+			KV: &structs.DirEntry{
+				Key: "foo/update",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 5,
+					ModifyIndex: 8,
 				},
 			},
 		},
 		&structs.TxnResult{
-			KV: &structs.TxnKVResult{
-				DirEnt: &structs.DirEntry{
-					Key:   "foo/update",
-					Value: []byte("new"),
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 5,
-						ModifyIndex: 8,
-					},
+			KV: &structs.DirEntry{
+				Key:   "foo/update",
+				Value: []byte("new"),
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 5,
+					ModifyIndex: 8,
 				},
 			},
 		},
 		&structs.TxnResult{}, // get on not/there
 		&structs.TxnResult{
-			KV: &structs.TxnKVResult{
-				DirEnt: &structs.DirEntry{
-					Key: "foo/update",
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 5,
-						ModifyIndex: 8,
-					},
+			KV: &structs.DirEntry{
+				Key: "foo/update",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 5,
+					ModifyIndex: 8,
 				},
 			},
 		},
 		&structs.TxnResult{}, // get on foo/lock before it's created
 		&structs.TxnResult{
-			KV: &structs.TxnKVResult{
-				DirEnt: &structs.DirEntry{
-					Key:       "foo/lock",
-					Session:   session,
-					LockIndex: 1,
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 8,
-						ModifyIndex: 8,
-					},
+			KV: &structs.DirEntry{
+				Key:       "foo/lock",
+				Session:   session,
+				LockIndex: 1,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 8,
+					ModifyIndex: 8,
 				},
 			},
 		},
 		&structs.TxnResult{
-			KV: &structs.TxnKVResult{
-				DirEnt: &structs.DirEntry{
-					Key:       "foo/lock",
-					Session:   session,
-					LockIndex: 1,
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 8,
-						ModifyIndex: 8,
-					},
+			KV: &structs.DirEntry{
+				Key:       "foo/lock",
+				Session:   session,
+				LockIndex: 1,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 8,
+					ModifyIndex: 8,
 				},
 			},
 		},
 		&structs.TxnResult{
-			KV: &structs.TxnKVResult{
-				DirEnt: &structs.DirEntry{
-					Key:       "foo/lock",
-					LockIndex: 1,
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 8,
-						ModifyIndex: 8,
-					},
+			KV: &structs.DirEntry{
+				Key:       "foo/lock",
+				LockIndex: 1,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 8,
+					ModifyIndex: 8,
 				},
 			},
 		},
 		&structs.TxnResult{
-			KV: &structs.TxnKVResult{
-				DirEnt: &structs.DirEntry{
-					Key:       "foo/lock",
-					LockIndex: 1,
-					RaftIndex: structs.RaftIndex{
-						CreateIndex: 8,
-						ModifyIndex: 8,
-					},
+			KV: &structs.DirEntry{
+				Key:       "foo/lock",
+				LockIndex: 1,
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 8,
+					ModifyIndex: 8,
 				},
 			},
 		},

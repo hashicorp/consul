@@ -71,28 +71,24 @@ func TestTxn_Apply(t *testing.T) {
 	expected := structs.TxnResponse{
 		Results: structs.TxnResults{
 			&structs.TxnResult{
-				KV: &structs.TxnKVResult{
-					DirEnt: &structs.DirEntry{
-						Key:   "test",
-						Flags: 42,
-						Value: nil,
-						RaftIndex: structs.RaftIndex{
-							CreateIndex: d.CreateIndex,
-							ModifyIndex: d.ModifyIndex,
-						},
+				KV: &structs.DirEntry{
+					Key:   "test",
+					Flags: 42,
+					Value: nil,
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: d.CreateIndex,
+						ModifyIndex: d.ModifyIndex,
 					},
 				},
 			},
 			&structs.TxnResult{
-				KV: &structs.TxnKVResult{
-					DirEnt: &structs.DirEntry{
-						Key:   "test",
-						Flags: 42,
-						Value: []byte("test"),
-						RaftIndex: structs.RaftIndex{
-							CreateIndex: d.CreateIndex,
-							ModifyIndex: d.ModifyIndex,
-						},
+				KV: &structs.DirEntry{
+					Key:   "test",
+					Flags: 42,
+					Value: []byte("test"),
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: d.CreateIndex,
+						ModifyIndex: d.ModifyIndex,
 					},
 				},
 			},
@@ -315,7 +311,7 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 		}
 		if len(out.Results) != 1 ||
 			len(out.Errors) != 0 ||
-			out.Results[0].KV.DirEnt.LockIndex != 2 {
+			out.Results[0].KV.LockIndex != 2 {
 			t.Fatalf("bad: %v", out)
 		}
 	}

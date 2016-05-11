@@ -126,36 +126,32 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 			if len(txnResp.Results) != 2 {
 				t.Fatalf("bad: %v", txnResp)
 			}
-			index = txnResp.Results[0].KV.DirEnt.ModifyIndex
+			index = txnResp.Results[0].KV.ModifyIndex
 			expected := structs.TxnResponse{
 				Results: structs.TxnResults{
 					&structs.TxnResult{
-						KV: &structs.TxnKVResult{
-							DirEnt: &structs.DirEntry{
-								Key:       "key",
-								Value:     nil,
-								Flags:     23,
-								Session:   id,
-								LockIndex: 1,
-								RaftIndex: structs.RaftIndex{
-									CreateIndex: index,
-									ModifyIndex: index,
-								},
+						KV: &structs.DirEntry{
+							Key:       "key",
+							Value:     nil,
+							Flags:     23,
+							Session:   id,
+							LockIndex: 1,
+							RaftIndex: structs.RaftIndex{
+								CreateIndex: index,
+								ModifyIndex: index,
 							},
 						},
 					},
 					&structs.TxnResult{
-						KV: &structs.TxnKVResult{
-							DirEnt: &structs.DirEntry{
-								Key:       "key",
-								Value:     []byte("hello world"),
-								Flags:     23,
-								Session:   id,
-								LockIndex: 1,
-								RaftIndex: structs.RaftIndex{
-									CreateIndex: index,
-									ModifyIndex: index,
-								},
+						KV: &structs.DirEntry{
+							Key:       "key",
+							Value:     []byte("hello world"),
+							Flags:     23,
+							Session:   id,
+							LockIndex: 1,
+							RaftIndex: structs.RaftIndex{
+								CreateIndex: index,
+								ModifyIndex: index,
 							},
 						},
 					},
@@ -208,32 +204,28 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 			if len(txnResp.Results) != 2 {
 				t.Fatalf("bad: %v", txnResp)
 			}
-			modIndex := txnResp.Results[0].KV.DirEnt.ModifyIndex
+			modIndex := txnResp.Results[0].KV.ModifyIndex
 			expected := structs.TxnResponse{
 				Results: structs.TxnResults{
 					&structs.TxnResult{
-						KV: &structs.TxnKVResult{
-							DirEnt: &structs.DirEntry{
-								Key:     "key",
-								Value:   nil,
-								Session: id,
-								RaftIndex: structs.RaftIndex{
-									CreateIndex: index,
-									ModifyIndex: modIndex,
-								},
+						KV: &structs.DirEntry{
+							Key:     "key",
+							Value:   nil,
+							Session: id,
+							RaftIndex: structs.RaftIndex{
+								CreateIndex: index,
+								ModifyIndex: modIndex,
 							},
 						},
 					},
 					&structs.TxnResult{
-						KV: &structs.TxnKVResult{
-							DirEnt: &structs.DirEntry{
-								Key:     "key",
-								Value:   []byte("goodbye world"),
-								Session: id,
-								RaftIndex: structs.RaftIndex{
-									CreateIndex: index,
-									ModifyIndex: modIndex,
-								},
+						KV: &structs.DirEntry{
+							Key:     "key",
+							Value:   []byte("goodbye world"),
+							Session: id,
+							RaftIndex: structs.RaftIndex{
+								CreateIndex: index,
+								ModifyIndex: modIndex,
 							},
 						},
 					},

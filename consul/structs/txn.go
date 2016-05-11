@@ -13,9 +13,7 @@ type TxnKVOp struct {
 
 // TxnKVResult is used to define the result of a single operation on the KVS
 // inside a transaction.
-type TxnKVResult struct {
-	DirEnt *DirEntry
-}
+type TxnKVResult *DirEntry
 
 // TxnOp is used to define a single operation inside a transaction. Only one
 // of the types should be filled out per entry.
@@ -56,7 +54,7 @@ type TxnErrors []*TxnError
 // TxnResult is used to define the result of a given operation inside a
 // transaction. Only one of the types should be filled out per entry.
 type TxnResult struct {
-	KV *TxnKVResult
+	KV TxnKVResult
 }
 
 // TxnResults is a list of TxnResult entries.
