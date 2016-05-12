@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 )
 
+// txnKVS handles all KV-related operations.
 func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.TxnKVResult, error) {
 	var entry *structs.DirEntry
 	var err error
