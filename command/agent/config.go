@@ -429,6 +429,21 @@ type Config struct {
 	// empty, the defaults from the provider are used.
 	AtlasEndpoint string `mapstructure:"atlas_endpoint"`
 
+	// AwsAccessKey is an AWS IAM key used for discovering EC2 instances
+	AwsAccessKey string `mapstructure:"aws_access_key"`
+
+	// AwsSecretKey is the secret key for AwsAccessKey
+	AwsSecretKey string `mapstructure:aws_secret_key`
+
+	// AwsRegion is the region to attempt to discover instances in
+	AwsRegion string `mapstructure:aws_region`
+
+	// EC2TagKey is the tag applied to EC2 instances to filter on to discover servers
+	EC2TagKey string `mapstructure:"ec2_tag_key"`
+
+	// EC2TagValue is the value of ec2-tag-key to filter for
+	EC2TagValue string `mapstructure:"ec2_tag_value"`
+
 	// AEInterval controls the anti-entropy interval. This is how often
 	// the agent attempts to reconcile its local state with the server's
 	// representation of our state. Defaults to every 60s.
@@ -1258,6 +1273,21 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.AtlasEndpoint != "" {
 		result.AtlasEndpoint = b.AtlasEndpoint
+	}
+	if b.AwsAccessKey != "" {
+		result.AwsAccessKey = b.AwsAccessKey
+	}
+	if b.AwsSecretKey != "" {
+		result.AwsSecretKey = b.AwsSecretKey
+	}
+	if b.AwsRegion != "" {
+		result.AwsRegion = b.AwsRegion
+	}
+	if b.EC2TagKey != "" {
+		result.EC2TagKey = b.EC2TagKey
+	}
+	if b.EC2TagValue != "" {
+		result.EC2TagValue = b.EC2TagValue
 	}
 	if b.DisableCoordinates {
 		result.DisableCoordinates = true
