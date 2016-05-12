@@ -10,59 +10,59 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 )
 
+// decodeValue decodes the value member of the given operation.
+func decodeValue(rawKV interface{}) error {
+	rawMap, ok := rawKV.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("unexpected raw KV type: %T", rawKV)
+	}
+	for k, v := range rawMap {
+		switch strings.ToLower(k) {
+		case "value":
+			// Leave the byte slice nil if we have a nil
+			// value.
+			if v == nil {
+				return nil
+			}
+
+			// Otherwise, base64 decode it.
+			s, ok := v.(string)
+			if !ok {
+				return fmt.Errorf("unexpected value type: %T", v)
+			}
+			decoded, err := base64.StdEncoding.DecodeString(s)
+			if err != nil {
+				return fmt.Errorf("failed to decode value: %v", err)
+			}
+			rawMap[k] = decoded
+			return nil
+		}
+	}
+	return nil
+}
+
+// fixupKVOp looks for non-nil KV operations and passes them on for
+// value conversion.
+func fixupKVOp(rawOp interface{}) error {
+	rawMap, ok := rawOp.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("unexpected raw op type: %T", rawOp)
+	}
+	for k, v := range rawMap {
+		switch strings.ToLower(k) {
+		case "kv":
+			if v == nil {
+				return nil
+			}
+			return decodeValue(v)
+		}
+	}
+	return nil
+}
+
 // fixupKVOps takes the raw decoded JSON and base64 decodes values in KV ops,
 // replacing them with byte arrays.
 func fixupKVOps(raw interface{}) error {
-	// decodeValue decodes the value member of the given operation.
-	decodeValue := func(rawKV interface{}) error {
-		rawMap, ok := rawKV.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("unexpected raw KV type: %T", rawKV)
-		}
-		for k, v := range rawMap {
-			switch strings.ToLower(k) {
-			case "value":
-				// Leave the byte slice nil if we have a nil
-				// value.
-				if v == nil {
-					return nil
-				}
-
-				// Otherwise, base64 decode it.
-				s, ok := v.(string)
-				if !ok {
-					return fmt.Errorf("unexpected value type: %T", v)
-				}
-				decoded, err := base64.StdEncoding.DecodeString(s)
-				if err != nil {
-					return fmt.Errorf("failed to decode value: %v", err)
-				}
-				rawMap[k] = decoded
-				return nil
-			}
-		}
-		return nil
-	}
-
-	// fixupKVOp looks for non-nil KV operations and passes them on for
-	// value conversion.
-	fixupKVOp := func(rawOp interface{}) error {
-		rawMap, ok := rawOp.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("unexpected raw op type: %T", rawOp)
-		}
-		for k, v := range rawMap {
-			switch strings.ToLower(k) {
-			case "kv":
-				if v == nil {
-					return nil
-				}
-				return decodeValue(v)
-			}
-		}
-		return nil
-	}
-
 	rawSlice, ok := raw.([]interface{})
 	if !ok {
 		return fmt.Errorf("unexpected raw type: %t", raw)
