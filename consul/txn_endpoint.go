@@ -65,6 +65,9 @@ func (t *Txn) Apply(args *structs.TxnRequest, reply *structs.TxnResponse) error 
 	// Convert the return type. This should be a cheap copy since we are
 	// just taking the two slices.
 	if txnResp, ok := resp.(structs.TxnResponse); ok {
+		if acl != nil {
+			txnResp.Results = FilterTxnResults(acl, txnResp.Results)
+		}
 		*reply = txnResp
 	} else {
 		return fmt.Errorf("unexpected return type %T", resp)
@@ -103,5 +106,8 @@ func (t *Txn) Read(args *structs.TxnReadRequest, reply *structs.TxnReadResponse)
 	// Run the read transaction.
 	state := t.srv.fsm.State()
 	reply.Results, reply.Errors = state.TxnRO(args.Ops)
+	if acl != nil {
+		reply.Results = FilterTxnResults(acl, reply.Results)
+	}
 	return nil
 }

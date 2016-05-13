@@ -31,9 +31,13 @@ func kvsPreApply(srv *Server, acl acl.ACL, op structs.KVSOp, dirEnt *structs.Dir
 				return false, permissionDeniedErr
 			}
 
-		case structs.KVSGet,
-			structs.KVSCheckSession,
-			structs.KVSCheckIndex:
+		case structs.KVSGet:
+			// Filtering for GETs is done on the output side.
+
+		case structs.KVSCheckSession, structs.KVSCheckIndex:
+			// These could reveal information based on the outcome
+			// of the transaction, and they operate on individual
+			// keys so we check them here.
 			if !acl.KeyRead(dirEnt.Key) {
 				return false, permissionDeniedErr
 			}

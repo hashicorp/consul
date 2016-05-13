@@ -112,6 +112,16 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
+	// Put in a key to read back.
+	state := s1.fsm.State()
+	d := &structs.DirEntry{
+		Key:   "nope",
+		Value: []byte("hello"),
+	}
+	if err := state.KVSSet(1, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	// Create the ACL.
 	var id string
 	{
@@ -139,7 +149,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				KV: &structs.TxnKVOp{
 					Verb: structs.KVSSet,
 					DirEnt: structs.DirEntry{
-						Key: "foo",
+						Key: "nope",
 					},
 				},
 			},
@@ -147,7 +157,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				KV: &structs.TxnKVOp{
 					Verb: structs.KVSDelete,
 					DirEnt: structs.DirEntry{
-						Key: "foo",
+						Key: "nope",
 					},
 				},
 			},
@@ -155,7 +165,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				KV: &structs.TxnKVOp{
 					Verb: structs.KVSDeleteCAS,
 					DirEnt: structs.DirEntry{
-						Key: "foo",
+						Key: "nope",
 					},
 				},
 			},
@@ -163,7 +173,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				KV: &structs.TxnKVOp{
 					Verb: structs.KVSDeleteTree,
 					DirEnt: structs.DirEntry{
-						Key: "foo",
+						Key: "nope",
 					},
 				},
 			},
@@ -171,7 +181,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				KV: &structs.TxnKVOp{
 					Verb: structs.KVSCAS,
 					DirEnt: structs.DirEntry{
-						Key: "foo",
+						Key: "nope",
 					},
 				},
 			},
@@ -179,7 +189,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				KV: &structs.TxnKVOp{
 					Verb: structs.KVSLock,
 					DirEnt: structs.DirEntry{
-						Key: "foo",
+						Key: "nope",
 					},
 				},
 			},
@@ -187,7 +197,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				KV: &structs.TxnKVOp{
 					Verb: structs.KVSUnlock,
 					DirEnt: structs.DirEntry{
-						Key: "foo",
+						Key: "nope",
 					},
 				},
 			},
@@ -227,8 +237,14 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 
 	// Verify the transaction's return value.
 	var expected structs.TxnResponse
-	for i, _ := range arg.Ops {
-		expected.Errors = append(expected.Errors, &structs.TxnError{i, permissionDeniedErr.Error()})
+	for i, op := range arg.Ops {
+		switch op.KV.Verb {
+		case structs.KVSGet:
+			// These get filtered but won't result in an error.
+
+		default:
+			expected.Errors = append(expected.Errors, &structs.TxnError{i, permissionDeniedErr.Error()})
+		}
 	}
 	if !reflect.DeepEqual(out, expected) {
 		t.Fatalf("bad %v", out)
@@ -398,6 +414,16 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
+	// Put in a key to read back.
+	state := s1.fsm.State()
+	d := &structs.DirEntry{
+		Key:   "nope",
+		Value: []byte("hello"),
+	}
+	if err := state.KVSSet(1, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
 	// Create the ACL.
 	var id string
 	{
@@ -461,8 +487,14 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 			KnownLeader: true,
 		},
 	}
-	for i, _ := range arg.Ops {
-		expected.Errors = append(expected.Errors, &structs.TxnError{i, permissionDeniedErr.Error()})
+	for i, op := range arg.Ops {
+		switch op.KV.Verb {
+		case structs.KVSGet:
+			// These get filtered but won't result in an error.
+
+		default:
+			expected.Errors = append(expected.Errors, &structs.TxnError{i, permissionDeniedErr.Error()})
+		}
 	}
 	if !reflect.DeepEqual(out, expected) {
 		t.Fatalf("bad %v", out)
