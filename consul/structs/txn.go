@@ -36,6 +36,18 @@ func (r *TxnRequest) RequestDatacenter() string {
 	return r.Datacenter
 }
 
+// TxnReadRequest is used as a fast path for read-only transactions that don't
+// modify the state store.
+type TxnReadRequest struct {
+	Datacenter string
+	Ops        TxnOps
+	QueryOptions
+}
+
+func (r *TxnReadRequest) RequestDatacenter() string {
+	return r.Datacenter
+}
+
 // TxnError is used to return information about an error for a specific
 // operation.
 type TxnError struct {
@@ -64,4 +76,10 @@ type TxnResults []*TxnResult
 type TxnResponse struct {
 	Results TxnResults
 	Errors  TxnErrors
+}
+
+// TxnReadResponse is the structure returned by a TxnReadRequest.
+type TxnReadResponse struct {
+	TxnResponse
+	QueryMeta
 }

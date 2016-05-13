@@ -170,6 +170,17 @@ The `PUT` method lets you submit a list of operations to apply to the key/value 
 inside a transaction. If any operation fails, the transaction will be rolled back and
 none of the changes will be applied.
 
+If the transaction doesn't contain any write operations then it will be fast-pathed
+internally to an endpoint that works like other reads, except that blocking queries
+are not currently supported. In this mode, you may supply the "?stale" or "?consistent"
+query parameters with the request to control consistency. To support bounding the
+acceptable staleness of data, read-only transaction responses provide the `X-Consul-LastContact`
+header containing the time in milliseconds that a server was last contacted by the leader node.
+The `X-Consul-KnownLeader` header also indicates if there is a known leader. These
+won't be present if the transaction contains any write operations, and any consistency
+query parameters will be ignored, since writes are always managed by the leader via
+the Raft consensus protocol.
+
 The body of the request should be a list of operations to perform inside the atomic
 transaction, which looks like this:
 

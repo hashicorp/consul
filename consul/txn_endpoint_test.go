@@ -216,7 +216,9 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 				},
 			},
 		},
-		WriteRequest: structs.WriteRequest{Token: id},
+		WriteRequest: structs.WriteRequest{
+			Token: id,
+		},
 	}
 	var out structs.TxnResponse
 	if err := msgpackrpc.CallWithCodec(codec, "Txn.Apply", &arg, &out); err != nil {
@@ -232,6 +234,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 		t.Fatalf("bad %v", out)
 	}
 }
+
 func TestTxn_Apply_LockDelay(t *testing.T) {
 	dir1, s1 := testServer(t)
 	defer os.RemoveAll(dir1)
@@ -314,5 +317,154 @@ func TestTxn_Apply_LockDelay(t *testing.T) {
 			out.Results[0].KV.LockIndex != 2 {
 			t.Fatalf("bad: %v", out)
 		}
+	}
+}
+
+func TestTxn_Read(t *testing.T) {
+	dir1, s1 := testServer(t)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Put in a key to read back.
+	state := s1.fsm.State()
+	d := &structs.DirEntry{
+		Key:   "test",
+		Value: []byte("hello"),
+	}
+	if err := state.KVSSet(1, d); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Do a super basic request. The state store test covers the details so
+	// we just need to be sure that the transaction is sent correctly and
+	// the results are converted appropriately.
+	arg := structs.TxnReadRequest{
+		Datacenter: "dc1",
+		Ops: structs.TxnOps{
+			&structs.TxnOp{
+				KV: &structs.TxnKVOp{
+					Verb: structs.KVSGet,
+					DirEnt: structs.DirEntry{
+						Key: "test",
+					},
+				},
+			},
+		},
+	}
+	var out structs.TxnReadResponse
+	if err := msgpackrpc.CallWithCodec(codec, "Txn.Read", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Verify the transaction's return value.
+	expected := structs.TxnReadResponse{
+		TxnResponse: structs.TxnResponse{
+			Results: structs.TxnResults{
+				&structs.TxnResult{
+					KV: &structs.DirEntry{
+						Key:   "test",
+						Value: []byte("hello"),
+						RaftIndex: structs.RaftIndex{
+							CreateIndex: 1,
+							ModifyIndex: 1,
+						},
+					},
+				},
+			},
+		},
+		QueryMeta: structs.QueryMeta{
+			KnownLeader: true,
+		},
+	}
+	if !reflect.DeepEqual(out, expected) {
+		t.Fatalf("bad %v", out)
+	}
+}
+
+func TestTxn_Read_ACLDeny(t *testing.T) {
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.ACLDatacenter = "dc1"
+		c.ACLMasterToken = "root"
+		c.ACLDefaultPolicy = "deny"
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+	codec := rpcClient(t, s1)
+	defer codec.Close()
+
+	testutil.WaitForLeader(t, s1.RPC, "dc1")
+
+	// Create the ACL.
+	var id string
+	{
+		arg := structs.ACLRequest{
+			Datacenter: "dc1",
+			Op:         structs.ACLSet,
+			ACL: structs.ACL{
+				Name:  "User token",
+				Type:  structs.ACLTypeClient,
+				Rules: testListRules,
+			},
+			WriteRequest: structs.WriteRequest{Token: "root"},
+		}
+		if err := msgpackrpc.CallWithCodec(codec, "ACL.Apply", &arg, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Set up a transaction where every operation should get blocked due to
+	// ACLs.
+	arg := structs.TxnReadRequest{
+		Datacenter: "dc1",
+		Ops: structs.TxnOps{
+			&structs.TxnOp{
+				KV: &structs.TxnKVOp{
+					Verb: structs.KVSGet,
+					DirEnt: structs.DirEntry{
+						Key: "nope",
+					},
+				},
+			},
+			&structs.TxnOp{
+				KV: &structs.TxnKVOp{
+					Verb: structs.KVSCheckSession,
+					DirEnt: structs.DirEntry{
+						Key: "nope",
+					},
+				},
+			},
+			&structs.TxnOp{
+				KV: &structs.TxnKVOp{
+					Verb: structs.KVSCheckIndex,
+					DirEnt: structs.DirEntry{
+						Key: "nope",
+					},
+				},
+			},
+		},
+		QueryOptions: structs.QueryOptions{
+			Token: id,
+		},
+	}
+	var out structs.TxnReadResponse
+	if err := msgpackrpc.CallWithCodec(codec, "Txn.Read", &arg, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Verify the transaction's return value.
+	expected := structs.TxnReadResponse{
+		QueryMeta: structs.QueryMeta{
+			KnownLeader: true,
+		},
+	}
+	for i, _ := range arg.Ops {
+		expected.Errors = append(expected.Errors, &structs.TxnError{i, permissionDeniedErr.Error()})
+	}
+	if !reflect.DeepEqual(out, expected) {
+		t.Fatalf("bad %v", out)
 	}
 }

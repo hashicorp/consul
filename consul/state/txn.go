@@ -89,13 +89,8 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (str
 	return nil, nil
 }
 
-// TxnRun tries to run the given operations all inside a single transaction. If
-// any of the operations fail, the entire transaction will be rolled back.
-func (s *StateStore) TxnRun(idx uint64, ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
-	tx := s.db.Txn(true)
-	defer tx.Abort()
-
-	// Dispatch all of the operations inside the transaction.
+// txnDispatch runs the given operations inside the state store transaction.
+func (s *StateStore) txnDispatch(tx *memdb.Txn, idx uint64, ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
 	results := make(structs.TxnResults, 0, len(ops))
 	errors := make(structs.TxnErrors, 0, len(ops))
 	for i, op := range ops {
@@ -118,10 +113,42 @@ func (s *StateStore) TxnRun(idx uint64, ops structs.TxnOps) (structs.TxnResults,
 			errors = append(errors, &structs.TxnError{i, err.Error()})
 		}
 	}
+
+	if len(errors) > 0 {
+		return nil, errors
+	}
+
+	return results, nil
+}
+
+// TxnRW tries to run the given operations all inside a single transaction. If
+// any of the operations fail, the entire transaction will be rolled back. This
+// is done in a full write transaction on the state store, so reads and writes
+// are possible
+func (s *StateStore) TxnRW(idx uint64, ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	results, errors := s.txnDispatch(tx, idx, ops)
 	if len(errors) > 0 {
 		return nil, errors
 	}
 
 	tx.Commit()
+	return results, nil
+}
+
+// TxnRO runs the given operations inside a single read transaction in the state
+// store. You must verify outside this function that no write operations are
+// present, otherwise you'll get an error from the state store.
+func (s *StateStore) TxnRO(ops structs.TxnOps) (structs.TxnResults, structs.TxnErrors) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	results, errors := s.txnDispatch(tx, 0, ops)
+	if len(errors) > 0 {
+		return nil, errors
+	}
+
 	return results, nil
 }

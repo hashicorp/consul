@@ -11,7 +11,7 @@ import (
 func TestStateStore_Txn_KVS(t *testing.T) {
 	s := testStateStore(t)
 
-	// Create kvs results in the state store.
+	// Create KV entries in the state store.
 	testSetKey(t, s, 1, "foo/delete", "bar")
 	testSetKey(t, s, 2, "foo/bar/baz", "baz")
 	testSetKey(t, s, 3, "foo/bar/zip", "zip")
@@ -150,7 +150,7 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 			},
 		},
 	}
-	results, errors := s.TxnRun(8, ops)
+	results, errors := s.TxnRW(8, ops)
 	if len(errors) > 0 {
 		t.Fatalf("err: %v", errors)
 	}
@@ -321,7 +321,7 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 	s := testStateStore(t)
 
-	// Create kvs results in the state store.
+	// Create KV entries in the state store.
 	testSetKey(t, s, 1, "foo/delete", "bar")
 	testSetKey(t, s, 2, "foo/update", "stale")
 
@@ -479,7 +479,7 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 			},
 		},
 	}
-	results, errors := s.TxnRun(7, ops)
+	results, errors := s.TxnRW(7, ops)
 	if len(errors) != len(ops) {
 		t.Fatalf("bad len: %d != %d", len(errors), len(ops))
 	}
@@ -499,6 +499,158 @@ func TestStateStore_Txn_KVS_Rollback(t *testing.T) {
 		"current modify index",
 		`key "nope" doesn't exist`,
 		"unknown KV verb",
+	}
+	if len(errors) != len(expected) {
+		t.Fatalf("bad len: %d != %d", len(errors), len(expected))
+	}
+	for i, msg := range expected {
+		if errors[i].OpIndex != i {
+			t.Fatalf("bad index: %d != %d", i, errors[i].OpIndex)
+		}
+		if !strings.Contains(errors[i].Error(), msg) {
+			t.Fatalf("bad %d: %v", i, errors[i].Error())
+		}
+	}
+}
+
+func TestStateStore_Txn_KVS_RO(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create KV entries in the state store.
+	testSetKey(t, s, 1, "foo", "bar")
+	testSetKey(t, s, 2, "foo/bar/baz", "baz")
+	testSetKey(t, s, 3, "foo/bar/zip", "zip")
+
+	// Set up a transaction that hits all the read-only operations.
+	ops := structs.TxnOps{
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: structs.KVSGet,
+				DirEnt: structs.DirEntry{
+					Key: "foo",
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: structs.KVSCheckSession,
+				DirEnt: structs.DirEntry{
+					Key:     "foo/bar/baz",
+					Session: "",
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: structs.KVSCheckSession,
+				DirEnt: structs.DirEntry{
+					Key: "foo/bar/zip",
+					RaftIndex: structs.RaftIndex{
+						ModifyIndex: 3,
+					},
+				},
+			},
+		},
+	}
+	results, errors := s.TxnRO(ops)
+	if len(errors) > 0 {
+		t.Fatalf("err: %v", errors)
+	}
+	if len(results) != len(ops) {
+		t.Fatalf("bad len: %d != %d", len(results), len(ops))
+	}
+
+	// Make sure the response looks as expected.
+	expected := structs.TxnResults{
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key:   "foo",
+				Value: []byte("bar"),
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 1,
+					ModifyIndex: 1,
+				},
+			},
+		},
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key: "foo/bar/baz",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 2,
+					ModifyIndex: 2,
+				},
+			},
+		},
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key: "foo/bar/zip",
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 3,
+					ModifyIndex: 3,
+				},
+			},
+		},
+	}
+	if len(results) != len(expected) {
+		t.Fatalf("bad: %v", results)
+	}
+	for i, _ := range results {
+		if !reflect.DeepEqual(results[i], expected[i]) {
+			t.Fatalf("bad %d", i)
+		}
+	}
+}
+
+func TestStateStore_Txn_KVS_RO_Safety(t *testing.T) {
+	s := testStateStore(t)
+
+	// Create KV entries in the state store.
+	testSetKey(t, s, 1, "foo", "bar")
+	testSetKey(t, s, 2, "foo/bar/baz", "baz")
+	testSetKey(t, s, 3, "foo/bar/zip", "zip")
+
+	// Set up a transaction that hits all the read-only operations.
+	ops := structs.TxnOps{
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: structs.KVSSet,
+				DirEnt: structs.DirEntry{
+					Key:   "foo",
+					Value: []byte("nope"),
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: structs.KVSDelete,
+				DirEnt: structs.DirEntry{
+					Key: "foo/bar/baz",
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
+				Verb: structs.KVSDeleteTree,
+				DirEnt: structs.DirEntry{
+					Key: "foo/bar",
+				},
+			},
+		},
+	}
+	results, errors := s.TxnRO(ops)
+	if len(results) > 0 {
+		t.Fatalf("bad: %v", results)
+	}
+	if len(errors) != len(ops) {
+		t.Fatalf("bad len: %d != %d", len(errors), len(ops))
+	}
+
+	// Make sure the errors look reasonable (tombstone inserts cause the
+	// insert errors during the delete operations).
+	expected := []string{
+		"cannot insert in read-only transaction",
+		"cannot insert in read-only transaction",
+		"cannot insert in read-only transaction",
 	}
 	if len(errors) != len(expected) {
 		t.Fatalf("bad len: %d != %d", len(errors), len(expected))
@@ -541,7 +693,7 @@ func TestStateStore_Txn_Watches(t *testing.T) {
 					},
 				},
 			}
-			results, errors := s.TxnRun(15, ops)
+			results, errors := s.TxnRW(15, ops)
 			if len(results) != len(ops) {
 				t.Fatalf("bad len: %d != %d", len(results), len(ops))
 			}
@@ -583,7 +735,7 @@ func TestStateStore_Txn_Watches(t *testing.T) {
 					},
 				},
 			}
-			results, errors := s.TxnRun(16, ops)
+			results, errors := s.TxnRW(16, ops)
 			if len(errors) != 1 {
 				t.Fatalf("bad len: %d != 1", len(errors))
 			}

@@ -162,6 +162,76 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 			}
 		}
 
+		// Do a read-only transaction that should get routed to the
+		// fast-path endpoint.
+		{
+			buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
+[
+    {
+        "KV": {
+            "Verb": "get",
+            "Key": "key"
+        }
+    }
+]
+`, index)))
+			req, err := http.NewRequest("PUT", "/v1/txn", buf)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+
+			resp := httptest.NewRecorder()
+			obj, err := srv.Txn(resp, req)
+			if err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if resp.Code != 200 {
+				t.Fatalf("expected 200, got %d", resp.Code)
+			}
+
+			header := resp.Header().Get("X-Consul-KnownLeader")
+			if header != "true" {
+				t.Fatalf("bad: %v", header)
+			}
+			header = resp.Header().Get("X-Consul-LastContact")
+			if header != "0" {
+				t.Fatalf("bad: %v", header)
+			}
+
+			txnResp, ok := obj.(structs.TxnReadResponse)
+			if !ok {
+				t.Fatalf("bad type: %T", obj)
+			}
+			if len(txnResp.Results) != 1 {
+				t.Fatalf("bad: %v", txnResp)
+			}
+			expected := structs.TxnReadResponse{
+				TxnResponse: structs.TxnResponse{
+					Results: structs.TxnResults{
+						&structs.TxnResult{
+							KV: &structs.DirEntry{
+								Key:       "key",
+								Value:     []byte("hello world"),
+								Flags:     23,
+								Session:   id,
+								LockIndex: 1,
+								RaftIndex: structs.RaftIndex{
+									CreateIndex: index,
+									ModifyIndex: index,
+								},
+							},
+						},
+					},
+				},
+				QueryMeta: structs.QueryMeta{
+					KnownLeader: true,
+				},
+			}
+			if !reflect.DeepEqual(txnResp, expected) {
+				t.Fatalf("bad: %v", txnResp)
+			}
+		}
+
 		// Now that we have an index we can do a CAS to make sure the
 		// index field gets translated to the RPC format.
 		{

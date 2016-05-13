@@ -75,18 +75,11 @@ func fixupKVOps(raw interface{}) error {
 	return nil
 }
 
-// Txn handles requests to apply multiple operations in a single, atomic
-// transaction.
-func (s *HTTPServer) Txn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
-	if req.Method != "PUT" {
-		resp.WriteHeader(http.StatusMethodNotAllowed)
-		return nil, nil
-	}
-
-	var args structs.TxnRequest
-	s.parseDC(req, &args.Datacenter)
-	s.parseToken(req, &args.Token)
-
+// convertOps takes the incoming body in API format and converts it to the
+// internal RPC format. This returns a count of the number of write ops, and
+// a boolean, that if false means an error response has been generated and
+// processing should stop.
+func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (structs.TxnOps, int, bool) {
 	// Note the body is in API format, and not the RPC format. If we can't
 	// decode it, we will return a 400 since we don't have enough context to
 	// associate the error with a given operation.
@@ -94,24 +87,31 @@ func (s *HTTPServer) Txn(resp http.ResponseWriter, req *http.Request) (interface
 	if err := decodeBody(req, &ops, fixupKVOps); err != nil {
 		resp.WriteHeader(http.StatusBadRequest)
 		resp.Write([]byte(fmt.Sprintf("Failed to parse body: %v", err)))
-		return nil, nil
+		return nil, 0, false
 	}
 
 	// Convert the KV API format into the RPC format. Note that fixupKVOps
 	// above will have already converted the base64 encoded strings into
 	// byte arrays so we can assign right over.
+	var opsRPC structs.TxnOps
+	var writes int
 	for _, in := range ops {
 		if in.KV != nil {
 			if size := len(in.KV.Value); size > maxKVSize {
 				resp.WriteHeader(http.StatusRequestEntityTooLarge)
 				resp.Write([]byte(fmt.Sprintf("Value for key %q is too large (%d > %d bytes)",
 					in.KV.Key, size, maxKVSize)))
-				return nil, nil
+				return nil, 0, false
+			}
+
+			verb := structs.KVSOp(in.KV.Verb)
+			if verb.IsWrite() {
+				writes += 1
 			}
 
 			out := &structs.TxnOp{
 				KV: &structs.TxnKVOp{
-					Verb: structs.KVSOp(in.KV.Verb),
+					Verb: verb,
 					DirEnt: structs.DirEntry{
 						Key:     in.KV.Key,
 						Value:   in.KV.Value,
@@ -123,20 +123,67 @@ func (s *HTTPServer) Txn(resp http.ResponseWriter, req *http.Request) (interface
 					},
 				},
 			}
-			args.Ops = append(args.Ops, out)
+			opsRPC = append(opsRPC, out)
 		}
 	}
+	return opsRPC, writes, true
+}
 
-	// Make the request and return a conflict status if there were errors
-	// reported from the transaction.
-	var reply structs.TxnResponse
-	if err := s.agent.RPC("Txn.Apply", &args, &reply); err != nil {
-		return nil, err
+// Txn handles requests to apply multiple operations in a single, atomic
+// transaction. A transaction consisting of only read operations will be fast-
+// pathed to an endpoint that supports consistency modes (but not blocking),
+// and everything else will be routed through Raft like a normal write.
+func (s *HTTPServer) Txn(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	if req.Method != "PUT" {
+		resp.WriteHeader(http.StatusMethodNotAllowed)
+		return nil, nil
 	}
-	if len(reply.Errors) > 0 {
+
+	// Convert the ops from the API format to the internal format.
+	ops, writes, ok := s.convertOps(resp, req)
+	if !ok {
+		return nil, nil
+	}
+
+	// Fast-path a transaction with only writes to the read-only endpoint,
+	// which bypasses Raft, and allows for staleness.
+	conflict := false
+	var ret interface{}
+	if writes == 0 {
+		args := structs.TxnReadRequest{Ops: ops}
+		if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+			return nil, nil
+		}
+
+		var reply structs.TxnReadResponse
+		if err := s.agent.RPC("Txn.Read", &args, &reply); err != nil {
+			return nil, err
+		}
+
+		// Since we don't do blocking, we only add the relevant headers
+		// for metadata.
+		setLastContact(resp, reply.LastContact)
+		setKnownLeader(resp, reply.KnownLeader)
+
+		ret, conflict = reply, len(reply.Errors) > 0
+	} else {
+		args := structs.TxnRequest{Ops: ops}
+		s.parseDC(req, &args.Datacenter)
+		s.parseToken(req, &args.Token)
+
+		var reply structs.TxnResponse
+		if err := s.agent.RPC("Txn.Apply", &args, &reply); err != nil {
+			return nil, err
+		}
+		ret, conflict = reply, len(reply.Errors) > 0
+	}
+
+	// If there was a conflict return the response object but set a special
+	// status code.
+	if conflict {
 		var buf []byte
 		var err error
-		buf, err = s.marshalJSON(req, reply)
+		buf, err = s.marshalJSON(req, ret)
 		if err != nil {
 			return nil, err
 		}
@@ -148,5 +195,5 @@ func (s *HTTPServer) Txn(resp http.ResponseWriter, req *http.Request) (interface
 	}
 
 	// Otherwise, return the results of the successful transaction.
-	return reply, nil
+	return ret, nil
 }

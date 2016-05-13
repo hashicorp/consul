@@ -308,6 +308,7 @@ type TxnResponse struct {
 }
 
 // Txn is used to apply multiple KV operations in a single, atomic transaction.
+//
 // Note that Go will perform the required base64 encoding on the values
 // automatically because the type is a byte slice. Transactions are defined as a
 // list of operations to perform, using the KVOp constants and KVTxnOp structure
@@ -317,6 +318,13 @@ type TxnResponse struct {
 // If there are more non-KV operations in the future we may break out a new
 // transaction API client, but it will be easy to keep this KV-specific variant
 // supported.
+//
+// Even though this is generally a write operation, we take a QueryOptions input
+// and return a QueryMeta output. If the transaction contains only read ops, then
+// Consul will fast-path it to a different endpoint internally which supports
+// consistency controls, but not blocking. If there are write operations then
+// the request will always be routed through raft and any consistency settings
+// will be ignored.
 //
 // Here's an example:
 //
@@ -343,9 +351,9 @@ type TxnResponse struct {
 // is a KVGet. If the transaction was rolled back, the Errors member will have
 // entries referencing the index of the operation that failed along with an error
 // message.
-func (k *KV) Txn(txn KVTxnOps, q *WriteOptions) (bool, *KVTxnResponse, *WriteMeta, error) {
+func (k *KV) Txn(txn KVTxnOps, q *QueryOptions) (bool, *KVTxnResponse, *QueryMeta, error) {
 	r := k.c.newRequest("PUT", "/v1/txn")
-	r.setWriteOptions(q)
+	r.setQueryOptions(q)
 
 	// Convert into the internal format since this is an all-KV txn.
 	ops := make(TxnOps, 0, len(txn))
@@ -359,8 +367,9 @@ func (k *KV) Txn(txn KVTxnOps, q *WriteOptions) (bool, *KVTxnResponse, *WriteMet
 	}
 	defer resp.Body.Close()
 
-	wm := &WriteMeta{}
-	wm.RequestTime = rtt
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
 
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusConflict {
 		var txnResp TxnResponse
@@ -375,7 +384,7 @@ func (k *KV) Txn(txn KVTxnOps, q *WriteOptions) (bool, *KVTxnResponse, *WriteMet
 		for _, result := range txnResp.Results {
 			kvResp.Results = append(kvResp.Results, result.KV)
 		}
-		return resp.StatusCode == http.StatusOK, &kvResp, wm, nil
+		return resp.StatusCode == http.StatusOK, &kvResp, qm, nil
 	}
 
 	var buf bytes.Buffer

@@ -542,6 +542,17 @@ const (
 	KVSCheckIndex   = "check-index"   // Check the modify index of the key.
 )
 
+// IsWrite returns true if the given operation alters the state store.
+func (op KVSOp) IsWrite() bool {
+	switch op {
+	case KVSGet, KVSCheckSession, KVSCheckIndex:
+		return false
+
+	default:
+		return true
+	}
+}
+
 // KVSRequest is used to operate on the Key-Value store
 type KVSRequest struct {
 	Datacenter string

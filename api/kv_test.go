@@ -519,6 +519,32 @@ func TestClient_Txn(t *testing.T) {
 		}
 	}
 
+	// Run a read-only transaction.
+	txn = KVTxnOps{
+		&KVTxnOp{
+			Verb: KVGet,
+			Key:  key,
+		},
+	}
+	ok, ret, _, err = kv.Txn(txn, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	} else if !ok {
+		t.Fatalf("transaction failure")
+	}
+
+	if ret == nil || len(ret.Errors) != 0 || len(ret.Results) != 1 {
+		t.Fatalf("bad: %v", ret)
+	}
+	for _, result := range ret.Results {
+		if result.Key != key ||
+			!bytes.Equal(result.Value, value) ||
+			result.Session != id ||
+			result.LockIndex != 1 {
+			t.Fatalf("bad: %v", result)
+		}
+	}
+
 	// Sanity check using the regular GET API.
 	pair, meta, err := kv.Get(key, nil)
 	if err != nil {
