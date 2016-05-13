@@ -8,7 +8,7 @@ import (
 )
 
 // txnKVS handles all KV-related operations.
-func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.TxnKVResult, error) {
+func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (structs.TxnResults, error) {
 	var entry *structs.DirEntry
 	var err error
 
@@ -78,12 +78,14 @@ func (s *StateStore) txnKVS(tx *memdb.Txn, idx uint64, op *structs.TxnKVOp) (str
 	// the state store).
 	if entry != nil {
 		if op.Verb == structs.KVSGet {
-			return entry, nil
+			result := structs.TxnResult{KV: entry}
+			return structs.TxnResults{&result}, nil
 		}
 
 		clone := entry.Clone()
 		clone.Value = nil
-		return clone, nil
+		result := structs.TxnResult{KV: clone}
+		return structs.TxnResults{&result}, nil
 	}
 
 	return nil, nil
@@ -94,18 +96,18 @@ func (s *StateStore) txnDispatch(tx *memdb.Txn, idx uint64, ops structs.TxnOps) 
 	results := make(structs.TxnResults, 0, len(ops))
 	errors := make(structs.TxnErrors, 0, len(ops))
 	for i, op := range ops {
-		var result structs.TxnResult
+		var ret structs.TxnResults
 		var err error
 
 		// Dispatch based on the type of operation.
 		if op.KV != nil {
-			result.KV, err = s.txnKVS(tx, idx, op.KV)
+			ret, err = s.txnKVS(tx, idx, op.KV)
 		} else {
 			err = fmt.Errorf("no operation specified")
 		}
 
 		// Accumulate the results.
-		results = append(results, &result)
+		results = append(results, ret...)
 
 		// Capture any error along with the index of the operation that
 		// failed.

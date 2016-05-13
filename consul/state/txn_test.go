@@ -154,9 +154,6 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 	if len(errors) > 0 {
 		t.Fatalf("err: %v", errors)
 	}
-	if len(results) != len(ops) {
-		t.Fatalf("bad len: %d != %d", len(results), len(ops))
-	}
 
 	// Make sure the response looks as expected.
 	expected := structs.TxnResults{
@@ -169,9 +166,6 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 				},
 			},
 		},
-		&structs.TxnResult{}, // delete
-		&structs.TxnResult{}, // delete tree
-		&structs.TxnResult{}, // delete CAS
 		&structs.TxnResult{
 			KV: &structs.DirEntry{
 				Key:   "foo/update",

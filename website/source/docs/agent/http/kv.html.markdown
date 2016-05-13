@@ -352,11 +352,10 @@ back. If either of these status codes are returned, the response will look like 
 }
 ```
 
-`Results` has an entry for each operation if the transaction was successful. To save
+`Results` has entries for some operations if the transaction was successful. To save
 space, the `Value` will be `null` for any `Verb` other than "get". Like the `/v1/kv/<key>`
-endpoint, `Value` will be Base64-encoded if it is present. For verbs that delete
-keys, a `null` result entry will be present, keeping the list of `Results` 1:1 with the
-list of operations given in the transaction.
+endpoint, `Value` will be Base64-encoded if it is present. Also, no result entries  will be
+added for verbs that delete keys.
 
 `Errors` has entries describing which operations failed if the transaction was rolled
 back. The `OpIndex` gives the index of the failed operation in the transaction, and
