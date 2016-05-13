@@ -30,7 +30,7 @@ Consul servers only on Linux, however.
 
 ## Quick Start
 
-An extensive quick quick start is viewable on the Consul website:
+An extensive quick start is viewable on the Consul website:
 
 https://www.consul.io/intro/getting-started/install.html
 
