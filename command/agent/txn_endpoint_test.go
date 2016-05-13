@@ -51,7 +51,7 @@ func TestTxnEndpoint_Bad_Method(t *testing.T) {
 	})
 }
 
-func TestTxnEndpoint_Bad_Size(t *testing.T) {
+func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 	httpTest(t, func(srv *HTTPServer) {
 		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
 [
@@ -64,6 +64,78 @@ func TestTxnEndpoint_Bad_Size(t *testing.T) {
     }
 ]
 `, strings.Repeat("bad", 2*maxKVSize))))
+		req, err := http.NewRequest("PUT", "/v1/txn", buf)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		if _, err := srv.Txn(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 413 {
+			t.Fatalf("expected 413, got %d", resp.Code)
+		}
+	})
+}
+
+func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		value := strings.Repeat("X", maxKVSize/2)
+		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
+[
+    {
+        "KV": {
+            "Verb": "set",
+            "Key": "key1",
+            "Value": %q
+        }
+    },
+    {
+        "KV": {
+            "Verb": "set",
+            "Key": "key1",
+            "Value": %q
+        }
+    },
+    {
+        "KV": {
+            "Verb": "set",
+            "Key": "key1",
+            "Value": %q
+        }
+    }
+]
+`, value, value, value)))
+		req, err := http.NewRequest("PUT", "/v1/txn", buf)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		if _, err := srv.Txn(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 413 {
+			t.Fatalf("expected 413, got %d", resp.Code)
+		}
+	})
+}
+
+func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
+[
+    %s
+    {
+        "KV": {
+            "Verb": "set",
+            "Key": "key",
+            "Value": ""
+        }
+    }
+]
+`, strings.Repeat(`{ "KV": { "Verb": "get", "Key": "key" } },`, 2*maxTxnOps))))
 		req, err := http.NewRequest("PUT", "/v1/txn", buf)
 		if err != nil {
 			t.Fatalf("err: %v", err)
@@ -165,7 +237,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 		// Do a read-only transaction that should get routed to the
 		// fast-path endpoint.
 		{
-			buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
+			buf := bytes.NewBuffer([]byte(`
 [
     {
         "KV": {
@@ -174,7 +246,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
         }
     }
 ]
-`, index)))
+`))
 			req, err := http.NewRequest("PUT", "/v1/txn", buf)
 			if err != nil {
 				t.Fatalf("err: %v", err)

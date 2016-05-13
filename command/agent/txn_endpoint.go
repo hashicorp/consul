@@ -10,6 +10,13 @@ import (
 	"github.com/hashicorp/consul/consul/structs"
 )
 
+const (
+	// maxTxnOps is used to set an upper limit on the number of operations
+	// inside a transaction. If there are more operations than this, then the
+	// client is likely abusing transactions.
+	maxTxnOps = 500
+)
+
 // decodeValue decodes the value member of the given operation.
 func decodeValue(rawKV interface{}) error {
 	rawMap, ok := rawKV.(map[string]interface{})
@@ -90,11 +97,21 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 		return nil, 0, false
 	}
 
+	// Enforce a reasonable upper limit on the number of operations in a
+	// transaction in order to curb abuse.
+	if size := len(ops); size > maxTxnOps {
+		resp.WriteHeader(http.StatusRequestEntityTooLarge)
+		resp.Write([]byte(fmt.Sprintf("Transaction contains too many operations (%d > %d)",
+			size, maxTxnOps)))
+		return nil, 0, false
+	}
+
 	// Convert the KV API format into the RPC format. Note that fixupKVOps
 	// above will have already converted the base64 encoded strings into
 	// byte arrays so we can assign right over.
 	var opsRPC structs.TxnOps
 	var writes int
+	var netKVSize int
 	for _, in := range ops {
 		if in.KV != nil {
 			if size := len(in.KV.Value); size > maxKVSize {
@@ -102,6 +119,8 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 				resp.Write([]byte(fmt.Sprintf("Value for key %q is too large (%d > %d bytes)",
 					in.KV.Key, size, maxKVSize)))
 				return nil, 0, false
+			} else {
+				netKVSize += size
 			}
 
 			verb := structs.KVSOp(in.KV.Verb)
@@ -126,6 +145,15 @@ func (s *HTTPServer) convertOps(resp http.ResponseWriter, req *http.Request) (st
 			opsRPC = append(opsRPC, out)
 		}
 	}
+
+	// Enforce an overall size limit to help prevent abuse.
+	if netKVSize > maxKVSize {
+		resp.WriteHeader(http.StatusRequestEntityTooLarge)
+		resp.Write([]byte(fmt.Sprintf("Cumulative size of key data is too large (%d > %d bytes)",
+			netKVSize, maxKVSize)))
+		return nil, 0, false
+	}
+
 	return opsRPC, writes, true
 }
 

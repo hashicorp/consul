@@ -200,6 +200,8 @@ transaction, which looks like this:
 ]
 ```
 
+Up to 500 operations may be present in a single transaction.
+
 `KV` is the only available operation type, though other types of operations may be added
 in future versions of Consul to be mixed with key/value operations. The following fields
 are available:
