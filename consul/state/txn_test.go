@@ -29,6 +29,14 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 	ops := structs.TxnOps{
 		&structs.TxnOp{
 			KV: &structs.TxnKVOp{
+				Verb: structs.KVSGetTree,
+				DirEnt: structs.DirEntry{
+					Key: "foo/bar",
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
 				Verb: structs.KVSSet,
 				DirEnt: structs.DirEntry{
 					Key:   "foo/new",
@@ -157,6 +165,26 @@ func TestStateStore_Txn_KVS(t *testing.T) {
 
 	// Make sure the response looks as expected.
 	expected := structs.TxnResults{
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key:   "foo/bar/baz",
+				Value: []byte("baz"),
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 2,
+					ModifyIndex: 2,
+				},
+			},
+		},
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key:   "foo/bar/zip",
+				Value: []byte("zip"),
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 3,
+					ModifyIndex: 3,
+				},
+			},
+		},
 		&structs.TxnResult{
 			KV: &structs.DirEntry{
 				Key: "foo/new",
@@ -519,6 +547,14 @@ func TestStateStore_Txn_KVS_RO(t *testing.T) {
 	ops := structs.TxnOps{
 		&structs.TxnOp{
 			KV: &structs.TxnKVOp{
+				Verb: structs.KVSGetTree,
+				DirEnt: structs.DirEntry{
+					Key: "foo/bar",
+				},
+			},
+		},
+		&structs.TxnOp{
+			KV: &structs.TxnKVOp{
 				Verb: structs.KVSGet,
 				DirEnt: structs.DirEntry{
 					Key: "foo",
@@ -550,12 +586,29 @@ func TestStateStore_Txn_KVS_RO(t *testing.T) {
 	if len(errors) > 0 {
 		t.Fatalf("err: %v", errors)
 	}
-	if len(results) != len(ops) {
-		t.Fatalf("bad len: %d != %d", len(results), len(ops))
-	}
 
 	// Make sure the response looks as expected.
 	expected := structs.TxnResults{
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key:   "foo/bar/baz",
+				Value: []byte("baz"),
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 2,
+					ModifyIndex: 2,
+				},
+			},
+		},
+		&structs.TxnResult{
+			KV: &structs.DirEntry{
+				Key:   "foo/bar/zip",
+				Value: []byte("zip"),
+				RaftIndex: structs.RaftIndex{
+					CreateIndex: 3,
+					ModifyIndex: 3,
+				},
+			},
+		},
 		&structs.TxnResult{
 			KV: &structs.DirEntry{
 				Key:   "foo",

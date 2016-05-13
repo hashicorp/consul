@@ -31,7 +31,7 @@ func kvsPreApply(srv *Server, acl acl.ACL, op structs.KVSOp, dirEnt *structs.Dir
 				return false, permissionDeniedErr
 			}
 
-		case structs.KVSGet:
+		case structs.KVSGet, structs.KVSGetTree:
 			// Filtering for GETs is done on the output side.
 
 		case structs.KVSCheckSession, structs.KVSCheckIndex:

@@ -151,6 +151,12 @@ func (s *StateStore) KVSList(prefix string) (uint64, structs.DirEntries, error) 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
+	return s.kvsListTxn(tx, prefix)
+}
+
+// kvsListTxn is the inner method that gets a list of KVS entries matching a
+// prefix.
+func (s *StateStore) kvsListTxn(tx *memdb.Txn, prefix string) (uint64, structs.DirEntries, error) {
 	// Get the table indexes.
 	idx := maxIndexTxn(tx, "kvs", "tombstones")
 

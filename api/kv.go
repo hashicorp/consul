@@ -35,6 +35,7 @@ const (
 	KVLock              = "lock"
 	KVUnlock            = "unlock"
 	KVGet               = "get"
+	KVGetTree           = "get-tree"
 	KVCheckSession      = "check-session"
 	KVCheckIndex        = "check-index"
 )

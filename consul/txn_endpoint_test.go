@@ -211,6 +211,14 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 			},
 			&structs.TxnOp{
 				KV: &structs.TxnKVOp{
+					Verb: structs.KVSGetTree,
+					DirEnt: structs.DirEntry{
+						Key: "nope",
+					},
+				},
+			},
+			&structs.TxnOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSCheckSession,
 					DirEnt: structs.DirEntry{
 						Key: "nope",
@@ -239,7 +247,7 @@ func TestTxn_Apply_ACLDeny(t *testing.T) {
 	var expected structs.TxnResponse
 	for i, op := range arg.Ops {
 		switch op.KV.Verb {
-		case structs.KVSGet:
+		case structs.KVSGet, structs.KVSGetTree:
 			// These get filtered but won't result in an error.
 
 		default:
@@ -457,6 +465,14 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 			},
 			&structs.TxnOp{
 				KV: &structs.TxnKVOp{
+					Verb: structs.KVSGetTree,
+					DirEnt: structs.DirEntry{
+						Key: "nope",
+					},
+				},
+			},
+			&structs.TxnOp{
+				KV: &structs.TxnKVOp{
 					Verb: structs.KVSCheckSession,
 					DirEnt: structs.DirEntry{
 						Key: "nope",
@@ -489,7 +505,7 @@ func TestTxn_Read_ACLDeny(t *testing.T) {
 	}
 	for i, op := range arg.Ops {
 		switch op.KV.Verb {
-		case structs.KVSGet:
+		case structs.KVSGet, structs.KVSGetTree:
 			// These get filtered but won't result in an error.
 
 		default:

@@ -538,6 +538,7 @@ const (
 	// The following operations are only available inside of atomic
 	// transactions via the Txn request.
 	KVSGet          = "get"           // Read the key during the transaction.
+	KVSGetTree      = "get-tree"      // Read all keys with the given prefix during the transaction.
 	KVSCheckSession = "check-session" // Check the session holds the key.
 	KVSCheckIndex   = "check-index"   // Check the modify index of the key.
 )
@@ -545,7 +546,7 @@ const (
 // IsWrite returns true if the given operation alters the state store.
 func (op KVSOp) IsWrite() bool {
 	switch op {
-	case KVSGet, KVSCheckSession, KVSCheckIndex:
+	case KVSGet, KVSGetTree, KVSCheckSession, KVSCheckIndex:
 		return false
 
 	default:

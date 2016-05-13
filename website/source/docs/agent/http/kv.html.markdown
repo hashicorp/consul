@@ -262,7 +262,7 @@ operation ("X" means a field is required and "O" means it is optional):
   </tr>
   <tr>
     <td>unlock</td>
-    <td>Unlocks the `Key` with the given `Session`. The `Key` will only release the lock if the `Session` is valid and currently has it locked..</td>
+    <td>Unlocks the `Key` with the given `Session`. The `Key` will only release the lock if the `Session` is valid and currently has it locked.</td>
     <td align="center">X</td>
     <td align="center">X</td>
     <td align="center">O</td>
@@ -271,7 +271,16 @@ operation ("X" means a field is required and "O" means it is optional):
   </tr>
   <tr>
     <td>get</td>
-    <td>Gets the `Key` during the transaction. This fails the transaction if the `Key` doesn't exist.</td>
+    <td>Gets the `Key` during the transaction. This fails the transaction if the `Key` doesn't exist. The key may not be present in the results if ACLs do not permit it to be read.</td>
+    <td align="center">X</td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+    <td align="center"></td>
+  </tr>
+  <tr>
+    <td>get-tree</td>
+    <td>Gets all keys with a prefix of `Key` during the transaction. This does not fail the transaction if the `Key` doesn't exist. Not all keys may be present in the results if ACLs do not permit them to be read.</td>
     <td align="center">X</td>
     <td align="center"></td>
     <td align="center"></td>
@@ -355,9 +364,9 @@ back. If either of these status codes are returned, the response will look like 
 ```
 
 `Results` has entries for some operations if the transaction was successful. To save
-space, the `Value` will be `null` for any `Verb` other than "get". Like the `/v1/kv/<key>`
-endpoint, `Value` will be Base64-encoded if it is present. Also, no result entries  will be
-added for verbs that delete keys.
+space, the `Value` will be `null` for any `Verb` other than "get" or "get-tree". Like
+the `/v1/kv/<key>` endpoint, `Value` will be Base64-encoded if it is present. Also,
+no result entries  will be added for verbs that delete keys.
 
 `Errors` has entries describing which operations failed if the transaction was rolled
 back. The `OpIndex` gives the index of the failed operation in the transaction, and

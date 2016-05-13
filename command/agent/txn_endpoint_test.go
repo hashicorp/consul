@@ -244,6 +244,12 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
             "Verb": "get",
             "Key": "key"
         }
+    },
+    {
+        "KV": {
+            "Verb": "get-tree",
+            "Key": "key"
+        }
     }
 ]
 `))
@@ -274,12 +280,22 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 			if !ok {
 				t.Fatalf("bad type: %T", obj)
 			}
-			if len(txnResp.Results) != 1 {
-				t.Fatalf("bad: %v", txnResp)
-			}
 			expected := structs.TxnReadResponse{
 				TxnResponse: structs.TxnResponse{
 					Results: structs.TxnResults{
+						&structs.TxnResult{
+							KV: &structs.DirEntry{
+								Key:       "key",
+								Value:     []byte("hello world"),
+								Flags:     23,
+								Session:   id,
+								LockIndex: 1,
+								RaftIndex: structs.RaftIndex{
+									CreateIndex: index,
+									ModifyIndex: index,
+								},
+							},
+						},
 						&structs.TxnResult{
 							KV: &structs.DirEntry{
 								Key:       "key",
