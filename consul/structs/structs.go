@@ -36,6 +36,7 @@ const (
 	TombstoneRequestType
 	CoordinateBatchUpdateType
 	PreparedQueryRequestType
+	TxnRequestType
 )
 
 const (
@@ -533,7 +534,25 @@ const (
 	KVSCAS              = "cas"    // Check-and-set
 	KVSLock             = "lock"   // Lock a key
 	KVSUnlock           = "unlock" // Unlock a key
+
+	// The following operations are only available inside of atomic
+	// transactions via the Txn request.
+	KVSGet          = "get"           // Read the key during the transaction.
+	KVSGetTree      = "get-tree"      // Read all keys with the given prefix during the transaction.
+	KVSCheckSession = "check-session" // Check the session holds the key.
+	KVSCheckIndex   = "check-index"   // Check the modify index of the key.
 )
+
+// IsWrite returns true if the given operation alters the state store.
+func (op KVSOp) IsWrite() bool {
+	switch op {
+	case KVSGet, KVSGetTree, KVSCheckSession, KVSCheckIndex:
+		return false
+
+	default:
+		return true
+	}
+}
 
 // KVSRequest is used to operate on the Key-Value store
 type KVSRequest struct {

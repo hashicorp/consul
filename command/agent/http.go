@@ -269,6 +269,8 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.mux.HandleFunc("/v1/query", s.wrap(s.PreparedQueryGeneral))
 	s.mux.HandleFunc("/v1/query/", s.wrap(s.PreparedQuerySpecific))
 
+	s.mux.HandleFunc("/v1/txn", s.wrap(s.Txn))
+
 	if enableDebug {
 		s.mux.HandleFunc("/debug/pprof/", pprof.Index)
 		s.mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -342,26 +344,37 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			return
 		}
 
-		prettyPrint := false
-		if _, ok := req.URL.Query()["pretty"]; ok {
-			prettyPrint = true
-		}
-		// Write out the JSON object
 		if obj != nil {
 			var buf []byte
-			if prettyPrint {
-				buf, err = json.MarshalIndent(obj, "", "    ")
-			} else {
-				buf, err = json.Marshal(obj)
-			}
+			buf, err = s.marshalJSON(req, obj)
 			if err != nil {
 				goto HAS_ERR
 			}
+
 			resp.Header().Set("Content-Type", "application/json")
 			resp.Write(buf)
 		}
 	}
 	return f
+}
+
+// marshalJSON marshals the object into JSON, respecting the user's pretty-ness
+// configuration.
+func (s *HTTPServer) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
+	if _, ok := req.URL.Query()["pretty"]; ok {
+		buf, err := json.MarshalIndent(obj, "", "    ")
+		if err != nil {
+			return nil, err
+		}
+		buf = append(buf, "\n"...)
+		return buf, nil
+	}
+
+	buf, err := json.Marshal(obj)
+	if err != nil {
+		return nil, err
+	}
+	return buf, err
 }
 
 // Returns true if the UI is enabled.

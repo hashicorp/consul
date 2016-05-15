@@ -93,6 +93,8 @@ func (c *consulFSM) Apply(log *raft.Log) interface{} {
 		return c.applyCoordinateBatchUpdate(buf[1:], log.Index)
 	case structs.PreparedQueryRequestType:
 		return c.applyPreparedQueryOperation(buf[1:], log.Index)
+	case structs.TxnRequestType:
+		return c.applyTxn(buf[1:], log.Index)
 	default:
 		if ignoreUnknown {
 			c.logger.Printf("[WARN] consul.fsm: ignoring unknown message type (%d), upgrade to newer version", msgType)
@@ -284,6 +286,16 @@ func (c *consulFSM) applyPreparedQueryOperation(buf []byte, index uint64) interf
 		c.logger.Printf("[WARN] consul.fsm: Invalid PreparedQuery operation '%s'", req.Op)
 		return fmt.Errorf("Invalid PreparedQuery operation '%s'", req.Op)
 	}
+}
+
+func (c *consulFSM) applyTxn(buf []byte, index uint64) interface{} {
+	var req structs.TxnRequest
+	if err := structs.Decode(buf, &req); err != nil {
+		panic(fmt.Errorf("failed to decode request: %v", err))
+	}
+	defer metrics.MeasureSince([]string{"consul", "fsm", "txn"}, time.Now())
+	results, errors := c.state.TxnRW(index, req.Ops)
+	return structs.TxnResponse{results, errors}
 }
 
 func (c *consulFSM) Snapshot() (raft.FSMSnapshot, error) {

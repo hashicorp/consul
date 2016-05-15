@@ -16,14 +16,14 @@ Each endpoint manages a different aspect of Consul:
 
 * [acl](http/acl.html) - Access Control Lists
 * [agent](http/agent.html) - Consul Agent
-* [catalog](http/catalog.html) - Nodes and services
-* [coordinate](http/coordinate.html) - Network coordinates
+* [catalog](http/catalog.html) - Nodes and Services
+* [coordinate](http/coordinate.html) - Network Coordinates
 * [event](http/event.html) - User Events
-* [health](http/health.html) - Health checks
-* [kv](http/kv.html) - Key/Value store
+* [health](http/health.html) - Health Checks
+* [kv](http/kv.html) - Key/Value Store
 * [query](http/query.html) - Prepared Queries
 * [session](http/session.html) - Sessions
-* [status](http/status.html) - Consul system status
+* [status](http/status.html) - Consul System Status
 
 Each of these is documented in detail at the links above. Consul also has a number
 of internal APIs which are purposely undocumented and subject to change.

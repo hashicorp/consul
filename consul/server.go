@@ -165,6 +165,7 @@ type endpoints struct {
 	ACL           *ACL
 	Coordinate    *Coordinate
 	PreparedQuery *PreparedQuery
+	Txn           *Txn
 }
 
 // NewServer is used to construct a new Consul server from the
@@ -438,6 +439,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.endpoints.ACL = &ACL{s}
 	s.endpoints.Coordinate = NewCoordinate(s)
 	s.endpoints.PreparedQuery = &PreparedQuery{s}
+	s.endpoints.Txn = &Txn{s}
 
 	// Register the handlers
 	s.rpcServer.Register(s.endpoints.Status)
@@ -449,6 +451,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.rpcServer.Register(s.endpoints.ACL)
 	s.rpcServer.Register(s.endpoints.Coordinate)
 	s.rpcServer.Register(s.endpoints.PreparedQuery)
+	s.rpcServer.Register(s.endpoints.Txn)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
