@@ -116,7 +116,7 @@ The options below are all specified on the command-line.
   configuration files to load. Consul will
   load all files in this directory with the suffix ".json". The load order
   is alphabetical, and the the same merge routine is used as with the
-  [`config-file`](#_config_file) option above. This option can be specified mulitple times
+  [`config-file`](#_config_file) option above. This option can be specified multiple times
   to load multiple directories. Sub-directories of the config directory are not loaded.
   For more information on the format of the configuration files, see the
   [Configuration Files](#configuration_files) section.
@@ -402,7 +402,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   the [`-advertise-wan` command-line flag](#_advertise-wan).
 
 * <a name="atlas_acl_token"></a><a href="#atlas_acl_token">`atlas_acl_token`</a> When provided,
-  any requests made by Atlas will use this ACL token unless explicitly overriden. When not provided
+  any requests made by Atlas will use this ACL token unless explicitly overridden. When not provided
   the [`acl_token`](#acl_token) is used. This can be set to 'anonymous' to reduce permission below
   that of [`acl_token`](#acl_token).
 

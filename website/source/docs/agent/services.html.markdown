@@ -87,8 +87,8 @@ cycle the service's port AND the tags would revert to the original value and
 all modifications would be lost. It's important to note that this applies only
 to the locally registered service. If you have multiple nodes all registering
 the same service their `enableTagOverride` configuration and all other service
-configuration items are independant of one another. Updating the tags for
-the service registered on one node is independant of the same service (by name)
+configuration items are independent of one another. Updating the tags for
+the service registered on one node is independent of the same service (by name)
 registered on another node. If `enableTagOverride` is not specified the default 
 value is false.  See [anti-entropy syncs](/docs/internals/anti-entropy.html)
 for more info.

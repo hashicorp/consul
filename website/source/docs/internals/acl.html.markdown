@@ -150,7 +150,7 @@ access to each API token based on the events they should be able to fire.
 ### Blacklist mode and Prepared Queries
 
 After Consul 0.6.3, significant changes were made to ACLs for prepared queries,
-incuding a new `query` ACL policy. See [Prepared Query ACLs](#prepared_query_acls) below for more details.
+including a new `query` ACL policy. See [Prepared Query ACLs](#prepared_query_acls) below for more details.
 
 ### Blacklist mode and Keyring Operations
 

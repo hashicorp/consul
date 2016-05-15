@@ -268,7 +268,7 @@ func (c *ExecCommand) waitForJob() int {
 	errCh := make(chan struct{}, 1)
 	defer close(doneCh)
 	go c.streamResults(doneCh, ackCh, heartCh, outputCh, exitCh, errCh)
-	target := &TargettedUi{Ui: c.Ui}
+	target := &TargetedUi{Ui: c.Ui}
 
 	var ackCount, exitCount, badExit int
 OUTER:
@@ -637,33 +637,33 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-// TargettedUi is a UI that wraps another UI implementation and modifies
+// TargetedUi is a UI that wraps another UI implementation and modifies
 // the output to indicate a specific target. Specifically, all Say output
 // is prefixed with the target name. Message output is not prefixed but
 // is offset by the length of the target so that output is lined up properly
 // with Say output. Machine-readable output has the proper target set.
-type TargettedUi struct {
+type TargetedUi struct {
 	Target string
 	Ui     cli.Ui
 }
 
-func (u *TargettedUi) Ask(query string) (string, error) {
+func (u *TargetedUi) Ask(query string) (string, error) {
 	return u.Ui.Ask(u.prefixLines(true, query))
 }
 
-func (u *TargettedUi) Info(message string) {
+func (u *TargetedUi) Info(message string) {
 	u.Ui.Info(u.prefixLines(true, message))
 }
 
-func (u *TargettedUi) Output(message string) {
+func (u *TargetedUi) Output(message string) {
 	u.Ui.Output(u.prefixLines(false, message))
 }
 
-func (u *TargettedUi) Error(message string) {
+func (u *TargetedUi) Error(message string) {
 	u.Ui.Error(u.prefixLines(true, message))
 }
 
-func (u *TargettedUi) prefixLines(arrow bool, message string) string {
+func (u *TargetedUi) prefixLines(arrow bool, message string) string {
 	arrowText := "==>"
 	if !arrow {
 		arrowText = strings.Repeat(" ", len(arrowText))

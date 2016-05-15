@@ -595,7 +595,7 @@ func TestACLResolution(t *testing.T) {
 			t.Fatalf("bad: %s", token)
 		}
 
-		// Querystring token has precendence over header and agent tokens
+		// Querystring token has precedence over header and agent tokens
 		srv.parseToken(reqBothTokens, &token)
 		if token != "baz" {
 			t.Fatalf("bad: %s", token)
