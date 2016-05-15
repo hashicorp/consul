@@ -127,19 +127,19 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
 '            <circle class="point" r="5"/>' +
 '            <g class="tick" transform="translate(0, ' + (insetSize * -0.25 ) + ')">' +
 '              <line x2="70"/>' +
-'              <text x="75" y="0" dy=".32em">' + (parseInt(max * 25) / 100) + 'ms</text>' +
+'              <text x="75" y="0" dy=".32em">' + (max > 0 ? (parseInt(max * 25) / 100) : 0) + 'ms</text>' +
 '            </g>' +
 '            <g class="tick" transform="translate(0, ' + (insetSize * -0.5 ) + ')">' +
 '              <line x2="70"/>' +
-'              <text x="75" y="0" dy=".32em">' + (parseInt(max * 50) / 100) + 'ms</text>' +
+'              <text x="75" y="0" dy=".32em">' + (max > 0 ? (parseInt(max * 50) / 100) : 0)+ 'ms</text>' +
 '            </g>' +
 '            <g class="tick" transform="translate(0, ' + (insetSize * -0.75 ) + ')">' +
 '              <line x2="70"/>' +
-'              <text x="75" y="0" dy=".32em">' + (parseInt(max * 75) / 100) + 'ms</text>' +
+'              <text x="75" y="0" dy=".32em">' + (max > 0 ? (parseInt(max * 75) / 100) : 0) + 'ms</text>' +
 '            </g>' +
 '            <g class="tick" transform="translate(0, ' + (insetSize * -1) + ')">' +
 '              <line x2="70"/>' +
-'              <text x="75" y="0" dy=".32em">' + (parseInt(max * 100) / 100) + 'ms</text>' +
+'              <text x="75" y="0" dy=".32em">' + (max > 0 ? (parseInt(max * 100) / 100) : 0) + 'ms</text>' +
 '            </g>' +
 '          </g>' +
 '        </g>' +
