@@ -14,7 +14,7 @@ const (
 	// maxTxnOps is used to set an upper limit on the number of operations
 	// inside a transaction. If there are more operations than this, then the
 	// client is likely abusing transactions.
-	maxTxnOps = 500
+	maxTxnOps = 64
 )
 
 // decodeValue decodes the value member of the given operation.

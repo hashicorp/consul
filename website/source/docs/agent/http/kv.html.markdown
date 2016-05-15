@@ -182,7 +182,8 @@ query parameters will be ignored, since writes are always managed by the leader 
 the Raft consensus protocol.
 
 The body of the request should be a list of operations to perform inside the atomic
-transaction, which looks like this:
+transaction. Up to 64 operations may be present in a single transaction. Operations
+look like this:
 
 ```javascript
 [
@@ -199,8 +200,6 @@ transaction, which looks like this:
   ...
 ]
 ```
-
-Up to 500 operations may be present in a single transaction.
 
 `KV` is the only available operation type, though other types of operations may be added
 in future versions of Consul to be mixed with key/value operations. The following fields
