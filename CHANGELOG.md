@@ -9,6 +9,8 @@ BACKWARDS INCOMPATIBILITIES:
 
 IMPROVEMENTS:
 
+* Added a new `/v1/txn` state store transaction API that allows for atomic
+  updates to and fetches from multiple entries in the key/value store. [GH-2028]
 * Consul agents will now periodically reconnect to available Consul servers
   in order to redistribute their RPC query load.  Consul clients will, by
   default, attempt to establish a new connection every 120s to 180s unless
