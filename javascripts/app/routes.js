@@ -289,10 +289,11 @@ App.NodesShowRoute = App.BaseRoute.extend({
     dc.coordinates.forEach(function (node) {
       if (params.name == node.Node) {
         dc.coordinates.forEach(function (other) {
-          // TODO: ignore self
-          var dist = distance(node, other);
-          distances.push(dist);
-          sum += dist;
+          if (node.Node != other.Node) {
+            var dist = distance(node, other);
+            distances.push(dist);
+            sum += dist;
+          }
         });
         distances.sort();
       }
