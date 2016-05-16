@@ -149,6 +149,9 @@ func (c *WatchCommand) Run(args []string) int {
 	//	0: false
 	//	1: true
 	errExit := 0
+	// channels used for stopping WatchPlan command
+	wpStoppedCh := make(chan error, 1)
+	wpStoppingCh := make(chan struct{})
 	if script == "" {
 		wp.Handler = func(idx uint64, data interface{}) {
 			defer wp.Stop()
@@ -182,11 +185,19 @@ func (c *WatchCommand) Run(args []string) int {
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 
+			// Watch for a stop
+			go func() {
+				<-wpStoppingCh
+				cmd.Process.Kill()
+				wpStoppedCh <- cmd.Wait()
+			}()
+
 			// Run the handler
 			if err := cmd.Run(); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error executing handler: %s", err))
 				goto ERR
 			}
+
 			return
 		ERR:
 			wp.Stop()
@@ -197,7 +208,9 @@ func (c *WatchCommand) Run(args []string) int {
 	// Watch for a shutdown
 	go func() {
 		<-c.ShutdownCh
+		wpStoppingCh <- struct{}{}
 		wp.Stop()
+		<-wpStoppedCh
 		os.Exit(0)
 	}()
 
