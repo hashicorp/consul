@@ -104,7 +104,6 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
   // if/when Handlebars fixes the underlying issues all of this can be cleaned
   // up drastically.
 
-  var n = tomography.n;
   var max = Math.max.apply(null, tomography.distances);
   var insetSize = size / 2 - 8;
   var buf = '' +
@@ -118,7 +117,12 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
 '            <circle class="border" r="' + insetSize + '"/>' +
 '          </g>' +
 '          <g class="lines">';
-  tomography.distances.forEach(function (distance, i) {
+  var sampling = 360 / tomography.n;
+  distances = tomography.distances.filter(function () {
+    return Math.random() < sampling
+  });
+  var n = distances.length;
+  distances.forEach(function (distance, i) {
     buf += '            <line transform="rotate(' + (i * 360 / n) + ')" y2="' + (-insetSize * (distance / max)) + '"></line>';
   });
   buf += '' +
