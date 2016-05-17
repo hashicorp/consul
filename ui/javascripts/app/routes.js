@@ -299,7 +299,15 @@ App.NodesShowRoute = App.BaseRoute.extend({
       }
     });
     var min = Math.min.apply(null, distances);
-    var avg = sum / distances.length;
+    var n = distances.length;
+    var halfN = Math.floor(n / 2);
+    var median;
+    if (n % 2) {
+      // odd
+      median = distances[halfN];
+    } else {
+      median = (distances[halfN - 1] + distances[halfN]) / 2;
+    }
     var max = Math.max.apply(null, distances);
 
     // Return a promise hash of the node and nodes
@@ -310,7 +318,7 @@ App.NodesShowRoute = App.BaseRoute.extend({
         distances: distances,
         n: distances.length,
         min: parseInt(min * 100) / 100,
-        avg: parseInt(avg * 100) / 100,
+        median: parseInt(median * 100) / 100,
         max: parseInt(max * 100) / 100
       },
       node: Ember.$.getJSON(formatUrl(consulHost + '/v1/internal/ui/node/' + params.name, dc.dc, token)).then(function(data) {
