@@ -168,6 +168,10 @@ a {
 .tomography .lines line {
     stroke: $red;
 }
+.tomography .lines line:hover {
+    stroke: $gray-darker;
+    stroke-width: 2px;
+}
 .tomography .tick line {
     stroke: $gray-light;
 }

@@ -284,6 +284,8 @@ App.NodesShowRoute = App.BaseRoute.extend({
     var dc = this.modelFor('dc');
     var token = App.get('settings.token');
 
+    var min = 999999999;
+    var max = -999999999;
     var sum = 0;
     var distances = [];
     dc.coordinates.forEach(function (node) {
@@ -291,24 +293,30 @@ App.NodesShowRoute = App.BaseRoute.extend({
         dc.coordinates.forEach(function (other) {
           if (node.Node != other.Node) {
             var dist = distance(node, other);
-            distances.push(dist);
+            distances.push({ node: other.Node, distance: dist });
             sum += dist;
+            if (dist < min) {
+              min = dist;
+            }
+            if (dist > max) {
+              max = dist;
+            }
           }
         });
-        distances.sort();
+        distances.sort(function (a, b) {
+          return a.distance - b.distance;
+        });
       }
     });
-    var min = Math.min.apply(null, distances);
     var n = distances.length;
     var halfN = Math.floor(n / 2);
     var median;
     if (n % 2) {
       // odd
-      median = distances[halfN];
+      median = distances[halfN].distance;
     } else {
-      median = (distances[halfN - 1] + distances[halfN]) / 2;
+      median = (distances[halfN - 1].distance + distances[halfN].distance) / 2;
     }
-    var max = Math.max.apply(null, distances);
 
     // Return a promise hash of the node and nodes
     return Ember.RSVP.hash({

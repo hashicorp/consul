@@ -94,6 +94,12 @@ function notify(message, ttl) {
 
 // Tomography
 
+// TODO: not sure how to how do to this more Ember.js-y
+function tomographyMouseOver(el) {
+  var buf = el.getAttribute('data-node') + ' - ' + el.getAttribute('data-distance') + 'ms';
+  document.getElementById('tomography-node-info').innerHTML = buf;
+}
+
 Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
 
   // This is ugly, but I'm working around bugs with Handlebars and templating
@@ -104,7 +110,12 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
   // if/when Handlebars fixes the underlying issues all of this can be cleaned
   // up drastically.
 
-  var max = Math.max.apply(null, tomography.distances);
+  var max = -999999999;
+  tomography.distances.forEach(function (d, i) {
+    if (d.distance > max) {
+      max = d.distance;
+    }
+  });
   var insetSize = size / 2 - 8;
   var buf = '' +
 '      <svg width="' + size + '" height="' + size + '">' +
@@ -129,8 +140,9 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
     // Re-set n to the filtered size
     n = distances.length;
   }
-  distances.forEach(function (distance, i) {
-    buf += '            <line transform="rotate(' + (i * 360 / n) + ')" y2="' + (-insetSize * (distance / max)) + '"></line>';
+  distances.forEach(function (d, i) {
+    buf += '            <line transform="rotate(' + (i * 360 / n) + ')" y2="' + (-insetSize * (d.distance / max)) + '" ' +
+      'data-node="' + d.node + '" data-distance="' + d.distance + '" onmouseover="tomographyMouseOver(this);"/>';
   });
   buf += '' +
 '          </g>' +
