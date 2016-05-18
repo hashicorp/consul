@@ -117,11 +117,18 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
 '            <circle class="border" r="' + insetSize + '"/>' +
 '          </g>' +
 '          <g class="lines">';
-  var sampling = 360 / tomography.n;
-  distances = tomography.distances.filter(function () {
-    return Math.random() < sampling
-  });
+  var distances = tomography.distances;
   var n = distances.length;
+  if (tomography.n > 360) {
+    // We have more nodes than we want to show, take a random sampling to keep
+    // the number around 360.
+    var sampling = 360 / tomography.n;
+    distances = distances.filter(function (_, i) {
+      return i == 0 || i == n - 1 || Math.random() < sampling
+    });
+    // Re-set n to the filtered size
+    n = distances.length;
+  }
   distances.forEach(function (distance, i) {
     buf += '            <line transform="rotate(' + (i * 360 / n) + ')" y2="' + (-insetSize * (distance / max)) + '"></line>';
   });
