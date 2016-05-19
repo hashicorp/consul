@@ -197,89 +197,89 @@ func (s *HTTPServer) Shutdown() {
 
 // registerHandlers is used to attach our handlers to the mux
 func (s *HTTPServer) registerHandlers(enableDebug bool) {
-	register("/", "GET", s.Index)
+	s.register("/", "GET", s.Index)
 
-	register("/v1/status/leader", "GET", s.wrap(s.StatusLeader))
-	register("/v1/status/peers", "GET", s.wrap(s.StatusPeers))
+	s.register("/v1/status/leader", "GET", s.wrap(s.StatusLeader))
+	s.register("/v1/status/peers", "GET", s.wrap(s.StatusPeers))
 
-	register("/v1/catalog/register", "PUT", s.wrap(s.CatalogRegister))
-	register("/v1/catalog/deregister", "PUT", s.wrap(s.CatalogDeregister))
-	register("/v1/catalog/datacenters", "GET", s.wrap(s.CatalogDatacenters))
-	register("/v1/catalog/nodes", "GET", s.wrap(s.CatalogNodes))
-	register("/v1/catalog/services", "GET", s.wrap(s.CatalogServices))
-	register("/v1/catalog/service/", "GET", s.wrap(s.CatalogServiceNodes))
-	register("/v1/catalog/node/", "GET", s.wrap(s.CatalogNodeServices))
+	s.register("/v1/catalog/s.register", "PUT", s.wrap(s.Catalogs.register))
+	s.register("/v1/catalog/des.register", "PUT", s.wrap(s.CatalogDes.register))
+	s.register("/v1/catalog/datacenters", "GET", s.wrap(s.CatalogDatacenters))
+	s.register("/v1/catalog/nodes", "GET", s.wrap(s.CatalogNodes))
+	s.register("/v1/catalog/services", "GET", s.wrap(s.CatalogServices))
+	s.register("/v1/catalog/service/", "GET", s.wrap(s.CatalogServiceNodes))
+	s.register("/v1/catalog/node/", "GET", s.wrap(s.CatalogNodeServices))
 
 	if !s.agent.config.DisableCoordinates {
-		register("/v1/coordinate/datacenters", "GET", s.wrap(s.CoordinateDatacenters))
-		register("/v1/coordinate/nodes", "GET", s.wrap(s.CoordinateNodes))
+		s.register("/v1/coordinate/datacenters", "GET", s.wrap(s.CoordinateDatacenters))
+		s.register("/v1/coordinate/nodes", "GET", s.wrap(s.CoordinateNodes))
 	} else {
-		register("/v1/coordinate/datacenters", "GET", s.wrap(coordinateDisabled))
-		register("/v1/coordinate/nodes", "GET", s.wrap(coordinateDisabled))
+		s.register("/v1/coordinate/datacenters", "GET", s.wrap(coordinateDisabled))
+		s.register("/v1/coordinate/nodes", "GET", s.wrap(coordinateDisabled))
 	}
 
-	register("/v1/health/node/", "GET", s.wrap(s.HealthNodeChecks))
-	register("/v1/health/checks/", "GET", s.wrap(s.HealthServiceChecks))
-	register("/v1/health/state/", "GET", s.wrap(s.HealthChecksInState))
-	register("/v1/health/service/", "GET", s.wrap(s.HealthServiceNodes))
+	s.register("/v1/health/node/", "GET", s.wrap(s.HealthNodeChecks))
+	s.register("/v1/health/checks/", "GET", s.wrap(s.HealthServiceChecks))
+	s.register("/v1/health/state/", "GET", s.wrap(s.HealthChecksInState))
+	s.register("/v1/health/service/", "GET", s.wrap(s.HealthServiceNodes))
 
-	register("/v1/agent/self", "GET", s.wrap(s.AgentSelf))
-	register("/v1/agent/maintenance", "GET", s.wrap(s.AgentNodeMaintenance))
-	register("/v1/agent/services", "GET", s.wrap(s.AgentServices))
-	register("/v1/agent/checks", "GET", s.wrap(s.AgentChecks))
-	register("/v1/agent/members", "GET", s.wrap(s.AgentMembers))
-	register("/v1/agent/join/", "GET", s.wrap(s.AgentJoin))
-	register("/v1/agent/force-leave/", "GET", s.wrap(s.AgentForceLeave))
+	s.register("/v1/agent/self", "GET", s.wrap(s.AgentSelf))
+	s.register("/v1/agent/maintenance", "GET", s.wrap(s.AgentNodeMaintenance))
+	s.register("/v1/agent/services", "GET", s.wrap(s.AgentServices))
+	s.register("/v1/agent/checks", "GET", s.wrap(s.AgentChecks))
+	s.register("/v1/agent/members", "GET", s.wrap(s.AgentMembers))
+	s.register("/v1/agent/join/", "GET", s.wrap(s.AgentJoin))
+	s.register("/v1/agent/force-leave/", "GET", s.wrap(s.AgentForceLeave))
 
-	register("/v1/agent/check/register", "PUT", s.wrap(s.AgentRegisterCheck))
-	register("/v1/agent/check/deregister/", "PUT", s.wrap(s.AgentDeregisterCheck))
-	register("/v1/agent/check/pass/", "GET", s.wrap(s.AgentCheckPass))
-	register("/v1/agent/check/warn/", "GET", s.wrap(s.AgentCheckWarn))
-	register("/v1/agent/check/fail/", "GET", s.wrap(s.AgentCheckFail))
-	register("/v1/agent/check/update/", "GET", s.wrap(s.AgentCheckUpdate))
+	s.register("/v1/agent/check/s.register", "PUT", s.wrap(s.Agents.registerCheck))
+	s.register("/v1/agent/check/des.register/", "PUT", s.wrap(s.AgentDes.registerCheck))
+	s.register("/v1/agent/check/pass/", "GET", s.wrap(s.AgentCheckPass))
+	s.register("/v1/agent/check/warn/", "GET", s.wrap(s.AgentCheckWarn))
+	s.register("/v1/agent/check/fail/", "GET", s.wrap(s.AgentCheckFail))
+	s.register("/v1/agent/check/update/", "GET", s.wrap(s.AgentCheckUpdate))
 
-	register("/v1/agent/service/register", "PUT", s.wrap(s.AgentRegisterService))
-	register("/v1/agent/service/deregister/", "GET", s.wrap(s.AgentDeregisterService))
-	register("/v1/agent/service/maintenance/", "GET", s.wrap(s.AgentServiceMaintenance))
+	s.register("/v1/agent/service/s.register", "PUT", s.wrap(s.Agents.registerService))
+	s.register("/v1/agent/service/des.register/", "GET", s.wrap(s.AgentDes.registerService))
+	s.register("/v1/agent/service/maintenance/", "GET", s.wrap(s.AgentServiceMaintenance))
 
-	register("/v1/event/fire/", "PUT", s.wrap(s.EventFire))
-	register("/v1/event/list", "GET", s.wrap(s.EventList))
+	s.register("/v1/event/fire/", "PUT", s.wrap(s.EventFire))
+	s.register("/v1/event/list", "GET", s.wrap(s.EventList))
 
-	register("/v1/kv/", "GET,PUT,DELETE", s.wrap(s.KVSEndpoint))
+	s.register("/v1/kv/", "GET,PUT,DELETE", s.wrap(s.KVSEndpoint))
 
-	register("/v1/session/create", "PUT", s.wrap(s.SessionCreate))
-	register("/v1/session/destroy/", "PUT", s.wrap(s.SessionDestroy))
-	register("/v1/session/renew/", "PUT", s.wrap(s.SessionRenew))
-	register("/v1/session/info/", "GET", s.wrap(s.SessionGet))
-	register("/v1/session/node/", "GET", s.wrap(s.SessionsForNode))
-	register("/v1/session/list", "GET", s.wrap(s.SessionList))
+	s.register("/v1/session/create", "PUT", s.wrap(s.SessionCreate))
+	s.register("/v1/session/destroy/", "PUT", s.wrap(s.SessionDestroy))
+	s.register("/v1/session/renew/", "PUT", s.wrap(s.SessionRenew))
+	s.register("/v1/session/info/", "GET", s.wrap(s.SessionGet))
+	s.register("/v1/session/node/", "GET", s.wrap(s.SessionsForNode))
+	s.register("/v1/session/list", "GET", s.wrap(s.SessionList))
 
 	if s.agent.config.ACLDatacenter != "" {
-		register("/v1/acl/create", "PUT", s.wrap(s.ACLCreate))
-		register("/v1/acl/update", "PUT", s.wrap(s.ACLUpdate))
-		register("/v1/acl/destroy/", "PUT", s.wrap(s.ACLDestroy))
-		register("/v1/acl/info/", "GET", s.wrap(s.ACLGet))
-		register("/v1/acl/clone/", "PUT", s.wrap(s.ACLClone))
-		register("/v1/acl/list", "GET", s.wrap(s.ACLList))
+		s.register("/v1/acl/create", "PUT", s.wrap(s.ACLCreate))
+		s.register("/v1/acl/update", "PUT", s.wrap(s.ACLUpdate))
+		s.register("/v1/acl/destroy/", "PUT", s.wrap(s.ACLDestroy))
+		s.register("/v1/acl/info/", "GET", s.wrap(s.ACLGet))
+		s.register("/v1/acl/clone/", "PUT", s.wrap(s.ACLClone))
+		s.register("/v1/acl/list", "GET", s.wrap(s.ACLList))
 	} else {
-		register("/v1/acl/create", "PUT", s.wrap(aclDisabled))
-		register("/v1/acl/update", "PUT", s.wrap(aclDisabled))
-		register("/v1/acl/destroy/", "PUT", s.wrap(aclDisabled))
-		register("/v1/acl/info/", "GET", s.wrap(aclDisabled))
-		register("/v1/acl/clone/", "PUT", s.wrap(aclDisabled))
-		register("/v1/acl/list", "GET", s.wrap(aclDisabled))
+		s.register("/v1/acl/create", "PUT", s.wrap(aclDisabled))
+		s.register("/v1/acl/update", "PUT", s.wrap(aclDisabled))
+		s.register("/v1/acl/destroy/", "PUT", s.wrap(aclDisabled))
+		s.register("/v1/acl/info/", "GET", s.wrap(aclDisabled))
+		s.register("/v1/acl/clone/", "PUT", s.wrap(aclDisabled))
+		s.register("/v1/acl/list", "GET", s.wrap(aclDisabled))
 	}
 
-	register("/v1/query", "GET,POST", s.wrap(s.PreparedQueryGeneral))
-	register("/v1/query/", "GET,PUT,DELETE", s.wrap(s.PreparedQuerySpecific))
+	s.register("/v1/query", "GET,POST", s.wrap(s.PreparedQueryGeneral))
+	s.register("/v1/query/", "GET,PUT,DELETE", s.wrap(s.PreparedQuerySpecific))
 
-	register("/v1/txn", "GET", s.wrap(s.Txn))
+	s.register("/v1/txn", "GET", s.wrap(s.Txn))
 
 	if enableDebug {
-		register("/debug/pprof/", "GET", pprof.Index)
-		register("/debug/pprof/cmdline", "GET", pprof.Cmdline)
-		register("/debug/pprof/profile", "GET", pprof.Profile)
-		register("/debug/pprof/symbol", "GET", pprof.Symbol)
+		s.register("/debug/pprof/", "GET", pprof.Index)
+		s.register("/debug/pprof/cmdline", "GET", pprof.Cmdline)
+		s.register("/debug/pprof/profile", "GET", pprof.Profile)
+		s.register("/debug/pprof/symbol", "GET", pprof.Symbol)
 	}
 
 	// Use the custom UI dir if provided.
@@ -290,9 +290,9 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	}
 
 	// API's are under /internal/ui/ to avoid conflict
-	register("/v1/internal/ui/nodes", "GET", s.wrap(s.UINodes))
-	register("/v1/internal/ui/node/", "GET", s.wrap(s.UINodeInfo))
-	register("/v1/internal/ui/services", "GET", s.wrap(s.UIServices))
+	s.register("/v1/internal/ui/nodes", "GET", s.wrap(s.UINodes))
+	s.register("/v1/internal/ui/node/", "GET", s.wrap(s.UINodeInfo))
+	s.register("/v1/internal/ui/services", "GET", s.wrap(s.UIServices))
 }
 
 // register adds a path and a handler to the ServeMux, and adds the endpoint's
