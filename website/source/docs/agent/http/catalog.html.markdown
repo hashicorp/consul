@@ -195,7 +195,7 @@ It returns a JSON body like this:
 [
   {
     "Node": "baz",
-    "Address": "10.1.10.11"
+    "Address": "10.1.10.11",
     "TaggedAddresses": {
       "wan": "10.1.10.11"
     }
