@@ -110,12 +110,6 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
   // if/when Handlebars fixes the underlying issues all of this can be cleaned
   // up drastically.
 
-  var max = -999999999;
-  tomography.distances.forEach(function (d, i) {
-    if (d.distance > max) {
-      max = d.distance;
-    }
-  });
   var insetSize = size / 2 - 8;
   var buf = '' +
 '      <svg width="' + size + '" height="' + size + '">' +
@@ -130,6 +124,7 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
 '          <g class="lines">';
   var distances = tomography.distances;
   var n = distances.length;
+  var max = distances[n - 1].distance;
   if (tomography.n > 360) {
     // We have more nodes than we want to show, take a random sampling to keep
     // the number around 360.
