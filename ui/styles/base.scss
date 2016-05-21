@@ -150,32 +150,53 @@ a {
 }
 
 .tomography .background {
-    fill: $gray-background;
+  fill: $gray-background;
 }
 .tomography .axis {
-    fill: none;
-    stroke: $gray-light;
-    stroke-dasharray: 4 4;
+  fill: none;
+  stroke: $gray-light;
+  stroke-dasharray: 4 4;
 }
 .tomography .border {
-    fill: none;
-    stroke: $gray-darker;
+  fill: none;
+  stroke: $gray-darker;
 }
 .tomography .point {
-    stroke: $gray-darker;
-    fill: $green-faded;
+  stroke: $gray-darker;
+  fill: $green-faded;
 }
 .tomography .lines line {
-    stroke: $red;
+  stroke: $red;
 }
 .tomography .lines line:hover {
-    stroke: $gray-darker;
-    stroke-width: 2px;
+  stroke: $gray-darker;
+  stroke-width: 2px;
 }
 .tomography .tick line {
-    stroke: $gray-light;
+  stroke: $gray-light;
 }
 .tomography .tick text {
-    font-size: 14px;
-    text-anchor: start;
+  font-size: 14px;
+  text-anchor: start;
+}
+
+.dc-tomography {
+  color: $gray-darker;
+}
+.dc-tomography .axis {
+  stroke: $gray-background;
+  stroke-width: 1px;
+}
+.dc-tomography .axis:last-child {
+  stroke-width: 1.5px;
+}
+.dc-tomography .datapoints {
+  stroke: $gray-darker;
+  stroke-width: 2px;
+}
+.dc-tomography .min, .dc-tomography .max {
+  font-size: 10px;
+}
+.dc-tomography .max {
+  text-align: right;
 }
