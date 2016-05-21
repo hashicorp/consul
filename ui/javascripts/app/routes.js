@@ -102,55 +102,54 @@ App.IndexRoute = App.BaseRoute.extend({
   // Retrieve the list of datacenters
   model: function(params) {
     return Ember.$.getJSON(formatUrl(consulHost + '/v1/coordinate/datacenters')).then(function(data) {
-
-        var globalMax = -1;
-        var datacenters = [];
-        data.forEach(function (source) {
-          var peers = [];
-          data.forEach(function (target) {
-            if (source.Datacenter != target.Datacenter) {
-              var distances = [];
-              source.Coordinates.forEach(function (sourceNode) {
-                target.Coordinates.forEach(function (targetNode) {
-                  distances.push({
-                    source: sourceNode.Node,
-                    target: targetNode.Node,
-                    distance: distance(sourceNode, targetNode)
-                  });
+      var globalMax = -1;
+      var datacenters = [];
+      data.forEach(function (source) {
+        var peers = [];
+        data.forEach(function (target) {
+          if (source.Datacenter != target.Datacenter) {
+            var distances = [];
+            source.Coordinates.forEach(function (sourceNode) {
+              target.Coordinates.forEach(function (targetNode) {
+                distances.push({
+                  source: sourceNode.Node,
+                  target: targetNode.Node,
+                  distance: distance(sourceNode, targetNode)
                 });
               });
-              distances.sort(function (a, b) {
-                return a.distance - b.distance;
-              });
-              var n1 = distances.length - 1;
-              var max = distances[n1].distance;
-              if (max > globalMax) {
-                globalMax = max;
-              }
-              peers.push({
-                datacenter: target.Datacenter,
-                min: distances[0],
-                median: {
-                  distance: medianDistance(distances),
-                },
-                max: distances[n1]
-              });
+            });
+            distances.sort(function (a, b) {
+              return a.distance - b.distance;
+            });
+            var n1 = distances.length - 1;
+            var max = distances[n1].distance;
+            if (max > globalMax) {
+              globalMax = max;
             }
-          });
-          peers.sort(function (a, b) {
-            return a.max - b.max;
-          });
-          datacenters.push({
-            datacenter: source.Datacenter,
-            peers: peers,
-          });
+            peers.push({
+              datacenter: target.Datacenter,
+              min: distances[0],
+              median: {
+                distance: medianDistance(distances),
+              },
+              max: distances[n1]
+            });
+          }
         });
+        peers.sort(function (a, b) {
+          return a.max - b.max;
+        });
+        datacenters.push({
+          datacenter: source.Datacenter,
+          peers: peers,
+        });
+      });
 
-        return {
-          max: globalMax,
-          datacenters: datacenters
-        };
-      })
+      return {
+        max: globalMax,
+        datacenters: datacenters
+      };
+    })
   },
 
   afterModel: function(model, transition) {
