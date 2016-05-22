@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/etcd/msg"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -14,11 +15,18 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	if state.QClass() != dns.ClassINET {
 		return dns.RcodeServerFailure, fmt.Errorf("can only deal with ClassINET")
 	}
+	name := state.Name()
+	if e.Debug {
+		if debug := isDebug(name); debug != "" {
+			e.debug = r.Question[0].Name
+			state.Clear()
+			state.Req.Question[0].Name = debug
+		}
+	}
 
 	// We need to check stubzones first, because we may get a request for a zone we
 	// are not auth. for *but* do have a stubzone forward for. If we do the stubzone
 	// handler will handle the request.
-	name := state.Name()
 	if e.Stubmap != nil && len(*e.Stubmap) > 0 {
 		for zone, _ := range *e.Stubmap {
 			if middleware.Name(zone).Matches(name) {
@@ -36,52 +44,62 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		return e.Next.ServeDNS(ctx, w, r)
 	}
 
-	m := new(dns.Msg)
-	m.SetReply(r)
-	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
-
 	var (
 		records, extra []dns.RR
+		debug          []msg.Service
 		err            error
 	)
 	switch state.Type() {
 	case "A":
-		records, err = e.A(zone, state, nil)
+		records, debug, err = e.A(zone, state, nil)
 	case "AAAA":
-		records, err = e.AAAA(zone, state, nil)
+		records, debug, err = e.AAAA(zone, state, nil)
 	case "TXT":
-		records, err = e.TXT(zone, state)
+		records, debug, err = e.TXT(zone, state)
 	case "CNAME":
-		records, err = e.CNAME(zone, state)
+		records, debug, err = e.CNAME(zone, state)
 	case "MX":
-		records, extra, err = e.MX(zone, state)
+		records, extra, debug, err = e.MX(zone, state)
 	case "SRV":
-		records, extra, err = e.SRV(zone, state)
+		records, extra, debug, err = e.SRV(zone, state)
 	case "SOA":
-		records = []dns.RR{e.SOA(zone, state)}
+		records, debug, err = e.SOA(zone, state)
 	case "NS":
 		if state.Name() == zone {
-			records, extra, err = e.NS(zone, state)
+			records, extra, debug, err = e.NS(zone, state)
 			break
 		}
 		fallthrough
 	default:
-		// Do a fake A lookup, so we can distinguish betwen NODATA and NXDOMAIN
-		_, err = e.A(zone, state, nil)
+		// Do a fake A lookup, so we can distinguish between NODATA and NXDOMAIN
+		_, debug, err = e.A(zone, state, nil)
 	}
+
+	if e.debug != "" {
+		// substitute this name with the original when we return the request.
+		state.Clear()
+		state.Req.Question[0].Name = e.debug
+	}
+
 	if isEtcdNameError(err) {
-		return e.Err(zone, dns.RcodeNameError, state)
+		return e.Err(zone, dns.RcodeNameError, state, debug)
 	}
 	if err != nil {
 		return dns.RcodeServerFailure, err
 	}
 
 	if len(records) == 0 {
-		return e.Err(zone, dns.RcodeSuccess, state)
+		return e.Err(zone, dns.RcodeSuccess, state, debug)
 	}
 
+	m := new(dns.Msg)
+	m.SetReply(r)
+	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
 	m.Answer = append(m.Answer, records...)
 	m.Extra = append(m.Extra, extra...)
+	if e.debug != "" {
+		m.Extra = append(m.Extra, servicesToTxt(debug)...)
+	}
 
 	m = dedup(m)
 	state.SizeAndDo(m)
@@ -90,11 +108,12 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	return dns.RcodeSuccess, nil
 }
 
-// NoData write a nodata response to the client.
-func (e Etcd) Err(zone string, rcode int, state middleware.State) (int, error) {
+// Err write an error response to the client.
+func (e Etcd) Err(zone string, rcode int, state middleware.State, debug []msg.Service) (int, error) {
 	m := new(dns.Msg)
 	m.SetRcode(state.Req, rcode)
-	m.Ns = []dns.RR{e.SOA(zone, state)}
+	m.Ns, _, _ = e.SOA(zone, state)
+	m.Extra = servicesToTxt(debug)
 	state.SizeAndDo(m)
 	state.W.WriteMsg(m)
 	return rcode, nil

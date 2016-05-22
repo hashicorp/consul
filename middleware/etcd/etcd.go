@@ -24,6 +24,8 @@ type Etcd struct {
 	Ctx        context.Context
 	Inflight   *singleflight.Group
 	Stubmap    *map[string]proxy.Proxy // List of proxies for stub resolving.
+	Debug      bool                    // Do we allow debug queries.
+	debug      string                  // Should we return debugging information, if so, contains original qname.
 }
 
 // Records looks up records in etcd. If exact is true, it will lookup just

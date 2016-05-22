@@ -190,7 +190,8 @@ func (s *State) Type() string { return dns.Type(s.Req.Question[0].Qtype).String(
 func (s *State) QType() uint16 { return s.Req.Question[0].Qtype }
 
 // Name returns the name of the question in the request. Note
-// this name will always have a closing dot and will be lower cased.
+// this name will always have a closing dot and will be lower cased. After a call Name
+// the value will be cached. To clear this caching call Clear.
 func (s *State) Name() string {
 	if s.name != "" {
 		return s.name
@@ -222,6 +223,7 @@ func (s *State) Clear() {
 }
 
 const (
+	// TODO(miek): make this less awkward.
 	doTrue  = 1
 	doFalse = 2
 )

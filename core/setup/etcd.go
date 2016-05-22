@@ -68,6 +68,8 @@ func etcdParse(c *Controller) (etcd.Etcd, bool, error) {
 				switch c.Val() {
 				case "stubzones":
 					stubzones = true
+				case "debug":
+					etc.Debug = true
 				case "path":
 					if !c.NextArg() {
 						return etcd.Etcd{}, false, c.ArgErr()
@@ -103,6 +105,8 @@ func etcdParse(c *Controller) (etcd.Etcd, bool, error) {
 					switch c.Val() {
 					case "stubzones":
 						stubzones = true
+					case "debug":
+						etc.Debug = true
 					case "path":
 						if !c.NextArg() {
 							return etcd.Etcd{}, false, c.ArgErr()
