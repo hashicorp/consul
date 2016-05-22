@@ -74,7 +74,7 @@ func (c *CachingResponseWriter) WriteMsg(res *dns.Msg) error {
 
 func (c *CachingResponseWriter) set(m *dns.Msg, key string, mt middleware.MsgType) {
 	if key == "" {
-		// logger the log? TODO(miek)
+		log.Printf("[ERROR] Caching called with empty cache key")
 		return
 	}
 
@@ -94,6 +94,10 @@ func (c *CachingResponseWriter) set(m *dns.Msg, key string, mt middleware.MsgTyp
 		i := newItem(m, duration)
 
 		c.cache.Set(key, i, duration)
+	case middleware.OtherError:
+		// don't cache these
+	default:
+		log.Printf("[WARNING] Caching called with unknown middleware MsgType: %d", mt)
 	}
 }
 

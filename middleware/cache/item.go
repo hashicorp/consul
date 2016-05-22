@@ -74,6 +74,9 @@ func setCap(m *dns.Msg, ttl uint32) {
 		r.Header().Ttl = uint32(ttl)
 	}
 	for _, r := range m.Extra {
+		if r.Header().Rrtype == dns.TypeOPT {
+			continue
+		}
 		r.Header().Ttl = uint32(ttl)
 	}
 }
