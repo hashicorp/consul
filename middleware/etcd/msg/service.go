@@ -39,13 +39,13 @@ type Service struct {
 // RR returns an RR representation of s. It is in a condensed form to minimize space
 // when this is returned in a DNS message.
 // The RR will look like:
-//	skydns.local.skydns.east.production.rails.1. 300 CH TXT "service1.example.com:8080(10,0,,false)[0,]"
-//                      etcd Key                     Ttl               Host:Port          <   see below   >
+//	1.rails.production.east.skydns.local. 300 CH TXT "service1.example.com:8080(10,0,,false)[0,]"
+//                      etcd Key              Ttl               Host:Port          <   see below   >
 // between parens: (Priority, Weight, Text (only first 200 bytes!), Mail)
 // between blockquotes: [TargetStrip,Group]
 // If the record is synthesised by CoreDNS (i.e. no lookup in etcd happened):
 //
-//	skydns.local.skydns.east.production.rails.1. 300 CH TXT "service1.example.com:8080(10,0,,false)[0,]"
+//	TODO(miek): what to put here?
 //
 func (s *Service) RR() *dns.TXT {
 	l := len(s.Text)
@@ -56,8 +56,7 @@ func (s *Service) RR() *dns.TXT {
 	t.Hdr.Class = dns.ClassCHAOS
 	t.Hdr.Ttl = s.Ttl
 	t.Hdr.Rrtype = dns.TypeTXT
-	// TODO(miek): key guaranteerd to be > 1?
-	t.Hdr.Name = strings.Replace(s.Key[1:], "/", ".", -1) + "." // TODO(miek): slightly more like etcd.Domain()
+	t.Hdr.Name = Domain(s.Key)
 
 	t.Txt = make([]string, 1)
 	t.Txt[0] = fmt.Sprintf("%s:%d(%d,%d,%s,%t)[%d,%s]",

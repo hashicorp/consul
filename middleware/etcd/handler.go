@@ -76,7 +76,7 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	}
 
 	if e.debug != "" {
-		// substitute this name with the original when we return the request.
+		// Substitute this name with the original when we return the request.
 		state.Clear()
 		state.Req.Question[0].Name = e.debug
 	}
@@ -112,6 +112,7 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 func (e Etcd) Err(zone string, rcode int, state middleware.State, debug []msg.Service) (int, error) {
 	m := new(dns.Msg)
 	m.SetRcode(state.Req, rcode)
+	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
 	m.Ns, _, _ = e.SOA(zone, state)
 	m.Extra = servicesToTxt(debug)
 	state.SizeAndDo(m)

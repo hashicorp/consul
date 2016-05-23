@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/miekg/coredns/middleware/etcd/msg"
 	"github.com/miekg/coredns/middleware/proxy"
 
 	"github.com/miekg/dns"
@@ -46,7 +47,7 @@ func (e *Etcd) updateStubZones() {
 			continue
 		}
 
-		domain := e.Domain(serv.Key)
+		domain := msg.Domain(serv.Key)
 		labels := dns.SplitDomainName(domain)
 
 		// If the remaining name equals any of the zones we have, we ignore it.

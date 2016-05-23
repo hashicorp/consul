@@ -47,12 +47,12 @@ func set(t *testing.T, e Etcd, k string, ttl time.Duration, m *msg.Service) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	path, _ := e.PathWithWildcard(k)
+	path, _ := msg.PathWithWildcard(k, e.PathPrefix)
 	e.Client.Set(ctx, path, string(b), &etcdc.SetOptions{TTL: ttl})
 }
 
 func delete(t *testing.T, e Etcd, k string) {
-	path, _ := e.PathWithWildcard(k)
+	path, _ := msg.PathWithWildcard(k, e.PathPrefix)
 	e.Client.Delete(ctx, path, &etcdc.DeleteOptions{Recursive: false})
 }
 

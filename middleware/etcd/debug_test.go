@@ -113,8 +113,8 @@ var dnsTestCasesDebug = []test.Case{
 			test.A("dom.skydns.test. 300 IN A 127.0.0.2"),
 		},
 		Extra: []dns.RR{
-			test.TXT(`skydns.test.skydns.dom.a.	300	CH	TXT	"127.0.0.1:0(10,0,,false)[0,]"`),
-			test.TXT(`skydns.test.skydns.dom.sub.b.	300	CH	TXT	"127.0.0.2:0(10,0,,false)[0,]"`),
+			test.TXT(`a.dom.skydns.test. 300	CH	TXT	"127.0.0.1:0(10,0,,false)[0,]"`),
+			test.TXT(`b.sub.dom.skydns.test. 300	CH	TXT	"127.0.0.2:0(10,0,,false)[0,]"`),
 		},
 	},
 	{
@@ -123,8 +123,8 @@ var dnsTestCasesDebug = []test.Case{
 			test.SOA("skydns.test. 300 IN SOA ns.dns.skydns.test. hostmaster.skydns.test. 1463943291 7200 1800 86400 60"),
 		},
 		Extra: []dns.RR{
-			test.TXT(`skydns.test.skydns.dom.a.	300	CH	TXT	"127.0.0.1:0(10,0,,false)[0,]"`),
-			test.TXT(`skydns.test.skydns.dom.sub.b.	300	CH	TXT	"127.0.0.2:0(10,0,,false)[0,]"`),
+			test.TXT(`a.dom.skydns.test. 300	CH	TXT	"127.0.0.1:0(10,0,,false)[0,]"`),
+			test.TXT(`b.sub.dom.skydns.test. 300	CH	TXT	"127.0.0.2:0(10,0,,false)[0,]"`),
 		},
 	},
 }

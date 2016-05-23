@@ -32,12 +32,12 @@ type Etcd struct {
 // this name. This is used when find matches when completing SRV lookups
 // for instance.
 func (g Etcd) Records(name string, exact bool) ([]msg.Service, error) {
-	path, star := g.PathWithWildcard(name)
+	path, star := msg.PathWithWildcard(name, g.PathPrefix)
 	r, err := g.Get(path, true)
 	if err != nil {
 		return nil, err
 	}
-	segments := strings.Split(g.Path(name), "/")
+	segments := strings.Split(msg.Path(name, g.PathPrefix), "/")
 	switch {
 	case exact && r.Node.Dir:
 		return nil, nil

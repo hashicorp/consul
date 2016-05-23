@@ -213,13 +213,13 @@ func (e Etcd) SRV(zone string, state middleware.State) (records, extra []dns.RR,
 			}
 			// e.AAA(zone, state1, nil) as well...?
 		case ip.To4() != nil:
-			serv.Host = e.Domain(serv.Key)
+			serv.Host = msg.Domain(serv.Key)
 			srv := serv.NewSRV(state.QName(), weight)
 
 			records = append(records, srv)
 			extra = append(extra, serv.NewA(srv.Target, ip.To4()))
 		case ip.To4() == nil:
-			serv.Host = e.Domain(serv.Key)
+			serv.Host = msg.Domain(serv.Key)
 			srv := serv.NewSRV(state.QName(), weight)
 
 			records = append(records, srv)
@@ -278,11 +278,11 @@ func (e Etcd) MX(zone string, state middleware.State) (records, extra []dns.RR, 
 			}
 			// e.AAAA as well
 		case ip.To4() != nil:
-			serv.Host = e.Domain(serv.Key)
+			serv.Host = msg.Domain(serv.Key)
 			records = append(records, serv.NewMX(state.QName()))
 			extra = append(extra, serv.NewA(serv.Host, ip.To4()))
 		case ip.To4() == nil:
-			serv.Host = e.Domain(serv.Key)
+			serv.Host = msg.Domain(serv.Key)
 			records = append(records, serv.NewMX(state.QName()))
 			extra = append(extra, serv.NewAAAA(serv.Host, ip.To16()))
 		}
@@ -340,11 +340,11 @@ func (e Etcd) NS(zone string, state middleware.State) (records, extra []dns.RR, 
 		case ip == nil:
 			return nil, nil, debug, fmt.Errorf("NS record must be an IP address: %s", serv.Host)
 		case ip.To4() != nil:
-			serv.Host = e.Domain(serv.Key)
+			serv.Host = msg.Domain(serv.Key)
 			records = append(records, serv.NewNS(state.QName()))
 			extra = append(extra, serv.NewA(serv.Host, ip.To4()))
 		case ip.To4() == nil:
-			serv.Host = e.Domain(serv.Key)
+			serv.Host = msg.Domain(serv.Key)
 			records = append(records, serv.NewNS(state.QName()))
 			extra = append(extra, serv.NewAAAA(serv.Host, ip.To16()))
 		}
