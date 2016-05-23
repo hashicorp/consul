@@ -60,6 +60,8 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 	params := req.URL.Query()
 	if _, ok := params["recurse"]; ok {
 		method = "KVS.List"
+	} else if missingKey(resp, args) {
+		return nil, nil
 	}
 	if _, ok := params["searchall"]; ok {
 		method = "KVS.List"
