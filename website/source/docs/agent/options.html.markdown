@@ -656,12 +656,12 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   sends its runtime telemetry, and contains the following keys:
 
   * <a name="telemetry-statsd_address"></a><a href="#telemetry-statsd_address">`statsd_address`</a> This provides the
-    address of a statsd instance.  If provided, Consul will send various telemetry information to that instance for
+    address of a statsd instance in the format `host:port`.  If provided, Consul will send various telemetry information to that instance for
     aggregation. This can be used to capture runtime information. This sends UDP packets only and can be used with
     statsd or statsite.
 
   * <a name="telemetry-statsite_address"></a><a href="#telemetry-statsite_address">`statsite_address`</a> This provides
-    the address of a statsite instance. If provided, Consul will stream various telemetry information to that instance
+    the address of a statsite instance in the format `host:port`. If provided, Consul will stream various telemetry information to that instance
     for aggregation. This can be used to capture runtime information. This streams via TCP and can only be used with
     statsite.
 
