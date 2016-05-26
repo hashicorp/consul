@@ -60,10 +60,8 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 	params := req.URL.Query()
 	if _, ok := params["recurse"]; ok {
 		method = "KVS.List"
-	} else if missingKey(resp, args) {
-		return nil, nil
-	}
-	if _, ok := params["searchall"]; ok {
+	} 
+	if _, ok := params["search"]; ok {
 		method = "KVS.List"
 	} else if missingKey(resp, args) {
 		return nil, nil
@@ -90,8 +88,8 @@ func (s *HTTPServer) KVSGet(resp http.ResponseWriter, req *http.Request, args *s
 		return nil, nil
 	}
 	var searchout structs.IndexedDirEntries
-	if _, ok := params["searchall"]; ok {
-		keyToSearch := req.URL.Query().Get("searchall")
+	if _, ok := params["search"]; ok {
+		keyToSearch := req.URL.Query().Get("search")
 		for _,entry := range out.Entries {
 			if strings.Contains(entry.Key, keyToSearch) {
 				searchout.Entries=append(searchout.Entries,entry)
