@@ -58,7 +58,7 @@ func kvsPreApply(srv *Server, acl acl.ACL, op api.KVOp, dirEnt *structs.DirEntry
 	// after the raft log is committed as it would lead to inconsistent FSMs.
 	// Instead, the lock-delay must be enforced before commit. This means that
 	// only the wall-time of the leader node is used, preventing any inconsistencies.
-	if op == api.KVLock {
+	if op == api.KVLock || op == api.KVLockInPlace {
 		state := srv.fsm.State()
 		expires := state.KVSLockDelay(dirEnt.Key)
 		if expires.After(time.Now()) {

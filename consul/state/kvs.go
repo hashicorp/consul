@@ -469,7 +469,21 @@ func (s *Store) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	locked, err := s.kvsLockTxn(tx, idx, entry)
+	locked, err := s.kvsLockTxn(tx, idx, entry, false)
+	if !locked || err != nil {
+		return false, err
+	}
+
+	tx.Commit()
+	return true, nil
+}
+
+// KVSLockInPlace aquires a lock while preserving the existing value
+func (s *Store) KVSLockInPlace(idx uint64, entry *structs.DirEntry) (bool, error) {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	locked, err := s.kvsLockTxn(tx, idx, entry, true)
 	if !locked || err != nil {
 		return false, err
 	}
@@ -480,7 +494,7 @@ func (s *Store) KVSLock(idx uint64, entry *structs.DirEntry) (bool, error) {
 
 // kvsLockTxn is the inner method that does a lock inside an existing
 // transaction.
-func (s *Store) kvsLockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (bool, error) {
+func (s *Store) kvsLockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry, inPlace bool) (bool, error) {
 	// Verify that a session is present.
 	if entry.Session == "" {
 		return false, fmt.Errorf("missing session")
@@ -497,6 +511,7 @@ func (s *Store) kvsLockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (
 
 	// Retrieve the existing entry.
 	existing, err := tx.First("kvs", "id", entry.Key)
+
 	if err != nil {
 		return false, fmt.Errorf("failed kvs lookup: %s", err)
 	}
@@ -504,7 +519,12 @@ func (s *Store) kvsLockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (
 	// Set up the entry, using the existing entry if present.
 	if existing != nil {
 		e := existing.(*structs.DirEntry)
-		if e.Session == entry.Session {
+		currentSession := entry.Session
+		// Use the existing entry for in place locks
+		if inPlace {
+			*entry = *e.Clone()
+		}
+		if e.Session == currentSession {
 			// We already hold this lock, good to go.
 			entry.CreateIndex = e.CreateIndex
 			entry.LockIndex = e.LockIndex
@@ -515,6 +535,7 @@ func (s *Store) kvsLockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (
 			// Set up a new lock with this session.
 			entry.CreateIndex = e.CreateIndex
 			entry.LockIndex = e.LockIndex + 1
+			entry.Session = currentSession
 		}
 	} else {
 		entry.CreateIndex = idx
@@ -529,13 +550,28 @@ func (s *Store) kvsLockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (
 	return true, nil
 }
 
-// KVSUnlock is similar to KVSSet but only performs the set if the lock can be
-// unlocked (the key must already exist and be locked).
+// KVSUnlock is similar to KVSSet but only performs the set if the lock can be unlocked
+// (the key must already exist and be locked).
 func (s *Store) KVSUnlock(idx uint64, entry *structs.DirEntry) (bool, error) {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
-	unlocked, err := s.kvsUnlockTxn(tx, idx, entry)
+	unlocked, err := s.kvsUnlockTxn(tx, idx, entry, false)
+	if !unlocked || err != nil {
+		return false, err
+	}
+
+	tx.Commit()
+	return true, nil
+}
+
+// KVSUnlockInPlace perserves the existing value and attempts to unlock the item
+// (the key must already exist and be locked).
+func (s *Store) KVSUnlockInPlace(idx uint64, entry *structs.DirEntry) (bool, error) {
+	tx := s.db.Txn(true)
+	defer tx.Abort()
+
+	unlocked, err := s.kvsUnlockTxn(tx, idx, entry, true)
 	if !unlocked || err != nil {
 		return false, err
 	}
@@ -546,7 +582,7 @@ func (s *Store) KVSUnlock(idx uint64, entry *structs.DirEntry) (bool, error) {
 
 // kvsUnlockTxn is the inner method that does an unlock inside an existing
 // transaction.
-func (s *Store) kvsUnlockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry) (bool, error) {
+func (s *Store) kvsUnlockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry, inPlace bool) (bool, error) {
 	// Verify that a session is present.
 	if entry.Session == "" {
 		return false, fmt.Errorf("missing session")
@@ -567,6 +603,11 @@ func (s *Store) kvsUnlockTxn(tx *memdb.Txn, idx uint64, entry *structs.DirEntry)
 	e := existing.(*structs.DirEntry)
 	if e.Session != entry.Session {
 		return false, nil
+	}
+
+	// Use the existing entry for in place locks
+	if inPlace {
+		*entry = *e.Clone()
 	}
 
 	// Clear the lock and update the entry.
