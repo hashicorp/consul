@@ -3,10 +3,10 @@
 	"ignore": "",
 	"package": [
 		{
-			"checksumSHA1": "Vrd+ucpioTcZGglPx2JWUxb2J7A=",
+			"checksumSHA1": "AhusAD66yIur/q9x/Pck8Csv4MI=",
 			"path": "github.com/hashicorp/scada-client/scada",
-			"revision": "225f7ae4780b59d1bd990de93cae7496bade95a0",
-			"revisionTime": "2016-06-01T18:41:54Z"
+			"revision": "6e896784f66f82cdc6f17e00052db91699dc277d",
+			"revisionTime": "2016-06-01T22:40:23Z"
 		}
 	],
 	"rootPath": "github.com/hashicorp/consul"

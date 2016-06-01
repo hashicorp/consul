@@ -12,7 +12,7 @@ func TestProviderService(t *testing.T) {
 	conf := &Config{
 		Version:      "0.5.0rc1",
 		Service:      "nomad",
-		ResourceType: NomadClusterResource,
+		ResourceType: "nomad-cluster",
 		Meta: map[string]string{
 			"auto-join":  "true",
 			"region":     "global",
@@ -47,7 +47,7 @@ func TestProviderConfig(t *testing.T) {
 	conf := &Config{
 		Version:      "0.5.0rc1",
 		Service:      "nomad",
-		ResourceType: NomadClusterResource,
+		ResourceType: "nomad-cluster",
 		Meta: map[string]string{
 			"auto-join":  "true",
 			"region":     "global",
