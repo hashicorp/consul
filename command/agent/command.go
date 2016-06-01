@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -21,7 +22,7 @@ import (
 	"github.com/hashicorp/go-reap"
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
-	scada "github.com/hashicorp/scada-client"
+	scada "github.com/hashicorp/scada-client/scada"
 	"github.com/mitchellh/cli"
 )
 
@@ -1011,9 +1012,25 @@ func (c *Command) setupScadaConn(config *Config) error {
 		return nil
 	}
 
+	scadaConfig := &scada.Config{
+		Service:      "consul",
+		Version:      fmt.Sprintf("%s%s", config.Version, config.VersionPrerelease),
+		ResourceType: "infrastructures",
+		Meta: map[string]string{
+			"auto-join":  strconv.FormatBool(config.AtlasJoin),
+			"datacenter": config.Datacenter,
+			"server":     strconv.FormatBool(config.Server),
+		},
+		Atlas: scada.AtlasConfig{
+			Endpoint:       config.AtlasEndpoint,
+			Infrastructure: config.AtlasInfrastructure,
+			Token:          config.AtlasToken,
+		},
+	}
+
 	// Create the new provider and listener
 	c.Ui.Output("Connecting to Atlas: " + config.AtlasInfrastructure)
-	provider, list, err := NewProvider(config, c.logOutput)
+	provider, list, err := scada.NewHTTPProvider(scadaConfig, c.logOutput)
 	if err != nil {
 		return err
 	}
