@@ -408,7 +408,7 @@ an empty `Address` field for a service, use the `Address` field of the agent nod
 associated with that instance of the service, which is returned alongside the service
 information.
 
-If `Check` is provided, only one of `Script`, `HTTP`, or `TTL` should be specified.
+If `Check` is provided, only one of `Script`, `HTTP`, `TCP` or `TTL` should be specified.
 `Script` and `HTTP` also require `Interval`. The created check will be named "service:\<ServiceId\>".
 There is more information about checks [here](/docs/agent/checks.html).
 
