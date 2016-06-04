@@ -74,3 +74,11 @@ The list of available flags are:
 
 * `-verbose` - Enables verbose output.
 
+## SHELL
+Consul lock launches its children in a shell. By default, Consul will use the shell
+defined in the environment variable `SHELL`. If `SHELL` is not defined, it will
+default to `/bin/sh`. It should be noted that not all shells terminate child
+processes when they receive `SIGTERM`. Under Ubuntu, `/bin/sh` is linked to `dash`,
+which does **not** terminate its children. In order to ensure that child processes
+are killed when the lock is lost, be sure to set the `SHELL` environment variable
+appropriately.

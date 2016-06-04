@@ -71,7 +71,7 @@ those servers have indeed failed and will not later rejoin the cluster.
 Ensure that this file is the same across all remaining server nodes.
 
 At this point, you can restart all the remaining servers. If any servers
-managed to perform a graceful leave, you may need to have then rejoin
+managed to perform a graceful leave, you may need to have them rejoin
 the cluster using the [`join`](/docs/commands/join.html) command:
 
 ```text

@@ -213,7 +213,7 @@ for [DNS Caching](/docs/guides/dns-cache.html).
 
 ## WAN Address Translation
 
-Be default, Consul DNS queries will return a node's local address, even when
+By default, Consul DNS queries will return a node's local address, even when
 being queried from a remote datacenter. If you need to use a different address
 to reach a node from outside its datacenter, you can configure this behavior
 using the [`advertise-wan`](/docs/agent/options.html#_advertise-wan) and

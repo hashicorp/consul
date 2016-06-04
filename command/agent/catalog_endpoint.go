@@ -19,6 +19,7 @@ func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request
 	if args.Datacenter == "" {
 		args.Datacenter = s.agent.config.Datacenter
 	}
+	s.parseToken(req, &args.Token)
 
 	// Forward to the servers
 	var out struct{}
@@ -40,6 +41,7 @@ func (s *HTTPServer) CatalogDeregister(resp http.ResponseWriter, req *http.Reque
 	if args.Datacenter == "" {
 		args.Datacenter = s.agent.config.Datacenter
 	}
+	s.parseToken(req, &args.Token)
 
 	// Forward to the servers
 	var out struct{}

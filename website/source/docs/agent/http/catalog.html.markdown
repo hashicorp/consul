@@ -20,7 +20,7 @@ The following endpoints are supported:
 * [`/v1/catalog/nodes`](#catalog_nodes) : Lists nodes in a given DC
 * [`/v1/catalog/services`](#catalog_services) : Lists services in a given DC
 * [`/v1/catalog/service/<service>`](#catalog_service) : Lists the nodes in a given service
-* [`/v1/catalog/node/<node>`](#catalog_nodes) : Lists the services provided by a node
+* [`/v1/catalog/node/<node>`](#catalog_node) : Lists the services provided by a node
 
 The `nodes` and `services` endpoints support blocking queries and
 tunable consistency modes.

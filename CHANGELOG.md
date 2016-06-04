@@ -45,6 +45,7 @@ BUG FIXES:
 
 * Fixed an issue where a health check's output never updates if the check
   status doesn't change after the Consul agent starts. [GH-1934]
+* External services can now be registered with ACL tokens. [GH-1738]
 
 ## 0.6.4 (March 16, 2016)
 
