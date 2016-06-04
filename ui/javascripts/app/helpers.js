@@ -171,9 +171,14 @@ Ember.Handlebars.helper('dcTomographyMarks', function(distances, max) {
   distances.forEach(function (d) {
     var xPerc = d.distance * 100 / max;
     buf += '' +
-'                        <line x1="' + xPerc + '%" y1="0" x2="' + xPerc + '%" y2="30">' +
+'                        <line x1="' + xPerc + '%" y1="1" x2="' + xPerc + '%" y2="14">' +
 '                          <title>' + d.source + ' -> ' + d.target + ' - ' + d.distance + 'ms</title>' +
 '                        </line>';
   });
   return new Handlebars.SafeString(buf);
+});
+
+Ember.Handlebars.helper('round', function(value, decimals) {
+  var shift = decimals * 10;
+  return parseInt(value * shift + 0.5) / shift;
 });

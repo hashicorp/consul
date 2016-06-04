@@ -143,6 +143,7 @@ App.IndexRoute = App.BaseRoute.extend({
 
       return {
         max: globalMax,
+        mid: globalMax / 2.0,
         datacenters: datacenters
       };
     })

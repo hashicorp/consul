@@ -194,8 +194,11 @@ a {
   stroke: $gray-darker;
   stroke-width: 2px;
 }
-.dc-tomography .min, .dc-tomography .max {
+.dc-tomography .min, .dc-tomography .mid, .dc-tomography .max {
   font-size: 10px;
+}
+.dc-tomography .mid {
+  text-align: center;
 }
 .dc-tomography .max {
   text-align: right;
