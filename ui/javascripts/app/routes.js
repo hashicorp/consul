@@ -128,16 +128,12 @@ App.IndexRoute = App.BaseRoute.extend({
             }
             peers.push({
               datacenter: target.Datacenter,
-              min: distances[0],
-              median: {
-                distance: medianDistance(distances),
-              },
-              max: distances[n1]
+              distances: distances,
             });
           }
         });
         peers.sort(function (a, b) {
-          return a.max - b.max;
+          return a.datacenter.localeCompare(b.datacenter);
         });
         datacenters.push({
           datacenter: source.Datacenter,

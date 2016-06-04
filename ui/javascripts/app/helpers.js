@@ -166,16 +166,14 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
   return new Handlebars.SafeString(buf);
 });
 
-Ember.Handlebars.helper('dcTomographyLine', function(data, max) {
-  var xPerc = data.distance * 100 / max;
-  var buf = '' +
-'                        <line x1="' + xPerc + '%" y1="0" x2="' + xPerc + '%" y2="30">';
-  if (data.source) {
-    buf += '                          <title>' + data.source + ' -> ' + data.target + ' - ' + data.distance + 'ms</title>';
-  } else {
-    buf += '                          <title>median - ' + data.distance + 'ms</title>';
-  }
-
-  buf += '                        </line>';
+Ember.Handlebars.helper('dcTomographyMarks', function(distances, max) {
+  var buf = '';
+  distances.forEach(function (d) {
+    var xPerc = d.distance * 100 / max;
+    buf += '' +
+'                        <line x1="' + xPerc + '%" y1="0" x2="' + xPerc + '%" y2="30">' +
+'                          <title>' + d.source + ' -> ' + d.target + ' - ' + d.distance + 'ms</title>' +
+'                        </line>';
+  });
   return new Handlebars.SafeString(buf);
 });
