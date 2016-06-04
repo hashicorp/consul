@@ -1107,6 +1107,46 @@ func (s *StateStore) ChecksInState(state string) (uint64, structs.HealthChecks, 
 	return s.parseChecks(idx, checks)
 }
 
+//ChecksInStateTag
+func (s *StateStore) ChecksInStateTag(state, tag string) (uint64, structs.HealthChecks, error) {
+	tx := s.db.Txn(false)
+	defer tx.Abort()
+
+	// Get the table index.
+	idx := maxIndexTxn(tx, s.getWatchTables("ChecksInState")...)
+
+	// Query all checks if HealthAny is passed
+	if state == structs.HealthAny {
+		checks, err := tx.Get("checks", "status")
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+		}
+		return s.parseChecksTag(idx, tag, checks)
+	}
+
+	// Any other state we need to query for explicitly
+	checks, err := tx.Get("checks", "status", state)
+	if err != nil {
+		return 0, nil, fmt.Errorf("failed check lookup: %s", err)
+	}
+
+	return s.parseChecksTag(idx, tag, checks)
+}
+
+//parseChecksTag
+func (s *StateStore) parseChecksTag(idx uint64, tag string, iter memdb.ResultIterator) (uint64, structs.HealthChecks, error) {
+	var results structs.HealthChecks
+	for check := iter.Next(); check != nil; check = iter.Next() {
+		checkitem := check.(*structs.HealthCheck)
+		for _, tag2 := range checkitem.Tags {
+			if tag == tag2 {
+				results = append(results, check.(*structs.HealthCheck))
+			}
+		}
+	}
+	return idx, results, nil
+}
+
 // parseChecks is a helper function used to deduplicate some
 // repetitive code for returning health checks.
 func (s *StateStore) parseChecks(idx uint64, iter memdb.ResultIterator) (uint64, structs.HealthChecks, error) {

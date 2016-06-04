@@ -49,7 +49,7 @@ Watch Specification:
                              optional for 'checks' type.
   -state=val                 Specifies the states to watch. Optional for 'checks' type.
   -tag=val                   Specifies the service tag to filter on. Optional for 'service'
-                             type.
+                             and 'checks' type.
   -type=val                  Specifies the watch type. One of key, keyprefix
                              services, nodes, service, checks, or event.
 `

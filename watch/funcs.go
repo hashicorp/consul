@@ -133,11 +133,14 @@ func serviceWatch(params map[string]interface{}) (WatchFunc, error) {
 
 // checksWatch is used to watch a specific checks in a given state
 func checksWatch(params map[string]interface{}) (WatchFunc, error) {
-	var service, state string
+	var service, state, tag string
 	if err := assignValue(params, "service", &service); err != nil {
 		return nil, err
 	}
 	if err := assignValue(params, "state", &state); err != nil {
+		return nil, err
+	}
+	if err := assignValue(params, "tag", &tag); err != nil {
 		return nil, err
 	}
 	if service != "" && state != "" {
@@ -154,9 +157,9 @@ func checksWatch(params map[string]interface{}) (WatchFunc, error) {
 		var meta *consulapi.QueryMeta
 		var err error
 		if state != "" {
-			checks, meta, err = health.State(state, &opts)
+			checks, meta, err = health.State(state, tag, &opts)
 		} else {
-			checks, meta, err = health.Checks(service, &opts)
+			checks, meta, err = health.Checks(service, tag, &opts)
 		}
 		if err != nil {
 			return 0, nil, err

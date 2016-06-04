@@ -12,6 +12,7 @@ type AgentCheck struct {
 	Status      string
 	Notes       string
 	Output      string
+	Tags        []string
 	ServiceID   string
 	ServiceName string
 }
