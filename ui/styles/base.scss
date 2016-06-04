@@ -149,33 +149,33 @@ a {
   margin-top: -3px;
 }
 
-.tomography .background {
+.node-tomography .background {
   fill: $gray-background;
 }
-.tomography .axis {
+.node-tomography .axis {
   fill: none;
   stroke: $gray-light;
   stroke-dasharray: 4 4;
 }
-.tomography .border {
+.node-tomography .border {
   fill: none;
   stroke: $gray-darker;
 }
-.tomography .point {
+.node-tomography .point {
   stroke: $gray-darker;
   fill: $green-faded;
 }
-.tomography .lines line {
+.node-tomography .lines line {
   stroke: $red;
 }
-.tomography .lines line:hover {
+.node-tomography .lines line:hover {
   stroke: $gray-darker;
   stroke-width: 2px;
 }
-.tomography .tick line {
+.node-tomography .tick line {
   stroke: $gray-light;
 }
-.tomography .tick text {
+.node-tomography .tick text {
   font-size: 14px;
   text-anchor: start;
 }
