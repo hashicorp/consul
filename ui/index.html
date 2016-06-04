@@ -739,31 +739,33 @@
               {{#if dc.peers}}
                 <div class="panel-body">
                   <h5>Network Tomography</h5>
-                  {{#each peer in dc.peers}}
+                  <div class="col-xs-12">
+                    {{#each peer in dc.peers}}
+                      <div class="dc-tomography row">
+                        <div class="col-xs-3">
+                          <span>{{peer.datacenter}}</span>
+                        </div>
+                        <svg class="col-xs-9" xmlns="http://www.w3.org/2000/svg" height="15">
+                          <g class="axis">
+                            <line x1="1" y1="0" x2="1" y2="30"/>
+                            <line y1="7.5" x2="100%" y2="7.5"/>
+                            <line x1="100%" y1="0" x2="100%" y2="15"/>
+                          </g>
+                          <g class="datapoints">
+                            {{dcTomographyMarks peer.distances model.max}}
+                          </g>
+                        </svg>
+                      </div>
+                    {{/each}}
                     <div class="dc-tomography row">
                       <div class="col-xs-3">
-                        <span>{{peer.datacenter}}</span>
                       </div>
-                      <svg class="col-xs-9" xmlns="http://www.w3.org/2000/svg" height="15">
-                        <g class="axis">
-                          <line x1="1" y1="0" x2="1" y2="30"/>
-                          <line y1="7.5" x2="100%" y2="7.5"/>
-                          <line x1="100%" y1="0" x2="100%" y2="15"/>
-                        </g>
-                        <g class="datapoints">
-                          {{dcTomographyMarks peer.distances model.max}}
-                        </g>
-                      </svg>
-                    </div>
-                  {{/each}}
-                  <div class="dc-tomography row">
-                    <div class="col-xs-3">
-                    </div>
-                    <div class="col-xs-5 min">
-                      0ms
-                    </div>
-                    <div class="col-xs-4 max">
-                      {{model.max}}ms
+                      <div class="col-xs-5 min">
+                        0ms
+                      </div>
+                      <div class="col-xs-4 max">
+                        {{model.max}}ms
+                      </div>
                     </div>
                   </div>
                 </div>
