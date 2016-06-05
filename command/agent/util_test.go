@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -89,5 +90,26 @@ func TestSetFilePermissions(t *testing.T) {
 	}
 	if fi.Mode().String() != "-rwxrwxrwx" {
 		t.Fatalf("bad: %s", fi.Mode())
+	}
+}
+
+func TestAtomicWrite(t *testing.T) {
+	data := []byte("Test data")
+	f, err := ioutil.TempFile("", "test_atomic_write")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Remove(f.Name())
+	err = writeFileAtomic(f.Name(), data, 0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	readData, err := ioutil.ReadFile(f.Name())
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	// verify that the read data is equal to the original data
+	if !bytes.Equal(data, readData) {
+		t.Fatalf("Size of original data: %d does not match size of read data: %d", len(data), len(readData))
 	}
 }
