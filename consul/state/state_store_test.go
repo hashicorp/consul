@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/coordinate"
 )
 
@@ -82,7 +83,7 @@ func testRegisterService(t *testing.T, s *StateStore, idx uint64, nodeID, servic
 }
 
 func testRegisterCheck(t *testing.T, s *StateStore, idx uint64,
-	nodeID string, serviceID string, checkID structs.CheckID, state string) {
+	nodeID string, serviceID string, checkID types.CheckID, state string) {
 	chk := &structs.HealthCheck{
 		Node:      nodeID,
 		CheckID:   checkID,

@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
 )
@@ -74,19 +75,19 @@ type Agent struct {
 	state localState
 
 	// checkMonitors maps the check ID to an associated monitor
-	checkMonitors map[structs.CheckID]*CheckMonitor
+	checkMonitors map[types.CheckID]*CheckMonitor
 
 	// checkHTTPs maps the check ID to an associated HTTP check
-	checkHTTPs map[structs.CheckID]*CheckHTTP
+	checkHTTPs map[types.CheckID]*CheckHTTP
 
 	// checkTCPs maps the check ID to an associated TCP check
-	checkTCPs map[structs.CheckID]*CheckTCP
+	checkTCPs map[types.CheckID]*CheckTCP
 
 	// checkTTLs maps the check ID to an associated check TTL
-	checkTTLs map[structs.CheckID]*CheckTTL
+	checkTTLs map[types.CheckID]*CheckTTL
 
 	// checkDockers maps the check ID to an associated Docker Exec based check
-	checkDockers map[structs.CheckID]*CheckDocker
+	checkDockers map[types.CheckID]*CheckDocker
 
 	// checkLock protects updates to the check* maps
 	checkLock sync.Mutex
@@ -176,11 +177,11 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		config:        config,
 		logger:        log.New(logOutput, "", log.LstdFlags),
 		logOutput:     logOutput,
-		checkMonitors: make(map[structs.CheckID]*CheckMonitor),
-		checkTTLs:     make(map[structs.CheckID]*CheckTTL),
-		checkHTTPs:    make(map[structs.CheckID]*CheckHTTP),
-		checkTCPs:     make(map[structs.CheckID]*CheckTCP),
-		checkDockers:  make(map[structs.CheckID]*CheckDocker),
+		checkMonitors: make(map[types.CheckID]*CheckMonitor),
+		checkTTLs:     make(map[types.CheckID]*CheckTTL),
+		checkHTTPs:    make(map[types.CheckID]*CheckHTTP),
+		checkTCPs:     make(map[types.CheckID]*CheckTCP),
+		checkDockers:  make(map[types.CheckID]*CheckDocker),
 		eventCh:       make(chan serf.UserEvent, 1024),
 		eventBuf:      make([]*UserEvent, 256),
 		shutdownCh:    make(chan struct{}),
@@ -724,7 +725,7 @@ func (a *Agent) persistCheck(check *structs.HealthCheck, chkType *CheckType) err
 }
 
 // purgeCheck removes a persisted check definition file from the data dir
-func (a *Agent) purgeCheck(checkID structs.CheckID) error {
+func (a *Agent) purgeCheck(checkID types.CheckID) error {
 	checkPath := filepath.Join(a.config.DataDir, checksDir, checkIDHash(checkID))
 	if _, err := os.Stat(checkPath); err == nil {
 		return os.Remove(checkPath)
@@ -791,7 +792,7 @@ func (a *Agent) AddService(service *structs.NodeService, chkTypes CheckTypes, pe
 		}
 		check := &structs.HealthCheck{
 			Node:        a.config.NodeName,
-			CheckID:     structs.CheckID(checkID),
+			CheckID:     types.CheckID(checkID),
 			Name:        fmt.Sprintf("Service '%s' check", service.Service),
 			Status:      structs.HealthCritical,
 			Notes:       chkType.Notes,
@@ -998,7 +999,7 @@ func (a *Agent) AddCheck(check *structs.HealthCheck, chkType *CheckType, persist
 
 // RemoveCheck is used to remove a health check.
 // The agent will make a best effort to ensure it is deregistered
-func (a *Agent) RemoveCheck(checkID structs.CheckID, persist bool) error {
+func (a *Agent) RemoveCheck(checkID types.CheckID, persist bool) error {
 	// Validate CheckID
 	if checkID == "" {
 		return fmt.Errorf("CheckID missing")
@@ -1041,7 +1042,7 @@ func (a *Agent) RemoveCheck(checkID structs.CheckID, persist bool) error {
 
 // UpdateCheck is used to update the status of a check.
 // This can only be used with checks of the TTL type.
-func (a *Agent) UpdateCheck(checkID structs.CheckID, status, output string) error {
+func (a *Agent) UpdateCheck(checkID types.CheckID, status, output string) error {
 	a.checkLock.Lock()
 	defer a.checkLock.Unlock()
 
@@ -1129,7 +1130,7 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 }
 
 // purgeCheckState is used to purge the state of a check from the data dir
-func (a *Agent) purgeCheckState(checkID structs.CheckID) error {
+func (a *Agent) purgeCheckState(checkID types.CheckID) error {
 	file := filepath.Join(a.config.DataDir, checkStateDir, checkIDHash(checkID))
 	err := os.Remove(file)
 	if os.IsNotExist(err) {
@@ -1393,22 +1394,22 @@ func (a *Agent) unloadChecks() error {
 // snapshotCheckState is used to snapshot the current state of the health
 // checks. This is done before we reload our checks, so that we can properly
 // restore into the same state.
-func (a *Agent) snapshotCheckState() map[structs.CheckID]*structs.HealthCheck {
+func (a *Agent) snapshotCheckState() map[types.CheckID]*structs.HealthCheck {
 	return a.state.Checks()
 }
 
 // restoreCheckState is used to reset the health state based on a snapshot.
 // This is done after we finish the reload to avoid any unnecessary flaps
 // in health state and potential session invalidations.
-func (a *Agent) restoreCheckState(snap map[structs.CheckID]*structs.HealthCheck) {
+func (a *Agent) restoreCheckState(snap map[types.CheckID]*structs.HealthCheck) {
 	for id, check := range snap {
 		a.state.UpdateCheck(id, check.Status, check.Output)
 	}
 }
 
 // serviceMaintCheckID returns the ID of a given service's maintenance check
-func serviceMaintCheckID(serviceID string) structs.CheckID {
-	return structs.CheckID(fmt.Sprintf("%s:%s", serviceMaintCheckPrefix, serviceID))
+func serviceMaintCheckID(serviceID string) types.CheckID {
+	return types.CheckID(fmt.Sprintf("%s:%s", serviceMaintCheckPrefix, serviceID))
 }
 
 // EnableServiceMaintenance will register a false health check against the given
