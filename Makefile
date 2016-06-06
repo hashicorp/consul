@@ -1,5 +1,8 @@
+#VERBOSE :=
+VERBOSE := -v
+
 all:
-	go build
+	go build $(VERBOSE)
 
 .PHONY: docker
 docker:
