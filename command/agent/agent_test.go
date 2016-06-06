@@ -919,7 +919,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 		Interval: 10 * time.Second,
 	}
 
-	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check.CheckID))
+	file := filepath.Join(agent.config.DataDir, checksDir, checkIDHash(check.CheckID))
 
 	// Not persisted if not requested
 	if err := agent.AddCheck(check, chkType, false, ""); err != nil {
@@ -1014,7 +1014,7 @@ func TestAgent_PurgeCheck(t *testing.T) {
 		Status:  structs.HealthPassing,
 	}
 
-	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check.CheckID))
+	file := filepath.Join(agent.config.DataDir, checksDir, checkIDHash(check.CheckID))
 	if err := agent.AddCheck(check, nil, true, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1074,7 +1074,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	}
 	defer agent2.Shutdown()
 
-	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check1.CheckID))
+	file := filepath.Join(agent.config.DataDir, checksDir, checkIDHash(check1.CheckID))
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted check")
 	}
@@ -1465,7 +1465,7 @@ func TestAgent_loadChecks_checkFails(t *testing.T) {
 	}
 
 	// Check to make sure the check was persisted
-	checkHash := stringHash(check.CheckID)
+	checkHash := checkIDHash(check.CheckID)
 	checkPath := filepath.Join(config.DataDir, checksDir, checkHash)
 	if _, err := os.Stat(checkPath); err != nil {
 		t.Fatalf("err: %s", err)

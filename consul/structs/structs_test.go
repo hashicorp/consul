@@ -202,7 +202,8 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 	}
 
 	check(&other.Node)
-	check(&other.CheckID)
+	checkStr := string(other.CheckID)
+	check(&checkStr)
 	check(&other.Name)
 	check(&other.Status)
 	check(&other.Notes)

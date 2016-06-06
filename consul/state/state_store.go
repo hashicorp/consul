@@ -594,7 +594,7 @@ func (s *StateStore) deleteNodeTxn(tx *memdb.Txn, idx uint64, nodeID string) err
 	if err != nil {
 		return fmt.Errorf("failed check lookup: %s", err)
 	}
-	var cids []string
+	var cids []structs.CheckID
 	for check := checks.Next(); check != nil; check = checks.Next() {
 		cids = append(cids, check.(*structs.HealthCheck).CheckID)
 	}
@@ -917,7 +917,7 @@ func (s *StateStore) deleteServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 	if err != nil {
 		return fmt.Errorf("failed service check lookup: %s", err)
 	}
-	var cids []string
+	var cids []structs.CheckID
 	for check := checks.Next(); check != nil; check = checks.Next() {
 		cids = append(cids, check.(*structs.HealthCheck).CheckID)
 	}
@@ -1119,7 +1119,7 @@ func (s *StateStore) parseChecks(idx uint64, iter memdb.ResultIterator) (uint64,
 }
 
 // DeleteCheck is used to delete a health check registration.
-func (s *StateStore) DeleteCheck(idx uint64, node, id string) error {
+func (s *StateStore) DeleteCheck(idx uint64, node string, id structs.CheckID) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
@@ -1136,7 +1136,7 @@ func (s *StateStore) DeleteCheck(idx uint64, node, id string) error {
 
 // deleteCheckTxn is the inner method used to call a health
 // check deletion within an existing transaction.
-func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager, node, id string) error {
+func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager, node string, id structs.CheckID) error {
 	// Try to retrieve the existing health check.
 	hc, err := tx.First("checks", "id", node, id)
 	if err != nil {

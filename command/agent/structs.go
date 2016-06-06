@@ -44,7 +44,7 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes) {
 
 // ChecKDefinition is used to JSON decode the Check definitions
 type CheckDefinition struct {
-	ID        string
+	ID        structs.CheckID
 	Name      string
 	Notes     string
 	ServiceID string
@@ -66,7 +66,7 @@ func (c *CheckDefinition) HealthCheck(node string) *structs.HealthCheck {
 		health.Status = c.Status
 	}
 	if health.CheckID == "" && health.Name != "" {
-		health.CheckID = health.Name
+		health.CheckID = structs.CheckID(health.Name)
 	}
 	return health
 }

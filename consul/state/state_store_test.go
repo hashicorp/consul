@@ -82,7 +82,7 @@ func testRegisterService(t *testing.T, s *StateStore, idx uint64, nodeID, servic
 }
 
 func testRegisterCheck(t *testing.T, s *StateStore, idx uint64,
-	nodeID, serviceID, checkID, state string) {
+	nodeID string, serviceID string, checkID structs.CheckID, state string) {
 	chk := &structs.HealthCheck{
 		Node:      nodeID,
 		CheckID:   checkID,

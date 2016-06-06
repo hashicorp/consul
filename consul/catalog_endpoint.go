@@ -57,7 +57,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 	for _, check := range args.Checks {
 		if check.CheckID == "" && check.Name != "" {
-			check.CheckID = check.Name
+			check.CheckID = structs.CheckID(check.Name)
 		}
 		if check.Node == "" {
 			check.Node = args.Node

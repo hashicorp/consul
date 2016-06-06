@@ -181,7 +181,7 @@ type DeregisterRequest struct {
 	Datacenter string
 	Node       string
 	ServiceID  string
-	CheckID    string
+	CheckID    CheckID
 	WriteRequest
 }
 
@@ -364,16 +364,19 @@ type NodeServices struct {
 	Services map[string]*NodeService
 }
 
+// CheckID is a strongly typed string
+type CheckID string
+
 // HealthCheck represents a single check on a given node
 type HealthCheck struct {
 	Node        string
-	CheckID     string // Unique per-node ID
-	Name        string // Check name
-	Status      string // The current check status
-	Notes       string // Additional notes with the status
-	Output      string // Holds output of script runs
-	ServiceID   string // optional associated service
-	ServiceName string // optional service name
+	CheckID     CheckID // Unique per-node ID
+	Name        string  // Check name
+	Status      string  // The current check status
+	Notes       string  // Additional notes with the status
+	Output      string  // Holds output of script runs
+	ServiceID   string  // optional associated service
+	ServiceName string  // optional service name
 
 	RaftIndex
 }

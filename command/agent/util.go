@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-msgpack/codec"
 )
 
@@ -69,6 +70,11 @@ func encodeMsgPack(msg interface{}) ([]byte, error) {
 // stringHash returns a simple md5sum for a string.
 func stringHash(s string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(s)))
+}
+
+// checkIDHash returns a simple md5sum for a structs.CheckID.
+func checkIDHash(checkID structs.CheckID) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(string(checkID))))
 }
 
 // FilePermissions is an interface which allows a struct to set
