@@ -18,16 +18,15 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
-	"github.com/hashicorp/consul/types"
 )
 
 type MockNotify struct {
-	state   map[types.CheckID]string
-	updates map[types.CheckID]int
-	output  map[types.CheckID]string
+	state   map[structs.CheckID]string
+	updates map[structs.CheckID]int
+	output  map[structs.CheckID]string
 }
 
-func (m *MockNotify) UpdateCheck(id types.CheckID, status, output string) {
+func (m *MockNotify) UpdateCheck(id structs.CheckID, status, output string) {
 	m.state[id] = status
 	old := m.updates[id]
 	m.updates[id] = old + 1
@@ -36,13 +35,13 @@ func (m *MockNotify) UpdateCheck(id types.CheckID, status, output string) {
 
 func expectStatus(t *testing.T, script, status string) {
 	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
+		state:   make(map[structs.CheckID]string),
+		updates: make(map[structs.CheckID]int),
+		output:  make(map[structs.CheckID]string),
 	}
 	check := &CheckMonitor{
 		Notify:   mock,
-		CheckID:  types.CheckID("foo"),
+		CheckID:  structs.CheckID("foo"),
 		Script:   script,
 		Interval: 10 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
@@ -85,13 +84,13 @@ func TestCheckMonitor_BadCmd(t *testing.T) {
 
 func TestCheckMonitor_Timeout(t *testing.T) {
 	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
+		state:   make(map[structs.CheckID]string),
+		updates: make(map[structs.CheckID]int),
+		output:  make(map[structs.CheckID]string),
 	}
 	check := &CheckMonitor{
 		Notify:   mock,
-		CheckID:  types.CheckID("foo"),
+		CheckID:  structs.CheckID("foo"),
 		Script:   "sleep 1 && exit 0",
 		Interval: 10 * time.Millisecond,
 		Timeout:  5 * time.Millisecond,
@@ -115,13 +114,13 @@ func TestCheckMonitor_Timeout(t *testing.T) {
 
 func TestCheckMonitor_RandomStagger(t *testing.T) {
 	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
+		state:   make(map[structs.CheckID]string),
+		updates: make(map[structs.CheckID]int),
+		output:  make(map[structs.CheckID]string),
 	}
 	check := &CheckMonitor{
 		Notify:   mock,
-		CheckID:  types.CheckID("foo"),
+		CheckID:  structs.CheckID("foo"),
 		Script:   "exit 0",
 		Interval: 25 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
@@ -144,13 +143,13 @@ func TestCheckMonitor_RandomStagger(t *testing.T) {
 
 func TestCheckMonitor_LimitOutput(t *testing.T) {
 	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
+		state:   make(map[structs.CheckID]string),
+		updates: make(map[structs.CheckID]int),
+		output:  make(map[structs.CheckID]string),
 	}
 	check := &CheckMonitor{
 		Notify:   mock,
-		CheckID:  types.CheckID("foo"),
+		CheckID:  structs.CheckID("foo"),
 		Script:   "od -N 81920 /dev/urandom",
 		Interval: 25 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
@@ -169,13 +168,13 @@ func TestCheckMonitor_LimitOutput(t *testing.T) {
 
 func TestCheckTTL(t *testing.T) {
 	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
+		state:   make(map[structs.CheckID]string),
+		updates: make(map[structs.CheckID]int),
+		output:  make(map[structs.CheckID]string),
 	}
 	check := &CheckTTL{
 		Notify:  mock,
-		CheckID: types.CheckID("foo"),
+		CheckID: structs.CheckID("foo"),
 		TTL:     100 * time.Millisecond,
 		Logger:  log.New(os.Stderr, "", log.LstdFlags),
 	}
@@ -230,13 +229,13 @@ func mockHTTPServer(responseCode int) *httptest.Server {
 
 func expectHTTPStatus(t *testing.T, url string, status string) {
 	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
+		state:   make(map[structs.CheckID]string),
+		updates: make(map[structs.CheckID]int),
+		output:  make(map[structs.CheckID]string),
 	}
 	check := &CheckHTTP{
 		Notify:   mock,
-		CheckID:  types.CheckID("foo"),
+		CheckID:  structs.CheckID("foo"),
 		HTTP:     url,
 		Interval: 10 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
@@ -330,14 +329,14 @@ func TestCheckHTTPTimeout(t *testing.T) {
 	defer server.Close()
 
 	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
+		state:   make(map[structs.CheckID]string),
+		updates: make(map[structs.CheckID]int),
+		output:  make(map[structs.CheckID]string),
 	}
 
 	check := &CheckHTTP{
 		Notify:   mock,
-		CheckID:  types.CheckID("bar"),
+		CheckID:  structs.CheckID("bar"),
 		HTTP:     server.URL,
 		Timeout:  5 * time.Millisecond,
 		Interval: 10 * time.Millisecond,
@@ -361,7 +360,7 @@ func TestCheckHTTPTimeout(t *testing.T) {
 
 func TestCheckHTTP_disablesKeepAlives(t *testing.T) {
 	check := &CheckHTTP{
-		CheckID:  types.CheckID("foo"),
+		CheckID:  structs.CheckID("foo"),
 		HTTP:     "http://foo.bar/baz",
 		Interval: 10 * time.Second,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
@@ -396,13 +395,13 @@ func mockTCPServer(network string) net.Listener {
 
 func expectTCPStatus(t *testing.T, tcp string, status string) {
 	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
+		state:   make(map[structs.CheckID]string),
+		updates: make(map[structs.CheckID]int),
+		output:  make(map[structs.CheckID]string),
 	}
 	check := &CheckTCP{
 		Notify:   mock,
-		CheckID:  types.CheckID("foo"),
+		CheckID:  structs.CheckID("foo"),
 		TCP:      tcp,
 		Interval: 10 * time.Millisecond,
 		Logger:   log.New(os.Stderr, "", log.LstdFlags),
@@ -576,13 +575,13 @@ func (d *fakeDockerClientWithExecInfoErrors) InspectExec(id string) (*docker.Exe
 
 func expectDockerCheckStatus(t *testing.T, dockerClient DockerClient, status string, output string) {
 	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
+		state:   make(map[structs.CheckID]string),
+		updates: make(map[structs.CheckID]int),
+		output:  make(map[structs.CheckID]string),
 	}
 	check := &CheckDocker{
 		Notify:            mock,
-		CheckID:           types.CheckID("foo"),
+		CheckID:           structs.CheckID("foo"),
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
 		Shell:             "/bin/sh",
@@ -636,13 +635,13 @@ func TestDockerCheckWhenExecInfoFails(t *testing.T) {
 func TestDockerCheckDefaultToSh(t *testing.T) {
 	os.Setenv("SHELL", "")
 	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
+		state:   make(map[structs.CheckID]string),
+		updates: make(map[structs.CheckID]int),
+		output:  make(map[structs.CheckID]string),
 	}
 	check := &CheckDocker{
 		Notify:            mock,
-		CheckID:           types.CheckID("foo"),
+		CheckID:           structs.CheckID("foo"),
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
 		Interval:          10 * time.Millisecond,
@@ -660,14 +659,14 @@ func TestDockerCheckDefaultToSh(t *testing.T) {
 
 func TestDockerCheckUseShellFromEnv(t *testing.T) {
 	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
+		state:   make(map[structs.CheckID]string),
+		updates: make(map[structs.CheckID]int),
+		output:  make(map[structs.CheckID]string),
 	}
 	os.Setenv("SHELL", "/bin/bash")
 	check := &CheckDocker{
 		Notify:            mock,
-		CheckID:           types.CheckID("foo"),
+		CheckID:           structs.CheckID("foo"),
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
 		Interval:          10 * time.Millisecond,
@@ -686,13 +685,13 @@ func TestDockerCheckUseShellFromEnv(t *testing.T) {
 
 func TestDockerCheckTruncateOutput(t *testing.T) {
 	mock := &MockNotify{
-		state:   make(map[types.CheckID]string),
-		updates: make(map[types.CheckID]int),
-		output:  make(map[types.CheckID]string),
+		state:   make(map[structs.CheckID]string),
+		updates: make(map[structs.CheckID]int),
+		output:  make(map[structs.CheckID]string),
 	}
 	check := &CheckDocker{
 		Notify:            mock,
-		CheckID:           types.CheckID("foo"),
+		CheckID:           structs.CheckID("foo"),
 		Script:            "/health.sh",
 		DockerContainerID: "54432bad1fc7",
 		Shell:             "/bin/sh",

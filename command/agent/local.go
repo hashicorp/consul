@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/types"
 )
 
 const (
@@ -57,12 +56,12 @@ type localState struct {
 	serviceTokens map[string]string
 
 	// Checks tracks the local checks
-	checks      map[types.CheckID]*structs.HealthCheck
-	checkStatus map[types.CheckID]syncStatus
-	checkTokens map[types.CheckID]string
+	checks      map[structs.CheckID]*structs.HealthCheck
+	checkStatus map[structs.CheckID]syncStatus
+	checkTokens map[structs.CheckID]string
 
 	// Used to track checks that are being deferred
-	deferCheck map[types.CheckID]*time.Timer
+	deferCheck map[structs.CheckID]*time.Timer
 
 	// consulCh is used to inform of a change to the known
 	// consul nodes. This may be used to retry a sync run
@@ -80,10 +79,10 @@ func (l *localState) Init(config *Config, logger *log.Logger) {
 	l.services = make(map[string]*structs.NodeService)
 	l.serviceStatus = make(map[string]syncStatus)
 	l.serviceTokens = make(map[string]string)
-	l.checks = make(map[types.CheckID]*structs.HealthCheck)
-	l.checkStatus = make(map[types.CheckID]syncStatus)
-	l.checkTokens = make(map[types.CheckID]string)
-	l.deferCheck = make(map[types.CheckID]*time.Timer)
+	l.checks = make(map[structs.CheckID]*structs.HealthCheck)
+	l.checkStatus = make(map[structs.CheckID]syncStatus)
+	l.checkTokens = make(map[structs.CheckID]string)
+	l.deferCheck = make(map[structs.CheckID]*time.Timer)
 	l.consulCh = make(chan struct{}, 1)
 	l.triggerCh = make(chan struct{}, 1)
 }
@@ -194,14 +193,14 @@ func (l *localState) Services() map[string]*structs.NodeService {
 
 // CheckToken is used to return the configured health check token, or
 // if none is configured, the default agent ACL token.
-func (l *localState) CheckToken(id types.CheckID) string {
+func (l *localState) CheckToken(id structs.CheckID) string {
 	l.RLock()
 	defer l.RUnlock()
 	return l.checkToken(id)
 }
 
 // checkToken returns an ACL token associated with a check.
-func (l *localState) checkToken(id types.CheckID) string {
+func (l *localState) checkToken(id structs.CheckID) string {
 	token := l.checkTokens[id]
 	if token == "" {
 		token = l.config.ACLToken
@@ -227,7 +226,7 @@ func (l *localState) AddCheck(check *structs.HealthCheck, token string) {
 
 // RemoveCheck is used to remove a health check from the local state.
 // The agent will make a best effort to ensure it is deregistered
-func (l *localState) RemoveCheck(checkID types.CheckID) {
+func (l *localState) RemoveCheck(checkID structs.CheckID) {
 	l.Lock()
 	defer l.Unlock()
 
@@ -238,7 +237,7 @@ func (l *localState) RemoveCheck(checkID types.CheckID) {
 }
 
 // UpdateCheck is used to update the status of a check
-func (l *localState) UpdateCheck(checkID types.CheckID, status, output string) {
+func (l *localState) UpdateCheck(checkID structs.CheckID, status, output string) {
 	l.Lock()
 	defer l.Unlock()
 
@@ -283,8 +282,8 @@ func (l *localState) UpdateCheck(checkID types.CheckID, status, output string) {
 
 // Checks returns the locally registered checks that the
 // agent is aware of and are being kept in sync with the server
-func (l *localState) Checks() map[types.CheckID]*structs.HealthCheck {
-	checks := make(map[types.CheckID]*structs.HealthCheck)
+func (l *localState) Checks() map[structs.CheckID]*structs.HealthCheck {
+	checks := make(map[structs.CheckID]*structs.HealthCheck)
 	l.RLock()
 	defer l.RUnlock()
 
@@ -407,7 +406,7 @@ func (l *localState) setSyncState() error {
 	}
 
 	// Index the remote health checks to improve efficiency
-	checkIndex := make(map[types.CheckID]*structs.HealthCheck, len(checks))
+	checkIndex := make(map[structs.CheckID]*structs.HealthCheck, len(checks))
 	for _, check := range checks {
 		checkIndex[check.CheckID] = check
 	}
@@ -547,7 +546,7 @@ func (l *localState) deleteService(id string) error {
 }
 
 // deleteCheck is used to delete a service from the server
-func (l *localState) deleteCheck(id types.CheckID) error {
+func (l *localState) deleteCheck(id structs.CheckID) error {
 	if id == "" {
 		return fmt.Errorf("CheckID missing")
 	}
@@ -620,7 +619,7 @@ func (l *localState) syncService(id string) error {
 }
 
 // syncCheck is used to sync a check to the server
-func (l *localState) syncCheck(id types.CheckID) error {
+func (l *localState) syncCheck(id structs.CheckID) error {
 	// Pull in the associated service if any
 	check := l.checks[id]
 	var service *structs.NodeService

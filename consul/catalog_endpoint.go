@@ -6,7 +6,6 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/structs"
-	"github.com/hashicorp/consul/types"
 )
 
 // Catalog endpoint is used to manipulate the service catalog
@@ -58,7 +57,7 @@ func (c *Catalog) Register(args *structs.RegisterRequest, reply *struct{}) error
 	}
 	for _, check := range args.Checks {
 		if check.CheckID == "" && check.Name != "" {
-			check.CheckID = types.CheckID(check.Name)
+			check.CheckID = structs.CheckID(check.Name)
 		}
 		if check.Node == "" {
 			check.Node = args.Node
