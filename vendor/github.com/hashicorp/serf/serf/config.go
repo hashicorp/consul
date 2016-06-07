@@ -103,6 +103,13 @@ type Config struct {
 	ReconnectTimeout  time.Duration
 	TombstoneTimeout  time.Duration
 
+	// FlapTimeout is the amount of time less than which we consider a node
+	// being failed and rejoining looks like a flap for telemetry purposes.
+	// This should be set less than a typical reboot time, but large enough
+	// to see actual events, given our expected detection times for a failed
+	// node.
+	FlapTimeout time.Duration
+
 	// QueueDepthWarning is used to generate warning message if the
 	// number of queued messages to broadcast exceeds this number. This
 	// is to provide the user feedback if events are being triggered
@@ -241,6 +248,7 @@ func DefaultConfig() *Config {
 		QueueDepthWarning:            128,
 		MaxQueueDepth:                4096,
 		TombstoneTimeout:             24 * time.Hour,
+		FlapTimeout:                  60 * time.Second,
 		MemberlistConfig:             memberlist.DefaultLANConfig(),
 		QueryTimeoutMult:             16,
 		QueryResponseSizeLimit:       1024,

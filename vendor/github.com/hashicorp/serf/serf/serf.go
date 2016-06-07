@@ -871,6 +871,11 @@ func (s *Serf) handleNodeJoin(n *memberlist.Node) {
 		s.members[n.Name] = member
 	} else {
 		oldStatus = member.Status
+		deadTime := time.Now().Sub(member.leaveTime)
+		if oldStatus == StatusFailed && deadTime < s.config.FlapTimeout {
+			metrics.IncrCounter([]string{"serf", "member", "flap"}, 1)
+		}
+
 		member.Status = StatusAlive
 		member.leaveTime = time.Time{}
 		member.Addr = net.IP(n.Addr)
