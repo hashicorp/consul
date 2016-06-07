@@ -192,17 +192,17 @@ func (l *localState) Services() map[string]*structs.NodeService {
 	return services
 }
 
-// CheckToken is used to return the configured health check token, or
-// if none is configured, the default agent ACL token.
-func (l *localState) CheckToken(id types.CheckID) string {
+// CheckToken is used to return the configured health check token for a
+// Check, or if none is configured, the default agent ACL token.
+func (l *localState) CheckToken(checkID types.CheckID) string {
 	l.RLock()
 	defer l.RUnlock()
-	return l.checkToken(id)
+	return l.checkToken(checkID)
 }
 
 // checkToken returns an ACL token associated with a check.
-func (l *localState) checkToken(id types.CheckID) string {
-	token := l.checkTokens[id]
+func (l *localState) checkToken(checkID types.CheckID) string {
+	token := l.checkTokens[checkID]
 	if token == "" {
 		token = l.config.ACLToken
 	}

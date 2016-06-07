@@ -83,7 +83,7 @@ type IndexEntry struct {
 // store and thus it is not exported.
 type sessionCheck struct {
 	Node    string
-	CheckID string
+	CheckID types.CheckID
 	Session string
 }
 
@@ -969,7 +969,7 @@ func (s *StateStore) EnsureCheck(idx uint64, hc *structs.HealthCheck) error {
 func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager,
 	hc *structs.HealthCheck) error {
 	// Check if we have an existing health check
-	existing, err := tx.First("checks", "id", hc.Node, hc.CheckID)
+	existing, err := tx.First("checks", "id", hc.Node, string(hc.CheckID))
 	if err != nil {
 		return fmt.Errorf("failed health check lookup: %s", err)
 	}
@@ -1014,7 +1014,7 @@ func (s *StateStore) ensureCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 
 	// Delete any sessions for this check if the health is critical.
 	if hc.Status == structs.HealthCritical {
-		mappings, err := tx.Get("session_checks", "node_check", hc.Node, hc.CheckID)
+		mappings, err := tx.Get("session_checks", "node_check", hc.Node, string(hc.CheckID))
 		if err != nil {
 			return fmt.Errorf("failed session checks lookup: %s", err)
 		}
@@ -1120,13 +1120,13 @@ func (s *StateStore) parseChecks(idx uint64, iter memdb.ResultIterator) (uint64,
 }
 
 // DeleteCheck is used to delete a health check registration.
-func (s *StateStore) DeleteCheck(idx uint64, node string, id types.CheckID) error {
+func (s *StateStore) DeleteCheck(idx uint64, node string, checkID types.CheckID) error {
 	tx := s.db.Txn(true)
 	defer tx.Abort()
 
 	// Call the check deletion
 	watches := NewDumbWatchManager(s.tableWatches)
-	if err := s.deleteCheckTxn(tx, idx, watches, node, id); err != nil {
+	if err := s.deleteCheckTxn(tx, idx, watches, node, checkID); err != nil {
 		return err
 	}
 
@@ -1137,9 +1137,9 @@ func (s *StateStore) DeleteCheck(idx uint64, node string, id types.CheckID) erro
 
 // deleteCheckTxn is the inner method used to call a health
 // check deletion within an existing transaction.
-func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager, node string, id types.CheckID) error {
+func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatchManager, node string, checkID types.CheckID) error {
 	// Try to retrieve the existing health check.
-	hc, err := tx.First("checks", "id", node, id)
+	hc, err := tx.First("checks", "id", node, string(checkID))
 	if err != nil {
 		return fmt.Errorf("check lookup failed: %s", err)
 	}
@@ -1156,7 +1156,7 @@ func (s *StateStore) deleteCheckTxn(tx *memdb.Txn, idx uint64, watches *DumbWatc
 	}
 
 	// Delete any sessions for this check.
-	mappings, err := tx.Get("session_checks", "node_check", node, id)
+	mappings, err := tx.Get("session_checks", "node_check", node, string(checkID))
 	if err != nil {
 		return fmt.Errorf("failed session checks lookup: %s", err)
 	}
@@ -1413,7 +1413,7 @@ func (s *StateStore) sessionCreateTxn(tx *memdb.Txn, idx uint64, sess *structs.S
 
 	// Go over the session checks and ensure they exist.
 	for _, checkID := range sess.Checks {
-		check, err := tx.First("checks", "id", sess.Node, checkID)
+		check, err := tx.First("checks", "id", sess.Node, string(checkID))
 		if err != nil {
 			return fmt.Errorf("failed check lookup: %s", err)
 		}

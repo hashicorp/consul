@@ -10,18 +10,19 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
 )
 
 const (
-	SerfCheckID           = "serfHealth"
-	SerfCheckName         = "Serf Health Status"
-	SerfCheckAliveOutput  = "Agent alive and reachable"
-	SerfCheckFailedOutput = "Agent not live or unreachable"
-	ConsulServiceID       = "consul"
-	ConsulServiceName     = "consul"
-	newLeaderEvent        = "consul:new-leader"
+	SerfCheckID           types.CheckID = "serfHealth"
+	SerfCheckName                       = "Serf Health Status"
+	SerfCheckAliveOutput                = "Agent alive and reachable"
+	SerfCheckFailedOutput               = "Agent not live or unreachable"
+	ConsulServiceID                     = "consul"
+	ConsulServiceName                   = "consul"
+	newLeaderEvent                      = "consul:new-leader"
 )
 
 // monitorLeadership is used to monitor if we acquire or lose our role

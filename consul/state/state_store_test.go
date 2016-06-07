@@ -96,7 +96,7 @@ func testRegisterCheck(t *testing.T, s *StateStore, idx uint64,
 
 	tx := s.db.Txn(false)
 	defer tx.Abort()
-	c, err := tx.First("checks", "id", nodeID, checkID)
+	c, err := tx.First("checks", "id", nodeID, string(checkID))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2151,7 +2151,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	sess = &structs.Session{
 		ID:     testUUID(),
 		Node:   "node1",
-		Checks: []string{"check1"},
+		Checks: []types.CheckID{"check1"},
 	}
 	err = s.SessionCreate(3, sess)
 	if err == nil || !strings.Contains(err.Error(), "Missing check") {
@@ -2176,7 +2176,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	sess2 := &structs.Session{
 		ID:     testUUID(),
 		Node:   "node1",
-		Checks: []string{"check1", "check2"},
+		Checks: []types.CheckID{"check1", "check2"},
 	}
 	if err := s.SessionCreate(6, sess2); err != nil {
 		t.Fatalf("err: %s", err)
@@ -2210,7 +2210,7 @@ func TestStateStore_SessionCreate_SessionGet(t *testing.T) {
 	for i, check := 0, checks.Next(); check != nil; i, check = i+1, checks.Next() {
 		expectCheck := &sessionCheck{
 			Node:    "node1",
-			CheckID: fmt.Sprintf("check%d", i+1),
+			CheckID: types.CheckID(fmt.Sprintf("check%d", i+1)),
 			Session: sess2.ID,
 		}
 		if actual := check.(*sessionCheck); !reflect.DeepEqual(actual, expectCheck) {
@@ -2408,7 +2408,7 @@ func TestStateStore_Session_Snapshot_Restore(t *testing.T) {
 			ID:       session1,
 			Node:     "node1",
 			Behavior: structs.SessionKeysDelete,
-			Checks:   []string{"check1"},
+			Checks:   []types.CheckID{"check1"},
 		},
 		&structs.Session{
 			ID:        testUUID(),
@@ -2625,7 +2625,7 @@ func TestStateStore_Session_Invalidate_DeleteService(t *testing.T) {
 	session := &structs.Session{
 		ID:     testUUID(),
 		Node:   "foo",
-		Checks: []string{"api"},
+		Checks: []types.CheckID{"api"},
 	}
 	if err := s.SessionCreate(14, session); err != nil {
 		t.Fatalf("err: %v", err)
@@ -2673,7 +2673,7 @@ func TestStateStore_Session_Invalidate_Critical_Check(t *testing.T) {
 	session := &structs.Session{
 		ID:     testUUID(),
 		Node:   "foo",
-		Checks: []string{"bar"},
+		Checks: []types.CheckID{"bar"},
 	}
 	if err := s.SessionCreate(14, session); err != nil {
 		t.Fatalf("err: %v", err)
@@ -2720,7 +2720,7 @@ func TestStateStore_Session_Invalidate_DeleteCheck(t *testing.T) {
 	session := &structs.Session{
 		ID:     testUUID(),
 		Node:   "foo",
-		Checks: []string{"bar"},
+		Checks: []types.CheckID{"bar"},
 	}
 	if err := s.SessionCreate(14, session); err != nil {
 		t.Fatalf("err: %v", err)

@@ -43,7 +43,7 @@ func (s *ServiceDefinition) CheckTypes() (checks CheckTypes) {
 	return
 }
 
-// ChecKDefinition is used to JSON decode the Check definitions
+// CheckDefinition is used to JSON decode the Check definitions
 type CheckDefinition struct {
 	ID        types.CheckID
 	Name      string

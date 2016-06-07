@@ -618,7 +618,7 @@ type Session struct {
 	ID        string
 	Name      string
 	Node      string
-	Checks    []string
+	Checks    []types.CheckID
 	LockDelay time.Duration
 	Behavior  SessionBehavior // What to do when session is invalidated
 	TTL       string
