@@ -206,7 +206,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/memberlist",
-			"Rev": "cef12ad58224d55cf26caa9e3d239c2fcb3432a2"
+			"Rev": "215aec831f03c9b7c61ac183d3e28fff3c7d3a37"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/net-rpc-msgpackrpc",
@@ -226,13 +226,13 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/serf/coordinate",
-			"Comment": "v0.7.0-62-gb60a6d9",
-			"Rev": "b60a6d928fe726a588f79a1d500582507f9d79de"
+			"Comment": "v0.7.0-64-gdce30f1",
+			"Rev": "dce30f1c7806bf2d96478abb983c53af0e4c8fb2"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/serf/serf",
-			"Comment": "v0.7.0-62-gb60a6d9",
-			"Rev": "b60a6d928fe726a588f79a1d500582507f9d79de"
+			"Comment": "v0.7.0-64-gdce30f1",
+			"Rev": "dce30f1c7806bf2d96478abb983c53af0e4c8fb2"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/yamux",
