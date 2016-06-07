@@ -82,14 +82,14 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	}
 
 	if isEtcdNameError(err) {
-		return e.Err(zone, dns.RcodeNameError, state, debug)
+		return e.Err(zone, dns.RcodeNameError, state, debug, err)
 	}
 	if err != nil {
-		return dns.RcodeServerFailure, err
+		return e.Err(zone, dns.RcodeServerFailure, state, debug, err)
 	}
 
 	if len(records) == 0 {
-		return e.Err(zone, dns.RcodeSuccess, state, debug)
+		return e.Err(zone, dns.RcodeSuccess, state, debug, err)
 	}
 
 	m := new(dns.Msg)
@@ -109,15 +109,22 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 }
 
 // Err write an error response to the client.
-func (e Etcd) Err(zone string, rcode int, state middleware.State, debug []msg.Service) (int, error) {
+func (e Etcd) Err(zone string, rcode int, state middleware.State, debug []msg.Service, err error) (int, error) {
 	m := new(dns.Msg)
 	m.SetRcode(state.Req, rcode)
 	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
 	m.Ns, _, _ = e.SOA(zone, state)
-	m.Extra = servicesToTxt(debug)
+	if e.debug != "" {
+		m.Extra = servicesToTxt(debug)
+		txt := errorToTxt(err)
+		if txt != nil {
+			m.Extra = append(m.Extra, errorToTxt(err))
+		}
+	}
 	state.SizeAndDo(m)
 	state.W.WriteMsg(m)
-	return rcode, nil
+	// Return success as the rcode to signal we have written to the client.
+	return dns.RcodeSuccess, nil
 }
 
 func dedup(m *dns.Msg) *dns.Msg {

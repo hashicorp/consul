@@ -39,13 +39,20 @@ etcd [zones...] {
   pointing to external names. If you want CoreDNS to act as a proxy for clients you'll need to add
   the proxy middleware.
 * `tls` followed the cert, key and the CA's cert filenames.
-* `debug` allow debug queries. Prefix the name with `o-o.debug.` to reveive extra information in the
+* `debug` allow debug queries. Prefix the name with `o-o.debug.` to retrieve extra information in the
   additional section of the reply in the form of text records:
 
     skydns.test.skydns.dom.a.	300	CH	TXT	"127.0.0.1:0(10,0,,false)[0,]"
 
   This shows the complete key as the owername, the rdata of the TXT record has:
   `host:port(priority,weight,txt content,mail)[targetstrip,group]`.
+
+  Any errors seen doing parsing will show up like this:
+
+    . 0 CH TXT "/skydns/local/skydns/r/a: invalid character '.' after object key:value pair"
+
+  which shows `a.r.skydns.local.` has a json encoding problem.
+
 
 ## Examples
 

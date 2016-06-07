@@ -3,6 +3,7 @@ package etcd
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
@@ -104,7 +105,7 @@ Nodes:
 		}
 		serv := new(msg.Service)
 		if err := json.Unmarshal([]byte(n.Value), serv); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: %s", n.Key, err.Error())
 		}
 		b := msg.Service{Host: serv.Host, Port: serv.Port, Priority: serv.Priority, Weight: serv.Weight, Text: serv.Text, Key: n.Key}
 		if _, ok := bx[b]; ok {

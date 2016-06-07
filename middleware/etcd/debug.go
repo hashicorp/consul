@@ -36,3 +36,21 @@ func servicesToTxt(debug []msg.Service) []dns.RR {
 	}
 	return rr
 }
+
+func errorToTxt(err error) dns.RR {
+	if err == nil {
+		return nil
+	}
+	msg := err.Error()
+	if len(msg) > 255 {
+		msg = msg[:255]
+	}
+	t := new(dns.TXT)
+	t.Hdr.Class = dns.ClassCHAOS
+	t.Hdr.Ttl = 0
+	t.Hdr.Rrtype = dns.TypeTXT
+	t.Hdr.Name = "."
+
+	t.Txt = []string{msg}
+	return t
+}
