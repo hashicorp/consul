@@ -20,8 +20,12 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
+	"github.com/miekg/dns"
 )
 
 type Memberlist struct {
@@ -39,9 +43,11 @@ type Memberlist struct {
 	tcpListener *net.TCPListener
 	handoff     chan msgHandoff
 
-	nodeLock sync.RWMutex
-	nodes    []*nodeState          // Known nodes
-	nodeMap  map[string]*nodeState // Maps Addr.String() -> NodeState
+	nodeLock   sync.RWMutex
+	nodes      []*nodeState          // Known nodes
+	nodeMap    map[string]*nodeState // Maps Addr.String() -> NodeState
+	nodeTimers map[string]*suspicion // Maps Addr.String() -> suspicion timer
+	awareness  *awareness
 
 	tickerLock sync.Mutex
 	tickers    []*time.Ticker
@@ -57,7 +63,7 @@ type Memberlist struct {
 }
 
 // newMemberlist creates the network listeners.
-// Does not schedule execution of background maintenence.
+// Does not schedule execution of background maintenance.
 func newMemberlist(conf *Config) (*Memberlist, error) {
 	if conf.ProtocolVersion < ProtocolVersionMin {
 		return nil, fmt.Errorf("Protocol version '%d' too low. Must be in range: [%d, %d]",
@@ -125,6 +131,8 @@ func newMemberlist(conf *Config) (*Memberlist, error) {
 		tcpListener:    tcpLn,
 		handoff:        make(chan msgHandoff, 1024),
 		nodeMap:        make(map[string]*nodeState),
+		nodeTimers:     make(map[string]*suspicion),
+		awareness:      newAwareness(conf.AwarenessMaxMultiplier),
 		ackHandlers:    make(map[uint32]*ackHandler),
 		broadcasts:     &TransmitLimitedQueue{RetransmitMult: conf.RetransmitMult},
 		logger:         logger,
@@ -166,72 +174,152 @@ func Create(conf *Config) (*Memberlist, error) {
 // none could be reached. If an error is returned, the node did not successfully
 // join the cluster.
 func (m *Memberlist) Join(existing []string) (int, error) {
-	// Attempt to join any of them
 	numSuccess := 0
-	var retErr error
+	var errs error
 	for _, exist := range existing {
-		addrs, port, err := m.resolveAddr(exist)
+		addrs, err := m.resolveAddr(exist)
 		if err != nil {
-			m.logger.Printf("[WARN] memberlist: Failed to resolve %s: %v", exist, err)
-			retErr = err
+			err = fmt.Errorf("Failed to resolve %s: %v", exist, err)
+			errs = multierror.Append(errs, err)
+			m.logger.Printf("[WARN] memberlist: %v", err)
 			continue
 		}
 
 		for _, addr := range addrs {
-			if err := m.pushPullNode(addr, port, true); err != nil {
-				retErr = err
+			if err := m.pushPullNode(addr.ip, addr.port, true); err != nil {
+				err = fmt.Errorf("Failed to join %s: %v", addr.ip, err)
+				errs = multierror.Append(errs, err)
+				m.logger.Printf("[DEBUG] memberlist: %v", err)
 				continue
 			}
 			numSuccess++
 		}
 
 	}
-
 	if numSuccess > 0 {
-		retErr = nil
+		errs = nil
+	}
+	return numSuccess, errs
+}
+
+// ipPort holds information about a node we want to try to join.
+type ipPort struct {
+	ip   net.IP
+	port uint16
+}
+
+// tcpLookupIP is a helper to initiate a TCP-based DNS lookup for the given host.
+// The built-in Go resolver will do a UDP lookup first, and will only use TCP if
+// the response has the truncate bit set, which isn't common on DNS servers like
+// Consul's. By doing the TCP lookup directly, we get the best chance for the
+// largest list of hosts to join. Since joins are relatively rare events, it's ok
+// to do this rather expensive operation.
+func (m *Memberlist) tcpLookupIP(host string, defaultPort uint16) ([]ipPort, error) {
+	// Don't attempt any TCP lookups against non-fully qualified domain
+	// names, since those will likely come from the resolv.conf file.
+	if !strings.Contains(host, ".") {
+		return nil, nil
 	}
 
-	return numSuccess, retErr
+	// Make sure the domain name is terminated with a dot (we know there's
+	// at least one character at this point).
+	dn := host
+	if dn[len(dn)-1] != '.' {
+		dn = dn + "."
+	}
+
+	// See if we can find a server to try.
+	cc, err := dns.ClientConfigFromFile(m.config.DNSConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	if len(cc.Servers) > 0 {
+		// We support host:port in the DNS config, but need to add the
+		// default port if one is not supplied.
+		server := cc.Servers[0]
+		if !hasPort(server) {
+			server = net.JoinHostPort(server, cc.Port)
+		}
+
+		// Do the lookup.
+		c := new(dns.Client)
+		c.Net = "tcp"
+		msg := new(dns.Msg)
+		msg.SetQuestion(dn, dns.TypeANY)
+		in, _, err := c.Exchange(msg, server)
+		if err != nil {
+			return nil, err
+		}
+
+		// Handle any IPs we get back that we can attempt to join.
+		var ips []ipPort
+		for _, r := range in.Answer {
+			switch rr := r.(type) {
+			case (*dns.A):
+				ips = append(ips, ipPort{rr.A, defaultPort})
+			case (*dns.AAAA):
+				ips = append(ips, ipPort{rr.AAAA, defaultPort})
+			case (*dns.CNAME):
+				m.logger.Printf("[DEBUG] memberlist: Ignoring CNAME RR in TCP-first answer for '%s'", host)
+			}
+		}
+		return ips, nil
+	}
+
+	return nil, nil
 }
 
 // resolveAddr is used to resolve the address into an address,
 // port, and error. If no port is given, use the default
-func (m *Memberlist) resolveAddr(hostStr string) ([][]byte, uint16, error) {
-	ips := make([][]byte, 0)
+func (m *Memberlist) resolveAddr(hostStr string) ([]ipPort, error) {
+	// Normalize the incoming string to host:port so we can apply Go's
+	// parser to it.
 	port := uint16(0)
+	if !hasPort(hostStr) {
+		hostStr += ":" + strconv.Itoa(m.config.BindPort)
+	}
 	host, sport, err := net.SplitHostPort(hostStr)
-	if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
-		// error, port missing - we can solve this
-		port = uint16(m.config.BindPort)
-		host = hostStr
-	} else if err != nil {
-		// error, but not missing port
-		return ips, port, err
-	} else if lport, err := strconv.ParseUint(sport, 10, 16); err != nil {
-		// error, when parsing port
-		return ips, port, err
-	} else {
-		// no error
-		port = uint16(lport)
+	if err != nil {
+		return nil, err
 	}
 
-	// Get the addresses that hostPort might resolve to
-	// ResolveTcpAddr requres ipv6 brackets to separate
-	// port numbers whereas ParseIP doesn't, but luckily
-	// SplitHostPort takes care of the brackets
-	if ip := net.ParseIP(host); ip == nil {
-		if pre, err := net.LookupIP(host); err == nil {
-			for _, ip := range pre {
-				ips = append(ips, ip)
-			}
-		} else {
-			return ips, port, err
-		}
-	} else {
-		ips = append(ips, ip)
+	// This will capture the supplied port, or the default one added above.
+	lport, err := strconv.ParseUint(sport, 10, 16)
+	if err != nil {
+		return nil, err
+	}
+	port = uint16(lport)
+
+	// If it looks like an IP address we are done. The SplitHostPort() above
+	// will make sure the host part is in good shape for parsing, even for
+	// IPv6 addresses.
+	if ip := net.ParseIP(host); ip != nil {
+		return []ipPort{ipPort{ip, port}}, nil
 	}
 
-	return ips, port, nil
+	// First try TCP so we have the best chance for the largest list of
+	// hosts to join. If this fails it's not fatal since this isn't a standard
+	// way to query DNS, and we have a fallback below.
+	ips, err := m.tcpLookupIP(host, port)
+	if err != nil {
+		m.logger.Printf("[DEBUG] memberlist: TCP-first lookup failed for '%s', falling back to UDP: %s", hostStr, err)
+	}
+	if len(ips) > 0 {
+		return ips, nil
+	}
+
+	// If TCP didn't yield anything then use the normal Go resolver which
+	// will try UDP, then might possibly try TCP again if the UDP response
+	// indicates it was truncated.
+	ans, err := net.LookupIP(host)
+	if err != nil {
+		return nil, err
+	}
+	ips = make([]ipPort, 0, len(ans))
+	for _, ip := range ans {
+		ips = append(ips, ipPort{ip, port})
+	}
+	return ips, nil
 }
 
 // setAlive is used to mark this node as being alive. This is the same
@@ -539,6 +627,13 @@ func (m *Memberlist) anyAlive() bool {
 		}
 	}
 	return false
+}
+
+// GetHealthScore gives this instance's idea of how well it is meeting the soft
+// real-time requirements of the protocol. Lower numbers are better, and zero
+// means "totally healthy".
+func (m *Memberlist) GetHealthScore() int {
+	return m.awareness.GetHealthScore()
 }
 
 // ProtocolVersion returns the protocol version currently in use by

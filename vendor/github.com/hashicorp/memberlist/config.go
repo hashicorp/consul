@@ -63,6 +63,23 @@ type Config struct {
 	// still alive.
 	SuspicionMult int
 
+	// SuspicionMaxTimeoutMult is the multiplier applied to the
+	// SuspicionTimeout used as an upper bound on detection time. This max
+	// timeout is calculated using the formula:
+	//
+	// SuspicionMaxTimeout = SuspicionMaxTimeoutMult * SuspicionTimeout
+	//
+	// If everything is working properly, confirmations from other nodes will
+	// accelerate suspicion timers in a manner which will cause the timeout
+	// to reach the base SuspicionTimeout before that elapses, so this value
+	// will typically only come into play if a node is experiencing issues
+	// communicating with other nodes. It should be set to a something fairly
+	// large so that a node having problems will have a lot of chances to
+	// recover before falsely declaring other nodes as failed, but short
+	// enough for a legitimately isolated node to still make progress marking
+	// nodes failed in a reasonable amount of time.
+	SuspicionMaxTimeoutMult int
+
 	// PushPullInterval is the interval between complete state syncs.
 	// Complete state syncs are done with a single node over TCP and are
 	// quite expensive relative to standard gossiped messages. Setting this
@@ -90,6 +107,11 @@ type Config struct {
 	// if the direct UDP ping fails. These get pipelined along with the
 	// indirect UDP pings.
 	DisableTcpPings bool
+
+	// AwarenessMaxMultiplier will increase the probe interval if the node
+	// becomes aware that it might be degraded and not meeting the soft real
+	// time requirements to reliably probe other nodes.
+	AwarenessMaxMultiplier int
 
 	// GossipInterval and GossipNodes are used to configure the gossip
 	// behavior of memberlist.
@@ -143,6 +165,10 @@ type Config struct {
 	Ping                    PingDelegate
 	Alive                   AliveDelegate
 
+	// DNSConfigPath points to the system's DNS config file, usually located
+	// at /etc/resolv.conf. It can be overridden via config for easier testing.
+	DNSConfigPath string
+
 	// LogOutput is the writer where logs should be sent. If this is not
 	// set, logging will go to stderr by default. You cannot specify both LogOutput
 	// and Logger at the same time.
@@ -164,20 +190,22 @@ type Config struct {
 func DefaultLANConfig() *Config {
 	hostname, _ := os.Hostname()
 	return &Config{
-		Name:             hostname,
-		BindAddr:         "0.0.0.0",
-		BindPort:         7946,
-		AdvertiseAddr:    "",
-		AdvertisePort:    7946,
-		ProtocolVersion:  ProtocolVersion2Compatible,
-		TCPTimeout:       10 * time.Second,       // Timeout after 10 seconds
-		IndirectChecks:   3,                      // Use 3 nodes for the indirect ping
-		RetransmitMult:   4,                      // Retransmit a message 4 * log(N+1) nodes
-		SuspicionMult:    5,                      // Suspect a node for 5 * log(N+1) * Interval
-		PushPullInterval: 30 * time.Second,       // Low frequency
-		ProbeTimeout:     500 * time.Millisecond, // Reasonable RTT time for LAN
-		ProbeInterval:    1 * time.Second,        // Failure check every second
-		DisableTcpPings:  false,                  // TCP pings are safe, even with mixed versions
+		Name:                    hostname,
+		BindAddr:                "0.0.0.0",
+		BindPort:                7946,
+		AdvertiseAddr:           "",
+		AdvertisePort:           7946,
+		ProtocolVersion:         ProtocolVersion2Compatible,
+		TCPTimeout:              10 * time.Second,       // Timeout after 10 seconds
+		IndirectChecks:          3,                      // Use 3 nodes for the indirect ping
+		RetransmitMult:          4,                      // Retransmit a message 4 * log(N+1) nodes
+		SuspicionMult:           5,                      // Suspect a node for 5 * log(N+1) * Interval
+		SuspicionMaxTimeoutMult: 6,                      // For 10k nodes this will give a max timeout of 120 seconds
+		PushPullInterval:        30 * time.Second,       // Low frequency
+		ProbeTimeout:            500 * time.Millisecond, // Reasonable RTT time for LAN
+		ProbeInterval:           1 * time.Second,        // Failure check every second
+		DisableTcpPings:         false,                  // TCP pings are safe, even with mixed versions
+		AwarenessMaxMultiplier:  8,                      // Probe interval backs off to 8 seconds
 
 		GossipNodes:    3,                      // Gossip to 3 nodes
 		GossipInterval: 200 * time.Millisecond, // Gossip more rapidly
@@ -185,8 +213,9 @@ func DefaultLANConfig() *Config {
 		EnableCompression: true, // Enable compression by default
 
 		SecretKey: nil,
+		Keyring:   nil,
 
-		Keyring: nil,
+		DNSConfigPath: "/etc/resolv.conf",
 	}
 }
 
