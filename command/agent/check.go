@@ -44,6 +44,7 @@ type CheckType struct {
 	Script            string
 	HTTP              string
 	TCP               string
+	UDP               string
 	Interval          time.Duration
 	DockerContainerID string
 	Shell             string
@@ -59,7 +60,7 @@ type CheckTypes []*CheckType
 
 // Valid checks if the CheckType is valid
 func (c *CheckType) Valid() bool {
-	return c.IsTTL() || c.IsMonitor() || c.IsHTTP() || c.IsTCP() || c.IsDocker()
+	return c.IsTTL() || c.IsMonitor() || c.IsHTTP() || c.IsTCP() || c.IsUDP() || c.IsDocker()
 }
 
 // IsTTL checks if this is a TTL type
@@ -80,6 +81,11 @@ func (c *CheckType) IsHTTP() bool {
 // IsTCP checks if this is a TCP type
 func (c *CheckType) IsTCP() bool {
 	return c.TCP != "" && c.Interval != 0
+}
+
+// IsUDP checks if this is a UDP type
+func (c *CheckType) IsUDP() bool {
+	return c.UDP != "" && c.Interval != 0
 }
 
 func (c *CheckType) IsDocker() bool {
@@ -464,6 +470,7 @@ type CheckTCP struct {
 	Notify   CheckNotifier
 	CheckID  string
 	TCP      string
+	UDP      string
 	Interval time.Duration
 	Timeout  time.Duration
 	Logger   *log.Logger
@@ -513,12 +520,18 @@ func (c *CheckTCP) Stop() {
 func (c *CheckTCP) run() {
 	// Get the randomized initial pause time
 	initialPauseTime := lib.RandomStagger(c.Interval)
-	c.Logger.Printf("[DEBUG] agent: pausing %v before first socket connection of %s", initialPauseTime, c.TCP)
+	addr := c.TCP
+	check := c.check
+	if c.UDP != "" {
+		addr = c.UDP
+		check = c.checkUDP
+	}
+	c.Logger.Printf("[DEBUG] agent: pausing %v before first socket connection of %s", initialPauseTime, addr)
 	next := time.After(initialPauseTime)
 	for {
 		select {
 		case <-next:
-			c.check()
+			check()
 			next = time.After(c.Interval)
 		case <-c.stopCh:
 			return
@@ -537,6 +550,33 @@ func (c *CheckTCP) check() {
 	conn.Close()
 	c.Logger.Printf("[DEBUG] agent: check '%v' is passing", c.CheckID)
 	c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
+}
+
+// checkUDP is invoked periodically to perform the UDP check
+func (c *CheckTCP) checkUDP() {
+	conn, err := c.dialer.Dial(`udp`, c.UDP)
+	if err == nil {
+		b := []byte("CONNECTED-MODE SOCKET")
+		err = conn.SetDeadline(time.Now().Add(c.dialer.Timeout))
+		if err == nil {
+			_, err = conn.Write(b)
+			if err == nil {
+				buf := make([]byte, 1024)
+				_, err = conn.Read(buf)
+				if nErr, ok := err.(net.Error); ok && nErr.Timeout() {
+					err = nil
+				}
+			}
+		}
+	}
+	if err != nil {
+		c.Logger.Printf("[WARN] agent: socket connection failed '%s': %s", c.UDP, err)
+		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
+		return
+	}
+	conn.Close()
+	c.Logger.Printf("[DEBUG] agent: check '%v' is passing", c.CheckID)
+	c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, fmt.Sprintf("UDP connect %s: Success", c.UDP))
 }
 
 // A custom interface since go-dockerclient doesn't have one

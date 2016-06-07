@@ -445,6 +445,81 @@ func TestCheckTCPPassing(t *testing.T) {
 	tcpServer.Close()
 }
 
+func mockUDPServer(network string) *net.UDPConn {
+	var (
+		addr string
+	)
+
+	if network == `udp6` {
+		addr = `[::1]:0`
+	} else {
+		addr = `127.0.0.1:0`
+	}
+
+	udpAddr, err := net.ResolveUDPAddr(network, addr)
+	if err != nil {
+		panic(err)
+	}
+	listener, err := net.ListenUDP(network, udpAddr)
+	if err != nil {
+		panic(err)
+	}
+
+	return listener
+}
+
+func expectUDPStatus(t *testing.T, udp string, status string) {
+	mock := &MockNotify{
+		state:   make(map[string]string),
+		updates: make(map[string]int),
+		output:  make(map[string]string),
+	}
+	check := &CheckTCP{
+		Notify:   mock,
+		CheckID:  "foo",
+		UDP:      udp,
+		Interval: 10 * time.Millisecond,
+		Logger:   log.New(os.Stderr, "", log.LstdFlags),
+	}
+	check.Start()
+	defer check.Stop()
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Should have at least 2 updates
+	if mock.updates["foo"] < 2 {
+		t.Fatalf("should have 2 updates %v", mock.updates)
+	}
+
+	if mock.state["foo"] != status {
+		t.Fatalf("should be %v %v", status, mock.state)
+	}
+}
+
+func TestCheckUDPCritical(t *testing.T) {
+	var (
+		udpServer *net.UDPConn
+	)
+
+	udpServer = mockUDPServer(`udp`)
+	expectUDPStatus(t, `127.0.0.1:0`, "critical")
+	udpServer.Close()
+}
+
+func TestCheckUDPPassing(t *testing.T) {
+	var (
+		udpServer *net.UDPConn
+	)
+
+	udpServer = mockUDPServer(`udp`)
+	expectUDPStatus(t, udpServer.LocalAddr().String(), "passing")
+	udpServer.Close()
+
+	udpServer = mockUDPServer(`udp6`)
+	expectUDPStatus(t, udpServer.LocalAddr().String(), "passing")
+	udpServer.Close()
+}
+
 // A fake docker client to test happy path scenario
 type fakeDockerClientWithNoErrors struct {
 }
