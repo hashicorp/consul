@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/consul/state"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/raft"
 )
@@ -860,7 +861,7 @@ func TestFSM_SessionCreate_Destroy(t *testing.T) {
 		Session: structs.Session{
 			ID:     generateUUID(),
 			Node:   "foo",
-			Checks: []string{"web"},
+			Checks: []types.CheckID{"web"},
 		},
 	}
 	buf, err := structs.Encode(structs.SessionRequestType, req)

@@ -117,7 +117,7 @@ func (c *MaintCommand) Run(args []string) int {
 				c.Ui.Output("  Name:   " + nodeName)
 				c.Ui.Output("  Reason: " + check.Notes)
 				c.Ui.Output("")
-			} else if strings.HasPrefix(check.CheckID, "_service_maintenance:") {
+			} else if strings.HasPrefix(string(check.CheckID), "_service_maintenance:") {
 				c.Ui.Output("Service:")
 				c.Ui.Output("  ID:     " + check.ServiceID)
 				c.Ui.Output("  Reason: " + check.Notes)

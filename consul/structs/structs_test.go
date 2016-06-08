@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul/types"
 )
 
 func TestEncodeDecode(t *testing.T) {
@@ -184,7 +186,7 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 		t.Fatalf("should not care about Raft fields")
 	}
 
-	check := func(field *string) {
+	checkCheckIDField := func(field *types.CheckID) {
 		if !hc.IsSame(other) || !other.IsSame(hc) {
 			t.Fatalf("should be the same")
 		}
@@ -201,14 +203,31 @@ func TestStructs_HealthCheck_IsSame(t *testing.T) {
 		}
 	}
 
-	check(&other.Node)
-	check(&other.CheckID)
-	check(&other.Name)
-	check(&other.Status)
-	check(&other.Notes)
-	check(&other.Output)
-	check(&other.ServiceID)
-	check(&other.ServiceName)
+	checkStringField := func(field *string) {
+		if !hc.IsSame(other) || !other.IsSame(hc) {
+			t.Fatalf("should be the same")
+		}
+
+		old := *field
+		*field = "XXX"
+		if hc.IsSame(other) || other.IsSame(hc) {
+			t.Fatalf("should not be the same")
+		}
+		*field = old
+
+		if !hc.IsSame(other) || !other.IsSame(hc) {
+			t.Fatalf("should be the same")
+		}
+	}
+
+	checkStringField(&other.Node)
+	checkCheckIDField(&other.CheckID)
+	checkStringField(&other.Name)
+	checkStringField(&other.Status)
+	checkStringField(&other.Notes)
+	checkStringField(&other.Output)
+	checkStringField(&other.ServiceID)
+	checkStringField(&other.ServiceName)
 }
 
 func TestStructs_HealthCheck_Clone(t *testing.T) {

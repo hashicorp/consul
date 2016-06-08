@@ -16,6 +16,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-cleanhttp"
 )
 
@@ -90,7 +91,7 @@ func (c *CheckType) IsDocker() bool {
 // to notify when a check has a status update. The update
 // should take care to be idempotent.
 type CheckNotifier interface {
-	UpdateCheck(checkID, status, output string)
+	UpdateCheck(checkID types.CheckID, status, output string)
 }
 
 // CheckMonitor is used to periodically invoke a script to
@@ -98,7 +99,7 @@ type CheckNotifier interface {
 // nagios plugins and expects the output in the same format.
 type CheckMonitor struct {
 	Notify   CheckNotifier
-	CheckID  string
+	CheckID  types.CheckID
 	Script   string
 	Interval time.Duration
 	Timeout  time.Duration
@@ -231,7 +232,7 @@ func (c *CheckMonitor) check() {
 // automatically set to critical.
 type CheckTTL struct {
 	Notify  CheckNotifier
-	CheckID string
+	CheckID types.CheckID
 	TTL     time.Duration
 	Logger  *log.Logger
 
@@ -322,7 +323,7 @@ type persistedCheck struct {
 // expiration timestamp which is used to determine staleness on later
 // agent restarts.
 type persistedCheckState struct {
-	CheckID string
+	CheckID types.CheckID
 	Output  string
 	Status  string
 	Expires int64
@@ -336,7 +337,7 @@ type persistedCheckState struct {
 // or if the request returns an error
 type CheckHTTP struct {
 	Notify   CheckNotifier
-	CheckID  string
+	CheckID  types.CheckID
 	HTTP     string
 	Interval time.Duration
 	Timeout  time.Duration
@@ -462,7 +463,7 @@ func (c *CheckHTTP) check() {
 // The check is critical if the connection returns an error
 type CheckTCP struct {
 	Notify   CheckNotifier
-	CheckID  string
+	CheckID  types.CheckID
 	TCP      string
 	Interval time.Duration
 	Timeout  time.Duration
@@ -553,7 +554,7 @@ type DockerClient interface {
 // with nagios plugins and expects the output in the same format.
 type CheckDocker struct {
 	Notify            CheckNotifier
-	CheckID           string
+	CheckID           types.CheckID
 	Script            string
 	DockerContainerID string
 	Shell             string
