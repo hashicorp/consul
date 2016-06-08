@@ -26,9 +26,15 @@ func (p ReverseProxy) ServeDNS(w dns.ResponseWriter, r *dns.Msg, extra []dns.RR)
 		reply, err = middleware.Exchange(p.Client.UDP, r, p.Host)
 	}
 
+	if reply != nil && reply.Truncated {
+		// Suppress proxy error for truncated responses
+		err = nil
+	}
+
 	if err != nil {
 		return err
 	}
+
 	reply.Compress = true
 	reply.Id = r.Id
 	w.WriteMsg(reply)
