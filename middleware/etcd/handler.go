@@ -58,6 +58,8 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		records, debug, err = e.TXT(zone, state)
 	case "CNAME":
 		records, debug, err = e.CNAME(zone, state)
+	case "PTR":
+		records, debug, err = e.PTR(zone, state)
 	case "MX":
 		records, extra, debug, err = e.MX(zone, state)
 	case "SRV":

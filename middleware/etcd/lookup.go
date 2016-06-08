@@ -305,6 +305,21 @@ func (e Etcd) CNAME(zone string, state middleware.State) (records []dns.RR, debu
 	return records, debug, nil
 }
 
+// PTR returns the PTR records, only services that have a domain name as host are included.
+func (e Etcd) PTR(zone string, state middleware.State) (records []dns.RR, debug []msg.Service, err error) {
+	services, debug, err := e.records(state, true)
+	if err != nil {
+		return nil, debug, err
+	}
+
+	for _, serv := range services {
+		if ip := net.ParseIP(serv.Host); ip == nil {
+			records = append(records, serv.NewPTR(state.QName(), serv.Host))
+		}
+	}
+	return records, debug, nil
+}
+
 func (e Etcd) TXT(zone string, state middleware.State) (records []dns.RR, debug []msg.Service, err error) {
 	services, debug, err := e.records(state, false)
 	if err != nil {

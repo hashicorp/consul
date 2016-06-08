@@ -102,6 +102,11 @@ func (s *Service) NewTXT(name string) *dns.TXT {
 	return &dns.TXT{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: s.Ttl}, Txt: split255(s.Text)}
 }
 
+// NewPTR returns a new PTR record based on the Service.
+func (s *Service) NewPTR(name string, target string) *dns.PTR {
+	return &dns.PTR{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: s.Ttl}, Ptr: dns.Fqdn(target)}
+}
+
 // NewNS returns a new NS record based on the Service.
 func (s *Service) NewNS(name string) *dns.NS {
 	host := targetStrip(dns.Fqdn(s.Host), s.TargetStrip)

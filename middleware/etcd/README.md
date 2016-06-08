@@ -72,3 +72,48 @@ This is the default SkyDNS setup, with everying specified in full:
     proxy . 8.8.8.8:53 8.8.4.4:53
 }
 ~~~
+
+### Reverse zones
+
+Reverse zones are supported. You need to make CoreDNS aware of the fact that you are also
+authoritative for the reverse. For instance if you want to add the reverse for 10.0.0.0/24, you'll
+need to add the zone `10.in-addr.arpa` to the list of zones (the fun starts with reverse IPv6 zones
+in the ip6.arpa domain). Showing a snippet of a Corefile:
+
+~~~
+    etcd skydns.local 10.in-addr.arpa {
+        stubzones
+    ...
+~~~
+
+Next you'll need to populate the zone with reverse records, here we add a reverse for
+10.0.0.127 pointing to reverse.skydns.local.
+
+~~~
+% curl -XPUT http://127.0.0.1:4001/v2/keys/skydns/arpa/in-addr/10/0/0/127 \
+    -d value='{"host":"reverse.skydns.local."}'
+~~~
+
+Querying with dig:
+
+~~~
+% dig @localhost -x 10.0.0.127 +short
+reverse.atoom.net.
+~~~
+
+Or with *debug* queries enabled:
+
+~~~
+% dig @localhost -p 1053 o-o.debug.127.0.0.10.in-addr.arpa. PTR
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;o-o.debug.127.0.0.10.in-addr.arpa. IN  PTR
+
+;; ANSWER SECTION:
+127.0.0.10.in-addr.arpa. 300    IN      PTR     reverse.atoom.net.
+
+;; ADDITIONAL SECTION:
+127.0.0.10.in-addr.arpa. 300    CH      TXT     "reverse.atoom.net.:0(10,0,,false)[0,]"
+~~~

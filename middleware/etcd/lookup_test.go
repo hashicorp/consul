@@ -15,20 +15,22 @@ var services = []*msg.Service{
 	{Host: "10.0.0.1", Port: 8080, Key: "a.server1.prod.region1.skydns.test."},
 	{Host: "10.0.0.2", Port: 8080, Key: "b.server1.prod.region1.skydns.test."},
 	{Host: "::1", Port: 8080, Key: "b.server6.prod.region1.skydns.test."},
-	// Unresolvable internal name
+	// Unresolvable internal name.
 	{Host: "unresolvable.skydns.test", Key: "cname.prod.region1.skydns.test."},
-	// priority
+	// Priority.
 	{Host: "priority.server1", Priority: 333, Port: 8080, Key: "priority.skydns.test."},
-	// Subdomain
+	// Subdomain.
 	{Host: "sub.server1", Port: 0, Key: "a.sub.region1.skydns.test."},
 	{Host: "sub.server2", Port: 80, Key: "b.sub.region1.skydns.test."},
 	{Host: "10.0.0.1", Port: 8080, Key: "c.sub.region1.skydns.test."},
-	// Cname loop
+	// Cname loop.
 	{Host: "a.cname.skydns.test", Key: "b.cname.skydns.test."},
 	{Host: "b.cname.skydns.test", Key: "a.cname.skydns.test."},
 	// Nameservers.
 	{Host: "10.0.0.2", Key: "a.ns.dns.skydns.test."},
 	{Host: "10.0.0.3", Key: "b.ns.dns.skydns.test."},
+	// Reverse.
+	{Host: "reverse.example.com", Key: "1.0.0.10.in-addr.arpa."}, // 10.0.0.1
 }
 
 var dnsTestCases = []test.Case{
@@ -197,5 +199,10 @@ var dnsTestCases = []test.Case{
 	{
 		Qname: "skydns_extra.test.", Qtype: dns.TypeSOA,
 		Answer: []dns.RR{test.SOA("skydns_extra.test. 300 IN SOA ns.dns.skydns_extra.test. hostmaster.skydns_extra.test. 1460498836 14400 3600 604800 60")},
+	},
+	// Reverse lookup
+	{
+		Qname: "1.0.0.10.in-addr.arpa.", Qtype: dns.TypePTR,
+		Answer: []dns.RR{test.PTR("1.0.0.10.in-addr.arpa. 300 PTR reverse.example.com.")},
 	},
 }

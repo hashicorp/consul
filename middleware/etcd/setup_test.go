@@ -37,7 +37,7 @@ func init() {
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
 		Inflight:   &singleflight.Group{},
-		Zones:      []string{"skydns.test.", "skydns_extra.test."},
+		Zones:      []string{"skydns.test.", "skydns_extra.test.", "in-addr.arpa."},
 		Client:     etcdc.NewKeysAPI(cli),
 	}
 }
