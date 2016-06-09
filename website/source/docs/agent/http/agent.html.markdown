@@ -436,7 +436,7 @@ The service maintenance endpoint allows placing a given service into
 "maintenance mode". During maintenance mode, the service will be marked as
 unavailable and will not be present in DNS or API queries. This API call is
 idempotent. Maintenance mode is persistent and will be automatically restored
-on agent restart.
+on agent restart. The maintenance endpoint expects a PUT request.
 
 The `?enable` flag is required.  Acceptable values are either `true` (to enter
 maintenance mode) or `false` (to resume normal operation).
