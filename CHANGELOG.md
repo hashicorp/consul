@@ -9,6 +9,9 @@ BACKWARDS INCOMPATIBILITIES:
 
 IMPROVEMENTS:
 
+* Implemented a new set of feedback controls for the gossip layer that help
+  prevent degraded nodes that can't meet the soft real-time requirements from
+  erroneously causing `serfHealth` flapping in other, healthy nodes.
 * Added a new `/v1/txn` state store transaction API that allows for atomic
   updates to and fetches from multiple entries in the key/value store. [GH-2028]
 * Consul agents will now periodically reconnect to available Consul servers
