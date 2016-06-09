@@ -46,6 +46,9 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* Fixed an issue with the state store's immutable radix tree that would prevent it
+  from using cached modified objects during transactions, leading to extra copies
+  and increased memory / GC pressure. [GH-2106]
 * Fixed an issue where a health check's output never updates if the check
   status doesn't change after the Consul agent starts. [GH-1934]
 * External services can now be registered with ACL tokens. [GH-1738]
