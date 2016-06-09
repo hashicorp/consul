@@ -226,13 +226,13 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/serf/coordinate",
-			"Comment": "v0.7.0-64-gdce30f1",
-			"Rev": "dce30f1c7806bf2d96478abb983c53af0e4c8fb2"
+			"Comment": "v0.7.0-66-g6c4672d",
+			"Rev": "6c4672d66fc6312ddde18399262943e21175d831"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/serf/serf",
-			"Comment": "v0.7.0-64-gdce30f1",
-			"Rev": "dce30f1c7806bf2d96478abb983c53af0e4c8fb2"
+			"Comment": "v0.7.0-66-g6c4672d",
+			"Rev": "6c4672d66fc6312ddde18399262943e21175d831"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/yamux",
