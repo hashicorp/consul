@@ -114,7 +114,7 @@ Nodes:
 		bx[b] = true
 
 		serv.Key = n.Key
-		serv.Ttl = g.Ttl(n, serv)
+		serv.Ttl = g.TTL(n, serv)
 		if serv.Priority == 0 {
 			serv.Priority = priority
 		}
@@ -123,22 +123,22 @@ Nodes:
 	return sx, nil
 }
 
-// Ttl returns the smaller of the etcd TTL and the service's
+// TTL returns the smaller of the etcd TTL and the service's
 // TTL. If neither of these are set (have a zero value), a default is used.
-func (g Etcd) Ttl(node *etcdc.Node, serv *msg.Service) uint32 {
-	etcdTtl := uint32(node.TTL)
+func (g Etcd) TTL(node *etcdc.Node, serv *msg.Service) uint32 {
+	etcdTTL := uint32(node.TTL)
 
-	if etcdTtl == 0 && serv.Ttl == 0 {
+	if etcdTTL == 0 && serv.Ttl == 0 {
 		return ttl
 	}
-	if etcdTtl == 0 {
+	if etcdTTL == 0 {
 		return serv.Ttl
 	}
 	if serv.Ttl == 0 {
-		return etcdTtl
+		return etcdTTL
 	}
-	if etcdTtl < serv.Ttl {
-		return etcdTtl
+	if etcdTTL < serv.Ttl {
+		return etcdTTL
 	}
 	return serv.Ttl
 }
@@ -154,7 +154,7 @@ func isEtcdNameError(err error) bool {
 const (
 	priority    = 10  // default priority when nothing is set
 	ttl         = 300 // default ttl when nothing is set
-	minTtl      = 60
+	minTTL      = 60
 	hostmaster  = "hostmaster"
 	etcdTimeout = 5 * time.Second
 )

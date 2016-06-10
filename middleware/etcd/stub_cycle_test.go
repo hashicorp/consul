@@ -26,7 +26,7 @@ func TestStubCycle(t *testing.T) {
 		}
 
 		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
-		_, err := etc.ServeDNS(ctx, rec, m)
+		_, err := etc.ServeDNS(ctxt, rec, m)
 		if err == nil {
 			t.Errorf("expected error, got none")
 			continue

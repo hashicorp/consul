@@ -22,11 +22,11 @@ import (
 var (
 	etc    Etcd
 	client etcdc.KeysAPI
-	ctx    context.Context
+	ctxt   context.Context
 )
 
 func init() {
-	ctx, _ = context.WithTimeout(context.Background(), etcdTimeout)
+	ctxt, _ = context.WithTimeout(context.Background(), etcdTimeout)
 
 	etcdCfg := etcdc.Config{
 		Endpoints: []string{"http://localhost:2379"},
@@ -48,12 +48,12 @@ func set(t *testing.T, e Etcd, k string, ttl time.Duration, m *msg.Service) {
 		t.Fatal(err)
 	}
 	path, _ := msg.PathWithWildcard(k, e.PathPrefix)
-	e.Client.Set(ctx, path, string(b), &etcdc.SetOptions{TTL: ttl})
+	e.Client.Set(ctxt, path, string(b), &etcdc.SetOptions{TTL: ttl})
 }
 
 func delete(t *testing.T, e Etcd, k string) {
 	path, _ := msg.PathWithWildcard(k, e.PathPrefix)
-	e.Client.Delete(ctx, path, &etcdc.DeleteOptions{Recursive: false})
+	e.Client.Delete(ctxt, path, &etcdc.DeleteOptions{Recursive: false})
 }
 
 func TestLookup(t *testing.T) {
@@ -65,7 +65,7 @@ func TestLookup(t *testing.T) {
 		m := tc.Msg()
 
 		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
-		_, err := etc.ServeDNS(ctx, rec, m)
+		_, err := etc.ServeDNS(ctxt, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got: %v for %s %s\n", err, m.Question[0].Name, dns.Type(m.Question[0].Qtype))
 			return

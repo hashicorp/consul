@@ -28,7 +28,7 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	// are not auth. for *but* do have a stubzone forward for. If we do the stubzone
 	// handler will handle the request.
 	if e.Stubmap != nil && len(*e.Stubmap) > 0 {
-		for zone, _ := range *e.Stubmap {
+		for zone := range *e.Stubmap {
 			if middleware.Name(zone).Matches(name) {
 				stub := Stub{Etcd: e, Zone: zone}
 				return stub.ServeDNS(ctx, w, r)

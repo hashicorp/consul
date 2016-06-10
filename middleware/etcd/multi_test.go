@@ -26,7 +26,7 @@ func TestMultiLookup(t *testing.T) {
 		m := tc.Msg()
 
 		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
-		_, err := etcMulti.ServeDNS(ctx, rec, m)
+		_, err := etcMulti.ServeDNS(ctxt, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
 			return

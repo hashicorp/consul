@@ -23,7 +23,7 @@ func TestStubLookup(t *testing.T) {
 		m := tc.Msg()
 
 		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
-		_, err := etc.ServeDNS(ctx, rec, m)
+		_, err := etc.ServeDNS(ctxt, rec, m)
 		if err != nil {
 			if tc.Rcode != dns.RcodeServerFailure {
 				t.Errorf("expected no error, got %v\n", err)

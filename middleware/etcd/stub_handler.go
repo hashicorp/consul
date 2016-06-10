@@ -58,7 +58,7 @@ func addStubEdns0(m *dns.Msg) *dns.Msg {
 	option := m.IsEdns0()
 	// Add a custom EDNS0 option to the packet, so we can detect loops when 2 stubs are forwarding to each other.
 	if option != nil {
-		option.Option = append(option.Option, &dns.EDNS0_LOCAL{ednsStubCode, []byte{1}})
+		option.Option = append(option.Option, &dns.EDNS0_LOCAL{Code: ednsStubCode, Data: []byte{1}})
 		return m
 	}
 

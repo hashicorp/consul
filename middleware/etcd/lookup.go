@@ -398,6 +398,6 @@ func isDuplicateCNAME(r *dns.CNAME, records []dns.RR) bool {
 // TODO(miek): Move to middleware?
 func copyState(state middleware.State, target string, typ uint16) middleware.State {
 	state1 := middleware.State{W: state.W, Req: state.Req.Copy()}
-	state1.Req.Question[0] = dns.Question{dns.Fqdn(target), dns.ClassINET, typ}
+	state1.Req.Question[0] = dns.Question{Name: dns.Fqdn(target), Qclass: dns.ClassINET, Qtype: typ}
 	return state1
 }
