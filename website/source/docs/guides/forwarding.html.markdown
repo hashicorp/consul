@@ -134,7 +134,7 @@ to forward ports on the same machine without a secondary service.  Since Consul,
 resolves the `.consul` TDL, it is especially important to use the `recursors` option if you wish the
 `iptables` setup to resolve for other domains. The recursors should not include the localhost as the 
 redirects would just intercept the requests. The iptables method is suited for situations where an
-external DNS service is already running in your infrastructure is used as the recursor or if you want 
+external DNS service is already running in your infrastructure and is used as the recursor or if you want 
 to use an existing DNS server as your query endpoint and forward requests for the consul domain to the 
 consul server. In both of those cases you may want to query the consul server but not need the overhead
 of a separate service on the consul host.
