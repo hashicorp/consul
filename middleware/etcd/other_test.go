@@ -78,8 +78,6 @@ var servicesOther = []*msg.Service{
 	{Text: strings.Repeat("0", 400), Key: "large400.skydns.test."},
 	{Text: strings.Repeat("0", 600), Key: "large600.skydns.test."},
 	{Text: strings.Repeat("0", 2000), Key: "large2000.skydns.test."},
-	//{Text: strings.Repeat("0", 10000), Key: "large10000.skydns.test."},
-	//{Text: strings.Repeat("0", 40000), Key: "large40000.skydns.test."},
 
 	// duplicate ip address
 	{Host: "10.11.11.10", Key: "http.multiport.http.skydns.test.", Port: 80},
@@ -159,27 +157,10 @@ var dnsTestCasesOther = []test.Case{
 			test.TXT(fmt.Sprintf("large2000.skydns.test. 300 IN TXT \"%s\"", strings.Repeat("0", 2000))),
 		},
 	},
-	/* Looks like github.com/miekg/dns/scan.go:const maxTok = 2048 is the limit
-	// Large txt greater than 9000 (typical jumbo Ethernet)
 	{
 		Qname: "large10000.skydns.test.", Qtype: dns.TypeTXT,
 		Answer: []dns.RR{
 			test.TXT(fmt.Sprintf("large10000.skydns.test. 300 IN TXT \"%s\"", strings.Repeat("0", 10000))),
-		},
-	},
-	// Large txt greater than 32768 (RDLENGTH is unsigned 16 bit int in RFC 1035)
-	{
-		Qname: "large40000.skydns.test.", Qtype: dns.TypeTXT,
-		Answer: []dns.RR{
-			test.TXT(fmt.Sprintf("large40000.skydns.test. 300 IN TXT \"%s\"", strings.Repeat("0", 40000))),
-		},
-	},
-	*/
-	{
-		Qname: "txt.skydns.test.", Qtype: dns.TypeTXT,
-		Answer: []dns.RR{
-			test.TXT("txt.skydns.test. 300 IN TXT \"abc abc\""),
-			test.TXT("txt.skydns.test. 300 IN TXT \"abc\""),
 		},
 	},
 	// Duplicate IP address test
