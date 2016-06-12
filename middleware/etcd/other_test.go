@@ -157,12 +157,6 @@ var dnsTestCasesOther = []test.Case{
 			test.TXT(fmt.Sprintf("large2000.skydns.test. 300 IN TXT \"%s\"", strings.Repeat("0", 2000))),
 		},
 	},
-	{
-		Qname: "large10000.skydns.test.", Qtype: dns.TypeTXT,
-		Answer: []dns.RR{
-			test.TXT(fmt.Sprintf("large10000.skydns.test. 300 IN TXT \"%s\"", strings.Repeat("0", 10000))),
-		},
-	},
 	// Duplicate IP address test
 	{
 		Qname: "multiport.http.skydns.test.", Qtype: dns.TypeA,
