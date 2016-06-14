@@ -45,6 +45,9 @@ There are three load balancing policies available:
 * *least_conn* - Select backend with the fewest active connections
 * *round_robin* - Select backend in round-robin fashion
 
+All polices implement randomly spraying packets to backend hosts when *no healthy* hosts are
+available. This is to preeempt the case where the healthchecking (as a mechanism) fails.
+
 ## Examples
 
 Proxy all requests within example.org. to a backend system:

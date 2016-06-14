@@ -8,7 +8,9 @@ import (
 // HostPool is a collection of UpstreamHosts.
 type HostPool []*UpstreamHost
 
-// Policy decides how a host will be selected from a pool.
+// Policy decides how a host will be selected from a pool. When all hosts are unhealthy, it is assumed the
+// healthchecking failed. In this case each policy will *randomly* return a host from the pool to prevent
+// no traffic to go through at all.
 type Policy interface {
 	Select(pool HostPool) *UpstreamHost
 }
@@ -42,6 +44,20 @@ func (r *Random) Select(pool HostPool) *UpstreamHost {
 			}
 		}
 	}
+	if randHost == nil {
+		return new(Spray).Select(pool)
+	}
+	return randHost
+}
+
+// Spray is a policy that selects a host from a pool at random. This should be used as a last ditch
+// attempt to get a host when all hosts are reporting unhealthy.
+type Spray struct{}
+
+// Select selects an up host at random from the specified pool.
+func (r *Spray) Select(pool HostPool) *UpstreamHost {
+	rnd := rand.Int() % len(pool)
+	randHost := pool[rnd]
 	return randHost
 }
 
@@ -77,6 +93,9 @@ func (r *LeastConn) Select(pool HostPool) *UpstreamHost {
 			}
 		}
 	}
+	if bestHost == nil {
+		return new(Spray).Select(pool)
+	}
 	return bestHost
 }
 
@@ -95,7 +114,7 @@ func (r *RoundRobin) Select(pool HostPool) *UpstreamHost {
 		host = pool[(selection+i)%poolLen]
 	}
 	if host.Down() {
-		return nil
+		return new(Spray).Select(pool)
 	}
 	return host
 }
