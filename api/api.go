@@ -144,6 +144,15 @@ type TLSConfig struct {
 	// If this is set then you need to also set CertFile.
 	KeyFile string
 
+	// CAPEM is the optional content of the CA certificate used for Consul comm.
+	CAPEM []byte
+
+	// CertFile is the optional content of the certificate for Consul comm.
+	CertPEM []byte
+
+	// KeyFile is the optional content of the private key for Consul comm.
+	KeyPEM []byte
+
 	// InsecureSkipVerify if set to true will disable TLS host verification.
 	InsecureSkipVerify bool
 }
@@ -219,10 +228,27 @@ func defaultConfig(transportFn func() *http.Transport) *Config {
 			log.Printf("[WARN] client: could not parse CONSUL_HTTP_SSL_VERIFY: %s", err)
 		}
 
+		hasTlsConfig := false
+		tlsConfig := &TLSConfig{}
 		if !doVerify {
-			tlsClientConfig, err := SetupTLSConfig(&TLSConfig{
-				InsecureSkipVerify: true,
-			})
+			hasTlsConfig = true
+			tlsConfig.InsecureSkipVerify = true
+		}
+		if capem := os.Getenv("CONSUL_HTTP_SSL_CAPEM"); capem != "" {
+			hasTlsConfig = true
+			tlsConfig.CAPEM = []byte(capem)
+		}
+		if certpem := os.Getenv("CONSUL_HTTP_SSL_CERTPEM"); certpem != "" {
+			hasTlsConfig = true
+			tlsConfig.CertPEM = []byte(certpem)
+		}
+		if keypem := os.Getenv("CONSUL_HTTP_SSL_KEYPEM"); keypem != "" {
+			hasTlsConfig = true
+			tlsConfig.KeyPEM = []byte(keypem)
+		}
+		if hasTlsConfig == true {
+
+			tlsClientConfig, err := SetupTLSConfig(tlsConfig)
 
 			// We don't expect this to fail given that we aren't
 			// parsing any of the input, but we panic just in case
@@ -266,16 +292,31 @@ func SetupTLSConfig(tlsConfig *TLSConfig) (*tls.Config, error) {
 			return nil, err
 		}
 		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
+	} else if string(tlsConfig.CertPEM) != "" && string(tlsConfig.KeyPEM) != "" {
+		tlsCert, err := tls.X509KeyPair(tlsConfig.CertPEM, tlsConfig.KeyPEM)
+		if err != nil {
+			return nil, err
+		}
+		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
 	}
 
+	hasCA := false
+	var caContent []byte
+	var err error
 	if tlsConfig.CAFile != "" {
-		data, err := ioutil.ReadFile(tlsConfig.CAFile)
+		hasCA = true
+		caContent, err = ioutil.ReadFile(tlsConfig.CAFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read CA file: %v", err)
 		}
 
+	} else if string(tlsConfig.CAPEM) != "" {
+		hasCA = true
+		caContent = tlsConfig.CAPEM
+	}
+	if hasCA == true {
 		caPool := x509.NewCertPool()
-		if !caPool.AppendCertsFromPEM(data) {
+		if !caPool.AppendCertsFromPEM(caContent) {
 			return nil, fmt.Errorf("failed to parse CA certificate")
 		}
 		tlsClientConfig.RootCAs = caPool

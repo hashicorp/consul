@@ -213,6 +213,33 @@ func TestSetupTLSConfig(t *testing.T) {
 	if cc.RootCAs == nil {
 		t.Fatalf("didn't load root CAs")
 	}
+
+	certPEMBlock, err := ioutil.ReadFile("./test-fixtures/testcert.pem")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	keyPEMBlock, err := ioutil.ReadFile("./test-fixtures/testkey.pem")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make a new config that hits all the file parsers.
+	tlsConfig = &TLSConfig{
+		CertPEM: certPEMBlock,
+		KeyPEM:  keyPEMBlock,
+		CAPEM:   certPEMBlock,
+	}
+
+	cc, err = SetupTLSConfig(tlsConfig)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if len(cc.Certificates) != 1 {
+		t.Fatalf("missing certificate: %v", cc.Certificates)
+	}
+	if cc.RootCAs == nil {
+		t.Fatalf("didn't load root CAs")
+	}
 }
 
 func TestSetQueryOptions(t *testing.T) {
