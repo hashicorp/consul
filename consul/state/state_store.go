@@ -839,7 +839,9 @@ func (s *StateStore) parseServiceNodes(tx *memdb.Txn, services structs.ServiceNo
 		if err != nil {
 			return nil, fmt.Errorf("failed node lookup: %s", err)
 		}
-		s.Address = n.(*structs.Node).Address
+		node := n.(*structs.Node)
+		s.Address = node.Address
+		s.TaggedAddresses = node.TaggedAddresses
 		results = append(results, s)
 	}
 	return results, nil

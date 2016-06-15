@@ -264,6 +264,7 @@ type Services map[string][]string
 type ServiceNode struct {
 	Node                     string
 	Address                  string
+	TaggedAddresses          map[string]string
 	ServiceID                string
 	ServiceName              string
 	ServiceTags              []string

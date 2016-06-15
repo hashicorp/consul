@@ -23,6 +23,50 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 )
 
+type HTTPServerCtx struct {
+	dir string
+	srv *HTTPServer
+}
+
+func setupWanHTTPServers(t *testing.T) (HTTPServerCtx, HTTPServerCtx) {
+	dir1, srv1 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc1"
+			c.TranslateWanAddrs = true
+		})
+
+	dir2, srv2 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc2"
+			c.TranslateWanAddrs = true
+		})
+
+	testutil.WaitForLeader(t, srv1.agent.RPC, "dc1")
+	testutil.WaitForLeader(t, srv2.agent.RPC, "dc2")
+
+	// Join WAN cluster
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		srv1.agent.config.Ports.SerfWan)
+	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	testutil.WaitForResult(
+		func() (bool, error) {
+			return len(srv1.agent.WANMembers()) > 1, nil
+		},
+		func(err error) {
+			t.Fatalf("Failed waiting for WAN join: %v", err)
+		})
+	return HTTPServerCtx{dir1, srv1}, HTTPServerCtx{dir2, srv2}
+}
+
+func shutdownHTTPServer(httpCtx HTTPServerCtx) {
+	os.RemoveAll(httpCtx.dir)
+	httpCtx.srv.Shutdown()
+	httpCtx.srv.agent.Shutdown()
+}
+
 func makeHTTPServer(t *testing.T) (string, *HTTPServer) {
 	return makeHTTPServerWithConfig(t, nil)
 }

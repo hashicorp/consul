@@ -77,6 +77,12 @@ func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (
 	if out.Nodes == nil {
 		out.Nodes = make(structs.Nodes, 0)
 	}
+
+	for _, node := range out.Nodes {
+		addr := s.agent.TranslateAddr(args.Datacenter, node.Address, node.TaggedAddresses)
+		node.Address = addr
+	}
+
 	return out.Nodes, nil
 }
 
@@ -129,6 +135,12 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	if out.ServiceNodes == nil {
 		out.ServiceNodes = make(structs.ServiceNodes, 0)
 	}
+
+	for _, serviceNode := range out.ServiceNodes {
+		addr := s.agent.TranslateAddr(args.Datacenter, serviceNode.Address, serviceNode.TaggedAddresses)
+		serviceNode.Address = addr
+	}
+
 	return out.ServiceNodes, nil
 }
 
@@ -153,5 +165,12 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 	if err := s.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
 		return nil, err
 	}
+
+	if out.NodeServices != nil {
+		node := out.NodeServices.Node
+		addr := s.agent.TranslateAddr(args.Datacenter, node.Address, node.TaggedAddresses)
+		node.Address = addr
+	}
+
 	return out.NodeServices, nil
 }

@@ -554,6 +554,83 @@ func TestHealthServiceNodes_PassingFilter(t *testing.T) {
 	}
 }
 
+func TestHealthServiceNodes_WanTranslation(t *testing.T) {
+	httpCtx1, httpCtx2 := setupWanHTTPServers(t)
+	defer shutdownHTTPServer(httpCtx1)
+	defer shutdownHTTPServer(httpCtx2)
+	srv1 := httpCtx1.srv
+	srv2 := httpCtx2.srv
+
+	// Register a node with DC2
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc2",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			TaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			Service: &structs.NodeService{
+				Service: "http_wan_translation_test",
+			},
+		}
+
+		var out struct{}
+		if err := srv2.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	req, err := http.NewRequest("GET", "/v1/health/service/http_wan_translation_test?dc=dc2", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// ask DC1 for node in DC2
+	resp1 := httptest.NewRecorder()
+	obj1, err1 := srv1.HealthServiceNodes(resp1, req)
+	if err1 != nil {
+		t.Fatalf("err: %v", err1)
+	}
+
+	assertIndex(t, resp1)
+
+	// Should be 1 health check for consul
+	nodes1 := obj1.(structs.CheckServiceNodes)
+	if len(nodes1) != 1 {
+		t.Fatalf("bad: %v", obj1)
+	}
+
+	node1 := nodes1[0].Node
+
+	// Expect that DC1 gives us a public address (since the node is in DC2)
+	if node1.Address != "127.0.0.2" {
+		t.Fatalf("bad: %v", node1)
+	}
+
+	// ask DC2 for node in DC2
+	resp2 := httptest.NewRecorder()
+	obj2, err2 := srv2.HealthServiceNodes(resp2, req)
+	if err2 != nil {
+		t.Fatalf("err: %v", err2)
+	}
+
+	assertIndex(t, resp2)
+
+	// Should be 1 health check for consul
+	nodes2 := obj2.(structs.CheckServiceNodes)
+	if len(nodes2) != 1 {
+		t.Fatalf("bad: %v", obj2)
+	}
+
+	node2 := nodes2[0].Node
+
+	// Expect that DC2 gives us a private address (since the node is in DC2)
+	if node2.Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", node2)
+	}
+}
+
 func TestFilterNonPassing(t *testing.T) {
 	nodes := structs.CheckServiceNodes{
 		structs.CheckServiceNode{
