@@ -267,6 +267,8 @@ It returns a JSON body like this:
 ]
 ```
 
+The `ServiceAddress` provides the FQDN that was used to register the service.
+
 This endpoint supports blocking queries and all consistency modes.
 
 ### <a name="catalog_node"></a> /v1/catalog/node/\<node\>
