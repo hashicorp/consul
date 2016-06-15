@@ -368,19 +368,6 @@ INVALID:
 	resp.SetRcode(req, dns.RcodeNameError)
 }
 
-// translateAddr is used to provide the final, translated address for a node,
-// depending on how this agent and the other node are configured.
-func (d *DNSServer) translateAddr(dc string, node *structs.Node) string {
-	addr := node.Address
-	if d.agent.config.TranslateWanAddrs && (d.agent.config.Datacenter != dc) {
-		wanAddr := node.TaggedAddresses["wan"]
-		if wanAddr != "" {
-			addr = wanAddr
-		}
-	}
-	return addr
-}
-
 // nodeLookup is used to handle a node query
 func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.Msg) {
 	// Only handle ANY, A and AAAA type requests
@@ -421,7 +408,8 @@ RPC:
 	}
 
 	// Add the node record
-	addr := d.translateAddr(datacenter, out.NodeServices.Node)
+	n := out.NodeServices.Node
+	addr := d.agent.TranslateAddr(datacenter, n.Address, n.TaggedAddresses)
 	records := d.formatNodeRecord(out.NodeServices.Node, addr,
 		req.Question[0].Name, qType, d.config.NodeTTL)
 	if records != nil {
@@ -692,7 +680,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	for _, node := range nodes {
 		// Start with the translated address but use the service address,
 		// if specified.
-		addr := d.translateAddr(dc, node.Node)
+		addr := d.agent.TranslateAddr(dc, node.Node.Address, node.Node.TaggedAddresses)
 		if node.Service.Address != "" {
 			addr = node.Service.Address
 		}
@@ -741,7 +729,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 
 		// Start with the translated address but use the service address,
 		// if specified.
-		addr := d.translateAddr(dc, node.Node)
+		addr := d.agent.TranslateAddr(dc, node.Node.Address, node.Node.TaggedAddresses)
 		if node.Service.Address != "" {
 			addr = node.Service.Address
 		}
