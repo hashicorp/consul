@@ -49,7 +49,7 @@ A critical note is that the return of a blocking request is **no guarantee** of 
 is possible that the timeout was reached or that there was an idempotent write that does
 not affect the result of the query.
 
-## Consistency Modes
+## <a id="consistency"></a>Consistency Modes
 
 Most of the read query endpoints support multiple levels of consistency. Since no policy will
 suit all clients' needs, these consistency modes allow the user to have the ultimate say in
