@@ -657,6 +657,30 @@ func TestEnableWebUI(t *testing.T) {
 	})
 }
 
+func TestHttpOptions(t *testing.T) {
+	httpTest(t, func(s *HTTPServer) {
+		req, err := http.NewRequest("GET", "/v1/query", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Perform the request
+		resp := httptest.NewRecorder()
+		s.mux.ServeHTTP(resp, req)
+
+		// Check the result
+		if resp.Code != 200 {
+			t.Error("should handle options method")
+		}
+		optionsStr, ok := resp.HeaderMap["Allow"]
+		if !ok {
+			t.Error("options method should set 'Allow' header")
+		} else if optionsStr != "OPTIONS,GET,POST" {
+			t.Error("options method should set 'Allow' header properly")
+		}
+	})
+}
+
 // assertIndex tests that X-Consul-Index is set and non-zero
 func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
 	header := resp.Header().Get("X-Consul-Index")

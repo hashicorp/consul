@@ -39,6 +39,10 @@ type HTTPServer struct {
 	addr     string
 }
 
+// acceptedMethods is a map from a path (e.g. "/v1/kv") to a comma-delimited
+// list of HTTP verbs accepted at that endpoint (e.g. "GET,PUT,DELETE").
+var acceptedMethods = make(map[string]string)
+
 // NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
 func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPServer, error) {
@@ -193,102 +197,109 @@ func (s *HTTPServer) Shutdown() {
 
 // registerHandlers is used to attach our handlers to the mux
 func (s *HTTPServer) registerHandlers(enableDebug bool) {
-	s.mux.HandleFunc("/", s.Index)
+	s.register("/", "GET", s.Index)
 
-	s.mux.HandleFunc("/v1/status/leader", s.wrap(s.StatusLeader))
-	s.mux.HandleFunc("/v1/status/peers", s.wrap(s.StatusPeers))
+	s.register("/v1/status/leader", "GET", s.wrap(s.StatusLeader))
+	s.register("/v1/status/peers", "GET", s.wrap(s.StatusPeers))
 
-	s.mux.HandleFunc("/v1/catalog/register", s.wrap(s.CatalogRegister))
-	s.mux.HandleFunc("/v1/catalog/deregister", s.wrap(s.CatalogDeregister))
-	s.mux.HandleFunc("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
-	s.mux.HandleFunc("/v1/catalog/nodes", s.wrap(s.CatalogNodes))
-	s.mux.HandleFunc("/v1/catalog/services", s.wrap(s.CatalogServices))
-	s.mux.HandleFunc("/v1/catalog/service/", s.wrap(s.CatalogServiceNodes))
-	s.mux.HandleFunc("/v1/catalog/node/", s.wrap(s.CatalogNodeServices))
+	s.register("/v1/catalog/s.register", "PUT", s.wrap(s.Catalogs.register))
+	s.register("/v1/catalog/des.register", "PUT", s.wrap(s.CatalogDes.register))
+	s.register("/v1/catalog/datacenters", "GET", s.wrap(s.CatalogDatacenters))
+	s.register("/v1/catalog/nodes", "GET", s.wrap(s.CatalogNodes))
+	s.register("/v1/catalog/services", "GET", s.wrap(s.CatalogServices))
+	s.register("/v1/catalog/service/", "GET", s.wrap(s.CatalogServiceNodes))
+	s.register("/v1/catalog/node/", "GET", s.wrap(s.CatalogNodeServices))
 
 	if !s.agent.config.DisableCoordinates {
-		s.mux.HandleFunc("/v1/coordinate/datacenters", s.wrap(s.CoordinateDatacenters))
-		s.mux.HandleFunc("/v1/coordinate/nodes", s.wrap(s.CoordinateNodes))
+		s.register("/v1/coordinate/datacenters", "GET", s.wrap(s.CoordinateDatacenters))
+		s.register("/v1/coordinate/nodes", "GET", s.wrap(s.CoordinateNodes))
 	} else {
-		s.mux.HandleFunc("/v1/coordinate/datacenters", s.wrap(coordinateDisabled))
-		s.mux.HandleFunc("/v1/coordinate/nodes", s.wrap(coordinateDisabled))
+		s.register("/v1/coordinate/datacenters", "GET", s.wrap(coordinateDisabled))
+		s.register("/v1/coordinate/nodes", "GET", s.wrap(coordinateDisabled))
 	}
 
-	s.mux.HandleFunc("/v1/health/node/", s.wrap(s.HealthNodeChecks))
-	s.mux.HandleFunc("/v1/health/checks/", s.wrap(s.HealthServiceChecks))
-	s.mux.HandleFunc("/v1/health/state/", s.wrap(s.HealthChecksInState))
-	s.mux.HandleFunc("/v1/health/service/", s.wrap(s.HealthServiceNodes))
+	s.register("/v1/health/node/", "GET", s.wrap(s.HealthNodeChecks))
+	s.register("/v1/health/checks/", "GET", s.wrap(s.HealthServiceChecks))
+	s.register("/v1/health/state/", "GET", s.wrap(s.HealthChecksInState))
+	s.register("/v1/health/service/", "GET", s.wrap(s.HealthServiceNodes))
 
-	s.mux.HandleFunc("/v1/agent/self", s.wrap(s.AgentSelf))
-	s.mux.HandleFunc("/v1/agent/maintenance", s.wrap(s.AgentNodeMaintenance))
-	s.mux.HandleFunc("/v1/agent/services", s.wrap(s.AgentServices))
-	s.mux.HandleFunc("/v1/agent/checks", s.wrap(s.AgentChecks))
-	s.mux.HandleFunc("/v1/agent/members", s.wrap(s.AgentMembers))
-	s.mux.HandleFunc("/v1/agent/join/", s.wrap(s.AgentJoin))
-	s.mux.HandleFunc("/v1/agent/force-leave/", s.wrap(s.AgentForceLeave))
+	s.register("/v1/agent/self", "GET", s.wrap(s.AgentSelf))
+	s.register("/v1/agent/maintenance", "GET", s.wrap(s.AgentNodeMaintenance))
+	s.register("/v1/agent/services", "GET", s.wrap(s.AgentServices))
+	s.register("/v1/agent/checks", "GET", s.wrap(s.AgentChecks))
+	s.register("/v1/agent/members", "GET", s.wrap(s.AgentMembers))
+	s.register("/v1/agent/join/", "GET", s.wrap(s.AgentJoin))
+	s.register("/v1/agent/force-leave/", "GET", s.wrap(s.AgentForceLeave))
 
-	s.mux.HandleFunc("/v1/agent/check/register", s.wrap(s.AgentRegisterCheck))
-	s.mux.HandleFunc("/v1/agent/check/deregister/", s.wrap(s.AgentDeregisterCheck))
-	s.mux.HandleFunc("/v1/agent/check/pass/", s.wrap(s.AgentCheckPass))
-	s.mux.HandleFunc("/v1/agent/check/warn/", s.wrap(s.AgentCheckWarn))
-	s.mux.HandleFunc("/v1/agent/check/fail/", s.wrap(s.AgentCheckFail))
-	s.mux.HandleFunc("/v1/agent/check/update/", s.wrap(s.AgentCheckUpdate))
+	s.register("/v1/agent/check/s.register", "PUT", s.wrap(s.Agents.registerCheck))
+	s.register("/v1/agent/check/des.register/", "PUT", s.wrap(s.AgentDes.registerCheck))
+	s.register("/v1/agent/check/pass/", "GET", s.wrap(s.AgentCheckPass))
+	s.register("/v1/agent/check/warn/", "GET", s.wrap(s.AgentCheckWarn))
+	s.register("/v1/agent/check/fail/", "GET", s.wrap(s.AgentCheckFail))
+	s.register("/v1/agent/check/update/", "GET", s.wrap(s.AgentCheckUpdate))
 
-	s.mux.HandleFunc("/v1/agent/service/register", s.wrap(s.AgentRegisterService))
-	s.mux.HandleFunc("/v1/agent/service/deregister/", s.wrap(s.AgentDeregisterService))
-	s.mux.HandleFunc("/v1/agent/service/maintenance/", s.wrap(s.AgentServiceMaintenance))
+	s.register("/v1/agent/service/s.register", "PUT", s.wrap(s.Agents.registerService))
+	s.register("/v1/agent/service/des.register/", "GET", s.wrap(s.AgentDes.registerService))
+	s.register("/v1/agent/service/maintenance/", "GET", s.wrap(s.AgentServiceMaintenance))
 
-	s.mux.HandleFunc("/v1/event/fire/", s.wrap(s.EventFire))
-	s.mux.HandleFunc("/v1/event/list", s.wrap(s.EventList))
+	s.register("/v1/event/fire/", "PUT", s.wrap(s.EventFire))
+	s.register("/v1/event/list", "GET", s.wrap(s.EventList))
 
-	s.mux.HandleFunc("/v1/kv/", s.wrap(s.KVSEndpoint))
+	s.register("/v1/kv/", "GET,PUT,DELETE", s.wrap(s.KVSEndpoint))
 
-	s.mux.HandleFunc("/v1/session/create", s.wrap(s.SessionCreate))
-	s.mux.HandleFunc("/v1/session/destroy/", s.wrap(s.SessionDestroy))
-	s.mux.HandleFunc("/v1/session/renew/", s.wrap(s.SessionRenew))
-	s.mux.HandleFunc("/v1/session/info/", s.wrap(s.SessionGet))
-	s.mux.HandleFunc("/v1/session/node/", s.wrap(s.SessionsForNode))
-	s.mux.HandleFunc("/v1/session/list", s.wrap(s.SessionList))
+	s.register("/v1/session/create", "PUT", s.wrap(s.SessionCreate))
+	s.register("/v1/session/destroy/", "PUT", s.wrap(s.SessionDestroy))
+	s.register("/v1/session/renew/", "PUT", s.wrap(s.SessionRenew))
+	s.register("/v1/session/info/", "GET", s.wrap(s.SessionGet))
+	s.register("/v1/session/node/", "GET", s.wrap(s.SessionsForNode))
+	s.register("/v1/session/list", "GET", s.wrap(s.SessionList))
 
 	if s.agent.config.ACLDatacenter != "" {
-		s.mux.HandleFunc("/v1/acl/create", s.wrap(s.ACLCreate))
-		s.mux.HandleFunc("/v1/acl/update", s.wrap(s.ACLUpdate))
-		s.mux.HandleFunc("/v1/acl/destroy/", s.wrap(s.ACLDestroy))
-		s.mux.HandleFunc("/v1/acl/info/", s.wrap(s.ACLGet))
-		s.mux.HandleFunc("/v1/acl/clone/", s.wrap(s.ACLClone))
-		s.mux.HandleFunc("/v1/acl/list", s.wrap(s.ACLList))
+		s.register("/v1/acl/create", "PUT", s.wrap(s.ACLCreate))
+		s.register("/v1/acl/update", "PUT", s.wrap(s.ACLUpdate))
+		s.register("/v1/acl/destroy/", "PUT", s.wrap(s.ACLDestroy))
+		s.register("/v1/acl/info/", "GET", s.wrap(s.ACLGet))
+		s.register("/v1/acl/clone/", "PUT", s.wrap(s.ACLClone))
+		s.register("/v1/acl/list", "GET", s.wrap(s.ACLList))
 	} else {
-		s.mux.HandleFunc("/v1/acl/create", s.wrap(aclDisabled))
-		s.mux.HandleFunc("/v1/acl/update", s.wrap(aclDisabled))
-		s.mux.HandleFunc("/v1/acl/destroy/", s.wrap(aclDisabled))
-		s.mux.HandleFunc("/v1/acl/info/", s.wrap(aclDisabled))
-		s.mux.HandleFunc("/v1/acl/clone/", s.wrap(aclDisabled))
-		s.mux.HandleFunc("/v1/acl/list", s.wrap(aclDisabled))
+		s.register("/v1/acl/create", "PUT", s.wrap(aclDisabled))
+		s.register("/v1/acl/update", "PUT", s.wrap(aclDisabled))
+		s.register("/v1/acl/destroy/", "PUT", s.wrap(aclDisabled))
+		s.register("/v1/acl/info/", "GET", s.wrap(aclDisabled))
+		s.register("/v1/acl/clone/", "PUT", s.wrap(aclDisabled))
+		s.register("/v1/acl/list", "GET", s.wrap(aclDisabled))
 	}
 
-	s.mux.HandleFunc("/v1/query", s.wrap(s.PreparedQueryGeneral))
-	s.mux.HandleFunc("/v1/query/", s.wrap(s.PreparedQuerySpecific))
+	s.register("/v1/query", "GET,POST", s.wrap(s.PreparedQueryGeneral))
+	s.register("/v1/query/", "GET,PUT,DELETE", s.wrap(s.PreparedQuerySpecific))
 
-	s.mux.HandleFunc("/v1/txn", s.wrap(s.Txn))
+	s.register("/v1/txn", "GET", s.wrap(s.Txn))
 
 	if enableDebug {
-		s.mux.HandleFunc("/debug/pprof/", pprof.Index)
-		s.mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-		s.mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-		s.mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		s.register("/debug/pprof/", "GET", pprof.Index)
+		s.register("/debug/pprof/cmdline", "GET", pprof.Cmdline)
+		s.register("/debug/pprof/profile", "GET", pprof.Profile)
+		s.register("/debug/pprof/symbol", "GET", pprof.Symbol)
 	}
 
 	// Use the custom UI dir if provided.
 	if s.uiDir != "" {
-		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
+		s.mux.Handle("/ui/", "GET", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
 	} else if s.agent.config.EnableUi {
-		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
+		s.mux.Handle("/ui/", "GET", http.StripPrefix("/ui/", http.FileServer(assetFS())))
 	}
 
 	// API's are under /internal/ui/ to avoid conflict
-	s.mux.HandleFunc("/v1/internal/ui/nodes", s.wrap(s.UINodes))
-	s.mux.HandleFunc("/v1/internal/ui/node/", s.wrap(s.UINodeInfo))
-	s.mux.HandleFunc("/v1/internal/ui/services", s.wrap(s.UIServices))
+	s.register("/v1/internal/ui/nodes", "GET", s.wrap(s.UINodes))
+	s.register("/v1/internal/ui/node/", "GET", s.wrap(s.UINodeInfo))
+	s.register("/v1/internal/ui/services", "GET", s.wrap(s.UIServices))
+}
+
+// register adds a path and a handler to the ServeMux, and adds the endpoint's
+// accepted HTTP verbs to acceptedMethods
+func (s *HTTPServer) register(path, methods string, handler func(resp http.ResponseWriter, req *http.Request)) {
+	acceptedMethods[path] = methods
+	s.mux.HandleFunc(path, handler)
 }
 
 // wrap is used to wrap functions to make them more convenient
@@ -323,12 +334,27 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 		// you'd need the actual token (or a management token) to read
 		// that back.
 
-		// Invoke the handler
 		start := time.Now()
 		defer func() {
 			s.logger.Printf("[DEBUG] http: Request %s %v (%v) from=%s", req.Method, logURL, time.Now().Sub(start), req.RemoteAddr)
 		}()
-		obj, err := handler(resp, req)
+
+		var obj interface{}
+
+		// respond appropriately to OPTIONS requests
+		if req.Method == "OPTIONS" {
+			for prefix, methods := range allowedMethods {
+				if strings.HasPrefix(req.URL.Path, prefix) {
+					resp.Header.Set("Allow", "OPTIONS,"+methods)
+					obj, err = nil, nil
+				}
+			}
+			resp.WriteHeader(http.StatusNotFound) // 404
+			return
+		}
+
+		// Invoke the handler
+		obj, err = handler(resp, req)
 
 		// Check for an error
 	HAS_ERR:
