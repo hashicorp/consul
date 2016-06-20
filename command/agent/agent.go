@@ -1048,7 +1048,7 @@ func (a *Agent) UpdateCheck(checkID types.CheckID, status, output string) error 
 
 	check, ok := a.checkTTLs[checkID]
 	if !ok {
-		return fmt.Errorf("CheckID does not have associated TTL")
+		return fmt.Errorf("CheckID %q does not have associated TTL", checkID)
 	}
 
 	// Set the status through CheckTTL to reset the TTL
