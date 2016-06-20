@@ -1607,6 +1607,45 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		t.Fatalf("unique shuffle ratio too low: %d/100", len(uniques))
 	}
 
+	// Set the query to prefer a colocated service
+	query.Op = structs.PreparedQueryUpdate
+	query.Query.Service.PreferLocal = true
+	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Now try querying and make sure the local node is preferred.
+	{
+		req := structs.PreparedQueryExecuteRequest{
+			Origin:        "node1",
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+
+		// Repeat this a few times to make sure we don't just get lucky.
+		for i := 0; i < 10; i++ {
+			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+
+			if n := len(reply.Nodes); n != 10 {
+				t.Fatalf("expect 10 nodes, got: %d", n)
+			}
+			if node := reply.Nodes[0].Node.Node; node != "node1" {
+				t.Fatalf("expect node1 first, got: %q", node)
+			}
+		}
+	}
+
+	// Remove local preference.
+	query.Query.Service.PreferLocal = false
+	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
+		t.Fatalf("err:% v", err)
+	}
+
 	// Update the health of a node to mark it critical.
 	setHealth := func(node string, health string) {
 		req := structs.RegisterRequest{
@@ -1683,7 +1722,6 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	}
 
 	// Make the query more picky so it excludes warning nodes.
-	query.Op = structs.PreparedQueryUpdate
 	query.Query.Service.OnlyPassing = true
 	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
 		t.Fatalf("err: %v", err)
