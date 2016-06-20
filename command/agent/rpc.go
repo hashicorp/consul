@@ -154,9 +154,9 @@ type logRecord struct {
 type Member struct {
 	Name        string
 	Addr        net.IP
-	Port        uint16
 	Tags        map[string]string
 	Status      string
+	Port        uint16
 	ProtocolMin uint8
 	ProtocolMax uint8
 	ProtocolCur uint8
