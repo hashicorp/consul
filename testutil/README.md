@@ -26,7 +26,7 @@ import (
 )
 
 func TestMain(t *testing.T) {
-	// Create a server
+	// Create a test Consul server
 	srv1 := testutil.NewTestServer(t)
 	defer srv1.Stop()
 
