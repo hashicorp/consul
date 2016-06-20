@@ -34,6 +34,11 @@ type ServiceQuery struct {
 	// discarded)
 	OnlyPassing bool
 
+	// If PreferLocal is true, the local agent will be checked for a local
+	// copy of the service before continuing to remote machines. This is
+	// useful to prefer colocated services but fall back when unavailable.
+	PreferLocal bool
+
 	// Tags are a set of required and/or disallowed tags. If a tag is in
 	// this list it must be present. If the tag is preceded with "!" then
 	// it is disallowed.
@@ -163,6 +168,10 @@ func (q *PreparedQuerySpecificRequest) RequestDatacenter() string {
 
 // PreparedQueryExecuteRequest is used to execute a prepared query.
 type PreparedQueryExecuteRequest struct {
+	// Origin is used to carry around a reference to the node which
+	// is executing the query on behalf of the client.
+	Origin string
+
 	// Datacenter is the target this request is intended for.
 	Datacenter string
 

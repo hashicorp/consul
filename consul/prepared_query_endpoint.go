@@ -372,6 +372,17 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		return err
 	}
 
+	// Prefer the local service if it exists and is in the set.
+	if query.Service.PreferLocal {
+		for i, node := range reply.Nodes {
+			if node.Node.Node == args.Origin {
+				remote := append(reply.Nodes[:i], reply.Nodes[i+1:]...)
+				reply.Nodes = append([]structs.CheckServiceNode{node}, remote...)
+				break
+			}
+		}
+	}
+
 	// Apply the limit if given.
 	if args.Limit > 0 && len(reply.Nodes) > args.Limit {
 		reply.Nodes = reply.Nodes[:args.Limit]
