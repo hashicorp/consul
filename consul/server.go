@@ -731,13 +731,16 @@ func (s *Server) Stats() map[string]map[string]string {
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)
 	}
+	s.remoteLock.RLock()
+	numKnownDCs := len(s.remoteConsuls)
+	s.remoteLock.RUnlock()
 	stats := map[string]map[string]string{
 		"consul": map[string]string{
 			"server":            "true",
 			"leader":            fmt.Sprintf("%v", s.IsLeader()),
 			"leader_addr":       s.raft.Leader(),
 			"bootstrap":         fmt.Sprintf("%v", s.config.Bootstrap),
-			"known_datacenters": toString(uint64(len(s.remoteConsuls))),
+			"known_datacenters": toString(uint64(numKnownDCs)),
 		},
 		"raft":     s.raft.Stats(),
 		"serf_lan": s.serfLAN.Stats(),
