@@ -241,7 +241,7 @@ func (s *Server) forwardDC(method, dc string, args interface{}, reply interface{
 	}
 
 	// Select a random addr
-	offset := rand.Int31() % int32(len(servers))
+	offset := rand.Int31n(int32(len(servers)))
 	server := servers[offset]
 	s.remoteLock.RUnlock()
 
