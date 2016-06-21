@@ -354,10 +354,6 @@ func TestPreparedQuery_Explain(t *testing.T) {
 
 		m.explainFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExplainResponse) error {
 			expected := &structs.PreparedQueryExecuteRequest{
-				Origin: structs.QuerySource{
-					Datacenter: srv.agent.config.Datacenter,
-					Node:       srv.agent.config.NodeName,
-				},
 				Datacenter:    "dc1",
 				QueryIDOrName: "my-id",
 				Limit:         5,
