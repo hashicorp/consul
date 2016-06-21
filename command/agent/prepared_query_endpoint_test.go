@@ -279,7 +279,10 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 		m.executeFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
 			expected := &structs.PreparedQueryExecuteRequest{
-				Origin:        srv.agent.config.NodeName,
+				Origin: structs.QuerySource{
+					Datacenter: srv.agent.config.Datacenter,
+					Node:       srv.agent.config.NodeName,
+				},
 				Datacenter:    "dc1",
 				QueryIDOrName: "my-id",
 				Limit:         5,
@@ -351,7 +354,10 @@ func TestPreparedQuery_Explain(t *testing.T) {
 
 		m.explainFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExplainResponse) error {
 			expected := &structs.PreparedQueryExecuteRequest{
-				Origin:        srv.agent.config.NodeName,
+				Origin: structs.QuerySource{
+					Datacenter: srv.agent.config.Datacenter,
+					Node:       srv.agent.config.NodeName,
+				},
 				Datacenter:    "dc1",
 				QueryIDOrName: "my-id",
 				Limit:         5,

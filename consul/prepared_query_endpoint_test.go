@@ -1617,7 +1617,10 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	// Now try querying and make sure the local node is preferred.
 	{
 		req := structs.PreparedQueryExecuteRequest{
-			Origin:        "node1",
+			Origin: structs.QuerySource{
+				Datacenter: "dc1",
+				Node:       "node1",
+			},
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
 			QueryOptions:  structs.QueryOptions{Token: execToken},
@@ -1642,7 +1645,10 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	// Falls back to remote nodes if service is not available locally
 	{
 		req := structs.PreparedQueryExecuteRequest{
-			Origin:        "not-in-result",
+			Origin: structs.QuerySource{
+				Datacenter: "dc1",
+				Node:       "node1",
+			},
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
 			QueryOptions:  structs.QueryOptions{Token: execToken},
@@ -1658,6 +1664,40 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 	}
 
+	// Shuffles if the response comes from a non-local DC. We may
+	// need to try multiple times if at first we get a match by chance.
+	{
+		req := structs.PreparedQueryExecuteRequest{
+			Origin: structs.QuerySource{
+				Datacenter: "dc2",
+				Node:       "node1",
+			},
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+
+		shuffled := false
+		for i := 0; i < 10; i++ {
+			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if n := len(reply.Nodes); n != 10 {
+				t.Fatalf("expect 10 nodes, got: %d", n)
+			}
+			if reply.Nodes[0].Node.Node != "node1" {
+				shuffled = true
+				break
+			}
+		}
+
+		if !shuffled {
+			t.Fatal("expect node shuffle for remote results")
+		}
+	}
+
 	// Bake a non-local node name into Near parameter of the query. This
 	// node was seeded with a coordinate above so distance sort works.
 	query.Query.Service.Near = "node3"
@@ -1668,7 +1708,10 @@ func TestPreparedQuery_Execute(t *testing.T) {
 	// Try the distance sort again to ensure the nearest node is returned
 	{
 		req := structs.PreparedQueryExecuteRequest{
-			Origin:        "node1",
+			Origin: structs.QuerySource{
+				Datacenter: "dc1",
+				Node:       "node1",
+			},
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
 			QueryOptions:  structs.QueryOptions{Token: execToken},

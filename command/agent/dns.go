@@ -592,7 +592,10 @@ RPC:
 func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, resp *dns.Msg) {
 	// Execute the prepared query.
 	args := structs.PreparedQueryExecuteRequest{
-		Origin:        d.agent.config.NodeName,
+		Origin: structs.QuerySource{
+			Datacenter: d.agent.config.Datacenter,
+			Node:       d.agent.config.NodeName,
+		},
 		Datacenter:    datacenter,
 		QueryIDOrName: query,
 		QueryOptions: structs.QueryOptions{

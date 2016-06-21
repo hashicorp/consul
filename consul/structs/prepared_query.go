@@ -179,8 +179,10 @@ type PreparedQueryExecuteRequest struct {
 	Limit int
 
 	// Origin is used to carry around a reference to the node which
-	// is executing the query on behalf of the client.
-	Origin string
+	// is executing the query on behalf of the client. It is taken
+	// as a QuerySource so that it can be used directly for queries
+	// relating to the agent servicing the request.
+	Origin QuerySource
 
 	// Source is used to sort the results relative to a given node using
 	// network coordinates.

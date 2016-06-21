@@ -384,7 +384,7 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	preferLocal := false
 	if sortFrom.Node == "_agent" {
 		preferLocal = true
-		sortFrom.Node = args.Origin
+		sortFrom = args.Origin
 	}
 
 	// Perform the distance sort
@@ -395,10 +395,10 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// Nodes cannot be any "closer" than localhost, so this special case ensures
 	// the local node is returned first if it is present in the result. This
 	// allows the local agent to be preferred even when network coordinates are
-	// not enabled.
-	if preferLocal {
+	// not enabled. Only works if the results come from the request origin DC.
+	if preferLocal && reply.Datacenter == args.Origin.Datacenter {
 		for i, node := range reply.Nodes {
-			if node.Node.Node == args.Origin {
+			if node.Node.Node == args.Origin.Node {
 				remote := append(reply.Nodes[:i], reply.Nodes[i+1:]...)
 				reply.Nodes = append([]structs.CheckServiceNode{node}, remote...)
 				break
