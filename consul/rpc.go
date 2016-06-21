@@ -260,7 +260,13 @@ func (s *Server) globalRPC(method string, args interface{},
 	respCh := make(chan interface{})
 
 	// Make a new request into each datacenter
+	s.remoteLock.RLock()
+	dcs := make([]string, 0, len(s.remoteConsuls))
 	for dc, _ := range s.remoteConsuls {
+		dcs = append(dcs, dc)
+	}
+	s.remoteLock.RUnlock()
+	for _, dc := range dcs {
 		go func(dc string) {
 			rr := reply.New()
 			if err := s.forwardDC(method, dc, args, &rr); err != nil {
