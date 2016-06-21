@@ -368,12 +368,35 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// Shuffle the results in case coordinates are not available if they
 	// requested an RTT sort.
 	reply.Nodes.Shuffle()
-	if err := p.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes); err != nil {
+
+	// Get the source to sort by. This can be passed in by the requestor, or
+	// pre-defined using the Near parameter in the prepared query. If the
+	// near parameter was defined, that will be preferred.
+	sortFrom := args.Source
+	if query.Service.Near != "" {
+		sortFrom = structs.QuerySource{
+			Datacenter: args.Datacenter,
+			Node:       query.Service.Near,
+		}
+	}
+
+	// Respect the magic "_agent" flag.
+	preferLocal := false
+	if sortFrom.Node == "_agent" {
+		preferLocal = true
+		sortFrom.Node = args.Origin
+	}
+
+	// Perform the distance sort
+	if err := p.srv.sortNodesByDistanceFrom(sortFrom, reply.Nodes); err != nil {
 		return err
 	}
 
-	// Prefer the local service if it exists and is in the set.
-	if query.Service.PreferLocal {
+	// Nodes cannot be any "closer" than localhost, so this special case ensures
+	// the local node is returned first if it is present in the result. This
+	// allows the local agent to be preferred even when network coordinates are
+	// not enabled.
+	if preferLocal {
 		for i, node := range reply.Nodes {
 			if node.Node.Node == args.Origin {
 				remote := append(reply.Nodes[:i], reply.Nodes[i+1:]...)

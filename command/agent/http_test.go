@@ -382,18 +382,6 @@ func TestParseSource(t *testing.T) {
 	if source.Datacenter != "foo" || source.Node != "bob" {
 		t.Fatalf("bad: %v", source)
 	}
-
-	// The magic "_agent" node name will use the agent's local node name.
-	req, err = http.NewRequest("GET",
-		"/v1/catalog/nodes?near=_agent", nil)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	source = structs.QuerySource{}
-	srv.parseSource(req, &source)
-	if source.Datacenter != "dc1" || source.Node != srv.agent.config.NodeName {
-		t.Fatalf("bad: %v", source)
-	}
 }
 
 func TestParseWait(t *testing.T) {

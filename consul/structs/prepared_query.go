@@ -34,10 +34,10 @@ type ServiceQuery struct {
 	// discarded)
 	OnlyPassing bool
 
-	// If PreferLocal is true, the local agent will be checked for a local
-	// copy of the service before continuing to remote machines. This is
-	// useful to prefer colocated services but fall back when unavailable.
-	PreferLocal bool
+	// Near allows the query to always prefer the node nearest the given
+	// node. If the node does not exist, results are returned in their
+	// normal randomly-shuffled order.
+	Near string
 
 	// Tags are a set of required and/or disallowed tags. If a tag is in
 	// this list it must be present. If the tag is preceded with "!" then
@@ -168,10 +168,6 @@ func (q *PreparedQuerySpecificRequest) RequestDatacenter() string {
 
 // PreparedQueryExecuteRequest is used to execute a prepared query.
 type PreparedQueryExecuteRequest struct {
-	// Origin is used to carry around a reference to the node which
-	// is executing the query on behalf of the client.
-	Origin string
-
 	// Datacenter is the target this request is intended for.
 	Datacenter string
 
@@ -181,6 +177,10 @@ type PreparedQueryExecuteRequest struct {
 
 	// Limit will trim the resulting list down to the given limit.
 	Limit int
+
+	// Origin is used to carry around a reference to the node which
+	// is executing the query on behalf of the client.
+	Origin string
 
 	// Source is used to sort the results relative to a given node using
 	// network coordinates.

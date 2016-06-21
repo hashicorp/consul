@@ -1609,7 +1609,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 
 	// Set the query to prefer a colocated service
 	query.Op = structs.PreparedQueryUpdate
-	query.Query.Service.PreferLocal = true
+	query.Query.Service.Near = "_agent"
 	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1630,7 +1630,6 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
 				t.Fatalf("err: %v", err)
 			}
-
 			if n := len(reply.Nodes); n != 10 {
 				t.Fatalf("expect 10 nodes, got: %d", n)
 			}
@@ -1640,8 +1639,27 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 	}
 
+	// Falls back to remote nodes if service is not available locally
+	{
+		req := structs.PreparedQueryExecuteRequest{
+			Origin:        "not-in-result",
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+
+		if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if n := len(reply.Nodes); n != 10 {
+			t.Fatalf("expect 10 nodes, got: %d", n)
+		}
+	}
+
 	// Remove local preference.
-	query.Query.Service.PreferLocal = false
+	query.Query.Service.Near = ""
 	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
 		t.Fatalf("err:% v", err)
 	}
