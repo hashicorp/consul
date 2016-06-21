@@ -1607,7 +1607,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		t.Fatalf("unique shuffle ratio too low: %d/100", len(uniques))
 	}
 
-	// Set the query to prefer a colocated service
+	// Set the query to prefer a colocated service using the magic _agent token
 	query.Op = structs.PreparedQueryUpdate
 	query.Query.Service.Near = "_agent"
 	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
@@ -1658,7 +1658,38 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 	}
 
-	// Remove local preference.
+	// Bake a non-local node name into Near parameter of the query. This
+	// node was seeded with a coordinate above so distance sort works.
+	query.Query.Service.Near = "node3"
+	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Try the distance sort again to ensure the nearest node is returned
+	{
+		req := structs.PreparedQueryExecuteRequest{
+			Origin:        "node1",
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+
+		for i := 0; i < 10; i++ {
+			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if n := len(reply.Nodes); n != 10 {
+				t.Fatalf("expect 10 nodes, got: %d", n)
+			}
+			if node := reply.Nodes[0].Node.Node; node != "node3" {
+				t.Fatalf("expect node3, got: %q", node)
+			}
+		}
+	}
+
+	// Un-bake the Near parameter.
 	query.Query.Service.Near = ""
 	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
 		t.Fatalf("err:% v", err)
