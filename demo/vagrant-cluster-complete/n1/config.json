@@ -1,0 +1,11 @@
+{
+    "bootstrap_expect": 1,
+    "server": true,
+    "data_dir": "/tmp/consul",
+    "bind_addr": "172.20.20.10",
+    "node_name": "agent-one",
+
+    "encrypt": "Dt3P9SpKGAR/DIUN1cDirg==",
+    "log_level": "INFO",
+    "enable_syslog": true
+}
