@@ -177,6 +177,10 @@ type Config struct {
 	// Encryption key to use for the Serf communication
 	EncryptKey string `mapstructure:"encrypt" json:"-"`
 
+	// TODO(rboyer):
+	AllowInsecureIncomingGossip  bool `mapstructure:"allow_insecure_incoming_gossip"`
+	ProhibitSecureOutgoingGossip bool `mapstructure:"prohibit_secure_outgoing_gossip"`
+
 	// LogLevel is the level of the logs to putout
 	LogLevel string `mapstructure:"log_level"`
 
@@ -1007,6 +1011,12 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.EncryptKey != "" {
 		result.EncryptKey = b.EncryptKey
+	}
+	if b.ProhibitSecureOutgoingGossip {
+		result.ProhibitSecureOutgoingGossip = true
+	}
+	if b.AllowInsecureIncomingGossip {
+		result.AllowInsecureIncomingGossip = true
 	}
 	if b.LogLevel != "" {
 		result.LogLevel = b.LogLevel

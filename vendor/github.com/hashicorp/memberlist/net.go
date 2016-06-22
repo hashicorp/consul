@@ -328,8 +328,14 @@ func (m *Memberlist) ingestPacket(buf []byte, from net.Addr, timestamp time.Time
 		// Decrypt the payload
 		plain, err := decryptPayload(m.config.Keyring.GetKeys(), buf, nil)
 		if err != nil {
-			m.logger.Printf("[ERR] memberlist: Decrypt packet failed: %v %s", err, LogAddress(from))
-			return
+			if m.config.AllowInsecureIncomingGossip {
+				m.logger.Printf("[INFO] memberlist: Decrypt packet failed, assuming plaintext: %s", LogAddress(from))
+				// Guess that maybe it's not encrypted?
+				plain = buf
+			} else {
+				m.logger.Printf("[ERR] memberlist: Decrypt packet failed: %v %s", err, LogAddress(from))
+				return
+			}
 		}
 
 		// Continue processing the plaintext buffer
@@ -592,7 +598,7 @@ func (m *Memberlist) encodeAndSendMsg(to net.Addr, msgType messageType, msg inte
 func (m *Memberlist) sendMsg(to net.Addr, msg []byte) error {
 	// Check if we can piggy back any messages
 	bytesAvail := udpSendBuf - len(msg) - compoundHeaderOverhead
-	if m.config.EncryptionEnabled() {
+	if m.config.EncryptionEnabled() && !m.config.ProhibitSecureOutgoingGossip {
 		bytesAvail -= encryptOverhead(m.encryptionVersion())
 	}
 	extra := m.getBroadcasts(compoundOverhead, bytesAvail)
@@ -630,7 +636,7 @@ func (m *Memberlist) rawSendMsgUDP(to net.Addr, msg []byte) error {
 	}
 
 	// Check if we have encryption enabled
-	if m.config.EncryptionEnabled() {
+	if m.config.EncryptionEnabled() && !m.config.ProhibitSecureOutgoingGossip {
 		// Encrypt the payload
 		var buf bytes.Buffer
 		primaryKey := m.config.Keyring.GetPrimaryKey()
@@ -660,7 +666,7 @@ func (m *Memberlist) rawSendMsgTCP(conn net.Conn, sendBuf []byte) error {
 	}
 
 	// Check if encryption is enabled
-	if m.config.EncryptionEnabled() {
+	if m.config.EncryptionEnabled() && !m.config.ProhibitSecureOutgoingGossip {
 		crypt, err := m.encryptLocalState(sendBuf)
 		if err != nil {
 			m.logger.Printf("[ERROR] memberlist: Failed to encrypt local state: %v", err)
@@ -878,11 +884,13 @@ func (m *Memberlist) readTCP(conn net.Conn) (messageType, io.Reader, *codec.Deco
 
 	// Check if the message is encrypted
 	if msgType == encryptMsg {
-		if !m.config.EncryptionEnabled() {
+		if m.config.EncryptionEnabled() && !m.config.ProhibitSecureOutgoingGossip {
+		} else {
 			return 0, nil, nil,
 				fmt.Errorf("Remote state is encrypted and encryption is not configured")
 		}
 
+		// TODO(rboyer): figure this out
 		plain, err := m.decryptRemoteState(bufConn)
 		if err != nil {
 			return 0, nil, nil, err
@@ -891,7 +899,7 @@ func (m *Memberlist) readTCP(conn net.Conn) (messageType, io.Reader, *codec.Deco
 		// Reset message type and bufConn
 		msgType = messageType(plain[0])
 		bufConn = bytes.NewReader(plain[1:])
-	} else if m.config.EncryptionEnabled() {
+	} else if m.config.EncryptionEnabled() && !m.config.AllowInsecureIncomingGossip {
 		return 0, nil, nil,
 			fmt.Errorf("Encryption is configured but remote state is not encrypted")
 	}

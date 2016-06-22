@@ -112,6 +112,18 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	input = `{"allow_insecure_incoming_gossip":true, "prohibit_secure_outgoing_gossip":true}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !config.AllowInsecureIncomingGossip {
+		t.Fatalf("bad: %#v", config)
+	}
+	if !config.ProhibitSecureOutgoingGossip {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// DNS setup
 	input = `{"ports": {"dns": 8500}, "recursors": ["8.8.8.8","8.8.4.4"], "recursor":"127.0.0.1", "domain": "foobar"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))

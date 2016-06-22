@@ -306,6 +306,16 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.ReconnectTimeoutWan != 0 {
 		base.SerfWANConfig.ReconnectTimeout = a.config.ReconnectTimeoutWan
 	}
+	if a.config.AllowInsecureIncomingGossip {
+		fmt.Println("ALLOW INSECURE INCOMING GOSSIP")
+		base.SerfWANConfig.MemberlistConfig.AllowInsecureIncomingGossip = true
+		base.SerfLANConfig.MemberlistConfig.AllowInsecureIncomingGossip = true
+	}
+	if a.config.ProhibitSecureOutgoingGossip {
+		fmt.Println("PROHIBIT SECURE OUTGOING GOSSIP")
+		base.SerfWANConfig.MemberlistConfig.ProhibitSecureOutgoingGossip = true
+		base.SerfLANConfig.MemberlistConfig.ProhibitSecureOutgoingGossip = true
+	}
 	if a.config.AdvertiseAddrs.RPC != nil {
 		base.RPCAdvertise = a.config.AdvertiseAddrs.RPC
 	}

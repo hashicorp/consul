@@ -147,6 +147,10 @@ type Config struct {
 	// automatically initialized using the SecretKey and SecretKeys values.
 	Keyring *Keyring
 
+	// TODO(rboyer): document
+	AllowInsecureIncomingGossip  bool
+	ProhibitSecureOutgoingGossip bool
+
 	// Delegate and Events are delegates for receiving and providing
 	// data to memberlist via callback mechanisms. For Delegate, see
 	// the Delegate interface. For Events, see the EventDelegate interface.
