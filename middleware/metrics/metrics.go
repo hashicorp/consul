@@ -14,8 +14,11 @@ import (
 var (
 	requestCount    *prometheus.CounterVec
 	requestDuration *prometheus.HistogramVec
-	responseSize    *prometheus.HistogramVec
-	responseRcode   *prometheus.CounterVec
+	requestSize     *prometheus.HistogramVec
+	requestDo       *prometheus.CounterVec
+
+	responseSize  *prometheus.HistogramVec
+	responseRcode *prometheus.CounterVec
 )
 
 // Metrics holds the prometheus configuration. The metrics' path is fixed to be /metrics
@@ -42,6 +45,8 @@ func (m *Metrics) Start() error {
 
 		prometheus.MustRegister(requestCount)
 		prometheus.MustRegister(requestDuration)
+		prometheus.MustRegister(requestSize)
+		prometheus.MustRegister(requestDo)
 		prometheus.MustRegister(responseSize)
 		prometheus.MustRegister(responseRcode)
 
@@ -66,8 +71,8 @@ func define() {
 		Namespace: middleware.Namespace,
 		Subsystem: subsystem,
 		Name:      "request_count_total",
-		Help:      "Counter of DNS requests made per zone and protocol.",
-	}, []string{"zone", "proto"})
+		Help:      "Counter of DNS requests made per zone, protocol and family.",
+	}, []string{"zone", "proto", "family"})
 
 	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: middleware.Namespace,
@@ -75,6 +80,21 @@ func define() {
 		Name:      "request_duration_seconds",
 		Buckets:   append([]float64{.0001, .0005, .001, .0025}, prometheus.DefBuckets...),
 		Help:      "Histogram of the time (in seconds) each request took.",
+	}, []string{"zone"})
+
+	requestSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: middleware.Namespace,
+		Subsystem: subsystem,
+		Name:      "request_buffer_size_bytes",
+		Help:      "Size of the EDNS0 UDP buffer in bytes (64K for TCP).",
+		Buckets:   []float64{0, 100, 200, 300, 400, 511, 1023, 2047, 4095, 8291, 16e3, 32e3, 48e3, 64e3},
+	}, []string{"zone"})
+
+	requestDo = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: middleware.Namespace,
+		Subsystem: subsystem,
+		Name:      "request_do_count_total",
+		Help:      "Counter of DNS requests with DO bit set per zone.",
 	}, []string{"zone"})
 
 	responseSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{

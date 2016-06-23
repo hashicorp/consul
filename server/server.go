@@ -329,8 +329,9 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	if m, err := middleware.Edns0Version(r); err != nil { // Wrong EDNS version, return at once.
 		rc := middleware.RcodeToString(dns.RcodeBadVers)
-		// TODO(miek): hardcoded "udp" here.
-		metrics.Report(metrics.Dropped, "udp", rc, m.Len(), time.Now())
+		state := middleware.State{W: w, Req: r}
+
+		metrics.Report(state, metrics.Dropped, rc, m.Len(), time.Now())
 		w.WriteMsg(m)
 		return
 	}
@@ -393,7 +394,7 @@ func DefaultErrorFunc(w dns.ResponseWriter, r *dns.Msg, rcode int) {
 	answer.SetRcode(r, rcode)
 	state.SizeAndDo(answer)
 
-	metrics.Report(metrics.Dropped, state.Proto(), rc, answer.Len(), time.Now())
+	metrics.Report(state, metrics.Dropped, rc, answer.Len(), time.Now())
 	w.WriteMsg(answer)
 }
 
