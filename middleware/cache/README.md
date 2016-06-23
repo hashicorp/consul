@@ -22,6 +22,12 @@ middleware essentially doubles the memory load with no concealable increase of q
 
 The minimum TTL allowed on resource records is 5 seconds.
 
+If monitoring is enabled (`prometheus` directive) then the following metrics are added:
+* coredns_cache_hit_count_total, and
+* coredns_cache_miss_count_total
+
+They both work on a per zone basis and just count the hit and miss counts for each query.
+
 ## Examples
 
 ~~~
