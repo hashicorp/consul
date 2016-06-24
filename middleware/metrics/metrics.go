@@ -103,7 +103,7 @@ func define() {
 		Name:      "response_size_bytes",
 		Help:      "Size of the returns response in bytes.",
 		Buckets:   []float64{0, 100, 200, 300, 400, 511, 1023, 2047, 4095, 8291, 16e3, 32e3, 48e3, 64e3},
-	}, []string{"zone"})
+	}, []string{"zone", "proto"})
 
 	responseRcode = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: middleware.Namespace,

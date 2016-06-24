@@ -17,6 +17,7 @@ Each counter has a label `zone` which is the zonename used for the request/respo
 holds the transport of the response ("udp" or "tcp") and the address family of the transport (1
 = IP (IP version 4), 2 = IP6 (IP version 6)).
 The `response_rcode_count_total` has an extra label `rcode` which holds the rcode of the response.
+The `*_size_bytes` counters also hold the protocol in the `proto` label ("udp" or "tcp").
 
 If monitoring is enabled queries that do not enter the middleware chain are exported under the fake
 domain "dropped" (without a closing dot).

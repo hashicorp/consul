@@ -49,6 +49,6 @@ func Report(state middleware.State, zone, rcode string, size int, start time.Tim
 		requestDo.WithLabelValues(zone).Inc()
 	}
 
-	responseSize.WithLabelValues(zone).Observe(float64(size))
+	responseSize.WithLabelValues(zone, net).Observe(float64(size))
 	responseRcode.WithLabelValues(zone, rcode).Inc()
 }
