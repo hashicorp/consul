@@ -50,9 +50,9 @@ func Report(state middleware.State, zone, rcode string, size int, start time.Tim
 	}
 	typ := state.QType()
 	if _, known := monitorType[typ]; known {
-		requestType.WithLabelValues(zone, dns.Type(typ).String())
+		requestType.WithLabelValues(zone, dns.Type(typ).String()).Inc()
 	} else {
-		requestType.WithLabelValues(zone, other)
+		requestType.WithLabelValues(zone, other).Inc()
 	}
 
 	responseSize.WithLabelValues(zone, net).Observe(float64(size))
