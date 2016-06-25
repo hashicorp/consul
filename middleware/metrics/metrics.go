@@ -16,6 +16,7 @@ var (
 	requestDuration *prometheus.HistogramVec
 	requestSize     *prometheus.HistogramVec
 	requestDo       *prometheus.CounterVec
+	requestType     *prometheus.CounterVec
 
 	responseSize  *prometheus.HistogramVec
 	responseRcode *prometheus.CounterVec
@@ -47,6 +48,8 @@ func (m *Metrics) Start() error {
 		prometheus.MustRegister(requestDuration)
 		prometheus.MustRegister(requestSize)
 		prometheus.MustRegister(requestDo)
+		prometheus.MustRegister(requestType)
+
 		prometheus.MustRegister(responseSize)
 		prometheus.MustRegister(responseRcode)
 
@@ -96,6 +99,13 @@ func define() {
 		Name:      "request_do_count_total",
 		Help:      "Counter of DNS requests with DO bit set per zone.",
 	}, []string{"zone"})
+
+	requestType = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: middleware.Namespace,
+		Subsystem: subsystem,
+		Name:      "request_type_count_total",
+		Help:      "Counter of DNS requests per type, per zone.",
+	}, []string{"zone", "type"})
 
 	responseSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: middleware.Namespace,

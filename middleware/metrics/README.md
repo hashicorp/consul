@@ -9,13 +9,17 @@ The following metrics are exported:
 * coredns_dns_request_duration_seconds
 * coredns_dns_request_size_bytes
 * coredns_dns_request_do_count_total
+* coredns_dns_request_type_count_total
 * coredns_dns_response_size_bytes
 * coredns_dns_response_rcode_count_total
 
 Each counter has a label `zone` which is the zonename used for the request/response. and a label
 `qtype` which old the query type. The `dns_request_count_total` has extra labels: `proto` which
 holds the transport of the response ("udp" or "tcp") and the address family of the transport (1
-= IP (IP version 4), 2 = IP6 (IP version 6)).
+= IP (IP version 4), 2 = IP6 (IP version 6)). And `type_count_total` hold a per RR type counter, it
+holds the most common ones (A, AAAA, MX, SOA, CNAME, PTR, TXT, NS, SRV, DS, DNSKEY, RRSIG, NSEC,
+NSEC3) and "other" which lumps together all other types.
+
 The `response_rcode_count_total` has an extra label `rcode` which holds the rcode of the response.
 The `*_size_bytes` counters also hold the protocol in the `proto` label ("udp" or "tcp").
 

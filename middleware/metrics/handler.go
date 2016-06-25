@@ -48,7 +48,32 @@ func Report(state middleware.State, zone, rcode string, size int, start time.Tim
 	if state.Do() {
 		requestDo.WithLabelValues(zone).Inc()
 	}
+	typ := state.QType()
+	if _, known := monitorType[typ]; known {
+		requestType.WithLabelValues(zone, dns.Type(typ).String())
+	} else {
+		requestType.WithLabelValues(zone, other)
+	}
 
 	responseSize.WithLabelValues(zone, net).Observe(float64(size))
 	responseRcode.WithLabelValues(zone, rcode).Inc()
 }
+
+var monitorType = map[uint16]bool{
+	dns.TypeAAAA:   true,
+	dns.TypeA:      true,
+	dns.TypeCNAME:  true,
+	dns.TypeDNSKEY: true,
+	dns.TypeDS:     true,
+	dns.TypeMX:     true,
+	dns.TypeNSEC3:  true,
+	dns.TypeNSEC:   true,
+	dns.TypeNS:     true,
+	dns.TypePTR:    true,
+	dns.TypeRRSIG:  true,
+	dns.TypeSOA:    true,
+	dns.TypeSRV:    true,
+	dns.TypeTXT:    true,
+}
+
+const other = "other"
