@@ -3,6 +3,10 @@
 CoreDNS is DNS server that started as a fork of [Caddy](https://github.com/mholt/caddy/). It has the
 same model: it chains middleware.
 
+CoreDNS is the successor of [SkyDNS](https://github.com/skynetservices/skydns). SkyDNS is a thin
+layer that exposes services in etcd in the DNS. CoreDNS builds on this idea and is a generic DNS
+server that can talk to multiple backends (etcd, consul, kubernetes, etc.).
+
 CoreDNS aims to be a fast and flexible DNS server. The keyword here is *flexible*, with CoreDNS you
 are able to do what you want with your DNS data. And if not: write a middleware!
 
@@ -15,8 +19,9 @@ Currently CoreDNS is able to:
 * Allow for zone transfers, i.e. act as a primary server (middleware/file).
 * Caching (middleware/cache).
 * Health checking (middleware/health).
-* Use etcd as a backend, i.e. a 98.5% replacement for
+* Use etcd as a backend, i.e. a 101.5% replacement for
   [SkyDNS](https://github.com/skynetservices/skydns) (middleware/etcd).
+* Use k8s (kubernetes) as a backend (middleware/kubernetes).
 * Serve as a proxy to forward queries to some other (recursive) nameserver (middleware/proxy).
 * Rewrite queries (both qtype, qclass and qname) (middleware/rewrite).
 * Provide metrics (by using Prometheus) (middleware/metrics).
