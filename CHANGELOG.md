@@ -46,6 +46,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+* Fixed a deadlock releated to sorting the list of available datacenters by round trip
+  time. [GH-2130]
 * Fixed an issue with the state store's immutable radix tree that would prevent it
   from using cached modified objects during transactions, leading to extra copies
   and increased memory / GC pressure. [GH-2106]
