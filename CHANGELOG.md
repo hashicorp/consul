@@ -11,7 +11,10 @@ IMPROVEMENTS:
 
 * Implemented a new set of feedback controls for the gossip layer that help
   prevent degraded nodes that can't meet the soft real-time requirements from
-  erroneously causing `serfHealth` flapping in other, healthy nodes.
+  erroneously causing `serfHealth` flapping in other, healthy nodes. [GH-2101]
+* Joins based on a DNS lookup will use TCP and attempt to join with the full
+  list of returned addresses. [GH-2101]
+* Added a new network tomogroaphy visualization to the UI. [GH-2046]
 * Added a new `/v1/txn` state store transaction API that allows for atomic
   updates to and fetches from multiple entries in the key/value store. [GH-2028]
 * Consul agents will now periodically reconnect to available Consul servers
