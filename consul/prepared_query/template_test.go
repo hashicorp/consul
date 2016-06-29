@@ -15,8 +15,9 @@ var (
 	bigBench = &structs.PreparedQuery{
 		Name: "hello",
 		Template: structs.QueryTemplateOptions{
-			Type:   structs.QueryTemplateTypeNamePrefixMatch,
-			Regexp: "^hello-(.*)-(.*)$",
+			Type:            structs.QueryTemplateTypeNamePrefixMatch,
+			Regexp:          "^hello-(.*)-(.*)$",
+			RemoveEmptyTags: true,
 		},
 		Service: structs.ServiceQuery{
 			Service: "${name.full}",
@@ -244,10 +245,12 @@ func TestTemplate_Render(t *testing.T) {
 			Service: structs.ServiceQuery{
 				Service: "hello- xxx hello-foo-bar-none xxx foo-bar-none",
 				Tags: []string{
+					"",
 					"hello-foo-bar-none",
 					"hello",
 					"foo",
 					"bar-none",
+					"",
 					"42",
 				},
 			},
@@ -268,6 +271,92 @@ func TestTemplate_Render(t *testing.T) {
 			Template: structs.QueryTemplateOptions{
 				Type:   structs.QueryTemplateTypeNamePrefixMatch,
 				Regexp: "^(.*?)-(.*?)-(.*)$",
+			},
+			Service: structs.ServiceQuery{
+				Service: "hello- xxx hello-nope xxx nope",
+				Tags: []string{
+					"",
+					"",
+					"",
+					"",
+					"",
+					"",
+					"42",
+				},
+			},
+		}
+		if !reflect.DeepEqual(actual, expected) {
+			t.Fatalf("bad: %#v", actual)
+		}
+	}
+
+	// Try all the variables and functions, removing empty tags.
+	query = &structs.PreparedQuery{
+		Name: "hello-",
+		Template: structs.QueryTemplateOptions{
+			Type:            structs.QueryTemplateTypeNamePrefixMatch,
+			Regexp:          "^(.*?)-(.*?)-(.*)$",
+			RemoveEmptyTags: true,
+		},
+		Service: structs.ServiceQuery{
+			Service: "${name.prefix} xxx ${name.full} xxx ${name.suffix}",
+			Tags: []string{
+				"${match(-1)}",
+				"${match(0)}",
+				"${match(1)}",
+				"${match(2)}",
+				"${match(3)}",
+				"${match(4)}",
+				"${40 + 2}",
+			},
+		},
+	}
+	ct, err = Compile(query)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Run a case that matches the regexp, removing empty tags.
+	{
+		actual, err := ct.Render("hello-foo-bar-none")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		expected := &structs.PreparedQuery{
+			Name: "hello-",
+			Template: structs.QueryTemplateOptions{
+				Type:            structs.QueryTemplateTypeNamePrefixMatch,
+				Regexp:          "^(.*?)-(.*?)-(.*)$",
+				RemoveEmptyTags: true,
+			},
+			Service: structs.ServiceQuery{
+				Service: "hello- xxx hello-foo-bar-none xxx foo-bar-none",
+				Tags: []string{
+					"hello-foo-bar-none",
+					"hello",
+					"foo",
+					"bar-none",
+					"42",
+				},
+			},
+		}
+		if !reflect.DeepEqual(actual, expected) {
+			t.Fatalf("bad:\n%#v\nexpected:\n%#v\n", actual, expected)
+		}
+	}
+
+	// Run a case that doesn't match the regexp, removing empty tags.
+	{
+		actual, err := ct.Render("hello-nope")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		expected := &structs.PreparedQuery{
+			Name: "hello-",
+			Template: structs.QueryTemplateOptions{
+				Type:            structs.QueryTemplateTypeNamePrefixMatch,
+				Regexp:          "^(.*?)-(.*?)-(.*)$",
+				RemoveEmptyTags: true,
 			},
 			Service: structs.ServiceQuery{
 				Service: "hello- xxx hello-nope xxx nope",
