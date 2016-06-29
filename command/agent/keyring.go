@@ -22,7 +22,9 @@ const (
 func initKeyring(path, key string) error {
 	var keys []string
 
-	if _, err := base64.StdEncoding.DecodeString(key); err != nil {
+	if keyBytes, err := base64.StdEncoding.DecodeString(key); err != nil {
+		return fmt.Errorf("Invalid key: %s", err)
+	} else if err := memberlist.ValidateKey(keyBytes); err != nil {
 		return fmt.Errorf("Invalid key: %s", err)
 	}
 
