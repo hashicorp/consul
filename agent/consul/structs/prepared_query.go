@@ -68,6 +68,9 @@ type QueryTemplateOptions struct {
 	// used to extract parts of the name and choose a service name, set
 	// tags, etc.
 	Regexp string
+
+	// RemoveEmptyTags, if true, removes empty tags from matched tag list
+	RemoveEmptyTags bool
 }
 
 // PreparedQuery defines a complete prepared query, and is the structure we
