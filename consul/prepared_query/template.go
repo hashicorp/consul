@@ -182,5 +182,13 @@ func (ct *CompiledTemplate) Render(name string) (*structs.PreparedQuery, error) 
 		return nil, err
 	}
 
+	tags := []string(nil)
+	for _, tag := range query.Service.Tags {
+		if tag != "" {
+			tags = append(tags, tag)
+		}
+	}
+	query.Service.Tags = tags
+
 	return query, nil
 }
