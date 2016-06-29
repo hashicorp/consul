@@ -250,12 +250,10 @@ func TestTemplate_Render(t *testing.T) {
 			Service: structs.ServiceQuery{
 				Service: "hello- xxx hello-foo-bar-none xxx foo-bar-none",
 				Tags: []string{
-					"",
 					"hello-foo-bar-none",
 					"hello",
 					"foo",
 					"bar-none",
-					"",
 					"42",
 				},
 				NodeMeta: map[string]string{"foo": "hello"},
@@ -281,12 +279,6 @@ func TestTemplate_Render(t *testing.T) {
 			Service: structs.ServiceQuery{
 				Service: "hello- xxx hello-nope xxx nope",
 				Tags: []string{
-					"",
-					"",
-					"",
-					"",
-					"",
-					"",
 					"42",
 				},
 				NodeMeta: map[string]string{"foo": ""},
