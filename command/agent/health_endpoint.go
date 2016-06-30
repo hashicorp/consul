@@ -143,6 +143,13 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	if out.Nodes == nil {
 		out.Nodes = make(structs.CheckServiceNodes, 0)
 	}
+
+	for _, checkServiceNode := range out.Nodes {
+		node := checkServiceNode.Node
+		addr := s.agent.TranslateAddr(args.Datacenter, node.Address, node.TaggedAddresses)
+		node.Address = addr
+	}
+
 	return out.Nodes, nil
 }
 

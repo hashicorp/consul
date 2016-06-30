@@ -122,6 +122,13 @@ func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, r
 	if reply.Nodes == nil {
 		reply.Nodes = make(structs.CheckServiceNodes, 0)
 	}
+
+	for _, checkServiceNode := range reply.Nodes {
+		node := checkServiceNode.Node
+		addr := s.agent.TranslateAddr(args.Datacenter, node.Address, node.TaggedAddresses)
+		node.Address = addr
+	}
+
 	return reply, nil
 }
 

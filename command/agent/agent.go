@@ -1066,6 +1066,18 @@ func (a *Agent) UpdateCheck(checkID types.CheckID, status, output string) error 
 	return nil
 }
 
+// TranslateAddr is used to provide the final, translated address for a node,
+// depending on how this agent and the other node are configured.
+func (a *Agent) TranslateAddr(dc string, addr string, taggedAddr map[string]string) string {
+	if a.config.TranslateWanAddrs && (a.config.Datacenter != dc) {
+		wanAddr := taggedAddr["wan"]
+		if wanAddr != "" {
+			addr = wanAddr
+		}
+	}
+	return addr
+}
+
 // persistCheckState is used to record the check status into the data dir.
 // This allows the state to be restored on a later agent start. Currently
 // only useful for TTL based checks.
