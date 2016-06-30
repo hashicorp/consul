@@ -531,18 +531,7 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 // DC in the request, if given, or else the agent's DC.
 func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource) {
 	s.parseDC(req, &source.Datacenter)
-
-	// Always start with the local node as the source.
-	source.Node = s.agent.config.NodeName
-
-	// If ?near was provided, take the value send it along. We also mark the
-	// fact that an override was provided with the NearRequested bool.
-	if node := req.URL.Query().Get("near"); node != "" {
-		source.NearRequested = true
-		if node != "_agent" {
-			source.Node = node
-		}
-	}
+	source.Node = req.URL.Query().Get("near")
 }
 
 // parse is a convenience method for endpoints that need

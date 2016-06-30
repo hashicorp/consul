@@ -369,22 +369,25 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// requested an RTT sort.
 	reply.Nodes.Shuffle()
 
-	// Check if the query carries a Near parameter, or if the requestor
-	// supplied a ?near parameter in the request. We can apply distance
-	// sorting if either of these cases are true, but we don't want to
-	// affect the established round-robin default.
-	if args.Source.NearRequested || query.Service.Near != "" {
-		// Apply the "near" parameter if it exists on the prepared query and
-		// was not provided in the request args.
-		if !args.Source.NearRequested && query.Service.Near != "_agent" {
-			args.Source.Node = query.Service.Near
-		}
+	// Build the query source. This can be provided by the client, or by
+	// the prepared query. Client-specified takes priority.
+	qs := args.Source
+	if qs.Datacenter == "" {
+		qs.Datacenter = args.Agent.Datacenter
+	}
+	if query.Service.Near != "" && qs.Node == "" {
+		qs.Node = query.Service.Near
+	}
 
-		// Perform the distance sort
-		err := p.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes)
-		if err != nil {
-			return err
-		}
+	// Respect the magic "_agent" flag.
+	if qs.Node == "_agent" {
+		qs.Node = args.Agent.Node
+	}
+
+	// Perform the distance sort
+	err = p.srv.sortNodesByDistanceFrom(qs, reply.Nodes)
+	if err != nil {
+		return err
 	}
 
 	// Apply the limit if given.

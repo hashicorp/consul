@@ -599,11 +599,11 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 			AllowStale: d.config.AllowStale,
 		},
 
-		// Always pass the local agent through as the source. In the DNS
-		// interface, there is no provision for passing additional query
-		// parameters, so we send the local agent's data through to allow
-		// distance sorting relative to ourself on the server side.
-		Source: structs.QuerySource{
+		// Always pass the local agent through. In the DNS interface, there
+		// is no provision for passing additional query parameters, so we
+		// send the local agent's data through to allow distance sorting
+		// relative to ourself on the server side.
+		Agent: structs.QuerySource{
 			Datacenter: d.agent.config.Datacenter,
 			Node:       d.agent.config.NodeName,
 		},

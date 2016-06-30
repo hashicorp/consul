@@ -283,9 +283,12 @@ func TestPreparedQuery_Execute(t *testing.T) {
 				QueryIDOrName: "my-id",
 				Limit:         5,
 				Source: structs.QuerySource{
-					Datacenter:    "dc1",
-					Node:          "my-node",
-					NearRequested: true,
+					Datacenter: "dc1",
+					Node:       "my-node",
+				},
+				Agent: structs.QuerySource{
+					Datacenter: srv.agent.config.Datacenter,
+					Node:       srv.agent.config.NodeName,
 				},
 				QueryOptions: structs.QueryOptions{
 					Token:             "my-token",
@@ -332,11 +335,15 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 
 		m.executeFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
-			if args.Source.NearRequested {
-				t.Fatal("expect NearRequested to be false")
+			if args.Source.Node != "" {
+				t.Fatalf("expect node to be empty, got %q", args.Source.Node)
 			}
-			if args.Source.Node == "" {
-				t.Fatalf("expect Source to be %q, got: %q", srv.agent.config.NodeName, args.Source.Node)
+			expect := structs.QuerySource{
+				Datacenter: srv.agent.config.Datacenter,
+				Node:       srv.agent.config.NodeName,
+			}
+			if !reflect.DeepEqual(args.Agent, expect) {
+				t.Fatalf("expect: %#v\nactual: %#v", expect, args.Agent)
 			}
 			return nil
 		}
@@ -383,9 +390,12 @@ func TestPreparedQuery_Explain(t *testing.T) {
 				QueryIDOrName: "my-id",
 				Limit:         5,
 				Source: structs.QuerySource{
-					Datacenter:    "dc1",
-					Node:          "my-node",
-					NearRequested: true,
+					Datacenter: "dc1",
+					Node:       "my-node",
+				},
+				Agent: structs.QuerySource{
+					Datacenter: srv.agent.config.Datacenter,
+					Node:       srv.agent.config.NodeName,
 				},
 				QueryOptions: structs.QueryOptions{
 					Token:             "my-token",

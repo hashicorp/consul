@@ -182,6 +182,10 @@ type PreparedQueryExecuteRequest struct {
 	// network coordinates.
 	Source QuerySource
 
+	// Agent is used to carry around a reference to the agent which initiated
+	// the execute request. Used to distance-sort relative to the local node.
+	Agent QuerySource
+
 	// QueryOptions (unfortunately named here) controls the consistency
 	// settings for the query lookup itself, as well as the service lookups.
 	QueryOptions

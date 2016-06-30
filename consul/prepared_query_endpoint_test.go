@@ -1548,9 +1548,8 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
 			Source: structs.QuerySource{
-				Datacenter:    "dc1",
-				Node:          "node3",
-				NearRequested: true,
+				Datacenter: "dc1",
+				Node:       "node3",
 			},
 			QueryOptions: structs.QueryOptions{Token: execToken},
 		}
@@ -1617,13 +1616,12 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Now run the query and make sure the baked-in service is returned.
+	// Now run the query and make sure the sort looks right.
 	{
 		req := structs.PreparedQueryExecuteRequest{
-			Source: structs.QuerySource{
-				Datacenter:    "dc1",
-				Node:          "foo",
-				NearRequested: false,
+			Agent: structs.QuerySource{
+				Datacenter: "dc1",
+				Node:       "node3",
 			},
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
@@ -1645,17 +1643,20 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 	}
 
-	// Query again, but this time set NearRequested to "true". This should
-	// prove that we allow overriding the baked-in value with ?near.
+	// Query again, but this time set a client-supplied query source. This
+	// proves that we allow overriding the baked-in value with ?near.
 	{
 		// Set up the query with a non-existent node. This will cause the
 		// nodes to be shuffled if the passed node is respected, proving
 		// that we allow the override to happen.
 		req := structs.PreparedQueryExecuteRequest{
 			Source: structs.QuerySource{
-				Datacenter:    "dc1",
-				Node:          "foo",
-				NearRequested: true,
+				Datacenter: "dc1",
+				Node:       "foo",
+			},
+			Agent: structs.QuerySource{
+				Datacenter: "dc1",
+				Node:       "node3",
 			},
 			Datacenter:    "dc1",
 			QueryIDOrName: query.Query.ID,
@@ -1683,54 +1684,16 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 	}
 
-	// Check that if NearRequested is passed as true, that we sort based
-	// on the given node and do not use the one stored in the PQ.
-	{
-		req := structs.PreparedQueryExecuteRequest{
-			Source: structs.QuerySource{
-				Datacenter:    "dc1",
-				Node:          "node1",
-				NearRequested: true,
-			},
-			Datacenter:    "dc1",
-			QueryIDOrName: query.Query.ID,
-			QueryOptions:  structs.QueryOptions{Token: execToken},
-		}
-
-		var reply structs.PreparedQueryExecuteResponse
-
-		// We just want to check that we get a non-local node, because
-		// the local node is the only one with working coordinates.
-		shuffled := false
-		for i := 0; i < 10; i++ {
-			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
-				t.Fatalf("err: %v", err)
-			}
-			if n := len(reply.Nodes); n != 10 {
-				t.Fatalf("expect 10 nodes, got: %d", n)
-			}
-			if node := reply.Nodes[0].Node.Node; node != "node3" {
-				shuffled = true
-				break
-			}
-		}
-		if !shuffled {
-			t.Fatal("expect non-local results")
-		}
-	}
-
-	// Set the query to prefer a colocated service using the magic _agent token
+	// Bake the magic "_agent" flag into the query.
 	query.Query.Service.Near = "_agent"
 	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Check that the node returned is the one we asked for in the
-	// query source. This proves that if the PQ has "_agent" baked
-	// in, we always use the passed-in node.
+	// Check that we sort the local agent first when the magic flag is set.
 	{
 		req := structs.PreparedQueryExecuteRequest{
-			Source: structs.QuerySource{
+			Agent: structs.QuerySource{
 				Datacenter: "dc1",
 				Node:       "node3",
 			},
@@ -1754,12 +1717,53 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 	}
 
+	// Check that the query isn't just sorting "node3" first because we
+	// provided it in the Agent query source. Proves that we use the
+	// Agent source when the magic "_agent" flag is passed.
+	{
+		req := structs.PreparedQueryExecuteRequest{
+			Agent: structs.QuerySource{
+				Datacenter: "dc1",
+				Node:       "foo",
+			},
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+
+		// Expect the set to be shuffled since we have no coordinates
+		// on the "foo" node.
+		shuffled := false
+		for i := 0; i < 10; i++ {
+			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if n := len(reply.Nodes); n != 10 {
+				t.Fatalf("expect 10 nodes, got: %d", n)
+			}
+			if node := reply.Nodes[0].Node.Node; node != "node3" {
+				shuffled = true
+				break
+			}
+		}
+
+		if !shuffled {
+			t.Fatal("expect nodes to be shuffled")
+		}
+	}
+
 	// Shuffles if the response comes from a non-local DC. Proves that the
-	// near parameter does not affect this order.
+	// agent query source does not interfere with the order.
 	{
 		req := structs.PreparedQueryExecuteRequest{
 			Source: structs.QuerySource{
 				Datacenter: "dc2",
+				Node:       "node3",
+			},
+			Agent: structs.QuerySource{
+				Datacenter: "dc1",
 				Node:       "node3",
 			},
 			Datacenter:    "dc1",
