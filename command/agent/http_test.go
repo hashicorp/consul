@@ -345,8 +345,9 @@ func TestParseSource(t *testing.T) {
 	defer srv.Shutdown()
 	defer srv.agent.Shutdown()
 
-	// Default is agent's DC and no node (since the user didn't care, then
-	// just give them the cheapest possible query).
+	// Default is agent's DC and the local node, with the near flag false
+	// (since the user didn't care, then just give them the cheapest possible
+	// query).
 	req, err := http.NewRequest("GET",
 		"/v1/catalog/nodes", nil)
 	if err != nil {
@@ -354,7 +355,7 @@ func TestParseSource(t *testing.T) {
 	}
 	source := structs.QuerySource{}
 	srv.parseSource(req, &source)
-	if source.Datacenter != "dc1" || source.Node != "" {
+	if source.Datacenter != "dc1" || source.Node != srv.agent.config.NodeName {
 		t.Fatalf("bad: %v", source)
 	}
 
@@ -366,7 +367,7 @@ func TestParseSource(t *testing.T) {
 	}
 	source = structs.QuerySource{}
 	srv.parseSource(req, &source)
-	if source.Datacenter != "dc1" || source.Node != "bob" {
+	if source.Datacenter != "dc1" || source.Node != "bob" || !source.NearRequested {
 		t.Fatalf("bad: %v", source)
 	}
 

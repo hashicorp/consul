@@ -95,10 +95,6 @@ func parseLimit(req *http.Request, limit *int) error {
 // preparedQueryExecute executes a prepared query.
 func (s *HTTPServer) preparedQueryExecute(id string, resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	args := structs.PreparedQueryExecuteRequest{
-		Origin: structs.QuerySource{
-			Datacenter: s.agent.config.Datacenter,
-			Node:       s.agent.config.NodeName,
-		},
 		QueryIDOrName: id,
 	}
 	s.parseSource(req, &args.Source)
