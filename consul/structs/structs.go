@@ -196,6 +196,11 @@ func (r *DeregisterRequest) RequestDatacenter() string {
 type QuerySource struct {
 	Datacenter string
 	Node       string
+
+	// NearRequested indicates where the values in this QuerySource came
+	// from. When true, the values were provided by the requestor,
+	// otherwise they were filled by the agent servicing the request.
+	NearRequested bool
 }
 
 // DCSpecificRequest is used to query about a specific DC
