@@ -1,5 +1,25 @@
 ## 0.7.0 (UNRELEASED)
 
+FEATURES:
+
+* Added a new `/v1/txn` state store transaction API that allows for atomic
+  updates to and fetches from multiple entries in the key/value store. [GH-2028]
+* Script checks now support an optional `timeout` parameter. [GH-1762]
+* Reap time for failed nodes is now configurable via new `reconnect_timeout` and
+  `reconnect_timeout_wan` config options ([use with caution](https://www.consul.io/docs/agent/options.html#reconnect_timeout)). [GH-1935]
+* Consul agents can now limit the number of UDP answers returned via the DNS
+  interface. The default number of UDP answers is `3`, however by adjusting
+  the `dns_config.udp_answer_limit` configuration parameter, it is now
+  possible to limit the results down to `1`.  This tunable provides
+  environments where RFC3484 section 6, rule 9 is enforced with an important
+  workaround in order to preserve the desired behavior of randomized DNS
+  results.  Most modern environments will not need to adjust this setting as
+  this RFC was made obsolete by RFC 6724.  See the
+  [agent options](https://www.consul.io/docs/agent/options.html#udp_answer_limit)
+  documentation for additional details for when this should be
+  used. [GH-1712]
+* Prepared queries support baking in the `Near` sorting parameter [GH-2137]
+
 BACKWARDS INCOMPATIBILITIES:
 
 * `skip_leave_on_interrupt`'s default behavior is now dependent on whether or
@@ -15,8 +35,6 @@ IMPROVEMENTS:
 * Joins based on a DNS lookup will use TCP and attempt to join with the full
   list of returned addresses. [GH-2101]
 * Added a new network tomogroaphy visualization to the UI. [GH-2046]
-* Added a new `/v1/txn` state store transaction API that allows for atomic
-  updates to and fetches from multiple entries in the key/value store. [GH-2028]
 * Consul agents will now periodically reconnect to available Consul servers
   in order to redistribute their RPC query load.  Consul clients will, by
   default, attempt to establish a new connection every 120s to 180s unless
@@ -26,26 +44,12 @@ IMPROVEMENTS:
   second per Consul server as a result of rebalancing).  Clusters in stable
   environments who use `allow_stale` should see a more even distribution of
   query load across all of their Consul servers. [GH-1743]
-* Consul agents can now limit the number of UDP answers returned via the DNS
-  interface. The default number of UDP answers is `3`, however by adjusting
-  the `dns_config.udp_answer_limit` configuration parameter, it is now
-  possible to limit the results down to `1`.  This tunable provides
-  environments where RFC3484 section 6, rule 9 is enforced with an important
-  workaround in order to preserve the desired behavior of randomized DNS
-  results.  Most modern environments will not need to adjust this setting as
-  this RFC was made obsolete by RFC 6724.  See the
-  [agent options](https://www.consul.io/docs/agent/options.html#udp_answer_limit)
-  documentation for additional details for when this should be
-  used. [GH-1712]
 * Consul will now refuse to start with a helpful message if the same UNIX
   socket is used for more than one listening endpoint. [GH-1910]
 * Removed an obsolete warning message when Consul starts on Windows. [GH-1920]
 * Defaults bind address to 127.0.0.1 when running in `-dev` mode. [GH-1878]
 * Builds Consul releases with Go 1.6.1. [GH-1948]
 * HTTP health checks limit saved output to 4K to avoid performance issues. [GH-1952]
-* Reap time for failed nodes is now configurable via new `reconnect_timeout` and
-  `reconnect_timeout_wan` config options ([use with caution](https://www.consul.io/docs/agent/options.html#reconnect_timeout)). [GH-1935]
-* Script checks now support an optional `timeout` parameter. [GH-1762]
 
 BUG FIXES:
 
