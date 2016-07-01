@@ -390,6 +390,23 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 		return err
 	}
 
+	// If we applied a distance sort, make sure that the node queried for is in
+	// position 0, provided the results are from the same datacenter.
+	if qs.Node != "" && reply.Datacenter == qs.Datacenter {
+		for i, node := range reply.Nodes {
+			if node.Node.Node == qs.Node {
+				reply.Nodes[0], reply.Nodes[i] = reply.Nodes[i], reply.Nodes[0]
+				break
+			}
+
+			// Put a cap on the depth of the search. The local agent should
+			// never be further in than this if distance sorting was applied.
+			if i == 9 {
+				break
+			}
+		}
+	}
+
 	// Apply the limit if given.
 	if args.Limit > 0 && len(reply.Nodes) > args.Limit {
 		reply.Nodes = reply.Nodes[:args.Limit]
