@@ -25,6 +25,11 @@ type ServiceQuery struct {
 	// Service is the service to query.
 	Service string
 
+	// Near allows baking in the name of a node to automatically distance-
+	// sort from. The magic "_agent" value is supported, which sorts near
+	// the agent which initiated the request by default.
+	Near string
+
 	// Failover controls what we do if there are no healthy nodes in the
 	// local datacenter.
 	Failover QueryDatacenterOptions
