@@ -286,6 +286,10 @@ func TestPreparedQuery_Execute(t *testing.T) {
 					Datacenter: "dc1",
 					Node:       "my-node",
 				},
+				Agent: structs.QuerySource{
+					Datacenter: srv.agent.config.Datacenter,
+					Node:       srv.agent.config.NodeName,
+				},
 				QueryOptions: structs.QueryOptions{
 					Token:             "my-token",
 					RequireConsistent: true,
@@ -323,6 +327,38 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 	})
 
+	// Ensure the proper params are set when no special args are passed
+	httpTest(t, func(srv *HTTPServer) {
+		m := MockPreparedQuery{}
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		m.executeFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+			if args.Source.Node != "" {
+				t.Fatalf("expect node to be empty, got %q", args.Source.Node)
+			}
+			expect := structs.QuerySource{
+				Datacenter: srv.agent.config.Datacenter,
+				Node:       srv.agent.config.NodeName,
+			}
+			if !reflect.DeepEqual(args.Agent, expect) {
+				t.Fatalf("expect: %#v\nactual: %#v", expect, args.Agent)
+			}
+			return nil
+		}
+
+		req, err := http.NewRequest("GET", "/v1/query/my-id/execute", nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		if _, err := srv.PreparedQuerySpecific(resp, req); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
+
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
 		req, err := http.NewRequest("GET", "/v1/query/not-there/execute", body)
@@ -356,6 +392,10 @@ func TestPreparedQuery_Explain(t *testing.T) {
 				Source: structs.QuerySource{
 					Datacenter: "dc1",
 					Node:       "my-node",
+				},
+				Agent: structs.QuerySource{
+					Datacenter: srv.agent.config.Datacenter,
+					Node:       srv.agent.config.NodeName,
 				},
 				QueryOptions: structs.QueryOptions{
 					Token:             "my-token",

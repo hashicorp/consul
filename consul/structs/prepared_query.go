@@ -34,6 +34,12 @@ type ServiceQuery struct {
 	// discarded)
 	OnlyPassing bool
 
+	// Near allows the query to always prefer the node nearest the given
+	// node. If the node does not exist, results are returned in their
+	// normal randomly-shuffled order. Supplying the magic "_agent" value
+	// is supported to sort near the agent which initiated the request.
+	Near string
+
 	// Tags are a set of required and/or disallowed tags. If a tag is in
 	// this list it must be present. If the tag is preceded with "!" then
 	// it is disallowed.
@@ -176,6 +182,10 @@ type PreparedQueryExecuteRequest struct {
 	// Source is used to sort the results relative to a given node using
 	// network coordinates.
 	Source QuerySource
+
+	// Agent is used to carry around a reference to the agent which initiated
+	// the execute request. Used to distance-sort relative to the local node.
+	Agent QuerySource
 
 	// QueryOptions (unfortunately named here) controls the consistency
 	// settings for the query lookup itself, as well as the service lookups.

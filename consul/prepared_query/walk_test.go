@@ -20,6 +20,7 @@ func TestWalk_ServiceQuery(t *testing.T) {
 		Failover: structs.QueryDatacenterOptions{
 			Datacenters: []string{"dc1", "dc2"},
 		},
+		Near: "_agent",
 		Tags: []string{"tag1", "tag2", "tag3"},
 	}
 	if err := walk(service, fn); err != nil {
@@ -30,6 +31,7 @@ func TestWalk_ServiceQuery(t *testing.T) {
 		".Service:the-service",
 		".Failover.Datacenters[0]:dc1",
 		".Failover.Datacenters[1]:dc2",
+		".Near:_agent",
 		".Tags[0]:tag1",
 		".Tags[1]:tag2",
 		".Tags[2]:tag3",

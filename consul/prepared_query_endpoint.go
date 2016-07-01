@@ -368,7 +368,25 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// Shuffle the results in case coordinates are not available if they
 	// requested an RTT sort.
 	reply.Nodes.Shuffle()
-	if err := p.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes); err != nil {
+
+	// Build the query source. This can be provided by the client, or by
+	// the prepared query. Client-specified takes priority.
+	qs := args.Source
+	if qs.Datacenter == "" {
+		qs.Datacenter = args.Agent.Datacenter
+	}
+	if query.Service.Near != "" && qs.Node == "" {
+		qs.Node = query.Service.Near
+	}
+
+	// Respect the magic "_agent" flag.
+	if qs.Node == "_agent" {
+		qs.Node = args.Agent.Node
+	}
+
+	// Perform the distance sort
+	err = p.srv.sortNodesByDistanceFrom(qs, reply.Nodes)
+	if err != nil {
 		return err
 	}
 
