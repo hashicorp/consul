@@ -3166,3 +3166,37 @@ func TestDNS_InvalidQueries(t *testing.T) {
 		}
 	}
 }
+
+func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	m := MockPreparedQuery{}
+	if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m.executeFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+		// Check that the agent inserted its self-name and datacenter to
+		// the RPC request body.
+		if args.Agent.Datacenter != srv.agent.config.Datacenter ||
+			args.Agent.Node != srv.agent.config.NodeName {
+			t.Fatalf("bad: %#v", args.Agent)
+		}
+		return nil
+	}
+
+	{
+		m := new(dns.Msg)
+		m.SetQuestion("foo.query.consul.", dns.TypeSRV)
+
+		c := new(dns.Client)
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		if _, _, err := c.Exchange(m, addr.String()); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+}
