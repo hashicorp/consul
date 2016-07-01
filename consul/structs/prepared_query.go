@@ -36,7 +36,8 @@ type ServiceQuery struct {
 
 	// Near allows the query to always prefer the node nearest the given
 	// node. If the node does not exist, results are returned in their
-	// normal randomly-shuffled order.
+	// normal randomly-shuffled order. Supplying the magic "_agent" value
+	// is supported to sort near the agent which initiated the request.
 	Near string
 
 	// Tags are a set of required and/or disallowed tags. If a tag is in
