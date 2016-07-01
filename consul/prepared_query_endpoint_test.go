@@ -1684,6 +1684,34 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 	}
 
+	// If the exact node we are sorting near appears in the list, make sure it
+	// gets popped to the front of the result.
+	{
+		req := structs.PreparedQueryExecuteRequest{
+			Source: structs.QuerySource{
+				Datacenter: "dc1",
+				Node:       "node1",
+			},
+			Datacenter:    "dc1",
+			QueryIDOrName: query.Query.ID,
+			QueryOptions:  structs.QueryOptions{Token: execToken},
+		}
+
+		var reply structs.PreparedQueryExecuteResponse
+
+		for i := 0; i < 10; i++ {
+			if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Execute", &req, &reply); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if n := len(reply.Nodes); n != 10 {
+				t.Fatalf("expect 10 nodes, got: %d", n)
+			}
+			if node := reply.Nodes[0].Node.Node; node != "node1" {
+				t.Fatalf("expect node1 first, got: %q", node)
+			}
+		}
+	}
+
 	// Bake the magic "_agent" flag into the query.
 	query.Query.Service.Near = "_agent"
 	if err := msgpackrpc.CallWithCodec(codec1, "PreparedQuery.Apply", &query, &query.Query.ID); err != nil {
