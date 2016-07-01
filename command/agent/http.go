@@ -531,7 +531,13 @@ func (s *HTTPServer) parseToken(req *http.Request, token *string) {
 // DC in the request, if given, or else the agent's DC.
 func (s *HTTPServer) parseSource(req *http.Request, source *structs.QuerySource) {
 	s.parseDC(req, &source.Datacenter)
-	source.Node = req.URL.Query().Get("near")
+	if node := req.URL.Query().Get("near"); node != "" {
+		if node == "_agent" {
+			source.Node = s.agent.config.NodeName
+		} else {
+			source.Node = node
+		}
+	}
 }
 
 // parse is a convenience method for endpoints that need
