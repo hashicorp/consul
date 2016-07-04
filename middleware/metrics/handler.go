@@ -59,7 +59,7 @@ func Report(state middleware.State, zone, rcode string, size int, start time.Tim
 
 	if typ == dns.TypeIXFR || typ == dns.TypeAXFR {
 		responseTransferSize.WithLabelValues(zone, net).Observe(float64(size))
-		requestTransferSize.WithLabelValues(zone, net).Observe(float64(size))
+		requestTransferSize.WithLabelValues(zone, net).Observe(float64(state.Size()))
 	} else {
 		responseSize.WithLabelValues(zone, net).Observe(float64(size))
 		requestSize.WithLabelValues(zone, net).Observe(float64(state.Size()))
