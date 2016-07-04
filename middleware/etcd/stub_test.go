@@ -9,6 +9,7 @@ import (
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
 	"github.com/miekg/coredns/middleware/test"
+
 	"github.com/miekg/dns"
 )
 

@@ -23,6 +23,7 @@ type staticUpstream struct {
 	from   string
 	Hosts  HostPool
 	Policy Policy
+	Spray  Policy
 
 	FailTimeout time.Duration
 	MaxFails    int32
@@ -48,6 +49,7 @@ func NewStaticUpstreams(c parse.Dispenser) ([]Upstream, error) {
 			from:        "",
 			Hosts:       nil,
 			Policy:      &Random{},
+			Spray:       nil,
 			FailTimeout: 10 * time.Second,
 			MaxFails:    1,
 		}
@@ -181,11 +183,8 @@ func parseBlock(c *parse.Dispenser, u *staticUpstream) error {
 			ignoredDomains[i] = strings.ToLower(dns.Fqdn(ignoredDomains[i]))
 		}
 		u.IgnoredSubDomains = ignoredDomains
-	case "ecs":
-		ips := c.RemainingArgs()
-		if len(ips) > 0 {
-
-		}
+	case "spray":
+		u.Spray = &Spray{}
 
 	default:
 		return c.Errf("unknown property '%s'", c.Val())
@@ -228,7 +227,7 @@ func (u *staticUpstream) HealthCheckWorker(stop chan struct{}) {
 func (u *staticUpstream) Select() *UpstreamHost {
 	pool := u.Hosts
 	if len(pool) == 1 {
-		if pool[0].Down() {
+		if pool[0].Down() && u.Spray == nil {
 			return nil
 		}
 		return pool[0]
@@ -241,13 +240,29 @@ func (u *staticUpstream) Select() *UpstreamHost {
 		}
 	}
 	if allDown {
-		return nil
+		if u.Spray == nil {
+			return nil
+		}
+		return u.Spray.Select(pool)
 	}
 
 	if u.Policy == nil {
-		return (&Random{}).Select(pool)
+		h := (&Random{}).Select(pool)
+		if h == nil && u.Spray == nil {
+			return nil
+		}
+		return u.Spray.Select(pool)
 	}
-	return u.Policy.Select(pool)
+
+	h := u.Policy.Select(pool)
+	if h != nil {
+		return h
+	}
+
+	if u.Spray == nil {
+		return nil
+	}
+	return u.Spray.Select(pool)
 }
 
 func (u *staticUpstream) IsAllowedPath(name string) bool {

@@ -10,6 +10,7 @@ func TestHealthCheck(t *testing.T) {
 		from:        "",
 		Hosts:       testPool(),
 		Policy:      &Random{},
+		Spray:       nil,
 		FailTimeout: 10 * time.Second,
 		MaxFails:    1,
 	}

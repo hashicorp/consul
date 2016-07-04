@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"log"
 	"math/rand"
 	"sync/atomic"
 )
@@ -44,9 +45,6 @@ func (r *Random) Select(pool HostPool) *UpstreamHost {
 			}
 		}
 	}
-	if randHost == nil {
-		return new(Spray).Select(pool)
-	}
 	return randHost
 }
 
@@ -58,6 +56,7 @@ type Spray struct{}
 func (r *Spray) Select(pool HostPool) *UpstreamHost {
 	rnd := rand.Int() % len(pool)
 	randHost := pool[rnd]
+	log.Printf("[WARNING] All hosts reported as down, spraying to target: %s", randHost.Name)
 	return randHost
 }
 
@@ -93,9 +92,6 @@ func (r *LeastConn) Select(pool HostPool) *UpstreamHost {
 			}
 		}
 	}
-	if bestHost == nil {
-		return new(Spray).Select(pool)
-	}
 	return bestHost
 }
 
@@ -112,9 +108,6 @@ func (r *RoundRobin) Select(pool HostPool) *UpstreamHost {
 	// if the currently selected host is down, just ffwd to up host
 	for i := uint32(1); host.Down() && i < poolLen; i++ {
 		host = pool[(selection+i)%poolLen]
-	}
-	if host.Down() {
-		return new(Spray).Select(pool)
 	}
 	return host
 }

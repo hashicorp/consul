@@ -1,6 +1,6 @@
 package proxy
 
-// function OTHER middleware might want to use to do lookup in the same
+// functions OTHER middleware might want to use to do lookup in the same
 // style as the proxy.
 
 import (
@@ -77,8 +77,8 @@ func (p Proxy) lookup(state middleware.State, r *dns.Msg) (*dns.Msg, error) {
 		// hosts until timeout (or until we get a nil host).
 		for time.Now().Sub(start) < tryDuration {
 			host := upstream.Select()
+
 			if host == nil {
-				// TODO(miek): if all HC fail, spray the targets.
 				return nil, errUnreachable
 			}
 
