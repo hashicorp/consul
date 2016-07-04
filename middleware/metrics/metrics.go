@@ -12,14 +12,16 @@ import (
 )
 
 var (
-	requestCount    *prometheus.CounterVec
-	requestDuration *prometheus.HistogramVec
-	requestSize     *prometheus.HistogramVec
-	requestDo       *prometheus.CounterVec
-	requestType     *prometheus.CounterVec
+	requestCount        *prometheus.CounterVec
+	requestDuration     *prometheus.HistogramVec
+	requestSize         *prometheus.HistogramVec
+	requestTransferSize *prometheus.HistogramVec
+	requestDo           *prometheus.CounterVec
+	requestType         *prometheus.CounterVec
 
-	responseSize  *prometheus.HistogramVec
-	responseRcode *prometheus.CounterVec
+	responseSize         *prometheus.HistogramVec
+	responseTransferSize *prometheus.HistogramVec
+	responseRcode        *prometheus.CounterVec
 )
 
 // Metrics holds the prometheus configuration. The metrics' path is fixed to be /metrics
@@ -47,10 +49,12 @@ func (m *Metrics) Start() error {
 		prometheus.MustRegister(requestCount)
 		prometheus.MustRegister(requestDuration)
 		prometheus.MustRegister(requestSize)
+		prometheus.MustRegister(requestTransferSize)
 		prometheus.MustRegister(requestDo)
 		prometheus.MustRegister(requestType)
 
 		prometheus.MustRegister(responseSize)
+		prometheus.MustRegister(responseTransferSize)
 		prometheus.MustRegister(responseRcode)
 
 		m.mux.Handle(path, prometheus.Handler())
@@ -80,9 +84,9 @@ func define() {
 	requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: middleware.Namespace,
 		Subsystem: subsystem,
-		Name:      "request_duration_seconds",
-		Buckets:   append([]float64{.0001, .0005, .001, .0025}, prometheus.DefBuckets...),
-		Help:      "Histogram of the time (in seconds) each request took.",
+		Name:      "request_duration_milliseconds",
+		Buckets:   append(prometheus.DefBuckets, []float64{50, 100, 200, 500, 1000, 2000, 3000, 4000, 5000}...),
+		Help:      "Histogram of the time (in milliseconds) each request took.",
 	}, []string{"zone"})
 
 	requestSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -90,6 +94,14 @@ func define() {
 		Subsystem: subsystem,
 		Name:      "request_size_bytes",
 		Help:      "Size of the EDNS0 UDP buffer in bytes (64K for TCP).",
+		Buckets:   []float64{0, 100, 200, 300, 400, 511, 1023, 2047, 4095, 8291, 16e3, 32e3, 48e3, 64e3},
+	}, []string{"zone", "proto"})
+
+	requestTransferSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: middleware.Namespace,
+		Subsystem: subsystem,
+		Name:      "request_transfer_size_bytes",
+		Help:      "Size of the incoming zone transfer in bytes.",
 		Buckets:   []float64{0, 100, 200, 300, 400, 511, 1023, 2047, 4095, 8291, 16e3, 32e3, 48e3, 64e3},
 	}, []string{"zone", "proto"})
 
@@ -111,7 +123,15 @@ func define() {
 		Namespace: middleware.Namespace,
 		Subsystem: subsystem,
 		Name:      "response_size_bytes",
-		Help:      "Size of the returns response in bytes.",
+		Help:      "Size of the returned response in bytes.",
+		Buckets:   []float64{0, 100, 200, 300, 400, 511, 1023, 2047, 4095, 8291, 16e3, 32e3, 48e3, 64e3},
+	}, []string{"zone", "proto"})
+
+	responseTransferSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: middleware.Namespace,
+		Subsystem: subsystem,
+		Name:      "response_transfer_size_bytes",
+		Help:      "Size of the returned zone transfer in bytes.",
 		Buckets:   []float64{0, 100, 200, 300, 400, 511, 1023, 2047, 4095, 8291, 16e3, 32e3, 48e3, 64e3},
 	}, []string{"zone", "proto"})
 

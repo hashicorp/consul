@@ -42,20 +42,29 @@ func Report(state middleware.State, zone, rcode string, size int, start time.Tim
 		fam = "2"
 	}
 
+	typ := state.QType()
+
 	requestCount.WithLabelValues(zone, net, fam).Inc()
-	requestDuration.WithLabelValues(zone).Observe(float64(time.Since(start) / time.Second))
-	requestSize.WithLabelValues(zone, net).Observe(float64(state.Size()))
+	requestDuration.WithLabelValues(zone).Observe(float64(time.Since(start) / time.Millisecond))
+
 	if state.Do() {
 		requestDo.WithLabelValues(zone).Inc()
 	}
-	typ := state.QType()
+
 	if _, known := monitorType[typ]; known {
 		requestType.WithLabelValues(zone, dns.Type(typ).String()).Inc()
 	} else {
 		requestType.WithLabelValues(zone, other).Inc()
 	}
 
-	responseSize.WithLabelValues(zone, net).Observe(float64(size))
+	if typ == dns.TypeIXFR || typ == dns.TypeAXFR {
+		responseTransferSize.WithLabelValues(zone, net).Observe(float64(size))
+		requestTransferSize.WithLabelValues(zone, net).Observe(float64(size))
+	} else {
+		responseSize.WithLabelValues(zone, net).Observe(float64(size))
+		requestSize.WithLabelValues(zone, net).Observe(float64(state.Size()))
+	}
+
 	responseRcode.WithLabelValues(zone, rcode).Inc()
 }
 
@@ -74,6 +83,10 @@ var monitorType = map[uint16]bool{
 	dns.TypeSOA:    true,
 	dns.TypeSRV:    true,
 	dns.TypeTXT:    true,
+	// Meta Qtypes
+	dns.TypeIXFR: true,
+	dns.TypeAXFR: true,
+	dns.TypeANY:  true,
 }
 
 const other = "other"

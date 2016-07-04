@@ -5,23 +5,26 @@ This module enables prometheus metrics for CoreDNS. The default location for the
 
 The following metrics are exported:
 
-* coredns_dns_request_count_total
-* coredns_dns_request_duration_seconds
-* coredns_dns_request_size_bytes
-* coredns_dns_request_do_count_total
-* coredns_dns_request_type_count_total
-* coredns_dns_response_size_bytes
-* coredns_dns_response_rcode_count_total
+* coredns_dns_request_count_total{zone, proto, family}
+* coredns_dns_request_duration_milliseconds{zone}
+* coredns_dns_request_size_bytes{zone,, proto}
+* coredns_dns_request_transfer_size_bytes{zone,, proto}
+* coredns_dns_request_do_count_total{zone}
+* coredns_dns_request_type_count_total{zone, type}
+* coredns_dns_response_size_bytes{zone, proto}
+* coredns_dns_response_transfer_size_bytes{zone, proto}
+* coredns_dns_response_rcode_count_total{zone, rcode}
 
-Each counter has a label `zone` which is the zonename used for the request/response. and a label
-`qtype` which old the query type. The `dns_request_count_total` has extra labels: `proto` which
-holds the transport of the response ("udp" or "tcp") and the address family of the transport (1
-= IP (IP version 4), 2 = IP6 (IP version 6)). And `type_count_total` hold a per RR type counter, it
-holds the most common ones (A, AAAA, MX, SOA, CNAME, PTR, TXT, NS, SRV, DS, DNSKEY, RRSIG, NSEC,
-NSEC3) and "other" which lumps together all other types.
+Each counter has a label `zone` which is the zonename used for the request/response.
 
-The `response_rcode_count_total` has an extra label `rcode` which holds the rcode of the response.
-The `*_size_bytes` counters also hold the protocol in the `proto` label ("udp" or "tcp").
+Extra labels used are:
+
+* `proto` which holds the transport of the response ("udp" or "tcp")
+* The address family (`family`) of the transport (1 = IP (IP version 4), 2 = IP6 (IP version 6)).
+* `type` which old the query type, it holds the most common ones (A, AAAA, MX, SOA, CNAME, PTR, TXT,
+  NS, SRV, DS, DNSKEY, RRSIG, NSEC, NSEC3, IXFR, AXFR and ANY) and "other" which lumps together all
+  other types.
+* The `response_rcode_count_total` has an extra label `rcode` which holds the rcode of the response.
 
 If monitoring is enabled queries that do not enter the middleware chain are exported under the fake
 domain "dropped" (without a closing dot).
