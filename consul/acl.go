@@ -183,7 +183,7 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 		s := id
 		// Print last 3 chars of the token if long enough, otherwise completly hide it
 		if len(s) > 3 {
-			s = fmt.Sprintf("token ending in '%s'", s[len(s)-1:])
+			s = fmt.Sprintf("token ending in '%s'", s[len(s)-3:])
 		} else {
 			s = redactedToken
 		}
