@@ -135,7 +135,7 @@ The options below are all specified on the command-line.
   prototyping or developing against the API. This mode is **not** intended for
   production use as it does not write any data to disk.
 
-* <a name="_dc"></a><a href="#_dc">`-dc`</a> - This flag controls the datacenter in
+* <a name="_datacenter"></a><a href="#_datacenter">`-datacenter`</a> - This flag controls the datacenter in
   which the agent is running. If not provided,
   it defaults to "dc1". Consul has first-class support for multiple datacenters, but
   it relies on proper configuration. Nodes in the same datacenter should be on a single
@@ -449,7 +449,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   [`-client` command-line flag](#_client).
 
 * <a name="datacenter"></a><a href="#datacenter">`datacenter`</a> Equivalent to the
-  [`-dc` command-line flag](#_dc).
+  [`-datacenter` command-line flag](#_datacenter).
 
 * <a name="data_dir"></a><a href="#data_dir">`data_dir`</a> Equivalent to the
   [`-data-dir` command-line flag](#_data_dir).
