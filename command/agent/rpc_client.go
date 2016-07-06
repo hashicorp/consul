@@ -3,14 +3,17 @@ package agent
 import (
 	"bufio"
 	"fmt"
-	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/hashicorp/logutils"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/logutils"
 )
 
 var (
@@ -130,6 +133,10 @@ func (c *RPCClient) Close() error {
 		c.shutdown = true
 		close(c.shutdownCh)
 		c.deregisterAll()
+		if _, err := io.Copy(ioutil.Discard, c.conn); err != nil {
+			c.conn.Close()
+			return fmt.Errorf("client.rpc: failed to drain on shutdown: %v", err)
+		}
 		return c.conn.Close()
 	}
 	return nil

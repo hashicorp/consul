@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -427,7 +428,14 @@ func (c *CheckHTTP) check() {
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+			c.Logger.Printf("[WARN] agent: failed to drain HTTP check on check shutdown: %v", err)
+		}
+		if err = resp.Body.Close(); err != nil {
+			c.Logger.Printf("[WARN] agent: failed to close HTTP socket on check shutdown: %v", err)
+		}
+	}()
 
 	// Read the response into a circular buffer to limit the size
 	output, _ := circbuf.NewBuffer(CheckBufSize)
@@ -535,7 +543,14 @@ func (c *CheckTCP) check() {
 		c.Notify.UpdateCheck(c.CheckID, structs.HealthCritical, err.Error())
 		return
 	}
-	conn.Close()
+
+	// Drain when closing the socket
+	if _, err := io.Copy(ioutil.Discard, conn); err != nil {
+		c.Logger.Printf("[WARN] agent: failed to drain TCP connection on shutdown: %v", err)
+	}
+	if err = conn.Close(); err != nil {
+		c.Logger.Printf("[WARN] agent: failed to close TCP check: %v", err)
+	}
 	c.Logger.Printf("[DEBUG] agent: check '%v' is passing", c.CheckID)
 	c.Notify.UpdateCheck(c.CheckID, structs.HealthPassing, fmt.Sprintf("TCP connect %s: Success", c.TCP))
 }
