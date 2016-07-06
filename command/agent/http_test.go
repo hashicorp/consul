@@ -112,7 +112,13 @@ func TestHTTPServer_UnixSocket(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if _, err := io.Copy(ioutil.Discard, resp.Body); err != nil {
+			resp.Body.Close()
+			return fmt.Errorf("client.rpc: failed to drain on shutdown: %v", err)
+		}
+		resp.Body.Close()
+	}()
 
 	if body, err := ioutil.ReadAll(resp.Body); err != nil || len(body) == 0 {
 		t.Fatalf("bad: %s %v", body, err)

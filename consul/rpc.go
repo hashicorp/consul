@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"strings"
@@ -77,6 +78,14 @@ func logConn(conn net.Conn) string {
 	return memberlist.LogConn(conn)
 }
 
+func connClose(conn net.Conn) error {
+	if _, err := io.Copy(ioutil.Discard, conn); err != nil {
+		conn.Close()
+		return fmt.Errorf("client.rpc: failed to drain connection on shutdown: %v", err)
+	}
+	return conn.Close()
+}
+
 // handleConn is used to determine if this is a Raft or
 // Consul type RPC connection and invoke the correct handler
 func (s *Server) handleConn(conn net.Conn, isTLS bool) {
@@ -86,14 +95,14 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		if err != io.EOF {
 			s.logger.Printf("[ERR] consul.rpc: failed to read byte: %v %s", err, logConn(conn))
 		}
-		conn.Close()
+		connClose(conn)
 		return
 	}
 
 	// Enforce TLS if VerifyIncoming is set
 	if s.config.VerifyIncoming && !isTLS && RPCType(buf[0]) != rpcTLS {
 		s.logger.Printf("[WARN] consul.rpc: Non-TLS connection attempted with VerifyIncoming set %s", logConn(conn))
-		conn.Close()
+		connClose(conn)
 		return
 	}
 
@@ -112,7 +121,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 	case rpcTLS:
 		if s.rpcTLS == nil {
 			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS %s", logConn(conn))
-			conn.Close()
+			connClose(conn)
 			return
 		}
 		conn = tls.Server(conn, s.rpcTLS)
@@ -131,7 +140,7 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 // handleMultiplex is used to multiplex a single incoming connection
 // using the Muxado multiplexer
 func (s *Server) handleMultiplex(conn net.Conn) {
-	defer conn.Close()
+	defer connClose(conn)
 	server := muxado.Server(conn)
 	for {
 		sub, err := server.Accept()
@@ -148,7 +157,7 @@ func (s *Server) handleMultiplex(conn net.Conn) {
 // handleMultiplexV2 is used to multiplex a single incoming connection
 // using the Yamux multiplexer
 func (s *Server) handleMultiplexV2(conn net.Conn) {
-	defer conn.Close()
+	defer connClose(conn)
 	conf := yamux.DefaultConfig()
 	conf.LogOutput = s.config.LogOutput
 	server, _ := yamux.Server(conn, conf)
@@ -166,7 +175,7 @@ func (s *Server) handleMultiplexV2(conn net.Conn) {
 
 // handleConsulConn is used to service a single Consul RPC connection
 func (s *Server) handleConsulConn(conn net.Conn) {
-	defer conn.Close()
+	defer connClose(conn)
 	rpcCodec := msgpackrpc.NewServerCodec(conn)
 	for {
 		select {
