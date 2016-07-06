@@ -289,7 +289,7 @@ Certificate verification can be controlled using the `TLSSkipVerify`.
 If `TLSSkipVerify` is set to `true`, certificate verification will be disabled. By default,
 certificate verification is enabled.
 
-An `TCP` check will perform an TCP connection attempt against the value of `TCP`
+A `TCP` check will perform an TCP connection attempt against the value of `TCP`
 (expected to be an IP/hostname and port combination) every `Interval`.  If the
 connection attempt is successful, the check is `passing`.  If the connection
 attempt is unsuccessful, the check is `critical`.  In the case of a hostname
