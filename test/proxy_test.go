@@ -44,6 +44,7 @@ func TestLookupProxy(t *testing.T) {
 	resp, err := p.Lookup(state, "example.org.", dns.TypeA)
 	if err != nil {
 		t.Error("Expected to receive reply, but didn't")
+		return
 	}
 	// expect answer section with A record in it
 	if len(resp.Answer) == 0 {
