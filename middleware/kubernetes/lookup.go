@@ -17,7 +17,7 @@ func (k Kubernetes) records(state middleware.State, exact bool) ([]msg.Service, 
 	if err != nil {
 		return nil, err
 	}
-    // TODO: Do we want to support the SkyDNS (hacky) Group feature?
+	// TODO: Do we want to support the SkyDNS (hacky) Group feature?
 	services = msg.Group(services)
 	return services, nil
 }
@@ -141,7 +141,7 @@ func (k Kubernetes) AAAA(zone string, state middleware.State, previousRecords []
 	return records, nil
 }
 
-// SRV returns SRV records from etcd.
+// SRV returns SRV records from kubernetes.
 // If the Target is not a name but an IP address, a name is created on the fly.
 func (k Kubernetes) SRV(zone string, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
 	services, err := k.records(state, false)
@@ -208,13 +208,13 @@ func (k Kubernetes) SRV(zone string, state middleware.State) (records []dns.RR, 
 			}
 			// k.AAA(zone, state1, nil) as well...?
 		case ip.To4() != nil:
-			serv.Host = k.Domain(serv.Key)
+			serv.Host = serv.Key
 			srv := serv.NewSRV(state.QName(), weight)
 
 			records = append(records, srv)
 			extra = append(extra, serv.NewA(srv.Target, ip.To4()))
 		case ip.To4() == nil:
-			serv.Host = k.Domain(serv.Key)
+			serv.Host = serv.Key
 			srv := serv.NewSRV(state.QName(), weight)
 
 			records = append(records, srv)
@@ -226,17 +226,17 @@ func (k Kubernetes) SRV(zone string, state middleware.State) (records []dns.RR, 
 
 // Returning MX records from kubernetes not implemented.
 func (k Kubernetes) MX(zone string, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
-    return nil, nil, err
+	return nil, nil, err
 }
 
 // Returning CNAME records from kubernetes not implemented.
 func (k Kubernetes) CNAME(zone string, state middleware.State) (records []dns.RR, err error) {
-    return nil, err
+	return nil, err
 }
 
 // Returning TXT records from kubernetes not implemented.
 func (k Kubernetes) TXT(zone string, state middleware.State) (records []dns.RR, err error) {
-    return nil, err
+	return nil, err
 }
 
 func (k Kubernetes) NS(zone string, state middleware.State) (records, extra []dns.RR, err error) {
@@ -259,11 +259,11 @@ func (k Kubernetes) NS(zone string, state middleware.State) (records, extra []dn
 		case ip == nil:
 			return nil, nil, fmt.Errorf("NS record must be an IP address: %s", serv.Host)
 		case ip.To4() != nil:
-			serv.Host = k.Domain(serv.Key)
+			serv.Host = serv.Key
 			records = append(records, serv.NewNS(state.QName()))
 			extra = append(extra, serv.NewA(serv.Host, ip.To4()))
 		case ip.To4() == nil:
-			serv.Host = k.Domain(serv.Key)
+			serv.Host = serv.Key
 			records = append(records, serv.NewNS(state.QName()))
 			extra = append(extra, serv.NewAAAA(serv.Host, ip.To16()))
 		}

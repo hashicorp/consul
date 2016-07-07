@@ -1,8 +1,11 @@
-#VERBOSE :=
-VERBOSE := -v
+#BUILD_VERBOSE :=
+BUILD_VERBOSE := -v
+
+TEST_VERBOSE :=
+#TEST_VERBOSE := -v
 
 all:
-	go build $(VERBOSE)
+	go build $(BUILD_VERBOSE)
 
 .PHONY: docker
 docker:
@@ -11,11 +14,11 @@ docker:
 
 .PHONY: deps
 deps:
-	go get
+	go get ${BUILD_VERBOSE}
 
 .PHONY: test
 test:
-	go test
+	go test $(TEST_VERBOSE) ./...
 
 .PHONY: clean
 clean:

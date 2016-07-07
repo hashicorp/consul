@@ -1,117 +1,157 @@
 package k8sclient
 
 import (
-//    "fmt"
-    "net/url"
+	"errors"
+	"fmt"
+	"net/url"
+	"strings"
 )
 
 // API strings
 const (
-    apiBase       = "/api/v1"
-    apiNamespaces = "/namespaces"
-    apiServices   = "/services"
+	apiBase       = "/api/v1"
+	apiNamespaces = "/namespaces"
+	apiServices   = "/services"
 )
 
 // Defaults
 const (
-    defaultBaseUrl = "http://localhost:8080"
+	defaultBaseURL = "http://localhost:8080"
 )
 
-
 type K8sConnector struct {
-    baseUrl string
+	baseURL string
 }
 
-func (c *K8sConnector) SetBaseUrl(u string) error {
-    validUrl, error := url.Parse(u)
+func (c *K8sConnector) SetBaseURL(u string) error {
+	url, error := url.Parse(u)
 
-    if error != nil {
-        return error
-    }
-    c.baseUrl = validUrl.String()
+	if error != nil {
+		return error
+	}
 
-    return nil
+	if !url.IsAbs() {
+		return errors.New("k8sclient: Kubernetes endpoint url must be an absolute URL")
+	}
+
+	c.baseURL = url.String()
+	return nil
 }
 
-func (c *K8sConnector) GetBaseUrl() string {
-    return c.baseUrl
+func (c *K8sConnector) GetBaseURL() string {
+	return c.baseURL
 }
 
-
-func (c *K8sConnector) GetResourceList() *ResourceList {
-    resources := new(ResourceList)
-    
-    error := getJson((c.baseUrl + apiBase), resources)
-    if error != nil {
-        return nil
-    }
-
-    return resources
+// URL constructor separated from code to support dependency injection
+// for unit tests.
+var makeURL = func(parts []string) string {
+	return strings.Join(parts, "")
 }
 
+func (c *K8sConnector) GetResourceList() (*ResourceList, error) {
+	resources := new(ResourceList)
 
-func (c *K8sConnector) GetNamespaceList() *NamespaceList {
-    namespaces := new(NamespaceList)
+	url := makeURL([]string{c.baseURL, apiBase})
+	err := parseJson(url, resources)
+	// TODO: handle no response from k8s
+	if err != nil {
+		fmt.Printf("[ERROR] Response from kubernetes API for GetResourceList() is: %v\n", err)
+		return nil, err
+	}
 
-    error := getJson((c.baseUrl + apiBase + apiNamespaces), namespaces)
-    if error != nil {
-        return nil
-    }
-
-    return namespaces
+	return resources, nil
 }
 
+func (c *K8sConnector) GetNamespaceList() (*NamespaceList, error) {
+	namespaces := new(NamespaceList)
 
-func (c *K8sConnector) GetServiceList() *ServiceList {
-    services := new(ServiceList)
+	url := makeURL([]string{c.baseURL, apiBase, apiNamespaces})
+	err := parseJson(url, namespaces)
+	if err != nil {
+		fmt.Printf("[ERROR] Response from kubernetes API for GetNamespaceList() is: %v\n", err)
+		return nil, err
+	}
 
-    error := getJson((c.baseUrl + apiBase + apiServices), services)
-    if error != nil {
-        return nil
-    }
-
-    return services
+	return namespaces, nil
 }
 
+func (c *K8sConnector) GetServiceList() (*ServiceList, error) {
+	services := new(ServiceList)
 
-func (c *K8sConnector) GetServicesByNamespace() map[string][]ServiceItem {
-     // GetServicesByNamespace returns a map of namespacename :: [ kubernetesServiceItem ]
+	url := makeURL([]string{c.baseURL, apiBase, apiServices})
+	err := parseJson(url, services)
+	// TODO: handle no response from k8s
+	if err != nil {
+		fmt.Printf("[ERROR] Response from kubernetes API for GetServiceList() is: %v\n", err)
+		return nil, err
+	}
 
-    items := make(map[string][]ServiceItem)
-
-    k8sServiceList := c.GetServiceList()
-    k8sItemList := k8sServiceList.Items
-
-    for _, i := range k8sItemList {
-        namespace := i.Metadata.Namespace
-        items[namespace] = append(items[namespace], i)
-    }
-
-    return items
+	return services, nil
 }
 
+// GetServicesByNamespace returns a map of
+// namespacename :: [ kubernetesServiceItem ]
+func (c *K8sConnector) GetServicesByNamespace() (map[string][]ServiceItem, error) {
 
-func (c *K8sConnector) GetServiceItemInNamespace(namespace string, servicename string) *ServiceItem {
-    // GetServiceItemInNamespace returns the ServiceItem that matches servicename in the namespace
+	items := make(map[string][]ServiceItem)
 
-    itemMap := c.GetServicesByNamespace()
+	k8sServiceList, err := c.GetServiceList()
 
-    // TODO: Handle case where namesapce == nil
+	if err != nil {
+		fmt.Printf("[ERROR] Getting service list produced error: %v", err)
+		return nil, err
+	}
 
-    for _, x := range itemMap[namespace] {
-        if x.Metadata.Name == servicename {
-            return &x
-        }
-    }
+	// TODO: handle no response from k8s
+	if k8sServiceList == nil {
+		return nil, nil
+	}
 
-    // No matching item found in namespace
-    return nil
+	k8sItemList := k8sServiceList.Items
+
+	for _, i := range k8sItemList {
+		namespace := i.Metadata.Namespace
+		items[namespace] = append(items[namespace], i)
+	}
+
+	return items, nil
 }
 
+// GetServiceItemsInNamespace returns the ServiceItems that match
+// servicename in the namespace
+func (c *K8sConnector) GetServiceItemsInNamespace(namespace string, servicename string) ([]*ServiceItem, error) {
 
-func NewK8sConnector(baseurl string) *K8sConnector {
-    k := new(K8sConnector)
-    k.SetBaseUrl(baseurl)
+	itemMap, err := c.GetServicesByNamespace()
 
-    return k
+	if err != nil {
+		fmt.Printf("[ERROR] Getting service list produced error: %v", err)
+		return nil, err
+	}
+
+	// TODO: Handle case where namespace == nil
+
+	var serviceItems []*ServiceItem
+
+	for _, x := range itemMap[namespace] {
+		if x.Metadata.Name == servicename {
+			serviceItems = append(serviceItems, &x)
+		}
+	}
+
+	return serviceItems, nil
+}
+
+func NewK8sConnector(baseURL string) *K8sConnector {
+	k := new(K8sConnector)
+
+	if baseURL == "" {
+		baseURL = defaultBaseURL
+	}
+
+	err := k.SetBaseURL(baseURL)
+	if err != nil {
+		return nil
+	}
+
+	return k
 }

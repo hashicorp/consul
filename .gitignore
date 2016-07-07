@@ -2,4 +2,3 @@ query.log
 Corefile
 *.swp
 coredns
-conf/devk8sCorefile
