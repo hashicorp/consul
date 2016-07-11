@@ -29,6 +29,9 @@ BACKWARDS INCOMPATIBILITIES:
 
 IMPROVEMENTS:
 
+* Consul will now retry RPC calls that result in "no leader" errors for up to
+  5 seconds. This allows agents to ride out leader elections with a delayed
+  response vs. an error. [GH-2175]
 * Implemented a new set of feedback controls for the gossip layer that help
   prevent degraded nodes that can't meet the soft real-time requirements from
   erroneously causing `serfHealth` flapping in other, healthy nodes. [GH-2101]
