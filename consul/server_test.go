@@ -7,18 +7,23 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
 )
 
-var nextPort = 15000
+const (
+	// Something sufficiently high that won't conflict with agent's port
+	// numbering sequence.
+	basePortNumber = 40000
+)
+
+var nextPort uint64 = basePortNumber
 
 func getPort() int {
-	p := nextPort
-	nextPort++
-	return p
+	return int(atomic.AddUint64(&nextPort, 1))
 }
 
 func tmpDir(t *testing.T) string {
