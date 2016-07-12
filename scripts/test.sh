@@ -12,4 +12,9 @@ go build -o $TEMPDIR/consul || exit 1
 
 # Run the tests
 echo "--> Running tests"
-go list ./... | grep -v '^github.com/hashicorp/consul/vendor/' | PATH=$TEMPDIR:$PATH xargs -n1 go test ${GOTEST_FLAGS:--cover -timeout=360s}
+GOBIN="`which go`"
+go list ./... | grep -v '^github.com/hashicorp/consul/vendor/' | \
+    sudo \
+        -E PATH=$TEMPDIR:$PATH \
+        -E GOPATH=$GOPATH \
+        xargs $GOBIN test ${GOTEST_FLAGS:--cover -timeout=360s}
