@@ -394,7 +394,7 @@ body must look like:
 }
 ```
 
-The `Name` field is mandatory,  If an `ID` is not provided, it is set to `Name`.
+The `Name` field is mandatory.  If an `ID` is not provided, it is set to `Name`.
 You cannot have duplicate `ID` entries per agent, so it may be necessary to provide an ID
 in the case of a collision.
 
