@@ -594,6 +594,15 @@
       {{else}}
         <p class="light small">No sessions</p>
       {{/if}}
+
+      <h5>Network Tomography</h5>
+
+      {{ tomographyGraph tomography 336 }}
+
+      <p class="light small">Node: <span id="tomography-node-info"></span></p>
+      <p class="light small">Minimum: {{ tomography.min }}ms</p>
+      <p class="light small">Median: {{ tomography.median }}ms</p>
+      <p class="light small">Maximum: {{ tomography.max }}ms</p>
   </script>
 
   <script type="text/x-handlebars" id="acls">

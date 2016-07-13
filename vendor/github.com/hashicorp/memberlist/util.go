@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/rand"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-msgpack/codec"
@@ -324,6 +325,12 @@ func IsPrivateIP(ip_str string) bool {
 func isLoopbackIP(ip_str string) bool {
 	ip := net.ParseIP(ip_str)
 	return loopbackBlock.Contains(ip)
+}
+
+// Given a string of the form "host", "host:port", or "[ipv6::address]:port",
+// return true if the string includes a port.
+func hasPort(s string) bool {
+	return strings.LastIndex(s, ":") > strings.LastIndex(s, "]")
 }
 
 // compressPayload takes an opaque input buffer, compresses it

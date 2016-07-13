@@ -16,8 +16,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 )
 
-type consulServerEventTypes int
-
 const (
 	// clientRPCJitterFraction determines the amount of jitter added to
 	// clientRPCMinReuseDuration before a connection is expired and a new
@@ -52,14 +50,14 @@ const (
 	newRebalanceConnsPerSecPerServer = 64
 )
 
-// ConsulClusterInfo is an interface wrapper around serf and prevents a
-// cyclic import dependency
+// ConsulClusterInfo is an interface wrapper around serf in order to prevent
+// a cyclic import dependency.
 type ConsulClusterInfo interface {
 	NumNodes() int
 }
 
-// Pinger is an interface wrapping client.ConnPool to prevent a
-// cyclic import dependency
+// Pinger is an interface wrapping client.ConnPool to prevent a cyclic import
+// dependency.
 type Pinger interface {
 	PingConsulServer(s *agent.Server) (bool, error)
 }
@@ -271,8 +269,8 @@ func (m *Manager) NumServers() int {
 // fail for a particular server are rotated to the end of the list.  This
 // method reshuffles the list periodically in order to redistribute work
 // across all known consul servers (i.e. guarantee that the order of servers
-// in the server list isn't positively correlated with the age of a server in
-// the consul cluster).  Periodically shuffling the server list prevents
+// in the server list is not positively correlated with the age of a server
+// in the Consul cluster).  Periodically shuffling the server list prevents
 // long-lived clients from fixating on long-lived servers.
 //
 // Unhealthy servers are removed when serf notices the server has been
@@ -282,16 +280,16 @@ func (m *Manager) RebalanceServers() {
 	// Obtain a copy of the current serverList
 	l := m.getServerList()
 
-	// Early abort if there is no value to shuffling
+	// Early abort if there is nothing to shuffle
 	if len(l.servers) < 2 {
 		return
 	}
 
 	l.shuffleServers()
 
-	// Iterate through the shuffled server list to find a healthy server.
-	// Don't iterate on the list directly, this loop mutates the server
-	// list.
+	// Iterate through the shuffled server list to find an assumed
+	// healthy server.  NOTE: Do not iterate on the list directly because
+	// this loop mutates the server list in-place.
 	var foundHealthyServer bool
 	for i := 0; i < len(l.servers); i++ {
 		// Always test the first server.  Failed servers are cycled
@@ -322,8 +320,7 @@ func (m *Manager) RebalanceServers() {
 		// reconcileServerList failed because Serf removed the server
 		// that was at the front of the list that had successfully
 		// been Ping'ed.  Between the Ping and reconcile, a Serf
-		// event had shown up removing the node.  Prevent an RPC
-		// timeout by retrying RebalanceServers().
+		// event had shown up removing the node.
 		//
 		// Instead of doing any heroics, "freeze in place" and
 		// continue to use the existing connection until the next
@@ -334,9 +331,9 @@ func (m *Manager) RebalanceServers() {
 }
 
 // reconcileServerList returns true when the first server in serverList
-// exists in the receiver's serverList.  If true, the merged serverList
-// is stored as the receiver's serverList.  Returns false if the first
-// server does not exist in the list (i.e. was removed by Serf during a
+// exists in the receiver's serverList.  If true, the merged serverList is
+// stored as the receiver's serverList.  Returns false if the first server
+// does not exist in the list (i.e. was removed by Serf during a
 // PingConsulServer() call.  Newly added servers are appended to the list and
 // other missing servers are removed from the list.
 func (m *Manager) reconcileServerList(l *serverList) bool {
@@ -348,7 +345,7 @@ func (m *Manager) reconcileServerList(l *serverList) bool {
 	newServerCfg := m.getServerList()
 
 	// If Serf has removed all nodes, or there is no selected server
-	// (zero nodes in l), abort early.
+	// (zero nodes in serverList), abort early.
 	if len(newServerCfg.servers) == 0 || len(l.servers) == 0 {
 		return false
 	}
@@ -425,12 +422,12 @@ func (m *Manager) RemoveServer(s *agent.Server) {
 // refreshServerRebalanceTimer is only called once m.rebalanceTimer expires.
 func (m *Manager) refreshServerRebalanceTimer() time.Duration {
 	l := m.getServerList()
-	numConsulServers := len(l.servers)
+	numServers := len(l.servers)
 	// Limit this connection's life based on the size (and health) of the
 	// cluster.  Never rebalance a connection more frequently than
 	// connReuseLowWatermarkDuration, and make sure we never exceed
 	// clusterWideRebalanceConnsPerSec operations/s across numLANMembers.
-	clusterWideRebalanceConnsPerSec := float64(numConsulServers * newRebalanceConnsPerSecPerServer)
+	clusterWideRebalanceConnsPerSec := float64(numServers * newRebalanceConnsPerSecPerServer)
 	connReuseLowWatermarkDuration := clientRPCMinReuseDuration + lib.RandomStagger(clientRPCMinReuseDuration/clientRPCJitterFraction)
 	numLANMembers := m.clusterInfo.NumNodes()
 	connRebalanceTimeout := lib.RateScaledInterval(clusterWideRebalanceConnsPerSec, connReuseLowWatermarkDuration, numLANMembers)
@@ -439,8 +436,8 @@ func (m *Manager) refreshServerRebalanceTimer() time.Duration {
 	return connRebalanceTimeout
 }
 
-// ResetRebalanceTimer resets the rebalance timer.  This method primarily
-// exists for testing and should not be used directly.
+// ResetRebalanceTimer resets the rebalance timer.  This method exists for
+// testing and should not be used directly.
 func (m *Manager) ResetRebalanceTimer() {
 	m.listLock.Lock()
 	defer m.listLock.Unlock()
@@ -448,11 +445,11 @@ func (m *Manager) ResetRebalanceTimer() {
 }
 
 // Start is used to start and manage the task of automatically shuffling and
-// rebalancing the list of consul servers.  This maintenance only happens
+// rebalancing the list of Consul servers.  This maintenance only happens
 // periodically based on the expiration of the timer.  Failed servers are
 // automatically cycled to the end of the list.  New servers are appended to
 // the list.  The order of the server list must be shuffled periodically to
-// distribute load across all known and available consul servers.
+// distribute load across all known and available Consul servers.
 func (m *Manager) Start() {
 	for {
 		select {

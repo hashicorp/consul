@@ -165,6 +165,7 @@ type endpoints struct {
 	ACL           *ACL
 	Coordinate    *Coordinate
 	PreparedQuery *PreparedQuery
+	Txn           *Txn
 }
 
 // NewServer is used to construct a new Consul server from the
@@ -221,7 +222,7 @@ func NewServer(config *Config) (*Server, error) {
 		localConsuls:  make(map[string]*agent.Server),
 		logger:        logger,
 		reconcileCh:   make(chan serf.Member, 32),
-		remoteConsuls: make(map[string][]*agent.Server),
+		remoteConsuls: make(map[string][]*agent.Server, 4),
 		rpcServer:     rpc.NewServer(),
 		rpcTLS:        incomingTLS,
 		tombstoneGC:   gc,
@@ -350,7 +351,6 @@ func (s *Server) setupRaft() error {
 	var log raft.LogStore
 	var stable raft.StableStore
 	var snap raft.SnapshotStore
-	var peers raft.PeerStore
 
 	if s.config.DevMode {
 		store := raft.NewInmemStore()
@@ -358,8 +358,7 @@ func (s *Server) setupRaft() error {
 		stable = store
 		log = store
 		snap = raft.NewDiscardSnapshotStore()
-		peers = &raft.StaticPeers{}
-		s.raftPeers = peers
+		s.raftPeers = &raft.StaticPeers{}
 	} else {
 		// Create the base raft path
 		path := filepath.Join(s.config.DataDir, raftState)
@@ -393,20 +392,19 @@ func (s *Server) setupRaft() error {
 
 		// Setup the peer store
 		s.raftPeers = raft.NewJSONPeers(path, trans)
-		peers = s.raftPeers
 	}
 
 	// Ensure local host is always included if we are in bootstrap mode
 	if s.config.Bootstrap {
-		peers, err := s.raftPeers.Peers()
+		peerAddrs, err := s.raftPeers.Peers()
 		if err != nil {
 			if s.raftStore != nil {
 				s.raftStore.Close()
 			}
 			return err
 		}
-		if !raft.PeerContained(peers, trans.LocalAddr()) {
-			s.raftPeers.SetPeers(raft.AddUniquePeer(peers, trans.LocalAddr()))
+		if !raft.PeerContained(peerAddrs, trans.LocalAddr()) {
+			s.raftPeers.SetPeers(raft.AddUniquePeer(peerAddrs, trans.LocalAddr()))
 		}
 	}
 
@@ -441,6 +439,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.endpoints.ACL = &ACL{s}
 	s.endpoints.Coordinate = NewCoordinate(s)
 	s.endpoints.PreparedQuery = &PreparedQuery{s}
+	s.endpoints.Txn = &Txn{s}
 
 	// Register the handlers
 	s.rpcServer.Register(s.endpoints.Status)
@@ -452,6 +451,7 @@ func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	s.rpcServer.Register(s.endpoints.ACL)
 	s.rpcServer.Register(s.endpoints.Coordinate)
 	s.rpcServer.Register(s.endpoints.PreparedQuery)
+	s.rpcServer.Register(s.endpoints.Txn)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)
 	if err != nil {
@@ -731,13 +731,16 @@ func (s *Server) Stats() map[string]map[string]string {
 	toString := func(v uint64) string {
 		return strconv.FormatUint(v, 10)
 	}
+	s.remoteLock.RLock()
+	numKnownDCs := len(s.remoteConsuls)
+	s.remoteLock.RUnlock()
 	stats := map[string]map[string]string{
 		"consul": map[string]string{
 			"server":            "true",
 			"leader":            fmt.Sprintf("%v", s.IsLeader()),
 			"leader_addr":       s.raft.Leader(),
 			"bootstrap":         fmt.Sprintf("%v", s.config.Bootstrap),
-			"known_datacenters": toString(uint64(len(s.remoteConsuls))),
+			"known_datacenters": toString(uint64(numKnownDCs)),
 		},
 		"raft":     s.raft.Stats(),
 		"serf_lan": s.serfLAN.Stats(),

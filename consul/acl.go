@@ -180,7 +180,14 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 	if strings.Contains(err.Error(), aclNotFound) {
 		return nil, errors.New(aclNotFound)
 	} else {
-		c.logger.Printf("[ERR] consul.acl: Failed to get policy for '%s': %v", id, err)
+		s := id
+		// Print last 3 chars of the token if long enough, otherwise completly hide it
+		if len(s) > 3 {
+			s = fmt.Sprintf("token ending in '%s'", s[len(s)-3:])
+		} else {
+			s = redactedToken
+		}
+		c.logger.Printf("[ERR] consul.acl: Failed to get policy for %s: %v", s, err)
 	}
 
 	// Unable to refresh, apply the down policy

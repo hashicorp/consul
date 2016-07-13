@@ -336,10 +336,6 @@ func TestSetupScadaConn(t *testing.T) {
 	if err := cmd.setupScadaConn(conf1); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	list := cmd.scadaHttp.listener.(*scadaListener)
-	if list == nil || list.addr.infra != "hashicorp/test1" {
-		t.Fatalf("bad: %#v", list)
-	}
 	http1 := cmd.scadaHttp
 	provider1 := cmd.scadaProvider
 
@@ -353,10 +349,6 @@ func TestSetupScadaConn(t *testing.T) {
 	}
 	if cmd.scadaHttp == http1 || cmd.scadaProvider == provider1 {
 		t.Fatalf("should change: %#v %#v", cmd.scadaHttp, cmd.scadaProvider)
-	}
-	list = cmd.scadaHttp.listener.(*scadaListener)
-	if list == nil || list.addr.infra != "hashicorp/test2" {
-		t.Fatalf("bad: %#v", list)
 	}
 
 	// Original provider and listener must be closed

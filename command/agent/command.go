@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -21,7 +22,7 @@ import (
 	"github.com/hashicorp/go-reap"
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
-	scada "github.com/hashicorp/scada-client"
+	scada "github.com/hashicorp/scada-client/scada"
 	"github.com/mitchellh/cli"
 )
 
@@ -61,6 +62,7 @@ func (c *Command) readConfig() *Config {
 	var retryIntervalWan string
 	var dnsRecursors []string
 	var dev bool
+	var dcDeprecated string
 	cmdFlags := flag.NewFlagSet("agent", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 
@@ -71,7 +73,8 @@ func (c *Command) readConfig() *Config {
 
 	cmdFlags.StringVar(&cmdConfig.LogLevel, "log-level", "", "log level")
 	cmdFlags.StringVar(&cmdConfig.NodeName, "node", "", "node name")
-	cmdFlags.StringVar(&cmdConfig.Datacenter, "dc", "", "node datacenter")
+	cmdFlags.StringVar(&dcDeprecated, "dc", "", "node datacenter (deprecated: use 'datacenter' instead)")
+	cmdFlags.StringVar(&cmdConfig.Datacenter, "datacenter", "", "node datacenter")
 	cmdFlags.StringVar(&cmdConfig.DataDir, "data-dir", "", "path to the data directory")
 	cmdFlags.BoolVar(&cmdConfig.EnableUi, "ui", false, "enable the built-in web UI")
 	cmdFlags.StringVar(&cmdConfig.UiDir, "ui-dir", "", "path to the web UI directory")
@@ -236,6 +239,14 @@ func (c *Command) readConfig() *Config {
 				c.Ui.Error("WARNING: WAN keyring exists but -encrypt given, using keyring")
 			}
 		}
+	}
+
+	// Output a warning if the 'dc' flag has been used.
+	if dcDeprecated != "" {
+		c.Ui.Error("WARNING: the 'dc' flag has been deprecated. Use 'datacenter' instead")
+
+		// Making sure that we don't break previous versions.
+		config.Datacenter = dcDeprecated
 	}
 
 	// Ensure the datacenter is always lowercased. The DNS endpoints automatically
@@ -1011,9 +1022,25 @@ func (c *Command) setupScadaConn(config *Config) error {
 		return nil
 	}
 
+	scadaConfig := &scada.Config{
+		Service:      "consul",
+		Version:      fmt.Sprintf("%s%s", config.Version, config.VersionPrerelease),
+		ResourceType: "infrastructures",
+		Meta: map[string]string{
+			"auto-join":  strconv.FormatBool(config.AtlasJoin),
+			"datacenter": config.Datacenter,
+			"server":     strconv.FormatBool(config.Server),
+		},
+		Atlas: scada.AtlasConfig{
+			Endpoint:       config.AtlasEndpoint,
+			Infrastructure: config.AtlasInfrastructure,
+			Token:          config.AtlasToken,
+		},
+	}
+
 	// Create the new provider and listener
 	c.Ui.Output("Connecting to Atlas: " + config.AtlasInfrastructure)
-	provider, list, err := NewProvider(config, c.logOutput)
+	provider, list, err := scada.NewHTTPProvider(scadaConfig, c.logOutput)
 	if err != nil {
 		return err
 	}
@@ -1057,7 +1084,8 @@ Options:
   -dev                     Starts the agent in development mode.
   -recursor=1.2.3.4        Address of an upstream DNS server.
                            Can be specified multiple times.
-  -dc=east-aws             Datacenter of the agent
+  -dc=east-aws             Datacenter of the agent (deprecated: use 'datacenter' instead).
+  -datacenter=east-aws     Datacenter of the agent.
   -encrypt=key             Provides the gossip encryption key
   -join=1.2.3.4            Address of an agent to join at start time.
                            Can be specified multiple times.

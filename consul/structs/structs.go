@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/serf/coordinate"
 )
@@ -36,6 +37,7 @@ const (
 	TombstoneRequestType
 	CoordinateBatchUpdateType
 	PreparedQueryRequestType
+	TxnRequestType
 )
 
 const (
@@ -180,7 +182,7 @@ type DeregisterRequest struct {
 	Datacenter string
 	Node       string
 	ServiceID  string
-	CheckID    string
+	CheckID    types.CheckID
 	WriteRequest
 }
 
@@ -366,13 +368,13 @@ type NodeServices struct {
 // HealthCheck represents a single check on a given node
 type HealthCheck struct {
 	Node        string
-	CheckID     string // Unique per-node ID
-	Name        string // Check name
-	Status      string // The current check status
-	Notes       string // Additional notes with the status
-	Output      string // Holds output of script runs
-	ServiceID   string // optional associated service
-	ServiceName string // optional service name
+	CheckID     types.CheckID // Unique per-node ID
+	Name        string        // Check name
+	Status      string        // The current check status
+	Notes       string        // Additional notes with the status
+	Output      string        // Holds output of script runs
+	ServiceID   string        // optional associated service
+	ServiceName string        // optional service name
 
 	RaftIndex
 }
@@ -533,7 +535,25 @@ const (
 	KVSCAS              = "cas"    // Check-and-set
 	KVSLock             = "lock"   // Lock a key
 	KVSUnlock           = "unlock" // Unlock a key
+
+	// The following operations are only available inside of atomic
+	// transactions via the Txn request.
+	KVSGet          = "get"           // Read the key during the transaction.
+	KVSGetTree      = "get-tree"      // Read all keys with the given prefix during the transaction.
+	KVSCheckSession = "check-session" // Check the session holds the key.
+	KVSCheckIndex   = "check-index"   // Check the modify index of the key.
 )
+
+// IsWrite returns true if the given operation alters the state store.
+func (op KVSOp) IsWrite() bool {
+	switch op {
+	case KVSGet, KVSGetTree, KVSCheckSession, KVSCheckIndex:
+		return false
+
+	default:
+		return true
+	}
+}
 
 // KVSRequest is used to operate on the Key-Value store
 type KVSRequest struct {
@@ -598,7 +618,7 @@ type Session struct {
 	ID        string
 	Name      string
 	Node      string
-	Checks    []string
+	Checks    []types.CheckID
 	LockDelay time.Duration
 	Behavior  SessionBehavior // What to do when session is invalidated
 	TTL       string

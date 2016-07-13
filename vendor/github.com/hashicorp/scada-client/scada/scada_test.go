@@ -1,4 +1,4 @@
-package agent
+package scada
 
 import (
 	"net"
@@ -9,25 +9,33 @@ import (
 )
 
 func TestProviderService(t *testing.T) {
-	conf := DefaultConfig()
-	conf.Version = "0.5.0"
-	conf.VersionPrerelease = "rc1"
-	conf.AtlasJoin = true
-	conf.Server = true
-	ps := ProviderService(conf)
-
-	expect := &client.ProviderService{
-		Service:        "consul",
-		ServiceVersion: "0.5.0rc1",
-		Capabilities: map[string]int{
-			"http": 1,
-		},
+	conf := &Config{
+		Version:      "0.5.0rc1",
+		Service:      "nomad",
+		ResourceType: NomadClusterResource,
 		Meta: map[string]string{
 			"auto-join":  "true",
+			"region":     "global",
 			"datacenter": "dc1",
+			"client":     "false",
 			"server":     "true",
 		},
-		ResourceType: "infrastructures",
+	}
+
+	ps := providerService(conf)
+
+	expect := &client.ProviderService{
+		Service:        "nomad",
+		ServiceVersion: "0.5.0rc1",
+		Capabilities:   map[string]int{},
+		Meta: map[string]string{
+			"auto-join":  "true",
+			"region":     "global",
+			"datacenter": "dc1",
+			"client":     "false",
+			"server":     "true",
+		},
+		ResourceType: "nomad-cluster",
 	}
 
 	if !reflect.DeepEqual(ps, expect) {
@@ -36,33 +44,42 @@ func TestProviderService(t *testing.T) {
 }
 
 func TestProviderConfig(t *testing.T) {
-	conf := DefaultConfig()
-	conf.Version = "0.5.0"
-	conf.VersionPrerelease = "rc1"
-	conf.AtlasJoin = true
-	conf.Server = true
-	conf.AtlasInfrastructure = "armon/test"
-	conf.AtlasToken = "foobarbaz"
-	conf.AtlasEndpoint = "foo.bar:1111"
-	pc := ProviderConfig(conf)
+	conf := &Config{
+		Version:      "0.5.0rc1",
+		Service:      "nomad",
+		ResourceType: NomadClusterResource,
+		Meta: map[string]string{
+			"auto-join":  "true",
+			"region":     "global",
+			"datacenter": "dc1",
+			"client":     "false",
+			"server":     "true",
+		},
+	}
+
+	conf.Atlas = AtlasConfig{
+		Infrastructure: "armon/test",
+		Token:          "foobarbaz",
+		Endpoint:       "foo.bar:1111",
+	}
+
+	pc := providerConfig(conf)
 
 	expect := &client.ProviderConfig{
 		Service: &client.ProviderService{
-			Service:        "consul",
+			Service:        "nomad",
 			ServiceVersion: "0.5.0rc1",
-			Capabilities: map[string]int{
-				"http": 1,
-			},
+			Capabilities:   map[string]int{},
 			Meta: map[string]string{
 				"auto-join":  "true",
+				"region":     "global",
 				"datacenter": "dc1",
+				"client":     "false",
 				"server":     "true",
 			},
-			ResourceType: "infrastructures",
+			ResourceType: "nomad-cluster",
 		},
-		Handlers: map[string]client.CapabilityProvider{
-			"http": nil,
-		},
+		Handlers:      map[string]client.CapabilityProvider{},
 		Endpoint:      "foo.bar:1111",
 		ResourceGroup: "armon/test",
 		Token:         "foobarbaz",

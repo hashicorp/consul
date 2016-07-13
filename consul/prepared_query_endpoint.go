@@ -368,8 +368,43 @@ func (p *PreparedQuery) Execute(args *structs.PreparedQueryExecuteRequest,
 	// Shuffle the results in case coordinates are not available if they
 	// requested an RTT sort.
 	reply.Nodes.Shuffle()
-	if err := p.srv.sortNodesByDistanceFrom(args.Source, reply.Nodes); err != nil {
+
+	// Build the query source. This can be provided by the client, or by
+	// the prepared query. Client-specified takes priority.
+	qs := args.Source
+	if qs.Datacenter == "" {
+		qs.Datacenter = args.Agent.Datacenter
+	}
+	if query.Service.Near != "" && qs.Node == "" {
+		qs.Node = query.Service.Near
+	}
+
+	// Respect the magic "_agent" flag.
+	if qs.Node == "_agent" {
+		qs.Node = args.Agent.Node
+	}
+
+	// Perform the distance sort
+	err = p.srv.sortNodesByDistanceFrom(qs, reply.Nodes)
+	if err != nil {
 		return err
+	}
+
+	// If we applied a distance sort, make sure that the node queried for is in
+	// position 0, provided the results are from the same datacenter.
+	if qs.Node != "" && reply.Datacenter == qs.Datacenter {
+		for i, node := range reply.Nodes {
+			if node.Node.Node == qs.Node {
+				reply.Nodes[0], reply.Nodes[i] = reply.Nodes[i], reply.Nodes[0]
+				break
+			}
+
+			// Put a cap on the depth of the search. The local agent should
+			// never be further in than this if distance sorting was applied.
+			if i == 9 {
+				break
+			}
+		}
 	}
 
 	// Apply the limit if given.

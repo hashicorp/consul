@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"path"
+	"strings"
 	"testing"
 	"time"
 )
@@ -440,6 +441,123 @@ func TestClient_AcquireRelease(t *testing.T) {
 	}
 	if pair.Session != "" {
 		t.Fatalf("Expected unlock: %v", pair)
+	}
+	if meta.LastIndex == 0 {
+		t.Fatalf("unexpected value: %#v", meta)
+	}
+}
+
+func TestClient_Txn(t *testing.T) {
+	t.Parallel()
+	c, s := makeClient(t)
+	defer s.Stop()
+
+	session := c.Session()
+	kv := c.KV()
+
+	// Make a session.
+	id, _, err := session.CreateNoChecks(nil, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer session.Destroy(id, nil)
+
+	// Acquire and get the key via a transaction, but don't supply a valid
+	// session.
+	key := testKey()
+	value := []byte("test")
+	txn := KVTxnOps{
+		&KVTxnOp{
+			Verb:  KVLock,
+			Key:   key,
+			Value: value,
+		},
+		&KVTxnOp{
+			Verb: KVGet,
+			Key:  key,
+		},
+	}
+	ok, ret, _, err := kv.Txn(txn, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	} else if ok {
+		t.Fatalf("transaction should have failed")
+	}
+
+	if ret == nil || len(ret.Errors) != 2 || len(ret.Results) != 0 {
+		t.Fatalf("bad: %v", ret)
+	}
+	if ret.Errors[0].OpIndex != 0 ||
+		!strings.Contains(ret.Errors[0].What, "missing session") ||
+		!strings.Contains(ret.Errors[1].What, "doesn't exist") {
+		t.Fatalf("bad: %v", ret.Errors[0])
+	}
+
+	// Now poke in a real session and try again.
+	txn[0].Session = id
+	ok, ret, _, err = kv.Txn(txn, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	} else if !ok {
+		t.Fatalf("transaction failure")
+	}
+
+	if ret == nil || len(ret.Errors) != 0 || len(ret.Results) != 2 {
+		t.Fatalf("bad: %v", ret)
+	}
+	for i, result := range ret.Results {
+		var expected []byte
+		if i == 1 {
+			expected = value
+		}
+
+		if result.Key != key ||
+			!bytes.Equal(result.Value, expected) ||
+			result.Session != id ||
+			result.LockIndex != 1 {
+			t.Fatalf("bad: %v", result)
+		}
+	}
+
+	// Run a read-only transaction.
+	txn = KVTxnOps{
+		&KVTxnOp{
+			Verb: KVGet,
+			Key:  key,
+		},
+	}
+	ok, ret, _, err = kv.Txn(txn, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	} else if !ok {
+		t.Fatalf("transaction failure")
+	}
+
+	if ret == nil || len(ret.Errors) != 0 || len(ret.Results) != 1 {
+		t.Fatalf("bad: %v", ret)
+	}
+	for _, result := range ret.Results {
+		if result.Key != key ||
+			!bytes.Equal(result.Value, value) ||
+			result.Session != id ||
+			result.LockIndex != 1 {
+			t.Fatalf("bad: %v", result)
+		}
+	}
+
+	// Sanity check using the regular GET API.
+	pair, meta, err := kv.Get(key, nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if pair == nil {
+		t.Fatalf("expected value: %#v", pair)
+	}
+	if pair.LockIndex != 1 {
+		t.Fatalf("Expected lock: %v", pair)
+	}
+	if pair.Session != id {
+		t.Fatalf("Expected lock: %v", pair)
 	}
 	if meta.LastIndex == 0 {
 		t.Fatalf("unexpected value: %#v", meta)

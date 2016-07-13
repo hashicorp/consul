@@ -1,4 +1,4 @@
-package agent
+package scada
 
 import (
 	"crypto/tls"
@@ -7,82 +7,127 @@ import (
 	"io"
 	"net"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 
-	"github.com/hashicorp/scada-client"
+	sc "github.com/hashicorp/scada-client"
 )
 
 const (
-	// providerService is the service name we use
-	providerService = "consul"
-
-	// resourceType is the type of resource we represent
-	// when connecting to SCADA
-	resourceType = "infrastructures"
+	InfrastructureResource = "infrastructures"
+	BoxesResource          = "boxes"
+	SharesResource         = "shares"
+	NomadClusterResource   = "nomad-cluster"
 )
 
+// Provider wraps scada-client.Provider to allow most applications to only pull
+// in this package
+type Provider struct {
+	*sc.Provider
+}
+
+type AtlasConfig struct {
+	// Endpoint is the SCADA endpoint used for Atlas integration. If empty, the
+	// defaults from the provider are used.
+	Endpoint string `mapstructure:"endpoint"`
+
+	// The name of the infrastructure we belong to, e.g. "hashicorp/prod"
+	Infrastructure string `mapstructure:"infrastructure"`
+
+	// The Atlas authentication token
+	Token string `mapstructure:"token" json:"-"`
+}
+
+// Config holds the high-level information used to instantiate a SCADA provider
+// and listener
+type Config struct {
+	// The service name to use
+	Service string
+
+	// The version of the service
+	Version string
+
+	// The type of resource we represent
+	ResourceType string
+
+	// Metadata to send to along with the service information
+	Meta map[string]string
+
+	// If set, TLS certificate verification will be skipped. The value of the
+	// SCADA_INSECURE environment variable will be considered if this is false.
+	// If using SCADA_INSECURE, any non-empty value will trigger insecure mode.
+	Insecure bool
+
+	// Holds Atlas configuration
+	Atlas AtlasConfig
+}
+
 // ProviderService returns the service information for the provider
-func ProviderService(c *Config) *client.ProviderService {
-	return &client.ProviderService{
-		Service:        providerService,
-		ServiceVersion: fmt.Sprintf("%s%s", c.Version, c.VersionPrerelease),
-		Capabilities: map[string]int{
-			"http": 1,
-		},
-		Meta: map[string]string{
-			"auto-join":  strconv.FormatBool(c.AtlasJoin),
-			"datacenter": c.Datacenter,
-			"server":     strconv.FormatBool(c.Server),
-		},
-		ResourceType: resourceType,
+func providerService(c *Config) *sc.ProviderService {
+	ret := &sc.ProviderService{
+		Service:        c.Service,
+		ServiceVersion: c.Version,
+		Capabilities:   map[string]int{},
+		Meta:           c.Meta,
+		ResourceType:   c.ResourceType,
 	}
+
+	return ret
 }
 
-// ProviderConfig returns the configuration for the SCADA provider
-func ProviderConfig(c *Config) *client.ProviderConfig {
-	return &client.ProviderConfig{
-		Service: ProviderService(c),
-		Handlers: map[string]client.CapabilityProvider{
-			"http": nil,
-		},
-		Endpoint:      c.AtlasEndpoint,
-		ResourceGroup: c.AtlasInfrastructure,
-		Token:         c.AtlasToken,
+// providerConfig returns the configuration for the SCADA provider
+func providerConfig(c *Config) *sc.ProviderConfig {
+	ret := &sc.ProviderConfig{
+		Service:       providerService(c),
+		Handlers:      map[string]sc.CapabilityProvider{},
+		Endpoint:      c.Atlas.Endpoint,
+		ResourceGroup: c.Atlas.Infrastructure,
+		Token:         c.Atlas.Token,
 	}
+
+	return ret
 }
 
-// NewProvider creates a new SCADA provider using the
-// given configuration. Requests for the HTTP capability
-// are passed off to the listener that is returned.
-func NewProvider(c *Config, logOutput io.Writer) (*client.Provider, net.Listener, error) {
+// NewProvider creates a new SCADA provider using the given configuration.
+// Requests for the HTTP capability are passed off to the listener that is
+// returned.
+func NewHTTPProvider(c *Config, logOutput io.Writer) (*Provider, net.Listener, error) {
 	// Get the configuration of the provider
-	config := ProviderConfig(c)
+	config := providerConfig(c)
 	config.LogOutput = logOutput
 
-	// SCADA_INSECURE env variable is used for testing to disable
-	// TLS certificate verification.
-	if os.Getenv("SCADA_INSECURE") != "" {
+	// Set the HTTP capability
+	config.Service.Capabilities["http"] = 1
+
+	// SCADA_INSECURE env variable is used for testing to disable TLS
+	// certificate verification.
+	insecure := c.Insecure
+	if !insecure {
+		if os.Getenv("SCADA_INSECURE") != "" {
+			insecure = true
+		}
+	}
+	if insecure {
 		config.TLSConfig = &tls.Config{
 			InsecureSkipVerify: true,
 		}
 	}
 
 	// Create an HTTP listener and handler
-	list := newScadaListener(c.AtlasInfrastructure)
+	list := newScadaListener(c.Atlas.Infrastructure)
 	config.Handlers["http"] = func(capability string, meta map[string]string,
 		conn io.ReadWriteCloser) error {
 		return list.PushRWC(conn)
 	}
 
 	// Create the provider
-	provider, err := client.NewProvider(config)
+	provider, err := sc.NewProvider(config)
 	if err != nil {
 		list.Close()
 		return nil, nil, err
 	}
-	return provider, list, nil
+
+	return &Provider{provider}, list, nil
 }
 
 // scadaListener is used to return a net.Listener for
@@ -118,7 +163,7 @@ func (s *scadaListener) PushRWC(conn io.ReadWriteCloser) error {
 	return s.Push(wrapped)
 }
 
-// Push is used to add a connection to the queue
+// Push is used to add a connection to the queu
 func (s *scadaListener) Push(conn net.Conn) error {
 	select {
 	case s.pending <- conn:

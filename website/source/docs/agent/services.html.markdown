@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Service Definition"
 sidebar_current: "docs-agent-services"
 description: |-
-  One of the main goals of service discovery is to provide a catalog of available services. To that end, the agent provides a simple service definition format to declare the availability of a service and to potentially associate it with a health check. A health check is considered to be application level if it associated with a service. A service is defined in a configuration file or added at runtime over the HTTP interface.
+  One of the main goals of service discovery is to provide a catalog of available services. To that end, the agent provides a simple service definition format to declare the availability of a service and to potentially associate it with a health check. A health check is considered to be application level if it is associated with a service. A service is defined in a configuration file or added at runtime over the HTTP interface.
 ---
 
 # Services
@@ -11,7 +11,7 @@ description: |-
 One of the main goals of service discovery is to provide a catalog of available
 services. To that end, the agent provides a simple service definition format
 to declare the availability of a service and to potentially associate it with
-a health check. A health check is considered to be application level if it
+a health check. A health check is considered to be application level if it is
 associated with a service. A service is defined in a configuration file
 or added at runtime over the HTTP interface.
 
@@ -87,8 +87,8 @@ cycle the service's port AND the tags would revert to the original value and
 all modifications would be lost. It's important to note that this applies only
 to the locally registered service. If you have multiple nodes all registering
 the same service their `enableTagOverride` configuration and all other service
-configuration items are independant of one another. Updating the tags for
-the service registered on one node is independant of the same service (by name)
+configuration items are independent of one another. Updating the tags for
+the service registered on one node is independent of the same service (by name)
 registered on another node. If `enableTagOverride` is not specified the default 
 value is false.  See [anti-entropy syncs](/docs/internals/anti-entropy.html)
 for more info.

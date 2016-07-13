@@ -116,7 +116,7 @@ The options below are all specified on the command-line.
   configuration files to load. Consul will
   load all files in this directory with the suffix ".json". The load order
   is alphabetical, and the the same merge routine is used as with the
-  [`config-file`](#_config_file) option above. This option can be specified mulitple times
+  [`config-file`](#_config_file) option above. This option can be specified multiple times
   to load multiple directories. Sub-directories of the config directory are not loaded.
   For more information on the format of the configuration files, see the
   [Configuration Files](#configuration_files) section.
@@ -135,7 +135,7 @@ The options below are all specified on the command-line.
   prototyping or developing against the API. This mode is **not** intended for
   production use as it does not write any data to disk.
 
-* <a name="_dc"></a><a href="#_dc">`-dc`</a> - This flag controls the datacenter in
+* <a name="_datacenter"></a><a href="#_datacenter">`-datacenter`</a> - This flag controls the datacenter in
   which the agent is running. If not provided,
   it defaults to "dc1". Consul has first-class support for multiple datacenters, but
   it relies on proper configuration. Nodes in the same datacenter should be on a single
@@ -402,7 +402,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   the [`-advertise-wan` command-line flag](#_advertise-wan).
 
 * <a name="atlas_acl_token"></a><a href="#atlas_acl_token">`atlas_acl_token`</a> When provided,
-  any requests made by Atlas will use this ACL token unless explicitly overriden. When not provided
+  any requests made by Atlas will use this ACL token unless explicitly overridden. When not provided
   the [`acl_token`](#acl_token) is used. This can be set to 'anonymous' to reduce permission below
   that of [`acl_token`](#acl_token).
 
@@ -449,7 +449,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   [`-client` command-line flag](#_client).
 
 * <a name="datacenter"></a><a href="#datacenter">`datacenter`</a> Equivalent to the
-  [`-dc` command-line flag](#_dc).
+  [`-datacenter` command-line flag](#_datacenter).
 
 * <a name="data_dir"></a><a href="#data_dir">`data_dir`</a> Equivalent to the
   [`-data-dir` command-line flag](#_data_dir).
@@ -656,12 +656,12 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   sends its runtime telemetry, and contains the following keys:
 
   * <a name="telemetry-statsd_address"></a><a href="#telemetry-statsd_address">`statsd_address`</a> This provides the
-    address of a statsd instance.  If provided, Consul will send various telemetry information to that instance for
+    address of a statsd instance in the format `host:port`.  If provided, Consul will send various telemetry information to that instance for
     aggregation. This can be used to capture runtime information. This sends UDP packets only and can be used with
     statsd or statsite.
 
   * <a name="telemetry-statsite_address"></a><a href="#telemetry-statsite_address">`statsite_address`</a> This provides
-    the address of a statsite instance. If provided, Consul will stream various telemetry information to that instance
+    the address of a statsite instance in the format `host:port`. If provided, Consul will stream various telemetry information to that instance
     for aggregation. This can be used to capture runtime information. This streams via TCP and can only be used with
     statsite.
 

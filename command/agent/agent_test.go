@@ -19,10 +19,24 @@ import (
 	"github.com/hashicorp/consul/testutil"
 )
 
-var offset uint64
+const (
+	basePortNumber = 10000
+
+	portOffsetDNS = iota
+	portOffsetHTTP
+	portOffsetRPC
+	portOffsetSerfLan
+	portOffsetSerfWan
+	portOffsetServer
+
+	// Must be last in list
+	numPortsPerIndex
+)
+
+var offset uint64 = basePortNumber
 
 func nextConfig() *Config {
-	idx := int(atomic.AddUint64(&offset, 1))
+	idx := int(atomic.AddUint64(&offset, numPortsPerIndex))
 	conf := DefaultConfig()
 
 	conf.Version = "a.b"
@@ -32,12 +46,12 @@ func nextConfig() *Config {
 	conf.Datacenter = "dc1"
 	conf.NodeName = fmt.Sprintf("Node %d", idx)
 	conf.BindAddr = "127.0.0.1"
-	conf.Ports.DNS = 19000 + idx
-	conf.Ports.HTTP = 18800 + idx
-	conf.Ports.RPC = 18600 + idx
-	conf.Ports.SerfLan = 18200 + idx
-	conf.Ports.SerfWan = 18400 + idx
-	conf.Ports.Server = 18000 + idx
+	conf.Ports.DNS = basePortNumber + idx + portOffsetDNS
+	conf.Ports.HTTP = basePortNumber + idx + portOffsetHTTP
+	conf.Ports.RPC = basePortNumber + idx + portOffsetRPC
+	conf.Ports.SerfLan = basePortNumber + idx + portOffsetSerfLan
+	conf.Ports.SerfWan = basePortNumber + idx + portOffsetSerfWan
+	conf.Ports.Server = basePortNumber + idx + portOffsetServer
 	conf.Server = true
 	conf.ACLDatacenter = "dc1"
 	conf.ACLMasterToken = "root"
@@ -919,7 +933,7 @@ func TestAgent_PersistCheck(t *testing.T) {
 		Interval: 10 * time.Second,
 	}
 
-	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check.CheckID))
+	file := filepath.Join(agent.config.DataDir, checksDir, checkIDHash(check.CheckID))
 
 	// Not persisted if not requested
 	if err := agent.AddCheck(check, chkType, false, ""); err != nil {
@@ -1014,7 +1028,7 @@ func TestAgent_PurgeCheck(t *testing.T) {
 		Status:  structs.HealthPassing,
 	}
 
-	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check.CheckID))
+	file := filepath.Join(agent.config.DataDir, checksDir, checkIDHash(check.CheckID))
 	if err := agent.AddCheck(check, nil, true, ""); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1074,7 +1088,7 @@ func TestAgent_PurgeCheckOnDuplicate(t *testing.T) {
 	}
 	defer agent2.Shutdown()
 
-	file := filepath.Join(agent.config.DataDir, checksDir, stringHash(check1.CheckID))
+	file := filepath.Join(agent.config.DataDir, checksDir, checkIDHash(check1.CheckID))
 	if _, err := os.Stat(file); err == nil {
 		t.Fatalf("should have removed persisted check")
 	}
@@ -1465,7 +1479,7 @@ func TestAgent_loadChecks_checkFails(t *testing.T) {
 	}
 
 	// Check to make sure the check was persisted
-	checkHash := stringHash(check.CheckID)
+	checkHash := checkIDHash(check.CheckID)
 	checkPath := filepath.Join(config.DataDir, checksDir, checkHash)
 	if _, err := os.Stat(checkPath); err != nil {
 		t.Fatalf("err: %s", err)

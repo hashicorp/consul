@@ -14,6 +14,21 @@ details provided for their upgrades as a result of new features or changed
 behavior. This page is used to document those details separately from the
 standard upgrade flow.
 
+## Consul 0.7
+
+Consul version 0.7 adds a feature which allows prepared queries to store a
+["Near" parameter](/docs/agent/http/query.html#near) in the query definition
+itself. This feature enables using the distance sorting features of prepared
+queries without explicitly providing the node to sort near in requests, but
+requires the agent servicing a request to send additional information about
+itself to the Consul servers when executing the prepared query. Agents prior
+to 0.7.0 do not send this information, which means they are unable to properly
+execute prepared queries configured with a `Near` parameter. Similarly, any
+server nodes prior to version 0.7.0 are unable to store the `Near` parameter,
+making them unable to properly serve requests for prepared queries using the
+feature. It is recommended that all agents be running version 0.7.0 prior to
+using this feature.
+
 ## Consul 0.6.4
 
 Consul 0.6.4 made some substantial changes to how ACLs work with prepared

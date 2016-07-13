@@ -627,7 +627,7 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 
 	testutil.WaitForLeader(t, s1.RPC, "dc1")
 
-	// Create and invalidate a session with a lock
+	// Create and invalidate a session with a lock.
 	state := s1.fsm.State()
 	if err := state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"}); err != nil {
 		t.Fatalf("err: %v", err)
@@ -652,13 +652,13 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Make a new session that is valid
+	// Make a new session that is valid.
 	if err := state.SessionCreate(5, session); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	validId := session.ID
 
-	// Make a lock request
+	// Make a lock request.
 	arg := structs.KVSRequest{
 		Datacenter: "dc1",
 		Op:         structs.KVSLock,
@@ -675,10 +675,10 @@ func TestKVS_Apply_LockDelay(t *testing.T) {
 		t.Fatalf("should not acquire")
 	}
 
-	// Wait for lock-delay
+	// Wait for lock-delay.
 	time.Sleep(50 * time.Millisecond)
 
-	// Should acquire
+	// Should acquire.
 	if err := msgpackrpc.CallWithCodec(codec, "KVS.Apply", &arg, &out); err != nil {
 		t.Fatalf("err: %v", err)
 	}

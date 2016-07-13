@@ -24,9 +24,15 @@ const (
 	// A memberlist speaking version 2 of the protocol will attempt
 	// to TCP ping another memberlist who understands version 3 or
 	// greater.
+	//
+	// Version 4 added support for nacks as part of indirect probes.
+	// A memberlist speaking version 2 of the protocol will expect
+	// nacks from another memberlist who understands version 4 or
+	// greater, and likewise nacks will be sent to memberlists who
+	// understand version 4 or greater.
 	ProtocolVersion2Compatible = 2
 
-	ProtocolVersionMax = 3
+	ProtocolVersionMax = 4
 )
 
 // messageType is an integer ID of a type of message that can be received
@@ -46,6 +52,7 @@ const (
 	userMsg // User mesg, not handled by us
 	compressMsg
 	encryptMsg
+	nackRespMsg
 )
 
 // compressionType is used to specify the compression algorithm
@@ -83,12 +90,20 @@ type indirectPingReq struct {
 	Target []byte
 	Port   uint16
 	Node   string
+	Nack   bool // true if we'd like a nack back
 }
 
 // ack response is sent for a ping
 type ackResp struct {
 	SeqNo   uint32
 	Payload []byte
+}
+
+// nack response is sent for an indirect ping when the pinger doesn't hear from
+// the ping-ee within the configured timeout. This lets the original node know
+// that the indirect ping attempt happened but didn't succeed.
+type nackResp struct {
+	SeqNo uint32
 }
 
 // suspect is broadcast when we suspect a node is dead
@@ -121,7 +136,7 @@ type dead struct {
 }
 
 // pushPullHeader is used to inform the
-// otherside how many states we are transfering
+// otherside how many states we are transferring
 type pushPullHeader struct {
 	Nodes        int
 	UserStateLen int  // Encodes the byte lengh of user state
@@ -134,7 +149,7 @@ type userMsgHeader struct {
 }
 
 // pushNodeState is used for pushPullReq when we are
-// transfering out node states
+// transferring out node states
 type pushNodeState struct {
 	Name        string
 	Addr        []byte
@@ -343,6 +358,8 @@ func (m *Memberlist) handleCommand(buf []byte, from net.Addr, timestamp time.Tim
 		m.handleIndirectPing(buf, from)
 	case ackRespMsg:
 		m.handleAck(buf, from, timestamp)
+	case nackRespMsg:
+		m.handleNack(buf, from)
 
 	case suspectMsg:
 		fallthrough
@@ -440,18 +457,23 @@ func (m *Memberlist) handleIndirectPing(buf []byte, from net.Addr) {
 	}
 
 	// For proto versions < 2, there is no port provided. Mask old
-	// behavior by using the configured port
+	// behavior by using the configured port.
 	if m.ProtocolVersion() < 2 || ind.Port == 0 {
 		ind.Port = uint16(m.config.BindPort)
 	}
 
-	// Send a ping to the correct host
+	// Send a ping to the correct host.
 	localSeqNo := m.nextSeqNo()
 	ping := ping{SeqNo: localSeqNo, Node: ind.Node}
 	destAddr := &net.UDPAddr{IP: ind.Target, Port: int(ind.Port)}
 
 	// Setup a response handler to relay the ack
+	cancelCh := make(chan struct{})
 	respHandler := func(payload []byte, timestamp time.Time) {
+		// Try to prevent the nack if we've caught it in time.
+		close(cancelCh)
+
+		// Forward the ack back to the requestor.
 		ack := ackResp{ind.SeqNo, nil}
 		if err := m.encodeAndSendMsg(from, ackRespMsg, &ack); err != nil {
 			m.logger.Printf("[ERR] memberlist: Failed to forward ack: %s %s", err, LogAddress(from))
@@ -459,9 +481,24 @@ func (m *Memberlist) handleIndirectPing(buf []byte, from net.Addr) {
 	}
 	m.setAckHandler(localSeqNo, respHandler, m.config.ProbeTimeout)
 
-	// Send the ping
+	// Send the ping.
 	if err := m.encodeAndSendMsg(destAddr, pingMsg, &ping); err != nil {
 		m.logger.Printf("[ERR] memberlist: Failed to send ping: %s %s", err, LogAddress(from))
+	}
+
+	// Setup a timer to fire off a nack if no ack is seen in time.
+	if ind.Nack {
+		go func() {
+			select {
+			case <-cancelCh:
+				return
+			case <-time.After(m.config.ProbeTimeout):
+				nack := nackResp{ind.SeqNo}
+				if err := m.encodeAndSendMsg(from, nackRespMsg, &nack); err != nil {
+					m.logger.Printf("[ERR] memberlist: Failed to send nack: %s %s", err, LogAddress(from))
+				}
+			}
+		}()
 	}
 }
 
@@ -472,6 +509,15 @@ func (m *Memberlist) handleAck(buf []byte, from net.Addr, timestamp time.Time) {
 		return
 	}
 	m.invokeAckHandler(ack, timestamp)
+}
+
+func (m *Memberlist) handleNack(buf []byte, from net.Addr) {
+	var nack nackResp
+	if err := decode(buf, &nack); err != nil {
+		m.logger.Printf("[ERR] memberlist: Failed to decode nack response: %s %s", err, LogAddress(from))
+		return
+	}
+	m.invokeNackHandler(nack)
 }
 
 func (m *Memberlist) handleSuspect(buf []byte, from net.Addr) {

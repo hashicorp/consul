@@ -1,0 +1,13 @@
+{
+	"comment": "",
+	"ignore": "",
+	"package": [
+		{
+			"checksumSHA1": "Vrd+ucpioTcZGglPx2JWUxb2J7A=",
+			"path": "github.com/hashicorp/scada-client/scada",
+			"revision": "225f7ae4780b59d1bd990de93cae7496bade95a0",
+			"revisionTime": "2016-06-01T18:41:54Z"
+		}
+	],
+	"rootPath": "github.com/hashicorp/consul"
+}

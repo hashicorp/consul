@@ -1,6 +1,7 @@
 {
 	"ImportPath": "github.com/hashicorp/consul",
 	"GoVersion": "go1.6",
+	"GodepVersion": "v74",
 	"Deps": [
 		{
 			"ImportPath": "github.com/DataDog/datadog-go/statsd",
@@ -121,7 +122,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-immutable-radix",
-			"Rev": "8e8ed81f8f0bf1bdd829593fdd5c29922c1ea990"
+			"Rev": "afc5a0dbb18abdf82c277a7bc01533e81fa1d6b8"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-memdb",
@@ -205,7 +206,7 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/memberlist",
-			"Rev": "cef12ad58224d55cf26caa9e3d239c2fcb3432a2"
+			"Rev": "215aec831f03c9b7c61ac183d3e28fff3c7d3a37"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/net-rpc-msgpackrpc",
@@ -225,13 +226,13 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/serf/coordinate",
-			"Comment": "v0.7.0-12-ge4ec8cc",
-			"Rev": "e4ec8cc423bbe20d26584b96efbeb9102e16d05f"
+			"Comment": "v0.7.0-66-g6c4672d",
+			"Rev": "6c4672d66fc6312ddde18399262943e21175d831"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/serf/serf",
-			"Comment": "v0.7.0-12-ge4ec8cc",
-			"Rev": "e4ec8cc423bbe20d26584b96efbeb9102e16d05f"
+			"Comment": "v0.7.0-66-g6c4672d",
+			"Rev": "6c4672d66fc6312ddde18399262943e21175d831"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/yamux",

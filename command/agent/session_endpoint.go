@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
+	"github.com/hashicorp/consul/types"
 )
 
 const (
@@ -38,7 +39,7 @@ func (s *HTTPServer) SessionCreate(resp http.ResponseWriter, req *http.Request) 
 		Op: structs.SessionCreate,
 		Session: structs.Session{
 			Node:      s.agent.config.NodeName,
-			Checks:    []string{consul.SerfCheckID},
+			Checks:    []types.CheckID{consul.SerfCheckID},
 			LockDelay: 15 * time.Second,
 			Behavior:  structs.SessionKeysRelease,
 			TTL:       "",

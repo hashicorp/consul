@@ -91,12 +91,6 @@ type handshakeRequest struct {
 	Version int32
 }
 
-type eventRequest struct {
-	Name     string
-	Payload  []byte
-	Coalesce bool
-}
-
 type forceLeaveRequest struct {
 	Node string
 }
@@ -149,10 +143,6 @@ type monitorRequest struct {
 	LogLevel string
 }
 
-type streamRequest struct {
-	Type string
-}
-
 type stopRequest struct {
 	Stop uint64
 }
@@ -161,31 +151,18 @@ type logRecord struct {
 	Log string
 }
 
-type userEventRecord struct {
-	Event    string
-	LTime    serf.LamportTime
-	Name     string
-	Payload  []byte
-	Coalesce bool
-}
-
 type Member struct {
 	Name        string
 	Addr        net.IP
-	Port        uint16
 	Tags        map[string]string
 	Status      string
+	Port        uint16
 	ProtocolMin uint8
 	ProtocolMax uint8
 	ProtocolCur uint8
 	DelegateMin uint8
 	DelegateMax uint8
 	DelegateCur uint8
-}
-
-type memberEventRecord struct {
-	Event   string
-	Members []Member
 }
 
 type AgentRPC struct {
