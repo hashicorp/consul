@@ -2,3 +2,4 @@ query.log
 Corefile
 *.swp
 coredns
+kubectl

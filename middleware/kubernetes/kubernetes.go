@@ -62,7 +62,7 @@ func (g Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 		typeName    string
 	)
 
-	fmt.Println("enter Records('", name, "', ", exact, ")")
+	fmt.Println("[debug] enter Records('", name, "', ", exact, ")")
 	zone, serviceSegments := g.getZoneForName(name)
 
 	/*
@@ -83,6 +83,18 @@ func (g Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 	serviceName = g.NameTemplate.GetServiceFromSegmentArray(serviceSegments)
 	typeName = g.NameTemplate.GetTypeFromSegmentArray(serviceSegments)
 
+	if namespace == "" {
+		err := errors.New("Parsing query string did not produce a namespace value. Assuming wildcard namespace.")
+		fmt.Printf("[WARN] %v\n", err)
+		namespace = util.WildcardStar
+	}
+
+	if serviceName == "" {
+		err := errors.New("Parsing query string did not produce a serviceName value. Assuming wildcard serviceName.")
+		fmt.Printf("[WARN] %v\n", err)
+		serviceName = util.WildcardStar
+	}
+
 	fmt.Println("[debug] exact: ", exact)
 	fmt.Println("[debug] zone: ", zone)
 	fmt.Println("[debug] servicename: ", serviceName)
@@ -90,21 +102,18 @@ func (g Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 	fmt.Println("[debug] typeName: ", typeName)
 	fmt.Println("[debug] APIconn: ", g.APIConn)
 
-	// TODO: Implement wildcard support to allow blank namespace value
-	if namespace == "" {
-		err := errors.New("Parsing query string did not produce a namespace value")
-		fmt.Printf("[ERROR] %v\n", err)
-		return nil, err
-	}
+	nsWildcard := util.SymbolContainsWildcard(namespace)
+	serviceWildcard := util.SymbolContainsWildcard(serviceName)
 
-	// Abort if the namespace is not published per CoreFile
-	if g.Namespaces != nil && !util.StringInSlice(namespace, *g.Namespaces) {
+	// Abort if the namespace does not contain a wildcard, and namespace is not published per CoreFile
+	// Case where namespace contains a wildcard is handled in Get(...) method.
+	if (!nsWildcard) && (g.Namespaces != nil && !util.StringInSlice(namespace, *g.Namespaces)) {
+		fmt.Printf("[debug] Namespace '%v' is not published by Corefile\n", namespace)
 		return nil, nil
 	}
 
-	k8sItems, err := g.APIConn.GetServiceItemsInNamespace(namespace, serviceName)
+	k8sItems, err := g.Get(namespace, nsWildcard, serviceName, serviceWildcard)
 	fmt.Println("[debug] k8s items:", k8sItems)
-
 	if err != nil {
 		fmt.Printf("[ERROR] Got error while looking up ServiceItems. Error is: %v\n", err)
 		return nil, err
@@ -114,29 +123,27 @@ func (g Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 		return nil, nil
 	}
 
-	//	test := g.NameTemplate.GetRecordNameFromNameValues(nametemplate.NameValues{ServiceName: serviceName, TypeName: typeName, Namespace: namespace, Zone: zone})
-	//	fmt.Printf("[debug] got recordname %v\n", test)
-
-	records := g.getRecordsForServiceItems(k8sItems, name)
-
+	records := g.getRecordsForServiceItems(k8sItems, nametemplate.NameValues{TypeName: typeName, ServiceName: serviceName, Namespace: namespace, Zone: zone})
 	return records, nil
 }
 
 // TODO: assemble name from parts found in k8s data based on name template rather than reusing query string
-func (g Kubernetes) getRecordsForServiceItems(serviceItems []*k8sc.ServiceItem, name string) []msg.Service {
+func (g Kubernetes) getRecordsForServiceItems(serviceItems []k8sc.ServiceItem, values nametemplate.NameValues) []msg.Service {
 	var records []msg.Service
 
 	for _, item := range serviceItems {
-		fmt.Println("[debug] clusterIP:", item.Spec.ClusterIP)
+		clusterIP := item.Spec.ClusterIP
+		fmt.Println("[debug] clusterIP:", clusterIP)
+
+		// Create records by constructing record name from template...
+		//values.Namespace = item.Metadata.Namespace
+		//values.ServiceName = item.Metadata.Name
+		//s := msg.Service{Host: g.NameTemplate.GetRecordNameFromNameValues(values)}
+		//records = append(records, s)
+
+		// Create records for each exposed port...
 		for _, p := range item.Spec.Ports {
 			fmt.Println("[debug]    port:", p.Port)
-		}
-
-		clusterIP := item.Spec.ClusterIP
-
-		s := msg.Service{Host: name}
-		records = append(records, s)
-		for _, p := range item.Spec.Ports {
 			s := msg.Service{Host: clusterIP, Port: p.Port}
 			records = append(records, s)
 		}
@@ -146,17 +153,50 @@ func (g Kubernetes) getRecordsForServiceItems(serviceItems []*k8sc.ServiceItem, 
 	return records
 }
 
-/*
 // Get performs the call to the Kubernetes http API.
-func (g Kubernetes) Get(path string, recursive bool) (bool, error) {
+func (g Kubernetes) Get(namespace string, nsWildcard bool, servicename string, serviceWildcard bool) ([]k8sc.ServiceItem, error) {
+	serviceList, err := g.APIConn.GetServiceList()
 
-    fmt.Println("[debug] in Get path: ", path)
-    fmt.Println("[debug] in Get recursive: ", recursive)
+	if err != nil {
+		fmt.Printf("[ERROR] Getting service list produced error: %v", err)
+		return nil, err
+	}
 
-	return false, nil
+	var resultItems []k8sc.ServiceItem
+
+	for _, item := range serviceList.Items {
+		if symbolMatches(namespace, item.Metadata.Namespace, nsWildcard) && symbolMatches(servicename, item.Metadata.Name, serviceWildcard) {
+			// If namespace has a wildcard, filter results against Corefile namespace list.
+			// (Namespaces without a wildcard were filtered before the call to this function.)
+			if nsWildcard && (g.Namespaces != nil && !util.StringInSlice(item.Metadata.Namespace, *g.Namespaces)) {
+				fmt.Printf("[debug] Namespace '%v' is not published by Corefile\n", item.Metadata.Namespace)
+				continue
+			}
+			resultItems = append(resultItems, item)
+		}
+	}
+
+	return resultItems, nil
 }
-*/
 
+func symbolMatches(queryString string, candidateString string, wildcard bool) bool {
+	result := false
+	switch {
+	case !wildcard:
+		result = (queryString == candidateString)
+	case queryString == util.WildcardStar:
+		result = true
+	case queryString == util.WildcardAny:
+		result = true
+	}
+	return result
+}
+
+// TODO: Remove these unused functions. One is related to Ttl calculation
+//       Implement Ttl and priority calculation based on service count before
+//       removing this code.
+/*
+// splitDNSName separates the name into DNS segments and reverses the segments.
 func (g Kubernetes) splitDNSName(name string) []string {
 	l := dns.SplitDomainName(name)
 
@@ -166,16 +206,15 @@ func (g Kubernetes) splitDNSName(name string) []string {
 
 	return l
 }
-
+*/
 // skydns/local/skydns/east/staging/web
 // skydns/local/skydns/west/production/web
 //
 // skydns/local/skydns/*/*/web
 // skydns/local/skydns/*/web
-
+/*
 // loopNodes recursively loops through the nodes and returns all the values. The nodes' keyname
 // will be match against any wildcards when star is true.
-/*
 func (g Kubernetes) loopNodes(ns []*etcdc.Node, nameParts []string, star bool, bx map[msg.Service]bool) (sx []msg.Service, err error) {
 	if bx == nil {
 		bx = make(map[msg.Service]bool)

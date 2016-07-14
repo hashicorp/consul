@@ -7,6 +7,7 @@ are constructed as "myservice.mynamespace.coredns.local" where:
 * "mynamespace" is the k8s namespace for the service, and
 * "coredns.local" is the zone configured for `kubernetes`.
 
+The record name format can be changed by specifying a name template in the Corefile.
 
 ## Syntax
 
@@ -36,6 +37,10 @@ This is the default kubernetes setup, with everything specified in full:
     kubernetes coredns.local {
         # Use url for k8s API endpoint
         endpoint http://localhost:8080
+        # Assemble k8s record names with the template
+        template {service}.{namespace}.{zone}
+        # Only expose the k8s namespace "demo"
+        namespaces demo
     }
 #    cache 160 coredns.local
 }
@@ -247,7 +252,7 @@ return the IP addresses for all services with "nginx" in the service name.
 
 TBD:
 * How does this relate the the k8s load-balancer configuration?
-* Do wildcards search across namespaces?
+* Do wildcards search across namespaces? (Yes)
 * Initial implementation assumes that a namespace maps to the first DNS label
   below the zone managed by the kubernetes middleware. This assumption may
   need to be revised.
@@ -344,4 +349,5 @@ TBD:
 	  and A-record queries. Automate testing with cache in place.
 	* Automate CoreDNS performance tests. Initially for zone files, and for
 	  pre-loaded k8s API cache.
-    * Automate integration testing with kubernetes.
+    * Automate integration testing with kubernetes. (k8s launch and service start-up
+      automation is in middleware/kubernetes/tests)
