@@ -130,6 +130,70 @@ type Telemetry struct {
 	// DogStatsdTags are the global tags that should be sent with each packet to dogstatsd
 	// It is a list of strings, where each string looks like "my_tag_name:my_tag_value"
 	DogStatsdTags []string `mapstructure:"dogstatsd_tags"`
+
+	// Circonus: see https://github.com/circonus-labs/circonus-gometrics
+	// for more details on the various configuration options.
+	// Valid configuration combinations:
+	//    - CirconusAPIToken
+	//      metric management enabled (search for existing check or create a new one)
+	//    - CirconusSubmissionUrl
+	//      metric management disabled (use check with specified submission_url,
+	//      broker must be using a public SSL certificate)
+	//    - CirconusAPIToken + CirconusCheckSubmissionURL
+	//      metric management enabled (use check with specified submission_url)
+	//    - CirconusAPIToken + CirconusCheckID
+	//      metric management enabled (use check with specified id)
+
+	// CirconusAPIToken is a valid API Token used to create/manage check. If provided,
+	// metric management is enabled.
+	// Default: none
+	CirconusAPIToken string `mapstructure:"circonus_api_token"`
+	// CirconusAPIApp is an app name associated with API token.
+	// Default: "circonus-gometrics"
+	CirconusAPIApp string `mapstructure:"circonus_api_app"`
+	// CirconusAPIURL is the base URL to use for contacting the Circonus API.
+	// Default: "https://api.circonus.com/v2"
+	CirconusAPIURL string `mapstructure:"circonus_api_url"`
+	// CirconusSubmitInterval is the interval at which metrics are submitted to Circonus.
+	// Default: 10s
+	CirconusSubmitInterval string `mapstructure:"circonus_submission_interval"`
+	// CirconusCheckSubmissionURL is the check.config.submission_url field from a
+	// previously created HTTPTRAP check.
+	// Default: none
+	CirconusCheckSubmissionURL string `mapstructure:"circonus_submission_url"`
+	// CirconusCheckID is the check id (not check bundle id) from a previously created
+	// HTTPTRAP check. The numeric portion of the check._cid field.
+	// Default: none
+	CirconusCheckID string `mapstructure:"circonus_check_id"`
+	// CirconusCheckForceMetricActivation will force enabling metrics, as they are encountered,
+	// if the metric already exists and is NOT active. If check management is enabled, the default
+	// behavior is to add new metrics as they are encoutered. If the metric already exists in the
+	// check, it will *NOT* be activated. This setting overrides that behavior.
+	// Default: "false"
+	CirconusCheckForceMetricActivation string `mapstructure:"circonus_check_force_metric_activation"`
+	// CirconusCheckInstanceID serves to uniquely identify the metrics comming from this "instance".
+	// It can be used to maintain metric continuity with transient or ephemeral instances as
+	// they move around within an infrastructure.
+	// Default: hostname:app
+	CirconusCheckInstanceID string `mapstructure:"circonus_check_instance_id"`
+	// CirconusCheckSearchTag is a special tag which, when coupeled with the instance id, helps to
+	// narrow down the search results when neither a Submission URL or Check ID is provided.
+	// Default: service:app (e.g. service:consul)
+	CirconusCheckSearchTag string `mapstructure:"circonus_check_search_tag"`
+	// CirconusBrokerID is an explicit broker to use when creating a new check. The numeric portion
+	// of broker._cid. If metric management is enabled and neither a Submission URL nor Check ID
+	// is provided, an attempt will be made to search for an existing check using Instance ID and
+	// Search Tag. If one is not found, a new HTTPTRAP check will be created.
+	// Default: use Select Tag if provided, otherwise, a random Enterprise Broker associated
+	// with the specified API token or the default Circonus Broker.
+	// Default: none
+	CirconusBrokerID string `mapstructure:"circonus_broker_id"`
+	// CirconusBrokerSelectTag is a special tag which will be used to select a broker when
+	// a Broker ID is not provided. The best use of this is to as a hint for which broker
+	// should be used based on *where* this particular instance is running.
+	// (e.g. a specific geo location or datacenter, dc:sfo)
+	// Default: none
+	CirconusBrokerSelectTag string `mapstructure:"circonus_broker_search_tag"`
 }
 
 // Config is the configuration that can be set for an Agent.
@@ -690,6 +754,47 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 				result.Telemetry.DogStatsdTags[i] = sub[i].(string)
 			}
 		}
+
+		if sub, ok := obj["circonus_api_token"]; ok && result.Telemetry.CirconusAPIToken == "" {
+			result.Telemetry.CirconusAPIToken = sub.(string)
+		}
+
+		if sub, ok := obj["circonus_api_app"]; ok && result.Telemetry.CirconusAPIApp == "" {
+			result.Telemetry.CirconusAPIApp = sub.(string)
+		}
+
+		if sub, ok := obj["circonus_api_url"]; ok && result.Telemetry.CirconusAPIURL == "" {
+			result.Telemetry.CirconusAPIURL = sub.(string)
+		}
+
+		if sub, ok := obj["circonus_submission_url"]; ok && result.Telemetry.CirconusCheckSubmissionURL == "" {
+			result.Telemetry.CirconusCheckSubmissionURL = sub.(string)
+		}
+
+		if sub, ok := obj["circonus_submit_interval"]; ok && result.Telemetry.CirconusSubmitInterval == "" {
+			result.Telemetry.CirconusSubmitInterval = sub.(string)
+		}
+
+		if sub, ok := obj["circonus_check_id"]; ok && result.Telemetry.CirconusCheckID == "" {
+			result.Telemetry.CirconusCheckID = sub.(string)
+		}
+		if sub, ok := obj["circonus_check_force_metric_activation"]; ok && result.Telemetry.CirconusCheckForceMetricActivation == "" {
+			result.Telemetry.CirconusCheckForceMetricActivation = sub.(string)
+		}
+		if sub, ok := obj["circonus_check_instance_id"]; ok && result.Telemetry.CirconusCheckInstanceID == "" {
+			result.Telemetry.CirconusCheckInstanceID = sub.(string)
+		}
+		if sub, ok := obj["circonus_check_search_tag"]; ok && result.Telemetry.CirconusCheckSearchTag == "" {
+			result.Telemetry.CirconusCheckSearchTag = sub.(string)
+		}
+
+		if sub, ok := obj["circonus_broker_id"]; ok && result.Telemetry.CirconusBrokerID == "" {
+			result.Telemetry.CirconusBrokerID = sub.(string)
+		}
+
+		if sub, ok := obj["circonus_broker_select_tag"]; ok && result.Telemetry.CirconusBrokerSelectTag == "" {
+			result.Telemetry.CirconusBrokerSelectTag = sub.(string)
+		}
 	}
 
 	// Decode
@@ -711,7 +816,10 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	// use mapstructure decoding, so we need to account for those as well.
 	allowedKeys := []string{
 		"service", "services", "check", "checks", "statsd_addr", "statsite_addr", "statsite_prefix",
-		"dogstatsd_addr", "dogstatsd_tags",
+		"dogstatsd_addr", "dogstatsd_tags", "circonus_api_token", "circonus_api_app",
+		"circonus_api_url", "circonus_submission_url", "circonus_submit_interval",
+		"circonus_check_id", "circonus_check_force_metric_activation", "circonus_check_instance_id",
+		"circonus_check_search_tag", "circonus_broker_id", "circonus_broker_select_tag",
 	}
 
 	var unused []string
@@ -1070,6 +1178,39 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.Telemetry.DogStatsdTags != nil {
 		result.Telemetry.DogStatsdTags = b.Telemetry.DogStatsdTags
+	}
+	if b.Telemetry.CirconusAPIToken != "" {
+		result.Telemetry.CirconusAPIToken = b.Telemetry.CirconusAPIToken
+	}
+	if b.Telemetry.CirconusAPIApp != "" {
+		result.Telemetry.CirconusAPIApp = b.Telemetry.CirconusAPIApp
+	}
+	if b.Telemetry.CirconusAPIURL != "" {
+		result.Telemetry.CirconusAPIURL = b.Telemetry.CirconusAPIURL
+	}
+	if b.Telemetry.CirconusCheckSubmissionURL != "" {
+		result.Telemetry.CirconusCheckSubmissionURL = b.Telemetry.CirconusCheckSubmissionURL
+	}
+	if b.Telemetry.CirconusSubmitInterval != "" {
+		result.Telemetry.CirconusSubmitInterval = b.Telemetry.CirconusSubmitInterval
+	}
+	if b.Telemetry.CirconusCheckID != "" {
+		result.Telemetry.CirconusCheckID = b.Telemetry.CirconusCheckID
+	}
+	if b.Telemetry.CirconusCheckForceMetricActivation != "" {
+		result.Telemetry.CirconusCheckForceMetricActivation = b.Telemetry.CirconusCheckForceMetricActivation
+	}
+	if b.Telemetry.CirconusCheckInstanceID != "" {
+		result.Telemetry.CirconusCheckInstanceID = b.Telemetry.CirconusCheckInstanceID
+	}
+	if b.Telemetry.CirconusCheckSearchTag != "" {
+		result.Telemetry.CirconusCheckSearchTag = b.Telemetry.CirconusCheckSearchTag
+	}
+	if b.Telemetry.CirconusBrokerID != "" {
+		result.Telemetry.CirconusBrokerID = b.Telemetry.CirconusBrokerID
+	}
+	if b.Telemetry.CirconusBrokerSelectTag != "" {
+		result.Telemetry.CirconusBrokerSelectTag = b.Telemetry.CirconusBrokerSelectTag
 	}
 	if b.EnableDebug {
 		result.EnableDebug = true

@@ -725,6 +725,51 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// Circonus settings
+	input = `{"circonus_api_token": "12345678-1234-1234-12345678", "circonus_api_app": "testApp",
+    "circonus_api_url": "https://api.host.foo/v2", "circonus_submit_interval": "15s",
+    "circonus_submission_url": "https://submit.host.bar:123/one/two/three",
+	"circonus_check_id": "12345", "circonus_check_force_metric_activation": "true",
+    "circonus_check_instance_id": "a:b", "circonus_check_search_tag": "c:d",
+    "circonus_broker_id": "6789", "circonus_broker_select_tag": "e:f"}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.Telemetry.CirconusAPIToken != "12345678-1234-1234-12345678" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusAPIApp != "testApp" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusAPIURL != "https://api.host.foo/v2" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusSubmitInterval != "15s" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusCheckSubmissionURL != "https://submit.host.bar:123/one/two/three" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusCheckID != "12345" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusCheckForceMetricActivation != "true" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusCheckInstanceID != "a:b" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusCheckSearchTag != "c:d" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusBrokerID != "6789" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.Telemetry.CirconusBrokerSelectTag != "e:f" {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// New telemetry
 	input = `{"telemetry": { "statsite_prefix": "my_prefix", "statsite_address": "127.0.0.1:7250", "statsd_address":"127.0.0.1:7251", "disable_hostname": true, "dogstatsd_addr": "1.1.1.1:111", "dogstatsd_tags": [ "tag_1:val_1" ] } }`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
