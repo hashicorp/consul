@@ -719,7 +719,7 @@ func (c *Command) Run(args []string) int {
 
 	if config.Telemetry.CirconusAPIToken != "" || config.Telemetry.CirconusCheckSubmissionURL != "" {
 		cfg := &circonus.Config{}
-		cfg.Interval = config.Telemetry.CirconusSubmitInterval
+		cfg.Interval = config.Telemetry.CirconusSubmissionInterval
 		cfg.CheckManager.API.TokenKey = config.Telemetry.CirconusAPIToken
 		cfg.CheckManager.API.TokenApp = config.Telemetry.CirconusAPIApp
 		cfg.CheckManager.API.URL = config.Telemetry.CirconusAPIURL
@@ -730,6 +730,10 @@ func (c *Command) Run(args []string) int {
 		cfg.CheckManager.Check.SearchTag = config.Telemetry.CirconusCheckSearchTag
 		cfg.CheckManager.Broker.ID = config.Telemetry.CirconusBrokerID
 		cfg.CheckManager.Broker.SelectTag = config.Telemetry.CirconusBrokerSelectTag
+
+		if cfg.CheckManager.API.TokenApp == "" {
+			cfg.CheckManager.API.TokenApp = "consul"
+		}
 
 		if cfg.CheckManager.Check.InstanceID == "" {
 			cfg.CheckManager.Check.InstanceID = fmt.Sprintf("%s:%s", config.NodeName, config.Datacenter)

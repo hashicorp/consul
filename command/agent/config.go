@@ -149,14 +149,14 @@ type Telemetry struct {
 	// Default: none
 	CirconusAPIToken string `mapstructure:"circonus_api_token"`
 	// CirconusAPIApp is an app name associated with API token.
-	// Default: "circonus-gometrics"
+	// Default: "consul"
 	CirconusAPIApp string `mapstructure:"circonus_api_app"`
 	// CirconusAPIURL is the base URL to use for contacting the Circonus API.
 	// Default: "https://api.circonus.com/v2"
 	CirconusAPIURL string `mapstructure:"circonus_api_url"`
-	// CirconusSubmitInterval is the interval at which metrics are submitted to Circonus.
+	// CirconusSubmissionInterval is the interval at which metrics are submitted to Circonus.
 	// Default: 10s
-	CirconusSubmitInterval string `mapstructure:"circonus_submission_interval"`
+	CirconusSubmissionInterval string `mapstructure:"circonus_submission_interval"`
 	// CirconusCheckSubmissionURL is the check.config.submission_url field from a
 	// previously created HTTPTRAP check.
 	// Default: none
@@ -176,7 +176,7 @@ type Telemetry struct {
 	// they move around within an infrastructure.
 	// Default: hostname:app
 	CirconusCheckInstanceID string `mapstructure:"circonus_check_instance_id"`
-	// CirconusCheckSearchTag is a special tag which, when coupeled with the instance id, helps to
+	// CirconusCheckSearchTag is a special tag which, when coupled with the instance id, helps to
 	// narrow down the search results when neither a Submission URL or Check ID is provided.
 	// Default: service:app (e.g. service:consul)
 	CirconusCheckSearchTag string `mapstructure:"circonus_check_search_tag"`
@@ -771,8 +771,8 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 			result.Telemetry.CirconusCheckSubmissionURL = sub.(string)
 		}
 
-		if sub, ok := obj["circonus_submit_interval"]; ok && result.Telemetry.CirconusSubmitInterval == "" {
-			result.Telemetry.CirconusSubmitInterval = sub.(string)
+		if sub, ok := obj["circonus_submission_interval"]; ok && result.Telemetry.CirconusSubmissionInterval == "" {
+			result.Telemetry.CirconusSubmissionInterval = sub.(string)
 		}
 
 		if sub, ok := obj["circonus_check_id"]; ok && result.Telemetry.CirconusCheckID == "" {
@@ -816,8 +816,9 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 	// use mapstructure decoding, so we need to account for those as well.
 	allowedKeys := []string{
 		"service", "services", "check", "checks", "statsd_addr", "statsite_addr", "statsite_prefix",
-		"dogstatsd_addr", "dogstatsd_tags", "circonus_api_token", "circonus_api_app",
-		"circonus_api_url", "circonus_submission_url", "circonus_submit_interval",
+		"dogstatsd_addr", "dogstatsd_tags",
+		"circonus_api_token", "circonus_api_app",
+		"circonus_api_url", "circonus_submission_url", "circonus_submission_interval",
 		"circonus_check_id", "circonus_check_force_metric_activation", "circonus_check_instance_id",
 		"circonus_check_search_tag", "circonus_broker_id", "circonus_broker_select_tag",
 	}
@@ -1191,8 +1192,8 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Telemetry.CirconusCheckSubmissionURL != "" {
 		result.Telemetry.CirconusCheckSubmissionURL = b.Telemetry.CirconusCheckSubmissionURL
 	}
-	if b.Telemetry.CirconusSubmitInterval != "" {
-		result.Telemetry.CirconusSubmitInterval = b.Telemetry.CirconusSubmitInterval
+	if b.Telemetry.CirconusSubmissionInterval != "" {
+		result.Telemetry.CirconusSubmissionInterval = b.Telemetry.CirconusSubmissionInterval
 	}
 	if b.Telemetry.CirconusCheckID != "" {
 		result.Telemetry.CirconusCheckID = b.Telemetry.CirconusCheckID

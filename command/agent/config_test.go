@@ -727,7 +727,7 @@ func TestDecodeConfig(t *testing.T) {
 
 	// Circonus settings
 	input = `{"circonus_api_token": "12345678-1234-1234-12345678", "circonus_api_app": "testApp",
-    "circonus_api_url": "https://api.host.foo/v2", "circonus_submit_interval": "15s",
+    "circonus_api_url": "https://api.host.foo/v2", "circonus_submission_interval": "15s",
     "circonus_submission_url": "https://submit.host.bar:123/one/two/three",
 	"circonus_check_id": "12345", "circonus_check_force_metric_activation": "true",
     "circonus_check_instance_id": "a:b", "circonus_check_search_tag": "c:d",
@@ -745,7 +745,7 @@ func TestDecodeConfig(t *testing.T) {
 	if config.Telemetry.CirconusAPIURL != "https://api.host.foo/v2" {
 		t.Fatalf("bad: %#v", config)
 	}
-	if config.Telemetry.CirconusSubmitInterval != "15s" {
+	if config.Telemetry.CirconusSubmissionInterval != "15s" {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.Telemetry.CirconusCheckSubmissionURL != "https://submit.host.bar:123/one/two/three" {
