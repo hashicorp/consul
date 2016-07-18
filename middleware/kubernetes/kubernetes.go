@@ -3,7 +3,7 @@ package kubernetes
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/miekg/coredns/middleware"
@@ -62,19 +62,8 @@ func (g Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 		typeName    string
 	)
 
-	fmt.Println("[debug] enter Records('", name, "', ", exact, ")")
+	log.Printf("[debug] enter Records('%v', '%v')\n", name, exact)
 	zone, serviceSegments := g.getZoneForName(name)
-
-	/*
-	   // For initial implementation, assume namespace is first serviceSegment
-	   // and service name is remaining segments.
-	   serviceSegLen := len(serviceSegments)
-	   if serviceSegLen >= 2 {
-	       namespace = serviceSegments[serviceSegLen-1]
-	       serviceName = strings.Join(serviceSegments[:serviceSegLen-1], ".")
-	   }
-	   // else we are looking up the zone. So handle the NS, SOA records etc.
-	*/
 
 	// TODO: Implementation above globbed together segments for the serviceName if
 	//       multiple segments remained. Determine how to do similar globbing using
@@ -85,22 +74,22 @@ func (g Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 
 	if namespace == "" {
 		err := errors.New("Parsing query string did not produce a namespace value. Assuming wildcard namespace.")
-		fmt.Printf("[WARN] %v\n", err)
+		log.Printf("[WARN] %v\n", err)
 		namespace = util.WildcardStar
 	}
 
 	if serviceName == "" {
 		err := errors.New("Parsing query string did not produce a serviceName value. Assuming wildcard serviceName.")
-		fmt.Printf("[WARN] %v\n", err)
+		log.Printf("[WARN] %v\n", err)
 		serviceName = util.WildcardStar
 	}
 
-	fmt.Println("[debug] exact: ", exact)
-	fmt.Println("[debug] zone: ", zone)
-	fmt.Println("[debug] servicename: ", serviceName)
-	fmt.Println("[debug] namespace: ", namespace)
-	fmt.Println("[debug] typeName: ", typeName)
-	fmt.Println("[debug] APIconn: ", g.APIConn)
+	log.Printf("[debug] exact: %v\n", exact)
+	log.Printf("[debug] zone: %v\n", zone)
+	log.Printf("[debug] servicename: %v\n", serviceName)
+	log.Printf("[debug] namespace: %v\n", namespace)
+	log.Printf("[debug] typeName: %v\n", typeName)
+	log.Printf("[debug] APIconn: %v\n", g.APIConn)
 
 	nsWildcard := util.SymbolContainsWildcard(namespace)
 	serviceWildcard := util.SymbolContainsWildcard(serviceName)
@@ -108,14 +97,14 @@ func (g Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 	// Abort if the namespace does not contain a wildcard, and namespace is not published per CoreFile
 	// Case where namespace contains a wildcard is handled in Get(...) method.
 	if (!nsWildcard) && (g.Namespaces != nil && !util.StringInSlice(namespace, *g.Namespaces)) {
-		fmt.Printf("[debug] Namespace '%v' is not published by Corefile\n", namespace)
+		log.Printf("[debug] Namespace '%v' is not published by Corefile\n", namespace)
 		return nil, nil
 	}
 
 	k8sItems, err := g.Get(namespace, nsWildcard, serviceName, serviceWildcard)
-	fmt.Println("[debug] k8s items:", k8sItems)
+	log.Printf("[debug] k8s items: %v\n", k8sItems)
 	if err != nil {
-		fmt.Printf("[ERROR] Got error while looking up ServiceItems. Error is: %v\n", err)
+		log.Printf("[ERROR] Got error while looking up ServiceItems. Error is: %v\n", err)
 		return nil, err
 	}
 	if k8sItems == nil {
@@ -133,7 +122,7 @@ func (g Kubernetes) getRecordsForServiceItems(serviceItems []k8sc.ServiceItem, v
 
 	for _, item := range serviceItems {
 		clusterIP := item.Spec.ClusterIP
-		fmt.Println("[debug] clusterIP:", clusterIP)
+		log.Printf("[debug] clusterIP: %v\n", clusterIP)
 
 		// Create records by constructing record name from template...
 		//values.Namespace = item.Metadata.Namespace
@@ -143,13 +132,13 @@ func (g Kubernetes) getRecordsForServiceItems(serviceItems []k8sc.ServiceItem, v
 
 		// Create records for each exposed port...
 		for _, p := range item.Spec.Ports {
-			fmt.Println("[debug]    port:", p.Port)
+			log.Printf("[debug]    port: %v\n", p.Port)
 			s := msg.Service{Host: clusterIP, Port: p.Port}
 			records = append(records, s)
 		}
 	}
 
-	fmt.Printf("[debug] records from getRecordsForServiceItems(): %v\n", records)
+	log.Printf("[debug] records from getRecordsForServiceItems(): %v\n", records)
 	return records
 }
 
@@ -158,7 +147,7 @@ func (g Kubernetes) Get(namespace string, nsWildcard bool, servicename string, s
 	serviceList, err := g.APIConn.GetServiceList()
 
 	if err != nil {
-		fmt.Printf("[ERROR] Getting service list produced error: %v", err)
+		log.Printf("[ERROR] Getting service list produced error: %v", err)
 		return nil, err
 	}
 
@@ -169,7 +158,7 @@ func (g Kubernetes) Get(namespace string, nsWildcard bool, servicename string, s
 			// If namespace has a wildcard, filter results against Corefile namespace list.
 			// (Namespaces without a wildcard were filtered before the call to this function.)
 			if nsWildcard && (g.Namespaces != nil && !util.StringInSlice(item.Metadata.Namespace, *g.Namespaces)) {
-				fmt.Printf("[debug] Namespace '%v' is not published by Corefile\n", item.Metadata.Namespace)
+				log.Printf("[debug] Namespace '%v' is not published by Corefile\n", item.Metadata.Namespace)
 				continue
 			}
 			resultItems = append(resultItems, item)

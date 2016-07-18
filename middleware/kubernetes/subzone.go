@@ -1,7 +1,7 @@
 package kubernetes
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/miekg/dns"
 )
@@ -24,7 +24,7 @@ func NormalizeZoneList(zones []string) []string {
 	for _, z := range zones {
 		zoneConflict, _ := subzoneConflict(filteredZones, z)
 		if zoneConflict {
-			fmt.Printf("[WARN] new zone '%v' from Corefile conflicts with existing zones: %v\n        Ignoring zone '%v'\n", z, filteredZones, z)
+			log.Printf("[WARN] new zone '%v' from Corefile conflicts with existing zones: %v\n        Ignoring zone '%v'\n", z, filteredZones, z)
 		} else {
 			filteredZones = append(filteredZones, z)
 		}

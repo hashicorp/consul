@@ -1,7 +1,6 @@
 package nametemplate
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -21,7 +20,6 @@ var exampleTemplates = map[string][]int{
 }
 
 func TestSetTemplate(t *testing.T) {
-	fmt.Printf("\n")
 	for s, expectedValue := range exampleTemplates {
 
 		n := new(NameTemplate)

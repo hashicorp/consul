@@ -1,4 +1,4 @@
-// Package caddy implements the CoreDNS web server as a service
+// Package core implements the CoreDNS web server as a service
 // in your own Go programs.
 //
 // To use this package, follow a few simple steps:
@@ -7,10 +7,10 @@
 //   2. Call LoadCorefile() to get the Corefile (it
 //      might have been piped in as part of a restart).
 //      You should pass in your own Corefile loader.
-//   3. Call caddy.Start() to start CoreDNS, caddy.Stop()
-//      to stop it, or caddy.Restart() to restart it.
+//   3. Call core.Start() to start CoreDNS, core.Stop()
+//      to stop it, or core.Restart() to restart it.
 //
-// You should use caddy.Wait() to wait for all CoreDNS servers
+// You should use core.Wait() to wait for all CoreDNS servers
 // to quit before your process exits.
 package core
 

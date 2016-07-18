@@ -2,7 +2,7 @@ package nametemplate
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"strings"
 
 	"github.com/miekg/coredns/middleware/kubernetes/util"
@@ -65,7 +65,6 @@ type NameTemplate struct {
 
 func (t *NameTemplate) SetTemplate(s string) error {
 	var err error
-	fmt.Println()
 
 	t.Element = map[string]int{}
 
@@ -83,10 +82,10 @@ func (t *NameTemplate) SetTemplate(s string) error {
 		if !elementPositionSet {
 			if strings.Contains(v, "{") {
 				err = errors.New("Record name template contains the unknown symbol '" + v + "'")
-				fmt.Printf("[debug] %v\n", err)
+				log.Printf("[debug] %v\n", err)
 				return err
 			} else {
-				fmt.Printf("[debug] Template string has static element '%v'\n", v)
+				log.Printf("[debug] Template string has static element '%v'\n", v)
 			}
 		}
 	}

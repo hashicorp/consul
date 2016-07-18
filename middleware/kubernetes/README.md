@@ -255,7 +255,7 @@ TBD:
 * Do wildcards search across namespaces? (Yes)
 * Initial implementation assumes that a namespace maps to the first DNS label
   below the zone managed by the kubernetes middleware. This assumption may
-  need to be revised.
+  need to be revised. (Template scheme for record names removes this assumption.)
 
 
 ## TODO
@@ -280,12 +280,13 @@ TBD:
 		* Calculate SRV priority based on number of instances running.
 		  (See SkyDNS README.md)
 	* Functional work
-		* Implement wildcard-based lookup. Minimally support `*`, consider `?` as well.
-        * Note from Miek on PR 181: "SkyDNS also supports the word `any`.
+		* (done) ~~Implement wildcard-based lookup. Minimally support `*`, consider `?` as well.~~
+        * (done) ~~Note from Miek on PR 181: "SkyDNS also supports the word `any`.~~
 		* Implement SkyDNS-style synthetic zones such as "svc" to group k8s objects. (This
 		  should be optional behavior.) Also look at "pod" synthetic zones.
 		* Implement test cases for SkyDNS equivalent functionality.
 	* SkyDNS functionality, as listed in SkyDNS README: https://github.com/kubernetes/kubernetes/blob/release-1.2/cluster/addons/dns/README.md
+		* Expose pods and srv objects.
 		* A records in form of `pod-ip-address.my-namespace.cluster.local`.
 		  For example, a pod with ip `1.2.3.4` in the namespace `default`
 		  with a dns name of `cluster.local` would have an entry:

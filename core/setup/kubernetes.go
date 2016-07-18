@@ -3,7 +3,7 @@ package setup
 import (
 	//"crypto/tls"
 	//"crypto/x509"
-	"fmt"
+	"log"
 	//"io/ioutil"
 	//"net"
 	//"net/http"
@@ -27,7 +27,7 @@ const (
 
 // Kubernetes sets up the kubernetes middleware.
 func Kubernetes(c *Controller) (middleware.Middleware, error) {
-	fmt.Println("controller %v", c)
+	log.Printf("[debug] controller %v\n", c)
 	// TODO: Determine if subzone support required
 
 	kubernetes, err := kubernetesParse(c)
@@ -115,6 +115,5 @@ func kubernetesParse(c *Controller) (kubernetes.Kubernetes, error) {
 			return k8s, nil
 		}
 	}
-	fmt.Println("here before return")
 	return kubernetes.Kubernetes{}, nil
 }

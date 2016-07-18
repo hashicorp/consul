@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/miekg/coredns/middleware"
 
@@ -10,7 +11,7 @@ import (
 )
 
 func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	fmt.Printf("[debug] here entering ServeDNS: ctx:%v dnsmsg:%v\n", ctx, r)
+	log.Printf("[debug] here entering ServeDNS: ctx:%v dnsmsg:%v\n", ctx, r)
 
 	state := middleware.State{W: w, Req: r}
 	if state.QClass() != dns.ClassINET {
