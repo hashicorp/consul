@@ -1,5 +1,10 @@
 package main
 
+import (
+	"fmt"
+	"strings"
+)
+
 // The git commit that was compiled. This will be filled in by the compiler.
 var (
 	GitCommit   string
@@ -13,3 +18,27 @@ const Version = "0.7.0"
 // then it means that it is a final release. Otherwise, this is a pre-release
 // such as "dev" (in development), "beta", "rc1", etc.
 const VersionPrerelease = "dev"
+
+// GetVersion returns the full version of Consul.
+func GetVersion() string {
+	version := Version
+	if GitDescribe != "" {
+		version = GitDescribe
+	}
+
+	release := VersionPrerelease
+	if GitDescribe == "" && release == "" {
+		release = "dev"
+	}
+
+	fullVersion := fmt.Sprintf("%s", version)
+	if release != "" {
+		fullVersion += fmt.Sprintf("-%s", release)
+		if GitCommit != "" {
+			fullVersion += fmt.Sprintf(" (%s)", GitCommit)
+		}
+	}
+
+	// Strip off any single quotes added by the git information.
+	return strings.Replace(fullVersion, "'", "", -1)
+}
