@@ -406,7 +406,19 @@ func (c *Command) setupLoggers(config *Config) (*GatedWriter, *logWriter, io.Wri
 
 // setupAgent is used to start the agent and various interfaces
 func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *logWriter) error {
-	c.Ui.Output("Starting Consul agent...")
+	var version string
+
+	version = "v" + config.Version
+
+	if len(config.VersionPrerelease) != 0 {
+		version += " " + config.VersionPrerelease
+
+		if len(config.Revision) != 0 {
+			version += " " + config.Revision
+		}
+	}
+
+	c.Ui.Output("Starting Consul agent (" + version + ")...")
 	agent, err := Create(config, logOutput)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error starting agent: %s", err))
