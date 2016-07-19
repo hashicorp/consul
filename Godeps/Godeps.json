@@ -13,11 +13,15 @@
 		},
 		{
 			"ImportPath": "github.com/armon/go-metrics",
-			"Rev": "345426c77237ece5dab0e1605c3e4b35c3f54757"
+			"Rev": "3df31a1ada83e310c2e24b267c8e8b68836547b4"
+		},
+		{
+			"ImportPath": "github.com/armon/go-metrics/circonus",
+			"Rev": "3df31a1ada83e310c2e24b267c8e8b68836547b4"
 		},
 		{
 			"ImportPath": "github.com/armon/go-metrics/datadog",
-			"Rev": "345426c77237ece5dab0e1605c3e4b35c3f54757"
+			"Rev": "3df31a1ada83e310c2e24b267c8e8b68836547b4"
 		},
 		{
 			"ImportPath": "github.com/armon/go-radix",
@@ -31,6 +35,22 @@
 			"ImportPath": "github.com/boltdb/bolt",
 			"Comment": "v1.2.0",
 			"Rev": "c6ba97b89e0454fec9aa92e1d33a4e2c5fc1f631"
+		},
+		{
+			"ImportPath": "github.com/circonus-labs/circonus-gometrics",
+			"Rev": "8e7296e1945cf2ac4adc0a08df3eb52419b227c3"
+		},
+		{
+			"ImportPath": "github.com/circonus-labs/circonus-gometrics/api",
+			"Rev": "8e7296e1945cf2ac4adc0a08df3eb52419b227c3"
+		},
+		{
+			"ImportPath": "github.com/circonus-labs/circonus-gometrics/checkmgr",
+			"Rev": "8e7296e1945cf2ac4adc0a08df3eb52419b227c3"
+		},
+		{
+			"ImportPath": "github.com/circonus-labs/circonusllhist",
+			"Rev": "d724266ae5270ae8b87a5d2e8081f04e307c3c18"
 		},
 		{
 			"ImportPath": "github.com/elazarl/go-bindata-assetfs",
@@ -139,6 +159,10 @@
 		{
 			"ImportPath": "github.com/hashicorp/go-reap",
 			"Rev": "2d85522212dcf5a84c6b357094f5c44710441912"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-retryablehttp",
+			"Rev": "886ce0458bc81ccca0fb7044c1be0e9ab590bed7"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-syslog",
