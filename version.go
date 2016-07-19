@@ -31,14 +31,13 @@ func GetVersion() string {
 		release = "dev"
 	}
 
-	fullVersion := fmt.Sprintf("%s", version)
 	if release != "" {
-		fullVersion += fmt.Sprintf("-%s", release)
+		version += fmt.Sprintf("-%s", release)
 		if GitCommit != "" {
-			fullVersion += fmt.Sprintf(" (%s)", GitCommit)
+			version += fmt.Sprintf(" (%s)", GitCommit)
 		}
 	}
 
 	// Strip off any single quotes added by the git information.
-	return strings.Replace(fullVersion, "'", "", -1)
+	return strings.Replace(version, "'", "", -1)
 }
