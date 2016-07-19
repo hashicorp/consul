@@ -29,6 +29,7 @@ BACKWARDS INCOMPATIBILITIES:
 
 IMPROVEMENTS:
 
+* Added version information to the log when Consul starts up. [GH-1404]
 * Consul will now retry RPC calls that result in "no leader" errors for up to
   5 seconds. This allows agents to ride out leader elections with a delayed
   response vs. an error. [GH-2175]
