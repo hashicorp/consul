@@ -1,31 +1,12 @@
 ## 0.7.0 (UNRELEASED)
 
-BACKWARDS INCOMPATIBILITIES:
+FEATURES:
 
-* `skip_leave_on_interrupt`'s default behavior is now dependent on whether or
-  not the agent is acting as a server or client.  When Consul is started as a
-  server the default is `true` and `false` when a client. [GH-1909]
-* HTTP check output is truncated to 4k, similar to script check output. [GH-1952]
-
-IMPROVEMENTS:
-
-* Implemented a new set of feedback controls for the gossip layer that help
-  prevent degraded nodes that can't meet the soft real-time requirements from
-  erroneously causing `serfHealth` flapping in other, healthy nodes. [GH-2101]
-* Joins based on a DNS lookup will use TCP and attempt to join with the full
-  list of returned addresses. [GH-2101]
-* Added a new network tomogroaphy visualization to the UI. [GH-2046]
 * Added a new `/v1/txn` state store transaction API that allows for atomic
   updates to and fetches from multiple entries in the key/value store. [GH-2028]
-* Consul agents will now periodically reconnect to available Consul servers
-  in order to redistribute their RPC query load.  Consul clients will, by
-  default, attempt to establish a new connection every 120s to 180s unless
-  the size of the cluster is sufficiently large.  The rate at which agents
-  begin to query new servers is proportional to the size of the Consul
-  cluster (servers should never receive more than 64 new connections per
-  second per Consul server as a result of rebalancing).  Clusters in stable
-  environments who use `allow_stale` should see a more even distribution of
-  query load across all of their Consul servers. [GH-1743]
+* Script checks now support an optional `timeout` parameter. [GH-1762]
+* Reap time for failed nodes is now configurable via new `reconnect_timeout` and
+  `reconnect_timeout_wan` config options ([use with caution](https://www.consul.io/docs/agent/options.html#reconnect_timeout)). [GH-1935]
 * Consul agents can now limit the number of UDP answers returned via the DNS
   interface. The default number of UDP answers is `3`, however by adjusting
   the `dns_config.udp_answer_limit` configuration parameter, it is now
@@ -37,15 +18,41 @@ IMPROVEMENTS:
   [agent options](https://www.consul.io/docs/agent/options.html#udp_answer_limit)
   documentation for additional details for when this should be
   used. [GH-1712]
+* Prepared queries support baking in the `Near` sorting parameter [GH-2137]
+
+BACKWARDS INCOMPATIBILITIES:
+
+* `skip_leave_on_interrupt`'s default behavior is now dependent on whether or
+  not the agent is acting as a server or client.  When Consul is started as a
+  server the default is `true` and `false` when a client. [GH-1909]
+* HTTP check output is truncated to 4k, similar to script check output. [GH-1952]
+
+IMPROVEMENTS:
+
+* Consul will now retry RPC calls that result in "no leader" errors for up to
+  5 seconds. This allows agents to ride out leader elections with a delayed
+  response vs. an error. [GH-2175]
+* Implemented a new set of feedback controls for the gossip layer that help
+  prevent degraded nodes that can't meet the soft real-time requirements from
+  erroneously causing `serfHealth` flapping in other, healthy nodes. [GH-2101]
+* Joins based on a DNS lookup will use TCP and attempt to join with the full
+  list of returned addresses. [GH-2101]
+* Added a new network tomogroaphy visualization to the UI. [GH-2046]
+* Consul agents will now periodically reconnect to available Consul servers
+  in order to redistribute their RPC query load.  Consul clients will, by
+  default, attempt to establish a new connection every 120s to 180s unless
+  the size of the cluster is sufficiently large.  The rate at which agents
+  begin to query new servers is proportional to the size of the Consul
+  cluster (servers should never receive more than 64 new connections per
+  second per Consul server as a result of rebalancing).  Clusters in stable
+  environments who use `allow_stale` should see a more even distribution of
+  query load across all of their Consul servers. [GH-1743]
 * Consul will now refuse to start with a helpful message if the same UNIX
   socket is used for more than one listening endpoint. [GH-1910]
 * Removed an obsolete warning message when Consul starts on Windows. [GH-1920]
 * Defaults bind address to 127.0.0.1 when running in `-dev` mode. [GH-1878]
 * Builds Consul releases with Go 1.6.1. [GH-1948]
 * HTTP health checks limit saved output to 4K to avoid performance issues. [GH-1952]
-* Reap time for failed nodes is now configurable via new `reconnect_timeout` and
-  `reconnect_timeout_wan` config options ([use with caution](https://www.consul.io/docs/agent/options.html#reconnect_timeout)). [GH-1935]
-* Script checks now support an optional `timeout` parameter. [GH-1762]
 
 BUG FIXES:
 

@@ -224,6 +224,13 @@ type Config struct {
 	// are willing to apply in one period. After this limit we will issue a
 	// warning and discard the remaining updates.
 	CoordinateUpdateMaxBatches int
+
+	// RPCHoldTimeout is how long an RPC can be "held" before it is errored.
+	// This is used to paper over a loss of leadership by instead holding RPCs,
+	// so that the caller experiences a slow response rather than an error.
+	// This period is meant to be long enough for a leader election to take
+	// place, and a small jitter is applied to avoid a thundering herd.
+	RPCHoldTimeout time.Duration
 }
 
 // CheckVersion is used to check if the ProtocolVersion is valid
@@ -286,6 +293,9 @@ func DefaultConfig() *Config {
 		CoordinateUpdatePeriod:     5 * time.Second,
 		CoordinateUpdateBatchSize:  128,
 		CoordinateUpdateMaxBatches: 5,
+
+		// Hold an RPC for up to 5 seconds by default
+		RPCHoldTimeout: 5 * time.Second,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.

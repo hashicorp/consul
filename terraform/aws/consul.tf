@@ -16,7 +16,7 @@ resource "aws_instance" "server" {
     }
 
     provisioner "file" {
-        source = "${path.module}/scripts/${lookup(var.service_conf, var.platform)}"
+        source = "${path.module}/../shared/scripts/${lookup(var.service_conf, var.platform)}"
         destination = "/tmp/${lookup(var.service_conf_dest, var.platform)}"
     }
 
@@ -30,9 +30,9 @@ resource "aws_instance" "server" {
 
     provisioner "remote-exec" {
         scripts = [
-            "${path.module}/scripts/install.sh",
-            "${path.module}/scripts/service.sh",
-            "${path.module}/scripts/ip_tables.sh",
+            "${path.module}/../shared/scripts/install.sh",
+            "${path.module}/../shared/scripts/service.sh",
+            "${path.module}/../shared/scripts/ip_tables.sh",
         ]
     }
 }

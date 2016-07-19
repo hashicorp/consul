@@ -70,6 +70,7 @@ query, like this example:
   "Name": "my-query",
   "Session": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
   "Token": "",
+  "Near": "node1",
   "Service": {
     "Service": "redis",
     "Failover": {
@@ -113,6 +114,16 @@ their captured `Token` field. Capturing ACL Tokens is analogous to
 attribute which can be set on functions. This change in effect moves Consul
 from using `SECURITY DEFINER` by default to `SECURITY INVOKER` by default for
 new Prepared Queries.
+
+<a name="near"></a>
+`Near` allows specifying a particular node to sort near based on distance
+sorting using [Network Coordinates](/docs/internals/coordinates.html). The
+nearest instance to the specified node will be returned first, and subsequent
+nodes in the response will be sorted in ascending order of estimated round-trip
+times. If the node given does not exist, the nodes in the response will
+be shuffled. Using the magic `_agent` value is supported, and will automatically
+return results nearest the agent servicing the request. If unspecified, the
+response will be shuffled by default.
 
 The set of fields inside the `Service` structure define the query's behavior.
 
@@ -365,8 +376,9 @@ blocking queries, but it does support all consistency modes.
 Adding the optional "?near=" parameter with a node name will sort the resulting
 list in ascending order based on the estimated round trip time from that node.
 Passing "?near=_agent" will use the agent's node for the sort. If this is not
-present, then the nodes will be shuffled randomly and will be in a different
-order each time the query is executed.
+present, the default behavior will shuffle the nodes randomly each time the
+query is executed. Passing this option will override the built-in
+<a href="#near">near parameter</a> of a prepared query, if present.
 
 An optional "?limit=" parameter can be used to limit the size of the list to
 the given number of nodes. This is applied after any sorting or shuffling.
