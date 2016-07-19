@@ -19,11 +19,9 @@ func init() {
 	Commands = map[string]cli.CommandFactory{
 		"agent": func() (cli.Command, error) {
 			return &agent.Command{
-				Revision:          GitCommit,
-				Version:           Version,
-				VersionPrerelease: VersionPrerelease,
-				Ui:                ui,
-				ShutdownCh:        make(chan struct{}),
+				Version:    GetVersion(),
+				Ui:         ui,
+				ShutdownCh: make(chan struct{}),
 			}, nil
 		},
 
@@ -121,20 +119,9 @@ func init() {
 		},
 
 		"version": func() (cli.Command, error) {
-			ver := Version
-			rel := VersionPrerelease
-			if GitDescribe != "" {
-				ver = GitDescribe
-			}
-			if GitDescribe == "" && rel == "" {
-				rel = "dev"
-			}
-
 			return &command.VersionCommand{
-				Revision:          GitCommit,
-				Version:           ver,
-				VersionPrerelease: rel,
-				Ui:                ui,
+				Version: GetVersion(),
+				Ui:      ui,
 			}, nil
 		},
 

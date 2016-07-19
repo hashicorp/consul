@@ -1,7 +1,6 @@
 package command
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/hashicorp/consul/consul"
 	"github.com/mitchellh/cli"
@@ -9,10 +8,8 @@ import (
 
 // VersionCommand is a Command implementation prints the version.
 type VersionCommand struct {
-	Revision          string
-	Version           string
-	VersionPrerelease string
-	Ui                cli.Ui
+	Version string
+	Ui      cli.Ui
 }
 
 func (c *VersionCommand) Help() string {
@@ -20,19 +17,9 @@ func (c *VersionCommand) Help() string {
 }
 
 func (c *VersionCommand) Run(_ []string) int {
-	var versionString bytes.Buffer
-	fmt.Fprintf(&versionString, "Consul %s", c.Version)
-	if c.VersionPrerelease != "" {
-		fmt.Fprintf(&versionString, ".%s", c.VersionPrerelease)
-
-		if c.Revision != "" {
-			fmt.Fprintf(&versionString, " (%s)", c.Revision)
-		}
-	}
-
-	c.Ui.Output(versionString.String())
-	c.Ui.Output(fmt.Sprintf("Consul Protocol: %d (Understands back to: %d)",
-		consul.ProtocolVersionMax, consul.ProtocolVersionMin))
+	c.Ui.Output(fmt.Sprintf("Consul Version: %s", c.Version))
+	c.Ui.Output(fmt.Sprintf("Supported Protocol Version(s): %d to %d",
+		consul.ProtocolVersionMin, consul.ProtocolVersionMax))
 	return 0
 }
 

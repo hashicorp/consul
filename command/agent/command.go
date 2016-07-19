@@ -37,20 +37,18 @@ var validDatacenter = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 // ShutdownCh. If two messages are sent on the ShutdownCh it will forcibly
 // exit.
 type Command struct {
-	Revision          string
-	Version           string
-	VersionPrerelease string
-	Ui                cli.Ui
-	ShutdownCh        <-chan struct{}
-	args              []string
-	logFilter         *logutils.LevelFilter
-	logOutput         io.Writer
-	agent             *Agent
-	rpcServer         *AgentRPC
-	httpServers       []*HTTPServer
-	dnsServer         *DNSServer
-	scadaProvider     *scada.Provider
-	scadaHttp         *HTTPServer
+	Version       string
+	Ui            cli.Ui
+	ShutdownCh    <-chan struct{}
+	args          []string
+	logFilter     *logutils.LevelFilter
+	logOutput     io.Writer
+	agent         *Agent
+	rpcServer     *AgentRPC
+	httpServers   []*HTTPServer
+	dnsServer     *DNSServer
+	scadaProvider *scada.Provider
+	scadaHttp     *HTTPServer
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -310,11 +308,6 @@ func (c *Command) readConfig() *Config {
 		c.Ui.Error("WARNING: Bootstrap mode enabled! Do not enable unless necessary")
 	}
 
-	// Set the version info
-	config.Revision = c.Revision
-	config.Version = c.Version
-	config.VersionPrerelease = c.VersionPrerelease
-
 	return config
 }
 
@@ -406,19 +399,7 @@ func (c *Command) setupLoggers(config *Config) (*GatedWriter, *logWriter, io.Wri
 
 // setupAgent is used to start the agent and various interfaces
 func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *logWriter) error {
-	var version string
-
-	version = "v" + config.Version
-
-	if len(config.VersionPrerelease) != 0 {
-		version += " " + config.VersionPrerelease
-
-		if len(config.Revision) != 0 {
-			version += " " + config.Revision
-		}
-	}
-
-	c.Ui.Output("Starting Consul agent (" + version + ")...")
+	c.Ui.Output("Starting Consul agent...")
 	agent, err := Create(config, logOutput)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error starting agent: %s", err))
@@ -533,12 +514,7 @@ func (c *Command) checkpointResults(results *checkpoint.CheckResponse, err error
 		return
 	}
 	if results.Outdated {
-		versionStr := c.Version
-		if c.VersionPrerelease != "" {
-			versionStr += fmt.Sprintf("-%s", c.VersionPrerelease)
-		}
-
-		c.Ui.Error(fmt.Sprintf("Newer Consul version available: %s (currently running: %s)", results.CurrentVersion, versionStr))
+		c.Ui.Error(fmt.Sprintf("Newer Consul version available: %s (currently running: %s)", results.CurrentVersion, c.Version))
 	}
 	for _, alert := range results.Alerts {
 		switch alert.Level {
@@ -836,6 +812,7 @@ func (c *Command) Run(args []string) int {
 	c.agent.StartSync()
 
 	c.Ui.Output("Consul agent running!")
+	c.Ui.Info(fmt.Sprintf("       Version: '%s'", c.Version))
 	c.Ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
 	c.Ui.Info(fmt.Sprintf("    Datacenter: '%s'", config.Datacenter))
 	c.Ui.Info(fmt.Sprintf("        Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))
