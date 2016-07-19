@@ -40,6 +40,9 @@ body must look something like:
   "Datacenter": "dc1",
   "Node": "foobar",
   "Address": "192.168.10.10",
+  "TaggedAddresses": {
+    "wan": "127.0.0.1"
+  },
   "Service": {
     "ID": "redis1",
     "Service": "redis",
@@ -48,9 +51,6 @@ body must look something like:
       "v1"
     ],
     "Address": "127.0.0.1",
-    "TaggedAddresses": {
-      "wan": "127.0.0.1"
-    },
     "Port": 8000
   },
   "Check": {
@@ -89,6 +89,9 @@ of a service on that node, the check is treated as a service level health
 check, instead of a node level health check. The `Status` must be one of
 `unknown`, `passing`, `warning`, or `critical`. The `unknown` status is used
 to indicate that the initial check has not been performed yet.
+
+Multiple checks can be provided by replacing `Check` with `Checks` and sending
+an array of `Check` objects.
 
 It is important to note that `Check` does not have to be provided with `Service`
 and vice versa. A catalog entry can have either, neither, or both.
