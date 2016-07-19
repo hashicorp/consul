@@ -193,7 +193,7 @@ type Telemetry struct {
 	// should be used based on *where* this particular instance is running.
 	// (e.g. a specific geo location or datacenter, dc:sfo)
 	// Default: none
-	CirconusBrokerSelectTag string `mapstructure:"circonus_broker_search_tag"`
+	CirconusBrokerSelectTag string `mapstructure:"circonus_broker_select_tag"`
 }
 
 // Config is the configuration that can be set for an Agent.
@@ -754,47 +754,6 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 				result.Telemetry.DogStatsdTags[i] = sub[i].(string)
 			}
 		}
-
-		if sub, ok := obj["circonus_api_token"]; ok && result.Telemetry.CirconusAPIToken == "" {
-			result.Telemetry.CirconusAPIToken = sub.(string)
-		}
-
-		if sub, ok := obj["circonus_api_app"]; ok && result.Telemetry.CirconusAPIApp == "" {
-			result.Telemetry.CirconusAPIApp = sub.(string)
-		}
-
-		if sub, ok := obj["circonus_api_url"]; ok && result.Telemetry.CirconusAPIURL == "" {
-			result.Telemetry.CirconusAPIURL = sub.(string)
-		}
-
-		if sub, ok := obj["circonus_submission_url"]; ok && result.Telemetry.CirconusCheckSubmissionURL == "" {
-			result.Telemetry.CirconusCheckSubmissionURL = sub.(string)
-		}
-
-		if sub, ok := obj["circonus_submission_interval"]; ok && result.Telemetry.CirconusSubmissionInterval == "" {
-			result.Telemetry.CirconusSubmissionInterval = sub.(string)
-		}
-
-		if sub, ok := obj["circonus_check_id"]; ok && result.Telemetry.CirconusCheckID == "" {
-			result.Telemetry.CirconusCheckID = sub.(string)
-		}
-		if sub, ok := obj["circonus_check_force_metric_activation"]; ok && result.Telemetry.CirconusCheckForceMetricActivation == "" {
-			result.Telemetry.CirconusCheckForceMetricActivation = sub.(string)
-		}
-		if sub, ok := obj["circonus_check_instance_id"]; ok && result.Telemetry.CirconusCheckInstanceID == "" {
-			result.Telemetry.CirconusCheckInstanceID = sub.(string)
-		}
-		if sub, ok := obj["circonus_check_search_tag"]; ok && result.Telemetry.CirconusCheckSearchTag == "" {
-			result.Telemetry.CirconusCheckSearchTag = sub.(string)
-		}
-
-		if sub, ok := obj["circonus_broker_id"]; ok && result.Telemetry.CirconusBrokerID == "" {
-			result.Telemetry.CirconusBrokerID = sub.(string)
-		}
-
-		if sub, ok := obj["circonus_broker_select_tag"]; ok && result.Telemetry.CirconusBrokerSelectTag == "" {
-			result.Telemetry.CirconusBrokerSelectTag = sub.(string)
-		}
 	}
 
 	// Decode
@@ -813,14 +772,12 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 
 	// Check unused fields and verify that no bad configuration options were
 	// passed to Consul. There are a few additional fields which don't directly
-	// use mapstructure decoding, so we need to account for those as well.
+	// use mapstructure decoding, so we need to account for those as well. These
+	// telemetry-related fields used to be available as top-level keys, so they
+	// are here for backward compatibility with the old format.
 	allowedKeys := []string{
 		"service", "services", "check", "checks", "statsd_addr", "statsite_addr", "statsite_prefix",
 		"dogstatsd_addr", "dogstatsd_tags",
-		"circonus_api_token", "circonus_api_app",
-		"circonus_api_url", "circonus_submission_url", "circonus_submission_interval",
-		"circonus_check_id", "circonus_check_force_metric_activation", "circonus_check_instance_id",
-		"circonus_check_search_tag", "circonus_broker_id", "circonus_broker_select_tag",
 	}
 
 	var unused []string

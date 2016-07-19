@@ -726,12 +726,12 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Circonus settings
-	input = `{"circonus_api_token": "12345678-1234-1234-12345678", "circonus_api_app": "testApp",
+	input = `{"telemetry": {"circonus_api_token": "12345678-1234-1234-12345678", "circonus_api_app": "testApp",
     "circonus_api_url": "https://api.host.foo/v2", "circonus_submission_interval": "15s",
     "circonus_submission_url": "https://submit.host.bar:123/one/two/three",
 	"circonus_check_id": "12345", "circonus_check_force_metric_activation": "true",
     "circonus_check_instance_id": "a:b", "circonus_check_search_tag": "c:d",
-    "circonus_broker_id": "6789", "circonus_broker_select_tag": "e:f"}`
+    "circonus_broker_id": "6789", "circonus_broker_select_tag": "e:f"} }`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
