@@ -412,6 +412,10 @@ func (c *Command) setupAgent(config *Config, logOutput io.Writer, logWriter *log
 
 	if len(config.VersionPrerelease) != 0 {
 		version += " " + config.VersionPrerelease
+
+		if len(config.Revision) != 0 {
+			version += " " + config.Revision
+		}
 	}
 
 	c.Ui.Output("Starting Consul agent (" + version + ")...")
