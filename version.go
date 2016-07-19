@@ -30,7 +30,6 @@ func GetVersion() string {
 	if GitDescribe == "" && release == "" {
 		release = "dev"
 	}
-
 	if release != "" {
 		version += fmt.Sprintf("-%s", release)
 		if GitCommit != "" {
