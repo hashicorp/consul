@@ -82,3 +82,21 @@ See also [golang/winstrap](https://github.com/golang/winstrap) and
 for more information of how to set up a general Go build environment on Windows
 with MinGW.
 
+## Vendoring
+
+Consul currently uses [Godep](https://github.com/tools/godep) for vendoring. These
+steps can be used to update dependencies in a controlled way.
+
+Start by running a clean golang container:
+
+```docker run -i -t -v `pwd`:/go/src/github.com/hashicorp/consul golang sh```
+
+After that, you'll get a shell inside the container:
+
+1. Run `go get github.com/tools/godep` to install Godep.
+2. Run `cd /go/src/github.com/hashicorp/consul` to change to the Consul repo. Note
+   that we mounted that as a volume above into the `GOPATH`.
+3. Run `godep restore` to update the container with the current state of dependencies
+   based on what's vendored.
+4. Update dependencies as needed.
+5. Run `godep save` and look at the results carefully before committing.
