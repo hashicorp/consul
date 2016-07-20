@@ -18,7 +18,8 @@ FEATURES:
   [agent options](https://www.consul.io/docs/agent/options.html#udp_answer_limit)
   documentation for additional details for when this should be
   used. [GH-1712]
-* Prepared queries support baking in the `Near` sorting parameter [GH-2137]
+* Prepared queries support baking in the `Near` sorting parameter. [GH-2137]
+* Added Circonus support for telemetry. [GH-2193]
 
 BACKWARDS INCOMPATIBILITIES:
 
@@ -29,7 +30,6 @@ BACKWARDS INCOMPATIBILITIES:
 
 IMPROVEMENTS:
 
-* Added version information to the log when Consul starts up. [GH-1404]
 * Consul will now retry RPC calls that result in "no leader" errors for up to
   5 seconds. This allows agents to ride out leader elections with a delayed
   response vs. an error. [GH-2175]
@@ -54,6 +54,7 @@ IMPROVEMENTS:
 * Defaults bind address to 127.0.0.1 when running in `-dev` mode. [GH-1878]
 * Builds Consul releases with Go 1.6.1. [GH-1948]
 * HTTP health checks limit saved output to 4K to avoid performance issues. [GH-1952]
+* Added version information to the log when Consul starts up. [GH-1404]
 
 BUG FIXES:
 
