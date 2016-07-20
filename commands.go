@@ -19,9 +19,12 @@ func init() {
 	Commands = map[string]cli.CommandFactory{
 		"agent": func() (cli.Command, error) {
 			return &agent.Command{
-				Version:    GetVersion(),
-				Ui:         ui,
-				ShutdownCh: make(chan struct{}),
+				Revision:          GitCommit,
+				Version:           Version,
+				VersionPrerelease: VersionPrerelease,
+				HumanVersion:      GetHumanVersion(),
+				Ui:                ui,
+				ShutdownCh:        make(chan struct{}),
 			}, nil
 		},
 
@@ -120,8 +123,8 @@ func init() {
 
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
-				Version: GetVersion(),
-				Ui:      ui,
+				HumanVersion: GetHumanVersion(),
+				Ui:           ui,
 			}, nil
 		},
 

@@ -19,8 +19,9 @@ const Version = "0.7.0"
 // such as "dev" (in development), "beta", "rc1", etc.
 const VersionPrerelease = "dev"
 
-// GetVersion returns the full version of Consul.
-func GetVersion() string {
+// GetHumanVersion composes the parts of the version in a way that's suitable
+// for displaying to humans.
+func GetHumanVersion() string {
 	version := Version
 	if GitDescribe != "" {
 		version = GitDescribe
