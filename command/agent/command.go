@@ -856,7 +856,7 @@ func (c *Command) Run(args []string) int {
 	c.agent.StartSync()
 
 	c.Ui.Output("Consul agent running!")
-	c.Ui.Info(fmt.Sprintf("       Version: '%s'", c.Version))
+	c.Ui.Info(fmt.Sprintf("       Version: '%s'", c.HumanVersion))
 	c.Ui.Info(fmt.Sprintf("     Node name: '%s'", config.NodeName))
 	c.Ui.Info(fmt.Sprintf("    Datacenter: '%s'", config.Datacenter))
 	c.Ui.Info(fmt.Sprintf("        Server: %v (bootstrap: %v)", config.Server, config.Bootstrap))
