@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/watch"
@@ -701,6 +702,41 @@ func (c *Command) Run(args []string) int {
 			return 1
 		}
 		sink.SetTags(tags)
+		fanout = append(fanout, sink)
+	}
+
+	if config.Telemetry.CirconusAPIToken != "" || config.Telemetry.CirconusCheckSubmissionURL != "" {
+		cfg := &circonus.Config{}
+		cfg.Interval = config.Telemetry.CirconusSubmissionInterval
+		cfg.CheckManager.API.TokenKey = config.Telemetry.CirconusAPIToken
+		cfg.CheckManager.API.TokenApp = config.Telemetry.CirconusAPIApp
+		cfg.CheckManager.API.URL = config.Telemetry.CirconusAPIURL
+		cfg.CheckManager.Check.SubmissionURL = config.Telemetry.CirconusCheckSubmissionURL
+		cfg.CheckManager.Check.ID = config.Telemetry.CirconusCheckID
+		cfg.CheckManager.Check.ForceMetricActivation = config.Telemetry.CirconusCheckForceMetricActivation
+		cfg.CheckManager.Check.InstanceID = config.Telemetry.CirconusCheckInstanceID
+		cfg.CheckManager.Check.SearchTag = config.Telemetry.CirconusCheckSearchTag
+		cfg.CheckManager.Broker.ID = config.Telemetry.CirconusBrokerID
+		cfg.CheckManager.Broker.SelectTag = config.Telemetry.CirconusBrokerSelectTag
+
+		if cfg.CheckManager.API.TokenApp == "" {
+			cfg.CheckManager.API.TokenApp = "consul"
+		}
+
+		if cfg.CheckManager.Check.InstanceID == "" {
+			cfg.CheckManager.Check.InstanceID = fmt.Sprintf("%s:%s", config.NodeName, config.Datacenter)
+		}
+
+		if cfg.CheckManager.Check.SearchTag == "" {
+			cfg.CheckManager.Check.SearchTag = "service:consul"
+		}
+
+		sink, err := circonus.NewCirconusSink(cfg)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to start Circonus sink. Got: %s", err))
+			return 1
+		}
+		sink.Start()
 		fanout = append(fanout, sink)
 	}
 
