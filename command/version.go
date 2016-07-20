@@ -8,8 +8,8 @@ import (
 
 // VersionCommand is a Command implementation prints the version.
 type VersionCommand struct {
-	Version string
-	Ui      cli.Ui
+	HumanVersion string
+	Ui           cli.Ui
 }
 
 func (c *VersionCommand) Help() string {
@@ -17,7 +17,7 @@ func (c *VersionCommand) Help() string {
 }
 
 func (c *VersionCommand) Run(_ []string) int {
-	c.Ui.Output(fmt.Sprintf("Consul Version: %s", c.Version))
+	c.Ui.Output(fmt.Sprintf("Consul Version: %s", c.HumanVersion))
 	c.Ui.Output(fmt.Sprintf("Supported Protocol Version(s): %d to %d",
 		consul.ProtocolVersionMin, consul.ProtocolVersionMax))
 	return 0

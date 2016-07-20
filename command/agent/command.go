@@ -38,18 +38,21 @@ var validDatacenter = regexp.MustCompile("^[a-zA-Z0-9_-]+$")
 // ShutdownCh. If two messages are sent on the ShutdownCh it will forcibly
 // exit.
 type Command struct {
-	Version       string
-	Ui            cli.Ui
-	ShutdownCh    <-chan struct{}
-	args          []string
-	logFilter     *logutils.LevelFilter
-	logOutput     io.Writer
-	agent         *Agent
-	rpcServer     *AgentRPC
-	httpServers   []*HTTPServer
-	dnsServer     *DNSServer
-	scadaProvider *scada.Provider
-	scadaHttp     *HTTPServer
+	Revision          string
+	Version           string
+	VersionPrerelease string
+	HumanVersion      string
+	Ui                cli.Ui
+	ShutdownCh        <-chan struct{}
+	args              []string
+	logFilter         *logutils.LevelFilter
+	logOutput         io.Writer
+	agent             *Agent
+	rpcServer         *AgentRPC
+	httpServers       []*HTTPServer
+	dnsServer         *DNSServer
+	scadaProvider     *scada.Provider
+	scadaHttp         *HTTPServer
 }
 
 // readConfig is responsible for setup of our configuration using
@@ -308,6 +311,11 @@ func (c *Command) readConfig() *Config {
 	if config.Bootstrap {
 		c.Ui.Error("WARNING: Bootstrap mode enabled! Do not enable unless necessary")
 	}
+
+	// Set the version info
+	config.Revision = c.Revision
+	config.Version = c.Version
+	config.VersionPrerelease = c.VersionPrerelease
 
 	return config
 }
