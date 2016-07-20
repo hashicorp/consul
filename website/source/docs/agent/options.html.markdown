@@ -782,7 +782,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="verify_server_hostname"></a><a href="#verify_server_hostname">`verify_server_hostname`</a> - If set to
   true, Consul verifies for all outgoing connections that the TLS certificate presented by the servers
-  matches "server.<datacenter>.<domain>" hostname. This implies `verify_outgoing`.
+  matches "server.&lt;datacenter&gt;.&lt;domain&gt;" hostname. This implies `verify_outgoing`.
   By default, this is false, and Consul does not verify the hostname of the certificate, only
   that it is signed by a trusted CA. This setting is important to prevent a compromised
   client from being restarted as a server, and thus being able to perform a MITM attack
