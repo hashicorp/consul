@@ -711,7 +711,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   * <a name="telemetry-circonus_broker_id"></a><a href="#telemetry-circonus_broker_id">`circonus_broker_id`</a>
     The ID of a specific Circonus Broker to use when creating a new check. The numeric portion of `broker._cid` field in a Broker API object. If metric management is enabled and neither a Submission URL nor Check ID is provided, an attempt will be made to search for an existing check using Instance ID and Search Tag. If one is not found, a new HTTPTRAP check will be created. By default, this is not used and a random Enterprise Broker is selected, or the default Circonus Public Broker.
 
-  * <a name="telemetry-circonus_broker_search_tag"></a><a href="#telemetry-circonus_broker_search_tag">`circonus_broker_search_tag`</a>
+  * <a name="telemetry-circonus_broker_select_tag"></a><a href="#telemetry-circonus_broker_select_tag">`circonus_broker_select_tag`</a>
     A special tag which will be used to select a Circonus Broker when a Broker ID is not provided. The best use of this is to as a hint for which broker should be used based on *where* this particular instance is running (e.g. a specific geo location or datacenter, dc:sfo). By default, this is left blank and not used.
 
 * <a name="statsd_addr"></a><a href="#statsd_addr">`statsd_addr`</a> Deprecated, see
