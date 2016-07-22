@@ -1,23 +1,14 @@
 package setup
 
 import (
-	//"crypto/tls"
-	//"crypto/x509"
 	"log"
-	//"io/ioutil"
-	//"net"
-	//"net/http"
 	"strings"
-	//"time"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/kubernetes"
 	k8sc "github.com/miekg/coredns/middleware/kubernetes/k8sclient"
 	"github.com/miekg/coredns/middleware/kubernetes/nametemplate"
 	"github.com/miekg/coredns/middleware/proxy"
-	//"github.com/miekg/coredns/middleware/singleflight"
-
-	"golang.org/x/net/context"
 )
 
 const (
@@ -43,19 +34,8 @@ func Kubernetes(c *Controller) (middleware.Middleware, error) {
 }
 
 func kubernetesParse(c *Controller) (kubernetes.Kubernetes, error) {
-
-	/*
-	 * TODO: Remove unused state and simplify.
-	 * Inflight and Ctx might not be needed. Leaving in place until
-	 * we take a pass at API caching and optimizing connector to the
-	 * k8s API. Single flight (or limited upper-bound) for inflight
-	 * API calls may be desirable.
-	 */
-
 	k8s := kubernetes.Kubernetes{
 		Proxy: proxy.New([]string{}),
-		Ctx:   context.Background(),
-		//      Inflight:   &singleflight.Group{},
 	}
 	var (
 		endpoints  = []string{defaultK8sEndpoint}
@@ -78,7 +58,12 @@ func kubernetesParse(c *Controller) (kubernetes.Kubernetes, error) {
 				k8s.Zones = kubernetes.NormalizeZoneList(zones)
 			}
 
+			// TODO: clean this parsing up
+
 			middleware.Zones(k8s.Zones).FullyQualify()
+
+			log.Printf("[debug] c data: %v\n", c)
+
 			if c.NextBlock() {
 				// TODO(miek): 2 switches?
 				switch c.Val() {
@@ -89,6 +74,13 @@ func kubernetesParse(c *Controller) (kubernetes.Kubernetes, error) {
 					}
 					endpoints = args
 					k8s.APIConn = k8sc.NewK8sConnector(endpoints[0])
+				case "namespaces":
+					args := c.RemainingArgs()
+					if len(args) == 0 {
+						return kubernetes.Kubernetes{}, c.ArgErr()
+					}
+					namespaces = args
+					k8s.Namespaces = append(k8s.Namespaces, namespaces...)
 				}
 				for c.Next() {
 					switch c.Val() {
@@ -108,7 +100,7 @@ func kubernetesParse(c *Controller) (kubernetes.Kubernetes, error) {
 							return kubernetes.Kubernetes{}, c.ArgErr()
 						}
 						namespaces = args
-						k8s.Namespaces = &namespaces
+						k8s.Namespaces = append(k8s.Namespaces, namespaces...)
 					}
 				}
 			}

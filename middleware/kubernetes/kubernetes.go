@@ -12,21 +12,17 @@ import (
 	"github.com/miekg/coredns/middleware/kubernetes/nametemplate"
 	"github.com/miekg/coredns/middleware/kubernetes/util"
 	"github.com/miekg/coredns/middleware/proxy"
-	//	"github.com/miekg/coredns/middleware/singleflight"
 
 	"github.com/miekg/dns"
-	"golang.org/x/net/context"
 )
 
 type Kubernetes struct {
-	Next  middleware.Handler
-	Zones []string
-	Proxy proxy.Proxy // Proxy for looking up names during the resolution process
-	Ctx   context.Context
-	//	Inflight   *singleflight.Group
+	Next         middleware.Handler
+	Zones        []string
+	Proxy        proxy.Proxy // Proxy for looking up names during the resolution process
 	APIConn      *k8sc.K8sConnector
 	NameTemplate *nametemplate.NameTemplate
-	Namespaces   *[]string
+	Namespaces   []string
 }
 
 // getZoneForName returns the zone string that matches the name and a
@@ -84,6 +80,8 @@ func (g Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 		serviceName = util.WildcardStar
 	}
 
+	log.Printf("[debug] published namespaces: %v\n", g.Namespaces)
+
 	log.Printf("[debug] exact: %v\n", exact)
 	log.Printf("[debug] zone: %v\n", zone)
 	log.Printf("[debug] servicename: %v\n", serviceName)
@@ -96,7 +94,7 @@ func (g Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 
 	// Abort if the namespace does not contain a wildcard, and namespace is not published per CoreFile
 	// Case where namespace contains a wildcard is handled in Get(...) method.
-	if (!nsWildcard) && (g.Namespaces != nil && !util.StringInSlice(namespace, *g.Namespaces)) {
+	if (!nsWildcard) && (len(g.Namespaces) > 0) && (!util.StringInSlice(namespace, g.Namespaces)) {
 		log.Printf("[debug] Namespace '%v' is not published by Corefile\n", namespace)
 		return nil, nil
 	}
@@ -157,7 +155,7 @@ func (g Kubernetes) Get(namespace string, nsWildcard bool, servicename string, s
 		if symbolMatches(namespace, item.Metadata.Namespace, nsWildcard) && symbolMatches(servicename, item.Metadata.Name, serviceWildcard) {
 			// If namespace has a wildcard, filter results against Corefile namespace list.
 			// (Namespaces without a wildcard were filtered before the call to this function.)
-			if nsWildcard && (g.Namespaces != nil && !util.StringInSlice(item.Metadata.Namespace, *g.Namespaces)) {
+			if nsWildcard && (len(g.Namespaces) > 0) && (!util.StringInSlice(item.Metadata.Namespace, g.Namespaces)) {
 				log.Printf("[debug] Namespace '%v' is not published by Corefile\n", item.Metadata.Namespace)
 				continue
 			}

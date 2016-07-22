@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"testing"
 
+	"github.com/miekg/coredns/middleware/kubernetes/k8stest"
 	"github.com/miekg/dns"
 )
 
@@ -63,12 +63,6 @@ var testdataLookupSRV = []struct {
 	{"*.*.coredns.local.", 1, 1},                             // One SRV record, via namespace and service wildcard
 }
 
-// checkKubernetesRunning performs a basic
-func checkKubernetesRunning() bool {
-	_, err := http.Get("http://localhost:8080/api/v1")
-	return err == nil
-}
-
 func TestK8sIntegration(t *testing.T) {
 	t.Log("   === RUN testLookupA")
 	testLookupA(t)
@@ -77,13 +71,12 @@ func TestK8sIntegration(t *testing.T) {
 }
 
 func testLookupA(t *testing.T) {
-	if !checkKubernetesRunning() {
+	if !k8stest.CheckKubernetesRunning() {
 		t.Skip("Skipping Kubernetes Integration tests. Kubernetes is not running")
 	}
 
-	// Note: Use different port to avoid conflict with servers used in other tests.
 	coreFile :=
-		`.:2053 {
+		`.:0 {
     kubernetes coredns.local {
 		endpoint http://localhost:8080
 		namespaces demo
@@ -128,13 +121,12 @@ func testLookupA(t *testing.T) {
 }
 
 func testLookupSRV(t *testing.T) {
-	if !checkKubernetesRunning() {
+	if !k8stest.CheckKubernetesRunning() {
 		t.Skip("Skipping Kubernetes Integration tests. Kubernetes is not running")
 	}
 
-	// Note: Use different port to avoid conflict with servers used in other tests.
 	coreFile :=
-		`.:2054 {
+		`.:0 {
     kubernetes coredns.local {
 		endpoint http://localhost:8080
 		namespaces demo
