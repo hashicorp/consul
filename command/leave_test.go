@@ -27,3 +27,17 @@ func TestLeaveCommandRun(t *testing.T) {
 		t.Fatalf("bad: %#v", ui.OutputWriter.String())
 	}
 }
+
+func TestLeaveCommandFailOnNonFlagArgs(t *testing.T) {
+	a1 := testAgent(t)
+	defer a1.Shutdown()
+
+	ui := new(cli.MockUi)
+	c := &LeaveCommand{Ui: ui}
+	args := []string{"-rpc-addr=" + a1.addr, "appserver1"}
+
+	code := c.Run(args)
+	if code == 0 {
+		t.Fatalf("bad: failed to check for unexpected args")
+	}
+}
