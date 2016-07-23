@@ -385,6 +385,7 @@ body must look like:
   ],
   "Address": "127.0.0.1",
   "Port": 8000,
+  "EnableTagOverride": false, 
   "Check": {
     "Script": "/usr/local/bin/check_redis.py",
     "HTTP": "http://localhost:5000/health",
@@ -398,7 +399,7 @@ The `Name` field is mandatory.  If an `ID` is not provided, it is set to `Name`.
 You cannot have duplicate `ID` entries per agent, so it may be necessary to provide an ID
 in the case of a collision.
 
-`Tags`, `Address`, `Port` and `Check` are optional.
+`Tags`, `Address`, `Port`, `Check` and `EnableTagOverride` are optional.
 
 If `Address` is not provided or left empty, then the agent's address will be used
 as the address for the service during DNS queries. When querying for services using
@@ -411,6 +412,25 @@ information.
 If `Check` is provided, only one of `Script`, `HTTP`, `TCP` or `TTL` should be specified.
 `Script` and `HTTP` also require `Interval`. The created check will be named "service:\<ServiceId\>".
 There is more information about checks [here](/docs/agent/checks.html).
+
+`EnableTagOverride` can optionally be specified to disable the anti-entropy
+feature for this service's tags. If `EnableTagOverride` is set to `true` then external
+agents can update this service in the [catalog](/docs/agent/http/catalog.html) and modify the tags. Subsequent
+local sync operations by this agent will ignore the updated tags. For instance, if an external agent
+modified both the tags and the port for this service and `EnableTagOverride`
+was set to `true` then after the next sync cycle the service's port would revert
+to the original value but the tags would maintain the updated value. As a
+counter example, if an external agent modified both the tags and port for this
+service and `EnableTagOverride` was set to `false` then after the next sync
+cycle the service's port _and_ the tags would revert to the original value and
+all modifications would be lost. It's important to note that this applies only
+to the locally registered service. If you have multiple nodes all registering
+the same service their `EnableTagOverride` configuration and all other service
+configuration items are independent of one another. Updating the tags for
+the service registered on one node is independent of the same service (by name)
+registered on another node. If `EnableTagOverride` is not specified the default
+value is `false`.  See [anti-entropy syncs](/docs/internals/anti-entropy.html)
+for more info.
 
 This endpoint supports [ACL tokens](/docs/internals/acl.html). If the query
 string includes a `?token=<token-id>`, the registration will use the provided
