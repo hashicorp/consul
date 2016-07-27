@@ -2,6 +2,11 @@
 
 # Running skydns based on instructions at: https://testdatamanagement.wordpress.com/2015/09/01/running-kubernetes-in-docker-with-dns-on-a-single-node/
 
+PWD=`pwd`
+BASEDIR=`readlink -e $(dirname ${0})`
+
+cd ${BASEDIR}
+
 KUBECTL='./kubectl'
 
 #RUN_SKYDNS="yes"
@@ -15,7 +20,7 @@ wait_until_k8s_ready() {
 		if [ "${?}" = "0" ]; then
 			break
 		else
-			echo "sleeping for 5 seconds"
+			echo "sleeping for 5 seconds (waiting for kubernetes to start)"
 			sleep 5
 		fi
 	done
@@ -37,3 +42,5 @@ if [ "${RUN_SKYDNS}" = "yes" ]; then
 else
 	true
 fi
+
+cd ${PWD}

@@ -7,7 +7,6 @@ K8S_VERSION="v1.2.4"
 
 ARCH="amd64"
 
-
 export K8S_VERSION
 export ARCH
 

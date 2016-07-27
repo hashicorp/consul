@@ -1,4 +1,4 @@
-// +build k8sIntegration
+// +build k8s
 
 package test
 

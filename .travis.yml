@@ -1,12 +1,39 @@
+sudo: required
+# Trusty distribution is much faster when sudo is required
+dist: trusty
+
+services:
+  - docker
+
 language: go
 go:
   - 1.5
   - 1.6
+
+# In the Travis VM-based build environment, IPv6 networking is not
+# enabled by default. The sysctl operations below enable IPv6.
+# IPv6 is needed by some of the CoreDNS test cases. The VM environment
+# is needed to have access to sudo in the test environment. Sudo is 
+# needed to have docker in the test environment. Docker is needed to
+# launch a kubernetes instance in the test environment.
+# (Dependencies are fun! :) )
+before_install:
+  - cat /proc/net/if_inet6
+  - uname -a
+  - sudo bash -c 'if [ `cat /proc/net/if_inet6 | wc -l` = "0" ]; then echo "Enabling IPv6" ; sysctl net.ipv6.conf.all.disable_ipv6=0 ; sysctl net.ipv6.conf.default.disable_ipv6=0 ; sysctl net.ipv6.conf.lo.disable_ipv6=0 ; fi'
+  - cat /proc/net/if_inet6
+  - env
+
 before_script:
   - curl -L  https://github.com/coreos/etcd/releases/download/v2.3.1/etcd-v2.3.1-linux-amd64.tar.gz -o etcd-v2.3.1-linux-amd64.tar.gz
   - tar xzvf etcd-v2.3.1-linux-amd64.tar.gz
   - ./etcd-v2.3.1-linux-amd64/etcd &
   - go get
   - go get github.com/coreos/go-etcd/etcd
+  - if which docker &>/dev/null ; then docker pull gcr.io/google_containers/hyperkube-amd64:v1.2.4 ; docker ps -a ; fi
+  - pwd
+  - if which docker &>/dev/null ; then ./middleware/kubernetes/test/00_run_k8s.sh && ./middleware/kubernetes/test/10_setup_kubectl.sh && ./middleware/kubernetes/test/20_setup_k8s_services.sh ; docker ps -a ; fi
+
 script:
   - go test -tags etcd -race -bench=. ./...
+  - ./middleware/kubernetes/test/kubectl version && go test -tags k8s -race -bench=. -run 'TestK8sIntegration' ./test
