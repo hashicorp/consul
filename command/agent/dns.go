@@ -381,6 +381,12 @@ func (d *DNSServer) translateAddr(dc string, node *structs.Node) string {
 	return addr
 }
 
+func (d *DNSServer) listDatcenters() ([]string, error) {
+	var out []string
+	err := d.agent.RPC("Catalog.ListDatacenters", struct{}{}, &out)
+	return out, err
+}
+
 // nodeLookup is used to handle a node query
 func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.Msg) {
 	// Only handle ANY, A and AAAA type requests
@@ -413,11 +419,29 @@ RPC:
 		goto RPC
 	}
 
-	// If we have no address, return not found!
+	var datacenters []string
+	// If we have no address, fallbac to other dc or return not found!
 	if out.NodeServices == nil {
-		d.addSOA(d.domain, resp)
-		resp.SetRcode(req, dns.RcodeNameError)
-		return
+
+		if (datacenters == nil) {
+			dcs, err := d.listDatcenters()
+			if err != nil {
+				d.addSOA(d.domain, resp)
+				resp.SetRcode(req, dns.RcodeNameError)
+				return
+			}
+			datacenters = dcs
+		}
+		if (len(datacenters) > 0) {
+			dc := datacenters[len(datacenters)-1]
+			datacenters = datacenters[:len(datacenters)-1]
+			args.Datacenter = dc
+			goto RPC
+		} else {
+			d.addSOA(d.domain, resp)
+			resp.SetRcode(req, dns.RcodeNameError)
+			return
+		}
 	}
 
 	// Add the node record
