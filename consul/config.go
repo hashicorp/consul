@@ -310,6 +310,9 @@ func DefaultConfig() *Config {
 	conf.SerfLANConfig.MemberlistConfig.BindPort = DefaultLANSerfPort
 	conf.SerfWANConfig.MemberlistConfig.BindPort = DefaultWANSerfPort
 
+	// Enable interoperability with unversioned Raft library
+	conf.RaftConfig.ProtocolVersion = 0
+
 	// Disable shutdown on removal
 	conf.RaftConfig.ShutdownOnRemove = false
 

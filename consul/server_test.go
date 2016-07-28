@@ -336,19 +336,19 @@ func TestServer_LeaveLeader(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 []string
-	var p2 []string
+	var p1 int
+	var p2 int
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ = s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p2, _ = s2.numPeers()
+		return p2 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -366,8 +366,8 @@ func TestServer_LeaveLeader(t *testing.T) {
 	// Should lose a peer
 	for _, s := range []*Server{s1, s2} {
 		testutil.WaitForResult(func() (bool, error) {
-			p1, _ = s.raftPeers.Peers()
-			return len(p1) == 1, nil
+			p1, _ = s.numPeers()
+			return p1 == 1, nil
 		}, func(err error) {
 			t.Fatalf("should have 1 peer: %v", p1)
 		})
@@ -391,19 +391,19 @@ func TestServer_Leave(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 []string
-	var p2 []string
+	var p1 int
+	var p2 int
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ = s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p2, _ = s2.numPeers()
+		return p2 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -421,8 +421,8 @@ func TestServer_Leave(t *testing.T) {
 	// Should lose a peer
 	for _, s := range []*Server{s1, s2} {
 		testutil.WaitForResult(func() (bool, error) {
-			p1, _ = s.raftPeers.Peers()
-			return len(p1) == 1, nil
+			p1, _ = s.numPeers()
+			return p1 == 1, nil
 		}, func(err error) {
 			t.Fatalf("should have 1 peer: %v", p1)
 		})
@@ -486,13 +486,15 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	// Verify Raft has established a peer
 	testutil.WaitForResult(func() (bool, error) {
-		return s1.Stats()["raft"]["num_peers"] == "1", nil
+		peers, _ := s1.numPeers()
+		return peers == 2, nil
 	}, func(err error) {
 		t.Fatalf("no peer established")
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		return s2.Stats()["raft"]["num_peers"] == "1", nil
+		peers, _ := s2.numPeers()
+		return peers == 2, nil
 	}, func(err error) {
 		t.Fatalf("no peer established")
 	})
@@ -519,20 +521,20 @@ func TestServer_Expect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 []string
-	var p2 []string
+	var p1 int
+	var p2 int
 
 	// should have no peers yet
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 0, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ = s1.numPeers()
+		return p1 == 0, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p2))
+		p2, _ = s2.numPeers()
+		return p2 == 0, errors.New(fmt.Sprintf("%d", p2))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
@@ -542,26 +544,26 @@ func TestServer_Expect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p3 []string
+	var p3 int
 
 	// should now have all three peers
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 3, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ = s1.numPeers()
+		return p1 == 3, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 3 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 3, errors.New(fmt.Sprintf("%v", p2))
+		p2, _ = s2.numPeers()
+		return p2 == 3, errors.New(fmt.Sprintf("%d", p2))
 	}, func(err error) {
 		t.Fatalf("should have 3 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p3, _ = s3.raftPeers.Peers()
-		return len(p3) == 3, errors.New(fmt.Sprintf("%v", p3))
+		p3, _ = s3.numPeers()
+		return p3 == 3, errors.New(fmt.Sprintf("%d", p3))
 	}, func(err error) {
 		t.Fatalf("should have 3 peers: %v", err)
 	})
@@ -593,20 +595,20 @@ func TestServer_BadExpect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p1 []string
-	var p2 []string
+	var p1 int
+	var p2 int
 
 	// should have no peers yet
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 0, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ = s1.numPeers()
+		return p1 == 0, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p2))
+		p2, _ = s2.numPeers()
+		return p2 == 0, errors.New(fmt.Sprintf("%d", p2))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
@@ -616,26 +618,26 @@ func TestServer_BadExpect(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	var p3 []string
+	var p3 int
 
 	// should still have no peers (because s2 is in expect=2 mode)
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ = s1.raftPeers.Peers()
-		return len(p1) == 0, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ = s1.numPeers()
+		return p1 == 0, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p2, _ = s2.raftPeers.Peers()
-		return len(p2) == 0, errors.New(fmt.Sprintf("%v", p2))
+		p2, _ = s2.numPeers()
+		return p2 == 0, errors.New(fmt.Sprintf("%d", p2))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
 
 	testutil.WaitForResult(func() (bool, error) {
-		p3, _ = s3.raftPeers.Peers()
-		return len(p3) == 0, errors.New(fmt.Sprintf("%v", p3))
+		p3, _ = s3.numPeers()
+		return p3 == 0, errors.New(fmt.Sprintf("%d", p3))
 	}, func(err error) {
 		t.Fatalf("should have 0 peers: %v", err)
 	})
