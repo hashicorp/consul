@@ -78,3 +78,13 @@ read and compute the delta client side.
 By design, Consul offloads this to clients instead of attempting to support
 the delta calculation. This avoids expensive state maintenance on the servers
 as well as race conditions between data updates and watch registrations.
+
+## Q: What network ports does Consul use?
+
+Consul agents communicate on the following TCP and UDP ports:
+
+| Port   | Protocol  | Description                                         |
+| ------ | --------- | ----------------------------------------------------|
+| 8300   | TCP       | RPC for client/server and server/server replication |
+| 8301   | TCP & UDP | LAN gossip from client/client and client/server     |
+| 8302   | TCP       | WAN gossip from server/server                       |
