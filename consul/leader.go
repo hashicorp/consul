@@ -547,7 +547,8 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 	addr := (&net.TCPAddr{IP: m.Addr, Port: parts.Port}).String()
 
 	// See if it's already in the configuration. It's harmless to re-add it
-	// but we want to avoid doing that if possible.
+	// but we want to avoid doing that if possible to prevent useless Raft
+	// log entries.
 	configFuture := s.raft.GetConfiguration()
 	if err := configFuture.Error(); err != nil {
 		s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
@@ -574,7 +575,8 @@ func (s *Server) removeConsulServer(m serf.Member, port int) error {
 	addr := (&net.TCPAddr{IP: m.Addr, Port: port}).String()
 
 	// See if it's already in the configuration. It's harmless to re-remove it
-	// but we want to avoid doing that if possible.
+	// but we want to avoid doing that if possible to prevent useless Raft
+	// log entries.
 	configFuture := s.raft.GetConfiguration()
 	if err := configFuture.Error(); err != nil {
 		s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
