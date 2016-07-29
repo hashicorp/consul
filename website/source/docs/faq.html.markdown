@@ -78,3 +78,7 @@ read and compute the delta client side.
 By design, Consul offloads this to clients instead of attempting to support
 the delta calculation. This avoids expensive state maintenance on the servers
 as well as race conditions between data updates and watch registrations.
+
+## Q: What network ports does Consul use?
+
+The [Ports Used](https://www.consul.io/docs/agent/options.html#ports) section of the Configuration documentation lists all ports that Consul uses.
