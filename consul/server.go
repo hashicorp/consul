@@ -107,7 +107,9 @@ type Server struct {
 	// The raft instance is used among Consul nodes within the DC to protect
 	// operations that require strong consistency. The raftSafeFn will get
 	// called on a graceful leave to help "safe" the state of the server so
-	// it won't interfere with other servers.
+	// it won't interfere with other servers. This will be called after Raft
+	// is shutdown, but before the state store is closed, so it can manipulate
+	// the state directly.
 	raft          *raft.Raft
 	raftLayer     *RaftLayer
 	raftStore     *raftboltdb.BoltStore
