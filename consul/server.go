@@ -562,11 +562,11 @@ func (s *Server) Shutdown() error {
 		s.raftLayer.Close()
 		future := s.raft.Shutdown()
 		if err := future.Error(); err != nil {
-			s.logger.Printf("[WARN] consul: Error shutting down raft: %s", err)
+			s.logger.Printf("[WARN] consul: error shutting down raft: %s", err)
 		}
 		if s.left && s.raftSafeFn != nil {
 			if err := s.raftSafeFn(); err != nil {
-				s.logger.Printf("[WARN] consul: Error safing raft: %s", err)
+				s.logger.Printf("[WARN] consul: error safing raft: %s", err)
 			}
 		}
 		if s.raftStore != nil {
