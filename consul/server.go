@@ -93,6 +93,9 @@ type Server struct {
 	// strong consistency.
 	fsm *consulFSM
 
+	// left is true if we have attempted to leave the cluster.
+	left bool
+
 	// localConsuls is used to track the known consuls
 	// in the local datacenter. Used to do leader forwarding.
 	localConsuls map[raft.ServerAddress]*agent.Server
@@ -101,13 +104,16 @@ type Server struct {
 	// Logger uses the provided LogOutput
 	logger *log.Logger
 
-	// The raft instance is used among Consul nodes within the
-	// DC to protect operations that require strong consistency
+	// The raft instance is used among Consul nodes within the DC to protect
+	// operations that require strong consistency. The raftSafeFn will get
+	// called on a graceful leave to help "safe" the state of the server so
+	// it won't interfere with other servers.
 	raft          *raft.Raft
 	raftLayer     *RaftLayer
 	raftStore     *raftboltdb.BoltStore
 	raftTransport *raft.NetworkTransport
 	raftInmem     *raft.InmemStore
+	raftSafeFn    func() error
 
 	// reconcileCh is used to pass events from the serf handler
 	// into the leader manager, so that the strong state can be
@@ -405,6 +411,31 @@ func (s *Server) setupRaft() error {
 			}
 			s.logger.Printf("[INFO] consul: deleted peers.json file after successful recovery")
 		}
+
+		// Register a cleanup function to call when a leave occurs. This
+		// needs state that we only have access to here. This does a
+		// recover operation to an empty configuration so this server
+		// won't interfere with the rest of the cluster.
+		s.raftSafeFn = func() error {
+			hasState, err := raft.HasExistingState(log, stable, snap)
+			if err != nil {
+				return fmt.Errorf("cleanup failed to check for state: %v", err)
+			}
+			if !hasState {
+				return nil
+			}
+
+			tmpFsm, err := NewFSM(s.tombstoneGC, s.config.LogOutput)
+			if err != nil {
+				return fmt.Errorf("cleanup failed to make temp FSM: %v", err)
+			}
+			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
+				log, stable, snap, raft.Configuration{}); err != nil {
+				return fmt.Errorf("recovery failed: %v", err)
+			}
+
+			return nil
+		}
 	}
 
 	// If we are in bootstrap or dev mode and the state is clean then we can
@@ -531,15 +562,14 @@ func (s *Server) Shutdown() error {
 		if err := future.Error(); err != nil {
 			s.logger.Printf("[WARN] consul: Error shutting down raft: %s", err)
 		}
+		if s.left && s.raftSafeFn != nil {
+			if err := s.raftSafeFn(); err != nil {
+				s.logger.Printf("[WARN] consul: Error safing raft: %s", err)
+			}
+		}
 		if s.raftStore != nil {
 			s.raftStore.Close()
 		}
-
-		// TODO (slackpad) - We used to nerf the Raft configuration here
-		// if a leave had been done in order to prevent this from joining
-		// next time if we couldn't be removed after a leave. We wont't
-		// always get a confirmation from Raft (see comment in Leave). Are
-		// we losing anything by not doing this?
 	}
 
 	if s.rpcListener != nil {
@@ -555,6 +585,7 @@ func (s *Server) Shutdown() error {
 // Leave is used to prepare for a graceful shutdown of the server
 func (s *Server) Leave() error {
 	s.logger.Printf("[INFO] consul: server starting leave")
+	s.left = true
 
 	// Check the number of known peers
 	numPeers, err := s.numPeers()
