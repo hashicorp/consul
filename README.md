@@ -111,7 +111,7 @@ Use this as a systemd service file. It defaults to a coredns wich a homedir of /
 and the binary lives in /opt/bin:
 
 ~~~ txt
-Unit]
+[Unit]
 Description=CoreDNS DNS server
 Documentation=https://miek.nl/tags/coredns
 After=network.target

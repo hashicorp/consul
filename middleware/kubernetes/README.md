@@ -132,7 +132,7 @@ $ ./kubectl create namespace demo
 $ ./kubectl get namespace
 
 $ ./kubectl run mynginx --namespace=demo --image=nginx
-$ /kubectl get deployment --namespace=demo
+$ ./kubectl get deployment --namespace=demo
 
 $ ./kubectl expose deployment mynginx --namespace=demo --port=80
 $ ./kubectl get service --namespace=demo
