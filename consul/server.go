@@ -355,6 +355,15 @@ func (s *Server) setupRaft() error {
 	trans := raft.NewNetworkTransport(s.raftLayer, 3, 10*time.Second, s.config.LogOutput)
 	s.raftTransport = trans
 
+	// Make sure we set the LogOutput.
+	s.config.RaftConfig.LogOutput = s.config.LogOutput
+
+	// Our version of Raft protocol requires the LocalID to match the network
+	// address of the transport.
+	s.config.RaftConfig.LocalID = raft.ServerID(trans.LocalAddr())
+
+	// Build an all in-memory setup for dev mode, otherwise prepare a full
+	// disk-based setup.
 	var log raft.LogStore
 	var stable raft.StableStore
 	var snap raft.SnapshotStore
@@ -394,21 +403,22 @@ func (s *Server) setupRaft() error {
 		snap = snapshots
 
 		// If we see a peers.json file, attempt recovery based on it.
-		recovery, err := raft.NewPeersJSONRecovery(path)
-		if err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("recovery failed to parse peers.json: %v", err)
-		}
-		if recovery != nil {
+		peersFile := filepath.Join(path, "peers.json")
+		if _, err := os.Stat(peersFile); err == nil {
 			s.logger.Printf("[INFO] consul: found peers.json file, recovering Raft configuration...")
+			configuration, err := raft.ReadPeersJSON(peersFile)
+			if err != nil {
+				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
+			}
 			tmpFsm, err := NewFSM(s.tombstoneGC, s.config.LogOutput)
 			if err != nil {
 				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
 			}
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
-				log, stable, snap, recovery.Configuration); err != nil {
+				log, stable, snap, configuration); err != nil {
 				return fmt.Errorf("recovery failed: %v", err)
 			}
-			if err := recovery.Disarm(); err != nil {
+			if err := os.Remove(peersFile); err != nil {
 				return fmt.Errorf("recovery failed to delete peers.json, please delete manually: %v", err)
 			}
 			s.logger.Printf("[INFO] consul: deleted peers.json file after successful recovery")
@@ -464,9 +474,6 @@ func (s *Server) setupRaft() error {
 			}
 		}
 	}
-
-	// Make sure we set the LogOutput.
-	s.config.RaftConfig.LogOutput = s.config.LogOutput
 
 	// Setup the Raft store.
 	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, log, stable, snap, trans)
