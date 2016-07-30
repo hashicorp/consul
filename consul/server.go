@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/rpc"
@@ -402,9 +403,51 @@ func (s *Server) setupRaft() error {
 		}
 		snap = snapshots
 
-		// If we see a peers.json file, attempt recovery based on it.
+		// For an existing cluster being upgraded to the new version of
+		// Raft, we almost never want to run recovery based on the old
+		// peers.json file. We create a peers.info file with a helpful
+		// note about where peers.json went, and use that as a sentinel
+		// to avoid ingesting the old one that first time (if we have to
+		// create the peers.info file because it's not there, we also
+		// blow away any existing peers.json file).
 		peersFile := filepath.Join(path, "peers.json")
-		if _, err := os.Stat(peersFile); err == nil {
+		peersInfoFile := filepath.Join(path, "peers.info")
+		if _, err := os.Stat(peersInfoFile); os.IsNotExist(err) {
+			content := []byte(`
+As of Consul 0.7.0, the peers.json file is only used for recovery
+after an outage. It should be formatted as a JSON array containing the address
+and port of each Consul server in the cluster, like this:
+
+["10.1.0.1:8500","10.1.0.2:8500","10.1.0.3:8500"]
+
+Under normal operation, the peers.json file will not be present.
+
+When Consul starts for the first time, it will create this peers.info file and
+delete any existing peers.json file so that recovery doesn't occur on the first
+startup.
+
+Once this peers.info file is present, any peers.json file will be ingested at
+startup, and will set the Raft peer configuration manually to recover from an
+outage. It's crucial that all servers in the cluster are shut down before
+creating the peers.json file, and that all servers receive the same
+configuration. Once the peers.json file is successfully ingested and applied, it
+will be deleted.
+
+Please see https://www.consul.io/docs/guides/outage.html for more information.
+`)
+			if err := ioutil.WriteFile(peersInfoFile, content, 0755); err != nil {
+				return fmt.Errorf("failed to write peers.info file: %v", err)
+			}
+
+			// Blow away the peers.json file if present, since the
+			// peers.info sentinel wasn't there.
+			if _, err := os.Stat(peersFile); err == nil {
+				if err := os.Remove(peersFile); err != nil {
+					return fmt.Errorf("failed to delete peers.json, please delete manually (see peers.info for details): %v", err)
+				}
+				s.logger.Printf("[INFO] consul: deleted peers.json file (see peers.info for details)")
+			}
+		} else if _, err := os.Stat(peersFile); err == nil {
 			s.logger.Printf("[INFO] consul: found peers.json file, recovering Raft configuration...")
 			configuration, err := raft.ReadPeersJSON(peersFile)
 			if err != nil {
@@ -419,7 +462,7 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed: %v", err)
 			}
 			if err := os.Remove(peersFile); err != nil {
-				return fmt.Errorf("recovery failed to delete peers.json, please delete manually: %v", err)
+				return fmt.Errorf("recovery failed to delete peers.json, please delete manually (see peers.info for details): %v", err)
 			}
 			s.logger.Printf("[INFO] consul: deleted peers.json file after successful recovery")
 		}
