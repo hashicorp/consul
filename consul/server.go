@@ -458,7 +458,7 @@ Please see https://www.consul.io/docs/guides/outage.html for more information.
 				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
 			}
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
-				log, stable, snap, configuration); err != nil {
+				log, stable, snap, trans, configuration); err != nil {
 				return fmt.Errorf("recovery failed: %v", err)
 			}
 			if err := os.Remove(peersFile); err != nil {
@@ -485,7 +485,7 @@ Please see https://www.consul.io/docs/guides/outage.html for more information.
 				return fmt.Errorf("cleanup failed to make temp FSM: %v", err)
 			}
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
-				log, stable, snap, raft.Configuration{}); err != nil {
+				log, stable, snap, trans, raft.Configuration{}); err != nil {
 				return fmt.Errorf("recovery failed: %v", err)
 			}
 
