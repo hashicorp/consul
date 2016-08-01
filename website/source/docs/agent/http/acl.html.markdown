@@ -85,7 +85,7 @@ body may look like:
 
 ```javascript
 {
-  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e"
+  "ID": "adf4238a-882b-9ddc-4a9d-5b6758e4159e",
   "Name": "my-app-token-updated",
   "Type": "client",
   "Rules": "# New Rules",
