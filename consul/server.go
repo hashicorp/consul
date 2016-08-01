@@ -94,9 +94,6 @@ type Server struct {
 	// strong consistency.
 	fsm *consulFSM
 
-	// left is true if we have attempted to leave the cluster.
-	left bool
-
 	// localConsuls is used to track the known consuls
 	// in the local datacenter. Used to do leader forwarding.
 	localConsuls map[raft.ServerAddress]*agent.Server
@@ -106,17 +103,13 @@ type Server struct {
 	logger *log.Logger
 
 	// The raft instance is used among Consul nodes within the DC to protect
-	// operations that require strong consistency. The raftSafeFn will get
-	// called on a graceful leave to help "safe" the state of the server so
-	// it won't interfere with other servers. This will be called after Raft
-	// is shutdown, but before the state store is closed, so it can manipulate
+	// operations that require strong consistency.
 	// the state directly.
 	raft          *raft.Raft
 	raftLayer     *RaftLayer
 	raftStore     *raftboltdb.BoltStore
 	raftTransport *raft.NetworkTransport
 	raftInmem     *raft.InmemStore
-	raftSafeFn    func() error
 
 	// reconcileCh is used to pass events from the serf handler
 	// into the leader manager, so that the strong state can be
@@ -466,31 +459,6 @@ Please see https://www.consul.io/docs/guides/outage.html for more information.
 			}
 			s.logger.Printf("[INFO] consul: deleted peers.json file after successful recovery")
 		}
-
-		// Register a cleanup function to call when a leave occurs. This
-		// needs state that we only have access to here. This does a
-		// recover operation to an empty configuration so this server
-		// won't interfere with the rest of the cluster.
-		s.raftSafeFn = func() error {
-			hasState, err := raft.HasExistingState(log, stable, snap)
-			if err != nil {
-				return fmt.Errorf("cleanup failed to check for state: %v", err)
-			}
-			if !hasState {
-				return nil
-			}
-
-			tmpFsm, err := NewFSM(s.tombstoneGC, s.config.LogOutput)
-			if err != nil {
-				return fmt.Errorf("cleanup failed to make temp FSM: %v", err)
-			}
-			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
-				log, stable, snap, trans, raft.Configuration{}); err != nil {
-				return fmt.Errorf("recovery failed: %v", err)
-			}
-
-			return nil
-		}
 	}
 
 	// If we are in bootstrap or dev mode and the state is clean then we can
@@ -614,11 +582,6 @@ func (s *Server) Shutdown() error {
 		if err := future.Error(); err != nil {
 			s.logger.Printf("[WARN] consul: error shutting down raft: %s", err)
 		}
-		if s.left && s.raftSafeFn != nil {
-			if err := s.raftSafeFn(); err != nil {
-				s.logger.Printf("[WARN] consul: error safing raft: %s", err)
-			}
-		}
 		if s.raftStore != nil {
 			s.raftStore.Close()
 		}
@@ -637,7 +600,6 @@ func (s *Server) Shutdown() error {
 // Leave is used to prepare for a graceful shutdown of the server
 func (s *Server) Leave() error {
 	s.logger.Printf("[INFO] consul: server starting leave")
-	s.left = true
 
 	// Check the number of known peers
 	numPeers, err := s.numPeers()
@@ -702,6 +664,17 @@ func (s *Server) Leave() error {
 				}
 			}
 		}
+
+		// TODO (slackpad) With the old Raft library we used to force the
+		// peers set to empty when a graceful leave occurred. This would
+		// keep voting spam down if the server was restarted, but it was
+		// dangerous because the peers was inconsistent with the logs and
+		// snapshots, so it wasn't really safe in all cases for the server
+		// to become leader. This is now safe, but the log spam is noisy.
+		// The next new version of the library will have a "you are not a
+		// peer stop it" behavior that should address this. We will have
+		// to evaluate during the RC period if this interim situation is
+		// not too confusing for operators.
 
 		// TODO (slackpad) When we take a later new version of the Raft
 		// library it won't try to complete replication, so this peer
