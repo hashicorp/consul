@@ -30,6 +30,8 @@ BACKWARDS INCOMPATIBILITIES:
   not the agent is acting as a server or client.  When Consul is started as a
   server the default is `true` and `false` when a client. [GH-1909]
 * HTTP check output is truncated to 4k, similar to script check output. [GH-1952]
+* Consul's Go API client will now send ACL tokens using HTTP headers instead of
+  query parameters, requiring Consul 0.6.0 or later. [GH-2233]
 
 IMPROVEMENTS:
 
