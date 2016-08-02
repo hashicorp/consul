@@ -75,7 +75,7 @@ client to make a request of a server.
 From a 10,000 foot altitude the architecture of Consul looks like this:
 
 <div class="center">
-![Consul Architecture](consul-arch.png)
+[![Consul Architecture](/assets/images/consul-arch.png)](/assets/images/consul-arch.png)
 </div>
 
 Let's break down this image and describe each piece. First of all, we can see
