@@ -247,8 +247,8 @@ func TestSetQueryOptions(t *testing.T) {
 	if r.params.Get("wait") != "100000ms" {
 		t.Fatalf("bad: %v", r.params)
 	}
-	if r.params.Get("token") != "12345" {
-		t.Fatalf("bad: %v", r.params)
+	if r.header.Get("X-Consul-Token") != "12345" {
+		t.Fatalf("bad: %v", r.header)
 	}
 	if r.params.Get("near") != "nodex" {
 		t.Fatalf("bad: %v", r.params)
@@ -270,8 +270,8 @@ func TestSetWriteOptions(t *testing.T) {
 	if r.params.Get("dc") != "foo" {
 		t.Fatalf("bad: %v", r.params)
 	}
-	if r.params.Get("token") != "23456" {
-		t.Fatalf("bad: %v", r.params)
+	if r.header.Get("X-Consul-Token") != "23456" {
+		t.Fatalf("bad: %v", r.header)
 	}
 }
 
