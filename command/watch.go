@@ -149,8 +149,8 @@ func (c *WatchCommand) Run(args []string) int {
 	//	0: false
 	//	1: true
 	errExit := 0
-	// channels used for stopping WatchPlan command
-	wpStoppedCh := make(chan error, 1)
+	// These channels are used for stopping WatchPlan command
+	wpStoppedCh := make(chan struct{})
 	wpStoppingCh := make(chan struct{})
 	if script == "" {
 		wp.Handler = func(idx uint64, data interface{}) {
@@ -168,6 +168,7 @@ func (c *WatchCommand) Run(args []string) int {
 			var buf bytes.Buffer
 			var err error
 			cmd, err := agent.ExecScript(script)
+
 			if err != nil {
 				c.Ui.Error(fmt.Sprintf("Error executing handler: %s", err))
 				goto ERR
@@ -185,19 +186,27 @@ func (c *WatchCommand) Run(args []string) int {
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 
-			// Watch for a stop
-			go func() {
-				<-wpStoppingCh
-				cmd.Process.Kill()
-				wpStoppedCh <- cmd.Wait()
-			}()
-
-			// Run the handler
-			if err := cmd.Run(); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error executing handler: %s", err))
+			if err := cmd.Start(); err != nil {
+				c.Ui.Error(fmt.Sprintf("Error starting handler: %s", err))
 				goto ERR
+			} else {
+				done := make(chan error, 1)
+				go func() {
+					done <- cmd.Wait()
+				}()
+				select {
+				case <-wpStoppingCh:
+					if err := cmd.Process.Signal(os.Interrupt); err != nil {
+						c.Ui.Error(fmt.Sprintf("Error sending interrupt to handler process: %s", err))
+					}
+					close(wpStoppedCh)
+				case err := <-done:
+					if err != nil {
+						c.Ui.Error(fmt.Sprintf("Error waiting for handler process: %s", err))
+						goto ERR
+					}
+				}
 			}
-
 			return
 		ERR:
 			wp.Stop()
