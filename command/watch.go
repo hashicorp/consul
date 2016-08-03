@@ -194,6 +194,7 @@ func (c *WatchCommand) Run(args []string) int {
 				close(wpStoppedCh)
 			}()
 
+			// Run the handler
 			if err := cmd.Run(); err != nil {
 				c.Ui.Error(fmt.Sprintf("Error executing handler: %s", err))
 				goto ERR
