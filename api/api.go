@@ -20,6 +20,12 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 )
 
+const (
+	// HTTPAddrEnvName defines an environment variable name which sets
+	// the HTTP address if there is no -http-addr specified.
+	HTTPAddrEnvName = "CONSUL_HTTP_ADDR"
+)
+
 // QueryOptions are used to parameterize a query
 type QueryOptions struct {
 	// Providing a datacenter overwrites the DC provided
@@ -178,7 +184,7 @@ func defaultConfig(transportFn func() *http.Transport) *Config {
 		},
 	}
 
-	if addr := os.Getenv("CONSUL_HTTP_ADDR"); addr != "" {
+	if addr := os.Getenv(HTTPAddrEnvName); addr != "" {
 		config.Address = addr
 	}
 

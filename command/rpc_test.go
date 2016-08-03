@@ -4,6 +4,9 @@ import (
 	"flag"
 	"os"
 	"testing"
+
+	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/agent"
 )
 
 const (
@@ -21,11 +24,11 @@ func getParsedAddr(t *testing.T, addrType, cliVal, envVal string) string {
 	switch addrType {
 	case "rpc":
 		fn = RPCAddrFlag
-		envVar = RPCAddrEnvName
+		envVar = agent.RPCAddrEnvName
 		cliFlag = "-rpc-addr"
 	case "http":
 		fn = HTTPAddrFlag
-		envVar = HTTPAddrEnvName
+		envVar = consulapi.HTTPAddrEnvName
 		cliFlag = "-http-addr"
 	default:
 		t.Fatalf("unknown address type %s", addrType)

@@ -76,8 +76,8 @@ func TestDefaultConfig_env(t *testing.T) {
 	token := "abcd1234"
 	auth := "username:password"
 
-	os.Setenv("CONSUL_HTTP_ADDR", addr)
-	defer os.Setenv("CONSUL_HTTP_ADDR", "")
+	os.Setenv(HTTPAddrEnvName, addr)
+	defer os.Setenv(HTTPAddrEnvName, "")
 	os.Setenv("CONSUL_HTTP_TOKEN", token)
 	defer os.Setenv("CONSUL_HTTP_TOKEN", "")
 	os.Setenv("CONSUL_HTTP_AUTH", auth)
