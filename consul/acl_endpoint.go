@@ -15,26 +15,13 @@ type ACL struct {
 	srv *Server
 }
 
-// Apply is used to apply a modifying request to the data store. This should
-// only be used for operations that modify the data
-func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
-	if done, err := a.srv.forward("ACL.Apply", args, args, reply); done {
-		return err
-	}
-	defer metrics.MeasureSince([]string{"consul", "acl", "apply"}, time.Now())
-
-	// Verify we are allowed to serve this request
-	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
-		return fmt.Errorf(aclDisabled)
-	}
-
-	// Verify token is permitted to modify ACLs
-	if acl, err := a.srv.resolveToken(args.Token); err != nil {
-		return err
-	} else if acl == nil || !acl.ACLModify() {
-		return permissionDeniedErr
-	}
-
+// aclApplyInternal is used to apply an ACL request after it has been vetted that
+// this is a valid operation. It is used when users are updating ACLs, in which
+// case we check their token to make sure they have management privileges. It is
+// also used for ACL replication. We want to run the replicated ACLs through the
+// same checks on the change itself. If an operation needs to generate an ID,
+// routine will fill in an ID with the args as part of the request.
+func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) error {
 	switch args.Op {
 	case structs.ACLSet:
 		// Verify the ACL type
@@ -61,16 +48,16 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 		// deterministic. Once the entry is in the log, the state update MUST
 		// be deterministic or the followers will not converge.
 		if args.ACL.ID == "" {
-			state := a.srv.fsm.State()
+			state := srv.fsm.State()
 			for {
 				if args.ACL.ID, err = uuid.GenerateUUID(); err != nil {
-					a.srv.logger.Printf("[ERR] consul.acl: UUID generation failed: %v", err)
+					srv.logger.Printf("[ERR] consul.acl: UUID generation failed: %v", err)
 					return err
 				}
 
 				_, acl, err := state.ACLGet(args.ACL.ID)
 				if err != nil {
-					a.srv.logger.Printf("[ERR] consul.acl: ACL lookup failed: %v", err)
+					srv.logger.Printf("[ERR] consul.acl: ACL lookup failed: %v", err)
 					return err
 				}
 				if acl == nil {
@@ -91,13 +78,46 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 	}
 
 	// Apply the update
-	resp, err := a.srv.raftApply(structs.ACLRequestType, args)
+	resp, err := srv.raftApply(structs.ACLRequestType, args)
 	if err != nil {
-		a.srv.logger.Printf("[ERR] consul.acl: Apply failed: %v", err)
+		srv.logger.Printf("[ERR] consul.acl: Apply failed: %v", err)
 		return err
 	}
 	if respErr, ok := resp.(error); ok {
 		return respErr
+	}
+
+	// Check if the return type is a string
+	if respString, ok := resp.(string); ok {
+		*reply = respString
+	}
+
+	return nil
+}
+
+// Apply is used to apply a modifying request to the data store. This should
+// only be used for operations that modify the data
+func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
+	if done, err := a.srv.forward("ACL.Apply", args, args, reply); done {
+		return err
+	}
+	defer metrics.MeasureSince([]string{"consul", "acl", "apply"}, time.Now())
+
+	// Verify we are allowed to serve this request
+	if a.srv.config.ACLDatacenter != a.srv.config.Datacenter {
+		return fmt.Errorf(aclDisabled)
+	}
+
+	// Verify token is permitted to modify ACLs
+	if acl, err := a.srv.resolveToken(args.Token); err != nil {
+		return err
+	} else if acl == nil || !acl.ACLModify() {
+		return permissionDeniedErr
+	}
+
+	// Do the apply now that this update is vetted.
+	if err := aclApplyInternal(a.srv, args, reply); err != nil {
+		return err
 	}
 
 	// Clear the cache if applicable
@@ -105,10 +125,6 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 		a.srv.aclAuthCache.ClearACL(args.ACL.ID)
 	}
 
-	// Check if the return type is a string
-	if respString, ok := resp.(string); ok {
-		*reply = respString
-	}
 	return nil
 }
 

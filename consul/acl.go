@@ -74,7 +74,7 @@ func (s *Server) aclFault(id string) (string, string, error) {
 	return s.config.ACLDefaultPolicy, acl.Rules, nil
 }
 
-// resolveToken is used to resolve an ACL is any is appropriate
+// resolveToken is used to resolve an ACL if any is appropriate
 func (s *Server) resolveToken(id string) (acl.ACL, error) {
 	// Check if there is no ACL datacenter (ACL's disabled)
 	authDC := s.config.ACLDatacenter

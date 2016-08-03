@@ -452,6 +452,12 @@ type Config struct {
 	//                    this acts like deny.
 	ACLDownPolicy string `mapstructure:"acl_down_policy"`
 
+	// ACLReplicationToken is used to fetch ACLs from the ACLDatacenter in
+	// order to replicate them locally. Setting this to a non-empty value
+	// also enables replication. Replication is only available in datacenters
+	// other than the ACLDatacenter.
+	ACLReplicationToken string `mapstructure:"acl_replication_token"`
+
 	// Watches are used to monitor various endpoints and to invoke a
 	// handler to act appropriately. These are managed entirely in the
 	// agent layer using the standard APIs.
@@ -1318,6 +1324,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.ACLDefaultPolicy != "" {
 		result.ACLDefaultPolicy = b.ACLDefaultPolicy
+	}
+	if b.ACLReplicationToken != "" {
+		result.ACLReplicationToken = b.ACLReplicationToken
 	}
 	if len(b.Watches) != 0 {
 		result.Watches = append(result.Watches, b.Watches...)

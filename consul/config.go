@@ -173,6 +173,24 @@ type Config struct {
 	// "allow" can be used to allow all requests. This is not recommended.
 	ACLDownPolicy string
 
+	// ACLReplicationToken is used to fetch ACLs from the ACLDatacenter in
+	// order to replicate them locally. Setting this to a non-empty value
+	// also enables replication. Replication is only available in datacenters
+	// other than the ACLDatacenter.
+	ACLReplicationToken string
+
+	// ACLReplicationInterval is the interval at which replication passes
+	// will occur. Queries to the ACLDatacenter may block, so replication
+	// can happen less often than this, but the interval forms the upper
+	// limit to how fast we will go if there was constant ACL churn on the
+	// remote end.
+	ACLReplicationInterval time.Duration
+
+	// ACLReplicationApplyLimit is the max number of replication-related
+	// apply operations that we allow during a one second period. This is
+	// used to limit the amount of Raft bandwidth used for replication.
+	ACLReplicationApplyLimit int
+
 	// TombstoneTTL is used to control how long KV tombstones are retained.
 	// This provides a window of time where the X-Consul-Index is monotonic.
 	// Outside this window, the index may not be monotonic. This is a result
@@ -271,21 +289,23 @@ func DefaultConfig() *Config {
 	}
 
 	conf := &Config{
-		Datacenter:              DefaultDC,
-		NodeName:                hostname,
-		RPCAddr:                 DefaultRPCAddr,
-		RaftConfig:              raft.DefaultConfig(),
-		SerfLANConfig:           serf.DefaultConfig(),
-		SerfWANConfig:           serf.DefaultConfig(),
-		ReconcileInterval:       60 * time.Second,
-		ProtocolVersion:         ProtocolVersion2Compatible,
-		ACLTTL:                  30 * time.Second,
-		ACLDefaultPolicy:        "allow",
-		ACLDownPolicy:           "extend-cache",
-		TombstoneTTL:            15 * time.Minute,
-		TombstoneTTLGranularity: 30 * time.Second,
-		SessionTTLMin:           10 * time.Second,
-		DisableCoordinates:      false,
+		Datacenter:               DefaultDC,
+		NodeName:                 hostname,
+		RPCAddr:                  DefaultRPCAddr,
+		RaftConfig:               raft.DefaultConfig(),
+		SerfLANConfig:            serf.DefaultConfig(),
+		SerfWANConfig:            serf.DefaultConfig(),
+		ReconcileInterval:        60 * time.Second,
+		ProtocolVersion:          ProtocolVersion2Compatible,
+		ACLTTL:                   30 * time.Second,
+		ACLDefaultPolicy:         "allow",
+		ACLDownPolicy:            "extend-cache",
+		ACLReplicationInterval:   30 * time.Second,
+		ACLReplicationApplyLimit: 100, // ops / sec
+		TombstoneTTL:             15 * time.Minute,
+		TombstoneTTLGranularity:  30 * time.Second,
+		SessionTTLMin:            10 * time.Second,
+		DisableCoordinates:       false,
 
 		// These are tuned to provide a total throughput of 128 updates
 		// per second. If you update these, you should update the client-

@@ -339,6 +339,9 @@ func (a *Agent) consulConfig() *consul.Config {
 	if a.config.ACLDownPolicy != "" {
 		base.ACLDownPolicy = a.config.ACLDownPolicy
 	}
+	if a.config.ACLReplicationToken != "" {
+		base.ACLReplicationToken = a.config.ACLReplicationToken
+	}
 	if a.config.SessionTTLMinRaw != "" {
 		base.SessionTTLMin = a.config.SessionTTLMin
 	}
