@@ -675,12 +675,11 @@ func (a *Agent) persistService(service *structs.NodeService) error {
 	if err := os.MkdirAll(filepath.Dir(svcPath), 0700); err != nil {
 		return err
 	}
-	fh, err := os.OpenFile(svcPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
-	if err != nil {
+	tempSvcPath := svcPath + ".tmp"
+	if err := ioutil.WriteFile(tempSvcPath, encoded, 0600); err != nil {
 		return err
 	}
-	defer fh.Close()
-	if _, err := fh.Write(encoded); err != nil {
+	if err := os.Rename(tempSvcPath, svcPath); err != nil {
 		return err
 	}
 	return nil
@@ -1092,8 +1091,14 @@ func (a *Agent) persistCheckState(check *CheckTTL, status, output string) error 
 
 	// Write the state to the file
 	file := filepath.Join(dir, checkIDHash(check.CheckID))
-	if err := ioutil.WriteFile(file, buf, 0600); err != nil {
-		return fmt.Errorf("failed writing file %q: %s", file, err)
+	// Create temp file in same folder, to make more likely atomic
+	tempFile := file + ".tmp"
+
+	if err := ioutil.WriteFile(tempFile, buf, 0600); err != nil {
+		return fmt.Errorf("failed writing temp file %q: %s", tempFile, err)
+	}
+	if err := os.Rename(tempFile, file); err != nil {
+		return fmt.Errorf("failed to rename temp file from %q to %q: %s", tempFile, file, err)
 	}
 
 	return nil
