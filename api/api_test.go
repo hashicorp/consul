@@ -78,14 +78,14 @@ func TestDefaultConfig_env(t *testing.T) {
 
 	os.Setenv(HTTPAddrEnvName, addr)
 	defer os.Setenv(HTTPAddrEnvName, "")
-	os.Setenv("CONSUL_HTTP_TOKEN", token)
-	defer os.Setenv("CONSUL_HTTP_TOKEN", "")
-	os.Setenv("CONSUL_HTTP_AUTH", auth)
-	defer os.Setenv("CONSUL_HTTP_AUTH", "")
-	os.Setenv("CONSUL_HTTP_SSL", "1")
-	defer os.Setenv("CONSUL_HTTP_SSL", "")
-	os.Setenv("CONSUL_HTTP_SSL_VERIFY", "0")
-	defer os.Setenv("CONSUL_HTTP_SSL_VERIFY", "")
+	os.Setenv(HTTPTokenEnvName, token)
+	defer os.Setenv(HTTPTokenEnvName, "")
+	os.Setenv(HTTPAuthEnvName, auth)
+	defer os.Setenv(HTTPAuthEnvName, "")
+	os.Setenv(HTTPSSLEnvName, "1")
+	defer os.Setenv(HTTPSSLEnvName, "")
+	os.Setenv(HTTPSSLVerifyEnvName, "0")
+	defer os.Setenv(HTTPSSLVerifyEnvName, "")
 
 	for i, config := range []*Config{DefaultConfig(), DefaultNonPooledConfig()} {
 		if config.Address != addr {
