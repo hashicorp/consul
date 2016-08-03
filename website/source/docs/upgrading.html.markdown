@@ -73,13 +73,13 @@ running `consul -v`. You'll see output similar to that below:
 
 ```
 $ consul -v
-Consul v0.1.0
-Consul Protocol: 1 (Understands back to: 1)
+Consul v0.6.3
+Consul Protocol: 3 (Understands back to: 1)
 ```
 
-This says the version of Consul as well as the latest protocol version (1,
+This says the version of Consul as well as the latest protocol version (3,
 in this case). It also says the earliest protocol version that this Consul
-agent can understand (0, in this case).
+agent can understand (1, in this case).
 
 By specifying the `-protocol` flag on `consul agent`, you can tell the
 Consul agent to speak any protocol version that it can understand. This
