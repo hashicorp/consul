@@ -456,7 +456,7 @@ type Config struct {
 	// order to replicate them locally. Setting this to a non-empty value
 	// also enables replication. Replication is only available in datacenters
 	// other than the ACLDatacenter.
-	ACLReplicationToken string `mapstructure:"acl_replication_token"`
+	ACLReplicationToken string `mapstructure:"acl_replication_token" json:"-"`
 
 	// Watches are used to monitor various endpoints and to invoke a
 	// handler to act appropriately. These are managed entirely in the
