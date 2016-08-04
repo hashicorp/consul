@@ -41,13 +41,18 @@ type aclIterator struct {
 	index int
 }
 
+// newACLIterator returns a new ACL iterator.
+func newACLIterator(acls structs.ACLs) *aclIterator {
+	return &aclIterator{acls: acls}
+}
+
 // Front returns the item at index position, or nil if the list is exhausted.
 func (a *aclIterator) Front() *structs.ACL {
 	if a.index < len(a.acls) {
 		return a.acls[a.index]
+	} else {
+		return nil
 	}
-
-	return nil
 }
 
 // Next advances the iterator to the next index.
@@ -72,7 +77,7 @@ func reconcileACLs(local, remote structs.ACLs, lastRemoteIndex uint64) structs.A
 
 	// Run through both lists and reconcile them.
 	var changes structs.ACLRequests
-	localIter, remoteIter := &aclIterator{local, 0}, &aclIterator{remote, 0}
+	localIter, remoteIter := newACLIterator(local), newACLIterator(remote)
 	for localIter.Front() != nil || remoteIter.Front() != nil {
 		// If the local list is exhausted, then process this as a remote
 		// add. We know from the loop condition that there's something
