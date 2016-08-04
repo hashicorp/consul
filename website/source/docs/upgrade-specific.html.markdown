@@ -48,7 +48,7 @@ previous versions of Consul.
 Consul version 0.6 is a very large release with many enhancements and
 optimizations. Changes to be aware of during an upgrade are categorized below.
 
-#### Data store changes
+#### Data Store Changes
 
 Consul changed the format used to store data on the server nodes in version 0.5
 (see 0.5.1 notes below for details). Previously, Consul would automatically
