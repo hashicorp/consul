@@ -197,6 +197,18 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 		c.logger.Printf("[ERR] consul.acl: Failed to get policy from ACL datacenter: %v", err)
 	}
 
+	// TODO (slackpad) - We could do a similar thing *within* the ACL
+	// datacenter if the leader isn't available. We have a local state
+	// store of the ACLs, so by populating the local member in this cache,
+	// it would fall back to the state store if there was a leader loss and
+	// the extend-cache policy was true. This feels subtle to explain and
+	// configure, and leader blips should be paved over by cache already, so
+	// we won't do this for now but should consider for the future. This is
+	// a lot different than the replication story where you might be cut off
+	// from the ACL datacenter for an extended period of time and need to
+	// carry on operating with the full set of ACLs as they were known
+	// before the partition.
+
 	// At this point we might have an expired cache entry and we know that
 	// there was a problem getting the ACL from the ACL datacenter. If a
 	// local ACL fault function is registered to query replicated ACL data,

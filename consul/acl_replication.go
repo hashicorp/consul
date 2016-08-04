@@ -179,7 +179,7 @@ func (s *Server) updateLocalACLs(changes structs.ACLRequests) error {
 		// operations and wait out to the second before we continue. If
 		// it's going slower than that, the sleep time will be negative
 		// so we will just keep going without delay.
-		if ops > s.config.ACLReplicationApplyLimit {
+		if ops >= s.config.ACLReplicationApplyLimit {
 			elapsed := time.Now().Sub(start)
 			time.Sleep(1*time.Second - elapsed)
 			ops, start = 0, time.Now()
