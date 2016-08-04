@@ -8,7 +8,7 @@ import (
 )
 
 // FaultFunc is a function used to fault in the parent,
-// rules for an  ACL given it's ID
+// rules for an ACL given its ID
 type FaultFunc func(id string) (string, string, error)
 
 // aclEntry allows us to store the ACL with it's policy ID
@@ -46,7 +46,7 @@ func NewCache(size int, faultfn FaultFunc) (*Cache, error) {
 // GetPolicy is used to get a potentially cached policy set.
 // If not cached, it will be parsed, and then cached.
 func (c *Cache) GetPolicy(rules string) (*Policy, error) {
-	return c.getPolicy(c.ruleID(rules), rules)
+	return c.getPolicy(RuleID(rules), rules)
 }
 
 // getPolicy is an internal method to get a cached policy,
@@ -66,8 +66,8 @@ func (c *Cache) getPolicy(id, rules string) (*Policy, error) {
 
 }
 
-// ruleID is used to generate an ID for a rule
-func (c *Cache) ruleID(rules string) string {
+// RuleID is used to generate an ID for a rule
+func RuleID(rules string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(rules)))
 }
 
@@ -112,7 +112,7 @@ func (c *Cache) GetACL(id string) (ACL, error) {
 	if err != nil {
 		return nil, err
 	}
-	ruleID := c.ruleID(rules)
+	ruleID := RuleID(rules)
 
 	// Check for a compiled ACL
 	policyID := c.policyID(parentID, ruleID)

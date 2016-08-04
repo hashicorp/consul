@@ -161,6 +161,11 @@ func (a *ACL) Get(args *structs.ACLSpecificRequest,
 		})
 }
 
+// makeACLETag returns an ETag for the given parent and policy.
+func makeACLETag(parent string, policy *acl.Policy) string {
+	return fmt.Sprintf("%s:%s", parent, policy.ID)
+}
+
 // GetPolicy is used to retrieve a compiled policy object with a TTL. Does not
 // support a blocking query.
 func (a *ACL) GetPolicy(args *structs.ACLPolicyRequest, reply *structs.ACLPolicy) error {
@@ -181,7 +186,7 @@ func (a *ACL) GetPolicy(args *structs.ACLPolicyRequest, reply *structs.ACLPolicy
 
 	// Generate an ETag
 	conf := a.srv.config
-	etag := fmt.Sprintf("%s:%s", parent, policy.ID)
+	etag := makeACLETag(parent, policy)
 
 	// Setup the response
 	reply.ETag = etag

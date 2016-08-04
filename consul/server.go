@@ -67,7 +67,7 @@ const (
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
-	// aclAuthCache is the authoritative ACL cache
+	// aclAuthCache is the authoritative ACL cache.
 	aclAuthCache *acl.Cache
 
 	// aclCache is the non-authoritative ACL cache.
@@ -151,15 +151,10 @@ type Server struct {
 
 	// shutdown and the associated members here are used in orchestrating
 	// a clean shutdown. The shutdownCh is never written to, only closed to
-	// indicate a shutdown has been initiated. The shutdownWait group will
-	// be waited on after closing the shutdownCh, but before any other
-	// shutdown activities take place in the server. Anything added to the
-	// shutdownWait group will block all the rest of shutdown, so use this
-	// sparingly and carefully.
+	// indicate a shutdown has been initiated.
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
-	shutdownWait sync.WaitGroup
 }
 
 // Holds the RPC endpoints
@@ -236,16 +231,21 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	// Initialize the authoritative ACL cache.
-	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclFault)
+	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclLocalFault)
 	if err != nil {
 		s.Shutdown()
-		return nil, fmt.Errorf("Failed to create ACL cache: %v", err)
+		return nil, fmt.Errorf("Failed to create authoritative ACL cache: %v", err)
 	}
 
-	// Set up the non-authoritative ACL cache.
-	if s.aclCache, err = newAclCache(config, logger, s.RPC); err != nil {
+	// Set up the non-authoritative ACL cache. A nil local function is given
+	// if ACL replication isn't enabled.
+	var local acl.FaultFunc
+	if s.IsACLReplicationEnabled() {
+		local = s.aclLocalFault
+	}
+	if s.aclCache, err = newAclCache(config, logger, s.RPC, local); err != nil {
 		s.Shutdown()
-		return nil, err
+		return nil, fmt.Errorf("Failed to create non-authoritative ACL cache: %v", err)
 	}
 
 	// Initialize the RPC layer.
@@ -280,7 +280,6 @@ func NewServer(config *Config) (*Server, error) {
 
 	// Start ACL replication.
 	if s.IsACLReplicationEnabled() {
-		s.shutdownWait.Add(1)
 		go s.runACLReplication()
 	}
 
@@ -509,7 +508,6 @@ func (s *Server) Shutdown() error {
 
 	s.shutdown = true
 	close(s.shutdownCh)
-	s.shutdownWait.Wait()
 
 	if s.serfLAN != nil {
 		s.serfLAN.Shutdown()

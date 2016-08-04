@@ -179,6 +179,7 @@ func (s *Server) updateLocalACLs(changes structs.ACLRequests) error {
 			time.Sleep(1*time.Second - elapsed)
 			ops, start = 0, time.Now()
 		}
+		ops++
 
 		// Note that we are using the single ACL interface here and not
 		// performing all this inside a single transaction. This is OK
@@ -192,7 +193,6 @@ func (s *Server) updateLocalACLs(changes structs.ACLRequests) error {
 		if err := aclApplyInternal(s, change, &reply); err != nil {
 			return err
 		}
-		ops++
 	}
 	return nil
 }
@@ -232,6 +232,8 @@ func (s *Server) replicateACLs(lastRemoteIndex uint64) (uint64, error) {
 		lastRemoteIndex = 0
 	}
 
+	// Calculate the changes required to bring the state into sync and then
+	// apply them.
 	changes := reconcileACLs(local, remote.ACLs, lastRemoteIndex)
 	if err := s.updateLocalACLs(changes); err != nil {
 		return 0, fmt.Errorf("failed to sync ACL changes: %v", err)
@@ -252,8 +254,6 @@ func (s *Server) IsACLReplicationEnabled() bool {
 // runACLReplication is a long-running goroutine that will attempt to replicate
 // ACLs while the server is the leader, until the shutdown channel closes.
 func (s *Server) runACLReplication() {
-	defer s.shutdownWait.Done()
-
 	// Give each server's replicator a random initial phase for good
 	// measure.
 	select {
