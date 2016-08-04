@@ -194,11 +194,6 @@ func (c *aclCache) lookupACL(id, authDC string) (acl.ACL, error) {
 	if strings.Contains(err.Error(), aclNotFound) {
 		return nil, errors.New(aclNotFound)
 	} else {
-		// TODO (slackpad) - We used to print a few characters of the
-		// token here if the token was long enough. This was bugging me
-		// so I deleted it. We should probably print a hash of the token,
-		// or better yet let's add another ID to tokens to identify them
-		// without giving away their privileges.
 		c.logger.Printf("[ERR] consul.acl: Failed to get policy from ACL datacenter: %v", err)
 	}
 
