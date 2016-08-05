@@ -64,22 +64,97 @@ App.BaseRoute = Ember.Route.extend({
 });
 
 //
+// Supporting functions
+//
+function distance(a, b) {
+  a = a.Coord;
+  b = b.Coord;
+  var sum = 0;
+  for (var i = 0; i < a.Vec.length; i++) {
+    var diff = a.Vec[i] - b.Vec[i];
+    sum += diff * diff;
+  }
+  var rtt = Math.sqrt(sum) + a.Height + b.Height;
+
+  var adjusted = rtt + a.Adjustment + b.Adjustment;
+  if (adjusted > 0.0) {
+    rtt = adjusted;
+  }
+
+  return Math.round(rtt * 100000.0) / 100.0;
+}
+
+function medianDistance(distances) {
+  var n = distances.length;
+  var halfN = Math.floor(n / 2);
+  if (n % 2) {
+    // odd
+    return distances[halfN].distance;
+  } else {
+    return (distances[halfN - 1].distance + distances[halfN].distance) / 2;
+  }
+}
+
+//
 // The route for choosing datacenters, typically the first route loaded.
 //
 App.IndexRoute = App.BaseRoute.extend({
   // Retrieve the list of datacenters
   model: function(params) {
-    return Ember.$.getJSON(consulHost + '/v1/catalog/datacenters').then(function(data) {
-      return data;
-    });
+    return Ember.$.getJSON(formatUrl(consulHost + '/v1/coordinate/datacenters')).then(function(data) {
+      var globalMax = -1;
+      var datacenters = [];
+      data.forEach(function (source) {
+        var peers = [];
+        data.forEach(function (target) {
+          if (source.Datacenter != target.Datacenter) {
+            var distances = [];
+            source.Coordinates.forEach(function (sourceNode) {
+              target.Coordinates.forEach(function (targetNode) {
+                distances.push({
+                  source: sourceNode.Node,
+                  target: targetNode.Node,
+                  distance: distance(sourceNode, targetNode)
+                });
+              });
+            });
+            distances.sort(function (a, b) {
+              return a.distance - b.distance;
+            });
+            var n1 = distances.length - 1;
+            var max = distances[n1].distance;
+            if (max > globalMax) {
+              globalMax = max;
+            }
+            peers.push({
+              datacenter: target.Datacenter,
+              distances: distances,
+            });
+          }
+        });
+        peers.sort(function (a, b) {
+          return a.datacenter.localeCompare(b.datacenter);
+        });
+        datacenters.push({
+          datacenter: source.Datacenter,
+          peers: peers,
+        });
+      });
+
+      return {
+        max: globalMax,
+        mid: globalMax / 2.0,
+        datacenters: datacenters
+      };
+    })
   },
 
   afterModel: function(model, transition) {
     // If we only have one datacenter, jump
     // straight to it and bypass the global
     // view
-    if (model.get('length') === 1) {
-      this.transitionTo('services', model[0]);
+    if (model.datacenters.get('length') === 1) {
+      this.transitionTo('services', model.datacenters[0].datacenter);
     }
   }
 });
@@ -261,31 +336,11 @@ App.ServicesShowRoute = App.BaseRoute.extend({
   }
 });
 
-function distance(a, b) {
-    a = a.Coord;
-    b = b.Coord;
-    var sum = 0;
-    for (var i = 0; i < a.Vec.length; i++) {
-        var diff = a.Vec[i] - b.Vec[i];
-        sum += diff * diff;
-    }
-    var rtt = Math.sqrt(sum) + a.Height + b.Height;
-
-    var adjusted = rtt + a.Adjustment + b.Adjustment;
-    if (adjusted > 0.0) {
-        rtt = adjusted;
-    }
-
-    return Math.round(rtt * 100000.0) / 100.0;
-}
-
 App.NodesShowRoute = App.BaseRoute.extend({
   model: function(params) {
     var dc = this.modelFor('dc');
     var token = App.get('settings.token');
 
-    var min = 999999999;
-    var max = -999999999;
     var sum = 0;
     var distances = [];
     dc.coordinates.forEach(function (node) {
@@ -295,12 +350,6 @@ App.NodesShowRoute = App.BaseRoute.extend({
             var dist = distance(node, other);
             distances.push({ node: other.Node, distance: dist });
             sum += dist;
-            if (dist < min) {
-              min = dist;
-            }
-            if (dist > max) {
-              max = dist;
-            }
           }
         });
         distances.sort(function (a, b) {
@@ -309,14 +358,9 @@ App.NodesShowRoute = App.BaseRoute.extend({
       }
     });
     var n = distances.length;
-    var halfN = Math.floor(n / 2);
-    var median;
-    if (n % 2) {
-      // odd
-      median = distances[halfN].distance;
-    } else {
-      median = (distances[halfN - 1].distance + distances[halfN].distance) / 2;
-    }
+    var min = distances[0].distance;
+    var median = medianDistance(distances);
+    var max = distances[n - 1].distance;
 
     // Return a promise hash of the node and nodes
     return Ember.RSVP.hash({

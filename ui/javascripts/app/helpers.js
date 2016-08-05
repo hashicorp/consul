@@ -94,13 +94,13 @@ function notify(message, ttl) {
 
 // Tomography
 
-// TODO: not sure how to how do to this more Ember.js-y
-function tomographyMouseOver(el) {
+// Note: not sure how to how do to this more Ember.js-y
+function nodeTomographyMouseOver(el) {
   var buf = el.getAttribute('data-node') + ' - ' + el.getAttribute('data-distance') + 'ms';
-  document.getElementById('tomography-node-info').innerHTML = buf;
+  document.getElementById('node-tomography-info').innerHTML = buf;
 }
 
-Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
+Ember.Handlebars.helper('nodeTomographyGraph', function(tomography, size) {
 
   // This is ugly, but I'm working around bugs with Handlebars and templating
   // parts of svgs. Basically things render correctly the first time, but when
@@ -110,16 +110,10 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
   // if/when Handlebars fixes the underlying issues all of this can be cleaned
   // up drastically.
 
-  var max = -999999999;
-  tomography.distances.forEach(function (d, i) {
-    if (d.distance > max) {
-      max = d.distance;
-    }
-  });
   var insetSize = size / 2 - 8;
   var buf = '' +
 '      <svg width="' + size + '" height="' + size + '">' +
-'        <g class="tomography" transform="translate(' + (size / 2) + ', ' + (size / 2) + ')">' +
+'        <g class="node-tomography" transform="translate(' + (size / 2) + ', ' + (size / 2) + ')">' +
 '          <g>' +
 '            <circle class="background" r="' + insetSize + '"/>' +
 '            <circle class="axis" r="' + (insetSize * 0.25) + '"/>' +
@@ -130,6 +124,7 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
 '          <g class="lines">';
   var distances = tomography.distances;
   var n = distances.length;
+  var max = distances[n - 1].distance;
   if (tomography.n > 360) {
     // We have more nodes than we want to show, take a random sampling to keep
     // the number around 360.
@@ -142,7 +137,7 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
   }
   distances.forEach(function (d, i) {
     buf += '            <line transform="rotate(' + (i * 360 / n) + ')" y2="' + (-insetSize * (d.distance / max)) + '" ' +
-      'data-node="' + d.node + '" data-distance="' + d.distance + '" onmouseover="tomographyMouseOver(this);"/>';
+      'data-node="' + d.node + '" data-distance="' + d.distance + '" onmouseover="nodeTomographyMouseOver(this);"/>';
   });
   buf += '' +
 '          </g>' +
@@ -169,4 +164,21 @@ Ember.Handlebars.helper('tomographyGraph', function(tomography, size) {
 '      </svg>';
 
   return new Handlebars.SafeString(buf);
+});
+
+Ember.Handlebars.helper('dcTomographyMarks', function(distances, max) {
+  var buf = '';
+  distances.forEach(function (d) {
+    var xPerc = d.distance * 100 / max;
+    buf += '' +
+'                        <line x1="' + xPerc + '%" y1="1" x2="' + xPerc + '%" y2="14">' +
+'                          <title>' + d.source + ' -> ' + d.target + ' - ' + d.distance + 'ms</title>' +
+'                        </line>';
+  });
+  return new Handlebars.SafeString(buf);
+});
+
+Ember.Handlebars.helper('round', function(value, decimals) {
+  var shift = decimals * 10;
+  return parseInt(value * shift + 0.5) / shift;
 });

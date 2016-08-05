@@ -597,9 +597,9 @@
 
       <h5>Network Tomography</h5>
 
-      {{ tomographyGraph tomography 336 }}
+      {{ nodeTomographyGraph tomography 336 }}
 
-      <p class="light small">Node: <span id="tomography-node-info"></span></p>
+      <p class="light small">Node: <span id="node-tomography-info"></span></p>
       <p class="light small">Minimum: {{ tomography.min }}ms</p>
       <p class="light small">Median: {{ tomography.median }}ms</p>
       <p class="light small">Maximum: {{ tomography.max }}ms</p>
@@ -726,16 +726,54 @@
   <script type="text/x-handlebars" id="index">
     <div class="col-md-8 col-md-offset-2 col-xs-offset-0 col-sm-offset-0 col-xs-12 col-sm-12 vertical-center">
       <h5>Select a datacenter</h5>
-      {{#each item in model}}
-        {{#link-to 'services' item }}
-            <div class="panel panel-link panel-short">
+      {{#each dc in model.datacenters}}
+        {{#link-to 'services' dc.datacenter }}
+            <div class="panel panel-link">
               <div class="panel-bar bg-light-gray"></div>
               <div class="panel-heading">
                 <h3 class="panel-title">
-                  {{item}}
+                  {{dc.datacenter}}
                   <span class="panel-note"></span>
                 </h3>
               </div>
+              {{#if dc.peers}}
+                <div class="panel-body">
+                  <h5>Network Tomography</h5>
+                  <div class="col-xs-12">
+                    {{#each peer in dc.peers}}
+                      <div class="dc-tomography row">
+                        <div class="col-xs-3">
+                          <span>{{peer.datacenter}}</span>
+                        </div>
+                        <svg class="col-xs-9" xmlns="http://www.w3.org/2000/svg" height="15">
+                          <g class="axis">
+                            <line x1="1" y1="0" x2="1" y2="15"/>
+                            <line y1="7.5" x2="100%" y2="7.5"/>
+                            <line x1="50%" y1="0" x2="50%" y2="15"/>
+                            <line x1="100%" y1="0" x2="100%" y2="15"/>
+                          </g>
+                          <g class="datapoints">
+                            {{dcTomographyMarks peer.distances model.max}}
+                          </g>
+                        </svg>
+                      </div>
+                    {{/each}}
+                    <div class="dc-tomography row">
+                      <div class="col-xs-3">
+                      </div>
+                      <div class="col-xs-3 min">
+                        0ms
+                      </div>
+                      <div class="col-xs-3 mid">
+                        {{round model.mid 2}}ms
+                      </div>
+                      <div class="col-xs-3 max">
+                        {{round model.max 2}}ms
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {{/if}}
             </div>
         {{/link-to}}
       {{/each}}
