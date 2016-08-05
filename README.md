@@ -124,7 +124,7 @@ User=coredns
 WorkingDirectory=/home/coredns
 ExecStartPre=/sbin/setcap cap_net_bind_service=+ep /opt/bin/coredns
 ExecStart=/opt/bin/coredns -pidfile /home/coredns/coredns.pid -conf=/etc/coredns
-/Corefile
+ExecReload=/bin/kill -SIGUSR1 $MAINPID
 Restart=on-failure
 
 [Install]
