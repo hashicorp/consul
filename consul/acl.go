@@ -37,7 +37,7 @@ const (
 	redactedToken = "<hidden>"
 
 	// Maximum number of cached ACL entries
-	aclCacheSize = 256
+	aclCacheSize = 10 * 1024
 )
 
 var (
