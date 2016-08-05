@@ -141,6 +141,11 @@ The options below are all specified on the command-line.
   it relies on proper configuration. Nodes in the same datacenter should be on a single
   LAN.
 
+* <a name="_dns_port"></a><a href="#_dns_port">`-dns-port`</a> - the DNS port to listen on.
+  This overrides the default port 8600. This option is very useful when deploying Consul
+  to an environment which communicates the DNS port through the environment e.g. PaaS like CloudFoundry, allowing
+  you to set the port directly via a Procfile.
+
 * <a name="_domain"></a><a href="#_domain">`-domain`</a> - By default, Consul responds to DNS queries
   in the "consul." domain. This flag can be used to change that domain. All queries in this domain
   are assumed to be handled by Consul and will not be recursively resolved.
