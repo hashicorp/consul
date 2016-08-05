@@ -235,3 +235,25 @@ func (a *ACL) List(args *structs.DCSpecificRequest,
 			return nil
 		})
 }
+
+// ReplicationStatus is used to retrieve the current ACL replication status.
+func (a *ACL) ReplicationStatus(args *structs.DCSpecificRequest,
+	reply *structs.ACLReplicationStatus) error {
+	// This must be sent to the leader, so we fix the args since we are
+	// re-using a structure where we don't support all the options.
+	args.RequireConsistent = true
+	args.AllowStale = false
+	if done, err := a.srv.forward("ACL.ReplicationStatus", args, args, reply); done {
+		return err
+	}
+
+	// There's no ACL token required here since this doesn't leak any
+	// sensitive information, and we don't want people to have to use
+	// management tokens if they are querying this via a health check.
+
+	// Poll the latest status.
+	a.srv.aclReplicationStatusLock.RLock()
+	*reply = a.srv.aclReplicationStatus
+	a.srv.aclReplicationStatusLock.RUnlock()
+	return nil
+}

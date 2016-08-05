@@ -256,9 +256,33 @@ func (s *Server) IsACLReplicationEnabled() bool {
 		len(s.config.ACLReplicationToken) > 0
 }
 
+// updateACLReplicationStatus safely updates the ACL replication status.
+func (s *Server) updateACLReplicationStatus(status structs.ACLReplicationStatus) {
+	// Fixup the times to shed some useless precision to ease formattting,
+	// and always report UTC.
+	status.LastError = status.LastError.Round(time.Second).UTC()
+	status.LastSuccess = status.LastSuccess.Round(time.Second).UTC()
+
+	// Set the shared state.
+	s.aclReplicationStatusLock.Lock()
+	s.aclReplicationStatus = status
+	s.aclReplicationStatusLock.Unlock()
+}
+
 // runACLReplication is a long-running goroutine that will attempt to replicate
 // ACLs while the server is the leader, until the shutdown channel closes.
 func (s *Server) runACLReplication() {
+	var status structs.ACLReplicationStatus
+	status.Enabled = true
+	status.SourceDatacenter = s.config.ACLDatacenter
+	s.updateACLReplicationStatus(status)
+
+	// Show that it's not running on the way out.
+	defer func() {
+		status.Running = false
+		s.updateACLReplicationStatus(status)
+	}()
+
 	// Give each server's replicator a random initial phase for good
 	// measure.
 	select {
@@ -266,26 +290,39 @@ func (s *Server) runACLReplication() {
 	case <-s.shutdownCh:
 	}
 
+	// We are fairly conservative with the lastRemoteIndex so that after a
+	// leadership change or an error we re-sync everything (we also don't
+	// want to block the first time after one of these events so we can
+	// show a successful sync in the status endpoint).
 	var lastRemoteIndex uint64
-	var wasActive bool
 	replicate := func() {
-		if !wasActive {
+		if !status.Running {
+			lastRemoteIndex = 0 // Re-sync everything.
+			status.Running = true
+			s.updateACLReplicationStatus(status)
 			s.logger.Printf("[INFO] consul: ACL replication started")
-			wasActive = true
 		}
 
-		var err error
-		lastRemoteIndex, err = s.replicateACLs(lastRemoteIndex)
+		index, err := s.replicateACLs(lastRemoteIndex)
 		if err != nil {
+			lastRemoteIndex = 0 // Re-sync everything.
+			status.LastError = time.Now()
+			s.updateACLReplicationStatus(status)
 			s.logger.Printf("[WARN] consul: ACL replication error (will retry if still leader): %v", err)
 		} else {
-			s.logger.Printf("[DEBUG] consul: ACL replication completed through index %d", lastRemoteIndex)
+			lastRemoteIndex = index
+			status.ReplicatedIndex = index
+			status.LastSuccess = time.Now()
+			s.updateACLReplicationStatus(status)
+			s.logger.Printf("[DEBUG] consul: ACL replication completed through index %d", index)
 		}
 	}
 	pause := func() {
-		if wasActive {
+		if status.Running {
+			lastRemoteIndex = 0 // Re-sync everything.
+			status.Running = false
+			s.updateACLReplicationStatus(status)
 			s.logger.Printf("[INFO] consul: ACL replication stopped (no longer leader)")
-			wasActive = false
 		}
 	}
 

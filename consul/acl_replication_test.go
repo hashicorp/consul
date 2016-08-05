@@ -364,7 +364,7 @@ func TestACLReplication(t *testing.T) {
 	}
 
 	checkSame := func() (bool, error) {
-		_, remote, err := s1.fsm.State().ACLList()
+		index, remote, err := s1.fsm.State().ACLList()
 		if err != nil {
 			return false, err
 		}
@@ -380,6 +380,17 @@ func TestACLReplication(t *testing.T) {
 				return false, nil
 			}
 		}
+
+		var status structs.ACLReplicationStatus
+		s2.aclReplicationStatusLock.RLock()
+		status = s2.aclReplicationStatus
+		s2.aclReplicationStatusLock.RUnlock()
+		if !status.Enabled || !status.Running ||
+			status.ReplicatedIndex != index ||
+			status.SourceDatacenter != "dc1" {
+			return false, nil
+		}
+
 		return true, nil
 	}
 

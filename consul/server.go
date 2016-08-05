@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/state"
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
@@ -148,6 +149,11 @@ type Server struct {
 	// tombstoneGC is used to track the pending GC invocations
 	// for the KV tombstones
 	tombstoneGC *state.TombstoneGC
+
+	// aclReplicationStatus (and its associated lock) provide information
+	// about the health of the ACL replication goroutine.
+	aclReplicationStatus     structs.ACLReplicationStatus
+	aclReplicationStatusLock sync.RWMutex
 
 	// shutdown and the associated members here are used in orchestrating
 	// a clean shutdown. The shutdownCh is never written to, only closed to

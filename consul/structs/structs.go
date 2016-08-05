@@ -748,6 +748,17 @@ type ACLPolicy struct {
 	QueryMeta
 }
 
+// ACLReplicationStatus provides information about the health of the ACL
+// replication system.
+type ACLReplicationStatus struct {
+	Enabled          bool
+	Running          bool
+	SourceDatacenter string
+	ReplicatedIndex  uint64
+	LastSuccess      time.Time
+	LastError        time.Time
+}
+
 // Coordinate stores a node name with its associated network coordinate.
 type Coordinate struct {
 	Node  string
