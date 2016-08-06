@@ -4,12 +4,18 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/kubernetes/msg"
 
 	"github.com/miekg/dns"
+)
+
+const (
+	// arpaSuffix is the standard suffix for PTR IP reverse lookups.
+	arpaSuffix = ".in-addr.arpa."
 )
 
 func (k Kubernetes) records(state middleware.State, exact bool) ([]msg.Service, error) {
@@ -64,13 +70,13 @@ func (k Kubernetes) A(zone string, state middleware.State, previousRecords []dns
 				// We should already have found it
 				continue
 			}
-			m1, e1 := k.Proxy.Lookup(state, target, state.QType())
-			if e1 != nil {
+			mes, err := k.Proxy.Lookup(state, target, state.QType())
+			if err != nil {
 				continue
 			}
-			// Len(m1.Answer) > 0 here is well?
+			// Len(mes.Answer) > 0 here is well?
 			records = append(records, newRecord)
-			records = append(records, m1.Answer...)
+			records = append(records, mes.Answer...)
 			continue
 		case ip.To4() != nil:
 			records = append(records, serv.NewA(state.QName(), ip.To4()))
@@ -285,7 +291,33 @@ func (k Kubernetes) SOA(zone string, state middleware.State) *dns.SOA {
 	}
 }
 
-// TODO(miek): DNSKEY and friends... intercepted by the DNSSEC middleware?
+func (k Kubernetes) PTR(zone string, state middleware.State) ([]dns.RR, error) {
+	reverseIP, ok := extractIP(state.Name())
+	if !ok {
+		return nil, fmt.Errorf("does not support reverse lookup for %s", state.QName())
+	}
+
+	records := make([]dns.RR, 1)
+	services, err := k.records(state, false)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, serv := range services {
+		ip := net.ParseIP(serv.Host)
+		if reverseIP != serv.Host {
+			continue
+		}
+		switch {
+		case ip.To4() != nil:
+			records = append(records, serv.NewPTR(state.QName(), ip.To4().String()))
+			break
+		case ip.To4() == nil:
+			// nodata?
+		}
+	}
+	return records, nil
+}
 
 func isDuplicateCNAME(r *dns.CNAME, records []dns.RR) bool {
 	for _, rec := range records {
@@ -300,6 +332,27 @@ func isDuplicateCNAME(r *dns.CNAME, records []dns.RR) bool {
 
 func copyState(state middleware.State, target string, typ uint16) middleware.State {
 	state1 := middleware.State{W: state.W, Req: state.Req.Copy()}
-	state1.Req.Question[0] = dns.Question{dns.Fqdn(target), dns.ClassINET, typ}
+	state1.Req.Question[0] = dns.Question{Name: dns.Fqdn(target), Qtype: dns.ClassINET, Qclass: typ}
 	return state1
+}
+
+// extractIP turns a standard PTR reverse record lookup name
+// into an IP address
+func extractIP(reverseName string) (string, bool) {
+	if !strings.HasSuffix(reverseName, arpaSuffix) {
+		return "", false
+	}
+	search := strings.TrimSuffix(reverseName, arpaSuffix)
+
+	// reverse the segments and then combine them
+	segments := reverseArray(strings.Split(search, "."))
+	return strings.Join(segments, "."), true
+}
+
+func reverseArray(arr []string) []string {
+	for i := 0; i < len(arr)/2; i++ {
+		j := len(arr) - i - 1
+		arr[i], arr[j] = arr[j], arr[i]
+	}
+	return arr
 }

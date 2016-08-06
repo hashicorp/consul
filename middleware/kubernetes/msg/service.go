@@ -77,6 +77,11 @@ func (s *Service) NewNS(name string) *dns.NS {
 	return &dns.NS{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: s.Ttl}, Ns: host}
 }
 
+// NewPTR returns a new PTR record based on the Service.
+func (s *Service) NewPTR(name string, target string) *dns.PTR {
+	return &dns.PTR{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: s.Ttl}, Ptr: dns.Fqdn(target)}
+}
+
 // Group checks the services in sx, it looks for a Group attribute on the shortest
 // keys. If there are multiple shortest keys *and* the group attribute disagrees (and
 // is not empty), we don't consider it a group.

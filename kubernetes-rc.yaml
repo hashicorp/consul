@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-configmap
+  namespace: kube-system
+data:
+  corefile: |
+    .:53 {
+      kubernetes coredns.local {
+      }
+      #cache 160 coredns.local
+      errors stdout
+      log stdout
+    }
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  labels:
+    k8s-app: kube-dns
+    kubernetes.io/cluster-service: "true"
+    version: v20
+  name: kube-dns-v20
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    k8s-app: kube-dns
+    version: v20
+  template:
+    metadata:
+      labels:
+        k8s-app: kube-dns
+        kubernetes.io/cluster-service: "true"
+        version: v20
+    spec:
+      containers:
+      - args:
+        - -conf=/cfg/corefile
+        image: aledbf/kube-coredns:0.6
+        imagePullPolicy: IfNotPresent
+        name: kube-dns
+        ports:
+        - containerPort: 53
+          name: dns
+          protocol: UDP
+        - containerPort: 53
+          name: dns-tcp
+          protocol: TCP
+        volumeMounts:
+        - name: config-volume
+          mountPath: /cfg
+      - args:
+        - -cmd=nslookup kubernetes.default.svc.cluster.local localhost >/dev/null
+        - -port=8080
+        image: gcr.io/google_containers/exechealthz:1.0
+        imagePullPolicy: IfNotPresent
+        name: healthz
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 10m
+            memory: 20Mi
+      dnsPolicy: Default
+      volumes:
+        - name: config-volume
+          configMap:
+            name: coredns-configmap

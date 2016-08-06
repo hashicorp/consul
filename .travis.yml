@@ -25,15 +25,25 @@ before_install:
   - env
 
 before_script:
+  # Fix repo pathname for golang imports.
+  #   When building in a forked repo the import path will be incorrect.
+  #   Fix is to detect this case and create a symbolic link for the real import name.
+  #   Note: This assumes that both the upstream "real" repo and the fork are hosted
+  #         at the same domain. (eg. github.com)
+  - ( export UPSTREAM="miekg/coredns" && export REPONAME=`pwd | rev | cut -d "/" -f 1-2 | rev` && test "$REPO" != "$UPSTREAM" && mkdir -p ../../`echo $UPSTREAM | cut -d "/" -f 1` && ln -s ../$REPONAME ../../$UPSTREAM )
+  # Download etcd, unpack and launch
   - curl -L  https://github.com/coreos/etcd/releases/download/v2.3.1/etcd-v2.3.1-linux-amd64.tar.gz -o etcd-v2.3.1-linux-amd64.tar.gz
   - tar xzvf etcd-v2.3.1-linux-amd64.tar.gz
   - ./etcd-v2.3.1-linux-amd64/etcd &
-  - go get
-  - go get github.com/coreos/go-etcd/etcd
+  # If docker is available, pull the kubernetes hyperkube image down and launch kubernetes.
   - if which docker &>/dev/null ; then docker pull gcr.io/google_containers/hyperkube-amd64:v1.2.4 ; docker ps -a ; fi
-  - pwd
   - if which docker &>/dev/null ; then ./middleware/kubernetes/test/00_run_k8s.sh && ./middleware/kubernetes/test/10_setup_kubectl.sh && ./middleware/kubernetes/test/20_setup_k8s_services.sh ; docker ps -a ; fi
+  # Get golang dependencies, and build coredns binary
+  - go get -v -d
+  - go get github.com/coreos/go-etcd/etcd
+  - go build -v -ldflags="-s -w"
 
 script:
   - go test -tags etcd -race -bench=. ./...
+  # Run kubernetes integration tests only if kubectl is available. i.e. If kubernetes was launched
   - ./middleware/kubernetes/test/kubectl version && go test -tags k8s -race -bench=. -run 'TestK8sIntegration' ./test

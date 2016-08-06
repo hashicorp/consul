@@ -69,7 +69,7 @@ run_and_expose_service() {
 
 wait_until_k8s_ready
 
-NAMESPACES="demo test"
+NAMESPACES="demo poddemo test"
 create_namespaces
 
 echo ""

@@ -1,31 +1,33 @@
 package setup
 
 import (
+	"errors"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/kubernetes"
-	k8sc "github.com/miekg/coredns/middleware/kubernetes/k8sclient"
 	"github.com/miekg/coredns/middleware/kubernetes/nametemplate"
-	"github.com/miekg/coredns/middleware/proxy"
 )
 
 const (
-	defaultK8sEndpoint  = "http://localhost:8080"
 	defaultNameTemplate = "{service}.{namespace}.{zone}"
+	defaultResyncPeriod = 5 * time.Minute
 )
 
 // Kubernetes sets up the kubernetes middleware.
 func Kubernetes(c *Controller) (middleware.Middleware, error) {
-	log.Printf("[debug] controller %v\n", c)
-	// TODO: Determine if subzone support required
-
 	kubernetes, err := kubernetesParse(c)
-
 	if err != nil {
 		return nil, err
 	}
+
+	err = kubernetes.StartKubeCache()
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("[debug] after parse and start KubeCache, APIconn is: %v", kubernetes.APIConn)
 
 	return func(next middleware.Handler) middleware.Handler {
 		kubernetes.Next = next
@@ -34,78 +36,73 @@ func Kubernetes(c *Controller) (middleware.Middleware, error) {
 }
 
 func kubernetesParse(c *Controller) (kubernetes.Kubernetes, error) {
-	k8s := kubernetes.Kubernetes{
-		Proxy: proxy.New([]string{}),
-	}
-	var (
-		endpoints  = []string{defaultK8sEndpoint}
-		template   = defaultNameTemplate
-		namespaces = []string{}
-	)
+	var err error
+	template := defaultNameTemplate
 
-	k8s.APIConn = k8sc.NewK8sConnector(endpoints[0])
+	k8s := kubernetes.Kubernetes{
+		ResyncPeriod: defaultResyncPeriod,
+	}
 	k8s.NameTemplate = new(nametemplate.NameTemplate)
 	k8s.NameTemplate.SetTemplate(template)
+
+	// TODO: expose resync period in Corefile
 
 	for c.Next() {
 		if c.Val() == "kubernetes" {
 			zones := c.RemainingArgs()
 
+			log.Printf("[debug] Zones: %v", zones)
 			if len(zones) == 0 {
 				k8s.Zones = c.ServerBlockHosts
+				log.Printf("[debug] Zones(from ServerBlockHosts): %v", zones)
 			} else {
 				// Normalize requested zones
 				k8s.Zones = kubernetes.NormalizeZoneList(zones)
 			}
 
-			// TODO: clean this parsing up
-
 			middleware.Zones(k8s.Zones).FullyQualify()
+			if k8s.Zones == nil || len(k8s.Zones) < 1 {
+				err = errors.New("Zone name must be provided for kubernetes middleware.")
+				log.Printf("[debug] %v\n", err)
+				return kubernetes.Kubernetes{}, err
+			}
 
-			log.Printf("[debug] c data: %v\n", c)
-
-			if c.NextBlock() {
-				// TODO(miek): 2 switches?
+			for c.NextBlock() {
 				switch c.Val() {
-				case "endpoint":
+				case "template":
 					args := c.RemainingArgs()
-					if len(args) == 0 {
-						return kubernetes.Kubernetes{}, c.ArgErr()
-					}
-					endpoints = args
-					k8s.APIConn = k8sc.NewK8sConnector(endpoints[0])
-				case "namespaces":
-					args := c.RemainingArgs()
-					if len(args) == 0 {
-						return kubernetes.Kubernetes{}, c.ArgErr()
-					}
-					namespaces = args
-					k8s.Namespaces = append(k8s.Namespaces, namespaces...)
-				}
-				for c.Next() {
-					switch c.Val() {
-					case "template":
-						args := c.RemainingArgs()
-						if len(args) == 0 {
-							return kubernetes.Kubernetes{}, c.ArgErr()
-						}
-						template = strings.Join(args, "")
-						err := k8s.NameTemplate.SetTemplate(template)
+					if len(args) != 0 {
+						template := strings.Join(args, "")
+						err = k8s.NameTemplate.SetTemplate(template)
 						if err != nil {
 							return kubernetes.Kubernetes{}, err
 						}
-					case "namespaces":
-						args := c.RemainingArgs()
-						if len(args) == 0 {
-							return kubernetes.Kubernetes{}, c.ArgErr()
-						}
-						namespaces = args
-						k8s.Namespaces = append(k8s.Namespaces, namespaces...)
+					} else {
+						log.Printf("[debug] 'template' keyword provided without any template value.")
+						return kubernetes.Kubernetes{}, c.ArgErr()
+					}
+				case "namespaces":
+					args := c.RemainingArgs()
+					if len(args) != 0 {
+						k8s.Namespaces = append(k8s.Namespaces, args...)
+					} else {
+						log.Printf("[debug] 'namespaces' keyword provided without any namespace values.")
+						return kubernetes.Kubernetes{}, c.ArgErr()
+					}
+				case "endpoint":
+					args := c.RemainingArgs()
+					if len(args) != 0 {
+						k8s.APIEndpoint = args[0]
+					} else {
+						log.Printf("[debug] 'endpoint' keyword provided without any endpoint url value.")
+						return kubernetes.Kubernetes{}, c.ArgErr()
 					}
 				}
 			}
 			return k8s, nil
 		}
 	}
-	return kubernetes.Kubernetes{}, nil
+	err = errors.New("Kubernetes setup called without keyword 'kubernetes' in Corefile")
+	log.Printf("[ERROR] %v\n", err)
+	return kubernetes.Kubernetes{}, err
 }

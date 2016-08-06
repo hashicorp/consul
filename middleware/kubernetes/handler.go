@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/miekg/coredns/middleware"
 
@@ -18,6 +19,26 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		return dns.RcodeServerFailure, fmt.Errorf("can only deal with ClassINET")
 	}
 
+	m := new(dns.Msg)
+	m.SetReply(r)
+	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
+
+	// TODO: find an alternative to this block
+	if strings.HasSuffix(state.Name(), arpaSuffix) {
+		ip, _ := extractIP(state.Name())
+		records := k.getServiceRecordForIP(ip, state.Name())
+		if len(records) > 0 {
+			srvPTR := &records[0]
+			m.Answer = append(m.Answer, srvPTR.NewPTR(state.QName(), ip))
+
+			m = dedup(m)
+			state.SizeAndDo(m)
+			m, _ = state.Scrub(m)
+			w.WriteMsg(m)
+			return dns.RcodeSuccess, nil
+		}
+	}
+
 	// Check that query matches one of the zones served by this middleware,
 	// otherwise delegate to the next in the pipeline.
 	zone := middleware.Zones(k.Zones).Matches(state.Name())
@@ -27,10 +48,6 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		}
 		return k.Next.ServeDNS(ctx, w, r)
 	}
-
-	m := new(dns.Msg)
-	m.SetReply(r)
-	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
 
 	var (
 		records, extra []dns.RR

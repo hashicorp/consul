@@ -5,37 +5,19 @@ import (
 	"testing"
 )
 
-/*
-kubernetes coredns.local {
-        # Use url for k8s API endpoint
-        endpoint http://localhost:8080
-        # Assemble k8s record names with the template
-        template {service}.{namespace}.{zone}
-        # Only expose the k8s namespace "demo"
-        #namespaces demo
-    }
-*/
-
 func TestKubernetesParse(t *testing.T) {
 	tests := []struct {
+		description        string
 		input              string
 		shouldErr          bool
 		expectedErrContent string // substring from the expected error. Empty for positive cases.
-		expectedZoneCount  int    // expected count of defined zones. '-1' for negative cases.
+		expectedZoneCount  int    // expected count of defined zones.
 		expectedNTValid    bool   // NameTemplate to be initialized and valid
-		expectedNSCount    int    // expected count of namespaces. '-1' for negative cases.
+		expectedNSCount    int    // expected count of namespaces.
 	}{
 		// positive
-		// TODO: not specifiying a zone maybe should error out.
 		{
-			`kubernetes`,
-			false,
-			"",
-			0,
-			true,
-			0,
-		},
-		{
+			"kubernetes keyword with one zone",
 			`kubernetes coredns.local`,
 			false,
 			"",
@@ -44,6 +26,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 		},
 		{
+			"kubernetes keyword with multiple zones",
 			`kubernetes coredns.local test.local`,
 			false,
 			"",
@@ -52,8 +35,8 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 		},
 		{
+			"kubernetes keyword with zone and empty braces",
 			`kubernetes coredns.local {
-    endpoint http://localhost:9090
 }`,
 			false,
 			"",
@@ -62,6 +45,18 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 		},
 		{
+			"endpoint keyword with url",
+			`kubernetes coredns.local {
+	endpoint http://localhost:9090
+}`,
+			false,
+			"",
+			1,
+			true,
+			0,
+		},
+		{
+			"template keyword with valid template",
 			`kubernetes coredns.local {
 	template {service}.{namespace}.{zone}
 }`,
@@ -72,6 +67,7 @@ func TestKubernetesParse(t *testing.T) {
 			0,
 		},
 		{
+			"namespaces keyword with one namespace",
 			`kubernetes coredns.local {
 	namespaces demo
 }`,
@@ -82,6 +78,7 @@ func TestKubernetesParse(t *testing.T) {
 			1,
 		},
 		{
+			"namespaces keyword with multiple namespaces",
 			`kubernetes coredns.local {
 	namespaces demo test
 }`,
@@ -91,9 +88,40 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			2,
 		},
-
+		{
+			"fully specified valid config",
+			`kubernetes coredns.local test.local {
+	endpoint http://localhost:8080
+	template {service}.{namespace}.{zone}
+	namespaces demo test
+}`,
+			false,
+			"",
+			2,
+			true,
+			2,
+		},
 		// negative
 		{
+			"no kubernetes keyword",
+			"",
+			true,
+			"Kubernetes setup called without keyword 'kubernetes' in Corefile",
+			-1,
+			false,
+			-1,
+		},
+		{
+			"kubernetes keyword without a zone",
+			`kubernetes`,
+			true,
+			"Zone name must be provided for kubernetes middleware",
+			-1,
+			true,
+			0,
+		},
+		{
+			"endpoint keyword without an endpoint value",
 			`kubernetes coredns.local {
     endpoint
 }`,
@@ -103,56 +131,56 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			-1,
 		},
-		// No template provided for template line.
 		{
+			"template keyword without a template value",
 			`kubernetes coredns.local {
     template
 }`,
 			true,
-			"",
+			"Wrong argument count or unexpected line ending after 'template'",
 			-1,
 			false,
-			-1,
+			0,
 		},
-		// Invalid template provided
 		{
+			"template keyword with an invalid template value",
 			`kubernetes coredns.local {
     template {namespace}.{zone}
 }`,
 			true,
-			"",
+			"Record name template does not pass NameTemplate validation",
 			-1,
 			false,
+			0,
+		},
+		{
+			"namespace keyword without a namespace value",
+			`kubernetes coredns.local {
+	namespaces
+}`,
+			true,
+			"Parse error: Wrong argument count or unexpected line ending after 'namespaces'",
+			-1,
+			true,
 			-1,
 		},
-		/*
-			 		// No valid provided for namespaces
-			   		{
-			   			`kubernetes coredns.local {
-			     namespaces
-			}`,
-			   			true,
-			   			"",
-			   			-1,
-						true,
-			   			-1,
-			   		},
-		*/
 	}
 
+	t.Logf("Parser test cases count: %v", len(tests))
 	for i, test := range tests {
 		c := NewTestController(test.input)
 		k8sController, err := kubernetesParse(c)
-		t.Logf("i: %v\n", i)
-		t.Logf("controller: %v\n", k8sController)
+		t.Logf("setup test: %2v -- %v\n", i, test.description)
+		//t.Logf("controller: %v\n", k8sController)
 
 		if test.shouldErr && err == nil {
-			t.Errorf("Test %d: Expected error, but found one for input '%s'. Error was: '%v'", i, test.input, err)
+			t.Errorf("Test %d: Expected error, but did not find error for input '%s'. Error was: '%v'", i, test.input, err)
 		}
 
 		if err != nil {
 			if !test.shouldErr {
 				t.Errorf("Test %d: Expected no error but found one for input %s. Error was: %v", i, test.input, err)
+				continue
 			}
 
 			if test.shouldErr && (len(test.expectedErrContent) < 1) {
@@ -160,14 +188,13 @@ func TestKubernetesParse(t *testing.T) {
 			}
 
 			if test.shouldErr && (test.expectedZoneCount >= 0) {
-				t.Fatalf("Test %d: Test marked as expecting an error, but provides value for expectedZoneCount!=-1 for input '%s'. Error was: '%v'", i, test.input, err)
+				t.Errorf("Test %d: Test marked as expecting an error, but provides value for expectedZoneCount!=-1 for input '%s'. Error was: '%v'", i, test.input, err)
 			}
 
 			if !strings.Contains(err.Error(), test.expectedErrContent) {
 				t.Errorf("Test %d: Expected error to contain: %v, found error: %v, input: %s", i, test.expectedErrContent, err, test.input)
 			}
-
-			return
+			continue
 		}
 
 		// No error was raised, so validate initialization of k8sController
@@ -191,7 +218,8 @@ func TestKubernetesParse(t *testing.T) {
 		foundNSCount := len(k8sController.Namespaces)
 		if foundNSCount != test.expectedNSCount {
 			t.Errorf("Test %d: Expected kubernetes controller to be initialized with %d namespaces. Instead found %d namespaces: '%v' for input '%s'", i, test.expectedNSCount, foundNSCount, k8sController.Namespaces, test.input)
+			t.Logf("k8sController is: %v", k8sController)
+			t.Logf("k8sController.Namespaces is: %v", k8sController.Namespaces)
 		}
-
 	}
 }

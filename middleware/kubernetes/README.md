@@ -276,11 +276,13 @@ TBD:
 		* Update kubernetes middleware documentation to describe running CoreDNS as a
 		  SkyDNS replacement. (Include descriptions of different ways to pass CoreFile
 		  to coredns command.)
+		* Remove dependency on healthz for health checking in
+		  `kubernetes-rc.yaml` file.
 		* Expose load-balancer IP addresses.
 		* Calculate SRV priority based on number of instances running.
 		  (See SkyDNS README.md)
 	* Functional work
-		* (done) ~~Implement wildcard-based lookup. Minimally support `*`, consider `?` as well.~~
+		* (done. '?' not supported yet) ~~Implement wildcard-based lookup. Minimally support `*`, consider `?` as well.~~
         * (done) ~~Note from Miek on PR 181: "SkyDNS also supports the word `any`.~~
 		* Implement SkyDNS-style synthetic zones such as "svc" to group k8s objects. (This
 		  should be optional behavior.) Also look at "pod" synthetic zones.
@@ -303,17 +305,14 @@ TBD:
 	* Performance
 		* Improve lookup to reduce size of query result obtained from k8s API.
 		  (namespace-based?, other ideas?)
-		* Caching of k8s API dataset.
+		* Caching/notification of k8s API dataset. (See aledbf fork for
+		  implementation ideas.)
 		* DNS response caching is good, but we should also cache at the http query 
 		  level as well. (Take a look at https://github.com/patrickmn/go-cache as 
 		  a potential expiring cache implementation for the http API queries.)
-		* Push notifications from k8s for data changes rather than pull via API?
 * Additional features:
-	* Implement namespace filtering to different zones. That is, zone "a.b"
-	  publishes services from namespace "foo", and zone "x.y" publishes services
-	  from namespaces "bar" and "baz". (Basic version implemented -- need test cases.)
 	* Reverse IN-ADDR entries for services. (Is there any value in supporting 
-	  reverse lookup records?
+	  reverse lookup records?)
 	* How to support label specification in Corefile to allow use of labels to 
 	  indicate zone? (Is this even useful?) For example, the following
 	  configuration exposes all services labeled for the "staging" environment
@@ -334,11 +333,14 @@ TBD:
 	  flattening to lower case and mapping of non-DNS characters to DNS characters
 	  in a standard way.)
 	* Expose arbitrary kubernetes repository data as TXT records?
-	* Support custom user-provided templates for k8s names. A string provided
+	* (done) ~~Support custom user-provided templates for k8s names. A string provided
 	  in the middleware configuration like `{service}.{namespace}.{type}` defines
 	  the template of how to construct record names for the zone. This example
 	  would produce `myservice.mynamespace.svc.cluster.local`. (Basic template
-	  implemented. Need to slice zone out of current template implementation.)
+	  implemented. Need to slice zone out of current template implementation.)~~
+	* (done) ~~Implement namespace filtering to different zones. That is, zone "a.b"
+	  publishes services from namespace "foo", and zone "x.y" publishes services
+	  from namespaces "bar" and "baz". (Basic version implemented -- need test cases.)~~
 * DNS Correctness
 	* Do we need to generate synthetic zone records for namespaces?
 	* Do we need to generate synthetic zone records for the skydns synthetic zones?
@@ -347,10 +349,10 @@ TBD:
 	  using the `cache` directive. Tested working using 20s cache timeout
 	  and A-record queries. Automate testing with cache in place.
 	* Automate CoreDNS performance tests. Initially for zone files, and for
-	  pre-loaded k8s API cache.
+	  pre-loaded k8s API cache. With and without CoreDNS response caching.
     * Try to get rid of kubernetes launch scripts by moving operations into
       .travis.yml file.
 	* ~~Implement test cases for http data parsing using dependency injection
 	  for http get operations.~~
-    * ~~Automate integration testing with kubernetes. (k8s launch and service start-up
-      automation is in middleware/kubernetes/tests)~~
+    * ~~Automate integration testing with kubernetes. (k8s launch and service
+      start-up automation is in middleware/kubernetes/tests)~~
