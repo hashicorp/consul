@@ -15,10 +15,10 @@ very simple calculation. This allows for many useful applications, such as findi
 the service node nearest a requesting node, or failing over to services in the next
 closest datacenter.
 
-All of this is provided through the use of the [Serf library](https://www.serfdom.io/).
+All of this is provided through the use of the [Serf library](https://www.serf.io/).
 Serf's network tomography is based on ["Vivaldi: A Decentralized Network Coordinate System"](http://www.cs.ucsb.edu/~ravenben/classes/276/papers/vivaldi-sigcomm04.pdf),
 with some enhancements based on other research. There are more details about
-[Serf's network coordinates here](https://www.serfdom.io/docs/internals/coordinates.html).
+[Serf's network coordinates here](https://www.serf.io/docs/internals/coordinates.html).
 
 ~> **Advanced Topic!** This page covers the technical details of
 the internals of Consul. You don't need to know these details to effectively

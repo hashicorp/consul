@@ -8,7 +8,7 @@ description: |-
 
 # Consul vs. Serf
 
-[Serf](https://www.serfdom.io) is a node discovery and orchestration tool and is the only
+[Serf](https://www.serf.io) is a node discovery and orchestration tool and is the only
 tool discussed so far that is built on an eventually-consistent gossip model
 with no centralized servers. It provides a number of features, including group
 membership, failure detection, event broadcasts, and a query mechanism. However,
