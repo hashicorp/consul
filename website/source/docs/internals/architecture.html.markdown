@@ -54,7 +54,7 @@ of consensus implies the consistency of a replicated state machine. Consensus is
 in more detail on [Wikipedia](https://en.wikipedia.org/wiki/Consensus_(computer_science)),
 and our implementation is described [here](/docs/internals/consensus.html).
 
-* Gossip - Consul is built on top of [Serf](https://www.serfdom.io/) which provides a full
+* Gossip - Consul is built on top of [Serf](https://www.serf.io/) which provides a full
 [gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol) that is used for multiple purposes.
 Serf provides membership, failure detection, and event broadcast. Our use of these
 is described more in the [gossip documentation](/docs/internals/gossip.html). It is enough to know
