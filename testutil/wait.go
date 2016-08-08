@@ -1,9 +1,11 @@
 package testutil
 
 import (
-	"github.com/hashicorp/consul/consul/structs"
+	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 type testFn func() (bool, error)
@@ -41,4 +43,23 @@ func WaitForLeader(t *testing.T, rpc rpcFn, dc string) structs.IndexedNodes {
 		t.Fatalf("failed to find leader: %v", err)
 	})
 	return out
+}
+
+type ClosableResponseRecorder struct {
+	*httptest.ResponseRecorder
+	Notifier chan bool
+	writes   *[][]byte
+}
+
+func (c ClosableResponseRecorder) Write(buf []byte) (int, error) {
+	*c.writes = append(*c.writes, buf)
+	return len(buf), nil
+}
+
+func (c ClosableResponseRecorder) CloseNotify() <-chan bool {
+	return c.Notifier
+}
+
+func NewClosableResponseWriter(writeBuffer *[][]byte) *ClosableResponseRecorder {
+	return &ClosableResponseRecorder{httptest.NewRecorder(), make(chan bool, 1), writeBuffer}
 }

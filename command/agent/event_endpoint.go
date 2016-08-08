@@ -2,6 +2,8 @@ package agent
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -73,6 +75,51 @@ func (s *HTTPServer) EventFire(resp http.ResponseWriter, req *http.Request) (int
 
 	// Return the event
 	return event, nil
+}
+
+func (s *HTTPServer) EventStream(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Check the http.ResponseWriter for flush support
+	flusher, ok := resp.(http.Flusher)
+	if !ok {
+		return nil, errors.New("The http.ResponseWriter doesn't implement the http.Flusher interface, event streaming is not supported")
+	}
+
+	// Make sure the headers are setup properly
+	resp.Header().Set("Connection", "keep-alive")
+	resp.Header().Set("Content-Type", "text/event-stream")
+	resp.Header().Set("Cache-Control", "no-cache")
+
+	// Get notified if the client closes the connection
+	closedCh := resp.(http.CloseNotifier).CloseNotify()
+
+	// Look for a name filter
+	var nameFilter string
+	if filt := req.URL.Query().Get("name"); filt != "" {
+		nameFilter = filt
+	}
+
+SETUP_STREAM_NOTIFY:
+	notifyCh := make(chan struct{}, 1)
+	s.agent.eventNotify.Wait(notifyCh)
+
+	select {
+	case <-notifyCh:
+		event := s.agent.LastUserEvent()
+		if len(nameFilter) == 0 || strings.Contains(event.Name, nameFilter) {
+			data, err := json.Marshal(event)
+			if err != nil {
+				return nil, err
+			}
+
+			// Only write on a per UserEvent basis and flush immediately
+			resp.Write(data)
+			flusher.Flush()
+		}
+		goto SETUP_STREAM_NOTIFY
+	case <-closedCh:
+		// Event streaming stopped due to the client closing the connection, return without an error
+		return nil, nil
+	}
 }
 
 // EventList is used to retrieve the recent list of events
