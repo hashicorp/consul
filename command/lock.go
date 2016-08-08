@@ -96,7 +96,7 @@ func (c *LockCommand) Run(args []string) int {
 // run exposes the underlying lock for testing.
 func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	var childDone chan struct{}
-	var name, token string
+	var name string
 	var limit int
 	var passStdin bool
 	var try string
@@ -105,7 +105,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 	cmdFlags.IntVar(&limit, "n", 1, "")
 	cmdFlags.StringVar(&name, "name", "", "")
-	cmdFlags.StringVar(&token, "token", "", "")
+	token := TokenFlag(cmdFlags)
 	cmdFlags.BoolVar(&passStdin, "pass-stdin", false, "")
 	cmdFlags.StringVar(&try, "try", "", "")
 	cmdFlags.IntVar(&retry, "monitor-retry", defaultMonitorRetry, "")
@@ -166,7 +166,7 @@ func (c *LockCommand) run(args []string, lu **LockUnlock) int {
 	// Create and test the HTTP client
 	conf := api.DefaultConfig()
 	conf.Address = *httpAddr
-	conf.Token = token
+	conf.Token = *token
 	client, err := api.NewClient(conf)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))

@@ -40,7 +40,7 @@ Options:
 }
 
 func (c *EventCommand) Run(args []string) int {
-	var datacenter, name, node, service, tag, token string
+	var datacenter, name, node, service, tag string
 	cmdFlags := flag.NewFlagSet("event", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 	cmdFlags.StringVar(&datacenter, "datacenter", "", "")
@@ -48,7 +48,7 @@ func (c *EventCommand) Run(args []string) int {
 	cmdFlags.StringVar(&node, "node", "", "")
 	cmdFlags.StringVar(&service, "service", "", "")
 	cmdFlags.StringVar(&tag, "tag", "", "")
-	cmdFlags.StringVar(&token, "token", "", "")
+	token := TokenFlag(cmdFlags)
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -123,7 +123,7 @@ func (c *EventCommand) Run(args []string) int {
 	}
 	opts := &consulapi.WriteOptions{
 		Datacenter: datacenter,
-		Token:      token,
+		Token:      *token,
 	}
 
 	// Fire the event

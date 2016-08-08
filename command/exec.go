@@ -137,7 +137,7 @@ func (c *ExecCommand) Run(args []string) int {
 	cmdFlags.DurationVar(&c.conf.replWait, "wait-repl", rExecReplicationWait, "")
 	cmdFlags.DurationVar(&c.conf.wait, "wait", rExecQuietWait, "")
 	cmdFlags.BoolVar(&c.conf.verbose, "verbose", false, "")
-	cmdFlags.StringVar(&c.conf.token, "token", "", "")
+	c.conf.token = *TokenFlag(cmdFlags)
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1

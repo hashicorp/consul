@@ -16,7 +16,7 @@ type KeyringCommand struct {
 }
 
 func (c *KeyringCommand) Run(args []string) int {
-	var installKey, useKey, removeKey, token string
+	var installKey, useKey, removeKey string
 	var listKeys bool
 
 	cmdFlags := flag.NewFlagSet("keys", flag.ContinueOnError)
@@ -26,8 +26,8 @@ func (c *KeyringCommand) Run(args []string) int {
 	cmdFlags.StringVar(&useKey, "use", "", "use key")
 	cmdFlags.StringVar(&removeKey, "remove", "", "remove key")
 	cmdFlags.BoolVar(&listKeys, "list", false, "list keys")
-	cmdFlags.StringVar(&token, "token", "", "acl token")
 
+	token := TokenFlag(cmdFlags)
 	rpcAddr := RPCAddrFlag(cmdFlags)
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -66,7 +66,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if listKeys {
 		c.Ui.Info("Gathering installed encryption keys...")
-		r, err := client.ListKeys(token)
+		r, err := client.ListKeys(*token)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -80,7 +80,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if installKey != "" {
 		c.Ui.Info("Installing new gossip encryption key...")
-		r, err := client.InstallKey(installKey, token)
+		r, err := client.InstallKey(installKey, *token)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -90,7 +90,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if useKey != "" {
 		c.Ui.Info("Changing primary gossip encryption key...")
-		r, err := client.UseKey(useKey, token)
+		r, err := client.UseKey(useKey, *token)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1
@@ -100,7 +100,7 @@ func (c *KeyringCommand) Run(args []string) int {
 
 	if removeKey != "" {
 		c.Ui.Info("Removing gossip encryption key...")
-		r, err := client.RemoveKey(removeKey, token)
+		r, err := client.RemoveKey(removeKey, *token)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("error: %s", err))
 			return 1

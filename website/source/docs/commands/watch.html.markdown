@@ -35,7 +35,8 @@ The list of available flags are:
 
 * `-datacenter` - Datacenter to query. Defaults to that of agent.
 
-* `-token` - ACL token to use. Defaults to that of agent.
+* `-token` - ACL token to use. You can also place the desired value in `CONSUL_TOKEN`
+  environment variable. Defaults to that of the agent.
 
 * `-key` - Key to watch. Only for `key` type.
 

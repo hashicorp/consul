@@ -44,7 +44,8 @@ The list of available flags are:
   providing this flag, the `-enable` and `-disable` flags functionality is
   modified to operate on the given service ID.
 
-* `-token` - ACL token to use. Defaults to that of agent.
+* `-token` - ACL token to use. You can also place the desired value in `CONSUL_TOKEN`
+  environment variable. Defaults to that of the agent.
 
 * `-http-addr` - Address to the HTTP server of the agent you want to contact
   to send this command. If this isn't specified, the command will contact

@@ -57,7 +57,6 @@ func (c *MaintCommand) Run(args []string) int {
 	var disable bool
 	var reason string
 	var serviceID string
-	var token string
 
 	cmdFlags := flag.NewFlagSet("maint", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
@@ -66,7 +65,7 @@ func (c *MaintCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&disable, "disable", false, "disable maintenance mode")
 	cmdFlags.StringVar(&reason, "reason", "", "maintenance reason")
 	cmdFlags.StringVar(&serviceID, "service", "", "service maintenance")
-	cmdFlags.StringVar(&token, "token", "", "")
+	token := TokenFlag(cmdFlags)
 	httpAddr := HTTPAddrFlag(cmdFlags)
 
 	if err := cmdFlags.Parse(args); err != nil {
@@ -90,7 +89,7 @@ func (c *MaintCommand) Run(args []string) int {
 	// Create and test the HTTP client
 	conf := api.DefaultConfig()
 	conf.Address = *httpAddr
-	conf.Token = token
+	conf.Token = *token
 	client, err := api.NewClient(conf)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))

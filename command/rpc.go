@@ -16,6 +16,10 @@ const (
 	// HTTPAddrEnvName defines an environment variable name which sets
 	// the HTTP address if there is no -http-addr specified.
 	HTTPAddrEnvName = "CONSUL_HTTP_ADDR"
+
+	// CONSUL_TOKEN defines an environment variable name wihich sets
+	// the token if there is no -token specified.
+	TokenEnvName = "CONSUL_TOKEN"
 )
 
 // RPCAddrFlag returns a pointer to a string that will be populated
@@ -50,6 +54,11 @@ func HTTPClient(addr string) (*consulapi.Client, error) {
 	return HTTPClientConfig(func(c *consulapi.Config) {
 		c.Address = addr
 	})
+}
+
+func TokenFlag(f *flag.FlagSet) *string {
+	defaultToken := os.Getenv(TokenEnvName)
+	return f.String("token", defaultToken, "ACL token")
 }
 
 // HTTPClientConfig is used to return a new API client and modify its
