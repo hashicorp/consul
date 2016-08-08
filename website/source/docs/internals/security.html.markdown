@@ -14,9 +14,9 @@ mechanisms that stem from their designs. However, the security mechanisms
 of Consul have a common goal: to provide
 [confidentiality, integrity, and authentication](https://en.wikipedia.org/wiki/Information_security).
 
-The [gossip protocol](/docs/internals/gossip.html) is powered by [Serf](https://www.serfdom.io/),
+The [gossip protocol](/docs/internals/gossip.html) is powered by [Serf](https://www.serf.io/),
 which uses a symmetric key, or shared secret, cryptosystem. There are more
-details on the security of [Serf here](https://www.serfdom.io/docs/internals/security.html).
+details on the security of [Serf here](https://www.serf.io/docs/internals/security.html).
 For details on how to enable Serf's gossip encryption in Consul, see the
 [encryption doc here](/docs/agent/encryption.html).
 
