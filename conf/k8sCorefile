@@ -2,6 +2,9 @@
 .:53 {
     # use kubernetes middleware for domain "coredns.local"
     kubernetes coredns.local {
+		# Kubernetes data API resync period
+		# Example values: 60s, 5m, 1h
+		resyncperiod 5m
         # Use url for k8s API endpoint
         endpoint http://localhost:8080
         # Assemble k8s record names with the template
@@ -11,7 +14,5 @@
     }
     # Perform DNS response caching for the coredns.local zone
     # Cache timeout is provided by the integer in seconds
-    # This works for the kubernetes middleware.)
-    #cache 20 coredns.local
-    #cache 160 coredns.local
+    #cache 180 coredns.local
 }

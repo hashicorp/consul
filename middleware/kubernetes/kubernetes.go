@@ -20,10 +20,6 @@ import (
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 )
 
-const (
-	defaultResyncPeriod = 5 * time.Minute
-)
-
 type Kubernetes struct {
 	Next         middleware.Handler
 	Zones        []string
@@ -37,7 +33,7 @@ type Kubernetes struct {
 
 func (g *Kubernetes) StartKubeCache() error {
 	// For a custom api server or running outside a k8s cluster
-	// set URL in env.KUBERNETES_MASTER
+	// set URL in env.KUBERNETES_MASTER or set endpoint in Corefile
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	overrides := &clientcmd.ConfigOverrides{}
 	if len(g.APIEndpoint) > 0 {
@@ -55,6 +51,7 @@ func (g *Kubernetes) StartKubeCache() error {
 		log.Printf("[ERROR] Failed to create kubernetes notification controller: %v", err)
 		return err
 	}
+	log.Printf("[debug] Starting kubernetes middleware with k8s API resync period: %s", g.ResyncPeriod)
 	g.APIConn = newdnsController(kubeClient, g.ResyncPeriod)
 
 	go g.APIConn.Run()

@@ -129,7 +129,7 @@ func (dns *dnsController) Stop() error {
 
 // Run starts the controller.
 func (dns *dnsController) Run() {
-	log.Println("[debug] starting coredns controller")
+	log.Println("[debug] Starting k8s notification controllers")
 
 	go dns.endpController.Run(dns.stopCh)
 	go dns.svcController.Run(dns.stopCh)

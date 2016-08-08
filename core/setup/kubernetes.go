@@ -2,6 +2,7 @@ package setup
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -27,7 +28,6 @@ func Kubernetes(c *Controller) (middleware.Middleware, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("[debug] after parse and start KubeCache, APIconn is: %v", kubernetes.APIConn)
 
 	return func(next middleware.Handler) middleware.Handler {
 		kubernetes.Next = next
@@ -51,7 +51,6 @@ func kubernetesParse(c *Controller) (kubernetes.Kubernetes, error) {
 		if c.Val() == "kubernetes" {
 			zones := c.RemainingArgs()
 
-			log.Printf("[debug] Zones: %v", zones)
 			if len(zones) == 0 {
 				k8s.Zones = c.ServerBlockHosts
 				log.Printf("[debug] Zones(from ServerBlockHosts): %v", zones)
@@ -95,6 +94,19 @@ func kubernetesParse(c *Controller) (kubernetes.Kubernetes, error) {
 						k8s.APIEndpoint = args[0]
 					} else {
 						log.Printf("[debug] 'endpoint' keyword provided without any endpoint url value.")
+						return kubernetes.Kubernetes{}, c.ArgErr()
+					}
+				case "resyncperiod":
+					args := c.RemainingArgs()
+					if len(args) != 0 {
+						k8s.ResyncPeriod, err = time.ParseDuration(args[0])
+						if err != nil {
+							err = errors.New(fmt.Sprintf("Unable to parse resync duration value. Value provided was '%v'. Example valid values: '15s', '5m', '1h'. Error was: %v", args[0], err))
+							log.Printf("[ERROR] %v", err)
+							return kubernetes.Kubernetes{}, err
+						}
+					} else {
+						log.Printf("[debug] 'resyncperiod' keyword provided without any duration value.")
 						return kubernetes.Kubernetes{}, c.ArgErr()
 					}
 				}

@@ -3,17 +3,19 @@ package setup
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestKubernetesParse(t *testing.T) {
 	tests := []struct {
-		description        string
-		input              string
-		shouldErr          bool
-		expectedErrContent string // substring from the expected error. Empty for positive cases.
-		expectedZoneCount  int    // expected count of defined zones.
-		expectedNTValid    bool   // NameTemplate to be initialized and valid
-		expectedNSCount    int    // expected count of namespaces.
+		description          string        // Human-facing description of test case
+		input                string        // Corefile data as string
+		shouldErr            bool          // true if test case is exected to produce an error.
+		expectedErrContent   string        // substring from the expected error. Empty for positive cases.
+		expectedZoneCount    int           // expected count of defined zones.
+		expectedNTValid      bool          // NameTemplate to be initialized and valid
+		expectedNSCount      int           // expected count of namespaces.
+		expectedResyncPeriod time.Duration // expected resync period value
 	}{
 		// positive
 		{
@@ -24,6 +26,7 @@ func TestKubernetesParse(t *testing.T) {
 			1,
 			true,
 			0,
+			defaultResyncPeriod,
 		},
 		{
 			"kubernetes keyword with multiple zones",
@@ -33,6 +36,7 @@ func TestKubernetesParse(t *testing.T) {
 			2,
 			true,
 			0,
+			defaultResyncPeriod,
 		},
 		{
 			"kubernetes keyword with zone and empty braces",
@@ -43,6 +47,7 @@ func TestKubernetesParse(t *testing.T) {
 			1,
 			true,
 			0,
+			defaultResyncPeriod,
 		},
 		{
 			"endpoint keyword with url",
@@ -54,6 +59,7 @@ func TestKubernetesParse(t *testing.T) {
 			1,
 			true,
 			0,
+			defaultResyncPeriod,
 		},
 		{
 			"template keyword with valid template",
@@ -65,6 +71,7 @@ func TestKubernetesParse(t *testing.T) {
 			1,
 			true,
 			0,
+			defaultResyncPeriod,
 		},
 		{
 			"namespaces keyword with one namespace",
@@ -76,6 +83,7 @@ func TestKubernetesParse(t *testing.T) {
 			1,
 			true,
 			1,
+			defaultResyncPeriod,
 		},
 		{
 			"namespaces keyword with multiple namespaces",
@@ -87,10 +95,36 @@ func TestKubernetesParse(t *testing.T) {
 			1,
 			true,
 			2,
+			defaultResyncPeriod,
+		},
+		{
+			"resync period in seconds",
+			`kubernetes coredns.local {
+    resyncperiod 30s
+}`,
+			false,
+			"",
+			1,
+			true,
+			0,
+			30 * time.Second,
+		},
+		{
+			"resync period in minutes",
+			`kubernetes coredns.local {
+    resyncperiod 15m
+}`,
+			false,
+			"",
+			1,
+			true,
+			0,
+			15 * time.Minute,
 		},
 		{
 			"fully specified valid config",
 			`kubernetes coredns.local test.local {
+    resyncperiod 15m
 	endpoint http://localhost:8080
 	template {service}.{namespace}.{zone}
 	namespaces demo test
@@ -100,6 +134,7 @@ func TestKubernetesParse(t *testing.T) {
 			2,
 			true,
 			2,
+			15 * time.Minute,
 		},
 		// negative
 		{
@@ -110,6 +145,7 @@ func TestKubernetesParse(t *testing.T) {
 			-1,
 			false,
 			-1,
+			defaultResyncPeriod,
 		},
 		{
 			"kubernetes keyword without a zone",
@@ -119,6 +155,7 @@ func TestKubernetesParse(t *testing.T) {
 			-1,
 			true,
 			0,
+			defaultResyncPeriod,
 		},
 		{
 			"endpoint keyword without an endpoint value",
@@ -130,6 +167,7 @@ func TestKubernetesParse(t *testing.T) {
 			-1,
 			true,
 			-1,
+			defaultResyncPeriod,
 		},
 		{
 			"template keyword without a template value",
@@ -141,6 +179,7 @@ func TestKubernetesParse(t *testing.T) {
 			-1,
 			false,
 			0,
+			defaultResyncPeriod,
 		},
 		{
 			"template keyword with an invalid template value",
@@ -152,6 +191,7 @@ func TestKubernetesParse(t *testing.T) {
 			-1,
 			false,
 			0,
+			defaultResyncPeriod,
 		},
 		{
 			"namespace keyword without a namespace value",
@@ -163,6 +203,43 @@ func TestKubernetesParse(t *testing.T) {
 			-1,
 			true,
 			-1,
+			defaultResyncPeriod,
+		},
+		{
+			"resyncperiod keyword without a duration value",
+			`kubernetes coredns.local {
+    resyncperiod
+}`,
+			true,
+			"Wrong argument count or unexpected line ending after 'resyncperiod'",
+			-1,
+			true,
+			0,
+			0 * time.Minute,
+		},
+		{
+			"resync period no units",
+			`kubernetes coredns.local {
+    resyncperiod 15
+}`,
+			true,
+			"Unable to parse resync duration value. Value provided was ",
+			-1,
+			true,
+			0,
+			0 * time.Second,
+		},
+		{
+			"resync period invalid",
+			`kubernetes coredns.local {
+    resyncperiod abc
+}`,
+			true,
+			"Unable to parse resync duration value. Value provided was ",
+			-1,
+			true,
+			0,
+			0 * time.Second,
 		},
 	}
 
@@ -218,8 +295,12 @@ func TestKubernetesParse(t *testing.T) {
 		foundNSCount := len(k8sController.Namespaces)
 		if foundNSCount != test.expectedNSCount {
 			t.Errorf("Test %d: Expected kubernetes controller to be initialized with %d namespaces. Instead found %d namespaces: '%v' for input '%s'", i, test.expectedNSCount, foundNSCount, k8sController.Namespaces, test.input)
-			t.Logf("k8sController is: %v", k8sController)
-			t.Logf("k8sController.Namespaces is: %v", k8sController.Namespaces)
+		}
+
+		//    ResyncPeriod
+		foundResyncPeriod := k8sController.ResyncPeriod
+		if foundResyncPeriod != test.expectedResyncPeriod {
+			t.Errorf("Test %d: Expected kubernetes controller to be initialized with resync period '%s'. Instead found period '%s' for input '%s'", test.expectedResyncPeriod, foundResyncPeriod, test.input)
 		}
 	}
 }
