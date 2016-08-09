@@ -69,7 +69,13 @@ BUG FIXES:
   status doesn't change after the Consul agent starts. [GH-1934]
 * External services can now be registered with ACL tokens. [GH-1738]
 * Upgraded Bolt DB to v1.2.1 to fix an issue on Windows where Consul would sometimes
-  fail to start due to open user-mapped sections. [GH-2203].
+  fail to start due to open user-mapped sections. [GH-2203]
+* Fixed an issue where large events affecting many nodes could cause infinite intent
+  rebroadcasts, leading to many log messages about intent queue overflows. [GH-1062]
+
+OTHER CHANGES:
+
+* Switched from Godep to govendor. [GH-2252]
 
 ## 0.6.4 (March 16, 2016)
 
