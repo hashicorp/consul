@@ -240,12 +240,12 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 		},
 	}
 
-	// Under the limit, should be quick.
+	// Should be throttled to 1 Hz.
 	start := time.Now()
 	if err := s1.updateLocalACLs(changes); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if dur := time.Now().Sub(start); dur > 500*time.Millisecond {
+	if dur := time.Now().Sub(start); dur < time.Second {
 		t.Fatalf("too slow: %9.6f", dur.Seconds())
 	}
 
@@ -258,12 +258,12 @@ func TestACLReplication_updateLocalACLs_RateLimit(t *testing.T) {
 			},
 		})
 
-	// Over the limit, should be throttled.
+	// Should be throttled to 1 Hz.
 	start = time.Now()
 	if err := s1.updateLocalACLs(changes); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if dur := time.Now().Sub(start); dur < 500*time.Millisecond {
+	if dur := time.Now().Sub(start); dur < 2*time.Second {
 		t.Fatalf("too fast: %9.6f", dur.Seconds())
 	}
 }
