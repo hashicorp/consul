@@ -196,8 +196,10 @@
 			"revisionTime": "2016-08-09T01:24:47Z"
 		},
 		{
+			"checksumSHA1": "cdOCt0Yb+hdErz8NAQqayxPmRsY=",
 			"path": "github.com/hashicorp/errwrap",
-			"revision": "7554cd9344cec97297fa6649b055a8c98c2a1e55"
+			"revision": "7554cd9344cec97297fa6649b055a8c98c2a1e55",
+			"revisionTime": "2014-10-28T05:47:10Z"
 		},
 		{
 			"path": "github.com/hashicorp/go-checkpoint",
@@ -224,8 +226,10 @@
 			"revision": "fa3f63826f7c23912c15263591e65d54d080b458"
 		},
 		{
+			"checksumSHA1": "lrSl49G23l6NhfilxPM0XFs5rZo=",
 			"path": "github.com/hashicorp/go-multierror",
-			"revision": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
+			"revision": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5",
+			"revisionTime": "2015-09-16T20:57:42Z"
 		},
 		{
 			"path": "github.com/hashicorp/go-reap",
