@@ -27,6 +27,10 @@ FEATURES:
 * Implemented a new set of feedback controls for the gossip layer that help
   prevent degraded nodes that can't meet the soft real-time requirements from
   erroneously causing `serfHealth` flapping in other, healthy nodes. [GH-2101]
+* Upgraded to "stage one" of the v2 HashiCorp Raft library. This version offers
+  improved handling of cluster membership changes and recovery after a loss of
+  quorum. This version also provides a foundation for new features that will
+  appear in future Consul versions. [GH-2222]
 
 BACKWARDS INCOMPATIBILITIES:
 
