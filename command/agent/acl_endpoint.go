@@ -205,3 +205,20 @@ func (s *HTTPServer) ACLList(resp http.ResponseWriter, req *http.Request) (inter
 	}
 	return out.ACLs, nil
 }
+
+func (s *HTTPServer) ACLReplicationStatus(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Note that we do not forward to the ACL DC here. This is a query for
+	// any DC that's doing replication.
+	args := structs.DCSpecificRequest{}
+	s.parseSource(req, &args.Source)
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Make the request.
+	var out structs.ACLReplicationStatus
+	if err := s.agent.RPC("ACL.ReplicationStatus", &args, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}

@@ -4,6 +4,10 @@ FEATURES:
 
 * Added a new `/v1/txn` state store transaction API that allows for atomic
   updates to and fetches from multiple entries in the key/value store. [GH-2028]
+* Added a full replication capability for ACLs. Non-ACL datacenters can now
+  replicate the complete ACL set locally to their state store and fall back to
+  that if there's an outage. Additionally, this provides a good way to make a
+  backup ACL datacenter, or to migrate the ACL datacenter to a different one. [GH-2237]
 * Script checks now support an optional `timeout` parameter. [GH-1762]
 * Reap time for failed nodes is now configurable via new `reconnect_timeout` and
   `reconnect_timeout_wan` config options ([use with caution](https://www.consul.io/docs/agent/options.html#reconnect_timeout)). [GH-1935]

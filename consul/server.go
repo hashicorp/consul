@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/state"
+	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-boltdb"
@@ -67,7 +68,7 @@ const (
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
 type Server struct {
-	// aclAuthCache is the authoritative ACL cache
+	// aclAuthCache is the authoritative ACL cache.
 	aclAuthCache *acl.Cache
 
 	// aclCache is the non-authoritative ACL cache.
@@ -149,6 +150,14 @@ type Server struct {
 	// for the KV tombstones
 	tombstoneGC *state.TombstoneGC
 
+	// aclReplicationStatus (and its associated lock) provide information
+	// about the health of the ACL replication goroutine.
+	aclReplicationStatus     structs.ACLReplicationStatus
+	aclReplicationStatusLock sync.RWMutex
+
+	// shutdown and the associated members here are used in orchestrating
+	// a clean shutdown. The shutdownCh is never written to, only closed to
+	// indicate a shutdown has been initiated.
 	shutdown     bool
 	shutdownCh   chan struct{}
 	shutdownLock sync.Mutex
@@ -171,49 +180,47 @@ type endpoints struct {
 // NewServer is used to construct a new Consul server from the
 // configuration, potentially returning an error
 func NewServer(config *Config) (*Server, error) {
-	// Check the protocol version
+	// Check the protocol version.
 	if err := config.CheckVersion(); err != nil {
 		return nil, err
 	}
 
-	// Check for a data directory!
+	// Check for a data directory.
 	if config.DataDir == "" && !config.DevMode {
 		return nil, fmt.Errorf("Config must provide a DataDir")
 	}
 
-	// Sanity check the ACLs
+	// Sanity check the ACLs.
 	if err := config.CheckACL(); err != nil {
 		return nil, err
 	}
 
-	// Ensure we have a log output
+	// Ensure we have a log output and create a logger.
 	if config.LogOutput == nil {
 		config.LogOutput = os.Stderr
 	}
+	logger := log.New(config.LogOutput, "", log.LstdFlags)
 
-	// Create the tls wrapper for outgoing connections
+	// Create the TLS wrapper for outgoing connections.
 	tlsConf := config.tlsConfig()
 	tlsWrap, err := tlsConf.OutgoingTLSWrapper()
 	if err != nil {
 		return nil, err
 	}
 
-	// Get the incoming tls config
+	// Get the incoming TLS config.
 	incomingTLS, err := tlsConf.IncomingTLSConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a logger
-	logger := log.New(config.LogOutput, "", log.LstdFlags)
-
-	// Create the tombstone GC
+	// Create the tombstone GC.
 	gc, err := state.NewTombstoneGC(config.TombstoneTTL, config.TombstoneTTLGranularity)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create server
+	// Create server.
 	s := &Server{
 		config:        config,
 		connPool:      NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap),
@@ -229,32 +236,37 @@ func NewServer(config *Config) (*Server, error) {
 		shutdownCh:    make(chan struct{}),
 	}
 
-	// Initialize the authoritative ACL cache
-	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclFault)
+	// Initialize the authoritative ACL cache.
+	s.aclAuthCache, err = acl.NewCache(aclCacheSize, s.aclLocalFault)
 	if err != nil {
 		s.Shutdown()
-		return nil, fmt.Errorf("Failed to create ACL cache: %v", err)
+		return nil, fmt.Errorf("Failed to create authoritative ACL cache: %v", err)
 	}
 
-	// Set up the non-authoritative ACL cache
-	if s.aclCache, err = newAclCache(config, logger, s.RPC); err != nil {
+	// Set up the non-authoritative ACL cache. A nil local function is given
+	// if ACL replication isn't enabled.
+	var local acl.FaultFunc
+	if s.IsACLReplicationEnabled() {
+		local = s.aclLocalFault
+	}
+	if s.aclCache, err = newAclCache(config, logger, s.RPC, local); err != nil {
 		s.Shutdown()
-		return nil, err
+		return nil, fmt.Errorf("Failed to create non-authoritative ACL cache: %v", err)
 	}
 
-	// Initialize the RPC layer
+	// Initialize the RPC layer.
 	if err := s.setupRPC(tlsWrap); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start RPC layer: %v", err)
 	}
 
-	// Initialize the Raft server
+	// Initialize the Raft server.
 	if err := s.setupRaft(); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
 
-	// Initialize the lan Serf
+	// Initialize the LAN Serf.
 	s.serfLAN, err = s.setupSerf(config.SerfLANConfig,
 		s.eventChLAN, serfLANSnapshot, false)
 	if err != nil {
@@ -263,7 +275,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 	go s.lanEventHandler()
 
-	// Initialize the wan Serf
+	// Initialize the WAN Serf.
 	s.serfWAN, err = s.setupSerf(config.SerfWANConfig,
 		s.eventChWAN, serfWANSnapshot, true)
 	if err != nil {
@@ -272,11 +284,17 @@ func NewServer(config *Config) (*Server, error) {
 	}
 	go s.wanEventHandler()
 
-	// Start listening for RPC requests
+	// Start ACL replication.
+	if s.IsACLReplicationEnabled() {
+		go s.runACLReplication()
+	}
+
+	// Start listening for RPC requests.
 	go s.listen()
 
-	// Start the metrics handlers
+	// Start the metrics handlers.
 	go s.sessionStats()
+
 	return s, nil
 }
 

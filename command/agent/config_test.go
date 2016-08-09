@@ -622,7 +622,8 @@ func TestDecodeConfig(t *testing.T) {
 	// ACLs
 	input = `{"acl_token": "1234", "acl_datacenter": "dc2",
 	"acl_ttl": "60s", "acl_down_policy": "deny",
-	"acl_default_policy": "deny", "acl_master_token": "2345"}`
+	"acl_default_policy": "deny", "acl_master_token": "2345",
+	"acl_replication_token": "8675309"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -644,6 +645,9 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.ACLDefaultPolicy != "deny" {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.ACLReplicationToken != "8675309" {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -1432,6 +1436,7 @@ func TestMergeConfig(t *testing.T) {
 		ACLTTLRaw:              "15s",
 		ACLDownPolicy:          "deny",
 		ACLDefaultPolicy:       "deny",
+		ACLReplicationToken:    "8765309",
 		Watches: []map[string]interface{}{
 			map[string]interface{}{
 				"type":    "keyprefix",
