@@ -543,10 +543,26 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 		}
 	}
 
+	// TODO (slackpad) - This will need to be changed once we support node IDs.
+	addr := (&net.TCPAddr{IP: m.Addr, Port: parts.Port}).String()
+
+	// See if it's already in the configuration. It's harmless to re-add it
+	// but we want to avoid doing that if possible to prevent useless Raft
+	// log entries.
+	configFuture := s.raft.GetConfiguration()
+	if err := configFuture.Error(); err != nil {
+		s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
+		return err
+	}
+	for _, server := range configFuture.Configuration().Servers {
+		if server.Address == raft.ServerAddress(addr) {
+			return nil
+		}
+	}
+
 	// Attempt to add as a peer
-	var addr net.Addr = &net.TCPAddr{IP: m.Addr, Port: parts.Port}
-	future := s.raft.AddPeer(addr.String())
-	if err := future.Error(); err != nil && err != raft.ErrKnownPeer {
+	addFuture := s.raft.AddPeer(raft.ServerAddress(addr))
+	if err := addFuture.Error(); err != nil {
 		s.logger.Printf("[ERR] consul: failed to add raft peer: %v", err)
 		return err
 	}
@@ -555,15 +571,31 @@ func (s *Server) joinConsulServer(m serf.Member, parts *agent.Server) error {
 
 // removeConsulServer is used to try to remove a consul server that has left
 func (s *Server) removeConsulServer(m serf.Member, port int) error {
-	// Attempt to remove as peer
-	peer := &net.TCPAddr{IP: m.Addr, Port: port}
-	future := s.raft.RemovePeer(peer.String())
-	if err := future.Error(); err != nil && err != raft.ErrUnknownPeer {
-		s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
-			peer, err)
+	// TODO (slackpad) - This will need to be changed once we support node IDs.
+	addr := (&net.TCPAddr{IP: m.Addr, Port: port}).String()
+
+	// See if it's already in the configuration. It's harmless to re-remove it
+	// but we want to avoid doing that if possible to prevent useless Raft
+	// log entries.
+	configFuture := s.raft.GetConfiguration()
+	if err := configFuture.Error(); err != nil {
+		s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
 		return err
-	} else if err == nil {
-		s.logger.Printf("[INFO] consul: removed server '%s' as peer", m.Name)
+	}
+	for _, server := range configFuture.Configuration().Servers {
+		if server.Address == raft.ServerAddress(addr) {
+			goto REMOVE
+		}
+	}
+	return nil
+
+REMOVE:
+	// Attempt to remove as a peer.
+	future := s.raft.RemovePeer(raft.ServerAddress(addr))
+	if err := future.Error(); err != nil {
+		s.logger.Printf("[ERR] consul: failed to remove raft peer '%v': %v",
+			addr, err)
+		return err
 	}
 	return nil
 }

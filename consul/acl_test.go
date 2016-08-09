@@ -223,8 +223,8 @@ func TestACL_NonAuthority_NotFound(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ := s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ := s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -275,8 +275,8 @@ func TestACL_NonAuthority_Found(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ := s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ := s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -351,8 +351,8 @@ func TestACL_NonAuthority_Management(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ := s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ := s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -408,8 +408,8 @@ func TestACL_DownPolicy_Deny(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ := s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ := s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -482,8 +482,8 @@ func TestACL_DownPolicy_Allow(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ := s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ := s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})
@@ -558,8 +558,8 @@ func TestACL_DownPolicy_ExtendCache(t *testing.T) {
 	}
 
 	testutil.WaitForResult(func() (bool, error) {
-		p1, _ := s1.raftPeers.Peers()
-		return len(p1) == 2, errors.New(fmt.Sprintf("%v", p1))
+		p1, _ := s1.numPeers()
+		return p1 == 2, errors.New(fmt.Sprintf("%d", p1))
 	}, func(err error) {
 		t.Fatalf("should have 2 peers: %v", err)
 	})

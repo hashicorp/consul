@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/rpc"
@@ -11,7 +12,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -95,22 +95,19 @@ type Server struct {
 	// strong consistency.
 	fsm *consulFSM
 
-	// Have we attempted to leave the cluster
-	left bool
-
 	// localConsuls is used to track the known consuls
 	// in the local datacenter. Used to do leader forwarding.
-	localConsuls map[string]*agent.Server
+	localConsuls map[raft.ServerAddress]*agent.Server
 	localLock    sync.RWMutex
 
 	// Logger uses the provided LogOutput
 	logger *log.Logger
 
-	// The raft instance is used among Consul nodes within the
-	// DC to protect operations that require strong consistency
+	// The raft instance is used among Consul nodes within the DC to protect
+	// operations that require strong consistency.
+	// the state directly.
 	raft          *raft.Raft
 	raftLayer     *RaftLayer
-	raftPeers     raft.PeerStore
 	raftStore     *raftboltdb.BoltStore
 	raftTransport *raft.NetworkTransport
 	raftInmem     *raft.InmemStore
@@ -226,7 +223,7 @@ func NewServer(config *Config) (*Server, error) {
 		connPool:      NewPool(config.LogOutput, serverRPCCache, serverMaxStreams, tlsWrap),
 		eventChLAN:    make(chan serf.Event, 256),
 		eventChWAN:    make(chan serf.Event, 256),
-		localConsuls:  make(map[string]*agent.Server),
+		localConsuls:  make(map[raft.ServerAddress]*agent.Server),
 		logger:        logger,
 		reconcileCh:   make(chan serf.Member, 32),
 		remoteConsuls: make(map[string][]*agent.Server, 4),
@@ -350,41 +347,52 @@ func (s *Server) setupSerf(conf *serf.Config, ch chan serf.Event, path string, w
 
 // setupRaft is used to setup and initialize Raft
 func (s *Server) setupRaft() error {
-	// If we are in bootstrap mode, enable a single node cluster
-	if s.config.Bootstrap || s.config.DevMode {
-		s.config.RaftConfig.EnableSingleNode = true
-	}
+	// If we have an unclean exit then attempt to close the Raft store.
+	defer func() {
+		if s.raft == nil && s.raftStore != nil {
+			if err := s.raftStore.Close(); err != nil {
+				s.logger.Printf("[ERR] consul: failed to close Raft store: %v", err)
+			}
+		}
+	}()
 
-	// Create the FSM
+	// Create the FSM.
 	var err error
 	s.fsm, err = NewFSM(s.tombstoneGC, s.config.LogOutput)
 	if err != nil {
 		return err
 	}
 
-	// Create a transport layer
+	// Create a transport layer.
 	trans := raft.NewNetworkTransport(s.raftLayer, 3, 10*time.Second, s.config.LogOutput)
 	s.raftTransport = trans
 
+	// Make sure we set the LogOutput.
+	s.config.RaftConfig.LogOutput = s.config.LogOutput
+
+	// Our version of Raft protocol requires the LocalID to match the network
+	// address of the transport.
+	s.config.RaftConfig.LocalID = raft.ServerID(trans.LocalAddr())
+
+	// Build an all in-memory setup for dev mode, otherwise prepare a full
+	// disk-based setup.
 	var log raft.LogStore
 	var stable raft.StableStore
 	var snap raft.SnapshotStore
-
 	if s.config.DevMode {
 		store := raft.NewInmemStore()
 		s.raftInmem = store
 		stable = store
 		log = store
 		snap = raft.NewDiscardSnapshotStore()
-		s.raftPeers = &raft.StaticPeers{}
 	} else {
-		// Create the base raft path
+		// Create the base raft path.
 		path := filepath.Join(s.config.DataDir, raftState)
 		if err := ensurePath(path, true); err != nil {
 			return err
 		}
 
-		// Create the backend raft store for logs and stable storage
+		// Create the backend raft store for logs and stable storage.
 		store, err := raftboltdb.NewBoltStore(filepath.Join(path, "raft.db"))
 		if err != nil {
 			return err
@@ -392,55 +400,95 @@ func (s *Server) setupRaft() error {
 		s.raftStore = store
 		stable = store
 
-		// Wrap the store in a LogCache to improve performance
+		// Wrap the store in a LogCache to improve performance.
 		cacheStore, err := raft.NewLogCache(raftLogCacheSize, store)
 		if err != nil {
-			store.Close()
 			return err
 		}
 		log = cacheStore
 
-		// Create the snapshot store
+		// Create the snapshot store.
 		snapshots, err := raft.NewFileSnapshotStore(path, snapshotsRetained, s.config.LogOutput)
 		if err != nil {
-			store.Close()
 			return err
 		}
 		snap = snapshots
 
-		// Setup the peer store
-		s.raftPeers = raft.NewJSONPeers(path, trans)
+		// For an existing cluster being upgraded to the new version of
+		// Raft, we almost never want to run recovery based on the old
+		// peers.json file. We create a peers.info file with a helpful
+		// note about where peers.json went, and use that as a sentinel
+		// to avoid ingesting the old one that first time (if we have to
+		// create the peers.info file because it's not there, we also
+		// blow away any existing peers.json file).
+		peersFile := filepath.Join(path, "peers.json")
+		peersInfoFile := filepath.Join(path, "peers.info")
+		if _, err := os.Stat(peersInfoFile); os.IsNotExist(err) {
+			if err := ioutil.WriteFile(peersInfoFile, []byte(peersInfoContent), 0755); err != nil {
+				return fmt.Errorf("failed to write peers.info file: %v", err)
+			}
+
+			// Blow away the peers.json file if present, since the
+			// peers.info sentinel wasn't there.
+			if _, err := os.Stat(peersFile); err == nil {
+				if err := os.Remove(peersFile); err != nil {
+					return fmt.Errorf("failed to delete peers.json, please delete manually (see peers.info for details): %v", err)
+				}
+				s.logger.Printf("[INFO] consul: deleted peers.json file (see peers.info for details)")
+			}
+		} else if _, err := os.Stat(peersFile); err == nil {
+			s.logger.Printf("[INFO] consul: found peers.json file, recovering Raft configuration...")
+			configuration, err := raft.ReadPeersJSON(peersFile)
+			if err != nil {
+				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
+			}
+			tmpFsm, err := NewFSM(s.tombstoneGC, s.config.LogOutput)
+			if err != nil {
+				return fmt.Errorf("recovery failed to make temp FSM: %v", err)
+			}
+			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
+				log, stable, snap, trans, configuration); err != nil {
+				return fmt.Errorf("recovery failed: %v", err)
+			}
+			if err := os.Remove(peersFile); err != nil {
+				return fmt.Errorf("recovery failed to delete peers.json, please delete manually (see peers.info for details): %v", err)
+			}
+			s.logger.Printf("[INFO] consul: deleted peers.json file after successful recovery")
+		}
 	}
 
-	// Ensure local host is always included if we are in bootstrap mode
-	if s.config.Bootstrap {
-		peerAddrs, err := s.raftPeers.Peers()
+	// If we are in bootstrap or dev mode and the state is clean then we can
+	// bootstrap now.
+	if s.config.Bootstrap || s.config.DevMode {
+		hasState, err := raft.HasExistingState(log, stable, snap)
 		if err != nil {
-			if s.raftStore != nil {
-				s.raftStore.Close()
-			}
 			return err
 		}
-		if !raft.PeerContained(peerAddrs, trans.LocalAddr()) {
-			s.raftPeers.SetPeers(raft.AddUniquePeer(peerAddrs, trans.LocalAddr()))
+		if !hasState {
+			// TODO (slackpad) - This will need to be updated when
+			// we add support for node IDs.
+			configuration := raft.Configuration{
+				Servers: []raft.Server{
+					raft.Server{
+						ID:      raft.ServerID(trans.LocalAddr()),
+						Address: trans.LocalAddr(),
+					},
+				},
+			}
+			if err := raft.BootstrapCluster(s.config.RaftConfig,
+				log, stable, snap, trans, configuration); err != nil {
+				return err
+			}
 		}
 	}
 
-	// Make sure we set the LogOutput
-	s.config.RaftConfig.LogOutput = s.config.LogOutput
-
-	// Setup the Raft store
-	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, log, stable,
-		snap, s.raftPeers, trans)
+	// Setup the Raft store.
+	s.raft, err = raft.NewRaft(s.config.RaftConfig, s.fsm, log, stable, snap, trans)
 	if err != nil {
-		if s.raftStore != nil {
-			s.raftStore.Close()
-		}
-		trans.Close()
 		return err
 	}
 
-	// Start monitoring leadership
+	// Start monitoring leadership.
 	go s.monitorLeadership()
 	return nil
 }
@@ -528,16 +576,10 @@ func (s *Server) Shutdown() error {
 		s.raftLayer.Close()
 		future := s.raft.Shutdown()
 		if err := future.Error(); err != nil {
-			s.logger.Printf("[WARN] consul: Error shutting down raft: %s", err)
+			s.logger.Printf("[WARN] consul: error shutting down raft: %s", err)
 		}
 		if s.raftStore != nil {
 			s.raftStore.Close()
-		}
-
-		// Clear the peer set on a graceful leave to avoid
-		// triggering elections on a rejoin.
-		if s.left {
-			s.raftPeers.SetPeers(nil)
 		}
 	}
 
@@ -554,23 +596,26 @@ func (s *Server) Shutdown() error {
 // Leave is used to prepare for a graceful shutdown of the server
 func (s *Server) Leave() error {
 	s.logger.Printf("[INFO] consul: server starting leave")
-	s.left = true
 
 	// Check the number of known peers
-	numPeers, err := s.numOtherPeers()
+	numPeers, err := s.numPeers()
 	if err != nil {
 		s.logger.Printf("[ERR] consul: failed to check raft peers: %v", err)
 		return err
 	}
+
+	// TODO (slackpad) - This will need to be updated once we support node
+	// IDs.
+	addr := s.raftTransport.LocalAddr()
 
 	// If we are the current leader, and we have any other peers (cluster has multiple
 	// servers), we should do a RemovePeer to safely reduce the quorum size. If we are
 	// not the leader, then we should issue our leave intention and wait to be removed
 	// for some sane period of time.
 	isLeader := s.IsLeader()
-	if isLeader && numPeers > 0 {
-		future := s.raft.RemovePeer(s.raftTransport.LocalAddr())
-		if err := future.Error(); err != nil && err != raft.ErrUnknownPeer {
+	if isLeader && numPeers > 1 {
+		future := s.raft.RemovePeer(addr)
+		if err := future.Error(); err != nil {
 			s.logger.Printf("[ERR] consul: failed to remove ourself as raft peer: %v", err)
 		}
 	}
@@ -589,44 +634,65 @@ func (s *Server) Leave() error {
 		}
 	}
 
-	// If we were not leader, wait to be safely removed from the cluster.
-	// We must wait to allow the raft replication to take place, otherwise
-	// an immediate shutdown could cause a loss of quorum.
+	// If we were not leader, wait to be safely removed from the cluster. We
+	// must wait to allow the raft replication to take place, otherwise an
+	// immediate shutdown could cause a loss of quorum.
 	if !isLeader {
+		left := false
 		limit := time.Now().Add(raftRemoveGracePeriod)
-		for numPeers > 0 && time.Now().Before(limit) {
-			// Update the number of peers
-			numPeers, err = s.numOtherPeers()
-			if err != nil {
-				s.logger.Printf("[ERR] consul: failed to check raft peers: %v", err)
-				break
-			}
-
-			// Avoid the sleep if we are done
-			if numPeers == 0 {
-				break
-			}
-
-			// Sleep a while and check again
+		for !left && time.Now().Before(limit) {
+			// Sleep a while before we check.
 			time.Sleep(50 * time.Millisecond)
+
+			// Get the latest configuration.
+			future := s.raft.GetConfiguration()
+			if err := future.Error(); err != nil {
+				s.logger.Printf("[ERR] consul: failed to get raft configuration: %v", err)
+				break
+			}
+
+			// See if we are no longer included.
+			left = true
+			for _, server := range future.Configuration().Servers {
+				if server.Address == addr {
+					left = false
+					break
+				}
+			}
 		}
-		if numPeers != 0 {
-			s.logger.Printf("[WARN] consul: failed to leave raft peer set gracefully, timeout")
+
+		// TODO (slackpad) With the old Raft library we used to force the
+		// peers set to empty when a graceful leave occurred. This would
+		// keep voting spam down if the server was restarted, but it was
+		// dangerous because the peers was inconsistent with the logs and
+		// snapshots, so it wasn't really safe in all cases for the server
+		// to become leader. This is now safe, but the log spam is noisy.
+		// The next new version of the library will have a "you are not a
+		// peer stop it" behavior that should address this. We will have
+		// to evaluate during the RC period if this interim situation is
+		// not too confusing for operators.
+
+		// TODO (slackpad) When we take a later new version of the Raft
+		// library it won't try to complete replication, so this peer
+		// may not realize that it has been removed. Need to revisit this
+		// and the warning here.
+		if !left {
+			s.logger.Printf("[WARN] consul: failed to leave raft configuration gracefully, timeout")
 		}
 	}
 
 	return nil
 }
 
-// numOtherPeers is used to check on the number of known peers
-// excluding the local node
-func (s *Server) numOtherPeers() (int, error) {
-	peers, err := s.raftPeers.Peers()
-	if err != nil {
+// numPeers is used to check on the number of known peers, including the local
+// node.
+func (s *Server) numPeers() (int, error) {
+	future := s.raft.GetConfiguration()
+	if err := future.Error(); err != nil {
 		return 0, err
 	}
-	otherPeers := raft.ExcludePeer(peers, s.raftTransport.LocalAddr())
-	return len(otherPeers), nil
+	configuration := future.Configuration()
+	return len(configuration.Servers), nil
 }
 
 // JoinLAN is used to have Consul join the inner-DC pool
@@ -756,7 +822,7 @@ func (s *Server) Stats() map[string]map[string]string {
 		"consul": map[string]string{
 			"server":            "true",
 			"leader":            fmt.Sprintf("%v", s.IsLeader()),
-			"leader_addr":       s.raft.Leader(),
+			"leader_addr":       string(s.raft.Leader()),
 			"bootstrap":         fmt.Sprintf("%v", s.config.Bootstrap),
 			"known_datacenters": toString(uint64(numKnownDCs)),
 		},
@@ -764,11 +830,6 @@ func (s *Server) Stats() map[string]map[string]string {
 		"serf_lan": s.serfLAN.Stats(),
 		"serf_wan": s.serfWAN.Stats(),
 		"runtime":  runtimeStats(),
-	}
-	if peers, err := s.raftPeers.Peers(); err == nil {
-		stats["raft"]["raft_peers"] = strings.Join(peers, ",")
-	} else {
-		s.logger.Printf("[DEBUG] server: error getting raft peers: %v", err)
 	}
 	return stats
 }
@@ -782,3 +843,29 @@ func (s *Server) GetLANCoordinate() (*coordinate.Coordinate, error) {
 func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
 	return s.serfWAN.GetCoordinate()
 }
+
+// peersInfoContent is used to help operators understand what happened to the
+// peers.json file. This is written to a file called peers.info in the same
+// location.
+const peersInfoContent = `
+As of Consul 0.7.0, the peers.json file is only used for recovery
+after an outage. It should be formatted as a JSON array containing the address
+and port of each Consul server in the cluster, like this:
+
+["10.1.0.1:8500","10.1.0.2:8500","10.1.0.3:8500"]
+
+Under normal operation, the peers.json file will not be present.
+
+When Consul starts for the first time, it will create this peers.info file and
+delete any existing peers.json file so that recovery doesn't occur on the first
+startup.
+
+Once this peers.info file is present, any peers.json file will be ingested at
+startup, and will set the Raft peer configuration manually to recover from an
+outage. It's crucial that all servers in the cluster are shut down before
+creating the peers.json file, and that all servers receive the same
+configuration. Once the peers.json file is successfully ingested and applied, it
+will be deleted.
+
+Please see https://www.consul.io/docs/guides/outage.html for more information.
+`

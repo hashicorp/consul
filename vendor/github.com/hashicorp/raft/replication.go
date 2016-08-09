@@ -24,32 +24,58 @@ var (
 	ErrPipelineReplicationNotSupported = errors.New("pipeline replication not supported")
 )
 
+// followerReplication is in charge of sending snapshots and log entries from
+// this leader during this particular term to a remote follower.
 type followerReplication struct {
-	peer     string
-	inflight *inflight
+	// peer contains the network address and ID of the remote follower.
+	peer Server
 
-	stopCh    chan uint64
+	// commitment tracks the entries acknowledged by followers so that the
+	// leader's commit index can advance. It is updated on successsful
+	// AppendEntries responses.
+	commitment *commitment
+
+	// stopCh is notified/closed when this leader steps down or the follower is
+	// removed from the cluster. In the follower removed case, it carries a log
+	// index; replication should be attempted with a best effort up through that
+	// index, before exiting.
+	stopCh chan uint64
+	// triggerCh is notified every time new entries are appended to the log.
 	triggerCh chan struct{}
 
+	// currentTerm is the term of this leader, to be included in AppendEntries
+	// requests.
 	currentTerm uint64
-	matchIndex  uint64
-	nextIndex   uint64
+	// nextIndex is the index of the next log entry to send to the follower,
+	// which may fall past the end of the log.
+	nextIndex uint64
 
-	lastContact     time.Time
+	// lastContact is updated to the current time whenever any response is
+	// received from the follower (successful or not). This is used to check
+	// whether the leader should step down (Raft.checkLeaderLease()).
+	lastContact time.Time
+	// lastContactLock protects 'lastContact'.
 	lastContactLock sync.RWMutex
 
+	// failures counts the number of failed RPCs since the last success, which is
+	// used to apply backoff.
 	failures uint64
 
-	notifyCh   chan struct{}
-	notify     []*verifyFuture
+	// notifyCh is notified to send out a heartbeat, which is used to check that
+	// this server is still leader.
+	notifyCh chan struct{}
+	// notify is a list of futures to be resolved upon receipt of an
+	// acknowledgement, then cleared from this list.
+	notify []*verifyFuture
+	// notifyLock protects 'notify'.
 	notifyLock sync.Mutex
 
 	// stepDown is used to indicate to the leader that we
 	// should step down based on information from a follower.
 	stepDown chan struct{}
 
-	// allowPipeline is used to control it seems like
-	// pipeline replication should be enabled.
+	// allowPipeline is used to determine when to pipeline the AppendEntries RPCs.
+	// It is private to this replication goroutine.
 	allowPipeline bool
 }
 
@@ -83,8 +109,8 @@ func (s *followerReplication) setLastContact() {
 	s.lastContactLock.Unlock()
 }
 
-// replicate is a long running routine that is used to manage
-// the process of replicating logs to our followers.
+// replicate is a long running routine that replicates log entries to a single
+// follower.
 func (r *Raft) replicate(s *followerReplication) {
 	// Start an async heartbeating routing
 	stopHeartbeat := make(chan struct{})
@@ -102,9 +128,11 @@ RPC:
 			}
 			return
 		case <-s.triggerCh:
-			shouldStop = r.replicateTo(s, r.getLastLogIndex())
-		case <-randomTimeout(r.conf.CommitTimeout):
-			shouldStop = r.replicateTo(s, r.getLastLogIndex())
+			lastLogIdx, _ := r.getLastLog()
+			shouldStop = r.replicateTo(s, lastLogIdx)
+		case <-randomTimeout(r.conf.CommitTimeout): // TODO: what is this?
+			lastLogIdx, _ := r.getLastLog()
+			shouldStop = r.replicateTo(s, lastLogIdx)
 		}
 
 		// If things looks healthy, switch to pipeline mode
@@ -129,7 +157,8 @@ PIPELINE:
 	goto RPC
 }
 
-// replicateTo is used to replicate the logs up to a given last index.
+// replicateTo is a hepler to replicate(), used to replicate the logs up to a
+// given last index.
 // If the follower log is behind, we take care to bring them up to date.
 func (r *Raft) replicateTo(s *followerReplication, lastIndex uint64) (shouldStop bool) {
 	// Create the base request
@@ -154,12 +183,12 @@ START:
 
 	// Make the RPC call
 	start = time.Now()
-	if err := r.trans.AppendEntries(s.peer, &req, &resp); err != nil {
+	if err := r.trans.AppendEntries(s.peer.Address, &req, &resp); err != nil {
 		r.logger.Printf("[ERR] raft: Failed to AppendEntries to %v: %v", s.peer, err)
 		s.failures++
 		return
 	}
-	appendStats(s.peer, start, float32(len(req.Entries)))
+	appendStats(string(s.peer.ID), start, float32(len(req.Entries)))
 
 	// Check for a newer term, stop running
 	if resp.Term > req.Term {
@@ -180,7 +209,6 @@ START:
 		s.allowPipeline = true
 	} else {
 		s.nextIndex = max(min(s.nextIndex-1, resp.LastLog+1), 1)
-		s.matchIndex = s.nextIndex - 1
 		if resp.NoRetryBackoff {
 			s.failures = 0
 		} else {
@@ -190,6 +218,17 @@ START:
 	}
 
 CHECK_MORE:
+	// Poll the stop channel here in case we are looping and have been asked
+	// to stop, or have stepped down as leader. Even for the best effort case
+	// where we are asked to replicate to a given index and then shutdown,
+	// it's better to not loop in here to send lots of entries to a straggler
+	// that's leaving the cluster anyways.
+	select {
+	case <-s.stopCh:
+		return true
+	default:
+	}
+
 	// Check if there are more logs to replicate
 	if s.nextIndex <= lastIndex {
 		goto START
@@ -236,23 +275,27 @@ func (r *Raft) sendLatestSnapshot(s *followerReplication) (bool, error) {
 
 	// Setup the request
 	req := InstallSnapshotRequest{
-		Term:         s.currentTerm,
-		Leader:       r.trans.EncodePeer(r.localAddr),
-		LastLogIndex: meta.Index,
-		LastLogTerm:  meta.Term,
-		Peers:        meta.Peers,
-		Size:         meta.Size,
+		RPCHeader:          r.getRPCHeader(),
+		SnapshotVersion:    meta.Version,
+		Term:               s.currentTerm,
+		Leader:             r.trans.EncodePeer(r.localAddr),
+		LastLogIndex:       meta.Index,
+		LastLogTerm:        meta.Term,
+		Peers:              meta.Peers,
+		Size:               meta.Size,
+		Configuration:      encodeConfiguration(meta.Configuration),
+		ConfigurationIndex: meta.ConfigurationIndex,
 	}
 
 	// Make the call
 	start := time.Now()
 	var resp InstallSnapshotResponse
-	if err := r.trans.InstallSnapshot(s.peer, &req, &resp, snapshot); err != nil {
+	if err := r.trans.InstallSnapshot(s.peer.Address, &req, &resp, snapshot); err != nil {
 		r.logger.Printf("[ERR] raft: Failed to install snapshot %v: %v", snapID, err)
 		s.failures++
 		return false, err
 	}
-	metrics.MeasureSince([]string{"raft", "replication", "installSnapshot", s.peer}, start)
+	metrics.MeasureSince([]string{"raft", "replication", "installSnapshot", string(s.peer.ID)}, start)
 
 	// Check for a newer term, stop running
 	if resp.Term > req.Term {
@@ -265,12 +308,9 @@ func (r *Raft) sendLatestSnapshot(s *followerReplication) (bool, error) {
 
 	// Check for success
 	if resp.Success {
-		// Mark any inflight logs as committed
-		s.inflight.CommitRange(s.matchIndex+1, meta.Index)
-
 		// Update the indexes
-		s.matchIndex = meta.Index
-		s.nextIndex = s.matchIndex + 1
+		s.nextIndex = meta.Index + 1
+		s.commitment.match(s.peer.ID, meta.Index)
 
 		// Clear any failures
 		s.failures = 0
@@ -290,8 +330,9 @@ func (r *Raft) sendLatestSnapshot(s *followerReplication) (bool, error) {
 func (r *Raft) heartbeat(s *followerReplication, stopCh chan struct{}) {
 	var failures uint64
 	req := AppendEntriesRequest{
-		Term:   s.currentTerm,
-		Leader: r.trans.EncodePeer(r.localAddr),
+		RPCHeader: r.getRPCHeader(),
+		Term:      s.currentTerm,
+		Leader:    r.trans.EncodePeer(r.localAddr),
 	}
 	var resp AppendEntriesResponse
 	for {
@@ -304,8 +345,8 @@ func (r *Raft) heartbeat(s *followerReplication, stopCh chan struct{}) {
 		}
 
 		start := time.Now()
-		if err := r.trans.AppendEntries(s.peer, &req, &resp); err != nil {
-			r.logger.Printf("[ERR] raft: Failed to heartbeat to %v: %v", s.peer, err)
+		if err := r.trans.AppendEntries(s.peer.Address, &req, &resp); err != nil {
+			r.logger.Printf("[ERR] raft: Failed to heartbeat to %v: %v", s.peer.Address, err)
 			failures++
 			select {
 			case <-time.After(backoff(failureWait, failures, maxFailureScale)):
@@ -314,7 +355,7 @@ func (r *Raft) heartbeat(s *followerReplication, stopCh chan struct{}) {
 		} else {
 			s.setLastContact()
 			failures = 0
-			metrics.MeasureSince([]string{"raft", "replication", "heartbeat", s.peer}, start)
+			metrics.MeasureSince([]string{"raft", "replication", "heartbeat", string(s.peer.ID)}, start)
 			s.notifyAll(resp.Success)
 		}
 	}
@@ -326,7 +367,7 @@ func (r *Raft) heartbeat(s *followerReplication, stopCh chan struct{}) {
 // back to the standard replication which can handle more complex situations.
 func (r *Raft) pipelineReplicate(s *followerReplication) error {
 	// Create a new pipeline
-	pipeline, err := r.trans.AppendEntriesPipeline(s.peer)
+	pipeline, err := r.trans.AppendEntriesPipeline(s.peer.Address)
 	if err != nil {
 		return err
 	}
@@ -353,14 +394,17 @@ SEND:
 		case <-finishCh:
 			break SEND
 		case maxIndex := <-s.stopCh:
+			// Make a best effort to replicate up to this index
 			if maxIndex > 0 {
 				r.pipelineSend(s, pipeline, &nextIndex, maxIndex)
 			}
 			break SEND
 		case <-s.triggerCh:
-			shouldStop = r.pipelineSend(s, pipeline, &nextIndex, r.getLastLogIndex())
+			lastLogIdx, _ := r.getLastLog()
+			shouldStop = r.pipelineSend(s, pipeline, &nextIndex, lastLogIdx)
 		case <-randomTimeout(r.conf.CommitTimeout):
-			shouldStop = r.pipelineSend(s, pipeline, &nextIndex, r.getLastLogIndex())
+			lastLogIdx, _ := r.getLastLog()
+			shouldStop = r.pipelineSend(s, pipeline, &nextIndex, lastLogIdx)
 		}
 	}
 
@@ -373,7 +417,8 @@ SEND:
 	return nil
 }
 
-// pipelineSend is used to send data over a pipeline.
+// pipelineSend is used to send data over a pipeline. It is a helper to
+// pipelineReplicate.
 func (r *Raft) pipelineSend(s *followerReplication, p AppendPipeline, nextIdx *uint64, lastIndex uint64) (shouldStop bool) {
 	// Create a new append request
 	req := new(AppendEntriesRequest)
@@ -403,7 +448,7 @@ func (r *Raft) pipelineDecode(s *followerReplication, p AppendPipeline, stopCh, 
 		select {
 		case ready := <-respCh:
 			req, resp := ready.Request(), ready.Response()
-			appendStats(s.peer, ready.Start(), float32(len(req.Entries)))
+			appendStats(string(s.peer.ID), ready.Start(), float32(len(req.Entries)))
 
 			// Check for a newer term, stop running
 			if resp.Term > req.Term {
@@ -429,6 +474,7 @@ func (r *Raft) pipelineDecode(s *followerReplication, p AppendPipeline, stopCh, 
 
 // setupAppendEntries is used to setup an append entries request.
 func (r *Raft) setupAppendEntries(s *followerReplication, req *AppendEntriesRequest, nextIndex, lastIndex uint64) error {
+	req.RPCHeader = r.getRPCHeader()
 	req.Term = s.currentTerm
 	req.Leader = r.trans.EncodePeer(r.localAddr)
 	req.LeaderCommitIndex = r.getCommitIndex()
@@ -446,13 +492,14 @@ func (r *Raft) setupAppendEntries(s *followerReplication, req *AppendEntriesRequ
 func (r *Raft) setPreviousLog(req *AppendEntriesRequest, nextIndex uint64) error {
 	// Guard for the first index, since there is no 0 log entry
 	// Guard against the previous index being a snapshot as well
+	lastSnapIdx, lastSnapTerm := r.getLastSnapshot()
 	if nextIndex == 1 {
 		req.PrevLogEntry = 0
 		req.PrevLogTerm = 0
 
-	} else if (nextIndex - 1) == r.getLastSnapshotIndex() {
-		req.PrevLogEntry = r.getLastSnapshotIndex()
-		req.PrevLogTerm = r.getLastSnapshotTerm()
+	} else if (nextIndex - 1) == lastSnapIdx {
+		req.PrevLogEntry = lastSnapIdx
+		req.PrevLogTerm = lastSnapTerm
 
 	} else {
 		var l Log
@@ -498,18 +545,15 @@ func (r *Raft) handleStaleTerm(s *followerReplication) {
 	asyncNotifyCh(s.stepDown)
 }
 
-// updateLastAppended is used to update follower replication state after a successful
-// AppendEntries RPC.
+// updateLastAppended is used to update follower replication state after a
+// successful AppendEntries RPC.
+// TODO: This isn't used during InstallSnapshot, but the code there is similar.
 func updateLastAppended(s *followerReplication, req *AppendEntriesRequest) {
 	// Mark any inflight logs as committed
 	if logs := req.Entries; len(logs) > 0 {
-		first := logs[0]
 		last := logs[len(logs)-1]
-		s.inflight.CommitRange(first.Index, last.Index)
-
-		// Update the indexes
-		s.matchIndex = last.Index
 		s.nextIndex = last.Index + 1
+		s.commitment.match(s.peer.ID, last.Index)
 	}
 
 	// Notify still leader

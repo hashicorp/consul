@@ -341,8 +341,8 @@ func TestLeader_LeftServer(t *testing.T) {
 
 	for _, s := range servers {
 		testutil.WaitForResult(func() (bool, error) {
-			peers, _ := s.raftPeers.Peers()
-			return len(peers) == 3, nil
+			peers, _ := s.numPeers()
+			return peers == 3, nil
 		}, func(err error) {
 			t.Fatalf("should have 3 peers")
 		})
@@ -358,8 +358,8 @@ func TestLeader_LeftServer(t *testing.T) {
 		}
 
 		for _, s := range servers[1:] {
-			peers, _ := s.raftPeers.Peers()
-			return len(peers) == 2, errors.New(fmt.Sprintf("%v", peers))
+			peers, _ := s.numPeers()
+			return peers == 2, errors.New(fmt.Sprintf("%d", peers))
 		}
 
 		return true, nil
@@ -394,8 +394,8 @@ func TestLeader_LeftLeader(t *testing.T) {
 
 	for _, s := range servers {
 		testutil.WaitForResult(func() (bool, error) {
-			peers, _ := s.raftPeers.Peers()
-			return len(peers) == 3, nil
+			peers, _ := s.numPeers()
+			return peers == 3, nil
 		}, func(err error) {
 			t.Fatalf("should have 3 peers")
 		})
@@ -423,8 +423,8 @@ func TestLeader_LeftLeader(t *testing.T) {
 		}
 		remain = s
 		testutil.WaitForResult(func() (bool, error) {
-			peers, _ := s.raftPeers.Peers()
-			return len(peers) == 2, errors.New(fmt.Sprintf("%v", peers))
+			peers, _ := s.numPeers()
+			return peers == 2, errors.New(fmt.Sprintf("%d", peers))
 		}, func(err error) {
 			t.Fatalf("should have 2 peers: %v", err)
 		})
@@ -472,8 +472,8 @@ func TestLeader_MultiBootstrap(t *testing.T) {
 
 	// Ensure we don't have multiple raft peers
 	for _, s := range servers {
-		peers, _ := s.raftPeers.Peers()
-		if len(peers) != 1 {
+		peers, _ := s.numPeers()
+		if peers != 1 {
 			t.Fatalf("should only have 1 raft peer!")
 		}
 	}
@@ -505,8 +505,8 @@ func TestLeader_TombstoneGC_Reset(t *testing.T) {
 
 	for _, s := range servers {
 		testutil.WaitForResult(func() (bool, error) {
-			peers, _ := s.raftPeers.Peers()
-			return len(peers) == 3, nil
+			peers, _ := s.numPeers()
+			return peers == 3, nil
 		}, func(err error) {
 			t.Fatalf("should have 3 peers")
 		})
