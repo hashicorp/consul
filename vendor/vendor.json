@@ -202,8 +202,10 @@
 			"revisionTime": "2014-10-28T05:47:10Z"
 		},
 		{
+			"checksumSHA1": "nd3S1qkFv7zZxA9be0bw4nT0pe0=",
 			"path": "github.com/hashicorp/go-checkpoint",
-			"revision": "e4b2dc34c0f698ee04750bf2035d8b9384233e1b"
+			"revision": "e4b2dc34c0f698ee04750bf2035d8b9384233e1b",
+			"revisionTime": "2015-10-22T18:15:14Z"
 		},
 		{
 			"path": "github.com/hashicorp/go-cleanhttp",
