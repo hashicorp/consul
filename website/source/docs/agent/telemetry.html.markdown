@@ -177,4 +177,10 @@ These metrics give insight into the health of the cluster as a whole.
     <td>ms</td>
     <td>timer</td>
   </tr>
+  <tr>
+    <td>`consul.http.<verb>.<path>`</td>
+    <td>This tracks how long it takes to service the given HTTP request for the given verb and path. Note that paths do not include details like service or key names, for these an underscore will be present as a placeholder (eg. `consul.http.GET.v1.kv._`)</td>
+    <td>ms</td>
+    <td>timer</td>
+  </tr>
 </table>
