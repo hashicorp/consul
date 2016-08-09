@@ -121,12 +121,12 @@ type Config struct {
 	// prevent an unbounded growth of memory utilization
 	MaxQueueDepth int
 
-	// RecentIntentBuffer is used to set the size of recent join and leave intent
-	// messages that will be buffered. This is used to guard against
-	// the case where Serf broadcasts an intent that arrives before the
-	// Memberlist event. It is important that this not be too small to avoid
-	// continuous rebroadcasting of dead events.
-	RecentIntentBuffer int
+	// RecentIntentTimeout is used to determine how long we store recent
+	// join and leave intents. This is used to guard against the case where
+	// Serf broadcasts an intent that arrives before the Memberlist event.
+	// It is important that this not be too short to avoid continuous
+	// rebroadcasting of dead events.
+	RecentIntentTimeout time.Duration
 
 	// EventBuffer is used to control how many events are buffered.
 	// This is used to prevent re-delivery of events to a client. The buffer
@@ -242,7 +242,7 @@ func DefaultConfig() *Config {
 		LogOutput:                    os.Stderr,
 		ProtocolVersion:              ProtocolVersionMax,
 		ReapInterval:                 15 * time.Second,
-		RecentIntentBuffer:           128,
+		RecentIntentTimeout:          5 * time.Minute,
 		ReconnectInterval:            30 * time.Second,
 		ReconnectTimeout:             24 * time.Hour,
 		QueueDepthWarning:            128,
