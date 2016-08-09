@@ -324,12 +324,16 @@
 			"revision": "56b76bdf51f7708750eac80fa38b952bb9f32639"
 		},
 		{
+			"checksumSHA1": "OUZ1FFXyKs+Cfg9M9rmXqqweQck=",
 			"path": "github.com/miekg/dns",
-			"revision": "75e6e86cc601825c5dbcd4e0c209eab180997cd7"
+			"revision": "db96a2b759cdef4f11a34506a42eb8d1290c598e",
+			"revisionTime": "2016-07-26T03:20:27Z"
 		},
 		{
+			"checksumSHA1": "K5U2WCS4hqdePy0rCadvDZHYE4w=",
 			"path": "github.com/miekg/dns/idn",
-			"revision": "75e6e86cc601825c5dbcd4e0c209eab180997cd7"
+			"revision": "db96a2b759cdef4f11a34506a42eb8d1290c598e",
+			"revisionTime": "2016-07-26T03:20:27Z"
 		},
 		{
 			"path": "github.com/mitchellh/cli",

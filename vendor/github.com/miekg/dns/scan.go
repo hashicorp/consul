@@ -67,7 +67,7 @@ const (
 )
 
 // ParseError is a parsing error. It contains the parse error and the location in the io.Reader
-// where the error occured.
+// where the error occurred.
 type ParseError struct {
 	file string
 	err  string
@@ -86,7 +86,7 @@ func (e *ParseError) Error() (s string) {
 type lex struct {
 	token      string // text of the token
 	tokenUpper string // uppercase text of the token
-	length     int    // lenght of the token
+	length     int    // length of the token
 	err        bool   // when true, token text has lexer error
 	value      uint8  // value: zString, _BLANK, etc.
 	line       int    // line in the file
@@ -99,7 +99,7 @@ type lex struct {
 type Token struct {
 	// The scanned resource record when error is not nil.
 	RR
-	// When an error occured, this has the error specifics.
+	// When an error occurred, this has the error specifics.
 	Error *ParseError
 	// A potential comment positioned after the RR and on the same line.
 	Comment string
@@ -377,8 +377,8 @@ func parseZone(r io.Reader, origin, f string, t chan *Token, include int) {
 				t <- &Token{Error: &ParseError{f, "expecting $GENERATE value, not this...", l}}
 				return
 			}
-			if e := generate(l, c, t, origin); e != "" {
-				t <- &Token{Error: &ParseError{f, e, l}}
+			if errMsg := generate(l, c, t, origin); errMsg != "" {
+				t <- &Token{Error: &ParseError{f, errMsg, l}}
 				return
 			}
 			st = zExpectOwnerDir
@@ -966,8 +966,8 @@ func stringToNodeID(l lex) (uint64, *ParseError) {
 		return 0, &ParseError{l.token, "bad NID/L64 NodeID/Locator64", l}
 	}
 	s := l.token[0:4] + l.token[5:9] + l.token[10:14] + l.token[15:19]
-	u, e := strconv.ParseUint(s, 16, 64)
-	if e != nil {
+	u, err := strconv.ParseUint(s, 16, 64)
+	if err != nil {
 		return 0, &ParseError{l.token, "bad NID/L64 NodeID/Locator64", l}
 	}
 	return u, nil
