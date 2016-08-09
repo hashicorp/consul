@@ -3,8 +3,10 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "JhyS/zIicgtrSasHSZ6WtXGWJVk=",
 			"path": "github.com/DataDog/datadog-go/statsd",
-			"revision": "b050cd8f4d7c394545fd7d966c8e2909ce89d552"
+			"revision": "cc2f4770f4d61871e19bfee967bc767fe730b0d9",
+			"revisionTime": "2016-03-29T13:52:53Z"
 		},
 		{
 			"path": "github.com/armon/circbuf",

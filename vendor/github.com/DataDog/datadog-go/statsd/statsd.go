@@ -25,6 +25,7 @@ package statsd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net"
@@ -33,6 +34,25 @@ import (
 	"sync"
 	"time"
 )
+
+/*
+OptimalPayloadSize defines the optimal payload size for a UDP datagram, 1432 bytes
+is optimal for regular networks with an MTU of 1500 so datagrams don't get
+fragmented. It's generally recommended not to fragment UDP datagrams as losing
+a single fragment will cause the entire datagram to be lost.
+
+This can be increased if your network has a greater MTU or you don't mind UDP
+datagrams getting fragmented. The practical limit is MaxUDPPayloadSize
+*/
+const OptimalPayloadSize = 1432
+
+/*
+MaxUDPPayloadSize defines the maximum payload size for a UDP datagram.
+Its value comes from the calculation: 65535 bytes Max UDP datagram size -
+8byte UDP header - 60byte max IP headers
+any number greater than that will see frames being cut out.
+*/
+const MaxUDPPayloadSize = 65467
 
 // A Client is a handle for sending udp messages to dogstatsd.  It is safe to
 // use one Client from multiple goroutines simultaneously.
@@ -46,6 +66,7 @@ type Client struct {
 	bufferLength int
 	flushTime    time.Duration
 	commands     []string
+	buffer       bytes.Buffer
 	stop         bool
 	sync.Mutex
 }
@@ -120,36 +141,100 @@ func (c *Client) watch() {
 }
 
 func (c *Client) append(cmd string) error {
-	c.Lock()
 	c.commands = append(c.commands, cmd)
 	// if we should flush, lets do it
 	if len(c.commands) == c.bufferLength {
 		if err := c.flush(); err != nil {
-			c.Unlock()
 			return err
 		}
 	}
-	c.Unlock()
 	return nil
+}
+
+func (c *Client) joinMaxSize(cmds []string, sep string, maxSize int) ([][]byte, []int) {
+	c.buffer.Reset() //clear buffer
+
+	var frames [][]byte
+	var ncmds []int
+	sepBytes := []byte(sep)
+	sepLen := len(sep)
+
+	elem := 0
+	for _, cmd := range cmds {
+		needed := len(cmd)
+
+		if elem != 0 {
+			needed = needed + sepLen
+		}
+
+		if c.buffer.Len()+needed <= maxSize {
+			if elem != 0 {
+				c.buffer.Write(sepBytes)
+			}
+			c.buffer.WriteString(cmd)
+			elem++
+		} else {
+			frames = append(frames, copyAndResetBuffer(&c.buffer))
+			ncmds = append(ncmds, elem)
+			// if cmd is bigger than maxSize it will get flushed on next loop
+			c.buffer.WriteString(cmd)
+			elem = 1
+		}
+	}
+
+	//add whatever is left! if there's actually something
+	if c.buffer.Len() > 0 {
+		frames = append(frames, copyAndResetBuffer(&c.buffer))
+		ncmds = append(ncmds, elem)
+	}
+
+	return frames, ncmds
+}
+
+func copyAndResetBuffer(buf *bytes.Buffer) []byte {
+	tmpBuf := make([]byte, buf.Len())
+	copy(tmpBuf, buf.Bytes())
+	buf.Reset()
+	return tmpBuf
 }
 
 // flush the commands in the buffer.  Lock must be held by caller.
 func (c *Client) flush() error {
-	data := strings.Join(c.commands, "\n")
-	_, err := c.conn.Write([]byte(data))
+	frames, flushable := c.joinMaxSize(c.commands, "\n", OptimalPayloadSize)
+	var err error
+	cmdsFlushed := 0
+	for i, data := range frames {
+		_, e := c.conn.Write(data)
+		if e != nil {
+			err = e
+			break
+		}
+		cmdsFlushed += flushable[i]
+	}
+
 	// clear the slice with a slice op, doesn't realloc
-	c.commands = c.commands[:0]
+	if cmdsFlushed == len(c.commands) {
+		c.commands = c.commands[:0]
+	} else {
+		//this case will cause a future realloc...
+		// drop problematic command though (sorry).
+		c.commands = c.commands[cmdsFlushed+1:]
+	}
 	return err
 }
 
 func (c *Client) sendMsg(msg string) error {
 	// if this client is buffered, then we'll just append this
+	c.Lock()
+	defer c.Unlock()
 	if c.bufferLength > 0 {
+		// return an error if message is bigger than OptimalPayloadSize
+		if len(msg) > MaxUDPPayloadSize {
+			return errors.New("message size exceeds MaxUDPPayloadSize")
+		}
 		return c.append(msg)
 	}
-	c.Lock()
 	_, err := c.conn.Write([]byte(msg))
-	c.Unlock()
 	return err
 }
 
@@ -296,15 +381,17 @@ func (e Event) Encode(tags ...string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	text := e.escapedText()
+
 	var buffer bytes.Buffer
 	buffer.WriteString("_e{")
 	buffer.WriteString(strconv.FormatInt(int64(len(e.Title)), 10))
 	buffer.WriteRune(',')
-	buffer.WriteString(strconv.FormatInt(int64(len(e.Text)), 10))
+	buffer.WriteString(strconv.FormatInt(int64(len(text)), 10))
 	buffer.WriteString("}:")
 	buffer.WriteString(e.Title)
 	buffer.WriteRune('|')
-	buffer.WriteString(e.Text)
+	buffer.WriteString(text)
 
 	if !e.Timestamp.IsZero() {
 		buffer.WriteString("|d:")
@@ -350,4 +437,8 @@ func (e Event) Encode(tags ...string) (string, error) {
 	}
 
 	return buffer.String(), nil
+}
+
+func (e Event) escapedText() string {
+	return strings.Replace(e.Text, "\n", "\\n", -1)
 }
