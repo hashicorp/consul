@@ -311,11 +311,18 @@ App.NodesShowRoute = App.BaseRoute.extend({
     var n = distances.length;
     var halfN = Math.floor(n / 2);
     var median;
-    if (n % 2) {
-      // odd
-      median = distances[halfN].distance;
+
+    if (n > 0) {
+      if (n % 2) {
+        // odd
+        median = distances[halfN].distance;
+      } else {
+        median = (distances[halfN - 1].distance + distances[halfN].distance) / 2;
+      }
     } else {
-      median = (distances[halfN - 1].distance + distances[halfN].distance) / 2;
+      median = 0;
+      min = 0;
+      max = 0;
     }
 
     // Return a promise hash of the node and nodes
