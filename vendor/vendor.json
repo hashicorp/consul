@@ -33,8 +33,10 @@
 			"revisionTime": "2016-07-17T04:34:58Z"
 		},
 		{
+			"checksumSHA1": "gNO0JNpLzYOdInGeq7HqMZUzx9M=",
 			"path": "github.com/armon/go-radix",
-			"revision": "4239b77079c7b5d1243b7b4736304ce8ddb6f0f2"
+			"revision": "4239b77079c7b5d1243b7b4736304ce8ddb6f0f2",
+			"revisionTime": "2016-01-15T23:47:25Z"
 		},
 		{
 			"path": "github.com/bgentry/speakeasy",
