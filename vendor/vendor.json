@@ -1,12 +1,350 @@
 {
 	"comment": "",
-	"ignore": "",
+	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "Vrd+ucpioTcZGglPx2JWUxb2J7A=",
+			"path": "github.com/DataDog/datadog-go/statsd",
+			"revision": "b050cd8f4d7c394545fd7d966c8e2909ce89d552"
+		},
+		{
+			"path": "github.com/armon/circbuf",
+			"revision": "bbbad097214e2918d8543d5201d12bfd7bca254d"
+		},
+		{
+			"path": "github.com/armon/go-metrics",
+			"revision": "3df31a1ada83e310c2e24b267c8e8b68836547b4"
+		},
+		{
+			"path": "github.com/armon/go-metrics/circonus",
+			"revision": "3df31a1ada83e310c2e24b267c8e8b68836547b4"
+		},
+		{
+			"path": "github.com/armon/go-metrics/datadog",
+			"revision": "3df31a1ada83e310c2e24b267c8e8b68836547b4"
+		},
+		{
+			"path": "github.com/armon/go-radix",
+			"revision": "4239b77079c7b5d1243b7b4736304ce8ddb6f0f2"
+		},
+		{
+			"path": "github.com/bgentry/speakeasy",
+			"revision": "36e9cfdd690967f4f690c6edcc9ffacd006014a0"
+		},
+		{
+			"path": "github.com/bgentry/speakeasy/example",
+			"revision": "36e9cfdd690967f4f690c6edcc9ffacd006014a0"
+		},
+		{
+			"comment": "v1.2.1",
+			"path": "github.com/boltdb/bolt",
+			"revision": "dfb21201d9270c1082d5fb0f07f500311ff72f18"
+		},
+		{
+			"path": "github.com/circonus-labs/circonus-gometrics",
+			"revision": "8e7296e1945cf2ac4adc0a08df3eb52419b227c3"
+		},
+		{
+			"path": "github.com/circonus-labs/circonus-gometrics/api",
+			"revision": "8e7296e1945cf2ac4adc0a08df3eb52419b227c3"
+		},
+		{
+			"path": "github.com/circonus-labs/circonus-gometrics/checkmgr",
+			"revision": "8e7296e1945cf2ac4adc0a08df3eb52419b227c3"
+		},
+		{
+			"path": "github.com/circonus-labs/circonusllhist",
+			"revision": "d724266ae5270ae8b87a5d2e8081f04e307c3c18"
+		},
+		{
+			"path": "github.com/elazarl/go-bindata-assetfs",
+			"revision": "57eb5e1fc594ad4b0b1dbea7b286d299e0cb43c2"
+		},
+		{
+			"path": "github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs",
+			"revision": "57eb5e1fc594ad4b0b1dbea7b286d299e0cb43c2"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/Sirupsen/logrus",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/opts",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/archive",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/fileutils",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/homedir",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/idtools",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/ioutils",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/longpath",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/pools",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/promise",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/stdcopy",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/docker/docker/pkg/system",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/docker/go-units",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/hashicorp/go-cleanhttp",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/opencontainers/runc/libcontainer/user",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/github.com/stretchr/testify/assert",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/golang.org/x/net/context",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/fsouza/go-dockerclient/external/golang.org/x/sys/unix",
+			"revision": "9b6c9720043b74304a6dd07a2a901d16e7bf3d3d"
+		},
+		{
+			"path": "github.com/hashicorp/errwrap",
+			"revision": "7554cd9344cec97297fa6649b055a8c98c2a1e55"
+		},
+		{
+			"path": "github.com/hashicorp/go-checkpoint",
+			"revision": "e4b2dc34c0f698ee04750bf2035d8b9384233e1b"
+		},
+		{
+			"path": "github.com/hashicorp/go-cleanhttp",
+			"revision": "875fb671b3ddc66f8e2f0acc33829c8cb989a38d"
+		},
+		{
+			"path": "github.com/hashicorp/go-immutable-radix",
+			"revision": "afc5a0dbb18abdf82c277a7bc01533e81fa1d6b8"
+		},
+		{
+			"path": "github.com/hashicorp/go-memdb",
+			"revision": "98f52f52d7a476958fa9da671354d270c50661a7"
+		},
+		{
+			"path": "github.com/hashicorp/go-msgpack/codec",
+			"revision": "fa3f63826f7c23912c15263591e65d54d080b458"
+		},
+		{
+			"path": "github.com/hashicorp/go-multierror",
+			"revision": "d30f09973e19c1dfcd120b2d9c4f168e68d6b5d5"
+		},
+		{
+			"path": "github.com/hashicorp/go-reap",
+			"revision": "2d85522212dcf5a84c6b357094f5c44710441912"
+		},
+		{
+			"path": "github.com/hashicorp/go-retryablehttp",
+			"revision": "886ce0458bc81ccca0fb7044c1be0e9ab590bed7"
+		},
+		{
+			"path": "github.com/hashicorp/go-syslog",
+			"revision": "42a2b573b664dbf281bd48c3cc12c086b17a39ba"
+		},
+		{
+			"path": "github.com/hashicorp/go-uuid",
+			"revision": "36289988d83ca270bc07c234c36f364b0dd9c9a7"
+		},
+		{
+			"path": "github.com/hashicorp/golang-lru",
+			"revision": "5c7531c003d8bf158b0fe5063649a2f41a822146"
+		},
+		{
+			"path": "github.com/hashicorp/golang-lru/simplelru",
+			"revision": "5c7531c003d8bf158b0fe5063649a2f41a822146"
+		},
+		{
+			"path": "github.com/hashicorp/hcl",
+			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
+		},
+		{
+			"path": "github.com/hashicorp/hcl/hcl/ast",
+			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
+		},
+		{
+			"path": "github.com/hashicorp/hcl/hcl/parser",
+			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
+		},
+		{
+			"path": "github.com/hashicorp/hcl/hcl/printer",
+			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
+		},
+		{
+			"path": "github.com/hashicorp/hcl/hcl/scanner",
+			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
+		},
+		{
+			"path": "github.com/hashicorp/hcl/hcl/strconv",
+			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
+		},
+		{
+			"path": "github.com/hashicorp/hcl/hcl/token",
+			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
+		},
+		{
+			"path": "github.com/hashicorp/hcl/json/parser",
+			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
+		},
+		{
+			"path": "github.com/hashicorp/hcl/json/scanner",
+			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
+		},
+		{
+			"path": "github.com/hashicorp/hcl/json/token",
+			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
+		},
+		{
+			"path": "github.com/hashicorp/hcl/testhelper",
+			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
+		},
+		{
+			"path": "github.com/hashicorp/hil",
+			"revision": "0457360d54ca4d081a769eaa1617e0462153fd70"
+		},
+		{
+			"path": "github.com/hashicorp/hil/ast",
+			"revision": "0457360d54ca4d081a769eaa1617e0462153fd70"
+		},
+		{
+			"path": "github.com/hashicorp/logutils",
+			"revision": "0dc08b1671f34c4250ce212759ebd880f743d883"
+		},
+		{
+			"path": "github.com/hashicorp/memberlist",
+			"revision": "215aec831f03c9b7c61ac183d3e28fff3c7d3a37"
+		},
+		{
+			"path": "github.com/hashicorp/net-rpc-msgpackrpc",
+			"revision": "a14192a58a694c123d8fe5481d4a4727d6ae82f3"
+		},
+		{
+			"path": "github.com/hashicorp/raft",
+			"revision": "057b893fd996696719e98b6c44649ea14968c811"
+		},
+		{
+			"path": "github.com/hashicorp/raft-boltdb",
+			"revision": "057b893fd996696719e98b6c44649ea14968c811"
+		},
+		{
+			"path": "github.com/hashicorp/raft/bench",
+			"revision": "057b893fd996696719e98b6c44649ea14968c811"
+		},
+		{
+			"path": "github.com/hashicorp/scada-client",
+			"revision": "84989fd23ad4cc0e7ad44d6a871fd793eb9beb0a"
+		},
+		{
 			"path": "github.com/hashicorp/scada-client/scada",
-			"revision": "225f7ae4780b59d1bd990de93cae7496bade95a0",
-			"revisionTime": "2016-06-01T18:41:54Z"
+			"revision": "84989fd23ad4cc0e7ad44d6a871fd793eb9beb0a"
+		},
+		{
+			"comment": "v0.7.0-66-g6c4672d",
+			"path": "github.com/hashicorp/serf/coordinate",
+			"revision": "6c4672d66fc6312ddde18399262943e21175d831"
+		},
+		{
+			"comment": "v0.7.0-66-g6c4672d",
+			"path": "github.com/hashicorp/serf/serf",
+			"revision": "6c4672d66fc6312ddde18399262943e21175d831"
+		},
+		{
+			"path": "github.com/hashicorp/yamux",
+			"revision": "df949784da9ed028ee76df44652e42d37a09d7e4"
+		},
+		{
+			"path": "github.com/inconshreveable/muxado",
+			"revision": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
+		},
+		{
+			"path": "github.com/inconshreveable/muxado/proto",
+			"revision": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
+		},
+		{
+			"path": "github.com/inconshreveable/muxado/proto/buffer",
+			"revision": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
+		},
+		{
+			"path": "github.com/inconshreveable/muxado/proto/ext",
+			"revision": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
+		},
+		{
+			"path": "github.com/inconshreveable/muxado/proto/frame",
+			"revision": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
+		},
+		{
+			"path": "github.com/mattn/go-isatty",
+			"revision": "56b76bdf51f7708750eac80fa38b952bb9f32639"
+		},
+		{
+			"path": "github.com/miekg/dns",
+			"revision": "75e6e86cc601825c5dbcd4e0c209eab180997cd7"
+		},
+		{
+			"path": "github.com/miekg/dns/idn",
+			"revision": "75e6e86cc601825c5dbcd4e0c209eab180997cd7"
+		},
+		{
+			"path": "github.com/mitchellh/cli",
+			"revision": "cb6853d606ea4a12a15ac83cc43503df99fd28fb"
+		},
+		{
+			"path": "github.com/mitchellh/copystructure",
+			"revision": "6fc66267e9da7d155a9d3bd489e00dad02666dc6"
+		},
+		{
+			"path": "github.com/mitchellh/mapstructure",
+			"revision": "281073eb9eb092240d33ef253c404f1cca550309"
+		},
+		{
+			"path": "github.com/mitchellh/reflectwalk",
+			"revision": "eecf4c70c626c7cfbb95c90195bc34d386c74ac6"
+		},
+		{
+			"comment": "v2.0.1-8-g983d3a5",
+			"path": "github.com/ryanuber/columnize",
+			"revision": "983d3a5fab1bf04d1b412465d2d9f8430e2e917e"
+		},
+		{
+			"path": "golang.org/x/sys/unix",
+			"revision": "20457ee8ea8546920d3f4e19e405da45250dc5a5"
 		}
 	],
 	"rootPath": "github.com/hashicorp/consul"
