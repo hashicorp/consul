@@ -13,9 +13,9 @@ import (
 	"github.com/miekg/coredns/middleware/proxy"
 	"github.com/miekg/coredns/middleware/singleflight"
 	"github.com/miekg/coredns/middleware/test"
-	"github.com/miekg/dns"
 
 	etcdc "github.com/coreos/etcd/client"
+	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
 

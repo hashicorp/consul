@@ -1,6 +1,7 @@
 package etcd
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -73,7 +74,11 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR, o
 			}
 			m1, e1 := e.Proxy.Lookup(state, target, state.QType())
 			if e1 != nil {
-				continue
+				if opt.Debug != "" {
+					debugTxt := errorToTxt(errors.New(target + " IN " + state.Type() + ":" + e1.Error()))
+					records = append(records, debugTxt)
+					continue
+				}
 			}
 			// Len(m1.Answer) > 0 here is well?
 			records = append(records, newRecord)
@@ -133,6 +138,8 @@ func (e Etcd) AAAA(zone string, state middleware.State, previousRecords []dns.RR
 			}
 			m1, e1 := e.Proxy.Lookup(state, target, state.QType())
 			if e1 != nil {
+				debugTxt := errorToTxt(errors.New(target + " IN " + state.Type() + ": " + e1.Error()))
+				records = append(records, debugTxt)
 				continue
 			}
 			// Len(m1.Answer) > 0 here is well?
@@ -195,7 +202,11 @@ func (e Etcd) SRV(zone string, state middleware.State, opt Options) (records, ex
 				m1, e1 := e.Proxy.Lookup(state, srv.Target, dns.TypeA)
 				if e1 == nil {
 					extra = append(extra, m1.Answer...)
+				} else {
+					debugTxt := errorToTxt(errors.New(srv.Target + " IN A: " + e1.Error()))
+					extra = append(extra, debugTxt)
 				}
+
 				m1, e1 = e.Proxy.Lookup(state, srv.Target, dns.TypeAAAA)
 				if e1 == nil {
 					// If we have seen CNAME's we *assume* that they are already added.
@@ -204,6 +215,9 @@ func (e Etcd) SRV(zone string, state middleware.State, opt Options) (records, ex
 							extra = append(extra, a)
 						}
 					}
+				} else {
+					debugTxt := errorToTxt(errors.New(srv.Target + " IN AAAA: " + e1.Error()))
+					extra = append(extra, debugTxt)
 				}
 				break
 			}
@@ -261,6 +275,9 @@ func (e Etcd) MX(zone string, state middleware.State, opt Options) (records, ext
 				m1, e1 := e.Proxy.Lookup(state, mx.Mx, dns.TypeA)
 				if e1 == nil {
 					extra = append(extra, m1.Answer...)
+				} else {
+					debugTxt := errorToTxt(errors.New(mx.Mx + " IN A: " + e1.Error()))
+					extra = append(extra, debugTxt)
 				}
 				m1, e1 = e.Proxy.Lookup(state, mx.Mx, dns.TypeAAAA)
 				if e1 == nil {
@@ -270,6 +287,9 @@ func (e Etcd) MX(zone string, state middleware.State, opt Options) (records, ext
 							extra = append(extra, a)
 						}
 					}
+				} else {
+					debugTxt := errorToTxt(errors.New(mx.Mx + " IN AAAA: " + e1.Error()))
+					extra = append(extra, debugTxt)
 				}
 				break
 			}

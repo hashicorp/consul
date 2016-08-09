@@ -40,19 +40,7 @@ etcd [zones...] {
   the proxy middleware.
 * `tls` followed the cert, key and the CA's cert filenames.
 * `debug` allow debug queries. Prefix the name with `o-o.debug.` to retrieve extra information in the
-  additional section of the reply in the form of text records:
-
-    skydns.test.skydns.dom.a.	300	CH	TXT	"127.0.0.1:0(10,0,,false)[0,]"
-
-  This shows the complete key as the owername, the rdata of the TXT record has:
-  `host:port(priority,weight,txt content,mail)[targetstrip,group]`.
-
-  Any errors seen doing parsing will show up like this:
-
-    . 0 CH TXT "/skydns/local/skydns/r/a: invalid character '.' after object key:value pair"
-
-  which shows `a.r.skydns.local.` has a json encoding problem.
-
+  additional section of the reply in the form of text records.
 
 ## Examples
 
@@ -117,3 +105,26 @@ Or with *debug* queries enabled:
 ;; ADDITIONAL SECTION:
 127.0.0.10.in-addr.arpa. 300    CH      TXT     "reverse.atoom.net.:0(10,0,,false)[0,]"
 ~~~
+
+## Debug queries
+
+When debug queries are enabled CoreDNS will return errors and etcd records encountered during the resolution
+process in the response. The general form looks like this:
+
+    skydns.test.skydns.dom.a.	300	CH	TXT	"127.0.0.1:0(10,0,,false)[0,]"
+
+  This shows the complete key as the owername, the rdata of the TXT record has:
+  `host:port(priority,weight,txt content,mail)[targetstrip,group]`.
+
+  Any errors seen doing parsing will show up like this:
+
+    . 0 CH TXT "/skydns/local/skydns/r/a: invalid character '.' after object key:value pair"
+
+  which shows `a.r.skydns.local.` has a json encoding problem.
+
+  Errors when communicating with an upstream will be returned as:
+
+    . 0 CH TXT "example.org. IN A: unreachable backend"
+
+  Signalling that an A record for example.org. was sought, but it failed
+  with that error.
