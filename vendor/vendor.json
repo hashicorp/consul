@@ -276,14 +276,18 @@
 			"revision": "84989fd23ad4cc0e7ad44d6a871fd793eb9beb0a"
 		},
 		{
+			"checksumSHA1": "E3Xcanc9ouQwL+CZGOUyA/+giLg=",
 			"comment": "v0.7.0-66-g6c4672d",
 			"path": "github.com/hashicorp/serf/coordinate",
-			"revision": "6c4672d66fc6312ddde18399262943e21175d831"
+			"revision": "114430d8210835d66defdc31cdc176c58e060005",
+			"revisionTime": "2016-08-09T01:42:04Z"
 		},
 		{
+			"checksumSHA1": "vLyudzMEdik8IpRY1H2vRa2PeLU=",
 			"comment": "v0.7.0-66-g6c4672d",
 			"path": "github.com/hashicorp/serf/serf",
-			"revision": "6c4672d66fc6312ddde18399262943e21175d831"
+			"revision": "114430d8210835d66defdc31cdc176c58e060005",
+			"revisionTime": "2016-08-09T01:42:04Z"
 		},
 		{
 			"path": "github.com/hashicorp/yamux",
