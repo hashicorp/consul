@@ -9,8 +9,10 @@
 			"revisionTime": "2016-03-29T13:52:53Z"
 		},
 		{
+			"checksumSHA1": "l0iFqayYAaEip6Olaq3/LCOa/Sg=",
 			"path": "github.com/armon/circbuf",
-			"revision": "bbbad097214e2918d8543d5201d12bfd7bca254d"
+			"revision": "bbbad097214e2918d8543d5201d12bfd7bca254d",
+			"revisionTime": "2015-08-27T00:49:46Z"
 		},
 		{
 			"checksumSHA1": "d6798KSc0jDg2MHNxKdgyNfMK7A=",
