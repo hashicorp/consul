@@ -84,12 +84,16 @@
 			"revisionTime": "2016-05-26T04:38:13Z"
 		},
 		{
+			"checksumSHA1": "5ftkjfUwI9A6xCQ1PwIAd5+qlo0=",
 			"path": "github.com/elazarl/go-bindata-assetfs",
-			"revision": "57eb5e1fc594ad4b0b1dbea7b286d299e0cb43c2"
+			"revision": "e1a2a7ec64b07d04ac9ebb072404fe8b7b60de1b",
+			"revisionTime": "2016-08-03T19:23:04Z"
 		},
 		{
+			"checksumSHA1": "CaThXbumVxZtNlItiXma5B78PwQ=",
 			"path": "github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs",
-			"revision": "57eb5e1fc594ad4b0b1dbea7b286d299e0cb43c2"
+			"revision": "e1a2a7ec64b07d04ac9ebb072404fe8b7b60de1b",
+			"revisionTime": "2016-08-03T19:23:04Z"
 		},
 		{
 			"path": "github.com/fsouza/go-dockerclient",
