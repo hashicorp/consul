@@ -284,6 +284,7 @@ func (s *Server) runACLReplication() {
 	select {
 	case <-time.After(lib.RandomStagger(s.config.ACLReplicationInterval)):
 	case <-s.shutdownCh:
+		return
 	}
 
 	// We are fairly conservative with the lastRemoteIndex so that after a
