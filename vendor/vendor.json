@@ -242,8 +242,10 @@
 			"revisionTime": "2016-01-13T17:25:55Z"
 		},
 		{
+			"checksumSHA1": "bfVGm7xZ2VFpddJp3KEPUZ8Y9Po=",
 			"path": "github.com/hashicorp/go-retryablehttp",
-			"revision": "886ce0458bc81ccca0fb7044c1be0e9ab590bed7"
+			"revision": "886ce0458bc81ccca0fb7044c1be0e9ab590bed7",
+			"revisionTime": "2016-07-18T23:34:41Z"
 		},
 		{
 			"path": "github.com/hashicorp/go-syslog",
