@@ -39,12 +39,16 @@
 			"revisionTime": "2016-01-15T23:47:25Z"
 		},
 		{
+			"checksumSHA1": "dvd7Su+WNmHRP1+w1HezrPUCDsc=",
 			"path": "github.com/bgentry/speakeasy",
-			"revision": "36e9cfdd690967f4f690c6edcc9ffacd006014a0"
+			"revision": "e1439544d8ecd0f3e9373a636d447668096a8f81",
+			"revisionTime": "2016-05-20T23:26:10Z"
 		},
 		{
+			"checksumSHA1": "twtRfb6484vfr2qqjiFkLThTjcQ=",
 			"path": "github.com/bgentry/speakeasy/example",
-			"revision": "36e9cfdd690967f4f690c6edcc9ffacd006014a0"
+			"revision": "e1439544d8ecd0f3e9373a636d447668096a8f81",
+			"revisionTime": "2016-05-20T23:26:10Z"
 		},
 		{
 			"comment": "v1.2.1",
