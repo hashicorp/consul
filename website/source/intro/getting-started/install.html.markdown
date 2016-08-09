@@ -35,12 +35,6 @@ you can install consul with:
 $ brew install consul
 ```
 
-You can also see any additional installation options that are available
-through homebrew with:
-```text
-$ brew info consul
-```
-
 ## Verifying the Installation
 
 After installing Consul, verify the installation worked by opening a new
