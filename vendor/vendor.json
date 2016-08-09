@@ -11,16 +11,22 @@
 			"revision": "bbbad097214e2918d8543d5201d12bfd7bca254d"
 		},
 		{
+			"checksumSHA1": "d6798KSc0jDg2MHNxKdgyNfMK7A=",
 			"path": "github.com/armon/go-metrics",
-			"revision": "3df31a1ada83e310c2e24b267c8e8b68836547b4"
+			"revision": "3df31a1ada83e310c2e24b267c8e8b68836547b4",
+			"revisionTime": "2016-07-17T04:34:58Z"
 		},
 		{
+			"checksumSHA1": "OmqT9Y1mAHvlAKeJh0jBHC9SH78=",
 			"path": "github.com/armon/go-metrics/circonus",
-			"revision": "3df31a1ada83e310c2e24b267c8e8b68836547b4"
+			"revision": "3df31a1ada83e310c2e24b267c8e8b68836547b4",
+			"revisionTime": "2016-07-17T04:34:58Z"
 		},
 		{
+			"checksumSHA1": "mAzNU3zeZGEwqjDT4ZkspFvx3TI=",
 			"path": "github.com/armon/go-metrics/datadog",
-			"revision": "3df31a1ada83e310c2e24b267c8e8b68836547b4"
+			"revision": "3df31a1ada83e310c2e24b267c8e8b68836547b4",
+			"revisionTime": "2016-07-17T04:34:58Z"
 		},
 		{
 			"path": "github.com/armon/go-radix",
