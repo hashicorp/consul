@@ -21,9 +21,9 @@ type aclEntry struct {
 // Cache is used to implement policy and ACL caching
 type Cache struct {
 	faultfn     FaultFunc
-	aclCache    *lru.Cache // Cache id -> acl
-	policyCache *lru.Cache // Cache policy -> acl
-	ruleCache   *lru.Cache // Cache rules -> policy
+	aclCache    *lru.TwoQueueCache // Cache id -> acl
+	policyCache *lru.TwoQueueCache // Cache policy -> acl
+	ruleCache   *lru.TwoQueueCache // Cache rules -> policy
 }
 
 // NewCache constructs a new policy and ACL cache of a given size
@@ -31,9 +31,22 @@ func NewCache(size int, faultfn FaultFunc) (*Cache, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("Must provide positive cache size")
 	}
-	rc, _ := lru.New(size)
-	pc, _ := lru.New(size)
-	ac, _ := lru.New(size)
+
+	rc, err := lru.New2Q(size)
+	if err != nil {
+		return nil, err
+	}
+
+	pc, err := lru.New2Q(size)
+	if err != nil {
+		return nil, err
+	}
+
+	ac, err := lru.New2Q(size)
+	if err != nil {
+		return nil, err
+	}
+
 	c := &Cache{
 		faultfn:     faultfn,
 		aclCache:    ac,

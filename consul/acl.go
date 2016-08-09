@@ -112,16 +112,16 @@ func (s *Server) resolveToken(id string) (acl.ACL, error) {
 // rpcFn is used to make an RPC call to the client or server.
 type rpcFn func(string, interface{}, interface{}) error
 
-// aclCache is used to cache ACL's and policies.
+// aclCache is used to cache ACLs and policies.
 type aclCache struct {
 	config *Config
 	logger *log.Logger
 
 	// acls is a non-authoritative ACL cache.
-	acls *lru.Cache
+	acls *lru.TwoQueueCache
 
 	// aclPolicyCache is a non-authoritative policy cache.
-	policies *lru.Cache
+	policies *lru.TwoQueueCache
 
 	// rpc is a function used to talk to the client/server.
 	rpc rpcFn
@@ -144,13 +144,13 @@ func newAclCache(conf *Config, logger *log.Logger, rpc rpcFn, local acl.FaultFun
 	}
 
 	// Initialize the non-authoritative ACL cache
-	cache.acls, err = lru.New(aclCacheSize)
+	cache.acls, err = lru.New2Q(aclCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create ACL cache: %v", err)
 	}
 
 	// Initialize the ACL policy cache
-	cache.policies, err = lru.New(aclCacheSize)
+	cache.policies, err = lru.New2Q(aclCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create ACL policy cache: %v", err)
 	}
