@@ -264,10 +264,6 @@
 			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
 		},
 		{
-			"path": "github.com/hashicorp/hcl/hcl/printer",
-			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
-		},
-		{
 			"path": "github.com/hashicorp/hcl/hcl/scanner",
 			"revision": "578dd9746824a54637686b51a41bad457a56bcef"
 		},
@@ -326,10 +322,6 @@
 			"revision": "057b893fd996696719e98b6c44649ea14968c811"
 		},
 		{
-			"path": "github.com/hashicorp/raft/bench",
-			"revision": "057b893fd996696719e98b6c44649ea14968c811"
-		},
-		{
 			"path": "github.com/hashicorp/scada-client",
 			"revision": "84989fd23ad4cc0e7ad44d6a871fd793eb9beb0a"
 		},
@@ -382,12 +374,6 @@
 		{
 			"checksumSHA1": "OUZ1FFXyKs+Cfg9M9rmXqqweQck=",
 			"path": "github.com/miekg/dns",
-			"revision": "db96a2b759cdef4f11a34506a42eb8d1290c598e",
-			"revisionTime": "2016-07-26T03:20:27Z"
-		},
-		{
-			"checksumSHA1": "K5U2WCS4hqdePy0rCadvDZHYE4w=",
-			"path": "github.com/miekg/dns/idn",
 			"revision": "db96a2b759cdef4f11a34506a42eb8d1290c598e",
 			"revisionTime": "2016-07-26T03:20:27Z"
 		},
