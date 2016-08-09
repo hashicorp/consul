@@ -281,9 +281,10 @@ func (s *Server) runACLReplication() {
 	// Give each server's replicator a random initial phase for good
 	// measure.
 	select {
-	case <-time.After(lib.RandomStagger(s.config.ACLReplicationInterval)):
 	case <-s.shutdownCh:
 		return
+
+	case <-time.After(lib.RandomStagger(s.config.ACLReplicationInterval)):
 	}
 
 	// We are fairly conservative with the lastRemoteIndex so that after a
