@@ -19,9 +19,13 @@ type ACL struct {
 // this is a valid operation. It is used when users are updating ACLs, in which
 // case we check their token to make sure they have management privileges. It is
 // also used for ACL replication. We want to run the replicated ACLs through the
-// same checks on the change itself. If an operation needs to generate an ID,
-// routine will fill in an ID with the args as part of the request.
+// same checks on the change itself.
 func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) error {
+	// All ACLs must have an ID by this point.
+	if args.ACL.ID == "" {
+		return fmt.Errorf("Missing ACL ID")
+	}
+
 	switch args.Op {
 	case structs.ACLSet:
 		// Verify the ACL type
@@ -43,33 +47,8 @@ func aclApplyInternal(srv *Server, args *structs.ACLRequest, reply *string) erro
 			return fmt.Errorf("ACL rule compilation failed: %v", err)
 		}
 
-		// If no ID is provided, generate a new ID. This must
-		// be done prior to appending to the raft log, because the ID is not
-		// deterministic. Once the entry is in the log, the state update MUST
-		// be deterministic or the followers will not converge.
-		if args.ACL.ID == "" {
-			state := srv.fsm.State()
-			for {
-				if args.ACL.ID, err = uuid.GenerateUUID(); err != nil {
-					srv.logger.Printf("[ERR] consul.acl: UUID generation failed: %v", err)
-					return err
-				}
-
-				_, acl, err := state.ACLGet(args.ACL.ID)
-				if err != nil {
-					srv.logger.Printf("[ERR] consul.acl: ACL lookup failed: %v", err)
-					return err
-				}
-				if acl == nil {
-					break
-				}
-			}
-		}
-
 	case structs.ACLDelete:
-		if args.ACL.ID == "" {
-			return fmt.Errorf("Missing ACL ID")
-		} else if args.ACL.ID == anonymousToken {
+		if args.ACL.ID == anonymousToken {
 			return fmt.Errorf("%s: Cannot delete anonymous token", permissionDenied)
 		}
 
@@ -113,6 +92,31 @@ func (a *ACL) Apply(args *structs.ACLRequest, reply *string) error {
 		return err
 	} else if acl == nil || !acl.ACLModify() {
 		return permissionDeniedErr
+	}
+
+	// If no ID is provided, generate a new ID. This must be done prior to
+	// appending to the Raft log, because the ID is not deterministic. Once
+	// the entry is in the log, the state update MUST be deterministic or
+	// the followers will not converge.
+	if args.Op == structs.ACLSet && args.ACL.ID == "" {
+		state := a.srv.fsm.State()
+		for {
+			var err error
+			args.ACL.ID, err = uuid.GenerateUUID()
+			if err != nil {
+				a.srv.logger.Printf("[ERR] consul.acl: UUID generation failed: %v", err)
+				return err
+			}
+
+			_, acl, err := state.ACLGet(args.ACL.ID)
+			if err != nil {
+				a.srv.logger.Printf("[ERR] consul.acl: ACL lookup failed: %v", err)
+				return err
+			}
+			if acl == nil {
+				break
+			}
+		}
 	}
 
 	// Do the apply now that this update is vetted.
