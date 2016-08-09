@@ -30,7 +30,8 @@ FEATURES:
 * Upgraded to "stage one" of the v2 HashiCorp Raft library. This version offers
   improved handling of cluster membership changes and recovery after a loss of
   quorum. This version also provides a foundation for new features that will
-  appear in future Consul versions. [GH-2222]
+  appear in future Consul versions once the remainder of the v2 library is
+  complete. [GH-2222]
 
 BACKWARDS INCOMPATIBILITIES:
 
