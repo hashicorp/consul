@@ -51,9 +51,13 @@
 			"revisionTime": "2016-05-20T23:26:10Z"
 		},
 		{
+			"checksumSHA1": "C1BwfmTAUmldO4V3++tvYWzT49Y=",
 			"comment": "v1.2.1",
 			"path": "github.com/boltdb/bolt",
-			"revision": "dfb21201d9270c1082d5fb0f07f500311ff72f18"
+			"revision": "dfb21201d9270c1082d5fb0f07f500311ff72f18",
+			"revisionTime": "2016-05-16T15:40:46Z",
+			"version": "v1.2.1",
+			"versionExact": "v1.2.1"
 		},
 		{
 			"path": "github.com/circonus-labs/circonus-gometrics",
