@@ -256,8 +256,10 @@
 			"revision": "a14192a58a694c123d8fe5481d4a4727d6ae82f3"
 		},
 		{
+			"checksumSHA1": "zMgiTV0dfJIQNRCJDF50bLomDvg=",
 			"path": "github.com/hashicorp/raft",
-			"revision": "057b893fd996696719e98b6c44649ea14968c811"
+			"revision": "c69c15dd73b6695ba75b3502ce6b332cc0042c83",
+			"revisionTime": "2016-08-01T21:27:18Z"
 		},
 		{
 			"path": "github.com/hashicorp/raft-boltdb",

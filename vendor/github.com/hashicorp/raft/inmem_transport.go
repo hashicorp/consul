@@ -9,15 +9,15 @@ import (
 
 // NewInmemAddr returns a new in-memory addr with
 // a randomly generate UUID as the ID.
-func NewInmemAddr() string {
-	return generateUUID()
+func NewInmemAddr() ServerAddress {
+	return ServerAddress(generateUUID())
 }
 
 // inmemPipeline is used to pipeline requests for the in-mem transport.
 type inmemPipeline struct {
 	trans    *InmemTransport
 	peer     *InmemTransport
-	peerAddr string
+	peerAddr ServerAddress
 
 	doneCh       chan AppendFuture
 	inprogressCh chan *inmemPipelineInflight
@@ -37,20 +37,22 @@ type inmemPipelineInflight struct {
 type InmemTransport struct {
 	sync.RWMutex
 	consumerCh chan RPC
-	localAddr  string
-	peers      map[string]*InmemTransport
+	localAddr  ServerAddress
+	peers      map[ServerAddress]*InmemTransport
 	pipelines  []*inmemPipeline
 	timeout    time.Duration
 }
 
 // NewInmemTransport is used to initialize a new transport
-// and generates a random local address.
-func NewInmemTransport() (string, *InmemTransport) {
-	addr := NewInmemAddr()
+// and generates a random local address if none is specified
+func NewInmemTransport(addr ServerAddress) (ServerAddress, *InmemTransport) {
+	if string(addr) == "" {
+		addr = NewInmemAddr()
+	}
 	trans := &InmemTransport{
 		consumerCh: make(chan RPC, 16),
 		localAddr:  addr,
-		peers:      make(map[string]*InmemTransport),
+		peers:      make(map[ServerAddress]*InmemTransport),
 		timeout:    50 * time.Millisecond,
 	}
 	return addr, trans
@@ -67,13 +69,13 @@ func (i *InmemTransport) Consumer() <-chan RPC {
 }
 
 // LocalAddr implements the Transport interface.
-func (i *InmemTransport) LocalAddr() string {
+func (i *InmemTransport) LocalAddr() ServerAddress {
 	return i.localAddr
 }
 
 // AppendEntriesPipeline returns an interface that can be used to pipeline
 // AppendEntries requests.
-func (i *InmemTransport) AppendEntriesPipeline(target string) (AppendPipeline, error) {
+func (i *InmemTransport) AppendEntriesPipeline(target ServerAddress) (AppendPipeline, error) {
 	i.RLock()
 	peer, ok := i.peers[target]
 	i.RUnlock()
@@ -88,7 +90,7 @@ func (i *InmemTransport) AppendEntriesPipeline(target string) (AppendPipeline, e
 }
 
 // AppendEntries implements the Transport interface.
-func (i *InmemTransport) AppendEntries(target string, args *AppendEntriesRequest, resp *AppendEntriesResponse) error {
+func (i *InmemTransport) AppendEntries(target ServerAddress, args *AppendEntriesRequest, resp *AppendEntriesResponse) error {
 	rpcResp, err := i.makeRPC(target, args, nil, i.timeout)
 	if err != nil {
 		return err
@@ -101,7 +103,7 @@ func (i *InmemTransport) AppendEntries(target string, args *AppendEntriesRequest
 }
 
 // RequestVote implements the Transport interface.
-func (i *InmemTransport) RequestVote(target string, args *RequestVoteRequest, resp *RequestVoteResponse) error {
+func (i *InmemTransport) RequestVote(target ServerAddress, args *RequestVoteRequest, resp *RequestVoteResponse) error {
 	rpcResp, err := i.makeRPC(target, args, nil, i.timeout)
 	if err != nil {
 		return err
@@ -114,7 +116,7 @@ func (i *InmemTransport) RequestVote(target string, args *RequestVoteRequest, re
 }
 
 // InstallSnapshot implements the Transport interface.
-func (i *InmemTransport) InstallSnapshot(target string, args *InstallSnapshotRequest, resp *InstallSnapshotResponse, data io.Reader) error {
+func (i *InmemTransport) InstallSnapshot(target ServerAddress, args *InstallSnapshotRequest, resp *InstallSnapshotResponse, data io.Reader) error {
 	rpcResp, err := i.makeRPC(target, args, data, 10*i.timeout)
 	if err != nil {
 		return err
@@ -126,7 +128,7 @@ func (i *InmemTransport) InstallSnapshot(target string, args *InstallSnapshotReq
 	return nil
 }
 
-func (i *InmemTransport) makeRPC(target string, args interface{}, r io.Reader, timeout time.Duration) (rpcResp RPCResponse, err error) {
+func (i *InmemTransport) makeRPC(target ServerAddress, args interface{}, r io.Reader, timeout time.Duration) (rpcResp RPCResponse, err error) {
 	i.RLock()
 	peer, ok := i.peers[target]
 	i.RUnlock()
@@ -156,28 +158,27 @@ func (i *InmemTransport) makeRPC(target string, args interface{}, r io.Reader, t
 	return
 }
 
-// EncodePeer implements the Transport interface. It uses the UUID as the
-// address directly.
-func (i *InmemTransport) EncodePeer(p string) []byte {
+// EncodePeer implements the Transport interface.
+func (i *InmemTransport) EncodePeer(p ServerAddress) []byte {
 	return []byte(p)
 }
 
-// DecodePeer implements the Transport interface. It wraps the UUID in an
-// InmemAddr.
-func (i *InmemTransport) DecodePeer(buf []byte) string {
-	return string(buf)
+// DecodePeer implements the Transport interface.
+func (i *InmemTransport) DecodePeer(buf []byte) ServerAddress {
+	return ServerAddress(buf)
 }
 
 // Connect is used to connect this transport to another transport for
 // a given peer name. This allows for local routing.
-func (i *InmemTransport) Connect(peer string, trans *InmemTransport) {
+func (i *InmemTransport) Connect(peer ServerAddress, t Transport) {
+	trans := t.(*InmemTransport)
 	i.Lock()
 	defer i.Unlock()
 	i.peers[peer] = trans
 }
 
 // Disconnect is used to remove the ability to route to a given peer.
-func (i *InmemTransport) Disconnect(peer string) {
+func (i *InmemTransport) Disconnect(peer ServerAddress) {
 	i.Lock()
 	defer i.Unlock()
 	delete(i.peers, peer)
@@ -199,7 +200,7 @@ func (i *InmemTransport) Disconnect(peer string) {
 func (i *InmemTransport) DisconnectAll() {
 	i.Lock()
 	defer i.Unlock()
-	i.peers = make(map[string]*InmemTransport)
+	i.peers = make(map[ServerAddress]*InmemTransport)
 
 	// Handle pipelines
 	for _, pipeline := range i.pipelines {
@@ -208,7 +209,13 @@ func (i *InmemTransport) DisconnectAll() {
 	i.pipelines = nil
 }
 
-func newInmemPipeline(trans *InmemTransport, peer *InmemTransport, addr string) *inmemPipeline {
+// Close is used to permanently disable the transport
+func (i *InmemTransport) Close() error {
+	i.DisconnectAll()
+	return nil
+}
+
+func newInmemPipeline(trans *InmemTransport, peer *InmemTransport, addr ServerAddress) *inmemPipeline {
 	i := &inmemPipeline{
 		trans:        trans,
 		peer:         peer,

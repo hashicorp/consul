@@ -119,8 +119,14 @@ func (f *FileSnapshotStore) testPermissions() error {
 	if err != nil {
 		return err
 	}
-	fh.Close()
-	os.Remove(path)
+
+	if err = fh.Close(); err != nil {
+		return err
+	}
+
+	if err = os.Remove(path); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -132,7 +138,13 @@ func snapshotName(term, index uint64) string {
 }
 
 // Create is used to start a new snapshot
-func (f *FileSnapshotStore) Create(index, term uint64, peers []byte) (SnapshotSink, error) {
+func (f *FileSnapshotStore) Create(version SnapshotVersion, index, term uint64,
+	configuration Configuration, configurationIndex uint64, trans Transport) (SnapshotSink, error) {
+	// We only support version 1 snapshots at this time.
+	if version != 1 {
+		return nil, fmt.Errorf("unsupported snapshot version %d", version)
+	}
+
 	// Create a new path
 	name := snapshotName(term, index)
 	path := filepath.Join(f.path, name+tmpSuffix)
@@ -151,10 +163,13 @@ func (f *FileSnapshotStore) Create(index, term uint64, peers []byte) (SnapshotSi
 		dir:    path,
 		meta: fileSnapshotMeta{
 			SnapshotMeta: SnapshotMeta{
-				ID:    name,
-				Index: index,
-				Term:  term,
-				Peers: peers,
+				Version:            version,
+				ID:                 name,
+				Index:              index,
+				Term:               term,
+				Peers:              encodePeers(configuration, trans),
+				Configuration:      configuration,
+				ConfigurationIndex: configurationIndex,
 			},
 			CRC: nil,
 		},
@@ -233,6 +248,12 @@ func (f *FileSnapshotStore) getSnapshots() ([]*fileSnapshotMeta, error) {
 		meta, err := f.readMeta(dirName)
 		if err != nil {
 			f.logger.Printf("[WARN] snapshot: Failed to read metadata for %v: %v", dirName, err)
+			continue
+		}
+
+		// Make sure we can understand this version.
+		if meta.Version < SnapshotVersionMin || meta.Version > SnapshotVersionMax {
+			f.logger.Printf("[WARN] snapshot: Snapshot version for %v not supported: %d", dirName, meta.Version)
 			continue
 		}
 
@@ -380,7 +401,10 @@ func (s *FileSnapshotSink) Close() error {
 	}
 
 	// Reap any old snapshots
-	s.store.ReapSnapshots()
+	if err := s.store.ReapSnapshots(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
