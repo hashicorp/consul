@@ -60,20 +60,28 @@
 			"versionExact": "v1.2.1"
 		},
 		{
+			"checksumSHA1": "b5zgHT9TxBAVh/KP9kQi7QVoz9w=",
 			"path": "github.com/circonus-labs/circonus-gometrics",
-			"revision": "8e7296e1945cf2ac4adc0a08df3eb52419b227c3"
+			"revision": "a7c30e0dcc6e2341053132470dcedc12bc7705ef",
+			"revisionTime": "2016-07-22T17:27:10Z"
 		},
 		{
+			"checksumSHA1": "IFiYTxu8jshL4A8BCttUaDhp1m4=",
 			"path": "github.com/circonus-labs/circonus-gometrics/api",
-			"revision": "8e7296e1945cf2ac4adc0a08df3eb52419b227c3"
+			"revision": "a7c30e0dcc6e2341053132470dcedc12bc7705ef",
+			"revisionTime": "2016-07-22T17:27:10Z"
 		},
 		{
+			"checksumSHA1": "+9vcRzlTdvEjH/Uf8fKC5MXdjNw=",
 			"path": "github.com/circonus-labs/circonus-gometrics/checkmgr",
-			"revision": "8e7296e1945cf2ac4adc0a08df3eb52419b227c3"
+			"revision": "a7c30e0dcc6e2341053132470dcedc12bc7705ef",
+			"revisionTime": "2016-07-22T17:27:10Z"
 		},
 		{
+			"checksumSHA1": "C4Z7+l5GOpOCW5DcvNYzheGvQRE=",
 			"path": "github.com/circonus-labs/circonusllhist",
-			"revision": "d724266ae5270ae8b87a5d2e8081f04e307c3c18"
+			"revision": "d724266ae5270ae8b87a5d2e8081f04e307c3c18",
+			"revisionTime": "2016-05-26T04:38:13Z"
 		},
 		{
 			"path": "github.com/elazarl/go-bindata-assetfs",
