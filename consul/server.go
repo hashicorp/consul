@@ -406,29 +406,7 @@ func (s *Server) setupRaft() error {
 		peersFile := filepath.Join(path, "peers.json")
 		peersInfoFile := filepath.Join(path, "peers.info")
 		if _, err := os.Stat(peersInfoFile); os.IsNotExist(err) {
-			content := []byte(`
-As of Consul 0.7.0, the peers.json file is only used for recovery
-after an outage. It should be formatted as a JSON array containing the address
-and port of each Consul server in the cluster, like this:
-
-["10.1.0.1:8500","10.1.0.2:8500","10.1.0.3:8500"]
-
-Under normal operation, the peers.json file will not be present.
-
-When Consul starts for the first time, it will create this peers.info file and
-delete any existing peers.json file so that recovery doesn't occur on the first
-startup.
-
-Once this peers.info file is present, any peers.json file will be ingested at
-startup, and will set the Raft peer configuration manually to recover from an
-outage. It's crucial that all servers in the cluster are shut down before
-creating the peers.json file, and that all servers receive the same
-configuration. Once the peers.json file is successfully ingested and applied, it
-will be deleted.
-
-Please see https://www.consul.io/docs/guides/outage.html for more information.
-`)
-			if err := ioutil.WriteFile(peersInfoFile, content, 0755); err != nil {
+			if err := ioutil.WriteFile(peersInfoFile, []byte(peersInfoContent), 0755); err != nil {
 				return fmt.Errorf("failed to write peers.info file: %v", err)
 			}
 
@@ -847,3 +825,29 @@ func (s *Server) GetLANCoordinate() (*coordinate.Coordinate, error) {
 func (s *Server) GetWANCoordinate() (*coordinate.Coordinate, error) {
 	return s.serfWAN.GetCoordinate()
 }
+
+// peersInfoContent is used to help operators understand what happened to the
+// peers.json file. This is written to a file called peers.info in the same
+// location.
+const peersInfoContent = `
+As of Consul 0.7.0, the peers.json file is only used for recovery
+after an outage. It should be formatted as a JSON array containing the address
+and port of each Consul server in the cluster, like this:
+
+["10.1.0.1:8500","10.1.0.2:8500","10.1.0.3:8500"]
+
+Under normal operation, the peers.json file will not be present.
+
+When Consul starts for the first time, it will create this peers.info file and
+delete any existing peers.json file so that recovery doesn't occur on the first
+startup.
+
+Once this peers.info file is present, any peers.json file will be ingested at
+startup, and will set the Raft peer configuration manually to recover from an
+outage. It's crucial that all servers in the cluster are shut down before
+creating the peers.json file, and that all servers receive the same
+configuration. Once the peers.json file is successfully ingested and applied, it
+will be deleted.
+
+Please see https://www.consul.io/docs/guides/outage.html for more information.
+`
