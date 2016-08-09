@@ -10,7 +10,8 @@ import (
 	"golang.org/x/net/context"
 )
 
-func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	opt := Options{}
 	state := middleware.State{W: w, Req: r}
 	if state.QClass() != dns.ClassINET {
 		return dns.RcodeServerFailure, fmt.Errorf("can only deal with ClassINET")
@@ -18,7 +19,7 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	name := state.Name()
 	if e.Debug {
 		if debug := isDebug(name); debug != "" {
-			e.debug = r.Question[0].Name
+			opt.Debug = r.Question[0].Name
 			state.Clear()
 			state.Req.Question[0].Name = debug
 		}
@@ -41,6 +42,9 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 		if e.Next == nil {
 			return dns.RcodeServerFailure, nil
 		}
+		if opt.Debug != "" {
+			r.Question[0].Name = opt.Debug
+		}
 		return e.Next.ServeDNS(ctx, w, r)
 	}
 
@@ -51,47 +55,47 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	)
 	switch state.Type() {
 	case "A":
-		records, debug, err = e.A(zone, state, nil)
+		records, debug, err = e.A(zone, state, nil, opt)
 	case "AAAA":
-		records, debug, err = e.AAAA(zone, state, nil)
+		records, debug, err = e.AAAA(zone, state, nil, opt)
 	case "TXT":
-		records, debug, err = e.TXT(zone, state)
+		records, debug, err = e.TXT(zone, state, opt)
 	case "CNAME":
-		records, debug, err = e.CNAME(zone, state)
+		records, debug, err = e.CNAME(zone, state, opt)
 	case "PTR":
-		records, debug, err = e.PTR(zone, state)
+		records, debug, err = e.PTR(zone, state, opt)
 	case "MX":
-		records, extra, debug, err = e.MX(zone, state)
+		records, extra, debug, err = e.MX(zone, state, opt)
 	case "SRV":
-		records, extra, debug, err = e.SRV(zone, state)
+		records, extra, debug, err = e.SRV(zone, state, opt)
 	case "SOA":
-		records, debug, err = e.SOA(zone, state)
+		records, debug, err = e.SOA(zone, state, opt)
 	case "NS":
 		if state.Name() == zone {
-			records, extra, debug, err = e.NS(zone, state)
+			records, extra, debug, err = e.NS(zone, state, opt)
 			break
 		}
 		fallthrough
 	default:
 		// Do a fake A lookup, so we can distinguish between NODATA and NXDOMAIN
-		_, debug, err = e.A(zone, state, nil)
+		_, debug, err = e.A(zone, state, nil, opt)
 	}
 
-	if e.debug != "" {
+	if opt.Debug != "" {
 		// Substitute this name with the original when we return the request.
 		state.Clear()
-		state.Req.Question[0].Name = e.debug
+		state.Req.Question[0].Name = opt.Debug
 	}
 
 	if isEtcdNameError(err) {
-		return e.Err(zone, dns.RcodeNameError, state, debug, err)
+		return e.Err(zone, dns.RcodeNameError, state, debug, err, opt)
 	}
 	if err != nil {
-		return e.Err(zone, dns.RcodeServerFailure, state, debug, err)
+		return e.Err(zone, dns.RcodeServerFailure, state, debug, err, opt)
 	}
 
 	if len(records) == 0 {
-		return e.Err(zone, dns.RcodeSuccess, state, debug, err)
+		return e.Err(zone, dns.RcodeSuccess, state, debug, err, opt)
 	}
 
 	m := new(dns.Msg)
@@ -99,7 +103,7 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
 	m.Answer = append(m.Answer, records...)
 	m.Extra = append(m.Extra, extra...)
-	if e.debug != "" {
+	if opt.Debug != "" {
 		m.Extra = append(m.Extra, servicesToTxt(debug)...)
 	}
 
@@ -111,12 +115,12 @@ func (e Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 }
 
 // Err write an error response to the client.
-func (e Etcd) Err(zone string, rcode int, state middleware.State, debug []msg.Service, err error) (int, error) {
+func (e *Etcd) Err(zone string, rcode int, state middleware.State, debug []msg.Service, err error, opt Options) (int, error) {
 	m := new(dns.Msg)
 	m.SetRcode(state.Req, rcode)
 	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
-	m.Ns, _, _ = e.SOA(zone, state)
-	if e.debug != "" {
+	m.Ns, _, _ = e.SOA(zone, state, opt)
+	if opt.Debug != "" {
 		m.Extra = servicesToTxt(debug)
 		txt := errorToTxt(err)
 		if txt != nil {

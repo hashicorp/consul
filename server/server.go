@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/chaos"
 	"github.com/miekg/coredns/middleware/metrics"
 
 	"github.com/miekg/dns"
@@ -111,19 +110,6 @@ func New(addr string, configs []Config, gracefulTimeout time.Duration) (*Server,
 		}
 
 		s.zones[conf.Host] = z
-
-		// A bit of a hack. Loop through the middlewares of this zone and check if
-		// they have enabled the chaos middleware. If so add the special chaos zones.
-	Middleware:
-		for _, mid := range z.config.Middleware {
-			fn := mid(nil)
-			if _, ok := fn.(chaos.Chaos); ok {
-				for _, ch := range []string{"authors.bind.", "version.bind.", "version.server.", "hostname.bind.", "id.server."} {
-					s.zones[ch] = z
-				}
-				break Middleware
-			}
-		}
 	}
 
 	return s, nil

@@ -17,6 +17,7 @@ func TestStubCycle(t *testing.T) {
 		defer delete(t, etc, serv.Key)
 	}
 	etc.updateStubZones()
+	defer func() { etc.Stubmap = nil }()
 
 	for _, tc := range dnsTestCasesCycleStub {
 		m := tc.Msg()

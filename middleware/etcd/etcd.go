@@ -26,35 +26,34 @@ type Etcd struct {
 	Inflight   *singleflight.Group
 	Stubmap    *map[string]proxy.Proxy // List of proxies for stub resolving.
 	Debug      bool                    // Do we allow debug queries.
-	debug      string                  // Should we return debugging information, if so, contains original qname.
 }
 
 // Records looks up records in etcd. If exact is true, it will lookup just
 // this name. This is used when find matches when completing SRV lookups
 // for instance.
-func (g Etcd) Records(name string, exact bool) ([]msg.Service, error) {
-	path, star := msg.PathWithWildcard(name, g.PathPrefix)
-	r, err := g.Get(path, true)
+func (e *Etcd) Records(name string, exact bool) ([]msg.Service, error) {
+	path, star := msg.PathWithWildcard(name, e.PathPrefix)
+	r, err := e.Get(path, true)
 	if err != nil {
 		return nil, err
 	}
-	segments := strings.Split(msg.Path(name, g.PathPrefix), "/")
+	segments := strings.Split(msg.Path(name, e.PathPrefix), "/")
 	switch {
 	case exact && r.Node.Dir:
 		return nil, nil
 	case r.Node.Dir:
-		return g.loopNodes(r.Node.Nodes, segments, star, nil)
+		return e.loopNodes(r.Node.Nodes, segments, star, nil)
 	default:
-		return g.loopNodes([]*etcdc.Node{r.Node}, segments, false, nil)
+		return e.loopNodes([]*etcdc.Node{r.Node}, segments, false, nil)
 	}
 }
 
 // Get is a wrapper for client.Get that uses SingleInflight to suppress multiple outstanding queries.
-func (g Etcd) Get(path string, recursive bool) (*etcdc.Response, error) {
-	resp, err := g.Inflight.Do(path, func() (interface{}, error) {
-		ctx, cancel := context.WithTimeout(g.Ctx, etcdTimeout)
+func (e *Etcd) Get(path string, recursive bool) (*etcdc.Response, error) {
+	resp, err := e.Inflight.Do(path, func() (interface{}, error) {
+		ctx, cancel := context.WithTimeout(e.Ctx, etcdTimeout)
 		defer cancel()
-		r, e := g.Client.Get(ctx, path, &etcdc.GetOptions{Sort: false, Recursive: recursive})
+		r, e := e.Client.Get(ctx, path, &etcdc.GetOptions{Sort: false, Recursive: recursive})
 		if e != nil {
 			return nil, e
 		}
@@ -74,14 +73,14 @@ func (g Etcd) Get(path string, recursive bool) (*etcdc.Response, error) {
 
 // loopNodes recursively loops through the nodes and returns all the values. The nodes' keyname
 // will be match against any wildcards when star is true.
-func (g Etcd) loopNodes(ns []*etcdc.Node, nameParts []string, star bool, bx map[msg.Service]bool) (sx []msg.Service, err error) {
+func (e Etcd) loopNodes(ns []*etcdc.Node, nameParts []string, star bool, bx map[msg.Service]bool) (sx []msg.Service, err error) {
 	if bx == nil {
 		bx = make(map[msg.Service]bool)
 	}
 Nodes:
 	for _, n := range ns {
 		if n.Dir {
-			nodes, err := g.loopNodes(n.Nodes, nameParts, star, bx)
+			nodes, err := e.loopNodes(n.Nodes, nameParts, star, bx)
 			if err != nil {
 				return nil, err
 			}
@@ -114,7 +113,7 @@ Nodes:
 		bx[b] = true
 
 		serv.Key = n.Key
-		serv.Ttl = g.TTL(n, serv)
+		serv.Ttl = e.TTL(n, serv)
 		if serv.Priority == 0 {
 			serv.Priority = priority
 		}
@@ -125,7 +124,7 @@ Nodes:
 
 // TTL returns the smaller of the etcd TTL and the service's
 // TTL. If neither of these are set (have a zero value), a default is used.
-func (g Etcd) TTL(node *etcdc.Node, serv *msg.Service) uint32 {
+func (e *Etcd) TTL(node *etcdc.Node, serv *msg.Service) uint32 {
 	etcdTTL := uint32(node.TTL)
 
 	if etcdTTL == 0 && serv.Ttl == 0 {

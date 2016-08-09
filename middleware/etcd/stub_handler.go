@@ -12,7 +12,7 @@ import (
 
 // Stub wraps an Etcd. We have this type so that it can have a ServeDNS method.
 type Stub struct {
-	Etcd
+	*Etcd
 	Zone string // for what zone (and thus what nameservers are we called)
 }
 

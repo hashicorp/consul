@@ -21,6 +21,7 @@ func (p RRSet) Len() int           { return len(p) }
 func (p RRSet) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p RRSet) Less(i, j int) bool { return p[i].String() < p[j].String() }
 
+// If the TTL of a record is 303 we don't care what the TTL is.
 type Case struct {
 	Qname  string
 	Qtype  uint16

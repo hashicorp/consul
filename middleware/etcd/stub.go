@@ -13,7 +13,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func (e Etcd) UpdateStubZones() {
+func (e *Etcd) UpdateStubZones() {
 	go func() {
 		for {
 			e.updateStubZones()

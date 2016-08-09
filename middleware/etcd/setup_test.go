@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	etc    Etcd
+	etc    *Etcd
 	client etcdc.KeysAPI
 	ctxt   context.Context
 )
@@ -32,7 +32,7 @@ func init() {
 		Endpoints: []string{"http://localhost:2379"},
 	}
 	cli, _ := etcdc.New(etcdCfg)
-	etc = Etcd{
+	etc = &Etcd{
 		Proxy:      proxy.New([]string{"8.8.8.8:53"}),
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
@@ -42,7 +42,7 @@ func init() {
 	}
 }
 
-func set(t *testing.T, e Etcd, k string, ttl time.Duration, m *msg.Service) {
+func set(t *testing.T, e *Etcd, k string, ttl time.Duration, m *msg.Service) {
 	b, err := json.Marshal(m)
 	if err != nil {
 		t.Fatal(err)
@@ -51,7 +51,7 @@ func set(t *testing.T, e Etcd, k string, ttl time.Duration, m *msg.Service) {
 	e.Client.Set(ctxt, path, string(b), &etcdc.SetOptions{TTL: ttl})
 }
 
-func delete(t *testing.T, e Etcd, k string) {
+func delete(t *testing.T, e *Etcd, k string) {
 	path, _ := msg.PathWithWildcard(k, e.PathPrefix)
 	e.Client.Delete(ctxt, path, &etcdc.DeleteOptions{Recursive: false})
 }

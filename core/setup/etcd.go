@@ -38,7 +38,7 @@ func Etcd(c *Controller) (middleware.Middleware, error) {
 	}, nil
 }
 
-func etcdParse(c *Controller) (etcd.Etcd, bool, error) {
+func etcdParse(c *Controller) (*etcd.Etcd, bool, error) {
 	stub := make(map[string]proxy.Proxy)
 	etc := etcd.Etcd{
 		Proxy:      proxy.New([]string{"8.8.8.8:53", "8.8.4.4:53"}),
@@ -72,19 +72,19 @@ func etcdParse(c *Controller) (etcd.Etcd, bool, error) {
 					etc.Debug = true
 				case "path":
 					if !c.NextArg() {
-						return etcd.Etcd{}, false, c.ArgErr()
+						return &etcd.Etcd{}, false, c.ArgErr()
 					}
 					etc.PathPrefix = c.Val()
 				case "endpoint":
 					args := c.RemainingArgs()
 					if len(args) == 0 {
-						return etcd.Etcd{}, false, c.ArgErr()
+						return &etcd.Etcd{}, false, c.ArgErr()
 					}
 					endpoints = args
 				case "upstream":
 					args := c.RemainingArgs()
 					if len(args) == 0 {
-						return etcd.Etcd{}, false, c.ArgErr()
+						return &etcd.Etcd{}, false, c.ArgErr()
 					}
 					for i := 0; i < len(args); i++ {
 						h, p, e := net.SplitHostPort(args[i])
@@ -97,7 +97,7 @@ func etcdParse(c *Controller) (etcd.Etcd, bool, error) {
 				case "tls": // cert key cacertfile
 					args := c.RemainingArgs()
 					if len(args) != 3 {
-						return etcd.Etcd{}, false, c.ArgErr()
+						return &etcd.Etcd{}, false, c.ArgErr()
 					}
 					tlsCertFile, tlsKeyFile, tlsCAcertFile = args[0], args[1], args[2]
 				}
@@ -109,19 +109,19 @@ func etcdParse(c *Controller) (etcd.Etcd, bool, error) {
 						etc.Debug = true
 					case "path":
 						if !c.NextArg() {
-							return etcd.Etcd{}, false, c.ArgErr()
+							return &etcd.Etcd{}, false, c.ArgErr()
 						}
 						etc.PathPrefix = c.Val()
 					case "endpoint":
 						args := c.RemainingArgs()
 						if len(args) == 0 {
-							return etcd.Etcd{}, false, c.ArgErr()
+							return &etcd.Etcd{}, false, c.ArgErr()
 						}
 						endpoints = args
 					case "upstream":
 						args := c.RemainingArgs()
 						if len(args) == 0 {
-							return etcd.Etcd{}, false, c.ArgErr()
+							return &etcd.Etcd{}, false, c.ArgErr()
 						}
 						for i := 0; i < len(args); i++ {
 							h, p, e := net.SplitHostPort(args[i])
@@ -133,7 +133,7 @@ func etcdParse(c *Controller) (etcd.Etcd, bool, error) {
 					case "tls": // cert key cacertfile
 						args := c.RemainingArgs()
 						if len(args) != 3 {
-							return etcd.Etcd{}, false, c.ArgErr()
+							return &etcd.Etcd{}, false, c.ArgErr()
 						}
 						tlsCertFile, tlsKeyFile, tlsCAcertFile = args[0], args[1], args[2]
 					}
@@ -141,13 +141,13 @@ func etcdParse(c *Controller) (etcd.Etcd, bool, error) {
 			}
 			client, err := newEtcdClient(endpoints, tlsCertFile, tlsKeyFile, tlsCAcertFile)
 			if err != nil {
-				return etcd.Etcd{}, false, err
+				return &etcd.Etcd{}, false, err
 			}
 			etc.Client = client
-			return etc, stubzones, nil
+			return &etc, stubzones, nil
 		}
 	}
-	return etcd.Etcd{}, false, nil
+	return &etcd.Etcd{}, false, nil
 }
 
 func newEtcdClient(endpoints []string, tlsCert, tlsKey, tlsCACert string) (etcdc.KeysAPI, error) {

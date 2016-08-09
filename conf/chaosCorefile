@@ -1,0 +1,4 @@
+.:1053 authors.bind:1053 {
+    chaos CoreDNS-001 "Miek Gieben" miek@miek.nl
+    proxy . 8.8.8.8:53
+}

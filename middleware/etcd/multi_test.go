@@ -14,13 +14,13 @@ import (
 )
 
 func TestMultiLookup(t *testing.T) {
-	etcMulti := etc
+	etcMulti := *etc
 	etcMulti.Zones = []string{"skydns.test.", "miek.nl."}
 	etcMulti.Next = test.ErrorHandler()
 
 	for _, serv := range servicesMulti {
-		set(t, etcMulti, serv.Key, 0, serv)
-		defer delete(t, etcMulti, serv.Key)
+		set(t, &etcMulti, serv.Key, 0, serv)
+		defer delete(t, &etcMulti, serv.Key)
 	}
 	for _, tc := range dnsTestCasesMulti {
 		m := tc.Msg()
