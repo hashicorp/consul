@@ -218,3 +218,18 @@ func TestACLList(t *testing.T) {
 		}
 	})
 }
+
+func TestACLReplicationStatus(t *testing.T) {
+	httpTest(t, func(srv *HTTPServer) {
+		req, err := http.NewRequest("GET", "/v1/acl/replication", nil)
+		resp := httptest.NewRecorder()
+		obj, err := srv.ACLReplicationStatus(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		_, ok := obj.(structs.ACLReplicationStatus)
+		if !ok {
+			t.Fatalf("should work")
+		}
+	})
+}

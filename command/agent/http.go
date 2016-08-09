@@ -257,6 +257,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.HandleFunc("/v1/acl/info/", s.wrap(s.ACLGet))
 		s.mux.HandleFunc("/v1/acl/clone/", s.wrap(s.ACLClone))
 		s.mux.HandleFunc("/v1/acl/list", s.wrap(s.ACLList))
+		s.mux.HandleFunc("/v1/acl/replication", s.wrap(s.ACLReplicationStatus))
 	} else {
 		s.mux.HandleFunc("/v1/acl/create", s.wrap(aclDisabled))
 		s.mux.HandleFunc("/v1/acl/update", s.wrap(aclDisabled))
@@ -264,6 +265,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 		s.mux.HandleFunc("/v1/acl/info/", s.wrap(aclDisabled))
 		s.mux.HandleFunc("/v1/acl/clone/", s.wrap(aclDisabled))
 		s.mux.HandleFunc("/v1/acl/list", s.wrap(aclDisabled))
+		s.mux.HandleFunc("/v1/acl/replication", s.wrap(aclDisabled))
 	}
 
 	s.mux.HandleFunc("/v1/query", s.wrap(s.PreparedQueryGeneral))

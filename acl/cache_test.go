@@ -5,7 +5,7 @@ import (
 )
 
 func TestCache_GetPolicy(t *testing.T) {
-	c, err := NewCache(1, nil)
+	c, err := NewCache(2, nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -24,8 +24,20 @@ func TestCache_GetPolicy(t *testing.T) {
 		t.Fatalf("should be cached")
 	}
 
-	// Cache a new policy
+	// Work with some new policies to evict the original one
 	_, err = c.GetPolicy(testSimplePolicy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = c.GetPolicy(testSimplePolicy)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = c.GetPolicy(testSimplePolicy2)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = c.GetPolicy(testSimplePolicy2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -44,12 +56,13 @@ func TestCache_GetACL(t *testing.T) {
 	policies := map[string]string{
 		"foo": testSimplePolicy,
 		"bar": testSimplePolicy2,
+		"baz": testSimplePolicy3,
 	}
 	faultfn := func(id string) (string, string, error) {
 		return "deny", policies[id], nil
 	}
 
-	c, err := NewCache(1, faultfn)
+	c, err := NewCache(2, faultfn)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -80,6 +93,18 @@ func TestCache_GetACL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	_, err = c.GetACL("bar")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = c.GetACL("baz")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	_, err = c.GetACL("baz")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
 	acl3, err := c.GetACL("foo")
 	if err != nil {
@@ -100,7 +125,7 @@ func TestCache_ClearACL(t *testing.T) {
 		return "deny", policies[id], nil
 	}
 
-	c, err := NewCache(1, faultfn)
+	c, err := NewCache(16, faultfn)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -135,7 +160,7 @@ func TestCache_Purge(t *testing.T) {
 		return "deny", policies[id], nil
 	}
 
-	c, err := NewCache(1, faultfn)
+	c, err := NewCache(16, faultfn)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -167,7 +192,7 @@ func TestCache_GetACLPolicy(t *testing.T) {
 	faultfn := func(id string) (string, string, error) {
 		return "deny", policies[id], nil
 	}
-	c, err := NewCache(1, faultfn)
+	c, err := NewCache(16, faultfn)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -220,7 +245,7 @@ func TestCache_GetACL_Parent(t *testing.T) {
 		return "", "", nil
 	}
 
-	c, err := NewCache(1, faultfn)
+	c, err := NewCache(16, faultfn)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -293,6 +318,11 @@ key "foo/" {
 
 var testSimplePolicy2 = `
 key "bar/" {
+	policy = "read"
+}
+`
+var testSimplePolicy3 = `
+key "baz/" {
 	policy = "read"
 }
 `

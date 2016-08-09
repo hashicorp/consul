@@ -8,7 +8,7 @@ import (
 )
 
 // FaultFunc is a function used to fault in the parent,
-// rules for an  ACL given it's ID
+// rules for an ACL given its ID
 type FaultFunc func(id string) (string, string, error)
 
 // aclEntry allows us to store the ACL with it's policy ID
@@ -21,9 +21,9 @@ type aclEntry struct {
 // Cache is used to implement policy and ACL caching
 type Cache struct {
 	faultfn     FaultFunc
-	aclCache    *lru.Cache // Cache id -> acl
-	policyCache *lru.Cache // Cache policy -> acl
-	ruleCache   *lru.Cache // Cache rules -> policy
+	aclCache    *lru.TwoQueueCache // Cache id -> acl
+	policyCache *lru.TwoQueueCache // Cache policy -> acl
+	ruleCache   *lru.TwoQueueCache // Cache rules -> policy
 }
 
 // NewCache constructs a new policy and ACL cache of a given size
@@ -31,9 +31,22 @@ func NewCache(size int, faultfn FaultFunc) (*Cache, error) {
 	if size <= 0 {
 		return nil, fmt.Errorf("Must provide positive cache size")
 	}
-	rc, _ := lru.New(size)
-	pc, _ := lru.New(size)
-	ac, _ := lru.New(size)
+
+	rc, err := lru.New2Q(size)
+	if err != nil {
+		return nil, err
+	}
+
+	pc, err := lru.New2Q(size)
+	if err != nil {
+		return nil, err
+	}
+
+	ac, err := lru.New2Q(size)
+	if err != nil {
+		return nil, err
+	}
+
 	c := &Cache{
 		faultfn:     faultfn,
 		aclCache:    ac,
@@ -46,7 +59,7 @@ func NewCache(size int, faultfn FaultFunc) (*Cache, error) {
 // GetPolicy is used to get a potentially cached policy set.
 // If not cached, it will be parsed, and then cached.
 func (c *Cache) GetPolicy(rules string) (*Policy, error) {
-	return c.getPolicy(c.ruleID(rules), rules)
+	return c.getPolicy(RuleID(rules), rules)
 }
 
 // getPolicy is an internal method to get a cached policy,
@@ -66,8 +79,8 @@ func (c *Cache) getPolicy(id, rules string) (*Policy, error) {
 
 }
 
-// ruleID is used to generate an ID for a rule
-func (c *Cache) ruleID(rules string) string {
+// RuleID is used to generate an ID for a rule
+func RuleID(rules string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(rules)))
 }
 
@@ -112,7 +125,7 @@ func (c *Cache) GetACL(id string) (ACL, error) {
 	if err != nil {
 		return nil, err
 	}
-	ruleID := c.ruleID(rules)
+	ruleID := RuleID(rules)
 
 	// Check for a compiled ACL
 	policyID := c.policyID(parentID, ruleID)

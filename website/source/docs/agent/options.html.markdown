@@ -351,6 +351,17 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   token. When you provide a value, it can be any string value. Using a UUID would ensure that it looks
   the same as the other tokens, but isn't strictly necessary.
 
+* <a name="acl_replication_token"></a><a href="#acl_replication_token">`acl_replication_token`</a> -
+  Only used for servers outside the [`acl_datacenter`](#acl_datacenter) running Consul 0.7 or later.
+  When provided, this will enable [ACL replication](/docs/internals/acl.html#replication) using this
+  token to retrieve and replicate the ACLs to the non-authoritative local datacenter.
+  <br><br>
+  If there's a partition or other outage affecting the authoritative datacenter, and the
+  [`acl_down_policy`](/docs/agent/options.html#acl_down_policy) is set to "extend-cache", tokens not
+  in the cache can be resolved during the outage using the replicated set of ACLs. Please see the
+  [ACL replication](/docs/internals/acl.html#replication) section of the internals guide for more
+  details.
+
 * <a name="acl_token"></a><a href="#acl_token">`acl_token`</a> - When provided, the agent will use this
   token when making requests to the Consul servers. Clients can override this token on a per-request
   basis by providing the "?token" query parameter. When not provided, the empty token, which maps to
