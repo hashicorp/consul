@@ -167,15 +167,15 @@ func (ct *CompiledTemplate) Render(name string) (*structs.PreparedQuery, error) 
 			return nil
 		}
 
-		hv, ht, err := hil.Eval(tree, config)
+		res, err := hil.Eval(tree, config)
 		if err != nil {
 			return fmt.Errorf("Bad evaluation for '%s' in Service%s: %s", v.String(), path, err)
 		}
-		if ht != ast.TypeString {
-			return fmt.Errorf("Expected Service%s field to be a string, got %s", path, ht)
+		if res.Type != hil.TypeString {
+			return fmt.Errorf("Expected Service%s field to be a string, got %s", path, res.Type)
 		}
 
-		v.SetString(hv.(string))
+		v.SetString(res.Value.(string))
 		return nil
 	}
 	if err := walk(&query.Service, eval); err != nil {
