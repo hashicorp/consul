@@ -248,8 +248,10 @@
 			"revisionTime": "2016-07-18T23:34:41Z"
 		},
 		{
+			"checksumSHA1": "xZ7Ban1x//6uUIU1xtrTbCYNHBc=",
 			"path": "github.com/hashicorp/go-syslog",
-			"revision": "42a2b573b664dbf281bd48c3cc12c086b17a39ba"
+			"revision": "42a2b573b664dbf281bd48c3cc12c086b17a39ba",
+			"revisionTime": "2015-02-18T18:19:46Z"
 		},
 		{
 			"path": "github.com/hashicorp/go-uuid",
