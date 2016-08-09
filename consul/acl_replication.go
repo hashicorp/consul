@@ -311,7 +311,7 @@ func (s *Server) runACLReplication() {
 			status.ReplicatedIndex = index
 			status.LastSuccess = time.Now()
 			s.updateACLReplicationStatus(status)
-			s.logger.Printf("[DEBUG] consul: ACL replication completed through index %d", index)
+			s.logger.Printf("[DEBUG] consul: ACL replication completed through remote index %d", index)
 		}
 	}
 	pause := func() {
