@@ -21,7 +21,7 @@ func TestACLReplication_Sorter(t *testing.T) {
 		&structs.ACL{ID: "c"},
 	}
 
-	sorter := &aclIDSorter{acls}
+	sorter := &aclIterator{acls, 0}
 	if len := sorter.Len(); len != 3 {
 		t.Fatalf("bad: %d", len)
 	}

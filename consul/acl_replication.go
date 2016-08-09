@@ -10,30 +10,11 @@ import (
 	"github.com/hashicorp/consul/lib"
 )
 
-// aclIDSorter is used to make sure a given list of ACLs is sorted by token ID.
-// This should always be true, but since this is crucial for correctness and we
-// are accepting input from another server, we sort to make sure.
-type aclIDSorter struct {
-	acls structs.ACLs
-}
-
-// See sort.Interface.
-func (a *aclIDSorter) Len() int {
-	return len(a.acls)
-}
-
-// See sort.Interface.
-func (a *aclIDSorter) Swap(i, j int) {
-	a.acls[i], a.acls[j] = a.acls[j], a.acls[i]
-}
-
-// See sort.Interface.
-func (a *aclIDSorter) Less(i, j int) bool {
-	return a.acls[i].ID < a.acls[j].ID
-}
-
 // aclIterator simplifies the algorithm below by providing a basic iterator that
-// moves through a list of ACLs and returns nil when it's exhausted.
+// moves through a list of ACLs and returns nil when it's exhausted. It also has
+// methods for pre-sorting the ACLs being iterated over by ID, which should
+// already be true, but since this is crucial for correctness and we are taking
+// input from other servers, we sort to make sure.
 type aclIterator struct {
 	acls structs.ACLs
 
@@ -44,6 +25,21 @@ type aclIterator struct {
 // newACLIterator returns a new ACL iterator.
 func newACLIterator(acls structs.ACLs) *aclIterator {
 	return &aclIterator{acls: acls}
+}
+
+// See sort.Interface.
+func (a *aclIterator) Len() int {
+	return len(a.acls)
+}
+
+// See sort.Interface.
+func (a *aclIterator) Swap(i, j int) {
+	a.acls[i], a.acls[j] = a.acls[j], a.acls[i]
+}
+
+// See sort.Interface.
+func (a *aclIterator) Less(i, j int) bool {
+	return a.acls[i].ID < a.acls[j].ID
 }
 
 // Front returns the item at index position, or nil if the list is exhausted.
@@ -72,12 +68,12 @@ func reconcileACLs(local, remote structs.ACLs, lastRemoteIndex uint64) structs.A
 	// version of Consul, and sorted-ness is kind of a subtle property of
 	// the state store indexing, it's prudent to make sure things are sorted
 	// before we begin.
-	sort.Sort(&aclIDSorter{local})
-	sort.Sort(&aclIDSorter{remote})
+	localIter, remoteIter := newACLIterator(local), newACLIterator(remote)
+	sort.Sort(localIter)
+	sort.Sort(remoteIter)
 
 	// Run through both lists and reconcile them.
 	var changes structs.ACLRequests
-	localIter, remoteIter := newACLIterator(local), newACLIterator(remote)
 	for localIter.Front() != nil || remoteIter.Front() != nil {
 		// If the local list is exhausted, then process this as a remote
 		// add. We know from the loop condition that there's something
