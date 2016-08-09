@@ -1,7 +1,6 @@
 package etcd
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -74,11 +73,9 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR, o
 			}
 			m1, e1 := e.Proxy.Lookup(state, target, state.QType())
 			if e1 != nil {
-				if opt.Debug != "" {
-					debugTxt := errorToTxt(errors.New(target + " IN " + state.Type() + ":" + e1.Error()))
-					records = append(records, debugTxt)
-					continue
-				}
+				debugMsg := msg.Service{Key: msg.Path(target, e.PathPrefix), Host: target, Text: " IN " + state.Type() + ": " + e1.Error()}
+				debug = append(debug, debugMsg)
+				continue
 			}
 			// Len(m1.Answer) > 0 here is well?
 			records = append(records, newRecord)
@@ -138,8 +135,8 @@ func (e Etcd) AAAA(zone string, state middleware.State, previousRecords []dns.RR
 			}
 			m1, e1 := e.Proxy.Lookup(state, target, state.QType())
 			if e1 != nil {
-				debugTxt := errorToTxt(errors.New(target + " IN " + state.Type() + ": " + e1.Error()))
-				records = append(records, debugTxt)
+				debugMsg := msg.Service{Key: msg.Path(target, e.PathPrefix), Host: target, Text: " IN " + state.Type() + ": " + e1.Error()}
+				debug = append(debug, debugMsg)
 				continue
 			}
 			// Len(m1.Answer) > 0 here is well?
@@ -203,8 +200,8 @@ func (e Etcd) SRV(zone string, state middleware.State, opt Options) (records, ex
 				if e1 == nil {
 					extra = append(extra, m1.Answer...)
 				} else {
-					debugTxt := errorToTxt(errors.New(srv.Target + " IN A: " + e1.Error()))
-					extra = append(extra, debugTxt)
+					debugMsg := msg.Service{Key: msg.Path(srv.Target, e.PathPrefix), Host: srv.Target, Text: " IN A: " + e1.Error()}
+					debug = append(debug, debugMsg)
 				}
 
 				m1, e1 = e.Proxy.Lookup(state, srv.Target, dns.TypeAAAA)
@@ -216,8 +213,8 @@ func (e Etcd) SRV(zone string, state middleware.State, opt Options) (records, ex
 						}
 					}
 				} else {
-					debugTxt := errorToTxt(errors.New(srv.Target + " IN AAAA: " + e1.Error()))
-					extra = append(extra, debugTxt)
+					debugMsg := msg.Service{Key: msg.Path(srv.Target, e.PathPrefix), Host: srv.Target, Text: " IN AAAA: " + e1.Error()}
+					debug = append(debug, debugMsg)
 				}
 				break
 			}
@@ -276,8 +273,8 @@ func (e Etcd) MX(zone string, state middleware.State, opt Options) (records, ext
 				if e1 == nil {
 					extra = append(extra, m1.Answer...)
 				} else {
-					debugTxt := errorToTxt(errors.New(mx.Mx + " IN A: " + e1.Error()))
-					extra = append(extra, debugTxt)
+					debugMsg := msg.Service{Key: msg.Path(mx.Mx, e.PathPrefix), Host: mx.Mx, Text: " IN A: " + e1.Error()}
+					debug = append(debug, debugMsg)
 				}
 				m1, e1 = e.Proxy.Lookup(state, mx.Mx, dns.TypeAAAA)
 				if e1 == nil {
@@ -288,8 +285,8 @@ func (e Etcd) MX(zone string, state middleware.State, opt Options) (records, ext
 						}
 					}
 				} else {
-					debugTxt := errorToTxt(errors.New(mx.Mx + " IN AAAA: " + e1.Error()))
-					extra = append(extra, debugTxt)
+					debugMsg := msg.Service{Key: msg.Path(mx.Mx, e.PathPrefix), Host: mx.Mx, Text: " IN AAAA: " + e1.Error()}
+					debug = append(debug, debugMsg)
 				}
 				break
 			}

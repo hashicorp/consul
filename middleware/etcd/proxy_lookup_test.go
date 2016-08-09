@@ -22,10 +22,10 @@ func TestProxyLookupFailDebug(t *testing.T) {
 
 	prxy := etc.Proxy
 	etc.Proxy = proxy.New([]string{"127.0.0.0:154"})
-	etc.Debug = true
-
-	defer func() { etc.Debug = false }()
 	defer func() { etc.Proxy = prxy }()
+
+	etc.Debug = true
+	defer func() { etc.Debug = false }()
 
 	for _, tc := range dnsTestCasesProxy {
 		m := tc.Msg()
@@ -58,20 +58,20 @@ func TestProxyLookupFailDebug(t *testing.T) {
 	}
 }
 
-// Note the key is encoded as DNS name, while in "reality" it is a etcd path.
 var servicesProxy = []*msg.Service{
 	{Host: "www.example.org", Key: "a.dom.skydns.test."},
 }
 
 var dnsTestCasesProxy = []test.Case{
 	{
-		Qname: "dom.skydns.test.", Qtype: dns.TypeSRV,
+		Qname: "o-o.debug.dom.skydns.test.", Qtype: dns.TypeSRV,
 		Answer: []dns.RR{
 			test.SRV("dom.skydns.test. 300 IN SRV 10 100 0 www.example.org."),
 		},
 		Extra: []dns.RR{
-			test.TXT(".	0	CH	TXT	\"www.example.org. IN A: unreachable backend\""),
-			test.TXT(".	0	CH	TXT	\"www.example.org. IN AAAA: unreachable backend\""),
+			test.TXT("a.dom.skydns.test.	300	CH	TXT	\"www.example.org:0(10,0,,false)[0,]\""),
+			test.TXT("www.example.org.	0	CH	TXT	\"www.example.org.:0(0,0, IN A: unreachable backend,false)[0,]\""),
+			test.TXT("www.example.org.	0	CH	TXT	\"www.example.org.:0(0,0, IN AAAA: unreachable backend,false)[0,]\""),
 		},
 	},
 }

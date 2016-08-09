@@ -24,7 +24,7 @@ type Etcd struct {
 	Client     etcdc.KeysAPI
 	Ctx        context.Context
 	Inflight   *singleflight.Group
-	Stubmap    *map[string]proxy.Proxy // List of proxies for stub resolving.
+	Stubmap    *map[string]proxy.Proxy // list of proxies for stub resolving.
 	Debug      bool                    // Do we allow debug queries.
 }
 

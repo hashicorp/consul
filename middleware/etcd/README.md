@@ -113,18 +113,20 @@ process in the response. The general form looks like this:
 
     skydns.test.skydns.dom.a.	300	CH	TXT	"127.0.0.1:0(10,0,,false)[0,]"
 
-  This shows the complete key as the owername, the rdata of the TXT record has:
-  `host:port(priority,weight,txt content,mail)[targetstrip,group]`.
+This shows the complete key as the owername, the rdata of the TXT record has:
+`host:port(priority,weight,txt content,mail)[targetstrip,group]`.
 
-  Any errors seen doing parsing will show up like this:
+Errors when communicating with an upstream will be returned as: `host:0(0,0,error message,false)[0,]`.
+
+An example:
+
+    www.example.org.	0	CH	TXT	"www.example.org.:0(0,0, IN A: unreachable backend,false)[0,]"
+
+Signalling that an A record for www.example.org. was sought, but it failed with that error.
+
+Any errors seen doing parsing will show up like this:
 
     . 0 CH TXT "/skydns/local/skydns/r/a: invalid character '.' after object key:value pair"
 
-  which shows `a.r.skydns.local.` has a json encoding problem.
+which shows `a.r.skydns.local.` has a json encoding problem.
 
-  Errors when communicating with an upstream will be returned as:
-
-    . 0 CH TXT "example.org. IN A: unreachable backend"
-
-  Signalling that an A record for example.org. was sought, but it failed
-  with that error.
