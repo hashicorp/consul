@@ -236,8 +236,10 @@
 			"revisionTime": "2015-09-16T20:57:42Z"
 		},
 		{
+			"checksumSHA1": "7qEpaAJA78EvQDs16x9mYOWfgqo=",
 			"path": "github.com/hashicorp/go-reap",
-			"revision": "2d85522212dcf5a84c6b357094f5c44710441912"
+			"revision": "2d85522212dcf5a84c6b357094f5c44710441912",
+			"revisionTime": "2016-01-13T17:25:55Z"
 		},
 		{
 			"path": "github.com/hashicorp/go-retryablehttp",
