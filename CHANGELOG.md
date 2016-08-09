@@ -61,6 +61,7 @@ IMPROVEMENTS:
 * Builds Consul releases with Go 1.6.1. [GH-1948]
 * HTTP health checks limit saved output to 4K to avoid performance issues. [GH-1952]
 * Added version information to the log when Consul starts up. [GH-1404]
+* Added timing metrics for HTTP requests. [GH-2256]
 
 BUG FIXES:
 
