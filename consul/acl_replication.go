@@ -150,6 +150,8 @@ func (s *Server) fetchLocalACLs() (structs.ACLs, error) {
 // datacenter. The lastIndex parameter is a hint about which remote index we
 // have replicated to, so this is expected to block until something changes.
 func (s *Server) fetchRemoteACLs(lastRemoteIndex uint64) (*structs.IndexedACLs, error) {
+	defer metrics.MeasureSince([]string{"consul", "leader", "fetchRemoteACLs"}, time.Now())
+
 	args := structs.DCSpecificRequest{
 		Datacenter: s.config.ACLDatacenter,
 		QueryOptions: structs.QueryOptions{
@@ -168,6 +170,8 @@ func (s *Server) fetchRemoteACLs(lastRemoteIndex uint64) (*structs.IndexedACLs, 
 // UpdateLocalACLs is given a list of changes to apply in order to bring the
 // local ACLs in-line with the remote ACLs from the ACL datacenter.
 func (s *Server) updateLocalACLs(changes structs.ACLRequests) error {
+	defer metrics.MeasureSince([]string{"consul", "leader", "updateLocalACLs"}, time.Now())
+
 	minTimePerOp := time.Second / time.Duration(s.config.ACLReplicationApplyLimit)
 	for _, change := range changes {
 		// Note that we are using the single ACL interface here and not
