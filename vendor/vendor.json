@@ -184,12 +184,16 @@
 			"revision": "36289988d83ca270bc07c234c36f364b0dd9c9a7"
 		},
 		{
+			"checksumSHA1": "d9PxF1XQGLMJZRct2R8qVM/eYlE=",
 			"path": "github.com/hashicorp/golang-lru",
-			"revision": "5c7531c003d8bf158b0fe5063649a2f41a822146"
+			"revision": "a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4",
+			"revisionTime": "2016-02-07T21:47:19Z"
 		},
 		{
+			"checksumSHA1": "2nOpYjx8Sn57bqlZq17yM4YJuM4=",
 			"path": "github.com/hashicorp/golang-lru/simplelru",
-			"revision": "5c7531c003d8bf158b0fe5063649a2f41a822146"
+			"revision": "a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4",
+			"revisionTime": "2016-02-07T21:47:19Z"
 		},
 		{
 			"path": "github.com/hashicorp/hcl",
