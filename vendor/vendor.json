@@ -208,12 +208,16 @@
 			"revision": "875fb671b3ddc66f8e2f0acc33829c8cb989a38d"
 		},
 		{
+			"checksumSHA1": "qmE9mO0WW6ALLpUU81rXDyspP5M=",
 			"path": "github.com/hashicorp/go-immutable-radix",
-			"revision": "afc5a0dbb18abdf82c277a7bc01533e81fa1d6b8"
+			"revision": "afc5a0dbb18abdf82c277a7bc01533e81fa1d6b8",
+			"revisionTime": "2016-06-09T02:05:29Z"
 		},
 		{
+			"checksumSHA1": "/V57CyN7x2NUlHoOzVL5GgGXX84=",
 			"path": "github.com/hashicorp/go-memdb",
-			"revision": "98f52f52d7a476958fa9da671354d270c50661a7"
+			"revision": "98f52f52d7a476958fa9da671354d270c50661a7",
+			"revisionTime": "2016-03-01T23:01:42Z"
 		},
 		{
 			"path": "github.com/hashicorp/go-msgpack/codec",
