@@ -338,8 +338,10 @@
 			"revisionTime": "2016-07-11T23:18:37Z"
 		},
 		{
+			"checksumSHA1": "vt+P9D2yWDO3gdvdgCzwqunlhxU=",
 			"path": "github.com/hashicorp/logutils",
-			"revision": "0dc08b1671f34c4250ce212759ebd880f743d883"
+			"revision": "0dc08b1671f34c4250ce212759ebd880f743d883",
+			"revisionTime": "2015-06-09T07:04:31Z"
 		},
 		{
 			"path": "github.com/hashicorp/memberlist",
