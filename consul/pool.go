@@ -282,6 +282,7 @@ func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, err
 	// Switch the multiplexing based on version
 	var session muxSession
 	if version < 2 {
+		conn.Close()
 		return nil, fmt.Errorf("cannot make client connection, unsupported protocol version %d", version)
 	} else {
 		// Write the Consul multiplex byte to set the mode
