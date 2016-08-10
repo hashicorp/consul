@@ -67,6 +67,7 @@ IMPROVEMENTS:
 * HTTP health checks limit saved output to 4K to avoid performance issues. [GH-1952]
 * Added version information to the log when Consul starts up. [GH-1404]
 * Added timing metrics for HTTP requests. [GH-2256]
+* Updated all vendored dependencies. [GH-2258]
 
 BUG FIXES:
 
