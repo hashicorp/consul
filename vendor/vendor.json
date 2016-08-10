@@ -350,8 +350,10 @@
 			"revisionTime": "2016-06-21T23:59:43Z"
 		},
 		{
+			"checksumSHA1": "qnlqWJYV81ENr61SZk9c65R1mDo=",
 			"path": "github.com/hashicorp/net-rpc-msgpackrpc",
-			"revision": "a14192a58a694c123d8fe5481d4a4727d6ae82f3"
+			"revision": "a14192a58a694c123d8fe5481d4a4727d6ae82f3",
+			"revisionTime": "2015-11-16T02:03:38Z"
 		},
 		{
 			"checksumSHA1": "zMgiTV0dfJIQNRCJDF50bLomDvg=",
