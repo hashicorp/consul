@@ -14,25 +14,12 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
-	"github.com/inconshreveable/muxado"
 )
 
-// muxSession is used to provide an interface for either muxado or yamux
+// muxSession is used to provide an interface for a stream multiplexer.
 type muxSession interface {
 	Open() (net.Conn, error)
 	Close() error
-}
-
-type muxadoWrapper struct {
-	m muxado.Session
-}
-
-func (w *muxadoWrapper) Open() (net.Conn, error) {
-	return w.m.Open()
-}
-
-func (w *muxadoWrapper) Close() error {
-	return w.m.Close()
 }
 
 // streamClient is used to wrap a stream with an RPC client
@@ -295,15 +282,8 @@ func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, err
 	// Switch the multiplexing based on version
 	var session muxSession
 	if version < 2 {
-		// Write the Consul multiplex byte to set the mode
-		if _, err := conn.Write([]byte{byte(rpcMultiplex)}); err != nil {
-			conn.Close()
-			return nil, err
-		}
-
-		// Create a multiplexed session
-		session = &muxadoWrapper{muxado.Client(conn)}
-
+		conn.Close()
+		return nil, fmt.Errorf("cannot make client connection, unsupported protocol version %d", version)
 	} else {
 		// Write the Consul multiplex byte to set the mode
 		if _, err := conn.Write([]byte{byte(rpcMultiplexV2)}); err != nil {

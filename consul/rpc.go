@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/memberlist"
 	"github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
-	"github.com/inconshreveable/muxado"
 )
 
 type RPCType byte
@@ -25,7 +24,7 @@ type RPCType byte
 const (
 	rpcConsul RPCType = iota
 	rpcRaft
-	rpcMultiplex
+	rpcMultiplex // Old Muxado byte, no longer supported.
 	rpcTLS
 	rpcMultiplexV2
 )
@@ -108,9 +107,6 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		metrics.IncrCounter([]string{"consul", "rpc", "raft_handoff"}, 1)
 		s.raftLayer.Handoff(conn)
 
-	case rpcMultiplex:
-		s.handleMultiplex(conn)
-
 	case rpcTLS:
 		if s.rpcTLS == nil {
 			s.logger.Printf("[WARN] consul.rpc: TLS connection attempted, server not configured for TLS %s", logConn(conn))
@@ -127,23 +123,6 @@ func (s *Server) handleConn(conn net.Conn, isTLS bool) {
 		s.logger.Printf("[ERR] consul.rpc: unrecognized RPC byte: %v %s", buf[0], logConn(conn))
 		conn.Close()
 		return
-	}
-}
-
-// handleMultiplex is used to multiplex a single incoming connection
-// using the Muxado multiplexer
-func (s *Server) handleMultiplex(conn net.Conn) {
-	defer conn.Close()
-	server := muxado.Server(conn)
-	for {
-		sub, err := server.Accept()
-		if err != nil {
-			if !strings.Contains(err.Error(), "closed") {
-				s.logger.Printf("[ERR] consul.rpc: multiplex conn accept failed: %v %s", err, logConn(conn))
-			}
-			return
-		}
-		go s.handleConsulConn(sub)
 	}
 }
 

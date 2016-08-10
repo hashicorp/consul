@@ -16,6 +16,15 @@ standard upgrade flow.
 
 ## Consul 0.7
 
+#### Dropped Support for Protocol Version 1
+
+Consul version 0.7 dropped support for protocol version 1, which means it
+is no longer compatible with versions of Consul prior to 0.3. You will need
+to upgrade all agents to a newer version of Consul before upgrading to Consul
+0.7.
+
+#### Prepared Query Changes
+
 Consul version 0.7 adds a feature which allows prepared queries to store a
 ["Near" parameter](/docs/agent/http/query.html#near) in the query definition
 itself. This feature enables using the distance sorting features of prepared
