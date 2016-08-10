@@ -156,6 +156,8 @@ BUG FIXES:
   fallback pings. This affected users with frequent UDP connectivity problems. [GH-1802]
 * Added a fix to trim UDP DNS responses so they don't exceed 512 bytes. [GH-1813]
 * Updated go-dockerclient to fix Docker health checks with Docker 1.10. [GH-1706]
+* Removed fixed height display of nodes and services in UI, leading to broken displays
+  when a node has a lot of services. [GH-2055]
 
 ## 0.6.3 (January 15, 2016)
 
