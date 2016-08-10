@@ -37,6 +37,8 @@ Options:
   -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
   -datacenter=""             Datacenter to query. Defaults to that of agent.
   -token=""                  ACL token to use. Defaults to that of agent.
+  -stale=[true|false]        Specifies if watch data is permitted to be stale.
+                             Defaults to false.
 
 Watch Specification:
 
@@ -47,8 +49,6 @@ Watch Specification:
   -prefix=val                Specifies the key prefix to watch. Only for 'keyprefix' type.
   -service=val               Specifies the service to watch. Required for 'service' type,
                              optional for 'checks' type.
-  -stale=[true|false]        Specefies if watch data is permitted to be stale. Defaults
-                             false.
   -state=val                 Specifies the states to watch. Optional for 'checks' type.
   -tag=val                   Specifies the service tag to filter on. Optional for 'service'
                              type.
