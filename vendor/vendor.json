@@ -368,12 +368,16 @@
 			"revisionTime": "2015-02-01T20:08:39Z"
 		},
 		{
+			"checksumSHA1": "u9qHbpIgMZ7/fjO0gFfds2m/1ck=",
 			"path": "github.com/hashicorp/scada-client",
-			"revision": "84989fd23ad4cc0e7ad44d6a871fd793eb9beb0a"
+			"revision": "6e896784f66f82cdc6f17e00052db91699dc277d",
+			"revisionTime": "2016-06-01T22:40:23Z"
 		},
 		{
+			"checksumSHA1": "fv3nX1vDZViW0tA7Aa5Va2lBUtM=",
 			"path": "github.com/hashicorp/scada-client/scada",
-			"revision": "84989fd23ad4cc0e7ad44d6a871fd793eb9beb0a"
+			"revision": "6e896784f66f82cdc6f17e00052db91699dc277d",
+			"revisionTime": "2016-06-01T22:40:23Z"
 		},
 		{
 			"checksumSHA1": "E3Xcanc9ouQwL+CZGOUyA/+giLg=",

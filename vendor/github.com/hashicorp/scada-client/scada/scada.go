@@ -13,13 +13,6 @@ import (
 	sc "github.com/hashicorp/scada-client"
 )
 
-const (
-	InfrastructureResource = "infrastructures"
-	BoxesResource          = "boxes"
-	SharesResource         = "shares"
-	NomadClusterResource   = "nomad-cluster"
-)
-
 // Provider wraps scada-client.Provider to allow most applications to only pull
 // in this package
 type Provider struct {
@@ -85,6 +78,20 @@ func providerConfig(c *Config) *sc.ProviderConfig {
 		Token:         c.Atlas.Token,
 	}
 
+	// SCADA_INSECURE env variable is used for testing to disable TLS
+	// certificate verification.
+	insecure := c.Insecure
+	if !insecure {
+		if os.Getenv("SCADA_INSECURE") != "" {
+			insecure = true
+		}
+	}
+	if insecure {
+		ret.TLSConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
 	return ret
 }
 
@@ -98,20 +105,6 @@ func NewHTTPProvider(c *Config, logOutput io.Writer) (*Provider, net.Listener, e
 
 	// Set the HTTP capability
 	config.Service.Capabilities["http"] = 1
-
-	// SCADA_INSECURE env variable is used for testing to disable TLS
-	// certificate verification.
-	insecure := c.Insecure
-	if !insecure {
-		if os.Getenv("SCADA_INSECURE") != "" {
-			insecure = true
-		}
-	}
-	if insecure {
-		config.TLSConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
-	}
 
 	// Create an HTTP listener and handler
 	list := newScadaListener(c.Atlas.Infrastructure)
