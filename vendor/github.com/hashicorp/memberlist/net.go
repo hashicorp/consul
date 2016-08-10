@@ -222,7 +222,9 @@ func (m *Memberlist) handleConn(conn *net.TCPConn) {
 	conn.SetDeadline(time.Now().Add(m.config.TCPTimeout))
 	msgType, bufConn, dec, err := m.readTCP(conn)
 	if err != nil {
-		m.logger.Printf("[ERR] memberlist: failed to receive: %s %s", err, LogConn(conn))
+		if err != io.EOF {
+			m.logger.Printf("[ERR] memberlist: failed to receive: %s %s", err, LogConn(conn))
+		}
 		return
 	}
 
