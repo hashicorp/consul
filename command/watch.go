@@ -37,6 +37,8 @@ Options:
   -http-addr=127.0.0.1:8500  HTTP address of the Consul agent.
   -datacenter=""             Datacenter to query. Defaults to that of agent.
   -token=""                  ACL token to use. Defaults to that of agent.
+  -stale=[true|false]        Specifies if watch data is permitted to be stale.
+                             Defaults to false.
 
 Watch Specification:
 
@@ -57,7 +59,7 @@ Watch Specification:
 }
 
 func (c *WatchCommand) Run(args []string) int {
-	var watchType, datacenter, token, key, prefix, service, tag, passingOnly, state, name string
+	var watchType, datacenter, token, key, prefix, service, tag, passingOnly, stale, state, name string
 	cmdFlags := flag.NewFlagSet("watch", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 	cmdFlags.StringVar(&watchType, "type", "", "")
@@ -68,6 +70,7 @@ func (c *WatchCommand) Run(args []string) int {
 	cmdFlags.StringVar(&service, "service", "", "")
 	cmdFlags.StringVar(&tag, "tag", "", "")
 	cmdFlags.StringVar(&passingOnly, "passingonly", "", "")
+	cmdFlags.StringVar(&stale, "stale", "", "")
 	cmdFlags.StringVar(&state, "state", "", "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	httpAddr := HTTPAddrFlag(cmdFlags)
@@ -108,6 +111,14 @@ func (c *WatchCommand) Run(args []string) int {
 	}
 	if tag != "" {
 		params["tag"] = tag
+	}
+	if stale != "" {
+		b, err := strconv.ParseBool(stale)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to parse stale flag: %s", err))
+			return 1
+		}
+		params["stale"] = b
 	}
 	if state != "" {
 		params["state"] = state
