@@ -40,7 +40,7 @@ func (c *Cache) Purge() {
 	c.lock.Unlock()
 }
 
-// Add adds a value to the cache.  Returns true if an eviction occured.
+// Add adds a value to the cache.  Returns true if an eviction occurred.
 func (c *Cache) Add(key, value interface{}) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()

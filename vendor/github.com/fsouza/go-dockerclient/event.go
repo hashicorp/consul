@@ -53,10 +53,12 @@ type APIActor struct {
 }
 
 type eventMonitoringState struct {
+	// `sync/atomic` expects the first word in an allocated struct to be 64-bit
+	// aligned on both ARM and x86-32. See https://goo.gl/zW7dgq for more details.
+	lastSeen int64
 	sync.RWMutex
 	sync.WaitGroup
 	enabled   bool
-	lastSeen  *int64
 	C         chan *APIEvents
 	errC      chan error
 	listeners []chan<- *APIEvents
@@ -107,7 +109,7 @@ func (c *Client) RemoveEventListener(listener chan *APIEvents) error {
 	if err != nil {
 		return err
 	}
-	if len(c.eventMonitor.listeners) == 0 {
+	if c.eventMonitor.listernersCount() == 0 {
 		c.eventMonitor.disableEventMonitoring()
 	}
 	return nil
@@ -148,6 +150,12 @@ func (eventState *eventMonitoringState) closeListeners() {
 	eventState.listeners = nil
 }
 
+func (eventState *eventMonitoringState) listernersCount() int {
+	eventState.RLock()
+	defer eventState.RUnlock()
+	return len(eventState.listeners)
+}
+
 func listenerExists(a chan<- *APIEvents, list *[]chan<- *APIEvents) bool {
 	for _, b := range *list {
 		if b == a {
@@ -162,8 +170,7 @@ func (eventState *eventMonitoringState) enableEventMonitoring(c *Client) error {
 	defer eventState.Unlock()
 	if !eventState.enabled {
 		eventState.enabled = true
-		var lastSeenDefault = int64(0)
-		eventState.lastSeen = &lastSeenDefault
+		atomic.StoreInt64(&eventState.lastSeen, 0)
 		eventState.C = make(chan *APIEvents, 100)
 		eventState.errC = make(chan error, 1)
 		go eventState.monitorEvents(c)
@@ -226,11 +233,19 @@ func (eventState *eventMonitoringState) monitorEvents(c *Client) {
 
 func (eventState *eventMonitoringState) connectWithRetry(c *Client) error {
 	var retries int
-	var err error
-	for err = c.eventHijack(atomic.LoadInt64(eventState.lastSeen), eventState.C, eventState.errC); err != nil && retries < maxMonitorConnRetries; retries++ {
+	eventState.RLock()
+	eventChan := eventState.C
+	errChan := eventState.errC
+	eventState.RUnlock()
+	err := c.eventHijack(atomic.LoadInt64(&eventState.lastSeen), eventChan, errChan)
+	for ; err != nil && retries < maxMonitorConnRetries; retries++ {
 		waitTime := int64(retryInitialWaitTime * math.Pow(2, float64(retries)))
 		time.Sleep(time.Duration(waitTime) * time.Millisecond)
-		err = c.eventHijack(atomic.LoadInt64(eventState.lastSeen), eventState.C, eventState.errC)
+		eventState.RLock()
+		eventChan = eventState.C
+		errChan = eventState.errC
+		eventState.RUnlock()
+		err = c.eventHijack(atomic.LoadInt64(&eventState.lastSeen), eventChan, errChan)
 	}
 	return err
 }
@@ -267,8 +282,8 @@ func (eventState *eventMonitoringState) sendEvent(event *APIEvents) {
 func (eventState *eventMonitoringState) updateLastSeen(e *APIEvents) {
 	eventState.Lock()
 	defer eventState.Unlock()
-	if atomic.LoadInt64(eventState.lastSeen) < e.Time {
-		atomic.StoreInt64(eventState.lastSeen, e.Time)
+	if atomic.LoadInt64(&eventState.lastSeen) < e.Time {
+		atomic.StoreInt64(&eventState.lastSeen, e.Time)
 	}
 }
 
@@ -310,10 +325,12 @@ func (c *Client) eventHijack(startTime int64, eventChan chan *APIEvents, errChan
 			var event APIEvents
 			if err = decoder.Decode(&event); err != nil {
 				if err == io.EOF || err == io.ErrUnexpectedEOF {
-					if c.eventMonitor.isEnabled() {
+					c.eventMonitor.RLock()
+					if c.eventMonitor.enabled && c.eventMonitor.C == eventChan {
 						// Signal that we're exiting.
 						eventChan <- EOFEvent
 					}
+					c.eventMonitor.RUnlock()
 					break
 				}
 				errChan <- err
@@ -321,7 +338,7 @@ func (c *Client) eventHijack(startTime int64, eventChan chan *APIEvents, errChan
 			if event.Time == 0 {
 				continue
 			}
-			if !c.eventMonitor.isEnabled() {
+			if !c.eventMonitor.isEnabled() || c.eventMonitor.C != eventChan {
 				return
 			}
 			transformEvent(&event)
@@ -334,8 +351,8 @@ func (c *Client) eventHijack(startTime int64, eventChan chan *APIEvents, errChan
 // transformEvent takes an event and determines what version it is from
 // then populates both versions of the event
 func transformEvent(event *APIEvents) {
-	// if <= 1.21, `status` and `ID` will be populated
-	if event.Status != "" && event.ID != "" {
+	// if event version is <= 1.21 there will be no Action and no Type
+	if event.Action == "" && event.Type == "" {
 		event.Action = event.Status
 		event.Actor.ID = event.ID
 		event.Actor.Attributes = map[string]string{}
@@ -349,16 +366,22 @@ func transformEvent(event *APIEvents) {
 			}
 		}
 	} else {
-		if event.Type == "image" || event.Type == "container" {
-			event.Status = event.Action
-		} else {
-			// Because just the Status has been overloaded with different Types
-			// if an event is not for an image or a container, we prepend the type
-			// to avoid problems for people relying on actions being only for
-			// images and containers
-			event.Status = event.Type + ":" + event.Action
+		if event.Status == "" {
+			if event.Type == "image" || event.Type == "container" {
+				event.Status = event.Action
+			} else {
+				// Because just the Status has been overloaded with different Types
+				// if an event is not for an image or a container, we prepend the type
+				// to avoid problems for people relying on actions being only for
+				// images and containers
+				event.Status = event.Type + ":" + event.Action
+			}
 		}
-		event.ID = event.Actor.ID
-		event.From = event.Actor.Attributes["image"]
+		if event.ID == "" {
+			event.ID = event.Actor.ID
+		}
+		if event.From == "" {
+			event.From = event.Actor.Attributes["image"]
+		}
 	}
 }

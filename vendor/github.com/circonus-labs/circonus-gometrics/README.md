@@ -142,8 +142,6 @@ func main() {
 }
 ```
 
-# untested
-
 ### HTTP Handler wrapping
 
 ```
@@ -156,14 +154,20 @@ http.HandleFunc("/", metrics.TrackHTTPLatency("/", handler_func))
 package main
 
 import (
+    "os"
     "fmt"
     "net/http"
-    metrics "github.com/circonus-labs/circonus-gometrics"
+    cgm "github.com/circonus-labs/circonus-gometrics"
 )
 
 func main() {
-    metrics.WithAuthToken("9fdd5432-5308-4691-acd1-6bf1f7a20f73")
-    metrics.WithCheckId(115010)
+    cmc := &cgm.Config{}
+    cmc.CheckManager.API.TokenKey = os.Getenv("CIRCONUS_API_TOKEN")
+  
+    metrics, err := cgm.NewCirconusMetrics(cmc)
+    if err != nil {
+        panic(err)
+    }
     metrics.Start()
 
     http.HandleFunc("/", metrics.TrackHTTPLatency("/", func(w http.ResponseWriter, r *http.Request) {

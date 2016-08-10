@@ -15,6 +15,13 @@ func (m *CirconusMetrics) IncrementByValue(metric string, val uint64) {
 	m.Add(metric, val)
 }
 
+// Set a counter to specific value
+func (m *CirconusMetrics) Set(metric string, val uint64) {
+	m.cm.Lock()
+	defer m.cm.Unlock()
+	m.counters[metric] = val
+}
+
 // Add updates counter by supplied value
 func (m *CirconusMetrics) Add(metric string, val uint64) {
 	m.cm.Lock()

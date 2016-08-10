@@ -68,7 +68,7 @@ type CirconusMetrics struct {
 	counterFuncs map[string]func() uint64
 	cfm          sync.Mutex
 
-	gauges map[string]int64
+	gauges map[string]string
 	gm     sync.Mutex
 
 	gaugeFuncs map[string]func() int64
@@ -94,7 +94,7 @@ func NewCirconusMetrics(cfg *Config) (*CirconusMetrics, error) {
 	cm := &CirconusMetrics{
 		counters:     make(map[string]uint64),
 		counterFuncs: make(map[string]func() uint64),
-		gauges:       make(map[string]int64),
+		gauges:       make(map[string]string),
 		gaugeFuncs:   make(map[string]func() int64),
 		histograms:   make(map[string]*Histogram),
 		text:         make(map[string]string),
