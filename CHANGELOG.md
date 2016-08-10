@@ -43,6 +43,7 @@ BACKWARDS INCOMPATIBILITIES:
   query parameters, requiring Consul 0.6.0 or later. [GH-2233]
 * Removed support for protocol version 1, so Consul 0.7 is no longer compatible
   with Consul versions prior to 0.3. [GH-2259]
+* The Raft peers information in `consul info` has changed format. [GH-2222]
 
 IMPROVEMENTS:
 
