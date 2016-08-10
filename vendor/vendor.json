@@ -420,8 +420,10 @@
 			"revision": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
 		},
 		{
+			"checksumSHA1": "xZuhljnmBysJPta/lMyYmJdujCg=",
 			"path": "github.com/mattn/go-isatty",
-			"revision": "56b76bdf51f7708750eac80fa38b952bb9f32639"
+			"revision": "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8",
+			"revisionTime": "2016-08-06T12:27:52Z"
 		},
 		{
 			"checksumSHA1": "OUZ1FFXyKs+Cfg9M9rmXqqweQck=",
@@ -430,8 +432,10 @@
 			"revisionTime": "2016-07-26T03:20:27Z"
 		},
 		{
+			"checksumSHA1": "yF39M9MGatDbq2d2oqlLy44jsRc=",
 			"path": "github.com/mitchellh/cli",
-			"revision": "cb6853d606ea4a12a15ac83cc43503df99fd28fb"
+			"revision": "168daae10d6ff81b8b1201b0a4c9607d7e9b82e3",
+			"revisionTime": "2016-03-23T17:07:00Z"
 		},
 		{
 			"path": "github.com/mitchellh/copystructure",
