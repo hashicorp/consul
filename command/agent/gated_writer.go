@@ -29,8 +29,8 @@ func (w *GatedWriter) Flush() {
 }
 
 func (w *GatedWriter) Write(p []byte) (n int, err error) {
-	w.lock.RLock()
-	defer w.lock.RUnlock()
+	w.lock.Lock()
+	defer w.lock.Unlock()
 
 	if w.flush {
 		return w.Writer.Write(p)
