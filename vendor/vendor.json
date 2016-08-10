@@ -362,8 +362,10 @@
 			"revisionTime": "2016-08-01T21:27:18Z"
 		},
 		{
+			"checksumSHA1": "QAxukkv54/iIvLfsUP6IK4R0m/A=",
 			"path": "github.com/hashicorp/raft-boltdb",
-			"revision": "057b893fd996696719e98b6c44649ea14968c811"
+			"revision": "d1e82c1ec3f15ee991f7cc7ffd5b67ff6f5bbaee",
+			"revisionTime": "2015-02-01T20:08:39Z"
 		},
 		{
 			"path": "github.com/hashicorp/scada-client",
