@@ -400,26 +400,6 @@
 			"revisionTime": "2016-07-20T23:31:40Z"
 		},
 		{
-			"path": "github.com/inconshreveable/muxado",
-			"revision": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
-		},
-		{
-			"path": "github.com/inconshreveable/muxado/proto",
-			"revision": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
-		},
-		{
-			"path": "github.com/inconshreveable/muxado/proto/buffer",
-			"revision": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
-		},
-		{
-			"path": "github.com/inconshreveable/muxado/proto/ext",
-			"revision": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
-		},
-		{
-			"path": "github.com/inconshreveable/muxado/proto/frame",
-			"revision": "f693c7e88ba316d1a0ae3e205e22a01aa3ec2848"
-		},
-		{
 			"checksumSHA1": "xZuhljnmBysJPta/lMyYmJdujCg=",
 			"path": "github.com/mattn/go-isatty",
 			"revision": "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8",

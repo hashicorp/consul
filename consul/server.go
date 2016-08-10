@@ -30,7 +30,7 @@ import (
 // Consul-level protocol versions, that are used to configure the Serf
 // protocol versions.
 const (
-	ProtocolVersionMin uint8 = 1
+	ProtocolVersionMin uint8 = 2
 
 	// Version 3 added support for network coordinates but we kept the
 	// default protocol version at 2 to ease the transition to this new
