@@ -481,8 +481,10 @@
 			"revisionTime": "2016-08-05T06:12:51Z"
 		},
 		{
+			"checksumSHA1": "15doxxBfOxOhWExkxjPNo6Y7fEw=",
 			"path": "golang.org/x/sys/unix",
-			"revision": "20457ee8ea8546920d3f4e19e405da45250dc5a5"
+			"revision": "20457ee8ea8546920d3f4e19e405da45250dc5a5",
+			"revisionTime": "2016-01-20T16:03:39Z"
 		}
 	],
 	"rootPath": "github.com/hashicorp/consul"
