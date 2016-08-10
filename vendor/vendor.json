@@ -394,8 +394,10 @@
 			"revisionTime": "2016-08-09T01:42:04Z"
 		},
 		{
+			"checksumSHA1": "ZhK6IO2XN81Y+3RAjTcVm1Ic7oU=",
 			"path": "github.com/hashicorp/yamux",
-			"revision": "df949784da9ed028ee76df44652e42d37a09d7e4"
+			"revision": "d1caa6c97c9fc1cc9e83bbe34d0603f9ff0ce8bd",
+			"revisionTime": "2016-07-20T23:31:40Z"
 		},
 		{
 			"path": "github.com/inconshreveable/muxado",
