@@ -462,9 +462,11 @@
 			"revisionTime": "2016-08-09T12:22:04Z"
 		},
 		{
+			"checksumSHA1": "ExnVEVNT8APpFTm26cUb5T09yR4=",
 			"comment": "v2.0.1-8-g983d3a5",
 			"path": "github.com/ryanuber/columnize",
-			"revision": "983d3a5fab1bf04d1b412465d2d9f8430e2e917e"
+			"revision": "9b3edd62028f107d7cabb19353292afd29311a4e",
+			"revisionTime": "2016-07-12T16:32:29Z"
 		},
 		{
 			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
