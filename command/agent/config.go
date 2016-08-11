@@ -104,6 +104,11 @@ type DNSConfig struct {
 	// whose health checks are in any non-passing state. By
 	// default, only nodes in a critical state are excluded.
 	OnlyPassing bool `mapstructure:"only_passing"`
+
+	// DisableCompression is used to control whether DNS responses are
+	// compressed. In Consul 0.7 this was turned on by default and this
+	// config was added as an opt-out.
+	DisableCompression bool `mapstructure:"disable_compression"`
 }
 
 // Telemetry is the telemetry configuration for the server
@@ -1299,6 +1304,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.DNSConfig.OnlyPassing {
 		result.DNSConfig.OnlyPassing = true
+	}
+	if b.DNSConfig.DisableCompression {
+		result.DNSConfig.DisableCompression = true
 	}
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval
