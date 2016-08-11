@@ -73,6 +73,9 @@ IMPROVEMENTS:
 * Builds Consul releases with Go 1.6.3. [GH-2260]
 * Added a `-stale` mode for watchers to allow them to pull data from any Consul
   server, not just the leader. [GH-2045] [GH-917]
+* Consul now compresses all DNS responses by default. This prevents issues when
+  recursing records that were originally compressed, where Consul would somtimes
+  generate an invalid, uncompressed response that was too large. [GH-2266]
 
 BUG FIXES:
 
