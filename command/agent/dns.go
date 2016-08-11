@@ -180,6 +180,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	// Setup the message response
 	m := new(dns.Msg)
 	m.SetReply(req)
+	m.Compress = !d.config.DisableCompression
 	m.Authoritative = true
 	m.RecursionAvailable = (len(d.recursors) > 0)
 
@@ -249,6 +250,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	// Setup the message response
 	m := new(dns.Msg)
 	m.SetReply(req)
+	m.Compress = !d.config.DisableCompression
 	m.Authoritative = true
 	m.RecursionAvailable = (len(d.recursors) > 0)
 
@@ -493,7 +495,7 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 }
 
 // trimUDPAnswers makes sure a UDP response is not longer than allowed by RFC
-// 1035.  Enforce an arbitrary limit that can be further ratcheted down by
+// 1035. Enforce an arbitrary limit that can be further ratcheted down by
 // config, and then make sure the response doesn't exceed 512 bytes.
 func trimUDPAnswers(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
 	numAnswers := len(resp.Answer)
@@ -504,10 +506,17 @@ func trimUDPAnswers(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
 		resp.Answer = resp.Answer[:maxAnswers]
 	}
 
-	// This enforces the hard limit of 512 bytes per the RFC.
+	// This enforces the hard limit of 512 bytes per the RFC. Note that we
+	// temporarily switch to uncompressed so that we limit to a response
+	// that will not exceed 512 bytes uncompressed, which is more
+	// conservative and will allow our responses to be compliant even if
+	// some downstream server uncompresses them.
+	compress := resp.Compress
+	resp.Compress = false
 	for len(resp.Answer) > 0 && resp.Len() > 512 {
 		resp.Answer = resp.Answer[:len(resp.Answer)-1]
 	}
+	resp.Compress = compress
 
 	return len(resp.Answer) < numAnswers
 }
@@ -786,6 +795,11 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	for _, recursor := range d.recursors {
 		r, rtt, err = c.Exchange(req, recursor)
 		if err == nil {
+			// Compress the response; we don't know if the incoming
+			// response was compressed or not, so by not compressing
+			// we might generate an invalid packet on the way out.
+			r.Compress = !d.config.DisableCompression
+
 			// Forward the response
 			d.logger.Printf("[DEBUG] dns: recurse RTT for %v (%v)", q, rtt)
 			if err := resp.WriteMsg(r); err != nil {
@@ -801,6 +815,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 		q, resp.RemoteAddr().String(), resp.RemoteAddr().Network())
 	m := &dns.Msg{}
 	m.SetReply(req)
+	m.Compress = !d.config.DisableCompression
 	m.RecursionAvailable = true
 	m.SetRcode(req, dns.RcodeServerFailure)
 	resp.WriteMsg(m)

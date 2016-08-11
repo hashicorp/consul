@@ -3200,3 +3200,209 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 		}
 	}
 }
+
+func TestDNS_Compression_trimUDPAnswers(t *testing.T) {
+	config := &DefaultConfig().DNSConfig
+
+	m := dns.Msg{}
+	trimUDPAnswers(config, &m)
+	if m.Compress {
+		t.Fatalf("compression should be off")
+	}
+
+	// The trim function temporarily turns off compression, so we need to
+	// make sure the setting gets restored properly.
+	m.Compress = true
+	trimUDPAnswers(config, &m)
+	if !m.Compress {
+		t.Fatalf("compression should be on")
+	}
+}
+
+func TestDNS_Compression_Query(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register a node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc1",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			Service: &structs.NodeService{
+				Service: "db",
+				Tags:    []string{"master"},
+				Port:    12345,
+			},
+		}
+
+		var out struct{}
+		if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register an equivalent prepared query.
+	var id string
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Service: structs.ServiceQuery{
+					Service: "db",
+				},
+			},
+		}
+		if err := srv.agent.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the service directly and via prepared query.
+	questions := []string{
+		"db.service.consul.",
+		id + ".query.consul.",
+	}
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeSRV)
+
+		addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+		conn, err := dns.Dial("udp", addr.String())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Do a manual exchange with compression on (the default).
+		srv.config.DisableCompression = false
+		if err := conn.WriteMsg(m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		p := make([]byte, dns.MaxMsgSize)
+		compressed, err := conn.Read(p)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Disable compression and try again.
+		srv.config.DisableCompression = true
+		if err := conn.WriteMsg(m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		unc, err := conn.Read(p)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// We can't see the compressed status given the DNS API, so we
+		// just make sure the message is smaller to see if it's
+		// respecting the flag.
+		if compressed == 0 || unc == 0 || compressed >= unc {
+			t.Fatalf("'%s' doesn't look compressed: %d vs. %d", question, compressed, unc)
+		}
+	}
+}
+
+func TestDNS_Compression_ReverseLookup(t *testing.T) {
+	dir, srv := makeDNSServer(t)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	testutil.WaitForLeader(t, srv.agent.RPC, "dc1")
+
+	// Register node.
+	args := &structs.RegisterRequest{
+		Datacenter: "dc1",
+		Node:       "foo2",
+		Address:    "127.0.0.2",
+	}
+	var out struct{}
+	if err := srv.agent.RPC("Catalog.Register", args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(dns.Msg)
+	m.SetQuestion("2.0.0.127.in-addr.arpa.", dns.TypeANY)
+
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	conn, err := dns.Dial("udp", addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Do a manual exchange with compression on (the default).
+	if err := conn.WriteMsg(m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	p := make([]byte, dns.MaxMsgSize)
+	compressed, err := conn.Read(p)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Disable compression and try again.
+	srv.config.DisableCompression = true
+	if err := conn.WriteMsg(m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	unc, err := conn.Read(p)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// We can't see the compressed status given the DNS API, so we just make
+	// sure the message is smaller to see if it's respecting the flag.
+	if compressed == 0 || unc == 0 || compressed >= unc {
+		t.Fatalf("doesn't look compressed: %d vs. %d", compressed, unc)
+	}
+}
+
+func TestDNS_Compression_Recurse(t *testing.T) {
+	recursor := makeRecursor(t, []dns.RR{dnsA("apple.com", "1.2.3.4")})
+	defer recursor.Shutdown()
+
+	dir, srv := makeDNSServerConfig(t, func(c *Config) {
+		c.DNSRecursor = recursor.Addr
+	}, nil)
+	defer os.RemoveAll(dir)
+	defer srv.agent.Shutdown()
+
+	m := new(dns.Msg)
+	m.SetQuestion("apple.com.", dns.TypeANY)
+
+	addr, _ := srv.agent.config.ClientListener("", srv.agent.config.Ports.DNS)
+	conn, err := dns.Dial("udp", addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Do a manual exchange with compression on (the default).
+	if err := conn.WriteMsg(m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	p := make([]byte, dns.MaxMsgSize)
+	compressed, err := conn.Read(p)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Disable compression and try again.
+	srv.config.DisableCompression = true
+	if err := conn.WriteMsg(m); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	unc, err := conn.Read(p)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// We can't see the compressed status given the DNS API, so we just make
+	// sure the message is smaller to see if it's respecting the flag.
+	if compressed == 0 || unc == 0 || compressed >= unc {
+		t.Fatalf("doesn't look compressed: %d vs. %d", compressed, unc)
+	}
+}

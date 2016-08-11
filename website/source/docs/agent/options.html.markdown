@@ -516,6 +516,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   are considered. For example, if a node has a health check that is critical then all services on
   that node will be excluded because they are also considered critical.
 
+  * <a name="disable_compression"></a><a href="#disable_compression">`disable_compression`</a> If
+  set to true, DNS responses will not be compressed. Compression was added and enabled by default
+  in Consul 0.7.
+
   * <a name="udp_answer_limit"></a><a
   href="#udp_answer_limit">`udp_answer_limit`</a> - Limit the number of
   resource records contained in the answer section of a UDP-based DNS

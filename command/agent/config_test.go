@@ -608,6 +608,17 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 
+	// DNS disable compression
+	input = `{"dns_config": {"disable_compression": true}}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !config.DNSConfig.DisableCompression {
+		t.Fatalf("bad: %#v", config)
+	}
+
 	// CheckUpdateInterval
 	input = `{"check_update_interval": "10m"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
@@ -1369,10 +1380,11 @@ func TestMergeConfig(t *testing.T) {
 		DataDir:         "/tmp/bar",
 		DNSRecursors:    []string{"127.0.0.2:1001"},
 		DNSConfig: DNSConfig{
-			AllowStale:     false,
-			EnableTruncate: true,
-			MaxStale:       30 * time.Second,
-			NodeTTL:        10 * time.Second,
+			AllowStale:         false,
+			EnableTruncate:     true,
+			DisableCompression: true,
+			MaxStale:           30 * time.Second,
+			NodeTTL:            10 * time.Second,
 			ServiceTTL: map[string]time.Duration{
 				"api": 10 * time.Second,
 			},
