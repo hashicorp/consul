@@ -40,7 +40,7 @@ pretend we have a service named "web" running on port 80. Additionally,
 we'll give it a tag we can use as an additional way to query the service:
 
 ```text
-$ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80}}' \
+$ echo '{"service": {"id": "web", "name": "web", "tags": ["rails"], "port": 80}}' \
     >/etc/consul.d/web.json
 ```
 
