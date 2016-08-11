@@ -37,7 +37,7 @@ fi
 
 # Build!
 echo "==> Building..."
-$GOPATH/bin/gox \
+"`which gox`" \
     -os="${XC_OS}" \
     -arch="${XC_ARCH}" \
     -osarch="!darwin/arm" \
