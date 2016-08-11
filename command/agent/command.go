@@ -80,6 +80,7 @@ func (c *Command) readConfig() *Config {
 	cmdFlags.StringVar(&cmdConfig.DataDir, "data-dir", "", "path to the data directory")
 	cmdFlags.BoolVar(&cmdConfig.EnableUi, "ui", false, "enable the built-in web UI")
 	cmdFlags.StringVar(&cmdConfig.UiDir, "ui-dir", "", "path to the web UI directory")
+	cmdFlags.StringVar(&cmdConfig.UiPath, "ui-path", "/ui/", "path to the web UI endpoint")
 	cmdFlags.StringVar(&cmdConfig.PidFile, "pid-file", "", "path to file to store PID")
 	cmdFlags.StringVar(&cmdConfig.EncryptKey, "encrypt", "", "gossip encryption key")
 
@@ -1142,6 +1143,7 @@ Options:
   -syslog                  Enables logging to syslog
   -ui                      Enables the built-in static web UI server
   -ui-dir=path             Path to directory containing the Web UI resources
+  -ui-path=/ui-custom/     Custom endpoint/path to web UI server
   -pid-file=path           Path to file to store agent PID
 
  `

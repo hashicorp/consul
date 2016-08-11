@@ -37,6 +37,7 @@ type HTTPServer struct {
 	listener net.Listener
 	logger   *log.Logger
 	uiDir    string
+	uiPath   string
 	addr     string
 }
 
@@ -82,6 +83,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			listener: list,
 			logger:   log.New(logOutput, "", log.LstdFlags),
 			uiDir:    config.UiDir,
+			uiPath:   config.UiPath,
 			addr:     httpAddr.String(),
 		}
 		srv.registerHandlers(config.EnableDebug)
@@ -134,6 +136,7 @@ func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPS
 			listener: list,
 			logger:   log.New(logOutput, "", log.LstdFlags),
 			uiDir:    config.UiDir,
+			uiPath:   config.UiPath,
 			addr:     httpAddr.String(),
 		}
 		srv.registerHandlers(config.EnableDebug)
@@ -314,9 +317,9 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 
 	// Use the custom UI dir if provided.
 	if s.uiDir != "" {
-		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(http.Dir(s.uiDir))))
+		s.mux.Handle(s.uiPath, http.StripPrefix(s.uiPath, http.FileServer(http.Dir(s.uiDir))))
 	} else if s.agent.config.EnableUi {
-		s.mux.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(assetFS())))
+		s.mux.Handle(s.uiPath, http.StripPrefix(s.uiPath, http.FileServer(assetFS())))
 	}
 
 	// API's are under /internal/ui/ to avoid conflict

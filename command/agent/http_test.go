@@ -639,7 +639,7 @@ func TestScadaHTTP(t *testing.T) {
 
 func TestEnableWebUI(t *testing.T) {
 	httpTestWithConfig(t, func(s *HTTPServer) {
-		req, err := http.NewRequest("GET", "/ui/", nil)
+		req, err := http.NewRequest("GET", s.uiPath, nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -654,6 +654,27 @@ func TestEnableWebUI(t *testing.T) {
 		}
 	}, func(c *Config) {
 		c.EnableUi = true
+	})
+}
+
+func TestEnableWebUICustomPath(t *testing.T) {
+	httpTestWithConfig(t, func(s *HTTPServer) {
+		req, err := http.NewRequest("GET", s.uiPath, nil)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		// Perform the request
+		resp := httptest.NewRecorder()
+		s.mux.ServeHTTP(resp, req)
+
+		// Check the result
+		if resp.Code != 200 {
+			t.Fatalf("should handle ui")
+		}
+	}, func(c *Config) {
+		c.EnableUi = true
+		c.UiPath = "/ui-custom/"
 	})
 }
 

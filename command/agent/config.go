@@ -392,6 +392,10 @@ type Config struct {
 	// If provided, the UI endpoints will be enabled.
 	UiDir string `mapstructure:"ui_dir"`
 
+	// UiPath defines the path where the Web Ui Interface is served
+	// It defaults to /ui/ endpoint
+	UiPath string `mapstructure:"ui_path"`
+
 	// PidFile is the file to store our PID in
 	PidFile string `mapstructure:"pid_file"`
 
@@ -627,6 +631,7 @@ func DefaultConfig() *Config {
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
 		},
+		UiPath:              "/ui/",
 		SyslogFacility:      "LOCAL0",
 		Protocol:            consul.ProtocolVersion2Compatible,
 		CheckUpdateInterval: 5 * time.Minute,
@@ -1244,6 +1249,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.UiDir != "" {
 		result.UiDir = b.UiDir
+	}
+	if b.UiPath != "" {
+		result.UiPath = b.UiPath
 	}
 	if b.PidFile != "" {
 		result.PidFile = b.PidFile
