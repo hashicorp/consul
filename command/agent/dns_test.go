@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -1986,8 +1987,8 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 
 	longServiceName := "this-is-a-very-very-very-very-very-long-name-for-a-service"
 
-	// Register 3 nodes
-	for i := 0; i < 3; i++ {
+	// Register a lot of nodes.
+	for i := 0; i < 4; i++ {
 		args := &structs.RegisterRequest{
 			Datacenter: "dc1",
 			Node:       fmt.Sprintf("foo%d", i),
@@ -2042,12 +2043,32 @@ func TestDNS_ServiceLookup_LargeResponses(t *testing.T) {
 
 		// Make sure the response size is RFC 1035-compliant for UDP messages
 		if in.Len() > 512 {
-			t.Fatalf("Bad: %#v", in.Len())
+			t.Fatalf("Bad: %d", in.Len())
 		}
 
 		// We should only have two answers now
 		if len(in.Answer) != 2 {
-			t.Fatalf("Bad: %#v", len(in.Answer))
+			t.Fatalf("Bad: %d", len(in.Answer))
+		}
+
+		// Make sure the ADDITIONAL section matches the ANSWER section.
+		if len(in.Answer) != len(in.Extra) {
+			t.Fatalf("Bad: %d vs. %d", len(in.Answer), len(in.Extra))
+		}
+		for i := 0; i < len(in.Answer); i++ {
+			srv, ok := in.Answer[i].(*dns.SRV)
+			if !ok {
+				t.Fatalf("Bad: %#v", in.Answer[i])
+			}
+
+			a, ok := in.Extra[i].(*dns.A)
+			if !ok {
+				t.Fatalf("Bad: %#v", in.Extra[i])
+			}
+
+			if srv.Target != a.Hdr.Name {
+				t.Fatalf("Bad: %#v %#v", srv, a)
+			}
 		}
 
 		// Check for the truncate bit
@@ -3201,11 +3222,381 @@ func TestDNS_PreparedQuery_AgentSource(t *testing.T) {
 	}
 }
 
-func TestDNS_Compression_trimUDPAnswers(t *testing.T) {
+func TestDNS_trimUDPResponse_NoTrim(t *testing.T) {
+	resp := &dns.Msg{
+		Answer: []dns.RR{
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Target: "ip-10-0-1-185.node.dc1.consul.",
+			},
+		},
+		Extra: []dns.RR{
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+		},
+	}
+
+	config := &DefaultConfig().DNSConfig
+	if trimmed := trimUDPResponse(config, resp); trimmed {
+		t.Fatalf("Bad %#v", *resp)
+	}
+
+	expected := &dns.Msg{
+		Answer: []dns.RR{
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Target: "ip-10-0-1-185.node.dc1.consul.",
+			},
+		},
+		Extra: []dns.RR{
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+		},
+	}
+	if !reflect.DeepEqual(resp, expected) {
+		t.Fatalf("Bad %#v vs. %#v", *resp, *expected)
+	}
+}
+
+func TestDNS_trimUDPResponse_TrimLimit(t *testing.T) {
+	config := &DefaultConfig().DNSConfig
+
+	resp, expected := &dns.Msg{}, &dns.Msg{}
+	for i := 0; i < config.UDPAnswerLimit+1; i++ {
+		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "redis-cache-redis.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Target: target,
+		}
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.0.1.%d", 185+i)),
+		}
+
+		resp.Answer = append(resp.Answer, srv)
+		resp.Extra = append(resp.Extra, a)
+		if i < config.UDPAnswerLimit {
+			expected.Answer = append(expected.Answer, srv)
+			expected.Extra = append(expected.Extra, a)
+		}
+	}
+
+	if trimmed := trimUDPResponse(config, resp); !trimmed {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	if !reflect.DeepEqual(resp, expected) {
+		t.Fatalf("Bad %#v vs. %#v", *resp, *expected)
+	}
+}
+
+func TestDNS_trimUDPResponse_TrimSize(t *testing.T) {
+	config := &DefaultConfig().DNSConfig
+
+	resp := &dns.Msg{}
+	for i := 0; i < 100; i++ {
+		target := fmt.Sprintf("ip-10-0-1-%d.node.dc1.consul.", 185+i)
+		srv := &dns.SRV{
+			Hdr: dns.RR_Header{
+				Name:   "redis-cache-redis.service.consul.",
+				Rrtype: dns.TypeSRV,
+				Class:  dns.ClassINET,
+			},
+			Target: target,
+		}
+		a := &dns.A{
+			Hdr: dns.RR_Header{
+				Name:   target,
+				Rrtype: dns.TypeA,
+				Class:  dns.ClassINET,
+			},
+			A: net.ParseIP(fmt.Sprintf("10.0.1.%d", 185+i)),
+		}
+
+		resp.Answer = append(resp.Answer, srv)
+		resp.Extra = append(resp.Extra, a)
+	}
+
+	// We don't know the exact trim, but we know the resulting answer
+	// data should match its extra data.
+	if trimmed := trimUDPResponse(config, resp); !trimmed {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	if len(resp.Answer) == 0 || len(resp.Answer) != len(resp.Extra) {
+		t.Fatalf("Bad %#v", *resp)
+	}
+	for i, _ := range resp.Answer {
+		srv, ok := resp.Answer[i].(*dns.SRV)
+		if !ok {
+			t.Fatalf("should be SRV")
+		}
+
+		a, ok := resp.Extra[i].(*dns.A)
+		if !ok {
+			t.Fatalf("should be A")
+		}
+
+		if srv.Target != a.Header().Name {
+			t.Fatalf("Bad %#v vs. %#v", *srv, *a)
+		}
+	}
+}
+
+func TestDNS_syncExtra(t *testing.T) {
+	resp := &dns.Msg{
+		Answer: []dns.RR{
+			// These two are on the same host so the redundant extra
+			// records should get deduplicated.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "ip-10-0-1-185.node.dc1.consul.",
+			},
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1002,
+				Target: "ip-10-0-1-185.node.dc1.consul.",
+			},
+			// This one isn't in the Consul domain so it will get a
+			// CNAME and then an A record from the recursor.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1003,
+				Target: "demo.consul.io.",
+			},
+			// This one isn't in the Consul domain and it will get
+			// a CNAME and A record from a recursor that alters the
+			// case of the name. This proves we look up in the index
+			// in a case-insensitive way.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "insensitive.consul.io.",
+			},
+			// This is also a CNAME, but it'll be set up to loop to
+			// make sure we don't crash.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "deadly.consul.io.",
+			},
+			// This is also a CNAME, but it won't have another record.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "nope.consul.io.",
+			},
+		},
+		Extra: []dns.RR{
+			// These should get deduplicated.
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+			// This is a normal CNAME followed by an A record but we
+			// have flipped the order. The algorithm should emit them
+			// in the opposite order.
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "fakeserver.consul.io.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "demo.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "fakeserver.consul.io.",
+			},
+			// These differ in case to test case insensitivity.
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "INSENSITIVE.CONSUL.IO.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "Another.Server.Com.",
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "another.server.com.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			// This doesn't appear in the answer, so should get
+			// dropped.
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-186.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.186"),
+			},
+			// These two test edge cases with CNAME handling.
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "deadly.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "deadly.consul.io.",
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "nope.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "notthere.consul.io.",
+			},
+		},
+	}
+
+	index := make(map[string]dns.RR)
+	indexRRs(resp.Extra, index)
+	syncExtra(index, resp)
+
+	expected := &dns.Msg{
+		Answer: resp.Answer,
+		Extra: []dns.RR{
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "ip-10-0-1-185.node.dc1.consul.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("10.0.1.185"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "demo.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "fakeserver.consul.io.",
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "fakeserver.consul.io.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "INSENSITIVE.CONSUL.IO.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "Another.Server.Com.",
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "another.server.com.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "deadly.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "deadly.consul.io.",
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "nope.consul.io.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "notthere.consul.io.",
+			},
+		},
+	}
+	if !reflect.DeepEqual(resp, expected) {
+		t.Fatalf("Bad %#v vs. %#v", *resp, *expected)
+	}
+}
+
+func TestDNS_Compression_trimUDPResponse(t *testing.T) {
 	config := &DefaultConfig().DNSConfig
 
 	m := dns.Msg{}
-	trimUDPAnswers(config, &m)
+	trimUDPResponse(config, &m)
 	if m.Compress {
 		t.Fatalf("compression should be off")
 	}
@@ -3213,7 +3604,7 @@ func TestDNS_Compression_trimUDPAnswers(t *testing.T) {
 	// The trim function temporarily turns off compression, so we need to
 	// make sure the setting gets restored properly.
 	m.Compress = true
-	trimUDPAnswers(config, &m)
+	trimUDPResponse(config, &m)
 	if !m.Compress {
 		t.Fatalf("compression should be on")
 	}
