@@ -545,13 +545,22 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 // records will be trimmed along with answers.
 func trimUDPResponse(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
 	numAnswers := len(resp.Answer)
-	index := indexRRs(resp.Extra)
+	hasExtra := len(resp.Extra) > 0
+
+	// We avoid some function calls and allocations by only handling the
+	// extra data when necessary.
+	var index map[string]dns.RR
+	if hasExtra {
+		index = indexRRs(resp.Extra)
+	}
 
 	// This cuts UDP responses to a useful but limited number of responses.
 	maxAnswers := lib.MinInt(maxUDPAnswerLimit, config.UDPAnswerLimit)
 	if numAnswers > maxAnswers {
 		resp.Answer = resp.Answer[:maxAnswers]
-		syncExtra(index, resp)
+		if hasExtra {
+			syncExtra(index, resp)
+		}
 	}
 
 	// This enforces the hard limit of 512 bytes per the RFC. Note that we
@@ -563,7 +572,9 @@ func trimUDPResponse(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
 	resp.Compress = false
 	for len(resp.Answer) > 0 && resp.Len() > 512 {
 		resp.Answer = resp.Answer[:len(resp.Answer)-1]
-		syncExtra(index, resp)
+		if hasExtra {
+			syncExtra(index, resp)
+		}
 	}
 	resp.Compress = compress
 
