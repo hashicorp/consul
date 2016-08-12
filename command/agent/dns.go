@@ -494,16 +494,64 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 	return records
 }
 
-// trimUDPAnswers makes sure a UDP response is not longer than allowed by RFC
+// indexRRs creates a map which indexes a given list of RRs by name.
+func indexRRs(rrs []dns.RR) map[string]dns.RR {
+	index := make(map[string]dns.RR, len(rrs))
+	for _, rr := range rrs {
+		name := rr.Header().Name
+		if _, ok := index[name]; !ok {
+			index[name] = rr
+		}
+	}
+	return index
+}
+
+// syncExtra takes a DNS response message and sets the extra data to the most
+// minimal set needed to cover the answer data. A pre-made index of RRs is given
+// so that can be re-used between calls. This assumes that the extra data is
+// only used to provide info for SRV records. If that's not the case, then this
+// will wipe out any additional data.
+func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
+	seen := make(map[string]struct{}, len(resp.Answer))
+	extra := make([]dns.RR, 0, len(resp.Answer))
+	for _, ansRR := range resp.Answer {
+		srv, ok := ansRR.(*dns.SRV)
+		if !ok {
+			continue
+		}
+		target := srv.Target
+
+	RESOLVE:
+		if _, ok := seen[target]; ok {
+			continue
+		}
+		seen[target] = struct{}{}
+
+		extraRR, ok := index[target]
+		if ok {
+			extra = append(extra, extraRR)
+			if cname, ok := extraRR.(*dns.CNAME); ok {
+				target = cname.Target
+				goto RESOLVE
+			}
+		}
+	}
+	resp.Extra = extra
+}
+
+// trimUDPResponse makes sure a UDP response is not longer than allowed by RFC
 // 1035. Enforce an arbitrary limit that can be further ratcheted down by
-// config, and then make sure the response doesn't exceed 512 bytes.
-func trimUDPAnswers(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
+// config, and then make sure the response doesn't exceed 512 bytes. Any extra
+// records will be trimmed along with answers.
+func trimUDPResponse(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
 	numAnswers := len(resp.Answer)
+	index := indexRRs(resp.Extra)
 
 	// This cuts UDP responses to a useful but limited number of responses.
 	maxAnswers := lib.MinInt(maxUDPAnswerLimit, config.UDPAnswerLimit)
 	if numAnswers > maxAnswers {
 		resp.Answer = resp.Answer[:maxAnswers]
+		syncExtra(index, resp)
 	}
 
 	// This enforces the hard limit of 512 bytes per the RFC. Note that we
@@ -515,6 +563,7 @@ func trimUDPAnswers(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
 	resp.Compress = false
 	for len(resp.Answer) > 0 && resp.Len() > 512 {
 		resp.Answer = resp.Answer[:len(resp.Answer)-1]
+		syncExtra(index, resp)
 	}
 	resp.Compress = compress
 
@@ -574,15 +623,15 @@ RPC:
 
 	// Add various responses depending on the request
 	qType := req.Question[0].Qtype
-	d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
-
 	if qType == dns.TypeSRV {
 		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
+	} else {
+		d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
 
 	// If the network is not TCP, restrict the number of responses
 	if network != "tcp" {
-		wasTrimmed := trimUDPAnswers(d.config, resp)
+		wasTrimmed := trimUDPResponse(d.config, resp)
 
 		// Flag that there are more records to return in the UDP response
 		if wasTrimmed && d.config.EnableTruncate {
@@ -679,14 +728,15 @@ RPC:
 
 	// Add various responses depending on the request.
 	qType := req.Question[0].Qtype
-	d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
 	if qType == dns.TypeSRV {
 		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
+	} else {
+		d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
 	}
 
 	// If the network is not TCP, restrict the number of responses.
 	if network != "tcp" {
-		wasTrimmed := trimUDPAnswers(d.config, resp)
+		wasTrimmed := trimUDPResponse(d.config, resp)
 
 		// Flag that there are more records to return in the UDP response
 		if wasTrimmed && d.config.EnableTruncate {
