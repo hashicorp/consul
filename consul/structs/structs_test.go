@@ -108,8 +108,11 @@ func TestStructs_ACL_IsSame(t *testing.T) {
 // testServiceNode gives a fully filled out ServiceNode instance.
 func testServiceNode() *ServiceNode {
 	return &ServiceNode{
-		Node:                     "node1",
-		Address:                  "127.0.0.1",
+		Node:    "node1",
+		Address: "127.0.0.1",
+		TaggedAddresses: map[string]string{
+			"hello": "world",
+		},
 		ServiceID:                "service1",
 		ServiceName:              "dogs",
 		ServiceTags:              []string{"prod", "v1"},
@@ -123,10 +126,20 @@ func testServiceNode() *ServiceNode {
 	}
 }
 
-func TestStructs_ServiceNode_Clone(t *testing.T) {
+func TestStructs_ServiceNode_PartialClone(t *testing.T) {
 	sn := testServiceNode()
 
-	clone := sn.Clone()
+	clone := sn.PartialClone()
+
+	// Make sure the parts that weren't supposed to be cloned didn't get
+	// copied over, then zero-value them out so we can do a DeepEqual() on
+	// the rest of the contents.
+	if clone.Address != "" || len(clone.TaggedAddresses) != 0 {
+		t.Fatalf("bad: %v", clone)
+	}
+
+	sn.Address = ""
+	sn.TaggedAddresses = nil
 	if !reflect.DeepEqual(sn, clone) {
 		t.Fatalf("bad: %v", clone)
 	}
@@ -140,7 +153,12 @@ func TestStructs_ServiceNode_Clone(t *testing.T) {
 func TestStructs_ServiceNode_Conversions(t *testing.T) {
 	sn := testServiceNode()
 
-	sn2 := sn.ToNodeService().ToServiceNode("node1", "127.0.0.1")
+	sn2 := sn.ToNodeService().ToServiceNode("node1")
+
+	// These two fields get lost in the conversion, so we have to zero-value
+	// them out before we do the compare.
+	sn.Address = ""
+	sn.TaggedAddresses = nil
 	if !reflect.DeepEqual(sn, sn2) {
 		t.Fatalf("bad: %v", sn2)
 	}

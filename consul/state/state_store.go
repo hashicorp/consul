@@ -678,9 +678,11 @@ func (s *StateStore) ensureServiceTxn(tx *memdb.Txn, idx uint64, watches *DumbWa
 		return fmt.Errorf("failed service lookup: %s", err)
 	}
 
-	// Create the service node entry and populate the indexes. We leave the
-	// address blank and fill that in on the way out during queries.
-	entry := svc.ToServiceNode(node, "")
+	// Create the service node entry and populate the indexes. Note that
+	// conversion doesn't populate any of the node-specific information
+	// (Address and TaggedAddresses). That's always populated when we read
+	// from the state store.
+	entry := svc.ToServiceNode(node)
 	if existing != nil {
 		entry.CreateIndex = existing.(*structs.ServiceNode).CreateIndex
 		entry.ModifyIndex = idx
@@ -830,18 +832,23 @@ func (s *StateStore) parseServiceNodes(tx *memdb.Txn, services structs.ServiceNo
 	var results structs.ServiceNodes
 	for _, sn := range services {
 		// Note that we have to clone here because we don't want to
-		// modify the address field on the object in the database,
+		// modify the node-related fields on the object in the database,
 		// which is what we are referencing.
-		s := sn.Clone()
+		s := sn.PartialClone()
 
-		// Fill in the address of the node.
+		// Grab the corresponding node record.
 		n, err := tx.First("nodes", "id", sn.Node)
 		if err != nil {
 			return nil, fmt.Errorf("failed node lookup: %s", err)
 		}
+
+		// Populate the node-related fields. The tagged addresses may be
+		// used by agents to perform address translation if they are
+		// configured to do that.
 		node := n.(*structs.Node)
 		s.Address = node.Address
 		s.TaggedAddresses = node.TaggedAddresses
+
 		results = append(results, s)
 	}
 	return results, nil
