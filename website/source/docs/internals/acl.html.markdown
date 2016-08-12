@@ -449,7 +449,7 @@ check:
 In the common case, the ACL Token of the invoker is used
 to test the ability to look up a service. If a `Token` was specified when the
 prepared query was created, the behavior changes and now the captured
-ACL Token set by the definer of the query is used when lookup up a service.
+ACL Token set by the definer of the query is used when looking up a service.
 
 Capturing ACL Tokens is analogous to
 [PostgreSQL’s](http://www.postgresql.org/docs/current/static/sql-createfunction.html)
