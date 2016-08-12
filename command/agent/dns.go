@@ -494,18 +494,16 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 	return records
 }
 
-// indexRRs creates a map which indexes a given list of RRs by name. NOTE that
+// indexRRs populates a map which indexes a given list of RRs by name. NOTE that
 // the names are all squashed to lower case so we can perform case-insensitive
 // lookups; the RRs are not modified.
-func indexRRs(rrs []dns.RR) map[string]dns.RR {
-	index := make(map[string]dns.RR, len(rrs))
+func indexRRs(rrs []dns.RR, index map[string]dns.RR) {
 	for _, rr := range rrs {
 		name := strings.ToLower(rr.Header().Name)
 		if _, ok := index[name]; !ok {
 			index[name] = rr
 		}
 	}
-	return index
 }
 
 // syncExtra takes a DNS response message and sets the extra data to the most
@@ -557,7 +555,8 @@ func trimUDPResponse(config *DNSConfig, resp *dns.Msg) (trimmed bool) {
 	// extra data when necessary.
 	var index map[string]dns.RR
 	if hasExtra {
-		index = indexRRs(resp.Extra)
+		index = make(map[string]dns.RR, len(resp.Extra))
+		indexRRs(resp.Extra, index)
 	}
 
 	// This cuts UDP responses to a useful but limited number of responses.

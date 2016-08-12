@@ -3522,7 +3522,8 @@ func TestDNS_syncExtra(t *testing.T) {
 		},
 	}
 
-	index := indexRRs(resp.Extra)
+	index := make(map[string]dns.RR)
+	indexRRs(resp.Extra, index)
 	syncExtra(index, resp)
 
 	expected := &dns.Msg{
