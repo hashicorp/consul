@@ -494,11 +494,13 @@ func (d *DNSServer) formatNodeRecord(node *structs.Node, addr, qName string, qTy
 	return records
 }
 
-// indexRRs creates a map which indexes a given list of RRs by name.
+// indexRRs creates a map which indexes a given list of RRs by name. NOTE that
+// the names are all squashed to lower case so we can perform case-insensitive
+// lookups; the RRs are not modified.
 func indexRRs(rrs []dns.RR) map[string]dns.RR {
 	index := make(map[string]dns.RR, len(rrs))
 	for _, rr := range rrs {
-		name := rr.Header().Name
+		name := strings.ToLower(rr.Header().Name)
 		if _, ok := index[name]; !ok {
 			index[name] = rr
 		}
@@ -519,7 +521,11 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 		if !ok {
 			continue
 		}
-		target := srv.Target
+
+		// Note that we always use lower case when using the index so
+		// that compares are not case-sensitive. We don't alter the actual
+		// RRs we add into the extra section, however.
+		target := strings.ToLower(srv.Target)
 
 	RESOLVE:
 		if _, ok := resolved[target]; ok {
@@ -531,7 +537,7 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 		if ok {
 			extra = append(extra, extraRR)
 			if cname, ok := extraRR.(*dns.CNAME); ok {
-				target = cname.Target
+				target = strings.ToLower(cname.Target)
 				goto RESOLVE
 			}
 		}

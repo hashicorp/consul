@@ -3403,6 +3403,19 @@ func TestDNS_syncExtra(t *testing.T) {
 				Port:   1003,
 				Target: "demo.consul.io.",
 			},
+			// This one isn't in the Consul domain and it will get
+			// a CNAME and A record from a recursor that alters the
+			// case of the name. This proves we look up in the index
+			// in a case-insensitive way.
+			&dns.SRV{
+				Hdr: dns.RR_Header{
+					Name:   "redis-cache-redis.service.consul.",
+					Rrtype: dns.TypeSRV,
+					Class:  dns.ClassINET,
+				},
+				Port:   1001,
+				Target: "insensitive.consul.io.",
+			},
 			// This is also a CNAME, but it'll be set up to loop to
 			// make sure we don't crash.
 			&dns.SRV{
@@ -3462,6 +3475,23 @@ func TestDNS_syncExtra(t *testing.T) {
 				},
 				Target: "fakeserver.consul.io.",
 			},
+			// These differ in case to test case insensitivity.
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "INSENSITIVE.CONSUL.IO.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "Another.Server.Com.",
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "another.server.com.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
 			// This doesn't appear in the answer, so should get
 			// dropped.
 			&dns.A{
@@ -3517,6 +3547,22 @@ func TestDNS_syncExtra(t *testing.T) {
 			&dns.A{
 				Hdr: dns.RR_Header{
 					Name:   "fakeserver.consul.io.",
+					Rrtype: dns.TypeA,
+					Class:  dns.ClassINET,
+				},
+				A: net.ParseIP("127.0.0.1"),
+			},
+			&dns.CNAME{
+				Hdr: dns.RR_Header{
+					Name:   "INSENSITIVE.CONSUL.IO.",
+					Rrtype: dns.TypeCNAME,
+					Class:  dns.ClassINET,
+				},
+				Target: "Another.Server.Com.",
+			},
+			&dns.A{
+				Hdr: dns.RR_Header{
+					Name:   "another.server.com.",
 					Rrtype: dns.TypeA,
 					Class:  dns.ClassINET,
 				},
