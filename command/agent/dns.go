@@ -512,8 +512,8 @@ func indexRRs(rrs []dns.RR) map[string]dns.RR {
 // only used to provide info for SRV records. If that's not the case, then this
 // will wipe out any additional data.
 func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
-	seen := make(map[string]struct{}, len(resp.Answer))
 	extra := make([]dns.RR, 0, len(resp.Answer))
+	resolved := make(map[string]struct{}, len(resp.Answer))
 	for _, ansRR := range resp.Answer {
 		srv, ok := ansRR.(*dns.SRV)
 		if !ok {
@@ -522,10 +522,10 @@ func syncExtra(index map[string]dns.RR, resp *dns.Msg) {
 		target := srv.Target
 
 	RESOLVE:
-		if _, ok := seen[target]; ok {
+		if _, ok := resolved[target]; ok {
 			continue
 		}
-		seen[target] = struct{}{}
+		resolved[target] = struct{}{}
 
 		extraRR, ok := index[target]
 		if ok {
