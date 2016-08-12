@@ -91,6 +91,8 @@ BUG FIXES:
   fail to start due to open user-mapped sections. [GH-2203]
 * Fixed an issue where large events affecting many nodes could cause infinite intent
   rebroadcasts, leading to many log messages about intent queue overflows. [GH-1062]
+* Gossip encryption keys are now validated before being made persistent in the
+  keyring, avoiding delayed feedback at runtime. [GH-1299]
 
 OTHER CHANGES:
 
