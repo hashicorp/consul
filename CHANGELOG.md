@@ -93,6 +93,8 @@ BUG FIXES:
   rebroadcasts, leading to many log messages about intent queue overflows. [GH-1062]
 * Gossip encryption keys are now validated before being made persistent in the
   keyring, avoiding delayed feedback at runtime. [GH-1299]
+* Fixed an issue where DNS requests for SRV records could be incorrectly trimmed,
+  resulting in an ADDITIONAL section that was out of sync with the ANSWER. [GH-1931]
 
 OTHER CHANGES:
 
