@@ -95,6 +95,8 @@ BUG FIXES:
   keyring, avoiding delayed feedback at runtime. [GH-1299]
 * Fixed an issue where DNS requests for SRV records could be incorrectly trimmed,
   resulting in an ADDITIONAL section that was out of sync with the ANSWER. [GH-1931]
+* Fixed two issues where DNS requests for SRV records on a prepared query that failed
+  over would report the wrong domain and fail to translate addresses. [GH-2218] [GH-2220]
 
 OTHER CHANGES:
 
