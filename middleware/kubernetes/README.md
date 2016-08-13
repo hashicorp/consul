@@ -44,6 +44,13 @@ This is the default kubernetes setup, with everything specified in full:
         template {service}.{namespace}.{zone}
         # Only expose the k8s namespace "demo"
         namespaces demo
+        # Only expose the records for kubernetes objects
+        # that matches this label selector. The label
+        # selector syntax is described in the kubernetes
+        # API documentation: http://kubernetes.io/docs/user-guide/labels/
+        # Example selector below only exposes objects tagged as
+        # "application=nginx" in the staging or qa environments.
+        #labels environment in (staging, qa),application=nginx
     }
     # Perform DNS response caching for the coredns.local zone
     # Cache timeout is provided by the integer in seconds
@@ -51,10 +58,13 @@ This is the default kubernetes setup, with everything specified in full:
 }
 ~~~
 
-Notes:
+Defaults:
 * If the `namespaces` keyword is omitted, all kubernetes namespaces are exposed.
 * If the `template` keyword is omitted, the default template of "{service}.{namespace}.{zone}" is used.
 * If the `resyncperiod` keyword is omitted, the default resync period is 5 minutes.
+* The `labels` keyword is only used when filtering of results based on kubernetes label selector syntax
+  is required. The label selector syntax is described in the kubernetes API documentation at: 
+  http://kubernetes.io/docs/user-guide/labels/
 
 ### Basic Setup
 
@@ -191,7 +201,7 @@ mynginx.demo.coredns.local. 0   IN  A   10.0.0.10
 
 ## Implementation Notes/Ideas
 
-### Basic Zone Mapping (implemented)
+### Basic Zone Mapping
 The middleware is configured with a "zone" string. For 
 example: "zone = coredns.local".
 
@@ -200,8 +210,8 @@ to: "myservice.mynamespace.coredns.local".
 
 The middleware should publish an A record for that service and a service record.
 
-Initial implementation just performs the above simple mapping. Subsequent 
-revisions should allow different namespaces to be published under different zones.
+If multiple zone names are specified, the records for kubernetes objects are
+exposed in all listed zones.
 
 For example:
 
@@ -262,11 +272,6 @@ return the IP addresses for all services with "nginx" in the service name.
 
 TBD:
 * How does this relate the the k8s load-balancer configuration?
-* Do wildcards search across namespaces? (Yes)
-* Initial implementation assumes that a namespace maps to the first DNS label
-  below the zone managed by the kubernetes middleware. This assumption may
-  need to be revised. (Template scheme for record names removes this assumption.)
-
 
 ## TODO
 * SkyDNS compatibility/equivalency:
@@ -318,19 +323,19 @@ TBD:
 * Additional features:
 	* Reverse IN-ADDR entries for services. (Is there any value in supporting 
 	  reverse lookup records?) (need tests, functionality should work based on @aledbf's code.)
-	* How to support label specification in Corefile to allow use of labels to 
-	  indicate zone? (Is this even useful?) For example, the following
+	* (done) ~~How to support label specification in Corefile to allow use of labels to 
+	  indicate zone? For example, the following
 	  configuration exposes all services labeled for the "staging" environment
 	  and tenant "customerB" in the zone "customerB.stage.local":
 
 			kubernetes customerB.stage.local {
 				# Use url for k8s API endpoint
 				endpoint http://localhost:8080
-				label "environment" : "staging", "tenant" : "customerB"
+				labels environment in (staging),tenant=customerB
 			}
 
 	  Note: label specification/selection is a killer feature for segmenting
-	  test vs staging vs prod environments.
+	  test vs staging vs prod environments.~~ Need label testing.
 	* Implement IP selection and ordering (internal/external). Related to
 	  wildcards and SkyDNS use of CNAMES.
 	* Flatten service and namespace names to valid DNS characters. (service names

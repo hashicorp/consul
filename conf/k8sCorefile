@@ -11,6 +11,13 @@
         template {service}.{namespace}.{zone}
         # Only expose the k8s namespace "demo"
         namespaces demo
+        # Only expose the records for kubernetes objects
+        # that matches this label selector. The label
+        # selector syntax is described in the kubernetes
+        # API documentation: http://kubernetes.io/docs/user-guide/labels/
+        # Example selector below only exposes objects tagged as
+        # "application=nginx" in the staging or qa environments.
+        #labels environment in (staging, qa),application=nginx
     }
     # Perform DNS response caching for the coredns.local zone
     # Cache timeout is provided by the integer in seconds

@@ -4,18 +4,21 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	unversionedapi "k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 func TestKubernetesParse(t *testing.T) {
 	tests := []struct {
-		description          string        // Human-facing description of test case
-		input                string        // Corefile data as string
-		shouldErr            bool          // true if test case is exected to produce an error.
-		expectedErrContent   string        // substring from the expected error. Empty for positive cases.
-		expectedZoneCount    int           // expected count of defined zones.
-		expectedNTValid      bool          // NameTemplate to be initialized and valid
-		expectedNSCount      int           // expected count of namespaces.
-		expectedResyncPeriod time.Duration // expected resync period value
+		description           string        // Human-facing description of test case
+		input                 string        // Corefile data as string
+		shouldErr             bool          // true if test case is exected to produce an error.
+		expectedErrContent    string        // substring from the expected error. Empty for positive cases.
+		expectedZoneCount     int           // expected count of defined zones.
+		expectedNTValid       bool          // NameTemplate to be initialized and valid
+		expectedNSCount       int           // expected count of namespaces.
+		expectedResyncPeriod  time.Duration // expected resync period value
+		expectedLabelSelector string        // expected label selector value
 	}{
 		// positive
 		{
@@ -27,6 +30,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			0,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"kubernetes keyword with multiple zones",
@@ -37,6 +41,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			0,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"kubernetes keyword with zone and empty braces",
@@ -48,6 +53,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			0,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"endpoint keyword with url",
@@ -60,6 +66,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			0,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"template keyword with valid template",
@@ -72,6 +79,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			0,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"namespaces keyword with one namespace",
@@ -84,6 +92,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			1,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"namespaces keyword with multiple namespaces",
@@ -96,6 +105,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			2,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"resync period in seconds",
@@ -108,6 +118,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			0,
 			30 * time.Second,
+			"",
 		},
 		{
 			"resync period in minutes",
@@ -120,6 +131,33 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			0,
 			15 * time.Minute,
+			"",
+		},
+		{
+			"basic label selector",
+			`kubernetes coredns.local {
+    labels environment=prod
+}`,
+			false,
+			"",
+			1,
+			true,
+			0,
+			defaultResyncPeriod,
+			"environment=prod",
+		},
+		{
+			"multi-label selector",
+			`kubernetes coredns.local {
+    labels environment in (production, staging, qa),application=nginx
+}`,
+			false,
+			"",
+			1,
+			true,
+			0,
+			defaultResyncPeriod,
+			"application=nginx,environment in (production,qa,staging)",
 		},
 		{
 			"fully specified valid config",
@@ -128,6 +166,7 @@ func TestKubernetesParse(t *testing.T) {
 	endpoint http://localhost:8080
 	template {service}.{namespace}.{zone}
 	namespaces demo test
+    labels environment in (production, staging, qa),application=nginx
 }`,
 			false,
 			"",
@@ -135,6 +174,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			2,
 			15 * time.Minute,
+			"application=nginx,environment in (production,qa,staging)",
 		},
 		// negative
 		{
@@ -146,6 +186,7 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			-1,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"kubernetes keyword without a zone",
@@ -156,6 +197,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			0,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"endpoint keyword without an endpoint value",
@@ -168,6 +210,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			-1,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"template keyword without a template value",
@@ -180,6 +223,7 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			0,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"template keyword with an invalid template value",
@@ -192,6 +236,7 @@ func TestKubernetesParse(t *testing.T) {
 			false,
 			0,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"namespace keyword without a namespace value",
@@ -204,6 +249,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			-1,
 			defaultResyncPeriod,
+			"",
 		},
 		{
 			"resyncperiod keyword without a duration value",
@@ -216,6 +262,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			0,
 			0 * time.Minute,
+			"",
 		},
 		{
 			"resync period no units",
@@ -228,6 +275,7 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			0,
 			0 * time.Second,
+			"",
 		},
 		{
 			"resync period invalid",
@@ -240,6 +288,33 @@ func TestKubernetesParse(t *testing.T) {
 			true,
 			0,
 			0 * time.Second,
+			"",
+		},
+		{
+			"labels with no selector value",
+			`kubernetes coredns.local {
+    labels
+}`,
+			true,
+			"Wrong argument count or unexpected line ending after 'labels'",
+			-1,
+			true,
+			0,
+			0 * time.Second,
+			"",
+		},
+		{
+			"labels with invalid selector value",
+			`kubernetes coredns.local {
+    labels environment in (production, qa
+}`,
+			true,
+			"Unable to parse label selector. Value provided was",
+			-1,
+			true,
+			0,
+			0 * time.Second,
+			"",
 		},
 	}
 
@@ -300,7 +375,15 @@ func TestKubernetesParse(t *testing.T) {
 		//    ResyncPeriod
 		foundResyncPeriod := k8sController.ResyncPeriod
 		if foundResyncPeriod != test.expectedResyncPeriod {
-			t.Errorf("Test %d: Expected kubernetes controller to be initialized with resync period '%s'. Instead found period '%s' for input '%s'", test.expectedResyncPeriod, foundResyncPeriod, test.input)
+			t.Errorf("Test %d: Expected kubernetes controller to be initialized with resync period '%s'. Instead found period '%s' for input '%s'", i, test.expectedResyncPeriod, foundResyncPeriod, test.input)
+		}
+
+		//    Labels
+		if k8sController.LabelSelector != nil {
+			foundLabelSelectorString := unversionedapi.FormatLabelSelector(k8sController.LabelSelector)
+			if foundLabelSelectorString != test.expectedLabelSelector {
+				t.Errorf("Test %d: Expected kubernetes controller to be initialized with label selector '%s'. Instead found selector '%s' for input '%s'", i, test.expectedLabelSelector, foundLabelSelectorString, test.input)
+			}
 		}
 	}
 }

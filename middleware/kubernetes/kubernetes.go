@@ -15,20 +15,24 @@ import (
 
 	"github.com/miekg/dns"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/unversioned"
+	unversionedapi "k8s.io/kubernetes/pkg/api/unversioned"
+	"k8s.io/kubernetes/pkg/labels"
+	unversionedclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 )
 
 type Kubernetes struct {
-	Next         middleware.Handler
-	Zones        []string
-	Proxy        proxy.Proxy // Proxy for looking up names during the resolution process
-	APIEndpoint  string
-	APIConn      *dnsController
-	ResyncPeriod time.Duration
-	NameTemplate *nametemplate.NameTemplate
-	Namespaces   []string
+	Next          middleware.Handler
+	Zones         []string
+	Proxy         proxy.Proxy // Proxy for looking up names during the resolution process
+	APIEndpoint   string
+	APIConn       *dnsController
+	ResyncPeriod  time.Duration
+	NameTemplate  *nametemplate.NameTemplate
+	Namespaces    []string
+	LabelSelector *unversionedapi.LabelSelector
+	Selector      *labels.Selector 
 }
 
 func (g *Kubernetes) StartKubeCache() error {
@@ -45,14 +49,26 @@ func (g *Kubernetes) StartKubeCache() error {
 		log.Printf("[debug] error connecting to the client: %v", err)
 		return err
 	}
-	kubeClient, err := unversioned.New(config)
+	kubeClient, err := unversionedclient.New(config)
 
 	if err != nil {
 		log.Printf("[ERROR] Failed to create kubernetes notification controller: %v", err)
 		return err
 	}
+	if g.LabelSelector == nil {
+		log.Printf("[INFO] Kubernetes middleware configured without a label selector. No label-based filtering will be operformed.")
+	} else {
+        var selector labels.Selector
+		selector, err = unversionedapi.LabelSelectorAsSelector(g.LabelSelector)
+        g.Selector = &selector
+        if err != nil {
+            log.Printf("[ERROR] Unable to create Selector for LabelSelector '%s'.Error was: %s", g.LabelSelector, err)
+            return err
+        }
+		log.Printf("[INFO] Kubernetes middleware configured with the label selector '%s'. Only kubernetes objects matching this label selector will be exposed.", unversionedapi.FormatLabelSelector(g.LabelSelector))
+	}
 	log.Printf("[debug] Starting kubernetes middleware with k8s API resync period: %s", g.ResyncPeriod)
-	g.APIConn = newdnsController(kubeClient, g.ResyncPeriod)
+	g.APIConn = newdnsController(kubeClient, g.ResyncPeriod, g.Selector)
 
 	go g.APIConn.Run()
 
