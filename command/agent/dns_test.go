@@ -2737,6 +2737,118 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 	}
 }
 
+func TestDNS_PreparedQuery_Failover(t *testing.T) {
+	dir1, srv1 := makeDNSServerConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.TranslateWanAddrs = true
+	}, nil)
+	defer os.RemoveAll(dir1)
+	defer srv1.Shutdown()
+
+	dir2, srv2 := makeDNSServerConfig(t, func(c *Config) {
+		c.Datacenter = "dc2"
+		c.TranslateWanAddrs = true
+	}, nil)
+	defer os.RemoveAll(dir2)
+	defer srv2.Shutdown()
+
+	testutil.WaitForLeader(t, srv1.agent.RPC, "dc1")
+	testutil.WaitForLeader(t, srv2.agent.RPC, "dc2")
+
+	// Join WAN cluster.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		srv1.agent.config.Ports.SerfWan)
+	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForResult(
+		func() (bool, error) {
+			return len(srv1.agent.WANMembers()) > 1, nil
+		},
+		func(err error) {
+			t.Fatalf("Failed waiting for WAN join: %v", err)
+		})
+
+	// Register a remote node with a service.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc2",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			TaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			Service: &structs.NodeService{
+				Service: "db",
+			},
+		}
+
+		var out struct{}
+		if err := srv2.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Register a local prepared query.
+	{
+		args := &structs.PreparedQueryRequest{
+			Datacenter: "dc1",
+			Op:         structs.PreparedQueryCreate,
+			Query: &structs.PreparedQuery{
+				Name: "my-query",
+				Service: structs.ServiceQuery{
+					Service: "db",
+					Failover: structs.QueryDatacenterOptions{
+						Datacenters: []string{"dc2"},
+					},
+				},
+			},
+		}
+		var id string
+		if err := srv1.agent.RPC("PreparedQuery.Apply", args, &id); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Look up the SRV record via the query.
+	m := new(dns.Msg)
+	m.SetQuestion("my-query.query.consul.", dns.TypeSRV)
+
+	c := new(dns.Client)
+	cl_addr, _ := srv1.agent.config.ClientListener("", srv1.agent.config.Ports.DNS)
+	in, _, err := c.Exchange(m, cl_addr.String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure we see the remote DC and that the address gets
+	// translated.
+	if len(in.Answer) != 1 {
+		t.Fatalf("Bad: %#v", in)
+	}
+	if in.Answer[0].Header().Name != "my-query.query.consul." {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	srv, ok := in.Answer[0].(*dns.SRV)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if srv.Target != "foo.node.dc2.consul." {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+
+	a, ok := in.Extra[0].(*dns.A)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if a.Hdr.Name != "foo.node.dc2.consul." {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+	if a.A.String() != "127.0.0.2" {
+		t.Fatalf("Bad: %#v", in.Extra[0])
+	}
+}
+
 func TestDNS_ServiceLookup_SRV_RFC(t *testing.T) {
 	dir, srv := makeDNSServer(t)
 	defer os.RemoveAll(dir)

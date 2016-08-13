@@ -745,9 +745,9 @@ RPC:
 	// Add various responses depending on the request.
 	qType := req.Question[0].Qtype
 	if qType == dns.TypeSRV {
-		d.serviceSRVRecords(datacenter, out.Nodes, req, resp, ttl)
+		d.serviceSRVRecords(out.Datacenter, out.Nodes, req, resp, ttl)
 	} else {
-		d.serviceNodeRecords(datacenter, out.Nodes, req, resp, ttl)
+		d.serviceNodeRecords(out.Datacenter, out.Nodes, req, resp, ttl)
 	}
 
 	// If the network is not TCP, restrict the number of responses.
