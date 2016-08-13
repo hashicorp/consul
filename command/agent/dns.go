@@ -744,7 +744,7 @@ RPC:
 
 	// Add various responses depending on the request.
 	qType := req.Question[0].Qtype
-if qType == dns.TypeSRV {
+	if qType == dns.TypeSRV {
 		d.serviceSRVRecords(out.Datacenter, out.Nodes, req, resp, ttl)
 	} else {
 		d.serviceNodeRecords(out.Datacenter, out.Nodes, req, resp, ttl)
