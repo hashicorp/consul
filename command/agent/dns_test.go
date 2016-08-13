@@ -2739,9 +2739,9 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 
 func TestDNS_PreparedQuery_Failover(t *testing.T) {
 	dir1, srv1 := makeDNSServerConfig(t, func(c *Config) {
-			c.Datacenter = "dc1"
-			c.TranslateWanAddrs = true
-		}, nil)
+		c.Datacenter = "dc1"
+		c.TranslateWanAddrs = true
+	}, nil)
 	defer os.RemoveAll(dir1)
 	defer srv1.Shutdown()
 
@@ -2755,13 +2755,12 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 	testutil.WaitForLeader(t, srv1.agent.RPC, "dc1")
 	testutil.WaitForLeader(t, srv2.agent.RPC, "dc2")
 
-	// Join WAN cluster
+	// Join WAN cluster.
 	addr := fmt.Sprintf("127.0.0.1:%d",
 		srv1.agent.config.Ports.SerfWan)
 	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
 	testutil.WaitForResult(
 		func() (bool, error) {
 			return len(srv1.agent.WANMembers()) > 1, nil
@@ -2790,8 +2789,7 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 		}
 	}
 
-	// Register an equivalent prepared query in both DCs.
-	var id_dc1 string
+	// Register a local prepared query.
 	{
 		args := &structs.PreparedQueryRequest{
 			Datacenter: "dc1",
@@ -2801,39 +2799,18 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 				Service: structs.ServiceQuery{
 					Service: "db",
 					Failover: structs.QueryDatacenterOptions{
-						NearestN: 1,
 						Datacenters: []string{"dc2"},
 					},
 				},
 			},
 		}
-		if err := srv1.agent.RPC("PreparedQuery.Apply", args, &id_dc1); err != nil {
+		var id string
+		if err := srv1.agent.RPC("PreparedQuery.Apply", args, &id); err != nil {
 			t.Fatalf("err: %v", err)
 		}
 	}
 
-	var id_dc2 string
-	{
-		args := &structs.PreparedQueryRequest{
-			Datacenter: "dc2",
-			Op:         structs.PreparedQueryCreate,
-			Query: &structs.PreparedQuery{
-				Name: "my-query",
-				Service: structs.ServiceQuery{
-					Service: "db",
-					Failover: structs.QueryDatacenterOptions{
-						NearestN: 1,
-						Datacenters: []string{"dc1"},
-					},
-				},
-			},
-		}
-		if err := srv2.agent.RPC("PreparedQuery.Apply", args, &id_dc2); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-	}
-
-	// Look up the SRV record via the query
+	// Look up the SRV record via the query.
 	m := new(dns.Msg)
 	m.SetQuestion("my-query.query.consul.", dns.TypeSRV)
 
@@ -2844,18 +2821,30 @@ func TestDNS_PreparedQuery_Failover(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
+	// Make sure we see the remote DC and that the address gets
+	// translated.
 	if len(in.Answer) != 1 {
 		t.Fatalf("Bad: %#v", in)
 	}
+	if in.Answer[0].Header().Name != "my-query.query.consul." {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	srv, ok := in.Answer[0].(*dns.SRV)
+	if !ok {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
+	if srv.Target != "foo.node.dc2.consul." {
+		t.Fatalf("Bad: %#v", in.Answer[0])
+	}
 
-	aRec, ok := in.Extra[0].(*dns.A)
+	a, ok := in.Extra[0].(*dns.A)
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
-	if aRec.Hdr.Name != "foo.node.dc2.consul." {
+	if a.Hdr.Name != "foo.node.dc2.consul." {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
-	if aRec.A.String() != "127.0.0.2" {
+	if a.A.String() != "127.0.0.2" {
 		t.Fatalf("Bad: %#v", in.Extra[0])
 	}
 }
