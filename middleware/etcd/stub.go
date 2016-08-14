@@ -37,6 +37,7 @@ func (e *Etcd) updateStubZones() {
 	// track the nameservers on a per domain basis, but allow a list on the domain.
 	nameservers := map[string][]string{}
 
+Services:
 	for _, serv := range services {
 		if serv.Port == 0 {
 			serv.Port = 53
@@ -58,11 +59,12 @@ func (e *Etcd) updateStubZones() {
 			domain = dns.Fqdn(strings.Join(labels[1:len(labels)-dns.CountLabel(z)-2], "."))
 			if domain == z {
 				log.Printf("[WARNING] Skipping nameserver for domain we are authoritative for: %s", domain)
-				continue
+				continue Services
 			}
-			nameservers[domain] = append(nameservers[domain], net.JoinHostPort(serv.Host, strconv.Itoa(serv.Port)))
 		}
+		nameservers[domain] = append(nameservers[domain], net.JoinHostPort(serv.Host, strconv.Itoa(serv.Port)))
 	}
+
 	for domain, nss := range nameservers {
 		stubmap[domain] = proxy.New(nss)
 	}

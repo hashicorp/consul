@@ -19,6 +19,7 @@ func New(hosts []string) Proxy {
 		from:        "",
 		Hosts:       make([]*UpstreamHost, len(hosts)),
 		Policy:      &Random{},
+		Spray:       nil,
 		FailTimeout: 10 * time.Second,
 		MaxFails:    1,
 	}
@@ -35,8 +36,8 @@ func New(hosts []string) Proxy {
 					if uh.Unhealthy {
 						return true
 					}
-					if uh.Fails >= upstream.MaxFails &&
-						upstream.MaxFails != 0 {
+					fails := atomic.LoadInt32(&uh.Fails)
+					if fails >= upstream.MaxFails && upstream.MaxFails != 0 {
 						return true
 					}
 					return false
@@ -77,13 +78,11 @@ func (p Proxy) lookup(state middleware.State, r *dns.Msg) (*dns.Msg, error) {
 		// hosts until timeout (or until we get a nil host).
 		for time.Now().Sub(start) < tryDuration {
 			host := upstream.Select()
-
 			if host == nil {
 				return nil, errUnreachable
 			}
 
 			atomic.AddInt64(&host.Conns, 1)
-			// tls+tcp ?
 			if state.Proto() == "tcp" {
 				reply, err = middleware.Exchange(p.Client.TCP, r, host.Name)
 			} else {

@@ -21,7 +21,7 @@ func TestProxyLookupFailDebug(t *testing.T) {
 	}
 
 	prxy := etc.Proxy
-	etc.Proxy = proxy.New([]string{"127.0.0.0:154"})
+	etc.Proxy = proxy.New([]string{"127.0.0.1:154"})
 	defer func() { etc.Proxy = prxy }()
 
 	etc.Debug = true

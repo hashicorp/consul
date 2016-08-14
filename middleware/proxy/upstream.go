@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/miekg/coredns/core/parse"
@@ -90,8 +91,9 @@ func NewStaticUpstreams(c parse.Dispenser) ([]Upstream, error) {
 						if uh.Unhealthy {
 							return true
 						}
-						if uh.Fails >= upstream.MaxFails &&
-							upstream.MaxFails != 0 {
+
+						fails := atomic.LoadInt32(&uh.Fails)
+						if fails >= upstream.MaxFails && upstream.MaxFails != 0 {
 							return true
 						}
 						return false

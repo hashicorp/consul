@@ -74,7 +74,7 @@ func TestShouldTransfer(t *testing.T) {
 	dns.HandleFunc(testZone, soa.Handler)
 	defer dns.HandleRemove(testZone)
 
-	s, addrstr, err := test.TCPServer("127.0.0.1:0")
+	s, addrstr, err := test.TCPServer(t, "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
 	}
@@ -110,7 +110,7 @@ func TestTransferIn(t *testing.T) {
 	dns.HandleFunc(testZone, soa.Handler)
 	defer dns.HandleRemove(testZone)
 
-	s, addrstr, err := test.TCPServer("127.0.0.1:0")
+	s, addrstr, err := test.TCPServer(t, "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("unable to run test server: %v", err)
 	}

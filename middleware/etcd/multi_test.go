@@ -14,19 +14,20 @@ import (
 )
 
 func TestMultiLookup(t *testing.T) {
-	etcMulti := *etc
-	etcMulti.Zones = []string{"skydns.test.", "miek.nl."}
-	etcMulti.Next = test.ErrorHandler()
+	etc.Zones = []string{"skydns.test.", "miek.nl."}
+	defer func() { etc.Zones = []string{"skydns.test.", "skydns_extra.test.", "in-addr.arpa."} }()
+	etc.Next = test.ErrorHandler()
+	defer func() { etc.Next = nil }()
 
 	for _, serv := range servicesMulti {
-		set(t, &etcMulti, serv.Key, 0, serv)
-		defer delete(t, &etcMulti, serv.Key)
+		set(t, etc, serv.Key, 0, serv)
+		defer delete(t, etc, serv.Key)
 	}
 	for _, tc := range dnsTestCasesMulti {
 		m := tc.Msg()
 
 		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
-		_, err := etcMulti.ServeDNS(ctxt, rec, m)
+		_, err := etc.ServeDNS(ctxt, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
 			return

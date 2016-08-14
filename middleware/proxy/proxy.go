@@ -59,7 +59,8 @@ type UpstreamHost struct {
 func (uh *UpstreamHost) Down() bool {
 	if uh.CheckDown == nil {
 		// Default settings
-		return uh.Unhealthy || uh.Fails > 0
+		fails := atomic.LoadInt32(&uh.Fails)
+		return uh.Unhealthy || fails > 0
 	}
 	return uh.CheckDown(uh)
 }
