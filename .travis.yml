@@ -7,7 +7,6 @@ services:
 
 language: go
 go:
-  - 1.5
   - 1.6
 
 # In the Travis VM-based build environment, IPv6 networking is not
