@@ -19,6 +19,9 @@ RSA).
 
 A signing key can be specified by using the `key` directive.
 
+WARNING: when a key is generated there is currently no way to extract any key material from CoreDNS,
+this key only lives in memory. See issue <https://github.com/miekg/coredns/issues/211>.
+
 TODO(miek): think about key rollovers.
 
 
