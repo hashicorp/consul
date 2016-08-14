@@ -10,6 +10,7 @@ import (
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/kubernetes"
 	"github.com/miekg/coredns/middleware/kubernetes/nametemplate"
+	unversionedapi "k8s.io/kubernetes/pkg/api/unversioned"
 )
 
 const (
@@ -107,6 +108,20 @@ func kubernetesParse(c *Controller) (kubernetes.Kubernetes, error) {
 						}
 					} else {
 						log.Printf("[debug] 'resyncperiod' keyword provided without any duration value.")
+						return kubernetes.Kubernetes{}, c.ArgErr()
+					}
+				case "labels":
+					args := c.RemainingArgs()
+					if len(args) != 0 {
+						labelSelectorString := strings.Join(args, " ")
+						k8s.LabelSelector, err = unversionedapi.ParseToLabelSelector(labelSelectorString)
+						if err != nil {
+							err = errors.New(fmt.Sprintf("Unable to parse label selector. Value provided was '%v'. Error was: %v", labelSelectorString, err))
+							log.Printf("[ERROR] %v", err)
+							return kubernetes.Kubernetes{}, err
+						}
+					} else {
+						log.Printf("[debug] 'labels' keyword provided without any selector value.")
 						return kubernetes.Kubernetes{}, c.ArgErr()
 					}
 				}
