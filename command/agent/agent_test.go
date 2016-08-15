@@ -1659,3 +1659,33 @@ func TestAgent_GetCoordinate(t *testing.T) {
 	check(true)
 	check(false)
 }
+
+func TestAgent_UpdateTTLCheck_DeregisterTimeout(t *testing.T) {
+	dir, agent := makeAgent(t, nextConfig())
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "foo",
+		Service: "foo",
+	}
+
+	// create TTL check that is set to deregister service on timeout
+	chkTypes := CheckTypes{&CheckType{TTL: 10 * time.Second, UnregisterTimeout: 1 * time.Second}}
+	if err := agent.AddService(svc, chkTypes, false, ""); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Service should be unregistered after TTL + UnregisterTimeout
+	time.Sleep(13 * time.Second)
+
+	// Service should be removed
+	if _, ok := agent.state.Services()["foo"]; ok {
+		t.Fatal("err: service should be removed")
+	}
+
+	// Check should be removed
+	if _, ok := agent.state.Checks()["service:foo"]; ok {
+		t.Fatal("err: check should be removed")
+	}
+}
