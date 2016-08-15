@@ -145,6 +145,112 @@ func TestCatalogNodes(t *testing.T) {
 	}
 }
 
+func TestCatalogNodes_WanTranslation(t *testing.T) {
+	dir1, srv1 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc1"
+			c.TranslateWanAddrs = true
+		})
+	defer os.RemoveAll(dir1)
+	defer srv1.Shutdown()
+	defer srv1.agent.Shutdown()
+	testutil.WaitForLeader(t, srv1.agent.RPC, "dc1")
+
+	dir2, srv2 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc2"
+			c.TranslateWanAddrs = true
+		})
+	defer os.RemoveAll(dir2)
+	defer srv2.Shutdown()
+	defer srv2.agent.Shutdown()
+	testutil.WaitForLeader(t, srv2.agent.RPC, "dc2")
+
+	// Wait for the WAN join.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		srv1.agent.config.Ports.SerfWan)
+	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForResult(
+		func() (bool, error) {
+			return len(srv1.agent.WANMembers()) > 1, nil
+		},
+		func(err error) {
+			t.Fatalf("Failed waiting for WAN join: %v", err)
+		})
+
+	// Register a node with DC2.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc2",
+			Node:       "wan_translation_test",
+			Address:    "127.0.0.1",
+			TaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			Service: &structs.NodeService{
+				Service: "http_wan_translation_test",
+			},
+		}
+
+		var out struct{}
+		if err := srv2.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Query nodes in DC2 from DC1.
+	req, err := http.NewRequest("GET", "/v1/catalog/nodes?dc=dc2", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp1 := httptest.NewRecorder()
+	obj1, err1 := srv1.CatalogNodes(resp1, req)
+	if err1 != nil {
+		t.Fatalf("err: %v", err1)
+	}
+	assertIndex(t, resp1)
+
+	// Expect that DC1 gives us a WAN address (since the node is in DC2).
+	nodes1 := obj1.(structs.Nodes)
+	if len(nodes1) != 2 {
+		t.Fatalf("bad: %v", obj1)
+	}
+	var address string
+	for _, node := range nodes1 {
+		if node.Node == "wan_translation_test" {
+			address = node.Address
+		}
+	}
+	if address != "127.0.0.2" {
+		t.Fatalf("bad: %s", address)
+	}
+
+	// Query DC2 from DC2.
+	resp2 := httptest.NewRecorder()
+	obj2, err2 := srv2.CatalogNodes(resp2, req)
+	if err2 != nil {
+		t.Fatalf("err: %v", err2)
+	}
+	assertIndex(t, resp2)
+
+	// Expect that DC2 gives us a private address (since the node is in DC2).
+	nodes2 := obj2.(structs.Nodes)
+	if len(nodes2) != 2 {
+		t.Fatalf("bad: %v", obj2)
+	}
+	for _, node := range nodes2 {
+		if node.Node == "wan_translation_test" {
+			address = node.Address
+		}
+	}
+	if address != "127.0.0.1" {
+		t.Fatalf("bad: %s", address)
+	}
+}
+
 func TestCatalogNodes_Blocking(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
@@ -407,6 +513,103 @@ func TestCatalogServiceNodes(t *testing.T) {
 	}
 }
 
+func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
+	dir1, srv1 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc1"
+			c.TranslateWanAddrs = true
+		})
+	defer os.RemoveAll(dir1)
+	defer srv1.Shutdown()
+	defer srv1.agent.Shutdown()
+	testutil.WaitForLeader(t, srv1.agent.RPC, "dc1")
+
+	dir2, srv2 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc2"
+			c.TranslateWanAddrs = true
+		})
+	defer os.RemoveAll(dir2)
+	defer srv2.Shutdown()
+	defer srv2.agent.Shutdown()
+	testutil.WaitForLeader(t, srv2.agent.RPC, "dc2")
+
+	// Wait for the WAN join.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		srv1.agent.config.Ports.SerfWan)
+	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForResult(
+		func() (bool, error) {
+			return len(srv1.agent.WANMembers()) > 1, nil
+		},
+		func(err error) {
+			t.Fatalf("Failed waiting for WAN join: %v", err)
+		})
+
+	// Register a node with DC2.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc2",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			TaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			Service: &structs.NodeService{
+				Service: "http_wan_translation_test",
+			},
+		}
+
+		var out struct{}
+		if err := srv2.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Query for the node in DC2 from DC1.
+	req, err := http.NewRequest("GET", "/v1/catalog/service/http_wan_translation_test?dc=dc2", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	resp1 := httptest.NewRecorder()
+	obj1, err1 := srv1.CatalogServiceNodes(resp1, req)
+	if err1 != nil {
+		t.Fatalf("err: %v", err1)
+	}
+	assertIndex(t, resp1)
+
+	// Expect that DC1 gives us a WAN address (since the node is in DC2).
+	nodes1 := obj1.(structs.ServiceNodes)
+	if len(nodes1) != 1 {
+		t.Fatalf("bad: %v", obj1)
+	}
+	node1 := nodes1[0]
+	if node1.Address != "127.0.0.2" {
+		t.Fatalf("bad: %v", node1)
+	}
+
+	// Query DC2 from DC2.
+	resp2 := httptest.NewRecorder()
+	obj2, err2 := srv2.CatalogServiceNodes(resp2, req)
+	if err2 != nil {
+		t.Fatalf("err: %v", err2)
+	}
+	assertIndex(t, resp2)
+
+	// Expect that DC2 gives us a local address (since the node is in DC2).
+	nodes2 := obj2.(structs.ServiceNodes)
+	if len(nodes2) != 1 {
+		t.Fatalf("bad: %v", obj2)
+	}
+	node2 := nodes2[0]
+	if node2.Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", node2)
+	}
+}
+
 func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	defer os.RemoveAll(dir)
@@ -548,5 +751,101 @@ func TestCatalogNodeServices(t *testing.T) {
 	services := obj.(*structs.NodeServices)
 	if len(services.Services) != 1 {
 		t.Fatalf("bad: %v", obj)
+	}
+}
+
+func TestCatalogNodeServices_WanTranslation(t *testing.T) {
+	dir1, srv1 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc1"
+			c.TranslateWanAddrs = true
+		})
+	defer os.RemoveAll(dir1)
+	defer srv1.Shutdown()
+	defer srv1.agent.Shutdown()
+	testutil.WaitForLeader(t, srv1.agent.RPC, "dc1")
+
+	dir2, srv2 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc2"
+			c.TranslateWanAddrs = true
+		})
+	defer os.RemoveAll(dir2)
+	defer srv2.Shutdown()
+	defer srv2.agent.Shutdown()
+	testutil.WaitForLeader(t, srv2.agent.RPC, "dc2")
+
+	// Wait for the WAN join.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		srv1.agent.config.Ports.SerfWan)
+	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForResult(
+		func() (bool, error) {
+			return len(srv1.agent.WANMembers()) > 1, nil
+		},
+		func(err error) {
+			t.Fatalf("Failed waiting for WAN join: %v", err)
+		})
+
+	// Register a node with DC2.
+	{
+		args := &structs.RegisterRequest{
+			Datacenter: "dc2",
+			Node:       "foo",
+			Address:    "127.0.0.1",
+			TaggedAddresses: map[string]string{
+				"wan": "127.0.0.2",
+			},
+			Service: &structs.NodeService{
+				Service: "http_wan_translation_test",
+			},
+		}
+
+		var out struct{}
+		if err := srv2.agent.RPC("Catalog.Register", args, &out); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	}
+
+	// Query for the node in DC2 from DC1.
+	req, err := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc2", nil)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	resp1 := httptest.NewRecorder()
+	obj1, err1 := srv1.CatalogNodeServices(resp1, req)
+	if err1 != nil {
+		t.Fatalf("err: %v", err1)
+	}
+	assertIndex(t, resp1)
+
+	// Expect that DC1 gives us a WAN address (since the node is in DC2).
+	services1 := obj1.(*structs.NodeServices)
+	if len(services1.Services) != 1 {
+		t.Fatalf("bad: %v", obj1)
+	}
+	service1 := services1.Node
+	if service1.Address != "127.0.0.2" {
+		t.Fatalf("bad: %v", service1)
+	}
+
+	// Query DC2 from DC2.
+	resp2 := httptest.NewRecorder()
+	obj2, err2 := srv2.CatalogNodeServices(resp2, req)
+	if err2 != nil {
+		t.Fatalf("err: %v", err2)
+	}
+	assertIndex(t, resp2)
+
+	// Expect that DC2 gives us a private address (since the node is in DC2).
+	services2 := obj2.(*structs.NodeServices)
+	if len(services2.Services) != 1 {
+		t.Fatalf("bad: %v", obj2)
+	}
+	service2 := services2.Node
+	if service2.Address != "127.0.0.1" {
+		t.Fatalf("bad: %v", service2)
 	}
 }

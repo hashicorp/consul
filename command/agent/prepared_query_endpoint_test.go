@@ -359,6 +359,108 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		}
 	})
 
+	// Ensure WAN translation occurs for a response outside of the local DC.
+	httpTestWithConfig(t, func(srv *HTTPServer) {
+		m := MockPreparedQuery{}
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		m.executeFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+			nodesResponse := make(structs.CheckServiceNodes, 1)
+			nodesResponse[0].Node = &structs.Node{
+				Node: "foo", Address: "127.0.0.1",
+				TaggedAddresses: map[string]string{
+					"wan": "127.0.0.2",
+				},
+			}
+			reply.Nodes = nodesResponse
+			reply.Datacenter = "dc2"
+			return nil
+		}
+
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/query/my-id/execute?dc=dc2", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.PreparedQuerySpecific(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 200 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+		r, ok := obj.(structs.PreparedQueryExecuteResponse)
+		if !ok {
+			t.Fatalf("unexpected: %T", obj)
+		}
+		if r.Nodes == nil || len(r.Nodes) != 1 {
+			t.Fatalf("bad: %v", r)
+		}
+
+		node := r.Nodes[0]
+		if node.Node.Address != "127.0.0.2" {
+			t.Fatalf("bad: %v", node.Node)
+		}
+	}, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.TranslateWanAddrs = true
+	})
+
+	// Ensure WAN translation doesn't occur for the local DC.
+	httpTestWithConfig(t, func(srv *HTTPServer) {
+		m := MockPreparedQuery{}
+		if err := srv.agent.InjectEndpoint("PreparedQuery", &m); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		m.executeFn = func(args *structs.PreparedQueryExecuteRequest, reply *structs.PreparedQueryExecuteResponse) error {
+			nodesResponse := make(structs.CheckServiceNodes, 1)
+			nodesResponse[0].Node = &structs.Node{
+				Node: "foo", Address: "127.0.0.1",
+				TaggedAddresses: map[string]string{
+					"wan": "127.0.0.2",
+				},
+			}
+			reply.Nodes = nodesResponse
+			reply.Datacenter = "dc1"
+			return nil
+		}
+
+		body := bytes.NewBuffer(nil)
+		req, err := http.NewRequest("GET", "/v1/query/my-id/execute?dc=dc2", body)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		resp := httptest.NewRecorder()
+		obj, err := srv.PreparedQuerySpecific(resp, req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp.Code != 200 {
+			t.Fatalf("bad code: %d", resp.Code)
+		}
+		r, ok := obj.(structs.PreparedQueryExecuteResponse)
+		if !ok {
+			t.Fatalf("unexpected: %T", obj)
+		}
+		if r.Nodes == nil || len(r.Nodes) != 1 {
+			t.Fatalf("bad: %v", r)
+		}
+
+		node := r.Nodes[0]
+		if node.Node.Address != "127.0.0.1" {
+			t.Fatalf("bad: %v", node.Node)
+		}
+	}, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.TranslateWanAddrs = true
+	})
+
 	httpTest(t, func(srv *HTTPServer) {
 		body := bytes.NewBuffer(nil)
 		req, err := http.NewRequest("GET", "/v1/query/not-there/execute", body)

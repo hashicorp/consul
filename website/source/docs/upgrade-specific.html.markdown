@@ -38,6 +38,13 @@ making them unable to properly serve requests for prepared queries using the
 feature. It is recommended that all agents be running version 0.7.0 prior to
 using this feature.
 
+#### WAN Address Translation in HTTP Endpoints
+
+Consul version 0.7 added support for translating WAN addresses in certain
+[HTTP endpoints](/docs/agent/options.html#translate_wan_addrs). The servers
+and the agents need to be running version 0.7.0 or later in order to use this
+feature.
+
 ## Consul 0.6.4
 
 Consul 0.6.4 made some substantial changes to how ACLs work with prepared
