@@ -756,8 +756,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   default.
   <br>
   <br>
-  In addition to addresses in DNS responses, Consul will also translate node addresses in responses
-  to the following HTTP endpoints when querying a remote datacenter:
+  Starting in Consul 0.7 and later, node addresses in responses to the following HTTP endpoints will
+  prefer a node's configured <a href="#_advertise-wan">WAN address</a> when querying for a node in a
+  remote datacenter:
   <br>
   * [`/v1/catalog/nodes`](/docs/agent/http/catalog.html#catalog_nodes)
   * [`/v1/catalog/node/<node>`](/docs/agent/http/catalog.html#catalog_node)
