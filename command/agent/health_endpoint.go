@@ -131,6 +131,9 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 		out.Nodes = filterNonPassing(out.Nodes)
 	}
 
+	// Translate addresses after filtering so we don't waste effort.
+	translateAddresses(s.agent.config, args.Datacenter, out.Nodes)
+
 	// Use empty list instead of nil
 	for i, _ := range out.Nodes {
 		// TODO (slackpad) It's lame that this isn't a slice of pointers
@@ -142,12 +145,6 @@ func (s *HTTPServer) HealthServiceNodes(resp http.ResponseWriter, req *http.Requ
 	}
 	if out.Nodes == nil {
 		out.Nodes = make(structs.CheckServiceNodes, 0)
-	}
-
-	for _, checkServiceNode := range out.Nodes {
-		node := checkServiceNode.Node
-		addr := s.agent.TranslateAddr(args.Datacenter, node.Address, node.TaggedAddresses)
-		node.Address = addr
 	}
 
 	return out.Nodes, nil

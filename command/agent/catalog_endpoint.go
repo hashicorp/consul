@@ -2,9 +2,10 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/consul/structs"
 	"net/http"
 	"strings"
+
+	"github.com/hashicorp/consul/consul/structs"
 )
 
 func (s *HTTPServer) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -72,17 +73,12 @@ func (s *HTTPServer) CatalogNodes(resp http.ResponseWriter, req *http.Request) (
 	if err := s.agent.RPC("Catalog.ListNodes", &args, &out); err != nil {
 		return nil, err
 	}
+	translateAddresses(s.agent.config, args.Datacenter, out.Nodes)
 
 	// Use empty list instead of nil
 	if out.Nodes == nil {
 		out.Nodes = make(structs.Nodes, 0)
 	}
-
-	for _, node := range out.Nodes {
-		addr := s.agent.TranslateAddr(args.Datacenter, node.Address, node.TaggedAddresses)
-		node.Address = addr
-	}
-
 	return out.Nodes, nil
 }
 
@@ -130,17 +126,12 @@ func (s *HTTPServer) CatalogServiceNodes(resp http.ResponseWriter, req *http.Req
 	if err := s.agent.RPC("Catalog.ServiceNodes", &args, &out); err != nil {
 		return nil, err
 	}
+	translateAddresses(s.agent.config, args.Datacenter, out.ServiceNodes)
 
 	// Use empty list instead of nil
 	if out.ServiceNodes == nil {
 		out.ServiceNodes = make(structs.ServiceNodes, 0)
 	}
-
-	for _, serviceNode := range out.ServiceNodes {
-		addr := s.agent.TranslateAddr(args.Datacenter, serviceNode.Address, serviceNode.TaggedAddresses)
-		serviceNode.Address = addr
-	}
-
 	return out.ServiceNodes, nil
 }
 
@@ -165,11 +156,8 @@ func (s *HTTPServer) CatalogNodeServices(resp http.ResponseWriter, req *http.Req
 	if err := s.agent.RPC("Catalog.NodeServices", &args, &out); err != nil {
 		return nil, err
 	}
-
-	if out.NodeServices != nil {
-		node := out.NodeServices.Node
-		addr := s.agent.TranslateAddr(args.Datacenter, node.Address, node.TaggedAddresses)
-		node.Address = addr
+	if out.NodeServices != nil && out.NodeServices.Node != nil {
+		translateAddresses(s.agent.config, args.Datacenter, out.NodeServices.Node)
 	}
 
 	return out.NodeServices, nil

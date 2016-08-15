@@ -411,7 +411,7 @@ RPC:
 
 	// Add the node record
 	n := out.NodeServices.Node
-	addr := d.agent.TranslateAddr(datacenter, n.Address, n.TaggedAddresses)
+	addr := translateAddress(d.agent.config, datacenter, n.Address, n.TaggedAddresses)
 	records := d.formatNodeRecord(out.NodeServices.Node, addr,
 		req.Question[0].Name, qType, d.config.NodeTTL)
 	if records != nil {
@@ -764,7 +764,7 @@ func (d *DNSServer) serviceNodeRecords(dc string, nodes structs.CheckServiceNode
 	for _, node := range nodes {
 		// Start with the translated address but use the service address,
 		// if specified.
-		addr := d.agent.TranslateAddr(dc, node.Node.Address, node.Node.TaggedAddresses)
+		addr := translateAddress(d.agent.config, dc, node.Node.Address, node.Node.TaggedAddresses)
 		if node.Service.Address != "" {
 			addr = node.Service.Address
 		}
@@ -813,7 +813,7 @@ func (d *DNSServer) serviceSRVRecords(dc string, nodes structs.CheckServiceNodes
 
 		// Start with the translated address but use the service address,
 		// if specified.
-		addr := d.agent.TranslateAddr(dc, node.Node.Address, node.Node.TaggedAddresses)
+		addr := translateAddress(d.agent.config, dc, node.Node.Address, node.Node.TaggedAddresses)
 		if node.Service.Address != "" {
 			addr = node.Service.Address
 		}
