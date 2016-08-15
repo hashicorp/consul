@@ -750,10 +750,20 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="translate_wan_addrs"</a><a href="#translate_wan_addrs">`translate_wan_addrs`</a> If
   set to true, Consul will prefer a node's configured <a href="#_advertise-wan">WAN address</a>
-  when servicing DNS requests for a node in a remote datacenter. This allows the node to be
-  reached within its own datacenter using its local address, and reached from other datacenters
-  using its WAN address, which is useful in hybrid setups with mixed networks. This is disabled
-  by default.
+  when servicing DNS and HTTP requests for a node in a remote datacenter. This allows the node to
+  be reached within its own datacenter using its local address, and reached from other datacenters
+  using its WAN address, which is useful in hybrid setups with mixed networks. This is disabled by
+  default.
+  <br>
+  <br>
+  In addition to addresses in DNS responses, Consul will also translate node addresses in responses
+  to the following HTTP endpoints when querying a remote datacenter:
+  <br>
+  * [`/v1/catalog/nodes`](/docs/agent/http/catalog.html#catalog_nodes)
+  * [`/v1/catalog/node/<node>`](/docs/agent/http/catalog.html#catalog_node)
+  * [`/v1/catalog/service/<service>`](/docs/agent/http/catalog.html#catalog_service)
+  * [`/v1/health/service/<service>`](/docs/agent/http/health.html#health_service)
+  * [`/v1/query/<query or name>/execute`](/docs/agent/http/query.html#execute)
 
 * <a name="ui"></a><a href="#ui">`ui`</a> - Equivalent to the [`-ui`](#_ui)
   command-line flag.
@@ -764,20 +774,23 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="unix_sockets"></a><a href="#unix_sockets">`unix_sockets`</a> - This
   allows tuning the ownership and permissions of the
   Unix domain socket files created by Consul. Domain sockets are only used if
-  the HTTP or RPC addresses are configured with the `unix://` prefix. The
-  following options are valid within this construct and apply globally to all
-  sockets created by Consul:
+  the HTTP or RPC addresses are configured with the `unix://` prefix.
   <br>
-  * `user` - The name or ID of the user who will own the socket file.
-  * `group` - The group ID ownership of the socket file. Note that this option
-    currently only supports numeric IDs.
-  * `mode` - The permission bits to set on the file.
   <br>
   It is important to note that this option may have different effects on
   different operating systems. Linux generally observes socket file permissions
   while many BSD variants ignore permissions on the socket file itself. It is
   important to test this feature on your specific distribution. This feature is
   currently not functional on Windows hosts.
+  <br>
+  <br>
+  The following options are valid within this construct and apply globally to all
+  sockets created by Consul:
+  <br>
+  * `user` - The name or ID of the user who will own the socket file.
+  * `group` - The group ID ownership of the socket file. Note that this option
+    currently only supports numeric IDs.
+  * `mode` - The permission bits to set on the file.
 
 * <a name="verify_incoming"></a><a href="#verify_incoming">`verify_incoming`</a> - If
   set to true, Consul requires that all incoming
