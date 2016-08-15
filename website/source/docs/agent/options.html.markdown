@@ -29,7 +29,7 @@ are documented below in the
 [reload command](/docs/commands/reload.html) can also be used to trigger a
 configuration reload.
 
-## Command-line Options
+## <a name="commandline_options"></a>Command-line Options
 
 The options below are all specified on the command-line.
 
