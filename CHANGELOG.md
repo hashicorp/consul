@@ -32,8 +32,9 @@ FEATURES:
   quorum. This version also provides a foundation for new features that will
   appear in future Consul versions once the remainder of the v2 library is
   complete. [GH-2222]
-* Extended `translate_wan_addrs` config option to also translate node addresses
-  in HTTP endpoints, making it easy to use this feature from non-DNS clients. [GH-2118]
+* Extended [`translate_wan_addrs`](https://www.consul.io/docs/agent/options.html#translate_wan_addrs)
+  config option to also translate node addresses in HTTP endpoints, making it easy
+  to use this feature from non-DNS clients. [GH-2118]
 
 BACKWARDS INCOMPATIBILITIES:
 
