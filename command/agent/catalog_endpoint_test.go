@@ -146,13 +146,41 @@ func TestCatalogNodes(t *testing.T) {
 }
 
 func TestCatalogNodes_WanTranslation(t *testing.T) {
-	httpCtx1, httpCtx2 := setupWanHTTPServers(t)
-	defer shutdownHTTPServer(httpCtx1)
-	defer shutdownHTTPServer(httpCtx2)
-	srv1 := httpCtx1.srv
-	srv2 := httpCtx2.srv
+	dir1, srv1 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc1"
+			c.TranslateWanAddrs = true
+		})
+	defer os.RemoveAll(dir1)
+	defer srv1.Shutdown()
+	defer srv1.agent.Shutdown()
+	testutil.WaitForLeader(t, srv1.agent.RPC, "dc1")
 
-	// Register a node with DC2
+	dir2, srv2 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc2"
+			c.TranslateWanAddrs = true
+		})
+	defer os.RemoveAll(dir2)
+	defer srv2.Shutdown()
+	defer srv2.agent.Shutdown()
+	testutil.WaitForLeader(t, srv2.agent.RPC, "dc2")
+
+	// Wait for the WAN join.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		srv1.agent.config.Ports.SerfWan)
+	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForResult(
+		func() (bool, error) {
+			return len(srv1.agent.WANMembers()) > 1, nil
+		},
+		func(err error) {
+			t.Fatalf("Failed waiting for WAN join: %v", err)
+		})
+
+	// Register a node with DC2.
 	{
 		args := &structs.RegisterRequest{
 			Datacenter: "dc2",
@@ -172,65 +200,54 @@ func TestCatalogNodes_WanTranslation(t *testing.T) {
 		}
 	}
 
+	// Query nodes in DC2 from DC1.
 	req, err := http.NewRequest("GET", "/v1/catalog/nodes?dc=dc2", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// get nodes for DC2 from DC1
 	resp1 := httptest.NewRecorder()
 	obj1, err1 := srv1.CatalogNodes(resp1, req)
 	if err1 != nil {
 		t.Fatalf("err: %v", err1)
 	}
-
-	// Verify an index is set
 	assertIndex(t, resp1)
 
+	// Expect that DC1 gives us a WAN address (since the node is in DC2).
 	nodes1 := obj1.(structs.Nodes)
 	if len(nodes1) != 2 {
 		t.Fatalf("bad: %v", obj1)
 	}
-
-	var node1 *structs.Node
-
+	var address string
 	for _, node := range nodes1 {
 		if node.Node == "wan_translation_test" {
-			node1 = node
+			address = node.Address
 		}
 	}
-
-	// Expect that DC1 gives us a public address (since the node is in DC2)
-	if node1.Address != "127.0.0.2" {
-		t.Fatalf("bad: %v", node1)
+	if address != "127.0.0.2" {
+		t.Fatalf("bad: %s", address)
 	}
 
-	// get nodes for DC2 from DC2
+	// Query DC2 from DC2.
 	resp2 := httptest.NewRecorder()
 	obj2, err2 := srv2.CatalogNodes(resp2, req)
 	if err2 != nil {
 		t.Fatalf("err: %v", err2)
 	}
-
-	// Verify an index is set
 	assertIndex(t, resp2)
 
+	// Expect that DC2 gives us a private address (since the node is in DC2).
 	nodes2 := obj2.(structs.Nodes)
 	if len(nodes2) != 2 {
 		t.Fatalf("bad: %v", obj2)
 	}
-
-	var node2 *structs.Node
-
 	for _, node := range nodes2 {
 		if node.Node == "wan_translation_test" {
-			node2 = node
+			address = node.Address
 		}
 	}
-
-	// Expect that DC2 gives us a private address (since the node is in DC2)
-	if node2.Address != "127.0.0.1" {
-		t.Fatalf("bad: %v", node2)
+	if address != "127.0.0.1" {
+		t.Fatalf("bad: %s", address)
 	}
 }
 
@@ -497,13 +514,41 @@ func TestCatalogServiceNodes(t *testing.T) {
 }
 
 func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
-	httpCtx1, httpCtx2 := setupWanHTTPServers(t)
-	defer shutdownHTTPServer(httpCtx1)
-	defer shutdownHTTPServer(httpCtx2)
-	srv1 := httpCtx1.srv
-	srv2 := httpCtx2.srv
+	dir1, srv1 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc1"
+			c.TranslateWanAddrs = true
+		})
+	defer os.RemoveAll(dir1)
+	defer srv1.Shutdown()
+	defer srv1.agent.Shutdown()
+	testutil.WaitForLeader(t, srv1.agent.RPC, "dc1")
 
-	// Register a node with DC2
+	dir2, srv2 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc2"
+			c.TranslateWanAddrs = true
+		})
+	defer os.RemoveAll(dir2)
+	defer srv2.Shutdown()
+	defer srv2.agent.Shutdown()
+	testutil.WaitForLeader(t, srv2.agent.RPC, "dc2")
+
+	// Wait for the WAN join.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		srv1.agent.config.Ports.SerfWan)
+	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForResult(
+		func() (bool, error) {
+			return len(srv1.agent.WANMembers()) > 1, nil
+		},
+		func(err error) {
+			t.Fatalf("Failed waiting for WAN join: %v", err)
+		})
+
+	// Register a node with DC2.
 	{
 		args := &structs.RegisterRequest{
 			Datacenter: "dc2",
@@ -523,49 +568,43 @@ func TestCatalogServiceNodes_WanTranslation(t *testing.T) {
 		}
 	}
 
+	// Query for the node in DC2 from DC1.
 	req, err := http.NewRequest("GET", "/v1/catalog/service/http_wan_translation_test?dc=dc2", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Ask HTTP server on DC1 for the node
 	resp1 := httptest.NewRecorder()
 	obj1, err1 := srv1.CatalogServiceNodes(resp1, req)
 	if err1 != nil {
 		t.Fatalf("err: %v", err1)
 	}
-
 	assertIndex(t, resp1)
 
+	// Expect that DC1 gives us a WAN address (since the node is in DC2).
 	nodes1 := obj1.(structs.ServiceNodes)
 	if len(nodes1) != 1 {
 		t.Fatalf("bad: %v", obj1)
 	}
-
 	node1 := nodes1[0]
-
-	// Expect that DC1 gives us a public address (since the node is in DC2)
 	if node1.Address != "127.0.0.2" {
 		t.Fatalf("bad: %v", node1)
 	}
 
-	// Ask HTTP server on DC2 for the node
+	// Query DC2 from DC2.
 	resp2 := httptest.NewRecorder()
 	obj2, err2 := srv2.CatalogServiceNodes(resp2, req)
 	if err2 != nil {
 		t.Fatalf("err: %v", err2)
 	}
-
 	assertIndex(t, resp2)
 
+	// Expect that DC2 gives us a local address (since the node is in DC2).
 	nodes2 := obj2.(structs.ServiceNodes)
 	if len(nodes2) != 1 {
 		t.Fatalf("bad: %v", obj2)
 	}
-
 	node2 := nodes2[0]
-
-	// Expect that DC2 gives us a local address (since the node is in DC2)
 	if node2.Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", node2)
 	}
@@ -716,13 +755,41 @@ func TestCatalogNodeServices(t *testing.T) {
 }
 
 func TestCatalogNodeServices_WanTranslation(t *testing.T) {
-	httpCtx1, httpCtx2 := setupWanHTTPServers(t)
-	defer shutdownHTTPServer(httpCtx1)
-	defer shutdownHTTPServer(httpCtx2)
-	srv1 := httpCtx1.srv
-	srv2 := httpCtx2.srv
+	dir1, srv1 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc1"
+			c.TranslateWanAddrs = true
+		})
+	defer os.RemoveAll(dir1)
+	defer srv1.Shutdown()
+	defer srv1.agent.Shutdown()
+	testutil.WaitForLeader(t, srv1.agent.RPC, "dc1")
 
-	// Register a node with DC2
+	dir2, srv2 := makeHTTPServerWithConfig(t,
+		func(c *Config) {
+			c.Datacenter = "dc2"
+			c.TranslateWanAddrs = true
+		})
+	defer os.RemoveAll(dir2)
+	defer srv2.Shutdown()
+	defer srv2.agent.Shutdown()
+	testutil.WaitForLeader(t, srv2.agent.RPC, "dc2")
+
+	// Wait for the WAN join.
+	addr := fmt.Sprintf("127.0.0.1:%d",
+		srv1.agent.config.Ports.SerfWan)
+	if _, err := srv2.agent.JoinWAN([]string{addr}); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	testutil.WaitForResult(
+		func() (bool, error) {
+			return len(srv1.agent.WANMembers()) > 1, nil
+		},
+		func(err error) {
+			t.Fatalf("Failed waiting for WAN join: %v", err)
+		})
+
+	// Register a node with DC2.
 	{
 		args := &structs.RegisterRequest{
 			Datacenter: "dc2",
@@ -742,12 +809,11 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 		}
 	}
 
+	// Query for the node in DC2 from DC1.
 	req, err := http.NewRequest("GET", "/v1/catalog/node/foo?dc=dc2", nil)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	// ask DC1 for node in DC2
 	resp1 := httptest.NewRecorder()
 	obj1, err1 := srv1.CatalogNodeServices(resp1, req)
 	if err1 != nil {
@@ -755,19 +821,17 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	}
 	assertIndex(t, resp1)
 
+	// Expect that DC1 gives us a WAN address (since the node is in DC2).
 	services1 := obj1.(*structs.NodeServices)
 	if len(services1.Services) != 1 {
 		t.Fatalf("bad: %v", obj1)
 	}
-
 	service1 := services1.Node
-
-	// Expect that DC1 gives us a public address (since the node is in DC2)
 	if service1.Address != "127.0.0.2" {
 		t.Fatalf("bad: %v", service1)
 	}
 
-	// ask DC2 for node in DC2
+	// Query DC2 from DC2.
 	resp2 := httptest.NewRecorder()
 	obj2, err2 := srv2.CatalogNodeServices(resp2, req)
 	if err2 != nil {
@@ -775,14 +839,12 @@ func TestCatalogNodeServices_WanTranslation(t *testing.T) {
 	}
 	assertIndex(t, resp2)
 
+	// Expect that DC2 gives us a private address (since the node is in DC2).
 	services2 := obj2.(*structs.NodeServices)
 	if len(services2.Services) != 1 {
 		t.Fatalf("bad: %v", obj2)
 	}
-
 	service2 := services2.Node
-
-	// Expect that DC2 gives us a private address (since the node is in DC2)
 	if service2.Address != "127.0.0.1" {
 		t.Fatalf("bad: %v", service2)
 	}
