@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/singleflight"
+	"github.com/miekg/coredns/singleflight"
 
 	"github.com/miekg/dns"
 	gcache "github.com/patrickmn/go-cache"
