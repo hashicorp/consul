@@ -183,6 +183,7 @@ func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
 		t.Fatalf("RPC is not properly set to %v: %s", c.AdvertiseAddrs.RPC, rpc)
 	}
 	expected := map[string]string{
+		"lan": agent.config.AdvertiseAddr,
 		"wan": agent.config.AdvertiseAddrWan,
 	}
 	if !reflect.DeepEqual(agent.config.TaggedAddresses, expected) {
