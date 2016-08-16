@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/yamux"
 )
@@ -202,11 +203,13 @@ func startTLSServer(config *Config) (net.Conn, chan error) {
 	serverConn, _ := serverSession.Accept()
 
 	go func() {
+		serverConn.SetReadDeadline(time.Now().Add(time.Second))
 		tlsServer := tls.Server(serverConn, tlsConfigServer)
 		if err := tlsServer.Handshake(); err != nil {
 			errc <- err
 		}
 		close(errc)
+
 		// Because net.Pipe() is unbuffered, if both sides
 		// Close() simultaneously, we will deadlock as they
 		// both send an alert and then block. So we make the
