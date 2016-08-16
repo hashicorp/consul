@@ -51,8 +51,8 @@ BACKWARDS INCOMPATIBILITIES:
   behavior from [GH-2118] that translates addresses in HTTP responses could break
   clients that are expecting local addresses. A new `X-Consul-Translate-Addresses`
   header was added to allow clients to detect if translation is enabled for HTTP
-  responses, and a "lan" `TaggedAddress` was added for clients that need the local
-  address regardless of translation. [GH-2280]
+  responses, and a "lan" tag was added to `TaggedAddresses` for clients that need
+  the local address regardless of translation. [GH-2280]
 
 IMPROVEMENTS:
 
