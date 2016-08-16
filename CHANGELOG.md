@@ -33,7 +33,7 @@ FEATURES:
   appear in future Consul versions once the remainder of the v2 library is
   complete. [GH-2222]
 * Extended [`translate_wan_addrs`](https://www.consul.io/docs/agent/options.html#translate_wan_addrs)
-  config option to also translate node addresses in HTTP endpoints, making it easy
+  config option to also translate node addresses in HTTP responses, making it easy
   to use this feature from non-DNS clients. [GH-2118]
 
 BACKWARDS INCOMPATIBILITIES:
@@ -47,6 +47,12 @@ BACKWARDS INCOMPATIBILITIES:
 * Removed support for protocol version 1, so Consul 0.7 is no longer compatible
   with Consul versions prior to 0.3. [GH-2259]
 * The Raft peers information in `consul info` has changed format. [GH-2222]
+* The extended [`translate_wan_addrs`](https://www.consul.io/docs/agent/options.html#translate_wan_addrs)
+  behavior from [GH-2118] that translates addresses in HTTP responses could break
+  clients that are expecting local addresses. A new `X-Consul-Translate-Addresses`
+  header was added to allow clients to detect if translation is enabled for HTTP
+  responses, and a "lan" `TaggedAddress` was added for clients that need the local
+  address regardless of translation. [GH-2280]
 
 IMPROVEMENTS:
 
