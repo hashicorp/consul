@@ -94,6 +94,9 @@ func TestHealth_Service(t *testing.T) {
 		if len(checks) == 0 {
 			return false, fmt.Errorf("Bad: %v", checks)
 		}
+		if _, ok := checks[0].Node.TaggedAddresses["wan"]; !ok {
+			return false, fmt.Errorf("Bad: %v", checks)
+		}
 		return true, nil
 	}, func(err error) {
 		t.Fatalf("err: %s", err)

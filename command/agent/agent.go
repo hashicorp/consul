@@ -174,6 +174,7 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 
 	// Create the default set of tagged addresses.
 	config.TaggedAddresses = map[string]string{
+		"lan": config.AdvertiseAddr,
 		"wan": config.AdvertiseAddrWan,
 	}
 

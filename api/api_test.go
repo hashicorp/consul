@@ -306,6 +306,7 @@ func TestParseQueryMeta(t *testing.T) {
 	resp.Header.Set("X-Consul-Index", "12345")
 	resp.Header.Set("X-Consul-LastContact", "80")
 	resp.Header.Set("X-Consul-KnownLeader", "true")
+	resp.Header.Set("X-Consul-Translate-Addresses", "true")
 
 	qm := &QueryMeta{}
 	if err := parseQueryMeta(resp, qm); err != nil {
@@ -319,6 +320,9 @@ func TestParseQueryMeta(t *testing.T) {
 		t.Fatalf("Bad: %v", qm)
 	}
 	if !qm.KnownLeader {
+		t.Fatalf("Bad: %v", qm)
+	}
+	if !qm.AddressTranslationEnabled {
 		t.Fatalf("Bad: %v", qm)
 	}
 }

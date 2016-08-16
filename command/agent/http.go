@@ -329,6 +329,7 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Request) (interface{}, error)) func(resp http.ResponseWriter, req *http.Request) {
 	f := func(resp http.ResponseWriter, req *http.Request) {
 		setHeaders(resp, s.agent.config.HTTPAPIResponseHeaders)
+		setTranslateAddr(resp, s.agent.config.TranslateWanAddrs)
 
 		// Obfuscate any tokens from appearing in the logs
 		formVals, err := url.ParseQuery(req.URL.RawQuery)
@@ -373,6 +374,7 @@ func (s *HTTPServer) wrap(handler func(resp http.ResponseWriter, req *http.Reque
 			if strings.Contains(errMsg, "Permission denied") || strings.Contains(errMsg, "ACL not found") {
 				code = http.StatusForbidden // 403
 			}
+
 			resp.WriteHeader(code)
 			resp.Write([]byte(err.Error()))
 			return
@@ -450,6 +452,14 @@ func decodeBody(req *http.Request, out interface{}, cb func(interface{}) error) 
 		}
 	}
 	return mapstructure.Decode(raw, out)
+}
+
+// setTranslateAddr is used to set the address translation header. This is only
+// present if the feature is active.
+func setTranslateAddr(resp http.ResponseWriter, active bool) {
+	if active {
+		resp.Header().Set("X-Consul-Translate-Addresses", "true")
+	}
 }
 
 // setIndex is used to set the index response header

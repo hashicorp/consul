@@ -223,6 +223,51 @@ func TestSetMeta(t *testing.T) {
 	}
 }
 
+func TestHTTPAPI_TranslateAddrHeader(t *testing.T) {
+	// Header should not be present if address translation is off.
+	{
+		dir, srv := makeHTTPServer(t)
+		defer os.RemoveAll(dir)
+		defer srv.Shutdown()
+		defer srv.agent.Shutdown()
+
+		resp := httptest.NewRecorder()
+		handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+			return nil, nil
+		}
+
+		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+		srv.wrap(handler)(resp, req)
+
+		translate := resp.Header().Get("X-Consul-Translate-Addresses")
+		if translate != "" {
+			t.Fatalf("bad: expected %q, got %q", "", translate)
+		}
+	}
+
+	// Header should be set to true if it's turned on.
+	{
+		dir, srv := makeHTTPServer(t)
+		srv.agent.config.TranslateWanAddrs = true
+		defer os.RemoveAll(dir)
+		defer srv.Shutdown()
+		defer srv.agent.Shutdown()
+
+		resp := httptest.NewRecorder()
+		handler := func(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+			return nil, nil
+		}
+
+		req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+		srv.wrap(handler)(resp, req)
+
+		translate := resp.Header().Get("X-Consul-Translate-Addresses")
+		if translate != "true" {
+			t.Fatalf("bad: expected %q, got %q", "true", translate)
+		}
+	}
+}
+
 func TestHTTPAPIResponseHeaders(t *testing.T) {
 	dir, srv := makeHTTPServer(t)
 	srv.agent.config.HTTPAPIResponseHeaders = map[string]string{
