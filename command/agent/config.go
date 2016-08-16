@@ -422,6 +422,14 @@ type Config struct {
 	CheckUpdateInterval    time.Duration `mapstructure:"-"`
 	CheckUpdateIntervalRaw string        `mapstructure:"check_update_interval" json:"-"`
 
+	// CheckReapInterval controls the interval on which we will look for
+	// failed checks and reap their associated services, if so configured.
+	CheckReapInterval time.Duration `mapstructure:"-"`
+
+	// CheckDeregisterIntervalMin is the smallest allowed interval to set
+	// a check's DeregisterCriticalServiceAfter value to.
+	CheckDeregisterIntervalMin time.Duration `mapstructure:"-"`
+
 	// ACLToken is the default token used to make requests if a per-request
 	// token is not provided. If not configured the 'anonymous' token is used.
 	ACLToken string `mapstructure:"acl_token" json:"-"`
@@ -632,11 +640,13 @@ func DefaultConfig() *Config {
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
 		},
-		SyslogFacility:      "LOCAL0",
-		Protocol:            consul.ProtocolVersion2Compatible,
-		CheckUpdateInterval: 5 * time.Minute,
-		AEInterval:          time.Minute,
-		DisableCoordinates:  false,
+		SyslogFacility:             "LOCAL0",
+		Protocol:                   consul.ProtocolVersion2Compatible,
+		CheckUpdateInterval:        5 * time.Minute,
+		CheckDeregisterIntervalMin: time.Minute,
+		CheckReapInterval:          30 * time.Second,
+		AEInterval:                 time.Minute,
+		DisableCoordinates:         false,
 
 		// SyncCoordinateRateTarget is set based on the rate that we want
 		// the server to handle as an aggregate across the entire cluster.
@@ -975,6 +985,7 @@ AFTER_FIX:
 
 func FixupCheckType(raw interface{}) error {
 	var ttlKey, intervalKey, timeoutKey string
+	const deregisterKey = "DeregisterCriticalServiceAfter"
 
 	// Handle decoding of time durations
 	rawMap, ok := raw.(map[string]interface{})
@@ -990,12 +1001,15 @@ func FixupCheckType(raw interface{}) error {
 			intervalKey = k
 		case "timeout":
 			timeoutKey = k
+		case "deregister_critical_service_after":
+			rawMap[deregisterKey] = v
+			delete(rawMap, k)
 		case "service_id":
 			rawMap["serviceid"] = v
-			delete(rawMap, "service_id")
+			delete(rawMap, k)
 		case "docker_container_id":
 			rawMap["DockerContainerID"] = v
-			delete(rawMap, "docker_container_id")
+			delete(rawMap, k)
 		}
 	}
 
@@ -1028,6 +1042,17 @@ func FixupCheckType(raw interface{}) error {
 				return err
 			} else {
 				rawMap[timeoutKey] = dur
+			}
+		}
+	}
+
+	if deregister, ok := rawMap[deregisterKey]; ok {
+		timeoutS, ok := deregister.(string)
+		if ok {
+			if dur, err := time.ParseDuration(timeoutS); err != nil {
+				return err
+			} else {
+				rawMap[deregisterKey] = dur
 			}
 		}
 	}

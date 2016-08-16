@@ -1258,7 +1258,7 @@ func TestDecodeConfig_Multiples(t *testing.T) {
 
 func TestDecodeConfig_Service(t *testing.T) {
 	// Basics
-	input := `{"service": {"id": "red1", "name": "redis", "tags": ["master"], "port":8000, "check": {"script": "/bin/check_redis", "interval": "10s", "ttl": "15s" }}}`
+	input := `{"service": {"id": "red1", "name": "redis", "tags": ["master"], "port":8000, "check": {"script": "/bin/check_redis", "interval": "10s", "ttl": "15s", "DeregisterCriticalServiceAfter": "90m" }}}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -1296,11 +1296,15 @@ func TestDecodeConfig_Service(t *testing.T) {
 	if serv.Check.TTL != 15*time.Second {
 		t.Fatalf("bad: %v", serv)
 	}
+
+	if serv.Check.DeregisterCriticalServiceAfter != 90*time.Minute {
+		t.Fatalf("bad: %v", serv)
+	}
 }
 
 func TestDecodeConfig_Check(t *testing.T) {
 	// Basics
-	input := `{"check": {"id": "chk1", "name": "mem", "notes": "foobar", "script": "/bin/check_redis", "interval": "10s", "ttl": "15s", "shell": "/bin/bash", "docker_container_id": "redis" }}`
+	input := `{"check": {"id": "chk1", "name": "mem", "notes": "foobar", "script": "/bin/check_redis", "interval": "10s", "ttl": "15s", "shell": "/bin/bash", "docker_container_id": "redis", "deregister_critical_service_after": "90s" }}`
 	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -1340,6 +1344,10 @@ func TestDecodeConfig_Check(t *testing.T) {
 	}
 
 	if chk.DockerContainerID != "redis" {
+		t.Fatalf("bad: %v", chk)
+	}
+
+	if chk.DeregisterCriticalServiceAfter != 90*time.Second {
 		t.Fatalf("bad: %v", chk)
 	}
 }

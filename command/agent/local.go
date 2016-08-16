@@ -57,9 +57,10 @@ type localState struct {
 	serviceTokens map[string]string
 
 	// Checks tracks the local checks
-	checks      map[types.CheckID]*structs.HealthCheck
-	checkStatus map[types.CheckID]syncStatus
-	checkTokens map[types.CheckID]string
+	checks            map[types.CheckID]*structs.HealthCheck
+	checkStatus       map[types.CheckID]syncStatus
+	checkTokens       map[types.CheckID]string
+	checkCriticalTime map[types.CheckID]time.Time
 
 	// Used to track checks that are being deferred
 	deferCheck map[types.CheckID]*time.Timer
@@ -83,6 +84,7 @@ func (l *localState) Init(config *Config, logger *log.Logger) {
 	l.checks = make(map[types.CheckID]*structs.HealthCheck)
 	l.checkStatus = make(map[types.CheckID]syncStatus)
 	l.checkTokens = make(map[types.CheckID]string)
+	l.checkCriticalTime = make(map[types.CheckID]time.Time)
 	l.deferCheck = make(map[types.CheckID]*time.Timer)
 	l.consulCh = make(chan struct{}, 1)
 	l.triggerCh = make(chan struct{}, 1)
@@ -222,6 +224,7 @@ func (l *localState) AddCheck(check *structs.HealthCheck, token string) {
 	l.checks[check.CheckID] = check
 	l.checkStatus[check.CheckID] = syncStatus{}
 	l.checkTokens[check.CheckID] = token
+	delete(l.checkCriticalTime, check.CheckID)
 	l.changeMade()
 }
 
@@ -233,6 +236,7 @@ func (l *localState) RemoveCheck(checkID types.CheckID) {
 
 	delete(l.checks, checkID)
 	delete(l.checkTokens, checkID)
+	delete(l.checkCriticalTime, checkID)
 	l.checkStatus[checkID] = syncStatus{remoteDelete: true}
 	l.changeMade()
 }
@@ -245,6 +249,17 @@ func (l *localState) UpdateCheck(checkID types.CheckID, status, output string) {
 	check, ok := l.checks[checkID]
 	if !ok {
 		return
+	}
+
+	// Update the critical time tracking (this doesn't cause a server updates
+	// so we can always keep this up to date).
+	if status == structs.HealthCritical {
+		_, wasCritical := l.checkCriticalTime[checkID]
+		if !wasCritical {
+			l.checkCriticalTime[checkID] = time.Now()
+		}
+	} else {
+		delete(l.checkCriticalTime, checkID)
 	}
 
 	// Do nothing if update is idempotent
@@ -291,6 +306,34 @@ func (l *localState) Checks() map[types.CheckID]*structs.HealthCheck {
 	for checkID, check := range l.checks {
 		checks[checkID] = check
 	}
+	return checks
+}
+
+// CriticalCheck is used to return the duration a check has been critical along
+// with its associated health check.
+type CriticalCheck struct {
+	CriticalFor time.Duration
+	Check       *structs.HealthCheck
+}
+
+// CriticalChecks returns locally registered health checks that the agent is
+// aware of and are being kept in sync with the server, and that are in a
+// critical state. This also returns information about how long each check has
+// been critical.
+func (l *localState) CriticalChecks() map[types.CheckID]CriticalCheck {
+	checks := make(map[types.CheckID]CriticalCheck)
+
+	l.RLock()
+	defer l.RUnlock()
+
+	now := time.Now()
+	for checkID, criticalTime := range l.checkCriticalTime {
+		checks[checkID] = CriticalCheck{
+			CriticalFor: now.Sub(criticalTime),
+			Check:       l.checks[checkID],
+		}
+	}
+
 	return checks
 }
 
@@ -546,7 +589,7 @@ func (l *localState) deleteService(id string) error {
 	return err
 }
 
-// deleteCheck is used to delete a service from the server
+// deleteCheck is used to delete a check from the server
 func (l *localState) deleteCheck(id types.CheckID) error {
 	if id == "" {
 		return fmt.Errorf("CheckID missing")

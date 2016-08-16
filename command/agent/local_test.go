@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/types"
 )
 
 func TestAgentAntiEntropy_Services(t *testing.T) {
@@ -956,6 +957,66 @@ func TestAgent_checkTokens(t *testing.T) {
 	l.RemoveCheck("mem")
 	if token := l.CheckToken("mem"); token != "default" {
 		t.Fatalf("bad: %s", token)
+	}
+}
+
+func TestAgent_checkCriticalTime(t *testing.T) {
+	config := nextConfig()
+	l := new(localState)
+	l.Init(config, nil)
+
+	// Add a passing check and make sure it's not critical.
+	checkID := types.CheckID("redis:1")
+	chk := &structs.HealthCheck{
+		Node:      "node",
+		CheckID:   checkID,
+		Name:      "redis:1",
+		ServiceID: "redis",
+		Status:    structs.HealthPassing,
+	}
+	l.AddCheck(chk, "")
+	if checks := l.CriticalChecks(); len(checks) > 0 {
+		t.Fatalf("should not have any critical checks")
+	}
+
+	// Set it to warning and make sure that doesn't show up as critical.
+	l.UpdateCheck(checkID, structs.HealthWarning, "")
+	if checks := l.CriticalChecks(); len(checks) > 0 {
+		t.Fatalf("should not have any critical checks")
+	}
+
+	// Fail the check and make sure the time looks reasonable.
+	l.UpdateCheck(checkID, structs.HealthCritical, "")
+	if crit, ok := l.CriticalChecks()[checkID]; !ok {
+		t.Fatalf("should have a critical check")
+	} else if crit.CriticalFor > time.Millisecond {
+		t.Fatalf("bad: %#v", crit)
+	}
+
+	// Wait a while, then fail it again and make sure the time keeps track
+	// of the initial failure, and doesn't reset here.
+	time.Sleep(10 * time.Millisecond)
+	l.UpdateCheck(chk.CheckID, structs.HealthCritical, "")
+	if crit, ok := l.CriticalChecks()[checkID]; !ok {
+		t.Fatalf("should have a critical check")
+	} else if crit.CriticalFor < 5*time.Millisecond ||
+		crit.CriticalFor > 15*time.Millisecond {
+		t.Fatalf("bad: %#v", crit)
+	}
+
+	// Set it passing again.
+	l.UpdateCheck(checkID, structs.HealthPassing, "")
+	if checks := l.CriticalChecks(); len(checks) > 0 {
+		t.Fatalf("should not have any critical checks")
+	}
+
+	// Fail the check and make sure the time looks like it started again
+	// from the latest failure, not the original one.
+	l.UpdateCheck(checkID, structs.HealthCritical, "")
+	if crit, ok := l.CriticalChecks()[checkID]; !ok {
+		t.Fatalf("should have a critical check")
+	} else if crit.CriticalFor > time.Millisecond {
+		t.Fatalf("bad: %#v", crit)
 	}
 }
 
