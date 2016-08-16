@@ -41,7 +41,8 @@ body must look something like:
   "Node": "foobar",
   "Address": "192.168.10.10",
   "TaggedAddresses": {
-    "wan": "127.0.0.1"
+    "lan": "192.168.10.10",
+    "wan": "10.0.10.10"
   },
   "Service": {
     "ID": "redis1",
@@ -69,7 +70,8 @@ requires `Node` and `Address` to be provided while `Datacenter` will be defaulte
 to match that of the agent. If only those are provided, the endpoint will register
 the node with the catalog. `TaggedAddresses` can be used in conjunction with the
 [`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs) configuration
-option. Currently only the "wan" tag is supported.
+option and the "wan" address. The "lan" address was added in Consul 0.7 to help find
+the LAN address if address translation is enabled.
 
 If the `Service` key is provided, the service will also be registered. If
 `ID` is not provided, it will be defaulted to the value of the `Service.Service` property.
@@ -200,6 +202,7 @@ It returns a JSON body like this:
     "Node": "baz",
     "Address": "10.1.10.11",
     "TaggedAddresses": {
+      "lan": "10.1.10.11",
       "wan": "10.1.10.11"
     }
   },
@@ -207,6 +210,7 @@ It returns a JSON body like this:
     "Node": "foobar",
     "Address": "10.1.10.12",
     "TaggedAddresses": {
+      "lan": "10.1.10.11",
       "wan": "10.1.10.12"
     }
   }
@@ -287,6 +291,7 @@ It returns a JSON body like this:
     "Node": "foobar",
     "Address": "10.1.10.12",
     "TaggedAddresses": {
+      "lan": "10.1.10.12",
       "wan": "10.1.10.12"
     }
   },

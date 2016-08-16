@@ -51,6 +51,10 @@ func TestCatalog_Nodes(t *testing.T) {
 			return false, fmt.Errorf("Bad: %v", nodes)
 		}
 
+		if _, ok := nodes[0].TaggedAddresses["wan"]; !ok {
+			return false, fmt.Errorf("Bad: %v", nodes)
+		}
+
 		return true, nil
 	}, func(err error) {
 		t.Fatalf("err: %s", err)
@@ -128,7 +132,12 @@ func TestCatalog_Node(t *testing.T) {
 		if meta.LastIndex == 0 {
 			return false, fmt.Errorf("Bad: %v", meta)
 		}
+
 		if len(info.Services) == 0 {
+			return false, fmt.Errorf("Bad: %v", info)
+		}
+
+		if _, ok := info.Node.TaggedAddresses["wan"]; !ok {
 			return false, fmt.Errorf("Bad: %v", info)
 		}
 

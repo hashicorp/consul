@@ -399,7 +399,11 @@ a JSON body will be returned like this:
     {
       "Node": {
         "Node": "foobar",
-        "Address": "10.1.10.12"
+        "Address": "10.1.10.12",
+        "TaggedAddresses": {
+          "lan": "10.1.10.12",
+          "wan": "10.1.10.12"
+        }
       },
       "Service": {
         "ID": "redis",
