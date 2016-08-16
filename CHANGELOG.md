@@ -79,7 +79,7 @@ IMPROVEMENTS:
 * Added version information to the log when Consul starts up. [GH-1404]
 * Added timing metrics for HTTP requests. [GH-2256]
 * Updated all vendored dependencies. [GH-2258]
-* Builds Consul releases with Go 1.6.3. [GH-2260]
+* Consul releases are now built with Go 1.6.3. [GH-2260]
 * Added a `-stale` mode for watchers to allow them to pull data from any Consul
   server, not just the leader. [GH-2045] [GH-917]
 * Consul now compresses all DNS responses by default. This prevents issues when
