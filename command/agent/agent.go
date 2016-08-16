@@ -673,44 +673,45 @@ func (a *Agent) sendCoordinate() {
 	}
 }
 
+// reapServicesInternal does a single pass, looking for services to reap.
+func (a *Agent) reapServicesInternal() {
+	reaped := make(map[string]struct{})
+	for checkID, check := range a.state.CriticalChecks() {
+		// There's nothing to do if there's no service.
+		if check.Check.ServiceID == "" {
+			continue
+		}
+
+		// There might be multiple checks for one service, so
+		// we don't need to reap multiple times.
+		serviceID := check.Check.ServiceID
+		if _, ok := reaped[serviceID]; ok {
+			continue
+		}
+
+		// See if there's a timeout.
+		a.checkLock.Lock()
+		timeout, ok := a.checkReapAfter[checkID]
+		a.checkLock.Unlock()
+
+		// Reap, if necessary. We keep track of which service
+		// this is so that we won't try to remove it again.
+		if ok && check.CriticalFor > timeout {
+			reaped[serviceID] = struct{}{}
+			a.RemoveService(serviceID, true)
+			a.logger.Printf("[INFO] agent: Check %q for service %q has been critical for too long; deregistered service",
+				checkID, serviceID)
+		}
+	}
+}
+
 // reapServices is a long running goroutine that looks for checks that have been
 // critical too long and dregisters their associated services.
 func (a *Agent) reapServices() {
-	reap := func() {
-		reaped := make(map[string]struct{})
-		for checkID, check := range a.state.CriticalChecks() {
-			// There's nothing to do if there's no service.
-			if check.Check.ServiceID == "" {
-				continue
-			}
-
-			// There might be multiple checks for one service, so
-			// we don't need to reap multiple times.
-			serviceID := check.Check.ServiceID
-			if _, ok := reaped[serviceID]; ok {
-				continue
-			}
-
-			// See if there's a timeout.
-			a.checkLock.Lock()
-			timeout, ok := a.checkReapAfter[checkID]
-			a.checkLock.Unlock()
-
-			// Reap, if necessary. We keep track of which service
-			// this is so that we won't try to remove it again.
-			if ok && check.CriticalFor > timeout {
-				reaped[serviceID] = struct{}{}
-				a.RemoveService(serviceID, true)
-				a.logger.Printf("[INFO] agent: Check %q for service %q has been critical for too long; deregistered service",
-					checkID, serviceID)
-			}
-		}
-	}
-
 	for {
 		select {
 		case <-time.After(a.config.CheckReapInterval):
-			reap()
+			a.reapServicesInternal()
 
 		case <-a.shutdownCh:
 			return

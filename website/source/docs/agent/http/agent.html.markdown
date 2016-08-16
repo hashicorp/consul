@@ -267,7 +267,7 @@ an optional `DeregisterCriticalServiceAfter` field, which is a timeout in the sa
 time format as `Interval` and `TTL`. If a check is in the critical state for more than
 this configured value, then its associated service (and all of its associated checks)
 will automatically be deregistered. The minimum timeout is 1 minute, and the
-process that reaps critical services runs every 15 seconds, so it may take slightly
+process that reaps critical services runs every 30 seconds, so it may take slightly
 longer than the configured timeout to trigger the deregistration. This should
 generally be configured with a timeout that's much, much longer than any expected
 recoverable outage for the given service.
@@ -431,7 +431,7 @@ an optional `DeregisterCriticalServiceAfter` field, which is a timeout in the sa
 format as `Interval` and `TTL`. If a check is in the critical state for more than this
 configured value, then its associated service (and all of its associated checks)
 will automatically be deregistered. The minimum timeout is 1 minute, and the
-process that reaps critical services runs every 15 seconds, so it may take slightly
+process that reaps critical services runs every 30 seconds, so it may take slightly
 longer than the configured timeout to trigger the deregistration. This should
 generally be configured with a timeout that's much, much longer than any expected
 recoverable outage for the given service.
