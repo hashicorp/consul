@@ -455,6 +455,13 @@ func TestAgent_Checks_serviceBound(t *testing.T) {
 		ServiceID: "redis",
 	}
 	reg.TTL = "15s"
+	reg.DeregisterCriticalServiceAfter = "nope"
+	err := agent.CheckRegister(reg)
+	if err == nil || !strings.Contains(err.Error(), "invalid duration") {
+		t.Fatalf("err: %v", err)
+	}
+
+	reg.DeregisterCriticalServiceAfter = "90m"
 	if err := agent.CheckRegister(reg); err != nil {
 		t.Fatalf("err: %v", err)
 	}

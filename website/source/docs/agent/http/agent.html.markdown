@@ -243,13 +243,14 @@ body must look like:
   "ID": "mem",
   "Name": "Memory utilization",
   "Notes": "Ensure we don't oversubscribe memory",
+  "DeregisterCriticalServiceAfter": "90m"
   "Script": "/usr/local/bin/check_mem.py",
   "DockerContainerID": "f972c95ebf0e",
   "Shell": "/bin/bash",
   "HTTP": "http://example.com",
   "TCP": "example.com:22",
   "Interval": "10s",
-  "TTL": "15s"
+  "TTL": "15s",
 }
 ```
 
@@ -260,6 +261,16 @@ If an `ID` is not provided, it is set to `Name`. You cannot have duplicate
 `ID` entries per agent, so it may be necessary to provide an `ID`.
 
 The `Notes` field is not used internally by Consul and is meant to be human-readable.
+
+In Consul 0.7 and later, checks that are associated with a service may also contain
+an optional `DeregisterCriticalServiceAfter` field, which is a timeout in the same Go
+time format as `Interval` and `TTL`. If a check is in the critical state for more than
+this configured value, then its associated service (and all of its associated checks)
+will automatically be deregistered. The minimum timeout is 1 minute, and the
+process that reaps critical services runs every 30 seconds, so it may take slightly
+longer than the configured timeout to trigger the deregistration. This should
+generally be configured with a timeout that's much, much longer than any expected
+recoverable outage for the given service.
 
 If a `Script` is provided, the check type is a script, and Consul will
 evaluate the script every `Interval` to update the status.
@@ -389,6 +400,7 @@ body must look like:
   "Port": 8000,
   "EnableTagOverride": false, 
   "Check": {
+    "DeregisterCriticalServiceAfter": "90m",
     "Script": "/usr/local/bin/check_redis.py",
     "HTTP": "http://localhost:5000/health",
     "Interval": "10s",
@@ -413,6 +425,17 @@ information.
 
 If `Check` is provided, only one of `Script`, `HTTP`, `TCP` or `TTL` should be specified.
 `Script` and `HTTP` also require `Interval`. The created check will be named "service:\<ServiceId\>".
+
+In Consul 0.7 and later, checks that are associated with a service may also contain
+an optional `DeregisterCriticalServiceAfter` field, which is a timeout in the same Go time
+format as `Interval` and `TTL`. If a check is in the critical state for more than this
+configured value, then its associated service (and all of its associated checks)
+will automatically be deregistered. The minimum timeout is 1 minute, and the
+process that reaps critical services runs every 30 seconds, so it may take slightly
+longer than the configured timeout to trigger the deregistration. This should
+generally be configured with a timeout that's much, much longer than any expected
+recoverable outage for the given service.
+
 There is more information about checks [here](/docs/agent/checks.html).
 
 `EnableTagOverride` can optionally be specified to disable the anti-entropy

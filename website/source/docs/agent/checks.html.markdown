@@ -169,6 +169,16 @@ parsed by Go's `time` package, and has the following
 > optional fraction and a unit suffix, such as "300ms", "-1.5h" or "2h45m".
 > Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 
+In Consul 0.7 and later, checks that are associated with a service may also contain
+an optional `deregister_critical_service_after` field, which is a timeout in the
+same Go time format as `interval` and `ttl`. If a check is in the critical state
+for more than this configured value, then its associated service (and all of its
+associated checks) will automatically be deregistered. The minimum timeout is 1
+minute, and the process that reaps critical services runs every 30 seconds, so it
+may take slightly longer than the configured timeout to trigger the deregistration.
+This should generally be configured with a timeout that's much, much longer than
+any expected recoverable outage for the given service.
+
 To configure a check, either provide it as a `-config-file` option to the
 agent or place it inside the `-config-dir` of the agent. The file must
 end in the ".json" extension to be loaded by Consul. Check definitions can

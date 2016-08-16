@@ -35,12 +35,11 @@ const (
 	HttpUserAgent = "Consul Health Check"
 )
 
-// CheckType is used to create either the CheckMonitor
-// or the CheckTTL.
-// Five types are supported: Script, HTTP, TCP, Docker and TTL
-// Script, HTTP, Docker and TCP all require Interval
-// Only one of the types needs to be provided
-// TTL or Script/Interval or HTTP/Interval or TCP/Interval or Docker/Interval
+// CheckType is used to create either the CheckMonitor or the CheckTTL.
+// Five types are supported: Script, HTTP, TCP, Docker and TTL. Script, HTTP,
+// Docker and TCP all require Interval. Only one of the types may to be
+// provided: TTL or Script/Interval or HTTP/Interval or TCP/Interval or
+// Docker/Interval.
 type CheckType struct {
 	Script            string
 	HTTP              string
@@ -51,6 +50,11 @@ type CheckType struct {
 
 	Timeout time.Duration
 	TTL     time.Duration
+
+	// DeregisterCriticalServiceAfter, if >0, will cause the associated
+	// service, if any, to be deregistered if this check is critical for
+	// longer than this duration.
+	DeregisterCriticalServiceAfter time.Duration
 
 	Status string
 

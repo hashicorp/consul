@@ -642,7 +642,7 @@ func TestAgent_RemoveCheck(t *testing.T) {
 	}
 }
 
-func TestAgent_UpdateCheck(t *testing.T) {
+func TestAgent_updateTTLCheck(t *testing.T) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
 	defer agent.Shutdown()
@@ -656,17 +656,17 @@ func TestAgent_UpdateCheck(t *testing.T) {
 	chk := &CheckType{
 		TTL: 15 * time.Second,
 	}
+
+	// Add check and update it.
 	err := agent.AddCheck(health, chk, false, "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
-	// Remove check
-	if err := agent.UpdateCheck("mem", structs.HealthPassing, "foo"); err != nil {
+	if err := agent.updateTTLCheck("mem", structs.HealthPassing, "foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Ensure we have a check mapping
+	// Ensure we have a check mapping.
 	status := agent.state.Checks()["mem"]
 	if status.Status != structs.HealthPassing {
 		t.Fatalf("bad: %v", status)
@@ -1248,7 +1248,7 @@ func TestAgent_unloadServices(t *testing.T) {
 	}
 }
 
-func TestAgent_ServiceMaintenanceMode(t *testing.T) {
+func TestAgent_Service_MaintenanceMode(t *testing.T) {
 	config := nextConfig()
 	dir, agent := makeAgent(t, config)
 	defer os.RemoveAll(dir)
@@ -1310,6 +1310,133 @@ func TestAgent_ServiceMaintenanceMode(t *testing.T) {
 	}
 	if check.Notes != defaultServiceMaintReason {
 		t.Fatalf("bad: %#v", check)
+	}
+}
+
+func TestAgent_Service_Reap(t *testing.T) {
+	config := nextConfig()
+	config.CheckReapInterval = time.Millisecond
+	config.CheckDeregisterIntervalMin = 0
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+	chkTypes := CheckTypes{
+		&CheckType{
+			Status: structs.HealthPassing,
+			TTL:    10 * time.Millisecond,
+			DeregisterCriticalServiceAfter: 100 * time.Millisecond,
+		},
+	}
+
+	// Register the service.
+	if err := agent.AddService(svc, chkTypes, false, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure it's there and there's no critical check yet.
+	if _, ok := agent.state.Services()["redis"]; !ok {
+		t.Fatalf("should have redis service")
+	}
+	if checks := agent.state.CriticalChecks(); len(checks) > 0 {
+		t.Fatalf("should not have critical checks")
+	}
+
+	// Wait for the check TTL to fail.
+	time.Sleep(30 * time.Millisecond)
+	if _, ok := agent.state.Services()["redis"]; !ok {
+		t.Fatalf("should have redis service")
+	}
+	if checks := agent.state.CriticalChecks(); len(checks) != 1 {
+		t.Fatalf("should have a critical check")
+	}
+
+	// Pass the TTL.
+	if err := agent.updateTTLCheck("service:redis", structs.HealthPassing, "foo"); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if _, ok := agent.state.Services()["redis"]; !ok {
+		t.Fatalf("should have redis service")
+	}
+	if checks := agent.state.CriticalChecks(); len(checks) > 0 {
+		t.Fatalf("should not have critical checks")
+	}
+
+	// Wait for the check TTL to fail again.
+	time.Sleep(30 * time.Millisecond)
+	if _, ok := agent.state.Services()["redis"]; !ok {
+		t.Fatalf("should have redis service")
+	}
+	if checks := agent.state.CriticalChecks(); len(checks) != 1 {
+		t.Fatalf("should have a critical check")
+	}
+
+	// Wait for the reap.
+	time.Sleep(300 * time.Millisecond)
+	if _, ok := agent.state.Services()["redis"]; ok {
+		t.Fatalf("redis service should have been reaped")
+	}
+	if checks := agent.state.CriticalChecks(); len(checks) > 0 {
+		t.Fatalf("should not have critical checks")
+	}
+}
+
+func TestAgent_Service_NoReap(t *testing.T) {
+	config := nextConfig()
+	config.CheckReapInterval = time.Millisecond
+	config.CheckDeregisterIntervalMin = 0
+	dir, agent := makeAgent(t, config)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	svc := &structs.NodeService{
+		ID:      "redis",
+		Service: "redis",
+		Tags:    []string{"foo"},
+		Port:    8000,
+	}
+	chkTypes := CheckTypes{
+		&CheckType{
+			Status: structs.HealthPassing,
+			TTL:    10 * time.Millisecond,
+		},
+	}
+
+	// Register the service.
+	if err := agent.AddService(svc, chkTypes, false, ""); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Make sure it's there and there's no critical check yet.
+	if _, ok := agent.state.Services()["redis"]; !ok {
+		t.Fatalf("should have redis service")
+	}
+	if checks := agent.state.CriticalChecks(); len(checks) > 0 {
+		t.Fatalf("should not have critical checks")
+	}
+
+	// Wait for the check TTL to fail.
+	time.Sleep(30 * time.Millisecond)
+	if _, ok := agent.state.Services()["redis"]; !ok {
+		t.Fatalf("should have redis service")
+	}
+	if checks := agent.state.CriticalChecks(); len(checks) != 1 {
+		t.Fatalf("should have a critical check")
+	}
+
+	// Wait a while and make sure it doesn't reap.
+	time.Sleep(300 * time.Millisecond)
+	if _, ok := agent.state.Services()["redis"]; !ok {
+		t.Fatalf("should have redis service")
+	}
+	if checks := agent.state.CriticalChecks(); len(checks) != 1 {
+		t.Fatalf("should have a critical check")
 	}
 }
 
