@@ -56,6 +56,10 @@ BACKWARDS INCOMPATIBILITIES:
   header was added to allow clients to detect if translation is enabled for HTTP
   responses, and a "lan" tag was added to `TaggedAddresses` for clients that need
   the local address regardless of translation. [GH-2280]
+* The behavior of the `peers.json` file is different in this version of Consul:
+  this file won't normally be present and is used only during outage recovery. Be
+  sure to read [Outage Recovery Guide](http://localhost:4567/docs/guides/outage.html)
+  for details.
 
 IMPROVEMENTS:
 
