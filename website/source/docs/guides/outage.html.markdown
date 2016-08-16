@@ -61,10 +61,10 @@ first start after upgrading. Be sure to leave `raft/peers.info` in place for pro
 operation.
 <br>
 <br>
-Note that using `raft/peers.json` for recovery can cause uncommitted Raft log
-entries to be committed, so this should only be used after an outage where no
+Using `raft/peers.json` for recovery can cause uncommitted Raft log entries to be
+implicitly committed, so this should only be used after an outage where no
 other option is available to recover a lost server. Make sure you don't have
-any automated processes that will put the peers in place on a periodic basis,
+any automated processes that will put the peers file in place on a periodic basis,
 for example.
 <br>
 <br>
