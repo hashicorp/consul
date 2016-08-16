@@ -74,11 +74,11 @@ type AgentServiceCheck struct {
 	TCP               string `json:",omitempty"`
 	Status            string `json:",omitempty"`
 
-	// Checks that are associated with a service may also contain this
-	// optional DeregisterCriticalServiceAfter field, which is a timeout in
-	// the same Go time format as Interval and TTL. If a check is in the
-	// critical state for more than this configured value, then its
-	// associated service (and all of its associated checks) will
+	// In Consul 0.7 and later, checks that are associated with a service
+	// may also contain this optional DeregisterCriticalServiceAfter field,
+	// which is a timeout in the same Go time format as Interval and TTL. If
+	// a check is in the critical state for more than this configured value,
+	// then its associated service (and all of its associated checks) will
 	// automatically be deregistered.
 	DeregisterCriticalServiceAfter string `json:",omitempty"`
 }

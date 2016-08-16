@@ -262,12 +262,12 @@ If an `ID` is not provided, it is set to `Name`. You cannot have duplicate
 
 The `Notes` field is not used internally by Consul and is meant to be human-readable.
 
-Checks that are associated with a service may also contain an optional
-`DeregisterCriticalServiceAfter` field, which is a timeout in the same Go time
-format as `Interval` and `TTL`. If a check is in the critical state for more than this
-configured value, then its associated service (and all of its associated checks)
+In Consul 0.7 and later, checks that are associated with a service may also contain
+an optional `DeregisterCriticalServiceAfter` field, which is a timeout in the same Go
+time format as `Interval` and `TTL`. If a check is in the critical state for more than
+this configured value, then its associated service (and all of its associated checks)
 will automatically be deregistered. The minimum timeout is 1 minute, and the
-process that reaps critical services runs every 15 seconds, so a may take slightly
+process that reaps critical services runs every 15 seconds, so it may take slightly
 longer than the configured timeout to trigger the deregistration. This should
 generally be configured with a timeout that's much, much longer than any expected
 recoverable outage for the given service.
@@ -426,12 +426,12 @@ information.
 If `Check` is provided, only one of `Script`, `HTTP`, `TCP` or `TTL` should be specified.
 `Script` and `HTTP` also require `Interval`. The created check will be named "service:\<ServiceId\>".
 
-Checks that are associated with a service may also contain an optional
-`DeregisterCriticalServiceAfter` field, which is a timeout in the same Go time
+In Consul 0.7 and later, checks that are associated with a service may also contain
+an optional `DeregisterCriticalServiceAfter` field, which is a timeout in the same Go time
 format as `Interval` and `TTL`. If a check is in the critical state for more than this
 configured value, then its associated service (and all of its associated checks)
 will automatically be deregistered. The minimum timeout is 1 minute, and the
-process that reaps critical services runs every 15 seconds, so a may take slightly
+process that reaps critical services runs every 15 seconds, so it may take slightly
 longer than the configured timeout to trigger the deregistration. This should
 generally be configured with a timeout that's much, much longer than any expected
 recoverable outage for the given service.
