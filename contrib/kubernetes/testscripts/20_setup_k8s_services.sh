@@ -39,7 +39,6 @@ create_namespaces() {
 
 # run_and_expose_service <servicename> <namespace> <image> <port>
 run_and_expose_service() {
-
     if [ "${#}" != "4" ]; then
         return -1
     fi
@@ -49,7 +48,7 @@ run_and_expose_service() {
     image="${3}"
     port="${4}"
 
-    echo "   starting service '${service}' in namespace '${namespace}"
+    echo "   starting service '${service}' in namespace '${namespace}'"
 
     ${KUBECTL} get deployment --namespace=${namespace} --no-headers 2>/dev/null | grep -q ${service}
     if [ "${?}" != "0" ]; then
@@ -67,6 +66,29 @@ run_and_expose_service() {
 }
 
 
+#run_and_expose_rc nginx-controller nginx-rc.yml poddemo 80
+run_and_expose_rc() {
+    if [ "${#}" != "4" ]; then
+        return -1
+    fi
+
+	rc_name="${1}"
+    rc_file="${2}"
+    namespace="${3}"
+    port="${4}"
+
+    echo "   starting replication controller '${rc_name}' from '${rc_file}' in namespace '${namespace}'"
+
+    ${KUBECTL} get rc --namespace=${namespace} --no-headers 2>/dev/null | grep -q ${rc_name}
+    if [ "${?}" != "0" ]; then
+        ${KUBECTL} expose -f ${rc_file} --namespace=${namespace} --port=${port}
+    else
+        echo "warn: rc '${rc_name}' already running in namespace '${namespace}'"
+    fi
+}
+
+echo "Starting sample kubernetes services..."
+
 wait_until_k8s_ready
 
 NAMESPACES="demo poddemo test"
@@ -83,5 +105,15 @@ run_and_expose_service webserver test nginx 80
 echo ""
 echo "Services exposed:"
 ${KUBECTL} get services --all-namespaces
+
+echo ""
+echo "Starting replicationcontrollers:"
+
+run_and_expose_rc nginx-controller nginx-rc.yml poddemo 80
+
+echo ""
+echo "ReplicationControllers exposed:"
+${KUBECTL} get rc --all-namespaces
+
 
 cd ${PWD}

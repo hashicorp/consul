@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Based on instructions at: http://kubernetes.io/docs/getting-started-guides/docker/
 
 #K8S_VERSION=$(curl -sS https://storage.googleapis.com/kubernetes-release/release/latest.txt)
@@ -18,6 +20,8 @@ if [ "${RUN_SKYDNS}" = "yes" ]; then
 else
 	DNS_ARGUMENTS=""
 fi
+
+echo "Starting kubernetes..."
 
 docker run -d \
     --volume=/:/rootfs:ro \

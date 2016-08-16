@@ -3,7 +3,8 @@
 `kubernetes` enables reading zone data from a kubernetes cluster. Record names
 are constructed as "myservice.mynamespace.coredns.local" where:
 
-* "myservice" is the name of the k8s service (this may include multiple DNS labels, such as "c1.myservice"),
+* "myservice" is the name of the k8s service (this may include multiple DNS labels, 
+  such as "c1.myservice"),
 * "mynamespace" is the k8s namespace for the service, and
 * "coredns.local" is the zone configured for `kubernetes`.
 
@@ -50,7 +51,7 @@ This is the default kubernetes setup, with everything specified in full:
         # API documentation: http://kubernetes.io/docs/user-guide/labels/
         # Example selector below only exposes objects tagged as
         # "application=nginx" in the staging or qa environments.
-        #labels environment in (staging, qa),application=nginx
+        labels environment in (staging, qa),application=nginx
     }
     # Perform DNS response caching for the coredns.local zone
     # Cache timeout is provided by the integer in seconds
@@ -66,46 +67,20 @@ Defaults:
   is required. The label selector syntax is described in the kubernetes API documentation at: 
   http://kubernetes.io/docs/user-guide/labels/
 
+### Template syntax
+Record name templates can be constructed using the symbolic elements:
+| template symbol | description                                                         |
+| `{service}`     | Kubernetes object/service name.                                     |
+| `{namespace}`   | The kubernetes namespace.                                           |
+| `{type}`        | The type of the kubernetes object. Supports values 'svc' and 'pod'. |
+| `{zone}`        | The zone configured for the kubernetes middleware.                  |
+
 ### Basic Setup
 
 #### Launch Kubernetes
 
-Kubernetes is launched using the commands in the following `run_k8s.sh` script:
+Kubernetes is launched using the commands in the `contrib/kubernetes/testscripts/00_run_k8s.sh` script.
 
-~~~
-#!/bin/bash
-
-# Based on instructions at: http://kubernetes.io/docs/getting-started-guides/docker/
-
-#K8S_VERSION=$(curl -sS https://storage.googleapis.com/kubernetes-release/release/latest.txt)
-K8S_VERSION="v1.2.4"
-
-ARCH="amd64"
-
-export K8S_VERSION
-export ARCH
-
-#DNS_ARGUMENTS="--cluster-dns=10.0.0.10 --cluster-domain=cluster.local"
-DNS_ARGUMENTS=""
-
-docker run -d \
-    --volume=/:/rootfs:ro \
-    --volume=/sys:/sys:ro \
-    --volume=/var/lib/docker/:/var/lib/docker:rw \
-    --volume=/var/lib/kubelet/:/var/lib/kubelet:rw \
-    --volume=/var/run:/var/run:rw \
-    --net=host \
-    --pid=host \
-    --privileged \
-    gcr.io/google_containers/hyperkube-${ARCH}:${K8S_VERSION} \
-    /hyperkube kubelet \
-    --containerized \
-    --hostname-override=127.0.0.1 \
-    --api-servers=http://localhost:8080 \
-    --config=/etc/kubernetes/manifests \
-    ${DNS_ARGUMENTS} \
-    --allow-privileged --v=2
-~~~
 
 #### Configure kubectl and test
 
@@ -115,31 +90,8 @@ The kubernetes control client can be downloaded from the generic URL:
 For example, the kubectl client for Linux can be downloaded using the command:
 `curl -sSL "http://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kubectl"`
 
-The following `setup_kubectl.sh` script can be stored in the same directory as 
-kubectl to setup
-kubectl to communicate with kubernetes running on the localhost:
-
-~~~
-#!/bin/bash
-
-BASEDIR=`readlink -e $(dirname ${0})`
-
-${BASEDIR}/kubectl config set-cluster test-doc --server=http://localhost:8080
-${BASEDIR}/kubectl config set-context test-doc --cluster=test-doc
-${BASEDIR}/kubectl config use-context test-doc
-
-alias kubctl="${BASEDIR}/kubectl"
-~~~
-
-
-Verify that kubectl is working by querying for the kubernetes namespaces:
-
-~~~
-$ ./kubectl get namespaces
-NAME      STATUS    AGE
-default   Active    8d
-test      Active    7d
-~~~
+The `contrib/kubernetes/testscripts/10_setup_kubectl.sh` script can be stored in the same directory as 
+kubectl to setup kubectl to communicate with kubernetes running on the localhost.
 
 
 #### Launch a kubernetes service and expose the service
@@ -157,6 +109,10 @@ $ ./kubectl get deployment --namespace=demo
 $ ./kubectl expose deployment mynginx --namespace=demo --port=80
 $ ./kubectl get service --namespace=demo
 ~~~
+
+The script `contrib/kubernetes/testscripts/20_setup_k8s_services.sh` creates a couple of sample namespaces
+with services running in those namespaces. The automated kubernetes integration tests in 
+`test/kubernetes_test.go` depend on these services and namespaces to exist in kubernetes.
 
 
 #### Launch CoreDNS

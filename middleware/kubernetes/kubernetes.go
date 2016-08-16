@@ -56,7 +56,7 @@ func (g *Kubernetes) StartKubeCache() error {
 		return err
 	}
 	if g.LabelSelector == nil {
-		log.Printf("[INFO] Kubernetes middleware configured without a label selector. No label-based filtering will be operformed.")
+		log.Printf("[INFO] Kubernetes middleware configured without a label selector. No label-based filtering will be performed.")
 	} else {
         var selector labels.Selector
 		selector, err = unversionedapi.LabelSelectorAsSelector(g.LabelSelector)

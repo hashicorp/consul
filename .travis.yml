@@ -36,7 +36,7 @@ before_script:
   - ./etcd-v2.3.1-linux-amd64/etcd &
   # If docker is available, pull the kubernetes hyperkube image down and launch kubernetes.
   - if which docker &>/dev/null ; then docker pull gcr.io/google_containers/hyperkube-amd64:v1.2.4 ; docker ps -a ; fi
-  - if which docker &>/dev/null ; then ./middleware/kubernetes/test/00_run_k8s.sh && ./middleware/kubernetes/test/10_setup_kubectl.sh && ./middleware/kubernetes/test/20_setup_k8s_services.sh ; docker ps -a ; fi
+  - if which docker &>/dev/null ; then ./contrib/kubernetes/testscripts/start_k8s_with_services.sh ; docker ps -a ; fi
   # Get golang dependencies, and build coredns binary
   - go get -v -d
   - go get github.com/coreos/go-etcd/etcd
@@ -45,4 +45,4 @@ before_script:
 script:
   - go test -tags etcd -race -bench=. ./...
   # Run kubernetes integration tests only if kubectl is available. i.e. If kubernetes was launched
-  - ./middleware/kubernetes/test/kubectl version && go test -tags k8s -race -bench=. -run 'TestK8sIntegration' ./test
+  - ./contrib/kubernetes/testscripts/kubectl version && go test -tags k8s -race -bench=. -run 'TestK8sIntegration' ./test

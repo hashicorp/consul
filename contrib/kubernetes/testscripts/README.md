@@ -6,9 +6,17 @@ Requirements:
 
 The scripts in this directory startup kubernetes with docker as the container runtime.
 After starting kubernetes, a couple of kubernetes services are started to allow automatic
-testing of CoreDNS with kubernetes.
+testing of CoreDNS with kubernetes. The kubernetes integration tests in `test/kubernetes_test.go` depend on having some sample services running. The scripts in this folder
+automate the launch of kubernetes and the creation of the expected sample services.
 
-To use, run the scripts as:
+To start up kubernetes and launch some sample services,
+run the script `start_k8s_with_services.sh`.
+
+~~~
+$ ./start_k8s_with_services.sh
+~~~
+
+Alternatively, the individual scripts may be run independently as needed:
 
 ~~~
 $ ./00_run_k8s.sh && ./10_setup_kubectl.sh && ./20_setup_k8s_services.sh
