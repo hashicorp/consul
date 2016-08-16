@@ -96,3 +96,12 @@ configuration option. However, the token can also be specified per-request
 by using the `X-Consul-Token` request header or the `token` querystring
 parameter. The request header takes precedence over the default token, and
 the querystring parameter takes precedence over everything.
+
+
+## <a id="translate_header"></a>Translated Addresses
+
+Consul 0.7 added the ability to translate addresses in HTTP response based on the configuration
+setting for [`translate_wan_addrs`](/docs/agent/options.html#translate_wan_addrs). In order to
+allow clients to know if address translation is in effect, the `X-Consul-Translate-Addresses`
+header will be added if translation is enabled, and will have a value of `true`. If translation
+is not enabled then this header will not be present.
