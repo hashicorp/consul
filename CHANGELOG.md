@@ -35,6 +35,9 @@ FEATURES:
 * Extended the [`translate_wan_addrs`](https://www.consul.io/docs/agent/options.html#translate_wan_addrs)
   config option to also translate node addresses in HTTP responses, making it easy
   to use this feature from non-DNS clients. [GH-2118]
+* Added a new `deregister_critical_service_after` timeout field for health checks
+  which will cause the associated with that check to get deregistered if the check
+  is critical for longer than the timeout. [GH-679]
 
 BACKWARDS INCOMPATIBILITIES:
 
