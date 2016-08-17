@@ -147,12 +147,12 @@ func Create(config *Config, logOutput io.Writer) (*Agent, error) {
 		if ip := net.ParseIP(config.AdvertiseAddr); ip == nil {
 			return nil, fmt.Errorf("Failed to parse advertise address: %v", config.AdvertiseAddr)
 		}
-	} else if config.BindAddr != "0.0.0.0" && config.BindAddr != "" && config.BindAddr != "[::]" {
+	} else if config.BindAddr != "0.0.0.0" && config.BindAddr != "" && config.BindAddr != "[::]" && config.BindAddr != "::" {
 		config.AdvertiseAddr = config.BindAddr
 	} else {
 		var err error
 		var ip net.IP
-		if config.BindAddr == "[::]" {
+		if config.BindAddr == "[::]" || config.BindAddr == "::" {
 			ip, err = consul.GetPublicIPv6()
 		} else {
 			ip, err = consul.GetPrivateIP()
