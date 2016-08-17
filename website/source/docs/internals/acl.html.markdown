@@ -94,7 +94,7 @@ a large set of ACLs.
 If there's a partition or other outage affecting the authoritative datacenter,
 and the [`acl_down_policy`](/docs/agent/options.html#acl_down_policy)
 is set to "extend-cache", tokens will be resolved during the outage using the
-replicated set of ACLs. An [ACL replication status](http://localhost:4567/docs/agent/http/acl.html#acl_replication_status)
+replicated set of ACLs. An [ACL replication status](/docs/agent/http/acl.html#acl_replication_status)
 endpoint is available to monitor the health of the replication process.
 
 Locally-resolved ACLs will be cached using the [`acl_ttl`](/docs/agent/options.html#acl_ttl)
@@ -107,7 +107,7 @@ using a process like this:
 1. Enable ACL replication in all datacenters to allow continuation of service
 during the migration, and to populate the target datacenter. Verify replication
 is healthy and caught up to the current ACL index in the target datacenter
-using the [ACL replication status](http://localhost:4567/docs/agent/http/acl.html#acl_replication_status)
+using the [ACL replication status](/docs/agent/http/acl.html#acl_replication_status)
 endpoint.
 2. Turn down the old authoritative datacenter servers.
 3. Rolling restart the servers in the target datacenter and change the
