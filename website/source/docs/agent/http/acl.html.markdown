@@ -170,9 +170,9 @@ It returns a JSON body like this:
 
 ### <a name="acl_replication_status"></a> /v1/acl/replication
 
-The endpoint must be hit with a GET. It returns the status of the
-[ACL replication](/docs/internals/acl.html#replication) process in
-the datacenter. This is intended to be used by operators, or by
+Available in Consul 0.7 and later, the endpoint must be hit with a
+GET and returns the status of the [ACL replication](/docs/internals/acl.html#replication)
+process in the datacenter. This is intended to be used by operators, or by
 automation checking the health of ACL replication.
 
 By default, the datacenter of the agent is queried; however, the dc can be provided
@@ -204,7 +204,7 @@ replicated from, and will match the
 compare this to the `X-Consul-Index` header returned by the [`/v1/acl/list`](#acl_list)
 endpoint to determine if the replication process has gotten all available
 ACLs. Note that replication runs as a background process approximately every 30
-seconds, and that local updates are rate limited to 100 update/second, so so it
+seconds, and that local updates are rate limited to 100 updates/second, so so it
 may take several minutes to perform the initial sync of a large set of ACLs.
 After the initial sync, replica lag should be on the order of about 30 seconds.
 
