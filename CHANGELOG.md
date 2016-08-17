@@ -38,6 +38,16 @@ FEATURES:
 * Added a new `deregister_critical_service_after` timeout field for health checks
   which will cause the service associated with that check to get deregistered if
   the check is critical for longer than the timeout. [GH-679]
+* Added a new network tomogroaphy visualization to the UI. [GH-2046]
+* Consul agents will now periodically reconnect to available Consul servers
+  in order to redistribute their RPC query load.  Consul clients will, by
+  default, attempt to establish a new connection every 120s to 180s unless
+  the size of the cluster is sufficiently large.  The rate at which agents
+  begin to query new servers is proportional to the size of the Consul
+  cluster (servers should never receive more than 64 new connections per
+  second per Consul server as a result of rebalancing).  Clusters in stable
+  environments who use `allow_stale` should see a more even distribution of
+  query load across all of their Consul servers. [GH-1743]
 
 BACKWARDS INCOMPATIBILITIES:
 
@@ -68,16 +78,6 @@ IMPROVEMENTS:
   response vs. an error. [GH-2175]
 * Joins based on a DNS lookup will use TCP and attempt to join with the full
   list of returned addresses. [GH-2101]
-* Added a new network tomogroaphy visualization to the UI. [GH-2046]
-* Consul agents will now periodically reconnect to available Consul servers
-  in order to redistribute their RPC query load.  Consul clients will, by
-  default, attempt to establish a new connection every 120s to 180s unless
-  the size of the cluster is sufficiently large.  The rate at which agents
-  begin to query new servers is proportional to the size of the Consul
-  cluster (servers should never receive more than 64 new connections per
-  second per Consul server as a result of rebalancing).  Clusters in stable
-  environments who use `allow_stale` should see a more even distribution of
-  query load across all of their Consul servers. [GH-1743]
 * Consul will now refuse to start with a helpful message if the same UNIX
   socket is used for more than one listening endpoint. [GH-1910]
 * Removed an obsolete warning message when Consul starts on Windows. [GH-1920]
