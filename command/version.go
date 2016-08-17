@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/consul"
 	"github.com/mitchellh/cli"
 )
@@ -18,8 +19,16 @@ func (c *VersionCommand) Help() string {
 
 func (c *VersionCommand) Run(_ []string) int {
 	c.Ui.Output(fmt.Sprintf("Consul Version: %s", c.HumanVersion))
-	c.Ui.Output(fmt.Sprintf("Supported Protocol Version(s): %d to %d",
-		consul.ProtocolVersionMin, consul.ProtocolVersionMax))
+
+	config := agent.DefaultConfig()
+	var supplement string
+	if config.Protocol < consul.ProtocolVersionMax {
+		supplement = fmt.Sprintf(" (agent will automatically use protocol >%d when speaking to compatible agents)",
+			config.Protocol)
+	}
+	c.Ui.Output(fmt.Sprintf("Protocol Version: speaks %d by default, understands %d to %d%s",
+		config.Protocol, consul.ProtocolVersionMin, consul.ProtocolVersionMax, supplement))
+
 	return 0
 }
 
