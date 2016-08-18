@@ -273,7 +273,7 @@ func (s *HTTPServer) AgentRegisterService(resp http.ResponseWriter, req *http.Re
 	for _, check := range chkTypes {
 		if check.Status != "" && !structs.ValidStatus(check.Status) {
 			resp.WriteHeader(400)
-			resp.Write([]byte("Status for checks must 'passing', 'warning', 'critical', 'unknown'"))
+			resp.Write([]byte("Status for checks must 'passing', 'warning', 'critical'"))
 			return nil, nil
 		}
 		if !check.Valid() {
