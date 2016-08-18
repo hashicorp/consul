@@ -306,7 +306,7 @@ definitions support being updated during a reload.
 }
 ```
 
-Note that the use of `port`:
+Note the use of `ports`:
 
 ```javascript
 "ports": {
