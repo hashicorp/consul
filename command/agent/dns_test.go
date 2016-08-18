@@ -1745,27 +1745,6 @@ func TestDNS_ServiceLookup_OnlyPassing(t *testing.T) {
 		if err := srv.agent.RPC("Catalog.Register", args3, &out); err != nil {
 			t.Fatalf("err: %v", err)
 		}
-
-		args4 := &structs.RegisterRequest{
-			Datacenter: "dc1",
-			Node:       "quux",
-			Address:    "127.0.0.4",
-			Service: &structs.NodeService{
-				Service: "db",
-				Tags:    []string{"master"},
-				Port:    12345,
-			},
-			Check: &structs.HealthCheck{
-				CheckID:   "db",
-				Name:      "db",
-				ServiceID: "db",
-				Status:    structs.HealthUnknown,
-			},
-		}
-
-		if err := srv.agent.RPC("Catalog.Register", args4, &out); err != nil {
-			t.Fatalf("err: %v", err)
-		}
 	}
 
 	// Register an equivalent prepared query.
