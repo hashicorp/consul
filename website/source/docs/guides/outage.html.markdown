@@ -46,8 +46,12 @@ this server is online, the cluster will return to a fully healthy state.
 
 Both of these strategies involve a potentially lengthy time to reboot or rebuild
 a failed server. If this is impractical or if building a new server with the same
-IP isn't an option, you need to remove the failed server using the `raft/peers.json`
-recovery file on all remaining servers.
+IP isn't an option, you need to remove the failed server. Usually, you can issue
+a [`force-leave`](/docs/commands/force-leave.html) command to remove the failed
+server if it's still a member of the cluster.
+
+If the `force-leave` isn't able to remove the server, you can remove it manually
+using the `raft/peers.json` recovery file on all remaining servers.
 
 To begin, stop all remaining servers. You can attempt a graceful leave,
 but it will not work in most cases. Do not worry if the leave exits with an
