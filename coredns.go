@@ -10,9 +10,15 @@ import (
 //go:generate go run plugin_generate.go
 
 func main() {
-	// Set some flags/options specific for CoreDNS.
+	// Default values for flags for CoreDNS.
 	flag.Set("type", "dns")
+
+	// Values specific for CoreDNS.
 	caddy.DefaultConfigFile = "Corefile"
+	caddy.AppName = "coredns"
+	caddy.AppVersion = version
 
 	caddymain.Run()
 }
+
+const version = "001"

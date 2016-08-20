@@ -56,4 +56,4 @@ func doDDD(b []byte) {
 }
 
 func isDigit(b byte) bool     { return b >= '0' && b <= '9' }
-func dddToByte(s []byte) byte { return byte((s[1]-'0')*100 + (s[2]-'0')*10 + (s[3] - '0')) }
+func dddToByte(s []byte) byte { return (s[1]-'0')*100 + (s[2]-'0')*10 + (s[3] - '0') }

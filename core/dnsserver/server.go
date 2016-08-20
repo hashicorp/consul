@@ -32,6 +32,7 @@ type Server struct {
 	connTimeout time.Duration      // the maximum duration of a graceful shutdown
 }
 
+// NewServer returns a new CoreDNS server and compiles all middleware in to it.
 func NewServer(addr string, group []*Config) (*Server, error) {
 
 	s := &Server{
@@ -65,20 +66,6 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 	return s, nil
 }
 
-// LocalAddr return the addresses where the server is bound to.
-func (s *Server) LocalAddr() net.Addr {
-	s.m.Lock()
-	defer s.m.Unlock()
-	return s.l.Addr()
-}
-
-// LocalAddrPacket return the net.PacketConn address where the server is bound to.
-func (s *Server) LocalAddrPacket() net.Addr {
-	s.m.Lock()
-	defer s.m.Unlock()
-	return s.p.LocalAddr()
-}
-
 // Serve starts the server with an existing listener. It blocks until the server stops.
 func (s *Server) Serve(l net.Listener) error {
 	s.m.Lock()
@@ -97,6 +84,7 @@ func (s *Server) ServePacket(p net.PacketConn) error {
 	return s.server[udp].ActivateAndServe()
 }
 
+// Listen implements caddy.TCPServer interface.
 func (s *Server) Listen() (net.Listener, error) {
 	l, err := net.Listen("tcp", s.Addr)
 	if err != nil {
@@ -108,6 +96,7 @@ func (s *Server) Listen() (net.Listener, error) {
 	return l, nil
 }
 
+// ListenPacket implements caddy.UDPServer interface.
 func (s *Server) ListenPacket() (net.PacketConn, error) {
 	p, err := net.ListenPacket("udp", s.Addr)
 	if err != nil {
@@ -197,7 +186,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		if h, ok := s.zones[string(b[:l])]; ok {
 			if r.Question[0].Qtype != dns.TypeDS {
 				rcode, _ := h.middlewareChain.ServeDNS(ctx, w, r)
-				if RcodeNoClientWrite(rcode) {
+				if rcodeNoClientWrite(rcode) {
 					DefaultErrorFunc(w, r, rcode)
 				}
 				return
@@ -211,7 +200,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	// Wildcard match, if we have found nothing try the root zone as a last resort.
 	if h, ok := s.zones["."]; ok {
 		rcode, _ := h.middlewareChain.ServeDNS(ctx, w, r)
-		if RcodeNoClientWrite(rcode) {
+		if rcodeNoClientWrite(rcode) {
 			DefaultErrorFunc(w, r, rcode)
 		}
 		return
@@ -234,7 +223,7 @@ func DefaultErrorFunc(w dns.ResponseWriter, r *dns.Msg, rcode int) {
 	w.WriteMsg(answer)
 }
 
-func RcodeNoClientWrite(rcode int) bool {
+func rcodeNoClientWrite(rcode int) bool {
 	switch rcode {
 	case dns.RcodeServerFailure:
 		fallthrough

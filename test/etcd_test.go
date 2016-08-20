@@ -77,10 +77,10 @@ func TestEtcdStubAndProxyLookup(t *testing.T) {
 		t.Error("Expected to at least one RR in the answer section, got none")
 	}
 	if resp.Answer[0].Header().Rrtype != dns.TypeA {
-		t.Error("Expected RR to A, got: %d", resp.Answer[0].Header().Rrtype)
+		t.Errorf("Expected RR to A, got: %d", resp.Answer[0].Header().Rrtype)
 	}
 	if resp.Answer[0].(*dns.A).A.String() != "93.184.216.34" {
-		t.Error("Expected 93.184.216.34, got: %d", resp.Answer[0].(*dns.A).A.String())
+		t.Errorf("Expected 93.184.216.34, got: %d", resp.Answer[0].(*dns.A).A.String())
 	}
 }
 

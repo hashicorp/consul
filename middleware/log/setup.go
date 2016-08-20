@@ -7,7 +7,6 @@ import (
 
 	"github.com/miekg/coredns/core/dnsserver"
 	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/server"
 
 	"github.com/hashicorp/go-syslog"
 	"github.com/mholt/caddy"
@@ -64,7 +63,7 @@ func setup(c *caddy.Controller) error {
 	})
 
 	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {
-		return Logger{Next: next, Rules: rules, ErrorFunc: server.DefaultErrorFunc}
+		return Logger{Next: next, Rules: rules, ErrorFunc: dnsserver.DefaultErrorFunc}
 	})
 
 	return nil

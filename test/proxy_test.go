@@ -56,9 +56,9 @@ func TestLookupProxy(t *testing.T) {
 		t.Error("Expected to at least one RR in the answer section, got none")
 	}
 	if resp.Answer[0].Header().Rrtype != dns.TypeA {
-		t.Error("Expected RR to A, got: %d", resp.Answer[0].Header().Rrtype)
+		t.Errorf("Expected RR to A, got: %d", resp.Answer[0].Header().Rrtype)
 	}
 	if resp.Answer[0].(*dns.A).A.String() != "127.0.0.1" {
-		t.Error("Expected 127.0.0.1, got: %d", resp.Answer[0].(*dns.A).A.String())
+		t.Errorf("Expected 127.0.0.1, got: %d", resp.Answer[0].(*dns.A).A.String())
 	}
 }

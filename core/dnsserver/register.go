@@ -13,7 +13,7 @@ const serverType = "dns"
 
 func init() {
 	caddy.RegisterServerType(serverType, caddy.ServerType{
-		Directives: Directives,
+		Directives: directives,
 		DefaultInput: func() caddy.Input {
 			if Port == DefaultPort && Zone != "" {
 				return caddy.CaddyfileInput{
@@ -31,8 +31,6 @@ func init() {
 		NewContext: newContext,
 	})
 }
-
-var TestNewContext = newContext
 
 func newContext() caddy.Context {
 	return &dnsContext{keysToConfigs: make(map[string]*Config)}
@@ -103,8 +101,8 @@ func (h *dnsContext) MakeServers() ([]caddy.Server, error) {
 }
 
 // AddMiddleware adds a middleware to a site's middleware stack.
-func (sc *Config) AddMiddleware(m Middleware) {
-	sc.Middleware = append(sc.Middleware, m)
+func (c *Config) AddMiddleware(m Middleware) {
+	c.Middleware = append(c.Middleware, m)
 }
 
 // groupSiteConfigsByListenAddr groups site configs by their listen

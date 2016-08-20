@@ -7,8 +7,6 @@ import (
 	"log"
 	"testing"
 
-	"github.com/miekg/coredns/middleware/kubernetes/k8stest"
-
 	"github.com/miekg/dns"
 )
 
@@ -63,17 +61,13 @@ var testdataLookupSRV = []struct {
 	{"*.*.coredns.local.", 1, 1},                             // One SRV record, via namespace and service wildcard
 }
 
-func TestK8sIntegration(t *testing.T) {
+func testK8sIntegration(t *testing.T) {
 	// subtests here (Go 1.7 feature).
 	testLookupA(t)
 	testLookupSRV(t)
 }
 
 func testLookupA(t *testing.T) {
-	if !k8stest.CheckKubernetesRunning() {
-		t.Skip("Skipping Kubernetes Integration tests. Kubernetes is not running")
-	}
-
 	corefile :=
 		`.:0 {
     kubernetes coredns.local {
@@ -104,7 +98,7 @@ func testLookupA(t *testing.T) {
 
 		res, _, err := dnsClient.Exchange(dnsMessage, udp)
 		if err != nil {
-			t.Fatal("Could not send query: %s", err)
+			t.Fatalf("Could not send query: %s", err)
 		}
 		// Count A records in the answer section
 		ARecordCount := 0
@@ -124,10 +118,6 @@ func testLookupA(t *testing.T) {
 }
 
 func testLookupSRV(t *testing.T) {
-	if !k8stest.CheckKubernetesRunning() {
-		t.Skip("Skipping Kubernetes Integration tests. Kubernetes is not running")
-	}
-
 	corefile :=
 		`.:0 {
     kubernetes coredns.local {
@@ -159,7 +149,7 @@ func testLookupSRV(t *testing.T) {
 
 		res, _, err := dnsClient.Exchange(dnsMessage, udp)
 		if err != nil {
-			t.Fatal("Could not send query: %s", err)
+			t.Fatalf("Could not send query: %s", err)
 		}
 		// Count SRV records in the answer section
 		srvRecordCount := 0

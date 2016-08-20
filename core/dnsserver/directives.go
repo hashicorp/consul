@@ -9,7 +9,7 @@ package dnsserver
 // feel the effects of all other middleware below
 // (after) them during a request, but they must not
 // care what middleware above them are doing.
-var Directives = []string{
+var directives = []string{
 	"bind",
 	"health",
 	"pprof",
