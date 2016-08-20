@@ -12,7 +12,7 @@ go:
 # In the Travis VM-based build environment, IPv6 networking is not
 # enabled by default. The sysctl operations below enable IPv6.
 # IPv6 is needed by some of the CoreDNS test cases. The VM environment
-# is needed to have access to sudo in the test environment. Sudo is 
+# is needed to have access to sudo in the test environment. Sudo is
 # needed to have docker in the test environment. Docker is needed to
 # launch a kubernetes instance in the test environment.
 # (Dependencies are fun! :) )
@@ -38,9 +38,9 @@ before_script:
   - if which docker &>/dev/null ; then docker pull gcr.io/google_containers/hyperkube-amd64:v1.2.4 ; docker ps -a ; fi
   - if which docker &>/dev/null ; then ./contrib/kubernetes/testscripts/start_k8s_with_services.sh ; docker ps -a ; fi
   # Get golang dependencies, and build coredns binary
-  - go get -v -d
+  - go get -v -d ./...
   - go get github.com/coreos/go-etcd/etcd
-  - go build -v -ldflags="-s -w"
+    #- go build -v -ldflags="-s -w"
 
 script:
   - go test -tags etcd -race -bench=. ./...

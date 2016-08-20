@@ -12,24 +12,28 @@ func TestProxyToChaosServer(t *testing.T) {
 	chaos CoreDNS-001 miek@miek.nl
 }
 `
-	chaos, tcpCH, udpCH, err := Server(t, corefile)
+	chaos, err := CoreDNSServer(corefile)
 	if err != nil {
-		t.Fatalf("Could get server: %s", err)
+		t.Fatalf("could not get CoreDNS serving instance: %s", err)
 	}
+
+	udpChaos, tcpChaos := CoreDNSServerPorts(chaos, 0)
 	defer chaos.Stop()
 
 	corefileProxy := `.:0 {
-		proxy . ` + udpCH + `
+		proxy . ` + udpChaos + `
 }
 `
-	proxy, _, udp, err := Server(t, corefileProxy)
+	proxy, err := CoreDNSServer(corefileProxy)
 	if err != nil {
-		t.Fatalf("Could get server: %s", err)
+		t.Fatalf("could not get CoreDNS serving instance")
 	}
+
+	udp, _ := CoreDNSServerPorts(proxy, 0)
 	defer proxy.Stop()
 
-	chaosTest(t, udpCH, "udp")
-	chaosTest(t, tcpCH, "tcp")
+	chaosTest(t, udpChaos, "udp")
+	chaosTest(t, tcpChaos, "tcp")
 
 	chaosTest(t, udp, "udp")
 	// chaosTest(t, tcp, "tcp"), commented out because we use the original transport to reach the

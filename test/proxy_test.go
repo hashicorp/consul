@@ -28,14 +28,20 @@ func TestLookupProxy(t *testing.T) {
 	defer rm()
 
 	corefile := `example.org:0 {
-	file ` + name + `
+       file ` + name + `
 }
 `
-	ex, _, udp, err := Server(t, corefile)
+
+	i, err := CoreDNSServer(corefile)
 	if err != nil {
-		t.Fatalf("Could get server: %s", err)
+		t.Fatalf("could not get CoreDNS serving instance: %s", err)
 	}
-	defer ex.Stop()
+
+	udp, _ := CoreDNSServerPorts(i, 0)
+	if udp == "" {
+		t.Fatalf("could not get udp listening port")
+	}
+	defer i.Stop()
 
 	log.SetOutput(ioutil.Discard)
 
@@ -43,8 +49,7 @@ func TestLookupProxy(t *testing.T) {
 	state := middleware.State{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 	resp, err := p.Lookup(state, "example.org.", dns.TypeA)
 	if err != nil {
-		t.Error("Expected to receive reply, but didn't")
-		return
+		t.Fatal("Expected to receive reply, but didn't")
 	}
 	// expect answer section with A record in it
 	if len(resp.Answer) == 0 {

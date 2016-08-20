@@ -10,7 +10,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func BenchmarkLookupBalanceRewriteCache(b *testing.B) {
+func benchmarkLookupBalanceRewriteCache(b *testing.B) {
 	t := new(testing.T)
 	name, rm, err := test.TempFile(t, ".", exampleOrg)
 	if err != nil {
@@ -24,10 +24,12 @@ func BenchmarkLookupBalanceRewriteCache(b *testing.B) {
     loadbalance
 }
 `
-	ex, _, udp, err := Server(t, corefile)
+
+	ex, err := CoreDNSServer(corefile)
 	if err != nil {
-		t.Fatalf("Could get server: %s", err)
+		t.Fatalf("could not get CoreDNS serving instance: %s", err)
 	}
+	udp, _ := CoreDNSServerPorts(ex, 0)
 	defer ex.Stop()
 
 	log.SetOutput(ioutil.Discard)

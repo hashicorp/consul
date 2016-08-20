@@ -15,17 +15,14 @@ import (
 )
 
 func TestProxyLookupFailDebug(t *testing.T) {
+	etc := newEtcdMiddleware()
+	etc.Proxy = proxy.New([]string{"127.0.0.1:154"})
+	etc.Debug = true
+
 	for _, serv := range servicesProxy {
 		set(t, etc, serv.Key, 0, serv)
 		defer delete(t, etc, serv.Key)
 	}
-
-	prxy := etc.Proxy
-	etc.Proxy = proxy.New([]string{"127.0.0.1:154"})
-	defer func() { etc.Proxy = prxy }()
-
-	etc.Debug = true
-	defer func() { etc.Debug = false }()
 
 	for _, tc := range dnsTestCasesProxy {
 		m := tc.Msg()

@@ -34,7 +34,7 @@ type Metrics struct {
 	ZoneNames []string
 }
 
-func (m *Metrics) Start() error {
+func (m *Metrics) Startup() error {
 	m.Once.Do(func() {
 		define()
 

@@ -3,12 +3,12 @@
 package test
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"testing"
 
 	"github.com/miekg/coredns/middleware/kubernetes/k8stest"
+
 	"github.com/miekg/dns"
 )
 
@@ -64,9 +64,8 @@ var testdataLookupSRV = []struct {
 }
 
 func TestK8sIntegration(t *testing.T) {
-	t.Log("   === RUN testLookupA")
+	// subtests here (Go 1.7 feature).
 	testLookupA(t)
-	t.Log("   === RUN testLookupSRV")
 	testLookupSRV(t)
 }
 
@@ -75,7 +74,7 @@ func testLookupA(t *testing.T) {
 		t.Skip("Skipping Kubernetes Integration tests. Kubernetes is not running")
 	}
 
-	coreFile :=
+	corefile :=
 		`.:0 {
     kubernetes coredns.local {
 		endpoint http://localhost:8080
@@ -83,16 +82,20 @@ func testLookupA(t *testing.T) {
     }
 `
 
-	server, _, udp, err := Server(t, coreFile)
+	server, err := CoreDNSServer(corefile)
 	if err != nil {
-		t.Fatal("Could not get server: %s", err)
+		t.Fatalf("could not get CoreDNS serving instance: %s", err)
+	}
+
+	udp, _ := CoreDNSServerPorts(server, 0)
+	if udp == "" {
+		t.Fatalf("could not get udp listening port")
 	}
 	defer server.Stop()
 
 	log.SetOutput(ioutil.Discard)
 
 	for _, testData := range testdataLookupA {
-		t.Logf("[log] Testing query string: '%v'\n", testData.Query)
 		dnsClient := new(dns.Client)
 		dnsMessage := new(dns.Msg)
 
@@ -125,7 +128,7 @@ func testLookupSRV(t *testing.T) {
 		t.Skip("Skipping Kubernetes Integration tests. Kubernetes is not running")
 	}
 
-	coreFile :=
+	corefile :=
 		`.:0 {
     kubernetes coredns.local {
 		endpoint http://localhost:8080
@@ -133,9 +136,13 @@ func testLookupSRV(t *testing.T) {
     }
 `
 
-	server, _, udp, err := Server(t, coreFile)
+	server, err := CoreDNSServer(corefile)
 	if err != nil {
-		t.Fatal("Could not get server: %s", err)
+		t.Fatalf("could not get CoreDNS serving instance: %s", err)
+	}
+	udp, _ := CoreDNSServerPorts(server, 0)
+	if udp == "" {
+		t.Fatalf("could not get udp listening port")
 	}
 	defer server.Stop()
 
@@ -144,7 +151,6 @@ func testLookupSRV(t *testing.T) {
 	// TODO: Add checks for A records in additional section
 
 	for _, testData := range testdataLookupSRV {
-		t.Logf("[log] Testing query string: '%v'\n", testData.Query)
 		dnsClient := new(dns.Client)
 		dnsMessage := new(dns.Msg)
 
@@ -158,7 +164,6 @@ func testLookupSRV(t *testing.T) {
 		// Count SRV records in the answer section
 		srvRecordCount := 0
 		for _, a := range res.Answer {
-			fmt.Printf("RR: %v\n", a)
 			if a.Header().Rrtype == dns.TypeSRV {
 				srvRecordCount++
 			}

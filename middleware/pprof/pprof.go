@@ -12,7 +12,7 @@ type Handler struct {
 	mux *http.ServeMux
 }
 
-func (h *Handler) Start() error {
+func (h *Handler) Startup() error {
 	if ln, err := net.Listen("tcp", addr); err != nil {
 		log.Printf("[ERROR] Failed to start pprof handler: %s", err)
 		return err

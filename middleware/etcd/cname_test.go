@@ -16,6 +16,8 @@ import (
 
 // Check the ordering of returned cname.
 func TestCnameLookup(t *testing.T) {
+	etc := newEtcdMiddleware()
+
 	for _, serv := range servicesCname {
 		set(t, etc, serv.Key, 0, serv)
 		defer delete(t, etc, serv.Key)

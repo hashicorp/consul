@@ -1,7 +1,8 @@
 # CoreDNS
 
 CoreDNS is DNS server that started as a fork of [Caddy](https://github.com/mholt/caddy/). It has the
-same model: it chains middleware.
+same model: it chains middleware. In fact to similar that CoreDNS is now a server type plugin for
+CAddy, i.e. you'll need Caddy to compile CoreDNS.
 
 CoreDNS is the successor of [SkyDNS](https://github.com/skynetservices/skydns). SkyDNS is a thin
 layer that exposes services in etcd in the DNS. CoreDNS builds on this idea and is a generic DNS
@@ -38,13 +39,32 @@ There are still few [issues](https://github.com/miekg/coredns/issues), and work 
 things fast and reduce the memory usage.
 
 All in all, CoreDNS should be able to provide you with enough functionality to replace parts of
-BIND9, Knot, NSD or PowerDNS.
+BIND9, Knot, NSD or PowerDNS and SkyDNS.
 Most documentation is in the source and some blog articles can be [found
 here](https://miek.nl/tags/coredns/). If you do want to use CoreDNS in production, please let us
 know and how we can help.
 
 <https://caddyserver.com/> is also full of examples on how to structure a Corefile (renamed from
 Caddyfile when I forked it).
+
+## Compilation
+
+CoreDNS (as a servertype plugin for Caddy) has a hard dependency on Caddy - this is *almost* like
+the normal Go dependencies, but with a small twist, caddy (the source) need to know that CoreDNS
+exists and for this we need to add 1 line `_ "github.com/miekg/coredns/core"` to file in caddy.
+
+You have the source of CoreDNS, this should preferably be downloaded under your `$GOPATH`. Get all
+dependencies:
+
+    go get ./...
+
+Then, execute `go generate`, this will patch Caddy to add CoreDNS, and then `go build` as you would
+normally do:
+
+    go generate
+    go build
+
+Should yield a `coredns` binary.
 
 ## Examples
 
@@ -95,15 +115,17 @@ All the above examples are possible with the *current* CoreDNS.
 
 ## What remains to be done
 
-* Website?
-* Logo?
 * Optimizations.
 * Load testing.
 * The [issues](https://github.com/miekg/coredns/issues).
 
-## Blog
+## Blog and Contact
 
-<https://miek.nl/tags/coredns/>
+Website: <https://coredns.io>
+Twitter: `@coredns.io`
+Docs: <https://miek.nl/tags/coredns/>
+Github: <https://github.com/miekg/coredns>
+
 
 ## Systemd service file
 
@@ -123,7 +145,7 @@ LimitNOFILE=8192
 User=coredns
 WorkingDirectory=/home/coredns
 ExecStartPre=/sbin/setcap cap_net_bind_service=+ep /opt/bin/coredns
-ExecStart=/opt/bin/coredns -pidfile /home/coredns/coredns.pid -conf=/etc/coredns
+ExecStart=/opt/bin/coredns -pidfile /home/coredns/coredns.pid -conf=/etc/coredns/Corefile
 ExecReload=/bin/kill -SIGUSR1 $MAINPID
 Restart=on-failure
 

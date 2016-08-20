@@ -18,6 +18,8 @@ import (
 )
 
 func TestOtherLookup(t *testing.T) {
+	etc := newEtcdMiddleware()
+
 	for _, serv := range servicesOther {
 		set(t, etc, serv.Key, 0, serv)
 		defer delete(t, etc, serv.Key)

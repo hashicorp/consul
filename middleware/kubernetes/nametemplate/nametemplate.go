@@ -2,7 +2,6 @@ package nametemplate
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/miekg/coredns/middleware/kubernetes/util"
@@ -87,17 +86,13 @@ func (t *NameTemplate) SetTemplate(s string) error {
 		if !elementPositionSet {
 			if strings.Contains(v, "{") {
 				err = errors.New("Record name template contains the unknown symbol '" + v + "'")
-				log.Printf("[debug] %v\n", err)
 				return err
-			} else {
-				log.Printf("[debug] Template string has static element '%v'\n", v)
 			}
 		}
 	}
 
 	if err == nil && !t.IsValid() {
 		err = errors.New("Record name template does not pass NameTemplate validation")
-		log.Printf("[debug] %v\n", err)
 		return err
 	}
 

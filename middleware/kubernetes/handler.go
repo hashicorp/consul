@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/miekg/coredns/middleware"
@@ -12,8 +11,6 @@ import (
 )
 
 func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	log.Printf("[debug] here entering ServeDNS: ctx:%v dnsmsg:%v\n", ctx, r)
-
 	state := middleware.State{W: w, Req: r}
 	if state.QClass() != dns.ClassINET {
 		return dns.RcodeServerFailure, fmt.Errorf("can only deal with ClassINET")

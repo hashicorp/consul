@@ -69,7 +69,7 @@ func TestSigningDifferentZone(t *testing.T) {
 
 	m := testMsgEx()
 	state := middleware.State{Req: m}
-	d := NewDnssec([]string{"example.org."}, []*DNSKEY{key}, nil)
+	d := New([]string{"example.org."}, []*DNSKEY{key}, nil)
 	m = d.Sign(state, "example.org.", time.Now().UTC())
 	if !section(m.Answer, 1) {
 		t.Errorf("answer section should have 1 sig")
@@ -158,7 +158,7 @@ func testDelegationMsg() *dns.Msg {
 
 func newDnssec(t *testing.T, zones []string) (Dnssec, func(), func()) {
 	k, rm1, rm2 := newKey(t)
-	d := NewDnssec(zones, []*DNSKEY{k}, nil)
+	d := New(zones, []*DNSKEY{k}, nil)
 	return d, rm1, rm2
 }
 

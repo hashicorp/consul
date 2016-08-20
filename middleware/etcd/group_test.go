@@ -14,6 +14,8 @@ import (
 )
 
 func TestGroupLookup(t *testing.T) {
+	etc := newEtcdMiddleware()
+
 	for _, serv := range servicesGroup {
 		set(t, etc, serv.Key, 0, serv)
 		defer delete(t, etc, serv.Key)

@@ -11,8 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/miekg/coredns/core/parse"
 	"github.com/miekg/coredns/middleware"
+
+	"github.com/mholt/caddy/caddyfile"
 	"github.com/miekg/dns"
 )
 
@@ -43,7 +44,7 @@ type Options struct {
 
 // NewStaticUpstreams parses the configuration input and sets up
 // static upstreams for the proxy middleware.
-func NewStaticUpstreams(c parse.Dispenser) ([]Upstream, error) {
+func NewStaticUpstreams(c caddyfile.Dispenser) ([]Upstream, error) {
 	var upstreams []Upstream
 	for c.Next() {
 		upstream := &staticUpstream{
@@ -73,7 +74,7 @@ func NewStaticUpstreams(c parse.Dispenser) ([]Upstream, error) {
 		}
 
 		for c.NextBlock() {
-			if err := parseBlock(&c, upstream); err != nil {
+			if err := parseBlock(c, upstream); err != nil {
 				return upstreams, err
 			}
 		}
@@ -125,7 +126,7 @@ func (u *staticUpstream) Options() Options {
 	return u.options
 }
 
-func parseBlock(c *parse.Dispenser, u *staticUpstream) error {
+func parseBlock(c caddyfile.Dispenser, u *staticUpstream) error {
 	switch c.Val() {
 	case "policy":
 		if !c.NextArg() {

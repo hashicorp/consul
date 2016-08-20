@@ -28,13 +28,10 @@ import (
 // the same address and the listener may be stopped for
 // graceful termination (POSIX only).
 type Server struct {
-	Addr   string // Address we listen on
-	mux    *dns.ServeMux
-	server [2]*dns.Server // by convention 0 is tcp and 1 is udp
-
-	tcp        net.Listener
-	udp        net.PacketConn
-	listenerMu sync.Mutex // protects listener and packetconn
+	Addr       string // Address we listen on
+	mux        *dns.ServeMux
+	server     [2]*dns.Server // by convention 0 is tcp and 1 is udp
+	listenerMu sync.Mutex     // protects listener and packetconn inside server
 
 	tls         bool // whether this server is serving all HTTPS hosts or not
 	TLSConfig   *tls.Config
@@ -115,16 +112,6 @@ func New(addr string, configs []Config, gracefulTimeout time.Duration) (*Server,
 	return s, nil
 }
 
-// LocalAddr return the addresses where the server is bound to. The TCP listener
-// address is the first returned, the UDP conn address the second.
-func (s *Server) LocalAddr() (net.Addr, net.Addr) {
-	s.listenerMu.Lock()
-	tcp := s.tcp.Addr()
-	udp := s.udp.LocalAddr()
-	s.listenerMu.Unlock()
-	return tcp, udp
-}
-
 // Serve starts the server with an existing listener. It blocks until the server stops.
 func (s *Server) Serve(ln net.Listener, pc net.PacketConn) error {
 	err := s.setup()
@@ -134,9 +121,7 @@ func (s *Server) Serve(ln net.Listener, pc net.PacketConn) error {
 	}
 	s.listenerMu.Lock()
 	s.server[0] = &dns.Server{Listener: ln, Net: "tcp", Handler: s.mux}
-	s.tcp = ln
 	s.server[1] = &dns.Server{PacketConn: pc, Net: "udp", Handler: s.mux}
-	s.udp = pc
 	s.listenerMu.Unlock()
 
 	go func() {
@@ -168,9 +153,7 @@ func (s *Server) ListenAndServe() error {
 
 	s.listenerMu.Lock()
 	s.server[0] = &dns.Server{Listener: l, Net: "tcp", Handler: s.mux}
-	s.tcp = l
 	s.server[1] = &dns.Server{PacketConn: pc, Net: "udp", Handler: s.mux}
-	s.udp = pc
 	s.listenerMu.Unlock()
 
 	go func() {
@@ -252,17 +235,17 @@ func (s *Server) Stop() (err error) {
 
 	// Close the listener now; this stops the server without delay
 	s.listenerMu.Lock()
-	if s.tcp != nil {
-		err = s.tcp.Close()
-	}
-	if s.udp != nil {
-		err = s.udp.Close()
-	}
+	defer s.listenerMu.Unlock()
 
 	for _, s1 := range s.server {
+		if s1.Listener != nil {
+			err = s1.Listener.Close()
+		}
+		if s1.PacketConn != nil {
+			err = s1.PacketConn.Close()
+		}
 		err = s1.Shutdown()
 	}
-	s.listenerMu.Unlock()
 
 	return
 }
@@ -280,8 +263,8 @@ func (s *Server) WaitUntilStarted() {
 func (s *Server) ListenerFd() *os.File {
 	s.listenerMu.Lock()
 	defer s.listenerMu.Unlock()
-	if s.tcp != nil {
-		file, _ := s.tcp.(*net.TCPListener).File()
+	if s.server[0].Listener != nil {
+		file, _ := s.server[0].Listener.(*net.TCPListener).File()
 		return file
 	}
 	return nil
@@ -293,8 +276,8 @@ func (s *Server) ListenerFd() *os.File {
 func (s *Server) PacketConnFd() *os.File {
 	s.listenerMu.Lock()
 	defer s.listenerMu.Unlock()
-	if s.udp != nil {
-		file, _ := s.udp.(*net.UDPConn).File()
+	if s.server[1].PacketConn != nil {
+		file, _ := s.server[1].PacketConn.(*net.UDPConn).File()
 		return file
 	}
 	return nil

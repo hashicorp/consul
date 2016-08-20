@@ -19,20 +19,19 @@ import (
 	"golang.org/x/net/context"
 )
 
-var (
-	etc    *Etcd
-	client etcdc.KeysAPI
-	ctxt   context.Context
-)
-
 func init() {
+	ctxt, _ = context.WithTimeout(context.Background(), etcdTimeout)
+}
+
+//	etc    *Etcd
+func newEtcdMiddleware() *Etcd {
 	ctxt, _ = context.WithTimeout(context.Background(), etcdTimeout)
 
 	etcdCfg := etcdc.Config{
 		Endpoints: []string{"http://localhost:2379"},
 	}
 	cli, _ := etcdc.New(etcdCfg)
-	etc = &Etcd{
+	return &Etcd{
 		Proxy:      proxy.New([]string{"8.8.8.8:53"}),
 		PathPrefix: "skydns",
 		Ctx:        context.Background(),
@@ -57,10 +56,12 @@ func delete(t *testing.T, e *Etcd, k string) {
 }
 
 func TestLookup(t *testing.T) {
+	etc := newEtcdMiddleware()
 	for _, serv := range services {
 		set(t, etc, serv.Key, 0, serv)
 		defer delete(t, etc, serv.Key)
 	}
+
 	for _, tc := range dnsTestCases {
 		m := tc.Msg()
 
@@ -91,3 +92,5 @@ func TestLookup(t *testing.T) {
 		}
 	}
 }
+
+var ctxt context.Context

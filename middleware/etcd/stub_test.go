@@ -41,13 +41,14 @@ func TestStubLookup(t *testing.T) {
 	exampleNetStub := &msg.Service{Host: host, Port: port, Key: "a.example.net.stub.dns.skydns.test."}
 	servicesStub = append(servicesStub, exampleNetStub)
 
+	etc := newEtcdMiddleware()
+
 	for _, serv := range servicesStub {
 		set(t, etc, serv.Key, 0, serv)
 		defer delete(t, etc, serv.Key)
 	}
 
 	etc.updateStubZones()
-	defer func() { etc.Stubmap = nil }()
 
 	for _, tc := range dnsTestCasesStub {
 		m := tc.Msg()

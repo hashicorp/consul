@@ -12,15 +12,16 @@ var once sync.Once
 
 type Health struct {
 	Addr string
-	ln   net.Listener
-	mux  *http.ServeMux
+
+	ln  net.Listener
+	mux *http.ServeMux
 }
 
 func health(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, ok)
 }
 
-func (h *Health) Start() error {
+func (h *Health) Startup() error {
 	if h.Addr == "" {
 		h.Addr = defAddr
 	}

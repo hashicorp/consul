@@ -11,14 +11,15 @@ import (
 )
 
 type Dnssec struct {
-	Next     middleware.Handler
+	Next middleware.Handler
+
 	zones    []string
 	keys     []*DNSKEY
 	inflight *singleflight.Group
 	cache    *gcache.Cache
 }
 
-func NewDnssec(zones []string, keys []*DNSKEY, next middleware.Handler) Dnssec {
+func New(zones []string, keys []*DNSKEY, next middleware.Handler) Dnssec {
 	return Dnssec{Next: next,
 		zones:    zones,
 		keys:     keys,

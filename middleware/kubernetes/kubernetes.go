@@ -16,10 +16,10 @@ import (
 	"github.com/miekg/dns"
 	"k8s.io/kubernetes/pkg/api"
 	unversionedapi "k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/labels"
 	unversionedclient "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
 type Kubernetes struct {
@@ -32,10 +32,10 @@ type Kubernetes struct {
 	NameTemplate  *nametemplate.NameTemplate
 	Namespaces    []string
 	LabelSelector *unversionedapi.LabelSelector
-	Selector      *labels.Selector 
+	Selector      *labels.Selector
 }
 
-func (g *Kubernetes) StartKubeCache() error {
+func (g *Kubernetes) InitKubeCache() error {
 	// For a custom api server or running outside a k8s cluster
 	// set URL in env.KUBERNETES_MASTER or set endpoint in Corefile
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
@@ -46,7 +46,6 @@ func (g *Kubernetes) StartKubeCache() error {
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 	config, err := clientConfig.ClientConfig()
 	if err != nil {
-		log.Printf("[debug] error connecting to the client: %v", err)
 		return err
 	}
 	kubeClient, err := unversionedclient.New(config)
@@ -58,19 +57,16 @@ func (g *Kubernetes) StartKubeCache() error {
 	if g.LabelSelector == nil {
 		log.Printf("[INFO] Kubernetes middleware configured without a label selector. No label-based filtering will be performed.")
 	} else {
-        var selector labels.Selector
+		var selector labels.Selector
 		selector, err = unversionedapi.LabelSelectorAsSelector(g.LabelSelector)
-        g.Selector = &selector
-        if err != nil {
-            log.Printf("[ERROR] Unable to create Selector for LabelSelector '%s'.Error was: %s", g.LabelSelector, err)
-            return err
-        }
+		g.Selector = &selector
+		if err != nil {
+			log.Printf("[ERROR] Unable to create Selector for LabelSelector '%s'.Error was: %s", g.LabelSelector, err)
+			return err
+		}
 		log.Printf("[INFO] Kubernetes middleware configured with the label selector '%s'. Only kubernetes objects matching this label selector will be exposed.", unversionedapi.FormatLabelSelector(g.LabelSelector))
 	}
-	log.Printf("[debug] Starting kubernetes middleware with k8s API resync period: %s", g.ResyncPeriod)
 	g.APIConn = newdnsController(kubeClient, g.ResyncPeriod, g.Selector)
-
-	go g.APIConn.Run()
 
 	return err
 }
@@ -115,7 +111,6 @@ func (g *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 		typeName    string
 	)
 
-	log.Printf("[debug] enter Records('%v', '%v')\n", name, exact)
 	zone, serviceSegments := g.getZoneForName(name)
 
 	// TODO: Implementation above globbed together segments for the serviceName if
@@ -137,30 +132,18 @@ func (g *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 		serviceName = util.WildcardStar
 	}
 
-	log.Printf("[debug] published namespaces: %v\n", g.Namespaces)
-
-	log.Printf("[debug] exact: %v\n", exact)
-	log.Printf("[debug] zone: %v\n", zone)
-	log.Printf("[debug] servicename: %v\n", serviceName)
-	log.Printf("[debug] namespace: %v\n", namespace)
-	log.Printf("[debug] typeName: %v\n", typeName)
-	log.Printf("[debug] APIconn: %v\n", g.APIConn)
-
 	nsWildcard := util.SymbolContainsWildcard(namespace)
 	serviceWildcard := util.SymbolContainsWildcard(serviceName)
 
 	// Abort if the namespace does not contain a wildcard, and namespace is not published per CoreFile
 	// Case where namespace contains a wildcard is handled in Get(...) method.
 	if (!nsWildcard) && (len(g.Namespaces) > 0) && (!util.StringInSlice(namespace, g.Namespaces)) {
-		log.Printf("[debug] Namespace '%v' is not published by Corefile\n", namespace)
 		return nil, nil
 	}
 
-	log.Printf("before g.Get(namespace, nsWildcard, serviceName, serviceWildcard): %v %v %v %v", namespace, nsWildcard, serviceName, serviceWildcard)
+	log.Printf("[debug] before g.Get(namespace, nsWildcard, serviceName, serviceWildcard): %v %v %v %v", namespace, nsWildcard, serviceName, serviceWildcard)
 	k8sItems, err := g.Get(namespace, nsWildcard, serviceName, serviceWildcard)
-	log.Printf("[debug] k8s items: %v\n", k8sItems)
 	if err != nil {
-		log.Printf("[ERROR] Got error while looking up ServiceItems. Error is: %v\n", err)
 		return nil, err
 	}
 	if k8sItems == nil {
@@ -178,7 +161,6 @@ func (g *Kubernetes) getRecordsForServiceItems(serviceItems []api.Service, value
 
 	for _, item := range serviceItems {
 		clusterIP := item.Spec.ClusterIP
-		log.Printf("[debug] clusterIP: %v\n", clusterIP)
 
 		// Create records by constructing record name from template...
 		//values.Namespace = item.Metadata.Namespace
@@ -188,26 +170,17 @@ func (g *Kubernetes) getRecordsForServiceItems(serviceItems []api.Service, value
 
 		// Create records for each exposed port...
 		for _, p := range item.Spec.Ports {
-			log.Printf("[debug]    port: %v\n", p.Port)
 			s := msg.Service{Host: clusterIP, Port: int(p.Port)}
 			records = append(records, s)
 		}
 	}
 
-	log.Printf("[debug] records from getRecordsForServiceItems(): %v\n", records)
 	return records
 }
 
 // Get performs the call to the Kubernetes http API.
 func (g *Kubernetes) Get(namespace string, nsWildcard bool, servicename string, serviceWildcard bool) ([]api.Service, error) {
 	serviceList := g.APIConn.GetServiceList()
-
-	/* TODO: Remove?
-	if err != nil {
-		log.Printf("[ERROR] Getting service list produced error: %v", err)
-		return nil, err
-	}
-	*/
 
 	var resultItems []api.Service
 
@@ -216,7 +189,6 @@ func (g *Kubernetes) Get(namespace string, nsWildcard bool, servicename string, 
 			// If namespace has a wildcard, filter results against Corefile namespace list.
 			// (Namespaces without a wildcard were filtered before the call to this function.)
 			if nsWildcard && (len(g.Namespaces) > 0) && (!util.StringInSlice(item.Namespace, g.Namespaces)) {
-				log.Printf("[debug] Namespace '%v' is not published by Corefile\n", item.Namespace)
 				continue
 			}
 			resultItems = append(resultItems, item)

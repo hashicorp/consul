@@ -14,10 +14,9 @@ import (
 )
 
 func TestMultiLookup(t *testing.T) {
+	etc := newEtcdMiddleware()
 	etc.Zones = []string{"skydns.test.", "miek.nl."}
-	defer func() { etc.Zones = []string{"skydns.test.", "skydns_extra.test.", "in-addr.arpa."} }()
 	etc.Next = test.ErrorHandler()
-	defer func() { etc.Next = nil }()
 
 	for _, serv := range servicesMulti {
 		set(t, etc, serv.Key, 0, serv)

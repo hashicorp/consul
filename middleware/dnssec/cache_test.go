@@ -22,7 +22,7 @@ func TestCacheSet(t *testing.T) {
 	m := testMsg()
 	state := middleware.State{Req: m}
 	k := key(m.Answer) // calculate *before* we add the sig
-	d := NewDnssec([]string{"miek.nl."}, []*DNSKEY{dnskey}, nil)
+	d := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, nil)
 	m = d.Sign(state, "miek.nl.", time.Now().UTC())
 
 	_, ok := d.get(k)

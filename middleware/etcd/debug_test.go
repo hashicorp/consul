@@ -30,12 +30,13 @@ func TestIsDebug(t *testing.T) {
 }
 
 func TestDebugLookup(t *testing.T) {
+	etc := newEtcdMiddleware()
+	etc.Debug = true
+
 	for _, serv := range servicesDebug {
 		set(t, etc, serv.Key, 0, serv)
 		defer delete(t, etc, serv.Key)
 	}
-	etc.Debug = true
-	defer func() { etc.Debug = false }()
 
 	for _, tc := range dnsTestCasesDebug {
 		m := tc.Msg()
@@ -69,6 +70,8 @@ func TestDebugLookup(t *testing.T) {
 }
 
 func TestDebugLookupFalse(t *testing.T) {
+	etc := newEtcdMiddleware()
+
 	for _, serv := range servicesDebug {
 		set(t, etc, serv.Key, 0, serv)
 		defer delete(t, etc, serv.Key)
