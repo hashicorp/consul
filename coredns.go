@@ -10,15 +10,22 @@ import (
 //go:generate go run plugin_generate.go
 
 func main() {
-	// Default values for flags for CoreDNS.
-	flag.Set("type", "dns")
-
-	// Values specific for CoreDNS.
-	caddy.DefaultConfigFile = "Corefile"
-	caddy.AppName = "coredns"
-	caddy.AppVersion = version
+	setFlag()
+	setName()
 
 	caddymain.Run()
+}
+
+// setFlag sets flags to predefined values for CoreDNS.
+func setFlag() {
+	flag.Set("type", "dns")
+}
+
+// setName sets application name and versioning information for CoreDNS.
+func setName() {
+	caddy.DefaultConfigFile = "Corefile"
+	caddy.AppName = "CoreDNS"
+	caddy.AppVersion = version
 }
 
 const version = "001"
