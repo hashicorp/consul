@@ -393,13 +393,13 @@ func (e Etcd) SOA(zone string, state middleware.State, opt Options) ([]dns.RR, [
 	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: 300, Class: dns.ClassINET}
 
 	soa := &dns.SOA{Hdr: header,
-		Mbox:    "hostmaster." + zone,
+		Mbox:    hostmaster + "." + zone,
 		Ns:      "ns.dns." + zone,
 		Serial:  uint32(time.Now().Unix()),
 		Refresh: 7200,
 		Retry:   1800,
 		Expire:  86400,
-		Minttl:  60,
+		Minttl:  minTTL,
 	}
 	// TODO(miek): fake some msg.Service here when returning.
 	return []dns.RR{soa}, nil, nil
