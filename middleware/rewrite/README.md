@@ -13,16 +13,16 @@ rewrite from to
 * from is the exact name of type to match
 * to is the destination name or type to rewrite to
 
-If from *and* to look like a DNS type (`A`, `MX`, etc.) the type of the message will be rewriten,
-i.e. to rewrite ANY queries to HINFO, use `rewrite ANY HINFO`.
+If from *and* to look like a DNS type (`A`, `MX`, etc.), the type of the message will be rewriten;
+e.g., to rewrite ANY queries to HINFO, use `rewrite ANY HINFO`.
 
 If from *and* to look like a DNS class (`IN`, `CH`, or `HS`) the class of the message will be
-rewritten. I.e. to rewrite CH queries to IN use `rewrite CH IN`.
+rewritten; e.g., to rewrite CH queries to IN use `rewrite CH IN`.
 
-If it does not look like a type a name is assumed and the qname in the message is rewritten, this
-needs to be a full match of the name `rewrite miek.nl example.org`.
+If it does not look like a type a name is assumed and the qname in the message is rewritten; this
+needs to be a full match of the name, e.g., `rewrite miek.nl example.org`.
 
-If you specify multiple rules and an incoming query matches on multiple (simple) rules only one
+If you specify multiple rules and an incoming query matches on multiple (simple) rules, only
 the first rewrite is applied.
 
 > Everything below this line has not been implemented, yet.
@@ -37,12 +37,12 @@ rewrite [basename] {
 }
 ~~~
 
-* basepath is the base path to match before rewriting with regular expression. Default is /.
+* basepath is the base path to match before rewriting with a regular expression. Default is /.
 * regexp (shorthand: r) will match the path with the given regular expression pattern. Extremely high-load servers should avoid using regular expressions.
 * extensions... is a space-separated list of file extensions to include or ignore. Prefix an extension with ! to exclude an extension. The forward slash / symbol matches paths without file extensions.
 * if specifies a rewrite condition. Multiple ifs are AND-ed together. a and b are any string and may use request placeholders. cond is the condition, with possible values explained below.
 * status will respond with the given status code instead of performing a rewrite. In other words, use either "status" or "to" in your rule, but not both. The code must be a number in the format 2xx or 4xx.
-* destinations... is one or more space-separated paths to rewrite to, with support for request placeholders as well as numbered regular expression captures such as {1}, {2}, etc. Rewrite will check each destination in order and rewrite to the first destination that exists. Each one is checked as a file or, if ends with /, as a directory. The last destination will act as default if no other destination exists.
+* destinations... is one or more space-separated paths to rewrite to, with support for request placeholders as well as numbered regular expression captures such as {1}, {2}, etc. Rewrite will check each destination in order and rewrite to the first destination that exists. Each one is checked as a file or, if it ends with /, as a directory. The last destination will act as the default if no other destination exists.
 "if" Conditions
 
 The if keyword is a powerful way to describe your rule. It takes the format a cond b, where the values a and b are separated by cond, a condition. The condition can be any of these:
