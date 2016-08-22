@@ -1,6 +1,6 @@
 # log
 
-`log` enables request logging. The request log is also known from some vernaculars as an access log.
+`log` enables request logging. The request log is also known in some vernacular as an access log.
 
 ## Syntax
 
@@ -8,7 +8,7 @@
 log
 ~~~
 
-* With no arguments, an query log is written to query.log in the common log format for all requests
+* With no arguments, a query log entry is written to query.log in the common log format for all requests
     (base name = .).
 
 ~~~
@@ -40,7 +40,7 @@ The following place holders are supported:
 
 * `{type}`: qtype of the request.
 * `{name}`: qname of the request.
-* `{class}`: class of the request.
+* `{class}`: qclass of the request.
 * `{proto}`: protocol used (tcp or udp).
 * `{when}`: time of the query.
 * `{remote}`: client's IP address.
