@@ -1,8 +1,8 @@
 # file
 
-`file` enables serving zone data from a RFC-1035 styled file.
+`file` enables serving zone data from an RFC 1035-style master file.
 
-The file middleware is used for "old-style" DNS server. It serves from a preloaded file that exists
+The file middleware is used for an "old-style" DNS server. It serves from a preloaded file that exists
 on disk.
 
 ## Syntax
@@ -12,7 +12,7 @@ file dbfile [zones...]
 ~~~
 
 * `dbfile` the database file to read and parse.
-* `zones` zones it should be authoritative for. If empty the zones from the configuration block
+* `zones` zones it should be authoritative for. If empty, the zones from the configuration block
     are used.
 
 If you want to round robin A and AAAA responses look at the `loadbalance` middleware.
@@ -30,7 +30,7 @@ file dbfile [zones... ] {
 
 * `transfer` enables zone transfers. It may be specified multiples times. *To* or *from* signals
     the direction. Addresses must be denoted in CIDR notation (127.0.0.1/32 etc.) or just as plain
-    address. The special wildcard "*" means: the entire internet (only valid for 'transfer to').
+    addresses. The special wildcard "*" means: the entire internet (only valid for 'transfer to').
 * `no_reload` by default CoreDNS will reload a zone from disk whenever it detects a change to the
   file. This option disables that behavior.
 

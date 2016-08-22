@@ -2,7 +2,7 @@
 
 `proxy` facilitates both a basic reverse proxy and a robust load balancer. The proxy has support for
 multiple backends and adding custom headers. The load balancing features include multiple policies,
-health checks, and failovers. If all hosts fails their health check the proxy middleware will fail
+health checks, and failovers. If all hosts fail their health check the proxy middleware will fail
 back to randomly selecting a target and sending packets to it.
 
 ## Syntax
@@ -35,15 +35,15 @@ proxy from to... {
 * `fail_timeout` specifies how long to consider a backend as down after it has failed. While it is down, requests will not be routed to that backend. A backend is "down" if CoreDNS fails to communicate with it. The default value is 10 seconds ("10s").
 * `max_fails` is the number of failures within fail_timeout that are needed before considering a backend to be down. If 0, the backend will never be marked as down. Default is 1.
 * `health_check` will check path (on port) on each backend. If a backend returns a status code of 200-399, then that backend is healthy. If it doesn't, the backend is marked as unhealthy for duration and no requests are routed to it. If this option is not provided then health checks are disabled. The default duration is 10 seconds ("10s").
-* `ignored_names...` is a space-separated list of paths to exclude from proxying. Requests that match any of these paths will be passed thru.
-* `spray` when all backends are unhealth randomly pick one to send the traffic to (this is a failsafe).
+* `ignored_names...` is a space-separated list of paths to exclude from proxying. Requests that match any of these paths will be passed through.
+* `spray` when all backends are unhealthy, randomly pick one to send the traffic to. (This is a failsafe.)
 
 ## Policies
 
-There are three load balancing policies available:
+There are three load-balancing policies available:
 * *random* (default) - Randomly select a backend
-* *least_conn* - Select backend with the fewest active connections
-* *round_robin* - Select backend in round-robin fashion
+* *least_conn* - Select the backend with the fewest active connections
+* *round_robin* - Select the backend in round-robin fashion
 
 All polices implement randomly spraying packets to backend hosts when *no healthy* hosts are
 available. This is to preeempt the case where the healthchecking (as a mechanism) fails.

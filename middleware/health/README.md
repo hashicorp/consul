@@ -13,8 +13,8 @@ Caddy bug](https://github.com/mholt/caddy/issues/675).
 health
 ~~~
 
-It optionally takes an address, the default is `:8080`. The health path is fixed to `/health`. It
-will just return "OK", when CoreDNS is healthy.
+Optionally takes an address; the default is `:8080`. The health path is fixed to `/health`. It
+will just return "OK" when CoreDNS is healthy.
 
 This middleware only needs to be enabled once.
 

@@ -46,7 +46,7 @@ This is the default kubernetes setup, with everything specified in full:
         # Only expose the k8s namespace "demo"
         namespaces demo
         # Only expose the records for kubernetes objects
-        # that matches this label selector. The label
+        # that match this label selector. The label
         # selector syntax is described in the kubernetes
         # API documentation: http://kubernetes.io/docs/user-guide/labels/
         # Example selector below only exposes objects tagged as
@@ -54,7 +54,7 @@ This is the default kubernetes setup, with everything specified in full:
         labels environment in (staging, qa),application=nginx
     }
     # Perform DNS response caching for the coredns.local zone
-    # Cache timeout is provided by the integer in seconds
+    # Cache timeout is specified by an integer in seconds
     #cache 180 coredns.local
 }
 ~~~
@@ -63,7 +63,7 @@ Defaults:
 * If the `namespaces` keyword is omitted, all kubernetes namespaces are exposed.
 * If the `template` keyword is omitted, the default template of "{service}.{namespace}.{zone}" is used.
 * If the `resyncperiod` keyword is omitted, the default resync period is 5 minutes.
-* The `labels` keyword is only used when filtering of results based on kubernetes label selector syntax
+* The `labels` keyword is only used when filtering results based on kubernetes label selector syntax
   is required. The label selector syntax is described in the kubernetes API documentation at: 
   http://kubernetes.io/docs/user-guide/labels/
 
@@ -127,7 +127,7 @@ The command to launch CoreDNS is:
 $ ./coredns -conf conf/k8sCoreFile
 ~~~
 
-In a separate terminal a dns query can be issued using dig:
+In a separate terminal a DNS query can be issued using dig:
 
 ~~~
 $ dig @localhost mynginx.demo.coredns.local
@@ -179,8 +179,8 @@ For example:
             endpoint http://localhost:8080
         }
         # Perform DNS response caching for the coredns.local zone
-        # Cache timeout is provided by the integer argument in seconds
-        # This works for the kubernetes middleware.)
+        # Cache timeout is specified by an integer argument in seconds
+        # (This works for the kubernetes middleware.)
         #cache 20 coredns.local
         #cache 160 coredns.local
     }
@@ -188,7 +188,7 @@ For example:
 
 ### Internal IP or External IP?
 * Should the Corefile configuration allow control over whether the internal IP or external IP is exposed?
-* If the Corefile configuration allows control over internal IP or external IP, then the config should allow users to control the precidence.
+* If the Corefile configuration allows control over internal IP or external IP, then the config should allow users to control the precedence.
 
 For example a service "myservice" running in namespace "mynamespace" with internal IP "10.0.0.100" and external IP "1.2.3.4".
 
@@ -206,7 +206,7 @@ This example could be published as:
 ### Wildcards
 
 Publishing DNS records for singleton services isn't very interesting. Service
-names are unique within a k8s namespace therefore multiple services will be
+names are unique within a k8s namespace, therefore multiple services will be
 commonly run with a structured naming scheme.
 
 For example, running multiple nginx services under the names:
