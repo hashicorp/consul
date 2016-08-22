@@ -1,6 +1,6 @@
 # etcd
 
-`etcd` enabled reading zone data from an etcd instance. The data in etcd has to be encoded as
+`etcd` enables reading zone data from an etcd instance. The data in etcd has to be encoded as
 a [message](https://github.com/skynetservices/skydns/blob/2fcff74cdc9f9a7dd64189a447ef27ac354b725f/msg/service.go#L26)
 like [SkyDNS](https//github.com/skynetservices/skydns). It should also work just like SkyDNS.
 
@@ -31,16 +31,16 @@ etcd [zones...] {
 }
 ~~~
 
-* `stubzones` enable the stub zones feature. The stubzone is *only* done in the etcd tree located
+* `stubzones` enables the stub zones feature. The stubzone is *only* done in the etcd tree located
     under the *first* zone specified.
-* `path` the path inside etcd, defaults to "/skydns".
-* `endpoint` the etcd endpoints, default to "http://localhost:2397".
-* `upstream` upstream resolvers to be used resolve external names found in etcd, think CNAMEs
-  pointing to external names. If you want CoreDNS to act as a proxy for clients you'll need to add
+* `path` the path inside etcd. Defaults to "/skydns".
+* `endpoint` the etcd endpoints. Defaults to "http://localhost:2397".
+* `upstream` upstream resolvers to be used resolve external names found in etcd (think CNAMEs)
+  pointing to external names. If you want CoreDNS to act as a proxy for clients, you'll need to add
   the proxy middleware.
 * `tls` followed the cert, key and the CA's cert filenames.
 * `debug` allow debug queries. Prefix the name with `o-o.debug.` to retrieve extra information in the
-  additional section of the reply in the form of text records.
+  additional section of the reply in the form of TXT records.
 
 ## Examples
 
@@ -65,11 +65,11 @@ This is the default SkyDNS setup, with everying specified in full:
 
 Reverse zones are supported. You need to make CoreDNS aware of the fact that you are also
 authoritative for the reverse. For instance if you want to add the reverse for 10.0.0.0/24, you'll
-need to add the zone `10.in-addr.arpa` to the list of zones (the fun starts with reverse IPv6 zones
-in the ip6.arpa domain). Showing a snippet of a Corefile:
+need to add the zone `0.0.10.in-addr.arpa` to the list of zones. (The fun starts with IPv6 reverse zones
+in the ip6.arpa domain.) Showing a snippet of a Corefile:
 
 ~~~
-    etcd skydns.local 10.in-addr.arpa {
+    etcd skydns.local 0.0.10.in-addr.arpa {
         stubzones
     ...
 ~~~
