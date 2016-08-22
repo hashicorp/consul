@@ -8,24 +8,24 @@
 cache [ttl] [zones...]
 ~~~
 
-* `ttl` max TTL in seconds, if not specified the TTL of the reply (SOA minimum or minimum TTL in the
+* `ttl` max TTL in seconds. If not specified, the TTL of the reply (SOA minimum or minimum TTL in the
   answer section) will be used.
-* `zones` zones it should should cache for. If empty the zones from the configuration block are used.
+* `zones` zones it should cache for. If empty, the zones from the configuration block are used.
 
-Each element in the cache is cached according to its TTL, for the negative cache the SOA's MinTTL
+Each element in the cache is cached according to its TTL. For the negative cache, the SOA's MinTTL
 value is used.
 
-A cache mostly makes sense with a middleware that is potentially slow, i.e. a proxy that retrieves
-answer, or to minimize backend queries for middleware like etcd. Using a cache with the file
+A cache mostly makes sense with a middleware that is potentially slow (e.g., a proxy that retrieves an
+answer), or to minimize backend queries for middleware like etcd. Using a cache with the file
 middleware essentially doubles the memory load with no conceivable increase of query speed.
 
 The minimum TTL allowed on resource records is 5 seconds.
 
-If monitoring is enabled (`prometheus` directive) then the following extra metrics are added:
+If monitoring is enabled (via the `prometheus` directive) then the following extra metrics are added:
 * coredns_cache_hit_count_total, and
 * coredns_cache_miss_count_total
 
-They both work on a per zone basis and just count the hit and miss counts for each query.
+They both work on a per-zone basis and just count the hit and miss counts for each query.
 
 ## Examples
 
