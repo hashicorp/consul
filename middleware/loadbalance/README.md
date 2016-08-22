@@ -4,7 +4,8 @@
 message. See [Wikipedia](https://en.wikipedia.org/wiki/Round-robin_DNS) about the pros and cons
 on this setup.
 
-It will take care to sort any CNAMEs before any address records.
+It will take care to sort any CNAMEs before any address records, because some stub resolver
+implementation (like glibc) can't handle that.
 
 ## Syntax
 

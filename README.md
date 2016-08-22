@@ -30,6 +30,8 @@ Currently CoreDNS is able to:
 * Has support for the CH class: `version.bind` and friends (middleware/chaos).
 * Profiling support (middleware/pprof).
 
+Each of the middlewares has a README.md of their own.
+
 ## Status
 
 I'm using CoreDNS is my primary, authoritative, nameserver for my domains (`miek.nl`, `atoom.net`
@@ -49,7 +51,7 @@ Caddyfile when I forked it).
 
 ## Compilation
 
-CoreDNS (as a servertype plugin for Caddy) has a hard dependency on Caddy - this is *almost* like
+CoreDNS (as a servertype plugin for Caddy) has a dependency on Caddy - this is *almost* like
 the normal Go dependencies, but with a small twist, caddy (the source) need to know that CoreDNS
 exists and for this we need to add 1 line `_ "github.com/miekg/coredns/core"` to file in caddy.
 
@@ -58,8 +60,8 @@ dependencies:
 
     go get ./...
 
-Then, execute `go generate`, this will patch Caddy to add CoreDNS, and then `go build` as you would
-normally do:
+Then, execute `go generate`, this will patch Caddy to add CoreDNS (and remove the HTTP server
+plugin), and then `go build` as you would normally do:
 
     go generate
     go build
@@ -68,34 +70,36 @@ Should yield a `coredns` binary.
 
 ## Examples
 
-Start a simple proxy:
+Start a simple proxy, you'll need to be root to start listening on port 53.
 
 `Corefile` contains:
 
 ~~~ txt
-.:1053 {
+.:53 {
     proxy . 8.8.8.8:53
+    log stdout
 }
 ~~~
 
 Just start CoreDNS: `./coredns`.
-And then just query on that port (1053), the query should be forwarded to 8.8.8.8 and the response
-will be returned.
+And then just query on that port (53), the query should be forwarded to 8.8.8.8 and the response
+will be returned. Each query should also show up in the log.
 
-Serve the (NSEC) DNSSEC signed `miek.nl` on port 1053, errors and logging to stdout. Allow zone
-transfers to everybody.
+Serve the (NSEC) DNSSEC signed `example.org` on port 1053, errors and logging to stdout. Allow zone
+transfers to everybody, but specically mention 1 IP address so that CoreDNS can send notifies to it.
 
 ~~~ txt
-miek.nl:1053 {
-    file /var/lib/bind/miek.nl.signed {
+example.org:1053 {
+    file /var/lib/coredns/example.org.signed {
         transfer to *
+        transfer to 2001:500:8f::53
     }
     errors stdout
     log stdout
 }
 ~~~
 
-Serve `miek.nl` on port 1053, but forward everything that does *not* match `miek.nl` to a recursive
+Serve `example.org` on port 1053, but forward everything that does *not* match `example.org` to a recursive
 nameserver *and* rewrite ANY queries to HINFO.
 
 ~~~ txt
@@ -103,21 +107,22 @@ nameserver *and* rewrite ANY queries to HINFO.
     rewrite ANY HINFO
     proxy . 8.8.8.8:53
 
-    file /var/lib/bind/miek.nl.signed miek.nl {
+    file /var/lib/coredns/example.org.signed example.org {
         transfer to *
+        transfer to 2001:500:8f::53
     }
     errors stdout
     log stdout
 }
 ~~~
 
-All the above examples are possible with the *current* CoreDNS.
 
-## What remains to be done
+## What Remains To Be Done
 
 * Optimizations.
 * Load testing.
 * The [issues](https://github.com/miekg/coredns/issues).
+
 
 ## Blog and Contact
 
@@ -127,15 +132,15 @@ Docs: <https://miek.nl/tags/coredns/>
 Github: <https://github.com/miekg/coredns>
 
 
-## Systemd service file
+## Systemd Service File
 
 Use this as a systemd service file. It defaults to a coredns wich a homedir of /home/coredns
-and the binary lives in /opt/bin:
+and the binary lives in /opt/bin and the config in `/etc/coredns/Corefile`:
 
 ~~~ txt
 [Unit]
 Description=CoreDNS DNS server
-Documentation=https://miek.nl/tags/coredns
+Documentation=https://coredns.io
 After=network.target
 
 [Service]
