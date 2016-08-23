@@ -26,6 +26,7 @@ docker: deps
 
 .PHONY: generate
 generate: ../../mholt/caddy
+	go get $(BUILD_VERBOSE) golang.org/x/tools/go/ast/astutil
 	go generate $(BUILD_VERSOSE)
 
 .PHONY: deps

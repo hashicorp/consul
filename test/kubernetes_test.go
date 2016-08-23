@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"log"
 	"testing"
+	"time"
 
+	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
 )
 
@@ -61,21 +63,15 @@ var testdataLookupSRV = []struct {
 	{"*.*.coredns.local.", 1, 1},                             // One SRV record, via namespace and service wildcard
 }
 
-func testK8sIntegration(t *testing.T) {
+func TestK8sIntegration(t *testing.T) {
+
+	// t.Skip("Skip Kubernetes Integration tests")
 	// subtests here (Go 1.7 feature).
 	testLookupA(t)
 	testLookupSRV(t)
 }
 
-func testLookupA(t *testing.T) {
-	corefile :=
-		`.:0 {
-    kubernetes coredns.local {
-		endpoint http://localhost:8080
-		namespaces demo
-    }
-`
-
+func createTestServer(t *testing.T, corefile string) (*caddy.Instance, string) {
 	server, err := CoreDNSServer(corefile)
 	if err != nil {
 		t.Fatalf("could not get CoreDNS serving instance: %s", err)
@@ -85,9 +81,27 @@ func testLookupA(t *testing.T) {
 	if udp == "" {
 		t.Fatalf("could not get udp listening port")
 	}
+
+	return server, udp
+}
+
+func testLookupA(t *testing.T) {
+	corefile :=
+		`.:0 {
+    kubernetes coredns.local {
+		endpoint http://localhost:8080
+		namespaces demo
+    }
+
+`
+	server, udp := createTestServer(t, corefile)
 	defer server.Stop()
 
 	log.SetOutput(ioutil.Discard)
+
+	// Work-around for timing condition that results in no-data being returned in
+	// test environment.
+	time.Sleep(5 * time.Second)
 
 	for _, testData := range testdataLookupA {
 		dnsClient := new(dns.Client)
@@ -126,17 +140,14 @@ func testLookupSRV(t *testing.T) {
     }
 `
 
-	server, err := CoreDNSServer(corefile)
-	if err != nil {
-		t.Fatalf("could not get CoreDNS serving instance: %s", err)
-	}
-	udp, _ := CoreDNSServerPorts(server, 0)
-	if udp == "" {
-		t.Fatalf("could not get udp listening port")
-	}
+	server, udp := createTestServer(t, corefile)
 	defer server.Stop()
 
 	log.SetOutput(ioutil.Discard)
+
+	// Work-around for timing condition that results in no-data being returned in
+	// test environment.
+	time.Sleep(5 * time.Second)
 
 	// TODO: Add checks for A records in additional section
 

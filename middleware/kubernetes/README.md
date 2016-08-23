@@ -310,3 +310,7 @@ TBD:
 	  pre-loaded k8s API cache. With and without CoreDNS response caching.
     * Try to get rid of kubernetes launch scripts by moving operations into
       .travis.yml file.
+    * Find root cause of timing condition that results in no data returned to
+      test client when running k8s integration tests. Current work-around is a
+      nasty hack of waiting 5 seconds after setting up test server before performing
+      client calls. (See hack in test/kubernetes_test.go)
