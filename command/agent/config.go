@@ -109,6 +109,13 @@ type DNSConfig struct {
 	// compressed. In Consul 0.7 this was turned on by default and this
 	// config was added as an opt-out.
 	DisableCompression bool `mapstructure:"disable_compression"`
+
+	// InternalClientTimeout specifies the timeout in seconds
+	// for Consul's internal dns client.  This value is used for the
+	// connection, read and write timeout.
+	// Default: 2s
+	InternalClientTimeout    time.Duration `mapstructure:"-"`
+	InternalClientTimeoutRaw string        `mapstructure:"internal_client_timeout" json:"-"`
 }
 
 // Telemetry is the telemetry configuration for the server
@@ -634,8 +641,9 @@ func DefaultConfig() *Config {
 			Server:  8300,
 		},
 		DNSConfig: DNSConfig{
-			UDPAnswerLimit: 3,
-			MaxStale:       5 * time.Second,
+			UDPAnswerLimit:        3,
+			MaxStale:              5 * time.Second,
+			InternalClientTimeout: 2 * time.Second,
 		},
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
@@ -826,6 +834,14 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 			return nil, fmt.Errorf("MaxStale invalid: %v", err)
 		}
 		result.DNSConfig.MaxStale = dur
+	}
+
+	if raw := result.DNSConfig.InternalClientTimeoutRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("InternalClientTimeout invalid: %v", err)
+		}
+		result.DNSConfig.InternalClientTimeout = dur
 	}
 
 	if len(result.DNSConfig.ServiceTTLRaw) != 0 {
@@ -1332,6 +1348,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.DNSConfig.DisableCompression {
 		result.DNSConfig.DisableCompression = true
+	}
+	if b.DNSConfig.InternalClientTimeout != 0 {
+		result.DNSConfig.InternalClientTimeout = b.DNSConfig.InternalClientTimeout
 	}
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval
