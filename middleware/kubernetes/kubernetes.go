@@ -68,8 +68,6 @@ func (k *Kubernetes) InitKubeCache() error {
 	}
 	k.APIConn = newdnsController(kubeClient, k.ResyncPeriod, k.Selector)
 
-	log.Printf("[debug] k8s controller initialized: %s\n", k)
-
 	return err
 }
 
