@@ -47,4 +47,4 @@ func chaosParse(c *caddy.Controller) (string, map[string]bool, error) {
 	return version, authors, nil
 }
 
-const defaultVersion = "CoreDNS"
+var defaultVersion = caddy.AppName + "-" + caddy.AppVersion
