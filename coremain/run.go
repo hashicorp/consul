@@ -215,9 +215,3 @@ var (
 	gitShortStat     string // git diff-index --shortstat
 	gitFilesModified string // git diff-index --name-only HEAD
 )
-
-const (
-	coreName    = "CoreDNS"
-	coreVersion = "001"
-	serverType  = "dns"
-)
