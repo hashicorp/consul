@@ -966,6 +966,12 @@ func TestDecodeConfig_Performance(t *testing.T) {
 	if config.Performance.RaftMultiplier != 3 {
 		t.Fatalf("bad: multiplier isn't set: %#v", config)
 	}
+
+	input = `{"performance": { "raft_multiplier": 11 }}`
+	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err == nil || !strings.Contains(err.Error(), "Performance.RaftMultiplier must be <=") {
+		t.Fatalf("bad: %v", err)
+	}
 }
 
 func TestDecodeConfig_Services(t *testing.T) {

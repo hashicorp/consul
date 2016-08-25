@@ -18,9 +18,14 @@ const (
 	DefaultLANSerfPort = 8301
 	DefaultWANSerfPort = 8302
 
-	// See docs/guides/performance.html for information on how this value
-	// was obtained.
+	// DefaultRaftMultiplier is used as a baseline Raft configuration that
+	// will be reliable on a very basic server. See docs/guides/performance.html
+	// for information on how this value was obtained.
 	DefaultRaftMultiplier uint = 5
+
+	// MaxRaftMultiplier is a fairly arbitrary upper bound that limits the
+	// amount of performance detuning that's possible.
+	MaxRaftMultiplier uint = 10
 )
 
 var (

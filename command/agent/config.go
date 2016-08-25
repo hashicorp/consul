@@ -942,6 +942,11 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.AdvertiseAddrs.RPC = addr
 	}
 
+	// Enforce the max Raft multiplier.
+	if result.Performance.RaftMultiplier > consul.MaxRaftMultiplier {
+		return nil, fmt.Errorf("Performance.RaftMultiplier must be <= %d", consul.MaxRaftMultiplier)
+	}
+
 	return &result, nil
 }
 
