@@ -111,6 +111,13 @@ type DNSConfig struct {
 	DisableCompression bool `mapstructure:"disable_compression"`
 }
 
+// Performance is used to tune the performance of Consul's subsystems.
+type Performance struct {
+	// RaftMultiplier is an integer multiplier used to scale Raft timing
+	// parameters: HeartbeatTimeout, ElectionTimeout, and LeaderLeaseTimeout.
+	RaftMultiplier uint `mapstructure:"raft_multiplier"`
+}
+
 // Telemetry is the telemetry configuration for the server
 type Telemetry struct {
 	// StatsiteAddr is the address of a statsite instance. If provided,
@@ -205,9 +212,12 @@ type Telemetry struct {
 // Some of this is configurable as CLI flags, but most must
 // be set using a configuration file.
 type Config struct {
-	// DevMode enables a fast-path mode of opertaion to bring up an in-memory
+	// DevMode enables a fast-path mode of operation to bring up an in-memory
 	// server with minimal configuration. Useful for developing Consul.
 	DevMode bool `mapstructure:"-"`
+
+	// Performance is used to tune the performance of Consul's subsystems.
+	Performance Performance `mapstructure:"performance"`
 
 	// Bootstrap is used to bring up the first Consul server, and
 	// permits that node to elect itself leader
@@ -932,6 +942,11 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.AdvertiseAddrs.RPC = addr
 	}
 
+	// Enforce the max Raft multiplier.
+	if result.Performance.RaftMultiplier > consul.MaxRaftMultiplier {
+		return nil, fmt.Errorf("Performance.RaftMultiplier must be <= %d", consul.MaxRaftMultiplier)
+	}
+
 	return &result, nil
 }
 
@@ -1084,6 +1099,11 @@ func DecodeCheckDefinition(raw interface{}) (*CheckDefinition, error) {
 // configuration.
 func MergeConfig(a, b *Config) *Config {
 	var result Config = *a
+
+	// Propagate non-default performance settings
+	if b.Performance.RaftMultiplier > 0 {
+		result.Performance.RaftMultiplier = b.Performance.RaftMultiplier
+	}
 
 	// Copy the strings if they're set
 	if b.Bootstrap {

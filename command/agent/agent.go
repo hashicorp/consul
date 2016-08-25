@@ -261,6 +261,11 @@ func (a *Agent) consulConfig() *consul.Config {
 	// Apply dev mode
 	base.DevMode = a.config.DevMode
 
+	// Apply performance factors
+	if a.config.Performance.RaftMultiplier > 0 {
+		base.ScaleRaft(a.config.Performance.RaftMultiplier)
+	}
+
 	// Override with our config
 	if a.config.Datacenter != "" {
 		base.Datacenter = a.config.Datacenter

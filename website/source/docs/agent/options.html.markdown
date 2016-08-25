@@ -576,6 +576,25 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 * <a name="node_name"></a><a href="#node_name">`node_name`</a> Equivalent to the
   [`-node` command-line flag](#_node).
 
+* <a name="performance"></a><a href="#performance">`performance`</a> Available in Consul 0.7 and
+  later, this is a nested object that allows tuning the performance of different subsystems in
+  Consul. See the [Server Performance](/docs/guides/performance.html) guide for more details. The
+  following parameters are available:
+    * <a name="raft_multiplier"></a><a href="#raft_multiplier">`raft_multiplier`</a> - An integer
+      multiplier used by Consul servers to scale key Raft timing parameters. Omitting this value
+      or setting it to 0 uses default timing described below. Lower values are used to tighten
+      timing and increase sensitivity while higher values relax timings and reduce sensitivity.
+      Tuning this affects the time it takes Consul to detect leader failures and to perform
+      leader elections, at the expense of requiring more network and CPU resources for better
+      performance.<br><br>By default, Consul will use a lower-performance timing that's suitable
+      for [minimal Consul servers](/docs/guides/performance.html#minumum), currently equivalent
+      to setting this to a value of 5 (this default may be changed in future versions of Consul,
+      depending if the target minimum server profile changes). Setting this to a value of 1 will
+      configure Raft to its highest-performance mode, equivalent to the default timing of Consul
+      prior to 0.7, and is recommended for [production Consul servers](/docs/guides/performance.html#production).
+      See the note on [last contact](/docs/guides/performance.html#last-contact) timing for more
+      details on tuning this parameter. The maximum allowed value is 10.
+
 * <a name="ports"></a><a href="#ports">`ports`</a> This is a nested object that allows setting
   the bind ports for the following keys:
     * <a name="dns_port"></a><a href="#dns_port">`dns`</a> - The DNS server, -1 to disable. Default 8600.

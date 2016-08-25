@@ -17,6 +17,15 @@ const (
 	DefaultDC          = "dc1"
 	DefaultLANSerfPort = 8301
 	DefaultWANSerfPort = 8302
+
+	// DefaultRaftMultiplier is used as a baseline Raft configuration that
+	// will be reliable on a very basic server. See docs/guides/performance.html
+	// for information on how this value was obtained.
+	DefaultRaftMultiplier uint = 5
+
+	// MaxRaftMultiplier is a fairly arbitrary upper bound that limits the
+	// amount of performance detuning that's possible.
+	MaxRaftMultiplier uint = 10
 )
 
 var (
@@ -314,8 +323,11 @@ func DefaultConfig() *Config {
 		CoordinateUpdateBatchSize:  128,
 		CoordinateUpdateMaxBatches: 5,
 
-		// Hold an RPC for up to 5 seconds by default
-		RPCHoldTimeout: 5 * time.Second,
+		// This holds RPCs during leader elections. For the default Raft
+		// config the election timeout is 5 seconds, so we set this a
+		// bit longer to try to cover that period. This should be more
+		// than enough when running in the high performance mode.
+		RPCHoldTimeout: 7 * time.Second,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
@@ -333,11 +345,25 @@ func DefaultConfig() *Config {
 	// Enable interoperability with unversioned Raft library, and don't
 	// start using new ID-based features yet.
 	conf.RaftConfig.ProtocolVersion = 1
+	conf.ScaleRaft(DefaultRaftMultiplier)
 
 	// Disable shutdown on removal
 	conf.RaftConfig.ShutdownOnRemove = false
 
 	return conf
+}
+
+// ScaleRaft sets the config to have Raft timing parameters scaled by the given
+// performance multiplier. This is done in an idempotent way so it's not tricky
+// to call this when composing configurations and potentially calling this
+// multiple times on the same structure.
+func (c *Config) ScaleRaft(raftMultRaw uint) {
+	raftMult := time.Duration(raftMultRaw)
+
+	def := raft.DefaultConfig()
+	c.RaftConfig.HeartbeatTimeout = raftMult * def.HeartbeatTimeout
+	c.RaftConfig.ElectionTimeout = raftMult * def.ElectionTimeout
+	c.RaftConfig.LeaderLeaseTimeout = raftMult * def.LeaderLeaseTimeout
 }
 
 func (c *Config) tlsConfig() *tlsutil.Config {

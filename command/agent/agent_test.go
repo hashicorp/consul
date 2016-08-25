@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/consul"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/raft"
 )
 
 const (
@@ -188,6 +189,44 @@ func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
 	}
 	if !reflect.DeepEqual(agent.config.TaggedAddresses, expected) {
 		t.Fatalf("Tagged addresses not set up properly: %v", agent.config.TaggedAddresses)
+	}
+}
+
+func TestAgent_CheckPerformanceSettings(t *testing.T) {
+	// Try a default config.
+	{
+		c := nextConfig()
+		c.ConsulConfig = nil
+		dir, agent := makeAgent(t, c)
+		defer os.RemoveAll(dir)
+		defer agent.Shutdown()
+
+		raftMult := time.Duration(consul.DefaultRaftMultiplier)
+		r := agent.consulConfig().RaftConfig
+		def := raft.DefaultConfig()
+		if r.HeartbeatTimeout != raftMult*def.HeartbeatTimeout ||
+			r.ElectionTimeout != raftMult*def.ElectionTimeout ||
+			r.LeaderLeaseTimeout != raftMult*def.LeaderLeaseTimeout {
+			t.Fatalf("bad: %#v", *r)
+		}
+	}
+
+	// Try a multiplier.
+	{
+		c := nextConfig()
+		c.Performance.RaftMultiplier = 99
+		dir, agent := makeAgent(t, c)
+		defer os.RemoveAll(dir)
+		defer agent.Shutdown()
+
+		const raftMult time.Duration = 99
+		r := agent.consulConfig().RaftConfig
+		def := raft.DefaultConfig()
+		if r.HeartbeatTimeout != raftMult*def.HeartbeatTimeout ||
+			r.ElectionTimeout != raftMult*def.ElectionTimeout ||
+			r.LeaderLeaseTimeout != raftMult*def.LeaderLeaseTimeout {
+			t.Fatalf("bad: %#v", *r)
+		}
 	}
 }
 
