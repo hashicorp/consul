@@ -820,12 +820,11 @@ func (s *Server) Stats() map[string]map[string]string {
 	s.remoteLock.RUnlock()
 	stats := map[string]map[string]string{
 		"consul": map[string]string{
-			"server":               "true",
-			"leader":               fmt.Sprintf("%v", s.IsLeader()),
-			"leader_addr":          string(s.raft.Leader()),
-			"bootstrap":            fmt.Sprintf("%v", s.config.Bootstrap),
-			"known_datacenters":    toString(uint64(numKnownDCs)),
-			"leader_lease_timeout": fmt.Sprintf("%v", s.config.RaftConfig.LeaderLeaseTimeout),
+			"server":            "true",
+			"leader":            fmt.Sprintf("%v", s.IsLeader()),
+			"leader_addr":       string(s.raft.Leader()),
+			"bootstrap":         fmt.Sprintf("%v", s.config.Bootstrap),
+			"known_datacenters": toString(uint64(numKnownDCs)),
 		},
 		"raft":     s.raft.Stats(),
 		"serf_lan": s.serfLAN.Stats(),
