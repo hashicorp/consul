@@ -47,7 +47,7 @@ When running Consul 0.7 and later in production, it is recommended to configure 
 [performance parameters](/docs/agent/options.html#performance) back to Consul's original
 high-performance settings. This will let Consul servers detect a failed leader and complete
 leader elections much more quickly than the default configuration which extends key Raft
-timeouts by a factor of 5, so it quite slow during these events.
+timeouts by a factor of 5, so it can be quite slow during these events.
 
 The high performance configuration is simple and looks like this:
 
