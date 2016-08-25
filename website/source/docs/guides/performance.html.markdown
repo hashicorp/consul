@@ -66,13 +66,13 @@ Here are some general recommendations:
 another fast disk technology for the best write throughput.
 
 * <a name="last-contact"></a>Spurious leader elections can be caused by networking issues between
-the servers or lack of CPU. Users in cloud environments often bump their servers up to the next
-instance class with improved networking and CPU until leader elections stabilize, and in Consul
-0.7 or later the [performance parameters](/docs/agent/options.html#performance) configuration
-now gives you the option to trade off performance instead of upsizing servers. You can use the
-[`consul.raft.leader.lastContact` telemetry](/docs/agent/telemetry.html#last-contact) to help
-observe how the Raft timing is performing and decide if de-tuning Raft performance or adding
-more powerful servers might be needed.
+the servers or insufficient CPU resources. Users in cloud environments often bump their servers
+up to the next instance class with improved networking and CPU until leader elections stabilize,
+and in Consul 0.7 or later the [performance parameters](/docs/agent/options.html#performance)
+configuration now gives you tools to trade off performance instead of upsizing servers. You can
+use the [`consul.raft.leader.lastContact` telemetry](/docs/agent/telemetry.html#last-contact)
+to observe how the Raft timing is performing and guide the decision to de-tune Raft performance
+or add more powerful servers.
 
 * For DNS-heavy workloads, configuring all Consul agents in a cluster with the
 [`allow_stale`](/docs/agent/options.html#allow_stale) configuration option will allow reads to
