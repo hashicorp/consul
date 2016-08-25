@@ -17,6 +17,10 @@ const (
 	DefaultDC          = "dc1"
 	DefaultLANSerfPort = 8301
 	DefaultWANSerfPort = 8302
+
+	// See docs/guides/performance.html for information on how this value
+	// was obtained.
+	DefaultRaftMultiplier uint = 5
 )
 
 var (
@@ -333,11 +337,26 @@ func DefaultConfig() *Config {
 	// Enable interoperability with unversioned Raft library, and don't
 	// start using new ID-based features yet.
 	conf.RaftConfig.ProtocolVersion = 1
+	conf.ScaleRaft(DefaultRaftMultiplier)
 
 	// Disable shutdown on removal
 	conf.RaftConfig.ShutdownOnRemove = false
 
 	return conf
+}
+
+// ScaleRaft sets the config to have Raft timing parameters scaled by the given
+// performance multiplier. This is done in an idempotent way so it's not tricky
+// to call this when composing configurations and potentially calling this
+// multiple times on the same structure.
+func (c *Config) ScaleRaft(raftMultRaw uint) {
+	raftMult := time.Duration(raftMultRaw)
+
+	def := raft.DefaultConfig()
+	c.RaftConfig.HeartbeatTimeout = raftMult * def.HeartbeatTimeout
+	c.RaftConfig.ElectionTimeout = raftMult * def.ElectionTimeout
+	c.RaftConfig.CommitTimeout = raftMult * def.CommitTimeout
+	c.RaftConfig.LeaderLeaseTimeout = raftMult * def.LeaderLeaseTimeout
 }
 
 func (c *Config) tlsConfig() *tlsutil.Config {

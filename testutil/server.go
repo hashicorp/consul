@@ -32,6 +32,11 @@ import (
 // offset is used to atomically increment the port numbers.
 var offset uint64
 
+// TestPerformanceConfig configures the performance parameters.
+type TestPerformanceConfig struct {
+	RaftMultiplier uint `json:"raft_multiplier,omitempty"`
+}
+
 // TestPortConfig configures the various ports used for services
 // provided by the Consul server.
 type TestPortConfig struct {
@@ -51,20 +56,21 @@ type TestAddressConfig struct {
 
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
-	NodeName          string             `json:"node_name"`
-	Bootstrap         bool               `json:"bootstrap,omitempty"`
-	Server            bool               `json:"server,omitempty"`
-	DataDir           string             `json:"data_dir,omitempty"`
-	Datacenter        string             `json:"datacenter,omitempty"`
-	DisableCheckpoint bool               `json:"disable_update_check"`
-	LogLevel          string             `json:"log_level,omitempty"`
-	Bind              string             `json:"bind_addr,omitempty"`
-	Addresses         *TestAddressConfig `json:"addresses,omitempty"`
-	Ports             *TestPortConfig    `json:"ports,omitempty"`
-	ACLMasterToken    string             `json:"acl_master_token,omitempty"`
-	ACLDatacenter     string             `json:"acl_datacenter,omitempty"`
-	ACLDefaultPolicy  string             `json:"acl_default_policy,omitempty"`
-	Stdout, Stderr    io.Writer          `json:"-"`
+	NodeName          string                 `json:"node_name"`
+	Performance       *TestPerformanceConfig `json:"performance,omitempty"`
+	Bootstrap         bool                   `json:"bootstrap,omitempty"`
+	Server            bool                   `json:"server,omitempty"`
+	DataDir           string                 `json:"data_dir,omitempty"`
+	Datacenter        string                 `json:"datacenter,omitempty"`
+	DisableCheckpoint bool                   `json:"disable_update_check"`
+	LogLevel          string                 `json:"log_level,omitempty"`
+	Bind              string                 `json:"bind_addr,omitempty"`
+	Addresses         *TestAddressConfig     `json:"addresses,omitempty"`
+	Ports             *TestPortConfig        `json:"ports,omitempty"`
+	ACLMasterToken    string                 `json:"acl_master_token,omitempty"`
+	ACLDatacenter     string                 `json:"acl_datacenter,omitempty"`
+	ACLDefaultPolicy  string                 `json:"acl_default_policy,omitempty"`
+	Stdout, Stderr    io.Writer              `json:"-"`
 }
 
 // ServerConfigCallback is a function interface which can be
@@ -79,11 +85,14 @@ func defaultServerConfig() *TestServerConfig {
 	return &TestServerConfig{
 		NodeName:          fmt.Sprintf("node%d", idx),
 		DisableCheckpoint: true,
-		Bootstrap:         true,
-		Server:            true,
-		LogLevel:          "debug",
-		Bind:              "127.0.0.1",
-		Addresses:         &TestAddressConfig{},
+		Performance: &TestPerformanceConfig{
+			RaftMultiplier: 1,
+		},
+		Bootstrap: true,
+		Server:    true,
+		LogLevel:  "debug",
+		Bind:      "127.0.0.1",
+		Addresses: &TestAddressConfig{},
 		Ports: &TestPortConfig{
 			DNS:     20000 + idx,
 			HTTP:    21000 + idx,

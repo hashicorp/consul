@@ -957,6 +957,17 @@ func TestDecodeConfig_invalidKeys(t *testing.T) {
 	}
 }
 
+func TestDecodeConfig_Performance(t *testing.T) {
+	input := `{"performance": { "raft_multiplier": 3 }}`
+	config, err := DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if config.Performance.RaftMultiplier != 3 {
+		t.Fatalf("bad: multiplier isn't set: %#v", config)
+	}
+}
+
 func TestDecodeConfig_Services(t *testing.T) {
 	input := `{
 		"services": [
@@ -1382,6 +1393,9 @@ func TestMergeConfig(t *testing.T) {
 	}
 
 	b := &Config{
+		Performance: Performance{
+			RaftMultiplier: 99,
+		},
 		Bootstrap:       true,
 		BootstrapExpect: 3,
 		Datacenter:      "dc2",

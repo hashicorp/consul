@@ -129,8 +129,8 @@ These metrics are used to monitor the health of the Consul servers.
     <td>timer</td>
   </tr>
   <tr>
-    <td>`consul.raft.leader.lastContact`</td>
-    <td>This measures the time that a Consul server was last contacted by the leader (will be zero on the leader itself). This is a general indicator of latency in the Raft subsystem, and gives a general indicator of how far behind [stale](/docs/agent/http.html#consistency) queries will be.</td>
+    <td><a name="last-contact"></a>`consul.raft.leader.lastContact`</td>
+    <td>This will only be emitted by the Raft leader and measures the time since the leader was last able to contact the follower nodes when checking its leader lease. It can be used as a measure for how stable the Raft timing is and how close the leader is to timing out its lease.<br><br>The lease timeout is 500 ms times the [`raft_multiplier` configuration](/docs/agent/options.html#raft_multiplier), so this telemetry value should not be getting close to that configured value, otherwise the Raft timing is marginal and might need to be tuned, or more powerful servers might be needed. See the [Server Performance](/docs/guides/performance.html) guide for more details.</td>
     <td>ms</td>
     <td>timer</td>
   </tr>

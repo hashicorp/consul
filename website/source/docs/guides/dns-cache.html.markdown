@@ -20,6 +20,7 @@ for each lookup and can potentially exhaust the query throughput of a cluster.
 For this reason, Consul provides a number of tuning parameters that can
 customize how DNS queries are handled.
 
+<a name="stale"></a>
 ## Stale Reads
 
 Stale reads can be used to reduce latency and increase the throughput
@@ -60,6 +61,7 @@ client and Consul and set the cache values appropriately. In many cases
 "appropriately" simply is turning negative response caching off to get the best
 recovery time when a service becomes available again.
 
+<a name="ttl"></a>
 ## TTL Values
 
 TTL values can be set to allow DNS results to be cached downstream of Consul. Higher

@@ -19,6 +19,27 @@ standard upgrade flow.
 Consul version 0.7 is a very large release with many important changes. Changes
 to be aware of during an upgrade are categorized below.
 
+#### Performance Tuning and New Defaults
+
+Consul 0.7 introduced support for tuning Raft performance using a new
+[performance configuration block](/docs/agent/options.html#performance). Also,
+the default Raft timing is set to a lower-performance mode suitable for
+[minimal Consul servers](/docs/guides/performance.html#minumum).
+
+To continue to use the high-performance settings that were the default prior to
+Consul 0.7 (recommended for production servers), add the following configuration
+to all Consul servers when upgrading:
+
+```javascript
+{
+  "performance": {
+    "raft_multiplier": 1
+  }
+}
+```
+
+See the [Server Performance](/docs/guides/performance.html) guide for more details.
+
 #### Default Configuration Changes
 
 The default behavior of [`skip_leave_on_interrupt`](/docs/agent/options.html#skip_leave_on_interrupt)
