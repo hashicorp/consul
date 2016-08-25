@@ -13,7 +13,7 @@ const serverType = "dns"
 
 func init() {
 	caddy.RegisterServerType(serverType, caddy.ServerType{
-		Directives: directives,
+		Directives: func() []string { return directives },
 		DefaultInput: func() caddy.Input {
 			if Port == DefaultPort && Zone != "" {
 				return caddy.CaddyfileInput{
