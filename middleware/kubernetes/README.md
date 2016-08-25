@@ -3,7 +3,7 @@
 `kubernetes` enables reading zone data from a kubernetes cluster. Record names
 are constructed as "myservice.mynamespace.coredns.local" where:
 
-* "myservice" is the name of the k8s service (this may include multiple DNS labels, 
+* "myservice" is the name of the k8s service (this may include multiple DNS labels,
   such as "c1.myservice"),
 * "mynamespace" is the k8s namespace for the service, and
 * "coredns.local" is the zone configured for `kubernetes`.
@@ -64,7 +64,7 @@ Defaults:
 * If the `template` keyword is omitted, the default template of "{service}.{namespace}.{zone}" is used.
 * If the `resyncperiod` keyword is omitted, the default resync period is 5 minutes.
 * The `labels` keyword is only used when filtering results based on kubernetes label selector syntax
-  is required. The label selector syntax is described in the kubernetes API documentation at: 
+  is required. The label selector syntax is described in the kubernetes API documentation at:
   http://kubernetes.io/docs/user-guide/labels/
 
 ### Template syntax
@@ -90,7 +90,7 @@ The kubernetes control client can be downloaded from the generic URL:
 For example, the kubectl client for Linux can be downloaded using the command:
 `curl -sSL "http://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kubectl"`
 
-The `contrib/kubernetes/testscripts/10_setup_kubectl.sh` script can be stored in the same directory as 
+The `contrib/kubernetes/testscripts/10_setup_kubectl.sh` script can be stored in the same directory as
 kubectl to setup kubectl to communicate with kubernetes running on the localhost.
 
 
@@ -111,20 +111,40 @@ $ ./kubectl get service --namespace=demo
 ~~~
 
 The script `contrib/kubernetes/testscripts/20_setup_k8s_services.sh` creates a couple of sample namespaces
-with services running in those namespaces. The automated kubernetes integration tests in 
+with services running in those namespaces. The automated kubernetes integration tests in
 `test/kubernetes_test.go` depend on these services and namespaces to exist in kubernetes.
 
 
 #### Launch CoreDNS
 
-Build CoreDNS and launch using the configuration file in `conf/k8sCorefile`.
-This configuration file sets up CoreDNS to use the zone `coredns.local` for
-the kubernetes services.
+Build CoreDNS and launch using this configuration file:
+
+~~~ txt
+# Serve on port 53
+.:53 {
+    kubernetes coredns.local {
+		resyncperiod 5m
+        endpoint http://localhost:8080
+        template {service}.{namespace}.{zone}
+        namespaces demo
+        # Only expose the records for kubernetes objects
+        # that matches this label selector. 
+        # See http://kubernetes.io/docs/user-guide/labels/
+        # Example selector below only exposes objects tagged as
+        # "application=nginx" in the staging or qa environments.
+        #labels environment in (staging, qa),application=nginx
+    }
+    #cache 180 coredns.local # optionally enable caching
+}
+~~~
+
+Put it in `~/k8sCorefile` for instance. This configuration file sets up CoreDNS to use the zone
+`coredns.local` for the kubernetes services.
 
 The command to launch CoreDNS is:
 
 ~~~
-$ ./coredns -conf conf/k8sCoreFile
+$ ./coredns -conf ~/k8sCorefile
 ~~~
 
 In a separate terminal a DNS query can be issued using dig:
@@ -158,10 +178,10 @@ mynginx.demo.coredns.local. 0   IN  A   10.0.0.10
 ## Implementation Notes/Ideas
 
 ### Basic Zone Mapping
-The middleware is configured with a "zone" string. For 
+The middleware is configured with a "zone" string. For
 example: "zone = coredns.local".
 
-The Kubernetes service "myservice" running in "mynamespace" would map 
+The Kubernetes service "myservice" running in "mynamespace" would map
 to: "myservice.mynamespace.coredns.local".
 
 The middleware should publish an A record for that service and a service record.
@@ -277,9 +297,9 @@ TBD:
 		* Improve lookup to reduce size of query result obtained from k8s API.
 		  (namespace-based?, other ideas?)
 * Additional features:
-	* Reverse IN-ADDR entries for services. (Is there any value in supporting 
+	* Reverse IN-ADDR entries for services. (Is there any value in supporting
 	  reverse lookup records?) (need tests, functionality should work based on @aledbf's code.)
-	* (done) ~~How to support label specification in Corefile to allow use of labels to 
+	* (done) ~~How to support label specification in Corefile to allow use of labels to
 	  indicate zone? For example, the following
 	  configuration exposes all services labeled for the "staging" environment
 	  and tenant "customerB" in the zone "customerB.stage.local":
