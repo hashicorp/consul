@@ -318,8 +318,11 @@ func DefaultConfig() *Config {
 		CoordinateUpdateBatchSize:  128,
 		CoordinateUpdateMaxBatches: 5,
 
-		// Hold an RPC for up to 5 seconds by default
-		RPCHoldTimeout: 5 * time.Second,
+		// This holds RPCs during leader elections. For the default Raft
+		// config the election timeout is 5 seconds, so we set this a
+		// bit longer to try to cover that period. This should be more
+		// than enough when running in the high performance mode.
+		RPCHoldTimeout: 7 * time.Second,
 	}
 
 	// Increase our reap interval to 3 days instead of 24h.
