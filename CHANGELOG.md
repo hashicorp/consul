@@ -69,7 +69,12 @@ BACKWARDS INCOMPATIBILITIES:
 * The behavior of the `peers.json` file is different in this version of Consul:
   this file won't normally be present and is used only during outage recovery. Be
   sure to read [Outage Recovery Guide](https://www.consul.io/docs/guides/outage.html)
-  for details.
+  for details. [GH-2222]
+* Consul's default Raft timing is now set to work more reliably on lower-performance servers,
+  which allows for small clusters to use lower cost compute at the expense of reduced
+  performance for failed leader detection and leader elections. You will need to configure
+  Consul to get the same performance as before. See the new [Server Performance](https://www.consul.io/docs/guides/performance.html) guide for more
+  details. [GH-2303]
 
 IMPROVEMENTS:
 
