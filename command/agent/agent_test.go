@@ -206,7 +206,6 @@ func TestAgent_CheckPerformanceSettings(t *testing.T) {
 		def := raft.DefaultConfig()
 		if r.HeartbeatTimeout != raftMult*def.HeartbeatTimeout ||
 			r.ElectionTimeout != raftMult*def.ElectionTimeout ||
-			r.CommitTimeout != raftMult*def.CommitTimeout ||
 			r.LeaderLeaseTimeout != raftMult*def.LeaderLeaseTimeout {
 			t.Fatalf("bad: %#v", *r)
 		}
@@ -225,7 +224,6 @@ func TestAgent_CheckPerformanceSettings(t *testing.T) {
 		def := raft.DefaultConfig()
 		if r.HeartbeatTimeout != raftMult*def.HeartbeatTimeout ||
 			r.ElectionTimeout != raftMult*def.ElectionTimeout ||
-			r.CommitTimeout != raftMult*def.CommitTimeout ||
 			r.LeaderLeaseTimeout != raftMult*def.LeaderLeaseTimeout {
 			t.Fatalf("bad: %#v", *r)
 		}

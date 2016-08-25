@@ -358,7 +358,6 @@ func (c *Config) ScaleRaft(raftMultRaw uint) {
 	def := raft.DefaultConfig()
 	c.RaftConfig.HeartbeatTimeout = raftMult * def.HeartbeatTimeout
 	c.RaftConfig.ElectionTimeout = raftMult * def.ElectionTimeout
-	c.RaftConfig.CommitTimeout = raftMult * def.CommitTimeout
 	c.RaftConfig.LeaderLeaseTimeout = raftMult * def.LeaderLeaseTimeout
 }
 

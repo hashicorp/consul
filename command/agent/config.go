@@ -114,8 +114,7 @@ type DNSConfig struct {
 // Performance is used to tune the performance of Consul's subsystems.
 type Performance struct {
 	// RaftMultiplier is an integer multiplier used to scale Raft timing
-	// parameters: HeartbeatTimeout, ElectionTimeout, CommitTimeout, and
-	// LeaderLeaseTimeout.
+	// parameters: HeartbeatTimeout, ElectionTimeout, and LeaderLeaseTimeout.
 	RaftMultiplier uint `mapstructure:"raft_multiplier"`
 }
 
