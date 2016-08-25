@@ -32,5 +32,7 @@ The following guides are available:
 
 * [Outage Recovery](/docs/guides/outage.html) - This guide covers recovering a cluster that has become unavailable due to server failures.
 
+* [Server Performance](/docs/guides/performance.html) - This guide covers minumum requirements for Consul servers as well as guidelines for running Consul servers in production.
+
 * [Semaphore](/docs/guides/semaphore.html) - This guide covers using the Key/Value store to implement a semaphore.
 
