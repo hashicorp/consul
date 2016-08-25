@@ -152,7 +152,7 @@ type Telemetry struct {
 	// CirconusAPIToken is a valid API Token used to create/manage check. If provided,
 	// metric management is enabled.
 	// Default: none
-	CirconusAPIToken string `mapstructure:"circonus_api_token"`
+	CirconusAPIToken string `mapstructure:"circonus_api_token" json:"-"`
 	// CirconusAPIApp is an app name associated with API token.
 	// Default: "consul"
 	CirconusAPIApp string `mapstructure:"circonus_api_app"`
