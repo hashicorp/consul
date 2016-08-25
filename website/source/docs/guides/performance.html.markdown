@@ -62,6 +62,8 @@ The high performance configuration is simple and looks like this:
 It's best to benchmark with a realistic workload when choosing a production server for Consul.
 Here are some general recommendations:
 
+* Consul will make use of multiple cores, and at least 2 cores are recommended.
+
 * For write-heavy workloads, disk speed on the servers is key for performance. Use SSDs or
 another fast disk technology for the best write throughput.
 
