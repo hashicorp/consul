@@ -18,7 +18,7 @@ func (c *VersionCommand) Help() string {
 }
 
 func (c *VersionCommand) Run(_ []string) int {
-	c.Ui.Output(fmt.Sprintf("Consul Version: %s", c.HumanVersion))
+	c.Ui.Output(fmt.Sprintf("Consul %s", c.HumanVersion))
 
 	config := agent.DefaultConfig()
 	var supplement string
@@ -26,7 +26,7 @@ func (c *VersionCommand) Run(_ []string) int {
 		supplement = fmt.Sprintf(" (agent will automatically use protocol >%d when speaking to compatible agents)",
 			config.Protocol)
 	}
-	c.Ui.Output(fmt.Sprintf("Protocol Version: speaks %d by default, understands %d to %d%s",
+	c.Ui.Output(fmt.Sprintf("Protocol %d spoken by default, understands %d to %d%s",
 		config.Protocol, consul.ProtocolVersionMin, consul.ProtocolVersionMax, supplement))
 
 	return 0

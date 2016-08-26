@@ -73,8 +73,8 @@ running `consul -v`. You'll see output similar to that below:
 
 ```
 $ consul -v
-Consul Version: v0.7.0
-Protocol Version: speaks 2 by default, understands 2 to 3 (agent will automatically use protocol >2 when speaking to compatible agents)
+Consul v0.7.0
+Protocol 2 spoken by default, understands 2 to 3 (agent will automatically use protocol >2 when speaking to compatible agents)
 ```
 
 This says the version of Consul as well as the protocol versions this
