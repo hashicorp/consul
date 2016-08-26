@@ -103,19 +103,19 @@ type DNSConfig struct {
 	// OnlyPassing is used to determine whether to filter nodes
 	// whose health checks are in any non-passing state. By
 	// default, only nodes in a critical state are excluded.
-	OnlyPassing bool `mapstructure:"only_passing"`
+	OnlyPassing        bool `mapstructure:"only_passing"`
 
 	// DisableCompression is used to control whether DNS responses are
 	// compressed. In Consul 0.7 this was turned on by default and this
 	// config was added as an opt-out.
 	DisableCompression bool `mapstructure:"disable_compression"`
 
-	// InternalClientTimeout specifies the timeout in seconds
-	// for Consul's internal dns client.  This value is used for the
-	// connection, read and write timeout.
+	// RecursorTimeout specifies the timeout in seconds
+	// for Consul's internal dns client used for recursion.
+	// This value is used for the connection, read and write timeout.
 	// Default: 2s
-	InternalClientTimeout    time.Duration `mapstructure:"-"`
-	InternalClientTimeoutRaw string        `mapstructure:"internal_client_timeout" json:"-"`
+	RecursorTimeout			time.Duration `mapstructure:"-"`
+	RecursorTimeoutRaw string	`mapstructure:"recursor_timeout" json:"-"`
 }
 
 // Performance is used to tune the performance of Consul's subsystems.
@@ -653,7 +653,7 @@ func DefaultConfig() *Config {
 		DNSConfig: DNSConfig{
 			UDPAnswerLimit:        3,
 			MaxStale:              5 * time.Second,
-			InternalClientTimeout: 2 * time.Second,
+			RecursorTimeout: 2 * time.Second,
 		},
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
@@ -846,12 +846,12 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		result.DNSConfig.MaxStale = dur
 	}
 
-	if raw := result.DNSConfig.InternalClientTimeoutRaw; raw != "" {
+	if raw := result.DNSConfig.RecursorTimeoutRaw; raw != "" {
 		dur, err := time.ParseDuration(raw)
 		if err != nil {
-			return nil, fmt.Errorf("InternalClientTimeout invalid: %v", err)
+			return nil, fmt.Errorf("RecursorTimeout invalid: %v", err)
 		}
-		result.DNSConfig.InternalClientTimeout = dur
+		result.DNSConfig.RecursorTimeout = dur
 	}
 
 	if len(result.DNSConfig.ServiceTTLRaw) != 0 {
@@ -1369,8 +1369,8 @@ func MergeConfig(a, b *Config) *Config {
 	if b.DNSConfig.DisableCompression {
 		result.DNSConfig.DisableCompression = true
 	}
-	if b.DNSConfig.InternalClientTimeout != 0 {
-		result.DNSConfig.InternalClientTimeout = b.DNSConfig.InternalClientTimeout
+	if b.DNSConfig.RecursorTimeout != 0 {
+		result.DNSConfig.RecursorTimeout = b.DNSConfig.RecursorTimeout
 	}
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval
