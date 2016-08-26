@@ -1248,7 +1248,7 @@ func (s *StateStore) parseCheckServiceNodes(
 		return 0, nil, err
 	}
 
-	var results structs.CheckServiceNodes
+	results := make(structs.CheckServiceNodes, 0, len(services))
 	for _, sn := range services {
 		// Retrieve the node.
 		n, err := tx.First("nodes", "id", sn.Node)
