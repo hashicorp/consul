@@ -6,9 +6,10 @@ import (
 	"strings"
 )
 
-// RegisterDirective splices name into the list of directives
-// immediately before another directive. .
-// If before is empty,
+// RegisterDevDirective splices name into the list of directives
+// immediately before another directive. This function is ONLY
+// for plugin development purposes! NEVER use it for a plugin
+// that you are not currently building. If before is empty,
 // the directive will be appended to the end of the list.
 //
 // It is imperative that directives execute in the proper
@@ -22,7 +23,7 @@ import (
 // Directive names must be lower-cased and unique. Any errors
 // here are fatal, and even successful calls print a message
 // to stdout as a reminder to use it only in development.
-func RegisterDirective(name, before string) {
+func RegisterDevDirective(name, before string) {
 	if name == "" {
 		fmt.Println("[FATAL] Cannot register empty directive name")
 		os.Exit(1)
