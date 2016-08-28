@@ -24,5 +24,5 @@ So CoreDNS treats:
 * FORMERR (dns.RcodeFormatError)
 * NOTIMP (dns.RcodeNotImplemented)
 
-as special and will then assume nothing has written to the client. In all other cases it is assume
-something has been written to the client.
+as special and will then assume nothing has written to the client. In all other cases it is assumes
+something has been written to the client (by the middleware).
