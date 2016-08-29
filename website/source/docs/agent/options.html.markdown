@@ -516,6 +516,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   are considered. For example, if a node has a health check that is critical then all services on
   that node will be excluded because they are also considered critical.
 
+  * <a name="recursor_timeout"></a><a href="#recursor_timeout">`recursor_timeout`</a> Timeout used by consul while
+  recursively querying a downstream dns server. Default is 2s.
+
   * <a name="disable_compression"></a><a href="#disable_compression">`disable_compression`</a> If
   set to true, DNS responses will not be compressed. Compression was added and enabled by default
   in Consul 0.7.
