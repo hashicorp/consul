@@ -15,14 +15,13 @@ If keys are not specified (see below), a key is generated and used for all signi
 DNSSEC signing will treat this key a CSK (common signing key), forgoing the ZSK/KSK split. All
 signing operations are done online. Authenticated denial of existence is implemented with NSEC black
 lies. Using ECDSA as an algorithm is preferred as this leads to smaller signatures (compared to
-RSA).
+RSA). NSEC3 is *not* supported.
 
 A signing key can be specified by using the `key` directive.
 
-WARNING: when a key is generated there is currently no way to extract any key material from CoreDNS, as
-this key only lives in memory. See issue <https://github.com/miekg/coredns/issues/211>.
+NOTE: Key generation has not been implemented yet.
 
-TODO(miek): think about key rollovers.
+TODO(miek): think about key rollovers, and how to do them automatically.
 
 
 ~~~

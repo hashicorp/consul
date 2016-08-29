@@ -3,7 +3,9 @@
 `file` enables serving zone data from an RFC 1035-style master file.
 
 The file middleware is used for an "old-style" DNS server. It serves from a preloaded file that exists
-on disk.
+on disk. If the zone file contains signatures (i.e. is signed, i.e. DNSSEC) correct DNSSEC answers
+are returned. Only NSEC is supported! If you use this setup *you* are responsible for resigning the
+zonefile.
 
 ## Syntax
 
