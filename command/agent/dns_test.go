@@ -1405,7 +1405,7 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	testClientTimeout := serverClientTimeout + 5*time.Second
 
 	dir, srv := makeDNSServerConfig(t, func(c *Config) {
-		c.DNSRecursor = "127.0.0.77" // must be an unreachable host
+		c.DNSRecursor = "10.255.255.1" // host must cause a connection|read|write timeout
 	}, func(c *DNSConfig) {
 		c.RecursorTimeout = serverClientTimeout
 	})
