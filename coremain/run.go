@@ -20,9 +20,10 @@ import (
 
 func init() {
 	caddy.TrapSignals()
+	caddy.DefaultConfigFile = "Corefile"
 	setVersion()
 
-	flag.StringVar(&conf, "conf", "", "Caddyfile to load (default \""+caddy.DefaultConfigFile+"\")")
+	flag.StringVar(&conf, "conf", "", "Corefile to load (default \""+caddy.DefaultConfigFile+"\")")
 	flag.StringVar(&cpu, "cpu", "100%", "CPU cap")
 	flag.BoolVar(&plugins, "plugins", false, "List installed plugins")
 	flag.StringVar(&logfile, "log", "", "Process log file")
@@ -76,14 +77,14 @@ func Run() {
 		mustLogFatal(err)
 	}
 
-	// Get Caddyfile input
-	caddyfile, err := caddy.LoadCaddyfile(serverType)
+	// Get Corefile input
+	corefile, err := caddy.LoadCaddyfile(serverType)
 	if err != nil {
 		mustLogFatal(err)
 	}
 
 	// Start your engines
-	instance, err := caddy.Start(caddyfile)
+	instance, err := caddy.Start(corefile)
 	if err != nil {
 		mustLogFatal(err)
 	}
@@ -126,7 +127,7 @@ func confLoader(serverType string) (caddy.Input, error) {
 	}, nil
 }
 
-// defaultLoader loads the Caddyfile from the current working directory.
+// defaultLoader loads the Corefile from the current working directory.
 func defaultLoader(serverType string) (caddy.Input, error) {
 	contents, err := ioutil.ReadFile(caddy.DefaultConfigFile)
 	if err != nil {
