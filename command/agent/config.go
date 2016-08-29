@@ -103,7 +103,7 @@ type DNSConfig struct {
 	// OnlyPassing is used to determine whether to filter nodes
 	// whose health checks are in any non-passing state. By
 	// default, only nodes in a critical state are excluded.
-	OnlyPassing        bool `mapstructure:"only_passing"`
+	OnlyPassing bool `mapstructure:"only_passing"`
 
 	// DisableCompression is used to control whether DNS responses are
 	// compressed. In Consul 0.7 this was turned on by default and this
@@ -651,8 +651,8 @@ func DefaultConfig() *Config {
 			Server:  8300,
 		},
 		DNSConfig: DNSConfig{
-			UDPAnswerLimit:        3,
-			MaxStale:              5 * time.Second,
+			UDPAnswerLimit:  3,
+			MaxStale:        5 * time.Second,
 			RecursorTimeout: 2 * time.Second,
 		},
 		Telemetry: Telemetry{
