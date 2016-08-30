@@ -198,7 +198,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		Datacenter: datacenter,
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.config.ACLToken,
-			AllowStale: d.config.AllowStale,
+			AllowStale: *d.config.AllowStale,
 		},
 	}
 	var out structs.IndexedNodes
@@ -384,7 +384,7 @@ func (d *DNSServer) nodeLookup(network, datacenter, node string, req, resp *dns.
 		Node:       node,
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.config.ACLToken,
-			AllowStale: d.config.AllowStale,
+			AllowStale: *d.config.AllowStale,
 		},
 	}
 	var out structs.IndexedNodeServices
@@ -584,7 +584,7 @@ func (d *DNSServer) serviceLookup(network, datacenter, service, tag string, req,
 		TagFilter:   tag != "",
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.config.ACLToken,
-			AllowStale: d.config.AllowStale,
+			AllowStale: *d.config.AllowStale,
 		},
 	}
 	var out structs.IndexedCheckServiceNodes
@@ -658,7 +658,7 @@ func (d *DNSServer) preparedQueryLookup(network, datacenter, query string, req, 
 		QueryIDOrName: query,
 		QueryOptions: structs.QueryOptions{
 			Token:      d.agent.config.ACLToken,
-			AllowStale: d.config.AllowStale,
+			AllowStale: *d.config.AllowStale,
 		},
 
 		// Always pass the local agent through. In the DNS interface, there

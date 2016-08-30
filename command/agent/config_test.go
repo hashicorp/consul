@@ -544,13 +544,13 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// DNS node ttl, max stale
-	input = `{"dns_config": {"allow_stale": true, "enable_truncate": false, "max_stale": "15s", "node_ttl": "5s", "only_passing": true, "udp_answer_limit": 6}}`
+	input = `{"dns_config": {"allow_stale": false, "enable_truncate": false, "max_stale": "15s", "node_ttl": "5s", "only_passing": true, "udp_answer_limit": 6}}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !config.DNSConfig.AllowStale {
+	if *config.DNSConfig.AllowStale {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.DNSConfig.EnableTruncate {
@@ -1408,7 +1408,7 @@ func TestMergeConfig(t *testing.T) {
 		DataDir:         "/tmp/bar",
 		DNSRecursors:    []string{"127.0.0.2:1001"},
 		DNSConfig: DNSConfig{
-			AllowStale:         false,
+			AllowStale:         Bool(false),
 			EnableTruncate:     true,
 			DisableCompression: true,
 			MaxStale:           30 * time.Second,
