@@ -32,6 +32,10 @@ FEATURES:
   quorum. This version also provides a foundation for new features that will
   appear in future Consul versions once the remainder of the v2 library is
   complete. [GH-2222]
+* Added new `consul operator` command, HTTP endpoint, and associated ACL to
+  allow Consul operators to view and update the Raft configuration. This allows
+  for a stale server to be removed without requiring downtime and peers.json
+  recovery file use. [GH-2312]
 * Extended the [`translate_wan_addrs`](https://www.consul.io/docs/agent/options.html#translate_wan_addrs)
   config option to also translate node addresses in HTTP responses, making it easy
   to use this feature from non-DNS clients. [GH-2118]
