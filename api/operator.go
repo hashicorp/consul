@@ -1,9 +1,5 @@
 package api
 
-import (
-	"github.com/hashicorp/raft"
-)
-
 // Operator can be used to perform low-level operator tasks for Consul.
 type Operator struct {
 	c *Client
@@ -19,14 +15,14 @@ type RaftServer struct {
 	// ID is the unique ID for the server. These are currently the same
 	// as the address, but they will be changed to a real GUID in a future
 	// release of Consul.
-	ID raft.ServerID
+	ID string
 
 	// Node is the node name of the server, as known by Consul, or this
 	// will be set to "(unknown)" otherwise.
 	Node string
 
 	// Address is the IP:port of the server, used for Raft communications.
-	Address raft.ServerAddress
+	Address string
 
 	// Leader is true if this server is the current cluster leader.
 	Leader bool
@@ -67,7 +63,7 @@ func (op *Operator) RaftGetConfiguration(q *QueryOptions) (*RaftConfiguration, e
 // RaftRemovePeerByAddress is used to kick a stale peer (one that it in the Raft
 // quorum but no longer known to Serf or the catalog) by address in the form of
 // "IP:port".
-func (op *Operator) RaftRemovePeerByAddress(address raft.ServerAddress, q *WriteOptions) error {
+func (op *Operator) RaftRemovePeerByAddress(address string, q *WriteOptions) error {
 	r := op.c.newRequest("DELETE", "/v1/operator/raft/peer")
 	r.setWriteOptions(q)
 

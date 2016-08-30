@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/raft"
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
 )
@@ -160,8 +159,7 @@ func (c *OperatorCommand) raft(args []string) error {
 		w := &api.WriteOptions{
 			Token: token,
 		}
-		sa := raft.ServerAddress(address)
-		if err := operator.RaftRemovePeerByAddress(sa, w); err != nil {
+		if err := operator.RaftRemovePeerByAddress(address, w); err != nil {
 			return err
 		}
 		c.Ui.Output(fmt.Sprintf("Removed peer with address %q", address))
