@@ -58,6 +58,9 @@ BACKWARDS INCOMPATIBILITIES:
 * `skip_leave_on_interrupt`'s default behavior is now dependent on whether or
   not the agent is acting as a server or client.  When Consul is started as a
   server the default is `true` and `false` when a client. [GH-1909]
+* `allow_stale` for DNS queries now defaults to `true`, allowing for better
+  utilization of available Consul servers and higher throughput at the exponse of
+  weaker consistency. [GH-2315]
 * HTTP check output is truncated to 4k, similar to script check output. [GH-1952]
 * Consul's Go API client will now send ACL tokens using HTTP headers instead of
   query parameters, requiring Consul 0.6.0 or later. [GH-2233]
