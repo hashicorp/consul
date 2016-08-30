@@ -125,7 +125,7 @@ nameserver *and* rewrite ANY queries to HINFO.
 ## Blog and Contact
 
 Website: <https://coredns.io>
-Twitter: `@coredns.io`
+Twitter: [@corednsio](https://twitter.com/corednsio)
 Docs: <https://miek.nl/tags/coredns/>
 Github: <https://github.com/miekg/coredns>
 
