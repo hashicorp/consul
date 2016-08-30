@@ -113,8 +113,11 @@ REMOVE:
 	// pass.
 	future := op.srv.raft.RemovePeer(args.Address)
 	if err := future.Error(); err != nil {
+		op.srv.logger.Printf("[WARN] consul.operator: Failed to remove Raft peer %q: %v",
+			args.Address, err)
 		return err
 	}
 
+	op.srv.logger.Printf("[WARN] consul.operator: Removed Raft peer %q by", args.Address)
 	return nil
 }
