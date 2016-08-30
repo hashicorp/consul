@@ -210,6 +210,9 @@ query "" {
 
 # Read-only mode for the encryption keyring by default (list only)
 keyring = "read"
+
+# Read-only mode for Consul operator interfaces (list only)
+operator = "read"
 ```
 
 This is equivalent to the following JSON input:
@@ -248,13 +251,14 @@ This is equivalent to the following JSON input:
       "policy": "read"
     }
   },
-  "keyring": "read"
+  "keyring": "read",
+  "operator": "read"
 }
 ```
 
 ## Building ACL Policies
 
-#### Blacklist mode and `consul exec`
+#### Blacklist Mode and `consul exec`
 
 If you set [`acl_default_policy`](/docs/agent/options.html#acl_default_policy)
 to `deny`, the `anonymous` token won't have permission to read the default
@@ -279,7 +283,7 @@ Alternatively, you can, of course, add an explicit
 [`acl_token`](/docs/agent/options.html#acl_token) to each agent, giving it access
 to that prefix.
 
-#### Blacklist mode and Service Discovery
+#### Blacklist Mode and Service Discovery
 
 If your [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
 set to `deny`, the `anonymous` token will be unable to read any service
@@ -327,12 +331,12 @@ event "" {
 As always, the more secure way to handle user events is to explicitly grant
 access to each API token based on the events they should be able to fire.
 
-#### Blacklist mode and Prepared Queries
+#### Blacklist Mode and Prepared Queries
 
 After Consul 0.6.3, significant changes were made to ACLs for prepared queries,
 including a new `query` ACL policy. See [Prepared Query ACLs](#prepared_query_acls) below for more details.
 
-#### Blacklist mode and Keyring Operations
+#### Blacklist Mode and Keyring Operations
 
 Consul 0.6 and later supports securing the encryption keyring operations using
 ACL's. Encryption is an optional component of the gossip layer. More information
@@ -352,6 +356,28 @@ keyring = "write"
 Encryption keyring operations are sensitive and should be properly secured. It
 is recommended that instead of configuring a wide-open policy like above, a
 per-token policy is applied to maximize security.
+
+<a name="operator"></a>
+#### Blacklist Mode and Consul Operator Actions
+
+Consul 0.7 added special Consul operator actions which are protected by a new
+`operator` ACL policy. The operator actions cover:
+
+* [Operator HTTP endpoint](/docs/agent/http/operator.html)
+* [Operator CLI command](/docs/commands/operator.html)
+
+If your [`acl_default_policy`](/docs/agent/options.html#acl_default_policy) is
+set to `deny`, then the `anonymous` token will not have access to Consul operator
+actions. Granting `read` access allows reading information for diagnostic purposes
+without making any changes to state. Granting `write` access allows reading
+information and changing state. Here's an example policy:
+
+```
+operator = "write"
+```
+
+~> Grant `write` access to operator actions with extreme caution, as improper use
+   could lead to a Consul outage and even loss of data.
 
 #### Services and Checks with ACLs
 
