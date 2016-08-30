@@ -49,13 +49,14 @@ The `raft` subcommand is used to view and modify Consul's Raft configuration.
 Two actions are available, as detailed in this section.
 
 <a name="raft-list-peers"></a>
-`raft -list-peers -stale=[true|false]`
-
+#### Display Peer Configuration
 This action displays the current Raft peer configuration.
 
-The `-stale` argument defaults to "false" which means the leader provides the
-result. If the cluster is in an outage state without a leader, you may need
-to set `-stale` to "true" to get the configuration from a non-leader server.
+Usage: `raft -list-peers -stale=[true|false]`
+
+* `-stale` - Optional and defaults to "false" which means the leader provides
+the result. If the cluster is in an outage state without a leader, you may need
+to set this to "true" to get the configuration from a non-leader server.
 
 The output looks like this:
 
@@ -66,35 +67,36 @@ bob      127.0.0.2:8300  127.0.0.2:8300  leader    true
 carol    127.0.0.3:8300  127.0.0.3:8300  follower  true
 ```
 
-* `Node` is the node name of the server, as known to Consul, or "(unknown)" if
-  the node is stale at not known.
+`Node` is the node name of the server, as known to Consul, or "(unknown)" if
+the node is stale and not known.
 
-* `ID` is the ID of the server. This is the same as the `Address` in Consul 0.7
-  but may  be upgraded to a GUID in a future version of Consul.
+`ID` is the ID of the server. This is the same as the `Address` in Consul 0.7
+but may  be upgraded to a GUID in a future version of Consul.
 
-* `Address` is the IP:port for the server.
+`Address` is the IP:port for the server.
 
-* `State` is either "follower" or "leader" depending on the server's role in the
-   Raft configuration.
+`State` is either "follower" or "leader" depending on the server's role in the
+Raft configuration.
 
-* `Voter` is "true" or "false", indicating if the server has a vote in the Raft
-   configuration. Future versions of Consul may add support for non-voting
-   servers.
+`Voter` is "true" or "false", indicating if the server has a vote in the Raft
+configuration. Future versions of Consul may add support for non-voting servers.
 
 <a name="raft-remove-peer"></a>
-`raft -remove-peer -address="IP:port"`
+#### Remove a Peer
+This command removes Consul server with given address from the Raft configuration.
 
-This command removes Consul server with given -address from the Raft
-configuration.
-
-The `-address` argument is required and is the "IP:port" for the server to
-remove. The port number is usually 8300, unless configured otherwise.
-
-There are rare cases where a peer may be left behind in the Raft quorum even
-though the server is no longer present and known to the cluster. This command
+There are rare cases where a peer may be left behind in the Raft configuration
+even though the server is no longer present and known to the cluster. This command
 can be used to remove the failed server so that it is no longer affects the
 Raft quorum. If the server still shows in the output of the
 [`consul members`](/docs/commands/members.html) command, it is preferable to
 clean up by simply running
 [`consul force-leave`](http://localhost:4567/docs/commands/force-leave.html)
 instead of this command.
+
+Usage: `raft -remove-peer -address="IP:port"`
+
+* `-address` - "IP:port" for the server to remove. The port number is usually
+8300, unless configured otherwise.
+
+The return code will indicate success or failure.
