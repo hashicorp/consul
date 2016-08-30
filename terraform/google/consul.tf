@@ -24,8 +24,8 @@ resource "google_compute_instance" "consul" {
     }
 
     connection {
-        user     = "${lookup(var.user, var.platform)}"
-        key_path = "${var.key_path}"
+        user        = "${lookup(var.user, var.platform)}"
+        private_key = "${file("${var.key_path}")}"
     }
 
     provisioner "file" {
