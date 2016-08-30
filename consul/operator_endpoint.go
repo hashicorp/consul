@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/consul/consul/agent"
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
 )
 
 // Operator endpoint is used to perform low-level operator tasks for Consul.
@@ -35,33 +36,36 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 	if err := future.Error(); err != nil {
 		return err
 	}
-	reply.Configuration = future.Configuration()
-	leader := op.srv.raft.Leader()
 
-	// Index the configuration so we can easily look up IDs by address.
-	idMap := make(map[raft.ServerAddress]raft.ServerID)
-	for _, s := range reply.Configuration.Servers {
-		idMap[s.Address] = s.ID
-	}
-
-	// Fill out the node map and leader.
-	reply.NodeMap = make(map[raft.ServerID]string)
-	members := op.srv.serfLAN.Members()
-	for _, member := range members {
+	// Index the Consul information about the servers.
+	serverMap := make(map[raft.ServerAddress]*serf.Member)
+	for _, member := range op.srv.serfLAN.Members() {
 		valid, parts := agent.IsConsulServer(member)
 		if !valid {
 			continue
 		}
 
-		// TODO (slackpad) We need to add a Raft API to get the leader by
-		// ID so we don't have to do this mapping.
 		addr := (&net.TCPAddr{IP: member.Addr, Port: parts.Port}).String()
-		if id, ok := idMap[raft.ServerAddress(addr)]; ok {
-			reply.NodeMap[id] = member.Name
-			if leader == raft.ServerAddress(addr) {
-				reply.Leader = id
-			}
+		serverMap[raft.ServerAddress(addr)] = &member
+	}
+
+	// Fill out the reply.
+	leader := op.srv.raft.Leader()
+	reply.Index = future.Index()
+	for _, server := range future.Configuration().Servers {
+		node := "(unknown)"
+		if member, ok := serverMap[server.Address]; ok {
+			node = member.Name
 		}
+
+		entry := &structs.RaftServer{
+			ID:      server.ID,
+			Node:    node,
+			Address: server.Address,
+			Leader:  server.Address == leader,
+			Voter:   server.Suffrage == raft.Voter,
+		}
+		reply.Servers = append(reply.Servers, entry)
 	}
 	return nil
 }
@@ -118,6 +122,6 @@ REMOVE:
 		return err
 	}
 
-	op.srv.logger.Printf("[WARN] consul.operator: Removed Raft peer %q by", args.Address)
+	op.srv.logger.Printf("[WARN] consul.operator: Removed Raft peer %q", args.Address)
 	return nil
 }

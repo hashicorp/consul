@@ -34,13 +34,21 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 	if err := future.Error(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
+	if len(future.Configuration().Servers) != 1 {
+		t.Fatalf("bad: %v", future.Configuration().Servers)
+	}
+	me := future.Configuration().Servers[0]
 	expected := structs.RaftConfigurationResponse{
-		Configuration: future.Configuration(),
-		NodeMap: map[raft.ServerID]string{
-			raft.ServerID(s1.config.RPCAddr.String()): s1.config.NodeName,
+		Servers: []*structs.RaftServer{
+			&structs.RaftServer{
+				ID:      me.ID,
+				Node:    s1.config.NodeName,
+				Address: me.Address,
+				Leader:  true,
+				Voter:   true,
+			},
 		},
-		Leader: raft.ServerID(s1.config.RPCAddr.String()),
+		Index: future.Index(),
 	}
 	if !reflect.DeepEqual(reply, expected) {
 		t.Fatalf("bad: %v", reply)
@@ -102,13 +110,21 @@ func TestOperator_RaftGetConfiguration_ACLDeny(t *testing.T) {
 	if err := future.Error(); err != nil {
 		t.Fatalf("err: %v", err)
 	}
-
+	if len(future.Configuration().Servers) != 1 {
+		t.Fatalf("bad: %v", future.Configuration().Servers)
+	}
+	me := future.Configuration().Servers[0]
 	expected := structs.RaftConfigurationResponse{
-		Configuration: future.Configuration(),
-		NodeMap: map[raft.ServerID]string{
-			raft.ServerID(s1.config.RPCAddr.String()): s1.config.NodeName,
+		Servers: []*structs.RaftServer{
+			&structs.RaftServer{
+				ID:      me.ID,
+				Node:    s1.config.NodeName,
+				Address: me.Address,
+				Leader:  true,
+				Voter:   true,
+			},
 		},
-		Leader: raft.ServerID(s1.config.RPCAddr.String()),
+		Index: future.Index(),
 	}
 	if !reflect.DeepEqual(reply, expected) {
 		t.Fatalf("bad: %v", reply)

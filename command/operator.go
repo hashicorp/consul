@@ -140,18 +140,13 @@ func (c *OperatorCommand) raft(args []string) error {
 
 		// Format it as a nice table.
 		result := []string{"Node|ID|Address|State|Voter"}
-		for _, s := range reply.Configuration.Servers {
-			node := "(unknown)"
-			if mappedNode, ok := reply.NodeMap[s.ID]; ok {
-				node = mappedNode
-			}
+		for _, s := range reply.Servers {
 			state := "follower"
-			if s.ID == reply.Leader {
+			if s.Leader {
 				state = "leader"
 			}
-			voter := s.Suffrage == raft.Voter
 			result = append(result, fmt.Sprintf("%s|%s|%s|%s|%v",
-				node, s.ID, s.Address, state, voter))
+				s.Node, s.ID, s.Address, state, s.Voter))
 		}
 		c.Ui.Output(columnize.SimpleFormat(result))
 	} else if removePeer {

@@ -15,9 +15,9 @@ func TestOperator_RaftGetConfiguration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if len(out.Configuration.Servers) != 1 ||
-		len(out.NodeMap) != 1 ||
-		len(out.Leader) == 0 {
+	if len(out.Servers) != 1 ||
+		!out.Servers[0].Leader ||
+		!out.Servers[0].Voter {
 		t.Fatalf("bad: %v", out)
 	}
 }

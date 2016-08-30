@@ -30,9 +30,9 @@ func TestOperator_OperatorRaftConfiguration(t *testing.T) {
 		if !ok {
 			t.Fatalf("unexpected: %T", obj)
 		}
-		if len(out.Configuration.Servers) != 1 ||
-			len(out.NodeMap) != 1 ||
-			len(out.Leader) == 0 {
+		if len(out.Servers) != 1 ||
+			!out.Servers[0].Leader ||
+			!out.Servers[0].Voter {
 			t.Fatalf("bad: %v", out)
 		}
 	})

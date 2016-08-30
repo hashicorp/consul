@@ -14,23 +14,37 @@ func (c *Client) Operator() *Operator {
 	return &Operator{c}
 }
 
+// RaftServer has information about a server in the Raft configuration.
+type RaftServer struct {
+	// ID is the unique ID for the server. These are currently the same
+	// as the address, but they will be changed to a real GUID in a future
+	// release of Consul.
+	ID raft.ServerID
+
+	// Node is the node name of the server, as known by Consul, or this
+	// will be set to "(unknown)" otherwise.
+	Node string
+
+	// Address is the IP:port of the server, used for Raft communications.
+	Address raft.ServerAddress
+
+	// Leader is true if this server is the current cluster leader.
+	Leader bool
+
+	// Voter is true if this server has a vote in the cluster. This might
+	// be false if the server is staging and still coming online, or if
+	// it's a non-voting server, which will be added in a future release of
+	// Consul.
+	Voter bool
+}
+
 // RaftConfigration is returned when querying for the current Raft configuration.
-// This has the low-level Raft structure, as well as some supplemental
-// information from Consul.
 type RaftConfiguration struct {
-	// Configuration is the low-level Raft configuration structure.
-	Configuration raft.Configuration
+	// Servers has the list of servers in the Raft configuration.
+	Servers []*RaftServer
 
-	// NodeMap maps IDs in the Raft configuration to node names known by
-	// Consul. It's possible that not all configuration entries may have
-	// an entry here if the node isn't known to Consul. Given how this is
-	// generated, this may also contain entries that aren't present in the
-	// Raft configuration.
-	NodeMap map[raft.ServerID]string
-
-	// Leader is the ID of the current Raft leader. This may be blank if
-	// there isn't one.
-	Leader raft.ServerID
+	// Index has the Raft index of this configuration.
+	Index uint64
 }
 
 // RaftGetConfiguration is used to query the current Raft peer set.
