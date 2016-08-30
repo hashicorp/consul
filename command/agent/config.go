@@ -68,7 +68,7 @@ type DNSConfig struct {
 	// data. This gives horizontal read scalability since
 	// any Consul server can service the query instead of
 	// only the leader.
-	AllowStale bool `mapstructure:"allow_stale"`
+	AllowStale *bool `mapstructure:"allow_stale"`
 
 	// EnableTruncate is used to enable setting the truncate
 	// flag for UDP DNS queries.  This allows unmodified
@@ -644,6 +644,7 @@ func DefaultConfig() *Config {
 			Server:  8300,
 		},
 		DNSConfig: DNSConfig{
+			AllowStale:     Bool(true),
 			UDPAnswerLimit: 3,
 			MaxStale:       5 * time.Second,
 		},
@@ -1335,8 +1336,8 @@ func MergeConfig(a, b *Config) *Config {
 			result.DNSConfig.ServiceTTL[service] = dur
 		}
 	}
-	if b.DNSConfig.AllowStale {
-		result.DNSConfig.AllowStale = true
+	if b.DNSConfig.AllowStale != nil {
+		result.DNSConfig.AllowStale = b.DNSConfig.AllowStale
 	}
 	if b.DNSConfig.UDPAnswerLimit != 0 {
 		result.DNSConfig.UDPAnswerLimit = b.DNSConfig.UDPAnswerLimit

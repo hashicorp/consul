@@ -19,9 +19,22 @@ standard upgrade flow.
 Consul version 0.7 is a very large release with many important changes. Changes
 to be aware of during an upgrade are categorized below.
 
-#### Performance Tuning and New Defaults
+#### Defaults Changed for Better Performance
 
-Consul 0.7 introduced support for tuning Raft performance using a new
+Consul 0.7 now defaults the DNS configuration to allow for stale queries by defaulting
+[`allow_stale`](/docs/agent/options.html#allow_stale) to true for better utilization
+of available servers. If you want to retain the previous behavior, set the following
+configuration:
+
+```javascript
+{
+  "dns_config": {
+    "allow_stale": false
+  }
+}
+```
+
+Consul also 0.7 introduced support for tuning Raft performance using a new
 [performance configuration block](/docs/agent/options.html#performance). Also,
 the default Raft timing is set to a lower-performance mode suitable for
 [minimal Consul servers](/docs/guides/performance.html#minumum).
@@ -40,7 +53,7 @@ to all Consul servers when upgrading:
 
 See the [Server Performance](/docs/guides/performance.html) guide for more details.
 
-#### Default Configuration Changes
+#### Servers No Longer Default to Leave on Interrupt
 
 The default behavior of [`skip_leave_on_interrupt`](/docs/agent/options.html#skip_leave_on_interrupt)
 is now dependent on whether or not the agent is acting as a server or client. When Consul is started as a
