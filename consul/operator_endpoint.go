@@ -38,7 +38,7 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 	}
 
 	// Index the Consul information about the servers.
-	serverMap := make(map[raft.ServerAddress]*serf.Member)
+	serverMap := make(map[raft.ServerAddress]serf.Member)
 	for _, member := range op.srv.serfLAN.Members() {
 		valid, parts := agent.IsConsulServer(member)
 		if !valid {
@@ -46,7 +46,7 @@ func (op *Operator) RaftGetConfiguration(args *structs.DCSpecificRequest, reply 
 		}
 
 		addr := (&net.TCPAddr{IP: member.Addr, Port: parts.Port}).String()
-		serverMap[raft.ServerAddress(addr)] = &member
+		serverMap[raft.ServerAddress(addr)] = member
 	}
 
 	// Fill out the reply.
