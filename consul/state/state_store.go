@@ -1248,6 +1248,12 @@ func (s *StateStore) parseCheckServiceNodes(
 		return 0, nil, err
 	}
 
+	// Special-case the zero return value to nil, since this ends up in
+	// external APIs.
+	if len(services) == 0 {
+		return idx, nil, nil
+	}
+
 	results := make(structs.CheckServiceNodes, 0, len(services))
 	for _, sn := range services {
 		// Retrieve the node.
