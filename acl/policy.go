@@ -21,6 +21,7 @@ type Policy struct {
 	Events          []*EventPolicy         `hcl:"event,expand"`
 	PreparedQueries []*PreparedQueryPolicy `hcl:"query,expand"`
 	Keyring         string                 `hcl:"keyring"`
+	Operator        string                 `hcl:"operator"`
 }
 
 // KeyPolicy represents a policy for a key
@@ -123,6 +124,11 @@ func Parse(rules string) (*Policy, error) {
 	// Validate the keyring policy - this one is allowed to be empty
 	if p.Keyring != "" && !isPolicyValid(p.Keyring) {
 		return nil, fmt.Errorf("Invalid keyring policy: %#v", p.Keyring)
+	}
+
+	// Validate the operator policy - this one is allowed to be empty
+	if p.Operator != "" && !isPolicyValid(p.Operator) {
+		return nil, fmt.Errorf("Invalid operator policy: %#v", p.Operator)
 	}
 
 	return p, nil

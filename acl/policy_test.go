@@ -45,6 +45,7 @@ query "bar" {
 	policy = "deny"
 }
 keyring = "deny"
+operator = "deny"
 	`
 	exp := &Policy{
 		Keys: []*KeyPolicy{
@@ -103,7 +104,8 @@ keyring = "deny"
 				Policy: PolicyDeny,
 			},
 		},
-		Keyring: PolicyDeny,
+		Keyring:  PolicyDeny,
+		Operator: PolicyDeny,
 	}
 
 	out, err := Parse(inp)
@@ -162,7 +164,8 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 			"policy": "deny"
 		}
 	},
-	"keyring": "deny"
+	"keyring": "deny",
+	"operator": "deny"
 }`
 	exp := &Policy{
 		Keys: []*KeyPolicy{
@@ -221,7 +224,8 @@ func TestACLPolicy_Parse_JSON(t *testing.T) {
 				Policy: PolicyDeny,
 			},
 		},
-		Keyring: PolicyDeny,
+		Keyring:  PolicyDeny,
+		Operator: PolicyDeny,
 	}
 
 	out, err := Parse(inp)
@@ -252,6 +256,24 @@ keyring = ""
 	}
 }
 
+func TestACLPolicy_Operator_Empty(t *testing.T) {
+	inp := `
+operator = ""
+	`
+	exp := &Policy{
+		Operator: "",
+	}
+
+	out, err := Parse(inp)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if !reflect.DeepEqual(out, exp) {
+		t.Fatalf("bad: %#v %#v", out, exp)
+	}
+}
+
 func TestACLPolicy_Bad_Policy(t *testing.T) {
 	cases := []string{
 		`key "" { policy = "nope" }`,
@@ -259,6 +281,7 @@ func TestACLPolicy_Bad_Policy(t *testing.T) {
 		`event "" { policy = "nope" }`,
 		`query "" { policy = "nope" }`,
 		`keyring = "nope"`,
+		`operator = "nope"`,
 	}
 	for _, c := range cases {
 		_, err := Parse(c)

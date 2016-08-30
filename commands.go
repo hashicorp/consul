@@ -103,6 +103,12 @@ func init() {
 			}, nil
 		},
 
+		"operator": func() (cli.Command, error) {
+			return &command.OperatorCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"info": func() (cli.Command, error) {
 			return &command.InfoCommand{
 				Ui: ui,
