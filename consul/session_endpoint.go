@@ -200,6 +200,7 @@ func (s *Session) Renew(args *structs.SessionSpecificRequest,
 	// Reset the session TTL timer
 	reply.Index = index
 	if session != nil {
+		session.Renew()
 		reply.Sessions = structs.Sessions{session}
 		if err := s.srv.resetSessionTimer(args.Session, session); err != nil {
 			s.srv.logger.Printf("[ERR] consul.session: Session renew failed: %v", err)
