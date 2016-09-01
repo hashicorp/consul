@@ -1,7 +1,6 @@
 package consul
 
 import (
-	"net"
 	"strings"
 
 	"github.com/hashicorp/consul/consul/agent"
@@ -192,7 +191,7 @@ func (s *Server) wanNodeJoin(me serf.MemberEvent) {
 	}
 }
 
-// maybeBootsrap is used to handle bootstrapping when a new consul server joins
+// maybeBootstrap is used to handle bootstrapping when a new consul server joins.
 func (s *Server) maybeBootstrap() {
 	// Bootstrap can only be done if there are no committed logs, remove our
 	// expectations of bootstrapping. This is slightly cheaper than the full
@@ -203,13 +202,14 @@ func (s *Server) maybeBootstrap() {
 		return
 	}
 	if index != 0 {
+		s.logger.Printf("[INFO] consul: Raft data found, disabling bootstrap mode")
 		s.config.BootstrapExpect = 0
 		return
 	}
 
 	// Scan for all the known servers.
 	members := s.serfLAN.Members()
-	addrs := make([]string, 0)
+	var servers []agent.Server
 	for _, member := range members {
 		valid, p := agent.IsConsulServer(member)
 		if !valid {
@@ -227,34 +227,62 @@ func (s *Server) maybeBootstrap() {
 			s.logger.Printf("[ERR] consul: Member %v has bootstrap mode. Expect disabled.", member)
 			return
 		}
-		addr := &net.TCPAddr{IP: member.Addr, Port: p.Port}
-		addrs = append(addrs, addr.String())
+		servers = append(servers, *p)
 	}
 
 	// Skip if we haven't met the minimum expect count.
-	if len(addrs) < s.config.BootstrapExpect {
+	if len(servers) < s.config.BootstrapExpect {
 		return
+	}
+
+	// Query each of the servers and make sure they report no Raft peers.
+	for _, server := range servers {
+		var peers []string
+		if err := s.connPool.RPC(s.config.Datacenter, server.Addr, server.Version,
+			"Status.Peers", &struct{}{}, &peers); err != nil {
+			s.logger.Printf("[ERR] consul: Failed to confirm peer status for %s: %v", server.Name, err)
+			return
+		}
+
+		// Found a node with some Raft peers, stop bootstrap since there's
+		// evidence of an existing cluster. We should get folded in by the
+		// existing servers if that's the case, so it's cleaner to sit as a
+		// candidate with no peers so we don't cause spurious elections.
+		// It's OK this is racy, because even with an initial bootstrap
+		// as long as one peer runs bootstrap things will work, and if we
+		// have multiple peers bootstrap in the same way, that's OK. We
+		// just don't want a server added much later to do a live bootstrap
+		// and interfere with the cluster. This isn't required for Raft's
+		// correctness because no server in the existing cluster will vote
+		// for this server, but it makes things much more stable.
+		if len(peers) > 0 {
+			s.logger.Printf("[INFO] consul: Existing Raft peers reported by %s, disabling bootstrap mode", server.Name)
+			s.config.BootstrapExpect = 0
+			return
+		}
 	}
 
 	// Attempt a live bootstrap!
 	var configuration raft.Configuration
-	for _, addr := range addrs {
-		// TODO (slackpad) - This will need to be updated once we support
-		// node IDs.
-		server := raft.Server{
+	var addrs []string
+	for _, server := range servers {
+		addr := server.Addr.String()
+		addrs = append(addrs, addr)
+		peer := raft.Server{
 			ID:      raft.ServerID(addr),
 			Address: raft.ServerAddress(addr),
 		}
-		configuration.Servers = append(configuration.Servers, server)
+		configuration.Servers = append(configuration.Servers, peer)
 	}
-	s.logger.Printf("[INFO] consul: Found expected number of peers (%s), attempting to bootstrap cluster...",
+	s.logger.Printf("[INFO] consul: Found expected number of peers, attempting bootstrap: %s",
 		strings.Join(addrs, ","))
 	future := s.raft.BootstrapCluster(configuration)
 	if err := future.Error(); err != nil {
 		s.logger.Printf("[ERR] consul: Failed to bootstrap cluster: %v", err)
 	}
 
-	// Bootstrapping complete, don't enter this again.
+	// Bootstrapping complete, or failed for some reason, don't enter this
+	// again.
 	s.config.BootstrapExpect = 0
 }
 
