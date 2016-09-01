@@ -108,6 +108,9 @@ IMPROVEMENTS:
 * Consul now compresses all DNS responses by default. This prevents issues when
   recursing records that were originally compressed, where Consul would somtimes
   generate an invalid, uncompressed response that was too large. [GH-2266]
+* Servers will now abort bootstrapping if they detect an existing cluster with
+  configured Raft peers. This will help prevent spurious leader elections when
+  starting new nodes with `bootstrap_expect` enabled. [GH-2319]
 
 BUG FIXES:
 
