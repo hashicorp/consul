@@ -78,8 +78,8 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: expected nil SkipLeaveOnInt")
 	}
 
-	if config.LeaveOnTerm != DefaultConfig().LeaveOnTerm {
-		t.Fatalf("bad: %#v", config)
+	if config.LeaveOnTerm != nil {
+		t.Fatalf("bad: expected nil LeaveOnTerm")
 	}
 
 	// Server bootstrap
@@ -279,7 +279,7 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if config.LeaveOnTerm != true {
+	if *config.LeaveOnTerm != true {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -1382,7 +1382,7 @@ func TestMergeConfig(t *testing.T) {
 		BindAddr:               "127.0.0.1",
 		AdvertiseAddr:          "127.0.0.1",
 		Server:                 false,
-		LeaveOnTerm:            false,
+		LeaveOnTerm:            new(bool),
 		SkipLeaveOnInt:         new(bool),
 		EnableDebug:            false,
 		CheckUpdateIntervalRaw: "8m",
@@ -1441,8 +1441,8 @@ func TestMergeConfig(t *testing.T) {
 			HTTPS: "127.0.0.4",
 		},
 		Server:                 true,
-		LeaveOnTerm:            true,
-		SkipLeaveOnInt:         new(bool),
+		LeaveOnTerm:            Bool(true),
+		SkipLeaveOnInt:         Bool(true),
 		EnableDebug:            true,
 		VerifyIncoming:         true,
 		VerifyOutgoing:         true,
@@ -1521,7 +1521,6 @@ func TestMergeConfig(t *testing.T) {
 		},
 		Reap: Bool(true),
 	}
-	*b.SkipLeaveOnInt = true
 
 	c := MergeConfig(a, b)
 

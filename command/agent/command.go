@@ -179,15 +179,13 @@ func (c *Command) readConfig() *Config {
 		return nil
 	}
 
-	// Make sure SkipLeaveOnInt is set to the right default based on the
-	// agent's mode (client or server)
+	// Make sure LeaveOnTerm and SkipLeaveOnInt are set to the right
+	// defaults based on the agent's mode (client or server).
+	if config.LeaveOnTerm == nil {
+		config.LeaveOnTerm = Bool(!config.Server)
+	}
 	if config.SkipLeaveOnInt == nil {
-		config.SkipLeaveOnInt = new(bool)
-		if config.Server {
-			*config.SkipLeaveOnInt = true
-		} else {
-			*config.SkipLeaveOnInt = false
-		}
+		config.SkipLeaveOnInt = Bool(config.Server)
 	}
 
 	// Ensure we have a data directory
@@ -922,7 +920,7 @@ WAIT:
 	graceful := false
 	if sig == os.Interrupt && !(*config.SkipLeaveOnInt) {
 		graceful = true
-	} else if sig == syscall.SIGTERM && config.LeaveOnTerm {
+	} else if sig == syscall.SIGTERM && (*config.LeaveOnTerm) {
 		graceful = true
 	}
 
