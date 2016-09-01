@@ -586,7 +586,7 @@ func TestServer_Expect(t *testing.T) {
 	var p4 int
 	testutil.WaitForResult(func() (bool, error) {
 		p4, _ = s4.numPeers()
-		return p4 == 4, errors.New(fmt.Sprintf("%d", p3))
+		return p4 == 4, errors.New(fmt.Sprintf("%d", p4))
 	}, func(err error) {
 		t.Fatalf("should have 4 peers: %v", err)
 	})
