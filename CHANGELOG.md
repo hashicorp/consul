@@ -55,9 +55,13 @@ FEATURES:
 
 BACKWARDS INCOMPATIBILITIES:
 
-* `skip_leave_on_interrupt`'s default behavior is now dependent on whether or
-  not the agent is acting as a server or client.  When Consul is started as a
-  server the default is `true` and `false` when a client. [GH-1909]
+* The default behavior of `leave_on_terminate` and `skip_leave_on_interrupt`
+  is now dependent on whether or not the agent is acting as a server or client.
+  When Consul is started as a server the defaults for these are `false` and
+  `true`, respectively, which means that you have to explicitly configure a
+  server to leave the cluster. When Consul is started as a client the defaults
+  are the opposite, which means by default, clients will leave the cluster if
+  shutdown or interrupted. [GH-1909] [GH-2320]
 * `allow_stale` for DNS queries now defaults to `true`, allowing for better
   utilization of available Consul servers and higher throughput at the exponse of
   weaker consistency. [GH-2315]
