@@ -162,15 +162,16 @@ type Server struct {
 
 // Holds the RPC endpoints
 type endpoints struct {
-	Catalog       *Catalog
-	Health        *Health
-	Status        *Status
-	KVS           *KVS
-	Session       *Session
-	Internal      *Internal
 	ACL           *ACL
+	Catalog       *Catalog
 	Coordinate    *Coordinate
+	Health        *Health
+	Internal      *Internal
+	KVS           *KVS
+	Operator      *Operator
 	PreparedQuery *PreparedQuery
+	Session       *Session
+	Status        *Status
 	Txn           *Txn
 }
 
@@ -496,27 +497,29 @@ func (s *Server) setupRaft() error {
 // setupRPC is used to setup the RPC listener
 func (s *Server) setupRPC(tlsWrap tlsutil.DCWrapper) error {
 	// Create endpoints
-	s.endpoints.Status = &Status{s}
-	s.endpoints.Catalog = &Catalog{s}
-	s.endpoints.Health = &Health{s}
-	s.endpoints.KVS = &KVS{s}
-	s.endpoints.Session = &Session{s}
-	s.endpoints.Internal = &Internal{s}
 	s.endpoints.ACL = &ACL{s}
+	s.endpoints.Catalog = &Catalog{s}
 	s.endpoints.Coordinate = NewCoordinate(s)
+	s.endpoints.Health = &Health{s}
+	s.endpoints.Internal = &Internal{s}
+	s.endpoints.KVS = &KVS{s}
+	s.endpoints.Operator = &Operator{s}
 	s.endpoints.PreparedQuery = &PreparedQuery{s}
+	s.endpoints.Session = &Session{s}
+	s.endpoints.Status = &Status{s}
 	s.endpoints.Txn = &Txn{s}
 
 	// Register the handlers
-	s.rpcServer.Register(s.endpoints.Status)
-	s.rpcServer.Register(s.endpoints.Catalog)
-	s.rpcServer.Register(s.endpoints.Health)
-	s.rpcServer.Register(s.endpoints.KVS)
-	s.rpcServer.Register(s.endpoints.Session)
-	s.rpcServer.Register(s.endpoints.Internal)
 	s.rpcServer.Register(s.endpoints.ACL)
+	s.rpcServer.Register(s.endpoints.Catalog)
 	s.rpcServer.Register(s.endpoints.Coordinate)
+	s.rpcServer.Register(s.endpoints.Health)
+	s.rpcServer.Register(s.endpoints.Internal)
+	s.rpcServer.Register(s.endpoints.KVS)
+	s.rpcServer.Register(s.endpoints.Operator)
 	s.rpcServer.Register(s.endpoints.PreparedQuery)
+	s.rpcServer.Register(s.endpoints.Session)
+	s.rpcServer.Register(s.endpoints.Status)
 	s.rpcServer.Register(s.endpoints.Txn)
 
 	list, err := net.ListenTCP("tcp", s.config.RPCAddr)

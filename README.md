@@ -25,8 +25,7 @@ Consul provides several key features:
 * **Multi-Datacenter** - Consul is built to be datacenter aware, and can
   support any number of regions without complex configuration.
 
-Consul runs on Linux, Mac OS X, and Windows. It is recommended to run the
-Consul servers only on Linux, however.
+Consul runs on Linux, Mac OS X, FreeBSD, Solaris, and Windows.
 
 ## Quick Start
 
@@ -56,7 +55,7 @@ $ bin/consul
 ...
 ```
 
-*note: `make` will also place a copy of the binary in the first part of your $GOPATH*
+*Note: `make` will also place a copy of the binary in the first part of your `$GOPATH`.*
 
 You can run tests by typing `make test`.
 

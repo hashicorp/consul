@@ -65,6 +65,12 @@ func TestStaticACL(t *testing.T) {
 	if !all.KeyringWrite() {
 		t.Fatalf("should allow")
 	}
+	if !all.OperatorRead() {
+		t.Fatalf("should allow")
+	}
+	if !all.OperatorWrite() {
+		t.Fatalf("should allow")
+	}
 	if all.ACLList() {
 		t.Fatalf("should not allow")
 	}
@@ -108,6 +114,12 @@ func TestStaticACL(t *testing.T) {
 	if none.KeyringWrite() {
 		t.Fatalf("should not allow")
 	}
+	if none.OperatorRead() {
+		t.Fatalf("should now allow")
+	}
+	if none.OperatorWrite() {
+		t.Fatalf("should not allow")
+	}
 	if none.ACLList() {
 		t.Fatalf("should not allow")
 	}
@@ -143,6 +155,12 @@ func TestStaticACL(t *testing.T) {
 		t.Fatalf("should allow")
 	}
 	if !manage.KeyringWrite() {
+		t.Fatalf("should allow")
+	}
+	if !manage.OperatorRead() {
+		t.Fatalf("should allow")
+	}
+	if !manage.OperatorWrite() {
 		t.Fatalf("should allow")
 	}
 	if !manage.ACLList() {
@@ -480,19 +498,18 @@ func TestPolicyACL_Parent(t *testing.T) {
 }
 
 func TestPolicyACL_Keyring(t *testing.T) {
-	// Test keyring ACLs
 	type keyringcase struct {
 		inp   string
 		read  bool
 		write bool
 	}
-	keyringcases := []keyringcase{
+	cases := []keyringcase{
 		{"", false, false},
 		{PolicyRead, true, false},
 		{PolicyWrite, true, true},
 		{PolicyDeny, false, false},
 	}
-	for _, c := range keyringcases {
+	for _, c := range cases {
 		acl, err := New(DenyAll(), &Policy{Keyring: c.inp})
 		if err != nil {
 			t.Fatalf("bad: %s", err)
@@ -501,6 +518,32 @@ func TestPolicyACL_Keyring(t *testing.T) {
 			t.Fatalf("bad: %#v", c)
 		}
 		if acl.KeyringWrite() != c.write {
+			t.Fatalf("bad: %#v", c)
+		}
+	}
+}
+
+func TestPolicyACL_Operator(t *testing.T) {
+	type operatorcase struct {
+		inp   string
+		read  bool
+		write bool
+	}
+	cases := []operatorcase{
+		{"", false, false},
+		{PolicyRead, true, false},
+		{PolicyWrite, true, true},
+		{PolicyDeny, false, false},
+	}
+	for _, c := range cases {
+		acl, err := New(DenyAll(), &Policy{Operator: c.inp})
+		if err != nil {
+			t.Fatalf("bad: %s", err)
+		}
+		if acl.OperatorRead() != c.read {
+			t.Fatalf("bad: %#v", c)
+		}
+		if acl.OperatorWrite() != c.write {
 			t.Fatalf("bad: %#v", c)
 		}
 	}

@@ -485,8 +485,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   * <a name="allow_stale"></a><a href="#allow_stale">`allow_stale`</a> - Enables a stale query
   for DNS information. This allows any Consul server, rather than only the leader, to service
   the request. The advantage of this is you get linear read scalability with Consul servers.
-  By default, this is false, meaning all requests are serviced by the leader, providing stronger
-  consistency but less throughput and higher latency.
+  In versions of Consul prior to 0.7, this defaulted to false, meaning all requests are serviced
+  by the leader, providing stronger consistency but less throughput and higher latency. In Consul
+  0.7 and later, this defaults to true for better utilization of available servers.
 
   * <a name="max_stale"></a><a href="#max_stale">`max_stale`</a> When [`allow_stale`](#allow_stale)
   is specified, this is used to limit how

@@ -2349,7 +2349,7 @@ func TestDNS_NodeLookup_TTL(t *testing.T) {
 		c.DNSRecursor = recursor.Addr
 	}, func(c *DNSConfig) {
 		c.NodeTTL = 10 * time.Second
-		c.AllowStale = true
+		*c.AllowStale = true
 		c.MaxStale = time.Second
 	})
 	defer os.RemoveAll(dir)
@@ -2469,7 +2469,7 @@ func TestDNS_ServiceLookup_TTL(t *testing.T) {
 			"db": 10 * time.Second,
 			"*":  5 * time.Second,
 		}
-		c.AllowStale = true
+		*c.AllowStale = true
 		c.MaxStale = time.Second
 	}
 	dir, srv := makeDNSServerConfig(t, nil, confFn)
@@ -2572,7 +2572,7 @@ func TestDNS_PreparedQuery_TTL(t *testing.T) {
 			"db": 10 * time.Second,
 			"*":  5 * time.Second,
 		}
-		c.AllowStale = true
+		*c.AllowStale = true
 		c.MaxStale = time.Second
 	}
 	dir, srv := makeDNSServerConfig(t, nil, confFn)
@@ -3233,7 +3233,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 
 func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 	confFn := func(c *DNSConfig) {
-		c.AllowStale = true
+		*c.AllowStale = true
 		c.MaxStale = time.Second
 	}
 	dir, srv := makeDNSServerConfig(t, nil, confFn)

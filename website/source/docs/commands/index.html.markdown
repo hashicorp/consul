@@ -38,6 +38,7 @@ Available commands are:
     lock           Execute a command holding a lock
     members        Lists the members of a Consul cluster
     monitor        Stream logs from a Consul agent
+    operator       Provides cluster-level tools for Consul operators
     reload         Triggers the agent to reload configuration files
     rtt            Estimates network round trip time between nodes
     version        Prints the Consul version

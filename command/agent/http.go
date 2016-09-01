@@ -230,6 +230,9 @@ func (s *HTTPServer) registerHandlers(enableDebug bool) {
 	s.handleFuncMetrics("/v1/status/leader", s.wrap(s.StatusLeader))
 	s.handleFuncMetrics("/v1/status/peers", s.wrap(s.StatusPeers))
 
+	s.handleFuncMetrics("/v1/operator/raft/configuration", s.wrap(s.OperatorRaftConfiguration))
+	s.handleFuncMetrics("/v1/operator/raft/peer", s.wrap(s.OperatorRaftPeer))
+
 	s.handleFuncMetrics("/v1/catalog/register", s.wrap(s.CatalogRegister))
 	s.handleFuncMetrics("/v1/catalog/deregister", s.wrap(s.CatalogDeregister))
 	s.handleFuncMetrics("/v1/catalog/datacenters", s.wrap(s.CatalogDatacenters))
