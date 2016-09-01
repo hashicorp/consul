@@ -303,8 +303,9 @@ type Config struct {
 	TaggedAddresses map[string]string
 
 	// LeaveOnTerm controls if Serf does a graceful leave when receiving
-	// the TERM signal. Defaults false. This can be changed on reload.
-	LeaveOnTerm bool `mapstructure:"leave_on_terminate"`
+	// the TERM signal. Defaults true on clients, false on servers. This can
+	// be changed on reload.
+	LeaveOnTerm *bool `mapstructure:"leave_on_terminate"`
 
 	// SkipLeaveOnInt controls if Serf skips a graceful leave when
 	// receiving the INT signal. Defaults false on clients, true on
@@ -1170,8 +1171,8 @@ func MergeConfig(a, b *Config) *Config {
 	if b.Server == true {
 		result.Server = b.Server
 	}
-	if b.LeaveOnTerm == true {
-		result.LeaveOnTerm = true
+	if b.LeaveOnTerm != nil {
+		result.LeaveOnTerm = b.LeaveOnTerm
 	}
 	if b.SkipLeaveOnInt != nil {
 		result.SkipLeaveOnInt = b.SkipLeaveOnInt

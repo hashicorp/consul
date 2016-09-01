@@ -567,9 +567,11 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
     ```
 
 * <a name="leave_on_terminate"></a><a href="#leave_on_terminate">`leave_on_terminate`</a> If
-  enabled, when the agent receives a TERM signal,
-  it will send a `Leave` message to the rest of the cluster and gracefully
-  leave. Defaults to false.
+  enabled, when the agent receives a TERM signal, it will send a `Leave` message to the rest
+  of the cluster and gracefully leave. The default behavior for this feature varies based on
+  whether or not the agent is running as a client or a server (prior to Consul 0.7 the default
+  value was unconditionally set to `false`). On agents in client-mode, this defaults to `true`
+  and for agents in server-mode, this defaults to `false`.
 
 * <a name="log_level"></a><a href="#log_level">`log_level`</a> Equivalent to the
   [`-log-level` command-line flag](#_log_level).
@@ -581,20 +583,21 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   later, this is a nested object that allows tuning the performance of different subsystems in
   Consul. See the [Server Performance](/docs/guides/performance.html) guide for more details. The
   following parameters are available:
-    * <a name="raft_multiplier"></a><a href="#raft_multiplier">`raft_multiplier`</a> - An integer
-      multiplier used by Consul servers to scale key Raft timing parameters. Omitting this value
-      or setting it to 0 uses default timing described below. Lower values are used to tighten
-      timing and increase sensitivity while higher values relax timings and reduce sensitivity.
-      Tuning this affects the time it takes Consul to detect leader failures and to perform
-      leader elections, at the expense of requiring more network and CPU resources for better
-      performance.<br><br>By default, Consul will use a lower-performance timing that's suitable
-      for [minimal Consul servers](/docs/guides/performance.html#minumum), currently equivalent
-      to setting this to a value of 5 (this default may be changed in future versions of Consul,
-      depending if the target minimum server profile changes). Setting this to a value of 1 will
-      configure Raft to its highest-performance mode, equivalent to the default timing of Consul
-      prior to 0.7, and is recommended for [production Consul servers](/docs/guides/performance.html#production).
-      See the note on [last contact](/docs/guides/performance.html#last-contact) timing for more
-      details on tuning this parameter. The maximum allowed value is 10.
+
+* <a name="raft_multiplier"></a><a href="#raft_multiplier">`raft_multiplier`</a> - An integer
+  multiplier used by Consul servers to scale key Raft timing parameters. Omitting this value
+  or setting it to 0 uses default timing described below. Lower values are used to tighten
+  timing and increase sensitivity while higher values relax timings and reduce sensitivity.
+  Tuning this affects the time it takes Consul to detect leader failures and to perform
+  leader elections, at the expense of requiring more network and CPU resources for better
+  performance.<br><br>By default, Consul will use a lower-performance timing that's suitable
+  for [minimal Consul servers](/docs/guides/performance.html#minumum), currently equivalent
+  to setting this to a value of 5 (this default may be changed in future versions of Consul,
+  depending if the target minimum server profile changes). Setting this to a value of 1 will
+  configure Raft to its highest-performance mode, equivalent to the default timing of Consul
+  prior to 0.7, and is recommended for [production Consul servers](/docs/guides/performance.html#production).
+  See the note on [last contact](/docs/guides/performance.html#last-contact) timing for more
+  details on tuning this parameter. The maximum allowed value is 10.
 
 * <a name="ports"></a><a href="#ports">`ports`</a> This is a nested object that allows setting
   the bind ports for the following keys:

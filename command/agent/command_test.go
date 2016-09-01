@@ -137,7 +137,7 @@ func TestReadCliConfig(t *testing.T) {
 		}
 	}
 
-	// Test SkipLeaveOnInt default for server mode
+	// Test LeaveOnTerm and SkipLeaveOnInt defaults for server mode
 	{
 		ui := new(cli.MockUi)
 		cmd := &Command{
@@ -157,12 +157,15 @@ func TestReadCliConfig(t *testing.T) {
 		if config.Server != true {
 			t.Errorf(`Expected -server to be true`)
 		}
+		if (*config.LeaveOnTerm) != false {
+			t.Errorf(`Expected LeaveOnTerm to be false in server mode`)
+		}
 		if (*config.SkipLeaveOnInt) != true {
 			t.Errorf(`Expected SkipLeaveOnInt to be true in server mode`)
 		}
 	}
 
-	// Test SkipLeaveOnInt default for client mode
+	// Test LeaveOnTerm and SkipLeaveOnInt defaults for client mode
 	{
 		ui := new(cli.MockUi)
 		cmd := &Command{
@@ -180,6 +183,9 @@ func TestReadCliConfig(t *testing.T) {
 		}
 		if config.Server != false {
 			t.Errorf(`Expected server to be false`)
+		}
+		if (*config.LeaveOnTerm) != true {
+			t.Errorf(`Expected LeaveOnTerm to be true in client mode`)
 		}
 		if *config.SkipLeaveOnInt != false {
 			t.Errorf(`Expected SkipLeaveOnInt to be false in client mode`)
