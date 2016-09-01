@@ -7,18 +7,17 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
 )
 
-var nextPort = 15000
+var nextPort int32 = 15000
 
 func getPort() int {
-	p := nextPort
-	nextPort++
-	return p
+	return int(atomic.AddInt32(&nextPort, 1))
 }
 
 func tmpDir(t *testing.T) string {
