@@ -246,7 +246,7 @@ func (s *Server) maybeBootstrap() {
 
 		// Found a node with some Raft peers, stop bootstrap since there's
 		// evidence of an existing cluster. We should get folded in by the
-		// existing servers if that's the case, so it's safer to sit as a
+		// existing servers if that's the case, so it's cleaner to sit as a
 		// candidate with no peers so we don't cause spurious elections.
 		// It's OK this is racy, because even with an initial bootstrap
 		// as long as one peer runs bootstrap things will work, and if we
