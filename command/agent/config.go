@@ -114,8 +114,8 @@ type DNSConfig struct {
 	// for Consul's internal dns client used for recursion.
 	// This value is used for the connection, read and write timeout.
 	// Default: 2s
-	RecursorTimeout			time.Duration `mapstructure:"-"`
-	RecursorTimeoutRaw string	`mapstructure:"recursor_timeout" json:"-"`
+	RecursorTimeout    time.Duration `mapstructure:"-"`
+	RecursorTimeoutRaw string        `mapstructure:"recursor_timeout" json:"-"`
 }
 
 // Performance is used to tune the performance of Consul's subsystems.
