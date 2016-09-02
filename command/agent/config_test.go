@@ -1419,7 +1419,8 @@ func TestMergeConfig(t *testing.T) {
 			ServiceTTL: map[string]time.Duration{
 				"api": 10 * time.Second,
 			},
-			UDPAnswerLimit: 4,
+			UDPAnswerLimit:  4,
+			RecursorTimeout: 30 * time.Second,
 		},
 		Domain:           "other",
 		LogLevel:         "info",
