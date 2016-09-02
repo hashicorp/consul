@@ -142,9 +142,7 @@ The options below are all specified on the command-line.
   LAN.
 
 * <a name="_dns_port"></a><a href="#_dns_port">`-dns-port`</a> - the DNS port to listen on.
-  This overrides the default port 8600. This option is very useful when deploying Consul
-  to an environment which communicates the DNS port through the environment e.g. PaaS like CloudFoundry, allowing
-  you to set the port directly via a Procfile.
+  This overrides the default port 8600. This is available in Consul 0.7 and later.
 
 * <a name="_domain"></a><a href="#_domain">`-domain`</a> - By default, Consul responds to DNS queries
   in the "consul." domain. This flag can be used to change that domain. All queries in this domain
@@ -524,7 +522,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
   * <a name="recursor_timeout"></a><a href="#recursor_timeout">`recursor_timeout`</a> Timeout used
   by Consul when recursively querying an upstream DNS server. See <a href="#recursors">`recursors`</a>
-  for more details. Default is 2s.
+  for more details. Default is 2s. This is available in Consul 0.7 and later.
 
   * <a name="disable_compression"></a><a href="#disable_compression">`disable_compression`</a> If
   set to true, DNS responses will not be compressed. Compression was added and enabled by default
