@@ -544,7 +544,7 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// DNS node ttl, max stale
-	input = `{"dns_config": {"allow_stale": false, "enable_truncate": false, "max_stale": "15s", "node_ttl": "5s", "only_passing": true, "udp_answer_limit": 6}}`
+	input = `{"dns_config": {"allow_stale": false, "enable_truncate": false, "max_stale": "15s", "node_ttl": "5s", "only_passing": true, "udp_answer_limit": 6, "recursor_timeout": "7s"}}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -566,6 +566,9 @@ func TestDecodeConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", config)
 	}
 	if config.DNSConfig.UDPAnswerLimit != 6 {
+		t.Fatalf("bad: %#v", config)
+	}
+	if config.DNSConfig.RecursorTimeout != 7*time.Second {
 		t.Fatalf("bad: %#v", config)
 	}
 
@@ -1416,7 +1419,8 @@ func TestMergeConfig(t *testing.T) {
 			ServiceTTL: map[string]time.Duration{
 				"api": 10 * time.Second,
 			},
-			UDPAnswerLimit: 4,
+			UDPAnswerLimit:  4,
+			RecursorTimeout: 30 * time.Second,
 		},
 		Domain:           "other",
 		LogLevel:         "info",

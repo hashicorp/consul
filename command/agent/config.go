@@ -109,6 +109,13 @@ type DNSConfig struct {
 	// compressed. In Consul 0.7 this was turned on by default and this
 	// config was added as an opt-out.
 	DisableCompression bool `mapstructure:"disable_compression"`
+
+	// RecursorTimeout specifies the timeout in seconds
+	// for Consul's internal dns client used for recursion.
+	// This value is used for the connection, read and write timeout.
+	// Default: 2s
+	RecursorTimeout			time.Duration `mapstructure:"-"`
+	RecursorTimeoutRaw string	`mapstructure:"recursor_timeout" json:"-"`
 }
 
 // Performance is used to tune the performance of Consul's subsystems.
@@ -645,9 +652,10 @@ func DefaultConfig() *Config {
 			Server:  8300,
 		},
 		DNSConfig: DNSConfig{
-			AllowStale:     Bool(true),
-			UDPAnswerLimit: 3,
-			MaxStale:       5 * time.Second,
+			AllowStale:      Bool(true),
+			UDPAnswerLimit:  3,
+			MaxStale:        5 * time.Second,
+			RecursorTimeout: 2 * time.Second,
 		},
 		Telemetry: Telemetry{
 			StatsitePrefix: "consul",
@@ -838,6 +846,14 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 			return nil, fmt.Errorf("MaxStale invalid: %v", err)
 		}
 		result.DNSConfig.MaxStale = dur
+	}
+
+	if raw := result.DNSConfig.RecursorTimeoutRaw; raw != "" {
+		dur, err := time.ParseDuration(raw)
+		if err != nil {
+			return nil, fmt.Errorf("RecursorTimeout invalid: %v", err)
+		}
+		result.DNSConfig.RecursorTimeout = dur
 	}
 
 	if len(result.DNSConfig.ServiceTTLRaw) != 0 {
@@ -1354,6 +1370,9 @@ func MergeConfig(a, b *Config) *Config {
 	}
 	if b.DNSConfig.DisableCompression {
 		result.DNSConfig.DisableCompression = true
+	}
+	if b.DNSConfig.RecursorTimeout != 0 {
+		result.DNSConfig.RecursorTimeout = b.DNSConfig.RecursorTimeout
 	}
 	if b.CheckUpdateIntervalRaw != "" || b.CheckUpdateInterval != 0 {
 		result.CheckUpdateInterval = b.CheckUpdateInterval

@@ -517,6 +517,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   are considered. For example, if a node has a health check that is critical then all services on
   that node will be excluded because they are also considered critical.
 
+  * <a name="recursor_timeout"></a><a href="#recursor_timeout">`recursor_timeout`</a> Timeout used
+  by Consul when recursively querying an upstream DNS server. See <a href="#recursors">`recursors`</a>
+  for more details. Default is 2s.
+
   * <a name="disable_compression"></a><a href="#disable_compression">`disable_compression`</a> If
   set to true, DNS responses will not be compressed. Compression was added and enabled by default
   in Consul 0.7.
@@ -636,7 +640,7 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
 
 * <a name="recursors"></a><a href="#recursors">`recursors`</a> This flag provides addresses of
   upstream DNS servers that are used to recursively resolve queries if they are not inside the service
-  domain for consul. For example, a node can use Consul directly as a DNS server, and if the record is
+  domain for Consul. For example, a node can use Consul directly as a DNS server, and if the record is
   outside of the "consul." domain, the query will be resolved upstream.
 
 * <a name="rejoin_after_leave"></a><a href="#rejoin_after_leave">`rejoin_after_leave`</a> Equivalent
