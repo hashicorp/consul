@@ -1436,7 +1436,7 @@ func TestDNS_RecursorTimeout(t *testing.T) {
 	}
 
 	if duration < serverClientTimeout {
-		t.Fatalf("Expected the call to return after at least %f seconds but lastest only %f", serverClientTimeout.Seconds(), duration.Seconds())
+		t.Fatalf("Expected the call to return after at least %f seconds but lasted only %f", serverClientTimeout.Seconds(), duration.Seconds())
 	}
 
 }
