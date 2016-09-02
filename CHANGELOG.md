@@ -111,6 +111,11 @@ IMPROVEMENTS:
 * Servers will now abort bootstrapping if they detect an existing cluster with
   configured Raft peers. This will help prevent spurious leader elections when
   starting new nodes with `bootstrap_expect` enabled. [GH-2319]
+* Added a new `recursor_timeout` configuration option to set the timeout for
+  Consul's internal DNS client that's used for recursing queries to upstream DNS
+  servers. [GH-2321]
+* Added a new `-dns-port` command line option so this can be set without a config
+  file. [GH-2263]
 
 BUG FIXES:
 
