@@ -74,7 +74,7 @@ func (z *Zone) Insert(r dns.RR) error {
 		z.Apex.SOA = r.(*dns.SOA)
 		return nil
 	case dns.TypeNSEC3, dns.TypeNSEC3PARAM:
-		return fmt.Errorf("NSEC3 zone is not supported, dropping")
+		return fmt.Errorf("NSEC3 zone is not supported, dropping RR: %s for zone: %s", r.Header().Name, z.origin)
 	case dns.TypeRRSIG:
 		x := r.(*dns.RRSIG)
 		switch x.TypeCovered {
