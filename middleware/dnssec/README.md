@@ -17,7 +17,7 @@ signing operations are done online. Authenticated denial of existence is impleme
 lies. Using ECDSA as an algorithm is preferred as this leads to smaller signatures (compared to
 RSA). NSEC3 is *not* supported.
 
-A signing key can be specified by using the `key` directive.
+A single signing key can be specified by using the `key` directive.
 
 NOTE: Key generation has not been implemented yet.
 
