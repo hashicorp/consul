@@ -113,7 +113,7 @@ func confLoader(serverType string) (caddy.Input, error) {
 	}
 
 	if conf == "stdin" {
-		return caddy.CaddyfileFromPipe(os.Stdin)
+		return caddy.CaddyfileFromPipe(os.Stdin, "dns")
 	}
 
 	contents, err := ioutil.ReadFile(conf)
