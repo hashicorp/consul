@@ -123,7 +123,7 @@ nodes in the response will be sorted in ascending order of estimated round-trip
 times. If the node given does not exist, the nodes in the response will
 be shuffled. Using the magic `_agent` value is supported, and will automatically
 return results nearest the agent servicing the request. If unspecified, the
-response will be shuffled by default.
+response will be shuffled by default. This was added in Consul 0.7.
 
 The set of fields inside the `Service` structure define the query's behavior.
 
