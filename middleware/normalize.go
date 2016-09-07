@@ -16,7 +16,7 @@ func (z Zones) Matches(qname string) string {
 	zone := ""
 	for _, zname := range z {
 		if dns.IsSubDomain(zname, qname) {
-			// TODO(miek): hmm, add test for this case
+			// We want the *longest* matching zone, otherwise we may end up in a parent
 			if len(zname) > len(zone) {
 				zone = zname
 			}
@@ -41,7 +41,6 @@ func (n Name) Matches(child string) bool {
 	if dns.Name(n) == dns.Name(child) {
 		return true
 	}
-
 	return dns.IsSubDomain(string(n), child)
 }
 
