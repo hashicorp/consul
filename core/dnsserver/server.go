@@ -7,7 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/edns"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -163,7 +164,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 		}
 	}()
 
-	if m, err := middleware.Edns0Version(r); err != nil { // Wrong EDNS version, return at once.
+	if m, err := edns.Version(r); err != nil { // Wrong EDNS version, return at once.
 		w.WriteMsg(m)
 		return
 	}
@@ -214,10 +215,11 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 // DefaultErrorFunc responds to an DNS request with an error.
 func DefaultErrorFunc(w dns.ResponseWriter, r *dns.Msg, rcode int) {
-	state := middleware.State{W: w, Req: r}
+	state := request.Request{W: w, Req: r}
 
 	answer := new(dns.Msg)
 	answer.SetRcode(r, rcode)
+
 	state.SizeAndDo(answer)
 
 	w.WriteMsg(answer)

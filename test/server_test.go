@@ -17,7 +17,7 @@ func TestProxyToChaosServer(t *testing.T) {
 		t.Fatalf("could not get CoreDNS serving instance: %s", err)
 	}
 
-	udpChaos, tcpChaos := CoreDNSServerPorts(chaos, 0)
+	udpChaos, _ := CoreDNSServerPorts(chaos, 0)
 	defer chaos.Stop()
 
 	corefileProxy := `.:0 {
@@ -32,24 +32,23 @@ func TestProxyToChaosServer(t *testing.T) {
 	udp, _ := CoreDNSServerPorts(proxy, 0)
 	defer proxy.Stop()
 
-	chaosTest(t, udpChaos, "udp")
-	chaosTest(t, tcpChaos, "tcp")
+	chaosTest(t, udpChaos)
 
-	chaosTest(t, udp, "udp")
+	chaosTest(t, udp)
 	// chaosTest(t, tcp, "tcp"), commented out because we use the original transport to reach the
 	// proxy and we only forward to the udp port.
 }
 
-func chaosTest(t *testing.T, server, net string) {
+func chaosTest(t *testing.T, server string) {
 	m := Msg("version.bind.", dns.TypeTXT, nil)
 	m.Question[0].Qclass = dns.ClassCHAOS
 
-	r, err := Exchange(m, server, net)
+	r, err := dns.Exchange(m, server)
 	if err != nil {
 		t.Fatalf("Could not send message: %s", err)
 	}
 	if r.Rcode != dns.RcodeSuccess || len(r.Answer) == 0 {
-		t.Fatalf("Expected successful reply on %s, got %s", net, dns.RcodeToString[r.Rcode])
+		t.Fatalf("Expected successful reply, got %s", dns.RcodeToString[r.Rcode])
 	}
 	if r.Answer[0].String() != `version.bind.	0	CH	TXT	"CoreDNS-001"` {
 		t.Fatalf("Expected version.bind. reply, got %s", r.Answer[0].String())

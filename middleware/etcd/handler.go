@@ -5,6 +5,7 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -12,7 +13,7 @@ import (
 
 func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	opt := Options{}
-	state := middleware.State{W: w, Req: r}
+	state := request.Request{W: w, Req: r}
 	if state.QClass() != dns.ClassINET {
 		return dns.RcodeServerFailure, fmt.Errorf("can only deal with ClassINET")
 	}
@@ -115,7 +116,7 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 }
 
 // Err write an error response to the client.
-func (e *Etcd) Err(zone string, rcode int, state middleware.State, debug []msg.Service, err error, opt Options) (int, error) {
+func (e *Etcd) Err(zone string, rcode int, state request.Request, debug []msg.Service, err error, opt Options) (int, error) {
 	m := new(dns.Msg)
 	m.SetRcode(state.Req, rcode)
 	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true

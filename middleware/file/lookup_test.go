@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
@@ -87,14 +87,14 @@ func TestLookup(t *testing.T) {
 	for _, tc := range dnsTestCases {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+		rec := dnsrecorder.New(&test.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
 			return
 		}
-		resp := rec.Msg()
 
+		resp := rec.Msg
 		sort.Sort(test.RRSet(resp.Answer))
 		sort.Sort(test.RRSet(resp.Ns))
 		sort.Sort(test.RRSet(resp.Extra))
@@ -122,7 +122,7 @@ func TestLookupNil(t *testing.T) {
 	ctx := context.TODO()
 
 	m := dnsTestCases[0].Msg()
-	rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+	rec := dnsrecorder.New(&test.ResponseWriter{})
 	fm.ServeDNS(ctx, rec, m)
 }
 
@@ -134,7 +134,7 @@ func BenchmarkLookup(b *testing.B) {
 
 	fm := File{Next: test.ErrorHandler(), Zones: Zones{Z: map[string]*Zone{testzone: zone}, Names: []string{testzone}}}
 	ctx := context.TODO()
-	rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+	rec := dnsrecorder.New(&test.ResponseWriter{})
 
 	tc := test.Case{
 		Qname: "www.miek.nl.", Qtype: dns.TypeA,

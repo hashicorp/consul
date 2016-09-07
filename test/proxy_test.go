@@ -5,9 +5,9 @@ import (
 	"log"
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/proxy"
 	"github.com/miekg/coredns/middleware/test"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -46,7 +46,7 @@ func TestLookupProxy(t *testing.T) {
 	log.SetOutput(ioutil.Discard)
 
 	p := proxy.New([]string{udp})
-	state := middleware.State{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
+	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 	resp, err := p.Lookup(state, "example.org.", dns.TypeA)
 	if err != nil {
 		t.Fatal("Expected to receive reply, but didn't")

@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/roller"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -19,7 +21,7 @@ type ErrorHandler struct {
 	Next      middleware.Handler
 	LogFile   string
 	Log       *log.Logger
-	LogRoller *middleware.LogRoller
+	LogRoller *roller.LogRoller
 	Debug     bool // if true, errors are written out to client rather than to a log
 }
 
@@ -29,7 +31,7 @@ func (h ErrorHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns
 	rcode, err := h.Next.ServeDNS(ctx, w, r)
 
 	if err != nil {
-		state := middleware.State{W: w, Req: r}
+		state := request.Request{W: w, Req: r}
 		errMsg := fmt.Sprintf("%s [ERROR %d %s %s] %v", time.Now().Format(timeFormat), rcode, state.Name(), state.Type(), err)
 
 		if h.Debug {
@@ -53,7 +55,7 @@ func (h ErrorHandler) recovery(ctx context.Context, w dns.ResponseWriter, r *dns
 		return
 	}
 
-	state := middleware.State{W: w, Req: r}
+	state := request.Request{W: w, Req: r}
 	// Obtain source of panic
 	// From: https://gist.github.com/swdunlop/9629168
 	var name, file string // function name, file name

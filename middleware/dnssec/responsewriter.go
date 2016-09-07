@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/request"
+
 	"github.com/miekg/dns"
 )
 
@@ -20,7 +22,7 @@ func NewDnssecResponseWriter(w dns.ResponseWriter, d Dnssec) *DnssecResponseWrit
 func (d *DnssecResponseWriter) WriteMsg(res *dns.Msg) error {
 	// By definition we should sign anything that comes back, we should still figure out for
 	// which zone it should be.
-	state := middleware.State{W: d.ResponseWriter, Req: res}
+	state := request.Request{W: d.ResponseWriter, Req: res}
 
 	qname := state.Name()
 	zone := middleware.Zones(d.d.zones).Matches(qname)

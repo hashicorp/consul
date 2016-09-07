@@ -5,7 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/replacer"
+
 	"github.com/miekg/dns"
 )
 
@@ -25,8 +26,8 @@ func operatorError(operator string) error {
 	return fmt.Errorf("Invalid operator %v", operator)
 }
 
-func newReplacer(r *dns.Msg) middleware.Replacer {
-	return middleware.NewReplacer(r, nil, "")
+func newReplacer(r *dns.Msg) replacer.Replacer {
+	return replacer.New(r, nil, "")
 }
 
 // condition is a rewrite condition.

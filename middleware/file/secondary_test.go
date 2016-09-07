@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/test"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -134,7 +134,7 @@ func TestIsNotify(t *testing.T) {
 	z := new(Zone)
 	z.Expired = new(bool)
 	z.origin = testZone
-	state := NewState(testZone, dns.TypeSOA)
+	state := newRequest(testZone, dns.TypeSOA)
 	// need to set opcode
 	state.Req.Opcode = dns.OpcodeNotify
 
@@ -148,9 +148,9 @@ func TestIsNotify(t *testing.T) {
 	}
 }
 
-func NewState(zone string, qtype uint16) middleware.State {
+func newRequest(zone string, qtype uint16) request.Request {
 	m := new(dns.Msg)
 	m.SetQuestion("example.com.", dns.TypeA)
 	m.SetEdns0(4097, true)
-	return middleware.State{W: &test.ResponseWriter{}, Req: m}
+	return request.Request{W: &test.ResponseWriter{}, Req: m}
 }

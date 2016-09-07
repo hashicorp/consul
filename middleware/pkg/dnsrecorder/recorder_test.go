@@ -1,4 +1,4 @@
-package middleware
+package dnsrecorder
 
 /*
 func TestNewResponseRecorder(t *testing.T) {

@@ -3,7 +3,7 @@ package log
 import (
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/roller"
 
 	"github.com/mholt/caddy"
 )
@@ -68,7 +68,7 @@ func TestLogParse(t *testing.T) {
 			NameScope:  ".",
 			OutputFile: "access.log",
 			Format:     DefaultLogFormat,
-			Roller: &middleware.LogRoller{
+			Roller: &roller.LogRoller{
 				MaxSize:    2,
 				MaxAge:     10,
 				MaxBackups: 3,

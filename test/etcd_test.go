@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd"
 	"github.com/miekg/coredns/middleware/etcd/msg"
 	"github.com/miekg/coredns/middleware/proxy"
 	"github.com/miekg/coredns/middleware/test"
+	"github.com/miekg/coredns/request"
 
 	etcdc "github.com/coreos/etcd/client"
 	"github.com/miekg/dns"
@@ -67,7 +67,7 @@ func TestEtcdStubAndProxyLookup(t *testing.T) {
 	}
 
 	p := proxy.New([]string{udp}) // use udp port from the server
-	state := middleware.State{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
+	state := request.Request{W: &test.ResponseWriter{}, Req: new(dns.Msg)}
 	resp, err := p.Lookup(state, "example.com.", dns.TypeA)
 	if err != nil {
 		t.Error("Expected to receive reply, but didn't")

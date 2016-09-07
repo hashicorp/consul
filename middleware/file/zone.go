@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/file/tree"
+	"github.com/miekg/coredns/request"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/miekg/dns"
@@ -102,7 +102,7 @@ func (z *Zone) Insert(r dns.RR) error {
 func (z *Zone) Delete(r dns.RR) { z.Tree.Delete(r) }
 
 // TransferAllowed checks if incoming request for transferring the zone is allowed according to the ACLs.
-func (z *Zone) TransferAllowed(state middleware.State) bool {
+func (z *Zone) TransferAllowed(req request.Request) bool {
 	for _, t := range z.TransferTo {
 		if t == "*" {
 			return true

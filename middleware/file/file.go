@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -24,7 +25,7 @@ type (
 )
 
 func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	state := middleware.State{W: w, Req: r}
+	state := request.Request{W: w, Req: r}
 
 	if state.QClass() != dns.ClassINET {
 		return dns.RcodeServerFailure, errors.New("can only deal with ClassINET")

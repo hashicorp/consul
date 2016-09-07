@@ -1,4 +1,4 @@
-package middleware
+package tree
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-// Less returns <0 when a is less than b, 0 when they are equal and
+// less returns <0 when a is less than b, 0 when they are equal and
 // >0 when a is larger than b.
 // The function orders names in DNSSEC canonical order: RFC 4034s section-6.1
 //
@@ -14,7 +14,7 @@ import (
 // for a blog article on this implementation.
 //
 // The values of a and b are *not* lowercased before the comparison!
-func Less(a, b string) int {
+func less(a, b string) int {
 	i := 1
 	aj := len(a)
 	bj := len(b)

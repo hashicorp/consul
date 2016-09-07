@@ -2,6 +2,7 @@ package cache
 
 import (
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"github.com/prometheus/client_golang/prometheus"
@@ -10,7 +11,7 @@ import (
 
 // ServeDNS implements the middleware.Handler interface.
 func (c Cache) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	state := middleware.State{W: w, Req: r}
+	state := request.Request{W: w, Req: r}
 
 	qname := state.Name()
 	qtype := state.QType()

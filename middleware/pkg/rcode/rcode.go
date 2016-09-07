@@ -1,4 +1,4 @@
-package middleware
+package rcode
 
 import (
 	"strconv"
@@ -6,7 +6,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-func RcodeToString(rcode int) string {
+func ToString(rcode int) string {
 	if str, ok := dns.RcodeToString[rcode]; ok {
 		return str
 	}

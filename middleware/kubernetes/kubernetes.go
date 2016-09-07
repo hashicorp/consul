@@ -4,13 +4,13 @@ package kubernetes
 import (
 	"errors"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/kubernetes/msg"
 	"github.com/miekg/coredns/middleware/kubernetes/nametemplate"
 	"github.com/miekg/coredns/middleware/kubernetes/util"
+	"github.com/miekg/coredns/middleware/pkg/dnsutil"
 	"github.com/miekg/coredns/middleware/proxy"
 
 	"github.com/miekg/dns"
@@ -100,8 +100,8 @@ func (k *Kubernetes) getZoneForName(name string) (string, []string) {
 func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 	// TODO: refector this.
 	// Right now GetNamespaceFromSegmentArray do not supports PRE queries
-	if strings.HasSuffix(name, arpaSuffix) {
-		ip, _ := extractIP(name)
+	ip := dnsutil.ExtractAddressFromReverse(name)
+	if ip != "" {
 		records := k.getServiceRecordForIP(ip, name)
 		return records, nil
 	}

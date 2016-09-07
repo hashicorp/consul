@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/miekg/coredns/core/dnsserver"
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/roller"
 
 	"github.com/hashicorp/go-syslog"
 	"github.com/mholt/caddy"
@@ -75,13 +75,13 @@ func logParse(c *caddy.Controller) ([]Rule, error) {
 	for c.Next() {
 		args := c.RemainingArgs()
 
-		var logRoller *middleware.LogRoller
+		var logRoller *roller.LogRoller
 		if c.NextBlock() {
 			if c.Val() == "rotate" {
 				if c.NextArg() {
 					if c.Val() == "{" {
 						var err error
-						logRoller, err = middleware.ParseRoller(c)
+						logRoller, err = roller.Parse(c)
 						if err != nil {
 							return nil, err
 						}

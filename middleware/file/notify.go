@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -12,7 +13,7 @@ import (
 // isNotify checks if state is a notify message and if so, will *also* check if it
 // is from one of the configured masters. If not it will not be a valid notify
 // message. If the zone z is not a secondary zone the message will also be ignored.
-func (z *Zone) isNotify(state middleware.State) bool {
+func (z *Zone) isNotify(state request.Request) bool {
 	if state.Req.Opcode != dns.OpcodeNotify {
 		return false
 	}
@@ -56,7 +57,7 @@ func notify(zone string, to []string) error {
 
 func notifyAddr(c *dns.Client, m *dns.Msg, s string) error {
 	for i := 0; i < 3; i++ {
-		ret, err := middleware.Exchange(c, m, s)
+		ret, _, err := c.Exchange(m, s)
 		if err != nil {
 			continue
 		}

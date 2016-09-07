@@ -6,8 +6,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/proxy"
 	"github.com/miekg/coredns/middleware/test"
 
@@ -27,14 +27,14 @@ func TestProxyLookupFailDebug(t *testing.T) {
 	for _, tc := range dnsTestCasesProxy {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+		rec := dnsrecorder.New(&test.ResponseWriter{})
 		_, err := etc.ServeDNS(ctxt, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
 			continue
 		}
-		resp := rec.Msg()
 
+		resp := rec.Msg
 		sort.Sort(test.RRSet(resp.Answer))
 		sort.Sort(test.RRSet(resp.Ns))
 		sort.Sort(test.RRSet(resp.Extra))

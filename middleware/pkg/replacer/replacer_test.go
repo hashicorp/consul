@@ -1,4 +1,4 @@
-package middleware
+package replacer
 
 /*
 func TestNewReplacer(t *testing.T) {

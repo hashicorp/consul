@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
@@ -50,10 +51,10 @@ func TestRewrite(t *testing.T) {
 		m.SetQuestion(tc.from, tc.fromT)
 		m.Question[0].Qclass = tc.fromC
 
-		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+		rec := dnsrecorder.New(&test.ResponseWriter{})
 		rw.ServeDNS(ctx, rec, m)
-		resp := rec.Msg()
 
+		resp := rec.Msg
 		if resp.Question[0].Name != tc.to {
 			t.Errorf("Test %d: Expected Name to be '%s' but was '%s'", i, tc.to, resp.Question[0].Name)
 		}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/response"
 
 	"github.com/miekg/dns"
 	gcache "github.com/patrickmn/go-cache"
@@ -23,7 +24,7 @@ func NewCache(ttl int, zones []string, next middleware.Handler) Cache {
 	return Cache{Next: next, Zones: zones, cache: gcache.New(defaultDuration, purgeDuration), cap: time.Duration(ttl) * time.Second}
 }
 
-func cacheKey(m *dns.Msg, t middleware.MsgType, do bool) string {
+func cacheKey(m *dns.Msg, t response.Type, do bool) string {
 	if m.Truncated {
 		return ""
 	}
@@ -31,15 +32,15 @@ func cacheKey(m *dns.Msg, t middleware.MsgType, do bool) string {
 	qtype := m.Question[0].Qtype
 	qname := strings.ToLower(m.Question[0].Name)
 	switch t {
-	case middleware.Success:
+	case response.Success:
 		fallthrough
-	case middleware.Delegation:
+	case response.Delegation:
 		return successKey(qname, qtype, do)
-	case middleware.NameError:
+	case response.NameError:
 		return nameErrorKey(qname, do)
-	case middleware.NoData:
+	case response.NoData:
 		return noDataKey(qname, qtype, do)
-	case middleware.OtherError:
+	case response.OtherError:
 		return ""
 	}
 	return ""
@@ -57,7 +58,7 @@ func NewCachingResponseWriter(w dns.ResponseWriter, cache *gcache.Cache, cap tim
 
 func (c *CachingResponseWriter) WriteMsg(res *dns.Msg) error {
 	do := false
-	mt, opt := middleware.Classify(res)
+	mt, opt := response.Classify(res)
 	if opt != nil {
 		do = opt.Do()
 	}
@@ -72,7 +73,7 @@ func (c *CachingResponseWriter) WriteMsg(res *dns.Msg) error {
 	return c.ResponseWriter.WriteMsg(res)
 }
 
-func (c *CachingResponseWriter) set(m *dns.Msg, key string, mt middleware.MsgType) {
+func (c *CachingResponseWriter) set(m *dns.Msg, key string, mt response.Type) {
 	if key == "" {
 		log.Printf("[ERROR] Caching called with empty cache key")
 		return
@@ -80,21 +81,21 @@ func (c *CachingResponseWriter) set(m *dns.Msg, key string, mt middleware.MsgTyp
 
 	duration := c.cap
 	switch mt {
-	case middleware.Success, middleware.Delegation:
+	case response.Success, response.Delegation:
 		if c.cap == 0 {
 			duration = minTtl(m.Answer, mt)
 		}
 		i := newItem(m, duration)
 
 		c.cache.Set(key, i, duration)
-	case middleware.NameError, middleware.NoData:
+	case response.NameError, response.NoData:
 		if c.cap == 0 {
 			duration = minTtl(m.Ns, mt)
 		}
 		i := newItem(m, duration)
 
 		c.cache.Set(key, i, duration)
-	case middleware.OtherError:
+	case response.OtherError:
 		// don't cache these
 	default:
 		log.Printf("[WARNING] Caching called with unknown middleware MsgType: %d", mt)
@@ -112,19 +113,19 @@ func (c *CachingResponseWriter) Hijack() {
 	return
 }
 
-func minTtl(rrs []dns.RR, mt middleware.MsgType) time.Duration {
-	if mt != middleware.Success && mt != middleware.NameError && mt != middleware.NoData {
+func minTtl(rrs []dns.RR, mt response.Type) time.Duration {
+	if mt != response.Success && mt != response.NameError && mt != response.NoData {
 		return 0
 	}
 
 	minTtl := maxTtl
 	for _, r := range rrs {
 		switch mt {
-		case middleware.NameError, middleware.NoData:
+		case response.NameError, response.NoData:
 			if r.Header().Rrtype == dns.TypeSOA {
 				return time.Duration(r.(*dns.SOA).Minttl) * time.Second
 			}
-		case middleware.Success, middleware.Delegation:
+		case response.Success, response.Delegation:
 			if r.Header().Ttl < minTtl {
 				minTtl = r.Header().Ttl
 			}

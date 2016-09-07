@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/miekg/coredns/core/dnsserver"
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/roller"
 
 	"github.com/hashicorp/go-syslog"
 	"github.com/mholt/caddy"
@@ -93,7 +93,7 @@ func errorsParse(c *caddy.Controller) (ErrorHandler, error) {
 					if c.NextArg() {
 						if c.Val() == "{" {
 							c.IncrNest()
-							logRoller, err := middleware.ParseRoller(c)
+							logRoller, err := roller.Parse(c)
 							if err != nil {
 								return hadBlock, err
 							}

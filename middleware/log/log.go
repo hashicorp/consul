@@ -7,6 +7,11 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/metrics"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
+	"github.com/miekg/coredns/middleware/pkg/rcode"
+	"github.com/miekg/coredns/middleware/pkg/replacer"
+	"github.com/miekg/coredns/middleware/pkg/roller"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -20,32 +25,30 @@ type Logger struct {
 }
 
 func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	state := middleware.State{W: w, Req: r}
+	state := request.Request{W: w, Req: r}
 	for _, rule := range l.Rules {
 		if middleware.Name(rule.NameScope).Matches(state.Name()) {
-			responseRecorder := middleware.NewResponseRecorder(w)
-			rcode, err := l.Next.ServeDNS(ctx, responseRecorder, r)
+			responseRecorder := dnsrecorder.New(w)
+			rc, err := l.Next.ServeDNS(ctx, responseRecorder, r)
 
-			if rcode > 0 {
+			if rc > 0 {
 				// There was an error up the chain, but no response has been written yet.
 				// The error must be handled here so the log entry will record the response size.
 				if l.ErrorFunc != nil {
-					l.ErrorFunc(responseRecorder, r, rcode)
+					l.ErrorFunc(responseRecorder, r, rc)
 				} else {
-					rc := middleware.RcodeToString(rcode)
-
 					answer := new(dns.Msg)
-					answer.SetRcode(r, rcode)
+					answer.SetRcode(r, rc)
 					state.SizeAndDo(answer)
 
-					metrics.Report(state, metrics.Dropped, rc, answer.Len(), time.Now())
+					metrics.Report(state, metrics.Dropped, rcode.ToString(rc), answer.Len(), time.Now())
 					w.WriteMsg(answer)
 				}
-				rcode = 0
+				rc = 0
 			}
-			rep := middleware.NewReplacer(r, responseRecorder, CommonLogEmptyValue)
+			rep := replacer.New(r, responseRecorder, CommonLogEmptyValue)
 			rule.Log.Println(rep.Replace(rule.Format))
-			return rcode, err
+			return rc, err
 
 		}
 	}
@@ -58,7 +61,7 @@ type Rule struct {
 	OutputFile string
 	Format     string
 	Log        *log.Logger
-	Roller     *middleware.LogRoller
+	Roller     *roller.LogRoller
 }
 
 const (

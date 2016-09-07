@@ -1,4 +1,4 @@
-package middleware
+package edns
 
 import (
 	"errors"
@@ -6,11 +6,11 @@ import (
 	"github.com/miekg/dns"
 )
 
-// Edns0Version checks the EDNS version in the request. If error
+// Version checks the EDNS version in the request. If error
 // is nil everything is OK and we can invoke the middleware. If non-nil, the
 // returned Msg is valid to be returned to the client (and should). For some
 // reason this response should not contain a question RR in the question section.
-func Edns0Version(req *dns.Msg) (*dns.Msg, error) {
+func Version(req *dns.Msg) (*dns.Msg, error) {
 	opt := req.IsEdns0()
 	if opt == nil {
 		return nil, nil
@@ -33,8 +33,8 @@ func Edns0Version(req *dns.Msg) (*dns.Msg, error) {
 	return m, errors.New("EDNS0 BADVERS")
 }
 
-// edns0Size returns a normalized size based on proto.
-func edns0Size(proto string, size int) int {
+// Size returns a normalized size based on proto.
+func Size(proto string, size int) int {
 	if proto == "tcp" {
 		return dns.MaxMsgSize
 	}

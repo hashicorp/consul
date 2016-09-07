@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
@@ -56,7 +57,7 @@ func TestLoadBalance(t *testing.T) {
 		},
 	}
 
-	rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+	rec := dnsrecorder.New(&test.ResponseWriter{})
 
 	for i, test := range tests {
 		req := new(dns.Msg)
@@ -71,7 +72,7 @@ func TestLoadBalance(t *testing.T) {
 
 		}
 		cname := 0
-		for _, r := range rec.Msg().Answer {
+		for _, r := range rec.Msg.Answer {
 			if r.Header().Rrtype != dns.TypeCNAME {
 				break
 			}
@@ -81,7 +82,7 @@ func TestLoadBalance(t *testing.T) {
 			t.Errorf("Test %d: Expected %d cnames in Answer, but got %d", i, test.cnameAnswer, cname)
 		}
 		cname = 0
-		for _, r := range rec.Msg().Extra {
+		for _, r := range rec.Msg.Extra {
 			if r.Header().Rrtype != dns.TypeCNAME {
 				break
 			}

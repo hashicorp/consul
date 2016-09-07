@@ -4,21 +4,17 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/kubernetes/msg"
+	"github.com/miekg/coredns/middleware/pkg/dnsutil"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 )
 
-const (
-	// arpaSuffix is the standard suffix for PTR IP reverse lookups.
-	arpaSuffix = ".in-addr.arpa."
-)
-
-func (k Kubernetes) records(state middleware.State, exact bool) ([]msg.Service, error) {
+func (k Kubernetes) records(state request.Request, exact bool) ([]msg.Service, error) {
 	services, err := k.Records(state.Name(), exact)
 	if err != nil {
 		return nil, err
@@ -28,7 +24,7 @@ func (k Kubernetes) records(state middleware.State, exact bool) ([]msg.Service, 
 	return services, nil
 }
 
-func (k Kubernetes) A(zone string, state middleware.State, previousRecords []dns.RR) (records []dns.RR, err error) {
+func (k Kubernetes) A(zone string, state request.Request, previousRecords []dns.RR) (records []dns.RR, err error) {
 	services, err := k.records(state, false)
 	if err != nil {
 		return nil, err
@@ -49,11 +45,11 @@ func (k Kubernetes) A(zone string, state middleware.State, previousRecords []dns
 				// don't add it, and just continue
 				continue
 			}
-			if isDuplicateCNAME(newRecord, previousRecords) {
+			if dnsutil.DuplicateCNAME(newRecord, previousRecords) {
 				continue
 			}
 
-			state1 := copyState(state, serv.Host, state.QType())
+			state1 := state.NewWithQuestion(serv.Host, state.QType())
 			nextRecords, err := k.A(zone, state1, append(previousRecords, newRecord))
 
 			if err == nil {
@@ -87,7 +83,7 @@ func (k Kubernetes) A(zone string, state middleware.State, previousRecords []dns
 	return records, nil
 }
 
-func (k Kubernetes) AAAA(zone string, state middleware.State, previousRecords []dns.RR) (records []dns.RR, err error) {
+func (k Kubernetes) AAAA(zone string, state request.Request, previousRecords []dns.RR) (records []dns.RR, err error) {
 	services, err := k.records(state, false)
 	if err != nil {
 		return nil, err
@@ -108,11 +104,11 @@ func (k Kubernetes) AAAA(zone string, state middleware.State, previousRecords []
 				// don't add it, and just continue
 				continue
 			}
-			if isDuplicateCNAME(newRecord, previousRecords) {
+			if dnsutil.DuplicateCNAME(newRecord, previousRecords) {
 				continue
 			}
 
-			state1 := copyState(state, serv.Host, state.QType())
+			state1 := state.NewWithQuestion(serv.Host, state.QType())
 			nextRecords, err := k.AAAA(zone, state1, append(previousRecords, newRecord))
 
 			if err == nil {
@@ -149,7 +145,7 @@ func (k Kubernetes) AAAA(zone string, state middleware.State, previousRecords []
 
 // SRV returns SRV records from kubernetes.
 // If the Target is not a name but an IP address, a name is created on the fly.
-func (k Kubernetes) SRV(zone string, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
+func (k Kubernetes) SRV(zone string, state request.Request) (records []dns.RR, extra []dns.RR, err error) {
 	services, err := k.records(state, false)
 	if err != nil {
 		return nil, nil, err
@@ -207,7 +203,7 @@ func (k Kubernetes) SRV(zone string, state middleware.State) (records []dns.RR, 
 			}
 			// Internal name, we should have some info on them, either v4 or v6
 			// Clients expect a complete answer, because we are a recursor in their view.
-			state1 := copyState(state, srv.Target, dns.TypeA)
+			state1 := state.NewWithQuestion(srv.Target, dns.TypeA)
 			addr, e1 := k.A(zone, state1, nil)
 			if e1 == nil {
 				extra = append(extra, addr...)
@@ -231,21 +227,21 @@ func (k Kubernetes) SRV(zone string, state middleware.State) (records []dns.RR, 
 }
 
 // Returning MX records from kubernetes not implemented.
-func (k Kubernetes) MX(zone string, state middleware.State) (records []dns.RR, extra []dns.RR, err error) {
+func (k Kubernetes) MX(zone string, state request.Request) (records []dns.RR, extra []dns.RR, err error) {
 	return nil, nil, err
 }
 
 // Returning CNAME records from kubernetes not implemented.
-func (k Kubernetes) CNAME(zone string, state middleware.State) (records []dns.RR, err error) {
+func (k Kubernetes) CNAME(zone string, state request.Request) (records []dns.RR, err error) {
 	return nil, err
 }
 
 // Returning TXT records from kubernetes not implemented.
-func (k Kubernetes) TXT(zone string, state middleware.State) (records []dns.RR, err error) {
+func (k Kubernetes) TXT(zone string, state request.Request) (records []dns.RR, err error) {
 	return nil, err
 }
 
-func (k Kubernetes) NS(zone string, state middleware.State) (records, extra []dns.RR, err error) {
+func (k Kubernetes) NS(zone string, state request.Request) (records, extra []dns.RR, err error) {
 	// NS record for this zone live in a special place, ns.dns.<zone>. Fake our lookup.
 	// only a tad bit fishy...
 	old := state.QName()
@@ -278,7 +274,7 @@ func (k Kubernetes) NS(zone string, state middleware.State) (records, extra []dn
 }
 
 // SOA Record returns a SOA record.
-func (k Kubernetes) SOA(zone string, state middleware.State) *dns.SOA {
+func (k Kubernetes) SOA(zone string, state request.Request) *dns.SOA {
 	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: 300, Class: dns.ClassINET}
 	return &dns.SOA{Hdr: header,
 		Mbox:    "hostmaster." + zone,
@@ -291,9 +287,9 @@ func (k Kubernetes) SOA(zone string, state middleware.State) *dns.SOA {
 	}
 }
 
-func (k Kubernetes) PTR(zone string, state middleware.State) ([]dns.RR, error) {
-	reverseIP, ok := extractIP(state.Name())
-	if !ok {
+func (k Kubernetes) PTR(zone string, state request.Request) ([]dns.RR, error) {
+	reverseIP := dnsutil.ExtractAddressFromReverse(state.Name())
+	if reverseIP == "" {
 		return nil, fmt.Errorf("does not support reverse lookup for %s", state.QName())
 	}
 
@@ -317,42 +313,4 @@ func (k Kubernetes) PTR(zone string, state middleware.State) ([]dns.RR, error) {
 		}
 	}
 	return records, nil
-}
-
-func isDuplicateCNAME(r *dns.CNAME, records []dns.RR) bool {
-	for _, rec := range records {
-		if v, ok := rec.(*dns.CNAME); ok {
-			if v.Target == r.Target {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func copyState(state middleware.State, target string, typ uint16) middleware.State {
-	state1 := middleware.State{W: state.W, Req: state.Req.Copy()}
-	state1.Req.Question[0] = dns.Question{Name: dns.Fqdn(target), Qtype: dns.ClassINET, Qclass: typ}
-	return state1
-}
-
-// extractIP turns a standard PTR reverse record lookup name
-// into an IP address
-func extractIP(reverseName string) (string, bool) {
-	if !strings.HasSuffix(reverseName, arpaSuffix) {
-		return "", false
-	}
-	search := strings.TrimSuffix(reverseName, arpaSuffix)
-
-	// reverse the segments and then combine them
-	segments := reverseArray(strings.Split(search, "."))
-	return strings.Join(segments, "."), true
-}
-
-func reverseArray(arr []string) []string {
-	for i := 0; i < len(arr)/2; i++ {
-		j := len(arr) - i - 1
-		arr[i], arr[j] = arr[j], arr[i]
-	}
-	return arr
 }

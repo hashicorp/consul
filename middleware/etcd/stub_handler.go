@@ -4,7 +4,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -27,7 +27,7 @@ func (s Stub) ServeDNS(ctx context.Context, w dns.ResponseWriter, req *dns.Msg) 
 		return dns.RcodeServerFailure, nil
 	}
 
-	state := middleware.State{W: w, Req: req}
+	state := request.Request{W: w, Req: req}
 	m, e := proxy.Forward(state)
 	if e != nil {
 		return dns.RcodeServerFailure, e

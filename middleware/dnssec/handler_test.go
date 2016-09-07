@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/file"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
@@ -83,14 +83,14 @@ func TestLookupZone(t *testing.T) {
 	for _, tc := range dnsTestCases {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+		rec := dnsrecorder.New(&test.ResponseWriter{})
 		_, err := dh.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
 			return
 		}
-		resp := rec.Msg()
 
+		resp := rec.Msg
 		sort.Sort(test.RRSet(resp.Answer))
 		sort.Sort(test.RRSet(resp.Ns))
 		sort.Sort(test.RRSet(resp.Extra))
@@ -121,14 +121,14 @@ func TestLookupDNSKEY(t *testing.T) {
 	for _, tc := range dnssecTestCases {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+		rec := dnsrecorder.New(&test.ResponseWriter{})
 		_, err := dh.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
 			return
 		}
-		resp := rec.Msg()
 
+		resp := rec.Msg
 		if !resp.Authoritative {
 			t.Errorf("Authoritative Answer should be true, got false")
 		}

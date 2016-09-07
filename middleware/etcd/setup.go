@@ -10,8 +10,8 @@ import (
 
 	"github.com/miekg/coredns/core/dnsserver"
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/singleflight"
 	"github.com/miekg/coredns/middleware/proxy"
-	"github.com/miekg/coredns/singleflight"
 
 	etcdc "github.com/coreos/etcd/client"
 	"github.com/mholt/caddy"
@@ -70,7 +70,7 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 				etc.Zones = make([]string, len(c.ServerBlockKeys))
 				copy(etc.Zones, c.ServerBlockKeys)
 			}
-			middleware.Zones(etc.Zones).FullyQualify()
+			middleware.Zones(etc.Zones).Normalize()
 			if c.NextBlock() {
 				// TODO(miek): 2 switches?
 				switch c.Val() {

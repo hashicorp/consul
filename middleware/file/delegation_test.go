@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
@@ -57,14 +57,14 @@ func TestLookupDelegation(t *testing.T) {
 	for _, tc := range delegationTestCases {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+		rec := dnsrecorder.New(&test.ResponseWriter{})
 		_, err := fm.ServeDNS(ctx, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
 			return
 		}
-		resp := rec.Msg()
 
+		resp := rec.Msg
 		sort.Sort(test.RRSet(resp.Answer))
 		sort.Sort(test.RRSet(resp.Ns))
 		sort.Sort(test.RRSet(resp.Extra))

@@ -2,7 +2,7 @@
 package proxy
 
 import (
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -20,10 +20,10 @@ func (p ReverseProxy) ServeDNS(w dns.ResponseWriter, r *dns.Msg, extra []dns.RR)
 	)
 
 	switch {
-	case middleware.Proto(w) == "tcp":
-		reply, err = middleware.Exchange(p.Client.TCP, r, p.Host)
+	case request.Proto(w) == "tcp": // TODO(miek): keep this in request
+		reply, _, err = p.Client.TCP.Exchange(r, p.Host)
 	default:
-		reply, err = middleware.Exchange(p.Client.UDP, r, p.Host)
+		reply, _, err = p.Client.UDP.Exchange(r, p.Host)
 	}
 
 	if reply != nil && reply.Truncated {

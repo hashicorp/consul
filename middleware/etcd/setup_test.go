@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
+	"github.com/miekg/coredns/middleware/pkg/singleflight"
 	"github.com/miekg/coredns/middleware/proxy"
 	"github.com/miekg/coredns/middleware/test"
-	"github.com/miekg/coredns/singleflight"
 
 	etcdc "github.com/coreos/etcd/client"
 	"github.com/miekg/dns"
@@ -65,14 +65,14 @@ func TestLookup(t *testing.T) {
 	for _, tc := range dnsTestCases {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+		rec := dnsrecorder.New(&test.ResponseWriter{})
 		_, err := etc.ServeDNS(ctxt, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got: %v for %s %s\n", err, m.Question[0].Name, dns.Type(m.Question[0].Qtype))
 			return
 		}
-		resp := rec.Msg()
 
+		resp := rec.Msg
 		sort.Sort(test.RRSet(resp.Answer))
 		sort.Sort(test.RRSet(resp.Ns))
 		sort.Sort(test.RRSet(resp.Extra))

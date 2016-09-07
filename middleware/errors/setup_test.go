@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/mholt/caddy"
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/roller"
 )
 
 func TestErrorsParse(t *testing.T) {
@@ -29,7 +29,7 @@ func TestErrorsParse(t *testing.T) {
 		}},
 		{`errors { log errors.txt { size 2 age 10 keep 3 } }`, false, ErrorHandler{
 			LogFile: "errors.txt",
-			LogRoller: &middleware.LogRoller{
+			LogRoller: &roller.LogRoller{
 				MaxSize:    2,
 				MaxAge:     10,
 				MaxBackups: 3,
@@ -43,7 +43,7 @@ func TestErrorsParse(t *testing.T) {
         }
 }`, false, ErrorHandler{
 			LogFile: "errors.txt",
-			LogRoller: &middleware.LogRoller{
+			LogRoller: &roller.LogRoller{
 				MaxSize:    3,
 				MaxAge:     11,
 				MaxBackups: 5,

@@ -7,8 +7,8 @@ package etcd
 import (
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
@@ -25,14 +25,14 @@ func TestCnameLookup(t *testing.T) {
 	for _, tc := range dnsTestCasesCname {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+		rec := dnsrecorder.New(&test.ResponseWriter{})
 		_, err := etc.ServeDNS(ctxt, rec, m)
 		if err != nil {
 			t.Errorf("expected no error, got %v\n", err)
 			return
 		}
-		resp := rec.Msg()
 
+		resp := rec.Msg
 		if !test.Header(t, tc, resp) {
 			t.Logf("%v\n", resp)
 			continue

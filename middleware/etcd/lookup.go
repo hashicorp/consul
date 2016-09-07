@@ -8,6 +8,8 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
+	"github.com/miekg/coredns/middleware/pkg/dnsutil"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -16,7 +18,7 @@ type Options struct {
 	Debug string
 }
 
-func (e Etcd) records(state middleware.State, exact bool, opt Options) (services, debug []msg.Service, err error) {
+func (e Etcd) records(state request.Request, exact bool, opt Options) (services, debug []msg.Service, err error) {
 	services, err = e.Records(state.Name(), exact)
 	if err != nil {
 		return
@@ -28,7 +30,7 @@ func (e Etcd) records(state middleware.State, exact bool, opt Options) (services
 	return
 }
 
-func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR, opt Options) (records []dns.RR, debug []msg.Service, err error) {
+func (e Etcd) A(zone string, state request.Request, previousRecords []dns.RR, opt Options) (records []dns.RR, debug []msg.Service, err error) {
 	services, debug, err := e.records(state, false, opt)
 	if err != nil {
 		return nil, debug, err
@@ -49,11 +51,11 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR, o
 				// don't add it, and just continue
 				continue
 			}
-			if isDuplicateCNAME(newRecord, previousRecords) {
+			if dnsutil.DuplicateCNAME(newRecord, previousRecords) {
 				continue
 			}
 
-			state1 := copyState(state, serv.Host, state.QType())
+			state1 := state.NewWithQuestion(serv.Host, state.QType())
 			nextRecords, nextDebug, err := e.A(zone, state1, append(previousRecords, newRecord), opt)
 
 			if err == nil {
@@ -90,7 +92,7 @@ func (e Etcd) A(zone string, state middleware.State, previousRecords []dns.RR, o
 	return records, debug, nil
 }
 
-func (e Etcd) AAAA(zone string, state middleware.State, previousRecords []dns.RR, opt Options) (records []dns.RR, debug []msg.Service, err error) {
+func (e Etcd) AAAA(zone string, state request.Request, previousRecords []dns.RR, opt Options) (records []dns.RR, debug []msg.Service, err error) {
 	services, debug, err := e.records(state, false, opt)
 	if err != nil {
 		return nil, debug, err
@@ -111,11 +113,11 @@ func (e Etcd) AAAA(zone string, state middleware.State, previousRecords []dns.RR
 				// don't add it, and just continue
 				continue
 			}
-			if isDuplicateCNAME(newRecord, previousRecords) {
+			if dnsutil.DuplicateCNAME(newRecord, previousRecords) {
 				continue
 			}
 
-			state1 := copyState(state, serv.Host, state.QType())
+			state1 := state.NewWithQuestion(serv.Host, state.QType())
 			nextRecords, nextDebug, err := e.AAAA(zone, state1, append(previousRecords, newRecord), opt)
 
 			if err == nil {
@@ -155,7 +157,7 @@ func (e Etcd) AAAA(zone string, state middleware.State, previousRecords []dns.RR
 
 // SRV returns SRV records from etcd.
 // If the Target is not a name but an IP address, a name is created on the fly.
-func (e Etcd) SRV(zone string, state middleware.State, opt Options) (records, extra []dns.RR, debug []msg.Service, err error) {
+func (e Etcd) SRV(zone string, state request.Request, opt Options) (records, extra []dns.RR, debug []msg.Service, err error) {
 	services, debug, err := e.records(state, false, opt)
 	if err != nil {
 		return nil, nil, nil, err
@@ -220,7 +222,7 @@ func (e Etcd) SRV(zone string, state middleware.State, opt Options) (records, ex
 			}
 			// Internal name, we should have some info on them, either v4 or v6
 			// Clients expect a complete answer, because we are a recursor in their view.
-			state1 := copyState(state, srv.Target, dns.TypeA)
+			state1 := state.NewWithQuestion(srv.Target, dns.TypeA)
 			addr, debugAddr, e1 := e.A(zone, state1, nil, opt)
 			if e1 == nil {
 				extra = append(extra, addr...)
@@ -246,7 +248,7 @@ func (e Etcd) SRV(zone string, state middleware.State, opt Options) (records, ex
 
 // MX returns MX records from etcd.
 // If the Target is not a name but an IP address, a name is created on the fly.
-func (e Etcd) MX(zone string, state middleware.State, opt Options) (records, extra []dns.RR, debug []msg.Service, err error) {
+func (e Etcd) MX(zone string, state request.Request, opt Options) (records, extra []dns.RR, debug []msg.Service, err error) {
 	services, debug, err := e.records(state, false, opt)
 	if err != nil {
 		return nil, nil, debug, err
@@ -291,7 +293,7 @@ func (e Etcd) MX(zone string, state middleware.State, opt Options) (records, ext
 				break
 			}
 			// Internal name
-			state1 := copyState(state, mx.Mx, dns.TypeA)
+			state1 := state.NewWithQuestion(mx.Mx, dns.TypeA)
 			addr, debugAddr, e1 := e.A(zone, state1, nil, opt)
 			if e1 == nil {
 				extra = append(extra, addr...)
@@ -311,7 +313,7 @@ func (e Etcd) MX(zone string, state middleware.State, opt Options) (records, ext
 	return records, extra, debug, nil
 }
 
-func (e Etcd) CNAME(zone string, state middleware.State, opt Options) (records []dns.RR, debug []msg.Service, err error) {
+func (e Etcd) CNAME(zone string, state request.Request, opt Options) (records []dns.RR, debug []msg.Service, err error) {
 	services, debug, err := e.records(state, true, opt)
 	if err != nil {
 		return nil, debug, err
@@ -327,7 +329,7 @@ func (e Etcd) CNAME(zone string, state middleware.State, opt Options) (records [
 }
 
 // PTR returns the PTR records, only services that have a domain name as host are included.
-func (e Etcd) PTR(zone string, state middleware.State, opt Options) (records []dns.RR, debug []msg.Service, err error) {
+func (e Etcd) PTR(zone string, state request.Request, opt Options) (records []dns.RR, debug []msg.Service, err error) {
 	services, debug, err := e.records(state, true, opt)
 	if err != nil {
 		return nil, debug, err
@@ -341,7 +343,7 @@ func (e Etcd) PTR(zone string, state middleware.State, opt Options) (records []d
 	return records, debug, nil
 }
 
-func (e Etcd) TXT(zone string, state middleware.State, opt Options) (records []dns.RR, debug []msg.Service, err error) {
+func (e Etcd) TXT(zone string, state request.Request, opt Options) (records []dns.RR, debug []msg.Service, err error) {
 	services, debug, err := e.records(state, false, opt)
 	if err != nil {
 		return nil, debug, err
@@ -356,7 +358,7 @@ func (e Etcd) TXT(zone string, state middleware.State, opt Options) (records []d
 	return records, debug, nil
 }
 
-func (e Etcd) NS(zone string, state middleware.State, opt Options) (records, extra []dns.RR, debug []msg.Service, err error) {
+func (e Etcd) NS(zone string, state request.Request, opt Options) (records, extra []dns.RR, debug []msg.Service, err error) {
 	// NS record for this zone live in a special place, ns.dns.<zone>. Fake our lookup.
 	// only a tad bit fishy...
 	old := state.QName()
@@ -389,7 +391,7 @@ func (e Etcd) NS(zone string, state middleware.State, opt Options) (records, ext
 }
 
 // SOA Record returns a SOA record.
-func (e Etcd) SOA(zone string, state middleware.State, opt Options) ([]dns.RR, []msg.Service, error) {
+func (e Etcd) SOA(zone string, state request.Request, opt Options) ([]dns.RR, []msg.Service, error) {
 	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: 300, Class: dns.ClassINET}
 
 	soa := &dns.SOA{Hdr: header,
@@ -403,22 +405,4 @@ func (e Etcd) SOA(zone string, state middleware.State, opt Options) ([]dns.RR, [
 	}
 	// TODO(miek): fake some msg.Service here when returning.
 	return []dns.RR{soa}, nil, nil
-}
-
-func isDuplicateCNAME(r *dns.CNAME, records []dns.RR) bool {
-	for _, rec := range records {
-		if v, ok := rec.(*dns.CNAME); ok {
-			if v.Target == r.Target {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// TODO(miek): Move to middleware?
-func copyState(state middleware.State, target string, typ uint16) middleware.State {
-	state1 := middleware.State{W: state.W, Req: state.Req.Copy()}
-	state1.Req.Question[0] = dns.Question{Name: dns.Fqdn(target), Qclass: dns.ClassINET, Qtype: typ}
-	return state1
 }

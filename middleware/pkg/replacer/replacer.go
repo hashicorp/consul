@@ -1,9 +1,12 @@
-package middleware
+package replacer
 
 import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -22,46 +25,43 @@ type replacer struct {
 	emptyValue   string
 }
 
-// NewReplacer makes a new replacer based on r and rr.
+// New makes a new replacer based on r and rr.
 // Do not create a new replacer until r and rr have all
 // the needed values, because this function copies those
 // values into the replacer. rr may be nil if it is not
 // available. emptyValue should be the string that is used
 // in place of empty string (can still be empty string).
-func NewReplacer(r *dns.Msg, rr *ResponseRecorder, emptyValue string) Replacer {
-	state := State{W: rr, Req: r}
+func New(r *dns.Msg, rr *dnsrecorder.Recorder, emptyValue string) Replacer {
+	req := request.Request{W: rr, Req: r}
 	rep := replacer{
 		replacements: map[string]string{
-			"{type}":  state.Type(),
-			"{name}":  state.Name(),
-			"{class}": state.Class(),
-			"{proto}": state.Proto(),
+			"{type}":  req.Type(),
+			"{name}":  req.Name(),
+			"{class}": req.Class(),
+			"{proto}": req.Proto(),
 			"{when}": func() string {
 				return time.Now().Format(timeFormat)
 			}(),
-			"{remote}": state.IP(),
-			"{port}": func() string {
-				p, _ := state.Port()
-				return p
-			}(),
+			"{remote}": req.IP(),
+			"{port}":   req.Port(),
 		},
 		emptyValue: emptyValue,
 	}
 	if rr != nil {
-		rcode := dns.RcodeToString[rr.rcode]
+		rcode := dns.RcodeToString[rr.Rcode]
 		if rcode == "" {
-			rcode = strconv.Itoa(rr.rcode)
+			rcode = strconv.Itoa(rr.Rcode)
 		}
 		rep.replacements["{rcode}"] = rcode
-		rep.replacements["{size}"] = strconv.Itoa(rr.size)
-		rep.replacements["{duration}"] = time.Since(rr.start).String()
+		rep.replacements["{size}"] = strconv.Itoa(rr.Size)
+		rep.replacements["{duration}"] = time.Since(rr.Start).String()
 	}
 
 	// Header placeholders (case-insensitive)
 	rep.replacements[headerReplacer+"id}"] = strconv.Itoa(int(r.Id))
 	rep.replacements[headerReplacer+"opcode}"] = strconv.Itoa(int(r.Opcode))
-	rep.replacements[headerReplacer+"do}"] = boolToString(state.Do())
-	rep.replacements[headerReplacer+"bufsize}"] = strconv.Itoa(state.Size())
+	rep.replacements[headerReplacer+"do}"] = boolToString(req.Do())
+	rep.replacements[headerReplacer+"bufsize}"] = strconv.Itoa(req.Size())
 
 	return rep
 }

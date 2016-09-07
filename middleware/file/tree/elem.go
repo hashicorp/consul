@@ -1,9 +1,6 @@
 package tree
 
-import (
-	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/dns"
-)
+import "github.com/miekg/dns"
 
 type Elem struct {
 	m map[uint16][]dns.RR
@@ -91,8 +88,8 @@ func (e *Elem) Delete(rr dns.RR) (empty bool) {
 	return
 }
 
-// Less is a tree helper function that calls middleware.Less.
-func Less(a *Elem, name string) int { return middleware.Less(name, a.Name()) }
+// Less is a tree helper function that calls less.
+func Less(a *Elem, name string) int { return less(name, a.Name()) }
 
 // Assuming the same type and name this will check if the rdata is equal as well.
 func equalRdata(a, b dns.RR) bool {

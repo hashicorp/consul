@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/test"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -16,7 +16,7 @@ func TestZoneSigning(t *testing.T) {
 	defer rm2()
 
 	m := testMsg()
-	state := middleware.State{Req: m}
+	state := request.Request{Req: m}
 
 	m = d.Sign(state, "miek.nl.", time.Now().UTC())
 	if !section(m.Answer, 1) {
@@ -44,7 +44,7 @@ func TestZoneSigningDouble(t *testing.T) {
 	d.keys = append(d.keys, key1)
 
 	m := testMsg()
-	state := middleware.State{Req: m}
+	state := request.Request{Req: m}
 	m = d.Sign(state, "miek.nl.", time.Now().UTC())
 	if !section(m.Answer, 2) {
 		t.Errorf("answer section should have 1 sig")
@@ -68,7 +68,7 @@ func TestSigningDifferentZone(t *testing.T) {
 	}
 
 	m := testMsgEx()
-	state := middleware.State{Req: m}
+	state := request.Request{Req: m}
 	d := New([]string{"example.org."}, []*DNSKEY{key}, nil)
 	m = d.Sign(state, "example.org.", time.Now().UTC())
 	if !section(m.Answer, 1) {
@@ -86,7 +86,7 @@ func TestSigningCname(t *testing.T) {
 	defer rm2()
 
 	m := testMsgCname()
-	state := middleware.State{Req: m}
+	state := request.Request{Req: m}
 	m = d.Sign(state, "miek.nl.", time.Now().UTC())
 	if !section(m.Answer, 1) {
 		t.Errorf("answer section should have 1 sig")
@@ -100,7 +100,7 @@ func TestZoneSigningDelegation(t *testing.T) {
 	defer rm2()
 
 	m := testDelegationMsg()
-	state := middleware.State{Req: m}
+	state := request.Request{Req: m}
 	m = d.Sign(state, "miek.nl.", time.Now().UTC())
 	if !section(m.Ns, 0) {
 		t.Errorf("authority section should have 0 sig")

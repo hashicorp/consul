@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/test"
+	"github.com/miekg/coredns/request"
 )
 
 func TestCacheSet(t *testing.T) {
@@ -20,7 +20,7 @@ func TestCacheSet(t *testing.T) {
 	}
 
 	m := testMsg()
-	state := middleware.State{Req: m}
+	state := request.Request{Req: m}
 	k := key(m.Answer) // calculate *before* we add the sig
 	d := New([]string{"miek.nl."}, []*DNSKEY{dnskey}, nil)
 	m = d.Sign(state, "miek.nl.", time.Now().UTC())

@@ -2,16 +2,17 @@ package kubernetes
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/dnsutil"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
 
 func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	state := middleware.State{W: w, Req: r}
+	state := request.Request{W: w, Req: r}
 	if state.QClass() != dns.ClassINET {
 		return dns.RcodeServerFailure, fmt.Errorf("can only deal with ClassINET")
 	}
@@ -21,8 +22,8 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	m.Authoritative, m.RecursionAvailable, m.Compress = true, true, true
 
 	// TODO: find an alternative to this block
-	if strings.HasSuffix(state.Name(), arpaSuffix) {
-		ip, _ := extractIP(state.Name())
+	ip := dnsutil.ExtractAddressFromReverse(state.Name())
+	if ip != "" {
 		records := k.getServiceRecordForIP(ip, state.Name())
 		if len(records) > 0 {
 			srvPTR := &records[0]
@@ -100,7 +101,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 }
 
 // NoData write a nodata response to the client.
-func (k Kubernetes) Err(zone string, rcode int, state middleware.State) (int, error) {
+func (k Kubernetes) Err(zone string, rcode int, state request.Request) (int, error) {
 	m := new(dns.Msg)
 	m.SetRcode(state.Req, rcode)
 	m.Ns = []dns.RR{k.SOA(zone, state)}

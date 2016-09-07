@@ -4,8 +4,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/miekg/coredns/middleware"
-
 	"github.com/miekg/dns"
 )
 
@@ -75,7 +73,7 @@ func (z *Zone) shouldTransfer() (bool, error) {
 Transfer:
 	for _, tr := range z.TransferFrom {
 		Err = nil
-		ret, err := middleware.Exchange(c, m, tr)
+		ret, _, err := c.Exchange(m, tr)
 		if err != nil || ret.Rcode != dns.RcodeSuccess {
 			Err = err
 			continue

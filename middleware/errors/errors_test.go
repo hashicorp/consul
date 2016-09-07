@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
@@ -47,7 +48,7 @@ func TestErrors(t *testing.T) {
 	for i, tc := range tests {
 		em.Next = tc.next
 		buf.Reset()
-		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+		rec := dnsrecorder.New(&test.ResponseWriter{})
 		code, err := em.ServeDNS(ctx, rec, req)
 
 		if err != tc.expectedErr {
@@ -78,7 +79,7 @@ func TestVisibleErrorWithPanic(t *testing.T) {
 	req := new(dns.Msg)
 	req.SetQuestion("example.org.", dns.TypeA)
 
-	rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+	rec := dnsrecorder.New(&test.ResponseWriter{})
 
 	code, err := eh.ServeDNS(ctx, rec, req)
 	if code != 0 {

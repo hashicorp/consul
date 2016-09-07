@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
@@ -37,7 +37,7 @@ func TestLoggedStatus(t *testing.T) {
 	r := new(dns.Msg)
 	r.SetQuestion("example.org.", dns.TypeA)
 
-	rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+	rec := dnsrecorder.New(&test.ResponseWriter{})
 
 	rcode, _ := logger.ServeDNS(ctx, rec, r)
 	if rcode != 0 {

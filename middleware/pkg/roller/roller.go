@@ -1,4 +1,4 @@
-package middleware
+package roller
 
 import (
 	"io"
@@ -8,7 +8,7 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-func ParseRoller(c *caddy.Controller) (*LogRoller, error) {
+func Parse(c *caddy.Controller) (*LogRoller, error) {
 	var size, age, keep int
 	// This is kind of a hack to support nested blocks:
 	// As we are already in a block: either log or errors,

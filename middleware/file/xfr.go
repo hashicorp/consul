@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
@@ -18,7 +18,7 @@ type (
 
 // Serve an AXFR (and fallback of IXFR) as well.
 func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	state := middleware.State{W: w, Req: r}
+	state := request.Request{W: w, Req: r}
 	if !x.TransferAllowed(state) {
 		return dns.RcodeServerFailure, nil
 	}

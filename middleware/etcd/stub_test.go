@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
@@ -53,7 +53,7 @@ func TestStubLookup(t *testing.T) {
 	for _, tc := range dnsTestCasesStub {
 		m := tc.Msg()
 
-		rec := middleware.NewResponseRecorder(&test.ResponseWriter{})
+		rec := dnsrecorder.New(&test.ResponseWriter{})
 		_, err := etc.ServeDNS(ctxt, rec, m)
 		if err != nil && m.Question[0].Name == "example.org." {
 			// This is OK, we expect this backend to *not* work.
@@ -62,12 +62,11 @@ func TestStubLookup(t *testing.T) {
 		if err != nil {
 			t.Errorf("expected no error, got %v for %s\n", err, m.Question[0].Name)
 		}
-		resp := rec.Msg()
+		resp := rec.Msg
 		if resp == nil {
 			// etcd not running?
 			continue
 		}
-
 		sort.Sort(test.RRSet(resp.Answer))
 		sort.Sort(test.RRSet(resp.Ns))
 		sort.Sort(test.RRSet(resp.Extra))

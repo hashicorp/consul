@@ -1,4 +1,4 @@
-package middleware
+package edns
 
 import (
 	"testing"
@@ -6,21 +6,21 @@ import (
 	"github.com/miekg/dns"
 )
 
-func TestEdns0Version(t *testing.T) {
+func TestVersion(t *testing.T) {
 	m := ednsMsg()
 	m.Extra[0].(*dns.OPT).SetVersion(2)
 
-	_, err := Edns0Version(m)
+	_, err := Version(m)
 	if err == nil {
 		t.Errorf("expected wrong version, but got OK")
 	}
 }
 
-func TestEdns0VersionNoEdns(t *testing.T) {
+func TestVersionNoEdns(t *testing.T) {
 	m := ednsMsg()
 	m.Extra = nil
 
-	_, err := Edns0Version(m)
+	_, err := Version(m)
 	if err != nil {
 		t.Errorf("expected no error, but got one: %s", err)
 	}

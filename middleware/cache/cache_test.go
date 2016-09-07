@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/response"
 	"github.com/miekg/coredns/middleware/test"
 
 	"github.com/miekg/dns"
@@ -78,7 +79,7 @@ func TestCache(t *testing.T) {
 		m = cacheMsg(m, tc)
 		do := tc.in.Do
 
-		mt, _ := middleware.Classify(m)
+		mt, _ := response.Classify(m)
 		key := cacheKey(m, mt, do)
 		crr.set(m, key, mt)
 

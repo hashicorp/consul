@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 )
@@ -50,7 +50,7 @@ func ParseKeyFile(pubFile, privFile string) (*DNSKEY, error) {
 }
 
 // getDNSKEY returns the correct DNSKEY to the client. Signatures are added when do is true.
-func (d Dnssec) getDNSKEY(state middleware.State, zone string, do bool) *dns.Msg {
+func (d Dnssec) getDNSKEY(state request.Request, zone string, do bool) *dns.Msg {
 	keys := make([]dns.RR, len(d.keys))
 	for i, k := range d.keys {
 		keys[i] = dns.Copy(k.K)

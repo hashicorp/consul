@@ -1,19 +1,19 @@
-package middleware
+package response
 
 import "github.com/miekg/dns"
 
-type MsgType int
+type Type int
 
 const (
-	Success    MsgType = iota
-	NameError          // NXDOMAIN in header, SOA in auth.
-	NoData             // NOERROR in header, SOA in auth.
-	Delegation         // NOERROR in header, NS in auth, optionally fluff in additional (not checked).
-	OtherError         // Don't cache these.
+	Success    Type = iota
+	NameError       // NXDOMAIN in header, SOA in auth.
+	NoData          // NOERROR in header, SOA in auth.
+	Delegation      // NOERROR in header, NS in auth, optionally fluff in additional (not checked).
+	OtherError      // Don't cache these.
 )
 
-// Classify classifies a message, it returns the MessageType.
-func Classify(m *dns.Msg) (MsgType, *dns.OPT) {
+// Classify classifies a message, it returns the Type.
+func Classify(m *dns.Msg) (Type, *dns.OPT) {
 	opt := m.IsEdns0()
 
 	if len(m.Answer) > 0 && m.Rcode == dns.RcodeSuccess {

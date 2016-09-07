@@ -1,24 +1,38 @@
-package middleware
+package storage
 
 import (
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 )
 
-// dir wraps http.Dir that restrict file access to a specific directory tree.
+// dir wraps an http.Dir that restrict file access to a specific directory tree, see http.Dir's documentation
+// for methods for accessing files.
 type dir http.Dir
 
 // CoreDir is the directory where middleware can store assets, like zone files after a zone transfer
 // or public and private keys or anything else a middleware might need. The convention is to place
-// assets in a subdirectory named after the fully qualified zone.
+// assets in a subdirectory named after the zone prefixed with "D", to prevent the root zone become a hidden directory.
 //
-// example.org./Kexample<something>.key
+// Dexample.org/Kexample.org<something>.key
+//
+// Note that subzone(s) under example.org are places in the own directory under CoreDir:
+//
+// Dexample.org/...
+// Db.example.org/...
 //
 // CoreDir will default to "$HOME/.coredns" on Unix, but it's location can be overriden with the COREDNSPATH
 // environment variable.
 var CoreDir dir = dir(fsPath())
+
+func (d dir) Zone(z string) dir {
+	if z != "." && z[len(z)-2] == '.' {
+		return dir(path.Join(string(d), "D"+z[:len(z)-1]))
+	}
+	return dir(path.Join(string(d), "D"+z))
+}
 
 // fsPath returns the path to the directory where the application may store data.
 // If COREDNSPATH env variable. is set, that value is used. Otherwise, the path is

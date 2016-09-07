@@ -4,7 +4,9 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/singleflight"
+	"github.com/miekg/coredns/middleware/pkg/response"
+	"github.com/miekg/coredns/middleware/pkg/singleflight"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	gcache "github.com/patrickmn/go-cache"
@@ -28,20 +30,21 @@ func New(zones []string, keys []*DNSKEY, next middleware.Handler) Dnssec {
 	}
 }
 
-// Sign signs the message m. it takes care of negative or nodata responses. It
+// Sign signs the message in state. it takes care of negative or nodata responses. It
 // uses NSEC black lies for authenticated denial of existence. Signatures
 // creates will be cached for a short while. By default we sign for 8 days,
 // starting 3 hours ago.
-func (d Dnssec) Sign(state middleware.State, zone string, now time.Time) *dns.Msg {
+func (d Dnssec) Sign(state request.Request, zone string, now time.Time) *dns.Msg {
 	req := state.Req
-	mt, _ := middleware.Classify(req) // TODO(miek): need opt record here?
-	if mt == middleware.Delegation {
+
+	mt, _ := response.Classify(req) // TODO(miek): need opt record here?
+	if mt == response.Delegation {
 		return req
 	}
 
 	incep, expir := incepExpir(now)
 
-	if mt == middleware.NameError {
+	if mt == response.NameError {
 		if req.Ns[0].Header().Rrtype != dns.TypeSOA || len(req.Ns) > 1 {
 			return req
 		}

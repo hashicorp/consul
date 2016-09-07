@@ -4,13 +4,16 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
+	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
+	"github.com/miekg/coredns/middleware/pkg/rcode"
+	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
 
 func (m Metrics) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	state := middleware.State{W: w, Req: r}
+	state := request.Request{W: w, Req: r}
 
 	qname := state.QName()
 	zone := middleware.Zones(m.ZoneNames).Matches(qname)
@@ -19,35 +22,35 @@ func (m Metrics) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	}
 
 	// Record response to get status code and size of the reply.
-	rw := middleware.NewResponseRecorder(w)
+	rw := dnsrecorder.New(w)
 	status, err := m.Next.ServeDNS(ctx, rw, r)
 
-	Report(state, zone, rw.Rcode(), rw.Size(), rw.Start())
+	Report(state, zone, rcode.ToString(rw.Rcode), rw.Size, rw.Start)
 
 	return status, err
 }
 
 // Report is a plain reporting function that the server can use for REFUSED and other
 // queries that are turned down because they don't match any middleware.
-func Report(state middleware.State, zone, rcode string, size int, start time.Time) {
+func Report(req request.Request, zone, rcode string, size int, start time.Time) {
 	if requestCount == nil {
 		// no metrics are enabled
 		return
 	}
 
 	// Proto and Family
-	net := state.Proto()
+	net := req.Proto()
 	fam := "1"
-	if state.Family() == 2 {
+	if req.Family() == 2 {
 		fam = "2"
 	}
 
-	typ := state.QType()
+	typ := req.QType()
 
 	requestCount.WithLabelValues(zone, net, fam).Inc()
 	requestDuration.WithLabelValues(zone).Observe(float64(time.Since(start) / time.Millisecond))
 
-	if state.Do() {
+	if req.Do() {
 		requestDo.WithLabelValues(zone).Inc()
 	}
 
@@ -59,10 +62,10 @@ func Report(state middleware.State, zone, rcode string, size int, start time.Tim
 
 	if typ == dns.TypeIXFR || typ == dns.TypeAXFR {
 		responseTransferSize.WithLabelValues(zone, net).Observe(float64(size))
-		requestTransferSize.WithLabelValues(zone, net).Observe(float64(state.Size()))
+		requestTransferSize.WithLabelValues(zone, net).Observe(float64(req.Size()))
 	} else {
 		responseSize.WithLabelValues(zone, net).Observe(float64(size))
-		requestSize.WithLabelValues(zone, net).Observe(float64(state.Size()))
+		requestSize.WithLabelValues(zone, net).Observe(float64(req.Size()))
 	}
 
 	responseRcode.WithLabelValues(zone, rcode).Inc()
