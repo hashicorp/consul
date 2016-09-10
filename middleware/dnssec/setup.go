@@ -19,7 +19,7 @@ func init() {
 func setup(c *caddy.Controller) error {
 	zones, keys, err := dnssecParse(c)
 	if err != nil {
-		return err
+		return middleware.Error("dnssec", err)
 	}
 
 	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {

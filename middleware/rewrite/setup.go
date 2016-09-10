@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/miekg/coredns/core/dnsserver"
+	"github.com/miekg/coredns/middleware"
 
 	"github.com/mholt/caddy"
 )
@@ -19,7 +20,7 @@ func init() {
 func setup(c *caddy.Controller) error {
 	rewrites, err := rewriteParse(c)
 	if err != nil {
-		return err
+		return middleware.Error("rewrite", err)
 	}
 
 	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {

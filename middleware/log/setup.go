@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/miekg/coredns/core/dnsserver"
+	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/pkg/roller"
 
 	"github.com/hashicorp/go-syslog"
@@ -23,7 +24,7 @@ func init() {
 func setup(c *caddy.Controller) error {
 	rules, err := logParse(c)
 	if err != nil {
-		return err
+		return middleware.Error("log", err)
 	}
 
 	// Open the log files for writing when the server starts
@@ -39,13 +40,13 @@ func setup(c *caddy.Controller) error {
 			} else if rules[i].OutputFile == "syslog" {
 				writer, err = gsyslog.NewLogger(gsyslog.LOG_INFO, "LOCAL0", "coredns")
 				if err != nil {
-					return err
+					return middleware.Error("log", err)
 				}
 			} else {
 				var file *os.File
 				file, err = os.OpenFile(rules[i].OutputFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 				if err != nil {
-					return err
+					return middleware.Error("log", err)
 				}
 				if rules[i].Roller != nil {
 					file.Close()

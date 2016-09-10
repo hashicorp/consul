@@ -28,7 +28,7 @@ func init() {
 func setup(c *caddy.Controller) error {
 	e, stubzones, err := etcdParse(c)
 	if err != nil {
-		return err
+		return middleware.Error("etcd", err)
 	}
 	if stubzones {
 		c.OnStartup(func() error {

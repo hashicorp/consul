@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/mholt/caddy"
+	"github.com/miekg/coredns/middleware"
 )
 
 func init() {
@@ -17,13 +18,13 @@ func setup(c *caddy.Controller) error {
 	found := false
 	for c.Next() {
 		if found {
-			return c.Err("pprof can only be specified once")
+			return middleware.Error("pprof", c.Err("pprof can only be specified once"))
 		}
 		if len(c.RemainingArgs()) != 0 {
-			return c.ArgErr()
+			return middleware.Error("pprof", c.ArgErr())
 		}
 		if c.NextBlock() {
-			return c.ArgErr()
+			return middleware.Error("pprof", c.ArgErr())
 		}
 		found = true
 	}

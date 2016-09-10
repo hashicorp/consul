@@ -24,12 +24,12 @@ func init() {
 func setup(c *caddy.Controller) error {
 	kubernetes, err := kubernetesParse(c)
 	if err != nil {
-		return err
+		return middleware.Error("kubernetes", err)
 	}
 
 	err = kubernetes.InitKubeCache()
 	if err != nil {
-		return err
+		return middleware.Error("kubernetes", err)
 	}
 
 	// Register KubeCache start and stop functions with Caddy

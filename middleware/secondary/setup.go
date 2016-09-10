@@ -18,7 +18,7 @@ func init() {
 func setup(c *caddy.Controller) error {
 	zones, err := secondaryParse(c)
 	if err != nil {
-		return err
+		return middleware.Error("secondary", err)
 	}
 
 	// Add startup functions to retrieve the zone and keep it up to date.

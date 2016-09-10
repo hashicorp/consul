@@ -1,6 +1,10 @@
 package health
 
-import "github.com/mholt/caddy"
+import (
+	"github.com/miekg/coredns/middleware"
+
+	"github.com/mholt/caddy"
+)
 
 func init() {
 	caddy.RegisterPlugin("health", caddy.Plugin{
@@ -12,7 +16,7 @@ func init() {
 func setup(c *caddy.Controller) error {
 	addr, err := healthParse(c)
 	if err != nil {
-		return err
+		return middleware.Error("health", err)
 	}
 
 	health := &Health{Addr: addr}

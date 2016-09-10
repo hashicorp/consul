@@ -21,7 +21,7 @@ func init() {
 func setup(c *caddy.Controller) error {
 	zones, err := fileParse(c)
 	if err != nil {
-		return err
+		return middleware.Error("file", err)
 	}
 
 	// Add startup functions to notify the master(s).

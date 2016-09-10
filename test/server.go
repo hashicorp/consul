@@ -12,6 +12,7 @@ import (
 	"github.com/miekg/dns"
 )
 
+// TCPServer returns a generic DNS server listening for TCP connections on laddr.
 func TCPServer(t *testing.T, laddr string) (*dns.Server, string, error) {
 	l, err := net.Listen("tcp", laddr)
 	if err != nil {
@@ -33,6 +34,7 @@ func TCPServer(t *testing.T, laddr string) (*dns.Server, string, error) {
 	return server, l.Addr().String(), nil
 }
 
+// UDPServer returns a generic DNS server listening for UDP connections on laddr.
 func UDPServer(t *testing.T, laddr string) (*dns.Server, string, error) {
 	pc, err := net.ListenPacket("udp", laddr)
 	if err != nil {
@@ -53,8 +55,11 @@ func UDPServer(t *testing.T, laddr string) (*dns.Server, string, error) {
 	return server, pc.LocalAddr().String(), nil
 }
 
-// CoreDNSServer returns a test server. It just takes a normal Corefile as input.
-func CoreDNSServer(corefile string) (*caddy.Instance, error) { return caddy.Start(NewInput(corefile)) }
+// CoreDNSServer returns a CoreDNS test server. It just takes a normal Corefile as input.
+func CoreDNSServer(corefile string) (*caddy.Instance, error) {
+	caddy.Quiet = true
+	return caddy.Start(NewInput(corefile))
+}
 
 // CoreDNSSserverStop stops a server.
 func CoreDNSServerStop(i *caddy.Instance) { i.Stop() }

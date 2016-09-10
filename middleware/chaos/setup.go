@@ -2,6 +2,7 @@ package chaos
 
 import (
 	"github.com/miekg/coredns/core/dnsserver"
+	"github.com/miekg/coredns/middleware"
 
 	"github.com/mholt/caddy"
 )
@@ -16,7 +17,7 @@ func init() {
 func setup(c *caddy.Controller) error {
 	version, authors, err := chaosParse(c)
 	if err != nil {
-		return err
+		return middleware.Error("chaos", err)
 	}
 
 	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {

@@ -19,7 +19,7 @@ func init() {
 func setup(c *caddy.Controller) error {
 	m, err := prometheusParse(c)
 	if err != nil {
-		return err
+		return middleware.Error("prometheus", err)
 	}
 
 	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {

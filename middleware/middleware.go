@@ -2,6 +2,8 @@
 package middleware
 
 import (
+	"fmt"
+
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
@@ -52,4 +54,8 @@ func (f HandlerFunc) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.
 	return f(ctx, w, r)
 }
 
+// Error returns err with 'middleware/name: ' prefixed to it.
+func Error(name string, err error) error { return fmt.Errorf("%s/%s: %s", "middleware", name, err) }
+
+// Namespace is the namespace used for the metrics.
 const Namespace = "coredns"

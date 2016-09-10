@@ -15,12 +15,13 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	// Plug in CoreDNS
-	_ "github.com/miekg/coredns/core"
+	"github.com/miekg/coredns/core"
 )
 
 func init() {
 	caddy.TrapSignals()
 	caddy.DefaultConfigFile = "Corefile"
+	caddy.Quiet = true // don't show init stuff from caddy
 	setVersion()
 
 	flag.StringVar(&conf, "conf", "", "Corefile to load (default \""+caddy.DefaultConfigFile+"\")")
@@ -28,7 +29,7 @@ func init() {
 	flag.BoolVar(&plugins, "plugins", false, "List installed plugins")
 	flag.StringVar(&logfile, "log", "", "Process log file")
 	flag.StringVar(&caddy.PidFile, "pidfile", "", "Path to write pid file")
-	flag.BoolVar(&caddy.Quiet, "quiet", false, "Quiet mode (no initialization output)")
+	flag.BoolVar(&core.Quiet, "quiet", false, "Quiet mode (no initialization output)")
 	flag.BoolVar(&version, "version", false, "Show version")
 
 	caddy.RegisterCaddyfileLoader("flag", caddy.LoaderFunc(confLoader))
@@ -58,12 +59,10 @@ func Run() {
 			MaxBackups: 10,
 		})
 	}
+	log.SetFlags(log.LstdFlags)
 
 	if version {
-		fmt.Printf("%s-%s\n", caddy.AppName, caddy.AppVersion)
-		if devBuild && gitShortStat != "" {
-			fmt.Printf("%s\n%s\n", gitShortStat, gitFilesModified)
-		}
+		showVersion()
 		os.Exit(0)
 	}
 	if plugins {
@@ -72,8 +71,7 @@ func Run() {
 	}
 
 	// Set CPU cap
-	err := setCPU(cpu)
-	if err != nil {
+	if err := setCPU(cpu); err != nil {
 		mustLogFatal(err)
 	}
 
@@ -89,8 +87,33 @@ func Run() {
 		mustLogFatal(err)
 	}
 
+	logVersion()
+
 	// Twiddle your thumbs
 	instance.Wait()
+}
+
+// startNotification will log CoreDNS' version to the log.
+func startupNotification() {
+	if core.Quiet {
+		return
+	}
+	logVersion()
+}
+
+func showVersion() {
+	fmt.Printf("%s-%s\n", caddy.AppName, caddy.AppVersion)
+	if devBuild && gitShortStat != "" {
+		fmt.Printf("%s\n%s\n", gitShortStat, gitFilesModified)
+	}
+}
+
+// logVersion logs the version that is starting.
+func logVersion() {
+	log.Printf("[INFO] %s-%s starting\n", caddy.AppName, caddy.AppVersion)
+	if devBuild && gitShortStat != "" {
+		log.Printf("[INFO] %s\n%s\n", gitShortStat, gitFilesModified)
+	}
 }
 
 // mustLogFatal wraps log.Fatal() in a way that ensures the

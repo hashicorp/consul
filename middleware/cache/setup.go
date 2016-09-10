@@ -20,7 +20,7 @@ func init() {
 func setup(c *caddy.Controller) error {
 	ttl, zones, err := cacheParse(c)
 	if err != nil {
-		return err
+		return middleware.Error("cache", err)
 	}
 	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {
 		return NewCache(ttl, zones, next)
