@@ -45,14 +45,14 @@ however as a developer to understand how this library is leveraged.
 <a name="lifeguard"></a>
 ## Lifeguard Enhancements
 
-Consul's Gossip Protocol, shared with HashiCorp's Serf, forms the basis of its powerful
-distributed failure detector. Unfortunately, the algorithm on which it is based makes an
-assumption that the local node is healthy in the sense that soft real-time processing of
-packets is possible. In Consul versions prior to 0.7, this can sometimes manifest in a
-severely degraded node falsely accusing others of being failed, causing occasional flaps
-in the `serfHealth` check status for one or more healthy nodes. Consul 0.7 adds two Serf
-Lifeguard enhancements to this algorithm to help performance in the presence of degraded
-nodes.
+SWIM makes the assumption that the local node is healthy in the sense
+that soft real-time processing of packets is possible. However, in cases
+where the local node is experiencing CPU or network exhaustion this assumption
+can be violated. The result is that the `serfHealth` check status can
+occassionally flap, resulting in false monitoring alarms, adding noise to
+telemetry, and simply causing the overall cluster to waste CPU and network
+resources diagnosing a failure that may not truly exist.
 
-Please see [Serf's gossip protocol guide](https://www.serf.io/docs/internals/gossip.html#lifeguard)
-for more details.
+Lifeguard completely resolves this issue with novel enhancements to SWIM.
+Please see the [Serf's gossip protocol guide](https://www.serf.io/docs/internals/gossip.html#lifeguard)
+section on Lifeguard for more details.
