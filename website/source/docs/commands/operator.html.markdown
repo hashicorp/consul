@@ -91,7 +91,7 @@ can be used to remove the failed server so that it is no longer affects the
 Raft quorum. If the server still shows in the output of the
 [`consul members`](/docs/commands/members.html) command, it is preferable to
 clean up by simply running
-[`consul force-leave`](http://localhost:4567/docs/commands/force-leave.html)
+[`consul force-leave`](/docs/commands/force-leave.html)
 instead of this command.
 
 Usage: `raft -remove-peer -address="IP:port"`
