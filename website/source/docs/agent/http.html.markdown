@@ -21,6 +21,7 @@ Each endpoint manages a different aspect of Consul:
 * [event](http/event.html) - User Events
 * [health](http/health.html) - Health Checks
 * [kv](http/kv.html) - Key/Value Store
+* [operator](http/operator.html) - Consul Operator Tools
 * [query](http/query.html) - Prepared Queries
 * [session](http/session.html) - Sessions
 * [status](http/status.html) - Consul System Status
