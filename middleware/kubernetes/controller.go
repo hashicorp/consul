@@ -10,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/runtime"
 	"k8s.io/kubernetes/pkg/watch"
@@ -25,9 +24,9 @@ type dnsController struct {
 
 	selector *labels.Selector
 
-	endpController *framework.Controller
-	svcController  *framework.Controller
-	nsController   *framework.Controller
+	endpController *cache.Controller
+	svcController  *cache.Controller
+	nsController   *cache.Controller
 
 	svcLister  cache.StoreToServiceLister
 	endpLister cache.StoreToEndpointsLister
@@ -49,26 +48,26 @@ func newdnsController(kubeClient *client.Client, resyncPeriod time.Duration, lse
 		stopCh:   make(chan struct{}),
 	}
 
-	dns.endpLister.Store, dns.endpController = framework.NewInformer(
+	dns.endpLister.Store, dns.endpController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc:  endpointsListFunc(dns.client, namespace, dns.selector),
 			WatchFunc: endpointsWatchFunc(dns.client, namespace, dns.selector),
 		},
-		&api.Endpoints{}, resyncPeriod, framework.ResourceEventHandlerFuncs{})
+		&api.Endpoints{}, resyncPeriod, cache.ResourceEventHandlerFuncs{})
 
-	dns.svcLister.Store, dns.svcController = framework.NewInformer(
+	dns.svcLister.Store, dns.svcController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc:  serviceListFunc(dns.client, namespace, dns.selector),
 			WatchFunc: serviceWatchFunc(dns.client, namespace, dns.selector),
 		},
-		&api.Service{}, resyncPeriod, framework.ResourceEventHandlerFuncs{})
+		&api.Service{}, resyncPeriod, cache.ResourceEventHandlerFuncs{})
 
-	dns.nsLister.Store, dns.nsController = framework.NewInformer(
+	dns.nsLister.Store, dns.nsController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc:  namespaceListFunc(dns.client, dns.selector),
 			WatchFunc: namespaceWatchFunc(dns.client, dns.selector),
 		},
-		&api.Namespace{}, resyncPeriod, framework.ResourceEventHandlerFuncs{})
+		&api.Namespace{}, resyncPeriod, cache.ResourceEventHandlerFuncs{})
 
 	return &dns
 }
