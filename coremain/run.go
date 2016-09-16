@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/mholt/caddy"
-	"gopkg.in/natefinch/lumberjack.v2"
 
 	// Plug in CoreDNS
 	"github.com/miekg/coredns/core"
@@ -49,15 +48,8 @@ func Run() {
 		log.SetOutput(os.Stdout)
 	case "stderr":
 		log.SetOutput(os.Stderr)
-	case "":
-		log.SetOutput(ioutil.Discard)
 	default:
-		log.SetOutput(&lumberjack.Logger{
-			Filename:   logfile,
-			MaxSize:    100,
-			MaxAge:     14,
-			MaxBackups: 10,
-		})
+		log.SetOutput(os.Stdout)
 	}
 	log.SetFlags(log.LstdFlags)
 

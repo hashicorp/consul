@@ -7,7 +7,6 @@ import (
 
 	"github.com/miekg/coredns/core/dnsserver"
 	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/pkg/roller"
 
 	"github.com/hashicorp/go-syslog"
 	"github.com/mholt/caddy"
@@ -48,13 +47,7 @@ func setup(c *caddy.Controller) error {
 				if err != nil {
 					return middleware.Error("log", err)
 				}
-				if rules[i].Roller != nil {
-					file.Close()
-					rules[i].Roller.Filename = rules[i].OutputFile
-					writer = rules[i].Roller.GetLogWriter()
-				} else {
-					writer = file
-				}
+				writer = file
 			}
 
 			rules[i].Log = log.New(writer, "", 0)
@@ -76,33 +69,12 @@ func logParse(c *caddy.Controller) ([]Rule, error) {
 	for c.Next() {
 		args := c.RemainingArgs()
 
-		var logRoller *roller.LogRoller
-		if c.NextBlock() {
-			if c.Val() == "rotate" {
-				if c.NextArg() {
-					if c.Val() == "{" {
-						var err error
-						logRoller, err = roller.Parse(c)
-						if err != nil {
-							return nil, err
-						}
-						// This part doesn't allow having something after the rotate block
-						if c.Next() {
-							if c.Val() != "}" {
-								return nil, c.ArgErr()
-							}
-						}
-					}
-				}
-			}
-		}
 		if len(args) == 0 {
 			// Nothing specified; use defaults
 			rules = append(rules, Rule{
 				NameScope:  ".",
 				OutputFile: DefaultLogFilename,
 				Format:     DefaultLogFormat,
-				Roller:     logRoller,
 			})
 		} else if len(args) == 1 {
 			// Only an output file specified
@@ -110,7 +82,6 @@ func logParse(c *caddy.Controller) ([]Rule, error) {
 				NameScope:  ".",
 				OutputFile: args[0],
 				Format:     DefaultLogFormat,
-				Roller:     logRoller,
 			})
 		} else {
 			// Name scope, output file, and maybe a format specified
@@ -132,7 +103,6 @@ func logParse(c *caddy.Controller) ([]Rule, error) {
 				NameScope:  dns.Fqdn(args[0]),
 				OutputFile: args[1],
 				Format:     format,
-				Roller:     logRoller,
 			})
 		}
 	}

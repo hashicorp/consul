@@ -10,7 +10,6 @@ import (
 	"github.com/miekg/coredns/middleware/pkg/dnsrecorder"
 	"github.com/miekg/coredns/middleware/pkg/rcode"
 	"github.com/miekg/coredns/middleware/pkg/replacer"
-	"github.com/miekg/coredns/middleware/pkg/roller"
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
@@ -61,7 +60,6 @@ type Rule struct {
 	OutputFile string
 	Format     string
 	Log        *log.Logger
-	Roller     *roller.LogRoller
 }
 
 const (

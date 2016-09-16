@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/pkg/roller"
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
@@ -18,11 +17,10 @@ import (
 
 // ErrorHandler handles DNS errors (and errors from other middleware).
 type ErrorHandler struct {
-	Next      middleware.Handler
-	LogFile   string
-	Log       *log.Logger
-	LogRoller *roller.LogRoller
-	Debug     bool // if true, errors are written out to client rather than to a log
+	Next    middleware.Handler
+	LogFile string
+	Log     *log.Logger
+	Debug   bool // if true, errors are written out to client rather than to a log
 }
 
 func (h ErrorHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {

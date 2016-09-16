@@ -54,26 +54,6 @@ The following place holders are supported:
 * `{>opcode}`: query OPCODE
 
 
-## Log Rotation
-
-If you enable log rotation, log files will be automatically maintained when they get large or old.
-You can use rotation by opening a block on your first line, which can be any of the variations
-described above:
-
-~~~
-log ... {
-    rotate {
-    size maxsize
-    age  maxage
-    keep maxkeep
-    }
-}
-~~~
-
-* `maxsize` is the maximum size of a log file in megabytes (MB) before it gets rotated. Default is 100 MB.
-* `maxage` is the maximum age of a rotated log file in days, after which it will be deleted. Default is to never delete old files because of age.
-* `maxkeep` is the maximum number of rotated log files to keep. Default is to retain all old log files.
-
 ## Examples
 
 Log all requests to a file:
@@ -87,14 +67,3 @@ Custom log format:
 ~~~
 log . ../query.log "{proto} Request: {name} {type} {>id}"
 ~~~
-
-With rotation:
-
-~~~
-log query.log {
-    rotate {
-        100 # Rotate after 100 MB
-        age  14  # Keep log files for 14 days
-        keep 10  # Keep at most 10 log files
-    }
-}

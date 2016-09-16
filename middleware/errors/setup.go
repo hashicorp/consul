@@ -7,7 +7,6 @@ import (
 
 	"github.com/miekg/coredns/core/dnsserver"
 	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/pkg/roller"
 
 	"github.com/hashicorp/go-syslog"
 	"github.com/mholt/caddy"
@@ -51,15 +50,7 @@ func setup(c *caddy.Controller) error {
 		if err != nil {
 			return middleware.Error("errors", err)
 		}
-		if handler.LogRoller != nil {
-			file.Close()
-
-			handler.LogRoller.Filename = handler.LogFile
-
-			writer = handler.LogRoller.GetLogWriter()
-		} else {
-			writer = file
-		}
+		writer = file
 	}
 	handler.Log = log.New(writer, "", 0)
 
@@ -91,16 +82,6 @@ func errorsParse(c *caddy.Controller) (ErrorHandler, error) {
 					handler.Debug = true
 				} else {
 					handler.LogFile = where
-					if c.NextArg() {
-						if c.Val() == "{" {
-							c.IncrNest()
-							logRoller, err := roller.Parse(c)
-							if err != nil {
-								return hadBlock, err
-							}
-							handler.LogRoller = logRoller
-						}
-					}
 				}
 			}
 		}
@@ -108,10 +89,6 @@ func errorsParse(c *caddy.Controller) (ErrorHandler, error) {
 	}
 
 	for c.Next() {
-		// weird hack to avoid having the handler values overwritten.
-		if c.Val() == "}" {
-			continue
-		}
 		// Configuration may be in a block
 		hadBlock, err := optionalBlock()
 		if err != nil {
