@@ -1,4 +1,4 @@
-# 0.7.0 (September 14, 2016)
+## 0.7.0 (September 14, 2016)
 
 BREAKING CHANGES:
 
