@@ -43,6 +43,10 @@ type HTTPServer struct {
 // NewHTTPServers starts new HTTP servers to provide an interface to
 // the agent.
 func NewHTTPServers(agent *Agent, config *Config, logOutput io.Writer) ([]*HTTPServer, error) {
+	if logOutput == nil {
+		return nil, fmt.Errorf("Please provide a valid logOutput(io.Writer)")
+	}
+
 	var servers []*HTTPServer
 
 	if config.Ports.HTTPS > 0 {
