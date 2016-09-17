@@ -15,7 +15,7 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
-	upstreams, err := NewStaticUpstreams(c.Dispenser)
+	upstreams, err := NewStaticUpstreams(&c.Dispenser)
 	if err != nil {
 		return middleware.Error("proxy", err)
 	}

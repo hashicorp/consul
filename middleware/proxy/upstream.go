@@ -44,7 +44,7 @@ type Options struct {
 
 // NewStaticUpstreams parses the configuration input and sets up
 // static upstreams for the proxy middleware.
-func NewStaticUpstreams(c caddyfile.Dispenser) ([]Upstream, error) {
+func NewStaticUpstreams(c *caddyfile.Dispenser) ([]Upstream, error) {
 	var upstreams []Upstream
 	for c.Next() {
 		upstream := &staticUpstream{
@@ -126,7 +126,7 @@ func (u *staticUpstream) Options() Options {
 	return u.options
 }
 
-func parseBlock(c caddyfile.Dispenser, u *staticUpstream) error {
+func parseBlock(c *caddyfile.Dispenser, u *staticUpstream) error {
 	switch c.Val() {
 	case "policy":
 		if !c.NextArg() {

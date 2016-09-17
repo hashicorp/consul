@@ -3,6 +3,8 @@ package proxy
 import (
 	"testing"
 	"time"
+
+	"github.com/mholt/caddy"
 )
 
 func TestHealthCheck(t *testing.T) {
@@ -72,6 +74,81 @@ func TestAllowedPaths(t *testing.T) {
 		isAllowed := upstream.IsAllowedPath(test.name)
 		if test.expected != isAllowed {
 			t.Errorf("Test %d: expected %v found %v for %s", i+1, test.expected, isAllowed, test.name)
+		}
+	}
+}
+
+func TestProxyParse(t *testing.T) {
+	tests := []struct {
+		inputUpstreams string
+		shouldErr      bool
+	}{
+		{
+			`proxy . 8.8.8.8:53`,
+			false,
+		},
+		{
+			`
+proxy . 8.8.8.8:53 {
+    policy round_robin
+}`,
+			false,
+		},
+		{
+			`
+proxy . 8.8.8.8:53 {
+    fail_timeout 5s
+}`,
+			false,
+		},
+		{
+			`
+proxy . 8.8.8.8:53 {
+    max_fails 10
+}`,
+			false,
+		},
+		{
+			`
+proxy . 8.8.8.8:53 {
+    health_check /health:8080
+}`,
+			false,
+		},
+		{
+			`
+proxy . 8.8.8.8:53 {
+    without without
+}`,
+			false,
+		},
+		{
+			`
+proxy . 8.8.8.8:53 {
+    except miek.nl example.org
+}`,
+			false,
+		},
+		{
+			`
+proxy . 8.8.8.8:53 {
+    spray
+}`,
+			false,
+		},
+		{
+			`
+proxy . 8.8.8.8:53 {
+    error_option
+}`,
+			true,
+		},
+	}
+	for i, test := range tests {
+		c := caddy.NewTestController("dns", test.inputUpstreams)
+		_, err := NewStaticUpstreams(&c.Dispenser)
+		if (err != nil) != test.shouldErr {
+			t.Errorf("Test %d expected no error, got %v", i+1, err)
 		}
 	}
 }
