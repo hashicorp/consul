@@ -23,6 +23,3 @@ import (
 	_ "github.com/miekg/coredns/middleware/secondary"
 	_ "github.com/miekg/coredns/middleware/whoami"
 )
-
-// Quiet mode will not show any informative output on initialization.
-var Quiet bool

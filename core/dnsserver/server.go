@@ -1,6 +1,7 @@
 package dnsserver
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"runtime"
@@ -211,6 +212,18 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 	remoteHost := w.RemoteAddr().String()
 	DefaultErrorFunc(w, r, dns.RcodeRefused)
 	log.Printf("[INFO] \"%s %s %s\" - No such zone at %s (Remote: %s)", dns.Type(r.Question[0].Qtype), dns.Class(r.Question[0].Qclass), q, s.Addr, remoteHost)
+}
+
+// OnStartupComplete lists the sites served by this server
+// and any relevant information, assuming Quiet == false.
+func (s *Server) OnStartupComplete() {
+	if Quiet {
+		return
+	}
+
+	for zone, config := range s.zones {
+		fmt.Println(zone + ":" + config.Port)
+	}
 }
 
 // DefaultErrorFunc responds to an DNS request with an error.

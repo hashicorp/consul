@@ -13,8 +13,9 @@ import (
 
 	"github.com/mholt/caddy"
 
+	"github.com/miekg/coredns/core/dnsserver"
 	// Plug in CoreDNS
-	"github.com/miekg/coredns/core"
+	_ "github.com/miekg/coredns/core"
 )
 
 func init() {
@@ -28,7 +29,6 @@ func init() {
 	flag.BoolVar(&plugins, "plugins", false, "List installed plugins")
 	flag.StringVar(&logfile, "log", "", "Process log file")
 	flag.StringVar(&caddy.PidFile, "pidfile", "", "Path to write pid file")
-	flag.BoolVar(&core.Quiet, "quiet", false, "Quiet mode (no initialization output)")
 	flag.BoolVar(&version, "version", false, "Show version")
 
 	caddy.RegisterCaddyfileLoader("flag", caddy.LoaderFunc(confLoader))
@@ -80,32 +80,10 @@ func Run() {
 	}
 
 	logVersion()
+	showVersion()
 
 	// Twiddle your thumbs
 	instance.Wait()
-}
-
-// startNotification will log CoreDNS' version to the log.
-func startupNotification() {
-	if core.Quiet {
-		return
-	}
-	logVersion()
-}
-
-func showVersion() {
-	fmt.Printf("%s-%s\n", caddy.AppName, caddy.AppVersion)
-	if devBuild && gitShortStat != "" {
-		fmt.Printf("%s\n%s\n", gitShortStat, gitFilesModified)
-	}
-}
-
-// logVersion logs the version that is starting.
-func logVersion() {
-	log.Printf("[INFO] %s-%s starting\n", caddy.AppName, caddy.AppVersion)
-	if devBuild && gitShortStat != "" {
-		log.Printf("[INFO] %s\n%s\n", gitShortStat, gitFilesModified)
-	}
 }
 
 // mustLogFatal wraps log.Fatal() in a way that ensures the
@@ -156,6 +134,25 @@ func defaultLoader(serverType string) (caddy.Input, error) {
 		Filepath:       caddy.DefaultConfigFile,
 		ServerTypeName: serverType,
 	}, nil
+}
+
+// logVersion logs the version that is starting.
+func logVersion() { log.Print("[INFO] " + versionString()) }
+
+// showVersion prints the version that is starting.
+func showVersion() {
+	if dnsserver.Quiet {
+		return
+	}
+	fmt.Print(versionString())
+	if devBuild && gitShortStat != "" {
+		fmt.Printf("%s\n%s\n", gitShortStat, gitFilesModified)
+	}
+}
+
+// versionString returns the CoreDNS version as a string.
+func versionString() string {
+	return fmt.Sprintf("%s-%s starting\n", caddy.AppName, caddy.AppVersion)
 }
 
 // setVersion figures out the version information

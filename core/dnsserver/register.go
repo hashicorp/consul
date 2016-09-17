@@ -1,6 +1,7 @@
 package dnsserver
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"time"
@@ -12,19 +13,15 @@ import (
 const serverType = "dns"
 
 func init() {
+	flag.StringVar(&Port, "port", DefaultPort, "Default port")
+	flag.BoolVar(&Quiet, "quiet", false, "Quiet mode (no initialization output)")
+
 	caddy.RegisterServerType(serverType, caddy.ServerType{
 		Directives: func() []string { return directives },
 		DefaultInput: func() caddy.Input {
-			if Port == DefaultPort && Zone != "" {
-				return caddy.CaddyfileInput{
-					Filepath:       "Corefile",
-					Contents:       nil,
-					ServerTypeName: serverType,
-				}
-			}
 			return caddy.CaddyfileInput{
 				Filepath:       "Corefile",
-				Contents:       nil,
+				Contents:       []byte(".:" + Port + " {\nwhoami\n}\n"),
 				ServerTypeName: serverType,
 			}
 		},
@@ -63,7 +60,6 @@ func (h *dnsContext) InspectServerBlocks(sourceFile string, serverBlocks []caddy
 			s.Keys[i] = za.String()
 			if v, ok := dups[za.Zone]; ok {
 				return nil, fmt.Errorf("cannot serve %s - zone already defined for %v", za, v)
-
 			}
 			dups[za.Zone] = za.String()
 
@@ -71,7 +67,6 @@ func (h *dnsContext) InspectServerBlocks(sourceFile string, serverBlocks []caddy
 			cfg := &Config{
 				Zone: za.Zone,
 				Port: za.Port,
-				// TODO(miek): more?
 			}
 			h.saveConfig(za.String(), cfg)
 		}
@@ -129,8 +124,6 @@ func groupConfigsByListenAddr(configs []*Config) (map[string][]*Config, error) {
 }
 
 const (
-	// DefaultZone is the default zone.
-	DefaultZone = "."
 	// DefaultPort is the default port.
 	DefaultPort = "2053"
 	// DefaultRoot is the default root folder.
@@ -141,14 +134,15 @@ const (
 // command line flags, etc.
 var (
 	// Root is the site root
+	// TODO(miek): double check if this is used and if we want to use it.
 	Root = DefaultRoot
-
-	// Host is the site host
-	Zone = DefaultZone
 
 	// Port is the site port
 	Port = DefaultPort
 
 	// GracefulTimeout is the maximum duration of a graceful shutdown.
 	GracefulTimeout time.Duration
+
+	// Quiet mode will not show any informative output on initialization.
+	Quiet bool
 )
