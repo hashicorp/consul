@@ -92,4 +92,5 @@ var directives = []string{
 	"etcd",
 	"kubernetes",
 	"proxy",
+	"whoami",
 }
