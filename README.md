@@ -2,11 +2,11 @@
 
 CoreDNS is a DNS server that started as a fork of [Caddy](https://github.com/mholt/caddy/). It has the
 same model: it chains middleware. In fact it's so similar that CoreDNS is now a server type plugin for
-Caddy, i.e., you'll need Caddy to compile CoreDNS.
+Caddy.
 
 CoreDNS is the successor to [SkyDNS](https://github.com/skynetservices/skydns). SkyDNS is a thin
 layer that exposes services in etcd in the DNS. CoreDNS builds on this idea and is a generic DNS
-server that can talk to multiple backends (etcd, consul, kubernetes, etc.).
+server that can talk to multiple backends (etcd, kubernetes, etc.).
 
 CoreDNS aims to be a fast and flexible DNS server. The keyword here is *flexible*: with CoreDNS you
 are able to do what you want with your DNS data. And if not: write some middleware!
@@ -52,16 +52,13 @@ Caddyfile when I forked it).
 ## Compilation
 
 CoreDNS (as a servertype plugin for Caddy) has a dependency on Caddy, but this is not different than
-any other Go dependency.
-You have the source of CoreDNS, this should preferably be downloaded under your `$GOPATH`. Get all
-dependencies:
+any other Go dependency. You have the source of CoreDNS, this should preferably be downloaded under
+your `$GOPATH`. Get all dependencies:
 
     go get ./...
 
-Then, execute `go generate`. This will patch Caddy to add CoreDNS (and remove the HTTP server
-plugin), and then `go build` as you would normally do:
+And then `go build` as you would normally do:
 
-    go generate
     go build
 
 This should yield a `coredns` binary.
