@@ -26,21 +26,21 @@ func TestChaos(t *testing.T) {
 		expectedErr   error
 	}{
 		{
-			next:          genHandler(dns.RcodeSuccess, nil),
+			next:          test.NextHandler(dns.RcodeSuccess, nil),
 			qname:         "version.bind",
 			expectedCode:  dns.RcodeSuccess,
 			expectedReply: version,
 			expectedErr:   nil,
 		},
 		{
-			next:          genHandler(dns.RcodeSuccess, nil),
+			next:          test.NextHandler(dns.RcodeSuccess, nil),
 			qname:         "authors.bind",
 			expectedCode:  dns.RcodeSuccess,
 			expectedReply: "Miek Gieben",
 			expectedErr:   nil,
 		},
 		{
-			next:         genHandler(dns.RcodeSuccess, nil),
+			next:         test.NextHandler(dns.RcodeSuccess, nil),
 			qname:        "authors.bind",
 			qtype:        dns.TypeSRV,
 			expectedCode: dns.RcodeSuccess,
@@ -75,12 +75,6 @@ func TestChaos(t *testing.T) {
 			}
 		}
 	}
-}
-
-func genHandler(rcode int, err error) middleware.Handler {
-	return middleware.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-		return rcode, err
-	})
 }
 
 const version = "CoreDNS-001"

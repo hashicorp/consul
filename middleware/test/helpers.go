@@ -224,6 +224,7 @@ func Section(t *testing.T, tc Case, sect Sect, rr []dns.RR) bool {
 	return true
 }
 
+// ErrorHanlder returns a Handler that returns ServerFailure error when called.
 func ErrorHandler() Handler {
 	return HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 		m := new(dns.Msg)
@@ -233,7 +234,14 @@ func ErrorHandler() Handler {
 	})
 }
 
-// Copied here to prevent an import cycle.
+// NextHandler returns a Handler that returns rcode and err.
+func NextHandler(rcode int, err error) Handler {
+	return HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+		return rcode, err
+	})
+}
+
+// Copied here to prevent an import cycle, so that we can define to above handlers.
 type (
 	// HandlerFunc is a convenience type like dns.HandlerFunc, except
 	// ServeDNS returns an rcode and an error.

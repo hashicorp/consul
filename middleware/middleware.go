@@ -19,9 +19,13 @@ type (
 	//
 	// If ServeDNS writes to the response body, it should return a status
 	// code. If the status code is not one of the following:
+	//
 	// * SERVFAIL (dns.RcodeServerFailure)
+	//
 	// * REFUSED (dns.RecodeRefused)
+	//
 	// * FORMERR (dns.RcodeFormatError)
+	//
 	// * NOTIMP (dns.RcodeNotImplemented)
 	//
 	// CoreDNS assumes *no* reply has yet been written. All other response

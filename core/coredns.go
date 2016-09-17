@@ -21,6 +21,7 @@ import (
 	_ "github.com/miekg/coredns/middleware/proxy"
 	_ "github.com/miekg/coredns/middleware/rewrite"
 	_ "github.com/miekg/coredns/middleware/secondary"
+	_ "github.com/miekg/coredns/middleware/whoami"
 )
 
 // Quiet mode will not show any informative output on initialization.
