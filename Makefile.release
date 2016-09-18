@@ -1,0 +1,45 @@
+# Makefile for releasing CoreDNS
+#
+# The release is controlled from coremain/version.go. The version found
+# there is used to tag the git repo and to build the assets that are
+# uploaded to github (after some sanity checks).
+#
+# The release should be accompanied by release notes published on
+# blog.coredns.io. For example:
+# https://blog.coredns.io/2016/09/18/coredns-001-release/
+#
+# We use https://github.com/progrium/gh-release to automate github stuff
+# be sure to have that binary in your path.
+#
+# Steps:
+# * Get an access token: https://help.github.com/articles/creating-an-access-token-for-command-line-use/
+# * export GITHUB_ACCESS_TOKEN=<token>
+# * Up the version in coremain/version.go
+# * Commit
+# * Run: make -f Makefile.release
+
+NAME=coredns
+VERSION:=$(shell grep 'coreVersion' coremain/version.go | awk '{ print $$3 }' | tr -d '"')
+ARCH=$(shell uname -m)
+GITHUB=miekg
+
+all:	build release
+
+.PHONY: build
+build:
+	@echo Releasing: $(VERSION)
+	mkdir -p build/Linux  && CGO_ENABLED=0 GOOS=linux  go build -o build/Linux/$(NAME)
+	mkdir -p build/Darwin && CGO_ENABLED=0 GOOS=darwin go build -o build/Darwin/$(NAME)
+
+
+.PHONY: release
+release:
+	rm -rf release && mkdir release
+	tar -zcf release/$(NAME)_$(VERSION)_linux_$(ARCH).tgz -C build/Linux $(NAME)
+	tar -zcf release/$(NAME)_$(VERSION)_darwin_$(ARCH).tgz -C build/Darwin $(NAME)
+	build/$(shell uname)/gh-release create $(GITHUB)/$(NAME) $(VERSION)
+
+.PHONY: clean
+clean:
+	rm -rf release
+	rm -rf build
