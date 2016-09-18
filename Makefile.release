@@ -28,8 +28,8 @@ all:	build release
 .PHONY: build
 build:
 	@echo Releasing: $(VERSION)
-	mkdir -p build/Linux  && CGO_ENABLED=0 GOOS=linux  go build -o build/Linux/$(NAME)
 	mkdir -p build/Darwin && CGO_ENABLED=0 GOOS=darwin go build -o build/Darwin/$(NAME)
+	mkdir -p build/Linux  && CGO_ENABLED=0 GOOS=linux  go build -o build/Linux/$(NAME)
 
 
 .PHONY: release
@@ -37,7 +37,7 @@ release:
 	rm -rf release && mkdir release
 	tar -zcf release/$(NAME)_$(VERSION)_linux_$(ARCH).tgz -C build/Linux $(NAME)
 	tar -zcf release/$(NAME)_$(VERSION)_darwin_$(ARCH).tgz -C build/Darwin $(NAME)
-	build/$(shell uname)/gh-release create $(GITHUB)/$(NAME) $(VERSION)
+	gh-release create $(GITHUB)/$(NAME) $(VERSION)
 
 .PHONY: clean
 clean:
