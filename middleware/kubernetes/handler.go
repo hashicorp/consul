@@ -76,7 +76,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 		}
 		fallthrough
 	default:
-		// Do a fake A lookup, so we can distinguish betwen NODATA and NXDOMAIN
+		// Do a fake A lookup, so we can distinguish between NODATA and NXDOMAIN
 		_, err = k.A(zone, state, nil)
 	}
 	if isKubernetesNameError(err) {
