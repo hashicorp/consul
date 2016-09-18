@@ -31,17 +31,20 @@ file dbfile [zones... ] {
 ~~~
 
 * `transfer` enables zone transfers. It may be specified multiples times. *To* or *from* signals
-    the direction. Addresses must be denoted in CIDR notation (127.0.0.1/32 etc.) or just as plain
-    addresses. The special wildcard "*" means: the entire internet (only valid for 'transfer to').
+  the direction. Addresses must be denoted in CIDR notation (127.0.0.1/32 etc.) or just as plain
+  addresses. The special wildcard `*` means: the entire internet (only valid for 'transfer to').
+  When an address is specified a notify message will be send whenever the zone is reloaded.
 * `no_reload` by default CoreDNS will reload a zone from disk whenever it detects a change to the
   file. This option disables that behavior.
 
 ## Examples
 
-Load the `miek.nl` zone from `miek.nl.signed` and allow transfers to the internet.
+Load the `example.org` zone from `example.org.signed` and allow transfers to the internet, but send
+notifies to 10.240.1.1
 
 ~~~
-file miek.nl.signed miek.nl {
+file example.org.signed example.org {
     transfer to *
+    transfer to 10.240.1.1
 }
 ~~~

@@ -34,17 +34,16 @@ Each of the middlewares has a README.md of its own.
 
 ## Status
 
-I'm using CoreDNS is my primary, authoritative, nameserver for my domains (`miek.nl`, `atoom.net`
-and a few others). CoreDNS should be stable enough to provide you with good DNS(SEC) service.
+CoreDNS can be used as a authoritative nameserver for your domains, and should be stable enough to
+provide you with good DNS(SEC) service.
 
 There are still few [issues](https://github.com/miekg/coredns/issues), and work is ongoing on making
 things fast and to reduce the memory usage.
 
-All in all, CoreDNS should be able to provide you with enough functionality to replace parts of
-BIND 9, Knot, NSD or PowerDNS and SkyDNS.
-Most documentation is in the source and some blog articles can be [found
-here](https://miek.nl/tags/coredns/). If you do want to use CoreDNS in production, please let us
-know and how we can help.
+All in all, CoreDNS should be able to provide you with enough functionality to replace parts of BIND
+9, Knot, NSD or PowerDNS and SkyDNS. Most documentation is in the source and some blog articles can
+be [found here](https://miek.nl/tags/coredns/). If you do want to use CoreDNS in production, please
+let us know and how we can help.
 
 <https://caddyserver.com/> is also full of examples on how to structure a Corefile (renamed from
 Caddyfile when I forked it).
@@ -52,8 +51,7 @@ Caddyfile when I forked it).
 ## Compilation
 
 CoreDNS (as a servertype plugin for Caddy) has a dependency on Caddy, but this is not different than
-any other Go dependency. You have the source of CoreDNS, this should preferably be downloaded under
-your `$GOPATH`. Get all dependencies:
+any other Go dependency. If you have the source of CoreDNS, get all dependencies:
 
     go get ./...
 
@@ -64,6 +62,18 @@ And then `go build` as you would normally do:
 This should yield a `coredns` binary.
 
 ## Examples
+
+When starting CoreDNS without any configuration, it loads the `whoami` middleware and starts
+listening on port 2053, it should show the following:
+
+~~~ txt
+.:2053
+2016/09/18 09:20:50 [INFO] CoreDNS-001 starting
+CoreDNS-001 starting
+~~~
+
+Any query send to port 2053 should return some information; your sending address, port and protocol
+used.
 
 Start a simple proxy, you'll need to be root to start listening on port 53.
 
@@ -80,8 +90,9 @@ Just start CoreDNS: `./coredns`.
 And then just query on that port (53). The query should be forwarded to 8.8.8.8 and the response
 will be returned. Each query should also show up in the log.
 
-Serve the (NSEC) DNSSEC-signed `example.org` on port 1053, with errors and logging sent to stdout. Allow zone
-transfers to everybody, but specically mention 1 IP address so that CoreDNS can send notifies to it.
+Serve the (NSEC) DNSSEC-signed `example.org` on port 1053, with errors and logging sent to stdout.
+Allow zone transfers to everybody, but specically mention 1 IP address so that CoreDNS can send
+notifies to it.
 
 ~~~ txt
 example.org:1053 {
