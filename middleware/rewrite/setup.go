@@ -23,7 +23,7 @@ func setup(c *caddy.Controller) error {
 		return middleware.Error("rewrite", err)
 	}
 
-	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {
+	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
 		return Rewrite{Next: next, Rules: rewrites}
 	})
 

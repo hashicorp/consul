@@ -6,6 +6,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/miekg/coredns/middleware"
+
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyfile"
 )
@@ -96,7 +98,7 @@ func (h *dnsContext) MakeServers() ([]caddy.Server, error) {
 }
 
 // AddMiddleware adds a middleware to a site's middleware stack.
-func (c *Config) AddMiddleware(m Middleware) {
+func (c *Config) AddMiddleware(m middleware.Middleware) {
 	c.Middleware = append(c.Middleware, m)
 }
 
@@ -126,17 +128,11 @@ func groupConfigsByListenAddr(configs []*Config) (map[string][]*Config, error) {
 const (
 	// DefaultPort is the default port.
 	DefaultPort = "2053"
-	// DefaultRoot is the default root folder.
-	DefaultRoot = "."
 )
 
 // These "soft defaults" are configurable by
 // command line flags, etc.
 var (
-	// Root is the site root
-	// TODO(miek): double check if this is used and if we want to use it.
-	Root = DefaultRoot
-
 	// Port is the site port
 	Port = DefaultPort
 

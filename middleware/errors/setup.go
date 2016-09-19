@@ -54,7 +54,7 @@ func setup(c *caddy.Controller) error {
 	}
 	handler.Log = log.New(writer, "", 0)
 
-	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {
+	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
 		handler.Next = next
 		return handler
 	})

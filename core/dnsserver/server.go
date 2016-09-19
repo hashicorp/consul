@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/pkg/edns"
 	"github.com/miekg/coredns/request"
 
@@ -58,7 +59,7 @@ func NewServer(addr string, group []*Config) (*Server, error) {
 		// set the config per zone
 		s.zones[site.Zone] = site
 		// compile custom middleware for everything
-		var stack Handler
+		var stack middleware.Handler
 		for i := len(site.Middleware) - 1; i >= 0; i-- {
 			stack = site.Middleware[i](stack)
 		}

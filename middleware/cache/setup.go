@@ -22,7 +22,7 @@ func setup(c *caddy.Controller) error {
 	if err != nil {
 		return middleware.Error("cache", err)
 	}
-	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {
+	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
 		return NewCache(ttl, zones, next)
 	})
 

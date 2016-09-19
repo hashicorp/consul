@@ -18,6 +18,8 @@ func (z zoneAddr) String() string { return z.Zone + ":" + z.Port }
 
 // normalizeZone parses an zone string into a structured format with separate
 // host, and port portions, as well as the original input string.
+//
+// TODO(miek): possibly move this to middleware/normalize.go
 func normalizeZone(str string) (zoneAddr, error) {
 	var err error
 

@@ -1,6 +1,10 @@
 package dnsserver
 
-import "github.com/mholt/caddy"
+import (
+	"github.com/miekg/coredns/middleware"
+
+	"github.com/mholt/caddy"
+)
 
 // Config configuration for a single server.
 type Config struct {
@@ -13,14 +17,11 @@ type Config struct {
 	// The port to listen on.
 	Port string
 
-	// The directory from which to parse db files, and store keys.
-	Root string
-
 	// Middleware stack.
-	Middleware []Middleware
+	Middleware []middleware.Middleware
 
 	// Compiled middleware stack.
-	middlewareChain Handler
+	middlewareChain middleware.Handler
 }
 
 // GetConfig gets the Config that corresponds to c.
@@ -33,6 +34,6 @@ func GetConfig(c *caddy.Controller) *Config {
 	// we should only get here during tests because directive
 	// actions typically skip the server blocks where we make
 	// the configs.
-	ctx.saveConfig(c.Key, &Config{Root: Root})
+	ctx.saveConfig(c.Key, &Config{})
 	return GetConfig(c)
 }

@@ -37,7 +37,7 @@ func setup(c *caddy.Controller) error {
 		})
 	}
 
-	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {
+	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
 		return File{Next: next, Zones: zones}
 	})
 

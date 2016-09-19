@@ -20,7 +20,7 @@ func setup(c *caddy.Controller) error {
 		return middleware.Error("chaos", err)
 	}
 
-	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {
+	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
 		return Chaos{Next: next, Version: version, Authors: authors}
 	})
 

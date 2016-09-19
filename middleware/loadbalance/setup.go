@@ -3,6 +3,7 @@ package loadbalance
 import (
 	"github.com/mholt/caddy"
 	"github.com/miekg/coredns/core/dnsserver"
+	"github.com/miekg/coredns/middleware"
 )
 
 func init() {
@@ -17,7 +18,7 @@ func setup(c *caddy.Controller) error {
 		// TODO(miek): block and option parsing
 	}
 
-	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {
+	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
 		return RoundRobin{Next: next}
 	})
 

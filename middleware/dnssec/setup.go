@@ -22,7 +22,7 @@ func setup(c *caddy.Controller) error {
 		return middleware.Error("dnssec", err)
 	}
 
-	dnsserver.GetConfig(c).AddMiddleware(func(next dnsserver.Handler) dnsserver.Handler {
+	dnsserver.GetConfig(c).AddMiddleware(func(next middleware.Handler) middleware.Handler {
 		return New(zones, keys, next)
 	})
 
