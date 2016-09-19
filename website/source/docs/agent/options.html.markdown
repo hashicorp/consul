@@ -857,6 +857,10 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   particular data view is updated. See the
    [watch documentation](/docs/agent/watches.html) for more detail. Watches can be
    modified when the configuration is reloaded.
+   
+* <a name="fail_on_unknown_configuration_keys"></a>
+  <a href="#fail_on_unknown_configuration_keys">`fail_on_unknown_configuration_keys`</a> - If set to true, 
+  Consul does not fail on start when an unknown configuration key is encountered.
 
 ## <a id="ports"></a>Ports Used
 

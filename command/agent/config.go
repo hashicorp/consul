@@ -583,6 +583,9 @@ type Config struct {
 	// Consul reap only if it detects it's running as PID 1. If non-nil,
 	// then this will be used to decide if reaping is enabled.
 	Reap *bool `mapstructure:"reap"`
+
+	// Controls if fail on start when an unknown configuration key is encountered
+	FailOnUnknownConfigurationKeys bool `mapstructure:"fail_on_unknown_configuration_keys"`
 }
 
 // Bool is used to initialize bool pointers in struct literals.
@@ -680,6 +683,7 @@ func DefaultConfig() *Config {
 		ACLDefaultPolicy: "allow",
 		RetryInterval:    30 * time.Second,
 		RetryIntervalWan: 30 * time.Second,
+		FailOnUnknownConfigurationKeys: true,
 	}
 }
 
@@ -828,9 +832,12 @@ func DecodeConfig(r io.Reader) (*Config, error) {
 		}
 	}
 	if len(unused) > 0 {
-		return nil, fmt.Errorf("Config has invalid keys: %s", strings.Join(unused, ","))
+		if result.FailOnUnknownConfigurationKeys {
+			return nil, fmt.Errorf("Config has invalid keys: %s", strings.Join(unused, ","))
+		} else {
+			fmt.Sprintf("Ingoring unknown configuration keys: %v.")
+		}
 	}
-
 	// Handle time conversions
 	if raw := result.DNSConfig.NodeTTLRaw; raw != "" {
 		dur, err := time.ParseDuration(raw)
