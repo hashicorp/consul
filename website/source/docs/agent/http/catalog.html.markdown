@@ -88,9 +88,7 @@ The `CheckID` can be omitted and will default to the value of `Name`. As with `S
 the `CheckID` must be unique on this node. `Notes` is an opaque field that is meant to
 hold human-readable text. If a `ServiceID` is provided that matches the `ID`
 of a service on that node, the check is treated as a service level health
-check, instead of a node level health check. The `Status` must be one of
-`unknown`, `passing`, `warning`, or `critical`. The `unknown` status is used
-to indicate that the initial check has not been performed yet.
+check, instead of a node level health check. The `Status` must be one of `passing`, `warning`, or `critical`.
 
 Multiple checks can be provided by replacing `Check` with `Checks` and sending
 an array of `Check` objects.
