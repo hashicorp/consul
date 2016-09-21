@@ -30,7 +30,7 @@ type Metrics struct {
 	Addr      string
 	ln        net.Listener
 	mux       *http.ServeMux
-	Once      sync.Once
+	Once      *sync.Once
 	ZoneNames []string
 }
 

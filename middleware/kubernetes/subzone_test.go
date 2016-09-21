@@ -21,7 +21,7 @@ var examplesSubzoneConflict = map[string]bool{
 	"":        false,
 }
 
-func TestsubzoneConflict(t *testing.T) {
+func TestSubzoneConflict(t *testing.T) {
 	for z, expected := range examplesSubzoneConflict {
 		actual, conflicts := subzoneConflict(confZones, z)
 

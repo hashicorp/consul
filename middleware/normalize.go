@@ -7,6 +7,7 @@ import (
 	"github.com/miekg/dns"
 )
 
+// Zones respresents a lists of zone names.
 type Zones []string
 
 // Matches checks is qname is a subdomain of any of the zones in z.  The match
@@ -27,7 +28,7 @@ func (z Zones) Matches(qname string) string {
 
 // Normalize fully qualifies all zones in z.
 func (z Zones) Normalize() {
-	for i, _ := range z {
+	for i := range z {
 		z[i] = Name(z[i]).Normalize()
 	}
 }
@@ -47,10 +48,11 @@ func (n Name) Matches(child string) bool {
 // Normalize lowercases and makes n fully qualified.
 func (n Name) Normalize() string { return strings.ToLower(dns.Fqdn(string(n))) }
 
-// Host represents a host from the Corefile, may contain port.
 type (
-	Host string
-	Addr string
+	// Host represents a host from the Corefile, may contain port.
+	Host string // Host represents a host from the Corefile, may contain port.
+	// Addr resprents an address in the Corefile.
+	Addr string // Addr resprents an address in the Corefile.
 )
 
 // Normalize will return the host portion of host, stripping

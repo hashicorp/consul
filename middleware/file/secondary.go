@@ -176,7 +176,6 @@ Restart:
 			}
 		}
 	}
-	return nil
 }
 
 // The maximum difference between two serial numbers. If the difference between

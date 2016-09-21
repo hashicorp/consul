@@ -56,7 +56,7 @@ func cacheParse(c *caddy.Controller) (int, []string, error) {
 				}
 			}
 
-			for i, _ := range origins {
+			for i := range origins {
 				origins[i] = middleware.Host(origins[i]).Normalize()
 			}
 			return ttl, origins, nil

@@ -47,7 +47,7 @@ func prometheusParse(c *caddy.Controller) (Metrics, error) {
 		}
 		met.ZoneNames = make([]string, len(c.ServerBlockKeys))
 		copy(met.ZoneNames, c.ServerBlockKeys)
-		for i, _ := range met.ZoneNames {
+		for i := range met.ZoneNames {
 			met.ZoneNames[i] = middleware.Host(met.ZoneNames[i]).Normalize()
 		}
 		args := c.RemainingArgs()
@@ -79,6 +79,6 @@ func prometheusParse(c *caddy.Controller) (Metrics, error) {
 	return met, err
 }
 
-var metricsOnce sync.Once
+var metricsOnce *sync.Once
 
 const addr = "localhost:9153"

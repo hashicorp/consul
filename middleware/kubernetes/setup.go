@@ -107,7 +107,7 @@ func kubernetesParse(c *caddy.Controller) (Kubernetes, error) {
 					if len(args) != 0 {
 						k8s.ResyncPeriod, err = time.ParseDuration(args[0])
 						if err != nil {
-							err = errors.New(fmt.Sprintf("Unable to parse resync duration value. Value provided was '%v'. Example valid values: '15s', '5m', '1h'. Error was: %v", args[0], err))
+							err = fmt.Errorf("Unable to parse resync duration value. Value provided was '%v'. Example valid values: '15s', '5m', '1h'. Error was: %v", args[0], err)
 							return Kubernetes{}, err
 						}
 					} else {
@@ -119,7 +119,7 @@ func kubernetesParse(c *caddy.Controller) (Kubernetes, error) {
 						labelSelectorString := strings.Join(args, " ")
 						k8s.LabelSelector, err = unversionedapi.ParseToLabelSelector(labelSelectorString)
 						if err != nil {
-							err = errors.New(fmt.Sprintf("Unable to parse label selector. Value provided was '%v'. Error was: %v", labelSelectorString, err))
+							err = fmt.Errorf("Unable to parse label selector. Value provided was '%v'. Error was: %v", labelSelectorString, err)
 							return Kubernetes{}, err
 						}
 					} else {

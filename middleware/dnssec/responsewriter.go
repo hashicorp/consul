@@ -10,16 +10,16 @@ import (
 	"github.com/miekg/dns"
 )
 
-type DnssecResponseWriter struct {
+type ResponseWriter struct {
 	dns.ResponseWriter
 	d Dnssec
 }
 
-func NewDnssecResponseWriter(w dns.ResponseWriter, d Dnssec) *DnssecResponseWriter {
-	return &DnssecResponseWriter{w, d}
+func NewDnssecResponseWriter(w dns.ResponseWriter, d Dnssec) *ResponseWriter {
+	return &ResponseWriter{w, d}
 }
 
-func (d *DnssecResponseWriter) WriteMsg(res *dns.Msg) error {
+func (d *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	// By definition we should sign anything that comes back, we should still figure out for
 	// which zone it should be.
 	state := request.Request{W: d.ResponseWriter, Req: res}
@@ -38,13 +38,13 @@ func (d *DnssecResponseWriter) WriteMsg(res *dns.Msg) error {
 	return d.ResponseWriter.WriteMsg(res)
 }
 
-func (d *DnssecResponseWriter) Write(buf []byte) (int, error) {
+func (d *ResponseWriter) Write(buf []byte) (int, error) {
 	log.Printf("[WARNING] Dnssec called with Write: not signing reply")
 	n, err := d.ResponseWriter.Write(buf)
 	return n, err
 }
 
-func (d *DnssecResponseWriter) Hijack() {
+func (d *ResponseWriter) Hijack() {
 	d.ResponseWriter.Hijack()
 	return
 }

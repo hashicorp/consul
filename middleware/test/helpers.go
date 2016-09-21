@@ -149,12 +149,12 @@ func Section(t *testing.T, tc Case, sect Sect, rr []dns.RR) bool {
 				return false
 			}
 			if x.SignerName != section[i].(*dns.RRSIG).SignerName {
-				t.Errorf("rr %d should have a SignerName of %d, but has %d", i, section[i].(*dns.RRSIG).SignerName, x.SignerName)
+				t.Errorf("rr %d should have a SignerName of %s, but has %s", i, section[i].(*dns.RRSIG).SignerName, x.SignerName)
 				return false
 			}
 		case *dns.NSEC:
 			if x.NextDomain != section[i].(*dns.NSEC).NextDomain {
-				t.Errorf("rr %d should have a NextDomain of %d, but has %d", i, section[i].(*dns.NSEC).NextDomain, x.NextDomain)
+				t.Errorf("rr %d should have a NextDomain of %s, but has %s", i, section[i].(*dns.NSEC).NextDomain, x.NextDomain)
 				return false
 			}
 			// TypeBitMap

@@ -40,8 +40,9 @@ func TestProxyToChaosServer(t *testing.T) {
 }
 
 func chaosTest(t *testing.T, server string) {
-	m := Msg("version.bind.", dns.TypeTXT, nil)
-	m.Question[0].Qclass = dns.ClassCHAOS
+	m := new(dns.Msg)
+	m.Question = make([]dns.Question, 1)
+	m.Question[0] = dns.Question{Qclass: dns.ClassCHAOS, Name: "version.bind.", Qtype: dns.TypeTXT}
 
 	r, err := dns.Exchange(m, server)
 	if err != nil {

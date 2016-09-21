@@ -39,7 +39,7 @@ func TestZoneReload(t *testing.T) {
 		t.Fatalf("expected 5 RRs, got %d", len(z.All()))
 	}
 	if err := ioutil.WriteFile(fileName, []byte(reloadZone2Test), 0644); err != nil {
-		t.Fatalf("failed to write new zone data", err)
+		t.Fatalf("failed to write new zone data: %s", err)
 	}
 	// Could still be racy, but we need to wait a bit for the event to be seen
 	time.Sleep(1 * time.Second)

@@ -25,7 +25,7 @@ type dir http.Dir
 //
 // CoreDir will default to "$HOME/.coredns" on Unix, but it's location can be overriden with the COREDNSPATH
 // environment variable.
-var CoreDir dir = dir(fsPath())
+var CoreDir = dir(fsPath())
 
 func (d dir) Zone(z string) dir {
 	if z != "." && z[len(z)-2] == '.' {

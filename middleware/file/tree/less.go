@@ -39,7 +39,6 @@ func less(a, b string) int {
 		i++
 		aj, bj = ai, bi
 	}
-	return 0
 }
 
 func doDDD(b []byte) {

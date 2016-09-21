@@ -40,7 +40,7 @@ func (r *Request) IP() string {
 	return ip
 }
 
-// Post gets the (remote) Port of the client making the request.
+// Port gets the (remote) Port of the client making the request.
 func (r *Request) Port() string {
 	_, port, err := net.SplitHostPort(r.W.RemoteAddr().String())
 	if err != nil {
@@ -57,9 +57,9 @@ func (r *Request) RemoteAddr() string {
 // Proto gets the protocol used as the transport. This will be udp or tcp.
 func (r *Request) Proto() string { return Proto(r.W) }
 
-// FIXME(miek): why not a method on Request
 // Proto gets the protocol used as the transport. This will be udp or tcp.
 func Proto(w dns.ResponseWriter) string {
+	// FIXME(miek): why not a method on Request
 	if _, ok := w.RemoteAddr().(*net.UDPAddr); ok {
 		return "udp"
 	}

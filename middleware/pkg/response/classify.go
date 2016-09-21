@@ -2,14 +2,20 @@ package response
 
 import "github.com/miekg/dns"
 
+// Type is the type of the message
 type Type int
 
 const (
-	Success    Type = iota
-	NameError       // NXDOMAIN in header, SOA in auth.
-	NoData          // NOERROR in header, SOA in auth.
-	Delegation      // NOERROR in header, NS in auth, optionally fluff in additional (not checked).
-	OtherError      // Don't cache these.
+	// Success indicates a positive reply
+	Success Type = iota
+	// NameError is a NXDOMAIN in header, SOA in auth.
+	NameError
+	// NoData indicated name found, but not the type: NOERROR in header, SOA in auth.
+	NoData
+	// Delegation is a msg with a pointer to another nameserver: NOERROR in header, NS in auth, optionally fluff in additional (not checked).
+	Delegation
+	// OtherError indicated any other error: don't cache these.
+	OtherError
 )
 
 // Classify classifies a message, it returns the Type.

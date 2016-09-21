@@ -13,12 +13,13 @@ type Handler struct {
 }
 
 func (h *Handler) Startup() error {
-	if ln, err := net.Listen("tcp", addr); err != nil {
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
 		log.Printf("[ERROR] Failed to start pprof handler: %s", err)
 		return err
-	} else {
-		h.ln = ln
 	}
+
+	h.ln = ln
 
 	h.mux = http.NewServeMux()
 	h.mux.HandleFunc(path+"/", pp.Index)
