@@ -1,3 +1,9 @@
+## 0.7.1 (UNRELEASED)
+
+BUG FIXES:
+
+* agent: Fixed a go race issue with log buffering at startup. [GH-2262]
+
 ## 0.7.0 (September 14, 2016)
 
 BREAKING CHANGES:
