@@ -953,10 +953,16 @@ func TestDecodeConfig(t *testing.T) {
 }
 
 func TestDecodeConfig_invalidKeys(t *testing.T) {
-	input := `{"bad": "no way jose"}`
+	input := `{"bad": "no way jose", "fail_on_unknown_configuration_keys": true}`
 	_, err := DecodeConfig(bytes.NewReader([]byte(input)))
 	if err == nil || !strings.Contains(err.Error(), "invalid keys") {
 		t.Fatalf("should have rejected invalid config keys")
+	}
+
+	input = `{"bad": "no way jose", "fail_on_unknown_configuration_keys": false}`
+	_, err = DecodeConfig(bytes.NewReader([]byte(input)))
+	if err != nil {
+		t.Fatalf("shouldn't have rejected invalid config keys")
 	}
 }
 
