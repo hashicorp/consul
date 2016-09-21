@@ -179,7 +179,7 @@ the node list in ascending order based on the estimated round trip
 time from that node. Passing "?near=_agent" will use the agent's
 node for the sort.
 
-The supported states are `any`, `unknown`, `passing`, `warning`, or `critical`.
+The supported states are `any`, `passing`, `warning`, or `critical`.
 The `any` state is a wildcard that can be used to return all checks.
 
 It returns a JSON body like this:
