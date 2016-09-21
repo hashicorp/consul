@@ -10,7 +10,7 @@ cd ${BASEDIR}
 echo "Setting up kubectl..."
 
 if [ ! -e kubectl ]; then
-	curl -O http://storage.googleapis.com/kubernetes-release/release/v1.2.4/bin/linux/amd64/kubectl
+	curl -O http://storage.googleapis.com/kubernetes-release/release/v1.3.7/bin/linux/amd64/kubectl
 	chmod u+x kubectl
 fi
 

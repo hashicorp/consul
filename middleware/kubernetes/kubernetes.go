@@ -183,14 +183,14 @@ func (k *Kubernetes) Get(namespace string, nsWildcard bool, servicename string, 
 
 	var resultItems []api.Service
 
-	for _, item := range serviceList.Items {
+	for _, item := range serviceList {
 		if symbolMatches(namespace, item.Namespace, nsWildcard) && symbolMatches(servicename, item.Name, serviceWildcard) {
 			// If namespace has a wildcard, filter results against Corefile namespace list.
 			// (Namespaces without a wildcard were filtered before the call to this function.)
 			if nsWildcard && (len(k.Namespaces) > 0) && (!util.StringInSlice(item.Namespace, k.Namespaces)) {
 				continue
 			}
-			resultItems = append(resultItems, item)
+			resultItems = append(resultItems, *item)
 		}
 	}
 
@@ -216,12 +216,11 @@ func isKubernetesNameError(err error) bool {
 }
 
 func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
-	svcList, err := k.APIConn.svcLister.List()
+	svcList, err := k.APIConn.svcLister.List(labels.Everything())
 	if err != nil {
 		return nil
 	}
-
-	for _, service := range svcList.Items {
+	for _, service := range svcList {
 		if service.Spec.ClusterIP == ip {
 			return []msg.Service{msg.Service{Host: ip}}
 		}

@@ -5,7 +5,7 @@ set -e
 # Based on instructions at: http://kubernetes.io/docs/getting-started-guides/docker/
 
 #K8S_VERSION=$(curl -sS https://storage.googleapis.com/kubernetes-release/release/latest.txt)
-K8S_VERSION="v1.2.4"
+K8S_VERSION="v1.3.7"
 
 ARCH="amd64"
 
