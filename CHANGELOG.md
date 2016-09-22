@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * agent: Fixed a go race issue with log buffering at startup. [GH-2262]
+* agent: Fixed a panic during anti-entropy sync for services and checks. [GH-2125]
 
 ## 0.7.0 (September 14, 2016)
 
