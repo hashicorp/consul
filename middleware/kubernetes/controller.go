@@ -55,15 +55,12 @@ func newdnsController(kubeClient *client.Client, resyncPeriod time.Duration, lse
 		},
 		&api.Endpoints{}, resyncPeriod, cache.ResourceEventHandlerFuncs{})
 
-	dns.svcLister.Indexer, dns.svcController = cache.NewIndexerInformer(
+	dns.svcLister.Store, dns.svcController = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc:  serviceListFunc(dns.client, namespace, dns.selector),
 			WatchFunc: serviceWatchFunc(dns.client, namespace, dns.selector),
 		},
-		&api.Service{},
-		resyncPeriod,
-		cache.ResourceEventHandlerFuncs{},
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+		&api.Service{}, resyncPeriod, cache.ResourceEventHandlerFuncs{})
 
 	dns.nsLister.Store, dns.nsController = cache.NewInformer(
 		&cache.ListWatch{
@@ -166,34 +163,47 @@ func (dns *dnsController) GetNamespaceList() *api.NamespaceList {
 	return &nsList
 }
 
-func (dns *dnsController) GetServiceList() []*api.Service {
-	svcs, err := dns.svcLister.List(labels.Everything())
+func (dns *dnsController) GetServiceList() *api.ServiceList {
+	svcList, err := dns.svcLister.List()
 	if err != nil {
-		return []*api.Service{}
+		return &api.ServiceList{}
 	}
-	return svcs
+
+	return &svcList
 }
 
 // GetServicesByNamespace returns a map of
 // namespacename :: [ kubernetesService ]
 func (dns *dnsController) GetServicesByNamespace() map[string][]api.Service {
 	k8sServiceList := dns.GetServiceList()
-	items := make(map[string][]api.Service, len(k8sServiceList))
-	for _, i := range k8sServiceList {
-		namespace := i.Namespace
-		items[namespace] = append(items[namespace], *i)
+	if k8sServiceList == nil {
+		return nil
 	}
+
+	items := make(map[string][]api.Service, len(k8sServiceList.Items))
+	for _, i := range k8sServiceList.Items {
+		namespace := i.Namespace
+		items[namespace] = append(items[namespace], i)
+	}
+
 	return items
 }
 
 // GetServiceInNamespace returns the Service that matches
 // servicename in the namespace
 func (dns *dnsController) GetServiceInNamespace(namespace string, servicename string) *api.Service {
-	svcObj, err := dns.svcLister.Services(namespace).Get(servicename)
+	svcKey := fmt.Sprintf("%v/%v", namespace, servicename)
+	svcObj, svcExists, err := dns.svcLister.Store.GetByKey(svcKey)
+
 	if err != nil {
 		// TODO(...): should return err here
 		return nil
 	}
 
-	return svcObj
+	if !svcExists {
+		// TODO(...): should return err here
+		return nil
+	}
+
+	return svcObj.(*api.Service)
 }
