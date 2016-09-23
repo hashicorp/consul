@@ -7,12 +7,14 @@ import (
 	"github.com/miekg/dns"
 )
 
+// ReverseProxy is a basic reverse proxy
 type ReverseProxy struct {
 	Host    string
 	Client  Client
 	Options Options
 }
 
+// ServeDNS implements the middleware.Handler interface.
 func (p ReverseProxy) ServeDNS(w dns.ResponseWriter, r *dns.Msg, extra []dns.RR) error {
 	var (
 		reply *dns.Msg

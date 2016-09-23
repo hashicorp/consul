@@ -63,6 +63,7 @@ func (p Proxy) Lookup(state request.Request, name string, tpe uint16) (*dns.Msg,
 	return p.lookup(state, req)
 }
 
+// Forward will forward the request to upstream
 func (p Proxy) Forward(state request.Request) (*dns.Msg, error) {
 	return p.lookup(state, state.Req)
 }

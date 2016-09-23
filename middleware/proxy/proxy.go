@@ -21,6 +21,7 @@ type Proxy struct {
 	Upstreams []Upstream
 }
 
+// Client represents client information that the proxy uses.
 type Client struct {
 	UDP *dns.Client
 	TCP *dns.Client
@@ -104,6 +105,7 @@ func (p Proxy) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	return p.Next.ServeDNS(ctx, w, r)
 }
 
+// Clients returns the new client for proxy requests.
 func Clients() Client {
 	udp := newClient("udp", defaultTimeout)
 	tcp := newClient("tcp", defaultTimeout)
