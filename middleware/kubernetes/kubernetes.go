@@ -233,14 +233,6 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 	return nil
 }
 
-const (
-	priority   = 10  // default priority when nothing is set
-	ttl        = 300 // default ttl when nothing is set
-	minTTL     = 60
-	hostmaster = "hostmaster"
-	k8sTimeout = 5 * time.Second
-)
-
 // symbolContainsWildcard checks whether symbol contains a wildcard value
 func symbolContainsWildcard(symbol string) bool {
 	return (strings.Contains(symbol, "*") || (symbol == "any"))
