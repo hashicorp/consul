@@ -5,8 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/miekg/coredns/middleware/kubernetes/util"
-
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
@@ -19,6 +17,19 @@ var (
 	namespace = api.NamespaceAll
 )
 
+// storeToNamespaceLister makes a Store that lists Namespaces.
+type storeToNamespaceLister struct {
+	cache.Store
+}
+
+// List lists all Namespaces in the store.
+func (s *storeToNamespaceLister) List() (ns api.NamespaceList, err error) {
+	for _, m := range s.Store.List() {
+		ns.Items = append(ns.Items, *(m.(*api.Namespace)))
+	}
+	return ns, nil
+}
+
 type dnsController struct {
 	client *client.Client
 
@@ -30,7 +41,7 @@ type dnsController struct {
 
 	svcLister  cache.StoreToServiceLister
 	endpLister cache.StoreToEndpointsLister
-	nsLister   util.StoreToNamespaceLister
+	nsLister   storeToNamespaceLister
 
 	// stopLock is used to enforce only a single call to Stop is active.
 	// Needed because we allow stopping through an http endpoint and
@@ -55,12 +66,15 @@ func newdnsController(kubeClient *client.Client, resyncPeriod time.Duration, lse
 		},
 		&api.Endpoints{}, resyncPeriod, cache.ResourceEventHandlerFuncs{})
 
-	dns.svcLister.Store, dns.svcController = cache.NewInformer(
+	dns.svcLister.Indexer, dns.svcController = cache.NewIndexerInformer(
 		&cache.ListWatch{
 			ListFunc:  serviceListFunc(dns.client, namespace, dns.selector),
 			WatchFunc: serviceWatchFunc(dns.client, namespace, dns.selector),
 		},
-		&api.Service{}, resyncPeriod, cache.ResourceEventHandlerFuncs{})
+		&api.Service{},
+		resyncPeriod,
+		cache.ResourceEventHandlerFuncs{},
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 
 	dns.nsLister.Store, dns.nsController = cache.NewInformer(
 		&cache.ListWatch{
@@ -163,27 +177,23 @@ func (dns *dnsController) GetNamespaceList() *api.NamespaceList {
 	return &nsList
 }
 
-func (dns *dnsController) GetServiceList() *api.ServiceList {
-	svcList, err := dns.svcLister.List()
+func (dns *dnsController) GetServiceList() []*api.Service {
+	svcs, err := dns.svcLister.List(labels.Everything())
 	if err != nil {
-		return &api.ServiceList{}
+		return []*api.Service{}
 	}
 
-	return &svcList
+	return svcs
 }
 
 // GetServicesByNamespace returns a map of
 // namespacename :: [ kubernetesService ]
 func (dns *dnsController) GetServicesByNamespace() map[string][]api.Service {
 	k8sServiceList := dns.GetServiceList()
-	if k8sServiceList == nil {
-		return nil
-	}
-
-	items := make(map[string][]api.Service, len(k8sServiceList.Items))
-	for _, i := range k8sServiceList.Items {
+	items := make(map[string][]api.Service, len(k8sServiceList))
+	for _, i := range k8sServiceList {
 		namespace := i.Namespace
-		items[namespace] = append(items[namespace], i)
+		items[namespace] = append(items[namespace], *i)
 	}
 
 	return items
@@ -192,18 +202,10 @@ func (dns *dnsController) GetServicesByNamespace() map[string][]api.Service {
 // GetServiceInNamespace returns the Service that matches
 // servicename in the namespace
 func (dns *dnsController) GetServiceInNamespace(namespace string, servicename string) *api.Service {
-	svcKey := fmt.Sprintf("%v/%v", namespace, servicename)
-	svcObj, svcExists, err := dns.svcLister.Store.GetByKey(svcKey)
-
+	svcObj, err := dns.svcLister.Services(namespace).Get(servicename)
 	if err != nil {
 		// TODO(...): should return err here
 		return nil
 	}
-
-	if !svcExists {
-		// TODO(...): should return err here
-		return nil
-	}
-
-	return svcObj.(*api.Service)
+	return svcObj
 }

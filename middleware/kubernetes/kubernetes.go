@@ -4,13 +4,14 @@ package kubernetes
 import (
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
 	"github.com/miekg/coredns/middleware/kubernetes/nametemplate"
-	"github.com/miekg/coredns/middleware/kubernetes/util"
 	"github.com/miekg/coredns/middleware/pkg/dnsutil"
+	dns_strings "github.com/miekg/coredns/middleware/pkg/strings"
 	"github.com/miekg/coredns/middleware/proxy"
 
 	"github.com/miekg/dns"
@@ -126,21 +127,21 @@ func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 	if namespace == "" {
 		err := errors.New("Parsing query string did not produce a namespace value. Assuming wildcard namespace.")
 		log.Printf("[WARN] %v\n", err)
-		namespace = util.WildcardStar
+		namespace = "*"
 	}
 
 	if serviceName == "" {
 		err := errors.New("Parsing query string did not produce a serviceName value. Assuming wildcard serviceName.")
 		log.Printf("[WARN] %v\n", err)
-		serviceName = util.WildcardStar
+		serviceName = "*"
 	}
 
-	nsWildcard := util.SymbolContainsWildcard(namespace)
-	serviceWildcard := util.SymbolContainsWildcard(serviceName)
+	nsWildcard := symbolContainsWildcard(namespace)
+	serviceWildcard := symbolContainsWildcard(serviceName)
 
 	// Abort if the namespace does not contain a wildcard, and namespace is not published per CoreFile
 	// Case where namespace contains a wildcard is handled in Get(...) method.
-	if (!nsWildcard) && (len(k.Namespaces) > 0) && (!util.StringInSlice(namespace, k.Namespaces)) {
+	if (!nsWildcard) && (len(k.Namespaces) > 0) && (!dns_strings.StringInSlice(namespace, k.Namespaces)) {
 		return nil, nil
 	}
 
@@ -158,7 +159,7 @@ func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 }
 
 // TODO: assemble name from parts found in k8s data based on name template rather than reusing query string
-func (k *Kubernetes) getRecordsForServiceItems(serviceItems []api.Service, values nametemplate.NameValues) []msg.Service {
+func (k *Kubernetes) getRecordsForServiceItems(serviceItems []*api.Service, values nametemplate.NameValues) []msg.Service {
 	var records []msg.Service
 
 	for _, item := range serviceItems {
@@ -181,16 +182,16 @@ func (k *Kubernetes) getRecordsForServiceItems(serviceItems []api.Service, value
 }
 
 // Get performs the call to the Kubernetes http API.
-func (k *Kubernetes) Get(namespace string, nsWildcard bool, servicename string, serviceWildcard bool) ([]api.Service, error) {
+func (k *Kubernetes) Get(namespace string, nsWildcard bool, servicename string, serviceWildcard bool) ([]*api.Service, error) {
 	serviceList := k.APIConn.GetServiceList()
 
-	var resultItems []api.Service
+	var resultItems []*api.Service
 
-	for _, item := range serviceList.Items {
+	for _, item := range serviceList {
 		if symbolMatches(namespace, item.Namespace, nsWildcard) && symbolMatches(servicename, item.Name, serviceWildcard) {
 			// If namespace has a wildcard, filter results against Corefile namespace list.
 			// (Namespaces without a wildcard were filtered before the call to this function.)
-			if nsWildcard && (len(k.Namespaces) > 0) && (!util.StringInSlice(item.Namespace, k.Namespaces)) {
+			if nsWildcard && (len(k.Namespaces) > 0) && (!dns_strings.StringInSlice(item.Namespace, k.Namespaces)) {
 				continue
 			}
 			resultItems = append(resultItems, item)
@@ -205,9 +206,9 @@ func symbolMatches(queryString string, candidateString string, wildcard bool) bo
 	switch {
 	case !wildcard:
 		result = (queryString == candidateString)
-	case queryString == util.WildcardStar:
+	case queryString == "*":
 		result = true
-	case queryString == util.WildcardAny:
+	case queryString == "any":
 		result = true
 	}
 	return result
@@ -219,11 +220,11 @@ func isKubernetesNameError(err error) bool {
 }
 
 func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
-	svcList, err := k.APIConn.svcLister.List()
+	svcList, err := k.APIConn.svcLister.List(labels.Everything())
 	if err != nil {
 		return nil
 	}
-	for _, service := range svcList.Items {
+	for _, service := range svcList {
 		if service.Spec.ClusterIP == ip {
 			return []msg.Service{msg.Service{Host: ip}}
 		}
@@ -232,10 +233,7 @@ func (k *Kubernetes) getServiceRecordForIP(ip, name string) []msg.Service {
 	return nil
 }
 
-const (
-	priority   = 10  // default priority when nothing is set
-	ttl        = 300 // default ttl when nothing is set
-	minTTL     = 60
-	hostmaster = "hostmaster"
-	k8sTimeout = 5 * time.Second
-)
+// symbolContainsWildcard checks whether symbol contains a wildcard value
+func symbolContainsWildcard(symbol string) bool {
+	return (strings.Contains(symbol, "*") || (symbol == "any"))
+}
