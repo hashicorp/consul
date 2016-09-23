@@ -7,12 +7,12 @@ import (
 	pp "net/http/pprof"
 )
 
-type Handler struct {
+type handler struct {
 	ln  net.Listener
 	mux *http.ServeMux
 }
 
-func (h *Handler) Startup() error {
+func (h *handler) Startup() error {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Printf("[ERROR] Failed to start pprof handler: %s", err)
@@ -34,7 +34,7 @@ func (h *Handler) Startup() error {
 	return nil
 }
 
-func (h *Handler) Shutdown() error {
+func (h *handler) Shutdown() error {
 	if h.ln != nil {
 		return h.ln.Close()
 	}

@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/context"
 )
 
+// ServeDNS implements the middleware.Handler interface.
 func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 	if state.QClass() != dns.ClassINET {
@@ -29,7 +30,7 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 			srvPTR := &records[0]
 			m.Answer = append(m.Answer, srvPTR.NewPTR(state.QName(), ip))
 
-			m = dedup(m)
+			m = dnsutil.Dedup(m)
 			state.SizeAndDo(m)
 			m, _ = state.Scrub(m)
 			w.WriteMsg(m)
@@ -93,14 +94,14 @@ func (k Kubernetes) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.M
 	m.Answer = append(m.Answer, records...)
 	m.Extra = append(m.Extra, extra...)
 
-	m = dedup(m)
+	m = dnsutil.Dedup(m)
 	state.SizeAndDo(m)
 	m, _ = state.Scrub(m)
 	w.WriteMsg(m)
 	return dns.RcodeSuccess, nil
 }
 
-// NoData write a nodata response to the client.
+// Err writes an error response back to the client.
 func (k Kubernetes) Err(zone string, rcode int, state request.Request) (int, error) {
 	m := new(dns.Msg)
 	m.SetRcode(state.Req, rcode)
@@ -108,12 +109,4 @@ func (k Kubernetes) Err(zone string, rcode int, state request.Request) (int, err
 	state.SizeAndDo(m)
 	state.W.WriteMsg(m)
 	return rcode, nil
-}
-
-func dedup(m *dns.Msg) *dns.Msg {
-	// TODO(miek): expensive!
-	m.Answer = dns.Dedup(m.Answer, nil)
-	m.Ns = dns.Dedup(m.Ns, nil)
-	m.Extra = dns.Dedup(m.Extra, nil)
-	return m
 }

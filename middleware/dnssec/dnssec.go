@@ -12,6 +12,7 @@ import (
 	gcache "github.com/patrickmn/go-cache"
 )
 
+// Dnssec signs the reply on-the-fly.
 type Dnssec struct {
 	Next middleware.Handler
 
@@ -21,6 +22,7 @@ type Dnssec struct {
 	cache    *gcache.Cache
 }
 
+// New returns a new Dnssec.
 func New(zones []string, keys []*DNSKEY, next middleware.Handler) Dnssec {
 	return Dnssec{Next: next,
 		zones:    zones,
@@ -95,7 +97,7 @@ func (d Dnssec) sign(rrs []dns.RR, signerName string, ttl, incep, expir uint32) 
 		sigs := make([]dns.RR, len(d.keys))
 		var e error
 		for i, k := range d.keys {
-			sig := k.NewRRSIG(signerName, ttl, incep, expir)
+			sig := k.newRRSIG(signerName, ttl, incep, expir)
 			e = sig.Sign(k.s, rrs)
 			sigs[i] = sig
 		}

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/miekg/coredns/middleware"
-	"github.com/miekg/coredns/middleware/kubernetes/msg"
+	"github.com/miekg/coredns/middleware/etcd/msg"
 	"github.com/miekg/coredns/middleware/pkg/dnsutil"
 	"github.com/miekg/coredns/request"
 
@@ -24,6 +24,7 @@ func (k Kubernetes) records(state request.Request, exact bool) ([]msg.Service, e
 	return services, nil
 }
 
+// A returns A records from kubernetes or an error.
 func (k Kubernetes) A(zone string, state request.Request, previousRecords []dns.RR) (records []dns.RR, err error) {
 	services, err := k.records(state, false)
 	if err != nil {
@@ -83,6 +84,7 @@ func (k Kubernetes) A(zone string, state request.Request, previousRecords []dns.
 	return records, nil
 }
 
+// AAAA returns AAAA records from kubernetes or an error.
 func (k Kubernetes) AAAA(zone string, state request.Request, previousRecords []dns.RR) (records []dns.RR, err error) {
 	services, err := k.records(state, false)
 	if err != nil {
@@ -144,7 +146,8 @@ func (k Kubernetes) AAAA(zone string, state request.Request, previousRecords []d
 }
 
 // SRV returns SRV records from kubernetes.
-// If the Target is not a name but an IP address, a name is created on the fly.
+// If the Target is not a name but an IP address, a name is created on the fly and the IP address is put in
+// the additional section.
 func (k Kubernetes) SRV(zone string, state request.Request) (records []dns.RR, extra []dns.RR, err error) {
 	services, err := k.records(state, false)
 	if err != nil {
@@ -226,21 +229,22 @@ func (k Kubernetes) SRV(zone string, state request.Request) (records []dns.RR, e
 	return records, extra, nil
 }
 
-// Returning MX records from kubernetes not implemented.
+// MX returns MX records from kubernetes. Not implemented!
 func (k Kubernetes) MX(zone string, state request.Request) (records []dns.RR, extra []dns.RR, err error) {
 	return nil, nil, err
 }
 
-// Returning CNAME records from kubernetes not implemented.
+// CNAME returns CNAME records from kubernetes. Not implemented!
 func (k Kubernetes) CNAME(zone string, state request.Request) (records []dns.RR, err error) {
 	return nil, err
 }
 
-// Returning TXT records from kubernetes not implemented.
+// TXT returns TXT records from kubernetes. Not implemented!
 func (k Kubernetes) TXT(zone string, state request.Request) (records []dns.RR, err error) {
 	return nil, err
 }
 
+// NS returns NS records from kubernetes.
 func (k Kubernetes) NS(zone string, state request.Request) (records, extra []dns.RR, err error) {
 	// NS record for this zone live in a special place, ns.dns.<zone>. Fake our lookup.
 	// only a tad bit fishy...
@@ -273,7 +277,7 @@ func (k Kubernetes) NS(zone string, state request.Request) (records, extra []dns
 	return records, extra, nil
 }
 
-// SOA Record returns a SOA record.
+// SOA Record returns a SOA record from kubernetes.
 func (k Kubernetes) SOA(zone string, state request.Request) *dns.SOA {
 	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: 300, Class: dns.ClassINET}
 	return &dns.SOA{Hdr: header,
@@ -287,6 +291,7 @@ func (k Kubernetes) SOA(zone string, state request.Request) *dns.SOA {
 	}
 }
 
+// PTR Record returns PTR records from kubernetes.
 func (k Kubernetes) PTR(zone string, state request.Request) ([]dns.RR, error) {
 	reverseIP := dnsutil.ExtractAddressFromReverse(state.Name())
 	if reverseIP == "" {

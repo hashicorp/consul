@@ -2,7 +2,7 @@ package rewrite
 
 import "github.com/miekg/dns"
 
-// ResponseRevert reverses the operations done on the question section of a packet.
+// ResponseReverter reverses the operations done on the question section of a packet.
 // This is need because the client will otherwise disregards the response, i.e.
 // dig will complain with ';; Question section mismatch: got miek.nl/HINFO/IN'
 type ResponseReverter struct {
@@ -10,6 +10,7 @@ type ResponseReverter struct {
 	original dns.Question
 }
 
+// NewResponseReverter returns a pointer to a new ResponseReverter.
 func NewResponseReverter(w dns.ResponseWriter, r *dns.Msg) *ResponseReverter {
 	return &ResponseReverter{
 		ResponseWriter: w,

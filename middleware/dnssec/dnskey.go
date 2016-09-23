@@ -13,6 +13,7 @@ import (
 	"github.com/miekg/dns"
 )
 
+// DNSKEY holds a DNSSEC public and private key used for on-the-fly signing.
 type DNSKEY struct {
 	K      *dns.DNSKEY
 	s      crypto.Signer

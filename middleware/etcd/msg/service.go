@@ -8,9 +8,9 @@ import (
 	"github.com/miekg/dns"
 )
 
-// This *is* the rdata from a SRV record, but with a twist.
-// Host (Target in SRV) must be a domain name, but if it looks like an IP
-// address (4/6), we will treat it like an IP address.
+// Service defines a discoverable service in etcd. It is the rdata from a SRV
+// record, but with a twist.  Host (Target in SRV) must be a domain name, but
+// if it looks like an IP address (4/6), we will treat it like an IP address.
 type Service struct {
 	Host     string `json:"host,omitempty"`
 	Port     int    `json:"port,omitempty"`
@@ -18,7 +18,7 @@ type Service struct {
 	Weight   int    `json:"weight,omitempty"`
 	Text     string `json:"text,omitempty"`
 	Mail     bool   `json:"mail,omitempty"` // Be an MX record. Priority becomes Preference.
-	Ttl      uint32 `json:"ttl,omitempty"`
+	TTL      uint32 `json:"ttl,omitempty"`
 
 	// When a SRV record with a "Host: IP-address" is added, we synthesize
 	// a srv.Target domain name.  Normally we convert the full Key where
@@ -54,7 +54,7 @@ func (s *Service) RR() *dns.TXT {
 	}
 	t := new(dns.TXT)
 	t.Hdr.Class = dns.ClassCHAOS
-	t.Hdr.Ttl = s.Ttl
+	t.Hdr.Ttl = s.TTL
 	t.Hdr.Rrtype = dns.TypeTXT
 	t.Hdr.Name = Domain(s.Key)
 
@@ -70,7 +70,7 @@ func (s *Service) RR() *dns.TXT {
 func (s *Service) NewSRV(name string, weight uint16) *dns.SRV {
 	host := targetStrip(dns.Fqdn(s.Host), s.TargetStrip)
 
-	return &dns.SRV{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeSRV, Class: dns.ClassINET, Ttl: s.Ttl},
+	return &dns.SRV{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeSRV, Class: dns.ClassINET, Ttl: s.TTL},
 		Priority: uint16(s.Priority), Weight: weight, Port: uint16(s.Port), Target: dns.Fqdn(host)}
 }
 
@@ -78,39 +78,39 @@ func (s *Service) NewSRV(name string, weight uint16) *dns.SRV {
 func (s *Service) NewMX(name string) *dns.MX {
 	host := targetStrip(dns.Fqdn(s.Host), s.TargetStrip)
 
-	return &dns.MX{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeMX, Class: dns.ClassINET, Ttl: s.Ttl},
+	return &dns.MX{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeMX, Class: dns.ClassINET, Ttl: s.TTL},
 		Preference: uint16(s.Priority), Mx: host}
 }
 
 // NewA returns a new A record based on the Service.
 func (s *Service) NewA(name string, ip net.IP) *dns.A {
-	return &dns.A{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: s.Ttl}, A: ip}
+	return &dns.A{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: s.TTL}, A: ip}
 }
 
 // NewAAAA returns a new AAAA record based on the Service.
 func (s *Service) NewAAAA(name string, ip net.IP) *dns.AAAA {
-	return &dns.AAAA{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: s.Ttl}, AAAA: ip}
+	return &dns.AAAA{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: s.TTL}, AAAA: ip}
 }
 
 // NewCNAME returns a new CNAME record based on the Service.
 func (s *Service) NewCNAME(name string, target string) *dns.CNAME {
-	return &dns.CNAME{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: s.Ttl}, Target: dns.Fqdn(target)}
+	return &dns.CNAME{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeCNAME, Class: dns.ClassINET, Ttl: s.TTL}, Target: dns.Fqdn(target)}
 }
 
 // NewTXT returns a new TXT record based on the Service.
 func (s *Service) NewTXT(name string) *dns.TXT {
-	return &dns.TXT{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: s.Ttl}, Txt: split255(s.Text)}
+	return &dns.TXT{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: s.TTL}, Txt: split255(s.Text)}
 }
 
 // NewPTR returns a new PTR record based on the Service.
 func (s *Service) NewPTR(name string, target string) *dns.PTR {
-	return &dns.PTR{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: s.Ttl}, Ptr: dns.Fqdn(target)}
+	return &dns.PTR{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: s.TTL}, Ptr: dns.Fqdn(target)}
 }
 
 // NewNS returns a new NS record based on the Service.
 func (s *Service) NewNS(name string) *dns.NS {
 	host := targetStrip(dns.Fqdn(s.Host), s.TargetStrip)
-	return &dns.NS{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: s.Ttl}, Ns: host}
+	return &dns.NS{Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeNS, Class: dns.ClassINET, Ttl: s.TTL}, Ns: host}
 }
 
 // Group checks the services in sx, it looks for a Group attribute on the shortest

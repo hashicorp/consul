@@ -7,21 +7,26 @@ import (
 	"golang.org/x/net/context"
 )
 
-type Sect int
+type sect int
 
 const (
-	Answer Sect = iota
+	// Answer is the answer section in an Msg.
+	Answer sect = iota
+	// Ns is the authrotitative section in an Msg.
 	Ns
+	// Extra is the additional section in an Msg.
 	Extra
 )
 
+// RRSet represents a list of RRs.
 type RRSet []dns.RR
 
 func (p RRSet) Len() int           { return len(p) }
 func (p RRSet) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p RRSet) Less(i, j int) bool { return p[i].String() < p[j].String() }
 
-// If the TTL of a record is 303 we don't care what the TTL is.
+// Case represents a test case that encapsulates various data from a query and response.
+// Note that is the TTL of a record is 303 we don't compare it with the TTL.
 type Case struct {
 	Qname  string
 	Qtype  uint16
@@ -32,6 +37,7 @@ type Case struct {
 	Extra  []dns.RR
 }
 
+// Msg returns a *dns.Msg embedded in c.
 func (c Case) Msg() *dns.Msg {
 	m := new(dns.Msg)
 	m.SetQuestion(dns.Fqdn(c.Qname), c.Qtype)
@@ -46,19 +52,43 @@ func (c Case) Msg() *dns.Msg {
 	return m
 }
 
-func A(rr string) *dns.A           { r, _ := dns.NewRR(rr); return r.(*dns.A) }
-func AAAA(rr string) *dns.AAAA     { r, _ := dns.NewRR(rr); return r.(*dns.AAAA) }
-func CNAME(rr string) *dns.CNAME   { r, _ := dns.NewRR(rr); return r.(*dns.CNAME) }
-func SRV(rr string) *dns.SRV       { r, _ := dns.NewRR(rr); return r.(*dns.SRV) }
-func SOA(rr string) *dns.SOA       { r, _ := dns.NewRR(rr); return r.(*dns.SOA) }
-func NS(rr string) *dns.NS         { r, _ := dns.NewRR(rr); return r.(*dns.NS) }
-func PTR(rr string) *dns.PTR       { r, _ := dns.NewRR(rr); return r.(*dns.PTR) }
-func TXT(rr string) *dns.TXT       { r, _ := dns.NewRR(rr); return r.(*dns.TXT) }
-func MX(rr string) *dns.MX         { r, _ := dns.NewRR(rr); return r.(*dns.MX) }
-func RRSIG(rr string) *dns.RRSIG   { r, _ := dns.NewRR(rr); return r.(*dns.RRSIG) }
-func NSEC(rr string) *dns.NSEC     { r, _ := dns.NewRR(rr); return r.(*dns.NSEC) }
+// A returns an A record from rr. It panics on errors.
+func A(rr string) *dns.A { r, _ := dns.NewRR(rr); return r.(*dns.A) }
+
+// AAAA returns an AAAA record from rr. It panics on errors.
+func AAAA(rr string) *dns.AAAA { r, _ := dns.NewRR(rr); return r.(*dns.AAAA) }
+
+// CNAME returns a CNAME record from rr. It panics on errors.
+func CNAME(rr string) *dns.CNAME { r, _ := dns.NewRR(rr); return r.(*dns.CNAME) }
+
+// SRV returns a SRV record from rr. It panics on errors.
+func SRV(rr string) *dns.SRV { r, _ := dns.NewRR(rr); return r.(*dns.SRV) }
+
+// SOA returns a SOA record from rr. It panics on errors.
+func SOA(rr string) *dns.SOA { r, _ := dns.NewRR(rr); return r.(*dns.SOA) }
+
+// NS returns an NS record from rr. It panics on errors.
+func NS(rr string) *dns.NS { r, _ := dns.NewRR(rr); return r.(*dns.NS) }
+
+// PTR returns a PTR record from rr. It panics on errors.
+func PTR(rr string) *dns.PTR { r, _ := dns.NewRR(rr); return r.(*dns.PTR) }
+
+// TXT returns a TXT record from rr. It panics on errors.
+func TXT(rr string) *dns.TXT { r, _ := dns.NewRR(rr); return r.(*dns.TXT) }
+
+// MX returns an MX record from rr. It panics on errors.
+func MX(rr string) *dns.MX { r, _ := dns.NewRR(rr); return r.(*dns.MX) }
+
+// RRSIG returns an RRSIG record from rr. It panics on errors.
+func RRSIG(rr string) *dns.RRSIG { r, _ := dns.NewRR(rr); return r.(*dns.RRSIG) }
+
+// NSEC returns an NSEC record from rr. It panics on errors.
+func NSEC(rr string) *dns.NSEC { r, _ := dns.NewRR(rr); return r.(*dns.NSEC) }
+
+// DNSKEY returns a DNSKEY record from rr. It panics on errors.
 func DNSKEY(rr string) *dns.DNSKEY { r, _ := dns.NewRR(rr); return r.(*dns.DNSKEY) }
 
+// OPT returns an OPT record with UDP buffer size set to bufsize and the DO bit set to do.
 func OPT(bufsize int, do bool) *dns.OPT {
 	o := new(dns.OPT)
 	o.Hdr.Name = "."
@@ -71,6 +101,7 @@ func OPT(bufsize int, do bool) *dns.OPT {
 	return o
 }
 
+// Header test if the header in resp matches the header as defined in tc.
 func Header(t *testing.T, tc Case, resp *dns.Msg) bool {
 	if resp.Rcode != tc.Rcode {
 		t.Errorf("rcode is %q, expected %q", dns.RcodeToString[resp.Rcode], dns.RcodeToString[tc.Rcode])
@@ -92,9 +123,10 @@ func Header(t *testing.T, tc Case, resp *dns.Msg) bool {
 	return true
 }
 
-func Section(t *testing.T, tc Case, sect Sect, rr []dns.RR) bool {
+// Section tests if the the section in tc matches rr.
+func Section(t *testing.T, tc Case, sec sect, rr []dns.RR) bool {
 	section := []dns.RR{}
-	switch sect {
+	switch sec {
 	case 0:
 		section = tc.Answer
 	case 1:
@@ -224,7 +256,7 @@ func Section(t *testing.T, tc Case, sect Sect, rr []dns.RR) bool {
 	return true
 }
 
-// ErrorHanlder returns a Handler that returns ServerFailure error when called.
+// ErrorHandler returns a Handler that returns ServerFailure error when called.
 func ErrorHandler() Handler {
 	return HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 		m := new(dns.Msg)
@@ -242,11 +274,13 @@ func NextHandler(rcode int, err error) Handler {
 }
 
 // Copied here to prevent an import cycle, so that we can define to above handlers.
+
 type (
 	// HandlerFunc is a convenience type like dns.HandlerFunc, except
 	// ServeDNS returns an rcode and an error.
 	HandlerFunc func(context.Context, dns.ResponseWriter, *dns.Msg) (int, error)
 
+	// Handler interface defines a middleware.
 	Handler interface {
 		ServeDNS(context.Context, dns.ResponseWriter, *dns.Msg) (int, error)
 	}

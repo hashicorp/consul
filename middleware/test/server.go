@@ -9,6 +9,7 @@ import (
 	"github.com/miekg/dns"
 )
 
+// TCPServer starts a DNS server with a TCP listener on laddr.
 func TCPServer(t *testing.T, laddr string) (*dns.Server, string, error) {
 	l, err := net.Listen("tcp", laddr)
 	if err != nil {
@@ -30,6 +31,7 @@ func TCPServer(t *testing.T, laddr string) (*dns.Server, string, error) {
 	return server, l.Addr().String(), nil
 }
 
+// UDPServer starts a DNS server with an UDP listener on laddr.
 func UDPServer(t *testing.T, laddr string) (*dns.Server, string, error) {
 	pc, err := net.ListenPacket("udp", laddr)
 	if err != nil {

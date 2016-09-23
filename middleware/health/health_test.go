@@ -10,14 +10,14 @@ import (
 func TestHealth(t *testing.T) {
 	// We use a random port instead of a fixed port like 8080 that may have been
 	// occupied by some other process.
-	health := Health{Addr: ":0"}
-	if err := health.Startup(); err != nil {
+	h := health{Addr: ":0"}
+	if err := h.Startup(); err != nil {
 		t.Fatalf("Unable to startup the health server: %v", err)
 	}
-	defer health.Shutdown()
+	defer h.Shutdown()
 
 	// Reconstruct the http address based on the port allocated by operating system.
-	address := fmt.Sprintf("http://%s%s", health.ln.Addr().String(), path)
+	address := fmt.Sprintf("http://%s%s", h.ln.Addr().String(), path)
 
 	response, err := http.Get(address)
 	if err != nil {

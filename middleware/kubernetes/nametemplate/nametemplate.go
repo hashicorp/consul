@@ -60,6 +60,7 @@ var requiredSymbols = []string{
 //		 Where the query string is longer than the template, need to define which
 //		 symbol consumes the other segments. Most likely this would be the servicename.
 //		 Also consider how to handle static strings in the format template.
+
 type NameTemplate struct {
 	formatString string
 	splitFormat  []string
@@ -105,11 +106,11 @@ func (t *NameTemplate) SetTemplate(s string) error {
 //       step down the stack to find the right element.
 
 func (t *NameTemplate) GetZoneFromSegmentArray(segments []string) string {
-	if index, ok := t.Element["zone"]; !ok {
+	index, ok := t.Element["zone"]
+	if !ok {
 		return ""
-	} else {
-		return strings.Join(segments[index:len(segments)], ".")
 	}
+	return strings.Join(segments[index:len(segments)], ".")
 }
 
 func (t *NameTemplate) GetNamespaceFromSegmentArray(segments []string) string {
@@ -132,11 +133,11 @@ func (t *NameTemplate) GetTypeFromSegmentArray(segments []string) string {
 }
 
 func (t *NameTemplate) GetSymbolFromSegmentArray(symbol string, segments []string) string {
-	if index, ok := t.Element[symbol]; !ok {
+	index, ok := t.Element[symbol]
+	if !ok {
 		return ""
-	} else {
-		return segments[index]
 	}
+	return segments[index]
 }
 
 // GetRecordNameFromNameValues returns the string produced by applying the
@@ -164,6 +165,7 @@ func (t *NameTemplate) GetRecordNameFromNameValues(values NameValues) string {
 }
 
 func (t *NameTemplate) IsValid() bool {
+	// This is *only* used in a test, for the test this should be a private method.
 	result := true
 
 	// Ensure that all requiredSymbols are found in NameTemplate

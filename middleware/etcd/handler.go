@@ -5,12 +5,14 @@ import (
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
+	"github.com/miekg/coredns/middleware/pkg/dnsutil"
 	"github.com/miekg/coredns/request"
 
 	"github.com/miekg/dns"
 	"golang.org/x/net/context"
 )
 
+// ServeDNS implements the middleware.Handler interface.
 func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	opt := Options{}
 	state := request.Request{W: w, Req: r}
@@ -108,7 +110,7 @@ func (e *Etcd) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 		m.Extra = append(m.Extra, servicesToTxt(debug)...)
 	}
 
-	m = dedup(m)
+	m = dnsutil.Dedup(m)
 	state.SizeAndDo(m)
 	m, _ = state.Scrub(m)
 	w.WriteMsg(m)
@@ -132,12 +134,4 @@ func (e *Etcd) Err(zone string, rcode int, state request.Request, debug []msg.Se
 	state.W.WriteMsg(m)
 	// Return success as the rcode to signal we have written to the client.
 	return dns.RcodeSuccess, nil
-}
-
-func dedup(m *dns.Msg) *dns.Msg {
-	// TODO(miek): expensive!
-	m.Answer = dns.Dedup(m.Answer, nil)
-	m.Ns = dns.Dedup(m.Ns, nil)
-	m.Extra = dns.Dedup(m.Extra, nil)
-	return m
 }

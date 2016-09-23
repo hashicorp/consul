@@ -14,8 +14,9 @@ import (
 	"github.com/miekg/dns"
 )
 
+// Options are extra options that can be specified for a lookup.
 type Options struct {
-	Debug string
+	Debug string // This is a debug query. A query prefixed with debug.o-o
 }
 
 func (e Etcd) records(state request.Request, exact bool, opt Options) (services, debug []msg.Service, err error) {
@@ -30,6 +31,7 @@ func (e Etcd) records(state request.Request, exact bool, opt Options) (services,
 	return
 }
 
+// A returns A records from etcd or an error.
 func (e Etcd) A(zone string, state request.Request, previousRecords []dns.RR, opt Options) (records []dns.RR, debug []msg.Service, err error) {
 	services, debug, err := e.records(state, false, opt)
 	if err != nil {
@@ -92,6 +94,7 @@ func (e Etcd) A(zone string, state request.Request, previousRecords []dns.RR, op
 	return records, debug, nil
 }
 
+// AAAA returns AAAA records from etcd or an error.
 func (e Etcd) AAAA(zone string, state request.Request, previousRecords []dns.RR, opt Options) (records []dns.RR, debug []msg.Service, err error) {
 	services, debug, err := e.records(state, false, opt)
 	if err != nil {
@@ -313,6 +316,7 @@ func (e Etcd) MX(zone string, state request.Request, opt Options) (records, extr
 	return records, extra, debug, nil
 }
 
+// CNAME returns CNAME records from etcd or an error.
 func (e Etcd) CNAME(zone string, state request.Request, opt Options) (records []dns.RR, debug []msg.Service, err error) {
 	services, debug, err := e.records(state, true, opt)
 	if err != nil {
@@ -343,6 +347,7 @@ func (e Etcd) PTR(zone string, state request.Request, opt Options) (records []dn
 	return records, debug, nil
 }
 
+// TXT returns TXT records from etcd or an error.
 func (e Etcd) TXT(zone string, state request.Request, opt Options) (records []dns.RR, debug []msg.Service, err error) {
 	services, debug, err := e.records(state, false, opt)
 	if err != nil {
@@ -358,6 +363,7 @@ func (e Etcd) TXT(zone string, state request.Request, opt Options) (records []dn
 	return records, debug, nil
 }
 
+// NS returns NS records from etcd or an error.
 func (e Etcd) NS(zone string, state request.Request, opt Options) (records, extra []dns.RR, debug []msg.Service, err error) {
 	// NS record for this zone live in a special place, ns.dns.<zone>. Fake our lookup.
 	// only a tad bit fishy...
@@ -390,7 +396,7 @@ func (e Etcd) NS(zone string, state request.Request, opt Options) (records, extr
 	return records, extra, debug, nil
 }
 
-// SOA Record returns a SOA record.
+// SOA returns a SOA record from etcd.
 func (e Etcd) SOA(zone string, state request.Request, opt Options) ([]dns.RR, []msg.Service, error) {
 	header := dns.RR_Header{Name: zone, Rrtype: dns.TypeSOA, Ttl: 300, Class: dns.ClassINET}
 

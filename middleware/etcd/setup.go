@@ -171,7 +171,7 @@ func newEtcdClient(endpoints []string, tlsCert, tlsKey, tlsCACert string) (etcdc
 }
 
 func newHTTPSTransport(tlsCertFile, tlsKeyFile, tlsCACertFile string) etcdc.CancelableTransport {
-	var cc *tls.Config = nil
+	var cc *tls.Config
 
 	if tlsCertFile != "" && tlsKeyFile != "" {
 		var rpool *x509.CertPool

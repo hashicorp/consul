@@ -10,13 +10,12 @@ import (
 	"golang.org/x/net/context"
 )
 
-type (
-	Xfr struct {
-		*Zone
-	}
-)
+// Xfr serves up an AXFR.
+type Xfr struct {
+	*Zone
+}
 
-// Serve an AXFR (and fallback of IXFR) as well.
+// ServeDNS implements the middleware.Handler interface.
 func (x Xfr) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 	if !x.TransferAllowed(state) {

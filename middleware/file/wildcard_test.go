@@ -46,7 +46,7 @@ var wildcardTestCases = []test.Case{
 }
 
 func TestLookupWildcard(t *testing.T) {
-	zone, err := Parse(strings.NewReader(dbDnssexNL_signed), testzone1, "stdin")
+	zone, err := Parse(strings.NewReader(dbDnssexNLSigned), testzone1, "stdin")
 	if err != nil {
 		t.Fatalf("expect no error when reading zone, got %q", err)
 	}
@@ -85,7 +85,7 @@ func TestLookupWildcard(t *testing.T) {
 	}
 }
 
-const dbDnssexNL_signed = `
+const dbDnssexNLSigned = `
 ; File written on Tue Mar 29 21:02:24 2016
 ; dnssec_signzone version 9.10.3-P4-Ubuntu
 dnssex.nl.		1800	IN SOA	linode.atoom.net. miek.miek.nl. (

@@ -15,6 +15,6 @@ type RoundRobin struct {
 
 // ServeDNS implements the middleware.Handler interface.
 func (rr RoundRobin) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	wrr := NewRoundRobinResponseWriter(w)
+	wrr := &RoundRobinResponseWriter{w}
 	return rr.Next.ServeDNS(ctx, wrr, r)
 }

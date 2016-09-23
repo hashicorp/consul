@@ -19,9 +19,9 @@ func setup(c *caddy.Controller) error {
 		return middleware.Error("health", err)
 	}
 
-	health := &Health{Addr: addr}
-	c.OnStartup(health.Startup)
-	c.OnShutdown(health.Shutdown)
+	h := &health{Addr: addr}
+	c.OnStartup(h.Startup)
+	c.OnShutdown(h.Shutdown)
 
 	// Don't do AddMiddleware, as health is not *really* a middleware just a separate
 	// webserver running.

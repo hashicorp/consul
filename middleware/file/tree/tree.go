@@ -19,13 +19,14 @@ package tree
 import "github.com/miekg/dns"
 
 const (
-	TD234 = iota
-	BU23
+	td234 = iota
+	bu23
 )
 
 // Result is a result of a Search.
 type Result int
 
+// Various constants that indicated the type a resource returned.
 const (
 	Found Result = iota
 	NameError
@@ -34,10 +35,10 @@ const (
 )
 
 // Operation mode of the LLRB tree.
-const Mode = BU23
+const mode = bu23
 
 func init() {
-	if Mode != TD234 && Mode != BU23 {
+	if mode != td234 && mode != bu23 {
 		panic("tree: unknown mode")
 	}
 }
@@ -48,8 +49,8 @@ type Color bool
 const (
 	// Red as false give us the defined behaviour that new nodes are red. Although this
 	// is incorrect for the root node, that is resolved on the first insertion.
-	Red   Color = false
-	Black Color = true
+	red   Color = false
+	black Color = true
 )
 
 // A Node represents a node in the LLRB tree.
@@ -70,7 +71,7 @@ type Tree struct {
 // color returns the effect color of a Node. A nil node returns black.
 func (n *Node) color() Color {
 	if n == nil {
-		return Black
+		return black
 	}
 	return n.Color
 }
@@ -82,7 +83,7 @@ func (n *Node) rotateLeft() (root *Node) {
 	n.Right = root.Left
 	root.Left = n
 	root.Color = n.Color
-	n.Color = Red
+	n.Color = red
 	return
 }
 
@@ -93,7 +94,7 @@ func (n *Node) rotateRight() (root *Node) {
 	n.Left = root.Right
 	root.Right = n
 	root.Color = n.Color
-	n.Color = Red
+	n.Color = red
 	return
 }
 
@@ -108,16 +109,16 @@ func (n *Node) flipColors() {
 // fixUp ensures that black link balance is correct, that red nodes lean left,
 // and that 4 nodes are split in the case of BU23 and properly balanced in TD234.
 func (n *Node) fixUp() *Node {
-	if n.Right.color() == Red {
-		if Mode == TD234 && n.Right.Left.color() == Red {
+	if n.Right.color() == red {
+		if mode == td234 && n.Right.Left.color() == red {
 			n.Right = n.Right.rotateRight()
 		}
 		n = n.rotateLeft()
 	}
-	if n.Left.color() == Red && n.Left.Left.color() == Red {
+	if n.Left.color() == red && n.Left.Left.color() == red {
 		n = n.rotateRight()
 	}
-	if Mode == BU23 && n.Left.color() == Red && n.Right.color() == Red {
+	if mode == bu23 && n.Left.color() == red && n.Right.color() == red {
 		n.flipColors()
 	}
 	return n
@@ -125,11 +126,11 @@ func (n *Node) fixUp() *Node {
 
 func (n *Node) moveRedLeft() *Node {
 	n.flipColors()
-	if n.Right.Left.color() == Red {
+	if n.Right.Left.color() == red {
 		n.Right = n.Right.rotateRight()
 		n = n.rotateLeft()
 		n.flipColors()
-		if Mode == TD234 && n.Right.Right.color() == Red {
+		if mode == td234 && n.Right.Right.color() == red {
 			n.Right = n.Right.rotateLeft()
 		}
 	}
@@ -138,7 +139,7 @@ func (n *Node) moveRedLeft() *Node {
 
 func (n *Node) moveRedRight() *Node {
 	n.flipColors()
-	if n.Left.Left.color() == Red {
+	if n.Left.Left.color() == red {
 		n = n.rotateRight()
 		n.flipColors()
 	}
@@ -212,7 +213,7 @@ func (t *Tree) Insert(rr dns.RR) {
 	var d int
 	t.Root, d = t.Root.insert(rr)
 	t.Count += d
-	t.Root.Color = Black
+	t.Root.Color = black
 }
 
 func (n *Node) insert(rr dns.RR) (root *Node, d int) {
@@ -223,8 +224,8 @@ func (n *Node) insert(rr dns.RR) (root *Node, d int) {
 		return n, 1
 	}
 
-	if Mode == TD234 {
-		if n.Left.color() == Red && n.Right.color() == Red {
+	if mode == td234 {
+		if n.Left.color() == red && n.Right.color() == red {
 			n.flipColors()
 		}
 	}
@@ -238,15 +239,15 @@ func (n *Node) insert(rr dns.RR) (root *Node, d int) {
 		n.Right, d = n.Right.insert(rr)
 	}
 
-	if n.Right.color() == Red && n.Left.color() == Black {
+	if n.Right.color() == red && n.Left.color() == black {
 		n = n.rotateLeft()
 	}
-	if n.Left.color() == Red && n.Left.Left.color() == Red {
+	if n.Left.color() == red && n.Left.Left.color() == red {
 		n = n.rotateRight()
 	}
 
-	if Mode == BU23 {
-		if n.Left.color() == Red && n.Right.color() == Red {
+	if mode == bu23 {
+		if n.Left.color() == red && n.Right.color() == red {
 			n.flipColors()
 		}
 	}
@@ -267,14 +268,14 @@ func (t *Tree) DeleteMin() {
 	if t.Root == nil {
 		return
 	}
-	t.Root.Color = Black
+	t.Root.Color = black
 }
 
 func (n *Node) deleteMin() (root *Node, d int) {
 	if n.Left == nil {
 		return nil, -1
 	}
-	if n.Left.color() == Black && n.Left.Left.color() == Black {
+	if n.Left.color() == black && n.Left.Left.color() == black {
 		n = n.moveRedLeft()
 	}
 	n.Left, d = n.Left.deleteMin()
@@ -295,17 +296,17 @@ func (t *Tree) DeleteMax() {
 	if t.Root == nil {
 		return
 	}
-	t.Root.Color = Black
+	t.Root.Color = black
 }
 
 func (n *Node) deleteMax() (root *Node, d int) {
-	if n.Left != nil && n.Left.color() == Red {
+	if n.Left != nil && n.Left.color() == red {
 		n = n.rotateRight()
 	}
 	if n.Right == nil {
 		return nil, -1
 	}
-	if n.Right.color() == Black && n.Right.Left.color() == Black {
+	if n.Right.color() == black && n.Right.Left.color() == black {
 		n = n.moveRedRight()
 	}
 	n.Right, d = n.Right.deleteMax()
@@ -345,26 +346,26 @@ func (t *Tree) DeleteNode(rr dns.RR) {
 	if t.Root == nil {
 		return
 	}
-	t.Root.Color = Black
+	t.Root.Color = black
 }
 
 func (n *Node) delete(rr dns.RR) (root *Node, d int) {
 	if Less(n.Elem, rr.Header().Name) < 0 {
 		if n.Left != nil {
-			if n.Left.color() == Black && n.Left.Left.color() == Black {
+			if n.Left.color() == black && n.Left.Left.color() == black {
 				n = n.moveRedLeft()
 			}
 			n.Left, d = n.Left.delete(rr)
 		}
 	} else {
-		if n.Left.color() == Red {
+		if n.Left.color() == red {
 			n = n.rotateRight()
 		}
 		if n.Right == nil && Less(n.Elem, rr.Header().Name) == 0 {
 			return nil, -1
 		}
 		if n.Right != nil {
-			if n.Right.color() == Black && n.Right.Left.color() == Black {
+			if n.Right.color() == black && n.Right.Left.color() == black {
 				n = n.moveRedRight()
 			}
 			if Less(n.Elem, rr.Header().Name) == 0 {

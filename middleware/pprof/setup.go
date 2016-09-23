@@ -29,10 +29,10 @@ func setup(c *caddy.Controller) error {
 		found = true
 	}
 
-	handler := &Handler{}
+	h := &handler{}
 	pprofOnce.Do(func() {
-		c.OnStartup(handler.Startup)
-		c.OnShutdown(handler.Shutdown)
+		c.OnStartup(h.Startup)
+		c.OnShutdown(h.Shutdown)
 	})
 
 	return nil

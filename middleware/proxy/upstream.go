@@ -38,6 +38,7 @@ type staticUpstream struct {
 	IgnoredSubDomains []string
 	options           Options
 }
+
 type Options struct {
 	Ecs []*net.IPNet // EDNS0 CLIENT SUBNET address (v4/v6) to add in CIDR notaton.
 }

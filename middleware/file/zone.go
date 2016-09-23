@@ -15,6 +15,7 @@ import (
 	"github.com/miekg/dns"
 )
 
+// Zone defines a structure that contains all data related to a DNS zone.
 type Zone struct {
 	origin string
 	file   string
@@ -31,6 +32,7 @@ type Zone struct {
 	// TODO: shutdown watcher channel
 }
 
+// Apex contains the apex records of a zone: SOA, NS and their potential signatures.
 type Apex struct {
 	SOA    *dns.SOA
 	NS     []dns.RR
@@ -135,6 +137,7 @@ func (z *Zone) All() []dns.RR {
 	return append([]dns.RR{z.Apex.SOA}, records...)
 }
 
+// Reload reloads a zone when it is changed on disk. If z.NoRoload is true, no reloading will be done.
 func (z *Zone) Reload(shutdown chan bool) error {
 	if z.NoReload {
 		return nil

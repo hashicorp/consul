@@ -65,7 +65,7 @@ func cacheMsg(m *dns.Msg, tc cacheTestCase) *dns.Msg {
 	return m
 }
 
-func newTestCache() (Cache, *CachingResponseWriter) {
+func newTestCache() (Cache, *ResponseWriter) {
 	c := NewCache(0, []string{"."}, nil)
 	crr := NewCachingResponseWriter(nil, c.cache, time.Duration(0))
 	return c, crr

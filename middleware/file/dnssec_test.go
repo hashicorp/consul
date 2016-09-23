@@ -105,7 +105,7 @@ var dnssecTestCases = []test.Case{
 }
 
 func TestLookupDNSSEC(t *testing.T) {
-	zone, err := Parse(strings.NewReader(dbMiekNL_signed), testzone, "stdin")
+	zone, err := Parse(strings.NewReader(dbMiekNLSigned), testzone, "stdin")
 	if err != nil {
 		t.Fatalf("expect no error when reading zone, got %q", err)
 	}
@@ -147,7 +147,7 @@ func TestLookupDNSSEC(t *testing.T) {
 }
 
 func BenchmarkLookupDNSSEC(b *testing.B) {
-	zone, err := Parse(strings.NewReader(dbMiekNL_signed), testzone, "stdin")
+	zone, err := Parse(strings.NewReader(dbMiekNLSigned), testzone, "stdin")
 	if err != nil {
 		return
 	}
@@ -178,7 +178,7 @@ func BenchmarkLookupDNSSEC(b *testing.B) {
 	}
 }
 
-const dbMiekNL_signed = `
+const dbMiekNLSigned = `
 ; File written on Sun Mar 27 04:13:01 2016
 ; dnssec_signzone version 9.10.3-P4-Ubuntu
 miek.nl.		1800	IN SOA	linode.atoom.net. miek.miek.nl. (

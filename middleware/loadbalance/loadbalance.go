@@ -6,14 +6,12 @@ import (
 	"github.com/miekg/dns"
 )
 
+// RoundRobinResponseWriter is a response writer that shuffles A and AAAA records.
 type RoundRobinResponseWriter struct {
 	dns.ResponseWriter
 }
 
-func NewRoundRobinResponseWriter(w dns.ResponseWriter) *RoundRobinResponseWriter {
-	return &RoundRobinResponseWriter{w}
-}
-
+// WriteMsg implements the dns.ResponseWriter interface.
 func (r *RoundRobinResponseWriter) WriteMsg(res *dns.Msg) error {
 	if res.Rcode != dns.RcodeSuccess {
 		return r.ResponseWriter.WriteMsg(res)
@@ -63,13 +61,15 @@ func roundRobin(in []dns.RR) []dns.RR {
 	return out
 }
 
-// Should we pack and unpack here to fiddle with the packet... Not likely.
+// Write implements the dns.ResponseWriter interface.
 func (r *RoundRobinResponseWriter) Write(buf []byte) (int, error) {
+	// Should we pack and unpack here to fiddle with the packet... Not likely.
 	log.Printf("[WARNING] RoundRobin called with Write: no shuffling records")
 	n, err := r.ResponseWriter.Write(buf)
 	return n, err
 }
 
+// Hijack implements the dns.ResponseWriter interface.
 func (r *RoundRobinResponseWriter) Hijack() {
 	r.ResponseWriter.Hijack()
 	return

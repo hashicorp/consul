@@ -10,19 +10,19 @@ func TestErrorsParse(t *testing.T) {
 	tests := []struct {
 		inputErrorsRules     string
 		shouldErr            bool
-		expectedErrorHandler ErrorHandler
+		expectedErrorHandler errorHandler
 	}{
-		{`errors`, false, ErrorHandler{
+		{`errors`, false, errorHandler{
 			LogFile: "",
 		}},
-		{`errors errors.txt`, false, ErrorHandler{
+		{`errors errors.txt`, false, errorHandler{
 			LogFile: "errors.txt",
 		}},
-		{`errors visible`, false, ErrorHandler{
+		{`errors visible`, false, errorHandler{
 			LogFile: "",
 			Debug:   true,
 		}},
-		{`errors { log visible }`, false, ErrorHandler{
+		{`errors { log visible }`, false, errorHandler{
 			LogFile: "",
 			Debug:   true,
 		}},

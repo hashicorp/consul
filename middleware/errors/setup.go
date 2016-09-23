@@ -62,8 +62,8 @@ func setup(c *caddy.Controller) error {
 	return nil
 }
 
-func errorsParse(c *caddy.Controller) (ErrorHandler, error) {
-	handler := ErrorHandler{}
+func errorsParse(c *caddy.Controller) (errorHandler, error) {
+	handler := errorHandler{}
 
 	optionalBlock := func() (bool, error) {
 		var hadBlock bool

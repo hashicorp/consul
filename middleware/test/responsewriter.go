@@ -25,9 +25,20 @@ func (t *ResponseWriter) RemoteAddr() net.Addr {
 	return &net.UDPAddr{IP: ip, Port: port, Zone: ""}
 }
 
-func (t *ResponseWriter) WriteMsg(m *dns.Msg) error     { return nil }
+// WriteMsg implement dns.ResponseWriter interface.
+func (t *ResponseWriter) WriteMsg(m *dns.Msg) error { return nil }
+
+// Write implement dns.ResponseWriter interface.
 func (t *ResponseWriter) Write(buf []byte) (int, error) { return len(buf), nil }
-func (t *ResponseWriter) Close() error                  { return nil }
-func (t *ResponseWriter) TsigStatus() error             { return nil }
-func (t *ResponseWriter) TsigTimersOnly(bool)           { return }
-func (t *ResponseWriter) Hijack()                       { return }
+
+// Close implement dns.ResponseWriter interface.
+func (t *ResponseWriter) Close() error { return nil }
+
+// TsigStatus implement dns.ResponseWriter interface.
+func (t *ResponseWriter) TsigStatus() error { return nil }
+
+// TsigTimersOnly implement dns.ResponseWriter interface.
+func (t *ResponseWriter) TsigTimersOnly(bool) { return }
+
+// Hijack implement dns.ResponseWriter interface.
+func (t *ResponseWriter) Hijack() { return }

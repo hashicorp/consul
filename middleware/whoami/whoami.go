@@ -11,10 +11,13 @@ import (
 	"golang.org/x/net/context"
 )
 
+// Whoami is a middleware that returns your IP address, port and the protocol used for connecting
+// to CoreDNS.
 type Whoami struct {
 	Next middleware.Handler
 }
 
+// ServeDNS implements the middleware.Handler interface.
 func (wh Whoami) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 

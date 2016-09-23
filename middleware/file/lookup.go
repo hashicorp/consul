@@ -10,10 +10,15 @@ import (
 type Result int
 
 const (
+	// Success is a successful lookup.
 	Success Result = iota
+	// NameError indicates a nameerror
 	NameError
+	// Delegation indicates the lookup resulted in a delegation.
 	Delegation
+	// NoData indicates the lookup resulted in a NODATA.
 	NoData
+	// ServerFailure indicates a server failure during the lookup.
 	ServerFailure
 )
 

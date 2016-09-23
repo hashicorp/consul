@@ -28,8 +28,8 @@ func setup(c *caddy.Controller) error {
 	})
 
 	metricsOnce.Do(func() {
-		c.OnStartup(m.Startup)
-		c.OnShutdown(m.Shutdown)
+		c.OnStartup(m.OnStartup)
+		c.OnShutdown(m.OnShutdown)
 	})
 
 	return nil

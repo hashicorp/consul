@@ -2,6 +2,7 @@ package tree
 
 import "github.com/miekg/dns"
 
+// Elem is an element in the tree.
 type Elem struct {
 	m map[uint16][]dns.RR
 }

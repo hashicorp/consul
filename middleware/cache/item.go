@@ -15,7 +15,7 @@ type item struct {
 	Ns                 []dns.RR
 	Extra              []dns.RR
 
-	origTtl uint32
+	origTTL uint32
 	stored  time.Time
 }
 
@@ -38,7 +38,7 @@ func newItem(m *dns.Msg, d time.Duration) *item {
 	}
 	i.Extra = i.Extra[:j]
 
-	i.origTtl = uint32(d.Seconds())
+	i.origTTL = uint32(d.Seconds())
 	i.stored = time.Now().UTC()
 
 	return i
@@ -57,9 +57,9 @@ func (i *item) toMsg(m *dns.Msg) *dns.Msg {
 	m1.Ns = i.Ns
 	m1.Extra = i.Extra
 
-	ttl := int(i.origTtl) - int(time.Now().UTC().Sub(i.stored).Seconds())
-	if ttl < baseTtl {
-		ttl = baseTtl
+	ttl := int(i.origTTL) - int(time.Now().UTC().Sub(i.stored).Seconds())
+	if ttl < baseTTL {
+		ttl = baseTTL
 	}
 	setCap(m1, uint32(ttl))
 	return m1

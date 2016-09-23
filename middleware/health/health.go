@@ -10,32 +10,33 @@ import (
 
 var once sync.Once
 
-type Health struct {
+type health struct {
 	Addr string
 
 	ln  net.Listener
 	mux *http.ServeMux
 }
 
-func health(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, ok)
-}
-
-func (h *Health) Startup() error {
+func (h *health) Startup() error {
 	if h.Addr == "" {
 		h.Addr = defAddr
 	}
 
 	once.Do(func() {
-		if ln, err := net.Listen("tcp", h.Addr); err != nil {
+		ln, err := net.Listen("tcp", h.Addr)
+		if err != nil {
 			log.Printf("[ERROR] Failed to start health handler: %s", err)
 			return
-		} else {
-			h.ln = ln
 		}
+
+		h.ln = ln
+
 		h.mux = http.NewServeMux()
 
-		h.mux.HandleFunc(path, health)
+		h.mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+			io.WriteString(w, ok)
+		})
+
 		go func() {
 			http.Serve(h.ln, h.mux)
 		}()
@@ -43,7 +44,7 @@ func (h *Health) Startup() error {
 	return nil
 }
 
-func (h *Health) Shutdown() error {
+func (h *health) Shutdown() error {
 	if h.ln != nil {
 		return h.ln.Close()
 	}

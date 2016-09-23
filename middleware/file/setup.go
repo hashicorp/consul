@@ -70,7 +70,7 @@ func fileParse(c *caddy.Controller) (Zones, error) {
 				return Zones{}, err
 			}
 
-			for i, _ := range origins {
+			for i := range origins {
 				origins[i] = middleware.Host(origins[i]).Normalize()
 				zone, err := Parse(reader, origins[i], fileName)
 				if err == nil {
@@ -116,7 +116,7 @@ func TransferParse(c *caddy.Controller) (tos, froms []string, err error) {
 	case "transfer":
 		if value == "to" {
 			tos = c.RemainingArgs()
-			for i, _ := range tos {
+			for i := range tos {
 				if tos[i] != "*" {
 					if x := net.ParseIP(tos[i]); x == nil {
 						return nil, nil, fmt.Errorf("must specify an IP addres: `%s'", tos[i])
@@ -127,7 +127,7 @@ func TransferParse(c *caddy.Controller) (tos, froms []string, err error) {
 		}
 		if value == "from" {
 			froms = c.RemainingArgs()
-			for i, _ := range froms {
+			for i := range froms {
 				if froms[i] != "*" {
 					if x := net.ParseIP(froms[i]); x == nil {
 						return nil, nil, fmt.Errorf("must specify an IP addres: `%s'", froms[i])

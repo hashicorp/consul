@@ -23,6 +23,7 @@ type Logger struct {
 	ErrorFunc func(dns.ResponseWriter, *dns.Msg, int) // failover error handler
 }
 
+// ServeDNS implements the middleware.Handler interface.
 func (l Logger) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 	for _, rule := range l.Rules {

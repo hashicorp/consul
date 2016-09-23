@@ -16,6 +16,7 @@ type Stub struct {
 	Zone string // for what zone (and thus what nameservers are we called)
 }
 
+// ServeDNS implements the middleware.Handler interface.
 func (s Stub) ServeDNS(ctx context.Context, w dns.ResponseWriter, req *dns.Msg) (int, error) {
 	if hasStubEdns0(req) {
 		log.Printf("[WARNING] Forwarding cycle detected, refusing msg: %s", req.Question[0].Name)

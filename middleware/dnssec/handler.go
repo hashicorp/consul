@@ -35,7 +35,7 @@ func (d Dnssec) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) 
 		}
 	}
 
-	drr := NewDnssecResponseWriter(w, d)
+	drr := &ResponseWriter{w, d}
 	return d.Next.ServeDNS(ctx, drr, r)
 }
 

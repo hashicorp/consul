@@ -16,6 +16,7 @@ import (
 	"golang.org/x/net/context"
 )
 
+// Etcd is a middleware talks to an etcd cluster.
 type Etcd struct {
 	Next       middleware.Handler
 	Zones      []string
@@ -113,7 +114,7 @@ Nodes:
 		bx[b] = true
 
 		serv.Key = n.Key
-		serv.Ttl = e.TTL(n, serv)
+		serv.TTL = e.TTL(n, serv)
 		if serv.Priority == 0 {
 			serv.Priority = priority
 		}
@@ -127,19 +128,19 @@ Nodes:
 func (e *Etcd) TTL(node *etcdc.Node, serv *msg.Service) uint32 {
 	etcdTTL := uint32(node.TTL)
 
-	if etcdTTL == 0 && serv.Ttl == 0 {
+	if etcdTTL == 0 && serv.TTL == 0 {
 		return ttl
 	}
 	if etcdTTL == 0 {
-		return serv.Ttl
+		return serv.TTL
 	}
-	if serv.Ttl == 0 {
+	if serv.TTL == 0 {
 		return etcdTTL
 	}
-	if etcdTTL < serv.Ttl {
+	if etcdTTL < serv.TTL {
 		return etcdTTL
 	}
-	return serv.Ttl
+	return serv.TTL
 }
 
 // etcNameError checks if the error is ErrorCodeKeyNotFound from etcd.

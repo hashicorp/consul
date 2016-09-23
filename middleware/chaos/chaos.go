@@ -18,6 +18,7 @@ type Chaos struct {
 	Authors map[string]bool
 }
 
+// ServeDNS implements the middleware.Handler interface.
 func (c Chaos) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 	if state.QClass() != dns.ClassCHAOS || state.QType() != dns.TypeTXT {
@@ -32,7 +33,7 @@ func (c Chaos) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (
 	default:
 		return c.Next.ServeDNS(ctx, w, r)
 	case "authors.bind.":
-		for a, _ := range c.Authors {
+		for a := range c.Authors {
 			m.Answer = append(m.Answer, &dns.TXT{Hdr: hdr, Txt: []string{trim(a)}})
 		}
 	case "version.bind.", "version.server.":

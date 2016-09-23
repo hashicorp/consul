@@ -178,7 +178,6 @@ Restart:
 	}
 }
 
-// The maximum difference between two serial numbers. If the difference between
-// two serials is greater than this number, the smaller one is considered
-// greater.
+// MaxSerialIncrement is the maximum difference between two serial numbers. If the difference between
+// two serials is greater than this number, the smaller one is considered greater.
 const MaxSerialIncrement uint32 = 2147483647

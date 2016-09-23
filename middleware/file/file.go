@@ -13,17 +13,20 @@ import (
 )
 
 type (
+	// File is the middleware that reads zone data from disk.
 	File struct {
 		Next  middleware.Handler
 		Zones Zones
 	}
 
+	// Zones maps zone names to a *Zone.
 	Zones struct {
 		Z     map[string]*Zone
 		Names []string
 	}
 )
 
+// ServeDNS implements the middleware.Handle interface.
 func (f File) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	state := request.Request{W: w, Req: r}
 

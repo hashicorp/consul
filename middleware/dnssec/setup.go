@@ -52,7 +52,7 @@ func dnssecParse(c *caddy.Controller) ([]string, []*DNSKEY, error) {
 			}
 		}
 	}
-	for i, _ := range zones {
+	for i := range zones {
 		zones[i] = middleware.Host(zones[i]).Normalize()
 	}
 	return zones, keys, nil

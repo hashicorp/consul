@@ -15,15 +15,16 @@ import (
 	"golang.org/x/net/context"
 )
 
-// ErrorHandler handles DNS errors (and errors from other middleware).
-type ErrorHandler struct {
+// errorHandler handles DNS errors (and errors from other middleware).
+type errorHandler struct {
 	Next    middleware.Handler
 	LogFile string
 	Log     *log.Logger
 	Debug   bool // if true, errors are written out to client rather than to a log
 }
 
-func (h ErrorHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+// ServeDNS implements the middleware.Handler interface.
+func (h errorHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	defer h.recovery(ctx, w, r)
 
 	rcode, err := h.Next.ServeDNS(ctx, w, r)
@@ -47,7 +48,7 @@ func (h ErrorHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns
 	return rcode, err
 }
 
-func (h ErrorHandler) recovery(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
+func (h errorHandler) recovery(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
 	rec := recover()
 	if rec == nil {
 		return

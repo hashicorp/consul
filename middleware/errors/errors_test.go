@@ -18,7 +18,7 @@ import (
 
 func TestErrors(t *testing.T) {
 	buf := bytes.Buffer{}
-	em := ErrorHandler{Log: log.New(&buf, "", 0)}
+	em := errorHandler{Log: log.New(&buf, "", 0)}
 
 	testErr := errors.New("test error")
 	tests := []struct {
@@ -68,7 +68,7 @@ func TestErrors(t *testing.T) {
 
 func TestVisibleErrorWithPanic(t *testing.T) {
 	const panicMsg = "I'm a panic"
-	eh := ErrorHandler{
+	eh := errorHandler{
 		Debug: true,
 		Next: middleware.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 			panic(panicMsg)

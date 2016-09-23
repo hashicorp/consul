@@ -13,6 +13,7 @@ import (
 	"github.com/miekg/dns"
 )
 
+// UpdateStubZones checks etcd for an update on the stubzones.
 func (e *Etcd) UpdateStubZones() {
 	go func() {
 		for {

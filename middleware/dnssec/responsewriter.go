@@ -10,15 +10,13 @@ import (
 	"github.com/miekg/dns"
 )
 
+// ResponseWriter sign the response on the fly.
 type ResponseWriter struct {
 	dns.ResponseWriter
 	d Dnssec
 }
 
-func NewDnssecResponseWriter(w dns.ResponseWriter, d Dnssec) *ResponseWriter {
-	return &ResponseWriter{w, d}
-}
-
+// WriteMsg implements the dns.ResponseWriter interface.
 func (d *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	// By definition we should sign anything that comes back, we should still figure out for
 	// which zone it should be.
@@ -38,13 +36,12 @@ func (d *ResponseWriter) WriteMsg(res *dns.Msg) error {
 	return d.ResponseWriter.WriteMsg(res)
 }
 
+// Write implements the dns.ResponseWriter interface.
 func (d *ResponseWriter) Write(buf []byte) (int, error) {
 	log.Printf("[WARNING] Dnssec called with Write: not signing reply")
 	n, err := d.ResponseWriter.Write(buf)
 	return n, err
 }
 
-func (d *ResponseWriter) Hijack() {
-	d.ResponseWriter.Hijack()
-	return
-}
+// Hijack implements the dns.ResponseWriter interface.
+func (d *ResponseWriter) Hijack() { d.ResponseWriter.Hijack() }

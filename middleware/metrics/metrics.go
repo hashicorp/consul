@@ -34,16 +34,19 @@ type Metrics struct {
 	ZoneNames []string
 }
 
-func (m *Metrics) Startup() error {
+// OnStartup sets up the metrics on startup.
+func (m *Metrics) OnStartup() error {
 	m.Once.Do(func() {
 		define()
 
-		if ln, err := net.Listen("tcp", m.Addr); err != nil {
+		ln, err := net.Listen("tcp", m.Addr)
+		if err != nil {
 			log.Printf("[ERROR] Failed to start metrics handler: %s", err)
 			return
-		} else {
-			m.ln = ln
 		}
+
+		m.ln = ln
+
 		m.mux = http.NewServeMux()
 
 		prometheus.MustRegister(requestCount)
@@ -66,7 +69,8 @@ func (m *Metrics) Startup() error {
 	return nil
 }
 
-func (m *Metrics) Shutdown() error {
+// OnShutdown tears down the metrics on shutdown.
+func (m *Metrics) OnShutdown() error {
 	if m.ln != nil {
 		return m.ln.Close()
 	}

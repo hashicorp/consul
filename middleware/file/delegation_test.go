@@ -46,7 +46,7 @@ var delegationTestCases = []test.Case{
 }
 
 func TestLookupDelegation(t *testing.T) {
-	zone, err := Parse(strings.NewReader(dbMiekNL_delegation), testzone, "stdin")
+	zone, err := Parse(strings.NewReader(dbMiekNLDelegation), testzone, "stdin")
 	if err != nil {
 		t.Fatalf("expect no error when reading zone, got %q", err)
 	}
@@ -85,7 +85,7 @@ func TestLookupDelegation(t *testing.T) {
 	}
 }
 
-const dbMiekNL_delegation = `
+const dbMiekNLDelegation = `
 $TTL    30M
 $ORIGIN miek.nl.
 @       IN      SOA     linode.atoom.net. miek.miek.nl. (
