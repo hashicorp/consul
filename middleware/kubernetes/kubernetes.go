@@ -4,13 +4,14 @@ package kubernetes
 import (
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/miekg/coredns/middleware"
 	"github.com/miekg/coredns/middleware/etcd/msg"
 	"github.com/miekg/coredns/middleware/kubernetes/nametemplate"
-	"github.com/miekg/coredns/middleware/kubernetes/util"
 	"github.com/miekg/coredns/middleware/pkg/dnsutil"
+	dns_strings "github.com/miekg/coredns/middleware/pkg/strings"
 	"github.com/miekg/coredns/middleware/proxy"
 
 	"github.com/miekg/dns"
@@ -126,21 +127,21 @@ func (k *Kubernetes) Records(name string, exact bool) ([]msg.Service, error) {
 	if namespace == "" {
 		err := errors.New("Parsing query string did not produce a namespace value. Assuming wildcard namespace.")
 		log.Printf("[WARN] %v\n", err)
-		namespace = util.WildcardStar
+		namespace = "*"
 	}
 
 	if serviceName == "" {
 		err := errors.New("Parsing query string did not produce a serviceName value. Assuming wildcard serviceName.")
 		log.Printf("[WARN] %v\n", err)
-		serviceName = util.WildcardStar
+		serviceName = "*"
 	}
 
-	nsWildcard := util.SymbolContainsWildcard(namespace)
-	serviceWildcard := util.SymbolContainsWildcard(serviceName)
+	nsWildcard := symbolContainsWildcard(namespace)
+	serviceWildcard := symbolContainsWildcard(serviceName)
 
 	// Abort if the namespace does not contain a wildcard, and namespace is not published per CoreFile
 	// Case where namespace contains a wildcard is handled in Get(...) method.
-	if (!nsWildcard) && (len(k.Namespaces) > 0) && (!util.StringInSlice(namespace, k.Namespaces)) {
+	if (!nsWildcard) && (len(k.Namespaces) > 0) && (!dns_strings.StringInSlice(namespace, k.Namespaces)) {
 		return nil, nil
 	}
 
@@ -190,7 +191,7 @@ func (k *Kubernetes) Get(namespace string, nsWildcard bool, servicename string, 
 		if symbolMatches(namespace, item.Namespace, nsWildcard) && symbolMatches(servicename, item.Name, serviceWildcard) {
 			// If namespace has a wildcard, filter results against Corefile namespace list.
 			// (Namespaces without a wildcard were filtered before the call to this function.)
-			if nsWildcard && (len(k.Namespaces) > 0) && (!util.StringInSlice(item.Namespace, k.Namespaces)) {
+			if nsWildcard && (len(k.Namespaces) > 0) && (!dns_strings.StringInSlice(item.Namespace, k.Namespaces)) {
 				continue
 			}
 			resultItems = append(resultItems, item)
@@ -205,9 +206,9 @@ func symbolMatches(queryString string, candidateString string, wildcard bool) bo
 	switch {
 	case !wildcard:
 		result = (queryString == candidateString)
-	case queryString == util.WildcardStar:
+	case queryString == "*":
 		result = true
-	case queryString == util.WildcardAny:
+	case queryString == "any":
 		result = true
 	}
 	return result
@@ -239,3 +240,8 @@ const (
 	hostmaster = "hostmaster"
 	k8sTimeout = 5 * time.Second
 )
+
+// symbolContainsWildcard checks whether symbol contains a wildcard value
+func symbolContainsWildcard(symbol string) bool {
+	return (strings.Contains(symbol, "*") || (symbol == "any"))
+}

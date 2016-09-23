@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/miekg/coredns/middleware/kubernetes/util"
+	dns_strings "github.com/miekg/coredns/middleware/pkg/strings"
 )
 
 // Likely symbols that require support:
@@ -125,7 +125,7 @@ func (t *NameTemplate) GetTypeFromSegmentArray(segments []string) string {
 	typeSegment := t.GetSymbolFromSegmentArray("type", segments)
 
 	// Limit type to known types symbols
-	if util.StringInSlice(typeSegment, types) {
+	if dns_strings.StringInSlice(typeSegment, types) {
 		return ""
 	}
 

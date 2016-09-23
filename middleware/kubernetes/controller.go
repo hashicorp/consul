@@ -5,8 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/miekg/coredns/middleware/kubernetes/util"
-
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/cache"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
@@ -19,6 +17,19 @@ var (
 	namespace = api.NamespaceAll
 )
 
+// storeToNamespaceLister makes a Store that lists Namespaces.
+type storeToNamespaceLister struct {
+	cache.Store
+}
+
+// List lists all Namespaces in the store.
+func (s *storeToNamespaceLister) List() (ns api.NamespaceList, err error) {
+	for _, m := range s.Store.List() {
+		ns.Items = append(ns.Items, *(m.(*api.Namespace)))
+	}
+	return ns, nil
+}
+
 type dnsController struct {
 	client *client.Client
 
@@ -30,7 +41,7 @@ type dnsController struct {
 
 	svcLister  cache.StoreToServiceLister
 	endpLister cache.StoreToEndpointsLister
-	nsLister   util.StoreToNamespaceLister
+	nsLister   storeToNamespaceLister
 
 	// stopLock is used to enforce only a single call to Stop is active.
 	// Needed because we allow stopping through an http endpoint and
