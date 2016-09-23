@@ -75,7 +75,7 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 				switch c.Val() {
 				case "template":
 					args := c.RemainingArgs()
-					if len(args) != 0 {
+					if len(args) > 0 {
 						template := strings.Join(args, "")
 						err := k8s.NameTemplate.SetTemplate(template)
 						if err != nil {
@@ -86,21 +86,28 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 					return nil, c.ArgErr()
 				case "namespaces":
 					args := c.RemainingArgs()
-					if len(args) != 0 {
+					if len(args) > 0 {
 						k8s.Namespaces = append(k8s.Namespaces, args...)
 						continue
 					}
 					return nil, c.ArgErr()
 				case "endpoint":
 					args := c.RemainingArgs()
-					if len(args) != 0 {
+					if len(args) > 0 {
 						k8s.APIEndpoint = args[0]
+						continue
+					}
+					return nil, c.ArgErr()
+				case "tls": // cert key cacertfile
+					args := c.RemainingArgs()
+					if len(args) == 3 {
+						k8s.APIClientCert, k8s.APIClientKey, k8s.APICertAuth = args[0], args[1], args[2]
 						continue
 					}
 					return nil, c.ArgErr()
 				case "resyncperiod":
 					args := c.RemainingArgs()
-					if len(args) != 0 {
+					if len(args) > 0 {
 						rp, err := time.ParseDuration(args[0])
 						if err != nil {
 							return nil, fmt.Errorf("Unable to parse resync duration value. Value provided was '%v'. Example valid values: '15s', '5m', '1h'. Error was: %v", args[0], err)
@@ -111,7 +118,7 @@ func kubernetesParse(c *caddy.Controller) (*Kubernetes, error) {
 					return nil, c.ArgErr()
 				case "labels":
 					args := c.RemainingArgs()
-					if len(args) != 0 {
+					if len(args) > 0 {
 						labelSelectorString := strings.Join(args, " ")
 						ls, err := unversionedapi.ParseToLabelSelector(labelSelectorString)
 						if err != nil {

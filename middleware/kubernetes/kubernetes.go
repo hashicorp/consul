@@ -18,6 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	unversionedapi "k8s.io/kubernetes/pkg/api/unversioned"
 	unversionedclient "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/client/restclient"
 	"k8s.io/kubernetes/pkg/client/unversioned/clientcmd"
 	clientcmdapi "k8s.io/kubernetes/pkg/client/unversioned/clientcmd/api"
 	"k8s.io/kubernetes/pkg/labels"
@@ -29,6 +30,9 @@ type Kubernetes struct {
 	Zones         []string
 	Proxy         proxy.Proxy // Proxy for looking up names during the resolution process
 	APIEndpoint   string
+	APICertAuth   string
+	APIClientCert string
+	APIClientKey  string
 	APIConn       *dnsController
 	ResyncPeriod  time.Duration
 	NameTemplate  *nametemplate.NameTemplate
@@ -37,23 +41,41 @@ type Kubernetes struct {
 	Selector      *labels.Selector
 }
 
-// InitKubeCache initializes a new Kubernetes cache.
-// TODO(miek): is this correct?
-func (k *Kubernetes) InitKubeCache() error {
+func (k *Kubernetes) getClientConfig() (*restclient.Config, error) {
 	// For a custom api server or running outside a k8s cluster
 	// set URL in env.KUBERNETES_MASTER or set endpoint in Corefile
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	overrides := &clientcmd.ConfigOverrides{}
+	clusterinfo := clientcmdapi.Cluster{}
+	authinfo := clientcmdapi.AuthInfo{}
 	if len(k.APIEndpoint) > 0 {
-		overrides.ClusterInfo = clientcmdapi.Cluster{Server: k.APIEndpoint}
+		clusterinfo.Server = k.APIEndpoint
 	}
+	if len(k.APICertAuth) > 0 {
+		clusterinfo.CertificateAuthority = k.APICertAuth
+	}
+	if len(k.APIClientCert) > 0 {
+		authinfo.ClientCertificate = k.APIClientCert
+	}
+	if len(k.APIClientKey) > 0 {
+		authinfo.ClientKey = k.APIClientKey
+	}
+	overrides.ClusterInfo = clusterinfo
+	overrides.AuthInfo = authinfo
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
-	config, err := clientConfig.ClientConfig()
+	return clientConfig.ClientConfig()
+}
+
+// InitKubeCache initializes a new Kubernetes cache.
+// TODO(miek): is this correct?
+func (k *Kubernetes) InitKubeCache() error {
+
+	config, err := k.getClientConfig()
 	if err != nil {
 		return err
 	}
-	kubeClient, err := unversionedclient.New(config)
 
+	kubeClient, err := unversionedclient.New(config)
 	if err != nil {
 		log.Printf("[ERROR] Failed to create kubernetes notification controller: %v", err)
 		return err

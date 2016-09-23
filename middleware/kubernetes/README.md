@@ -40,7 +40,9 @@ This is the default kubernetes setup, with everything specified in full:
         # Example values: 60s, 5m, 1h
         resyncperiod 5m
         # Use url for k8s API endpoint
-        endpoint http://localhost:8080
+        endpoint https://k8sendpoint:8080
+	# The tls cert, key and the CA cert filenames
+	tls cert key cacert
         # Assemble k8s record names with the template
         template {service}.{namespace}.{zone}
         # Only expose the k8s namespace "demo"
