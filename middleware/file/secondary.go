@@ -88,6 +88,9 @@ Transfer:
 	if serial == -1 {
 		return false, Err
 	}
+	if z.Apex.SOA == nil {
+		return true, Err
+	}
 	return less(z.Apex.SOA.Serial, uint32(serial)), Err
 }
 

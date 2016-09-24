@@ -84,9 +84,17 @@ func TestShouldTransfer(t *testing.T) {
 	z.origin = testZone
 	z.TransferFrom = []string{addrstr}
 
+	// when we have a nil SOA (initial state)
+	should, err := z.shouldTransfer()
+	if err != nil {
+		t.Fatalf("unable to run shouldTransfer: %v", err)
+	}
+	if !should {
+		t.Fatalf("shouldTransfer should return true for serial: %d", soa.serial)
+	}
 	// Serial smaller
 	z.Apex.SOA = test.SOA(fmt.Sprintf("%s IN SOA bla. bla. %d 0 0 0 0 ", testZone, soa.serial-1))
-	should, err := z.shouldTransfer()
+	should, err = z.shouldTransfer()
 	if err != nil {
 		t.Fatalf("unable to run shouldTransfer: %v", err)
 	}
