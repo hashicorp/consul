@@ -11,7 +11,7 @@ all: coredns
 # Phony this to ensure we always build the binary.
 # TODO: Add .go file dependencies.
 .PHONY: coredns
-coredns: generate deps
+coredns: deps
 	go build $(BUILD_VERBOSE) -ldflags="-s -w"
 
 .PHONY: docker
@@ -19,18 +19,8 @@ docker: deps
 	CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w"
 	docker build -t $(DOCKER_IMAGE_NAME) .
 
-../../mholt/caddy:
-	# Get caddy so we can generate into that codebase
-	# before getting all other dependencies.
-	go get ${BUILD_VERBOSE} github.com/mholt/caddy
-
-.PHONY: generate
-generate: ../../mholt/caddy
-	go get $(BUILD_VERBOSE) golang.org/x/tools/go/ast/astutil
-	go generate $(BUILD_VERBOSE)
-
 .PHONY: deps
-deps: generate
+deps:
 	go get ${BUILD_VERBOSE}
 
 .PHONY: test
