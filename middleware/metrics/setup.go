@@ -79,6 +79,6 @@ func prometheusParse(c *caddy.Controller) (Metrics, error) {
 	return met, err
 }
 
-var metricsOnce *sync.Once
+var metricsOnce sync.Once
 
 const addr = "localhost:9153"
