@@ -323,7 +323,7 @@ func (i *AgentRPC) handleClient(client *rpcClient) {
 				// The second part of this if is to block socket
 				// errors from Windows which appear to happen every
 				// time there is an EOF.
-				if err != io.EOF && !strings.Contains(err.Error(), "WSARecv") {
+				if err != io.EOF && !strings.Contains(strings.ToLower(err.Error()), "wsarecv") {
 					i.logger.Printf("[ERR] agent.rpc: failed to decode request header: %v", err)
 				}
 			}
