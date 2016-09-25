@@ -1,3 +1,4 @@
+// Package chaos implements a middleware that answer to 'CH version.bind TXT' type queries.
 package chaos
 
 import (

@@ -1,3 +1,5 @@
+// Package whoami implements a middleware that returns details about the resolving
+// querying it.
 package whoami
 
 import (

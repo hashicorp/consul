@@ -1,3 +1,4 @@
+// Package msg defines the Service structure which is used for service discovery.
 package msg
 
 import (

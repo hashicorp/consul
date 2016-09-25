@@ -1,3 +1,4 @@
+// Package storage abstracts away where middleware can store assests (zones, keys, etc).
 package storage
 
 import (

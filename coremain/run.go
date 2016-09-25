@@ -1,3 +1,4 @@
+// Package coremain contains the functions for starting CoreDNS.
 package coremain
 
 import (

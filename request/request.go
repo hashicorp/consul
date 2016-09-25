@@ -1,3 +1,5 @@
+// Package requests abstract a client's request so that all middleware
+// will handle them in an unified way.
 package request
 
 import (

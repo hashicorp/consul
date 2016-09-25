@@ -1,3 +1,5 @@
+// Package DNS server implements all the interfaces from Caddy, so that
+// CoreDNS can be a servertype plugin.
 package dnsserver
 
 import (

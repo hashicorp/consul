@@ -1,4 +1,4 @@
-// Package etcd provides the etcd backend.
+// Package etcd provides the etcd backend middleware.
 package etcd
 
 import (

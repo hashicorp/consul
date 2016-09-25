@@ -1,3 +1,4 @@
+// Package dnsrecorder allows you to record a DNS response when it is send to the client.
 package dnsrecorder
 
 import (

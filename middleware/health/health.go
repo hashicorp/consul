@@ -1,3 +1,4 @@
+// Package health implements an HTTP handler that responds to health checks.
 package health
 
 import (

@@ -1,3 +1,5 @@
+// Package dnssec implements a middleware that signs responses on-the-fly using
+// NSEC black lies.
 package dnssec
 
 import (

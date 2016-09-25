@@ -1,3 +1,5 @@
+// Package metrics implement a handler and middleware that provides Prometheus
+// metrics.
 package metrics
 
 import (

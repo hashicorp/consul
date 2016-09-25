@@ -1,3 +1,4 @@
+// Package file implements a file backend.
 package file
 
 import (
