@@ -15,6 +15,7 @@ import (
 	"github.com/mholt/caddy"
 
 	"github.com/miekg/coredns/core/dnsserver"
+
 	// Plug in CoreDNS
 	_ "github.com/miekg/coredns/core"
 )
@@ -31,6 +32,7 @@ func init() {
 	flag.StringVar(&logfile, "log", "", "Process log file")
 	flag.StringVar(&caddy.PidFile, "pidfile", "", "Path to write pid file")
 	flag.BoolVar(&version, "version", false, "Show version")
+	flag.BoolVar(&dnsserver.Quiet, "quiet", false, "Quiet mode (no initialization output)")
 
 	caddy.RegisterCaddyfileLoader("flag", caddy.LoaderFunc(confLoader))
 	caddy.SetDefaultCaddyfileLoader("default", caddy.LoaderFunc(defaultLoader))
@@ -81,7 +83,9 @@ func Run() {
 	}
 
 	logVersion()
-	showVersion()
+	if !dnsserver.Quiet {
+		showVersion()
+	}
 
 	// Twiddle your thumbs
 	instance.Wait()
@@ -142,9 +146,6 @@ func logVersion() { log.Print("[INFO] " + versionString()) }
 
 // showVersion prints the version that is starting.
 func showVersion() {
-	if dnsserver.Quiet {
-		return
-	}
 	fmt.Print(versionString())
 	if devBuild && gitShortStat != "" {
 		fmt.Printf("%s\n%s\n", gitShortStat, gitFilesModified)
@@ -153,7 +154,7 @@ func showVersion() {
 
 // versionString returns the CoreDNS version as a string.
 func versionString() string {
-	return fmt.Sprintf("%s-%s starting\n", caddy.AppName, caddy.AppVersion)
+	return fmt.Sprintf("%s-%s\n", caddy.AppName, caddy.AppVersion)
 }
 
 // setVersion figures out the version information

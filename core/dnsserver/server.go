@@ -218,7 +218,7 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 // OnStartupComplete lists the sites served by this server
-// and any relevant information, assuming Quiet == false.
+// and any relevant information, assuming Quiet is false.
 func (s *Server) OnStartupComplete() {
 	if Quiet {
 		return
@@ -258,4 +258,9 @@ func rcodeNoClientWrite(rcode int) bool {
 const (
 	tcp = 0
 	udp = 1
+)
+
+var (
+	// Quiet mode will not show any informative output on initialization.
+	Quiet bool
 )

@@ -16,7 +16,6 @@ const serverType = "dns"
 
 func init() {
 	flag.StringVar(&Port, "port", DefaultPort, "Default port")
-	flag.BoolVar(&Quiet, "quiet", false, "Quiet mode (no initialization output)")
 
 	caddy.RegisterServerType(serverType, caddy.ServerType{
 		Directives: func() []string { return directives },
@@ -138,7 +137,4 @@ var (
 
 	// GracefulTimeout is the maximum duration of a graceful shutdown.
 	GracefulTimeout time.Duration
-
-	// Quiet mode will not show any informative output on initialization.
-	Quiet bool
 )
