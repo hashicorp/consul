@@ -12,8 +12,8 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// KVGetCommand is a Command implementation that is used to setup
-// a "watch" which uses a sub-process
+// KVGetCommand is a Command implementation that is used to fetch the value of
+// a key from the key-value store.
 type KVGetCommand struct {
 	Ui cli.Ui
 }

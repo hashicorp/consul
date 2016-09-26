@@ -13,8 +13,8 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// KVPutCommand is a Command implementation that is used to setup
-// a "watch" which uses a sub-process
+// KVPutCommand is a Command implementation that is used to write data to the
+// key-value store.
 type KVPutCommand struct {
 	Ui cli.Ui
 

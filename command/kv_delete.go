@@ -9,8 +9,8 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// KVDeleteCommand is a Command implementation that is used to setup
-// a "watch" which uses a sub-process
+// KVDeleteCommand is a Command implementation that is used to delete a key or
+// prefix of keys from the key-value store.
 type KVDeleteCommand struct {
 	Ui cli.Ui
 }
