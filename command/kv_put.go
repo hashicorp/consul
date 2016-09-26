@@ -62,10 +62,9 @@ KV Put Options:
                           lock. The session must already exist and be specified
                           via the -session flag. The default value is false.
 
-  -cas                    Perform a Check-And-Set operation. If this value is
-                          specified without -modify-index, the key will first be
-                          fetched and the resulting ModifyIndex will be used on
-                          the next query. The default value is false.
+  -cas                    Perform a Check-And-Set operation. Specifying this
+                          value also requires the -modify-index flag to be set.
+                          The default value is false.
 
   -flags=<int>            Unsigned integer value to assign to this key-value
                           pair. This value is not read by Consul, so clients can
@@ -73,8 +72,7 @@ KV Put Options:
                           The default value is 0 (no flags).
 
   -modify-index=<int>     Unsigned integer representing the ModifyIndex of the
-                          key. This is often combined with the -cas flag, but it
-                          can be specified for any key. The default value is 0.
+                          key. This is used in combination with the -cas flag.
 
   -release                Forfeit the lock on the key at the givne path. This
                           requires the -session flag to be set. The key must be
