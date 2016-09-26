@@ -2,7 +2,7 @@
 
 FEATURES:
 
-* **Command Line Interface for Key/Value Store:** A new set of `consul kv` CLI commands are now available for easy access to all basic key/value store operations. [GH-2360]
+* **Command Line Interface for Key/Value Store:** A new set of `consul kv` commands were added for easy access to all basic key/value store operations. [GH-2360]
 
 BUG FIXES:
 
