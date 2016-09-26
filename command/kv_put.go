@@ -92,7 +92,6 @@ func (c *KVPutCommand) Run(args []string) int {
 	httpAddr := HTTPAddrFlag(cmdFlags)
 	datacenter := cmdFlags.String("datacenter", "", "")
 	token := cmdFlags.String("token", "", "")
-	stale := cmdFlags.Bool("stale", false, "")
 	cas := cmdFlags.Bool("cas", false, "")
 	flags := cmdFlags.Uint64("flags", 0, "")
 	modifyIndex := cmdFlags.Uint64("modify-index", 0, "")
@@ -111,8 +110,15 @@ func (c *KVPutCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Session is reauired for release or acquire
 	if (*release || *acquire) && *session == "" {
 		c.Ui.Error("Error! Missing -session (required with -acquire and -release)")
+		return 1
+	}
+
+	// ModifyIndex is required for CAS
+	if *cas && *modifyIndex == 0 {
+		c.Ui.Error("Must specify -modify-index with -cas!")
 		return 1
 	}
 
@@ -141,23 +147,6 @@ func (c *KVPutCommand) Run(args []string) int {
 
 	switch {
 	case *cas:
-		// If the user did not supply a -modify-index, but wants a check-and-set,
-		// grab the current modify index and store that on the key.
-		if pair.ModifyIndex == 0 {
-			currentPair, _, err := client.KV().Get(key, &api.QueryOptions{
-				Datacenter: *datacenter,
-				Token:      *token,
-				AllowStale: *stale,
-			})
-			if err != nil {
-				c.Ui.Error(fmt.Sprintf("Error! Could not get current key: %s", err))
-				return 1
-			}
-			if currentPair != nil {
-				pair.ModifyIndex = currentPair.ModifyIndex
-			}
-		}
-
 		ok, _, err := client.KV().CAS(pair, wo)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error! Did not write to %s: %s", key, err))

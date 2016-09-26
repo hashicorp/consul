@@ -37,6 +37,10 @@ func TestKVPutCommand_Validation(t *testing.T) {
 			[]string{"-release", "foo"},
 			"Missing -session",
 		},
+		"-cas no -modify-index": {
+			[]string{"-cas", "foo"},
+			"Must specify -modify-index",
+		},
 		"no key": {
 			[]string{},
 			"Missing KEY argument",
@@ -220,35 +224,6 @@ func TestKVPutCommand_Flags(t *testing.T) {
 }
 
 func TestKVPutCommand_CAS(t *testing.T) {
-	srv, client := testAgentWithAPIClient(t)
-	defer srv.Shutdown()
-	waitForLeader(t, srv.httpAddr)
-
-	ui := new(cli.MockUi)
-	c := &KVPutCommand{Ui: ui}
-
-	args := []string{
-		"-http-addr=" + srv.httpAddr,
-		"-cas",
-		"foo", "a",
-	}
-
-	code := c.Run(args)
-	if code != 0 {
-		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
-	}
-
-	data, _, err := client.KV().Get("foo", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(data.Value, []byte("a")) {
-		t.Errorf("bad: %#v", data.Value)
-	}
-}
-
-func TestKVPutCommand_CASModifyIndex(t *testing.T) {
 	srv, client := testAgentWithAPIClient(t)
 	defer srv.Shutdown()
 	waitForLeader(t, srv.httpAddr)

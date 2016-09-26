@@ -10,8 +10,8 @@ Command: `consul kv put`
 
 The `kv put` command writes the data to the given path in the key-value store.
 The data can be of any type, but it will be transported as a base64-encoded
-string for safe transport. The client will transparently handle the encoding
-and decoding of these values.
+string for safe transport during reads. The client will transparently handle the
+encoding and decoding of these values.
 
 ## Usage
 
@@ -36,8 +36,7 @@ Usage: `consul kv put [options] KEY [DATA]`
   for their use case. The default value is 0 (no flags).
 
 * `-modify-index=<int>` - Unsigned integer representing the ModifyIndex of the
-  key. This is often combined with the -cas flag, but it can be specified for
-  any key. The default value is 0.
+  key. This is used in combination with the -cas flag.
 
 * `-release` - Forfeit the lock on the key at the givne path. This requires the
   -session flag to be set. The key must be held by the session in order to be
@@ -104,15 +103,6 @@ $ consul kv put -cas -modify-index=123 redis/config/connections 10
 Error! Did not write to redis/config/connections: CAS failed
 
 $ consul kv put -cas -modify-index=456 redis/config/connections 10
-Success! Data written to: redis/config/connections
-```
-
-It is also possible to have Consul fetch the current ModifyIndex before making
-the query, by omitting the `-modify-index` flag. If the data is changed between
-the initial read and the write, the operation will fail.
-
-```
-$ consul kv put -cas redis/config/connections 10
 Success! Data written to: redis/config/connections
 ```
 
