@@ -9,6 +9,8 @@ language: go
 go:
   - 1.6
 
+go_import_path: github.com/miekg/coredns
+
 # In the Travis VM-based build environment, IPv6 networking is not
 # enabled by default. The sysctl operations below enable IPv6.
 # IPv6 is needed by some of the CoreDNS test cases. The VM environment
@@ -24,12 +26,6 @@ before_install:
   - env
 
 before_script:
-  # Fix repo pathname for golang imports.
-  #   When building in a forked repo the import path will be incorrect.
-  #   Fix is to detect this case and create a symbolic link for the real import name.
-  #   Note: This assumes that both the upstream "real" repo and the fork are hosted
-  #         at the same domain. (eg. github.com)
-  - ( export UPSTREAM="miekg/coredns" && export REPONAME=`pwd | rev | cut -d "/" -f 1-2 | rev` && test "$REPO" != "$UPSTREAM" && mkdir -p ../../`echo $UPSTREAM | cut -d "/" -f 1` && ln -s ../$REPONAME ../../$UPSTREAM )
   # Download etcd, unpack and launch
   - curl -L  https://github.com/coreos/etcd/releases/download/v2.3.1/etcd-v2.3.1-linux-amd64.tar.gz -o etcd-v2.3.1-linux-amd64.tar.gz
   - tar xzvf etcd-v2.3.1-linux-amd64.tar.gz
