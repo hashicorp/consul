@@ -1,5 +1,5 @@
 GIT
-  remote: git://github.com/hashicorp/middleman-hashicorp.git
+  remote: https://github.com/hashicorp/middleman-hashicorp.git
   revision: 80ddc227b26cbbb3742d14396f26172174222080
   specs:
     middleman-hashicorp (0.2.0)
@@ -191,4 +191,4 @@ DEPENDENCIES
   middleman-hashicorp!
 
 BUNDLED WITH
-   1.11.2
+   1.13.1
