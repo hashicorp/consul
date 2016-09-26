@@ -59,6 +59,12 @@ func init() {
 			}, nil
 		},
 
+		"kv delete": func() (cli.Command, error) {
+			return &command.KVDeleteCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"kv get": func() (cli.Command, error) {
 			return &command.KVGetCommand{
 				Ui: ui,
