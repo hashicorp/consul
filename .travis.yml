@@ -42,8 +42,7 @@ script:
   - go test -tags etcd -race -bench=. ./...
   # Run kubernetes integration tests only if kubectl is available. i.e. If kubernetes was launched
   - ./contrib/kubernetes/testscripts/kubectl version && go test -v -tags k8s -race -bench=. -run 'TestK8sIntegration' ./test
-  # go cannot use test profile flag with multiple packages so we have to iterate, the following might be consolidated with the above steps.
-  - ./.coverage.sh
+  - make coverage
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
