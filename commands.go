@@ -65,6 +65,12 @@ func init() {
 			}, nil
 		},
 
+		"kv put": func() (cli.Command, error) {
+			return &command.KVPutCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"join": func() (cli.Command, error) {
 			return &command.JoinCommand{
 				Ui: ui,
