@@ -27,6 +27,7 @@ usage: consul [--version] [--help] <command> [<args>]
 
 Available commands are:
     agent          Runs a Consul agent
+    configtest     Validate config file
     event          Fire a new event
     exec           Executes a command on Consul nodes
     force-leave    Forces a member of the cluster to enter the "left" state
@@ -34,8 +35,10 @@ Available commands are:
     join           Tell Consul agent to join cluster
     keygen         Generates a new encryption key
     keyring        Manages gossip layer encryption keys
+    kv             Interact with the key-value store
     leave          Gracefully leaves the Consul cluster and shuts down
     lock           Execute a command holding a lock
+    maint          Controls node or service maintenance mode
     members        Lists the members of a Consul cluster
     monitor        Stream logs from a Consul agent
     operator       Provides cluster-level tools for Consul operators
