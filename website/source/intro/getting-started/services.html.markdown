@@ -41,7 +41,7 @@ we'll give it a tag we can use as an additional way to query the service:
 
 ```text
 $ echo '{"service": {"name": "web", "tags": ["rails"], "port": 80}}' \
-    >/etc/consul.d/web.json
+    | sudo tee /etc/consul.d/web.json
 ```
 
 Now, restart the agent, providing the configuration directory:
