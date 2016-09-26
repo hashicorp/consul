@@ -1,5 +1,5 @@
 GIT
-  remote: git://github.com/hashicorp/middleman-hashicorp.git
+  remote: https://github.com/hashicorp/middleman-hashicorp.git
   revision: 80ddc227b26cbbb3742d14396f26172174222080
   specs:
     middleman-hashicorp (0.2.0)
@@ -124,7 +124,7 @@ GEM
       mime-types-data (~> 3.2015)
     mime-types-data (3.2016.0521)
     mini_portile2 (2.1.0)
-    minitest (5.9.0)
+    minitest (5.9.1)
     multi_json (1.12.1)
     nokogiri (1.6.8)
       mini_portile2 (~> 2.1.0)
@@ -191,4 +191,4 @@ DEPENDENCIES
   middleman-hashicorp!
 
 BUNDLED WITH
-   1.11.2
+   1.13.1

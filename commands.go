@@ -53,6 +53,30 @@ func init() {
 			}, nil
 		},
 
+		"kv": func() (cli.Command, error) {
+			return &command.KVCommand{
+				Ui: ui,
+			}, nil
+		},
+
+		"kv delete": func() (cli.Command, error) {
+			return &command.KVDeleteCommand{
+				Ui: ui,
+			}, nil
+		},
+
+		"kv get": func() (cli.Command, error) {
+			return &command.KVGetCommand{
+				Ui: ui,
+			}, nil
+		},
+
+		"kv put": func() (cli.Command, error) {
+			return &command.KVPutCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"join": func() (cli.Command, error) {
 			return &command.JoinCommand{
 				Ui: ui,
