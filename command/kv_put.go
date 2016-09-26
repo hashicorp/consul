@@ -27,8 +27,7 @@ func (c *KVPutCommand) Help() string {
 Usage: consul kv put [options] KEY [DATA]
 
   Writes the data to the given path in the key-value store. The data can be of
-  any type, but it will be transported as a base64-encoded string for safe
-  transport:
+  any type.
 
       $ consul kv put config/redis/maxconns 5
 
@@ -36,6 +35,10 @@ Usage: consul kv put [options] KEY [DATA]
   symbol. For example:
 
       $ consul kv put config/program/license @license.lic
+
+  Or it can be read from stdin using the "-" symbol:
+
+      $ echo "abcd1234" | consul kv put config/program/license -
 
   The DATA argument itself is optional. If omitted, this will create an empty
   key-value pair at the specified path:
