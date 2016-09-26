@@ -2,8 +2,6 @@ package command
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/command/agent"
-	"github.com/hashicorp/consul/consul"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -12,6 +10,10 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/agent"
+	"github.com/hashicorp/consul/consul"
 )
 
 var offset uint64
@@ -40,6 +42,15 @@ func (a *agentWrapper) Shutdown() {
 
 func testAgent(t *testing.T) *agentWrapper {
 	return testAgentWithConfig(t, func(c *agent.Config) {})
+}
+
+func testAgentWithAPIClient(t *testing.T) (*agentWrapper, *api.Client) {
+	agent := testAgentWithConfig(t, func(c *agent.Config) {})
+	client, err := api.NewClient(&api.Config{Address: agent.httpAddr})
+	if err != nil {
+		t.Fatalf("consul client: %#v", err)
+	}
+	return agent, client
 }
 
 func testAgentWithConfig(t *testing.T, cb func(c *agent.Config)) *agentWrapper {
