@@ -21,9 +21,8 @@ Usage: `consul kv delete [options] KEY_OR_PREFIX`
 
 #### KV Delete Options
 
-* `-cas` - Perform a Check-And-Set operation. If this value is specified without
-  -modify-index, the key will first be fetched and the resulting ModifyIndex
-  will be used on the next query. The default value is false.
+* `-cas` - Perform a Check-And-Set operation. Specifying this value also
+  requires the -modify-index flag to be set. The default value is false.
 
 * `-modify-index=<int>` - Unsigned integer representing the ModifyIndex of the
   key. This is used in combination with the -cas flag.
