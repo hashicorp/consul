@@ -19,7 +19,9 @@ type KVPair struct {
 	// is a read-only field.
 	CreateIndex uint64
 
-	// ModifyIndex is used for the Check-And-Set operations.
+	// ModifyIndex is used for the Check-And-Set operations and can also be fed
+	// back into the WaitIndex of the QueryOptions in order to perform blocking
+	// queries.
 	ModifyIndex uint64
 
 	// LockIndex holds the index corresponding to a lock on this key, if any. This
