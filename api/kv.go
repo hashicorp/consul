@@ -36,7 +36,7 @@ type KVPair struct {
 	// base64 encoded upon transport.
 	Value []byte
 
-	// Session is a string representing the ID of the session. Any othe
+	// Session is a string representing the ID of the session. Any other
 	// interactions with this key over the same session must specify the same
 	// session ID.
 	Session string
