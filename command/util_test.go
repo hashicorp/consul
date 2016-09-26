@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/agent"
 	"github.com/hashicorp/consul/consul"
+	"github.com/mitchellh/cli"
 )
 
 var offset uint64
@@ -136,4 +138,10 @@ func nextConfig() *agent.Config {
 	cons.RaftConfig.ElectionTimeout = 40 * time.Millisecond
 
 	return conf
+}
+
+func assertNoTabs(t *testing.T, c cli.Command) {
+	if strings.ContainsRune(c.Help(), '\t') {
+		t.Errorf("%#v help output contains tabs", c)
+	}
 }

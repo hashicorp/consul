@@ -53,6 +53,12 @@ func init() {
 			}, nil
 		},
 
+		"kv": func() (cli.Command, error) {
+			return &command.KVCommand{
+				Ui: ui,
+			}, nil
+		},
+
 		"join": func() (cli.Command, error) {
 			return &command.JoinCommand{
 				Ui: ui,
