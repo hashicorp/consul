@@ -246,7 +246,7 @@ func TestKVGetCommand_Recurse(t *testing.T) {
 	output := ui.OutputWriter.String()
 	for key, value := range keys {
 		if !strings.Contains(output, key+":"+value) {
-			t.Fatalf("bad %#v missing %q", output, key+"adafa")
+			t.Fatalf("bad %#v missing %q", output, key)
 		}
 	}
 }
