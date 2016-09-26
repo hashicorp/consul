@@ -171,6 +171,14 @@ body.layout-intro{
   padding-left: 3%;
   padding-bottom: 80px;
 
+  .alert {
+    a {
+      color: inherit;
+      font-size: inherit;
+      font-weight: inherit;
+    }
+  }
+
   .lead{
     margin-bottom: 48px
   }
