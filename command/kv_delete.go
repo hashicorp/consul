@@ -43,8 +43,7 @@ KV Delete Options:
                           the next query. The default value is false.
 
   -modify-index=<int>     Unsigned integer representing the ModifyIndex of the
-                          key. This is often combined with the -cas flag, but it
-                          can be specified for any key. The default value is 0.
+                          key. This is used in combination with the -cas flag.
 
   -recurse                Recursively delete all keys with the path. The default
                           value is false.
@@ -57,7 +56,6 @@ func (c *KVDeleteCommand) Run(args []string) int {
 	cmdFlags.Usage = func() { c.Ui.Output(c.Help()) }
 	datacenter := cmdFlags.String("datacenter", "", "")
 	token := cmdFlags.String("token", "", "")
-	stale := cmdFlags.Bool("stale", false, "")
 	cas := cmdFlags.Bool("cas", false, "")
 	modifyIndex := cmdFlags.Uint64("modify-index", 0, "")
 	recurse := cmdFlags.Bool("recurse", false, "")
@@ -94,13 +92,20 @@ func (c *KVDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
+	// ModifyIndex is required for CAS
+	if *cas && *modifyIndex == 0 {
+		c.Ui.Error("Must specify -modify-index with -cas!")
+		return 1
+	}
+
+	// Specifying a ModifyIndex for a non-CAS operation is not possible.
+	if *modifyIndex != 0 && !*cas {
+		c.Ui.Error("Cannot specify -modify-index without -cas!")
+	}
+
 	// It is not valid to use a CAS and recurse in the same call
 	if *recurse && *cas {
 		c.Ui.Error("Cannot specify both -cas and -recurse!")
-		return 1
-	}
-	if *recurse && *modifyIndex != 0 {
-		c.Ui.Error("Cannot specify both -modify-index and -recurse!")
 		return 1
 	}
 
@@ -131,23 +136,6 @@ func (c *KVDeleteCommand) Run(args []string) int {
 		pair := &api.KVPair{
 			Key:         key,
 			ModifyIndex: *modifyIndex,
-		}
-
-		// If the user did not supply a -modify-index, but wants a check-and-set,
-		// grab the current modify index and store that on the key.
-		if pair.ModifyIndex == 0 {
-			currentPair, _, err := client.KV().Get(key, &api.QueryOptions{
-				Datacenter: *datacenter,
-				Token:      *token,
-				AllowStale: *stale,
-			})
-			if err != nil {
-				c.Ui.Error(fmt.Sprintf("Error! Could not get current key: %s", err))
-				return 1
-			}
-			if currentPair != nil {
-				pair.ModifyIndex = currentPair.ModifyIndex
-			}
 		}
 
 		success, _, err := client.KV().DeleteCAS(pair, wo)

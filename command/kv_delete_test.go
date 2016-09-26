@@ -1,6 +1,7 @@
 package command
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -25,12 +26,16 @@ func TestKVDeleteCommand_Validation(t *testing.T) {
 		output string
 	}{
 		"-cas and -recurse": {
-			[]string{"-cas", "-recurse"},
+			[]string{"-cas", "-modify-index", "2", "-recurse", "foo"},
 			"Cannot specify both",
 		},
-		"-modify-index and -recurse": {
-			[]string{"-modify-index", "2", "-recurse"},
-			"Cannot specify both",
+		"-cas no -modify-index": {
+			[]string{"-cas", "foo"},
+			"Must specify -modify-index",
+		},
+		"-modify-index no -cas": {
+			[]string{"-modify-index", "2", "foo"},
+			"Cannot specify -modify-index without",
 		},
 		"no key": {
 			[]string{},
@@ -139,5 +144,64 @@ func TestKVDeleteCommand_Recurse(t *testing.T) {
 		if pair != nil {
 			t.Fatalf("bad: %#v", pair)
 		}
+	}
+}
+
+func TestKVDeleteCommand_CAS(t *testing.T) {
+	srv, client := testAgentWithAPIClient(t)
+	defer srv.Shutdown()
+	waitForLeader(t, srv.httpAddr)
+
+	ui := new(cli.MockUi)
+	c := &KVDeleteCommand{Ui: ui}
+
+	pair := &api.KVPair{
+		Key:   "foo",
+		Value: []byte("bar"),
+	}
+	_, err := client.KV().Put(pair, nil)
+	if err != nil {
+		t.Fatalf("err: %#v", err)
+	}
+
+	args := []string{
+		"-http-addr=" + srv.httpAddr,
+		"-cas",
+		"-modify-index", "1",
+		"foo",
+	}
+
+	code := c.Run(args)
+	if code == 0 {
+		t.Fatalf("bad: expected error")
+	}
+
+	data, _, err := client.KV().Get("foo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Reset buffers
+	ui.OutputWriter.Reset()
+	ui.ErrorWriter.Reset()
+
+	args = []string{
+		"-http-addr=" + srv.httpAddr,
+		"-cas",
+		"-modify-index", strconv.FormatUint(data.ModifyIndex, 10),
+		"foo",
+	}
+
+	code = c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+
+	data, _, err = client.KV().Get("foo", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data != nil {
+		t.Fatalf("bad: %#v", data)
 	}
 }

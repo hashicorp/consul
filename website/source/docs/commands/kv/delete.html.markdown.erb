@@ -26,8 +26,7 @@ Usage: `consul kv delete [options] KEY_OR_PREFIX`
   will be used on the next query. The default value is false.
 
 * `-modify-index=<int>` - Unsigned integer representing the ModifyIndex of the
-  key. This is often combined with the -cas flag, but it can be specified for
-  any key. The default value is 0.
+  key. This is used in combination with the -cas flag.
 
 * `-recurse` - Recursively delete all keys with the path. The default value is
   false.
@@ -61,15 +60,6 @@ $ consul kv delete -cas -modify-index=123 redis/config/connections
 Error! Did not delete key redis/config/connections: CAS failed
 
 $ consul kv delete -cas -modify-index=456 redis/config/connections
-Success! Deleted key: redis/config/connections
-```
-
-It is also possible to have Consul fetch the current ModifyIndex before making
-the query, by omitting the `-modify-index` flag. If the data is changed between
-the initial read and the write, the operation will fail.
-
-```
-$ consul kv delete -cas redis/config/connections
 Success! Deleted key: redis/config/connections
 ```
 
