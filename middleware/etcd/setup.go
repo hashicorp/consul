@@ -100,7 +100,6 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 							args[i] = h + ":53"
 						}
 					}
-					endpoints = args
 					etc.Proxy = proxy.New(args)
 				case "tls": // cert key cacertfile
 					args := c.RemainingArgs()
@@ -108,6 +107,10 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 						return &Etcd{}, false, c.ArgErr()
 					}
 					tlsCertFile, tlsKeyFile, tlsCAcertFile = args[0], args[1], args[2]
+				default:
+					if c.Val() != "}" {
+						return &Etcd{}, false, c.Errf("unknown property '%s'", c.Val())
+					}
 				}
 				for c.Next() {
 					switch c.Val() {
@@ -144,14 +147,20 @@ func etcdParse(c *caddy.Controller) (*Etcd, bool, error) {
 							return &Etcd{}, false, c.ArgErr()
 						}
 						tlsCertFile, tlsKeyFile, tlsCAcertFile = args[0], args[1], args[2]
+					default:
+						if c.Val() != "}" { // TODO(miek): this feels like I'm doing it completely wrong.
+							return &Etcd{}, false, c.Errf("unknown property '%s'", c.Val())
+						}
 					}
 				}
+
 			}
 			client, err := newEtcdClient(endpoints, tlsCertFile, tlsKeyFile, tlsCAcertFile)
 			if err != nil {
 				return &Etcd{}, false, err
 			}
 			etc.Client = client
+			etc.endpoints = endpoints
 			return &etc, stubzones, nil
 		}
 	}

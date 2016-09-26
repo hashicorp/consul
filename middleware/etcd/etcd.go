@@ -27,6 +27,8 @@ type Etcd struct {
 	Inflight   *singleflight.Group
 	Stubmap    *map[string]proxy.Proxy // list of proxies for stub resolving.
 	Debug      bool                    // Do we allow debug queries.
+
+	endpoints []string // Stored here as well, to aid in testing.
 }
 
 // Records looks up records in etcd. If exact is true, it will lookup just
