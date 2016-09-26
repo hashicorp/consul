@@ -5,7 +5,7 @@ set -e
 # Based on instructions at: http://kubernetes.io/docs/getting-started-guides/docker/
 
 #K8S_VERSION=$(curl -sS https://storage.googleapis.com/kubernetes-release/release/latest.txt)
-K8S_VERSION="v1.3.7"
+K8S_VERSION=${K8S_VERSION:-"1.3.7"}
 
 ARCH="amd64"
 
@@ -32,7 +32,7 @@ docker run -d \
     --net=host \
     --pid=host \
     --privileged \
-    gcr.io/google_containers/hyperkube-${ARCH}:${K8S_VERSION} \
+    gcr.io/google_containers/hyperkube-${ARCH}:v${K8S_VERSION} \
     /hyperkube kubelet \
     --containerized \
     --hostname-override=127.0.0.1 \

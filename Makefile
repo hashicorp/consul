@@ -1,7 +1,5 @@
-#BUILD_VERBOSE :=
 BUILD_VERBOSE := -v
 
-#TEST_VERBOSE :=
 TEST_VERBOSE := -v
 
 DOCKER_IMAGE_NAME := $$USER/coredns
@@ -29,24 +27,17 @@ test: deps
 
 .PHONY: testk8s
 testk8s: deps
-	# With -args --v=100 the k8s API response data will be printed in the log:
-	#go test $(TEST_VERBOSE) -tags=k8s -run 'TestK8sIntegration' ./test -args --v=100
-	# Without the k8s API response data:
-	go test $(TEST_VERBOSE) -tags=k8s -run 'TestK8sIntegration' ./test
-
-.PHONY: testk8s-setup
-testk8s-setup: deps
-	go test -v ./middleware/kubernetes/... -run TestKubernetes
+	go test $(TEST_VERBOSE) -tags=k8s -run 'TestKubernetes' ./test ./middleware/kubernetes/...
 
 .PHONY: coverage
 coverage: deps
 	set -e -x
 	echo "" > coverage.txt
 	for d in `go list ./... | grep -v vendor`; do \
-		go test -race -coverprofile=profile.out -covermode=atomic $$d; \
-		if [ -f profile.out ]; then \
-			cat profile.out >> coverage.txt; \
-			rm profile.out; \
+		go test $(TEST_VERBOSE)  -tags 'etcd k8s' -race -coverprofile=cover.out -covermode=atomic -bench=. $$d || exit 1; \
+		if [ -f cover.out ]; then \
+			cat cover.out >> coverage.txt; \
+			rm cover.out; \
 		fi; \
 	done
 
