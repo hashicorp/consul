@@ -86,7 +86,7 @@ Here is an example configuration:
 
 Or, using the watch command:
 
-    $ consul watch -type key -key foo/bar/baz /usr/bin/my-key-handler.sh
+    $ consul watch -type=key -key=foo/bar/baz /usr/bin/my-key-handler.sh
 
 An example of the output of this command:
 
@@ -123,7 +123,7 @@ Here is an example configuration:
 
 Or, using the watch command:
 
-    $ consul watch -type keyprefix -prefix foo/ /usr/bin/my-prefix-handler.sh
+    $ consul watch -type=keyprefix -prefix=foo/ /usr/bin/my-prefix-handler.sh
 
 An example of the output of this command:
 
@@ -237,7 +237,7 @@ Here is an example configuration:
 
 Or, using the watch command:
 
-    $ consul watch -type service -service redis /usr/bin/my-service-handler.sh
+    $ consul watch -type=service -service=redis /usr/bin/my-service-handler.sh
 
 An example of the output of this command:
 
@@ -328,7 +328,7 @@ Here is an example configuration:
 
 Or, using the watch command:
 
-    $ consul watch -type event -name web-deploy /usr/bin/my-deploy-handler.sh
+    $ consul watch -type=event -name=web-deploy /usr/bin/my-deploy-handler.sh
 
 An example of the output of this command:
 
@@ -350,4 +350,4 @@ An example of the output of this command:
 
 To fire a new `web-deploy` event the following could be used:
 
-    $ consul event -name web-deploy 1609030
+    $ consul event -name=web-deploy 1609030
