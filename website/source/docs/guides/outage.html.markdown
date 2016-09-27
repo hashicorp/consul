@@ -24,7 +24,7 @@ add or remove a server, [see this guide](/docs/guides/servers.html).
 If you had only a single server and it has failed, simply restart it.
 Note that a single server configuration requires the
 [`-bootstrap`](/docs/agent/options.html#_bootstrap) or
-[`-bootstrap-expect 1`](/docs/agent/options.html#_bootstrap_expect) flag. If
+[`-bootstrap-expect=1`](/docs/agent/options.html#_bootstrap_expect) flag. If
 the server cannot be recovered, you need to bring up a new server.
 See the [bootstrapping guide](/docs/guides/bootstrapping.html) for more detail.
 

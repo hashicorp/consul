@@ -34,7 +34,7 @@ the output of [`consul agent`](/docs/commands/agent.html) will include "Encrypte
 $ cat encrypt.json
 {"encrypt": "cg8StVXbQJ0gPvMd9o7yrg=="}
 
-$ consul agent -data-dir=/tmp/consul -config-file encrypt.json
+$ consul agent -data-dir=/tmp/consul -config-file=encrypt.json
 ==> WARNING: LAN keyring exists but -encrypt given, using keyring
 ==> WARNING: WAN keyring exists but -encrypt given, using keyring
 ==> Starting Consul agent...
@@ -93,4 +93,3 @@ also disallow any non-TLS connections. To force clients to use TLS,
 
 TLS is used to secure the RPC calls between agents, but gossip between nodes is done over UDP
 and is secured using a symmetric key. See above for enabling gossip encryption.
-
