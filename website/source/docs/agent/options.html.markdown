@@ -92,8 +92,7 @@ The options below are all specified on the command-line.
 * <a name="_bind"></a><a href="#_bind">`-bind`</a> - The address that should be bound to
   for internal cluster communications.
   This is an IP address that should be reachable by all other nodes in the cluster.
-  By default, this is "0.0.0.0", meaning Consul will use the first available private
-  IPv4 address. If you specify "[::]", Consul will use the first available public IPv6 address.
+  By default, this is "0.0.0.0", meaning Consul will use all IPv4 addresses on the local machine. If you specify "[::]", Consul will use the first available public IPv6 address.
   Consul uses both TCP and UDP and the same port for both. If you
   have any firewalls, be sure to allow both protocols.
 
