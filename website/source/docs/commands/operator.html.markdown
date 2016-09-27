@@ -52,7 +52,7 @@ Two actions are available, as detailed in this section.
 #### Display Peer Configuration
 This action displays the current Raft peer configuration.
 
-Usage: `raft -list-peers -stale=[true|false]`
+Usage: `consul operator raft -list-peers -stale=[true|false]`
 
 * `-stale` - Optional and defaults to "false" which means the leader provides
 the result. If the cluster is in an outage state without a leader, you may need
@@ -94,7 +94,7 @@ clean up by simply running
 [`consul force-leave`](/docs/commands/force-leave.html)
 instead of this command.
 
-Usage: `raft -remove-peer -address="IP:port"`
+Usage: `consul operator raft -remove-peer -address="IP:port"`
 
 * `-address` - "IP:port" for the server to remove. The port number is usually
 8300, unless configured otherwise.
