@@ -57,7 +57,7 @@ We will also specify a [`bind` address](/docs/agent/options.html#_bind):
 this is the address that Consul listens on, and it *must* be accessible by
 all other nodes in the cluster. While a `bind` address is not strictly
 necessary, it's always best to provide one. Consul will by default attempt to
-listen on the first private IP on a system, but will fail to start with an
+listen on all IPv4 interfaces on a system, but will fail to start with an
 error if multiple private IPs are found. Since production servers often
 have multiple interfaces, specifying a `bind` address assures that you will
 never bind Consul to the wrong interface.
