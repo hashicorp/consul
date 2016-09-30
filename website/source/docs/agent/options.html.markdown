@@ -395,9 +395,9 @@ Consul will not enable TLS for the HTTP API unless the `https` port has been ass
   can also place the desired values in `CONSUL_RPC_ADDR` and `CONSUL_HTTP_ADDR`
   environment variables.
   <br><br>
-  For TCP addresses, these should simply be an IP address without the port. For
-  example: `10.0.0.1`, not `10.0.0.1:8500`. Ports are set separately in the
-  <a href="#ports">`ports`</a> structure.
+  For TCP addresses, the variable values should be an IP address with the port. For
+  example: `10.0.0.1:8500` and not `10.0.0.1`. However, ports are set separately in the
+  <a href="#ports">`ports`</a> structure when defining them in a configuration file.
   <br><br>
   The following keys are valid:
   * `dns` - The DNS server. Defaults to `client_addr`
