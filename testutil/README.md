@@ -52,6 +52,9 @@ func TestMain(t *testing.T) {
 	// Create a service
 	srv1.AddService("redis", structs.HealthPassing, []string{"master"})
 
+	// Create a service that will be accessed in target source code
+	srv1.AddAccessibleService("redis", structs.HealthPassing, "127.0.0.1", 6379, []string{"master"})
+
 	// Create a service check
 	srv1.AddCheck("service:redis", "redis", structs.HealthPassing)
 
