@@ -56,6 +56,10 @@ func (w *WrappedServer) AddService(name, status string, tags []string) {
 	w.s.AddService(w.t, name, status, tags)
 }
 
+func (w *WrappedServer) AddAddressableService(name, status, address string, port int, tags []string) {
+	w.s.AddAddressableService(w.t, name, status, address, port, tags)
+}
+
 func (w *WrappedServer) AddCheck(name, serviceID, status string) {
 	w.s.AddCheck(w.t, name, serviceID, status)
 }
