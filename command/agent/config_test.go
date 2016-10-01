@@ -179,13 +179,22 @@ func TestDecodeConfig(t *testing.T) {
 	}
 
 	// Server addrs
-	input = `{"ports": {"server": 8000}, "bind_addr": "127.0.0.2", "advertise_addr": "127.0.0.3"}`
+	input = `{"ports": {"server": 8000}, "bind_addr": "127.0.0.2", "advertise_addr": "127.0.0.3", "serf_lan_bind": "127.0.0.4", "serf_wan_bind": "52.54.55.56"}`
 	config, err = DecodeConfig(bytes.NewReader([]byte(input)))
+
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	if config.BindAddr != "127.0.0.2" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.SerfWanBindAddr != "52.54.55.56" {
+		t.Fatalf("bad: %#v", config)
+	}
+
+	if config.SerfLanBindAddr != "127.0.0.4" {
 		t.Fatalf("bad: %#v", config)
 	}
 

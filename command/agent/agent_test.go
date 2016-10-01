@@ -47,6 +47,8 @@ func nextConfig() *Config {
 	conf.Datacenter = "dc1"
 	conf.NodeName = fmt.Sprintf("Node %d", idx)
 	conf.BindAddr = "127.0.0.1"
+	conf.SerfLanBindAddr = "127.0.0.1"
+	conf.SerfWanBindAddr = "127.0.0.1"
 	conf.Ports.DNS = basePortNumber + idx + portOffsetDNS
 	conf.Ports.HTTP = basePortNumber + idx + portOffsetHTTP
 	conf.Ports.RPC = basePortNumber + idx + portOffsetRPC
@@ -124,6 +126,23 @@ func makeAgent(t *testing.T, conf *Config) (string, *Agent) {
 	return makeAgentLog(t, conf, nil)
 }
 
+func externalIp() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		fmt.Errorf("Unable to lookup network interfaces: %v", err)
+		return "", err
+	}
+	var extIp string
+	for _, a := range addrs {
+		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				extIp = ipnet.IP.String()
+			}
+		}
+	}
+	return extIp, nil
+}
+
 func TestAgentStartStop(t *testing.T) {
 	dir, agent := makeAgent(t, nextConfig())
 	defer os.RemoveAll(dir)
@@ -154,6 +173,28 @@ func TestAgent_RPCPing(t *testing.T) {
 	}
 }
 
+func TestAgent_CheckSerfBindAddrsSettings(t *testing.T) {
+	c := nextConfig()
+	eIp, err := externalIp()
+	if err != nil {
+		t.Fatalf("Unable to get a non-loopback IP: %v", err)
+	}
+	c.SerfLanBindAddr = eIp
+	c.SerfWanBindAddr = eIp
+	dir, agent := makeAgent(t, c)
+	defer os.RemoveAll(dir)
+	defer agent.Shutdown()
+
+	serfWanBind := agent.consulConfig().SerfWANConfig.MemberlistConfig.BindAddr
+	if serfWanBind == "127.0.0.1" {
+		t.Fatalf("SerfWanBindAddr is should be a non-loopback IP not %s", serfWanBind)
+	}
+
+	serfLanBind := agent.consulConfig().SerfLANConfig.MemberlistConfig.BindAddr
+	if serfLanBind == "127.0.0.1" {
+		t.Fatalf("SerfLanBindAddr is should be a non-loopback IP not %s", serfWanBind)
+	}
+}
 func TestAgent_CheckAdvertiseAddrsSettings(t *testing.T) {
 	c := nextConfig()
 	c.AdvertiseAddrs.SerfLan, _ = net.ResolveTCPAddr("tcp", "127.0.0.42:1233")
