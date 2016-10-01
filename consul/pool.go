@@ -248,8 +248,8 @@ func (p *ConnPool) acquire(dc string, addr net.Addr, version int) (*Conn, error)
 	return nil, fmt.Errorf("rpc error: lead thread didn't get connection")
 }
 
-// getNewConn is used to return a new connection
-func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, error) {
+// Dial is used to establish a raw connection to the given server.
+func (p *ConnPool) Dial(dc string, addr net.Addr) (net.Conn, error) {
 	// Try to dial the conn
 	conn, err := net.DialTimeout("tcp", addr.String(), 10*time.Second)
 	if err != nil {
@@ -277,6 +277,17 @@ func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, err
 			return nil, err
 		}
 		conn = tlsConn
+	}
+
+	return conn, nil
+}
+
+// getNewConn is used to return a new connection
+func (p *ConnPool) getNewConn(dc string, addr net.Addr, version int) (*Conn, error) {
+	// Get a new, raw connection.
+	conn, err := p.Dial(dc, addr)
+	if err != nil {
+		return nil, err
 	}
 
 	// Switch the multiplexing based on version

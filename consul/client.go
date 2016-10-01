@@ -2,6 +2,7 @@ package consul
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -332,6 +333,29 @@ func (c *Client) RPC(method string, args interface{}, reply interface{}) error {
 		c.servers.NotifyFailedServer(server)
 		c.logger.Printf("[ERR] consul: RPC failed to server %s: %v", server.Addr, err)
 		return err
+	}
+
+	return nil
+}
+
+// XXX TODO
+func (c *Client) SnapshotRPC(args *structs.SnapshotRequest, in io.Reader, out io.Writer) error {
+	server := c.servers.FindServer()
+	if server == nil {
+		return structs.ErrNoServers
+	}
+
+	snap, err := SnapshotRPC(c.config.Datacenter, server.Addr, c.connPool, args, in)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := snap.Close(); err != nil {
+			c.logger.Printf("[ERR] consul: Failed to close snapshot: %v", err)
+		}
+	}()
+	if _, err := io.Copy(out, snap); err != nil {
+		return fmt.Errorf("failed to stream snapshot: %v", err)
 	}
 
 	return nil
